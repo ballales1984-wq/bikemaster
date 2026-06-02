@@ -1,0 +1,14 @@
+{
+  "name": "bikemaster",
+  "version": "1.0.0",
+  "description": "A modern application for bike management and tracking",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node src/index.js",
+    "build": "echo \"No build script configured yet\"",
+    "start": "node src/index.js"
+  },
+  "keywords": ["bike", "management", "tracking"],
+  "author": "",
+  "license": "MIT"
+}

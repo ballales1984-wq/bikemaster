@@ -1,34 +1,15 @@
 # BikeMaster
 
-A modern application for bike management and tracking.
+**GPS Analytics System for Cycling Performance**
 
-## Getting Started
+> ...content...
 
-### Prerequisites
 
-- Node.js (v18 or higher recommended)
-- npm or yarn
+## CLI
 
-### Installation
-
-```bash
-git clone https://github.com/ballales1984-wq/bikemaster.git
-cd bikemaster
-npm install
-```
-
-### Development
-
-```bash
-npm run dev
-```
-
-### Building
-
-```bash
-npm run build
-```
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+| command              | desc                                   |
+|----------------------|----------------------------------------|
+| `fast run app`       | start API at http://localhost:8000      |
+| `fast run generate`  | create a demo ride directly           |
+| `fast run format`    | black + isort                          |
+| `fast run tests`     | pytest                                 |

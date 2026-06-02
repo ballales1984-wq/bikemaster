@@ -1,0 +1,18 @@
+{
+  "name": "BikeMaster",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  },
+  "postCreateCommand": "npm install",
+  "forwardPorts": [3000, 5000]
+}
