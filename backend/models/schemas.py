@@ -1,8 +1,14 @@
+"""
+Pydantic schemas for request/response validation.
+Shared across REST API and web frontend.
+"""
+from __future__ import annotations
+
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class SportType(str, Enum):
@@ -21,15 +27,14 @@ class FileFormat(str, Enum):
 
 
 class GPSPointBase(BaseModel):
-    """Single GPS point with all available data"""
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
     elevation: Optional[float] = None
     timestamp: datetime
-    speed: Optional[float] = None  # m/s
+    speed: Optional[float] = None
     heart_rate: Optional[int] = None
     cadence: Optional[int] = None
-    power: Optional[int] = None  # watts
+    power: Optional[int] = None
     temperature: Optional[float] = None
 
 
@@ -45,8 +50,7 @@ class GPSPointResponse(GPSPointBase):
 
 
 class SegmentBase(BaseModel):
-    """Sub-segment of a ride (e.g., between rest stops or speed zones)"""
-    segment_type: str  # "full_ride", "lap", "manual", "speed_zone"
+    segment_type: str
     start_index: int
     end_index: int
     label: Optional[str] = None
@@ -71,7 +75,7 @@ class RideBase(BaseModel):
 
 
 class RideCreate(RideBase):
-    gps_points: list[GPSPointCreate]
+    gps_points: List[GPSPointCreate]
 
 
 class RideUpdate(BaseModel):
@@ -81,7 +85,6 @@ class RideUpdate(BaseModel):
 
 
 class AnalyticsData(BaseModel):
-    """Computed analytics for a ride"""
     ride_id: int
     total_distance_km: float
     total_duration_seconds: float
@@ -113,7 +116,7 @@ class RideResponse(RideBase):
 
 
 class RideListResponse(BaseModel):
-    rides: list[RideResponse]
+    rides: List[RideResponse]
     total: int
     page: int
     page_size: int
@@ -126,9 +129,9 @@ class FileImportRequest(BaseModel):
 
 
 class ComparisonRequest(BaseModel):
-    ride_ids: list[int] = Field(..., min_length=2, max_length=5)
+    ride_ids: List[int] = Field(..., min_length=2, max_length=5)
 
 
 class ComparisonResponse(BaseModel):
-    rides: list[RideResponse]
+    rides: List[RideResponse]
     comparison_summary: dict

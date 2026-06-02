@@ -10,3 +10,7 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 *.log
+__pycache__/
+*.pyc
+route.html
+.vscode/
