@@ -1,28 +1,11 @@
-fastapi>=0.109.0
-uvicorn[standard]>=0.27.0
-sqlalchemy>=2.0.25
-alembic>=1.13.1
-pydantic>=2.5.3
-pydantic-settings>=2.1.0
-
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+sqlalchemy>=2.0.27
+folium>=0.16.0
 pandas>=2.2.0
-numpy>=1.26.3
-scipy>=1.11.4
-
-folium>=0.15.1
-geopandas>=0.14.1
-shapely>=2.0.2
-
-# GPS / fitness file parsers
+numpy>=1.26.4
 fitparse>=1.2.0
 gpxpy>=1.6.2
-tcxtools>=0.0.5
-# google-fit-api >=1.0  # optional - use google-api-python-client
-
-pyproj>=3.6.1
-rtree>=1.1.0
-requests>=2.31.0
-
-python-dotenv>=1.0.0
+python-dotenv>=1.0.1
 pytest>=8.0.0
-pytest-asyncio>=0.23.3
+pytest-asyncio>=0.23.5

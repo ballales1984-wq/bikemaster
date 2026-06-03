@@ -1,0 +1,76 @@
+"""GPS data processing and cleaning module."""
+
+from __future__ import annotations
+from datetime import datetime
+from typing import Optional, Tuple, List
+from ..models.models import GPSPoint, Segment, Pause, RouteStatistics
+
+EARTH_RADIUS_M = 6_371_000
+PAUSE_SPEED_THRESHOLD_KM_H = 1.5
+PAUSE_MIN_DURATION_MINUTES = 3
+
+def haversine_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    import math
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi, dlambda = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
+    return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2))
+
+def detect_pauses(points: List[GPSPoint]) -> List[Pause]:
+    pauses: List[Pause] = []
+    if len(points) < 2: return pauses
+    pause_start: Optional[GPSPoint] = None
+    for i in range(1, len(points)):
+        curr = points[i]
+        if curr.speed is not None and curr.speed < PAUSE_SPEED_THRESHOLD_KM_H:
+            if pause_start is None: pause_start = points[i - 1]
+        else:
+            if pause_start is not None:
+                pause_end = points[i - 1]
+                duration = (pause_end.timestamp - pause_start.timestamp).total_seconds()
+                if duration >= PAUSE_MIN_DURATION_MINUTES * 60: pauses.append(Pause(start=pause_start.timestamp, end=pause_end.timestamp, duration_s=duration))
+                pause_start = None
+    return pauses
+
+def remove_outliers(points: List[GPSPoint], max_speed_km_h: float = 120.0) -> List[GPSPoint]:
+    if len(points) < 3: return points[:]
+    cleaned = [points[0]]
+    for i in range(1, len(points) - 1):
+        prev, curr = cleaned[-1], points[i]
+        time_s = (curr.timestamp - prev.timestamp).total_seconds()
+        if time_s <= 0: continue
+        speed = (haversine_distance_m(prev.lat, prev.lon, curr.lat, curr.lon) / time_s) * 3.6
+        if speed <= max_speed_km_h: cleaned.append(curr)
+    if points[-1] != cleaned[-1]:
+        last = points[-1]
+        time_s = (last.timestamp - cleaned[-1].timestamp).total_seconds()
+        if time_s > 0:
+            speed = (haversine_distance_m(cleaned[-1].lat, cleaned[-1].lon, last.lat, last.lon) / time_s) * 3.6
+            if speed <= max_speed_km_h: cleaned.append(last)
+    return cleaned if len(cleaned) >= 2 else points[:2]
+
+def _elevation_delta(alt_from: Optional[float], alt_to: Optional[float]) -> Tuple[float, float]:
+    if alt_from is None or alt_to is None: return 0.0, 0.0
+    return (alt_to - alt_from, 0.0) if alt_to > alt_from else (0.0, abs(alt_to - alt_from))
+
+def build_segments(points: List[GPSPoint]) -> List[Segment]:
+    segments: List[Segment] = []
+    for i in range(1, len(points)):
+        prev, curr = points[i - 1], points[i]
+        dist_m = haversine_distance_m(prev.lat, prev.lon, curr.lat, curr.lon)
+        duration_s = (curr.timestamp - prev.timestamp).total_seconds()
+        if duration_s <= 0: continue
+        elev_gain, elev_loss = _elevation_delta(prev.altitude, curr.altitude)
+        segments.append(Segment(start=prev, end=curr, distance_m=dist_m, duration_s=duration_s, avg_speed_km_h=(dist_m / duration_s) * 3.6, elevation_gain_m=elev_gain, elevation_loss_m=elev_loss))
+    return segments
+
+def compute_statistics(points: List[GPSPoint]) -> RouteStatistics:
+    segments = build_segments(points)
+    pauses = detect_pauses(points)
+    total_distance_m = sum(s.distance_m for s in segments)
+    total_duration_s = (segments[-1].end.timestamp.timestamp() - segments[0].start.timestamp.timestamp()) if segments else 0.0
+    moving_s = total_duration_s - sum(p.duration_s for p in pauses)
+    return RouteStatistics(total_distance_m=total_distance_m, total_duration_s=total_duration_s, total_pause_duration_s=sum(p.duration_s for p in pauses), avg_speed_km_h=(total_distance_m / moving_s) * 3.6 if moving_s > 0 else 0.0, max_speed_km_h=max((s.avg_speed_km_h for s in segments), default=0.0), total_elevation_gain_m=sum(s.elevation_gain_m for s in segments), total_elevation_loss_m=sum(s.elevation_loss_m for s in segments), segment_count=len(segments), pause_count=len(pauses))
+
+def process_route(points: List[GPSPoint], max_speed_km_h: float = 120.0) -> Tuple[List[GPSPoint], RouteStatistics]:
+    points = sorted(points, key=lambda p: p.timestamp)
+    return remove_outliers(points, max_speed_km_h), compute_statistics(remove_outliers(points, max_speed_km_h))

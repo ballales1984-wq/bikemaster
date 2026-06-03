@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bikemaster"
+version = "0.1.0"
+description = "GPS-based cycling performance intelligence system"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [{name = "BikeMaster"}]
+keywords = ["cycling", "gps", "fitness", "analytics"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "sqlalchemy>=2.0.27",
+    "folium>=0.16.0",
+    "pandas>=2.2.0",
+    "numpy>=1.26.4",
+    "fitparse>=1.2.0",
+    "gpxpy>=1.6.2",
+    "python-dotenv>=1.0.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0", "pytest-asyncio>=0.23.5"]
+
+[project.scripts]
+bikemaster = "bike_analyzer.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bike_analyzer*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
