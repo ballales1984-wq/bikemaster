@@ -11,6 +11,7 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     conn.execute("""CREATE TABLE IF NOT EXISTS rides (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        athlete_id INTEGER,
         date TEXT NOT NULL,
         distance_km REAL DEFAULT 0,
         duration_minutes REAL DEFAULT 0,
@@ -56,9 +57,9 @@ def save_ride(ride: dict) -> int:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
-    cur.execute("""INSERT INTO rides (date, distance_km, duration_minutes, avg_speed_kmh, weight_kg, calories, heart_rate_avg, elevation_gain_m, gps_points, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (ride.get("date"), ride.get("distance_km", 0), ride.get("duration_minutes", 0), ride.get("avg_speed_kmh", 0),
+    cur.execute("""INSERT INTO rides (athlete_id, date, distance_km, duration_minutes, avg_speed_kmh, weight_kg, calories, heart_rate_avg, elevation_gain_m, gps_points, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (ride.get("athlete_id"), ride.get("date"), ride.get("distance_km", 0), ride.get("duration_minutes", 0), ride.get("avg_speed_kmh", 0),
          ride.get("weight_kg", 70), ride.get("calories", 0), ride.get("heart_rate_avg"),
          ride.get("elevation_gain_m"), gps_points, datetime.now(timezone.utc).isoformat()))
     conn.commit()
@@ -74,7 +75,7 @@ def get_ride(ride_id: int) -> Optional[dict]:
     row = cur.fetchone()
     conn.close()
     if row:
-        return {"id": row[0], "date": row[1], "distance_km": row[2], "duration_minutes": row[3], "avg_speed_kmh": row[4], "weight_kg": row[5], "calories": row[6], "heart_rate_avg": row[7], "elevation_gain_m": row[8], "gps_points": json.loads(row[9]) if row[9] else None, "created_at": row[10]}
+        return {"id": row[0], "athlete_id": row[1], "date": row[2], "distance_km": row[3], "duration_minutes": row[4], "avg_speed_kmh": row[5], "weight_kg": row[6], "calories": row[7], "heart_rate_avg": row[8], "elevation_gain_m": row[9], "gps_points": json.loads(row[10]) if row[10] else None, "created_at": row[11]}
     return None
 
 def get_all_rides() -> List[dict]:
@@ -84,7 +85,7 @@ def get_all_rides() -> List[dict]:
     cur.execute("SELECT * FROM rides")
     rows = cur.fetchall()
     conn.close()
-    return [{"id": r[0], "date": r[1], "distance_km": r[2], "duration_minutes": r[3], "avg_speed_kmh": r[4], "weight_kg": r[5], "calories": r[6], "heart_rate_avg": r[7], "elevation_gain_m": r[8], "gps_points": json.loads(r[9]) if r[9] else None, "created_at": r[10]} for r in rows]
+    return [{"id": r[0], "athlete_id": r[1], "date": r[2], "distance_km": r[3], "duration_minutes": r[4], "avg_speed_kmh": r[5], "weight_kg": r[6], "calories": r[7], "heart_rate_avg": r[8], "elevation_gain_m": r[9], "gps_points": json.loads(r[10]) if r[10] else None, "created_at": r[11]} for r in rows]
 
 def delete_ride(ride_id: int) -> bool:
     init_db()

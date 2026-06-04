@@ -95,10 +95,11 @@ def test_detect_decelerations():
     assert len(decels) == 4
 
 def test_benchmark_comparison():
-    from bike_analyzer.backend.analytics.benchmark import compare_with_benchmark
-    r = Ride(date="2024-06-01", distance_km=25.0, avg_speed_kmh=25.0, calories=500.0)
-    comp = compare_with_benchmark(r)
-    assert "speed_percentile" in comp
+    from bike_analyzer.backend.analytics.benchmark import compare_athlete_to_benchmark
+    from bike_analyzer.backend.models.models import AthleteProfile
+    athlete = AthleteProfile(name="Test", experience_level="Intermediate")
+    comp = compare_athlete_to_benchmark(athlete, 100.0, 25.0, 5.0)
+    assert "percentile_km" in comp
 
 def test_knowledge_base():
     from bike_analyzer.backend.analytics.knowledge_base import search_knowledge_base
@@ -114,4 +115,23 @@ def test_performance_score():
     from bike_analyzer.backend.analytics.performance import calculate_performance_score, calculate_endurance_score, get_experience_level
     r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500.0)
     score = calculate_performance_score(r)
-    assert 0 <= score <= 100
+    assert 0 <= score <= 10
+
+def test_create_speed_chart():
+    assert callable(generate_speed_chart)
+
+def test_create_elevation_chart():
+    from bike_analyzer.backend.analytics.analytics import create_elevation_chart
+    assert callable(create_elevation_chart)
+
+def test_create_duration_chart():
+    from bike_analyzer.backend.analytics.analytics import create_duration_chart
+    assert callable(create_duration_chart)
+
+def test_create_distance_chart():
+    from bike_analyzer.backend.analytics.analytics import create_distance_chart
+    assert callable(create_distance_chart)
+
+def test_generate_distance_chart():
+    from bike_analyzer.backend.analytics.analytics import generate_distance_chart
+    assert callable(generate_distance_chart)

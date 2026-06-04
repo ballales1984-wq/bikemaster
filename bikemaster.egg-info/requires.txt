@@ -1,0 +1,13 @@
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+sqlalchemy>=2.0.27
+folium>=0.16.0
+pandas>=2.2.0
+numpy>=1.26.4
+fitparse>=1.2.0
+gpxpy>=1.6.2
+python-dotenv>=1.0.1
+
+[dev]
+pytest>=8.0.0
+pytest-asyncio>=0.23.5

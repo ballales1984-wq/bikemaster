@@ -51,6 +51,7 @@ class RouteStatistics:
 @dataclass
 class Ride:
     id: Optional[int] = None
+    athlete_id: Optional[int] = None
     date: str = ""
     distance_km: float = 0.0
     duration_minutes: float = 0.0
@@ -60,13 +61,14 @@ class Ride:
     heart_rate_avg: Optional[float] = None
     elevation_gain_m: Optional[float] = None
     gps_points: Optional[list[GPSPoint]] = None
+    created_at: Optional[str] = None
 
     @property
     def duration_hours(self) -> float:
         return self.duration_minutes / 60.0
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "date": self.date, "distance_km": self.distance_km, "duration_minutes": self.duration_minutes, "avg_speed_kmh": self.avg_speed_kmh, "weight_kg": self.weight_kg, "calories": self.calories, "heart_rate_avg": self.heart_rate_avg, "elevation_gain_m": self.elevation_gain_m}
+        return {"id": self.id, "athlete_id": self.athlete_id, "date": self.date, "distance_km": self.distance_km, "duration_minutes": self.duration_minutes, "avg_speed_kmh": self.avg_speed_kmh, "weight_kg": self.weight_kg, "calories": self.calories, "heart_rate_avg": self.heart_rate_avg, "elevation_gain_m": self.elevation_gain_m, "created_at": self.created_at}
 
 @dataclass
 class AthleteProfile:

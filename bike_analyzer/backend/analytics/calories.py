@@ -14,7 +14,8 @@ def calculate_calories_physics(ride: Ride) -> float:
     w_n = ride.weight_kg * g
     rolling = crr * w_n
     air = 0.5 * rho * cdA * v_ms ** 2
-    gravity = w_n * math.sin(math.radians((ride.elevation_gain_m / ride.distance_km) / 100)) if ride.elevation_gain_m and ride.distance_km else 0
+    grade = (ride.elevation_gain_m / ride.distance_km / 100) if ride.elevation_gain_m and ride.distance_km and ride.distance_km > 0 else 0
+    gravity = w_n * math.sin(math.radians(grade)) if grade else 0
     power = (rolling + air + gravity) * v_ms
     energy = power * (ride.duration_minutes * 60)
     return energy / (eff * J_PER_CAL)

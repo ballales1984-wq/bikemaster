@@ -14,12 +14,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from bike_analyzer.app.cli import run_cli
 from bike_analyzer.backend.api.app_factory import create_app
-from bike_analyzer.app.config import WEB_PORT
 
 
 DEFAULT_DB_URL = "sqlite:///./bike_analyzer.db"
+WEB_PORT = 8080
 
 
 def main():
@@ -33,7 +32,7 @@ def main():
         print(f"Starting API on http://localhost:{args.port}")
         print(f"Web UI available at http://localhost:{args.port}/web/")
         uvicorn.run(
-            create_app(DEFAULT_DB_URL),
+            create_app(),
             host="0.0.0.0",
             port=args.port,
             reload=args.reload,
@@ -54,7 +53,6 @@ def create_web_app():
     from fastapi import FastAPI
     from fastapi.staticfiles import StaticFiles
     from fastapi.responses import FileResponse
-    from pathlib import Path
 
     app = FastAPI(title="Bike Analyzer Web")
     web_dir = Path(__file__).parent / "frontend" / "map"
@@ -67,6 +65,22 @@ def create_web_app():
         app.mount("/static", StaticFiles(directory=str(web_dir)), name="static")
 
     return app
+
+
+async def run_cli():
+    """Run CLI analytics on sample data."""
+    from bike_analyzer.backend.db.database import get_all_rides, init_db
+    from bike_analyzer.backend.analytics.analytics import calculate_summary
+    from bike_analyzer.backend.models.models import Ride
+
+    init_db()
+    rides = [Ride(**r) for r in get_all_rides()]
+    summary = calculate_summary(rides)
+    print(f"Total Rides: {summary['total_rides']}")
+    print(f"Total Distance: {summary['total_km']} km")
+    print(f"Total Calories: {summary['total_calories']}")
+    print(f"Avg Speed: {summary['avg_speed']} km/h")
+    print(f"Avg Fatigue: {summary['avg_fatigue']}/10")
 
 
 if __name__ == "__main__":

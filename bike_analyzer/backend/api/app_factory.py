@@ -163,6 +163,11 @@ def create_app() -> FastAPI:
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
     app.include_router(router, prefix="/api/v1")
     
+    @app.on_event("startup")
+    async def startup():
+        from ..db.database import init_db
+        init_db()
+    
     @app.get("/", response_class=HTMLResponse)
     async def dashboard():
         return DASHBOARD_HTML

@@ -16,8 +16,7 @@ async def health_check(): return {"status": "ok", "service": "bikemaster"}
 
 @router.post("/rides")
 async def create_ride(ride_data: dict):
-    from ..db.database import save_ride, init_db
-    init_db()
+    from ..db.database import save_ride
     points = ride_data.get("gps_points", [])
     ride_dict = {k: v for k, v in ride_data.items() if k != "id"}
     if points: ride_dict["gps_points"] = points
@@ -30,7 +29,7 @@ async def create_ride(ride_data: dict):
     return {"id": int(ride_id), **ride_dict}
 
 @router.get("/rides")
-async def list_rides(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), sort: str = Query("date", regex="^(date|distance|duration)$")):
+async def list_rides(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), sort: str = Query("date", pattern="^(date|distance|duration)$")):
     from ..db.database import get_all_rides
     all_rides = get_all_rides()
     # Sort
@@ -85,9 +84,8 @@ async def generate_ride_map(ride_id: int):
 
 @router.post("/import/gpx")
 async def import_gpx(file: UploadFile = File(...)):
-    from ..db.database import save_ride, init_db
+    from ..db.database import save_ride
     from ..ingestion.gps_parser import parse_gpx_file, points_to_ride
-    init_db()
     content = await file.read()
     points_data = parse_gpx_file(content.decode())
     ride_data = points_to_ride(points_data, name=file.filename)
@@ -99,16 +97,18 @@ async def import_gpx(file: UploadFile = File(...)):
 
 @router.post("/import/fit")
 async def import_fit(file: UploadFile = File(...)):
-    from ..db.database import save_ride, init_db
+    from ..db.database import save_ride
     from ..ingestion.gps_parser import parse_fit_file, points_to_ride
-    init_db()
+    import tempfile
     content = await file.read()
-    temp_path = f"temp_{file.filename}"
-    with open(temp_path, "wb") as f:
-        f.write(content)
-    points_data = parse_fit_file(temp_path)
-    import os
-    os.remove(temp_path)
+    with tempfile.NamedTemporaryFile(suffix=".fit", delete=False) as tmp:
+        tmp.write(content)
+        temp_path = tmp.name
+    try:
+        points_data = parse_fit_file(temp_path)
+    finally:
+        import os
+        os.unlink(temp_path)
     ride_data = points_to_ride(points_data, name=file.filename)
     if "error" not in ride_data:
         ride = Ride(**ride_data)
@@ -118,9 +118,9 @@ async def import_fit(file: UploadFile = File(...)):
 
 @router.post("/import/multiple")
 async def import_multiple(files: List[UploadFile] = File(...)):
-    from ..db.database import save_ride, init_db
+    from ..db.database import save_ride
     from ..ingestion.gps_parser import parse_gpx_file, parse_fit_file, points_to_ride
-    init_db()
+    import tempfile
     imported = []
     for file in files:
         content = await file.read()
@@ -128,10 +128,14 @@ async def import_multiple(files: List[UploadFile] = File(...)):
         if ext == "gpx":
             points = parse_gpx_file(content.decode())
         elif ext in ("fit", "fitf"):
-            temp_path = f"temp_{file.filename}"
-            with open(temp_path, "wb") as f:
-                f.write(content)
-            points = parse_fit_file(temp_path)
+            with tempfile.NamedTemporaryFile(suffix=".fit", delete=False) as tmp:
+                tmp.write(content)
+                temp_path = tmp.name
+            try:
+                points = parse_fit_file(temp_path)
+            finally:
+                import os
+                os.unlink(temp_path)
         else:
             points = []
         ride_data = points_to_ride(points, name=file.filename)
@@ -229,7 +233,6 @@ async def elevation_chart(ride_id: int):
 @router.post("/athletes")
 async def create_athlete(athlete_data: dict):
     from ..db.database import save_athlete, init_db
-    init_db()
     athlete_id = save_athlete(athlete_data)
     return {"id": int(athlete_id), **athlete_data}
 
@@ -243,7 +246,6 @@ async def get_athlete(athlete_id: int):
 @router.post("/athletes/{athlete_id}/metrics")
 async def add_metric(athlete_id: int, metric_data: dict):
     from ..db.database import save_metric, init_db
-    init_db()
     metric_id = save_metric({"athlete_id": athlete_id, **metric_data})
     return {"id": int(metric_id), "athlete_id": athlete_id, **metric_data}
 
@@ -274,9 +276,8 @@ async def google_fit_exchange_token(payload: dict):
 
 @router.post("/import/google-fit")
 async def import_google_fit(payload: dict):
-    from ..db.database import save_ride, init_db
+    from ..db.database import save_ride
     from ..ingestion.google_fit import fetch_cycling_activities, google_fit_to_ride
-    init_db()
     access_token = payload.get("access_token")
     if not access_token:
         raise HTTPException(status_code=400, detail="access_token required")
@@ -384,7 +385,6 @@ async def get_system_stats():
 @router.get("/health/detailed")
 async def detailed_health_check():
     from ..db.database import get_all_rides, init_db
-    init_db()
     rides = get_all_rides()
     from pathlib import Path
     db_ok = Path("rides.db").exists()
@@ -393,7 +393,6 @@ async def detailed_health_check():
 @router.post("/admin/reset-demo")
 async def reset_demo_data():
     from ..db.database import get_all_rides, delete_ride, init_db
-    init_db()
     rides = get_all_rides()
     for r in rides:
         if "demo" in r.get("date", ""):
