@@ -1,34 +1,46 @@
-"""AI Coach - workout and recovery recommendations."""
+"""AI Coach powered by Groq LLM for cycling advice."""
 from __future__ import annotations
+import os
 from typing import List, Optional
 from ..models.models import Ride, AthleteProfile
-from .fatigue import estimate_recovery_hours, get_recovery_recommendation
-from .benchmark import compare_with_benchmark
-from .performance import calculate_performance_score, calculate_efficiency_score
+from .analytics import calculate_summary
+from .performance import calculate_performance_score, calculate_recovery_score
 
-def generate_workout_recommendations(rides: List[Ride], athlete: Optional[AthleteProfile] = None) -> List[str]:
-    if not rides: return ["Start with 2-3 easy rides per week to build base fitness"]
-    avg_speed = sum(r.avg_speed_kmh for r in rides) / len(rides)
-    avg_fatigue = sum(r.calories for r in rides[:10]) / len(rides[:10]) / 50 if rides else 0
-    recs = []
-    if avg_speed < 20: recs.append("Focus on Zone 2 rides (easy pace) to build aerobic base")
-    elif avg_speed < 25: recs.append("Add one interval session per week")
-    else: recs.append("Maintain current intensity, mix endurance and race-specific workouts")
-    if avg_fatigue > 700: recs.append("Consider adding more recovery days")
-    recs.append("Include 1 long ride weekly (1.5-2x your average distance)")
-    return recs
+def get_ai_coach_client():
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key: raise ValueError("GROQ_API_KEY non impostata nell'ambiente")
+    from groq import Groq
+    return Groq(api_key=api_key)
 
-def generate_recovery_recommendations(ride: Optional[Ride] = None, fatigue_score: float = 5.0) -> List[str]:
-    recs = [get_recovery_recommendation(fatigue_score)]
-    hours = estimate_recovery_hours(fatigue_score)
-    if hours >= 48: recs.append("Take 1-2 full rest days, then easy 20km spin")
-    elif hours >= 24: recs.append("Do a recovery ride under 25km/h")
-    return recs
+def generate_training_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
+    try:
+        client = get_ai_coach_client()
+        summary = calculate_summary(rides) if rides else {}
+        perf = calculate_performance_score(rides[-1]) if rides else 0
+        recovery = calculate_recovery_score(rides[-1]) if rides else 0
+        prompt = f"You are BikeMaster AI Coach. Atleta: {athlete.name}, livello: {athlete.experience_level}, peso: {athlete.weight_kg}kg. Ultimi dati: performance={perf}/10, recovery={recovery}/10. Fornisci 3 consigli brevi per l'allenamento oggi."
+        chat = client.chat.completions.create(model="llama3-8b-8192", messages=[{"role": "user", "content": prompt}], max_tokens=200)
+        return chat.choices[0].message.content or "Nessun consiglio disponibile"
+    except Exception:
+        return "AI Coach non disponibile. Imposta GROQ_API_KEY."
 
-def analyze_historical_trends(rides: List[Ride]) -> dict:
-    if len(rides) < 3: return {"trend": "insufficient_data"}
-    sorted_rides = sorted(rides, key=lambda r: r.date)[-4:]
-    speeds = [r.avg_speed_kmh for r in sorted_rides]
-    if len(speeds) >= 2 and speeds[-1] > speeds[0] * 1.1: return {"trend": "improving_speed", "change_pct": (speeds[-1] - speeds[0]) / speeds[0] * 100}
-    if len(speeds) >= 2 and speeds[-1] < speeds[0] * 0.9: return {"trend": "declining_speed", "change_pct": (speeds[-1] - speeds[0]) / speeds[0] * 100}
-    return {"trend": "stable", "avg_speed": sum(speeds) / len(speeds)}
+def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
+    try:
+        client = get_ai_coach_client()
+        recovery = calculate_recovery_score(rides[-1]) if rides else 5
+        prompt = f"Sei BikeMaster Recovery Coach. Recovery score: {recovery}/10. Dai un consiglio breve per recupero oggi (stretching, idratazione, sonno)."
+        chat = client.chat.completions.create(model="llama3-8b-8192", messages=[{"role": "user", "content": prompt}], max_tokens=100)
+        return chat.choices[0].message.content or "Recupera bene!"
+    except Exception:
+        return "Idratazione e stretching raccomandati."
+
+def analyze_historical_trend(rides: List[Ride]) -> str:
+    if len(rides) < 2: return "Dati insufficienti per trend."
+    from .fatigue import calculate_fatigue_score
+    avg_fatigue = sum(calculate_fatigue_score(r) for r in rides) / len(rides)
+    avg_perf = sum(calculate_performance_score(r) for r in rides) / len(rides)
+    trend = "crescente" if avg_perf > 5 else "stabile" if avg_perf > 3 else "da monitorare"
+    return f"Trend: {trend}, fatigue media: {avg_fatigue:.1f}/10, performance media: {avg_perf:.1f}/10"
+
+def ai_coach_full(athlete: AthleteProfile, rides: List[Ride]) -> dict:
+    return {"training_advice": generate_training_advice(athlete, rides), "recovery_advice": generate_recovery_advice(athlete, rides), "historical_analysis": analyze_historical_trend(rides)}

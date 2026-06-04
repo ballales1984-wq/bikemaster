@@ -93,3 +93,25 @@ def test_detect_decelerations():
     ]
     decels = detect_decelerations(points)
     assert len(decels) == 4
+
+def test_benchmark_comparison():
+    from bike_analyzer.backend.analytics.benchmark import compare_with_benchmark
+    r = Ride(date="2024-06-01", distance_km=25.0, avg_speed_kmh=25.0, calories=500.0)
+    comp = compare_with_benchmark(r)
+    assert "speed_percentile" in comp
+
+def test_knowledge_base():
+    from bike_analyzer.backend.analytics.knowledge_base import search_knowledge_base
+    results = search_knowledge_base("training")
+    assert isinstance(results, list)
+
+def test_google_maps_api_key():
+    from bike_analyzer.backend.maps.google_maps import get_google_api_key
+    key = get_google_api_key()
+    assert isinstance(key, (str, type(None)))
+
+def test_performance_score():
+    from bike_analyzer.backend.analytics.performance import calculate_performance_score, calculate_endurance_score, get_experience_level
+    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500.0)
+    score = calculate_performance_score(r)
+    assert 0 <= score <= 100

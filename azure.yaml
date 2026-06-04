@@ -1,0 +1,15 @@
+# Azure Deployment Configuration
+azd_version: "1.0"
+kind: "app"
+
+resources:
+  - name: bikemaster
+    type: "web"
+    properties:
+      sku: "F1"
+      runtime: "python|3.11"
+
+hooks:
+  postprovision:
+    - run: "pip install -r requirements.txt"
+    - run: "echo 'Deployment ready'"

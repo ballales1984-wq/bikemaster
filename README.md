@@ -32,6 +32,13 @@ pip install -r requirements.txt
 python main.py api
 ```
 
+### Docker
+
+```bash
+docker compose up -d
+# Open http://localhost:8000
+```
+
 Open [http://localhost:8000](http://localhost:8000) for the dashboard.
 
 ## Usage Modes
@@ -80,8 +87,7 @@ python main.py cli
 |---|---|---|
 | GET | `/api/v1/charts/speed/{id}` | Speed chart PNG |
 | GET | `/api/v1/charts/elevation/{id}` | Elevation chart PNG |
-| GET | `/api/v1/charts/distance/{id}` | Distance chart PNG |
-| GET | `/api/v1/charts/duration` | Duration bar chart |
+| GET | `/api/v1/rides/{id}/map/google` | Google Static Map (requires GOOGLE_MAPS_API_KEY) |
 
 ### Athletes
 | Method | Endpoint | Description |
@@ -152,6 +158,28 @@ Copy `.env.example` to `.env` and set values:
 DATABASE_URL=sqlite:///./rides.db
 API_HOST=0.0.0.0
 API_PORT=8000
+GOOGLE_MAPS_API_KEY=your_api_key_here
+```
+
+## Deployment
+
+### Docker
+
+```bash
+docker build -t bikemaster .
+docker run -p 8000:8000 bikemaster
+```
+
+### Docker Compose
+
+```bash
+docker-compose up -d
+```
+
+### Azure
+
+```bash
+azd up
 ```
 
 ## Roadmap

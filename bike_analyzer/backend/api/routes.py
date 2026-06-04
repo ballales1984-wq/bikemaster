@@ -357,3 +357,52 @@ async def google_static_map(ride_id: int):
     path = f"ride_{ride_id}_google_map.png"
     create_google_static_map(points, api_key, path)
     return FileResponse(path, media_type="image/png", filename="map.png")
+
+@router.get("/admin/backup")
+async def create_backup():
+    from ..db.database import backup_database
+    from fastapi.responses import FileResponse
+    path = backup_database()
+    return FileResponse(path, media_type="application/octet-stream", filename="backup.db")
+
+@router.post("/admin/indexes")
+async def create_db_indexes():
+    from ..db.database import create_indices
+    create_indices()
+    return {"status": "indexes_created"}
+
+@router.get("/admin/stats")
+async def get_system_stats():
+    from ..db.database import get_all_rides
+    rides = get_all_rides()
+    total_km = sum(r.get("distance_km", 0) for r in rides)
+    total_duration = sum(r.get("duration_minutes", 0) for r in rides)
+    from pathlib import Path
+    db_size = Path("rides.db").stat().st_size if Path("rides.db").exists() else 0
+    return {"rides_count": len(rides), "total_km": round(total_km, 1), "total_duration_hours": round(total_duration / 60, 1), "db_size_bytes": db_size}
+
+@router.get("/health/detailed")
+async def detailed_health_check():
+    from ..db.database import get_all_rides, init_db
+    init_db()
+    rides = get_all_rides()
+    from pathlib import Path
+    db_ok = Path("rides.db").exists()
+    return {"status": "ok", "service": "bikemaster", "database_connected": db_ok, "rides_in_db": len(rides), "api_version": "1.0"}
+
+@router.post("/admin/reset-demo")
+async def reset_demo_data():
+    from ..db.database import get_all_rides, delete_ride, init_db
+    init_db()
+    rides = get_all_rides()
+    for r in rides:
+        if "demo" in r.get("date", ""):
+            delete_ride(r["id"])
+    from scripts.generate_sample_ride import generate_sample_ride
+    generate_sample_ride()
+    return {"status": "demo_reset", "message": "Demo data regenerated"}
+
+@router.get("/rides/count")
+async def count_rides():
+    from ..db.database import get_all_rides
+    return {"count": len(get_all_rides())}

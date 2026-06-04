@@ -1,5 +1,7 @@
 """Demo script to generate the first HTML route map."""
-from bike_analyzer.scripts.generate_sample_ride import generate_sample_ride
+import sys
+sys.path.insert(0, ".")
+from scripts.generate_sample_ride import generate_sample_ride
 from bike_analyzer.backend.processing.processing import process_route
 from bike_analyzer.backend.maps.map_renderer import create_route_map
 from datetime import datetime, timezone

@@ -33,9 +33,15 @@ def generate_sample_ride(
     lats, lons = _circular_walk(center_lat, center_lon, radius_km, n_points)
     base_time = datetime(2024, 6, 1, 10, 0, 0, tzinfo=timezone.utc)
     dt = duration_minutes * 60 / n_points
-    return [GPSPoint(lat=lats[i], lon=lons[i], timestamp=base_time + timedelta(seconds=i * dt)) for i in range(n_points)]
+    speeds = [avg_speed_kmh + random.uniform(-5, 5) for _ in range(n_points)]
+    return [GPSPoint(lat=lats[i], lon=lons[i], timestamp=base_time + timedelta(seconds=i * dt), speed=speeds[i]) for i in range(n_points)]
 
 if __name__ == "__main__":
     points = generate_sample_ride()
     processed, stats = process_route(points)
     print(f"Generated {len(points)} points, processed: {stats.total_distance_m:.1f}m, avg speed: {stats.avg_speed_km_h:.1f}km/h")
+    from bike_analyzer.backend.db.database import save_ride, init_db
+    init_db()
+    ride = {"date": "demo-" + datetime.now(timezone.utc).strftime("%Y-%m-%d"), "distance_km": stats.total_distance_m / 1000, "duration_minutes": stats.total_duration_s / 60, "avg_speed_kmh": stats.avg_speed_km_h, "elevation_gain_m": stats.total_elevation_gain_m, "gps_points": [{"lat": p.lat, "lon": p.lon, "timestamp": p.timestamp.isoformat(), "altitude": p.altitude} for p in processed]}
+    ride_id = save_ride(ride)
+    print(f"Saved demo ride id: {ride_id}")

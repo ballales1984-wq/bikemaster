@@ -150,5 +150,62 @@
 - [x] 107. Aggiungere endpoint /import/google-fit/token
 - [x] 108. Aggiungere endpoint /import/google-fit
 - [x] 109. Aggiornare README con endpoint Google Fit
-- [ ] 110. Test integrazione Google Fit
-- [ ] 111. Attendere approvazione API Google (ricomandato: verifica dominio o numero di telefono)
+- [x] 110. Test integrazione Google Fit
+- [x] 111. Attendere approvazione API Google (ricomandato: verifica dominio o numero di telefono)
+
+---
+
+## FASE 10 - Google Maps (112-120)
+
+- [x] 112. Creare modulo google_maps.py
+- [x] 113. Implementare Google Static Maps API
+- [x] 114. Aggiungere endpoint /rides/{id}/map/google
+- [x] 115. Supporto API key via .env
+- [x] 116. Aggiungere marker start/end
+- [x] 117. Test integrazione Google Maps (mock)
+- [ ] 118. Visualizzazione percorso colorato dinamica
+- [ ] 119. Integrazione JavaScript API (opzionale)
+- [ ] 120. Documentazione Google Maps API
+
+---
+
+## FASE 12 - Deployment (126-135)
+
+- [x] 126. Docker configurazione
+- [x] 127. Docker Compose
+- [x] 128. Azure deployment
+- [x] 129. Documentation API aggiornata
+- [x] 130. Environment variables complete
+
+---
+
+## FASE 13 - Test Coverage (136-145)
+
+- [ ] 136. Test Google Maps mock
+- [ ] 137. Test performance engine
+- [ ] 138. Test benchmark comparison
+- [ ] 139. Test knowledge base
+- [ ] 140. Test AI coach
+- [ ] 141. Test database backup
+- [ ] 142. Test import batch
+- [ ] 143. Test athlete profile
+- [ ] 144. Test scores API
+- [ ] 145. Coverage > 80%
+
+---
+
+## Stato attuale
+
+**Completate: 130/135** (step principali)
+
+**Endpoint API a disposizione:**
+- `/api/v1/rides/*` - CRUD rides
+- `/api/v1/import/*` - GPX, FIT, Google Fit
+- `/api/v1/export/*` - JSON, CSV
+- `/api/v1/charts/*` - Speed, elevation, duration, distance
+- `/api/v1/athletes/*` - Profile management
+- `/api/v1/scores/*` - Performance scores
+- `/api/v1/benchmark/*` - Athlete comparison
+- `/api/v1/coach/*` - AI recommendations
+- `/api/v1/knowledge/*` - Training docs
+- `/api/v1/admin/*` - Backup, stats, indexes

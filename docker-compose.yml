@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  bikemaster:
+    build: .
+    container_name: bikemaster-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./static:/app/static
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    restart: unless-stopped
+
+volumes:
+  data:
+  static:

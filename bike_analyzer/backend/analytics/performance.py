@@ -53,6 +53,9 @@ def classify_athlete(rides: List[Ride]) -> str:
     if total_km < 3000: return "Advanced"
     return "Elite"
 
+def get_experience_level(athlete: AthleteProfile) -> str:
+    return athlete.experience_level
+
 def should_save_to_database(points: List) -> bool:
     from .processing import validate_gps_point
     return all(validate_gps_point(p) for p in points) if points else False
