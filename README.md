@@ -9,7 +9,7 @@ GPS-based cycling performance intelligence system. Import rides from GPX/FIT fil
 - **Calorie estimation** — Physics + MET-based models
 - **Fatigue scoring** — Weighted formula with recovery recommendations
 - **Interactive maps** — Speed-colored routes via Folium/Leaflet
-- **REST API** — 19 endpoints for rides, analysis, charts, import, export
+- **REST API** — 30+ endpoints for rides, analysis, charts, import, export, scores, benchmark, AI coach
 - **Dashboard** — Dark-themed web UI with stats, ride list, and route map
 - **Data export** — JSON and CSV formats
 
@@ -65,6 +65,9 @@ python main.py cli
 | POST | `/api/v1/import/gpx` | Upload GPX file |
 | POST | `/api/v1/import/fit` | Upload FIT file |
 | POST | `/api/v1/import/multiple` | Batch upload |
+| GET | `/api/v1/import/google-fit/auth` | Get Google Fit OAuth URL |
+| POST | `/api/v1/import/google-fit/token` | Exchange OAuth code for token |
+| POST | `/api/v1/import/google-fit` | Import cycling activities from Google Fit |
 
 ### Export
 | Method | Endpoint | Description |
@@ -77,6 +80,7 @@ python main.py cli
 |---|---|---|
 | GET | `/api/v1/charts/speed/{id}` | Speed chart PNG |
 | GET | `/api/v1/charts/elevation/{id}` | Elevation chart PNG |
+| GET | `/api/v1/charts/distance/{id}` | Distance chart PNG |
 | GET | `/api/v1/charts/duration` | Duration bar chart |
 
 ### Athletes
@@ -86,6 +90,29 @@ python main.py cli
 | GET | `/api/v1/athletes/{id}` | Get athlete |
 | PUT | `/api/v1/athletes/{id}` | Update athlete |
 | POST | `/api/v1/athletes/{id}/metrics` | Save metrics |
+
+### Scores
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/v1/scores/athlete/{id}` | Get athlete scores |
+
+### Benchmark
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/benchmark/compare` | Compare ride to benchmark |
+
+### AI Coach
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/v1/coach/workout` | Workout recommendations |
+| GET | `/api/v1/coach/recovery` | Recovery recommendations |
+| GET | `/api/v1/coach/trends` | Historical trends analysis |
+
+### Knowledge Base
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/v1/knowledge` | List topics |
+| GET | `/api/v1/knowledge/search?q=...` | Search knowledge base |
 
 ## Generate Sample Data
 

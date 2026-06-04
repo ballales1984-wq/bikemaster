@@ -193,3 +193,167 @@ async def duration_chart():
     create_duration_chart(rides, path)
     from fastapi.responses import FileResponse
     return FileResponse(path, media_type="image/png", filename="duration.png")
+
+@router.get("/charts/distance/{ride_id}")
+async def distance_chart(ride_id: int):
+    from ..db.database import get_ride as _get_ride
+    from ..analytics.analytics import create_distance_chart
+    ride = _get_ride(ride_id)
+    if not ride: raise HTTPException(status_code=404, detail="Ride not found")
+    gps_points = ride.get("gps_points")
+    if not gps_points: raise HTTPException(status_code=400, detail="No GPS points")
+    points = [GPSPoint(**p) for p in gps_points]
+    from ..processing.processing import build_segments
+    segments = build_segments(points)
+    path = f"ride_{ride_id}_distance.png"
+    create_distance_chart(segments, path)
+    from fastapi.responses import FileResponse
+    return FileResponse(path, media_type="image/png", filename="distance.png")
+
+@router.get("/charts/elevation/{ride_id}")
+async def elevation_chart(ride_id: int):
+    from ..db.database import get_ride as _get_ride
+    from ..analytics.analytics import create_elevation_chart
+    ride = _get_ride(ride_id)
+    if not ride: raise HTTPException(status_code=404, detail="Ride not found")
+    gps_points = ride.get("gps_points")
+    if not gps_points: raise HTTPException(status_code=400, detail="No GPS points")
+    points = [GPSPoint(**p) for p in gps_points]
+    from ..processing.processing import build_segments
+    segments = build_segments(points)
+    path = f"ride_{ride_id}_elevation.png"
+    create_elevation_chart(segments, path)
+    from fastapi.responses import FileResponse
+    return FileResponse(path, media_type="image/png", filename="elevation.png")
+
+@router.post("/athletes")
+async def create_athlete(athlete_data: dict):
+    from ..db.database import save_athlete, init_db
+    init_db()
+    athlete_id = save_athlete(athlete_data)
+    return {"id": int(athlete_id), **athlete_data}
+
+@router.get("/athletes/{athlete_id}")
+async def get_athlete(athlete_id: int):
+    from ..db.database import get_athlete as _get_athlete
+    athlete = _get_athlete(athlete_id)
+    if not athlete: raise HTTPException(status_code=404, detail="Athlete not found")
+    return athlete
+
+@router.post("/athletes/{athlete_id}/metrics")
+async def add_metric(athlete_id: int, metric_data: dict):
+    from ..db.database import save_metric, init_db
+    init_db()
+    metric_id = save_metric({"athlete_id": athlete_id, **metric_data})
+    return {"id": int(metric_id), "athlete_id": athlete_id, **metric_data}
+
+@router.put("/athletes/{athlete_id}")
+async def update_athlete(athlete_id: int, athlete_data: dict):
+    from ..db.database import update_athlete as _update, get_athlete as _get
+    if not _get(athlete_id): raise HTTPException(status_code=404, detail="Athlete not found")
+    _update(athlete_id, athlete_data)
+    return {"id": athlete_id, **athlete_data}
+
+
+@router.get("/import/google-fit/auth")
+async def google_fit_auth(client_id: str = Query(...), redirect_uri: str = Query("http://localhost:8000/api/v1/import/google-fit/callback"), state: str = ""):
+    from ..ingestion.google_fit import get_authorization_url
+    auth_url = get_authorization_url(client_id, redirect_uri=redirect_uri, state=state)
+    return {"auth_url": auth_url}
+
+@router.post("/import/google-fit/token")
+async def google_fit_exchange_token(payload: dict):
+    from ..ingestion.google_fit import exchange_code_for_token
+    token_data = exchange_code_for_token(
+        payload.get("client_id"),
+        payload.get("client_secret"),
+        payload.get("code"),
+        payload.get("redirect_uri", "http://localhost:8000/api/v1/import/google-fit/callback"),
+    )
+    return {"access_token": token_data.get("access_token"), "refresh_token": token_data.get("refresh_token"), "expires_in": token_data.get("expires_in")}
+
+@router.post("/import/google-fit")
+async def import_google_fit(payload: dict):
+    from ..db.database import save_ride, init_db
+    from ..ingestion.google_fit import fetch_cycling_activities, google_fit_to_ride
+    init_db()
+    access_token = payload.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="access_token required")
+    activities = fetch_cycling_activities(access_token)
+    rides_data = google_fit_to_ride(activities)
+    imported = []
+    for ride_data in rides_data:
+        from ..models.models import Ride
+        ride = Ride(**{k: v for k, v in ride_data.items() if k != "id"})
+        ride_id = save_ride({k: v for k, v in ride.to_dict().items() if k != "id"})
+        ride_data["id"] = int(ride_id)
+        imported.append(ride_data)
+    return {"imported": imported, "count": len(imported)}
+
+@router.get("/scores/athlete/{athlete_id}")
+async def get_athlete_scores(athlete_id: int):
+    from ..db.database import get_all_rides, get_athlete
+    from ..analytics.performance import calculate_performance_score, calculate_endurance_score, calculate_efficiency_score, get_experience_level
+    athlete = get_athlete(athlete_id)
+    if not athlete: raise HTTPException(status_code=404, detail="Athlete not found")
+    rides = [Ride(**r) for r in get_all_rides()]
+    if rides:
+        latest = rides[-1]
+        return {"athlete": athlete, "scores": {"performance_score": calculate_performance_score(latest), "endurance_score": calculate_endurance_score(rides), "efficiency_score": calculate_efficiency_score(latest), "experience_level": get_experience_level(len(rides), sum(r.distance_km for r in rides))}}
+    return {"athlete": athlete, "scores": {"performance_score": 0, "endurance_score": 0, "efficiency_score": 0, "experience_level": "Beginner"}}
+
+@router.post("/benchmark/compare")
+async def benchmark_compare(ride_data: dict):
+    from ..analytics.benchmark import compare_with_benchmark
+    from ..models.models import Ride
+    ride = Ride(**ride_data)
+    return compare_with_benchmark(ride)
+
+@router.get("/knowledge")
+async def list_knowledge():
+    from ..analytics.knowledge_base import load_knowledge_base
+    return {"topics": list(load_knowledge_base().keys())}
+
+@router.get("/knowledge/search")
+async def search_knowledge(query: str = ""):
+    from ..analytics.knowledge_base import search_knowledge_base
+    return {"results": search_knowledge_base(query)}
+
+@router.get("/coach/workout")
+async def workout_recommendations(athlete_id: int = 0):
+    from ..db.database import get_all_rides, get_athlete
+    from ..analytics.ai_coach import generate_workout_recommendations
+    rides = [Ride(**r) for r in get_all_rides()]
+    athlete = get_athlete(athlete_id) if athlete_id else None
+    return {"recommendations": generate_workout_recommendations(rides, athlete)}
+
+@router.get("/coach/recovery")
+async def recovery_recommendations(fatigue_score: float = 5.0, ride_id: int = 0):
+    from ..db.database import get_ride
+    from ..analytics.ai_coach import generate_recovery_recommendations
+    ride = Ride(**get_ride(ride_id)) if ride_id else None
+    return {"recommendations": generate_recovery_recommendations(ride, fatigue_score)}
+
+@router.get("/coach/trends")
+async def historical_trends():
+    from ..db.database import get_all_rides
+    from ..analytics.ai_coach import analyze_historical_trends
+    rides = [Ride(**r) for r in get_all_rides()]
+    return analyze_historical_trends(rides)
+
+@router.get("/rides/{ride_id}/map/google")
+async def google_static_map(ride_id: int):
+    from ..db.database import get_ride as _get_ride
+    from ..maps.google_maps import create_google_static_map, get_google_api_key
+    from fastapi.responses import FileResponse
+    ride = _get_ride(ride_id)
+    if not ride: raise HTTPException(status_code=404, detail="Ride not found")
+    gps_points = ride.get("gps_points")
+    if not gps_points: raise HTTPException(status_code=400, detail="No GPS points")
+    api_key = get_google_api_key()
+    if not api_key: raise HTTPException(status_code=500, detail="GOOGLE_MAPS_API_KEY not configured")
+    points = [GPSPoint(**p) for p in gps_points]
+    path = f"ride_{ride_id}_google_map.png"
+    create_google_static_map(points, api_key, path)
+    return FileResponse(path, media_type="image/png", filename="map.png")

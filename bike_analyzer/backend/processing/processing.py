@@ -8,6 +8,17 @@ from ..models.models import GPSPoint, Segment, Pause, RouteStatistics
 EARTH_RADIUS_M = 6_371_000
 PAUSE_SPEED_THRESHOLD_KM_H = 1.5
 PAUSE_MIN_DURATION_MINUTES = 3
+ACCEL_THRESHOLD_KM_H_S = 2.0
+DECEL_THRESHOLD_KM_H_S = -2.0
+
+def validate_coordinate(lat: float, lon: float) -> bool:
+    if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)): return False
+    if lat < -90 or lat > 90: return False
+    if lon < -180 or lon > 180: return False
+    return True
+
+def validate_gps_point(point: GPSPoint) -> bool:
+    return validate_coordinate(point.lat, point.lon) and isinstance(point.timestamp, datetime)
 
 def haversine_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     import math
@@ -30,6 +41,26 @@ def detect_pauses(points: List[GPSPoint]) -> List[Pause]:
                 if duration >= PAUSE_MIN_DURATION_MINUTES * 60: pauses.append(Pause(start=pause_start.timestamp, end=pause_end.timestamp, duration_s=duration))
                 pause_start = None
     return pauses
+
+def detect_accelerations(points: List[GPSPoint]) -> List[Tuple[int, float]]:
+    accels = []
+    if len(points) < 2: return accels
+    for i in range(1, len(points)):
+        if points[i-1].speed is not None and points[i].speed is not None:
+            delta = points[i].speed - points[i-1].speed
+            if delta >= ACCEL_THRESHOLD_KM_H_S:
+                accels.append((i, delta))
+    return accels
+
+def detect_decelerations(points: List[GPSPoint]) -> List[Tuple[int, float]]:
+    decels = []
+    if len(points) < 2: return decels
+    for i in range(1, len(points)):
+        if points[i-1].speed is not None and points[i].speed is not None:
+            delta = points[i].speed - points[i-1].speed
+            if delta <= DECEL_THRESHOLD_KM_H_S:
+                decels.append((i, delta))
+    return decels
 
 def remove_outliers(points: List[GPSPoint], max_speed_km_h: float = 120.0) -> List[GPSPoint]:
     if len(points) < 3: return points[:]

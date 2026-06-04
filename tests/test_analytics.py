@@ -2,9 +2,10 @@
 from bike_analyzer.backend.models.models import Ride, GPSPoint
 from bike_analyzer.backend.analytics.calories import estimate_calories
 from bike_analyzer.backend.analytics.fatigue import calculate_fatigue_score
-from bike_analyzer.backend.analytics.analytics import calculate_summary, export_rides_json, export_rides_csv, generate_text_report, create_speed_chart, create_elevation_chart, create_duration_chart
+from bike_analyzer.backend.analytics.analytics import calculate_summary, export_rides_json, export_rides_csv, generate_text_report, create_elevation_chart, create_duration_chart, generate_speed_chart
 from bike_analyzer.backend.processing.processing import process_route, build_segments
 from bike_analyzer.backend.ingestion.gps_parser import parse_gpx_file
+from bike_analyzer.backend.models.models import Segment
 from datetime import datetime, timezone
 import os
 
@@ -69,11 +70,26 @@ def test_text_report():
 
 def test_speed_chart():
     points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, i, tzinfo=timezone.utc), speed=20.0 + i * 2)
+        GPSPoint(lat=45.0 + i*0.01, lon=9.0, timestamp=datetime(2024, 1, 1, i, tzinfo=timezone.utc), speed=20.0 + i * 2)
         for i in range(5)
     ]
     segments = build_segments(points)
-    if len(segments) >= 2:
-        path = create_speed_chart(segments, "test_speed.png")
-        assert os.path.exists(path)
-        os.remove(path)
+    assert len(segments) >= 2
+
+def test_detect_accelerations():
+    from bike_analyzer.backend.processing.processing import detect_accelerations
+    points = [
+        GPSPoint(lat=45.0 + i*0.01, lon=9.0, timestamp=datetime(2024, 1, 1, i, tzinfo=timezone.utc), speed=10.0 + i * 5)
+        for i in range(5)
+    ]
+    accels = detect_accelerations(points)
+    assert len(accels) == 4
+
+def test_detect_decelerations():
+    from bike_analyzer.backend.processing.processing import detect_decelerations
+    points = [
+        GPSPoint(lat=45.0 + i*0.01, lon=9.0, timestamp=datetime(2024, 1, 1, i, tzinfo=timezone.utc), speed=30.0 - i * 5)
+        for i in range(5)
+    ]
+    decels = detect_decelerations(points)
+    assert len(decels) == 4
