@@ -108,7 +108,9 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         }
         
         function updateDurationChart(rides) {
-            const ctx = document.getElementById('durationChart').getContext('2d');
+            const canvas = document.getElementById('durationChart');
+            if (!canvas || !canvas.getContext) return;
+            const ctx = canvas.getContext('2d');
             const labels = rides.map(r => r.date).slice(-10);
             const data = rides.map(r => r.duration_minutes).slice(-10);
             if (durationChart) durationChart.destroy();
