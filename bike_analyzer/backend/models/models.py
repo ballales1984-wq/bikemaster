@@ -1,9 +1,19 @@
 """Core domain models for bike analysis."""
 
 from __future__ import annotations
+import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
+
+EARTH_RADIUS_M = 6_371_000
+
+
+def haversine_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi, dlambda = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
+    return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2))
+
 
 @dataclass
 class GPSPoint:
@@ -14,11 +24,18 @@ class GPSPoint:
     speed: Optional[float] = None
 
     def distance_to(self, other: GPSPoint) -> float:
-        import math
-        R = 6_371_000
-        phi1, phi2 = math.radians(self.lat), math.radians(other.lat)
-        dphi, dlambda = math.radians(other.lat - self.lat), math.radians(other.lon - self.lon)
-        return 2 * R * math.asin(math.sqrt(math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2))
+        return haversine_distance_m(self.lat, self.lon, other.lat, other.lon)
+
+@dataclass
+class GPSPoint:
+    lat: float
+    lon: float
+    timestamp: datetime
+    altitude: Optional[float] = None
+    speed: Optional[float] = None
+
+    def distance_to(self, other: GPSPoint) -> float:
+        return haversine_distance_m(self.lat, self.lon, other.lat, other.lon)
 
 @dataclass
 class Segment:

@@ -17,8 +17,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from bike_analyzer.backend.api.app_factory import create_app
 
 
-DEFAULT_DB_URL = "sqlite:///./bike_analyzer.db"
 WEB_PORT = 8080
+DB_PATH = "rides.db"
 
 
 def main():

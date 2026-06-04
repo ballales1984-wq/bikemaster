@@ -1,22 +1,17 @@
 """Analytics engine for ride analysis."""
 from __future__ import annotations
-import math
 from typing import List, Optional
-from ..models.models import Ride, GPSPoint, Segment
+from ..models.models import Ride, GPSPoint, Segment, haversine_distance_m
 from .calories import estimate_calories
 from .fatigue import calculate_fatigue_score, estimate_recovery_hours, get_recovery_recommendation
 import json
 import csv
 from io import StringIO
 from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
-def haversine_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi, dlambda = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
-    return 2 * 6_371_000 * math.asin(math.sqrt(math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2))
 
 def calculate_summary(rides: List[Ride]) -> dict:
     if not rides: return {"total_rides": 0, "total_km": 0.0, "total_calories": 0.0, "avg_speed": 0.0, "avg_fatigue": 0.0}

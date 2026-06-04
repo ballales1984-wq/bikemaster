@@ -3,9 +3,8 @@
 from __future__ import annotations
 from datetime import datetime
 from typing import Optional, Tuple, List
-from ..models.models import GPSPoint, Segment, Pause, RouteStatistics
+from ..models.models import GPSPoint, Segment, Pause, RouteStatistics, haversine_distance_m
 
-EARTH_RADIUS_M = 6_371_000
 PAUSE_SPEED_THRESHOLD_KM_H = 1.5
 PAUSE_MIN_DURATION_MINUTES = 3
 ACCEL_THRESHOLD_KM_H_S = 2.0
@@ -19,12 +18,6 @@ def validate_coordinate(lat: float, lon: float) -> bool:
 
 def validate_gps_point(point: GPSPoint) -> bool:
     return validate_coordinate(point.lat, point.lon) and isinstance(point.timestamp, datetime)
-
-def haversine_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    import math
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi, dlambda = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
-    return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2))
 
 def detect_pauses(points: List[GPSPoint]) -> List[Pause]:
     pauses: List[Pause] = []

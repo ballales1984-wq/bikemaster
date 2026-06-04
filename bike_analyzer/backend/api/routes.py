@@ -8,19 +8,20 @@ from ..analytics.calories import estimate_calories, calories_per_km
 from ..analytics.fatigue import calculate_fatigue_score, estimate_recovery_hours, get_recovery_recommendation
 from ..processing.processing import process_route
 from ..maps.map_renderer import create_route_map
+from .schemas import RideCreate, RideResponse, RideAnalysisRequest, AthleteCreate, AthleteUpdate, MetricCreate, GoogleFitAuthQuery, GoogleFitTokenRequest, GoogleFitImportRequest
 
 router = APIRouter()
 
 @router.get("/health")
 async def health_check(): return {"status": "ok", "service": "bikemaster"}
 
-@router.post("/rides")
-async def create_ride(ride_data: dict):
+@router.post("/rides", response_model=RideResponse)
+async def create_ride(ride_data: RideCreate):
     from ..db.database import save_ride
-    points = ride_data.get("gps_points", [])
-    ride_dict = {k: v for k, v in ride_data.items() if k != "id"}
+    ride_dict = ride_data.model_dump()
+    points = ride_dict.get("gps_points", [])
     if points: ride_dict["gps_points"] = points
-    if not ride_dict.get("avg_speed_kmh") and ride_dict.get("distance_km") and ride_dict.get("duration_minutes"):
+    if not ride_dict.get("avg_speed_kmh") and ride_dict.get("distance_km") and ride_dict.get("duration_minutes") and ride_dict["duration_minutes"] > 0:
         ride_dict["avg_speed_kmh"] = ride_dict["distance_km"] / (ride_dict["duration_minutes"] / 60)
     if not ride_dict.get("calories"):
         ride = Ride(**{k: v for k, v in ride_dict.items() if k != "gps_points"})
@@ -63,13 +64,13 @@ async def delete_ride(ride_id: int):
     if not _delete(ride_id): raise HTTPException(status_code=404, detail="Ride not found")
     return {"deleted": True}
 
-@router.post("/rides/analyze")
-async def analyze_rides(rides: List[dict]):
-    return calculate_summary([Ride(**r) for r in rides])
+@router.post("/rides/analyze", response_model=dict)
+async def analyze_rides(request: RideAnalysisRequest):
+    return calculate_summary([Ride(**r.model_dump()) for r in request.rides])
 
 @router.post("/rides/{ride_id}/analyze")
-async def analyze_single_ride(ride_id: int, ride_data: dict):
-    return analyze_ride(Ride(id=ride_id, **ride_data))
+async def analyze_single_ride(ride_id: int, ride_data: RideCreate):
+    return analyze_ride(Ride(id=ride_id, **ride_data.model_dump()))
 
 @router.post("/rides/{ride_id}/map")
 async def generate_ride_map(ride_id: int):
@@ -230,11 +231,11 @@ async def elevation_chart(ride_id: int):
     from fastapi.responses import FileResponse
     return FileResponse(path, media_type="image/png", filename="elevation.png")
 
-@router.post("/athletes")
-async def create_athlete(athlete_data: dict):
+@router.post("/athletes", response_model=dict)
+async def create_athlete(athlete_data: AthleteCreate):
     from ..db.database import save_athlete, init_db
-    athlete_id = save_athlete(athlete_data)
-    return {"id": int(athlete_id), **athlete_data}
+    athlete_id = save_athlete(athlete_data.model_dump())
+    return {"id": int(athlete_id), **athlete_data.model_dump()}
 
 @router.get("/athletes/{athlete_id}")
 async def get_athlete(athlete_id: int):
@@ -244,17 +245,17 @@ async def get_athlete(athlete_id: int):
     return athlete
 
 @router.post("/athletes/{athlete_id}/metrics")
-async def add_metric(athlete_id: int, metric_data: dict):
+async def add_metric(athlete_id: int, metric_data: MetricCreate):
     from ..db.database import save_metric, init_db
-    metric_id = save_metric({"athlete_id": athlete_id, **metric_data})
-    return {"id": int(metric_id), "athlete_id": athlete_id, **metric_data}
+    metric_id = save_metric({"athlete_id": athlete_id, **metric_data.model_dump()})
+    return {"id": int(metric_id), "athlete_id": athlete_id, **metric_data.model_dump()}
 
 @router.put("/athletes/{athlete_id}")
-async def update_athlete(athlete_id: int, athlete_data: dict):
+async def update_athlete(athlete_id: int, athlete_data: AthleteUpdate):
     from ..db.database import update_athlete as _update, get_athlete as _get
     if not _get(athlete_id): raise HTTPException(status_code=404, detail="Athlete not found")
-    _update(athlete_id, athlete_data)
-    return {"id": athlete_id, **athlete_data}
+    _update(athlete_id, athlete_data.model_dump(exclude_none=True))
+    return {"id": athlete_id, **athlete_data.model_dump(exclude_none=True)}
 
 
 @router.get("/import/google-fit/auth")

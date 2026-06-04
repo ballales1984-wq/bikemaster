@@ -160,7 +160,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
 def create_app() -> FastAPI:
     app = FastAPI(title="BikeMaster API", description="GPS-based cycling intelligence", version="0.1.0")
-    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+    app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:8080", "http://127.0.0.1:8080"], allow_credentials=True, allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["*"])
     app.include_router(router, prefix="/api/v1")
     
     @app.on_event("startup")

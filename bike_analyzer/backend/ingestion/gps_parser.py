@@ -33,11 +33,10 @@ def parse_fit_file(file_path: str) -> list[dict]:
 def points_to_ride(points: list[dict], name: Optional[str] = None, weight_kg: float = 70.0) -> dict:
     if not points: return {"error": "No GPS points provided"}
     from math import radians, sin, cos, sqrt, asin
-    EARTH_RADIUS_M = 6_371_000
     def haversine_m(lat1, lon1, lat2, lon2):
         phi1, phi2 = radians(lat1), radians(lat2)
         dphi, dlambda = radians(lat2 - lat1), radians(lon2 - lon1)
-        return 2 * EARTH_RADIUS_M * asin(sqrt(sin(dphi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(dlambda / 2) ** 2))
+        return 2 * EARTH_RADIUS * asin(sqrt(sin(dphi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(dlambda / 2) ** 2))
     total_distance = sum(
         haversine_m(points[i-1]["lat"], points[i-1]["lon"], p["lat"], p["lon"])
         for i, p in enumerate(points) if i > 0

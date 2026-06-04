@@ -16,13 +16,13 @@ def exchange_code_for_token(client_id: str, client_secret: str, code: str, redir
 def fetch_cycling_activities(access_token: str) -> list[dict]:
     import requests
     headers = {"Authorization": f"Bearer {access_token}"}
-    dataset = []
     resp = requests.get("https://fitness.googleapis.com/v1/users/me/dataset:aggregate", headers=headers, timeout=10)
+    activities = []
     if resp.ok:
         for bucket in resp.json().get("bucket", []):
-            for dataset in bucket.get("dataset", []):
-                dataset.append({"startTime": dataset.get("startTime"), "endTime": dataset.get("endTime"), "value": dataset.get("value", [])})
-    return dataset
+            for ds in bucket.get("dataset", []):
+                activities.append({"startTime": ds.get("startTime"), "endTime": ds.get("endTime"), "value": ds.get("value", [])})
+    return activities
 
 def google_fit_to_ride(activities: list[dict]) -> list[dict]:
     rides = []

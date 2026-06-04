@@ -52,9 +52,11 @@ def init_db():
     conn.commit()
     conn.close()
 
+def _conn():
+    return sqlite3.connect(DB_PATH)
+
 def save_ride(ride: dict) -> int:
-    init_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = _conn()
     cur = conn.cursor()
     gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
     cur.execute("""INSERT INTO rides (athlete_id, date, distance_km, duration_minutes, avg_speed_kmh, weight_kg, calories, heart_rate_avg, elevation_gain_m, gps_points, created_at)
@@ -68,8 +70,7 @@ def save_ride(ride: dict) -> int:
     return ride_id
 
 def get_ride(ride_id: int) -> Optional[dict]:
-    init_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = _conn()
     cur = conn.cursor()
     cur.execute("SELECT * FROM rides WHERE id = ?", (ride_id,))
     row = cur.fetchone()
@@ -79,8 +80,7 @@ def get_ride(ride_id: int) -> Optional[dict]:
     return None
 
 def get_all_rides() -> List[dict]:
-    init_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = _conn()
     cur = conn.cursor()
     cur.execute("SELECT * FROM rides")
     rows = cur.fetchall()
@@ -88,8 +88,7 @@ def get_all_rides() -> List[dict]:
     return [{"id": r[0], "athlete_id": r[1], "date": r[2], "distance_km": r[3], "duration_minutes": r[4], "avg_speed_kmh": r[5], "weight_kg": r[6], "calories": r[7], "heart_rate_avg": r[8], "elevation_gain_m": r[9], "gps_points": json.loads(r[10]) if r[10] else None, "created_at": r[11]} for r in rows]
 
 def delete_ride(ride_id: int) -> bool:
-    init_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = _conn()
     cur = conn.cursor()
     cur.execute("DELETE FROM rides WHERE id = ?", (ride_id,))
     deleted = cur.rowcount > 0
@@ -98,8 +97,7 @@ def delete_ride(ride_id: int) -> bool:
     return deleted
 
 def save_athlete(athlete: dict) -> int:
-    init_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = _conn()
     cur = conn.cursor()
     cur.execute("""INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage, years_active, weekly_sessions, monthly_hours, annual_hours, experience_level, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -113,8 +111,7 @@ def save_athlete(athlete: dict) -> int:
     return athlete_id
 
 def get_athlete(athlete_id: int) -> Optional[dict]:
-    init_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = _conn()
     cur = conn.cursor()
     cur.execute("SELECT * FROM athletes WHERE id = ?", (athlete_id,))
     row = cur.fetchone()
@@ -124,8 +121,7 @@ def get_athlete(athlete_id: int) -> Optional[dict]:
     return None
 
 def save_metric(metric: dict) -> int:
-    init_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = _conn()
     cur = conn.cursor()
     cur.execute("""INSERT INTO metrics (athlete_id, ride_id, fatigue_score, recovery_hours, calories_per_km, efficiency_score, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)""",
@@ -137,8 +133,7 @@ def save_metric(metric: dict) -> int:
     return metric_id
 
 def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
-    init_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = _conn()
     cur = conn.cursor()
     cur.execute("""UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?, fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?, annual_hours=?, experience_level=? WHERE id=?""",
         (athlete_data.get("name"), athlete_data.get("age", 30), athlete_data.get("weight_kg", 70), athlete_data.get("height_cm"),
@@ -150,9 +145,11 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     return updated
 
 def create_indices():
-    init_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = _conn()
     conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_date ON rides(date)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_distance ON rides(distance_km)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_duration ON rides(duration_minutes)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_speed ON rides(avg_speed_kmh)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_athlete ON rides(athlete_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_metrics_ride ON metrics(ride_id)")
     conn.commit()
@@ -161,7 +158,6 @@ def create_indices():
 def backup_database(backup_path: Optional[str] = None) -> str:
     import shutil
     if backup_path is None: backup_path = f"rides_backup_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.db"
-    init_db()
     shutil.copy2(DB_PATH, backup_path)
     return backup_path
 
