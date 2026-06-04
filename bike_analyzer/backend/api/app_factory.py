@@ -78,6 +78,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         let durationChart = null;
         
         async function loadRides() {
+            try {
             const resp = await fetch('/api/v1/rides');
             const data = await resp.json();
             const rides = data.rides || [];
@@ -105,6 +106,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             }).join('') || '<p>Nessuna ride. Aggiungi una sopra!</p>';
             
             updateDurationChart(rides);
+            } catch(e) { console.error('loadRides error:', e); }
         }
         
         function updateDurationChart(rides) {
@@ -113,12 +115,17 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             const ctx = canvas.getContext('2d');
             const labels = rides.map(r => r.date).slice(-10);
             const data = rides.map(r => r.duration_minutes).slice(-10);
-            if (durationChart) durationChart.destroy();
-            durationChart = new Chart(ctx, {
-                type: 'bar',
-                data: {labels, datasets: [{label: 'Durata (min)', data, backgroundColor: '#4ecca3'}]},
-                options: {responsive: true, maintainAspectRatio: false, scales: {y: {beginAtZero: true}}}
-            });
+            if (durationChart) {
+                durationChart.data.labels = labels;
+                durationChart.data.datasets[0].data = data;
+                durationChart.update();
+            } else {
+                durationChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {labels, datasets: [{label: 'Durata (min)', data, backgroundColor: '#4ecca3'}]},
+                    options: {responsive: true, maintainAspectRatio: false, scales: {y: {beginAtZero: true}}, animation: {duration: 0}}
+                });
+            }
         }
         
         async function addRide() {
