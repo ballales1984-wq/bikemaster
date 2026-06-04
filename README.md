@@ -1,51 +1,136 @@
 # BikeMaster
 
-GPS-based cycling performance intelligence system. Import GPS data, analyze rides, and optimize your cycling performance with actionable insights.
+GPS-based cycling performance intelligence system. Import rides from GPX/FIT files, analyze power metrics, estimate calories and fatigue, visualize routes on interactive maps, and access everything through a REST API.
 
 ## Features
 
-- **GPS Route Processing**: Clean noisy GPS data, detect pauses, compute segment statistics
-- **Performance Analytics**: Calorie estimation (MET & physics models), fatigue scoring, recovery recommendations
-- **Interactive Maps**: Speed-colored route visualization with Folium (Strava-style)
-- **REST API**: FastAPI endpoints for ride data management
-- **Database Storage**: SQLite for ride persistence (PostgreSQL ready)
+- **GPS ingestion** — Parse GPX and Garmin FIT files
+- **Performance analytics** — Distance, speed, elevation, accelerations, pauses
+- **Calorie estimation** — Physics + MET-based models
+- **Fatigue scoring** — Weighted formula with recovery recommendations
+- **Interactive maps** — Speed-colored routes via Folium/Leaflet
+- **REST API** — 19 endpoints for rides, analysis, charts, import, export
+- **Dashboard** — Dark-themed web UI with stats, ride list, and route map
+- **Data export** — JSON and CSV formats
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | FastAPI, Python 3.10+ |
+| Database | SQLite (PostgreSQL-ready) |
+| Maps | Folium, Leaflet.js |
+| Analytics | NumPy, Pandas, Matplotlib |
+| Parsers | gpxpy, fitparse |
 
 ## Quick Start
 
 ```bash
+git clone https://github.com/ballales1984-wq/bikemaster.git
+cd bikemaster
 pip install -r requirements.txt
-python -m bike_analyzer.main
+python main.py api
 ```
 
-## Architecture
+Open [http://localhost:8000](http://localhost:8000) for the dashboard.
+
+## Usage Modes
+
+```bash
+# API server (default) — dashboard + REST API
+python main.py api
+
+# Web server — standalone frontend
+python main.py web
+
+# CLI — demo analytics on sample data
+python main.py cli
+```
+
+## API Endpoints
+
+### Rides
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/rides` | Create ride |
+| GET | `/api/v1/rides` | List rides (paginated) |
+| GET | `/api/v1/rides/{id}` | Get ride details |
+| DELETE | `/api/v1/rides/{id}` | Delete ride |
+| POST | `/api/v1/rides/analyze` | Multi-ride summary |
+| POST | `/api/v1/rides/{id}/analyze` | Single ride analysis |
+
+### Import
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/import/gpx` | Upload GPX file |
+| POST | `/api/v1/import/fit` | Upload FIT file |
+| POST | `/api/v1/import/multiple` | Batch upload |
+
+### Export
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/v1/rides/export/json` | Export as JSON |
+| GET | `/api/v1/rides/export/csv` | Export as CSV |
+
+### Charts
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/v1/charts/speed/{id}` | Speed chart PNG |
+| GET | `/api/v1/charts/elevation/{id}` | Elevation chart PNG |
+| GET | `/api/v1/charts/duration` | Duration bar chart |
+
+### Athletes
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/athletes` | Create athlete profile |
+| GET | `/api/v1/athletes/{id}` | Get athlete |
+| PUT | `/api/v1/athletes/{id}` | Update athlete |
+| POST | `/api/v1/athletes/{id}/metrics` | Save metrics |
+
+## Generate Sample Data
+
+```bash
+python scripts/generate_sample_ride.py
+```
+
+## Run Tests
+
+```bash
+pytest
+```
+
+## Project Structure
 
 ```
 bike_analyzer/
-├── backend/
-│   ├── api/          # FastAPI endpoints
-│   ├── ingestion/    # GPS data import (GPX, FIT)
-│   ├── processing/   # GPS cleaning + routing
-│   ├── analytics/    # Performance metrics, fatigue model
-│   ├── maps/         # Folium route visualization
-│   ├── models/       # Domain models (Ride, GPSPoint, Segment)
-│   └── db/           # SQLite database layer
-├── frontend/
-│   └── dashboard/    # HTML output templates
-└── tests/
+├── __init__.py          # Package facade
+├── main.py              # Entry point
+└── backend/
+    ├── api/             # FastAPI routes + embedded dashboard
+    ├── analytics/       # Calories, fatigue, charts, exports
+    ├── db/              # SQLite CRUD layer
+    ├── ingestion/       # GPX and FIT parsers
+    ├── maps/            # Folium route renderer
+    └── models/          # Domain models (Ride, GPSPoint, Segment)
+frontend/                # Standalone dashboard
+scripts/                 # Sample data generator
+tests/                   # Unit tests
 ```
 
-## API Usage
+## Configuration
 
-```bash
-uvicorn bike_analyzer.backend.api.app_factory:create_app --reload
+Copy `.env.example` to `.env` and set values:
+
+```env
+DATABASE_URL=sqlite:///./rides.db
+API_HOST=0.0.0.0
+API_PORT=8000
 ```
 
-```bash
-curl -X POST http://localhost:8000/api/v1/rides/analyze \
-  -H "Content-Type: application/json" \
-  -d '[{"date": "2024-06-01", "distance_km": 25, "duration_minutes": 60, "avg_speed_kmh": 25}]'
-```
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for the 100-step development plan.
 
 ## License
 
-MIT License
+MIT
