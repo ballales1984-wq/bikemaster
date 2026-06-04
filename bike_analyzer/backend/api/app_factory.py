@@ -13,6 +13,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     <title>BikeMaster - Dashboard</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; padding: 20px; }
@@ -27,12 +28,13 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         .panel h2 { color: #4ecca3; margin-bottom: 15px; font-size: 1.3rem; }
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
         .form-grid input { background: #0f0f23; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 5px; }
-        .rides-list { margin-top: 20px; max-height: 400px; overflow-y: auto; }
+        .rides-list { margin-top: 20px; max-height: 300px; overflow-y: auto; }
         .ride-item { background: #0f0f23; padding: 12px; margin: 8px 0; border-radius: 8px; cursor: pointer; }
         .ride-item:hover { background: #1a1a3e; }
         .ride-date { font-weight: bold; color: #fff; }
         .ride-details { color: #aaa; font-size: 0.85rem; margin-top: 5px; }
         .map-container { height: 300px; margin-top: 15px; border-radius: 8px; display: none; }
+        .chart-container { background: #16213e; padding: 15px; border-radius: 8px; margin-top: 20px; height: 250px; }
         .btn { background: #4ecca3; color: #1a1a2e; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin: 5px; }
         .btn:hover { background: #3dbba0; }
         .flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -47,7 +49,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         <div class="panel">
             <h2>➕ Aggiungi Nuova Ride</h2>
             <div class="form-grid">
-                <input type="date" id="ride-date" placeholder="Data">
+                <input type="date" id="ride-date">
                 <input type="number" id="ride-distance" placeholder="Distanza (km)" step="0.1">
                 <input type="number" id="ride-duration" placeholder="Durata (min)" step="1">
                 <input type="number" id="ride-speed" placeholder="Velocità (km/h)" step="0.1">
@@ -55,7 +57,12 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 <input type="number" id="ride-hr" placeholder="HR medio" step="1">
                 <input type="number" id="ride-elevation" placeholder="Altitudine (m)" step="1">
             </div>
-            <div class="flex"><button class="btn" onclick="addRide()">Aggiungi</button></div>
+            <div class="flex"><button class="btn" onclick="addRide()">Aggiungi</button><button class="btn" onclick="resetDemo()">Reset Demo</button></div>
+        </div>
+
+        <div class="panel">
+            <h2>📊 Statistiche Performance</h2>
+            <canvas id="durationChart" height="100"></canvas>
         </div>
 
         <div class="panel">
@@ -68,12 +75,13 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     
     <script>
         let map = null;
+        let durationChart = null;
+        
         async function loadRides() {
             const resp = await fetch('/api/v1/rides');
             const data = await resp.json();
             const rides = data.rides || [];
             
-            // Stats
             const totalKm = rides.reduce((s, r) => s + (r.distance_km || 0), 0);
             const totalCal = rides.reduce((s, r) => s + (r.calories || 0), 0);
             const avgSp = rides.length ? rides.reduce((s, r) => s + (r.avg_speed_kmh || 0), 0) / rides.length : 0;
@@ -87,7 +95,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 {v: (totalDur/60).toFixed(1), l: 'Ore Totali'}
             ].map(s => `<div class="stat-card"><div class="stat-value">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join('');
             
-            // Rides list
             document.getElementById('rides-list').innerHTML = rides.map(r => {
                 const fatigue = r.heart_rate_avg ? ((r.duration_minutes || 0) / 60 * 1.5).toFixed(1) : '0';
                 const pause = r.gps_points ? '📡' : '';
@@ -96,6 +103,20 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                     <div class="ride-details">${r.distance_km}km • ${r.duration_minutes}min • ${r.avg_speed_kmh} km/h • Fatigue: ${fatigue}/10</div>
                 </div>`;
             }).join('') || '<p>Nessuna ride. Aggiungi una sopra!</p>';
+            
+            updateDurationChart(rides);
+        }
+        
+        function updateDurationChart(rides) {
+            const ctx = document.getElementById('durationChart').getContext('2d');
+            const labels = rides.map(r => r.date).slice(-10);
+            const data = rides.map(r => r.duration_minutes).slice(-10);
+            if (durationChart) durationChart.destroy();
+            durationChart = new Chart(ctx, {
+                type: 'bar',
+                data: {labels, datasets: [{label: 'Durata (min)', data, backgroundColor: '#4ecca3'}]},
+                options: {responsive: true, maintainAspectRatio: false, scales: {y: {beginAtZero: true}}}
+            });
         }
         
         async function addRide() {
@@ -109,6 +130,11 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 elevation_gain_m: parseFloat(document.getElementById('ride-elevation').value) || null
             };
             await fetch('/api/v1/rides', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(ride) });
+            loadRides();
+        }
+        
+        async function resetDemo() {
+            await fetch('/api/v1/admin/reset-demo', { method: 'POST' });
             loadRides();
         }
         
