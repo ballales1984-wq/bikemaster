@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from bike_analyzer.app.cli import run_cli
-from backend.api.app import create_app
+from bike_analyzer.backend.api.app_factory import create_app
 from bike_analyzer.app.config import WEB_PORT
 
 

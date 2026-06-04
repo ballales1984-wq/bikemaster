@@ -67,3 +67,20 @@ class Ride:
 
     def to_dict(self) -> dict:
         return {"id": self.id, "date": self.date, "distance_km": self.distance_km, "duration_minutes": self.duration_minutes, "avg_speed_kmh": self.avg_speed_kmh, "weight_kg": self.weight_kg, "calories": self.calories, "heart_rate_avg": self.heart_rate_avg, "elevation_gain_m": self.elevation_gain_m}
+
+@dataclass
+class AthleteProfile:
+    id: Optional[int] = None
+    name: str = ""
+    age: int = 30
+    weight_kg: float = 70.0
+    height_cm: Optional[float] = None
+    fat_percentage: Optional[float] = None
+    years_active: int = 1
+    weekly_sessions: int = 3
+    monthly_hours: float = 0.0
+    annual_hours: float = 0.0
+    experience_level: str = "Beginner"  # Beginner, Amateur, Intermediate, Advanced, Elite
+
+    def to_dict(self) -> dict:
+        return {"id": self.id, "name": self.name, "age": self.age, "weight_kg": self.weight_kg, "height_cm": self.height_cm, "fat_percentage": self.fat_percentage, "years_active": self.years_active, "weekly_sessions": self.weekly_sessions, "monthly_hours": self.monthly_hours, "annual_hours": self.annual_hours, "experience_level": self.experience_level}

@@ -1,3 +1,6 @@
+# Kilo config
+.kilo/
+
 # Python
 __pycache__/
 *.py[cod]

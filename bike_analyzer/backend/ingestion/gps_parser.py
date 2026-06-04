@@ -1,6 +1,7 @@
 """GPS parsing for FIT and GPX files."""
 from __future__ import annotations
 from datetime import datetime
+from typing import Optional
 
 def parse_gpx_file(content: str) -> list[dict]:
     import xml.etree.ElementTree as ET
@@ -28,3 +29,20 @@ def parse_fit_file(file_path: str) -> list[dict]:
                 if lat and lon and ts: points.append({"lat": lat, "lon": lon, "timestamp": ts, "altitude": alt, "speed": spd})
         return points
     except ImportError: raise ImportError("fitparse not installed. Run: pip install fitparse")
+
+def points_to_ride(points: list[dict], name: Optional[str] = None, weight_kg: float = 70.0) -> dict:
+    if not points: return {"error": "No GPS points provided"}
+    total_distance = sum(
+        __import__("math").sqrt((p["lat"] - points[i-1]["lat"])**2 + (p["lon"] - points[i-1]["lon"])**2) * 111000
+        for i, p in enumerate(points) if i > 0
+    ) if len(points) > 1 else 0
+    duration_s = (points[-1]["timestamp"] - points[0]["timestamp"]).total_seconds() if len(points) > 1 else 0
+    avg_speed = (total_distance / duration_s * 3.6) if duration_s > 0 else 0
+    return {
+        "date": points[0]["timestamp"].strftime("%Y-%m-%d") if points else "",
+        "distance_km": total_distance / 1000,
+        "duration_minutes": duration_s / 60,
+        "avg_speed_kmh": avg_speed,
+        "weight_kg": weight_kg,
+        "gps_points": [{"lat": p["lat"], "lon": p["lon"], "timestamp": p["timestamp"].isoformat(), "altitude": p.get("altitude"), "speed": p.get("speed")} for p in points]
+    }
