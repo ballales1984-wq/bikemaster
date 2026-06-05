@@ -1,0 +1,133 @@
+### BikeMaster API Examples - HTTP Requests
+
+### Health Check
+GET http://localhost:8000/api/v1/health
+
+### Lista Rides
+GET http://localhost:8000/api/v1/rides?page=1&page_size=10&sort=date
+
+### Crea Ride
+POST http://localhost:8000/api/v1/rides
+Content-Type: application/json
+
+{
+  "date": "2024-06-15",
+  "distance_km": 30.5,
+  "duration_minutes": 75,
+  "avg_speed_kmh": 24.4,
+  "weight_kg": 72,
+  "calories": 850,
+  "heart_rate_avg": 155,
+  "elevation_gain_m": 280
+}
+
+### Dettaglio Ride
+GET http://localhost:8000/api/v1/rides/1
+
+### Elimina Ride
+DELETE http://localhost:8000/api/v1/rides/1
+
+### Upload GPX
+POST http://localhost:8000/api/v1/import/gpx
+Content-Type: multipart/form-data
+
+<file.gpx>
+
+### Upload FIT
+POST http://localhost:8000/api/v1/import/fit
+Content-Type: multipart/form-data
+
+<file.fit>
+
+### Upload Multiplo
+POST http://localhost:8000/api/v1/import/multiple
+Content-Type: multipart/form-data
+
+<file1.gpx>
+<file2.fit>
+
+### Esporta JSON
+GET http://localhost:8000/api/v1/rides/export/json
+
+### Esporta CSV
+GET http://localhost:8000/api/v1/rides/export/csv
+
+### Grafico Velocità
+GET http://localhost:8000/api/v1/charts/speed/1
+
+### Grafico Elevazione
+GET http://localhost:8000/api/v1/charts/elevation/1
+
+### Mappa Interattiva
+GET http://localhost:8000/api/v1/rides/1/map
+
+### Google Static Map
+GET http://localhost:8000/api/v1/rides/1/map/google
+
+### Crea Atleta
+POST http://localhost:8000/api/v1/athletes
+Content-Type: application/json
+
+{
+  "name": "Luca Bianchi",
+  "age": 28,
+  "weight_kg": 68,
+  "height_cm": 172,
+  "years_active": 4,
+  "weekly_sessions": 5
+}
+
+### Dettaglio Atleta
+GET http://localhost:8000/api/v1/athletes/1
+
+### Aggiorna Atleta
+PUT http://localhost:8000/api/v1/athletes/1
+Content-Type: application/json
+
+{
+  "weight_kg": 67.5,
+  "monthly_hours": 25
+}
+
+### Punteggi Atleta
+GET http://localhost:8000/api/v1/scores/athlete/1
+
+### Benchmark Compare
+POST http://localhost:8000/api/v1/benchmark/compare
+Content-Type: application/json
+
+{
+  "distance_km": 30.5,
+  "avg_speed_kmh": 24.4,
+  "duration_hours": 1.25
+}
+
+### Workout Recommendations
+GET http://localhost:8000/api/v1/coach/workout?athlete_id=1
+
+### Recovery Recommendations
+GET http://localhost:8000/api/v1/coach/recovery?fatigue_score=5.5&ride_id=1
+
+### Historical Trends
+GET http://localhost:8000/api/v1/coach/trends
+
+### Lista Knowledge Base
+GET http://localhost:8000/api/v1/knowledge
+
+### Ricerca Knowledge Base
+GET http://localhost:8000/api/v1/knowledge/search?q=recupero
+
+### Statistiche Sistema
+GET http://localhost:8000/api/v1/admin/stats
+
+### Backup Database
+GET http://localhost:8000/api/v1/admin/backup
+
+### Crea Indici
+POST http://localhost:8000/api/v1/admin/indexes
+
+### Reset Demo
+POST http://localhost:8000/api/v1/admin/reset-demo
+
+### Conteggio Rides
+GET http://localhost:8000/api/v1/rides/count
