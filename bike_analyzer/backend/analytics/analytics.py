@@ -8,7 +8,6 @@ import json
 import csv
 from io import StringIO
 from tempfile import NamedTemporaryFile
-from tempfile import NamedTemporaryFile
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -108,6 +107,7 @@ def generate_speed_chart(points: Optional[List[GPSPoint]], title: str = "Speed P
     plt.xlabel("Point")
     f = NamedTemporaryFile(suffix=".png", delete=False)
     plt.savefig(f.name)
+    f.close()
     plt.close()
     return f.name
 
@@ -125,6 +125,7 @@ def generate_distance_chart(points: Optional[List[GPSPoint]], title: str = "Dist
     plt.xlabel("Point")
     f = NamedTemporaryFile(suffix=".png", delete=False)
     plt.savefig(f.name)
+    f.close()
     plt.close()
     return f.name
 
@@ -137,5 +138,6 @@ def generate_time_chart(points: Optional[List[GPSPoint]], title: str = "Time Ana
     plt.yticks([])
     f = NamedTemporaryFile(suffix=".png", delete=False)
     plt.savefig(f.name)
+    f.close()
     plt.close()
     return f.name

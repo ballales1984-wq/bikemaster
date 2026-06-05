@@ -24,6 +24,8 @@ def compare_athlete_to_benchmark(athlete: AthleteProfile, total_km: float, avg_s
     pct_hours = min(100, (total_hours - bench["weekly_hours"][0]) / (bench["weekly_hours"][1] - bench["weekly_hours"][0]) * 100) if bench["weekly_hours"][1] > bench["weekly_hours"][0] else 50
     return {"percentile_km": max(0, pct_km), "percentile_speed": max(0, pct_speed), "percentile_hours": max(0, pct_hours), "overall_percentile": round((pct_km + pct_speed + pct_hours) / 3, 1)}
 
+compare_with_benchmark = compare_athlete_to_benchmark
+
 def get_age_category(age: int) -> str:
     for cat, (low, high) in AGE_CATEGORIES.items():
         if low <= age < high: return cat

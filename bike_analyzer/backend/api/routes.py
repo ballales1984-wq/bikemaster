@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
-from ..models.models import Ride, GPSPoint
+from ..models.models import Ride, GPSPoint, AthleteProfile
 from ..analytics.analytics import calculate_summary, analyze_ride
 from ..analytics.calories import estimate_calories, calories_per_km
 from ..analytics.fatigue import calculate_fatigue_score, estimate_recovery_hours, get_recovery_recommendation
@@ -302,15 +302,15 @@ async def get_athlete_scores(athlete_id: int):
     rides = [Ride(**r) for r in get_all_rides()]
     if rides:
         latest = rides[-1]
-        return {"athlete": athlete, "scores": {"performance_score": calculate_performance_score(latest), "endurance_score": calculate_endurance_score(rides), "efficiency_score": calculate_efficiency_score(latest), "experience_level": get_experience_level(len(rides), sum(r.distance_km for r in rides))}}
+        return {"athlete": athlete, "scores": {"performance_score": calculate_performance_score(latest), "endurance_score": calculate_endurance_score(rides), "efficiency_score": calculate_efficiency_score(latest),         "experience_level": get_experience_level(AthleteProfile(**athlete))}}
     return {"athlete": athlete, "scores": {"performance_score": 0, "endurance_score": 0, "efficiency_score": 0, "experience_level": "Beginner"}}
 
 @router.post("/benchmark/compare")
 async def benchmark_compare(ride_data: dict):
-    from ..analytics.benchmark import compare_with_benchmark
+    from ..analytics.benchmark import compare_athlete_to_benchmark
     from ..models.models import Ride
     ride = Ride(**ride_data)
-    return compare_with_benchmark(ride)
+    return compare_athlete_to_benchmark(AthleteProfile(), ride.distance_km, ride.avg_speed_kmh, ride.duration_hours)
 
 @router.get("/knowledge")
 async def list_knowledge():

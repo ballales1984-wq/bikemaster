@@ -24,6 +24,8 @@ def generate_training_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
     except Exception:
         return "AI Coach non disponibile. Imposta GROQ_API_KEY."
 
+generate_workout_recommendations = generate_training_advice
+
 def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
     try:
         client = get_ai_coach_client()
@@ -34,6 +36,8 @@ def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
     except Exception:
         return "Idratazione e stretching raccomandati."
 
+generate_recovery_recommendations = generate_recovery_advice
+
 def analyze_historical_trend(rides: List[Ride]) -> str:
     if len(rides) < 2: return "Dati insufficienti per trend."
     from .fatigue import calculate_fatigue_score
@@ -42,5 +46,7 @@ def analyze_historical_trend(rides: List[Ride]) -> str:
     trend = "crescente" if avg_perf > 5 else "stabile" if avg_perf > 3 else "da monitorare"
     return f"Trend: {trend}, fatigue media: {avg_fatigue:.1f}/10, performance media: {avg_perf:.1f}/10"
 
+analyze_historical_trends = analyze_historical_trend
+
 def ai_coach_full(athlete: AthleteProfile, rides: List[Ride]) -> dict:
-    return {"training_advice": generate_training_advice(athlete, rides), "recovery_advice": generate_recovery_advice(athlete, rides), "historical_analysis": analyze_historical_trend(rides)}
+    return {"training_advice": generate_workout_recommendations(athlete, rides), "recovery_advice": generate_recovery_recommendations(athlete, rides), "historical_analysis": analyze_historical_trends(rides)}

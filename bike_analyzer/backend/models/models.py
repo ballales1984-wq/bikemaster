@@ -27,17 +27,6 @@ class GPSPoint:
         return haversine_distance_m(self.lat, self.lon, other.lat, other.lon)
 
 @dataclass
-class GPSPoint:
-    lat: float
-    lon: float
-    timestamp: datetime
-    altitude: Optional[float] = None
-    speed: Optional[float] = None
-
-    def distance_to(self, other: GPSPoint) -> float:
-        return haversine_distance_m(self.lat, self.lon, other.lat, other.lon)
-
-@dataclass
 class Segment:
     start: GPSPoint
     end: GPSPoint
