@@ -76,8 +76,27 @@ def get_ride(ride_id: int) -> Optional[dict]:
     row = cur.fetchone()
     conn.close()
     if row:
-        return {"id": row[0], "athlete_id": row[1], "date": row[2], "distance_km": row[3], "duration_minutes": row[4], "avg_speed_kmh": row[5], "weight_kg": row[6], "calories": row[7], "heart_rate_avg": row[8], "elevation_gain_m": row[9], "gps_points": json.loads(row[10]) if row[10] else None, "created_at": row[11]}
+        try:
+            gps = json.loads(row[10]) if row[10] else None
+        except (json.JSONDecodeError, TypeError):
+            gps = None
+        return {"id": row[0], "athlete_id": row[1], "date": row[2], "distance_km": row[3], "duration_minutes": row[4], "avg_speed_kmh": row[5], "weight_kg": row[6], "calories": row[7], "heart_rate_avg": row[8], "elevation_gain_m": row[9], "gps_points": gps, "created_at": row[11]}
     return None
+
+def get_rides_by_athlete(athlete_id: int) -> List[dict]:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM rides WHERE athlete_id = ?", (athlete_id,))
+    rows = cur.fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        try:
+            gps = json.loads(r[10]) if r[10] else None
+        except (json.JSONDecodeError, TypeError):
+            gps = None
+        result.append({"id": r[0], "athlete_id": r[1], "date": r[2], "distance_km": r[3], "duration_minutes": r[4], "avg_speed_kmh": r[5], "weight_kg": r[6], "calories": r[7], "heart_rate_avg": r[8], "elevation_gain_m": r[9], "gps_points": gps, "created_at": r[11]})
+    return result
 
 def get_all_rides() -> List[dict]:
     conn = _conn()
@@ -85,7 +104,14 @@ def get_all_rides() -> List[dict]:
     cur.execute("SELECT * FROM rides")
     rows = cur.fetchall()
     conn.close()
-    return [{"id": r[0], "athlete_id": r[1], "date": r[2], "distance_km": r[3], "duration_minutes": r[4], "avg_speed_kmh": r[5], "weight_kg": r[6], "calories": r[7], "heart_rate_avg": r[8], "elevation_gain_m": r[9], "gps_points": json.loads(r[10]) if r[10] else None, "created_at": r[11]} for r in rows]
+    result = []
+    for r in rows:
+        try:
+            gps = json.loads(r[10]) if r[10] else None
+        except (json.JSONDecodeError, TypeError):
+            gps = None
+        result.append({"id": r[0], "athlete_id": r[1], "date": r[2], "distance_km": r[3], "duration_minutes": r[4], "avg_speed_kmh": r[5], "weight_kg": r[6], "calories": r[7], "heart_rate_avg": r[8], "elevation_gain_m": r[9], "gps_points": gps, "created_at": r[11]})
+    return result
 
 def delete_ride(ride_id: int) -> bool:
     conn = _conn()
@@ -157,8 +183,11 @@ def create_indices():
 
 def backup_database(backup_path: Optional[str] = None) -> str:
     import shutil
+    from pathlib import Path
+    if not Path(DB_PATH).exists():
+        raise FileNotFoundError(f"Database {DB_PATH} does not exist yet")
     if backup_path is None: backup_path = f"rides_backup_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.db"
     shutil.copy2(DB_PATH, backup_path)
     return backup_path
 
-__all__ = ["save_ride", "get_ride", "get_all_rides", "delete_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database"]
+__all__ = ["save_ride", "get_ride", "get_all_rides", "get_rides_by_athlete", "delete_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database"]

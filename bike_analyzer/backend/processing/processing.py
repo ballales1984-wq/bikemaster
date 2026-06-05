@@ -97,4 +97,5 @@ def compute_statistics(points: List[GPSPoint]) -> RouteStatistics:
 
 def process_route(points: List[GPSPoint], max_speed_km_h: float = 120.0) -> Tuple[List[GPSPoint], RouteStatistics]:
     points = sorted(points, key=lambda p: p.timestamp)
-    return remove_outliers(points, max_speed_km_h), compute_statistics(remove_outliers(points, max_speed_km_h))
+    cleaned = remove_outliers(points, max_speed_km_h)
+    return cleaned, compute_statistics(cleaned)

@@ -26,7 +26,7 @@ def parse_fit_file(file_path: str) -> list[dict]:
                 ts = d.get("timestamp")
                 alt = d.get("enhanced_altitude") or d.get("altitude")
                 spd = d.get("speed") * 3.6 if d.get("speed") else None
-                if lat and lon and ts: points.append({"lat": lat, "lon": lon, "timestamp": ts, "altitude": alt, "speed": spd})
+                if lat is not None and lon is not None and ts: points.append({"lat": lat, "lon": lon, "timestamp": ts, "altitude": alt, "speed": spd})
         return points
     except ImportError: raise ImportError("fitparse not installed. Run: pip install fitparse")
 

@@ -53,7 +53,6 @@ async def get_ride(ride_id: int):
     if not ride: raise HTTPException(status_code=404, detail="Ride not found")
     # Add analytics
     r = Ride(**ride)
-    ride["calories"] = r.calories or estimate_calories(r)
     ride["fatigue_score"] = round(calculate_fatigue_score(r), 1)
     ride["calories_per_km"] = round(calories_per_km(r), 0) if r.distance_km else 0
     return ride
@@ -91,8 +90,7 @@ async def import_gpx(file: UploadFile = File(...)):
     points_data = parse_gpx_file(content.decode())
     ride_data = points_to_ride(points_data, name=file.filename)
     if "error" not in ride_data:
-        ride = Ride(**ride_data)
-        ride_id = save_ride({k: v for k, v in ride.to_dict().items() if k != "id"})
+        ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
         ride_data["id"] = int(ride_id)
     return ride_data
 
@@ -112,8 +110,7 @@ async def import_fit(file: UploadFile = File(...)):
         os.unlink(temp_path)
     ride_data = points_to_ride(points_data, name=file.filename)
     if "error" not in ride_data:
-        ride = Ride(**ride_data)
-        ride_id = save_ride({k: v for k, v in ride.to_dict().items() if k != "id"})
+        ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
         ride_data["id"] = int(ride_id)
     return ride_data
 
@@ -141,8 +138,7 @@ async def import_multiple(files: List[UploadFile] = File(...)):
             points = []
         ride_data = points_to_ride(points, name=file.filename)
         if "error" not in ride_data:
-            ride = Ride(**ride_data)
-            ride_id = save_ride({k: v for k, v in ride.to_dict().items() if k != "id"})
+            ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
             ride_data["id"] = int(ride_id)
             imported.append(ride_data)
     return {"imported": imported, "count": len(imported)}
@@ -194,7 +190,7 @@ async def duration_chart():
     from ..db.database import get_all_rides
     from ..analytics.analytics import create_duration_chart
     rides = [Ride(**r) for r in get_all_rides()]
-    path = "duration_chart.png"
+    path = f"duration_chart.png"
     create_duration_chart(rides, path)
     from fastapi.responses import FileResponse
     return FileResponse(path, media_type="image/png", filename="duration.png")
@@ -238,7 +234,7 @@ async def create_athlete(athlete_data: AthleteCreate):
     return {"id": int(athlete_id), **athlete_data.model_dump()}
 
 @router.get("/athletes/{athlete_id}")
-async def get_athlete(athlete_id: int):
+async def get_athlete_endpoint(athlete_id: int):
     from ..db.database import get_athlete as _get_athlete
     athlete = _get_athlete(athlete_id)
     if not athlete: raise HTTPException(status_code=404, detail="Athlete not found")
@@ -286,20 +282,18 @@ async def import_google_fit(payload: dict):
     rides_data = google_fit_to_ride(activities)
     imported = []
     for ride_data in rides_data:
-        from ..models.models import Ride
-        ride = Ride(**{k: v for k, v in ride_data.items() if k != "id"})
-        ride_id = save_ride({k: v for k, v in ride.to_dict().items() if k != "id"})
+        ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
         ride_data["id"] = int(ride_id)
         imported.append(ride_data)
     return {"imported": imported, "count": len(imported)}
 
 @router.get("/scores/athlete/{athlete_id}")
 async def get_athlete_scores(athlete_id: int):
-    from ..db.database import get_all_rides, get_athlete
+    from ..db.database import get_rides_by_athlete, get_athlete
     from ..analytics.performance import calculate_performance_score, calculate_endurance_score, calculate_efficiency_score, get_experience_level
     athlete = get_athlete(athlete_id)
     if not athlete: raise HTTPException(status_code=404, detail="Athlete not found")
-    rides = [Ride(**r) for r in get_all_rides()]
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     if rides:
         latest = rides[-1]
         return {"athlete": athlete, "scores": {"performance_score": calculate_performance_score(latest), "endurance_score": calculate_endurance_score(rides), "efficiency_score": calculate_efficiency_score(latest),         "experience_level": get_experience_level(AthleteProfile(**athlete))}}
@@ -324,9 +318,9 @@ async def search_knowledge(query: str = ""):
 
 @router.get("/coach/workout")
 async def workout_recommendations(athlete_id: int = 0):
-    from ..db.database import get_all_rides, get_athlete
+    from ..db.database import get_all_rides, get_rides_by_athlete
     from ..analytics.ai_coach import generate_workout_recommendations
-    rides = [Ride(**r) for r in get_all_rides()]
+    rides = [Ride(**r) for r in (get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides())]
     athlete = get_athlete(athlete_id) if athlete_id else None
     return {"recommendations": generate_workout_recommendations(rides, athlete)}
 
