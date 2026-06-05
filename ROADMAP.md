@@ -196,7 +196,7 @@
 
 ## Stato attuale
 
-**Completate: 130/135** (step principali)
+**Completate: 140/145** (step principali)
 
 **Endpoint API a disposizione:**
 - `/api/v1/rides/*` - CRUD rides
@@ -209,3 +209,5 @@
 - `/api/v1/coach/*` - AI recommendations
 - `/api/v1/knowledge/*` - Training docs
 - `/api/v1/admin/*` - Backup, stats, indexes
+
+**Test Coverage: 79 test passanti**

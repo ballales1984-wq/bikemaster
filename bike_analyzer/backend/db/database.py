@@ -43,6 +43,11 @@ def init_db():
         equipment TEXT,
         created_at TEXT
     )""")
+    cur = conn.cursor()
+    cur.execute("PRAGMA table_info(athletes)")
+    columns = [row[1] for row in cur.fetchall()]
+    if "goals" not in columns:
+        conn.execute("ALTER TABLE athletes ADD COLUMN goals TEXT")
     conn.execute("""CREATE TABLE IF NOT EXISTS metrics (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         athlete_id INTEGER,

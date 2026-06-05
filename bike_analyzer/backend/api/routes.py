@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
+from fastapi.responses import HTMLResponse
 from ..models.models import Ride, GPSPoint, AthleteProfile
 from ..analytics.analytics import calculate_summary, analyze_ride
 from ..analytics.calories import estimate_calories, calories_per_km
@@ -331,6 +332,29 @@ async def workout_recommendations(athlete_id: int = 0):
     except Exception:
         traceback.print_exc()
         return {"recommendations": "Errore AI Coach", "error": traceback.format_exc()}
+
+@router.get("/coach/full")
+async def coach_full_data(athlete_id: int = 0):
+    from ..db.database import get_all_rides, get_rides_by_athlete, get_athlete
+    from ..analytics.ai_coach import ai_coach_full
+    from ..models.models import AthleteProfile
+    import traceback
+    try:
+        rides = [Ride(**r) for r in (get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides())]
+        athlete_data = get_athlete(athlete_id) if athlete_id else None
+        athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
+        return ai_coach_full(athlete, rides)
+    except Exception:
+        traceback.print_exc()
+        return {"training_advice": "Errore AI Coach", "recovery_advice": "Errore AI Coach", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
+
+@router.get("/coach/page", response_class=HTMLResponse)
+async def coach_page():
+    from pathlib import Path
+    page = Path(__file__).parent.parent / "static" / "ai_coach.html"
+    if page.exists():
+        return page.read_text(encoding="utf-8")
+    return HTMLResponse("<h1>Pagina AI Coach non disponibile</h1>", status_code=404)
 
 @router.get("/coach/recovery")
 async def recovery_recommendations(fatigue_score: float = 5.0, ride_id: int = 0):

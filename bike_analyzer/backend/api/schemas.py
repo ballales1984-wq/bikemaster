@@ -29,6 +29,12 @@ class AthleteCreate(BaseModel):
     monthly_hours: float = Field(default=0.0, ge=0)
     annual_hours: float = Field(default=0.0, ge=0)
     experience_level: str = Field(default="Beginner")
+    goals: Optional[str] = Field(default=None, max_length=500)
+    preferred_terrain: Optional[str] = Field(default=None, max_length=100)
+    weekly_volume_km: float = Field(default=0.0, ge=0)
+    best_segments: Optional[str] = Field(default=None, max_length=500)
+    medical_notes: Optional[str] = Field(default=None, max_length=500)
+    equipment: Optional[str] = Field(default=None, max_length=500)
 
 class AthleteUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=100)
@@ -41,6 +47,12 @@ class AthleteUpdate(BaseModel):
     monthly_hours: Optional[float] = Field(default=None, ge=0)
     annual_hours: Optional[float] = Field(default=None, ge=0)
     experience_level: Optional[str] = Field(default=None)
+    goals: Optional[str] = Field(default=None, max_length=500)
+    preferred_terrain: Optional[str] = Field(default=None, max_length=100)
+    weekly_volume_km: Optional[float] = Field(default=None, ge=0)
+    best_segments: Optional[str] = Field(default=None, max_length=500)
+    medical_notes: Optional[str] = Field(default=None, max_length=500)
+    equipment: Optional[str] = Field(default=None, max_length=500)
 
 class MetricCreate(BaseModel):
     fatigue_score: Optional[float] = Field(default=None, ge=0, le=10)

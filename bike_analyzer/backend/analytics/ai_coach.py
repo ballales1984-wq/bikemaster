@@ -1,4 +1,4 @@
-"""AI Coach powered by Groq LLM for cycling advice."""
+"""AI Coach with cycling knowledge base RAG and athlete memory."""
 from __future__ import annotations
 import os
 import traceback
@@ -6,6 +6,7 @@ from typing import List, Optional
 from ..models.models import Ride, AthleteProfile
 from .analytics import calculate_summary
 from .performance import calculate_performance_score, calculate_recovery_score
+from .knowledge_base import search_knowledge_base
 
 def get_ai_coach_client():
     api_key = os.environ.get("GROQ_API_KEY")
@@ -14,13 +15,76 @@ def get_ai_coach_client():
     from groq import Groq
     return Groq(api_key=api_key)
 
+def _build_athlete_context(athlete: AthleteProfile) -> str:
+    parts = [f"Nome: {athlete.name or 'N/A'}", f"Livello: {athlete.experience_level}", f"Peso: {athlete.weight_kg} kg", f"Eta: {athlete.age} anni", f"Anni attivo: {athlete.years_active}", f"Settimane/anno: {athlete.annual_hours:.0f}h totali"]
+    if getattr(athlete, "goals", None):
+        parts.append(f"Obiettivi: {athlete.goals}")
+    if getattr(athlete, "preferred_terrain", None):
+        parts.append(f"Terreno preferito: {athlete.preferred_terrain}")
+    if getattr(athlete, "weekly_volume_km", 0):
+        parts.append(f"Volume settimanale: {athlete.weekly_volume_km:.0f} km")
+    if getattr(athlete, "best_segments", None):
+        parts.append(f"Segmenti migliori: {athlete.best_segments}")
+    if getattr(athlete, "medical_notes", None):
+        parts.append(f"Note mediche: {athlete.medical_notes}")
+    if getattr(athlete, "equipment", None):
+        parts.append(f"Attrezzatura: {athlete.equipment}")
+    return "\n".join(parts)
+
+def _build_rag_context(athlete: AthleteProfile, rides: List[Ride], query_hint: str = "") -> str:
+    kb_parts: List[str] = []
+    if athlete.goals:
+        kb_parts.append(search_knowledge_base(f"obiettivi {athlete.goals} {athlete.experience_level}"))
+    if athlete.preferred_terrain:
+        kb_parts.append(search_knowledge_base(f"allenamento {athlete.preferred_terrain}"))
+    if rides:
+        last = rides[-1]
+        hints = []
+        if last.avg_speed_kmh > 25:
+            hints.append("alta velocita potenza")
+        if getattr(last, "elevation_gain_m", 0) and last.elevation_gain_m > 200:
+            hints.append("dislivello salita")
+        if getattr(last, "heart_rate_avg", None) and last.heart_rate_avg > 160:
+            hints.append("frequenza cardiaca alta")
+        if hints:
+            kb_parts.append(search_knowledge_base(" ".join(hints)))
+    if query_hint:
+        kb_parts.append(search_knowledge_base(query_hint))
+    combined = "\n\n".join(p for p in kb_parts if p)
+    return combined[:3000]
+
 def generate_training_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
     try:
         client = get_ai_coach_client()
-        summary = calculate_summary(rides) if rides else {}
+        stats = calculate_summary(rides) if rides else {}
         perf = calculate_performance_score(rides[-1]) if rides else 0
         recovery = calculate_recovery_score(rides[-1]) if rides else 0
-        prompt = f"You are BikeMaster AI Coach. Atleta: {athlete.name}, livello: {athlete.experience_level}, peso: {athlete.weight_kg}kg. Ultimi dati: performance={perf}/10, recovery={recovery}/10. Fornisci 3 consigli brevi per l'allenamento oggi."
+        recent = rides[-3:] if rides else []
+        recent_info = "; ".join([f"{r.distance_km:.1f}km, {r.avg_speed_kmh:.1f}km/h, {r.duration_minutes:.0f}min" for r in recent]) if recent else "nessuna uscita recente"
+        rag = _build_rag_context(athlete, rides, "piano allenamento settimanale")
+        rag_section = f"\n\nCONOSCENZE APPLICATE:\n{rag}" if rag else ""
+        prompt = f"""Sei un coach ciclistico esperto. Genera 3 consigli di allenamento BREVI e SPECIFICI.{rag_section}
+
+Profilo atleta:
+{_build_athlete_context(athlete)}
+
+Dati recenti:
+- Performance score: {perf}/10
+- Recovery score: {recovery}/10
+- Ultime 3 uscite: {recent_info}
+- Totale uscite in archivio: {stats.get('total_rides', 0)}
+- Distanza media: {stats.get('avg_distance_km', 0):.1f} km
+
+REGOLE:
+- Rispondi in italiano
+- Ogni consiglio deve iniziare con un numero e un titolo in grassetto (es: **1. Obiettivo principale**)
+- Massimo 2 righe per consiglio
+- Usa i numeri con il PUNTO come separatore decimale (es: 70.5 non 70,5)
+- Non usare backtick, codice o formattazione markdown speciale
+- Non usare emoji
+- Non aggiungere saluti o chiusure tipo "Buon allenamento!"
+- Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
+"""
         chat = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}], max_tokens=500)
         return chat.choices[0].message.content or "Nessun consiglio disponibile"
     except Exception as e:
@@ -33,7 +97,30 @@ def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride], fatigue
     try:
         client = get_ai_coach_client()
         recovery = calculate_recovery_score(rides[-1]) if rides else fatigue_score
-        prompt = f"Sei BikeMaster Recovery Coach. Recovery score: {recovery}/10. Dai un consiglio breve per recupero oggi (stretching, idratazione, sonno)."
+        stats = calculate_summary(rides) if rides else {}
+        recent = rides[-1] if rides else None
+        recent_info = f"{recent.distance_km:.1f}km a {recent.avg_speed_kmh:.1f}km/h" if recent else "nessuna uscita recente"
+        rag = _build_rag_context(athlete, rides, "recupero stretching idratazione sonno alimentazione")
+        rag_section = f"\n\nCONOSCENZE APPLICATE:\n{rag}" if rag else ""
+        prompt = f"""Sei un coach di recupero ciclistico. Genera 2 consigli BREVI per il recupero di oggi.{rag_section}
+
+Profilo atleta:
+{_build_athlete_context(athlete)}
+
+Dati:
+- Recovery score: {recovery}/10
+- Ultima uscita: {recent_info}
+- Allenamenti archiviati: {stats.get('total_rides', 0)}
+
+REGOLE:
+- Rispondi in italiano
+- Ogni consiglio deve iniziare con un numero e un titolo in grassetto
+- Massimo 2 righe per consiglio
+- Sei CONCRETO: parla di durata sonno, idratazione, stretching, alimentazione
+- Non ripetere numeri o dati gia forniti nella risposta
+- Non usare backtick o markdown speciale
+- Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
+"""
         chat = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}], max_tokens=300)
         return chat.choices[0].message.content or "Recupera bene!"
     except Exception as e:
@@ -54,8 +141,33 @@ def analyze_historical_trend(rides: List[Ride]) -> str:
 analyze_historical_trends = analyze_historical_trend
 
 def ai_coach_full(athlete: AthleteProfile, rides: List[Ride]) -> dict:
-    return {
-        "training_advice": generate_workout_recommendations(athlete, rides),
-        "recovery_advice": generate_recovery_recommendations(athlete, rides),
-        "historical_analysis": analyze_historical_trends(rides),
-    }
+    from pathlib import Path
+    from ..analytics.analytics import calculate_summary
+    from ..analytics.performance import calculate_performance_score, calculate_recovery_score, calculate_endurance_score, calculate_efficiency_score
+    from ..processing.processing import build_segments
+    from ..analytics.analytics import create_speed_chart, create_duration_chart
+    recent = rides[-1] if rides else None
+    perf = calculate_performance_score(recent) if recent else 0
+    recovery = calculate_recovery_score(recent) if recent else 0
+    endurance = calculate_endurance_score(rides)
+    efficiency = calculate_efficiency_score(recent) if recent else 0
+    static_dir = Path(__file__).parent.parent / "static"
+    static_dir.mkdir(exist_ok=True)
+    charts = []
+    try:
+        points_data = getattr(recent, "gps_points", []) if recent else []
+        if points_data:
+            from ..models.models import GPSPoint
+            points = [GPSPoint(**p) for p in points_data]
+            segments = build_segments(points)
+            if segments:
+                sp = static_dir / "coach_speed.png"
+                create_speed_chart(segments, str(sp))
+                charts.append("/static/coach_speed.png")
+        if rides:
+            dp = static_dir / "coach_duration.png"
+            create_duration_chart(rides, str(dp))
+            charts.append("/static/coach_duration.png")
+    except Exception:
+        pass
+    return {"training_advice": generate_workout_recommendations(athlete, rides), "recovery_advice": generate_recovery_recommendations(athlete, rides), "historical_analysis": analyze_historical_trends(rides), "training_scores": [{"label": "Performance", "value": perf}, {"label": "Endurance", "value": endurance}, {"label": "Efficiency", "value": efficiency}], "recovery_scores": [{"label": "Recovery", "value": recovery}, {"label": "Fatigue", "value": round(10.0 - recovery, 1)}], "charts": charts}

@@ -2,6 +2,23 @@
 
 Tutte le modifiche significative a questo progetto sono documentate in questo file.
 
+## [1.1.0] - 2026-06-05
+
+### Fixati
+- Corretto test `test_benchmark_categories`: weight 60kg è "Lightweight", non "Medium"
+- Aggiunta migrazione automatica colonna `goals` nello schema database `athletes`
+
+### Aggiunte
+- Test Google Maps mock (`test_google_maps_mock.py`)
+- Test scores API (`test_scores_api.py`)
+- Test benchmark API (`test_benchmark_api.py`)
+- Test knowledge base (`test_knowledge_api.py`)
+- Test database backup (`test_database_backup.py`)
+- Test batch import (`test_import_batch.py`)
+- Test athlete profile (`test_athlete_profile.py`)
+
+**Test coverage: 79 test passanti**
+
 ## [1.0.0] - 2026-06-05
 
 ### Aggiunte
