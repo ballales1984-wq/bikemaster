@@ -35,6 +35,12 @@ def init_db():
         monthly_hours REAL DEFAULT 0,
         annual_hours REAL DEFAULT 0,
         experience_level TEXT DEFAULT 'Beginner',
+        goals TEXT,
+        preferred_terrain TEXT,
+        weekly_volume_km REAL DEFAULT 0,
+        best_segments TEXT,
+        medical_notes TEXT,
+        equipment TEXT,
         created_at TEXT
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS metrics (
@@ -125,11 +131,13 @@ def delete_ride(ride_id: int) -> bool:
 def save_athlete(athlete: dict) -> int:
     conn = _conn()
     cur = conn.cursor()
-    cur.execute("""INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage, years_active, weekly_sessions, monthly_hours, annual_hours, experience_level, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+    cur.execute("""INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage, years_active, weekly_sessions, monthly_hours, annual_hours, experience_level, goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes, equipment, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (athlete.get("name"), athlete.get("age", 30), athlete.get("weight_kg", 70), athlete.get("height_cm"),
          athlete.get("fat_percentage"), athlete.get("years_active", 1), athlete.get("weekly_sessions", 3),
          athlete.get("monthly_hours", 0), athlete.get("annual_hours", 0), athlete.get("experience_level", "Beginner"),
+         athlete.get("goals"), athlete.get("preferred_terrain"), athlete.get("weekly_volume_km", 0),
+         athlete.get("best_segments"), athlete.get("medical_notes"), athlete.get("equipment"),
          datetime.now(timezone.utc).isoformat()))
     conn.commit()
     athlete_id = cur.lastrowid
@@ -143,7 +151,7 @@ def get_athlete(athlete_id: int) -> Optional[dict]:
     row = cur.fetchone()
     conn.close()
     if row:
-        return {"id": row[0], "name": row[1], "age": row[2], "weight_kg": row[3], "height_cm": row[4], "fat_percentage": row[5], "years_active": row[6], "weekly_sessions": row[7], "monthly_hours": row[8], "annual_hours": row[9], "experience_level": row[10]}
+        return {"id": row[0], "name": row[1], "age": row[2], "weight_kg": row[3], "height_cm": row[4], "fat_percentage": row[5], "years_active": row[6], "weekly_sessions": row[7], "monthly_hours": row[8], "annual_hours": row[9], "experience_level": row[10], "goals": row[11], "preferred_terrain": row[12], "weekly_volume_km": row[13], "best_segments": row[14], "medical_notes": row[15], "equipment": row[16]}
     return None
 
 def save_metric(metric: dict) -> int:
@@ -161,10 +169,12 @@ def save_metric(metric: dict) -> int:
 def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     conn = _conn()
     cur = conn.cursor()
-    cur.execute("""UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?, fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?, annual_hours=?, experience_level=? WHERE id=?""",
+    cur.execute("""UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?, fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?, annual_hours=?, experience_level=?, goals=?, preferred_terrain=?, weekly_volume_km=?, best_segments=?, medical_notes=?, equipment=? WHERE id=?""",
         (athlete_data.get("name"), athlete_data.get("age", 30), athlete_data.get("weight_kg", 70), athlete_data.get("height_cm"),
          athlete_data.get("fat_percentage"), athlete_data.get("years_active", 1), athlete_data.get("weekly_sessions", 3),
-         athlete_data.get("monthly_hours", 0), athlete_data.get("annual_hours", 0), athlete_data.get("experience_level", "Beginner"), athlete_id))
+         athlete_data.get("monthly_hours", 0), athlete_data.get("annual_hours", 0), athlete_data.get("experience_level", "Beginner"),
+         athlete_data.get("goals"), athlete_data.get("preferred_terrain"), athlete_data.get("weekly_volume_km", 0),
+         athlete_data.get("best_segments"), athlete_data.get("medical_notes"), athlete_data.get("equipment"), athlete_id))
     conn.commit()
     updated = cur.rowcount > 0
     conn.close()

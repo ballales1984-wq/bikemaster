@@ -21,7 +21,7 @@ def generate_training_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
         perf = calculate_performance_score(rides[-1]) if rides else 0
         recovery = calculate_recovery_score(rides[-1]) if rides else 0
         prompt = f"You are BikeMaster AI Coach. Atleta: {athlete.name}, livello: {athlete.experience_level}, peso: {athlete.weight_kg}kg. Ultimi dati: performance={perf}/10, recovery={recovery}/10. Fornisci 3 consigli brevi per l'allenamento oggi."
-        chat = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}], max_tokens=200)
+        chat = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}], max_tokens=500)
         return chat.choices[0].message.content or "Nessun consiglio disponibile"
     except Exception as e:
         traceback.print_exc()
@@ -34,7 +34,7 @@ def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride], fatigue
         client = get_ai_coach_client()
         recovery = calculate_recovery_score(rides[-1]) if rides else fatigue_score
         prompt = f"Sei BikeMaster Recovery Coach. Recovery score: {recovery}/10. Dai un consiglio breve per recupero oggi (stretching, idratazione, sonno)."
-        chat = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}], max_tokens=100)
+        chat = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}], max_tokens=300)
         return chat.choices[0].message.content or "Recupera bene!"
     except Exception as e:
         traceback.print_exc()

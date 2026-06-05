@@ -88,7 +88,13 @@ class AthleteProfile:
     weekly_sessions: int = 3
     monthly_hours: float = 0.0
     annual_hours: float = 0.0
-    experience_level: str = "Beginner"  # Beginner, Amateur, Intermediate, Advanced, Elite
+    experience_level: str = "Beginner"
+    goals: Optional[str] = None
+    preferred_terrain: Optional[str] = None
+    weekly_volume_km: float = 0.0
+    best_segments: Optional[str] = None
+    medical_notes: Optional[str] = None
+    equipment: Optional[str] = None
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "name": self.name, "age": self.age, "weight_kg": self.weight_kg, "height_cm": self.height_cm, "fat_percentage": self.fat_percentage, "years_active": self.years_active, "weekly_sessions": self.weekly_sessions, "monthly_hours": self.monthly_hours, "annual_hours": self.annual_hours, "experience_level": self.experience_level}
+        return {"id": self.id, "name": self.name, "age": self.age, "weight_kg": self.weight_kg, "height_cm": self.height_cm, "fat_percentage": self.fat_percentage, "years_active": self.years_active, "weekly_sessions": self.weekly_sessions, "monthly_hours": self.monthly_hours, "annual_hours": self.annual_hours, "experience_level": self.experience_level, "goals": self.goals, "preferred_terrain": self.preferred_terrain, "weekly_volume_km": self.weekly_volume_km, "best_segments": self.best_segments, "medical_notes": self.medical_notes, "equipment": self.equipment}
