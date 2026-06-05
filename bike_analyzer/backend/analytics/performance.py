@@ -43,14 +43,18 @@ def calculate_annual_scores(rides: List[Ride]) -> dict:
     return {"performance": round(sum(calculate_performance_score(r) for r in rides) / len(rides), 1), "endurance": calculate_endurance_score(rides), "total_km": s["total_km"], "total_calories": s["total_calories"], "avg_fatigue": s["avg_fatigue"]}
 
 def classify_athlete(rides: List[Ride]) -> str:
-    if not rides: return "Unclassified"
+    if not rides:
+        return "Unclassified"
     total_km = sum(r.distance_km for r in rides)
     total_rides = len(rides)
-    avg_speed = sum(r.avg_speed_kmh for r in rides) / len(rides)
-    if total_km < 100 and total_rides < 10: return "Beginner"
-    if total_km < 500 and total_rides < 50: return "Amateur"
-    if total_km < 1500 and total_rides < 150: return "Intermediate"
-    if total_km < 3000: return "Advanced"
+    if total_km < 100 and total_rides < 10:
+        return "Beginner"
+    if total_km < 500 and total_rides < 50:
+        return "Amateur"
+    if total_km < 1500 and total_rides < 150:
+        return "Intermediate"
+    if total_km < 3000:
+        return "Advanced"
     return "Elite"
 
 def get_experience_level(athlete: AthleteProfile) -> str:

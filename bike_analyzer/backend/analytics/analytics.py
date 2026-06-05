@@ -2,7 +2,6 @@
 from __future__ import annotations
 from typing import List, Optional
 from ..models.models import Ride, GPSPoint, Segment, haversine_distance_m
-from .calories import estimate_calories
 from .fatigue import calculate_fatigue_score, estimate_recovery_hours, get_recovery_recommendation
 import json
 import csv
