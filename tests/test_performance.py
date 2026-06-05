@@ -1,6 +1,11 @@
 """Test performance engine."""
-from bike_analyzer.backend.models.models import Ride, AthleteProfile
-from bike_analyzer.backend.analytics.performance import calculate_performance_score, calculate_endurance_score, calculate_recovery_score, calculate_efficiency_score, classify_athlete
+from bike_analyzer.backend.models.models import Ride, AthleteProfile, GPSPoint
+from bike_analyzer.backend.analytics.performance import (
+    calculate_performance_score, calculate_endurance_score, calculate_recovery_score,
+    calculate_efficiency_score, classify_athlete, calculate_monthly_scores,
+    calculate_annual_scores, get_experience_level, should_save_to_database
+)
+from datetime import datetime, timezone
 
 def test_performance_score():
     r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=600, elevation_gain_m=200)
@@ -27,3 +32,22 @@ def test_classify_athlete():
     assert classify_athlete(beginner_rides) == "Beginner"
     elite_rides = [Ride(date=f"2024-06-{i:02d}", distance_km=100.0, duration_minutes=200.0, avg_speed_kmh=25.0) for i in range(1, 35)]
     assert classify_athlete(elite_rides) == "Elite"
+
+def test_monthly_scores_empty():
+    assert calculate_monthly_scores([]) == {"performance": 0, "endurance": 0, "recovery": 0, "efficiency": 0, "avg_fatigue": 0}
+
+def test_annual_scores_empty():
+    assert calculate_annual_scores([]) == {"performance": 0, "endurance": 0, "total_km": 0, "total_calories": 0, "avg_fatigue": 0}
+
+def test_efficiency_score_zero_distance():
+    r = Ride(date="2024-06-01", distance_km=0.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500)
+    assert calculate_efficiency_score(r) == 0.0
+
+def test_get_experience_level():
+    athlete = AthleteProfile(name="Test", experience_level="Intermediate")
+    assert get_experience_level(athlete) == "Intermediate"
+
+def test_should_save_to_database():
+    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc))]
+    assert should_save_to_database(points) == True
+    assert should_save_to_database([]) == False

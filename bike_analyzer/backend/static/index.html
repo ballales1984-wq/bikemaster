@@ -15,6 +15,15 @@
             <p>Cycling Performance Intelligence</p>
         </header>
 
+        <nav class="tabs" aria-label="Navigazione principale">
+            <button class="tab active" data-tab="panel-rides" aria-selected="true">🏍️ Rides</button>
+            <button class="tab" data-tab="panel-import" aria-selected="false">📥 Import</button>
+            <button class="tab" data-tab="panel-athlete" aria-selected="false">🏃 Atleta</button>
+            <button class="tab" data-tab="panel-coach" aria-selected="false">🧠 AI Coach</button>
+            <button class="tab" data-tab="panel-knowledge" aria-selected="false">📚 Knowledge</button>
+            <button class="tab" data-tab="panel-admin" aria-selected="false">⚙️ Admin</button>
+        </nav>
+
         <div class="stats" id="stats" role="region" aria-label="Statistiche generali">
             <div class="stat-card" role="status">
                 <div class="stat-value" id="total-rides">0</div>
@@ -38,67 +47,248 @@
             </div>
         </div>
 
-        <div class="panel" role="region" aria-labelledby="add-ride-heading">
-            <h2 id="add-ride-heading">➕ Aggiungi Nuova Ride</h2>
-            <form id="ride-form" class="form-grid" novalidate>
-                <div class="form-group">
-                    <label for="ride-date">Data</label>
-                    <input type="date" id="ride-date" name="date" required aria-required="true">
-                    <span class="error-msg" id="error-date" role="alert"></span>
+        <section id="panel-rides" class="tab-panel active" role="region" aria-labelledby="rides-heading">
+            <div class="panel" role="region" aria-labelledby="add-ride-heading">
+                <h2 id="add-ride-heading">➕ Aggiungi Nuova Ride</h2>
+                <form id="ride-form" class="form-grid" novalidate>
+                    <div class="form-group">
+                        <label for="ride-date">Data</label>
+                        <input type="date" id="ride-date" name="date" required aria-required="true">
+                        <span class="error-msg" id="error-date" role="alert"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="ride-distance">Distanza (km)</label>
+                        <input type="number" id="ride-distance" name="distance_km" placeholder="Es: 25.5" step="0.1" min="0" required aria-required="true">
+                        <span class="error-msg" id="error-distance" role="alert"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="ride-duration">Durata (min)</label>
+                        <input type="number" id="ride-duration" name="duration_minutes" placeholder="Es: 60" step="1" min="0" required aria-required="true">
+                        <span class="error-msg" id="error-duration" role="alert"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="ride-speed">Velocità (km/h)</label>
+                        <input type="number" id="ride-speed" name="avg_speed_kmh" placeholder="Es: 22.5" step="0.1" min="0">
+                        <span class="error-msg" id="error-speed" role="alert"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="ride-calories">Calorie</label>
+                        <input type="number" id="ride-calories" name="calories" placeholder="Es: 400" step="1" min="0">
+                        <span class="error-msg" id="error-calories" role="alert"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="ride-hr">HR medio (bpm)</label>
+                        <input type="number" id="ride-hr" name="heart_rate_avg" placeholder="Es: 145" step="1" min="30" max="220">
+                        <span class="error-msg" id="error-hr" role="alert"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="ride-elevation">Altitudine (m)</label>
+                        <input type="number" id="ride-elevation" name="elevation_gain_m" placeholder="Es: 180" step="1" min="0">
+                        <span class="error-msg" id="error-elevation" role="alert"></span>
+                    </div>
+                </form>
+                <div class="flex">
+                    <button type="submit" form="ride-form" class="btn btn-primary" id="add-ride-btn">
+                        <span class="btn-text">Aggiungi</span>
+                        <span class="spinner" aria-hidden="true"></span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="reset-demo-btn">Reset Demo</button>
+                    <button type="button" class="btn btn-secondary" id="export-json-btn">📄 Esporta JSON</button>
+                    <button type="button" class="btn btn-secondary" id="export-csv-btn">📊 Esporta CSV</button>
                 </div>
-                <div class="form-group">
-                    <label for="ride-distance">Distanza (km)</label>
-                    <input type="number" id="ride-distance" name="distance_km" placeholder="Es: 25.5" step="0.1" min="0" required aria-required="true">
-                    <span class="error-msg" id="error-distance" role="alert"></span>
-                </div>
-                <div class="form-group">
-                    <label for="ride-duration">Durata (min)</label>
-                    <input type="number" id="ride-duration" name="duration_minutes" placeholder="Es: 60" step="1" min="0" required aria-required="true">
-                    <span class="error-msg" id="error-duration" role="alert"></span>
-                </div>
-                <div class="form-group">
-                    <label for="ride-speed">Velocità (km/h)</label>
-                    <input type="number" id="ride-speed" name="avg_speed_kmh" placeholder="Es: 22.5" step="0.1" min="0">
-                    <span class="error-msg" id="error-speed" role="alert"></span>
-                </div>
-                <div class="form-group">
-                    <label for="ride-calories">Calorie</label>
-                    <input type="number" id="ride-calories" name="calories" placeholder="Es: 400" step="1" min="0">
-                    <span class="error-msg" id="error-calories" role="alert"></span>
-                </div>
-                <div class="form-group">
-                    <label for="ride-hr">HR medio (bpm)</label>
-                    <input type="number" id="ride-hr" name="heart_rate_avg" placeholder="Es: 145" step="1" min="30" max="220">
-                    <span class="error-msg" id="error-hr" role="alert"></span>
-                </div>
-                <div class="form-group">
-                    <label for="ride-elevation">Altitudine (m)</label>
-                    <input type="number" id="ride-elevation" name="elevation_gain_m" placeholder="Es: 180" step="1" min="0">
-                    <span class="error-msg" id="error-elevation" role="alert"></span>
-                </div>
-            </form>
-            <div class="flex">
-                <button type="submit" form="ride-form" class="btn btn-primary" id="add-ride-btn">
-                    <span class="btn-text">Aggiungi</span>
-                    <span class="spinner" aria-hidden="true"></span>
-                </button>
-                <button type="button" class="btn btn-secondary" id="reset-demo-btn">Reset Demo</button>
             </div>
-        </div>
 
-        <div class="panel" role="region" aria-labelledby="chart-heading">
-            <h2 id="chart-heading">📊 Durata Ultime Ride</h2>
-            <div class="chart-container">
-                <canvas id="durationChart" aria-label="Grafico durata ultime 10 ride" role="img"></canvas>
+            <div class="panel" role="region" aria-labelledby="duration-heading">
+                <h2 id="duration-heading">📊 Durata Ultime Ride</h2>
+                <div class="chart-container">
+                    <canvas id="durationChart" aria-label="Grafico durata ultime 10 ride" role="img"></canvas>
+                </div>
             </div>
-        </div>
 
-        <div class="panel" role="region" aria-labelledby="rides-heading">
-            <h2 id="rides-heading">📋 Le tue Ride</h2>
-            <div class="rides-list" id="rides-list" role="list" aria-label="Lista delle ride">
-                <p class="loading-text" id="rides-loading">Caricamento...</p>
+            <div class="panel" role="region" aria-labelledby="rides-heading">
+                <h2 id="rides-heading">📋 Le tue Ride</h2>
+                <div class="rides-list" id="rides-list" role="list" aria-label="Lista delle ride">
+                    <p class="loading-text" id="rides-loading">Caricamento...</p>
+                </div>
             </div>
-        </div>
+
+            <div id="ride-detail-panel" class="panel hidden" role="region" aria-labelledby="detail-heading">
+                <h2 id="detail-heading">🔍 Dettaglio Ride</h2>
+                <div id="detail-content"></div>
+                <div class="chart-toolbar">
+                    <button class="btn btn-sm" data-chart="speed" data-ride="">Grafico Velocità</button>
+                    <button class="btn btn-sm" data-chart="elevation" data-ride="">Grafico Altitudine</button>
+                    <button class="btn btn-sm" data-chart="distance" data-ride="">Grafico Distanza</button>
+                    <button class="btn btn-sm" data-chart="google-map" data-ride="">Mappa Google</button>
+                    <button class="btn btn-sm btn-secondary" id="close-detail-btn">Chiudi</button>
+                </div>
+                <div class="chart-grid">
+                    <div class="chart-container" id="chart-speed-container"><canvas id="rideSpeedChart"></canvas></div>
+                    <div class="chart-container" id="chart-elevation-container"><canvas id="rideElevationChart"></canvas></div>
+                </div>
+                <div class="chart-container" id="chart-distance-container"><canvas id="rideDistanceChart"></canvas></div>
+                <div class="chart-container" id="map-frame-container" style="height:320px">
+                    <iframe id="folium-map-frame" style="width:100%;height:100%;border:0;border-radius:8px" title="Mappa percorso"></iframe>
+                </div>
+            </div>
+        </section>
+
+        <section id="panel-import" class="tab-panel" role="region" aria-labelledby="import-heading">
+            <div class="panel" role="region" aria-labelledby="import-heading">
+                <h2 id="import-heading">📥 Importa Percorsi</h2>
+                <div class="form-group">
+                    <label>Carica file GPX o FIT</label>
+                    <div class="upload-area" id="upload-area">
+                        <input type="file" id="import-file" accept=".gpx,.fit" multiple>
+                        <div class="upload-placeholder">Trascina file qui o clicca per selezionare (GPX/FIT)</div>
+                    </div>
+                </div>
+                <div id="import-progress" class="hidden"></div>
+            </div>
+        </section>
+
+        <section id="panel-athlete" class="tab-panel" role="region" aria-labelledby="athlete-heading">
+            <div class="panel" role="region" aria-labelledby="athlete-form-heading">
+                <h2 id="athlete-form-heading">🏃 Profilo Atleta</h2>
+                <form id="athlete-form" class="form-grid" novalidate>
+                    <div class="form-group">
+                        <label for="athlete-name">Nome</label>
+                        <input type="text" id="athlete-name" name="name" placeholder="Mario Rossi" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="athlete-age">Età</label>
+                        <input type="number" id="athlete-age" name="age" value="30" min="10" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="athlete-weight">Peso (kg)</label>
+                        <input type="number" id="athlete-weight" name="weight_kg" value="70" min="20" max="300" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="athlete-height">Altezza (cm)</label>
+                        <input type="number" id="athlete-height" name="height_cm" placeholder="175" min="100" max="250">
+                    </div>
+                    <div class="form-group">
+                        <label for="athlete-fat">Massa Grassa (%)</label>
+                        <input type="number" id="athlete-fat" name="fat_percentage" placeholder="15" min="3" max="60" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="athlete-years">Anni attività</label>
+                        <input type="number" id="athlete-years" name="years_active" value="1" min="0" max="80">
+                    </div>
+                    <div class="form-group">
+                        <label for="athlete-weekly">Sessioni/settimana</label>
+                        <input type="number" id="athlete-weekly" name="weekly_sessions" value="3" min="0" max="14">
+                    </div>
+                    <div class="form-group">
+                        <label for="athlete-monthly">Ore/mese</label>
+                        <input type="number" id="athlete-monthly" name="monthly_hours" value="0" min="0" step="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label for="athlete-annual">Ore/anno</label>
+                        <input type="number" id="athlete-annual" name="annual_hours" value="0" min="0" step="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label for="athlete-level">Livello</label>
+                        <select id="athlete-level" name="experience_level">
+                            <option value="Beginner">Beginner</option>
+                            <option value="Amateur">Amateur</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                            <option value="Elite">Elite</option>
+                        </select>
+                    </div>
+                </form>
+                <div class="flex">
+                    <button type="button" class="btn btn-primary" id="save-athlete-btn">Salva Atleta</button>
+                    <button type="button" class="btn btn-secondary" id="load-athlete-btn">Carica Ultimo</button>
+                    <button type="button" class="btn btn-secondary" id="athlete-scores-btn">📊 Punteggi</button>
+                </div>
+                <div id="athlete-result" class="result-box hidden"></div>
+            </div>
+        </section>
+
+        <section id="panel-coach" class="tab-panel" role="region" aria-labelledby="coach-heading">
+            <div class="panel" role="region" aria-labelledby="coach-heading">
+                <h2 id="coach-heading">🧠 AI Coach</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="coach-athlete-id">ID Atleta (0 = tutti)</label>
+                        <input type="number" id="coach-athlete-id" value="0" min="0">
+                    </div>
+                    <div class="form-group" style="align-self:end">
+                        <button class="btn btn-primary" id="workout-btn">💪 Workout</button>
+                    </div>
+                </div>
+                <div id="workout-result" class="result-box hidden"></div>
+
+                <div class="form-grid" style="margin-top:15px">
+                    <div class="form-group">
+                        <label for="recovery-fatigue">Fatigue Score</label>
+                        <input type="number" id="recovery-fatigue" value="5.0" min="0" max="10" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="recovery-ride-id">Ride ID (opzionale)</label>
+                        <input type="number" id="recovery-ride-id" value="0" min="0">
+                    </div>
+                    <div class="form-group" style="align-self:end">
+                        <button class="btn btn-secondary" id="recovery-btn">🧘 Recovery</button>
+                    </div>
+                </div>
+                <div id="recovery-result" class="result-box hidden"></div>
+
+                <div class="form-group" style="margin-top:15px; max-width:200px">
+                    <button class="btn btn-secondary" id="trends-btn">📈 Storico Trend</button>
+                </div>
+                <div id="trends-result" class="result-box hidden"></div>
+            </div>
+        </section>
+
+        <section id="panel-knowledge" class="tab-panel" role="region" aria-labelledby="knowledge-heading">
+            <div class="panel" role="region" aria-labelledby="knowledge-heading">
+                <h2 id="knowledge-heading">📚 Knowledge Base</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="kb-query">Cerca argomento</label>
+                        <input type="text" id="kb-query" placeholder="Es: intervalli, recupero, cardio...">
+                    </div>
+                    <div class="form-group" style="align-self:end">
+                        <button class="btn btn-primary" id="kb-search-btn">Cerca</button>
+                        <button class="btn btn-secondary" id="kb-list-btn">Lista Argomenti</button>
+                    </div>
+                </div>
+                <div id="knowledge-result" class="result-box hidden"></div>
+            </div>
+        </section>
+
+        <section id="panel-admin" class="tab-panel" role="region" aria-labelledby="admin-heading">
+            <div class="panel" role="region" aria-labelledby="admin-heading">
+                <h2 id="admin-heading">⚙️ Amministrazione</h2>
+                <div class="flex">
+                    <button class="btn btn-primary" id="admin-stats-btn">📊 Statistiche</button>
+                    <button class="btn btn-secondary" id="admin-backup-btn">💾 Backup DB</button>
+                    <button class="btn btn-secondary" id="admin-indexes-btn">🗂️ Crea Indici</button>
+                </div>
+                <div id="admin-result" class="result-box hidden"></div>
+                <div class="form-group" style="margin-top:15px; max-width:300px">
+                    <label for="benchmark-distance">Distanza (km) per Benchmark</label>
+                    <input type="number" id="benchmark-distance" value="25" min="0" step="0.1">
+                </div>
+                <div class="form-grid" style="margin-top:10px; max-width:600px">
+                    <div class="form-group">
+                        <label for="benchmark-speed">Velocità Media (km/h)</label>
+                        <input type="number" id="benchmark-speed" value="22" min="0" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="benchmark-duration">Durata (h)</label>
+                        <input type="number" id="benchmark-duration" value="1" min="0" step="0.01">
+                    </div>
+                    <div class="form-group" style="align-self:end">
+                        <button class="btn btn-secondary" id="benchmark-btn">⚡ Confronta Benchmark</button>
+                    </div>
+                </div>
+                <div id="benchmark-result" class="result-box hidden"></div>
+            </div>
+        </section>
 
         <div id="map" class="map-container" role="region" aria-label="Mappa del percorso"></div>
     </div>

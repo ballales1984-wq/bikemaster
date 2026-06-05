@@ -190,11 +190,22 @@ backup_path = backup_database()
 
 ## Frontend
 
-### Dashboard
-Il frontend è integrato in FastAPI e servito da `/web/`:
-- `bike_analyzer/backend/static/index.html` — Pagina principale
-- `bike_analyzer/backend/static/app.js` — Logica JavaScript
-- `bike_analyzer/backend/static/styles.css` — Stili dark theme
+### Dashboard Multi-Tab
+Il frontend è integrato in FastAPI e servito da `/` (root route):
+- `bike_analyzer/backend/static/index.html` — Pagina principale con 6 tab: Rides, Import, Athlete, AI Coach, Knowledge, Admin
+- `bike_analyzer/backend/static/app.js` — Logica JavaScript completa (~700 righe)
+- `bike_analyzer/backend/static/styles.css` — Stili dark theme con variabili CSS
+
+### Tab e Funzionalità
+
+| Tab | Funzionalità | Endpoint usati |
+|-----|--------------|----------------|
+| Rides | CRUD rides, grafico durata, grafici dettaglio, mappa, export JSON/CSV | `rides/*`, `charts/*`, `export/*` |
+| Import | Upload multiplo GPX/FIT con drag&drop | `import/multiple` |
+| Athlete | CRUD profilo atleta, punteggi performance | `athletes/*`, `scores/athlete/*` |
+| AI Coach | Workout/recovery/trends recommendations | `coach/*` |
+| Knowledge | Ricerca nella knowledge base | `knowledge`, `knowledge/search` |
+| Admin | Statistiche, backup DB, creazione indici, benchmark | `admin/*`, `benchmark/compare` |
 
 ### API Client JS
 ```javascript

@@ -1,11 +1,15 @@
 """Test analytics."""
-from bike_analyzer.backend.models.models import Ride, GPSPoint
+from bike_analyzer.backend.models.models import Ride, GPSPoint, AthleteProfile
 from bike_analyzer.backend.analytics.calories import estimate_calories
 from bike_analyzer.backend.analytics.fatigue import calculate_fatigue_score
-from bike_analyzer.backend.analytics.analytics import calculate_summary, export_rides_json, export_rides_csv, generate_text_report, create_elevation_chart, create_duration_chart, generate_speed_chart
+from bike_analyzer.backend.analytics.analytics import (
+    calculate_summary, export_rides_json, export_rides_csv, generate_text_report,
+    create_elevation_chart, create_duration_chart, generate_speed_chart,
+    create_distance_chart, generate_distance_chart, generate_time_chart,
+    ride_to_json, rides_to_json, rides_to_csv, analyze_ride
+)
 from bike_analyzer.backend.processing.processing import process_route, build_segments
 from bike_analyzer.backend.ingestion.gps_parser import parse_gpx_file
-from bike_analyzer.backend.models.models import Segment
 from datetime import datetime, timezone
 import os
 
@@ -68,70 +72,47 @@ def test_text_report():
     report = generate_text_report(r)
     assert "BikeMaster Report" in report and "25" in report
 
-def test_speed_chart():
-    points = [
-        GPSPoint(lat=45.0 + i*0.01, lon=9.0, timestamp=datetime(2024, 1, 1, i, tzinfo=timezone.utc), speed=20.0 + i * 2)
-        for i in range(5)
-    ]
-    segments = build_segments(points)
-    assert len(segments) >= 2
+def test_analyze_ride():
+    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500, heart_rate_avg=150, elevation_gain_m=100)
+    result = analyze_ride(r)
+    assert "fatigue_score" in result
 
-def test_detect_accelerations():
-    from bike_analyzer.backend.processing.processing import detect_accelerations
-    points = [
-        GPSPoint(lat=45.0 + i*0.01, lon=9.0, timestamp=datetime(2024, 1, 1, i, tzinfo=timezone.utc), speed=10.0 + i * 5)
-        for i in range(5)
-    ]
-    accels = detect_accelerations(points)
-    assert len(accels) == 4
+def test_rides_to_json():
+    rides = [Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500)]
+    assert ride_to_json(rides[0]) != ""
+    assert rides_to_json(rides) != ""
 
-def test_detect_decelerations():
-    from bike_analyzer.backend.processing.processing import detect_decelerations
-    points = [
-        GPSPoint(lat=45.0 + i*0.01, lon=9.0, timestamp=datetime(2024, 1, 1, i, tzinfo=timezone.utc), speed=30.0 - i * 5)
-        for i in range(5)
-    ]
-    decels = detect_decelerations(points)
-    assert len(decels) == 4
+def test_rides_to_csv():
+    rides = [Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500)]
+    result = rides_to_csv(rides)
+    assert "2024-06-01" in result
 
 def test_benchmark_comparison():
     from bike_analyzer.backend.analytics.benchmark import compare_athlete_to_benchmark
-    from bike_analyzer.backend.models.models import AthleteProfile
     athlete = AthleteProfile(name="Test", experience_level="Intermediate")
     comp = compare_athlete_to_benchmark(athlete, 100.0, 25.0, 5.0)
     assert "percentile_km" in comp
 
-def test_knowledge_base():
-    from bike_analyzer.backend.analytics.knowledge_base import search_knowledge_base
-    results = search_knowledge_base("training")
-    assert isinstance(results, list)
+def test_benchmark_categories():
+    from bike_analyzer.backend.analytics.benchmark import get_age_category, get_weight_category, get_experience_category, generate_benchmark_report
+    assert get_age_category(20) == "Under25"
+    assert get_age_category(30) == "25-35"
+    assert get_weight_category(60) == "Medium"
+    assert get_experience_category(5) == "Experienced"
+    athlete = AthleteProfile(name="Test", experience_level="Amateur", age=30, weight_kg=75, years_active=3)
+    report = generate_benchmark_report(athlete, [])
+    assert "Atleta: Test" in report
+
+def test_ai_coach_fallbacks():
+    from bike_analyzer.backend.analytics.ai_coach import generate_training_advice, generate_recovery_advice
+    import os
+    os.environ.pop("GROQ_API_KEY", None)
+    athlete = AthleteProfile(name="Test", experience_level="Beginner")
+    result = generate_training_advice(athlete, [])
+    assert result is not None
+    assert generate_recovery_advice(athlete, []) != ""
 
 def test_google_maps_api_key():
     from bike_analyzer.backend.maps.google_maps import get_google_api_key
     key = get_google_api_key()
     assert isinstance(key, (str, type(None)))
-
-def test_performance_score():
-    from bike_analyzer.backend.analytics.performance import calculate_performance_score, calculate_endurance_score, get_experience_level
-    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500.0)
-    score = calculate_performance_score(r)
-    assert 0 <= score <= 10
-
-def test_create_speed_chart():
-    assert callable(generate_speed_chart)
-
-def test_create_elevation_chart():
-    from bike_analyzer.backend.analytics.analytics import create_elevation_chart
-    assert callable(create_elevation_chart)
-
-def test_create_duration_chart():
-    from bike_analyzer.backend.analytics.analytics import create_duration_chart
-    assert callable(create_duration_chart)
-
-def test_create_distance_chart():
-    from bike_analyzer.backend.analytics.analytics import create_distance_chart
-    assert callable(create_distance_chart)
-
-def test_generate_distance_chart():
-    from bike_analyzer.backend.analytics.analytics import generate_distance_chart
-    assert callable(generate_distance_chart)

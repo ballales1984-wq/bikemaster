@@ -1,14 +1,11 @@
 {
   "name": "bikemaster",
   "version": "1.0.0",
-  "description": "A modern application for bike management and tracking",
-  "main": "src/index.js",
+  "description": "BikeMaster - Cycling Performance Intelligence (backend Python/FastAPI)",
+  "private": true,
   "scripts": {
-    "dev": "node src/index.js",
-    "build": "echo \"No build script configured yet\"",
-    "start": "node src/index.js"
+    "info": "echo \"Frontend served by FastAPI from bike_analyzer/backend/static/\""
   },
-  "keywords": ["bike", "management", "tracking"],
-  "author": "",
+  "keywords": ["bike", "cycling", "performance", "fastapi"],
   "license": "MIT"
 }
