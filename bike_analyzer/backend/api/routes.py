@@ -319,13 +319,23 @@ async def search_knowledge(query: str = ""):
 
 @router.get("/coach/workout")
 async def workout_recommendations(athlete_id: int = 0):
-    from ..db.database import get_all_rides, get_rides_by_athlete, get_athlete
+    from ..db.database import get_rides_by_athlete, get_athlete, get_db_connection
     from ..analytics.ai_coach import generate_workout_recommendations
     from ..models.models import AthleteProfile
     import traceback
     try:
-        rides = [Ride(**r) for r in (get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides())]
-        athlete_data = get_athlete(athlete_id) if athlete_id else None
+        resolved_id = athlete_id
+        if not resolved_id:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM athletes ORDER BY id DESC LIMIT 1")
+            row = cur.fetchone()
+            conn.close()
+            resolved_id = row[0] if row else 0
+        if not resolved_id:
+            return {"recommendations": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati."}
+        rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
+        athlete_data = get_athlete(resolved_id)
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
         result = generate_workout_recommendations(athlete, rides)
         return {"recommendations": result}
@@ -335,13 +345,23 @@ async def workout_recommendations(athlete_id: int = 0):
 
 @router.get("/coach/full")
 async def coach_full_data(athlete_id: int = 0):
-    from ..db.database import get_all_rides, get_rides_by_athlete, get_athlete
+    from ..db.database import get_all_rides, get_rides_by_athlete, get_athlete, get_db_connection
     from ..analytics.ai_coach import ai_coach_full
     from ..models.models import AthleteProfile
     import traceback
     try:
-        rides = [Ride(**r) for r in (get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides())]
-        athlete_data = get_athlete(athlete_id) if athlete_id else None
+        resolved_id = athlete_id
+        if not resolved_id:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM athletes ORDER BY id DESC LIMIT 1")
+            row = cur.fetchone()
+            conn.close()
+            resolved_id = row[0] if row else 0
+        if not resolved_id:
+            return {"training_advice": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati.", "recovery_advice": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
+        rides = [Ride(**r) for r in (get_rides_by_athlete(resolved_id))]
+        athlete_data = get_athlete(resolved_id)
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
         return ai_coach_full(athlete, rides)
     except Exception:

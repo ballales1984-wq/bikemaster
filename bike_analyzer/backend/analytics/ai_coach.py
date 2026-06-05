@@ -8,6 +8,18 @@ from .analytics import calculate_summary
 from .performance import calculate_performance_score, calculate_recovery_score
 from .knowledge_base import search_knowledge_base
 
+def validate_athlete_profile(athlete: AthleteProfile) -> tuple[bool, str]:
+    missing = []
+    if not athlete.name or athlete.name.strip() == "":
+        missing.append("nome")
+    if not athlete.experience_level or athlete.experience_level == "Beginner":
+        pass  # Beginner e un valore valido, ma se e quello di default e non stato impostato
+    if athlete.weight_kg == 70.0 and not getattr(athlete, "name", ""):
+        missing.append("peso")
+    if missing:
+        return False, f"Profilo atleta incompleto. Campi mancanti: {', '.join(missing)}. Completa il tuo profilo nella Dashboard."
+    return True, ""
+
 def get_ai_coach_client():
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
@@ -55,6 +67,9 @@ def _build_rag_context(athlete: AthleteProfile, rides: List[Ride], query_hint: s
 
 def generate_training_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
     try:
+        is_valid, err = validate_athlete_profile(athlete)
+        if not is_valid:
+            return f"Completa il profilo atleta prima di usare l'AI Coach: {err}"
         client = get_ai_coach_client()
         stats = calculate_summary(rides) if rides else {}
         perf = calculate_performance_score(rides[-1]) if rides else 0
@@ -95,6 +110,9 @@ generate_workout_recommendations = generate_training_advice
 
 def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride], fatigue_score: float = 5.0) -> str:
     try:
+        is_valid, err = validate_athlete_profile(athlete)
+        if not is_valid:
+            return f"Completa il profilo atleta prima di usare l'AI Coach: {err}"
         client = get_ai_coach_client()
         recovery = calculate_recovery_score(rides[-1]) if rides else fatigue_score
         stats = calculate_summary(rides) if rides else {}
