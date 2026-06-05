@@ -318,18 +318,35 @@ async def search_knowledge(query: str = ""):
 
 @router.get("/coach/workout")
 async def workout_recommendations(athlete_id: int = 0):
-    from ..db.database import get_all_rides, get_rides_by_athlete
+    from ..db.database import get_all_rides, get_rides_by_athlete, get_athlete
     from ..analytics.ai_coach import generate_workout_recommendations
-    rides = [Ride(**r) for r in (get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides())]
-    athlete = get_athlete(athlete_id) if athlete_id else None
-    return {"recommendations": generate_workout_recommendations(rides, athlete)}
+    from ..models.models import AthleteProfile
+    import traceback
+    try:
+        rides = [Ride(**r) for r in (get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides())]
+        athlete_data = get_athlete(athlete_id) if athlete_id else None
+        athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
+        result = generate_workout_recommendations(athlete, rides)
+        return {"recommendations": result}
+    except Exception:
+        traceback.print_exc()
+        return {"recommendations": "Errore AI Coach", "error": traceback.format_exc()}
 
 @router.get("/coach/recovery")
 async def recovery_recommendations(fatigue_score: float = 5.0, ride_id: int = 0):
-    from ..db.database import get_ride
+    from ..db.database import get_ride, get_athlete
     from ..analytics.ai_coach import generate_recovery_recommendations
-    ride = Ride(**get_ride(ride_id)) if ride_id else None
-    return {"recommendations": generate_recovery_recommendations(ride, fatigue_score)}
+    from ..models.models import AthleteProfile, Ride
+    import traceback
+    try:
+        ride_obj = Ride(**get_ride(ride_id)) if ride_id else None
+        athlete_data = get_athlete(ride_id) if ride_id else None
+        athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
+        result = generate_recovery_recommendations(athlete, [ride_obj] if ride_obj else [], fatigue_score)
+        return {"recommendations": result}
+    except Exception:
+        traceback.print_exc()
+        return {"recommendations": "Errore AI Coach", "error": traceback.format_exc()}
 
 @router.get("/coach/trends")
 async def historical_trends():

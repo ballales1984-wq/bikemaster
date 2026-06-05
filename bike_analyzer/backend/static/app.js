@@ -302,7 +302,6 @@
         const detailPanel = document.getElementById('ride-detail-panel');
         const detailContent = document.getElementById('detail-content');
         const detailMap = document.getElementById('detail-map');
-        const loadingSpinner = detailContent.querySelector ? null : null;
 
         try {
             const ride = await apiGet('/api/v1/rides/' + rideId);
@@ -338,40 +337,40 @@
         }
     }
 
-    function setupDetailActions() {
-        const closeBtn = document.getElementById('close-detail-btn');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                const panel = document.getElementById('ride-detail-panel');
-                if (panel) panel.classList.add('hidden');
-                activeRideId = null;
-            });
-        }
-        document.querySelectorAll('.chart-toolbar .btn-sm').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const rideId = parseInt(btn.getAttribute('data-ride'), 10);
-                const chartType = btn.getAttribute('data-chart');
-                if (!rideId) return;
-                try {
-                    const ride = await apiGet('/api/v1/rides/' + rideId);
-                    if (chartType === 'google-map') {
-                        const mapData = await apiGet('/api/v1/rides/' + rideId + '/map/google');
-                        if (mapData && mapData.map_url) {
-                            const iframe = document.createElement('iframe');
-                            iframe.src = mapData.map_url;
-                            iframe.style.cssText = 'width:100%;height:350px;border:0;border-radius:8px;';
-                            const mapDiv = document.getElementById('detail-map');
-                            mapDiv.innerHTML = '';
-                            mapDiv.classList.add('visible');
-                            mapDiv.appendChild(iframe);
-                        }
-                    }
-                } catch (err) {
-                    showToast('Errore nel caricamento del grafico/mappa', 'error');
-                }
-            });
-        });
-    }
+function setupDetailActions() {
+         const closeBtn = document.getElementById('close-detail-btn');
+         if (closeBtn) {
+             closeBtn.addEventListener('click', () => {
+                 const panel = document.getElementById('ride-detail-panel');
+                 if (panel) panel.classList.add('hidden');
+                 activeRideId = null;
+             });
+         }
+         document.querySelectorAll('.chart-toolbar .btn-sm').forEach(btn => {
+             btn.addEventListener('click', async () => {
+                 const rideId = parseInt(btn.getAttribute('data-ride'), 10);
+                 const chartType = btn.getAttribute('data-chart');
+                 if (!rideId) return;
+                 try {
+                     if (chartType === 'google-map') {
+                         const mapData = await apiGet('/api/v1/rides/' + rideId + '/map/google');
+                         if (mapData && mapData.map_url) {
+                             const iframe = document.getElementById('folium-map-frame');
+                             if (iframe) {
+                                 iframe.src = mapData.map_url;
+                                 document.getElementById('map-frame-container').style.display = 'block';
+                             }
+                         }
+                         return;
+                     }
+                     const ride = await apiGet('/api/v1/rides/' + rideId);
+                     await renderRideCharts(ride);
+                 } catch (err) {
+                     showToast('Errore nel caricamento del grafico/mappa', 'error');
+                 }
+             });
+         });
+     }
 
     async function renderRideCharts(ride) {
         const points = ride.gps_points || [];
