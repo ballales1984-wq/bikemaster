@@ -25,6 +25,9 @@
     document.addEventListener('DOMContentLoaded', init);
 
     function init() {
+        initTheme();
+        registerServiceWorker();
+        setupMobileMenu();
         setupTabs();
         setupRideForm();
         setupResetDemo();
@@ -38,6 +41,93 @@
         setupBenchmark();
         setupDetailActions();
         loadRides();
+    }
+
+    /* ==================== SERVICE WORKER ==================== */
+
+    function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(() => console.log('SW registrato'))
+                .catch(err => console.warn('SW fallito:', err));
+        }
+    }
+
+    /* ==================== THEME ==================== */
+
+    function initTheme() {
+        const saved = localStorage.getItem('theme');
+        const theme = saved || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        const toggle = document.createElement('button');
+        toggle.className = 'theme-toggle';
+        toggle.title = 'Cambia tema';
+        toggle.setAttribute('aria-label', 'Cambia tema');
+        toggle.onclick = toggleTheme;
+        document.body.appendChild(toggle);
+    }
+
+    function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        showToast('Tema ' + (next === 'dark' ? 'scuro' : 'chiaro') + ' attivo', 'info');
+    }
+
+    /* ==================== MOBILE MENU ==================== */
+
+    function setupMobileMenu() {
+        if (window.innerWidth > 768) return;
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'mobile-menu-btn';
+        menuBtn.textContent = 'Menu';
+        menuBtn.setAttribute('aria-label', 'Apri menu navigazione');
+        const tabsContainer = document.querySelector('.tabs');
+        if (tabsContainer && tabsContainer.parentNode) {
+            tabsContainer.parentNode.insertBefore(menuBtn, tabsContainer);
+        }
+        menuBtn.onclick = openDrawer;
+        createDrawer();
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.drawer') && !e.target.closest('.mobile-menu-btn')) {
+                closeDrawer();
+            }
+        });
+    }
+
+    function createDrawer() {
+        const drawer = document.createElement('div');
+        drawer.className = 'drawer';
+        drawer.innerHTML = `
+            <div class="drawer-header">🚴 BikeMaster</div>
+            ${Array.from(document.querySelectorAll('.tab')).map(t => {
+                const text = t.textContent.trim();
+                const target = t.getAttribute('data-tab');
+                return `<button class="tab${t.classList.contains('active') ? ' active' : ''}" data-tab="${target}">${text}</button>`;
+            }).join('')}
+        `;
+        const backdrop = document.createElement('div');
+        backdrop.className = 'drawer-backdrop';
+        backdrop.onclick = closeDrawer;
+        document.body.appendChild(backdrop);
+        document.body.appendChild(drawer);
+        drawer.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelector('.tab[data-tab="' + tab.getAttribute('data-tab') + '"]')?.click();
+                closeDrawer();
+            });
+        });
+    }
+
+    function openDrawer() {
+        document.querySelector('.drawer-backdrop').classList.add('active');
+        document.querySelector('.drawer').classList.add('active');
+    }
+
+    function closeDrawer() {
+        document.querySelector('.drawer-backdrop').classList.remove('active');
+        document.querySelector('.drawer').classList.remove('active');
     }
 
     /* ==================== TABS ==================== */
@@ -148,6 +238,7 @@
         const listEl = document.getElementById('rides-list');
         const loadingEl = document.getElementById('rides-loading');
         if (loadingEl) loadingEl.style.display = 'block';
+        if (listEl) listEl.innerHTML = renderSkeletons(5);
         try {
             const data = await apiGet('/api/v1/rides?page=1&page_size=50&sort=date');
             currentRides = data.rides || [];
@@ -163,6 +254,10 @@
         }
     }
 
+    function renderSkeletons(count) {
+        return Array(count).fill(0).map(() => '<div class="ride-item skeleton skeleton-ride"></div>').join('');
+    }
+
     function updateStats(rides) {
         const totalKm = rides.reduce((s, r) => s + (parseFloat(r.distance_km) || 0), 0);
         const totalCal = rides.reduce((s, r) => s + (parseFloat(r.calories) || 0), 0);
@@ -175,7 +270,7 @@
         setText('total-hours', formatNumber(totalDur / 60, 1));
     }
 
-    function renderRides(rides) {
+function renderRides(rides) {
         const listEl = document.getElementById('rides-list');
         if (!listEl) return;
         if (rides.length === 0) {
@@ -187,11 +282,16 @@
             const hasGps = r.gps_points && r.gps_points.length > 0;
             const gpsIcon = hasGps ? ' 📡' : '';
             return '<div class="ride-item" role="listitem" tabindex="0" data-ride-id="' + r.id + '" aria-label="Ride del ' + escapeHtml(r.date) + ', ' + escapeHtml(r.distance_km) + ' km">' +
-                '<div><div class="ride-date">' + escapeHtml(r.date) + gpsIcon + '</div>' +
-                '<div class="ride-details">' + escapeHtml(r.distance_km) + ' km &bull; ' + escapeHtml(r.duration_minutes) + ' min &bull; ' + escapeHtml(r.avg_speed_kmh) + ' km/h &bull; Fatigue: ' + fatigue + '/10</div></div>' +
-                '<button class="btn btn-sm btn-secondary" data-action="detail" data-ride-id="' + r.id + '">Dettagli</button>' +
-                '<button class="btn btn-sm btn-secondary" data-action="delete" data-ride-id="' + r.id + '">Elimina</button>' +
+                '<div class="ride-item-content">' +
+                    '<div class="ride-date">' + escapeHtml(r.date) + gpsIcon + '</div>' +
+                    '<div class="ride-details">' + escapeHtml(r.distance_km) + ' km &bull; ' + escapeHtml(r.duration_minutes) + ' min &bull; ' + escapeHtml(r.avg_speed_kmh) + ' km/h &bull; Fatigue: ' + fatigue + '/10</div>' +
+                '</div>' +
+                '<div class="ride-item-actions">' +
+                    '<button class="btn btn-sm btn-secondary" data-action="detail" data-ride-id="' + r.id + '">Dettagli</button>' +
+                    '<button class="btn btn-sm btn-secondary" data-action="delete" data-ride-id="' + r.id + '">Elimina</button>' +
+                '</div>' +
             '</div>';
+
         }).join('');
 
         listEl.querySelectorAll('[data-action="detail"]').forEach(btn => {
@@ -557,9 +657,25 @@ function setupDetailActions() {
         });
 
         fileInput.addEventListener('change', () => {
-            if (fileInput.files.length) handleImportFiles(fileInput.files);
+            if (fileInput.files.length) {
+                showFilePreview(Array.from(fileInput.files));
+                handleImportFiles(fileInput.files);
+            }
             fileInput.value = '';
         });
+    }
+
+    function showFilePreview(files) {
+        const preview = document.createElement('div');
+        preview.className = 'upload-preview';
+        preview.innerHTML = files.map(f =>
+            '<div class="upload-preview-item">' +
+                '<span>📄</span> ' + escapeHtml(f.name) + ' <span style="color:var(--text-muted)">(' + (f.size / 1024).toFixed(1) + ' KB)</span>' +
+            '</div>'
+        ).join('');
+        const existing = uploadArea.parentNode.querySelector('.upload-preview');
+        if (existing) existing.remove();
+        uploadArea.parentNode.insertBefore(preview, uploadArea.nextSibling);
     }
 
     async function handleImportFiles(files) {

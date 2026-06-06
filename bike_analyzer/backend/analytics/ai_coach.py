@@ -6,7 +6,7 @@ from typing import List, Optional
 from ..models.models import Ride, AthleteProfile
 from .analytics import calculate_summary
 from .performance import calculate_performance_score, calculate_recovery_score
-from .knowledge_base import search_knowledge_base
+from .knowledge_base import search_knowledge_base, format_context_for_llm
 
 def validate_athlete_profile(athlete: AthleteProfile) -> tuple[bool, str]:
     missing = []
@@ -44,11 +44,11 @@ def _build_athlete_context(athlete: AthleteProfile) -> str:
     return "\n".join(parts)
 
 def _build_rag_context(athlete: AthleteProfile, rides: List[Ride], query_hint: str = "") -> str:
-    kb_parts: List[str] = []
+    kb_results: list[dict] = []
     if athlete.goals:
-        kb_parts.append(search_knowledge_base(f"obiettivi {athlete.goals} {athlete.experience_level}"))
+        kb_results.extend(search_knowledge_base(f"obiettivi {athlete.goals} {athlete.experience_level}", max_chunks=2))
     if athlete.preferred_terrain:
-        kb_parts.append(search_knowledge_base(f"allenamento {athlete.preferred_terrain}"))
+        kb_results.extend(search_knowledge_base(f"allenamento {athlete.preferred_terrain}", max_chunks=2))
     if rides:
         last = rides[-1]
         hints = []
@@ -59,11 +59,17 @@ def _build_rag_context(athlete: AthleteProfile, rides: List[Ride], query_hint: s
         if getattr(last, "heart_rate_avg", None) and last.heart_rate_avg > 160:
             hints.append("frequenza cardiaca alta")
         if hints:
-            kb_parts.append(search_knowledge_base(" ".join(hints)))
+            kb_results.extend(search_knowledge_base(" ".join(hints), max_chunks=2))
     if query_hint:
-        kb_parts.append(search_knowledge_base(query_hint))
-    combined = "\n\n".join(p for p in kb_parts if p)
-    return combined[:3000]
+        kb_results.extend(search_knowledge_base(query_hint, max_chunks=2))
+    seen_ids: set[str] = set()
+    deduped: list[dict] = []
+    for r in kb_results:
+        cid = r.get("chunk_id", "")
+        if cid and cid not in seen_ids:
+            seen_ids.add(cid)
+            deduped.append(r)
+    return format_context_for_llm(deduped[:5])
 
 def generate_training_advice(athlete: AthleteProfile, rides: List[Ride], athlete_id: Optional[int] = None) -> str:
     try:

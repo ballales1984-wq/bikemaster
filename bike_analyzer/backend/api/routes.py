@@ -309,13 +309,39 @@ async def benchmark_compare(ride_data: dict):
 
 @router.get("/knowledge")
 async def list_knowledge():
-    from ..analytics.knowledge_base import load_knowledge_base
-    return {"topics": list(load_knowledge_base().keys())}
+    from ..analytics.knowledge_base import list_topics, get_kb_stats
+    stats = get_kb_stats()
+    return {
+        "topics": stats["topics"],
+        "chunks_per_topic": stats["chunks_per_topic"],
+        "total_chunks": stats["total_chunks"],
+        "total_words": stats["total_words"],
+    }
 
 @router.get("/knowledge/search")
-async def search_knowledge(query: str = ""):
-    from ..analytics.knowledge_base import search_knowledge_base
-    return {"results": search_knowledge_base(query)}
+async def search_knowledge_endpoint(query: str = "", max_chunks: int = 4, min_score: float = 0.05):
+    from ..analytics.knowledge_base import search_knowledge_base, format_context_for_llm
+    if not query or not query.strip():
+        return {"results": [], "context": "", "count": 0}
+    results = search_knowledge_base(query.strip(), max_chunks=max_chunks, min_score=min_score)
+    context = format_context_for_llm(results)
+    return {
+        "results": results,
+        "context": context,
+        "count": len(results),
+        "query": query,
+        "topics_matched": sorted({r["topic"] for r in results}),
+    }
+
+@router.get("/knowledge/stats")
+async def knowledge_stats():
+    from ..analytics.knowledge_base import get_kb_stats
+    return get_kb_stats()
+
+@router.post("/knowledge/reload")
+async def reload_knowledge():
+    from ..analytics.knowledge_base import reload_kb
+    return reload_kb()
 
 @router.get("/coach/workout")
 async def workout_recommendations(athlete_id: int = 0):
