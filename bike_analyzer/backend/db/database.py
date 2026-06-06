@@ -66,6 +66,9 @@ def init_db():
 def _conn():
     return sqlite3.connect(DB_PATH)
 
+def get_db_connection():
+    return _conn()
+
 def save_ride(ride: dict) -> int:
     conn = _conn()
     cur = conn.cursor()
@@ -205,4 +208,4 @@ def backup_database(backup_path: Optional[str] = None) -> str:
     shutil.copy2(DB_PATH, backup_path)
     return backup_path
 
-__all__ = ["save_ride", "get_ride", "get_all_rides", "get_rides_by_athlete", "delete_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database"]
+__all__ = ["save_ride", "get_ride", "get_all_rides", "get_rides_by_athlete", "delete_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection"]

@@ -362,11 +362,14 @@ async def coach_full_data(athlete_id: int = 0):
             return {"training_advice": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati.", "recovery_advice": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
         rides = [Ride(**r) for r in (get_rides_by_athlete(resolved_id))]
         athlete_data = get_athlete(resolved_id)
-        athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
+        if not athlete_data:
+            return {"training_advice": "Atleta non trovato. Crea un profilo nella Dashboard.", "recovery_advice": "Atleta non trovato. Crea un profilo nella Dashboard.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
+        athlete = AthleteProfile(**athlete_data)
         return ai_coach_full(athlete, rides)
     except Exception:
-        traceback.print_exc()
-        return {"training_advice": "Errore AI Coach", "recovery_advice": "Errore AI Coach", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
+        tb = traceback.format_exc()
+        print("COACH_FULL_ERROR:", tb)
+        return {"training_advice": "Errore AI Coach", "recovery_advice": "Errore AI Coach", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": [], "error": tb}
 
 @router.get("/coach/page", response_class=HTMLResponse)
 async def coach_page():
