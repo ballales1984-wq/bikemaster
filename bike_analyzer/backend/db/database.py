@@ -43,6 +43,14 @@ def init_db():
         equipment TEXT,
         created_at TEXT
     )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS chat_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        athlete_id INTEGER,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TEXT,
+        FOREIGN KEY (athlete_id) REFERENCES athletes(id)
+    )""")
     cur = conn.cursor()
     cur.execute("PRAGMA table_info(athletes)")
     columns = [row[1] for row in cur.fetchall()]
@@ -208,4 +216,32 @@ def backup_database(backup_path: Optional[str] = None) -> str:
     shutil.copy2(DB_PATH, backup_path)
     return backup_path
 
-__all__ = ["save_ride", "get_ride", "get_all_rides", "get_rides_by_athlete", "delete_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection"]
+def save_chat_message(athlete_id: Optional[int], role: str, content: str) -> int:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("""INSERT INTO chat_history (athlete_id, role, content, created_at)
+        VALUES (?, ?, ?, ?)""",
+        (athlete_id, role, content, datetime.now(timezone.utc).isoformat()))
+    conn.commit()
+    msg_id = cur.lastrowid
+    conn.close()
+    return msg_id
+
+def get_chat_history(athlete_id: int, limit: int = 10) -> List[dict]:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT role, content, created_at FROM chat_history WHERE athlete_id = ? ORDER BY id DESC LIMIT ?", (athlete_id, limit))
+    rows = cur.fetchall()
+    conn.close()
+    return [{"role": r[0], "content": r[1], "created_at": r[2]} for r in rows]
+
+def clear_chat_history(athlete_id: int) -> bool:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM chat_history WHERE athlete_id = ?", (athlete_id,))
+    conn.commit()
+    deleted = cur.rowcount > 0
+    conn.close()
+    return deleted
+
+__all__ = ["save_ride", "get_ride", "get_all_rides", "get_rides_by_athlete", "delete_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection", "save_chat_message", "get_chat_history", "clear_chat_history"]

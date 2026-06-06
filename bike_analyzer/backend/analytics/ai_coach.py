@@ -65,7 +65,7 @@ def _build_rag_context(athlete: AthleteProfile, rides: List[Ride], query_hint: s
     combined = "\n\n".join(p for p in kb_parts if p)
     return combined[:3000]
 
-def generate_training_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
+def generate_training_advice(athlete: AthleteProfile, rides: List[Ride], athlete_id: Optional[int] = None) -> str:
     try:
         is_valid, err = validate_athlete_profile(athlete)
         if not is_valid:
@@ -78,7 +78,16 @@ def generate_training_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
         recent_info = "; ".join([f"{r.distance_km:.1f}km, {r.avg_speed_kmh:.1f}km/h, {r.duration_minutes:.0f}min" for r in recent]) if recent else "nessuna uscita recente"
         rag = _build_rag_context(athlete, rides, "piano allenamento settimanale")
         rag_section = f"\n\nCONOSCENZE APPLICATE:\n{rag}" if rag else ""
-        prompt = f"""Sei un coach ciclistico esperto. Genera 3 consigli di allenamento BREVI e SPECIFICI.{rag_section}
+        history_section = ""
+        if athlete_id:
+            try:
+                from ..db.database import get_chat_history
+                history = get_chat_history(athlete_id, limit=5)
+                if history:
+                    history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join([f"{h['role']}: {h['content'][:200]}" for h in reversed(history)])
+            except Exception:
+                pass
+        prompt = f"""Sei un coach ciclistico esperto. Genera 3 consigli di allenamento BREVI e SPECIFICI.{history_section}{rag_section}
 
 Profilo atleta:
 {_build_athlete_context(athlete)}
@@ -99,6 +108,7 @@ REGOLE:
 - Non usare emoji
 - Non aggiungere saluti o chiusure tipo "Buon allenamento!"
 - Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
+- Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
 """
         chat = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}], max_tokens=500)
         return chat.choices[0].message.content or "Nessun consiglio disponibile"
@@ -108,7 +118,7 @@ REGOLE:
 
 generate_workout_recommendations = generate_training_advice
 
-def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride], fatigue_score: float = 5.0) -> str:
+def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride], fatigue_score: float = 5.0, athlete_id: Optional[int] = None) -> str:
     try:
         is_valid, err = validate_athlete_profile(athlete)
         if not is_valid:
@@ -120,7 +130,16 @@ def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride], fatigue
         recent_info = f"{recent.distance_km:.1f}km a {recent.avg_speed_kmh:.1f}km/h" if recent else "nessuna uscita recente"
         rag = _build_rag_context(athlete, rides, "recupero stretching idratazione sonno alimentazione")
         rag_section = f"\n\nCONOSCENZE APPLICATE:\n{rag}" if rag else ""
-        prompt = f"""Sei un coach di recupero ciclistico. Genera 2 consigli BREVI per il recupero di oggi.{rag_section}
+        history_section = ""
+        if athlete_id:
+            try:
+                from ..db.database import get_chat_history
+                history = get_chat_history(athlete_id, limit=5)
+                if history:
+                    history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join([f"{h['role']}: {h['content'][:200]}" for h in reversed(history)])
+            except Exception:
+                pass
+        prompt = f"""Sei un coach di recupero ciclistico. Genera 2 consigli BREVI per il recupero di oggi.{history_section}{rag_section}
 
 Profilo atleta:
 {_build_athlete_context(athlete)}
@@ -138,6 +157,7 @@ REGOLE:
 - Non ripetere numeri o dati gia forniti nella risposta
 - Non usare backtick o markdown speciale
 - Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
+- Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
 """
         chat = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}], max_tokens=300)
         return chat.choices[0].message.content or "Recupera bene!"
@@ -158,7 +178,7 @@ def analyze_historical_trend(rides: List[Ride]) -> str:
 
 analyze_historical_trends = analyze_historical_trend
 
-def ai_coach_full(athlete: AthleteProfile, rides: List[Ride]) -> dict:
+def ai_coach_full(athlete: AthleteProfile, rides: List[Ride], athlete_id: Optional[int] = None) -> dict:
     from pathlib import Path
     from ..analytics.analytics import calculate_summary
     from ..analytics.performance import calculate_performance_score, calculate_recovery_score, calculate_endurance_score, calculate_efficiency_score

@@ -345,7 +345,7 @@ async def workout_recommendations(athlete_id: int = 0):
 
 @router.get("/coach/full")
 async def coach_full_data(athlete_id: int = 0):
-    from ..db.database import get_all_rides, get_rides_by_athlete, get_athlete, _conn as get_db_connection
+    from ..db.database import get_all_rides, get_rides_by_athlete, get_athlete, _conn as get_db_connection, save_chat_message
     from ..analytics.ai_coach import ai_coach_full
     from ..models.models import AthleteProfile
     import traceback
@@ -360,12 +360,15 @@ async def coach_full_data(athlete_id: int = 0):
             resolved_id = row[0] if row else 0
         if not resolved_id:
             return {"training_advice": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati.", "recovery_advice": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
-        rides = [Ride(**r) for r in (get_rides_by_athlete(resolved_id))]
+        rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
         athlete_data = get_athlete(resolved_id)
         if not athlete_data:
             return {"training_advice": "Atleta non trovato. Crea un profilo nella Dashboard.", "recovery_advice": "Atleta non trovato. Crea un profilo nella Dashboard.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
         athlete = AthleteProfile(**athlete_data)
-        return ai_coach_full(athlete, rides)
+        result = ai_coach_full(athlete, rides, resolved_id)
+        if athlete_id and result.get("training_advice"):
+            save_chat_message(resolved_id, "assistant", result["training_advice"][:500])
+        return result
     except Exception:
         tb = traceback.format_exc()
         print("COACH_FULL_ERROR:", tb)
@@ -464,3 +467,22 @@ async def reset_demo_data():
 async def count_rides():
     from ..db.database import get_all_rides
     return {"count": len(get_all_rides())}
+
+@router.post("/coach/chat")
+async def coach_chat(athlete_id: int, message: str):
+    from ..db.database import save_chat_message, get_chat_history, get_athlete
+    from ..analytics.ai_coach import generate_training_advice
+    from ..models.models import AthleteProfile
+    from ..db.database import get_all_rides
+    save_chat_message(athlete_id, "user", message[:500])
+    athlete_data = get_athlete(athlete_id)
+    athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
+    rides = [Ride(**r) for r in get_all_rides()]
+    response = generate_training_advice(athlete, rides, athlete_id)
+    save_chat_message(athlete_id, "assistant", response[:500])
+    return {"response": response, "history": get_chat_history(athlete_id)}
+
+@router.get("/coach/history")
+async def coach_history(athlete_id: int):
+    from ..db.database import get_chat_history
+    return {"history": get_chat_history(athlete_id)}
