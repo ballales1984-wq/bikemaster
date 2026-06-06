@@ -1,12 +1,12 @@
 """AI Coach with cycling knowledge base RAG and athlete memory."""
 from __future__ import annotations
-import os
 import traceback
 from typing import List, Optional
 from ..models.models import Ride, AthleteProfile
 from .analytics import calculate_summary
 from .performance import calculate_performance_score, calculate_recovery_score
 from .knowledge_base import search_knowledge_base, format_context_for_llm
+from ..config import GROQ_API_KEY, GROQ_MODEL
 
 def validate_athlete_profile(athlete: AthleteProfile) -> tuple[bool, str]:
     missing = []
@@ -21,11 +21,10 @@ def validate_athlete_profile(athlete: AthleteProfile) -> tuple[bool, str]:
     return True, ""
 
 def get_ai_coach_client():
-    api_key = os.environ.get("GROQ_API_KEY")
-    if not api_key:
+    if not GROQ_API_KEY:
         raise ValueError("GROQ_API_KEY non impostata nell'ambiente")
     from groq import Groq
-    return Groq(api_key=api_key)
+    return Groq(api_key=GROQ_API_KEY)
 
 def _build_athlete_context(athlete: AthleteProfile) -> str:
     parts = [f"Nome: {athlete.name or 'N/A'}", f"Livello: {athlete.experience_level}", f"Peso: {athlete.weight_kg} kg", f"Eta: {athlete.age} anni", f"Anni attivo: {athlete.years_active}", f"Settimane/anno: {athlete.annual_hours:.0f}h totali"]

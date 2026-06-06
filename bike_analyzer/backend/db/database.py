@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import sqlite3
 import json
 
-DB_PATH = "rides.db"
+from ..config import DB_PATH
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)

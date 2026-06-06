@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 from dataclasses import dataclass, field
 from ..models.models import GPSPoint
+from ..config import GOOGLE_MAPS_ZOOM, GOOGLE_MAPS_SIZE
 
 @dataclass
 class SpeedColorSegment:
@@ -35,7 +36,7 @@ def _build_speed_segments(gps_points: List[GPSPoint], min_segment: int = 5) -> L
         segments.append(SpeedColorSegment(points=pairs, color="0x0000ff"))
     return segments
 
-def create_google_static_map(points: List[GPSPoint], api_key: str, output_path: str = "google_map.png", zoom: int = 13, size: str = "800x600", colored: bool = False) -> str:
+def create_google_static_map(points: List[GPSPoint], api_key: str, output_path: str = "google_map.png", zoom: int = GOOGLE_MAPS_ZOOM, size: str = GOOGLE_MAPS_SIZE, colored: bool = False) -> str:
     if not points: raise ValueError("No GPS points")
     center_lat = sum(p.lat for p in points) / len(points)
     center_lon = sum(p.lon for p in points) / len(points)

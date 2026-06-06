@@ -12,8 +12,7 @@ from functools import lru_cache
 from typing import Optional
 from pathlib import Path
 
-
-KB_PATH = Path(__file__).parent.parent.parent.parent / "knowledge_base"
+from ..config import KB_PATH
 MAX_CHARS_PER_CHUNK = 1200
 CHUNK_OVERLAP = 200
 CONTEXT_WINDOW_CHARS = 3000
