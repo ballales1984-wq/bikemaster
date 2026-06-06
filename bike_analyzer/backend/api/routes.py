@@ -469,8 +469,9 @@ async def update_ride(ride_id: int, ride: dict = Body(...)):
     existing = _get_ride(ride_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Ride not found")
-    _update_ride(ride_id, ride)
-    return {**existing, **ride}
+    merged = {**existing, **ride}
+    _update_ride(ride_id, merged)
+    return merged
 
 @router.get("/rides/count")
 async def count_rides():
