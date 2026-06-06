@@ -26,6 +26,7 @@
 
     function init() {
         initTheme();
+        initScrollIndicator();
         registerServiceWorker();
         setupMobileMenu();
         setupTabs();
@@ -41,6 +42,18 @@
         setupBenchmark();
         setupDetailActions();
         loadRides();
+    }
+
+    /* ==================== SCROLL INDICATOR ==================== */
+
+    function initScrollIndicator() {
+        const indicator = document.createElement('div');
+        indicator.className = 'scroll-indicator';
+        document.body.appendChild(indicator);
+        window.addEventListener('scroll', () => {
+            const scrollPercent = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+            indicator.style.width = scrollPercent + '%';
+        });
     }
 
     /* ==================== SERVICE WORKER ==================== */

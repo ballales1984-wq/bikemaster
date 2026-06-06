@@ -13,7 +13,7 @@ from typing import Optional
 from pathlib import Path
 
 
-KB_PATH = Path(__file__).parent.parent.parent / "knowledge_base"
+KB_PATH = Path(__file__).parent.parent.parent.parent / "knowledge_base"
 MAX_CHARS_PER_CHUNK = 1200
 CHUNK_OVERLAP = 200
 CONTEXT_WINDOW_CHARS = 3000
@@ -169,7 +169,7 @@ def _build_bm25_index(chunks: list[dict]) -> tuple[float, dict[str, float]]:
     k1 = 1.5
     idf: dict[str, float] = {}
     for tok, df in doc_freq.items():
-        idf[tok] = math.log((n - df + 0.5) / (df + 0.5) + 1.0) * (df * (k1 + 1)) / (df + k1 * (1 - 0.75 + 0.75 * n / (total_tokens or 1)))
+        idf[tok] = math.log((n - df + 0.5) / (df + 0.5) + 1.0)
     return avg_dl, idf
 
 
@@ -220,6 +220,8 @@ def search_knowledge_base(
         total_chars += ch["char_count"]
         if total_chars >= CONTEXT_WINDOW_CHARS:
             break
+    if as_string:
+        return format_context_for_llm(results)
     return results
 
 
