@@ -144,6 +144,19 @@ def delete_ride(ride_id: int) -> bool:
     conn.close()
     return deleted
 
+def update_ride(ride_id: int, ride: dict) -> bool:
+    conn = _conn()
+    cur = conn.cursor()
+    gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
+    cur.execute("""UPDATE rides SET athlete_id=?, date=?, distance_km=?, duration_minutes=?, avg_speed_kmh=?, weight_kg=?, calories=?, heart_rate_avg=?, elevation_gain_m=?, gps_points=? WHERE id=?""",
+        (ride.get("athlete_id"), ride.get("date"), ride.get("distance_km", 0), ride.get("duration_minutes", 0),
+         ride.get("avg_speed_kmh", 0), ride.get("weight_kg", 70), ride.get("calories", 0),
+         ride.get("heart_rate_avg"), ride.get("elevation_gain_m"), gps_points, ride_id))
+    conn.commit()
+    updated = cur.rowcount > 0
+    conn.close()
+    return updated
+
 def save_athlete(athlete: dict) -> int:
     conn = _conn()
     cur = conn.cursor()
@@ -244,4 +257,4 @@ def clear_chat_history(athlete_id: int) -> bool:
     conn.close()
     return deleted
 
-__all__ = ["save_ride", "get_ride", "get_all_rides", "get_rides_by_athlete", "delete_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection", "save_chat_message", "get_chat_history", "clear_chat_history"]
+__all__ = ["save_ride", "get_ride", "get_all_rides", "get_rides_by_athlete", "delete_ride", "update_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection", "save_chat_message", "get_chat_history", "clear_chat_history"]

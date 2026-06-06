@@ -1,7 +1,7 @@
 """API routes."""
 from __future__ import annotations
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
 from fastapi.responses import HTMLResponse
 from ..models.models import Ride, GPSPoint, AthleteProfile
 from ..analytics.analytics import calculate_summary, analyze_ride
@@ -462,6 +462,15 @@ async def reset_demo_data():
     from scripts.generate_sample_ride import generate_sample_ride
     generate_sample_ride()
     return {"status": "demo_reset", "message": "Demo data regenerated"}
+
+@router.put("/rides/{ride_id}")
+async def update_ride(ride_id: int, ride: dict = Body(...)):
+    from ..db.database import update_ride as _update_ride, get_ride as _get_ride
+    existing = _get_ride(ride_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    _update_ride(ride_id, ride)
+    return {**existing, **ride}
 
 @router.get("/rides/count")
 async def count_rides():

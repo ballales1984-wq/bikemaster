@@ -194,6 +194,11 @@ def ai_coach_full(athlete: AthleteProfile, rides: List[Ride], athlete_id: Option
     charts = []
     try:
         points_data = getattr(recent, "gps_points", []) if recent else []
+        for old_chart in ["coach_speed.png", "coach_duration.png"]:
+            try:
+                (static_dir / old_chart).unlink(missing_ok=True)
+            except Exception:
+                pass
         if points_data:
             from ..models.models import GPSPoint
             points = [GPSPoint(**p) for p in points_data]
