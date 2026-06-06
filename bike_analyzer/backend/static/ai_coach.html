@@ -64,12 +64,19 @@
             <p class="subtitle">Analisi intelligente delle tue prestazioni ciclistiche</p>
         </header>
 
+        <div style="margin: 15px 0; display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="athlete-id-input" placeholder="ID Atleta" value="0" style="padding: 8px; border-radius: 5px; border: none; width: 120px;">
+            <input type="text" id="chat-input" placeholder="Chiedi al coach..." style="flex: 1; padding: 8px; border-radius: 5px; border: none;">
+            <button onclick="sendChat()" style="padding: 8px 16px; background: #4ecca3; color: #1a1a2e; border: none; border-radius: 5px; cursor: pointer;">Invia</button>
+        </div>
+
         <a href="/" class="btn-back">&larr; Torna alla Dashboard</a>
 
         <div class="nav-tabs">
             <button class="nav-tab active" data-tab="training">Allenamento</button>
             <button class="nav-tab" data-tab="recovery">Recupero</button>
             <button class="nav-tab" data-tab="charts">Grafici</button>
+            <button class="nav-tab" data-tab="table">Tabella</button>
         </div>
 
         <div class="tab-content active" id="tab-training">
@@ -102,6 +109,16 @@
         </div>
 
         <button class="refresh-btn" onclick="loadCoachData()">Aggiorna Dati</button>
+
+        <div class="tab-content" id="tab-table">
+            <div class="section">
+                <h2 class="section-title">📋 Dati Tabellari</h2>
+                <table id="dataTable" style="width: 100%; border-collapse: collapse; color: #eee;">
+                    <thead><tr><th style="padding: 10px; border-bottom: 1px solid #4ecca3;">Categoria</th><th style="padding: 10px; border-bottom: 1px solid #4ecca3;">Valore</th><th style="padding: 10px; border-bottom: 1px solid #4ecca3;">Note</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -109,6 +126,31 @@
             const r = await fetch(url);
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             return r.json();
+        }
+
+        async function sendChat() {
+            const athleteId = document.getElementById('athlete-id-input').value || '0';
+            const message = document.getElementById('chat-input').value;
+            if (!message) return;
+            const resp = await fetch(`/api/v1/coach/chat?athlete_id=${athleteId}&message=${encodeURIComponent(message)}`);
+            const data = await resp.json();
+            document.getElementById('chat-input').value = '';
+            loadCoachData();
+        }
+
+        function renderDataTable(data) {
+            const tbody = document.querySelector('#dataTable tbody');
+            const rows = [
+                ['Performance', data.training_scores?.[0]?.value?.toFixed(1) || 'N/A', 'Score 0-10'],
+                ['Endurance', data.training_scores?.[1]?.value?.toFixed(1) || 'N/A', 'Resistenza media'],
+                ['Efficiency', data.training_scores?.[2]?.value?.toFixed(1) || 'N/A', 'Efficienza pedalata'],
+                ['Recovery', data.recovery_scores?.[0]?.value?.toFixed(1) || 'N/A', 'Recupero giornaliero'],
+                ['Fatigue', data.recovery_scores?.[1]?.value?.toFixed(1) || 'N/A', 'Fatica accumulata'],
+                ['Trend', data.historical_analysis?.split(',')[0] || 'N/A', 'Andamento generale']
+            ];
+            tbody.innerHTML = rows.map(([label, value, note]) => 
+                `<tr><td style="padding: 10px; border-bottom: 1px solid #333;">${label}</td><td style="padding: 10px; border-bottom: 1px solid #333; text-align: center;">${value}</td><td style="padding: 10px; border-bottom: 1px solid #333; color: #888;">${note}</td></tr>`
+            ).join('');
         }
 
         function renderScores(containerId, scores) {
@@ -147,7 +189,9 @@
 
         async function loadCoachData() {
             try {
-                const data = await fetchJSON('/api/v1/coach/full');
+                const athleteId = document.getElementById('athlete-id-input').value || '0';
+                const data = await fetchJSON(`/api/v1/coach/full?athlete_id=${athleteId}`);
+                window.lastCoachData = data;
                 renderScores('training-scores', data.training_scores || []);
                 document.getElementById('training-advice').innerHTML = parseAdvice(data.training_advice);
                 document.getElementById('historical-analysis').innerHTML = data.historical_analysis
@@ -156,6 +200,7 @@
                 renderScores('recovery-scores', data.recovery_scores || []);
                 document.getElementById('recovery-advice').innerHTML = parseAdvice(data.recovery_advice);
                 renderCharts(data.charts);
+                renderDataTable(data);
             } catch (e) {
                 document.getElementById('training-advice').innerHTML = `<li class="advice-item"><p>Errore: ${e.message}</p></li>`;
                 document.getElementById('recovery-advice').innerHTML = `<li class="advice-item"><p>Errore: ${e.message}</p></li>`;
@@ -171,6 +216,7 @@
             });
         });
 
+        document.getElementById('chat-input').addEventListener('keypress', e => { if (e.key === 'Enter') sendChat(); });
         loadCoachData();
     </script>
 </body>
