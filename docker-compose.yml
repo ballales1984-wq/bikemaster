@@ -8,7 +8,8 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
-      - ./static:/app/static
+      - ./bike_analyzer/backend/static:/app/bike_analyzer/backend/static
+      - ./rides.db:/app/rides.db
     environment:
       - API_HOST=0.0.0.0
       - API_PORT=8000

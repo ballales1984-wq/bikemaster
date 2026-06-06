@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import uvicorn
 import sys
+from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 

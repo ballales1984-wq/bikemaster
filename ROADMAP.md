@@ -19,7 +19,7 @@
 - [x] 15. Implementare parser GPS.
 - [x] 16. Implementare validazione coordinate.
 - [x] 17. Implementare route builder.
-- [x] x] 18. Implementare renderer Folium.
+- [x] 18. Implementare renderer Folium.
 - [x] 19. Generare prima mappa HTML.
 - [x] 20. Documentare il flusso GPS.
 

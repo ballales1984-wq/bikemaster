@@ -371,7 +371,7 @@ async def workout_recommendations(athlete_id: int = 0):
         return {"recommendations": result}
     except Exception:
         traceback.print_exc()
-        return {"recommendations": "Errore AI Coach", "error": traceback.format_exc()}
+        return {"recommendations": "Errore AI Coach. Riprova più tardi."}
 
 @router.get("/coach/full")
 async def coach_full_data(athlete_id: int = 0):
@@ -400,9 +400,8 @@ async def coach_full_data(athlete_id: int = 0):
             save_chat_message(resolved_id, "assistant", result["training_advice"][:500])
         return result
     except Exception:
-        tb = traceback.format_exc()
-        print("COACH_FULL_ERROR:", tb)
-        return {"training_advice": "Errore AI Coach", "recovery_advice": "Errore AI Coach", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": [], "error": tb}
+        traceback.print_exc()
+        return {"training_advice": "Errore AI Coach. Riprova più tardi.", "recovery_advice": "Errore AI Coach. Riprova più tardi.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
 
 @router.get("/coach/page", response_class=HTMLResponse)
 async def coach_page():
@@ -427,7 +426,7 @@ async def recovery_recommendations(fatigue_score: float = 5.0, ride_id: int = 0)
         return {"recommendations": result}
     except Exception:
         traceback.print_exc()
-        return {"recommendations": "Errore AI Coach", "error": traceback.format_exc()}
+        return {"recommendations": "Errore AI Coach. Riprova più tardi."}
 
 @router.get("/coach/trends")
 async def historical_trends():
