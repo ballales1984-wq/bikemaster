@@ -97,7 +97,8 @@ def test_benchmark_categories():
     from bike_analyzer.backend.analytics.benchmark import get_age_category, get_weight_category, get_experience_category, generate_benchmark_report
     assert get_age_category(20) == "Under25"
     assert get_age_category(30) == "25-35"
-    assert get_weight_category(60) == "Medium"
+    assert get_weight_category(60) == "Lightweight"
+    assert get_weight_category(70) == "Medium"
     assert get_experience_category(5) == "Experienced"
     athlete = AthleteProfile(name="Test", experience_level="Amateur", age=30, weight_kg=75, years_active=3)
     report = generate_benchmark_report(athlete, [])
