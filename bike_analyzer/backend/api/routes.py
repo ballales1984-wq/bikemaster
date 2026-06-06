@@ -10,6 +10,9 @@ from ..analytics.fatigue import calculate_fatigue_score, estimate_recovery_hours
 from ..processing.processing import process_route
 from ..maps.map_renderer import create_route_map
 from .schemas import RideCreate, RideResponse, RideAnalysisRequest, AthleteCreate, AthleteUpdate, MetricCreate, GoogleFitAuthQuery, GoogleFitTokenRequest, GoogleFitImportRequest
+from ..utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
