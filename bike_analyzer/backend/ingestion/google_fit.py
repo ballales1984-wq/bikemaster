@@ -11,6 +11,7 @@ def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:
 def exchange_code_for_token(client_id: str, client_secret: str, code: str, redirect_uri: str) -> dict:
     import requests
     resp = requests.post("https://oauth2.googleapis.com/token", data={"client_id": client_id, "client_secret": client_secret, "code": code, "grant_type": "authorization_code", "redirect_uri": redirect_uri}, timeout=10)
+    resp.raise_for_status()
     return resp.json()
 
 def fetch_cycling_activities(access_token: str) -> list[dict]:

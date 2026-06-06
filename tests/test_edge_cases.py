@@ -18,7 +18,7 @@ from bike_analyzer.backend.db.database import (
     DB_PATH,
 )
 from bike_analyzer.backend.maps.map_renderer import create_route_map
-from bike_analyzer.backend.processing.processing import process_route
+from bike_analyzer.backend.processing.processing import process_route, detect_pauses, detect_accelerations, detect_decelerations, remove_outliers
 from bike_analyzer.backend.analytics.calories import estimate_calories
 
 
@@ -205,5 +205,34 @@ def test_map_renderer_with_statistics_does_not_crash():
 # ── maps: api key loader non crasha senza .env ───────────────────────────
 def test_google_api_key_missing_env():
     from bike_analyzer.backend.maps.google_maps import get_google_api_key
-    # il file .env potrebbe esistere o meno; la funzione deve comunque restituire None o str
     assert isinstance(get_google_api_key(), (str, type(None)))
+
+
+# ── processing: pause detection with single point ─────────────────────────
+def test_detect_pauses_single_point():
+    p = GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc), speed=0.5)
+    assert detect_pauses([p]) == []
+
+
+# ── processing: acceleration/deceleration detection ───────────────────────
+def test_detect_acceleration_and_deceleration():
+    base = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    pts = [
+        GPSPoint(lat=45.0, lon=9.0, timestamp=base, speed=10),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=base.replace(minute=base.minute + 1), speed=20),
+        GPSPoint(lat=45.02, lon=9.02, timestamp=base.replace(minute=base.minute + 2), speed=8),
+    ]
+    accels = detect_accelerations(pts)
+    decels = detect_decelerations(pts)
+    assert len(accels) >= 1
+    assert len(decels) >= 1
+
+
+# ── processing: remove outliers returns copy for < 3 points ───────────────
+def test_remove_outliers_short_list():
+    pts = [
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc)),
+    ]
+    cleaned = remove_outliers(pts)
+    assert len(cleaned) >= 2

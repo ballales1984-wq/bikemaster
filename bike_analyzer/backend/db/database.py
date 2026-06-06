@@ -91,6 +91,13 @@ def save_ride(ride: dict) -> int:
     conn.close()
     return ride_id
 
+def _row_to_ride(row) -> dict:
+    try:
+        gps = json.loads(row[10]) if row[10] else None
+    except (json.JSONDecodeError, TypeError):
+        gps = None
+    return {"id": row[0], "athlete_id": row[1], "date": row[2], "distance_km": row[3], "duration_minutes": row[4], "avg_speed_kmh": row[5], "weight_kg": row[6], "calories": row[7], "heart_rate_avg": row[8], "elevation_gain_m": row[9], "gps_points": gps, "created_at": row[11]}
+
 def get_ride(ride_id: int) -> Optional[dict]:
     conn = _conn()
     cur = conn.cursor()
@@ -98,11 +105,7 @@ def get_ride(ride_id: int) -> Optional[dict]:
     row = cur.fetchone()
     conn.close()
     if row:
-        try:
-            gps = json.loads(row[10]) if row[10] else None
-        except (json.JSONDecodeError, TypeError):
-            gps = None
-        return {"id": row[0], "athlete_id": row[1], "date": row[2], "distance_km": row[3], "duration_minutes": row[4], "avg_speed_kmh": row[5], "weight_kg": row[6], "calories": row[7], "heart_rate_avg": row[8], "elevation_gain_m": row[9], "gps_points": gps, "created_at": row[11]}
+        return _row_to_ride(row)
     return None
 
 def get_rides_by_athlete(athlete_id: int) -> List[dict]:
@@ -111,14 +114,7 @@ def get_rides_by_athlete(athlete_id: int) -> List[dict]:
     cur.execute("SELECT * FROM rides WHERE athlete_id = ?", (athlete_id,))
     rows = cur.fetchall()
     conn.close()
-    result = []
-    for r in rows:
-        try:
-            gps = json.loads(r[10]) if r[10] else None
-        except (json.JSONDecodeError, TypeError):
-            gps = None
-        result.append({"id": r[0], "athlete_id": r[1], "date": r[2], "distance_km": r[3], "duration_minutes": r[4], "avg_speed_kmh": r[5], "weight_kg": r[6], "calories": r[7], "heart_rate_avg": r[8], "elevation_gain_m": r[9], "gps_points": gps, "created_at": r[11]})
-    return result
+    return [_row_to_ride(r) for r in rows]
 
 def get_all_rides() -> List[dict]:
     conn = _conn()
@@ -126,14 +122,7 @@ def get_all_rides() -> List[dict]:
     cur.execute("SELECT * FROM rides")
     rows = cur.fetchall()
     conn.close()
-    result = []
-    for r in rows:
-        try:
-            gps = json.loads(r[10]) if r[10] else None
-        except (json.JSONDecodeError, TypeError):
-            gps = None
-        result.append({"id": r[0], "athlete_id": r[1], "date": r[2], "distance_km": r[3], "duration_minutes": r[4], "avg_speed_kmh": r[5], "weight_kg": r[6], "calories": r[7], "heart_rate_avg": r[8], "elevation_gain_m": r[9], "gps_points": gps, "created_at": r[11]})
-    return result
+    return [_row_to_ride(r) for r in rows]
 
 def delete_ride(ride_id: int) -> bool:
     conn = _conn()
@@ -196,14 +185,17 @@ def save_metric(metric: dict) -> int:
     return metric_id
 
 def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
+    existing = get_athlete(athlete_id)
+    if not existing: return False
+    merged = {**existing, **athlete_data}
     conn = _conn()
     cur = conn.cursor()
     cur.execute("""UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?, fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?, annual_hours=?, experience_level=?, goals=?, preferred_terrain=?, weekly_volume_km=?, best_segments=?, medical_notes=?, equipment=? WHERE id=?""",
-        (athlete_data.get("name"), athlete_data.get("age", 30), athlete_data.get("weight_kg", 70), athlete_data.get("height_cm"),
-         athlete_data.get("fat_percentage"), athlete_data.get("years_active", 1), athlete_data.get("weekly_sessions", 3),
-         athlete_data.get("monthly_hours", 0), athlete_data.get("annual_hours", 0), athlete_data.get("experience_level", "Beginner"),
-         athlete_data.get("goals"), athlete_data.get("preferred_terrain"), athlete_data.get("weekly_volume_km", 0),
-         athlete_data.get("best_segments"), athlete_data.get("medical_notes"), athlete_data.get("equipment"), athlete_id))
+        (merged.get("name"), merged.get("age", 30), merged.get("weight_kg", 70), merged.get("height_cm"),
+         merged.get("fat_percentage"), merged.get("years_active", 1), merged.get("weekly_sessions", 3),
+         merged.get("monthly_hours", 0), merged.get("annual_hours", 0), merged.get("experience_level", "Beginner"),
+         merged.get("goals"), merged.get("preferred_terrain"), merged.get("weekly_volume_km", 0),
+         merged.get("best_segments"), merged.get("medical_notes"), merged.get("equipment"), athlete_id))
     conn.commit()
     updated = cur.rowcount > 0
     conn.close()

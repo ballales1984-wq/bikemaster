@@ -2,7 +2,7 @@
 import os
 import sqlite3
 
-from bike_analyzer.backend.db.database import init_db, save_ride, save_athlete, backup_database, get_all_rides, delete_ride
+from bike_analyzer.backend.db.database import init_db, save_ride, save_athlete, backup_database, get_all_rides, delete_ride, save_chat_message, get_chat_history, clear_chat_history, update_athlete, get_athlete
 
 
 def test_database_backup_creates_file():
@@ -28,3 +28,35 @@ def test_save_metric_and_retrieve():
     save_metric({"athlete_id": 1, "ride_id": 1, "fatigue_score": 5.0})
     rides = get_rides_by_athlete(1)
     assert isinstance(rides, list)
+
+
+def test_save_chat_message():
+    init_db()
+    msg_id = save_chat_message(1, "user", "Ciao coach")
+    assert msg_id > 0
+
+
+def test_get_chat_history():
+    init_db()
+    save_chat_message(1, "user", "Domanda")
+    save_chat_message(1, "assistant", "Risposta")
+    history = get_chat_history(1)
+    assert len(history) >= 2
+    assert history[0]["role"] == "assistant"
+
+
+def test_clear_chat_history():
+    init_db()
+    save_chat_message(1, "user", "Test")
+    cleared = clear_chat_history(1)
+    assert cleared is True
+
+
+def test_update_athlete_partial():
+    init_db()
+    athlete_id = save_athlete({"name": "Originale", "age": 30, "weight_kg": 70.0, "experience_level": "Beginner"})
+    updated = update_athlete(athlete_id, {"goals": "Gran Fondo"})
+    assert updated is True
+    a = get_athlete(athlete_id)
+    assert a["goals"] == "Gran Fondo"
+    assert a["name"] == "Originale"

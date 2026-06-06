@@ -101,7 +101,7 @@
 - [x] 77. Classificazione Advanced.
 - [x] 78. Classificazione Elite.
 - [x] 79. Dashboard score.
-- [ ] 80. Test score engine.
+- [x] 80. Test score engine.
 
 ---
 
@@ -163,8 +163,8 @@
 - [x] 115. Supporto API key via .env
 - [x] 116. Aggiungere marker start/end
 - [x] 117. Test integrazione Google Maps (mock)
-- [ ] 118. Visualizzazione percorso colorato dinamica
-- [ ] 119. Integrazione JavaScript API (opzionale)
+- [x] 118. Visualizzazione percorso colorato dinamica
+- [x] 119. Integrazione JavaScript API (opzionale)
 - [ ] 120. Documentazione Google Maps API
 
 ---
@@ -181,16 +181,16 @@
 
 ## FASE 13 - Test Coverage (136-145)
 
-- [ ] 136. Test Google Maps mock
-- [ ] 137. Test performance engine
-- [ ] 138. Test benchmark comparison
-- [ ] 139. Test knowledge base
-- [ ] 140. Test AI coach
-- [ ] 141. Test database backup
-- [ ] 142. Test import batch
-- [ ] 143. Test athlete profile
-- [ ] 144. Test scores API
-- [ ] 145. Coverage > 80%
+- [x] 136. Test Google Maps mock
+- [x] 137. Test performance engine
+- [x] 138. Test benchmark comparison
+- [x] 139. Test knowledge base
+- [x] 140. Test AI coach
+- [x] 141. Test database backup
+- [x] 142. Test import batch
+- [x] 143. Test athlete profile
+- [x] 144. Test scores API
+- [x] 145. Coverage > 80%
 
 ---
 

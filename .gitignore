@@ -28,3 +28,7 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Testing artifacts
+.coverage
+test_map_*.png

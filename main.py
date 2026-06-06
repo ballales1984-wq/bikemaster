@@ -10,10 +10,6 @@ import asyncio
 import uvicorn
 import sys
 from dotenv import load_dotenv
-
-sys.path.insert(0, ".")
-from pathlib import Path
-from dotenv import load_dotenv
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 from bike_analyzer.backend.api.app_factory import create_app

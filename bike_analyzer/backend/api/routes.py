@@ -121,28 +121,32 @@ async def import_multiple(files: List[UploadFile] = File(...)):
     from ..ingestion.gps_parser import parse_gpx_file, parse_fit_file, points_to_ride
     import tempfile
     imported = []
+    failed = []
     for file in files:
-        content = await file.read()
-        ext = file.filename.lower().split('.')[-1] if file.filename else ""
-        if ext == "gpx":
-            points = parse_gpx_file(content.decode())
-        elif ext in ("fit", "fitf"):
-            with tempfile.NamedTemporaryFile(suffix=".fit", delete=False) as tmp:
-                tmp.write(content)
-                temp_path = tmp.name
-            try:
-                points = parse_fit_file(temp_path)
-            finally:
-                import os
-                os.unlink(temp_path)
-        else:
-            points = []
-        ride_data = points_to_ride(points, name=file.filename)
-        if "error" not in ride_data:
-            ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
-            ride_data["id"] = int(ride_id)
-            imported.append(ride_data)
-    return {"imported": imported, "count": len(imported)}
+        try:
+            content = await file.read()
+            ext = file.filename.lower().split('.')[-1] if file.filename else ""
+            if ext == "gpx":
+                points = parse_gpx_file(content.decode())
+            elif ext in ("fit", "fitf"):
+                with tempfile.NamedTemporaryFile(suffix=".fit", delete=False) as tmp:
+                    tmp.write(content)
+                    temp_path = tmp.name
+                try:
+                    points = parse_fit_file(temp_path)
+                finally:
+                    import os
+                    os.unlink(temp_path)
+            else:
+                points = []
+            ride_data = points_to_ride(points, name=file.filename)
+            if "error" not in ride_data:
+                ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
+                ride_data["id"] = int(ride_id)
+                imported.append(ride_data)
+        except Exception as e:
+            failed.append({"filename": file.filename, "error": str(e)})
+    return {"imported": imported, "failed": failed, "count": len(imported), "total_files": len(files)}
 
 @router.get("/rides/export/json")
 async def export_json():
@@ -416,7 +420,8 @@ async def recovery_recommendations(fatigue_score: float = 5.0, ride_id: int = 0)
     import traceback
     try:
         ride_obj = Ride(**get_ride(ride_id)) if ride_id else None
-        athlete_data = get_athlete(ride_id) if ride_id else None
+        ride_data = get_ride(ride_id) if ride_id else None
+        athlete_data = get_athlete(ride_data.get("athlete_id")) if ride_data else None
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
         result = generate_recovery_recommendations(athlete, [ride_obj] if ride_obj else [], fatigue_score)
         return {"recommendations": result}
@@ -432,7 +437,7 @@ async def historical_trends():
     return analyze_historical_trends(rides)
 
 @router.get("/rides/{ride_id}/map/google")
-async def google_static_map(ride_id: int):
+async def google_static_map(ride_id: int, colored: bool = False):
     from ..db.database import get_ride as _get_ride
     from ..maps.google_maps import create_google_static_map, get_google_api_key
     from fastapi.responses import FileResponse
@@ -443,8 +448,9 @@ async def google_static_map(ride_id: int):
     api_key = get_google_api_key()
     if not api_key: raise HTTPException(status_code=500, detail="GOOGLE_MAPS_API_KEY not configured")
     points = [GPSPoint(**p) for p in gps_points]
-    path = f"ride_{ride_id}_google_map.png"
-    create_google_static_map(points, api_key, path)
+    suffix = "_colored" if colored else ""
+    path = f"ride_{ride_id}_google_map{suffix}.png"
+    create_google_static_map(points, api_key, path, colored=colored)
     return FileResponse(path, media_type="image/png", filename="map.png")
 
 @router.get("/admin/backup")
@@ -462,12 +468,12 @@ async def create_db_indexes():
 
 @router.get("/admin/stats")
 async def get_system_stats():
-    from ..db.database import get_all_rides
+    from ..db.database import get_all_rides, DB_PATH
     rides = get_all_rides()
     total_km = sum(r.get("distance_km", 0) for r in rides)
     total_duration = sum(r.get("duration_minutes", 0) for r in rides)
     from pathlib import Path
-    db_size = Path("rides.db").stat().st_size if Path("rides.db").exists() else 0
+    db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
     return {"rides_count": len(rides), "total_km": round(total_km, 1), "total_duration_hours": round(total_duration / 60, 1), "db_size_bytes": db_size}
 
 @router.get("/health/detailed")

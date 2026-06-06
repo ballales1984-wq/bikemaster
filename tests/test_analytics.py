@@ -117,3 +117,15 @@ def test_google_maps_api_key():
     from bike_analyzer.backend.maps.google_maps import get_google_api_key
     key = get_google_api_key()
     assert isinstance(key, (str, type(None)))
+
+
+def test_chart_function_signatures():
+    from inspect import signature
+    from bike_analyzer.backend.analytics.analytics import (
+        create_elevation_chart, create_duration_chart, generate_speed_chart,
+        create_distance_chart, generate_time_chart,
+    )
+    assert "output_path" in signature(create_elevation_chart).parameters
+    assert "output_path" in signature(create_duration_chart).parameters
+    assert "rides" in signature(create_duration_chart).parameters
+    assert "points" in signature(generate_speed_chart).parameters
