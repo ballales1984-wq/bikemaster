@@ -469,7 +469,7 @@ async def count_rides():
     return {"count": len(get_all_rides())}
 
 @router.post("/coach/chat")
-async def coach_chat(athlete_id: int, message: str):
+async def coach_chat(athlete_id: int = Query(...), message: str = Query(...)):
     from ..db.database import save_chat_message, get_chat_history, get_athlete
     from ..analytics.ai_coach import generate_training_advice
     from ..models.models import AthleteProfile
