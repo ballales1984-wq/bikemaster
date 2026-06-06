@@ -213,34 +213,27 @@
                 <h2 id="coach-heading">🧠 AI Coach</h2>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="coach-athlete-id">ID Atleta (0 = tutti)</label>
+                        <label for="coach-athlete-id">ID Atleta (0 = ultimo nel DB)</label>
                         <input type="number" id="coach-athlete-id" value="0" min="0">
                     </div>
                     <div class="form-group" style="align-self:end">
-                        <button class="btn btn-primary" id="workout-btn">💪 Workout</button>
+                        <button class="btn btn-primary" id="coach-full-btn">📊 Carica Coach Completo</button>
                     </div>
                 </div>
-                <div id="workout-result" class="result-box hidden"></div>
+                <div id="coach-loading" class="hidden loading-text">Analisi in corso...</div>
 
-                <div class="form-grid" style="margin-top:15px">
-                    <div class="form-group">
-                        <label for="recovery-fatigue">Fatigue Score</label>
-                        <input type="number" id="recovery-fatigue" value="5.0" min="0" max="10" step="0.1">
-                    </div>
-                    <div class="form-group">
-                        <label for="recovery-ride-id">Ride ID (opzionale)</label>
-                        <input type="number" id="recovery-ride-id" value="0" min="0">
-                    </div>
-                    <div class="form-group" style="align-self:end">
-                        <button class="btn btn-secondary" id="recovery-btn">🧘 Recovery</button>
-                    </div>
-                </div>
-                <div id="recovery-result" class="result-box hidden"></div>
+                <div id="coach-scores" class="stats hidden" style="margin-top:15px"></div>
 
-                <div class="form-group" style="margin-top:15px; max-width:200px">
-                    <button class="btn btn-secondary" id="trends-btn">📈 Storico Trend</button>
+                <div class="panel hidden" id="coach-advice-panel" style="margin-top:15px">
+                    <h3>💡 Consigli di Allenamento</h3>
+                    <div id="coach-training-advice" class="result-box"></div>
+                    <h3 style="margin-top:15px">📈 Analisi Storica</h3>
+                    <div id="coach-historical" class="result-box"></div>
+                    <h3 style="margin-top:15px">🧘 Consigli di Recupero</h3>
+                    <div id="coach-recovery-advice" class="result-box"></div>
                 </div>
-                <div id="trends-result" class="result-box hidden"></div>
+
+                <div id="coach-charts" class="chart-grid hidden" style="margin-top:15px"></div>
             </div>
         </section>
 

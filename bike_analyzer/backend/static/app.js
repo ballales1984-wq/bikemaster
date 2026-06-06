@@ -690,59 +690,80 @@ function setupDetailActions() {
     /* ==================== AI COACH ==================== */
 
     function setupCoachActions() {
-        const workoutBtn = document.getElementById('workout-btn');
-        if (workoutBtn) {
-            workoutBtn.addEventListener('click', async () => {
+        const fullBtn = document.getElementById('coach-full-btn');
+        if (fullBtn) {
+            fullBtn.addEventListener('click', async () => {
                 const athleteId = parseInt(document.getElementById('coach-athlete-id').value, 10) || 0;
                 try {
-                    setButtonLoading('workout-btn', true);
-                    const result = await apiGet('/api/v1/coach/workout?athlete_id=' + athleteId);
-                    const el = document.getElementById('workout-result');
-                    el.textContent = JSON.stringify(result, null, 2);
-                    el.classList.remove('hidden');
-                } catch (err) {
-                    showToast('Errore workout recommendations', 'error');
-                } finally {
-                    setButtonLoading('workout-btn', false);
-                }
-            });
-        }
+                    setButtonLoading('coach-full-btn', true);
+                    document.getElementById('coach-loading').classList.remove('hidden');
+                    document.getElementById('coach-scores').classList.add('hidden');
+                    document.getElementById('coach-advice-panel').classList.add('hidden');
+                    document.getElementById('coach-charts').classList.add('hidden');
 
-        const recoveryBtn = document.getElementById('recovery-btn');
-        if (recoveryBtn) {
-            recoveryBtn.addEventListener('click', async () => {
-                const fatigue = parseFloat(document.getElementById('recovery-fatigue').value) || 5;
-                const rideId = parseInt(document.getElementById('recovery-ride-id').value, 10) || 0;
-                try {
-                    setButtonLoading('recovery-btn', true);
-                    const result = await apiGet('/api/v1/coach/recovery?fatigue_score=' + fatigue + '&ride_id=' + rideId);
-                    const el = document.getElementById('recovery-result');
-                    el.textContent = JSON.stringify(result, null, 2);
-                    el.classList.remove('hidden');
-                } catch (err) {
-                    showToast('Errore recovery recommendations', 'error');
-                } finally {
-                    setButtonLoading('recovery-btn', false);
-                }
-            });
-        }
+                    const data = await apiGet('/api/v1/coach/full?athlete_id=' + athleteId);
 
-        const trendsBtn = document.getElementById('trends-btn');
-        if (trendsBtn) {
-            trendsBtn.addEventListener('click', async () => {
-                try {
-                    setButtonLoading('trends-btn', true);
-                    const result = await apiGet('/api/v1/coach/trends');
-                    const el = document.getElementById('trends-result');
-                    el.textContent = JSON.stringify(result, null, 2);
-                    el.classList.remove('hidden');
+                    renderCoachScores(data.training_scores, 'coach-scores');
+                    document.getElementById('coach-scores').classList.remove('hidden');
+
+                    document.getElementById('coach-training-advice').innerHTML = formatAdvice(data.training_advice);
+                    document.getElementById('coach-historical').innerHTML = data.historical_analysis
+                        ? '<div style="color:#4ecca3;font-size:1.1rem;font-weight:bold">' + escapeHtml(data.historical_analysis) + '</div>'
+                        : '<div style="color:#888">Dati insufficienti per trend</div>';
+                    document.getElementById('coach-recovery-advice').innerHTML = formatAdvice(data.recovery_advice);
+                    document.getElementById('coach-advice-panel').classList.remove('hidden');
+
+                    renderCoachCharts(data.charts || []);
+                    document.getElementById('coach-charts').classList.remove('hidden');
                 } catch (err) {
-                    showToast('Errore storico trend', 'error');
+                    showToast('Errore caricamento AI Coach: ' + err.message, 'error');
                 } finally {
-                    setButtonLoading('trends-btn', false);
+                    document.getElementById('coach-loading').classList.add('hidden');
+                    setButtonLoading('coach-full-btn', false);
                 }
             });
         }
+    }
+
+    function renderCoachScores(scores, containerId) {
+        const container = document.getElementById(containerId);
+        if (!scores || !scores.length) {
+            container.innerHTML = '';
+            return;
+        }
+        container.innerHTML = scores.map(s => {
+            const val = Number(s.value || 0);
+            const cls = val >= 7 ? 'score-value good' : val >= 4 ? 'score-value' : 'score-value warning';
+            return '<div class="score-card"><div class="' + cls + '">' + formatNumber(val, 1) + '</div><div class="score-label">' + escapeHtml(s.label) + '</div></div>';
+        }).join('');
+        container.classList.remove('hidden');
+    }
+
+    function formatAdvice(text) {
+        if (!text) return '<div style="color:#888">Nessun consiglio disponibile</div>';
+        const lines = String(text).split('\n').filter(l => l.trim());
+        const items = lines.map(line => {
+            const clean = line.replace(/\*\*/g, '').replace(/`/g, '').trim();
+            const numMatch = clean.match(/^(\d+\.)\s*/);
+            const num = numMatch ? numMatch[1] : '';
+            const content = numMatch ? clean.slice(numMatch[0].length) : clean;
+            return '<div class="advice-item"><span class="advice-num">' + escapeHtml(num) + '</span><span>' + escapeHtml(content) + '</span></div>';
+        }).filter(Boolean);
+        return items.join('') || '<div style="color:#888">Nessun consiglio disponibile</div>';
+    }
+
+    function renderCoachCharts(charts) {
+        const container = document.getElementById('coach-charts');
+        if (!charts || !charts.length) {
+            container.innerHTML = '<div style="color:#888;text-align:center;padding:20px">Nessun grafico disponibile</div>';
+            container.classList.remove('hidden');
+            return;
+        }
+        container.innerHTML = charts.map(url => {
+            const ts = new Date().getTime();
+            return '<div class="chart-card"><img src="' + url + '?t=' + ts + '" alt="Grafico AI Coach" style="max-width:100%;border-radius:8px" /></div>';
+        }).join('');
+        container.classList.remove('hidden');
     }
 
     /* ==================== KNOWLEDGE ==================== */

@@ -601,3 +601,55 @@ select:focus {
         justify-content: center;
     }
 }
+
+.score-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    padding: 18px 14px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    border-top: 3px solid var(--accent);
+}
+.score-value {
+    font-size: 2rem;
+    color: var(--accent);
+    font-weight: bold;
+    display: block;
+}
+.score-value.good { color: var(--success); }
+.score-value.warning { color: var(--warning); }
+.score-label {
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-size: 0.85rem;
+    display: block;
+}
+
+.advice-item {
+    background: var(--bg-secondary);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--accent);
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+.advice-num {
+    color: var(--accent);
+    font-weight: bold;
+    min-width: 32px;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 18px;
+}
+.chart-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    padding: 12px;
+    text-align: center;
+}
