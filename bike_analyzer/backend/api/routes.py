@@ -319,7 +319,7 @@ async def search_knowledge(query: str = ""):
 
 @router.get("/coach/workout")
 async def workout_recommendations(athlete_id: int = 0):
-    from ..db.database import get_rides_by_athlete, get_athlete, get_db_connection
+    from ..db.database import get_rides_by_athlete, get_athlete, _conn as get_db_connection
     from ..analytics.ai_coach import generate_workout_recommendations
     from ..models.models import AthleteProfile
     import traceback
@@ -345,7 +345,7 @@ async def workout_recommendations(athlete_id: int = 0):
 
 @router.get("/coach/full")
 async def coach_full_data(athlete_id: int = 0):
-    from ..db.database import get_all_rides, get_rides_by_athlete, get_athlete, get_db_connection
+    from ..db.database import get_all_rides, get_rides_by_athlete, get_athlete, _conn as get_db_connection
     from ..analytics.ai_coach import ai_coach_full
     from ..models.models import AthleteProfile
     import traceback
