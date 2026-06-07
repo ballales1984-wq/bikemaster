@@ -1,0 +1,54 @@
+<template>
+  <div class="panel">
+    <h2>🏃 Profilo Atleta</h2>
+    <form id="athlete-form" class="form-grid" novalidate>
+      <div class="form-group"><label for="athlete-name">Nome</label><input type="text" v-model="form.name" required /></div>
+      <div class="form-group"><label for="athlete-age">Età</label><input type="number" v-model.number="form.age" min="10" max="100" /></div>
+      <div class="form-group"><label for="athlete-weight">Peso (kg)</label><input type="number" v-model.number="form.weight_kg" min="20" max="300" step="0.1" /></div>
+      <div class="form-group"><label for="athlete-height">Altezza (cm)</label><input type="number" v-model.number="form.height_cm" min="100" max="250" /></div>
+      <div class="form-group"><label for="athlete-fat">Massa Grassa (%)</label><input type="number" v-model.number="form.fat_percentage" min="3" max="60" step="0.1" /></div>
+      <div class="form-group"><label for="athlete-years">Anni attività</label><input type="number" v-model.number="form.years_active" min="0" max="80" /></div>
+      <div class="form-group"><label for="athlete-weekly">Sessioni/settimana</label><input type="number" v-model.number="form.weekly_sessions" min="0" max="14" /></div>
+      <div class="form-group"><label for="athlete-monthly">Ore/mese</label><input type="number" v-model.number="form.monthly_hours" min="0" step="0.5" /></div>
+      <div class="form-group"><label for="athlete-annual">Ore/anno</label><input type="number" v-model.number="form.annual_hours" min="0" step="0.5" /></div>
+      <div class="form-group">
+        <label for="athlete-level">Livello</label>
+        <select v-model="form.experience_level">
+          <option>Beginner</option><option>Amateur</option><option>Intermediate</option><option>Advanced</option><option>Elite</option>
+        </select>
+      </div>
+    </form>
+    <div class="form-actions">
+      <button class="btn btn-primary" @click="save">Salva Atleta</button>
+      <button class="btn btn-secondary" @click="getScores">📊 Punteggi</button>
+    </div>
+    <div v-if="result" class="result-box">{{ result }}</div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { apiGet, apiPost } from '../utils/api.js'
+
+const emit = defineEmits(['toast'])
+const form = ref({ name: '', age: 30, weight_kg: 70, height_cm: 175, fat_percentage: 15, years_active: 1, weekly_sessions: 3, monthly_hours: 0, annual_hours: 0, experience_level: 'Beginner' })
+const result = ref('')
+
+async function save() {
+  try {
+    await apiPost('/api/v1/athletes', form.value)
+    result.value = 'Profilo atleta salvato'
+  } catch (e) {
+    result.value = 'Errore: ' + (e.message || e)
+  }
+}
+
+async function getScores() {
+  try {
+    const data = await apiPost('/api/v1/scores/athlete', form.value)
+    result.value = JSON.stringify(data, null, 2)
+  } catch (e) {
+    result.value = 'Errore: ' + (e.message || e)
+  }
+}
+</script>
