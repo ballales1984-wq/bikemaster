@@ -101,6 +101,39 @@
 
             <div class="panel" role="region" aria-labelledby="rides-heading">
                 <h2 id="rides-heading">📋 Le tue Ride</h2>
+                <div class="rides-filters" style="margin-bottom:15px">
+                    <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); align-items:end">
+                        <div class="form-group">
+                            <label for="filter-start-date">Data inizio</label>
+                            <input type="date" id="filter-start-date" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-end-date">Data fine</label>
+                            <input type="date" id="filter-end-date" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-min-distance">Distanza min (km)</label>
+                            <input type="number" id="filter-min-distance" min="0" step="1" placeholder="Es: 10" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-max-distance">Distanza max (km)</label>
+                            <input type="number" id="filter-max-distance" min="0" step="1" placeholder="Es: 100" autocomplete="off">
+                        </div>
+                        <div class="form-group" style="align-self:end">
+                            <button class="btn btn-primary btn-sm" id="apply-filters-btn">Filtra</button>
+                            <button class="btn btn-secondary btn-sm" id="clear-filters-btn">Reset</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="rides-list-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:0.85rem; color:var(--text-muted)">
+                    <span id="rides-count">0 ride</span>
+                    <div class="sort-controls" style="display:flex; gap:10px">
+                        <span>Ordina per:</span>
+                        <button class="sort-btn btn btn-sm" data-sort="date" data-order="desc">Data ⬇</button>
+                        <button class="sort-btn btn btn-sm" data-sort="distance" data-order="desc">Km ⬇</button>
+                        <button class="sort-btn btn btn-sm" data-sort="duration" data-order="desc">Durata ⬇</button>
+                    </div>
+                </div>
                 <div class="rides-list" id="rides-list" role="list" aria-label="Lista delle ride">
                     <p class="loading-text" id="rides-loading">Caricamento...</p>
                 </div>

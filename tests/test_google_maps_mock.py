@@ -106,3 +106,16 @@ def test_create_google_elevation_chart_short_api_key():
     points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc))]
     result = create_google_elevation_chart(points, "short")
     assert result is None
+
+def test_speed_to_color_15_threshold():
+    assert _speed_to_color(15) == "0xFFFF00"
+    assert _speed_to_color(14) == "0xFF0000"
+    assert _speed_to_color(24) == "0xFFFF00"
+
+def test_build_speed_segments_with_min_segment_boundary():
+    points = [
+        GPSPoint(lat=45.0 + i*0.01, lon=9.0 + i*0.01, timestamp=datetime(2024, 1, 1, i, 0, tzinfo=timezone.utc), speed=10 if i < 3 else 30)
+        for i in range(10)
+    ]
+    segs = _build_speed_segments(points, min_segment=5)
+    assert len(segs) >= 1

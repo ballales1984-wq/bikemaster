@@ -21,28 +21,32 @@
     let durationChart = null;
     let currentRides = [];
     let activeRideId = null;
+    let rideFilters = { startDate: '', endDate: '', minDistance: '', maxDistance: '' };
+    let rideSort = { by: 'date', order: 'desc' };
 
     document.addEventListener('DOMContentLoaded', init);
 
-    function init() {
-        initTheme();
-        initScrollIndicator();
-        registerServiceWorker();
-        setupMobileMenu();
-        setupTabs();
-        setupRideForm();
-        setupResetDemo();
-        setupExportButtons();
-        setupImportUpload();
-        setupAthleteForm();
-        setupAthleteActions();
-        setupCoachActions();
-        setupKnowledgeActions();
-        setupAdminActions();
-        setupBenchmark();
-        setupDetailActions();
-        loadRides();
-    }
+function init() {
+         initTheme();
+         initScrollIndicator();
+         registerServiceWorker();
+         setupMobileMenu();
+         setupTabs();
+         setupRideForm();
+         setupResetDemo();
+         setupExportButtons();
+         setupImportUpload();
+         setupAthleteForm();
+         setupAthleteActions();
+         setupCoachActions();
+         setupKnowledgeActions();
+         setupAdminActions();
+         setupBenchmark();
+         setupDetailActions();
+         setupRideFilters();
+         setupRideSort();
+         loadRides();
+     }
 
     /* ==================== SCROLL INDICATOR ==================== */
 
@@ -1006,6 +1010,119 @@ function setupDetailActions() {
                     setButtonLoading('benchmark-btn', false);
                 }
             });
+        }
+    }
+
+    /* ==================== RIDE FILTERS & SORT ==================== */
+
+    function setupRideFilters() {
+        const applyBtn = document.getElementById('apply-filters-btn');
+        const clearBtn = document.getElementById('clear-filters-btn');
+        if (applyBtn) {
+            applyBtn.addEventListener('click', () => {
+                rideFilters.startDate = document.getElementById('filter-start-date')?.value || '';
+                rideFilters.endDate = document.getElementById('filter-end-date')?.value || '';
+                rideFilters.minDistance = document.getElementById('filter-min-distance')?.value || '';
+                rideFilters.maxDistance = document.getElementById('filter-max-distance')?.value || '';
+                applyFiltersAndSort();
+            });
+        }
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                ['filter-start-date', 'filter-end-date', 'filter-min-distance', 'filter-max-distance'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                rideFilters = { startDate: '', endDate: '', minDistance: '', maxDistance: '' };
+                applyFiltersAndSort();
+            });
+        }
+        ['filter-start-date', 'filter-end-date', 'filter-min-distance', 'filter-max-distance'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        applyBtn?.click();
+                    }
+                });
+            }
+        });
+    }
+
+    function setupRideSort() {
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sortField = btn.getAttribute('data-sort');
+                const currentOrder = btn.getAttribute('data-order');
+                const newOrder = currentOrder === 'desc' ? 'asc' : 'desc';
+                rideSort.by = sortField;
+                rideSort.order = newOrder;
+                updateSortButtons();
+                applyFiltersAndSort();
+            });
+        });
+        updateSortButtons();
+    }
+
+    function updateSortButtons() {
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            const field = btn.getAttribute('data-sort');
+            if (field === rideSort.by) {
+                btn.setAttribute('data-order', rideSort.order);
+                btn.textContent = btn.textContent.replace(/[⬆⬇]/g, '') + (rideSort.order === 'desc' ? ' ⬇' : ' ⬆');
+                btn.style.background = 'var(--accent)';
+                btn.style.color = 'var(--bg-primary)';
+            } else {
+                btn.style.background = 'transparent';
+                btn.style.color = 'var(--accent)';
+            }
+        });
+    }
+
+    function applyFiltersAndSort() {
+        let filtered = filterRides(currentRides);
+        filtered = sortRides(filtered);
+        renderRides(filtered);
+        updateRidesCount(filtered.length);
+    }
+
+    function filterRides(rides) {
+        return rides.filter(r => {
+            if (rideFilters.startDate && r.date < rideFilters.startDate) return false;
+            if (rideFilters.endDate && r.date > rideFilters.endDate) return false;
+            const dist = parseFloat(r.distance_km) || 0;
+            if (rideFilters.minDistance && dist < parseFloat(rideFilters.minDistance)) return false;
+            if (rideFilters.maxDistance && dist > parseFloat(rideFilters.maxDistance)) return false;
+            return true;
+        });
+    }
+
+    function sortRides(rides) {
+        const sorted = [...rides];
+        const field = rideSort.by;
+        const order = rideSort.order === 'desc' ? -1 : 1;
+        const fieldMap = { date: 'date', distance: 'distance_km', duration: 'duration_minutes' };
+        const actualField = fieldMap[field] || field;
+        sorted.sort((a, b) => {
+            let valA = a[actualField];
+            let valB = b[actualField];
+            if (field !== 'date') {
+                valA = parseFloat(valA) || 0;
+                valB = parseFloat(valB) || 0;
+            }
+            if (field === 'date') {
+                return (valA || '').localeCompare(valB || '') * order;
+            }
+            return (valA - valB) * order;
+        });
+        return sorted;
+    }
+
+    function updateRidesCount(count) {
+        const countEl = document.getElementById('rides-count');
+        if (countEl) {
+            countEl.textContent = count + (count === 1 ? ' ride' : ' ride');
         }
     }
 

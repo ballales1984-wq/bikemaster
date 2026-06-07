@@ -530,3 +530,55 @@ async def coach_chat(athlete_id: int = Query(...), message: str = Query(...)):
 async def coach_history(athlete_id: int):
     from ..db.database import get_chat_history
     return {"history": get_chat_history(athlete_id)}
+
+@router.get("/analytics/ceo")
+async def ceo_analytics():
+    from ..db.database import get_all_rides, get_all_athletes
+    from ..analytics.analytics import calculate_summary
+    rides = get_all_rides()
+    athletes = get_all_athletes()
+    total_rides = len(rides)
+    total_athletes = len(athletes)
+    total_km = sum(r.get("distance_km", 0) for r in rides)
+    total_hours = sum(r.get("duration_minutes", 0) for r in rides) / 60
+    total_calories = sum(r.get("calories", 0) for r in rides)
+    avg_workout_time = (total_hours / total_athletes * 4) if total_athletes else 0
+    from datetime import datetime
+    now = datetime.now()
+    this_month = sum(1 for r in rides if r.get("date", "").startswith(now.strftime("%Y-%m")))
+    last_month = sum(1 for r in rides if r.get("date", "").startswith(f"{now.year}-{now.month-1:02d}" if now.month > 1 else f"{now.year-1}-12"))
+    from pathlib import Path
+    db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
+    return {
+        "overview": {
+            "total_athletes": total_athletes,
+            "total_rides": total_rides,
+            "total_kilometers": round(total_km, 1),
+            "total_training_hours": round(total_hours, 1),
+            "total_calories_burned": int(total_calories),
+            "average_workout_minutes": round(avg_workout_time, 1)
+        },
+        "growth": {
+            "rides_this_month": this_month,
+            "rides_last_month": last_month,
+            "growth_rate": round((this_month - last_month) / last_month * 100, 1) if last_month else 0
+        },
+        "engagement": {
+            "rides_per_athlete": round(total_rides / total_athletes, 1) if total_athletes else 0,
+            "avg_km_per_ride": round(total_km / total_rides, 2) if total_rides else 0,
+            "avg_calories_per_ride": int(total_calories / total_rides) if total_rides else 0
+        },
+        "system": {
+            "database_size_bytes": db_size,
+            "database_size_mb": round(db_size / (1024 * 1024), 2),
+            "last_updated": now.isoformat()
+        }
+    }
+
+def get_all_athletes():
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT id, name, experience_level FROM athletes")
+    rows = cur.fetchall()
+    conn.close()
+    return [{"id": r[0], "name": r[1], "experience_level": r[2]} for r in rows]

@@ -728,6 +728,62 @@ header p {
     border-radius: var(--radius-sm);
 }
 
+/* Rides Filters */
+.rides-filters {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border-radius: var(--radius);
+    margin-bottom: 15px;
+}
+
+.rides-filters .form-group label {
+    font-size: 0.8rem;
+}
+
+.rides-filters .form-group input {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+}
+
+.rides-list-header {
+    padding: 0 5px 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+}
+
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sort-controls .btn-sm {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+}
+
+.sort-controls .btn-sm[style*="var(--accent)"] {
+    background: var(--accent) !important;
+    color: var(--bg-primary) !important;
+    border-color: var(--accent) !important;
+}
+
+@media (max-width: 768px) {
+    .rides-filters .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .rides-list-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .sort-controls {
+        flex-wrap: wrap;
+    }
+}
+
 /* Select */
 select {
     background: var(--bg-input);
