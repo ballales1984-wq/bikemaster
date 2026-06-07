@@ -186,10 +186,50 @@ Returns URL to Folium HTML map.
 
 ### Google Static Map
 ```http
-GET /rides/1/map/google
+GET /rides/1/map/google?colored=true
 ```
 
-Returns PNG map image. Requires `GOOGLE_MAPS_API_KEY`.
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|---|---|---|
+| `colored` | boolean | false | Color path by speed (green >=25, yellow 15-25, red <15 km/h) |
+| `zoom` | integer | 13 | Map zoom level (1-21) |
+| `size` | string | 800x600 | Image dimensions (max 640x640 free tier) |
+
+**Response:** Returns PNG map image. Requires `GOOGLE_MAPS_API_KEY` in .env.
+
+**Error Responses:**
+| Status | Code | Description |
+|---|---|
+| 500 | NO_API_KEY | `GOOGLE_MAPS_API_KEY` not configured |
+| 404 | RIDE_NOT_FOUND | Ride ID does not exist |
+| 500 | NO_GPS_POINTS | Ride has no GPS data |
+
+**Speed Color Legend:**
+- Green (>=25 km/h): High speed segments
+- Yellow (15-25 km/h): Moderate speed  
+- Red (<15 km/h): Low speed/slow
+
+**Configuration (.env):**
+```env
+GOOGLE_MAPS_API_KEY=your_api_key_here
+GOOGLE_MAPS_ZOOM=13
+GOOGLE_MAPS_SIZE=800x600
+```
+
+**Examples:**
+```bash
+# Get colored speed map
+curl "http://localhost:8000/api/v1/rides/1/map/google?colored=true" -o ride_map.png
+
+# Get map with custom size
+curl "http://localhost:8000/api/v1/rides/1/map/google?zoom=14&size=640x480" -o custom_map.png
+```
+
+**Notes:**
+- Requires Google Cloud project with Static Maps API enabled
+- Free tier: 100,000 calls/month, max 640x640 image
+- Markers: green "S" at start point, red "E" at end point
 
 ---
 
@@ -412,3 +452,5 @@ curl http://localhost:8000/api/v1/scores/athlete/1
 # 2. Get trends
 curl http://localhost:8000/api/v1/coach/trends
 ```
+
+

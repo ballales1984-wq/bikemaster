@@ -11,6 +11,7 @@ from ..processing.processing import process_route
 from ..maps.map_renderer import create_route_map
 from .schemas import RideCreate, RideResponse, RideAnalysisRequest, AthleteCreate, AthleteUpdate, MetricCreate, GoogleFitAuthQuery, GoogleFitTokenRequest, GoogleFitImportRequest
 from ..utils.logger import get_logger
+from ..config import DB_PATH
 
 logger = get_logger(__name__)
 
@@ -534,7 +535,6 @@ async def coach_history(athlete_id: int):
 @router.get("/analytics/ceo")
 async def ceo_analytics():
     from ..db.database import get_all_rides, get_all_athletes
-    from ..analytics.analytics import calculate_summary
     rides = get_all_rides()
     athletes = get_all_athletes()
     total_rides = len(rides)
@@ -542,13 +542,17 @@ async def ceo_analytics():
     total_km = sum(r.get("distance_km", 0) for r in rides)
     total_hours = sum(r.get("duration_minutes", 0) for r in rides) / 60
     total_calories = sum(r.get("calories", 0) for r in rides)
-    avg_workout_time = (total_hours / total_athletes * 4) if total_athletes else 0
     from datetime import datetime
     now = datetime.now()
     this_month = sum(1 for r in rides if r.get("date", "").startswith(now.strftime("%Y-%m")))
     last_month = sum(1 for r in rides if r.get("date", "").startswith(f"{now.year}-{now.month-1:02d}" if now.month > 1 else f"{now.year-1}-12"))
     from pathlib import Path
     db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
+    level_counts = {"Beginner": 0, "Amateur": 0, "Intermediate": 0, "Advanced": 0, "Elite": 0}
+    for a in athletes:
+        level = a.get("experience_level", "Beginner")
+        if level in level_counts:
+            level_counts[level] += 1
     return {
         "overview": {
             "total_athletes": total_athletes,
@@ -556,7 +560,6 @@ async def ceo_analytics():
             "total_kilometers": round(total_km, 1),
             "total_training_hours": round(total_hours, 1),
             "total_calories_burned": int(total_calories),
-            "average_workout_minutes": round(avg_workout_time, 1)
         },
         "growth": {
             "rides_this_month": this_month,
@@ -568,9 +571,21 @@ async def ceo_analytics():
             "avg_km_per_ride": round(total_km / total_rides, 2) if total_rides else 0,
             "avg_calories_per_ride": int(total_calories / total_rides) if total_rides else 0
         },
+        "athletes_by_level": level_counts,
         "system": {
             "database_size_bytes": db_size,
             "database_size_mb": round(db_size / (1024 * 1024), 2),
             "last_updated": now.isoformat()
         }
+    }
+
+@router.get("/analytics/speed-data")
+async def speed_analytics(limit: int = Query(10, ge=1, le=50)):
+    from ..db.database import get_all_rides
+    rides = get_all_rides()
+    recent = rides[-limit:] if len(rides) > limit else rides
+    return {
+        "labels": [r.get("date", "Ride")[-10:] if r.get("date") else "Ride" for r in recent],
+        "speeds": [r.get("avg_speed_kmh", 0) for r in recent],
+        "distances": [r.get("distance_km", 0) for r in recent]
     }

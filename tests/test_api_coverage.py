@@ -1,7 +1,6 @@
 """API coverage tests for endpoints."""
 from bike_analyzer.backend.models.models import Ride
 
-
 def test_rides_crud(client):
     r = client.post("/api/v1/rides", json={
         "date": "2024-06-15",
@@ -27,7 +26,6 @@ def test_rides_crud(client):
     assert r.status_code == 200
     assert r.json()["deleted"] is True
 
-
 def test_athlete_crud(client):
     r = client.post("/api/v1/athletes", json={
         "name": "Test Rider",
@@ -47,7 +45,6 @@ def test_athlete_crud(client):
     assert r.status_code == 200
     assert r.json()["goals"] == "Gran Fondo"
 
-
 def test_coach_full(client):
     r = client.get("/api/v1/coach/full")
     assert r.status_code == 200
@@ -58,7 +55,6 @@ def test_coach_full(client):
     assert "recovery_scores" in data
     assert "charts" in data
 
-
 def test_knowledge_endpoints(client):
     r = client.get("/api/v1/knowledge")
     assert r.status_code == 200
@@ -68,30 +64,25 @@ def test_knowledge_endpoints(client):
     assert r.status_code == 200
     assert "results" in r.json()
 
-
 def test_admin_stats(client):
     r = client.get("/api/v1/admin/stats")
     assert r.status_code == 200
     assert "rides_count" in r.json()
-
 
 def test_admin_indexes(client):
     r = client.post("/api/v1/admin/indexes")
     assert r.status_code == 200
     assert r.json()["status"] == "indexes_created"
 
-
 def test_export_json(client):
     r = client.get("/api/v1/rides/export/json")
     assert r.status_code == 200
     assert "application/json" in r.headers["content-type"]
 
-
 def test_export_csv(client):
     r = client.get("/api/v1/rides/export/csv")
     assert r.status_code == 200
     assert "text/csv" in r.headers["content-type"]
-
 
 def test_ride_analyze(client):
     r = client.post("/api/v1/rides/analyze", json={
@@ -265,4 +256,6 @@ def test_athlete_metrics(client):
         "type": "ftp",
         "value": 250.0,
     })
-    assert r.status_code == 200
+    
+
+

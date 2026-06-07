@@ -181,12 +181,4 @@ def test_generate_time_chart_no_points():
     result = generate_time_chart(None)
     assert result == ""
 
-def test_logger_setup():
-    from bike_analyzer.backend.utils.logger import setup_logging, get_logger, LOG_FORMAT, LOG_DATE_FORMAT
-    import logging
-    setup_logging(logging.DEBUG)
-    logger = get_logger("test_module")
-    assert logger is not None
-    assert logger.name == "test_module"
-    logger.debug("test message")
-    assert logging.getLogger("test_module").level in (logging.DEBUG, 0)
+

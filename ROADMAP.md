@@ -165,8 +165,17 @@
 - [x] 117. Test integrazione Google Maps (mock)
 - [x] 118. Visualizzazione percorso colorato dinamica
 - [x] 119. Integrazione JavaScript API (opzionale)
-- [ ] 120. Documentazione Google Maps API
+- [x] 120. Documentazione Google Maps API
 
+---
+
+## FASE 11 - UI/UX (121-125)
+
+- [ ] 121. Design dark theme responsive layout
+- [ ] 122. Build ride list component with filters
+- [ ] 123. Create ride detail view with map integration
+- [ ] 124. Implement athlete profile settings page
+- [ ] 125. Add interactive charts with Chart.js
 ---
 
 ## FASE 12 - Deployment (126-135)
@@ -210,4 +219,7 @@
 - `/api/v1/knowledge/*` - Training docs
 - `/api/v1/admin/*` - Backup, stats, indexes
 
-**Test Coverage: 79 test passanti**
+**Test Coverage: 78%** (227 test passanti) - 2 punti dal target 80%
+
+
+

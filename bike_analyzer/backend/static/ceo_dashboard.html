@@ -173,6 +173,13 @@
             </div>
         </div>
 
+        <div class="chart-row">
+            <div class="chart-box">
+                <div class="chart-title">⚡ Velocità Media per Ride</div>
+                <canvas id="speedChart" height="150"></canvas>
+            </div>
+        </div>
+
         <div class="panel">
             <h2 style="color:#f39c12">📋 Metriche Dettagliate</h2>
             <table class="metric-table">
@@ -195,6 +202,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        let speedChartInstance = null;
         async function loadCEOData() {
             const resp = await fetch('/api/v1/analytics/ceo');
             const data = await resp.json();
@@ -212,7 +220,10 @@
             document.getElementById('avg-km').textContent = data.engagement.avg_km_per_ride;
             document.getElementById('avg-calories').textContent = data.engagement.avg_calories_per_ride;
             document.getElementById('total-hours').textContent = data.overview.total_training_hours;
+            document.getElementById('kpi-km-trend').textContent = 'Media: ' + data.engagement.avg_km_per_ride + ' km/ride';
+            document.getElementById('kpi-hours-trend').textContent = 'Media: ' + Math.round(data.overview.total_training_hours * 60 / Math.max(data.overview.total_athletes, 1)) + ' min/atleta';
             renderCharts(data);
+            renderSpeedChart();
         }
         function renderCharts(data) {
             const growthCtx = document.getElementById('growthChart').getContext('2d');
@@ -225,7 +236,51 @@
                         data: [data.growth.rides_last_month, data.growth.rides_this_month],
                         borderColor: '#f39c12',
                         backgroundColor: 'rgba(243, 156, 18, 0.2)',
-                        tension: 0.4
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } } }
+                }
+            });
+            const levelCtx = document.getElementById('levelChart').getContext('2d');
+            const levels = data.athletes_by_level;
+            new Chart(levelCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(levels),
+                    datasets: [{
+                        data: Object.values(levels),
+                        backgroundColor: ['#4ecca3', '#3dbba0', '#f39c12', '#e67e22', '#e94560'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#aaa', padding: 15 } }
+                    }
+                }
+            });
+        }
+        async function renderSpeedChart() {
+            const resp = await fetch('/api/v1/analytics/speed-data?limit=10');
+            const data = await resp.json();
+            const ctx = document.getElementById('speedChart').getContext('2d');
+            if (speedChartInstance) speedChartInstance.destroy();
+            speedChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Velocità (km/h)',
+                        data: data.speeds,
+                        backgroundColor: 'rgba(78, 204, 163, 0.6)',
+                        borderColor: '#4ecca3',
+                        borderWidth: 1
                     }]
                 },
                 options: {
