@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: bikemaster-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py api --port $PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false

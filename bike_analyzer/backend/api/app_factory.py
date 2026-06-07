@@ -3,15 +3,20 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
 from .routes import router
 from ..config import CORS_ORIGINS
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
+
+limiter = Limiter(key_func=get_remote_address)
+DEFAULT_LIMIT = "100/hour"
 
 
 @asynccontextmanager
@@ -23,6 +28,8 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="BikeMaster API", description="GPS-based cycling intelligence", version="0.1.0", lifespan=lifespan)
+    app.state.limiter = limiter
+    app.add_exception_handler(429, _rate_limit_exceeded_handler)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=CORS_ORIGINS,

@@ -14,8 +14,6 @@ load_dotenv(dotenv_path=Path(__file__).parent.parent.parent.parent / ".env", ove
 
 # Database
 DB_PATH: str = os.getenv("DB_PATH", "rides.db")
-
-# API Server
 API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
 API_PORT: int = int(os.getenv("API_PORT", "8000"))
 
@@ -29,6 +27,11 @@ CORS_ORIGINS: List[str] = os.getenv(
 GOOGLE_MAPS_API_KEY: str = os.getenv("GOOGLE_MAPS_API_KEY", "")
 GOOGLE_MAPS_ZOOM: int = int(os.getenv("GOOGLE_MAPS_ZOOM", "13"))
 GOOGLE_MAPS_SIZE: str = os.getenv("GOOGLE_MAPS_SIZE", "800x600")
+
+# SerpApi (Google Maps alternative)
+SERPAPI_API_KEY: str = os.getenv("SERPAPI_API_KEY", "")
+SERPAPI_ENGINE: str = os.getenv("SERPAPI_ENGINE", "google_maps")
+SERPAPI_BASE_URL: str = os.getenv("SERPAPI_BASE_URL", "https://serpapi.com/search")
 
 # Google Fit
 GOOGLE_FIT_SCOPE: str = (

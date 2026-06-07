@@ -1,8 +1,9 @@
 """API routes."""
 from __future__ import annotations
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body, Depends, Request
 from fastapi.responses import HTMLResponse
+from fastapi.security import OAuth2PasswordRequestForm
 from ..models.models import Ride, GPSPoint, AthleteProfile
 from ..analytics.analytics import calculate_summary, analyze_ride
 from ..analytics.calories import estimate_calories, calories_per_km
@@ -13,15 +14,46 @@ from .schemas import RideCreate, RideResponse, RideAnalysisRequest, AthleteCreat
 from ..utils.logger import get_logger
 from ..config import DB_PATH
 
+from ..maps.serpapi_maps import get_local_results, search_nearby
+
+
 logger = get_logger(__name__)
+
+FAKE_USERS_DB = {}
 
 router = APIRouter()
 
 @router.get("/health")
 async def health_check(): return {"status": "ok", "service": "bikemaster"}
 
+@router.post("/auth/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    from ..security import verify_password, create_access_token
+    user = FAKE_USERS_DB.get(form_data.username)
+    if not user or not verify_password(form_data.password, user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Credenziali errate", headers={"WWW-Authenticate": "Bearer"})
+    return {"access_token": create_access_token(subject=form_data.username), "token_type": "bearer"}
+
+@router.post("/auth/register")
+async def register(username: str = Body(..., min_length=3), password: str = Body(..., min_length=6)):
+    from ..security import hash_password
+    from ..db.database import get_db_connection
+    if username in FAKE_USERS_DB:
+        raise HTTPException(status_code=400, detail="Username già esistente")
+    FAKE_USERS_DB[username] = {"username": username, "hashed_password": hash_password(password)}
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("INSERT INTO athletes (name, experience_level) VALUES (?, ?)", (username, "Beginner"))
+        conn.commit()
+    return {"username": username, "msg": "Utente creato"}
+
+def get_current_user_dependency():
+    """Dependency that can be overridden in tests."""
+    from ..security import get_optional_current_user
+    return get_optional_current_user
+
 @router.post("/rides", response_model=RideResponse)
-async def create_ride(ride_data: RideCreate):
+async def create_ride(ride_data: RideCreate, current_user: Optional[dict] = Depends(get_current_user_dependency)):
     from ..db.database import save_ride
     ride_dict = ride_data.model_dump()
     points = ride_dict.get("gps_points", [])
@@ -589,3 +621,31 @@ async def speed_analytics(limit: int = Query(10, ge=1, le=50)):
         "speeds": [r.get("avg_speed_kmh", 0) for r in recent],
         "distances": [r.get("distance_km", 0) for r in recent]
     }
+
+@router.get("/maps/places/nearby")
+async def nearby_places(ride_id: int, query: str = Query(..., description="Es: cafe, bakery, restaurant")):
+    from ..db.database import get_ride as _get_ride
+    from ..config import SERPAPI_API_KEY
+    ride = _get_ride(ride_id)
+    if not ride: raise HTTPException(status_code=404, detail="Ride not found")
+    gps_points = ride.get("gps_points")
+    if not gps_points: raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    if not SERPAPI_API_KEY: raise HTTPException(status_code=500, detail="SERPAPI_API_KEY not configured")
+    points = [GPSPoint(**p) for p in gps_points]
+    results = get_local_results(points, query=query)
+    if results is None: raise HTTPException(status_code=502, detail="SerpApi request failed")
+    return {"query": query, "count": len(results), "results": results}
+
+@router.get("/maps/places/search")
+async def search_places_endpoint(ride_id: int, query: str = Query(..., description="Query di ricerca luoghi")):
+    from ..db.database import get_ride as _get_ride
+    from ..config import SERPAPI_API_KEY
+    ride = _get_ride(ride_id)
+    if not ride: raise HTTPException(status_code=404, detail="Ride not found")
+    gps_points = ride.get("gps_points")
+    if not gps_points: raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    if not SERPAPI_API_KEY: raise HTTPException(status_code=500, detail="SERPAPI_API_KEY not configured")
+    points = [GPSPoint(**p) for p in gps_points]
+    data = search_nearby(points, query=query)
+    if data is None: raise HTTPException(status_code=502, detail="SerpApi request failed")
+    return data

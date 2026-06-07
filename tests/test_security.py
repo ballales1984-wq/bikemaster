@@ -144,3 +144,16 @@ async def test_get_current_user_with_none_sub():
             result = await get_current_user("any-token")
         except Exception:
             pass
+
+
+def test_auth_login_endpoint(client):
+    response = client.post("/api/v1/auth/register", json={"username": "testuser", "password": "testpass123"})
+    assert response.status_code == 200
+    response = client.post("/api/v1/auth/login", data={"username": "testuser", "password": "testpass123"})
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+
+
+def test_auth_login_invalid(client):
+    response = client.post("/api/v1/auth/login", data={"username": "wrong", "password": "wrong"})
+    assert response.status_code == 401

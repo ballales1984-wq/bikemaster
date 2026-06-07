@@ -12,6 +12,6 @@ RUN mkdir -p /app/data && chmod 777 /app/data
 EXPOSE 8000
 
 ENV PYTHONUNBUFFERED=1
-ENV DATABASE_URL=/app/data/rides.db
+ENV DB_PATH=/app/data/rides.db
 
-CMD ["python", "main.py", "api"]
+CMD ["sh", "-c", "python main.py api --port ${PORT:-8000}"]
