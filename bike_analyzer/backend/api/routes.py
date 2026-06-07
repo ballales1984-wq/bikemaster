@@ -574,11 +574,3 @@ async def ceo_analytics():
             "last_updated": now.isoformat()
         }
     }
-
-def get_all_athletes():
-    conn = _conn()
-    cur = conn.cursor()
-    cur.execute("SELECT id, name, experience_level FROM athletes")
-    rows = cur.fetchall()
-    conn.close()
-    return [{"id": r[0], "name": r[1], "experience_level": r[2]} for r in rows]
