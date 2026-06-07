@@ -33,7 +33,9 @@ Thumbs.db
 .coverage
 test_map_*.png
 *.csv
-*.json
+# *.json (uncomment for export files)
 ride_*_map.html
 # Frontend
 frontend/node_modules/
+
+
