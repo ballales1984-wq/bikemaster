@@ -8,9 +8,11 @@ from ..models.models import Ride, GPSPoint, AthleteProfile, CalendarEvent
 from ..analytics.analytics import calculate_summary, analyze_ride
 from ..analytics.calories import estimate_calories, calories_per_km
 from ..analytics.fatigue import calculate_fatigue_score, estimate_recovery_hours, get_recovery_recommendation
+from ..analytics.badges import calculate_badges, get_heatmap_points
+from ..analytics.granfondo_planner import generate_granfondo_plan
 from ..processing.processing import process_route
 from ..maps.map_renderer import create_route_map
-from .schemas import RideCreate, RideResponse, RideAnalysisRequest, AthleteCreate, AthleteUpdate, MetricCreate, CalendarEventCreate, CalendarEventUpdate, GoogleFitAuthQuery, GoogleFitTokenRequest, GoogleFitImportRequest
+from .schemas import RideCreate, RideResponse, RideAnalysisRequest, AthleteCreate, AthleteUpdate, MetricCreate, CalendarEventCreate, CalendarEventUpdate, GoogleFitAuthQuery, GoogleFitTokenRequest, GoogleFitImportRequest, GranfondoPlanRequest
 from ..utils.logger import get_logger
 from ..config import DB_PATH
 from ..security import get_current_user
@@ -87,6 +89,34 @@ async def delete_ride(ride_id: int, current_user: dict = Depends(get_current_use
     from ..db.database import delete_ride as _delete
     if not _delete(ride_id): raise HTTPException(status_code=404, detail="Ride not found")
     return {"deleted": True}
+
+
+@router.get("/rides/{ride_id}/segments")
+async def get_ride_segments(ride_id: int, min_distance_m: int = Query(1000), current_user: dict = Depends(get_current_user_dependency)):
+    """Detect and return significant segments from ride GPS points."""
+    from ..db.database import get_ride as _get_ride
+    from ..processing.segment_detector import detect_climb_segments, detect_all_segments, segment_to_dict
+    from ..models.models import GPSPoint
+    
+    ride = _get_ride(ride_id)
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    
+    gps_points = ride.get("gps_points")
+    if not gps_points:
+        raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    
+    points = [GPSPoint(**p) for p in gps_points]
+    climbs = detect_climb_segments(points)
+    segments = detect_all_segments(points, min_length_m=min_distance_m)
+    
+    return {
+        "ride_id": ride_id,
+        "climbs": [segment_to_dict(c) for c in climbs],
+        "segments": [{"distance_km": round(s.distance_m/1000, 2), "elevation_gain_m": s.elevation_gain_m, "avg_speed_kmh": round(s.avg_speed_km_h, 1)} for s in segments],
+        "climb_count": len(climbs),
+        "segment_count": len(segments)
+    }
 
 @router.post("/rides/analyze", response_model=dict)
 async def analyze_rides(request: RideAnalysisRequest):
@@ -811,3 +841,79 @@ async def generate_workouts(goal_id: int = Body(...), event_count: int = Body(12
         
         session.add_all(workouts_to_create)
         return {"generated": len(workouts_to_create), "goal_id": goal_id}
+
+@router.get("/weather")
+async def get_weather(lat: float = Query(..., description="Latitudine"), lon: float = Query(..., description="Longitudine"), date: Optional[str] = Query(None, description="Data (YYYY-MM-DD) o oggi")):
+    """Get weather for coordinates, optionally for a specific date."""
+    from ..weather.weather_service import get_weather_for_coordinates, get_forecast_for_date, get_weather_score
+    
+    if date:
+        weather = get_forecast_for_date(lat, lon, date)
+    else:
+        weather = get_weather_for_coordinates(lat, lon)
+    
+    if "error" in weather:
+        raise HTTPException(status_code=502, detail=weather["error"])
+    
+    temp = weather.get("temperature")
+    humidity = weather.get("humidity")
+    
+    score, advice = get_weather_score(temp, humidity) if temp is not None and humidity is not None else (5, "Dati meteo non disponibili")
+    
+    weather["score"] = score
+    weather["advice"] = advice
+    
+    return weather
+
+@router.get("/weather/forecast")
+async def get_weather_forecast(lat: float = Query(..., description="Latitudine"), lon: float = Query(..., description="Longitudine"), days: int = Query(7, ge=1, le=5)):
+    """Get multi-day weather forecast."""
+    from ..weather.weather_service import get_forecast_for_date, get_weather_score
+    from datetime import datetime, timedelta
+    
+    forecasts = []
+    today = datetime.now()
+    
+    for i in range(days):
+        date = (today + timedelta(days=i)).strftime("%Y-%m-%d")
+        weather = get_forecast_for_date(lat, lon, date)
+        if "error" not in weather:
+            temp = weather.get("temperature")
+            humidity = weather.get("humidity")
+            score, advice = get_weather_score(temp, humidity) if temp and humidity else (5, "")
+            weather["score"] = score
+            weather["advice"] = advice
+            weather["date"] = date
+        forecasts.append(weather)
+    
+    return {"forecasts": forecasts}
+
+
+@router.get("/heatmap")
+async def get_heatmap(athlete_id: int = Query(0), current_user: dict = Depends(get_current_user_dependency)):
+    """Get heatmap data from all GPS points for an athlete."""
+    from ..db.database import get_rides_by_athlete, get_all_rides
+    rides = [Ride(**r) for r in (get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides())]
+    rides_dict = [r.to_dict() for r in rides]
+    data = get_heatmap_points(rides_dict)
+    return data
+
+
+@router.get("/badges")
+async def get_badges(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user_dependency)):
+    """Get badge achievements for an athlete."""
+    from ..db.database import get_rides_by_athlete, get_athlete
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    athlete = get_athlete(athlete_id)
+    badges = calculate_badges(athlete_id, [r.to_dict() for r in rides], athlete)
+    achieved_count = sum(1 for b in badges if b["achieved"])
+    return {"athlete_id": athlete_id, "badges": badges, "total_badges": len(badges), "achieved": achieved_count}
+
+
+@router.post("/training/granfondo/plan")
+async def generate_granfondo_workouts(request: GranfondoPlanRequest):
+    """Generate granfondo training plan with tapering."""
+    start_date = request.start_date
+    weeks = request.target_weeks
+    plan = generate_granfondo_plan(start_date, weeks)
+    return {"athlete_id": request.athlete_id, "start_date": start_date, "weeks": weeks, "plan": plan, "total_workouts": len(plan)}

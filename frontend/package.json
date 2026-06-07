@@ -16,7 +16,9 @@
     "chart.js": "^4.5.1",
     "vue": "^3.4.0",
     "@capacitor/core": "^5.7.4",
-    "@capacitor/android": "^5.7.4"
+    "@capacitor/android": "^5.7.4",
+    "leaflet": "^1.9.4",
+    "leaflet.heat": "^0.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.0",

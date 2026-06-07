@@ -516,3 +516,17 @@ textarea {
   resize: vertical;
   min-height: 60px;
 }
+
+.day-workouts {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.type-endurance { background: #3498db; }
+.type-threshold { background: #e74c3c; }
+.type-sweetspot { background: #9b59b6; }
+.type-recovery { background: #2ecc71; }
+.type-openers { background: #f39c12; }
+.type-race { background: #f39c12; }

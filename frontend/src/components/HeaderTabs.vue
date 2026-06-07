@@ -6,6 +6,9 @@
     <button class="tab" :class="{ active: active === 'coach' }" @click="$emit('update:active', 'coach')">🧠 AI Coach</button>
     <button class="tab" :class="{ active: active === 'knowledge' }" @click="$emit('update:active', 'knowledge')">📚 Knowledge</button>
     <button class="tab" :class="{ active: active === 'calendar' }" @click="$emit('update:active', 'calendar')">📅 Calendario</button>
+    <button class="tab" :class="{ active: active === 'granfondo' }" @click="$emit('update:active', 'granfondo')">🚴‍♂️ Granfondo</button>
+    <button class="tab" :class="{ active: active === 'heatmap' }" @click="$emit('update:active', 'heatmap')">🔥 Heatmap</button>
+    <button class="tab" :class="{ active: active === 'badges' }" @click="$emit('update:active', 'badges')">🏅 Badge</button>
     <button class="tab" :class="{ active: active === 'admin' }" @click="$emit('update:active', 'admin')">⚙️ Admin</button>
   </nav>
 </template>

@@ -34,6 +34,18 @@
         <CalendarPanel />
       </section>
 
+      <section v-if="activeTab === 'granfondo'">
+        <GranfondoPlanner />
+      </section>
+
+      <section v-if="activeTab === 'heatmap'">
+        <HeatmapPanel />
+      </section>
+
+      <section v-if="activeTab === 'badges'">
+        <BadgesPanel />
+      </section>
+
       <section v-if="activeTab === 'admin'">
         <AdminPanel />
       </section>
@@ -54,6 +66,9 @@ import AthletePanel from './components/AthletePanel.vue'
 import CoachPanel from './components/CoachPanel.vue'
 import KnowledgePanel from './components/KnowledgePanel.vue'
 import CalendarPanel from './components/CalendarPanel.vue'
+import GranfondoPlanner from './components/GranfondoPlanner.vue'
+import HeatmapPanel from './components/HeatmapPanel.vue'
+import BadgesPanel from './components/BadgesPanel.vue'
 import AdminPanel from './components/AdminPanel.vue'
 import ToastContainer from './components/ToastContainer.vue'
 

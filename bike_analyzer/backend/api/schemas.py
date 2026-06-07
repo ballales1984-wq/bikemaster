@@ -98,6 +98,16 @@ class CalendarEventCreate(BaseModel):
     duration_minutes: int = Field(default=0, ge=0)
     description: Optional[str] = Field(default=None, max_length=1000)
     completed: bool = False
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+
+class WeatherResponse(BaseModel):
+    temperature: Optional[float] = None
+    humidity: Optional[float] = None
+    description: Optional[str] = None
+    wind_speed: Optional[float] = None
+    score: int = 5
+    advice: str = ""
 
 class CalendarEventUpdate(BaseModel):
     title: Optional[str] = Field(default=None, min_length=1, max_length=200)
@@ -141,3 +151,33 @@ class PlannedWorkoutResponse(BaseModel):
     duration_minutes: int
     target_intensity: float
     completed: bool = False
+
+
+class HeatmapPoint(BaseModel):
+    lat: float
+    lon: float
+    count: int = 1
+
+
+class HeatmapResponse(BaseModel):
+    points: List[HeatmapPoint]
+    bounds: dict
+    total_points: int
+
+
+class BadgeResponse(BaseModel):
+    id: Optional[int] = None
+    name: str
+    description: str
+    icon: str
+    category: str
+    achieved: bool = False
+    achieved_date: Optional[str] = None
+    progress: float = 0.0
+    target: float = 100.0
+
+
+class GranfondoPlanRequest(BaseModel):
+    athlete_id: int = Field(..., ge=1)
+    start_date: str = Field(..., min_length=10, max_length=10)
+    target_weeks: int = Field(default=8, ge=8, le=12)
