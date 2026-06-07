@@ -249,4 +249,12 @@ def clear_chat_history(athlete_id: int) -> bool:
     conn.close()
     return deleted
 
-__all__ = ["save_ride", "get_ride", "get_all_rides", "get_rides_by_athlete", "delete_ride", "update_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection", "save_chat_message", "get_chat_history", "clear_chat_history"]
+def get_all_athletes() -> List[dict]:
+    conn = _conn()
+    cur = conn.cursor()
+    cur.execute("SELECT id, name, experience_level FROM athletes")
+    rows = cur.fetchall()
+    conn.close()
+    return [{"id": r[0], "name": r[1], "experience_level": r[2]} for r in rows]
+
+__all__ = ["save_ride", "get_ride", "get_all_rides", "get_rides_by_athlete", "get_all_athletes", "delete_ride", "update_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection", "save_chat_message", "get_chat_history", "clear_chat_history"]

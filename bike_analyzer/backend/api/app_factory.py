@@ -43,6 +43,12 @@ def create_app() -> FastAPI:
         async def dashboard():
             return INDEX_FILE.read_text(encoding="utf-8")
 
+        CEO_FILE = STATIC_DIR / "ceo_dashboard.html"
+        if CEO_FILE.exists():
+            @app.get("/ceo", response_class=HTMLResponse)
+            async def ceo_dashboard():
+                return CEO_FILE.read_text(encoding="utf-8")
+
     @app.get("/favicon.ico")
     async def favicon():
         return Response(

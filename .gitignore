@@ -32,3 +32,6 @@ Thumbs.db
 # Testing artifacts
 .coverage
 test_map_*.png
+*.csv
+*.json
+ride_*_map.html
