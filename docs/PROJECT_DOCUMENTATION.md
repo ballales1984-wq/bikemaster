@@ -707,7 +707,7 @@ Configurazione in `azure.yaml`:
 | Google Maps | ✅ Completo | Static Maps + elevation |
 | Docker / Azure deploy | ✅ Completo | Container + azd |
 | Test coverage | ✅ ~79% | 79 test passanti, obiettivo >80% |
-| Miglioramenti UI/UX | ✅ Completo | Dark theme, PWA, scroll indicator, accessibilità |
+| Miglioramenti UI/UX | ✅ Completo | Dark theme, PWA, Vue components, scroll indicator, accessibilità |
 | Vector DB / embedding | 🔄 Futuro | Sostituire BM25 con vector search (es. Chroma, Qdrant) |
 | Autenticazione utenti | 🔄 Futuro | JWT / API key per produzione |
 | PostgreSQL migrazione | 🔄 Futuro | Sostituire SQLite per produzione scale |
@@ -737,3 +737,4 @@ Configurazione in `azure.yaml`:
 ---
 
 *Documento generato automaticamente — BikeMaster v1.1.0*
+
