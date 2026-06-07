@@ -75,6 +75,8 @@ FATIGUE_WEIGHT_WEIGHT: float = float(os.getenv("FATIGUE_WEIGHT_WEIGHT", "0.10"))
 
 # Weather API (OpenWeatherMap)
 WEATHER_API_KEY: str = os.getenv("WEATHER_API_KEY", "")
+
+# Weather settings
 WEATHER_CACHE_HOURS: int = int(os.getenv("WEATHER_CACHE_HOURS", "6"))
 WEATHER_UNITS: str = os.getenv("WEATHER_UNITS", "metric")
 

@@ -1,33 +1,38 @@
-"""Weather service for fetching temperature and humidity data."""
+"""Weather service using OpenWeatherMap API."""
 from __future__ import annotations
-import os
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 import requests
-from ..config import WEATHER_API_KEY, WEATHER_CACHE_HOURS, WEATHER_UNITS
+from ..config import WEATHER_API_KEY
 
 WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5"
 
+def _get_weather_api_key() -> str:
+    """Get API key from config or environment."""
+    return WEATHER_API_KEY or ""
+
 def get_weather_for_coordinates(lat: float, lon: float, date: Optional[str] = None) -> dict:
-    """Fetch weather for specific coordinates and optional date."""
+    """Fetch weather for specific coordinates using OpenWeatherMap."""
     from ..db.database import get_weather_cache, save_weather_cache
     
-    if not WEATHER_API_KEY:
+    api_key = _get_weather_api_key()
+    if not api_key:
         return {"error": "Weather API key not configured", "temperature": None, "humidity": None}
     
-    # Check cache first (for today's weather or specific date if cached)
-    if date:
-        cached = get_weather_cache(lat, lon, date)
-        if cached:
-            return cached
+    date_to_use = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # Check cache
+    cached = get_weather_cache(lat, lon, date_to_use)
+    if cached:
+        return cached
     
     endpoint = f"{WEATHER_BASE_URL}/weather"
     try:
         resp = requests.get(endpoint, params={
             "lat": lat,
             "lon": lon,
-            "appid": WEATHER_API_KEY,
-            "units": WEATHER_UNITS,
+            "appid": api_key,
+            "units": "metric",
             "lang": "it"
         }, timeout=10)
         resp.raise_for_status()
@@ -48,42 +53,37 @@ def get_weather_for_coordinates(lat: float, lon: float, date: Optional[str] = No
             "fetched_at": datetime.now(timezone.utc).isoformat()
         }
         
-        # Cache the result
-        if date:
-            save_weather_cache(lat, lon, date, weather)
-        
+        save_weather_cache(lat, lon, date_to_use, weather)
         return weather
     except Exception as e:
         return {"error": str(e), "temperature": None, "humidity": None}
 
 def get_forecast_for_date(lat: float, lon: float, date: str) -> dict:
-    """Get weather forecast for a specific future date."""
+    """Get weather forecast for a specific future date using 5-day forecast."""
     from ..db.database import get_weather_cache, save_weather_cache
     
-    if not WEATHER_API_KEY:
+    api_key = _get_weather_api_key()
+    if not api_key:
         return {"error": "Weather API key not configured", "temperature": None, "humidity": None}
     
-    # Check cache
     cached = get_weather_cache(lat, lon, date)
     if cached:
         return cached
     
-    # Use One Call API for forecast
     endpoint = f"{WEATHER_BASE_URL}/forecast"
     try:
         resp = requests.get(endpoint, params={
             "lat": lat,
             "lon": lon,
-            "appid": WEATHER_API_KEY,
-            "units": WEATHER_UNITS,
+            "appid": api_key,
+            "units": "metric",
             "lang": "it"
         }, timeout=10)
         resp.raise_for_status()
         data = resp.json()
         
-        # Find forecast closest to midday of target date
-        target_date = datetime.fromisoformat(date).date() if "T" in date else datetime.strptime(date, "%Y-%m-%d")
-        target_dt = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+        target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        target_dt = datetime.combine(target_date, datetime.min.time())
         target_ts = int(target_dt.timestamp())
         
         candidates = data.get("list", [])
@@ -117,7 +117,6 @@ def get_weather_score(temperature: float, humidity: float) -> tuple[int, str]:
     score = 10
     advice = []
     
-    # Temperature scoring (optimal 15-25°C)
     if temperature < 0:
         score -= 5
         advice.append("⚠️ Temperature molto bassa, abbigliamento caldo necessario")
@@ -134,7 +133,6 @@ def get_weather_score(temperature: float, humidity: float) -> tuple[int, str]:
         score -= 2
         advice.append("🥵 Caldo, orari diurni da evitare")
     
-    # Humidity scoring
     if humidity > 85:
         score -= 2
         advice.append("💨 Umidità elevata, sensazione di caldo")

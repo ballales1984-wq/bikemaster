@@ -846,6 +846,10 @@ async def generate_workouts(goal_id: int = Body(...), event_count: int = Body(12
 async def get_weather(lat: float = Query(..., description="Latitudine"), lon: float = Query(..., description="Longitudine"), date: Optional[str] = Query(None, description="Data (YYYY-MM-DD) o oggi")):
     """Get weather for coordinates, optionally for a specific date."""
     from ..weather.weather_service import get_weather_for_coordinates, get_forecast_for_date, get_weather_score
+    from ..config import WEATHER_API_KEY
+    
+    if not WEATHER_API_KEY:
+        raise HTTPException(status_code=500, detail="WEATHER_API_KEY non configurata nel file .env")
     
     if date:
         weather = get_forecast_for_date(lat, lon, date)
@@ -869,7 +873,11 @@ async def get_weather(lat: float = Query(..., description="Latitudine"), lon: fl
 async def get_weather_forecast(lat: float = Query(..., description="Latitudine"), lon: float = Query(..., description="Longitudine"), days: int = Query(7, ge=1, le=5)):
     """Get multi-day weather forecast."""
     from ..weather.weather_service import get_forecast_for_date, get_weather_score
+    from ..config import WEATHER_API_KEY
     from datetime import datetime, timedelta
+    
+    if not WEATHER_API_KEY:
+        raise HTTPException(status_code=500, detail="WEATHER_API_KEY non configurata nel file .env")
     
     forecasts = []
     today = datetime.now()

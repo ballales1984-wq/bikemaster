@@ -77,6 +77,17 @@ def init_db():
             created_at TEXT,
             FOREIGN KEY (athlete_id) REFERENCES athletes(id)
         )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS weather_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lat REAL NOT NULL,
+            lon REAL NOT NULL,
+            date TEXT NOT NULL,
+            temperature REAL,
+            humidity REAL,
+            description TEXT,
+            cached_at TEXT,
+            UNIQUE(lat, lon, date)
+        )""")
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(athletes)")
         columns = [row[1] for row in cur.fetchall()]
@@ -275,6 +286,16 @@ def get_all_athletes() -> List[dict]:
         return [{"id": r[0], "name": r[1], "experience_level": r[2]} for r in rows]
 
 def save_calendar_event(event: dict) -> int:
+    weather = {}
+    if event.get("lat") is not None and event.get("lon") is not None:
+        from ..weather.weather_service import get_forecast_for_date
+        try:
+            weather = get_forecast_for_date(float(event["lat"]), float(event["lon"]), event.get("date", ""))
+            if "error" in weather:
+                weather = {}
+        except Exception:
+            weather = {}
+    
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("""INSERT INTO calendar_events (athlete_id, title, event_type, date, duration_minutes, description, completed, weather_temp, weather_humidity, weather_description, created_at)
@@ -282,7 +303,7 @@ def save_calendar_event(event: dict) -> int:
             (event.get("athlete_id"), event.get("title"), event.get("event_type", "training"),
              event.get("date"), event.get("duration_minutes", 0),
              event.get("description"), 1 if event.get("completed") else 0,
-             event.get("weather_temp"), event.get("weather_humidity"), event.get("weather_description"),
+             weather.get("temperature"), weather.get("humidity"), weather.get("description"),
              datetime.now(timezone.utc).isoformat()))
         conn.commit()
         return cur.lastrowid

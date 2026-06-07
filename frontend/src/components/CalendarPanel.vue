@@ -57,6 +57,9 @@
               <span class="event-meta">
                 <span class="badge" :class="'badge-' + ev.event_type">{{ eventLabel(ev.event_type) }}</span>
                 <span v-if="ev.duration_minutes">{{ ev.duration_minutes }} min</span>
+                <span v-if="ev.weather_temp !== null && ev.weather_temp !== undefined" class="weather-badge" :class="'weather-score-' + weatherScoreClass(ev)">
+                  🌡️ {{ ev.weather_temp }}°C 💨 {{ ev.weather_humidity }}%
+                </span>
               </span>
               <span v-if="ev.description" class="event-desc">{{ ev.description }}</span>
             </span>
@@ -113,9 +116,27 @@
           <label>Durata (min)</label>
           <input type="number" v-model.number="form.duration_minutes" min="0" />
         </div>
+        <div class="form-group">
+          <label>Latitudine</label>
+          <input type="number" v-model.number="form.lat" step="0.0001" placeholder="Opzionale" />
+        </div>
+        <div class="form-group">
+          <label>Longitudine</label>
+          <input type="number" v-model.number="form.lon" step="0.0001" placeholder="Opzionale" />
+        </div>
         <div class="form-group full-width">
           <label>Descrizione</label>
           <textarea v-model="form.description" maxlength="1000" rows="3"></textarea>
+        </div>
+        <div v-if="weatherForecast" class="weather-preview">
+          <h4>🌤️ Previsione meteo per {{ form.date }}</h4>
+          <div class="weather-info">
+            <span v-if="weatherForecast.temperature !== null">🌡️ {{ weatherForecast.temperature }}°C</span>
+            <span v-if="weatherForecast.humidity !== null">💧 {{ weatherForecast.humidity }}%</span>
+            <span v-if="weatherForecast.description">{{ weatherForecast.description }}</span>
+            <span class="weather-score" :class="'score-' + weatherScore">Score: {{ weatherScore }}/10</span>
+            <p class="weather-advice">{{ weatherForecast.advice }}</p>
+          </div>
         </div>
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Salva</button>
@@ -125,6 +146,40 @@
     </div>
   </section>
 </template>
+
+<style scoped>
+.weather-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  margin-left: 6px;
+}
+.weather-score-0 { background: #fee2e2; color: #991b1b; }
+.weather-score-1 { background: #fef3c7; color: #92400e; }
+.weather-score-2 { background: #dbeafe; color: #1e40af; }
+.weather-score-3 { background: #dcfce7; color: #166534; }
+.weather-score-4 { background: #dcfce7; color: #166534; }
+
+.weather-preview {
+  grid-column: span 2;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+.weather-info {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.weather-score {
+  font-weight: 600;
+}
+.score-8, .score-9, .score-10 { color: #166534; }
+.score-5, .score-6, .score-7 { color: #92400e; }
+.score-0, .score-1, .score-2, .score-3, .score-4 { color: #991b1b; }
+</style>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
@@ -231,9 +286,9 @@ function eventLabel(type) {
 }
 
 function openAddForDate(date) {
-  editingEvent.value = null
-  form.value = { title: '', event_type: 'training', date, duration_minutes: 0, description: '', completed: false }
-  showForm.value = true
+   editingEvent.value = null
+   form.value = { title: '', event_type: 'training', date, duration_minutes: 0, description: '', completed: false, lat: null, lon: null }
+   showForm.value = true
 }
 
 function openEdit(ev) {
@@ -243,11 +298,11 @@ function openEdit(ev) {
 }
 
 function quickAddFromObjective(obj) {
-  const today = new Date()
-  const dateStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`
-  editingEvent.value = null
-  form.value = { title: obj.title, event_type: obj.event_type, date: dateStr, duration_minutes: obj.duration, description: obj.hint, completed: false }
-  showForm.value = true
+   const today = new Date()
+   const dateStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`
+   editingEvent.value = null
+   form.value = { title: obj.title, event_type: obj.event_type, date: dateStr, duration_minutes: obj.duration, description: obj.hint, completed: false, lat: null, lon: null }
+   showForm.value = true
 }
 
 async function loadAthletes() {
@@ -310,22 +365,54 @@ async function deleteEvent(id) {
 }
 
 async function toggleComplete(ev) {
-  try {
-    await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {})
-    loadEvents()
-  } catch (e) {
-    alert('Errore: ' + (e.message || e))
-  }
+   try {
+     await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {})
+     loadEvents()
+   } catch (e) {
+     alert('Errore: ' + (e.message || e))
+   }
 }
 
+async function fetchWeatherForecast() {
+   if (!form.value.lat || !form.value.lon || !form.value.date) {
+     weatherForecast.value = null
+     return
+   }
+   try {
+     weatherForecast.value = await apiGet('/api/v1/weather', { lat: form.value.lat, lon: form.value.lon, date: form.value.date })
+   } catch (e) {
+     weatherForecast.value = null
+   }
+}
+
+function weatherScoreClass(ev) {
+   if (!ev.weather_temp || !ev.weather_humidity) return 5
+   const score = Math.round((ev.weather_temp >= 5 && ev.weather_temp <= 30 && ev.weather_humidity < 70) ? 8 : (ev.weather_temp >= 0 && ev.weather_temp <= 35 ? 6 : 3))
+   return score
+}
+
+const weatherScore = computed(() => {
+   if (!weatherForecast.value) return 5
+   const s = weatherForecast.value.score || 5
+   return s
+})
+
+const weatherForecast = ref(null)
+
 onMounted(() => {
-  loadAthletes()
-  loadEvents()
-  loadGoals()
+   loadAthletes()
+   loadEvents()
+   loadGoals()
 })
 
 watch(athleteId, () => {
-  loadEvents()
-  loadGoals()
+   loadEvents()
+   loadGoals()
 })
+
+watch(form, () => {
+   if (form.value.lat && form.value.lon && form.value.date) {
+     fetchWeatherForecast()
+   }
+}, { deep: true })
 </script>
