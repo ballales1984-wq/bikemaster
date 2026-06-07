@@ -23,6 +23,32 @@ def test_fatigue_calculation():
     f = calculate_fatigue_score(r)
     assert 0 <= f <= 10
 
+def test_fatigue_high_score():
+    r = Ride(date="2024-06-01", distance_km=100.0, duration_minutes=240.0, avg_speed_kmh=40.0, weight_kg=80.0, heart_rate_avg=190.0, elevation_gain_m=2000.0)
+    f = calculate_fatigue_score(r)
+    assert f >= 5.0
+
+def test_fatigue_extreme():
+    r = Ride(date="2024-06-01", distance_km=200.0, duration_minutes=600.0, avg_speed_kmh=50.0, weight_kg=90.0, heart_rate_avg=210.0, elevation_gain_m=4000.0)
+    f = calculate_fatigue_score(r)
+    assert f >= 7.0
+
+def test_recovery_recommendations():
+    from bike_analyzer.backend.analytics.fatigue import get_recovery_recommendation
+    assert "Minimal fatigue" in get_recovery_recommendation(1.0)
+    assert "Light fatigue" in get_recovery_recommendation(3.0)
+    assert "Moderate fatigue" in get_recovery_recommendation(5.0)
+    assert "High fatigue" in get_recovery_recommendation(7.0)
+    assert "Extreme fatigue" in get_recovery_recommendation(9.0)
+
+def test_estimate_recovery_hours_all_brackets():
+    from bike_analyzer.backend.analytics.fatigue import estimate_recovery_hours
+    assert estimate_recovery_hours(2.0) == 8.0
+    assert estimate_recovery_hours(4.0) == 16.0
+    assert estimate_recovery_hours(6.0) == 24.0
+    assert estimate_recovery_hours(8.0) == 48.0
+    assert estimate_recovery_hours(9.0) == 48.0
+
 def test_calculate_summary():
     rides = [Ride(date="2024-06-01", distance_km=20.0, duration_minutes=45.0, avg_speed_kmh=26.7), Ride(date="2024-06-02", distance_km=30.0, duration_minutes=70.0, avg_speed_kmh=25.7)]
     s = calculate_summary(rides)
@@ -123,9 +149,44 @@ def test_chart_function_signatures():
     from inspect import signature
     from bike_analyzer.backend.analytics.analytics import (
         create_elevation_chart, create_duration_chart, generate_speed_chart,
-        create_distance_chart, generate_time_chart,
+        create_distance_chart, generate_time_chart, create_speed_chart,
     )
     assert "output_path" in signature(create_elevation_chart).parameters
     assert "output_path" in signature(create_duration_chart).parameters
     assert "rides" in signature(create_duration_chart).parameters
     assert "points" in signature(generate_speed_chart).parameters
+    assert "output_path" in signature(create_speed_chart).parameters
+
+def test_generate_speed_chart_no_points():
+    from bike_analyzer.backend.analytics.analytics import generate_speed_chart
+    result = generate_speed_chart(None)
+    assert result == ""
+
+def test_generate_speed_chart_no_speed_values():
+    from bike_analyzer.backend.analytics.analytics import generate_speed_chart
+    points = [
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc)),
+    ]
+    result = generate_speed_chart(points)
+    assert result == ""
+
+def test_generate_distance_chart_no_points():
+    from bike_analyzer.backend.analytics.analytics import generate_distance_chart
+    result = generate_distance_chart(None)
+    assert result == ""
+
+def test_generate_time_chart_no_points():
+    from bike_analyzer.backend.analytics.analytics import generate_time_chart
+    result = generate_time_chart(None)
+    assert result == ""
+
+def test_logger_setup():
+    from bike_analyzer.backend.utils.logger import setup_logging, get_logger, LOG_FORMAT, LOG_DATE_FORMAT
+    import logging
+    setup_logging(logging.DEBUG)
+    logger = get_logger("test_module")
+    assert logger is not None
+    assert logger.name == "test_module"
+    logger.debug("test message")
+    assert logging.getLogger("test_module").level in (logging.DEBUG, 0)
