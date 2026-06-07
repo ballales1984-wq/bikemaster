@@ -51,6 +51,7 @@ def init_db():
             best_segments TEXT,
             medical_notes TEXT,
             equipment TEXT,
+            ftp_watts REAL,
             created_at TEXT
         )""")
         conn.execute("""CREATE TABLE IF NOT EXISTS chat_history (
@@ -70,15 +71,19 @@ def init_db():
             duration_minutes INTEGER DEFAULT 0,
             description TEXT,
             completed INTEGER DEFAULT 0,
+            weather_temp REAL,
+            weather_humidity REAL,
+            weather_description TEXT,
             created_at TEXT,
             FOREIGN KEY (athlete_id) REFERENCES athletes(id)
         )""")
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(athletes)")
-
         columns = [row[1] for row in cur.fetchall()]
         if "goals" not in columns:
             conn.execute("ALTER TABLE athletes ADD COLUMN goals TEXT")
+        if "ftp_watts" not in columns:
+            conn.execute("ALTER TABLE athletes ADD COLUMN ftp_watts REAL")
         conn.execute("""CREATE TABLE IF NOT EXISTS metrics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
@@ -169,24 +174,29 @@ def update_ride(ride_id: int, ride: dict) -> bool:
 def save_athlete(athlete: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage, years_active, weekly_sessions, monthly_hours, annual_hours, experience_level, goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes, equipment, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        cur.execute("""INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage, years_active, weekly_sessions, monthly_hours, annual_hours, experience_level, goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes, equipment, ftp_watts, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (athlete.get("name"), athlete.get("age", 30), athlete.get("weight_kg", 70), athlete.get("height_cm"),
              athlete.get("fat_percentage"), athlete.get("years_active", 1), athlete.get("weekly_sessions", 3),
              athlete.get("monthly_hours", 0), athlete.get("annual_hours", 0), athlete.get("experience_level", "Beginner"),
              athlete.get("goals"), athlete.get("preferred_terrain"), athlete.get("weekly_volume_km", 0),
              athlete.get("best_segments"), athlete.get("medical_notes"), athlete.get("equipment"),
-             datetime.now(timezone.utc).isoformat()))
+             athlete.get("ftp_watts"), datetime.now(timezone.utc).isoformat()))
         conn.commit()
         return cur.lastrowid
 
 def get_athlete(athlete_id: int) -> Optional[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
+        cur.execute("PRAGMA table_info(athletes)")
+        columns = [row[1] for row in cur.fetchall()]
         cur.execute("SELECT * FROM athletes WHERE id = ?", (athlete_id,))
         row = cur.fetchone()
         if row:
-            return {"id": row[0], "name": row[1], "age": row[2], "weight_kg": row[3], "height_cm": row[4], "fat_percentage": row[5], "years_active": row[6], "weekly_sessions": row[7], "monthly_hours": row[8], "annual_hours": row[9], "experience_level": row[10], "goals": row[11], "preferred_terrain": row[12], "weekly_volume_km": row[13], "best_segments": row[14], "medical_notes": row[15], "equipment": row[16]}
+            result = {"id": row[0], "name": row[1], "age": row[2], "weight_kg": row[3], "height_cm": row[4], "fat_percentage": row[5], "years_active": row[6], "weekly_sessions": row[7], "monthly_hours": row[8], "annual_hours": row[9], "experience_level": row[10], "goals": row[11], "preferred_terrain": row[12], "weekly_volume_km": row[13], "best_segments": row[14], "medical_notes": row[15], "equipment": row[16]}
+            if "ftp_watts" in columns and len(row) > 17:
+                result["ftp_watts"] = row[17]
+            return result
         return None
 
 def save_metric(metric: dict) -> int:
@@ -205,12 +215,13 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     merged = {**existing, **athlete_data}
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?, fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?, annual_hours=?, experience_level=?, goals=?, preferred_terrain=?, weekly_volume_km=?, best_segments=?, medical_notes=?, equipment=? WHERE id=?""",
+        cur.execute("""UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?, fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?, annual_hours=?, experience_level=?, goals=?, preferred_terrain=?, weekly_volume_km=?, best_segments=?, medical_notes=?, equipment=?, ftp_watts=? WHERE id=?""",
             (merged.get("name"), merged.get("age", 30), merged.get("weight_kg", 70), merged.get("height_cm"),
              merged.get("fat_percentage"), merged.get("years_active", 1), merged.get("weekly_sessions", 3),
              merged.get("monthly_hours", 0), merged.get("annual_hours", 0), merged.get("experience_level", "Beginner"),
              merged.get("goals"), merged.get("preferred_terrain"), merged.get("weekly_volume_km", 0),
-             merged.get("best_segments"), merged.get("medical_notes"), merged.get("equipment"), athlete_id))
+             merged.get("best_segments"), merged.get("medical_notes"), merged.get("equipment"),
+             merged.get("ftp_watts"), athlete_id))
         conn.commit()
         return cur.rowcount > 0
 
@@ -266,11 +277,12 @@ def get_all_athletes() -> List[dict]:
 def save_calendar_event(event: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""INSERT INTO calendar_events (athlete_id, title, event_type, date, duration_minutes, description, completed, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        cur.execute("""INSERT INTO calendar_events (athlete_id, title, event_type, date, duration_minutes, description, completed, weather_temp, weather_humidity, weather_description, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (event.get("athlete_id"), event.get("title"), event.get("event_type", "training"),
              event.get("date"), event.get("duration_minutes", 0),
              event.get("description"), 1 if event.get("completed") else 0,
+             event.get("weather_temp"), event.get("weather_humidity"), event.get("weather_description"),
              datetime.now(timezone.utc).isoformat()))
         conn.commit()
         return cur.lastrowid
@@ -314,10 +326,10 @@ def update_calendar_event(event_id: int, event_data: dict) -> bool:
     merged = {**existing, **event_data}
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""UPDATE calendar_events SET title=?, event_type=?, date=?, duration_minutes=?, description=?, completed=? WHERE id=?""",
+        cur.execute("""UPDATE calendar_events SET title=?, event_type=?, date=?, duration_minutes=?, description=?, completed=?, weather_temp=?, weather_humidity=?, weather_description=? WHERE id=?""",
             (merged.get("title"), merged.get("event_type", "training"), merged.get("date"),
              merged.get("duration_minutes", 0), merged.get("description"),
-             1 if merged.get("completed") else 0, event_id))
+             1 if merged.get("completed") else 0, merged.get("weather_temp"), merged.get("weather_humidity"), merged.get("weather_description"), event_id))
         conn.commit()
         return cur.rowcount > 0
 
@@ -334,6 +346,80 @@ def _row_to_calendar_event(row) -> dict:
         "id": row[0], "athlete_id": row[1], "title": row[2], "event_type": row[3],
         "date": row[4], "duration_minutes": row[5], "description": row[6],
         "completed": bool(row[7]), "created_at": row[8],
+        "weather_temp": row[9] if len(row) > 9 else None,
+        "weather_humidity": row[10] if len(row) > 10 else None,
+        "weather_description": row[11] if len(row) > 11 else None,
     }
 
-__all__ = ["save_ride", "get_ride", "get_all_rides", "get_paginated_rides", "get_rides_by_athlete", "get_all_athletes", "delete_ride", "update_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection", "save_chat_message", "get_chat_history", "clear_chat_history", "save_calendar_event", "get_calendar_event", "get_events_by_athlete", "get_events_by_date_range", "get_events_by_month", "update_calendar_event", "delete_calendar_event"]
+def get_weather_cache(lat: float, lon: float, date: str) -> Optional[dict]:
+    """Get cached weather data for coordinates and date."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT temperature, humidity, description, cached_at FROM weather_cache WHERE lat=? AND lon=? AND date=?", (lat, lon, date))
+        row = cur.fetchone()
+        if row:
+            return {
+                "temperature": row[0],
+                "humidity": row[1],
+                "description": row[2],
+                "cached_at": row[3]
+            }
+        return None
+
+def save_weather_cache(lat: float, lon: float, date: str, weather: dict) -> int:
+    """Save weather data to cache."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""INSERT OR REPLACE INTO weather_cache (lat, lon, date, temperature, humidity, description, cached_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (lat, lon, date, weather.get("temperature"), weather.get("humidity"),
+             weather.get("description"), datetime.now(timezone.utc).isoformat()))
+        conn.commit()
+        return cur.lastrowid
+
+def upsert_training_stress_day(athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float) -> None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        now = datetime.now(timezone.utc).isoformat()
+        cur.execute("""INSERT INTO training_stress_days (athlete_id, date, tss, atl, ctl, tsb, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(athlete_id, date) DO UPDATE SET
+                tss=excluded.tss, atl=excluded.atl, ctl=excluded.ctl, tsb=excluded.tsb, updated_at=excluded.updated_at""",
+            (athlete_id, date, tss, atl, ctl, tsb, now, now))
+        conn.commit()
+
+def get_training_stress_days(athlete_id: int, limit: int = 90) -> List[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT date, tss, atl, ctl, tsb FROM training_stress_days WHERE athlete_id = ? ORDER BY date DESC LIMIT ?", (athlete_id, limit))
+        rows = cur.fetchall()
+        return [{"date": r[0], "tss": r[1], "atl": r[2], "ctl": r[3], "tsb": r[4]} for r in rows]
+
+def get_latest_training_stress(athlete_id: int) -> Optional[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT date, tss, atl, ctl, tsb FROM training_stress_days WHERE athlete_id = ? ORDER BY date DESC LIMIT 1", (athlete_id,))
+        row = cur.fetchone()
+        if row:
+            return {"date": row[0], "tss": row[1], "atl": row[2], "ctl": row[3], "tsb": row[4]}
+        return None
+
+def recalculate_training_stress_for_athlete(athlete_id: int, ftp: float = 250.0) -> None:
+    from ..analytics.training_stress import estimate_tss, exponentially_weighted_moving_average
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    if not rides:
+        return
+    daily: dict[str, float] = {}
+    for ride in rides:
+        tss = estimate_tss(ride, ftp=ftp)
+        day = ride.date[:10] if ride.date else "unknown"
+        daily[day] = daily.get(day, 0.0) + tss
+    sorted_days = sorted(daily.items())
+    tss_series = [v for _, v in sorted_days]
+    atl_series = [exponentially_weighted_moving_average(tss_series[: i + 1], tau_days=7.0) for i in range(len(tss_series))]
+    ctl_series = [exponentially_weighted_moving_average(tss_series[: i + 1], tau_days=42.0) for i in range(len(tss_series))]
+    for i, (date_str, _) in enumerate(sorted_days):
+        tsb = round(ctl_series[i] - atl_series[i], 1)
+        upsert_training_stress_day(athlete_id, date_str, round(tss_series[i], 1), atl_series[i], ctl_series[i], tsb)
+
+__all__ = ["save_ride", "get_ride", "get_all_rides", "get_paginated_rides", "get_rides_by_athlete", "get_all_athletes", "delete_ride", "update_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection", "save_chat_message", "get_chat_history", "clear_chat_history", "save_calendar_event", "get_calendar_event", "get_events_by_athlete", "get_events_by_date_range", "get_events_by_month", "update_calendar_event", "delete_calendar_event", "get_weather_cache", "save_weather_cache", "upsert_training_stress_day", "get_training_stress_days", "get_latest_training_stress", "recalculate_training_stress_for_athlete"]

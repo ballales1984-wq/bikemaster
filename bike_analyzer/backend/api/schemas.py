@@ -35,6 +35,7 @@ class AthleteCreate(BaseModel):
     best_segments: Optional[str] = Field(default=None, max_length=500)
     medical_notes: Optional[str] = Field(default=None, max_length=500)
     equipment: Optional[str] = Field(default=None, max_length=500)
+    ftp_watts: Optional[float] = Field(default=None, ge=50, le=500)
 
 class AthleteUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=100)
@@ -53,6 +54,7 @@ class AthleteUpdate(BaseModel):
     best_segments: Optional[str] = Field(default=None, max_length=500)
     medical_notes: Optional[str] = Field(default=None, max_length=500)
     equipment: Optional[str] = Field(default=None, max_length=500)
+    ftp_watts: Optional[float] = Field(default=None, ge=50, le=500)
 
 class MetricCreate(BaseModel):
     fatigue_score: Optional[float] = Field(default=None, ge=0, le=10)
@@ -104,3 +106,38 @@ class CalendarEventUpdate(BaseModel):
     duration_minutes: Optional[int] = Field(default=None, ge=0)
     description: Optional[str] = Field(default=None, max_length=1000)
     completed: Optional[bool] = None
+
+class TrainingStressRequest(BaseModel):
+    athlete_id: int = Field(..., ge=1)
+    ftp: float = Field(default=250.0, ge=50, le=500)
+
+class FitnessSnapshot(BaseModel):
+    date: str
+    atl: float
+    ctl: float
+    tsb: float
+
+class TrainingStressResponse(BaseModel):
+    latest: FitnessSnapshot
+    history: List[FitnessSnapshot]
+    trend: str
+    recommendation: str
+
+
+class TrainingGoalCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    goal_type: str = Field(default="granfondo", pattern="^(granfondo|race|fitness|fondo|custom)$")
+    target_date: Optional[str] = Field(default=None)
+    target_distance_km: Optional[float] = Field(default=None, ge=10, le=500)
+    target_elevation_m: Optional[float] = Field(default=None, ge=0, le=10000)
+
+
+class PlannedWorkoutResponse(BaseModel):
+    id: Optional[int] = None
+    date: str
+    title: str
+    workout_type: str
+    duration_minutes: int
+    target_intensity: float
+    completed: bool = False

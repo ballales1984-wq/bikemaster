@@ -697,3 +697,117 @@ async def toggle_event_complete(event_id: int, current_user: dict = Depends(get_
     if not event: raise HTTPException(status_code=404, detail="Event not found")
     update_calendar_event(event_id, {"completed": not event["completed"]})
     return get_calendar_event(event_id)
+
+
+@router.get("/training/load")
+async def get_training_load(athlete_id: int = Query(...), days: int = Query(30, ge=1, le=90), current_user: dict = Depends(get_current_user_dependency)):
+    """Get ATL/CTL/TSB training load metrics for athlete."""
+    from ..db.database import get_rides_by_athlete
+    from ..analytics.training_load import calculate_atl_ctl_tsb, TrainingLoadDay
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    loads = calculate_atl_ctl_tsb(rides)
+    recent = loads[-days:] if len(loads) > days else loads
+    return {"athlete_id": athlete_id, "days": days, "training_loads": [l for l in recent]}
+
+
+@router.get("/training/status")
+async def get_training_status(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user_dependency)):
+    """Get current fitness status with ATL/CTL/TSB recommendation."""
+    from ..db.database import get_rides_by_athlete
+    from ..analytics.training_load import get_current_training_status
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    status = get_current_training_status(rides)
+    return {"athlete_id": athlete_id, **status}
+
+
+@router.get("/training/summary")
+async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user_dependency)):
+    """Get 7-day fitness summary for dashboard."""
+    from ..db.database import get_rides_by_athlete
+    from ..analytics.training_load import get_7day_fitness_summary
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    summary = get_7day_fitness_summary(rides)
+    return {"athlete_id": athlete_id, "summary": summary}
+
+
+@router.post("/training/goals")
+async def create_training_goal(goal_data: dict, current_user: dict = Depends(get_current_user_dependency)):
+    """Create a training goal for an athlete."""
+    from ..db.postgres_db import save_training_goal, SQLALCHEMY_AVAILABLE
+    if not SQLALCHEMY_AVAILABLE:
+        raise HTTPException(status_code=500, detail="SQLAlchemy non disponibile")
+    from datetime import datetime
+    goal = {
+        "athlete_id": goal_data.get("athlete_id"),
+        "title": goal_data.get("title", ""),
+        "description": goal_data.get("description"),
+        "goal_type": goal_data.get("goal_type", "granfondo"),
+        "target_date": goal_data.get("target_date"),
+        "target_distance_km": goal_data.get("target_distance_km"),
+        "target_elevation_m": goal_data.get("target_elevation_m"),
+        "status": "active"
+    }
+    goal_id = save_training_goal(goal["athlete_id"], goal)
+    return {"id": goal_id, **goal}
+
+
+@router.get("/training/goals")
+async def list_training_goals(athlete_id: int = Query(...), status: str = Query(None), current_user: dict = Depends(get_current_user_dependency)):
+    """List training goals for athlete."""
+    from ..db.postgres_db import get_training_goals, SQLALCHEMY_AVAILABLE
+    if not SQLALCHEMY_AVAILABLE:
+        raise HTTPException(status_code=500, detail="SQLAlchemy non disponibile")
+    goals = get_training_goals(athlete_id, status)
+    return {"goals": goals}
+
+
+@router.post("/training/workouts/generate")
+async def generate_workouts(goal_id: int = Body(...), event_count: int = Body(12, ge=4, le=20)):
+    """Generate planned workouts for a granfondo goal."""
+    from ..db.postgres_db import get_session, PlannedWorkoutModel, TrainingGoalModel
+    from datetime import datetime, timedelta
+    from ..analytics.training_load import get_current_training_status
+    from ..db.database import get_rides_by_athlete
+    from ..models.models import Ride
+    
+    with get_session() as session:
+        goal = session.query(TrainingGoalModel).filter(TrainingGoalModel.id == goal_id).first()
+        if not goal:
+            raise HTTPException(status_code=404, detail="Goal not found")
+        
+        rides = [Ride(**r) for r in get_rides_by_athlete(goal.athlete_id)]
+        current_status = get_current_training_status(rides) if rides else {"ctl": 0}
+        
+        workouts_to_create = []
+        start_date = datetime.now()
+        
+        workout_plan = [
+            ("Base aerobica", "endurance", 0.5),
+            ("Progressivo", "endurance", 0.6),
+            ("Base aerobica", "endurance", 0.5),
+            ("Thresholds", "threshold", 0.75),
+            ("Recupero", "recovery", 0.4),
+            ("Base aerobica", "endurance", 0.55),
+            ("Progressivo", "sweetspot", 0.8),
+            ("Recupero", "recovery", 0.45),
+            ("Thresholds", "threshold", 0.75),
+            ("Base aerobica", "endurance", 0.5),
+            ("Pre-gara", "openers", 0.65),
+            ("Giorno gara", "race", 0.9),
+        ]
+        
+        for i in range(min(event_count, len(workout_plan))):
+            workout_date = (start_date + timedelta(days=7 * i)).strftime("%Y-%m-%d")
+            title, wtype, intensity = workout_plan[i]
+            workouts_to_create.append(PlannedWorkoutModel(
+                athlete_id=goal.athlete_id,
+                goal_id=goal_id,
+                date=workout_date,
+                title=title,
+                workout_type=wtype,
+                duration_minutes=90,
+                target_intensity=intensity
+            ))
+        
+        session.add_all(workouts_to_create)
+        return {"generated": len(workouts_to_create), "goal_id": goal_id}

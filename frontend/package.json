@@ -1,19 +1,35 @@
 {
-  "name": "frontend",
+  "name": "bikemaster-frontend",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "cap sync",
+    "cap:open": "cap open android",
+    "android:build": "npm run build && cap sync && cd android && ./gradlew assembleRelease",
+    "android:install": "npm run build && cap sync && cd android && ./gradlew installDebug"
   },
   "dependencies": {
     "chart.js": "^4.5.1",
-    "vue": "^3.4.0"
+    "vue": "^3.4.0",
+    "@capacitor/core": "^5.7.4",
+    "@capacitor/android": "^5.7.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.0",
+    "@capacitor/cli": "^5.7.4",
     "vite": "^5.4.0"
+  },
+  "capacitor": {
+    "appId": "com.bikemaster.app",
+    "appName": "BikeMaster",
+    "webDir": "dist",
+    "android": {
+      "captivePortal": false,
+      "hostname": "localhost"
+    }
   }
 }
