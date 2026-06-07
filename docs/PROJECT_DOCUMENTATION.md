@@ -738,3 +738,4 @@ Configurazione in `azure.yaml`:
 
 *Documento generato automaticamente — BikeMaster v1.1.0*
 
+
