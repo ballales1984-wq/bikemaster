@@ -87,3 +87,20 @@ class TokenData(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+
+class CalendarEventCreate(BaseModel):
+    athlete_id: int
+    title: str = Field(..., min_length=1, max_length=200)
+    event_type: str = Field(default="training", pattern="^(training|race|recovery|goal_deadline|test|other)$")
+    date: str = Field(..., min_length=10, max_length=10)
+    duration_minutes: int = Field(default=0, ge=0)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    completed: bool = False
+
+class CalendarEventUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    event_type: Optional[str] = Field(default=None, pattern="^(training|race|recovery|goal_deadline|test|other)$")
+    date: Optional[str] = Field(default=None, min_length=10, max_length=10)
+    duration_minutes: Optional[int] = Field(default=None, ge=0)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    completed: Optional[bool] = None

@@ -1,5 +1,6 @@
 """AI Coach with cycling knowledge base RAG and athlete memory."""
 from __future__ import annotations
+import os
 import re
 import traceback
 from typing import List, Optional
@@ -8,6 +9,10 @@ from ..config import GROQ_API_KEY, GROQ_MODEL, OPENAI_API_KEY, OPENAI_MODEL, AZU
 from .analytics import calculate_summary
 from .performance import calculate_performance_score, calculate_recovery_score
 from .knowledge_base import search_knowledge_base, format_context_for_llm
+
+LOCALE: str = os.getenv("LOCALE", "it")
+_LANG_PROMPT = {"it": "Rispondi in italiano", "en": "Respond in English", "es": "Responde en español", "fr": "Réponds en français"}
+_LANG_INSTRUCTION = _LANG_PROMPT.get(LOCALE, _LANG_PROMPT["it"])
 
 _current_client: Optional[object] = None
 _current_provider: Optional[str] = None
@@ -169,7 +174,7 @@ Dati recenti:
 - Archivio temporale: {days_span} giorni
 
 REGOLE:
-- Rispondi in italiano
+- {_LANG_INSTRUCTION}
 - Ogni consiglio deve iniziare con un numero e un titolo in grassetto (es: **1. Obiettivo principale**)
 - Massimo 2 righe per consiglio
 - Usa i numeri interi quando possibile (es: 3 volte, non 3.0 volte)
@@ -229,7 +234,7 @@ Profilo atleta:
 - Giorno corrente: {now.strftime('%Y-%m-%d')}
 
 REGOLE:
-- Rispondi in italiano
+- {_LANG_INSTRUCTION}
 - Ogni consiglio deve iniziare con un numero e un titolo in grassetto
 - Massimo 2 righe per consiglio
 - Sei CONCRETO: parla di durata sonno, idratazione, stretching, alimentazione

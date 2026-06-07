@@ -98,3 +98,18 @@ class AthleteProfile:
 
     def to_dict(self) -> dict:
         return {"id": self.id, "name": self.name, "age": self.age, "weight_kg": self.weight_kg, "height_cm": self.height_cm, "fat_percentage": self.fat_percentage, "years_active": self.years_active, "weekly_sessions": self.weekly_sessions, "monthly_hours": self.monthly_hours, "annual_hours": self.annual_hours, "experience_level": self.experience_level, "goals": self.goals, "preferred_terrain": self.preferred_terrain, "weekly_volume_km": self.weekly_volume_km, "best_segments": self.best_segments, "medical_notes": self.medical_notes, "equipment": self.equipment}
+
+@dataclass
+class CalendarEvent:
+    id: Optional[int] = None
+    athlete_id: Optional[int] = None
+    title: str = ""
+    event_type: str = "training"
+    date: str = ""
+    duration_minutes: int = 0
+    description: Optional[str] = None
+    completed: bool = False
+    created_at: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        return {"id": self.id, "athlete_id": self.athlete_id, "title": self.title, "event_type": self.event_type, "date": self.date, "duration_minutes": self.duration_minutes, "description": self.description, "completed": self.completed, "created_at": self.created_at}

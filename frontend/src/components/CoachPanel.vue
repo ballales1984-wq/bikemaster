@@ -29,7 +29,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { apiPost } from '../utils/api.js'
+import { apiGet } from '../utils/api.js'
 
 const athleteId = ref(0)
 const loading = ref(false)
@@ -38,7 +38,7 @@ const coachData = ref(null)
 async function loadCoach() {
   loading.value = true
   try {
-    coachData.value = await apiPost('/api/v1/coach/athlete', { athlete_id: athleteId.value || null, full: true })
+    coachData.value = await apiGet('/api/v1/coach/full', { athlete_id: athleteId.value || 0 })
   } catch (e) {
     console.error('coach', e)
   } finally {

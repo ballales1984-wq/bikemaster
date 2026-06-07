@@ -1,6 +1,7 @@
 """Test database simple layer."""
 import os
-from bike_analyzer.backend.db.database import save_ride, get_ride, get_all_rides, delete_ride, init_db, save_athlete, get_athlete, create_indices, backup_database, DB_PATH
+import pytest
+from bike_analyzer.backend.db.database import save_ride, get_ride, get_all_rides, delete_ride, init_db, save_athlete, get_athlete, create_indices, backup_database, update_athlete, save_chat_message, get_chat_history, clear_chat_history, get_all_athletes, DB_PATH
 import sqlite3
 
 def test_save_and_get_ride():
@@ -46,3 +47,57 @@ def test_backup_database():
     backup_path = backup_database("test_backup.db")
     assert os.path.exists(backup_path)
     os.remove(backup_path)
+
+def test_get_ride_not_found():
+    init_db()
+    r = get_ride(99999)
+    assert r is None
+
+def test_delete_ride_not_found():
+    init_db()
+    deleted = delete_ride(99999)
+    assert deleted is False
+
+def test_get_athlete_not_found():
+    init_db()
+    a = get_athlete(99999)
+    assert a is None
+
+def test_update_athlete_not_found():
+    init_db()
+    result = update_athlete(99999, {"name": "Nuovo"})
+    assert result is False
+
+def test_backup_missing_db(tmp_path):
+    import bike_analyzer.backend.db.database as db_mod
+    original_path = db_mod.DB_PATH
+    db_mod.DB_PATH = str(tmp_path / "nonexistent.db")
+    with pytest.raises(FileNotFoundError):
+        backup_database()
+    db_mod.DB_PATH = original_path
+
+def test_save_chat_and_history():
+    init_db()
+    msg_id = save_chat_message(athlete_id=1, role="user", content="Ciao AI Coach")
+    assert msg_id > 0
+    history = get_chat_history(athlete_id=1, limit=5)
+    assert len(history) >= 1
+    assert history[0]["role"] == "user"
+    assert history[0]["content"] == "Ciao AI Coach"
+
+def test_clear_chat_history():
+    init_db()
+    save_chat_message(athlete_id=1, role="user", content="test")
+    cleared = clear_chat_history(athlete_id=1)
+    assert cleared is True
+    history = get_chat_history(athlete_id=1)
+    assert len(history) == 0
+
+def test_get_all_athletes():
+    init_db()
+    save_athlete({"name": "Athlete1", "experience_level": "Beginner"})
+    save_athlete({"name": "Athlete2", "experience_level": "Advanced"})
+    athletes = get_all_athletes()
+    names = [a["name"] for a in athletes]
+    assert "Athlete1" in names
+    assert "Athlete2" in names

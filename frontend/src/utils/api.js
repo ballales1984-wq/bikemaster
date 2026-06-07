@@ -32,4 +32,14 @@ async function apiUpload(path, file) {
   return resp.json()
 }
 
-export { apiGet, apiPost, apiDelete, apiUpload }
+async function apiPut(path, body) {
+  const resp = await fetch(`${API_BASE}${path}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!resp.ok) throw new Error(`PUT ${path}: ${resp.status}`)
+  return resp.json()
+}
+
+export { apiGet, apiPost, apiDelete, apiUpload, apiPut }

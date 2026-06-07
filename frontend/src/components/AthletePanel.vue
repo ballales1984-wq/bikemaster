@@ -33,11 +33,13 @@ import { apiGet, apiPost } from '../utils/api.js'
 const emit = defineEmits(['toast'])
 const form = ref({ name: '', age: 30, weight_kg: 70, height_cm: 175, fat_percentage: 15, years_active: 1, weekly_sessions: 3, monthly_hours: 0, annual_hours: 0, experience_level: 'Beginner' })
 const result = ref('')
+const athleteId = ref(null)
 
 async function save() {
   try {
-    await apiPost('/api/v1/athletes', form.value)
-    result.value = 'Profilo atleta salvato'
+    const data = await apiPost('/api/v1/athletes', form.value)
+    athleteId.value = data.id
+    result.value = 'Profilo atleta salvato (ID: ' + data.id + ')'
   } catch (e) {
     result.value = 'Errore: ' + (e.message || e)
   }
@@ -45,7 +47,12 @@ async function save() {
 
 async function getScores() {
   try {
-    const data = await apiPost('/api/v1/scores/athlete', form.value)
+    const id = athleteId.value
+    if (!id) {
+      result.value = 'Salva prima il profilo atleta'
+      return
+    }
+    const data = await apiGet('/api/v1/scores/athlete/' + id)
     result.value = JSON.stringify(data, null, 2)
   } catch (e) {
     result.value = 'Errore: ' + (e.message || e)

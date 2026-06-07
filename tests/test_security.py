@@ -157,3 +157,14 @@ def test_auth_login_endpoint(client):
 def test_auth_login_invalid(client):
     response = client.post("/api/v1/auth/login", data={"username": "wrong", "password": "wrong"})
     assert response.status_code == 401
+
+def test_protected_route_no_auth_shows_empty(client):
+    response = client.get("/api/v1/rides")
+    assert response.status_code == 200
+
+def test_protected_route_with_valid_token(client):
+    client.post("/api/v1/auth/register", json={"username": "authtest", "password": "testpass123"})
+    login_resp = client.post("/api/v1/auth/login", data={"username": "authtest", "password": "testpass123"})
+    token = login_resp.json()["access_token"]
+    response = client.get("/api/v1/rides", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200

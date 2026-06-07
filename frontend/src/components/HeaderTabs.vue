@@ -5,6 +5,7 @@
     <button class="tab" :class="{ active: active === 'athlete' }" @click="$emit('update:active', 'athlete')">🏃 Atleta</button>
     <button class="tab" :class="{ active: active === 'coach' }" @click="$emit('update:active', 'coach')">🧠 AI Coach</button>
     <button class="tab" :class="{ active: active === 'knowledge' }" @click="$emit('update:active', 'knowledge')">📚 Knowledge</button>
+    <button class="tab" :class="{ active: active === 'calendar' }" @click="$emit('update:active', 'calendar')">📅 Calendario</button>
     <button class="tab" :class="{ active: active === 'admin' }" @click="$emit('update:active', 'admin')">⚙️ Admin</button>
   </nav>
 </template>

@@ -45,3 +45,18 @@ env/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Playwright MCP
+.playwright-mcp/
+
+# Frontend
+frontend/node_modules/
+
+# Ride maps and exports
+ride_*_map.html
+rides_export.csv
+rides_export.json
+
+# Misc
+.DS_Store
+Thumbs.db

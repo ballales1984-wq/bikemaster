@@ -30,6 +30,10 @@
         <KnowledgePanel />
       </section>
 
+      <section v-if="activeTab === 'calendar'">
+        <CalendarPanel />
+      </section>
+
       <section v-if="activeTab === 'admin'">
         <AdminPanel />
       </section>
@@ -49,6 +53,7 @@ import ImportPanel from './components/ImportPanel.vue'
 import AthletePanel from './components/AthletePanel.vue'
 import CoachPanel from './components/CoachPanel.vue'
 import KnowledgePanel from './components/KnowledgePanel.vue'
+import CalendarPanel from './components/CalendarPanel.vue'
 import AdminPanel from './components/AdminPanel.vue'
 import ToastContainer from './components/ToastContainer.vue'
 

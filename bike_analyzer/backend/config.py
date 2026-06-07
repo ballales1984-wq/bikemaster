@@ -5,6 +5,7 @@ All settings are loaded from environment variables with sensible defaults.
 from __future__ import annotations
 
 import os
+import secrets
 from pathlib import Path
 from typing import List
 
@@ -52,7 +53,8 @@ AZURE_OPENAI_ENDPOINT: str = os.getenv("AZURE_OPENAI_ENDPOINT", "")
 AZURE_OPENAI_MODEL: str = os.getenv("AZURE_OPENAI_MODEL", "gpt-4o-mini")
 
 # JWT / Auth
-SECRET_KEY: str = os.getenv("SECRET_KEY", "bikemaster-default-secret-change-me")
+_SECRET: str = os.getenv("SECRET_KEY", "")
+SECRET_KEY: str = _SECRET if _SECRET else secrets.token_urlsafe(32)
 ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 JWT_ISSUER: str = os.getenv("JWT_ISSUER", "bikemaster")

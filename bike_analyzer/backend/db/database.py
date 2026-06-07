@@ -18,68 +18,80 @@ def get_db_connection():
         conn.close()
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("""CREATE TABLE IF NOT EXISTS rides (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        athlete_id INTEGER,
-        date TEXT NOT NULL,
-        distance_km REAL DEFAULT 0,
-        duration_minutes REAL DEFAULT 0,
-        avg_speed_kmh REAL DEFAULT 0,
-        weight_kg REAL DEFAULT 70,
-        calories REAL DEFAULT 0,
-        heart_rate_avg REAL,
-        elevation_gain_m REAL,
-        gps_points TEXT,
-        created_at TEXT
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS athletes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        age INTEGER DEFAULT 30,
-        weight_kg REAL DEFAULT 70,
-        height_cm REAL,
-        fat_percentage REAL,
-        years_active INTEGER DEFAULT 1,
-        weekly_sessions INTEGER DEFAULT 3,
-        monthly_hours REAL DEFAULT 0,
-        annual_hours REAL DEFAULT 0,
-        experience_level TEXT DEFAULT 'Beginner',
-        goals TEXT,
-        preferred_terrain TEXT,
-        weekly_volume_km REAL DEFAULT 0,
-        best_segments TEXT,
-        medical_notes TEXT,
-        equipment TEXT,
-        created_at TEXT
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS chat_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        athlete_id INTEGER,
-        role TEXT NOT NULL,
-        content TEXT NOT NULL,
-        created_at TEXT,
-        FOREIGN KEY (athlete_id) REFERENCES athletes(id)
-    )""")
-    cur = conn.cursor()
-    cur.execute("PRAGMA table_info(athletes)")
-    columns = [row[1] for row in cur.fetchall()]
-    if "goals" not in columns:
-        conn.execute("ALTER TABLE athletes ADD COLUMN goals TEXT")
-    conn.execute("""CREATE TABLE IF NOT EXISTS metrics (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        athlete_id INTEGER,
-        ride_id INTEGER,
-        fatigue_score REAL,
-        recovery_hours REAL,
-        calories_per_km REAL,
-        efficiency_score REAL,
-        created_at TEXT,
-        FOREIGN KEY (athlete_id) REFERENCES athletes(id),
-        FOREIGN KEY (ride_id) REFERENCES rides(id)
-    )""")
-    conn.commit()
-    conn.close()
+    with get_db_connection() as conn:
+        conn.execute("""CREATE TABLE IF NOT EXISTS rides (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER,
+            date TEXT NOT NULL,
+            distance_km REAL DEFAULT 0,
+            duration_minutes REAL DEFAULT 0,
+            avg_speed_kmh REAL DEFAULT 0,
+            weight_kg REAL DEFAULT 70,
+            calories REAL DEFAULT 0,
+            heart_rate_avg REAL,
+            elevation_gain_m REAL,
+            gps_points TEXT,
+            created_at TEXT
+        )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS athletes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            age INTEGER DEFAULT 30,
+            weight_kg REAL DEFAULT 70,
+            height_cm REAL,
+            fat_percentage REAL,
+            years_active INTEGER DEFAULT 1,
+            weekly_sessions INTEGER DEFAULT 3,
+            monthly_hours REAL DEFAULT 0,
+            annual_hours REAL DEFAULT 0,
+            experience_level TEXT DEFAULT 'Beginner',
+            goals TEXT,
+            preferred_terrain TEXT,
+            weekly_volume_km REAL DEFAULT 0,
+            best_segments TEXT,
+            medical_notes TEXT,
+            equipment TEXT,
+            created_at TEXT
+        )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS chat_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT,
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id)
+        )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS calendar_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER,
+            title TEXT NOT NULL,
+            event_type TEXT DEFAULT 'training',
+            date TEXT NOT NULL,
+            duration_minutes INTEGER DEFAULT 0,
+            description TEXT,
+            completed INTEGER DEFAULT 0,
+            created_at TEXT,
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id)
+        )""")
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(athletes)")
+
+        columns = [row[1] for row in cur.fetchall()]
+        if "goals" not in columns:
+            conn.execute("ALTER TABLE athletes ADD COLUMN goals TEXT")
+        conn.execute("""CREATE TABLE IF NOT EXISTS metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER,
+            ride_id INTEGER,
+            fatigue_score REAL,
+            recovery_hours REAL,
+            calories_per_km REAL,
+            efficiency_score REAL,
+            created_at TEXT,
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id),
+            FOREIGN KEY (ride_id) REFERENCES rides(id)
+        )""")
+        conn.commit()
 
 def _row_to_ride(row) -> dict:
     try:
@@ -122,6 +134,18 @@ def get_all_rides() -> List[dict]:
         cur.execute("SELECT * FROM rides")
         rows = cur.fetchall()
         return [_row_to_ride(r) for r in rows]
+
+def get_paginated_rides(page: int = 1, page_size: int = 20, sort: str = "date") -> tuple[List[dict], int]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        order_map = {"date": "date", "distance": "distance_km", "duration": "duration_minutes"}
+        order = order_map.get(sort, "date")
+        cur.execute("SELECT COUNT(*) FROM rides")
+        total = cur.fetchone()[0]
+        offset = (page - 1) * page_size
+        cur.execute(f"SELECT * FROM rides ORDER BY {order} DESC LIMIT ? OFFSET ?", (page_size, offset))
+        rows = cur.fetchall()
+        return [_row_to_ride(r) for r in rows], total
 
 def delete_ride(ride_id: int) -> bool:
     with get_db_connection() as conn:
@@ -239,4 +263,77 @@ def get_all_athletes() -> List[dict]:
         rows = cur.fetchall()
         return [{"id": r[0], "name": r[1], "experience_level": r[2]} for r in rows]
 
-__all__ = ["save_ride", "get_ride", "get_all_rides", "get_rides_by_athlete", "get_all_athletes", "delete_ride", "update_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection", "save_chat_message", "get_chat_history", "clear_chat_history"]
+def save_calendar_event(event: dict) -> int:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""INSERT INTO calendar_events (athlete_id, title, event_type, date, duration_minutes, description, completed, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (event.get("athlete_id"), event.get("title"), event.get("event_type", "training"),
+             event.get("date"), event.get("duration_minutes", 0),
+             event.get("description"), 1 if event.get("completed") else 0,
+             datetime.now(timezone.utc).isoformat()))
+        conn.commit()
+        return cur.lastrowid
+
+def get_calendar_event(event_id: int) -> Optional[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM calendar_events WHERE id = ?", (event_id,))
+        row = cur.fetchone()
+        if row:
+            return _row_to_calendar_event(row)
+        return None
+
+def get_events_by_athlete(athlete_id: int) -> List[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM calendar_events WHERE athlete_id = ? ORDER BY date DESC", (athlete_id,))
+        rows = cur.fetchall()
+        return [_row_to_calendar_event(r) for r in rows]
+
+def get_events_by_date_range(athlete_id: int, start_date: str, end_date: str) -> List[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM calendar_events WHERE athlete_id = ? AND date >= ? AND date <= ? ORDER BY date ASC",
+            (athlete_id, start_date, end_date))
+        rows = cur.fetchall()
+        return [_row_to_calendar_event(r) for r in rows]
+
+def get_events_by_month(athlete_id: int, year: int, month: int) -> List[dict]:
+    if month == 12:
+        next_month = f"{year + 1}-01-01"
+    else:
+        next_month = f"{year}-{month + 1:02d}-01"
+    month_start = f"{year}-{month:02d}-01"
+    return get_events_by_date_range(athlete_id, month_start, next_month)
+
+def update_calendar_event(event_id: int, event_data: dict) -> bool:
+    existing = get_calendar_event(event_id)
+    if not existing:
+        return False
+    merged = {**existing, **event_data}
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""UPDATE calendar_events SET title=?, event_type=?, date=?, duration_minutes=?, description=?, completed=? WHERE id=?""",
+            (merged.get("title"), merged.get("event_type", "training"), merged.get("date"),
+             merged.get("duration_minutes", 0), merged.get("description"),
+             1 if merged.get("completed") else 0, event_id))
+        conn.commit()
+        return cur.rowcount > 0
+
+def delete_calendar_event(event_id: int) -> bool:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM calendar_events WHERE id = ?", (event_id,))
+        deleted = cur.rowcount > 0
+        conn.commit()
+        return deleted
+
+def _row_to_calendar_event(row) -> dict:
+    return {
+        "id": row[0], "athlete_id": row[1], "title": row[2], "event_type": row[3],
+        "date": row[4], "duration_minutes": row[5], "description": row[6],
+        "completed": bool(row[7]), "created_at": row[8],
+    }
+
+__all__ = ["save_ride", "get_ride", "get_all_rides", "get_paginated_rides", "get_rides_by_athlete", "get_all_athletes", "delete_ride", "update_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection", "save_chat_message", "get_chat_history", "clear_chat_history", "save_calendar_event", "get_calendar_event", "get_events_by_athlete", "get_events_by_date_range", "get_events_by_month", "update_calendar_event", "delete_calendar_event"]

@@ -28,7 +28,7 @@ async function search() {
 
 async function listTopics() {
   try {
-    const data = await apiGet('/api/v1/knowledge/topics')
+    const data = await apiGet('/api/v1/knowledge')
     result.value = JSON.stringify(data, null, 2)
   } catch (e) {
     result.value = 'Errore: ' + (e.message || e)
