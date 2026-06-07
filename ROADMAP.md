@@ -171,11 +171,11 @@
 
 ## FASE 11 - UI/UX (121-125)
 
-- [ ] 121. Design dark theme responsive layout
-- [ ] 122. Build ride list component with filters
-- [ ] 123. Create ride detail view with map integration
-- [ ] 124. Implement athlete profile settings page
-- [ ] 125. Add interactive charts with Chart.js
+- [x] 121. Design dark theme responsive layout
+- [x] 122. Build ride list component with filters
+- [x] 123. Create ride detail view with map integration
+- [x] 124. Implement athlete profile settings page
+- [x] 125. Add interactive charts with Chart.js
 ---
 
 ## FASE 12 - Deployment (126-135)
@@ -220,6 +220,7 @@
 - `/api/v1/admin/*` - Backup, stats, indexes
 
 **Test Coverage: 78%** (227 test passanti) - 2 punti dal target 80%
+
 
 
 
