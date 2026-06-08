@@ -56,10 +56,6 @@ def calculate_atl_ctl_tsb(rides: List[Ride], ftp: Optional[float] = None, target
     
     first_date = datetime.fromisoformat(dates[0])
     end_date = datetime.fromisoformat(target_date[:10]) if target_date else datetime.now()
-    try:
-        end_date = datetime.fromisoformat(target_date[:10]) if target_date else datetime.now()
-    except:
-        end_date = datetime.fromisoformat(dates[-1])
     
     all_dates = []
     current = first_date
@@ -76,8 +72,8 @@ def calculate_atl_ctl_tsb(rides: List[Ride], ftp: Optional[float] = None, target
             atl = tss
             ctl = tss
         else:
-            prev_atl = result[i-1].atl if i > 0 else 0.0
-            prev_ctl = result[-1].ctl if result else 0.0
+            prev_atl = result[i - 1].atl
+            prev_ctl = result[i - 1].ctl
             
             atl = prev_atl * 6.0 / 7.0 + tss * 1.0 / 7.0
             ctl = prev_ctl * 41.0 / 42.0 + tss * 1.0 / 42.0

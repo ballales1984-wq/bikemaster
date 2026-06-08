@@ -28,7 +28,7 @@ def client():
 @pytest.fixture
 def tmp_db(tmp_path):
     db_path = str(tmp_path / "test.db")
-    os.environ["BIKEMASTER_DB"] = db_path
+    os.environ["DB_PATH"] = db_path
     yield db_path
     if os.path.exists(db_path):
         os.remove(db_path)

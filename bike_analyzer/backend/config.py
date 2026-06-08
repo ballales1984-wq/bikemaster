@@ -11,7 +11,7 @@ from typing import List
 
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path=Path(__file__).parent.parent.parent.parent / ".env", override=True)
+load_dotenv(dotenv_path=Path(__file__).parent.parent.parent / ".env", override=True)
 
 # Database
 DB_PATH: str = os.getenv("DB_PATH", "rides.db")
