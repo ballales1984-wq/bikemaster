@@ -296,7 +296,12 @@ def ai_coach_full(athlete: AthleteProfile, rides: List[Ride], athlete_id: Option
     from ..analytics.analytics import calculate_summary
     from ..analytics.performance import calculate_performance_score, calculate_recovery_score, calculate_endurance_score, calculate_efficiency_score
     from ..processing.processing import build_segments
-    from ..analytics.analytics import create_speed_chart, create_duration_chart
+    
+    try:
+        print(f"AI Coach Full: athlete={athlete.name}, rides={len(rides)}")
+    except Exception as log_err:
+        print(f"AI Coach Full log error: {log_err}")
+    
     recent = rides[-1] if rides else None
     perf = calculate_performance_score(recent) if recent else 0
     recovery = calculate_recovery_score(recent) if recent else 0
