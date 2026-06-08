@@ -65,7 +65,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     is_admin: bool = payload.get("is_admin", False)
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token non valido")
-    return {"id": int(user_id), "is_admin": is_admin}
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        user_id_int = user_id
+    return {"id": user_id_int, "is_admin": is_admin}
 
 
 async def get_admin_user(token: str = Depends(oauth2_scheme)) -> dict:

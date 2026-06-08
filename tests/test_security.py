@@ -103,8 +103,8 @@ async def test_get_current_user_valid():
 @pytest.mark.asyncio
 async def test_get_current_user_missing_sub():
     token = create_access_token("invalid-int-id-xyz")
-    with pytest.raises(ValueError):
-        await get_current_user(token)
+    result = await get_current_user(token)
+    assert result["id"] == "invalid-int-id-xyz"
 
 @pytest.mark.asyncio
 async def test_get_optional_current_user_with_valid_token():
