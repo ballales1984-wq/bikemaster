@@ -51,7 +51,8 @@ def get_ai_coach_client():
             _current_client = Groq(api_key=GROQ_API_KEY)
             _current_provider = "groq"
             return _current_client, _current_provider
-        except Exception:
+        except Exception as e:
+            print(f"Groq init error: {e}")
             _current_client = None
             _current_provider = None
     if OPENAI_API_KEY and OPENAI_API_KEY.startswith("sk-"):
@@ -60,16 +61,8 @@ def get_ai_coach_client():
             _current_client = OpenAI(api_key=OPENAI_API_KEY)
             _current_provider = "openai"
             return _current_client, _current_provider
-        except Exception:
-            _current_client = None
-            _current_provider = None
-    if AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT:
-        try:
-            from openai import AsyncAzureOpenAI
-            _current_client = AsyncAzureOpenAI(api_key=AZURE_OPENAI_API_KEY, azure_endpoint=AZURE_OPENAI_ENDPOINT)
-            _current_provider = "azure"
-            return _current_client, _current_provider
-        except Exception:
+        except Exception as e:
+            print(f"OpenAI init error: {e}")
             _current_client = None
             _current_provider = None
     raise ValueError("Nessuna API key valida configurata (GROQ, OPENAI o AZURE)")
