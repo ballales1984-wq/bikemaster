@@ -13,6 +13,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.bikemaster.R
 import com.bikemaster.databinding.ActivityTrackingBinding
+import com.bikemaster.sensors.SensorManager
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -31,6 +32,7 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var googleMap: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
+    private lateinit var sensorManager: SensorManager
     
     private val trackingPoints = mutableListOf<LatLng>()
     private var isTracking = false
@@ -41,6 +43,35 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
         fun start(context: Context) {
             context.startActivity(android.content.Intent(context, TrackingActivity::class.java))
         }
+    }
+    
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityTrackingBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        
+        sensorManager = SensorManager(this)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        setupMap()
+        setupButtons()
+    }
+    
+    private fun setupButtons() {
+        binding.btnStart.setOnClickListener { startTracking() }
+        binding.btnStop.setOnClickListener { stopTracking() }
+        binding.btnSave.setOnClickListener { saveRide() }
+        binding.btnSensors.setOnClickListener { toggleSensors() }
+    }
+    
+    private fun toggleSensors() {
+        if (binding.sensorPanel.visibility == android.view.View.VISIBLE) {
+            sensorManager.stopSensors()
+            binding.sensorPanel.visibility = android.view.View.GONE
+        } else {
+            sensorManager.startSensors()
+            binding.sensorPanel.visibility = android.view.View.VISIBLE
+        }
+    }
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
