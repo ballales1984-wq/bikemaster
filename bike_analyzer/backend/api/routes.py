@@ -34,7 +34,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     from ..security import verify_password, create_access_token
     user = FAKE_USERS_DB.get(form_data.username)
     if not user or not verify_password(form_data.password, user["hashed_password"]):
-        raise HTTPException(status_code=401, detail="Credenziali errate", headers={"WWW-Authenticate": "Bearer"})
+        raise HTTPException(status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"})
     return {"access_token": create_access_token(subject=form_data.username, is_admin=user.get("is_admin", False)), "token_type": "bearer"}
 
 @router.post("/auth/register")
@@ -42,7 +42,7 @@ async def register(username: str = Body(..., min_length=3), password: str = Body
     from ..security import hash_password, create_access_token
     from ..db.database import get_db_connection
     if username in FAKE_USERS_DB:
-        raise HTTPException(status_code=400, detail="Username già esistente")
+        raise HTTPException(status_code=400, detail="Username already exists")
     FAKE_USERS_DB[username] = {"username": username, "hashed_password": hash_password(password), "is_admin": is_admin}
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -420,7 +420,7 @@ async def workout_recommendations(athlete_id: int = 0, current_user: Optional[di
                 row = cur.fetchone()
                 resolved_id = row[0] if row else 0
         if not resolved_id:
-            return {"recommendations": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati."}
+            return {"recommendations": "Create an athlete profile in the Dashboard to receive personalized recommendations."}
         rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
         athlete_data = get_athlete(resolved_id)
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
@@ -428,7 +428,8 @@ async def workout_recommendations(athlete_id: int = 0, current_user: Optional[di
         return {"recommendations": result}
     except Exception:
         traceback.print_exc()
-        return {"recommendations": "Errore AI Coach. Riprova più tardi."}
+        return {"recommendations": "AI Coach error. Please try again later."}
+
 
 @router.get("/coach/full")
 async def coach_full_data(athlete_id: int = 0, current_user: Optional[dict] = Depends(get_optional_current_user)):
@@ -445,12 +446,12 @@ async def coach_full_data(athlete_id: int = 0, current_user: Optional[dict] = De
                 row = cur.fetchone()
                 resolved_id = row[0] if row else 0
         if not resolved_id:
-            return {"training_advice": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati.", "recovery_advice": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
+            return {"training_advice": "Create an athlete profile in the Dashboard to receive personalized recommendations.", "recovery_advice": "Create an athlete profile in the Dashboard to receive personalized recommendations.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
         rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
         athlete_data = get_athlete(resolved_id)
         print(f"DEBUG: resolved_id={resolved_id}, athlete_data={athlete_data}")
         if not athlete_data:
-            return {"training_advice": "Atleta non trovato. Crea un profilo nella Dashboard.", "recovery_advice": "Atleta non trovato. Crea un profilo nella Dashboard.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
+            return {"training_advice": "Athlete not found. Create a profile in the Dashboard.", "recovery_advice": "Athlete not found. Create a profile in the Dashboard.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
         athlete = AthleteProfile(**athlete_data)
         result = ai_coach_full(athlete, rides, resolved_id)
         if athlete_id and result.get("training_advice"):
@@ -458,7 +459,7 @@ async def coach_full_data(athlete_id: int = 0, current_user: Optional[dict] = De
         return result
     except Exception:
         traceback.print_exc()
-        return {"training_advice": "Errore AI Coach. Riprova più tardi.", "recovery_advice": "Errore AI Coach. Riprova più tardi.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
+        return {"training_advice": "AI Coach error. Please try again later.", "recovery_advice": "AI Coach error. Please try again later.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
 
 @router.get("/coach/page", response_class=HTMLResponse)
 async def coach_page():
@@ -466,7 +467,7 @@ async def coach_page():
     page = Path(__file__).parent.parent / "static" / "ai_coach.html"
     if page.exists():
         return page.read_text(encoding="utf-8")
-    return HTMLResponse("<h1>Pagina AI Coach non disponibile</h1>", status_code=404)
+    return HTMLResponse("<h1>AI Coach page not available</h1>", status_code=404)
 
 @router.get("/coach/recovery")
 async def recovery_recommendations(fatigue_score: float = 5.0, ride_id: int = 0, current_user: Optional[dict] = Depends(get_optional_current_user)):
@@ -483,7 +484,8 @@ async def recovery_recommendations(fatigue_score: float = 5.0, ride_id: int = 0,
         return {"recommendations": result}
     except Exception:
         traceback.print_exc()
-        return {"recommendations": "Errore AI Coach. Riprova più tardi."}
+        return {"recommendations": "AI Coach error. Please try again later."}
+
 
 @router.get("/coach/trends")
 async def historical_trends(current_user: Optional[dict] = Depends(get_optional_current_user)):
@@ -644,7 +646,7 @@ async def speed_analytics(limit: int = Query(10, ge=1, le=50)):
     }
 
 @router.get("/maps/places/nearby")
-async def nearby_places(ride_id: int, query: str = Query(..., description="Es: cafe, bakery, restaurant")):
+async def nearby_places(ride_id: int, query: str = Query(..., description="e.g.: cafe, bakery, restaurant")):
     from ..db.database import get_ride as _get_ride
     from ..config import SERPAPI_API_KEY
     ride = _get_ride(ride_id)
@@ -658,7 +660,7 @@ async def nearby_places(ride_id: int, query: str = Query(..., description="Es: c
     return {"query": query, "count": len(results), "results": results}
 
 @router.get("/maps/places/search")
-async def search_places_endpoint(ride_id: int, query: str = Query(..., description="Query di ricerca luoghi")):
+async def search_places_endpoint(ride_id: int, query: str = Query(..., description="Place search query")):
     from ..db.database import get_ride as _get_ride
     from ..config import SERPAPI_API_KEY
     ride = _get_ride(ride_id)
@@ -764,7 +766,7 @@ async def create_training_goal(goal_data: dict, current_user: dict = Depends(get
     """Create a training goal for an athlete."""
     from ..db.postgres_db import save_training_goal, SQLALCHEMY_AVAILABLE
     if not SQLALCHEMY_AVAILABLE:
-        raise HTTPException(status_code=500, detail="SQLAlchemy non disponibile")
+        raise HTTPException(status_code=500, detail="SQLAlchemy not available")
     from datetime import datetime
     goal = {
         "athlete_id": goal_data.get("athlete_id"),
@@ -785,7 +787,7 @@ async def list_training_goals(athlete_id: int = Query(...), status: str = Query(
     """List training goals for athlete."""
     from ..db.postgres_db import get_training_goals, SQLALCHEMY_AVAILABLE
     if not SQLALCHEMY_AVAILABLE:
-        raise HTTPException(status_code=500, detail="SQLAlchemy non disponibile")
+        raise HTTPException(status_code=500, detail="SQLAlchemy not available")
     goals = get_training_goals(athlete_id, status)
     return {"goals": goals}
 
@@ -842,13 +844,13 @@ async def generate_workouts(goal_id: int = Body(...), event_count: int = Body(12
         return {"generated": len(workouts_to_create), "goal_id": goal_id}
 
 @router.get("/weather")
-async def get_weather(lat: float = Query(..., description="Latitudine"), lon: float = Query(..., description="Longitudine"), date: Optional[str] = Query(None, description="Data (YYYY-MM-DD) o oggi")):
+async def get_weather(lat: float = Query(..., description="Latitude"), lon: float = Query(..., description="Longitude"), date: Optional[str] = Query(None, description="Date (YYYY-MM-DD) or today")):
     """Get weather for coordinates, optionally for a specific date."""
     from ..weather.weather_service import get_weather_for_coordinates, get_forecast_for_date, get_weather_score
     from ..config import WEATHER_API_KEY
     
     if not WEATHER_API_KEY:
-        raise HTTPException(status_code=500, detail="WEATHER_API_KEY non configurata nel file .env")
+        raise HTTPException(status_code=500, detail="WEATHER_API_KEY not configured in .env file")
     
     if date:
         weather = get_forecast_for_date(lat, lon, date)
@@ -861,7 +863,7 @@ async def get_weather(lat: float = Query(..., description="Latitudine"), lon: fl
     temp = weather.get("temperature")
     humidity = weather.get("humidity")
     
-    score, advice = get_weather_score(temp, humidity) if temp is not None and humidity is not None else (5, "Dati meteo non disponibili")
+    score, advice = get_weather_score(temp, humidity) if temp is not None and humidity is not None else (5, "Weather data not available")
     
     weather["score"] = score
     weather["advice"] = advice
@@ -876,7 +878,7 @@ async def get_weather_forecast(lat: float = Query(..., description="Latitudine")
     from datetime import datetime, timedelta
     
     if not WEATHER_API_KEY:
-        raise HTTPException(status_code=500, detail="WEATHER_API_KEY non configurata nel file .env")
+        raise HTTPException(status_code=500, detail="WEATHER_API_KEY not configured in .env file")
     
     forecasts = []
     today = datetime.now()

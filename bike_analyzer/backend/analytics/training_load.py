@@ -98,30 +98,30 @@ def calculate_atl_ctl_tsb(rides: List[Ride], ftp: Optional[float] = None, target
 def get_current_training_status(rides: List[Ride], ftp: Optional[float] = None) -> dict:
     """Get current ATL/CTL/TSB values and training recommendation."""
     if not rides:
-        return {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "status": "no_data", "recommendation": "Inizia a registrare le tue uscite"}
+        return {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "status": "no_data", "recommendation": "Start recording your rides"}
     
     load_history = calculate_atl_ctl_tsb(rides, ftp)
     if not load_history:
-        return {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "status": "no_data", "recommendation": "Dati insufficienti"}
+        return {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "status": "no_data", "recommendation": "Insufficient data"}
     
     latest = load_history[-1]
     atl, ctl, tsb = latest.atl, latest.ctl, latest.tsb
     
     if tsb > 10:
         status = "fresh"
-        recommendation = "Sei ben riposato. Allenamento intenso consigliato oggi."
+        recommendation = "You're well rested. Intense training recommended today."
     elif tsb > 0:
         status = "optimal"
-        recommendation = "Stato ideale per allenamento di qualità."
+        recommendation = "Ideal state for quality training."
     elif tsb > -10:
         status = "fatigued"
-        recommendation = "Allenamento leggero o recupero consigliati."
+        recommendation = "Light training or recovery recommended."
     elif tsb > -20:
         status = "overreached"
-        recommendation = "Recupero urgente necessario. Riduci volume/intensità."
+        recommendation = "Urgent recovery needed. Reduce volume/intensity."
     else:
         status = "burnout_risk"
-        recommendation = "Rischio sovrallenamento. Riposo totale per 2-3 giorni."
+        recommendation = "Overtraining risk. Total rest for 2-3 days."
     
     return {
         "atl": atl,

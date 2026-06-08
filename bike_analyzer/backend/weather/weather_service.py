@@ -119,32 +119,32 @@ def get_weather_score(temperature: float, humidity: float) -> tuple[int, str]:
     
     if temperature < 0:
         score -= 5
-        advice.append("⚠️ Temperature molto bassa, abbigliamento caldo necessario")
+        advice.append("⚠️ Very low temperature, warm clothing needed")
     elif temperature < 5:
         score -= 3
-        advice.append("🧥 Freddo intenso, abbigliamento termico")
+        advice.append("🧥 Cold weather, thermal clothing")
     elif temperature < 10:
         score -= 1
-        advice.append("🧣 Freddo, strato extra consigliato")
+        advice.append("🧣 Cold, extra layer recommended")
     elif temperature > 35:
         score -= 4
-        advice.append("🔥 Temperature elevata, idratazione cruciale")
+        advice.append("🔥 High temperature, hydration crucial")
     elif temperature > 30:
         score -= 2
-        advice.append("🥵 Caldo, orari diurni da evitare")
+        advice.append("🥵 Hot, avoid daytime hours")
     
     if humidity > 85:
         score -= 2
-        advice.append("💨 Umidità elevata, sensazione di caldo")
+        advice.append("💨 High humidity, feels hotter")
     elif humidity > 70:
         score -= 1
-        advice.append("🌫️ Umidità moderata")
+        advice.append("🌫️ Moderate humidity")
     
     if score >= 8:
-        advice.append("Ottimo per una uscita in bici!")
+        advice.append("Great for a bike ride!")
     elif score >= 5:
-        advice.append("Buona uscita, attenzione a condizioni")
+        advice.append("Good ride, watch conditions")
     else:
-        advice.append("Condizioni non ideali, considera riprogrammazione")
+        advice.append("Not ideal conditions, consider rescheduling")
     
     return score, " ".join(advice)

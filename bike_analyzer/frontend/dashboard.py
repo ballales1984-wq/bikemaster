@@ -4,9 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 
 DASHBOARD_HTML = """<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
+<html lang="en">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BikeMaster - Dashboard</title>
     <style>
@@ -37,9 +35,9 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         <div class="refresh"><button class="btn" onclick="loadRides()">Refresh Data</button></div>
         <div class="stats" id="stats">
             <div class="stat-card"><div class="stat-value" id="total-rides">0</div><div class="stat-label">Total Rides</div></div>
-            <div class="stat-card"><div class="stat-value" id="total-distance">0</div><div class="stat-label">Km Totali</div></div>
-            <div class="stat-card"><div class="stat-value" id="total-calories">0</div><div class="stat-label">Calorie Totali</div></div>
-            <div class="stat-card"><div class="stat-value" id="avg-speed">0</div><div class="stat-label">Velocità Media</div></div>
+            <div class="stat-card"><div class="stat-value" id="total-distance">0</div><div class="stat-label">Total Km</div></div>
+            <div class="stat-card"><div class="stat-value" id="total-calories">0</div><div class="stat-label">Total Calories</div></div>
+            <div class="stat-card"><div class="stat-value" id="avg-speed">0</div><div class="stat-label">Average Speed</div></div>
         </div>
         <div class="rides-list" id="rides-list"></div>
     </div>
@@ -59,7 +57,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             list.innerHTML = rides.map(r => `
                 <div class="ride-item">
                     <div><div class="ride-date">${r.date}</div><div class="ride-stats">${r.distance_km}km • ${r.duration_minutes}min • ${r.avg_speed_kmh} km/h</div></div>
-                    <button class="btn" onclick="deleteRide(${r.id})">Elimina</button>
+                    <button class="btn" onclick="deleteRide(${r.id})">Delete</button>
                 </div>`).join('');
         }
         async function deleteRide(id) {

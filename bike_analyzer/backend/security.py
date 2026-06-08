@@ -39,10 +39,18 @@ def create_access_token(subject: str, is_admin: bool = False, expires_delta: Opt
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def decode_token(token: str) -> dict:
+def decode_token(token: Optional[str]) -> dict:
     try:
+        if not isinstance(token, str):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token non valido o scaduto",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE)
         return payload
+    except HTTPException:
+        raise
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

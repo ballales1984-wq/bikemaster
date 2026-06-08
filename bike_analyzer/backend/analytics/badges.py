@@ -6,18 +6,18 @@ from datetime import datetime, timezone, timedelta
 
 
 BADGE_DEFINITIONS = [
-    {"id": 1, "name": "Prima Uscita", "description": "Completa la tua prima uscita", "icon": "🚴", "category": "milestone", "target": 1},
+    {"id": 1, "name": "First Ride", "description": "Complete your first ride", "icon": "🚴", "category": "milestone", "target": 1},
     {"id": 2, "name": "Centomiglia", "description": "Total 100km in rides", "icon": "💯", "category": "distance", "target": 100},
     {"id": 3, "name": "Migliaia", "description": "Total 1000km in rides", "icon": "🏔️", "category": "distance", "target": 1000},
     {"id": 4, "name": "Maratona", "description": "Total 10000km in rides", "icon": "🏆", "category": "distance", "target": 10000},
-    {"id": 5, "name": "Coppia di Uscite", "description": "Complete 10 rides", "icon": "📅", "category": "milestone", "target": 10},
+    {"id": 5, "name": "Ride Pair", "description": "Complete 10 rides", "icon": "📅", "category": "milestone", "target": 10},
     {"id": 6, "name": "Centomila", "description": "Total 100 rides completed", "icon": "💯", "category": "milestone", "target": 100},
-    {"id": 7, "name": "Elevazione", "description": "Total 5000m elevation gain", "icon": "⛰️", "category": "elevation", "target": 5000},
-    {"id": 8, "name": "Salita d'Acciaio", "description": "Total 10000m elevation gain", "icon": "🏔️", "category": "elevation", "target": 10000},
-    {"id": 9, "name": "Velocità", "description": "Achieve 30+ km/h average speed", "icon": "⚡", "category": "speed", "target": 30},
-    {"id": 10, "name": "Velocità Supersonica", "description": "Achieve 35+ km/h average speed", "icon": "🚀", "category": "speed", "target": 35},
-    {"id": 11, "name": "Allenatore", "description": "7-day training streak", "icon": "📆", "category": "consistency", "target": 7},
-    {"id": 12, "name": "Dedicato", "description": "30-day training streak", "icon": "📆", "category": "consistency", "target": 30},
+    {"id": 7, "name": "Elevation", "description": "Total 5000m elevation gain", "icon": "⛰️", "category": "elevation", "target": 5000},
+    {"id": 8, "name": "Steel Climb", "description": "Total 10000m elevation gain", "icon": "🏔️", "category": "elevation", "target": 10000},
+    {"id": 9, "name": "Speed", "description": "Achieve 30+ km/h average speed", "icon": "⚡", "category": "speed", "target": 30},
+    {"id": 10, "name": "Supersonic Speed", "description": "Achieve 35+ km/h average speed", "icon": "🚀", "category": "speed", "target": 35},
+    {"id": 11, "name": "Coach", "description": "7-day training streak", "icon": "📆", "category": "consistency", "target": 7},
+    {"id": 12, "name": "Dedicated", "description": "30-day training streak", "icon": "📆", "category": "consistency", "target": 30},
 ]
 
 
