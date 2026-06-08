@@ -126,7 +126,10 @@ def generate_training_advice(athlete: AthleteProfile, rides: List[Ride], athlete
         is_valid, err = validate_athlete_profile(athlete)
         if not is_valid:
             return f"Completa il profilo atleta prima di usare l'AI Coach: {err}"
-        client, provider = get_ai_coach_client()
+        try:
+            client, provider = get_ai_coach_client()
+        except ValueError:
+            return _generate_fallback_training_advice(athlete, rides)
         stats = calculate_summary(rides) if rides else {}
         perf = calculate_performance_score(rides[-1]) if rides else 0
         recovery = calculate_recovery_score(rides[-1]) if rides else 0
@@ -206,7 +209,10 @@ def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride], fatigue
         is_valid, err = validate_athlete_profile(athlete)
         if not is_valid:
             return f"Completa il profilo atleta prima di usare l'AI Coach: {err}"
-        client, provider = get_ai_coach_client()
+        try:
+            client, provider = get_ai_coach_client()
+        except ValueError:
+            return _generate_fallback_recovery_advice(athlete, rides, fatigue_score)
         recovery = calculate_recovery_score(rides[-1]) if rides else fatigue_score
         stats = calculate_summary(rides) if rides else {}
         recent = rides[-1] if rides else None
