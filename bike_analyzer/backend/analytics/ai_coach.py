@@ -194,7 +194,7 @@ REGOLE:
         content = chat.choices[0].message.content or "Nessun consiglio disponibile"
         return _clean_ai_output(content)
     except Exception as e:
-        if "401" in str(e) or "invalid_api_key" in str(e).lower():
+        if "401" in str(e) or "403" in str(e) or "invalid_api_key" in str(e).lower() or "PermissionDenied" in type(e).__name__:
             return _generate_fallback_training_advice(athlete, rides)
         traceback.print_exc()
         return f"AI Coach non disponibile: {type(e).__name__}: {e}"
@@ -255,7 +255,7 @@ REGOLE:
         content = chat.choices[0].message.content or "Recupera bene!"
         return _clean_ai_output(content)
     except Exception as e:
-        if "401" in str(e) or "invalid_api_key" in str(e).lower():
+        if "401" in str(e) or "403" in str(e) or "invalid_api_key" in str(e).lower() or "PermissionDenied" in type(e).__name__:
             rec_score = recovery if isinstance(recovery, (int, float)) else 5.0
             return _generate_fallback_recovery_advice(athlete, rides, rec_score)
         traceback.print_exc()
