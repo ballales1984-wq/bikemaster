@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import json
 from contextlib import contextmanager
 import os
+import sqlite3
 
 from ..config import DB_PATH, DATABASE_URL
 
@@ -21,7 +22,7 @@ if DATABASE_URL:
             _pg_pool = psycopg2.pool.ThreadedConnectionPool(1, 10, DATABASE_URL)
         return _pg_pool
 else:
-    import sqlite3
+    pass
 
 @contextmanager
 def get_db_connection():
