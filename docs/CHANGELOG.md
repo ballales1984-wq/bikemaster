@@ -2,7 +2,23 @@
 
 Tutte le modifiche significative a questo progetto sono documentate in questo file.
 
-## [1.1.0] - 2026-06-05
+## [1.2.0] - 2026-06-08
+
+### Fixati
+- Risolti 2 test falliti in `test_api_coverage.py`: aggiunti endpoint `/health/detailed` e `/coach/history` nel backend
+- Tutti i 293 test passano
+
+### Aggiunte
+- Nuovo modulo `training_stress.py` con TSS (Training Stress Score) e EWMA
+- Nuovo modulo `badges.py` con sistema di badge/medaglie e heatmap GPS
+- Nuovo modulo `granfondo_planner.py` per piani di allenamento granfondo con tapering
+- Nuovo modulo `weather/weather_service.py` per punteggio e consigli meteo
+- Nuovi test: `test_training_stress.py`, `test_badges.py`, `test_granfondo.py`, `test_weather.py`, `test_processing.py`
+- Nuovi endpoint API: `/training/load`, `/training/status`, `/training/summary`, `/training/goals`, `/training/workouts/generate`, `/training/granfondo/plan`, `/weather`, `/weather/forecast`, `/heatmap`, `/badges`
+- Componente Vue `useAuth.js` composable per autenticazione frontend
+
+### Roadmap
+- **143/145 passi completati** (mancano solo 2 step opzionali)
 
 ### Fixati
 - Corretto test `test_benchmark_categories`: weight 60kg è "Lightweight", non "Medium"

@@ -42,6 +42,9 @@ def create_app() -> FastAPI:
 
     if STATIC_DIR.exists() and INDEX_FILE.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+        assets_dir = STATIC_DIR / "assets"
+        if assets_dir.exists():
+            app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="static-assets")
 
         @app.get("/")
         async def dashboard_root():
@@ -50,6 +53,13 @@ def create_app() -> FastAPI:
         @app.get("/dashboard", response_class=HTMLResponse)
         async def dashboard():
             return INDEX_FILE.read_text(encoding="utf-8")
+
+        @app.get("/manifest.json")
+        async def manifest():
+            mf = STATIC_DIR / "manifest.json"
+            if mf.exists():
+                return Response(content=mf.read_text(encoding="utf-8"), media_type="application/json")
+            return Response(status_code=404)
 
         CEO_FILE = STATIC_DIR / "ceo_dashboard.html"
         if CEO_FILE.exists():

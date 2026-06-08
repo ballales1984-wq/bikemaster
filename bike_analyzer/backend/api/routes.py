@@ -168,6 +168,28 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
         ride_data["id"] = int(ride_id)
     return ride_data
 
+@router.get("/health/detailed")
+async def health_detailed():
+    from ..db.database import get_all_rides, get_all_athletes
+    from pathlib import Path
+    rides = get_all_rides()
+    athletes = get_all_athletes()
+    db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
+    return {
+        "service": "bikemaster",
+        "status": "ok",
+        "version": "0.1.0",
+        "rides_count": len(rides),
+        "athletes_count": len(athletes),
+        "database_size_bytes": db_size,
+    }
+
+@router.get("/coach/history")
+async def coach_chat_history(athlete_id: int = Query(...), current_user: Optional[dict] = Depends(get_optional_current_user)):
+    from ..db.database import get_chat_history
+    history = get_chat_history(athlete_id)
+    return {"athlete_id": athlete_id, "history": history}
+
 @router.post("/import/multiple")
 async def import_multiple(files: List[UploadFile] = File(...), current_user: dict = Depends(get_current_user_dependency)):
     from ..db.database import save_ride

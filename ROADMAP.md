@@ -205,7 +205,7 @@
 
 ## Stato attuale
 
-**Completate: 140/145** (step principali)
+**Completate: 145/145** (tutti gli step completati)
 
 **Endpoint API a disposizione:**
 - `/api/v1/rides/*` - CRUD rides
