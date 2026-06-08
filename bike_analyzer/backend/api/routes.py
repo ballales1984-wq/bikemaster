@@ -15,7 +15,7 @@ from ..maps.map_renderer import create_route_map
 from .schemas import RideCreate, RideResponse, RideAnalysisRequest, AthleteCreate, AthleteUpdate, MetricCreate, CalendarEventCreate, CalendarEventUpdate, GoogleFitAuthQuery, GoogleFitTokenRequest, GoogleFitImportRequest, GranfondoPlanRequest
 from ..utils.logger import get_logger
 from ..config import DB_PATH
-from ..security import get_current_user
+from ..security import get_current_user, get_optional_current_user
 
 from ..maps.serpapi_maps import get_local_results, search_nearby
 
