@@ -1,12 +1,27 @@
-"""SQLite database layer (simple)."""
+"""Database layer - supports SQLite (local) and PostgreSQL (production)."""
 from __future__ import annotations
 from typing import Optional, List
 from datetime import datetime, timezone
-import sqlite3
 import json
 from contextlib import contextmanager
+import os
 
-from ..config import DB_PATH
+from ..config import DB_PATH, DATABASE_URL
+
+# PostgreSQL support
+if DATABASE_URL:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    from psycopg2 import pool
+    _pg_pool = None
+    
+    def get_pg_pool():
+        global _pg_pool
+        if _pg_pool is None:
+            _pg_pool = psycopg2.pool.ThreadedConnectionPool(1, 10, DATABASE_URL)
+        return _pg_pool
+else:
+    import sqlite3
 
 @contextmanager
 def get_db_connection():

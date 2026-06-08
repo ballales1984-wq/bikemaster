@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BikeMaster - AI Coach</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 30px 0; border-bottom: 1px solid #333; }
+        h1 { color: #4ecca3; font-size: 2.5rem; margin-bottom: 10px; }
+        .subtitle { color: #888; font-size: 1.1rem; }
+
+        .nav-tabs { display: flex; gap: 10px; margin: 30px 0 20px; flex-wrap: wrap; }
+        .nav-tab { background: #16213e; color: #aaa; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: all 0.2s; }
+        .nav-tab:hover { background: #1a2a4a; color: #fff; }
+        .nav-tab.active { background: #4ecca3; color: #1a1a2e; font-weight: bold; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .scores-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0 30px; }
+        .score-card { background: #16213e; padding: 20px; border-radius: 10px; text-align: center; position: relative; overflow: hidden; }
+        .score-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #4ecca3; }
+        .score-value { font-size: 2.5rem; color: #4ecca3; font-weight: bold; }
+        .score-label { color: #888; margin-top: 5px; font-size: 0.9rem; }
+        .score-value.warning { color: #f39c12; }
+        .score-value.danger { color: #e74c3c; }
+        .score-value.good { color: #2ecc71; }
+
+        .section { background: #16213e; border-radius: 10px; padding: 25px; margin-bottom: 20px; }
+        .section-title { color: #4ecca3; font-size: 1.3rem; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+
+        .advice-list { list-style: none; }
+        .advice-item { background: #1a2a4a; padding: 15px 20px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #4ecca3; }
+        .advice-item .advice-num { color: #4ecca3; font-weight: bold; margin-right: 8px; }
+        .advice-item p { color: #ccc; line-height: 1.6; margin: 0; }
+
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .chart-card { background: #1a2a4a; border-radius: 10px; padding: 15px; text-align: center; }
+        .chart-card img { max-width: 100%; border-radius: 8px; }
+
+        .trend-box { background: #1a2a4a; padding: 20px; border-radius: 8px; text-align: center; }
+        .trend-box .trend-label { color: #888; font-size: 0.9rem; margin-bottom: 5px; }
+        .trend-box .trend-value { color: #4ecca3; font-size: 1.3rem; font-weight: bold; }
+
+        .loading { text-align: center; padding: 40px; color: #888; }
+        .error { text-align: center; padding: 40px; color: #e74c3c; }
+
+        .refresh-btn { background: #4ecca3; color: #1a1a2e; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1rem; display: block; margin: 20px auto; }
+        .refresh-btn:hover { background: #3dbba0; }
+
+        .btn-back { background: #333; color: #eee; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; display: inline-block; margin-bottom: 20px; text-decoration: none; }
+        .btn-back:hover { background: #444; }
+
+        @media (max-width: 600px) { .charts-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚴 AI Coach</h1>
+            <p class="subtitle">Analisi intelligente delle tue prestazioni ciclistiche</p>
+        </header>
+
+        <div style="margin: 15px 0; display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="athlete-id-input" placeholder="ID Atleta" value="0" autocomplete="off" aria-label="ID Atleta" style="padding: 8px; border-radius: 5px; border: none; width: 120px;">
+            <input type="text" id="chat-input" placeholder="Chiedi al coach..." autocomplete="off" aria-label="Chiedi al coach" style="flex: 1; padding: 8px; border-radius: 5px; border: none;">
+            <button onclick="sendChat()" style="padding: 8px 16px; background: #4ecca3; color: #1a1a2e; border: none; border-radius: 5px; cursor: pointer;">Invia</button>
+        </div>
+
+        <a href="/" class="btn-back">&larr; Torna alla Dashboard</a>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-tab="training">Allenamento</button>
+            <button class="nav-tab" data-tab="recovery">Recupero</button>
+            <button class="nav-tab" data-tab="charts">Grafici</button>
+            <button class="nav-tab" data-tab="table">Tabella</button>
+        </div>
+
+        <div class="tab-content active" id="tab-training">
+            <div id="training-scores" class="scores-grid"></div>
+            <div class="section">
+                <h2 class="section-title">💡 Consigli di Allenamento</h2>
+                <ul id="training-advice" class="advice-list"></ul>
+            </div>
+            <div class="section">
+                <h2 class="section-title">📊 Analisi Storica</h2>
+                <div id="historical-analysis" class="trend-box"></div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-recovery">
+            <div id="recovery-scores" class="scores-grid"></div>
+            <div class="section">
+                <h2 class="section-title">🧘 Consigli di Recupero</h2>
+                <ul id="recovery-advice" class="advice-list"></ul>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-charts">
+            <div class="section">
+                <h2 class="section-title">📈 Prestazioni nel Tempo</h2>
+                <div id="charts-container" class="charts-grid">
+                    <div id="charts-loading" class="loading">Generazione grafici...</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="refresh-btn" onclick="loadCoachData()">Aggiorna Dati</button>
+
+        <div class="tab-content" id="tab-table">
+            <div class="section">
+                <h2 class="section-title">📋 Dati Tabellari</h2>
+                <table id="dataTable" style="width: 100%; border-collapse: collapse; color: #eee;">
+                    <thead><tr><th style="padding: 10px; border-bottom: 1px solid #4ecca3;">Categoria</th><th style="padding: 10px; border-bottom: 1px solid #4ecca3;">Valore</th><th style="padding: 10px; border-bottom: 1px solid #4ecca3;">Note</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchJSON(url) {
+            const r = await fetch(url);
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+        }
+
+        async function sendChat() {
+            const athleteId = document.getElementById('athlete-id-input').value || '0';
+            const message = document.getElementById('chat-input').value;
+            if (!message) return;
+            const resp = await fetch(`/api/v1/coach/chat?athlete_id=${athleteId}&message=${encodeURIComponent(message)}`);
+            const data = await resp.json();
+            document.getElementById('chat-input').value = '';
+            loadCoachData();
+        }
+
+        function renderDataTable(data) {
+            const tbody = document.querySelector('#dataTable tbody');
+            const rows = [
+                ['Performance', data.training_scores?.[0]?.value?.toFixed(1) || 'N/A', 'Score 0-10'],
+                ['Endurance', data.training_scores?.[1]?.value?.toFixed(1) || 'N/A', 'Resistenza media'],
+                ['Efficiency', data.training_scores?.[2]?.value?.toFixed(1) || 'N/A', 'Efficienza pedalata'],
+                ['Recovery', data.recovery_scores?.[0]?.value?.toFixed(1) || 'N/A', 'Recupero giornaliero'],
+                ['Fatigue', data.recovery_scores?.[1]?.value?.toFixed(1) || 'N/A', 'Fatica accumulata'],
+                ['Trend', data.historical_analysis?.split(',')[0] || 'N/A', 'Andamento generale']
+            ];
+            tbody.innerHTML = rows.map(([label, value, note]) => 
+                `<tr><td style="padding: 10px; border-bottom: 1px solid #333;">${label}</td><td style="padding: 10px; border-bottom: 1px solid #333; text-align: center;">${value}</td><td style="padding: 10px; border-bottom: 1px solid #333; color: #888;">${note}</td></tr>`
+            ).join('');
+        }
+
+        function renderScores(containerId, scores) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = scores.map(s => {
+                const cls = s.value >= 7 ? 'good' : s.value >= 4 ? '' : 'warning';
+                return `<div class="score-card">
+                    <div class="score-value ${cls}">${s.value.toFixed(1)}</div>
+                    <div class="score-label">${s.label}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function parseAdvice(text) {
+            if (!text) return '<li class="advice-item"><p>Nessun consiglio disponibile</p></li>';
+            const items = text.split('\n').filter(l => l.trim());
+            return items.map(line => {
+                const m = line.match(/^(\d+\.\s*)?(.+)/);
+                if (!m) return '';
+                const content = m[2].replace(/\*\*/g, '').replace(/`/g, '');
+                return `<li class="advice-item"><span class="advice-num">${m[1] || ''}</span><p>${content}</p></li>`;
+            }).filter(Boolean).join('');
+        }
+
+        function renderCharts(charts) {
+            const container = document.getElementById('charts-container');
+            if (!charts || charts.length === 0) {
+                container.innerHTML = '<div class="error">Nessun grafico disponibile</div>';
+                return;
+            }
+            container.innerHTML = charts.map(url => {
+                const ts = new Date().getTime();
+                return `<div class="chart-card"><img src="${url}?t=${ts}" alt="chart" /></div>`;
+            }).join('');
+        }
+
+        async function loadCoachData() {
+            try {
+                const athleteId = document.getElementById('athlete-id-input').value || '0';
+                const data = await fetchJSON(`/api/v1/coach/full?athlete_id=${athleteId}`);
+                window.lastCoachData = data;
+                renderScores('training-scores', data.training_scores || []);
+                document.getElementById('training-advice').innerHTML = parseAdvice(data.training_advice);
+                document.getElementById('historical-analysis').innerHTML = data.historical_analysis
+                    ? `<div class="trend-value">${data.historical_analysis}</div>`
+                    : '<div class="trend-value">Dati insufficienti</div>';
+                renderScores('recovery-scores', data.recovery_scores || []);
+                document.getElementById('recovery-advice').innerHTML = parseAdvice(data.recovery_advice);
+                renderCharts(data.charts);
+                renderDataTable(data);
+            } catch (e) {
+                document.getElementById('training-advice').innerHTML = `<li class="advice-item"><p>Errore: ${e.message}</p></li>`;
+                document.getElementById('recovery-advice').innerHTML = `<li class="advice-item"><p>Errore: ${e.message}</p></li>`;
+            }
+        }
+
+        document.querySelectorAll('.nav-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        document.getElementById('chat-input').addEventListener('keypress', e => { if (e.key === 'Enter') sendChat(); });
+        loadCoachData();
+    </script>
+</body>
+</html>

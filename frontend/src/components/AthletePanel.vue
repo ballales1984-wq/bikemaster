@@ -2,18 +2,18 @@
   <div class="panel">
     <h2>🏃 Profilo Atleta</h2>
     <form id="athlete-form" class="form-grid" novalidate>
-      <div class="form-group"><label for="athlete-name">Nome</label><input type="text" v-model="form.name" required /></div>
-      <div class="form-group"><label for="athlete-age">Età</label><input type="number" v-model.number="form.age" min="10" max="100" /></div>
-      <div class="form-group"><label for="athlete-weight">Peso (kg)</label><input type="number" v-model.number="form.weight_kg" min="20" max="300" step="0.1" /></div>
-      <div class="form-group"><label for="athlete-height">Altezza (cm)</label><input type="number" v-model.number="form.height_cm" min="100" max="250" /></div>
-      <div class="form-group"><label for="athlete-fat">Massa Grassa (%)</label><input type="number" v-model.number="form.fat_percentage" min="3" max="60" step="0.1" /></div>
-      <div class="form-group"><label for="athlete-years">Anni attività</label><input type="number" v-model.number="form.years_active" min="0" max="80" /></div>
-      <div class="form-group"><label for="athlete-weekly">Sessioni/settimana</label><input type="number" v-model.number="form.weekly_sessions" min="0" max="14" /></div>
-      <div class="form-group"><label for="athlete-monthly">Ore/mese</label><input type="number" v-model.number="form.monthly_hours" min="0" step="0.5" /></div>
-      <div class="form-group"><label for="athlete-annual">Ore/anno</label><input type="number" v-model.number="form.annual_hours" min="0" step="0.5" /></div>
+      <div class="form-group"><label for="athlete-name">Nome</label><input id="athlete-name" type="text" v-model="form.name" required /></div>
+      <div class="form-group"><label for="athlete-age">Età</label><input id="athlete-age" type="number" v-model.number="form.age" min="10" max="100" /></div>
+      <div class="form-group"><label for="athlete-weight">Peso (kg)</label><input id="athlete-weight" type="number" v-model.number="form.weight_kg" min="20" max="300" step="0.1" /></div>
+      <div class="form-group"><label for="athlete-height">Altezza (cm)</label><input id="athlete-height" type="number" v-model.number="form.height_cm" min="100" max="250" /></div>
+      <div class="form-group"><label for="athlete-fat">Massa Grassa (%)</label><input id="athlete-fat" type="number" v-model.number="form.fat_percentage" min="3" max="60" step="0.1" /></div>
+      <div class="form-group"><label for="athlete-years">Anni attività</label><input id="athlete-years" type="number" v-model.number="form.years_active" min="0" max="80" /></div>
+      <div class="form-group"><label for="athlete-weekly">Sessioni/settimana</label><input id="athlete-weekly" type="number" v-model.number="form.weekly_sessions" min="0" max="14" /></div>
+      <div class="form-group"><label for="athlete-monthly">Ore/mese</label><input id="athlete-monthly" type="number" v-model.number="form.monthly_hours" min="0" step="0.5" /></div>
+      <div class="form-group"><label for="athlete-annual">Ore/anno</label><input id="athlete-annual" type="number" v-model.number="form.annual_hours" min="0" step="0.5" /></div>
       <div class="form-group">
         <label for="athlete-level">Livello</label>
-        <select v-model="form.experience_level">
+        <select id="athlete-level" v-model="form.experience_level">
           <option>Beginner</option><option>Amateur</option><option>Intermediate</option><option>Advanced</option><option>Elite</option>
         </select>
       </div>

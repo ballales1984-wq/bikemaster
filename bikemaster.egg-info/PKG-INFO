@@ -17,179 +17,415 @@ License-File: LICENSE
 Requires-Dist: fastapi>=0.110.0
 Requires-Dist: uvicorn[standard]>=0.29.0
 Requires-Dist: sqlalchemy>=2.0.27
+Requires-Dist: python-multipart>=0.0.9
 Requires-Dist: folium>=0.16.0
 Requires-Dist: pandas>=2.2.0
 Requires-Dist: numpy>=1.26.4
 Requires-Dist: fitparse>=1.2.0
 Requires-Dist: gpxpy>=1.6.2
 Requires-Dist: python-dotenv>=1.0.1
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: matplotlib>=3.8.0
+Requires-Dist: requests>=2.31.0
+Requires-Dist: groq>=0.4.0
+Requires-Dist: python-jose[cryptography]>=3.3.0
+Requires-Dist: passlib>=1.7.4
+Requires-Dist: bcrypt<5.0.0,>=4.0.0
+Requires-Dist: slowapi>=0.1.9
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0.0; extra == "dev"
 Requires-Dist: pytest-asyncio>=0.23.5; extra == "dev"
 Dynamic: license-file
 
-# BikeMaster
+# BikeMaster - Sistema di Analisi Intelligente delle Performance Ciclistiche
 
-GPS-based cycling performance intelligence system. Import rides from GPX/FIT files, analyze power metrics, estimate calories and fatigue, visualize routes on interactive maps, and access everything through a REST API.
+GPS-based cycling performance intelligence system. Importa le tue uscite da file GPX/FIT, analizza le metriche di potenza, stima calorie e affaticamento, visualizza i percorsi su mappe interattive e accedi a tutto tramite una REST API completa.
 
-## Features
+---
 
-- **GPS ingestion** — Parse GPX and Garmin FIT files
-- **Performance analytics** — Distance, speed, elevation, accelerations, pauses
-- **Calorie estimation** — Physics + MET-based models
-- **Fatigue scoring** — Weighted formula with recovery recommendations
-- **Interactive maps** — Speed-colored routes via Folium/Leaflet
-- **REST API** — 30+ endpoints for rides, analysis, charts, import, export, scores, benchmark, AI coach
-- **Dashboard** — Dark-themed web UI with stats, ride list, and route map
-- **Data export** — JSON and CSV formats
+## Indice
 
-## Tech Stack
+1. [Caratteristiche](#caratteristiche)
+2. [Stack Tecnologico](#stack-tecnologico)
+3. [Quick Start](#quick-start)
+4. [Configurazione](#configurazione)
+5. [Architettura Repository](#architettura-repository)
+6. [Modelli di Dato](#modelli-di-dato)
+7. [API Reference](#api-reference)
+8. [Motore Analitico](#motore-analitico)
+9. [Dashboard](#dashboard)
+10. [AI Coach](#ai-coach)
+11. [Deployment](#deployment)
+12. [Sviluppo](#sviluppo)
+13. [Testing](#testing)
+14. [Roadmap](#roadmap)
 
-| Layer | Technology |
+---
+
+## Caratteristiche
+
+- **Ingestione GPS** - Parsing file GPX (gpxpy) e Garmin FIT (fitparse)
+- **Analisi percorso** - Distanza, velocità, elevazione, accelerazioni, soste
+- **Stima calorie** - Modello fisico (resistenza aria + attrito) + MET
+- **Punteggio affaticamento** - Formula ponderata con raccomandazioni di recupero
+- **Mappe interattive** - Percorsi colorati per velocita con Folium/Leaflet
+- **Knowledge Base** - Documenti sportivi indicizzati per RAG
+- **AI Coach** - Consigli di allenamento e recupero basati su Groq/LLM
+- **Google Fit** - Importazione automatica attivita ciclistiche
+- **Google Maps** - Mappe statiche con API key
+- **Calendario** - Pianificazione eventi di allenamento
+- **Dashboard Web** - UI dark-themed con statistiche e lista uscite
+- **REST API** - 40+ endpoint documentati
+- **Esportazione** - JSON e CSV
+- **JWT Auth** - Login e protezione endpoint
+
+---
+
+## Stack Tecnologico
+
+| Layer | Tecnologia |
 |---|---|
-| Backend | FastAPI, Python 3.10+ |
-| Database | SQLite (PostgreSQL-ready) |
-| Maps | Folium, Leaflet.js |
+| Backend | FastAPI 0.110+, Python 3.11+ |
+| Database | SQLite (JSON embedded GPS) |
+| Maps | Folium / Leaflet.js / Google Static Maps |
 | Analytics | NumPy, Pandas, Matplotlib |
 | Parsers | gpxpy, fitparse |
+| Auth | python-jose, passlib, bcrypt |
+| AI/LLM | Groq SDK |
+| Rate Limit | slowapi |
+| Testing | pytest, pytest-asyncio |
+
+---
 
 ## Quick Start
+
+### Prerequisiti
+- Python 3.11 o superiore
+- pip
+- Browser web
+
+### Installazione
 
 ```bash
 git clone https://github.com/ballales1984-wq/bikemaster.git
 cd bikemaster
+python -m venv .venv
+.venv\Scripts\activate     # Windows
 pip install -r requirements.txt
-python main.py api
 ```
+
+### Avvio
+
+```bash
+# API + Dashboard (default)
+python main.py api
+
+# Solo frontend standalone
+python main.py web
+
+# CLI demo analytics
+python main.py cli
+```
+
+Apri http://localhost:8000 per la dashboard.
 
 ### Docker
 
 ```bash
 docker compose up -d
-# Open http://localhost:8000
 ```
 
-Open [http://localhost:8000](http://localhost:8000) for the dashboard.
+---
 
-## Usage Modes
+## Configurazione
 
-```bash
-# API server (default) — dashboard + REST API
-python main.py api
-
-# Web server — standalone frontend
-python main.py web
-
-# CLI — demo analytics on sample data
-python main.py cli
-```
-
-## API Endpoints
-
-### Rides
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/rides` | Create ride |
-| GET | `/api/v1/rides` | List rides (paginated) |
-| GET | `/api/v1/rides/{id}` | Get ride details |
-| DELETE | `/api/v1/rides/{id}` | Delete ride |
-| POST | `/api/v1/rides/analyze` | Multi-ride summary |
-| POST | `/api/v1/rides/{id}/analyze` | Single ride analysis |
-
-### Import
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/import/gpx` | Upload GPX file |
-| POST | `/api/v1/import/fit` | Upload FIT file |
-| POST | `/api/v1/import/multiple` | Batch upload |
-| GET | `/api/v1/import/google-fit/auth` | Get Google Fit OAuth URL |
-| POST | `/api/v1/import/google-fit/token` | Exchange OAuth code for token |
-| POST | `/api/v1/import/google-fit` | Import cycling activities from Google Fit |
-
-### Export
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/v1/rides/export/json` | Export as JSON |
-| GET | `/api/v1/rides/export/csv` | Export as CSV |
-
-### Charts
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/v1/charts/speed/{id}` | Speed chart PNG |
-| GET | `/api/v1/charts/elevation/{id}` | Elevation chart PNG |
-| GET | `/api/v1/rides/{id}/map/google` | Google Static Map (requires GOOGLE_MAPS_API_KEY) |
-
-### Athletes
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/athletes` | Create athlete profile |
-| GET | `/api/v1/athletes/{id}` | Get athlete |
-| PUT | `/api/v1/athletes/{id}` | Update athlete |
-| POST | `/api/v1/athletes/{id}/metrics` | Save metrics |
-
-### Scores
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/v1/scores/athlete/{id}` | Get athlete scores |
-
-### Benchmark
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/benchmark/compare` | Compare ride to benchmark |
-
-### AI Coach
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/v1/coach/workout` | Workout recommendations |
-| GET | `/api/v1/coach/recovery` | Recovery recommendations |
-| GET | `/api/v1/coach/trends` | Historical trends analysis |
-
-### Knowledge Base
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/v1/knowledge` | List topics |
-| GET | `/api/v1/knowledge/search?q=...` | Search knowledge base |
-
-## Generate Sample Data
-
-```bash
-python scripts/generate_sample_ride.py
-```
-
-## Run Tests
-
-```bash
-pytest
-```
-
-## Project Structure
-
-```
-bike_analyzer/
-├── __init__.py          # Package facade
-├── main.py              # Entry point
-└── backend/
-    ├── api/             # FastAPI routes + embedded dashboard
-    ├── analytics/       # Calories, fatigue, charts, exports
-    ├── db/              # SQLite CRUD layer
-    ├── ingestion/       # GPX and FIT parsers
-    ├── maps/            # Folium route renderer
-    └── models/          # Domain models (Ride, GPSPoint, Segment)
-frontend/                # Standalone dashboard
-scripts/                 # Sample data generator
-tests/                   # Unit tests
-```
-
-## Configuration
-
-Copy `.env.example` to `.env` and set values:
+Copia `.env.example` in `.env` e configura:
 
 ```env
 DATABASE_URL=sqlite:///./rides.db
 API_HOST=0.0.0.0
 API_PORT=8000
-GOOGLE_MAPS_API_KEY=your_api_key_here
+GOOGLE_MAPS_API_KEY=your_key_here        # Opzionale
+SERPAPI_API_KEY=your_key_here            # Opzionale
+GROQ_API_KEY=your_key_here               # Opzionale per AI Coach
+SECRET_KEY=your_secret_key               # Obbligatorio per JWT
 ```
+
+---
+
+## Architettura Repository
+
+```
+bikeMaster/
+├── main.py                          # Entrypoint applicazione
+├── bike_analyzer/
+│   ├── __init__.py                  # Package facade
+│   ├── main.py                      # CLI wrapper
+│   └── backend/
+│       ├── config.py                # Configurazioni centralizzate (.env)
+│       ├── api/
+│       │   ├── app_factory.py       # FastAPI application factory
+│       │   ├── routes.py            # 40+ endpoint API
+│       │   ├── schemas.py           # Pydantic DTOs
+│       │   └── static/              # Dashboard HTML/JS/CSS
+│       ├── db/
+│       │   ├── database.py          # SQLite CRUD layer
+│       │   └── __init__.py
+│       ├── models/
+│       │   ├── models.py            # Classi di dominio (Ride, GPSPoint, AthleteProfile)
+│       │   └── __init__.py
+│       ├── analytics/
+│       │   ├── analytics.py         # Summary, export (JSON/CSV), report e grafici
+│       │   ├── fatigue.py           # Modello affaticamento con recupero
+│       │   ├── calories.py          # Stima calorie (fisica + MET)
+│       │   ├── performance.py       # Performance/Endurance/Efficiency scores
+│       │   ├── benchmark.py         # Confronto atleta-vs-benchmark
+│       │   ├── ai_coach.py          # AI Coach (workout, recupero, trend)
+│       │   ├── dashboard.py         # Statistiche aggregate dashboard
+│       │   ├── knowledge_base.py    # Knowledge base indicizzata per RAG
+│       │   └── __init__.py
+│       ├── ingestion/
+│       │   ├── gps_parser.py        # Parser GPX/FIT e conversione in Ride
+│       │   ├── google_fit.py        # Google Fit OAuth2 + fetch
+│       │   └── __init__.py
+│       ├── maps/
+│       │   ├── map_renderer.py      # Renderer Folium (percorso colorato)
+│       │   ├── google_maps.py       # Google Static Maps API
+│       │   ├── serpapi_maps.py      # SerpApi luoghi vicini
+│       │   └── __init__.py
+│       ├── processing/
+│       │   ├── processing.py        # Pulizia GPS, pausa, segmentazione
+│       │   └── __init__.py
+│       └── utils/
+│           ├── dates.py             # Utilità date
+│           ├── logger.py            # Logging configurato
+│           └── __init__.py
+├── frontend/
+│   └── dashboard.py                 # Dashboard standalone
+├── scripts/
+│   ├── generate_sample_ride.py      # Generazione dati di test
+│   └── demo_map.py                  # Demo renderer mappe
+├── tests/                           # Suite test automatici
+├── knowledge_base/                  # Documenti indicizzati
+├── docs/                            # Documentazione sviluppatore
+├── requirements.txt
+├── pyproject.toml
+├── docker-compose.yml
+├── Dockerfile
+├── azure.yaml
+└── render.yaml
+```
+
+---
+
+## Modelli di Dato
+
+### GPSPoint
+Punto GPS individuale con latitudine, longitudine, timestamp, altitudine e velocità.
+
+| Campo | Tipo | Descrizione |
+|---|---|---|
+| lat | float | Latitudine WGS84 |
+| lon | float | Longitudine WGS84 |
+| timestamp | datetime | Istante del rilevamento |
+| altitude | Optional[float] | Altitudine in metri |
+| speed | Optional[float] | Velocita in km/h |
+
+### Ride
+Rappresenta una sessione ciclistica completata.
+
+| Campo | Tipo | Descrizione |
+|---|---|---|
+| id | Optional[int] | Identificativo univoco DB |
+| athlete_id | Optional[int] | FK al profilo atleta |
+| date | str | Data uscita (ISO) |
+| distance_km | float | Distanza totale km |
+| duration_minutes | float | Durata in minuti |
+| avg_speed_kmh | float | Velocita media km/h |
+| weight_kg | float | Peso atleta (default 70kg) |
+| calories | float | Calorie stimate |
+| heart_rate_avg | Optional[float] | FC media |
+| elevation_gain_m | Optional[float] | Dislivello positivo |
+| gps_points | Optional[list[GPSPoint]] | Array completo punti |
+
+### AthleteProfile
+Profilo completo dell'atleta per calcoli personalizzati.
+
+| Campo | Tipo | Descrizione |
+|---|---|---|
+| id | Optional[int] | Identificativo |
+| name | str | Nome |
+| age | int | Eta |
+| weight_kg | float | Peso kg |
+| height_cm | Optional[float] | Altezza cm |
+| fat_percentage | Optional[float] | Massa grassa % |
+| years_active | int | Anni di attivita |
+| weekly_sessions | int | Sessioni settimanali |
+| monthly_hours | float | Ore mese |
+| annual_hours | float | Ore anno |
+| experience_level | str | Livello (Beginner->Elite) |
+| goals | Optional[str] | Obiettivi |
+| preferred_terrain | Optional[str] | Terreno preferito |
+| weekly_volume_km | float | Volume km settimana |
+
+### Entity Figlie
+- `CalendarEvent` - Evento di allenamento pianificato
+- `Segment` - Segmento tra due GPSPoint
+- `Pause` - Sosta rilevata durante la corsa
+- `RouteStatistics` - Statistiche aggregate percorso
+
+---
+
+## API Reference
+
+Base URL: `/api/v1`
+
+### Health & Auth
+| Metodo | Endpoint | Descrizione |
+|---|---|---|
+| GET | `/health` | Health check |
+| POST | `/auth/login` | Login JWT |
+| POST | `/auth/register` | Registrazione |
+
+### Rides CRUD
+| Metodo | Endpoint | Auth | Descrizione |
+|---|---|---|---|
+| POST | `/rides` | Yes | Crea uscita |
+| GET | `/rides` | No | Elenca uscite (paginate) |
+| GET | `/rides/{id}` | Yes | Dettaglio uscita (+fatigue + cal/km) |
+| PUT | `/rides/{id}` | Yes | Aggiorna uscita |
+| DELETE | `/rides/{id}` | Yes | Elimina uscita |
+| GET | `/rides/count` | No | Conteggio uscite |
+| POST | `/rides/analyze` | No | Multi-ride summary |
+| POST | `/rides/{id}/analyze` | Yes | Analisi singola |
+| GET | `/rides/{id}/report` | Yes | Report testuale |
+
+### Import
+| Metodo | Endpoint | Auth | Descrizione |
+|---|---|---|---|
+| POST | `/import/gpx` | Yes | Upload GPX |
+| POST | `/import/fit` | Yes | Upload FIT |
+| POST | `/import/multiple` | Yes | Batch upload |
+| GET | `/import/google-fit/auth` | No | URL OAuth Google |
+| POST | `/import/google-fit/token` | No | Exchange token |
+| POST | `/import/google-fit` | Yes | Import da Google Fit |
+
+### Export
+| Metodo | Endpoint | Descrizione |
+|---|---|---|
+| GET | `/rides/export/json` | Export JSON |
+| GET | `/rides/export/csv` | Export CSV |
+
+### Charts
+| Metodo | Endpoint | Descrizione |
+|---|---|---|
+| GET | `/charts/speed/{id}` | Grafico velocita (PNG) |
+| GET | `/charts/elevation/{id}` | Grafico elevazione (PNG) |
+| GET | `/charts/distance/{id}` | Grafico distanza (PNG) |
+| GET | `/charts/duration` | Grafico durata |
+
+### Athletes
+| Metodo | Endpoint | Auth | Descrizione |
+|---|---|---|---|
+| POST | `/athletes` | Yes | Crea profilo |
+| GET | `/athletes` | No | Lista atleti |
+| GET | `/athletes/{id}` | Yes | Dettaglio |
+| PUT | `/athletes/{id}` | Yes | Aggiorna |
+| POST | `/athletes/{id}/metrics` | Yes | Salva metriche |
+
+### Scores & Benchmark
+| Metodo | Endpoint | Auth | Descrizione |
+|---|---|---|---|
+| GET | `/scores/athlete/{id}` | Yes | Punteggi atleta |
+| POST | `/benchmark/compare` | No | Confronto benchmark |
+
+### AI Coach
+| Metodo | Endpoint | Auth | Descrizione |
+|---|---|---|---|
+| GET | `/coach/workout` | Yes | Consigli allenamento |
+| GET | `/coach/recovery` | No | Consigli recupero |
+| GET | `/coach/trends` | Yes | Analisi storico |
+| GET | `/coach/full` | Yes | Report completo |
+| POST | `/coach/chat` | No | Chat AI |
+| GET | `/coach/history` | No | Storico conversazioni |
+
+### Knowledge Base
+| Metodo | Endpoint | Descrizione |
+|---|---|---|
+| GET | `/knowledge` | Lista topic |
+| GET | `/knowledge/search?q=` | Ricerca semantica |
+| GET | `/knowledge/stats` | Statistiche KB |
+| POST | `/knowledge/reload` | Ricarica indici |
+
+### Maps
+| Metodo | Endpoint | Descrizione |
+|---|---|---|
+| POST | `/rides/{id}/map` | Genera mappa Folium |
+| GET | `/rides/{id}/map/google` | Google Static Map (richiedere API key) |
+| GET | `/maps/places/nearby` | Luoghi vicini (SerpApi) |
+| GET | `/maps/places/search` | Ricerca luoghi |
+
+### Admin
+| Metodo | Endpoint | Auth | Descrizione |
+|---|---|---|---|
+| GET | `/admin/backup` | Yes | Download backup DB |
+| POST | `/admin/indexes` | No | Crea indici DB |
+| GET | `/admin/stats` | No | Statistiche sistema |
+| GET | `/health/detailed` | No | Health dettagliato |
+| POST | `/admin/reset-demo` | No | Rigenera dati demo |
+
+---
+
+## Motore Analitico
+
+### Calorie (physics + MET)
+Calcola il costo energetico in due modalita:
+- **Fisica** - Integrazione della potenza (resistenza rotolamento + attrito aria + gravita) divisa per rendimento neuromuscolare 25%
+- **MET** - Tabella Metabolic Equivalents per intensita basata su velocita media
+
+### Affaticamento
+Score 1-10 basato su 5 fattori pesati:
+- Durata (30%)
+- Intensita cardiaca/HF (30%)
+- Velocita media (20%)
+- Dislivello (10%)
+- Peso corporeo (10%)
+
+Consigli di recupero dinamici: 8h, 16h, 24h, 48h.
+
+### Performance Scores
+- **Performance Score** - Punteggio assoluto uscita corrente
+- **Endurance Score** - Indice di resistenza su storico
+- **Efficiency Score** - Rapporto potenza-distanza
+
+### Benchmark
+Confronata le metriche dell'atleta con distribuzioni benchmark per categoria (eta, peso, esperienza) e calcola i percentile.
+
+---
+
+## AI Coach
+
+Integrazione con Groq (LLM) per:
+- Raccomandazioni di allenamento personalizzate
+- Consigli di recupero basati su fatigue score
+- Analisi trend storici
+- Chat conversazionale con storico
+
+Dipendenze: `GROQ_API_KEY` in `.env`.
+
+---
+
+## Dashboard
+
+UI dark-theme con:
+- Lista uscite con filtri (data, distanza, durata)
+- Card statistiche aggregate
+- Mappa percorso interattiva
+- Grafici velocita/elevazione
+- Widget AI Coach sidebar
+- Profilo atleta con score
+
+---
 
 ## Deployment
 
@@ -204,18 +440,108 @@ docker run -p 8000:8000 bikemaster
 
 ```bash
 docker-compose up -d
+docker-compose logs -f
 ```
 
-### Azure
+### Azure (azd)
 
 ```bash
 azd up
 ```
 
+### Render
+
+```bash
+render deploy
+```
+
+---
+
+## Sviluppo
+
+### Struttura moduli
+
+Ogni modulo backend segue un pattern:
+```
+module/
+├── __init__.py
+├── core.py          # Logica pura (testabile singolarmente)
+└── [integration]    # Colla con API/DB
+```
+
+### Aggiunta endpoint
+
+1. Aggiungi DTO in `api/schemas.py`
+2. Implementa handler in `api/routes.py`
+3. Includi router in `api/app_factory.py` se serve prefisso custom
+4. Aggiungi test in `tests/`
+
+### Convenzioni
+
+- Nomi moduli in `snake_case`
+- Type hints obbligatori
+- Import lazy nelle route per evitare circular dependency
+- Logging tramite `analytics.logger.get_logger(__name__)`
+- DB access tramite context manager `get_db_connection()`
+
+---
+
+## Testing
+
+```bash
+pytest
+```
+
+Suite di 40+ test automatici:
+- Unit test modelli e parsing
+- Test API coverage
+- Mock Google Maps
+- Performance engine
+- Benchmark
+- Knowledge base
+- AI Coach API
+- Database backup
+- Import batch
+- Athlete profile
+
+### Coverage attuale: 78%
+
+Target 80% (2 test mancanti).
+
+---
+
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for the 100-step development plan.
+Stato progetto: Beta (140/145 step completati).
+
+| Fase | Descrizione | Status |
+|---|---|---|
+| 1. Fondamenta | Progetto, struttra, modelli | ✅ Completata |
+| 2. Analisi percorso | GPS, segmenti, statistiche | ✅ Completata |
+| 3. Database | SQLite, CRUD, backup | ✅ Completata |
+| 4. Profilo atleta | Campi atleta, storico | ✅ Completata |
+| 5. Performance engine | Score, endurance, fatigue | ✅ Completata |
+| 6. Benchmark | Categorie, percentile | ✅ Completata |
+| 7. Knowledge Base | Indicizzazione, RAG | ✅ Completata |
+| 8. AI Coach | Consigli, chat, trend | ✅ Completata |
+| 9. Google Fit | OAuth2, import | ✅ Completata |
+| 10. Google Maps | Static maps | ✅ Completata |
+| 11. UI/UX | Dashboard dark theme | ✅ Completata |
+| 12. Deployment | Docker, Azure, Render | ✅ Completata |
+| 13. Test Coverage | 78% (target 80%) | 🔄 In corso |
+
+---
+
+## Contribuire
+
+1. Fork del repository
+2. Crea feature branch (`git checkout -b feature/awesome`)
+3. Commit modifiche (`git commit -m 'feat: aggiungi feature'`)
+4. Push al branch (`git push origin feature/awesome`)
+5. Apri Pull Request
+
+---
 
 ## License
 
-MIT
+MIT - Vedi file LICENSE per dettagli.

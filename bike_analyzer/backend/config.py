@@ -15,6 +15,7 @@ load_dotenv(dotenv_path=Path(__file__).parent.parent.parent.parent / ".env", ove
 
 # Database
 DB_PATH: str = os.getenv("DB_PATH", "rides.db")
+DATABASE_URL: str = os.getenv("DATABASE_URL", "")
 API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
 API_PORT: int = int(os.getenv("API_PORT", "8000"))
 

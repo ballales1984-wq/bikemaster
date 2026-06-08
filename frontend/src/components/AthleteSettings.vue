@@ -4,30 +4,30 @@
       <h2>👤 Profilo Atleta</h2>
       <div v-if="loading" class="loading-text">Caricamento...</div>
       <form v-else @submit.prevent="save">
-        <div class="form-row">
-          <label>Nome:</label>
-          <input v-model="form.name" required />
-        </div>
-        <div class="form-row">
-          <label>Età:</label>
-          <input v-model.number="form.age" type="number" />
-        </div>
-        <div class="form-row">
-          <label>Peso (kg):</label>
-          <input v-model.number="form.weight_kg" type="number" step="0.1" />
-        </div>
-        <div class="form-row">
-          <label>Altezza (cm):</label>
-          <input v-model.number="form.height_cm" type="number" />
-        </div>
-        <div class="form-row">
-          <label>Anni attività:</label>
-          <input v-model.number="form.years_active" type="number" />
-        </div>
-        <div class="form-row">
-          <label>Obiettivo:</label>
-          <input v-model="form.goals" placeholder="Gran Fondo, criterium, etc." />
-        </div>
+      <div class="form-row">
+        <label for="athlete-name">Nome:</label>
+        <input id="athlete-name" v-model="form.name" required />
+      </div>
+      <div class="form-row">
+        <label for="athlete-age">Età:</label>
+        <input id="athlete-age" v-model.number="form.age" type="number" />
+      </div>
+      <div class="form-row">
+        <label for="athlete-weight">Peso (kg):</label>
+        <input id="athlete-weight" v-model.number="form.weight_kg" type="number" step="0.1" />
+      </div>
+      <div class="form-row">
+        <label for="athlete-height">Altezza (cm):</label>
+        <input id="athlete-height" v-model.number="form.height_cm" type="number" />
+      </div>
+      <div class="form-row">
+        <label for="athlete-years">Anni attività:</label>
+        <input id="athlete-years" v-model.number="form.years_active" type="number" />
+      </div>
+      <div class="form-row">
+        <label for="athlete-goals">Obiettivo:</label>
+        <input id="athlete-goals" v-model="form.goals" placeholder="Gran Fondo, criterium, etc." />
+      </div>
         <button class="btn btn-primary" type="submit">Salva</button>
       </form>
     </div>

@@ -2,7 +2,7 @@
   <div class="panel">
     <h2>📚 Knowledge Base</h2>
     <div class="form-grid">
-      <div class="form-group"><label for="kb-query">Cerca argomento</label><input type="text" v-model="query" /></div>
+      <div class="form-group"><label for="kb-query">Cerca argomento</label><input id="kb-query" type="text" v-model="query" /></div>
       <button class="btn btn-primary" @click="search">Cerca</button>
       <button class="btn btn-secondary" @click="listTopics">Lista Argomenti</button>
     </div>
@@ -12,7 +12,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { apiPost } from '../utils/api.js'
+import { apiGet, apiPost } from '../utils/api.js'
 
 const query = ref('')
 const result = ref('')
