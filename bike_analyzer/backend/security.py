@@ -26,10 +26,11 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(subject: str, is_admin: bool = False, expires_delta: Optional[timedelta] = None) -> str:
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     payload = {
         "sub": subject,
+        "is_admin": is_admin,
         "iat": datetime.now(timezone.utc),
         "exp": expire,
         "iss": JWT_ISSUER,
@@ -53,9 +54,17 @@ def decode_token(token: str) -> dict:
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     payload = decode_token(token)
     user_id: str = payload.get("sub")
+    is_admin: bool = payload.get("is_admin", False)
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token non valido")
-    return {"id": int(user_id)}
+    return {"id": int(user_id), "is_admin": is_admin}
+
+
+async def get_admin_user(token: str = Depends(oauth2_scheme)) -> dict:
+    user = await get_current_user(token)
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Accesso amministratore richiesto")
+    return user
 
 
 async def get_optional_current_user(token: Optional[str] = Depends(oauth2_scheme)) -> Optional[dict]:

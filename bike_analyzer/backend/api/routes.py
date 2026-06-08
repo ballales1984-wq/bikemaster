@@ -15,7 +15,7 @@ from ..maps.map_renderer import create_route_map
 from .schemas import RideCreate, RideResponse, RideAnalysisRequest, AthleteCreate, AthleteUpdate, MetricCreate, CalendarEventCreate, CalendarEventUpdate, GoogleFitAuthQuery, GoogleFitTokenRequest, GoogleFitImportRequest, GranfondoPlanRequest
 from ..utils.logger import get_logger
 from ..config import DB_PATH
-from ..security import get_current_user, get_optional_current_user
+from ..security import get_current_user, get_optional_current_user, get_admin_user
 
 from ..maps.serpapi_maps import get_local_results, search_nearby
 
@@ -35,20 +35,20 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = FAKE_USERS_DB.get(form_data.username)
     if not user or not verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Credenziali errate", headers={"WWW-Authenticate": "Bearer"})
-    return {"access_token": create_access_token(subject=form_data.username), "token_type": "bearer"}
+    return {"access_token": create_access_token(subject=form_data.username, is_admin=user.get("is_admin", False)), "token_type": "bearer"}
 
 @router.post("/auth/register")
-async def register(username: str = Body(..., min_length=3), password: str = Body(..., min_length=6)):
-    from ..security import hash_password
+async def register(username: str = Body(..., min_length=3), password: str = Body(..., min_length=6), is_admin: bool = Body(False)):
+    from ..security import hash_password, create_access_token
     from ..db.database import get_db_connection
     if username in FAKE_USERS_DB:
         raise HTTPException(status_code=400, detail="Username già esistente")
-    FAKE_USERS_DB[username] = {"username": username, "hashed_password": hash_password(password)}
+    FAKE_USERS_DB[username] = {"username": username, "hashed_password": hash_password(password), "is_admin": is_admin}
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("INSERT INTO athletes (name, experience_level) VALUES (?, ?)", (username, "Beginner"))
         conn.commit()
-    return {"username": username, "msg": "Utente creato"}
+    return {"username": username, "msg": "Utente creato", "is_admin": is_admin}
 
 def get_current_user_dependency():
     return Depends(get_current_user)
@@ -510,20 +510,20 @@ async def google_static_map(ride_id: int, colored: bool = False, current_user: O
     return FileResponse(path, media_type="image/png", filename="map.png")
 
 @router.get("/admin/backup")
-async def create_backup(current_user: dict = Depends(get_current_user_dependency)):
+async def create_backup(current_user: dict = Depends(get_admin_user)):
     from ..db.database import backup_database
     from fastapi.responses import FileResponse
     path = backup_database()
     return FileResponse(path, media_type="application/octet-stream", filename="backup.db")
 
 @router.post("/admin/indexes")
-async def create_db_indexes():
+async def create_db_indexes(current_user: dict = Depends(get_admin_user)):
     from ..db.database import create_indices
     create_indices()
     return {"status": "indexes_created"}
 
 @router.get("/admin/stats")
-async def get_system_stats():
+async def get_system_stats(current_user: dict = Depends(get_admin_user)):
     from ..db.database import get_all_rides, DB_PATH
     rides = get_all_rides()
     total_km = sum(r.get("distance_km", 0) for r in rides)
