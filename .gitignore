@@ -34,6 +34,9 @@ env/
 .env
 *.secret
 
+# Kilo config (may contain API keys)
+.kilo/kilo.json
+
 # IDE
 .vscode/
 .idea/

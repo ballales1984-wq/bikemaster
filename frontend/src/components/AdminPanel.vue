@@ -3,7 +3,7 @@
     <h2>⚙️ Amministrazione</h2>
     <div class="form-actions">
       <button class="btn btn-primary" @click="loadStats">📊 Statistiche</button>
-      <button class="btn btn-secondary" @click="backupDb">💾 Backup DB</button>
+      <a class="btn btn-secondary" href="/api/v1/admin/backup" download>💾 Backup DB</a>
       <button class="btn btn-secondary" @click="createIndexes">🗂️ Indici</button>
     </div>
     <div v-if="stats" class="result-box">{{ stats }}</div>
@@ -23,16 +23,6 @@ async function loadStats() {
     error.value = ''
     const data = await apiGet('/api/v1/admin/stats')
     stats.value = JSON.stringify(data, null, 2)
-  } catch (e) {
-    error.value = 'Accesso negato: ' + (e.message || e)
-  }
-}
-
-async function backupDb() {
-  try {
-    error.value = ''
-    await apiPost('/api/v1/admin/backup', {})
-    stats.value = 'Backup completato'
   } catch (e) {
     error.value = 'Accesso negato: ' + (e.message || e)
   }

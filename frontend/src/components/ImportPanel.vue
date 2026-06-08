@@ -42,11 +42,7 @@ function onDrop(e) {
 }
 
 async function uploadOne(file) {
-  const form = new FormData()
-  form.append('file', file)
-  const resp = await fetch('/api/v1/import/gpx', { method: 'POST', body: form })
-  if (!resp.ok) throw new Error(`Upload ${file.name} failed`)
-  return resp.json()
+  return apiUpload('/api/v1/import/gpx', file)
 }
 
 async function upload() {

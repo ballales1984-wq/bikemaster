@@ -25,6 +25,7 @@ logger = get_logger(__name__)
 FAKE_USERS_DB = {}
 
 router = APIRouter()
+admin_router = APIRouter()
 
 @router.get("/health")
 async def health_check(): return {"status": "ok", "service": "bikemaster"}
@@ -401,7 +402,7 @@ async def knowledge_stats():
     return get_kb_stats()
 
 @router.post("/knowledge/reload")
-async def reload_knowledge():
+async def reload_knowledge(current_user: dict = Depends(get_admin_user)):
     from ..analytics.knowledge_base import reload_kb
     return reload_kb()
 
@@ -511,20 +512,20 @@ async def google_static_map(ride_id: int, colored: bool = False, current_user: O
     create_google_static_map(points, api_key, path, colored=colored)
     return FileResponse(path, media_type="image/png", filename="map.png")
 
-@router.get("/admin/backup")
+@admin_router.get("/backup")
 async def create_backup(current_user: dict = Depends(get_admin_user)):
     from ..db.database import backup_database
     from fastapi.responses import FileResponse
     path = backup_database()
     return FileResponse(path, media_type="application/octet-stream", filename="backup.db")
 
-@router.post("/admin/indexes")
+@admin_router.post("/indexes")
 async def create_db_indexes(current_user: dict = Depends(get_admin_user)):
     from ..db.database import create_indices
     create_indices()
     return {"status": "indexes_created"}
 
-@router.get("/admin/stats")
+@admin_router.get("/stats")
 async def get_system_stats(current_user: dict = Depends(get_admin_user)):
     from ..db.database import get_all_rides, DB_PATH
     rides = get_all_rides()
@@ -534,16 +535,8 @@ async def get_system_stats(current_user: dict = Depends(get_admin_user)):
     db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
     return {"rides_count": len(rides), "total_km": round(total_km, 1), "total_duration_hours": round(total_duration / 60, 1), "db_size_bytes": db_size}
 
-@router.get("/health/detailed")
-async def detailed_health_check():
-    from ..db.database import get_all_rides, init_db
-    rides = get_all_rides()
-    from pathlib import Path
-    db_ok = Path("rides.db").exists()
-    return {"status": "ok", "service": "bikemaster", "database_connected": db_ok, "rides_in_db": len(rides), "api_version": "1.0"}
-
-@router.post("/admin/reset-demo")
-async def reset_demo_data():
+@admin_router.post("/reset-demo")
+async def reset_demo_data(current_user: dict = Depends(get_admin_user)):
     from ..db.database import get_all_rides, delete_ride, init_db
     rides = get_all_rides()
     for r in rides:
@@ -553,42 +546,8 @@ async def reset_demo_data():
     generate_sample_ride()
     return {"status": "demo_reset", "message": "Demo data regenerated"}
 
-@router.put("/rides/{ride_id}")
-async def update_ride(ride_id: int, ride: dict = Body(...), current_user: dict = Depends(get_current_user_dependency)):
-    from ..db.database import update_ride as _update_ride, get_ride as _get_ride
-    existing = _get_ride(ride_id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Ride not found")
-    merged = {**existing, **ride}
-    _update_ride(ride_id, merged)
-    return merged
-
-@router.get("/rides/count")
-async def count_rides():
-    from ..db.database import get_all_rides
-    return {"count": len(get_all_rides())}
-
-@router.api_route("/coach/chat", methods=["GET", "POST"])
-async def coach_chat(athlete_id: int = Query(...), message: str = Query(...)):
-    from ..db.database import save_chat_message, get_chat_history, get_athlete
-    from ..analytics.ai_coach import generate_training_advice
-    from ..models.models import AthleteProfile
-    from ..db.database import get_all_rides
-    save_chat_message(athlete_id, "user", message[:500])
-    athlete_data = get_athlete(athlete_id)
-    athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
-    rides = [Ride(**r) for r in get_all_rides()]
-    response = generate_training_advice(athlete, rides, athlete_id)
-    save_chat_message(athlete_id, "assistant", response[:500])
-    return {"response": response, "history": get_chat_history(athlete_id)}
-
-@router.get("/coach/history")
-async def coach_history(athlete_id: int):
-    from ..db.database import get_chat_history
-    return {"history": get_chat_history(athlete_id)}
-
-@router.get("/analytics/ceo")
-async def ceo_analytics():
+@admin_router.get("/ceo")
+async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
     from ..db.database import get_all_rides, get_all_athletes
     rides = get_all_rides()
     athletes = get_all_athletes()
@@ -633,6 +592,37 @@ async def ceo_analytics():
             "last_updated": now.isoformat()
         }
     }
+
+@router.put("/rides/{ride_id}")
+async def update_ride(ride_id: int, ride: dict = Body(...), current_user: dict = Depends(get_current_user_dependency)):
+    from ..db.database import update_ride as _update_ride, get_ride as _get_ride
+    existing = _get_ride(ride_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    merged = {**existing, **ride}
+    _update_ride(ride_id, merged)
+    return merged
+
+@router.get("/rides/count")
+async def count_rides():
+    from ..db.database import get_all_rides
+    return {"count": len(get_all_rides())}
+
+@router.api_route("/coach/chat", methods=["GET", "POST"])
+async def coach_chat(athlete_id: int = Query(...), message: str = Query(...), current_user: dict = Depends(get_current_user_dependency)):
+    from ..db.database import save_chat_message, get_chat_history, get_athlete
+    from ..analytics.ai_coach import generate_training_advice
+    from ..models.models import AthleteProfile
+    from ..db.database import get_all_rides
+    save_chat_message(athlete_id, "user", message[:500])
+    athlete_data = get_athlete(athlete_id)
+    athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
+    rides = [Ride(**r) for r in get_all_rides()]
+    response = generate_training_advice(athlete, rides, athlete_id)
+    save_chat_message(athlete_id, "assistant", response[:500])
+    return {"response": response, "history": get_chat_history(athlete_id)}
+
+
 
 @router.get("/analytics/speed-data")
 async def speed_analytics(limit: int = Query(10, ge=1, le=50)):

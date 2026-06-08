@@ -3,5 +3,8 @@
   "snapshot": false,
   "commit_message": {
     "prompt": ""
-  }
+  },
+  "model": "groq/llama-3.3-70b-versatile",
+  "small_model": "groq/llama-3.3-70b-versatile",
+  "disabled_providers": ["ollama"]
 }

@@ -9,12 +9,11 @@
     </div>
     <div v-if="loading" class="loading-text">Analisi in corso...</div>
 
-    <div v-if="coachData" class="stats" style="margin-top:15px">
-      <div class="stat-card"><div class="stat-value">{{ coachData.scores?.performance ?? 0 }}</div><div class="stat-label">Performance</div></div>
-      <div class="stat-card"><div class="stat-value">{{ coachData.scores?.endurance ?? 0 }}</div><div class="stat-label">Endurance</div></div>
-      <div class="stat-card"><div class="stat-value">{{ coachData.scores?.fatigue ?? 0 }}</div><div class="stat-label">Fatigue</div></div>
-      <div class="stat-card"><div class="stat-value">{{ coachData.scores?.recovery ?? 0 }}</div><div class="stat-label">Recovery</div></div>
-    </div>
+<div v-if="coachData" class="stats" style="margin-top:15px">
+       <div class="stat-card"><div class="stat-value">{{ coachData.scores?.performance_score ?? 0 }}</div><div class="stat-label">Performance</div></div>
+       <div class="stat-card"><div class="stat-value">{{ coachData.scores?.endurance_score ?? 0 }}</div><div class="stat-label">Endurance</div></div>
+       <div class="stat-card"><div class="stat-value">{{ coachData.scores?.efficiency_score ?? 0 }}</div><div class="stat-label">Efficiency</div></div>
+     </div>
 
     <div v-if="coachData" class="panel" style="margin-top:15px">
       <h3>💡 Consigli di Allenamento</h3>

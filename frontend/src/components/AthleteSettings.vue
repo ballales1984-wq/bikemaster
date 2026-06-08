@@ -52,11 +52,12 @@ const form = ref({
 async function load() {
   loading.value = true
   try {
-    const athletes = await apiGet("/api/v1/athletes")
+    const data = await apiGet("/api/v1/athletes")
+    const athletes = data.athletes || []
     if (athletes.length > 0) {
       athleteId.value = athletes[athletes.length - 1].id
-      const data = await apiGet(`/api/v1/athletes/${athleteId.value}`)
-      form.value = { ...form.value, ...data }
+      const athlete = await apiGet(`/api/v1/athletes/${athleteId.value}`)
+      form.value = { ...form.value, ...athlete }
     }
   } finally {
     loading.value = false

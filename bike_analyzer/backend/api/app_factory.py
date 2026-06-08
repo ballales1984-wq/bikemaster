@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
-from .routes import router
+from .routes import router, admin_router
 from ..config import CORS_ORIGINS
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -38,6 +38,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(router, prefix="/api/v1")
+    app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 
     if STATIC_DIR.exists() and INDEX_FILE.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
