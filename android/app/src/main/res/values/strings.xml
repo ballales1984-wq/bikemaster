@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">BikeMaster</string>
+    <string name="rides">Rides</string>
+    <string name="athletes">Athletes</string>
+    <string name="coach">AI Coach</string>
+    <string name="calendar">Calendar</string>
+    <string name="settings">Settings</string>
+    <string name="add_ride">Add Ride</string>
+    <string name="import_gpx">Import GPX</string>
+    <string name="import_fit">Import FIT</string>
+    <string name="distance">Distance</string>
+    <string name="duration">Duration</string>
+    <string name="avg_speed">Avg Speed</string>
+    <string name="calories">Calories</string>
+    <string name="tracking">GPS Tracking</string>
+    <string name="statistics">Statistics</string>
+    <string name="login">Login</string>
+</resources>

@@ -1,0 +1,41 @@
+# Gradle
+.gradle/
+build/
+app/build/
+
+# Android
+local.properties
+*.apk
+*.aab
+*.ap_
+*.jar
+*.war
+*.xapk
+*.log
+*.iml
+
+# Keystore
+*.keystore
+*.jks
+*.p12
+
+# External native build folder
+.externalNativeBuild/
+.cxx/
+
+# Google Services
+gcm-dep/
+
+# Version control
+vcs.xml
+
+# lint
+lint/intermediates/
+lint/outputs/
+
+# lint/outputs
+lint/tmp/
+
+# lint/outputs
+.idea/workspace.xml
+.idea/libraries/

@@ -1,0 +1,7 @@
+compileSdk = 34
+kotlinOptions {
+    jvmTarget = "1.8"
+}
+android {
+    compileSdk = 34
+}

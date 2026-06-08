@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <Button
+        android:id="@+id/btn_rides"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/rides"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btn_tracking"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="GPS Tracking"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btn_stats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Statistiche"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btn_athlete"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/athletes"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btn_coach"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/coach"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btn_calendar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/calendar"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btn_login"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Login"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btn_settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/settings"
+        android:layout_marginBottom="8dp" />
+
+</LinearLayout>
