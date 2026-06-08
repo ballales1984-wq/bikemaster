@@ -448,6 +448,7 @@ async def coach_full_data(athlete_id: int = 0, current_user: Optional[dict] = De
             return {"training_advice": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati.", "recovery_advice": "Crea un profilo atleta nella Dashboard per ricevere consigli personalizzati.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
         rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
         athlete_data = get_athlete(resolved_id)
+        print(f"DEBUG: resolved_id={resolved_id}, athlete_data={athlete_data}")
         if not athlete_data:
             return {"training_advice": "Atleta non trovato. Crea un profilo nella Dashboard.", "recovery_advice": "Atleta non trovato. Crea un profilo nella Dashboard.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
         athlete = AthleteProfile(**athlete_data)
