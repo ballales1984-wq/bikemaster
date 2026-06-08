@@ -2,7 +2,7 @@
   <div class="panel">
     <h2>🧠 AI Coach</h2>
     <div class="form-grid">
-      <div class="form-group"><label for="coach-athlete-id">ID Atleta (0 = ultimo)</label><input type="number" v-model.number="athleteId" min="0" /></div>
+      <div class="form-group"><label for="coach-athlete-id">ID Atleta (0 = ultimo)</label><input id="coach-athlete-id" type="number" v-model.number="athleteId" min="0" /></div>
       <div class="form-group">
         <button class="btn btn-primary" @click="loadCoach">📊 Carica Coach Completo</button>
       </div>

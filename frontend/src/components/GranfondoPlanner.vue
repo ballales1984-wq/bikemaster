@@ -4,12 +4,12 @@
     
     <div class="form-grid">
       <div class="form-group">
-        <label>Data Inizio</label>
-        <input type="date" v-model="startDate" />
+        <label for="gf-start-date">Data Inizio</label>
+        <input id="gf-start-date" type="date" v-model="startDate" />
       </div>
       <div class="form-group">
-        <label>Numero Settimane</label>
-        <select v-model.number="weeks">
+        <label for="gf-weeks">Numero Settimane</label>
+        <select id="gf-weeks" v-model.number="weeks">
           <option :value="8">8 settimane</option>
           <option :value="9">9 settimane</option>
           <option :value="10">10 settimane</option>

@@ -50,7 +50,7 @@
         <ul class="event-list">
           <li v-for="ev in selectedDateEvents" :key="ev.id" class="event-item" :class="{ completed: ev.completed }">
             <span class="event-check">
-              <input type="checkbox" :checked="ev.completed" @change="toggleComplete(ev)" />
+              <input type="checkbox" :checked="ev.completed" @change="toggleComplete(ev)" :name="'event-complete-' + ev.id" />
             </span>
             <span class="event-info">
               <strong class="event-title">{{ ev.title }}</strong>
@@ -94,12 +94,12 @@
       <h3>{{ editingEvent ? 'Modifica Evento' : 'Nuovo Evento' }}</h3>
       <form @submit.prevent="saveEvent" class="form-grid">
         <div class="form-group">
-          <label>Titolo *</label>
-          <input v-model="form.title" required maxlength="200" />
+          <label for="event-title">Titolo *</label>
+          <input id="event-title" v-model="form.title" required maxlength="200" />
         </div>
         <div class="form-group">
-          <label>Tipo</label>
-          <select v-model="form.event_type">
+          <label for="event-type">Tipo</label>
+          <select id="event-type" v-model="form.event_type">
             <option value="training">Allenamento</option>
             <option value="race">Gara</option>
             <option value="recovery">Recupero</option>
@@ -109,24 +109,24 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Data</label>
-          <input type="date" v-model="form.date" required />
+          <label for="event-date">Data</label>
+          <input id="event-date" type="date" v-model="form.date" required />
         </div>
         <div class="form-group">
-          <label>Durata (min)</label>
-          <input type="number" v-model.number="form.duration_minutes" min="0" />
+          <label for="event-duration">Durata (min)</label>
+          <input id="event-duration" type="number" v-model.number="form.duration_minutes" min="0" />
         </div>
         <div class="form-group">
-          <label>Latitudine</label>
-          <input type="number" v-model.number="form.lat" step="0.0001" placeholder="Opzionale" />
+          <label for="event-lat">Latitudine</label>
+          <input id="event-lat" type="number" v-model.number="form.lat" step="0.0001" placeholder="Opzionale" />
         </div>
         <div class="form-group">
-          <label>Longitudine</label>
-          <input type="number" v-model.number="form.lon" step="0.0001" placeholder="Opzionale" />
+          <label for="event-lon">Longitudine</label>
+          <input id="event-lon" type="number" v-model.number="form.lon" step="0.0001" placeholder="Opzionale" />
         </div>
         <div class="form-group full-width">
-          <label>Descrizione</label>
-          <textarea v-model="form.description" maxlength="1000" rows="3"></textarea>
+          <label for="event-description">Descrizione</label>
+          <textarea id="event-description" v-model="form.description" maxlength="1000" rows="3"></textarea>
         </div>
         <div v-if="weatherForecast" class="weather-preview">
           <h4>🌤️ Previsione meteo per {{ form.date }}</h4>

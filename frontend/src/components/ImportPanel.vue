@@ -3,9 +3,9 @@
     <div class="panel">
       <h2>📥 Importa Percorsi</h2>
       <div class="form-group">
-        <label for="import-file">Carica file GPX o FIT</label>
+         <label for="import-file">Carica file GPX o FIT</label>
         <div class="upload-area" @click="pickFile" @dragover.prevent @drop.prevent="onDrop">
-          <input ref="fileInput" type="file" accept=".gpx,.fit" multiple @change="onChange" />
+          <input id="import-file" ref="fileInput" type="file" accept=".gpx,.fit" multiple @change="onChange" />
           <div class="upload-placeholder">{{ label }}</div>
         </div>
       </div>
@@ -16,6 +16,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { apiUpload } from '../utils/api.js'
 
 const emit = defineEmits(['summary-change'])
 const fileInput = ref(null)

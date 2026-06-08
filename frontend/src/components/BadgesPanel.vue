@@ -4,8 +4,8 @@
     
     <div class="form-grid">
       <div class="form-group">
-        <label>ID Atleta</label>
-        <input type="number" v-model.number="athleteId" min="1" />
+        <label for="badges-athlete-id">ID Atleta</label>
+        <input id="badges-athlete-id" type="number" v-model.number="athleteId" min="1" />
       </div>
       <div class="form-group">
         <button class="btn btn-primary" @click="loadBadges">🔄 Carica Badge</button>

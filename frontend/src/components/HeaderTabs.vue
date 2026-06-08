@@ -9,10 +9,28 @@
     <button class="tab" :class="{ active: active === 'granfondo' }" @click="$emit('update:active', 'granfondo')">🚴‍♂️ Granfondo</button>
     <button class="tab" :class="{ active: active === 'heatmap' }" @click="$emit('update:active', 'heatmap')">🔥 Heatmap</button>
     <button class="tab" :class="{ active: active === 'badges' }" @click="$emit('update:active', 'badges')">🏅 Badge</button>
-    <button class="tab" :class="{ active: active === 'admin' }" @click="$emit('update:active', 'admin')">⚙️ Admin</button>
+    <button v-if="isAdmin" class="tab" :class="{ active: active === 'admin' }" @click="$emit('update:active', 'admin')">⚙️ Admin</button>
+    <span class="user-info">{{ isAdmin ? '👑 Admin' : '👤 User' }}</span>
+    <button class="tab logout-btn" @click="$emit('logout')">🚪 Esci</button>
   </nav>
 </template>
 
 <script setup>
-defineProps({ active: { type: String, default: 'rides' } })
+defineProps({
+  active: { type: String, default: 'rides' },
+  isAdmin: { type: Boolean, default: false },
+})
 </script>
+
+<style scoped>
+.user-info {
+  padding: 0 12px;
+  font-size: 13px;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+}
+.logout-btn {
+  background: #c0392b;
+}
+</style>

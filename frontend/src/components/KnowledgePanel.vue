@@ -19,7 +19,7 @@ const result = ref('')
 
 async function search() {
   try {
-    const data = await apiPost('/api/v1/knowledge/query', { query: query.value })
+    const data = await apiGet('/api/v1/knowledge/search', { query: query.value })
     result.value = JSON.stringify(data, null, 2)
   } catch (e) {
     result.value = 'Errore: ' + (e.message || e)

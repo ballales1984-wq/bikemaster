@@ -4,8 +4,8 @@
     
     <div class="form-grid">
       <div class="form-group">
-        <label>Atleta ID (0 = tutti)</label>
-        <input type="number" v-model.number="athleteId" min="0" />
+        <label for="heatmap-athlete-id">Atleta ID (0 = tutti)</label>
+        <input id="heatmap-athlete-id" type="number" v-model.number="athleteId" min="0" />
       </div>
       <div class="form-group">
         <button class="btn btn-primary" @click="loadHeatmap">🔄 Carica Heatmap</button>
