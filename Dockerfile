@@ -2,10 +2,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y nodejs npm && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY frontend/package*.json ./frontend/
+COPY frontend/ ./frontend/
+RUN cd frontend && npm ci && npm run build
+
 COPY . .
+RUN rm -rf bike_analyzer/backend/static/assets && cp -r frontend/dist/assets bike_analyzer/backend/static/assets
+RUN cp frontend/dist/index.html bike_analyzer/backend/static/index.html
 
 RUN mkdir -p /app/data && chmod 777 /app/data
 
