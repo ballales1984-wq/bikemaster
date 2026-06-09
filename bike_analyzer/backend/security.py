@@ -12,7 +12,7 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
-from .config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ISSUER, JWT_AUDIENCE
+from .config import SECRET_KEY, SECRET_KEY_PREVIOUS, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ISSUER, JWT_AUDIENCE
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
@@ -39,24 +39,32 @@ def create_access_token(subject: str, is_admin: bool = False, expires_delta: Opt
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def decode_token(token: Optional[str]) -> dict:
+def _try_decode(token: str, secret: str) -> Optional[dict]:
     try:
-        if not isinstance(token, str):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token non valido o scaduto",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE)
-        return payload
-    except HTTPException:
-        raise
-    except JWTError as exc:
+        return jwt.decode(token, secret, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE)
+    except JWTError:
+        return None
+
+
+def decode_token(token: Optional[str]) -> dict:
+    if not isinstance(token, str):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token non valido o scaduto",
             headers={"WWW-Authenticate": "Bearer"},
-        ) from exc
+        )
+    payload = _try_decode(token, SECRET_KEY)
+    if payload is not None:
+        return payload
+    if SECRET_KEY_PREVIOUS:
+        payload = _try_decode(token, SECRET_KEY_PREVIOUS)
+        if payload is not None:
+            return payload
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Token non valido o scaduto",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:

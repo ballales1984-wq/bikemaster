@@ -1,8 +1,12 @@
 """API routes."""
 from __future__ import annotations
-from typing import List, Optional
+import json
+import json
+import os
+from pathlib import Path
+from typing import AsyncGenerator, List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from ..models.models import Ride, GPSPoint, AthleteProfile, CalendarEvent
 from ..analytics.analytics import calculate_summary, analyze_ride
@@ -16,16 +20,30 @@ from .schemas import RideCreate, RideResponse, RideAnalysisRequest, AthleteCreat
 from ..utils.logger import get_logger
 from ..config import DB_PATH
 from ..security import get_current_user, get_optional_current_user, get_admin_user
+from ..rate_limiter import limiter
 
 from ..maps.serpapi_maps import get_local_results, search_nearby
 
 
 logger = get_logger(__name__)
 
-FAKE_USERS_DB = {}
-
 router = APIRouter()
 admin_router = APIRouter()
+
+
+def _sse(event: str, data: str) -> str:
+    return f"event: {event}\ndata: {data}\n\n"
+
+
+def _make_streaming_response(generator: AsyncGenerator[str, None], event_type: str = "chunk") -> StreamingResponse:
+    async def stream_gen() -> AsyncGenerator[str, None]:
+        try:
+            async for chunk in generator:
+                yield _sse(event_type, chunk.replace("\n", " "))
+        except Exception as e:
+            yield _sse("error", str(e)[:200])
+            yield _sse("done", "")
+    return StreamingResponse(stream_gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 @router.get("/health")
 async def health_check(): return {"status": "ok", "service": "bikemaster"}
@@ -33,28 +51,31 @@ async def health_check(): return {"status": "ok", "service": "bikemaster"}
 @router.post("/auth/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     from ..security import verify_password, create_access_token
-    user = FAKE_USERS_DB.get(form_data.username)
-    if not user or not verify_password(form_data.password, user["hashed_password"]):
+    from ..db.database import get_db_connection
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, password_hash, experience_level FROM athletes WHERE name = ?", (form_data.username,))
+        row = cur.fetchone()
+    if not row or not verify_password(form_data.password, row[2] or ""):
         raise HTTPException(status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"})
-    return {"access_token": create_access_token(subject=form_data.username, is_admin=user.get("is_admin", False)), "token_type": "bearer"}
+    return {"access_token": create_access_token(subject=str(row[0]), is_admin=False), "token_type": "bearer", "username": row[1]}
 
 @router.post("/auth/register")
 async def register(username: str = Body(..., min_length=3), password: str = Body(..., min_length=6)):
     from ..security import hash_password, create_access_token
-    from ..db.database import get_db_connection
-    if username in FAKE_USERS_DB:
-        raise HTTPException(status_code=400, detail="Username already exists")
-    FAKE_USERS_DB[username] = {"username": username, "hashed_password": hash_password(password), "is_admin": False}
+    from ..db.database import get_db_connection, save_athlete
+    if len(username) < 3 or len(password) < 6:
+        raise HTTPException(status_code=400, detail="Username must be >= 3 chars, password >= 6")
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("INSERT INTO athletes (name, experience_level) VALUES (?, ?)", (username, "Beginner"))
-        conn.commit()
-    return {"username": username, "msg": "Utente creato", "is_admin": False}
+        cur.execute("SELECT id FROM athletes WHERE name = ?", (username,))
+        if cur.fetchone():
+            raise HTTPException(status_code=400, detail="Username already exists")
+    password_hash = hash_password(password)
+    athlete_id = save_athlete({"name": username, "experience_level": "Beginner", "password_hash": password_hash})
+    return {"username": username, "msg": "Utente creato", "is_admin": False, "id": athlete_id}
 
-def get_current_user_dependency():
-    return Depends(get_current_user)
-
-@router.post("/rides", response_model=RideResponse)
+@router.post("/rides")
 async def create_ride(ride_data: RideCreate, current_user: Optional[dict] = Depends(get_current_user)):
     from ..db.database import save_ride
     ride_dict = ride_data.model_dump()
@@ -69,18 +90,18 @@ async def create_ride(ride_data: RideCreate, current_user: Optional[dict] = Depe
     return {"id": int(ride_id), **ride_dict}
 
 @router.get("/rides")
-async def list_rides(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), sort: str = Query("date", pattern="^(date|distance|duration)$")):
+async def list_rides(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), sort: str = Query("date", pattern="^(date|distance|duration)$"), current_user: dict = Depends(get_current_user)):
     from ..db.database import get_paginated_rides
     rides, total = get_paginated_rides(page=page, page_size=page_size, sort=sort)
     return {"rides": rides, "total": total, "page": page, "page_size": page_size}
 
 @router.get("/rides/count")
-async def count_rides():
+async def count_rides(current_user: dict = Depends(get_current_user)):
     from ..db.database import get_all_rides
     return {"count": len(get_all_rides())}
 
 @router.get("/rides/{ride_id}")
-async def get_ride(ride_id: int):
+async def get_ride(ride_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import get_ride as _get_ride
     ride = _get_ride(ride_id)
     if not ride: raise HTTPException(status_code=404, detail="Ride not found")
@@ -90,13 +111,13 @@ async def get_ride(ride_id: int):
     return ride
 
 @router.delete("/rides/{ride_id}")
-async def delete_ride(ride_id: int):
+async def delete_ride(ride_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import delete_ride as _delete
     if not _delete(ride_id): raise HTTPException(status_code=404, detail="Ride not found")
     return {"deleted": True}
 
 @router.get("/rides/{ride_id}/segments")
-async def get_ride_segments(ride_id: int, min_distance_m: int = Query(1000)):
+async def get_ride_segments(ride_id: int, min_distance_m: int = Query(1000), current_user: dict = Depends(get_current_user)):
     """Detect and return significant segments from ride GPS points."""
     from ..db.database import get_ride as _get_ride
     from ..processing.segment_detector import detect_climb_segments, detect_all_segments, segment_to_dict
@@ -127,7 +148,7 @@ async def analyze_rides(request: RideAnalysisRequest):
     return calculate_summary([Ride(**r.model_dump()) for r in request.rides])
 
 @router.post("/rides/{ride_id}/analyze")
-async def analyze_single_ride(ride_id: int, ride_data: RideCreate, current_user: dict = Depends(get_current_user_dependency)):
+async def analyze_single_ride(ride_id: int, ride_data: RideCreate, current_user: dict = Depends(get_current_user)):
     return analyze_ride(Ride(id=ride_id, **ride_data.model_dump()))
 
 @router.post("/rides/{ride_id}/map")
@@ -141,11 +162,15 @@ async def generate_ride_map(ride_id: int, current_user: Optional[dict] = Depends
     map_path = create_route_map(points, output_path=f"ride_{ride_id}_map.html")
     return {"map_url": f"/static/ride_{ride_id}_map.html"}
 
+MAX_UPLOAD_SIZE = 50 * 1024 * 1024
+
 @router.post("/import/gpx")
-async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(get_current_user_dependency)):
+async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     from ..db.database import save_ride
     from ..ingestion.gps_parser import parse_gpx_file, points_to_ride
     content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 50MB.")
     points_data = parse_gpx_file(content.decode())
     ride_data = points_to_ride(points_data, name=file.filename)
     if "error" not in ride_data:
@@ -154,11 +179,13 @@ async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(
     return ride_data
 
 @router.post("/import/fit")
-async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(get_current_user_dependency)):
+async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     from ..db.database import save_ride
     from ..ingestion.gps_parser import parse_fit_file, points_to_ride
     import tempfile
     content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 50MB.")
     with tempfile.NamedTemporaryFile(suffix=".fit", delete=False) as tmp:
         tmp.write(content)
         temp_path = tmp.name
@@ -196,15 +223,19 @@ async def coach_chat_history(athlete_id: int = Query(...), current_user: Optiona
     return {"athlete_id": athlete_id, "history": history}
 
 @router.post("/import/multiple")
-async def import_multiple(files: List[UploadFile] = File(...), current_user: dict = Depends(get_current_user_dependency)):
+async def import_multiple(files: List[UploadFile] = File(...), current_user: dict = Depends(get_current_user)):
     from ..db.database import save_ride
     from ..ingestion.gps_parser import parse_gpx_file, parse_fit_file, points_to_ride
     import tempfile
     imported = []
     failed = []
+    total_size = 0
     for file in files:
+        content = await file.read()
+        total_size += len(content)
+        if total_size > MAX_UPLOAD_SIZE * 2:
+            raise HTTPException(status_code=413, detail="Total upload size exceeds 100MB limit.")
         try:
-            content = await file.read()
             ext = file.filename.lower().split('.')[-1] if file.filename else ""
             if ext == "gpx":
                 points = parse_gpx_file(content.decode())
@@ -229,7 +260,7 @@ async def import_multiple(files: List[UploadFile] = File(...), current_user: dic
     return {"imported": imported, "failed": failed, "count": len(imported), "total_files": len(files)}
 
 @router.get("/rides/export/json")
-async def export_json():
+async def export_json(current_user: dict = Depends(get_current_user)):
     from ..db.database import get_all_rides
     from ..analytics.analytics import export_rides_json
     rides = [Ride(**r) for r in get_all_rides()]
@@ -238,7 +269,7 @@ async def export_json():
     return FileResponse(path, media_type="application/json", filename="rides.json")
 
 @router.get("/rides/export/csv")
-async def export_csv():
+async def export_csv(current_user: dict = Depends(get_current_user)):
     from ..db.database import get_all_rides
     from ..analytics.analytics import export_rides_csv
     rides = [Ride(**r) for r in get_all_rides()]
@@ -247,7 +278,7 @@ async def export_csv():
     return FileResponse(path, media_type="text/csv", filename="rides.csv")
 
 @router.get("/rides/{ride_id}/report")
-async def get_ride_report(ride_id: int, current_user: dict = Depends(get_current_user_dependency)):
+async def get_ride_report(ride_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import get_ride as _get_ride
     from ..analytics.analytics import generate_text_report, analyze_ride
     ride = _get_ride(ride_id)
@@ -255,7 +286,7 @@ async def get_ride_report(ride_id: int, current_user: dict = Depends(get_current
     return {"report": generate_text_report(Ride(**ride))}
 
 @router.get("/charts/speed/{ride_id}")
-async def speed_chart(ride_id: int):
+async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import get_ride as _get_ride
     from ..analytics.analytics import create_speed_chart
     ride = _get_ride(ride_id)
@@ -271,7 +302,7 @@ async def speed_chart(ride_id: int):
     return FileResponse(path, media_type="image/png", filename="speed.png")
 
 @router.get("/charts/duration")
-async def duration_chart():
+async def duration_chart(current_user: dict = Depends(get_current_user)):
     from ..db.database import get_all_rides
     from ..analytics.analytics import create_duration_chart
     rides = [Ride(**r) for r in get_all_rides()]
@@ -281,7 +312,7 @@ async def duration_chart():
     return FileResponse(path, media_type="image/png", filename="duration.png")
 
 @router.get("/charts/distance/{ride_id}")
-async def distance_chart(ride_id: int):
+async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import get_ride as _get_ride
     from ..analytics.analytics import create_distance_chart
     ride = _get_ride(ride_id)
@@ -297,7 +328,7 @@ async def distance_chart(ride_id: int):
     return FileResponse(path, media_type="image/png", filename="distance.png")
 
 @router.get("/charts/elevation/{ride_id}")
-async def elevation_chart(ride_id: int):
+async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import get_ride as _get_ride
     from ..analytics.analytics import create_elevation_chart
     ride = _get_ride(ride_id)
@@ -319,7 +350,7 @@ async def create_athlete(athlete_data: AthleteCreate, current_user: Optional[dic
     return {"id": int(athlete_id), **athlete_data.model_dump()}
 
 @router.get("/athletes")
-async def list_athletes():
+async def list_athletes(current_user: dict = Depends(get_current_user)):
     from ..db.database import get_all_athletes
     athletes = get_all_athletes()
     return {"athletes": athletes}
@@ -332,7 +363,7 @@ async def get_athlete_endpoint(athlete_id: int):
     return athlete
 
 @router.post("/athletes/{athlete_id}/metrics")
-async def add_metric(athlete_id: int, metric_data: MetricCreate, current_user: dict = Depends(get_current_user_dependency)):
+async def add_metric(athlete_id: int, metric_data: MetricCreate, current_user: dict = Depends(get_current_user)):
     from ..db.database import save_metric, init_db
     metric_id = save_metric({"athlete_id": athlete_id, **metric_data.model_dump()})
     return {"id": int(metric_id), "athlete_id": athlete_id, **metric_data.model_dump()}
@@ -347,6 +378,10 @@ async def update_athlete(athlete_id: int, athlete_data: AthleteUpdate, current_u
 
 @router.get("/import/google-fit/auth")
 async def google_fit_auth(client_id: str = Query(...), redirect_uri: str = Query("http://localhost:8000/api/v1/import/google-fit/callback"), state: str = ""):
+    from urllib.parse import urlparse
+    parsed = urlparse(redirect_uri)
+    if parsed.scheme not in ("http", "https") or parsed.hostname not in ("localhost", "127.0.0.1"):
+        raise HTTPException(status_code=400, detail="redirect_uri must be localhost")
     from ..ingestion.google_fit import get_authorization_url
     auth_url = get_authorization_url(client_id, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
@@ -363,7 +398,7 @@ async def google_fit_exchange_token(payload: dict):
     return {"access_token": token_data.get("access_token"), "refresh_token": token_data.get("refresh_token"), "expires_in": token_data.get("expires_in")}
 
 @router.post("/import/google-fit")
-async def import_google_fit(payload: dict, current_user: dict = Depends(get_current_user_dependency)):
+async def import_google_fit(payload: dict, current_user: dict = Depends(get_current_user)):
     from ..db.database import save_ride
     from ..ingestion.google_fit import fetch_cycling_activities, google_fit_to_ride
     access_token = payload.get("access_token")
@@ -379,7 +414,7 @@ async def import_google_fit(payload: dict, current_user: dict = Depends(get_curr
     return {"imported": imported, "count": len(imported)}
 
 @router.get("/scores/athlete/{athlete_id}")
-async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_current_user_dependency)):
+async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import get_rides_by_athlete, get_athlete
     from ..analytics.performance import calculate_performance_score, calculate_endurance_score, calculate_efficiency_score, get_experience_level
     athlete = get_athlete(athlete_id)
@@ -434,7 +469,8 @@ async def reload_knowledge(current_user: dict = Depends(get_admin_user)):
     return reload_kb()
 
 @router.get("/coach/workout")
-async def workout_recommendations(athlete_id: int = 0, current_user: Optional[dict] = Depends(get_optional_current_user)):
+@limiter.limit("10/minute")
+async def workout_recommendations(request: Request, athlete_id: int = 0, current_user: Optional[dict] = Depends(get_optional_current_user)):
     from ..db.database import get_rides_by_athlete, get_athlete, get_db_connection
     from ..analytics.ai_coach import generate_workout_recommendations
     from ..models.models import AthleteProfile
@@ -460,7 +496,8 @@ async def workout_recommendations(athlete_id: int = 0, current_user: Optional[di
 
 
 @router.get("/coach/full")
-async def coach_full_data(athlete_id: int = 0, current_user: Optional[dict] = Depends(get_optional_current_user)):
+@limiter.limit("5/minute")
+async def coach_full_data(request: Request, athlete_id: int = 0, current_user: Optional[dict] = Depends(get_optional_current_user)):
     from ..db.database import get_all_rides, get_rides_by_athlete, get_athlete, get_db_connection, save_chat_message
     from ..analytics.ai_coach import ai_coach_full
     from ..models.models import AthleteProfile
@@ -477,7 +514,6 @@ async def coach_full_data(athlete_id: int = 0, current_user: Optional[dict] = De
             return {"training_advice": "Create an athlete profile in the Dashboard to receive personalized recommendations.", "recovery_advice": "Create an athlete profile in the Dashboard to receive personalized recommendations.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
         rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
         athlete_data = get_athlete(resolved_id)
-        print(f"DEBUG: resolved_id={resolved_id}, athlete_data={athlete_data}")
         if not athlete_data:
             return {"training_advice": "Athlete not found. Create a profile in the Dashboard.", "recovery_advice": "Athlete not found. Create a profile in the Dashboard.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
         athlete = AthleteProfile(**athlete_data)
@@ -621,7 +657,7 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
     }
 
 @router.put("/rides/{ride_id}")
-async def update_ride(ride_id: int, ride: dict = Body(...), current_user: dict = Depends(get_current_user_dependency)):
+async def update_ride(ride_id: int, ride: dict = Body(...), current_user: dict = Depends(get_current_user)):
     from ..db.database import update_ride as _update_ride, get_ride as _get_ride
     existing = _get_ride(ride_id)
     if not existing:
@@ -631,7 +667,7 @@ async def update_ride(ride_id: int, ride: dict = Body(...), current_user: dict =
     return merged
 
 @router.api_route("/coach/chat", methods=["GET", "POST"])
-async def coach_chat(athlete_id: int = Query(...), message: str = Query(...), current_user: dict = Depends(get_current_user_dependency)):
+async def coach_chat(athlete_id: int = Query(...), message: str = Query(...), current_user: dict = Depends(get_current_user)):
     from ..db.database import save_chat_message, get_chat_history, get_athlete
     from ..analytics.ai_coach import generate_training_advice
     from ..models.models import AthleteProfile
@@ -686,7 +722,7 @@ async def search_places_endpoint(ride_id: int, query: str = Query(..., descripti
     return data
 
 @router.post("/calendar/events")
-async def create_calendar_event(event_data: CalendarEventCreate, current_user: dict = Depends(get_current_user_dependency)):
+async def create_calendar_event(event_data: CalendarEventCreate, current_user: dict = Depends(get_current_user)):
     from ..db.database import save_calendar_event, get_calendar_event
     from ..utils.dates import date_only
     event_data_dict = event_data.model_dump()
@@ -708,14 +744,14 @@ async def list_events_by_range(athlete_id: int = Query(...), start: str = Query(
     return {"events": events}
 
 @router.get("/calendar/events/{event_id}")
-async def get_calendar_event_endpoint(event_id: int, current_user: dict = Depends(get_current_user_dependency)):
+async def get_calendar_event_endpoint(event_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import get_calendar_event
     event = get_calendar_event(event_id)
     if not event: raise HTTPException(status_code=404, detail="Event not found")
     return event
 
 @router.put("/calendar/events/{event_id}")
-async def update_calendar_event_endpoint(event_id: int, event_data: CalendarEventUpdate, current_user: dict = Depends(get_current_user_dependency)):
+async def update_calendar_event_endpoint(event_id: int, event_data: CalendarEventUpdate, current_user: dict = Depends(get_current_user)):
     from ..db.database import update_calendar_event
     from ..utils.dates import date_only
     update_dict = event_data.model_dump(exclude_none=True)
@@ -727,14 +763,14 @@ async def update_calendar_event_endpoint(event_id: int, event_data: CalendarEven
     return get_calendar_event(event_id)
 
 @router.delete("/calendar/events/{event_id}")
-async def delete_calendar_event_endpoint(event_id: int, current_user: dict = Depends(get_current_user_dependency)):
+async def delete_calendar_event_endpoint(event_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import delete_calendar_event
     ok = delete_calendar_event(event_id)
     if not ok: raise HTTPException(status_code=404, detail="Event not found")
     return {"deleted": True}
 
 @router.post("/calendar/events/{event_id}/complete")
-async def toggle_event_complete(event_id: int, current_user: dict = Depends(get_current_user_dependency)):
+async def toggle_event_complete(event_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import get_calendar_event, update_calendar_event
     event = get_calendar_event(event_id)
     if not event: raise HTTPException(status_code=404, detail="Event not found")
@@ -764,7 +800,7 @@ async def get_training_status(athlete_id: int = Query(...), current_user: Option
 
 
 @router.get("/training/summary")
-async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user_dependency)):
+async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
     """Get 7-day fitness summary for dashboard."""
     from ..db.database import get_rides_by_athlete
     from ..analytics.training_load import get_7day_fitness_summary
@@ -774,7 +810,7 @@ async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = De
 
 
 @router.post("/training/goals")
-async def create_training_goal(goal_data: dict, current_user: dict = Depends(get_current_user_dependency)):
+async def create_training_goal(goal_data: dict, current_user: dict = Depends(get_current_user)):
     """Create a training goal for an athlete."""
     from ..db.postgres_db import save_training_goal, SQLALCHEMY_AVAILABLE
     if not SQLALCHEMY_AVAILABLE:
@@ -795,7 +831,7 @@ async def create_training_goal(goal_data: dict, current_user: dict = Depends(get
 
 
 @router.get("/training/goals")
-async def list_training_goals(athlete_id: int = Query(...), status: str = Query(None), current_user: dict = Depends(get_current_user_dependency)):
+async def list_training_goals(athlete_id: int = Query(...), status: str = Query(None), current_user: dict = Depends(get_current_user)):
     """List training goals for athlete."""
     from ..db.postgres_db import get_training_goals, SQLALCHEMY_AVAILABLE
     if not SQLALCHEMY_AVAILABLE:
@@ -805,7 +841,7 @@ async def list_training_goals(athlete_id: int = Query(...), status: str = Query(
 
 
 @router.post("/training/workouts/generate")
-async def generate_workouts(goal_id: int = Body(...), event_count: int = Body(12, ge=4, le=20)):
+async def generate_workouts(goal_id: int = Body(...), event_count: int = Body(12, ge=4, le=20), current_user: dict = Depends(get_current_user)):
     """Generate planned workouts for a granfondo goal."""
     from ..db.postgres_db import get_session, PlannedWorkoutModel, TrainingGoalModel
     from datetime import datetime, timedelta
@@ -908,6 +944,42 @@ async def get_weather_forecast(lat: float = Query(..., description="Latitudine")
         forecasts.append(weather)
     
     return {"forecasts": forecasts}
+
+
+@router.get("/analytics/trends")
+async def get_fitness_trends(metric: str = Query("distance_km"), window: int = Query(7, ge=1, le=90)):
+    """Get fitness trend analysis for all rides."""
+    from ..db.database import get_all_rides
+    from ..analytics.analytics_trends import calculate_fitness_trends
+    rides = get_all_rides()
+    return calculate_fitness_trends(rides, metric=metric, window=window)
+
+
+@router.get("/analytics/monthly")
+async def get_monthly_progression():
+    """Get monthly aggregated metrics."""
+    from ..db.database import get_all_rides
+    from ..analytics.analytics_trends import calculate_monthly_progression
+    rides = get_all_rides()
+    return calculate_monthly_progression(rides)
+
+
+@router.get("/analytics/comparison")
+async def get_period_comparison(period_days: int = Query(7, ge=1, le=90)):
+    """Compare recent vs previous period."""
+    from ..db.database import get_all_rides
+    from ..analytics.analytics_trends import calculate_period_comparison
+    rides = get_all_rides()
+    return calculate_period_comparison(rides, period_days=period_days)
+
+
+@router.get("/analytics/projection")
+async def get_volume_projection(target_days: int = Query(30, ge=1, le=365)):
+    """Project future training volume based on historical trend."""
+    from ..db.database import get_all_rides
+    from ..analytics.analytics_trends import calculate_training_volume_projection
+    rides = get_all_rides()
+    return calculate_training_volume_projection(rides, target_days=target_days)
 
 
 @router.get("/heatmap")

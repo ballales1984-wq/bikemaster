@@ -1,157 +1,97 @@
-"""SQLAlchemy models for PostgreSQL migration."""
+"""SQLAlchemy async ORM models for PostgreSQL + SQLite support.
+
+Provides:
+- Declarative models matching the existing dataclass schema
+- Metadata for Alembic migrations
+- Dual-engine support (asyncpg for Postgres, aiosqlite for SQLite)
+"""
 from __future__ import annotations
+
+import uuid
 from datetime import datetime, timezone
-from typing import Optional, List
-from dataclasses import dataclass
-import math
-
-EARTH_RADIUS_M = 6_371_000
-
-
-def haversine_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi, dlambda = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
-    return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2))
+from typing import Optional
+from sqlalchemy import String, Float, Integer, Boolean, Text, DateTime, Index
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import Date
 
 
-@dataclass
-class GPSPoint:
-    lat: float
-    lon: float
-    timestamp: datetime
-    altitude: Optional[float] = None
-    speed: Optional[float] = None
-
-    def distance_to(self, other: GPSPoint) -> float:
-        return haversine_distance_m(self.lat, self.lon, other.lat, other.lon)
+class Base(DeclarativeBase):
+    pass
 
 
-@dataclass
-class Segment:
-    start: GPSPoint
-    end: GPSPoint
-    distance_m: float
-    duration_s: float
-    avg_speed_km_h: float
-    elevation_gain_m: float = 0.0
-    elevation_loss_m: float = 0.0
+class AthleteModel(Base):
+    __tablename__ = "athletes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    age: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
+    weight_kg: Mapped[float] = mapped_column(Float, nullable=False, default=70.0)
+    height_cm: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    fat_percentage: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    years_active: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    weekly_sessions: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    monthly_hours: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    annual_hours: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    experience_level: Mapped[str] = mapped_column(String(20), nullable=False, default="Beginner")
+    goals: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    preferred_terrain: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    weekly_volume_km: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    best_segments: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    medical_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    equipment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ftp_watts: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        Index("ix_athletes_experience_level", "experience_level"),
+        Index("ix_athletes_name", "name"),
+    )
 
 
-@dataclass
-class RouteStatistics:
-    total_distance_m: float
-    total_duration_s: float
-    total_pause_duration_s: float
-    avg_speed_km_h: float
-    max_speed_km_h: float
-    total_elevation_gain_m: float
-    total_elevation_loss_m: float
-    segment_count: int
-    pause_count: int
+class RideModel(Base):
+    __tablename__ = "rides"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    date: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    distance_km: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    duration_minutes: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    avg_speed_kmh: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    weight_kg: Mapped[float] = mapped_column(Float, nullable=False, default=70.0)
+    calories: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    heart_rate_avg: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    elevation_gain_m: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    gps_points: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        Index("ix_rides_athlete_date", "athlete_id", "date"),
+        Index("ix_rides_distance", "distance_km"),
+        Index("ix_rides_elevation", "elevation_gain_m"),
+    )
 
 
-@dataclass
-class Ride:
-    id: Optional[int] = None
-    athlete_id: Optional[int] = None
-    date: str = ""
-    distance_km: float = 0.0
-    duration_minutes: float = 0.0
-    avg_speed_kmh: float = 0.0
-    weight_kg: float = 70.0
-    calories: float = 0.0
-    heart_rate_avg: Optional[float] = None
-    elevation_gain_m: Optional[float] = None
-    gps_points: Optional[List[dict]] = None
-    created_at: Optional[str] = None
+class MetricModel(Base):
+    __tablename__ = "metrics"
 
-    @property
-    def duration_hours(self) -> float:
-        return self.duration_minutes / 60.0
-
-    @property
-    def intensity_factor(self) -> float:
-        """Calculate training intensity factor (0-1 scale for ATL/CTL)."""
-        if not self.heart_rate_avg:
-            return 0.5
-        return min(self.heart_rate_avg / 190.0, 1.0)
-
-    @property
-    def training_load(self) -> float:
-        """Training Stress Score (TSS)-like metric for ATL/CTL calculation."""
-        duration_h = self.duration_hours
-        intensity = self.intensity_factor
-        ascent_ratio = (self.elevation_gain_m / self.distance_km / 1000.0) if self.elevation_gain_m and self.distance_km > 0 else 0
-        return min((duration_h * (intensity + ascent_ratio) * 50.0), 200.0)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    metric_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    value: Mapped[float] = mapped_column(Float, nullable=False)
+    unit: Mapped[str] = mapped_column(String(20), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
-@dataclass
-class TrainingLoadPoint:
-    date: str
-    atl: float  # Acute Training Load
-    ctl: float  # Chronic Training Load
-    tsb: float  # Training Stress Balance
+class CalendarEventModel(Base):
+    __tablename__ = "calendar_events"
 
-
-@dataclass
-class TrainingGoal:
-    id: Optional[int] = None
-    athlete_id: Optional[int] = None
-    title: str = ""
-    description: Optional[str] = None
-    goal_type: str = "granfondo"
-    target_date: Optional[str] = None
-    target_distance_km: Optional[float] = None
-    target_elevation_m: Optional[float] = None
-    status: str = "active"
-    created_at: Optional[str] = None
-
-
-@dataclass
-class PlannedWorkout:
-    id: Optional[int] = None
-    athlete_id: Optional[int] = None
-    goal_id: Optional[int] = None
-    date: str = ""
-    title: str = ""
-    workout_type: str = "endurance"
-    duration_minutes: int = 60
-    target_intensity: float = 0.5
-    completed: bool = False
-    completed_at: Optional[str] = None
-
-
-@dataclass
-class AthleteProfile:
-    id: Optional[int] = None
-    name: str = ""
-    age: int = 30
-    weight_kg: float = 70.0
-    height_cm: Optional[float] = None
-    fat_percentage: Optional[float] = None
-    years_active: int = 1
-    weekly_sessions: int = 3
-    monthly_hours: float = 0.0
-    annual_hours: float = 0.0
-    experience_level: str = "Beginner"
-    goals: Optional[str] = None
-    preferred_terrain: Optional[str] = None
-    weekly_volume_km: float = 0.0
-    best_segments: Optional[str] = None
-    medical_notes: Optional[str] = None
-    equipment: Optional[str] = None
-    ftp_watts: Optional[float] = None
-    created_at: Optional[str] = None
-
-
-@dataclass
-class CalendarEvent:
-    id: Optional[int] = None
-    athlete_id: Optional[int] = None
-    title: str = ""
-    event_type: str = "training"
-    date: str = ""
-    duration_minutes: int = 0
-    description: Optional[str] = None
-    completed: bool = False
-    created_at: Optional[str] = None
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False, default="training")
+    date: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

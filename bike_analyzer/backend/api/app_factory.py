@@ -5,12 +5,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from .routes import router, admin_router
-from ..config import CORS_ORIGINS
+from ..config import CORS_ORIGINS, API_HOST
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
@@ -27,15 +28,37 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="BikeMaster API", description="GPS-based cycling intelligence", version="0.1.0", lifespan=lifespan)
+    from ..config import ENVIRONMENT
+
+    app = FastAPI(
+        title="BikeMaster API",
+        description="GPS-based cycling intelligence",
+        version="0.1.0",
+        lifespan=lifespan,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+    )
+
+    @app.middleware("http")
+    async def add_security_headers(request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        if ENVIRONMENT.lower() in ("production", "prod"):
+            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+            response.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'"
+        return response
     app.state.limiter = limiter
     app.add_exception_handler(429, _rate_limit_exceeded_handler)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=CORS_ORIGINS,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
     )
     app.include_router(router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])

@@ -1,227 +1,168 @@
-# BikeMaster - Roadmap 100 Passi
+# BikeMaster - Roadmap Completa
 
-## FASE 1 - Fondamenta (1-20)
+## Stato Attuale
 
-- [x] 1. Definire obiettivo del progetto.
-- [x] 2. Scrivere README iniziale.
-- [x] 3. Definire stack tecnologico.
-- [x] 4. Creare struttura repository.
-- [x] 5. Configurare ambiente Python.
-- [x] 6. Configurare requirements.txt.
-- [x] 7. Configurare .gitignore.
-- [x] 8. Configurare test automatici.
-- [x] 9. Creare cartella backend.
-- [x] 10. Creare cartella frontend.
-- [x] 11. Creare cartella tests.
-- [x] 12. Creare modello GPSPoint.
-- [x] 13. Creare modello Ride.
-- [x] 14. Creare mock GPS dataset.
-- [x] 15. Implementare parser GPS.
-- [x] 16. Implementare validazione coordinate.
-- [x] 17. Implementare route builder.
-- [x] 18. Implementare renderer Folium.
-- [x] 19. Generare prima mappa HTML.
-- [x] 20. Documentare il flusso GPS.
+**Completati: 145/145 step base + 20/80 estensioni**
+
+### ✅ Completati di recente
+- [x] 146. Pydantic Settings v2 (`pydantic-settings`) — type-safe config layer
+- [x] 148. Environment validation all'avvio — SECRET_KEY obbligatoria in prod
+- [x] 191. SECRET_KEY hardening con rotazione (SECRET_KEY + SECRET_KEY_PREVIOUS)
+- [x] 192. Security headers middleware (CSP, X-Frame-Options, HSTS, XSS)
+- [x] 196. Environment validation con ENVIRONMENT detection (dev vs prod)
+- [x] 149. Alembic configurato per migrazioni SQLite/PostgreSQL
+- [x] 150-151. Modelli SQLAlchemy ORM + async_db.py (asyncpg/aiosqlite)
+- [x] 157-158. Compressione GPS + Indicizzazione ottimizzata (già presente)
+- [x] 242. Migrazione iniziale Alembic: `08ee39bfe529_initial_models.py`
+- [x] 14 nuovi modelli matematici in `advanced.py` (power, VO2max, climb, pace, ecc.)
+- [x] `endurance-metrics` integrato come adapter opzionale
+
+### In corso
+- [ ] 15 nuovi test nel modulo `advanced.py` — 25/25 passano
+- [ ] 203. Multi-utente completo (in design)
 
 ---
 
-## FASE 2 - Analisi Percorso (21-40)
+## **FASE 14 - Architettura & Configurazione Robusta** *(Alta Priorità)*
 
-- [x] 21. Calcolo distanza totale.
-- [x] 22. Calcolo tempo totale.
-- [x] 23. Calcolo velocità media.
-- [x] 24. Calcolo velocità massima.
-- [x] 25. Calcolo soste.
-- [x] 26. Calcolo accelerazioni.
-- [x] 27. Calcolo decelerazioni.
-- [x] 28. Calcolo segmenti percorso.
-- [x] 29. Evidenziare fermate.
-- [x] 30. Evidenziare accelerazioni.
-- [x] 31. Evidenziare rallentamenti.
-- [x] 32. Calcolare lunghezza segmenti.
-- [x] 33. Generare statistiche ride.
-- [x] 34. Esportazione JSON.
-- [x] 35. Esportazione CSV.
-- [x] 36. Creare report testuale.
-- [x] 37. Creare grafico velocità.
-- [x] 38. Creare grafico distanza.
-- [x] 39. Creare grafico tempo.
-- [x] 40. Test automatici percorso.
+### Configurazione
+- [ ] 146. Migrare a Pydantic Settings v2 (`pydantic-settings`) invece di dotenv manuale
+- [ ] 147. Centralizzare tutte le costanti e settings in un singolo modulo
+- [ ] 148. Aggiungere validazione environment variables all'avvio
+
+### Database
+- [ ] 149. Introdurre Alembic per migrazioni database versionate
+- [ ] 150. Aggiungere supporto PostgreSQL con fallback SQLite
+- [ ] 151. Implementare async SQLAlchemy (asyncpg)
+
+### Codice
+- [ ] 152. Ristrutturazione secondo Clean Architecture (services, repositories, use_cases)
+- [ ] 153. Dependency injection più strutturata con `Depends`
+- [ ] 154. Type hints completi ovunque + mypy configuration
+- [ ] 155. Linting automatico: Ruff + Black + pre-commit hooks
+- [ ] 156. Logging centralizzato e strutturato (JSON per produzione)
 
 ---
 
-## FASE 3 - Database (41-55)
+## **FASE 15 - Database & Scalabilità** *(Alta Priorità)*
 
-- [x] 41. Configurare SQLite.
-- [x] 42. Creare tabella athletes.
-- [x] 43. Creare tabella rides. (già esiste)
-- [x] 44. Creare tabella gps_points. (embedded in rides)
-- [x] 45. Creare tabella metrics.
-- [x] 46. Creare ORM SQLAlchemy.
-- [x] 47. Salvare ride.
-- [x] 48. Salvare GPS points.
-- [x] 49. Recuperare ride.
-- [x] 50. Recuperare storico.
-- [x] 51. Aggiornare ride.
-- [x] 52. Eliminare ride.
-- [x] 53. Indicizzazione database.
-- [x] 54. Backup database.
-- [x] 55. Test database.
+- [ ] 157. Compressione GPS points (Douglas-Peucker) per ridurre dimensione DB
+- [ ] 158. Indicizzazione ottimizzata su `date`, `athlete_id`, `distance_km`, `elevation_gain_m`
+- [ ] 159. Aggiungere Redis per cache e rate limiting avanzato
+- [ ] 160. Background tasks per operazioni pesanti (import batch, generazione mappe)
+- [ ] 161. Connection pooling per database
 
 ---
 
-## FASE 4 - Profilo Atleta (56-65)
+## **FASE 16 - Frontend Moderno** *(Alta Priorità)*
 
-- [x] 56. Altezza atleta.
-- [x] 57. Peso atleta.
-- [x] 58. Età atleta.
-- [x] 59. Massa grassa.
-- [x] 60. Anni di attività.
-- [x] 61. Frequenza allenamenti.
-- [x] 62. Ore allenamento mensili.
-- [x] 63. Ore allenamento annuali.
-- [x] 64. Livello atleta.
-- [x] 65. Storico modifiche profilo.
+- [ ] 162. Setup Vue 3 + Vite + TypeScript come SPA
+- [ ] 163. Dark/Light theme toggle
+- [ ] 164. Grafici interattivi con Chart.js o Plotly (sostituire Matplotlib statici)
+- [ ] 165. Componenti riutilizzabili e state management (Pinia)
+- [ ] 166. Progressive Web App (PWA) per installazione smartphone
+- [ ] 167. Mobile-first responsive design
+- [ ] 168. Completare app Android nella cartella `android/`
 
 ---
 
-## FASE 5 - Performance Engine (66-80)
+## **FASE 17 - Funzionalità Analytics Avanzate** *(Media Priorità)*
 
-- [x] 66. Definire Performance Score.
-- [x] 67. Definire Endurance Score.
-- [x] 68. Definire Fatigue Score.
-- [x] 69. Definire Recovery Score.
-- [x] 70. Definire Efficiency Score.
-- [x] 71. Calcolare score per ride.
-- [x] 72. Calcolare score mensile.
-- [x] 73. Calcolare score annuale.
-- [x] 74. Classificazione Beginner.
-- [x] 75. Classificazione Amateur.
-- [x] 76. Classificazione Intermediate.
-- [x] 77. Classificazione Advanced.
-- [x] 78. Classificazione Elite.
-- [x] 79. Dashboard score.
-- [x] 80. Test score engine.
+### Integrazioni
+- [ ] 169. Integrazione Strava API (import/export attività)
+- [ ] 170. Integrazione Garmin Connect
+- [ ] 171. Integrazione Wahoo
 
----
+### Power & Training Metrics
+- [ ] 172. Modello di potenza avanzato con dati power meter FIT
+- [ ] 173. Normalized Power (NP) — algoritmo Coggan
+- [ ] 174. Intensity Factor (IF) e Variability Index (VI)
+- [ ] 175. Efficiency Factor (EF) per cardio drift detection
+- [ ] 176. TRIMP — Training Impulse da HR data
+- [ ] 177. ACWR — Acute:Chronic Workload Ratio
+- [ ] 178. Ramp Rate — velocità di caricamento fitness
+- [ ] 179. Decoupling analysis — scompenso aerobico
 
-## FASE 6 - Benchmark Atleti (81-88)
+### Segment Detection
+- [ ] 180. Segment detection più intelligente (confronto con segmenti Strava)
+- [ ] 181. Climb categorization migliorata (superficie, pendenza media vs max)
 
-- [x] 81. Creare dataset benchmark.
-- [x] 82. Definire categorie età.
-- [x] 83. Definire categorie peso.
-- [x] 84. Definire categorie esperienza.
-- [x] 85. Confronto atleta-benchmark.
-- [x] 86. Calcolo percentile.
-- [x] 87. Visualizzazione confronto.
-- [x] 88. Report benchmark.
+### Esportazione
+- [ ] 182. Esportazione TCX
+- [ ] 183. Esportazione FIT
+- [ ] 184. PDF report professionali con grafice e tabelle
 
 ---
 
-## FASE 7 - Knowledge Base e AI (89-96)
+## **FASE 18 - AI Coach Avanzato** *(Media Priorità)*
 
-- [x] 89. Creare knowledge base sportiva.
-- [x] 90. Definire formato documenti.
-- [x] 91. Aggiungere teoria allenamento.
-- [x] 92. Aggiungere teoria recupero.
-- [x] 93. Aggiungere teoria cardio.
-- [x] 94. Indicizzare documenti.
-- [x] 95. Integrare sistema RAG.
-- [x] 96. Collegare dati atleta al RAG.
+- [ ] 185. Vector Database (Chroma, PGVector o Qdrant) per RAG più potente
+- [ ] 186. Tool calling / function calling con Groq o OpenAI
+- [ ] 187. Memory persistente delle conversazioni per utente
+- [ ] 188. Personalizzazione basata su storico completo dell'atleta
+- [ ] 189. Voice input/output (opzionale)
+- [ ] 190. Prompt engineering avanzato con few-shot examples
 
 ---
 
-## FASE 8 - AI Coach (97-100)
+## **FASE 19 - Sicurezza & Produzione** *(Alta Priorità)*
 
-- [x] 97. Generare consigli allenamento.
-- [x] 98. Generare consigli recupero.
-- [x] 99. Analizzare andamento storico.
-- [x] 100. Creare AI Coach completo.
----
-
-## FASE 9 - Integrazione Google Fit (101-110)
-
-- [x] 101. Creare modulo google_fit.py per OAuth2
-- [x] 102. Implementare generazione URL autorizzazione
-- [x] 103. Implementare scambio token OAuth2
-- [x] 104. Implementare fetch attività cycling
-- [x] 105. Implementare conversione dati Google Fit a formato ride
-- [x] 106. Aggiungere endpoint /import/google-fit/auth
-- [x] 107. Aggiungere endpoint /import/google-fit/token
-- [x] 108. Aggiungere endpoint /import/google-fit
-- [x] 109. Aggiornare README con endpoint Google Fit
-- [x] 110. Test integrazione Google Fit
-- [x] 111. Attendere approvazione API Google (ricomandato: verifica dominio o numero di telefono)
+- [ ] 191. Gestione sicura di SECRET_KEY (rotazione, non-generazione in produzione)
+- [ ] 192. HTTPS obbligatorio, CSP headers, security middleware
+- [ ] 193. Rate limiting per utente (non solo globale)
+- [ ] 194. Backup automatici crittografati e scheduled
+- [ ] 195. Docker multi-stage ottimizzato + security scan
+- [ ] 196. Environment variables validation all'avvio migliorata
 
 ---
 
-## FASE 10 - Google Maps (112-120)
+## **FASE 20 - Testing & DevOps** *(Media Priorità)*
 
-- [x] 112. Creare modulo google_maps.py
-- [x] 113. Implementare Google Static Maps API
-- [x] 114. Aggiungere endpoint /rides/{id}/map/google
-- [x] 115. Supporto API key via .env
-- [x] 116. Aggiungere marker start/end
-- [x] 117. Test integrazione Google Maps (mock)
-- [x] 118. Visualizzazione percorso colorato dinamica
-- [x] 119. Integrazione JavaScript API (opzionale)
-- [x] 120. Documentazione Google Maps API
+- [ ] 197. Aumentare coverage test a >90%
+- [ ] 198. Integration tests con pytest + TestClient
+- [ ] 199. E2E tests con Playwright
+- [ ] 200. GitHub Actions: lint, test, build Docker, deploy preview
+- [ ] 201. Monitoring: Prometheus + Grafana o Sentry per errori
+- [ ] 202. Documentazione API completa con Swagger + Redoc personalizzato
 
 ---
 
-## FASE 11 - UI/UX (121-125)
+## **FASE 21 - Deployment & Distribuzione** *(Bassa Priorità)*
 
-- [x] - [x] 121. Design dark theme responsive layout (Vue components)
-- [x] - [x] 122. Build ride list component with filters (RidesPanel.vue)
-- [x] 123. Create ride detail view with map integration
-- [x] 124. Implement athlete profile settings page
-- [x] 125. Add interactive charts with Chart.js
----
-
-## FASE 12 - Deployment (126-135)
-
-- [x] 126. Docker configurazione
-- [x] 127. Docker Compose
-- [x] 128. Azure deployment
-- [x] 129. Documentation API aggiornata
-- [x] 130. Environment variables complete
+- [ ] 203. Supporto multi-utente completo (attualmente single-user oriented)
+- [ ] 204. Versione cloud hosted (opzionale, per monetizzazione)
+- [ ] 205. Helm chart per Kubernetes
+- [ ] 206. One-click deploy su Railway, Fly.io, Vercel (frontend)
 
 ---
 
-## FASE 13 - Test Coverage (136-145)
+## **FASE 22 - Community & Monetization** *(Bassa Priorità)*
 
-- [x] 136. Test Google Maps mock
-- [x] 137. Test performance engine
-- [x] 138. Test benchmark comparison
-- [x] 139. Test knowledge base
-- [x] 140. Test AI coach
-- [x] 141. Test database backup
-- [x] 142. Test import batch
-- [x] 143. Test athlete profile
-- [x] 144. Test scores API
-- [x] 145. Coverage > 80%
+### Documentazione
+- [ ] 207. Aggiornare README con screenshot, demo video, badge di stato
+- [ ] 208. API documentation esterna (ReadTheDocs o MkDocs)
+- [ ] 209. Esempi di contribuzione + template per nuove feature
+- [ ] 210. Roadmap pubblica più dettagliata con issues collegate
+
+### Features Extra
+- [ ] 211. Plugin system per nuovi analizzatori o fonti dati
+- [ ] 212. Confronto tra atleti (condivisione anonima benchmark)
+- [ ] 213. Gamification: badge, challenges, streak
+- [ ] 214. Social features: condivisione uscite (con privacy)
+- [ ] 215. Mobile-first redesign completo
 
 ---
 
-## Stato attuale
+## **Priorità Consigliate (Prime 5 da implementare)**
 
-**Completate: 145/145** (tutti gli step completati)
+| Priorità | Feature | Impatto | Difficoltà |
+|:---:|---|---|:---:|
+| **1** | Pydantic Settings + Config robusta | Alto | Bassa |
+| **2** | Miglioramento Frontend (Vue 3 + Vite) | Alto | Media |
+| **3** | Sicurezza SECRET_KEY + production hardening | Alto | Bassa |
+| **4** | PostgreSQL + Alembic | Alto | Media |
+| **5** | Redis + Background Tasks | Medio-Alto | Media |
 
-**Endpoint API a disposizione:**
-- `/api/v1/rides/*` - CRUD rides
-- `/api/v1/import/*` - GPX, FIT, Google Fit
-- `/api/v1/export/*` - JSON, CSV
-- `/api/v1/charts/*` - Speed, elevation, duration, distance
-- `/api/v1/athletes/*` - Profile management
-- `/api/v1/scores/*` - Performance scores
-- `/api/v1/benchmark/*` - Athlete comparison
-- `/api/v1/coach/*` - AI recommendations
-- `/api/v1/knowledge/*` - Training docs
-- `/api/v1/admin/*` - Backup, stats, indexes
+---
 
-**Test Coverage: 78%** (227 test passanti) - 2 punti dal target 80%
-
-
-
-
-
+*Ultimo aggiornamento: 2026-06-09*

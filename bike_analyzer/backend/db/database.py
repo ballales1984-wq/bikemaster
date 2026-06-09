@@ -8,30 +8,32 @@ import os
 import sqlite3
 
 from ..config import DB_PATH, DATABASE_URL
+from ..models.models import Ride
 
-# PostgreSQL support
-if DATABASE_URL:
-    import psycopg2
-    from psycopg2.extras import RealDictCursor
-    from psycopg2 import pool
-    _pg_pool = None
-    
-    def get_pg_pool():
-        global _pg_pool
-        if _pg_pool is None:
-            _pg_pool = psycopg2.pool.ThreadedConnectionPool(1, 10, DATABASE_URL)
-        return _pg_pool
-else:
-    pass
 
 @contextmanager
 def get_db_connection():
-    """Context manager for database connections."""
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        yield conn
-    finally:
-        conn.close()
+    """Context manager for database connections with WAL mode and retry."""
+    import time
+    max_retries = 3
+    retry_delay = 0.1
+    for attempt in range(max_retries):
+        try:
+            conn = sqlite3.connect(DB_PATH, timeout=10)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.row_factory = sqlite3.Row
+            try:
+                yield conn
+            finally:
+                conn.close()
+            return
+        except sqlite3.OperationalError as e:
+            if "locked" in str(e).lower() and attempt < max_retries - 1:
+                time.sleep(retry_delay * (attempt + 1))
+                continue
+            raise
 
 def init_db():
     with get_db_connection() as conn:
@@ -111,6 +113,21 @@ def init_db():
             conn.execute("ALTER TABLE athletes ADD COLUMN goals TEXT")
         if "ftp_watts" not in columns:
             conn.execute("ALTER TABLE athletes ADD COLUMN ftp_watts REAL")
+        if "password_hash" not in columns:
+            conn.execute("ALTER TABLE athletes ADD COLUMN password_hash TEXT")
+        conn.execute("""CREATE TABLE IF NOT EXISTS training_stress_days (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            tss REAL,
+            atl REAL,
+            ctl REAL,
+            tsb REAL,
+            created_at TEXT,
+            updated_at TEXT,
+            UNIQUE(athlete_id, date),
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id)
+        )""")
         conn.execute("""CREATE TABLE IF NOT EXISTS metrics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
@@ -172,10 +189,11 @@ def get_paginated_rides(page: int = 1, page_size: int = 20, sort: str = "date") 
         cur = conn.cursor()
         order_map = {"date": "date", "distance": "distance_km", "duration": "duration_minutes"}
         order = order_map.get(sort, "date")
+        assert order in {"date", "distance_km", "duration_minutes"}, f"Invalid sort column: {order}"
         cur.execute("SELECT COUNT(*) FROM rides")
         total = cur.fetchone()[0]
         offset = (page - 1) * page_size
-        cur.execute(f"SELECT * FROM rides ORDER BY {order} DESC LIMIT ? OFFSET ?", (page_size, offset))
+        cur.execute("SELECT * FROM rides ORDER BY " + order + " DESC LIMIT ? OFFSET ?", (page_size, offset))
         rows = cur.fetchall()
         return [_row_to_ride(r) for r in rows], total
 
@@ -201,14 +219,14 @@ def update_ride(ride_id: int, ride: dict) -> bool:
 def save_athlete(athlete: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage, years_active, weekly_sessions, monthly_hours, annual_hours, experience_level, goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes, equipment, ftp_watts, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        cur.execute("""INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage, years_active, weekly_sessions, monthly_hours, annual_hours, experience_level, goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes, equipment, ftp_watts, password_hash, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (athlete.get("name"), athlete.get("age", 30), athlete.get("weight_kg", 70), athlete.get("height_cm"),
              athlete.get("fat_percentage"), athlete.get("years_active", 1), athlete.get("weekly_sessions", 3),
              athlete.get("monthly_hours", 0), athlete.get("annual_hours", 0), athlete.get("experience_level", "Beginner"),
              athlete.get("goals"), athlete.get("preferred_terrain"), athlete.get("weekly_volume_km", 0),
              athlete.get("best_segments"), athlete.get("medical_notes"), athlete.get("equipment"),
-             athlete.get("ftp_watts"), datetime.now(timezone.utc).isoformat()))
+             athlete.get("ftp_watts"), athlete.get("password_hash"), datetime.now(timezone.utc).isoformat()))
         conn.commit()
         return cur.lastrowid
 
@@ -220,9 +238,10 @@ def get_athlete(athlete_id: int) -> Optional[dict]:
         cur.execute("SELECT * FROM athletes WHERE id = ?", (athlete_id,))
         row = cur.fetchone()
         if row:
-            result = {"id": row[0], "name": row[1], "age": row[2], "weight_kg": row[3], "height_cm": row[4], "fat_percentage": row[5], "years_active": row[6], "weekly_sessions": row[7], "monthly_hours": row[8], "annual_hours": row[9], "experience_level": row[10], "goals": row[11], "preferred_terrain": row[12], "weekly_volume_km": row[13], "best_segments": row[14], "medical_notes": row[15], "equipment": row[16]}
-            if "ftp_watts" in columns and len(row) > 17:
-                result["ftp_watts"] = row[17]
+            result = {}
+            for i, col_name in enumerate(columns):
+                if i < len(row):
+                    result[col_name] = row[i]
             return result
         return None
 
@@ -242,13 +261,13 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     merged = {**existing, **athlete_data}
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?, fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?, annual_hours=?, experience_level=?, goals=?, preferred_terrain=?, weekly_volume_km=?, best_segments=?, medical_notes=?, equipment=?, ftp_watts=? WHERE id=?""",
+        cur.execute("""UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?, fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?, annual_hours=?, experience_level=?, goals=?, preferred_terrain=?, weekly_volume_km=?, best_segments=?, medical_notes=?, equipment=?, ftp_watts=?, password_hash=? WHERE id=?""",
             (merged.get("name"), merged.get("age", 30), merged.get("weight_kg", 70), merged.get("height_cm"),
              merged.get("fat_percentage"), merged.get("years_active", 1), merged.get("weekly_sessions", 3),
              merged.get("monthly_hours", 0), merged.get("annual_hours", 0), merged.get("experience_level", "Beginner"),
              merged.get("goals"), merged.get("preferred_terrain"), merged.get("weekly_volume_km", 0),
              merged.get("best_segments"), merged.get("medical_notes"), merged.get("equipment"),
-             merged.get("ftp_watts"), athlete_id))
+             merged.get("ftp_watts"), merged.get("password_hash"), athlete_id))
         conn.commit()
         return cur.rowcount > 0
 
