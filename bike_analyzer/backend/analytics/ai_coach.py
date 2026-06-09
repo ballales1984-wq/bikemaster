@@ -5,7 +5,7 @@ import re
 import traceback
 from typing import List, Optional
 from ..models.models import Ride, AthleteProfile
-from ..config import GROQ_API_KEY, GROQ_MODEL, OPENAI_API_KEY, OPENAI_MODEL, AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_MODEL
+from ..config import GROQ_API_KEY, GROQ_MODEL, OPENAI_API_KEY, OPENAI_MODEL
 from .analytics import calculate_summary
 from .performance import calculate_performance_score, calculate_recovery_score
 from .knowledge_base import search_knowledge_base, format_context_for_llm
@@ -45,15 +45,11 @@ def get_ai_coach_client():
     global _current_client, _current_provider
     if _current_client:
         return _current_client, _current_provider
-    print(f"DEBUG: GROQ_API_KEY present: {bool(GROQ_API_KEY)}, starts with gsk_: {GROQ_API_KEY.startswith('gsk_') if GROQ_API_KEY else False}")
-    print(f"DEBUG: OPENAI_API_KEY present: {bool(OPENAI_API_KEY)}, starts with sk-: {OPENAI_API_KEY.startswith('sk-') if OPENAI_API_KEY else False}")
-    print(f"DEBUG: AZURE_OPENAI_API_KEY present: {bool(AZURE_OPENAI_API_KEY)}")
     if GROQ_API_KEY and GROQ_API_KEY.startswith("gsk_"):
         try:
             from groq import Groq
             _current_client = Groq(api_key=GROQ_API_KEY)
             _current_provider = "groq"
-            print("DEBUG: Groq client initialized successfully")
             return _current_client, _current_provider
         except Exception as e:
             print(f"Groq init error: {e}")
@@ -64,13 +60,12 @@ def get_ai_coach_client():
             from openai import OpenAI
             _current_client = OpenAI(api_key=OPENAI_API_KEY)
             _current_provider = "openai"
-            print("DEBUG: OpenAI client initialized successfully")
             return _current_client, _current_provider
         except Exception as e:
             print(f"OpenAI init error: {e}")
             _current_client = None
             _current_provider = None
-    raise ValueError("Nessuna API key valida configurata (GROQ, OPENAI o AZURE)")
+    raise ValueError("Nessuna API key valida configurata (GROQ o OPENAI)")
 
 
 def _build_athlete_context(athlete: AthleteProfile) -> str:
@@ -186,17 +181,16 @@ REGOLE:
 - Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
 - Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
 - Non mostrare valori con .0 se sono interi (es: scrivi "3 volte" non "3.0 volte")
-"""
-        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL if provider == "openai" else AZURE_OPENAI_MODEL
-        print(f"DEBUG: Calling {provider} API with model {model}")
+        """
+        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
         chat = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}], max_tokens=500)
         content = chat.choices[0].message.content or "Nessun consiglio disponibile"
-        print(f"DEBUG: API response received, length: {len(content)}")
         return _clean_ai_output(content)
     except Exception as e:
+        print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
+        traceback.print_exc()
         if "401" in str(e) or "403" in str(e) or "invalid_api_key" in str(e).lower() or "PermissionDenied" in type(e).__name__:
             return _generate_fallback_training_advice(athlete, rides)
-        traceback.print_exc()
         return f"AI Coach non disponibile: {type(e).__name__}: {e}"
 
 
@@ -250,7 +244,7 @@ REGOLE:
 - Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
 - Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
 """
-        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL if provider == "openai" else AZURE_OPENAI_MODEL
+        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
         chat = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}], max_tokens=300)
         content = chat.choices[0].message.content or "Recupera bene!"
         return _clean_ai_output(content)
@@ -262,17 +256,21 @@ REGOLE:
         return f"Recupero non disponibile: {type(e).__name__}: {e}"
 
 
+_FALLBACK_PREFIX = "(Servizio AI temporaneamente non disponibile - consiglio basato su modello)\n\n"
+
+
 def _generate_fallback_training_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
     kb = search_knowledge_base("allenamento base periodizzazione", max_chunks=3)
     context = format_context_for_llm(kb) if kb else "**1. Allenamento Base** Fai 80% delle tue uscite a bassa intensita (Zona 2) per sviluppare l'aerobico"
-    return f"**1. Allenamento Base** Fai 80% delle tue uscite a bassa intensita (Zona 2) per sviluppare l'aerobico\n**2. Progressione** Aumenta il volume settimanale di massimo 10% a settimana per evitare sovrallenamento\n**3. Recupero** Inserisci 1-2 giorni di riposo completo a settimana"
+    return f"{_FALLBACK_PREFIX}**1. Allenamento Base** Fai 80% delle tue uscite a bassa intensita (Zona 2) per sviluppare l'aerobico\n**2. Progressione** Aumenta il volume settimanale di massimo 10% a settimana per evitare sovrallenamento\n**3. Recupero** Inserisci 1-2 giorni di riposo completo a settimana"
 
 
 def _generate_fallback_recovery_advice(athlete: AthleteProfile, rides: List[Ride], recovery_score: float = 5.0) -> str:
     kb = search_knowledge_base("recupero sonno idratazione stretching", max_chunks=3)
     context = format_context_for_llm(kb) if kb else ""
     base = "**1. Sonno** Dormi 7-9 ore per notte per ottimale recupero\n**2. Idratazione** Bevi 500ml d'acqua per ogni ora di allenamento"
-    return f"{base}\n**3. Stretching** 10-15 min di stretching post-allenamento per flessibilita e prevenzione infortuni" if recovery_score < 5 else f"{base}\n**3. Alimentazione** Consumate carboidrati e proteine nella ratio 3:1 entro 30 min dal termine"
+    result = f"{base}\n**3. Stretching** 10-15 min di stretching post-allenamento per flessibilita e prevenzione infortuni" if recovery_score < 5 else f"{base}\n**3. Alimentazione** Consumate carboidrati e proteine nella ratio 3:1 entro 30 min dal termine"
+    return f"{_FALLBACK_PREFIX}{result}"
 
 
 generate_recovery_recommendations = generate_recovery_advice
@@ -296,11 +294,6 @@ def ai_coach_full(athlete: AthleteProfile, rides: List[Ride], athlete_id: Option
     from ..analytics.analytics import calculate_summary
     from ..analytics.performance import calculate_performance_score, calculate_recovery_score, calculate_endurance_score, calculate_efficiency_score
     from ..processing.processing import build_segments
-    
-    try:
-        print(f"AI Coach Full: athlete={athlete.name}, rides={len(rides)}")
-    except Exception as log_err:
-        print(f"AI Coach Full log error: {log_err}")
     
     recent = rides[-1] if rides else None
     perf = calculate_performance_score(recent) if recent else 0
