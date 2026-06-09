@@ -124,7 +124,8 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
 
 .form-group input,
 .form-group select,
-.form-group textarea {
+.form-group textarea,
+.form-input {
   background: var(--bg-tertiary);
   color: var(--text-primary);
   border: 1px solid var(--border);
@@ -530,3 +531,11 @@ textarea {
 .type-recovery { background: #2ecc71; }
 .type-openers { background: #f39c12; }
 .type-race { background: #f39c12; }
+
+.error-text { color: var(--error); margin-top: 8px; font-size: 0.9rem; }
+
+.ride-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+.form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.form-row .form-input { flex: 1; min-width: 120px; }
+
+.add-ride-form { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
