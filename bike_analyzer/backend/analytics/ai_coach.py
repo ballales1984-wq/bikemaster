@@ -45,11 +45,15 @@ def get_ai_coach_client():
     global _current_client, _current_provider
     if _current_client:
         return _current_client, _current_provider
+    print(f"DEBUG: GROQ_API_KEY present: {bool(GROQ_API_KEY)}, starts with gsk_: {GROQ_API_KEY.startswith('gsk_') if GROQ_API_KEY else False}")
+    print(f"DEBUG: OPENAI_API_KEY present: {bool(OPENAI_API_KEY)}, starts with sk-: {OPENAI_API_KEY.startswith('sk-') if OPENAI_API_KEY else False}")
+    print(f"DEBUG: AZURE_OPENAI_API_KEY present: {bool(AZURE_OPENAI_API_KEY)}")
     if GROQ_API_KEY and GROQ_API_KEY.startswith("gsk_"):
         try:
             from groq import Groq
             _current_client = Groq(api_key=GROQ_API_KEY)
             _current_provider = "groq"
+            print("DEBUG: Groq client initialized successfully")
             return _current_client, _current_provider
         except Exception as e:
             print(f"Groq init error: {e}")
@@ -60,6 +64,7 @@ def get_ai_coach_client():
             from openai import OpenAI
             _current_client = OpenAI(api_key=OPENAI_API_KEY)
             _current_provider = "openai"
+            print("DEBUG: OpenAI client initialized successfully")
             return _current_client, _current_provider
         except Exception as e:
             print(f"OpenAI init error: {e}")
