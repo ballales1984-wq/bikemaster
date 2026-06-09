@@ -46,11 +46,11 @@ async function login(username, password) {
   localStorage.setItem(USER_KEY, JSON.stringify(user.value))
 }
 
-function register(username, password, isAdmin = false) {
+function register(username, password) {
   return fetch('/api/v1/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, is_admin: isAdmin }),
+    body: JSON.stringify({ username, password }),
   }).then(r => {
     if (!r.ok) throw new Error('Registrazione fallita')
     return r.json()

@@ -15,12 +15,6 @@
         <label for="password">Password</label>
         <input id="password" v-model="form.password" type="password" :placeholder="mode === 'register' ? 'min 6 caratteri' : ''" :disabled="loading" required />
       </div>
-      <div v-if="mode === 'register'" class="form-group">
-        <label class="checkbox-label">
-          <input type="checkbox" v-model="form.is_admin" />
-          <span>Registra come amministratore</span>
-        </label>
-      </div>
       <button type="submit" class="btn btn-primary" :disabled="loading">
         {{ loading ? 'Caricamento...' : (mode === 'login' ? 'Entra' : 'Crea account') }}
       </button>
@@ -35,7 +29,7 @@ const emit = defineEmits(['login', 'register', 'error'])
 
 const mode = ref('login')
 const loading = ref(false)
-const form = ref({ username: '', password: '', is_admin: false })
+const form = ref({ username: '', password: '' })
 
 async function submit() {
   loading.value = true

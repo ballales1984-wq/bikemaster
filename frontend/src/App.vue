@@ -87,6 +87,7 @@ import HeatmapPanel from './components/HeatmapPanel.vue'
 import BadgesPanel from './components/BadgesPanel.vue'
 import AdminPanel from './components/AdminPanel.vue'
 import ToastContainer from './components/ToastContainer.vue'
+import LoginForm from './components/LoginForm.vue'
 
 const loggedIn = computed(() => isLoggedIn())
 const isAdmin = computed(() => checkIsAdmin())
@@ -106,7 +107,7 @@ async function onLogin(creds) {
 
 async function onRegister(creds) {
   try {
-    await doRegister(creds.username, creds.password, creds.is_admin || false)
+    await doRegister(creds.username, creds.password)
     await doLogin(creds.username, creds.password)
     loginError.value = ''
   } catch (e) {

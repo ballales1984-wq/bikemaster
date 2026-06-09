@@ -39,17 +39,17 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": create_access_token(subject=form_data.username, is_admin=user.get("is_admin", False)), "token_type": "bearer"}
 
 @router.post("/auth/register")
-async def register(username: str = Body(..., min_length=3), password: str = Body(..., min_length=6), is_admin: bool = Body(False)):
+async def register(username: str = Body(..., min_length=3), password: str = Body(..., min_length=6)):
     from ..security import hash_password, create_access_token
     from ..db.database import get_db_connection
     if username in FAKE_USERS_DB:
         raise HTTPException(status_code=400, detail="Username already exists")
-    FAKE_USERS_DB[username] = {"username": username, "hashed_password": hash_password(password), "is_admin": is_admin}
+    FAKE_USERS_DB[username] = {"username": username, "hashed_password": hash_password(password), "is_admin": False}
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("INSERT INTO athletes (name, experience_level) VALUES (?, ?)", (username, "Beginner"))
         conn.commit()
-    return {"username": username, "msg": "Utente creato", "is_admin": is_admin}
+    return {"username": username, "msg": "Utente creato", "is_admin": False}
 
 def get_current_user_dependency():
     return Depends(get_current_user)
@@ -73,6 +73,11 @@ async def list_rides(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1
     from ..db.database import get_paginated_rides
     rides, total = get_paginated_rides(page=page, page_size=page_size, sort=sort)
     return {"rides": rides, "total": total, "page": page, "page_size": page_size}
+
+@router.get("/rides/count")
+async def count_rides():
+    from ..db.database import get_all_rides
+    return {"count": len(get_all_rides())}
 
 @router.get("/rides/{ride_id}")
 async def get_ride(ride_id: int):
@@ -624,11 +629,6 @@ async def update_ride(ride_id: int, ride: dict = Body(...), current_user: dict =
     merged = {**existing, **ride}
     _update_ride(ride_id, merged)
     return merged
-
-@router.get("/rides/count")
-async def count_rides():
-    from ..db.database import get_all_rides
-    return {"count": len(get_all_rides())}
 
 @router.api_route("/coach/chat", methods=["GET", "POST"])
 async def coach_chat(athlete_id: int = Query(...), message: str = Query(...), current_user: dict = Depends(get_current_user_dependency)):
