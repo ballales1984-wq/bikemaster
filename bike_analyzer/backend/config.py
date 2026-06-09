@@ -46,12 +46,9 @@ KB_PATH: Path = Path(__file__).parent.parent.parent / "knowledge_base"
 
 # AI Coach
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama3-70b-8192")
 OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-AZURE_OPENAI_API_KEY: str = os.getenv("AZURE_OPENAI_API_KEY", "")
-AZURE_OPENAI_ENDPOINT: str = os.getenv("AZURE_OPENAI_ENDPOINT", "")
-AZURE_OPENAI_MODEL: str = os.getenv("AZURE_OPENAI_MODEL", "gpt-4o-mini")
 
 # JWT / Auth
 _SECRET: str = os.getenv("SECRET_KEY", "")
