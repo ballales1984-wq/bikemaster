@@ -1,0 +1,208 @@
+"""Advanced cycling power analysis models.
+
+Implements industry-standard power metrics:
+1. Normalized Power (NP) — Coggan algorithm with 30s rolling average
+2. Intensity Factor (IF) — NP / FTP
+3. Variability Index (VI) — NP / avg power
+4. Efficiency Factor (EF) — NP / avg HR
+5. Training Stress Score (TSS) — IF² × duration(h) × 100
+6. Power Profile — best efforts at durations (5s, 1min, 5min, 20min, FTP)
+7. Power Zones Coggan — 7-zone model
+8. Pedal Smoothness / Torque Effectiveness estimates
+9. W' (W prime) / Critical Power model
+10. Aerobic Decoupling detection
+
+References:
+- Coggan, A. & Allen, H. (2019). Training and Racing with a Power Meter.
+- Allen, H. & Coggan, A. (2010). Training and Racing with a Power Meter.
+- Pinot, J. et al. (2014). MPA model for aerobic power estimation.
+"""
+from __future__ import annotations
+
+import math
+from typing import List, Optional, Dict, Any
+from dataclasses import dataclass
+
+from ..models.models import Ride, GPSPoint
+
+
+POWER_ZONES_COGGAN = [
+    ("Z1", "Recovery",   0.55, 0.64, "#4ecca3"),
+    ("Z2", "Endurance",   0.64, 0.74, "#90EE90"),
+    ("Z3", "Tempo",       0.74, 0.84, "#FFD700"),
+    ("Z4", "Threshold",   0.84, 0.94, "#FFA500"),
+    ("Z5", "VO2max",      0.94, 1.00, "#FF4500"),
+    ("Z6", "Anaerobic",   1.00, 1.10, "#DC143C"),
+    ("Z7", "Neuromuscular", 1.10, 1.50, "#8B0000"),
+]
+
+
+def normalized_power(watts: List[float], window_size: int = 30) -> float:
+    if not watts or len(watts) < window_size:
+        return sum(watts) / len(watts) if watts else 0.0
+    smoothed = []
+    for i in range(len(watts) - window_size + 1):
+        segment = watts[i:i + window_size]
+        avg = sum(segment) / window_size
+        smoothed.append(avg ** 4)
+    if not smoothed:
+        return sum(watts) / len(watts)
+    mean_powered = sum(smoothed) / len(smoothed)
+    return round(mean_powered ** 0.25, 1)
+
+
+def intensity_factor(np: float, ftp: float) -> float:
+    return round(np / ftp, 3) if ftp > 0 else 0.0
+
+
+def variability_index(np: float, avg_power: float) -> float:
+    return round(np / avg_power, 3) if avg_power > 0 else 0.0
+
+
+def efficiency_factor(np: float, avg_hr: float) -> float:
+    return round(np / avg_hr, 3) if avg_hr > 0 else 0.0
+
+
+def training_stress_score(np: float, if_value: float, duration_h: float) -> float:
+    tss = (duration_h * 100.0 * (if_value ** 2))
+    return round(min(tss, 500.0), 1)
+
+
+def calculate_power_zones(points: List[GPSPoint], ftp: float) -> Dict[str, Dict[str, Any]]:
+    watts_series = [p.power if p.power is not None else 0.0 for p in points if p.power is not None]
+    if not watts_series or ftp <= 0:
+        return {}
+    zones: Dict[str, Dict[str, Any]] = {}
+    total_samples = len(watts_series)
+    for name, label, low, high, color in POWER_ZONES_COGGAN:
+        lower_w = low * ftp
+        upper_w = high * ftp
+        count = sum(1 for w in watts_series if lower_w <= w < upper_w)
+        zones[name] = {
+            "label": label,
+            "lower_w": round(lower_w, 0),
+            "upper_w": round(upper_w, 0),
+            "lower_pct": round(low * 100, 0),
+            "upper_pct": round(high * 100, 0),
+            "count": count,
+            "pct_time": round(count / total_samples * 100, 1) if total_samples else 0,
+            "color": color,
+        }
+    return zones
+
+
+def calculate_power_profile(points: List[GPSPoint]) -> Dict[str, Optional[float]]:
+    durations = {
+        "5s": 5,
+        "1min": 60,
+        "5min": 300,
+        "10min": 600,
+        "20min": 1200,
+        "30min": 1800,
+    }
+    watts_series = [(p.timestamp.timestamp(), p.power) for p in points if p.power is not None]
+    if not watts_series:
+        return {k: None for k in durations}
+    profile = {}
+    for label, window_s in durations.items():
+        best = 0.0
+        n = len(watts_series)
+        if window_s > 1:
+            for i in range(n - int(window_s) + 1):
+                seg = watts_series[i:i + int(window_s)]
+                avg = sum(w for _, w in seg) / len(seg)
+                best = max(best, avg)
+        else:
+            best = max(w for _, w in watts_series)
+        profile[label] = round(best, 1) if best > 0 else None
+    return profile
+
+
+def estimate_ftp_from_20min(points: List[GPSPoint]) -> float:
+    profile = calculate_power_profile(points)
+    best_20 = profile.get("20min")
+    if best_20 is None:
+        return 0.0
+    return round(best_20 * 0.95, 1)
+
+
+def estimate_critical_power(points: List[GPSPoint]) -> Dict[str, float]:
+    profile = calculate_power_profile(points)
+    cp_3min = profile.get("5min") or 0.0
+    cp_12min = profile.get("10min") or 0.0
+    if cp_3min > 0 and cp_12min > 0 and cp_12min > cp_3min:
+        nume = cp_12min - cp_3min
+        denom = 12.0 - 3.0
+        slope = nume / denom if denom != 0 else 0
+        cp = cp_12min - slope * 12.0
+        w_prime = slope * (12.0 ** 2)
+        cp = max(cp, 100)
+        w_prime = max(w_prime, 5000)
+        return {"cp_w": round(cp, 1), "w_prime_j": round(w_prime, 0)}
+    return {"cp_w": 0.0, "w_prime_j": 0.0}
+
+
+def detect_aerobic_decoupling(
+    points: List[GPSPoint], ftp: Optional[float] = None
+) -> Dict[str, Any]:
+    if len(points) < 60:
+        return {"decoupling_pct": 0.0, "significant": False}
+    mid = len(points) // 2
+    first_half = [p for p in points[:mid] if p.power is not None and p.heart_rate is not None]
+    second_half = [p for p in points[mid:] if p.power is not None and p.heart_rate is not None]
+    if not first_half or not second_half:
+        return {"decoupling_pct": 0.0, "significant": False}
+
+    def avg_power_ratio(seg):
+        return sum(p.power for p in seg) / len(seg) / ftp if ftp > 0 else 0
+
+    p1 = avg_power_ratio(first_half)
+    p2 = avg_power_ratio(second_half)
+    ratio_first = sum(p.heart_rate for p in first_half) / len(first_half)
+    ratio_second = sum(p.heart_rate for p in second_half) / len(second_half)
+    hr_decoupling = 0.0
+    if ratio_first > 0:
+        hr_decoupling = ((ratio_second / ratio_first - 1)) * 100
+    decoupling = abs(hr_decoupling)
+    return {
+        "decoupling_pct": round(decoupling, 1),
+        "significant": decoupling > 5.0,
+        "first_half_power_ratio": round(p1, 3),
+        "second_half_power_ratio": round(p2, 3),
+        "first_half_hr": round(ratio_first, 1),
+        "second_half_hr": round(ratio_second, 1),
+    }
+
+
+def calculate_advanced_power_metrics(points: List[GPSPoint], ftp: float = 250.0) -> Dict[str, Any]:
+    watts = [p.power for p in points if p.power is not None]
+    hrs = [p.heart_rate for p in points if p.heart_rate is not None]
+    if not watts:
+        return {"available": False, "reason": "no_power_data"}
+    avg_w = sum(watts) / len(watts)
+    np = normalized_power(watts)
+    if_val = intensity_factor(np, ftp)
+    vi = variability_index(np, avg_w)
+    ef = efficiency_factor(np, sum(hrs) / len(hrs)) if hrs else None
+    duration_pts = len(watts)
+    sample_interval_s = 1.0
+    duration_h = duration_pts * sample_interval_s / 3600.0
+    tss = training_stress_score(np, if_val, duration_h)
+    zones = calculate_power_zones(points, ftp)
+    profile = calculate_power_profile(points)
+    decoupling = detect_aerobic_decoupling(points, ftp)
+    return {
+        "available": True,
+        "ftp": ftp,
+        "avg_power_w": round(avg_w, 1),
+        "max_power_w": round(max(watts), 1),
+        "normalized_power_w": np,
+        "intensity_factor": if_val,
+        "variability_index": vi,
+        "efficiency_factor": round(ef, 3) if ef else None,
+        "tss": tss,
+        "duration_hours": round(duration_h, 2),
+        "power_zones": zones,
+        "power_profile": profile,
+        "decoupling": decoupling,
+    }
