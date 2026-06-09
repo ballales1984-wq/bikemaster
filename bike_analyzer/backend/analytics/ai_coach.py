@@ -188,8 +188,10 @@ REGOLE:
 - Non mostrare valori con .0 se sono interi (es: scrivi "3 volte" non "3.0 volte")
 """
         model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL if provider == "openai" else AZURE_OPENAI_MODEL
+        print(f"DEBUG: Calling {provider} API with model {model}")
         chat = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}], max_tokens=500)
         content = chat.choices[0].message.content or "Nessun consiglio disponibile"
+        print(f"DEBUG: API response received, length: {len(content)}")
         return _clean_ai_output(content)
     except Exception as e:
         if "401" in str(e) or "403" in str(e) or "invalid_api_key" in str(e).lower() or "PermissionDenied" in type(e).__name__:
