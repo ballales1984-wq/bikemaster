@@ -85,6 +85,16 @@ def create_app() -> FastAPI:
         async def dashboard():
             return INDEX_FILE.read_text(encoding="utf-8")
 
+        @app.get("/registerSW.js")
+        async def register_sw():
+            sw_reg = STATIC_DIR / "registerSW.js"
+            if sw_reg.exists():
+                return Response(
+                    content=sw_reg.read_text(encoding="utf-8"),
+                    media_type="text/javascript"
+                )
+            return Response(status_code=404)
+
         @app.get("/manifest.json")
         async def manifest():
             mf = STATIC_DIR / "manifest.json"
