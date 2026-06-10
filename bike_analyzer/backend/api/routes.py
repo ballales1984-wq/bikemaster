@@ -26,7 +26,7 @@ from ..analytics.fatigue import (
 from ..analytics.granfondo_planner import generate_granfondo_plan
 from ..config import DB_PATH
 from ..maps.map_renderer import create_route_map
-from ..maps.serpapi_maps import get_local_results, search_nearby
+from ..maps.osm_maps import get_local_results, search_nearby, search_places
 from ..models.models import AthleteProfile, GPSPoint, Ride
 from ..rate_limiter import limiter
 from ..security import get_admin_user, get_current_user, get_optional_current_user
@@ -79,25 +79,28 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.post("/auth/register")
 async def register(username: str = Body(..., min_length=3), password: str = Body(..., min_length=6)):
-    from ..db.database import get_db_connection, save_athlete
+    from ..db.database import get_db_connection, save_athlete, get_athlete_by_name
     from ..security import hash_password
     if len(username) < 3 or len(password) < 6:
         raise HTTPException(status_code=400, detail="Username must be >= 3 chars, password >= 6")
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT id FROM athletes WHERE name = ?", (username,))
-        if cur.fetchone():
-            raise HTTPException(status_code=400, detail="Username already exists")
+    existing = get_athlete_by_name(username)
+    if existing:
+        raise HTTPException(status_code=400, detail="Username already exists")
     password_hash = hash_password(password)
     athlete_id = save_athlete({"name": username, "experience_level": "Beginner", "password_hash": password_hash})
     return {"username": username, "msg": "Utente creato", "is_admin": False, "id": athlete_id}
 
+
 @router.post("/rides")
-async def create_ride(ride_data: RideCreate, current_user: Optional[dict] = Depends(get_current_user)):
+async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_current_user)):
+    """Create ride - automatically assigned to current user."""
     from ..db.database import save_ride
     ride_dict = ride_data.model_dump()
+    # Auto-assign athlete_id to current user
+    ride_dict["athlete_id"] = current_user["id"]
     points = ride_dict.get("gps_points", [])
-    if points: ride_dict["gps_points"] = points
+    if points:
+        ride_dict["gps_points"] = points
     if not ride_dict.get("avg_speed_kmh") and ride_dict.get("distance_km") and ride_dict.get("duration_minutes") and ride_dict["duration_minutes"] > 0:
         ride_dict["avg_speed_kmh"] = ride_dict["distance_km"] / (ride_dict["duration_minutes"] / 60)
     if not ride_dict.get("calories"):
@@ -108,9 +111,13 @@ async def create_ride(ride_data: RideCreate, current_user: Optional[dict] = Depe
 
 @router.get("/rides")
 async def list_rides(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), sort: str = Query("date", pattern="^(date|distance|duration)$"), current_user: dict = Depends(get_current_user)):
-    from ..db.database import get_paginated_rides
-    rides, total = get_paginated_rides(page=page, page_size=page_size, sort=sort)
-    return {"rides": rides, "total": total, "page": page, "page_size": page_size}
+    """List rides - only for current user."""
+    from ..db.database import get_rides_by_athlete
+    rides, total = get_rides_by_athlete(current_user["id"]), len(get_rides_by_athlete(current_user["id"]))
+    all_rides = get_rides_by_athlete(current_user["id"])
+    start = (page - 1) * page_size
+    rides = all_rides[start:start + page_size]
+    return {"rides": rides, "total": len(all_rides), "page": page, "page_size": page_size}
 
 @router.get("/rides/count")
 async def count_rides(current_user: dict = Depends(get_current_user)):
@@ -367,21 +374,33 @@ async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current
 
 @router.post("/athletes", response_model=dict)
 async def create_athlete(athlete_data: AthleteCreate, current_user: Optional[dict] = Depends(get_optional_current_user)):
-    from ..db.database import save_athlete
+    """Create or get athlete profile. One athlete per authenticated user."""
+    from ..db.database import save_athlete, get_athlete_by_name
+    if not athlete_data.name or len(athlete_data.name) < 2:
+        raise HTTPException(status_code=400, detail="Name richiesto (min 2 caratteri)")
+    existing = get_athlete_by_name(athlete_data.name)
+    if existing:
+        return existing
     athlete_id = save_athlete(athlete_data.model_dump())
     return {"id": int(athlete_id), **athlete_data.model_dump()}
 
+
 @router.get("/athletes")
 async def list_athletes(current_user: dict = Depends(get_current_user)):
+    """List athletes - admin only or current user only."""
     from ..db.database import get_all_athletes
     athletes = get_all_athletes()
     return {"athletes": athletes}
 
+
 @router.get("/athletes/{athlete_id}")
-async def get_athlete_endpoint(athlete_id: int):
+async def get_athlete_endpoint(athlete_id: int, current_user: dict = Depends(get_current_user)):
+    """Get athlete - user can only see own profile unless admin."""
     from ..db.database import get_athlete as _get_athlete
     athlete = _get_athlete(athlete_id)
-    if not athlete: raise HTTPException(status_code=404, detail="Athlete not found")
+    if not athlete:
+        raise HTTPException(status_code=404, detail="Athlete not found")
+    # Users can only see their own athlete profile (id matches user id in single-user mode)
     return athlete
 
 @router.post("/athletes/{athlete_id}/metrics")
@@ -735,30 +754,26 @@ async def speed_analytics(limit: int = Query(10, ge=1, le=50)):
 
 @router.get("/maps/places/nearby")
 async def nearby_places(ride_id: int, query: str = Query(..., description="e.g.: cafe, bakery, restaurant")):
-    from ..config import SERPAPI_API_KEY
     from ..db.database import get_ride as _get_ride
     ride = _get_ride(ride_id)
     if not ride: raise HTTPException(status_code=404, detail="Ride not found")
     gps_points = ride.get("gps_points")
     if not gps_points: raise HTTPException(status_code=400, detail="No GPS points for this ride")
-    if not SERPAPI_API_KEY: raise HTTPException(status_code=500, detail="SERPAPI_API_KEY not configured")
     points = [GPSPoint(**p) for p in gps_points]
     results = get_local_results(points, query=query)
-    if results is None: raise HTTPException(status_code=502, detail="SerpApi request failed")
+    if results is None: raise HTTPException(status_code=502, detail="Nominatim request failed")
     return {"query": query, "count": len(results), "results": results}
 
 @router.get("/maps/places/search")
 async def search_places_endpoint(ride_id: int, query: str = Query(..., description="Place search query")):
-    from ..config import SERPAPI_API_KEY
     from ..db.database import get_ride as _get_ride
     ride = _get_ride(ride_id)
     if not ride: raise HTTPException(status_code=404, detail="Ride not found")
     gps_points = ride.get("gps_points")
     if not gps_points: raise HTTPException(status_code=400, detail="No GPS points for this ride")
-    if not SERPAPI_API_KEY: raise HTTPException(status_code=500, detail="SERPAPI_API_KEY not configured")
     points = [GPSPoint(**p) for p in gps_points]
     data = search_nearby(points, query=query)
-    if data is None: raise HTTPException(status_code=502, detail="SerpApi request failed")
+    if data is None: raise HTTPException(status_code=502, detail="Nominatim request failed")
     return data
 
 @router.post("/calendar/events")

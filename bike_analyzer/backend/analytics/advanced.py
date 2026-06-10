@@ -137,7 +137,7 @@ def calculate_power_estimate(
 
 
 def classify_climb(segment_length_km: float, avg_gradient_percent: float) -> Dict[str, Any]:
-    if segment_length_km < 0.2 or avg_gradient_percent < 2:
+    if segment_length_km < 0.3 or avg_gradient_percent < 2:
         return {"category": "none", "difficulty_score": 0, "color": "#999", "points": 0}
     for cat, threshold in CLIMB_CATEGORIES:
         if avg_gradient_percent >= threshold:

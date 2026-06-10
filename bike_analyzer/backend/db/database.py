@@ -177,6 +177,28 @@ def get_rides_by_athlete(athlete_id: int) -> List[dict]:
         rows = cur.fetchall()
         return [_row_to_ride(r) for r in rows]
 
+
+def _row_to_athlete(row) -> dict:
+    """Convert athlete row to dict with dynamic column mapping."""
+    if row is None:
+        return None
+    import sqlite3
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(athletes)")
+        columns = [c[1] for c in cur.fetchall()]
+    return {col: row[i] if i < len(row) else None for i, col in enumerate(columns)}
+
+
+def get_athlete_by_name(name: str) -> Optional[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM athletes WHERE name = ?", (name,))
+        row = cur.fetchone()
+        if row:
+            return _row_to_athlete(row)
+        return None
+
 def get_all_rides() -> List[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -230,6 +252,18 @@ def save_athlete(athlete: dict) -> int:
         conn.commit()
         return cur.lastrowid
 
+def _row_to_athlete(row) -> dict:
+    """Convert athlete row to dict with dynamic column mapping."""
+    if row is None:
+        return None
+    import sqlite3
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(athletes)")
+        columns = [c[1] for c in cur.fetchall()]
+    return {col: row[i] if i < len(row) else None for i, col in enumerate(columns)}
+
+
 def get_athlete(athlete_id: int) -> Optional[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -238,11 +272,7 @@ def get_athlete(athlete_id: int) -> Optional[dict]:
         cur.execute("SELECT * FROM athletes WHERE id = ?", (athlete_id,))
         row = cur.fetchone()
         if row:
-            result = {}
-            for i, col_name in enumerate(columns):
-                if i < len(row):
-                    result[col_name] = row[i]
-            return result
+            return _row_to_athlete(row)
         return None
 
 def save_metric(metric: dict) -> int:
@@ -312,6 +342,17 @@ def clear_chat_history(athlete_id: int) -> bool:
         cur.execute("DELETE FROM chat_history WHERE athlete_id = ?", (athlete_id,))
         conn.commit()
         return cur.rowcount > 0
+
+def get_athlete_by_name(name: str) -> Optional[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM athletes WHERE name = ?", (name,))
+        row = cur.fetchone()
+        if row:
+            columns = [desc[0] for desc in cur.description]
+            return dict(zip(columns, row))
+        return None
+
 
 def get_all_athletes() -> List[dict]:
     with get_db_connection() as conn:

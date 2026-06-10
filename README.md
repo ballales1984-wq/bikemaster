@@ -128,7 +128,7 @@ API_PORT=8000
 
 # Google
 GOOGLE_MAPS_API_KEY=your_key_here        # Opzionale
-SERPAPI_API_KEY=your_key_here            # Opzionale
+NOMINATIM_BASE_URL=https://nominatim.openstreetmap.org
 
 # AI Coach
 GROQ_API_KEY=your_key_here               # Opzionale per AI Coach

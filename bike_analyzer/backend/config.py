@@ -47,6 +47,7 @@ GOOGLE_MAPS_SIZE = _s.google_maps_size
 SERPAPI_API_KEY = _s.serpapi_api_key
 SERPAPI_ENGINE = _s.serpapi_engine
 SERPAPI_BASE_URL = _s.serpapi_base_url
+NOMINATIM_BASE_URL = _s.nominatim_base_url
 GOOGLE_FIT_SCOPE = _s.google_fit_scope
 KB_PATH = _s.kb_path
 GROQ_API_KEY = _s.groq_api_key

@@ -36,15 +36,14 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
-    # === Google Maps ===
+    # === SerpApi / Google Maps (deprecated) ===
     google_maps_api_key: str = ""
     google_maps_zoom: int = 13
     google_maps_size: str = "800x600"
-
-    # === SerpApi ===
     serpapi_api_key: str = ""
     serpapi_engine: str = "google_maps"
     serpapi_base_url: str = "https://serpapi.com/search"
+    nominatim_base_url: str = "https://nominatim.openstreetmap.org"
 
     # === Google Fit ===
     google_fit_scope: str = (

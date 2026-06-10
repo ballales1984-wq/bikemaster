@@ -22,6 +22,11 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         .btn { background: #4ecca3; color: #1a1a2e; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; }
         .btn:hover { background: #3dbba0; }
         .refresh { text-align: center; margin: 20px 0; }
+        .weather-section { margin-top: 30px; }
+        .weather-controls { display: flex; gap: 10px; margin-bottom: 15px; }
+        .weather-controls input { padding: 8px; border-radius: 5px; border: none; }
+        .weather-card { background: #16213e; padding: 15px; border-radius: 8px; }
+        .weather-item { margin: 5px 0; }
     </style>
 </head>
 <body>
@@ -31,6 +36,21 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             <p>Cycling Performance Dashboard</p>
         </header>
         <div class="refresh"><button class="btn" onclick="loadRides()">Refresh Data</button></div>
+        <div class="weather-section" id="weather-section">
+            <h3 style="color:#4ecca3;margin-bottom:10px;">🌤️ Meteo</h3>
+            <div class="weather-controls">
+                <input id="weather-lat" type="number" step="0.0001" placeholder="Lat" value="45.4642" />
+                <input id="weather-lon" type="number" step="0.0001" placeholder="Lon" value="9.1900" />
+                <input id="weather-date" type="date" />
+                <button class="btn" onclick="fetchWeather()">Ottieni Meteo</button>
+            </div>
+            <div id="weather-result" class="weather-card" style="display:none;">
+                <div class="weather-item" id="weather-temp"></div>
+                <div class="weather-item" id="weather-humidity"></div>
+                <div class="weather-item" id="weather-description"></div>
+                <div class="weather-item" id="weather-advice" style="font-weight:bold;margin-top:10px;"></div>
+            </div>
+        </div>
         <div class="stats" id="stats">
             <div class="stat-card"><div class="stat-value" id="total-rides">0</div><div class="stat-label">Total Rides</div></div>
             <div class="stat-card"><div class="stat-value" id="total-distance">0</div><div class="stat-label">Total Km</div></div>
@@ -61,6 +81,26 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         async function deleteRide(id) {
             await fetch(`/api/v1/rides/${id}`, { method: 'DELETE' });
             loadRides();
+        }
+        async function fetchWeather() {
+            const lat = document.getElementById('weather-lat').value;
+            const lon = document.getElementById('weather-lon').value;
+            const date = document.getElementById('weather-date').value;
+            const resultDiv = document.getElementById('weather-result');
+            try {
+                const params = new URLSearchParams({ lat, lon });
+                if (date) params.append('date', date);
+                const resp = await fetch('/api/v1/weather?' + params);
+                const data = await resp.json();
+                document.getElementById('weather-temp').textContent = '🌡️ Temperatura: ' + data.temperature + '°C';
+                document.getElementById('weather-humidity').textContent = '💧 Umidità: ' + data.humidity + '%';
+                document.getElementById('weather-description').textContent = '📝 ' + data.description;
+                document.getElementById('weather-advice').textContent = data.advice;
+                resultDiv.style.display = 'block';
+            } catch (e) {
+                resultDiv.style.display = 'block';
+                document.getElementById('weather-advice').textContent = 'Errore: ' + e.message;
+            }
         }
         loadRides();
     </script>

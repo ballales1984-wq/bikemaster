@@ -1,5 +1,5 @@
 """Tests for power_model analytics module."""
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from bike_analyzer.backend.analytics.power_model import (
     calculate_advanced_power_metrics,
@@ -110,7 +110,7 @@ class TestPowerProfile:
 
     def test_with_power_points(self):
         points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, i), power=300 + i * 10)
+            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i), power=300 + i * 10)
             for i in range(600)
         ]
         profile = calculate_power_profile(points)
@@ -125,7 +125,7 @@ class TestEstimateFtp:
 
     def test_with_20min_data(self):
         points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, i), power=300)
+            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i), power=300)
             for i in range(1200)
         ]
         ftp = estimate_ftp_from_20min(points)
@@ -138,7 +138,7 @@ class TestEstimateCriticalPower:
 
     def test_with_profile_data(self):
         points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, i), power=300)
+            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i), power=300)
             for i in range(600)
         ]
         result = estimate_critical_power(points)
@@ -168,7 +168,7 @@ class TestAdvancedPowerMetrics:
 
     def test_full_metrics(self):
         points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, i), power=250, heart_rate=150)
+            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i), power=250, heart_rate=150)
             for i in range(3600)
         ]
         result = calculate_advanced_power_metrics(points, ftp=250)

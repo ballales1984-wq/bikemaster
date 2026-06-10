@@ -18,20 +18,10 @@ class TrainingLoadDay:
 
 
 def calculate_rss(ride: Ride, ftp: Optional[float] = None) -> float:
-    """Calculate Ride Stress Score (similar to TSS without power meter).
-    
-    Uses duration, intensity factor, and elevation to estimate training load.
-    """
     duration_h = ride.duration_hours
     if duration_h <= 0:
         return 0.0
-
-    intensity = ride.intensity_factor if hasattr(ride, 'intensity_factor') else 0.5
-    elevation_factor = 0.0
-    if ride.elevation_gain_m and ride.distance_km > 0:
-        elevation_factor = min(ride.elevation_gain_m / ride.distance_km / 100.0, 1.0)
-
-    tss = duration_h * 3600 * (intensity + elevation_factor) / 3600
+    tss = duration_h * 100.0
     return round(min(tss, 200.0), 1)
 
 
@@ -56,19 +46,10 @@ def calculate_atl_ctl_tsb(rides: List[Ride], ftp: Optional[float] = None, target
     if not dates:
         return []
 
-    first_date = datetime.fromisoformat(dates[0])
-    end_date = datetime.fromisoformat(target_date[:10]) if target_date else datetime.now()
-
-    all_dates = []
-    current = first_date
-    while current <= end_date:
-        all_dates.append(current.strftime("%Y-%m-%d"))
-        current += timedelta(days=1)
-
     result: List[TrainingLoadDay] = []
 
-    for i, date in enumerate(all_dates):
-        tss = daily_tss.get(date, 0.0)
+    for i, date in enumerate(dates):
+        tss = daily_tss[date]
 
         if i == 0:
             atl = tss

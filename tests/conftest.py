@@ -14,11 +14,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 os.environ["GROQ_API_KEY"] = "test-key-for-unit-tests"
 os.environ["GOOGLE_MAPS_API_KEY"] = ""
+os.environ["NOMINATIM_BASE_URL"] = "https://nominatim.openstreetmap.org"
 
 @pytest.fixture(scope="session")
 def client():
-    from bike_analyzer.backend.api.app_factory import create_app
     from bike_analyzer.backend.security import create_access_token
+    from bike_analyzer.backend.db import database as db_mod
+    db_mod.init_db()
+    from bike_analyzer.backend.api.app_factory import create_app
     app = create_app()
     test_client = TestClient(app)
     token = create_access_token(subject="0", is_admin=True)
