@@ -1,5 +1,4 @@
 """API coverage tests for endpoints."""
-from bike_analyzer.backend.models.models import Ride
 
 def test_rides_crud(client):
     r = client.post("/api/v1/rides", json={
@@ -98,7 +97,7 @@ def test_health_endpoints(client):
     r = client.get("/api/v1/health")
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
-    
+
     r = client.get("/api/v1/health/detailed")
     assert r.status_code == 200
     assert r.json()["service"] == "bikemaster"
@@ -256,6 +255,6 @@ def test_athlete_metrics(client):
         "type": "ftp",
         "value": 250.0,
     })
-    
+
 
 

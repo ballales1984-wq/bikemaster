@@ -1,8 +1,17 @@
 """Test database backup functionality."""
 import os
-import sqlite3
 
-from bike_analyzer.backend.db.database import init_db, save_ride, save_athlete, backup_database, get_all_rides, delete_ride, save_chat_message, get_chat_history, clear_chat_history, update_athlete, get_athlete
+from bike_analyzer.backend.db.database import (
+    backup_database,
+    clear_chat_history,
+    get_athlete,
+    get_chat_history,
+    init_db,
+    save_athlete,
+    save_chat_message,
+    save_ride,
+    update_athlete,
+)
 
 
 def test_database_backup_creates_file():
@@ -23,7 +32,7 @@ def test_database_backup_with_data():
 
 def test_save_metric_and_retrieve():
     init_db()
-    from bike_analyzer.backend.db.database import save_metric, get_rides_by_athlete
+    from bike_analyzer.backend.db.database import get_rides_by_athlete, save_metric
     save_ride({"date": "2024-07-02", "distance_km": 20.0})
     save_metric({"athlete_id": 1, "ride_id": 1, "fatigue_score": 5.0})
     rides = get_rides_by_athlete(1)

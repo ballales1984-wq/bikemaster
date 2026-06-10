@@ -8,12 +8,11 @@ Provides:
 """
 from __future__ import annotations
 
-import json
-import hashlib
-import logging
 import functools
-from typing import Optional, Any, Callable
-from datetime import timedelta
+import hashlib
+import json
+import logging
+from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,8 @@ async def get_redis():
     global _redis
     if _redis is None:
         try:
-            import aioredis
+            import redis.asyncio as aioredis
+
             from bike_analyzer.backend.settings import get_settings
             s = get_settings()
             url = s.redis_url or "redis://localhost:6379"
@@ -89,7 +89,7 @@ async def cache_delete(key: str) -> bool:
         return False
 
 
-async def rate_limit_key(user_id: Optional[int], endpoint: str) -> str:
+def rate_limit_key(user_id: Optional[int], endpoint: str) -> str:
     uid = user_id or "anon"
     return f"bikemaster:ratelimit:{uid}:{endpoint}"
 

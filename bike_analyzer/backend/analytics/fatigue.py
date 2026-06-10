@@ -1,6 +1,8 @@
 """Fatigue model for cycling performance intelligence."""
 from __future__ import annotations
+
 from ..models.models import Ride
+
 
 def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:
     duration_h = ride.duration_hours

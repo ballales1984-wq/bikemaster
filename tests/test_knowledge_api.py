@@ -10,15 +10,14 @@ Tests cover:
 """
 from __future__ import annotations
 
-import shutil
-import tempfile
-from pathlib import Path
-
 import pytest
 
 from bike_analyzer.backend.analytics.knowledge_base import (
-    _build_bm25_index,
+    CHUNK_OVERLAP,
+    KB_PATH,
+    MAX_CHARS_PER_CHUNK,
     _bm25_score,
+    _build_bm25_index,
     _extract_heading,
     _split_text,
     _tokenize,
@@ -28,12 +27,7 @@ from bike_analyzer.backend.analytics.knowledge_base import (
     load_chunks,
     reload_kb,
     search_knowledge_base,
-    CONTEXT_WINDOW_CHARS,
-    CHUNK_OVERLAP,
-    KB_PATH,
-    MAX_CHARS_PER_CHUNK,
 )
-
 
 # ---------------------------------------------------------------------------
 # Tokenization

@@ -1,7 +1,9 @@
 """Test coverage for frontend dashboard generator."""
 import os
 import tempfile
-from bike_analyzer.frontend.dashboard import generate_dashboard_html, DASHBOARD_HTML
+
+from bike_analyzer.frontend.dashboard import DASHBOARD_HTML, generate_dashboard_html
+
 
 def test_dashboard_html_constant():
     assert DASHBOARD_HTML is not None

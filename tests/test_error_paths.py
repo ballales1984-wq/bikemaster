@@ -1,27 +1,30 @@
 """Tests targeting previously uncovered error paths and edge cases."""
 
-from unittest.mock import patch, MagicMock
-import pytest
 from datetime import datetime, timezone
+from unittest.mock import patch
 
-from bike_analyzer.backend.models.models import Ride, GPSPoint, AthleteProfile
+import pytest
+
 from bike_analyzer.backend.analytics.ai_coach import (
-    generate_training_advice, generate_recovery_advice,
-    analyze_historical_trend, validate_athlete_profile, _clean_ai_output,
-    _build_athlete_context
+    _build_athlete_context,
+    _clean_ai_output,
+    analyze_historical_trend,
+    generate_training_advice,
+    validate_athlete_profile,
+)
+from bike_analyzer.backend.ingestion.google_fit import (
+    get_authorization_url,
+    google_fit_to_ride,
 )
 from bike_analyzer.backend.maps.google_maps import get_google_api_key
-from bike_analyzer.backend.maps.map_renderer import create_route_map, _speed_to_color
-from bike_analyzer.backend.maps.serpapi_maps import search_nearby, search_places, get_local_results
+from bike_analyzer.backend.maps.map_renderer import _speed_to_color, create_route_map
+from bike_analyzer.backend.maps.serpapi_maps import search_nearby, search_places
+from bike_analyzer.backend.models.models import AthleteProfile, GPSPoint, Ride
 from bike_analyzer.backend.weather.weather_service import (
-    get_forecast_for_date, get_weather_for_coordinates, get_weather_score
+    get_forecast_for_date,
+    get_weather_for_coordinates,
+    get_weather_score,
 )
-from bike_analyzer.backend.processing.processing import process_route
-from bike_analyzer.backend.ingestion.google_fit import (
-    get_authorization_url, exchange_code_for_token,
-    fetch_cycling_activities, google_fit_to_ride
-)
-
 
 # ============================================================
 # AI coach — error paths + edge cases

@@ -1,7 +1,7 @@
 """Date/time utilities for BikeMaster."""
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta, date
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 
@@ -45,7 +45,7 @@ def add_days(base: str, days: int) -> str:
 
 
 def month_label(year: int, month: int) -> str:
-    from locale import setlocale, LC_TIME
+    from locale import LC_TIME, setlocale
     try:
         setlocale(LC_TIME, "it_IT.UTF-8")
     except Exception:

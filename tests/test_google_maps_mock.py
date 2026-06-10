@@ -1,7 +1,13 @@
 """Test Google Maps API (mock mode)."""
-from bike_analyzer.backend.models.models import GPSPoint
-from bike_analyzer.backend.maps.google_maps import get_google_api_key, create_google_static_map, _speed_to_color, _build_speed_segments
 from datetime import datetime, timezone
+
+from bike_analyzer.backend.maps.google_maps import (
+    _build_speed_segments,
+    _speed_to_color,
+    create_google_static_map,
+    get_google_api_key,
+)
+from bike_analyzer.backend.models.models import GPSPoint
 
 
 def test_get_google_api_key_no_env():
@@ -85,6 +91,8 @@ def test_create_google_static_map_colored_branch():
     assert path == "test_map_colored2.png"
 
 import os
+
+
 def teardown_function():
     for f in ["test_map.png", "test_map_colored.png", "test_map_colored2.png", "empty_map.png"]:
         if os.path.exists(f):

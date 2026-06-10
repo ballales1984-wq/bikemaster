@@ -1,7 +1,10 @@
 """Performance Engine: Scoring system for cycling performance."""
 from __future__ import annotations
+
 from typing import List
-from ..models.models import Ride, AthleteProfile
+
+from ..models.models import AthleteProfile, Ride
+
 
 def calculate_performance_score(ride: Ride) -> float:
     speed_factor = min(ride.avg_speed_kmh / 30.0, 1.0)
@@ -37,7 +40,6 @@ def calculate_monthly_scores(rides: List[Ride]) -> dict:
 
 def calculate_annual_scores(rides: List[Ride]) -> dict:
     if not rides: return {"performance": 0, "endurance": 0, "total_km": 0, "total_calories": 0, "avg_fatigue": 0}
-    from .fatigue import calculate_fatigue_score
     from .analytics import calculate_summary
     s = calculate_summary(rides)
     return {"performance": round(sum(calculate_performance_score(r) for r in rides) / len(rides), 1), "endurance": calculate_endurance_score(rides), "total_km": s["total_km"], "total_calories": s["total_calories"], "avg_fatigue": s["avg_fatigue"]}

@@ -1,10 +1,11 @@
 """Tests for automatic segment detection."""
-import pytest
 from datetime import datetime, timezone
-from bike_analyzer.backend.processing.segment_detector import (
-    detect_climb_segments, detect_all_segments, categorize_climb
-)
+
 from bike_analyzer.backend.models.models import GPSPoint
+from bike_analyzer.backend.processing.segment_detector import (
+    detect_all_segments,
+    detect_climb_segments,
+)
 
 
 def make_point(lat: float, lon: float, alt: float = None, hours: int = 0, mins: int = 0, secs: int = 0):

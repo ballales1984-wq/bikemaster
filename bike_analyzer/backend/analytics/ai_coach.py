@@ -1,14 +1,16 @@
 """AI Coach with cycling knowledge base RAG and athlete memory."""
 from __future__ import annotations
+
 import os
 import re
 import traceback
 from typing import List, Optional
-from ..models.models import Ride, AthleteProfile
+
 from ..config import GROQ_API_KEY, GROQ_MODEL, OPENAI_API_KEY, OPENAI_MODEL
+from ..models.models import AthleteProfile, Ride
 from .analytics import calculate_summary
+from .knowledge_base import format_context_for_llm, search_knowledge_base
 from .performance import calculate_performance_score, calculate_recovery_score
-from .knowledge_base import search_knowledge_base, format_context_for_llm
 
 LOCALE: str = os.getenv("LOCALE", "it")
 _LANG_PROMPT = {"it": "Rispondi in italiano", "en": "Respond in English", "es": "Responde en español", "fr": "Réponds en français"}
@@ -291,10 +293,15 @@ analyze_historical_trends = analyze_historical_trend
 
 def ai_coach_full(athlete: AthleteProfile, rides: List[Ride], athlete_id: Optional[int] = None) -> dict:
     from pathlib import Path
-    from ..analytics.analytics import calculate_summary
-    from ..analytics.performance import calculate_performance_score, calculate_recovery_score, calculate_endurance_score, calculate_efficiency_score
+
+    from ..analytics.performance import (
+        calculate_efficiency_score,
+        calculate_endurance_score,
+        calculate_performance_score,
+        calculate_recovery_score,
+    )
     from ..processing.processing import build_segments
-    
+
     recent = rides[-1] if rides else None
     perf = calculate_performance_score(recent) if recent else 0
     recovery = calculate_recovery_score(recent) if recent else 0

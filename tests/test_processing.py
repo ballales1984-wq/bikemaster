@@ -1,12 +1,17 @@
 """Tests for GPS processing module."""
-import pytest
-from datetime import datetime, timezone, timedelta
-from bike_analyzer.backend.processing.processing import (
-    validate_coordinate, validate_gps_point, detect_pauses, detect_accelerations,
-    detect_decelerations, remove_outliers, build_segments, process_route,
-    compute_statistics
-)
+from datetime import datetime, timedelta, timezone
+
 from bike_analyzer.backend.models.models import GPSPoint
+from bike_analyzer.backend.processing.processing import (
+    build_segments,
+    detect_accelerations,
+    detect_decelerations,
+    detect_pauses,
+    process_route,
+    remove_outliers,
+    validate_coordinate,
+    validate_gps_point,
+)
 
 
 def make_point(lat, lon, timestamp, altitude=None, speed=None) -> GPSPoint:

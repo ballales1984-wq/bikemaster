@@ -9,10 +9,9 @@ import math
 import re
 import time
 from functools import lru_cache
-from typing import Optional
-from pathlib import Path
 
 from ..config import KB_PATH
+
 MAX_CHARS_PER_CHUNK = 1200
 CHUNK_OVERLAP = 200
 CONTEXT_WINDOW_CHARS = 3000

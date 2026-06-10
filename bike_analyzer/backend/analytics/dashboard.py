@@ -1,8 +1,17 @@
 """Dashboard for performance scores."""
 from __future__ import annotations
-from typing import List, Dict, Any
-from ..models.models import Ride, AthleteProfile
-from .performance import calculate_performance_score, calculate_endurance_score, calculate_recovery_score, calculate_efficiency_score, classify_athlete
+
+from typing import Any, Dict, List
+
+from ..models.models import AthleteProfile, Ride
+from .performance import (
+    calculate_efficiency_score,
+    calculate_endurance_score,
+    calculate_performance_score,
+    calculate_recovery_score,
+    classify_athlete,
+)
+
 
 def create_score_dashboard(rides: List[Ride], athlete: AthleteProfile) -> Dict[str, Any]:
     if not rides:

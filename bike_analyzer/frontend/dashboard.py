@@ -1,7 +1,5 @@
 """Frontend dashboard generator."""
 from __future__ import annotations
-from typing import List, Optional
-from datetime import datetime
 
 DASHBOARD_HTML = """<!DOCTYPE html>
 <html lang="en">

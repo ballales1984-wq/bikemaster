@@ -1,6 +1,7 @@
 """Test coverage for main entry point."""
 from bike_analyzer.main import main
 
+
 def test_main_output(capsys):
     main()
     captured = capsys.readouterr()

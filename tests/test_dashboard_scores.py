@@ -1,7 +1,11 @@
 """Tests for dashboard score aggregation and utility modules."""
-from bike_analyzer.backend.analytics.dashboard import create_score_dashboard, get_score_breakdown
-from bike_analyzer.backend.models.models import Ride, AthleteProfile, GPSPoint
 from datetime import datetime, timezone
+
+from bike_analyzer.backend.analytics.dashboard import (
+    create_score_dashboard,
+    get_score_breakdown,
+)
+from bike_analyzer.backend.models.models import AthleteProfile, GPSPoint, Ride
 
 
 def test_create_score_dashboard_no_rides():

@@ -1,29 +1,46 @@
 """API routes."""
 from __future__ import annotations
-import json
-import json
-import os
+
 from pathlib import Path
 from typing import AsyncGenerator, List, Optional
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body, Depends, Request
+
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+)
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from ..models.models import Ride, GPSPoint, AthleteProfile, CalendarEvent
-from ..analytics.analytics import calculate_summary, analyze_ride
-from ..analytics.calories import estimate_calories, calories_per_km
-from ..analytics.fatigue import calculate_fatigue_score, estimate_recovery_hours, get_recovery_recommendation
+
+from ..analytics.analytics import analyze_ride, calculate_summary
 from ..analytics.badges import calculate_badges, get_heatmap_points
+from ..analytics.calories import calories_per_km, estimate_calories
+from ..analytics.fatigue import (
+    calculate_fatigue_score,
+)
 from ..analytics.granfondo_planner import generate_granfondo_plan
-from ..processing.processing import process_route
-from ..maps.map_renderer import create_route_map
-from .schemas import RideCreate, RideResponse, RideAnalysisRequest, AthleteCreate, AthleteUpdate, MetricCreate, CalendarEventCreate, CalendarEventUpdate, GoogleFitAuthQuery, GoogleFitTokenRequest, GoogleFitImportRequest, GranfondoPlanRequest
-from ..utils.logger import get_logger
 from ..config import DB_PATH
-from ..security import get_current_user, get_optional_current_user, get_admin_user
-from ..rate_limiter import limiter
-
+from ..maps.map_renderer import create_route_map
 from ..maps.serpapi_maps import get_local_results, search_nearby
-
+from ..models.models import AthleteProfile, GPSPoint, Ride
+from ..rate_limiter import limiter
+from ..security import get_admin_user, get_current_user, get_optional_current_user
+from ..utils.logger import get_logger
+from .schemas import (
+    AthleteCreate,
+    AthleteUpdate,
+    CalendarEventCreate,
+    CalendarEventUpdate,
+    GranfondoPlanRequest,
+    MetricCreate,
+    RideAnalysisRequest,
+    RideCreate,
+)
 
 logger = get_logger(__name__)
 
@@ -50,8 +67,8 @@ async def health_check(): return {"status": "ok", "service": "bikemaster"}
 
 @router.post("/auth/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    from ..security import verify_password, create_access_token
     from ..db.database import get_db_connection
+    from ..security import create_access_token, verify_password
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT id, name, password_hash, experience_level FROM athletes WHERE name = ?", (form_data.username,))
@@ -62,8 +79,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.post("/auth/register")
 async def register(username: str = Body(..., min_length=3), password: str = Body(..., min_length=6)):
-    from ..security import hash_password, create_access_token
     from ..db.database import get_db_connection, save_athlete
+    from ..security import hash_password
     if len(username) < 3 or len(password) < 6:
         raise HTTPException(status_code=400, detail="Username must be >= 3 chars, password >= 6")
     with get_db_connection() as conn:
@@ -120,21 +137,25 @@ async def delete_ride(ride_id: int, current_user: dict = Depends(get_current_use
 async def get_ride_segments(ride_id: int, min_distance_m: int = Query(1000), current_user: dict = Depends(get_current_user)):
     """Detect and return significant segments from ride GPS points."""
     from ..db.database import get_ride as _get_ride
-    from ..processing.segment_detector import detect_climb_segments, detect_all_segments, segment_to_dict
     from ..models.models import GPSPoint
-    
+    from ..processing.segment_detector import (
+        detect_all_segments,
+        detect_climb_segments,
+        segment_to_dict,
+    )
+
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
-    
+
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
-    
+
     points = [GPSPoint(**p) for p in gps_points]
     climbs = detect_climb_segments(points)
     segments = detect_all_segments(points, min_length_m=min_distance_m)
-    
+
     return {
         "ride_id": ride_id,
         "climbs": [segment_to_dict(c) for c in climbs],
@@ -180,9 +201,10 @@ async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(
 
 @router.post("/import/fit")
 async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    import tempfile
+
     from ..db.database import save_ride
     from ..ingestion.gps_parser import parse_fit_file, points_to_ride
-    import tempfile
     content = await file.read()
     if len(content) > MAX_UPLOAD_SIZE:
         raise HTTPException(status_code=413, detail="File too large. Maximum size is 50MB.")
@@ -202,8 +224,7 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
 
 @router.get("/health/detailed")
 async def health_detailed():
-    from ..db.database import get_all_rides, get_all_athletes
-    from pathlib import Path
+    from ..db.database import get_all_athletes, get_all_rides
     rides = get_all_rides()
     athletes = get_all_athletes()
     db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
@@ -224,9 +245,10 @@ async def coach_chat_history(athlete_id: int = Query(...), current_user: Optiona
 
 @router.post("/import/multiple")
 async def import_multiple(files: List[UploadFile] = File(...), current_user: dict = Depends(get_current_user)):
-    from ..db.database import save_ride
-    from ..ingestion.gps_parser import parse_gpx_file, parse_fit_file, points_to_ride
     import tempfile
+
+    from ..db.database import save_ride
+    from ..ingestion.gps_parser import parse_fit_file, parse_gpx_file, points_to_ride
     imported = []
     failed = []
     total_size = 0
@@ -261,8 +283,8 @@ async def import_multiple(files: List[UploadFile] = File(...), current_user: dic
 
 @router.get("/rides/export/json")
 async def export_json(current_user: dict = Depends(get_current_user)):
-    from ..db.database import get_all_rides
     from ..analytics.analytics import export_rides_json
+    from ..db.database import get_all_rides
     rides = [Ride(**r) for r in get_all_rides()]
     path = export_rides_json(rides, "rides_export.json")
     from fastapi.responses import FileResponse
@@ -270,8 +292,8 @@ async def export_json(current_user: dict = Depends(get_current_user)):
 
 @router.get("/rides/export/csv")
 async def export_csv(current_user: dict = Depends(get_current_user)):
-    from ..db.database import get_all_rides
     from ..analytics.analytics import export_rides_csv
+    from ..db.database import get_all_rides
     rides = [Ride(**r) for r in get_all_rides()]
     path = export_rides_csv(rides, "rides_export.csv")
     from fastapi.responses import FileResponse
@@ -279,16 +301,16 @@ async def export_csv(current_user: dict = Depends(get_current_user)):
 
 @router.get("/rides/{ride_id}/report")
 async def get_ride_report(ride_id: int, current_user: dict = Depends(get_current_user)):
+    from ..analytics.analytics import generate_text_report
     from ..db.database import get_ride as _get_ride
-    from ..analytics.analytics import generate_text_report, analyze_ride
     ride = _get_ride(ride_id)
     if not ride: raise HTTPException(status_code=404, detail="Ride not found")
     return {"report": generate_text_report(Ride(**ride))}
 
 @router.get("/charts/speed/{ride_id}")
 async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
-    from ..db.database import get_ride as _get_ride
     from ..analytics.analytics import create_speed_chart
+    from ..db.database import get_ride as _get_ride
     ride = _get_ride(ride_id)
     if not ride: raise HTTPException(status_code=404, detail="Ride not found")
     gps_points = ride.get("gps_points")
@@ -303,18 +325,18 @@ async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_use
 
 @router.get("/charts/duration")
 async def duration_chart(current_user: dict = Depends(get_current_user)):
-    from ..db.database import get_all_rides
     from ..analytics.analytics import create_duration_chart
+    from ..db.database import get_all_rides
     rides = [Ride(**r) for r in get_all_rides()]
-    path = f"duration_chart.png"
+    path = "duration_chart.png"
     create_duration_chart(rides, path)
     from fastapi.responses import FileResponse
     return FileResponse(path, media_type="image/png", filename="duration.png")
 
 @router.get("/charts/distance/{ride_id}")
 async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
-    from ..db.database import get_ride as _get_ride
     from ..analytics.analytics import create_distance_chart
+    from ..db.database import get_ride as _get_ride
     ride = _get_ride(ride_id)
     if not ride: raise HTTPException(status_code=404, detail="Ride not found")
     gps_points = ride.get("gps_points")
@@ -329,8 +351,8 @@ async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_
 
 @router.get("/charts/elevation/{ride_id}")
 async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
-    from ..db.database import get_ride as _get_ride
     from ..analytics.analytics import create_elevation_chart
+    from ..db.database import get_ride as _get_ride
     ride = _get_ride(ride_id)
     if not ride: raise HTTPException(status_code=404, detail="Ride not found")
     gps_points = ride.get("gps_points")
@@ -345,7 +367,7 @@ async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current
 
 @router.post("/athletes", response_model=dict)
 async def create_athlete(athlete_data: AthleteCreate, current_user: Optional[dict] = Depends(get_optional_current_user)):
-    from ..db.database import save_athlete, init_db
+    from ..db.database import save_athlete
     athlete_id = save_athlete(athlete_data.model_dump())
     return {"id": int(athlete_id), **athlete_data.model_dump()}
 
@@ -364,13 +386,14 @@ async def get_athlete_endpoint(athlete_id: int):
 
 @router.post("/athletes/{athlete_id}/metrics")
 async def add_metric(athlete_id: int, metric_data: MetricCreate, current_user: dict = Depends(get_current_user)):
-    from ..db.database import save_metric, init_db
+    from ..db.database import save_metric
     metric_id = save_metric({"athlete_id": athlete_id, **metric_data.model_dump()})
     return {"id": int(metric_id), "athlete_id": athlete_id, **metric_data.model_dump()}
 
 @router.put("/athletes/{athlete_id}")
 async def update_athlete(athlete_id: int, athlete_data: AthleteUpdate, current_user: Optional[dict] = Depends(get_optional_current_user)):
-    from ..db.database import update_athlete as _update, get_athlete as _get
+    from ..db.database import get_athlete as _get
+    from ..db.database import update_athlete as _update
     if not _get(athlete_id): raise HTTPException(status_code=404, detail="Athlete not found")
     _update(athlete_id, athlete_data.model_dump(exclude_none=True))
     return {"id": athlete_id, **athlete_data.model_dump(exclude_none=True)}
@@ -415,8 +438,13 @@ async def import_google_fit(payload: dict, current_user: dict = Depends(get_curr
 
 @router.get("/scores/athlete/{athlete_id}")
 async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_current_user)):
-    from ..db.database import get_rides_by_athlete, get_athlete
-    from ..analytics.performance import calculate_performance_score, calculate_endurance_score, calculate_efficiency_score, get_experience_level
+    from ..analytics.performance import (
+        calculate_efficiency_score,
+        calculate_endurance_score,
+        calculate_performance_score,
+        get_experience_level,
+    )
+    from ..db.database import get_athlete, get_rides_by_athlete
     athlete = get_athlete(athlete_id)
     if not athlete: raise HTTPException(status_code=404, detail="Athlete not found")
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
@@ -434,7 +462,7 @@ async def benchmark_compare(ride_data: dict):
 
 @router.get("/knowledge")
 async def list_knowledge():
-    from ..analytics.knowledge_base import list_topics, get_kb_stats
+    from ..analytics.knowledge_base import get_kb_stats
     stats = get_kb_stats()
     return {
         "topics": stats["topics"],
@@ -445,7 +473,7 @@ async def list_knowledge():
 
 @router.get("/knowledge/search")
 async def search_knowledge_endpoint(query: str = "", max_chunks: int = 4, min_score: float = 0.05):
-    from ..analytics.knowledge_base import search_knowledge_base, format_context_for_llm
+    from ..analytics.knowledge_base import format_context_for_llm, search_knowledge_base
     if not query or not query.strip():
         return {"results": [], "context": "", "count": 0}
     results = search_knowledge_base(query.strip(), max_chunks=max_chunks, min_score=min_score)
@@ -471,10 +499,11 @@ async def reload_knowledge(current_user: dict = Depends(get_admin_user)):
 @router.get("/coach/workout")
 @limiter.limit("10/minute")
 async def workout_recommendations(request: Request, athlete_id: int = 0, current_user: Optional[dict] = Depends(get_optional_current_user)):
-    from ..db.database import get_rides_by_athlete, get_athlete, get_db_connection
-    from ..analytics.ai_coach import generate_workout_recommendations
-    from ..models.models import AthleteProfile
     import traceback
+
+    from ..analytics.ai_coach import generate_workout_recommendations
+    from ..db.database import get_athlete, get_db_connection, get_rides_by_athlete
+    from ..models.models import AthleteProfile
     try:
         resolved_id = athlete_id
         if not resolved_id:
@@ -498,10 +527,16 @@ async def workout_recommendations(request: Request, athlete_id: int = 0, current
 @router.get("/coach/full")
 @limiter.limit("5/minute")
 async def coach_full_data(request: Request, athlete_id: int = 0, current_user: Optional[dict] = Depends(get_optional_current_user)):
-    from ..db.database import get_all_rides, get_rides_by_athlete, get_athlete, get_db_connection, save_chat_message
-    from ..analytics.ai_coach import ai_coach_full
-    from ..models.models import AthleteProfile
     import traceback
+
+    from ..analytics.ai_coach import ai_coach_full
+    from ..db.database import (
+        get_athlete,
+        get_db_connection,
+        get_rides_by_athlete,
+        save_chat_message,
+    )
+    from ..models.models import AthleteProfile
     try:
         resolved_id = athlete_id
         if not resolved_id:
@@ -527,7 +562,6 @@ async def coach_full_data(request: Request, athlete_id: int = 0, current_user: O
 
 @router.get("/coach/page", response_class=HTMLResponse)
 async def coach_page():
-    from pathlib import Path
     page = Path(__file__).parent.parent / "static" / "ai_coach.html"
     if page.exists():
         return page.read_text(encoding="utf-8")
@@ -535,10 +569,11 @@ async def coach_page():
 
 @router.get("/coach/recovery")
 async def recovery_recommendations(fatigue_score: float = 5.0, ride_id: int = 0, current_user: Optional[dict] = Depends(get_optional_current_user)):
-    from ..db.database import get_ride, get_athlete
-    from ..analytics.ai_coach import generate_recovery_recommendations
-    from ..models.models import AthleteProfile, Ride
     import traceback
+
+    from ..analytics.ai_coach import generate_recovery_recommendations
+    from ..db.database import get_athlete, get_ride
+    from ..models.models import AthleteProfile, Ride
     try:
         ride_obj = Ride(**get_ride(ride_id)) if ride_id else None
         ride_data = get_ride(ride_id) if ride_id else None
@@ -553,16 +588,17 @@ async def recovery_recommendations(fatigue_score: float = 5.0, ride_id: int = 0,
 
 @router.get("/coach/trends")
 async def historical_trends(current_user: Optional[dict] = Depends(get_optional_current_user)):
-    from ..db.database import get_all_rides
     from ..analytics.ai_coach import analyze_historical_trends
+    from ..db.database import get_all_rides
     rides = [Ride(**r) for r in get_all_rides()]
     return analyze_historical_trends(rides)
 
 @router.get("/rides/{ride_id}/map/google")
 async def google_static_map(ride_id: int, colored: bool = False, current_user: Optional[dict] = Depends(get_optional_current_user)):
+    from fastapi.responses import FileResponse
+
     from ..db.database import get_ride as _get_ride
     from ..maps.google_maps import create_google_static_map, get_google_api_key
-    from fastapi.responses import FileResponse
     ride = _get_ride(ride_id)
     if not ride: raise HTTPException(status_code=404, detail="Ride not found")
     gps_points = ride.get("gps_points")
@@ -577,8 +613,9 @@ async def google_static_map(ride_id: int, colored: bool = False, current_user: O
 
 @admin_router.get("/backup")
 async def create_backup(current_user: dict = Depends(get_admin_user)):
-    from ..db.database import backup_database
     from fastapi.responses import FileResponse
+
+    from ..db.database import backup_database
     path = backup_database()
     return FileResponse(path, media_type="application/octet-stream", filename="backup.db")
 
@@ -590,17 +627,16 @@ async def create_db_indexes(current_user: dict = Depends(get_admin_user)):
 
 @admin_router.get("/stats")
 async def get_system_stats(current_user: dict = Depends(get_admin_user)):
-    from ..db.database import get_all_rides, DB_PATH
+    from ..db.database import DB_PATH, get_all_rides
     rides = get_all_rides()
     total_km = sum(r.get("distance_km", 0) for r in rides)
     total_duration = sum(r.get("duration_minutes", 0) for r in rides)
-    from pathlib import Path
     db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
     return {"rides_count": len(rides), "total_km": round(total_km, 1), "total_duration_hours": round(total_duration / 60, 1), "db_size_bytes": db_size}
 
 @admin_router.post("/reset-demo")
 async def reset_demo_data(current_user: dict = Depends(get_admin_user)):
-    from ..db.database import get_all_rides, delete_ride, init_db
+    from ..db.database import delete_ride, get_all_rides
     rides = get_all_rides()
     for r in rides:
         if "demo" in r.get("date", ""):
@@ -611,7 +647,7 @@ async def reset_demo_data(current_user: dict = Depends(get_admin_user)):
 
 @admin_router.get("/ceo")
 async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
-    from ..db.database import get_all_rides, get_all_athletes
+    from ..db.database import get_all_athletes, get_all_rides
     rides = get_all_rides()
     athletes = get_all_athletes()
     total_rides = len(rides)
@@ -623,7 +659,6 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
     now = datetime.now()
     this_month = sum(1 for r in rides if r.get("date", "").startswith(now.strftime("%Y-%m")))
     last_month = sum(1 for r in rides if r.get("date", "").startswith(f"{now.year}-{now.month-1:02d}" if now.month > 1 else f"{now.year-1}-12"))
-    from pathlib import Path
     db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
     level_counts = {"Beginner": 0, "Amateur": 0, "Intermediate": 0, "Advanced": 0, "Elite": 0}
     for a in athletes:
@@ -658,7 +693,8 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
 
 @router.put("/rides/{ride_id}")
 async def update_ride(ride_id: int, ride: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    from ..db.database import update_ride as _update_ride, get_ride as _get_ride
+    from ..db.database import get_ride as _get_ride
+    from ..db.database import update_ride as _update_ride
     existing = _get_ride(ride_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Ride not found")
@@ -668,10 +704,14 @@ async def update_ride(ride_id: int, ride: dict = Body(...), current_user: dict =
 
 @router.api_route("/coach/chat", methods=["GET", "POST"])
 async def coach_chat(athlete_id: int = Query(...), message: str = Query(...), current_user: dict = Depends(get_current_user)):
-    from ..db.database import save_chat_message, get_chat_history, get_athlete
     from ..analytics.ai_coach import generate_training_advice
+    from ..db.database import (
+        get_all_rides,
+        get_athlete,
+        get_chat_history,
+        save_chat_message,
+    )
     from ..models.models import AthleteProfile
-    from ..db.database import get_all_rides
     save_chat_message(athlete_id, "user", message[:500])
     athlete_data = get_athlete(athlete_id)
     athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
@@ -695,8 +735,8 @@ async def speed_analytics(limit: int = Query(10, ge=1, le=50)):
 
 @router.get("/maps/places/nearby")
 async def nearby_places(ride_id: int, query: str = Query(..., description="e.g.: cafe, bakery, restaurant")):
-    from ..db.database import get_ride as _get_ride
     from ..config import SERPAPI_API_KEY
+    from ..db.database import get_ride as _get_ride
     ride = _get_ride(ride_id)
     if not ride: raise HTTPException(status_code=404, detail="Ride not found")
     gps_points = ride.get("gps_points")
@@ -709,8 +749,8 @@ async def nearby_places(ride_id: int, query: str = Query(..., description="e.g.:
 
 @router.get("/maps/places/search")
 async def search_places_endpoint(ride_id: int, query: str = Query(..., description="Place search query")):
-    from ..db.database import get_ride as _get_ride
     from ..config import SERPAPI_API_KEY
+    from ..db.database import get_ride as _get_ride
     ride = _get_ride(ride_id)
     if not ride: raise HTTPException(status_code=404, detail="Ride not found")
     gps_points = ride.get("gps_points")
@@ -723,7 +763,7 @@ async def search_places_endpoint(ride_id: int, query: str = Query(..., descripti
 
 @router.post("/calendar/events")
 async def create_calendar_event(event_data: CalendarEventCreate, current_user: dict = Depends(get_current_user)):
-    from ..db.database import save_calendar_event, get_calendar_event
+    from ..db.database import get_calendar_event, save_calendar_event
     from ..utils.dates import date_only
     event_data_dict = event_data.model_dump()
     event_data_dict["date"] = date_only(event_data_dict.get("date"))
@@ -781,8 +821,8 @@ async def toggle_event_complete(event_id: int, current_user: dict = Depends(get_
 @router.get("/training/load")
 async def get_training_load(athlete_id: int = Query(...), days: int = Query(30, ge=1, le=90), current_user: Optional[dict] = Depends(get_optional_current_user)):
     """Get ATL/CTL/TSB training load metrics for athlete."""
+    from ..analytics.training_load import calculate_atl_ctl_tsb
     from ..db.database import get_rides_by_athlete
-    from ..analytics.training_load import calculate_atl_ctl_tsb, TrainingLoadDay
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     loads = calculate_atl_ctl_tsb(rides)
     recent = loads[-days:] if len(loads) > days else loads
@@ -792,8 +832,8 @@ async def get_training_load(athlete_id: int = Query(...), days: int = Query(30, 
 @router.get("/training/status")
 async def get_training_status(athlete_id: int = Query(...), current_user: Optional[dict] = Depends(get_optional_current_user)):
     """Get current fitness status with ATL/CTL/TSB recommendation."""
-    from ..db.database import get_rides_by_athlete
     from ..analytics.training_load import get_current_training_status
+    from ..db.database import get_rides_by_athlete
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     status = get_current_training_status(rides)
     return {"athlete_id": athlete_id, **status}
@@ -802,8 +842,8 @@ async def get_training_status(athlete_id: int = Query(...), current_user: Option
 @router.get("/training/summary")
 async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
     """Get 7-day fitness summary for dashboard."""
-    from ..db.database import get_rides_by_athlete
     from ..analytics.training_load import get_7day_fitness_summary
+    from ..db.database import get_rides_by_athlete
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     summary = get_7day_fitness_summary(rides)
     return {"athlete_id": athlete_id, "summary": summary}
@@ -812,10 +852,9 @@ async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = De
 @router.post("/training/goals")
 async def create_training_goal(goal_data: dict, current_user: dict = Depends(get_current_user)):
     """Create a training goal for an athlete."""
-    from ..db.postgres_db import save_training_goal, SQLALCHEMY_AVAILABLE
+    from ..db.postgres_db import SQLALCHEMY_AVAILABLE, save_training_goal
     if not SQLALCHEMY_AVAILABLE:
         raise HTTPException(status_code=500, detail="SQLAlchemy not available")
-    from datetime import datetime
     goal = {
         "athlete_id": goal_data.get("athlete_id"),
         "title": goal_data.get("title", ""),
@@ -833,7 +872,7 @@ async def create_training_goal(goal_data: dict, current_user: dict = Depends(get
 @router.get("/training/goals")
 async def list_training_goals(athlete_id: int = Query(...), status: str = Query(None), current_user: dict = Depends(get_current_user)):
     """List training goals for athlete."""
-    from ..db.postgres_db import get_training_goals, SQLALCHEMY_AVAILABLE
+    from ..db.postgres_db import SQLALCHEMY_AVAILABLE, get_training_goals
     if not SQLALCHEMY_AVAILABLE:
         raise HTTPException(status_code=500, detail="SQLAlchemy not available")
     goals = get_training_goals(athlete_id, status)
@@ -843,23 +882,24 @@ async def list_training_goals(athlete_id: int = Query(...), status: str = Query(
 @router.post("/training/workouts/generate")
 async def generate_workouts(goal_id: int = Body(...), event_count: int = Body(12, ge=4, le=20), current_user: dict = Depends(get_current_user)):
     """Generate planned workouts for a granfondo goal."""
-    from ..db.postgres_db import get_session, PlannedWorkoutModel, TrainingGoalModel
     from datetime import datetime, timedelta
+
     from ..analytics.training_load import get_current_training_status
     from ..db.database import get_rides_by_athlete
+    from ..db.postgres_db import PlannedWorkoutModel, TrainingGoalModel, get_session
     from ..models.models import Ride
-    
+
     with get_session() as session:
         goal = session.query(TrainingGoalModel).filter(TrainingGoalModel.id == goal_id).first()
         if not goal:
             raise HTTPException(status_code=404, detail="Goal not found")
-        
+
         rides = [Ride(**r) for r in get_rides_by_athlete(goal.athlete_id)]
         current_status = get_current_training_status(rides) if rides else {"ctl": 0}
-        
+
         workouts_to_create = []
         start_date = datetime.now()
-        
+
         workout_plan = [
             ("Base aerobica", "endurance", 0.5),
             ("Progressivo", "endurance", 0.6),
@@ -874,7 +914,7 @@ async def generate_workouts(goal_id: int = Body(...), event_count: int = Body(12
             ("Pre-gara", "openers", 0.65),
             ("Giorno gara", "race", 0.9),
         ]
-        
+
         for i in range(min(event_count, len(workout_plan))):
             workout_date = (start_date + timedelta(days=7 * i)).strftime("%Y-%m-%d")
             title, wtype, intensity = workout_plan[i]
@@ -887,50 +927,55 @@ async def generate_workouts(goal_id: int = Body(...), event_count: int = Body(12
                 duration_minutes=90,
                 target_intensity=intensity
             ))
-        
+
         session.add_all(workouts_to_create)
         return {"generated": len(workouts_to_create), "goal_id": goal_id}
 
 @router.get("/weather")
 async def get_weather(lat: float = Query(..., description="Latitude"), lon: float = Query(..., description="Longitude"), date: Optional[str] = Query(None, description="Date (YYYY-MM-DD) or today")):
     """Get weather for coordinates, optionally for a specific date."""
-    from ..weather.weather_service import get_weather_for_coordinates, get_forecast_for_date, get_weather_score
     from ..config import WEATHER_API_KEY
-    
+    from ..weather.weather_service import (
+        get_forecast_for_date,
+        get_weather_for_coordinates,
+        get_weather_score,
+    )
+
     if not WEATHER_API_KEY:
         raise HTTPException(status_code=500, detail="WEATHER_API_KEY not configured in .env file")
-    
+
     if date:
         weather = get_forecast_for_date(lat, lon, date)
     else:
         weather = get_weather_for_coordinates(lat, lon)
-    
+
     if "error" in weather:
         raise HTTPException(status_code=502, detail=weather["error"])
-    
+
     temp = weather.get("temperature")
     humidity = weather.get("humidity")
-    
+
     score, advice = get_weather_score(temp, humidity) if temp is not None and humidity is not None else (5, "Weather data not available")
-    
+
     weather["score"] = score
     weather["advice"] = advice
-    
+
     return weather
 
 @router.get("/weather/forecast")
 async def get_weather_forecast(lat: float = Query(..., description="Latitudine"), lon: float = Query(..., description="Longitudine"), days: int = Query(7, ge=1, le=5)):
     """Get multi-day weather forecast."""
-    from ..weather.weather_service import get_forecast_for_date, get_weather_score
-    from ..config import WEATHER_API_KEY
     from datetime import datetime, timedelta
-    
+
+    from ..config import WEATHER_API_KEY
+    from ..weather.weather_service import get_forecast_for_date, get_weather_score
+
     if not WEATHER_API_KEY:
         raise HTTPException(status_code=500, detail="WEATHER_API_KEY not configured in .env file")
-    
+
     forecasts = []
     today = datetime.now()
-    
+
     for i in range(days):
         date = (today + timedelta(days=i)).strftime("%Y-%m-%d")
         weather = get_forecast_for_date(lat, lon, date)
@@ -942,15 +987,15 @@ async def get_weather_forecast(lat: float = Query(..., description="Latitudine")
             weather["advice"] = advice
             weather["date"] = date
         forecasts.append(weather)
-    
+
     return {"forecasts": forecasts}
 
 
 @router.get("/analytics/trends")
 async def get_fitness_trends(metric: str = Query("distance_km"), window: int = Query(7, ge=1, le=90)):
     """Get fitness trend analysis for all rides."""
-    from ..db.database import get_all_rides
     from ..analytics.analytics_trends import calculate_fitness_trends
+    from ..db.database import get_all_rides
     rides = get_all_rides()
     return calculate_fitness_trends(rides, metric=metric, window=window)
 
@@ -958,8 +1003,8 @@ async def get_fitness_trends(metric: str = Query("distance_km"), window: int = Q
 @router.get("/analytics/monthly")
 async def get_monthly_progression():
     """Get monthly aggregated metrics."""
-    from ..db.database import get_all_rides
     from ..analytics.analytics_trends import calculate_monthly_progression
+    from ..db.database import get_all_rides
     rides = get_all_rides()
     return calculate_monthly_progression(rides)
 
@@ -967,8 +1012,8 @@ async def get_monthly_progression():
 @router.get("/analytics/comparison")
 async def get_period_comparison(period_days: int = Query(7, ge=1, le=90)):
     """Compare recent vs previous period."""
-    from ..db.database import get_all_rides
     from ..analytics.analytics_trends import calculate_period_comparison
+    from ..db.database import get_all_rides
     rides = get_all_rides()
     return calculate_period_comparison(rides, period_days=period_days)
 
@@ -976,8 +1021,8 @@ async def get_period_comparison(period_days: int = Query(7, ge=1, le=90)):
 @router.get("/analytics/projection")
 async def get_volume_projection(target_days: int = Query(30, ge=1, le=365)):
     """Project future training volume based on historical trend."""
-    from ..db.database import get_all_rides
     from ..analytics.analytics_trends import calculate_training_volume_projection
+    from ..db.database import get_all_rides
     rides = get_all_rides()
     return calculate_training_volume_projection(rides, target_days=target_days)
 
@@ -985,7 +1030,7 @@ async def get_volume_projection(target_days: int = Query(30, ge=1, le=365)):
 @router.get("/heatmap")
 async def get_heatmap(athlete_id: int = Query(0), current_user: Optional[dict] = Depends(get_optional_current_user)):
     """Get heatmap data from all GPS points for an athlete."""
-    from ..db.database import get_rides_by_athlete, get_all_rides
+    from ..db.database import get_all_rides, get_rides_by_athlete
     rides = [Ride(**r) for r in (get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides())]
     rides_dict = [r.to_dict() for r in rides]
     data = get_heatmap_points(rides_dict)
@@ -995,7 +1040,7 @@ async def get_heatmap(athlete_id: int = Query(0), current_user: Optional[dict] =
 @router.get("/badges")
 async def get_badges(athlete_id: int = Query(...), current_user: Optional[dict] = Depends(get_optional_current_user)):
     """Get badge achievements for an athlete."""
-    from ..db.database import get_rides_by_athlete, get_athlete
+    from ..db.database import get_athlete, get_rides_by_athlete
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     athlete = get_athlete(athlete_id)
     badges = calculate_badges(athlete_id, [r.to_dict() for r in rides], athlete)
@@ -1015,8 +1060,8 @@ async def generate_granfondo_workouts(request: GranfondoPlanRequest):
 @router.get("/rides/{ride_id}/power-metrics")
 async def get_ride_power_metrics(ride_id: int, ftp: float = Query(250.0, description="FTP in watts"), current_user: Optional[dict] = Depends(get_optional_current_user)):
     """Get advanced power metrics for a ride with power data."""
-    from ..db.database import get_ride as _get_ride
     from ..analytics.power_model import calculate_advanced_power_metrics
+    from ..db.database import get_ride as _get_ride
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")

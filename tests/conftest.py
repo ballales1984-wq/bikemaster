@@ -1,9 +1,9 @@
 """Shared pytest fixtures."""
 import os
-import tempfile
+import sys
+
 import pytest
 from fastapi.testclient import TestClient
-import sys
 
 os.environ["TEMP"] = "D:\\Temp"
 os.environ["TMP"] = "D:\\Temp"

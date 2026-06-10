@@ -3,7 +3,7 @@ import os
 os.environ["GROQ_API_KEY"] = "test-key"
 
 from bike_analyzer.backend.analytics.ai_coach import validate_athlete_profile
-from bike_analyzer.backend.models.models import AthleteProfile, Ride
+from bike_analyzer.backend.models.models import AthleteProfile
 
 
 def test_validate_athlete_profile_rejects_empty():

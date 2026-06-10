@@ -1,7 +1,7 @@
 """Shared rate limiter for slowapi."""
+from fastapi import Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from fastapi import Request
 
 
 def get_proxy_aware_address(request: Request) -> str:

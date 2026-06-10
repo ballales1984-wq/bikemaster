@@ -1,8 +1,10 @@
 """Google Fit integration for activity import."""
 from __future__ import annotations
+
 import urllib.parse
 
 from ..config import GOOGLE_FIT_SCOPE
+
 
 def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:8000/callback", state: str = "") -> str:
     params = {"client_id": client_id, "redirect_uri": redirect_uri, "response_type": "code", "scope": GOOGLE_FIT_SCOPE, "access_type": "offline", "state": state}

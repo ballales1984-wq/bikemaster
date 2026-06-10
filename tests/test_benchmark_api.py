@@ -1,6 +1,10 @@
 """Test benchmark comparison API."""
-from bike_analyzer.backend.models.models import AthleteProfile, Ride
-from bike_analyzer.backend.analytics.benchmark import compare_athlete_to_benchmark, get_age_category, get_weight_category
+from bike_analyzer.backend.analytics.benchmark import (
+    compare_athlete_to_benchmark,
+    get_age_category,
+    get_weight_category,
+)
+from bike_analyzer.backend.models.models import AthleteProfile
 
 
 def test_compare_athlete_to_benchmark_beginner():

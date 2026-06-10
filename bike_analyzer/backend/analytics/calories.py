@@ -1,7 +1,8 @@
 """Calorie estimation using MET and physics models."""
 from __future__ import annotations
-import math
+
 from ..models.models import Ride
+
 
 def calculate_calories_met(ride: Ride) -> float:
     speed = ride.avg_speed_kmh

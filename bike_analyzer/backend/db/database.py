@@ -1,13 +1,13 @@
 """Database layer - supports SQLite (local) and PostgreSQL (production)."""
 from __future__ import annotations
-from typing import Optional, List
-from datetime import datetime, timezone
-import json
-from contextlib import contextmanager
-import os
-import sqlite3
 
-from ..config import DB_PATH, DATABASE_URL
+import json
+import sqlite3
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from typing import List, Optional
+
+from ..config import DB_PATH
 from ..models.models import Ride
 
 
@@ -330,7 +330,7 @@ def save_calendar_event(event: dict) -> int:
                 weather = {}
         except Exception:
             weather = {}
-    
+
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("""INSERT INTO calendar_events (athlete_id, title, event_type, date, duration_minutes, description, completed, weather_temp, weather_humidity, weather_description, created_at)
@@ -461,7 +461,10 @@ def get_latest_training_stress(athlete_id: int) -> Optional[dict]:
         return None
 
 def recalculate_training_stress_for_athlete(athlete_id: int, ftp: float = 250.0) -> None:
-    from ..analytics.training_stress import estimate_tss, exponentially_weighted_moving_average
+    from ..analytics.training_stress import (
+        estimate_tss,
+        exponentially_weighted_moving_average,
+    )
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     if not rides:
         return

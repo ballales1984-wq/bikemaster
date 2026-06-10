@@ -1,11 +1,19 @@
 """Test performance engine."""
-from bike_analyzer.backend.models.models import Ride, AthleteProfile, GPSPoint
-from bike_analyzer.backend.analytics.performance import (
-    calculate_performance_score, calculate_endurance_score, calculate_recovery_score,
-    calculate_efficiency_score, classify_athlete, calculate_monthly_scores,
-    calculate_annual_scores, get_experience_level, should_save_to_database
-)
 from datetime import datetime, timezone
+
+from bike_analyzer.backend.analytics.performance import (
+    calculate_annual_scores,
+    calculate_efficiency_score,
+    calculate_endurance_score,
+    calculate_monthly_scores,
+    calculate_performance_score,
+    calculate_recovery_score,
+    classify_athlete,
+    get_experience_level,
+    should_save_to_database,
+)
+from bike_analyzer.backend.models.models import AthleteProfile, GPSPoint, Ride
+
 
 def test_performance_score():
     r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=600, elevation_gain_m=200)

@@ -1,10 +1,12 @@
 """SerpApi-backed Google Maps data provider (no Google Cloud billing required)."""
 from __future__ import annotations
-from typing import List, Optional, Dict, Any
+
+from typing import Any, Dict, List, Optional
+
 import requests
 
-from ..models.models import GPSPoint
 from ..config import SERPAPI_API_KEY, SERPAPI_BASE_URL, SERPAPI_ENGINE
+from ..models.models import GPSPoint
 
 
 def search_places(query: str, lat: Optional[float] = None, lon: Optional[float] = None) -> Optional[Dict[str, Any]]:

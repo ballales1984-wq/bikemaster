@@ -1,7 +1,12 @@
 """Test models."""
 from datetime import datetime, timezone
-from bike_analyzer.backend.models.models import Ride, GPSPoint, AthleteProfile
-from bike_analyzer.backend.processing.processing import validate_coordinate, validate_gps_point
+
+from bike_analyzer.backend.models.models import AthleteProfile, GPSPoint, Ride
+from bike_analyzer.backend.processing.processing import (
+    validate_coordinate,
+    validate_gps_point,
+)
+
 
 def test_ride_creation():
     r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, weight_kg=70.0)

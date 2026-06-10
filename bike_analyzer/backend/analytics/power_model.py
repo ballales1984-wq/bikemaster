@@ -19,12 +19,9 @@ References:
 """
 from __future__ import annotations
 
-import math
-from typing import List, Optional, Dict, Any
-from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
-from ..models.models import Ride, GPSPoint
-
+from ..models.models import GPSPoint
 
 POWER_ZONES_COGGAN = [
     ("Z1", "Recovery",   0.55, 0.64, "#4ecca3"),

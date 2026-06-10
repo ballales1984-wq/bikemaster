@@ -1,23 +1,22 @@
 """Tests for advanced analytics models."""
-import pytest
-from bike_analyzer.backend.models.models import Ride, GPSPoint, Segment
+from datetime import datetime, timezone
+
 from bike_analyzer.backend.analytics.advanced import (
-    calculate_pace_consistency,
-    calculate_power_estimate,
-    classify_climb,
-    estimate_vo2max,
-    classify_ride_difficulty,
     analyze_elevation_profile,
-    analyze_speed_profile,
-    calculate_progress_trend,
-    calculate_training_stress_balance,
-    estimate_ideal_weight,
     calculate_garmin_power_factor,
     calculate_heart_rate_zones,
+    calculate_pace_consistency,
+    calculate_power_estimate,
+    calculate_progress_trend,
     calculate_ride_recommendation_score,
+    calculate_training_stress_balance,
+    classify_climb,
+    classify_ride_difficulty,
     detect_speed_surges,
+    estimate_ideal_weight,
+    estimate_vo2max,
 )
-from datetime import datetime, timezone
+from bike_analyzer.backend.models.models import GPSPoint, Ride, Segment
 
 
 def test_power_estimate_basic():

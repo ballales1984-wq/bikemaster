@@ -1,6 +1,7 @@
 """Test coverage for security module (JWT auth)."""
 import os
 import sys
+
 import pytest
 
 os.environ["SECRET_KEY"] = "test-secret-key-for-jwt-testing-123456"
@@ -12,15 +13,18 @@ os.environ["JWT_AUDIENCE"] = "test-audience"
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from datetime import timedelta
+
+from fastapi import HTTPException
 from jose import jwt
-from fastapi import HTTPException, Depends
-from fastapi.security import OAuth2PasswordBearer
-import asyncio
 
 from bike_analyzer.backend.security import (
-    hash_password, verify_password, create_access_token, decode_token,
-    pwd_context, oauth2_scheme
+    create_access_token,
+    decode_token,
+    hash_password,
+    oauth2_scheme,
+    verify_password,
 )
+
 
 def test_hash_password():
     hashed = hash_password("testpwd")
@@ -94,6 +98,7 @@ def test_decode_token_expired():
 
 from bike_analyzer.backend.security import get_current_user, get_optional_current_user
 
+
 @pytest.mark.asyncio
 async def test_get_current_user_valid():
     token = create_access_token("123")
@@ -128,8 +133,9 @@ async def test_get_optional_current_user_empty_string():
     assert result is None
 
 def test_decode_token_missing_sub():
-    from jose import jwt
     import os
+
+    from jose import jwt
     payload = {"iat": 1, "exp": 9999999999, "iss": "test-issuer", "aud": "test-audience", "sub": None}
     token = jwt.encode(payload, os.environ["SECRET_KEY"], algorithm="HS256")
     with pytest.raises(HTTPException):
@@ -137,7 +143,7 @@ def test_decode_token_missing_sub():
 
 @pytest.mark.asyncio
 async def test_get_current_user_with_none_sub():
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import patch
     with patch('bike_analyzer.backend.security.decode_token', return_value={}):
         try:
             from bike_analyzer.backend.security import get_current_user

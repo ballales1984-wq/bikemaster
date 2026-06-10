@@ -1,6 +1,8 @@
 """Tests for granfondo training plan generator."""
-import pytest
-from bike_analyzer.backend.analytics.granfondo_planner import generate_granfondo_plan, calculate_granfondo_workouts_from_goal, PlannedWorkout
+from bike_analyzer.backend.analytics.granfondo_planner import (
+    calculate_granfondo_workouts_from_goal,
+    generate_granfondo_plan,
+)
 
 
 def test_generate_granfondo_plan_basic():
@@ -11,7 +13,6 @@ def test_generate_granfondo_plan_basic():
 
 
 def test_generate_granfondo_plan_dates():
-    from datetime import datetime
     plan = generate_granfondo_plan("2024-06-01", target_weeks=2)
     assert plan[0]["date"] == "2024-06-01"
     assert plan[1]["date"] == "2024-06-02"

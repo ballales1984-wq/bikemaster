@@ -1,38 +1,38 @@
 """Extended coverage tests targeting advanced.py, performance.py, ai_coach.py edge cases."""
 
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
-from bike_analyzer.backend.models.models import Ride, GPSPoint, Segment
+from bike_analyzer.backend.analytics import analytics as analytics_mod
 from bike_analyzer.backend.analytics.advanced import (
-    calculate_pace_consistency,
-    calculate_power_estimate,
-    classify_climb,
-    estimate_vo2max,
-    classify_ride_difficulty,
     analyze_elevation_profile,
     analyze_speed_profile,
-    calculate_progress_trend,
-    calculate_training_stress_balance,
-    estimate_ideal_weight,
     calculate_garmin_power_factor,
     calculate_heart_rate_zones,
+    calculate_power_estimate,
+    calculate_progress_trend,
     calculate_ride_recommendation_score,
+    calculate_training_stress_balance,
+    classify_climb,
+    classify_ride_difficulty,
     detect_speed_surges,
+    estimate_ideal_weight,
+    estimate_vo2max,
 )
+from bike_analyzer.backend.analytics.fatigue import estimate_recovery_hours
 from bike_analyzer.backend.analytics.performance import (
-    calculate_performance_score, calculate_endurance_score,
-    calculate_recovery_score, calculate_efficiency_score,
-    calculate_monthly_scores, calculate_annual_scores,
-    classify_athlete
+    calculate_efficiency_score,
+    calculate_endurance_score,
+    calculate_performance_score,
+    calculate_recovery_score,
+    classify_athlete,
 )
 from bike_analyzer.backend.analytics.training_load import (
-    calculate_rss, calculate_atl_ctl_tsb, get_current_training_status,
-    get_7day_fitness_summary, TrainingLoadDay
+    calculate_atl_ctl_tsb,
+    calculate_rss,
+    get_7day_fitness_summary,
+    get_current_training_status,
 )
-from bike_analyzer.backend.analytics import analytics as analytics_mod
-from bike_analyzer.backend.analytics.fatigue import estimate_recovery_hours
-
+from bike_analyzer.backend.models.models import GPSPoint, Ride
 
 # ============================================================
 # advanced.py — edge cases and uncovered branches
@@ -233,7 +233,6 @@ class TestPerformanceEdgeCases:
         assert 0 <= score.score <= 100
 
     def test_recovery_score_with_fatigue(self):
-        from bike_analyzer.backend.analytics.fatigue import calculate_fatigue_score
         ride = Ride(date="2024-06-01", distance_km=50, duration_minutes=180, avg_speed_kmh=30, elevation_gain_m=500)
         score = calculate_recovery_score(ride, [ride])
         assert score.score >= 0
@@ -398,8 +397,9 @@ class TestAICoachEdgeCases:
         assert result is True
 
     def test_generate_training_advice_fallback(self):
-        from bike_analyzer.backend.analytics.ai_coach import generate_training_advice
         import os
+
+        from bike_analyzer.backend.analytics.ai_coach import generate_training_advice
         os.environ.pop("GROQ_API_KEY", None)
         os.environ.pop("OPENAI_API_KEY", None)
         profile = AthleteProfile(name="Test", experience_level="Amateur", weight_kg=70, goals="Gran Fondo")
@@ -409,8 +409,9 @@ class TestAICoachEdgeCases:
         assert len(result) > 0
 
     def test_generate_recovery_advice_fallback(self):
-        from bike_analyzer.backend.analytics.ai_coach import generate_recovery_advice
         import os
+
+        from bike_analyzer.backend.analytics.ai_coach import generate_recovery_advice
         os.environ.pop("GROQ_API_KEY", None)
         os.environ.pop("OPENAI_API_KEY", None)
         profile = AthleteProfile(name="Test", weight_kg=70)

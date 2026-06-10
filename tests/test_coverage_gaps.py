@@ -1,21 +1,19 @@
 """Tests for uncovered analytics/db modules to push coverage above 80%."""
 
 import os
-import tempfile
-import pytest
-from datetime import datetime, timezone, timedelta
 
-from bike_analyzer.backend.models.models import (
-    Ride, GPSPoint, AthleteProfile, Segment, CalendarEvent,
-    haversine_distance_m
-)
 from bike_analyzer.backend.analytics import analytics as analytics_mod
 from bike_analyzer.backend.analytics.training_load import (
-    calculate_rss, calculate_atl_ctl_tsb, get_current_training_status,
-    get_7day_fitness_summary, TrainingLoadDay
+    TrainingLoadDay,
+    calculate_atl_ctl_tsb,
+    calculate_rss,
+    get_7day_fitness_summary,
+    get_current_training_status,
 )
 from bike_analyzer.backend.db import database as db_mod
-
+from bike_analyzer.backend.models.models import (
+    Ride,
+)
 
 # ============================================================
 # analytics.py — export and summary coverage

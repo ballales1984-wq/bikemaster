@@ -1,7 +1,11 @@
 """Test athlete profile API."""
-import os
 
-from bike_analyzer.backend.db.database import init_db, save_athlete, get_athlete, update_athlete
+from bike_analyzer.backend.db.database import (
+    get_athlete,
+    init_db,
+    save_athlete,
+    update_athlete,
+)
 from bike_analyzer.backend.models.models import AthleteProfile
 
 

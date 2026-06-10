@@ -1,14 +1,20 @@
 """Tests for power_model analytics module."""
-import pytest
 from datetime import datetime, timezone
 
-from bike_analyzer.backend.models.models import GPSPoint
 from bike_analyzer.backend.analytics.power_model import (
-    normalized_power, intensity_factor, variability_index, efficiency_factor,
-    training_stress_score, calculate_power_zones, calculate_power_profile,
-    estimate_ftp_from_20min, estimate_critical_power, detect_aerobic_decoupling,
-    calculate_advanced_power_metrics
+    calculate_advanced_power_metrics,
+    calculate_power_profile,
+    calculate_power_zones,
+    detect_aerobic_decoupling,
+    efficiency_factor,
+    estimate_critical_power,
+    estimate_ftp_from_20min,
+    intensity_factor,
+    normalized_power,
+    training_stress_score,
+    variability_index,
 )
+from bike_analyzer.backend.models.models import GPSPoint
 
 
 class TestNormalizedPower:

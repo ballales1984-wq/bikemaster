@@ -1,9 +1,14 @@
 """Test scores API endpoints."""
 import os
+
 os.environ["GROQ_API_KEY"] = ""
 
-from bike_analyzer.backend.models.models import Ride, AthleteProfile
-from bike_analyzer.backend.analytics.performance import calculate_performance_score, calculate_endurance_score, calculate_efficiency_score
+from bike_analyzer.backend.analytics.performance import (
+    calculate_efficiency_score,
+    calculate_endurance_score,
+    calculate_performance_score,
+)
+from bike_analyzer.backend.models.models import Ride
 
 
 def test_performance_score_zero_speed():

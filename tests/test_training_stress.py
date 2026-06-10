@@ -1,6 +1,8 @@
 """Tests for training stress score (TSS) estimation."""
-import pytest
-from bike_analyzer.backend.analytics.training_stress import estimate_tss, exponentially_weighted_moving_average
+from bike_analyzer.backend.analytics.training_stress import (
+    estimate_tss,
+    exponentially_weighted_moving_average,
+)
 from bike_analyzer.backend.models.models import Ride
 
 

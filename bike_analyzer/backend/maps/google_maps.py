@@ -1,9 +1,12 @@
 """Google Maps static map generator."""
 from __future__ import annotations
+
+from dataclasses import dataclass
 from typing import List, Optional, Tuple
-from dataclasses import dataclass, field
+
+from ..config import GOOGLE_MAPS_SIZE, GOOGLE_MAPS_ZOOM
 from ..models.models import GPSPoint
-from ..config import GOOGLE_MAPS_ZOOM, GOOGLE_MAPS_SIZE
+
 
 @dataclass
 class SpeedColorSegment:

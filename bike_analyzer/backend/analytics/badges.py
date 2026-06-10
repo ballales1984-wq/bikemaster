@@ -1,9 +1,8 @@
 """Badge/Medal system for cycling achievements."""
 from __future__ import annotations
-from typing import List, Optional
-from dataclasses import dataclass
-from datetime import datetime, timezone, timedelta
 
+from datetime import datetime, timedelta, timezone
+from typing import List, Optional
 
 BADGE_DEFINITIONS = [
     {"id": 1, "name": "First Ride", "description": "Complete your first ride", "icon": "🚴", "category": "milestone", "target": 1},
@@ -26,19 +25,19 @@ def calculate_badges(athlete_id: int, rides: List[dict], athlete: Optional[dict]
     total_km = sum(r.get("distance_km", 0) for r in rides)
     total_rides = len(rides)
     total_elevation = sum(r.get("elevation_gain_m", 0) or 0 for r in rides)
-    
+
     max_speed = 0.0
     for r in rides:
         avg = r.get("avg_speed_kmh", 0) or 0
         max_speed = max(max_speed, avg)
-    
+
     streak_days = calculate_streak(rides)
-    
+
     achieved = []
     for badge in BADGE_DEFINITIONS:
         progress = 0.0
         unlocked = False
-        
+
         if badge["category"] == "distance":
             progress = min(total_km / badge["target"], 1.0)
             unlocked = total_km >= badge["target"]
@@ -58,7 +57,7 @@ def calculate_badges(athlete_id: int, rides: List[dict], athlete: Optional[dict]
         elif badge["category"] == "consistency":
             progress = min(streak_days / badge["target"], 1.0)
             unlocked = streak_days >= badge["target"]
-        
+
         achieved.append({
             "id": badge["id"],
             "name": badge["name"],
@@ -69,7 +68,7 @@ def calculate_badges(athlete_id: int, rides: List[dict], athlete: Optional[dict]
             "progress": round(progress * 100, 1),
             "target": badge["target"],
         })
-    
+
     return achieved
 
 
@@ -80,7 +79,7 @@ def calculate_streak(rides: List[dict]) -> int:
     dates = sorted(set(r.get("date", "")[:10] for r in rides if r.get("date")))
     if not dates:
         return 0
-    
+
     streak = 0
     today = datetime.now(timezone.utc).date()
     for i in range(len(dates) - 1, -1, -1):
@@ -104,19 +103,19 @@ def get_heatmap_points(rides: List[dict], grid_size: float = 0.001) -> dict:
             lat, lon = pt.get("lat"), pt.get("lon")
             if lat and lon:
                 all_points.append({"lat": lat, "lon": lon})
-    
+
     if not all_points:
         return {"points": [], "bounds": {"min_lat": 0, "max_lat": 0, "min_lon": 0, "max_lon": 0}, "total_points": 0}
-    
+
     grid = {}
     for pt in all_points:
         lat_key = round(pt["lat"] / grid_size) * grid_size
         lon_key = round(pt["lon"] / grid_size) * grid_size
         key = (lat_key, lon_key)
         grid[key] = grid.get(key, 0) + 1
-    
+
     points = [{"lat": k[0], "lon": k[1], "count": v} for k, v in grid.items()]
-    
+
     lats = [p["lat"] for p in points]
     lons = [p["lon"] for p in points]
     bounds = {
@@ -125,7 +124,7 @@ def get_heatmap_points(rides: List[dict], grid_size: float = 0.001) -> dict:
         "min_lon": min(lons) if lons else 0,
         "max_lon": max(lons) if lons else 0,
     }
-    
+
     return {"points": points, "bounds": bounds, "total_points": len(all_points)}
 
 

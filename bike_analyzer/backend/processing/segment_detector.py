@@ -1,7 +1,9 @@
 """Automatic segment detection for climbs and notable routes."""
 from __future__ import annotations
-from typing import List, Optional
+
 from dataclasses import dataclass
+from typing import List
+
 from ..models.models import GPSPoint, Segment, haversine_distance_m
 
 
@@ -55,27 +57,27 @@ def detect_climb_segments(points: List[GPSPoint], min_distance_m: float = 500, m
     """
     if len(points) < 3:
         return []
-    
+
     climbs: List[ClimbSegment] = []
     in_climb = False
     climb_start = 0
     climb_dist = 0.0
     climb_elev = 0.0
     prev_idx = 0
-    
+
     for i in range(1, len(points)):
         prev = points[prev_idx]
         curr = points[i]
-        
+
         dist = haversine_distance_m(prev.lat, prev.lon, curr.lat, curr.lon)
         elev_gain = 0.0
-        
+
         if prev.altitude and curr.altitude and curr.altitude > prev.altitude:
             elev_gain = curr.altitude - prev.altitude
-        
+
         climb_dist += dist
         climb_elev += elev_gain
-        
+
         if elev_gain > 0 and not in_climb:
             in_climb = True
             climb_start = prev_idx
@@ -96,9 +98,9 @@ def detect_climb_segments(points: List[GPSPoint], min_distance_m: float = 500, m
                         end_point=points[i - 1]
                     ))
             in_climb = False
-        
+
         prev_idx = i
-    
+
     if in_climb and climb_dist >= min_distance_m and climb_elev >= min_elevation_m:
         grade = calculate_grade_percent(climb_elev, climb_dist)
         climbs.append(ClimbSegment(
@@ -111,7 +113,7 @@ def detect_climb_segments(points: List[GPSPoint], min_distance_m: float = 500, m
             start_point=points[climb_start],
             end_point=points[-1]
         ))
-    
+
     return climbs
 
 
@@ -127,7 +129,7 @@ def detect_all_segments(points: List[GPSPoint], min_length_m: float = 1000) -> L
     """
     if len(points) < 2:
         return []
-    
+
     segments: List[Segment] = []
     segment_start = 0
     accum_dist = 0.0
@@ -135,27 +137,27 @@ def detect_all_segments(points: List[GPSPoint], min_length_m: float = 1000) -> L
     accum_elev_loss = 0.0
     accum_speed = 0.0
     point_count = 0
-    
+
     for i in range(1, len(points)):
         prev = points[i - 1]
         curr = points[i]
-        
+
         dist = haversine_distance_m(prev.lat, prev.lon, curr.lat, curr.lon)
         duration = (curr.timestamp - prev.timestamp).total_seconds()
         if duration <= 0:
             continue
-        
+
         speed = (dist / duration) * 3.6
         accum_dist += dist
         accum_speed += speed
         point_count += 1
-        
+
         if prev.altitude and curr.altitude:
             if curr.altitude > prev.altitude:
                 accum_elev_gain += curr.altitude - prev.altitude
             else:
                 accum_elev_loss += prev.altitude - curr.altitude
-        
+
         if accum_dist >= min_length_m:
             avg_speed = accum_speed / point_count if point_count > 0 else 0
             segments.append(Segment(
@@ -177,7 +179,7 @@ def detect_all_segments(points: List[GPSPoint], min_length_m: float = 1000) -> L
             accum_elev_loss = 0.0
             accum_speed = 0.0
             point_count = 0
-    
+
     return segments
 
 

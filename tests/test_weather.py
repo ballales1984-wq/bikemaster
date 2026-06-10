@@ -1,5 +1,4 @@
 """Tests for weather service."""
-import pytest
 from bike_analyzer.backend.weather.weather_service import get_weather_score
 
 

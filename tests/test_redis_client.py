@@ -1,10 +1,14 @@
 """Tests for redis_client module."""
+
 import pytest
-import json
 
 from bike_analyzer.backend.redis_client import (
-    cache_key, cached, cache_set, cache_delete,
-    rate_limit_key, check_rate_limit
+    cache_delete,
+    cache_key,
+    cache_set,
+    cached,
+    check_rate_limit,
+    rate_limit_key,
 )
 
 

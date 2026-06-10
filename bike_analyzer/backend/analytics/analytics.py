@@ -1,15 +1,24 @@
 """Analytics engine for ride analysis."""
 from __future__ import annotations
-from typing import List, Optional
-from ..models.models import Ride, GPSPoint, Segment, haversine_distance_m
-from .fatigue import calculate_fatigue_score, estimate_recovery_hours, get_recovery_recommendation
-import json
+
 import csv
+import json
 from io import StringIO
 from tempfile import NamedTemporaryFile
+from typing import List, Optional
+
 import matplotlib
+
+from ..models.models import GPSPoint, Ride, Segment, haversine_distance_m
+from .fatigue import (
+    calculate_fatigue_score,
+    estimate_recovery_hours,
+    get_recovery_recommendation,
+)
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
 
 def calculate_summary(rides: List[Ride]) -> dict:
     if not rides: return {"total_rides": 0, "total_km": 0.0, "total_calories": 0.0, "avg_speed": 0.0, "avg_fatigue": 0.0}

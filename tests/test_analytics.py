@@ -1,31 +1,28 @@
 """Test analytics."""
 
-from bike_analyzer.backend.models.models import Ride, GPSPoint, AthleteProfile
-
-from bike_analyzer.backend.analytics.calories import estimate_calories
-
-from bike_analyzer.backend.analytics.fatigue import calculate_fatigue_score
-
-from bike_analyzer.backend.analytics.analytics import (
-
-    calculate_summary, export_rides_json, export_rides_csv, generate_text_report,
-
-    create_elevation_chart, create_duration_chart, generate_speed_chart,
-
-    create_distance_chart, generate_distance_chart, generate_time_chart,
-
-    ride_to_json, rides_to_json, rides_to_csv, analyze_ride
-
-)
-
-from bike_analyzer.backend.processing.processing import process_route, build_segments
-
-from bike_analyzer.backend.ingestion.gps_parser import parse_gpx_file
-
+import os
 from datetime import datetime, timezone
 
-import os
-
+from bike_analyzer.backend.analytics.analytics import (
+    analyze_ride,
+    calculate_summary,
+    create_duration_chart,
+    create_elevation_chart,
+    export_rides_csv,
+    export_rides_json,
+    generate_distance_chart,
+    generate_speed_chart,
+    generate_text_report,
+    generate_time_chart,
+    ride_to_json,
+    rides_to_csv,
+    rides_to_json,
+)
+from bike_analyzer.backend.analytics.calories import estimate_calories
+from bike_analyzer.backend.analytics.fatigue import calculate_fatigue_score
+from bike_analyzer.backend.ingestion.gps_parser import parse_gpx_file
+from bike_analyzer.backend.models.models import AthleteProfile, GPSPoint, Ride
+from bike_analyzer.backend.processing.processing import process_route
 
 
 def test_calorie_estimation():
@@ -242,7 +239,12 @@ def test_benchmark_comparison():
 
 def test_benchmark_categories():
 
-    from bike_analyzer.backend.analytics.benchmark import get_age_category, get_weight_category, get_experience_category, generate_benchmark_report
+    from bike_analyzer.backend.analytics.benchmark import (
+        generate_benchmark_report,
+        get_age_category,
+        get_experience_category,
+        get_weight_category,
+    )
 
     assert get_age_category(20) == "Under25"
 
@@ -264,9 +266,12 @@ def test_benchmark_categories():
 
 def test_ai_coach_fallbacks():
 
-    from bike_analyzer.backend.analytics.ai_coach import generate_training_advice, generate_recovery_advice
-
     import os
+
+    from bike_analyzer.backend.analytics.ai_coach import (
+        generate_recovery_advice,
+        generate_training_advice,
+    )
 
     os.environ.pop("GROQ_API_KEY", None)
 
@@ -297,11 +302,7 @@ def test_chart_function_signatures():
     from inspect import signature
 
     from bike_analyzer.backend.analytics.analytics import (
-
-        create_elevation_chart, create_duration_chart, generate_speed_chart,
-
-        create_distance_chart, generate_time_chart, create_speed_chart,
-
+        create_speed_chart,
     )
 
     assert "output_path" in signature(create_elevation_chart).parameters
@@ -318,7 +319,6 @@ def test_chart_function_signatures():
 
 def test_generate_speed_chart_no_points():
 
-    from bike_analyzer.backend.analytics.analytics import generate_speed_chart
 
     result = generate_speed_chart(None)
 
@@ -328,7 +328,6 @@ def test_generate_speed_chart_no_points():
 
 def test_generate_speed_chart_no_speed_values():
 
-    from bike_analyzer.backend.analytics.analytics import generate_speed_chart
 
     points = [
 
@@ -346,7 +345,6 @@ def test_generate_speed_chart_no_speed_values():
 
 def test_generate_distance_chart_no_points():
 
-    from bike_analyzer.backend.analytics.analytics import generate_distance_chart
 
     result = generate_distance_chart(None)
 
@@ -356,7 +354,6 @@ def test_generate_distance_chart_no_points():
 
 def test_generate_time_chart_no_points():
 
-    from bike_analyzer.backend.analytics.analytics import generate_time_chart
 
     result = generate_time_chart(None)
 

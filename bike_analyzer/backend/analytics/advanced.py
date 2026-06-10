@@ -17,15 +17,20 @@ Implements:
 14. Speed Surge Detection - Acceleration event detection
 """
 from __future__ import annotations
+
 import math
-from typing import List, Optional, Dict, Any
-from ..models.models import Ride, GPSPoint, Segment, haversine_distance_m
+from typing import Any, Dict, List, Optional
+
+from ..models.models import GPSPoint, Ride, Segment, haversine_distance_m
 
 try:
+    from endurance_metrics.advanced import (
+        detect_overtraining_risk,
+        detect_training_peaks,
+    )
+    from endurance_metrics.decoupling import calculate_decoupling
     from endurance_metrics.fitness import calculate_tsb
     from endurance_metrics.workload import calculate_ramp_rate
-    from endurance_metrics.advanced import detect_overtraining_risk, detect_training_peaks
-    from endurance_metrics.decoupling import calculate_decoupling
     ENDURANCE_METRICS_AVAILABLE = True
 except ImportError:
     ENDURANCE_METRICS_AVAILABLE = False

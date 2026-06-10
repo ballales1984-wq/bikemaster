@@ -7,13 +7,11 @@ Provides:
 """
 from __future__ import annotations
 
-import uuid
 from datetime import datetime, timezone
 from typing import Optional
-from sqlalchemy import String, Float, Integer, Boolean, Text, DateTime, Index
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+
+from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import Date
 
 
 class Base(DeclarativeBase):

@@ -1,8 +1,8 @@
 """Tests for ATL/CTL/TSB training load model."""
-import pytest
-from datetime import datetime
 from bike_analyzer.backend.analytics.training_load import (
-    calculate_rss, calculate_atl_ctl_tsb, get_current_training_status, TrainingLoadDay
+    calculate_atl_ctl_tsb,
+    calculate_rss,
+    get_current_training_status,
 )
 from bike_analyzer.backend.models.models import Ride
 

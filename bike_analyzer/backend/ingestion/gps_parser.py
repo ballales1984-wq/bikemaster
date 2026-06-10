@@ -1,7 +1,9 @@
 """GPS parsing for FIT and GPX files."""
 from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional
+
 
 def parse_gpx_file(content: str) -> list[dict]:
     import xml.etree.ElementTree as ET

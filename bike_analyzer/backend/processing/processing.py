@@ -1,9 +1,17 @@
 """GPS data processing and cleaning module."""
 
 from __future__ import annotations
+
 from datetime import datetime
-from typing import Optional, Tuple, List
-from ..models.models import GPSPoint, Segment, Pause, RouteStatistics, haversine_distance_m
+from typing import List, Optional, Tuple
+
+from ..models.models import (
+    GPSPoint,
+    Pause,
+    RouteStatistics,
+    Segment,
+    haversine_distance_m,
+)
 
 PAUSE_SPEED_THRESHOLD_KM_H = 1.5
 PAUSE_MIN_DURATION_MINUTES = 3

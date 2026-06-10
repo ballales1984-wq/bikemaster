@@ -9,11 +9,11 @@
     <form @submit.prevent="submit" class="login-form">
       <div class="form-group">
         <label for="username">Username</label>
-        <input id="username" v-model="form.username" type="text" placeholder="min 3 caratteri" :disabled="loading" required />
+        <input id="username" v-model="form.username" type="text" placeholder="min 3 caratteri" :disabled="loading" required autocomplete="username" />
       </div>
       <div class="form-group">
         <label for="password">Password</label>
-        <input id="password" v-model="form.password" type="password" :placeholder="mode === 'register' ? 'min 6 caratteri' : ''" :disabled="loading" required />
+        <input id="password" v-model="form.password" type="password" :placeholder="mode === 'register' ? 'min 6 caratteri' : ''" :disabled="loading" required autocomplete="current-password" />
       </div>
       <button type="submit" class="btn btn-primary" :disabled="loading">
         {{ loading ? 'Caricamento...' : (mode === 'login' ? 'Entra' : 'Crea account') }}

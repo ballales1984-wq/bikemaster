@@ -1,3 +1,4 @@
 """Models module."""
-from .models import Ride, GPSPoint, Segment, RouteStatistics, Pause
+from .models import GPSPoint, Pause, Ride, RouteStatistics, Segment
+
 __all__ = ["Ride", "GPSPoint", "Segment", "RouteStatistics", "Pause"]

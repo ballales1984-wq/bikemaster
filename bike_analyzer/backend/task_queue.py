@@ -9,8 +9,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Optional, Callable, Any
 from dataclasses import dataclass, field
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,6 @@ class BackgroundTaskQueue:
 
     async def _execute(self, task: Task, worker_name: str):
         try:
-            import uuid
             task_id = task.id
             kind = task.kind
             payload = task.payload
@@ -120,8 +119,12 @@ class BackgroundTaskQueue:
         return [t for t in self._tasks.values() if t.status == "running"]
 
     async def _handle_batch_import(self, payload: dict) -> dict:
-        from bike_analyzer.backend.ingestion.gps_parser import parse_gpx_file, parse_fit_file, points_to_ride
         from bike_analyzer.backend.db.database import save_ride
+        from bike_analyzer.backend.ingestion.gps_parser import (
+            parse_fit_file,
+            parse_gpx_file,
+            points_to_ride,
+        )
         results = {"imported": [], "failed": []}
         files = payload.get("files", [])
         for f in files:
@@ -149,7 +152,10 @@ class BackgroundTaskQueue:
             return {"error": str(exc)}
 
     async def _handle_recalculate_stress(self, payload: dict) -> dict:
-        from bike_analyzer.backend.db.database import get_rides_by_athlete, recalculate_training_stress_for_athlete
+        from bike_analyzer.backend.db.database import (
+            get_rides_by_athlete,
+            recalculate_training_stress_for_athlete,
+        )
         athlete_id = payload.get("athlete_id")
         ftp = payload.get("ftp", 250.0)
         rides = get_rides_by_athlete(athlete_id)

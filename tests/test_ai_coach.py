@@ -1,9 +1,13 @@
 """Test AI Coach (mock mode)."""
 import os
+
 os.environ["GROQ_API_KEY"] = "test-key-for-unit-tests"
 
-from bike_analyzer.backend.models.models import Ride, AthleteProfile
-from bike_analyzer.backend.analytics.ai_coach import analyze_historical_trend, generate_recovery_advice
+from bike_analyzer.backend.analytics.ai_coach import (
+    analyze_historical_trend,
+)
+from bike_analyzer.backend.models.models import AthleteProfile, Ride
+
 
 def test_analyze_historical_trend_empty():
     result = analyze_historical_trend([])

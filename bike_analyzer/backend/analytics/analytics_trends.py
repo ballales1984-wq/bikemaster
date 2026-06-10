@@ -10,9 +10,10 @@ Usage:
     progression = calculate_monthly_progression(rides)
 """
 from __future__ import annotations
+
 import math
-from typing import Any
 from datetime import date, datetime
+from typing import Any
 
 
 def _to_date(d) -> date:
@@ -71,24 +72,24 @@ def _fit_linear(values: list[float]) -> dict:
     if n < 2:
         last = values[-1] if values else 0.0
         return {"slope": 0.0, "intercept": last, "r2": 0.0}
-    
+
     x = list(range(n))
     x_mean = (n - 1) / 2.0
     y_mean = sum(values) / n
-    
+
     ss_xy = sum((xi - x_mean) * (values[i] - y_mean) for i, xi in enumerate(x))
     ss_xx = sum((xi - x_mean) ** 2 for xi in x)
     ss_yy = sum((v - y_mean) ** 2 for v in values)
-    
+
     slope = ss_xy / ss_xx if ss_xx != 0 else 0.0
     intercept = y_mean - slope * x_mean
-    
+
     if ss_yy > 0 and n > 1:
         r2 = (ss_xy ** 2) / (ss_xx * ss_yy)
         r2 = max(0.0, min(1.0, r2))
     else:
         r2 = 0.0
-    
+
     return {"slope": round(slope, 6), "intercept": round(intercept, 6), "r2": round(r2, 4)}
 
 
@@ -132,7 +133,7 @@ def calculate_fitness_trends(rides: list, metric: str = "distance_km",
         }
     """
     valid = _filter_valid_rides(rides)
-    
+
     if not valid:
         return {
             "ready": False,
@@ -149,10 +150,10 @@ def calculate_fitness_trends(rides: list, metric: str = "distance_km",
             "dates": [],
             "values": [],
         }
-    
+
     # Sort by date
     valid.sort(key=lambda r: _to_date(r.get("date")))
-    
+
     values = []
     dates = []
     for r in valid:
@@ -160,7 +161,7 @@ def calculate_fitness_trends(rides: list, metric: str = "distance_km",
         if v is not None:
             values.append(v)
             dates.append(str(_to_date(r.get("date"))))
-    
+
     if not values:
         return {
             "ready": False,
@@ -177,14 +178,14 @@ def calculate_fitness_trends(rides: list, metric: str = "distance_km",
             "dates": [],
             "values": [],
         }
-    
+
     n = len(values)
     mean_val = sum(values) / n
     variance = sum((v - mean_val) ** 2 for v in values) / n
     std_val = math.sqrt(variance)
-    
+
     regression = _fit_linear(values)
-    
+
     slope = regression["slope"]
     if slope > 0.01:
         trend = "improving"
@@ -192,9 +193,9 @@ def calculate_fitness_trends(rides: list, metric: str = "distance_km",
         trend = "declining"
     else:
         trend = "stable"
-    
+
     rolling = _rolling_average(values, window)
-    
+
     return {
         "ready": True,
         "total_rides": n,
@@ -241,7 +242,7 @@ def calculate_monthly_progression(rides: list) -> dict[str, Any]:
             "ride_count": [],
             "avg_calories": [],
         }
-    
+
     # Group by month (YYYY-MM)
     months_data: dict[str, dict] = {}
     for r in valid:
@@ -261,9 +262,9 @@ def calculate_monthly_progression(rides: list) -> dict[str, Any]:
         cal = _safe_float(r.get("calories"))
         if cal is not None:
             m["calories"].append(cal)
-    
+
     sorted_months = sorted(months_data.keys())
-    
+
     result = {
         "ready": True,
         "months": sorted_months,
@@ -273,13 +274,13 @@ def calculate_monthly_progression(rides: list) -> dict[str, Any]:
         "ride_count": [],
         "avg_calories": [],
     }
-    
+
     for key in sorted_months:
         m = months_data[key]
         cleaned_dist = [v for v in m["distances"] if v is not None]
         cleaned_speed = [v for v in m["speeds"] if v is not None]
         cal_values = m["calories"]
-        
+
         result["total_distance_km"].append(
             round(sum(cleaned_dist), 2) if cleaned_dist else 0.0
         )
@@ -293,7 +294,7 @@ def calculate_monthly_progression(rides: list) -> dict[str, Any]:
         result["avg_calories"].append(
             round(sum(cal_values) / len(cal_values), 1) if cal_values else 0.0
         )
-    
+
     return result
 
 
@@ -331,18 +332,18 @@ def calculate_period_comparison(rides: list, period_days: int = 7) -> dict[str, 
             "distance_change_pct": 0.0,
             "speed_change_pct": 0.0,
         }
-    
+
     # Get most recent date
     dates = [_to_date(r.get("date")) for r in valid]
     max_date = max(d for d in dates if d is not None)
-    
+
     # Use actual max_date from dates
     cutoff_recent = max_date
     cutoff_previous = max_date  # will be offset below
-    
+
     recent = []
     previous = []
-    
+
     for r in valid:
         d = _to_date(r.get("date"))
         if d is None:
@@ -352,35 +353,35 @@ def calculate_period_comparison(rides: list, period_days: int = 7) -> dict[str, 
             recent.append(r)
         elif days_ago < period_days * 2:
             previous.append(r)
-    
+
     def _avg(values: list) -> float:
         cleaned = [v for v in values if v is not None]
         return sum(cleaned) / len(cleaned) if cleaned else 0.0
-    
+
     def _sum(values: list) -> float:
         cleaned = [v for v in values if v is not None]
         return sum(cleaned) if cleaned else 0.0
-    
+
     recent_dist = []
     recent_speed = []
     for r in recent:
         recent_dist.append(_safe_float(r.get("distance_km") or r.get("distance")))
         recent_speed.append(_safe_float(r.get("avg_speed_kmh") or r.get("avg_speed")))
-    
+
     prev_dist = []
     prev_speed = []
     for r in previous:
         prev_dist.append(_safe_float(r.get("distance_km") or r.get("distance")))
         prev_speed.append(_safe_float(r.get("avg_speed_kmh") or r.get("avg_speed")))
-    
+
     rd = _sum(recent_dist)
     rs = _avg(recent_speed)
     pd = _sum(prev_dist)
     ps = _avg(prev_speed)
-    
+
     dist_change = ((rd - pd) / pd * 100) if pd > 0 else 0.0
     speed_change = ((rs - ps) / ps * 100) if ps > 0 else 0.0
-    
+
     return {
         "ready": True,
         "recent_rides": len(recent),
@@ -425,25 +426,25 @@ def calculate_training_volume_projection(rides: list,
             "avg_daily_distance_km": 0.0,
             "avg_ride_duration_min": 0.0,
         }
-    
+
     dates = sorted(set(_to_date(r.get("date")) for r in valid if _to_date(r.get("date"))))
     min_date = dates[0]
     max_date = dates[-1]
     days_span = (max_date - min_date).days + 1
-    
-    total_dist = sum(_safe_float(r.get("distance_km") or r.get("distance") or 0) 
+
+    total_dist = sum(_safe_float(r.get("distance_km") or r.get("distance") or 0)
                      for r in valid)
     total_dur = sum(_duration_hours(r) for r in valid)
-    
+
     avg_daily_dist = total_dist / days_span if days_span > 0 else 0
     avg_daily_dur = total_dur / days_span if days_span > 0 else 0
     avg_ride_dist = total_dist / len(valid) if valid else 0
     avg_ride_dur = (total_dur * 60) / len(valid) if valid else 0
-    
+
     proj_dist = avg_daily_dist * target_days
     proj_dur = avg_daily_dur * target_days
     proj_rides = len(valid) / days_span * target_days if days_span > 0 else 0
-    
+
     n = len(valid)
     if n >= 10 and days_span >= 14:
         confidence = "high"
@@ -451,7 +452,7 @@ def calculate_training_volume_projection(rides: list,
         confidence = "medium"
     else:
         confidence = "low"
-    
+
     return {
         "ready": True,
         "projected_distance_km": round(proj_dist, 1),

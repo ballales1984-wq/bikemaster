@@ -1,9 +1,10 @@
 """Core domain models for bike analysis."""
 
 from __future__ import annotations
+
 import math
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 EARTH_RADIUS_M = 6_371_000
@@ -96,9 +97,10 @@ class AthleteProfile:
     medical_notes: Optional[str] = None
     equipment: Optional[str] = None
     ftp_watts: Optional[float] = None
+    created_at: Optional[str] = None
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "name": self.name, "age": self.age, "weight_kg": self.weight_kg, "height_cm": self.height_cm, "fat_percentage": self.fat_percentage, "years_active": self.years_active, "weekly_sessions": self.weekly_sessions, "monthly_hours": self.monthly_hours, "annual_hours": self.annual_hours, "experience_level": self.experience_level, "goals": self.goals, "preferred_terrain": self.preferred_terrain, "weekly_volume_km": self.weekly_volume_km, "best_segments": self.best_segments, "medical_notes": self.medical_notes, "equipment": self.equipment, "ftp_watts": self.ftp_watts}
+        return {"id": self.id, "name": self.name, "age": self.age, "weight_kg": self.weight_kg, "height_cm": self.height_cm, "fat_percentage": self.fat_percentage, "years_active": self.years_active, "weekly_sessions": self.weekly_sessions, "monthly_hours": self.monthly_hours, "annual_hours": self.annual_hours, "experience_level": self.experience_level, "goals": self.goals, "preferred_terrain": self.preferred_terrain, "weekly_volume_km": self.weekly_volume_km, "best_segments": self.best_segments, "medical_notes": self.medical_notes, "equipment": self.equipment, "ftp_watts": self.ftp_watts, "created_at": self.created_at}
 
 @dataclass
 class CalendarEvent:

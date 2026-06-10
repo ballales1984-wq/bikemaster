@@ -1,6 +1,9 @@
 """Tests for badge/medal system."""
-import pytest
-from bike_analyzer.backend.analytics.badges import calculate_badges, calculate_streak, get_heatmap_points
+from bike_analyzer.backend.analytics.badges import (
+    calculate_badges,
+    calculate_streak,
+    get_heatmap_points,
+)
 
 
 def test_calculate_badges_no_rides():
@@ -46,7 +49,7 @@ def test_calculate_streak_no_rides():
 
 
 def test_calculate_streak_recent():
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
     now = datetime.now(timezone.utc)
     rides = [{"date": (now - timedelta(days=i)).isoformat()} for i in range(3)]
     streak = calculate_streak(rides)
@@ -54,7 +57,7 @@ def test_calculate_streak_recent():
 
 
 def test_calculate_streak_gap():
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
     now = datetime.now(timezone.utc)
     rides = [
         {"date": now.isoformat()},

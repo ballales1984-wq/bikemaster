@@ -1,25 +1,32 @@
 """Edge case tests for bug fixes."""
 from __future__ import annotations
-import json
+
 import os
 import tempfile
-import pytest
 from datetime import datetime, timezone
 
-from bike_analyzer.backend.models.models import GPSPoint, Ride
-from bike_analyzer.backend.ingestion.gps_parser import parse_gpx_file
+import pytest
+
+from bike_analyzer.backend.analytics.calories import estimate_calories
 from bike_analyzer.backend.db.database import (
+    DB_PATH,
+    backup_database,
+    get_all_rides,
+    get_ride,
+    get_rides_by_athlete,
     init_db,
     save_ride,
-    get_ride,
-    get_all_rides,
-    get_rides_by_athlete,
-    backup_database,
-    DB_PATH,
 )
+from bike_analyzer.backend.ingestion.gps_parser import parse_gpx_file
 from bike_analyzer.backend.maps.map_renderer import create_route_map
-from bike_analyzer.backend.processing.processing import process_route, detect_pauses, detect_accelerations, detect_decelerations, remove_outliers
-from bike_analyzer.backend.analytics.calories import estimate_calories
+from bike_analyzer.backend.models.models import GPSPoint, Ride
+from bike_analyzer.backend.processing.processing import (
+    detect_accelerations,
+    detect_decelerations,
+    detect_pauses,
+    process_route,
+    remove_outliers,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -118,7 +125,6 @@ def test_backup_database_missing_file():
     with tempfile.TemporaryDirectory() as tmpdir:
         missing_path = os.path.join(tmpdir, "nonexistent.db")
         with pytest.raises(FileNotFoundError):
-            from bike_analyzer.backend.db.database import DB_PATH as _orig_db
             # monkey-patch temporaneo: salviamo DB_PATH, lo impostiamo a un path inesistente, chiamiamo backup, ripristiniamo
             import bike_analyzer.backend.db.database as dbmod
             old_db_path = dbmod.DB_PATH

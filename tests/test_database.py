@@ -1,8 +1,27 @@
 """Test database simple layer."""
 import os
-import pytest
-from bike_analyzer.backend.db.database import save_ride, get_ride, get_all_rides, delete_ride, init_db, save_athlete, get_athlete, create_indices, backup_database, update_athlete, save_chat_message, get_chat_history, clear_chat_history, get_all_athletes, DB_PATH
 import sqlite3
+
+import pytest
+
+from bike_analyzer.backend.db.database import (
+    DB_PATH,
+    backup_database,
+    clear_chat_history,
+    create_indices,
+    delete_ride,
+    get_all_athletes,
+    get_all_rides,
+    get_athlete,
+    get_chat_history,
+    get_ride,
+    init_db,
+    save_athlete,
+    save_chat_message,
+    save_ride,
+    update_athlete,
+)
+
 
 def test_save_and_get_ride():
     init_db()

@@ -7,13 +7,12 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from typing import Optional, List
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy import select, insert, update, delete, func
-from sqlalchemy.orm import selectinload
+from typing import List, Optional
+
+from sqlalchemy import delete, insert, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from ..settings import get_settings
-from ..models.models import Ride, GPSPoint
 
 _engine = None
 _async_session_factory = None

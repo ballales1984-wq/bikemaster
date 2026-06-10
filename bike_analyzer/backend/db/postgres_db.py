@@ -1,14 +1,24 @@
 """PostgreSQL database layer with SQLAlchemy."""
 from __future__ import annotations
-from typing import Optional, List
-from datetime import datetime, timezone
-from pathlib import Path
+
 from contextlib import contextmanager
+from datetime import datetime, timezone
+from typing import List, Optional
 
 try:
-    from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey, Index
-    from sqlalchemy.orm import declarative_base
-    from sqlalchemy.orm import sessionmaker, Session, relationship
+    from sqlalchemy import (
+        Boolean,
+        Column,
+        DateTime,
+        Float,
+        ForeignKey,
+        Index,
+        Integer,
+        String,
+        Text,
+        create_engine,
+    )
+    from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
@@ -20,7 +30,7 @@ Base = declarative_base() if SQLALCHEMY_AVAILABLE else None
 
 class RideModel(Base):
     __tablename__ = "rides"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     athlete_id = Column(Integer, ForeignKey("athletes.id"), nullable=True)
     date = Column(String, nullable=False, index=True)
@@ -37,7 +47,7 @@ class RideModel(Base):
 
 class AthleteModel(Base):
     __tablename__ = "athletes"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
     age = Column(Integer, default=30)
@@ -61,7 +71,7 @@ class AthleteModel(Base):
 
 class TrainingLoadModel(Base):
     __tablename__ = "training_loads"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     athlete_id = Column(Integer, ForeignKey("athletes.id"), nullable=False)
     date = Column(String, nullable=False, index=True)
@@ -70,13 +80,13 @@ class TrainingLoadModel(Base):
     ctl = Column(Float, default=0.0)
     tsb = Column(Float, default=0.0)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    
+
     __table_args__ = (Index("idx_training_loads_athlete_date", "athlete_id", "date"),)
 
 
 class TrainingGoalModel(Base):
     __tablename__ = "training_goals"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     athlete_id = Column(Integer, ForeignKey("athletes.id"), nullable=False)
     title = Column(String, nullable=False)
@@ -91,7 +101,7 @@ class TrainingGoalModel(Base):
 
 class PlannedWorkoutModel(Base):
     __tablename__ = "planned_workouts"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     athlete_id = Column(Integer, ForeignKey("athletes.id"), nullable=False)
     goal_id = Column(Integer, ForeignKey("training_goals.id"), nullable=True)
@@ -113,10 +123,10 @@ def get_engine(db_url: Optional[str] = None):
     global _engine, _Session
     if _engine:
         return _engine
-    
+
     if not SQLALCHEMY_AVAILABLE:
         raise ImportError("SQLAlchemy non installato. Installa con: pip install sqlalchemy psycopg2-binary")
-    
+
     url = db_url or f"sqlite:///{DB_PATH}"
     _engine = create_engine(url, echo=False)
     _Session = sessionmaker(bind=_engine, autocommit=False, autoflush=False)
@@ -174,7 +184,7 @@ def get_training_loads(athlete_id: int, days: int = 30) -> List[dict]:
         models = session.query(TrainingLoadModel).filter(
             TrainingLoadModel.athlete_id == athlete_id
         ).order_by(desc(TrainingLoadModel.date)).limit(days).all()
-        
+
         return [
             {"date": m.date, "tss": m.tss, "atl": m.atl, "ctl": m.ctl, "tsb": m.tsb}
             for m in models
@@ -207,7 +217,7 @@ def get_training_goals(athlete_id: int, status: Optional[str] = None) -> List[di
         )
         if status:
             query = query.filter(TrainingGoalModel.status == status)
-        
+
         models = query.order_by(TrainingGoalModel.created_at.desc()).all()
         return [
             {
@@ -248,7 +258,7 @@ def get_planned_workouts(athlete_id: int, start_date: Optional[str] = None, end_
         if start_date and end_date:
             query = query.filter(PlannedWorkoutModel.date >= start_date)
             query = query.filter(PlannedWorkoutModel.date <= end_date)
-        
+
         models = query.order_by(PlannedWorkoutModel.date).all()
         return [
             {

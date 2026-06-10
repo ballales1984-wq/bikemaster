@@ -1,7 +1,9 @@
 """Test coverage for Google Fit integration."""
 from bike_analyzer.backend.ingestion.google_fit import (
-    get_authorization_url, google_fit_to_ride
+    get_authorization_url,
+    google_fit_to_ride,
 )
+
 
 def test_get_authorization_url():
     url = get_authorization_url("my_client_id", "http://localhost:8000/callback", "random_state")

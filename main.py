@@ -7,9 +7,8 @@ Supports two modes:
 """
 import argparse
 import asyncio
+
 import uvicorn
-import sys
-from pathlib import Path
 
 from bike_analyzer.backend.api.app_factory import create_app
 
@@ -37,8 +36,8 @@ def main():
 
 async def run_cli():
     """Run CLI analytics on sample data."""
-    from bike_analyzer.backend.db.database import get_all_rides, init_db
     from bike_analyzer.backend.analytics.analytics import calculate_summary
+    from bike_analyzer.backend.db.database import get_all_rides, init_db
     from bike_analyzer.backend.models.models import Ride
 
     init_db()

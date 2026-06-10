@@ -1,6 +1,8 @@
 """Benchmark engine for athlete comparison."""
 from __future__ import annotations
-from typing import List, Dict, Optional
+
+from typing import Dict, List, Optional
+
 from ..models.models import AthleteProfile
 
 BENCHMARK_DATA = {

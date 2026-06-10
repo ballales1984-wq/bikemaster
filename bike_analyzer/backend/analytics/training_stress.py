@@ -1,8 +1,7 @@
 """Training Stress Score (TSS) and exponentially weighted moving average."""
 from __future__ import annotations
-from typing import List
 
-from .training_load import TrainingLoadDay
+from typing import List
 
 
 def exponentially_weighted_moving_average(values: List[float], tau_days: float) -> float:
