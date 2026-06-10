@@ -56,7 +56,7 @@ class Settings(BaseSettings):
 
     # === AI Coach ===
     groq_api_key: str = ""
-    groq_model: str = "llama3-70b-8192"
+    groq_model: str = "llama-3.3-70b-versatile"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
 
@@ -79,6 +79,13 @@ class Settings(BaseSettings):
     fatigue_weight_speed: float = 0.20
     fatigue_weight_elevation: float = 0.10
     fatigue_weight_weight: float = 0.10
+
+    # === Traffic / Road Safety ===
+    incident_data_path: str = ""
+    incident_api_url: str = ""
+    incident_api_key: str = ""
+    incident_radius_km: float = 5.0
+    incident_days: int = 90
 
     # === Weather ===
     weather_api_key: str = ""

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import AsyncGenerator, List, Optional
+from datetime import datetime, timezone
 
 from fastapi import (
     APIRouter,
@@ -547,6 +548,8 @@ async def workout_recommendations(request: Request, athlete_id: int = 0, current
             return {"recommendations": "Create an athlete profile in the Dashboard to receive personalized recommendations."}
         rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
         athlete_data = get_athlete(resolved_id)
+        if athlete_data:
+            athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
         result = generate_workout_recommendations(athlete, rides)
         return {"recommendations": result}
@@ -582,6 +585,7 @@ async def coach_full_data(request: Request, athlete_id: int = 0, current_user: O
         athlete_data = get_athlete(resolved_id)
         if not athlete_data:
             return {"training_advice": "Athlete not found. Create a profile in the Dashboard.", "recovery_advice": "Athlete not found. Create a profile in the Dashboard.", "historical_analysis": "", "training_scores": [], "recovery_scores": [], "charts": []}
+        athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**athlete_data)
         result = ai_coach_full(athlete, rides, resolved_id)
         if athlete_id and result.get("training_advice"):
@@ -609,6 +613,8 @@ async def recovery_recommendations(fatigue_score: float = 5.0, ride_id: int = 0,
         ride_obj = Ride(**get_ride(ride_id)) if ride_id else None
         ride_data = get_ride(ride_id) if ride_id else None
         athlete_data = get_athlete(ride_data.get("athlete_id")) if ride_data else None
+        if athlete_data:
+            athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
         result = generate_recovery_recommendations(athlete, [ride_obj] if ride_obj else [], fatigue_score)
         return {"recommendations": result}
@@ -745,6 +751,8 @@ async def coach_chat(athlete_id: int = Query(...), message: str = Query(...), cu
     from ..models.models import AthleteProfile
     save_chat_message(athlete_id, "user", message[:500])
     athlete_data = get_athlete(athlete_id)
+    if athlete_data:
+        athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
     athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
     rides = [Ride(**r) for r in get_all_rides()]
     response = generate_training_advice(athlete, rides, athlete_id)
@@ -1125,3 +1133,66 @@ async def get_ride_power_metrics(ride_id: int, ftp: float = Query(250.0, descrip
     points = [GPSPoint(**p) for p in gps_points]
     metrics = calculate_advanced_power_metrics(points, ftp=ftp)
     return {"ride_id": ride_id, "ftp": ftp, **metrics}
+
+
+@router.get("/traffic/road-types")
+async def get_road_types(lat: float = Query(...), lon: float = Query(...), radius_km: float = Query(2.0)):
+    """Get road type distribution for an area using OSM Overpass."""
+    from ..traffic.overpass_client import get_road_type_summary
+    points = [{"lat": lat, "lon": lon}]
+    summary = get_road_type_summary(points)
+    return {"lat": lat, "lon": lon, "radius_km": radius_km, "road_types": summary}
+
+
+@router.get("/traffic/bike-infrastructure")
+async def get_bike_infrastructure(lat: float = Query(...), lon: float = Query(...), radius_km: float = Query(2.0)):
+    """Get bike lanes and cycleways for an area using OSM Overpass."""
+    from ..traffic.overpass_client import fetch_bike_lanes
+    points = [{"lat": lat, "lon": lon}]
+    data = fetch_bike_lanes(points, include_geometry=False)
+    count = len(data.get("elements", [])) if data else 0
+    return {"lat": lat, "lon": lon, "radius_km": radius_km, "bike_lanes_count": count, "elements": data.get("elements", []) if data else []}
+
+
+@router.get("/traffic/incidents")
+async def get_traffic_incidents(lat: float = Query(...), lon: float = Query(...), radius_km: float = Query(5.0), days: int = Query(90, ge=1, le=365)):
+    """Get traffic incidents near coordinates."""
+    from ..traffic.incident_fetcher import fetch_incidents, get_incident_stats
+    from ..config import INCIDENT_RADIUS_KM, INCIDENT_DAYS
+    radius = radius_km if radius_km > 0 else INCIDENT_RADIUS_KM
+    lookback = days if days > 0 else INCIDENT_DAYS
+    incidents = fetch_incidents(lat, lon, radius_km=radius, days=lookback)
+    stats = get_incident_stats(incidents)
+    return {"lat": lat, "lon": lon, "radius_km": radius, "days": lookback, "incidents": incidents, "stats": stats}
+
+
+@router.get("/rides/{ride_id}/safety")
+async def analyze_ride_safety(ride_id: int, current_user: Optional[dict] = Depends(get_optional_current_user)):
+    """Analyze route safety for a ride using OSM data and incident data."""
+    from ..db.database import get_ride as _get_ride, get_route_safety_score
+    from ..traffic.safety_analyzer import analyze_route_safety
+    from ..traffic.incident_fetcher import fetch_incidents
+    from ..config import INCIDENT_RADIUS_KM, INCIDENT_DAYS
+    ride = _get_ride(ride_id)
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    existing = get_route_safety_score(ride_id)
+    if existing and existing.get("computed_at"):
+        return existing
+    gps_points = ride.get("gps_points")
+    if not gps_points:
+        raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    points = [{"lat": p["lat"], "lon": p["lon"]} for p in gps_points]
+    lats = [p["lat"] for p in points]
+    lons = [p["lon"] for p in points]
+    center_lat = sum(lats) / len(lats)
+    center_lon = sum(lons) / len(lons)
+    incidents = fetch_incidents(center_lat, center_lon, radius_km=INCIDENT_RADIUS_KM, days=INCIDENT_DAYS)
+    safety = analyze_route_safety(points, incidents=incidents)
+    safety["ride_id"] = ride_id
+    safety["athlete_id"] = ride.get("athlete_id")
+    from ..db.database import save_route_safety_score
+    score_id = save_route_safety_score(safety)
+    safety["id"] = score_id
+    safety["computed_at"] = datetime.now(timezone.utc).isoformat()
+    return safety
