@@ -5,6 +5,8 @@ services:
     buildCommand: cd frontend && npm install && npm run build && cp -r dist/* ../bike_analyzer/backend/static/ && cd .. && pip install --upgrade pip && pip install -r requirements.txt
     startCommand: python main.py api --port $PORT
     envVars:
+      - key: PORT
+        value: "8000"
       - key: SECRET_KEY
         generateValue: true
       - key: PYTHON_VERSION

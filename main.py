@@ -10,9 +10,10 @@ import asyncio
 import uvicorn
 import sys
 from pathlib import Path
-from bike_analyzer.backend.config import API_HOST, API_PORT
 
 from bike_analyzer.backend.api.app_factory import create_app
+
+app = create_app()
 
 
 def main():
@@ -25,7 +26,7 @@ def main():
     if args.mode == "api":
         print(f"Starting API + Dashboard on http://localhost:{args.port}")
         uvicorn.run(
-            create_app(),
+            "main:app",
             host="0.0.0.0",
             port=args.port,
             reload=args.reload,
