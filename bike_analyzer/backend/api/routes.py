@@ -121,23 +121,35 @@ async def list_rides(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1
 
 @router.get("/rides/count")
 async def count_rides(current_user: dict = Depends(get_current_user)):
-    from ..db.database import get_all_rides
-    return {"count": len(get_all_rides())}
+    from ..db.database import get_rides_by_athlete
+    return {"count": len(get_rides_by_athlete(current_user["id"]))}
+
 
 @router.get("/rides/{ride_id}")
 async def get_ride(ride_id: int, current_user: dict = Depends(get_current_user)):
+    """Get ride - user can only see owned rides."""
     from ..db.database import get_ride as _get_ride
     ride = _get_ride(ride_id)
-    if not ride: raise HTTPException(status_code=404, detail="Ride not found")
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    # Security: only allow access to owned rides
+    if ride.get("athlete_id") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied to this ride")
     r = Ride(**ride)
     ride["fatigue_score"] = round(calculate_fatigue_score(r), 1)
     ride["calories_per_km"] = round(calories_per_km(r), 0) if r.distance_km else 0
     return ride
 
+
 @router.delete("/rides/{ride_id}")
 async def delete_ride(ride_id: int, current_user: dict = Depends(get_current_user)):
-    from ..db.database import delete_ride as _delete
-    if not _delete(ride_id): raise HTTPException(status_code=404, detail="Ride not found")
+    """Delete ride - user can only delete owned rides."""
+    from ..db.database import get_ride as _get_ride, delete_ride as _delete
+    ride = _get_ride(ride_id)
+    if ride and ride.get("athlete_id") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied to this ride")
+    if not _delete(ride_id):
+        raise HTTPException(status_code=404, detail="Ride not found")
     return {"deleted": True}
 
 @router.get("/rides/{ride_id}/segments")

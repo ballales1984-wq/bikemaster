@@ -30,8 +30,12 @@ def client():
 
 @pytest.fixture
 def tmp_db(tmp_path):
+    import importlib
     db_path = str(tmp_path / "test.db")
     os.environ["DB_PATH"] = db_path
+    from bike_analyzer.backend.db import database as db_mod
+    db_mod.init_db()
+    importlib.reload(db_mod)
     yield db_path
     if os.path.exists(db_path):
         os.remove(db_path)
