@@ -765,27 +765,54 @@ async def speed_analytics(limit: int = Query(10, ge=1, le=50)):
     }
 
 @router.get("/maps/places/nearby")
-async def nearby_places(ride_id: int, query: str = Query(..., description="e.g.: cafe, bakery, restaurant")):
+async def nearby_places(ride_id: int, query: str = Query(..., description="e.g.: cafe, bakery, restaurant"), use_osm: bool = Query(False)):
+    """Get nearby places for a ride - uses OSM (no API key) or SerpApi."""
     from ..db.database import get_ride as _get_ride
     ride = _get_ride(ride_id)
-    if not ride: raise HTTPException(status_code=404, detail="Ride not found")
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
     gps_points = ride.get("gps_points")
-    if not gps_points: raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    if not gps_points:
+        raise HTTPException(status_code=400, detail="No GPS points for this ride")
     points = [GPSPoint(**p) for p in gps_points]
-    results = get_local_results(points, query=query)
-    if results is None: raise HTTPException(status_code=502, detail="Nominatim request failed")
+    if use_osm:
+        from ..maps.osm_maps import get_local_results as osm_search
+        results = osm_search(points, query=query)
+    else:
+        results = get_local_results(points, query=query)
+    if results is None:
+        raise HTTPException(status_code=502, detail="Place search request failed")
     return {"query": query, "count": len(results), "results": results}
 
+
+@router.get("/maps/places/osm-search")
+async def osm_places_search(lat: float = Query(...), lon: float = Query(...), query: str = Query(...), limit: int = Query(10)):
+    """OpenStreetMap search for places - no API key required."""
+    from ..maps.osm_maps import search_places
+    result = search_places(query, lat=lat, lon=lon, limit=limit)
+    if result is None:
+        raise HTTPException(status_code=502, detail="OSM search failed")
+    return {"query": query, "results": result.get("results", [])}
+
 @router.get("/maps/places/search")
-async def search_places_endpoint(ride_id: int, query: str = Query(..., description="Place search query")):
-    from ..db.database import get_ride as _get_ride
+async def search_places_endpoint(ride_id: int, query: str = Query(..., description="Place search query"), current_user: dict = Depends(get_current_user)):
+    """Search places using SerpApi for a ride - user must own the ride."""
+    from ..db.database import get_ride as _get_ride, get_all_rides
     ride = _get_ride(ride_id)
-    if not ride: raise HTTPException(status_code=404, detail="Ride not found")
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    if ride.get("athlete_id") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied to this ride")
     gps_points = ride.get("gps_points")
-    if not gps_points: raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    if not gps_points:
+        raise HTTPException(status_code=400, detail="No GPS points for this ride")
     points = [GPSPoint(**p) for p in gps_points]
+    from ..config import SERPAPI_API_KEY
+    if not SERPAPI_API_KEY:
+        raise HTTPException(status_code=500, detail="SERPAPI_API_KEY not configured")
     data = search_nearby(points, query=query)
-    if data is None: raise HTTPException(status_code=502, detail="Nominatim request failed")
+    if data is None:
+        raise HTTPException(status_code=502, detail="SerpApi request failed")
     return data
 
 @router.post("/calendar/events")

@@ -1,41 +1,55 @@
-"""Shared pytest fixtures."""
 import os
-import sys
+from datetime import timedelta, timezone
+from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 
-os.environ["TEMP"] = "D:\\Temp"
-os.environ["TMP"] = "D:\\Temp"
-os.environ["TMPDIR"] = "D:\\Temp"
-os.makedirs("D:\\Temp", exist_ok=True)
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
+os.environ["SECRET_KEY"] = "test-secret-key-for-jwt-testing-123456"
+os.environ["ALGORITHM"] = "HS256"
+os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "30"
+os.environ["JWT_ISSUER"] = "test-issuer"
+os.environ["JWT_AUDIENCE"] = "test-audience"
 os.environ["GROQ_API_KEY"] = "test-key-for-unit-tests"
 os.environ["GOOGLE_MAPS_API_KEY"] = ""
-os.environ["NOMINATIM_BASE_URL"] = "https://nominatim.openstreetmap.org"
 
-@pytest.fixture(scope="session")
-def client():
-    from bike_analyzer.backend.security import create_access_token
+_TMP = Path(os.environ.get("TEMP", "/tmp")) / "bikemaster_test_dbs"
+_TMP.mkdir(exist_ok=True)
+
+
+def _new_db_path() -> str:
+    p = _TMP / f"test_{id(_new_db_path)}.db"
+    if p.exists():
+        p.unlink()
+    return str(p)
+
+
+@pytest.fixture
+def db_path():
+    p = _new_db_path()
+    yield p
+    Path(p).unlink(missing_ok=True)
+
+
+@pytest.fixture
+def client(db_path):
+    import bike_analyzer.backend.config as cfg_mod
     from bike_analyzer.backend.db import database as db_mod
+    os.environ["DB_PATH"] = db_path
+    cfg_mod.DB_PATH = db_path
+    db_mod.DB_PATH = db_path
     db_mod.init_db()
+    from bike_analyzer.backend.security import create_access_token
     from bike_analyzer.backend.api.app_factory import create_app
     app = create_app()
-    test_client = TestClient(app)
+    tc = TestClient(app)
     token = create_access_token(subject="0", is_admin=True)
-    test_client.headers["Authorization"] = f"Bearer {token}"
-    return test_client
+    tc.headers["Authorization"] = f"Bearer {token}"
+    return tc
+
 
 @pytest.fixture
 def tmp_db(tmp_path):
-    import importlib
-    db_path = str(tmp_path / "test.db")
-    os.environ["DB_PATH"] = db_path
-    from bike_analyzer.backend.db import database as db_mod
-    db_mod.init_db()
-    importlib.reload(db_mod)
-    yield db_path
-    if os.path.exists(db_path):
-        os.remove(db_path)
+    p = str(tmp_path / "test.db")
+    os.environ["DB_PATH"] = p
+    yield p
