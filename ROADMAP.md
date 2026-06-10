@@ -2,7 +2,9 @@
 
 ## Stato Attuale
 
-**Completati: 145/145 step base + 20/80 estensioni**
+**Completati: 148/145 step base + 20/80 estensioni**
+
+> **Stato**: Late Beta / Early Production — architettura solida, serve hardening per produzione.
 
 ### ✅ Completati di recente
 - [x] 146. Pydantic Settings v2 (`pydantic-settings`) — type-safe config layer
@@ -153,16 +155,59 @@
 
 ---
 
-## **Priorità Consigliate (Prime 5 da implementare)**
+## **FASE 23 - Event-Driven & Clean Architecture** *(Alta Priorità)*
 
-| Priorità | Feature | Impatto | Difficoltà |
-|:---:|---|---|:---:|
-| **1** | Pydantic Settings + Config robusta | Alto | Bassa |
-| **2** | Miglioramento Frontend (Vue 3 + Vite) | Alto | Media |
-| **3** | Sicurezza SECRET_KEY + production hardening | Alto | Bassa |
-| **4** | PostgreSQL + Alembic | Alto | Media |
-| **5** | Redis + Background Tasks | Medio-Alto | Media |
+- [ ] 216. Domain events (`RideCreated`, `AthleteUpdated`, `BadgeEarned`) con event bus semplice
+- [ ] 217. Separare layer `domain/` (entities, events), `application/` (use cases), `infrastructure/` (repositories)
+- [ ] 218. Registrare tutti i servizi nel lifespan FastAPI (DI container)
+- [ ] 219. Rimuovere `config.py` legacy - usare solo `settings.py` (Pydantic v2)
 
 ---
 
-*Ultimo aggiornamento: 2026-06-09*
+## **FASE 24 - Vector DB & AI RAG Avanzato** *(Alta Priorità)*
+
+- [ ] 220. Integrare PGVector per embedder RAG (sostituire BM25 con similarity search)
+- [ ] 221. Tool calling / function calling per AI Coach
+- [ ] 222. Memory persistente conversazioni per utente (già parziale in DB)
+- [ ] 223. Weekly/Monthly training plan generator con LLM
+- [ ] 224. Anomaly detection su uscite (sovrallenamento, problemi meccanici)
+
+---
+
+## **FASE 25 - Frontend Testing & PWA** *(Alta Priorità)*
+
+- [ ] 225. Vitest + Vue Test Utils per testing unitario
+- [ ] 226. Playwright E2E tests
+- [ ] 227. PWA completa: service worker, offline support, install prompt
+- [ ] 228. Code splitting e lazy loading route pesanti (Heatmap, Granfondo Planner)
+- [ ] 229. Design System con componenti riutilizzabili e theme tokens
+- [ ] 230. Accessibilità (ARIA, keyboard nav, contrasto)
+- [ ] 231. Multi-lingua: Italiano + Inglese
+
+---
+
+## **Priorità Consigliate (Prossimi 3-6 mesi)**
+
+| Priorità | Miglioramento | Impatto | Difficoltà |
+|---|---|---|---|
+| **1** | Frontend testing + PWA | Molto alto | Media |
+| **2** | AI Coach con Vector DB + tool calling | Molto alto | Alta |
+| **3** | Strava/Garmin integration completa | Alto | Alta |
+| **4** | Sicurezza & monitoring produzione | Alto | Media |
+| **5** | Compressione GPS + ottimizzazioni DB | Medio-Alto | Media |
+
+---
+
+## **Checklist Production Ready**
+
+- [ ] Coverage test >92% (79% attuale)
+- [ ] Ruff + mypy + pre-commit configurati
+- [ ] Docker multi-stage hardened (rootless, scan)
+- [ ] Monitoring: Sentry + Prometheus + Grafana
+- [ ] Audit log per azioni admin
+- [ ] OAuth2 social login (Google, Strava)
+- [ ] Multi-tenant data isolation
+
+---
+
+*Ultimo aggiornamento: 2026-06-10*

@@ -1,18 +1,16 @@
 """Weather service using OpenWeatherMap API."""
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from typing import Optional
 
 import requests
 
-from ..config import WEATHER_API_KEY
-
 WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5"
 
 def _get_weather_api_key() -> str:
-    """Get API key from config or environment."""
-    return WEATHER_API_KEY or ""
+    return os.environ.get("WEATHER_API_KEY", os.environ.get("OPENWEATHER_API_KEY", ""))
 
 def get_weather_for_coordinates(lat: float, lon: float, date: Optional[str] = None) -> dict:
     """Fetch weather for specific coordinates using OpenWeatherMap."""

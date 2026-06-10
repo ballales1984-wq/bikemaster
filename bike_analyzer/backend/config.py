@@ -74,5 +74,10 @@ FATIGUE_WEIGHT_WEIGHT = _s.fatigue_weight_weight
 WEATHER_API_KEY = _s.weather_api_key
 WEATHER_CACHE_HOURS = _s.weather_cache_hours
 WEATHER_UNITS = _s.weather_units
+INCIDENT_DATA_PATH = _s.incident_data_path
+INCIDENT_API_URL = _s.incident_api_url
+INCIDENT_API_KEY = _s.incident_api_key
+INCIDENT_RADIUS_KM = _s.incident_radius_km
+INCIDENT_DAYS = _s.incident_days
 
 ENVIRONMENT = _ENV

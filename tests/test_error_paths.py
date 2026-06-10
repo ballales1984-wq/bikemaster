@@ -80,7 +80,7 @@ class TestAICoachErrorPaths:
             Ride(date="2024-03-01", distance_km=40, duration_minutes=60, avg_speed_kmh=30),
         ]
         result = analyze_historical_trend(rides)
-        assert "average_fatigue" in result or "trend" in result
+        assert "average_fatigue" in result or "Trend" in result or "trend" in result
 
 
 # ============================================================

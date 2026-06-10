@@ -43,7 +43,7 @@ def _nominatim_get(path: str, params: dict) -> Optional[dict]:
         _last_request_ts = time.time()
         if resp.ok:
             return resp.json()
-    except requests.RequestException:
+    except Exception:  # noqa: BLE001
         pass
     return None
 

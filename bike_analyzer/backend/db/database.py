@@ -140,6 +140,34 @@ def init_db():
             FOREIGN KEY (athlete_id) REFERENCES athletes(id),
             FOREIGN KEY (ride_id) REFERENCES rides(id)
         )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS road_incidents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_id TEXT NOT NULL,
+            lat REAL NOT NULL,
+            lon REAL NOT NULL,
+            incident_date TEXT NOT NULL,
+            severity TEXT NOT NULL DEFAULT 'medium',
+            description TEXT,
+            road_type TEXT,
+            source TEXT NOT NULL DEFAULT 'local',
+            created_at TEXT,
+            UNIQUE(source_id, source)
+        )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS route_safety_scores (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ride_id INTEGER,
+            athlete_id INTEGER,
+            risk_score REAL,
+            label TEXT,
+            advice TEXT,
+            road_type_counts TEXT,
+            has_bike_infrastructure INTEGER,
+            incident_count INTEGER,
+            route_length_km REAL,
+            computed_at TEXT,
+            FOREIGN KEY (ride_id) REFERENCES rides(id),
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id)
+        )""")
         conn.commit()
 
 def _row_to_ride(row) -> dict:
@@ -522,4 +550,55 @@ def recalculate_training_stress_for_athlete(athlete_id: int, ftp: float = 250.0)
         tsb = round(ctl_series[i] - atl_series[i], 1)
         upsert_training_stress_day(athlete_id, date_str, round(tss_series[i], 1), atl_series[i], ctl_series[i], tsb)
 
-__all__ = ["save_ride", "get_ride", "get_all_rides", "get_paginated_rides", "get_rides_by_athlete", "get_all_athletes", "delete_ride", "update_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection", "save_chat_message", "get_chat_history", "clear_chat_history", "save_calendar_event", "get_calendar_event", "get_events_by_athlete", "get_events_by_date_range", "get_events_by_month", "update_calendar_event", "delete_calendar_event", "get_weather_cache", "save_weather_cache", "upsert_training_stress_day", "get_training_stress_days", "get_latest_training_stress", "recalculate_training_stress_for_athlete"]
+def save_road_incident(incident: dict) -> int:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""INSERT OR IGNORE INTO road_incidents
+            (source_id, lat, lon, incident_date, severity, description, road_type, source, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (str(incident.get("id", incident.get("source_id", ""))),
+             incident.get("lat"), incident.get("lon"),
+             incident.get("date", incident.get("incident_date", "")),
+             incident.get("severity", "medium"),
+             incident.get("description", "")[:500],
+             incident.get("road_type", ""),
+             incident.get("source", "local"),
+             datetime.now(timezone.utc).isoformat()))
+        conn.commit()
+        return cur.lastrowid
+
+def save_route_safety_score(score_data: dict) -> int:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""INSERT INTO route_safety_scores
+            (ride_id, athlete_id, risk_score, label, advice, road_type_counts,
+             has_bike_infrastructure, incident_count, route_length_km, computed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (score_data.get("ride_id"), score_data.get("athlete_id"),
+             score_data.get("risk_score"), score_data.get("label"),
+             score_data.get("advice"),
+             json.dumps(score_data.get("road_type_counts", {})),
+             1 if score_data.get("has_bike_infrastructure") else 0,
+             score_data.get("incident_count", 0),
+             score_data.get("route_length_km", 0),
+             datetime.now(timezone.utc).isoformat()))
+        conn.commit()
+        return cur.lastrowid
+
+def get_route_safety_score(ride_id: int) -> Optional[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM route_safety_scores WHERE ride_id = ? ORDER BY id DESC LIMIT 1", (ride_id,))
+        row = cur.fetchone()
+        if row:
+            return {
+                "id": row[0], "ride_id": row[1], "athlete_id": row[2],
+                "risk_score": row[3], "label": row[4], "advice": row[5],
+                "road_type_counts": json.loads(row[6]) if row[6] else {},
+                "has_bike_infrastructure": bool(row[7]),
+                "incident_count": row[8], "route_length_km": row[9],
+                "computed_at": row[10],
+            }
+        return None
+
+__all__ = ["save_ride", "get_ride", "get_all_rides", "get_paginated_rides", "get_rides_by_athlete", "get_all_athletes", "delete_ride", "update_ride", "init_db", "save_athlete", "get_athlete", "save_metric", "update_athlete", "create_indices", "backup_database", "get_db_connection", "save_chat_message", "get_chat_history", "clear_chat_history", "save_calendar_event", "get_calendar_event", "get_events_by_athlete", "get_events_by_date_range", "get_events_by_month", "update_calendar_event", "delete_calendar_event", "get_weather_cache", "save_weather_cache", "upsert_training_stress_day", "get_training_stress_days", "get_latest_training_stress", "recalculate_training_stress_for_athlete", "save_road_incident", "save_route_safety_score", "get_route_safety_score"]

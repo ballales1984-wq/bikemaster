@@ -2,6 +2,8 @@
 
 **Completati: 148/145 step base + 20/80 estensioni**
 
+> **Stato**: Late Beta / Early Production — architettura solida, serve hardening per produzione.
+
 ### Ultimo Commit
 - `7d65395` + `d5bb0f5` + `da4e95b` - Test power_model, redis_client, task_queue; Power metrics API; Render deployment fix
 
@@ -318,6 +320,23 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 | **3** | Multi-utente completo (auth, ownership rides) | Alto |
 | **4** | PostgreSQL in produzione (ora supportato ma non configurato per deploy) | Alto |
 | **5** | Vector DB per RAG (sostituire BM25 con embeddings) | Medio |
+
+---
+
+## Production Ready Checklist
+
+| Area | Item | Status |
+|---|---|---|
+| Testing | Coverage >92% (attuale: 79%) | ❌ |
+| Code Quality | Ruff + mypy + pre-commit | ❌ |
+| Container | Docker multi-stage hardened | ⚠️ |
+| Monitoring | Sentry + Prometheus + Grafana | ❌ |
+| Audit | Audit log azioni admin | ❌ |
+| Auth | OAuth2 social login (Google/Strava) | ❌ |
+| Multi-user | Data isolation completa | ⚠️ |
+| AI | Vector DB per RAG | ❌ |
+| Frontend | PWA + offline support | ⚠️ |
+| Frontend | Vitest + Playwright E2E | ❌ |
 
 ---
 

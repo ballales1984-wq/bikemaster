@@ -89,30 +89,42 @@ def calculate_power_zones(points: List[GPSPoint], ftp: float) -> Dict[str, Dict[
 
 
 def calculate_power_profile(points: List[GPSPoint]) -> Dict[str, Optional[float]]:
-    durations = {
-        "5s": 5,
-        "1min": 60,
-        "5min": 300,
-        "10min": 600,
-        "20min": 1200,
-        "30min": 1800,
-    }
-    watts_series = [(p.timestamp.timestamp(), p.power) for p in points if p.power is not None]
+    watts_series = [(p.timestamp, p.power) for p in points if p.power is not None]
     if not watts_series:
-        return {k: None for k in durations}
-    profile = {}
-    for label, window_s in durations.items():
-        best = 0.0
-        n = len(watts_series)
-        if window_s > 1:
-            for i in range(n - int(window_s) + 1):
-                seg = watts_series[i:i + int(window_s)]
-                avg = sum(w for _, w in seg) / len(seg)
-                best = max(best, avg)
-        else:
-            best = max(w for _, w in watts_series)
-        profile[label] = round(best, 1) if best > 0 else None
-    return profile
+        return {k: None for k in ["5s", "1min", "5min", "10min", "20min", "30min"]}
+    binned = _bin_powers(watts_series)
+    return _power_profile_to_dict(binned)
+
+
+def _bin_powers(watts_series: list, ride: Optional[Any] = None) -> dict:
+    if not watts_series:
+        return {}
+    watts_series.sort(key=lambda x: x[0])
+    targets = [5, 60, 300, 600, 1200, 1800]
+    best_for: dict = {t: 0.0 for t in targets}
+    for target in targets:
+        left = 0
+        current_sum = 0.0
+        count = 0
+        for right in range(len(watts_series)):
+            current_sum += watts_series[right][1]
+            count += 1
+            span = (watts_series[right][0] - watts_series[left][0]).total_seconds()
+            while left < right and span > target + 2:
+                current_sum -= watts_series[left][1]
+                count -= 1
+                left += 1
+                span = (watts_series[right][0] - watts_series[left][0]).total_seconds()
+            if count >= 2 and abs(span - target) <= 2 and span >= target - 2:
+                avg = current_sum / count
+                if avg > best_for[target]:
+                    best_for[target] = avg
+    return best_for
+
+
+def _power_profile_to_dict(binned: dict) -> Dict[str, Optional[float]]:
+    labels = {5: "5s", 60: "1min", 300: "5min", 600: "10min", 1200: "20min", 1800: "30min"}
+    return {label: round(binned[d], 1) if binned.get(d, 0) > 0 else None for d, label in labels.items()}
 
 
 def estimate_ftp_from_20min(points: List[GPSPoint]) -> float:
