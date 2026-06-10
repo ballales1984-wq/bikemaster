@@ -1,4 +1,5 @@
 """Processing module."""
+
 from ..models.models import GPSPoint, haversine_distance_m
 from .processing import (
     build_segments,
@@ -8,4 +9,12 @@ from .processing import (
     remove_outliers,
 )
 
-__all__ = ["haversine_distance_m", "detect_pauses", "remove_outliers", "build_segments", "compute_statistics", "process_route", "GPSPoint"]
+__all__ = [
+    "haversine_distance_m",
+    "detect_pauses",
+    "remove_outliers",
+    "build_segments",
+    "compute_statistics",
+    "process_route",
+    "GPSPoint",
+]

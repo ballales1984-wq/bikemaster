@@ -2,6 +2,7 @@
 
 Provides embedding storage and similarity search for knowledge base.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -33,7 +34,8 @@ class VectorDB:
         engine = await self._get_engine()
         async with engine.begin() as conn:
             await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 CREATE TABLE IF NOT EXISTS kb_embeddings (
                     id TEXT PRIMARY KEY,
                     topic TEXT NOT NULL,
@@ -41,11 +43,14 @@ class VectorDB:
                     content TEXT,
                     embedding VECTOR(1536)
                 )
-            """))
-            await conn.execute(text("""
+            """)
+            )
+            await conn.execute(
+                text("""
                 CREATE INDEX IF NOT EXISTS idx_kb_embedding ON kb_embeddings
                 USING IVFFLAT (embedding vector_cosine_ops)
-            """))
+            """)
+            )
 
     async def upsert_embedding(
         self,
@@ -58,7 +63,8 @@ class VectorDB:
         """Insert or update an embedding."""
         engine = await self._get_engine()
         async with engine.begin() as conn:
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 INSERT INTO kb_embeddings (id, topic, section, content, embedding)
                 VALUES (:id, :topic, :section, :content, :embedding)
                 ON CONFLICT (id) DO UPDATE SET
@@ -66,7 +72,15 @@ class VectorDB:
                     section = EXCLUDED.section,
                     content = EXCLUDED.content,
                     embedding = EXCLUDED.embedding
-            """), {"id": id, "topic": topic, "section": section, "content": content, "embedding": embedding})
+            """),
+                {
+                    "id": id,
+                    "topic": topic,
+                    "section": section,
+                    "content": content,
+                    "embedding": embedding,
+                },
+            )
 
     async def search_similar(
         self,
@@ -77,22 +91,31 @@ class VectorDB:
         """Find similar embeddings using cosine similarity."""
         engine = await self._get_engine()
         async with engine.connect() as conn:
-            result = await conn.execute(text("""
+            result = await conn.execute(
+                text("""
                 SELECT id, topic, section, content, 1 - (embedding <=> :q) as similarity
                 FROM kb_embeddings
                 WHERE 1 - (embedding <=> :q) > :min_sim
                 ORDER BY embedding <=> :q
                 LIMIT :limit
-            """), {"q": query_embedding, "min_sim": min_sim, "limit": top_k})
+            """),
+                {"q": query_embedding, "min_sim": min_sim, "limit": top_k},
+            )
             rows = result.fetchall()
-            return [{"id": r[0], "topic": r[1], "section": r[2], "content": r[3], "similarity": r[4]} for r in rows]
+            return [
+                {"id": r[0], "topic": r[1], "section": r[2], "content": r[3], "similarity": r[4]}
+                for r in rows
+            ]
 
 
 def get_embedding(text: str) -> list[float]:
     """Get embedding from OpenAI (fallback to deterministic for tests)."""
     try:
         import openai
-        client = openai.AsyncOpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
+
+        client = (
+            openai.AsyncOpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
+        )
         if client:
             resp = asyncio.run(client.embeddings.create(model="text-embedding-3-small", input=text))
             return resp.data[0].embedding
@@ -100,4 +123,4 @@ def get_embedding(text: str) -> list[float]:
         pass
     # Deterministic fallback for offline/dev
     np.random.seed(len(text))
-    return (np.random.random(1536).tolist())
+    return np.random.random(1536).tolist()

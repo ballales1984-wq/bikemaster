@@ -1,8 +1,8 @@
 """Google Maps static map generator."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
 
 from ..config import GOOGLE_MAPS_SIZE, GOOGLE_MAPS_ZOOM
 from ..models.models import GPSPoint
@@ -10,20 +10,28 @@ from ..models.models import GPSPoint
 
 @dataclass
 class SpeedColorSegment:
-    points: List[Tuple[float, float]]
+    points: list[tuple[float, float]]
     color: str
 
-def _speed_to_color(speed_kmh: Optional[float]) -> str:
-    if speed_kmh is None: return "0x0000ff"
-    if speed_kmh >= 25: return "0x00FF00"
-    if speed_kmh >= 15: return "0xFFFF00"
+
+def _speed_to_color(speed_kmh: float | None) -> str:
+    if speed_kmh is None:
+        return "0x0000ff"
+    if speed_kmh >= 25:
+        return "0x00FF00"
+    if speed_kmh >= 15:
+        return "0xFFFF00"
     return "0xFF0000"
 
-def _build_speed_segments(gps_points: List[GPSPoint], min_segment: int = 5) -> List[SpeedColorSegment]:
-    if not gps_points: return []
-    segments: List[SpeedColorSegment] = []
+
+def _build_speed_segments(
+    gps_points: list[GPSPoint], min_segment: int = 5
+) -> list[SpeedColorSegment]:
+    if not gps_points:
+        return []
+    segments: list[SpeedColorSegment] = []
     current_color = _speed_to_color(gps_points[0].speed)
-    current_points: List[Tuple[float, float]] = [(gps_points[0].lat, gps_points[0].lon)]
+    current_points: list[tuple[float, float]] = [(gps_points[0].lat, gps_points[0].lon)]
     for i in range(1, len(gps_points)):
         pt_color = _speed_to_color(gps_points[i].speed)
         if pt_color != current_color and len(current_points) >= min_segment:
@@ -39,8 +47,17 @@ def _build_speed_segments(gps_points: List[GPSPoint], min_segment: int = 5) -> L
         segments.append(SpeedColorSegment(points=pairs, color="0x0000ff"))
     return segments
 
-def create_google_static_map(points: List[GPSPoint], api_key: str, output_path: str = "google_map.png", zoom: int = GOOGLE_MAPS_ZOOM, size: str = GOOGLE_MAPS_SIZE, colored: bool = False) -> str:
-    if not points: raise ValueError("No GPS points")
+
+def create_google_static_map(
+    points: list[GPSPoint],
+    api_key: str,
+    output_path: str = "google_map.png",
+    zoom: int = GOOGLE_MAPS_ZOOM,
+    size: str = GOOGLE_MAPS_SIZE,
+    colored: bool = False,
+) -> str:
+    if not points:
+        raise ValueError("No GPS points")
     center_lat = sum(p.lat for p in points) / len(points)
     center_lon = sum(p.lon for p in points) / len(points)
     markers = f"&markers=color:green%7Clabel:S%7C{points[0].lat},{points[0].lon}&markers=color:red%7Clabel=E%7C{points[-1].lat},{points[-1].lon}"
@@ -56,26 +73,33 @@ def create_google_static_map(points: List[GPSPoint], api_key: str, output_path: 
         path_str = "&".join(path_parts)
         url = f"https://maps.googleapis.com/maps/api/staticmap?center={center_lat},{center_lon}&zoom={zoom}&size={size}&{path_str}{markers}&key={api_key}"
     import requests
+
     resp = requests.get(url, timeout=10)
-    with open(output_path, "wb") as f: f.write(resp.content)
+    with open(output_path, "wb") as f:
+        f.write(resp.content)
     return output_path
 
-def create_google_elevation_chart(points: List[GPSPoint], api_key: str) -> Optional[List[float]]:
-    if not points or not api_key.startswith("AIza") or len(api_key) < 30: return None
+
+def create_google_elevation_chart(points: list[GPSPoint], api_key: str) -> list[float] | None:
+    if not points or not api_key.startswith("AIza") or len(api_key) < 30:
+        return None
     locations = "|".join([f"{p.lat},{p.lon}" for p in points])
     url = f"https://maps.googleapis.com/maps/api/elevation/json?locations={locations}&key={api_key}"
     import requests
+
     resp = requests.get(url, timeout=10)
     if resp.ok:
         return [r.get("elevation", 0) for r in resp.json().get("results", [])]
     return None
 
-def get_google_api_key() -> Optional[str]:
+
+def get_google_api_key() -> str | None:
     from pathlib import Path
+
     env_file = Path(__file__).parent.parent.parent / ".env"
     if env_file.exists():
         content = env_file.read_text()
         for line in content.splitlines():
-            if line.startswith("GOOGLE_MAPS_API_KEY="): return line.split("=", 1)[1].strip()
+            if line.startswith("GOOGLE_MAPS_API_KEY="):
+                return line.split("=", 1)[1].strip()
     return None
-

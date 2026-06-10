@@ -3,10 +3,10 @@
 Replaces manual dotenv parsing with a type-safe, validated settings model.
 All settings are loaded from environment variables with sensible defaults.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -30,10 +30,12 @@ class Settings(BaseSettings):
     api_port: int = 8000
 
     # === CORS ===
-    cors_origins: str = "http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000,http://127.0.0.1:8080"
+    cors_origins: str = (
+        "http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000,http://127.0.0.1:8080"
+    )
 
     @property
-    def cors_origins_list(self) -> List[str]:
+    def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     # === SerpApi / Google Maps (deprecated) ===
@@ -93,7 +95,7 @@ class Settings(BaseSettings):
     weather_units: str = "metric"
 
 
-_settings: Optional[Settings] = None
+_settings: Settings | None = None
 
 
 def get_settings() -> Settings:

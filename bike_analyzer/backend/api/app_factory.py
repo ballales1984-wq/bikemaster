@@ -1,4 +1,5 @@
 """FastAPI application factory."""
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -24,6 +25,7 @@ DEFAULT_LIMIT = "100/hour"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from ..db.database import init_db
+
     init_db()
     yield
 
@@ -49,9 +51,14 @@ def create_app() -> FastAPI:
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         if ENVIRONMENT.lower() in ("production", "prod"):
-            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
-            response.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'"
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=63072000; includeSubDomains; preload"
+            )
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'"
+            )
         return response
+
     app.state.limiter = limiter
     app.add_exception_handler(429, _rate_limit_exceeded_handler)
     app.add_middleware(
@@ -82,11 +89,14 @@ def create_app() -> FastAPI:
         async def manifest():
             mf = STATIC_DIR / "manifest.json"
             if mf.exists():
-                return Response(content=mf.read_text(encoding="utf-8"), media_type="application/json")
+                return Response(
+                    content=mf.read_text(encoding="utf-8"), media_type="application/json"
+                )
             return Response(status_code=404)
 
         CEO_FILE = STATIC_DIR / "ceo_dashboard.html"
         if CEO_FILE.exists():
+
             @app.get("/ceo", response_class=HTMLResponse)
             async def ceo_dashboard():
                 return CEO_FILE.read_text(encoding="utf-8")

@@ -18,4 +18,3 @@ def test_validate_athlete_profile_accepts_complete():
     valid, msg = validate_athlete_profile(profile)
     assert valid is True
     assert msg == ""
-

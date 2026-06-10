@@ -10,9 +10,10 @@ Integrations:
 - OpenStreetMap Overpass API (free, no key required)
 - Configurable incident data sources (local JSON, ANAS open data, etc.)
 """
-from .overpass_client import fetch_road_data, fetch_bike_lanes, get_road_type_summary
-from .safety_analyzer import analyze_route_safety, compute_risk_score
+
 from .incident_fetcher import fetch_incidents, get_incident_stats
+from .overpass_client import fetch_bike_lanes, fetch_road_data, get_road_type_summary
+from .safety_analyzer import analyze_route_safety, compute_risk_score
 
 __all__ = [
     "fetch_road_data",

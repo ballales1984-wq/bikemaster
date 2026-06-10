@@ -17,35 +17,36 @@ References:
 - Allen, H. & Coggan, A. (2010). Training and Racing with a Power Meter.
 - Pinot, J. et al. (2014). MPA model for aerobic power estimation.
 """
+
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..models.models import GPSPoint
 
 POWER_ZONES_COGGAN = [
-    ("Z1", "Recovery",   0.55, 0.64, "#4ecca3"),
-    ("Z2", "Endurance",   0.64, 0.74, "#90EE90"),
-    ("Z3", "Tempo",       0.74, 0.84, "#FFD700"),
-    ("Z4", "Threshold",   0.84, 0.94, "#FFA500"),
-    ("Z5", "VO2max",      0.94, 1.00, "#FF4500"),
-    ("Z6", "Anaerobic",   1.00, 1.10, "#DC143C"),
+    ("Z1", "Recovery", 0.55, 0.64, "#4ecca3"),
+    ("Z2", "Endurance", 0.64, 0.74, "#90EE90"),
+    ("Z3", "Tempo", 0.74, 0.84, "#FFD700"),
+    ("Z4", "Threshold", 0.84, 0.94, "#FFA500"),
+    ("Z5", "VO2max", 0.94, 1.00, "#FF4500"),
+    ("Z6", "Anaerobic", 1.00, 1.10, "#DC143C"),
     ("Z7", "Neuromuscular", 1.10, 1.50, "#8B0000"),
 ]
 
 
-def normalized_power(watts: List[float], window_size: int = 30) -> float:
+def normalized_power(watts: list[float], window_size: int = 30) -> float:
     if not watts or len(watts) < window_size:
         return sum(watts) / len(watts) if watts else 0.0
     smoothed = []
     for i in range(len(watts) - window_size + 1):
-        segment = watts[i:i + window_size]
+        segment = watts[i : i + window_size]
         avg = sum(segment) / window_size
-        smoothed.append(avg ** 4)
+        smoothed.append(avg**4)
     if not smoothed:
         return sum(watts) / len(watts)
     mean_powered = sum(smoothed) / len(smoothed)
-    return round(mean_powered ** 0.25, 1)
+    return round(mean_powered**0.25, 1)
 
 
 def intensity_factor(np: float, ftp: float) -> float:
@@ -61,15 +62,15 @@ def efficiency_factor(np: float, avg_hr: float) -> float:
 
 
 def training_stress_score(np: float, if_value: float, duration_h: float) -> float:
-    tss = (duration_h * 100.0 * (if_value ** 2))
+    tss = duration_h * 100.0 * (if_value**2)
     return round(min(tss, 500.0), 1)
 
 
-def calculate_power_zones(points: List[GPSPoint], ftp: float) -> Dict[str, Dict[str, Any]]:
+def calculate_power_zones(points: list[GPSPoint], ftp: float) -> dict[str, dict[str, Any]]:
     watts_series = [p.power if p.power is not None else 0.0 for p in points if p.power is not None]
     if not watts_series or ftp <= 0:
         return {}
-    zones: Dict[str, Dict[str, Any]] = {}
+    zones: dict[str, dict[str, Any]] = {}
     total_samples = len(watts_series)
     for name, label, low, high, color in POWER_ZONES_COGGAN:
         lower_w = low * ftp
@@ -88,20 +89,20 @@ def calculate_power_zones(points: List[GPSPoint], ftp: float) -> Dict[str, Dict[
     return zones
 
 
-def calculate_power_profile(points: List[GPSPoint]) -> Dict[str, Optional[float]]:
+def calculate_power_profile(points: list[GPSPoint]) -> dict[str, float | None]:
     watts_series = [(p.timestamp, p.power) for p in points if p.power is not None]
     if not watts_series:
-        return {k: None for k in ["5s", "1min", "5min", "10min", "20min", "30min"]}
+        return dict.fromkeys(["5s", "1min", "5min", "10min", "20min", "30min"])
     binned = _bin_powers(watts_series)
     return _power_profile_to_dict(binned)
 
 
-def _bin_powers(watts_series: list, ride: Optional[Any] = None) -> dict:
+def _bin_powers(watts_series: list, ride: Any | None = None) -> dict:
     if not watts_series:
         return {}
     watts_series.sort(key=lambda x: x[0])
     targets = [5, 60, 300, 600, 1200, 1800]
-    best_for: dict = {t: 0.0 for t in targets}
+    best_for: dict = dict.fromkeys(targets, 0.0)
     for target in targets:
         left = 0
         current_sum = 0.0
@@ -122,12 +123,14 @@ def _bin_powers(watts_series: list, ride: Optional[Any] = None) -> dict:
     return best_for
 
 
-def _power_profile_to_dict(binned: dict) -> Dict[str, Optional[float]]:
+def _power_profile_to_dict(binned: dict) -> dict[str, float | None]:
     labels = {5: "5s", 60: "1min", 300: "5min", 600: "10min", 1200: "20min", 1800: "30min"}
-    return {label: round(binned[d], 1) if binned.get(d, 0) > 0 else None for d, label in labels.items()}
+    return {
+        label: round(binned[d], 1) if binned.get(d, 0) > 0 else None for d, label in labels.items()
+    }
 
 
-def estimate_ftp_from_20min(points: List[GPSPoint]) -> float:
+def estimate_ftp_from_20min(points: list[GPSPoint]) -> float:
     profile = calculate_power_profile(points)
     best_20 = profile.get("20min")
     if best_20 is None:
@@ -135,25 +138,21 @@ def estimate_ftp_from_20min(points: List[GPSPoint]) -> float:
     return round(best_20 * 0.95, 1)
 
 
-def estimate_critical_power(points: List[GPSPoint]) -> Dict[str, float]:
+def estimate_critical_power(points: list[GPSPoint]) -> dict[str, float]:
     profile = calculate_power_profile(points)
-    cp_3min = profile.get("5min") or 0.0
-    cp_12min = profile.get("10min") or 0.0
-    if cp_3min > 0 and cp_12min > 0 and cp_12min > cp_3min:
-        nume = cp_12min - cp_3min
-        denom = 12.0 - 3.0
-        slope = nume / denom if denom != 0 else 0
-        cp = cp_12min - slope * 12.0
-        w_prime = slope * (12.0 ** 2)
+    p_short = profile.get("5min") or 0.0
+    p_long = profile.get("10min") or 0.0
+    if p_short > 0 and p_long > 0:
+        t_s, t_l = 5.0, 12.0
+        cp = (p_long * t_l - p_short * t_s) / (t_l - t_s)
+        w_prime = (p_short - cp) * t_s
         cp = max(cp, 100)
         w_prime = max(w_prime, 5000)
         return {"cp_w": round(cp, 1), "w_prime_j": round(w_prime, 0)}
     return {"cp_w": 0.0, "w_prime_j": 0.0}
 
 
-def detect_aerobic_decoupling(
-    points: List[GPSPoint], ftp: Optional[float] = None
-) -> Dict[str, Any]:
+def detect_aerobic_decoupling(points: list[GPSPoint], ftp: float | None = None) -> dict[str, Any]:
     if len(points) < 60:
         return {"decoupling_pct": 0.0, "significant": False}
     mid = len(points) // 2
@@ -171,7 +170,7 @@ def detect_aerobic_decoupling(
     ratio_second = sum(p.heart_rate for p in second_half) / len(second_half)
     hr_decoupling = 0.0
     if ratio_first > 0:
-        hr_decoupling = ((ratio_second / ratio_first - 1)) * 100
+        hr_decoupling = (ratio_second / ratio_first - 1) * 100
     decoupling = abs(hr_decoupling)
     return {
         "decoupling_pct": round(decoupling, 1),
@@ -183,7 +182,7 @@ def detect_aerobic_decoupling(
     }
 
 
-def calculate_advanced_power_metrics(points: List[GPSPoint], ftp: float = 250.0) -> Dict[str, Any]:
+def calculate_advanced_power_metrics(points: list[GPSPoint], ftp: float = 250.0) -> dict[str, Any]:
     watts = [p.power for p in points if p.power is not None]
     hrs = [p.heart_rate for p in points if p.heart_rate is not None]
     if not watts:

@@ -1,5 +1,6 @@
 """Tests for automatic segment detection."""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 from bike_analyzer.backend.models.models import GPSPoint
 from bike_analyzer.backend.processing.segment_detector import (
@@ -8,9 +9,11 @@ from bike_analyzer.backend.processing.segment_detector import (
 )
 
 
-def make_point(lat: float, lon: float, alt: float = None, hours: int = 0, mins: int = 0, secs: int = 0):
+def make_point(
+    lat: float, lon: float, alt: float = None, hours: int = 0, mins: int = 0, secs: int = 0
+):
     """Create a GPS point with timestamp."""
-    ts = datetime(2024, 1, 15, 8, 0, 0, tzinfo=timezone.utc)
+    ts = datetime(2024, 1, 15, 8, 0, 0, tzinfo=UTC)
     total_secs = hours * 3600 + mins * 60 + secs
     mins_from_secs = total_secs // 60
     secs_final = total_secs % 60
@@ -20,10 +23,7 @@ def make_point(lat: float, lon: float, alt: float = None, hours: int = 0, mins: 
 
 def test_detect_climb_basic():
     """Test basic climb detection."""
-    points = [
-        make_point(45.0 + i * 0.001, 10.0, alt=i * 10, secs=i * 30)
-        for i in range(10)
-    ]
+    points = [make_point(45.0 + i * 0.001, 10.0, alt=i * 10, secs=i * 30) for i in range(10)]
     climbs = detect_climb_segments(points, min_elevation_m=30)
     assert len(climbs) >= 1
     assert climbs[0].elevation_gain_m > 0

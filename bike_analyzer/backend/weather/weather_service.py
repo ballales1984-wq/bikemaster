@@ -1,18 +1,20 @@
 """Weather service using OpenWeatherMap API."""
+
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 import requests
 
 WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5"
 
+
 def _get_weather_api_key() -> str:
     return os.environ.get("WEATHER_API_KEY", os.environ.get("OPENWEATHER_API_KEY", ""))
 
-def get_weather_for_coordinates(lat: float, lon: float, date: Optional[str] = None) -> dict:
+
+def get_weather_for_coordinates(lat: float, lon: float, date: str | None = None) -> dict:
     """Fetch weather for specific coordinates using OpenWeatherMap."""
     from ..db.database import get_weather_cache, save_weather_cache
 
@@ -20,7 +22,7 @@ def get_weather_for_coordinates(lat: float, lon: float, date: Optional[str] = No
     if not api_key:
         return {"error": "Weather API key not configured", "temperature": None, "humidity": None}
 
-    date_to_use = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    date_to_use = date or datetime.now(UTC).strftime("%Y-%m-%d")
 
     # Check cache
     cached = get_weather_cache(lat, lon, date_to_use)
@@ -29,13 +31,11 @@ def get_weather_for_coordinates(lat: float, lon: float, date: Optional[str] = No
 
     endpoint = f"{WEATHER_BASE_URL}/weather"
     try:
-        resp = requests.get(endpoint, params={
-            "lat": lat,
-            "lon": lon,
-            "appid": api_key,
-            "units": "metric",
-            "lang": "it"
-        }, timeout=10)
+        resp = requests.get(
+            endpoint,
+            params={"lat": lat, "lon": lon, "appid": api_key, "units": "metric", "lang": "it"},
+            timeout=10,
+        )
         resp.raise_for_status()
         data = resp.json()
 
@@ -46,18 +46,15 @@ def get_weather_for_coordinates(lat: float, lon: float, date: Optional[str] = No
             "pressure": data["main"]["pressure"],
             "description": data["weather"][0]["description"] if data.get("weather") else "",
             "wind_speed": data.get("wind", {}).get("speed"),
-            "location": {
-                "lat": lat,
-                "lon": lon,
-                "city": data.get("name", "Unknown")
-            },
-            "fetched_at": datetime.now(timezone.utc).isoformat()
+            "location": {"lat": lat, "lon": lon, "city": data.get("name", "Unknown")},
+            "fetched_at": datetime.now(UTC).isoformat(),
         }
 
         save_weather_cache(lat, lon, date_to_use, weather)
         return weather
     except Exception as e:
         return {"error": str(e), "temperature": None, "humidity": None}
+
 
 def get_forecast_for_date(lat: float, lon: float, date: str) -> dict:
     """Get weather forecast for a specific future date using 5-day forecast."""
@@ -73,13 +70,11 @@ def get_forecast_for_date(lat: float, lon: float, date: str) -> dict:
 
     endpoint = f"{WEATHER_BASE_URL}/forecast"
     try:
-        resp = requests.get(endpoint, params={
-            "lat": lat,
-            "lon": lon,
-            "appid": api_key,
-            "units": "metric",
-            "lang": "it"
-        }, timeout=10)
+        resp = requests.get(
+            endpoint,
+            params={"lat": lat, "lon": lon, "appid": api_key, "units": "metric", "lang": "it"},
+            timeout=10,
+        )
         resp.raise_for_status()
         data = resp.json()
 
@@ -96,15 +91,17 @@ def get_forecast_for_date(lat: float, lon: float, date: str) -> dict:
                 "feels_like": closest["main"]["feels_like"],
                 "humidity": closest["main"]["humidity"],
                 "pressure": closest["main"]["pressure"],
-                "description": closest["weather"][0]["description"] if closest.get("weather") else "",
+                "description": closest["weather"][0]["description"]
+                if closest.get("weather")
+                else "",
                 "wind_speed": closest.get("wind", {}).get("speed"),
                 "location": {
                     "lat": lat,
                     "lon": lon,
-                    "city": (data.get("city", {}) or {}).get("name", "Unknown")
+                    "city": (data.get("city", {}) or {}).get("name", "Unknown"),
                 },
                 "forecast_date": date,
-                "fetched_at": datetime.now(timezone.utc).isoformat()
+                "fetched_at": datetime.now(UTC).isoformat(),
             }
             save_weather_cache(lat, lon, date, weather)
             return weather
@@ -112,6 +109,7 @@ def get_forecast_for_date(lat: float, lon: float, date: str) -> dict:
         return {"error": "No forecast data", "temperature": None, "humidity": None}
     except Exception as e:
         return {"error": str(e), "temperature": None, "humidity": None}
+
 
 def get_weather_score(temperature: float, humidity: float) -> tuple[int, str]:
     """Calculate bike ride suitability score based on weather."""

@@ -1,5 +1,6 @@
 """Tests for power_model analytics module."""
-from datetime import datetime, timedelta, timezone
+
+from datetime import UTC, datetime, timedelta
 
 from bike_analyzer.backend.analytics.power_model import (
     calculate_advanced_power_metrics,
@@ -87,15 +88,15 @@ class TestPowerZones:
         assert zones == {}
 
     def test_zero_ftp(self):
-        points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(timezone.utc), power=250)]
+        points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=250)]
         zones = calculate_power_zones(points, ftp=0)
         assert zones == {}
 
     def test_full_zones(self):
         points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(timezone.utc), power=150),
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(timezone.utc), power=200),
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(timezone.utc), power=300),
+            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=150),
+            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=200),
+            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=300),
         ]
         zones = calculate_power_zones(points, ftp=250)
         assert "Z1" in zones
@@ -110,8 +111,13 @@ class TestPowerProfile:
 
     def test_with_power_points(self):
         points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i), power=300 + i * 10)
-            for i in range(600)
+            GPSPoint(
+                lat=45.0,
+                lon=9.0,
+                timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(seconds=i),
+                power=300 + i * 10,
+            )
+            for i in range(1200)
         ]
         profile = calculate_power_profile(points)
         assert profile["5s"] is not None
@@ -125,7 +131,12 @@ class TestEstimateFtp:
 
     def test_with_20min_data(self):
         points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i), power=300)
+            GPSPoint(
+                lat=45.0,
+                lon=9.0,
+                timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(seconds=i),
+                power=300,
+            )
             for i in range(1200)
         ]
         ftp = estimate_ftp_from_20min(points)
@@ -138,7 +149,12 @@ class TestEstimateCriticalPower:
 
     def test_with_profile_data(self):
         points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i), power=300)
+            GPSPoint(
+                lat=45.0,
+                lon=9.0,
+                timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i),
+                power=300,
+            )
             for i in range(600)
         ]
         result = estimate_critical_power(points)
@@ -148,14 +164,14 @@ class TestEstimateCriticalPower:
 
 class TestAerobicDecoupling:
     def test_insufficient_points(self):
-        points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(timezone.utc)) for _ in range(10)]
+        points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC)) for _ in range(10)]
         result = detect_aerobic_decoupling(points)
         assert result["significant"] is False
 
     def test_missing_power_or_hr(self):
         points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(timezone.utc), power=250),
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(timezone.utc), power=250),
+            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=250),
+            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=250),
         ]
         result = detect_aerobic_decoupling(points, ftp=250)
         assert result["significant"] is False
@@ -168,7 +184,13 @@ class TestAdvancedPowerMetrics:
 
     def test_full_metrics(self):
         points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i), power=250, heart_rate=150)
+            GPSPoint(
+                lat=45.0,
+                lon=9.0,
+                timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i),
+                power=250,
+                heart_rate=150,
+            )
             for i in range(3600)
         ]
         result = calculate_advanced_power_metrics(points, ftp=250)

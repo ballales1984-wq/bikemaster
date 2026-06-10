@@ -1,4 +1,7 @@
 """Tests for badge/medal system."""
+
+from datetime import UTC
+
 from bike_analyzer.backend.analytics.badges import (
     calculate_badges,
     calculate_streak,
@@ -14,7 +17,14 @@ def test_calculate_badges_no_rides():
 
 
 def test_calculate_badges_first_ride():
-    ride = {"id": 1, "distance_km": 25.0, "duration_minutes": 90.0, "avg_speed_kmh": 20.0, "elevation_gain_m": 200.0, "date": "2024-01-15"}
+    ride = {
+        "id": 1,
+        "distance_km": 25.0,
+        "duration_minutes": 90.0,
+        "avg_speed_kmh": 20.0,
+        "elevation_gain_m": 200.0,
+        "date": "2024-01-15",
+    }
     badges = calculate_badges(1, [ride])
     first = next(b for b in badges if b["id"] == 1)
     assert first["achieved"] is True
@@ -49,16 +59,18 @@ def test_calculate_streak_no_rides():
 
 
 def test_calculate_streak_recent():
-    from datetime import datetime, timedelta, timezone
-    now = datetime.now(timezone.utc)
+    from datetime import datetime, timedelta
+
+    now = datetime.now(UTC)
     rides = [{"date": (now - timedelta(days=i)).isoformat()} for i in range(3)]
     streak = calculate_streak(rides)
     assert streak == 3
 
 
 def test_calculate_streak_gap():
-    from datetime import datetime, timedelta, timezone
-    now = datetime.now(timezone.utc)
+    from datetime import datetime, timedelta
+
+    now = datetime.now(UTC)
     rides = [
         {"date": now.isoformat()},
         {"date": (now - timedelta(days=2)).isoformat()},

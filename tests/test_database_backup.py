@@ -1,4 +1,5 @@
 """Test database backup functionality."""
+
 import os
 
 from bike_analyzer.backend.db.database import (
@@ -33,6 +34,7 @@ def test_database_backup_with_data():
 def test_save_metric_and_retrieve():
     init_db()
     from bike_analyzer.backend.db.database import get_rides_by_athlete, save_metric
+
     save_ride({"date": "2024-07-02", "distance_km": 20.0})
     save_metric({"athlete_id": 1, "ride_id": 1, "fatigue_score": 5.0})
     rides = get_rides_by_athlete(1)
@@ -63,7 +65,9 @@ def test_clear_chat_history():
 
 def test_update_athlete_partial():
     init_db()
-    athlete_id = save_athlete({"name": "Originale", "age": 30, "weight_kg": 70.0, "experience_level": "Beginner"})
+    athlete_id = save_athlete(
+        {"name": "Originale", "age": 30, "weight_kg": 70.0, "experience_level": "Beginner"}
+    )
     updated = update_athlete(athlete_id, {"goals": "Gran Fondo"})
     assert updated is True
     a = get_athlete(athlete_id)

@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 import folium
 
 from ..models.models import GPSPoint, RouteStatistics
 
 
 def create_route_map(
-    points: List[GPSPoint],
-    statistics: Optional[RouteStatistics] = None,
+    points: list[GPSPoint],
+    statistics: RouteStatistics | None = None,
     output_path: str = "route_map.html",
     color_by_speed: bool = True,
 ) -> str:
@@ -19,7 +17,10 @@ def create_route_map(
         raise ValueError("No GPS points provided")
 
     route_map = folium.Map(
-        location=[sum(p.lat for p in points) / len(points), sum(p.lon for p in points) / len(points)],
+        location=[
+            sum(p.lat for p in points) / len(points),
+            sum(p.lon for p in points) / len(points),
+        ],
         zoom_start=13,
     )
 

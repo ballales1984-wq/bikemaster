@@ -1,9 +1,10 @@
 """Edge case tests for bug fixes."""
+
 from __future__ import annotations
 
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -36,6 +37,7 @@ def _init_db():
     # cleanup: rimuove ride inserite dal test corrente
     for r in get_all_rides():
         from bike_analyzer.backend.db.database import delete_ride
+
         delete_ride(r["id"])
 
 
@@ -78,6 +80,7 @@ def test_gpx_coordinate_zero_lon(gpx_zero_lon):
 # ── database: JSON corrotto non crasha ────────────────────────────────────
 def test_db_corrupt_gps_points_does_not_crash():
     import sqlite3
+
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
@@ -94,6 +97,7 @@ def test_db_corrupt_gps_points_does_not_crash():
 
 def test_get_all_rides_corrupt_gps_points():
     import sqlite3
+
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
@@ -108,6 +112,7 @@ def test_get_all_rides_corrupt_gps_points():
 
 def test_get_rides_by_athlete_corrupt_gps_points():
     import sqlite3
+
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
@@ -127,6 +132,7 @@ def test_backup_database_missing_file():
         with pytest.raises(FileNotFoundError):
             # monkey-patch temporaneo: salviamo DB_PATH, lo impostiamo a un path inesistente, chiamiamo backup, ripristiniamo
             import bike_analyzer.backend.db.database as dbmod
+
             old_db_path = dbmod.DB_PATH
             dbmod.DB_PATH = missing_path
             try:
@@ -158,9 +164,9 @@ def test_save_ride_preserves_gps_points():
 # ── processing: remove_outliers chiamato una sola volta ───────────────────
 def test_process_route_does_not_double_outlier():
     points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc)),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc)),
-        GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=timezone.utc)),
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
+        GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=UTC)),
     ]
     cleaned, stats = process_route(points)
     # con outlier threshold 120 km/h tutti i punti sono validi
@@ -175,16 +181,27 @@ def test_calories_zero_not_recalculated():
     con dati realistici, e che la route /api/v1/rides/{id} non sovrascriva
     un valore di calories pari a 0.0 (test indiretto tramite models).
     """
-    ride = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0,
-                avg_speed_kmh=25.0, weight_kg=70.0, calories=0.0)
+    ride = Ride(
+        date="2024-06-01",
+        distance_km=25.0,
+        duration_minutes=60.0,
+        avg_speed_kmh=25.0,
+        weight_kg=70.0,
+        calories=0.0,
+    )
     c = estimate_calories(ride, method="physics")
     assert c > 0
 
 
 # ── calorie: stima MET valida ────────────────────────────────────────────
 def test_met_calorie_reasonable():
-    ride = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0,
-                avg_speed_kmh=20.0, weight_kg=70.0)
+    ride = Ride(
+        date="2024-06-01",
+        distance_km=25.0,
+        duration_minutes=60.0,
+        avg_speed_kmh=20.0,
+        weight_kg=70.0,
+    )
     c = estimate_calories(ride, method="met")
     assert 200 < c < 800
 
@@ -192,9 +209,12 @@ def test_met_calorie_reasonable():
 # ── map_renderer: crash evitato con statistics disegnate ─────────────────
 def test_map_renderer_with_statistics_does_not_crash():
     points = [
-        GPSPoint(lat=45.0 + i * 0.001, lon=9.0 + i * 0.001,
-                 timestamp=datetime(2024, 1, 1, i, tzinfo=timezone.utc),
-                 speed=20.0 + i)
+        GPSPoint(
+            lat=45.0 + i * 0.001,
+            lon=9.0 + i * 0.001,
+            timestamp=datetime(2024, 1, 1, i, tzinfo=UTC),
+            speed=20.0 + i,
+        )
         for i in range(5)
     ]
     _, stats = process_route(points)
@@ -211,18 +231,19 @@ def test_map_renderer_with_statistics_does_not_crash():
 # ── maps: api key loader non crasha senza .env ───────────────────────────
 def test_google_api_key_missing_env():
     from bike_analyzer.backend.maps.google_maps import get_google_api_key
+
     assert isinstance(get_google_api_key(), (str, type(None)))
 
 
 # ── processing: pause detection with single point ─────────────────────────
 def test_detect_pauses_single_point():
-    p = GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc), speed=0.5)
+    p = GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=0.5)
     assert detect_pauses([p]) == []
 
 
 # ── processing: acceleration/deceleration detection ───────────────────────
 def test_detect_acceleration_and_deceleration():
-    base = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    base = datetime(2024, 1, 1, tzinfo=UTC)
     pts = [
         GPSPoint(lat=45.0, lon=9.0, timestamp=base, speed=10),
         GPSPoint(lat=45.01, lon=9.01, timestamp=base.replace(minute=base.minute + 1), speed=20),
@@ -237,8 +258,8 @@ def test_detect_acceleration_and_deceleration():
 # ── processing: remove outliers returns copy for < 3 points ───────────────
 def test_remove_outliers_short_list():
     pts = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc)),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc)),
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
     ]
     cleaned = remove_outliers(pts)
     assert len(cleaned) >= 2

@@ -3,12 +3,12 @@
 Lightweight implementation using python-jose with HS256.
 Password hashing uses bcrypt directly for maximum compatibility.
 """
+
 from __future__ import annotations
 
-import bcrypt
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -38,12 +38,14 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
-def create_access_token(subject: str, is_admin: bool = False, expires_delta: Optional[timedelta] = None) -> str:
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+def create_access_token(
+    subject: str, is_admin: bool = False, expires_delta: timedelta | None = None
+) -> str:
+    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     payload = {
         "sub": subject,
         "is_admin": is_admin,
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
         "exp": expire,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
@@ -51,14 +53,16 @@ def create_access_token(subject: str, is_admin: bool = False, expires_delta: Opt
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def _try_decode(token: str, secret: str) -> Optional[dict]:
+def _try_decode(token: str, secret: str) -> dict | None:
     try:
-        return jwt.decode(token, secret, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE)
+        return jwt.decode(
+            token, secret, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE
+        )
     except JWTError:
         return None
 
 
-def decode_token(token: Optional[str]) -> dict:
+def decode_token(token: str | None) -> dict:
     if not isinstance(token, str):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -99,7 +103,7 @@ async def get_admin_user(token: str = Depends(oauth2_scheme)) -> dict:
     return user
 
 
-async def get_optional_current_user(token: Optional[str] = Depends(oauth2_scheme)) -> Optional[dict]:
+async def get_optional_current_user(token: str | None = Depends(oauth2_scheme)) -> dict | None:
     if not token:
         return None
     try:

@@ -1,10 +1,12 @@
 """AI Coach with cycling knowledge base RAG and athlete memory."""
+
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import traceback
-from typing import List, Optional
+from datetime import UTC
 
 from ..config import GROQ_API_KEY, GROQ_MODEL, OPENAI_API_KEY, OPENAI_MODEL
 from ..models.models import AthleteProfile, Ride
@@ -13,21 +15,26 @@ from .knowledge_base import format_context_for_llm, search_knowledge_base
 from .performance import calculate_performance_score, calculate_recovery_score
 
 LOCALE: str = os.getenv("LOCALE", "it")
-_LANG_PROMPT = {"it": "Rispondi in italiano", "en": "Respond in English", "es": "Responde en español", "fr": "Réponds en français"}
+_LANG_PROMPT = {
+    "it": "Rispondi in italiano",
+    "en": "Respond in English",
+    "es": "Responde en español",
+    "fr": "Réponds en français",
+}
 _LANG_INSTRUCTION = _LANG_PROMPT.get(LOCALE, _LANG_PROMPT["it"])
 
-_current_client: Optional[object] = None
-_current_provider: Optional[str] = None
+_current_client: object | None = None
+_current_provider: str | None = None
 
-_fmt_clean_pattern = re.compile(r'(?<!\d)(\d+\.\d)0(?!\d)')
-_fmt_int_pattern = re.compile(r'(?<!\d)(\d+)\.0(?!\d)')
+_fmt_clean_pattern = re.compile(r"(?<!\d)(\d+\.\d)0(?!\d)")
+_fmt_int_pattern = re.compile(r"(?<!\d)(\d+)\.0(?!\d)")
 
 
 def _clean_ai_output(text: str) -> str:
     text = _fmt_int_pattern.sub(lambda m: m.group(1), text)
     text = _fmt_clean_pattern.sub(lambda m: m.group(1), text)
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    text = re.sub(r' +', ' ', text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r" +", " ", text)
     return text.strip()
 
 
@@ -51,6 +58,7 @@ def get_ai_coach_client():
     if GROQ_API_KEY and GROQ_API_KEY.startswith("gsk_"):
         try:
             from groq import Groq
+
             _current_client = Groq(api_key=GROQ_API_KEY)
             _current_provider = "groq"
             return _current_client, _current_provider
@@ -61,6 +69,7 @@ def get_ai_coach_client():
     if OPENAI_API_KEY and OPENAI_API_KEY.startswith("sk-"):
         try:
             from openai import OpenAI
+
             _current_client = OpenAI(api_key=OPENAI_API_KEY)
             _current_provider = "openai"
             return _current_client, _current_provider
@@ -72,7 +81,14 @@ def get_ai_coach_client():
 
 
 def _build_athlete_context(athlete: AthleteProfile) -> str:
-    parts = [f"Nome: {athlete.name or 'N/A'}", f"Livello: {athlete.experience_level}", f"Peso: {athlete.weight_kg} kg", f"Eta: {athlete.age} anni", f"Anni attivo: {athlete.years_active}", f"Settimane/anno: {athlete.annual_hours:.0f}h totali"]
+    parts = [
+        f"Nome: {athlete.name or 'N/A'}",
+        f"Livello: {athlete.experience_level}",
+        f"Peso: {athlete.weight_kg} kg",
+        f"Eta: {athlete.age} anni",
+        f"Anni attivo: {athlete.years_active}",
+        f"Settimane/anno: {athlete.annual_hours:.0f}h totali",
+    ]
     if getattr(athlete, "goals", None):
         parts.append(f"Obiettivi: {athlete.goals}")
     if getattr(athlete, "preferred_terrain", None):
@@ -88,12 +104,18 @@ def _build_athlete_context(athlete: AthleteProfile) -> str:
     return "\n".join(parts)
 
 
-def _build_rag_context(athlete: AthleteProfile, rides: List[Ride], query_hint: str = "") -> str:
+def _build_rag_context(athlete: AthleteProfile, rides: list[Ride], query_hint: str = "") -> str:
     kb_results: list[dict] = []
     if athlete.goals:
-        kb_results.extend(search_knowledge_base(f"obiettivi {athlete.goals} {athlete.experience_level}", max_chunks=2))
+        kb_results.extend(
+            search_knowledge_base(
+                f"obiettivi {athlete.goals} {athlete.experience_level}", max_chunks=2
+            )
+        )
     if athlete.preferred_terrain:
-        kb_results.extend(search_knowledge_base(f"allenamento {athlete.preferred_terrain}", max_chunks=2))
+        kb_results.extend(
+            search_knowledge_base(f"allenamento {athlete.preferred_terrain}", max_chunks=2)
+        )
     if rides:
         last = rides[-1]
         hints = []
@@ -117,7 +139,9 @@ def _build_rag_context(athlete: AthleteProfile, rides: List[Ride], query_hint: s
     return format_context_for_llm(deduped[:5])
 
 
-def generate_training_advice(athlete: AthleteProfile, rides: List[Ride], athlete_id: Optional[int] = None) -> str:
+def generate_training_advice(
+    athlete: AthleteProfile, rides: list[Ride], athlete_id: int | None = None
+) -> str:
     try:
         is_valid, err = validate_athlete_profile(athlete)
         if not is_valid:
@@ -130,10 +154,20 @@ def generate_training_advice(athlete: AthleteProfile, rides: List[Ride], athlete
         stats = calculate_summary(rides) if rides else {}
         perf = calculate_performance_score(rides[-1]) if rides else 0
         recovery = calculate_recovery_score(rides[-1]) if rides else 0
-        from datetime import datetime, timezone
-        now = datetime.now(timezone.utc)
+        from datetime import datetime
+
+        now = datetime.now(UTC)
         recent = rides[-3:] if rides else []
-        recent_info = "; ".join([f"{r.date}: {r.distance_km:.1f}km, {r.avg_speed_kmh:.1f}km/h, {r.duration_minutes:.0f}min" for r in recent]) if recent else "nessuna uscita recente"
+        recent_info = (
+            "; ".join(
+                [
+                    f"{r.date}: {r.distance_km:.1f}km, {r.avg_speed_kmh:.1f}km/h, {r.duration_minutes:.0f}min"
+                    for r in recent
+                ]
+            )
+            if recent
+            else "nessuna uscita recente"
+        )
         if len(rides) >= 2:
             first_date = min(r.date for r in rides if r.date)
             last_date = max(r.date for r in rides if r.date)
@@ -151,13 +185,16 @@ def generate_training_advice(athlete: AthleteProfile, rides: List[Ride], athlete
         if athlete_id:
             try:
                 from ..db.database import get_chat_history
+
                 history = get_chat_history(athlete_id, limit=5)
                 if history:
-                    history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join([f"{h['role']}: {h['content'][:200]}" for h in reversed(history)])
+                    history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join(
+                        [f"{h['role']}: {h['content'][:200]}" for h in reversed(history)]
+                    )
             except Exception:
                 pass
-        total_rides = stats.get('total_rides', 0)
-        avg_distance = stats.get('avg_distance_km', 0)
+        total_rides = stats.get("total_rides", 0)
+        avg_distance = stats.get("avg_distance_km", 0)
         today_str = now.strftime("%Y-%m-%d")
         prompt = f"""Sei un coach ciclistico esperto. Genera 3 consigli di allenamento BREVI e SPECIFICI.{history_section}{rag_section}
 
@@ -186,13 +223,20 @@ REGOLE:
 - Non mostrare valori con .0 se sono interi (es: scrivi "3 volte" non "3.0 volte")
         """
         model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
-        chat = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}], max_tokens=500)
+        chat = client.chat.completions.create(
+            model=model, messages=[{"role": "user", "content": prompt}], max_tokens=500
+        )
         content = chat.choices[0].message.content or "Nessun consiglio disponibile"
         return _clean_ai_output(content)
     except Exception as e:
         print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
         traceback.print_exc()
-        if "401" in str(e) or "403" in str(e) or "invalid_api_key" in str(e).lower() or "PermissionDenied" in type(e).__name__:
+        if (
+            "401" in str(e)
+            or "403" in str(e)
+            or "invalid_api_key" in str(e).lower()
+            or "PermissionDenied" in type(e).__name__
+        ):
             return _generate_fallback_training_advice(athlete, rides)
         return f"AI Coach non disponibile: {type(e).__name__}: {e}"
 
@@ -200,9 +244,15 @@ REGOLE:
 generate_workout_recommendations = generate_training_advice
 
 
-def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride], fatigue_score: float = 5.0, athlete_id: Optional[int] = None) -> str:
-    from datetime import datetime, timezone
-    now = datetime.now(timezone.utc)
+def generate_recovery_advice(
+    athlete: AthleteProfile,
+    rides: list[Ride],
+    fatigue_score: float = 5.0,
+    athlete_id: int | None = None,
+) -> str:
+    from datetime import datetime
+
+    now = datetime.now(UTC)
     try:
         is_valid, err = validate_athlete_profile(athlete)
         if not is_valid:
@@ -214,16 +264,25 @@ def generate_recovery_advice(athlete: AthleteProfile, rides: List[Ride], fatigue
         recovery = calculate_recovery_score(rides[-1]) if rides else fatigue_score
         stats = calculate_summary(rides) if rides else {}
         recent = rides[-1] if rides else None
-        recent_info = f"{recent.distance_km:.1f}km a {recent.avg_speed_kmh:.1f}km/h" if recent else "nessuna uscita recente"
-        rag = _build_rag_context(athlete, rides, "recupero stretching idratazione sonno alimentazione")
+        recent_info = (
+            f"{recent.distance_km:.1f}km a {recent.avg_speed_kmh:.1f}km/h"
+            if recent
+            else "nessuna uscita recente"
+        )
+        rag = _build_rag_context(
+            athlete, rides, "recupero stretching idratazione sonno alimentazione"
+        )
         rag_section = f"\n\nCONOSCENZE APPLICATE:\n{rag}" if rag else ""
         history_section = ""
         if athlete_id:
             try:
                 from ..db.database import get_chat_history
+
                 history = get_chat_history(athlete_id, limit=5)
                 if history:
-                    history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join([f"{h['role']}: {h['content'][:200]}" for h in reversed(history)])
+                    history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join(
+                        [f"{h['role']}: {h['content'][:200]}" for h in reversed(history)]
+                    )
             except Exception:
                 pass
         prompt = f"""Sei un coach di recupero ciclistico. Genera 2 consigli BREVI per il recupero di oggi.{history_section}{rag_section}
@@ -234,8 +293,8 @@ Profilo atleta:
         Dati:
 - Recovery score: {recovery}/10
 - Ultima uscita: {recent_info}
-- Allenamenti archiviati: {stats.get('total_rides', 0)}
-- Giorno corrente: {now.strftime('%Y-%m-%d')}
+- Allenamenti archiviati: {stats.get("total_rides", 0)}
+- Giorno corrente: {now.strftime("%Y-%m-%d")}
 
 REGOLE:
 - {_LANG_INSTRUCTION}
@@ -248,11 +307,18 @@ REGOLE:
 - Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
 """
         model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
-        chat = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}], max_tokens=300)
+        chat = client.chat.completions.create(
+            model=model, messages=[{"role": "user", "content": prompt}], max_tokens=300
+        )
         content = chat.choices[0].message.content or "Recupera bene!"
         return _clean_ai_output(content)
     except Exception as e:
-        if "401" in str(e) or "403" in str(e) or "invalid_api_key" in str(e).lower() or "PermissionDenied" in type(e).__name__:
+        if (
+            "401" in str(e)
+            or "403" in str(e)
+            or "invalid_api_key" in str(e).lower()
+            or "PermissionDenied" in type(e).__name__
+        ):
             rec_score = recovery if isinstance(recovery, (int, float)) else 5.0
             return _generate_fallback_recovery_advice(athlete, rides, rec_score)
         traceback.print_exc()
@@ -262,37 +328,52 @@ REGOLE:
 _FALLBACK_PREFIX = "(Servizio AI temporaneamente non disponibile - consiglio basato su modello)\n\n"
 
 
-def _generate_fallback_training_advice(athlete: AthleteProfile, rides: List[Ride]) -> str:
+def _generate_fallback_training_advice(athlete: AthleteProfile, rides: list[Ride]) -> str:
     kb = search_knowledge_base("allenamento base periodizzazione", max_chunks=3)
-    context = format_context_for_llm(kb) if kb else "**1. Allenamento Base** Fai 80% delle tue uscite a bassa intensita (Zona 2) per sviluppare l'aerobico"
+    (
+        format_context_for_llm(kb)
+        if kb
+        else "**1. Allenamento Base** Fai 80% delle tue uscite a bassa intensita (Zona 2) per sviluppare l'aerobico"
+    )
     return f"{_FALLBACK_PREFIX}**1. Allenamento Base** Fai 80% delle tue uscite a bassa intensita (Zona 2) per sviluppare l'aerobico\n**2. Progressione** Aumenta il volume settimanale di massimo 10% a settimana per evitare sovrallenamento\n**3. Recupero** Inserisci 1-2 giorni di riposo completo a settimana"
 
 
-def _generate_fallback_recovery_advice(athlete: AthleteProfile, rides: List[Ride], recovery_score: float = 5.0) -> str:
+def _generate_fallback_recovery_advice(
+    athlete: AthleteProfile, rides: list[Ride], recovery_score: float = 5.0
+) -> str:
     kb = search_knowledge_base("recupero sonno idratazione stretching", max_chunks=3)
-    context = format_context_for_llm(kb) if kb else ""
+    format_context_for_llm(kb) if kb else ""
     base = "**1. Sonno** Dormi 7-9 ore per notte per ottimale recupero\n**2. Idratazione** Bevi 500ml d'acqua per ogni ora di allenamento"
-    result = f"{base}\n**3. Stretching** 10-15 min di stretching post-allenamento per flessibilita e prevenzione infortuni" if recovery_score < 5 else f"{base}\n**3. Alimentazione** Consumate carboidrati e proteine nella ratio 3:1 entro 30 min dal termine"
+    result = (
+        f"{base}\n**3. Stretching** 10-15 min di stretching post-allenamento per flessibilita e prevenzione infortuni"
+        if recovery_score < 5
+        else f"{base}\n**3. Alimentazione** Consumate carboidrati e proteine nella ratio 3:1 entro 30 min dal termine"
+    )
     return f"{_FALLBACK_PREFIX}{result}"
 
 
 generate_recovery_recommendations = generate_recovery_advice
 
 
-def analyze_historical_trend(rides: List[Ride]) -> str:
+def analyze_historical_trend(rides: list[Ride]) -> str:
     if len(rides) < 2:
         return "Dati insufficienti per trend."
     from .fatigue import calculate_fatigue_score
+
     avg_fatigue = sum(calculate_fatigue_score(r) for r in rides) / len(rides)
     avg_perf = sum(calculate_performance_score(r) for r in rides) / len(rides)
     trend = "crescente" if avg_perf > 5 else "stabile" if avg_perf > 3 else "da monitorare"
-    return f"Trend: {trend}, fatigue media: {avg_fatigue:.1f}/10, performance media: {avg_perf:.1f}/10"
+    return (
+        f"Trend: {trend}, fatigue media: {avg_fatigue:.1f}/10, performance media: {avg_perf:.1f}/10"
+    )
 
 
 analyze_historical_trends = analyze_historical_trend
 
 
-def ai_coach_full(athlete: AthleteProfile, rides: List[Ride], athlete_id: Optional[int] = None) -> dict:
+def ai_coach_full(
+    athlete: AthleteProfile, rides: list[Ride], athlete_id: int | None = None
+) -> dict:
     from pathlib import Path
 
     from ..analytics.performance import (
@@ -314,12 +395,11 @@ def ai_coach_full(athlete: AthleteProfile, rides: List[Ride], athlete_id: Option
     try:
         points_data = getattr(recent, "gps_points", []) if recent else []
         for old_chart in ["coach_speed.png", "coach_duration.png"]:
-            try:
+            with contextlib.suppress(Exception):
                 (static_dir / old_chart).unlink(missing_ok=True)
-            except Exception:
-                pass
         if points_data:
             from ..models.models import GPSPoint
+
             points = [GPSPoint(**p) for p in points_data]
             segments = build_segments(points)
             if segments:
@@ -332,4 +412,18 @@ def ai_coach_full(athlete: AthleteProfile, rides: List[Ride], athlete_id: Option
             charts.append("/static/coach_duration.png")
     except Exception:
         pass
-    return {"training_advice": generate_workout_recommendations(athlete, rides, athlete_id), "recovery_advice": generate_recovery_recommendations(athlete, rides, athlete_id), "historical_analysis": analyze_historical_trends(rides), "training_scores": [{"label": "Performance", "value": perf}, {"label": "Endurance", "value": endurance}, {"label": "Efficiency", "value": efficiency}], "recovery_scores": [{"label": "Recovery", "value": recovery}, {"label": "Fatigue", "value": round(10.0 - recovery, 1)}], "charts": charts}
+    return {
+        "training_advice": generate_workout_recommendations(athlete, rides, athlete_id),
+        "recovery_advice": generate_recovery_recommendations(athlete, rides, athlete_id),
+        "historical_analysis": analyze_historical_trends(rides),
+        "training_scores": [
+            {"label": "Performance", "value": perf},
+            {"label": "Endurance", "value": endurance},
+            {"label": "Efficiency", "value": efficiency},
+        ],
+        "recovery_scores": [
+            {"label": "Recovery", "value": recovery},
+            {"label": "Fatigue", "value": round(10.0 - recovery, 1)},
+        ],
+        "charts": charts,
+    }

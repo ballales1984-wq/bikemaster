@@ -1,4 +1,5 @@
 """Test coverage for security module (JWT auth)."""
+
 import os
 import sys
 
@@ -32,13 +33,16 @@ def test_hash_password():
     assert hashed != "testpwd"
     assert hashed.startswith("$2b$")
 
+
 def test_verify_password_correct():
     hashed = hash_password("mypwd")
     assert verify_password("mypwd", hashed) is True
 
+
 def test_verify_password_incorrect():
     hashed = hash_password("mypwd")
     assert verify_password("wrongpwd", hashed) is False
+
 
 def test_create_access_token():
     token = create_access_token("user123")
@@ -46,11 +50,13 @@ def test_create_access_token():
     assert isinstance(token, str)
     assert len(token) > 50
 
+
 def test_create_access_token_with_custom_expiry():
     token = create_access_token("user456", expires_delta=timedelta(hours=1))
     assert token is not None
     payload = decode_token(token)
     assert payload["sub"] == "user456"
+
 
 def test_decode_token_valid():
     token = create_access_token("testuser")
@@ -59,17 +65,21 @@ def test_decode_token_valid():
     assert "exp" in payload
     assert "iat" in payload
 
+
 def test_decode_token_invalid():
     with pytest.raises(HTTPException) as exc_info:
         decode_token("invalid.token.here")
     assert exc_info.value.status_code == 401
 
+
 def test_decode_token_malformed():
     with pytest.raises(HTTPException):
         decode_token("")
 
+
 def test_oauth2_scheme():
     assert oauth2_scheme is not None
+
 
 def test_payload_structure():
     token = create_access_token("testuser", expires_delta=timedelta(minutes=30))
@@ -78,23 +88,45 @@ def test_payload_structure():
     assert "iss" in payload
     assert "aud" in payload
 
+
 def test_decode_token_wrong_issuer():
-    wrong_payload = {"sub": "user", "iss": "wrong", "aud": "test-audience", "exp": 9999999999, "iat": 1}
+    wrong_payload = {
+        "sub": "user",
+        "iss": "wrong",
+        "aud": "test-audience",
+        "exp": 9999999999,
+        "iat": 1,
+    }
     token = jwt.encode(wrong_payload, os.environ["SECRET_KEY"], algorithm="HS256")
     with pytest.raises(HTTPException):
         decode_token(token)
+
 
 def test_decode_token_wrong_audience():
-    wrong_payload = {"sub": "user", "iss": "test-issuer", "aud": "wrong", "exp": 9999999999, "iat": 1}
+    wrong_payload = {
+        "sub": "user",
+        "iss": "test-issuer",
+        "aud": "wrong",
+        "exp": 9999999999,
+        "iat": 1,
+    }
     token = jwt.encode(wrong_payload, os.environ["SECRET_KEY"], algorithm="HS256")
     with pytest.raises(HTTPException):
         decode_token(token)
 
+
 def test_decode_token_expired():
-    expired_payload = {"sub": "user", "iss": "test-issuer", "aud": "test-audience", "exp": 1, "iat": 1}
+    expired_payload = {
+        "sub": "user",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": 1,
+        "iat": 1,
+    }
     token = jwt.encode(expired_payload, os.environ["SECRET_KEY"], algorithm="HS256")
     with pytest.raises(HTTPException):
         decode_token(token)
+
 
 from bike_analyzer.backend.security import get_current_user, get_optional_current_user
 
@@ -105,11 +137,13 @@ async def test_get_current_user_valid():
     result = await get_current_user(token)
     assert result["id"] == 123
 
+
 @pytest.mark.asyncio
 async def test_get_current_user_missing_sub():
     token = create_access_token("invalid-int-id-xyz")
     result = await get_current_user(token)
     assert result["id"] == "invalid-int-id-xyz"
+
 
 @pytest.mark.asyncio
 async def test_get_optional_current_user_with_valid_token():
@@ -117,45 +151,63 @@ async def test_get_optional_current_user_with_valid_token():
     result = await get_optional_current_user(token)
     assert result["id"] == 456
 
+
 @pytest.mark.asyncio
 async def test_get_optional_current_user_no_token():
     result = await get_optional_current_user(None)
     assert result is None
+
 
 @pytest.mark.asyncio
 async def test_get_optional_current_user_invalid_token():
     result = await get_optional_current_user("bad-token")
     assert result is None
 
+
 @pytest.mark.asyncio
 async def test_get_optional_current_user_empty_string():
     result = await get_optional_current_user("")
     assert result is None
 
+
 def test_decode_token_missing_sub():
     import os
 
     from jose import jwt
-    payload = {"iat": 1, "exp": 9999999999, "iss": "test-issuer", "aud": "test-audience", "sub": None}
+
+    payload = {
+        "iat": 1,
+        "exp": 9999999999,
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "sub": None,
+    }
     token = jwt.encode(payload, os.environ["SECRET_KEY"], algorithm="HS256")
     with pytest.raises(HTTPException):
         decode_token(token)
 
+
 @pytest.mark.asyncio
 async def test_get_current_user_with_none_sub():
     from unittest.mock import patch
-    with patch('bike_analyzer.backend.security.decode_token', return_value={}):
+
+    with patch("bike_analyzer.backend.security.decode_token", return_value={}):
         try:
             from bike_analyzer.backend.security import get_current_user
-            result = await get_current_user("any-token")
+
+            await get_current_user("any-token")
         except Exception:
             pass
 
 
 def test_auth_login_endpoint(client):
-    response = client.post("/api/v1/auth/register", json={"username": "testuser", "password": "testpass123"})
+    response = client.post(
+        "/api/v1/auth/register", json={"username": "testuser", "password": "testpass123"}
+    )
     assert response.status_code == 200
-    response = client.post("/api/v1/auth/login", data={"username": "testuser", "password": "testpass123"})
+    response = client.post(
+        "/api/v1/auth/login", data={"username": "testuser", "password": "testpass123"}
+    )
     assert response.status_code == 200
     assert "access_token" in response.json()
 
@@ -164,13 +216,17 @@ def test_auth_login_invalid(client):
     response = client.post("/api/v1/auth/login", data={"username": "wrong", "password": "wrong"})
     assert response.status_code == 401
 
+
 def test_protected_route_no_auth_shows_empty(client):
     response = client.get("/api/v1/rides")
     assert response.status_code == 200
 
+
 def test_protected_route_with_valid_token(client):
     client.post("/api/v1/auth/register", json={"username": "authtest", "password": "testpass123"})
-    login_resp = client.post("/api/v1/auth/login", data={"username": "authtest", "password": "testpass123"})
+    login_resp = client.post(
+        "/api/v1/auth/login", data={"username": "authtest", "password": "testpass123"}
+    )
     token = login_resp.json()["access_token"]
     response = client.get("/api/v1/rides", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200

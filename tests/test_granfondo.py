@@ -1,4 +1,5 @@
 """Tests for granfondo training plan generator."""
+
 from bike_analyzer.backend.analytics.granfondo_planner import (
     calculate_granfondo_workouts_from_goal,
     generate_granfondo_plan,
@@ -21,7 +22,13 @@ def test_generate_granfondo_plan_dates():
 
 def test_generate_granfondo_plan_tapering():
     plan = generate_granfondo_plan("2024-06-01", target_weeks=4)
-    first_week = [w for w in plan if w["date"].startswith("2024-06-01") or w["date"].startswith("2024-06-03") or w["date"].startswith("2024-06-05")]
+    [
+        w
+        for w in plan
+        if w["date"].startswith("2024-06-01")
+        or w["date"].startswith("2024-06-03")
+        or w["date"].startswith("2024-06-05")
+    ]
     last_week_workouts = [w for i, w in enumerate(plan) if i >= len(plan) - 4]
     assert len(last_week_workouts) == 4
 

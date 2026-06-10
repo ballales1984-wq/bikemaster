@@ -3,6 +3,7 @@
 Replaces the original token-overlap implementation with BM25 retrieval,
 LRU-cached loading, metadata-enriched chunks, and proper context assembly.
 """
+
 from __future__ import annotations
 
 import math
@@ -16,24 +17,160 @@ MAX_CHARS_PER_CHUNK = 1200
 CHUNK_OVERLAP = 200
 CONTEXT_WINDOW_CHARS = 3000
 
-_STOP_WORDS: frozenset[str] = frozenset({
-    "il", "lo", "la", "i", "gli", "le", "un", "uno", "una", "di", "a", "da", "in",
-    "con", "su", "per", "tra", "fra", "che", "e", "ma", "o", "non", "come",
-    "quando", "dove", "perche", "quale", "questo", "quella", "questi", "quelle",
-    "mio", "mia", "miei", "mie", "tuo", "tua", "tuoi", "tue", "suo", "sua",
-    "suoi", "sue", "nostro", "nostra", "nostri", "nostre", "vostro", "vostra",
-    "essere", "avere", "andare", "fare", "potere", "dovere", "volere", "sapere",
-    "vedere", "dare", "stare", "venire", "dire",
-    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should",
-    "may", "might", "must", "can", "could", "of", "in", "for", "on", "with", "at",
-    "by", "from", "as", "into", "about", "through", "during", "before", "after",
-    "above", "below", "between", "out", "off", "over", "under", "again", "further",
-    "then", "once", "here", "there", "when", "where", "why", "how", "all", "both",
-    "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not",
-    "only", "own", "same", "so", "than", "too", "very", "just", "because", "but",
-    "and", "or", "if", "while", "that", "this", "these", "those", "it", "its",
-})
+_STOP_WORDS: frozenset[str] = frozenset(
+    {
+        "il",
+        "lo",
+        "la",
+        "i",
+        "gli",
+        "le",
+        "un",
+        "uno",
+        "una",
+        "di",
+        "a",
+        "da",
+        "in",
+        "con",
+        "su",
+        "per",
+        "tra",
+        "fra",
+        "che",
+        "e",
+        "ma",
+        "o",
+        "non",
+        "come",
+        "quando",
+        "dove",
+        "perche",
+        "quale",
+        "questo",
+        "quella",
+        "questi",
+        "quelle",
+        "mio",
+        "mia",
+        "miei",
+        "mie",
+        "tuo",
+        "tua",
+        "tuoi",
+        "tue",
+        "suo",
+        "sua",
+        "suoi",
+        "sue",
+        "nostro",
+        "nostra",
+        "nostri",
+        "nostre",
+        "vostro",
+        "vostra",
+        "essere",
+        "avere",
+        "andare",
+        "fare",
+        "potere",
+        "dovere",
+        "volere",
+        "sapere",
+        "vedere",
+        "dare",
+        "stare",
+        "venire",
+        "dire",
+        "the",
+        "an",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "shall",
+        "should",
+        "may",
+        "might",
+        "must",
+        "can",
+        "could",
+        "of",
+        "for",
+        "on",
+        "with",
+        "at",
+        "by",
+        "from",
+        "as",
+        "into",
+        "about",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "between",
+        "out",
+        "off",
+        "over",
+        "under",
+        "again",
+        "further",
+        "then",
+        "once",
+        "here",
+        "there",
+        "when",
+        "where",
+        "why",
+        "how",
+        "all",
+        "both",
+        "each",
+        "few",
+        "more",
+        "most",
+        "other",
+        "some",
+        "such",
+        "no",
+        "nor",
+        "not",
+        "only",
+        "own",
+        "same",
+        "so",
+        "than",
+        "too",
+        "very",
+        "just",
+        "because",
+        "but",
+        "and",
+        "or",
+        "if",
+        "while",
+        "that",
+        "this",
+        "these",
+        "those",
+        "it",
+        "its",
+    }
+)
 
 
 def _tokenize(text: str) -> list[str]:
@@ -83,15 +220,17 @@ def _cached_load(kb_mtime: float) -> list[dict]:
         for idx, part in enumerate(parts):
             chunk_tokens = _tokenize(part + " " + topic)
             heading = _extract_heading(part)
-            chunks.append({
-                "topic": topic,
-                "chunk_id": f"{topic}::{idx}",
-                "text": part,
-                "word_count": len(part.split()),
-                "char_count": len(part),
-                "token_count": len(chunk_tokens),
-                "section": heading or topic,
-            })
+            chunks.append(
+                {
+                    "topic": topic,
+                    "chunk_id": f"{topic}::{idx}",
+                    "text": part,
+                    "word_count": len(part.split()),
+                    "char_count": len(part),
+                    "token_count": len(chunk_tokens),
+                    "section": heading or topic,
+                }
+            )
     return chunks
 
 
@@ -125,6 +264,7 @@ def load_chunks(force_reload: bool = False) -> list[dict]:
 # ---------------------------------------------------------------------------
 # BM25 scoring
 # ---------------------------------------------------------------------------
+
 
 def _bm25_score(
     query_tokens: list[str],
@@ -164,7 +304,6 @@ def _build_bm25_index(chunks: list[dict]) -> tuple[float, dict[str, float]]:
                 doc_freq[tok] = doc_freq.get(tok, 0) + 1
                 seen.add(tok)
 
-    k1 = 1.5
     idf: dict[str, float] = {}
     for tok, df in doc_freq.items():
         idf[tok] = math.log((n - df + 0.5) / (df + 0.5) + 1.0)
@@ -174,6 +313,7 @@ def _build_bm25_index(chunks: list[dict]) -> tuple[float, dict[str, float]]:
 # ---------------------------------------------------------------------------
 # Public search API
 # ---------------------------------------------------------------------------
+
 
 def search_knowledge_base(
     query: str,
@@ -226,6 +366,7 @@ def search_knowledge_base(
 # ---------------------------------------------------------------------------
 # Helper utilities
 # ---------------------------------------------------------------------------
+
 
 def list_topics() -> list[str]:
     """Return sorted list of knowledge-base topic names (file stems)."""

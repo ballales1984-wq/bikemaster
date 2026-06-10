@@ -73,3 +73,8 @@ include = ["bike_analyzer*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.pyright]
+typeCheckingMode = "basic"
+include = ["bike_analyzer", "tests"]
+exclude = ["**/.venv", "**/node_modules", "**/__pycache__"]

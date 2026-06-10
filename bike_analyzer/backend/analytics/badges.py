@@ -1,26 +1,110 @@
 """Badge/Medal system for cycling achievements."""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from datetime import UTC, datetime, timedelta
 
 BADGE_DEFINITIONS = [
-    {"id": 1, "name": "First Ride", "description": "Complete your first ride", "icon": "🚴", "category": "milestone", "target": 1},
-    {"id": 2, "name": "Centomiglia", "description": "Total 100km in rides", "icon": "💯", "category": "distance", "target": 100},
-    {"id": 3, "name": "Migliaia", "description": "Total 1000km in rides", "icon": "🏔️", "category": "distance", "target": 1000},
-    {"id": 4, "name": "Maratona", "description": "Total 10000km in rides", "icon": "🏆", "category": "distance", "target": 10000},
-    {"id": 5, "name": "Ride Pair", "description": "Complete 10 rides", "icon": "📅", "category": "milestone", "target": 10},
-    {"id": 6, "name": "Centomila", "description": "Total 100 rides completed", "icon": "💯", "category": "milestone", "target": 100},
-    {"id": 7, "name": "Elevation", "description": "Total 5000m elevation gain", "icon": "⛰️", "category": "elevation", "target": 5000},
-    {"id": 8, "name": "Steel Climb", "description": "Total 10000m elevation gain", "icon": "🏔️", "category": "elevation", "target": 10000},
-    {"id": 9, "name": "Speed", "description": "Achieve 30+ km/h average speed", "icon": "⚡", "category": "speed", "target": 30},
-    {"id": 10, "name": "Supersonic Speed", "description": "Achieve 35+ km/h average speed", "icon": "🚀", "category": "speed", "target": 35},
-    {"id": 11, "name": "Coach", "description": "7-day training streak", "icon": "📆", "category": "consistency", "target": 7},
-    {"id": 12, "name": "Dedicated", "description": "30-day training streak", "icon": "📆", "category": "consistency", "target": 30},
+    {
+        "id": 1,
+        "name": "First Ride",
+        "description": "Complete your first ride",
+        "icon": "🚴",
+        "category": "milestone",
+        "target": 1,
+    },
+    {
+        "id": 2,
+        "name": "Centomiglia",
+        "description": "Total 100km in rides",
+        "icon": "💯",
+        "category": "distance",
+        "target": 100,
+    },
+    {
+        "id": 3,
+        "name": "Migliaia",
+        "description": "Total 1000km in rides",
+        "icon": "🏔️",
+        "category": "distance",
+        "target": 1000,
+    },
+    {
+        "id": 4,
+        "name": "Maratona",
+        "description": "Total 10000km in rides",
+        "icon": "🏆",
+        "category": "distance",
+        "target": 10000,
+    },
+    {
+        "id": 5,
+        "name": "Ride Pair",
+        "description": "Complete 10 rides",
+        "icon": "📅",
+        "category": "milestone",
+        "target": 10,
+    },
+    {
+        "id": 6,
+        "name": "Centomila",
+        "description": "Total 100 rides completed",
+        "icon": "💯",
+        "category": "milestone",
+        "target": 100,
+    },
+    {
+        "id": 7,
+        "name": "Elevation",
+        "description": "Total 5000m elevation gain",
+        "icon": "⛰️",
+        "category": "elevation",
+        "target": 5000,
+    },
+    {
+        "id": 8,
+        "name": "Steel Climb",
+        "description": "Total 10000m elevation gain",
+        "icon": "🏔️",
+        "category": "elevation",
+        "target": 10000,
+    },
+    {
+        "id": 9,
+        "name": "Speed",
+        "description": "Achieve 30+ km/h average speed",
+        "icon": "⚡",
+        "category": "speed",
+        "target": 30,
+    },
+    {
+        "id": 10,
+        "name": "Supersonic Speed",
+        "description": "Achieve 35+ km/h average speed",
+        "icon": "🚀",
+        "category": "speed",
+        "target": 35,
+    },
+    {
+        "id": 11,
+        "name": "Coach",
+        "description": "7-day training streak",
+        "icon": "📆",
+        "category": "consistency",
+        "target": 7,
+    },
+    {
+        "id": 12,
+        "name": "Dedicated",
+        "description": "30-day training streak",
+        "icon": "📆",
+        "category": "consistency",
+        "target": 30,
+    },
 ]
 
 
-def calculate_badges(athlete_id: int, rides: List[dict], athlete: Optional[dict] = None) -> List[dict]:
+def calculate_badges(athlete_id: int, rides: list[dict], athlete: dict | None = None) -> list[dict]:
     """Calculate badge achievements for an athlete based on rides."""
     total_km = sum(r.get("distance_km", 0) for r in rides)
     total_rides = len(rides)
@@ -58,30 +142,32 @@ def calculate_badges(athlete_id: int, rides: List[dict], athlete: Optional[dict]
             progress = min(streak_days / badge["target"], 1.0)
             unlocked = streak_days >= badge["target"]
 
-        achieved.append({
-            "id": badge["id"],
-            "name": badge["name"],
-            "description": badge["description"],
-            "icon": badge["icon"],
-            "category": badge["category"],
-            "achieved": unlocked,
-            "progress": round(progress * 100, 1),
-            "target": badge["target"],
-        })
+        achieved.append(
+            {
+                "id": badge["id"],
+                "name": badge["name"],
+                "description": badge["description"],
+                "icon": badge["icon"],
+                "category": badge["category"],
+                "achieved": unlocked,
+                "progress": round(progress * 100, 1),
+                "target": badge["target"],
+            }
+        )
 
     return achieved
 
 
-def calculate_streak(rides: List[dict]) -> int:
+def calculate_streak(rides: list[dict]) -> int:
     """Calculate current consecutive day streak from rides."""
     if not rides:
         return 0
-    dates = sorted(set(r.get("date", "")[:10] for r in rides if r.get("date")))
+    dates = sorted({r.get("date", "")[:10] for r in rides if r.get("date")})
     if not dates:
         return 0
 
     streak = 0
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     for i in range(len(dates) - 1, -1, -1):
         try:
             ride_date = datetime.fromisoformat(dates[i]).date()
@@ -95,17 +181,21 @@ def calculate_streak(rides: List[dict]) -> int:
     return streak
 
 
-def get_heatmap_points(rides: List[dict], grid_size: float = 0.001) -> dict:
+def get_heatmap_points(rides: list[dict], grid_size: float = 0.001) -> dict:
     """Aggregate GPS points into heatmap grid cells."""
     all_points = []
     for ride in rides:
-        for pt in (ride.get("gps_points") or []):
+        for pt in ride.get("gps_points") or []:
             lat, lon = pt.get("lat"), pt.get("lon")
             if lat and lon:
                 all_points.append({"lat": lat, "lon": lon})
 
     if not all_points:
-        return {"points": [], "bounds": {"min_lat": 0, "max_lat": 0, "min_lon": 0, "max_lon": 0}, "total_points": 0}
+        return {
+            "points": [],
+            "bounds": {"min_lat": 0, "max_lat": 0, "min_lon": 0, "max_lon": 0},
+            "total_points": 0,
+        }
 
     grid = {}
     for pt in all_points:

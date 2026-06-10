@@ -1,5 +1,6 @@
 """Tests for advanced analytics models."""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 from bike_analyzer.backend.analytics.advanced import (
     analyze_elevation_profile,
@@ -20,7 +21,14 @@ from bike_analyzer.backend.models.models import GPSPoint, Ride, Segment
 
 
 def test_power_estimate_basic():
-    ride = Ride(date="2024-06-01", distance_km=30, duration_minutes=60, avg_speed_kmh=30, weight_kg=70, elevation_gain_m=200)
+    ride = Ride(
+        date="2024-06-01",
+        distance_km=30,
+        duration_minutes=60,
+        avg_speed_kmh=30,
+        weight_kg=70,
+        elevation_gain_m=200,
+    )
     result = calculate_power_estimate(ride)
     assert result["power_avg_w"] > 0
     assert result["power_per_kg_w"] > 0
@@ -58,16 +66,23 @@ def test_vo2max_estimation():
 
 
 def test_ride_difficulty():
-    easy_ride = Ride(date="2024-06-01", distance_km=20, duration_minutes=60, avg_speed_kmh=20, heart_rate_avg=130, elevation_gain_m=50)
+    easy_ride = Ride(
+        date="2024-06-01",
+        distance_km=20,
+        duration_minutes=60,
+        avg_speed_kmh=20,
+        heart_rate_avg=130,
+        elevation_gain_m=50,
+    )
     result = classify_ride_difficulty(easy_ride)
     assert result["level"] in ["Easy", "Moderate", "Challenging", "Hard", "Extreme"]
     assert "score" in result
 
 
 def test_pace_consistency():
-    p1 = GPSPoint(46.1, 11.1, datetime.now(timezone.utc), speed=25.0)
-    p2 = GPSPoint(46.1, 11.2, datetime.now(timezone.utc), speed=25.5)
-    p3 = GPSPoint(46.1, 11.3, datetime.now(timezone.utc), speed=24.8)
+    p1 = GPSPoint(46.1, 11.1, datetime.now(UTC), speed=25.0)
+    p2 = GPSPoint(46.1, 11.2, datetime.now(UTC), speed=25.5)
+    p3 = GPSPoint(46.1, 11.3, datetime.now(UTC), speed=24.8)
     segments = [
         Segment(start=p1, end=p2, distance_m=1000, duration_s=144, avg_speed_km_h=25.0),
         Segment(start=p2, end=p3, distance_m=1000, duration_s=144, avg_speed_km_h=25.5),
@@ -111,10 +126,10 @@ def test_training_stress_balance():
 
 def test_elevation_profile():
     points = [
-        GPSPoint(46.1, 11.1, datetime.now(timezone.utc), altitude=100),
-        GPSPoint(46.1, 11.2, datetime.now(timezone.utc), altitude=150),
-        GPSPoint(46.1, 11.3, datetime.now(timezone.utc), altitude=120),
-        GPSPoint(46.1, 11.4, datetime.now(timezone.utc), altitude=200),
+        GPSPoint(46.1, 11.1, datetime.now(UTC), altitude=100),
+        GPSPoint(46.1, 11.2, datetime.now(UTC), altitude=150),
+        GPSPoint(46.1, 11.3, datetime.now(UTC), altitude=120),
+        GPSPoint(46.1, 11.4, datetime.now(UTC), altitude=200),
     ]
     result = analyze_elevation_profile(points)
     assert "grade_distribution" in result
@@ -123,10 +138,10 @@ def test_elevation_profile():
 
 def test_speed_surges():
     points = [
-        GPSPoint(46.1, 11.1, datetime.now(timezone.utc), speed=20),
-        GPSPoint(46.1, 11.2, datetime.now(timezone.utc), speed=22),
-        GPSPoint(46.1, 11.3, datetime.now(timezone.utc), speed=28),
-        GPSPoint(46.1, 11.4, datetime.now(timezone.utc), speed=16),
+        GPSPoint(46.1, 11.1, datetime.now(UTC), speed=20),
+        GPSPoint(46.1, 11.2, datetime.now(UTC), speed=22),
+        GPSPoint(46.1, 11.3, datetime.now(UTC), speed=28),
+        GPSPoint(46.1, 11.4, datetime.now(UTC), speed=16),
     ]
     result = detect_speed_surges(points)
     assert isinstance(result, list)
@@ -139,14 +154,22 @@ def test_heart_rate_zones():
 
 
 def test_ride_recommendation_score():
-    ride = Ride(date="2024-06-01", distance_km=50, duration_minutes=150, avg_speed_kmh=30, elevation_gain_m=600)
+    ride = Ride(
+        date="2024-06-01",
+        distance_km=50,
+        duration_minutes=150,
+        avg_speed_kmh=30,
+        elevation_gain_m=600,
+    )
     result = calculate_ride_recommendation_score(ride)
     assert "overall_score" in result
     assert "label" in result
 
 
 def test_garmin_power_factor():
-    ride = Ride(date="2024-06-01", distance_km=30, duration_minutes=60, avg_speed_kmh=30, weight_kg=70)
+    ride = Ride(
+        date="2024-06-01", distance_km=30, duration_minutes=60, avg_speed_kmh=30, weight_kg=70
+    )
     result = calculate_garmin_power_factor(ride)
     assert "pf" in result
     assert "np_w" in result

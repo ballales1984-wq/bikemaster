@@ -1,7 +1,7 @@
 """Test analytics."""
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bike_analyzer.backend.analytics.analytics import (
     analyze_ride,
@@ -27,42 +27,68 @@ from bike_analyzer.backend.processing.processing import process_route
 
 def test_calorie_estimation():
 
-    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=20.0, weight_kg=70.0)
+    r = Ride(
+        date="2024-06-01",
+        distance_km=25.0,
+        duration_minutes=60.0,
+        avg_speed_kmh=20.0,
+        weight_kg=70.0,
+    )
 
     c = estimate_calories(r)
 
     assert 0 < c < 1000
 
 
-
 def test_fatigue_calculation():
 
-    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=90.0, avg_speed_kmh=22.0, weight_kg=70.0, heart_rate_avg=150.0, elevation_gain_m=200.0)
+    r = Ride(
+        date="2024-06-01",
+        distance_km=25.0,
+        duration_minutes=90.0,
+        avg_speed_kmh=22.0,
+        weight_kg=70.0,
+        heart_rate_avg=150.0,
+        elevation_gain_m=200.0,
+    )
 
     f = calculate_fatigue_score(r)
 
     assert 0 <= f <= 10
 
 
-
 def test_fatigue_high_score():
 
-    r = Ride(date="2024-06-01", distance_km=100.0, duration_minutes=240.0, avg_speed_kmh=40.0, weight_kg=80.0, heart_rate_avg=190.0, elevation_gain_m=2000.0)
+    r = Ride(
+        date="2024-06-01",
+        distance_km=100.0,
+        duration_minutes=240.0,
+        avg_speed_kmh=40.0,
+        weight_kg=80.0,
+        heart_rate_avg=190.0,
+        elevation_gain_m=2000.0,
+    )
 
     f = calculate_fatigue_score(r)
 
     assert f >= 5.0
 
 
-
 def test_fatigue_extreme():
 
-    r = Ride(date="2024-06-01", distance_km=200.0, duration_minutes=600.0, avg_speed_kmh=50.0, weight_kg=90.0, heart_rate_avg=210.0, elevation_gain_m=4000.0)
+    r = Ride(
+        date="2024-06-01",
+        distance_km=200.0,
+        duration_minutes=600.0,
+        avg_speed_kmh=50.0,
+        weight_kg=90.0,
+        heart_rate_avg=210.0,
+        elevation_gain_m=4000.0,
+    )
 
     f = calculate_fatigue_score(r)
 
     assert f >= 7.0
-
 
 
 def test_recovery_recommendations():
@@ -80,7 +106,6 @@ def test_recovery_recommendations():
     assert "Extreme fatigue" in get_recovery_recommendation(9.0)
 
 
-
 def test_estimate_recovery_hours_all_brackets():
 
     from bike_analyzer.backend.analytics.fatigue import estimate_recovery_hours
@@ -96,15 +121,16 @@ def test_estimate_recovery_hours_all_brackets():
     assert estimate_recovery_hours(9.0) == 48.0
 
 
-
 def test_calculate_summary():
 
-    rides = [Ride(date="2024-06-01", distance_km=20.0, duration_minutes=45.0, avg_speed_kmh=26.7), Ride(date="2024-06-02", distance_km=30.0, duration_minutes=70.0, avg_speed_kmh=25.7)]
+    rides = [
+        Ride(date="2024-06-01", distance_km=20.0, duration_minutes=45.0, avg_speed_kmh=26.7),
+        Ride(date="2024-06-02", distance_km=30.0, duration_minutes=70.0, avg_speed_kmh=25.7),
+    ]
 
     s = calculate_summary(rides)
 
     assert s["total_rides"] == 2 and s["total_km"] == 50.0
-
 
 
 def test_empty_summary():
@@ -112,17 +138,12 @@ def test_empty_summary():
     assert calculate_summary([])["total_rides"] == 0
 
 
-
 def test_process_route():
 
     points = [
-
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc)),
-
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc)),
-
-        GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=timezone.utc)),
-
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
+        GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=UTC)),
     ]
 
     cleaned, stats = process_route(points)
@@ -134,10 +155,9 @@ def test_process_route():
     assert stats.total_distance_m > 0
 
 
-
 def test_parse_gpx():
 
-    gpx_content = '''<?xml version="1.0"?>
+    gpx_content = """<?xml version="1.0"?>
 
 <gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
 
@@ -149,7 +169,7 @@ def test_parse_gpx():
 
   </trkseg></trk>
 
-</gpx>'''
+</gpx>"""
 
     points = parse_gpx_file(gpx_content)
 
@@ -160,10 +180,17 @@ def test_parse_gpx():
     assert points[0]["altitude"] == 100.0
 
 
-
 def test_export_json():
 
-    rides = [Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500)]
+    rides = [
+        Ride(
+            date="2024-06-01",
+            distance_km=25.0,
+            duration_minutes=60.0,
+            avg_speed_kmh=25.0,
+            calories=500,
+        )
+    ]
 
     path = export_rides_json(rides, "test_rides.json")
 
@@ -172,10 +199,17 @@ def test_export_json():
     os.remove(path)
 
 
-
 def test_export_csv():
 
-    rides = [Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500)]
+    rides = [
+        Ride(
+            date="2024-06-01",
+            distance_km=25.0,
+            duration_minutes=60.0,
+            avg_speed_kmh=25.0,
+            calories=500,
+        )
+    ]
 
     path = export_rides_csv(rides, "test_rides.csv")
 
@@ -184,45 +218,72 @@ def test_export_csv():
     os.remove(path)
 
 
-
 def test_text_report():
 
-    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500, heart_rate_avg=150, elevation_gain_m=100)
+    r = Ride(
+        date="2024-06-01",
+        distance_km=25.0,
+        duration_minutes=60.0,
+        avg_speed_kmh=25.0,
+        calories=500,
+        heart_rate_avg=150,
+        elevation_gain_m=100,
+    )
 
     report = generate_text_report(r)
 
     assert "BikeMaster Report" in report and "25" in report
 
 
-
 def test_analyze_ride():
 
-    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500, heart_rate_avg=150, elevation_gain_m=100)
+    r = Ride(
+        date="2024-06-01",
+        distance_km=25.0,
+        duration_minutes=60.0,
+        avg_speed_kmh=25.0,
+        calories=500,
+        heart_rate_avg=150,
+        elevation_gain_m=100,
+    )
 
     result = analyze_ride(r)
 
     assert "fatigue_score" in result
 
 
-
 def test_rides_to_json():
 
-    rides = [Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500)]
+    rides = [
+        Ride(
+            date="2024-06-01",
+            distance_km=25.0,
+            duration_minutes=60.0,
+            avg_speed_kmh=25.0,
+            calories=500,
+        )
+    ]
 
     assert ride_to_json(rides[0]) != ""
 
     assert rides_to_json(rides) != ""
 
 
-
 def test_rides_to_csv():
 
-    rides = [Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500)]
+    rides = [
+        Ride(
+            date="2024-06-01",
+            distance_km=25.0,
+            duration_minutes=60.0,
+            avg_speed_kmh=25.0,
+            calories=500,
+        )
+    ]
 
     result = rides_to_csv(rides)
 
     assert "2024-06-01" in result
-
 
 
 def test_benchmark_comparison():
@@ -234,7 +295,6 @@ def test_benchmark_comparison():
     comp = compare_athlete_to_benchmark(athlete, 100.0, 25.0, 5.0)
 
     assert "percentile_km" in comp
-
 
 
 def test_benchmark_categories():
@@ -256,12 +316,13 @@ def test_benchmark_categories():
 
     assert get_experience_category(5) == "Experienced"
 
-    athlete = AthleteProfile(name="Test", experience_level="Amateur", age=30, weight_kg=75, years_active=3)
+    athlete = AthleteProfile(
+        name="Test", experience_level="Amateur", age=30, weight_kg=75, years_active=3
+    )
 
     report = generate_benchmark_report(athlete, [])
 
     assert "Atleta: Test" in report
-
 
 
 def test_ai_coach_fallbacks():
@@ -284,7 +345,6 @@ def test_ai_coach_fallbacks():
     assert generate_recovery_advice(athlete, []) != ""
 
 
-
 def test_google_maps_api_key():
 
     from bike_analyzer.backend.maps.google_maps import get_google_api_key
@@ -292,9 +352,6 @@ def test_google_maps_api_key():
     key = get_google_api_key()
 
     assert isinstance(key, (str, type(None)))
-
-
-
 
 
 def test_chart_function_signatures():
@@ -316,25 +373,18 @@ def test_chart_function_signatures():
     assert "output_path" in signature(create_speed_chart).parameters
 
 
-
 def test_generate_speed_chart_no_points():
-
 
     result = generate_speed_chart(None)
 
     assert result == ""
 
 
-
 def test_generate_speed_chart_no_speed_values():
 
-
     points = [
-
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc)),
-
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc)),
-
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
     ]
 
     result = generate_speed_chart(points)
@@ -342,21 +392,15 @@ def test_generate_speed_chart_no_speed_values():
     assert result == ""
 
 
-
 def test_generate_distance_chart_no_points():
-
 
     result = generate_distance_chart(None)
 
     assert result == ""
 
 
-
 def test_generate_time_chart_no_points():
-
 
     result = generate_time_chart(None)
 
     assert result == ""
-
-

@@ -1,6 +1,6 @@
 """Tests targeting previously uncovered error paths and edge cases."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
@@ -30,6 +30,7 @@ from bike_analyzer.backend.weather.weather_service import (
 # AI coach — error paths + edge cases
 # ============================================================
 
+
 class TestAICoachErrorPaths:
     def test_validate_athlete_no_weight(self):
         assert validate_athlete_profile(AthleteProfile(name="Test", weight_kg=0))[0] is False
@@ -50,8 +51,13 @@ class TestAICoachErrorPaths:
 
     def test_build_athlete_context(self):
         profile = AthleteProfile(
-            name="Mario Rossi", age=30, weight_kg=72, experience_level="Intermediate",
-            goals="Gran Fondo", preferred_terrain="mountain", equipment="road bike"
+            name="Mario Rossi",
+            age=30,
+            weight_kg=72,
+            experience_level="Intermediate",
+            goals="Gran Fondo",
+            preferred_terrain="mountain",
+            equipment="road bike",
         )
         ctx = _build_athlete_context(profile)
         assert "Mario Rossi" in ctx
@@ -60,6 +66,7 @@ class TestAICoachErrorPaths:
 
     def test_generate_training_advice_no_api_key(self):
         import os
+
         with patch.dict(os.environ, {}, clear=True):
             profile = AthleteProfile(name="Test", experience_level="Beginner", weight_kg=70)
             advice = generate_training_advice(profile, [])
@@ -72,6 +79,7 @@ class TestAICoachErrorPaths:
 
     def test_analyze_historical_trend_improving(self):
         import os
+
         os.environ.pop("GROQ_API_KEY", None)
         os.environ.pop("OPENAI_API_KEY", None)
         rides = [
@@ -87,9 +95,11 @@ class TestAICoachErrorPaths:
 # Google Maps — error paths
 # ============================================================
 
+
 class TestGoogleMapsErrorPaths:
     def test_get_google_api_key_no_env(self):
         import os
+
         with patch.dict(os.environ, {}, clear=True):
             key = get_google_api_key()
             assert key == "" or key is None
@@ -108,18 +118,21 @@ class TestGoogleMapsErrorPaths:
 # OSM Maps — Nominatim error handling
 # ============================================================
 
+
 class TestOSMMapsErrorPaths:
     def test_search_places_request_error(self):
         with patch("bike_analyzer.backend.maps.osm_maps.requests") as mock_req:
             import requests as req_mod
+
             mock_req.get.side_effect = req_mod.RequestException("Connection error")
             result = search_places("cafe")
             assert result is None
 
     def test_search_nearby_request_error(self):
-        pts = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(tz=timezone.utc))]
+        pts = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(tz=UTC))]
         with patch("bike_analyzer.backend.maps.osm_maps.requests") as mock_req:
             import requests as req_mod
+
             mock_req.get.side_effect = req_mod.RequestException("Connection error")
             result = search_nearby(pts, "cafe")
             assert result is None
@@ -131,8 +144,10 @@ class TestOSMMapsErrorPaths:
     def test_reverse_geocode_request_error(self):
         with patch("bike_analyzer.backend.maps.osm_maps.requests") as mock_req:
             import requests as req_mod
+
             mock_req.get.side_effect = req_mod.RequestException("Connection error")
             from bike_analyzer.backend.maps.osm_maps import reverse_geocode
+
             result = reverse_geocode(45.0, 9.0)
             assert result is None
 
@@ -140,6 +155,7 @@ class TestOSMMapsErrorPaths:
 # ============================================================
 # Google Fit — error handling
 # ============================================================
+
 
 class TestGoogleFitPaths:
     def test_get_authorization_url(self):
@@ -154,8 +170,14 @@ class TestGoogleFitPaths:
 
     def test_google_fit_to_ride(self):
         activities = [
-            {"startTime": "2024-06-15T10:00:00Z", "endTime": "2024-06-15T11:30:00Z",
-             "value": [{"intVal": 5400000, "mapKey": "duration"}, {"intVal": 25000, "mapKey": "distance"}]}
+            {
+                "startTime": "2024-06-15T10:00:00Z",
+                "endTime": "2024-06-15T11:30:00Z",
+                "value": [
+                    {"intVal": 5400000, "mapKey": "duration"},
+                    {"intVal": 25000, "mapKey": "distance"},
+                ],
+            }
         ]
         rides = google_fit_to_ride(activities)
         assert isinstance(rides, list)
@@ -167,6 +189,7 @@ class TestGoogleFitPaths:
 # ============================================================
 # Weather — error handling + score
 # ============================================================
+
 
 class TestWeatherPaths:
     def test_get_weather_score_cold(self):
@@ -188,12 +211,14 @@ class TestWeatherPaths:
 
     def test_get_forecast_no_api_key(self):
         import os
+
         with patch.dict(os.environ, {"WEATHER_API_KEY": ""}, clear=True):
             result = get_forecast_for_date(45.0, 9.0, "2024-06-15")
             assert "error" in result
 
     def test_get_forecast_api_error(self):
         import os
+
         with patch.dict(os.environ, {"WEATHER_API_KEY": "fake_key"}):
             with patch("bike_analyzer.backend.weather.weather_service.requests") as mock_req:
                 mock_req.get.return_value.raise_for_status.side_effect = Exception("API error")
@@ -202,9 +227,11 @@ class TestWeatherPaths:
 
     def test_get_weather_cache_hit(self):
         import os
+
         cache_data = {"temperature": 20, "humidity": 50, "description": "cached"}
-        with patch.dict(os.environ, {"WEATHER_API_KEY": "fake_key"}):
-            with patch("bike_analyzer.backend.db.database.get_weather_cache", return_value=cache_data):
-                result = get_weather_for_coordinates(45.0, 9.0)
-                assert result["temperature"] == 20
-                assert result["description"] == "cached"
+        with patch.dict(os.environ, {"WEATHER_API_KEY": "fake_key"}), patch(
+            "bike_analyzer.backend.db.database.get_weather_cache", return_value=cache_data
+        ):
+            result = get_weather_for_coordinates(45.0, 9.0)
+            assert result["temperature"] == 20
+            assert result["description"] == "cached"

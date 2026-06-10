@@ -5,10 +5,11 @@ Implements fitness trend analysis using ride data.
 
 Usage:
     from analytics_trends import calculate_fitness_trends, calculate_monthly_progression
-    
+
     trends = calculate_fitness_trends(rides)  # rides: list of dicts
     progression = calculate_monthly_progression(rides)
 """
+
 from __future__ import annotations
 
 import math
@@ -54,8 +55,9 @@ def _filter_valid_rides(rides: list) -> list:
         dur = _safe_float(r.get("duration_minutes") or r.get("duration"))
         d = _to_date(r.get("date") or r.get("start_date") or r.get("startTimeLocal"))
         has_date = d is not None
-        has_numeric = (s is not None and a is not None and dur is not None and
-                       s > 0 and a > 0 and dur > 0)
+        has_numeric = (
+            s is not None and a is not None and dur is not None and s > 0 and a > 0 and dur > 0
+        )
         if has_date and has_numeric:
             result.append(r)
     return result
@@ -85,7 +87,7 @@ def _fit_linear(values: list[float]) -> dict:
     intercept = y_mean - slope * x_mean
 
     if ss_yy > 0 and n > 1:
-        r2 = (ss_xy ** 2) / (ss_xx * ss_yy)
+        r2 = (ss_xy**2) / (ss_xx * ss_yy)
         r2 = max(0.0, min(1.0, r2))
     else:
         r2 = 0.0
@@ -100,21 +102,22 @@ def _rolling_average(values: list, window: int = 7) -> list:
     result = []
     for i in range(len(values)):
         start = max(0, i - window + 1)
-        segment = values[start:i + 1]
+        segment = values[start : i + 1]
         result.append(sum(segment) / len(segment))
     return result
 
 
-def calculate_fitness_trends(rides: list, metric: str = "distance_km",
-                              window: int = 7) -> dict[str, Any]:
+def calculate_fitness_trends(
+    rides: list, metric: str = "distance_km", window: int = 7
+) -> dict[str, Any]:
     """
     Calculate fitness trends from ride data.
-    
+
     Args:
         rides: list of ride dicts with at least 'date' and metric fields
         metric: which metric to analyze ('distance_km', 'avg_speed_kmh', etc.)
         window: rolling average window size (default 7 for weekly)
-    
+
     Returns:
         {
             'ready': bool,
@@ -219,7 +222,7 @@ def calculate_fitness_trends(rides: list, metric: str = "distance_km",
 def calculate_monthly_progression(rides: list) -> dict[str, Any]:
     """
     Calculate monthly aggregated metrics.
-    
+
     Returns:
         {
             'ready': bool,
@@ -281,15 +284,11 @@ def calculate_monthly_progression(rides: list) -> dict[str, Any]:
         cleaned_speed = [v for v in m["speeds"] if v is not None]
         cal_values = m["calories"]
 
-        result["total_distance_km"].append(
-            round(sum(cleaned_dist), 2) if cleaned_dist else 0.0
-        )
+        result["total_distance_km"].append(round(sum(cleaned_dist), 2) if cleaned_dist else 0.0)
         result["avg_speed_kmh"].append(
             round(sum(cleaned_speed) / len(cleaned_speed), 2) if cleaned_speed else 0.0
         )
-        result["total_duration_hours"].append(
-            round(sum(m["durations"]), 2)
-        )
+        result["total_duration_hours"].append(round(sum(m["durations"]), 2))
         result["ride_count"].append(len(cleaned_dist) if cleaned_dist else 0)
         result["avg_calories"].append(
             round(sum(cal_values) / len(cal_values), 1) if cal_values else 0.0
@@ -301,11 +300,11 @@ def calculate_monthly_progression(rides: list) -> dict[str, Any]:
 def calculate_period_comparison(rides: list, period_days: int = 7) -> dict[str, Any]:
     """
     Compare recent period vs previous period.
-    
+
     Args:
         rides: list of ride dicts
         period_days: number of days per period (default 7 for weekly)
-    
+
     Returns:
         {
             'ready': bool,
@@ -339,7 +338,6 @@ def calculate_period_comparison(rides: list, period_days: int = 7) -> dict[str, 
 
     # Use actual max_date from dates
     cutoff_recent = max_date
-    cutoff_previous = max_date  # will be offset below
 
     recent = []
     previous = []
@@ -395,15 +393,14 @@ def calculate_period_comparison(rides: list, period_days: int = 7) -> dict[str, 
     }
 
 
-def calculate_training_volume_projection(rides: list,
-                                         target_days: int = 30) -> dict[str, Any]:
+def calculate_training_volume_projection(rides: list, target_days: int = 30) -> dict[str, Any]:
     """
     Project future training volume based on trend.
-    
+
     Args:
         rides: list of ride dicts
         target_days: days to project forward
-    
+
     Returns:
         {
             'ready': bool,
@@ -427,18 +424,17 @@ def calculate_training_volume_projection(rides: list,
             "avg_ride_duration_min": 0.0,
         }
 
-    dates = sorted(set(_to_date(r.get("date")) for r in valid if _to_date(r.get("date"))))
+    dates = sorted({_to_date(r.get("date")) for r in valid if _to_date(r.get("date"))})
     min_date = dates[0]
     max_date = dates[-1]
     days_span = (max_date - min_date).days + 1
 
-    total_dist = sum(_safe_float(r.get("distance_km") or r.get("distance") or 0)
-                     for r in valid)
+    total_dist = sum(_safe_float(r.get("distance_km") or r.get("distance") or 0) for r in valid)
     total_dur = sum(_duration_hours(r) for r in valid)
 
     avg_daily_dist = total_dist / days_span if days_span > 0 else 0
     avg_daily_dur = total_dur / days_span if days_span > 0 else 0
-    avg_ride_dist = total_dist / len(valid) if valid else 0
+    total_dist / len(valid) if valid else 0
     avg_ride_dur = (total_dur * 60) / len(valid) if valid else 0
 
     proj_dist = avg_daily_dist * target_days
@@ -473,9 +469,15 @@ def get_ride_metrics(ride: dict) -> dict[str, Any]:
     """
     metrics = {}
     numeric_fields = [
-        "distance_km", "duration_minutes", "avg_speed_kmh",
-        "weight_kg", "calories", "heart_rate_avg", "elevation_gain_m",
-        "power_avg_w", "power_per_kg_w",
+        "distance_km",
+        "duration_minutes",
+        "avg_speed_kmh",
+        "weight_kg",
+        "calories",
+        "heart_rate_avg",
+        "elevation_gain_m",
+        "power_avg_w",
+        "power_per_kg_w",
     ]
     for field in numeric_fields:
         v = _safe_float(ride.get(field))

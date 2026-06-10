@@ -4,13 +4,14 @@ Provides a simple async task queue using asyncio with optional Redis integration
 Used for: batch GPX/FIT import, map generation, AI Coach batch processing,
           weather cache warming, training stress recalculation.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class Task:
     created_at: float = field(default_factory=time.time)
     status: str = "pending"
     result: Any = None
-    error: Optional[str] = None
+    error: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -69,7 +70,7 @@ class BackgroundTaskQueue:
                 task.status = "running"
                 self._tasks[task.id] = task
                 await self._execute(task, name)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             except asyncio.CancelledError:
                 break
@@ -101,15 +102,16 @@ class BackgroundTaskQueue:
             task.error = str(exc)
             logger.error("[%s] task %s failed: %s", worker_name, task.id, exc)
 
-    async def enqueue(self, kind: str, payload: Optional[dict] = None) -> Task:
+    async def enqueue(self, kind: str, payload: dict | None = None) -> Task:
         import uuid
+
         task = Task(id=str(uuid.uuid4()), kind=kind, payload=payload or {})
         self._tasks[task.id] = task
         await self._queue.put(task)
         logger.debug("Enqueued task %s (%s)", task.id, kind)
         return task
 
-    def get_task(self, task_id: str) -> Optional[Task]:
+    def get_task(self, task_id: str) -> Task | None:
         return self._tasks.get(task_id)
 
     def get_pending(self) -> list[Task]:
@@ -125,11 +127,16 @@ class BackgroundTaskQueue:
             parse_gpx_file,
             points_to_ride,
         )
+
         results = {"imported": [], "failed": []}
         files = payload.get("files", [])
         for f in files:
             try:
-                pts = parse_gpx_file(f["content"]) if f["type"] == "gpx" else parse_fit_file(f["path"])
+                pts = (
+                    parse_gpx_file(f["content"])
+                    if f["type"] == "gpx"
+                    else parse_fit_file(f["path"])
+                )
                 ride_data = points_to_ride(pts, name=f["name"])
                 if "error" not in ride_data:
                     ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
@@ -142,6 +149,7 @@ class BackgroundTaskQueue:
     async def _handle_generate_map(self, payload: dict) -> dict:
         from bike_analyzer.backend.maps.map_renderer import create_route_map
         from bike_analyzer.backend.models.models import GPSPoint
+
         try:
             points = [GPSPoint(**p) for p in payload["points"]]
             ride_id = payload["ride_id"]
@@ -156,6 +164,7 @@ class BackgroundTaskQueue:
             get_rides_by_athlete,
             recalculate_training_stress_for_athlete,
         )
+
         athlete_id = payload.get("athlete_id")
         ftp = payload.get("ftp", 250.0)
         rides = get_rides_by_athlete(athlete_id)
@@ -166,6 +175,7 @@ class BackgroundTaskQueue:
 
     async def _handle_warm_weather(self, payload: dict) -> dict:
         from bike_analyzer.backend.weather.weather_service import get_forecast_for_date
+
         lat = payload.get("lat")
         lon = payload.get("lon")
         dates = payload.get("dates", [])
@@ -175,6 +185,7 @@ class BackgroundTaskQueue:
                 data = get_forecast_for_date(lat, lon, d)
                 if "error" not in data:
                     from bike_analyzer.backend.db.database import save_weather_cache
+
                     save_weather_cache(lat, lon, d, data)
                     cached += 1
             except Exception:
@@ -182,7 +193,7 @@ class BackgroundTaskQueue:
         return {"cached_days": cached}
 
 
-_task_queue: Optional[BackgroundTaskQueue] = None
+_task_queue: BackgroundTaskQueue | None = None
 
 
 def get_task_queue() -> BackgroundTaskQueue:

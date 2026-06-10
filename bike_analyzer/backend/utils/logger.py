@@ -1,4 +1,5 @@
 """Structured logging configuration for BikeMaster."""
+
 from __future__ import annotations
 
 import logging

@@ -8,6 +8,7 @@ Tests cover:
 - Edge cases (empty KB, empty queries, missing directory)
 - Helper utilities (list_topics, get_kb_stats, format_context_for_llm)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -32,6 +33,7 @@ from bike_analyzer.backend.analytics.knowledge_base import (
 # ---------------------------------------------------------------------------
 # Tokenization
 # ---------------------------------------------------------------------------
+
 
 class TestTokenization:
     def test_tokenize_returns_list(self):
@@ -73,6 +75,7 @@ class TestTokenization:
 # Text splitting
 # ---------------------------------------------------------------------------
 
+
 class TestSplitText:
     def test_short_text_unchanged(self):
         short = "Ciao mondo"
@@ -104,6 +107,7 @@ class TestSplitText:
 # Heading extraction
 # ---------------------------------------------------------------------------
 
+
 class TestExtractHeading:
     def test_simple_heading(self):
         assert _extract_heading("# Training Theory") == "Training Theory"
@@ -123,6 +127,7 @@ class TestExtractHeading:
 # Load chunks
 # ---------------------------------------------------------------------------
 
+
 class TestLoadChunks:
     def test_returns_list(self):
         chunks = load_chunks()
@@ -131,7 +136,15 @@ class TestLoadChunks:
     def test_chunks_have_required_keys(self):
         chunks = load_chunks()
         if chunks:
-            for key in ("topic", "chunk_id", "text", "word_count", "char_count", "token_count", "section"):
+            for key in (
+                "topic",
+                "chunk_id",
+                "text",
+                "word_count",
+                "char_count",
+                "token_count",
+                "section",
+            ):
                 assert key in chunks[0]
 
     def test_returns_different_instance_on_force(self):
@@ -143,8 +156,10 @@ class TestLoadChunks:
         original = KB_PATH
         try:
             import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
             kb_mod.KB_PATH = tmp_path / "missing"
             from bike_analyzer.backend.analytics.knowledge_base import reload_kb
+
             reload_kb()
             chunks = load_chunks()
             assert chunks == []
@@ -156,6 +171,7 @@ class TestLoadChunks:
 # ---------------------------------------------------------------------------
 # BM25 index building
 # ---------------------------------------------------------------------------
+
 
 class TestBM25Index:
     def test_build_index_returns_tuple(self):
@@ -178,6 +194,7 @@ class TestBM25Index:
 # ---------------------------------------------------------------------------
 # BM25 scoring
 # ---------------------------------------------------------------------------
+
 
 class TestBM25Score:
     def test_score_positive_for_relevant(self):
@@ -203,6 +220,7 @@ class TestBM25Score:
 # ---------------------------------------------------------------------------
 # Search knowledge base
 # ---------------------------------------------------------------------------
+
 
 class TestSearchKnowledgeBase:
     def test_search_returns_list_by_default(self):
@@ -268,8 +286,12 @@ class TestSearchKnowledgeBase:
             assert len(results) > 0
 
     def test_search_bm25_relevance(self):
-        training_results = search_knowledge_base("polarized training periodization intervals weekly structure", max_chunks=3)
-        nutrition_results = search_knowledge_base("carbohydrates protein hydration electrolytes", max_chunks=3)
+        training_results = search_knowledge_base(
+            "polarized training periodization intervals weekly structure", max_chunks=3
+        )
+        nutrition_results = search_knowledge_base(
+            "carbohydrates protein hydration electrolytes", max_chunks=3
+        )
         if isinstance(training_results, list) and isinstance(nutrition_results, list):
             training_topics = {r["topic"] for r in training_results}
             nutrition_topics = {r["topic"] for r in nutrition_results}
@@ -287,6 +309,7 @@ class TestSearchKnowledgeBase:
 # ---------------------------------------------------------------------------
 # list_topics
 # ---------------------------------------------------------------------------
+
 
 class TestListTopics:
     def test_returns_list(self):
@@ -307,6 +330,7 @@ class TestListTopics:
 # get_kb_stats
 # ---------------------------------------------------------------------------
 
+
 class TestGetKBStats:
     def test_returns_dict(self):
         stats = get_kb_stats()
@@ -314,8 +338,16 @@ class TestGetKBStats:
 
     def test_has_required_keys(self):
         stats = get_kb_stats()
-        for key in ("total_chunks", "total_topics", "topics", "chunks_per_topic",
-                     "total_words", "total_chars", "chunk_size", "overlap"):
+        for key in (
+            "total_chunks",
+            "total_topics",
+            "topics",
+            "chunks_per_topic",
+            "total_words",
+            "total_chars",
+            "chunk_size",
+            "overlap",
+        ):
             assert key in stats
 
     def test_total_chunks_positive(self):
@@ -334,6 +366,7 @@ class TestGetKBStats:
 # ---------------------------------------------------------------------------
 # format_context_for_llm
 # ---------------------------------------------------------------------------
+
 
 class TestFormatContextForLLM:
     def test_empty_input(self):
@@ -362,6 +395,7 @@ class TestFormatContextForLLM:
 # Caching and reload
 # ---------------------------------------------------------------------------
 
+
 class TestCachingReload:
     def test_reload_same_content(self):
         reload_kb()
@@ -381,17 +415,33 @@ class TestCachingReload:
 # BM25 search quality
 # ---------------------------------------------------------------------------
 
+
 class TestBM25SearchQuality:
     def test_search_result_fields(self):
         results = search_knowledge_base("cardio frequenza", max_chunks=2)
         if isinstance(results, list) and results:
             r = results[0]
-            for key in ("topic", "chunk_id", "text", "score", "section", "word_count", "char_count"):
+            for key in (
+                "topic",
+                "chunk_id",
+                "text",
+                "score",
+                "section",
+                "word_count",
+                "char_count",
+            ):
                 assert key in r, f"Missing key: {key}"
 
     def test_topic_field_valid(self):
-        valid_topics = {"training", "cardio", "nutrition", "recovery",
-                        "biomechanics", "equipment", "training_plans"}
+        valid_topics = {
+            "training",
+            "cardio",
+            "nutrition",
+            "recovery",
+            "biomechanics",
+            "equipment",
+            "training_plans",
+        }
         results = search_knowledge_base("frequenza cardiaca zone", max_chunks=5)
         if isinstance(results, list):
             for r in results:

@@ -19,6 +19,7 @@ from bike_analyzer.backend.models.models import (
 # analytics.py — export and summary coverage
 # ============================================================
 
+
 class TestAnalyticsExports:
     def test_export_rides_json(self, tmp_path):
         rides = [Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0)]
@@ -38,8 +39,17 @@ class TestAnalyticsExports:
         assert "distance_km" in content
 
     def test_rides_to_csv_output(self):
-        rides = [Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0,
-                      avg_speed_kmh=25.0, calories=500, heart_rate_avg=150, elevation_gain_m=100)]
+        rides = [
+            Ride(
+                date="2024-06-01",
+                distance_km=25.0,
+                duration_minutes=60.0,
+                avg_speed_kmh=25.0,
+                calories=500,
+                heart_rate_avg=150,
+                elevation_gain_m=100,
+            )
+        ]
         result = analytics_mod.rides_to_csv(rides)
         assert "2024-06-01" in result
         assert "500" in result
@@ -55,8 +65,15 @@ class TestAnalyticsExports:
         assert "2024-06-01" in result
 
     def test_text_report_content(self):
-        r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0,
-                 avg_speed_kmh=25.0, calories=500, heart_rate_avg=150, elevation_gain_m=100)
+        r = Ride(
+            date="2024-06-01",
+            distance_km=25.0,
+            duration_minutes=60.0,
+            avg_speed_kmh=25.0,
+            calories=500,
+            heart_rate_avg=150,
+            elevation_gain_m=100,
+        )
         report = analytics_mod.generate_text_report(r)
         assert "BikeMaster Report" in report
         assert "25" in report
@@ -66,6 +83,7 @@ class TestAnalyticsExports:
 # training_load.py — status/fitness summary coverage
 # ============================================================
 
+
 class TestTrainingLoadExtended:
     def test_get_7day_fitness_summary_empty(self):
         result = get_7day_fitness_summary([])
@@ -73,7 +91,12 @@ class TestTrainingLoadExtended:
 
     def test_get_7day_fitness_summary_with_data(self):
         rides = [
-            Ride(date=f"2024-06-{i:02d}", distance_km=30.0 + i, duration_minutes=90.0 + i * 5, avg_speed_kmh=25.0)
+            Ride(
+                date=f"2024-06-{i:02d}",
+                distance_km=30.0 + i,
+                duration_minutes=90.0 + i * 5,
+                avg_speed_kmh=25.0,
+            )
             for i in range(1, 8)
         ]
         result = get_7day_fitness_summary(rides)
@@ -82,9 +105,27 @@ class TestTrainingLoadExtended:
 
     def test_get_current_training_status_fatigued(self):
         rides = [
-            Ride(date="2024-06-01", distance_km=50.0, duration_minutes=180.0, avg_speed_kmh=28.0, heart_rate_avg=170),
-            Ride(date="2024-06-02", distance_km=50.0, duration_minutes=180.0, avg_speed_kmh=28.0, heart_rate_avg=170),
-            Ride(date="2024-06-03", distance_km=50.0, duration_minutes=180.0, avg_speed_kmh=28.0, heart_rate_avg=170),
+            Ride(
+                date="2024-06-01",
+                distance_km=50.0,
+                duration_minutes=180.0,
+                avg_speed_kmh=28.0,
+                heart_rate_avg=170,
+            ),
+            Ride(
+                date="2024-06-02",
+                distance_km=50.0,
+                duration_minutes=180.0,
+                avg_speed_kmh=28.0,
+                heart_rate_avg=170,
+            ),
+            Ride(
+                date="2024-06-03",
+                distance_km=50.0,
+                duration_minutes=180.0,
+                avg_speed_kmh=28.0,
+                heart_rate_avg=170,
+            ),
         ]
         result = get_current_training_status(rides)
         assert "tsb" in result
@@ -113,14 +154,15 @@ class TestTrainingLoadExtended:
         result = calculate_atl_ctl_tsb(rides)
         assert len(result) >= 1
         day = result[0]
-        assert hasattr(day, 'atl')
-        assert hasattr(day, 'ctl')
-        assert hasattr(day, 'tsb')
+        assert hasattr(day, "atl")
+        assert hasattr(day, "ctl")
+        assert hasattr(day, "tsb")
 
 
 # ============================================================
 # database.py — calendar, weather, stress functions
 # ============================================================
+
 
 class TestDatabaseCalendar:
     def _create_athlete(self, db_mod, tmp_path):
@@ -128,31 +170,40 @@ class TestDatabaseCalendar:
         return db_mod.save_athlete({"name": "Test Athlete", "experience_level": "Beginner"})
 
     def test_save_and_get_calendar_event(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         athlete_id = self._create_athlete(db_mod, tmp_path)
-        event_id = db_mod.save_calendar_event({
-            "athlete_id": athlete_id, "title": "Granfondo",
-            "event_type": "race", "date": "2024-09-15", "duration_minutes": 180
-        })
+        event_id = db_mod.save_calendar_event(
+            {
+                "athlete_id": athlete_id,
+                "title": "Granfondo",
+                "event_type": "race",
+                "date": "2024-09-15",
+                "duration_minutes": 180,
+            }
+        )
         assert event_id > 0
         ev = db_mod.get_calendar_event(event_id)
         assert ev["title"] == "Granfondo"
         assert ev["event_type"] == "race"
 
     def test_get_events_by_athlete(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         athlete_id = self._create_athlete(db_mod, tmp_path)
-        db_mod.save_calendar_event({"athlete_id": athlete_id, "title": "Event A", "date": "2024-06-01"})
-        db_mod.save_calendar_event({"athlete_id": athlete_id, "title": "Event B", "date": "2024-06-02"})
+        db_mod.save_calendar_event(
+            {"athlete_id": athlete_id, "title": "Event A", "date": "2024-06-01"}
+        )
+        db_mod.save_calendar_event(
+            {"athlete_id": athlete_id, "title": "Event B", "date": "2024-06-02"}
+        )
         events = db_mod.get_events_by_athlete(athlete_id)
         assert len(events) >= 2
         titles = [e["title"] for e in events]
         assert "Event A" in titles
 
     def test_get_events_by_date_range(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         athlete_id = self._create_athlete(db_mod, tmp_path)
         db_mod.save_calendar_event({"athlete_id": athlete_id, "title": "Mid", "date": "2024-06-15"})
@@ -161,18 +212,22 @@ class TestDatabaseCalendar:
         assert events[0]["title"] == "Mid"
 
     def test_get_events_by_month(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         athlete_id = self._create_athlete(db_mod, tmp_path)
-        db_mod.save_calendar_event({"athlete_id": athlete_id, "title": "June Event", "date": "2024-06-15"})
+        db_mod.save_calendar_event(
+            {"athlete_id": athlete_id, "title": "June Event", "date": "2024-06-15"}
+        )
         events = db_mod.get_events_by_month(athlete_id, 2024, 6)
         assert len(events) >= 1
 
     def test_update_calendar_event(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         athlete_id = self._create_athlete(db_mod, tmp_path)
-        event_id = db_mod.save_calendar_event({"athlete_id": athlete_id, "title": "Old", "date": "2024-06-01"})
+        event_id = db_mod.save_calendar_event(
+            {"athlete_id": athlete_id, "title": "Old", "date": "2024-06-01"}
+        )
         result = db_mod.update_calendar_event(event_id, {"title": "Updated", "completed": True})
         assert result is True
         ev = db_mod.get_calendar_event(event_id)
@@ -180,30 +235,32 @@ class TestDatabaseCalendar:
         assert ev["completed"] is True
 
     def test_delete_calendar_event(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         athlete_id = self._create_athlete(db_mod, tmp_path)
-        event_id = db_mod.save_calendar_event({"athlete_id": athlete_id, "title": "ToDelete", "date": "2024-06-01"})
+        event_id = db_mod.save_calendar_event(
+            {"athlete_id": athlete_id, "title": "ToDelete", "date": "2024-06-01"}
+        )
         result = db_mod.delete_calendar_event(event_id)
         assert result is True
         assert db_mod.get_calendar_event(event_id) is None
 
     def test_update_nonexistent_calendar_event(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
-        athlete_id = self._create_athlete(db_mod, tmp_path)
+        self._create_athlete(db_mod, tmp_path)
         result = db_mod.update_calendar_event(99999, {"title": "Nope"})
         assert result is False
 
     def test_delete_nonexistent_calendar_event(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
-        athlete_id = self._create_athlete(db_mod, tmp_path)
+        self._create_athlete(db_mod, tmp_path)
         result = db_mod.delete_calendar_event(99999)
         assert result is False
 
     def test_delete_nonexistent_calendar_event(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         result = db_mod.delete_calendar_event(99999)
         assert result is False
@@ -211,7 +268,7 @@ class TestDatabaseCalendar:
 
 class TestDatabaseWeather:
     def test_weather_cache_roundtrip(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         weather = {"temperature": 22.5, "humidity": 65, "description": "sunny"}
         wid = db_mod.save_weather_cache(45.0, 9.0, "2024-06-15", weather)
@@ -222,7 +279,7 @@ class TestDatabaseWeather:
         assert cached["description"] == "sunny"
 
     def test_weather_cache_miss(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         cached = db_mod.get_weather_cache(99.0, 99.0, "2099-01-01")
         assert cached is None
@@ -230,7 +287,7 @@ class TestDatabaseWeather:
 
 class TestDatabaseTrainingStress:
     def test_upsert_and_get_training_stress(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         db_mod.save_athlete({"name": "Test", "weight_kg": 70})
         db_mod.upsert_training_stress_day(1, "2024-06-15", 150.0, 120.0, 100.0, 20.0)
@@ -240,7 +297,7 @@ class TestDatabaseTrainingStress:
         assert days[0]["date"] == "2024-06-15"
 
     def test_get_latest_training_stress(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         db_mod.save_athlete({"name": "Test", "weight_kg": 70})
         db_mod.upsert_training_stress_day(1, "2024-06-01", 100.0, 80.0, 70.0, 10.0)
@@ -250,21 +307,26 @@ class TestDatabaseTrainingStress:
         assert latest["date"] == "2024-06-15"
 
     def test_get_training_stress_empty(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         result = db_mod.get_training_stress_days(99999)
         assert result == []
 
     def test_recalculate_training_stress(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, 'DB_PATH', str(tmp_path / "test.db"))
+        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
         db_mod.init_db()
         db_mod.save_athlete({"name": "Test", "weight_kg": 70})
         save_ride_fn = db_mod.save_ride
-        save_ride_fn({
-            "date": "2024-06-01 10:00:00", "distance_km": 30.0,
-            "duration_minutes": 90.0, "avg_speed_kmh": 20.0,
-            "heart_rate_avg": 150, "athlete_id": 1
-        })
+        save_ride_fn(
+            {
+                "date": "2024-06-01 10:00:00",
+                "distance_km": 30.0,
+                "duration_minutes": 90.0,
+                "avg_speed_kmh": 20.0,
+                "heart_rate_avg": 150,
+                "athlete_id": 1,
+            }
+        )
         db_mod.recalculate_training_stress_for_athlete(1, ftp=250.0)
         days = db_mod.get_training_stress_days(1)
         assert len(days) >= 1

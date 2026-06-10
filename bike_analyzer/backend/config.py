@@ -6,6 +6,7 @@ legacy UPPER_CASE names used throughout the codebase.
 SECURITY: In produzione SECRET_KEY è obbligatoria. Se mancara, l'app non
 si avvia. In sviluppo si può usare il fallback con warning.
 """
+
 from __future__ import annotations
 
 import logging
@@ -26,6 +27,7 @@ if not _s.secret_key:
         sys.exit(1)
     else:
         import secrets as _secrets
+
         _fallback = _secrets.token_urlsafe(32)
         logging.warning(
             "SECRET_KEY non configurata. Generated temporary key (dev only): %s...", _fallback[:8]

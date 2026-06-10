@@ -1,4 +1,5 @@
 """Tests for task_queue module."""
+
 import pytest
 
 from bike_analyzer.backend.task_queue import BackgroundTaskQueue, Task, get_task_queue

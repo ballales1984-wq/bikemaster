@@ -1,4 +1,5 @@
 """Test benchmark comparison API."""
+
 from bike_analyzer.backend.analytics.benchmark import (
     compare_athlete_to_benchmark,
     get_age_category,

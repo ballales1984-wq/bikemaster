@@ -1,8 +1,9 @@
 """OpenStreetMap Overpass API client for road and bike lane data."""
+
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import requests
 
@@ -19,7 +20,7 @@ def _wait_for_rate_limit() -> None:
         time.sleep(_RATE_LIMIT_S - elapsed)
 
 
-def _overpass_query(query: str, timeout: int = 30) -> Optional[Dict[str, Any]]:
+def _overpass_query(query: str, timeout: int = 30) -> dict[str, Any] | None:
     _wait_for_rate_limit()
     try:
         resp = requests.post(
@@ -37,7 +38,7 @@ def _overpass_query(query: str, timeout: int = 30) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _bbox_str(points: List[Dict[str, float]]) -> str:
+def _bbox_str(points: list[dict[str, float]]) -> str:
     lats = [p["lat"] for p in points]
     lons = [p["lon"] for p in points]
     south = min(lats)
@@ -47,12 +48,14 @@ def _bbox_str(points: List[Dict[str, float]]) -> str:
     return f"{south},{west},{north},{east}"
 
 
-def fetch_road_data(points: List[Dict[str, float]], include_geometry: bool = False) -> Optional[Dict[str, Any]]:
+def fetch_road_data(
+    points: list[dict[str, float]], include_geometry: bool = False
+) -> dict[str, Any] | None:
     """Fetch road network data for a bounding box defined by GPS points."""
     if not points or len(points) < 2:
         return None
     bbox = _bbox_str(points)
-    geom_clause = ';._;' if include_geometry else ";"
+    geom_clause = ";._;" if include_geometry else ";"
     query = f"""
     [out:json][timeout:25];
     (
@@ -63,12 +66,14 @@ def fetch_road_data(points: List[Dict[str, float]], include_geometry: bool = Fal
     return _overpass_query(query)
 
 
-def fetch_bike_lanes(points: List[Dict[str, float]], include_geometry: bool = False) -> Optional[Dict[str, Any]]:
+def fetch_bike_lanes(
+    points: list[dict[str, float]], include_geometry: bool = False
+) -> dict[str, Any] | None:
     """Fetch dedicated bike infrastructure for a bounding box."""
     if not points or len(points) < 2:
         return None
     bbox = _bbox_str(points)
-    geom_clause = ';._;' if include_geometry else ";"
+    geom_clause = ";._;" if include_geometry else ";"
     query = f"""
     [out:json][timeout:25];
     (
@@ -81,12 +86,12 @@ def fetch_bike_lanes(points: List[Dict[str, float]], include_geometry: bool = Fa
     return _overpass_query(query)
 
 
-def get_road_type_summary(points: List[Dict[str, float]]) -> Dict[str, int]:
+def get_road_type_summary(points: list[dict[str, float]]) -> dict[str, int]:
     """Return counts of road types in the route area."""
     data = fetch_road_data(points)
     if not data or "elements" not in data:
         return {}
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
     for el in data["elements"]:
         tags = el.get("tags", {})
         hw = tags.get("highway", "unknown")

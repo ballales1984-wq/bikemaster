@@ -6,13 +6,16 @@ Provides:
 - User-based rate limiting keys
 - Graceful degradation when Redis is unavailable
 """
+
 from __future__ import annotations
 
+import contextlib
 import functools
 import hashlib
 import json
 import logging
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +30,7 @@ async def get_redis():
             import redis.asyncio as aioredis
 
             from bike_analyzer.backend.settings import get_settings
+
             s = get_settings()
             url = s.redis_url or "redis://localhost:6379"
             _redis = aioredis.from_url(url, encoding="utf-8", decode_responses=True)
@@ -41,10 +45,8 @@ async def get_redis():
 async def close_redis():
     global _redis
     if _redis is not None:
-        try:
+        with contextlib.suppress(Exception):
             await _redis.close()
-        except Exception:
-            pass
         _redis = None
 
 
@@ -53,7 +55,7 @@ def cache_key(*args: Any, **kwargs: Any) -> str:
     return "bikemaster:cache:" + hashlib.md5(raw.encode()).hexdigest()
 
 
-async def cached(key: str, ttl: int = 300) -> Optional[Any]:
+async def cached(key: str, ttl: int = 300) -> Any | None:
     r = await get_redis()
     if r is None:
         return None
@@ -89,12 +91,14 @@ async def cache_delete(key: str) -> bool:
         return False
 
 
-def rate_limit_key(user_id: Optional[int], endpoint: str) -> str:
+def rate_limit_key(user_id: int | None, endpoint: str) -> str:
     uid = user_id or "anon"
     return f"bikemaster:ratelimit:{uid}:{endpoint}"
 
 
-async def check_rate_limit(user_id: Optional[int], endpoint: str, limit: int = 60, window: int = 60) -> bool:
+async def check_rate_limit(
+    user_id: int | None, endpoint: str, limit: int = 60, window: int = 60
+) -> bool:
     """Per-user rate limit using sliding window."""
     r = await get_redis()
     if r is None:
@@ -111,6 +115,7 @@ async def check_rate_limit(user_id: Optional[int], endpoint: str, limit: int = 6
 
 def cache(ttl: int = 300, key_prefix: str = ""):
     """Decorator to cache async function results in Redis."""
+
     def decorator(func: Callable):
         @functools.wraps(func)
         async def wrapper(*args: Any, **kwargs: Any):
@@ -121,11 +126,20 @@ def cache(ttl: int = 300, key_prefix: str = ""):
             result = await func(*args, **kwargs)
             await cache_set(k, result, ttl)
             return result
+
         return wrapper
+
     return decorator
 
 
 __all__ = [
-    "get_redis", "close_redis", "cached", "cache_set", "cache_delete",
-    "cache_key", "rate_limit_key", "check_rate_limit", "cache",
+    "get_redis",
+    "close_redis",
+    "cached",
+    "cache_set",
+    "cache_delete",
+    "cache_key",
+    "rate_limit_key",
+    "check_rate_limit",
+    "cache",
 ]

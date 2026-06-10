@@ -1,8 +1,8 @@
 """Automatic segment detection for climbs and notable routes."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 from ..models.models import GPSPoint, Segment, haversine_distance_m
 
@@ -21,11 +21,11 @@ class ClimbSegment:
 
 # Categorization thresholds (based on gradient * distance)
 CLIMB_CATEGORIES = {
-    "hc": (100000, 20.0),   # HC: >10km o >20% media
+    "hc": (100000, 20.0),  # HC: >10km o >20% media
     "cat1": (80000, 15.0),  # Cat1: >8km o >15%
     "cat2": (40000, 10.0),  # Cat2: >4km o >10%
-    "cat3": (20000, 6.0),   # Cat3: >2km o >6%
-    "cat4": (5000, 3.0),    # Cat4: >500m o >3%
+    "cat3": (20000, 6.0),  # Cat3: >2km o >6%
+    "cat4": (5000, 3.0),  # Cat4: >500m o >3%
 }
 
 
@@ -44,21 +44,23 @@ def categorize_climb(grade: float, distance_m: float) -> str:
     return "unclassified"
 
 
-def detect_climb_segments(points: List[GPSPoint], min_distance_m: float = 500, min_elevation_m: float = 30) -> List[ClimbSegment]:
+def detect_climb_segments(
+    points: list[GPSPoint], min_distance_m: float = 500, min_elevation_m: float = 30
+) -> list[ClimbSegment]:
     """Detect climb segments from GPS points.
-    
+
     Args:
         points: List of GPS points sorted by timestamp
         min_distance_m: Minimum segment length (default 500m)
         min_elevation_m: Minimum elevation gain (default 30m)
-    
+
     Returns:
         List of detected climb segments with categorization
     """
     if len(points) < 3:
         return []
 
-    climbs: List[ClimbSegment] = []
+    climbs: list[ClimbSegment] = []
     in_climb = False
     climb_start = 0
     climb_dist = 0.0
@@ -87,50 +89,54 @@ def detect_climb_segments(points: List[GPSPoint], min_distance_m: float = 500, m
             if climb_dist >= min_distance_m and climb_elev >= min_elevation_m:
                 grade = calculate_grade_percent(climb_elev, climb_dist)
                 if grade > 0:
-                    climbs.append(ClimbSegment(
-                        start_idx=climb_start,
-                        end_idx=i - 1,
-                        distance_m=climb_dist,
-                        elevation_gain_m=climb_elev,
-                        avg_grade_percent=grade,
-                        category=categorize_climb(grade, climb_dist),
-                        start_point=points[climb_start],
-                        end_point=points[i - 1]
-                    ))
+                    climbs.append(
+                        ClimbSegment(
+                            start_idx=climb_start,
+                            end_idx=i - 1,
+                            distance_m=climb_dist,
+                            elevation_gain_m=climb_elev,
+                            avg_grade_percent=grade,
+                            category=categorize_climb(grade, climb_dist),
+                            start_point=points[climb_start],
+                            end_point=points[i - 1],
+                        )
+                    )
             in_climb = False
 
         prev_idx = i
 
     if in_climb and climb_dist >= min_distance_m and climb_elev >= min_elevation_m:
         grade = calculate_grade_percent(climb_elev, climb_dist)
-        climbs.append(ClimbSegment(
-            start_idx=climb_start,
-            end_idx=len(points) - 1,
-            distance_m=climb_dist,
-            elevation_gain_m=climb_elev,
-            avg_grade_percent=grade,
-            category=categorize_climb(grade, climb_dist),
-            start_point=points[climb_start],
-            end_point=points[-1]
-        ))
+        climbs.append(
+            ClimbSegment(
+                start_idx=climb_start,
+                end_idx=len(points) - 1,
+                distance_m=climb_dist,
+                elevation_gain_m=climb_elev,
+                avg_grade_percent=grade,
+                category=categorize_climb(grade, climb_dist),
+                start_point=points[climb_start],
+                end_point=points[-1],
+            )
+        )
 
     return climbs
 
 
-def detect_all_segments(points: List[GPSPoint], min_length_m: float = 1000) -> List[Segment]:
+def detect_all_segments(points: list[GPSPoint], min_length_m: float = 1000) -> list[Segment]:
     """Detect all significant segments (not just climbs).
-    
+
     Args:
         points: GPS points
         min_length_m: Minimum segment length (default 1km)
-    
+
     Returns:
         List of segments >= min_length_m
     """
     if len(points) < 2:
         return []
 
-    segments: List[Segment] = []
+    segments: list[Segment] = []
     segment_start = 0
     accum_dist = 0.0
     accum_elev_gain = 0.0
@@ -160,19 +166,21 @@ def detect_all_segments(points: List[GPSPoint], min_length_m: float = 1000) -> L
 
         if accum_dist >= min_length_m:
             avg_speed = accum_speed / point_count if point_count > 0 else 0
-            segments.append(Segment(
-                start=points[segment_start],
-                end=curr,
-                distance_m=accum_dist,
-                duration_s=sum(
-                    (points[j+1].timestamp - points[j].timestamp).total_seconds()
-                    for j in range(segment_start, i)
-                    if j + 1 < len(points)
-                ),
-                avg_speed_km_h=avg_speed,
-                elevation_gain_m=accum_elev_gain,
-                elevation_loss_m=accum_elev_loss
-            ))
+            segments.append(
+                Segment(
+                    start=points[segment_start],
+                    end=curr,
+                    distance_m=accum_dist,
+                    duration_s=sum(
+                        (points[j + 1].timestamp - points[j].timestamp).total_seconds()
+                        for j in range(segment_start, i)
+                        if j + 1 < len(points)
+                    ),
+                    avg_speed_km_h=avg_speed,
+                    elevation_gain_m=accum_elev_gain,
+                    elevation_loss_m=accum_elev_loss,
+                )
+            )
             segment_start = i
             accum_dist = 0.0
             accum_elev_gain = 0.0
@@ -195,13 +203,8 @@ def segment_to_dict(segment: ClimbSegment) -> dict:
         "start_lat": segment.start_point.lat,
         "start_lon": segment.start_point.lon,
         "end_lat": segment.end_point.lat,
-        "end_lon": segment.end_point.lon
+        "end_lon": segment.end_point.lon,
     }
 
 
-__all__ = [
-    "detect_climb_segments",
-    "detect_all_segments",
-    "ClimbSegment",
-    "segment_to_dict"
-]
+__all__ = ["detect_climb_segments", "detect_all_segments", "ClimbSegment", "segment_to_dict"]

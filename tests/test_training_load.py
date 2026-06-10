@@ -1,4 +1,5 @@
 """Tests for ATL/CTL/TSB training load model."""
+
 from bike_analyzer.backend.analytics.training_load import (
     calculate_atl_ctl_tsb,
     calculate_rss,
@@ -22,7 +23,7 @@ def test_calculate_rss_with_elevation():
         distance_km=30.0,
         duration_minutes=90.0,
         avg_speed_kmh=20.0,
-        elevation_gain_m=500.0
+        elevation_gain_m=500.0,
     )
     tss = calculate_rss(ride)
     assert tss > 0
@@ -46,7 +47,12 @@ def test_calculate_atl_ctl_tsb_single_ride():
 def test_calculate_atl_ctl_tsb_multiple_rides():
     """Test ATL/CTL/TSB builds over multiple rides."""
     rides = [
-        Ride(date=f"2024-01-{15+i:02d}", distance_km=40.0, duration_minutes=100.0, avg_speed_kmh=24.0)
+        Ride(
+            date=f"2024-01-{15 + i:02d}",
+            distance_km=40.0,
+            duration_minutes=100.0,
+            avg_speed_kmh=24.0,
+        )
         for i in range(7)
     ]
     result = calculate_atl_ctl_tsb(rides)

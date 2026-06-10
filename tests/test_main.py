@@ -1,4 +1,5 @@
 """Test coverage for main entry point."""
+
 from bike_analyzer.main import main
 
 

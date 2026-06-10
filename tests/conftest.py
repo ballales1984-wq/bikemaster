@@ -1,5 +1,4 @@
 import os
-from datetime import timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -35,12 +34,14 @@ def db_path():
 def client(db_path):
     import bike_analyzer.backend.config as cfg_mod
     from bike_analyzer.backend.db import database as db_mod
+
     os.environ["DB_PATH"] = db_path
     cfg_mod.DB_PATH = db_path
     db_mod.DB_PATH = db_path
     db_mod.init_db()
-    from bike_analyzer.backend.security import create_access_token
     from bike_analyzer.backend.api.app_factory import create_app
+    from bike_analyzer.backend.security import create_access_token
+
     app = create_app()
     tc = TestClient(app)
     token = create_access_token(subject="0", is_admin=True)

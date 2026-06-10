@@ -1,5 +1,6 @@
 """Test Google Maps API (mock mode)."""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 from bike_analyzer.backend.maps.google_maps import (
     _build_speed_segments,
@@ -24,9 +25,9 @@ def test_speed_to_color():
 
 def test_build_speed_segments():
     points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc), speed=10),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc), speed=30),
-        GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=timezone.utc), speed=None),
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=30),
+        GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=UTC), speed=None),
     ]
     segs = _build_speed_segments(points)
     assert len(segs) >= 1
@@ -39,8 +40,8 @@ def test_build_speed_segments_empty():
 
 def test_create_google_static_map_basic():
     points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc)),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc)),
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
     ]
     path = create_google_static_map(points, "test-api-key-mock", "test_map.png")
     assert path == "test_map.png"
@@ -48,47 +49,56 @@ def test_create_google_static_map_basic():
 
 def test_create_google_static_map_colored():
     points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc), speed=10),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc), speed=30),
-        GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=timezone.utc), speed=None),
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=30),
+        GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=UTC), speed=None),
     ]
-    path = create_google_static_map(points, "test-api-key-mock", "test_map_colored.png", colored=True)
+    path = create_google_static_map(
+        points, "test-api-key-mock", "test_map_colored.png", colored=True
+    )
     assert path == "test_map_colored.png"
 
 
 def test_create_google_static_map_empty_points():
     try:
         create_google_static_map([], "test-api-key-mock", "empty_map.png")
-        assert False, "Should have raised ValueError"
+        raise AssertionError("Should have raised ValueError")
     except ValueError as e:
         assert "No GPS points" in str(e)
+
 
 def test_speed_to_color_high_speed():
     assert _speed_to_color(25) == "0x00FF00"
     assert _speed_to_color(30) == "0x00FF00"
     assert _speed_to_color(100) == "0x00FF00"
 
+
 def test_build_speed_segments_single_point():
-    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc), speed=10)]
+    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10)]
     segs = _build_speed_segments(points)
     assert len(segs) == 1
 
+
 def test_build_speed_segments_all_same_color():
     points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc), speed=10),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc), speed=10),
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=10),
     ]
     segs = _build_speed_segments(points)
     assert len(segs) == 1
     assert segs[0].color == "0xFF0000"
 
+
 def test_create_google_static_map_colored_branch():
     points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc), speed=10),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc), speed=10),
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=10),
     ]
-    path = create_google_static_map(points, "test-api-key-mock", "test_map_colored2.png", colored=True)
+    path = create_google_static_map(
+        points, "test-api-key-mock", "test_map_colored2.png", colored=True
+    )
     assert path == "test_map_colored2.png"
+
 
 import os
 
@@ -98,31 +108,44 @@ def teardown_function():
         if os.path.exists(f):
             os.remove(f)
 
+
 def test_create_google_elevation_chart_no_points():
     from bike_analyzer.backend.maps.google_maps import create_google_elevation_chart
+
     result = create_google_elevation_chart([], "test-api-key-mock")
     assert result is None
 
+
 def test_create_google_elevation_chart_invalid_api_key():
     from bike_analyzer.backend.maps.google_maps import create_google_elevation_chart
-    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc))]
+
+    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC))]
     result = create_google_elevation_chart(points, "invalid-key")
     assert result is None
 
+
 def test_create_google_elevation_chart_short_api_key():
     from bike_analyzer.backend.maps.google_maps import create_google_elevation_chart
-    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc))]
+
+    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC))]
     result = create_google_elevation_chart(points, "short")
     assert result is None
+
 
 def test_speed_to_color_15_threshold():
     assert _speed_to_color(15) == "0xFFFF00"
     assert _speed_to_color(14) == "0xFF0000"
     assert _speed_to_color(24) == "0xFFFF00"
 
+
 def test_build_speed_segments_with_min_segment_boundary():
     points = [
-        GPSPoint(lat=45.0 + i*0.01, lon=9.0 + i*0.01, timestamp=datetime(2024, 1, 1, i, 0, tzinfo=timezone.utc), speed=10 if i < 3 else 30)
+        GPSPoint(
+            lat=45.0 + i * 0.01,
+            lon=9.0 + i * 0.01,
+            timestamp=datetime(2024, 1, 1, i, 0, tzinfo=UTC),
+            speed=10 if i < 3 else 30,
+        )
         for i in range(10)
     ]
     segs = _build_speed_segments(points, min_segment=5)

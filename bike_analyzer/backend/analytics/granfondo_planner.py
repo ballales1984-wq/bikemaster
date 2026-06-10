@@ -1,9 +1,9 @@
 """Granfondo training plan generator with tapering."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import List
+from datetime import UTC, datetime, timedelta
 
 
 @dataclass
@@ -16,9 +16,11 @@ class PlannedWorkout:
     description: str = ""
 
 
-def generate_granfondo_plan(start_date: str, target_weeks: int = 8, ftp: float = 200.0) -> List[dict]:
+def generate_granfondo_plan(
+    start_date: str, target_weeks: int = 8, ftp: float = 200.0
+) -> list[dict]:
     """Generate an 8-12 week granfondo training plan with tapering.
-    
+
     Tapering starts 2 weeks before event:
     - Week before: reduce volume by 40%
     - Final week: reduce volume by 60%
@@ -58,37 +60,41 @@ def generate_granfondo_plan(start_date: str, target_weeks: int = 8, ftp: float =
             workout_date = (start + timedelta(days=day_offset)).strftime("%Y-%m-%d")
             title, wtype, intensity = workout_templates[(w * 3 + d) % len(workout_templates)]
             duration = int(90 * taper_mult)
-            plan.append({
-                "date": workout_date,
-                "title": f"{title} (S{w+1}W{d+1})",
-                "workout_type": wtype,
-                "duration_minutes": duration,
-                "target_intensity": round(intensity * taper_mult, 2),
-                "description": f"Week {w+1}, Day {d+1}",
-            })
+            plan.append(
+                {
+                    "date": workout_date,
+                    "title": f"{title} (S{w + 1}W{d + 1})",
+                    "workout_type": wtype,
+                    "duration_minutes": duration,
+                    "target_intensity": round(intensity * taper_mult, 2),
+                    "description": f"Week {w + 1}, Day {d + 1}",
+                }
+            )
 
     event_date = (start + timedelta(days=target_weeks * 7)).strftime("%Y-%m-%d")
-    plan.append({
-        "date": event_date,
-        "title": "Granfondo",
-        "workout_type": "race",
-        "duration_minutes": int(180 * get_taper_multiplier(target_weeks, target_weeks)),
-        "target_intensity": 0.9,
-        "description": "Event day",
-    })
+    plan.append(
+        {
+            "date": event_date,
+            "title": "Granfondo",
+            "workout_type": "race",
+            "duration_minutes": int(180 * get_taper_multiplier(target_weeks, target_weeks)),
+            "target_intensity": 0.9,
+            "description": "Event day",
+        }
+    )
 
     return plan
 
 
-def calculate_granfondo_workouts_from_goal(goal: dict) -> List[dict]:
+def calculate_granfondo_workouts_from_goal(goal: dict) -> list[dict]:
     """Generate granfondo workouts based on training goal data."""
-    start_date = goal.get("start_date") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    start_date = goal.get("start_date") or datetime.now(UTC).strftime("%Y-%m-%d")
     weeks = goal.get("weeks", 8)
     ftp = goal.get("ftp", 200.0)
 
     plan = generate_granfondo_plan(start_date, weeks, ftp)
 
-    for i, workout in enumerate(plan):
+    for _i, workout in enumerate(plan):
         workout["goal_id"] = goal.get("id")
 
     return plan

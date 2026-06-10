@@ -1,9 +1,8 @@
 """ATL/CTL/TSB fitness-fatigue model for cycling training."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import List, Optional
 
 from ..models.models import Ride
 
@@ -17,7 +16,7 @@ class TrainingLoadDay:
     tsb: float = 0.0
 
 
-def calculate_rss(ride: Ride, ftp: Optional[float] = None) -> float:
+def calculate_rss(ride: Ride, ftp: float | None = None) -> float:
     duration_h = ride.duration_hours
     if duration_h <= 0:
         return 0.0
@@ -25,9 +24,11 @@ def calculate_rss(ride: Ride, ftp: Optional[float] = None) -> float:
     return round(min(tss, 200.0), 1)
 
 
-def calculate_atl_ctl_tsb(rides: List[Ride], ftp: Optional[float] = None, target_date: Optional[str] = None) -> List[TrainingLoadDay]:
+def calculate_atl_ctl_tsb(
+    rides: list[Ride], ftp: float | None = None, target_date: str | None = None
+) -> list[TrainingLoadDay]:
     """Calculate Acute Training Load (ATL), Chronic Training Load (CTL), and Training Stress Balance (TSB).
-    
+
     Uses Banister's impulse-response model with 7-day ATL and 42-day CTL time constants.
     TSB = CTL - ATL (positive = fresh, negative = fatigued)
     """
@@ -46,7 +47,7 @@ def calculate_atl_ctl_tsb(rides: List[Ride], ftp: Optional[float] = None, target
     if not dates:
         return []
 
-    result: List[TrainingLoadDay] = []
+    result: list[TrainingLoadDay] = []
 
     for i, date in enumerate(dates):
         tss = daily_tss[date]
@@ -63,25 +64,35 @@ def calculate_atl_ctl_tsb(rides: List[Ride], ftp: Optional[float] = None, target
 
         tsb = ctl - atl
 
-        result.append(TrainingLoadDay(
-            date=date,
-            tss=tss,
-            atl=round(atl, 1),
-            ctl=round(ctl, 1),
-            tsb=round(tsb, 1)
-        ))
+        result.append(
+            TrainingLoadDay(
+                date=date, tss=tss, atl=round(atl, 1), ctl=round(ctl, 1), tsb=round(tsb, 1)
+            )
+        )
 
     return result
 
 
-def get_current_training_status(rides: List[Ride], ftp: Optional[float] = None) -> dict:
+def get_current_training_status(rides: list[Ride], ftp: float | None = None) -> dict:
     """Get current ATL/CTL/TSB values and training recommendation."""
     if not rides:
-        return {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "status": "no_data", "recommendation": "Start recording your rides"}
+        return {
+            "atl": 0.0,
+            "ctl": 0.0,
+            "tsb": 0.0,
+            "status": "no_data",
+            "recommendation": "Start recording your rides",
+        }
 
     load_history = calculate_atl_ctl_tsb(rides, ftp)
     if not load_history:
-        return {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "status": "no_data", "recommendation": "Insufficient data"}
+        return {
+            "atl": 0.0,
+            "ctl": 0.0,
+            "tsb": 0.0,
+            "status": "no_data",
+            "recommendation": "Insufficient data",
+        }
 
     latest = load_history[-1]
     atl, ctl, tsb = latest.atl, latest.ctl, latest.tsb
@@ -102,16 +113,10 @@ def get_current_training_status(rides: List[Ride], ftp: Optional[float] = None) 
         status = "burnout_risk"
         recommendation = "Overtraining risk. Total rest for 2-3 days."
 
-    return {
-        "atl": atl,
-        "ctl": ctl,
-        "tsb": tsb,
-        "status": status,
-        "recommendation": recommendation
-    }
+    return {"atl": atl, "ctl": ctl, "tsb": tsb, "status": status, "recommendation": recommendation}
 
 
-def get_7day_fitness_summary(rides: List[Ride], ftp: Optional[float] = None) -> List[dict]:
+def get_7day_fitness_summary(rides: list[Ride], ftp: float | None = None) -> list[dict]:
     """Get ATL/CTL/TSB for last 7 days as list of dicts for API responses."""
     load_history = calculate_atl_ctl_tsb(rides, ftp)
     if not load_history:
@@ -119,8 +124,7 @@ def get_7day_fitness_summary(rides: List[Ride], ftp: Optional[float] = None) -> 
 
     recent = load_history[-7:] if len(load_history) >= 7 else load_history
     return [
-        {"date": d.date, "atl": d.atl, "ctl": d.ctl, "tsb": d.tsb, "tss": d.tss}
-        for d in recent
+        {"date": d.date, "atl": d.atl, "ctl": d.ctl, "tsb": d.tsb, "tss": d.tss} for d in recent
     ]
 
 
@@ -129,5 +133,5 @@ __all__ = [
     "calculate_atl_ctl_tsb",
     "get_current_training_status",
     "get_7day_fitness_summary",
-    "TrainingLoadDay"
+    "TrainingLoadDay",
 ]

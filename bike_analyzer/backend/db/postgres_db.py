@@ -1,9 +1,9 @@
 """PostgreSQL database layer with SQLAlchemy."""
+
 from __future__ import annotations
 
 from contextlib import contextmanager
-from datetime import datetime, timezone
-from typing import List, Optional
+from datetime import UTC, datetime
 
 try:
     from sqlalchemy import (
@@ -19,6 +19,7 @@ try:
         create_engine,
     )
     from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
+
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
@@ -42,7 +43,7 @@ class RideModel(Base):
     heart_rate_avg = Column(Float, nullable=True)
     elevation_gain_m = Column(Float, nullable=True)
     gps_points = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
 
 class AthleteModel(Base):
@@ -66,7 +67,7 @@ class AthleteModel(Base):
     medical_notes = Column(Text, nullable=True)
     equipment = Column(Text, nullable=True)
     ftp_watts = Column(Float, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
 
 class TrainingLoadModel(Base):
@@ -79,7 +80,7 @@ class TrainingLoadModel(Base):
     atl = Column(Float, default=0.0)
     ctl = Column(Float, default=0.0)
     tsb = Column(Float, default=0.0)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
     __table_args__ = (Index("idx_training_loads_athlete_date", "athlete_id", "date"),)
 
@@ -96,7 +97,7 @@ class TrainingGoalModel(Base):
     target_distance_km = Column(Float, nullable=True)
     target_elevation_m = Column(Float, nullable=True)
     status = Column(String, default="active")
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
 
 class PlannedWorkoutModel(Base):
@@ -118,14 +119,16 @@ _engine = None
 _Session = None
 
 
-def get_engine(db_url: Optional[str] = None):
+def get_engine(db_url: str | None = None):
     """Get or create SQLAlchemy engine."""
     global _engine, _Session
     if _engine:
         return _engine
 
     if not SQLALCHEMY_AVAILABLE:
-        raise ImportError("SQLAlchemy non installato. Installa con: pip install sqlalchemy psycopg2-binary")
+        raise ImportError(
+            "SQLAlchemy non installato. Installa con: pip install sqlalchemy psycopg2-binary"
+        )
 
     url = db_url or f"sqlite:///{DB_PATH}"
     _engine = create_engine(url, echo=False)
@@ -133,7 +136,7 @@ def get_engine(db_url: Optional[str] = None):
     return _engine
 
 
-def init_postgres_db(db_url: Optional[str] = None):
+def init_postgres_db(db_url: str | None = None):
     """Initialize PostgreSQL database tables."""
     engine = get_engine(db_url)
     Base.metadata.create_all(engine)
@@ -170,24 +173,28 @@ def save_training_load(athlete_id: int, load_data: dict) -> int:
             tss=load_data.get("tss", 0),
             atl=load_data.get("atl", 0),
             ctl=load_data.get("ctl", 0),
-            tsb=load_data.get("tsb", 0)
+            tsb=load_data.get("tsb", 0),
         )
         session.add(model)
         session.flush()
         return model.id
 
 
-def get_training_loads(athlete_id: int, days: int = 30) -> List[dict]:
+def get_training_loads(athlete_id: int, days: int = 30) -> list[dict]:
     """Get training load history for athlete."""
     with get_session() as session:
         from sqlalchemy import desc
-        models = session.query(TrainingLoadModel).filter(
-            TrainingLoadModel.athlete_id == athlete_id
-        ).order_by(desc(TrainingLoadModel.date)).limit(days).all()
+
+        models = (
+            session.query(TrainingLoadModel)
+            .filter(TrainingLoadModel.athlete_id == athlete_id)
+            .order_by(desc(TrainingLoadModel.date))
+            .limit(days)
+            .all()
+        )
 
         return [
-            {"date": m.date, "tss": m.tss, "atl": m.atl, "ctl": m.ctl, "tsb": m.tsb}
-            for m in models
+            {"date": m.date, "tss": m.tss, "atl": m.atl, "ctl": m.ctl, "tsb": m.tsb} for m in models
         ]
 
 
@@ -202,30 +209,33 @@ def save_training_goal(athlete_id: int, goal: dict) -> int:
             target_date=goal.get("target_date"),
             target_distance_km=goal.get("target_distance_km"),
             target_elevation_m=goal.get("target_elevation_m"),
-            status=goal.get("status", "active")
+            status=goal.get("status", "active"),
         )
         session.add(model)
         session.flush()
         return model.id
 
 
-def get_training_goals(athlete_id: int, status: Optional[str] = None) -> List[dict]:
+def get_training_goals(athlete_id: int, status: str | None = None) -> list[dict]:
     """Get training goals for athlete."""
     with get_session() as session:
-        query = session.query(TrainingGoalModel).filter(
-            TrainingGoalModel.athlete_id == athlete_id
-        )
+        query = session.query(TrainingGoalModel).filter(TrainingGoalModel.athlete_id == athlete_id)
         if status:
             query = query.filter(TrainingGoalModel.status == status)
 
         models = query.order_by(TrainingGoalModel.created_at.desc()).all()
         return [
             {
-                "id": m.id, "athlete_id": m.athlete_id, "title": m.title,
-                "description": m.description, "goal_type": m.goal_type,
-                "target_date": m.target_date, "target_distance_km": m.target_distance_km,
-                "target_elevation_m": m.target_elevation_m, "status": m.status,
-                "created_at": m.created_at.isoformat() if m.created_at else None
+                "id": m.id,
+                "athlete_id": m.athlete_id,
+                "title": m.title,
+                "description": m.description,
+                "goal_type": m.goal_type,
+                "target_date": m.target_date,
+                "target_distance_km": m.target_distance_km,
+                "target_elevation_m": m.target_elevation_m,
+                "status": m.status,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
             }
             for m in models
         ]
@@ -242,14 +252,16 @@ def save_planned_workout(athlete_id: int, workout: dict) -> int:
             workout_type=workout.get("workout_type", "endurance"),
             duration_minutes=workout.get("duration_minutes", 60),
             target_intensity=workout.get("target_intensity", 0.5),
-            completed=False
+            completed=False,
         )
         session.add(model)
         session.flush()
         return model.id
 
 
-def get_planned_workouts(athlete_id: int, start_date: Optional[str] = None, end_date: Optional[str] = None) -> List[dict]:
+def get_planned_workouts(
+    athlete_id: int, start_date: str | None = None, end_date: str | None = None
+) -> list[dict]:
     """Get planned workouts for athlete."""
     with get_session() as session:
         query = session.query(PlannedWorkoutModel).filter(
@@ -262,10 +274,16 @@ def get_planned_workouts(athlete_id: int, start_date: Optional[str] = None, end_
         models = query.order_by(PlannedWorkoutModel.date).all()
         return [
             {
-                "id": m.id, "athlete_id": m.athlete_id, "goal_id": m.goal_id,
-                "date": m.date, "title": m.title, "workout_type": m.workout_type,
-                "duration_minutes": m.duration_minutes, "target_intensity": m.target_intensity,
-                "completed": m.completed, "completed_at": m.completed_at.isoformat() if m.completed_at else None
+                "id": m.id,
+                "athlete_id": m.athlete_id,
+                "goal_id": m.goal_id,
+                "date": m.date,
+                "title": m.title,
+                "workout_type": m.workout_type,
+                "duration_minutes": m.duration_minutes,
+                "target_intensity": m.target_intensity,
+                "completed": m.completed,
+                "completed_at": m.completed_at.isoformat() if m.completed_at else None,
             }
             for m in models
         ]
@@ -274,10 +292,12 @@ def get_planned_workouts(athlete_id: int, start_date: Optional[str] = None, end_
 def complete_workout(workout_id: int) -> bool:
     """Mark a workout as completed."""
     with get_session() as session:
-        model = session.query(PlannedWorkoutModel).filter(PlannedWorkoutModel.id == workout_id).first()
+        model = (
+            session.query(PlannedWorkoutModel).filter(PlannedWorkoutModel.id == workout_id).first()
+        )
         if model:
             model.completed = True
-            model.completed_at = datetime.now(timezone.utc)
+            model.completed_at = datetime.now(UTC)
             return True
         return False
 
@@ -299,5 +319,5 @@ __all__ = [
     "AthleteModel",
     "TrainingLoadModel",
     "TrainingGoalModel",
-    "PlannedWorkoutModel"
+    "PlannedWorkoutModel",
 ]

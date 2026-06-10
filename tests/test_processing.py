@@ -1,5 +1,6 @@
 """Tests for GPS processing module."""
-from datetime import datetime, timedelta, timezone
+
+from datetime import UTC, datetime, timedelta
 
 from bike_analyzer.backend.models.models import GPSPoint
 from bike_analyzer.backend.processing.processing import (
@@ -38,19 +39,22 @@ def test_validate_coordinate_non_numeric():
 
 
 def test_validate_gps_point():
-    ts = datetime.now(timezone.utc)
+    ts = datetime.now(UTC)
     p = make_point(45.0, 9.0, ts)
     assert validate_gps_point(p) is True
 
 
 def test_detect_pauses_none():
-    points = [make_point(45.0, 9.0, datetime.now(timezone.utc) + timedelta(seconds=i), speed=10.0) for i in range(3)]
+    points = [
+        make_point(45.0, 9.0, datetime.now(UTC) + timedelta(seconds=i), speed=10.0)
+        for i in range(3)
+    ]
     pauses = detect_pauses(points)
     assert len(pauses) == 0
 
 
 def test_detect_pauses_with_slow():
-    t0 = datetime.now(timezone.utc)
+    t0 = datetime.now(UTC)
     points = [
         make_point(45.0, 9.0, t0, speed=10.0),
         make_point(45.0, 9.001, t0 + timedelta(seconds=10), speed=10.0),
@@ -65,7 +69,8 @@ def test_detect_pauses_with_slow():
 
 def test_detect_accelerations():
     points = [
-        make_point(45.0, 9.0, datetime.now(timezone.utc) + timedelta(seconds=i), speed=s) for i, s in enumerate([10.0, 15.0, 25.0])
+        make_point(45.0, 9.0, datetime.now(UTC) + timedelta(seconds=i), speed=s)
+        for i, s in enumerate([10.0, 15.0, 25.0])
     ]
     accels = detect_accelerations(points)
     assert len(accels) > 0
@@ -73,23 +78,30 @@ def test_detect_accelerations():
 
 def test_detect_decelerations():
     points = [
-        make_point(45.0, 9.0, datetime.now(timezone.utc) + timedelta(seconds=i), speed=s) for i, s in enumerate([25.0, 15.0, 10.0])
+        make_point(45.0, 9.0, datetime.now(UTC) + timedelta(seconds=i), speed=s)
+        for i, s in enumerate([25.0, 15.0, 10.0])
     ]
     decels = detect_decelerations(points)
     assert len(decels) > 0
 
 
 def test_remove_outliers_fast_point():
-    t0 = datetime.now(timezone.utc)
-    normal = [make_point(45.0 + i * 0.001, 9.0 + i * 0.001, t0 + timedelta(seconds=i * 10), speed=20.0) for i in range(5)]
+    t0 = datetime.now(UTC)
+    normal = [
+        make_point(45.0 + i * 0.001, 9.0 + i * 0.001, t0 + timedelta(seconds=i * 10), speed=20.0)
+        for i in range(5)
+    ]
     outlier = make_point(45.1, 9.1, t0 + timedelta(seconds=60), speed=200.0)
     cleaned = remove_outliers(normal + [outlier])
     assert len(cleaned) <= 5
 
 
 def test_build_segments_basic():
-    t0 = datetime.now(timezone.utc)
-    points = [make_point(45.0 + i * 0.01, 9.0 + i * 0.01, t0 + timedelta(seconds=i * 10), speed=20.0) for i in range(5)]
+    t0 = datetime.now(UTC)
+    points = [
+        make_point(45.0 + i * 0.01, 9.0 + i * 0.01, t0 + timedelta(seconds=i * 10), speed=20.0)
+        for i in range(5)
+    ]
     segments = build_segments(points)
     assert len(segments) == 4
     for s in segments:
@@ -98,8 +110,11 @@ def test_build_segments_basic():
 
 
 def test_process_route():
-    t0 = datetime.now(timezone.utc)
-    points = [make_point(45.0 + i * 0.001, 9.0 + i * 0.001, t0 + timedelta(seconds=i * 10), speed=20.0) for i in range(10)]
+    t0 = datetime.now(UTC)
+    points = [
+        make_point(45.0 + i * 0.001, 9.0 + i * 0.001, t0 + timedelta(seconds=i * 10), speed=20.0)
+        for i in range(10)
+    ]
     cleaned, stats = process_route(points)
     assert len(cleaned) > 0
     assert stats.total_distance_m > 0

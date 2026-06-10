@@ -1,10 +1,9 @@
 """Training Stress Score (TSS) and exponentially weighted moving average."""
+
 from __future__ import annotations
 
-from typing import List
 
-
-def exponentially_weighted_moving_average(values: List[float], tau_days: float) -> float:
+def exponentially_weighted_moving_average(values: list[float], tau_days: float) -> float:
     """Exponentially weighted moving average (EWMA) for training stress.
 
     Uses decay factor alpha = 1 - exp(-1/tau) applied iteratively.
@@ -34,7 +33,7 @@ def estimate_tss(ride, ftp: float = 250.0) -> float:
     elif ride.avg_speed_kmh and ride.avg_speed_kmh > 0:
         intensity_factor = min(ride.avg_speed_kmh / 40.0, 1.0)
 
-    tss = duration_h * 100 * (intensity_factor ** 2)
+    tss = duration_h * 100 * (intensity_factor**2)
     return round(min(tss, 500.0), 1)
 
 

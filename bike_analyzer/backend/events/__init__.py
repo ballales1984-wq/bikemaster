@@ -3,10 +3,13 @@
 Provides a simple publish-subscribe mechanism for domain events.
 Events: RideCreated, AthleteUpdated, BadgeEarned, TrainingGenerated.
 """
+
 from __future__ import annotations
 
+import contextlib
 from collections import defaultdict
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 _handler_cache: dict[str, list[Callable[..., Any]]] = defaultdict(list)
 
@@ -19,10 +22,8 @@ def subscribe(event_type: str, handler: Callable[..., Any]) -> None:
 async def publish(event_type: str, data: dict[str, Any] | None = None) -> None:
     """Publish an event to all registered handlers."""
     for handler in _handler_cache[event_type]:
-        try:
+        with contextlib.suppress(Exception):
             await handler(data or {})
-        except Exception:
-            pass
 
 
 def clear_handlers() -> None:
