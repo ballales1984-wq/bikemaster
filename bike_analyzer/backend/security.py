@@ -1,10 +1,11 @@
 """JWT authentication helpers.
 
 Lightweight implementation using python-jose with HS256.
+Password hashing uses bcrypt directly for maximum compatibility.
 """
 from __future__ import annotations
 
-import hashlib
+import bcrypt
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -24,31 +25,12 @@ from .config import (
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 
-def _get_pwd_context():
-    from passlib.context import CryptContext
-    return CryptContext(schemes=["bcrypt", "sha256_crypt"], deprecated="auto")
-
-
-pwd_context = _get_pwd_context()
-
-
 def hash_password(password: str) -> str:
-    try:
-        return pwd_context.hash(password)
-    except Exception:
-        salt = SECRET_KEY[:16] if SECRET_KEY else "bikemaster_salt"
-        return f"sha256${hashlib.sha256((password + salt).encode()).hexdigest()}"
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    try:
-        if hashed.startswith("sha256$"):
-            salt = SECRET_KEY[:16] if SECRET_KEY else "bikemaster_salt"
-            expected = hashlib.sha256((plain + salt).encode()).hexdigest()
-            return hashed.split("$", 1)[1] == expected
-        return pwd_context.verify(plain, hashed)
-    except Exception:
-        return False
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 
 def create_access_token(subject: str, is_admin: bool = False, expires_delta: Optional[timedelta] = None) -> str:

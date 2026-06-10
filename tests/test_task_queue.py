@@ -17,7 +17,7 @@ class TestTask:
         task = Task(id="test-456", kind="generate_map", payload={"ride_id": 1})
         d = task.to_dict()
         assert d["id"] == "test-456"
-        assert d["kind"] == "batch_map"
+        assert d["kind"] == "generate_map"
         assert d["status"] == "pending"
         assert d["payload"] == {"ride_id": 1}
 

@@ -99,7 +99,7 @@ async def check_rate_limit(user_id: Optional[int], endpoint: str, limit: int = 6
     r = await get_redis()
     if r is None:
         return True
-    key = await rate_limit_key(user_id, endpoint)
+    key = rate_limit_key(user_id, endpoint)
     try:
         count = await r.incr(key)
         if count == 1:

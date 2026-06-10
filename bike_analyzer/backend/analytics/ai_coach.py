@@ -26,6 +26,7 @@ _fmt_int_pattern = re.compile(r'(?<!\d)(\d+)\.0(?!\d)')
 def _clean_ai_output(text: str) -> str:
     text = _fmt_int_pattern.sub(lambda m: m.group(1), text)
     text = _fmt_clean_pattern.sub(lambda m: m.group(1), text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
     text = re.sub(r' +', ' ', text)
     return text.strip()
 

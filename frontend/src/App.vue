@@ -48,9 +48,13 @@
           <HeatmapPanel />
         </section>
 
-        <section v-if="activeTab === 'badges'">
-          <BadgesPanel />
-        </section>
+<section v-if="activeTab === 'badges'">
+           <BadgesPanel />
+         </section>
+
+         <section v-if="activeTab === 'weather'">
+           <WeatherPanel />
+         </section>
 
         <section v-if="activeTab === 'admin' && isAdmin">
           <AdminPanel />
@@ -88,6 +92,7 @@ import BadgesPanel from './components/BadgesPanel.vue'
 import AdminPanel from './components/AdminPanel.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import LoginForm from './components/LoginForm.vue'
+import WeatherPanel from './components/WeatherPanel.vue'
 
 const loggedIn = computed(() => isLoggedIn())
 const isAdmin = computed(() => checkIsAdmin())

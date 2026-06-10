@@ -73,7 +73,7 @@ class TestTrainingStressScore:
         assert training_stress_score(275, 1.1, 1.0) == 121.0
 
     def test_tss_cap(self):
-        result = training_stress_score(400, 1.5, 2.0)
+        result = training_stress_score(400, 1.5, 2.23)
         assert result == 500.0
 
     def test_empty_session(self):

@@ -137,7 +137,7 @@ def calculate_power_estimate(
 
 
 def classify_climb(segment_length_km: float, avg_gradient_percent: float) -> Dict[str, Any]:
-    if segment_length_km < 0.3 or avg_gradient_percent < 2:
+    if segment_length_km < 0.2 or avg_gradient_percent < 2:
         return {"category": "none", "difficulty_score": 0, "color": "#999", "points": 0}
     for cat, threshold in CLIMB_CATEGORIES:
         if avg_gradient_percent >= threshold:
@@ -154,7 +154,7 @@ def estimate_vo2max(avg_speed_kmh: float, avg_gradient_percent: float, weight_kg
     speed_match_kmh = 21.0 - (age - 30) * 0.1
     speed_factor = avg_speed_kmh / speed_match_kmh if speed_match_kmh > 0 else 1.0
     gradient_factor = 1.0 + avg_gradient_percent * 0.03
-    base_vo2 = 42.0
+    base_vo2 = 42.0 - (age - 30) * 0.5
     vo2 = base_vo2 * speed_factor * gradient_factor
     vo2 = max(30.0, min(75.0, vo2))
     if vo2 < 40:

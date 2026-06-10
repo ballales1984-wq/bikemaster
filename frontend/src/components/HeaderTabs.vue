@@ -8,8 +8,9 @@
     <button class="tab" :class="{ active: active === 'calendar' }" @click="$emit('update:active', 'calendar')">📅 Calendario</button>
     <button class="tab" :class="{ active: active === 'granfondo' }" @click="$emit('update:active', 'granfondo')">🚴‍♂️ Granfondo</button>
     <button class="tab" :class="{ active: active === 'heatmap' }" @click="$emit('update:active', 'heatmap')">🔥 Heatmap</button>
-    <button class="tab" :class="{ active: active === 'badges' }" @click="$emit('update:active', 'badges')">🏅 Badge</button>
-    <button v-if="isAdmin" class="tab" :class="{ active: active === 'admin' }" @click="$emit('update:active', 'admin')">⚙️ Admin</button>
+<button class="tab" :class="{ active: active === 'badges' }" @click="$emit('update:active', 'badges')">🏅 Badge</button>
+        <button class="tab" :class="{ active: active === 'weather' }" @click="$emit('update:active', 'weather')">🌤️ Meteo</button>
+        <button v-if="isAdmin" class="tab" :class="{ active: active === 'admin' }" @click="$emit('update:active', 'admin')">⚙️ Admin</button>
     <span class="user-info">{{ isAdmin ? '👑 Admin' : '👤 User' }}</span>
     <button class="tab logout-btn" @click="$emit('logout')">🚪 Esci</button>
   </nav>

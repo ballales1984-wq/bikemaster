@@ -23,6 +23,9 @@ class GPSPoint:
     timestamp: datetime
     altitude: Optional[float] = None
     speed: Optional[float] = None
+    power: Optional[float] = None
+    heart_rate: Optional[float] = None
+    cadence: Optional[float] = None
 
     def distance_to(self, other: GPSPoint) -> float:
         return haversine_distance_m(self.lat, self.lon, other.lat, other.lon)
