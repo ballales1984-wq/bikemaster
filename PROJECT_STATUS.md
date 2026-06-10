@@ -1,8 +1,9 @@
-# BikeMaster — Stato del Progetto e Work Log
+## Stato Attuale del Progetto
 
-Data: 2026-06-09
-Branch: main
-Ultimo commit: 34bcc47
+**Completati: 148/145 step base + 20/80 estensioni**
+
+### Ultimo Commit
+- `7d65395` + `d5bb0f5` + `da4e95b` - Test power_model, redis_client, task_queue; Power metrics API; Render deployment fix
 
 ---
 
@@ -15,6 +16,7 @@ Pushato su GitHub (ballales1984-wq/bikemaster) il 2026-06-09.
 
 | Modulo | Descrizione |
 |---|---|
+| `bike_analyzer/backend/analytics/power_model.py` | **NUOVO** - 14 modelli potenza avanzati: Normalized Power (Coggan), Intensity Factor, Variability Index, Efficiency Factor, TSS, Power Zones, Power Profile, FTP estimation, Critical Power model, Aerobic Decoupling |
 | `bike_analyzer/backend/analytics/advanced.py` | 14 modelli matematici avanzati (pace consistency, power estimate, climb classification, VO2max, route difficulty, elevation/speed profile, progress trend, training stress balance, ideal weight, Garmin power factor, HR zones, ride recommendation, speed surge detection) |
 | `bike_analyzer/backend/analytics/analytics_trends.py` | Modulo standalone per trend analysis (fitness trends, monthly progression, period comparison, volume projection) |
 | `bike_analyzer/backend/db/async_db.py` | Layer DB asincrono (asyncpg/aiosqlite) che replica l'API del DB sincrono |
@@ -225,6 +227,7 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 | Auth | `/auth/login`, `/auth/register` |
 | Rides CRUD | `/rides`, `/rides/{id}`, `/rides/count` |
 | Analisi | `/rides/{id}/analyze`, `/rides/analyze` |
+| Power Metrics | `/rides/{id}/power-metrics` |
 | Import | `/import/gpx`, `/import/fit`, `/import/multiple`, `/import/google-fit/*` |
 | Export | `/rides/export/json`, `/rides/export/csv` |
 | Charts | `/charts/speed/{id}`, `/charts/elevation/{id}`, `/charts/distance/{id}`, `/charts/duration` |
@@ -248,6 +251,7 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 |---|---|---|
 | `analytics.py` | Completo | Summary, export JSON/CSV, report, charts base |
 | `analytics_trends.py` | Completo | Fitness trends, monthly progression, period comparison, volume projection |
+| `power_model.py` | Completo | **NUOVO** - NP, IF, VI, EF, TSS, Power Zones, Power Profile, FTP, CP/W' model, Aerobic Decoupling |
 | `advanced.py` | Completo | 14 modelli matematici avanzati (vedi sotto) |
 | `calories.py` | Completo | Stima calorie fisica + MET |
 | `fatigue.py` | Completo | Punteggio affaticamento 0-10 + recovery hours |
@@ -277,6 +281,19 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 12. Garmin Power Factor — NP/IF/TSS estimation
 13. Ride Recommendation — Classificazione tipo allenamento
 14. Speed Surge Detection — Rilevamento accelerazioni improvvise
+
+### Modelli Potenza in `power_model.py` (NUOVO)
+
+1. Normalized Power (NP) — Algoritmo Coggan con rolling average 30s
+2. Intensity Factor (IF) — NP / FTP ratio
+3. Variability Index (VI) — NP / avg power
+4. Efficiency Factor (EF) — NP / avg HR per cardio drift
+5. Training Stress Score (TSS) — IF² × durata × 100
+6. Power Zones — Modello 7 zone Coggan
+7. Power Profile — Best effort at 5s, 1min, 5min, 20min
+8. FTP Estimation — 20min test × 0.95
+9. Critical Power Model — CP e W' prime
+10. Aerobic Decoupling — Rilevamento scompenso aerobico (5%+ significativo)
 
 ---
 

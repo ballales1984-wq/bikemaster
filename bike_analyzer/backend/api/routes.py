@@ -1010,3 +1010,19 @@ async def generate_granfondo_workouts(request: GranfondoPlanRequest):
     weeks = request.target_weeks
     plan = generate_granfondo_plan(start_date, weeks)
     return {"athlete_id": request.athlete_id, "start_date": start_date, "weeks": weeks, "plan": plan, "total_workouts": len(plan)}
+
+
+@router.get("/rides/{ride_id}/power-metrics")
+async def get_ride_power_metrics(ride_id: int, ftp: float = Query(250.0, description="FTP in watts"), current_user: Optional[dict] = Depends(get_optional_current_user)):
+    """Get advanced power metrics for a ride with power data."""
+    from ..db.database import get_ride as _get_ride
+    from ..analytics.power_model import calculate_advanced_power_metrics
+    ride = _get_ride(ride_id)
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    gps_points = ride.get("gps_points")
+    if not gps_points:
+        raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    points = [GPSPoint(**p) for p in gps_points]
+    metrics = calculate_advanced_power_metrics(points, ftp=ftp)
+    return {"ride_id": ride_id, "ftp": ftp, **metrics}
