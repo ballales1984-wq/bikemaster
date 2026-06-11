@@ -13,10 +13,20 @@
     <template v-else>
       <HeaderTabs v-model:active="activeTab" :is-admin="isAdmin" @logout="onLogout" />
 
-      <StatsSummary :stats="summary" />
+      <StatsSummary :stats="summary" :loading="summaryLoading" @refresh="onSummaryChange" />
 
       <main>
         <section v-if="activeTab === 'rides'">
+          <div class="welcome-card">
+            <div>
+              <h2>👋 Bentornato in BikeMaster</h2>
+              <p>Monitora le tue performance, pianifica gli allenamenti e raggiungi i tuoi obiettivi ciclistici.</p>
+            </div>
+            <div class="welcome-actions">
+              <button class="btn btn-secondary" @click="activeTab = 'calendar'">📅 Pianifica</button>
+              <button class="btn btn-secondary" @click="activeTab = 'coach'">🧠 AI Coach</button>
+            </div>
+          </div>
           <RidesPanel @summary-change="onSummaryChange" />
         </section>
 
@@ -76,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { isLoggedIn, isAdmin as checkIsAdmin, login as doLogin, register as doRegister, logout as doLogout } from './composables/useAuth.js'
 import HeaderTabs from './components/HeaderTabs.vue'
 import StatsSummary from './components/StatsSummary.vue'
@@ -93,18 +103,33 @@ import AdminPanel from './components/AdminPanel.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import LoginForm from './components/LoginForm.vue'
 import WeatherPanel from './components/WeatherPanel.vue'
+import { useRides } from './composables/useRides.js'
 
 const loggedIn = computed(() => isLoggedIn())
 const isAdmin = computed(() => checkIsAdmin())
 const activeTab = ref('rides')
 const summary = ref({ rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 })
+const summaryLoading = ref(false)
 const loginError = ref('')
+
+const { fetchSummary } = useRides()
+
+async function loadSummary() {
+  summaryLoading.value = true
+  try {
+    const data = await fetchSummary()
+    summary.value = { rides: data.rides ?? 0, distance_km: data.distance_km ?? 0, calories: data.calories ?? 0, avg_speed_kmh: data.avg_speed_kmh ?? 0, duration_minutes: data.duration_minutes ?? 0 }
+  } finally {
+    summaryLoading.value = false
+  }
+}
 
 async function onLogin(creds) {
   try {
     await doLogin(creds.username, creds.password)
     loginError.value = ''
     activeTab.value = 'rides'
+    await loadSummary()
   } catch (e) {
     loginError.value = e.message
   }
@@ -115,6 +140,7 @@ async function onRegister(creds) {
     await doRegister(creds.username, creds.password)
     await doLogin(creds.username, creds.password)
     loginError.value = ''
+    await loadSummary()
   } catch (e) {
     loginError.value = e.message
   }
@@ -123,16 +149,18 @@ async function onRegister(creds) {
 function onLogout() {
   doLogout()
   activeTab.value = 'rides'
+  summary.value = { rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 }
 }
 
 async function onSummaryChange() {
-  try {
-    const mod = await import('./composables/useRides.js')
-    const fn = mod.useRides()
-    const data = await fn.fetchSummary()
-    summary.value = { rides: data.rides ?? 0, distance_km: data.distance_km ?? 0, calories: data.calories ?? 0, avg_speed_kmh: data.avg_speed_kmh ?? 0, duration_minutes: data.duration_minutes ?? 0 }
-  } catch (e) {
-    console.error('summary refresh failed', e)
-  }
+  await loadSummary()
 }
+
+watch(loggedIn, (val) => {
+  if (val) loadSummary()
+})
+
+onMounted(() => {
+  if (loggedIn.value) loadSummary()
+})
 </script>

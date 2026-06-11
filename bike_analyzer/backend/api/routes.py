@@ -544,6 +544,15 @@ async def list_athletes(current_user: dict = Depends(get_current_user)):
     return {k: v for k, v in athlete.items() if k != "password_hash"}
 
 
+@admin_router.get("/athletes")
+async def list_all_athletes(current_user: dict = Depends(get_admin_user)):
+    """Get all athletes - admin only."""
+    from ..db.database import get_all_athletes as _get_all
+
+    athletes = _get_all()
+    return {"athletes": athletes}
+
+
 @router.get("/athletes/{athlete_id}")
 async def get_athlete_endpoint(athlete_id: int, current_user: dict = Depends(get_current_user)):
     """Get athlete - user can only see own profile."""

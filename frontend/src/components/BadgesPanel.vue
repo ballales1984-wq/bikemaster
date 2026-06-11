@@ -12,7 +12,15 @@
       </div>
     </div>
     
-    <div v-if="loading" class="loading-text">Caricamento badge...</div>
+    <div v-if="loading" class="loading-text">
+      <span class="spinner"></span> Caricamento badge...
+    </div>
+    
+    <div v-if="loading && !badgesData" class="skeleton-container">
+      <div class="skeleton skeleton-card" style="height: 120px; margin-bottom: 15px;"></div>
+      <div class="skeleton skeleton-text" style="width: 70%;"></div>
+      <div class="skeleton skeleton-text" style="width: 50%;"></div>
+    </div>
     
     <div v-if="badgesData" class="badges-container">
       <div class="badges-stats">

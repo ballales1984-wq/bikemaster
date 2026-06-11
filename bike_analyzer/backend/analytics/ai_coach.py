@@ -362,14 +362,17 @@ def _generate_fallback_recovery_advice(
     athlete: AthleteProfile, rides: list[Ride], recovery_score: float = 5.0
 ) -> str:
     kb = search_knowledge_base("recupero sonno idratazione stretching", max_chunks=3)
-    format_context_for_llm(kb) if kb else ""
-    base = "**1. Sonno** Dormi 7-9 ore per notte per ottimale recupero\n**2. Idratazione** Bevi 500ml d'acqua per ogni ora di allenamento"
-    result = (
-        f"{base}\n**3. Stretching** 10-15 min di stretching post-allenamento per flessibilita e prevenzione infortuni"
-        if recovery_score < 5
-        else f"{base}\n**3. Alimentazione** Consumate carboidrati e proteine nella ratio 3:1 entro 30 min dal termine"
-    )
-    return f"{_FALLBACK_PREFIX}{result}"
+    context = format_context_for_llm(kb) if kb else ""
+    if context:
+        advice = f"{context}\n\n**3. Consigli pratici** Applica questi principi di recupero nel tuo routine quotidiana"
+    else:
+        base = "**1. Sonno** Dormi 7-9 ore per notte per ottimale recupero\n**2. Idratazione** Bevi 500ml d'acqua per ogni ora di allenamento"
+        advice = (
+            f"{base}\n**3. Stretching** 10-15 min di stretching post-allenamento per flessibilita e prevenzione infortuni"
+            if recovery_score < 5
+            else f"{base}\n**3. Alimentazione** Consumate carboidrati e proteine nella ratio 3:1 entro 30 min dal termine"
+        )
+    return f"{_FALLBACK_PREFIX}{advice}"
 
 
 generate_recovery_recommendations = generate_recovery_advice

@@ -76,7 +76,6 @@ async function save() {
     const result = await apiPost("/api/v1/athletes", form.value)
     athleteId.value = result.id
   }
-  alert("Profilo salvato!")
 }
 
 onMounted(() => {

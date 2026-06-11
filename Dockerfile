@@ -2,7 +2,7 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app
 COPY frontend/package.json ./frontend/
 COPY frontend/ ./frontend/
-RUN cd frontend && npm install && npm run build
+RUN cd frontend && npm install --legacy-peer-deps --no-audit --no-fund && npm run build
 
 FROM python:3.11-slim
 WORKDIR /app

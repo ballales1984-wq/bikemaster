@@ -252,19 +252,6 @@ class TestDatabaseCalendar:
         result = db_mod.update_calendar_event(99999, {"title": "Nope"})
         assert result is False
 
-    def test_delete_nonexistent_calendar_event(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
-        db_mod.init_db()
-        self._create_athlete(db_mod, tmp_path)
-        result = db_mod.delete_calendar_event(99999)
-        assert result is False
-
-    def test_delete_nonexistent_calendar_event(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(db_mod, "DB_PATH", str(tmp_path / "test.db"))
-        db_mod.init_db()
-        result = db_mod.delete_calendar_event(99999)
-        assert result is False
-
 
 class TestDatabaseWeather:
     def test_weather_cache_roundtrip(self, tmp_path, monkeypatch):

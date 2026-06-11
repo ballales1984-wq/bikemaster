@@ -65,7 +65,7 @@
             </span>
             <span class="event-actions">
               <button class="btn btn-secondary btn-xs" @click="openEdit(ev)">Modifica</button>
-              <button class="btn btn-danger btn-xs" @click="deleteEvent(ev.id)">Elimina</button>
+              <button class="btn btn-danger btn-xs" @click="askDeleteEvent(ev.id)">Elimina</button>
             </span>
           </li>
         </ul>
@@ -138,12 +138,21 @@
             <p class="weather-advice">{{ weatherForecast.advice }}</p>
           </div>
         </div>
+        <div v-if="calendarError" class="error-text">{{ calendarError }}</div>
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Salva</button>
           <button type="button" class="btn btn-secondary" @click="showForm = false">Annulla</button>
         </div>
       </form>
     </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      title="Elimina Evento"
+      :message="`Sei sicuro di voler eliminare l'evento '${deleteTargetTitle}'?`"
+      confirm-label="Elimina"
+      cancel-label="Annulla"
+      @confirm="handleDelete"
+    />
   </section>
 </template>
 
@@ -184,6 +193,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api.js'
+import ConfirmModal from './ConfirmModal.vue'
 
 const athleteId = ref(1)
 const athletes = ref([])
@@ -191,9 +201,13 @@ const currentYear = ref(new Date().getFullYear())
 const currentMonth = ref(new Date().getMonth())
 const events = ref([])
 const showForm = ref(false)
+const showDeleteModal = ref(false)
+const deleteTargetId = ref(null)
+const deleteTargetTitle = ref('')
 const editingEvent = ref(null)
 const form = ref({ title: '', event_type: 'training', date: '', duration_minutes: 0, description: '', completed: false })
 const athleteGoals = ref('')
+const calendarError = ref('')
 
 const weekDays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
 
@@ -350,18 +364,28 @@ async function saveEvent() {
     loadEvents()
     loadGoals()
   } catch (e) {
-    alert('Errore: ' + (e.message || e))
+    calendarError = e.message || 'Errore nel salvataggio'
   }
 }
 
-async function deleteEvent(id) {
-  if (!confirm('Eliminare questo evento?')) return
+async function handleDelete() {
+  if (!deleteTargetId.value) return
   try {
-    await apiDelete(`/api/v1/calendar/events/${id}`)
+    await apiDelete(`/api/v1/calendar/events/${deleteTargetId.value}`)
     loadEvents()
   } catch (e) {
-    alert('Errore: ' + (e.message || e))
+    calendarError = e.message || 'Errore nell\'eliminazione'
+  } finally {
+    deleteTargetId.value = null
+    deleteTargetTitle.value = ''
   }
+}
+
+function askDeleteEvent(id) {
+  const ev = events.value.find(e => e.id === id)
+  deleteTargetId.value = id
+  deleteTargetTitle.value = ev ? ev.title : ''
+  showDeleteModal.value = true
 }
 
 async function toggleComplete(ev) {
@@ -369,7 +393,7 @@ async function toggleComplete(ev) {
      await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {})
      loadEvents()
    } catch (e) {
-     alert('Errore: ' + (e.message || e))
+     calendarError = e.message || 'Errore nel completamento'
    }
 }
 

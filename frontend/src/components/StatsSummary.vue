@@ -20,6 +20,10 @@
       <div class="stat-value">{{ hoursFromMin }}</div>
       <div class="stat-label">Ore Totali</div>
     </div>
+    <button class="stat-card stat-refresh" @click="$emit('refresh')" :disabled="loading" :aria-label="loading ? 'Aggiornamento in corso' : 'Aggiorna statistiche'">
+      <span :class="{ spinner: loading }">{{ loading ? '' : '🔄' }}</span>
+      <div class="stat-label">{{ loading ? 'Aggiorno...' : 'Aggiorna' }}</div>
+    </button>
   </div>
 </template>
 
@@ -28,7 +32,10 @@ import { computed } from 'vue'
 
 const props = defineProps({
   stats: { type: Object, default: null },
+  loading: { type: Boolean, default: false },
 })
+
+defineEmits(['refresh'])
 
 function formatValue(v, decimals = 1) {
   if (v == null || isNaN(v)) return '0'

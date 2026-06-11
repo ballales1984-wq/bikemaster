@@ -260,19 +260,17 @@ def get_all_rides() -> list[dict]:
 def get_paginated_rides(
     page: int = 1, page_size: int = 20, sort: str = "date"
 ) -> tuple[list[dict], int]:
+    """Get paginated rides with safe ORDER BY whitelist."""
+    order_map = {"date": "date", "distance": "distance_km", "duration": "duration_minutes"}
+    order_col = order_map.get(sort, "date")
+    if order_col not in order_map.values():
+        raise ValueError(f"Invalid sort column: {sort}")
+    offset = (page - 1) * page_size
     with get_db_connection() as conn:
         cur = conn.cursor()
-        order_map = {"date": "date", "distance": "distance_km", "duration": "duration_minutes"}
-        order_col = order_map.get(sort, "date")
-        if order_col not in order_map.values():
-            raise ValueError(f"Invalid sort column: {sort}")
-        offset = (page - 1) * page_size
         cur.execute("SELECT COUNT(*) FROM rides")
         total = cur.fetchone()[0]
-        cur.execute(
-            "SELECT * FROM rides ORDER BY ? DESC LIMIT ? OFFSET ?",
-            (order_col, page_size, offset),
-        )
+        cur.execute(f"SELECT * FROM rides ORDER BY {order_col} DESC LIMIT ? OFFSET ?", (page_size, offset))
         rows = cur.fetchall()
         return [_row_to_ride(r) for r in rows], total
 
@@ -351,18 +349,16 @@ def _row_to_athlete(row) -> dict:
     """Convert athlete row to dict with dynamic column mapping."""
     if row is None:
         return None
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("PRAGMA table_info(athletes)")
-        columns = [c[1] for c in cur.fetchall()]
+    columns = ["id", "name", "age", "weight_kg", "height_cm", "fat_percentage",
+               "years_active", "weekly_sessions", "monthly_hours", "annual_hours",
+               "experience_level", "goals", "preferred_terrain", "weekly_volume_km",
+               "best_segments", "medical_notes", "equipment", "ftp_watts", "password_hash", "created_at"]
     return {col: row[i] if i < len(row) else None for i, col in enumerate(columns)}
 
 
 def get_athlete(athlete_id: int) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("PRAGMA table_info(athletes)")
-        [row[1] for row in cur.fetchall()]
         cur.execute("SELECT * FROM athletes WHERE id = ?", (athlete_id,))
         row = cur.fetchone()
         if row:

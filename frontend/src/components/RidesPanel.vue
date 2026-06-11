@@ -22,28 +22,46 @@
         <p v-if="addError" class="error-text">{{ addError }}</p>
       </div>
       <p v-if="loading" class="loading-text">Caricamento...</p>
+      <div v-else-if="rides.length === 0" class="empty-state">
+        <div class="empty-icon">🏍️</div>
+        <div class="empty-title">Nessuna ride registrata</div>
+        <div class="empty-desc">Aggiungi la tua prima ride per iniziare a tracciare le tue performance.</div>
+      </div>
       <div v-else class="rides-list">
         <div class="ride-item" v-for="ride in rides" :key="ride.id">
           <div>
             <div class="ride-date">{{ ride.date }}</div>
             <div class="ride-stats">{{ ride.distance_km }}km • {{ ride.duration_minutes }}min • {{ ride.avg_speed_kmh }} km/h</div>
           </div>
-          <button class="btn btn-danger btn-sm" @click="handleDelete(ride.id)">Elimina</button>
+          <button class="btn btn-danger btn-sm" @click="askDelete(ride.id)">Elimina</button>
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      v-model="showDeleteModal"
+      title="Elimina Ride"
+      :message="`Sei sicuro di voler eliminare la ride del ${deleteTargetDate}?`"
+      confirm-label="Elimina"
+      cancel-label="Annulla"
+      @confirm="handleDelete"
+    />
   </section>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { apiGet, apiDelete, apiPost } from '../utils/api.js'
+import ConfirmModal from './ConfirmModal.vue'
 
 const loading = ref(true)
 const adding = ref(false)
 const addError = ref('')
 const rides = ref([])
 const form = ref({ date: '', distance_km: '', duration_minutes: '', avg_speed_kmh: '', elevation_gain_m: '', calories: '' })
+const showDeleteModal = ref(false)
+const deleteTargetId = ref(null)
+const deleteTargetDate = ref('')
 
 async function load() {
   loading.value = true
@@ -77,10 +95,24 @@ async function handleAdd() {
   }
 }
 
-async function handleDelete(id) {
-  if (!confirm('Eliminare questa ride?')) return
-  await apiDelete(`/api/v1/rides/${id}`)
-  rides.value = rides.value.filter(r => r.id !== id)
+function askDelete(id) {
+  deleteTargetId.value = id
+  const ride = rides.value.find(r => r.id === id)
+  deleteTargetDate.value = ride ? ride.date : ''
+  showDeleteModal.value = true
+}
+
+async function handleDelete() {
+  if (!deleteTargetId.value) return
+  try {
+    await apiDelete(`/api/v1/rides/${deleteTargetId.value}`)
+    rides.value = rides.value.filter(r => r.id !== deleteTargetId.value)
+  } catch (e) {
+    console.error('delete failed', e)
+  } finally {
+    deleteTargetId.value = null
+    deleteTargetDate.value = ''
+  }
 }
 
 onMounted(() => {

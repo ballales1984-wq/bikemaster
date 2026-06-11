@@ -12,7 +12,9 @@
       </div>
     </div>
     
-    <div v-if="loading" class="loading-text">Caricamento heatmap...</div>
+    <div v-if="loading && !heatmapData" class="loading-text">
+      <span class="spinner"></span> Caricamento heatmap...
+    </div>
     
     <div v-if="heatmapData && heatmapData.points && heatmapData.points.length" class="heatmap-container">
       <div id="leaflet-heatmap" class="heatmap-map"></div>
