@@ -110,11 +110,34 @@ def create_app() -> FastAPI:
             async def ceo_dashboard():
                 return CEO_FILE.read_text(encoding="utf-8")
 
-    @app.get("/favicon.ico")
-    async def favicon():
-        return Response(
-            content='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#4ecca3"/><text x="50" y="55" font-size="40" text-anchor="middle">🚴</text></svg>',
-            media_type="image/svg+xml",
-        )
+        @app.get("/sw.js")
+        async def service_worker():
+            sw = STATIC_DIR / "sw.js"
+            if sw.exists():
+                return Response(content=sw.read_text(encoding="utf-8"), media_type="application/javascript")
+            return Response(status_code=404)
+
+        @app.get("/pwa-192x192.png")
+        async def pwa_icon_192():
+            icon = STATIC_DIR / "pwa-192x192.png"
+            if icon.exists():
+                return Response(content=icon.read_bytes(), media_type="image/png")
+            return Response(status_code=404)
+
+        @app.get("/pwa-512x512.png")
+        async def pwa_icon_512():
+            icon = STATIC_DIR / "pwa-512x512.png"
+            if icon.exists():
+                return Response(content=icon.read_bytes(), media_type="image/png")
+            return Response(status_code=404)
+
+        @app.get("/favicon.ico")
+        async def favicon():
+            return Response(
+                content='<svg xmlns="http://www.w3.org/2000/svg" '
+                        'viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#4ecca3"/>'
+                        '<text x="50" y="55" font-size="40" text-anchor="middle">🚴</text></svg>',
+                media_type="image/svg+xml",
+            )
 
     return app

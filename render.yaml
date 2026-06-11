@@ -9,6 +9,8 @@ services:
         value: "8000"
       - key: SECRET_KEY
         generateValue: true
+      - key: GROQ_API_KEY
+        sync: false  # Set via Render dashboard
       - key: PYTHON_VERSION
         value: "3.11"
       - key: DATABASE_URL
