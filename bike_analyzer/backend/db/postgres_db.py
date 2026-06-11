@@ -18,7 +18,7 @@ try:
         Text,
         create_engine,
     )
-    from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
+    from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
     SQLALCHEMY_AVAILABLE = True
 except ImportError:

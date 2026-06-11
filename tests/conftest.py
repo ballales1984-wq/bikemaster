@@ -50,6 +50,22 @@ def client(db_path):
 
 
 @pytest.fixture
+def unauthenticated_client(db_path):
+    """TestClient without default auth headers."""
+    import bike_analyzer.backend.config as cfg_mod
+    from bike_analyzer.backend.db import database as db_mod
+
+    os.environ["DB_PATH"] = db_path
+    cfg_mod.DB_PATH = db_path
+    db_mod.DB_PATH = db_path
+    db_mod.init_db()
+    from bike_analyzer.backend.api.app_factory import create_app
+
+    app = create_app()
+    return TestClient(app)
+
+
+@pytest.fixture
 def tmp_db(tmp_path):
     p = str(tmp_path / "test.db")
     os.environ["DB_PATH"] = p

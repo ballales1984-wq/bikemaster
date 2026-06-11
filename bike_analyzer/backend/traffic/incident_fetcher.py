@@ -21,6 +21,7 @@ Each fetcher returns a normalized list of incidents:
 from __future__ import annotations
 
 import json
+import math
 import os
 from datetime import UTC, datetime
 from typing import Any
@@ -140,7 +141,7 @@ def fetch_incidents_by_bbox(
     center_lon = (west + east) / 2
     avg_lat = (south + north) / 2
     dist_deg = 111.32
-    dist_lon_deg = 111.32 * cos(avg_lat * 3.14159 / 180)
+    dist_lon_deg = 111.32 * math.cos(avg_lat * 3.14159 / 180)
     radius_km = max(
         (north - south) * dist_deg / 2,
         (east - west) * dist_lon_deg / 2,

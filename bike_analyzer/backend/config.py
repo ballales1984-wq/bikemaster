@@ -19,23 +19,22 @@ _s = get_settings()
 
 # Security hardening per SECRET_KEY
 _ENV = os.getenv("ENVIRONMENT", "development")
-_IS_PROD = _ENV.lower() in ("production", "prod", "staging", "staging")
+_IS_PROD = _ENV.lower() in ("production", "prod", "staging")
 
 if not _s.secret_key:
     if _IS_PROD:
         logging.error("SECRET_KEY è obbligatoria in produzione. Impostala nel .env.")
         sys.exit(1)
-    else:
-        import secrets as _secrets
-
-        _fallback = _secrets.token_urlsafe(32)
-        logging.warning(
-            "SECRET_KEY non configurata. Generated temporary key (dev only): %s...", _fallback[:8]
-        )
-        _s.secret_key = _fallback
+    import secrets as _secrets
+    _SECRET_KEY = _secrets.token_urlsafe(32)
+    logging.warning(
+        "SECRET_KEY non configurata. Generated temporary key (dev only): %s...", _SECRET_KEY[:8]
+    )
+else:
+    _SECRET_KEY = _s.secret_key
 
 # SECRET_KEY rotation support
-_SECRET_KEY_PRIMARY = _s.secret_key
+_SECRET_KEY_PRIMARY = _SECRET_KEY
 _SECRET_KEY_PREVIOUS = os.getenv("SECRET_KEY_PREVIOUS", "")
 
 DB_PATH = _s.db_path
@@ -56,7 +55,7 @@ GROQ_API_KEY = _s.groq_api_key
 GROQ_MODEL = _s.groq_model
 OPENAI_API_KEY = _s.openai_api_key
 OPENAI_MODEL = _s.openai_model
-SECRET_KEY = _s.secret_key
+SECRET_KEY = _SECRET_KEY
 SECRET_KEY_PREVIOUS = _SECRET_KEY_PREVIOUS
 ALGORITHM = _s.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = _s.access_token_expire_minutes

@@ -34,6 +34,7 @@ dependencies = [
     "matplotlib>=3.8.0",
     "requests>=2.31.0",
     "groq>=0.4.0",
+    "openai>=1.0.0",
     "psycopg2-binary>=2.9.0",
     "python-jose[cryptography]>=3.3.0",
     "passlib>=1.7.4",
@@ -52,10 +53,14 @@ dev = [
 
 [tool.ruff]
 target-version = "py311"
-line-length = 100
+line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "C4", "SIM"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"bike_analyzer/frontend/dashboard.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"

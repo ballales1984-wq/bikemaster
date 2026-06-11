@@ -25,15 +25,28 @@ from typing import Any
 from ..models.models import GPSPoint, Ride, Segment, haversine_distance_m
 
 try:
-    from endurance_metrics.advanced import (
-        detect_overtraining_risk,
-        detect_training_peaks,
-    )
-    from endurance_metrics.decoupling import calculate_decoupling
-    from endurance_metrics.fitness import calculate_tsb
-    from endurance_metrics.workload import calculate_ramp_rate
+    import importlib.util as _ilu
 
-    ENDURANCE_METRICS_AVAILABLE = True
+    _available = all(
+        _ilu.find_spec(m) is not None
+        for m in (
+            "endurance_metrics.advanced",
+            "endurance_metrics.decoupling",
+            "endurance_metrics.fitness",
+            "endurance_metrics.workload",
+        )
+    )
+    if _available:
+        from endurance_metrics.advanced import (  # noqa: F401
+            detect_overtraining_risk,
+            detect_training_peaks,
+        )
+        from endurance_metrics.decoupling import calculate_decoupling  # noqa: F401
+        from endurance_metrics.fitness import calculate_tsb  # noqa: F401
+        from endurance_metrics.workload import calculate_ramp_rate  # noqa: F401
+        ENDURANCE_METRICS_AVAILABLE = True
+    else:
+        ENDURANCE_METRICS_AVAILABLE = False
 except ImportError:
     ENDURANCE_METRICS_AVAILABLE = False
 

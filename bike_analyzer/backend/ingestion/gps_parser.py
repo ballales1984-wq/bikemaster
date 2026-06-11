@@ -42,7 +42,7 @@ def parse_fit_file(file_path: str) -> list[dict]:
                     )
         return points
     except ImportError:
-        raise ImportError("fitparse not installed. Run: pip install fitparse")
+        raise ImportError("fitparse not installed. Run: pip install fitparse") from None
 
 
 def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float = 70.0) -> dict:

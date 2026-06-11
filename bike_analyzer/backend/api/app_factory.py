@@ -9,17 +9,14 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 
 from ..config import CORS_ORIGINS
+from ..rate_limiter import limiter
 from .routes import admin_router, router
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
-
-limiter = Limiter(key_func=get_remote_address)
-DEFAULT_LIMIT = "100/hour"
 
 
 @asynccontextmanager
@@ -55,7 +52,9 @@ def create_app() -> FastAPI:
                 "max-age=63072000; includeSubDomains; preload"
             )
             response.headers["Content-Security-Policy"] = (
-                "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'"
+                "default-src 'self'; img-src 'self' data: https:; "
+                "script-src 'self' 'unsafe-inline'; "
+                "style-src 'self' 'unsafe-inline'; connect-src 'self'"
             )
         return response
 

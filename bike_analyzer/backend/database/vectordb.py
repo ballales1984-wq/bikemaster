@@ -99,7 +99,7 @@ class VectorDB:
                 ORDER BY embedding <=> :q
                 LIMIT :limit
             """),
-                {"q": query_embedding, "min_sim": min_sim, "limit": top_k},
+                {"q": query_embedding, "min_similarity": min_similarity, "limit": top_k},
             )
             rows = result.fetchall()
             return [
