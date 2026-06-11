@@ -33,8 +33,8 @@ _fmt_int_pattern = re.compile(r"(?<!\d)(\d+)\.0(?!\d)")
 def _clean_ai_output(text: str) -> str:
     text = _fmt_int_pattern.sub(lambda m: m.group(1), text)
     text = _fmt_clean_pattern.sub(lambda m: m.group(1), text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    text = re.sub(r" +", " ", text)
+    text = re.sub(r"\n{2,}", "\n", text)
+    text = re.sub(r" {2,}", " ", text)
     return text.strip()
 
 
@@ -55,29 +55,39 @@ def get_ai_coach_client():
     global _current_client, _current_provider
     if _current_client:
         return _current_client, _current_provider
-    if GROQ_API_KEY and GROQ_API_KEY.startswith("gsk_"):
+
+    groq_ok = bool(GROQ_API_KEY and GROQ_API_KEY.startswith("gsk_"))
+    openai_ok = bool(OPENAI_API_KEY and OPENAI_API_KEY.startswith("sk-"))
+
+    if groq_ok:
         try:
             from groq import Groq
 
             _current_client = Groq(api_key=GROQ_API_KEY)
             _current_provider = "groq"
+            print(f"AI Coach: Groq client initialized (model={GROQ_MODEL})")
             return _current_client, _current_provider
         except Exception as e:
-            print(f"Groq init error: {e}")
+            print(f"AI Coach: Groq init error: {type(e).__name__}: {e}")
             _current_client = None
             _current_provider = None
-    if OPENAI_API_KEY and OPENAI_API_KEY.startswith("sk-"):
+
+    if openai_ok:
         try:
             from openai import OpenAI
 
             _current_client = OpenAI(api_key=OPENAI_API_KEY)
             _current_provider = "openai"
+            print(f"AI Coach: OpenAI client initialized (model={OPENAI_MODEL})")
             return _current_client, _current_provider
         except Exception as e:
-            print(f"OpenAI init error: {e}")
+            print(f"AI Coach: OpenAI init error: {type(e).__name__}: {e}")
             _current_client = None
             _current_provider = None
-    raise ValueError("Nessuna API key valida configurata (GROQ o OPENAI)")
+
+    msg = "AI Coach: no valid API key (GROQ=gsk_..., OPENAI=sk-...)"
+    print(msg)
+    raise ValueError(msg)
 
 
 def _build_athlete_context(athlete: AthleteProfile) -> str:
