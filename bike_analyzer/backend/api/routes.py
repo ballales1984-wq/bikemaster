@@ -510,36 +510,51 @@ async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current
 async def create_athlete(
     athlete_data: AthleteCreate, current_user: dict | None = Depends(get_optional_current_user)
 ):
-    """Create or get athlete profile. One athlete per authenticated user."""
+    """Create or get athlete profile for authenticated user."""
+    from ..db.database import get_athlete as _get_athlete
     from ..db.database import get_athlete_by_name, save_athlete
 
     if not athlete_data.name or len(athlete_data.name) < 2:
         raise HTTPException(status_code=400, detail="Name richiesto (min 2 caratteri)")
+
+    # If authenticated, use current user's id and check if athlete exists
+    if current_user:
+        target_athlete_id = current_user["id"]
+        existing = _get_athlete(target_athlete_id)
+        if existing:
+            return {k: v for k, v in existing.items() if k != "password_hash"}
+
+    # Check if username already exists (for guests or when there's a name mismatch)
     existing = get_athlete_by_name(athlete_data.name)
     if existing:
-        return existing
+        return {k: v for k, v in existing.items() if k != "password_hash"}
+
     athlete_id = save_athlete(athlete_data.model_dump())
-    return {"id": int(athlete_id), **athlete_data.model_dump()}
+    return {k: v for k, v in {"id": int(athlete_id), **athlete_data.model_dump()}.items() if k != "password_hash"}
 
 
 @router.get("/athletes")
 async def list_athletes(current_user: dict = Depends(get_current_user)):
-    """List athletes - admin only or current user only."""
-    from ..db.database import get_all_athletes
+    """Get current user's athlete profile."""
+    from ..db.database import get_athlete as _get_athlete
 
-    athletes = get_all_athletes()
-    return {"athletes": athletes}
+    athlete = _get_athlete(current_user["id"])
+    if not athlete:
+        raise HTTPException(status_code=404, detail="Athlete profile not found")
+    return {k: v for k, v in athlete.items() if k != "password_hash"}
 
 
 @router.get("/athletes/{athlete_id}")
 async def get_athlete_endpoint(athlete_id: int, current_user: dict = Depends(get_current_user)):
-    """Get athlete - user can only see own profile unless admin."""
+    """Get athlete - user can only see own profile."""
     from ..db.database import get_athlete as _get_athlete
 
+    # Users can only see their own athlete profile (admin can see all)
+    if not current_user.get("is_admin") and athlete_id != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied to this athlete")
     athlete = _get_athlete(athlete_id)
     if not athlete:
         raise HTTPException(status_code=404, detail="Athlete not found")
-    # Users can only see their own athlete profile (id matches user id in single-user mode)
     return athlete
 
 
@@ -547,6 +562,9 @@ async def get_athlete_endpoint(athlete_id: int, current_user: dict = Depends(get
 async def add_metric(
     athlete_id: int, metric_data: MetricCreate, current_user: dict = Depends(get_current_user)
 ):
+    """Add metric - user can only add metrics to own profile."""
+    if not current_user.get("is_admin") and athlete_id != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied to this athlete")
     from ..db.database import save_metric
 
     metric_id = save_metric({"athlete_id": athlete_id, **metric_data.model_dump()})
@@ -559,6 +577,8 @@ async def update_athlete(
     athlete_data: AthleteUpdate,
     current_user: dict | None = Depends(get_optional_current_user),
 ):
+    if not current_user or (not current_user.get("is_admin") and athlete_id != current_user["id"]):
+        raise HTTPException(status_code=403, detail="Access denied to this athlete")
     from ..db.database import get_athlete as _get
     from ..db.database import update_athlete as _update
 
@@ -721,21 +741,17 @@ async def workout_recommendations(
     import traceback
 
     from ..analytics.ai_coach import generate_workout_recommendations
-    from ..db.database import get_athlete, get_db_connection, get_rides_by_athlete
+    from ..db.database import get_athlete, get_rides_by_athlete
     from ..models.models import AthleteProfile
 
     try:
+        # Resolve athlete_id: use provided, or use authenticated user's id
         resolved_id = athlete_id
-        if not resolved_id:
-            with get_db_connection() as conn:
-                cur = conn.cursor()
-                cur.execute("SELECT id FROM athletes ORDER BY id DESC LIMIT 1")
-                row = cur.fetchone()
-                resolved_id = row[0] if row else 0
-        if not resolved_id:
-            return {
-                "recommendations": "Create an athlete profile in the Dashboard to receive personalized recommendations."
-            }
+        if current_user and not resolved_id:
+            resolved_id = current_user["id"]
+        elif not resolved_id:
+            # For guests, require athlete_id parameter
+            return {"recommendations": "Provide athlete_id or authenticate to get recommendations."}
         rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
         athlete_data = get_athlete(resolved_id)
         if athlete_data:
@@ -829,13 +845,25 @@ async def recovery_recommendations(
     import traceback
 
     from ..analytics.ai_coach import generate_recovery_recommendations
-    from ..db.database import get_athlete, get_ride
+    from ..db.database import get_athlete, get_ride, get_rides_by_athlete
     from ..models.models import AthleteProfile, Ride
 
     try:
-        ride_obj = Ride(**get_ride(ride_id)) if ride_id else None
-        ride_data = get_ride(ride_id) if ride_id else None
-        athlete_data = get_athlete(ride_data.get("athlete_id")) if ride_data else None
+        ride_obj = None
+        athlete_data = None
+        if ride_id:
+            ride_data = get_ride(ride_id)
+            if ride_data:
+                # Check ownership for authenticated users
+                if current_user and ride_data.get("athlete_id") != current_user["id"]:
+                    raise HTTPException(status_code=403, detail="Access denied to this ride")
+                ride_obj = Ride(**ride_data)
+                athlete_data = get_athlete(ride_data.get("athlete_id"))
+        elif current_user:
+            # If no ride_id but authenticated, use user's most recent ride
+            rides = get_rides_by_athlete(current_user["id"])
+            if rides:
+                athlete_data = get_athlete(current_user["id"])
         if athlete_data:
             athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
@@ -843,6 +871,8 @@ async def recovery_recommendations(
             athlete, [ride_obj] if ride_obj else [], fatigue_score
         )
         return {"recommendations": result}
+    except HTTPException:
+        raise
     except Exception:
         traceback.print_exc()
         return {"recommendations": "AI Coach error. Please try again later."}
@@ -851,9 +881,10 @@ async def recovery_recommendations(
 @router.get("/coach/trends")
 async def historical_trends(current_user: dict | None = Depends(get_optional_current_user)):
     from ..analytics.ai_coach import analyze_historical_trends
-    from ..db.database import get_all_rides
+    from ..db.database import get_all_rides, get_rides_by_athlete
 
-    rides = [Ride(**r) for r in get_all_rides()]
+    resolved_id = current_user["id"] if current_user else 0
+    rides = [Ride(**r) for r in (get_rides_by_athlete(resolved_id) if resolved_id else get_all_rides())]
     return analyze_historical_trends(rides)
 
 
@@ -871,6 +902,9 @@ async def google_static_map(
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    # Check ownership for authenticated users
+    if current_user and ride.get("athlete_id") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied to this ride")
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points")
@@ -1411,43 +1445,48 @@ async def get_weather_forecast(
 
 @router.get("/analytics/trends")
 async def get_fitness_trends(
-    metric: str = Query("distance_km"), window: int = Query(7, ge=1, le=90)
+    metric: str = Query("distance_km"), window: int = Query(7, ge=1, le=90),
+    current_user: dict | None = Depends(get_optional_current_user)
 ):
-    """Get fitness trend analysis for all rides."""
+    """Get fitness trend analysis for athlete's rides."""
     from ..analytics.analytics_trends import calculate_fitness_trends
-    from ..db.database import get_all_rides
+    from ..db.database import get_all_rides, get_rides_by_athlete
 
-    rides = get_all_rides()
+    athlete_id = current_user["id"] if current_user else 0
+    rides = [Ride(**r) for r in (get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides())]
     return calculate_fitness_trends(rides, metric=metric, window=window)
 
 
 @router.get("/analytics/monthly")
-async def get_monthly_progression():
-    """Get monthly aggregated metrics."""
+async def get_monthly_progression(current_user: dict | None = Depends(get_optional_current_user)):
+    """Get monthly aggregated metrics for athlete's rides."""
     from ..analytics.analytics_trends import calculate_monthly_progression
-    from ..db.database import get_all_rides
+    from ..db.database import get_all_rides, get_rides_by_athlete
 
-    rides = get_all_rides()
+    athlete_id = current_user["id"] if current_user else 0
+    rides = get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides()
     return calculate_monthly_progression(rides)
 
 
 @router.get("/analytics/comparison")
-async def get_period_comparison(period_days: int = Query(7, ge=1, le=90)):
-    """Compare recent vs previous period."""
+async def get_period_comparison(period_days: int = Query(7, ge=1, le=90), current_user: dict | None = Depends(get_optional_current_user)):
+    """Compare recent vs previous period for athlete's rides."""
     from ..analytics.analytics_trends import calculate_period_comparison
-    from ..db.database import get_all_rides
+    from ..db.database import get_all_rides, get_rides_by_athlete
 
-    rides = get_all_rides()
+    athlete_id = current_user["id"] if current_user else 0
+    rides = get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides()
     return calculate_period_comparison(rides, period_days=period_days)
 
 
 @router.get("/analytics/projection")
-async def get_volume_projection(target_days: int = Query(30, ge=1, le=365)):
-    """Project future training volume based on historical trend."""
+async def get_volume_projection(target_days: int = Query(30, ge=1, le=365), current_user: dict | None = Depends(get_optional_current_user)):
+    """Project future training volume based on historical trend for athlete's rides."""
     from ..analytics.analytics_trends import calculate_training_volume_projection
-    from ..db.database import get_all_rides
+    from ..db.database import get_all_rides, get_rides_by_athlete
 
-    rides = get_all_rides()
+    athlete_id = current_user["id"] if current_user else 0
+    rides = get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides()
     return calculate_training_volume_projection(rides, target_days=target_days)
 
 
@@ -1458,8 +1497,10 @@ async def get_heatmap(
     """Get heatmap data from all GPS points for an athlete."""
     from ..db.database import get_all_rides, get_rides_by_athlete
 
+    # Determine which athlete_id to use
+    target_id = athlete_id or (current_user["id"] if current_user else 0)
     rides = [
-        Ride(**r) for r in (get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides())
+        Ride(**r) for r in (get_rides_by_athlete(target_id) if target_id else get_all_rides())
     ]
     rides_dict = [r.to_dict() for r in rides]
     data = get_heatmap_points(rides_dict)
@@ -1473,6 +1514,9 @@ async def get_badges(
     """Get badge achievements for an athlete."""
     from ..db.database import get_athlete, get_rides_by_athlete
 
+    # Check ownership for authenticated users
+    if current_user and athlete_id != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied to this athlete")
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     athlete = get_athlete(athlete_id)
     badges = calculate_badges(athlete_id, [r.to_dict() for r in rides], athlete)

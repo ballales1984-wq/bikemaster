@@ -199,7 +199,9 @@ def save_ride(ride: dict) -> int:
         cur = conn.cursor()
         gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
         cur.execute(
-            """INSERT INTO rides (athlete_id, date, distance_km, duration_minutes, avg_speed_kmh, weight_kg, calories, heart_rate_avg, elevation_gain_m, gps_points, created_at)
+            """INSERT INTO rides
+            (athlete_id, date, distance_km, duration_minutes, avg_speed_kmh,
+             weight_kg, calories, heart_rate_avg, elevation_gain_m, gps_points, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 ride.get("athlete_id"),
@@ -237,17 +239,6 @@ def get_rides_by_athlete(athlete_id: int) -> list[dict]:
         return [_row_to_ride(r) for r in rows]
 
 
-def _row_to_athlete(row) -> dict:
-    """Convert athlete row to dict with dynamic column mapping."""
-    if row is None:
-        return None
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("PRAGMA table_info(athletes)")
-        columns = [c[1] for c in cur.fetchall()]
-    return {col: row[i] if i < len(row) else None for i, col in enumerate(columns)}
-
-
 def get_athlete_by_name(name: str) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -272,13 +263,15 @@ def get_paginated_rides(
     with get_db_connection() as conn:
         cur = conn.cursor()
         order_map = {"date": "date", "distance": "distance_km", "duration": "duration_minutes"}
-        order = order_map.get(sort, "date")
-        assert order in {"date", "distance_km", "duration_minutes"}, f"Invalid sort column: {order}"
+        order_col = order_map.get(sort, "date")
+        if order_col not in order_map.values():
+            raise ValueError(f"Invalid sort column: {sort}")
+        offset = (page - 1) * page_size
         cur.execute("SELECT COUNT(*) FROM rides")
         total = cur.fetchone()[0]
-        offset = (page - 1) * page_size
         cur.execute(
-            "SELECT * FROM rides ORDER BY " + order + " DESC LIMIT ? OFFSET ?", (page_size, offset)
+            "SELECT * FROM rides ORDER BY ? DESC LIMIT ? OFFSET ?",
+            (order_col, page_size, offset),
         )
         rows = cur.fetchall()
         return [_row_to_ride(r) for r in rows], total
@@ -298,7 +291,9 @@ def update_ride(ride_id: int, ride: dict) -> bool:
         cur = conn.cursor()
         gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
         cur.execute(
-            """UPDATE rides SET athlete_id=?, date=?, distance_km=?, duration_minutes=?, avg_speed_kmh=?, weight_kg=?, calories=?, heart_rate_avg=?, elevation_gain_m=?, gps_points=? WHERE id=?""",
+            """UPDATE rides SET athlete_id=?, date=?, distance_km=?, duration_minutes=?,
+            avg_speed_kmh=?, weight_kg=?, calories=?, heart_rate_avg=?,
+            elevation_gain_m=?, gps_points=? WHERE id=?""",
             (
                 ride.get("athlete_id"),
                 ride.get("date"),
@@ -321,7 +316,10 @@ def save_athlete(athlete: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage, years_active, weekly_sessions, monthly_hours, annual_hours, experience_level, goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes, equipment, ftp_watts, password_hash, created_at)
+            """INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage,
+            years_active, weekly_sessions, monthly_hours, annual_hours, experience_level,
+            goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes,
+            equipment, ftp_watts, password_hash, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 athlete.get("name"),
@@ -376,7 +374,9 @@ def save_metric(metric: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO metrics (athlete_id, ride_id, fatigue_score, recovery_hours, calories_per_km, efficiency_score, created_at)
+            """INSERT INTO metrics
+            (athlete_id, ride_id, fatigue_score, recovery_hours, calories_per_km,
+             efficiency_score, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 metric.get("athlete_id"),
@@ -400,7 +400,11 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?, fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?, annual_hours=?, experience_level=?, goals=?, preferred_terrain=?, weekly_volume_km=?, best_segments=?, medical_notes=?, equipment=?, ftp_watts=?, password_hash=? WHERE id=?""",
+            """UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?,
+            fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?,
+            annual_hours=?, experience_level=?, goals=?, preferred_terrain=?,
+            weekly_volume_km=?, best_segments=?, medical_notes=?, equipment=?,
+            ftp_watts=?, password_hash=? WHERE id=?""",
             (
                 merged.get("name"),
                 merged.get("age", 30),
@@ -480,18 +484,6 @@ def clear_chat_history(athlete_id: int) -> bool:
         conn.commit()
         return cur.rowcount > 0
 
-
-def get_athlete_by_name(name: str) -> dict | None:
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM athletes WHERE name = ?", (name,))
-        row = cur.fetchone()
-        if row:
-            columns = [desc[0] for desc in cur.description]
-            return dict(zip(columns, row, strict=False))
-        return None
-
-
 def get_all_athletes() -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -517,7 +509,9 @@ def save_calendar_event(event: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO calendar_events (athlete_id, title, event_type, date, duration_minutes, description, completed, weather_temp, weather_humidity, weather_description, created_at)
+            """INSERT INTO calendar_events
+            (athlete_id, title, event_type, date, duration_minutes, description,
+             completed, weather_temp, weather_humidity, weather_description, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 event.get("athlete_id"),

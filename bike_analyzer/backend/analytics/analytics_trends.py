@@ -434,7 +434,6 @@ def calculate_training_volume_projection(rides: list, target_days: int = 30) -> 
 
     avg_daily_dist = total_dist / days_span if days_span > 0 else 0
     avg_daily_dur = total_dur / days_span if days_span > 0 else 0
-    total_dist / len(valid) if valid else 0
     avg_ride_dur = (total_dur * 60) / len(valid) if valid else 0
 
     proj_dist = avg_daily_dist * target_days

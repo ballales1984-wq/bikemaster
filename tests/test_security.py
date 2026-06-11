@@ -230,3 +230,70 @@ def test_protected_route_with_valid_token(client):
     token = login_resp.json()["access_token"]
     response = client.get("/api/v1/rides", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
+
+
+def test_athletes_endpoint_requires_ownership(client):
+    """Test that /athletes/{id} endpoint enforces ownership."""
+    client.post("/api/v1/auth/register", json={"username": "user1", "password": "testpass123"})
+    client.post("/api/v1/auth/register", json={"username": "user2", "password": "testpass123"})
+    login1 = client.post(
+        "/api/v1/auth/login", data={"username": "user1", "password": "testpass123"}
+    )
+    token1 = login1.json()["access_token"]
+    login2 = client.post(
+        "/api/v1/auth/login", data={"username": "user2", "password": "testpass123"}
+    )
+    token2 = login2.json()["access_token"]
+
+    # Create athlete for user1
+    client.post(
+        "/api/v1/athletes",
+        json={"name": "Alice", "age": 30, "weight_kg": 70.0},
+        headers={"Authorization": f"Bearer {token1}"},
+    )
+
+    # Get user1's athlete id
+    resp1 = client.get("/api/v1/athletes", headers={"Authorization": f"Bearer {token1}"})
+    assert resp1.status_code == 200
+    user1_id = resp1.json()["id"]
+
+    # User2 cannot access user1's athlete profile
+    resp2 = client.get(
+        f"/api/v1/athletes/{user1_id}", headers={"Authorization": f"Bearer {token2}"}
+    )
+    assert resp2.status_code == 403
+
+
+def test_rides_endpoint_isolation(client):
+    """Test that rides are isolated between users."""
+    # Register user1
+    client.post("/api/v1/auth/register", json={"username": "iso_user1", "password": "testpass123"})
+    login1 = client.post(
+        "/api/v1/auth/login", data={"username": "iso_user1", "password": "testpass123"}
+    )
+    token1 = login1.json()["access_token"]
+
+    # Create a ride for user1
+    ride_data = {
+        "date": "2024-06-01",
+        "distance_km": 25.0,
+        "duration_minutes": 60,
+        "avg_speed_kmh": 25.0,
+    }
+    client.post(
+        "/api/v1/rides",
+        json=ride_data,
+        headers={"Authorization": f"Bearer {token1}"}
+    )
+
+    # Register user2
+    client.post("/api/v1/auth/register", json={"username": "iso_user2", "password": "testpass123"})
+    login2 = client.post(
+        "/api/v1/auth/login", data={"username": "iso_user2", "password": "testpass123"}
+    )
+    token2 = login2.json()["access_token"]
+
+    # User2 should not see user1's rides
+    resp = client.get("/api/v1/rides", headers={"Authorization": f"Bearer {token2}"})
+    assert resp.status_code == 200
+    assert resp.json()["rides"] == []

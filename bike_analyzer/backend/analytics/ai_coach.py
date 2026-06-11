@@ -10,7 +10,7 @@ from datetime import UTC
 
 from ..config import GROQ_API_KEY, GROQ_MODEL, OPENAI_API_KEY, OPENAI_MODEL
 from ..models.models import AthleteProfile, Ride
-from .analytics import calculate_summary
+from .analytics import calculate_summary, create_duration_chart, create_speed_chart
 from .knowledge_base import format_context_for_llm, search_knowledge_base
 from .performance import calculate_performance_score, calculate_recovery_score
 
@@ -330,12 +330,22 @@ _FALLBACK_PREFIX = "(Servizio AI temporaneamente non disponibile - consiglio bas
 
 def _generate_fallback_training_advice(athlete: AthleteProfile, rides: list[Ride]) -> str:
     kb = search_knowledge_base("allenamento base periodizzazione", max_chunks=3)
-    (
-        format_context_for_llm(kb)
-        if kb
-        else "**1. Allenamento Base** Fai 80% delle tue uscite a bassa intensita (Zona 2) per sviluppare l'aerobico"
-    )
-    return f"{_FALLBACK_PREFIX}**1. Allenamento Base** Fai 80% delle tue uscite a bassa intensita (Zona 2) per sviluppare l'aerobico\n**2. Progressione** Aumenta il volume settimanale di massimo 10% a settimana per evitare sovrallenamento\n**3. Recupero** Inserisci 1-2 giorni di riposo completo a settimana"
+    if kb:
+        context = format_context_for_llm(kb)
+        advice = (
+            f"{context}\n\n**3. Progressivo** Aumenta il volume settimanale "
+            f"di massimo 10% a settimana per evitare sovrallenamento\n"
+            f"**4. Recupero** Inserisci 1-2 giorni di riposo completo a settimana"
+        )
+    else:
+        advice = (
+            "**1. Allenamento Base** Fai 80% delle tue uscite a bassa intensita "
+            "(Zona 2) per sviluppare l'aerobico\n"
+            "**2. Progressione** Aumenta il volume settimanale di massimo 10% a "
+            "settimana per evitare sovrallenamento\n"
+            "**3. Recupero** Inserisci 1-2 giorni di riposo completo a settimana"
+        )
+    return f"{_FALLBACK_PREFIX}{advice}"
 
 
 def _generate_fallback_recovery_advice(
