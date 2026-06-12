@@ -11,6 +11,8 @@ services:
         generateValue: true
       - key: GROQ_API_KEY
         sync: false  # Set via Render dashboard
+      - key: AI_COACH_MODE
+        value: local
       - key: PYTHON_VERSION
         value: "3.11"
       - key: DATABASE_URL

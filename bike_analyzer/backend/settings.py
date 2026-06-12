@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     kb_path: Path = Path(__file__).resolve().parent.parent.parent / "knowledge_base"
 
     # === AI Coach ===
-    ai_coach_mode: str = "auto"
+    ai_coach_mode: str = "local"
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
     openai_api_key: str = ""
