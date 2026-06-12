@@ -50,6 +50,20 @@ router = APIRouter()
 admin_router = APIRouter()
 
 
+def _user_id(current_user: dict) -> int:
+    return int(current_user["id"])
+
+
+def _ensure_athlete_access(athlete_id: int, current_user: dict) -> None:
+    if not current_user.get("is_admin") and int(athlete_id) != _user_id(current_user):
+        raise HTTPException(status_code=403, detail="Access denied to this athlete")
+
+
+def _ensure_ride_access(ride: dict, current_user: dict) -> None:
+    if not current_user.get("is_admin") and ride.get("athlete_id") != _user_id(current_user):
+        raise HTTPException(status_code=403, detail="Access denied to this ride")
+
+
 def _sse(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
 
@@ -179,9 +193,7 @@ async def get_ride(ride_id: int, current_user: dict = Depends(get_current_user))
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
-    # Security: only allow access to owned rides
-    if ride.get("athlete_id") != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Access denied to this ride")
+    _ensure_ride_access(ride, current_user)
     r = Ride(**ride)
     ride["fatigue_score"] = round(calculate_fatigue_score(r), 1)
     ride["calories_per_km"] = round(calories_per_km(r), 0) if r.distance_km else 0
@@ -195,8 +207,8 @@ async def delete_ride(ride_id: int, current_user: dict = Depends(get_current_use
     from ..db.database import get_ride as _get_ride
 
     ride = _get_ride(ride_id)
-    if ride and ride.get("athlete_id") != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Access denied to this ride")
+    if ride:
+        _ensure_ride_access(ride, current_user)
     if not _delete(ride_id):
         raise HTTPException(status_code=404, detail="Ride not found")
     return {"deleted": True}
@@ -257,13 +269,14 @@ async def analyze_single_ride(
 
 @router.post("/rides/{ride_id}/map")
 async def generate_ride_map(
-    ride_id: int, current_user: dict | None = Depends(get_optional_current_user)
+    ride_id: int, current_user: dict = Depends(get_current_user)
 ):
     from ..db.database import get_ride as _get_ride
 
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
@@ -336,10 +349,12 @@ async def health_detailed():
 
 @router.get("/coach/history")
 async def coach_chat_history(
-    athlete_id: int = Query(...), current_user: dict | None = Depends(get_optional_current_user)
+    athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)
 ):
     from ..db.database import get_chat_history
 
+    # Users can only see their own chat history (admin can see all)
+    _ensure_athlete_access(athlete_id, current_user)
     history = get_chat_history(athlete_id)
     return {"athlete_id": athlete_id, "history": history}
 
@@ -395,9 +410,9 @@ async def import_multiple(
 @router.get("/rides/export/json")
 async def export_json(current_user: dict = Depends(get_current_user)):
     from ..analytics.analytics import export_rides_json
-    from ..db.database import get_all_rides
+    from ..db.database import get_rides_by_athlete
 
-    rides = [Ride(**r) for r in get_all_rides()]
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
     path = export_rides_json(rides, "rides_export.json")
     from fastapi.responses import FileResponse
 
@@ -407,9 +422,9 @@ async def export_json(current_user: dict = Depends(get_current_user)):
 @router.get("/rides/export/csv")
 async def export_csv(current_user: dict = Depends(get_current_user)):
     from ..analytics.analytics import export_rides_csv
-    from ..db.database import get_all_rides
+    from ..db.database import get_rides_by_athlete
 
-    rides = [Ride(**r) for r in get_all_rides()]
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
     path = export_rides_csv(rides, "rides_export.csv")
     from fastapi.responses import FileResponse
 
@@ -424,6 +439,7 @@ async def get_ride_report(ride_id: int, current_user: dict = Depends(get_current
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
     return {"report": generate_text_report(Ride(**ride))}
 
 
@@ -435,6 +451,7 @@ async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_use
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points")
@@ -452,9 +469,9 @@ async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_use
 @router.get("/charts/duration")
 async def duration_chart(current_user: dict = Depends(get_current_user)):
     from ..analytics.analytics import create_duration_chart
-    from ..db.database import get_all_rides
+    from ..db.database import get_rides_by_athlete
 
-    rides = [Ride(**r) for r in get_all_rides()]
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
     path = "duration_chart.png"
     create_duration_chart(rides, path)
     from fastapi.responses import FileResponse
@@ -470,6 +487,7 @@ async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points")
@@ -492,6 +510,7 @@ async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points")
@@ -558,9 +577,7 @@ async def get_athlete_endpoint(athlete_id: int, current_user: dict = Depends(get
     """Get athlete - user can only see own profile."""
     from ..db.database import get_athlete as _get_athlete
 
-    # Users can only see their own athlete profile (admin can see all)
-    if not current_user.get("is_admin") and athlete_id != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Access denied to this athlete")
+    _ensure_athlete_access(athlete_id, current_user)
     athlete = _get_athlete(athlete_id)
     if not athlete:
         raise HTTPException(status_code=404, detail="Athlete not found")
@@ -572,8 +589,7 @@ async def add_metric(
     athlete_id: int, metric_data: MetricCreate, current_user: dict = Depends(get_current_user)
 ):
     """Add metric - user can only add metrics to own profile."""
-    if not current_user.get("is_admin") and athlete_id != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Access denied to this athlete")
+    _ensure_athlete_access(athlete_id, current_user)
     from ..db.database import save_metric
 
     metric_id = save_metric({"athlete_id": athlete_id, **metric_data.model_dump()})
@@ -584,10 +600,9 @@ async def add_metric(
 async def update_athlete(
     athlete_id: int,
     athlete_data: AthleteUpdate,
-    current_user: dict | None = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
-    if not current_user or (not current_user.get("is_admin") and athlete_id != current_user["id"]):
-        raise HTTPException(status_code=403, detail="Access denied to this athlete")
+    _ensure_athlete_access(athlete_id, current_user)
     from ..db.database import get_athlete as _get
     from ..db.database import update_athlete as _update
 
@@ -659,6 +674,8 @@ async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_c
     )
     from ..db.database import get_athlete, get_rides_by_athlete
 
+    # Users can only see their own scores (admin can see all)
+    _ensure_athlete_access(athlete_id, current_user)
     athlete = get_athlete(athlete_id)
     if not athlete:
         raise HTTPException(status_code=404, detail="Athlete not found")
@@ -666,7 +683,7 @@ async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_c
     if rides:
         latest = rides[-1]
         return {
-            "athlete": athlete,
+            "athlete": {k: v for k, v in athlete.items() if k != "password_hash"},
             "scores": {
                 "performance_score": calculate_performance_score(latest),
                 "endurance_score": calculate_endurance_score(rides),
@@ -675,7 +692,7 @@ async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_c
             },
         }
     return {
-        "athlete": athlete,
+        "athlete": {k: v for k, v in athlete.items() if k != "password_hash"},
         "scores": {
             "performance_score": 0,
             "endurance_score": 0,
@@ -756,6 +773,8 @@ async def workout_recommendations(
     try:
         # Resolve athlete_id: use provided, or use authenticated user's id
         resolved_id = athlete_id
+        if current_user and athlete_id:
+            _ensure_athlete_access(athlete_id, current_user)
         if current_user and not resolved_id:
             resolved_id = current_user["id"]
         elif not resolved_id:
@@ -768,6 +787,8 @@ async def workout_recommendations(
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
         result = generate_workout_recommendations(athlete, rides)
         return {"recommendations": result}
+    except HTTPException:
+        raise
     except Exception:
         traceback.print_exc()
         return {"recommendations": "AI Coach error. Please try again later."}
@@ -778,14 +799,13 @@ async def workout_recommendations(
 async def coach_full_data(
     request: Request,
     athlete_id: int = 0,
-    current_user: dict | None = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     import traceback
 
     from ..analytics.ai_coach import ai_coach_full
     from ..db.database import (
         get_athlete,
-        get_db_connection,
         get_rides_by_athlete,
         save_chat_message,
     )
@@ -793,24 +813,24 @@ async def coach_full_data(
 
     try:
         resolved_id = athlete_id
+        if athlete_id:
+            _ensure_athlete_access(athlete_id, current_user)
         if not resolved_id:
-            with get_db_connection() as conn:
-                cur = conn.cursor()
-                cur.execute("SELECT id FROM athletes ORDER BY id DESC LIMIT 1")
-                row = cur.fetchone()
-                resolved_id = row[0] if row else 0
+            resolved_id = current_user["id"]
         if not resolved_id:
             profile_message = (
                 "Create an athlete profile in the Dashboard to receive personalized recommendations."
             )
-            return {
-                "training_advice": profile_message,
-                "recovery_advice": profile_message,
-                "historical_analysis": "",
-                "training_scores": [],
-                "recovery_scores": [],
-                "charts": [],
-            }
+            return (
+                {
+                    "training_advice": profile_message,
+                    "recovery_advice": profile_message,
+                    "historical_analysis": "",
+                    "training_scores": [],
+                    "recovery_scores": [],
+                    "charts": [],
+                },
+            )[0]
         rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
         athlete_data = get_athlete(resolved_id)
         if not athlete_data:
@@ -828,6 +848,8 @@ async def coach_full_data(
         if athlete_id and result.get("training_advice"):
             save_chat_message(resolved_id, "assistant", result["training_advice"][:500])
         return result
+    except HTTPException:
+        raise
     except Exception:
         traceback.print_exc()
         return {
@@ -852,7 +874,7 @@ async def coach_page():
 async def recovery_recommendations(
     fatigue_score: float = 5.0,
     ride_id: int = 0,
-    current_user: dict | None = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     import traceback
 
@@ -866,9 +888,7 @@ async def recovery_recommendations(
         if ride_id:
             ride_data = get_ride(ride_id)
             if ride_data:
-                # Check ownership for authenticated users
-                if current_user and ride_data.get("athlete_id") != current_user["id"]:
-                    raise HTTPException(status_code=403, detail="Access denied to this ride")
+                _ensure_ride_access(ride_data, current_user)
                 ride_obj = Ride(**ride_data)
                 athlete_data = get_athlete(ride_data.get("athlete_id"))
         elif current_user:
@@ -891,12 +911,11 @@ async def recovery_recommendations(
 
 
 @router.get("/coach/trends")
-async def historical_trends(current_user: dict | None = Depends(get_optional_current_user)):
+async def historical_trends(current_user: dict = Depends(get_current_user)):
     from ..analytics.ai_coach import analyze_historical_trends
-    from ..db.database import get_all_rides, get_rides_by_athlete
+    from ..db.database import get_rides_by_athlete
 
-    resolved_id = current_user["id"] if current_user else 0
-    rides = [Ride(**r) for r in (get_rides_by_athlete(resolved_id) if resolved_id else get_all_rides())]
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
     return analyze_historical_trends(rides)
 
 
@@ -904,7 +923,7 @@ async def historical_trends(current_user: dict | None = Depends(get_optional_cur
 async def google_static_map(
     ride_id: int,
     colored: bool = False,
-    current_user: dict | None = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     from fastapi.responses import FileResponse
 
@@ -914,9 +933,7 @@ async def google_static_map(
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
-    # Check ownership for authenticated users
-    if current_user and ride.get("athlete_id") != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Access denied to this ride")
+    _ensure_ride_access(ride, current_user)
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points")
@@ -1050,37 +1067,51 @@ async def update_ride(
     return merged
 
 
-@router.api_route("/coach/chat", methods=["GET", "POST"])
+@router.get("/coach/chat")
 async def coach_chat(
     athlete_id: int = Query(...),
     message: str = Query(...),
     current_user: dict = Depends(get_current_user),
 ):
+    return await _process_chat(athlete_id, message, current_user)
+
+
+@router.post("/coach/chat")
+async def coach_chat_post(
+    athlete_id: int = Query(...),
+    message: str = Query(...),
+    current_user: dict = Depends(get_current_user),
+):
+    return await _process_chat(athlete_id, message, current_user)
+
+
+async def _process_chat(athlete_id: int, message: str, current_user: dict):
     from ..analytics.ai_coach import generate_training_advice
     from ..db.database import (
-        get_all_rides,
         get_athlete,
         get_chat_history,
+        get_rides_by_athlete,
         save_chat_message,
     )
     from ..models.models import AthleteProfile
 
+    _ensure_athlete_access(athlete_id, current_user)
     save_chat_message(athlete_id, "user", message[:500])
     athlete_data = get_athlete(athlete_id)
     if athlete_data:
         athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
     athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
-    rides = [Ride(**r) for r in get_all_rides()]
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     response = generate_training_advice(athlete, rides, athlete_id)
     save_chat_message(athlete_id, "assistant", response[:500])
     return {"response": response, "history": get_chat_history(athlete_id)}
 
 
 @router.get("/analytics/speed-data")
-async def speed_analytics(limit: int = Query(10, ge=1, le=50)):
-    from ..db.database import get_all_rides
+async def speed_analytics(limit: int = Query(10, ge=1, le=50), current_user: dict = Depends(get_current_user)):
+    from ..db.database import get_rides_by_athlete
 
-    rides = get_all_rides()
+    rides = get_rides_by_athlete(current_user["id"])
     recent = rides[-limit:] if len(rides) > limit else rides
     return {
         "labels": [r.get("date", "Ride")[-10:] if r.get("date") else "Ride" for r in recent],
@@ -1094,6 +1125,7 @@ async def nearby_places(
     ride_id: int,
     query: str = Query(..., description="e.g.: cafe, bakery, restaurant"),
     use_osm: bool = Query(False),
+    current_user: dict = Depends(get_current_user),
 ):
     """Get nearby places for a ride - uses OSM (no API key) or SerpApi."""
     from ..db.database import get_ride as _get_ride
@@ -1101,6 +1133,7 @@ async def nearby_places(
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
@@ -1142,8 +1175,7 @@ async def search_places_endpoint(
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
-    if ride.get("athlete_id") != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Access denied to this ride")
+    _ensure_ride_access(ride, current_user)
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
@@ -1167,6 +1199,7 @@ async def create_calendar_event(
 
     event_data_dict = event_data.model_dump()
     event_data_dict["date"] = date_only(event_data_dict.get("date"))
+    _ensure_athlete_access(event_data_dict["athlete_id"], current_user)
     event_id = save_calendar_event(event_data_dict)
     event = get_calendar_event(int(event_id))
     return event
@@ -1174,20 +1207,28 @@ async def create_calendar_event(
 
 @router.get("/calendar/events")
 async def list_calendar_events(
-    athlete_id: int = Query(...), year: int = Query(...), month: int = Query(...)
+    athlete_id: int = Query(...),
+    year: int = Query(...),
+    month: int = Query(...),
+    current_user: dict = Depends(get_current_user),
 ):
     from ..db.database import get_events_by_month
 
+    _ensure_athlete_access(athlete_id, current_user)
     events = get_events_by_month(athlete_id, year, month)
     return {"events": events}
 
 
 @router.get("/calendar/events/range")
 async def list_events_by_range(
-    athlete_id: int = Query(...), start: str = Query(...), end: str = Query(...)
+    athlete_id: int = Query(...),
+    start: str = Query(...),
+    end: str = Query(...),
+    current_user: dict = Depends(get_current_user),
 ):
     from ..db.database import get_events_by_date_range
 
+    _ensure_athlete_access(athlete_id, current_user)
     events = get_events_by_date_range(athlete_id, start, end)
     return {"events": events}
 
@@ -1201,6 +1242,7 @@ async def get_calendar_event_endpoint(
     event = get_calendar_event(event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+    _ensure_athlete_access(event["athlete_id"], current_user)
     return event
 
 
@@ -1208,12 +1250,16 @@ async def get_calendar_event_endpoint(
 async def update_calendar_event_endpoint(
     event_id: int, event_data: CalendarEventUpdate, current_user: dict = Depends(get_current_user)
 ):
-    from ..db.database import update_calendar_event
+    from ..db.database import get_calendar_event, update_calendar_event
     from ..utils.dates import date_only
 
     update_dict = event_data.model_dump(exclude_none=True)
     if update_dict.get("date"):
         update_dict["date"] = date_only(update_dict.get("date"))
+    event = get_calendar_event(event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    _ensure_athlete_access(event["athlete_id"], current_user)
     ok = update_calendar_event(event_id, update_dict)
     if not ok:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -1226,8 +1272,12 @@ async def update_calendar_event_endpoint(
 async def delete_calendar_event_endpoint(
     event_id: int, current_user: dict = Depends(get_current_user)
 ):
-    from ..db.database import delete_calendar_event
+    from ..db.database import delete_calendar_event, get_calendar_event
 
+    event = get_calendar_event(event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    _ensure_athlete_access(event["athlete_id"], current_user)
     ok = delete_calendar_event(event_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -1241,6 +1291,7 @@ async def toggle_event_complete(event_id: int, current_user: dict = Depends(get_
     event = get_calendar_event(event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+    _ensure_athlete_access(event["athlete_id"], current_user)
     update_calendar_event(event_id, {"completed": not event["completed"]})
     return get_calendar_event(event_id)
 
@@ -1249,12 +1300,14 @@ async def toggle_event_complete(event_id: int, current_user: dict = Depends(get_
 async def get_training_load(
     athlete_id: int = Query(...),
     days: int = Query(30, ge=1, le=90),
-    current_user: dict | None = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     """Get ATL/CTL/TSB training load metrics for athlete."""
     from ..analytics.training_load import calculate_atl_ctl_tsb
     from ..db.database import get_rides_by_athlete
 
+    # Users can only see their own training load (admin can see all)
+    _ensure_athlete_access(athlete_id, current_user)
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     loads = calculate_atl_ctl_tsb(rides)
     recent = loads[-days:] if len(loads) > days else loads
@@ -1263,12 +1316,14 @@ async def get_training_load(
 
 @router.get("/training/status")
 async def get_training_status(
-    athlete_id: int = Query(...), current_user: dict | None = Depends(get_optional_current_user)
+    athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)
 ):
     """Get current fitness status with ATL/CTL/TSB recommendation."""
     from ..analytics.training_load import get_current_training_status
     from ..db.database import get_rides_by_athlete
 
+    # Users can only see their own training status (admin can see all)
+    _ensure_athlete_access(athlete_id, current_user)
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     status = get_current_training_status(rides)
     return {"athlete_id": athlete_id, **status}
@@ -1282,6 +1337,8 @@ async def get_7day_summary(
     from ..analytics.training_load import get_7day_fitness_summary
     from ..db.database import get_rides_by_athlete
 
+    # Users can only see their own summary (admin can see all)
+    _ensure_athlete_access(athlete_id, current_user)
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     summary = get_7day_fitness_summary(rides)
     return {"athlete_id": athlete_id, "summary": summary}
@@ -1294,8 +1351,10 @@ async def create_training_goal(goal_data: dict, current_user: dict = Depends(get
 
     if not SQLALCHEMY_AVAILABLE:
         raise HTTPException(status_code=500, detail="SQLAlchemy not available")
+    goal_athlete_id = goal_data.get("athlete_id") or current_user["id"]
+    _ensure_athlete_access(goal_athlete_id, current_user)
     goal = {
-        "athlete_id": goal_data.get("athlete_id"),
+        "athlete_id": goal_athlete_id,
         "title": goal_data.get("title", ""),
         "description": goal_data.get("description"),
         "goal_type": goal_data.get("goal_type", "granfondo"),
@@ -1319,6 +1378,8 @@ async def list_training_goals(
 
     if not SQLALCHEMY_AVAILABLE:
         raise HTTPException(status_code=500, detail="SQLAlchemy not available")
+    # Users can only see their own goals (admin can see all)
+    _ensure_athlete_access(athlete_id, current_user)
     goals = get_training_goals(athlete_id, status)
     return {"goals": goals}
 
@@ -1341,6 +1402,7 @@ async def generate_workouts(
         goal = session.query(TrainingGoalModel).filter(TrainingGoalModel.id == goal_id).first()
         if not goal:
             raise HTTPException(status_code=404, detail="Goal not found")
+        _ensure_athlete_access(goal.athlete_id, current_user)
 
         rides = [Ride(**r) for r in get_rides_by_athlete(goal.athlete_id)]
         get_current_training_status(rides) if rides else {"ctl": 0}
@@ -1455,65 +1517,63 @@ async def get_weather_forecast(
 @router.get("/analytics/trends")
 async def get_fitness_trends(
     metric: str = Query("distance_km"), window: int = Query(7, ge=1, le=90),
-    current_user: dict | None = Depends(get_optional_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Get fitness trend analysis for athlete's rides."""
     from ..analytics.analytics_trends import calculate_fitness_trends
-    from ..db.database import get_all_rides, get_rides_by_athlete
+    from ..db.database import get_rides_by_athlete
 
-    athlete_id = current_user["id"] if current_user else 0
-    rides = [Ride(**r) for r in (get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides())]
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
     return calculate_fitness_trends(rides, metric=metric, window=window)
 
 
 @router.get("/analytics/monthly")
-async def get_monthly_progression(current_user: dict | None = Depends(get_optional_current_user)):
+async def get_monthly_progression(current_user: dict = Depends(get_current_user)):
     """Get monthly aggregated metrics for athlete's rides."""
     from ..analytics.analytics_trends import calculate_monthly_progression
-    from ..db.database import get_all_rides, get_rides_by_athlete
+    from ..db.database import get_rides_by_athlete
 
-    athlete_id = current_user["id"] if current_user else 0
-    rides = get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides()
+    rides = get_rides_by_athlete(current_user["id"])
     return calculate_monthly_progression(rides)
 
 
 @router.get("/analytics/comparison")
 async def get_period_comparison(
     period_days: int = Query(7, ge=1, le=90),
-    current_user: dict | None = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     """Compare recent vs previous period for athlete's rides."""
     from ..analytics.analytics_trends import calculate_period_comparison
-    from ..db.database import get_all_rides, get_rides_by_athlete
+    from ..db.database import get_rides_by_athlete
 
-    athlete_id = current_user["id"] if current_user else 0
-    rides = get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides()
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
     return calculate_period_comparison(rides, period_days=period_days)
 
 
 @router.get("/analytics/projection")
-async def get_volume_projection(target_days: int = Query(30, ge=1, le=365), current_user: dict | None = Depends(get_optional_current_user)):
+async def get_volume_projection(
+    target_days: int = Query(30, ge=1, le=365),
+    current_user: dict = Depends(get_current_user),
+):
     """Project future training volume based on historical trend for athlete's rides."""
     from ..analytics.analytics_trends import calculate_training_volume_projection
-    from ..db.database import get_all_rides, get_rides_by_athlete
+    from ..db.database import get_rides_by_athlete
 
-    athlete_id = current_user["id"] if current_user else 0
-    rides = get_rides_by_athlete(athlete_id) if athlete_id else get_all_rides()
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
     return calculate_training_volume_projection(rides, target_days=target_days)
 
 
 @router.get("/heatmap")
 async def get_heatmap(
-    athlete_id: int = Query(0), current_user: dict | None = Depends(get_optional_current_user)
+    athlete_id: int = Query(0), current_user: dict = Depends(get_current_user)
 ):
     """Get heatmap data from all GPS points for an athlete."""
-    from ..db.database import get_all_rides, get_rides_by_athlete
+    from ..db.database import get_rides_by_athlete
 
-    # Determine which athlete_id to use
-    target_id = athlete_id or (current_user["id"] if current_user else 0)
-    rides = [
-        Ride(**r) for r in (get_rides_by_athlete(target_id) if target_id else get_all_rides())
-    ]
+    target_id = athlete_id if athlete_id and current_user.get("is_admin") else current_user["id"]
+    if athlete_id:
+        _ensure_athlete_access(athlete_id, current_user)
+    rides = [Ride(**r) for r in get_rides_by_athlete(target_id)]
     rides_dict = [r.to_dict() for r in rides]
     data = get_heatmap_points(rides_dict)
     return data
@@ -1521,14 +1581,13 @@ async def get_heatmap(
 
 @router.get("/badges")
 async def get_badges(
-    athlete_id: int = Query(...), current_user: dict | None = Depends(get_optional_current_user)
+    athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)
 ):
     """Get badge achievements for an athlete."""
     from ..db.database import get_athlete, get_rides_by_athlete
 
-    # Check ownership for authenticated users
-    if current_user and athlete_id != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Access denied to this athlete")
+    # Users can only see their own badges (admin can see all)
+    _ensure_athlete_access(athlete_id, current_user)
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     athlete = get_athlete(athlete_id)
     badges = calculate_badges(athlete_id, [r.to_dict() for r in rides], athlete)
@@ -1560,7 +1619,7 @@ async def generate_granfondo_workouts(request: GranfondoPlanRequest):
 async def get_ride_power_metrics(
     ride_id: int,
     ftp: float = Query(250.0, description="FTP in watts"),
-    current_user: dict | None = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     """Get advanced power metrics for a ride with power data."""
     from ..analytics.power_model import calculate_advanced_power_metrics
@@ -1569,6 +1628,7 @@ async def get_ride_power_metrics(
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
@@ -1635,7 +1695,7 @@ async def get_traffic_incidents(
 
 @router.get("/rides/{ride_id}/safety")
 async def analyze_ride_safety(
-    ride_id: int, current_user: dict | None = Depends(get_optional_current_user)
+    ride_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Analyze route safety for a ride using OSM data and incident data."""
     from ..config import INCIDENT_DAYS, INCIDENT_RADIUS_KM
@@ -1647,6 +1707,7 @@ async def analyze_ride_safety(
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
     existing = get_route_safety_score(ride_id)
     if existing and existing.get("computed_at"):
         return existing

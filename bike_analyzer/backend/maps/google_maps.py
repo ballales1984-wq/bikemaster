@@ -60,10 +60,19 @@ def create_google_static_map(
         raise ValueError("No GPS points")
     center_lat = sum(p.lat for p in points) / len(points)
     center_lon = sum(p.lon for p in points) / len(points)
-    markers = f"&markers=color:green%7Clabel:S%7C{points[0].lat},{points[0].lon}&markers=color:red%7Clabel=E%7C{points[-1].lat},{points[-1].lon}"
+    markers = (
+        "&markers=color:green%7Clabel:S%7C"
+        f"{points[0].lat},{points[0].lon}"
+        "&markers=color:red%7Clabel:E%7C"
+        f"{points[-1].lat},{points[-1].lon}"
+    )
     if not colored:
         path_coords = "|".join([f"{p.lat},{p.lon}" for p in points])
-        url = f"https://maps.googleapis.com/maps/api/staticmap?center={center_lat},{center_lon}&zoom={zoom}&size={size}&path=color:0x0000ff|weight:5|{path_coords}{markers}&key={api_key}"
+        url = (
+            "https://maps.googleapis.com/maps/api/staticmap?"
+            f"center={center_lat},{center_lon}&zoom={zoom}&size={size}&path="
+            f"color:0x0000ff|weight:5|{path_coords}{markers}&key={api_key}"
+        )
     else:
         segs = _build_speed_segments(points)
         path_parts = []
@@ -71,7 +80,11 @@ def create_google_static_map(
             coords = "|".join([f"{lat},{lon}" for lat, lon in seg.points])
             path_parts.append(f"path=color:{seg.color}|weight:5|{coords}")
         path_str = "&".join(path_parts)
-        url = f"https://maps.googleapis.com/maps/api/staticmap?center={center_lat},{center_lon}&zoom={zoom}&size={size}&{path_str}{markers}&key={api_key}"
+        url = (
+            "https://maps.googleapis.com/maps/api/staticmap?"
+            f"center={center_lat},{center_lon}&zoom={zoom}&size={size}&{path_str}"
+            f"{markers}&key={api_key}"
+        )
     import requests
 
     resp = requests.get(url, timeout=10)
@@ -84,7 +97,10 @@ def create_google_elevation_chart(points: list[GPSPoint], api_key: str) -> list[
     if not points or not api_key.startswith("AIza") or len(api_key) < 30:
         return None
     locations = "|".join([f"{p.lat},{p.lon}" for p in points])
-    url = f"https://maps.googleapis.com/maps/api/elevation/json?locations={locations}&key={api_key}"
+    url = (
+        "https://maps.googleapis.com/maps/api/elevation/json?"
+        f"locations={locations}&key={api_key}"
+    )
     import requests
 
     resp = requests.get(url, timeout=10)

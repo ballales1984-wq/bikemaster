@@ -130,9 +130,6 @@ def test_decode_token_expired():
         decode_token(token)
 
 
-from bike_analyzer.backend.security import get_current_user, get_optional_current_user
-
-
 @pytest.mark.asyncio
 async def test_get_current_user_valid():
     token = create_access_token("123")
@@ -203,13 +200,9 @@ async def test_get_current_user_with_none_sub():
 
 
 def test_auth_login_endpoint(client):
-    response = client.post(
-        "/api/v1/auth/register", json={"username": "testuser", "password": "testpass123"}
-    )
+    response = client.post("/api/v1/auth/register", json={"username": "testuser", "password": "testpass123"})
     assert response.status_code == 200
-    response = client.post(
-        "/api/v1/auth/login", data={"username": "testuser", "password": "testpass123"}
-    )
+    response = client.post("/api/v1/auth/login", data={"username": "testuser", "password": "testpass123"})
     assert response.status_code == 200
     assert "access_token" in response.json()
 
@@ -226,9 +219,7 @@ def test_protected_route_no_auth_shows_empty(client):
 
 def test_protected_route_with_valid_token(client):
     client.post("/api/v1/auth/register", json={"username": "authtest", "password": "testpass123"})
-    login_resp = client.post(
-        "/api/v1/auth/login", data={"username": "authtest", "password": "testpass123"}
-    )
+    login_resp = client.post("/api/v1/auth/login", data={"username": "authtest", "password": "testpass123"})
     token = login_resp.json()["access_token"]
     response = client.get("/api/v1/rides", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
@@ -238,13 +229,9 @@ def test_athletes_endpoint_requires_ownership(client):
     """Test that /athletes/{id} endpoint enforces ownership."""
     client.post("/api/v1/auth/register", json={"username": "user1", "password": "testpass123"})
     client.post("/api/v1/auth/register", json={"username": "user2", "password": "testpass123"})
-    login1 = client.post(
-        "/api/v1/auth/login", data={"username": "user1", "password": "testpass123"}
-    )
+    login1 = client.post("/api/v1/auth/login", data={"username": "user1", "password": "testpass123"})
     token1 = login1.json()["access_token"]
-    login2 = client.post(
-        "/api/v1/auth/login", data={"username": "user2", "password": "testpass123"}
-    )
+    login2 = client.post("/api/v1/auth/login", data={"username": "user2", "password": "testpass123"})
     token2 = login2.json()["access_token"]
 
     # Create athlete for user1
@@ -260,9 +247,89 @@ def test_athletes_endpoint_requires_ownership(client):
     user1_id = resp1.json()["id"]
 
     # User2 cannot access user1's athlete profile
-    resp2 = client.get(
-        f"/api/v1/athletes/{user1_id}", headers={"Authorization": f"Bearer {token2}"}
+    resp2 = client.get(f"/api/v1/athletes/{user1_id}", headers={"Authorization": f"Bearer {token2}"})
+    assert resp2.status_code == 403
+
+
+def test_training_endpoints_isolation(client):
+    """Test that training endpoints are isolated between users."""
+    # Register user1 and get token
+    client.post("/api/v1/auth/register", json={"username": "tr_user1", "password": "testpass123"})
+    login1 = client.post("/api/v1/auth/login", data={"username": "tr_user1", "password": "testpass123"})
+    token1 = login1.json()["access_token"]
+
+    # Create an athlete for user1 to have an athlete_id
+    client.post("/api/v1/athletes", json={"name": "User1"}, headers={"Authorization": f"Bearer {token1}"})
+    resp1 = client.get("/api/v1/athletes", headers={"Authorization": f"Bearer {token1}"})
+    user1_athlete_id = resp1.json()["id"]
+
+    # Register user2
+    client.post("/api/v1/auth/register", json={"username": "tr_user2", "password": "testpass123"})
+    login2 = client.post("/api/v1/auth/login", data={"username": "tr_user2", "password": "testpass123"})
+    token2 = login2.json()["access_token"]
+
+    # User2 cannot access user1's training data
+    resp = client.get(
+        f"/api/v1/training/load?athlete_id={user1_athlete_id}", headers={"Authorization": f"Bearer {token2}"}
     )
+    assert resp.status_code == 403
+
+    resp = client.get(
+        f"/api/v1/training/status?athlete_id={user1_athlete_id}", headers={"Authorization": f"Bearer {token2}"}
+    )
+    assert resp.status_code == 403
+
+
+def test_coach_history_requires_ownership(client):
+    """Test that /coach/history requires ownership of athlete data."""
+    client.post("/api/v1/auth/register", json={"username": "ch_user1", "password": "testpass123"})
+    client.post("/api/v1/auth/register", json={"username": "ch_user2", "password": "testpass123"})
+    login1 = client.post("/api/v1/auth/login", data={"username": "ch_user1", "password": "testpass123"})
+    token1 = login1.json()["access_token"]
+    login2 = client.post("/api/v1/auth/login", data={"username": "ch_user2", "password": "testpass123"})
+    token2 = login2.json()["access_token"]
+
+    resp1 = client.get("/api/v1/athletes", headers={"Authorization": f"Bearer {token1}"})
+    user1_id = resp1.json()["id"]
+
+    # User2 cannot access user1's chat history
+    resp2 = client.get(f"/api/v1/coach/history?athlete_id={user1_id}", headers={"Authorization": f"Bearer {token2}"})
+    assert resp2.status_code == 403
+
+
+def test_coach_chat_requires_ownership(client):
+    """Test that /coach/chat requires ownership of athlete data."""
+    client.post("/api/v1/auth/register", json={"username": "cc_user1", "password": "testpass123"})
+    client.post("/api/v1/auth/register", json={"username": "cc_user2", "password": "testpass123"})
+    login1 = client.post("/api/v1/auth/login", data={"username": "cc_user1", "password": "testpass123"})
+    token1 = login1.json()["access_token"]
+    login2 = client.post("/api/v1/auth/login", data={"username": "cc_user2", "password": "testpass123"})
+    token2 = login2.json()["access_token"]
+
+    resp1 = client.get("/api/v1/athletes", headers={"Authorization": f"Bearer {token1}"})
+    user1_id = resp1.json()["id"]
+
+    # User2 cannot access user1's chat
+    resp2 = client.get(
+        f"/api/v1/coach/chat?athlete_id={user1_id}&message=test", headers={"Authorization": f"Bearer {token2}"}
+    )
+    assert resp2.status_code == 403
+
+
+def test_scores_endpoint_requires_ownership(client):
+    """Test that /scores/athlete/{id} requires ownership."""
+    client.post("/api/v1/auth/register", json={"username": "sc_user1", "password": "testpass123"})
+    client.post("/api/v1/auth/register", json={"username": "sc_user2", "password": "testpass123"})
+    login1 = client.post("/api/v1/auth/login", data={"username": "sc_user1", "password": "testpass123"})
+    token1 = login1.json()["access_token"]
+    login2 = client.post("/api/v1/auth/login", data={"username": "sc_user2", "password": "testpass123"})
+    token2 = login2.json()["access_token"]
+
+    resp1 = client.get("/api/v1/athletes", headers={"Authorization": f"Bearer {token1}"})
+    user1_id = resp1.json()["id"]
+
+    # User2 cannot access user1's scores
+    resp2 = client.get(f"/api/v1/scores/athlete/{user1_id}", headers={"Authorization": f"Bearer {token2}"})
     assert resp2.status_code == 403
 
 
@@ -270,9 +337,7 @@ def test_rides_endpoint_isolation(client):
     """Test that rides are isolated between users."""
     # Register user1
     client.post("/api/v1/auth/register", json={"username": "iso_user1", "password": "testpass123"})
-    login1 = client.post(
-        "/api/v1/auth/login", data={"username": "iso_user1", "password": "testpass123"}
-    )
+    login1 = client.post("/api/v1/auth/login", data={"username": "iso_user1", "password": "testpass123"})
     token1 = login1.json()["access_token"]
 
     # Create a ride for user1
@@ -282,17 +347,11 @@ def test_rides_endpoint_isolation(client):
         "duration_minutes": 60,
         "avg_speed_kmh": 25.0,
     }
-    client.post(
-        "/api/v1/rides",
-        json=ride_data,
-        headers={"Authorization": f"Bearer {token1}"}
-    )
+    client.post("/api/v1/rides", json=ride_data, headers={"Authorization": f"Bearer {token1}"})
 
     # Register user2
     client.post("/api/v1/auth/register", json={"username": "iso_user2", "password": "testpass123"})
-    login2 = client.post(
-        "/api/v1/auth/login", data={"username": "iso_user2", "password": "testpass123"}
-    )
+    login2 = client.post("/api/v1/auth/login", data={"username": "iso_user2", "password": "testpass123"})
     token2 = login2.json()["access_token"]
 
     # User2 should not see user1's rides

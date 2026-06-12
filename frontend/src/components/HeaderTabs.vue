@@ -7,6 +7,7 @@
     <button class="tab" :class="{ active: active === 'knowledge' }" @click="$emit('update:active', 'knowledge')">📚 <span>Knowledge</span></button>
     <button class="tab" :class="{ active: active === 'calendar' }" @click="$emit('update:active', 'calendar')">📅 <span>Calendario</span></button>
     <button class="tab" :class="{ active: active === 'granfondo' }" @click="$emit('update:active', 'granfondo')">🚴‍♂️ <span>Granfondo</span></button>
+    <button class="tab" :class="{ active: active === 'map' }" @click="$emit('update:active', 'map')"><span>Mappe</span></button>
     <button class="tab" :class="{ active: active === 'heatmap' }" @click="$emit('update:active', 'heatmap')">🔥 <span>Heatmap</span></button>
     <button class="tab" :class="{ active: active === 'badges' }" @click="$emit('update:active', 'badges')">🏅 <span>Badge</span></button>
     <button class="tab" :class="{ active: active === 'weather' }" @click="$emit('update:active', 'weather')">🌤️ <span>Meteo</span></button>

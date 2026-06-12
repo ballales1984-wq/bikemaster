@@ -1,5 +1,6 @@
 """Test Google Maps API (mock mode)."""
 
+import os
 from datetime import UTC, datetime
 
 from bike_analyzer.backend.maps.google_maps import (
@@ -98,9 +99,6 @@ def test_create_google_static_map_colored_branch():
         points, "test-api-key-mock", "test_map_colored2.png", colored=True
     )
     assert path == "test_map_colored2.png"
-
-
-import os
 
 
 def teardown_function():

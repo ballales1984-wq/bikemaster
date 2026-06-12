@@ -40,7 +40,9 @@ def test_batch_import_invalid_extension():
 
 
 def test_batch_import_bad_gpx_content():
-    with pytest.raises(Exception):
+    import xml.etree.ElementTree as ET
+
+    with pytest.raises(ET.ParseError):
         parse_gpx_file("<not valid xml")
 
 

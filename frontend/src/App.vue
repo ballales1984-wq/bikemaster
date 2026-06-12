@@ -54,17 +54,21 @@
           <GranfondoPlanner />
         </section>
 
+        <section v-if="activeTab === 'map'">
+          <RideMapPanel />
+        </section>
+
         <section v-if="activeTab === 'heatmap'">
           <HeatmapPanel />
         </section>
 
-<section v-if="activeTab === 'badges'">
-           <BadgesPanel />
-         </section>
+        <section v-if="activeTab === 'badges'">
+          <BadgesPanel />
+        </section>
 
-         <section v-if="activeTab === 'weather'">
-           <WeatherPanel />
-         </section>
+        <section v-if="activeTab === 'weather'">
+          <WeatherPanel />
+        </section>
 
         <section v-if="activeTab === 'admin' && isAdmin">
           <AdminPanel />
@@ -97,6 +101,7 @@ import CoachPanel from './components/CoachPanel.vue'
 import KnowledgePanel from './components/KnowledgePanel.vue'
 import CalendarPanel from './components/CalendarPanel.vue'
 import GranfondoPlanner from './components/GranfondoPlanner.vue'
+import RideMapPanel from './components/RideMapPanel.vue'
 import HeatmapPanel from './components/HeatmapPanel.vue'
 import BadgesPanel from './components/BadgesPanel.vue'
 import AdminPanel from './components/AdminPanel.vue'

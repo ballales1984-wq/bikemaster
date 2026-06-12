@@ -37,10 +37,7 @@ def create_route_map(
             max_spd = 25.0
 
     for i, point in enumerate(points[:-1]):
-        if color_by_speed:
-            color = _speed_to_color(point.speed or 15, min_spd, max_spd)
-        else:
-            color = "#FF6B00"
+        color = _speed_to_color(point.speed or 15, min_spd, max_spd) if color_by_speed else "#FF6B00"
         folium.PolyLine(
             locations=[(point.lat, point.lon), (points[i + 1].lat, points[i + 1].lon)],
             color=color,

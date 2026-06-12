@@ -219,11 +219,14 @@ class TestWeatherPaths:
     def test_get_forecast_api_error(self):
         import os
 
-        with patch.dict(os.environ, {"WEATHER_API_KEY": "fake_key"}):
-            with patch("bike_analyzer.backend.weather.weather_service.requests") as mock_req:
-                mock_req.get.return_value.raise_for_status.side_effect = Exception("API error")
-                result = get_forecast_for_date(45.0, 9.0, "2024-06-15")
-                assert "error" in result
+        with patch.dict(os.environ, {"WEATHER_API_KEY": "fake_key"}), patch(
+            "bike_analyzer.backend.db.database.get_weather_cache", return_value=None
+        ), patch("bike_analyzer.backend.db.database.save_weather_cache"), patch(
+            "bike_analyzer.backend.weather.weather_service.requests"
+        ) as mock_req:
+            mock_req.get.return_value.raise_for_status.side_effect = Exception("API error")
+            result = get_forecast_for_date(45.0, 9.0, "2099-01-01")
+            assert "error" in result
 
     def test_get_weather_cache_hit(self):
         import os

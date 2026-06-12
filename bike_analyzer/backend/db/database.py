@@ -572,7 +572,10 @@ def update_calendar_event(event_id: int, event_data: dict) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """UPDATE calendar_events SET title=?, event_type=?, date=?, duration_minutes=?, description=?, completed=?, weather_temp=?, weather_humidity=?, weather_description=? WHERE id=?""",
+            """UPDATE calendar_events
+SET title=?, event_type=?, date=?, duration_minutes=?, description=?, completed=?,
+    weather_temp=?, weather_humidity=?, weather_description=?
+WHERE id=?""",
             (
                 merged.get("title"),
                 merged.get("event_type", "training"),
@@ -664,9 +667,9 @@ def upsert_training_stress_day(
         now = datetime.now(UTC).isoformat()
         cur.execute(
             """INSERT INTO training_stress_days (athlete_id, date, tss, atl, ctl, tsb, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(athlete_id, date) DO UPDATE SET
-                tss=excluded.tss, atl=excluded.atl, ctl=excluded.ctl, tsb=excluded.tsb, updated_at=excluded.updated_at""",
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(athlete_id, date) DO UPDATE SET
+    tss=excluded.tss, atl=excluded.atl, ctl=excluded.ctl, tsb=excluded.tsb, updated_at=excluded.updated_at""",
             (athlete_id, date, tss, atl, ctl, tsb, now, now),
         )
         conn.commit()

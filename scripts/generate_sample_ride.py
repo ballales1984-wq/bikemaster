@@ -1,17 +1,18 @@
-"""Sample ride data generator for testing and demos"""
+"""Sample ride data generator for testing and demos."""
 
 import random
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
 
 from bike_analyzer.backend.processing import GPSPoint, process_route
-from bike_analyzer.backend.processing.processing import haversine_distance_m
+
 
 def _circular_walk(
-    center_lat: float, center_lon: float,
-    radius_km: float, n_points: int,
+    center_lat: float,
+    center_lon: float,
+    radius_km: float,
+    n_points: int,
     noise_m: float = 15.0,
 ) -> tuple[list[float], list[float]]:
     angle = np.linspace(0, 2 * np.pi, n_points)
@@ -31,17 +32,46 @@ def generate_sample_ride(
     avg_speed_kmh: float = 22.0,
 ) -> list[GPSPoint]:
     lats, lons = _circular_walk(center_lat, center_lon, radius_km, n_points)
-    base_time = datetime(2024, 6, 1, 10, 0, 0, tzinfo=timezone.utc)
+    base_time = datetime(2024, 6, 1, 10, 0, 0, tzinfo=UTC)
     dt = duration_minutes * 60 / n_points
     speeds = [avg_speed_kmh + random.uniform(-5, 5) for _ in range(n_points)]
-    return [GPSPoint(lat=lats[i], lon=lons[i], timestamp=base_time + timedelta(seconds=i * dt), speed=speeds[i]) for i in range(n_points)]
+    return [
+        GPSPoint(
+            lat=lats[i],
+            lon=lons[i],
+            timestamp=base_time + timedelta(seconds=i * dt),
+            speed=speeds[i],
+        )
+        for i in range(n_points)
+    ]
+
 
 if __name__ == "__main__":
+    from bike_analyzer.backend.db.database import init_db, save_ride
+
     points = generate_sample_ride()
     processed, stats = process_route(points)
-    print(f"Generated {len(points)} points, processed: {stats.total_distance_m:.1f}m, avg speed: {stats.avg_speed_km_h:.1f}km/h")
-    from bike_analyzer.backend.db.database import save_ride, init_db
+    print(
+        "Generated "
+        f"{len(points)} points, processed: {stats.total_distance_m:.1f}m, "
+        f"avg speed: {stats.avg_speed_kmh:.1f}km/h"
+    )
     init_db()
-    ride = {"date": "demo-" + datetime.now(timezone.utc).strftime("%Y-%m-%d"), "distance_km": stats.total_distance_m / 1000, "duration_minutes": stats.total_duration_s / 60, "avg_speed_kmh": stats.avg_speed_km_h, "elevation_gain_m": stats.total_elevation_gain_m, "gps_points": [{"lat": p.lat, "lon": p.lon, "timestamp": p.timestamp.isoformat(), "altitude": p.altitude} for p in processed]}
+    ride = {
+        "date": f"demo-{datetime.now(UTC):%Y-%m-%d}",
+        "distance_km": stats.total_distance_m / 1000,
+        "duration_minutes": stats.total_duration_s / 60,
+        "avg_speed_kmh": stats.avg_speed_kmh,
+        "elevation_gain_m": stats.total_elevation_gain_m,
+        "gps_points": [
+            {
+                "lat": point.lat,
+                "lon": point.lon,
+                "timestamp": point.timestamp.isoformat(),
+                "altitude": point.altitude,
+            }
+            for point in processed
+        ],
+    }
     ride_id = save_ride(ride)
     print(f"Saved demo ride id: {ride_id}")
