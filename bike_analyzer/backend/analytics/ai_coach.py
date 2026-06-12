@@ -6,6 +6,7 @@ import contextlib
 import os
 import re
 import traceback
+import requests
 from datetime import UTC
 
 from ..config import AI_COACH_MODE, GROQ_API_KEY, GROQ_MODEL, OPENAI_API_KEY, OPENAI_MODEL
@@ -13,6 +14,12 @@ from ..models.models import AthleteProfile, Ride
 from .analytics import calculate_summary, create_duration_chart, create_speed_chart
 from .knowledge_base import format_context_for_llm, search_knowledge_base
 from .performance import calculate_performance_score, calculate_recovery_score
+
+# Provider configs matching vivere-con-il-cane pattern
+_PROVIDERS = [
+    ("groq", "https://api.groq.com/openai/v1/chat/completions", GROQ_API_KEY, GROQ_MODEL),
+    ("openai", "https://api.openai.com/v1/chat/completions", OPENAI_API_KEY, OPENAI_MODEL),
+]
 
 LOCALE: str = os.getenv("LOCALE", "it")
 _LANG_PROMPT = {
@@ -24,9 +31,6 @@ _LANG_PROMPT = {
 _LANG_INSTRUCTION = _LANG_PROMPT.get(LOCALE, _LANG_PROMPT["it"])
 _LOCAL_COACH_MODES = {"local", "offline", "fallback"}
 _BANNED_PROVIDERS: set[str] = set()
-
-_current_client: object | None = None
-_current_provider: str | None = None
 
 _fmt_clean_pattern = re.compile(r"(?<!\d)(\d+\.\d)0(?!\d)")
 _fmt_int_pattern = re.compile(r"(?<!\d)(\d+)\.0(?!\d)")
@@ -47,11 +51,45 @@ def _coach_mode() -> str:
 
 def _ban_provider(provider: str) -> None:
     _BANNED_PROVIDERS.add(provider)
-    global _current_client, _current_provider
-    if _current_provider == provider:
-        _current_client = None
-        _current_provider = None
     print(f"AI Coach: provider '{provider}' banned due to auth error, falling back")
+
+
+def _call_llm(provider_name, base_url, api_key, model, messages, max_tokens):
+    """Direct HTTP call matching vivere-con-il-cane pattern."""
+    resp = requests.post(
+        base_url,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        json={
+            "model": model,
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": max_tokens,
+        },
+        timeout=30,
+    )
+    if resp.status_code == 200:
+        return resp.json()["choices"][0]["message"]["content"]
+    raise requests.HTTPError(
+        f"Provider {provider_name} returned {resp.status_code}", response=resp
+    )
+
+
+def get_active_provider():
+    """Return the first non-banned provider with a valid key, or raise."""
+    for provider_name, base_url, api_key, model in _PROVIDERS:
+        if provider_name in _BANNED_PROVIDERS:
+            continue
+        if provider_name == "groq" and not (api_key and api_key.startswith("gsk_")):
+            continue
+        if provider_name == "openai" and not (api_key and api_key.startswith("sk-")):
+            continue
+        return provider_name, base_url, api_key, model
+    msg = "AI Coach: no valid API key (GROQ=gsk_..., OPENAI=sk-...)"
+    print(msg)
+    raise ValueError(msg)
 
 
 def _use_local_coach() -> bool:
@@ -92,41 +130,6 @@ def validate_athlete_profile(athlete: AthleteProfile) -> tuple[bool, str]:
     if missing:
         return False, f"Campi mancanti: {', '.join(missing)}."
     return True, ""
-
-
-def get_ai_coach_client():
-    global _current_client, _current_provider
-    if _current_client and _current_provider not in _BANNED_PROVIDERS:
-        return _current_client, _current_provider
-
-    for provider_key, api_key, ModelClass, model_name in [
-        ("groq", GROQ_API_KEY, "Groq", GROQ_MODEL),
-        ("openai", OPENAI_API_KEY, "OpenAI", OPENAI_MODEL),
-    ]:
-        if provider_key in _BANNED_PROVIDERS:
-            continue
-        ok = bool(api_key and (api_key.startswith("gsk_") if provider_key == "groq" else api_key.startswith("sk-")))
-        if not ok:
-            continue
-        try:
-            if provider_key == "groq":
-                from groq import Groq
-                _current_client = Groq(api_key=api_key)
-            else:
-                from openai import OpenAI
-                _current_client = OpenAI(api_key=api_key)
-            _current_provider = provider_key
-            print(f"AI Coach: {ModelClass} client initialized (model={model_name})")
-            return _current_client, _current_provider
-        except Exception as e:
-            print(f"AI Coach: {ModelClass} init error: {type(e).__name__}: {e}")
-            _current_client = None
-            _current_provider = None
-            _BANNED_PROVIDERS.add(provider_key)
-
-    msg = "AI Coach: no valid API key (GROQ=gsk_..., OPENAI=sk-...) or all providers failed"
-    print(msg)
-    raise ValueError(msg)
 
 
 def _build_athlete_context(athlete: AthleteProfile) -> str:
@@ -198,7 +201,7 @@ def generate_training_advice(
         if _use_local_coach():
             return _generate_local_training_advice(athlete, rides)
         try:
-            client, provider = get_ai_coach_client()
+            provider_name, base_url, api_key, model = get_active_provider()
         except ValueError as e:
             print(f"AI Coach no API key: {e}")
             return _generate_fallback_training_advice(athlete, rides)
@@ -252,36 +255,46 @@ def generate_training_advice(
         )
         prompt = f"""{training_intro}{history_section}{rag_section}
 
-Profilo atleta:
-{_build_athlete_context(athlete)}
+ Profilo atleta:
+ {_build_athlete_context(athlete)}
 
-Dati recenti:
-- Performance score: {perf}/10
-- Recovery score: {recovery}/10
-- Ultime 3 uscite: {recent_info}
-- Totale uscite in archivio: {int(total_rides) if total_rides == int(total_rides) else total_rides}
-- Distanza media: {int(avg_distance) if avg_distance == int(avg_distance) else avg_distance:.1f} km
-- Giorno corrente: {today_str}
-- Archivio temporale: {days_span} giorni
+ Dati recenti:
+ - Performance score: {perf}/10
+ - Recovery score: {recovery}/10
+ - Ultime 3 uscite: {recent_info}
+ - Totale uscite in archivio: {int(total_rides) if total_rides == int(total_rides) else total_rides}
+ - Distanza media: {int(avg_distance) if avg_distance == int(avg_distance) else avg_distance:.1f} km
+ - Giorno corrente: {today_str}
+ - Archivio temporale: {days_span} giorni
 
-REGOLE:
-- {_LANG_INSTRUCTION}
-- Ogni consiglio deve iniziare con un numero e un titolo in grassetto (es: **1. Obiettivo principale**)
-- Massimo 2 righe per consiglio
-- Usa i numeri interi quando possibile (es: 3 volte, non 3.0 volte)
-- Non usare backtick, codice o formattazione markdown speciale
-- Non usare emoji
-- Non aggiungere saluti o chiusure tipo "Buon allenamento!"
-- Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
-- Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
-- Non mostrare valori con .0 se sono interi (es: scrivi "3 volte" non "3.0 volte")
+ REGOLE:
+ - {_LANG_INSTRUCTION}
+ - Ogni consiglio deve iniziare con un numero e un titolo in grassetto (es: **1. Obiettivo principale**)
+ - Massimo 2 righe per consiglio
+ - Usa i numeri interi quando possibile (es: 3 volte, non 3.0 volte)
+ - Non usare backtick, codice o formattazione markdown speciale
+ - Non usare emoji
+ - Non aggiungere saluti o chiusure tipo "Buon allenamento!"
+ - Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
+ - Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
+ - Non mostrare valori con .0 se sono interi (es: scrivi "3 volte" non "3.0 volte")
         """
-        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
-        chat = client.chat.completions.create(
-            model=model, messages=[{"role": "user", "content": prompt}], max_tokens=500
-        )
-        content = chat.choices[0].message.content or "Nessun consiglio disponibile"
-        return _clean_ai_output(content)
+        messages = [{"role": "user", "content": prompt}]
+        try:
+            content = _call_llm(provider_name, base_url, api_key, model, messages, 500)
+        except Exception as e:
+            print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
+            traceback.print_exc()
+            if (
+                "401" in str(e)
+                or "403" in str(e)
+                or "invalid_api_key" in str(e).lower()
+                or "PermissionDenied" in type(e).__name__
+            ):
+                _ban_provider(provider_name)
+                return _generate_fallback_training_advice(athlete, rides)
+            return f"AI Coach non disponibile: {type(e).__name__}: {e}"
+        return _clean_ai_output(content or "Nessun consiglio disponibile")
     except Exception as e:
         print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
         traceback.print_exc()
@@ -291,7 +304,7 @@ REGOLE:
             or "invalid_api_key" in str(e).lower()
             or "PermissionDenied" in type(e).__name__
         ):
-            _ban_provider(provider)
+            _ban_provider(provider_name)
             return _generate_fallback_training_advice(athlete, rides)
         return f"AI Coach non disponibile: {type(e).__name__}: {e}"
 
@@ -308,6 +321,7 @@ def generate_recovery_advice(
     from datetime import datetime
 
     now = datetime.now(UTC)
+    provider_name = ""
     try:
         is_valid, err = validate_athlete_profile(athlete)
         if not is_valid:
@@ -315,7 +329,7 @@ def generate_recovery_advice(
         if _use_local_coach():
             return _generate_local_recovery_advice(athlete, rides, fatigue_score)
         try:
-            client, provider = get_ai_coach_client()
+            provider_name, base_url, api_key, model = get_active_provider()
         except ValueError:
             return _generate_fallback_recovery_advice(athlete, rides, fatigue_score)
         recovery = calculate_recovery_score(rides[-1]) if rides else fatigue_score
@@ -347,31 +361,41 @@ def generate_recovery_advice(
         )
         prompt = f"""{recovery_intro}{history_section}{rag_section}
 
-Profilo atleta:
-{_build_athlete_context(athlete)}
+ Profilo atleta:
+ {_build_athlete_context(athlete)}
 
         Dati:
-- Recovery score: {recovery}/10
-- Ultima uscita: {recent_info}
-- Allenamenti archiviati: {stats.get("total_rides", 0)}
-- Giorno corrente: {now.strftime("%Y-%m-%d")}
+ - Recovery score: {recovery}/10
+ - Ultima uscita: {recent_info}
+ - Allenamenti archiviati: {stats.get("total_rides", 0)}
+ - Giorno corrente: {now.strftime("%Y-%m-%d")}
 
-REGOLE:
-- {_LANG_INSTRUCTION}
-- Ogni consiglio deve iniziare con un numero e un titolo in grassetto
-- Massimo 2 righe per consiglio
-- Sei CONCRETO: parla di durata sonno, idratazione, stretching, alimentazione
-- Non ripetere numeri o dati gia forniti nella risposta
-- Non usare backtick o markdown speciale
-- Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
-- Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
-"""
-        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
-        chat = client.chat.completions.create(
-            model=model, messages=[{"role": "user", "content": prompt}], max_tokens=300
-        )
-        content = chat.choices[0].message.content or "Recupera bene!"
-        return _clean_ai_output(content)
+ REGOLE:
+ - {_LANG_INSTRUCTION}
+ - Ogni consiglio deve iniziare con un numero e un titolo in grassetto
+ - Massimo 2 righe per consiglio
+ - Sei CONCRETO: parla di durata sonno, idratazione, stretching, alimentazione
+ - Non ripetere numeri o dati gia forniti nella risposta
+ - Non usare backtick o markdown speciale
+ - Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
+ - Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
+ """
+        messages = [{"role": "user", "content": prompt}]
+        try:
+            content = _call_llm(provider_name, base_url, api_key, model, messages, 300)
+        except Exception as e:
+            if (
+                "401" in str(e)
+                or "403" in str(e)
+                or "invalid_api_key" in str(e).lower()
+                or "PermissionDenied" in type(e).__name__
+            ):
+                _ban_provider(provider_name)
+                rec_score = recovery if isinstance(recovery, (int, float)) else 5.0
+                return _generate_fallback_recovery_advice(athlete, rides, rec_score)
+            traceback.print_exc()
+            return f"Recupero non disponibile: {type(e).__name__}: {e}"
+        return _clean_ai_output(content or "Recupera bene!")
     except Exception as e:
         if (
             "401" in str(e)
@@ -379,7 +403,7 @@ REGOLE:
             or "invalid_api_key" in str(e).lower()
             or "PermissionDenied" in type(e).__name__
         ):
-            _ban_provider(provider)
+            _ban_provider(provider_name)
             rec_score = recovery if isinstance(recovery, (int, float)) else 5.0
             return _generate_fallback_recovery_advice(athlete, rides, rec_score)
         traceback.print_exc()
