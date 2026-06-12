@@ -8,7 +8,7 @@ import re
 import traceback
 from datetime import UTC
 
-from ..config import GROQ_API_KEY, GROQ_MODEL, OPENAI_API_KEY, OPENAI_MODEL
+from ..config import AI_COACH_MODE, GROQ_API_KEY, GROQ_MODEL, OPENAI_API_KEY, OPENAI_MODEL
 from ..models.models import AthleteProfile, Ride
 from .analytics import calculate_summary, create_duration_chart, create_speed_chart
 from .knowledge_base import format_context_for_llm, search_knowledge_base
@@ -22,6 +22,7 @@ _LANG_PROMPT = {
     "fr": "Réponds en français",
 }
 _LANG_INSTRUCTION = _LANG_PROMPT.get(LOCALE, _LANG_PROMPT["it"])
+_LOCAL_COACH_MODES = {"local", "offline", "fallback"}
 
 _current_client: object | None = None
 _current_provider: str | None = None
@@ -36,6 +37,27 @@ def _clean_ai_output(text: str) -> str:
     text = re.sub(r"\n{2,}", "\n", text)
     text = re.sub(r" {2,}", " ", text)
     return text.strip()
+
+
+def _coach_mode() -> str:
+    env_mode = os.getenv("AI_COACH_MODE")
+    return (env_mode if env_mode else AI_COACH_MODE).strip().lower()
+
+
+def _use_local_coach() -> bool:
+    return _coach_mode() in _LOCAL_COACH_MODES
+
+
+def _generate_local_training_advice(athlete: AthleteProfile, rides: list[Ride]) -> str:
+    return _generate_fallback_training_advice(athlete, rides).removeprefix(_FALLBACK_PREFIX)
+
+
+def _generate_local_recovery_advice(
+    athlete: AthleteProfile, rides: list[Ride], recovery_score: float
+) -> str:
+    return _generate_fallback_recovery_advice(athlete, rides, recovery_score).removeprefix(
+        _FALLBACK_PREFIX
+    )
 
 
 def validate_athlete_profile(athlete: AthleteProfile) -> tuple[bool, str]:
@@ -156,6 +178,8 @@ def generate_training_advice(
         is_valid, err = validate_athlete_profile(athlete)
         if not is_valid:
             return f"Completa il profilo atleta: {err}"
+        if _use_local_coach():
+            return _generate_local_training_advice(athlete, rides)
         try:
             client, provider = get_ai_coach_client()
         except ValueError as e:
@@ -206,7 +230,10 @@ def generate_training_advice(
         total_rides = stats.get("total_rides", 0)
         avg_distance = stats.get("avg_distance_km", 0)
         today_str = now.strftime("%Y-%m-%d")
-        prompt = f"""Sei un coach ciclistico esperto. Genera 3 consigli di allenamento BREVI e SPECIFICI.{history_section}{rag_section}
+        training_intro = (
+            "Sei un coach ciclistico esperto. Genera 3 consigli di allenamento BREVI e SPECIFICI."
+        )
+        prompt = f"""{training_intro}{history_section}{rag_section}
 
 Profilo atleta:
 {_build_athlete_context(athlete)}
@@ -267,6 +294,8 @@ def generate_recovery_advice(
         is_valid, err = validate_athlete_profile(athlete)
         if not is_valid:
             return f"Completa il profilo atleta prima di usare l'AI Coach: {err}"
+        if _use_local_coach():
+            return _generate_local_recovery_advice(athlete, rides, fatigue_score)
         try:
             client, provider = get_ai_coach_client()
         except ValueError:
@@ -295,7 +324,10 @@ def generate_recovery_advice(
                     )
             except Exception:
                 pass
-        prompt = f"""Sei un coach di recupero ciclistico. Genera 2 consigli BREVI per il recupero di oggi.{history_section}{rag_section}
+        recovery_intro = (
+            "Sei un coach di recupero ciclistico. Genera 2 consigli BREVI per il recupero di oggi."
+        )
+        prompt = f"""{recovery_intro}{history_section}{rag_section}
 
 Profilo atleta:
 {_build_athlete_context(athlete)}
@@ -366,11 +398,16 @@ def _generate_fallback_recovery_advice(
     if context:
         advice = f"{context}\n\n**3. Consigli pratici** Applica questi principi di recupero nel tuo routine quotidiana"
     else:
-        base = "**1. Sonno** Dormi 7-9 ore per notte per ottimale recupero\n**2. Idratazione** Bevi 500ml d'acqua per ogni ora di allenamento"
+        base = (
+            "**1. Sonno** Dormi 7-9 ore per notte per ottimale recupero\n"
+            "**2. Idratazione** Bevi 500ml d'acqua per ogni ora di allenamento"
+        )
         advice = (
-            f"{base}\n**3. Stretching** 10-15 min di stretching post-allenamento per flessibilita e prevenzione infortuni"
+            f"{base}\n**3. Stretching** 10-15 min di stretching post-allenamento "
+            "per flessibilita e prevenzione infortuni"
             if recovery_score < 5
-            else f"{base}\n**3. Alimentazione** Consumate carboidrati e proteine nella ratio 3:1 entro 30 min dal termine"
+            else f"{base}\n**3. Alimentazione** Consumate carboidrati e proteine "
+            "nella ratio 3:1 entro 30 min dal termine"
         )
     return f"{_FALLBACK_PREFIX}{advice}"
 

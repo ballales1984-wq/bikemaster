@@ -16,16 +16,16 @@
     </div>
 
     <div v-if="coachData" class="stats" style="margin-top:15px">
-      <div class="stat-card"><div class="stat-value">{{ coachData.scores?.performance_score ?? 0 }}</div><div class="stat-label">Performance</div></div>
-      <div class="stat-card"><div class="stat-value">{{ coachData.scores?.endurance_score ?? 0 }}</div><div class="stat-label">Endurance</div></div>
-      <div class="stat-card"><div class="stat-value">{{ coachData.scores?.efficiency_score ?? 0 }}</div><div class="stat-label">Efficiency</div></div>
+      <div class="stat-card"><div class="stat-value">{{ scoreValue('Performance') }}</div><div class="stat-label">Performance</div></div>
+      <div class="stat-card"><div class="stat-value">{{ scoreValue('Endurance') }}</div><div class="stat-label">Endurance</div></div>
+      <div class="stat-card"><div class="stat-value">{{ scoreValue('Efficiency') }}</div><div class="stat-label">Efficiency</div></div>
     </div>
 
     <div v-if="coachData" class="panel" style="margin-top:15px">
       <h3>💡 Consigli di Allenamento</h3>
       <div class="result-box">{{ coachData.training_advice }}</div>
       <h3>📈 Analisi Storica</h3>
-      <div class="result-box">{{ coachData.historical }}</div>
+      <div class="result-box">{{ coachData.historical_analysis ?? '' }}</div>
       <h3>🧘 Consigli di Recupero</h3>
       <div class="result-box">{{ coachData.recovery_advice }}</div>
     </div>
@@ -45,6 +45,10 @@ import { apiGet } from '../utils/api.js'
 const athleteId = ref(0)
 const loading = ref(false)
 const coachData = ref(null)
+
+function scoreValue(label) {
+  return coachData.value?.training_scores?.find((score) => score.label === label)?.value ?? 0
+}
 
 async function loadCoach() {
   loading.value = true

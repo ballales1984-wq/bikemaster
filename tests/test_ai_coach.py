@@ -6,6 +6,8 @@ os.environ["GROQ_API_KEY"] = "test-key-for-unit-tests"
 
 from bike_analyzer.backend.analytics.ai_coach import (
     analyze_historical_trend,
+    generate_recovery_advice,
+    generate_training_advice,
 )
 from bike_analyzer.backend.models.models import AthleteProfile, Ride
 
@@ -40,7 +42,35 @@ def test_clean_ai_output():
     assert _clean_ai_output("test  multiple   spaces") == "test multiple spaces"
 
 
+def test_local_training_advice_does_not_call_model(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_should_not_call")
+    profile = AthleteProfile(name="Test", weight_kg=70, experience_level="Beginner")
+    rides = [
+        Ride(date="2026-06-11", distance_km=42.0, duration_minutes=100, avg_speed_kmh=25.2)
+    ]
+
+    advice = generate_training_advice(profile, rides)
+
+    assert "Progressivo" in advice or "Recupero" in advice or "Allenamento Base" in advice
+    assert "Servizio AI temporaneamente non disponibile" not in advice
+
+def test_local_recovery_advice_does_not_call_model(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_should_not_call")
+    profile = AthleteProfile(name="Test", weight_kg=70, experience_level="Beginner")
+    rides = [
+        Ride(date="2026-06-11", distance_km=42.0, duration_minutes=100, avg_speed_kmh=25.2)
+    ]
+
+    advice = generate_recovery_advice(profile, rides, fatigue_score=5.0)
+
+    assert "Sonno" in advice or "Idratazione" in advice or "Consigli pratici" in advice
+    assert "Servizio AI temporaneamente non disponibile" not in advice
+
+
 def test_validate_athlete_profile_complete():
+
     from bike_analyzer.backend.analytics.ai_coach import validate_athlete_profile
 
     athlete = AthleteProfile(name="Mario Rossi", weight_kg=75.0, experience_level="Amateur")

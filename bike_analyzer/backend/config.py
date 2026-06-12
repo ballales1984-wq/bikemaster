@@ -51,6 +51,7 @@ SERPAPI_BASE_URL = _s.serpapi_base_url
 NOMINATIM_BASE_URL = _s.nominatim_base_url
 GOOGLE_FIT_SCOPE = _s.google_fit_scope
 KB_PATH = _s.kb_path
+AI_COACH_MODE = _s.ai_coach_mode
 GROQ_API_KEY = _s.groq_api_key
 GROQ_MODEL = _s.groq_model
 OPENAI_API_KEY = _s.openai_api_key
