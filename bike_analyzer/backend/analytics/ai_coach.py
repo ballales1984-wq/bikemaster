@@ -49,14 +49,25 @@ def _use_local_coach() -> bool:
 
 
 def _generate_local_training_advice(athlete: AthleteProfile, rides: list[Ride]) -> str:
-    return _generate_fallback_training_advice(athlete, rides).removeprefix(_FALLBACK_PREFIX)
+    return (
+        "**1. Base aerobica** Inserisci 2-3 uscite in Zona 2 questa settimana "
+        "per costruire resistenza senza affaticamento eccessivo\n"
+        "**2. Qualita controllata** Aggiungi 1 sessione breve di intervalli, "
+        "ad esempio 5x3 minuti forte con 3 minuti facili\n"
+        "**3. Recupero** Mantieni almeno 1 giorno stop completo e dormi 7-9 ore"
+    )
 
 
 def _generate_local_recovery_advice(
     athlete: AthleteProfile, rides: list[Ride], recovery_score: float
 ) -> str:
-    return _generate_fallback_recovery_advice(athlete, rides, recovery_score).removeprefix(
-        _FALLBACK_PREFIX
+    focus = "recupero extra" if recovery_score < 5 else "mantenimento attivo"
+    return (
+        f"**1. {focus}** Fai oggi un'uscita molto leggera o stretching "
+        "di 10-15 minuti\n"
+        "**2. Idratazione e pasti** Bevi regolarmente e includi carboidrati "
+        "piu proteine dopo l'allenamento\n"
+        "**3. Sonno** Punta a 7-9 ore per favorire adattamento e recupero"
     )
 
 

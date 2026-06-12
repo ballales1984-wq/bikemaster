@@ -52,8 +52,10 @@ def test_local_training_advice_does_not_call_model(monkeypatch):
 
     advice = generate_training_advice(profile, rides)
 
-    assert "Progressivo" in advice or "Recupero" in advice or "Allenamento Base" in advice
-    assert "Servizio AI temporaneamente non disponibile" not in advice
+    assert "Base aerobica" in advice
+    assert "Qualita controllata" in advice
+    assert "Recupero" in advice
+    assert "Strength Training" not in advice
 
 def test_local_recovery_advice_does_not_call_model(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
@@ -65,8 +67,10 @@ def test_local_recovery_advice_does_not_call_model(monkeypatch):
 
     advice = generate_recovery_advice(profile, rides, fatigue_score=5.0)
 
-    assert "Sonno" in advice or "Idratazione" in advice or "Consigli pratici" in advice
-    assert "Servizio AI temporaneamente non disponibile" not in advice
+    assert "mantenimento attivo" in advice.lower() or "recupero extra" in advice.lower()
+    assert "Idratazione" in advice
+    assert "Sonno" in advice
+    assert "Biomechanics" not in advice
 
 
 def test_validate_athlete_profile_complete():
