@@ -23,6 +23,7 @@ _LANG_PROMPT = {
 }
 _LANG_INSTRUCTION = _LANG_PROMPT.get(LOCALE, _LANG_PROMPT["it"])
 _LOCAL_COACH_MODES = {"local", "offline", "fallback"}
+_BANNED_PROVIDERS: set[str] = set()
 
 _current_client: object | None = None
 _current_provider: str | None = None
@@ -42,6 +43,15 @@ def _clean_ai_output(text: str) -> str:
 def _coach_mode() -> str:
     env_mode = os.getenv("AI_COACH_MODE")
     return (env_mode if env_mode else AI_COACH_MODE).strip().lower()
+
+
+def _ban_provider(provider: str) -> None:
+    _BANNED_PROVIDERS.add(provider)
+    global _current_client, _current_provider
+    if _current_provider == provider:
+        _current_client = None
+        _current_provider = None
+    print(f"AI Coach: provider '{provider}' banned due to auth error, falling back")
 
 
 def _use_local_coach() -> bool:
@@ -86,39 +96,35 @@ def validate_athlete_profile(athlete: AthleteProfile) -> tuple[bool, str]:
 
 def get_ai_coach_client():
     global _current_client, _current_provider
-    if _current_client:
+    if _current_client and _current_provider not in _BANNED_PROVIDERS:
         return _current_client, _current_provider
 
-    groq_ok = bool(GROQ_API_KEY and GROQ_API_KEY.startswith("gsk_"))
-    openai_ok = bool(OPENAI_API_KEY and OPENAI_API_KEY.startswith("sk-"))
-
-    if groq_ok:
+    for provider_key, api_key, ModelClass, model_name in [
+        ("groq", GROQ_API_KEY, "Groq", GROQ_MODEL),
+        ("openai", OPENAI_API_KEY, "OpenAI", OPENAI_MODEL),
+    ]:
+        if provider_key in _BANNED_PROVIDERS:
+            continue
+        ok = bool(api_key and (api_key.startswith("gsk_") if provider_key == "groq" else api_key.startswith("sk-")))
+        if not ok:
+            continue
         try:
-            from groq import Groq
-
-            _current_client = Groq(api_key=GROQ_API_KEY)
-            _current_provider = "groq"
-            print(f"AI Coach: Groq client initialized (model={GROQ_MODEL})")
+            if provider_key == "groq":
+                from groq import Groq
+                _current_client = Groq(api_key=api_key)
+            else:
+                from openai import OpenAI
+                _current_client = OpenAI(api_key=api_key)
+            _current_provider = provider_key
+            print(f"AI Coach: {ModelClass} client initialized (model={model_name})")
             return _current_client, _current_provider
         except Exception as e:
-            print(f"AI Coach: Groq init error: {type(e).__name__}: {e}")
+            print(f"AI Coach: {ModelClass} init error: {type(e).__name__}: {e}")
             _current_client = None
             _current_provider = None
+            _BANNED_PROVIDERS.add(provider_key)
 
-    if openai_ok:
-        try:
-            from openai import OpenAI
-
-            _current_client = OpenAI(api_key=OPENAI_API_KEY)
-            _current_provider = "openai"
-            print(f"AI Coach: OpenAI client initialized (model={OPENAI_MODEL})")
-            return _current_client, _current_provider
-        except Exception as e:
-            print(f"AI Coach: OpenAI init error: {type(e).__name__}: {e}")
-            _current_client = None
-            _current_provider = None
-
-    msg = "AI Coach: no valid API key (GROQ=gsk_..., OPENAI=sk-...)"
+    msg = "AI Coach: no valid API key (GROQ=gsk_..., OPENAI=sk-...) or all providers failed"
     print(msg)
     raise ValueError(msg)
 
@@ -285,6 +291,7 @@ REGOLE:
             or "invalid_api_key" in str(e).lower()
             or "PermissionDenied" in type(e).__name__
         ):
+            _ban_provider(provider)
             return _generate_fallback_training_advice(athlete, rides)
         return f"AI Coach non disponibile: {type(e).__name__}: {e}"
 
@@ -372,6 +379,7 @@ REGOLE:
             or "invalid_api_key" in str(e).lower()
             or "PermissionDenied" in type(e).__name__
         ):
+            _ban_provider(provider)
             rec_score = recovery if isinstance(recovery, (int, float)) else 5.0
             return _generate_fallback_recovery_advice(athlete, rides, rec_score)
         traceback.print_exc()
