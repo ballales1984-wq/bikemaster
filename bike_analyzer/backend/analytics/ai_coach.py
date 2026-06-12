@@ -58,32 +58,28 @@ def get_ai_coach_client():
     global _current_client, _current_provider
     if _current_client and _current_provider not in _BANNED_PROVIDERS:
         return _current_client, _current_provider
-    if GROQ_API_KEY and GROQ_API_KEY.startswith("gsk_"):
+    if "groq" not in _BANNED_PROVIDERS and GROQ_API_KEY and GROQ_API_KEY.startswith("gsk_"):
         try:
             from groq import Groq
-
             _current_client = Groq(api_key=GROQ_API_KEY)
             _current_provider = "groq"
-            print(f"AI Coach: Groq client initialized (model={GROQ_MODEL})")
             return _current_client, _current_provider
         except Exception as e:
             print(f"AI Coach: Groq init error: {type(e).__name__}: {e}")
+            _BANNED_PROVIDERS.add("groq")
             _current_client = None
             _current_provider = None
-            _BANNED_PROVIDERS.add("groq")
-    if OPENAI_API_KEY and OPENAI_API_KEY.startswith("sk-"):
+    if "openai" not in _BANNED_PROVIDERS and OPENAI_API_KEY and OPENAI_API_KEY.startswith("sk-"):
         try:
             from openai import OpenAI
-
             _current_client = OpenAI(api_key=OPENAI_API_KEY)
             _current_provider = "openai"
-            print(f"AI Coach: OpenAI client initialized (model={OPENAI_MODEL})")
             return _current_client, _current_provider
         except Exception as e:
             print(f"AI Coach: OpenAI init error: {type(e).__name__}: {e}")
+            _BANNED_PROVIDERS.add("openai")
             _current_client = None
             _current_provider = None
-            _BANNED_PROVIDERS.add("openai")
     msg = "AI Coach: no valid API key (GROQ=gsk_..., OPENAI=sk-...) or all providers failed"
     print(msg)
     raise ValueError(msg)
