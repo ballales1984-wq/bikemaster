@@ -89,27 +89,114 @@ def _use_local_coach() -> bool:
     return _coach_mode() in _LOCAL_COACH_MODES
 
 
+def _kb(query: str, max_chunks: int = 3) -> str:
+    results = search_knowledge_base(query, max_chunks=max_chunks)
+    if not results:
+        return ""
+    parts = []
+    for r in results:
+        header = f"[{r.get('section', r['topic'])}]"
+        parts.append(f"{header}\n{r['text'].strip()}")
+    return "\n\n---\n\n".join(parts)
+
+
 def _generate_local_training_advice(athlete: AthleteProfile, rides: list[Ride]) -> str:
-    return (
-        "**1. Base aerobica** Inserisci 2-3 uscite in Zona 2 questa settimana "
-        "per costruire resistenza senza affaticamento eccessivo\n"
-        "**2. Qualita controllata** Aggiungi 1 sessione breve di intervalli, "
-        "ad esempio 5x3 minuti forte con 3 minuti facili\n"
-        "**3. Recupero** Mantieni almeno 1 giorno stop completo e dormi 7-9 ore"
+    level = (athlete.experience_level or "beginner").lower()
+    terrain = (athlete.preferred_terrain or "").lower()
+    goals = (athlete.goals or "").lower()
+
+    queries: list[str] = [
+        "weekly training plan periodization",
+        f"training {level}" if level else "base training",
+    ]
+    if any(w in goals for w in ["granfondo", "gran fondo", "granfondo"]):
+        queries.append("gran fondo endurance long distance")
+    if any(w in goals for w in ["criterium", "crit", "sprint", "short", "veloce"]):
+        queries.append("criterium sprint high intensity")
+    if any(w in goals for w in ["downhill", "enduro", "tech", "technical"]):
+        queries.append("downhill technique strength")
+    if any(w in terrain for w in ["mountain", "hill", "climb", "salita", "montagna"]):
+        queries.append("hill climbing training strength")
+    if any(w in terrain for w in ["flat", "piana", "pianura", "time trial"]):
+        queries.append("flat terrain aerobic threshold")
+    if not rides:
+        queries.append("base building off-season")
+
+    seen: set[str] = set()
+    kb_parts: list[str] = []
+    for q in queries:
+        chunk = _kb(q, max_chunks=2)
+        if chunk and chunk not in seen:
+            seen.add(chunk)
+            kb_parts.append(chunk)
+
+    kb_context = "\n\n".join(kb_parts[:4]) if kb_parts else ""
+
+    suggestions: list[str] = []
+    if kb_context:
+        suggestions.append(f"**1. Knowledge-based advice**\n{kb_context[:1200]}")
+        suggestions.append(
+            "**2. Progressive overload** Increase weekly volume by max 10% "
+            "to avoid overtraining"
+        )
+    else:
+        suggestions.append(
+            "**1. Aerobic base** Add 2-3 Zone 2 rides this week "
+            "to build endurance without excessive fatigue"
+        )
+        suggestions.append(
+            "**2. Controlled intensity** Add 1 short interval session, "
+            "for example 5x3 min hard with 3 min easy"
+        )
+    suggestions.append(
+        "**3. Recovery** Keep at least 1 full rest day and sleep 7-9 hours"
     )
+    return "\n\n".join(suggestions)
 
 
 def _generate_local_recovery_advice(
     athlete: AthleteProfile, rides: list[Ride], recovery_score: float
 ) -> str:
-    focus = "recupero extra" if recovery_score < 5 else "mantenimento attivo"
-    return (
-        f"**1. {focus}** Fai oggi un'uscita molto leggera o stretching "
-        "di 10-15 minuti\n"
-        "**2. Idratazione e pasti** Bevi regolarmente e includi carboidrati "
-        "piu proteine dopo l'allenamento\n"
-        "**3. Sonno** Punta a 7-9 ore per favorire adattamento e recupero"
+    recent = rides[-1] if rides else None
+    fatigue_flag = "fatigued" if recovery_score < 5 else "normal"
+
+    queries = [
+        "recovery stretching hydration sleep nutrition",
+        f"recovery {fatigue_flag}" if recovery_score < 5 else "active recovery maintenance",
+    ]
+    if recent:
+        if getattr(recent, "elevation_gain_m", 0) and recent.elevation_gain_m > 500:
+            queries.append("recovery heavy climbing tired legs")
+        if getattr(recent, "duration_minutes", 0) and recent.duration_minutes > 180:
+            queries.append("recovery long ride ultra endurance")
+
+    seen: set[str] = set()
+    kb_parts: list[str] = []
+    for q in queries:
+        chunk = _kb(q, max_chunks=2)
+        if chunk and chunk not in seen:
+            seen.add(chunk)
+            kb_parts.append(chunk)
+
+    kb_context = "\n\n".join(kb_parts[:3]) if kb_parts else ""
+    focus = "extra recovery" if recovery_score < 5 else "active maintenance"
+
+    suggestions: list[str] = []
+    if kb_context:
+        suggestions.append(f"**1. {focus}**\n{kb_context[:1000]}")
+    else:
+        suggestions.append(
+            f"**1. {focus}** Take a very easy spin or "
+            "10-15 minutes of stretching today"
+        )
+    suggestions.append(
+        "**2. Hydration and nutrition** Drink regularly and include "
+        "carbohydrates and protein after training"
     )
+    suggestions.append(
+        "**3. Sleep** Aim for 7-9 hours to support adaptation and recovery"
+    )
+    return "\n\n".join(suggestions)
 
 
 def validate_athlete_profile(athlete: AthleteProfile) -> tuple[bool, str]:
