@@ -302,7 +302,7 @@ class TestSearchKnowledgeBase:
         result = search_knowledge_base("recupero stretching", as_string=True, max_chunks=2)
         if result:
             lines = result.split("\n")
-            has_bracket = any(l.startswith("[") for l in lines)
+            has_bracket = any(line.startswith("[") for line in lines)
             assert has_bracket
 
 

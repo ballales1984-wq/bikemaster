@@ -450,10 +450,7 @@ def generate_recovery_advice(
  - Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
  - Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
  """
-        if provider == "groq":
-            model = GROQ_MODEL
-        else:
-            model = OPENAI_MODEL
+        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
         chat = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
@@ -476,25 +473,25 @@ def generate_recovery_advice(
         return f"Recupero non disponibile: {type(e).__name__}: {e}"
 
 
-_FALLBACK_PREFIX = "(Servizio AI temporaneamente non disponibile - consiglio basato su modello)\n\n"
+_FALLBACK_PREFIX = "(AI service temporarily unavailable - model-based advice)\n\n"
 
 
 def _generate_fallback_training_advice(athlete: AthleteProfile, rides: list[Ride]) -> str:
-    kb = search_knowledge_base("allenamento base periodizzazione", max_chunks=3)
+    kb = search_knowledge_base("base training periodization", max_chunks=3)
     if kb:
         context = format_context_for_llm(kb)
         advice = (
-            f"{context}\n\n**3. Progressivo** Aumenta il volume settimanale "
-            f"di massimo 10% a settimana per evitare sovrallenamento\n"
-            f"**4. Recupero** Inserisci 1-2 giorni di riposo completo a settimana"
+            f"{context}\n\n**3. Progressive** Increase weekly volume "
+            f"by max 10% per week to avoid overtraining\n"
+            f"**4. Recovery** Include 1-2 full rest days per week"
         )
     else:
         advice = (
-            "**1. Allenamento Base** Fai 80% delle tue uscite a bassa intensita "
-            "(Zona 2) per sviluppare l'aerobico\n"
-            "**2. Progressione** Aumenta il volume settimanale di massimo 10% a "
-            "settimana per evitare sovrallenamento\n"
-            "**3. Recupero** Inserisci 1-2 giorni di riposo completo a settimana"
+            "**1. Aerobic base** Do 80% of rides at low intensity "
+            "(Zone 2) to build endurance\n"
+            "**2. Progression** Increase weekly volume by max 10% per week "
+            "to avoid overtraining\n"
+            "**3. Recovery** Include 1-2 full rest days per week"
         )
     return f"{_FALLBACK_PREFIX}{advice}"
 
@@ -526,7 +523,7 @@ generate_recovery_recommendations = generate_recovery_advice
 
 def analyze_historical_trend(rides: list[Ride]) -> str:
     if len(rides) < 2:
-        return "Dati insufficienti per trend."
+        return "Insufficient data for trend."
     from .fatigue import calculate_fatigue_score
 
     avg_fatigue = sum(calculate_fatigue_score(r) for r in rides) / len(rides)

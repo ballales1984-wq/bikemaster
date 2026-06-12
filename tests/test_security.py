@@ -21,6 +21,8 @@ from jose import jwt
 from bike_analyzer.backend.security import (
     create_access_token,
     decode_token,
+    get_current_user,
+    get_optional_current_user,
     hash_password,
     oauth2_scheme,
     verify_password,

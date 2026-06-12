@@ -130,7 +130,18 @@ def export_rides_csv(rides: list[Ride], output_path: str = "rides_export.csv") -
 
 def generate_text_report(ride: Ride) -> str:
     a = analyze_ride(ride)
-    return f"BikeMaster Report\nDate: {a['date']}\nDistance: {a['distance_km']} km\nDuration: {a['duration_minutes']} min\nAvg Speed: {a['avg_speed_kmh']} km/h\nCalories: {a['calories']}\nFatigue Score: {a['fatigue_score']}/10\nRecovery: {a['recovery_hours']}h - {a['recovery_recommendation']}"
+    return "\n".join(
+        [
+            "BikeMaster Report",
+            f"Date: {a['date']}",
+            f"Distance: {a['distance_km']} km",
+            f"Duration: {a['duration_minutes']} min",
+            f"Avg Speed: {a['avg_speed_kmh']} km/h",
+            f"Calories: {a['calories']}",
+            f"Fatigue Score: {a['fatigue_score']}/10",
+            f"Recovery: {a['recovery_hours']}h - {a['recovery_recommendation']}",
+        ]
+    )
 
 
 def create_speed_chart(segments: list[Segment], output_path: str = "speed_chart.png") -> str:

@@ -14,7 +14,7 @@ from bike_analyzer.backend.models.models import AthleteProfile, Ride
 
 def test_analyze_historical_trend_empty():
     result = analyze_historical_trend([])
-    assert "insufficienti" in result.lower()
+    assert "insufficient" in result.lower()
 
 
 def test_analyze_historical_trend():

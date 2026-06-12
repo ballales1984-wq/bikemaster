@@ -101,4 +101,19 @@ def generate_benchmark_report(athlete: AthleteProfile, rides: list) -> str:
     avg_speed = sum(r.avg_speed_kmh for r in rides) / len(rides) if rides else 0
     total_hours = sum(r.duration_hours for r in rides)
     comparison = compare_athlete_to_benchmark(athlete, total_km, avg_speed, total_hours)
-    return f"Benchmark Report\nAtleta: {athlete.name}\nLevel: {athlete.experience_level}\nAge: {athlete.age} ({get_age_category(athlete.age)})\nWeight: {athlete.weight_kg}kg ({get_weight_category(athlete.weight_kg)})\nExperience: {athlete.years_active} years ({get_experience_category(athlete.years_active)})\nPercentile: {comparison.get('overall_percentile', 0)}%\nTotal km: {total_km:.0f} (level average: {BENCHMARK_DATA.get(athlete.experience_level, {}).get('total_km', (0, 0))})"
+    level_average = BENCHMARK_DATA.get(athlete.experience_level, {}).get("total_km", (0, 0))
+    return "\n".join(
+        [
+            "Benchmark Report",
+            f"Atleta: {athlete.name}",
+            f"Level: {athlete.experience_level}",
+            f"Age: {athlete.age} ({get_age_category(athlete.age)})",
+            f"Weight: {athlete.weight_kg}kg ({get_weight_category(athlete.weight_kg)})",
+            (
+                f"Experience: {athlete.years_active} years "
+                f"({get_experience_category(athlete.years_active)})"
+            ),
+            f"Percentile: {comparison.get('overall_percentile', 0)}%",
+            f"Total km: {total_km:.0f} (level average: {level_average})",
+        ]
+    )

@@ -29,7 +29,16 @@
         <h3>Piano Allenamento {{ weeks }} settimane</h3>
         <p class="plan-dates">Dal {{ startDate }} al {{ endDate }}</p>
       </div>
-      
+
+      <div class="plan-actions">
+        <button class="btn btn-success" @click="savePlan" :disabled="saving">
+          {{ saving ? 'Salvataggio...' : '💾 Salva nel Calendario' }}
+        </button>
+        <span v-if="saveMessage" class="save-message" :class="{ success: saveSuccess, error: !saveSuccess }">
+          {{ saveMessage }}
+        </span>
+      </div>
+
       <div class="tapering-info">
         <span class="badge badge-info">📊 Tapering: -40% volume 2 settimane prima, -60% ultima settimana</span>
       </div>
@@ -190,5 +199,38 @@ const calendarDays = computed(() => {
   padding: 3px 8px;
   border-radius: 12px;
   color: #fff;
+}
+
+.plan-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.save-message {
+  font-size: 0.9rem;
+}
+
+.save-message.success {
+  color: #166534;
+}
+
+.save-message.error {
+  color: #991b1b;
+}
+
+.btn-success {
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-success:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 </style>

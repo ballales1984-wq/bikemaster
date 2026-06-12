@@ -800,9 +800,12 @@ async def coach_full_data(
                 row = cur.fetchone()
                 resolved_id = row[0] if row else 0
         if not resolved_id:
+            profile_message = (
+                "Create an athlete profile in the Dashboard to receive personalized recommendations."
+            )
             return {
-                "training_advice": "Create an athlete profile in the Dashboard to receive personalized recommendations.",
-                "recovery_advice": "Create an athlete profile in the Dashboard to receive personalized recommendations.",
+                "training_advice": profile_message,
+                "recovery_advice": profile_message,
                 "historical_analysis": "",
                 "training_scores": [],
                 "recovery_scores": [],
@@ -1396,10 +1399,7 @@ async def get_weather(
     if not WEATHER_API_KEY:
         raise HTTPException(status_code=500, detail="WEATHER_API_KEY not configured in .env file")
 
-    if date:
-        weather = get_forecast_for_date(lat, lon, date)
-    else:
-        weather = get_weather_for_coordinates(lat, lon)
+    weather = get_forecast_for_date(lat, lon, date) if date else get_weather_for_coordinates(lat, lon)
 
     if "error" in weather:
         raise HTTPException(status_code=502, detail=weather["error"])
@@ -1478,7 +1478,10 @@ async def get_monthly_progression(current_user: dict | None = Depends(get_option
 
 
 @router.get("/analytics/comparison")
-async def get_period_comparison(period_days: int = Query(7, ge=1, le=90), current_user: dict | None = Depends(get_optional_current_user)):
+async def get_period_comparison(
+    period_days: int = Query(7, ge=1, le=90),
+    current_user: dict | None = Depends(get_optional_current_user),
+):
     """Compare recent vs previous period for athlete's rides."""
     from ..analytics.analytics_trends import calculate_period_comparison
     from ..db.database import get_all_rides, get_rides_by_athlete
