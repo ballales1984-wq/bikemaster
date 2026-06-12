@@ -21,5 +21,6 @@ EXPOSE 8000
 
 ENV PYTHONUNBUFFERED=1
 ENV DB_PATH=/app/data/rides.db
+ENV AI_COACH_MODE=local
 
 CMD ["sh", "-c", "python main.py api --port ${PORT:-8000}"]
