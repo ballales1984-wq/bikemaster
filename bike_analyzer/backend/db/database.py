@@ -310,37 +310,68 @@ def update_ride(ride_id: int, ride: dict) -> bool:
         return cur.rowcount > 0
 
 
-def save_athlete(athlete: dict) -> int:
+def save_athlete(athlete: dict, athlete_id: int | None = None) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute(
-            """INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage,
-            years_active, weekly_sessions, monthly_hours, annual_hours, experience_level,
-            goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes,
-            equipment, ftp_watts, password_hash, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                athlete.get("name"),
-                athlete.get("age", 30),
-                athlete.get("weight_kg", 70),
-                athlete.get("height_cm"),
-                athlete.get("fat_percentage"),
-                athlete.get("years_active", 1),
-                athlete.get("weekly_sessions", 3),
-                athlete.get("monthly_hours", 0),
-                athlete.get("annual_hours", 0),
-                athlete.get("experience_level", "Beginner"),
-                athlete.get("goals"),
-                athlete.get("preferred_terrain"),
-                athlete.get("weekly_volume_km", 0),
-                athlete.get("best_segments"),
-                athlete.get("medical_notes"),
-                athlete.get("equipment"),
-                athlete.get("ftp_watts"),
-                athlete.get("password_hash"),
-                datetime.now(UTC).isoformat(),
-            ),
-        )
+        if athlete_id is None:
+            cur.execute(
+                """INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage,
+                years_active, weekly_sessions, monthly_hours, annual_hours, experience_level,
+                goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes,
+                equipment, ftp_watts, password_hash, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    athlete.get("name"),
+                    athlete.get("age", 30),
+                    athlete.get("weight_kg", 70),
+                    athlete.get("height_cm"),
+                    athlete.get("fat_percentage"),
+                    athlete.get("years_active", 1),
+                    athlete.get("weekly_sessions", 3),
+                    athlete.get("monthly_hours", 0),
+                    athlete.get("annual_hours", 0),
+                    athlete.get("experience_level", "Beginner"),
+                    athlete.get("goals"),
+                    athlete.get("preferred_terrain"),
+                    athlete.get("weekly_volume_km", 0),
+                    athlete.get("best_segments"),
+                    athlete.get("medical_notes"),
+                    athlete.get("equipment"),
+                    athlete.get("ftp_watts"),
+                    athlete.get("password_hash"),
+                    datetime.now(UTC).isoformat(),
+                ),
+            )
+        else:
+            cur.execute(
+                """INSERT INTO athletes (id, name, age, weight_kg, height_cm, fat_percentage,
+                years_active, weekly_sessions, monthly_hours, annual_hours, experience_level,
+                goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes,
+                equipment, ftp_watts, password_hash, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    athlete_id,
+                    athlete.get("name"),
+                    athlete.get("age", 30),
+                    athlete.get("weight_kg", 70),
+                    athlete.get("height_cm"),
+                    athlete.get("fat_percentage"),
+                    athlete.get("years_active", 1),
+                    athlete.get("weekly_sessions", 3),
+                    athlete.get("monthly_hours", 0),
+                    athlete.get("annual_hours", 0),
+                    athlete.get("experience_level", "Beginner"),
+                    athlete.get("goals"),
+                    athlete.get("preferred_terrain"),
+                    athlete.get("weekly_volume_km", 0),
+                    athlete.get("best_segments"),
+                    athlete.get("medical_notes"),
+                    athlete.get("equipment"),
+                    athlete.get("ftp_watts"),
+                    athlete.get("password_hash"),
+                    datetime.now(UTC).isoformat(),
+                ),
+            )
         conn.commit()
         return cur.lastrowid
 
