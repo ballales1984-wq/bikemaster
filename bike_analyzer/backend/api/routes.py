@@ -31,7 +31,7 @@ from ..maps.map_renderer import create_route_map
 from ..maps.osm_maps import get_local_results, search_nearby, search_places
 from ..models.models import AthleteProfile, GPSPoint, Ride
 from ..rate_limiter import limiter
-from ..security import get_admin_user, get_current_user, get_optional_current_user
+from ..security import get_admin_user, get_current_user
 from ..utils.logger import get_logger
 from .schemas import (
     AthleteCreate,
@@ -54,8 +54,23 @@ def _user_id(current_user: dict) -> int:
     return int(current_user["id"])
 
 
+def _public_athlete(athlete: dict | None) -> dict | None:
+    if athlete is None:
+        return None
+    return {k: v for k, v in athlete.items() if k != "password_hash"}
+
+
+def _ensure_int_user_id(current_user: dict) -> int:
+    try:
+        return int(current_user["id"])
+    except (KeyError, TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Token utente non valido")
+
+
 def _ensure_athlete_access(athlete_id: int, current_user: dict) -> None:
-    if not current_user.get("is_admin") and int(athlete_id) != _user_id(current_user):
+    if current_user.get("is_admin"):
+        return
+    if int(athlete_id) != _ensure_int_user_id(current_user):
         raise HTTPException(status_code=403, detail="Access denied to this athlete")
 
 
@@ -111,6 +126,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "access_token": create_access_token(subject=str(row[0]), is_admin=False),
         "token_type": "bearer",
         "username": row[1],
+        "id": int(row[0]),
+        "is_admin": False,
     }
 
 
@@ -527,29 +544,27 @@ async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current
 
 @router.post("/athletes", response_model=dict)
 async def create_athlete(
-    athlete_data: AthleteCreate, current_user: dict | None = Depends(get_optional_current_user)
+    athlete_data: AthleteCreate, current_user: dict = Depends(get_current_user)
 ):
-    """Create or get athlete profile for authenticated user."""
+    """Create or update the authenticated user's athlete profile."""
     from ..db.database import get_athlete as _get_athlete
     from ..db.database import get_athlete_by_name, save_athlete
+    from ..db.database import update_athlete as _update
 
-    if not athlete_data.name or len(athlete_data.name) < 2:
-        raise HTTPException(status_code=400, detail="Name richiesto (min 2 caratteri)")
+    target_athlete_id = _ensure_int_user_id(current_user)
+    existing = _get_athlete(target_athlete_id)
+    if athlete_data.name:
+        existing_by_name = get_athlete_by_name(athlete_data.name)
+        if existing_by_name and existing_by_name["id"] != target_athlete_id:
+            raise HTTPException(status_code=409, detail="Nome atleta già in uso")
 
-    # If authenticated, use current user's id and check if athlete exists
-    if current_user:
-        target_athlete_id = current_user["id"]
-        existing = _get_athlete(target_athlete_id)
-        if existing:
-            return {k: v for k, v in existing.items() if k != "password_hash"}
-
-    # Check if username already exists (for guests or when there's a name mismatch)
-    existing = get_athlete_by_name(athlete_data.name)
+    data = athlete_data.model_dump()
     if existing:
-        return {k: v for k, v in existing.items() if k != "password_hash"}
+        _update(target_athlete_id, data)
+        return _public_athlete(_get_athlete(target_athlete_id))
 
-    athlete_id = save_athlete(athlete_data.model_dump())
-    return {k: v for k, v in {"id": int(athlete_id), **athlete_data.model_dump()}.items() if k != "password_hash"}
+    athlete_id = save_athlete(data, athlete_id=target_athlete_id)
+    return _public_athlete(_get_athlete(athlete_id))
 
 
 @router.get("/athletes")
@@ -560,7 +575,7 @@ async def list_athletes(current_user: dict = Depends(get_current_user)):
     athlete = _get_athlete(current_user["id"])
     if not athlete:
         raise HTTPException(status_code=404, detail="Athlete profile not found")
-    return {k: v for k, v in athlete.items() if k != "password_hash"}
+    return {"athletes": [_public_athlete(athlete)]}
 
 
 @admin_router.get("/athletes")
@@ -581,7 +596,7 @@ async def get_athlete_endpoint(athlete_id: int, current_user: dict = Depends(get
     athlete = _get_athlete(athlete_id)
     if not athlete:
         raise HTTPException(status_code=404, detail="Athlete not found")
-    return athlete
+    return _public_athlete(athlete)
 
 
 @router.post("/athletes/{athlete_id}/metrics")
@@ -604,12 +619,18 @@ async def update_athlete(
 ):
     _ensure_athlete_access(athlete_id, current_user)
     from ..db.database import get_athlete as _get
+    from ..db.database import get_athlete_by_name
     from ..db.database import update_athlete as _update
 
     if not _get(athlete_id):
         raise HTTPException(status_code=404, detail="Athlete not found")
-    _update(athlete_id, athlete_data.model_dump(exclude_none=True))
-    return {"id": athlete_id, **athlete_data.model_dump(exclude_none=True)}
+    update_data = athlete_data.model_dump(exclude_none=True)
+    if update_data.get("name"):
+        existing = get_athlete_by_name(update_data["name"])
+        if existing and existing["id"] != athlete_id:
+            raise HTTPException(status_code=409, detail="Nome atleta già in uso")
+    _update(athlete_id, update_data)
+    return _public_athlete(_get(athlete_id))
 
 
 @router.get("/import/google-fit/auth")
@@ -658,7 +679,9 @@ async def import_google_fit(payload: dict, current_user: dict = Depends(get_curr
     rides_data = google_fit_to_ride(activities)
     imported = []
     for ride_data in rides_data:
-        ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
+        ride_data = {k: v for k, v in ride_data.items() if k != "id"}
+        ride_data["athlete_id"] = current_user["id"]
+        ride_id = save_ride(ride_data)
         ride_data["id"] = int(ride_id)
         imported.append(ride_data)
     return {"imported": imported, "count": len(imported)}
@@ -762,7 +785,7 @@ async def reload_knowledge(current_user: dict = Depends(get_admin_user)):
 async def workout_recommendations(
     request: Request,
     athlete_id: int = 0,
-    current_user: dict | None = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     import traceback
 
@@ -771,19 +794,12 @@ async def workout_recommendations(
     from ..models.models import AthleteProfile
 
     try:
-        # Resolve athlete_id: use provided, or use authenticated user's id
-        resolved_id = athlete_id
-        if current_user and athlete_id:
-            _ensure_athlete_access(athlete_id, current_user)
-        if current_user and not resolved_id:
-            resolved_id = current_user["id"]
-        elif not resolved_id:
-            # For guests, require athlete_id parameter
-            return {"recommendations": "Provide athlete_id or authenticate to get recommendations."}
+        resolved_id = athlete_id if athlete_id else current_user["id"]
+        _ensure_athlete_access(resolved_id, current_user)
         rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
         athlete_data = get_athlete(resolved_id)
         if athlete_data:
-            athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
+            athlete_data = _public_athlete(athlete_data)
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
         result, _ = generate_workout_recommendations(athlete, rides)
         return {"recommendations": result}
@@ -1601,13 +1617,18 @@ async def get_badges(
 
 
 @router.post("/training/granfondo/plan")
-async def generate_granfondo_workouts(request: GranfondoPlanRequest):
+async def generate_granfondo_workouts(
+    request: GranfondoPlanRequest,
+    current_user: dict = Depends(get_current_user),
+):
     """Generate granfondo training plan with tapering."""
     start_date = request.start_date
     weeks = request.target_weeks
+    athlete_id = request.athlete_id if request.athlete_id else current_user["id"]
+    _ensure_athlete_access(athlete_id, current_user)
     plan = generate_granfondo_plan(start_date, weeks)
     return {
-        "athlete_id": request.athlete_id,
+        "athlete_id": athlete_id,
         "start_date": start_date,
         "weeks": weeks,
         "plan": plan,
