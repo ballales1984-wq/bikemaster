@@ -23,6 +23,7 @@ def _circular_walk(
     lons = center_lon + dlon
     return lats.tolist(), lons.tolist()
 
+
 def generate_sample_ride(
     n_points: int = 100,
     center_lat: float = 45.4654,
