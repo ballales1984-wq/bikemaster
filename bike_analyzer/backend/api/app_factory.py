@@ -68,7 +68,17 @@ def create_app() -> FastAPI:
         else CORS_ORIGINS
     )
     if "*" in cors_origins:
-        logger.warning("Wildcard CORS origin detected - this is dangerous in production")
+        if ENVIRONMENT.lower() in ("production", "prod", "staging"):
+            logger.error(
+                "CORS wildcard origin detected in production — forbidding. "
+                "Set CORS_ORIGINS to explicit allowed origins."
+            )
+            cors_origins = []
+        else:
+            logger.warning("Wildcard CORS origin detected - this is dangerous in production")
+    if not cors_origins and ENVIRONMENT.lower() not in ("development", "dev", "test"):
+        logger.error("No CORS origins configured in non-development environment")
+        cors_origins = []
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,

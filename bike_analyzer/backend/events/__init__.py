@@ -7,11 +7,14 @@ Events: RideCreated, AthleteUpdated, BadgeEarned, TrainingGenerated.
 from __future__ import annotations
 
 import logging
+import os
 from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+STRICT_MODE = os.getenv("EVENT_BUS_STRICT_MODE", "false").lower() in ("true", "1", "yes")
 
 _handler_cache: dict[str, list[Callable[..., Any]]] = defaultdict(list)
 
@@ -26,7 +29,10 @@ async def publish(event_type: str, data: dict[str, Any] | None = None) -> None:
     for handler in _handler_cache[event_type]:
         try:
             await handler(data or {})
-        except Exception:
+        except Exception as exc:
+            if STRICT_MODE:
+                logger.error("Event handler failed for %s: %s", event_type, exc, exc_info=True)
+                raise
             logger.error("Event handler failed for %s", event_type, exc_info=True)
 
 

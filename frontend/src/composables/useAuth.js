@@ -25,6 +25,27 @@ function getAuthHeader() {
   return token.value ? { Authorization: `Bearer ${token.value}` } : {}
 }
 
+function parseBase64Url(base64Url) {
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = base64 + '=='.slice(0, (4 - (base64.length % 4)) % 4)
+  return decodeURIComponent(
+    Array.from(atob(padded))
+      .map(c => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`)
+      .join('')
+  )
+}
+
+function parseJWTPayload(token) {
+  try {
+    const parts = token.split('.')
+    if (parts.length < 2) return null
+    const decoded = parseBase64Url(parts[1])
+    return JSON.parse(decoded)
+  } catch {
+    return null
+  }
+}
+
 async function login(username, password) {
   const form = new URLSearchParams()
   form.append('username', username)
@@ -40,11 +61,11 @@ async function login(username, password) {
   }
   const data = await resp.json()
   token.value = data.access_token
-  const payload = JSON.parse(atob(data.access_token.split('.')[1]))
+  const payload = parseJWTPayload(data.access_token)
   user.value = {
-    id: Number(data.id || payload.sub),
-    username: payload.sub,
-    is_admin: payload.is_admin
+    id: Number(data.id || (payload?.sub ?? '')),
+    username: payload?.sub ?? '',
+    is_admin: !!payload?.is_admin,
   }
   localStorage.setItem(TOKEN_KEY, data.access_token)
   localStorage.setItem(USER_KEY, JSON.stringify(user.value))
@@ -61,7 +82,17 @@ function register(username, password) {
   })
 }
 
-function logout() {
+async function logout() {
+  try {
+    const token = localStorage.getItem('bikemaster_token')
+    if (token) {
+      await fetch('/api/v1/auth/logout', {
+        method: 'POST',
+        headers: { ...getAuthHeader() },
+      }).catch(() => {})
+    }
+  } catch {}
+
   token.value = ''
   user.value = null
   localStorage.removeItem(TOKEN_KEY)

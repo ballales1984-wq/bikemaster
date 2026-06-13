@@ -108,7 +108,7 @@ async def health_check():
 
 @router.post("/auth/login")
 @limiter.limit("5/minute")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     from ..db.database import get_db_connection
     from ..security import create_access_token, verify_password
 
@@ -132,10 +132,34 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     }
 
 
+@router.post("/auth/logout")
+async def logout(request: Request, current_user: dict = Depends(get_current_user)):
+    from ..security import revoke_token
+
+    auth_header = request.headers.get("authorization", "")
+    token = auth_header.removeprefix("Bearer ").strip()
+    try:
+        import base64
+        import json
+
+        parts = token.split(".")
+        if len(parts) >= 2:
+            padding = 4 - len(parts[1]) % 4
+            payload = parts[1] + ("=" * padding)
+            decoded = base64.b64decode(payload)
+            payload_data = json.loads(decoded)
+            jti = payload_data.get("jti")
+            if jti:
+                await revoke_token(jti)
+    except Exception as exc:
+        logger.warning("Logout: failed to revoke token: %s", exc)
+    return {"msg": "Logged out successfully"}
+
+
 @router.post("/auth/register")
 @limiter.limit("3/minute")
 async def register(
-    username: str = Body(..., min_length=3), password: str = Body(..., min_length=6)
+    request: Request, username: str = Body(..., min_length=3), password: str = Body(..., min_length=6)
 ):
     from ..db.database import get_athlete_by_name, save_athlete
     from ..security import hash_password
@@ -272,8 +296,8 @@ async def get_ride_segments(
 
 @router.post("/rides/analyze", response_model=dict)
 @limiter.limit("20/minute")
-async def analyze_rides(request: RideAnalysisRequest):
-    return calculate_summary([Ride(**r.model_dump()) for r in request.rides])
+async def analyze_rides(request: Request, payload: RideAnalysisRequest):
+    return calculate_summary([Ride(**r.model_dump()) for r in payload.rides])
 
 
 @router.post("/rides/{ride_id}/analyze")
@@ -774,7 +798,9 @@ async def list_knowledge():
 
 @router.get("/knowledge/search")
 @limiter.limit("10/minute")
-async def search_knowledge_endpoint(query: str = "", max_chunks: int = 4, min_score: float = 0.05):
+async def search_knowledge_endpoint(
+    request: Request, query: str = "", max_chunks: int = 4, min_score: float = 0.05
+):
     from ..analytics.knowledge_base import format_context_for_llm, search_knowledge_base
 
     if not query or not query.strip():

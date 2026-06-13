@@ -6,15 +6,16 @@ PostgreSQL uses psycopg2 (sync) for migrations, asyncpg only for app runtime.
 from __future__ import annotations
 
 from logging.config import fileConfig
+
 from sqlalchemy import engine_from_config, pool
+
 from alembic import context
+from bike_analyzer.backend.db.models import Base
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
-
-from bike_analyzer.backend.db.models import Base
 
 target_metadata = Base.metadata
 

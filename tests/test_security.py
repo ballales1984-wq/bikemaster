@@ -140,8 +140,9 @@ async def test_get_current_user_valid():
 @pytest.mark.asyncio
 async def test_get_current_user_missing_sub():
     token = create_access_token("invalid-int-id-xyz")
-    result = await get_current_user(token)
-    assert result["id"] == "invalid-int-id-xyz"
+    with pytest.raises(HTTPException) as exc_info:
+        await get_current_user(token)
+    assert exc_info.value.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -368,12 +369,10 @@ def test_scores_endpoint_requires_ownership(client):
 
 def test_rides_endpoint_isolation(client):
     """Test that rides are isolated between users."""
-    # Register user1
     client.post("/api/v1/auth/register", json={"username": "iso_user1", "password": "testpass123"})
     login1 = client.post("/api/v1/auth/login", data={"username": "iso_user1", "password": "testpass123"})
     token1 = login1.json()["access_token"]
 
-    # Create a ride for user1
     ride_data = {
         "date": "2024-06-01",
         "distance_km": 25.0,
@@ -382,12 +381,53 @@ def test_rides_endpoint_isolation(client):
     }
     client.post("/api/v1/rides", json=ride_data, headers={"Authorization": f"Bearer {token1}"})
 
-    # Register user2
     client.post("/api/v1/auth/register", json={"username": "iso_user2", "password": "testpass123"})
     login2 = client.post("/api/v1/auth/login", data={"username": "iso_user2", "password": "testpass123"})
     token2 = login2.json()["access_token"]
 
-    # User2 should not see user1's rides
     resp = client.get("/api/v1/rides", headers={"Authorization": f"Bearer {token2}"})
     assert resp.status_code == 200
     assert resp.json()["rides"] == []
+
+
+def test_jwt_revoke_blocklist(client):
+    import asyncio
+    import os
+
+    os.environ["ENVIRONMENT"] = "test"
+    from bike_analyzer.backend.security import create_access_token, is_token_revoked, revoke_token
+
+    token = create_access_token("777", is_admin=False)
+    ok = asyncio.get_event_loop().run_until_complete(
+        revoke_token("unit-test-jti-1", ttl=3600)
+    )
+    assert ok is True
+
+    async def _mock_check(jti):
+        return jti == "unit-test-jti-1"
+
+    with patch("bike_analyzer.backend.security.is_token_revoked", side_effect=_mock_check):
+        from bike_analyzer.backend.security import decode_token
+
+        try:
+            decode_token(token)
+            assert False, "expected HTTPException"
+        except Exception as exc:
+            assert getattr(exc, "status_code", None) == 401
+
+
+def test_logout_endpoint_revokes_token(client):
+    import os
+
+    os.environ["ENVIRONMENT"] = "test"
+    from bike_analyzer.backend.security import create_access_token
+
+    client.post("/api/v1/auth/register", json={"username": "logout_user", "password": "testpass123"})
+    login = client.post("/api/v1/auth/login", data={"username": "logout_user", "password": "testpass123"})
+    token = login.json()["access_token"]
+
+    resp = client.post(
+        "/api/v1/auth/logout",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200
