@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import contextlib
+import logging
 import os
 import re
-import traceback
 from datetime import UTC
 
 from ..config import AI_COACH_MODE, GROQ_API_KEY, GROQ_MODEL, OPENAI_API_KEY, OPENAI_MODEL
@@ -13,6 +13,8 @@ from ..models.models import AthleteProfile, Ride
 from .analytics import calculate_summary, create_duration_chart, create_speed_chart
 from .knowledge_base import format_context_for_llm, search_knowledge_base
 from .performance import calculate_performance_score, calculate_recovery_score
+
+logger = logging.getLogger(__name__)
 
 LOCALE: str = os.getenv("LOCALE", "it")
 _LANG_PROMPT = {
@@ -60,12 +62,10 @@ def _ban_provider(provider: str) -> None:
     if _current_provider == provider:
         _current_client = None
         _current_provider = None
-    print(f"AI Coach: provider '{provider}' banned due to auth error, falling back")
+    logger.warning("AI Coach: provider '%s' banned due to auth error, falling back", provider)
 
 
 def _is_recoverable_provider_error(error: Exception) -> bool:
-    text = str(error).lower()
-    name = type(error).__name__
     return True
 
 
@@ -100,13 +100,18 @@ def get_ai_coach_client():
             _current_provider = provider
             return _current_client, _current_provider
         except Exception as e:
-            print(f"AI Coach: {provider.title()} init error: {type(e).__name__}: {e}")
+            logger.warning(
+                "AI Coach: %s init error: %s: %s",
+                provider.title(),
+                type(e).__name__,
+                e,
+            )
             _BANNED_PROVIDERS.add(provider)
             _current_client = None
             _current_provider = None
 
     msg = "AI Coach: no valid API key (GROQ=gsk_..., OPENAI=sk-...) or all providers failed"
-    print(msg)
+    logger.error(msg)
     raise ValueError(msg)
 
 
@@ -238,6 +243,7 @@ def validate_athlete_profile(athlete: AthleteProfile) -> tuple[bool, str]:
 
 
 def _build_athlete_context(athlete: AthleteProfile) -> str:
+    _SENSITIVE_FIELDS = {"medical_notes", "equipment", "password_hash"}
     parts = [
         f"Nome: {athlete.name or 'N/A'}",
         f"Livello: {athlete.experience_level}",
@@ -254,10 +260,6 @@ def _build_athlete_context(athlete: AthleteProfile) -> str:
         parts.append(f"Volume settimanale: {athlete.weekly_volume_km:.0f} km")
     if getattr(athlete, "best_segments", None):
         parts.append(f"Segmenti migliori: {athlete.best_segments}")
-    if getattr(athlete, "medical_notes", None):
-        parts.append(f"Note mediche: {athlete.medical_notes}")
-    if getattr(athlete, "equipment", None):
-        parts.append(f"Attrezzatura: {athlete.equipment}")
     return "\n".join(parts)
 
 
@@ -393,7 +395,7 @@ def generate_training_advice(
         try:
             client, provider = get_ai_coach_client()
         except ValueError:
-            print("AI Coach no API key available, using fallback")
+            logger.warning("AI Coach no API key available, using fallback")
             return _generate_fallback_training_advice(athlete, rides)
 
 
@@ -402,8 +404,8 @@ def generate_training_advice(
             content = _chat_completion_text(client, model, prompt, 500)
             return _clean_ai_output(content)
         except Exception as e:
-            print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
-            traceback.print_exc()
+            logger.warning("AI Coach API call failed: %s: %s", type(e).__name__, e)
+            logger.debug("AI Coach API error details", exc_info=True)
             _ban_provider(provider)
             continue
     if _BANNED_PROVIDERS:
@@ -486,8 +488,8 @@ def generate_recovery_advice(
             content = _chat_completion_text(client, model, prompt, 300)
             return _clean_ai_output(content)
         except Exception as e:
-            print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
-            traceback.print_exc()
+            logger.warning("AI Coach API call failed: %s: %s", type(e).__name__, e)
+            logger.debug("AI Coach API error details", exc_info=True)
             _ban_provider(provider)
             continue
     return _generate_fallback_recovery_advice(athlete, rides, recovery)

@@ -2,7 +2,7 @@
   <div class="panel">
     <h2>🧠 AI Coach</h2>
     <div class="form-grid">
-      <div class="form-group"><label for="coach-athlete-id">ID Atleta (0 = ultimo)</label><input id="coach-athlete-id" type="number" v-model.number="athleteId" min="0" /></div>
+      <div class="form-group"><label for="coach-athlete-id">ID Atleta</label><input id="coach-athlete-id" type="number" v-model.number="athleteId" min="1" /></div>
       <div class="form-group">
         <button class="btn btn-primary" @click="loadCoach" :disabled="loading">{{ loading ? '🔄 Analisi in corso...' : '📊 Carica Coach Completo' }}</button>
       </div>
@@ -39,18 +39,24 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { apiGet } from '../utils/api.js'
 
-const athleteId = ref(0)
+const athleteId = ref(null)
 const loading = ref(false)
 const coachData = ref(null)
+
+async function loadAthleteId() {
+  const data = await apiGet('/api/v1/athletes')
+  athleteId.value = data.athletes?.[0]?.id ?? null
+}
 
 function scoreValue(label) {
   return coachData.value?.training_scores?.find((score) => score.label === label)?.value ?? 0
 }
 
 async function loadCoach() {
+  if (!athleteId.value) return
   loading.value = true
   try {
     coachData.value = await apiGet('/api/v1/coach/full', { athlete_id: athleteId.value || 0 })
@@ -60,4 +66,8 @@ async function loadCoach() {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  loadAthleteId().then(loadCoach).catch(console.error)
+})
 </script>

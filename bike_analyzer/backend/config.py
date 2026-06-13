@@ -22,16 +22,9 @@ _ENV = os.getenv("ENVIRONMENT", "development")
 _IS_PROD = _ENV.lower() in ("production", "prod", "staging")
 
 if not _s.secret_key:
-    if _IS_PROD:
-        logging.error("SECRET_KEY è obbligatoria in produzione. Impostala nel .env.")
-        sys.exit(1)
-    import secrets as _secrets
-    _SECRET_KEY = _secrets.token_urlsafe(32)
-    logging.warning(
-        "SECRET_KEY non configurata. Generated temporary key (dev only): %s...", _SECRET_KEY[:8]
-    )
-else:
-    _SECRET_KEY = _s.secret_key
+    logging.error("SECRET_KEY è obbligatoria. Impostala nel .env.")
+    sys.exit(1)
+_SECRET_KEY = _s.secret_key
 
 # SECRET_KEY rotation support
 _SECRET_KEY_PRIMARY = _SECRET_KEY

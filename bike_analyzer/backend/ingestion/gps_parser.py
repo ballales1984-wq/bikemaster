@@ -6,8 +6,10 @@ from datetime import datetime
 
 
 def parse_gpx_file(content: str) -> list[dict]:
+    import re
     import xml.etree.ElementTree as ET
 
+    content = re.sub(r'<!DOCTYPE[^>]*?>', '', content, flags=re.IGNORECASE | re.DOTALL)
     root = ET.fromstring(content)
     points, ns = [], {"d": "http://www.topografix.com/GPX/1/1"}
     for trkpt in root.findall(".//d:trkpt", ns):
@@ -42,7 +44,7 @@ def parse_fit_file(file_path: str) -> list[dict]:
                     )
         return points
     except ImportError:
-        raise ImportError("fitparse not installed. Run: pip install fitparse") from None
+        raise ImportError("fitparse not installed") from None
 
 
 def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float = 70.0) -> dict:

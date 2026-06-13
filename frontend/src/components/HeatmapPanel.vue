@@ -4,8 +4,8 @@
     
     <div class="form-grid">
       <div class="form-group">
-        <label for="heatmap-athlete-id">Atleta ID (0 = tutti)</label>
-        <input id="heatmap-athlete-id" type="number" v-model.number="athleteId" min="0" />
+        <label for="heatmap-athlete-id">Atleta ID</label>
+        <input id="heatmap-athlete-id" type="number" v-model.number="athleteId" min="1" />
       </div>
       <div class="form-group">
         <button class="btn btn-primary" @click="loadHeatmap">🔄 Carica Heatmap</button>
@@ -34,11 +34,17 @@
 import { ref, onMounted, watch } from 'vue'
 import { apiGet } from '../utils/api.js'
 
-const athleteId = ref(0)
+const athleteId = ref(null)
 const loading = ref(false)
 const heatmapData = ref(null)
 
+async function loadAthleteId() {
+  const data = await apiGet('/api/v1/athletes')
+  athleteId.value = data.athletes?.[0]?.id ?? null
+}
+
 async function loadHeatmap() {
+  if (!athleteId.value) return
   loading.value = true
   heatmapData.value = null
   try {
@@ -51,7 +57,9 @@ async function loadHeatmap() {
   }
 }
 
-onMounted(() => loadHeatmap())
+onMounted(() => {
+  loadAthleteId().then(loadHeatmap).catch(console.error)
+})
 watch(athleteId, loadHeatmap)
 </script>
 

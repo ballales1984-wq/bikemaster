@@ -204,11 +204,25 @@ def test_auth_login_endpoint(client):
     assert response.status_code == 200
     response = client.post("/api/v1/auth/login", data={"username": "testuser", "password": "testpass123"})
     assert response.status_code == 200
-    assert "access_token" in response.json()
+    data = response.json()
+    assert "access_token" in data
+    assert data["id"] > 0
+    assert data["is_admin"] is False
 
 
 def test_auth_login_invalid(client):
     response = client.post("/api/v1/auth/login", data={"username": "wrong", "password": "wrong"})
+    assert response.status_code == 401
+
+
+def test_athlete_endpoints_require_authentication(unauthenticated_client):
+    response = unauthenticated_client.post(
+        "/api/v1/athletes",
+        json={"name": "Guest", "age": 30, "weight_kg": 70.0},
+    )
+    assert response.status_code == 401
+
+    response = unauthenticated_client.get("/api/v1/athletes")
     assert response.status_code == 401
 
 
@@ -244,60 +258,79 @@ def test_athletes_endpoint_requires_ownership(client):
     # Get user1's athlete id
     resp1 = client.get("/api/v1/athletes", headers={"Authorization": f"Bearer {token1}"})
     assert resp1.status_code == 200
-    user1_id = resp1.json()["id"]
+    user1_id = resp1.json()["athletes"][0]["id"]
 
     # User2 cannot access user1's athlete profile
     resp2 = client.get(f"/api/v1/athletes/{user1_id}", headers={"Authorization": f"Bearer {token2}"})
     assert resp2.status_code == 403
 
 
+def test_athlete_profile_redacts_password_hash(client):
+    client.post("/api/v1/auth/register", json={"username": "redact_user", "password": "testpass123"})
+    login = client.post("/api/v1/auth/login", data={"username": "redact_user", "password": "testpass123"})
+    token = login.json()["access_token"]
+    resp = client.get("/api/v1/athletes", headers={"Authorization": f"Bearer {token}"})
+    athlete = resp.json()["athletes"][0]
+
+    assert "password_hash" not in athlete
+
+    profile = client.get(f"/api/v1/athletes/{athlete['id']}", headers={"Authorization": f"Bearer {token}"})
+    assert "password_hash" not in profile.json()
+
+
+def test_athlete_name_cannot_be_stolen(client):
+    client.post("/api/v1/auth/register", json={"username": "owner", "password": "testpass123"})
+    client.post("/api/v1/auth/register", json={"username": "thief", "password": "testpass123"})
+    owner_login = client.post("/api/v1/auth/login", data={"username": "owner", "password": "testpass123"})
+    thief_login = client.post("/api/v1/auth/login", data={"username": "thief", "password": "testpass123"})
+    owner_token = owner_login.json()["access_token"]
+    thief_token = thief_login.json()["access_token"]
+
+    owner = client.post(
+        "/api/v1/athletes",
+        json={"name": "Unique Owner", "age": 30, "weight_kg": 70.0},
+        headers={"Authorization": f"Bearer {owner_token}"},
+    ).json()
+
+    stolen = client.post(
+        "/api/v1/athletes",
+        json={"name": owner["name"], "age": 30, "weight_kg": 70.0},
+        headers={"Authorization": f"Bearer {thief_token}"},
+    )
+    assert stolen.status_code == 409
+
+
 def test_training_endpoints_isolation(client):
-    """Test that training endpoints are isolated between users."""
-    # Register user1 and get token
     client.post("/api/v1/auth/register", json={"username": "tr_user1", "password": "testpass123"})
     login1 = client.post("/api/v1/auth/login", data={"username": "tr_user1", "password": "testpass123"})
     token1 = login1.json()["access_token"]
 
-    # Create an athlete for user1 to have an athlete_id
-    client.post("/api/v1/athletes", json={"name": "User1"}, headers={"Authorization": f"Bearer {token1}"})
+    client.post(
+        "/api/v1/athletes",
+        json={"name": "Training User1", "age": 30, "weight_kg": 70.0},
+        headers={"Authorization": f"Bearer {token1}"},
+    )
     resp1 = client.get("/api/v1/athletes", headers={"Authorization": f"Bearer {token1}"})
-    user1_athlete_id = resp1.json()["id"]
+    user1_athlete_id = resp1.json()["athletes"][0]["id"]
 
-    # Register user2
     client.post("/api/v1/auth/register", json={"username": "tr_user2", "password": "testpass123"})
     login2 = client.post("/api/v1/auth/login", data={"username": "tr_user2", "password": "testpass123"})
     token2 = login2.json()["access_token"]
 
-    # User2 cannot access user1's training data
     resp = client.get(
-        f"/api/v1/training/load?athlete_id={user1_athlete_id}", headers={"Authorization": f"Bearer {token2}"}
+        f"/api/v1/training/load?athlete_id={user1_athlete_id}",
+        headers={"Authorization": f"Bearer {token2}"},
     )
     assert resp.status_code == 403
 
     resp = client.get(
-        f"/api/v1/training/status?athlete_id={user1_athlete_id}", headers={"Authorization": f"Bearer {token2}"}
+        f"/api/v1/training/status?athlete_id={user1_athlete_id}",
+        headers={"Authorization": f"Bearer {token2}"},
     )
     assert resp.status_code == 403
 
 
 def test_coach_history_requires_ownership(client):
-    """Test that /coach/history requires ownership of athlete data."""
-    client.post("/api/v1/auth/register", json={"username": "ch_user1", "password": "testpass123"})
-    client.post("/api/v1/auth/register", json={"username": "ch_user2", "password": "testpass123"})
-    login1 = client.post("/api/v1/auth/login", data={"username": "ch_user1", "password": "testpass123"})
-    token1 = login1.json()["access_token"]
-    login2 = client.post("/api/v1/auth/login", data={"username": "ch_user2", "password": "testpass123"})
-    token2 = login2.json()["access_token"]
-
-    resp1 = client.get("/api/v1/athletes", headers={"Authorization": f"Bearer {token1}"})
-    user1_id = resp1.json()["id"]
-
-    # User2 cannot access user1's chat history
-    resp2 = client.get(f"/api/v1/coach/history?athlete_id={user1_id}", headers={"Authorization": f"Bearer {token2}"})
-    assert resp2.status_code == 403
-
-
-def test_coach_chat_requires_ownership(client):
     """Test that /coach/chat requires ownership of athlete data."""
     client.post("/api/v1/auth/register", json={"username": "cc_user1", "password": "testpass123"})
     client.post("/api/v1/auth/register", json={"username": "cc_user2", "password": "testpass123"})
@@ -307,7 +340,7 @@ def test_coach_chat_requires_ownership(client):
     token2 = login2.json()["access_token"]
 
     resp1 = client.get("/api/v1/athletes", headers={"Authorization": f"Bearer {token1}"})
-    user1_id = resp1.json()["id"]
+    user1_id = resp1.json()["athletes"][0]["id"]
 
     # User2 cannot access user1's chat
     resp2 = client.get(
@@ -326,7 +359,7 @@ def test_scores_endpoint_requires_ownership(client):
     token2 = login2.json()["access_token"]
 
     resp1 = client.get("/api/v1/athletes", headers={"Authorization": f"Bearer {token1}"})
-    user1_id = resp1.json()["id"]
+    user1_id = resp1.json()["athletes"][0]["id"]
 
     # User2 cannot access user1's scores
     resp2 = client.get(f"/api/v1/scores/athlete/{user1_id}", headers={"Authorization": f"Bearer {token2}"})

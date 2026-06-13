@@ -52,7 +52,7 @@ async def close_redis():
 
 def cache_key(*args: Any, **kwargs: Any) -> str:
     raw = json.dumps({"args": args, "kwargs": kwargs}, sort_keys=True, default=str)
-    return "bikemaster:cache:" + hashlib.md5(raw.encode()).hexdigest()
+    return "bikemaster:cache:" + hashlib.sha256(raw.encode()).hexdigest()
 
 
 async def cached(key: str, ttl: int = 300) -> Any | None:

@@ -91,8 +91,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token non valido")
     try:
         user_id_int = int(user_id)
-    except (TypeError, ValueError):
-        user_id_int = user_id
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token non valido"
+        ) from exc
     return {"id": user_id_int, "is_admin": is_admin}
 
 

@@ -59,12 +59,17 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { apiGet } from '../utils/api.js'
 
-const athleteId = ref(1)
+const athleteId = ref(null)
 const loading = ref(false)
 const badgesData = ref(null)
+
+async function loadAthleteId() {
+  const data = await apiGet('/api/v1/athletes')
+  athleteId.value = data.athletes?.[0]?.id ?? null
+}
 
 const categories = [
   { key: 'milestone', label: '🎯 Milestone' },
@@ -80,6 +85,7 @@ const completionPercent = computed(() => {
 })
 
 async function loadBadges() {
+  if (!athleteId.value) return
   loading.value = true
   try {
     badgesData.value = await apiGet('/api/v1/badges', { athlete_id: athleteId.value })
@@ -95,6 +101,10 @@ function getBadgesByCategory(category) {
   if (!badgesData.value?.badges) return []
   return badgesData.value.badges.filter(b => b.category === category)
 }
+
+onMounted(() => {
+  loadAthleteId().then(loadBadges).catch(console.error)
+})
 </script>
 
 <style scoped>

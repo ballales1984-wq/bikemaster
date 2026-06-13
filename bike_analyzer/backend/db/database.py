@@ -142,6 +142,33 @@ def init_db():
             FOREIGN KEY (athlete_id) REFERENCES athletes(id),
             FOREIGN KEY (ride_id) REFERENCES rides(id)
         )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS training_goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            goal_type TEXT DEFAULT 'granfondo',
+            target_date TEXT,
+            target_distance_km REAL,
+            target_elevation_m REAL,
+            status TEXT DEFAULT 'active',
+            created_at TEXT,
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id)
+        )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS planned_workouts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER NOT NULL,
+            goal_id INTEGER,
+            date TEXT NOT NULL,
+            title TEXT NOT NULL,
+            workout_type TEXT DEFAULT 'endurance',
+            duration_minutes INTEGER DEFAULT 60,
+            target_intensity REAL DEFAULT 0.5,
+            completed INTEGER DEFAULT 0,
+            completed_at TEXT,
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id),
+            FOREIGN KEY (goal_id) REFERENCES training_goals(id)
+        )""")
         conn.execute("""CREATE TABLE IF NOT EXISTS road_incidents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             source_id TEXT NOT NULL,
@@ -263,14 +290,15 @@ def get_paginated_rides(
     """Get paginated rides with safe ORDER BY whitelist."""
     order_map = {"date": "date", "distance": "distance_km", "duration": "duration_minutes"}
     order_col = order_map.get(sort, "date")
-    if order_col not in order_map.values():
-        raise ValueError(f"Invalid sort column: {sort}")
     offset = (page - 1) * page_size
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT COUNT(*) FROM rides")
         total = cur.fetchone()[0]
-        cur.execute(f"SELECT * FROM rides ORDER BY {order_col} DESC LIMIT ? OFFSET ?", (page_size, offset))
+        cur.execute(
+            f"SELECT * FROM rides ORDER BY {order_col} DESC LIMIT ? OFFSET ?",
+            (page_size, offset),
+        )
         rows = cur.fetchall()
         return [_row_to_ride(r) for r in rows], total
 

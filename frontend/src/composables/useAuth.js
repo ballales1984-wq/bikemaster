@@ -41,7 +41,11 @@ async function login(username, password) {
   const data = await resp.json()
   token.value = data.access_token
   const payload = JSON.parse(atob(data.access_token.split('.')[1]))
-  user.value = { username: payload.sub, is_admin: payload.is_admin }
+  user.value = {
+    id: Number(data.id || payload.sub),
+    username: payload.sub,
+    is_admin: payload.is_admin
+  }
   localStorage.setItem(TOKEN_KEY, data.access_token)
   localStorage.setItem(USER_KEY, JSON.stringify(user.value))
 }

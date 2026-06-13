@@ -68,16 +68,21 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { apiPost } from '../utils/api.js'
+import { ref, computed, onMounted } from 'vue'
+import { apiGet, apiPost } from '../utils/api.js'
 
-const athleteId = ref(1)
+const athleteId = ref(null)
 const startDate = ref(new Date().toISOString().split('T')[0])
 const weeks = ref(8)
 const loading = ref(false)
 const plan = ref(null)
 
 const weekDays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
+
+async function loadAthleteId() {
+  const data = await apiGet('/api/v1/athletes')
+  athleteId.value = data.athletes?.[0]?.id ?? 0
+}
 
 const endDate = computed(() => {
   const d = new Date(startDate.value)
@@ -86,6 +91,7 @@ const endDate = computed(() => {
 })
 
 async function generatePlan() {
+  if (!athleteId.value) return
   loading.value = true
   try {
     const result = await apiPost('/api/v1/training/granfondo/plan', {
@@ -127,6 +133,10 @@ const calendarDays = computed(() => {
   }
   
   return result
+})
+
+onMounted(() => {
+  loadAthleteId().catch(console.error)
 })
 </script>
 

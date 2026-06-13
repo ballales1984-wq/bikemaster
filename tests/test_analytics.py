@@ -338,11 +338,11 @@ def test_ai_coach_fallbacks():
 
     athlete = AthleteProfile(name="Test", experience_level="Beginner")
 
-    result, _ = generate_training_advice(athlete, [])
+    result = generate_training_advice(athlete, [])
 
     assert result is not None
 
-    assert generate_recovery_advice(athlete, [])[0] != ""
+    assert generate_recovery_advice(athlete, []) != ""
 
 
 def test_google_maps_api_key():

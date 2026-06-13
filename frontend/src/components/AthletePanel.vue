@@ -27,17 +27,39 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { apiGet, apiPost } from '../utils/api.js'
+import { ref, onMounted } from 'vue'
+import { apiGet, apiPost, apiPut } from '../utils/api.js'
 
 const emit = defineEmits(['toast'])
-const form = ref({ name: '', age: 30, weight_kg: 70, height_cm: 175, fat_percentage: 15, years_active: 1, weekly_sessions: 3, monthly_hours: 0, annual_hours: 0, experience_level: 'Beginner' })
+const form = ref({
+  name: '',
+  age: 30,
+  weight_kg: 70,
+  height_cm: 175,
+  fat_percentage: 15,
+  years_active: 1,
+  weekly_sessions: 3,
+  monthly_hours: 0,
+  annual_hours: 0,
+  experience_level: 'Beginner'
+})
 const result = ref('')
 const athleteId = ref(null)
 
+async function loadAthlete() {
+  const data = await apiGet('/api/v1/athletes')
+  const athlete = data.athletes?.[0]
+  if (athlete) {
+    athleteId.value = athlete.id
+    form.value = { ...form.value, ...athlete }
+  }
+}
+
 async function save() {
   try {
-    const data = await apiPost('/api/v1/athletes', form.value)
+    const data = athleteId.value
+      ? await apiPut('/api/v1/athletes/' + athleteId.value, form.value)
+      : await apiPost('/api/v1/athletes', form.value)
     athleteId.value = data.id
     result.value = 'Profilo atleta salvato (ID: ' + data.id + ')'
   } catch (e) {
@@ -58,4 +80,10 @@ async function getScores() {
     result.value = 'Errore: ' + (e.message || e)
   }
 }
+
+onMounted(() => {
+  loadAthlete().catch(e => {
+    result.value = 'Errore: ' + (e.message || e)
+  })
+})
 </script>

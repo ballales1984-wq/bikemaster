@@ -63,8 +63,8 @@ def _public_athlete(athlete: dict | None) -> dict | None:
 def _ensure_int_user_id(current_user: dict) -> int:
     try:
         return int(current_user["id"])
-    except (KeyError, TypeError, ValueError):
-        raise HTTPException(status_code=401, detail="Token utente non valido")
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(status_code=401, detail="Token utente non valido") from exc
 
 
 def _ensure_athlete_access(athlete_id: int, current_user: dict) -> None:
@@ -107,6 +107,7 @@ async def health_check():
 
 
 @router.post("/auth/login")
+@limiter.limit("5/minute")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     from ..db.database import get_db_connection
     from ..security import create_access_token, verify_password
@@ -132,6 +133,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.post("/auth/register")
+@limiter.limit("3/minute")
 async def register(
     username: str = Body(..., min_length=3), password: str = Body(..., min_length=6)
 ):
@@ -185,10 +187,6 @@ async def list_rides(
     """List rides - only for current user."""
     from ..db.database import get_rides_by_athlete
 
-    rides, _total = (
-        get_rides_by_athlete(current_user["id"]),
-        len(get_rides_by_athlete(current_user["id"])),
-    )
     all_rides = get_rides_by_athlete(current_user["id"])
     start = (page - 1) * page_size
     rides = all_rides[start : start + page_size]
@@ -273,6 +271,7 @@ async def get_ride_segments(
 
 
 @router.post("/rides/analyze", response_model=dict)
+@limiter.limit("20/minute")
 async def analyze_rides(request: RideAnalysisRequest):
     return calculate_summary([Ride(**r.model_dump()) for r in request.rides])
 
@@ -288,6 +287,8 @@ async def analyze_single_ride(
 async def generate_ride_map(
     ride_id: int, current_user: dict = Depends(get_current_user)
 ):
+    from pathlib import Path
+
     from ..db.database import get_ride as _get_ride
 
     ride = _get_ride(ride_id)
@@ -298,8 +299,14 @@ async def generate_ride_map(
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
     points = [GPSPoint(**p) for p in gps_points]
-    create_route_map(points, output_path=f"ride_{ride_id}_map.html")
-    return {"map_url": f"/static/ride_{ride_id}_map.html"}
+    base_dir = Path(__file__).resolve().parent.parent.parent / "static"
+    safe_id = "".join(c if c.isalnum() or c == "_" else "_" for c in str(ride_id))
+    path = base_dir / f"ride_{safe_id}_map.html"
+    resolved = path.resolve()
+    if not resolved.is_relative_to(base_dir.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    create_route_map(points, output_path=str(resolved))
+    return {"map_url": f"/static/{resolved.name}"}
 
 
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024
@@ -651,14 +658,27 @@ async def google_fit_auth(
 
 
 @router.post("/import/google-fit/token")
-async def google_fit_exchange_token(payload: dict):
+async def google_fit_exchange_token(
+    payload: dict,
+    current_user: dict = Depends(get_current_user),
+):
     from ..ingestion.google_fit import exchange_code_for_token
 
+    client_id = payload.get("client_id", "")
+    if not client_id or not isinstance(client_id, str) or len(client_id) > 256:
+        raise HTTPException(status_code=400, detail="Invalid client_id")
+    from urllib.parse import urlparse
+
+    redirect_uri = payload.get("redirect_uri", "http://localhost:8000/api/v1/import/google-fit/callback")
+    parsed = urlparse(redirect_uri)
+    if parsed.scheme not in ("http", "https") or parsed.hostname not in ("localhost", "127.0.0.1"):
+        raise HTTPException(status_code=400, detail="redirect_uri must be localhost")
+
     token_data = exchange_code_for_token(
-        payload.get("client_id"),
-        payload.get("client_secret"),
+        client_id,
+        payload.get("client_secret", ""),
         payload.get("code"),
-        payload.get("redirect_uri", "http://localhost:8000/api/v1/import/google-fit/callback"),
+        redirect_uri,
     )
     return {
         "access_token": token_data.get("access_token"),
@@ -673,8 +693,10 @@ async def import_google_fit(payload: dict, current_user: dict = Depends(get_curr
     from ..ingestion.google_fit import fetch_cycling_activities, google_fit_to_ride
 
     access_token = payload.get("access_token")
-    if not access_token:
+    if not access_token or not isinstance(access_token, str) or len(access_token) > 2048:
         raise HTTPException(status_code=400, detail="access_token required")
+    if not isinstance(payload.get("activities"), list | type(None)):
+        raise HTTPException(status_code=422, detail="Invalid payload structure")
     activities = fetch_cycling_activities(access_token)
     rides_data = google_fit_to_ride(activities)
     imported = []
@@ -702,20 +724,21 @@ async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_c
     athlete = get_athlete(athlete_id)
     if not athlete:
         raise HTTPException(status_code=404, detail="Athlete not found")
+    athlete_public = {k: v for k, v in athlete.items() if k != "password_hash"}
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     if rides:
         latest = rides[-1]
         return {
-            "athlete": {k: v for k, v in athlete.items() if k != "password_hash"},
+            "athlete": athlete_public,
             "scores": {
                 "performance_score": calculate_performance_score(latest),
                 "endurance_score": calculate_endurance_score(rides),
                 "efficiency_score": calculate_efficiency_score(latest),
-                "experience_level": get_experience_level(AthleteProfile(**athlete)),
+                "experience_level": get_experience_level(AthleteProfile(**athlete_public)),
             },
         }
     return {
-        "athlete": {k: v for k, v in athlete.items() if k != "password_hash"},
+        "athlete": athlete_public,
         "scores": {
             "performance_score": 0,
             "endurance_score": 0,
@@ -750,6 +773,7 @@ async def list_knowledge():
 
 
 @router.get("/knowledge/search")
+@limiter.limit("10/minute")
 async def search_knowledge_endpoint(query: str = "", max_chunks: int = 4, min_score: float = 0.05):
     from ..analytics.knowledge_base import format_context_for_llm, search_knowledge_base
 
@@ -767,10 +791,16 @@ async def search_knowledge_endpoint(query: str = "", max_chunks: int = 4, min_sc
 
 
 @router.get("/knowledge/stats")
-async def knowledge_stats():
+async def knowledge_stats(current_user: dict = Depends(get_current_user)):
     from ..analytics.knowledge_base import get_kb_stats
 
-    return get_kb_stats()
+    stats = get_kb_stats()
+    return {
+        "topics": stats.get("topics", []),
+        "chunks_per_topic": stats.get("chunks_per_topic", {}),
+        "total_chunks": stats.get("total_chunks", 0),
+        "total_words": stats.get("total_words", 0),
+    }
 
 
 @router.post("/knowledge/reload")
@@ -801,7 +831,7 @@ async def workout_recommendations(
         if athlete_data:
             athlete_data = _public_athlete(athlete_data)
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
-        result, _ = generate_workout_recommendations(athlete, rides)
+        result = generate_workout_recommendations(athlete, rides)
         return {"recommendations": result}
     except HTTPException:
         raise
@@ -915,7 +945,7 @@ async def recovery_recommendations(
         if athlete_data:
             athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
-        result, _ = generate_recovery_recommendations(
+        result = generate_recovery_recommendations(
             athlete, [ride_obj] if ride_obj else [], fatigue_score
         )
         return {"recommendations": result}
@@ -1078,7 +1108,9 @@ async def update_ride(
     existing = _get_ride(ride_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Ride not found")
-    merged = {**existing, **ride}
+    _ensure_ride_access(existing, current_user)
+    protected = {k: v for k, v in existing.items() if k in ("id", "athlete_id", "created_at")}
+    merged = {**protected, **{k: v for k, v in ride.items() if k not in protected}}
     _update_ride(ride_id, merged)
     return merged
 
@@ -1118,7 +1150,7 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
         athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
     athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
-    response, _ = generate_training_advice(athlete, rides, athlete_id)
+    response = generate_training_advice(athlete, rides, athlete_id)
     save_chat_message(athlete_id, "assistant", response[:500])
     return {"response": response, "history": get_chat_history(athlete_id)}
 
@@ -1418,6 +1450,8 @@ async def generate_workouts(
         goal = session.query(TrainingGoalModel).filter(TrainingGoalModel.id == goal_id).first()
         if not goal:
             raise HTTPException(status_code=404, detail="Goal not found")
+        if goal.athlete_id is None:
+            raise HTTPException(status_code=422, detail="Goal has no associated athlete")
         _ensure_athlete_access(goal.athlete_id, current_user)
 
         rides = [Ride(**r) for r in get_rides_by_athlete(goal.athlete_id)]

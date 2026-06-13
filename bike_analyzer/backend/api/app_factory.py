@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -11,9 +12,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 
-from ..config import CORS_ORIGINS
+from ..config import CORS_ORIGINS, ENVIRONMENT
 from ..rate_limiter import limiter
 from .routes import admin_router, router
+
+logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
@@ -28,8 +31,6 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    from ..config import ENVIRONMENT
-
     app = FastAPI(
         title="BikeMaster API",
         description="GPS-based cycling intelligence",
@@ -60,9 +61,17 @@ def create_app() -> FastAPI:
 
     app.state.limiter = limiter
     app.add_exception_handler(429, _rate_limit_exceeded_handler)
+
+    cors_origins = (
+        [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
+        if isinstance(CORS_ORIGINS, str)
+        else CORS_ORIGINS
+    )
+    if "*" in cors_origins:
+        logger.warning("Wildcard CORS origin detected - this is dangerous in production")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=CORS_ORIGINS,
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization", "X-Requested-With"],

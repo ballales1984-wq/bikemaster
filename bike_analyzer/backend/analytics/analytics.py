@@ -174,10 +174,11 @@ def create_duration_chart(rides: list[Ride], output_path: str = "duration_chart.
     durations = [r.duration_minutes for r in rides] if rides else [0]
     labels = [r.date for r in rides] if rides else ["No rides"]
     plt.figure(figsize=(10, 4))
-    plt.bar(labels, durations, color="#4ecca3")
+    plt.bar(range(len(durations)), durations, color="#4ecca3")
+    plt.xticks(range(len(durations)), labels, rotation=45)
     plt.title("Ride Duration")
     plt.ylabel("minutes")
-    plt.xticks(rotation=45)
+    plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
     return output_path

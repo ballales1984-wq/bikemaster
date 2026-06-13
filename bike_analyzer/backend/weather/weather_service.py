@@ -78,7 +78,10 @@ def get_forecast_for_date(lat: float, lon: float, date: str) -> dict:
         resp.raise_for_status()
         data = resp.json()
 
-        target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        except ValueError:
+            return {"error": f"Invalid date format: {date}", "temperature": None, "humidity": None}
         target_dt = datetime.combine(target_date, datetime.min.time())
         target_ts = int(target_dt.timestamp())
 

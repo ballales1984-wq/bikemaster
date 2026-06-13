@@ -6,10 +6,12 @@ Events: RideCreated, AthleteUpdated, BadgeEarned, TrainingGenerated.
 
 from __future__ import annotations
 
-import contextlib
+import logging
 from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 _handler_cache: dict[str, list[Callable[..., Any]]] = defaultdict(list)
 
@@ -22,8 +24,10 @@ def subscribe(event_type: str, handler: Callable[..., Any]) -> None:
 async def publish(event_type: str, data: dict[str, Any] | None = None) -> None:
     """Publish an event to all registered handlers."""
     for handler in _handler_cache[event_type]:
-        with contextlib.suppress(Exception):
+        try:
             await handler(data or {})
+        except Exception:
+            logger.error("Event handler failed for %s", event_type, exc_info=True)
 
 
 def clear_handlers() -> None:

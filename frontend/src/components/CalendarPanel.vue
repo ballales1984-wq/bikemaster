@@ -195,7 +195,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api.js'
 import ConfirmModal from './ConfirmModal.vue'
 
-const athleteId = ref(1)
+const athleteId = ref(null)
 const athletes = ref([])
 const currentYear = ref(new Date().getFullYear())
 const currentMonth = ref(new Date().getMonth())
@@ -300,9 +300,9 @@ function eventLabel(type) {
 }
 
 function openAddForDate(date) {
-   editingEvent.value = null
-   form.value = { title: '', event_type: 'training', date, duration_minutes: 0, description: '', completed: false, lat: null, lon: null }
-   showForm.value = true
+  editingEvent.value = null
+  form.value = { title: '', event_type: 'training', date, duration_minutes: 0, description: '', completed: false, lat: null, lon: null }
+  showForm.value = true
 }
 
 function openEdit(ev) {
@@ -312,18 +312,18 @@ function openEdit(ev) {
 }
 
 function quickAddFromObjective(obj) {
-   const today = new Date()
-   const dateStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`
-   editingEvent.value = null
-   form.value = { title: obj.title, event_type: obj.event_type, date: dateStr, duration_minutes: obj.duration, description: obj.hint, completed: false, lat: null, lon: null }
-   showForm.value = true
+  const today = new Date()
+  const dateStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`
+  editingEvent.value = null
+  form.value = { title: obj.title, event_type: obj.event_type, date: dateStr, duration_minutes: obj.duration, description: obj.hint, completed: false, lat: null, lon: null }
+  showForm.value = true
 }
 
 async function loadAthletes() {
   try {
     const data = await apiGet('/api/v1/athletes')
     athletes.value = data.athletes || []
-    if (athletes.value.length > 0 && athleteId.value <= 0) {
+    if (athletes.value.length > 0 && !athleteId.value) {
       athleteId.value = athletes.value[0].id
     }
   } catch (e) {
@@ -332,7 +332,7 @@ async function loadAthletes() {
 }
 
 async function loadEvents() {
-  if (athleteId.value <= 0) { events.value = []; return }
+  if (!athleteId.value) { events.value = []; return }
   try {
     const data = await apiGet('/api/v1/calendar/events', { athlete_id: athleteId.value, year: currentYear.value, month: currentMonth.value + 1 })
     events.value = data.events || []
@@ -342,7 +342,7 @@ async function loadEvents() {
 }
 
 async function loadGoals() {
-  if (athleteId.value <= 0) { athleteGoals.value = ''; return }
+  if (!athleteId.value) { athleteGoals.value = ''; return }
   try {
     const data = await apiGet('/api/v1/athletes/' + athleteId.value)
     athleteGoals.value = data.goals || ''
@@ -389,54 +389,54 @@ function askDeleteEvent(id) {
 }
 
 async function toggleComplete(ev) {
-   try {
-     await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {})
-     loadEvents()
-   } catch (e) {
-     calendarError = e.message || 'Errore nel completamento'
-   }
+  try {
+    await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {})
+    loadEvents()
+  } catch (e) {
+    calendarError = e.message || 'Errore nel completamento'
+  }
 }
 
 async function fetchWeatherForecast() {
-   if (!form.value.lat || !form.value.lon || !form.value.date) {
-     weatherForecast.value = null
-     return
-   }
-   try {
-     weatherForecast.value = await apiGet('/api/v1/weather', { lat: form.value.lat, lon: form.value.lon, date: form.value.date })
-   } catch (e) {
-     weatherForecast.value = null
-   }
+  if (!form.value.lat || !form.value.lon || !form.value.date) {
+    weatherForecast.value = null
+    return
+  }
+  try {
+    weatherForecast.value = await apiGet('/api/v1/weather', { lat: form.value.lat, lon: form.value.lon, date: form.value.date })
+  } catch (e) {
+    weatherForecast.value = null
+  }
 }
 
 function weatherScoreClass(ev) {
-   if (!ev.weather_temp || !ev.weather_humidity) return 5
-   const score = Math.round((ev.weather_temp >= 5 && ev.weather_temp <= 30 && ev.weather_humidity < 70) ? 8 : (ev.weather_temp >= 0 && ev.weather_temp <= 35 ? 6 : 3))
-   return score
+  if (!ev.weather_temp || !ev.weather_humidity) return 5
+  const score = Math.round((ev.weather_temp >= 5 && ev.weather_temp <= 30 && ev.weather_humidity < 70) ? 8 : (ev.weather_temp >= 0 && ev.weather_temp <= 35 ? 6 : 3))
+  return score
 }
 
 const weatherScore = computed(() => {
-   if (!weatherForecast.value) return 5
-   const s = weatherForecast.value.score || 5
-   return s
+  if (!weatherForecast.value) return 5
+  const s = weatherForecast.value.score || 5
+  return s
 })
 
 const weatherForecast = ref(null)
 
 onMounted(() => {
-   loadAthletes()
-   loadEvents()
-   loadGoals()
+  loadAthletes()
+  loadEvents()
+  loadGoals()
 })
 
 watch(athleteId, () => {
-   loadEvents()
-   loadGoals()
+  loadEvents()
+  loadGoals()
 })
 
 watch(form, () => {
-   if (form.value.lat && form.value.lon && form.value.date) {
-     fetchWeatherForecast()
-   }
+  if (form.value.lat && form.value.lon && form.value.date) {
+    fetchWeatherForecast()
+  }
 }, { deep: true })
 </script>

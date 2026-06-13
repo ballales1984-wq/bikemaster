@@ -147,15 +147,22 @@ class BackgroundTaskQueue:
         return results
 
     async def _handle_generate_map(self, payload: dict) -> dict:
+        from pathlib import Path
+
         from bike_analyzer.backend.maps.map_renderer import create_route_map
         from bike_analyzer.backend.models.models import GPSPoint
 
         try:
             points = [GPSPoint(**p) for p in payload["points"]]
-            ride_id = payload["ride_id"]
-            path = f"ride_{ride_id}_map.html"
-            create_route_map(points, output_path=path)
-            return {"map_url": f"/static/{path}"}
+            ride_id = str(payload["ride_id"])
+            safe_id = "".join(c if c.isalnum() or c == "_" else "_" for c in ride_id)
+            base_dir = Path(__file__).resolve().parent.parent / "static"
+            path = base_dir / f"ride_{safe_id}_map.html"
+            resolved = path.resolve()
+            if not resolved.is_relative_to(base_dir.resolve()):
+                return {"error": "Invalid path"}
+            create_route_map(points, output_path=str(resolved))
+            return {"map_url": f"/static/{resolved.name}"}
         except Exception as exc:
             return {"error": str(exc)}
 

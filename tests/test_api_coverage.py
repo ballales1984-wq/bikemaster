@@ -44,6 +44,10 @@ def test_athlete_crud(client):
     athlete = r.json()
     athlete_id = athlete["id"]
 
+    r = client.get("/api/v1/athletes")
+    assert r.status_code == 200
+    assert r.json()["athletes"][0]["id"] == athlete_id
+
     r = client.get(f"/api/v1/athletes/{athlete_id}")
     assert r.status_code == 200
     assert r.json()["name"] == "Test Rider"

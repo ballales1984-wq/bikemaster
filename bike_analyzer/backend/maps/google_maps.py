@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..config import GOOGLE_MAPS_SIZE, GOOGLE_MAPS_ZOOM
+from ..config import GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_SIZE, GOOGLE_MAPS_ZOOM
 from ..models.models import GPSPoint
 
 
@@ -110,12 +110,5 @@ def create_google_elevation_chart(points: list[GPSPoint], api_key: str) -> list[
 
 
 def get_google_api_key() -> str | None:
-    from pathlib import Path
-
-    env_file = Path(__file__).parent.parent.parent / ".env"
-    if env_file.exists():
-        content = env_file.read_text()
-        for line in content.splitlines():
-            if line.startswith("GOOGLE_MAPS_API_KEY="):
-                return line.split("=", 1)[1].strip()
-    return None
+    key = GOOGLE_MAPS_API_KEY
+    return key if key else None
