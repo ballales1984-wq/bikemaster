@@ -106,6 +106,14 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
 import { apiGet } from '../utils/api.js'
+import {
+  buildRidePolylines,
+  escapeHtml,
+  formatDistance,
+  gradeRiskPercent,
+  riskColor,
+  weatherRiskPercent,
+} from '../utils/routeMap.js'
 
 const mapContainer = ref(null)
 const loading = ref(false)
@@ -336,17 +344,18 @@ function renderMap() {
   visibleRides.value.forEach(ride => {
     const rideLayer = L.layerGroup()
 
-    ride.segments.forEach(segment => {
-      const polyline = L.polyline([segment.start, segment.end], {
-        color: segment.color,
+    buildRidePolylines(ride).forEach(polylineData => {
+      const polyline = L.polyline(polylineData.points, {
+        color: polylineData.color,
         weight: selectedRideId.value ? 6 : 4,
         opacity: selectedRideId.value ? 0.95 : 0.68,
         lineCap: 'round',
         lineJoin: 'round',
       })
       polyline.addTo(rideLayer)
-      bounds.extend(segment.start)
-      bounds.extend(segment.end)
+      polylineData.points.forEach(point => {
+        bounds.extend(point)
+      })
     })
 
     if (ride.center) {
@@ -399,16 +408,6 @@ function ridePopup(ride) {
   `
 }
 
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  }[char]))
-}
-
 function getCenter(points) {
   if (!points.length) return null
   const lat = points.reduce((sum, point) => sum + point.lat, 0) / points.length
@@ -426,32 +425,6 @@ function haversineDistanceM(lat1, lon1, lat2, lon2) {
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
     Math.sin(dLon / 2) ** 2
   return 2 * radius * Math.asin(Math.sqrt(a))
-}
-
-function gradeRiskPercent(grade) {
-  const absGrade = Math.abs(grade)
-  if (absGrade < 3) return 15
-  if (absGrade < 6) return 35
-  if (absGrade < 10) return 65
-  return 90
-}
-
-function weatherRiskPercent(score) {
-  if (!Number.isFinite(score)) return 50
-  if (score >= 8) return 10
-  if (score >= 5) return 45
-  return 85
-}
-
-function riskColor(risk) {
-  if (risk < 25) return '#27ae60'
-  if (risk < 50) return '#f1c40f'
-  if (risk < 75) return '#e67e22'
-  return '#e74c3c'
-}
-
-function formatDistance(meters = 0) {
-  return `${(meters / 1000).toFixed(2)} km`
 }
 
 onMounted(() => {
