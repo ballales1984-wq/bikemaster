@@ -785,7 +785,7 @@ async def workout_recommendations(
         if athlete_data:
             athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
-        result = generate_workout_recommendations(athlete, rides)
+        result, _ = generate_workout_recommendations(athlete, rides)
         return {"recommendations": result}
     except HTTPException:
         raise
@@ -899,7 +899,7 @@ async def recovery_recommendations(
         if athlete_data:
             athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
-        result = generate_recovery_recommendations(
+        result, _ = generate_recovery_recommendations(
             athlete, [ride_obj] if ride_obj else [], fatigue_score
         )
         return {"recommendations": result}
@@ -1102,7 +1102,7 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
         athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
     athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
-    response = generate_training_advice(athlete, rides, athlete_id)
+    response, _ = generate_training_advice(athlete, rides, athlete_id)
     save_chat_message(athlete_id, "assistant", response[:500])
     return {"response": response, "history": get_chat_history(athlete_id)}
 

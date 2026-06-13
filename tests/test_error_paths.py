@@ -69,7 +69,7 @@ class TestAICoachErrorPaths:
 
         with patch.dict(os.environ, {}, clear=True):
             profile = AthleteProfile(name="Test", experience_level="Beginner", weight_kg=70)
-            advice = generate_training_advice(profile, [])
+            advice = generate_training_advice(profile, [])[0]
         assert advice is not None
         assert len(advice) > 0
 

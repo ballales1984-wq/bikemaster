@@ -45,6 +45,15 @@ def _coach_mode() -> str:
     return (env_mode if env_mode else AI_COACH_MODE).strip().lower()
 
 
+def _provider_order() -> list[str]:
+    configured = os.getenv("AI_COACH_PROVIDER_ORDER", "").strip().lower()
+    if configured:
+        providers = [p.strip() for p in configured.split(",") if p.strip()]
+        if providers:
+            return providers
+    return ["groq", "openai"]
+
+
 def _ban_provider(provider: str) -> None:
     _BANNED_PROVIDERS.add(provider)
     global _current_client, _current_provider
@@ -54,32 +63,55 @@ def _ban_provider(provider: str) -> None:
     print(f"AI Coach: provider '{provider}' banned due to auth error, falling back")
 
 
+def _is_provider_error(error: Exception) -> bool:
+    text = str(error).lower()
+    name = type(error).__name__
+    return (
+        "401" in text
+        or "403" in text
+        or "invalid_api_key" in text
+        or "permissiondenied" in name.lower()
+        or "authenticationerror" in name.lower()
+        or "permissionerror" in name.lower()
+    )
+
+
 def get_ai_coach_client():
     global _current_client, _current_provider
-    if _current_client and _current_provider not in _BANNED_PROVIDERS:
+    if _current_client and _current_provider and _current_provider not in _BANNED_PROVIDERS:
         return _current_client, _current_provider
-    if "groq" not in _BANNED_PROVIDERS and GROQ_API_KEY and GROQ_API_KEY.startswith("gsk_"):
+
+    groq_key = os.getenv("GROQ_API_KEY", "").strip() or (GROQ_API_KEY or "").strip()
+    openai_key = os.getenv("OPENAI_API_KEY", "").strip() or (OPENAI_API_KEY or "").strip()
+    keys = {"groq": groq_key, "openai": openai_key}
+
+    for provider in _provider_order():
+        api_key = keys.get(provider)
+        if provider in _BANNED_PROVIDERS or not api_key:
+            continue
+        if provider == "groq" and not api_key.startswith("gsk_"):
+            continue
+        if provider == "openai" and not api_key.startswith("sk-"):
+            continue
         try:
-            from groq import Groq
-            _current_client = Groq(api_key=GROQ_API_KEY)
-            _current_provider = "groq"
+            if provider == "groq":
+                from groq import Groq
+
+                _current_client = Groq(api_key=api_key)
+            elif provider == "openai":
+                from openai import OpenAI
+
+                _current_client = OpenAI(api_key=api_key)
+            else:
+                continue
+            _current_provider = provider
             return _current_client, _current_provider
         except Exception as e:
-            print(f"AI Coach: Groq init error: {type(e).__name__}: {e}")
-            _BANNED_PROVIDERS.add("groq")
+            print(f"AI Coach: {provider.title()} init error: {type(e).__name__}: {e}")
+            _BANNED_PROVIDERS.add(provider)
             _current_client = None
             _current_provider = None
-    if "openai" not in _BANNED_PROVIDERS and OPENAI_API_KEY and OPENAI_API_KEY.startswith("sk-"):
-        try:
-            from openai import OpenAI
-            _current_client = OpenAI(api_key=OPENAI_API_KEY)
-            _current_provider = "openai"
-            return _current_client, _current_provider
-        except Exception as e:
-            print(f"AI Coach: OpenAI init error: {type(e).__name__}: {e}")
-            _BANNED_PROVIDERS.add("openai")
-            _current_client = None
-            _current_provider = None
+
     msg = "AI Coach: no valid API key (GROQ=gsk_..., OPENAI=sk-...) or all providers failed"
     print(msg)
     raise ValueError(msg)
@@ -271,69 +303,73 @@ def _build_rag_context(athlete: AthleteProfile, rides: list[Ride], query_hint: s
     return format_context_for_llm(deduped[:5])
 
 
+def _chat_completion_text(client: object, model: str, prompt: str, max_tokens: int) -> str:
+    chat = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tokens,
+    )
+    return chat.choices[0].message.content or ""
+
+
 def generate_training_advice(
     athlete: AthleteProfile, rides: list[Ride], athlete_id: int | None = None
 ) -> str:
-    try:
-        is_valid, err = validate_athlete_profile(athlete)
-        if not is_valid:
-            return f"Completa il profilo atleta: {err}"
-        if _use_local_coach():
-            return _generate_local_training_advice(athlete, rides)
+    is_valid, err = validate_athlete_profile(athlete)
+    if not is_valid:
+        return f"Completa il profilo atleta: {err}"
+    if _use_local_coach():
+        return _generate_local_training_advice(athlete, rides)
+
+    stats = calculate_summary(rides) if rides else {}
+    perf = calculate_performance_score(rides[-1]) if rides else 0
+    recovery = calculate_recovery_score(rides[-1]) if rides else 0
+    from datetime import datetime
+
+    now = datetime.now(UTC)
+    recent = rides[-3:] if rides else []
+    recent_info = (
+        "; ".join(
+            [
+                f"{r.date}: {r.distance_km:.1f}km, {r.avg_speed_kmh:.1f}km/h, {r.duration_minutes:.0f}min"
+                for r in recent
+            ]
+        )
+        if recent
+        else "nessuna uscita recente"
+    )
+    if len(rides) >= 2:
+        first_date = min(r.date for r in rides if r.date)
+        last_date = max(r.date for r in rides if r.date)
         try:
-            client, provider = get_ai_coach_client()
-        except ValueError as e:
-            print(f"AI Coach no API key: {e}")
-            return _generate_fallback_training_advice(athlete, rides)
-        stats = calculate_summary(rides) if rides else {}
-        perf = calculate_performance_score(rides[-1]) if rides else 0
-        recovery = calculate_recovery_score(rides[-1]) if rides else 0
-        from datetime import datetime
-
-        now = datetime.now(UTC)
-        recent = rides[-3:] if rides else []
-        recent_info = (
-            "; ".join(
-                [
-                    f"{r.date}: {r.distance_km:.1f}km, {r.avg_speed_kmh:.1f}km/h, {r.duration_minutes:.0f}min"
-                    for r in recent
-                ]
-            )
-            if recent
-            else "nessuna uscita recente"
-        )
-        if len(rides) >= 2:
-            first_date = min(r.date for r in rides if r.date)
-            last_date = max(r.date for r in rides if r.date)
-            try:
-                first_dt = datetime.fromisoformat(first_date)
-                last_dt = datetime.fromisoformat(last_date)
-                days_span = (last_dt - first_dt).days
-            except Exception:
-                days_span = 0
-        else:
+            first_dt = datetime.fromisoformat(first_date)
+            last_dt = datetime.fromisoformat(last_date)
+            days_span = (last_dt - first_dt).days
+        except Exception:
             days_span = 0
-        rag = _build_rag_context(athlete, rides, "piano allenamento settimanale")
-        rag_section = f"\n\nCONOSCENZE APPLICATE:\n{rag}" if rag else ""
-        history_section = ""
-        if athlete_id:
-            try:
-                from ..db.database import get_chat_history
+    else:
+        days_span = 0
+    rag = _build_rag_context(athlete, rides, "piano allenamento settimanale")
+    rag_section = f"\n\nCONOSCENZE APPLICATE:\n{rag}" if rag else ""
+    history_section = ""
+    if athlete_id:
+        try:
+            from ..db.database import get_chat_history
 
-                history = get_chat_history(athlete_id, limit=5)
-                if history:
-                    history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join(
-                        [f"{h['role']}: {h['content'][:200]}" for h in reversed(history)]
-                    )
-            except Exception:
-                pass
-        total_rides = stats.get("total_rides", 0)
-        avg_distance = stats.get("avg_distance_km", 0)
-        today_str = now.strftime("%Y-%m-%d")
-        training_intro = (
-            "Sei un coach ciclistico esperto. Genera 3 consigli di allenamento BREVI e SPECIFICI."
-        )
-        prompt = f"""{training_intro}{history_section}{rag_section}
+            history = get_chat_history(athlete_id, limit=5)
+            if history:
+                history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join(
+                    [f"{h['role']}: {h['content'][:200]}" for h in reversed(history)]
+                )
+        except Exception:
+            pass
+    total_rides = stats.get("total_rides", 0)
+    avg_distance = stats.get("avg_distance_km", 0)
+    today_str = now.strftime("%Y-%m-%d")
+    training_intro = (
+        "Sei un coach ciclistico esperto. Genera 3 consigli di allenamento BREVI e SPECIFICI."
+    )
+    prompt = f"""{training_intro}{history_section}{rag_section}
 
  Profilo atleta:
  {_build_athlete_context(athlete)}
@@ -359,24 +395,24 @@ def generate_training_advice(
  - Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
  - Non mostrare valori con .0 se sono interi (es: scrivi "3 volte" non "3.0 volte")
         """
-        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
-        chat = client.chat.completions.create(
-            model=model, messages=[{"role": "user", "content": prompt}], max_tokens=500
-        )
-        content = chat.choices[0].message.content or "Nessun consiglio disponibile"
-        return _clean_ai_output(content)
-    except Exception as e:
-        print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
-        traceback.print_exc()
-        if (
-            "401" in str(e)
-            or "403" in str(e)
-            or "invalid_api_key" in str(e).lower()
-            or "PermissionDenied" in type(e).__name__
-        ):
-            _ban_provider(provider)
+
+    while True:
+        try:
+            client, provider = get_ai_coach_client()
+        except ValueError as e:
+            print(f"AI Coach no API key: {e}")
             return _generate_fallback_training_advice(athlete, rides)
-        return f"AI Coach non disponibile: {type(e).__name__}: {e}"
+
+        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
+        try:
+            content = _chat_completion_text(client, model, prompt, 500)
+            return _clean_ai_output(content)
+        except Exception as e:
+            print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
+            traceback.print_exc()
+            if not _is_provider_error(e) or not provider:
+                return f"AI Coach non disponibile: {type(e).__name__}: {e}"
+            _ban_provider(provider)
 
 
 generate_workout_recommendations = generate_training_advice
@@ -390,46 +426,39 @@ def generate_recovery_advice(
 ) -> str:
     from datetime import datetime
 
-    now = datetime.now(UTC)
-    provider = ""
-    try:
-        is_valid, err = validate_athlete_profile(athlete)
-        if not is_valid:
-            return f"Completa il profilo atleta prima di usare l'AI Coach: {err}"
-        if _use_local_coach():
-            return _generate_local_recovery_advice(athlete, rides, fatigue_score)
-        try:
-            client, provider = get_ai_coach_client()
-        except ValueError:
-            return _generate_fallback_recovery_advice(athlete, rides, fatigue_score)
-        recovery = calculate_recovery_score(rides[-1]) if rides else fatigue_score
-        stats = calculate_summary(rides) if rides else {}
-        recent = rides[-1] if rides else None
-        recent_info = (
-            f"{recent.distance_km:.1f}km a {recent.avg_speed_kmh:.1f}km/h"
-            if recent
-            else "nessuna uscita recente"
-        )
-        rag = _build_rag_context(
-            athlete, rides, "recupero stretching idratazione sonno alimentazione"
-        )
-        rag_section = f"\n\nCONOSCENZE APPLICATE:\n{rag}" if rag else ""
-        history_section = ""
-        if athlete_id:
-            try:
-                from ..db.database import get_chat_history
+    is_valid, err = validate_athlete_profile(athlete)
+    if not is_valid:
+        return f"Completa il profilo atleta prima di usare l'AI Coach: {err}"
+    if _use_local_coach():
+        return _generate_local_recovery_advice(athlete, rides, fatigue_score)
 
-                history = get_chat_history(athlete_id, limit=5)
-                if history:
-                    history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join(
-                        [f"{h['role']}: {h['content'][:200]}" for h in reversed(history)]
-                    )
-            except Exception:
-                pass
-        recovery_intro = (
-            "Sei un coach di recupero ciclistico. Genera 2 consigli BREVI per il recupero di oggi."
-        )
-        prompt = f"""{recovery_intro}{history_section}{rag_section}
+    now = datetime.now(UTC)
+    recovery = calculate_recovery_score(rides[-1]) if rides else fatigue_score
+    stats = calculate_summary(rides) if rides else {}
+    recent = rides[-1] if rides else None
+    recent_info = (
+        f"{recent.distance_km:.1f}km a {recent.avg_speed_kmh:.1f}km/h"
+        if recent
+        else "nessuna uscita recente"
+    )
+    rag = _build_rag_context(athlete, rides, "recupero stretching idratazione sonno alimentazione")
+    rag_section = f"\n\nCONOSCENZE APPLICATE:\n{rag}" if rag else ""
+    history_section = ""
+    if athlete_id:
+        try:
+            from ..db.database import get_chat_history
+
+            history = get_chat_history(athlete_id, limit=5)
+            if history:
+                history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join(
+                    [f"{h['role']}: {h['content'][:200]}" for h in reversed(history)]
+                )
+        except Exception:
+            pass
+    recovery_intro = (
+        "Sei un coach di recupero ciclistico. Genera 2 consigli BREVI per il recupero di oggi."
+    )
+    prompt = f"""{recovery_intro}{history_section}{rag_section}
 
  Profilo atleta:
  {_build_athlete_context(athlete)}
@@ -450,27 +479,23 @@ def generate_recovery_advice(
  - Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
  - Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
  """
+
+    while True:
+        try:
+            client, provider = get_ai_coach_client()
+        except ValueError:
+            return _generate_fallback_recovery_advice(athlete, rides, recovery)
+
         model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
-        chat = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=300,
-        )
-        content = chat.choices[0].message.content or "Recupera bene!"
-        return _clean_ai_output(content)
-    except Exception as e:
-        print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
-        traceback.print_exc()
-        if (
-            "401" in str(e)
-            or "403" in str(e)
-            or "invalid_api_key" in str(e).lower()
-            or "PermissionDenied" in type(e).__name__
-        ):
+        try:
+            content = _chat_completion_text(client, model, prompt, 300)
+            return _clean_ai_output(content)
+        except Exception as e:
+            print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
+            traceback.print_exc()
+            if not _is_provider_error(e) or not provider:
+                return f"Recupero non disponibile: {type(e).__name__}: {e}"
             _ban_provider(provider)
-            rec_score = recovery if isinstance(recovery, (int, float)) else 5.0
-            return _generate_fallback_recovery_advice(athlete, rides, rec_score)
-        return f"Recupero non disponibile: {type(e).__name__}: {e}"
 
 
 _FALLBACK_PREFIX = "(AI service temporarily unavailable - model-based advice)\n\n"
@@ -578,9 +603,11 @@ def ai_coach_full(
             charts.append("/static/coach_duration.png")
     except Exception:
         pass
+    training_advice = generate_workout_recommendations(athlete, rides, athlete_id)
+    recovery_advice = generate_recovery_recommendations(athlete, rides, athlete_id)
     return {
-        "training_advice": generate_workout_recommendations(athlete, rides, athlete_id),
-        "recovery_advice": generate_recovery_recommendations(athlete, rides, athlete_id),
+        "training_advice": training_advice,
+        "recovery_advice": recovery_advice,
         "historical_analysis": analyze_historical_trends(rides),
         "training_scores": [
             {"label": "Performance", "value": perf},

@@ -7,8 +7,6 @@ RUN cd frontend && npm install --legacy-peer-deps --no-audit --no-fund && npm ru
 FROM python:3.11-slim
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y nodejs npm && rm -rf /var/lib/apt/lists/*
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

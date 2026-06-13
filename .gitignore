@@ -64,6 +64,18 @@ ride_*_map.html
 rides_export.csv
 rides_export.json
 
+# Dev/scratch files
+test_output.txt
+test_print.py
+check_env.py
+check_syntax.py
+dashboard.html
+bike_route_demo.html
+.benchmarks/
+.mypy_cache/
+.ruff_cache/
+.sixth/
+
 # Misc
 .DS_Store
 Thumbs.db

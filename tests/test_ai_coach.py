@@ -89,3 +89,93 @@ def test_validate_athlete_profile_missing_name():
     valid, msg = validate_athlete_profile(athlete)
     assert valid is False
     assert "nome" in msg
+
+
+def test_training_advice_falls_back_to_openai_after_groq_403(monkeypatch):
+    import sys
+    import types
+
+    import bike_analyzer.backend.analytics.ai_coach as ai_coach
+
+    class Choice:
+        def __init__(self, content):
+            self.message = types.SimpleNamespace(content=content)
+
+    class OpenAICompletions:
+        def create(self, **kwargs):
+            return types.SimpleNamespace(choices=[Choice("OpenAI advice")])
+
+    class OpenAIChat:
+        completions = OpenAICompletions()
+
+    class FailingCompletions:
+        def create(self, **kwargs):
+            raise PermissionError("403 Access denied")
+
+    class FailingChat:
+        completions = FailingCompletions()
+
+    class FakeGroq:
+        def __init__(self, api_key):
+            self.api_key = api_key
+            self.chat = FailingChat()
+
+    class FakeOpenAI:
+        def __init__(self, api_key):
+            self.api_key = api_key
+            self.chat = OpenAIChat()
+
+    monkeypatch.setenv("AI_COACH_PROVIDER_ORDER", "groq,openai")
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_test")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test")
+    monkeypatch.setattr(ai_coach, "_BANNED_PROVIDERS", set())
+    monkeypatch.setattr(ai_coach, "_current_client", None)
+    monkeypatch.setattr(ai_coach, "_current_provider", None)
+    monkeypatch.setitem(sys.modules, "groq", types.SimpleNamespace(Groq=FakeGroq))
+    monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
+
+    profile = AthleteProfile(name="Test", weight_kg=70, experience_level="Beginner")
+    advice = ai_coach.generate_training_advice(profile, [])
+
+    assert advice == "OpenAI advice"
+    assert "groq" in ai_coach._BANNED_PROVIDERS
+
+
+def test_training_advice_uses_local_fallback_when_all_providers_fail(monkeypatch):
+    import sys
+    import types
+
+    import bike_analyzer.backend.analytics.ai_coach as ai_coach
+
+    class FailingCompletions:
+        def create(self, **kwargs):
+            raise PermissionError("403 Access denied")
+
+    class FailingChat:
+        completions = FailingCompletions()
+
+    class FakeGroq:
+        def __init__(self, api_key):
+            self.api_key = api_key
+            self.chat = FailingChat()
+
+    class FakeOpenAI:
+        def __init__(self, api_key):
+            self.api_key = api_key
+            self.chat = FailingChat()
+
+    monkeypatch.setenv("AI_COACH_PROVIDER_ORDER", "groq,openai")
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_test")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test")
+    monkeypatch.setattr(ai_coach, "_BANNED_PROVIDERS", set())
+    monkeypatch.setattr(ai_coach, "_current_client", None)
+    monkeypatch.setattr(ai_coach, "_current_provider", None)
+    monkeypatch.setitem(sys.modules, "groq", types.SimpleNamespace(Groq=FakeGroq))
+    monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
+
+    profile = AthleteProfile(name="Test", weight_kg=70, experience_level="Beginner")
+    advice = ai_coach.generate_training_advice(profile, [])
+
+    assert advice.startswith(ai_coach._FALLBACK_PREFIX)
+    assert "groq" in ai_coach._BANNED_PROVIDERS
+    assert "openai" in ai_coach._BANNED_PROVIDERS
