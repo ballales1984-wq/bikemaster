@@ -63,17 +63,10 @@ def _ban_provider(provider: str) -> None:
     print(f"AI Coach: provider '{provider}' banned due to auth error, falling back")
 
 
-def _is_provider_error(error: Exception) -> bool:
+def _is_recoverable_provider_error(error: Exception) -> bool:
     text = str(error).lower()
     name = type(error).__name__
-    return (
-        "401" in text
-        or "403" in text
-        or "invalid_api_key" in text
-        or "permissiondenied" in name.lower()
-        or "authenticationerror" in name.lower()
-        or "permissionerror" in name.lower()
-    )
+    return True
 
 
 def get_ai_coach_client():
@@ -399,9 +392,10 @@ def generate_training_advice(
     while True:
         try:
             client, provider = get_ai_coach_client()
-        except ValueError as e:
-            print(f"AI Coach no API key: {e}")
+        except ValueError:
+            print("AI Coach no API key available, using fallback")
             return _generate_fallback_training_advice(athlete, rides)
+
 
         model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
         try:
@@ -410,10 +404,11 @@ def generate_training_advice(
         except Exception as e:
             print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
             traceback.print_exc()
-            if not _is_provider_error(e) or not provider:
-                return f"AI Coach non disponibile: {type(e).__name__}: {e}"
             _ban_provider(provider)
-
+            continue
+    if _BANNED_PROVIDERS:
+        return f"AI Coach non disponibile: tutti i provider hanno fallito ({', '.join(_BANNED_PROVIDERS)})"
+    return _generate_fallback_training_advice(athlete, rides)
 
 generate_workout_recommendations = generate_training_advice
 
@@ -493,9 +488,9 @@ def generate_recovery_advice(
         except Exception as e:
             print(f"DEBUG: API call failed: {type(e).__name__}: {e}")
             traceback.print_exc()
-            if not _is_provider_error(e) or not provider:
-                return f"Recupero non disponibile: {type(e).__name__}: {e}"
             _ban_provider(provider)
+            continue
+    return _generate_fallback_recovery_advice(athlete, rides, recovery)
 
 
 _FALLBACK_PREFIX = "(AI service temporarily unavailable - model-based advice)\n\n"
