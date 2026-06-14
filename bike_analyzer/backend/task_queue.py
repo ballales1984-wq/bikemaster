@@ -185,6 +185,8 @@ class BackgroundTaskQueue:
         return {"updated": len(rides)}
 
     async def _handle_warm_weather(self, payload: dict) -> dict:
+        from pathlib import Path
+
         from bike_analyzer.backend.weather.weather_service import get_forecast_for_date
 
         lat = payload.get("lat")
@@ -202,6 +204,54 @@ class BackgroundTaskQueue:
             except Exception:
                 pass
         return {"cached_days": cached}
+
+    async def _handle_strava_sync(self, payload: dict) -> dict:
+        from bike_analyzer.backend.db.database import save_ride
+        from bike_analyzer.backend.ingestion.strava_client import (
+            fetch_all_activities,
+            get_valid_token,
+            strava_to_ride,
+        )
+
+        athlete_id = payload["athlete_id"]
+        access_token = get_valid_token(athlete_id)
+        if not access_token:
+            return {"imported": 0, "error": "no_valid_token"}
+        activities = fetch_all_activities(access_token)
+        imported = []
+        for act in activities:
+            ride_data = strava_to_ride(act)
+            if ride_data.get("skipped") or "error" in ride_data:
+                continue
+            ride_data["athlete_id"] = athlete_id
+            db_ride = {k: v for k, v in ride_data.items() if k not in ("id", "external_source", "external_id", "title")}
+            ride_id = save_ride(db_ride)
+            imported.append({"id": int(ride_id), **ride_data})
+        return {"imported": len(imported), "total_fetched": len(activities)}
+
+    async def _handle_garmin_sync(self, payload: dict) -> dict:
+        from bike_analyzer.backend.db.database import save_ride
+        from bike_analyzer.backend.ingestion.garmin_client import (
+            fetch_activities,
+            get_valid_token,
+            garmin_to_ride,
+        )
+
+        athlete_id = payload["athlete_id"]
+        access_token = get_valid_token(athlete_id)
+        if not access_token:
+            return {"imported": 0, "error": "no_valid_token"}
+        activities = fetch_activities(access_token)
+        imported = []
+        for act in activities:
+            ride_data = garmin_to_ride(act)
+            if ride_data.get("skipped") or "error" in ride_data:
+                continue
+            ride_data["athlete_id"] = athlete_id
+            db_ride = {k: v for k, v in ride_data.items() if k not in ("id", "external_source", "external_id", "title")}
+            ride_id = save_ride(db_ride)
+            imported.append({"id": int(ride_id), **ride_data})
+        return {"imported": len(imported), "total_fetched": len(activities)}
 
 
 _task_queue: BackgroundTaskQueue | None = None

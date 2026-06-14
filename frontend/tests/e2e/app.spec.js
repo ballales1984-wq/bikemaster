@@ -25,7 +25,7 @@ test('login and add a ride from the dashboard', async ({ page }) => {
 
   await page.goto('/')
   await page.getByLabel('Username').fill('rider')
-  await page.getByLabel('Password').fill('secret')
+  await page.locator('#password').fill('secret')
   await page.getByRole('button', { name: 'Entra' }).click()
 
   await expect(page.getByRole('heading', { name: '📋 Le tue Ride' })).toBeVisible()

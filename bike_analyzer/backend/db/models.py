@@ -60,6 +60,9 @@ class RideModel(Base):
     calories: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     heart_rate_avg: Mapped[float | None] = mapped_column(Float, nullable=True)
     elevation_gain_m: Mapped[float | None] = mapped_column(Float, nullable=True)
+    external_source: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    external_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True)
     gps_points: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
 
@@ -67,6 +70,7 @@ class RideModel(Base):
         Index("ix_rides_athlete_date", "athlete_id", "date"),
         Index("ix_rides_distance", "distance_km"),
         Index("ix_rides_elevation", "elevation_gain_m"),
+        Index("ix_rides_external_source", "external_source", "external_id"),
     )
 
 
@@ -79,6 +83,42 @@ class MetricModel(Base):
     value: Mapped[float] = mapped_column(Float, nullable=False)
     unit: Mapped[str] = mapped_column(String(20), nullable=False)
     recorded_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+
+
+class StravaTokenModel(Base):
+    __tablename__ = "strava_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    access_token: Mapped[str] = mapped_column(String(1024), nullable=False)
+    refresh_token: Mapped[str] = mapped_column(String(1024), nullable=False)
+    expires_at: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    scope: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    athlete_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+
+    __table_args__ = (
+        Index("ix_strava_tokens_athlete", "athlete_id", unique=True),
+    )
+
+
+class GarminTokenModel(Base):
+    __tablename__ = "garmin_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    access_token: Mapped[str] = mapped_column(String(1024), nullable=False)
+    refresh_token: Mapped[str] = mapped_column(String(1024), nullable=False)
+    expires_at: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    scope: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    athlete_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+
+    __table_args__ = (
+        Index("ix_garmin_tokens_athlete", "athlete_id", unique=True),
+    )
 
 
 class CalendarEventModel(Base):

@@ -198,26 +198,39 @@ def init_db():
             FOREIGN KEY (athlete_id) REFERENCES athletes(id)
         )""")
         conn.commit()
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(rides)")
+        ride_cols = [row[1] for row in cur.fetchall()]
+        if "external_source" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN external_source TEXT")
+        if "external_id" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN external_id TEXT")
+        if "title" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN title TEXT")
+        conn.commit()
 
 
 def _row_to_ride(row) -> dict:
     try:
-        gps = json.loads(row[10]) if row[10] else None
+        gps = json.loads(row["gps_points"]) if row["gps_points"] else None
     except (json.JSONDecodeError, TypeError):
         gps = None
     return {
-        "id": row[0],
-        "athlete_id": row[1],
-        "date": row[2],
-        "distance_km": row[3],
-        "duration_minutes": row[4],
-        "avg_speed_kmh": row[5],
-        "weight_kg": row[6],
-        "calories": row[7],
-        "heart_rate_avg": row[8],
-        "elevation_gain_m": row[9],
+        "id": row["id"],
+        "athlete_id": row["athlete_id"],
+        "date": row["date"],
+        "distance_km": row["distance_km"],
+        "duration_minutes": row["duration_minutes"],
+        "avg_speed_kmh": row["avg_speed_kmh"],
+        "weight_kg": row["weight_kg"],
+        "calories": row["calories"],
+        "heart_rate_avg": row["heart_rate_avg"],
+        "elevation_gain_m": row["elevation_gain_m"],
         "gps_points": gps,
-        "created_at": row[11],
+        "created_at": row["created_at"],
+        "external_source": row.get("external_source"),
+        "external_id": row.get("external_id"),
+        "title": row.get("title"),
     }
 
 
@@ -228,8 +241,9 @@ def save_ride(ride: dict) -> int:
         cur.execute(
             """INSERT INTO rides
             (athlete_id, date, distance_km, duration_minutes, avg_speed_kmh,
-             weight_kg, calories, heart_rate_avg, elevation_gain_m, gps_points, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             weight_kg, calories, heart_rate_avg, elevation_gain_m, gps_points,
+             external_source, external_id, title, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 ride.get("athlete_id"),
                 ride.get("date"),
@@ -241,6 +255,9 @@ def save_ride(ride: dict) -> int:
                 ride.get("heart_rate_avg"),
                 ride.get("elevation_gain_m"),
                 gps_points,
+                ride.get("external_source"),
+                ride.get("external_id"),
+                ride.get("title"),
                 datetime.now(UTC).isoformat(),
             ),
         )

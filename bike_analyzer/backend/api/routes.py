@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import requests
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -1826,3 +1827,160 @@ async def analyze_ride_safety(
     safety["id"] = score_id
     safety["computed_at"] = datetime.now(UTC).isoformat()
     return safety
+
+
+# ------------------------------------------------------------------
+# Strava integration routes
+# ------------------------------------------------------------------
+
+@router.get("/import/strava/auth")
+async def strava_auth(
+    state: str = "",
+    current_user: dict = Depends(get_current_user),
+):
+    from ..ingestion.strava_client import get_authorization_url
+
+    try:
+        result = get_authorization_url(state=state)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    result["athlete_id"] = current_user["id"]
+    return result
+
+
+@router.post("/import/strava/callback")
+async def strava_callback(
+    payload: dict,
+    current_user: dict = Depends(get_current_user),
+):
+    from ..ingestion.strava_client import exchange_code_for_token, store_token
+
+    code = payload.get("code", "")
+    code_verifier = payload.get("code_verifier", "")
+    state = payload.get("state", "")
+    if not code or not code_verifier:
+        raise HTTPException(status_code=400, detail="code and code_verifier required")
+    try:
+        token_data = exchange_code_for_token(code, code_verifier)
+    except requests.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Strava token exchange failed: {exc}") from exc
+    store_token(current_user["id"], token_data)
+    return {
+        "status": "connected",
+        "athlete_id": current_user["id"],
+        "athlete_name": token_data.get("athlete", {}).get("firstname", ""),
+    }
+
+
+@router.post("/import/strava/sync")
+async def strava_sync(
+    background: bool = True,
+    current_user: dict = Depends(get_current_user),
+):
+    from ..task_queue import get_task_queue
+
+    payload = {"athlete_id": current_user["id"]}
+    if background:
+        task = await get_task_queue().enqueue("strava_sync", payload)
+        return {"task_id": task.id, "status": "queued", "athlete_id": current_user["id"]}
+    from ..ingestion.strava_client import fetch_all_activities, get_valid_token, strava_to_ride
+    from ..db.database import save_ride
+
+    access_token = get_valid_token(current_user["id"])
+    if not access_token:
+        raise HTTPException(status_code=401, detail="No Strava token. Connect first.")
+    activities = fetch_all_activities(access_token)
+    imported = []
+    for act in activities:
+        ride_data = strava_to_ride(act)
+        if ride_data.get("skipped") or "error" in ride_data:
+            continue
+        ride_data["athlete_id"] = current_user["id"]
+        db_ride = {k: v for k, v in ride_data.items() if k not in ("id", "external_source", "external_id", "title")}
+        ride_id = save_ride(db_ride)
+        imported.append({"id": int(ride_id), **ride_data})
+    return {"imported": len(imported), "total_fetched": len(activities), "rides": imported}
+
+
+@router.delete("/import/strava/disconnect")
+async def strava_disconnect(current_user: dict = Depends(get_current_user)):
+    from ..ingestion.strava_client import revoke_token
+
+    revoke_token(current_user["id"])
+    return {"status": "disconnected"}
+
+
+# ------------------------------------------------------------------
+# Garmin integration routes
+# ------------------------------------------------------------------
+
+@router.get("/import/garmin/auth")
+async def garmin_auth(
+    state: str = "",
+    current_user: dict = Depends(get_current_user),
+):
+    from ..ingestion.garmin_client import get_authorization_url
+
+    try:
+        result = get_authorization_url(state=state)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    result["athlete_id"] = current_user["id"]
+    return result
+
+
+@router.post("/import/garmin/callback")
+async def garmin_callback(
+    payload: dict,
+    current_user: dict = Depends(get_current_user),
+):
+    from ..ingestion.garmin_client import exchange_code_for_token, store_token
+
+    code = payload.get("code", "")
+    redirect_uri = payload.get("redirect_uri")
+    if not code:
+        raise HTTPException(status_code=400, detail="code required")
+    try:
+        token_data = exchange_code_for_token(code, redirect_uri=redirect_uri or "")
+    except requests.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Garmin token exchange failed: {exc}") from exc
+    store_token(current_user["id"], token_data)
+    return {"status": "connected", "athlete_id": current_user["id"]}
+
+
+@router.post("/import/garmin/sync")
+async def garmin_sync(
+    background: bool = True,
+    current_user: dict = Depends(get_current_user),
+):
+    from ..task_queue import get_task_queue
+
+    payload = {"athlete_id": current_user["id"]}
+    if background:
+        task = await get_task_queue().enqueue("garmin_sync", payload)
+        return {"task_id": task.id, "status": "queued", "athlete_id": current_user["id"]}
+    from ..ingestion.garmin_client import fetch_activities, get_valid_token, garmin_to_ride
+    from ..db.database import save_ride
+
+    access_token = get_valid_token(current_user["id"])
+    if not access_token:
+        raise HTTPException(status_code=401, detail="No Garmin token. Connect first.")
+    activities = fetch_activities(access_token)
+    imported = []
+    for act in activities:
+        ride_data = garmin_to_ride(act)
+        if ride_data.get("skipped") or "error" in ride_data:
+            continue
+        ride_data["athlete_id"] = current_user["id"]
+        db_ride = {k: v for k, v in ride_data.items() if k not in ("id", "external_source", "external_id", "title")}
+        ride_id = save_ride(db_ride)
+        imported.append({"id": int(ride_id), **ride_data})
+    return {"imported": len(imported), "total_fetched": len(activities), "rides": imported}
+
+
+@router.delete("/import/garmin/disconnect")
+async def garmin_disconnect(current_user: dict = Depends(get_current_user)):
+    from ..ingestion.garmin_client import revoke_token
+
+    revoke_token(current_user["id"])
+    return {"status": "disconnected"}
