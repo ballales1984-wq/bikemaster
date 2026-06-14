@@ -67,8 +67,8 @@ def create_app() -> FastAPI:
             )
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; img-src 'self' data: https:; "
-                "script-src 'self' 'unsafe-inline'; "
-                "style-src 'self' 'unsafe-inline'; connect-src 'self'"
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.jquery.com https://cdnjs.cloudflare.com https://unpkg.com; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://netdna.bootstrapcdn.com https://cdnjs.cloudflare.com https://unpkg.com; connect-src 'self'"
             )
         return response
 

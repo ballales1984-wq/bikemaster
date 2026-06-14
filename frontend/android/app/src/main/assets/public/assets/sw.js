@@ -2,12 +2,9 @@ const CACHE_NAME = 'bikemaster-v1';
 const ASSETS_TO_CACHE = [
     '/',
     '/static/index.html',
-    '/static/styles.css',
-    '/static/app.js',
-    '/static/manifest.json',
-    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-    'https://cdn.jsdelivr.net/npm/chart.js'
+    '/assets/index.css',
+    '/assets/index.js',
+    '/manifest.webmanifest',
 ];
 
 self.addEventListener('install', (event) => {
