@@ -75,4 +75,27 @@ INCIDENT_API_KEY = _s.incident_api_key
 INCIDENT_RADIUS_KM = _s.incident_radius_km
 INCIDENT_DAYS = _s.incident_days
 
+# === Redis / Background Tasks ===
+REDIS_URL = _s.redis_url
+REDIS_CACHE_TTL_SECONDS = _s.redis_cache_ttl_seconds
+TASK_QUEUE_WORKERS = _s.task_queue_workers
+
 ENVIRONMENT = _ENV
+
+# === Strava Integration ===
+STRAVA_CLIENT_ID = _s.strava_client_id
+STRAVA_CLIENT_SECRET = _s.strava_client_secret
+STRAVA_REDIRECT_URI = _s.strava_redirect_uri
+STRAVA_SCOPE = _s.strava_scope
+STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
+STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
+STRAVA_API_BASE_URL = "https://www.strava.com/api/v3"
+
+# === Garmin Integration ===
+GARMIN_CONSUMER_KEY = _s.garmin_consumer_key
+GARMIN_CONSUMER_SECRET = _s.garmin_consumer_secret
+GARMIN_REDIRECT_URI = _s.garmin_redirect_uri
+GARMIN_SCOPE = _s.garmin_scope
+GARMIN_AUTH_URL = "https://connect.garmin.com/oauthConfirm"
+GARMIN_TOKEN_URL = "https://connect.garmin.com/oauth2/token"
+GARMIN_API_BASE_URL = "https://apis.garmin.com/fitness/v1"

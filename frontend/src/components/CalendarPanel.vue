@@ -364,7 +364,7 @@ async function saveEvent() {
     loadEvents()
     loadGoals()
   } catch (e) {
-    calendarError = e.message || 'Errore nel salvataggio'
+    calendarError.value = e.message || 'Errore nel salvataggio'
   }
 }
 
@@ -374,7 +374,7 @@ async function handleDelete() {
     await apiDelete(`/api/v1/calendar/events/${deleteTargetId.value}`)
     loadEvents()
   } catch (e) {
-    calendarError = e.message || 'Errore nell\'eliminazione'
+    calendarError.value = e.message || 'Errore nell\'eliminazione'
   } finally {
     deleteTargetId.value = null
     deleteTargetTitle.value = ''
@@ -393,7 +393,7 @@ async function toggleComplete(ev) {
     await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {})
     loadEvents()
   } catch (e) {
-    calendarError = e.message || 'Errore nel completamento'
+    calendarError.value = e.message || 'Errore nel completamento'
   }
 }
 

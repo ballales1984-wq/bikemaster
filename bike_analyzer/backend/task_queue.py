@@ -91,6 +91,10 @@ class BackgroundTaskQueue:
                 result = await self._handle_recalculate_stress(payload)
             elif kind == "warm_weather_cache":
                 result = await self._handle_warm_weather(payload)
+            elif kind == "strava_sync":
+                result = await self._handle_strava_sync(payload)
+            elif kind == "garmin_sync":
+                result = await self._handle_garmin_sync(payload)
             else:
                 raise ValueError(f"Unknown task kind: {kind}")
 

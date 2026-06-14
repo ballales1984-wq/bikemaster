@@ -1,9 +1,25 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: bikemaster-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes", "--save", "900", "1"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
   bikemaster:
     build: .
     container_name: bikemaster-app
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
       - "8000:8000"
     volumes:
@@ -12,13 +28,14 @@ services:
       - ./rides.db:/app/rides.db
     env_file:
       - .env
+    environment:
+      - REDIS_URL=redis://redis:6379
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl","-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
 
 volumes:
-  data:
-  static:
+  redis-data:

@@ -48,4 +48,16 @@ export default defineConfig({
       '/static': 'http://localhost:8001/static',
     },
   },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.js'],
+    include: ['src/**/*.test.js'],
+    exclude: ['tests/e2e/**/*.spec.js'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: ['src/**/*.test.js', 'src/test/**'],
+    },
+  },
 })

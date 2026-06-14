@@ -106,6 +106,20 @@ async def health_check():
     return {"status": "ok", "service": "bikemaster"}
 
 
+@router.get("/health/redis")
+async def health_redis():
+    from ..redis_client import get_redis
+
+    r = await get_redis()
+    if r is None:
+        return {"redis": "unavailable", "cache": "disabled"}
+    try:
+        info = await r.ping()
+        return {"redis": "connected", "status": "ok", "ping": "pong" if info is True else "ok"}
+    except Exception as e:
+        return {"redis": "error", "error": str(e)}
+
+
 @router.post("/auth/login")
 @limiter.limit("5/minute")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):

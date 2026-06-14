@@ -55,6 +55,9 @@ htmlcov/
 # Frontend build assets
 bike_analyzer/backend/static/assets/
 frontend/dist/
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
 
 # Frontend
 frontend/node_modules/

@@ -13,8 +13,10 @@ from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
-from ..config import CORS_ORIGINS, ENVIRONMENT
+from ..config import CORS_ORIGINS, ENVIRONMENT, REDIS_URL, TASK_QUEUE_WORKERS
 from ..rate_limiter import limiter
+from ..redis_client import close_redis, get_redis
+from ..task_queue import get_task_queue
 from .routes import admin_router, router
 
 logger = logging.getLogger(__name__)
@@ -28,7 +30,13 @@ async def lifespan(app: FastAPI):
     from ..db.database import init_db
 
     init_db()
+    await get_redis()
+    task_queue = get_task_queue()
+    await task_queue.start()
+    app.state.task_queue = task_queue
     yield
+    await task_queue.stop()
+    await close_redis()
 
 
 def create_app() -> FastAPI:

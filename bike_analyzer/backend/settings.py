@@ -95,6 +95,24 @@ class Settings(BaseSettings):
     weather_cache_hours: int = 6
     weather_units: str = "metric"
 
+    # === Redis ===
+    redis_url: str = ""
+    redis_cache_ttl_seconds: int = 300
+
+    # === Background Tasks ===
+    task_queue_workers: int = 2
+
+    # === Strava Integration ===
+    strava_client_id: str = ""
+    strava_client_secret: str = ""
+    strava_redirect_uri: str = "http://localhost:8000/api/v1/import/strava/callback"
+    strava_scope: str = "activity:read_all"
+
+    # === Garmin Integration ===
+    garmin_consumer_key: str = ""
+    garmin_consumer_secret: str = ""
+    garmin_redirect_uri: str = "http://localhost:8000/api/v1/import/garmin/callback"
+    garmin_scope: str = "read"
 
 _settings: Settings | None = None
 
