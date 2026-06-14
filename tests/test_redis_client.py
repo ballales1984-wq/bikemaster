@@ -76,7 +76,7 @@ class TestCheckRateLimit:
     @pytest.mark.asyncio
     async def test_rate_limit_exceeded_returns_false(self):
         await close_redis()
-        for i in range(100):
+        for _i in range(100):
             if not await check_rate_limit(999, "test_limit", limit=5, window=60):
                 assert True
                 return

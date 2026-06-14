@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
-from ..config import CORS_ORIGINS, ENVIRONMENT, REDIS_URL, TASK_QUEUE_WORKERS
+from ..config import CORS_ORIGINS, ENVIRONMENT
 from ..rate_limiter import limiter
 from ..redis_client import close_redis, get_redis
 from ..task_queue import get_task_queue

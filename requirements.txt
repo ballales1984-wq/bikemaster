@@ -6,6 +6,7 @@ alembic>=1.13.0
 asyncpg>=0.29.0
 greenlet>=3.0.0
 python-multipart>=0.0.18,<0.0.20
+pydantic-settings>=2.0.0
 folium>=0.16.0
 pandas>=2.2.0
 numpy>=1.26.4

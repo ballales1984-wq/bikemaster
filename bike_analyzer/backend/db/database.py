@@ -215,6 +215,7 @@ def _row_to_ride(row) -> dict:
         gps = json.loads(row["gps_points"]) if row["gps_points"] else None
     except (json.JSONDecodeError, TypeError):
         gps = None
+    keys = row.keys()
     return {
         "id": row["id"],
         "athlete_id": row["athlete_id"],
@@ -228,9 +229,9 @@ def _row_to_ride(row) -> dict:
         "elevation_gain_m": row["elevation_gain_m"],
         "gps_points": gps,
         "created_at": row["created_at"],
-        "external_source": row.get("external_source"),
-        "external_id": row.get("external_id"),
-        "title": row.get("title"),
+        "external_source": row["external_source"] if "external_source" in keys else None,
+        "external_id": row["external_id"] if "external_id" in keys else None,
+        "title": row["title"] if "title" in keys else None,
     }
 
 

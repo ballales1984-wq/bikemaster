@@ -66,7 +66,8 @@ def _ban_provider(provider: str) -> None:
 
 
 def _is_recoverable_provider_error(error: Exception) -> bool:
-    return True
+    msg = str(error).lower()
+    return not (isinstance(error, (ValueError, TypeError)) or "auth" in msg)
 
 
 def get_ai_coach_client():
@@ -398,7 +399,6 @@ def generate_training_advice(
             logger.warning("AI Coach no API key available, using fallback")
             return _generate_fallback_training_advice(athlete, rides)
 
-
         model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
         try:
             content = _chat_completion_text(client, model, prompt, 500)
@@ -407,9 +407,10 @@ def generate_training_advice(
             logger.warning("AI Coach API call failed: %s: %s", type(e).__name__, e)
             logger.debug("AI Coach API error details", exc_info=True)
             _ban_provider(provider)
+            if not _is_recoverable_provider_error(e):
+                logger.error("AI Coach: non-recoverable error from %s, using fallback", provider)
+                return _generate_fallback_training_advice(athlete, rides)
             continue
-    if _BANNED_PROVIDERS:
-        return f"AI Coach non disponibile: tutti i provider hanno fallito ({', '.join(_BANNED_PROVIDERS)})"
     return _generate_fallback_training_advice(athlete, rides)
 
 generate_workout_recommendations = generate_training_advice

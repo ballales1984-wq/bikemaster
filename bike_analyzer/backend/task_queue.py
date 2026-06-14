@@ -185,8 +185,6 @@ class BackgroundTaskQueue:
         return {"updated": len(rides)}
 
     async def _handle_warm_weather(self, payload: dict) -> dict:
-        from pathlib import Path
-
         from bike_analyzer.backend.weather.weather_service import get_forecast_for_date
 
         lat = payload.get("lat")
@@ -233,8 +231,8 @@ class BackgroundTaskQueue:
         from bike_analyzer.backend.db.database import save_ride
         from bike_analyzer.backend.ingestion.garmin_client import (
             fetch_activities,
-            get_valid_token,
             garmin_to_ride,
+            get_valid_token,
         )
 
         athlete_id = payload["athlete_id"]

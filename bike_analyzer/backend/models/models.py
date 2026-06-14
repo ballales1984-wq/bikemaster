@@ -82,6 +82,9 @@ class Ride:
     calories: float = 0.0
     heart_rate_avg: float | None = None
     elevation_gain_m: float | None = None
+    external_source: str | None = None
+    external_id: str | None = None
+    title: str | None = None
     gps_points: list[GPSPoint] | None = None
     created_at: str | None = None
 

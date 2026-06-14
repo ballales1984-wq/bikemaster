@@ -31,6 +31,7 @@ from typing import Any
 import requests
 
 from ..config import (
+    GARMIN_API_BASE_URL,
     GARMIN_AUTH_URL,
     GARMIN_CONSUMER_KEY,
     GARMIN_CONSUMER_SECRET,

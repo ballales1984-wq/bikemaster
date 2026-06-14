@@ -28,6 +28,7 @@ from typing import Any
 import requests
 
 from ..config import (
+    STRAVA_API_BASE_URL,
     STRAVA_AUTH_URL,
     STRAVA_CLIENT_ID,
     STRAVA_CLIENT_SECRET,
@@ -35,8 +36,6 @@ from ..config import (
     STRAVA_SCOPE,
     STRAVA_TOKEN_URL,
 )
-
-logger = logging.getLogger.__wrapped__ if hasattr(logging, "__wrapped__") else logging.getLogger()  # type: ignore[attr-defined]
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +52,8 @@ def generate_code_verifier() -> str:
 
 
 def generate_code_challenge(verifier: str) -> str:
-    import hashlib
     import base64
+    import hashlib
 
     digest = hashlib.sha256(verifier.encode()).digest()
     return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
@@ -151,7 +150,6 @@ def _ensure_token_table() -> None:
 
 def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
     _ensure_token_table()
-    import json
 
     scope = token_data.get("scope", "")
     expires_at = token_data.get("expires_at", 0)

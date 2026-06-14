@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import requests
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from pathlib import Path
 
+import requests
 from fastapi import (
     APIRouter,
     Body,
@@ -1857,7 +1857,6 @@ async def strava_callback(
 
     code = payload.get("code", "")
     code_verifier = payload.get("code_verifier", "")
-    state = payload.get("state", "")
     if not code or not code_verifier:
         raise HTTPException(status_code=400, detail="code and code_verifier required")
     try:
@@ -1883,8 +1882,8 @@ async def strava_sync(
     if background:
         task = await get_task_queue().enqueue("strava_sync", payload)
         return {"task_id": task.id, "status": "queued", "athlete_id": current_user["id"]}
-    from ..ingestion.strava_client import fetch_all_activities, get_valid_token, strava_to_ride
     from ..db.database import save_ride
+    from ..ingestion.strava_client import fetch_all_activities, get_valid_token, strava_to_ride
 
     access_token = get_valid_token(current_user["id"])
     if not access_token:
@@ -1959,8 +1958,8 @@ async def garmin_sync(
     if background:
         task = await get_task_queue().enqueue("garmin_sync", payload)
         return {"task_id": task.id, "status": "queued", "athlete_id": current_user["id"]}
-    from ..ingestion.garmin_client import fetch_activities, get_valid_token, garmin_to_ride
     from ..db.database import save_ride
+    from ..ingestion.garmin_client import fetch_activities, garmin_to_ride, get_valid_token
 
     access_token = get_valid_token(current_user["id"])
     if not access_token:
