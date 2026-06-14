@@ -11,6 +11,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import inspect
 import logging
 import struct
 import time
@@ -38,6 +39,21 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=F
 
 JWT_BLACKLIST_PREFIX = "bikemaster:jwt:blacklist:"
 JWT_BLACKLIST_TTL = 7200
+_memory_revoked_tokens: set[str] = set()
+REFRESH_PREFIX = "bikemaster:refresh:"
+REFRESH_TTL = 86400 * 30
+REFRESH_MAX_ACTIVE = 5
+
+UNAUTH_401 = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Token non valido o scaduto",
+    headers={"WWW-Authenticate": "Bearer"},
+)
+UNAUTH_401_REVOKED = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Token revocato",
+    headers={"WWW-Authenticate": "Bearer"},
+)
 
 
 def jti_key(jti: str) -> str:
@@ -45,26 +61,40 @@ def jti_key(jti: str) -> str:
 
 
 async def revoke_token(jti: str, ttl: int = JWT_BLACKLIST_TTL) -> bool:
+    _memory_revoked_tokens.add(jti)
     r = await get_redis()
     if r is None:
-        return False
+        return True
     try:
-        await r.set(jti_key(jti), "1", ex=ttl)
+        await _await_if_needed(r.set(jti_key(jti), "1", ex=ttl))
         return True
     except Exception as exc:
         logger.warning("Failed to revoke token %s: %s", jti, exc)
-        return False
+        return True
 
 
 async def is_token_revoked(jti: str) -> bool:
+    if jti in _memory_revoked_tokens:
+        return True
     r = await get_redis()
     if r is None:
         return False
     try:
-        return await r.exists(jti_key(jti)) > 0
+        return bool(await _await_if_needed(r.exists(jti_key(jti))))
     except Exception as exc:
         logger.warning("Failed to check token revocation %s: %s", jti, exc)
         return False
+
+
+async def _await_if_needed(value):
+    if inspect.isawaitable(value):
+        return await value
+    return value
+
+
+def fingerprint_token(token: str) -> str:
+    raw = f"{token}:{SECRET_KEY}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
 def hash_password(password: str) -> str:
@@ -81,7 +111,10 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def create_access_token(
-    subject: str, is_admin: bool = False, expires_delta: timedelta | None = None, jti: str | None = None
+    subject: str,
+    is_admin: bool = False,
+    expires_delta: timedelta | None = None,
+    jti: str | None = None,
 ) -> str:
     expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     payload = {
@@ -91,8 +124,9 @@ def create_access_token(
         "exp": expire,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
-        "jti": jti,
     }
+    if jti is not None:
+        payload["jti"] = jti
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -141,7 +175,7 @@ async def decode_token(token: str | None) -> dict:
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
-    payload = decode_token(token)
+    payload = await decode_token(token)
     user_id: str = payload.get("sub")
     is_admin: bool = payload.get("is_admin", False)
     if user_id is None:
@@ -221,17 +255,7 @@ async def delete_totp_secret(user_id: int) -> bool:
 
 
 def _hotp(secret: str, counter: int, digits: int = 6, algorithm: str = "sha256") -> str:
-    secret_bin = base64.b32encode(base64.b64decode(secret + "==")).decode("utf-8")
-    secret_bin = secret_bin.upper().replace(" ", "")
-    for i in range(len(secret_bin)):
-        try:
-            key = base64.b32decode(secret_bin + "=" * (8 - len(secret_bin) % 8))
-            break
-        except Exception:
-            secret_bin = secret_bin[:i] + "A" + secret_bin[i + 1:]
-            continue
-    else:
-        key = base64.b32decode(secret_bin + "=" * (8 - len(secret_bin) % 8))
+    key = base64.b32decode(secret.upper().replace(" ", ""))
     msg = struct.pack(">Q", counter)
     h = hmac.new(key, msg, getattr(hashlib, algorithm)).digest()
     offset = h[-1] & 0xF
@@ -249,7 +273,14 @@ def generate_totp(secret: str, period: int = 30, digits: int = 6, algorithm: str
     return _hotp(secret, counter, digits=digits, algorithm=algorithm)
 
 
-def verify_totp(secret: str, code: str, period: int = 30, digits: int = 6, algorithm: str = "sha256", window: int = 1) -> bool:
+def verify_totp(
+    secret: str,
+    code: str,
+    period: int = 30,
+    digits: int = 6,
+    algorithm: str = "sha256",
+    window: int = 1,
+) -> bool:
     if not code or not code.isdigit() or len(code) != digits:
         return False
     counter = int(time.time()) // period
