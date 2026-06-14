@@ -323,7 +323,7 @@ async def generate_ride_map(
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
     points = [GPSPoint(**p) for p in gps_points]
-    base_dir = Path(__file__).resolve().parent.parent.parent / "static"
+    base_dir = Path(__file__).resolve().parent.parent / "static"
     safe_id = "".join(c if c.isalnum() or c == "_" else "_" for c in str(ride_id))
     path = base_dir / f"ride_{safe_id}_map.html"
     resolved = path.resolve()
@@ -1136,7 +1136,7 @@ async def update_ride(
         raise HTTPException(status_code=404, detail="Ride not found")
     _ensure_ride_access(existing, current_user)
     protected = {k: v for k, v in existing.items() if k in ("id", "athlete_id", "created_at")}
-    merged = {**protected, **{k: v for k, v in ride.items() if k not in protected}}
+    merged = {**existing, **{k: v for k, v in ride.items() if k not in protected}}
     _update_ride(ride_id, merged)
     return merged
 

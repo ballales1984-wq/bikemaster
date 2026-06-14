@@ -18,8 +18,8 @@ _TMP.mkdir(exist_ok=True)
 
 def _new_db_path() -> str:
     p = _TMP / f"test_{id(_new_db_path)}.db"
-    if p.exists():
-        p.unlink()
+    for suffix in ("", "-wal", "-shm"):
+        Path(str(p) + suffix).unlink(missing_ok=True)
     return str(p)
 
 
@@ -27,7 +27,16 @@ def _new_db_path() -> str:
 def db_path():
     p = _new_db_path()
     yield p
-    Path(p).unlink(missing_ok=True)
+    for suffix in ("", "-wal", "-shm"):
+        Path(str(p) + suffix).unlink(missing_ok=True)
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    from bike_analyzer.backend.rate_limiter import limiter
+
+    limiter.reset()
+    yield
 
 
 @pytest.fixture

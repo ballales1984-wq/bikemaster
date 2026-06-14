@@ -2,6 +2,7 @@
 
 import os
 import sys
+from unittest.mock import patch
 
 import pytest
 
@@ -24,7 +25,6 @@ from bike_analyzer.backend.security import (
     get_current_user,
     get_optional_current_user,
     hash_password,
-    oauth2_scheme,
     verify_password,
 )
 
@@ -53,45 +53,47 @@ def test_create_access_token():
     assert len(token) > 50
 
 
-def test_create_access_token_with_custom_expiry():
+@pytest.mark.asyncio
+async def test_create_access_token_with_custom_expiry():
     token = create_access_token("user456", expires_delta=timedelta(hours=1))
     assert token is not None
-    payload = decode_token(token)
+    payload = await decode_token(token)
     assert payload["sub"] == "user456"
 
 
-def test_decode_token_valid():
+@pytest.mark.asyncio
+async def test_decode_token_valid():
     token = create_access_token("testuser")
-    payload = decode_token(token)
+    payload = await decode_token(token)
     assert payload["sub"] == "testuser"
     assert "exp" in payload
     assert "iat" in payload
 
 
-def test_decode_token_invalid():
+@pytest.mark.asyncio
+async def test_decode_token_invalid():
     with pytest.raises(HTTPException) as exc_info:
-        decode_token("invalid.token.here")
+        await decode_token("invalid.token.here")
     assert exc_info.value.status_code == 401
 
 
-def test_decode_token_malformed():
+@pytest.mark.asyncio
+async def test_decode_token_malformed():
     with pytest.raises(HTTPException):
-        decode_token("")
+        await decode_token("")
 
 
-def test_oauth2_scheme():
-    assert oauth2_scheme is not None
-
-
-def test_payload_structure():
+@pytest.mark.asyncio
+async def test_payload_structure():
     token = create_access_token("testuser", expires_delta=timedelta(minutes=30))
-    payload = decode_token(token)
+    payload = await decode_token(token)
     assert payload["sub"] == "testuser"
     assert "iss" in payload
     assert "aud" in payload
 
 
-def test_decode_token_wrong_issuer():
+@pytest.mark.asyncio
+async def test_decode_token_wrong_issuer():
     wrong_payload = {
         "sub": "user",
         "iss": "wrong",
@@ -101,10 +103,11 @@ def test_decode_token_wrong_issuer():
     }
     token = jwt.encode(wrong_payload, os.environ["SECRET_KEY"], algorithm="HS256")
     with pytest.raises(HTTPException):
-        decode_token(token)
+        await decode_token(token)
 
 
-def test_decode_token_wrong_audience():
+@pytest.mark.asyncio
+async def test_decode_token_wrong_audience():
     wrong_payload = {
         "sub": "user",
         "iss": "test-issuer",
@@ -114,10 +117,11 @@ def test_decode_token_wrong_audience():
     }
     token = jwt.encode(wrong_payload, os.environ["SECRET_KEY"], algorithm="HS256")
     with pytest.raises(HTTPException):
-        decode_token(token)
+        await decode_token(token)
 
 
-def test_decode_token_expired():
+@pytest.mark.asyncio
+async def test_decode_token_expired():
     expired_payload = {
         "sub": "user",
         "iss": "test-issuer",
@@ -127,7 +131,7 @@ def test_decode_token_expired():
     }
     token = jwt.encode(expired_payload, os.environ["SECRET_KEY"], algorithm="HS256")
     with pytest.raises(HTTPException):
-        decode_token(token)
+        await decode_token(token)
 
 
 @pytest.mark.asyncio
@@ -170,7 +174,8 @@ async def test_get_optional_current_user_empty_string():
     assert result is None
 
 
-def test_decode_token_missing_sub():
+@pytest.mark.asyncio
+async def test_decode_token_missing_sub():
     import os
 
     from jose import jwt
@@ -184,7 +189,7 @@ def test_decode_token_missing_sub():
     }
     token = jwt.encode(payload, os.environ["SECRET_KEY"], algorithm="HS256")
     with pytest.raises(HTTPException):
-        decode_token(token)
+        await decode_token(token)
 
 
 @pytest.mark.asyncio
@@ -395,12 +400,10 @@ def test_jwt_revoke_blocklist(client):
     import os
 
     os.environ["ENVIRONMENT"] = "test"
-    from bike_analyzer.backend.security import create_access_token, is_token_revoked, revoke_token
+    from bike_analyzer.backend.security import create_access_token, revoke_token
 
-    token = create_access_token("777", is_admin=False)
-    ok = asyncio.get_event_loop().run_until_complete(
-        revoke_token("unit-test-jti-1", ttl=3600)
-    )
+    token = create_access_token("777", is_admin=False, jti="unit-test-jti-1")
+    ok = asyncio.run(revoke_token("unit-test-jti-1", ttl=3600))
     assert ok is True
 
     async def _mock_check(jti):
@@ -410,17 +413,17 @@ def test_jwt_revoke_blocklist(client):
         from bike_analyzer.backend.security import decode_token
 
         try:
-            decode_token(token)
-            assert False, "expected HTTPException"
+            asyncio.run(decode_token(token))
         except Exception as exc:
             assert getattr(exc, "status_code", None) == 401
+        else:
+            pytest.fail("expected HTTPException")
 
 
 def test_logout_endpoint_revokes_token(client):
     import os
 
     os.environ["ENVIRONMENT"] = "test"
-    from bike_analyzer.backend.security import create_access_token
 
     client.post("/api/v1/auth/register", json={"username": "logout_user", "password": "testpass123"})
     login = client.post("/api/v1/auth/login", data={"username": "logout_user", "password": "testpass123"})

@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
 
 from ..config import CORS_ORIGINS, ENVIRONMENT
 from ..rate_limiter import limiter
@@ -41,6 +42,10 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
     )
 
+    app.state.limiter = limiter
+    app.add_exception_handler(429, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
+
     @app.middleware("http")
     async def add_security_headers(request: Request, call_next):
         response = await call_next(request)
@@ -58,9 +63,6 @@ def create_app() -> FastAPI:
                 "style-src 'self' 'unsafe-inline'; connect-src 'self'"
             )
         return response
-
-    app.state.limiter = limiter
-    app.add_exception_handler(429, _rate_limit_exceeded_handler)
 
     cors_origins = (
         [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
