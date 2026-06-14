@@ -217,14 +217,17 @@ class BackgroundTaskQueue:
             return {"imported": 0, "error": "no_valid_token"}
         activities = fetch_all_activities(access_token)
         imported = []
+        imported_ids: set[int] = set()
         for act in activities:
             ride_data = strava_to_ride(act)
             if ride_data.get("skipped") or "error" in ride_data:
                 continue
             ride_data["athlete_id"] = athlete_id
-            db_ride = {k: v for k, v in ride_data.items() if k not in ("id", "external_source", "external_id", "title")}
+            db_ride = {k: v for k, v in ride_data.items() if k != "id"}
             ride_id = save_ride(db_ride)
-            imported.append({"id": int(ride_id), **ride_data})
+            if ride_id not in imported_ids:
+                imported.append({"id": int(ride_id), **ride_data})
+                imported_ids.add(int(ride_id))
         return {"imported": len(imported), "total_fetched": len(activities)}
 
     async def _handle_garmin_sync(self, payload: dict) -> dict:
@@ -241,14 +244,17 @@ class BackgroundTaskQueue:
             return {"imported": 0, "error": "no_valid_token"}
         activities = fetch_activities(access_token)
         imported = []
+        imported_ids: set[int] = set()
         for act in activities:
             ride_data = garmin_to_ride(act)
             if ride_data.get("skipped") or "error" in ride_data:
                 continue
             ride_data["athlete_id"] = athlete_id
-            db_ride = {k: v for k, v in ride_data.items() if k not in ("id", "external_source", "external_id", "title")}
+            db_ride = {k: v for k, v in ride_data.items() if k != "id"}
             ride_id = save_ride(db_ride)
-            imported.append({"id": int(ride_id), **ride_data})
+            if ride_id not in imported_ids:
+                imported.append({"id": int(ride_id), **ride_data})
+                imported_ids.add(int(ride_id))
         return {"imported": len(imported), "total_fetched": len(activities)}
 
 

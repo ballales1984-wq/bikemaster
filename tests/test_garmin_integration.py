@@ -61,3 +61,34 @@ def test_garmin_to_ride_zero_values():
     assert ride["date"] == ""
     assert ride["duration_minutes"] == 0
     assert ride["avg_speed_kmh"] == 0
+
+
+def test_garmin_sync_endpoint_is_idempotent(client, monkeypatch):
+    import bike_analyzer.backend.ingestion.garmin_client as gc
+
+    activity = {
+        "activityId": 98765,
+        "activityName": "Weekend Gran Fondo",
+        "activityType": {"typeKey": "road_biking"},
+        "startTimeLocal": "2026-06-14T07:30:00",
+        "duration": 5400.0,
+        "distance": 65000.0,
+        "averageSpeed": 11.5,
+        "elevationGain": 1800,
+        "averageHR": 152,
+        "calories": 1200,
+    }
+    monkeypatch.setattr(gc, "get_valid_token", lambda athlete_id: "token")
+    monkeypatch.setattr(gc, "fetch_activities", lambda token: [activity, activity])
+
+    response = client.post("/api/v1/import/garmin/sync?background=false")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_fetched"] == 2
+    assert data["imported"] == 1
+    assert len(data["rides"]) == 1
+    rides = client.get("/api/v1/rides").json()["rides"]
+    assert len(rides) == 1
+    assert rides[0]["external_source"] == "garmin"
+    assert rides[0]["external_id"] == "98765"

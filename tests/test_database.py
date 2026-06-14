@@ -44,6 +44,32 @@ def test_save_and_get_ride():
     assert r["distance_km"] == 25.0
 
 
+def test_save_ride_reuses_existing_external_identity():
+    init_db()
+    ride = {
+        "athlete_id": 1,
+        "date": "2026-06-14",
+        "distance_km": 25.0,
+        "duration_minutes": 60.0,
+        "avg_speed_kmh": 25.0,
+        "weight_kg": 70.0,
+        "external_source": "strava",
+        "external_id": "12345",
+        "title": "Morning Ride",
+    }
+
+    first_id = save_ride(ride)
+    second_id = save_ride(ride)
+
+    assert second_id == first_id
+    matching_rides = [
+        r
+        for r in get_all_rides()
+        if r["external_source"] == "strava" and r["external_id"] == "12345"
+    ]
+    assert len(matching_rides) == 1
+
+
 def test_get_all_rides():
     init_db()
     save_ride({"date": "2024-06-16"})

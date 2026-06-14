@@ -70,7 +70,7 @@ class RideModel(Base):
         Index("ix_rides_athlete_date", "athlete_id", "date"),
         Index("ix_rides_distance", "distance_km"),
         Index("ix_rides_elevation", "elevation_gain_m"),
-        Index("ix_rides_external_source", "external_source", "external_id"),
+        Index("uq_rides_external_identity", "external_source", "external_id", unique=True),
     )
 
 

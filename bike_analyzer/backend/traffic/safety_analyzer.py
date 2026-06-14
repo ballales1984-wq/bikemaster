@@ -60,15 +60,15 @@ def compute_risk_score(
     }
 
 
-def analyze_route_safety(
+async def analyze_route_safety(
     gps_points: list[dict[str, float]],
     incidents: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Full safety analysis for a route given GPS points and optional incident data."""
     from .overpass_client import fetch_bike_lanes, get_road_type_summary
 
-    road_types = get_road_type_summary(gps_points)
-    bike_data = fetch_bike_lanes(gps_points)
+    road_types = await get_road_type_summary(gps_points)
+    bike_data = await fetch_bike_lanes(gps_points)
     has_bike_infra = bool(bike_data and bike_data.get("elements"))
     incident_count = len(incidents) if incidents else 0
     lats = [p["lat"] for p in gps_points]

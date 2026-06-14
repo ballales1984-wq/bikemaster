@@ -109,6 +109,7 @@ include = ["bike_analyzer*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+asyncio_mode = "auto"
 
 [tool.pyright]
 typeCheckingMode = "basic"

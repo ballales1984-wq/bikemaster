@@ -73,6 +73,39 @@ def test_strava_to_ride_handles_zero_times():
 
 def test_strava_authorization_url_requires_client_id(monkeypatch):
     import bike_analyzer.backend.ingestion.strava_client as sc
+
     monkeypatch.setattr(sc, "STRAVA_CLIENT_ID", "")
     with pytest.raises(RuntimeError, match="STRAVA_CLIENT_ID"):
         sc.get_authorization_url()
+
+
+def test_strava_sync_endpoint_is_idempotent(client, monkeypatch):
+    import bike_analyzer.backend.ingestion.strava_client as sc
+
+    activity = {
+        "id": 12345,
+        "name": "Morning Ride",
+        "sport_type": "Ride",
+        "start_date_local": "2026-06-14T08:00:00Z",
+        "distance": 25000,
+        "moving_time": 3600,
+        "average_speed": 7.0,
+        "total_elevation_gain": 320,
+        "average_heartrate": 145,
+        "calories": 600,
+    }
+    monkeypatch.setattr(sc, "get_valid_token", lambda athlete_id: "token")
+    monkeypatch.setattr(sc, "fetch_all_activities", lambda token: [activity, activity])
+
+    response = client.post("/api/v1/import/strava/sync?background=false")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_fetched"] == 2
+    assert data["imported"] == 1
+    assert len(data["rides"]) == 1
+    rides = client.get("/api/v1/rides").json()["rides"]
+    assert len(rides) == 1
+    assert rides[0]["external_source"] == "strava"
+    assert rides[0]["external_id"] == "12345"
+

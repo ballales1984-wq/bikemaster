@@ -207,7 +207,27 @@ def init_db():
             conn.execute("ALTER TABLE rides ADD COLUMN external_id TEXT")
         if "title" not in ride_cols:
             conn.execute("ALTER TABLE rides ADD COLUMN title TEXT")
+        _ensure_external_identity_index(conn)
         conn.commit()
+
+
+def _ensure_external_identity_index(conn) -> None:
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT COUNT(*) FROM (
+            SELECT external_source, external_id, COUNT(*) AS duplicate_count
+            FROM rides
+            WHERE external_source IS NOT NULL AND external_id IS NOT NULL
+            GROUP BY external_source, external_id
+            HAVING COUNT(*) > 1
+        )"""
+    )
+    if cur.fetchone()[0] == 0:
+        conn.execute("DROP INDEX IF EXISTS ix_rides_external_source")
+        conn.execute(
+            """CREATE UNIQUE INDEX IF NOT EXISTS uq_rides_external_identity
+            ON rides (external_source, external_id)"""
+        )
 
 
 def _row_to_ride(row) -> dict:
@@ -235,9 +255,26 @@ def _row_to_ride(row) -> dict:
     }
 
 
+def _find_existing_external_ride(conn, external_source: str | None, external_id: str | None) -> int | None:
+    if not external_source or not external_id:
+        return None
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id FROM rides WHERE external_source = ? AND external_id = ? LIMIT 1",
+        (str(external_source), str(external_id)),
+    )
+    row = cur.fetchone()
+    return int(row["id"]) if row else None
+
+
 def save_ride(ride: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
+        external_source = str(ride.get("external_source") or "").strip() or None
+        external_id = str(ride.get("external_id") or "").strip() or None
+        existing_ride_id = _find_existing_external_ride(conn, external_source, external_id)
+        if existing_ride_id is not None:
+            return existing_ride_id
         gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
         cur.execute(
             """INSERT INTO rides
@@ -256,8 +293,8 @@ def save_ride(ride: dict) -> int:
                 ride.get("heart_rate_avg"),
                 ride.get("elevation_gain_m"),
                 gps_points,
-                ride.get("external_source"),
-                ride.get("external_id"),
+                external_source,
+                external_id,
                 ride.get("title"),
                 datetime.now(UTC).isoformat(),
             ),
@@ -512,6 +549,7 @@ def create_indices():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_speed ON rides(avg_speed_kmh)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_athlete ON rides(athlete_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_metrics_ride ON metrics(ride_id)")
+        _ensure_external_identity_index(conn)
         conn.commit()
 
 
