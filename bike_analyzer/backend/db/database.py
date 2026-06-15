@@ -56,7 +56,7 @@ def init_db():
         conn.execute("""CREATE TABLE IF NOT EXISTS athletes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-             email TEXT,
+            email TEXT,
             age INTEGER DEFAULT 30,
             weight_kg REAL DEFAULT 70,
             height_cm REAL,
@@ -73,7 +73,7 @@ def init_db():
             medical_notes TEXT,
             equipment TEXT,
             ftp_watts REAL,
-             password_hash TEXT,
+            password_hash TEXT,
             created_at TEXT
         )""")
         conn.execute("""CREATE TABLE IF NOT EXISTS chat_history (
@@ -119,6 +119,8 @@ def init_db():
             conn.execute("ALTER TABLE athletes ADD COLUMN ftp_watts REAL")
         if "password_hash" not in columns:
             conn.execute("ALTER TABLE athletes ADD COLUMN password_hash TEXT")
+        if "email" not in columns:
+            conn.execute("ALTER TABLE athletes ADD COLUMN email TEXT")
         conn.execute("""CREATE TABLE IF NOT EXISTS training_stress_days (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
@@ -400,13 +402,14 @@ def save_athlete(athlete: dict, athlete_id: int | None = None) -> int:
         cur = conn.cursor()
         if athlete_id is None:
             cur.execute(
-                """INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage,
+                """INSERT INTO athletes (name, email, age, weight_kg, height_cm, fat_percentage,
                 years_active, weekly_sessions, monthly_hours, annual_hours, experience_level,
                 goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes,
                 equipment, ftp_watts, password_hash, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     athlete.get("name"),
+                    athlete.get("email"),
                     athlete.get("age", 30),
                     athlete.get("weight_kg", 70),
                     athlete.get("height_cm"),
@@ -429,14 +432,15 @@ def save_athlete(athlete: dict, athlete_id: int | None = None) -> int:
             )
         else:
             cur.execute(
-                """INSERT INTO athletes (id, name, age, weight_kg, height_cm, fat_percentage,
+                """INSERT INTO athletes (id, name, email, age, weight_kg, height_cm, fat_percentage,
                 years_active, weekly_sessions, monthly_hours, annual_hours, experience_level,
                 goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes,
                 equipment, ftp_watts, password_hash, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     athlete_id,
                     athlete.get("name"),
+                    athlete.get("email"),
                     athlete.get("age", 30),
                     athlete.get("weight_kg", 70),
                     athlete.get("height_cm"),
@@ -465,11 +469,12 @@ def _row_to_athlete(row) -> dict:
     """Convert athlete row to dict with dynamic column mapping."""
     if row is None:
         return None
-    columns = ["id", "name", "age", "weight_kg", "height_cm", "fat_percentage",
+    columns = ["id", "name", "email", "age", "weight_kg", "height_cm", "fat_percentage",
                "years_active", "weekly_sessions", "monthly_hours", "annual_hours",
                "experience_level", "goals", "preferred_terrain", "weekly_volume_km",
                "best_segments", "medical_notes", "equipment", "ftp_watts", "password_hash", "created_at"]
-    return {col: row[i] if i < len(row) else None for i, col in enumerate(columns)}
+    keys = row.keys()
+    return {col: row[col] if col in keys else None for col in columns}
 
 
 def get_athlete(athlete_id: int) -> dict | None:
@@ -512,13 +517,14 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?,
+            """UPDATE athletes SET name=?, email=?, age=?, weight_kg=?, height_cm=?,
             fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?,
             annual_hours=?, experience_level=?, goals=?, preferred_terrain=?,
             weekly_volume_km=?, best_segments=?, medical_notes=?, equipment=?,
             ftp_watts=?, password_hash=? WHERE id=?""",
             (
                 merged.get("name"),
+                merged.get("email"),
                 merged.get("age", 30),
                 merged.get("weight_kg", 70),
                 merged.get("height_cm"),
@@ -600,9 +606,9 @@ def clear_chat_history(athlete_id: int) -> bool:
 def get_all_athletes() -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT id, name, experience_level FROM athletes")
+        cur.execute("SELECT id, name, email, experience_level FROM athletes")
         rows = cur.fetchall()
-        return [{"id": r[0], "name": r[1], "experience_level": r[2]} for r in rows]
+        return [{"id": r[0], "name": r[1], "email": r[2], "experience_level": r[3]} for r in rows]
 
 
 def save_calendar_event(event: dict) -> int:
@@ -690,9 +696,9 @@ def update_calendar_event(event_id: int, event_data: dict) -> bool:
         cur = conn.cursor()
         cur.execute(
             """UPDATE calendar_events
-SET title=?, event_type=?, date=?, duration_minutes=?, description=?, completed=?,
-    weather_temp=?, weather_humidity=?, weather_description=?
-WHERE id=?""",
+            SET title=?, event_type=?, date=?, duration_minutes=?, description=?, completed=?,
+            weather_temp=?, weather_humidity=?, weather_description=?
+            WHERE id=?""",
             (
                 merged.get("title"),
                 merged.get("event_type", "training"),

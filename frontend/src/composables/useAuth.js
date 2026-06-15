@@ -109,6 +109,7 @@ export {
   login,
   register,
   logout,
+  parseJWTPayload,
   authToken,
   authUser,
 }
