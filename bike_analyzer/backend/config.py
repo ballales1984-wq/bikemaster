@@ -21,10 +21,16 @@ _s = get_settings()
 _ENV = os.getenv("ENVIRONMENT", "development")
 _IS_PROD = _ENV.lower() in ("production", "prod", "staging")
 
-if not _s.secret_key:
-    logging.error("SECRET_KEY è obbligatoria. Impostala nel .env.")
-    sys.exit(1)
 _SECRET_KEY = _s.secret_key
+_PLACEHOLDER_KEYS = ("your-secret-key-here", "changeme", "change-me", "secret", "<SECRET_KEY>", "REPLACE_ME", "")
+_SECRET_KEY_IS_PLACEHOLDER = _SECRET_KEY.strip() in _PLACEHOLDER_KEYS
+
+if not _s.secret_key or _SECRET_KEY_IS_PLACEHOLDER:
+    logging.critical(
+        "SECRET_KEY non valida. Usa un valore casuale >= 32 caratteri (es. openssl rand -hex 32)."
+    )
+    if _IS_PROD:
+        sys.exit(1)
 
 # SECRET_KEY rotation support
 _SECRET_KEY_PRIMARY = _SECRET_KEY

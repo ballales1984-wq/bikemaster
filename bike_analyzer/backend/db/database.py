@@ -926,6 +926,17 @@ def get_route_safety_score(ride_id: int) -> dict | None:
         return None
 
 
+def get_athlete_by_query(**query):
+    """Backward-compatible alias expected by some tests.
+
+    Example: get_athlete_by_query(name="...")
+    """
+
+    from .api_compat import get_athlete_by_query as _shim
+
+    return _shim(get_athlete_by_name, **query)
+
+
 __all__ = [
     "save_ride",
     "get_ride",
@@ -938,6 +949,7 @@ __all__ = [
     "init_db",
     "save_athlete",
     "get_athlete",
+    "get_athlete_by_query",
     "save_metric",
     "update_athlete",
     "create_indices",
@@ -963,3 +975,4 @@ __all__ = [
     "save_route_safety_score",
     "get_route_safety_score",
 ]
+

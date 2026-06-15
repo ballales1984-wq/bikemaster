@@ -2,6 +2,7 @@
 
 import os
 
+os.environ["AI_COACH_MODE"] = "external"
 os.environ["GROQ_API_KEY"] = "test-key-for-unit-tests"
 
 from bike_analyzer.backend.analytics.ai_coach import (
@@ -97,6 +98,7 @@ def test_training_advice_falls_back_to_openai_after_groq_403(monkeypatch):
 
     import bike_analyzer.backend.analytics.ai_coach as ai_coach
 
+    monkeypatch.setenv("AI_COACH_MODE", "external")
     class Choice:
         def __init__(self, content):
             self.message = types.SimpleNamespace(content=content)
@@ -147,6 +149,7 @@ def test_training_advice_uses_local_fallback_when_all_providers_fail(monkeypatch
 
     import bike_analyzer.backend.analytics.ai_coach as ai_coach
 
+    monkeypatch.setenv("AI_COACH_MODE", "external")
     class FailingCompletions:
         def create(self, **kwargs):
             raise PermissionError("403 Access denied")

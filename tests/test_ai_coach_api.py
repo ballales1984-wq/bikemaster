@@ -86,6 +86,18 @@ def test_ai_coach_workout_endpoint(client):
     assert "recommendations" in data
 
 
+def test_ai_coach_workout_endpoint_with_athlete(client, db_path):
+    from bike_analyzer.backend.db import database as db_mod
+    from bike_analyzer.backend.models.models import AthleteProfile
+    athlete_id = db_mod.save_athlete(
+        {"name": "Test Athlete", "weight_kg": 70.0, "experience_level": "Beginner"}
+    )
+    r = client.get("/api/v1/coach/workout", params={"athlete_id": athlete_id})
+    assert r.status_code == 200
+    data = r.json()
+    assert "recommendations" in data
+
+
 def test_ai_coach_recovery_endpoint(client):
     r = client.get("/api/v1/coach/recovery")
     assert r.status_code == 200

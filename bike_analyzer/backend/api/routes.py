@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from dataclasses import fields
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -39,12 +40,12 @@ from .schemas import (
     AthleteUpdate,
     CalendarEventCreate,
     CalendarEventUpdate,
+    GoogleAuthRequest,
     GranfondoPlanRequest,
     MetricCreate,
+    RefreshTokenRequest,
     RideAnalysisRequest,
     RideCreate,
-    GoogleAuthRequest,
-    RefreshTokenRequest,
 )
 
 logger = get_logger(__name__)
@@ -61,6 +62,13 @@ def _public_athlete(athlete: dict | None) -> dict | None:
     if athlete is None:
         return None
     return {k: v for k, v in athlete.items() if k != "password_hash"}
+
+
+def _athlete_profile_data(athlete: dict | None) -> dict | None:
+    if athlete is None:
+        return None
+    allowed_fields = {field.name for field in fields(AthleteProfile)}
+    return {k: v for k, v in athlete.items() if k in allowed_fields}
 
 
 def _ensure_int_user_id(current_user: dict) -> int:
@@ -155,7 +163,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
 
 @router.post("/auth/logout")
 async def logout(request: Request, current_user: dict = Depends(get_current_user)):
-    from ..security import revoke_token, revoke_refresh_token
+    from ..security import revoke_refresh_token, revoke_token
 
     auth_header = request.headers.get("authorization", "")
     token = auth_header.removeprefix("Bearer ").strip()
@@ -804,7 +812,7 @@ async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_c
                 "performance_score": calculate_performance_score(latest),
                 "endurance_score": calculate_endurance_score(rides),
                 "efficiency_score": calculate_efficiency_score(latest),
-                "experience_level": get_experience_level(AthleteProfile(**athlete_public)),
+                "experience_level": get_experience_level(AthleteProfile(**_athlete_profile_data(athlete_public))),
             },
         }
     return {
@@ -902,7 +910,7 @@ async def workout_recommendations(
         athlete_data = get_athlete(resolved_id)
         if athlete_data:
             athlete_data = _public_athlete(athlete_data)
-        athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
+        athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
         result = generate_workout_recommendations(athlete, rides)
         return {"recommendations": result}
     except HTTPException:
@@ -961,7 +969,7 @@ async def coach_full_data(
                 "charts": [],
             }
         athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
-        athlete = AthleteProfile(**athlete_data)
+        athlete = AthleteProfile(**_athlete_profile_data(athlete_data))
         result = ai_coach_full(athlete, rides, resolved_id)
         if athlete_id and result.get("training_advice"):
             save_chat_message(resolved_id, "assistant", result["training_advice"][:500])
@@ -1016,7 +1024,7 @@ async def recovery_recommendations(
                 athlete_data = get_athlete(current_user["id"])
         if athlete_data:
             athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
-        athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
+        athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
         result = generate_recovery_recommendations(
             athlete, [ride_obj] if ride_obj else [], fatigue_score
         )
@@ -1220,7 +1228,7 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
     athlete_data = get_athlete(athlete_id)
     if athlete_data:
         athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
-    athlete = AthleteProfile(**athlete_data) if athlete_data else AthleteProfile()
+    athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     response = generate_training_advice(athlete, rides, athlete_id)
     save_chat_message(athlete_id, "assistant", response[:500])
@@ -2060,13 +2068,6 @@ async def google_oauth_callback(payload: GoogleAuthRequest):
     from ..auth.google_auth import create_google_session
 
     return create_google_session(user_info)
-# Create or update athlete
-    athlete = save_athlete(
-        {"name": user_info.get("name", "Google User"), "email": user_info.get("email")}
-    )
-    from ..auth.google_auth import create_google_session
-
-    return create_google_session(user_info)
 
 
 @router.get("/dashboard")
@@ -2084,7 +2085,7 @@ async def get_dashboard(request: Request, current_user: dict = Depends(get_curre
     athlete_dict = _public_athlete(athlete) if athlete else None
 
     summary = calculate_summary(rides)
-    scores = create_score_dashboard(rides, AthleteProfile(**(athlete_dict or {})))
+    scores = create_score_dashboard(rides, AthleteProfile(**_athlete_profile_data(athlete_dict or {})))
     fitness = get_7day_fitness_summary(rides)
     trends = {
         "weekly_progress": [r.distance_km for r in rides[-7:]] if rides else [],
