@@ -28,7 +28,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { apiGet, apiPost, apiPut } from '../utils/api.js'
+import { apiGet, apiPost, apiPut } from '../utils/api.ts'
 
 const emit = defineEmits(['toast'])
 const form = ref({

@@ -52,7 +52,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { apiGet } from '../utils/api.js'
+import { apiGet } from '../utils/api.ts'
 
 const emit = defineEmits(['toast'])
 const dashboard = ref({})

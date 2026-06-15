@@ -76,7 +76,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { apiGet } from '../utils/api.js'
+import { apiGet } from '../utils/api.ts'
 
 const lat = ref(45.4642)
 const lon = ref(9.1900)

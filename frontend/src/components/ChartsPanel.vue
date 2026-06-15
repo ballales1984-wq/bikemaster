@@ -52,7 +52,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from "vue"
-import { apiGet } from '../utils/api.js'
+import { apiGet } from '../utils/api.ts'
 
 const props = defineProps({ rides: Array })
 const selectedMetric = ref("distance_km")

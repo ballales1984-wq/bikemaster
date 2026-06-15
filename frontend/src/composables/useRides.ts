@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete } from '../utils/api.js'
+import { apiGet, apiPost, apiDelete } from '../utils/api.ts'
 
 export function useRides(emit) {
   let map = null

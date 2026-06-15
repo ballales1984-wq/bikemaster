@@ -192,7 +192,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api.js'
+import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api.ts'
 import ConfirmModal from './ConfirmModal.vue'
 
 const athleteId = ref(null)

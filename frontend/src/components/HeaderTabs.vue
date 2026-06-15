@@ -1,17 +1,17 @@
 <template>
   <nav class="tabs" aria-label="Navigazione principale">
-    <button class="tab" :class="{ active: active === 'rides' }" @click="$emit('update:active', 'rides')">🏍️ <span>Rides</span></button>
-    <button class="tab" :class="{ active: active === 'import' }" @click="$emit('update:active', 'import')">📥 <span>Import</span></button>
-    <button class="tab" :class="{ active: active === 'athlete' }" @click="$emit('update:active', 'athlete')">🏃 <span>Atleta</span></button>
-    <button class="tab" :class="{ active: active === 'coach' }" @click="$emit('update:active', 'coach')">🧠 <span>AI Coach</span></button>
-    <button class="tab" :class="{ active: active === 'knowledge' }" @click="$emit('update:active', 'knowledge')">📚 <span>Knowledge</span></button>
-    <button class="tab" :class="{ active: active === 'calendar' }" @click="$emit('update:active', 'calendar')">📅 <span>Calendario</span></button>
-    <button class="tab" :class="{ active: active === 'granfondo' }" @click="$emit('update:active', 'granfondo')">🚴‍♂️ <span>Granfondo</span></button>
-    <button class="tab" :class="{ active: active === 'map' }" @click="$emit('update:active', 'map')"><span>Mappe</span></button>
-    <button class="tab" :class="{ active: active === 'heatmap' }" @click="$emit('update:active', 'heatmap')">🔥 <span>Heatmap</span></button>
-    <button class="tab" :class="{ active: active === 'badges' }" @click="$emit('update:active', 'badges')">🏅 <span>Badge</span></button>
-    <button class="tab" :class="{ active: active === 'weather' }" @click="$emit('update:active', 'weather')">🌤️ <span>Meteo</span></button>
-    <button v-if="isAdmin" class="tab" :class="{ active: active === 'admin' }" @click="$emit('update:active', 'admin')">⚙️ <span>Admin</span></button>
+    <router-link to="/rides" class="tab" active-class="active">🏍️ <span>Rides</span></router-link>
+    <router-link to="/import" class="tab" active-class="active">📥 <span>Import</span></router-link>
+    <router-link to="/athlete" class="tab" active-class="active">🏃 <span>Atleta</span></router-link>
+    <router-link to="/coach" class="tab" active-class="active">🧠 <span>AI Coach</span></router-link>
+    <router-link to="/knowledge" class="tab" active-class="active">📚 <span>Knowledge</span></router-link>
+    <router-link to="/calendar" class="tab" active-class="active">📅 <span>Calendario</span></router-link>
+    <router-link to="/granfondo" class="tab" active-class="active">🚴‍♂️ <span>Granfondo</span></router-link>
+    <router-link to="/map" class="tab" active-class="active"><span>Mappe</span></router-link>
+    <router-link to="/heatmap" class="tab" active-class="active">🔥 <span>Heatmap</span></router-link>
+    <router-link to="/badges" class="tab" active-class="active">🏅 <span>Badge</span></router-link>
+    <router-link to="/weather" class="tab" active-class="active">🌤️ <span>Meteo</span></router-link>
+    <router-link v-if="isAdmin" to="/admin" class="tab" active-class="active">⚙️ <span>Admin</span></router-link>
     <span class="user-info">{{ isAdmin ? '👑 Admin' : '👤 User' }}</span>
     <button class="tab logout-btn" @click="$emit('logout')">🚪 <span>Esci</span></button>
   </nav>
@@ -19,7 +19,6 @@
 
 <script setup>
 defineProps({
-  active: { type: String, default: 'rides' },
   isAdmin: { type: Boolean, default: false },
 })
 </script>
@@ -45,6 +44,7 @@ defineProps({
   align-items: center;
   gap: 6px;
   min-height: 42px;
+  text-decoration: none;
 }
 
 .tab span {

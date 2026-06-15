@@ -709,6 +709,21 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
 .upload-area:hover { border-color: var(--accent); }
 .upload-area input { display: none; }
 
+.progress-track {
+  height: 10px;
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 14px;
+  border: 1px solid var(--border);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #70e000);
+  transition: width 0.2s ease;
+}
+
 .rides-filters {
   display: flex;
   gap: 10px;

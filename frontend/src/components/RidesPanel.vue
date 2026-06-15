@@ -51,7 +51,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { apiGet, apiDelete, apiPost } from '../utils/api.js'
+import { apiGet, apiDelete, apiPost } from '../utils/api.ts'
 import ConfirmModal from './ConfirmModal.vue'
 
 const loading = ref(true)

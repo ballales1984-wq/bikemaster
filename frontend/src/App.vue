@@ -11,75 +11,16 @@
     </template>
 
     <template v-else>
-      <HeaderTabs v-model:active="activeTab" :is-admin="isAdmin" @logout="onLogout" />
+      <HeaderTabs :is-admin="isAdmin" @logout="onLogout" />
 
       <StatsSummary :stats="summary" :loading="summaryLoading" @refresh="onSummaryChange" />
 
       <main>
-        <section v-if="activeTab === 'rides'">
-          <div class="welcome-card">
-            <div>
-              <h2>👋 Bentornato in BikeMaster</h2>
-              <p>Monitora le tue performance, pianifica gli allenamenti e raggiungi i tuoi obiettivi ciclistici.</p>
-            </div>
-            <div class="welcome-actions">
-              <button class="btn btn-secondary" @click="activeTab = 'calendar'">📅 Pianifica</button>
-              <button class="btn btn-secondary" @click="activeTab = 'coach'">🧠 AI Coach</button>
-            </div>
-          </div>
-          <RidesPanel @summary-change="onSummaryChange" />
-        </section>
-
-        <section v-if="activeTab === 'import'">
-          <ImportPanel @summary-change="onSummaryChange" />
-        </section>
-
-        <section v-if="activeTab === 'athlete'">
-          <AthletePanel />
-        </section>
-
-        <section v-if="activeTab === 'coach'">
-          <CoachPanel />
-        </section>
-
-        <section v-if="activeTab === 'knowledge'">
-          <KnowledgePanel />
-        </section>
-
-        <section v-if="activeTab === 'calendar'">
-          <CalendarPanel />
-        </section>
-
-        <section v-if="activeTab === 'granfondo'">
-          <GranfondoPlanner />
-        </section>
-
-        <section v-if="activeTab === 'map'">
-          <RideMapPanel />
-        </section>
-
-        <section v-if="activeTab === 'heatmap'">
-          <HeatmapPanel />
-        </section>
-
-        <section v-if="activeTab === 'badges'">
-          <BadgesPanel />
-        </section>
-
-        <section v-if="activeTab === 'weather'">
-          <WeatherPanel />
-        </section>
-
-        <section v-if="activeTab === 'admin' && isAdmin">
-          <AdminPanel />
-        </section>
-
-        <section v-if="activeTab === 'admin' && !isAdmin">
-          <div class="panel access-denied">
-            <h2>⛔ Accesso Negato</h2>
-            <p>Non hai i permessi per accedere alla sezione amministrazione.</p>
-          </div>
-        </section>
+        <router-view v-slot="{ Component, ComponentProps }">
+          <transition name="panel" mode="out-in">
+            <component :is="Component" v-bind="ComponentProps" @summary-change="onSummaryChange" />
+          </transition>
+        </router-view>
       </main>
 
       <ToastContainer />
@@ -90,29 +31,18 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import { isLoggedIn, isAdmin as checkIsAdmin, login as doLogin, register as doRegister, logout as doLogout } from './composables/useAuth.js'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { isLoggedIn, isAdmin as checkIsAdmin, login as doLogin, register as doRegister, logout as doLogout } from './composables/useAuth.ts'
 import HeaderTabs from './components/HeaderTabs.vue'
 import StatsSummary from './components/StatsSummary.vue'
-import RidesPanel from './components/RidesPanel.vue'
-import ImportPanel from './components/ImportPanel.vue'
-import AthletePanel from './components/AthletePanel.vue'
-import CoachPanel from './components/CoachPanel.vue'
-import KnowledgePanel from './components/KnowledgePanel.vue'
-import CalendarPanel from './components/CalendarPanel.vue'
-import GranfondoPlanner from './components/GranfondoPlanner.vue'
-import RideMapPanel from './components/RideMapPanel.vue'
-import HeatmapPanel from './components/HeatmapPanel.vue'
-import BadgesPanel from './components/BadgesPanel.vue'
-import AdminPanel from './components/AdminPanel.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import LoginForm from './components/LoginForm.vue'
-import WeatherPanel from './components/WeatherPanel.vue'
-import { useRides } from './composables/useRides.js'
+import { useRides } from './composables/useRides.ts'
 
+const router = useRouter()
 const loggedIn = computed(() => isLoggedIn())
 const isAdmin = computed(() => checkIsAdmin())
-const activeTab = ref('rides')
 const summary = ref({ rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 })
 const summaryLoading = ref(false)
 const loginError = ref('')
@@ -133,7 +63,7 @@ async function onLogin(creds) {
   try {
     await doLogin(creds.username, creds.password)
     loginError.value = ''
-    activeTab.value = 'rides'
+    router.push('/rides')
     await loadSummary()
   } catch (e) {
     loginError.value = e.message
@@ -153,17 +83,13 @@ async function onRegister(creds) {
 
 function onLogout() {
   doLogout()
-  activeTab.value = 'rides'
+  router.push('/')
   summary.value = { rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 }
 }
 
 async function onSummaryChange() {
   await loadSummary()
 }
-
-watch(loggedIn, (val) => {
-  if (val) loadSummary()
-})
 
 onMounted(() => {
   if (loggedIn.value) loadSummary()

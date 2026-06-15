@@ -3,28 +3,41 @@ import { describe, expect, it } from 'vitest'
 import HeaderTabs from './HeaderTabs.vue'
 
 describe('HeaderTabs', () => {
-  it('emits active tab updates', async () => {
-    const wrapper = mount(HeaderTabs, { props: { active: 'rides' } })
+  const render = (props = {}) =>
+    mount(HeaderTabs, {
+      props: { isAdmin: false, ...props },
+      global: {
+        stubs: {
+          RouterLink: {
+            template: '<a><slot /></a>',
+          },
+        },
+      },
+    })
 
-    await wrapper.findAll('button').at(3).trigger('click')
+  it('renders navigation links', () => {
+    const wrapper = render({ active: 'rides' })
 
-    expect(wrapper.emitted()['update:active']).toEqual([['coach']])
+    const links = wrapper.findAll('a')
+    expect(links.length).toBeGreaterThan(0)
+    expect(links.some(a => a.text().includes('Rides'))).toBe(true)
   })
 
-  it('shows admin tab only for admins', () => {
-    const userButtons = mount(HeaderTabs, { props: { isAdmin: false } }).findAll('button').map(button => button.text()).join('|')
-    const adminButtons = mount(HeaderTabs, { props: { isAdmin: true } }).findAll('button').map(button => button.text()).join('|')
+  it('shows admin link only for admins', () => {
+    const userLinks = render().text()
+    const adminLinks = render({ isAdmin: true }).text()
 
-    expect(userButtons).not.toContain('Admin')
-    expect(adminButtons).toContain('Admin')
+    expect(userLinks).not.toContain('Admin')
+    expect(adminLinks).toContain('Admin')
   })
 
   it('emits logout and displays current user role', async () => {
-    const wrapper = mount(HeaderTabs, { props: { isAdmin: true } })
+    const wrapper = render({ isAdmin: true })
 
     expect(wrapper.text()).toContain('👑 Admin')
 
-    await wrapper.findAll('button').at(-1).trigger('click')
+    const buttons = wrapper.findAll('button')
+    await buttons.at(-1).trigger('click')
 
     expect(wrapper.emitted().logout).toEqual([[]])
   })

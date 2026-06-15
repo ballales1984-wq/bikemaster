@@ -9,6 +9,14 @@
           <div class="upload-placeholder">{{ label }}</div>
         </div>
       </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" @click="upload" :disabled="!files.length || uploading">
+          {{ uploading ? 'Importazione in corso...' : 'Importa file selezionati' }}
+        </button>
+      </div>
+      <div v-if="uploading || uploadProgress > 0" class="progress-track" aria-label="Avanzamento importazione">
+        <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+      </div>
       <div id="import-progress" v-if="status" class="result-box">{{ status }}</div>
     </div>
   </section>
@@ -16,13 +24,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { apiUpload } from '../utils/api.js'
+import { apiUpload } from '../utils/api.ts'
 
 const emit = defineEmits(['summary-change'])
 const fileInput = ref(null)
 const files = ref([])
 const status = ref('')
 const uploading = ref(false)
+const uploadProgress = ref(0)
 
 const label = computed(() => {
   if (!files.value.length) return 'Trascina file qui o clicca per selezionare (GPX/FIT)'
@@ -42,16 +51,21 @@ function onDrop(e) {
 }
 
 async function uploadOne(file) {
-  return apiUpload('/api/v1/import/gpx', file)
+  const ext = file.name.toLowerCase().split('.').pop()
+  const path = ext === 'fit' || ext === 'fitf' ? '/api/v1/import/fit' : '/api/v1/import/gpx'
+  return apiUpload(path, file)
 }
 
 async function upload() {
   if (!files.value.length || uploading.value) return
   try {
     uploading.value = true
+    uploadProgress.value = 0
     status.value = 'Import in corso...'
-    for (const f of files.value) {
-      await uploadOne(f)
+    for (let i = 0; i < files.value.length; i += 1) {
+      await uploadOne(files.value[i])
+      uploadProgress.value = Math.round(((i + 1) / files.value.length) * 100)
+      status.value = `Importati ${i + 1} di ${files.value.length} file`
     }
     status.value = 'Import completato'
     files.value = []

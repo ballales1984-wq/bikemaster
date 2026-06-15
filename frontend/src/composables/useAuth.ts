@@ -1,17 +1,25 @@
+/** @typedef {import('../types/index.d.ts').Athlete} Athlete */
 import { ref, computed } from 'vue'
 
+/** @type {typeof import('../types/index.d.ts').Athlete | null} */
 const TOKEN_KEY = 'bikemaster_token'
+/** @type {typeof import('../types/index.d.ts').Athlete | string} */
 const USER_KEY = 'bikemaster_user'
 
+/** @type {import('vue').Ref<string>} */
 const token = ref(localStorage.getItem(TOKEN_KEY) || '')
-const user = ref(() => {
-  try {
-    const raw = localStorage.getItem(USER_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-})
+
+/** @type {import('vue').Ref<Athlete | null>} */
+const user = ref(/** @type {Athlete | null} */ (
+  /** @type {any} */ (function() {
+    try {
+      const raw = localStorage.getItem(USER_KEY)
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  })()
+))
 
 function isLoggedIn() {
   return !!token.value

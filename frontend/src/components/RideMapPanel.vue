@@ -105,7 +105,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
-import { apiGet } from '../utils/api.js'
+import { apiGet } from '../utils/api.ts'
 import {
   buildRidePolylines,
   escapeHtml,
