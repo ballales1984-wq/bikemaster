@@ -1818,7 +1818,7 @@ async def analyze_ride_safety(
     incidents = fetch_incidents(
         center_lat, center_lon, radius_km=INCIDENT_RADIUS_KM, days=INCIDENT_DAYS
     )
-    safety = analyze_route_safety(points, incidents=incidents)
+    safety = await analyze_route_safety(points, incidents=incidents)
     safety["ride_id"] = ride_id
     safety["athlete_id"] = ride.get("athlete_id")
     from ..db.database import save_route_safety_score
