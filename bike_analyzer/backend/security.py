@@ -44,6 +44,45 @@ REFRESH_PREFIX = "bikemaster:refresh:"
 REFRESH_TTL = 86400 * 30
 REFRESH_MAX_ACTIVE = 5
 
+
+async def get_refresh_token(athlete_id: int) -> str | None:
+    r = await get_redis()
+    if r is None:
+        return None
+    try:
+        return await _await_if_needed(r.get(f"{REFRESH_PREFIX}{athlete_id}"))
+    except Exception:
+        return None
+
+
+async def save_refresh_token(athlete_id: int, refresh_token: str, ttl: int = REFRESH_TTL) -> bool:
+    r = await get_redis()
+    if r is None:
+        return False
+    try:
+        tokens_raw = await r.get(f"{REFRESH_PREFIX}{athlete_id}:tokens")
+        tokens = set(tokens_raw.split(",")) if tokens_raw else set()
+        tokens.add(refresh_token)
+        if len(tokens) > REFRESH_MAX_ACTIVE:
+            oldest = tokens.pop()
+        await r.set(f"{REFRESH_PREFIX}{athlete_id}", refresh_token, ex=ttl)
+        await r.set(f"{REFRESH_PREFIX}{athlete_id}:tokens", ",".join(tokens), ex=ttl)
+        return True
+    except Exception:
+        return False
+
+
+async def revoke_refresh_token(athlete_id: int) -> bool:
+    r = await get_redis()
+    if r is None:
+        return False
+    try:
+        await r.delete(f"{REFRESH_PREFIX}{athlete_id}")
+        await r.delete(f"{REFRESH_PREFIX}{athlete_id}:tokens")
+        return True
+    except Exception:
+        return False
+
 UNAUTH_401 = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Token non valido o scaduto",
@@ -127,6 +166,20 @@ def create_access_token(
     }
     if jti is not None:
         payload["jti"] = jti
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def create_refresh_token(subject: str) -> str:
+    expire = datetime.now(UTC) + timedelta(days=30)
+    payload = {
+        "sub": subject,
+        "is_admin": False,
+        "type": "refresh",
+        "iat": datetime.now(UTC),
+        "exp": expire,
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
+    }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 

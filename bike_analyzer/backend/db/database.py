@@ -53,27 +53,29 @@ def init_db():
             gps_points TEXT,
             created_at TEXT
         )""")
-        conn.execute("""CREATE TABLE IF NOT EXISTS athletes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            age INTEGER DEFAULT 30,
-            weight_kg REAL DEFAULT 70,
-            height_cm REAL,
-            fat_percentage REAL,
-            years_active INTEGER DEFAULT 1,
-            weekly_sessions INTEGER DEFAULT 3,
-            monthly_hours REAL DEFAULT 0,
-            annual_hours REAL DEFAULT 0,
-            experience_level TEXT DEFAULT 'Beginner',
-            goals TEXT,
-            preferred_terrain TEXT,
-            weekly_volume_km REAL DEFAULT 0,
-            best_segments TEXT,
-            medical_notes TEXT,
-            equipment TEXT,
-            ftp_watts REAL,
-            created_at TEXT
-        )""")
+conn.execute("""CREATE TABLE IF NOT EXISTS athletes (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             name TEXT NOT NULL,
+             email TEXT,
+             age INTEGER DEFAULT 30,
+             weight_kg REAL DEFAULT 70,
+             height_cm REAL,
+             fat_percentage REAL,
+             years_active INTEGER DEFAULT 1,
+             weekly_sessions INTEGER DEFAULT 3,
+             monthly_hours REAL DEFAULT 0,
+             annual_hours REAL DEFAULT 0,
+             experience_level TEXT DEFAULT 'Beginner',
+             goals TEXT,
+             preferred_terrain TEXT,
+             weekly_volume_km REAL DEFAULT 0,
+             best_segments TEXT,
+             medical_notes TEXT,
+             equipment TEXT,
+             ftp_watts REAL,
+             password_hash TEXT,
+             created_at TEXT
+         )""")
         conn.execute("""CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
@@ -117,6 +119,8 @@ def init_db():
             conn.execute("ALTER TABLE athletes ADD COLUMN ftp_watts REAL")
         if "password_hash" not in columns:
             conn.execute("ALTER TABLE athletes ADD COLUMN password_hash TEXT")
+        if "email" not in columns:
+            conn.execute("ALTER TABLE athletes ADD COLUMN email TEXT")
         conn.execute("""CREATE TABLE IF NOT EXISTS training_stress_days (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
@@ -396,65 +400,35 @@ def update_ride(ride_id: int, ride: dict) -> bool:
 def save_athlete(athlete: dict, athlete_id: int | None = None) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        if athlete_id is None:
-            cur.execute(
-                """INSERT INTO athletes (name, age, weight_kg, height_cm, fat_percentage,
-                years_active, weekly_sessions, monthly_hours, annual_hours, experience_level,
-                goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes,
-                equipment, ftp_watts, password_hash, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    athlete.get("name"),
-                    athlete.get("age", 30),
-                    athlete.get("weight_kg", 70),
-                    athlete.get("height_cm"),
-                    athlete.get("fat_percentage"),
-                    athlete.get("years_active", 1),
-                    athlete.get("weekly_sessions", 3),
-                    athlete.get("monthly_hours", 0),
-                    athlete.get("annual_hours", 0),
-                    athlete.get("experience_level", "Beginner"),
-                    athlete.get("goals"),
-                    athlete.get("preferred_terrain"),
-                    athlete.get("weekly_volume_km", 0),
-                    athlete.get("best_segments"),
-                    athlete.get("medical_notes"),
-                    athlete.get("equipment"),
-                    athlete.get("ftp_watts"),
-                    athlete.get("password_hash"),
-                    datetime.now(UTC).isoformat(),
-                ),
-            )
-        else:
-            cur.execute(
-                """INSERT INTO athletes (id, name, age, weight_kg, height_cm, fat_percentage,
-                years_active, weekly_sessions, monthly_hours, annual_hours, experience_level,
-                goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes,
-                equipment, ftp_watts, password_hash, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    athlete_id,
-                    athlete.get("name"),
-                    athlete.get("age", 30),
-                    athlete.get("weight_kg", 70),
-                    athlete.get("height_cm"),
-                    athlete.get("fat_percentage"),
-                    athlete.get("years_active", 1),
-                    athlete.get("weekly_sessions", 3),
-                    athlete.get("monthly_hours", 0),
-                    athlete.get("annual_hours", 0),
-                    athlete.get("experience_level", "Beginner"),
-                    athlete.get("goals"),
-                    athlete.get("preferred_terrain"),
-                    athlete.get("weekly_volume_km", 0),
-                    athlete.get("best_segments"),
-                    athlete.get("medical_notes"),
-                    athlete.get("equipment"),
-                    athlete.get("ftp_watts"),
-                    athlete.get("password_hash"),
-                    datetime.now(UTC).isoformat(),
-                ),
-            )
+        cur.execute(
+            """INSERT INTO athletes (name, email, age, weight_kg, height_cm, fat_percentage,
+            years_active, weekly_sessions, monthly_hours, annual_hours, experience_level,
+            goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes,
+            equipment, ftp_watts, password_hash, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                athlete.get("name"),
+                athlete.get("email"),
+                athlete.get("age", 30),
+                athlete.get("weight_kg", 70),
+                athlete.get("height_cm"),
+                athlete.get("fat_percentage"),
+                athlete.get("years_active", 1),
+                athlete.get("weekly_sessions", 3),
+                athlete.get("monthly_hours", 0),
+                athlete.get("annual_hours", 0),
+                athlete.get("experience_level", "Beginner"),
+                athlete.get("goals"),
+                athlete.get("preferred_terrain"),
+                athlete.get("weekly_volume_km", 0),
+                athlete.get("best_segments"),
+                athlete.get("medical_notes"),
+                athlete.get("equipment"),
+                athlete.get("ftp_watts"),
+                athlete.get("password_hash"),
+                datetime.now(UTC).isoformat(),
+            ),
+        )
         conn.commit()
         return cur.lastrowid
 
@@ -463,7 +437,7 @@ def _row_to_athlete(row) -> dict:
     """Convert athlete row to dict with dynamic column mapping."""
     if row is None:
         return None
-    columns = ["id", "name", "age", "weight_kg", "height_cm", "fat_percentage",
+    columns = ["id", "name", "email", "age", "weight_kg", "height_cm", "fat_percentage",
                "years_active", "weekly_sessions", "monthly_hours", "annual_hours",
                "experience_level", "goals", "preferred_terrain", "weekly_volume_km",
                "best_segments", "medical_notes", "equipment", "ftp_watts", "password_hash", "created_at"]
@@ -510,13 +484,14 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """UPDATE athletes SET name=?, age=?, weight_kg=?, height_cm=?,
+            """UPDATE athletes SET name=?, email=?, age=?, weight_kg=?, height_cm=?,
             fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?,
             annual_hours=?, experience_level=?, goals=?, preferred_terrain=?,
             weekly_volume_km=?, best_segments=?, medical_notes=?, equipment=?,
             ftp_watts=?, password_hash=? WHERE id=?""",
             (
                 merged.get("name"),
+                merged.get("email"),
                 merged.get("age", 30),
                 merged.get("weight_kg", 70),
                 merged.get("height_cm"),

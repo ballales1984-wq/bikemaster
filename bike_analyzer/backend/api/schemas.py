@@ -24,6 +24,7 @@ class RideResponse(RideCreate):
 
 class AthleteCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
+    email: str | None = Field(default=None, max_length=255)
     age: int = Field(default=30, ge=10, le=100)
     weight_kg: float = Field(default=70.0, ge=20, le=300)
     height_cm: float | None = Field(default=None, ge=100, le=250)
@@ -44,6 +45,7 @@ class AthleteCreate(BaseModel):
 
 class AthleteUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
+    email: str | None = Field(default=None, max_length=255)
     age: int | None = Field(default=None, ge=10, le=100)
     weight_kg: float | None = Field(default=None, ge=20, le=300)
     height_cm: float | None = Field(default=None, ge=100, le=250)
@@ -95,8 +97,16 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class TokenWithRefresh(Token):
+    refresh_token: str | None = None
+
+
 class TokenData(BaseModel):
     username: str | None = None
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 
 class UserLogin(BaseModel):

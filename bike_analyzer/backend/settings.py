@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     database_url: str = ""
 
     # === API ===
-    api_host: str = "0.0.0.0"
+    api_host: str = "0.0.0.0"  # nosec B104  # Required for Docker container listening
     api_port: int = 8000
 
     # === CORS ===

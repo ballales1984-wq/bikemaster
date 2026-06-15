@@ -27,7 +27,7 @@ from ..analytics.fatigue import (
     calculate_fatigue_score,
 )
 from ..analytics.granfondo_planner import generate_granfondo_plan
-from ..config import DB_PATH
+from ..config import DB_PATH, SECRET_KEY
 from ..maps.map_renderer import create_route_map
 from ..maps.osm_maps import get_local_results, search_nearby, search_places
 from ..models.models import AthleteProfile, GPSPoint, Ride
@@ -44,6 +44,7 @@ from .schemas import (
     RideAnalysisRequest,
     RideCreate,
     GoogleAuthRequest,
+    RefreshTokenRequest,
 )
 
 logger = get_logger(__name__)
@@ -126,7 +127,7 @@ async def health_redis():
 @limiter.limit("5/minute")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     from ..db.database import get_db_connection
-    from ..security import create_access_token, verify_password
+    from ..security import create_access_token, create_refresh_token, verify_password
 
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -139,18 +140,22 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
         raise HTTPException(
             status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"}
         )
+    athlete_id = int(row[0])
+    access_token = create_access_token(subject=str(athlete_id), is_admin=False)
+    refresh_token = create_refresh_token(athlete_id)
     return {
-        "access_token": create_access_token(subject=str(row[0]), is_admin=False),
+        "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "username": row[1],
-        "id": int(row[0]),
+        "id": athlete_id,
         "is_admin": False,
     }
 
 
 @router.post("/auth/logout")
 async def logout(request: Request, current_user: dict = Depends(get_current_user)):
-    from ..security import revoke_token
+    from ..security import revoke_token, revoke_refresh_token
 
     auth_header = request.headers.get("authorization", "")
     token = auth_header.removeprefix("Bearer ").strip()
@@ -167,15 +172,40 @@ async def logout(request: Request, current_user: dict = Depends(get_current_user
             jti = payload_data.get("jti")
             if jti:
                 await revoke_token(jti)
+            athlete_id = payload_data.get("sub")
+            if athlete_id:
+                await revoke_refresh_token(int(athlete_id))
     except Exception as exc:
         logger.warning("Logout: failed to revoke token: %s", exc)
     return {"msg": "Logged out successfully"}
 
 
+@router.post("/auth/refresh")
+@limiter.limit("10/minute")
+async def refresh_token(
+    request: Request, payload: RefreshTokenRequest
+):
+    from ..security import _try_decode, create_access_token
+
+    refresh_token = payload.refresh_token
+    jwt_payload = _try_decode(refresh_token, SECRET_KEY)
+    if not jwt_payload:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    if jwt_payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Not a refresh token")
+    user_id = jwt_payload.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    return {
+        "access_token": create_access_token(subject=str(user_id), is_admin=False),
+        "token_type": "bearer",
+    }
+
+
 @router.post("/auth/register")
 @limiter.limit("3/minute")
 async def register(
-    request: Request, username: str = Body(..., min_length=3), password: str = Body(..., min_length=6)
+    request: Request, username: str = Body(..., min_length=3), password: str = Body(..., min_length=6), email: str = Body(None)
 ):
     from ..db.database import get_athlete_by_name, save_athlete
     from ..security import hash_password
@@ -187,9 +217,9 @@ async def register(
         raise HTTPException(status_code=400, detail="Username already exists")
     password_hash = hash_password(password)
     athlete_id = save_athlete(
-        {"name": username, "experience_level": "Beginner", "password_hash": password_hash}
+        {"name": username, "email": email, "experience_level": "Beginner", "password_hash": password_hash}
     )
-    return {"username": username, "msg": "Utente creato", "is_admin": False, "id": athlete_id}
+    return {"username": username, "email": email, "msg": "Utente creato", "is_admin": False, "id": athlete_id}
 
 
 @router.post("/rides")
