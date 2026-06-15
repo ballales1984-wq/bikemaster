@@ -400,7 +400,5 @@ def test_generate_distance_chart_no_points():
 
 
 def test_generate_time_chart_no_points():
-
     result = generate_time_chart(None)
-
     assert result == ""

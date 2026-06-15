@@ -99,3 +99,7 @@ GARMIN_SCOPE = _s.garmin_scope
 GARMIN_AUTH_URL = "https://connect.garmin.com/oauthConfirm"
 GARMIN_TOKEN_URL = "https://connect.garmin.com/oauth2/token"
 GARMIN_API_BASE_URL = "https://apis.garmin.com/fitness/v1"
+
+# === Google OAuth2 ===
+GOOGLE_CLIENT_ID = _s.google_client_id
+GOOGLE_CLIENT_SECRET = _s.google_client_secret

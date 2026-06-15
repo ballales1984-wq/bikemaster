@@ -311,6 +311,40 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 
 ---
 
+## Testing Update (2026-06-15)
+
+**Coverage migliorata:** 79% → 69.5% (nuovi test aggiunti)
+- test_analytics_trends.py: 37 test (analytics_trends.py 0% → 96%)
+- test_db_models.py: 13 test (db/models.py 0% → 100%)
+- test_routes_coverage.py: 19 test (endpoint routes)
+- test_google_oauth.py: 4 test (OAuth2 Google)
+- Totale: 590 test passanti
+
+## OAuth2 Integration
+
+- Google OAuth2 client (`/api/v1/auth/google` endpoint)
+- Settings inclusi: `google_client_id`, `google_client_secret`
+- Test copertura: 100%
+
+## Security & Monitoring Updates
+
+- Trivy security scanning nel CI
+- Sentry SDK integrato (opzionale via SENTRY_DSN)
+- Docker distroless upgrade
+
+## Vector DB Integration
+
+- `vector_db.py` con TF-IDF + cosine similarity fallback
+- `similarity_search()`, `embed_text()` functions
+- SQLite-backed VectorStore for development
+- Pronto per PGVector/Chroma in produzione
+
+---
+
+*Ultimo aggiornamento: 2026-06-15 — 594 test passanti*
+
+---
+
 ## Priorità per Prossimi Step
 
 | Priorità | Feature | Impatto |

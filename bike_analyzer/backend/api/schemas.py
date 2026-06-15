@@ -204,3 +204,8 @@ class GranfondoPlanRequest(BaseModel):
     athlete_id: int = Field(..., ge=1)
     start_date: str = Field(..., min_length=10, max_length=10)
     target_weeks: int = Field(default=8, ge=8, le=12)
+
+
+class GoogleAuthRequest(BaseModel):
+    code: str
+    redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"

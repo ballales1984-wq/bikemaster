@@ -20,7 +20,6 @@ from ..task_queue import get_task_queue
 from .routes import admin_router, router
 
 logger = logging.getLogger(__name__)
-
 STATIC_DIR = Path(__file__).parent.parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
 
@@ -40,6 +39,23 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    # Initialize Sentry if DSN provided
+    sentry_dsn = None
+    try:
+        from ..settings import get_settings
+        settings = get_settings()
+        sentry_dsn = settings.sentry_dsn
+        if sentry_dsn:
+            import sentry_sdk
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                traces_sample_rate=settings.sentry_traces_sample_rate,
+                environment=settings.environment,
+            )
+            logger.info("Sentry initialized with DSN")
+    except Exception as e:
+        logger.warning(f"Sentry not initialized: {e}")
+
     app = FastAPI(
         title="BikeMaster API",
         description="GPS-based cycling intelligence",

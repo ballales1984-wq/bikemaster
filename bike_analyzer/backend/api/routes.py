@@ -43,6 +43,7 @@ from .schemas import (
     MetricCreate,
     RideAnalysisRequest,
     RideCreate,
+    GoogleAuthRequest,
 )
 
 logger = get_logger(__name__)
@@ -1989,3 +1990,43 @@ async def garmin_disconnect(current_user: dict = Depends(get_current_user)):
 
     revoke_token(current_user["id"])
     return {"status": "disconnected"}
+
+
+@router.get("/auth/google")
+async def google_oauth(
+    redirect_uri: str = Query("http://localhost:8000/api/v1/auth/google/callback"),
+):
+    """Get Google OAuth2 authorization URL."""
+    from ..auth.google_auth import get_google_oauth_url
+    from ..config import GOOGLE_CLIENT_ID
+
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    return {"auth_url": get_google_oauth_url(GOOGLE_CLIENT_ID, redirect_uri=redirect_uri)}
+
+
+@router.post("/auth/google/callback")
+async def google_oauth_callback(payload: GoogleAuthRequest):
+    """Handle Google OAuth2 callback."""
+    from ..auth.google_auth import exchange_google_code, get_google_user_info
+    from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+    from ..db.database import save_athlete
+
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+
+    try:
+        token_data = exchange_google_code(
+            GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, payload.code, payload.redirect_uri
+        )
+        user_info = get_google_user_info(token_data["access_token"])
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail=f"Google auth failed: {exc}") from exc
+
+    # Create or update athlete
+    athlete = save_athlete(
+        {"name": user_info.get("name", "Google User"), "email": user_info.get("email")}
+    )
+    from ..auth.google_auth import create_google_session
+
+    return create_google_session(user_info)

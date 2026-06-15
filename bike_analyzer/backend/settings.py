@@ -21,6 +21,13 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
+    # === Environment ===
+    environment: str = "development"
+
+    # === Sentry Monitoring ===
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.1
+
     # === Database ===
     db_path: str = "rides.db"
     database_url: str = ""
@@ -113,6 +120,10 @@ class Settings(BaseSettings):
     garmin_consumer_secret: str = ""
     garmin_redirect_uri: str = "http://localhost:8000/api/v1/import/garmin/callback"
     garmin_scope: str = "read"
+
+    # === Google OAuth2 ===
+    google_client_id: str = ""
+    google_client_secret: str = ""
 
 _settings: Settings | None = None
 
