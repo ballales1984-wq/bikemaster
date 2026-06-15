@@ -2060,3 +2060,42 @@ async def google_oauth_callback(payload: GoogleAuthRequest):
     from ..auth.google_auth import create_google_session
 
     return create_google_session(user_info)
+# Create or update athlete
+    athlete = save_athlete(
+        {"name": user_info.get("name", "Google User"), "email": user_info.get("email")}
+    )
+    from ..auth.google_auth import create_google_session
+
+    return create_google_session(user_info)
+
+
+@router.get("/dashboard")
+@limiter.limit("20/minute")
+async def get_dashboard(request: Request, current_user: dict = Depends(get_current_user)):
+    """Get consolidated dashboard analytics for authenticated athlete."""
+    from ..analytics.analytics import calculate_summary
+    from ..analytics.dashboard import create_score_dashboard
+    from ..analytics.training_load import get_7day_fitness_summary
+    from ..db.database import get_athlete, get_rides_by_athlete
+
+    athlete_id = _ensure_int_user_id(current_user)
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    athlete = get_athlete(athlete_id)
+    athlete_dict = _public_athlete(athlete) if athlete else None
+
+    summary = calculate_summary(rides)
+    scores = create_score_dashboard(rides, AthleteProfile(**(athlete_dict or {})))
+    fitness = get_7day_fitness_summary(rides)
+    trends = {
+        "weekly_progress": [r.distance_km for r in rides[-7:]] if rides else [],
+        "monthly_stats": None,
+    }
+    return {
+        "athlete": athlete_dict,
+        "summary": summary,
+        "scores": scores,
+        "fitness": fitness,
+        "trends": trends,
+        "rides_count": len(rides),
+    }
+
