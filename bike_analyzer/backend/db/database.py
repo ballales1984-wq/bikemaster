@@ -253,18 +253,23 @@ def _row_to_ride(row) -> dict:
         "elevation_gain_m": row["elevation_gain_m"],
         "gps_points": gps,
         "created_at": row["created_at"],
-        "external_source": row["external_source"] if "external_source" in keys else None,
+        "external_source": row["external_source"]
+        if "external_source" in keys
+        else None,
         "external_id": row["external_id"] if "external_id" in keys else None,
         "title": row["title"] if "title" in keys else None,
     }
 
 
-def _find_existing_external_ride(conn, external_source: str | None, external_id: str | None) -> int | None:
+def _find_existing_external_ride(
+    conn, external_source: str | None, external_id: str | None
+) -> int | None:
     if not external_source or not external_id:
         return None
     cur = conn.cursor()
     cur.execute(
-        "SELECT id FROM rides WHERE external_source = ? AND external_id = ? LIMIT 1",
+        "SELECT id FROM rides "
+        "WHERE external_source = ? AND external_id = ? LIMIT 1",
         (str(external_source), str(external_id)),
     )
     row = cur.fetchone()
@@ -274,12 +279,20 @@ def _find_existing_external_ride(conn, external_source: str | None, external_id:
 def save_ride(ride: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        external_source = str(ride.get("external_source") or "").strip() or None
+        external_source = (
+            str(ride.get("external_source") or "").strip() or None
+        )
         external_id = str(ride.get("external_id") or "").strip() or None
-        existing_ride_id = _find_existing_external_ride(conn, external_source, external_id)
+        existing_ride_id = _find_existing_external_ride(
+            conn, external_source, external_id
+        )
         if existing_ride_id is not None:
             return existing_ride_id
-        gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
+        gps_points = (
+            json.dumps(ride.get("gps_points"))
+            if ride.get("gps_points")
+            else None
+        )
         cur.execute(
             """INSERT INTO rides
             (athlete_id, date, distance_km, duration_minutes, avg_speed_kmh,
@@ -347,7 +360,11 @@ def get_paginated_rides(
     page: int = 1, page_size: int = 20, sort: str = "date"
 ) -> tuple[list[dict], int]:
     """Get paginated rides with safe ORDER BY whitelist."""
-    order_map = {"date": "date", "distance": "distance_km", "duration": "duration_minutes"}
+    order_map = {
+        "date": "date",
+        "distance": "distance_km",
+        "duration": "duration_minutes",
+    }
     order_col = order_map.get(sort, "date")
     offset = (page - 1) * page_size
     with get_db_connection() as conn:
@@ -374,11 +391,15 @@ def delete_ride(ride_id: int) -> bool:
 def update_ride(ride_id: int, ride: dict) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
+        gps_points = (
+            json.dumps(ride.get("gps_points"))
+            if ride.get("gps_points")
+            else None
+        )
         cur.execute(
-            """UPDATE rides SET athlete_id=?, date=?, distance_km=?, duration_minutes=?,
-            avg_speed_kmh=?, weight_kg=?, calories=?, heart_rate_avg=?,
-            elevation_gain_m=?, gps_points=? WHERE id=?""",
+            """UPDATE rides SET athlete_id=?, date=?, distance_km=?,
+            duration_minutes=?, avg_speed_kmh=?, weight_kg=?, calories=?,
+            heart_rate_avg=?, elevation_gain_m=?, gps_points=? WHERE id=?""",
             (
                 ride.get("athlete_id"),
                 ride.get("date"),
@@ -402,11 +423,14 @@ def save_athlete(athlete: dict, athlete_id: int | None = None) -> int:
         cur = conn.cursor()
         if athlete_id is None:
             cur.execute(
-                """INSERT INTO athletes (name, email, age, weight_kg, height_cm, fat_percentage,
-                years_active, weekly_sessions, monthly_hours, annual_hours, experience_level,
-                goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes,
-                equipment, ftp_watts, password_hash, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO athletes
+                (name, email, age, weight_kg, height_cm, fat_percentage,
+                 years_active, weekly_sessions, monthly_hours, annual_hours,
+                 experience_level, goals, preferred_terrain, weekly_volume_km,
+                 best_segments, medical_notes, equipment, ftp_watts,
+                 password_hash, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     athlete.get("name"),
                     athlete.get("email"),
@@ -432,11 +456,14 @@ def save_athlete(athlete: dict, athlete_id: int | None = None) -> int:
             )
         else:
             cur.execute(
-                """INSERT INTO athletes (id, name, email, age, weight_kg, height_cm, fat_percentage,
-                years_active, weekly_sessions, monthly_hours, annual_hours, experience_level,
-                goals, preferred_terrain, weekly_volume_km, best_segments, medical_notes,
-                equipment, ftp_watts, password_hash, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO athletes
+                (id, name, email, age, weight_kg, height_cm, fat_percentage,
+                 years_active, weekly_sessions, monthly_hours, annual_hours,
+                 experience_level, goals, preferred_terrain, weekly_volume_km,
+                 best_segments, medical_notes, equipment, ftp_watts,
+                 password_hash, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     athlete_id,
                     athlete.get("name"),
@@ -469,10 +496,29 @@ def _row_to_athlete(row) -> dict:
     """Convert athlete row to dict with dynamic column mapping."""
     if row is None:
         return None
-    columns = ["id", "name", "email", "age", "weight_kg", "height_cm", "fat_percentage",
-               "years_active", "weekly_sessions", "monthly_hours", "annual_hours",
-               "experience_level", "goals", "preferred_terrain", "weekly_volume_km",
-               "best_segments", "medical_notes", "equipment", "ftp_watts", "password_hash", "created_at"]
+    columns = [
+        "id",
+        "name",
+        "email",
+        "age",
+        "weight_kg",
+        "height_cm",
+        "fat_percentage",
+        "years_active",
+        "weekly_sessions",
+        "monthly_hours",
+        "annual_hours",
+        "experience_level",
+        "goals",
+        "preferred_terrain",
+        "weekly_volume_km",
+        "best_segments",
+        "medical_notes",
+        "equipment",
+        "ftp_watts",
+        "password_hash",
+        "created_at",
+    ]
     keys = row.keys()
     return {col: row[col] if col in keys else None for col in columns}
 
@@ -492,8 +538,8 @@ def save_metric(metric: dict) -> int:
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO metrics
-            (athlete_id, ride_id, fatigue_score, recovery_hours, calories_per_km,
-             efficiency_score, created_at)
+            (athlete_id, ride_id, fatigue_score, recovery_hours,
+             calories_per_km, efficiency_score, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 metric.get("athlete_id"),
@@ -517,11 +563,12 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """UPDATE athletes SET name=?, email=?, age=?, weight_kg=?, height_cm=?,
-            fat_percentage=?, years_active=?, weekly_sessions=?, monthly_hours=?,
-            annual_hours=?, experience_level=?, goals=?, preferred_terrain=?,
-            weekly_volume_km=?, best_segments=?, medical_notes=?, equipment=?,
-            ftp_watts=?, password_hash=? WHERE id=?""",
+            """UPDATE athletes SET name=?, email=?, age=?, weight_kg=?,
+            height_cm=?, fat_percentage=?, years_active=?, weekly_sessions=?,
+            monthly_hours=?, annual_hours=?, experience_level=?, goals=?,
+            preferred_terrain=?, weekly_volume_km=?, best_segments=?,
+            medical_notes=?, equipment=?, ftp_watts=?, password_hash=?
+            WHERE id=?""",
             (
                 merged.get("name"),
                 merged.get("email"),
@@ -551,12 +598,27 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
 
 def create_indices():
     with get_db_connection() as conn:
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_date ON rides(date)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_distance ON rides(distance_km)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_duration ON rides(duration_minutes)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_speed ON rides(avg_speed_kmh)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_athlete ON rides(athlete_id)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_metrics_ride ON metrics(ride_id)")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rides_date ON rides(date)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rides_distance "
+            "ON rides(distance_km)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rides_duration "
+            "ON rides(duration_minutes)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rides_speed "
+            "ON rides(avg_speed_kmh)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rides_athlete ON rides(athlete_id)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_metrics_ride ON metrics(ride_id)"
+        )
         _ensure_external_identity_index(conn)
         conn.commit()
 
@@ -568,7 +630,9 @@ def backup_database(backup_path: str | None = None) -> str:
     if not Path(DB_PATH).exists():
         raise FileNotFoundError(f"Database {DB_PATH} does not exist yet")
     if backup_path is None:
-        backup_path = f"rides_backup_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.db"
+        backup_path = (
+            f"rides_backup_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.db"
+        )
     shutil.copy2(DB_PATH, backup_path)
     return backup_path
 
@@ -589,26 +653,35 @@ def get_chat_history(athlete_id: int, limit: int = 10) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT role, content, created_at FROM chat_history WHERE athlete_id = ? ORDER BY id DESC LIMIT ?",
+            "SELECT role, content, created_at FROM chat_history "
+            "WHERE athlete_id = ? ORDER BY id DESC LIMIT ?",
             (athlete_id, limit),
         )
         rows = cur.fetchall()
-        return [{"role": r[0], "content": r[1], "created_at": r[2]} for r in rows]
+        return [
+            {"role": r[0], "content": r[1], "created_at": r[2]} for r in rows
+        ]
 
 
 def clear_chat_history(athlete_id: int) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("DELETE FROM chat_history WHERE athlete_id = ?", (athlete_id,))
+        cur.execute(
+            "DELETE FROM chat_history WHERE athlete_id = ?", (athlete_id,)
+        )
         conn.commit()
         return cur.rowcount > 0
+
 
 def get_all_athletes() -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT id, name, email, experience_level FROM athletes")
         rows = cur.fetchall()
-        return [{"id": r[0], "name": r[1], "email": r[2], "experience_level": r[3]} for r in rows]
+        return [
+            {"id": r[0], "name": r[1], "email": r[2], "experience_level": r[3]}
+            for r in rows
+        ]
 
 
 def save_calendar_event(event: dict) -> int:
@@ -629,8 +702,9 @@ def save_calendar_event(event: dict) -> int:
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO calendar_events
-            (athlete_id, title, event_type, date, duration_minutes, description,
-             completed, weather_temp, weather_humidity, weather_description, created_at)
+            (athlete_id, title, event_type, date, duration_minutes,
+             description, completed, weather_temp, weather_humidity,
+             weather_description, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 event.get("athlete_id"),
@@ -664,17 +738,22 @@ def get_events_by_athlete(athlete_id: int) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT * FROM calendar_events WHERE athlete_id = ? ORDER BY date DESC", (athlete_id,)
+            "SELECT * FROM calendar_events WHERE athlete_id = ? "
+            "ORDER BY date DESC",
+            (athlete_id,),
         )
         rows = cur.fetchall()
         return [_row_to_calendar_event(r) for r in rows]
 
 
-def get_events_by_date_range(athlete_id: int, start_date: str, end_date: str) -> list[dict]:
+def get_events_by_date_range(
+    athlete_id: int, start_date: str, end_date: str
+) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT * FROM calendar_events WHERE athlete_id = ? AND date >= ? AND date <= ? ORDER BY date ASC",
+            "SELECT * FROM calendar_events WHERE athlete_id = ? "
+            "AND date >= ? AND date <= ? ORDER BY date ASC",
             (athlete_id, start_date, end_date),
         )
         rows = cur.fetchall()
@@ -682,7 +761,9 @@ def get_events_by_date_range(athlete_id: int, start_date: str, end_date: str) ->
 
 
 def get_events_by_month(athlete_id: int, year: int, month: int) -> list[dict]:
-    next_month = f"{year + 1}-01-01" if month == 12 else f"{year}-{month + 1:02d}-01"
+    next_month = (
+        f"{year + 1}-01-01" if month == 12 else f"{year}-{month + 1:02d}-01"
+    )
     month_start = f"{year}-{month:02d}-01"
     return get_events_by_date_range(athlete_id, month_start, next_month)
 
@@ -696,9 +777,9 @@ def update_calendar_event(event_id: int, event_data: dict) -> bool:
         cur = conn.cursor()
         cur.execute(
             """UPDATE calendar_events
-            SET title=?, event_type=?, date=?, duration_minutes=?, description=?, completed=?,
-            weather_temp=?, weather_humidity=?, weather_description=?
-            WHERE id=?""",
+            SET title=?, event_type=?, date=?, duration_minutes=?,
+            description=?, completed=?, weather_temp=?, weather_humidity=?,
+            weather_description=? WHERE id=?""",
             (
                 merged.get("title"),
                 merged.get("event_type", "training"),
@@ -747,7 +828,8 @@ def get_weather_cache(lat: float, lon: float, date: str) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT temperature, humidity, description, cached_at FROM weather_cache WHERE lat=? AND lon=? AND date=?",
+            "SELECT temperature, humidity, description, cached_at "
+            "FROM weather_cache WHERE lat=? AND lon=? AND date=?",
             (lat, lon, date),
         )
         row = cur.fetchone()
@@ -761,12 +843,15 @@ def get_weather_cache(lat: float, lon: float, date: str) -> dict | None:
         return None
 
 
-def save_weather_cache(lat: float, lon: float, date: str, weather: dict) -> int:
+def save_weather_cache(
+    lat: float, lon: float, date: str, weather: dict
+) -> int:
     """Save weather data to cache."""
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT OR REPLACE INTO weather_cache (lat, lon, date, temperature, humidity, description, cached_at)
+            """INSERT OR REPLACE INTO weather_cache
+            (lat, lon, date, temperature, humidity, description, cached_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 lat,
@@ -789,10 +874,12 @@ def upsert_training_stress_day(
         cur = conn.cursor()
         now = datetime.now(UTC).isoformat()
         cur.execute(
-            """INSERT INTO training_stress_days (athlete_id, date, tss, atl, ctl, tsb, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(athlete_id, date) DO UPDATE SET
-    tss=excluded.tss, atl=excluded.atl, ctl=excluded.ctl, tsb=excluded.tsb, updated_at=excluded.updated_at""",
+            """INSERT INTO training_stress_days
+            (athlete_id, date, tss, atl, ctl, tsb, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(athlete_id, date) DO UPDATE SET
+            tss=excluded.tss, atl=excluded.atl, ctl=excluded.ctl,
+            tsb=excluded.tsb, updated_at=excluded.updated_at""",
             (athlete_id, date, tss, atl, ctl, tsb, now, now),
         )
         conn.commit()
@@ -802,27 +889,42 @@ def get_training_stress_days(athlete_id: int, limit: int = 90) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT date, tss, atl, ctl, tsb FROM training_stress_days WHERE athlete_id = ? ORDER BY date DESC LIMIT ?",
+            "SELECT date, tss, atl, ctl, tsb "
+            "FROM training_stress_days WHERE athlete_id = ? "
+            "ORDER BY date DESC LIMIT ?",
             (athlete_id, limit),
         )
         rows = cur.fetchall()
-        return [{"date": r[0], "tss": r[1], "atl": r[2], "ctl": r[3], "tsb": r[4]} for r in rows]
+        return [
+            {"date": r[0], "tss": r[1], "atl": r[2], "ctl": r[3], "tsb": r[4]}
+            for r in rows
+        ]
 
 
 def get_latest_training_stress(athlete_id: int) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT date, tss, atl, ctl, tsb FROM training_stress_days WHERE athlete_id = ? ORDER BY date DESC LIMIT 1",
+            "SELECT date, tss, atl, ctl, tsb "
+            "FROM training_stress_days WHERE athlete_id = ? "
+            "ORDER BY date DESC LIMIT 1",
             (athlete_id,),
         )
         row = cur.fetchone()
         if row:
-            return {"date": row[0], "tss": row[1], "atl": row[2], "ctl": row[3], "tsb": row[4]}
+            return {
+                "date": row[0],
+                "tss": row[1],
+                "atl": row[2],
+                "ctl": row[3],
+                "tsb": row[4],
+            }
         return None
 
 
-def recalculate_training_stress_for_athlete(athlete_id: int, ftp: float = 250.0) -> None:
+def recalculate_training_stress_for_athlete(
+    athlete_id: int, ftp: float = 250.0
+) -> None:
     from ..analytics.training_stress import (
         estimate_tss,
         exponentially_weighted_moving_average,
@@ -839,17 +941,26 @@ def recalculate_training_stress_for_athlete(athlete_id: int, ftp: float = 250.0)
     sorted_days = sorted(daily.items())
     tss_series = [v for _, v in sorted_days]
     atl_series = [
-        exponentially_weighted_moving_average(tss_series[: i + 1], tau_days=7.0)
+        exponentially_weighted_moving_average(
+            tss_series[: i + 1], tau_days=7.0
+        )
         for i in range(len(tss_series))
     ]
     ctl_series = [
-        exponentially_weighted_moving_average(tss_series[: i + 1], tau_days=42.0)
+        exponentially_weighted_moving_average(
+            tss_series[: i + 1], tau_days=42.0
+        )
         for i in range(len(tss_series))
     ]
     for i, (date_str, _) in enumerate(sorted_days):
         tsb = round(ctl_series[i] - atl_series[i], 1)
         upsert_training_stress_day(
-            athlete_id, date_str, round(tss_series[i], 1), atl_series[i], ctl_series[i], tsb
+            athlete_id,
+            date_str,
+            round(tss_series[i], 1),
+            atl_series[i],
+            ctl_series[i],
+            tsb,
         )
 
 
@@ -858,7 +969,8 @@ def save_road_incident(incident: dict) -> int:
         cur = conn.cursor()
         cur.execute(
             """INSERT OR IGNORE INTO road_incidents
-            (source_id, lat, lon, incident_date, severity, description, road_type, source, created_at)
+            (source_id, lat, lon, incident_date, severity, description,
+             road_type, source, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 str(incident.get("id", incident.get("source_id", ""))),
@@ -881,8 +993,9 @@ def save_route_safety_score(score_data: dict) -> int:
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO route_safety_scores
-            (ride_id, athlete_id, risk_score, label, advice, road_type_counts,
-             has_bike_infrastructure, incident_count, route_length_km, computed_at)
+            (ride_id, athlete_id, risk_score, label, advice,
+             road_type_counts, has_bike_infrastructure, incident_count,
+             route_length_km, computed_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 score_data.get("ride_id"),
@@ -905,7 +1018,8 @@ def get_route_safety_score(ride_id: int) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT * FROM route_safety_scores WHERE ride_id = ? ORDER BY id DESC LIMIT 1",
+            "SELECT * FROM route_safety_scores WHERE ride_id = ? "
+            "ORDER BY id DESC LIMIT 1",
             (ride_id,),
         )
         row = cur.fetchone()
@@ -975,4 +1089,3 @@ __all__ = [
     "save_route_safety_score",
     "get_route_safety_score",
 ]
-

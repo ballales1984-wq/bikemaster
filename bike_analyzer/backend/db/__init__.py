@@ -15,7 +15,9 @@ def __getattr__(name: str) -> Any:
     if name not in _DB_ATTRS:
         raise AttributeError(name)
     module_name, attr_name = _DB_ATTRS[name]
-    module = __import__(f"bike_analyzer.backend.db.{module_name}", fromlist=[attr_name])
+    module = __import__(
+        f"bike_analyzer.backend.db.{module_name}", fromlist=[attr_name]
+    )
     return getattr(module, attr_name)
 
 

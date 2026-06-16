@@ -10,7 +10,11 @@ import json
 from datetime import UTC, datetime
 
 from sqlalchemy import delete, insert, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from ..settings import get_settings
 
@@ -53,7 +57,11 @@ async def save_ride_async(ride: dict) -> int:
     from ..db.models import RideModel
 
     async with get_async_session() as session:
-        gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
+        gps_points = (
+            json.dumps(ride.get("gps_points"))
+            if ride.get("gps_points")
+            else None
+        )
         stmt = (
             insert(RideModel)
             .values(
@@ -98,7 +106,9 @@ async def get_ride_async(ride_id: int) -> dict | None:
             "heart_rate_avg": row.heart_rate_avg,
             "elevation_gain_m": row.elevation_gain_m,
             "gps_points": gps,
-            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "created_at": row.created_at.isoformat()
+            if row.created_at
+            else None,
         }
 
 
@@ -188,7 +198,7 @@ def _ride_model_to_dict(row) -> dict:
 
 
 async def close_async_db():
-    global _engine
+    global _engine, _async_session_factory
     if _engine is not None:
         await _engine.dispose()
         _engine = None

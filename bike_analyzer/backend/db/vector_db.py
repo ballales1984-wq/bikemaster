@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import os
 import sqlite3
-from pathlib import Path
 
 try:
     import numpy as np
@@ -20,7 +18,11 @@ _embeddings_cache: dict[str, np.ndarray] = {}
 
 
 def _get_vectorizer() -> TfidfVectorizer | None:
-    return TfidfVectorizer(max_features=1000, stop_words="english") if VECTOR_AVAILABLE else None
+    return (
+        TfidfVectorizer(max_features=1000, stop_words="english")
+        if VECTOR_AVAILABLE
+        else None
+    )
 
 
 def embed_text(text: str) -> list[float] | None:
@@ -50,7 +52,7 @@ def similarity_search(
     query_vec = vec.transform([query])
 
     scores = cosine_similarity(query_vec, doc_vectors).flatten()
-    pairs = list(zip(documents, scores))
+    pairs = list(zip(documents, scores, strict=True))
     pairs.sort(key=lambda x: x[1], reverse=True)
     return [(d, s) for d, s in pairs[:top_k] if s >= threshold]
 
@@ -65,7 +67,8 @@ class VectorStore:
     def _init_db(self):
         conn = sqlite3.connect(self.db_path)
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS vectors (id INTEGER PRIMARY KEY, doc TEXT, embedding BLOB)"
+            "CREATE TABLE IF NOT EXISTS vectors "
+            "(id INTEGER PRIMARY KEY, doc TEXT, embedding BLOB)"
         )
         conn.commit()
         conn.close()
@@ -82,7 +85,9 @@ class VectorStore:
         conn.close()
 
     def search(self, query: str, top_k: int = 4) -> list[tuple[str, float]]:
-        return similarity_search(query, [r[0] for r in self._all_docs()], top_k=top_k)
+        return similarity_search(
+            query, [r[0] for r in self._all_docs()], top_k=top_k
+        )
 
     def _all_docs(self) -> list[tuple[str]]:
         conn = sqlite3.connect(self.db_path)

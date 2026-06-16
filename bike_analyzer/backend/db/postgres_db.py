@@ -82,7 +82,9 @@ class TrainingLoadModel(Base):
     tsb = Column(Float, default=0.0)
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
-    __table_args__ = (Index("idx_training_loads_athlete_date", "athlete_id", "date"),)
+    __table_args__ = (
+        Index("idx_training_loads_athlete_date", "athlete_id", "date"),
+    )
 
 
 class TrainingGoalModel(Base):
@@ -127,7 +129,8 @@ def get_engine(db_url: str | None = None):
 
     if not SQLALCHEMY_AVAILABLE:
         raise ImportError(
-            "SQLAlchemy non installato. Installa con: pip install sqlalchemy psycopg2-binary"
+            "SQLAlchemy non installato. Installa con: "
+            "pip install sqlalchemy psycopg2-binary"
         )
 
     url = db_url or f"sqlite:///{DB_PATH}"
@@ -194,7 +197,14 @@ def get_training_loads(athlete_id: int, days: int = 30) -> list[dict]:
         )
 
         return [
-            {"date": m.date, "tss": m.tss, "atl": m.atl, "ctl": m.ctl, "tsb": m.tsb} for m in models
+            {
+                "date": m.date,
+                "tss": m.tss,
+                "atl": m.atl,
+                "ctl": m.ctl,
+                "tsb": m.tsb,
+            }
+            for m in models
         ]
 
 
@@ -216,10 +226,14 @@ def save_training_goal(athlete_id: int, goal: dict) -> int:
         return model.id
 
 
-def get_training_goals(athlete_id: int, status: str | None = None) -> list[dict]:
+def get_training_goals(
+    athlete_id: int, status: str | None = None
+) -> list[dict]:
     """Get training goals for athlete."""
     with get_session() as session:
-        query = session.query(TrainingGoalModel).filter(TrainingGoalModel.athlete_id == athlete_id)
+        query = session.query(TrainingGoalModel).filter(
+            TrainingGoalModel.athlete_id == athlete_id
+        )
         if status:
             query = query.filter(TrainingGoalModel.status == status)
 
@@ -235,7 +249,9 @@ def get_training_goals(athlete_id: int, status: str | None = None) -> list[dict]
                 "target_distance_km": m.target_distance_km,
                 "target_elevation_m": m.target_elevation_m,
                 "status": m.status,
-                "created_at": m.created_at.isoformat() if m.created_at else None,
+                "created_at": m.created_at.isoformat()
+                if m.created_at
+                else None,
             }
             for m in models
         ]
@@ -283,7 +299,9 @@ def get_planned_workouts(
                 "duration_minutes": m.duration_minutes,
                 "target_intensity": m.target_intensity,
                 "completed": m.completed,
-                "completed_at": m.completed_at.isoformat() if m.completed_at else None,
+                "completed_at": m.completed_at.isoformat()
+                if m.completed_at
+                else None,
             }
             for m in models
         ]
@@ -293,7 +311,9 @@ def complete_workout(workout_id: int) -> bool:
     """Mark a workout as completed."""
     with get_session() as session:
         model = (
-            session.query(PlannedWorkoutModel).filter(PlannedWorkoutModel.id == workout_id).first()
+            session.query(PlannedWorkoutModel)
+            .filter(PlannedWorkoutModel.id == workout_id)
+            .first()
         )
         if model:
             model.completed = True

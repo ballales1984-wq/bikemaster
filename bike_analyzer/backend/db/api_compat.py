@@ -26,4 +26,3 @@ def get_athlete_by_query(db_database_module: Any, **query: Any) -> dict | None:
         return db_database_module.get_athlete_by_name(str(name))
 
     return None
-
