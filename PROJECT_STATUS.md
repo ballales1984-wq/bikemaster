@@ -5,7 +5,8 @@
 > **Stato**: Late Beta / Early Production — architettura solida, serve hardening per produzione.
 
 ### Ultimo Commit
-- `7d65395` + `d5bb0f5` + `da4e95b` - Test power_model, redis_client, task_queue; Power metrics API; Render deployment fix
+- `fb6238a` - refactor: format DB layer imports, line wrapping, and whitespace cleanup (362 insertions, 132 deletions)
+- `909f66b` + `86771b8` + `4ec4515` - Fix duplicate code in routes, SECRET_KEY placeholder detection, failing coach test; fix tsconfig project reference; frontend migration to TypeScript
 
 ---
 
