@@ -69,6 +69,9 @@ class Settings(BaseSettings):
     groq_model: str = "llama-3.3-70b-versatile"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
+    ollama_base_url: str = "http://localhost:11434/v1"
+    ollama_model: str = "llama3"
+    ollama_api_key: str = "ollama"
 
     # === JWT / Auth ===
     secret_key: str = ""
