@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime, date
+from datetime import UTC, date, datetime
 from typing import Any
 
 
@@ -56,7 +56,7 @@ class FitnessStateRepository:
         return None
 
     async def _get_latest_async(self, athlete_id: int) -> dict[str, Any] | None:
-        from sqlalchemy import select, desc
+        from sqlalchemy import desc, select
 
         async with self._session_factory() as session:
             stmt = (
@@ -80,7 +80,7 @@ class FitnessStateRepository:
         return []
 
     async def _get_history_async(self, athlete_id: int, days: int = 30) -> list[dict[str, Any]]:
-        from sqlalchemy import select, desc
+        from sqlalchemy import desc, select
 
         async with self._session_factory() as session:
             stmt = (

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import date, UTC, datetime
-
 
 class TrainingStressRepository:
     def __init__(self, session_factory=None, sync_conn=None):

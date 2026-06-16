@@ -133,7 +133,10 @@ def get_ai_coach_client():
             _current_client = None
             _current_provider = None
 
-    msg = "AI Coach: no valid API key (GROQ=gsk_..., OPENAI=sk-..., OLLAMA=http://localhost:11434/v1) or all providers failed"
+    msg = (
+        "AI Coach: no valid API key (GROQ=gsk_..., "
+        "OPENAI=sk-..., OLLAMA=http://localhost:11434/v1) or all providers failed"
+    )
     logger.error(msg)
     raise ValueError(msg)
 
@@ -587,8 +590,9 @@ def get_fitness_state_explanation(athlete_id: int, session_factory=None) -> str:
     if not session_factory or not athlete_id:
         return ""
 
-    from ..repositories.fitness_state_repository import FitnessStateRepository
     import asyncio
+
+    from ..repositories.fitness_state_repository import FitnessStateRepository
 
     async def _get():
         repo = FitnessStateRepository(session_factory=session_factory)
@@ -722,11 +726,13 @@ def generate_training_plan(
             {"day": "Venerdi", "type": "Threshold", "duration_min": zone3_duration, "zone": "Z3"},
         ]
 
+    tsb = fitness_state.get("tsb", 0) if fitness_state else 0
     plan["explanation"] = (
         f"Piano basato su FTP {athlete.ftp_watts or 250}W. "
-        f"{fitness_state.get('tsb', 0):.1f} TSB indica "
-        f"{'recupero prioritario' if fitness_state.get('tsb', 0) < -15 else 'forma ottimale' if fitness_state.get('tsb', 0) > 10 else 'forma buona'}."
-        if fitness_state else "Piano generico basato su livello esperto."
+        f"{tsb:.1f} TSB indica "
+        f"{'recupero prioritario' if tsb < -15 else 'forma ottimale' if tsb > 10 else 'forma buona'}."
+        if fitness_state
+        else "Piano generico basato su livello esperto."
     )
     return plan
 

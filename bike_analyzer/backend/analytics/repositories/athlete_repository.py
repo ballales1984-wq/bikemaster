@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from ...db.models import AthleteModel as AthleteTable
-
 
 class AthleteRepository:
     def __init__(self, session_factory=None, sync_conn=None):

@@ -4,9 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Sequence
-
-from .models import GPSPoint, Ride, AthleteProfile
 
 
 @dataclass

@@ -6,12 +6,15 @@ metrics calculation, and optional fitness state computation.
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from ....core.models import Ride
 from ....core.pipeline import AnalysisPipeline
 from ...services.fitness_state_service import FitnessStateEngine
-from ...repositories import TrainingStressRepository
+
+if TYPE_CHECKING:
+    from ....core.fitness_state import FitnessStateVector
 
 
 class RideAnalysisService:
@@ -57,5 +60,7 @@ class RideAnalysisService:
             }
         return data
 
-    async def compute_fitness_state(self, rides: Sequence[Ride], athlete_id: int) -> FitnessStateVector:
+async def compute_fitness_state(
+        self, rides: Sequence[Ride], athlete_id: int
+    ) -> FitnessStateVector:
         return self.fitness_engine.compute(rides, athlete_id)

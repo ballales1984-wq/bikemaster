@@ -7,9 +7,8 @@ infrastructure concern (DB, API, serialization).
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Sequence
 
 EARTH_RADIUS_M = 6_371_000
 
@@ -43,7 +42,7 @@ class GPSPoint:
     heart_rate: float | None = None
     cadence: float | None = None
 
-    def distance_to(self, other: "GPSPoint") -> float:
+    def distance_to(self, other: GPSPoint) -> float:
         return haversine_distance_m(self.lat, self.lon, other.lat, other.lon)
 
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, date
 from typing import Any
 
 
@@ -123,8 +122,8 @@ class ContextBuilder:
 
         if self._session_factory:
             from ..repositories.athlete_repository import AthleteRepository
-            from ..repositories.ride_repository import RideRepository
             from ..repositories.fitness_state_repository import FitnessStateRepository
+            from ..repositories.ride_repository import RideRepository
 
             athlete_repo = AthleteRepository(session_factory=self._session_factory)
             athlete = await athlete_repo.get_by_id(self.athlete_id)

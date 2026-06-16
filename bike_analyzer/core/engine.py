@@ -10,13 +10,13 @@ Production-grade engine with:
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
-from typing import Sequence
+from datetime import UTC, datetime
 
+from .fitness_state import FitnessStateVector
 from .models import AthleteProfile, Ride
 from .pipeline import AnalysisPipeline, PipelineResult
-from .fitness_state import FitnessStateVector
 
 logger = logging.getLogger(__name__)
 
@@ -77,11 +77,7 @@ class AnalysisEngine:
         if athlete_id is None:
             return None
 
-        from .fitness_state import TrainingStressDay
-
         tss = ride.calories / 100.0 if ride.calories else 0.0
-        today = date.today()
-
         fitness_state = FitnessStateVector(
             athlete_id=athlete_id,
             computed_at=datetime.now(UTC),
@@ -110,8 +106,6 @@ class AnalysisEngine:
         self, state: FitnessStateVector, session_factory
     ) -> None:
         try:
-            from sqlalchemy import insert
-
             from ..backend.analytics.repositories.fitness_state_repository import (
                 FitnessStateRepository,
             )

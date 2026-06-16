@@ -213,7 +213,10 @@ async def refresh_token(
 @router.post("/auth/register")
 @limiter.limit("3/minute")
 async def register(
-    request: Request, username: str = Body(..., min_length=3), password: str = Body(..., min_length=6), email: str = Body(None)
+    request: Request,
+    username: str = Body(..., min_length=3),
+    password: str = Body(..., min_length=6),
+    email: str = Body(None),
 ):
     from ..db.database import get_athlete_by_name, save_athlete
     from ..security import hash_password
@@ -2062,7 +2065,7 @@ async def google_oauth_callback(payload: GoogleAuthRequest):
         raise HTTPException(status_code=401, detail=f"Google auth failed: {exc}") from exc
 
     # Create or update athlete
-    athlete = save_athlete(
+    save_athlete(
         {"name": user_info.get("name", "Google User"), "email": user_info.get("email")}
     )
     from ..auth.google_auth import create_google_session
