@@ -104,7 +104,9 @@ async function connectGoogleFit() {
   importStatus.value = null
   try {
     // Get Google Fit auth URL
-    const authResp = await fetch('/api/v1/import/google-fit/auth')
+    const redirectUri = `${window.location.origin}/api/v1/import/google-fit/callback`
+    const state = btoa(JSON.stringify({ redirect_uri: redirectUri }))
+    const authResp = await fetch(`/api/v1/import/google-fit/auth?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`)
     if (!authResp.ok) {
       throw new Error('Impossibile iniziare autenticazione Google Fit')
     }

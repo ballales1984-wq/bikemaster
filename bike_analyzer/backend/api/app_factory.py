@@ -8,7 +8,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
@@ -22,6 +22,23 @@ from .routes import admin_router, router
 logger = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).parent.parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
+
+
+def _forwarded_value(header_value: str | None) -> str:
+    if not header_value:
+        return ""
+    return header_value.split(",", 1)[0].strip()
+
+
+def _static_file_response(file_path: Path, media_type: str | None = None) -> Response:
+    if file_path.exists():
+        content = (
+            file_path.read_bytes()
+            if media_type.startswith("image/")
+            else file_path.read_text(encoding="utf-8")
+        )
+        return Response(content=content, media_type=media_type)
+    return Response(status_code=404)
 
 
 @asynccontextmanager
@@ -126,9 +143,17 @@ def create_app() -> FastAPI:
         if assets_dir.exists():
             app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="static-assets")
 
+        @app.head("/")
+        async def dashboard_root_head():
+            return Response(status_code=200)
+
         @app.get("/")
         async def dashboard_root():
-            return RedirectResponse(url="/static/index.html")
+            return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"))
+
+        @app.get("/index.html")
+        async def dashboard_index():
+            return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"))
 
         @app.get("/dashboard", response_class=HTMLResponse)
         async def dashboard():
@@ -136,22 +161,15 @@ def create_app() -> FastAPI:
 
         @app.get("/registerSW.js")
         async def register_sw():
-            sw_reg = STATIC_DIR / "registerSW.js"
-            if sw_reg.exists():
-                return Response(
-                    content=sw_reg.read_text(encoding="utf-8"),
-                    media_type="text/javascript"
-                )
-            return Response(status_code=404)
+            return _static_file_response(STATIC_DIR / "registerSW.js", "text/javascript")
 
         @app.get("/manifest.json")
         async def manifest():
-            mf = STATIC_DIR / "manifest.json"
-            if mf.exists():
-                return Response(
-                    content=mf.read_text(encoding="utf-8"), media_type="application/json"
-                )
-            return Response(status_code=404)
+            return _static_file_response(STATIC_DIR / "manifest.json", "application/json")
+
+        @app.get("/manifest.webmanifest")
+        async def manifest_webmanifest():
+            return _static_file_response(STATIC_DIR / "manifest.webmanifest", "application/manifest+json")
 
         CEO_FILE = STATIC_DIR / "ceo_dashboard.html"
         if CEO_FILE.exists():
@@ -162,24 +180,26 @@ def create_app() -> FastAPI:
 
         @app.get("/sw.js")
         async def service_worker():
-            sw = STATIC_DIR / "sw.js"
-            if sw.exists():
-                return Response(content=sw.read_text(encoding="utf-8"), media_type="application/javascript")
-            return Response(status_code=404)
+            return _static_file_response(STATIC_DIR / "sw.js", "application/javascript")
 
         @app.get("/pwa-192x192.png")
         async def pwa_icon_192():
-            icon = STATIC_DIR / "pwa-192x192.png"
-            if icon.exists():
-                return Response(content=icon.read_bytes(), media_type="image/png")
-            return Response(status_code=404)
+            return _static_file_response(STATIC_DIR / "pwa-192x192.png", "image/png")
 
         @app.get("/pwa-512x512.png")
         async def pwa_icon_512():
-            icon = STATIC_DIR / "pwa-512x512.png"
-            if icon.exists():
-                return Response(content=icon.read_bytes(), media_type="image/png")
-            return Response(status_code=404)
+            return _static_file_response(STATIC_DIR / "pwa-512x512.png", "image/png")
+
+        @app.get("/favicon.svg")
+        async def favicon_svg():
+            return _static_file_response(STATIC_DIR / "favicon.svg", "image/svg+xml")
+
+        @app.get("/apple-touch-icon.png")
+        async def apple_touch_icon():
+            icon = STATIC_DIR / "apple-touch-icon.png"
+            if not icon.exists():
+                icon = STATIC_DIR / "pwa-192x192.png"
+            return _static_file_response(icon, "image/png")
 
         @app.get("/favicon.ico")
         async def favicon():

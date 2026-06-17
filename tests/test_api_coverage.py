@@ -1,5 +1,14 @@
 """API coverage tests for endpoints."""
 
+import base64
+import json
+from urllib.parse import parse_qs, urlparse
+
+
+def _oauth_state(redirect_uri: str) -> str:
+    payload = json.dumps({"redirect_uri": redirect_uri}, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+
 
 def test_rides_crud(client):
     r = client.post(
@@ -294,6 +303,93 @@ def test_google_fit_auth(client):
     r = client.get("/api/v1/import/google-fit/auth?client_id=test_client")
     assert r.status_code == 200
     assert "auth_url" in r.json()
+
+
+def test_google_oauth_uses_forwarded_redirect_uri(client, monkeypatch):
+    import bike_analyzer.backend.config as cfg_mod
+
+    monkeypatch.setattr(cfg_mod, "GOOGLE_CLIENT_ID", "test-client")
+    r = client.get(
+        "/api/v1/auth/google",
+        headers={
+            "X-Forwarded-Proto": "https",
+            "X-Forwarded-Host": "bikemaster.onrender.com",
+        },
+    )
+    assert r.status_code == 200
+    parsed = urlparse(r.json()["auth_url"])
+    params = parse_qs(parsed.query)
+    assert params["redirect_uri"] == ["https://bikemaster.onrender.com/api/v1/auth/google/callback"]
+
+
+def test_google_oauth_callback_uses_redirect_uri_from_state(client, monkeypatch):
+    import bike_analyzer.backend.auth.google_auth as google_auth_mod
+    import bike_analyzer.backend.config as cfg_mod
+
+    redirect_uri = "https://bikemaster.onrender.com/api/v1/auth/google/callback"
+    monkeypatch.setattr(cfg_mod, "GOOGLE_CLIENT_ID", "test-client")
+    monkeypatch.setattr(cfg_mod, "GOOGLE_CLIENT_SECRET", "test-secret")
+    monkeypatch.setattr(
+        google_auth_mod,
+        "exchange_google_code",
+        lambda client_id, client_secret, code, redirect_uri_arg: (
+            {"access_token": "google-token"} if redirect_uri_arg == redirect_uri else {}
+        ),
+    )
+    monkeypatch.setattr(
+        google_auth_mod,
+        "get_google_user_info",
+        lambda access_token: {"sub": "google-sub", "email": "user@example.com", "name": "User"},
+    )
+    monkeypatch.setattr(
+        google_auth_mod,
+        "create_google_session",
+        lambda user_info, athlete_id=None: {"access_token": "jwt-token"},
+    )
+
+    r = client.get(
+        "/api/v1/auth/google/callback",
+        params={"code": "code", "state": _oauth_state(redirect_uri)},
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 307
+    assert "token=jwt-token" in r.headers["location"]
+
+
+def test_google_fit_auth_uses_forwarded_redirect_uri(client, monkeypatch):
+    import bike_analyzer.backend.config as cfg_mod
+
+    monkeypatch.setattr(cfg_mod, "GOOGLE_CLIENT_ID", "test-client")
+    r = client.get(
+        "/api/v1/import/google-fit/auth",
+        headers={
+            "X-Forwarded-Proto": "https",
+            "X-Forwarded-Host": "bikemaster.onrender.com",
+        },
+    )
+    assert r.status_code == 200
+    parsed = urlparse(r.json()["auth_url"])
+    params = parse_qs(parsed.query)
+    assert params["redirect_uri"] == [
+        "https://bikemaster.onrender.com/api/v1/import/google-fit/callback"
+    ]
+
+
+def test_static_fallback_routes(client):
+    for path in (
+        "/",
+        "/index.html",
+        "/registerSW.js",
+        "/manifest.json",
+        "/manifest.webmanifest",
+        "/sw.js",
+        "/favicon.svg",
+        "/apple-touch-icon.png",
+    ):
+        r = client.get(path)
+        assert r.status_code == 200, path
+    assert client.head("/").status_code == 200
 
 
 def test_knowledge_reload(client):

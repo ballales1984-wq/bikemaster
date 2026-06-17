@@ -83,7 +83,8 @@ async function loginWithGoogle() {
   loading.value = true
   try {
     const redirectUri = `${window.location.origin}/api/v1/auth/google/callback`
-    const response = await fetch(`/api/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`)
+    const state = btoa(JSON.stringify({ redirect_uri: redirectUri }))
+    const response = await fetch(`/api/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`)
     const data = await response.json().catch(() => ({}))
 
     if (!response.ok) {

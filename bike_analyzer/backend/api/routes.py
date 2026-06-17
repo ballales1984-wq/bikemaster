@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import base64
+import json
 from collections.abc import AsyncGenerator
 from dataclasses import fields
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
 from fastapi import (
@@ -40,7 +43,6 @@ from .schemas import (
     AthleteUpdate,
     CalendarEventCreate,
     CalendarEventUpdate,
-    GoogleAuthRequest,
     GranfondoPlanRequest,
     MetricCreate,
     RefreshTokenRequest,
@@ -52,6 +54,56 @@ logger = get_logger(__name__)
 
 router = APIRouter()
 admin_router = APIRouter()
+
+
+def _forwarded_value(header_value: str | None) -> str:
+    if not header_value:
+        return ""
+    return header_value.split(",", 1)[0].strip()
+
+
+def _build_redirect_uri(request: Request, path: str) -> str:
+    proto = _forwarded_value(request.headers.get("x-forwarded-proto")) or request.url.scheme
+    host = (
+        _forwarded_value(request.headers.get("x-forwarded-host"))
+        or request.headers.get("host")
+        or request.url.netloc
+    )
+    return f"{proto}://{host}{path}"
+
+
+def _validate_redirect_uri(redirect_uri: str) -> None:
+    parsed = urlparse(redirect_uri)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise HTTPException(status_code=400, detail="Invalid redirect_uri")
+
+
+def _encode_oauth_state(**values: str) -> str:
+    payload = json.dumps(values, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+
+
+def _decode_oauth_state(state: str) -> dict:
+    if not state:
+        return {}
+    try:
+        padded = state + "=" * (-len(state) % 4)
+        decoded = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
+        data = json.loads(decoded)
+        return data if isinstance(data, dict) else {}
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+        return {}
+
+
+def _redirect_uri_from_state(state: str) -> str | None:
+    redirect_uri = _decode_oauth_state(state).get("redirect_uri")
+    return redirect_uri if isinstance(redirect_uri, str) else None
+
+
+def _http_error_detail(exc: Exception, fallback: str) -> str:
+    response = getattr(exc, "response", None)
+    body = response.text if response is not None else str(exc)
+    return f"{fallback}: {body[:500]}"
 
 
 def _user_id(current_user: dict) -> int:
@@ -237,20 +289,17 @@ async def register(
 @limiter.limit("10/minute")
 async def google_oauth_login(
     request: Request,
-    redirect_uri: str = Query("http://localhost:8000/api/v1/auth/google/callback"),
+    redirect_uri: str | None = Query(None),
     state: str = "",
 ):
     """Get Google OAuth2 authorization URL."""
-    from urllib.parse import urlparse
-
     from ..auth.google_auth import get_google_oauth_url
     from ..config import GOOGLE_CLIENT_ID
 
     if not GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
-    parsed = urlparse(redirect_uri)
-    if parsed.scheme not in ("http", "https"):
-        raise HTTPException(status_code=400, detail="Invalid redirect_uri")
+    redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/auth/google/callback")
+    _validate_redirect_uri(redirect_uri)
     auth_url = get_google_oauth_url(GOOGLE_CLIENT_ID, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
 
@@ -260,7 +309,8 @@ async def google_oauth_login(
 async def google_oauth_callback_get(
     request: Request,
     code: str = Query(...),
-    redirect_uri: str = Query("http://localhost:8000/api/v1/auth/google/callback"),
+    redirect_uri: str | None = Query(None),
+    state: str = Query(""),
 ):
     """Handle Google OAuth2 callback - exchange code for token and create/login user."""
     from fastapi.responses import RedirectResponse
@@ -271,13 +321,31 @@ async def google_oauth_callback_get(
 
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    redirect_uri = (
+        redirect_uri
+        or _redirect_uri_from_state(state)
+        or _build_redirect_uri(request, "/api/v1/auth/google/callback")
+    )
+    _validate_redirect_uri(redirect_uri)
 
-    token_data = exchange_google_code(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
+    try:
+        token_data = exchange_google_code(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
+    except requests.exceptions.HTTPError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=_http_error_detail(exc, "Google token exchange failed"),
+        ) from exc
     access_token = token_data.get("access_token")
     if not access_token:
         raise HTTPException(status_code=400, detail="Failed to get access token from Google")
 
-    user_info = get_google_user_info(access_token)
+    try:
+        user_info = get_google_user_info(access_token)
+    except requests.exceptions.HTTPError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=_http_error_detail(exc, "Google userinfo request failed"),
+        ) from exc
     google_sub = user_info.get("sub")
     email = user_info.get("email")
     name = user_info.get("name")
@@ -793,25 +861,23 @@ async def update_athlete(
 @limiter.limit("10/minute")
 async def google_fit_auth(
     request: Request,
-    redirect_uri: str = Query("http://localhost:8000/api/v1/import/google-fit/callback"),
-    state: str = "",
+    redirect_uri: str | None = Query(None),
+    state: str = Query(""),
 ):
-    from urllib.parse import urlparse
-
     from ..config import GOOGLE_CLIENT_ID
     from ..ingestion.google_fit import get_authorization_url
 
     if not GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
-    parsed = urlparse(redirect_uri)
-    if parsed.scheme not in ("http", "https") or parsed.hostname not in ("localhost", "127.0.0.1"):
-        raise HTTPException(status_code=400, detail="redirect_uri must be localhost")
+    redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
+    _validate_redirect_uri(redirect_uri)
     auth_url = get_authorization_url(GOOGLE_CLIENT_ID, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
 
 
 @router.post("/import/google-fit/token")
 async def google_fit_exchange_token(
+    request: Request,
     payload: dict,
     current_user: dict = Depends(get_current_user),
 ):
@@ -820,19 +886,24 @@ async def google_fit_exchange_token(
     client_id = payload.get("client_id", "")
     if not client_id or not isinstance(client_id, str) or len(client_id) > 256:
         raise HTTPException(status_code=400, detail="Invalid client_id")
-    from urllib.parse import urlparse
 
-    redirect_uri = payload.get("redirect_uri", "http://localhost:8000/api/v1/import/google-fit/callback")
-    parsed = urlparse(redirect_uri)
-    if parsed.scheme not in ("http", "https") or parsed.hostname not in ("localhost", "127.0.0.1"):
-        raise HTTPException(status_code=400, detail="redirect_uri must be localhost")
-
-    token_data = exchange_code_for_token(
-        client_id,
-        payload.get("client_secret", ""),
-        payload.get("code"),
-        redirect_uri,
+    redirect_uri = payload.get("redirect_uri") or _build_redirect_uri(
+        request, "/api/v1/import/google-fit/callback"
     )
+    _validate_redirect_uri(redirect_uri)
+
+    try:
+        token_data = exchange_code_for_token(
+            client_id,
+            payload.get("client_secret", ""),
+            payload.get("code"),
+            redirect_uri,
+        )
+    except requests.exceptions.HTTPError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=_http_error_detail(exc, "Google Fit token exchange failed"),
+        ) from exc
     return {
         "access_token": token_data.get("access_token"),
         "refresh_token": token_data.get("refresh_token"),
@@ -845,7 +916,8 @@ async def google_fit_exchange_token(
 async def google_fit_callback(
     request: Request,
     code: str = Query(...),
-    redirect_uri: str = Query("http://localhost:8000/api/v1/import/google-fit/callback"),
+    redirect_uri: str | None = Query(None),
+    state: str = Query(""),
 ):
     """Handle Google Fit OAuth callback - exchange code and import activities."""
     from fastapi.responses import HTMLResponse
@@ -856,8 +928,20 @@ async def google_fit_callback(
 
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google Fit OAuth not configured")
+    redirect_uri = (
+        redirect_uri
+        or _redirect_uri_from_state(state)
+        or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
+    )
+    _validate_redirect_uri(redirect_uri)
 
-    token_data = exchange_code_for_token(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
+    try:
+        token_data = exchange_code_for_token(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
+    except requests.exceptions.HTTPError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=_http_error_detail(exc, "Google Fit token exchange failed"),
+        ) from exc
     access_token = token_data.get("access_token")
     if not access_token:
         raise HTTPException(status_code=400, detail="Failed to get access token from Google Fit")
@@ -2144,46 +2228,6 @@ async def garmin_disconnect(current_user: dict = Depends(get_current_user)):
 
     revoke_token(current_user["id"])
     return {"status": "disconnected"}
-
-
-@router.get("/auth/google")
-async def google_oauth(
-    redirect_uri: str = Query("http://localhost:8000/api/v1/auth/google/callback"),
-):
-    """Get Google OAuth2 authorization URL."""
-    from ..auth.google_auth import get_google_oauth_url
-    from ..config import GOOGLE_CLIENT_ID
-
-    if not GOOGLE_CLIENT_ID:
-        raise HTTPException(status_code=500, detail="Google OAuth not configured")
-    return {"auth_url": get_google_oauth_url(GOOGLE_CLIENT_ID, redirect_uri=redirect_uri)}
-
-
-@router.post("/auth/google/callback")
-async def google_oauth_callback(payload: GoogleAuthRequest):
-    """Handle Google OAuth2 callback."""
-    from ..auth.google_auth import exchange_google_code, get_google_user_info
-    from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-    from ..db.database import save_athlete
-
-    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-        raise HTTPException(status_code=500, detail="Google OAuth not configured")
-
-    try:
-        token_data = exchange_google_code(
-            GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, payload.code, payload.redirect_uri
-        )
-        user_info = get_google_user_info(token_data["access_token"])
-    except Exception as exc:
-        raise HTTPException(status_code=401, detail=f"Google auth failed: {exc}") from exc
-
-    # Create or update athlete
-    save_athlete(
-        {"name": user_info.get("name", "Google User"), "email": user_info.get("email")}
-    )
-    from ..auth.google_auth import create_google_session
-
-    return create_google_session(user_info)
 
 
 @router.get("/dashboard")
