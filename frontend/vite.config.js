@@ -32,9 +32,21 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\./,
+            urlPattern: /\/api\//,
             handler: 'NetworkFirst',
-            options: { cacheName: 'api-cache', expiration: { maxAgeSeconds: 60 } },
+            options: {
+              cacheName: 'api-cache',
+              expiration: { maxAgeSeconds: 60, maxEntries: 100 },
+              networkTimeoutSeconds: 10,
+            },
+          },
+          {
+            urlPattern: /\.(png|jpg|jpeg|svg|gif|webp)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'image-cache',
+              expiration: { maxAgeSeconds: 86400, maxEntries: 50 },
+            },
           },
         ],
       },
@@ -46,19 +58,6 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:8000',
       '/static': 'http://localhost:8000',
-    },
-  },
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./src/test/setup.js'],
-    include: ['src/**/*.test.js'],
-    exclude: ['tests/e2e/**/*.spec.js'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      include: ['src/**/*.{js,vue}'],
-      exclude: ['src/**/*.test.js', 'src/test/**'],
     },
   },
 })

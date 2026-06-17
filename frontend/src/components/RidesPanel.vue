@@ -1,7 +1,7 @@
 <template>
   <section>
-    <div class="panel">
-      <h2>📋 Le tue Ride</h2>
+    <div class="panel" role="region" aria-label="Le tue uscite ciclistiche">
+      <h2 id="rides-heading">📋 Le tue Ride</h2>
       <div class="add-ride-form">
         <h3>➕ Aggiungi Nuova Ride</h3>
         <form @submit.prevent="handleAdd" class="ride-form">
@@ -17,23 +17,23 @@
             <input v-model="form.elevation_gain_m" type="number" placeholder="Elevazione (m)" class="form-input" />
             <input v-model="form.calories" type="number" placeholder="Calorie" class="form-input" />
           </div>
-          <button type="submit" class="btn btn-primary" :disabled="adding">{{ adding ? 'Aggiungendo...' : 'Aggiungi Ride' }}</button>
+          <button type="submit" class="btn btn-primary" :disabled="adding" :aria-busy="adding">{{ adding ? 'Aggiungendo...' : 'Aggiungi Ride' }}</button>
         </form>
         <p v-if="addError" class="error-text">{{ addError }}</p>
       </div>
-      <p v-if="loading" class="loading-text">Caricamento...</p>
+      <p v-if="loading" class="loading-text" role="status" aria-live="polite">Caricamento...</p>
       <div v-else-if="rides.length === 0" class="empty-state">
         <div class="empty-icon">🏍️</div>
         <div class="empty-title">Nessuna ride registrata</div>
         <div class="empty-desc">Aggiungi la tua prima ride per iniziare a tracciare le tue performance.</div>
       </div>
-      <div v-else class="rides-list">
+      <div v-else class="rides-list" aria-live="polite" aria-label="Lista uscite">
         <div class="ride-item" v-for="ride in rides" :key="ride.id">
           <div>
             <div class="ride-date">{{ ride.date }}</div>
             <div class="ride-stats">{{ ride.distance_km }}km • {{ ride.duration_minutes }}min • {{ ride.avg_speed_kmh }} km/h</div>
           </div>
-          <button class="btn btn-danger btn-sm" @click="askDelete(ride.id)">Elimina</button>
+          <button class="btn btn-danger btn-sm" @click="askDelete(ride.id)" :aria-label="`Elimina uscita del ${ride.date}`">Elimina</button>
         </div>
       </div>
     </div>

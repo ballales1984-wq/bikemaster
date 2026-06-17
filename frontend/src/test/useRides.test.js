@@ -13,7 +13,7 @@ describe('useRides composable', () => {
     })
 
     it('fetchSummary returns default values on error', async () => {
-        const { useRides } = await import('../../src/composables/useRides.js')
+        const { useRides } = await import('../composables/useRides.ts')
         const result = await useRides(vi.fn()).fetchSummary()
         expect(result.rides).toBe(0)
         expect(result.distance_km).toBe(0)
@@ -28,7 +28,7 @@ describe('useRides composable', () => {
             total: 2,
         }
         const emit = vi.fn()
-        const { useRides } = await import('../../src/composables/useRides.js')
+        const { useRides } = await import('../composables/useRides.ts')
 
         const totalKm = mockData.rides.reduce((s, r) => s + (Number(r.distance_km) || 0), 0)
         expect(totalKm).toBe(50)
