@@ -20,6 +20,9 @@ RUN pip install --no-cache-dir --disable-pip-version-check -r requirements.txt
 
 # Copy application code
 COPY --chown=bikemaster:bikemaster . .
+RUN find bike_analyzer/backend/static -maxdepth 2 -type f \( -name 'index.html' -o -name 'registerSW.js' -o -name 'sw.js' -o -name 'manifest.json' -o -name 'manifest.webmanifest' -o -name '*.png' -o -name '*.svg' -o -path '*/assets/*' \) -delete && mkdir -p bike_analyzer/backend/static
+
+# Copy freshly built frontend assets into the backend static directory
 COPY --from=frontend-builder --chown=bikemaster:bikemaster /app/frontend/dist/ /app/bike_analyzer/backend/static/
 
 # Create data directory with proper permissions

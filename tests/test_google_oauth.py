@@ -1,10 +1,13 @@
 """Tests for Google OAuth integration."""
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+import os
+from unittest.mock import MagicMock, Mock, patch
+
+from jose import jwt
+
 from bike_analyzer.backend.auth.google_auth import (
-    get_google_oauth_url,
-    exchange_google_code,
     create_google_session,
+    exchange_google_code,
+    get_google_oauth_url,
 )
 
 
@@ -36,3 +39,19 @@ def test_create_google_session():
     assert "access_token" in result
     assert result["user_id"] == "12345"
     assert result["email"] == "test@example.com"
+
+
+def test_create_google_session_uses_athlete_id_as_jwt_subject():
+    user_info = {"sub": "google-sub", "email": "test@example.com", "name": "Test User"}
+    result = create_google_session(user_info, athlete_id=42)
+
+    payload = jwt.decode(
+        result["access_token"],
+        os.environ["SECRET_KEY"],
+        algorithms=["HS256"],
+        issuer=os.environ["JWT_ISSUER"],
+        audience=os.environ["JWT_AUDIENCE"],
+    )
+
+    assert result["user_id"] == "42"
+    assert payload["sub"] == "42"

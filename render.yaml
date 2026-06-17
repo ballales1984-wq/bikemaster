@@ -2,7 +2,7 @@ services:
   - type: web
     name: bikemaster-api
     runtime: python
-    buildCommand: cd frontend && npm install && npm run build && cp -r dist/* ../bike_analyzer/backend/static/ && cd .. && pip install --upgrade pip && pip install -r requirements.txt
+    buildCommand: cd frontend && npm install && npm run build && cd .. && find bike_analyzer/backend/static -maxdepth 2 -type f \( -name 'index.html' -o -name 'registerSW.js' -o -name 'sw.js' -o -name 'manifest.json' -o -name 'manifest.webmanifest' -o -name '*.png' -o -name '*.svg' -o -path '*/assets/*' \) -delete && cp -r frontend/dist/. bike_analyzer/backend/static/ && pip install --upgrade pip && pip install -r requirements.txt
     startCommand: python main.py api --port $PORT
     envVars:
       - key: PORT

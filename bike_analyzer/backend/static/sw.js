@@ -1,1 +1,46 @@
-if(!self.define){let e,c={};const i=(i,n)=>(i=new URL(i+".js",n).href,c[i]||new Promise(c=>{if("document"in self){const e=document.createElement("script");e.src=i,e.onload=c,document.head.appendChild(e)}else e=i,importScripts(i),c()}).then(()=>{let e=c[i];if(!e)throw new Error(`Module ${i} didn’t register its module`);return e}));self.define=(n,s)=>{const d=e||("document"in self?document.currentScript.src:"")||location.href;if(c[d])return;let r={};const o=e=>i(e,d),a={module:{uri:d},exports:r,require:o};c[d]=Promise.all(n.map(e=>a[e]||o(e))).then(e=>(s(...e),r))}}define(["./workbox-e4022e15"],function(e){"use strict";self.skipWaiting(),e.clientsClaim(),e.precacheAndRoute([{url:"index.html",revision:"68da1f0b741389d4c5bb0f9dadd3bec2"},{url:"registerSW.js",revision:"1872c500de691dce40960bb85481de07"},{url:"apple-touch-icon.png",revision:"41802be7e9f0c4d96ac6f2c21c4fdaca"},{url:"favicon.svg",revision:"742bb2648cd957ed164c2bb6cc779ed3"},{url:"pwa-512x512.png",revision:"96c52e391d46c978a156c0609dc03618"},{url:"pwa-192x192.png",revision:"5f329cc152d8d51aee0f8599a9054c28"},{url:"assets/index-1WPZRPmk.js",revision:"b1d21f4e4d2a4016172d9abf447ac8be"},{url:"assets/index-BtdMXV7J.css",revision:"4061700889600ee79d81b1c1ca1c9fd6"},{url:"favicon.svg",revision:"742bb2648cd957ed164c2bb6cc779ed3"},{url:"apple-touch-icon.png",revision:"41802be7e9f0c4d96ac6f2c21c4fdaca"},{url:"pwa-192x192.png",revision:"5f329cc152d8d51aee0f8599a9054c28"},{url:"pwa-512x512.png",revision:"96c52e391d46c978a156c0609dc03618"},{url:"manifest.webmanifest",revision:"2b4aa6e97c51219e06d354429370b84c"}],{}),e.cleanupOutdatedCaches(),e.registerRoute(new e.NavigationRoute(e.createHandlerBoundToURL("index.html"))),e.registerRoute(/^https:\/\/api\./,new e.NetworkFirst({cacheName:"api-cache",plugins:[new e.ExpirationPlugin({maxAgeSeconds:60})]}),"GET")});
+const i = "bikemaster-static-v1", c = "bikemaster-api-v1";
+self.addEventListener("install", (t) => {
+  self.skipWaiting(), t.waitUntil(
+    caches.open(i).then((a) => a.addAll([
+      "/index.html",
+      "/registerSW.js",
+      "/manifest.json",
+      "/manifest.webmanifest",
+      "/pwa-192x192.png",
+      "/pwa-512x512.png",
+      "/favicon.svg",
+      "/apple-touch-icon.png"
+    ]))
+  );
+});
+self.addEventListener("activate", (t) => {
+  t.waitUntil((async () => {
+    const a = await caches.keys();
+    await Promise.all(
+      a.filter((e) => ![i, c].includes(e)).map((e) => caches.delete(e))
+    ), await self.clients.claim();
+  })());
+});
+async function s(t) {
+  const a = await caches.open(i), e = await a.match(t);
+  if (e) return e;
+  const n = await fetch(t);
+  return n && n.ok && a.put(t, n.clone()), n;
+}
+async function o(t) {
+  return await (await caches.open(i)).match("/index.html") || fetch(t);
+}
+self.addEventListener("fetch", (t) => {
+  const { request: a } = t;
+  if (a.method !== "GET") return;
+  const e = new URL(a.url);
+  if (a.mode === "navigate") {
+    t.respondWith(o(a));
+    return;
+  }
+  if (e.pathname.startsWith("/api/")) {
+    t.respondWith(fetch(a));
+    return;
+  }
+  e.origin === self.location.origin && t.respondWith(s(a));
+});

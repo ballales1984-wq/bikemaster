@@ -348,6 +348,16 @@ def get_athlete_by_name(name: str) -> dict | None:
         return None
 
 
+def get_athlete_by_email(email: str) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM athletes WHERE email = ?", (email,))
+        row = cur.fetchone()
+        if row:
+            return _row_to_athlete(row)
+        return None
+
+
 def get_all_rides() -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -1063,6 +1073,8 @@ __all__ = [
     "init_db",
     "save_athlete",
     "get_athlete",
+    "get_athlete_by_name",
+    "get_athlete_by_email",
     "get_athlete_by_query",
     "save_metric",
     "update_athlete",

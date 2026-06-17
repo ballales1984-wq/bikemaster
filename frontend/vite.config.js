@@ -8,6 +8,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+      injectManifest: {
+        swDest: 'sw.js',
+        injectionPoint: null,
+      },
       manifest: {
         name: 'BikeMaster',
         short_name: 'BikeMaster',
@@ -25,31 +32,6 @@ export default defineConfig({
         type: 'module',
       },
       injectRegister: 'script',
-      workbox: {
-        cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /\/api\//,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: { maxAgeSeconds: 60, maxEntries: 100 },
-              networkTimeoutSeconds: 10,
-            },
-          },
-          {
-            urlPattern: /\.(png|jpg|jpeg|svg|gif|webp)$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'image-cache',
-              expiration: { maxAgeSeconds: 86400, maxEntries: 50 },
-            },
-          },
-        ],
-      },
     }),
   ],
   server: {
