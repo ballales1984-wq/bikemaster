@@ -9,6 +9,8 @@ from bike_analyzer.backend.db.models import (
     StravaTokenModel,
     GarminTokenModel,
     CalendarEventModel,
+    KnowledgeChunkModel,
+    ChatMessageModel,
 )
 
 
@@ -118,5 +120,34 @@ def test_calendar_event_model_table_name():
 
 
 def test_all_models_inherited_from_base():
-    for model in [AthleteModel, RideModel, MetricModel, StravaTokenModel, GarminTokenModel, CalendarEventModel]:
+    for model in [AthleteModel, RideModel, MetricModel, StravaTokenModel, GarminTokenModel, CalendarEventModel, KnowledgeChunkModel, ChatMessageModel]:
         assert issubclass(model, Base)
+
+
+def test_knowledge_chunk_model_columns():
+    from sqlalchemy import inspect
+    mapper = inspect(KnowledgeChunkModel)
+    columns = [c.key for c in mapper.columns]
+    assert "id" in columns
+    assert "topic" in columns
+    assert "chunk_id" in columns
+    assert "text" in columns
+    assert "embedding" in columns
+
+
+def test_knowledge_chunk_model_table_name():
+    assert KnowledgeChunkModel.__tablename__ == "knowledge_chunks"
+
+
+def test_chat_message_model_columns():
+    from sqlalchemy import inspect
+    mapper = inspect(ChatMessageModel)
+    columns = [c.key for c in mapper.columns]
+    assert "id" in columns
+    assert "athlete_id" in columns
+    assert "role" in columns
+    assert "content" in columns
+
+
+def test_chat_message_model_table_name():
+    assert ChatMessageModel.__tablename__ == "chat_messages"

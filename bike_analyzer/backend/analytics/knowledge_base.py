@@ -2,20 +2,29 @@
 
 Replaces the original token-overlap implementation with BM25 retrieval,
 LRU-cached loading, metadata-enriched chunks, and proper context assembly.
+
+Phase 24: Added PGVector semantic search with BM25 fallback.
 """
 
 from __future__ import annotations
 
+import json
 import math
+import os
 import re
 import time
 from functools import lru_cache
 
-from ..config import KB_PATH
+import numpy as np
+import sqlalchemy as sa
+
+from ..config import KB_PATH, OPENAI_API_KEY
+from ..db.models import KnowledgeChunkModel
 
 MAX_CHARS_PER_CHUNK = 1200
 CHUNK_OVERLAP = 200
 CONTEXT_WINDOW_CHARS = 3000
+EMBEDDING_DIMENSION = 1536
 
 _STOP_WORDS: frozenset[str] = frozenset(
     {
@@ -427,3 +436,145 @@ def reload_kb() -> dict:
         "chunks_loaded": len(n),
         "timestamp": time.time(),
     }
+
+
+# ---------------------------------------------------------------------------
+# Embedding functions (OpenAI + local fallback)
+# ---------------------------------------------------------------------------
+
+
+def _get_embedding_provider():
+    """Return embedding provider: 'openai' if available, else 'local'."""
+    if OPENAI_API_KEY and OPENAI_API_KEY.strip():
+        return "openai"
+    return "local"
+
+
+def _embed_text_openai(text: str) -> list[float] | None:
+    """Embed text using OpenAI text-embedding-3-small."""
+    if not OPENAI_API_KEY or not OPENAI_API_KEY.strip():
+        return None
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        response = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=text,
+        )
+        return response.data[0].embedding
+    except Exception:
+        return None
+
+
+def _embed_text_local(text: str) -> list[float] | None:
+    """Embed text using local TF-IDF (fallback)."""
+    try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+
+        vec = TfidfVectorizer(max_features=1536, stop_words="english")
+        embedding = vec.fit_transform([text]).toarray()[0]
+        if len(embedding) < EMBEDDING_DIMENSION:
+            embedding = np.pad(embedding, (0, EMBEDDING_DIMENSION - len(embedding)))
+        return embedding.tolist()
+    except Exception:
+        return None
+
+
+def embed_text(text: str) -> list[float] | None:
+    """Embed text using preferred provider (OpenAI) with local fallback."""
+    provider = _get_embedding_provider()
+    if provider == "openai":
+        result = _embed_text_openai(text)
+        if result:
+            return result
+    return _embed_text_local(text)
+
+
+# ---------------------------------------------------------------------------
+# PGVector semantic search
+# ---------------------------------------------------------------------------
+
+
+def _is_postgres(session) -> bool:
+    """Check if session is connected to PostgreSQL."""
+    try:
+        bind = session.get_bind()
+        return bind.dialect.name == "postgresql"
+    except Exception:
+        return False
+
+
+def search_knowledge_base_pgvector(
+    query: str,
+    session,
+    max_chunks: int = 4,
+    min_score: float = 0.1,
+    as_string: bool = False,
+) -> list[dict] | str:
+    """Semantic search using PGVector cosine similarity."""
+    if not _is_postgres(session):
+        return search_knowledge_base(query, max_chunks, min_score, as_string)
+
+    query_embedding = embed_text(query)
+    if not query_embedding:
+        return search_knowledge_base(query, max_chunks, min_score, as_string)
+
+    embedding_json = json.dumps(query_embedding)
+
+    stmt = (
+        session.query(
+            KnowledgeChunkModel,
+            KnowledgeChunkModel.embedding.op("<=>")(embedding_json).label("similarity"),
+        )
+        .filter(KnowledgeChunkModel.embedding.is_not(None))
+        .order_by(sa.asc("similarity"))
+        .limit(max_chunks)
+    )
+
+    results = []
+    for chunk, similarity in session.execute(stmt):
+        if similarity < min_score:
+            continue
+        results.append({
+            "topic": chunk.topic,
+            "chunk_id": chunk.chunk_id,
+            "text": chunk.text,
+            "word_count": chunk.word_count,
+            "char_count": chunk.char_count,
+            "token_count": chunk.token_count,
+            "section": chunk.section,
+            "score": round(1.0 - similarity, 4),
+        })
+
+    if as_string:
+        return format_context_for_llm(results)
+    return results
+
+
+def save_chunks_to_pgvector(chunks: list[dict], session) -> int:
+    """Save knowledge base chunks to PostgreSQL with embeddings."""
+    if not _is_postgres(session):
+        return 0
+
+    saved = 0
+    for c in chunks:
+        if "embedding" not in c or c["embedding"] is None:
+            c["embedding"] = embed_text(c["text"])
+        if c["embedding"]:
+            session.add(
+                KnowledgeChunkModel(
+                    topic=c["topic"],
+                    chunk_id=c["chunk_id"],
+                    text=c["text"],
+                    embedding=c["embedding"],
+                    word_count=c.get("word_count", 0),
+                    char_count=c.get("char_count", 0),
+                    token_count=c.get("token_count", 0),
+                    section=c.get("section"),
+                )
+            )
+            saved += 1
+    session.commit()
+    return saved
