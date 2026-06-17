@@ -210,16 +210,18 @@ class TestWeatherPaths:
         assert score < 10
 
     def test_get_forecast_no_api_key(self):
-        import os
-
-        with patch.dict(os.environ, {"WEATHER_API_KEY": ""}, clear=True):
+        with patch(
+            "bike_analyzer.backend.weather.weather_service._get_weather_api_key",
+            return_value=""
+        ):
             result = get_forecast_for_date(45.0, 9.0, "2024-06-15")
             assert "error" in result
 
     def test_get_forecast_api_error(self):
-        import os
-
-        with patch.dict(os.environ, {"WEATHER_API_KEY": "fake_key"}), patch(
+        with patch(
+            "bike_analyzer.backend.weather.weather_service._get_weather_api_key",
+            return_value="fake_key"
+        ), patch(
             "bike_analyzer.backend.db.database.get_weather_cache", return_value=None
         ), patch("bike_analyzer.backend.db.database.save_weather_cache"), patch(
             "bike_analyzer.backend.weather.weather_service.requests"
@@ -229,10 +231,11 @@ class TestWeatherPaths:
             assert "error" in result
 
     def test_get_weather_cache_hit(self):
-        import os
-
         cache_data = {"temperature": 20, "humidity": 50, "description": "cached"}
-        with patch.dict(os.environ, {"WEATHER_API_KEY": "fake_key"}), patch(
+        with patch(
+            "bike_analyzer.backend.weather.weather_service._get_weather_api_key",
+            return_value="fake_key"
+        ), patch(
             "bike_analyzer.backend.db.database.get_weather_cache", return_value=cache_data
         ):
             result = get_weather_for_coordinates(45.0, 9.0)

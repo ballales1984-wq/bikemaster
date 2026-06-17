@@ -452,3 +452,61 @@ class TestBM25SearchQuality:
         if isinstance(results, list):
             for r in results:
                 assert r["score"] >= 0
+
+
+# ---------------------------------------------------------------------------
+# PGVector fallback tests (Phase 24)
+# ---------------------------------------------------------------------------
+
+
+class TestPGVectorFallback:
+    def test_embed_text_returns_list_or_none(self):
+        from bike_analyzer.backend.analytics.knowledge_base import embed_text
+
+        result = embed_text("test embedding")
+        assert result is None or isinstance(result, list)
+
+    def test_embed_text_local_fallback_returns_list(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "")
+        from bike_analyzer.backend.analytics.knowledge_base import embed_text, EMBEDDING_DIMENSION
+
+        result = embed_text("allenamento ciclistico recupero")
+        assert isinstance(result, list)
+        assert len(result) == EMBEDDING_DIMENSION
+
+    def test_search_knowledge_base_pgvector_fallback_to_bm25(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "")
+        from bike_analyzer.backend.analytics.knowledge_base import (
+            search_knowledge_base_pgvector,
+            embed_text,
+        )
+
+        class FakeSession:
+            def get_bind(self):
+                class FakeDialect:
+                    name = "sqlite"
+                return FakeDialect()
+
+        results = search_knowledge_base_pgvector("recupero", FakeSession())
+        assert isinstance(results, list)
+
+    def test_analyze_anomalies_function(self):
+        from bike_analyzer.backend.analytics.ai_coach import analyze_anomalies
+        from bike_analyzer.backend.models.models import Ride
+
+        rides = [
+            Ride(date="2024-06-01", distance_km=30.0, duration_minutes=60.0,
+                 avg_speed_kmh=25.0, calories=400, elevation_gain_m=100, heart_rate_avg=150),
+            Ride(date="2024-06-02", distance_km=30.0, duration_minutes=60.0,
+                 avg_speed_kmh=25.0, calories=400, elevation_gain_m=100, heart_rate_avg=180),
+        ]
+        result = analyze_anomalies(rides)
+        assert "status" in result
+        assert "anomalies" in result
+
+    def test_chat_with_tools_local_mode(self, monkeypatch):
+        monkeypatch.setenv("AI_COACH_MODE", "local")
+        from bike_analyzer.backend.analytics.ai_coach import chat_with_tools
+
+        result = chat_with_tools([{"role": "user", "content": "Fammi un piano"}])
+        assert "content" in result

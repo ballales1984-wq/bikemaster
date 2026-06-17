@@ -2,18 +2,38 @@
   <section>
     <div class="panel">
       <h2>📥 Importa Percorsi</h2>
+
       <div class="form-group">
-         <label for="import-file">Carica file GPX o FIT</label>
+        <label for="import-file">Carica file GPX o FIT</label>
         <div class="upload-area" @click="pickFile" @dragover.prevent @drop.prevent="onDrop">
           <input id="import-file" ref="fileInput" type="file" accept=".gpx,.fit" multiple @change="onChange" />
           <div class="upload-placeholder">{{ label }}</div>
         </div>
+      </div>
+
+      <div v-if="importStatus?.message" class="result-box" :class="importStatus.success ? 'success' : 'error'">
+        {{ importStatus.message }}
       </div>
       <div class="form-actions">
         <button class="btn btn-primary" @click="upload" :disabled="!files.length || uploading">
           {{ uploading ? 'Importazione in corso...' : 'Importa file selezionati' }}
         </button>
       </div>
+
+      <div class="oauth-separator">
+        <span>oppure</span>
+      </div>
+
+      <button @click="connectGoogleFit" class="btn btn-google-fit" :disabled="importing" type="button">
+        <svg viewBox="0 0 24 24" width="18" height="18" style="margin-right: 6px;">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.76h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c3.05 0 5.84-1.15 7.86-3l-3.57-2.76c-.98.66-2.23 1.06-3.62 1.44v2.26C15.24 21.23 13.71 22 12 22z"/>
+          <path fill="#FBBC05" d="M6.27 15.73a7.5 7.5 0 0 1 0-3.46l2.93-2.27a7.5 7.5 0 0 0 1.74 3.19l-2.93 2.27z"/>
+          <path fill="#EA4335" d="M18.57 6.43a7.5 7.5 0 0 0-6.57-4.43 7.5 7.5 0 0 0-1.57.23l2.93 2.26a4.99 4.99 0 0 1 5.17 4.17z"/>
+        </svg>
+        {{ importing ? 'Connessione...' : 'Importa da Google Fit' }}
+      </button>
+
       <div v-if="uploading || uploadProgress > 0" class="progress-track" aria-label="Avanzamento importazione">
         <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
       </div>
@@ -24,7 +44,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { apiUpload } from '../utils/api.ts'
+import { apiUpload, apiPost } from '../utils/api.ts'
 
 const emit = defineEmits(['summary-change'])
 const fileInput = ref(null)
@@ -32,6 +52,8 @@ const files = ref([])
 const status = ref('')
 const uploading = ref(false)
 const uploadProgress = ref(0)
+const importing = ref(false)
+const importStatus = ref(null)
 
 const label = computed(() => {
   if (!files.value.length) return 'Trascina file qui o clicca per selezionare (GPX/FIT)'
@@ -77,7 +99,179 @@ async function upload() {
   }
 }
 
+async function connectGoogleFit() {
+  importing.value = true
+  importStatus.value = null
+  try {
+    // Get Google Fit auth URL
+    const authResp = await fetch('/api/v1/import/google-fit/auth')
+    if (!authResp.ok) {
+      throw new Error('Impossibile iniziare autenticazione Google Fit')
+    }
+    const { auth_url } = await authResp.json()
+
+    // Open popup for Google Fit OAuth
+    const popup = window.open(auth_url, 'google-fit-auth', 'width=500,height=600')
+    if (!popup) {
+      throw new Error('Popup bloccato - abilita i popup')
+    }
+
+    // Listen for callback
+    const handleMessage = async (event) => {
+      if (event.data?.type === 'google-fit-success') {
+        window.removeEventListener('message', handleMessage)
+        // Import activities
+        const importResp = await fetch('/api/v1/import/google-fit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: event.data.token })
+        })
+        if (importResp.ok) {
+          const result = await importResp.json()
+          importStatus.value = { success: true, message: `Importati ${result.count} percorsi da Google Fit` }
+          emit('summary-change')
+        } else {
+          importStatus.value = { success: false, message: 'Errore importazione Google Fit' }
+        }
+        importing.value = false
+      }
+    }
+    window.addEventListener('message', handleMessage)
+  } catch (e) {
+    importStatus.value = { success: false, message: e.message }
+    importing.value = false
+  }
+}
+
 onMounted(() => {
   // offer manual upload via button in markdown if needed
 })
 </script>
+
+<style scoped>
+.panel {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.upload-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--bg-tertiary);
+  transition: all 0.2s;
+}
+
+.upload-area:hover {
+  background: var(--border);
+}
+
+.upload-placeholder {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.form-actions {
+  margin: 12px 0;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-google-fit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 10px 16px;
+  background: #fff;
+  color: #444;
+  border: 1px solid #dadce0;
+  margin-top: 12px;
+}
+
+.btn-google-fit:hover:not(:disabled) {
+  background: #f8f9fa;
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s;
+}
+
+.result-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.result-box.success {
+  background: rgba(66, 183, 77, 0.1);
+  border: 1px solid var(--success);
+  color: var(--success);
+}
+
+.result-box.error {
+  background: rgba(234, 67, 53, 0.1);
+  border: 1px solid var(--error);
+  color: var(--error);
+}
+
+.oauth-separator {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.oauth-separator span {
+  padding: 0 12px;
+}
+
+.oauth-separator::before,
+.oauth-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+</style>

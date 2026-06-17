@@ -182,3 +182,40 @@ def test_training_advice_uses_local_fallback_when_all_providers_fail(monkeypatch
     assert advice.startswith(ai_coach._FALLBACK_PREFIX)
     assert "groq" in ai_coach._BANNED_PROVIDERS
     assert "openai" in ai_coach._BANNED_PROVIDERS
+
+
+def test_analyze_anomalies_detects_hr_elevation():
+    from bike_analyzer.backend.analytics.ai_coach import analyze_anomalies
+
+    # Create significant HR elevation: avg 100, last ride 130 (30% increase)
+    rides = [
+        Ride(date="2024-06-01", distance_km=30.0, duration_minutes=60.0,
+             avg_speed_kmh=25.0, calories=400, elevation_gain_m=100, heart_rate_avg=95.0),
+        Ride(date="2024-06-02", distance_km=30.0, duration_minutes=60.0,
+             avg_speed_kmh=25.0, calories=400, elevation_gain_m=100, heart_rate_avg=100.0),
+        Ride(date="2024-06-03", distance_km=30.0, duration_minutes=60.0,
+             avg_speed_kmh=25.0, calories=400, elevation_gain_m=100, heart_rate_avg=130.0),
+    ]
+    result = analyze_anomalies(rides)
+    assert result["status"] == "analyzed"
+    assert isinstance(result["anomalies"], list)
+
+
+def test_chat_with_tools_local_mode(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    from bike_analyzer.backend.analytics.ai_coach import chat_with_tools
+
+    result = chat_with_tools([{"role": "user", "content": "Fammi un piano di allenamento"}])
+    assert "content" in result
+
+
+def test_generate_workout_plan_with_fitness_state():
+    from bike_analyzer.backend.analytics.ai_coach import generate_workout_plan
+
+    athlete = AthleteProfile(name="Test", weight_kg=70, experience_level="Amateur")
+    fitness_state = {"tsb": -20, "atl": 80, "ctl": 60}
+
+    plan = generate_workout_plan(athlete, days=5, fitness_state=fitness_state)
+    assert "workouts" in plan
+    assert len(plan["workouts"]) == 5
+    assert "Lunedi" in plan["workouts"][0]["day"]

@@ -10,8 +10,16 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import sqlalchemy as sa
 from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+try:
+    from pgvector.sqlalchemy import Vector
+
+    VECTOR_TYPE = Vector(1536)
+except ImportError:
+    VECTOR_TYPE = Text
 
 
 class Base(DeclarativeBase):
@@ -104,8 +112,11 @@ class RideModel(Base):
         DateTime, default=lambda: datetime.now(UTC)
     )
 
-__table_args__ = (
-        Index("ix_calendar_events_athlete_date", "athlete_id", "date"),
+    __table_args__ = (
+        Index("ix_rides_athlete_date", "athlete_id", "date"),
+        Index("ix_rides_distance", "distance_km"),
+        Index("ix_rides_elevation", "elevation_gain_m"),
+        Index("uq_rides_external_identity", "external_source", "external_id", unique=True),
     )
 
 
@@ -244,3 +255,46 @@ class CalendarEventModel(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC)
     )
+
+
+class KnowledgeChunkModel(Base):
+    __tablename__ = "knowledge_chunks"
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    topic: Mapped[str] = mapped_column(String(100), nullable=False)
+    chunk_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(VECTOR_TYPE, nullable=True)
+    word_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    char_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    token_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    section: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC)
+    )
+
+    __table_args__ = (
+        Index("ix_knowledge_chunks_topic", "topic"),
+    )
+
+
+class ChatMessageModel(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    athlete_id: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, index=True
+    )
+    role: Mapped[str] = mapped_column(String(20), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC)
+    )
+
+
+KnowledgeChunkTable = KnowledgeChunkModel
+ChatMessageTable = ChatMessageModel

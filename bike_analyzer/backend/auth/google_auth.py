@@ -56,17 +56,18 @@ def get_google_user_info(access_token: str) -> dict:
     return resp.json()
 
 
-def create_google_session(user_info: dict, athlete_data: dict | None = None) -> dict:
+def create_google_session(user_info: dict, athlete_id: int | str | None = None) -> dict:
     """Create session data from Google user info."""
     from ..security import create_access_token
 
+    subject = str(athlete_id) if athlete_id is not None else user_info.get("sub", "")
     return {
         "access_token": create_access_token(
-            subject=user_info.get("sub", ""),
+            subject=subject,
             is_admin=False,
         ),
         "token_type": "bearer",
-        "user_id": user_info.get("sub"),
+        "user_id": subject,
         "email": user_info.get("email"),
         "name": user_info.get("name"),
         "picture": user_info.get("picture"),

@@ -219,3 +219,8 @@ class GranfondoPlanRequest(BaseModel):
 class GoogleAuthRequest(BaseModel):
     code: str
     redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"
+
+
+class GoogleOAuthCallback(BaseModel):
+    code: str
+    redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"

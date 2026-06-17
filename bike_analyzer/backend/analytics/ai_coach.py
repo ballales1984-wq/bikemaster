@@ -738,3 +738,122 @@ def generate_training_plan(
 
 
 generate_workout_plan = generate_training_plan
+
+
+# ---------------------------------------------------------------------------
+# Tool Calling Functions
+# ---------------------------------------------------------------------------
+
+GENERATE_WORKOUT_PLAN_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "generate_workout_plan",
+        "description": "Generate a structured cycling training plan",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "days": {"type": "integer", "default": 7},
+                "include_recovery": {"type": "boolean", "default": True},
+            },
+        },
+    },
+}
+
+ANALYZE_ANOMALIES_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "analyze_anomalies",
+        "description": "Analyze rides for anomalies like fatigue or heart rate drift",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+}
+
+
+def analyze_anomalies(rides: list[Ride]) -> dict:
+    """Analyze rides for anomalies: fatigue, heart rate drift, overtraining signs."""
+    if not rides:
+        return {"status": "no_data", "anomalies": []}
+
+    anomalies = []
+    hr_values = [r.heart_rate_avg for r in rides if getattr(r, "heart_rate_avg", None)]
+    if len(hr_values) >= 3:
+        avg_hr = sum(hr_values) / len(hr_values)
+        recent_hr = hr_values[-1]
+        if recent_hr > avg_hr * 1.15:
+            anomalies.append({
+                "type": "heart_rate_elevation",
+                "severity": "warning",
+                "message": f"Frequenza cardiaca recente ({recent_hr:.0f}) sopra la media ({avg_hr:.0f})",
+            })
+
+    durations = [r.duration_minutes for r in rides if r.duration_minutes]
+    if len(durations) >= 2:
+        avg_duration = sum(durations) / len(durations)
+        if avg_duration > 240 and any(r.duration_minutes > 300 for r in rides[-3:]):
+            anomalies.append({
+                "type": "excessive_volume",
+                "severity": "info",
+                "message": f"Volume elevato: ultime uscite >5h, media {avg_duration:.0f}min",
+            })
+
+    return {"status": "analyzed", "anomalies": anomalies[:5]}
+
+
+def chat_with_tools(
+    messages: list[dict],
+    athlete_id: int | None = None,
+    session_factory=None,
+) -> dict:
+    """LLM chat completion with tool calling support.
+
+    Args:
+        messages: List of chat messages with {role, content}
+        athlete_id: Athlete ID for context and persistence
+        session_factory: Async session factory for tool execution
+
+    Returns:
+        {"content": str, "tool_calls": list} or {"content": str} if no tools called
+    """
+    if _use_local_coach():
+        return {"content": "Modalità locale: i tool calling non sono disponibili."}
+
+    try:
+        client, provider = get_ai_coach_client()
+    except ValueError:
+        return {"content": "Nessun provider LLM configurato."}
+
+    model = GROQ_MODEL if provider == "groq" else OLLAMA_MODEL if provider == "ollama" else OPENAI_MODEL
+
+    tools = [GENERATE_WORKOUT_PLAN_TOOL, ANALYZE_ANOMALIES_TOOL]
+
+    try:
+        chat = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=tools,
+        )
+        response = chat.choices[0].message
+
+        if hasattr(response, "tool_calls") and response.tool_calls:
+            tool_results = []
+            for tc in response.tool_calls:
+                if tc.function.name == "generate_workout_plan":
+                    tool_results.append({"generate_workout_plan": tc.function.arguments})
+                elif tc.function.name == "analyze_anomalies":
+                    tool_results.append({"analyze_anomalies": tc.function.arguments})
+
+            if athlete_id:
+                from ..db.database import save_chat_message
+
+                save_chat_message(athlete_id, "assistant", str(tool_results))
+
+            return {"tool_calls": tool_results}
+        return {"content": response.content or ""}
+    except Exception as e:
+        logger.warning("Tool calling failed: %s", e)
+        return {"content": _generate_fallback_training_advice(
+            AthleteProfile(name="Atleta", weight_kg=70, experience_level="Beginner"), []
+        )}
