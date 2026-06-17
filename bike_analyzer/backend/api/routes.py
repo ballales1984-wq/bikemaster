@@ -790,19 +790,23 @@ async def update_athlete(
 
 
 @router.get("/import/google-fit/auth")
+@limiter.limit("10/minute")
 async def google_fit_auth(
-    client_id: str = Query(...),
+    request: Request,
     redirect_uri: str = Query("http://localhost:8000/api/v1/import/google-fit/callback"),
     state: str = "",
 ):
     from urllib.parse import urlparse
 
+    from ..config import GOOGLE_CLIENT_ID
+    from ..ingestion.google_fit import get_authorization_url
+
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
     parsed = urlparse(redirect_uri)
     if parsed.scheme not in ("http", "https") or parsed.hostname not in ("localhost", "127.0.0.1"):
         raise HTTPException(status_code=400, detail="redirect_uri must be localhost")
-    from ..ingestion.google_fit import get_authorization_url
-
-    auth_url = get_authorization_url(client_id, redirect_uri=redirect_uri, state=state)
+    auth_url = get_authorization_url(GOOGLE_CLIENT_ID, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
 
 
@@ -834,6 +838,47 @@ async def google_fit_exchange_token(
         "refresh_token": token_data.get("refresh_token"),
         "expires_in": token_data.get("expires_in"),
     }
+
+
+@router.post("/import/google-fit")
+@router.get("/import/google-fit/callback")
+async def google_fit_callback(
+    request: Request,
+    code: str = Query(...),
+    redirect_uri: str = Query("http://localhost:8000/api/v1/import/google-fit/callback"),
+):
+    """Handle Google Fit OAuth callback - exchange code and import activities."""
+    from fastapi.responses import HTMLResponse
+
+    from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+    from ..db.database import save_ride
+    from ..ingestion.google_fit import exchange_code_for_token, fetch_cycling_activities, google_fit_to_ride
+
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Google Fit OAuth not configured")
+
+    token_data = exchange_code_for_token(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
+    access_token = token_data.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Failed to get access token from Google Fit")
+
+    activities = fetch_cycling_activities(access_token)
+    rides_data = google_fit_to_ride(activities)
+    imported = []
+    for ride_data in rides_data:
+        ride_data = {k: v for k, v in ride_data.items() if k != "id"}
+        ride_data["athlete_id"] = 1
+        ride_id = save_ride(ride_data)
+        ride_data["id"] = int(ride_id)
+        imported.append(ride_data)
+
+    token = access_token
+    return HTMLResponse(f"""
+<script>
+  window.opener.postMessage({{ type: 'google-fit-success', token: '{token}' }}, '*');
+  window.close();
+</script>
+""")
 
 
 @router.post("/import/google-fit")

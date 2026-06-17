@@ -80,7 +80,16 @@ async function submit() {
 }
 
 function loginWithGoogle() {
-  window.location.href = '/api/v1/auth/google'
+  fetch('/api/v1/auth/google')
+    .then(r => r.json())
+    .then(data => {
+      if (data.auth_url) {
+        window.location.href = data.auth_url
+      }
+    })
+    .catch(e => {
+      alert('Errore login Google: ' + e.message)
+    })
 }
 </script>
 
