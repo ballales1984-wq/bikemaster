@@ -233,6 +233,72 @@ async def register(
     return {"username": username, "email": email, "msg": "Utente creato", "is_admin": False, "id": athlete_id}
 
 
+@router.get("/auth/google")
+@limiter.limit("10/minute")
+async def google_oauth_login(
+    request: Request,
+    redirect_uri: str = Query("http://localhost:8000/api/v1/auth/google/callback"),
+    state: str = "",
+):
+    """Get Google OAuth2 authorization URL."""
+    from urllib.parse import urlparse
+
+    from ..auth.google_auth import get_google_oauth_url
+    from ..config import GOOGLE_CLIENT_ID
+
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
+    parsed = urlparse(redirect_uri)
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=400, detail="Invalid redirect_uri")
+    auth_url = get_google_oauth_url(GOOGLE_CLIENT_ID, redirect_uri=redirect_uri, state=state)
+    return {"auth_url": auth_url}
+
+
+@router.get("/auth/google/callback")
+@limiter.limit("10/minute")
+async def google_oauth_callback_get(
+    request: Request,
+    code: str = Query(...),
+    redirect_uri: str = Query("http://localhost:8000/api/v1/auth/google/callback"),
+):
+    """Handle Google OAuth2 callback - exchange code for token and create/login user."""
+    from fastapi.responses import RedirectResponse
+
+    from ..auth.google_auth import create_google_session, exchange_google_code, get_google_user_info
+    from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+    from ..db.database import get_athlete_by_name, save_athlete
+
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+
+    token_data = exchange_google_code(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
+    access_token = token_data.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Failed to get access token from Google")
+
+    user_info = get_google_user_info(access_token)
+    google_sub = user_info.get("sub")
+    email = user_info.get("email")
+    name = user_info.get("name")
+
+    if not google_sub:
+        raise HTTPException(status_code=400, detail="Invalid Google user info")
+
+    existing = get_athlete_by_name(email or google_sub)
+    if not existing:
+        save_athlete({
+            "name": name or email,
+            "email": email,
+            "experience_level": "Beginner",
+        })
+        existing = get_athlete_by_name(email or google_sub)
+
+    session = create_google_session(user_info)
+    token = session["access_token"]
+    return RedirectResponse(url=f"/?token={token}&email={email}")
+
+
 @router.post("/rides")
 async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_current_user)):
     """Create ride - automatically assigned to current user."""

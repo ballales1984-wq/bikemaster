@@ -92,8 +92,8 @@ function register(username, password) {
 
 async function logout() {
   try {
-    const token = localStorage.getItem('bikemaster_token')
-    if (token) {
+    const currentToken = localStorage.getItem(TOKEN_KEY)
+    if (currentToken) {
       await fetch('/api/v1/auth/logout', {
         method: 'POST',
         headers: { ...getAuthHeader() },
