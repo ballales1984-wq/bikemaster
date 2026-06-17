@@ -79,17 +79,28 @@ async function submit() {
   }
 }
 
-function loginWithGoogle() {
-  fetch('/api/v1/auth/google')
-    .then(r => r.json())
-    .then(data => {
-      if (data.auth_url) {
-        window.location.href = data.auth_url
-      }
-    })
-    .catch(e => {
-      alert('Errore login Google: ' + e.message)
-    })
+async function loginWithGoogle() {
+  loading.value = true
+  try {
+    const redirectUri = `${window.location.origin}/api/v1/auth/google/callback`
+    const response = await fetch(`/api/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`)
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(data.detail || `Errore login Google: ${response.status}`)
+    }
+
+    if (!data.auth_url) {
+      throw new Error('Errore login Google: risposta server non valida')
+    }
+
+    window.location.href = data.auth_url
+  } catch (e) {
+    emit('error', e.message)
+    alert(e.message)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
