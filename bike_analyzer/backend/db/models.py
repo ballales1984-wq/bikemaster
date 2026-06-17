@@ -104,17 +104,47 @@ class RideModel(Base):
         DateTime, default=lambda: datetime.now(UTC)
     )
 
-    __table_args__ = (
-        Index("ix_rides_athlete_date", "athlete_id", "date"),
-        Index("ix_rides_distance", "distance_km"),
-        Index("ix_rides_elevation", "elevation_gain_m"),
-        Index(
-            "uq_rides_external_identity",
-            "external_source",
-            "external_id",
-            unique=True,
-        ),
+__table_args__ = (
+        Index("ix_calendar_events_athlete_date", "athlete_id", "date"),
     )
+
+
+class FitnessStateModel(Base):
+    __tablename__ = "fitness_states"
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    athlete_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, index=True
+    )
+    date: Mapped[str] = mapped_column(String(20), nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    fitness: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    fatigue: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    form: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    atl: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    ctl: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    tsb: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    recovery_hours_needed: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0
+    )
+    weekly_tss: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    monthly_tss: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    trend_7d: Mapped[str] = mapped_column(String(20), nullable=False, default="stable")
+    trend_30d: Mapped[str] = mapped_column(String(20), nullable=False, default="stable")
+    risk_indicators: Mapped[str | None] = mapped_column(Text, nullable=True)
+    recommendation: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("ix_fitness_states_athlete_date", "athlete_id", "date"),
+        Index("ix_fitness_states_ctl", "ctl"),
+    )
+
+
+AthleteTable = AthleteModel
+RideTable = RideModel
+FitnessStateTable = FitnessStateModel
 
 
 class MetricModel(Base):

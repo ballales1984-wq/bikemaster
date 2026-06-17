@@ -1,28 +1,28 @@
 <template>
   <div class="login-panel">
     <h2>🔐 Accesso BikeMaster</h2>
-    <div class="login-tabs">
-      <button :class="['tab-btn', { active: mode === 'login' }]" @click="mode = 'login'">Login</button>
-      <button :class="['tab-btn', { active: mode === 'register' }]" @click="mode = 'register'">Registrati</button>
+    <div class="login-tabs" role="tablist" aria-label="Modalità accesso">
+      <button :class="['tab-btn', { active: mode === 'login' }]" @click="mode = 'login'" role="tab" :aria-selected="mode === 'login'" aria-controls="login-form">Login</button>
+      <button :class="['tab-btn', { active: mode === 'register' }]" @click="mode = 'register'" role="tab" :aria-selected="mode === 'register'" aria-controls="login-form">Registrati</button>
     </div>
 
     <form @submit.prevent="submit" class="login-form" novalidate>
       <div class="form-group">
         <label for="username">Username</label>
-        <input id="username" v-model="form.username" type="text" placeholder="min 3 caratteri" :disabled="loading" required autocomplete="username" :class="{ error: usernameError, valid: form.username.length >= 3 && !usernameError }" />
-        <span v-if="usernameError" class="field-error">{{ usernameError }}</span>
+        <input id="username" v-model="form.username" type="text" placeholder="min 3 caratteri" :disabled="loading" required autocomplete="username" :aria-invalid="!!usernameError" :aria-describedby="usernameError ? 'username-error' : undefined" :class="{ error: usernameError, valid: form.username.length >= 3 && !usernameError }" />
+        <span v-if="usernameError" id="username-error" class="field-error" role="alert" aria-live="assertive">{{ usernameError }}</span>
       </div>
       <div class="form-group">
         <label for="password">Password</label>
         <div class="password-wrapper">
-          <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" :placeholder="mode === 'register' ? 'min 6 caratteri' : ''" :disabled="loading" required autocomplete="current-password" :class="{ error: passwordError, valid: form.password.length >= 6 && !passwordError }" />
-          <button type="button" class="password-toggle" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Nascondi password' : 'Mostra password'">
+          <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" :placeholder="mode === 'register' ? 'min 6 caratteri' : ''" :disabled="loading" required autocomplete="current-password" :aria-invalid="!!passwordError" :aria-describedby="passwordError ? 'password-error' : undefined" :class="{ error: passwordError, valid: form.password.length >= 6 && !passwordError }" />
+          <button type="button" class="password-toggle" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Nascondi password' : 'Mostra password'" :aria-pressed="showPassword">
             {{ showPassword ? '🙈' : '👁️' }}
           </button>
         </div>
-        <span v-if="passwordError" class="field-error">{{ passwordError }}</span>
+        <span v-if="passwordError" id="password-error" class="field-error" role="alert" aria-live="assertive">{{ passwordError }}</span>
       </div>
-      <button type="submit" class="btn btn-primary" :disabled="loading || !isFormValid">
+      <button type="submit" class="btn btn-primary" :disabled="loading || !isFormValid" :aria-busy="loading">
         {{ loading ? '🔄 Caricamento...' : (mode === 'login' ? 'Entra' : 'Crea account') }}
       </button>
     </form>

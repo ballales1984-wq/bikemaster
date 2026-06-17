@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import date, datetime, timedelta
-from typing import Sequence
 
-from ....core.models import Ride
 from ....core.fitness_state import FitnessStateVector
+from ....core.models import Ride
 from ..calculators import power, stress
 
 
@@ -16,7 +16,7 @@ class FitnessStateEngine:
         self._stress_repo = stress_repo
         self.ftp = ftp
 
-    def compute(self, rides: Sequence[Ride], athlete_id: int, rider_age: int = 35) -> "FitnessStateVector":
+    def compute(self, rides: Sequence[Ride], athlete_id: int, rider_age: int = 35) -> FitnessStateVector:
         now = date.today()
         window_7 = now - timedelta(days=7)
         window_30 = now - timedelta(days=30)

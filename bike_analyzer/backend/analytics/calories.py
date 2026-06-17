@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from ..models.models import Ride
-
 from .calculators.calories import estimate as _core_estimate
 
 

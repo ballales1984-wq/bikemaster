@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const apiGet = vi.hoisted(() => vi.fn())
-vi.mock('../utils/api.js', () => ({ apiGet }))
+vi.mock('../utils/api.ts', () => ({ apiGet }))
 
 import CoachPanel from './CoachPanel.vue'
 

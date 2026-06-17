@@ -8,7 +8,16 @@ import os
 import re
 from datetime import UTC
 
-from ..config import AI_COACH_MODE, GROQ_API_KEY, GROQ_MODEL, OPENAI_API_KEY, OPENAI_MODEL
+from ..config import (
+    AI_COACH_MODE,
+    GROQ_API_KEY,
+    GROQ_MODEL,
+    OLLAMA_API_KEY,
+    OLLAMA_BASE_URL,
+    OLLAMA_MODEL,
+    OPENAI_API_KEY,
+    OPENAI_MODEL,
+)
 from ..models.models import AthleteProfile, Ride
 from .analytics import calculate_summary, create_duration_chart, create_speed_chart
 from .knowledge_base import format_context_for_llm, search_knowledge_base
@@ -53,7 +62,7 @@ def _provider_order() -> list[str]:
         providers = [p.strip() for p in configured.split(",") if p.strip()]
         if providers:
             return providers
-    return ["groq", "openai"]
+    return ["ollama", "groq", "openai"]
 
 
 def _ban_provider(provider: str) -> None:
@@ -77,7 +86,9 @@ def get_ai_coach_client():
 
     groq_key = os.getenv("GROQ_API_KEY", "").strip() or (GROQ_API_KEY or "").strip()
     openai_key = os.getenv("OPENAI_API_KEY", "").strip() or (OPENAI_API_KEY or "").strip()
-    keys = {"groq": groq_key, "openai": openai_key}
+    ollama_key = os.getenv("OLLAMA_API_KEY", "ollama").strip() or (OLLAMA_API_KEY or "ollama").strip()
+    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1").strip() or (OLLAMA_BASE_URL or "http://localhost:11434/v1").strip()
+    keys = {"groq": groq_key, "openai": openai_key, "ollama": ollama_key}
 
     for provider in _provider_order():
         api_key = keys.get(provider)
@@ -86,6 +97,8 @@ def get_ai_coach_client():
         if provider == "groq" and not api_key.startswith("gsk_"):
             continue
         if provider == "openai" and not api_key.startswith("sk-"):
+            continue
+        if provider == "ollama" and not api_key:
             continue
         try:
             if provider == "groq":
@@ -96,6 +109,15 @@ def get_ai_coach_client():
                 from openai import OpenAI
 
                 _current_client = OpenAI(api_key=api_key)
+            elif provider == "ollama":
+                from openai import OpenAI
+
+                _current_client = OpenAI(
+                    base_url=ollama_url,
+                    api_key=api_key,
+                    timeout=300.0,
+                    max_retries=1,
+                )
             else:
                 continue
             _current_provider = provider
@@ -111,7 +133,10 @@ def get_ai_coach_client():
             _current_client = None
             _current_provider = None
 
-    msg = "AI Coach: no valid API key (GROQ=gsk_..., OPENAI=sk-...) or all providers failed"
+    msg = (
+        "AI Coach: no valid API key (GROQ=gsk_..., "
+        "OPENAI=sk-..., OLLAMA=http://localhost:11434/v1) or all providers failed"
+    )
     logger.error(msg)
     raise ValueError(msg)
 
@@ -399,7 +424,7 @@ def generate_training_advice(
             logger.warning("AI Coach no API key available, using fallback")
             return _generate_fallback_training_advice(athlete, rides)
 
-        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
+        model = GROQ_MODEL if provider == "groq" else OLLAMA_MODEL if provider == "ollama" else OPENAI_MODEL
         try:
             content = _chat_completion_text(client, model, prompt, 500)
             return _clean_ai_output(content)
@@ -484,7 +509,7 @@ def generate_recovery_advice(
         except ValueError:
             return _generate_fallback_recovery_advice(athlete, rides, recovery)
 
-        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
+        model = GROQ_MODEL if provider == "groq" else OLLAMA_MODEL if provider == "ollama" else OPENAI_MODEL
         try:
             content = _chat_completion_text(client, model, prompt, 300)
             return _clean_ai_output(content)
@@ -560,6 +585,30 @@ def analyze_historical_trend(rides: list[Ride]) -> str:
 analyze_historical_trends = analyze_historical_trend
 
 
+def get_fitness_state_explanation(athlete_id: int, session_factory=None) -> str:
+    """Get transparent explanation of fitness state for AI context."""
+    if not session_factory or not athlete_id:
+        return ""
+
+    import asyncio
+
+    from ..repositories.fitness_state_repository import FitnessStateRepository
+
+    async def _get():
+        repo = FitnessStateRepository(session_factory=session_factory)
+        state = await repo.get_latest(athlete_id)
+        if not state:
+            return ""
+        return f"TSB: {state.get('tsb', 0):.1f}, ATL: {state.get('atl', 0):.1f}, CTL: {state.get('ctl', 0):.1f}. " \
+               f"Recupero stimato: {state.get('recovery_hours_needed', 0):.0f}h."
+
+    try:
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(_get())
+    except Exception:
+        return ""
+
+
 def ai_coach_full(
     athlete: AthleteProfile, rides: list[Ride], athlete_id: int | None = None
 ) -> dict:
@@ -603,10 +652,14 @@ def ai_coach_full(
         pass
     training_advice = generate_workout_recommendations(athlete, rides, athlete_id)
     recovery_advice = generate_recovery_recommendations(athlete, rides, athlete_id)
+    fitness_explanation = ""
+    if athlete_id:
+        fitness_explanation = get_fitness_state_explanation(athlete_id)
     return {
         "training_advice": training_advice,
         "recovery_advice": recovery_advice,
         "historical_analysis": analyze_historical_trends(rides),
+        "fitness_explanation": fitness_explanation,
         "training_scores": [
             {"label": "Performance", "value": perf},
             {"label": "Endurance", "value": endurance},
@@ -618,3 +671,70 @@ def ai_coach_full(
         ],
         "charts": charts,
     }
+
+
+def generate_training_plan(
+    athlete: AthleteProfile,
+    days: int = 7,
+    include_recovery: bool = True,
+    fitness_state: dict | None = None,
+) -> dict:
+    """Generate structured training plan using tool calling pattern."""
+    plan = {
+        "days": days,
+        "athlete_name": athlete.name,
+        "ftp_watts": athlete.ftp_watts or 250,
+        "workouts": [],
+    }
+
+    zone2_duration = 60 if athlete.experience_level == "Beginner" else 90
+    zone3_duration = int(zone2_duration * 0.7)
+    zone4_duration = int(zone2_duration * 0.4)
+
+    if fitness_state:
+        tsb = fitness_state.get("tsb", 0)
+        if tsb < -15:
+            plan["workouts"] = [
+                {"day": "Lunedi", "type": "Recupero", "duration_min": 30, "zone": "Base"},
+                {"day": "Martedi", "type": "Recupero", "duration_min": 45, "zone": "Base"},
+                {"day": "Mercoledi", "type": "Attivazione", "duration_min": zone2_duration, "zone": "Z2"},
+                {"day": "Giovedi", "type": "Recupero", "duration_min": 45, "zone": "Base"},
+                {"day": "Venerdi", "type": "Recupero", "duration_min": 30, "zone": "Base"},
+            ]
+        elif tsb > 10:
+            plan["workouts"] = [
+                {"day": "Lunedi", "type": "Qualita", "duration_min": zone4_duration, "zone": "Z4"},
+                {"day": "Martedi", "type": "Endurance", "duration_min": zone2_duration, "zone": "Z2"},
+                {"day": "Mercoledi", "type": "THRESHOLD", "duration_min": zone3_duration, "zone": "Z3"},
+                {"day": "Giovedi", "type": "Recupero", "duration_min": 45, "zone": "Base"},
+                {"day": "Venerdi", "type": "VO2max", "duration_min": zone4_duration, "zone": "Z5"},
+            ]
+        else:
+            plan["workouts"] = [
+                {"day": "Lunedi", "type": "Endurance", "duration_min": zone2_duration, "zone": "Z2"},
+                {"day": "Martedi", "type": "Threshold", "duration_min": zone3_duration, "zone": "Z3"},
+                {"day": "Mercoledi", "type": "Recupero", "duration_min": 45, "zone": "Base"},
+                {"day": "Giovedi", "type": "Endurance", "duration_min": zone2_duration, "zone": "Z2"},
+                {"day": "Venerdi", "type": "Threshold", "duration_min": zone3_duration, "zone": "Z3"},
+            ]
+    else:
+        plan["workouts"] = [
+            {"day": "Lunedi", "type": "Endurance", "duration_min": zone2_duration, "zone": "Z2"},
+            {"day": "Martedi", "type": "Threshold", "duration_min": zone3_duration, "zone": "Z3"},
+            {"day": "Mercoledi", "type": "Recupero", "duration_min": 45, "zone": "Base"},
+            {"day": "Giovedi", "type": "Endurance", "duration_min": zone2_duration, "zone": "Z2"},
+            {"day": "Venerdi", "type": "Threshold", "duration_min": zone3_duration, "zone": "Z3"},
+        ]
+
+    tsb = fitness_state.get("tsb", 0) if fitness_state else 0
+    plan["explanation"] = (
+        f"Piano basato su FTP {athlete.ftp_watts or 250}W. "
+        f"{tsb:.1f} TSB indica "
+        f"{'recupero prioritario' if tsb < -15 else 'forma ottimale' if tsb > 10 else 'forma buona'}."
+        if fitness_state
+        else "Piano generico basato su livello esperto."
+    )
+    return plan
+
+
+generate_workout_plan = generate_training_plan

@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Sequence
 
-from .models import GPSPoint, Ride, RouteStatistics
+from .models import Ride, RouteStatistics
 
 
 @dataclass
@@ -40,9 +38,9 @@ class AnalysisPipeline:
         return stats
 
     def _compute_metrics(self, ride: Ride) -> dict:
-        from bike_analyzer.backend.analytics.calculators.fatigue import calculate_fatigue_score, estimate_recovery_hours
         from bike_analyzer.backend.analytics.calculators.calories import estimate
-        from bike_analyzer.backend.analytics.calculators.performance import performance_score, efficiency_score
+        from bike_analyzer.backend.analytics.calculators.fatigue import calculate_fatigue_score, estimate_recovery_hours
+        from bike_analyzer.backend.analytics.calculators.performance import efficiency_score, performance_score
         from bike_analyzer.backend.analytics.calculators.power import training_stress_score
 
         fatigue = calculate_fatigue_score(ride)
