@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 import math
-import os
 import re
 import time
 from functools import lru_cache
@@ -471,7 +470,6 @@ def _embed_text_local(text: str) -> list[float] | None:
     """Embed text using local TF-IDF (fallback)."""
     try:
         from sklearn.feature_extraction.text import TfidfVectorizer
-        from sklearn.metrics.pairwise import cosine_similarity
 
         vec = TfidfVectorizer(max_features=1536, stop_words="english")
         embedding = vec.fit_transform([text]).toarray()[0]

@@ -1,8 +1,7 @@
 """Tests for API routes - missing coverage."""
-import os
-import pytest
 from io import BytesIO
-from bike_analyzer.backend.api.schemas import RideCreate
+
+import pytest
 
 
 def test_health_redis_endpoint(client):
@@ -152,7 +151,6 @@ def test_coach_full_endpoint(client):
 @pytest.mark.asyncio
 async def test_strava_routes():
     """Test Strava auth and callback routes."""
-    from bike_analyzer.backend.ingestion.strava_client import get_authorization_url
 
 
 def test_strava_auth_endpoint(client):

@@ -2,8 +2,6 @@
 
 from datetime import UTC, datetime
 
-import pytest
-
 from bike_analyzer.backend.models.models import GPSPoint
 from bike_analyzer.backend.processing.segment_detector import (
     ClimbSegment,

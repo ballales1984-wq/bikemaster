@@ -64,7 +64,7 @@ async def save_refresh_token(athlete_id: int, refresh_token: str, ttl: int = REF
         tokens = set(tokens_raw.split(",")) if tokens_raw else set()
         tokens.add(refresh_token)
         if len(tokens) > REFRESH_MAX_ACTIVE:
-            oldest = tokens.pop()
+            tokens.pop()
         await r.set(f"{REFRESH_PREFIX}{athlete_id}", refresh_token, ex=ttl)
         await r.set(f"{REFRESH_PREFIX}{athlete_id}:tokens", ",".join(tokens), ex=ttl)
         return True

@@ -1,6 +1,4 @@
 """Tests for async_db module - basic coverage."""
-import pytest
-import os
 
 
 def test_get_engine_lazy():
@@ -19,8 +17,9 @@ def test_get_session_factory_lazy():
 
 
 def test_ride_model_to_dict():
+    from datetime import UTC, datetime
+
     from bike_analyzer.backend.db import async_db
-    from datetime import datetime, UTC
 
     class MockRow:
         id = 1

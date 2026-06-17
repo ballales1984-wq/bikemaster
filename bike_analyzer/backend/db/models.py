@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-import sqlalchemy as sa
 from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 

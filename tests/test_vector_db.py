@@ -3,7 +3,7 @@ import pytest
 
 
 def test_embed_text_returns_list():
-    from bike_analyzer.backend.db.vector_db import embed_text, VECTOR_AVAILABLE
+    from bike_analyzer.backend.db.vector_db import VECTOR_AVAILABLE, embed_text
 
     if not VECTOR_AVAILABLE:
         pytest.skip("sklearn not available")
@@ -14,7 +14,7 @@ def test_embed_text_returns_list():
 
 
 def test_similarity_search():
-    from bike_analyzer.backend.db.vector_db import similarity_search, VECTOR_AVAILABLE
+    from bike_analyzer.backend.db.vector_db import VECTOR_AVAILABLE, similarity_search
 
     if not VECTOR_AVAILABLE:
         pytest.skip("sklearn not available")
@@ -33,9 +33,10 @@ def test_similarity_search_empty():
 
 
 def test_vector_store_add_and_search():
-    from bike_analyzer.backend.db.vector_db import VectorStore, VECTOR_AVAILABLE
-    import tempfile
     import os
+    import tempfile
+
+    from bike_analyzer.backend.db.vector_db import VECTOR_AVAILABLE, VectorStore
 
     if not VECTOR_AVAILABLE:
         pytest.skip("sklearn not available")

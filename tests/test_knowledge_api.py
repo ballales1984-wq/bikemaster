@@ -468,7 +468,7 @@ class TestPGVectorFallback:
 
     def test_embed_text_local_fallback_returns_list(self, monkeypatch):
         monkeypatch.setenv("OPENAI_API_KEY", "")
-        from bike_analyzer.backend.analytics.knowledge_base import embed_text, EMBEDDING_DIMENSION
+        from bike_analyzer.backend.analytics.knowledge_base import EMBEDDING_DIMENSION, embed_text
 
         result = embed_text("allenamento ciclistico recupero")
         assert isinstance(result, list)
@@ -478,7 +478,6 @@ class TestPGVectorFallback:
         monkeypatch.setenv("OPENAI_API_KEY", "")
         from bike_analyzer.backend.analytics.knowledge_base import (
             search_knowledge_base_pgvector,
-            embed_text,
         )
 
         class FakeSession:

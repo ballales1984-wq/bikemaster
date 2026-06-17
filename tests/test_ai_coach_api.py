@@ -88,7 +88,6 @@ def test_ai_coach_workout_endpoint(client):
 
 def test_ai_coach_workout_endpoint_with_athlete(client, db_path):
     from bike_analyzer.backend.db import database as db_mod
-    from bike_analyzer.backend.models.models import AthleteProfile
     athlete_id = db_mod.save_athlete(
         {"name": "Test Athlete", "weight_kg": 70.0, "experience_level": "Beginner"}
     )

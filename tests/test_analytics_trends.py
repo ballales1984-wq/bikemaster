@@ -1,13 +1,13 @@
 """Tests for analytics_trends module."""
-import pytest
 from datetime import date, datetime
+
 from bike_analyzer.backend.analytics.analytics_trends import (
-    _to_date,
-    _safe_float,
-    _filter_valid_rides,
     _duration_hours,
+    _filter_valid_rides,
     _fit_linear,
     _rolling_average,
+    _safe_float,
+    _to_date,
     calculate_fitness_trends,
     calculate_monthly_progression,
     calculate_period_comparison,
@@ -57,7 +57,6 @@ def test_safe_float_invalid():
 
 
 def test_safe_float_inf():
-    import math
     assert _safe_float(float("inf")) is None
 
 

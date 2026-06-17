@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 import json
-import math
-import os
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # =============================================================================
 # overpass_client tests
@@ -49,27 +46,6 @@ class TestValidateCoords:
 
 
 class TestOverpassQuery:
-    @pytest.mark.asyncio
-    async def test_returns_json_on_success(self):
-        from bike_analyzer.backend.traffic.overpass_client import _overpass_query
-
-        mock_resp = MagicMock()
-        mock_resp.ok = True
-        mock_resp.json.return_value = {"elements": []}
-        with patch("requests.post", return_value=mock_resp):
-            result = await _overpass_query("[out:json];")
-            assert result == {"elements": []}
-
-    @pytest.mark.asyncio
-    async def test_returns_none_on_http_error(self):
-        from bike_analyzer.backend.traffic.overpass_client import _overpass_query
-
-        mock_resp = MagicMock()
-        mock_resp.ok = False
-        with patch("requests.post", return_value=mock_resp):
-            result = await _overpass_query("[out:json];")
-            assert result is None
-
     @pytest.mark.asyncio
     async def test_returns_json_on_success(self):
         from bike_analyzer.backend.traffic.overpass_client import _overpass_query

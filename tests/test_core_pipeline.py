@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+from bike_analyzer.core.engine import AnalysisEngine
 from bike_analyzer.core.models import GPSPoint, Ride
 from bike_analyzer.core.pipeline import AnalysisPipeline
-from bike_analyzer.core.engine import AnalysisEngine
 
 
 def _make_ride(gps_points: list[GPSPoint] | None = None) -> Ride:
@@ -26,7 +26,7 @@ def _make_ride(gps_points: list[GPSPoint] | None = None) -> Ride:
 
 
 def _make_point(lat: float, lon: float, minutes_offset: float = 0.0, speed: float | None = 20.0) -> GPSPoint:
-    base = datetime(2026, 6, 14, 10, 0, 0, tzinfo=timezone.utc)
+    base = datetime(2026, 6, 14, 10, 0, 0, tzinfo=UTC)
     ts = base.replace(minute=base.minute + int(minutes_offset))
     return GPSPoint(
         lat=lat,
@@ -91,7 +91,7 @@ class TestAnalysisEngine:
 
 class TestFitnessStateComputation:
     def _make_rides(self) -> list[Ride]:
-        base = datetime(2026, 5, 1, tzinfo=timezone.utc)
+        base = datetime(2026, 5, 1, tzinfo=UTC)
         return [
             Ride(
                 id=i,

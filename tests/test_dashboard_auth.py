@@ -1,8 +1,6 @@
 """Tests for dashboard endpoint and auth refresh token."""
 
 import os
-import pytest
-from unittest.mock import patch
 
 os.environ["SECRET_KEY"] = "test-secret-key-for-jwt-testing-123456"
 
@@ -90,6 +88,7 @@ class TestLoginWithRefresh:
         db_mod.DB_PATH = db_path
 
         from starlette.testclient import TestClient
+
         from bike_analyzer.backend.api.app_factory import create_app
 
         app = create_app()

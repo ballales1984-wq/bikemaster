@@ -1,16 +1,14 @@
 """Tests for SQLAlchemy ORM models."""
-import pytest
-from datetime import datetime, UTC
 from bike_analyzer.backend.db.models import (
-    Base,
     AthleteModel,
-    RideModel,
-    MetricModel,
-    StravaTokenModel,
-    GarminTokenModel,
+    Base,
     CalendarEventModel,
-    KnowledgeChunkModel,
     ChatMessageModel,
+    GarminTokenModel,
+    KnowledgeChunkModel,
+    MetricModel,
+    RideModel,
+    StravaTokenModel,
 )
 
 
@@ -33,8 +31,6 @@ def test_athlete_model_table_name():
 
 
 def test_athlete_model_indexes():
-    from sqlalchemy import inspect
-    mapper = inspect(AthleteModel)
     table_args = AthleteModel.__table_args__
     index_names = []
     for arg in table_args:
@@ -120,7 +116,12 @@ def test_calendar_event_model_table_name():
 
 
 def test_all_models_inherited_from_base():
-    for model in [AthleteModel, RideModel, MetricModel, StravaTokenModel, GarminTokenModel, CalendarEventModel, KnowledgeChunkModel, ChatMessageModel]:
+    models = [
+        AthleteModel, RideModel, MetricModel,
+        StravaTokenModel, GarminTokenModel,
+        CalendarEventModel, KnowledgeChunkModel, ChatMessageModel,
+    ]
+    for model in models:
         assert issubclass(model, Base)
 
 
