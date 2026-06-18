@@ -31,6 +31,18 @@ jobs:
       - run: ruff check bike_analyzer tests
       - run: mypy bike_analyzer --ignore-missing-imports
 
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+
   security:
     runs-on: ubuntu-latest
     needs: [test, lint]

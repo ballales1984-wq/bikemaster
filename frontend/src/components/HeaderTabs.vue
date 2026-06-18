@@ -1,6 +1,7 @@
 <template>
   <nav class="tabs" aria-label="Navigazione principale">
     <router-link to="/rides" class="tab" active-class="active">🏍️ <span>Rides</span></router-link>
+    <router-link to="/track" class="tab" active-class="active">📍 <span>Tracking</span></router-link>
     <router-link to="/import" class="tab" active-class="active">📥 <span>Import</span></router-link>
     <router-link to="/athlete" class="tab" active-class="active">🏃 <span>Atleta</span></router-link>
     <router-link to="/coach" class="tab" active-class="active">🧠 <span>AI Coach</span></router-link>

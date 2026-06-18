@@ -1,0 +1,20 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Kotlin/Java
+*.kt diff=kotlin
+*.java diff=java
+
+# Web
+*.vue linguist-language=HTML
+*.ts linguist-language=TypeScript
+*.js linguist-language=JavaScript
+
+# Android
+*.xml diff=xml
+*.gradle linguist-language=Gradle
+
+# Binary files
+*.png binary
+*.jpg binary
+*.webp binary

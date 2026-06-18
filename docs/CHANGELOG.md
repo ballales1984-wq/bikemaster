@@ -2,6 +2,31 @@
 
 Tutte le modifiche significative a questo progetto sono documentate in questo file.
 
+## [1.3.0] - 2026-06-18
+
+### Aggiunte
+- **Phone GPS Tracking** - Registrazione uscite direttamente dal telefono mobile
+- `BikeTrackingService.kt` - Foreground service Android con GPS persistente
+- `BikeTrackingPlugin.kt` - Plugin Capacitor per bridge nativo
+- `trackingStore.ts` - Store Pinia con stato reattivo tracking
+- `RideTracking.vue` - Pagina Vue con mappa Leaflet live
+- Scrittura GPX incrementale in background
+- Supporto sensori BLE (HR, Cadence, Power)
+- Documentazione `docs/PHONE_TRACKING.md`
+
+### Route
+- Aggiunta `/track` per pagina di tracciamento GPS
+
+### Android Manifest
+- Aggiunti permessi: `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE_LOCATION`, `ACTIVITY_RECOGNITION`, `BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`
+
+### Frontend
+- Pulsante "Traccia Uscita" nella dashboard
+- Store Pinia `trackingStore.ts` per stato tracking
+- Componenti metriche live in tempo reale
+
+---
+
 ## [1.2.0] - 2026-06-08
 
 ### Fixati

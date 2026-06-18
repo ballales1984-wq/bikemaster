@@ -19,6 +19,10 @@ app/src/main/java/com/bikemaster/
 ├── network/
 │   ├── ApiClient.kt                   # Retrofit client singleton
 │   └── BikeMasterApi.kt               # Interfaccia API
+├── plugins/
+│   └── BikeTrackingPlugin.kt            # Capacitor plugin per GPS tracking
+├── tracking/
+│   └── BikeTrackingService.kt           # Foreground service GPS persistente
 ├── ui/
 │   ├── auth/
 │   │   ├── LoginActivity.kt           # Login
@@ -42,9 +46,42 @@ app/src/main/java/com/bikemaster/
 │       ├── RideDetailActivity.kt      # Dettaglio attività con mappa
 │       └── AddRideDialog.kt
 └── utils/
-    ├── LocationTracker.kt             # GPS tracking
+    ├── LocationTracker.kt             # GPS tracking utility
     └── PreferencesManager.kt            # Gestione preferenze
 ```
+
+## Phone GPS Tracking
+
+### Componenti
+- **BikeTrackingService** - Foreground service per tracciamento in background
+- **BikeTrackingPlugin** - Bridge Capacitor per metodo JS
+- **trackingStore.ts** - Store Pinia (frontend Vue)
+
+### Permessi Richiesti
+```xml
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+<uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+```
+
+### Utilizzo Capacitor
+```typescript
+import { BikeTracking } from '@/plugins/bikeTracking'
+
+// Avvia tracking
+await BikeTracking.startTracking()
+
+// Pausa
+await BikeTracking.pauseTracking()
+
+// Stop e ottieni GPX
+const result = await BikeTracking.stopTracking()
+console.log(result.gpxPath)
+```
+
+---
 
 ## Dipendenze Principali
 

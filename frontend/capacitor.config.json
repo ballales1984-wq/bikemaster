@@ -1,19 +1,13 @@
 {
-  "appId": "com.bikemaster.app",
-  "appName": "BikeMaster",
-  "webDir": "dist",
-  "bundledWebRuntime": false,
-  "server": {
-    "androidScheme": "https"
-  },
   "plugins": {
-    "StatusBar": {
-      "style": "DARK",
-      "backgroundColor": "#1a1a2e"
-    },
-    "Keyboard": {
-      "style": "DARK",
-      "resize": "body"
+    "BikeTracking": {
+      "android": {
+        "locationAccuracy": "high",
+        "stationaryRadius": 10,
+        "distanceFilter": 5,
+        "notificationTitle": "BikeMaster Tracking",
+        "notificationText": "Registrazione GPS in corso..."
+      }
     }
   }
 }

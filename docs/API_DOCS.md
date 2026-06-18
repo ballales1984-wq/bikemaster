@@ -421,6 +421,48 @@ POST /admin/reset-demo
 
 ---
 
+## Phone GPS Tracking (Mobile API)
+
+### Start Tracking
+```http
+POST /mobile/tracking/start
+```
+
+Inizia il tracciamento GPS dal telefono mobile. Richiede Capacitor plugin native.
+
+### Stop Tracking
+```http
+POST /mobile/tracking/stop
+```
+
+Termina il tracciamento e salva il file GPX.
+
+### Pause Tracking
+```http
+POST /mobile/tracking/pause
+```
+
+Metti in pausa il tracciamento (mantiene il servizio attivo).
+
+### Resume Tracking
+```http
+POST /mobile/tracking/resume
+```
+
+Riprendi il tracciamento dopo una pausa.
+
+### Import Tracked Ride
+```http
+POST /rides/import
+Content-Type: multipart/form-data
+
+file: <tracked_ride.gpx>
+```
+
+Importa automaticamente la ride tracciata dal telefono.
+
+---
+
 ## Common Use Cases
 
 ### Import Garmin Route

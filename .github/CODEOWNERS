@@ -1,0 +1,13 @@
+# Code owners
+* @ballales1984-wq
+
+# Android tracking module
+android/app/src/main/java/com/bikemaster/tracking/ @ballales1984-wq
+android/app/src/main/java/com/bikemaster/plugins/ @ballales1984-wq
+
+# Frontend tracking
+frontend/src/views/RideTracking.vue @ballales1984-wq
+frontend/src/stores/trackingStore.ts @ballales1984-wq
+frontend/src/components/LiveMap.vue @ballales1984-wq
+frontend/src/components/RideMetricsPanel.vue @ballales1984-wq
+frontend/src/components/ControlsBar.vue @ballales1984-wq
