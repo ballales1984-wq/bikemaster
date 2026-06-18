@@ -4,7 +4,8 @@ import { isLoggedIn, isAdmin } from '../composables/useAuth.ts'
 const routes = [
   {
     path: '/',
-    redirect: '/rides'
+    name: 'home',
+    component: { template: '<div />' }
   },
   {
     path: '/rides',
@@ -91,7 +92,9 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const loggedIn = isLoggedIn()
 
-  if (to.meta.requiresAuth && !loggedIn) {
+  if (to.path === '/' && loggedIn) {
+    next('/rides')
+  } else if (to.meta.requiresAuth && !loggedIn) {
     next('/')
   } else if (to.meta.requiresAdmin && !isAdmin()) {
     next('/')

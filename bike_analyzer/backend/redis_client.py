@@ -9,6 +9,7 @@ Provides:
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import functools
 import hashlib
@@ -20,6 +21,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 _redis = None
+_REDIS_CONNECT_TIMEOUT = 3
 
 
 async def get_redis():
@@ -33,8 +35,15 @@ async def get_redis():
 
             s = get_settings()
             url = s.redis_url or "redis://localhost:6379"
-            _redis = aioredis.from_url(url, encoding="utf-8", decode_responses=True)
-            await _redis.ping()
+            _redis = aioredis.from_url(
+                url,
+                encoding="utf-8",
+                decode_responses=True,
+                socket_connect_timeout=_REDIS_CONNECT_TIMEOUT,
+                socket_timeout=_REDIS_CONNECT_TIMEOUT,
+                retry_on_timeout=False,
+            )
+            await asyncio.wait_for(_redis.ping(), timeout=_REDIS_CONNECT_TIMEOUT)
             logger.info("Redis connected: %s", url)
         except Exception as exc:
             logger.warning("Redis unavailable: %s — cache disabled", exc)

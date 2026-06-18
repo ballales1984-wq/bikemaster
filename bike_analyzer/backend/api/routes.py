@@ -8,7 +8,7 @@ from collections.abc import AsyncGenerator
 from dataclasses import fields
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import requests
 from fastapi import (
@@ -314,7 +314,9 @@ async def google_oauth_login(
 @limiter.limit("10/minute")
 async def google_oauth_callback_get(
     request: Request,
-    code: str = Query(...),
+    code: str | None = Query(None),
+    error: str | None = Query(None),
+    error_description: str | None = Query(None),
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
@@ -333,6 +335,13 @@ async def google_oauth_callback_get(
         or _build_redirect_uri(request, "/api/v1/auth/google/callback")
     )
     _validate_redirect_uri(redirect_uri)
+
+    if error:
+        message = error_description or error
+        return RedirectResponse(url=f"/?oauth_error={quote(message)}")
+
+    if not code:
+        return RedirectResponse(url="/?oauth_error=missing_code")
 
     try:
         token_data = exchange_google_code(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)

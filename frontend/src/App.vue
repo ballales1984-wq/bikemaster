@@ -45,7 +45,7 @@ const loggedIn = computed(() => isLoggedIn())
 const isAdmin = computed(() => checkIsAdmin())
 const summary = ref({ rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 })
 const summaryLoading = ref(false)
-const loginError = ref('')
+const loginError = ref(localStorage.getItem('bikemaster_login_error') || '')
 
 const { fetchSummary } = useRides()
 
@@ -61,8 +61,9 @@ async function loadSummary() {
 
 async function onLogin(creds) {
   try {
-    await doLogin(creds.username, creds.password)
     loginError.value = ''
+    localStorage.removeItem('bikemaster_login_error')
+    await doLogin(creds.username, creds.password)
     router.push('/rides')
     await loadSummary()
   } catch (e) {
@@ -72,9 +73,10 @@ async function onLogin(creds) {
 
 async function onRegister(creds) {
   try {
+    loginError.value = ''
+    localStorage.removeItem('bikemaster_login_error')
     await doRegister(creds.username, creds.password)
     await doLogin(creds.username, creds.password)
-    loginError.value = ''
     await loadSummary()
   } catch (e) {
     loginError.value = e.message
