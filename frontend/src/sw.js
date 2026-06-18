@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'bikemaster-static-v1'
+const STATIC_CACHE = 'bikemaster-static-v2'
 const API_CACHE = 'bikemaster-api-v1'
 
 self.addEventListener('install', event => {
