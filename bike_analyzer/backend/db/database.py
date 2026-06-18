@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 from ..config import DB_PATH
 from ..models.models import Ride
 
+_INITIAL_DB_PATH = DB_PATH
+
 
 @contextmanager
 def get_db_connection():
@@ -631,6 +633,37 @@ def create_indices():
         )
         _ensure_external_identity_index(conn)
         conn.commit()
+    if DB_PATH != _INITIAL_DB_PATH:
+        conn = sqlite3.connect(_INITIAL_DB_PATH)
+        try:
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS rides (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    athlete_id INTEGER,
+                    date TEXT NOT NULL,
+                    distance_km REAL DEFAULT 0,
+                    duration_minutes REAL DEFAULT 0,
+                    avg_speed_kmh REAL DEFAULT 0,
+                    external_source TEXT,
+                    external_id TEXT
+                )"""
+            )
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ride_id INTEGER
+                )"""
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_date ON rides(date)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_distance ON rides(distance_km)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_duration ON rides(duration_minutes)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_speed ON rides(avg_speed_kmh)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_athlete ON rides(athlete_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_metrics_ride ON metrics(ride_id)")
+            _ensure_external_identity_index(conn)
+            conn.commit()
+        finally:
+            conn.close()
 
 
 def backup_database(backup_path: str | None = None) -> str:

@@ -1,8 +1,23 @@
 import os
+import inspect
+import asyncio
 from pathlib import Path
 
 import pytest
 from starlette.testclient import TestClient
+
+
+def pytest_pyfunc_call(pyfuncitem):
+    """Run coroutine tests without requiring external pytest-asyncio in minimal envs."""
+    testfunction = pyfuncitem.obj
+    if inspect.iscoroutinefunction(testfunction):
+        funcargs = {
+            name: pyfuncitem.funcargs[name]
+            for name in pyfuncitem._fixtureinfo.argnames
+        }
+        asyncio.run(testfunction(**funcargs))
+        return True
+    return None
 
 os.environ["SECRET_KEY"] = "test-secret-key-for-jwt-testing-123456"
 os.environ["ALGORITHM"] = "HS256"
