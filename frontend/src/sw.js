@@ -1,11 +1,10 @@
-const STATIC_CACHE = 'bikemaster-static-v3'
+const STATIC_CACHE = 'bikemaster-static-v4'
 const API_CACHE = 'bikemaster-api-v1'
 
 self.addEventListener('install', event => {
   self.skipWaiting()
   event.waitUntil(
     caches.open(STATIC_CACHE).then(cache => cache.addAll([
-      '/index.html',
       '/registerSW.js',
       '/manifest.json',
       '/manifest.webmanifest',
@@ -43,8 +42,16 @@ async function cacheFirst(request) {
 
 async function navigationFallback(request) {
   const cache = await caches.open(STATIC_CACHE)
-  const cached = await cache.match('/index.html')
-  return cached || fetch(request)
+  try {
+    const response = await fetch(request)
+    if (response && response.ok) {
+      cache.put('/index.html', response.clone())
+    }
+    return response
+  } catch {
+    const cached = await cache.match('/index.html')
+    return cached || fetch(request)
+  }
 }
 
 self.addEventListener('fetch', event => {
