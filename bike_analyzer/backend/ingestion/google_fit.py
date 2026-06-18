@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import urllib.parse
+from datetime import datetime, timezone
 
 from ..config import GOOGLE_FIT_SCOPE
 
@@ -41,47 +42,98 @@ def exchange_code_for_token(
     return resp.json()
 
 
+def _ms_to_iso(ms_str: str | int | None) -> str:
+    if not ms_str:
+        return ""
+    try:
+        ms = int(ms_str)
+    except (TypeError, ValueError):
+        return str(ms_str)
+    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).isoformat()
+
+
 def fetch_cycling_activities(access_token: str) -> list[dict]:
+    """Fetch cycling sessions from Google Fit REST API v1.
+
+    Uses the Sessions endpoint, which returns activity sessions with
+    startTimeMillis/endTimeMillis timestamps and activity type codes.
+    """
     import requests
 
     headers = {"Authorization": f"Bearer {access_token}"}
+    params = {
+        "startTime": "2020-01-01T00:00:00Z",
+        "endTime": "2099-12-31T23:59:59Z",
+    }
     resp = requests.get(
-        "https://fitness.googleapis.com/v1/users/me/dataset:aggregate", headers=headers, timeout=10
+        "https://www.googleapis.com/fitness/v1/users/me/sessions",
+        headers=headers,
+        params=params,
+        timeout=10,
     )
-    activities = []
+    activities: list[dict] = []
     if resp.ok:
-        for bucket in resp.json().get("bucket", []):
-            for ds in bucket.get("dataset", []):
+        for session in resp.json().get("session", []):
+            activity_type = session.get("activity", 0)
+            if activity_type == 1:
                 activities.append(
                     {
-                        "startTime": ds.get("startTime"),
-                        "endTime": ds.get("endTime"),
-                        "value": ds.get("value", []),
+                        "id": session.get("id", ""),
+                        "startTimeMillis": session.get("startTimeMillis", ""),
+                        "endTimeMillis": session.get("endTimeMillis", ""),
+                        "name": session.get("name", ""),
                     }
                 )
     return activities
 
 
 def google_fit_to_ride(activities: list[dict]) -> list[dict]:
+    """Convert Google Fit sessions to BikeMaster ride dicts.
+
+    Supports both the Sessions API format (startTimeMillis/endTimeMillis,
+    activity int code) and the legacy dataset:aggregate format for tests.
+    """
     rides = []
     for act in activities:
-        if "cycling" in str(act).lower():
-            duration_ms = 60000
-            distance_m = 5000
-            for v in act.get("value", []):
-                if v.get("intVal"):
-                    if "duration" in str(v):
-                        duration_ms = v["intVal"]
-                    if "distance" in str(v):
-                        distance_m = v["intVal"]
-            rides.append(
-                {
-                    "date": act.get("startTime", "")[:10],
-                    "distance_km": distance_m / 1000,
-                    "duration_minutes": duration_ms / 60000,
-                    "avg_speed_kmh": (distance_m / 1000) / (duration_ms / 60000)
-                    if duration_ms > 0
-                    else 0,
-                }
-            )
+        ms_start = act.get("startTimeMillis") or act.get("startTime", "")
+        ms_end = act.get("endTimeMillis") or act.get("endTime", "")
+
+        start_iso = _ms_to_iso(ms_start)
+        end_iso = _ms_to_iso(ms_end)
+
+        is_cycling = (
+            act.get("activity") == 1
+            or "cycling" in str(act.get("dataType", "")).lower()
+            or "cycling" in str(act.get("name", "")).lower()
+        )
+
+        if not is_cycling:
+            continue
+
+        duration_min = 0.0
+        if start_iso and end_iso:
+            try:
+                t0 = datetime.fromisoformat(start_iso[:19])
+                t1 = datetime.fromisoformat(end_iso[:19])
+                duration_min = round((t1 - t0).total_seconds() / 60, 1)
+            except Exception:
+                pass
+
+        legacy_vals = act.get("value", [])
+        distance_m = 0
+        for v in legacy_vals:
+            if isinstance(v, dict) and v.get("fpVal") and "distance" in str(v.get("name", "")).lower():
+                distance_m = int(v["fpVal"])
+                break
+
+        ride = {
+            "date": start_iso[:10] if start_iso else "",
+            "duration_minutes": duration_min,
+            "distance_km": round(distance_m / 1000, 2) if distance_m else 0,
+            "avg_speed_kmh": round((distance_m / 1000) / (duration_min / 60), 1) if distance_m and duration_min > 0 else 0,
+            "title": act.get("name") or "Google Fit Cycling",
+            "external_source": "google_fit",
+            "external_id": act.get("id") or start_iso,
+        }
+        rides.append(ride)
     return rides
