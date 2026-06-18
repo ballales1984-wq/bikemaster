@@ -5,8 +5,8 @@
 > **Stato**: Late Beta / Early Production — architettura solida, serve hardening per produzione.
 
 ### Ultimo Commit
-- `fb6238a` - refactor: format DB layer imports, line wrapping, and whitespace cleanup (362 insertions, 132 deletions)
-- `909f66b` + `86771b8` + `4ec4515` - Fix duplicate code in routes, SECRET_KEY placeholder detection, failing coach test; fix tsconfig project reference; frontend migration to TypeScript
+- `92382a9` - feat: implement Phone GPS Tracking for Android
+- `b40939f` - fix: update MainActivity to use foreground service
 
 ---
 
@@ -61,6 +61,12 @@ Pushato su GitHub (ballales1984-wq/bikemaster) il 2026-06-09.
 | `tests/` | Suite test ampliata (24+ file di test) |
 | `alembic/` | Configurazione Alembic per migrazioni DB versionate |
 | `docs/database-migration.md` | Documentazione migrazione DB |
+| `frontend/src/views/RideTracking.vue` | **NUOVO** - Pagina tracking GPS live |
+| `frontend/src/stores/trackingStore.ts` | **NUOVO** - Pinia store tracking |
+| `frontend/src/plugins/bikeTracking.ts` | **NUOVO** - Plugin Capacitor wrapper |
+| `android/app/src/main/java/com/bikemaster/tracking/BikeTrackingService.kt` | **NUOVO** - Foreground service |
+| `android/app/src/main/java/com/bikemaster/plugins/BikeTrackingPlugin.kt` | **NUOVO** - Capacitor plugin |
+| `docs/PHONE_TRACKING.md` | **NUOVO** - Documentation
 
 ### File Modificati Precedentemente (non in questo commit ma nel working tree)
 
@@ -267,6 +273,7 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 | `badges.py` | Completo | Sistema badge/medaglie + heatmap GPS |
 | `granfondo_planner.py` | Completo | Piano allenamento granfondo con tapering |
 | `weather_service.py` | Completo | Consigli meteo per allenamento |
+| `phone_tracking` | Completo | **NUOVO** - Foreground service + Capacitor plugin + Vue tracking
 
 ### Modelli Matematici in `advanced.py`
 
@@ -307,8 +314,10 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 | Docker | Dockerfile + docker-compose.yml |
 | Azure | azure.yaml + azd config |
 | Render | render.yaml |
-| Android | App Kotlin nativa con Capacitor (GPS tracking, API sync) |
+| Android | App Kotlin nativa con Capacitor + Phone GPS Tracking |
 | GitHub Actions | CI/CD (test + lint + build) in `.github/workflows/ci.yml` |
+| CI Frontend | ✅ Incluso in workflow |
+| CI Android Release | ✅ Workflow android-release.yml |
 
 ---
 
@@ -348,13 +357,15 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 
 ## Priorità per Prossimi Step
 
-| Priorità | Feature | Impatto |
+| Priorità | Feature | Status |
 |:---:|---|---|
-| **1** | Redis + Background Tasks in produzione | Medio-Alto |
-| **2** | Completare integrazione frontend Vue con API | Alto |
-| **3** | Multi-utente completo (auth, ownership rides) | Alto |
-| **4** | PostgreSQL in produzione (ora supportato ma non configurato per deploy) | Alto |
-| **5** | Vector DB per RAG (sostituire BM25 con embeddings) | Medio |
+| **1** | Phone GPS Tracking Test Unitari (Kotlin + Vue) | 🔄 In corso |
+| **2** | Redis + Background Tasks in produzione | ⏳ |
+| **3** | Completare integrazione frontend Vue con API | ⏳ |
+| **4** | Multi-utente completo (auth, ownership rides) | ⏳ |
+| **5** | PostgreSQL in produzione | ⏳ |
+| **6** | Vector DB per RAG | ⏳ |
+| **7** | PWA + offline support | ⏳ |
 
 ---
 
@@ -387,4 +398,4 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 
 ---
 
-*Documento generato il 2026-06-09 — BikeMaster v1.2.0-dev*
+*Ultimo aggiornamento: 2026-06-18 — Phone GPS Tracking Implementato (v1.3.0)*
