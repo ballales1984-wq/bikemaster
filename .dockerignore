@@ -19,4 +19,8 @@ dist
 build
 *.log
 *.tmp
+
+# Exclude node_modules directories
+node_modules
 **/node_modules
+frontend/node_modules
