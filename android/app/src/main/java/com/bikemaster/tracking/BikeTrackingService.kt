@@ -3,7 +3,6 @@ package com.bikemaster.tracking
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.app.ServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -18,11 +17,8 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileWriter
 import java.text.SimpleDateFormat
@@ -85,7 +81,7 @@ class BikeTrackingService : Service() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
     }
 
-    override fun onStartCommand(intent: Intent?, savedInstanceState: android.os.Bundle?): Int {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> startTracking(intent.getStringExtra(EXTRA_OUTPUT_PATH) ?: getDefaultFilePath())
             ACTION_PAUSE -> pauseTracking()
@@ -123,9 +119,10 @@ class BikeTrackingService : Service() {
         totalDistance = 0.0
         trackingPoints.clear()
 
-        gpxFile = File(outputPath)
+        val file = File(outputPath)
+        gpxFile = file
         gpxFile?.parentFile?.mkdirs()
-        gpxWriter = FileWriter(gpxFile).apply {
+        gpxWriter = FileWriter(file).apply {
             append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
             append("<gpx version=\"1.1\" creator=\"BikeMaster-Mobile\" xmlns=\"http://www.topografix.com/GPX/1/1/\">\n")
             append("  <trk>\n")
@@ -136,7 +133,7 @@ class BikeTrackingService : Service() {
         try {
             val notification = createNotification("Tracking in corso...")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
+                startForeground(NOTIFICATION_ID, notification)
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
@@ -172,7 +169,7 @@ class BikeTrackingService : Service() {
 
         isTracking.set(false)
         isPaused.set(false)
-        fusedLocationClient.removeLocationUpdates(locationCallback)
+        locationCallback?.let { fusedLocationClient.removeLocationUpdates(it) }
         locationCallback = null
 
         val outputPath = gpxFile?.absolutePath
@@ -303,7 +300,7 @@ class BikeTrackingService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        fusedLocationClient.removeLocationUpdates(locationCallback)
+        locationCallback?.let { fusedLocationClient.removeLocationUpdates(it) }
         gpxWriter?.close()
         super.onDestroy()
     }
