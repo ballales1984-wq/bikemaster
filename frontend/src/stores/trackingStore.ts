@@ -1,4 +1,5 @@
-import { computed, defineStore, ref } from 'pinia'
+import { computed, ref } from 'vue'
+import { defineStore } from 'pinia'
 
 export const useTrackingStore = defineStore('tracking', () => {
   const isTracking = ref(false)
