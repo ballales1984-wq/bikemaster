@@ -1,4 +1,4 @@
-const STATIC_CACHE = 'bikemaster-static-v2'
+const STATIC_CACHE = 'bikemaster-static-v3'
 const API_CACHE = 'bikemaster-api-v1'
 
 self.addEventListener('install', event => {
@@ -52,6 +52,9 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return
 
   const url = new URL(request.url)
+  if (request.mode === 'navigate' && url.pathname === '/api/v1/auth/google/callback') {
+    return
+  }
   if (request.mode === 'navigate') {
     event.respondWith(navigationFallback(request))
     return

@@ -8,7 +8,7 @@ from collections.abc import AsyncGenerator
 from dataclasses import fields
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import urlencode, urlparse
 
 import requests
 from fastapi import (
@@ -70,6 +70,18 @@ def _build_redirect_uri(request: Request, path: str) -> str:
         or request.url.netloc
     )
     return f"{proto}://{host}{path}"
+
+
+def _build_frontend_redirect_url(
+    request: Request,
+    redirect_uri: str | None,
+    **query_values: str,
+) -> str:
+    parsed = urlparse(redirect_uri or "")
+    origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else _build_redirect_uri(request, "")
+    params = {key: value for key, value in query_values.items() if value is not None}
+    suffix = f"?{urlencode(params)}" if params else ""
+    return f"{origin}/{suffix}"
 
 
 def _validate_redirect_uri(redirect_uri: str) -> None:
@@ -338,10 +350,10 @@ async def google_oauth_callback_get(
 
     if error:
         message = error_description or error
-        return RedirectResponse(url=f"/?oauth_error={quote(message)}")
+        return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=message))
 
     if not code:
-        return RedirectResponse(url="/?oauth_error=missing_code")
+        return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="missing_code"))
 
     try:
         token_data = exchange_google_code(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
@@ -381,7 +393,7 @@ async def google_oauth_callback_get(
 
     session = create_google_session(user_info, athlete_id=existing["id"])
     token = session["access_token"]
-    return RedirectResponse(url=f"/?token={token}&email={email}")
+    return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, token=token, email=email or ""))
 
 
 @router.post("/rides")
