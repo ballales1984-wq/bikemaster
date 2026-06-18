@@ -8,12 +8,28 @@ Supports three modes:
 """
 import argparse
 import asyncio
+import logging
+import sys
+import traceback
 
 import uvicorn
 
-from bike_analyzer.backend.api.app_factory import create_app
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    stream=sys.stdout,
+    force=True,
+)
+logger = logging.getLogger("bikemaster.startup")
 
-app = create_app()
+try:
+    from bike_analyzer.backend.api.app_factory import create_app
+
+    app = create_app()
+except Exception:
+    logger.error("FATAL: failed to build FastAPI app")
+    traceback.print_exc()
+    sys.exit(1)
 
 
 def main():
