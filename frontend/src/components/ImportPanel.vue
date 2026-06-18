@@ -120,6 +120,16 @@ async function connectGoogleFit() {
 
     // Listen for callback
     const handleMessage = async (event) => {
+      if (event.data?.type === 'google-fit-error') {
+        window.removeEventListener('message', handleMessage)
+        importStatus.value = {
+          success: false,
+          message: event.data.error_description || event.data.error || 'Errore Google Fit'
+        }
+        importing.value = false
+        return
+      }
+
       if (event.data?.type === 'google-fit-success') {
         window.removeEventListener('message', handleMessage)
         // Import activities

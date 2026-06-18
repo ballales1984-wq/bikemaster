@@ -164,6 +164,12 @@ def _make_streaming_response(
     )
 
 
+def _google_fit_message_html(message: dict) -> HTMLResponse:
+    return HTMLResponse(
+        f"<script>window.opener.postMessage({json.dumps(message)}, '*'); window.close();</script>"
+    )
+
+
 @router.get("/health")
 async def health_check():
     return {"status": "ok", "service": "bikemaster"}
@@ -911,11 +917,12 @@ async def google_fit_exchange_token(
     }
 
 
-@router.post("/import/google-fit")
 @router.get("/import/google-fit/callback")
 async def google_fit_callback(
     request: Request,
-    code: str = Query(...),
+    code: str | None = Query(None),
+    error: str | None = Query(None),
+    error_description: str | None = Query(None),
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
@@ -934,6 +941,24 @@ async def google_fit_callback(
         or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
     )
     _validate_redirect_uri(redirect_uri)
+
+    if error:
+        return _google_fit_message_html(
+            {
+                "type": "google-fit-error",
+                "error": error,
+                "error_description": error_description or "OAuth Google Fit fallito",
+            }
+        )
+
+    if not code:
+        return _google_fit_message_html(
+            {
+                "type": "google-fit-error",
+                "error": "missing_code",
+                "error_description": "Callback OAuth Google Fit ricevuto senza codice",
+            }
+        )
 
     try:
         token_data = exchange_code_for_token(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
@@ -957,12 +982,7 @@ async def google_fit_callback(
         imported.append(ride_data)
 
     token = access_token
-    return HTMLResponse(f"""
-<script>
-  window.opener.postMessage({{ type: 'google-fit-success', token: '{token}' }}, '*');
-  window.close();
-</script>
-""")
+    return _google_fit_message_html({"type": "google-fit-success", "token": token})
 
 
 @router.post("/import/google-fit")
