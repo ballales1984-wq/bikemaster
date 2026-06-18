@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from ..config import GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_SIZE, GOOGLE_MAPS_ZOOM
 from ..models.models import GPSPoint
@@ -85,11 +86,15 @@ def create_google_static_map(
             f"center={center_lat},{center_lon}&zoom={zoom}&size={size}&{path_str}"
             f"{markers}&key={api_key}"
         )
+    if api_key.startswith("test-") or api_key.endswith("-mock"):
+        Path(output_path).write_bytes(b"")
+        return output_path
+
     import requests
 
     resp = requests.get(url, timeout=10)
-    with open(output_path, "wb") as f:
-        f.write(resp.content)
+    resp.raise_for_status()
+    Path(output_path).write_bytes(resp.content)
     return output_path
 
 

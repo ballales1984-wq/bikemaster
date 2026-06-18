@@ -1,8 +1,9 @@
 """
 Bike Analyzer - Unified Entrypoint.
 
-Supports two modes:
+Supports three modes:
   python main.py api      -> start FastAPI backend + dashboard (default)
+  python main.py web      -> alias for api, serving the web dashboard
   python main.py cli      -> run CLI analytics on sample data
 """
 import argparse
@@ -17,12 +18,12 @@ app = create_app()
 
 def main():
     parser = argparse.ArgumentParser(description="Bike Analyzer")
-    parser.add_argument("mode", nargs="?", default="api", choices=["api", "cli"])
+    parser.add_argument("mode", nargs="?", default="api", choices=["api", "web", "cli"])
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--reload", action="store_true")
     args = parser.parse_args()
 
-    if args.mode == "api":
+    if args.mode in {"api", "web"}:
         print(f"Starting API + Dashboard on http://localhost:{args.port}")
         uvicorn.run(
             "main:app",
