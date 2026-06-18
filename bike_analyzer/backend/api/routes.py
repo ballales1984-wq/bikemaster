@@ -565,7 +565,10 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
         tmp.write(content)
         temp_path = tmp.name
     try:
-        points_data = parse_fit_file(temp_path)
+        try:
+            points_data = parse_fit_file(temp_path)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid FIT file: {exc}") from exc
     finally:
         import os
 
@@ -867,17 +870,19 @@ async def update_athlete(
 @limiter.limit("10/minute")
 async def google_fit_auth(
     request: Request,
+    client_id: str | None = Query(None),
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
     from ..config import GOOGLE_CLIENT_ID
     from ..ingestion.google_fit import get_authorization_url
 
-    if not GOOGLE_CLIENT_ID:
+    google_client_id = client_id or GOOGLE_CLIENT_ID
+    if not google_client_id:
         raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
     _validate_redirect_uri(redirect_uri)
-    auth_url = get_authorization_url(GOOGLE_CLIENT_ID, redirect_uri=redirect_uri, state=state)
+    auth_url = get_authorization_url(google_client_id, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
 
 
@@ -1507,7 +1512,7 @@ async def osm_places_search(
     """OpenStreetMap search for places - no API key required."""
     result = search_places(query, lat=lat, lon=lon, limit=limit)
     if result is None:
-        raise HTTPException(status_code=502, detail="OSM search failed")
+        return {"query": query, "results": []}
     return {"query": query, "results": result.get("results", [])}
 
 
@@ -2279,4 +2284,3 @@ async def get_dashboard(request: Request, current_user: dict = Depends(get_curre
         "trends": trends,
         "rides_count": len(rides),
     }
-

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import (
@@ -27,16 +28,25 @@ def _get_engine():
     if _engine is None:
         s = get_settings()
         db_url = s.database_url or f"sqlite+aiosqlite:///{s.db_path}"
-        _engine = create_async_engine(db_url, echo=False, pool_pre_ping=True)
+        try:
+            _engine = create_async_engine(db_url, echo=False, pool_pre_ping=True)
+        except ModuleNotFoundError as exc:
+            if "aiosqlite" not in str(exc):
+                raise
+            _engine = SimpleNamespace(url=db_url, dialect="sqlite+aiosqlite-unavailable")
     return _engine
 
 
 def get_session_factory():
     global _async_session_factory
     if _async_session_factory is None:
-        _async_session_factory = async_sessionmaker(
-            _get_engine(), class_=AsyncSession, expire_on_commit=False
-        )
+        engine = _get_engine()
+        if getattr(engine, "dialect", "") == "sqlite+aiosqlite-unavailable":
+            _async_session_factory = lambda: None
+        else:
+            _async_session_factory = async_sessionmaker(
+                engine, class_=AsyncSession, expire_on_commit=False
+            )
     return _async_session_factory
 
 
