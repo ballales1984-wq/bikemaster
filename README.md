@@ -42,6 +42,7 @@ GPS-based cycling performance intelligence system. Importa le tue uscite da file
 - **Servizio Meteo** - Consigli meteo per uscite
 - **Training Stress** - TSS, ATL/CTL/TSB, EWMA
 - **14 Modelli Avanzati** - Power estimate, VO2max, climb classification, speed surging, ecc.
+- **Phone GPS Tracking** - Registrazione uscite direttamente dal telefono mobile (Android)
 - **REST API** - 40+ endpoint documentati
 - **Esportazione** - JSON e CSV
 - **JWT Auth** - Login e protezione endpoint

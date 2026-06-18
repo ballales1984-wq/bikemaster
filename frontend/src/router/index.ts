@@ -78,6 +78,12 @@ const routes = [
     name: 'admin',
     component: () => import('../components/AdminPanel.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/track',
+    name: 'tracking',
+    component: () => import('../views/RideTracking.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

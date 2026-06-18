@@ -138,9 +138,30 @@
 
 ---
 
-## **FASE 22 - Community & Monetization** *(Bassa Priorità)*
+## **FASE 22 - Phone GPS Tracking** *(Alta Priorità)*
 
-### Documentazione
+### Core Tracking
+- [ ] 216. Foreground Service `BikeTrackingService.kt` con GPS persiste
+- [ ] 217. Plugin Capacitor `BikeTracking` con bridge nativo
+- [ ] 218. Store Pinia `trackingStore.ts` per stato reattivo
+- [ ] 219. Pagina Vue `RideTracking.vue` con mappa Leaflet live
+- [ ] 220. Scrittura GPX incrementale in background
+- [ ] 221. Auto-pause rilevamento attività < 3 km/h
+- [ ] 222. Richiesta permessi runtime (location, activity, bluetooth)
+
+### Sensori & Integrazione
+- [ ] 223. Supporto sensori BLE (HR, Cadence, Power)
+- [ ] 224. Activity recognition per rilevare ciclismo
+- [ ] 225. Upload automatico su `/rides/import`
+- [ ] 226. Notifica push completamento uscita
+
+### Testing & Polish
+- [ ] 227. Unit test Kotlin per service
+- [ ] 228. Test strada su dispositivi Android
+- [ ] 229. Documentazione `docs/PHONE_TRACKING.md`
+- [ ] 230. Aggiornamento README e link pagina track
+
+---
 - [ ] 207. Aggiornare README con screenshot, demo video, badge di stato
 - [ ] 208. API documentation esterna (ReadTheDocs o MkDocs)
 - [ ] 209. Esempi di contribuzione + template per nuove feature

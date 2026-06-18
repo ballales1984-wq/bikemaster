@@ -50,6 +50,29 @@ async def new_feature(parameter: str):
 
 2. Register router in `app_factory.py` (already included via `include_router`)
 
+### Android Mobile Development
+
+#### Foreground Service
+```kotlin
+// android/app/src/main/java/com/bikemaster/tracking/BikeTrackingService.kt
+// Core tracking with FusedLocationProviderClient
+```
+
+#### Capacitor Plugin
+```typescript
+// frontend/src/plugins/bikeTracking.ts
+import { BikeTracking } from '../plugins/bikeTracking'
+await BikeTracking.startTracking()
+```
+
+#### Sensor Integration
+```kotlin
+// android/app/src/main/java/com/bikemaster/sensors/SensorManager.kt
+// BLE HR, Cadence, Power sensors
+```
+
+---
+
 ### Add Analysis
 
 1. Create function in `analytics/`:
@@ -184,6 +207,35 @@ ride = get_ride(ride_id)
 # Backup
 backup_path = backup_database()
 ```
+
+## Frontend
+
+### Phone GPS Tracking
+Vue SPA with Capacitor for native mobile features:
+
+```
+frontend/src/
+├── views/RideTracking.vue        # Live tracking page
+├── stores/trackingStore.ts       # Reactive state management
+├── plugins/bikeTracking.ts       # Capacitor plugin wrapper
+└── android/                     # Android assets
+```
+
+### Build Mobile App
+```bash
+npm run build              # Build web assets
+npm run cap:sync          # Sync with Android
+npm run android:build     # Generate APK
+```
+
+### Mobile Permissions
+Runtime permissions required on Android:
+- `ACCESS_FINE_LOCATION` - GPS
+- `ACCESS_BACKGROUND_LOCATION` - Background tracking
+- `ACTIVITY_RECOGNITION` - Auto-pause
+- `BLUETOOTH_SCAN/CONNECT` - Sensor support
+
+---
 
 ## Frontend
 
