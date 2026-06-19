@@ -1,4 +1,4 @@
-with open('bike_analyzer/backend/db/database.py', 'r') as f:
+with open('bike_analyzer/backend/db/database.py') as f:
     lines = f.readlines()
 
 # Aggiungi migrazione email dopo password_hash

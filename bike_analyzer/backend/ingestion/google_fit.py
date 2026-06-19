@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..config import GOOGLE_FIT_SCOPE
 
@@ -49,7 +49,7 @@ def _ms_to_iso(ms_str: str | int | None) -> str:
         ms = int(ms_str)
     except (TypeError, ValueError):
         return str(ms_str)
-    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).isoformat()
+    return datetime.fromtimestamp(ms / 1000, tz=UTC).isoformat()
 
 
 def fetch_cycling_activities(access_token: str) -> list[dict]:
@@ -130,7 +130,11 @@ def google_fit_to_ride(activities: list[dict]) -> list[dict]:
             "date": start_iso[:10] if start_iso else "",
             "duration_minutes": duration_min,
             "distance_km": round(distance_m / 1000, 2) if distance_m else 0,
-            "avg_speed_kmh": round((distance_m / 1000) / (duration_min / 60), 1) if distance_m and duration_min > 0 else 0,
+            "avg_speed_kmh": round(
+                (distance_m / 1000) / (duration_min / 60), 1
+            )
+            if distance_m and duration_min > 0
+            else 0,
             "title": act.get("name") or "Google Fit Cycling",
             "external_source": "google_fit",
             "external_id": act.get("id") or start_iso,

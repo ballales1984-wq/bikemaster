@@ -2,8 +2,7 @@
 
 import os
 import tempfile
-
-import pytest
+from datetime import UTC, datetime
 
 from bike_analyzer.backend.analytics.analytics import (
     analyze_ride,
@@ -23,23 +22,22 @@ from bike_analyzer.backend.analytics.analytics import (
     rides_to_json,
 )
 from bike_analyzer.backend.models.models import GPSPoint, Ride, Segment
-from datetime import UTC, datetime
 
 
 def _make_ride(**kwargs):
-    defaults = dict(
-        id=1,
-        athlete_id=0,
-        date="2024-01-01",
-        distance_km=25.0,
-        duration_minutes=60.0,
-        avg_speed_kmh=25.0,
-        weight_kg=70.0,
-        calories=500.0,
-        heart_rate_avg=140.0,
-        elevation_gain_m=150.0,
-        gps_points=[],
-    )
+    defaults = {
+        "id": 1,
+        "athlete_id": 0,
+        "date": "2024-01-01",
+        "distance_km": 25.0,
+        "duration_minutes": 60.0,
+        "avg_speed_kmh": 25.0,
+        "weight_kg": 70.0,
+        "calories": 500.0,
+        "heart_rate_avg": 140.0,
+        "elevation_gain_m": 150.0,
+        "gps_points": [],
+    }
     defaults.update(kwargs)
     return Ride(**defaults)
 

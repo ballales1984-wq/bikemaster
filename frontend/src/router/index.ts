@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { isLoggedIn, isAdmin } from '../composables/useAuth.ts'
+import { isLoggedIn, isAdmin } from '../composables/useAuth'
 
 const routes = [
   {

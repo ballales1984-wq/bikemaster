@@ -79,7 +79,11 @@ def _build_frontend_redirect_url(
     **query_values: str,
 ) -> str:
     parsed = urlparse(redirect_uri or "")
-    origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else _build_redirect_uri(request, "")
+    origin = (
+        f"{parsed.scheme}://{parsed.netloc}"
+        if parsed.scheme and parsed.netloc
+        else _build_redirect_uri(request, "")
+    )
     fragment_keys = fragment_keys or set()
     params = {
         key: value
@@ -983,8 +987,6 @@ async def google_fit_callback(
     state: str = Query(""),
 ):
     """Handle Google Fit OAuth callback - exchange code and import activities."""
-    from fastapi.responses import HTMLResponse
-
     from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
     from ..db.database import save_ride
     from ..ingestion.google_fit import exchange_code_for_token, fetch_cycling_activities, google_fit_to_ride
@@ -1168,7 +1170,7 @@ async def reload_knowledge(current_user: dict = Depends(get_admin_user)):
 
 @router.post("/knowledge/init-embeddings")
 async def init_kb_embeddings_endpoint(current_user: dict = Depends(get_admin_user)):
-    from ..analytics.knowledge_base import init_kb_embeddings, init_chroma_db
+    from ..analytics.knowledge_base import init_chroma_db, init_kb_embeddings
     from ..db.postgres_db import get_session
 
     with get_session() as session:

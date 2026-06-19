@@ -1,16 +1,20 @@
 const API_BASE = ''
 
-function authHeaders() {
+function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('bikemaster_token')
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-async function apiGet(path, params = {}, options = {}) {
+interface ApiResponse {
+  [key: string]: unknown
+}
+
+async function apiGet(path: string, params: Record<string, string> = {}, options: RequestInit = {}): Promise<ApiResponse> {
   const qs = new URLSearchParams(params).toString()
   const url = qs ? `${API_BASE}${path}?${qs}` : `${API_BASE}${path}`
   const resp = await fetch(url, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
   })
   if (!resp.ok) {
     if (resp.status === 401) {
@@ -19,15 +23,15 @@ async function apiGet(path, params = {}, options = {}) {
       window.location.href = '/'
     }
     const err = await resp.json().catch(() => ({}))
-    throw new Error(err.detail || `GET ${path}: ${resp.status}`)
+    throw new Error((err as Record<string, string>).detail || `GET ${path}: ${resp.status}`)
   }
   return resp.json()
 }
 
-async function apiPost(path, body, options = {}) {
+async function apiPost(path: string, body: unknown, options: RequestInit = {}): Promise<ApiResponse> {
   const resp = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
     body: JSON.stringify(body),
     ...options,
   })
@@ -38,15 +42,15 @@ async function apiPost(path, body, options = {}) {
       window.location.href = '/'
     }
     const err = await resp.json().catch(() => ({}))
-    throw new Error(err.detail || `POST ${path}: ${resp.status}`)
+    throw new Error((err as Record<string, string>).detail || `POST ${path}: ${resp.status}`)
   }
   return resp.json()
 }
 
-async function apiDelete(path, options = {}) {
+async function apiDelete(path: string, options: RequestInit = {}): Promise<ApiResponse> {
   const resp = await fetch(`${API_BASE}${path}`, {
     method: 'DELETE',
-    headers: { ...authHeaders(), ...(options.headers || {}) },
+    headers: { ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
     ...options,
   })
   if (!resp.ok) {
@@ -56,17 +60,17 @@ async function apiDelete(path, options = {}) {
       window.location.href = '/'
     }
     const err = await resp.json().catch(() => ({}))
-    throw new Error(err.detail || `DELETE ${path}: ${resp.status}`)
+    throw new Error((err as Record<string, string>).detail || `DELETE ${path}: ${resp.status}`)
   }
   return resp.json()
 }
 
-async function apiUpload(path, file, options = {}) {
+async function apiUpload(path: string, file: File, options: RequestInit = {}): Promise<ApiResponse> {
   const form = new FormData()
   form.append('file', file)
   const resp = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { ...authHeaders(), ...(options.headers || {}) },
+    headers: { ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
     body: form,
     ...options,
   })
@@ -77,15 +81,15 @@ async function apiUpload(path, file, options = {}) {
       window.location.href = '/'
     }
     const err = await resp.json().catch(() => ({}))
-    throw new Error(err.detail || `UPLOAD ${path}: ${resp.status}`)
+    throw new Error((err as Record<string, string>).detail || `UPLOAD ${path}: ${resp.status}`)
   }
   return resp.json()
 }
 
-async function apiPut(path, body, options = {}) {
+async function apiPut(path: string, body: unknown, options: RequestInit = {}): Promise<ApiResponse> {
   const resp = await fetch(`${API_BASE}${path}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
     body: JSON.stringify(body),
     ...options,
   })
@@ -96,7 +100,7 @@ async function apiPut(path, body, options = {}) {
       window.location.href = '/'
     }
     const err = await resp.json().catch(() => ({}))
-    throw new Error(err.detail || `PUT ${path}: ${resp.status}`)
+    throw new Error((err as Record<string, string>).detail || `PUT ${path}: ${resp.status}`)
   }
   return resp.json()
 }

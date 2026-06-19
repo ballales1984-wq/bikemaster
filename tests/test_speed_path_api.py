@@ -2,8 +2,6 @@
 
 from datetime import UTC, datetime
 
-import pytest
-
 from bike_analyzer.backend.maps.google_maps import build_speed_colored_path
 from bike_analyzer.backend.models.models import GPSPoint
 

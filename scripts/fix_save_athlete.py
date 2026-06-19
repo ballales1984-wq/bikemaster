@@ -1,6 +1,6 @@
 """Fix script to add email column to save_athlete INSERT statement."""
 
-with open("bike_analyzer/backend/db/database.py", "r") as f:
+with open("bike_analyzer/backend/db/database.py") as f:
     lines = f.readlines()
 
 # Aggiungi email dopo name nel primo INSERT di save_athlete
@@ -15,6 +15,6 @@ for i, line in enumerate(lines):
                 break
         break
 
-with open("bike_analyzer/backend/db/database.py", "w") as f:
+with open("bike_analyzer/backend/db/database.py", 'w') as f:
     f.writelines(lines)
 print("Done")
