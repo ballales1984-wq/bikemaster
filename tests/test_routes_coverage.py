@@ -48,6 +48,19 @@ def test_import_gpx_endpoint(client):
     assert response.status_code in (200, 400, 422)
 
 
+def test_import_gpx_endpoint_sets_current_athlete(client):
+    """Test GPX import assigns the authenticated athlete."""
+    gpx_content = """<?xml version="1.0"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg>
+<trkpt lat="45.0" lon="7.0"><time>2024-06-15T10:00:00Z</time></trkpt>
+<trkpt lat="45.001" lon="7.001"><time>2024-06-15T10:30:00Z</time></trkpt>
+</trkseg></trk></gpx>"""
+    files = {"file": ("test.gpx", BytesIO(gpx_content.encode()), "application/gpx+xml")}
+    response = client.post("/api/v1/import/gpx", files=files)
+    assert response.status_code == 200
+    assert response.json()["athlete_id"] == 0
+
+
 def test_import_fit_endpoint(client):
     """Test FIT import endpoint with invalid file."""
     try:

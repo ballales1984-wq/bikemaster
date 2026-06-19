@@ -35,8 +35,7 @@ class MainActivity : AppCompatActivity() {
         }
         
 binding.btnTracking.setOnClickListener {
-             // Usa il nuovo foreground service per tracking background
-             com.bikemaster.tracking.BikeTrackingService.startService(this, "")
+             startActivity(android.content.Intent(this, com.bikemaster.ui.tracking.TrackingActivity::class.java))
          }
         
         binding.btnStats.setOnClickListener {

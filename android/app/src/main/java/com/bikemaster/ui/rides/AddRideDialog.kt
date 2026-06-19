@@ -11,6 +11,11 @@ import com.bikemaster.models.Ride
 
 class AddRideDialog(private val activity: Activity, private val onRideAdded: (Ride) -> Unit) {
     
+    companion object {
+        fun show(activity: Activity, onRideAdded: (Ride) -> Unit) {
+            AddRideDialog(activity, onRideAdded).show()
+        }
+    }
     private lateinit var binding: DialogAddRideBinding
     
     fun show() {
@@ -32,8 +37,4 @@ class AddRideDialog(private val activity: Activity, private val onRideAdded: (Ri
             .setNegativeButton("Annulla", null)
             .show()
     }
-}
-
-fun AddRideDialog.Companion.show(activity: Activity, onRideAdded: (Ride) -> Unit) {
-    AddRideDialog(activity, onRideAdded).show()
 }

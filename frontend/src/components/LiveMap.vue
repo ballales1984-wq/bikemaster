@@ -17,16 +17,14 @@ const tracking = useTrackingStore()
 const points = ref<L.LatLng[]>([])
 
 watch(
-  () => tracking.points,
-  (newVal, oldVal) => {
-    if (newVal && map.value) {
-      // In real app, this would receive lat/lon from native plugin
-      const lastPoint = points.value[points.value.length - 1]
-      if (lastPoint) {
-        polyline.value?.setLatLngs([...points.value])
-      }
+  () => tracking.routePoints,
+  (newPoints) => {
+    const point = newPoints[newPoints.length - 1]
+    if (point && map.value) {
+      addPoint(point.lat, point.lon)
     }
-  }
+  },
+  { deep: true }
 )
 
 onMounted(() => {

@@ -19,10 +19,14 @@
         android:text="Distanza (ultime 10 attività)"
         android:textSize="14sp" />
 
-    <com.github.mikephil.charting.charts.BarChart
+    <TextView
         android:id="@+id/distance_chart"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:background="@color/white"
+        android:textColor="@color/black"
+        android:textSize="14sp"
         android:layout_marginBottom="16dp" />
 
     <TextView
@@ -31,9 +35,13 @@
         android:text="Velocità Media (ultime 10 attività)"
         android:textSize="14sp" />
 
-    <com.github.mikephil.charting.charts.LineChart
+    <TextView
         android:id="@+id/speed_chart"
         android:layout_width="match_parent"
-        android:layout_height="200dp" />
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:background="@color/white"
+        android:textColor="@color/black"
+        android:textSize="14sp" />
 
 </LinearLayout>

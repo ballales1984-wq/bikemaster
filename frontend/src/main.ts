@@ -6,9 +6,10 @@ import './index.css'
 import { authToken, authUser } from './composables/useAuth.ts'
 
 const urlParams = new URLSearchParams(window.location.search)
-const token = urlParams.get('token')
-const email = urlParams.get('email')
-const oauthError = urlParams.get('oauth_error')
+const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+const token = urlParams.get('token') || hashParams.get('token')
+const email = urlParams.get('email') || hashParams.get('email')
+const oauthError = urlParams.get('oauth_error') || hashParams.get('oauth_error')
 if (token) {
   const user = { username: email || '', email, is_admin: false }
   localStorage.setItem('bikemaster_token', token)

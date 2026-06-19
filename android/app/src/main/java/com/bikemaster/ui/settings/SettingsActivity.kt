@@ -1,5 +1,7 @@
 package com.bikemaster.ui.settings
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.Toast
@@ -9,6 +11,12 @@ import androidx.preference.EditTextPreference
 import com.bikemaster.R
 
 class SettingsActivity : AppCompatActivity() {
+
+    companion object {
+        fun start(context: Context) {
+            context.startActivity(Intent(context, SettingsActivity::class.java))
+        }
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

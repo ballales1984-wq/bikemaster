@@ -24,7 +24,7 @@ class CoachActivity : AppCompatActivity() {
     private fun loadCoachData() {
         lifecycleScope.launch {
             try {
-                val response = ApiClient.api.getCoachFullData(athleteId = 1)
+                val response = ApiClient.getApi(this@CoachActivity).getCoachFullData(athleteId = 1)
                 binding.trainingAdvice.text = response["training_advice"] as? String ?: ""
                 binding.recoveryAdvice.text = response["recovery_advice"] as? String ?: ""
             } catch (e: Exception) {

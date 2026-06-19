@@ -119,7 +119,7 @@ class BikeTrackingService : Service() {
         totalDistance = 0.0
         trackingPoints.clear()
 
-        val file = File(outputPath)
+        val file = if (outputPath.isNotBlank()) File(outputPath) else File(getDefaultFilePath())
         gpxFile = file
         gpxFile?.parentFile?.mkdirs()
         gpxWriter = FileWriter(file).apply {

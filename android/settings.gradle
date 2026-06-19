@@ -1,7 +1,19 @@
-compileSdk = 34
-kotlinOptions {
-    jvmTarget = "1.8"
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://www.jitpack.io") }
+        gradlePluginPortal()
+    }
 }
-android {
-    compileSdk = 34
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
 }
+
+rootProject.name = "BikeMaster"
+include ":app"

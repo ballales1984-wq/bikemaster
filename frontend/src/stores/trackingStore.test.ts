@@ -61,6 +61,24 @@ describe('trackingStore', () => {
     expect(store.points).toBe(500)
   })
 
+  it('adds route points and keeps GPX data', () => {
+    const store = useTrackingStore()
+    store.addPoint({ lat: 45.0, lon: 7.0, altitude: 120, timestamp: '2024-06-15T10:00:00Z' })
+    store.addPoint({ lat: 45.001, lon: 7.001, altitude: 130, timestamp: '2024-06-15T10:01:00Z' })
+    expect(store.routePoints).toHaveLength(2)
+    expect(store.points).toBe(2)
+    expect(store.lastPoint?.lat).toBe(45.001)
+    expect(store.toGpx()).toContain('BikeMaster ride')
+    expect(store.toGpx()).toContain('BikeMaster-Web')
+  })
+
+  it('creates a GPX blob', () => {
+    const store = useTrackingStore()
+    store.addPoint({ lat: 45.0, lon: 7.0, altitude: 120, timestamp: '2024-06-15T10:00:00Z' })
+    store.setGpxBlob(new Blob([store.toGpx()], { type: 'application/gpx+xml' }))
+    expect(store.gpxBlob).toBeInstanceOf(Blob)
+  })
+
   it('formats time correctly', () => {
     const store = useTrackingStore()
     store.elapsedTime = 3661

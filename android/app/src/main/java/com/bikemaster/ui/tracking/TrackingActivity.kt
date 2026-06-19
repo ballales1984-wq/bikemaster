@@ -92,10 +92,12 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
             return
         }
 
-        currentOutputPath = getDefaultFilePath()
-        BikeTrackingService.startService(this, currentOutputPath)
+        val outputPath = getDefaultFilePath()
+        currentOutputPath = outputPath
+        BikeTrackingService.startService(this, outputPath)
         binding.btnStart.isEnabled = false
         binding.btnStop.isEnabled = true
+        binding.btnPause.isEnabled = true
         binding.btnSave.isEnabled = false
     }
 
@@ -106,10 +108,12 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
 
     fun pauseTracking() {
         BikeTrackingService.sendActionIntent(this, BikeTrackingService.ACTION_PAUSE)
+        binding.btnPause.isEnabled = false
     }
 
     fun resumeTracking() {
         BikeTrackingService.sendActionIntent(this, BikeTrackingService.ACTION_RESUME)
+        binding.btnPause.isEnabled = true
     }
 
     private fun saveRide() {
@@ -170,6 +174,7 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
                     }
                     binding.btnStart.isEnabled = true
                     binding.btnStop.isEnabled = false
+                    binding.btnPause.isEnabled = false
                 }
             }
         }
@@ -211,7 +216,7 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
                 PolylineOptions().add(point).color(getColor(R.color.purple_500)).width(8f)
             )
         } else {
-            polyline?.add(point)
+            polyline?.setPoints(trackingPoints)
             polyline
         }
     }
