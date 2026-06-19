@@ -56,7 +56,7 @@ export const useTrackingStore = defineStore('tracking', () => {
     if (payload.power !== undefined) power.value = payload.power
   }
 
-  function setGpxPath(path: string) {
+  function setGpxPath(path: string | null = null) {
     gpxPath.value = path
   }
 

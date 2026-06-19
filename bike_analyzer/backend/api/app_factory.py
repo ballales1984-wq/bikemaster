@@ -210,4 +210,10 @@ def create_app() -> FastAPI:
                 media_type="image/svg+xml",
             )
 
+        @app.get("/{full_path:path}", response_class=HTMLResponse)
+        async def spa_fallback(full_path: str):
+            if full_path.startswith(("api/", "static/", "assets/")):
+                return Response(status_code=404)
+            return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"))
+
     return app

@@ -1,10 +1,11 @@
-const STATIC_CACHE = 'bikemaster-static-v4'
+const STATIC_CACHE = 'bikemaster-static-v5'
 const API_CACHE = 'bikemaster-api-v1'
 
 self.addEventListener('install', event => {
   self.skipWaiting()
   event.waitUntil(
     caches.open(STATIC_CACHE).then(cache => cache.addAll([
+      '/index.html',
       '/registerSW.js',
       '/manifest.json',
       '/manifest.webmanifest',
@@ -33,11 +34,16 @@ async function cacheFirst(request) {
   const cached = await cache.match(request)
   if (cached) return cached
 
-  const response = await fetch(request)
-  if (response && response.ok) {
-    cache.put(request, response.clone())
+  try {
+    const response = await fetch(request)
+    if (response && response.ok) {
+      cache.put(request, response.clone())
+    }
+    return response
+  } catch {
+    const index = await cache.match('/index.html')
+    return index || new Response('', { status: 504, statusText: 'Gateway Timeout' })
   }
-  return response
 }
 
 async function navigationFallback(request) {
@@ -47,10 +53,14 @@ async function navigationFallback(request) {
     if (response && response.ok) {
       cache.put('/index.html', response.clone())
     }
+    if (response && !response.ok) {
+      const cached = await cache.match('/index.html')
+      if (cached) return cached
+    }
     return response
   } catch {
     const cached = await cache.match('/index.html')
-    return cached || fetch(request)
+    return cached || new Response('Offline', { status: 503, statusText: 'Offline' })
   }
 }
 
