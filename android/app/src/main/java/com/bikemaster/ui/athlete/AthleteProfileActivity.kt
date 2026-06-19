@@ -26,8 +26,8 @@ class AthleteProfileActivity : AppCompatActivity() {
     private fun loadAthlete() {
         lifecycleScope.launch {
             try {
-                val response = ApiClient.api.getAthletes()
-                response.athletes.firstOrNull()?.let { athlete ->
+                val response = ApiClient.getApi(this@AthleteProfileActivity).getAthletes()
+                response.values.flatten().firstOrNull()?.let { athlete ->
                     displayAthlete(athlete)
                 }
             } catch (e: Exception) {

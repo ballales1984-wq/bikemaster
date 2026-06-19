@@ -43,7 +43,7 @@ class RideListActivity : AppCompatActivity() {
         binding.progressBar.isVisible = true
         lifecycleScope.launch {
             try {
-                val response = ApiClient.api.getRides()
+                val response = ApiClient.getApi(this@RideListActivity).getRides()
                 adapter.submitList(response.rides)
             } catch (e: Exception) {
                 Toast.makeText(this@RideListActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()

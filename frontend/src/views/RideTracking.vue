@@ -9,7 +9,7 @@
       </div>
     </div>
 
-    <div v-if="!isTracking && !gpxPath" class="empty-state">
+    <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
       <div class="empty-icon">📍</div>
       <div class="empty-title">Pronto per tracciare la tua uscita</div>
       <div class="empty-desc">
@@ -25,10 +25,10 @@
       <RideMetricsPanel />
       <ControlsBar :is-paused="isPaused" @pause="pauseTracking" @resume="resumeTracking" @stop="stopTracking" />
 
-      <div v-if="gpxPath" class="tracking-complete">
-        <p>Tracciamento completato! File salvato.</p>
-        <button class="btn btn-primary" @click="uploadRide">
-          Carica su BikeMaster
+      <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete">
+        <p>Tracciamento completato! File pronto per il caricamento.</p>
+        <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide">
+          {{ isUploading ? 'Caricamento...' : 'Carica su BikeMaster' }}
         </button>
       </div>
     </div>
@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useTrackingStore } from '../stores/trackingStore'
 import LiveMap from '../components/LiveMap.vue'
 import RideMetricsPanel from '../components/RideMetricsPanel.vue'
@@ -44,13 +44,29 @@ import ControlsBar from '../components/ControlsBar.vue'
 import { apiUpload } from '../utils/api'
 
 const liveMapRef = ref<InstanceType<typeof LiveMap> | null>(null)
+const isUploading = ref(false)
+
+let webWatchId: number | null = null
+let webStartTime = 0
+let webPausedAccumulatedMs = 0
+let webPausedAt: number | null = null
+let webLastPoint: { lat: number; lon: number; altitude?: number | null; timestamp?: string; timestampNumber?: number } | null = null
+let webDistance = 0
+let webElevationGain = 0
 
 const tracking = useTrackingStore()
 const {
   isTracking,
   isPaused,
   stop,
+  pause,
+  resume,
+  addPoint,
+  updateMetrics,
+  resetMetrics,
   setGpxPath,
+  setGpxBlob,
+  toGpx,
 } = tracking
 
 async function startTracking() {
@@ -61,18 +77,24 @@ async function startTracking() {
   }
   if (window.BikeTracking?.startTracking) {
     await window.BikeTracking.startTracking()
+  } else {
+    startWebTracking()
   }
   start()
 }
 
 async function checkPermissions(): Promise<boolean> {
-  if (!window.BikeTracking?.checkPermissions) return true
+  if (!window.BikeTracking?.checkPermissions) {
+    return Boolean(navigator.geolocation)
+  }
   return window.BikeTracking.checkPermissions().then((result) => result.granted)
 }
 
 async function pauseTracking() {
   if (window.BikeTracking?.pauseTracking) {
     await window.BikeTracking.pauseTracking()
+  } else if (isPaused.value === false) {
+    webPausedAt = Date.now()
   }
   pause()
 }
@@ -80,38 +102,170 @@ async function pauseTracking() {
 async function resumeTracking() {
   if (window.BikeTracking?.resumeTracking) {
     await window.BikeTracking.resumeTracking()
+  } else if (webPausedAt !== null) {
+    webPausedAccumulatedMs += Date.now() - webPausedAt
+    webPausedAt = null
   }
   resume()
 }
 
 async function stopTracking() {
+  let result: { gpxPath?: string | null; gpxBlob?: Blob | null } | void
   if (window.BikeTracking?.stopTracking) {
-    const result = await window.BikeTracking.stopTracking()
-    setGpxPath(result?.gpxPath || null)
+    result = await window.BikeTracking.stopTracking()
   } else {
-    setGpxPath(null)
+    result = stopWebTracking()
+  }
+  setGpxPath(result?.gpxPath || null)
+  if (result?.gpxBlob) {
+    setGpxBlob(result.gpxBlob)
   }
   stop()
 }
 
 async function uploadRide() {
-  const gpxPath = tracking.gpxPath
-  if (!gpxPath) return
   try {
-    await apiUpload('/api/v1/import/gpx', gpxPath)
-    alert('Uscita caricata con successo!')
-    tracking.resetMetrics()
+    isUploading.value = true
+    const blob = getUploadBlob()
+    if (blob) {
+      await apiUpload('/api/v1/import/gpx', blob)
+      alert('Uscita caricata con successo!')
+      resetTrackingState()
+      return
+    }
+    if (tracking.gpxPath) {
+      await apiUpload('/api/v1/import/gpx', tracking.gpxPath)
+      alert('Uscita caricata con successo!')
+      resetTrackingState()
+      return
+    }
+    alert('Nessuna uscita da caricare')
   } catch (error) {
     console.error('Upload failed:', error)
     alert('Errore durante il caricamento')
+  } finally {
+    isUploading.value = false
   }
 }
 
+function startWebTracking() {
+  webStartTime = Date.now()
+  webPausedAccumulatedMs = 0
+  webPausedAt = null
+  webLastPoint = null
+  webDistance = 0
+  webElevationGain = 0
+  webWatchId = navigator.geolocation.watchPosition(
+    handleWebPosition,
+    handleWebError,
+    {
+      enableHighAccuracy: true,
+      maximumAge: 1000,
+      timeout: 10000,
+    }
+  )
+}
+
+function handleWebPosition(position: GeolocationPosition) {
+  if (!isTracking.value || isPaused.value) return
+
+  const point = {
+    lat: position.coords.latitude,
+    lon: position.coords.longitude,
+    altitude: position.coords.altitude,
+    timestamp: new Date(position.timestamp).toISOString(),
+  }
+
+  const distanceDelta = webLastPoint
+    ? haversineDistanceMeters(webLastPoint.lat, webLastPoint.lon, point.lat, point.lon)
+    : 0
+  webDistance += distanceDelta
+
+  if (
+    webLastPoint?.altitude !== null &&
+    webLastPoint?.altitude !== undefined &&
+    point.altitude !== null &&
+    point.altitude !== undefined
+  ) {
+    webElevationGain += Math.max(0, point.altitude - webLastPoint.altitude)
+  }
+
+  const elapsedSeconds = getWebElapsedSeconds()
+  const avgSpeed = elapsedSeconds > 0 ? (webDistance / 1000) / (elapsedSeconds / 3600) : 0
+  const elapsedSinceLastMs = webLastPoint?.timestampNumber
+    ? position.timestamp - webLastPoint.timestampNumber
+    : 0
+  const currentSpeed = elapsedSinceLastMs > 0
+    ? (distanceDelta / 1000) / (elapsedSinceLastMs / 3600000)
+    : 0
+
+  addPoint(point)
+  updateMetrics({
+    distance: webDistance,
+    currentSpeed,
+    avgSpeed,
+    elapsedTime: elapsedSeconds,
+    elevation: webElevationGain,
+    points: tracking.routePoints.length,
+  })
+  liveMapRef.value?.addPoint(point.lat, point.lon)
+  webLastPoint = { ...point, timestampNumber: position.timestamp }
+}
+
+function handleWebError(error: GeolocationPositionError) {
+  alert(`Errore GPS: ${error.message}`)
+}
+
+function stopWebTracking() {
+  if (webWatchId !== null) {
+    navigator.geolocation.clearWatch(webWatchId)
+    webWatchId = null
+  }
+  const blob = new Blob([toGpx()], { type: 'application/gpx+xml' })
+  setGpxBlob(blob)
+  return { gpxPath: null, gpxBlob: blob }
+}
+
+function getUploadBlob() {
+  if (tracking.gpxBlob) return tracking.gpxBlob
+  if (tracking.routePoints.length > 0) {
+    return new Blob([toGpx()], { type: 'application/gpx+xml' })
+  }
+  return null
+}
+
+function getWebElapsedSeconds() {
+  return Math.max(0, (Date.now() - webStartTime - webPausedAccumulatedMs) / 1000)
+}
+
+function haversineDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const radius = 6371000
+  const toRadians = (value: number) => (value * Math.PI) / 180
+  const dLat = toRadians(lat2 - lat1)
+  const dLon = toRadians(lon2 - lon1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) ** 2
+  return 2 * radius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function resetTrackingState() {
+  resetMetrics()
+  setGpxPath(null)
+  setGpxBlob(null)
+}
+
 onMounted(() => {
-  tracking.start()
+  resetTrackingState()
 })
 
 onBeforeUnmount(() => {
-  tracking.resetMetrics()
+  if (webWatchId !== null) {
+    navigator.geolocation.clearWatch(webWatchId)
+    webWatchId = null
+  }
+  if (tracking.isTracking && !tracking.gpxBlob) {
+    void stopTracking()
+  }
 })
 </script>

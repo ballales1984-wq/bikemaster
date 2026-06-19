@@ -1,6 +1,13 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
+export interface TrackingPoint {
+  lat: number
+  lon: number
+  altitude?: number | null
+  timestamp?: string
+}
+
 export const useTrackingStore = defineStore('tracking', () => {
   const isTracking = ref(false)
   const isPaused = ref(false)
@@ -14,6 +21,9 @@ export const useTrackingStore = defineStore('tracking', () => {
   const cadence = ref<number | null>(null)
   const power = ref<number | null>(null)
   const gpxPath = ref<string | null>(null)
+  const gpxBlob = ref<Blob | null>(null)
+  const routePoints = ref<TrackingPoint[]>([])
+  const lastPoint = ref<TrackingPoint | null>(null)
 
   function start() {
     isTracking.value = true
@@ -56,8 +66,18 @@ export const useTrackingStore = defineStore('tracking', () => {
     if (payload.power !== undefined) power.value = payload.power
   }
 
+  function addPoint(point: TrackingPoint) {
+    routePoints.value = [...routePoints.value, point]
+    lastPoint.value = point
+    points.value = routePoints.value.length
+  }
+
   function setGpxPath(path: string | null = null) {
     gpxPath.value = path
+  }
+
+  function setGpxBlob(blob: Blob | null = null) {
+    gpxBlob.value = blob
   }
 
   function resetMetrics() {
@@ -70,6 +90,37 @@ export const useTrackingStore = defineStore('tracking', () => {
     heartRate.value = null
     cadence.value = null
     power.value = null
+    routePoints.value = []
+    lastPoint.value = null
+    gpxPath.value = null
+    gpxBlob.value = null
+  }
+
+  function toGpx(name = 'BikeMaster ride') {
+    const safeName = name
+      .replace(/[&<>]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim() || 'BikeMaster ride'
+    const time = (value?: string) => value || new Date().toISOString()
+    const route = routePoints.value
+      .map(
+        (point) => `      <trkpt lat="${point.lat}" lon="${point.lon}">
+        <ele>${point.altitude ?? 0}</ele>
+        <time>${time(point.timestamp)}</time>
+      </trkpt>`
+      )
+      .join('\n')
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="BikeMaster-Web" xmlns="http://www.topografix.com/GPX/1/1/">
+  <trk>
+    <name>${safeName}</name>
+    <trkseg>
+${route}
+    </trkseg>
+  </trk>
+</gpx>
+`
   }
 
   const formattedTime = computed(() => {
@@ -97,13 +148,19 @@ export const useTrackingStore = defineStore('tracking', () => {
     cadence,
     power,
     gpxPath,
+    gpxBlob,
+    routePoints,
+    lastPoint,
     start,
     pause,
     resume,
     stop,
     updateMetrics,
+    addPoint,
     setGpxPath,
+    setGpxBlob,
     resetMetrics,
+    toGpx,
     formattedTime,
     formattedDistance,
   }

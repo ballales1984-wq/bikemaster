@@ -37,7 +37,6 @@ class RideAdapter(
                 distanceText.text = "${String.format("%.1f", ride.distanceKm)} km"
                 durationText.text = "${String.format("%.0f", ride.durationMinutes)} min"
                 speedText.text = "${String.format("%.1f", ride.avgSpeedKmh)} km/h"
-                caloriesText.text = "${ride.calories} cal"
                 dateText.text = ride.date ?: ""
                 
                 root.setOnClickListener { onItemClick(ride) }

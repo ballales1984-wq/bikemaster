@@ -36,7 +36,7 @@ class CalendarActivity : AppCompatActivity() {
         val calendar = Calendar.getInstance()
         lifecycleScope.launch {
             try {
-                val response = ApiClient.api.getCalendarEvents(
+                val response = ApiClient.getApi(this@CalendarActivity).getCalendarEvents(
                     athleteId = 1,
                     year = calendar.get(Calendar.YEAR),
                     month = calendar.get(Calendar.MONTH) + 1

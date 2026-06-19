@@ -354,8 +354,9 @@ def test_google_oauth_callback_uses_redirect_uri_from_state(client, monkeypatch)
     )
 
     assert r.status_code == 307
-    assert r.headers["location"].startswith("https://bikemaster.onrender.com/?token=jwt-token")
+    assert r.headers["location"].startswith("https://bikemaster.onrender.com/#token=jwt-token")
     assert "token=jwt-token" in r.headers["location"]
+    assert "?token=" not in r.headers["location"]
 
 
 def test_google_fit_auth_uses_forwarded_redirect_uri(client, monkeypatch):

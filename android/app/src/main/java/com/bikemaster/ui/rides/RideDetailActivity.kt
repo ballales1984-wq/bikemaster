@@ -46,7 +46,7 @@ class RideDetailActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun loadRide(rideId: Int) {
         lifecycleScope.launch {
             try {
-                ride = ApiClient.api.getRide(rideId)
+                ride = ApiClient.getApi(this@RideDetailActivity).getRide(rideId)
                 displayRide()
             } catch (e: Exception) {
                 Toast.makeText(this@RideDetailActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
