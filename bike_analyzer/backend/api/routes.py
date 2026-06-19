@@ -75,13 +75,25 @@ def _build_redirect_uri(request: Request, path: str) -> str:
 def _build_frontend_redirect_url(
     request: Request,
     redirect_uri: str | None,
+    fragment_keys: set[str] | None = None,
     **query_values: str,
 ) -> str:
     parsed = urlparse(redirect_uri or "")
     origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else _build_redirect_uri(request, "")
-    params = {key: value for key, value in query_values.items() if value is not None}
-    suffix = f"?{urlencode(params)}" if params else ""
-    return f"{origin}/{suffix}"
+    fragment_keys = fragment_keys or set()
+    params = {
+        key: value
+        for key, value in query_values.items()
+        if key not in fragment_keys and value is not None
+    }
+    fragment_params = {
+        key: value
+        for key, value in query_values.items()
+        if key in fragment_keys and value is not None
+    }
+    query_suffix = f"?{urlencode(params)}" if params else ""
+    fragment_suffix = f"#{urlencode(fragment_params)}" if fragment_params else ""
+    return f"{origin}/{query_suffix}{fragment_suffix}"
 
 
 def _validate_redirect_uri(redirect_uri: str) -> None:
@@ -393,7 +405,15 @@ async def google_oauth_callback_get(
 
     session = create_google_session(user_info, athlete_id=existing["id"])
     token = session["access_token"]
-    return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, token=token, email=email or ""))
+    return RedirectResponse(
+        url=_build_frontend_redirect_url(
+            request,
+            redirect_uri,
+            {"token", "email"},
+            token=token,
+            email=email or "",
+        )
+    )
 
 
 @router.post("/rides")
@@ -567,6 +587,7 @@ async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(
     points_data = parse_gpx_file(content.decode())
     ride_data = points_to_ride(points_data, name=file.filename)
     if "error" not in ride_data:
+        ride_data["athlete_id"] = _user_id(current_user)
         ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
         ride_data["id"] = int(ride_id)
     return ride_data
@@ -596,6 +617,7 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
         os.unlink(temp_path)
     ride_data = points_to_ride(points_data, name=file.filename)
     if "error" not in ride_data:
+        ride_data["athlete_id"] = _user_id(current_user)
         ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
         ride_data["id"] = int(ride_id)
     return ride_data
@@ -665,6 +687,7 @@ async def import_multiple(
                 points = []
             ride_data = points_to_ride(points, name=file.filename)
             if "error" not in ride_data:
+                ride_data["athlete_id"] = _user_id(current_user)
                 ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
                 ride_data["id"] = int(ride_id)
                 imported.append(ride_data)
@@ -1134,6 +1157,19 @@ async def reload_knowledge(current_user: dict = Depends(get_admin_user)):
     from ..analytics.knowledge_base import reload_kb
 
     return reload_kb()
+
+
+@router.post("/knowledge/init-embeddings")
+async def init_kb_embeddings_endpoint(current_user: dict = Depends(get_admin_user)):
+    from ..analytics.knowledge_base import init_kb_embeddings, init_chroma_db
+    from ..db.postgres_db import get_session
+
+    with get_session() as session:
+        pg_result = init_kb_embeddings(session)
+
+    chroma_result = init_chroma_db()
+
+    return {"pgvector": pg_result, "chromadb": chroma_result}
 
 
 @router.get("/coach/workout")

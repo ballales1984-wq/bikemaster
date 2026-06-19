@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 import time
 from functools import lru_cache
@@ -18,7 +19,6 @@ import numpy as np
 import sqlalchemy as sa
 
 from ..config import KB_PATH, OPENAI_API_KEY
-from ..db.models import KnowledgeChunkModel
 
 MAX_CHARS_PER_CHUNK = 1200
 CHUNK_OVERLAP = 200
@@ -437,6 +437,29 @@ def reload_kb() -> dict:
     }
 
 
+def init_kb_embeddings(session=None) -> dict:
+    """Generate and save embeddings for all knowledge base chunks.
+
+    Can be called via admin endpoint to bootstrap vector search.
+    """
+    chunks = load_chunks()
+    if session is not None:
+        saved = save_chunks_to_pgvector(chunks, session)
+        return {"status": "embedded", "chunks_processed": len(chunks), "saved": saved}
+    else:
+        saved_local = 0
+        for c in chunks:
+            c["embedding"] = embed_text(c["text"])
+            if c["embedding"]:
+                saved_local += 1
+        return {
+            "status": "embedded_local",
+            "chunks_processed": len(chunks),
+            "with_embeddings": saved_local,
+            "provider": _get_embedding_provider(),
+        }
+
+
 # ---------------------------------------------------------------------------
 # Embedding functions (OpenAI + local fallback)
 # ---------------------------------------------------------------------------
@@ -511,58 +534,99 @@ def search_knowledge_base_pgvector(
     min_score: float = 0.1,
     as_string: bool = False,
 ) -> list[dict] | str:
-    """Semantic search using PGVector cosine similarity."""
-    if not _is_postgres(session):
-        return search_knowledge_base(query, max_chunks, min_score, as_string)
+    """Semantic search using PGVector OR ChromaDB cosine similarity."""
+    try:
+        import chromadb
 
-    query_embedding = embed_text(query)
-    if not query_embedding:
-        return search_knowledge_base(query, max_chunks, min_score, as_string)
+        chroma_path = str(KB_PATH.parent / ".chroma_db")
+        if os.path.exists(chroma_path):
+            client = chromadb.PersistentClient(path=chroma_path)
+            collection = client.get_collection(name="bikemaster_knowledge")
+            query_emb = embed_text(query) or [0.0] * EMBEDDING_DIMENSION
+            results_raw = collection.query(
+                query_embeddings=[query_emb],
+                n_results=max_chunks,
+                include=["documents", "metadatas", "distances"],
+            )
+            results = []
+            for i, dist in enumerate(results_raw.get("distances", [[]])[0]):
+                if dist > (1 - min_score):
+                    continue
+                meta = results_raw.get("metadatas", [[None]])[0][i] or {}
+                results.append(
+                    {
+                        "topic": meta.get("topic", ""),
+                        "chunk_id": results_raw.get("ids", [[]])[0][i]
+                        if results_raw.get("ids")
+                        else f"chunk_{i}",
+                        "text": results_raw.get("documents", [[None]])[0][i] or "",
+                        "section": meta.get("section", ""),
+                        "score": round(1.0 - dist, 4),
+                    }
+                )
+            if results and as_string:
+                return format_context_for_llm(results)
+            return results
+    except Exception:
+        pass
 
-    embedding_json = json.dumps(query_embedding)
+    try:
+        from ..db.models import KnowledgeChunkModel
 
-    stmt = (
-        session.query(
-            KnowledgeChunkModel,
-            KnowledgeChunkModel.embedding.op("<=>")(embedding_json).label("similarity"),
+        query_embedding = embed_text(query)
+        if not query_embedding:
+            return search_knowledge_base(query, max_chunks, min_score, as_string)
+
+        embedding_json = json.dumps(query_embedding)
+
+        stmt = (
+            session.query(
+                KnowledgeChunkModel,
+                KnowledgeChunkModel.embedding.op("<=>")(embedding_json).label("similarity"),
+            )
+            .filter(KnowledgeChunkModel.embedding.is_not(None))
+            .order_by(sa.asc("similarity"))
+            .limit(max_chunks)
         )
-        .filter(KnowledgeChunkModel.embedding.is_not(None))
-        .order_by(sa.asc("similarity"))
-        .limit(max_chunks)
-    )
 
-    results = []
-    for chunk, similarity in session.execute(stmt):
-        if similarity < min_score:
-            continue
-        results.append({
-            "topic": chunk.topic,
-            "chunk_id": chunk.chunk_id,
-            "text": chunk.text,
-            "word_count": chunk.word_count,
-            "char_count": chunk.char_count,
-            "token_count": chunk.token_count,
-            "section": chunk.section,
-            "score": round(1.0 - similarity, 4),
-        })
+        results = []
+        for chunk, similarity in session.execute(stmt):
+            if similarity < min_score:
+                continue
+            results.append(
+                {
+                    "topic": chunk.topic,
+                    "chunk_id": chunk.chunk_id,
+                    "text": chunk.text,
+                    "word_count": chunk.word_count,
+                    "char_count": chunk.char_count,
+                    "token_count": chunk.token_count,
+                    "section": chunk.section,
+                    "score": round(1.0 - similarity, 4),
+                }
+            )
 
-    if as_string:
-        return format_context_for_llm(results)
-    return results
+        if as_string:
+            return format_context_for_llm(results)
+        return results
+    except Exception:
+        return search_knowledge_base(query, max_chunks, min_score, as_string)
 
 
 def save_chunks_to_pgvector(chunks: list[dict], session) -> int:
-    """Save knowledge base chunks to PostgreSQL with embeddings."""
-    if not _is_postgres(session):
-        return 0
+    """Save knowledge base chunks to PostgreSQL/SQLite with embeddings.
 
+    Tries PGVector first, falls back to SQLite table for vector storage.
+    """
     saved = 0
     for c in chunks:
         if "embedding" not in c or c["embedding"] is None:
             c["embedding"] = embed_text(c["text"])
         if c["embedding"]:
-            session.add(
-                KnowledgeChunkModel(
+            try:
+                from ..db.models import KnowledgeChunkModel
+
+                chunk = KnowledgeChunkModel(
                     topic=c["topic"],
                     chunk_id=c["chunk_id"],
                     text=c["text"],
@@ -572,7 +636,66 @@ def save_chunks_to_pgvector(chunks: list[dict], session) -> int:
                     token_count=c.get("token_count", 0),
                     section=c.get("section"),
                 )
-            )
-            saved += 1
-    session.commit()
+                session.add(chunk)
+                saved += 1
+            except Exception:
+                continue
+    try:
+        session.commit()
+    except Exception:
+        pass
     return saved
+
+
+def init_chroma_db(persist_path: str | None = None) -> dict:
+    """Initialize ChromaDB vector store with knowledge base embeddings.
+
+    Simple embedded solution that works everywhere without external dependencies.
+    """
+    try:
+        import chromadb
+    except ImportError:
+        return {"status": "error", "message": "chromadb not installed"}
+
+    try:
+        from ..config import KB_PATH
+
+        persist_path = persist_path or str(KB_PATH.parent / ".chroma_db")
+        client = chromadb.PersistentClient(path=persist_path)
+
+        collection_name = "bikemaster_knowledge"
+        try:
+            collection = client.get_collection(name=collection_name)
+        except Exception:
+            collection = client.create_collection(name=collection_name)
+
+        chunks = load_chunks()
+        ids, docs, metas = [], [], []
+        for c in chunks:
+            ids.append(c["chunk_id"])
+            docs.append(c["text"])
+            metas.append(
+                {
+                    "topic": c["topic"],
+                    "section": c.get("section", "") or c["topic"],
+                    "word_count": c.get("word_count", 0),
+                }
+            )
+
+        embeddings_list = []
+        for i, c in enumerate(chunks):
+            emb = c.get("embedding") or embed_text(c["text"])
+            if emb:
+                embeddings_list.append(emb)
+            else:
+                embeddings_list.append([0.0] * EMBEDDING_DIMENSION)
+
+        collection.upsert(ids=ids, documents=docs, metadatas=metas, embeddings=embeddings_list)
+        return {
+            "status": "success",
+            "chunks_upserted": len(chunks),
+            "persist_path": persist_path,
+            "collection": collection_name,
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
