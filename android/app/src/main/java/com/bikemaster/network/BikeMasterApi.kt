@@ -36,7 +36,7 @@ interface BikeMasterApi {
     @GET("athletes/{athleteId}")
     suspend fun getAthlete(@Path("athleteId") athleteId: Int): AthleteProfile
     
-    @POST("athletes/{athleteId}")
+    @PUT("athletes/{athleteId}")
     suspend fun updateAthlete(@Path("athleteId") athleteId: Int, @Body athlete: AthleteProfile)
     
     @GET("training/load")
