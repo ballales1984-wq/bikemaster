@@ -29,6 +29,7 @@
           <option value="combined">Pendenza + meteo</option>
           <option value="slope">Solo pendenza</option>
           <option value="weather">Solo meteo</option>
+          <option value="speed">Per velocità</option>
         </select>
       </label>
 
@@ -93,13 +94,21 @@
             <span class="legend-swatch" :style="{ background: item.color }"></span>
             <span>{{ item.label }}</span>
           </div>
-          <p v-if="weatherUnavailableCount" class="legend-note">
-            {{ weatherUnavailableCount }} {{ weatherUnavailableCount === 1 ? 'percorso' : 'percorsi' }} senza meteo: rischio meteo impostato a 50/100.
-          </p>
-        </div>
-      </div>
-    </template>
-  </section>
+<p v-if="weatherUnavailableCount" class="legend-note">
+             {{ weatherUnavailableCount }} {{ weatherUnavailableCount === 1 ? 'percorso' : 'percorsi' }} senza meteo: rischio meteo impostato a 50/100.
+           </p>
+         </div>
+
+         <div v-if="colorMode === 'speed'" class="legend-card">
+           <h4>Velocità</h4>
+           <div v-for="item in speedLegend" :key="item.label" class="legend-row">
+             <span class="legend-swatch" :style="{ background: item.color }"></span>
+             <span>{{ item.label }}</span>
+           </div>
+         </div>
+       </div>
+     </template>
+   </section>
 </template>
 
 <script setup>
@@ -112,6 +121,7 @@ import {
   formatDistance,
   gradeRiskPercent,
   riskColor,
+  speedRiskPercent,
   weatherRiskPercent,
 } from '../utils/routeMap.js'
 
@@ -133,10 +143,16 @@ const riskLevels = [
 ]
 
 const gradeLegend = [
-  { label: 'Piano o falsopiano: < 3%', color: '#27ae60' },
-  { label: 'Media: 3-6%', color: '#f1c40f' },
-  { label: 'Dura: 6-10%', color: '#e67e22' },
-  { label: 'Molto dura: > 10%', color: '#e74c3c' },
+   { label: 'Piano o falsopiano: < 3%', color: '#27ae60' },
+   { label: 'Media: 3-6%', color: '#f1c40f' },
+   { label: 'Dura: 6-10%', color: '#e67e22' },
+   { label: 'Molto dura: > 10%', color: '#e74e6c' },
+]
+
+const speedLegend = [
+   { label: 'Vel. alta: > 25 km/h', color: '#27ae60' },
+   { label: 'Vel. media: 15-25 km/h', color: '#f1c40f' },
+   { label: 'Vel. bassa: < 15 km/h', color: '#e74c3c' },
 ]
 
 const weatherLegend = [
@@ -301,12 +317,15 @@ function applyRideRisk(ride) {
   ride.segments = ride.segments.map(segment => {
     const gradeRisk = gradeRiskPercent(segment.grade)
     const weatherRisk = weatherRiskPercent(weatherScore)
+    const speedRisk = speedRiskPercent(segment.speed)
     let risk = 0
 
     if (colorMode.value === 'slope') {
       risk = gradeRisk
     } else if (colorMode.value === 'weather') {
       risk = weatherEnabled.value ? weatherRisk : 0
+    } else if (colorMode.value === 'speed') {
+      risk = speedRisk
     } else {
       risk = Math.round((gradeRisk + weatherRisk) / 2)
     }
@@ -317,6 +336,7 @@ function applyRideRisk(ride) {
       color: riskColor(risk),
       gradeRisk,
       weatherRisk,
+      speedRisk,
     }
   })
 

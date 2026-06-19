@@ -58,6 +58,7 @@ const tracking = useTrackingStore()
 const {
   isTracking,
   isPaused,
+  start,
   stop,
   pause,
   resume,

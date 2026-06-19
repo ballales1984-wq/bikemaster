@@ -1330,7 +1330,7 @@ async def historical_trends(current_user: dict = Depends(get_current_user)):
 @router.get("/rides/{ride_id}/map/google")
 async def google_static_map(
     ride_id: int,
-    colored: bool = False,
+    colored: bool = Query(False, description="Color path by speed (green=fast, yellow=medium, red=slow)"),
     current_user: dict = Depends(get_current_user),
 ):
     from fastapi.responses import FileResponse
