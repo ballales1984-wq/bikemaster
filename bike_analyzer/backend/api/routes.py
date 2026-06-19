@@ -213,6 +213,13 @@ async def health_redis():
         return {"redis": "error", "error": str(e)}
 
 
+@router.get("/config/google-maps-key")
+async def google_maps_key():
+    from ..config import GOOGLE_MAPS_API_KEY
+
+    return {"google_maps_api_key": GOOGLE_MAPS_API_KEY or ""}
+
+
 @router.post("/auth/login")
 @limiter.limit("5/minute")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
@@ -851,7 +858,7 @@ async def list_athletes(current_user: dict = Depends(get_current_user)):
 
     athlete = _get_athlete(current_user["id"])
     if not athlete:
-        raise HTTPException(status_code=404, detail="Athlete profile not found")
+        return {"athletes": []}
     return {"athletes": [_public_athlete(athlete)]}
 
 
@@ -1229,16 +1236,14 @@ async def coach_full_data(
             profile_message = (
                 "Create an athlete profile in the Dashboard to receive personalized recommendations."
             )
-            return (
-                {
-                    "training_advice": profile_message,
-                    "recovery_advice": profile_message,
-                    "historical_analysis": "",
-                    "training_scores": [],
-                    "recovery_scores": [],
-                    "charts": [],
-                },
-            )[0]
+            return {
+                "training_advice": profile_message,
+                "recovery_advice": profile_message,
+                "historical_analysis": "",
+                "training_scores": [],
+                "recovery_scores": [],
+                "charts": [],
+            }
         rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
         athlete_data = get_athlete(resolved_id)
         if not athlete_data:
@@ -1353,6 +1358,40 @@ async def google_static_map(
     path = f"ride_{ride_id}_google_map{suffix}.png"
     create_google_static_map(points, api_key, path, colored=colored)
     return FileResponse(path, media_type="image/png", filename="map.png")
+
+
+@router.get("/rides/{ride_id}/speed-path")
+async def ride_speed_path(
+    ride_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    from ..db.database import get_ride as _get_ride
+    from ..maps.google_maps import build_speed_colored_path
+    from ..models.models import GPSPoint
+
+    ride = _get_ride(ride_id)
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
+    gps_points = ride.get("gps_points", [])
+    if not gps_points:
+        raise HTTPException(status_code=400, detail="No GPS points")
+    points = [GPSPoint(**p) for p in gps_points]
+    segments = build_speed_colored_path(points)
+    speeds = [p.speed for p in points if p.speed is not None]
+    min_spd = min(speeds) if speeds else 0.0
+    max_spd = max(speeds) if speeds else 35.0
+    return {
+        "ride_id": ride_id,
+        "segments": segments,
+        "min_speed": min_spd,
+        "max_speed": max_spd,
+        "point_count": len(points),
+        "center": {
+            "lat": sum(p.lat for p in points) / len(points),
+            "lon": sum(p.lon for p in points) / len(points),
+        },
+    }
 
 
 @admin_router.get("/backup")

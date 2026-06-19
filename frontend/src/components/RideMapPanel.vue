@@ -29,7 +29,7 @@
           <option value="combined">Pendenza + meteo</option>
           <option value="slope">Solo pendenza</option>
           <option value="weather">Solo meteo</option>
-          <option value="speed">Per velocità</option>
+          <option value="speed">Velocita</option>
         </select>
       </label>
 

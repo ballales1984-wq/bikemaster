@@ -15,26 +15,52 @@ class SpeedColorSegment:
     color: str
 
 
+def _interpolate_color(value: float, min_v: float, max_v: float) -> str:
+    if max_v == min_v:
+        return "#FFFF00"
+    ratio = (value - min_v) / (max_v - min_v)
+    if ratio < 0.5:
+        r = 255
+        g = int(255 * ratio * 2)
+    else:
+        r = int(255 * (1 - (ratio - 0.5) * 2))
+        g = 255
+    return f"#{r:02x}{g:02x}00"
+
+
 def _speed_to_color(speed_kmh: float | None) -> str:
     if speed_kmh is None:
-        return "0x0000ff"
+        return "#4488ff"
+    if speed_kmh >= 35:
+        return "#00cc44"
     if speed_kmh >= 25:
-        return "0x00FF00"
+        return "#88cc00"
     if speed_kmh >= 15:
-        return "0xFFFF00"
-    return "0xFF0000"
+        return "#ddbb00"
+    if speed_kmh >= 5:
+        return "#ee8800"
+    return "#ee3333"
+
+
+def _css_to_google_hex(color: str) -> str:
+    if color.startswith("0x"):
+        return color
+    return "0x" + color.lstrip("#").upper()
 
 
 def _build_speed_segments(
-    gps_points: list[GPSPoint], min_segment: int = 5
+    gps_points: list[GPSPoint], min_segment: int = 3
 ) -> list[SpeedColorSegment]:
     if not gps_points:
         return []
+    speeds = [p.speed for p in gps_points if p.speed is not None]
+    min_spd = min(speeds) if speeds else 0.0
+    max_spd = max(speeds) if speeds else 25.0
     segments: list[SpeedColorSegment] = []
-    current_color = _speed_to_color(gps_points[0].speed)
+    current_color = _interpolate_color(gps_points[0].speed or 0, min_spd, max_spd)
     current_points: list[tuple[float, float]] = [(gps_points[0].lat, gps_points[0].lon)]
     for i in range(1, len(gps_points)):
-        pt_color = _speed_to_color(gps_points[i].speed)
+        pt_color = _interpolate_color(gps_points[i].speed or 0, min_spd, max_spd)
         if pt_color != current_color and len(current_points) >= min_segment:
             segments.append(SpeedColorSegment(points=current_points.copy(), color=current_color))
             current_points = [(gps_points[i].lat, gps_points[i].lon)]
@@ -45,7 +71,31 @@ def _build_speed_segments(
         segments.append(SpeedColorSegment(points=current_points.copy(), color=current_color))
     if not segments and gps_points:
         pairs = [(p.lat, p.lon) for p in gps_points]
-        segments.append(SpeedColorSegment(points=pairs, color="0x0000ff"))
+        segments.append(SpeedColorSegment(points=pairs, color="#4488ff"))
+    return segments
+
+
+def build_speed_colored_path(
+    gps_points: list[GPSPoint],
+) -> list[dict]:
+    if not gps_points or len(gps_points) < 2:
+        return []
+    speeds = [p.speed for p in gps_points if p.speed is not None]
+    min_spd = min(speeds) if speeds else 0.0
+    max_spd = max(speeds) if speeds else 35.0
+    segments = []
+    for i in range(len(gps_points) - 1):
+        a = gps_points[i]
+        b = gps_points[i + 1]
+        color = _interpolate_color(a.speed or 0, min_spd, max_spd)
+        segments.append(
+            {
+                "start": [a.lat, a.lon],
+                "end": [b.lat, b.lon],
+                "color": color,
+                "speed_kmh": a.speed,
+            }
+        )
     return segments
 
 
@@ -79,7 +129,7 @@ def create_google_static_map(
         path_parts = []
         for seg in segs:
             coords = "|".join([f"{lat},{lon}" for lat, lon in seg.points])
-            path_parts.append(f"path=color:{seg.color}|weight:5|{coords}")
+            path_parts.append(f"path=color:{_css_to_google_hex(seg.color)}|weight:5|{coords}")
         path_str = "&".join(path_parts)
         url = (
             "https://maps.googleapis.com/maps/api/staticmap?"

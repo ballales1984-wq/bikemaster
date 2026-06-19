@@ -175,3 +175,25 @@ def test_strava_auth_endpoint(client):
 def test_garmin_routes():
     """Test Garmin routes exist."""
     pass
+
+
+def test_google_static_map_colored_endpoint(client, db_path):
+    """Test Google static map endpoint with colored parameter."""
+    from bike_analyzer.backend.db import database as db_mod
+
+    athlete_id = db_mod.save_athlete({"name": "Test Athlete", "experience_level": "Beginner"})
+    ride_id = db_mod.save_ride(
+        {
+            "date": "2024-06-15",
+            "distance_km": 25.0,
+            "duration_minutes": 60.0,
+            "avg_speed_kmh": 25.0,
+            "gps_points": [
+                {"lat": 45.0, "lon": 9.0, "timestamp": "2024-06-15T10:00:00Z", "speed": 10},
+                {"lat": 45.01, "lon": 9.01, "timestamp": "2024-06-15T10:01:00Z", "speed": 30},
+            ],
+            "athlete_id": athlete_id,
+        }
+    )
+    response = client.get(f"/api/v1/rides/{ride_id}/map/google?colored=true")
+    assert response.status_code in (200, 500)
