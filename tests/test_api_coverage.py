@@ -381,6 +381,7 @@ def test_static_fallback_routes(client):
     for path in (
         "/",
         "/index.html",
+        "/track",
         "/registerSW.js",
         "/manifest.json",
         "/manifest.webmanifest",
