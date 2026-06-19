@@ -145,7 +145,19 @@ def _use_local_coach() -> bool:
     return _coach_mode() in _LOCAL_COACH_MODES
 
 
-def _kb(query: str, max_chunks: int = 3) -> str:
+def _kb(query: str, max_chunks: int = 3, session=None) -> str:
+    """Search knowledge base with optional PGVector session fallback to BM25."""
+    if session is not None:
+        try:
+            from .knowledge_base import search_knowledge_base_pgvector
+
+            results = search_knowledge_base_pgvector(
+                query, session, max_chunks=max_chunks, min_score=0.1, as_string=True
+            )
+            if results:
+                return results
+        except Exception:
+            pass
     results = search_knowledge_base(query, max_chunks=max_chunks)
     if not results:
         return ""

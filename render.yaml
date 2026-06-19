@@ -8,11 +8,13 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: GROQ_API_KEY
-        sync: false  # Set via Render dashboard
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
       - key: GOOGLE_CLIENT_ID
-        sync: false  # Set via Render dashboard
+        sync: false
       - key: GOOGLE_CLIENT_SECRET
-        sync: false  # Set via Render dashboard
+        sync: false
       - key: AI_COACH_MODE
         value: external
       - key: AI_COACH_PROVIDER_ORDER
