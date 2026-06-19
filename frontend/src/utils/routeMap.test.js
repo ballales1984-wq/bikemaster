@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRidePolylines, escapeHtml, gradeRiskPercent, weatherRiskPercent } from './routeMap.js'
+import { buildRidePolylines, escapeHtml, gradeRiskPercent, speedRiskPercent, weatherRiskPercent } from './routeMap.js'
 
 describe('routeMap helpers', () => {
   it('groups consecutive segments with the same color', () => {
@@ -28,5 +28,14 @@ describe('routeMap helpers', () => {
     expect(gradeRiskPercent(6.1)).toBe(65)
     expect(weatherRiskPercent(8)).toBe(10)
     expect(weatherRiskPercent(4)).toBe(85)
+  })
+
+  it('maps speed to risk levels', () => {
+    expect(speedRiskPercent(30)).toBe(15)
+    expect(speedRiskPercent(25)).toBe(15)
+    expect(speedRiskPercent(15)).toBe(45)
+    expect(speedRiskPercent(14)).toBe(85)
+    expect(speedRiskPercent(0)).toBe(85)
+    expect(speedRiskPercent(null)).toBe(85)
   })
 })

@@ -133,9 +133,13 @@ async function connectGoogleFit() {
       if (event.data?.type === 'google-fit-success') {
         window.removeEventListener('message', handleMessage)
         // Import activities
+        const token = localStorage.getItem('bikemaster_token')
         const importResp = await fetch('/api/v1/import/google-fit', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
           body: JSON.stringify({ access_token: event.data.token })
         })
         if (importResp.ok) {

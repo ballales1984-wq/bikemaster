@@ -11,7 +11,7 @@
 - [x] 17: Route builder (processing.py)
 - [x] 18: Renderer Folium (map_renderer.py)
 - [x] 19: Prima mappa HTML generata (bike_route_demo.html)
-- [ ] 20: Documentare flusso GPS
+- [x] 20: Documentare flusso GPS
 
 ## Fase 2 - Analisi Percorso (21-40)
 - [x] 21-24: Distanza, tempo, velocità media/massima
