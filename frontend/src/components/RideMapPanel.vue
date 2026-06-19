@@ -39,76 +39,76 @@
       </label>
     </div>
 
-    <div v-if="loading && !enrichedRides.length" class="loading-text">
+<div v-if="loading && !enrichedRides.length" class="loading-text">
       <span class="spinner"></span> Caricamento percorsi...
     </div>
 
-    <div v-else-if="!ridesWithGps.length" class="empty-state">
-      <div class="empty-icon">Map</div>
-      <div class="empty-title">Nessun percorso GPS disponibile</div>
-      <div class="empty-desc">Importa GPX/FIT o aggiungi una ride con punti GPS per visualizzare la mappa colorata.</div>
+    <div id="route-map" ref="mapContainer" class="route-map">
+      <div v-if="!ridesWithGps.length" class="demo-map-overlay">
+        <div class="demo-map-content">
+          <span class="demo-icon">🗺️</span>
+          <p>Visualizzazione percorso demo Milano-Monza</p>
+          <p class="demo-hint">Importa GPX/FIT o aggiungi una ride con punti GPS per visualizzare i tuoi percorsi</p>
+        </div>
+      </div>
     </div>
 
-    <template v-else>
-      <div class="map-kpis">
-        <div class="kpi">
-          <strong>{{ visibleRides.length }}</strong>
-          <span>{{ visibleRides.length === 1 ? 'percorso' : 'percorsi' }}</span>
-        </div>
-        <div class="kpi">
-          <strong>{{ totalGpsPoints }}</strong>
-          <span>punti GPS</span>
-        </div>
-        <div class="kpi">
-          <strong>{{ averageRisk }}</strong>
-          <span>rischio medio</span>
-        </div>
-        <div class="kpi">
-          <strong>{{ worstRide }}</strong>
-          <span>tratto più critico</span>
+    <div v-if="ridesWithGps.length" class="map-kpis">
+      <div class="kpi">
+        <strong>{{ visibleRides.length }}</strong>
+        <span>{{ visibleRides.length === 1 ? 'percorso' : 'percorsi' }}</span>
+      </div>
+      <div class="kpi">
+        <strong>{{ totalGpsPoints }}</strong>
+        <span>punti GPS</span>
+      </div>
+      <div class="kpi">
+        <strong>{{ averageRisk }}</strong>
+        <span>rischio medio</span>
+      </div>
+      <div class="kpi">
+        <strong>{{ worstRide }}</strong>
+        <span>tratto più critico</span>
+      </div>
+    </div>
+
+    <div class="legend-grid">
+      <div class="legend-card">
+        <h4>Rischio combinato</h4>
+        <div v-for="level in riskLevels" :key="level.label" class="legend-row">
+          <span class="legend-swatch" :style="{ background: level.color }"></span>
+          <span>{{ level.label }} · {{ level.range }}</span>
         </div>
       </div>
 
-      <div id="route-map" ref="mapContainer" class="route-map"></div>
-
-      <div class="legend-grid">
-        <div class="legend-card">
-          <h4>Rischio combinato</h4>
-          <div v-for="level in riskLevels" :key="level.label" class="legend-row">
-            <span class="legend-swatch" :style="{ background: level.color }"></span>
-            <span>{{ level.label }} · {{ level.range }}</span>
-          </div>
+      <div class="legend-card">
+        <h4>Pendenze</h4>
+        <div v-for="item in gradeLegend" :key="item.label" class="legend-row">
+          <span class="legend-swatch" :style="{ background: item.color }"></span>
+          <span>{{ item.label }}</span>
         </div>
+      </div>
 
-        <div class="legend-card">
-          <h4>Pendenze</h4>
-          <div v-for="item in gradeLegend" :key="item.label" class="legend-row">
-            <span class="legend-swatch" :style="{ background: item.color }"></span>
-            <span>{{ item.label }}</span>
-          </div>
+      <div v-if="weatherEnabled" class="legend-card">
+        <h4>Meteo</h4>
+        <div v-for="item in weatherLegend" :key="item.label" class="legend-row">
+          <span class="legend-swatch" :style="{ background: item.color }"></span>
+          <span>{{ item.label }}</span>
         </div>
+        <p v-if="weatherUnavailableCount" class="legend-note">
+          {{ weatherUnavailableCount }} {{ weatherUnavailableCount === 1 ? 'percorso' : 'percorsi' }} senza meteo: rischio meteo impostato a 50/100.
+        </p>
+      </div>
 
-        <div v-if="weatherEnabled" class="legend-card">
-          <h4>Meteo</h4>
-          <div v-for="item in weatherLegend" :key="item.label" class="legend-row">
-            <span class="legend-swatch" :style="{ background: item.color }"></span>
-            <span>{{ item.label }}</span>
-          </div>
-<p v-if="weatherUnavailableCount" class="legend-note">
-             {{ weatherUnavailableCount }} {{ weatherUnavailableCount === 1 ? 'percorso' : 'percorsi' }} senza meteo: rischio meteo impostato a 50/100.
-           </p>
-         </div>
-
-         <div v-if="colorMode === 'speed'" class="legend-card">
-           <h4>Velocità</h4>
-           <div v-for="item in speedLegend" :key="item.label" class="legend-row">
-             <span class="legend-swatch" :style="{ background: item.color }"></span>
-             <span>{{ item.label }}</span>
-           </div>
-         </div>
-       </div>
-     </template>
-   </section>
+      <div v-if="colorMode === 'speed'" class="legend-card">
+        <h4>Velocità</h4>
+        <div v-for="item in speedLegend" :key="item.label" class="legend-row">
+          <span class="legend-swatch" :style="{ background: item.color }"></span>
+          <span>{{ item.label }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup>
@@ -131,6 +131,21 @@ const enrichedRides = ref([])
 const selectedRideId = ref(null)
 const colorMode = ref('combined')
 const weatherEnabled = ref(true)
+
+// Demo route: Milano to Monza (approximate coordinates along SS36)
+const demoRoutePoints = [
+  { lat: 45.4642, lon: 9.1900, altitude: 120 },
+  { lat: 45.4800, lon: 9.2200, altitude: 135 },
+  { lat: 45.4900, lon: 9.2500, altitude: 155 },
+  { lat: 45.5000, lon: 9.2800, altitude: 175 },
+  { lat: 45.5600, lon: 9.2700, altitude: 190 },
+  { lat: 45.5800, lon: 9.2400, altitude: 185 },
+  { lat: 45.5900, lon: 9.2000, altitude: 190 },
+  { lat: 45.6000, lon: 9.1800, altitude: 195 },
+  { lat: 45.6100, lon: 9.1600, altitude: 190 },
+  { lat: 45.6200, lon: 9.1400, altitude: 200 },
+  { lat: 45.6300, lon: 9.1200, altitude: 210 },
+]
 
 let map = null
 let layerGroup = null
@@ -186,6 +201,17 @@ const worstRide = computed(() => {
 })
 
 const weatherUnavailableCount = computed(() => enrichedRides.value.filter(ride => ride.weatherUnavailable).length)
+
+const demoRide = computed(() => ({
+  id: 'demo',
+  isDemo: true,
+  date: '2026-06-19',
+  gps_points: demoRoutePoints,
+  segments: [],
+  center: getCenter(demoRoutePoints),
+  distanceM: demoRoutePoints.length * 5000,
+  overallRisk: 50,
+}))
 
 watch(colorMode, () => {
   enrichedRides.value = enrichedRides.value.map(ride => applyRideRisk(ride))
@@ -312,6 +338,19 @@ function buildSegments(points) {
   return segments
 }
 
+function buildDemoSegments(points) {
+  const segments = buildSegments(points)
+  return segments.map(segment => {
+    const gradeRisk = gradeRiskPercent(segment.grade)
+    const risk = Math.round(gradeRisk * 0.7) // Demo risk
+    return {
+      ...segment,
+      risk,
+      color: riskColor(risk),
+    }
+  })
+}
+
 function applyRideRisk(ride) {
   const weatherScore = Number.isFinite(ride.weatherScore) ? ride.weatherScore : 5
   ride.segments = ride.segments.map(segment => {
@@ -350,7 +389,7 @@ function renderMap() {
   if (!mapContainer.value) return
 
   if (!map) {
-    map = L.map(mapContainer.value, { preferCanvas: true }).setView([45.4642, 9.19], 13)
+    map = L.map(mapContainer.value, { preferCanvas: true }).setView([45.4642, 9.19], 11)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 19,
@@ -361,14 +400,25 @@ function renderMap() {
   layerGroup.clearLayers()
   const bounds = L.latLngBounds()
 
-  visibleRides.value.forEach(ride => {
-    const rideLayer = L.layerGroup()
+  // Show demo route when no rides available
+  const ridesToRender = visibleRides.value.length > 0 ? visibleRides.value : [demoRide.value]
 
-    buildRidePolylines(ride).forEach(polylineData => {
+  ridesToRender.forEach(ride => {
+    const rideLayer = L.layerGroup()
+    const points = ride.gps_points || []
+
+    // Build demo segments if using demo ride
+    let segments = ride.segments
+    if (ride.isDemo) {
+      segments = buildDemoSegments(points)
+    }
+
+    buildRidePolylines({ ...ride, segments }).forEach(polylineData => {
       const polyline = L.polyline(polylineData.points, {
         color: polylineData.color,
-        weight: selectedRideId.value ? 6 : 4,
-        opacity: selectedRideId.value ? 0.95 : 0.68,
+        weight: 5,
+        opacity: 0.8,
+        dashArray: ride.isDemo ? '10,5' : null,
         lineCap: 'round',
         lineJoin: 'round',
       })
@@ -381,12 +431,12 @@ function renderMap() {
     if (ride.center) {
       const centerMarker = L.circleMarker(ride.center, {
         radius: 6,
-        color: riskColor(ride.overallRisk),
-        fillColor: riskColor(ride.overallRisk),
+        color: ride.isDemo ? '#3498db' : riskColor(ride.overallRisk),
+        fillColor: ride.isDemo ? '#3498db' : riskColor(ride.overallRisk),
         fillOpacity: 0.9,
         weight: 2,
       })
-      centerMarker.bindPopup(ridePopup(ride))
+      centerMarker.bindPopup(ride.isDemo ? 'Percorso demo Milano-Monza' : ridePopup(ride))
       centerMarker.addTo(rideLayer)
     }
 
@@ -394,7 +444,7 @@ function renderMap() {
   })
 
   if (bounds.isValid()) {
-    map.fitBounds(bounds.pad(0.03))
+    map.fitBounds(bounds.pad(0.1))
   }
   map.invalidateSize()
 }
@@ -541,6 +591,34 @@ onBeforeUnmount(() => {
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--bg-secondary);
+  position: relative;
+}
+
+.demo-map-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1e21 0%, #252a2f 100%);
+  z-index: 10;
+}
+
+.demo-map-content {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.demo-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.demo-hint {
+  font-size: 0.9rem;
+  margin-top: 8px;
+  color: var(--text-secondary);
 }
 
 .legend-grid {
