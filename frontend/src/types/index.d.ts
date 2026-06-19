@@ -5,18 +5,20 @@ export interface Ride {
   date: string
   duration_seconds: number
   distance_meters: number
+  distance_km?: number
   calories?: number
   avg_speed_kmh?: number
   max_speed_kmh?: number
   elev_gain_meters?: number
   elev_loss_meters?: number
   created_at?: string
+  duration_minutes?: number
 }
 
 export interface Athlete {
-  id: number
+  id?: number
   username: string
-  email?: string
+  email?: string | null
   is_admin?: boolean
   goal_type?: string
   goal_target?: number

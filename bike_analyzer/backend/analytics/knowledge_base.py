@@ -8,6 +8,7 @@ Phase 24: Added PGVector semantic search with BM25 fallback.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import math
 import os
@@ -640,10 +641,8 @@ def save_chunks_to_pgvector(chunks: list[dict], session) -> int:
                 saved += 1
             except Exception:
                 continue
-    try:
+    with contextlib.suppress(Exception):
         session.commit()
-    except Exception:
-        pass
     return saved
 
 

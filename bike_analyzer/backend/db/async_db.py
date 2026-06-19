@@ -37,12 +37,16 @@ def _get_engine():
     return _engine
 
 
+def _disabled_async_session_factory():
+    return None
+
+
 def get_session_factory():
     global _async_session_factory
     if _async_session_factory is None:
         engine = _get_engine()
         if getattr(engine, "dialect", "") == "sqlite+aiosqlite-unavailable":
-            _async_session_factory = lambda: None
+            _async_session_factory = _disabled_async_session_factory
         else:
             _async_session_factory = async_sessionmaker(
                 engine, class_=AsyncSession, expire_on_commit=False

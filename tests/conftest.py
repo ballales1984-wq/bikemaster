@@ -1,6 +1,6 @@
-import os
-import inspect
 import asyncio
+import inspect
+import os
 from pathlib import Path
 
 import pytest

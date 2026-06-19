@@ -6,10 +6,11 @@ Create Date: 2026-06-17
 
 """
 
-from collections.abc import Sequence
+import contextlib
 
 import sqlalchemy as sa
 from alembic import op
+from collections.abc import Sequence
 
 revision: str = "add_pgvector_knowledge_chunks"
 down_revision: str | Sequence[str] | None = "08ee39bfe529"
@@ -57,11 +58,9 @@ def downgrade() -> None:
     op.drop_index("ix_chat_messages_athlete_id", table_name="chat_messages")
     op.drop_table("chat_messages")
     op.drop_index("ix_knowledge_chunks_topic", table_name="knowledge_chunks")
-    try:
+    with contextlib.suppress(Exception):
         op.drop_index(
             "ix_knowledge_chunks_embedding",
             table_name="knowledge_chunks",
         )
-    except Exception:
-        pass
     op.drop_table("knowledge_chunks")
