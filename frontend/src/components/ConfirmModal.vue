@@ -19,12 +19,12 @@
 import { ref, watch } from 'vue'
 
 const props = defineProps({
-  modelValue: { type: Boolean, default: false },
-  title: { type: String, default: 'Conferma' },
-  message: { type: String, default: 'Sei sicuro?' },
-  confirmLabel: { type: String, default: 'Conferma' },
-  cancelLabel: { type: String, default: 'Annulla' },
-})
+   modelValue: { type: Boolean, default: false },
+   title: { type: String, default: 'Confirm' },
+   message: { type: String, default: 'Are you sure?' },
+   confirmLabel: { type: String, default: 'Confirm' },
+   cancelLabel: { type: String, default: 'Cancel' },
+ })
 
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
 

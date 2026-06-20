@@ -72,12 +72,12 @@ async function loadAthleteId() {
 }
 
 const categories = [
-  { key: 'milestone', label: '🎯 Milestone' },
-  { key: 'distance', label: '📏 Distanza' },
-  { key: 'elevation', label: '⛰️ Elevazione' },
-  { key: 'speed', label: '⚡ Velocità' },
-  { key: 'consistency', label: '📆 Costanza' },
-]
+   { key: 'milestone', label: '🎯 Milestone' },
+   { key: 'distance', label: '📏 Distance' },
+   { key: 'elevation', label: '⛰️ Elevation' },
+   { key: 'speed', label: '⚡ Speed' },
+   { key: 'consistency', label: '📆 Consistency' },
+ ]
 
 const completionPercent = computed(() => {
   if (!badgesData.value) return 0

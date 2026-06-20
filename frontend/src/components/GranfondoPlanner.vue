@@ -1,71 +1,71 @@
 <template>
   <div class="panel">
-    <h2>🚴‍♂️ Pianificatore Granfondo</h2>
-    
-    <div class="form-grid">
-      <div class="form-group">
-        <label for="gf-start-date">Data Inizio</label>
-        <input id="gf-start-date" type="date" v-model="startDate" />
-      </div>
-      <div class="form-group">
-        <label for="gf-weeks">Numero Settimane</label>
-        <select id="gf-weeks" v-model.number="weeks">
-          <option :value="8">8 settimane</option>
-          <option :value="9">9 settimane</option>
-          <option :value="10">10 settimane</option>
-          <option :value="11">11 settimane</option>
-          <option :value="12">12 settimane</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <button class="btn btn-primary" @click="generatePlan">📅 Genera Piano</button>
-      </div>
-    </div>
-    
-    <div v-if="loading" class="loading-text">Generazione piano...</div>
-    
-    <div v-if="plan" class="plan-container">
-      <div class="plan-header">
-        <h3>Piano Allenamento {{ weeks }} settimane</h3>
-        <p class="plan-dates">Dal {{ startDate }} al {{ endDate }}</p>
-      </div>
+<h2>🚴‍♂️ Granfondo Planner</h2>
+     
+     <div class="form-grid">
+       <div class="form-group">
+         <label for="gf-start-date">Start Date</label>
+         <input id="gf-start-date" type="date" v-model="startDate" />
+       </div>
+       <div class="form-group">
+         <label for="gf-weeks">Number of Weeks</label>
+         <select id="gf-weeks" v-model.number="weeks">
+           <option :value="8">8 weeks</option>
+           <option :value="9">9 weeks</option>
+           <option :value="10">10 weeks</option>
+           <option :value="11">11 weeks</option>
+           <option :value="12">12 weeks</option>
+         </select>
+       </div>
+       <div class="form-group">
+         <button class="btn btn-primary" @click="generatePlan">📅 Generate Plan</button>
+       </div>
+     </div>
+     
+     <div v-if="loading" class="loading-text">Generating plan...</div>
+     
+     <div v-if="plan" class="plan-container">
+       <div class="plan-header">
+         <h3>Training Plan {{ weeks }} weeks</h3>
+         <p class="plan-dates">From {{ startDate }} to {{ endDate }}</p>
+       </div>
 
-      <div class="plan-actions">
-        <button class="btn btn-success" @click="savePlan" :disabled="saving">
-          {{ saving ? 'Salvataggio...' : '💾 Salva nel Calendario' }}
-        </button>
-        <span v-if="saveMessage" class="save-message" :class="{ success: saveSuccess, error: !saveSuccess }">
-          {{ saveMessage }}
-        </span>
-      </div>
+       <div class="plan-actions">
+         <button class="btn btn-success" @click="savePlan" :disabled="saving">
+           {{ saving ? 'Saving...' : '💾 Save to Calendar' }}
+         </button>
+         <span v-if="saveMessage" class="save-message" :class="{ success: saveSuccess, error: !saveSuccess }">
+           {{ saveMessage }}
+         </span>
+       </div>
 
-      <div class="tapering-info">
-        <span class="badge badge-info">📊 Tapering: -40% volume 2 settimane prima, -60% ultima settimana</span>
-      </div>
-      
-      <div class="calendar-grid plan-grid">
-        <div class="cal-header" v-for="d in weekDays" :key="d">{{ d }}</div>
-        <div v-for="(day, idx) in calendarDays" :key="idx" class="cal-cell" :class="{ today: day.isToday }">
-          <span class="day-num">{{ day.day }}</span>
-          <div class="day-workouts">
-            <div v-for="w in day.workouts" :key="w.title" class="workout-item" :class="'type-' + w.workout_type">
-              {{ w.title }}
-              <span class="workout-meta">{{ w.duration_minutes }}min {{ Math.round(w.target_intensity * 100) }}%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="workout-legend">
-        <span class="legend-item legend-endurance">Base Aerobica</span>
-        <span class="legend-item legend-threshold">Thresholds</span>
-        <span class="legend-item legend-sweetspot">Sweetspot</span>
-        <span class="legend-item legend-recovery">Recupero</span>
-        <span class="legend-item legend-race">Gara</span>
-      </div>
-    </div>
-  </div>
-</template>
+       <div class="tapering-info">
+         <span class="badge badge-info">📊 Tapering: -40% volume 2 weeks before, -60% last week</span>
+       </div>
+       
+       <div class="calendar-grid plan-grid">
+         <div class="cal-header" v-for="d in weekDays" :key="d">{{ d }}</div>
+         <div v-for="(day, idx) in calendarDays" :key="idx" class="cal-cell" :class="{ today: day.isToday }">
+           <span class="day-num">{{ day.day }}</span>
+           <div class="day-workouts">
+             <div v-for="w in day.workouts" :key="w.title" class="workout-item" :class="'type-' + w.workout_type">
+               {{ w.title }}
+               <span class="workout-meta">{{ w.duration_minutes }}min {{ Math.round(w.target_intensity * 100) }}%</span>
+             </div>
+           </div>
+         </div>
+       </div>
+       
+       <div class="workout-legend">
+         <span class="legend-item legend-endurance">Endurance</span>
+         <span class="legend-item legend-threshold">Thresholds</span>
+         <span class="legend-item legend-sweetspot">Sweetspot</span>
+         <span class="legend-item legend-recovery">Recovery</span>
+         <span class="legend-item legend-race">Race</span>
+       </div>
+     </div>
+   </div>
+   </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
@@ -77,7 +77,7 @@ const weeks = ref(8)
 const loading = ref(false)
 const plan = ref(null)
 
-const weekDays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
+const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 async function loadAthleteId() {
   const data = await apiGet('/api/v1/athletes')

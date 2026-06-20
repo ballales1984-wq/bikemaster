@@ -1,13 +1,13 @@
 <template>
   <div class="controls-bar">
     <button v-if="isPaused" class="btn btn-primary" @click="$emit('resume')">
-      ▶ Riprendi
+      ▶ Resume
     </button>
     <button v-else class="btn btn-secondary" @click="$emit('pause')">
-      ⏸ Pausa
+      ⏸ Pause
     </button>
     <button class="btn btn-danger" @click="$emit('stop')">
-      ⏹ Termina
+      ⏹ Stop
     </button>
   </div>
 </template>

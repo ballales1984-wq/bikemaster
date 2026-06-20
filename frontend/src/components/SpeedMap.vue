@@ -1,9 +1,9 @@
 <template>
   <div class="google-speed-map">
     <div ref="mapEl" class="map-canvas"></div>
-    <div v-if="loading" class="map-loading">Caricamento mappa velocita...</div>
-    <div v-if="!loading && !error" class="map-speed-legend">
-      <div class="legend-title">Velocita (km/h)</div>
+<div v-if="loading" class="map-loading">Loading speed map...</div>
+     <div v-if="!loading && !error" class="map-speed-legend">
+       <div class="legend-title">Speed (km/h)</div>
       <div class="legend-bar">
         <span>{{ maxSpeed.toFixed(1) }}</span>
         <div class="bar-gradient"></div>
@@ -76,78 +76,78 @@ async function loadSpeedPath() {
     maxSpeed.value = data.max_speed || 35
     renderMap(data)
   } catch (err) {
-    error.value = err.message || 'Impossibile caricare il percorso velocita'
-  } finally {
-    loading.value = false
-  }
-}
+error.value = err.message || 'Unable to load speed path'
+   } finally {
+     loading.value = false
+   }
+ }
 
-function renderMap(data) {
-  if (!mapEl.value || !data.segments || !data.segments.length) return
+ function renderMap(data) {
+   if (!mapEl.value || !data.segments || !data.segments.length) return
 
-  if (!googleMap) {
-    initMap({ lat: data.center.lat, lng: data.center.lon }, 14)
+   if (!googleMap) {
+     initMap({ lat: data.center.lat, lng: data.center.lon }, 14)
 
-    const first = data.segments[0]
-    new google.maps.Marker({
-      position: new google.maps.LatLng(first.start[0], first.start[1]),
-      map: googleMap,
-      label: { text: 'S', color: '#fff', fontSize: '12px', fontWeight: 'bold' },
-      title: 'Partenza',
-    })
+     const first = data.segments[0]
+     new google.maps.Marker({
+       position: new google.maps.LatLng(first.start[0], first.start[1]),
+       map: googleMap,
+       label: { text: 'S', color: '#fff', fontSize: '12px', fontWeight: 'bold' },
+       title: 'Start',
+     })
 
-    const last = data.segments[data.segments.length - 1]
-    new google.maps.Marker({
-      position: new google.maps.LatLng(last.end[0], last.end[1]),
-      map: googleMap,
-      label: { text: 'E', color: '#fff', fontSize: '12px', fontWeight: 'bold' },
-      title: 'Arrivo',
-    })
-  }
+     const last = data.segments[data.segments.length - 1]
+     new google.maps.Marker({
+       position: new google.maps.LatLng(last.end[0], last.end[1]),
+       map: googleMap,
+       label: { text: 'E', color: '#fff', fontSize: '12px', fontWeight: 'bold' },
+       title: 'Finish',
+     })
+   }
 
-  pathLayer.forEach(feature => pathLayer.remove(feature))
+   pathLayer.forEach(feature => pathLayer.remove(feature))
 
-  const features = []
-  data.segments.forEach(seg => {
-    const feature = new google.maps.Data.Feature()
-    feature.setGeometry(
-      new google.maps.Data.LineString([
-        new google.maps.LatLng(seg.start[0], seg.start[1]),
-        new google.maps.LatLng(seg.end[0], seg.end[1]),
-      ])
-    )
-    feature.setProperty('color', seg.color)
-    feature.setProperty('speed_kmh', seg.speed_kmh)
-    features.push(feature)
-  })
-  features.forEach(f => pathLayer.add(f))
+   const features = []
+   data.segments.forEach(seg => {
+     const feature = new google.maps.Data.Feature()
+     feature.setGeometry(
+       new google.maps.Data.LineString([
+         new google.maps.LatLng(seg.start[0], seg.start[1]),
+         new google.maps.LatLng(seg.end[0], seg.end[1]),
+       ])
+     )
+     feature.setProperty('color', seg.color)
+     feature.setProperty('speed_kmh', seg.speed_kmh)
+     features.push(feature)
+   })
+   features.forEach(f => pathLayer.add(f))
 
-  const bounds = new google.maps.LatLngBounds()
-  data.segments.forEach(seg => {
-    bounds.extend(new google.maps.LatLng(seg.start[0], seg.start[1]))
-    bounds.extend(new google.maps.LatLng(seg.end[0], seg.end[1]))
-  })
-  googleMap.fitBounds(bounds, 30)
-}
+   const bounds = new google.maps.LatLngBounds()
+   data.segments.forEach(seg => {
+     bounds.extend(new google.maps.LatLng(seg.start[0], seg.start[1]))
+     bounds.extend(new google.maps.LatLng(seg.end[0], seg.end[1]))
+   })
+   googleMap.fitBounds(bounds, 30)
+ }
 
-onMounted(() => {
-  if (!props.apiKey) {
-    loading.value = false
-    error.value = 'Google Maps API key non configurata'
-    return
-  }
+ onMounted(() => {
+   if (!props.apiKey) {
+     loading.value = false
+     error.value = 'Google Maps API key not configured'
+     return
+   }
 
-  const script = document.createElement('script')
-  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + props.apiKey
-  script.async = true
-  script.defer = true
-  script.onload = () => loadSpeedPath()
-  script.onerror = () => {
-    loading.value = false
-    error.value = 'Impossibile caricare Google Maps JS API'
-  }
-  document.head.appendChild(script)
-})
+   const script = document.createElement('script')
+   script.src = 'https://maps.googleapis.com/maps/api/js?key=' + props.apiKey
+   script.async = true
+   script.defer = true
+   script.onload = () => loadSpeedPath()
+   script.onerror = () => {
+     loading.value = false
+     error.value = 'Unable to load Google Maps JS API'
+   }
+   document.head.appendChild(script)
+ })
 
 onBeforeUnmount(() => {
   if (infoWindow) infoWindow.close()

@@ -1,29 +1,29 @@
 <template>
   <div class="panel dashboard-panel">
-    <h2>📊 Dashboard Atleta</h2>
-    <div v-if="loading" class="loading">Caricamento...</div>
+    <h2>📊 Athlete Dashboard</h2>
+    <div v-if="loading" class="loading">Loading...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else class="dashboard-grid">
       <div class="dashboard-card">
-        <h3>👤 Profilo</h3>
+        <h3>👤 Profile</h3>
         <p v-if="dashboard.athlete">
-          Nome: {{ dashboard.athlete.name }}<br />
-          Email: {{ dashboard.athlete.email || 'Non specificata' }}<br />
-          Livello: {{ dashboard.athlete.experience_level }}
+          Name: {{ dashboard.athlete.name }}<br />
+          Email: {{ dashboard.athlete.email || 'Not specified' }}<br />
+          Level: {{ dashboard.athlete.experience_level }}
         </p>
-        <p v-else>Profilo non configurato</p>
+        <p v-else>Profile not configured</p>
       </div>
       <div class="dashboard-card">
-        <h3>🚴 Statistiche</h3>
+        <h3>🚴 Stats</h3>
         <p v-if="dashboard.summary">
-          Totale uscite: {{ dashboard.summary.total_rides }}<br />
-          KM totali: {{ dashboard.summary.total_km || 0 }}<br />
-          Ore totali: {{ dashboard.summary.total_hours || 0 }}<br />
-          Calorie: {{ dashboard.summary.total_calories || 0 }}
+          Total rides: {{ dashboard.summary.total_rides }}<br />
+          Total km: {{ dashboard.summary.total_km || 0 }}<br />
+          Total hours: {{ dashboard.summary.total_hours || 0 }}<br />
+          Calories: {{ dashboard.summary.total_calories || 0 }}
         </p>
       </div>
       <div class="dashboard-card">
-        <h3>🏅 Punteggi</h3>
+        <h3>🏅 Scores</h3>
         <p v-if="dashboard.scores">
           Performance: {{ dashboard.scores.performance }}/10<br />
           Endurance: {{ dashboard.scores.endurance }}/10<br />
@@ -32,16 +32,16 @@
         </p>
       </div>
       <div class="dashboard-card">
-        <h3>📈 Fitness (7 giorni)</h3>
+        <h3>📈 Fitness (7 days)</h3>
         <p v-if="dashboard.fitness">
           ATL: {{ dashboard.fitness.atl || 0 }}<br />
           CTL: {{ dashboard.fitness.ctl || 0 }}<br />
           TSB: {{ dashboard.fitness.tsb || 0 }}<br />
-          Stato: {{ dashboard.fitness.status || 'N/D' }}
+          Status: {{ dashboard.fitness.status || 'N/A' }}
         </p>
       </div>
       <div class="dashboard-card">
-        <h3>🔥 Ultimi 7 giorni</h3>
+        <h3>🔥 Last 7 days</h3>
         <p v-if="dashboard.trends?.weekly_progress">
           <span v-for="(km, i) in dashboard.trends.weekly_progress" :key="i" class="progress-dot" :title="km + 'km'"></span>
         </p>
@@ -66,7 +66,7 @@ async function loadDashboard() {
     const data = await apiGet('/api/v1/dashboard')
     dashboard.value = data
   } catch (e) {
-    error.value = 'Errore: ' + (e.message || e)
+    error.value = 'Error: ' + (e.message || e)
   } finally {
     loading.value = false
   }
@@ -74,7 +74,7 @@ async function loadDashboard() {
 
 onMounted(() => {
   loadDashboard().catch(e => {
-    error.value = 'Errore: ' + (e.message || e)
+    error.value = 'Error: ' + (e.message || e)
   })
 })
 </script>

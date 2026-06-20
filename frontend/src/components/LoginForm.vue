@@ -1,41 +1,41 @@
 <template>
   <div class="login-panel">
-    <h2>🔐 Accesso BikeMaster</h2>
-    <div class="login-tabs" role="tablist" aria-label="Modalità accesso">
+<h2>🔐 BikeMaster Login</h2>
+    <div class="login-tabs" role="tablist" aria-label="Login modes">
       <button :class="['tab-btn', { active: mode === 'login' }]" @click="mode = 'login'" role="tab" :aria-selected="mode === 'login'" aria-controls="login-form">Login</button>
-      <button :class="['tab-btn', { active: mode === 'register' }]" @click="mode = 'register'" role="tab" :aria-selected="mode === 'register'" aria-controls="login-form">Registrati</button>
+      <button :class="['tab-btn', { active: mode === 'register' }]" @click="mode = 'register'" role="tab" :aria-selected="mode === 'register'" aria-controls="login-form">Sign Up</button>
     </div>
 
     <form @submit.prevent="submit" class="login-form" novalidate>
       <div class="form-group">
         <label for="username">Username</label>
-        <input id="username" v-model="form.username" type="text" placeholder="min 3 caratteri" :disabled="loading" required autocomplete="username" :aria-invalid="!!usernameError" :aria-describedby="usernameError ? 'username-error' : undefined" :class="{ error: usernameError, valid: form.username.length >= 3 && !usernameError }" />
+        <input id="username" v-model="form.username" type="text" placeholder="min 3 characters" :disabled="loading" required autocomplete="username" :aria-invalid="!!usernameError" :aria-describedby="usernameError ? 'username-error' : undefined" :class="{ error: usernameError, valid: form.username.length >= 3 && !usernameError }" />
         <span v-if="usernameError" id="username-error" class="field-error" role="alert" aria-live="assertive">{{ usernameError }}</span>
       </div>
       <div class="form-group">
         <label for="password">Password</label>
         <div class="password-wrapper">
-          <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" :placeholder="mode === 'register' ? 'min 6 caratteri' : ''" :disabled="loading" required autocomplete="current-password" :aria-invalid="!!passwordError" :aria-describedby="passwordError ? 'password-error' : undefined" :class="{ error: passwordError, valid: form.password.length >= 6 && !passwordError }" />
-          <button type="button" class="password-toggle" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Nascondi password' : 'Mostra password'" :aria-pressed="showPassword">
+          <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" :placeholder="mode === 'register' ? 'min 6 characters' : ''" :disabled="loading" required autocomplete="current-password" :aria-invalid="!!passwordError" :aria-describedby="passwordError ? 'password-error' : undefined" :class="{ error: passwordError, valid: form.password.length >= 6 && !passwordError }" />
+          <button type="button" class="password-toggle" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Hide password' : 'Show password'" :aria-pressed="showPassword">
             {{ showPassword ? '🙈' : '👁️' }}
           </button>
         </div>
         <span v-if="passwordError" id="password-error" class="field-error" role="alert" aria-live="assertive">{{ passwordError }}</span>
       </div>
       <button type="submit" class="btn btn-primary" :disabled="loading || !isFormValid" :aria-busy="loading">
-        {{ loading ? '🔄 Caricamento...' : (mode === 'login' ? 'Entra' : 'Crea account') }}
+        {{ loading ? '🔄 Loading...' : (mode === 'login' ? 'Sign In' : 'Create Account') }}
       </button>
     </form>
 
     <div class="oauth-separator">
-      <span>oppure</span>
+      <span>or</span>
     </div>
     <button @click="loginWithGoogle" class="btn btn-google" :disabled="loading" type="button">
       <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.76h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c3.05 0 5.84-1.15 7.86-3l-3.57-2.76c-.98.66-2.23 1.06-3.62 1.44v2.26C15.24 21.23 13.71 22 12 22z"/><path fill="#FBBC05" d="M6.27 15.73a7.5 7.5 0 0 1 0-3.46l2.93-2.27a7.5 7.5 0 0 0 1.74 3.19l-2.93 2.27z"/><path fill="#EA4335" d="M18.57 6.43a7.5 7.5 0 0 0-6.57-4.43 7.5 7.5 0 0 0-1.57.23l2.93 2.26a4.99 4.99 0 0 1 5.17 4.17z"/></svg>
-      Accedi con Google
+      Sign in with Google
     </button>
   </div>
-</template>
+  </template>
 
 <script setup>
 import { ref, computed } from 'vue'
@@ -59,10 +59,10 @@ function validate() {
   usernameError.value = ''
   passwordError.value = ''
   if (form.value.username.length > 0 && form.value.username.length < 3) {
-    usernameError.value = 'Minimo 3 caratteri'
+    usernameError.value = 'Min 3 characters'
   }
   if (mode.value === 'register' && form.value.password.length > 0 && form.value.password.length < 6) {
-    passwordError.value = 'Minimo 6 caratteri'
+    passwordError.value = 'Min 6 characters'
   }
 }
 
@@ -88,11 +88,11 @@ async function loginWithGoogle() {
     const data = await response.json().catch(() => ({}))
 
     if (!response.ok) {
-      throw new Error(data.detail || `Errore login Google: ${response.status}`)
+      throw new Error(data.detail || `Google login error: ${response.status}`)
     }
 
     if (!data.auth_url) {
-      throw new Error('Errore login Google: risposta server non valida')
+      throw new Error('Google login error: invalid server response')
     }
 
     window.location.href = data.auth_url
@@ -103,7 +103,7 @@ async function loginWithGoogle() {
     loading.value = false
   }
 }
-</script>
+ </script>
 
 <style scoped>
 .login-panel {
