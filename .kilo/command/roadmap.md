@@ -19,7 +19,7 @@
 - [x] 33-36: Statistiche + report testuale
 - [x] 34-35: Esportazione JSON/CSV
 - [x] 37-39: Grafici
-- [ ] 40: Test statistiche percorso
+- [x] 40: Test statistiche percorso
 
 ## Fase 3 - Database (41-55)
 - [x] 41-55: SQLite completo (CRUD, indici, backup, athlete_id)
