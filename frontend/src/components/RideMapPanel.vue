@@ -114,7 +114,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
-import { apiGet } from '../utils/api.ts'
+import { apiGet } from '../utils/api'
 import {
   buildRidePolylines,
   escapeHtml,
@@ -123,7 +123,7 @@ import {
   riskColor,
   speedRiskPercent,
   weatherRiskPercent,
-} from '../utils/routeMap.ts'
+} from '../utils/routeMap'
 
 const mapContainer = ref(null)
 const loading = ref(false)

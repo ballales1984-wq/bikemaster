@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { apiGet } from './api.ts'
+import { apiGet } from './api'
 
 class MemoryStorage {
   constructor() {

@@ -69,7 +69,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { apiGet, apiPost } from '../utils/api.ts'
+import { apiGet, apiPost } from '../utils/api'
 
 const athleteId = ref(null)
 const startDate = ref(new Date().toISOString().split('T')[0])

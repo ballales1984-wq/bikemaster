@@ -22,7 +22,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue"
-import { apiGet } from "../utils/api.ts"
+import { apiGet } from "../utils/api"
 import SpeedMap from "./SpeedMap.vue"
 
 const props = defineProps({ rideId: Number })
