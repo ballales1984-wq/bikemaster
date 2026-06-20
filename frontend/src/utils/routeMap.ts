@@ -1,6 +1,8 @@
-export function buildRidePolylines(ride: any) {
-  const groups = []
-  let current: any = null
+import type { GpsPoint, RideSegment } from '../types/index'
+
+export function buildRidePolylines(ride: { segments: RideSegment[] }): { color: string; points: [number, number][] }[] {
+  const groups: { color: string; points: [number, number][] }[] = []
+  let current: { color: string; points: [number, number][] } | null = null
 
   for (const segment of ride.segments || []) {
     if (!current || current.color !== segment.color) {
@@ -13,10 +15,10 @@ export function buildRidePolylines(ride: any) {
     current.points.push(segment.end)
   }
 
-  return groups.map(group => ({ color: group.color, points: group.points }))
+  return groups
 }
 
-export function escapeHtml(value: any): string {
+export function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
     '<': '&lt;',
@@ -59,12 +61,12 @@ export function formatDistance(meters: number = 0): string {
   return `${(meters / 1000).toFixed(2)} km`
 }
 
-export function speedColor(ride: any, index: number): string {
+export function speedColor(ride: { gps_points: GpsPoint[] }, index: number): string {
   const points = ride.gps_points || []
   if (index < points.length) {
     const speed = points[index].speed ?? null
     if (speed === null) return '#4488ff'
-    const speeds = points.map((p: any) => p.speed).filter((s: any) => s !== null)
+    const speeds = points.map((p: GpsPoint) => p.speed).filter((s): s is number => s !== null && s !== undefined)
     if (!speeds.length) return '#4488ff'
     const minSpd = Math.min(...speeds)
     const maxSpd = Math.max(...speeds)

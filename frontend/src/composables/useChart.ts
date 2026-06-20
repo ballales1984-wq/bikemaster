@@ -1,10 +1,10 @@
 import { onMounted, watch, ref, type Ref } from 'vue'
-import { Chart, type ChartConfiguration, type ChartTypeRegistry } from 'chart.js/auto'
+import { Chart, type ChartConfiguration, type ChartOptions, type ChartTypeRegistry } from 'chart.js/auto'
 
 export function useChart(
   id: string,
   getData: () => ChartConfiguration['data'] | ChartConfiguration['data'],
-  options: { type?: keyof ChartTypeRegistry; extra?: any } = {}
+  options: { type?: keyof ChartTypeRegistry; extra?: ChartOptions } = {}
 ) {
   const canvas = ref<HTMLCanvasElement | null>(null)
   let chart: Chart | null = null

@@ -63,3 +63,25 @@ export interface Badge {
   description: string
   earned_at: string
 }
+
+export interface GpsPoint {
+  lat: number
+  lon: number
+  altitude?: number | null
+  timestamp?: string | null
+  speed?: number | null
+}
+
+export interface RideSegment {
+  start: [number, number]
+  end: [number, number]
+  distance_m: number
+  elevation_delta_m: number
+  grade: number
+  risk: number
+  color: string
+  speed?: number | null
+  gradeRisk?: number
+  weatherRisk?: number
+  speedRisk?: number
+}

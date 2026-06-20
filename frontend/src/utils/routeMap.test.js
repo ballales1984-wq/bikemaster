@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { buildRidePolylines, escapeHtml, gradeRiskPercent, speedRiskPercent, weatherRiskPercent } from './routeMap.ts'
+import { buildRidePolylines, escapeHtml, gradeRiskPercent, speedRiskPercent, weatherRiskPercent, speedColor } from './routeMap.ts'
 
 describe('routeMap helpers', () => {
   it('groups consecutive segments with the same color', () => {
     const ride = {
       segments: [
-        { start: [0, 0], end: [1, 1], color: 'red' },
-        { start: [1, 1], end: [2, 2], color: 'red' },
-        { start: [2, 2], end: [3, 3], color: 'green' },
-        { start: [3, 3], end: [4, 4], color: 'red' },
+        { start: [0, 0], end: [1, 1], color: 'red', distance_m: 0, elevation_delta_m: 0, grade: 0, risk: 0 },
+        { start: [1, 1], end: [2, 2], color: 'red', distance_m: 0, elevation_delta_m: 0, grade: 0, risk: 0 },
+        { start: [2, 2], end: [3, 3], color: 'green', distance_m: 0, elevation_delta_m: 0, grade: 0, risk: 0 },
+        { start: [3, 3], end: [4, 4], color: 'red', distance_m: 0, elevation_delta_m: 0, grade: 0, risk: 0 },
       ],
     }
 
@@ -37,5 +37,26 @@ describe('routeMap helpers', () => {
     expect(speedRiskPercent(14)).toBe(85)
     expect(speedRiskPercent(0)).toBe(85)
     expect(speedRiskPercent(null)).toBe(85)
+  })
+
+  it('speedColor returns default color for no points', () => {
+    expect(speedColor({ gps_points: [] }, 0)).toBe('#4488ff')
+  })
+
+  it('speedColor returns default color when speed is null', () => {
+    const ride = { gps_points: [{ lat: 0, lon: 0, speed: null }] }
+    expect(speedColor(ride, 0)).toBe('#4488ff')
+  })
+
+  it('speedColor calculates gradient for speed values', () => {
+    const ride = {
+      gps_points: [
+        { lat: 0, lon: 0, speed: 10 },
+        { lat: 1, lon: 1, speed: 20 },
+        { lat: 2, lon: 2, speed: 30 },
+      ],
+    }
+    const color = speedColor(ride, 1)
+    expect(color).toMatch(/^#[0-9a-f]{6}$/)
   })
 })
