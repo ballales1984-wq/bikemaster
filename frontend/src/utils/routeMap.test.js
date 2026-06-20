@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRidePolylines, escapeHtml, gradeRiskPercent, speedRiskPercent, weatherRiskPercent, speedColor } from './routeMap'
+import { buildRidePolylines, escapeHtml, gradeRiskPercent, speedRiskPercent, weatherRiskPercent, speedColor, riskColor, formatDistance } from './routeMap'
 
 describe('routeMap helpers', () => {
   it('groups consecutive segments with the same color', () => {
@@ -58,5 +58,24 @@ describe('routeMap helpers', () => {
     }
     const color = speedColor(ride, 1)
     expect(color).toMatch(/^#[0-9a-f]{6}$/)
+  })
+
+  it('riskColor returns correct colors for risk levels', () => {
+    expect(riskColor(0)).toBe('#27ae60')
+    expect(riskColor(24)).toBe('#27ae60')
+    expect(riskColor(25)).toBe('#f1c40f')
+    expect(riskColor(49)).toBe('#f1c40f')
+    expect(riskColor(50)).toBe('#e67e22')
+    expect(riskColor(74)).toBe('#e67e22')
+    expect(riskColor(75)).toBe('#e74c3c')
+    expect(riskColor(100)).toBe('#e74c3c')
+  })
+
+  it('formatDistance converts meters to kilometers', () => {
+    expect(formatDistance(0)).toBe('0.00 km')
+    expect(formatDistance(1000)).toBe('1.00 km')
+    expect(formatDistance(5000)).toBe('5.00 km')
+    expect(formatDistance(12345)).toBe('12.35 km')
+    expect(formatDistance()).toBe('0.00 km')
   })
 })
