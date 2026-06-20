@@ -5,10 +5,15 @@ export default defineConfig({
   outputDir: './test-results/e2e',
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [['github'], ['html', { outputFolder: 'playwright-report' }]] : 'list',
+  reporter: process.env.CI
+    ? [['github'], ['html', { outputFolder: 'playwright-report' }]]
+    : 'list',
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'on-first-retry',
+    launchOptions: {
+      args: ['--no-sandbox', '--disable-dev-shm-usage'],
+    },
   },
   projects: [
     {
@@ -22,4 +27,5 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 300000,
   },
+  globalSetup: require.resolve('./tests/e2e/global-setup.js'),
 })

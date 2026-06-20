@@ -24,6 +24,7 @@
       </main>
 
       <ToastContainer />
+      <PWAInstallPrompt />
     </template>
 
     <footer class="footer">BikeMaster v2 — Vue 3 Dashboard</footer>
@@ -38,6 +39,7 @@ import HeaderTabs from './components/HeaderTabs.vue'
 import StatsSummary from './components/StatsSummary.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import LoginForm from './components/LoginForm.vue'
+import PWAInstallPrompt from './components/PWAInstallPrompt.vue'
 import { useRides } from './composables/useRides'
 
 const router = useRouter()
