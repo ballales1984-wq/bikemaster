@@ -61,8 +61,8 @@ async function login(username: string, password: string): Promise<void> {
     body: form.toString(),
   })
   if (!resp.ok) {
-    const err = await resp.json().catch(() => ({ detail: 'Login fallito' }))
-    throw new Error((err as { detail?: string }).detail || 'Login fallito')
+    const err = await resp.json().catch(() => ({ detail: 'Login failed' }))
+    throw new Error((err as { detail?: string }).detail || 'Login failed')
   }
   const data = await resp.json()
   token.value = data.access_token
@@ -82,7 +82,7 @@ function register(username: string, password: string): Promise<unknown> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   }).then(r => {
-    if (!r.ok) throw new Error('Registrazione fallita')
+    if (!r.ok) throw new Error('Registration failed')
     return r.json()
   })
 }

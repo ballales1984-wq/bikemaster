@@ -2,21 +2,21 @@
   <section class="panel">
     <div class="map-header">
       <div>
-        <h2>Mappe Percorsi</h2>
+        <h2>Route Maps</h2>
         <p class="map-subtitle">
-          I segmenti GPS vengono colorati in base alla pendenza, alle condizioni meteo della zona o alla combinazione delle due informazioni.
+          GPS segments are colored by gradient, weather conditions, or combined risk.
         </p>
       </div>
       <button class="btn btn-primary" :disabled="loading" @click="loadRides">
-        {{ loading ? 'Aggiornamento...' : 'Aggiorna mappa' }}
+        {{ loading ? 'Updating...' : 'Update map' }}
       </button>
     </div>
 
     <div class="map-toolbar">
       <label class="control">
-        <span>Percorso</span>
+        <span>Route</span>
         <select v-model="selectedRideId" class="form-input">
-          <option :value="null">Tutti i percorsi</option>
+          <option :value="null">All routes</option>
           <option v-for="ride in ridesWithGps" :key="ride.id" :value="ride.id">
             {{ ride.date }} · {{ formatDistance(ride.distanceM) }}
           </option>
@@ -24,157 +24,157 @@
       </label>
 
       <label class="control">
-        <span>Colorazione</span>
+        <span>Coloring</span>
         <select v-model="colorMode" class="form-input">
-          <option value="combined">Pendenza + meteo</option>
-          <option value="slope">Solo pendenza</option>
-          <option value="weather">Solo meteo</option>
-          <option value="speed">Velocita</option>
+          <option value="combined">Grade + weather</option>
+          <option value="slope">Grade only</option>
+          <option value="weather">Weather only</option>
+          <option value="speed">Speed</option>
         </select>
       </label>
 
       <label class="checkbox-control">
         <input v-model="weatherEnabled" type="checkbox" />
-        <span>Includi meteo</span>
+        <span>Include weather</span>
       </label>
     </div>
 
 <div v-if="loading && !enrichedRides.length" class="loading-text">
-      <span class="spinner"></span> Caricamento percorsi...
-    </div>
+       <span class="spinner"></span> Loading routes...
+     </div>
 
-    <div id="route-map" ref="mapContainer" class="route-map">
-      <div v-if="!ridesWithGps.length" class="demo-map-overlay">
-        <div class="demo-map-content">
-          <span class="demo-icon">🗺️</span>
-          <p>Visualizzazione percorso demo Milano-Monza</p>
-          <p class="demo-hint">Importa GPX/FIT o aggiungi una ride con punti GPS per visualizzare i tuoi percorsi</p>
-        </div>
-      </div>
-    </div>
+     <div id="route-map" ref="mapContainer" class="route-map">
+       <div v-if="!ridesWithGps.length" class="demo-map-overlay">
+         <div class="demo-map-content">
+           <span class="demo-icon">🗺️</span>
+           <p>Milan-Monza demo route</p>
+           <p class="demo-hint">Import GPX/FIT or add a ride with GPS points to view your routes</p>
+         </div>
+       </div>
+     </div>
 
-    <div v-if="ridesWithGps.length" class="map-kpis">
-      <div class="kpi">
-        <strong>{{ visibleRides.length }}</strong>
-        <span>{{ visibleRides.length === 1 ? 'percorso' : 'percorsi' }}</span>
-      </div>
-      <div class="kpi">
-        <strong>{{ totalGpsPoints }}</strong>
-        <span>punti GPS</span>
-      </div>
-      <div class="kpi">
-        <strong>{{ averageRisk }}</strong>
-        <span>rischio medio</span>
-      </div>
-      <div class="kpi">
-        <strong>{{ worstRide }}</strong>
-        <span>tratto più critico</span>
-      </div>
-    </div>
+<div v-if="ridesWithGps.length" class="map-kpis">
+       <div class="kpi">
+         <strong>{{ visibleRides.length }}</strong>
+         <span>{{ visibleRides.length === 1 ? 'route' : 'routes' }}</span>
+       </div>
+       <div class="kpi">
+         <strong>{{ totalGpsPoints }}</strong>
+         <span>GPS points</span>
+       </div>
+       <div class="kpi">
+         <strong>{{ averageRisk }}</strong>
+         <span>average risk</span>
+       </div>
+       <div class="kpi">
+         <strong>{{ worstRide }}</strong>
+         <span>worst segment</span>
+       </div>
+     </div>
 
-    <div class="legend-grid">
-      <div class="legend-card">
-        <h4>Rischio combinato</h4>
-        <div v-for="level in riskLevels" :key="level.label" class="legend-row">
-          <span class="legend-swatch" :style="{ background: level.color }"></span>
-          <span>{{ level.label }} · {{ level.range }}</span>
-        </div>
-      </div>
+<div class="legend-grid">
+       <div class="legend-card">
+         <h4>Combined Risk</h4>
+         <div v-for="level in riskLevels" :key="level.label" class="legend-row">
+           <span class="legend-swatch" :style="{ background: level.color }"></span>
+           <span>{{ level.label }} · {{ level.range }}</span>
+         </div>
+       </div>
 
-      <div class="legend-card">
-        <h4>Pendenze</h4>
-        <div v-for="item in gradeLegend" :key="item.label" class="legend-row">
-          <span class="legend-swatch" :style="{ background: item.color }"></span>
-          <span>{{ item.label }}</span>
-        </div>
-      </div>
+       <div class="legend-card">
+         <h4>Gradients</h4>
+         <div v-for="item in gradeLegend" :key="item.label" class="legend-row">
+           <span class="legend-swatch" :style="{ background: item.color }"></span>
+           <span>{{ item.label }}</span>
+         </div>
+       </div>
 
-      <div v-if="weatherEnabled" class="legend-card">
-        <h4>Meteo</h4>
-        <div v-for="item in weatherLegend" :key="item.label" class="legend-row">
-          <span class="legend-swatch" :style="{ background: item.color }"></span>
-          <span>{{ item.label }}</span>
-        </div>
-        <p v-if="weatherUnavailableCount" class="legend-note">
-          {{ weatherUnavailableCount }} {{ weatherUnavailableCount === 1 ? 'percorso' : 'percorsi' }} senza meteo: rischio meteo impostato a 50/100.
-        </p>
-      </div>
+       <div v-if="weatherEnabled" class="legend-card">
+         <h4>Weather</h4>
+         <div v-for="item in weatherLegend" :key="item.label" class="legend-row">
+           <span class="legend-swatch" :style="{ background: item.color }"></span>
+           <span>{{ item.label }}</span>
+         </div>
+         <p v-if="weatherUnavailableCount" class="legend-note">
+           {{ weatherUnavailableCount }} {{ weatherUnavailableCount === 1 ? 'route' : 'routes' }} without weather: weather risk set to 50/100.
+         </p>
+       </div>
 
-      <div v-if="colorMode === 'speed'" class="legend-card">
-        <h4>Velocità</h4>
-        <div v-for="item in speedLegend" :key="item.label" class="legend-row">
-          <span class="legend-swatch" :style="{ background: item.color }"></span>
-          <span>{{ item.label }}</span>
-        </div>
-      </div>
-    </div>
-  </section>
-</template>
+       <div v-if="colorMode === 'speed'" class="legend-card">
+         <h4>Speed</h4>
+         <div v-for="item in speedLegend" :key="item.label" class="legend-row">
+           <span class="legend-swatch" :style="{ background: item.color }"></span>
+           <span>{{ item.label }}</span>
+         </div>
+       </div>
+     </div>
+   </section>
+   </template>
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
 import { apiGet } from '../utils/api'
 import {
-  buildRidePolylines,
-  escapeHtml,
-  formatDistance,
-  gradeRiskPercent,
-  riskColor,
-  speedRiskPercent,
-  weatherRiskPercent,
-} from '../utils/routeMap'
+   buildRidePolylines,
+   escapeHtml,
+   formatDistance,
+   gradeRiskPercent,
+   riskColor,
+   speedRiskPercent,
+   weatherRiskPercent,
+ } from '../utils/routeMap'
 
-const mapContainer = ref(null)
-const loading = ref(false)
-const enrichedRides = ref([])
-const selectedRideId = ref(null)
-const colorMode = ref('combined')
-const weatherEnabled = ref(true)
+ const mapContainer = ref(null)
+ const loading = ref(false)
+ const enrichedRides = ref([])
+ const selectedRideId = ref(null)
+ const colorMode = ref('combined')
+ const weatherEnabled = ref(true)
 
-// Demo route: Milano to Monza (approximate coordinates along SS36)
-const demoRoutePoints = [
-  { lat: 45.4642, lon: 9.1900, altitude: 120 },
-  { lat: 45.4800, lon: 9.2200, altitude: 135 },
-  { lat: 45.4900, lon: 9.2500, altitude: 155 },
-  { lat: 45.5000, lon: 9.2800, altitude: 175 },
-  { lat: 45.5600, lon: 9.2700, altitude: 190 },
-  { lat: 45.5800, lon: 9.2400, altitude: 185 },
-  { lat: 45.5900, lon: 9.2000, altitude: 190 },
-  { lat: 45.6000, lon: 9.1800, altitude: 195 },
-  { lat: 45.6100, lon: 9.1600, altitude: 190 },
-  { lat: 45.6200, lon: 9.1400, altitude: 200 },
-  { lat: 45.6300, lon: 9.1200, altitude: 210 },
-]
+ // Demo route: Milan to Monza (approximate coordinates along SS36)
+ const demoRoutePoints = [
+   { lat: 45.4642, lon: 9.1900, altitude: 120 },
+   { lat: 45.4800, lon: 9.2200, altitude: 135 },
+   { lat: 45.4900, lon: 9.2500, altitude: 155 },
+   { lat: 45.5000, lon: 9.2800, altitude: 175 },
+   { lat: 45.5600, lon: 9.2700, altitude: 190 },
+   { lat: 45.5800, lon: 9.2400, altitude: 185 },
+   { lat: 45.5900, lon: 9.2000, altitude: 190 },
+   { lat: 45.6000, lon: 9.1800, altitude: 195 },
+   { lat: 45.6100, lon: 9.1600, altitude: 190 },
+   { lat: 45.6200, lon: 9.1400, altitude: 200 },
+   { lat: 45.6300, lon: 9.1200, altitude: 210 },
+ ]
 
-let map = null
-let layerGroup = null
+ let map = null
+ let layerGroup = null
 
-const riskLevels = [
-  { label: 'Facile', range: '0-24', color: '#27ae60' },
-  { label: 'Moderato', range: '25-49', color: '#f1c40f' },
-  { label: 'Difficile', range: '50-74', color: '#e67e22' },
-  { label: 'Critico', range: '75-100', color: '#e74c3c' },
-]
+ const riskLevels = [
+   { label: 'Easy', range: '0-24', color: '#27ae60' },
+   { label: 'Moderate', range: '25-49', color: '#f1c40f' },
+   { label: 'Hard', range: '50-74', color: '#e67e22' },
+   { label: 'Critical', range: '75-100', color: '#e74c3c' },
+ ]
 
-const gradeLegend = [
-   { label: 'Piano o falsopiano: < 3%', color: '#27ae60' },
-   { label: 'Media: 3-6%', color: '#f1c40f' },
-   { label: 'Dura: 6-10%', color: '#e67e22' },
-   { label: 'Molto dura: > 10%', color: '#e74e6c' },
-]
+ const gradeLegend = [
+     { label: 'Flat or false flat: < 3%', color: '#27ae60' },
+     { label: 'Moderate: 3-6%', color: '#f1c40f' },
+     { label: 'Steep: 6-10%', color: '#e67e22' },
+     { label: 'Very steep: > 10%', color: '#e74e6c' },
+  ]
 
-const speedLegend = [
-   { label: 'Vel. alta: > 25 km/h', color: '#27ae60' },
-   { label: 'Vel. media: 15-25 km/h', color: '#f1c40f' },
-   { label: 'Vel. bassa: < 15 km/h', color: '#e74c3c' },
-]
+  const speedLegend = [
+     { label: 'High speed: > 25 km/h', color: '#27ae60' },
+     { label: 'Medium speed: 15-25 km/h', color: '#f1c40f' },
+     { label: 'Low speed: < 15 km/h', color: '#e74c3c' },
+  ]
 
-const weatherLegend = [
-  { label: 'Buono: score ≥ 8', color: '#27ae60' },
-  { label: 'Accettabile: score 5-7', color: '#f1c40f' },
-  { label: 'Critico: score < 5', color: '#e74c3c' },
-]
+  const weatherLegend = [
+    { label: 'Good: score >= 8', color: '#27ae60' },
+    { label: 'Acceptable: score 5-7', color: '#f1c40f' },
+    { label: 'Critical: score < 5', color: '#e74c3c' },
+  ]
 
 const ridesWithGps = computed(() => enrichedRides.value.filter(ride => ride.gps_points.length > 1))
 
@@ -436,7 +436,7 @@ function renderMap() {
         fillOpacity: 0.9,
         weight: 2,
       })
-      centerMarker.bindPopup(ride.isDemo ? 'Percorso demo Milano-Monza' : ridePopup(ride))
+      centerMarker.bindPopup(ride.isDemo ? 'Milan-Monza demo route' : ridePopup(ride))
       centerMarker.addTo(rideLayer)
     }
 

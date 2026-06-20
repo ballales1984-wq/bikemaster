@@ -218,7 +218,7 @@ async def health_redis():
 
 
 @router.get("/config/google-maps-key")
-async def google_maps_key():
+async def google_maps_key(current_user: dict = Depends(get_current_user)):
     from ..config import GOOGLE_MAPS_API_KEY
 
     return {"google_maps_api_key": GOOGLE_MAPS_API_KEY or ""}
@@ -635,7 +635,8 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
 
 
 @router.get("/health/detailed")
-async def health_detailed():
+@limiter.limit("10/minute")
+async def health_detailed(request: Request):
     from ..db.database import get_all_athletes, get_all_rides
 
     rides = get_all_rides()
@@ -1105,7 +1106,7 @@ async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_c
 
 
 @router.post("/benchmark/compare")
-async def benchmark_compare(ride_data: dict):
+async def benchmark_compare(ride_data: dict, current_user: dict = Depends(get_current_user)):
     from ..analytics.benchmark import compare_athlete_to_benchmark
     from ..models.models import Ride
 
@@ -1188,8 +1189,6 @@ async def workout_recommendations(
     athlete_id: int = 0,
     current_user: dict = Depends(get_current_user),
 ):
-    import traceback
-
     from ..analytics.ai_coach import generate_workout_recommendations
     from ..db.database import get_athlete, get_rides_by_athlete
     from ..models.models import AthleteProfile
@@ -1207,7 +1206,7 @@ async def workout_recommendations(
     except HTTPException:
         raise
     except Exception:
-        traceback.print_exc()
+        logger.exception("AI Coach error in workout recommendations")
         return {"recommendations": "AI Coach error. Please try again later."}
 
 
@@ -1218,8 +1217,6 @@ async def coach_full_data(
     athlete_id: int = 0,
     current_user: dict = Depends(get_current_user),
 ):
-    import traceback
-
     from ..analytics.ai_coach import ai_coach_full
     from ..db.database import (
         get_athlete,
@@ -1266,7 +1263,7 @@ async def coach_full_data(
     except HTTPException:
         raise
     except Exception:
-        traceback.print_exc()
+        logger.exception("AI Coach error in full report")
         return {
             "training_advice": "AI Coach error. Please try again later.",
             "recovery_advice": "AI Coach error. Please try again later.",
@@ -1291,8 +1288,6 @@ async def recovery_recommendations(
     ride_id: int = 0,
     current_user: dict = Depends(get_current_user),
 ):
-    import traceback
-
     from ..analytics.ai_coach import generate_recovery_recommendations
     from ..db.database import get_athlete, get_ride, get_rides_by_athlete
     from ..models.models import AthleteProfile, Ride
@@ -1321,7 +1316,7 @@ async def recovery_recommendations(
     except HTTPException:
         raise
     except Exception:
-        traceback.print_exc()
+        logger.exception("AI Coach error in recovery recommendations")
         return {"recommendations": "AI Coach error. Please try again later."}
 
 

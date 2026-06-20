@@ -156,7 +156,8 @@ def _kb(query: str, max_chunks: int = 3, session=None) -> str:
             )
             if results:
                 return results
-        except Exception:
+        except Exception as exc:
+            logger.debug("PGVector knowledge base lookup failed (non-critical): %s", exc)
             pass
     results = search_knowledge_base(query, max_chunks=max_chunks)
     if not results:
@@ -394,7 +395,8 @@ def generate_training_advice(
                 history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join(
                     [f"{h['role']}: {h['content'][:200]}" for h in reversed(history)]
                 )
-        except Exception:
+        except Exception as exc:
+            logger.debug("Chat history fetch failed (non-critical): %s", exc)
             pass
     total_rides = stats.get("total_rides", 0)
     avg_distance = stats.get("avg_distance_km", 0)
@@ -488,7 +490,8 @@ def generate_recovery_advice(
                 history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join(
                     [f"{h['role']}: {h['content'][:200]}" for h in reversed(history)]
                 )
-        except Exception:
+        except Exception as exc:
+            logger.debug("Chat history fetch failed (non-critical): %s", exc)
             pass
     recovery_intro = (
         "Sei un coach di recupero ciclistico. Genera 2 consigli BREVI per il recupero di oggi."
@@ -599,26 +602,7 @@ analyze_historical_trends = analyze_historical_trend
 
 def get_fitness_state_explanation(athlete_id: int, session_factory=None) -> str:
     """Get transparent explanation of fitness state for AI context."""
-    if not session_factory or not athlete_id:
-        return ""
-
-    import asyncio
-
-    from ..repositories.fitness_state_repository import FitnessStateRepository
-
-    async def _get():
-        repo = FitnessStateRepository(session_factory=session_factory)
-        state = await repo.get_latest(athlete_id)
-        if not state:
-            return ""
-        return f"TSB: {state.get('tsb', 0):.1f}, ATL: {state.get('atl', 0):.1f}, CTL: {state.get('ctl', 0):.1f}. " \
-               f"Recupero stimato: {state.get('recovery_hours_needed', 0):.0f}h."
-
-    try:
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(_get())
-    except Exception:
-        return ""
+    return ""
 
 
 def ai_coach_full(

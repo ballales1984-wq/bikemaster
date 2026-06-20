@@ -2,43 +2,43 @@
   <div class="metrics-grid">
     <div class="metric-card primary">
       <span class="metric-value">{{ (distance / 1000).toFixed(2) }} km</span>
-      <span class="metric-label">Distanza</span>
-    </div>
+<span class="metric-label">Distance</span>
+     </div>
 
-    <div class="metric-card">
-      <span class="metric-value">{{ currentSpeed.toFixed(1) }}</span>
-      <span class="metric-label">Velocità (km/h)</span>
-    </div>
+     <div class="metric-card">
+       <span class="metric-value">{{ currentSpeed.toFixed(1) }}</span>
+       <span class="metric-label">Speed (km/h)</span>
+     </div>
 
-    <div class="metric-card">
-      <span class="metric-value">{{ avgSpeed.toFixed(1) }}</span>
-      <span class="metric-label">Media (km/h)</span>
-    </div>
+     <div class="metric-card">
+       <span class="metric-value">{{ avgSpeed.toFixed(1) }}</span>
+       <span class="metric-label">Avg (km/h)</span>
+     </div>
 
-    <div class="metric-card">
-      <span class="metric-value">{{ formattedTime }}</span>
-      <span class="metric-label">Tempo</span>
-    </div>
+     <div class="metric-card">
+       <span class="metric-value">{{ formattedTime }}</span>
+       <span class="metric-label">Time</span>
+     </div>
 
-    <div v-if="elevation" class="metric-card">
-      <span class="metric-value">{{ elevation.toFixed(0) }}</span>
-      <span class="metric-label">Altitudine (m)</span>
-    </div>
+     <div v-if="elevation" class="metric-card">
+       <span class="metric-value">{{ elevation.toFixed(0) }}</span>
+       <span class="metric-label">Elevation (m)</span>
+     </div>
 
-    <div v-if="heartRate" class="metric-card">
-      <span class="metric-value">{{ heartRate }}</span>
-      <span class="metric-label">FC (bpm)</span>
-    </div>
+     <div v-if="heartRate" class="metric-card">
+       <span class="metric-value">{{ heartRate }}</span>
+       <span class="metric-label">HR (bpm)</span>
+     </div>
 
-    <div v-if="cadence" class="metric-card">
-      <span class="metric-value">{{ cadence }}</span>
-      <span class="metric-label">Cadence (rpm)</span>
-    </div>
+     <div v-if="cadence" class="metric-card">
+       <span class="metric-value">{{ cadence }}</span>
+       <span class="metric-label">Cadence (rpm)</span>
+     </div>
 
-    <div v-if="power" class="metric-card">
-      <span class="metric-value">{{ power }}</span>
-      <span class="metric-label">Potenza (W)</span>
-    </div>
+     <div v-if="power" class="metric-card">
+       <span class="metric-value">{{ power }}</span>
+       <span class="metric-label">Power (W)</span>
+     </div>
   </div>
 </template>
 

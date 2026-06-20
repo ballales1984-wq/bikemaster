@@ -2,19 +2,19 @@
   <div class="panel">
     <h2>🏅 Badge System</h2>
     
-    <div class="form-grid">
-      <div class="form-group">
-        <label for="badges-athlete-id">ID Atleta</label>
-        <input id="badges-athlete-id" type="number" v-model.number="athleteId" min="1" />
-      </div>
-      <div class="form-group">
-        <button class="btn btn-primary" @click="loadBadges">🔄 Carica Badge</button>
-      </div>
-    </div>
-    
-    <div v-if="loading" class="loading-text">
-      <span class="spinner"></span> Caricamento badge...
-    </div>
+<div class="form-grid">
+       <div class="form-group">
+         <label for="badges-athlete-id">Athlete ID</label>
+         <input id="badges-athlete-id" type="number" v-model.number="athleteId" min="1" />
+       </div>
+       <div class="form-group">
+         <button class="btn btn-primary" @click="loadBadges">🔄 Load Badges</button>
+       </div>
+     </div>
+     
+     <div v-if="loading" class="loading-text">
+       <span class="spinner"></span> Loading badges...
+     </div>
     
     <div v-if="loading && !badgesData" class="skeleton-container">
       <div class="skeleton skeleton-card" style="height: 120px; margin-bottom: 15px;"></div>
@@ -25,8 +25,8 @@
     <div v-if="badgesData" class="badges-container">
       <div class="badges-stats">
         <div class="stat-card">
-          <div class="stat-value">{{ badgesData.achieved }}/{{ badgesData.total_badges }}</div>
-          <div class="stat-label">Badge Sbloccati</div>
+<div class="stat-value">{{ badgesData.achieved }}/{{ badgesData.total_badges }}</div>
+           <div class="stat-label">Badges Unlocked</div>
         </div>
         <div class="progress-bar">
           <div class="progress-fill" :style="{ width: completionPercent + '%' }"></div>
