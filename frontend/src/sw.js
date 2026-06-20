@@ -15,6 +15,9 @@ const IMAGE_CACHE = 'bikemaster-images-v1'
 
 self.addEventListener('install', event => {
   self.skipWaiting()
+  if (self.registration.navigationPreload) {
+    self.registration.navigationPreload.enable()
+  }
   event.waitUntil(
     caches.open(STATIC_CACHE).then(cache => cache.addAll([
       '/index.html',
