@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import httpx
+
 from ..config import GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_SIZE, GOOGLE_MAPS_ZOOM
 from ..models.models import GPSPoint
 
@@ -140,10 +142,9 @@ def create_google_static_map(
         Path(output_path).write_bytes(b"")
         return output_path
 
-    import requests
-
-    resp = requests.get(url, timeout=10)
-    resp.raise_for_status()
+    with httpx.Client(timeout=15.0) as client:
+        resp = client.get(url)
+        resp.raise_for_status()
     Path(output_path).write_bytes(resp.content)
     return output_path
 
@@ -156,11 +157,11 @@ def create_google_elevation_chart(points: list[GPSPoint], api_key: str) -> list[
         "https://maps.googleapis.com/maps/api/elevation/json?"
         f"locations={locations}&key={api_key}"
     )
-    import requests
-
-    resp = requests.get(url, timeout=10)
-    if resp.ok:
-        return [r.get("elevation", 0) for r in resp.json().get("results", [])]
+    with httpx.Client(timeout=15.0) as client:
+        resp = client.get(url)
+    if resp.status_code == 200:
+        data = resp.json()
+        return [r.get("elevation", 0) for r in data.get("results", [])]
     return None
 
 

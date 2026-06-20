@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     ollama_base_url: str = "http://localhost:11434/v1"
     ollama_model: str = "llama3"
-    ollama_api_key: str = "ollama"
+    ollama_api_key: str = ""
 
     # === JWT / Auth ===
     secret_key: str = ""

@@ -57,8 +57,8 @@ export const useAuthStore = defineStore('auth', () => {
       body: form.toString(),
     })
     if (!resp.ok) {
-      const err = await resp.json().catch(() => ({ detail: 'Login fallito' }))
-      throw new Error((err as { detail?: string }).detail || 'Login fallito')
+      const err = await resp.json().catch(() => ({ detail: 'Login failed' }))
+      throw new Error((err as { detail?: string }).detail || 'Login failed')
     }
     const data = await resp.json()
     token.value = data.access_token
@@ -78,7 +78,7 @@ export const useAuthStore = defineStore('auth', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     }).then(r => {
-      if (!r.ok) throw new Error('Registrazione fallita')
+      if (!r.ok) throw new Error('Registration failed')
       return r.json()
     })
   }

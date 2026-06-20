@@ -1,28 +1,28 @@
 <template>
   <section class="charts-panel">
     <div class="panel">
-      <h2>📊 Andamento Performance</h2>
-      <div class="chart-controls">
-        <label>
-          Metrica:
-          <select v-model="selectedMetric">
-            <option value="distance_km">Distanza (km)</option>
-            <option value="avg_speed_kmh">Velocità Media (km/h)</option>
-            <option value="duration_minutes">Durata (min)</option>
-            <option value="calories">Calorie</option>
-            <option value="elevation_gain_m">Dislivello (m)</option>
-          </select>
-        </label>
-        <label>
-          Finestra:
-          <select v-model="windowSize">
-            <option value="3">3 uscite</option>
-            <option value="7">7 uscite</option>
-            <option value="14">14 uscite</option>
-            <option value="30">30 uscite</option>
-          </select>
-        </label>
-      </div>
+<h2>📊 Performance Trends</h2>
+     <div class="chart-controls">
+       <label>
+         Metric:
+         <select v-model="selectedMetric">
+           <option value="distance_km">Distance (km)</option>
+           <option value="avg_speed_kmh">Avg Speed (km/h)</option>
+           <option value="duration_minutes">Duration (min)</option>
+           <option value="calories">Calories</option>
+           <option value="elevation_gain_m">Elevation (m)</option>
+         </select>
+       </label>
+       <label>
+         Window:
+         <select v-model="windowSize">
+           <option value="3">3 rides</option>
+           <option value="7">7 rides</option>
+           <option value="14">14 rides</option>
+           <option value="30">30 rides</option>
+         </select>
+       </label>
+     </div>
       <div class="chart-grid">
         <div class="chart-card">
           <h3>Trend {{ metricLabel }}</h3>
@@ -34,16 +34,24 @@
           </div>
         </div>
         <div class="chart-card">
-          <h3> progressione Mensile</h3>
+          <h3>📆 Monthly Progression</h3>
           <canvas ref="monthlyCanvas"></canvas>
         </div>
         <div class="chart-card">
           <h3>Confronto Periodi</h3>
           <canvas ref="comparisonCanvas"></canvas>
           <div class="chart-summary" v-if="comparisonData.ready">
-            <span :class="trendClass">{{ comparisonData.distance_change_pct >= 0 ? '+' : '' }}{{ comparisonData.distance_change_pct }}% km</span>
-            <span :class="trendClass">{{ comparisonData.speed_change_pct >= 0 ? '+' : '' }}{{ comparisonData.speed_change_pct }}% velocità</span>
-          </div>
+<span :class="trendClass">{{ comparisonData.speed_change_pct >= 0 ? '+' : '' }}{{ comparisonData.speed_change_pct }}% speed</span>
+           </div>
+        </div>
+        <div class="chart-card">
+          <h3>Period Comparison</h3>
+          <canvas ref="comparisonCanvas"></canvas>
+          <div class="chart-summary" v-if="comparisonData.ready">
+             <span :class="trendClass">{{ comparisonData.distance_change_pct >= 0 ? '+' : '' }}{{ comparisonData.distance_change_pct }}% km</span>
+             <span :class="trendClass">{{ comparisonData.speed_change_pct >= 0 ? '+' : '' }}{{ comparisonData.speed_change_pct }}% speed</span>
+           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -68,9 +76,9 @@ let monthlyChart = null
 let comparisonChart = null
 
 const metricLabel = computed(() => {
-  const map = { distance_km: "Distanza", avg_speed_kmh: "Velocità", duration_minutes: "Durata", calories: "Calorie", elevation_gain_m: "Dislivello" }
-  return map[selectedMetric.value] || selectedMetric.value
-})
+   const map = { distance_km: "Distance", avg_speed_kmh: "Speed", duration_minutes: "Duration", calories: "Calories", elevation_gain_m: "Elevation" }
+   return map[selectedMetric.value] || selectedMetric.value
+ })
 
 const trendClass = computed(() => {
   if (trendData.value.trend === "improving") return "trend-up"
@@ -215,15 +223,15 @@ function renderComparisonChart() {
     return
   }
   
-  comparisonChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: ["Periodo Recente", "Periodo Precedente"],
-      datasets: [
-        { label: "Distanza (km)", data: [data.recent_distance_km, data.previous_distance_km], backgroundColor: ["#4ecca3", "#888"] },
-        { label: "Velocità Media (km/h)", data: [data.recent_avg_speed, data.previous_avg_speed], backgroundColor: ["#FF6B00", "#666"] },
-      ],
-    },
+comparisonChart = new Chart(ctx, {
+     type: "bar",
+     data: {
+       labels: ["Recent Period", "Previous Period"],
+       datasets: [
+         { label: "Distance (km)", data: [data.recent_distance_km, data.previous_distance_km], backgroundColor: ["#4ecca3", "#888"] },
+         { label: "Avg Speed (km/h)", data: [data.recent_avg_speed, data.previous_avg_speed], backgroundColor: ["#FF6B00", "#666"] },
+       ],
+     },
     options: {
       responsive: true,
       maintainAspectRatio: false,

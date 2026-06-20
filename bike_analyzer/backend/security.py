@@ -51,7 +51,8 @@ async def get_refresh_token(athlete_id: int) -> str | None:
         return None
     try:
         return await _await_if_needed(r.get(f"{REFRESH_PREFIX}{athlete_id}"))
-    except Exception:
+    except Exception as exc:
+        logger.warning("Failed to get refresh token for athlete %s: %s", athlete_id, exc)
         return None
 
 
@@ -68,7 +69,8 @@ async def save_refresh_token(athlete_id: int, refresh_token: str, ttl: int = REF
         await r.set(f"{REFRESH_PREFIX}{athlete_id}", refresh_token, ex=ttl)
         await r.set(f"{REFRESH_PREFIX}{athlete_id}:tokens", ",".join(tokens), ex=ttl)
         return True
-    except Exception:
+    except Exception as exc:
+        logger.warning("Failed to save refresh token for athlete %s: %s", athlete_id, exc)
         return False
 
 
@@ -80,7 +82,8 @@ async def revoke_refresh_token(athlete_id: int) -> bool:
         await r.delete(f"{REFRESH_PREFIX}{athlete_id}")
         await r.delete(f"{REFRESH_PREFIX}{athlete_id}:tokens")
         return True
-    except Exception:
+    except Exception as exc:
+        logger.warning("Failed to revoke refresh token for athlete %s: %s", athlete_id, exc)
         return False
 
 UNAUTH_401 = HTTPException(
@@ -145,7 +148,8 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
     try:
         return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
-    except Exception:
+    except Exception as exc:
+        logger.warning("Password verification failed: %s", exc)
         return False
 
 

@@ -4,15 +4,15 @@
     <div class="error-title">{{ title }}</div>
     <div class="error-desc">{{ message }}</div>
     <button v-if="showRetry" class="btn btn-primary retry-btn" @click="$emit('retry')">
-      🔄 Riprova
+      🔄 Retry
     </button>
   </div>
 </template>
 
 <script setup>
 defineProps({
-  title: { type: String, default: 'Errore di caricamento' },
-  message: { type: String, default: 'Impossibile caricare i dati. Riprova più tardi.' },
+  title: { type: String, default: 'Loading error' },
+  message: { type: String, default: 'Unable to load data. Try again later.' },
   showRetry: { type: Boolean, default: true },
 })
 defineEmits(['retry'])
