@@ -1,8 +1,7 @@
-async function installBrowsers() {
+import { chromium } from 'playwright'
+
+export default async function installBrowsers() {
   try {
-    const { chromium } = require('playwright')
-    await chromium.launch({ headless: true })
+    await chromium.launch({ headless: true }).then(b => b.close())
   } catch {}
 }
-
-installBrowsers()

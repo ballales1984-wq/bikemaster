@@ -8,6 +8,18 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.js'],
-    fileParallelism: false,
+  },
+  coverage: {
+    include: ['src/**/*.{js,ts,vue}'],
+    reporter: ['text', 'html'],
+    exclude: [
+      'src/test/**',
+      'src/**/*.d.ts',
+      '**/*.mock.{js,ts}',
+      '**/node_modules/**',
+      '**/android/**',
+      'src/main.ts',
+      'src/App.vue',
+    ],
   },
 })

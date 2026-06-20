@@ -86,7 +86,7 @@ describe('AthletePanel', () => {
     expect(wrapper.find('.result-box').text()).toContain('Error')
   })
 
-  it('Scores button calls scores endpoint', async () => {
+  it('scores button calls scores endpoint', async () => {
     apiGet
       .mockResolvedValueOnce({ athletes: [mockAthlete] })
       .mockResolvedValueOnce({ performance: 85, endurance: 78 })
@@ -98,5 +98,102 @@ describe('AthletePanel', () => {
     await flush()
 
     expect(apiGet).toHaveBeenCalledWith('/api/v1/scores/athlete/3')
+  })
+
+  it('renders form fields correctly', async () => {
+    apiGet.mockResolvedValueOnce({ athletes: [] })
+
+    const wrapper = mount(AthletePanel)
+    await flush()
+
+    expect(wrapper.find('#athlete-name').exists()).toBe(true)
+    expect(wrapper.find('#athlete-age').exists()).toBe(true)
+    expect(wrapper.find('#athlete-weight').exists()).toBe(true)
+    expect(wrapper.find('#athlete-height').exists()).toBe(true)
+    expect(wrapper.find('#athlete-fat').exists()).toBe(true)
+    expect(wrapper.find('#athlete-level').exists()).toBe(true)
+  })
+
+  it('shows athlete profile info', async () => {
+    apiGet.mockResolvedValueOnce({ athletes: [mockAthlete] })
+
+    const wrapper = mount(AthletePanel)
+    await flush()
+
+    expect(wrapper.find('h2').text()).toContain('Athlete Profile')
+    expect(wrapper.find('#athlete-name').element.value).toBe('Marco Rossi')
+  })
+
+  it('displays save and scores buttons', async () => {
+    apiGet.mockResolvedValueOnce({ athletes: [] })
+
+    const wrapper = mount(AthletePanel)
+    await flush()
+
+    expect(wrapper.text()).toContain('Save Athlete')
+    expect(wrapper.text()).toContain('Scores')
+  })
+
+  it('saves athlete with all form fields', async () => {
+    apiGet.mockResolvedValueOnce({ athletes: [] })
+    apiPost.mockResolvedValueOnce({ id: 10 })
+
+    const wrapper = mount(AthletePanel)
+    await flush()
+
+    await wrapper.find('#athlete-name').setValue('Giulia Neri')
+    await wrapper.find('#athlete-age').setValue(28)
+    await wrapper.find('#athlete-weight').setValue(65)
+    await wrapper.find('#athlete-height').setValue(168)
+    await wrapper.find('#athlete-fat').setValue(20)
+    await wrapper.find('#athlete-level').setValue('Advanced')
+    await wrapper.find('#athlete-years').setValue(8)
+    await wrapper.find('#athlete-weekly').setValue(5)
+    await wrapper.find('#athlete-monthly').setValue(18)
+    await wrapper.find('#athlete-annual').setValue(210)
+    await wrapper.find('button.btn-primary').trigger('click')
+    await flush()
+
+    expect(apiPost).toHaveBeenCalledWith('/api/v1/athletes', expect.objectContaining({
+      name: 'Giulia Neri',
+      age: 28,
+      weight_kg: 65,
+      experience_level: 'Advanced',
+    }))
+  })
+
+  it('handles load athlete API failure', async () => {
+    apiGet.mockRejectedValueOnce(new Error('Load failed'))
+
+    const wrapper = mount(AthletePanel)
+    await flush()
+
+    expect(wrapper.find('.result-box').text()).toContain('Error')
+  })
+
+  it('shows warning when scores called without athlete', async () => {
+    apiGet.mockResolvedValueOnce({ athletes: [] })
+
+    const wrapper = mount(AthletePanel)
+    await flush()
+
+    await wrapper.find('button.btn-secondary').trigger('click')
+    await flush()
+
+    expect(wrapper.find('.result-box').text()).toContain('Save athlete profile first')
+  })
+
+  it('emits toast on save', async () => {
+    apiGet.mockResolvedValueOnce({ athletes: [] })
+    apiPost.mockResolvedValueOnce({ id: 10 })
+
+    const wrapper = mount(AthletePanel)
+    await flush()
+
+    await wrapper.find('#athlete-name').setValue('Test User')
+    await wrapper.find('button.btn-primary').trigger('click')
+    await flush()
+
+    expect(wrapper.find('.result-box').exists()).toBe(true)
   })
 })

@@ -9,7 +9,7 @@ export default defineConfig({
     ? [['github'], ['html', { outputFolder: 'playwright-report' }]]
     : 'list',
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: 'http://127.0.0.1:4174',
     trace: 'on-first-retry',
     launchOptions: {
       args: ['--no-sandbox', '--disable-dev-shm-usage'],
@@ -22,10 +22,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run build && node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173',
-    url: 'http://127.0.0.1:4173',
-    reuseExistingServer: false,
+    command: 'npm run build && node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4174',
+    url: 'http://127.0.0.1:4174',
+    reuseExistingServer: true,
     timeout: 300000,
   },
-  globalSetup: require.resolve('./tests/e2e/global-setup.js'),
+  globalSetup: './tests/e2e/global-setup.js',
 })

@@ -371,13 +371,17 @@ const weatherScore = computed(() => {
 
 const weatherForecast = ref(null)
 
-onMounted(() => {
-  loadAthletes()
-  loadEvents()
-  loadGoals()
+let initialized = false
+
+onMounted(async () => {
+  await loadAthletes()
+  initialized = true
+  await loadEvents()
+  await loadGoals()
 })
 
 watch(athleteId, () => {
+  if (!initialized) return
   loadEvents()
   loadGoals()
 })
