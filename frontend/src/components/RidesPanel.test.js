@@ -18,7 +18,7 @@ describe('RidesPanel', () => {
     vi.clearAllMocks()
   })
 
-  it('mostra la lista delle ride caricate', async () => {
+  it('shows the list of loaded rides', async () => {
     apiGet.mockResolvedValueOnce({
       rides: [
         { id: 1, date: '2026-06-01', distance_km: 42.5, duration_minutes: 90, avg_speed_kmh: 28.3 },
@@ -38,7 +38,7 @@ describe('RidesPanel', () => {
     expect(items[1].text()).toContain('2026-06-08')
   })
 
-  it('mostra empty state quando non ci sono ride', async () => {
+  it('shows empty state when no rides', async () => {
     apiGet.mockResolvedValueOnce({ rides: [] })
 
     const wrapper = mount(RidesPanel, {
@@ -47,10 +47,10 @@ describe('RidesPanel', () => {
     await flush()
 
     expect(wrapper.find('.empty-state').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Nessuna ride registrata')
+    expect(wrapper.text()).toContain('No rides recorded')
   })
 
-  it('aggiunge una ride compilando il form', async () => {
+  it('adds a ride by filling the form', async () => {
     apiGet
       .mockResolvedValueOnce({ rides: [] })
       .mockResolvedValueOnce({ rides: [{ id: 10, date: '2026-06-15', distance_km: 50, duration_minutes: 120, avg_speed_kmh: 25 }] })
@@ -74,7 +74,7 @@ describe('RidesPanel', () => {
     }))
   })
 
-  it('apre la modale di conferma al click su Elimina', async () => {
+  it('opens confirm modal on Delete click', async () => {
     apiGet.mockResolvedValueOnce({
       rides: [{ id: 5, date: '2026-05-20', distance_km: 30, duration_minutes: 70, avg_speed_kmh: 25 }],
     })

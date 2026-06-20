@@ -23,7 +23,7 @@ describe('DashboardPanel', () => {
     vi.clearAllMocks()
   })
 
-  it('mostra i dati del dashboard correttamente', async () => {
+  it('shows dashboard data correctly', async () => {
     apiGet.mockResolvedValueOnce(mockDashboard)
 
     const wrapper = mount(DashboardPanel)
@@ -36,7 +36,7 @@ describe('DashboardPanel', () => {
     expect(wrapper.text()).toContain('7.5')
   })
 
-  it('mostra stato di caricamento iniziale', () => {
+  it('shows loading state initially', () => {
     apiGet.mockReturnValue(new Promise(() => {})) // Promise che non risolve
 
     const wrapper = mount(DashboardPanel)
@@ -44,17 +44,17 @@ describe('DashboardPanel', () => {
     expect(wrapper.find('.loading').exists()).toBe(true)
   })
 
-  it('mostra errore se il fetch fallisce', async () => {
+  it('shows error if fetch fails', async () => {
     apiGet.mockRejectedValueOnce(new Error('Network error'))
 
     const wrapper = mount(DashboardPanel)
     await flush()
 
     expect(wrapper.find('.error').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Errore')
+    expect(wrapper.text()).toContain('Error')
   })
 
-  it('mostra le 5 card dashboard in griglia', async () => {
+  it('shows 5 dashboard cards in grid', async () => {
     apiGet.mockResolvedValueOnce(mockDashboard)
 
     const wrapper = mount(DashboardPanel)
@@ -64,7 +64,7 @@ describe('DashboardPanel', () => {
     expect(cards.length).toBeGreaterThanOrEqual(4)
   })
 
-  it('mostra i punteggi scores correttamente', async () => {
+  it('shows scores correctly', async () => {
     apiGet.mockResolvedValueOnce(mockDashboard)
 
     const wrapper = mount(DashboardPanel)
@@ -75,7 +75,7 @@ describe('DashboardPanel', () => {
     expect(wrapper.text()).toContain('8/10')
   })
 
-  it('mostra i valori ATL/CTL/TSB dal fitness', async () => {
+  it('shows ATL/CTL/TSB values from fitness', async () => {
     apiGet.mockResolvedValueOnce(mockDashboard)
 
     const wrapper = mount(DashboardPanel)

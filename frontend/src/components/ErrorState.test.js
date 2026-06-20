@@ -6,13 +6,13 @@ describe('ErrorState', () => {
   it('renders title, message and retry action', async () => {
     const wrapper = mount(ErrorState, {
       props: {
-        title: 'Errore rete',
-        message: 'Connessione non disponibile',
+        title: 'Network Error',
+        message: 'Connection unavailable',
       },
     })
 
-    expect(wrapper.text()).toContain('Errore rete')
-    expect(wrapper.text()).toContain('Connessione non disponibile')
+    expect(wrapper.text()).toContain('Network Error')
+    expect(wrapper.text()).toContain('Connection unavailable')
     expect(wrapper.get('.retry-btn')).toBeTruthy()
   })
 

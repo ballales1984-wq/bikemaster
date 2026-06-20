@@ -19,8 +19,8 @@ describe('CoachPanel', () => {
     apiGet
       .mockResolvedValueOnce({ athletes: [{ id: 42 }] })
       .mockResolvedValueOnce({
-        training_advice: 'Aggiungi una seduta Z2',
-        recovery_advice: 'Dormi almeno 8 ore',
+        training_advice: 'Add a Z2 session',
+        recovery_advice: 'Sleep at least 8 hours',
         training_scores: [
           { label: 'Performance', value: 88 },
           { label: 'Endurance', value: 76 },
@@ -35,7 +35,7 @@ describe('CoachPanel', () => {
     expect(apiGet).toHaveBeenCalledWith('/api/v1/coach/full', { athlete_id: 42 })
     expect(wrapper.find('#coach-athlete-id').element.value).toBe('42')
     expect(wrapper.find('.stat-card').text()).toContain('88')
-    expect(wrapper.get('.result-box').text()).toContain('Aggiungi una seduta Z2')
+    expect(wrapper.get('.result-box').text()).toContain('Add a Z2 session')
   })
 
   it('does not request coach data when no athlete exists', async () => {
@@ -45,6 +45,6 @@ describe('CoachPanel', () => {
     await flush()
 
     expect(apiGet).toHaveBeenCalledTimes(1)
-    expect(wrapper.text()).toContain('Nessun dato coach')
+    expect(wrapper.text()).toContain('No coach data')
   })
 })

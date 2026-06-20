@@ -8,7 +8,7 @@ function makeFile(name) {
 }
 
 describe('ImportPanel', () => {
-  it('mostra una barra di avanzamento mentre importa i file', async () => {
+  it('shows a progress bar while importing files', async () => {
     vi.spyOn(api, 'apiUpload').mockResolvedValue({ id: 1 })
 
     const wrapper = mount(ImportPanel, {
@@ -33,7 +33,7 @@ describe('ImportPanel', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.find('.progress-fill').attributes('style')).toContain('width: 100%')
-    expect(wrapper.text()).toContain('Import completato')
+    expect(wrapper.text()).toContain('Import completed')
 
     vi.restoreAllMocks()
   })

@@ -31,7 +31,7 @@ describe('AthletePanel', () => {
     vi.clearAllMocks()
   })
 
-  it('carica il profilo atleta esistente all\'avvio', async () => {
+  it('loads existing athlete profile on mount', async () => {
     apiGet.mockResolvedValueOnce({ athletes: [mockAthlete] })
 
     const wrapper = mount(AthletePanel)
@@ -43,7 +43,7 @@ describe('AthletePanel', () => {
     expect(wrapper.find('#athlete-weight').element.value).toBe('72')
   })
 
-  it('salva un nuovo atleta (POST) se non esiste', async () => {
+  it('saves new athlete (POST) if none exists', async () => {
     apiGet.mockResolvedValueOnce({ athletes: [] })
     apiPost.mockResolvedValueOnce({ id: 10 })
 
@@ -58,7 +58,7 @@ describe('AthletePanel', () => {
     expect(wrapper.find('.result-box').text()).toContain('ID: 10')
   })
 
-  it('aggiorna atleta esistente (PUT)', async () => {
+  it('updates existing athlete (PUT)', async () => {
     apiGet.mockResolvedValueOnce({ athletes: [mockAthlete] })
     apiPut.mockResolvedValueOnce({ id: 3 })
 
@@ -73,7 +73,7 @@ describe('AthletePanel', () => {
     expect(apiPost).not.toHaveBeenCalled()
   })
 
-  it('mostra errore se il salvataggio fallisce', async () => {
+  it('shows error if save fails', async () => {
     apiGet.mockResolvedValueOnce({ athletes: [] })
     apiPost.mockRejectedValueOnce(new Error('Server error'))
 
@@ -83,10 +83,10 @@ describe('AthletePanel', () => {
     await wrapper.find('button.btn-primary').trigger('click')
     await flush()
 
-    expect(wrapper.find('.result-box').text()).toContain('Errore')
+    expect(wrapper.find('.result-box').text()).toContain('Error')
   })
 
-  it('il bottone Punteggi chiama l\'endpoint scores', async () => {
+  it('Scores button calls scores endpoint', async () => {
     apiGet
       .mockResolvedValueOnce({ athletes: [mockAthlete] })
       .mockResolvedValueOnce({ performance: 85, endurance: 78 })

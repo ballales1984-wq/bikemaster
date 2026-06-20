@@ -14,9 +14,9 @@ const mockBadgesData = {
   achieved: 3,
   total_badges: 10,
   badges: [
-    { id: 1, category: 'milestone', name: 'Prima uscita', description: 'Prima ride completata', icon: '🎯', progress: 100, achieved: true },
-    { id: 2, category: 'distance', name: '100km Club', description: '100km totali', icon: '📏', progress: 80, achieved: false },
-    { id: 3, category: 'speed', name: 'Velocista', description: '40km/h di picco', icon: '⚡', progress: 50, achieved: false },
+    { id: 1, category: 'milestone', name: 'First Ride', description: 'First ride completed', icon: '🎯', progress: 100, achieved: true },
+    { id: 2, category: 'distance', name: '100km Club', description: '100km total', icon: '📏', progress: 80, achieved: false },
+    { id: 3, category: 'speed', name: 'Speedster', description: '40km/h peak', icon: '⚡', progress: 50, achieved: false },
   ],
 }
 
@@ -25,7 +25,7 @@ describe('BadgesPanel', () => {
     vi.clearAllMocks()
   })
 
-  it('carica atleta e badge all\'avvio', async () => {
+  it('loads athlete and badges on mount', async () => {
     apiGet
       .mockResolvedValueOnce({ athletes: [{ id: 7 }] })
       .mockResolvedValueOnce(mockBadgesData)
@@ -38,7 +38,7 @@ describe('BadgesPanel', () => {
     expect(wrapper.text()).toContain('3/10')
   })
 
-  it('mostra la percentuale di completamento corretta', async () => {
+  it('shows correct completion percentage', async () => {
     apiGet
       .mockResolvedValueOnce({ athletes: [{ id: 1 }] })
       .mockResolvedValueOnce(mockBadgesData)
@@ -52,7 +52,7 @@ describe('BadgesPanel', () => {
     expect(progressFill.attributes('style')).toContain('30')
   })
 
-  it('mostra i badge per categoria', async () => {
+  it('shows badges by category', async () => {
     apiGet
       .mockResolvedValueOnce({ athletes: [{ id: 1 }] })
       .mockResolvedValueOnce(mockBadgesData)
@@ -62,11 +62,11 @@ describe('BadgesPanel', () => {
 
     const cards = wrapper.findAll('.badge-card')
     expect(cards.length).toBeGreaterThan(0)
-    expect(wrapper.text()).toContain('Prima uscita')
+    expect(wrapper.text()).toContain('First Ride')
     expect(wrapper.text()).toContain('100km Club')
   })
 
-  it('badge achieved ha classe CSS achieved', async () => {
+  it('achieved badge has CSS class achieved', async () => {
     apiGet
       .mockResolvedValueOnce({ athletes: [{ id: 1 }] })
       .mockResolvedValueOnce(mockBadgesData)
@@ -78,7 +78,7 @@ describe('BadgesPanel', () => {
     expect(achievedCards).toHaveLength(1)
   })
 
-  it('non carica badge se nessun atleta trovato', async () => {
+  it('does not load badges if no athlete found', async () => {
     apiGet.mockResolvedValueOnce({ athletes: [] })
 
     const wrapper = mount(BadgesPanel)

@@ -1,13 +1,13 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-// Mock Chart.js — non disponibile in jsdom
+// Mock Chart.js — not available in jsdom
 vi.mock('chart.js', () => ({
   Chart: vi.fn().mockImplementation(() => ({ destroy: vi.fn(), update: vi.fn() })),
   registerables: [],
 }))
 
-// Mock globale Chart usato inline nel componente
+// Global Chart mock used inline in the component
 globalThis.Chart = vi.fn().mockImplementation(() => ({ destroy: vi.fn() }))
 
 const apiGet = vi.hoisted(() => vi.fn())
@@ -24,7 +24,7 @@ describe('ChartsPanel', () => {
     vi.clearAllMocks()
   })
 
-  it('si renderizza correttamente con dati minimi', async () => {
+  it('renders correctly with minimal data', async () => {
     apiGet.mockResolvedValue({ ready: false })
 
     const wrapper = mount(ChartsPanel, {
@@ -33,10 +33,10 @@ describe('ChartsPanel', () => {
     await flush()
 
     expect(wrapper.find('.charts-panel').exists()).toBe(true)
-    expect(wrapper.find('h2').text()).toContain('Andamento Performance')
+    expect(wrapper.find('h2').text()).toContain('Performance Trends')
   })
 
-  it('mostra i selettori di metrica e finestra', async () => {
+  it('shows metric and window selectors', async () => {
     apiGet.mockResolvedValue({ ready: false })
 
     const wrapper = mount(ChartsPanel, { props: { rides: [] } })
@@ -46,11 +46,11 @@ describe('ChartsPanel', () => {
     expect(selects).toHaveLength(2)
 
     const metricOptions = selects[0].findAll('option')
-    expect(metricOptions.some(o => o.text().includes('Distanza'))).toBe(true)
-    expect(metricOptions.some(o => o.text().includes('Velocità'))).toBe(true)
+    expect(metricOptions.some(o => o.text().includes('Distance'))).toBe(true)
+    expect(metricOptions.some(o => o.text().includes('Speed'))).toBe(true)
   })
 
-  it('cambiare metrica richiama loadTrends', async () => {
+  it('changing metric triggers loadTrends', async () => {
     apiGet.mockResolvedValue({ ready: false })
 
     const wrapper = mount(ChartsPanel, { props: { rides: [] } })
@@ -64,7 +64,7 @@ describe('ChartsPanel', () => {
     expect(apiGet.mock.calls.length).toBeGreaterThan(callsBefore)
   })
 
-  it('mostra 3 chart-card nella griglia', async () => {
+  it('shows 3 chart-cards in grid', async () => {
     apiGet.mockResolvedValue({ ready: false })
 
     const wrapper = mount(ChartsPanel, { props: { rides: [] } })
@@ -73,7 +73,7 @@ describe('ChartsPanel', () => {
     expect(wrapper.findAll('.chart-card')).toHaveLength(3)
   })
 
-  it('mostra trend-up quando trend è improving', async () => {
+  it('shows trend-up when trend is improving', async () => {
     apiGet
       .mockResolvedValueOnce({ ready: true, trend: 'improving', r2: 0.85, mean: 45.2, values: [40, 45, 50], dates: ['2026-01', '2026-02', '2026-03'], rolling_avg: [42, 45, 47] })
       .mockResolvedValue({ ready: false })
