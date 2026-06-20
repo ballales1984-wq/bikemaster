@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRidePolylines, escapeHtml, gradeRiskPercent, speedRiskPercent, weatherRiskPercent } from './routeMap.js'
+import { buildRidePolylines, escapeHtml, gradeRiskPercent, speedRiskPercent, weatherRiskPercent } from './routeMap.ts'
 
 describe('routeMap helpers', () => {
   it('groups consecutive segments with the same color', () => {

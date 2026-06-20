@@ -1,6 +1,6 @@
-export function buildRidePolylines(ride) {
+export function buildRidePolylines(ride: any) {
   const groups = []
-  let current = null
+  let current: any = null
 
   for (const segment of ride.segments || []) {
     if (!current || current.color !== segment.color) {
@@ -16,24 +16,24 @@ export function buildRidePolylines(ride) {
   return groups.map(group => ({ color: group.color, points: group.points }))
 }
 
-export function escapeHtml(value) {
+export function escapeHtml(value: any): string {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
     "'": '&#39;',
-  }[char]))
+  }[char] as string))
 }
 
-export function riskColor(risk) {
+export function riskColor(risk: number): string {
   if (risk < 25) return '#27ae60'
   if (risk < 50) return '#f1c40f'
   if (risk < 75) return '#e67e22'
   return '#e74c3c'
 }
 
-export function gradeRiskPercent(grade) {
+export function gradeRiskPercent(grade: number): number {
   const absGrade = Math.abs(grade)
   if (absGrade < 3) return 15
   if (absGrade < 6) return 35
@@ -41,30 +41,30 @@ export function gradeRiskPercent(grade) {
   return 90
 }
 
-export function weatherRiskPercent(score) {
+export function weatherRiskPercent(score: number): number {
   if (!Number.isFinite(score)) return 50
   if (score >= 8) return 10
   if (score >= 5) return 45
   return 85
 }
 
-export function speedRiskPercent(speed) {
+export function speedRiskPercent(speed: number | string): number {
   const spd = Number(speed) || 0
   if (spd >= 25) return 15
   if (spd >= 15) return 45
   return 85
 }
 
-export function formatDistance(meters = 0) {
+export function formatDistance(meters: number = 0): string {
   return `${(meters / 1000).toFixed(2)} km`
 }
 
-export function speedColor(ride, index) {
+export function speedColor(ride: any, index: number): string {
   const points = ride.gps_points || []
   if (index < points.length) {
     const speed = points[index].speed ?? null
     if (speed === null) return '#4488ff'
-    const speeds = points.map(p => p.speed).filter(s => s !== null)
+    const speeds = points.map((p: any) => p.speed).filter((s: any) => s !== null)
     if (!speeds.length) return '#4488ff'
     const minSpd = Math.min(...speeds)
     const maxSpd = Math.max(...speeds)
