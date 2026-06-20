@@ -20,6 +20,10 @@ if (typeof atob === 'undefined') {
   globalThis.atob = (str) => Buffer.from(str, 'binary').toString('base64')
 }
 
+if (typeof alert === 'undefined') {
+  window.alert = vi.fn()
+}
+
 HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   fillRect: vi.fn(),
   clearRect: vi.fn(),

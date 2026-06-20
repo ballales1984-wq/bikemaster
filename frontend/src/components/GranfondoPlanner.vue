@@ -75,13 +75,32 @@ const athleteId = ref(null)
 const startDate = ref(new Date().toISOString().split('T')[0])
 const weeks = ref(8)
 const loading = ref(false)
+const saving = ref(false)
 const plan = ref(null)
+const saveMessage = ref('')
+const saveSuccess = ref(true)
 
 const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 async function loadAthleteId() {
   const data = await apiGet('/api/v1/athletes')
   athleteId.value = data.athletes?.[0]?.id ?? 0
+}
+
+async function savePlan() {
+  if (!plan.value) return
+  saving.value = true
+  saveMessage.value = ''
+  try {
+    await apiPost('/api/v1/training/granfondo/save', { plan: plan.value })
+    saveMessage.value = 'Plan saved successfully'
+    saveSuccess.value = true
+  } catch (e) {
+    saveMessage.value = e.message || 'Failed to save plan'
+    saveSuccess.value = false
+  } finally {
+    saving.value = false
+  }
 }
 
 const endDate = computed(() => {
