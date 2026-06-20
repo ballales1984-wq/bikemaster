@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import ImportPanel from './ImportPanel.vue'
-import * as api from '../utils/api.ts'
+import * as api from '../utils/api'
 
 function makeFile(name) {
   return new File(['ride'], name, { type: 'application/octet-stream' })

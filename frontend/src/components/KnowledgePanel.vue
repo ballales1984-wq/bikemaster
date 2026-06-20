@@ -12,7 +12,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { apiGet, apiPost } from '../utils/api.ts'
+import { apiGet, apiPost } from '../utils/api'
 
 const query = ref('')
 const result = ref('')

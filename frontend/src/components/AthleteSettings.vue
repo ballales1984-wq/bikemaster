@@ -36,7 +36,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue"
-import { apiGet, apiPut, apiPost } from "../utils/api.ts"
+import { apiGet, apiPut, apiPost } from "../utils/api"
 
 const loading = ref(true)
 const athleteId = ref(null)

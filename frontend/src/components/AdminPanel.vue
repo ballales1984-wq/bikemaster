@@ -13,7 +13,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { apiGet, apiPost } from '../utils/api.ts'
+import { apiGet, apiPost } from '../utils/api'
 
 const stats = ref('')
 const error = ref('')
