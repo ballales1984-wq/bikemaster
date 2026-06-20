@@ -450,33 +450,33 @@ function renderMap() {
 }
 
 function segmentPopup(ride, segment) {
-  const gradeText = segment.grade >= 0 ? `+${segment.grade.toFixed(1)}%` : `${segment.grade.toFixed(1)}%`
-  const weatherText = weatherEnabled.value
-    ? `Meteo: ${escapeHtml(segment.weatherRisk)}/100 · score ${escapeHtml(ride.weatherScore)}/10`
-    : 'Meteo: disattivato'
-  return `
-    <strong>${escapeHtml(ride.date)}</strong><br>
-    Pendenza: ${escapeHtml(gradeText)}<br>
-    Rischio pendenza: ${escapeHtml(segment.gradeRisk)}/100<br>
-    ${weatherText}<br>
-    Rischio segmento: ${escapeHtml(segment.risk)}/100
-  `
-}
+   const gradeText = segment.grade >= 0 ? `+${segment.grade.toFixed(1)}%` : `${segment.grade.toFixed(1)}%`
+   const weatherText = weatherEnabled.value
+     ? `Weather: ${escapeHtml(segment.weatherRisk)}/100 · score ${escapeHtml(ride.weatherScore)}/10`
+     : 'Weather: disabled'
+   return `
+     <strong>${escapeHtml(ride.date)}</strong><br>
+     Grade: ${escapeHtml(gradeText)}<br>
+     Grade risk: ${escapeHtml(segment.gradeRisk)}/100<br>
+     ${weatherText}<br>
+     Segment risk: ${escapeHtml(segment.risk)}/100
+   `
+ }
 
 function ridePopup(ride) {
-  const weatherLabel = ride.weatherUnavailable ? 'non disponibile' : `${ride.weatherScore}/10`
-  const weatherDescription = ride.weather?.description || ''
-  const weatherText = weatherEnabled.value
-    ? `Meteo: ${escapeHtml(weatherLabel)} · ${escapeHtml(weatherDescription)}`
-    : 'Meteo: disattivato'
-  return `
-    <strong>Ride ${escapeHtml(ride.date)}</strong><br>
-    Distanza: ${escapeHtml(formatDistance(ride.distanceM))}<br>
-    Dislivello positivo: ${escapeHtml(`${Math.round(ride.elevationGain)} m`)}<br>
-    Rischio medio: ${escapeHtml(ride.overallRisk)}/100<br>
-    ${weatherText}
-  `
-}
+   const weatherLabel = ride.weatherUnavailable ? 'unavailable' : `${ride.weatherScore}/10`
+   const weatherDescription = ride.weather?.description || ''
+   const weatherText = weatherEnabled.value
+     ? `Weather: ${escapeHtml(weatherLabel)} · ${escapeHtml(weatherDescription)}`
+     : 'Weather: disabled'
+   return `
+     <strong>Ride ${escapeHtml(ride.date)}</strong><br>
+     Distance: ${escapeHtml(formatDistance(ride.distanceM))}<br>
+     Elevation gain: ${escapeHtml(`${Math.round(ride.elevationGain)} m`)}<br>
+     Average risk: ${escapeHtml(ride.overallRisk)}/100<br>
+     ${weatherText}
+   `
+ }
 
 function getCenter(points) {
   if (!points.length) return null
