@@ -26,10 +26,10 @@ test('login and add a ride from the dashboard', async ({ page }) => {
     await page.goto('/')
     await page.getByLabel('Username').fill('rider')
     await page.locator('#password').fill('secret')
-    await page.getByRole('button', { name: 'Entra' }).click()
+    await page.getByRole('button', { name: /sign in|login/i }).click()
 
-    await expect(page.getByRole('heading', { name: '📋 Le tue Ride' })).toBeVisible()
-    await expect(page.getByText('42km • 95min • 26.5 km/h')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Your Rides|Rides/i })).toBeVisible()
+    await expect(page.getByText('42km · 95min · 26.5 km/h')).toBeVisible()
 
     const today = new Date().toISOString().slice(0, 10)
     const postPromise = page.waitForResponse(response =>
@@ -37,13 +37,13 @@ test('login and add a ride from the dashboard', async ({ page }) => {
     )
 
     await page.locator('input[type="date"]').fill(today)
-    await page.locator('input[placeholder="Distanza (km)"]').fill('60')
-    await page.locator('input[placeholder="Durata (min)"]').fill('150')
-    await page.locator('input[placeholder="Velocità media (km/h)"]').fill('24')
-    await page.getByRole('button', { name: 'Aggiungi Ride' }).click()
+    await page.locator('input[placeholder="Distance (km)"]').fill('60')
+    await page.locator('input[placeholder="Duration (min)"]').fill('150')
+    await page.locator('input[placeholder="Avg speed (km/h)"]').fill('24')
+    await page.getByRole('button', { name: /add ride|add/i }).click()
 
     await expect(postPromise).resolves.toBeTruthy()
-    await expect(page.getByText('60km • 150min • 24 km/h')).toBeVisible()
+    await expect(page.getByText('60km · 150min · 24 km/h')).toBeVisible()
 })
 
 test('PWA manifest and service worker registration', async ({ page }) => {
