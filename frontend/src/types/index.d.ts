@@ -15,6 +15,20 @@ export interface Ride {
   duration_minutes?: number
 }
 
+export interface EnrichedRide extends Ride {
+  gps_points: GpsPoint[]
+  center: { lat: number; lon: number } | null
+  segments: RideSegment[]
+  distanceM: number
+  elevationGain: number
+  weather: { score?: number; description?: string } | null
+  weatherScore: number
+  weatherUnavailable: boolean
+  weatherError: string
+  overallRisk: number
+  maxRisk: number
+}
+
 export interface Athlete {
   id?: number
   username: string
