@@ -1,21 +1,21 @@
 <template>
-  <nav class="tabs" aria-label="Navigazione principale">
-    <router-link to="/rides" class="tab" active-class="active">🏍️ <span>Rides</span></router-link>
-    <router-link to="/track" class="tab" active-class="active">📍 <span>Tracking</span></router-link>
-    <router-link to="/import" class="tab" active-class="active">📥 <span>Import</span></router-link>
-    <router-link to="/athlete" class="tab" active-class="active">🏃 <span>Atleta</span></router-link>
-    <router-link to="/coach" class="tab" active-class="active">🧠 <span>AI Coach</span></router-link>
-    <router-link to="/knowledge" class="tab" active-class="active">📚 <span>Knowledge</span></router-link>
-    <router-link to="/calendar" class="tab" active-class="active">📅 <span>Calendario</span></router-link>
-    <router-link to="/granfondo" class="tab" active-class="active">🚴‍♂️ <span>Granfondo</span></router-link>
-    <router-link to="/map" class="tab" active-class="active"><span>Mappe</span></router-link>
-    <router-link to="/heatmap" class="tab" active-class="active">🔥 <span>Heatmap</span></router-link>
-    <router-link to="/badges" class="tab" active-class="active">🏅 <span>Badge</span></router-link>
-    <router-link to="/weather" class="tab" active-class="active">🌤️ <span>Meteo</span></router-link>
-    <router-link v-if="isAdmin" to="/admin" class="tab" active-class="active">⚙️ <span>Admin</span></router-link>
-    <span class="user-info">{{ isAdmin ? '👑 Admin' : '👤 User' }}</span>
-    <button class="tab logout-btn" @click="$emit('logout')">🚪 <span>Esci</span></button>
-  </nav>
+<nav class="tabs" aria-label="Main navigation">
+     <router-link to="/rides" class="tab" active-class="active">🏍️ <span>Rides</span></router-link>
+     <router-link to="/track" class="tab" active-class="active">📍 <span>Tracking</span></router-link>
+     <router-link to="/import" class="tab" active-class="active">📥 <span>Import</span></router-link>
+     <router-link to="/athlete" class="tab" active-class="active">🏃 <span>Athlete</span></router-link>
+     <router-link to="/coach" class="tab" active-class="active">🧠 <span>AI Coach</span></router-link>
+     <router-link to="/knowledge" class="tab" active-class="active">📚 <span>Knowledge</span></router-link>
+     <router-link to="/calendar" class="tab" active-class="active">📅 <span>Calendar</span></router-link>
+     <router-link to="/granfondo" class="tab" active-class="active">🚴‍♂️ <span>Granfondo</span></router-link>
+     <router-link to="/map" class="tab" active-class="active"><span>Maps</span></router-link>
+     <router-link to="/heatmap" class="tab" active-class="active">🔥 <span>Heatmap</span></router-link>
+     <router-link to="/badges" class="tab" active-class="active">🏅 <span>Badges</span></router-link>
+     <router-link to="/weather" class="tab" active-class="active">🌤️ <span>Weather</span></router-link>
+     <router-link v-if="isAdmin" to="/admin" class="tab" active-class="active">⚙️ <span>Admin</span></router-link>
+     <span class="user-info">{{ isAdmin ? '👑 Admin' : '👤 User' }}</span>
+     <button class="tab logout-btn" @click="$emit('logout')">🚪 <span>Logout</span></button>
+   </nav>
 </template>
 
 <script setup>

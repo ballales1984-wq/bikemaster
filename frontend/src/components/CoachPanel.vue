@@ -2,9 +2,9 @@
   <div class="panel">
     <h2>🧠 AI Coach</h2>
     <div class="form-grid">
-      <div class="form-group"><label for="coach-athlete-id">ID Atleta</label><input id="coach-athlete-id" type="number" v-model.number="athleteId" min="1" /></div>
+      <div class="form-group"><label for="coach-athlete-id">Athlete ID</label><input id="coach-athlete-id" type="number" v-model.number="athleteId" min="1" /></div>
       <div class="form-group">
-        <button class="btn btn-primary" @click="loadCoach" :disabled="loading">{{ loading ? '🔄 Analisi in corso...' : '📊 Carica Coach Completo' }}</button>
+        <button class="btn btn-primary" @click="loadCoach" :disabled="loading">{{ loading ? '🔄 Analyzing...' : '📊 Load Full Coach' }}</button>
       </div>
     </div>
 
@@ -22,18 +22,18 @@
     </div>
 
     <div v-if="coachData" class="panel" style="margin-top:15px">
-      <h3>💡 Consigli di Allenamento</h3>
+      <h3>💡 Training Advice</h3>
       <div class="result-box">{{ coachData.training_advice }}</div>
-      <h3>📈 Analisi Storica</h3>
+      <h3>📈 Historical Analysis</h3>
       <div class="result-box">{{ coachData.historical_analysis ?? '' }}</div>
-      <h3>🧘 Consigli di Recupero</h3>
+      <h3>🧘 Recovery Advice</h3>
       <div class="result-box">{{ coachData.recovery_advice }}</div>
     </div>
 
     <div v-if="!loading && !coachData" class="empty-state">
       <div class="empty-icon">🧠</div>
-      <div class="empty-title">Nessun dato coach</div>
-      <div class="empty-desc">Inserisci un ID atleta e carica l'analisi AI completa.</div>
+      <div class="empty-title">No coach data</div>
+      <div class="empty-desc">Enter an athlete ID and load the full AI analysis.</div>
     </div>
   </div>
 </template>

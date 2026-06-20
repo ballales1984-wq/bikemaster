@@ -23,14 +23,14 @@
          </select>
        </label>
      </div>
-      <div class="chart-grid">
+<div class="chart-grid">
         <div class="chart-card">
           <h3>Trend {{ metricLabel }}</h3>
           <canvas ref="trendCanvas"></canvas>
           <div class="chart-summary" v-if="trendData.ready">
             <span :class="trendClass">{{ trendData.trend }}</span>
             <span>R²: {{ trendData.r2 }}</span>
-            <span>Media: {{ trendData.mean?.toFixed(1) }}</span>
+            <span>Mean: {{ trendData.mean?.toFixed(1) }}</span>
           </div>
         </div>
         <div class="chart-card">
@@ -38,20 +38,12 @@
           <canvas ref="monthlyCanvas"></canvas>
         </div>
         <div class="chart-card">
-          <h3>Confronto Periodi</h3>
-          <canvas ref="comparisonCanvas"></canvas>
-          <div class="chart-summary" v-if="comparisonData.ready">
-<span :class="trendClass">{{ comparisonData.speed_change_pct >= 0 ? '+' : '' }}{{ comparisonData.speed_change_pct }}% speed</span>
-           </div>
-        </div>
-        <div class="chart-card">
           <h3>Period Comparison</h3>
           <canvas ref="comparisonCanvas"></canvas>
           <div class="chart-summary" v-if="comparisonData.ready">
              <span :class="trendClass">{{ comparisonData.distance_change_pct >= 0 ? '+' : '' }}{{ comparisonData.distance_change_pct }}% km</span>
              <span :class="trendClass">{{ comparisonData.speed_change_pct >= 0 ? '+' : '' }}{{ comparisonData.speed_change_pct }}% speed</span>
-           </div>
-        </div>
+          </div>
         </div>
       </div>
     </div>
@@ -143,7 +135,7 @@ function renderTrendChart() {
           pointHoverRadius: 6,
         },
         ...(data.rolling_avg?.length ? [{
-          label: `Media mobile (${windowSize.value})`,
+          label: `Moving avg (${windowSize.value})`,
           data: data.rolling_avg,
           borderColor: "#4ecca3",
           backgroundColor: "transparent",
@@ -185,18 +177,18 @@ function renderMonthlyChart() {
     data: {
       labels: data.months,
       datasets: [
-        {
-          label: "Distanza (km)",
-          data: data.total_distance_km,
-          backgroundColor: "#4ecca3",
-          yAxisID: "y",
-        },
-        {
-          label: "Durata (h)",
-          data: data.total_duration_hours,
-          backgroundColor: "#FF6B00",
-          yAxisID: "y1",
-        },
+{
+         label: "Distance (km)",
+         data: data.total_distance_km,
+         backgroundColor: "#4ecca3",
+         yAxisID: "y",
+       },
+       {
+         label: "Duration (h)",
+         data: data.total_duration_hours,
+         backgroundColor: "#FF6B00",
+         yAxisID: "y1",
+       },
       ],
     },
     options: {

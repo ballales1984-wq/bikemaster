@@ -1,33 +1,33 @@
 <template>
   <div class="panel">
-    <h2>🔥 Heatmap Personale</h2>
-    
-    <div class="form-grid">
-      <div class="form-group">
-        <label for="heatmap-athlete-id">Atleta ID</label>
-        <input id="heatmap-athlete-id" type="number" v-model.number="athleteId" min="1" />
-      </div>
-      <div class="form-group">
-        <button class="btn btn-primary" @click="loadHeatmap">🔄 Carica Heatmap</button>
-      </div>
-    </div>
-    
-    <div v-if="loading && !heatmapData" class="loading-text">
-      <span class="spinner"></span> Caricamento heatmap...
-    </div>
-    
-    <div v-if="heatmapData && heatmapData.points && heatmapData.points.length" class="heatmap-container">
-      <div id="leaflet-heatmap" class="heatmap-map"></div>
-      <div class="heatmap-stats">
-        <span class="badge badge-info">{{ heatmapData.total_points }} punti GPS</span>
-        <span class="badge badge-info">{{ heatmapData.points.length }} celle</span>
-      </div>
-    </div>
-    
-    <div v-if="heatmapData && (!heatmapData.points || !heatmapData.points.length)" class="loading-text">
-      Nessun dato GPS disponibile
-    </div>
-  </div>
+<h2>🔥 Personal Heatmap</h2>
+     
+     <div class="form-grid">
+       <div class="form-group">
+         <label for="heatmap-athlete-id">Athlete ID</label>
+         <input id="heatmap-athlete-id" type="number" v-model.number="athleteId" min="1" />
+       </div>
+       <div class="form-group">
+         <button class="btn btn-primary" @click="loadHeatmap">🔄 Load Heatmap</button>
+       </div>
+     </div>
+     
+     <div v-if="loading && !heatmapData" class="loading-text">
+       <span class="spinner"></span> Loading heatmap...
+     </div>
+     
+     <div v-if="heatmapData && heatmapData.points && heatmapData.points.length" class="heatmap-container">
+       <div id="leaflet-heatmap" class="heatmap-map"></div>
+       <div class="heatmap-stats">
+         <span class="badge badge-info">{{ heatmapData.total_points }} GPS points</span>
+         <span class="badge badge-info">{{ heatmapData.points.length }} cells</span>
+       </div>
+     </div>
+     
+     <div v-if="heatmapData && (!heatmapData.points || !heatmapData.points.length)" class="loading-text">
+       No GPS data available
+     </div>
+   </div>
 </template>
 
 <script setup>
