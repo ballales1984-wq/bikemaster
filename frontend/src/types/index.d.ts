@@ -84,6 +84,7 @@ export interface GpsPoint {
   altitude?: number | null
   timestamp?: string | null
   speed?: number | null
+  timestampNumber?: number
 }
 
 export interface RideSegment {

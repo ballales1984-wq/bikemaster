@@ -1,22 +1,22 @@
 <template>
   <section class="panel">
     <div class="tracking-header">
-      <h2>Tracciamento GPS</h2>
+      <h2>GPS Tracking</h2>
       <div v-if="isTracking" class="tracking-status">
         <span class="status-badge" :class="{ paused: isPaused }">
-          {{ isPaused ? 'In pausa' : 'In corso' }}
+          {{ isPaused ? 'Paused' : 'In progress' }}
         </span>
       </div>
     </div>
 
     <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
       <div class="empty-icon">📍</div>
-      <div class="empty-title">Pronto per tracciare la tua uscita</div>
+      <div class="empty-title">Ready to track your ride</div>
       <div class="empty-desc">
-        Premi il pulsante qui sotto per iniziare a registrare il tuo percorso in tempo reale.
+        Press the button below to start recording your route in real-time.
       </div>
       <button class="btn btn-primary btn-large" @click="startTracking">
-        Avvia Tracking
+        Start Tracking
       </button>
     </div>
 
@@ -26,9 +26,9 @@
       <ControlsBar :is-paused="isPaused" @pause="pauseTracking" @resume="resumeTracking" @stop="stopTracking" />
 
       <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete">
-        <p>Tracciamento completato! File pronto per il caricamento.</p>
+        <p>Tracking completed! File ready for upload.</p>
         <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide">
-          {{ isUploading ? 'Caricamento...' : 'Carica su BikeMaster' }}
+          {{ isUploading ? 'Uploading...' : 'Upload to BikeMaster' }}
         </button>
       </div>
     </div>
@@ -42,6 +42,7 @@ import LiveMap from '../components/LiveMap.vue'
 import RideMetricsPanel from '../components/RideMetricsPanel.vue'
 import ControlsBar from '../components/ControlsBar.vue'
 import { apiUpload } from '../utils/api'
+import type { GpsPoint } from '../types/index'
 
 const liveMapRef = ref<InstanceType<typeof LiveMap> | null>(null)
 const isUploading = ref(false)
@@ -50,7 +51,7 @@ let webWatchId: number | null = null
 let webStartTime = 0
 let webPausedAccumulatedMs = 0
 let webPausedAt: number | null = null
-let webLastPoint: { lat: number; lon: number; altitude?: number | null; timestamp?: string; timestampNumber?: number } | null = null
+let webLastPoint: GpsPoint | null = null
 let webDistance = 0
 let webElevationGain = 0
 
@@ -73,7 +74,7 @@ const {
 async function startTracking() {
   const hasPermission = await checkPermissions()
   if (!hasPermission) {
-    alert('Permessi GPS richiesti per il tracciamento')
+    alert('GPS permissions required for tracking')
     return
   }
   if (window.BikeTracking?.startTracking) {
@@ -125,29 +126,29 @@ async function stopTracking() {
 }
 
 async function uploadRide() {
-  try {
-    isUploading.value = true
-    const blob = getUploadBlob()
-    if (blob) {
-      await apiUpload('/api/v1/import/gpx', blob)
-      alert('Uscita caricata con successo!')
-      resetTrackingState()
-      return
-    }
-    if (tracking.gpxPath) {
-      await apiUpload('/api/v1/import/gpx', tracking.gpxPath)
-      alert('Uscita caricata con successo!')
-      resetTrackingState()
-      return
-    }
-    alert('Nessuna uscita da caricare')
-  } catch (error) {
+   try {
+     isUploading.value = true
+     const blob = getUploadBlob()
+     if (blob) {
+       await apiUpload('/api/v1/import/gpx', blob)
+       alert('Ride uploaded successfully!')
+       resetTrackingState()
+       return
+     }
+     if (tracking.gpxPath) {
+       await apiUpload('/api/v1/import/gpx', tracking.gpxPath)
+       alert('Ride uploaded successfully!')
+       resetTrackingState()
+       return
+     }
+     alert('No ride to upload')
+   } catch (error) {
     console.error('Upload failed:', error)
-    alert('Errore durante il caricamento')
-  } finally {
-    isUploading.value = false
-  }
-}
+    alert('Error during upload')
+   } finally {
+     isUploading.value = false
+   }
+ }
 
 function startWebTracking() {
   webStartTime = Date.now()
@@ -214,7 +215,7 @@ function handleWebPosition(position: GeolocationPosition) {
 }
 
 function handleWebError(error: GeolocationPositionError) {
-  alert(`Errore GPS: ${error.message}`)
+  alert(`GPS Error: ${error.message}`)
 }
 
 function stopWebTracking() {
