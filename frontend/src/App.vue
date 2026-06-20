@@ -16,13 +16,11 @@
       <StatsSummary :stats="summary" :loading="summaryLoading" @refresh="onSummaryChange" />
 
       <main>
-        <ErrorBoundary>
-          <router-view v-slot="{ Component, ComponentProps }">
-            <transition name="panel" mode="out-in">
-              <component :is="Component" v-bind="ComponentProps" @summary-change="onSummaryChange" />
-            </transition>
-          </router-view>
-        </ErrorBoundary>
+        <router-view v-slot="{ Component, ComponentProps }">
+          <transition name="panel" mode="out-in">
+            <component :is="Component" v-bind="ComponentProps" @summary-change="onSummaryChange" />
+          </transition>
+        </router-view>
       </main>
 
       <ToastContainer />
@@ -41,7 +39,6 @@ import HeaderTabs from './components/HeaderTabs.vue'
 import StatsSummary from './components/StatsSummary.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import LoginForm from './components/LoginForm.vue'
-import ErrorBoundary from './components/ErrorBoundary.vue'
 import PWAInstallPrompt from './components/PWAInstallPrompt.vue'
 import { useRides } from './composables/useRides'
 
