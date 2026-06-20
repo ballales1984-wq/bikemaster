@@ -1,12 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-
-export interface TrackingPoint {
-  lat: number
-  lon: number
-  altitude?: number | null
-  timestamp?: string
-}
+import type { GpsPoint } from '../types/index'
 
 export const useTrackingStore = defineStore('tracking', () => {
   const isTracking = ref(false)
@@ -22,8 +16,8 @@ export const useTrackingStore = defineStore('tracking', () => {
   const power = ref<number | null>(null)
   const gpxPath = ref<string | null>(null)
   const gpxBlob = ref<Blob | null>(null)
-  const routePoints = ref<TrackingPoint[]>([])
-  const lastPoint = ref<TrackingPoint | null>(null)
+  const routePoints = ref<GpsPoint[]>([])
+  const lastPoint = ref<GpsPoint | null>(null)
 
   function start() {
     isTracking.value = true
@@ -66,7 +60,7 @@ export const useTrackingStore = defineStore('tracking', () => {
     if (payload.power !== undefined) power.value = payload.power
   }
 
-  function addPoint(point: TrackingPoint) {
+  function addPoint(point: GpsPoint) {
     routePoints.value = [...routePoints.value, point]
     lastPoint.value = point
     points.value = routePoints.value.length
@@ -101,12 +95,11 @@ export const useTrackingStore = defineStore('tracking', () => {
       .replace(/[&<>]/g, '')
       .replace(/\s+/g, ' ')
       .trim() || 'BikeMaster ride'
-    const time = (value?: string) => value || new Date().toISOString()
     const route = routePoints.value
       .map(
         (point) => `      <trkpt lat="${point.lat}" lon="${point.lon}">
         <ele>${point.altitude ?? 0}</ele>
-        <time>${time(point.timestamp)}</time>
+        <time>${point.timestamp || new Date().toISOString()}</time>
       </trkpt>`
       )
       .join('\n')
