@@ -46,19 +46,19 @@ const routes = [
   {
     path: '/granfondo',
     name: 'granfondo',
-    component: () => import('../components/GranfondoPlanner.vue'),
+    component: () => import(/* webpackChunkName: "granfondo" */ '../components/GranfondoPlanner.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/map',
     name: 'map',
-    component: () => import('../components/RideMapPanel.vue'),
+    component: () => import(/* webpackChunkName: "map" */ '../components/RideMapPanel.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/heatmap',
     name: 'heatmap',
-    component: () => import('../components/HeatmapPanel.vue'),
+    component: () => import(/* webpackChunkName: "heatmap" */ '../components/HeatmapPanel.vue'),
     meta: { requiresAuth: true }
   },
   {

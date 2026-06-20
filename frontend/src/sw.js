@@ -1,5 +1,17 @@
+import { registerRoute } from 'workbox-routing'
+import { CacheFirst, StaleWhileRevalidate, NetworkFirst } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
+import { precacheAndRoute, matchPrecache } from 'workbox-precaching'
+import { setCacheNameDetails } from 'workbox-core'
+
+setCacheNameDetails({
+  prefix: 'bikemaster',
+  suffix: 'v1',
+})
+
 const STATIC_CACHE = 'bikemaster-static-v5'
 const API_CACHE = 'bikemaster-api-v1'
+const IMAGE_CACHE = 'bikemaster-images-v1'
 
 self.addEventListener('install', event => {
   self.skipWaiting()
@@ -22,67 +34,86 @@ self.addEventListener('activate', event => {
     const keys = await caches.keys()
     await Promise.all(
       keys
-        .filter(key => ![STATIC_CACHE, API_CACHE].includes(key))
+        .filter(key => ![STATIC_CACHE, API_CACHE, IMAGE_CACHE].includes(key))
         .map(key => caches.delete(key)),
     )
     await self.clients.claim()
   })())
 })
 
-async function cacheFirst(request) {
-  const cache = await caches.open(STATIC_CACHE)
-  const cached = await cache.match(request)
-  if (cached) return cached
-
-  try {
-    const response = await fetch(request)
-    if (response && response.ok) {
-      cache.put(request, response.clone())
+registerRoute(
+  ({ request }) => request.mode === 'navigate',
+  async ({ event }) => {
+    try {
+      const response = await fetch(event.request)
+      return response
+    } catch (error) {
+      const cache = await caches.open(STATIC_CACHE)
+      return await cache.match('/index.html') || new Response('', { status: 503, statusText: 'Offline' })
     }
-    return response
-  } catch {
-    const index = await cache.match('/index.html')
-    return index || new Response('', { status: 504, statusText: 'Gateway Timeout' })
-  }
-}
+  },
+  'NetworkFirst',
+)
 
-async function navigationFallback(request) {
-  const cache = await caches.open(STATIC_CACHE)
-  try {
-    const response = await fetch(request)
-    if (response && response.ok) {
-      cache.put('/index.html', response.clone())
-    }
-    if (response && !response.ok) {
-      const cached = await cache.match('/index.html')
-      if (cached) return cached
-    }
-    return response
-  } catch {
-    const cached = await cache.match('/index.html')
-    return cached || new Response('Offline', { status: 503, statusText: 'Offline' })
-  }
-}
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/'),
+  new NetworkFirst({
+    cacheName: API_CACHE,
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 100,
+        maxAgeSeconds: 60,
+      }),
+    ],
+  }),
+)
 
-self.addEventListener('fetch', event => {
-  const { request } = event
-  if (request.method !== 'GET') return
+registerRoute(
+  ({ request }) => request.destination === 'image',
+  new CacheFirst({
+    cacheName: IMAGE_CACHE,
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
+      }),
+    ],
+  }),
+)
 
-  const url = new URL(request.url)
-  if (request.mode === 'navigate' && url.pathname === '/api/v1/auth/google/callback') {
-    return
-  }
-  if (request.mode === 'navigate') {
-    event.respondWith(navigationFallback(request))
-    return
-  }
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/'),
+  new StaleWhileRevalidate({
+    cacheName: STATIC_CACHE,
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 100,
+        maxAgeSeconds: 24 * 60 * 60,
+      }),
+    ],
+  }),
+)
 
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(request))
-    return
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
   }
+})
 
-  if (url.origin === self.location.origin) {
-    event.respondWith(cacheFirst(request))
+self.addEventListener('push', event => {
+  const data = event.data?.json() || {}
+  const title = data.title || 'BikeMaster'
+  const options = {
+    body: data.body || '',
+    icon: '/pwa-192x192.png',
+    badge: '/pwa-192x192.png',
+    data: data.url || '/',
   }
+  event.waitUntil(self.registration.showNotification(title, options))
+})
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close()
+  const url = event.notification.data || '/'
+  event.waitUntil(clients.openWindow(url))
 })

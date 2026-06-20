@@ -2,6 +2,17 @@ import { test, expect } from '@playwright/test'
 
 const jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyaWRlciIsImlzX2FkbWluIjpmYWxzZX0.signature'
 
+async function mockLogin(page) {
+  await page.addInitScript((token) => {
+    localStorage.setItem('bikemaster_token', token)
+    localStorage.setItem('bikemaster_user', JSON.stringify({ id: 1, username: 'testuser', is_admin: false }))
+  }, jwt)
+}
+
+test.beforeEach(async ({ page }) => {
+  await mockLogin(page)
+})
+
 test('login and add a ride from the dashboard', async ({ page }) => {
     const rides = [
         { id: 1, date: '2026-06-01', distance_km: 42, duration_minutes: 95, avg_speed_kmh: 26.5, calories: 720 },
