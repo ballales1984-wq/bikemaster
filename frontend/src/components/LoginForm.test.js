@@ -10,7 +10,7 @@ describe('LoginForm', () => {
     await wrapper.find('#password').setValue('123456')
     await wrapper.find('form').trigger('submit')
 
-    expect(wrapper.find('.field-error').text()).toBe('Minimo 3 caratteri')
+    expect(wrapper.find('.field-error').text()).toBe('Min 3 characters')
     expect(wrapper.emitted()).not.toHaveProperty('login')
   })
 
@@ -34,7 +34,7 @@ describe('LoginForm', () => {
     await wrapper.find('form').trigger('submit')
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.text()).toContain('Minimo 6 caratteri')
+    expect(wrapper.text()).toContain('Min 6 characters')
     expect(wrapper.emitted()).not.toHaveProperty('register')
   })
 
@@ -46,6 +46,6 @@ describe('LoginForm', () => {
     await wrapper.find('.password-toggle').trigger('click')
 
     expect(wrapper.find('#password').attributes('type')).toBe('text')
-    expect(wrapper.find('.password-toggle').attributes('aria-label')).toBe('Nascondi password')
+    expect(wrapper.find('.password-toggle').attributes('aria-label')).toBe('Hide password')
   })
 })

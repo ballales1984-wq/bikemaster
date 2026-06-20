@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock Chart.js globale (usato direttamente nel composable)
+// Mock Chart.js global (used directly in the composable)
 const mockChartInstance = { destroy: vi.fn(), update: vi.fn() }
 globalThis.Chart = vi.fn().mockImplementation(() => mockChartInstance)
 
-// useChart usa lifecycle hooks (onMounted/watch) — testabile in isolamento
-// per le funzioni pure di formattazione dati
+// useChart uses lifecycle hooks (onMounted/watch) — testable in isolation
+// for pure data formatting functions
 
 describe('useChart helpers', () => {
   beforeEach(() => {
@@ -13,7 +13,7 @@ describe('useChart helpers', () => {
     globalThis.Chart = vi.fn().mockImplementation(() => ({ destroy: vi.fn() }))
   })
 
-  it('Chart viene costruito con type bar di default', () => {
+  it('Chart is built with bar type by default', () => {
     const canvas = { getContext: vi.fn().mockReturnValue({}) }
     const data = { labels: ['Jan', 'Feb'], datasets: [{ data: [10, 20] }] }
 
@@ -25,7 +25,7 @@ describe('useChart helpers', () => {
     )
   })
 
-  it('Chart viene costruito con type line se specificato', () => {
+  it('Chart is built with line type if specified', () => {
     const canvas = { getContext: vi.fn().mockReturnValue({}) }
     const data = { labels: ['A', 'B', 'C'], datasets: [{ data: [1, 2, 3] }] }
 
@@ -37,7 +37,7 @@ describe('useChart helpers', () => {
     )
   })
 
-  it('il costruttore Chart riceve le opzioni responsive e maintainAspectRatio', () => {
+  it('Chart constructor receives responsive and maintainAspectRatio options', () => {
     const canvas = { getContext: vi.fn().mockReturnValue({}) }
     const data = { labels: [], datasets: [] }
 
@@ -56,50 +56,50 @@ describe('useChart helpers', () => {
     expect(callArgs.options.maintainAspectRatio).toBe(false)
   })
 
-  it('destroy viene chiamato prima di ri-renderizzare', () => {
-    const destroyFn = vi.fn()
-    const instance = { destroy: destroyFn }
-    globalThis.Chart = vi.fn().mockImplementation(() => instance)
+it('destroy is called before re-rendering', () => {
+     const destroyFn = vi.fn()
+     const instance = { destroy: destroyFn }
+     globalThis.Chart = vi.fn().mockImplementation(() => instance)
 
-    const ctx = {}
-    const data = { labels: [], datasets: [] }
+     const ctx = {}
+     const data = { labels: [], datasets: [] }
 
-    // Prima istanza
-    const c1 = new globalThis.Chart(ctx, { type: 'bar', data, options: {} })
-    // Distruggi come farebbe render()
-    c1.destroy()
-    // Seconda istanza
-    new globalThis.Chart(ctx, { type: 'bar', data, options: {} })
+     // First instance
+     const c1 = new globalThis.Chart(ctx, { type: 'bar', data, options: {} })
+     // Destroy as render() would do
+     c1.destroy()
+     // Second instance
+     new globalThis.Chart(ctx, { type: 'bar', data, options: {} })
 
-    expect(destroyFn).toHaveBeenCalledTimes(1)
-    expect(globalThis.Chart).toHaveBeenCalledTimes(2)
-  })
-})
+     expect(destroyFn).toHaveBeenCalledTimes(1)
+     expect(globalThis.Chart).toHaveBeenCalledTimes(2)
+   })
+ })
 
-describe('chart data formatters', () => {
-  it('calcola la media mobile su finestra 3', () => {
-    const values = [10, 20, 30, 40, 50]
-    const windowSize = 3
-    const rollingAvg = values.map((_, i) => {
-      if (i < windowSize - 1) return null
-      const slice = values.slice(i - windowSize + 1, i + 1)
-      return slice.reduce((a, b) => a + b, 0) / windowSize
-    })
-    expect(rollingAvg[2]).toBe(20)
-    expect(rollingAvg[3]).toBe(30)
-    expect(rollingAvg[4]).toBe(40)
-  })
+ describe('chart data formatters', () => {
+   it('calculates rolling average on window 3', () => {
+     const values = [10, 20, 30, 40, 50]
+     const windowSize = 3
+     const rollingAvg = values.map((_, i) => {
+       if (i < windowSize - 1) return null
+       const slice = values.slice(i - windowSize + 1, i + 1)
+       return slice.reduce((a, b) => a + b, 0) / windowSize
+     })
+     expect(rollingAvg[2]).toBe(20)
+     expect(rollingAvg[3]).toBe(30)
+     expect(rollingAvg[4]).toBe(40)
+   })
 
-  it('calcola percentuale variazione tra periodi', () => {
-    const recent = 150
-    const previous = 100
-    const changePct = Math.round(((recent - previous) / previous) * 100)
-    expect(changePct).toBe(50)
-  })
+   it('calculates percentage change between periods', () => {
+     const recent = 150
+     const previous = 100
+     const changePct = Math.round(((recent - previous) / previous) * 100)
+     expect(changePct).toBe(50)
+   })
 
-  it('formatta le etichette mese correttamente', () => {
-    const dates = ['2026-01-15', '2026-02-10', '2026-03-22']
-    const labels = dates.map(d => d?.slice(5) || '?')
-    expect(labels).toEqual(['01-15', '02-10', '03-22'])
-  })
-})
+   it('formats month labels correctly', () => {
+     const dates = ['2026-01-15', '2026-02-10', '2026-03-22']
+     const labels = dates.map(d => d?.slice(5) || '?')
+     expect(labels).toEqual(['01-15', '02-10', '03-22'])
+   })
+ })

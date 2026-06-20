@@ -45,24 +45,24 @@ test.describe('Rides Management', () => {
     await page.goto('/rides')
   })
 
-  test('mostra la lista delle ride', async ({ page }) => {
+  test('shows rides list', async ({ page }) => {
     await expect(page.locator('.ride-item').first()).toBeVisible({ timeout: 5000 })
     const items = page.locator('.ride-item')
     await expect(items).toHaveCount(3)
   })
 
-  test('ogni ride mostra data e distanza', async ({ page }) => {
+  test('each ride shows date and distance', async ({ page }) => {
     const firstItem = page.locator('.ride-item').first()
     await expect(firstItem).toContainText('2026-06-01')
     await expect(firstItem).toContainText('42.5')
   })
 
-  test('il form di aggiunta ride è visibile', async ({ page }) => {
+  test('add ride form is visible', async ({ page }) => {
     await expect(page.locator('input[type="date"]')).toBeVisible()
     await expect(page.locator('button[type="submit"], .btn-primary').first()).toBeVisible()
   })
 
-  test('aggiunge una nuova ride tramite form', async ({ page }) => {
+  test('adds a new ride via form', async ({ page }) => {
     let postCalled = false
 
     await page.route('/api/v1/rides', async (route) => {
@@ -93,11 +93,11 @@ test.describe('Rides Management', () => {
     expect(postCalled).toBe(true)
   })
 
-  test('il bottone Elimina apre la modale di conferma', async ({ page }) => {
+  test('Delete button opens confirm modal', async ({ page }) => {
     await expect(page.locator('.btn-danger').first()).toBeVisible({ timeout: 5000 })
     await page.locator('.btn-danger').first().click()
 
-    // La modale di conferma deve apparire
+    // Confirm modal must appear
     await expect(
       page.locator('.modal, [role="dialog"], .confirm-modal').first()
     ).toBeVisible({ timeout: 3000 })

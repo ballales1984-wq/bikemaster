@@ -197,7 +197,7 @@ const selectedDate = computed(() => {
   const today = new Date()
   const y = today.getFullYear(), m = today.getMonth(), d = today.getDate()
   if (currentMonth.value === m && currentYear.value === y) {
-    return today.toLocaleDateString('it-IT')
+    return today.toLocaleDateString('en-US')
   }
   return `${d}/${m+1}/${y}`
 })
