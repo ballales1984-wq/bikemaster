@@ -1,4 +1,4 @@
-import type { GpsPoint, RideSegment } from '../types/index'
+import type { GpsPoint, RideSegment, EnrichedRide } from '../types/index'
 
 export function buildRidePolylines(ride: { segments: RideSegment[] }): { color: string; points: [number, number][] }[] {
   const groups: { color: string; points: [number, number][] }[] = []
@@ -61,12 +61,12 @@ export function formatDistance(meters: number = 0): string {
   return `${(meters / 1000).toFixed(2)} km`
 }
 
-export function speedColor(ride: { gps_points: GpsPoint[] }, index: number): string {
+export function speedColor(ride: EnrichedRide, index: number): string {
   const points = ride.gps_points || []
   if (index < points.length) {
     const speed = points[index].speed ?? null
     if (speed === null) return '#4488ff'
-    const speeds = points.map((p: GpsPoint) => p.speed).filter((s): s is number => s !== null && s !== undefined)
+    const speeds = points.map(p => p.speed).filter((s): s is number => s !== null && s !== undefined)
     if (!speeds.length) return '#4488ff'
     const minSpd = Math.min(...speeds)
     const maxSpd = Math.max(...speeds)
