@@ -123,7 +123,7 @@ import {
   riskColor,
   speedRiskPercent,
   weatherRiskPercent,
-} from '../utils/routeMap.js'
+} from '../utils/routeMap.ts'
 
 const mapContainer = ref(null)
 const loading = ref(false)
