@@ -20,6 +20,8 @@ class RideRepository:
     async def save(self, ride: dict[str, Any]) -> int:
         if self._session_factory:
             return await self._save_async(ride)
+        if self._sync_conn:
+            return self._sync_conn.save_ride(ride)
         return self._save_sync(ride)
 
     async def _save_async(self, ride: dict) -> int:
@@ -55,6 +57,8 @@ class RideRepository:
     async def get_by_id(self, ride_id: int) -> dict | None:
         if self._session_factory:
             return await self._get_by_id_async(ride_id)
+        if self._sync_conn:
+            return self._sync_conn.get_ride(ride_id)
         return self._get_by_id_sync(ride_id)
 
     async def _get_by_id_async(self, ride_id: int) -> dict | None:
@@ -78,6 +82,8 @@ class RideRepository:
     async def get_by_athlete(self, athlete_id: int) -> list[dict]:
         if self._session_factory:
             return await self._get_by_athlete_async(athlete_id)
+        if self._sync_conn:
+            return self._sync_conn.get_rides_by_athlete(athlete_id)
         return self._get_by_athlete_sync(athlete_id)
 
     async def _get_by_athlete_async(self, athlete_id: int) -> list[dict]:
@@ -106,6 +112,8 @@ class RideRepository:
     async def list_all(self) -> list[dict]:
         if self._session_factory:
             return await self._list_all_async()
+        if self._sync_conn:
+            return self._sync_conn.get_all_rides()
         return self._list_all_sync()
 
     async def _list_all_async(self) -> list[dict]:
@@ -130,6 +138,8 @@ class RideRepository:
     async def delete(self, ride_id: int) -> bool:
         if self._session_factory:
             return await self._delete_async(ride_id)
+        if self._sync_conn:
+            return self._sync_conn.delete_ride(ride_id)
         return self._delete_sync(ride_id)
 
     async def _delete_async(self, ride_id: int) -> bool:

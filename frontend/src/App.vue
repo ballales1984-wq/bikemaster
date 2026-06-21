@@ -85,8 +85,9 @@ async function onRegister(creds) {
   }
 }
 
-function onLogout() {
-  doLogout()
+async function onLogout() {
+  await doLogout()
+    .catch(() => {})
   router.push('/')
   summary.value = { rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 }
 }

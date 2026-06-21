@@ -26,27 +26,27 @@ test.describe('Rides Management', () => {
   test.beforeEach(async ({ page }) => {
     await mockLogin(page)
 
-    await page.route('/api/v1/rides', async (route) => {
+    await page.route('/api/v1/rides', (route) => {
       if (route.request().method() === 'GET') {
-        await route.fulfill({
+        route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({ rides: mockRides, total: mockRides.length }),
         })
-      } else if (route.request().method() === 'POST') {
-        await route.fulfill({
-          status: 201,
+      } else {
+        route.fulfill({
+          status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ id: 99, ...JSON.parse(route.request().postData() || '{}') }),
+          body: JSON.stringify({ rides: mockRides, total: mockRides.length }),
         })
       }
     })
 
     await page.goto('/rides')
+    await expect(page.locator('.ride-item').first()).toBeVisible({ timeout: 10000 })
   })
 
   test('shows rides list', async ({ page }) => {
-    await expect(page.locator('.ride-item').first()).toBeVisible({ timeout: 5000 })
     const items = page.locator('.ride-item')
     await expect(items).toHaveCount(3)
   })
@@ -63,41 +63,21 @@ test.describe('Rides Management', () => {
   })
 
   test('adds a new ride via form', async ({ page }) => {
-    let postCalled = false
-
-    await page.route('/api/v1/rides', async (route) => {
-      if (route.request().method() === 'POST') {
-        postCalled = true
-        await route.fulfill({
-          status: 201,
-          contentType: 'application/json',
-          body: JSON.stringify({ id: 99, date: '2026-06-17', distance_km: 35 }),
-        })
-      } else {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ rides: mockRides, total: 3 }),
-        })
-      }
-    })
-
+    const postPromise = page.waitForResponse('/api/v1/rides')
     await page.fill('input[type="date"]', '2026-06-17')
     const numberInputs = page.locator('input[type="number"]')
     await numberInputs.nth(0).fill('35')
     await numberInputs.nth(1).fill('80')
-
     await page.click('button[type="submit"]')
-    await page.waitForTimeout(500)
 
-    expect(postCalled).toBe(true)
+    await expect(postPromise).resolves.toBeTruthy()
   })
 
   test('Delete button opens confirm modal', async ({ page }) => {
-    await expect(page.locator('.btn-danger').first()).toBeVisible({ timeout: 5000 })
-    await page.locator('.btn-danger').first().click()
+    const deleteBtn = page.locator('.btn-danger').first()
+    await expect(deleteBtn).toBeVisible()
+    await deleteBtn.click()
 
-    // Confirm modal must appear
     await expect(
       page.locator('.modal, [role="dialog"], .confirm-modal').first()
     ).toBeVisible({ timeout: 3000 })

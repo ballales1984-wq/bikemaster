@@ -57,9 +57,12 @@ bike_analyzer/backend/static/assets/
 frontend/dist/
 frontend/coverage/
 frontend/test-results/
+frontend/test-results-summary.json
+frontend/test-*.txt
 frontend/playwright-report/
 
 # Frontend
+node_modules/
 frontend/node_modules/
 
 # Ride maps and exports
