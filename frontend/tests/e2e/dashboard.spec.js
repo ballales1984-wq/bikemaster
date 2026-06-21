@@ -22,8 +22,7 @@ test.describe('Dashboard Navigation', () => {
   test.beforeEach(async ({ page }) => {
     await mockLogin(page)
 
-    // Intercept API to return mock data
-    await page.route('/api/v1/dashboard', route => route.fulfill({
+    await page.route('**/api/v1/dashboard', route => route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
@@ -35,7 +34,7 @@ test.describe('Dashboard Navigation', () => {
       }),
     }))
 
-    await page.route('/api/v1/rides', route => route.fulfill({
+    await page.route('**/api/v1/rides*', route => route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ rides: [], total: 0 }),

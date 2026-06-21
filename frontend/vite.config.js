@@ -74,4 +74,7 @@ export default defineConfig({
       '/assets': 'http://localhost:8000',
     },
   },
+  preview: {
+    proxy: {},
+  },
 })

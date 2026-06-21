@@ -11,6 +11,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:4174',
     trace: 'on-first-retry',
+    serviceWorkers: 'block',
     launchOptions: {
       args: ['--no-sandbox', '--disable-dev-shm-usage'],
     },
@@ -24,7 +25,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run build && node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4174',
     url: 'http://127.0.0.1:4174',
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 300000,
   },
   globalSetup: './tests/e2e/global-setup.js',

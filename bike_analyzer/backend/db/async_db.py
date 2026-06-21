@@ -70,7 +70,7 @@ async def init_async_db():
 async def save_ride_async(ride: dict) -> int:
     from ..db.models import RideModel
 
-    async with get_async_session() as session:
+    async with await get_async_session() as session:
         gps_points = (
             json.dumps(ride.get("gps_points"))
             if ride.get("gps_points")
@@ -101,7 +101,7 @@ async def save_ride_async(ride: dict) -> int:
 async def get_ride_async(ride_id: int) -> dict | None:
     from ..db.models import RideModel
 
-    async with get_async_session() as session:
+    async with await get_async_session() as session:
         stmt = select(RideModel).where(RideModel.id == ride_id)
         result = await session.execute(stmt)
         row = result.scalar_one_or_none()
@@ -129,7 +129,7 @@ async def get_ride_async(ride_id: int) -> dict | None:
 async def get_all_rides_async() -> list[dict]:
     from ..db.models import RideModel
 
-    async with get_async_session() as session:
+    async with await get_async_session() as session:
         stmt = select(RideModel).order_by(RideModel.date.desc())
         result = await session.execute(stmt)
         rows = result.scalars().all()
@@ -139,7 +139,7 @@ async def get_all_rides_async() -> list[dict]:
 async def get_rides_by_athlete_async(athlete_id: int) -> list[dict]:
     from ..db.models import RideModel
 
-    async with get_async_session() as session:
+    async with await get_async_session() as session:
         stmt = (
             select(RideModel)
             .where(RideModel.athlete_id == athlete_id)
@@ -153,7 +153,7 @@ async def get_rides_by_athlete_async(athlete_id: int) -> list[dict]:
 async def delete_ride_async(ride_id: int) -> bool:
     from ..db.models import RideModel
 
-    async with get_async_session() as session:
+    async with await get_async_session() as session:
         stmt = delete(RideModel).where(RideModel.id == ride_id)
         result = await session.execute(stmt)
         await session.commit()
@@ -163,7 +163,7 @@ async def delete_ride_async(ride_id: int) -> bool:
 async def save_athlete_async(athlete: dict) -> int:
     from ..db.models import AthleteModel
 
-    async with get_async_session() as session:
+    async with await get_async_session() as session:
         stmt = (
             insert(AthleteModel)
             .values(

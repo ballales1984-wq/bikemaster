@@ -13,21 +13,29 @@ class AthleteRepository:
     async def save(self, athlete: dict, athlete_id=None) -> int:
         if self._session_factory:
             return await self._save_async(athlete)
+        if self._sync_conn:
+            return self._sync_conn.save_athlete(athlete, athlete_id)
         return self._save_sync(athlete, athlete_id)
 
     async def get_by_id(self, athlete_id: int) -> dict | None:
         if self._session_factory:
             return await self._get_by_id_async(athlete_id)
+        if self._sync_conn:
+            return self._sync_conn.get_athlete(athlete_id)
         return self._get_by_id_sync(athlete_id)
 
     async def get_by_name(self, name: str) -> dict | None:
         if self._session_factory:
             return await self._get_by_name_async(name)
+        if self._sync_conn:
+            return self._sync_conn.get_athlete_by_name(name)
         return self._get_by_name_sync(name)
 
     async def list_all(self) -> list[dict]:
         if self._session_factory:
             return await self._list_all_async()
+        if self._sync_conn:
+            return self._sync_conn.get_all_athletes()
         return self._list_all_sync()
 
     async def _save_async(self, athlete: dict) -> int:
@@ -82,7 +90,7 @@ class AthleteRepository:
 
     @property
     def _table(self):
-        from ..db.async_db import AthleteTable
+        from ...db.async_db import AthleteTable
         return AthleteTable
 
     def _save_sync(self, athlete: dict, athlete_id=None) -> int:
