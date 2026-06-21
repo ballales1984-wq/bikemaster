@@ -1,7 +1,6 @@
 """Tests for traffic/overpass_client module."""
 
-import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

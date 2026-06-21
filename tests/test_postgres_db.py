@@ -1,25 +1,26 @@
 """Tests for PostgreSQL database layer with SQLAlchemy."""
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from bike_analyzer.backend.db.postgres_db import (
     SQLALCHEMY_AVAILABLE,
-    Base,
-    RideModel,
     AthleteModel,
-    TrainingLoadModel,
-    TrainingGoalModel,
+    Base,
     PlannedWorkoutModel,
-    get_engine,
-    init_postgres_db,
-    get_db_session,
-    get_session,
-    save_training_load,
-    get_training_loads,
-    save_training_goal,
-    get_training_goals,
-    save_planned_workout,
-    get_planned_workouts,
+    RideModel,
+    TrainingGoalModel,
+    TrainingLoadModel,
     complete_workout,
+    get_db_session,
+    get_engine,
+    get_planned_workouts,
+    get_session,
+    get_training_goals,
+    get_training_loads,
+    init_postgres_db,
+    save_planned_workout,
+    save_training_goal,
+    save_training_load,
 )
 
 
@@ -332,7 +333,7 @@ class TestTrainingGoal:
         assert active_goals[0]["status"] == "active"
 
     def test_get_training_goals_returns_defaults(self, in_memory_engine):
-        goal_id = save_training_goal(1, {"title": "Default Goal"})
+        save_training_goal(1, {"title": "Default Goal"})
         goals = get_training_goals(1)
         assert goals[0]["goal_type"] == "granfondo"
         assert goals[0]["status"] == "active"
@@ -380,7 +381,7 @@ class TestPlannedWorkout:
         assert workouts[0]["date"] == "2024-01-20"
 
     def test_get_planned_workouts_defaults(self, in_memory_engine):
-        workout_id = save_planned_workout(1, {"date": "2024-01-20", "title": "Default Workout"})
+        save_planned_workout(1, {"date": "2024-01-20", "title": "Default Workout"})
         workouts = get_planned_workouts(1)
         assert workouts[0]["workout_type"] == "endurance"
         assert workouts[0]["duration_minutes"] == 60
@@ -406,13 +407,13 @@ class TestForeignKeyRelationships:
     def test_training_load_requires_athlete(self, db_session):
         model = TrainingLoadModel(date="2024-01-15")
         db_session.add(model)
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             db_session.commit()
 
     def test_training_goal_requires_athlete_and_title(self, db_session):
         model = TrainingGoalModel()
         db_session.add(model)
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             db_session.commit()
 
 
@@ -452,11 +453,10 @@ class TestSessionRollbackOnError:
     def test_session_rolls_back_on_exception(self, postgres_module):
         engine = get_engine("sqlite:///:memory:")
         Base.metadata.create_all(engine)
-        with pytest.raises(ValueError, match="Test error"):
-            with get_session() as session:
-                athlete = AthleteModel(name="Test Athlete")
-                session.add(athlete)
-                raise ValueError("Test error")
+        with pytest.raises(ValueError, match="Test error"), get_session() as session:
+            athlete = AthleteModel(name="Test Athlete")
+            session.add(athlete)
+            raise ValueError("Test error")
         with get_session() as session:
             athletes = session.query(AthleteModel).all()
             assert len(athletes) == 0
