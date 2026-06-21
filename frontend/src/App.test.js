@@ -1,0 +1,95 @@
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { createRouter, createWebHistory } from 'vue-router'
+import { createPinia, setActivePinia } from 'pinia'
+import App from './App.vue'
+
+const isLoggedIn = vi.hoisted(() => vi.fn())
+const isAdmin = vi.hoisted(() => vi.fn())
+
+vi.mock('./composables/useAuth', () => ({
+  isLoggedIn,
+  isAdmin,
+  login: vi.fn(),
+  register: vi.fn(),
+  logout: vi.fn(),
+}))
+
+vi.mock('./composables/useRides', () => ({
+  useRides: vi.fn(() => ({
+    fetchSummary: vi.fn().mockResolvedValue({ rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 }),
+  })),
+}))
+
+describe('App.vue', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  const stubs = {
+    StatsSummary: { template: '<div class="stats-stub" />' },
+    ToastContainer: { template: '<div class="toast-stub" />' },
+    PWAInstallPrompt: { template: '<div class="pwa-stub" />' },
+    HeaderTabs: { template: '<div class="tabs-stub" />' },
+    RouterView: { template: '<div class="rv-stub" />' },
+  }
+
+  it('shows login form when not logged in', () => {
+    isLoggedIn.mockReturnValue(false)
+    const router = createRouter({ history: createWebHistory(), routes: [] })
+    router.push = vi.fn()
+    const wrapper = mount(App, {
+      global: {
+        plugins: [router, createPinia()],
+        stubs,
+      },
+    })
+    expect(wrapper.find('form').exists()).toBe(true)
+  })
+
+  it('shows header tabs and summary when logged in', () => {
+    isLoggedIn.mockReturnValue(true)
+    isAdmin.mockReturnValue(false)
+    const router = createRouter({ history: createWebHistory(), routes: [] })
+    router.push = vi.fn()
+    const wrapper = mount(App, {
+      global: {
+        plugins: [router, createPinia()],
+        stubs,
+      },
+    })
+    expect(wrapper.find('.tabs-stub').exists()).toBe(true)
+    expect(wrapper.find('.stats-stub').exists()).toBe(true)
+  })
+
+  it('displays login error when present', () => {
+    isLoggedIn.mockReturnValue(false)
+    localStorage.setItem('bikemaster_login_error', 'bad')
+    const router = createRouter({ history: createWebHistory(), routes: [] })
+    router.push = vi.fn()
+    const wrapper = mount(App, {
+      global: {
+        plugins: [router, createPinia()],
+        stubs,
+      },
+    })
+    expect(wrapper.find('.login-error').exists()).toBe(true)
+    expect(localStorage.getItem('bikemaster_login_error')).toBe('bad')
+  })
+
+  it('loads summary on mount when already logged in', async () => {
+    isLoggedIn.mockReturnValue(true)
+    const router = createRouter({ history: createWebHistory(), routes: [] })
+    router.push = vi.fn()
+    const wrapper = mount(App, {
+      global: {
+        plugins: [router, createPinia()],
+        stubs,
+      },
+    })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(wrapper.find('.stats-stub').exists()).toBe(true)
+  })
+})
