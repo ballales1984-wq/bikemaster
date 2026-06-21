@@ -88,6 +88,34 @@ def create_app() -> FastAPI:
     app.add_middleware(SlowAPIMiddleware)
 
     @app.middleware("http")
+    async def audit_log_middleware(request: Request, call_next):
+        import time
+        start = time.time()
+        user_id = "anonymous"
+        try:
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                from ..security import decode_access_token
+                token = auth_header[7:]
+                payload = decode_access_token(token)
+                if payload:
+                    user_id = str(payload.get("sub", "anonymous"))
+        except Exception:
+            pass
+        response = await call_next(request)
+        elapsed_ms = int((time.time() - start) * 1000)
+        logger.info(
+            "AUDIT %s %s %s user=%s ip=%s %dms",
+            request.method,
+            request.url.path,
+            response.status_code,
+            user_id,
+            request.client.host if request.client else "unknown",
+            elapsed_ms,
+        )
+        return response
+
+    @app.middleware("http")
     async def add_security_headers(request: Request, call_next):
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"

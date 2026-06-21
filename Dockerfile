@@ -14,13 +14,17 @@ RUN npm run build
 FROM python:3.11-slim AS production
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        build-essential \
        curl \
     && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r bikemaster && useradd -r -g bikemaster bikemaster
 
 WORKDIR /app
 
@@ -33,6 +37,13 @@ COPY bike_analyzer ./bike_analyzer
 
 COPY --from=frontend-builder /app/frontend/dist ./bike_analyzer/backend/static
 
+RUN chown -R bikemaster:bikemaster /app
+
+USER bikemaster
+
 EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
 CMD ["sh", "-c", "python main.py api --port ${PORT:-8000}"]

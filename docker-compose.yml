@@ -23,14 +23,19 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./data:/app/data
-      - ./bike_analyzer/backend/static:/app/bike_analyzer/backend/static
+      - ./data:/app/data:rw
+      - ./bike_analyzer/backend/static:/app/bike_analyzer/backend/static:ro
       - ./rides.db:/app/rides.db
     env_file:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379
     restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=64m
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
