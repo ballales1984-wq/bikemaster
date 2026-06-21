@@ -7,10 +7,11 @@ Create Date: 2026-06-17
 """
 
 import contextlib
+from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
-from collections.abc import Sequence
 
 revision: str = "add_pgvector_knowledge_chunks"
 down_revision: str | Sequence[str] | None = "08ee39bfe529"

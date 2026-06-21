@@ -682,7 +682,7 @@ def init_chroma_db(persist_path: str | None = None) -> dict:
             )
 
         embeddings_list = []
-        for i, c in enumerate(chunks):
+        for c in chunks:
             emb = c.get("embedding") or embed_text(c["text"])
             if emb:
                 embeddings_list.append(emb)
