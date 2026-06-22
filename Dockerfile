@@ -41,6 +41,10 @@ RUN chown -R bikemaster:bikemaster /app
 
 USER bikemaster
 
+ENV SENTRY_DSN=""
+ENV SENTRY_ENVIRONMENT=production
+ENV SENTRY_TRACES_SAMPLE_RATE=0.2
+
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

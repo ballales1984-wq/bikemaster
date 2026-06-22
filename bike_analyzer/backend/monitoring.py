@@ -67,6 +67,26 @@ if PROMETHEUS_AVAILABLE:
         "Total import operations",
         ["source", "status"],
     )
+    gps_imports_total = Counter(
+        "bikemaster_gps_imports_total",
+        "Total GPS file imports",
+        ["format", "source"],
+    )
+    ride_analysis_duration_seconds = Histogram(
+        "bikemaster_ride_analysis_duration_seconds",
+        "Ride analysis duration in seconds",
+        buckets=(0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0),
+    )
+    fatigue_score = Histogram(
+        "bikemaster_fatigue_score",
+        "Fatigue score distribution",
+        buckets=(1.0, 3.0, 5.0, 7.0, 10.0),
+    )
+    ai_coach_queries_total = Counter(
+        "bikemaster_ai_coach_queries_total",
+        "Total AI Coach queries",
+        ["provider", "status"],
+    )
     system_info = Gauge(
         "bikemaster_system_info",
         "System information",
@@ -83,6 +103,10 @@ else:
     cache_misses_total = None
     ai_coach_requests_total = None
     import_operations_total = None
+    gps_imports_total = None
+    ride_analysis_duration_seconds = None
+    fatigue_score = None
+    ai_coach_queries_total = None
     system_info = None
 
 
