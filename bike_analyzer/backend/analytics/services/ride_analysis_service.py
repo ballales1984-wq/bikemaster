@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from ....core.models import Ride
 from ....core.pipeline import AnalysisPipeline
-from ...services.fitness_state_service import FitnessStateEngine
+from .fitness_state_service import FitnessStateEngine
 
 if TYPE_CHECKING:
     from ....core.fitness_state import FitnessStateVector
@@ -60,7 +60,7 @@ class RideAnalysisService:
             }
         return data
 
-async def compute_fitness_state(
+    async def compute_fitness_state(
         self, rides: Sequence[Ride], athlete_id: int
     ) -> FitnessStateVector:
         return self.fitness_engine.compute(rides, athlete_id)

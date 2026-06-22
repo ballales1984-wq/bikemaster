@@ -1,10 +1,6 @@
 // @ts-check
 import { test, expect } from '@playwright/test'
 
-/**
- * Helper: simulate login via localStorage (bypass form for dashboard test)
- * @param {import('@playwright/test').Page} page
- */
 async function mockLogin(page) {
   const fakeToken = [
     'eyJhbGciOiJIUzI1NiJ9',
@@ -12,7 +8,7 @@ async function mockLogin(page) {
     'signature',
   ].join('.')
 
-  await page.addInitScript(/** @param {string} token */ (token) => {
+  await page.addInitScript((token) => {
     localStorage.setItem('bikemaster_token', token)
     localStorage.setItem('bikemaster_user', JSON.stringify({ id: 1, username: 'testuser', is_admin: false }))
   }, fakeToken)
@@ -41,6 +37,7 @@ test.describe('Dashboard Navigation', () => {
     }))
 
     await page.goto('/rides')
+    await page.waitForLoadState('networkidle')
   })
 
   test('rides page loads after login', async ({ page }) => {
@@ -49,7 +46,6 @@ test.describe('Dashboard Navigation', () => {
   })
 
   test('HeaderTabs navigation works', async ({ page }) => {
-    // Find navigation links
     const navLinks = page.locator('nav a, header a').first()
     await expect(navLinks).toBeVisible({ timeout: 3000 })
   })
@@ -66,7 +62,6 @@ test.describe('Dashboard Navigation', () => {
   test('logout redirects to home', async ({ page }) => {
     await page.route('/api/v1/auth/logout', route => route.fulfill({ status: 200, body: '{}' }))
 
-    // Click logout button if exists on the page
     const logoutBtn = page.locator('button', { hasText: /logout|sign out/i })
     if (await logoutBtn.count() > 0) {
       await logoutBtn.click()

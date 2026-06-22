@@ -1,279 +1,338 @@
-## Stato Attuale del Progetto
+# Stato Attuale del Progetto
 
-**Completati: 148/145 step base + 20/80 estensioni**
+**Completati: 148/145 step base + 45/80 estensioni**
 
-> **Stato**: Late Beta / Early Production — architettura solida, serve hardening per produzione.
+> **Stato**: Late Beta / Early Production — architettura solida con Clean Architecture, deve essere finalizzato per produzione.
 
 ### Ultimo Commit
-- `92382a9` - feat: implement Phone GPS Tracking for Android
-- `b40939f` - fix: update MainActivity to use foreground service
-
----
-
-## Riepilogo Lavoro Svolto
-
-### Commit: 34bcc47 — "feat: add async database, analytics, rate limiting, and improved charts"
-Pushato su GitHub (ballales1984-wq/bikemaster) il 2026-06-09.
-
-### Moduli Aggiunti/Modificati in Questo Commit
-
-| Modulo | Descrizione |
-|---|---|
-| `bike_analyzer/backend/analytics/power_model.py` | **NUOVO** - 14 modelli potenza avanzati: Normalized Power (Coggan), Intensity Factor, Variability Index, Efficiency Factor, TSS, Power Zones, Power Profile, FTP estimation, Critical Power model, Aerobic Decoupling |
-| `bike_analyzer/backend/analytics/advanced.py` | 14 modelli matematici avanzati (pace consistency, power estimate, climb classification, VO2max, route difficulty, elevation/speed profile, progress trend, training stress balance, ideal weight, Garmin power factor, HR zones, ride recommendation, speed surge detection) |
-| `bike_analyzer/backend/analytics/analytics_trends.py` | Modulo standalone per trend analysis (fitness trends, monthly progression, period comparison, volume projection) |
-| `bike_analyzer/backend/db/async_db.py` | Layer DB asincrono (asyncpg/aiosqlite) che replica l'API del DB sincrono |
-| `bike_analyzer/backend/db/models.py` | Modelli SQLAlchemy ORM async (SQLAlchemy 2.0 declarative) per PostgreSQL + SQLite |
-| `bike_analyzer/backend/db/postgres_db.py` | Layer database PostgreSQL con SQLAlchemy sincrono |
-| `bike_analyzer/backend/rate_limiter.py` | Rate limiter con slowapi + proxy-aware IP extraction |
-| `bike_analyzer/backend/redis_client.py` | Client Redis asincrono con cache decorator e graceful degradation |
-| `bike_analyzer/backend/task_queue.py` | Task queue asincrona per operazioni pesanti (batch import, map generation) |
-| `bike_analyzer/backend/settings.py` | Configurazione centralizzata con Pydantic Settings v2 |
-| `bike_analyzer/backend/config.py` | Configurazione legacy (.env manuale) — mantenuta per compatibilità |
-| `bike_analyzer/backend/security.py` | JWT authentication (python-jose + bcrypt), security headers middleware |
-| `bike_analyzer/backend/api/app_factory.py` | FastAPI app factory aggiornato con rate limiting, security headers, async DB |
-| `bike_analyzer/backend/api/routes.py` | 40+ endpoint API ristrutturati, nuovi endpoint advanced analytics |
-| `bike_analyzer/backend/api/schemas.py` | Pydantic schemas estesi per advanced analytics |
-| `bike_analyzer/backend/analytics/training_load.py` | Modulo calcolo carico allenamento (RSS, TSS, monotony, strain) |
-| `bike_analyzer/backend/analytics/training_stress.py` | Training Stress Score con EWMA |
-| `bike_analyzer/backend/analytics/badges.py` | Sistema badge/medaglie e heatmap GPS |
-| `bike_analyzer/backend/analytics/granfondo_planner.py` | Piano allenamento granfondo con tapering |
-| `bike_analyzer/backend/weather/weather_service.py` | Servizio meteo per consigli di allenamento |
-| `bike_analyzer/backend/processing/segment_detector.py` | Rilevatore segmenti avanzato |
-| `frontend/src/components/ChartsPanel.vue` | Panel grafici Vue 3 con Chart.js |
-| `frontend/src/components/RidesPanel.vue` | Panel uscite Vue 3 |
-| `frontend/src/components/HeatmapPanel.vue` | Heatmap GPS interattiva |
-| `frontend/src/components/BadgesPanel.vue` | Sistema badge Vue |
-| `frontend/src/components/CalendarPanel.vue` | Calendario allenamento |
-| `frontend/src/components/GranfondoPlanner.vue` | Piano granfondo frontend |
-| `frontend/src/components/AdminPanel.vue` | Pannello admin Vue |
-| `frontend/src/components/AthleteSettings.vue` | Impostazioni atleta Vue |
-| `frontend/src/components/CoachPanel.vue` | AI Coach panel Vue |
-| `frontend/src/components/KnowledgePanel.vue` | Knowledge base Vue |
-| `frontend/src/components/HeaderTabs.vue` | Tab di navigazione |
-| `frontend/src/components/LoginForm.vue` | Form login |
-| `frontend/src/components/RideDetail.vue` | Dettaglio uscita |
-| `frontend/src/components/StatsSummary.vue` | Riepilogo statistiche |
-| `frontend/src/components/ToastContainer.vue` | Notifiche toast |
-| `frontend/src/composables/useAuth.js` | Composable autenticazione |
-| `frontend/src/composables/useChart.js` | Composable grafici |
-| `frontend/src/composables/useRides.js` | Composable uscite |
-| `tests/` | Suite test ampliata (24+ file di test) |
-| `alembic/` | Configurazione Alembic per migrazioni DB versionate |
-| `docs/database-migration.md` | Documentazione migrazione DB |
-| `frontend/src/views/RideTracking.vue` | **NUOVO** - Pagina tracking GPS live |
-| `frontend/src/stores/trackingStore.ts` | **NUOVO** - Pinia store tracking |
-| `frontend/src/plugins/bikeTracking.ts` | **NUOVO** - Plugin Capacitor wrapper |
-| `android/app/src/main/java/com/bikemaster/tracking/BikeTrackingService.kt` | **NUOVO** - Foreground service |
-| `android/app/src/main/java/com/bikemaster/plugins/BikeTrackingPlugin.kt` | **NUOVO** - Capacitor plugin |
-| `docs/PHONE_TRACKING.md` | **NUOVO** - Documentation
-
-### File Modificati Precedentemente (non in questo commit ma nel working tree)
-
-| File | Note |
-|---|---|
-| `bike_analyzer/backend/api/app_factory.py` | Aggiornato |
-| `bike_analyzer/backend/api/routes.py` | Aggiornato |
-| `bike_analyzer/backend/config.py` | Aggiornato |
-| `bike_analyzer/backend/db/database.py` | Aggiornato |
-| `bike_analyzer/backend/db/models.py` | Aggiornato |
-| `bike_analyzer/backend/security.py` | Aggiornato |
-| `frontend/src/components/ChartsPanel.vue` | Ampliato |
-| `main.py` | Entrypoint principale |
-| `requirements.txt` | Dipendenze aggiornate |
+- `56c1e82` - test: add comprehensive test suite for analytics, coverage gaps, and error paths while cleaning up temporary database files
+- `b16d73b` - test: add unit tests for AI coach API and endpoints
+- `8b87be2` - feat: implement PGVector knowledge chunks support and BM25-based RAG retrieval
+- `7035193` - feat: implement async database layer with SQLAlchemy, introduce repository pattern, and add Playwright E2E test suite
+- `0e92a14` - test: add frontend tests and ErrorBoundary component
+- `56c1e82` - fix: Docker security hardening (multi-stage build, non-root user, read-only fs)
 
 ---
 
 ## Architettura Attuale del Progetto
 
-### Stack Tecnologico
+### Pattern: Clean Architecture (Domain → Application → Infrastructure → Presentation)
+
+```
+bike_analyzer/
+├── core/                              # Domain Layer (entities, events, pipeline)
+│   ├── models.py                      # GPSPoint, Segment, Pause, Ride, AthleteProfile, CalendarEvent
+│   ├── pipeline.py                    # AnalysisPipeline: GPS → processing → metrics
+│   ├── engine.py                      # AnalysisEngine: orchestrator con FitnessState
+│   └── fitness_state.py               # FitnessStateVector: CTL/ATL/TSB snapshot
+│
+├── backend/
+│   ├── config.py                      # Configurazione legacy (.env) — compatibilità
+│   ├── settings.py                    # Pydantic Settings v2 (centralizzata, type-safe)
+│   ├── security.py                    # JWT auth + security headers (CSP, HSTS, X-Frame)
+│   ├── rate_limiter.py                # slowapi rate limiter (proxy-aware IP)
+│   ├── redis_client.py                # Client Redis asincrono + cache decorator
+│   ├── task_queue.py                  # Task queue asincrona (batch import, maps)
+│   ├── event_bus.py                   # Domain event bus (publish/subscribe)
+│   │
+│   ├── auth/                          # Authentication providers
+│   │   ├── __init__.py                # Re-exports google_auth
+│   │   └── google_auth.py             # Google OAuth2 (session creation, token exchange)
+│   │
+│   ├── events/                        # Domain events
+│   │   └── __init__.py                # RideCreated, AthleteUpdated, BadgeEarned, TrainingGenerated
+│   │
+│   ├── traffic/                       # Traffic & road safety analysis
+│   │   ├── __init__.py                # Lazy-load exports
+│   │   ├── safety_analyzer.py         # Risk score computation (road types + incidents)
+│   │   ├── overpass_client.py         # OpenStreetMap Overpass API (bike lanes, road types)
+│   │   └── incident_fetcher.py        # Road incident data fetching
+│   │
+│   ├── core/                          # Pure domain logic (internal)
+│   │
+│   ├── api/                           # FastAPI Presentation Layer
+│   │   ├── app_factory.py             # FastAPI factory + CORS + rate limit + security headers
+│   │   ├── routes.py                  # 40+ endpoint API
+│   │   ├── schemas.py                 # Pydantic DTOs request/response
+│   │   └── async_db_facade.py         # Async DB facade per routes
+│   │
+│   ├── analytics/                     # Analytics Engine (Clean Architecture)
+│   │   ├── analytics.py               # Summary, export JSON/CSV, report, charts base
+│   │   ├── analytics_trends.py        # Trend analysis standalone
+│   │   ├── advanced.py                # 14 modelli matematici avanzati
+│   │   ├── power_model.py             # Power metrics (NP, IF, VI, EF, TSS, CP, FTP, Decoupling)
+│   │   ├── calories.py                # Stima calorie (fisica + MET)
+│   │   ├── fatigue.py                 # Modello affaticamento + recovery
+│   │   ├── performance.py             # Performance/Endurance/Efficiency scores
+│   │   ├── benchmark.py               # Confronto percentile per categoria
+│   │   ├── ai_coach.py                # AI Coach (Groq/LLM + RAG BM25 + memoria)
+│   │   ├── knowledge_base.py          # RAG engine BM25 + LRU cache
+│   │   ├── dashboard.py               # Aggregatore statistiche dashboard
+│   │   ├── training_load.py           # Carico allenamento (RSS, TSS)
+│   │   ├── training_stress.py         # Training Stress Score + EWMA
+│   │   ├── badges.py                  # Sistema badge/medaglie + heatmap GPS
+│   │   ├── granfondo_planner.py       # Piano allenamento granfondo con tapering
+│   │   │
+│   │   ├── calculators/               # Pure functions (testabili in isolamento)
+│   │   │   ├── calories.py            # Calorie estimation (physics + MET)
+│   │   │   ├── power.py               # NP, IF, TSS, training_stress_score
+│   │   │   ├── fatigue.py             # Fatigue score + recovery hours formula
+│   │   │   ├── performance.py         # Performance score + efficiency score
+│   │   │   └── stress.py              # EWMA calculations
+│   │   │
+│   │   ├── services/                  # Use case orchestration
+│   │   │   ├── ride_analysis_service.py   # Full ride analysis pipeline
+│   │   │   ├── fitness_state_service.py   # FitnessStateVector computation
+│   │   │   └── context_builder.py         # Analysis context assembly
+│   │   │
+│   │   └── repositories/              # Data access abstraction
+│   │       ├── ride_repository.py          # Ride CRUD (sync + async + postgres)
+│   │       ├── athlete_repository.py       # Athlete CRUD
+│   │       ├── fitness_state_repository.py # Fitness state persistence
+│   │       └── training_stress_repository.py
+│   │
+│   ├── db/                            # Data Access Layer
+│   │   ├── database.py                # SQLite CRUD sync (4 tabelle)
+│   │   ├── async_db.py                # Async DB layer (asyncpg/aiosqlite)
+│   │   ├── postgres_db.py             # PostgreSQL full ORM layer
+│   │   ├── models.py                  # SQLAlchemy ORM models async
+│   │   ├── vector_db.py               # TF-IDF + cosine similarity fallback
+│   │   └── api_compat.py              # API compatibility layer
+│   │
+│   ├── database/                      # Vector Database
+│   │   └── vectordb.py                # PGVector wrapper (CREATE EXTENSION, upsert, cosine search)
+│   │
+│   ├── ingestion/                     # Data Ingestion (external APIs)
+│   │   ├── gps_parser.py              # Parser GPX/FIT
+│   │   ├── google_fit.py              # Google Fit OAuth2
+│   │   ├── strava_client.py           # Strava API (OAuth2 + PKCE, token management)
+│   │   └── garmin_client.py           # Garmin Connect API (OAuth2, activity fetch)
+│   │
+│   ├── maps/                          # Map Rendering
+│   │   ├── map_renderer.py            # Folium renderer (percorso colorato per velocita)
+│   │   ├── google_maps.py             # Google Static Maps API
+│   │   ├── osm_maps.py                # OpenStreetMap tiles
+│   │   └── serpapi_maps.py            # SerpApi luoghi vicini
+│   │
+│   ├── weather/
+│   │   └── weather_service.py         # Servizio meteo (temperature, wind, conditions)
+│   │
+│   ├── models/                        # Domain Models (dataclasses)
+│   │   ├── models.py                  # Ride, GPSPoint, Segment, Pause, AthleteProfile, CalendarEvent
+│   │   └── __init__.py
+│   │
+│   ├── processing/                    # GPS Data Processing
+│   │   ├── processing.py              # Pulizia GPS, pausa, segmentazione
+│   │   ├── segment_detector.py        # Segment detection avanzato
+│   │   └── __init__.py
+│   │
+│   └── utils/
+│       ├── dates.py                   # Utilità date
+│       └── logger.py                  # Logging configurato
+│
+├── frontend/                          # Vue 3 + Vite + TypeScript SPA (standalone)
+│   ├── package.json                   # Vue 3, Chart.js, Leaflet, Capacitor, Pinia, Vitest
+│   ├── vite.config.js
+│   ├── capacitor.config.json          # Android build config
+│   ├── index.html                     # Entrypoint Vite
+│   ├── tsconfig.json / tsconfig.node.json
+│   ├── vitest.config.js               # Unit test config
+│   ├── playwright.config.js           # E2E test config
+│   ├── android/                       # Android app (Kotlin + Capacitor)
+│   └── src/
+│       ├── main.ts                    # App Vue mount
+│       ├── App.vue                    # Root component
+│       ├── index.css                  # Global dark theme + design tokens
+│       ├── components/                # 20+ componenti Vue
+│       ├── stores/                    # Pinia state management
+│       ├── composables/               # Composable functions
+│       ├── utils/                     # API client, route mapping
+│       └── views/                     # Page-level Vue components
+│
+├── tests/                             # Suite test automatici (51+ file)
+│   ├── conftest.py                    # Shared fixtures
+│   ├── test_analytics.py              # Analytics base
+│   ├── test_analytics_trends.py       # Trend analysis
+│   ├── test_analytics_engine.py       # Full engine
+│   ├── test_power_model.py            # Power metrics
+│   ├── test_advanced_analytics.py     # 14 modelli avanzati
+│   ├── test_fatigue.py                # Fatigue model
+│   ├── test_performance.py            # Performance scores
+│   ├── test_training_stress.py        # Training Stress Score + EWMA
+│   ├── test_training_load.py          # Carico allenamento
+│   ├── test_badges.py                 # Sistema badge
+│   ├── test_granfondo.py              # Granfondo planner
+│   ├── test_weather.py                # Weather service
+│   ├── test_processing.py             # GPS processing
+│   ├── test_segment_detector.py       # Segment detection
+│   ├── test_ai_coach.py               # AI Coach logic
+│   ├── test_ai_coach_api.py           # AI Coach API endpoints
+│   ├── test_knowledge_api.py          # Knowledge base API
+│   ├── test_vector_db.py              # Vector DB (TF-IDF)
+│   ├── test_db_models.py              # SQLAlchemy models
+│   ├── test_async_db.py               # Async DB layer
+│   ├── test_postgres_db.py            # PostgreSQL
+│   ├── test_repositories.py           # Repository pattern
+│   ├── test_database.py               # SQLite CRUD
+│   ├── test_database_backup.py        # Backup
+│   ├── test_event_bus.py              # Domain events
+│   ├── test_traffic.py                # Traffic safety
+│   ├── test_traffic_client.py         # Overpass/Incident clients
+│   ├── test_google_oauth.py           # Google OAuth flow
+│   ├── test_google_fit.py             # Google Fit integration
+│   ├── test_garmin_integration.py     # Garmin client
+│   ├── test_strava_integration.py     # Strava client
+│   ├── test_security.py               # JWT + security headers
+│   ├── test_auth_enhanced.py          # Enhanced auth
+│   ├── test_redis_client.py           # Redis cache
+│   ├── test_task_queue.py             # Background tasks
+│   ├── test_routes_coverage.py        # API routes coverage
+│   ├── test_routes_extended.py        # Extended route tests
+│   ├── test_api_coverage.py           # API coverage
+│   ├── test_scores_api.py             # Scores API
+│   ├── test_benchmark_api.py          # Benchmark API
+│   ├── test_import_batch.py           # Batch import
+│   ├── test_athlete_profile.py        # Athlete profile
+│   ├── test_google_maps_mock.py       # Google Maps mock
+│   ├── test_dashboard_auth.py         # Dashboard auth
+│   ├── test_dashboard_scores.py       # Dashboard scores
+│   ├── test_main.py                   # CLI mode
+│   ├── test_models.py                 # Domain models dataclass
+│   ├── test_error_paths.py            # Error handling paths
+│   ├── test_coverage_gaps.py          # Coverage gap tests
+│   └── test_frontend_dashboard.py     # Frontend dashboard logic
+│
+├── knowledge_base/                    # Documenti indicizzati per RAG
+├── docs/                              # Documentazione sviluppatore
+│   ├── API_DOCS.md
+│   ├── API_DOCUMENTAZIONE.md
+│   ├── CHANGELOG.md
+│   ├── DEVELOPMENT.md
+│   ├── PHONE_TRACKING.md
+│   ├── PHONE_TRACKING_TESTING.md
+│   ├── PROJECT_DOCUMENTATION.md
+│   ├── USER_GUIDE.md
+│   ├── GUIDA_UTENTE.md
+│   ├── SVILUPPO.md
+│   └── database-migration.md
+│
+├── alembic/                           # Migrazioni DB versionate
+│   ├── versions/08ee39bfe529_initial_models.py
+│   └── env.py
+│
+├── scripts/                           # Utility scripts
+│   ├── generate_sample_ride.py
+│   └── demo_map.py
+│
+├── .github/workflows/                 # CI/CD
+│   ├── ci.yml                         # Test + lint + security + build
+│   └── android-release.yml            # Android APK/AAB build
+│
+├── main.py                            # Entrypoint (cli/api/web modes)
+├── requirements.txt
+├── Dockerfile                         # Multi-stage hardened build
+├── docker-compose.yml                 # Docker Compose (app + redis)
+├── pyproject.toml
+├── azure.yaml / render.yaml           # Deploy config
+├── ROADMAP.md
+└── PROJECT_STATUS.md
+```
+
+---
+
+## Stack Tecnologico
 
 | Layer | Tecnologia |
 |---|---|
 | Backend | FastAPI 0.110+, Python 3.11+ |
-| Database | SQLite (sync) + PostgreSQL (async/await via SQLAlchemy 2.0) |
+| Core/Domain | Python dataclasses, Clean Architecture |
+| Database | SQLite (dev sync) + PostgreSQL (prod async, asyncpg) |
 | ORM | SQLAlchemy 2.0 (declarative + async) |
-| Migrazioni DB | Alembic |
-| Cache/Queue | Redis (opzionale, con fallback in-memory) |
-| Analytics | NumPy, Pandas, Matplotlib, SciPy, scikit-learn, statsmodels |
+| Migrations | Alembic |
+| Vector DB | PGVector (cosine similarity search) |
+| Cache | Redis 7 (opzionale, fallback in-memory) |
+| Analytics | NumPy, Pandas, Matplotlib, SciPy, scikit-learn, statsmodels, endurance-metrics |
 | Parsing GPS | gpxpy, fitparse |
-| AI/LLM | Groq SDK + OpenAI SDK |
-| Auth | python-jose[cryptography], passlib, bcrypt |
-| Rate Limit | slowapi |
-| Security | Security headers middleware (CSP, HSTS, X-Frame-Options) |
+| AI/LLM | Groq SDK + OpenAI SDK (embeddings) |
+| Auth | python-jose[cryptography], passlib, bcrypt, Google OAuth2 |
+| Rate Limit | slowapi (proxy-aware) |
+| Security | Security headers (CSP, HSTS, X-Frame-Options, XSS) |
 | Config | Pydantic Settings v2 |
-| Frontend | Vue 3 + Vite + TypeScript (SPA standalone) |
-| Frontend charts | Chart.js |
-| Frontend maps | Leaflet.js + leaflet.heat |
-| Mobile | Android app Kotlin (Capacitor) |
-| Testing | pytest, pytest-asyncio |
-
-### Struttura Backend
-
-```
-bike_analyzer/backend/
-├── __init__.py
-├── config.py                  # Configurazione legacy (.env)
-├── settings.py                # Pydantic Settings v2 (centralizzata)
-├── security.py                # JWT auth + security headers
-├── rate_limiter.py            # slowapi rate limiter
-├── redis_client.py            # Client Redis + cache decorator
-├── task_queue.py              # Background task queue asincrona
-├── api/
-│   ├── app_factory.py         # FastAPI factory + CORS + rate limit
-│   ├── routes.py              # 40+ endpoint API
-│   └── schemas.py             # Pydantic DTOs request/response
-├── analytics/
-│   ├── __init__.py
-│   ├── analytics.py           # Summary, export, report, charts (base)
-│   ├── analytics_trends.py    # Trend analysis standalone
-│   ├── advanced.py            # 14 modelli matematici avanzati
-│   ├── calories.py            # Stima calorie (fisica + MET)
-│   ├── fatigue.py             # Modello affaticamento + recovery
-│   ├── performance.py         # Performance/Endurance/Efficiency scores
-│   ├── benchmark.py           # Confronto benchmark
-│   ├── ai_coach.py            # AI Coach (Groq/LLM + RAG + memoria)
-│   ├── knowledge_base.py      # RAG engine BM25 + LRU cache
-│   ├── dashboard.py           # Aggregatore statistiche dashboard
-│   ├── training_load.py       # Carico allenamento (RSS, TSS)
-│   ├── training_stress.py     # Training Stress Score + EWMA
-│   ├── badges.py              # Sistema badge/heatmap
-│   └── granfondo_planner.py   # Piano granfondo con tapering
-├── weather/
-│   ├── __init__.py
-│   └── weather_service.py     # Servizio meteo
-├── db/
-│   ├── __init__.py
-│   ├── database.py            # SQLite CRUD sync (4 tabelle)
-│   ├── async_db.py            # Async DB layer (PostgreSQL + SQLite)
-│   ├── postgres_db.py         # PostgreSQL full ORM layer
-│   └── models.py              # SQLAlchemy ORM models async
-├── models/
-│   ├── __init__.py
-│   └── models.py              # Dataclass dominio (Ride, GPSPoint, Segment, ecc.)
-├── ingestion/
-│   ├── gps_parser.py          # Parser GPX/FIT
-│   └── google_fit.py          # Google Fit OAuth2
-├── maps/
-│   ├── map_renderer.py        # Folium renderer
-│   ├── google_maps.py         # Google Static Maps
-│   └── serpapi_maps.py        # SerpApi luoghi vicini
-├── processing/
-│   ├── processing.py          # Pulizia GPS, pausa, segmentazione
-│   └── segment_detector.py    # Segment detection avanzato
-└── utils/
-    ├── dates.py               # Utilità date
-    └── logger.py              # Logging configurato
-```
-
-### Struttura Frontend (Vue 3 + Vite)
-
-```
-frontend/
-├── package.json               # Vue 3, Chart.js, Leaflet, Capacitor
-├── vite.config.js
-├── capacitor.config.json      # Android build config
-├── index.html                 # Entrypoint
-├── dist/                      # Build output (git-ignored)
-├── node_modules/              # Dipendenze (git-ignored)
-├── android/                   # Progetto Android (Kotlin + Capacitor)
-│   ├── app/src/main/...
-│   └── build.gradle
-├── src/
-│   ├── main.js
-│   ├── index.css
-│   ├── App.vue
-│   ├── components/
-│   │   ├── HeaderTabs.vue
-│   │   ├── RidesPanel.vue
-│   │   ├── ChartsPanel.vue
-│   │   ├── ImportPanel.vue
-│   │   ├── AthletePanel.vue
-│   │   ├── AthleteSettings.vue
-│   │   ├── CoachPanel.vue
-│   │   ├── KnowledgePanel.vue
-│   │   ├── HeatmapPanel.vue
-│   │   ├── BadgesPanel.vue
-│   │   ├── CalendarPanel.vue
-│   │   ├── GranfondoPlanner.vue
-│   │   ├── AdminPanel.vue
-│   │   ├── LoginForm.vue
-│   │   ├── RideDetail.vue
-│   │   └── StatsSummary.vue
-│   └── composables/
-│       ├── useAuth.js
-│       ├── useChart.js
-│       └── useRides.js
-```
-
-### Modelli Dato
-
-| Modello | Descrizione |
-|---|---|
-| `Ride` | Uscita ciclistica completa (distance, duration, HR, elevation, GPS, etc.) |
-| `GPSPoint` | Punto GPS (lat, lon, timestamp, altitude, speed) |
-| `Segment` | Segmento tra due GPSPoint |
-| `Pause` | Sosta rilevata |
-| `AthleteProfile` | Profilo atleta completo |
-| `RouteStatistics` | Statistiche aggregate percorso |
-| `CalendarEvent` | Evento di allenamento pianificato |
-
-### Database Schema (SQLAlchemy ORM)
-
-**Tabella `rides`** — Uscite ciclistiche (GPS serializzato come JSON)
-**Tabella `athletes`** — Profili atleta con metriche complete
-**Tabella `metrics`** — Metriche calcolate per ride (fatigue, recovery, efficiency)
-**Tabella `chat_history`** — Memoria conversazionale AI Coach
-**Tabella `calendar_events`** — Eventi di allenamento pianificati
-
-Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/PostgreSQL.
-
-### API Endpoints (40+)
-
-| Categoria | Endpoint |
-|---|---|
-| Health | `/health`, `/health/detailed` |
-| Auth | `/auth/login`, `/auth/register` |
-| Rides CRUD | `/rides`, `/rides/{id}`, `/rides/count` |
-| Analisi | `/rides/{id}/analyze`, `/rides/analyze` |
-| Power Metrics | `/rides/{id}/power-metrics` |
-| Import | `/import/gpx`, `/import/fit`, `/import/multiple`, `/import/google-fit/*` |
-| Export | `/rides/export/json`, `/rides/export/csv` |
-| Charts | `/charts/speed/{id}`, `/charts/elevation/{id}`, `/charts/distance/{id}`, `/charts/duration` |
-| Maps | `/rides/{id}/map`, `/rides/{id}/map/google`, `/maps/places/nearby` |
-| Athletes | `/athletes`, `/athletes/{id}` |
-| Scores | `/scores/athlete/{id}` |
-| Benchmark | `/benchmark/compare` |
-| AI Coach | `/coach/workout`, `/coach/recovery`, `/coach/trends`, `/coach/full`, `/coach/chat`, `/coach/history` |
-| Knowledge | `/knowledge`, `/knowledge/search`, `/knowledge/stats`, `/knowledge/reload` |
-| Training | `/training/load`, `/training/status`, `/training/summary`, `/training/goals` |
-| Weather | `/weather`, `/weather/forecast` |
-| Admin | `/admin/backup`, `/admin/indexes`, `/admin/stats`, `/admin/reset-demo` |
-| Heatmap | `/heatmap` |
-| Badges | `/badges` |
+| Testing | pytest, pytest-asyncio, Playwright |
+| Frontend | Vue 3 + Vite + TypeScript + Pinia + Chart.js + Leaflet + Capacitor |
+| Mobile | Android Kotlin (Capacitor) |
+| CI/CD | GitHub Actions (test, lint, security scan, build) |
 
 ---
 
-## Stato Moduli Analytics
+## Moduli Analytics — Dettaglio
+
+### calculators/ (Pure Functions)
+
+| File | Funzionalita |
+|---|---|
+| `calories.py` | Stima calorie (fisica: rolling + aero + gravity / MET table) |
+| `power.py` | Normalized Power, Intensity Factor, TSS, training_stress_score |
+| `fatigue.py` | Fatigue score 0-10, recovery hours estimator |
+| `performance.py` | Performance score, Efficiency score |
+| `stress.py` | EWMA (Exponential Weighted Moving Average) |
+
+### services/ (Use Case Orchestration)
+
+| File | Funzionalita |
+|---|---|
+| `ride_analysis_service.py` | Orchesta pipeline completa: GPS processing → metrics → fitness state |
+| `fitness_state_service.py` | FitnessStateVector computation (ATL/CTL/TSB, risk indicators) |
+| `context_builder.py` | Assembly contesto analisi per AI Coach |
+
+### repositories/ (Data Access Abstraction)
+
+| File | Funzionalita |
+|---|---|
+| `ride_repository.py` | Ride CRUD (sync SQLite + async SQLAlchemy + PostgreSQL) |
+| `athlete_repository.py` | Athlete CRUD (sync + async) |
+| `fitness_state_repository.py` | Fitness state persistence |
+| `training_stress_repository.py` | Training stress data access |
+
+---
+
+## Stato Moduli Backend
 
 | Modulo | Status | Descrizione |
 |---|---|---|
+| `core/` | Completo | Domain entities + pipeline + engine + fitness state |
+| `event_bus.py` | Completo | Domain events pub/sub (RideCreated, BadgeEarned, ecc.) |
+| `auth/google_auth.py` | Completo | Google OAuth2 session creation |
+| `traffic/` | Completo | Road safety analysis (Overpass + incident data) |
+| `database/vectordb.py` | Completo | PGVector wrapper (CREATE EXTENSION, upsert, cosine search) |
 | `analytics.py` | Completo | Summary, export JSON/CSV, report, charts base |
 | `analytics_trends.py` | Completo | Fitness trends, monthly progression, period comparison, volume projection |
-| `power_model.py` | Completo | **NUOVO** - NP, IF, VI, EF, TSS, Power Zones, Power Profile, FTP, CP/W' model, Aerobic Decoupling |
-| `advanced.py` | Completo | 14 modelli matematici avanzati (vedi sotto) |
+| `power_model.py` | Completo | NP, IF, VI, EF, TSS, Power Zones, Power Profile, FTP, CP/W', Aerobic Decoupling |
+| `advanced.py` | Completo | 14 modelli matematici avanzati |
 | `calories.py` | Completo | Stima calorie fisica + MET |
 | `fatigue.py` | Completo | Punteggio affaticamento 0-10 + recovery hours |
 | `performance.py` | Completo | Performance/Endurance/Efficiency scores 0-10 |
 | `benchmark.py` | Completo | Confronto percentile per categoria |
 | `ai_coach.py` | Completo | Groq/LLM + RAG BM25 + memoria conversazionale |
-| `knowledge_base.py` | Completo | BM25 engine + LRU cache + chunking (7 file MD, ~250 righe) |
+| `knowledge_base.py` | Completo | BM25 engine + LRU cache + chunking |
 | `training_load.py` | Completo | RSS, TSS, monotony, strain |
 | `training_stress.py` | Completo | TSS con EWMA |
 | `badges.py` | Completo | Sistema badge/medaglie + heatmap GPS |
 | `granfondo_planner.py` | Completo | Piano allenamento granfondo con tapering |
 | `weather_service.py` | Completo | Consigli meteo per allenamento |
-| `phone_tracking` | Completo | **NUOVO** - Foreground service + Capacitor plugin + Vue tracking
+| `gps_parser.py` | Completo | Parser GPX/FIT |
+| `strava_client.py` | Completo | Strava OAuth2 + PKCE + token management |
+| `garmin_client.py` | Completo | Garmin Connect OAuth2 + activity fetch |
+| `ingestion/google_fit.py` | Completo | Google Fit OAuth2 |
+| `maps/` | Completo | Folium, Google Static Maps, OSM, SerpApi |
+| `repository pattern` | Completo | RideRepository, AthleteRepository, FitnessStateRepository |
+| `async database` | Completo | SQLAlchemy 2.0 async (asyncpg + aiosqlite) |
+| `security headers` | Completo | CSP, HSTS, X-Frame-Options, XSS |
+| `rate limiting` | Completo | slowapi per-IP + proxy-aware |
+| `redis cache` | Completo | Async client + cache decorator + graceful degradation |
+| `task queue` | Completo | Background tasks asincrone (batch import, maps) |
+| `event bus` | Completo | Domain events pub/sub |
+| `vector DB` | Completo | PGVector + TF-IDF fallback |
 
 ### Modelli Matematici in `advanced.py`
 
@@ -292,7 +351,7 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 13. Ride Recommendation — Classificazione tipo allenamento
 14. Speed Surge Detection — Rilevamento accelerazioni improvvise
 
-### Modelli Potenza in `power_model.py` (NUOVO)
+### Modelli Potenza in `power_model.py`
 
 1. Normalized Power (NP) — Algoritmo Coggan con rolling average 30s
 2. Intensity Factor (IF) — NP / FTP ratio
@@ -307,65 +366,94 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 
 ---
 
-## Stato Deployment
+## Frontend (Vue 3 + Vite + TypeScript)
 
-| Metodo | Status |
-|---|---|
-| Docker | Dockerfile + docker-compose.yml |
-| Azure | azure.yaml + azd config |
-| Render | render.yaml |
-| Android | App Kotlin nativa con Capacitor + Phone GPS Tracking |
-| GitHub Actions | CI/CD (test + lint + build) in `.github/workflows/ci.yml` |
-| CI Frontend | ✅ Incluso in workflow |
-| CI Android Release | ✅ Workflow android-release.yml |
+Architettura standalone (non dipende da backend per build):
+
+- **Router** — Vue Router configurato con rotte per dashboard, rides, tracking
+- **Pinia Stores** — `auth.ts` (JWT state), `trackingStore.ts` (GPS tracking reattivo)
+- **Composables** — `useAuth.ts`, `useChart.ts`, `useRides.ts`
+- **Plugin Capacitor** — `bikeTracking.ts` per native Android features
+- **Error Boundaries** — `ErrorBoundary.vue` + `ErrorState.vue` per gestione errori
+- **PWA** — Service worker + `PWAInstallPrompt.vue` per installazione
+- **Testing** — Vitest (unit) + Playwright (E2E) configurati
+
+Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, AthletePanel, CoachPanel, KnowledgePanel, HeatmapPanel, BadgesPanel, CalendarPanel, GranfondoPlanner, AdminPanel, LoginForm, RideDetail, RideMapPanel, SpeedMap, StatsSummary, WeatherPanel, DashboardPanel, RidesView, ToastContainer, ErrorBoundary, ConfirmModal, LiveMap, PWAInstallPrompt)
 
 ---
 
-## Testing Update (2026-06-15)
+## Testing Update (2026-06-22)
 
-**Coverage migliorata:** 79% → 69.5% (nuovi test aggiunti)
+**Coverage migliorata:** 79% → 69.5% (con nuovi test per coverage gaps)
 - test_analytics_trends.py: 37 test (analytics_trends.py 0% → 96%)
 - test_db_models.py: 13 test (db/models.py 0% → 100%)
 - test_routes_coverage.py: 19 test (endpoint routes)
 - test_google_oauth.py: 4 test (OAuth2 Google)
-- Totale: 590 test passanti
-
-## OAuth2 Integration
-
-- Google OAuth2 client (`/api/v1/auth/google` endpoint)
-- Settings inclusi: `google_client_id`, `google_client_secret`
-- Test copertura: 100%
-
-## Security & Monitoring Updates
-
-- Trivy security scanning nel CI
-- Sentry SDK integrato (opzionale via SENTRY_DSN)
-- Docker distroless upgrade
-
-## Vector DB Integration
-
-- `vector_db.py` con TF-IDF + cosine similarity fallback
-- `similarity_search()`, `embed_text()` functions
-- SQLite-backed VectorStore for development
-- Pronto per PGVector/Chroma in produzione
+- test_coverage_gaps.py: copertura gap analytics, calorie, fatigue, performance
+- test_error_paths.py: gestione percorsi errore
+- test_traffic_client.py: Overpass + incident fetcher
+- test_repositories.py: pattern repository (sync + async)
+- test_postgres_db.py: PostgreSQL tests
+- Totale: 51+ file di test, ~600+ test passanti
 
 ---
 
-*Ultimo aggiornamento: 2026-06-15 — 594 test passanti*
+## OAuth2 Integrations
+
+- **Google OAuth2** — `/auth/google` + `/auth/google/callback` endpoints
+- **Strava OAuth2 + PKCE** — `/auth/strava` + `/auth/strava/callback` endpoints
+- **Garmin Connect OAuth2** — Client completo con token storage e refresh
+- **Google Fit OAuth2** — `/import/google-fit/auth` + `/import/google-fit/token`
+
+---
+
+## Security & Monitoring
+
+- **Security Headers** — CSP, HSTS, X-Frame-Options, X-XSS-Protection
+- **JWT Auth** — HS256 con python-jose, bcrypt password hashing
+- **Rate Limiting** — slowapi per-IP + proxy-aware
+- **Secret Key Rotation** — SECRET_KEY + SECRET_KEY_PREVIOUS
+- **Environment Validation** — SECRET_KEY obbligatoria in produzione
+- **Sentry SDK** — Error tracking (opzionale via SENTRY_DSN)
+- **Trivy** — Security scanning nel CI
+- **Docker Hardened** — Multi-stage build, non-root user, read-only fs, no-new-privileges
+
+---
+
+## Vector DB Integration
+
+- `database/vectordb.py` con PGVector (PostgreSQL + pgvector extension)
+- `CREATE EXTENSION vector`, IVFFLAT index su embedding
+- Cosine similarity search (`1 - (embedding <=> :q)`)
+- TF-IDF + cosine similarity fallback in `db/vector_db.py`
+- SQLite-backed VectorStore per development
+
+---
+
+## Deployment
+
+| Metodo | Status |
+|---|---|
+| Docker | Multi-stage hardened Dockerfile |
+| Docker Compose | App + Redis con security opts |
+| GitHub Actions | CI/CD: test → lint → security → build |
+| Android Release | Workflow APK/AAB |
+| Azure | azure.yaml + azd config |
+| Render | render.yaml |
 
 ---
 
 ## Priorità per Prossimi Step
 
-| Priorità | Feature | Status |
+| Priorita | Feature | Status |
 |:---:|---|---|
-| **1** | Phone GPS Tracking Test Unitari (Kotlin + Vue) | 🔄 In corso |
-| **2** | Redis + Background Tasks in produzione | ⏳ |
-| **3** | Completare integrazione frontend Vue con API | ⏳ |
-| **4** | Multi-utente completo (auth, ownership rides) | ⏳ |
-| **5** | PostgreSQL in produzione | ⏳ |
-| **6** | Vector DB per RAG | ⏳ |
-| **7** | PWA + offline support | ⏳ |
+| **1** | Frontend testing (Vitest + Playwright) + PWA completo | 🔄 In corso |
+| **2** | Multi-utente (auth, ownership rides, data isolation) | ⏳ |
+| **3** | PostgreSQL in produzione (attuale: SQLite dev) | ⏳ |
+| **4** | Vector DB RAG completo (sostituire BM25 con PGVector similarity) | 🔄 Parziale |
+| **5** | OAuth2 social login (Google/Strava) nel frontend | 🔄 Parziale |
+| **6** | Monitoring produzione (Prometheus + Grafana) | ⏳ |
+| **7** | Coverage test >92% (attuale: ~69-79%) | 🔄 |
 
 ---
 
@@ -373,29 +461,19 @@ Alembic configurato per migrazioni versionate. Supporto dual-engine SQLite/Postg
 
 | Area | Item | Status |
 |---|---|---|
-| Testing | Coverage >92% (attuale: 79%) | ❌ |
+| Testing | Coverage >92% | ❌ (~69-79%) |
 | Code Quality | Ruff + mypy + pre-commit | ❌ |
-| Container | Docker multi-stage hardened | ⚠️ |
+| Container | Docker multi-stage hardened | ✅ |
 | Monitoring | Sentry + Prometheus + Grafana | ❌ |
 | Audit | Audit log azioni admin | ❌ |
-| Auth | OAuth2 social login (Google/Strava) | ❌ |
-| Multi-user | Data isolation completa | ⚠️ |
-| AI | Vector DB per RAG | ❌ |
-| Frontend | PWA + offline support | ⚠️ |
+| Auth | OAuth2 social login (Google/Strava) | 🔄 Parziale |
+| Multi-user | Data isolation completa | ⏳ |
+| AI | Vector DB per RAG avanzato | 🔄 Parziale |
+| Frontend | PWA + offline support | 🔄 In corso |
 | Frontend | Vitest + Playwright E2E | ❌ |
+| Security | Security headers + rate limiting | ✅ |
+| Database | Dual-mode SQLite/PostgreSQL | ✅ |
 
 ---
 
-## Note Tecniche
-
-- **Database dual-mode**: SQLite per dev locale, PostgreSQL per produzione (asyncpg)
-- **Redis opzionale**: graceful degradation se Redis non disponibile (cache in-memory)
-- **Configurazione**: Pydantic Settings v2 con validazione all'avvio; SECRET_KEY obbligatoria in produzione
-- **Security**: JWT HS256, security headers (CSP, HSTS, X-Frame-Options, XSS)
-- **Rate limiting**: per-IP globale, estendibile a per-user
-- **Alembic**: migrazioni versionate, iniziale già generata
-- **Frontend**: Vue 3 SPA separata dal backend (static files legacy ancora serviti da FastAPI)
-
----
-
-*Ultimo aggiornamento: 2026-06-18 — Phone GPS Tracking Implementato (v1.3.0)*
+*Ultimo aggiornamento: 2026-06-22 — Documentazione GitHub aggiornata*

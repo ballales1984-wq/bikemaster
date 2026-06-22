@@ -90,8 +90,8 @@ class AthleteRepository:
 
     @property
     def _table(self):
-        from ...db.async_db import AthleteTable
-        return AthleteTable
+        from ...db.models import AthleteModel
+        return AthleteModel
 
     def _save_sync(self, athlete: dict, athlete_id=None) -> int:
         from ..db.database import save_athlete

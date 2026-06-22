@@ -182,10 +182,11 @@ class TestStravaTokenRefresh:
     def test_fetch_all_activities_accumulates(self):
         import bike_analyzer.backend.ingestion.strava_client as sc
 
-        batch = [{"id": i} for i in range(30)]
-        with patch.object(sc, "fetch_activities", return_value=batch):
+        batch = [{"id": i} for i in range(10)]
+        empty_batch = []
+        with patch.object(sc, "fetch_activities", side_effect=[batch, empty_batch]):
             result = sc.fetch_all_activities("token123", max_pages=2)
-            assert len(result) == 30
+            assert len(result) == 10
 
 
 # ---------------------------------------------------------------------------
