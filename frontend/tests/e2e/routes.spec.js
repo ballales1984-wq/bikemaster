@@ -1,10 +1,10 @@
 // @ts-check
 import { test, expect } from '@playwright/test'
 
-async function mockLogin(page) {
+async function mockLogin(page, isAdminUser = false) {
   const fakeToken = [
     'eyJhbGciOiJIUzI1NiJ9',
-    btoa(JSON.stringify({ sub: 'rider', is_admin: false, exp: 9999999999 })),
+    btoa(JSON.stringify({ sub: 'rider', is_admin: isAdminUser, exp: 9999999999 })),
     'signature',
   ].join('.')
   await page.addInitScript((token) => {
@@ -169,5 +169,43 @@ test.describe('Map Route E2E', () => {
     await page.locator('button:has-text("Update map")').click()
     await page.waitForTimeout(1000)
     await expect(page.locator('#route-map')).toBeVisible()
+  })
+})
+
+test.describe('Route Navigation Guard E2E', () => {
+  test('unauthenticated user is redirected from protected routes', async ({ page }) => {
+    await page.goto('/rides')
+    await page.waitForLoadState('networkidle')
+    await expect(page).toHaveURL(/\/$/)
+  })
+
+  test('unauthenticated user redirected to home on direct protected route access', async ({ page }) => {
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+    await expect(page).toHaveURL(/\/$/)
+  })
+
+  test('logged-in user redirected from admin route to rides when non-admin', async ({ page }) => {
+    await mockLogin(page, false)
+    await mockApi(page)
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+    await expect(page).toHaveURL(/\/rides$/)
+  })
+
+  test('admin user can access admin route', async ({ page }) => {
+    await mockLogin(page, true)
+    await mockApi(page)
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+    await expect(page).toHaveURL(/\/admin$/)
+  })
+
+  test('logged-in user auto-redirected from home to rides', async ({ page }) => {
+    await mockLogin(page, false)
+    await mockApi(page)
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    await expect(page).toHaveURL(/\/rides$/)
   })
 })
