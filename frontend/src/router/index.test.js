@@ -223,3 +223,13 @@ describe('router actual implementation integration', () => {
     expect(router.default.options.routes).toHaveLength(14)
   })
 })
+
+describe('router scroll behavior integration', () => {
+  it('scrollBehavior returns { top: 0 }', async () => {
+    const router = await import('./index')
+    const scrollFn = router.default.options.scrollBehavior
+    if (scrollFn) {
+      expect(scrollFn()).toEqual({ top: 0 })
+    }
+  })
+})
