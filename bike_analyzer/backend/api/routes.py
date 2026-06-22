@@ -2386,3 +2386,12 @@ async def get_dashboard(request: Request, current_user: dict = Depends(get_curre
         "trends": trends,
         "rides_count": len(rides),
     }
+
+
+@admin_router.get("/test-sentry")
+async def test_sentry(current_user: dict = Depends(get_admin_user)):
+    """Test endpoint to verify Sentry integration - sends a test exception."""
+    import sentry_sdk
+
+    sentry_sdk.capture_exception(Exception("Test Sentry integration - bikemaster"))
+    return {"status": "test_event_sent", "message": "Check Sentry dashboard for error event"}

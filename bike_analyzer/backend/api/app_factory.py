@@ -18,6 +18,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from ..config import CORS_ORIGINS, ENVIRONMENT
 from ..monitoring import MetricsMiddleware
+from ..observability import init_observability
 from ..rate_limiter import limiter
 from ..redis_client import close_redis, get_redis
 from ..task_queue import get_task_queue
@@ -139,6 +140,8 @@ def create_app() -> FastAPI:
             request.client.host if request.client else "unknown",
             elapsed_ms,
         )
+        if user_id != "anonymous":
+            sentry_sdk.set_user({"id": user_id})
         return response
 
     @app.middleware("http")
