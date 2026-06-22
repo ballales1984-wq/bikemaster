@@ -4,13 +4,12 @@ import { test, expect } from '@playwright/test'
 async function mockLogin(page) {
   const fakeToken = [
     'eyJhbGciOiJIUzI1NiJ9',
-    btoa(JSON.stringify({ sub: 'testuser', is_admin: false, exp: 9999999999 })),
+    btoa(JSON.stringify({ sub: 'rider', is_admin: false, exp: 9999999999 })),
     'signature',
   ].join('.')
-
   await page.addInitScript((token) => {
     localStorage.setItem('bikemaster_token', token)
-    localStorage.setItem('bikemaster_user', JSON.stringify({ id: 1, username: 'testuser', is_admin: false }))
+    localStorage.setItem('bikemaster_user', JSON.stringify({ id: 1, username: 'rider', is_admin: false }))
   }, fakeToken)
 }
 
@@ -18,7 +17,7 @@ async function mockApi(page) {
   await page.route('**/api/v1/athletes', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({ athletes: [{ id: 1, name: 'Test Rider', experience_level: 'Intermediate' }] }),
+    body: JSON.stringify({ athletes: [{ id: 1, name: 'Test Rider', experience_level: 'Intermediate', ftp_watts: 250 }] }),
   }))
 
   await page.route('**/api/v1/rides', route => route.fulfill({
@@ -48,33 +47,6 @@ async function mockApi(page) {
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({ message: 'Plan saved' }),
-  }))
-
-  await page.route('**/api/v1/navigation/segments', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ segments: [] }),
-  }))
-
-  await page.route('**/api/v1/weather', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({
-      location: { city: 'Milan' },
-      temperature: 22,
-      feels_like: 20,
-      humidity: 65,
-      wind_speed: 3.5,
-      pressure: 1013,
-      score: 7,
-      advice: 'Good weather',
-    }),
-  }))
-
-  await page.route('**/api/v1/weather/forecast', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ forecasts: [] }),
   }))
 
   await page.route('**/api/v1/dashboard', route => route.fulfill({
@@ -110,12 +82,12 @@ test.describe('Heatmap Route E2E', () => {
     await expect(page.locator('button.btn-primary')).toContainText('Load Heatmap')
   })
 
-  test.skip('loads heatmap data on button click', async ({ page }) => {
+  test('loads heatmap data on button click', async ({ page }) => {
     await page.locator('button.btn-primary').click()
     await expect(page.locator('.badge')).toContainText('1000 GPS points')
   })
 
-  test.skip('shows heatmap map container when data loaded', async ({ page }) => {
+  test('shows heatmap map container when data loaded', async ({ page }) => {
     await page.locator('button.btn-primary').click()
     await expect(page.locator('#leaflet-heatmap')).toBeVisible()
   })
@@ -126,6 +98,7 @@ test.describe('Granfondo Route E2E', () => {
     await mockLogin(page)
     await mockApi(page)
     await page.goto('/granfondo')
+    await page.waitForLoadState('networkidle')
   })
 
   test('loads granfondo planner page', async ({ page }) => {

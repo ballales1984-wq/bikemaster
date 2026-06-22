@@ -2,6 +2,53 @@
 
 Tutte le modifiche significative a questo progetto sono documentate in questo file.
 
+## [1.4.0] - 2026-06-22
+
+### Aggiunte
+- **Clean Architecture** — Core domain layer (models, pipeline, engine, fitness_state)
+- **Calculators/Services/Repositories** — Analytics scomposto in 3 layer Clean Architecture
+- **Domain Events** — Event bus pub/sub (RideCreated, AthleteUpdated, BadgeEarned, TrainingGenerated)
+- **Traffic Safety Module** — Risk score computation + Overpass client + incident fetcher
+- **Strava Integration** — OAuth2 + PKCE + batch import + token auto-refresh
+- **Garmin Connect Integration** — OAuth2 + activity fetch + normalization
+- **Vector Database** — PGVector wrapper + TF-IDF fallback for RAG
+- **Google OAuth2 Auth** — `/auth/google` + `/auth/google/callback` endpoints
+- **Docker Hardened** — Multi-stage build, non-root user, read-only filesystem, security scan
+- **CI/CD Avanzato** — GitHub Actions: ruff + mypy + Trivy scan + Codecov
+- **51+ Test Files** — ~600 test passanti (unit, integration, API, error paths, coverage gaps)
+- **Playwright E2E** — Suite E2E configurata (7 spec files)
+- **Vitest** — Frontend unit test framework configurato
+- **PWA Install Prompt** — Componente `PWAInstallPrompt.vue`
+- **Error Boundary** — `ErrorBoundary.vue` + `ErrorState.vue` per gestione errori
+- **Frontend Modern** — Vue 3 + Vite + TypeScript + Pinia + Router + Composables
+- **Repository Pattern** — RideRepository, AthleteRepository, FitnessStateRepository (sync + async)
+- **Async Database** — SQLAlchemy 2.0 async (asyncpg/aiosqlite) con API facade
+- **Traffic Safety API** — `/traffic/analyze`, `/traffic/bike-lanes`, `/traffic/road-data`
+- **Power Model** — 10 metriche potenza (NP, IF, VI, EF, TSS, FTP, CP, Power Zones, Decoupling)
+- **14 Modelli Avanzati** — In `advanced.py` (VO2max, climb, pace, elevation, speed, ecc.)
+- **Security Headers** — CSP, HSTS, X-Frame-Options, X-XSS-Protection
+- **Rate Limiting** — slowapi per-IP con proxy-aware extraction
+
+### Modificati
+- Refactor completo analytics in calculators/services/repositories
+- Frontend convertito a Vue 3 + Vite + TypeScript (da HTML/JS)
+- Dockerfile multi-stage con security hardening
+- CI workflow con security scan Trivy + Codecov upload
+- Configurazione Pydantic Settings v2 estesa (Strava, Garmin, Weather, OAuth)
+
+### Documentazione
+- README.md completamente riscritto con architettura aggiornata
+- ROADMAP.md aggiornato (148/145 base + 45/80 estensioni)
+- PROJECT_STATUS.md ristrutturato con dettaglio moduli
+- docs/DEVELOPMENT.md aggiornato con Clean Architecture pattern
+- docs/API_DOCS.md aggiornato con tutti gli endpoint (auth, traffic, Strava, Garmin)
+
+### Roadmap
+- **51 file di test**, ~600 test passanti
+- Coverage: ~69-79%
+
+---
+
 ## [1.3.0] - 2026-06-18
 
 ### Aggiunte

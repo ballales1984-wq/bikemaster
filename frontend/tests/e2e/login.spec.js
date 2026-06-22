@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test'
 test.describe('Login Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
+    await page.waitForLoadState('networkidle')
   })
 
   test('shows login form on open', async ({ page }) => {

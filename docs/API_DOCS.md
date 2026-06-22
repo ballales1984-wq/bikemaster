@@ -1,20 +1,116 @@
-# API Documentation - BikeMaster v1.0
+# API Documentation - BikeMaster v1.3
 
 ## Base URL
+
 ```
 http://localhost:8000/api/v1
 ```
 
 ## Authentication
-The API currently does not require authentication. For production use, API key or JWT token is recommended.
+
+The API supports multiple authentication methods:
+- **JWT Token** — `Authorization: Bearer <token>` (via `/auth/login`)
+- **Google OAuth2** — `/auth/google` → `/auth/google/callback`
+- **Strava OAuth2 + PKCE** — `/auth/strava` → `/auth/strava/callback`
+
+Public endpoints (no auth required) are marked with `[PUBLIC]`.
 
 ---
 
-## Rides
+## Health
+
+### Health Check
+```http
+GET /health
+```
+
+### Health Check (Detailed)
+```http
+GET /health/detailed
+[PUBLIC]
+```
+
+---
+
+## Authentication
+
+### Login (JWT)
+```http
+POST /auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=user@example.com&password=mypassword
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJ...",
+  "token_type": "bearer",
+  "user_id": "1",
+  "email": "user@example.com"
+}
+```
+
+### Register
+```http
+POST /auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "securepassword",
+  "name": "Mario Rossi"
+}
+```
+
+### Google OAuth URL
+```http
+GET /auth/google
+[PUBLIC]
+```
+Redirects to Google OAuth2 consent page.
+
+### Google OAuth Callback
+```http
+POST /auth/google/callback
+Content-Type: application/json
+
+{
+  "code": "4/0AX4...",
+  "state": "optional_state"
+}
+[PUBLIC]
+```
+
+### Strava OAuth URL
+```http
+GET /auth/strava
+[PUBLIC]
+```
+Returns authorization URL + state + code_verifier (PKCE).
+
+### Strava OAuth Callback
+```http
+POST /auth/strava/callback
+Content-Type: application/json
+
+{
+  "code": "strava_code",
+  "state": "state_value",
+  "code_verifier": "verifier_value"
+}
+[PUBLIC]
+```
+
+---
+
+## Rides CRUD
 
 ### Create Ride
 ```http
 POST /rides
+Authorization: Bearer <token>
 Content-Type: application/json
 
 {
@@ -27,8 +123,7 @@ Content-Type: application/json
   "heart_rate_avg": 145,
   "elevation_gain_m": 150,
   "gps_points": [
-    {"lat": 45.4408, "lon": 12.3155, "timestamp": "2024-01-15T09:00:00Z"},
-    {"lat": 45.4410, "lon": 12.3160, "timestamp": "2024-01-15T09:01:00Z"}
+    {"lat": 45.4408, "lon": 12.3155, "timestamp": "2024-01-15T09:00:00"}
   ]
 }
 ```
@@ -50,6 +145,7 @@ Content-Type: application/json
 ### List Rides
 ```http
 GET /rides?page=1&page_size=20&sort=date
+[PUBLIC]
 ```
 
 **Response:**
@@ -62,33 +158,52 @@ GET /rides?page=1&page_size=20&sort=date
 }
 ```
 
-### Ride Details
+### Get Ride Detail
 ```http
 GET /rides/1
+Authorization: Bearer <token>
 ```
+Returns ride with fatigue score, calories per km, and full details.
 
-**Response:**
-```json
-{
-  "id": 1,
-  "date": "2024-01-15",
-  "distance_km": 25.5,
-  "duration_minutes": 65,
-  "avg_speed_kmh": 22.9,
-  "calories": 650,
-  "fatigue_score": 4.2,
-  "calories_per_km": 25
-}
+### Update Ride
+```http
+PUT /rides/1
+Authorization: Bearer <token>
+Content-Type: application/json
 ```
 
 ### Delete Ride
 ```http
 DELETE /rides/1
+Authorization: Bearer <token>
 ```
 
 **Response:**
 ```json
 {"deleted": true}
+```
+
+### Ride Count
+```http
+GET /rides/count
+[PUBLIC]
+```
+
+### Analyze Multiple Rides
+```http
+POST /rides/analyze
+Content-Type: application/json
+
+{
+  "ride_ids": [1, 2, 3]
+}
+[PUBLIC]
+```
+
+### Analyze Single Ride
+```http
+POST /rides/1/analyze
+Authorization: Bearer <token>
 ```
 
 ---
@@ -98,25 +213,16 @@ DELETE /rides/1
 ### Upload GPX File
 ```http
 POST /import/gpx
+Authorization: Bearer <token>
 Content-Type: multipart/form-data
 
 file: <file.gpx>
 ```
 
-**Response:**
-```json
-{
-  "id": 1,
-  "date": "2024-01-15",
-  "distance_km": 25.5,
-  "duration_minutes": 65,
-  "avg_speed_kmh": 22.9
-}
-```
-
 ### Upload FIT File
 ```http
 POST /import/fit
+Authorization: Bearer <token>
 Content-Type: multipart/form-data
 
 file: <file.fit>
@@ -125,17 +231,46 @@ file: <file.fit>
 ### Batch Upload
 ```http
 POST /import/multiple
+Authorization: Bearer <token>
 Content-Type: multipart/form-data
 
 files: [<file1.gpx>, <file2.fit>]
 ```
 
-**Response:**
-```json
+### Google Fit Auth URL
+```http
+GET /import/google-fit/auth
+[PUBLIC]
+```
+
+### Google Fit Token Exchange
+```http
+POST /import/google-fit/token
+Content-Type: application/json
+
 {
-  "imported": [...],
-  "count": 2
+  "code": "google_auth_code",
+  "redirect_uri": "http://localhost:8000/api/v1/import/google-fit/callback"
 }
+[PUBLIC]
+```
+
+### Import from Google Fit
+```http
+POST /import/google-fit
+Authorization: Bearer <token>
+```
+
+### Import from Strava
+```http
+POST /import/strava
+Authorization: Bearer <token>
+```
+
+### Sync All Strava Activities
+```http
+POST /import/strava/sync
+Authorization: Bearer <token>
 ```
 
 ---
@@ -160,76 +295,33 @@ Returns `rides.csv` file with headers and data rows.
 
 ## Charts
 
-All chart endpoints return PNG images.
-
 ### Speed Chart
 ```http
 GET /charts/speed/1
 ```
+
+Returns PNG image of speed chart.
 
 ### Elevation Chart
 ```http
 GET /charts/elevation/1
 ```
 
+Returns PNG image of elevation chart.
+
+### Distance Chart
+```http
+GET /charts/distance/1
+```
+
+Returns PNG image of distance chart.
+
 ### Duration Chart
 ```http
 GET /charts/duration
 ```
 
-### Interactive Map
-```http
-GET /rides/1/map
-```
-
-Returns URL to Folium HTML map.
-
-### Google Static Map
-```http
-GET /rides/1/map/google?colored=true
-```
-
-**Query Parameters:**
-| Parameter | Type | Default | Description |
-|---|---|---|
-| `colored` | boolean | false | Color path by speed (green >=25, yellow 15-25, red <15 km/h) |
-| `zoom` | integer | 13 | Map zoom level (1-21) |
-| `size` | string | 800x600 | Image dimensions (max 640x640 free tier) |
-
-**Response:** Returns PNG map image. Requires `GOOGLE_MAPS_API_KEY` in .env.
-
-**Error Responses:**
-| Status | Code | Description |
-|---|---|
-| 500 | NO_API_KEY | `GOOGLE_MAPS_API_KEY` not configured |
-| 404 | RIDE_NOT_FOUND | Ride ID does not exist |
-| 500 | NO_GPS_POINTS | Ride has no GPS data |
-
-**Speed Color Legend:**
-- Green (>=25 km/h): High speed segments
-- Yellow (15-25 km/h): Moderate speed  
-- Red (<15 km/h): Low speed/slow
-
-**Configuration (.env):**
-```env
-GOOGLE_MAPS_API_KEY=your_api_key_here
-GOOGLE_MAPS_ZOOM=13
-GOOGLE_MAPS_SIZE=800x600
-```
-
-**Examples:**
-```bash
-# Get colored speed map
-curl "http://localhost:8000/api/v1/rides/1/map/google?colored=true" -o ride_map.png
-
-# Get map with custom size
-curl "http://localhost:8000/api/v1/rides/1/map/google?zoom=14&size=640x480" -o custom_map.png
-```
-
-**Notes:**
-- Requires Google Cloud project with Static Maps API enabled
-- Free tier: 100,000 calls/month, max 640x640 image
-- Markers: green "S" at start point, red "E" at end point
+Returns PNG image summarizing ride durations.
 
 ---
 
@@ -238,6 +330,7 @@ curl "http://localhost:8000/api/v1/rides/1/map/google?zoom=14&size=640x480" -o c
 ### Create Athlete
 ```http
 POST /athletes
+Authorization: Bearer <token>
 Content-Type: application/json
 
 {
@@ -246,43 +339,56 @@ Content-Type: application/json
   "weight_kg": 75,
   "height_cm": 175,
   "years_active": 3,
-  "weekly_sessions": 4
+  "weekly_sessions": 4,
+  "ftp_watts": 250
 }
+```
+
+### List Athletes
+```http
+GET /athletes
+[PUBLIC]
 ```
 
 ### Get Athlete
 ```http
 GET /athletes/1
+Authorization: Bearer <token>
 ```
 
 ### Update Athlete
 ```http
 PUT /athletes/1
+Authorization: Bearer <token>
 Content-Type: application/json
 
 {
   "weight_kg": 74,
-  "monthly_hours": 25
+  "monthly_hours": 25,
+  "ftp_watts": 255
 }
+```
+
+### Save Athlete Metrics
+```http
+POST /athletes/1/metrics
+Authorization: Bearer <token>
 ```
 
 ---
 
-## Scores
+## Scores & Benchmark
 
 ### Athlete Scores
 ```http
 GET /scores/athlete/1
+Authorization: Bearer <token>
 ```
 
 **Response:**
 ```json
 {
-  "athlete": {
-    "id": 1,
-    "name": "Mario Rossi",
-    "experience_level": "Amateur"
-  },
+  "athlete": {"id": 1, "name": "Mario Rossi", "experience_level": "Amateur"},
   "scores": {
     "performance_score": 67,
     "endurance_score": 72,
@@ -291,10 +397,6 @@ GET /scores/athlete/1
   }
 }
 ```
-
----
-
-## Benchmark
 
 ### Compare to Benchmark
 ```http
@@ -306,6 +408,7 @@ Content-Type: application/json
   "avg_speed_kmh": 22.9,
   "duration_hours": 1.08
 }
+[PUBLIC]
 ```
 
 **Response:**
@@ -328,26 +431,43 @@ Content-Type: application/json
 ### Workout Recommendations
 ```http
 GET /coach/workout?athlete_id=1
+Authorization: Bearer <token>
 ```
 
 ### Recovery Recommendations
 ```http
 GET /coach/recovery?fatigue_score=6.5&ride_id=1
+[PUBLIC]
 ```
 
 ### Historical Trends
 ```http
 GET /coach/trends
+Authorization: Bearer <token>
 ```
 
-**Response:**
-```json
+### Full Report
+```http
+GET /coach/full
+Authorization: Bearer <token>
+```
+
+### Chat with AI Coach
+```http
+POST /coach/chat
+Content-Type: application/json
+
 {
-  "trend": "improving",
-  "avg_distance_trend": 5.2,
-  "avg_speed_trend": 1.8,
-  "advice": "Continue with this routine, you're improving consistently"
+  "message": "Come posso migliorare la mia resistenza?",
+  "athlete_id": 1
 }
+[PUBLIC]
+```
+
+### Chat History
+```http
+GET /coach/history?athlete_id=1
+[PUBLIC]
 ```
 
 ---
@@ -357,18 +477,20 @@ GET /coach/trends
 ### List Topics
 ```http
 GET /knowledge
+[PUBLIC]
 ```
 
 **Response:**
 ```json
 {
-  "topics": ["cardio", "training", "recovery"]
+  "topics": ["cardio", "training", "recovery", "nutrition"]
 }
 ```
 
-### Search
+### Semantic Search
 ```http
 GET /knowledge/search?q=intervals
+[PUBLIC]
 ```
 
 **Response:**
@@ -377,10 +499,166 @@ GET /knowledge/search?q=intervals
   "results": [
     {
       "topic": "training",
-      "content": "High-intensity intervals..."
+      "section": "hiit",
+      "content": "High-intensity intervals improve VO2max...",
+      "similarity": 0.85
     }
   ]
 }
+```
+
+### Knowledge Base Stats
+```http
+GET /knowledge/stats
+[PUBLIC]
+```
+
+### Reload Knowledge Index
+```http
+POST /knowledge/reload
+[PUBLIC]
+```
+
+---
+
+## Training
+
+### Training Load (RSS/TSS)
+```http
+GET /training/load
+Authorization: Bearer <token>
+```
+
+### Training Status
+```http
+GET /training/status
+Authorization: Bearer <token>
+```
+
+### Training Summary
+```http
+GET /training/summary
+Authorization: Bearer <token>
+```
+
+### Training Goals
+```http
+GET /training/goals
+Authorization: Bearer <token>
+```
+
+### Generate Workout
+```http
+GET /training/workouts/generate?athlete_id=1&type=endurance
+Authorization: Bearer <token>
+```
+
+### Granfondo Plan
+```http
+GET /training/granfondo/plan?target_date=2024-10-15&distance_km=150
+Authorization: Bearer <token>
+```
+
+---
+
+## Weather
+
+### Current Weather
+```http
+GET /weather?lat=45.44&lon=12.31
+[PUBLIC]
+```
+
+### Weather Forecast
+```http
+GET /weather/forecast?lat=45.44&lon=12.31&days=7
+[PUBLIC]
+```
+
+---
+
+## Maps
+
+### Generate Folium Map
+```http
+POST /rides/1/map
+Authorization: Bearer <token>
+```
+
+### Google Static Map
+```http
+GET /rides/1/map/google?colored=true&zoom=14&size=640x480
+```
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|:---|:---|:---|:---|
+| colored | boolean | false | Color by speed (green >=25, yellow 15-25, red <15) |
+| zoom | integer | 13 | Map zoom (1-21) |
+| size | string | 640x480 | Image dimensions (max 640x640 free tier) |
+
+**Response:** PNG image. Requires `GOOGLE_MAPS_API_KEY`.
+
+**Error Responses:**
+| Status | Code | Description |
+|:---:|:---|:---|
+| 500 | NO_API_KEY | GOOGLE_MAPS_API_KEY not configured |
+| 404 | RIDE_NOT_FOUND | Ride ID does not exist |
+| 500 | NO_GPS_POINTS | Ride has no GPS data |
+
+### Nearby Places
+```http
+GET /maps/places/nearby?lat=45.44&lon=12.31&radius=1000
+[PUBLIC]
+```
+
+### Search Places
+```http
+GET /maps/places/search?q=rifugio&lat=45.44&lon=12.31
+[PUBLIC]
+```
+
+---
+
+## Traffic Safety
+
+### Analyze Route Safety
+```http
+POST /traffic/analyze
+Content-Type: application/json
+
+{
+  "gps_points": [
+    {"lat": 45.44, "lon": 12.31},
+    {"lat": 45.45, "lon": 12.32}
+  ],
+  "incidents": []
+}
+[PUBLIC]
+```
+
+**Response:**
+```json
+{
+  "risk_score": 0.72,
+  "label": "low_risk",
+  "advice": "Percorso sicuro",
+  "has_bike_infrastructure": true,
+  "route_length_km": 5.2,
+  "dominant_road_types": [["residential", 3], ["cycleway", 2]]
+}
+```
+
+### Fetch Bike Lanes
+```http
+GET /traffic/bike-lanes?lat=45.44&lon=12.31&radius=5000
+[PUBLIC]
+```
+
+### Fetch Road Data
+```http
+GET /traffic/road-data?lat=45.44&lon=12.31&radius=5000
+[PUBLIC]
 ```
 
 ---
@@ -390,6 +668,7 @@ GET /knowledge/search?q=intervals
 ### System Stats
 ```http
 GET /admin/stats
+[PUBLIC]
 ```
 
 **Response:**
@@ -405,6 +684,7 @@ GET /admin/stats
 ### Database Backup
 ```http
 GET /admin/backup
+Authorization: Bearer <token>
 ```
 
 Returns `backup_YYYYMMDD_HHMMSS.db` file.
@@ -412,69 +692,38 @@ Returns `backup_YYYYMMDD_HHMMSS.db` file.
 ### Create Indexes
 ```http
 POST /admin/indexes
+[PUBLIC]
 ```
 
-### Reset Demo
+### Reset Demo Data
 ```http
 POST /admin/reset-demo
+[PUBLIC]
 ```
-
----
-
-## Phone GPS Tracking (Mobile API)
-
-### Start Tracking
-```http
-POST /mobile/tracking/start
-```
-
-Inizia il tracciamento GPS dal telefono mobile. Richiede Capacitor plugin native.
-
-### Stop Tracking
-```http
-POST /mobile/tracking/stop
-```
-
-Termina il tracciamento e salva il file GPX.
-
-### Pause Tracking
-```http
-POST /mobile/tracking/pause
-```
-
-Metti in pausa il tracciamento (mantiene il servizio attivo).
-
-### Resume Tracking
-```http
-POST /mobile/tracking/resume
-```
-
-Riprendi il tracciamento dopo una pausa.
-
-### Import Tracked Ride
-```http
-POST /rides/import
-Content-Type: multipart/form-data
-
-file: <tracked_ride.gpx>
-```
-
-Importa automaticamente la ride tracciata dal telefono.
 
 ---
 
 ## Common Use Cases
 
-### Import Garmin Route
+### Import Garmin Ride
 ```bash
 # 1. Upload FIT file
-curl -X POST -F "file=@ride.fit" http://localhost:8000/api/v1/import/fit
+curl -X POST -F "file=@ride.fit" http://localhost:8000/api/v1/import/fit \
+  -H "Authorization: Bearer <token>"
 
 # 2. Check imported ride
-curl http://localhost:8000/api/v1/rides/1
+curl http://localhost:8000/api/v1/rides/1 \
+  -H "Authorization: Bearer <token>"
 
 # 3. Get map
-curl http://localhost:8000/api/v1/rides/1/map
+curl http://localhost:8000/api/v1/rides/1/map \
+  -H "Authorization: Bearer <token>"
+```
+
+### Import from Strava
+```bash
+curl -X POST http://localhost:8000/api/v1/import/strava \
+  -H "Authorization: Bearer <token>"
 ```
 
 ### Generate Weekly Report
@@ -489,10 +738,17 @@ curl http://localhost:8000/api/v1/rides/export/csv > weekly_rides.csv
 ### Evaluate Progress
 ```bash
 # 1. Get athlete scores
-curl http://localhost:8000/api/v1/scores/athlete/1
+curl http://localhost:8000/api/v1/scores/athlete/1 \
+  -H "Authorization: Bearer <token>"
 
 # 2. Get trends
-curl http://localhost:8000/api/v1/coach/trends
+curl http://localhost:8000/api/v1/coach/trends \
+  -H "Authorization: Bearer <token>"
 ```
 
-
+### Chat with AI Coach
+```bash
+curl -X POST http://localhost:8000/api/v1/coach/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Come posso migliorare la mia resistenza?", "athlete_id": 1}'
+```

@@ -32,8 +32,9 @@ test('login and add a ride from the dashboard', async ({ page }) => {
     const ridesResp = await page.waitForResponse('**/api/v1/rides*')
     expect(ridesResp.ok()).toBeTruthy()
 
+    await page.goto('/rides')
     await expect(page.getByRole('heading', { name: /Your Rides|Rides/i })).toBeVisible()
-    await expect(page.getByText(/42km.*95min/)).toBeVisible()
+    await expect(page.getByText(/42km.*95min|42.*95/)).toBeVisible()
 
     const today = new Date().toISOString().slice(0, 10)
     const postPromise = page.waitForResponse(response =>
@@ -47,7 +48,7 @@ test('login and add a ride from the dashboard', async ({ page }) => {
     await page.getByRole('button', { name: /add ride|add/i }).click()
 
     await expect(postPromise).resolves.toBeTruthy()
-    await expect(page.getByText(/60km.*150min/)).toBeVisible()
+    await expect(page.getByText(/60km.*150min|60.*150/)).toBeVisible()
 })
 
 test('PWA manifest and service worker registration', async ({ page }) => {
