@@ -24,11 +24,23 @@ self.addEventListener("activate", (t) => {
 async function s(t) {
   const a = await caches.open(i), e = await a.match(t);
   if (e) return e;
-  const n = await fetch(t);
-  return n && n.ok && a.put(t, n.clone()), n;
+  try {
+    const n = await fetch(t);
+    return n && n.ok && a.put(t, n.clone()), n;
+  } catch (_) {
+    return null;
+  }
 }
 async function o(t) {
-  return await (await caches.open(i)).match("/index.html") || fetch(t);
+  const c = await (await caches.open(i)).match("/index.html");
+  if (c) return c;
+  try {
+    const n = await fetch(t);
+    if (n && n.ok) await (await caches.open(i)).put(t, n.clone());
+    return n;
+  } catch (_) {
+    return null;
+  }
 }
 self.addEventListener("fetch", (t) => {
   const { request: a } = t;

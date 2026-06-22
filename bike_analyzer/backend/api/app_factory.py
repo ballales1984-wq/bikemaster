@@ -13,11 +13,12 @@ from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
-from ..config import CORS_ORIGINS, ENVIRONMENT
-from ..rate_limiter import limiter
-from ..redis_client import close_redis, get_redis
-from ..task_queue import get_task_queue
-from .routes import admin_router, router
+    from ..config import CORS_ORIGINS, ENVIRONMENT
+    from ..monitoring import MetricsMiddleware
+    from ..rate_limiter import limiter
+    from ..redis_client import close_redis, get_redis
+    from ..task_queue import get_task_queue
+    from .routes import admin_router, router
 
 logger = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -44,8 +45,16 @@ def _static_file_response(file_path: Path, media_type: str | None = None) -> Res
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from ..db.database import init_db
+    from ..monitoring import start_metrics_server
 
     init_db()
+    try:
+        from ..settings import get_settings
+        settings = get_settings()
+        if settings.environment.lower() not in ("test", "testing"):
+            start_metrics_server()
+    except Exception:
+        pass
     await get_redis()
     task_queue = get_task_queue()
     await task_queue.start()
@@ -86,6 +95,7 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
     app.add_exception_handler(429, _rate_limit_exceeded_handler)
     app.add_middleware(SlowAPIMiddleware)
+    app.add_middleware(MetricsMiddleware)
 
     @app.middleware("http")
     async def audit_log_middleware(request: Request, call_next):

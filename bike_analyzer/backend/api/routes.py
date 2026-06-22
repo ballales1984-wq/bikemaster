@@ -520,6 +520,7 @@ async def get_ride_segments(
     ride = _get_ride(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
 
     gps_points = ride.get("gps_points")
     if not gps_points:

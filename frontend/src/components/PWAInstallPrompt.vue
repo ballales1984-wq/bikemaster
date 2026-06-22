@@ -21,6 +21,7 @@ const deferredPrompt = ref(null)
 function beforeInstallPrompt(event) {
   event.preventDefault()
   deferredPrompt.value = event
+  show.value = true
 }
 
 onMounted(() => {

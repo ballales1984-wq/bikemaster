@@ -49,11 +49,10 @@ registerRoute(
   async ({ event }) => {
     try {
       const response = await fetch(event.request)
-      return response
-    } catch (error) {
-      const cache = await caches.open(STATIC_CACHE)
-      return await cache.match('/index.html') || new Response('', { status: 503, statusText: 'Offline' })
-    }
+      if (response.ok) return response
+    } catch (_) { /* network error, fall through */ }
+    const cache = await caches.open(STATIC_CACHE)
+    return await cache.match('/index.html') || new Response('', { status: 503, statusText: 'Offline' })
   },
   'NetworkFirst',
 )
