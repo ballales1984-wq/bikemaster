@@ -5,14 +5,13 @@ from __future__ import annotations
 import logging
 import os
 import time
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 try:
-    from prometheus_client import Counter, Gauge, Histogram, Summary, start_http_server
+    from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
     PROMETHEUS_AVAILABLE = True
 except ImportError:

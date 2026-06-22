@@ -10,6 +10,9 @@ from datetime import UTC, datetime
 
 from ..config import DB_PATH
 from ..models.models import Ride
+from ..utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 _INITIAL_DB_PATH = DB_PATH
 
@@ -737,7 +740,7 @@ def rotate_backups(max_backups: int = 10) -> list[str]:
     return removed
 
 
-def scheduled_backup(max_backups: int = 10) -> dict[str, Any]:
+def scheduled_backup(max_backups: int = 10) -> dict[str, dict]:
     """Run a scheduled backup with rotation.
 
     Creates a timestamped backup in the backups/ directory and rotates old backups.

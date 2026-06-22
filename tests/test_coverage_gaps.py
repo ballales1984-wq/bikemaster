@@ -364,7 +364,7 @@ class TestEngineAsyncPaths:
         async def fake_run(r):
             return mock_result
 
-        async def fake_update(ride, athlete_id, session_factory):
+        async def fake_update(ride, athlete_id, session_factory, historical_rides=None):
             return mock_fitness
 
         with patch.object(engine.pipeline, "run", side_effect=fake_run):

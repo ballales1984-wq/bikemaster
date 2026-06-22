@@ -13,12 +13,12 @@ from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
-    from ..config import CORS_ORIGINS, ENVIRONMENT
-    from ..monitoring import MetricsMiddleware
-    from ..rate_limiter import limiter
-    from ..redis_client import close_redis, get_redis
-    from ..task_queue import get_task_queue
-    from .routes import admin_router, router
+from ..config import CORS_ORIGINS, ENVIRONMENT
+from ..monitoring import MetricsMiddleware
+from ..rate_limiter import limiter
+from ..redis_client import close_redis, get_redis
+from ..task_queue import get_task_queue
+from .routes import admin_router, router
 
 logger = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).parent.parent / "static"
