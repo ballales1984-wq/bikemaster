@@ -5,9 +5,6 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.starlette import StarletteIntegration
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
@@ -16,6 +13,9 @@ from prometheus_fastapi_instrumentator import Instrumentator, metrics
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
 from ..config import CORS_ORIGINS, ENVIRONMENT
 from ..monitoring import MetricsMiddleware
 from ..observability import init_observability
@@ -69,27 +69,6 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    # Initialize Sentry if DSN provided
-    try:
-        from ..settings import get_settings
-        settings = get_settings()
-        if settings.sentry_dsn:
-            sentry_sdk.init(
-                dsn=settings.sentry_dsn,
-                integrations=[
-                    StarletteIntegration(),
-                    FastApiIntegration(),
-                ],
-                environment=settings.environment,
-                traces_sample_rate=settings.sentry_traces_sample_rate,
-                profiles_sample_rate=settings.sentry_profiles_sample_rate,
-                send_default_pii=False,
-                attach_stacktrace=True,
-            )
-            logger.info(f"Sentry initialized in {settings.environment} mode")
-    except Exception as e:
-        logger.warning(f"Sentry not initialized: {e}")
-
     app = FastAPI(
         title="BikeMaster API",
         description="GPS-based cycling intelligence",
@@ -99,6 +78,9 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
         openapi_url="/openapi.json",
     )
+
+    # Initialize unified observability (Sentry + OpenTelemetry + Zipkin)
+    init_observability(app)
 
     instrumentator = Instrumentator(
         should_group_status_codes=True,
