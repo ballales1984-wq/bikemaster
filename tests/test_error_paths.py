@@ -67,7 +67,8 @@ class TestAICoachErrorPaths:
     def test_generate_training_advice_no_api_key(self):
         import os
 
-        with patch.dict(os.environ, {}, clear=True):
+        env = {"AI_COACH_MODE": "local"}
+        with patch.dict(os.environ, env, clear=True):
             profile = AthleteProfile(name="Test", experience_level="Beginner", weight_kg=70)
             advice = generate_training_advice(profile, [])
         assert advice is not None
