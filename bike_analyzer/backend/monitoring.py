@@ -226,6 +226,30 @@ def record_import(source: str, status: str = "success") -> None:
     import_operations_total.labels(source=source, status=status).inc()
 
 
+def record_gps_import(file_format: str, source: str, status: str = "success") -> None:
+    if not PROMETHEUS_AVAILABLE:
+        return
+    gps_imports_total.labels(format=file_format, source=source).inc()
+
+
+def record_ride_analysis_duration(duration: float) -> None:
+    if not PROMETHEUS_AVAILABLE:
+        return
+    ride_analysis_duration_seconds.observe(duration)
+
+
+def record_fatigue_score(score: float) -> None:
+    if not PROMETHEUS_AVAILABLE:
+        return
+    fatigue_score.observe(score)
+
+
+def record_ai_coach_query(provider: str, status: str = "success") -> None:
+    if not PROMETHEUS_AVAILABLE:
+        return
+    ai_coach_queries_total.labels(provider=provider, status=status).inc()
+
+
 def start_metrics_server() -> None:
     if not PROMETHEUS_AVAILABLE:
         logger.info("Prometheus client not installed, metrics server not started")
