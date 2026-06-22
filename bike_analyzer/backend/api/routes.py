@@ -1402,6 +1402,14 @@ async def create_backup(current_user: dict = Depends(get_admin_user)):
     return FileResponse(path, media_type="application/octet-stream", filename="backup.db")
 
 
+@admin_router.post("/backup/scheduled")
+async def create_scheduled_backup(current_user: dict = Depends(get_admin_user)):
+    from ..db.database import scheduled_backup
+
+    result = scheduled_backup(max_backups=10)
+    return result
+
+
 @admin_router.post("/indexes")
 async def create_db_indexes(current_user: dict = Depends(get_admin_user)):
     from ..db.database import create_indices

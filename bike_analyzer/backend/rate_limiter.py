@@ -5,9 +5,8 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 from ipaddress import AddressValueError, ip_address
-from typing import Any
 
-from fastapi import Request, HTTPException
+from fastapi import HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
