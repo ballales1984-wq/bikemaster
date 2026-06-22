@@ -1,10 +1,12 @@
 """FastAPI application factory."""
 
 from __future__ import annotations
+
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
@@ -13,9 +15,6 @@ from prometheus_fastapi_instrumentator import Instrumentator, metrics
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
-import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.starlette import StarletteIntegration
 from ..config import CORS_ORIGINS, ENVIRONMENT, SECRET_KEY
 from ..monitoring import MetricsMiddleware
 from ..observability import init_observability

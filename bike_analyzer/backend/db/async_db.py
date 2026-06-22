@@ -139,7 +139,7 @@ async def get_all_rides_async(athlete_id: int | None = None) -> list[dict]:
         return [_ride_model_to_dict(r) for r in rows]
 
 
-async def get_rides_by_athlete_async(athlete_id: int) -> list[dict]:
+async def get_rides_by_athlete_async(athlete_id: int, limit: int | None = None) -> list[dict]:
     from ..db.models import RideModel
 
     async with await get_async_session() as session:
@@ -148,6 +148,8 @@ async def get_rides_by_athlete_async(athlete_id: int) -> list[dict]:
             .where(RideModel.athlete_id == athlete_id)
             .order_by(RideModel.date.desc())
         )
+        if limit is not None:
+            stmt = stmt.limit(limit)
         result = await session.execute(stmt)
         rows = result.scalars().all()
         return [_ride_model_to_dict(r) for r in rows]

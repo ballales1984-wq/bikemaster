@@ -24,7 +24,7 @@ class RideAnalysisService:
         self.fitness_engine = FitnessStateEngine(ftp=ftp)
 
     async def analyze(self, ride: Ride) -> dict:
-        from ...monitoring import record_ride_analysis_duration, record_fatigue_score
+        from ...monitoring import record_fatigue_score, record_ride_analysis_duration
 
         start = _time.perf_counter()
         try:
@@ -51,7 +51,7 @@ class RideAnalysisService:
             record_ride_analysis_duration(_time.perf_counter() - start)
 
     def analyze_sync(self, ride: Ride) -> dict:
-        from ...monitoring import record_ride_analysis_duration, record_fatigue_score
+        from ...monitoring import record_fatigue_score, record_ride_analysis_duration
 
         start = _time.perf_counter()
         try:
