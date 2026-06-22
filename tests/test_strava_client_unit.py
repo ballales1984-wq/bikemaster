@@ -77,8 +77,9 @@ class TestStravaTokenExchange:
         with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", "test"):
             with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_SECRET", "secret"):
                 with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_TOKEN_URL", "https://test"):
-                    result = exchange_code_for_token("auth_code")
-                    assert result["access_token"] == "strava_access"
+                    with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_REDIRECT_URI", "https://test"):
+                        result = exchange_code_for_token("auth_code", "verifier123")
+                        assert result["access_token"] == "strava_access"
 
     @patch("bike_analyzer.backend.ingestion.strava_client.requests.post")
     def test_exchange_code_raises_on_error(self, mock_post):
@@ -129,12 +130,12 @@ class TestStravaActivities:
             "id": 1,
             "name": "Test Ride",
             "type": "Ride",
-            "start_date": "2024-06-15T08:00:00Z",
+            "start_date_local": "2024-06-15T08:00:00Z",
             "distance": 25000,
             "moving_time": 3600,
             "total_elevation_gain": 200,
             "average_heartrate": 145,
-            "average_watts": 200,
+            "average_speed": 10.0,
         }
         ride = strava_to_ride(activity)
         assert ride["date"] == "2024-06-15"

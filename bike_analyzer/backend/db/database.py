@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -44,6 +45,7 @@ def init_db():
         conn.execute("""CREATE TABLE IF NOT EXISTS rides (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
+            tenant_id INTEGER DEFAULT 0,
             date TEXT NOT NULL,
             distance_km REAL DEFAULT 0,
             duration_minutes REAL DEFAULT 0,
@@ -76,11 +78,13 @@ def init_db():
             equipment TEXT,
             ftp_watts REAL,
             password_hash TEXT,
+            tenant_id INTEGER DEFAULT 0,
             created_at TEXT
         )""")
         conn.execute("""CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
+            tenant_id INTEGER DEFAULT 0,
             role TEXT NOT NULL,
             content TEXT NOT NULL,
             created_at TEXT,
@@ -89,6 +93,7 @@ def init_db():
         conn.execute("""CREATE TABLE IF NOT EXISTS calendar_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
+            tenant_id INTEGER DEFAULT 0,
             title TEXT NOT NULL,
             event_type TEXT DEFAULT 'training',
             date TEXT NOT NULL,
@@ -213,6 +218,28 @@ def init_db():
             conn.execute("ALTER TABLE rides ADD COLUMN external_id TEXT")
         if "title" not in ride_cols:
             conn.execute("ALTER TABLE rides ADD COLUMN title TEXT")
+        if "tenant_id" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        cur.execute("PRAGMA table_info(athletes)")
+        athlete_cols = [row[1] for row in cur.fetchall()]
+        if "tenant_id" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        cur.execute("PRAGMA table_info(chat_history)")
+        chat_cols = [row[1] for row in cur.fetchall()]
+        if "tenant_id" not in chat_cols:
+            conn.execute("ALTER TABLE chat_history ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        cur.execute("PRAGMA table_info(calendar_events)")
+        cal_cols = [row[1] for row in cur.fetchall()]
+        if "tenant_id" not in cal_cols:
+            conn.execute("ALTER TABLE calendar_events ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        cur.execute("PRAGMA table_info(training_stress_days)")
+        stress_cols = [row[1] for row in cur.fetchall()]
+        if "tenant_id" not in stress_cols:
+            conn.execute("ALTER TABLE training_stress_days ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        cur.execute("PRAGMA table_info(metrics)")
+        metric_cols = [row[1] for row in cur.fetchall()]
+        if "tenant_id" not in metric_cols:
+            conn.execute("ALTER TABLE metrics ADD COLUMN tenant_id INTEGER DEFAULT 0")
         _ensure_external_identity_index(conn)
         conn.commit()
 
@@ -360,16 +387,19 @@ def get_athlete_by_email(email: str) -> dict | None:
         return None
 
 
-def get_all_rides() -> list[dict]:
+def get_all_rides(athlete_id: int | None = None) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM rides")
+        if athlete_id is not None:
+            cur.execute("SELECT * FROM rides WHERE athlete_id = ?", (athlete_id,))
+        else:
+            cur.execute("SELECT * FROM rides")
         rows = cur.fetchall()
         return [_row_to_ride(r) for r in rows]
 
 
 def get_paginated_rides(
-    page: int = 1, page_size: int = 20, sort: str = "date"
+    page: int = 1, page_size: int = 20, sort: str = "date", athlete_id: int | None = None
 ) -> tuple[list[dict], int]:
     """Get paginated rides with safe ORDER BY whitelist."""
     order_map = {
@@ -381,12 +411,20 @@ def get_paginated_rides(
     offset = (page - 1) * page_size
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM rides")
-        total = cur.fetchone()[0]
-        cur.execute(
-            f"SELECT * FROM rides ORDER BY {order_col} DESC LIMIT ? OFFSET ?",
-            (page_size, offset),
-        )
+        if athlete_id is not None:
+            cur.execute("SELECT COUNT(*) FROM rides WHERE athlete_id = ?", (athlete_id,))
+            total = cur.fetchone()[0]
+            cur.execute(
+                f"SELECT * FROM rides WHERE athlete_id = ? ORDER BY {order_col} DESC LIMIT ? OFFSET ?",
+                (athlete_id, page_size, offset),
+            )
+        else:
+            cur.execute("SELECT COUNT(*) FROM rides")
+            total = cur.fetchone()[0]
+            cur.execute(
+                f"SELECT * FROM rides ORDER BY {order_col} DESC LIMIT ? OFFSET ?",
+                (page_size, offset),
+            )
         rows = cur.fetchall()
         return [_row_to_ride(r) for r in rows], total
 
@@ -678,6 +716,48 @@ def backup_database(backup_path: str | None = None) -> str:
         )
     shutil.copy2(DB_PATH, backup_path)
     return backup_path
+
+
+def get_backup_dir() -> str:
+    return os.path.join(os.path.dirname(DB_PATH), "backups")
+
+
+def rotate_backups(max_backups: int = 10) -> list[str]:
+    backup_dir = get_backup_dir()
+    os.makedirs(backup_dir, exist_ok=True)
+    backups = sorted(
+        [f for f in os.listdir(backup_dir) if f.startswith("rides_backup_") and f.endswith(".db")],
+        reverse=True,
+    )
+    removed = []
+    for old_backup in backups[max_backups:]:
+        old_path = os.path.join(backup_dir, old_backup)
+        os.remove(old_path)
+        removed.append(old_backup)
+    return removed
+
+
+def scheduled_backup(max_backups: int = 10) -> dict[str, Any]:
+    """Run a scheduled backup with rotation.
+
+    Creates a timestamped backup in the backups/ directory and rotates old backups.
+    Returns a dict with backup_path, backups_kept, and backups_removed.
+    """
+    backup_dir = get_backup_dir()
+    os.makedirs(backup_dir, exist_ok=True)
+    timestamp = datetime.now(UTC).strftime('%Y%m%d_%H%M%S')
+    backup_path = os.path.join(backup_dir, f"rides_backup_{timestamp}.db")
+    backup_database(backup_path)
+    removed = rotate_backups(max_backups)
+    backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("rides_backup_")])
+    logger.info("Scheduled backup completed: %s (kept %d, removed %d)",
+                backup_path, len(backups), len(removed))
+    return {
+        "backup_path": backup_path,
+        "backups_kept": len(backups),
+        "backups_removed": len(removed),
+        "removed_backups": removed,
+    }
 
 
 def save_chat_message(athlete_id: int | None, role: str, content: str) -> int:

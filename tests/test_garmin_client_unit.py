@@ -70,26 +70,25 @@ class TestGarminActivities:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = [
-            {"activityDTO": {"activityId": 1, "activityName": "Morning Ride", "startTimeGMT": "2024-06-15T08:00:00.000Z"}},
+            {"activityId": 1, "activityName": "Morning Ride", "startTimeGMT": "2024-06-15T08:00:00.000Z"},
         ]
         mock_get.return_value = mock_resp
 
         with patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_API_BASE_URL", "https://test"):
             with patch("bike_analyzer.backend.ingestion.garmin_client.store_token"):
-                activities = fetch_activities(1, "access_token")
+                activities = fetch_activities("access_token_123")
                 assert len(activities) == 1
 
     def test_garmin_to_ride(self):
         activity = {
-            "activityDTO": {
-                "activityId": 1,
-                "activityName": "Test Ride",
-                "startTimeGMT": "2024-06-15T08:00:00.000Z",
-                "distance": 25000,
-                "duration": 3600,
-                "elevationGain": 200,
-                "averageHR": 145,
-            }
+            "activityId": 1,
+            "activityName": "Test Ride",
+            "startTimeLocal": "2024-06-15T08:00:00.000Z",
+            "distance": 25000,
+            "duration": 3600,
+            "elevationGain": 200,
+            "averageHR": 145,
+            "activityType": {"typeKey": "cycling"},
         }
         ride = garmin_to_ride(activity)
         assert ride["date"] == "2024-06-15"

@@ -64,6 +64,9 @@ class AthleteModel(Base):
     medical_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     equipment: Mapped[str | None] = mapped_column(Text, nullable=True)
     ftp_watts: Mapped[float | None] = mapped_column(Float, nullable=True)
+    tenant_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC)
     )
@@ -71,6 +74,7 @@ class AthleteModel(Base):
     __table_args__ = (
         Index("ix_athletes_experience_level", "experience_level"),
         Index("ix_athletes_name", "name"),
+        Index("ix_athletes_tenant", "tenant_id"),
     )
 
 
@@ -82,6 +86,9 @@ class RideModel(Base):
     )
     athlete_id: Mapped[int | None] = mapped_column(
         Integer, nullable=True, index=True
+    )
+    tenant_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, index=True
     )
     date: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     distance_km: Mapped[float] = mapped_column(
@@ -129,6 +136,9 @@ class FitnessStateModel(Base):
         Integer, nullable=False, index=True
     )
     date: Mapped[str] = mapped_column(String(20), nullable=False)
+    tenant_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, index=True
+    )
     computed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     fitness: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     fatigue: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
@@ -166,6 +176,9 @@ class MetricModel(Base):
     athlete_id: Mapped[int] = mapped_column(
         Integer, nullable=False, index=True
     )
+    tenant_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, index=True
+    )
     metric_type: Mapped[str] = mapped_column(String(50), nullable=False)
     value: Mapped[float] = mapped_column(Float, nullable=False)
     unit: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -183,6 +196,9 @@ class StravaTokenModel(Base):
     athlete_id: Mapped[int] = mapped_column(
         Integer, nullable=False, index=True
     )
+    tenant_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, index=True
+    )
     access_token: Mapped[str] = mapped_column(String(1024), nullable=False)
     refresh_token: Mapped[str] = mapped_column(String(1024), nullable=False)
     expires_at: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -199,6 +215,7 @@ class StravaTokenModel(Base):
 
     __table_args__ = (
         Index("ix_strava_tokens_athlete", "athlete_id", unique=True),
+        Index("ix_strava_tokens_tenant", "tenant_id"),
     )
 
 
@@ -210,6 +227,9 @@ class GarminTokenModel(Base):
     )
     athlete_id: Mapped[int] = mapped_column(
         Integer, nullable=False, index=True
+    )
+    tenant_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, index=True
     )
     access_token: Mapped[str] = mapped_column(String(1024), nullable=False)
     refresh_token: Mapped[str] = mapped_column(String(1024), nullable=False)
@@ -227,6 +247,7 @@ class GarminTokenModel(Base):
 
     __table_args__ = (
         Index("ix_garmin_tokens_athlete", "athlete_id", unique=True),
+        Index("ix_garmin_tokens_tenant", "tenant_id"),
     )
 
 
@@ -238,6 +259,9 @@ class CalendarEventModel(Base):
     )
     athlete_id: Mapped[int | None] = mapped_column(
         Integer, nullable=True, index=True
+    )
+    tenant_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, index=True
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     event_type: Mapped[str] = mapped_column(
@@ -264,6 +288,9 @@ class KnowledgeChunkModel(Base):
     )
     topic: Mapped[str] = mapped_column(String(100), nullable=False)
     chunk_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    tenant_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, index=True
+    )
     text: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(VECTOR_TYPE, nullable=True)
     word_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -287,6 +314,9 @@ class ChatMessageModel(Base):
     )
     athlete_id: Mapped[int | None] = mapped_column(
         Integer, nullable=True, index=True
+    )
+    tenant_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, index=True
     )
     role: Mapped[str] = mapped_column(String(20), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)

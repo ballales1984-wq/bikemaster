@@ -126,11 +126,14 @@ async def get_ride_async(ride_id: int) -> dict | None:
         }
 
 
-async def get_all_rides_async() -> list[dict]:
+async def get_all_rides_async(athlete_id: int | None = None) -> list[dict]:
     from ..db.models import RideModel
 
     async with await get_async_session() as session:
-        stmt = select(RideModel).order_by(RideModel.date.desc())
+        stmt = select(RideModel)
+        if athlete_id is not None:
+            stmt = stmt.where(RideModel.athlete_id == athlete_id)
+        stmt = stmt.order_by(RideModel.date.desc())
         result = await session.execute(stmt)
         rows = result.scalars().all()
         return [_ride_model_to_dict(r) for r in rows]

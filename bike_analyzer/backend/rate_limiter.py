@@ -1,9 +1,13 @@
 """Shared rate limiter for slowapi."""
 
 import logging
+import time
+from collections import defaultdict
+from dataclasses import dataclass
 from ipaddress import AddressValueError, ip_address
+from typing import Any
 
-from fastapi import Request
+from fastapi import Request, HTTPException
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -41,3 +45,42 @@ def get_limiter_key(request: Request) -> str:
 
 
 limiter = Limiter(key_func=get_limiter_key)
+
+
+@dataclass
+class RateLimitConfig:
+    max_requests: int = 100
+    window_seconds: int = 60
+
+
+_USER_RATE_LIMITS: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+
+
+def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig | None = None) -> None:
+    cfg = config or RateLimitConfig()
+    key = f"user:{user_id}:{endpoint}"
+    now = time.time()
+    window_start = now - cfg.window_seconds
+    requests = _USER_RATE_LIMITS[key]
+    requests[:] = [t for t in requests if t > window_start]
+    if len(requests) >= cfg.max_requests:
+        logger.warning("Rate limit exceeded for user %s on %s (%d/%d in %ds)",
+                       user_id, endpoint, len(requests), cfg.max_requests, cfg.window_seconds)
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded: {cfg.max_requests} requests per {cfg.window_seconds}s",
+        )
+    requests.append(now)
+
+
+def rate_limit_dependency(max_requests: int = 100, window_seconds: int = 60):
+    config = RateLimitConfig(max_requests=max_requests, window_seconds=window_seconds)
+
+    def _check(current_user: dict) -> dict:
+        user_id = int(current_user.get("id", 0))
+        if user_id > 0:
+            check_user_rate_limit(user_id, "global", config)
+        return current_user
+
+    return _check
+
