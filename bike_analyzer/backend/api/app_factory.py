@@ -86,7 +86,6 @@ def create_app() -> FastAPI:
         should_group_status_codes=True,
         should_ignore_untemplated=True,
         excluded_handlers=["/metrics", "/health"],
-        env_var_labels=["ENVIRONMENT"],
     )
     instrumentator.add(metrics.latency, metrics.requests, metrics.exceptions)
     instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
