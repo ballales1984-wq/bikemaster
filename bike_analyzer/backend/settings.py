@@ -26,7 +26,15 @@ class Settings(BaseSettings):
 
     # === Sentry Monitoring ===
     sentry_dsn: str = ""
-    sentry_traces_sample_rate: float = 0.1
+    sentry_traces_sample_rate: float = 0.2
+    sentry_profiles_sample_rate: float = 0.1
+
+    # === OpenTelemetry / Jaeger Tracing ===
+    otel_service_name: str = "bikemaster"
+    otel_exporter_otlp_endpoint: str = "http://localhost:4317"
+    otel_traces_sampler: str = "parentbased_traceidratio"
+    otel_traces_sampler_arg: float = 1.0
+    otel_environment: str = "development"
 
     # === Database ===
     db_path: str = "rides.db"
