@@ -1,15 +1,18 @@
 """FastAPI application factory."""
 
 from __future__ import annotations
-
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
+from prometheus_fastapi_instrumentator import Instrumentator, metrics
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
@@ -66,19 +69,23 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     # Initialize Sentry if DSN provided
-    sentry_dsn = None
     try:
         from ..settings import get_settings
         settings = get_settings()
-        sentry_dsn = settings.sentry_dsn
-        if sentry_dsn:
-            import sentry_sdk
+        if settings.sentry_dsn:
             sentry_sdk.init(
-                dsn=sentry_dsn,
-                traces_sample_rate=settings.sentry_traces_sample_rate,
+                dsn=settings.sentry_dsn,
+                integrations=[
+                    StarletteIntegration(),
+                    FastApiIntegration(),
+                ],
                 environment=settings.environment,
+                traces_sample_rate=settings.sentry_traces_sample_rate,
+                profiles_sample_rate=settings.sentry_profiles_sample_rate,
+                send_default_pii=False,
+                attach_stacktrace=True,
             )
-            logger.info("Sentry initialized with DSN")
+            logger.info(f"Sentry initialized in {settings.environment} mode")
     except Exception as e:
         logger.warning(f"Sentry not initialized: {e}")
 
@@ -91,6 +98,15 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
         openapi_url="/openapi.json",
     )
+
+    instrumentator = Instrumentator(
+        should_group_status_codes=True,
+        should_ignore_untemplated=True,
+        excluded_handlers=["/metrics", "/health"],
+        env_var_labels=["ENVIRONMENT"],
+    )
+    instrumentator.add(metrics.latency, metrics.requests, metrics.exceptions)
+    instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
     app.state.limiter = limiter
     app.add_exception_handler(429, _rate_limit_exceeded_handler)

@@ -53,6 +53,9 @@ def main():
 
 async def run_cli():
     """Run CLI analytics on sample data."""
+    from bike_analyzer.backend.tracing import setup_tracing as _setup_tracing
+
+    _setup_tracing()
     from bike_analyzer.backend.analytics.analytics import calculate_summary
     from bike_analyzer.backend.db.database import get_all_rides, init_db
     from bike_analyzer.backend.models.models import Ride
