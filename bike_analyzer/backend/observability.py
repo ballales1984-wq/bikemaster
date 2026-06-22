@@ -37,6 +37,10 @@ def init_observability(app=None):
     from .settings import get_settings
     settings = get_settings()
 
+    # Skip observability in test environment
+    if settings.environment.lower() in ("test", "testing"):
+        return
+
 # === SENTRY ===
     sentry_dsn = settings.sentry_dsn.strip() if settings.sentry_dsn else ""
     if sentry_dsn and sentry_dsn.startswith("http") and sentry_dsn.count("/") >= 5:

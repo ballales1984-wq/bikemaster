@@ -25,16 +25,21 @@ _SECRET_KEY = _s.secret_key
 _PLACEHOLDER_KEYS = ("your-secret-key-here", "changeme", "change-me", "secret", "<SECRET_KEY>", "REPLACE_ME", "")
 _SECRET_KEY_IS_PLACEHOLDER = _SECRET_KEY.strip() in _PLACEHOLDER_KEYS
 
-if not _s.secret_key or _SECRET_KEY_IS_PLACEHOLDER:
-    logging.critical(
-        "SECRET_KEY non valida. Usa un valore casuale >= 32 caratteri (es. openssl rand -hex 32)."
-    )
-    if _IS_PROD:
-        sys.exit(1)
+# Check environment from settings first, then env var
+_ENV = os.getenv("ENVIRONMENT", _s.environment)
+_IS_PROD = _ENV.lower() in ("production", "prod", "staging")
 
-# SECRET_KEY rotation support
-_SECRET_KEY_PRIMARY = _SECRET_KEY
-_SECRET_KEY_PREVIOUS = os.getenv("SECRET_KEY_PREVIOUS", "")
+if not _SECRET_KEY_IS_PLACEHOLDER:
+    _SECRET_KEY_PRIMARY = _SECRET_KEY
+    _SECRET_KEY_PREVIOUS = ""
+else:
+    if _IS_PROD:
+        logging.critical(
+            "SECRET_KEY non valida. Usa un valore casuale >= 32 caratteri (es. openssl rand -hex 32)."
+        )
+        sys.exit(1)
+    _SECRET_KEY_PRIMARY = "test-secret-key-for-development-please-override"
+    _SECRET_KEY_PREVIOUS = os.getenv("SECRET_KEY_PREVIOUS", "")
 
 DB_PATH = _s.db_path
 DATABASE_URL = _s.database_url
@@ -58,7 +63,7 @@ OPENAI_MODEL = _s.openai_model
 OLLAMA_API_KEY = _s.ollama_api_key
 OLLAMA_BASE_URL = _s.ollama_base_url
 OLLAMA_MODEL = _s.ollama_model
-SECRET_KEY = _SECRET_KEY
+SECRET_KEY = _SECRET_KEY_PRIMARY
 SECRET_KEY_PREVIOUS = _SECRET_KEY_PREVIOUS
 ALGORITHM = _s.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = _s.access_token_expire_minutes

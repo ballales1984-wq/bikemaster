@@ -29,8 +29,8 @@ RUN groupadd -r bikemaster && useradd -r -g bikemaster bikemaster
 WORKDIR /app
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 COPY main.py ./
 COPY bike_analyzer ./bike_analyzer

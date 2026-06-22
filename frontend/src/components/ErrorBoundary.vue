@@ -1,10 +1,10 @@
 <template>
-  <div v-if="error" class="error-boundary" data-test="error-boundary">
+  <div v-if="error" class="error-boundary" data-test="error-boundary" role="alert" aria-live="polite" tabindex="-1">
     <div class="error-boundary-content">
-      <div class="error-boundary-icon">⚠️</div>
-      <h2 class="error-boundary-title">Something went wrong</h2>
-      <p class="error-boundary-message">{{ error }}</p>
-      <button class="btn btn-primary" @click="resetError">🔄 Try Again</button>
+      <div class="error-boundary-icon" aria-hidden="true">⚠️</div>
+      <h2 class="error-boundary-title" id="error-title">Something went wrong</h2>
+      <p class="error-boundary-message" aria-describedby="error-title">{{ error }}</p>
+      <button class="btn btn-primary" @click="resetError" aria-label="Try again">🔄 Try Again</button>
     </div>
   </div>
   <slot v-else />
