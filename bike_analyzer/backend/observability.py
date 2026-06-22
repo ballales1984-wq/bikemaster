@@ -37,10 +37,11 @@ def init_observability(app=None):
     from .settings import get_settings
     settings = get_settings()
 
-    # === SENTRY ===
-    if settings.sentry_dsn and settings.sentry_dsn.strip():
+# === SENTRY ===
+    sentry_dsn = settings.sentry_dsn.strip() if settings.sentry_dsn else ""
+    if sentry_dsn and sentry_dsn.startswith("http") and sentry_dsn.count("/") >= 5:
         sentry_sdk.init(
-            dsn=settings.sentry_dsn,
+            dsn=sentry_dsn,
             environment=settings.sentry_environment,
             traces_sample_rate=settings.sentry_traces_sample_rate,
             integrations=[
