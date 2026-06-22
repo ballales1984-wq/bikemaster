@@ -27,6 +27,7 @@ os.environ["JWT_ISSUER"] = "test-issuer"
 os.environ["JWT_AUDIENCE"] = "test-audience"
 os.environ["GROQ_API_KEY"] = "test-key-for-unit-tests"
 os.environ["GOOGLE_MAPS_API_KEY"] = ""
+os.environ["SENTRY_DSN"] = ""
 
 _TMP = Path(os.environ.get("TEMP", "/tmp")) / "bikemaster_test_dbs"
 _TMP.mkdir(exist_ok=True)

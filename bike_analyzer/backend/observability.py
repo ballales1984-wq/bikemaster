@@ -38,7 +38,7 @@ def init_observability(app=None):
     settings = get_settings()
 
     # === SENTRY ===
-    if settings.sentry_dsn:
+    if settings.sentry_dsn and settings.sentry_dsn.strip():
         sentry_sdk.init(
             dsn=settings.sentry_dsn,
             environment=settings.sentry_environment,
@@ -51,7 +51,7 @@ def init_observability(app=None):
             send_default_pii=False,
             attach_stacktrace=True,
         )
-        print("✅ Sentry initialized with OpenTelemetry support")
+        print("Sentry initialized with OpenTelemetry support")
 
     # === OPENTELEMETRY ===
     resource = Resource.create({
@@ -62,14 +62,16 @@ def init_observability(app=None):
     trace.set_tracer_provider(TracerProvider(resource=resource))
 
     # Zipkin exporter (preferred) or fallback to OTLP/Jaeger
-    if settings.otel_exporter_zipkin_endpoint and ZIPKIN_AVAILABLE:
-        zipkin_exporter = ZipkinExporter(endpoint=settings.otel_exporter_zipkin_endpoint)
+    zipkin_endpoint = settings.otel_exporter_zipkin_endpoint or "http://localhost:9411/api/v2/spans"
+    zipkin_endpoint = zipkin_endpoint.strip() if zipkin_endpoint else ""
+    if zipkin_endpoint and ZIPKIN_AVAILABLE:
+        zipkin_exporter = ZipkinExporter(endpoint=zipkin_endpoint)
         trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(zipkin_exporter))
-        print(f"✅ Zipkin exporter configured: {settings.otel_exporter_zipkin_endpoint}")
+        print(f"Zipkin exporter configured: {zipkin_endpoint}")
     elif settings.otel_exporter_otlp_endpoint and OTLP_AVAILABLE:
         otlp_exporter = OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint)
         trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(otlp_exporter))
-        print(f"✅ OTLP exporter configured: {settings.otel_exporter_otlp_endpoint}")
+        print(f"OTLP exporter configured: {settings.otel_exporter_otlp_endpoint}")
 
     # === FASTAPI INSTRUMENTATION ===
     if app is not None:
@@ -79,4 +81,4 @@ def init_observability(app=None):
             excluded_urls="metrics,health,docs,redoc,openapi",
         )
 
-    print("✅ Zipkin + Sentry correlation ready")
+    print("Zipkin + Sentry correlation ready")
