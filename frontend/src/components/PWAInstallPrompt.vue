@@ -1,13 +1,13 @@
 <template>
   <Transition name="slide">
-    <div v-if="show" class="pwa-banner" role="alert">
-      <div class="pwa-banner-icon">🚴</div>
+    <div v-if="show" class="pwa-banner" role="alert" aria-live="polite">
+      <div class="pwa-banner-icon" aria-hidden="true">🚴</div>
       <div class="pwa-banner-text">
         <strong>Install BikeMaster</strong>
         <span>Add to home screen for offline access</span>
       </div>
-      <button class="btn btn-primary btn-sm" @click="install">Install</button>
-      <button class="pwa-banner-close" @click="dismiss" aria-label="Dismiss">×</button>
+      <button class="btn btn-primary btn-sm" @click="install" aria-label="Install BikeMaster app">Install</button>
+      <button class="pwa-banner-close" @click="dismiss" aria-label="Dismiss install prompt">×</button>
     </div>
   </Transition>
 </template>
