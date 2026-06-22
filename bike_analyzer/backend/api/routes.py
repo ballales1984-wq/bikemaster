@@ -203,6 +203,12 @@ async def health_check():
     return {"status": "ok", "service": "bikemaster"}
 
 
+@router.get("/sentry-debug")
+async def sentry_debug():
+    """Debug endpoint to verify Sentry error tracking."""
+    1 / 0
+
+
 @router.get("/health/redis")
 async def health_redis():
     from ..redis_client import get_redis
@@ -602,6 +608,9 @@ async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(
         ride_data["athlete_id"] = _user_id(current_user)
         ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
         ride_data["id"] = int(ride_id)
+        from ..monitoring import record_gps_import
+
+        record_gps_import("gpx", "upload")
     return ride_data
 
 
@@ -632,6 +641,9 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
         ride_data["athlete_id"] = _user_id(current_user)
         ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
         ride_data["id"] = int(ride_id)
+        from ..monitoring import record_gps_import
+
+        record_gps_import("fit", "upload")
     return ride_data
 
 
@@ -704,6 +716,9 @@ async def import_multiple(
                 ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
                 ride_data["id"] = int(ride_id)
                 imported.append(ride_data)
+                from ..monitoring import record_gps_import
+
+                record_gps_import(ext or "unknown", "upload")
         except Exception as e:
             failed.append({"filename": file.filename, "error": str(e)})
     return {
@@ -1058,12 +1073,15 @@ async def import_google_fit(payload: dict, current_user: dict = Depends(get_curr
     activities = fetch_cycling_activities(access_token)
     rides_data = google_fit_to_ride(activities)
     imported = []
+    from ..monitoring import record_gps_import
+
     for ride_data in rides_data:
         ride_data = {k: v for k, v in ride_data.items() if k != "id"}
         ride_data["athlete_id"] = current_user["id"]
         ride_id = save_ride(ride_data)
         ride_data["id"] = int(ride_id)
         imported.append(ride_data)
+        record_gps_import("google_fit_api", "google_fit")
     return {"imported": imported, "count": len(imported)}
 
 
@@ -2257,6 +2275,8 @@ async def strava_sync(
     activities = fetch_all_activities(access_token)
     imported = []
     imported_ids: set[int] = set()
+    from ..monitoring import record_gps_import
+
     for act in activities:
         ride_data = strava_to_ride(act)
         if ride_data.get("skipped") or "error" in ride_data:
@@ -2267,6 +2287,7 @@ async def strava_sync(
         if ride_id not in imported_ids:
             imported.append({"id": int(ride_id), **ride_data})
             imported_ids.add(int(ride_id))
+            record_gps_import("strava_api", "strava")
     return {"imported": len(imported), "total_fetched": len(activities), "rides": imported}
 
 
@@ -2336,6 +2357,8 @@ async def garmin_sync(
     activities = fetch_activities(access_token)
     imported = []
     imported_ids: set[int] = set()
+    from ..monitoring import record_gps_import
+
     for act in activities:
         ride_data = garmin_to_ride(act)
         if ride_data.get("skipped") or "error" in ride_data:
@@ -2346,6 +2369,7 @@ async def garmin_sync(
         if ride_id not in imported_ids:
             imported.append({"id": int(ride_id), **ride_data})
             imported_ids.add(int(ride_id))
+            record_gps_import("garmin_api", "garmin")
     return {"imported": len(imported), "total_fetched": len(activities), "rides": imported}
 
 

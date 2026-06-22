@@ -436,18 +436,28 @@ def generate_training_advice(
             client, provider = get_ai_coach_client()
         except ValueError:
             logger.warning("AI Coach no API key available, using fallback")
+            from ..monitoring import record_ai_coach_query
+
+            record_ai_coach_query("fallback", "fallback")
             return _generate_fallback_training_advice(athlete, rides)
 
         model = GROQ_MODEL if provider == "groq" else OLLAMA_MODEL if provider == "ollama" else OPENAI_MODEL
         try:
             content = _chat_completion_text(client, model, prompt, 500)
+            from ..monitoring import record_ai_coach_query
+
+            record_ai_coach_query(provider, "success")
             return _clean_ai_output(content)
         except Exception as e:
+            from ..monitoring import record_ai_coach_query
+
+            record_ai_coach_query(provider, "error")
             logger.warning("AI Coach API call failed: %s: %s", type(e).__name__, e)
             logger.debug("AI Coach API error details", exc_info=True)
             _ban_provider(provider)
             if not _is_recoverable_provider_error(e):
                 logger.error("AI Coach: non-recoverable error from %s, using fallback", provider)
+                record_ai_coach_query("fallback", "fallback")
                 return _generate_fallback_training_advice(athlete, rides)
             continue
     return _generate_fallback_training_advice(athlete, rides)
@@ -522,13 +532,22 @@ def generate_recovery_advice(
         try:
             client, provider = get_ai_coach_client()
         except ValueError:
+            from ..monitoring import record_ai_coach_query
+
+            record_ai_coach_query("fallback", "fallback")
             return _generate_fallback_recovery_advice(athlete, rides, recovery)
 
         model = GROQ_MODEL if provider == "groq" else OLLAMA_MODEL if provider == "ollama" else OPENAI_MODEL
         try:
             content = _chat_completion_text(client, model, prompt, 300)
+            from ..monitoring import record_ai_coach_query
+
+            record_ai_coach_query(provider, "success")
             return _clean_ai_output(content)
         except Exception as e:
+            from ..monitoring import record_ai_coach_query
+
+            record_ai_coach_query(provider, "error")
             logger.warning("AI Coach API call failed: %s: %s", type(e).__name__, e)
             logger.debug("AI Coach API error details", exc_info=True)
             _ban_provider(provider)
