@@ -329,12 +329,13 @@ def test_ai_coach_fallbacks():
 
     import os
 
+    os.environ["AI_COACH_MODE"] = "local"
+    os.environ.pop("GROQ_API_KEY", None)
+
     from bike_analyzer.backend.analytics.ai_coach import (
         generate_recovery_advice,
         generate_training_advice,
     )
-
-    os.environ.pop("GROQ_API_KEY", None)
 
     athlete = AthleteProfile(name="Test", experience_level="Beginner")
 
