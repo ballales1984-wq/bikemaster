@@ -1,5 +1,6 @@
 import os
 
+os.environ["AI_COACH_MODE"] = "local"
 os.environ["GROQ_API_KEY"] = "test-key"
 
 from bike_analyzer.backend.analytics.ai_coach import (
@@ -33,11 +34,8 @@ def test_generate_training_advice_validates_profile():
 
 
 def test_generate_training_advice_with_local_mode(monkeypatch):
-    import bike_analyzer.backend.analytics.ai_coach as coach
-    import bike_analyzer.backend.config as cfg
-
-    monkeypatch.setattr(cfg, "AI_COACH_MODE", "local")
-    monkeypatch.setattr(coach, "AI_COACH_MODE", "local")
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_should_not_call")
     result = generate_training_advice(
         AthleteProfile(name="Marco", weight_kg=70.0, experience_level="Beginner"), []
     )
@@ -66,7 +64,9 @@ def test_analyze_historical_trend_with_rides():
     assert "Trend" in result
 
 
-def test_ai_coach_full_returns_dict():
+def test_ai_coach_full_returns_dict(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_should_not_call")
     result = ai_coach_full(
         AthleteProfile(name="Test", weight_kg=70.0, experience_level="Beginner"), [], athlete_id=0
     )

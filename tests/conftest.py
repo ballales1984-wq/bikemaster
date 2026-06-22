@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 import os
+import time
 from pathlib import Path
 
 import pytest
@@ -31,10 +32,22 @@ _TMP = Path(os.environ.get("TEMP", "/tmp")) / "bikemaster_test_dbs"
 _TMP.mkdir(exist_ok=True)
 
 
+def _safe_unlink(path: Path) -> None:
+    for attempt in range(5):
+        try:
+            path.unlink(missing_ok=True)
+            return
+        except PermissionError:
+            if attempt < 4:
+                time.sleep(0.05)
+            else:
+                pass
+
+
 def _new_db_path() -> str:
     p = _TMP / f"test_{id(_new_db_path)}.db"
     for suffix in ("", "-wal", "-shm"):
-        Path(str(p) + suffix).unlink(missing_ok=True)
+        _safe_unlink(Path(str(p) + suffix))
     return str(p)
 
 
@@ -43,7 +56,7 @@ def db_path():
     p = _new_db_path()
     yield p
     for suffix in ("", "-wal", "-shm"):
-        Path(str(p) + suffix).unlink(missing_ok=True)
+        _safe_unlink(Path(str(p) + suffix))
 
 
 @pytest.fixture(autouse=True)

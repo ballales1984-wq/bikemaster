@@ -95,17 +95,15 @@ const router = createRouter({
   }
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, from) => {
   const loggedIn = isLoggedIn()
 
   if (to.path === '/' && loggedIn) {
-    next('/rides')
+    return '/rides'
   } else if (to.meta.requiresAuth && !loggedIn) {
-    next('/')
+    return '/'
   } else if (to.meta.requiresAdmin && !isAdmin()) {
-    next('/')
-  } else {
-    next()
+    return '/'
   }
 })
 
