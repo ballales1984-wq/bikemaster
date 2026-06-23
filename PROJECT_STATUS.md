@@ -5,12 +5,10 @@
 > **Stato**: Late Beta / Early Production — architettura solida con Clean Architecture, deve essere finalizzato per produzione.
 
 ### Ultimo Commit
-- `56c1e82` - test: add comprehensive test suite for analytics, coverage gaps, and error paths while cleaning up temporary database files
-- `b16d73b` - test: add unit tests for AI coach API and endpoints
-- `8b87be2` - feat: implement PGVector knowledge chunks support and BM25-based RAG retrieval
-- `7035193` - feat: implement async database layer with SQLAlchemy, introduce repository pattern, and add Playwright E2E test suite
-- `0e92a14` - test: add frontend tests and ErrorBoundary component
-- `56c1e82` - fix: Docker security hardening (multi-stage build, non-root user, read-only fs)
+- `eed6afd` - feat: implement frontend authentication, tracking controls, and core UI components with native Android project scaffolding
+- `9b68e48` - fix: skip OpenTelemetry/Zipkin exporters in development mode
+- `9257bfe` - feat: implement PWA install prompt, service worker navigate fix, ride tracking updates
+- `f5c02c6` - feat: add registration email validation, update documentation, and implement test suite for mapping and analytics modules.
 
 ---
 
@@ -382,9 +380,9 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 
 ---
 
-## Testing Update (2026-06-22)
+## Testing Update (2026-06-23)
 
-**Coverage migliorata:** 79% → 69.5% (con nuovi test per coverage gaps)
+**Coverage migliorata:** ~79% su analytics core
 - test_analytics_trends.py: 37 test (analytics_trends.py 0% → 96%)
 - test_db_models.py: 13 test (db/models.py 0% → 100%)
 - test_routes_coverage.py: 19 test (endpoint routes)
@@ -476,4 +474,4 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 
 ---
 
-*Ultimo aggiornamento: 2026-06-22 — Documentazione GitHub aggiornata*
+*Ultimo aggiornamento: 2026-06-23 — Documentazione GitHub aggiornata*

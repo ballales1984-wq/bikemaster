@@ -10,6 +10,9 @@
 
 ## ✅ Completati di recente (post-1.3.0)
 
+- [x] **Frontend Authentication** — JWT auth integration, tracking controls, native Android scaffolding
+- [x] **PWA Install Prompt** — Service worker navigate fix, install prompt component
+- [x] **Ride Tracking Updates** — Enhanced GPS tracking with live map updates
 - [x] **Clean Architecture** — Core domain layer (models, pipeline, engine, fitness_state.py)
 - [x] **Calculators/Services/Repositories** — Analytics scomposto in 3 layer Clean
 - [x] **Domain Events** — Event bus pub/sub (RideCreated, AthleteUpdated, BadgeEarned, TrainingGenerated)
