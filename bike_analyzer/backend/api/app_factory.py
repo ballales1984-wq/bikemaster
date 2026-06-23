@@ -89,7 +89,7 @@ def create_app() -> FastAPI:
                 should_ignore_untemplated=True,
                 excluded_handlers=["/metrics", "/health"],
             )
-            instrumentator.add(metrics.requests)
+            instrumentator.add(metrics.requests())
             instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
         except Exception:
             pass
