@@ -84,6 +84,31 @@ const routes = [
     name: 'tracking',
     component: () => import('../views/RideTracking.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/privacy',
+    name: 'privacy',
+    component: () => import('../views/PrivacyPolicy.vue')
+  },
+  {
+    path: '/terms',
+    name: 'terms',
+    component: () => import('../views/TermsOfService.vue')
+  },
+  {
+    path: '/cookies',
+    name: 'cookies',
+    component: () => import('../views/CookiePolicy.vue')
+  },
+  {
+    path: '/about',
+    name: 'about',
+    component: () => import('../views/AboutUs.vue')
+  },
+  {
+    path: '/contact',
+    name: 'contact',
+    component: () => import('../views/ContactUs.vue')
   }
 ]
 
