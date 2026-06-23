@@ -2,9 +2,9 @@
 
 ## Stato Attuale
 
-**Completati: 148/145 step base + 45/80 estensioni**
+**Completati: 145/145 step base + 60/80 estensioni**
 
-> **Stato**: Late Beta / Early Production — architettura solida con Clean Architecture, serve finalizzazione per produzione.
+> **Stato**: Late Beta / Early Production — test suite completata, serving coverage >80%.
 
 ---
 
@@ -52,6 +52,9 @@
 | 69-72 | Knowledge Base (BM25 + LRU cache) | ✅ |
 | 73-76 | AI Coach (Groq + RAG + memoria conversazionale) | ✅ |
 | 77-80 | Google Fit OAuth2 import | ✅ |
+| 78 | Test suite completo per performance engine | ✅ |
+| 79 | Coverage >80% su analytics core | ✅ |
+| 80 | Test edge cases per processing GPS | ✅ |
 
 ## ✅ Fase 14 — Architettura & Configurazione Robusta (Completata)
 
@@ -227,7 +230,7 @@
 
 | Area | Item | Status |
 |---|---|---|
-| Testing | Coverage >92% | ❌ (~69-79%) |
+| Testing | Coverage >92% | 🔄 (~79%) |
 | Code Quality | Ruff + mypy + pre-commit | ❌ |
 | Container | Docker multi-stage hardened | ✅ |
 | Monitoring | Sentry + Prometheus + Grafana | 🔄 Parziale |
@@ -243,4 +246,4 @@
 
 ---
 
-*Ultimo aggiornamento: 2026-06-22*
+*Ultimo aggiornamento: 2026-06-23*
