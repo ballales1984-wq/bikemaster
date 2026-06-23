@@ -554,7 +554,7 @@ async def get_ride_segments(
 
 @router.post("/rides/analyze", response_model=dict)
 @limiter.limit("20/minute")
-async def analyze_rides(request: Request, payload: RideAnalysisRequest):
+async def analyze_rides(request: Request, payload: RideAnalysisRequest, current_user: dict = Depends(get_current_user)):
     return calculate_summary([Ride(**r.model_dump()) for r in payload.rides])
 
 
@@ -562,6 +562,12 @@ async def analyze_rides(request: Request, payload: RideAnalysisRequest):
 async def analyze_single_ride(
     ride_id: int, ride_data: RideCreate, current_user: dict = Depends(get_current_user)
 ):
+    from ..db.database import get_ride as _get_ride
+
+    ride = _get_ride(ride_id)
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
     return analyze_ride(Ride(id=ride_id, **ride_data.model_dump()))
 
 
@@ -1002,6 +1008,7 @@ async def google_fit_callback(
     error_description: str | None = Query(None),
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
+    current_user: dict = Depends(get_current_user),
 ):
     """Handle Google Fit OAuth callback - exchange code and import activities."""
     from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
@@ -1051,7 +1058,7 @@ async def google_fit_callback(
     imported = []
     for ride_data in rides_data:
         ride_data = {k: v for k, v in ride_data.items() if k != "id"}
-        ride_data["athlete_id"] = 1
+        ride_data["athlete_id"] = _ensure_int_user_id(current_user)
         ride_id = save_ride(ride_data)
         ride_data["id"] = int(ride_id)
         imported.append(ride_data)
