@@ -3,12 +3,18 @@
 ## v1.2.0 (2026-06-23)
 
 ### Added
+- Frontend authentication with JWT integration
+- Tracking controls for GPS ride recording
+- Native Android project scaffolding with Kotlin
+- PWA install prompt with service worker navigate fix
+- Ride tracking updates with live map integration
 - Test coverage improvements for analytics modules (performance, power_model, training_load, training_stress, advanced)
 - Edge case tests for GPS processing functions (analyze_historical_trend, detect_speed_surges, calculate_heart_rate_zones, calculate_ride_recommendation_score)
 - Tests for knowledge_base embeddings (`init_kb_embeddings` with local fallback)
 - Tests for `compute_ctl_atl_tsb_external` function
 
 ### Fixed
+- OpenTelemetry/Zipkin exporters skipped in development mode
 - Added missing `Ride` import to test_processing.py
 - Test suite stability improvements
 
