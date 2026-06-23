@@ -66,23 +66,30 @@ def init_observability(app=None):
 
     trace.set_tracer_provider(TracerProvider(resource=resource))
 
+    # Skip telemetry in development without explicit endpoints
+    is_dev = settings.environment.lower() in ("development", "dev", "local")
+    
     # Zipkin exporter (preferred) or fallback to OTLP/Jaeger
     zipkin_endpoint = settings.otel_exporter_zipkin_endpoint or "http://localhost:9411/api/v2/spans"
     zipkin_endpoint = zipkin_endpoint.strip() if zipkin_endpoint else ""
-    if zipkin_endpoint and ZIPKIN_AVAILABLE:
+    if zipkin_endpoint and ZIPKIN_AVAILABLE and not is_dev:
         try:
             zipkin_exporter = ZipkinExporter(endpoint=zipkin_endpoint)
-            trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(zipkin_exporter))
+            trace.get_tracer_provider().add_span_processor(
+                BatchSpanProcessor(zipkin_exporter, schedule_delay_millis=5000, max_export_batch_size=100)
+            )
             print(f"Zipkin exporter configured: {zipkin_endpoint}")
         except Exception as e:
             print(f"Zipkin exporter init failed: {e}")
-    elif settings.otel_exporter_otlp_endpoint and OTLP_AVAILABLE:
+    elif settings.otel_exporter_otlp_endpoint and OTLP_AVAILABLE and not is_dev:
         try:
             otlp_exporter = OTLPSpanExporter(
                 endpoint=settings.otel_exporter_otlp_endpoint,
                 insecure=True,
             )
-            trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(otlp_exporter))
+            trace.get_tracer_provider().add_span_processor(
+                BatchSpanProcessor(otlp_exporter, schedule_delay_millis=5000, max_export_batch_size=100)
+            )
             print(f"OTLP exporter configured: {settings.otel_exporter_otlp_endpoint}")
         except Exception as e:
             print(f"OTLP exporter init failed: {e}")
