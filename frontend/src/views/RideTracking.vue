@@ -1,38 +1,38 @@
 <template>
-  <section class="panel">
-    <div class="tracking-header">
-      <h2>GPS Tracking</h2>
-      <div v-if="isTracking" class="tracking-status">
-        <span class="status-badge" :class="{ paused: isPaused }">
-          {{ isPaused ? 'Paused' : 'In progress' }}
-        </span>
-      </div>
-    </div>
+   <section class="panel">
+     <div class="tracking-header">
+       <h2>GPS Tracking</h2>
+       <div v-if="isTracking" class="tracking-status">
+         <span class="status-badge" :class="{ paused: isPaused }">
+           {{ isPaused ? 'Paused' : 'In progress' }}
+         </span>
+       </div>
+     </div>
 
-    <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
-      <div class="empty-icon">📍</div>
-      <div class="empty-title">Ready to track your ride</div>
-      <div class="empty-desc">
-        Press the button below to start recording your route in real-time.
-      </div>
-      <button class="btn btn-primary btn-large" @click="startTracking">
-        Start Tracking
-      </button>
-    </div>
+     <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
+       <div class="empty-icon">📍</div>
+       <div class="empty-title">Ready to track your ride</div>
+       <div class="empty-desc">
+         Press the button below to start recording your route in real-time.
+       </div>
+       <button class="btn btn-primary btn-large" @click="startTracking" @touchstart="startTracking">
+         Start Tracking
+       </button>
+     </div>
 
-    <div v-else class="tracking-content">
-      <LiveMap ref="liveMapRef" />
-      <RideMetricsPanel />
-      <ControlsBar :is-paused="isPaused" @pause="pauseTracking" @resume="resumeTracking" @stop="stopTracking" />
+     <div v-else class="tracking-content">
+       <LiveMap ref="liveMapRef" />
+       <RideMetricsPanel />
+       <ControlsBar :is-paused="isPaused" @pause="pauseTracking" @resume="resumeTracking" @stop="stopTracking" />
 
-      <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete">
-        <p>Tracking completed! File ready for upload.</p>
-        <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide">
-          {{ isUploading ? 'Uploading...' : 'Upload to BikeMaster' }}
-        </button>
-      </div>
-    </div>
-  </section>
+       <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete">
+         <p>Tracking completed! File ready for upload.</p>
+         <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide" @touchstart="uploadRide">
+           {{ isUploading ? 'Uploading...' : 'Upload to BikeMaster' }}
+         </button>
+       </div>
+     </div>
+   </section>
 </template>
 
 <script setup lang="ts">
@@ -87,7 +87,15 @@ async function startTracking() {
 
 async function checkPermissions(): Promise<boolean> {
   if (!window.BikeTracking?.checkPermissions) {
-    return Boolean(navigator.geolocation)
+    if (!navigator.geolocation) return false
+    try {
+      const result = await navigator.permissions.query({ name: 'geolocation' })
+      if (result.state === 'granted') return true
+      if (result.state === 'prompt') return true
+      return false
+    } catch {
+      return true
+    }
   }
   return window.BikeTracking.checkPermissions().then((result) => result.granted)
 }

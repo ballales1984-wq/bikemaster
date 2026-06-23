@@ -70,13 +70,24 @@ def init_observability(app=None):
     zipkin_endpoint = settings.otel_exporter_zipkin_endpoint or "http://localhost:9411/api/v2/spans"
     zipkin_endpoint = zipkin_endpoint.strip() if zipkin_endpoint else ""
     if zipkin_endpoint and ZIPKIN_AVAILABLE:
-        zipkin_exporter = ZipkinExporter(endpoint=zipkin_endpoint)
-        trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(zipkin_exporter))
-        print(f"Zipkin exporter configured: {zipkin_endpoint}")
+        try:
+            zipkin_exporter = ZipkinExporter(endpoint=zipkin_endpoint)
+            trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(zipkin_exporter))
+            print(f"Zipkin exporter configured: {zipkin_endpoint}")
+        except Exception as e:
+            print(f"Zipkin exporter init failed: {e}")
     elif settings.otel_exporter_otlp_endpoint and OTLP_AVAILABLE:
-        otlp_exporter = OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint)
-        trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(otlp_exporter))
-        print(f"OTLP exporter configured: {settings.otel_exporter_otlp_endpoint}")
+        try:
+            otlp_exporter = OTLPSpanExporter(
+                endpoint=settings.otel_exporter_otlp_endpoint,
+                insecure=True,
+            )
+            trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(otlp_exporter))
+            print(f"OTLP exporter configured: {settings.otel_exporter_otlp_endpoint}")
+        except Exception as e:
+            print(f"OTLP exporter init failed: {e}")
+    else:
+        print("No telemetry exporter configured - tracing disabled")
 
     # === FASTAPI INSTRUMENTATION ===
     if app is not None:
