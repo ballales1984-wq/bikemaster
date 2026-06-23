@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from .settings import get_settings
+
+try:
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    OTLP_AVAILABLE = True
+except ImportError:
+    OTLP_AVAILABLE = False
 
 
 def setup_tracing(app=None):
@@ -23,17 +27,15 @@ def setup_tracing(app=None):
 
     trace.set_tracer_provider(TracerProvider(resource=resource))
 
-    exporter = OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint)
-    span_processor = BatchSpanProcessor(exporter)
-    trace.get_tracer_provider().add_span_processor(span_processor)
-
-    if app is not None:
-        FastAPIInstrumentor.instrument_app(
-            app,
-            tracer_provider=trace.get_tracer_provider(),
-            excluded_urls="metrics,health,docs,redoc,openapi",
-        )
-
-    print(
-        f"Jaeger Tracing (OpenTelemetry) initialized -> {settings.otel_exporter_otlp_endpoint}"
-    )
+    if settings.otel_exporter_otlp_endpoint and OTLP_AVAILABLE:
+        try:
+            exporter = OTLPSpanExporter(
+                endpoint=settings.otel_exporter_otlp_endpoint,
+                insecure=True,
+            )
+            trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(exporter))
+            print(f"Jaeger Tracing (OpenTelemetry) initialized -> {settings.otel_exporter_otlp_endpoint}")
+        except Exception as e:
+            print(f"OTLP exporter init failed (tracing disabled): {e}")
+    else:
+        print("No OTLP endpoint configured - tracing disabled")

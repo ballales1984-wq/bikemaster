@@ -74,7 +74,6 @@ registerRoute(
     const cache = await caches.open(STATIC_CACHE)
     return await cache.match('/index.html') || new Response('', { status: 503, statusText: 'Offline' })
   },
-  new NetworkFirst({ cacheName: API_CACHE }),
 )
 
 registerRoute(

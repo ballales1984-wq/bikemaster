@@ -1,20 +1,20 @@
 <template>
 <nav class="tabs" aria-label="Main navigation">
-     <router-link to="/rides" class="tab" active-class="active">🏍️ <span>Rides</span></router-link>
-     <router-link to="/track" class="tab" active-class="active">📍 <span>Tracking</span></router-link>
-     <router-link to="/import" class="tab" active-class="active">📥 <span>Import</span></router-link>
-     <router-link to="/athlete" class="tab" active-class="active">🏃 <span>Athlete</span></router-link>
-     <router-link to="/coach" class="tab" active-class="active">🧠 <span>AI Coach</span></router-link>
-     <router-link to="/knowledge" class="tab" active-class="active">📚 <span>Knowledge</span></router-link>
-     <router-link to="/calendar" class="tab" active-class="active">📅 <span>Calendar</span></router-link>
-     <router-link to="/granfondo" class="tab" active-class="active">🚴‍♂️ <span>Granfondo</span></router-link>
-     <router-link to="/map" class="tab" active-class="active"><span>Maps</span></router-link>
-     <router-link to="/heatmap" class="tab" active-class="active">🔥 <span>Heatmap</span></router-link>
-     <router-link to="/badges" class="tab" active-class="active">🏅 <span>Badges</span></router-link>
-     <router-link to="/weather" class="tab" active-class="active">🌤️ <span>Weather</span></router-link>
-     <router-link v-if="isAdmin" to="/admin" class="tab" active-class="active">⚙️ <span>Admin</span></router-link>
+     <router-link to="/rides" class="tab" active-class="active" @touchstart="$router.push('/rides')">🏍️ <span>Rides</span></router-link>
+     <router-link to="/track" class="tab" active-class="active" @touchstart="$router.push('/track')">📍 <span>Tracking</span></router-link>
+     <router-link to="/import" class="tab" active-class="active" @touchstart="$router.push('/import')">📥 <span>Import</span></router-link>
+     <router-link to="/athlete" class="tab" active-class="active" @touchstart="$router.push('/athlete')">🏃 <span>Athlete</span></router-link>
+     <router-link to="/coach" class="tab" active-class="active" @touchstart="$router.push('/coach')">🧠 <span>AI Coach</span></router-link>
+     <router-link to="/knowledge" class="tab" active-class="active" @touchstart="$router.push('/knowledge')">📚 <span>Knowledge</span></router-link>
+     <router-link to="/calendar" class="tab" active-class="active" @touchstart="$router.push('/calendar')">📅 <span>Calendar</span></router-link>
+     <router-link to="/granfondo" class="tab" active-class="active" @touchstart="$router.push('/granfondo')">🚴‍♂️ <span>Granfondo</span></router-link>
+     <router-link to="/map" class="tab" active-class="active" @touchstart="$router.push('/map')"><span>Maps</span></router-link>
+     <router-link to="/heatmap" class="tab" active-class="active" @touchstart="$router.push('/heatmap')">🔥 <span>Heatmap</span></router-link>
+     <router-link to="/badges" class="tab" active-class="active" @touchstart="$router.push('/badges')">🏅 <span>Badges</span></router-link>
+     <router-link to="/weather" class="tab" active-class="active" @touchstart="$router.push('/weather')">🌤️ <span>Weather</span></router-link>
+     <router-link v-if="isAdmin" to="/admin" class="tab" active-class="active" @touchstart="$router.push('/admin')">⚙️ <span>Admin</span></router-link>
      <span class="user-info">{{ isAdmin ? '👑 Admin' : '👤 User' }}</span>
-     <button class="tab logout-btn" @click="$emit('logout')">🚪 <span>Logout</span></button>
+     <button class="tab logout-btn" @click="$emit('logout')" @touchstart="$emit('logout')">🚪 <span>Logout</span></button>
    </nav>
 </template>
 

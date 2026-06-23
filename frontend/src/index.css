@@ -1165,3 +1165,60 @@ textarea {
 .form-row .form-input { flex: 1; min-width: 120px; }
 
 .add-ride-form { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+
+/* Mobile touch target improvements */
+@media (hover: none) and (pointer: coarse) {
+  .btn, .tab, .tab-btn, button, input[type="checkbox"] {
+    min-height: 48px !important;
+    min-width: 48px !important;
+    touch-action: manipulation;
+  }
+
+  .tab {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+
+  .tab-badge {
+    min-height: 20px;
+    min-width: 20px;
+  }
+
+  .btn-xs {
+    min-height: 36px;
+    min-width: 36px;
+    padding: 6px 12px;
+  }
+
+  .btn-sm {
+    min-height: 38px;
+    padding: 8px 14px;
+  }
+
+  .btn-large {
+    min-height: 56px;
+    padding: 14px 28px;
+    font-size: 1.1rem;
+  }
+
+  .event-check input {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .password-toggle {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Touch event handling for mobile */
+.btn, .tab {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.btn:focus, .tab:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
