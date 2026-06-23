@@ -29,10 +29,10 @@ RUN groupadd -r bikemaster && useradd -r -g bikemaster bikemaster
 WORKDIR /app
 
 COPY requirements.txt ./
-# Install numpy first to constrain scientific stack versions
+# Use uv for faster/better dependency resolution with complex graphs
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir "numpy>=1.26.4,<2.0.0" && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir uv && \
+    uv pip install --system -r requirements.txt
 
 COPY main.py ./
 COPY bike_analyzer ./bike_analyzer
