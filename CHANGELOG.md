@@ -16,6 +16,8 @@
 ### Fixed
 - OpenTelemetry/Zipkin exporters skipped in development mode
 - Added missing `Ride` import to test_processing.py
+- Google OAuth callback redirect fix (redirect to frontend origin instead of API endpoint)
+- Added OAuth callback URL param handler in Vue router for token extraction
 - Test suite stability improvements
 
 ### Technical Details
