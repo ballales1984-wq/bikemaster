@@ -32,7 +32,7 @@ COPY requirements.txt ./
 # Use uv for faster/better dependency resolution with complex graphs
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir uv && \
-    uv pip install --system -r requirements.txt
+    uv pip install --system --prerelease=allow -r requirements.txt
 
 COPY main.py ./
 COPY bike_analyzer ./bike_analyzer
