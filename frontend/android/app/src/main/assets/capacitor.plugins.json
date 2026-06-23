@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "name": "BikeTracking",
+    "root": "com.bikemaster",
+    "pluginClass": "TrackingService"
+  }
+]

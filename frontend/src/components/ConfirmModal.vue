@@ -5,10 +5,10 @@
         <div class="modal-dialog" role="dialog" aria-modal="true">
           <h3>{{ title }}</h3>
           <p>{{ message }}</p>
-          <div class="modal-actions">
-            <button class="btn btn-secondary" @click="cancel">{{ cancelLabel }}</button>
-            <button class="btn btn-danger" @click="confirm">{{ confirmLabel }}</button>
-          </div>
+<div class="modal-actions">
+         <button class="btn btn-secondary" @click="cancel" @touchstart="cancel">{{ cancelLabel }}</button>
+         <button class="btn btn-danger" @click="confirm" @touchstart="confirm">{{ confirmLabel }}</button>
+       </div>
         </div>
       </div>
     </Transition>
