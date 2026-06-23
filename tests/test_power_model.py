@@ -15,7 +15,7 @@ from bike_analyzer.backend.analytics.power_model import (
     training_stress_score,
     variability_index,
 )
-from bike_analyzer.backend.models.models import GPSPoint
+from bike_analyzer.backend.models.models import GPSPoint, Ride
 
 
 class TestNormalizedPower:
@@ -200,3 +200,17 @@ class TestAdvancedPowerMetrics:
         assert "tss" in result
         assert "power_zones" in result
         assert "power_profile" in result
+
+
+class TestComputeCtlAtlTsbExternal:
+    def test_compute_external_fallback(self):
+        """Test compute_ctl_atl_tsb_external uses fallback implementation."""
+        from bike_analyzer.backend.analytics.advanced import compute_ctl_atl_tsb_external
+
+        rides = [
+            Ride(date="2024-01-15", distance_km=50.0, duration_minutes=120.0, avg_speed_kmh=25.0),
+        ]
+        result = compute_ctl_atl_tsb_external(rides)
+        assert "ctl" in result
+        assert "atl" in result
+        assert "tsb" in result

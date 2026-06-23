@@ -24,6 +24,7 @@ from bike_analyzer.backend.analytics.knowledge_base import (
     _tokenize,
     format_context_for_llm,
     get_kb_stats,
+    init_kb_embeddings,
     list_topics,
     load_chunks,
     reload_kb,
@@ -409,6 +410,14 @@ class TestCachingReload:
         assert "chunks_loaded" in result
         assert "timestamp" in result
         assert result["chunks_loaded"] > 0
+
+
+class TestInitKbEmbeddings:
+    def test_init_kb_embeddings_without_openai(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "")
+        result = init_kb_embeddings(session=None)
+        assert "status" in result
+        assert result["status"] in ("embedded_local", "error")
 
 
 # ---------------------------------------------------------------------------

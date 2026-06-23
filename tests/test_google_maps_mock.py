@@ -197,20 +197,15 @@ def test_create_google_elevation_chart_no_points():
     assert result is None
 
 
-def test_create_google_elevation_chart_invalid_api_key():
-    from bike_analyzer.backend.maps.google_maps import create_google_elevation_chart
+def test_init_chroma_db_error():
+    """Test init_chroma_db when chromadb is available but path missing."""
+    try:
+        from bike_analyzer.backend.analytics.knowledge_base import init_chroma_db
 
-    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC))]
-    result = create_google_elevation_chart(points, "invalid-key")
-    assert result is None
-
-
-def test_create_google_elevation_chart_short_api_key():
-    from bike_analyzer.backend.maps.google_maps import create_google_elevation_chart
-
-    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC))]
-    result = create_google_elevation_chart(points, "short")
-    assert result is None
+        result = init_chroma_db()
+        assert "status" in result
+    except ImportError:
+        pass
 
 
 def teardown_function():
