@@ -423,15 +423,13 @@ async def google_oauth_callback_get(
         existing = get_athlete(athlete_id)
 
     session = create_google_session(user_info, athlete_id=existing["id"])
-    token = session["access_token"]
+    jwt_token = session["access_token"]
+    parsed_redirect = urlparse(redirect_uri or "")
+    frontend_origin = f"{parsed_redirect.scheme}://{parsed_redirect.netloc}" if parsed_redirect.scheme else None
+    if not frontend_origin or not parsed_redirect.path.endswith("/api/v1/auth/google/callback"):
+        frontend_origin = _build_redirect_uri(request, "")
     return RedirectResponse(
-        url=_build_frontend_redirect_url(
-            request,
-            redirect_uri,
-            {"token", "email"},
-            token=token,
-            email=email or "",
-        )
+        url=f"{frontend_origin}?{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
     )
 
 

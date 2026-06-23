@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { isLoggedIn, isAdmin } from '../composables/useAuth'
+import { isLoggedIn, isAdmin, token, user, parseJWTPayload } from '../composables/useAuth'
 
 const routes = [
   {
@@ -121,6 +121,19 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from) => {
+  // Handle OAuth callback token from URL params
+  if (to.query.token && typeof to.query.token === 'string') {
+    token.value = to.query.token
+    const payload = parseJWTPayload(to.query.token)
+    user.value = {
+      id: typeof to.query.user_id === 'string' ? parseInt(to.query.user_id, 10) : 0,
+      username: typeof payload?.sub === 'string' ? payload.sub : '',
+      is_admin: !!payload?.is_admin,
+    }
+    localStorage.setItem('bikemaster_token', to.query.token)
+    localStorage.setItem('bikemaster_user', JSON.stringify(user.value))
+  }
+
   const loggedIn = isLoggedIn()
 
   if (to.path === '/' && loggedIn) {
