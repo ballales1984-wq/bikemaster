@@ -29,7 +29,9 @@ RUN groupadd -r bikemaster && useradd -r -g bikemaster bikemaster
 WORKDIR /app
 
 COPY requirements.txt ./
+# Install numpy first to constrain scientific stack versions
 RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir "numpy>=1.26.4,<2.0.0" && \
     pip install --no-cache-dir -r requirements.txt
 
 COPY main.py ./
