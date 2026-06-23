@@ -3,21 +3,21 @@
     <div class="panel">
 <h2>📅 Calendar & Goals</h2>
 
-       <div class="calendar-controls">
-         <div class="calendar-nav">
-           <button class="btn btn-secondary btn-sm" @click="prevMonth">◀</button>
-           <span class="month-label">{{ monthLabel }}</span>
-           <button class="btn btn-secondary btn-sm" @click="nextMonth">▶</button>
-           <button class="btn btn-secondary btn-sm" @click="goToday">Today</button>
-         </div>
-         <div class="athlete-select">
-           <label>Athlete:</label>
-           <select v-model.number="athleteId" @change="loadEvents">
-             <option :value="0">General</option>
-             <option v-for="a in athletes" :key="a.id" :value="a.id">{{ a.name }}</option>
-           </select>
-         </div>
-       </div>
+<div class="calendar-controls">
+          <div class="calendar-nav">
+            <button class="btn btn-secondary btn-sm" @click="prevMonth" @touchstart="prevMonth">◀</button>
+            <span class="month-label">{{ monthLabel }}</span>
+            <button class="btn btn-secondary btn-sm" @click="nextMonth" @touchstart="nextMonth">▶</button>
+            <button class="btn btn-secondary btn-sm" @click="goToday" @touchstart="goToday">Today</button>
+          </div>
+          <div class="athlete-select">
+            <label>Athlete:</label>
+            <select v-model.number="athleteId" @change="loadEvents">
+              <option :value="0">General</option>
+              <option v-for="a in athletes" :key="a.id" :value="a.id">{{ a.name }}</option>
+            </select>
+          </div>
+        </div>
 
        <div class="calendar-legend">
          <span class="legend-item legend-training">Training</span>
@@ -30,38 +30,38 @@
 
        <div class="calendar-grid">
          <div class="cal-header" v-for="d in weekDays" :key="d">{{ d }}</div>
-         <div v-for="(day, idx) in calendarDays" :key="idx" class="cal-cell" :class="{
-           'other-month': !day.currentMonth,
-           'today': isToday(day),
-           'has-events': day.events.length > 0
-         }" @click="openAddForDate(day.date)">
-           <span class="day-num">{{ day.day }}</span>
-           <div class="day-events">
-             <span v-for="ev in day.events.slice(0, 3)" :key="ev.id" class="event-dot" :class="'dot-' + ev.event_type">
-               {{ ev.title }}
-             </span>
-             <span v-if="day.events.length > 3" class="more-events">+{{ day.events.length - 3 }}</span>
-           </div>
-         </div>
+<div v-for="(day, idx) in calendarDays" :key="idx" class="cal-cell" :class="{
+            'other-month': !day.currentMonth,
+            'today': isToday(day),
+            'has-events': day.events.length > 0
+          }" @click="openAddForDate(day.date)" @touchstart="openAddForDate(day.date)">
+            <span class="day-num">{{ day.day }}</span>
+            <div class="day-events">
+              <span v-for="ev in day.events.slice(0, 3)" :key="ev.id" class="event-dot" :class="'dot-' + ev.event_type">
+                {{ ev.title }}
+              </span>
+              <span v-if="day.events.length > 3" class="more-events">+{{ day.events.length - 3 }}</span>
+            </div>
+          </div>
        </div>
 
        <div v-if="selectedDateEvents.length" class="day-detail">
          <h3>Events for {{ selectedDate }} <span class="event-count">({{ selectedDateEvents.length }})</span></h3>
          <ul class="event-list">
            <li v-for="ev in selectedDateEvents" :key="ev.id" class="event-item" :class="{ completed: ev.completed }">
-             <span class="event-check">
-               <input type="checkbox" :checked="ev.completed" @change="toggleComplete(ev)" :name="'event-complete-' + ev.id" />
-             </span>
+<span class="event-check">
+                <input type="checkbox" :checked="ev.completed" @change="toggleComplete(ev)" @touchstart="toggleComplete(ev)" :name="'event-complete-' + ev.id" />
+              </span>
              <span class="event-info">
                <strong class="event-title">{{ ev.title }}</strong>
                <span class="event-meta">
                  <span class="badge" :class="'badge-' + ev.event_type">{{ eventLabel(ev.event_type) }}</span>
                </span>
              </span>
-             <span class="event-actions">
-               <button class="btn btn-secondary btn-xs" @click="openEdit(ev)">Edit</button>
-               <button class="btn btn-danger btn-xs" @click="askDeleteEvent(ev.id)">Delete</button>
-             </span>
+<span class="event-actions">
+                <button class="btn btn-secondary btn-xs" @click="openEdit(ev)" @touchstart="openEdit(ev)">Edit</button>
+                <button class="btn btn-danger btn-xs" @click="askDeleteEvent(ev.id)" @touchstart="askDeleteEvent(ev.id)">Delete</button>
+              </span>
            </li>
          </ul>
        </div>
@@ -87,10 +87,10 @@
            <label for="event-title">Title *</label>
            <input id="event-title" v-model="form.title" required maxlength="200" />
          </div>
-         <div class="form-actions">
-           <button type="submit" class="btn btn-primary">Save</button>
-           <button type="button" class="btn btn-secondary" @click="showForm = false">Cancel</button>
-         </div>
+<div class="form-actions">
+            <button type="submit" class="btn btn-primary" @touchstart="saveEvent">Save</button>
+            <button type="button" class="btn btn-secondary" @click="showForm = false" @touchstart="showForm = false">Cancel</button>
+          </div>
        </form>
      </div>
      <ConfirmModal

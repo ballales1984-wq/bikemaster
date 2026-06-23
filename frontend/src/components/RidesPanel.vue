@@ -17,7 +17,7 @@
              <input v-model="form.elevation_gain_m" type="number" placeholder="Elevation (m)" class="form-input" />
              <input v-model="form.calories" type="number" placeholder="Calories" class="form-input" />
            </div>
-           <button type="submit" class="btn btn-primary" :disabled="adding" :aria-busy="adding">{{ adding ? 'Adding...' : 'Add Ride' }}</button>
+           <button type="submit" class="btn btn-primary" :disabled="adding" :aria-busy="adding" @touchstart="handleAdd">{{ adding ? 'Adding...' : 'Add Ride' }}</button>
          </form>
          <p v-if="addError" class="error-text">{{ addError }}</p>
        </div>
@@ -33,7 +33,7 @@
              <div class="ride-date">{{ ride.date }}</div>
              <div class="ride-stats">{{ ride.distance_km }}km • {{ ride.duration_minutes }}min • {{ ride.avg_speed_kmh }} km/h</div>
            </div>
-           <button class="btn btn-danger btn-sm" @click="askDelete(ride.id)" :aria-label="`Delete ride on ${ride.date}`">Delete</button>
+           <button class="btn btn-danger btn-sm" @click="askDelete(ride.id)" @touchstart="askDelete(ride.id)" :aria-label="`Delete ride on ${ride.date}`">Delete</button>
          </div>
        </div>
      </div>

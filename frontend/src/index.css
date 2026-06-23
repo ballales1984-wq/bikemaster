@@ -1168,11 +1168,59 @@ textarea {
 
 /* Mobile touch target improvements */
 @media (hover: none) and (pointer: coarse) {
-  .btn, .tab, .tab-btn, button, input[type="checkbox"] {
+  .btn, .tab, .tab-btn, button, input[type="checkbox"], input[type="radio"] {
     min-height: 48px !important;
     min-width: 48px !important;
     touch-action: manipulation;
   }
+
+  .tab {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+
+  .tab-badge {
+    min-height: 20px;
+    min-width: 20px;
+  }
+
+  .btn-xs {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  .btn-sm {
+    min-height: 38px;
+    padding: 8px 14px;
+  }
+
+  .btn-large {
+    min-height: 56px;
+    padding: 14px 28px;
+    font-size: 1.1rem;
+  }
+
+  .event-check input {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .password-toggle {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Input touch improvements */
+  .form-group input, .form-group select, .form-group textarea {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  /* Prevents zoom on focus for iOS */
+  input[type="text"], input[type="email"], input[type="password"], input[type="number"] {
+    font-size: 16px;
+  }
+}
 
   .tab {
     min-height: 48px;
