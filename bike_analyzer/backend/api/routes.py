@@ -214,6 +214,14 @@ async def health_check():
     return {"status": "ok", "service": "bikemaster"}
 
 
+@router.post("/alerts/webhook")
+async def alerts_webhook(request: Request):
+    """Receive alerts from Prometheus Alertmanager."""
+    body = await request.json()
+    logger.info("Alert received: %s", body.get("receiver", "unknown"))
+    return {"status": "ok"}
+
+
 @router.get("/sentry-debug")
 async def sentry_debug():
     """Debug endpoint to verify Sentry error tracking."""
@@ -1050,6 +1058,7 @@ async def google_fit_callback(
     error_description: str | None = Query(None),
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
+    current_user: dict = Depends(get_current_user),
 ):
     """Handle Google Fit OAuth callback - exchange code and import activities."""
     from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
@@ -1099,7 +1108,7 @@ async def google_fit_callback(
     imported = []
     for ride_data in rides_data:
         ride_data = {k: v for k, v in ride_data.items() if k != "id"}
-        ride_data["athlete_id"] = 1
+        ride_data["athlete_id"] = current_user["id"]
         ride_id = save_ride(ride_data)
         ride_data["id"] = int(ride_id)
         imported.append(ride_data)

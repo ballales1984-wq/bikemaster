@@ -153,6 +153,14 @@ def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
 
     scope = token_data.get("scope", "")
     expires_at = token_data.get("expires_at", 0)
+    if isinstance(expires_at, str):
+        try:
+            expires_at = int(expires_at)
+        except ValueError:
+            expires_at = 0
+    if not expires_at and "expires_in" in token_data:
+        import time
+        expires_at = int(time.time()) + int(token_data["expires_in"])
     athlete_name = ""
     if token_data.get("athlete"):
         athlete_name = token_data["athlete"].get("firstname", "")

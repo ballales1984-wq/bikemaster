@@ -33,7 +33,7 @@ slowapi>=0.1.9
 # OpenTelemetry / Jaeger Tracing
 opentelemetry-api>=1.27.0
 opentelemetry-sdk>=1.27.0
-opentelemetry-instrumentation-fastapi>=0.48b0
+opentelemetry-instrumentation-fastapi>=0.51b0
 opentelemetry-instrumentation-sqlalchemy>=0.38.0
 opentelemetry-instrumentation-requests>=0.38.0
 opentelemetry-exporter-otlp-proto-grpc>=1.27.0

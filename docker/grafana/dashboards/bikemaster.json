@@ -257,10 +257,40 @@
                 {"value": 80, "color": "green"}
               ]
             },
-            "unit": "percent"
-          }
-        }
-      }
-    ]
-  }
-}
+"unit": "percent"
+           }
+         }
+       },
+       {
+         "id": 14,
+         "title": "Tracking Sessions",
+         "type": "stat",
+         "gridPos": {"x": 0, "y": 24, "w": 6, "h": 4},
+         "datasource": {"type": "prometheus", "uid": "prometheus"},
+         "targets": [
+           {
+             "expr": "sum(rate(bikemaster_tracking_sessions_total[5m]))",
+             "legendFormat": "sessions",
+             "refId": "A"
+           }
+         ],
+         "fieldConfig": {"defaults": {"unit": "s"}}
+       },
+       {
+         "id": 15,
+         "title": "Active Athletes (30min)",
+         "type": "stat",
+         "gridPos": {"x": 6, "y": 24, "w": 6, "h": 4},
+         "datasource": {"type": "prometheus", "uid": "prometheus"},
+         "targets": [
+           {
+             "expr": "bikemaster_active_athletes",
+             "legendFormat": "athletes",
+             "refId": "A"
+           }
+         ],
+         "fieldConfig": {"defaults": {"unit": "short"}}
+       }
+     ]
+   }
+ }
