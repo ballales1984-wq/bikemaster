@@ -1122,18 +1122,48 @@ async def google_fit_callback(
             }
         )
 
+    cache_key = f"oauth:code:google-fit:{code}"
+    cached_result = await _cached(cache_key)
+    if cached_result:
+        return HTMLResponse(content=cached_result["html"])
+
     try:
         token_data = exchange_code_for_token(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
     except requests.exceptions.HTTPError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=_http_error_detail(exc, "Google Fit token exchange failed"),
-        ) from exc
+        response = getattr(exc, "response", None)
+        if response is not None and response.status_code == 400:
+            cached_retry = await _cached(cache_key)
+            if cached_retry:
+                return HTMLResponse(content=cached_retry["html"])
+            return _google_fit_message_html(
+                {
+                    "type": "google-fit-error",
+                    "error": "oauth_error",
+                    "error_description": "Codice OAuth già utilizzato o non valido",
+                }
+            )
+        error_body = response.text if response is not None else str(exc)
+        return _google_fit_message_html(
+            {
+                "type": "google-fit-error",
+                "error": "token_exchange_failed",
+                "error_description": error_body[:200],
+            }
+        )
     access_token = token_data.get("access_token")
     if not access_token:
-        raise HTTPException(status_code=400, detail="Failed to get access token from Google Fit")
+        return _google_fit_message_html(
+            {
+                "type": "google-fit-error",
+                "error": "no_access_token",
+                "error_description": "Impossibile ottenere access token da Google Fit",
+            }
+        )
 
-    return _google_fit_message_html({"type": "google-fit-success", "token": access_token})
+    payload = {"type": "google-fit-success", "token": access_token}
+    html_content = f"<script>window.opener.postMessage({json.dumps(payload)}, '*'); window.close();</script>"
+    await _cache_set(cache_key, {"html": html_content}, ttl=300)
+    return HTMLResponse(content=html_content)
 
 
 @router.post("/import/google-fit")
