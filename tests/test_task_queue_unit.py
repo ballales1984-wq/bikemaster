@@ -120,6 +120,20 @@ class TestBackgroundTaskQueue:
     async def test_worker_handles_failing_handler(self):
         q = BackgroundTaskQueue(max_workers=1)
         await q.start()
-        task = await q.enqueue("generate_map", {"points": [{"lat": 45.0, "lon": 9.0, "altitude": 100, "speed": 10, "timestamp": "2024-06-15T10:00:00Z"}], "ride_id": "1"})
+        await q.enqueue(
+            "generate_map",
+            {
+                "points": [
+                    {
+                        "lat": 45.0,
+                        "lon": 9.0,
+                        "altitude": 100,
+                        "speed": 10,
+                        "timestamp": "2024-06-15T10:00:00Z",
+                    }
+                ],
+                "ride_id": "1",
+            },
+        )
         await asyncio.sleep(0.3)
         await q.stop()
