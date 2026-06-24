@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ....core.models import Ride
+from ..models import Ride
 
 
 def calories_met(ride: Ride) -> float:

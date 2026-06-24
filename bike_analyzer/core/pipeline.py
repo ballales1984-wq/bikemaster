@@ -38,17 +38,14 @@ class AnalysisPipeline:
         return stats
 
     def _compute_metrics(self, ride: Ride) -> dict:
-        from bike_analyzer.backend.analytics.calculators.calories import estimate
-        from bike_analyzer.backend.analytics.calculators.fatigue import calculate_fatigue_score, estimate_recovery_hours
-        from bike_analyzer.backend.analytics.calculators.performance import efficiency_score, performance_score
-        from bike_analyzer.backend.analytics.calculators.power import training_stress_score
+        from .calculators import calories, fatigue, performance, power
 
-        fatigue = calculate_fatigue_score(ride)
+        fatigue_score = fatigue.calculate_fatigue_score(ride)
         return {
-            "fatigue_score": round(fatigue, 1),
-            "recovery_hours": round(estimate_recovery_hours(fatigue), 1),
-            "calories": round(estimate(ride), 0),
-            "performance_score": performance_score(ride),
-            "efficiency_score": efficiency_score(ride),
-            "tss": training_stress_score(ride, self.ftp),
+            "fatigue_score": round(fatigue_score, 1),
+            "recovery_hours": round(fatigue.estimate_recovery_hours(fatigue_score), 1),
+            "calories": round(calories.estimate(ride), 0),
+            "performance_score": performance.performance_score(ride),
+            "efficiency_score": performance.efficiency_score(ride),
+            "tss": power.training_stress_score(ride, self.ftp),
         }

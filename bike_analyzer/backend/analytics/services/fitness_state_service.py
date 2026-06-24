@@ -6,9 +6,9 @@ from collections import defaultdict
 from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 
-from ....core.fitness_state import FitnessStateVector
-from ....core.models import Ride
-from ..calculators import power, stress
+from ...core.fitness_state import FitnessStateVector
+from ...core.models import Ride
+from ...core.calculators import power, stress
 
 
 class FitnessStateEngine:
@@ -46,7 +46,6 @@ class FitnessStateEngine:
             recommendation = "Good freshness - race or hard effort possible"
         if tsb > 5 and atl < ctl * 1.1:
             recommendation = "Ready for hard effort"
-        from bike_analyzer.core.fitness_state import FitnessStateVector
         return FitnessStateVector(
             athlete_id=athlete_id,
             computed_at=datetime.now(),

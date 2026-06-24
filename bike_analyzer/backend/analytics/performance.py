@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from ..models.models import AthleteProfile, Ride
+from .fatigue import calculate_fatigue_score
 
 
 def calculate_performance_score(ride: Ride) -> float:
@@ -24,8 +25,6 @@ def calculate_endurance_score(rides: list[Ride]) -> float:
 
 
 def calculate_recovery_score(ride: Ride) -> float:
-    from .fatigue import calculate_fatigue_score
-
     fatigue = calculate_fatigue_score(ride)
     return round(10.0 - fatigue, 1)
 
@@ -42,7 +41,6 @@ def calculate_efficiency_score(ride: Ride) -> float:
 def calculate_monthly_scores(rides: list[Ride]) -> dict:
     if not rides:
         return {"performance": 0, "endurance": 0, "recovery": 0, "efficiency": 0, "avg_fatigue": 0}
-    from .fatigue import calculate_fatigue_score
 
     return {
         "performance": round(sum(calculate_performance_score(r) for r in rides) / len(rides), 1),

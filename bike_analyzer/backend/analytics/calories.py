@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ..models.models import Ride
-from .calculators.calories import estimate as _core_estimate
+from bike_analyzer.core.calculators.calories import estimate as _core_estimate
 
 
 def calculate_calories_met(ride: Ride) -> float:

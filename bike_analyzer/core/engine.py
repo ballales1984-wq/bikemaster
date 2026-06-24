@@ -34,25 +34,13 @@ class AnalysisEngine:
 
     This is the single entry point for all ride analysis operations.
     Integrates with repositories for persistence and computes fitness state vectors
-    using the proper EWMA-based FitnessStateEngine (not simplified approximations).
+    using EWMA-based calculations.
     """
 
     def __init__(self, ftp: float = 250.0, athlete_profile: AthleteProfile | None = None):
         self.pipeline = AnalysisPipeline(ftp=ftp)
         self._ftp = ftp
         self._athlete_profile = athlete_profile
-        self._fitness_engine = None
-
-    def _get_fitness_engine(self):
-        if self._fitness_engine is None:
-            try:
-                from bike_analyzer.backend.analytics.services.fitness_state_service import (
-                    FitnessStateEngine,
-                )
-                self._fitness_engine = FitnessStateEngine(ftp=self._ftp)
-            except ImportError:
-                logger.warning("FitnessStateEngine not available, using simplified TSS")
-        return self._fitness_engine
 
     async def process_ride(
         self,
@@ -94,7 +82,7 @@ class AnalysisEngine:
 
     async def _load_historical_rides(self, athlete_id: int, session_factory, limit: int = 90) -> list[Ride]:
         try:
-            from bike_analyzer.backend.db.async_db import get_rides_by_athlete_async
+            from ..db.async_db import get_rides_by_athlete_async
             raw_rides = await get_rides_by_athlete_async(athlete_id, limit=limit)
             return [Ride(**r) for r in raw_rides]
         except Exception as exc:
@@ -108,32 +96,44 @@ class AnalysisEngine:
         if athlete_id is None:
             return None
 
-        engine = self._get_fitness_engine()
-        if engine is not None and historical_rides is not None:
-            try:
-                return engine.compute(historical_rides, athlete_id)
-            except Exception as exc:
-                logger.warning("FitnessStateEngine compute failed, using fallback: %s", exc)
+        from .calculators import power, stress
 
-        tss = ride.calories / 100.0 if ride.calories else 0.0
+        tss = 0.0
+        atl = 0.0
+        ctl = 0.0
+
+        if historical_rides:
+            ride_days: dict[str, float] = {}
+            for r in historical_rides:
+                day = r.date[:10] if r.date and len(r.date) >= 10 else "unknown"
+                ride_days[day] = max(ride_days.get(day, 0.0), power.training_stress_score(r, self._ftp))
+
+            days_sorted = sorted(ride_days.items())
+            tss_series = [v for _, v in days_sorted]
+            tss = tss_series[-1] if tss_series else 0.0
+            atl = stress.ewma(tss_series, tau_days=7.0) if tss_series else 0.0
+            ctl = stress.ewma(tss_series, tau_days=42.0) if tss_series else 0.0
+        else:
+            tss = power.training_stress_score(ride, self._ftp)
+            atl = min(tss * 1.5, 100.0)
+            ctl = max(tss * 0.8, 10.0)
+
+        tsb = round(ctl - atl, 1)
         fitness_state = FitnessStateVector(
             athlete_id=athlete_id,
             computed_at=datetime.now(UTC),
-            atl=min(tss * 1.5, 100.0),
-            ctl=max(tss * 0.8, 10.0),
-            tsb=0.0,
-            fitness=tss * 0.8,
-            fatigue=tss * 1.5,
-            form=0.0,
-            recovery_hours_needed=0.0,
+            atl=atl,
+            ctl=ctl,
+            tsb=tsb,
+            fitness=round(ctl, 1),
+            fatigue=round(atl, 1),
+            form=tsb,
+            recovery_hours_needed=tss * 2,
             weekly_tss=tss,
             monthly_tss=tss * 4,
             trend_7d="stable",
             trend_30d="stable",
         )
-        fitness_state.tsb = fitness_state.ctl - fitness_state.atl
-        fitness_state.form = fitness_state.tsb
-        fitness_state.recovery_hours_needed = tss * 2
 
         if session_factory:
             await self._persist_fitness_state(fitness_state, session_factory)
@@ -144,10 +144,7 @@ class AnalysisEngine:
         self, state: FitnessStateVector, session_factory
     ) -> None:
         try:
-            from bike_analyzer.backend.analytics.repositories.fitness_state_repository import (
-                FitnessStateRepository,
-            )
-
+            from ..analytics.repositories.fitness_state_repository import FitnessStateRepository
             repo = FitnessStateRepository(session_factory=session_factory)
             await repo.save(state.to_dict())
         except Exception:
