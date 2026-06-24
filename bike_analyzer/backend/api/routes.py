@@ -36,6 +36,8 @@ from ..maps.map_renderer import create_route_map
 from ..maps.osm_maps import get_local_results, search_nearby, search_places
 from ..models.models import AthleteProfile, GPSPoint, Ride
 from ..rate_limiter import limiter
+from ..redis_client import cache_set as _cache_set
+from ..redis_client import cached as _cached
 from ..security import get_admin_user, get_current_user
 from ..utils.logger import get_logger
 from .schemas import (
@@ -421,10 +423,19 @@ async def google_oauth_callback_get(
     if not code:
         return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="missing_code"))
 
+    cache_key = f"oauth:code:{code}"
+    cached_result = await _cached(cache_key)
+    if cached_result:
+        return RedirectResponse(url=cached_result["redirect_url"])
+
     try:
         token_data = exchange_google_code(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
     except requests.exceptions.HTTPError as exc:
         response = getattr(exc, "response", None)
+        if response is not None and response.status_code == 400:
+            return RedirectResponse(
+                url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="oauth_error")
+            )
         error_body = response.text if response is not None else str(exc)
         error_detail = f"token_exchange_failed:{error_body[:200]}"
         return RedirectResponse(
@@ -468,9 +479,12 @@ async def google_oauth_callback_get(
     frontend_origin = f"{parsed_redirect.scheme}://{parsed_redirect.netloc}/" if parsed_redirect.scheme else None
     if not frontend_origin or not parsed_redirect.path.endswith("/api/v1/auth/google/callback"):
         frontend_origin = _build_redirect_uri(request, "")
-    return RedirectResponse(
-        url=f"{frontend_origin}#{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
+    redirect_url = (
+        f"{frontend_origin}#"
+        f"{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
     )
+    await _cache_set(cache_key, {"redirect_url": redirect_url}, ttl=300)
+    return RedirectResponse(url=redirect_url)
 
 
 @router.post("/rides")
