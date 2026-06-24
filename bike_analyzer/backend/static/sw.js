@@ -2341,7 +2341,7 @@ Je({
   prefix: "bikemaster",
   suffix: "v1"
 });
-const q = "bikemaster-static-v5", B = "bikemaster-api-v1", ce = "bikemaster-images-v1", j = "bikemaster-ride-queue-v1";
+const q = "bikemaster-static-v6", B = "bikemaster-api-v1", ce = "bikemaster-images-v1", j = "bikemaster-ride-queue-v1";
 self.addEventListener("install", (n) => {
   self.skipWaiting(), self.registration.navigationPreload && self.registration.navigationPreload.enable(), n.waitUntil(
     caches.open(q).then((e) => e.addAll([
