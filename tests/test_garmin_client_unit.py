@@ -8,8 +8,6 @@ from bike_analyzer.backend.ingestion.garmin_client import (
     exchange_code_for_token,
     fetch_activities,
     garmin_to_ride,
-    get_valid_token,
-    store_token,
 )
 
 

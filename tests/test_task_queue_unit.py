@@ -2,7 +2,6 @@
 
 import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from bike_analyzer.backend.task_queue import (
     BackgroundTaskQueue,

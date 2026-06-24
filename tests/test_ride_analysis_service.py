@@ -2,7 +2,7 @@
 
 import pytest
 from datetime import datetime, UTC
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from bike_analyzer.backend.analytics.services.ride_analysis_service import (
     RideAnalysisService,

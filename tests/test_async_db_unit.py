@@ -1,7 +1,7 @@
 """Tests for async_db layer coverage."""
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, patch
 
 from bike_analyzer.backend.db.async_db import (
     _get_engine,

@@ -393,7 +393,7 @@ async def google_oauth_callback_get(
 
     from ..auth.google_auth import create_google_session, exchange_google_code, get_google_user_info
     from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-    from ..db.database import get_athlete, get_athlete_by_email, get_athlete_by_name, save_athlete
+    from ..db.database import get_athlete, get_athlete_by_email, save_athlete
 
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
