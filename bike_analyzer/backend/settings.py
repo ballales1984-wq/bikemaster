@@ -134,6 +134,9 @@ class Settings(BaseSettings):
     garmin_redirect_uri: str = "http://localhost:8000/api/v1/import/garmin/callback"
     garmin_scope: str = "read"
 
+    # === Map Styles ===
+    default_map_style: str = "standard"
+
     # === Google OAuth2 ===
     google_client_id: str = ""
     google_client_secret: str = ""

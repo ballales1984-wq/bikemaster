@@ -14,6 +14,15 @@
 
     <div class="map-toolbar">
       <label class="control">
+        <span>Map</span>
+        <select v-model="mapStyle" class="form-input">
+          <option v-for="(cfg, key) in MAP_STYLES" :key="key" :value="key">
+            {{ cfg.label }}
+          </option>
+        </select>
+      </label>
+
+      <label class="control">
         <span>Route</span>
         <select v-model="selectedRideId" class="form-input">
           <option :value="null">All routes</option>
@@ -125,12 +134,40 @@ import {
    weatherRiskPercent,
  } from '../utils/routeMap'
 
- const mapContainer = ref(null)
- const loading = ref(false)
- const enrichedRides = ref([])
- const selectedRideId = ref(null)
- const colorMode = ref('combined')
- const weatherEnabled = ref(true)
+  const mapContainer = ref(null)
+  const loading = ref(false)
+  const enrichedRides = ref([])
+  const selectedRideId = ref(null)
+  const colorMode = ref('combined')
+  const weatherEnabled = ref(true)
+  const mapStyle = ref(localStorage.getItem('mapStyle') || 'standard')
+
+  const MAP_STYLES = {
+    standard: {
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+      label: 'Standard (OSM)',
+    },
+    cyclosm: {
+      url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="https://cyclosm.org">CyclOSM</a>',
+      maxZoom: 20,
+      label: 'CyclOSM (Cycling)',
+    },
+    opencyclemap: {
+      url: 'https://{s}.tile.opencyclemap.org/cycle/{z}/{x}/{y}.png',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.opencyclemap.org">OpenCycleMap</a>',
+      maxZoom: 19,
+      label: 'OpenCycleMap',
+    },
+    topo: {
+      url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+      maxZoom: 17,
+      label: 'Topographic',
+    },
+  }
 
  // Demo route: Milan to Monza (approximate coordinates along SS36)
  const demoRoutePoints = [
@@ -147,46 +184,100 @@ import {
    { lat: 45.6300, lon: 9.1200, altitude: 210 },
  ]
 
- let map = null
- let layerGroup = null
+  let map = null
+  let layerGroup = null
+  let tileLayer = null
 
- const riskLevels = [
-   { label: 'Easy', range: '0-24', color: '#27ae60' },
-   { label: 'Moderate', range: '25-49', color: '#f1c40f' },
-   { label: 'Hard', range: '50-74', color: '#e67e22' },
-   { label: 'Critical', range: '75-100', color: '#e74c3c' },
- ]
-
- const gradeLegend = [
-     { label: 'Flat or false flat: < 3%', color: '#27ae60' },
-     { label: 'Moderate: 3-6%', color: '#f1c40f' },
-     { label: 'Steep: 6-10%', color: '#e67e22' },
-     { label: 'Very steep: > 10%', color: '#e74e6c' },
-  ]
-
-  const speedLegend = [
-     { label: 'High speed: > 25 km/h', color: '#27ae60' },
-     { label: 'Medium speed: 15-25 km/h', color: '#f1c40f' },
-     { label: 'Low speed: < 15 km/h', color: '#e74c3c' },
-  ]
-
-  const weatherLegend = [
-    { label: 'Good: score >= 8', color: '#27ae60' },
-    { label: 'Acceptable: score 5-7', color: '#f1c40f' },
-    { label: 'Critical: score < 5', color: '#e74c3c' },
-  ]
-
-const ridesWithGps = computed(() => enrichedRides.value.filter(ride => ride.gps_points.length > 1))
-
-const visibleRides = computed(() => {
-  if (selectedRideId.value) {
-    const selected = ridesWithGps.value.find(ride => ride.id === selectedRideId.value)
-    if (selected) return [selected]
+  function createTileLayer(styleKey) {
+    const cfg = MAP_STYLES[styleKey] || MAP_STYLES.standard
+    return L.tileLayer(cfg.url, {
+      attribution: cfg.attribution,
+      maxZoom: cfg.maxZoom,
+    })
   }
-  return ridesWithGps.value
-})
 
-const totalGpsPoints = computed(() => visibleRides.value.reduce((sum, ride) => sum + ride.gps_points.length, 0))
+  function switchTileLayer(styleKey) {
+    if (!map) return
+    if (tileLayer) {
+      map.removeLayer(tileLayer)
+    }
+    tileLayer = createTileLayer(styleKey)
+    tileLayer.addTo(map)
+  }
+
+  function renderMap() {
+    if (!mapContainer.value) return
+
+    if (!map) {
+      map = L.map(mapContainer.value, { preferCanvas: true }).setView([45.4642, 9.19], 11)
+      tileLayer = createTileLayer(mapStyle.value)
+      tileLayer.addTo(map)
+      layerGroup = L.layerGroup().addTo(map)
+    } else {
+      switchTileLayer(mapStyle.value)
+    }
+
+    layerGroup.clearLayers()
+    const bounds = L.latLngBounds()
+
+    const ridesToRender = visibleRides.value.length > 0 ? visibleRides.value : [demoRide.value]
+
+    ridesToRender.forEach(ride => {
+      const rideLayer = L.layerGroup()
+      const points = ride.gps_points || []
+
+      let segments = ride.segments
+      if (ride.isDemo) {
+        segments = buildDemoSegments(points)
+      }
+
+      buildRidePolylines({ ...ride, segments }).forEach(polylineData => {
+        const polyline = L.polyline(polylineData.points, {
+          color: polylineData.color,
+          weight: 5,
+          opacity: 0.8,
+          dashArray: ride.isDemo ? '10,5' : null,
+          lineCap: 'round',
+          lineJoin: 'round',
+        })
+        polyline.addTo(rideLayer)
+        polylineData.points.forEach(point => {
+          bounds.extend(point)
+        })
+      })
+
+      if (ride.center) {
+        const centerMarker = L.circleMarker(ride.center, {
+          radius: 6,
+          color: ride.isDemo ? '#3498db' : riskColor(ride.overallRisk),
+          fillColor: ride.isDemo ? '#3498db' : riskColor(ride.overallRisk),
+          fillOpacity: 0.9,
+          weight: 2,
+        })
+        centerMarker.bindPopup(ride.isDemo ? 'Milan-Monza demo route' : ridePopup(ride))
+        centerMarker.addTo(rideLayer)
+      }
+
+      rideLayer.addTo(layerGroup)
+    })
+
+    if (bounds.isValid()) {
+      map.fitBounds(bounds.pad(0.1))
+    }
+    map.invalidateSize()
+  }
+
+  const ridesWithGps = computed(() => enrichedRides.value.filter(ride => ride.gps_points.length > 1))
+
+  const visibleRides = computed(() => {
+    if (selectedRideId.value) {
+      const selected = ridesWithGps.value.find(ride => ride.id === selectedRideId.value)
+      if (selected) return [selected]
+    }
+    return ridesWithGps.value
+  })
+
+  const totalGpsPoints = computed(() => visibleRides.value.reduce((sum, ride) => sum + ride.gps_points.length, 0))
 
 const averageRisk = computed(() => {
   const risks = visibleRides.value.flatMap(ride => ride.segments.map(segment => segment.risk))
@@ -212,6 +303,11 @@ const demoRide = computed(() => ({
   distanceM: demoRoutePoints.length * 5000,
   overallRisk: 50,
 }))
+
+watch(mapStyle, () => {
+  localStorage.setItem('mapStyle', mapStyle.value)
+  renderMap()
+})
 
 watch(colorMode, () => {
   enrichedRides.value = enrichedRides.value.map(ride => applyRideRisk(ride))
@@ -385,70 +481,6 @@ function applyRideRisk(ride) {
   return ride
 }
 
-function renderMap() {
-  if (!mapContainer.value) return
-
-  if (!map) {
-    map = L.map(mapContainer.value, { preferCanvas: true }).setView([45.4642, 9.19], 11)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(map)
-    layerGroup = L.layerGroup().addTo(map)
-  }
-
-  layerGroup.clearLayers()
-  const bounds = L.latLngBounds()
-
-  // Show demo route when no rides available
-  const ridesToRender = visibleRides.value.length > 0 ? visibleRides.value : [demoRide.value]
-
-  ridesToRender.forEach(ride => {
-    const rideLayer = L.layerGroup()
-    const points = ride.gps_points || []
-
-    // Build demo segments if using demo ride
-    let segments = ride.segments
-    if (ride.isDemo) {
-      segments = buildDemoSegments(points)
-    }
-
-    buildRidePolylines({ ...ride, segments }).forEach(polylineData => {
-      const polyline = L.polyline(polylineData.points, {
-        color: polylineData.color,
-        weight: 5,
-        opacity: 0.8,
-        dashArray: ride.isDemo ? '10,5' : null,
-        lineCap: 'round',
-        lineJoin: 'round',
-      })
-      polyline.addTo(rideLayer)
-      polylineData.points.forEach(point => {
-        bounds.extend(point)
-      })
-    })
-
-    if (ride.center) {
-      const centerMarker = L.circleMarker(ride.center, {
-        radius: 6,
-        color: ride.isDemo ? '#3498db' : riskColor(ride.overallRisk),
-        fillColor: ride.isDemo ? '#3498db' : riskColor(ride.overallRisk),
-        fillOpacity: 0.9,
-        weight: 2,
-      })
-      centerMarker.bindPopup(ride.isDemo ? 'Milan-Monza demo route' : ridePopup(ride))
-      centerMarker.addTo(rideLayer)
-    }
-
-    rideLayer.addTo(layerGroup)
-  })
-
-  if (bounds.isValid()) {
-    map.fitBounds(bounds.pad(0.1))
-  }
-  map.invalidateSize()
-}
-
 function segmentPopup(ride, segment) {
    const gradeText = segment.grade >= 0 ? `+${segment.grade.toFixed(1)}%` : `${segment.grade.toFixed(1)}%`
    const weatherText = weatherEnabled.value
@@ -506,6 +538,7 @@ onBeforeUnmount(() => {
     map.remove()
     map = null
     layerGroup = null
+    tileLayer = null
   }
 })
 </script>
