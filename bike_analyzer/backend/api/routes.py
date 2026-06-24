@@ -57,6 +57,8 @@ logger = get_logger(__name__)
 router = APIRouter()
 admin_router = APIRouter()
 
+MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
+
 
 def _forwarded_value(header_value: str | None) -> str:
     if not header_value:
@@ -271,6 +273,8 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     athlete_id = int(row[0])
     access_token = create_access_token(subject=str(athlete_id), is_admin=False)
     refresh_token = create_refresh_token(athlete_id)
+    from ..security import save_refresh_token
+    await save_refresh_token(athlete_id, refresh_token)
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -313,7 +317,7 @@ async def logout(request: Request, current_user: dict = Depends(get_current_user
 async def refresh_token(
     request: Request, payload: RefreshTokenRequest
 ):
-    from ..security import _try_decode, create_access_token
+    from ..security import _try_decode, create_access_token, is_token_revoked
 
     refresh_token = payload.refresh_token
     jwt_payload = _try_decode(refresh_token, SECRET_KEY)
@@ -324,6 +328,9 @@ async def refresh_token(
     user_id = jwt_payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
+    jti = jwt_payload.get("jti")
+    if jti and await is_token_revoked(jti):
+        raise HTTPException(status_code=401, detail="Refresh token revoked")
     return {
         "access_token": create_access_token(subject=str(user_id), is_admin=False),
         "token_type": "bearer",
@@ -466,15 +473,28 @@ async def google_oauth_callback_get(
 
     existing = get_athlete_by_email(email) if email else None
     if not existing:
-        athlete_id = save_athlete({
-            "name": name or email or google_sub,
-            "email": email,
-            "experience_level": "Beginner",
-        })
-        existing = get_athlete(athlete_id)
+        from ..redis_client import get_redis
+        lock_key = f"oauth:lock:athlete:{email or google_sub}"
+        r = await get_redis()
+        if r is not None:
+            lock_acquired = await r.set(lock_key, "1", ex=10, nx=True)
+        else:
+            lock_acquired = True
+        try:
+            if lock_acquired:
+                existing = get_athlete_by_email(email) if email else None
+            if not existing:
+                athlete_id = save_athlete({
+                    "name": name or email or google_sub,
+                    "email": email,
+                    "experience_level": "Beginner",
+                })
+                existing = get_athlete(athlete_id)
+        finally:
+            if r is not None:
+                await r.delete(lock_key)
 
-    session = create_google_session(user_info, athlete_id=existing["id"])
-    jwt_token = session["access_token"]
+    jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
     parsed_redirect = urlparse(redirect_uri or "")
     frontend_origin = f"{parsed_redirect.scheme}://{parsed_redirect.netloc}/" if parsed_redirect.scheme else None
     if not frontend_origin or not parsed_redirect.path.endswith("/api/v1/auth/google/callback"):
@@ -483,7 +503,7 @@ async def google_oauth_callback_get(
         f"{frontend_origin}#"
         f"{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
     )
-    await _cache_set(cache_key, {"redirect_url": redirect_url}, ttl=300)
+    await _cache_set(f"oauth:code:{code}", {"redirect_url": redirect_url}, ttl=300)
     return RedirectResponse(url=redirect_url)
 
 
@@ -493,7 +513,6 @@ async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_cu
     from ..db.database import save_ride
 
     ride_dict = ride_data.model_dump()
-    # Auto-assign athlete_id to current user
     ride_dict["athlete_id"] = current_user["id"]
     points = ride_dict.get("gps_points", [])
     if points:
@@ -525,7 +544,12 @@ async def list_rides(
     all_rides = get_rides_by_athlete(current_user["id"])
     start = (page - 1) * page_size
     rides = all_rides[start : start + page_size]
-    return {"rides": rides, "total": len(all_rides), "page": page, "page_size": page_size}
+    return {
+        "rides": rides,
+        "total": len(all_rides),
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.get("/rides/count")
@@ -606,8 +630,7 @@ async def get_ride_segments(
     }
 
 
-@router.post("/rides/analyze", response_model=dict)
-@limiter.limit("20/minute")
+@router.post("/rides/analyze")
 async def analyze_rides(request: Request, payload: RideAnalysisRequest):
     return calculate_summary([Ride(**r.model_dump()) for r in payload.rides])
 
@@ -619,7 +642,7 @@ async def analyze_single_ride(
     return analyze_ride(Ride(id=ride_id, **ride_data.model_dump()))
 
 
-@router.post("/rides/{ride_id}/map")
+@router.get("/rides/{ride_id}/map")
 async def generate_ride_map(
     ride_id: int, current_user: dict = Depends(get_current_user)
 ):
@@ -643,9 +666,6 @@ async def generate_ride_map(
         raise HTTPException(status_code=400, detail="Invalid path")
     create_route_map(points, output_path=str(resolved))
     return {"map_url": f"/static/{resolved.name}"}
-
-
-MAX_UPLOAD_SIZE = 50 * 1024 * 1024
 
 
 @router.post("/import/gpx")
@@ -702,7 +722,6 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
 
 
 @router.get("/health/detailed")
-@limiter.limit("10/minute")
 async def health_detailed(request: Request):
     from ..db.database import get_all_athletes, get_all_rides
 
@@ -725,7 +744,6 @@ async def coach_chat_history(
 ):
     from ..db.database import get_chat_history
 
-    # Users can only see their own chat history (admin can see all)
     _ensure_athlete_access(athlete_id, current_user)
     history = get_chat_history(athlete_id)
     return {"athlete_id": athlete_id, "history": history}
@@ -2443,7 +2461,6 @@ async def garmin_disconnect(current_user: dict = Depends(get_current_user)):
 @limiter.limit("20/minute")
 async def get_dashboard(request: Request, current_user: dict = Depends(get_current_user)):
     """Get consolidated dashboard analytics for authenticated athlete."""
-    from ..analytics.analytics import calculate_summary
     from ..analytics.dashboard import create_score_dashboard
     from ..analytics.training_load import get_7day_fitness_summary
     from ..db.database import get_athlete, get_rides_by_athlete
