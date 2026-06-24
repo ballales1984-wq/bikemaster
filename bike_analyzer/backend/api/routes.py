@@ -1072,12 +1072,10 @@ async def google_fit_callback(
     error_description: str | None = Query(None),
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
-    current_user: dict = Depends(get_current_user),
 ):
-    """Handle Google Fit OAuth callback - exchange code and import activities."""
+    """Handle Google Fit OAuth callback - exchange code for token."""
     from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-    from ..db.database import save_ride
-    from ..ingestion.google_fit import exchange_code_for_token, fetch_cycling_activities, google_fit_to_ride
+    from ..ingestion.google_fit import exchange_code_for_token
 
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google Fit OAuth not configured")
@@ -1117,18 +1115,7 @@ async def google_fit_callback(
     if not access_token:
         raise HTTPException(status_code=400, detail="Failed to get access token from Google Fit")
 
-    activities = fetch_cycling_activities(access_token)
-    rides_data = google_fit_to_ride(activities)
-    imported = []
-    for ride_data in rides_data:
-        ride_data = {k: v for k, v in ride_data.items() if k != "id"}
-        ride_data["athlete_id"] = current_user["id"]
-        ride_id = save_ride(ride_data)
-        ride_data["id"] = int(ride_id)
-        imported.append(ride_data)
-
-    token = access_token
-    return _google_fit_message_html({"type": "google-fit-success", "token": token})
+    return _google_fit_message_html({"type": "google-fit-success", "token": access_token})
 
 
 @router.post("/import/google-fit")
