@@ -5,10 +5,10 @@
 > **Stato**: Late Beta / Early Production — architettura solida con Clean Architecture, deve essere finalizzato per produzione.
 
 ### Ultimo Commit
-- `cfdb9f1` - fix: Google OAuth callback redirect to frontend, add OAuth token handler
 - `eed6afd` - feat: implement frontend authentication, tracking controls, and core UI components with native Android project scaffolding
 - `9b68e48` - fix: skip OpenTelemetry/Zipkin exporters in development mode
 - `9257bfe` - feat: implement PWA install prompt, service worker navigate fix, ride tracking updates
+- `f5c02c6` - feat: add registration email validation, update documentation, and implement test suite for mapping and analytics modules.
 
 ---
 
