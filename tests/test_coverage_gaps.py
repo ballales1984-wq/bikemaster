@@ -411,7 +411,7 @@ class TestEngineAsyncPaths:
         mock_repo.save.return_value = None
 
         with patch(
-            "bike_analyzer.backend.analytics.repositories.fitness_state_repository.FitnessStateRepository",
+            "bike_analyzer.core.engine.FitnessStateRepository",
             return_value=mock_repo,
         ):
             fv = await engine._update_fitness_state(ride, 1, MagicMock())
@@ -428,7 +428,7 @@ class TestEngineAsyncPaths:
         mock_repo.save.side_effect = RuntimeError("db error")
 
         with patch(
-            "bike_analyzer.backend.analytics.repositories.fitness_state_repository.FitnessStateRepository",
+            "bike_analyzer.core.engine.FitnessStateRepository",
             return_value=mock_repo,
         ):
             fv = await engine._update_fitness_state(ride, 1, MagicMock())
