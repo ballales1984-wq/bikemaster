@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ....core.models import Ride
+from bike_analyzer.core.models import Ride
 
 
 def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:

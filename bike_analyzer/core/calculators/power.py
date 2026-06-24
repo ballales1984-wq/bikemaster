@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ....core.models import Ride
+from ..models import Ride
 
 
 def normalized_power_approx(ride: Ride) -> float:

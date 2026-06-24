@@ -36,18 +36,16 @@ def _patch_fastapi_instrumentation():
     `Match.PARTIAL` routes. This monkeypatches the function to handle this case.
     """
     try:
-        from opentelemetry.instrumentation.fastapi import _get_route_details as orig_get_route_details
-        from starlette.routing import Match
+        from starlette.routing import Match, Route
 
         def _patched_get_route_details(scope):
-            """Patched version that handles _IncludedRouter gracefully."""
             app = scope["app"]
             route = None
 
             for starlette_route in app.routes:
                 match, _ = (
-                    starlette_route.__class__.matches(starlette_route, scope)
-                    if hasattr(starlette_route.__class__, "matches") and starlette_route.__class__.__name__ != "Route"
+                    Route.matches(starlette_route, scope)
+                    if isinstance(starlette_route, Route)
                     else starlette_route.matches(scope)
                 )
                 if match == Match.FULL:
