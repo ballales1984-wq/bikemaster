@@ -46,6 +46,11 @@
         <input v-model="weatherEnabled" type="checkbox" />
         <span>Include weather</span>
       </label>
+
+      <label class="checkbox-control">
+        <input v-model="showFamousRoutes" type="checkbox" />
+        <span>Famous routes</span>
+      </label>
     </div>
 
 <div v-if="loading && !enrichedRides.length" class="loading-text">
@@ -133,6 +138,7 @@ import {
    speedRiskPercent,
    weatherRiskPercent,
  } from '../utils/routeMap'
+ import { famousItalianRoutes } from '../data/italianRoutes'
 
   const mapContainer = ref(null)
   const loading = ref(false)
@@ -140,6 +146,7 @@ import {
   const selectedRideId = ref(null)
   const colorMode = ref('combined')
   const weatherEnabled = ref(true)
+  const showFamousRoutes = ref(false)
   const mapStyle = ref(localStorage.getItem('mapStyle') || 'standard')
 
   const MAP_STYLES = {
@@ -184,9 +191,10 @@ import {
    { lat: 45.6300, lon: 9.1200, altitude: 210 },
  ]
 
-  let map = null
-  let layerGroup = null
-  let tileLayer = null
+   let map = null
+   let layerGroup = null
+   let tileLayer = null
+  let famousRoutesLayer = null
 
   function createTileLayer(styleKey) {
     const cfg = MAP_STYLES[styleKey] || MAP_STYLES.standard
@@ -213,6 +221,7 @@ import {
       tileLayer = createTileLayer(mapStyle.value)
       tileLayer.addTo(map)
       layerGroup = L.layerGroup().addTo(map)
+      famousRoutesLayer = L.layerGroup().addTo(map)
     } else {
       switchTileLayer(mapStyle.value)
     }
@@ -318,8 +327,41 @@ watch(weatherEnabled, () => {
   loadRides()
 })
 
-watch(selectedRideId, () => {
-  renderMap()
+   watch(selectedRideId, () => {
+     renderMap()
+   })
+
+   watch(showFamousRoutes, () => {
+     renderFamousRoutes()
+   })
+
+   function renderFamousRoutes() {
+     if (!famousRoutesLayer) return
+     famousRoutesLayer.clearLayers()
+     if (!showFamousRoutes.value) return
+
+     famousItalianRoutes.forEach(route => {
+       const color = route.color || '#3498db'
+       const polyline = L.polyline(route.coords, {
+         color,
+         weight: 5,
+         opacity: 0.85,
+         dashArray: '8,6',
+         lineCap: 'round',
+         lineJoin: 'round',
+       })
+       polyline.bindPopup(`
+         <strong style="font-size:1.05em">${escapeHtml(route.name)}</strong><br>
+         <em>${escapeHtml(route.region)}</em><br><br>
+         ${escapeHtml(route.description)}<br>
+         <span style="color:#777">Distance: ${escapeHtml(route.distanceKm)} km · Elevation: +${escapeHtml(String(route.elevationGain))} m · ${escapeHtml(route.difficulty)}</span>
+       `)
+       polyline.addTo(famousRoutesLayer)
+     })
+   }
+
+watch(showFamousRoutes, () => {
+  renderFamousRoutes()
 })
 
 async function loadRides() {
@@ -539,6 +581,7 @@ onBeforeUnmount(() => {
     map = null
     layerGroup = null
     tileLayer = null
+    famousRoutesLayer = null
   }
 })
 </script>
