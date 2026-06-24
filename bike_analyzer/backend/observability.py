@@ -48,6 +48,7 @@ def init_observability(app=None):
             dsn=sentry_dsn,
             environment=settings.sentry_environment,
             traces_sample_rate=settings.sentry_traces_sample_rate,
+            profiles_sample_rate=settings.sentry_profiles_sample_rate,
             integrations=[
                 StarletteIntegration(),
                 FastApiIntegration(),

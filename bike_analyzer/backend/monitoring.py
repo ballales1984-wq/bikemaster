@@ -92,6 +92,14 @@ if PROMETHEUS_AVAILABLE:
         "System information",
         ["version", "environment"],
     )
+    tracking_sessions_total = Counter(
+        "bikemaster_tracking_sessions_total",
+        "Phone tracking sessions started",
+    )
+    active_athletes_gauge = Gauge(
+        "bikemaster_active_athletes",
+        "Active athletes in last 30 minutes",
+    )
 else:
     http_requests_total = None
     http_request_duration_seconds = None
@@ -108,6 +116,8 @@ else:
     fatigue_score = None
     ai_coach_queries_total = None
     system_info = None
+    tracking_sessions_total = None
+    active_athletes_gauge = None
 
 
 @dataclass
@@ -248,6 +258,18 @@ def record_ai_coach_query(provider: str, status: str = "success") -> None:
     if not PROMETHEUS_AVAILABLE:
         return
     ai_coach_queries_total.labels(provider=provider, status=status).inc()
+
+
+def record_tracking_session() -> None:
+    if not PROMETHEUS_AVAILABLE:
+        return
+    tracking_sessions_total.inc()
+
+
+def set_active_athletes(count: int) -> None:
+    if not PROMETHEUS_AVAILABLE:
+        return
+    active_athletes_gauge.set(count)
 
 
 def start_metrics_server() -> None:

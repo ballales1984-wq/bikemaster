@@ -128,6 +128,17 @@ def _redirect_uri_from_state(state: str) -> str | None:
     return redirect_uri if isinstance(redirect_uri, str) else None
 
 
+def _validate_oauth_state(state: str, expected_redirect_uri: str) -> None:
+    decoded = _decode_oauth_state(state)
+    if not decoded:
+        raise HTTPException(status_code=400, detail="Invalid or missing state parameter")
+    state_redirect = decoded.get("redirect_uri")
+    if not isinstance(state_redirect, str) or not state_redirect:
+        raise HTTPException(status_code=400, detail="State missing redirect_uri")
+    if state_redirect != expected_redirect_uri:
+        raise HTTPException(status_code=400, detail="State redirect_uri mismatch")
+
+
 def _http_error_detail(exc: Exception, fallback: str) -> str:
     response = getattr(exc, "response", None)
     body = response.text if response is not None else str(exc)
@@ -380,6 +391,8 @@ async def google_oauth_callback_get(
         or _build_redirect_uri(request, "/api/v1/auth/google/callback")
     )
     _validate_redirect_uri(redirect_uri)
+    if state:
+        _validate_oauth_state(state, redirect_uri)
 
     if error:
         message = error_description or error
@@ -391,27 +404,33 @@ async def google_oauth_callback_get(
     try:
         token_data = exchange_google_code(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
     except requests.exceptions.HTTPError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=_http_error_detail(exc, "Google token exchange failed"),
-        ) from exc
+        response = getattr(exc, "response", None)
+        error_body = response.text if response is not None else str(exc)
+        return RedirectResponse(
+            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=f"token_exchange_failed:{error_body[:200]}")
+        )
     access_token = token_data.get("access_token")
     if not access_token:
-        raise HTTPException(status_code=400, detail="Failed to get access token from Google")
+        return RedirectResponse(
+            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="no_access_token")
+        )
 
     try:
         user_info = get_google_user_info(access_token)
     except requests.exceptions.HTTPError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=_http_error_detail(exc, "Google userinfo request failed"),
-        ) from exc
+        response = getattr(exc, "response", None)
+        error_body = response.text if response is not None else str(exc)
+        return RedirectResponse(
+            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=f"userinfo_failed:{error_body[:200]}")
+        )
     google_sub = user_info.get("sub")
     email = user_info.get("email")
     name = user_info.get("name")
 
     if not google_sub:
-        raise HTTPException(status_code=400, detail="Invalid Google user info")
+        return RedirectResponse(
+            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="invalid_user_info")
+        )
 
     existing = get_athlete_by_email(email) if email else None
     if not existing:
@@ -425,11 +444,11 @@ async def google_oauth_callback_get(
     session = create_google_session(user_info, athlete_id=existing["id"])
     jwt_token = session["access_token"]
     parsed_redirect = urlparse(redirect_uri or "")
-    frontend_origin = f"{parsed_redirect.scheme}://{parsed_redirect.netloc}" if parsed_redirect.scheme else None
+    frontend_origin = f"{parsed_redirect.scheme}://{parsed_redirect.netloc}/" if parsed_redirect.scheme else None
     if not frontend_origin or not parsed_redirect.path.endswith("/api/v1/auth/google/callback"):
         frontend_origin = _build_redirect_uri(request, "")
     return RedirectResponse(
-        url=f"{frontend_origin}?{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
+        url=f"{frontend_origin}#{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
     )
 
 
