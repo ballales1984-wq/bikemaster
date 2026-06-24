@@ -84,4 +84,6 @@ bike_route_demo.html
 
 # Misc
 .DS_Store
-Thumbs.db
+Thumbs.dbbike_analyzer/backend/static/index.html
+bike_analyzer/backend/static/sw.js
+
