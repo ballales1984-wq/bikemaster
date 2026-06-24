@@ -160,6 +160,8 @@ def create_access_token(
     jti: str | None = None,
 ) -> str:
     expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    if jti is None:
+        jti = hashlib.sha256(f"{subject}:{time.time()}:{SECRET_KEY}".encode()).hexdigest()[:32]
     payload = {
         "sub": subject,
         "is_admin": is_admin,
@@ -167,18 +169,19 @@ def create_access_token(
         "exp": expire,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
+        "jti": jti,
     }
-    if jti is not None:
-        payload["jti"] = jti
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def create_refresh_token(subject: str) -> str:
     expire = datetime.now(UTC) + timedelta(days=30)
+    jti = hashlib.sha256(f"refresh:{subject}:{time.time()}:{SECRET_KEY}".encode()).hexdigest()[:32]
     payload = {
         "sub": subject,
         "is_admin": False,
         "type": "refresh",
+        "jti": jti,
         "iat": datetime.now(UTC),
         "exp": expire,
         "iss": JWT_ISSUER,
