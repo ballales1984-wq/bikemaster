@@ -4,7 +4,7 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from ipaddress import AddressValueError, ip_address
+from ipaddress import AddressValueError, ip_address, ip_network
 
 from fastapi import HTTPException, Request
 from slowapi import Limiter
@@ -25,8 +25,12 @@ def _is_trusted_proxy(ip_str: str) -> bool:
     try:
         addr = ip_address(ip_str)
         for prefix in _TRUSTED_PROXIES:
-            if addr in ip_address(prefix):
-                return True
+            try:
+                if addr in ip_network(prefix):
+                    return True
+            except (AddressValueError, ValueError):
+                if addr == ip_address(prefix):
+                    return True
     except (AddressValueError, ValueError):
         pass
     return False
