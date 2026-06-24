@@ -18,6 +18,13 @@ from .fitness_state import FitnessStateVector
 from .models import AthleteProfile, Ride
 from .pipeline import AnalysisPipeline, PipelineResult
 
+try:
+    from bike_analyzer.backend.analytics.repositories.fitness_state_repository import (
+        FitnessStateRepository,
+    )
+except ImportError:
+    FitnessStateRepository = None  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 
@@ -143,8 +150,10 @@ class AnalysisEngine:
     async def _persist_fitness_state(
         self, state: FitnessStateVector, session_factory
     ) -> None:
+        if FitnessStateRepository is None:
+            logger.warning("Could not persist fitness state - repository unavailable")
+            return
         try:
-            from ..analytics.repositories.fitness_state_repository import FitnessStateRepository
             repo = FitnessStateRepository(session_factory=session_factory)
             await repo.save(state.to_dict())
         except Exception:
