@@ -159,7 +159,6 @@ def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
         except ValueError:
             expires_at = 0
     if not expires_at and "expires_in" in token_data:
-        import time
         expires_at = int(time.time()) + int(token_data["expires_in"])
     athlete_name = ""
     if token_data.get("athlete"):
