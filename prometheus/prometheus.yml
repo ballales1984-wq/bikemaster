@@ -8,3 +8,9 @@ scrape_configs:
       - targets: ['bikemaster:8000']
     metrics_path: '/metrics'
     scrape_interval: 5s
+
+  - job_name: 'zipkin'
+    static_configs:
+      - targets: ['zipkin:9411']
+    metrics_path: '/metrics'
+    scrape_interval: 10s

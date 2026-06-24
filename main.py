@@ -9,6 +9,7 @@ Supports three modes:
 import argparse
 import asyncio
 import logging
+import os
 import sys
 import traceback
 
@@ -21,6 +22,8 @@ logging.basicConfig(
     force=True,
 )
 logger = logging.getLogger("bikemaster.startup")
+
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
 try:
     from bike_analyzer.backend.api.app_factory import create_app
