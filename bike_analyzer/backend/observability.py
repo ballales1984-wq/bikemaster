@@ -41,6 +41,16 @@ def init_observability(app=None):
     if settings.environment.lower() in ("test", "testing"):
         return
 
+    def _default_span_details(scope):
+        """Custom span details callback to handle _IncludedRouter objects."""
+        if scope.get("type") != "http":
+            return ("unknown", {})
+        method = scope.get("method", "GET").upper()
+        path = scope.get("path", "/")
+        if not path:
+            path = "/"
+        return (f"{method} {path}", {})
+
 # === SENTRY ===
     sentry_dsn = settings.sentry_dsn.strip() if settings.sentry_dsn else ""
     if sentry_dsn and sentry_dsn.startswith("http") and sentry_dsn.count("/") >= 5:

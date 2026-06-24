@@ -17,19 +17,19 @@ class AthleteRepository:
             return self._sync_conn.save_athlete(athlete, athlete_id)
         return self._save_sync(athlete, athlete_id)
 
-    async def get_by_id(self, athlete_id: int) -> dict | None:
+    async def get_by_id(self, athlete_id: int, tenant_id: int | None = None) -> dict | None:
         if self._session_factory:
-            return await self._get_by_id_async(athlete_id)
+            return await self._get_by_id_async(athlete_id, tenant_id)
         if self._sync_conn:
             return self._sync_conn.get_athlete(athlete_id)
-        return self._get_by_id_sync(athlete_id)
+        return self._get_by_id_sync(athlete_id, tenant_id)
 
-    async def get_by_name(self, name: str) -> dict | None:
+    async def get_by_name(self, name: str, tenant_id: int | None = None) -> dict | None:
         if self._session_factory:
-            return await self._get_by_name_async(name)
+            return await self._get_by_name_async(name, tenant_id)
         if self._sync_conn:
-            return self._sync_conn.get_athlete_by_name(name)
-        return self._get_by_name_sync(name)
+            return self._sync_conn.get_athlete_by_name(name, tenant_id)
+        return self._get_by_name_sync(name, tenant_id)
 
     async def list_all(self) -> list[dict]:
         if self._session_factory:
@@ -62,20 +62,24 @@ class AthleteRepository:
             await session.commit()
             return result.scalar_one()
 
-    async def _get_by_id_async(self, athlete_id: int) -> dict | None:
+    async def _get_by_id_async(self, athlete_id: int, tenant_id: int | None = None) -> dict | None:
         from sqlalchemy import select
 
         async with self._session_factory() as session:
             stmt = select(self._table).where(self._table.id == athlete_id)
+            if tenant_id is not None:
+                stmt = stmt.where(self._table.tenant_id == tenant_id)
             result = await session.execute(stmt)
             row = result.mappings().first()
             return dict(row) if row else None
 
-    async def _get_by_name_async(self, name: str) -> dict | None:
+    async def _get_by_name_async(self, name: str, tenant_id: int | None = None) -> dict | None:
         from sqlalchemy import select
 
         async with self._session_factory() as session:
             stmt = select(self._table).where(self._table.name == name)
+            if tenant_id is not None:
+                stmt = stmt.where(self._table.tenant_id == tenant_id)
             result = await session.execute(stmt)
             row = result.mappings().first()
             return dict(row) if row else None
@@ -97,13 +101,17 @@ class AthleteRepository:
         from ..db.database import save_athlete
         return save_athlete(athlete, athlete_id)
 
-    def _get_by_id_sync(self, athlete_id: int) -> dict | None:
+    def _get_by_id_sync(self, athlete_id: int, tenant_id: int | None = None) -> dict | None:
         from ..db.database import get_athlete
+
+        if tenant_id is not None:
+            return get_athlete(athlete_id)
         return get_athlete(athlete_id)
 
-    def _get_by_name_sync(self, name: str) -> dict | None:
+    def _get_by_name_sync(self, name: str, tenant_id: int | None = None) -> dict | None:
         from ..db.database import get_athlete_by_name
-        return get_athlete_by_name(name)
+
+        return get_athlete_by_name(name, tenant_id)
 
     def _list_all_sync(self) -> list[dict]:
         from ..db.database import get_all_athletes

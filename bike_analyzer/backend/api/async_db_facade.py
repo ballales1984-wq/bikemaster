@@ -101,11 +101,14 @@ async def get_rides_by_athlete(athlete_id: int, limit: int = 1000) -> list[dict]
         return [_ride_to_dict(r) for r in rows]
 
 
-async def get_athlete(athlete_id: int) -> dict | None:
+async def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
     async with get_session_factory()() as session:
         from sqlalchemy import select
 
-        result = await session.execute(select(AthleteModel).where(AthleteModel.id == athlete_id))
+        stmt = select(AthleteModel).where(AthleteModel.id == athlete_id)
+        if tenant_id is not None:
+            stmt = stmt.where(AthleteModel.tenant_id == tenant_id)
+        result = await session.execute(stmt)
         row = result.scalar_one_or_none()
         if not row:
             return None
@@ -130,14 +133,18 @@ async def get_athlete(athlete_id: int) -> dict | None:
             "ftp_watts": row.ftp_watts,
             "password_hash": row.password_hash,
             "created_at": row.created_at.isoformat() if row.created_at else None,
+            "tenant_id": row.tenant_id,
         }
 
 
-async def get_athlete_by_name(name: str) -> dict | None:
+async def get_athlete_by_name(name: str, tenant_id: int | None = None) -> dict | None:
     async with get_session_factory()() as session:
         from sqlalchemy import select
 
-        result = await session.execute(select(AthleteModel).where(AthleteModel.name == name))
+        stmt = select(AthleteModel).where(AthleteModel.name == name)
+        if tenant_id is not None:
+            stmt = stmt.where(AthleteModel.tenant_id == tenant_id)
+        result = await session.execute(stmt)
         row = result.scalar_one_or_none()
         if not row:
             return None
@@ -162,6 +169,7 @@ async def get_athlete_by_name(name: str) -> dict | None:
             "ftp_watts": row.ftp_watts,
             "password_hash": row.password_hash,
             "created_at": row.created_at.isoformat() if row.created_at else None,
+            "tenant_id": row.tenant_id,
         }
 
 

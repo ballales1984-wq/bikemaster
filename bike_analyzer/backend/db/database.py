@@ -370,10 +370,13 @@ def get_rides_by_athlete(athlete_id: int) -> list[dict]:
         return [_row_to_ride(r) for r in rows]
 
 
-def get_athlete_by_name(name: str) -> dict | None:
+def get_athlete_by_name(name: str, tenant_id: int | None = None) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM athletes WHERE name = ?", (name,))
+        if tenant_id is not None:
+            cur.execute("SELECT * FROM athletes WHERE name = ? AND tenant_id = ?", (name, tenant_id))
+        else:
+            cur.execute("SELECT * FROM athletes WHERE name = ?", (name,))
         row = cur.fetchone()
         if row:
             return _row_to_athlete(row)
