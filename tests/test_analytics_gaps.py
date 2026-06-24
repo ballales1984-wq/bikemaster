@@ -1,8 +1,6 @@
 """Tests for analytics module coverage gaps."""
 
-import pytest
 from datetime import datetime, UTC
-from unittest.mock import patch, MagicMock
 
 from bike_analyzer.backend.analytics.analytics import (
     calculate_summary,

@@ -13,9 +13,6 @@ from bike_analyzer.backend.ingestion.strava_client import (
     refresh_access_token,
     fetch_activities,
     strava_to_ride,
-    get_valid_token,
-    store_token,
-    revoke_token,
 )
 
 
