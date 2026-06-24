@@ -342,9 +342,21 @@ async def register(
         raise HTTPException(status_code=400, detail="Username already exists")
     password_hash = hash_password(password)
     athlete_id = save_athlete(
-        {"name": username, "email": email, "experience_level": "Beginner", "password_hash": password_hash}
+        {
+            "name": username,
+            "email": email,
+            "experience_level": "Beginner",
+            "password_hash": password_hash,
+        }
     )
-    return {"username": username, "email": email, "msg": "Utente creato", "is_admin": False, "id": athlete_id, "profile_complete": False}
+    return {
+        "username": username,
+        "email": email,
+        "msg": "Utente creato",
+        "is_admin": False,
+        "id": athlete_id,
+        "profile_complete": False,
+    }
 
 
 @router.get("/auth/google")
@@ -406,8 +418,9 @@ async def google_oauth_callback_get(
     except requests.exceptions.HTTPError as exc:
         response = getattr(exc, "response", None)
         error_body = response.text if response is not None else str(exc)
+        error_detail = f"token_exchange_failed:{error_body[:200]}"
         return RedirectResponse(
-            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=f"token_exchange_failed:{error_body[:200]}")
+            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=error_detail)
         )
     access_token = token_data.get("access_token")
     if not access_token:

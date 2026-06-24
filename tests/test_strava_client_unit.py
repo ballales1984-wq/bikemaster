@@ -116,7 +116,14 @@ class TestStravaActivities:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = [
-            {"id": 1, "name": "Morning Ride", "type": "Ride", "start_date": "2024-06-15T08:00:00Z", "distance": 25000, "moving_time": 3600},
+            {
+                "id": 1,
+                "name": "Morning Ride",
+                "type": "Ride",
+                "start_date": "2024-06-15T08:00:00Z",
+                "distance": 25000,
+                "moving_time": 3600,
+            },
         ]
         mock_get.return_value = mock_resp
 
