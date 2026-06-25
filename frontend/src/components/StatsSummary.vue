@@ -1,23 +1,23 @@
 <template>
   <div class="stats" aria-label="General Statistics">
     <div class="stat-card" role="status">
-      <div class="stat-value"><AnimatedNumber :value="stats?.rides ?? 0" :decimals="0" /></div>
+      <div class="stat-value">{{ animatedRides }}</div>
       <div class="stat-label">Rides</div>
     </div>
     <div class="stat-card" role="status">
-      <div class="stat-value"><AnimatedNumber :value="stats?.distance_km ?? 0" :decimals="1" /> km</div>
+      <div class="stat-value">{{ animatedDistance }} km</div>
       <div class="stat-label">Total Distance</div>
     </div>
     <div class="stat-card" role="status">
-      <div class="stat-value"><AnimatedNumber :value="stats?.calories ?? 0" :decimals="0" /></div>
+      <div class="stat-value">{{ animatedCalories }}</div>
       <div class="stat-label">Calories</div>
     </div>
     <div class="stat-card" role="status">
-      <div class="stat-value"><AnimatedNumber :value="stats?.avg_speed_kmh ?? 0" :decimals="1" /> km/h</div>
+      <div class="stat-value">{{ animatedSpeed }} km/h</div>
       <div class="stat-label">Avg Speed</div>
     </div>
     <div class="stat-card" role="status">
-      <div class="stat-value"><AnimatedNumber :value="hoursFromMin" :decimals="1" /></div>
+      <div class="stat-value">{{ animatedHours }} h</div>
       <div class="stat-label">Total Hours</div>
     </div>
     <button class="stat-card stat-refresh" @click="$emit('refresh')" :disabled="loading" :aria-label="loading ? 'Updating in progress' : 'Refresh statistics'">
@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   stats: { type: Object, default: null },
@@ -37,50 +37,44 @@ const props = defineProps({
 
 defineEmits(['refresh'])
 
-const hoursFromMin = computed(() => {
-  const m = props.stats?.duration_minutes
-  if (m == null || isNaN(m)) return 0
-  return Number(m) / 60
-})
+const animatedRides = ref(0)
+const animatedDistance = ref(0)
+const animatedCalories = ref(0)
+const animatedSpeed = ref(0)
+const animatedHours = ref(0)
 
-// Animated number component inline
-const AnimatedNumber = {
-  props: {
-    value: { type: Number, required: true },
-    decimals: { type: Number, default: 0 },
-    duration: { type: Number, default: 1000 }
-  },
-  data() {
-    return { displayed: 0 }
-  },
-  computed: {
-    formatted() {
-      return this.displayed.toFixed(this.decimals)
-    }
-  },
-  watch: {
-    value: {
-      immediate: true,
-      handler(newVal) {
-        this.animateTo(newVal)
+function animate(to, from = 0, duration = 800) {
+  return new Promise(resolve => {
+    const start = performance.now()
+    const step = (now) => {
+      const elapsed = now - start
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      const value = from + (to - from) * eased
+      if (progress < 1) {
+        requestAnimationFrame(step)
+      } else {
+        resolve(value)
       }
     }
-  },
-  methods: {
-    animateTo(to) {
-      const from = this.displayed
-      const start = performance.now()
-      const step = (now) => {
-        const elapsed = now - start
-        const progress = Math.min(elapsed / this.duration, 1)
-        this.displayed = from + (to - from) * progress
-        if (progress < 1) requestAnimationFrame(step)
-      }
-      requestAnimationFrame(step)
-    }
-  },
-  template: '{{ formatted }}'
+    requestAnimationFrame(step)
+  })
 }
+
+watch(() => props.stats, (newStats) => {
+  if (!newStats) return
+  const rides = Number(newStats.rides) || 0
+  const dist = Number(newStats.distance_km) || 0
+  const cals = Number(newStats.calories) || 0
+  const speed = Number(newStats.avg_speed_kmh) || 0
+  const hours = (Number(newStats.duration_minutes) || 0) / 60
+  
+  animate(rides).then(v => animatedRides.value = Math.round(v))
+  animate(dist).then(v => animatedDistance.value = v.toFixed(1))
+  animate(cals).then(v => animatedCalories.value = Math.round(v))
+  animate(speed).then(v => animatedSpeed.value = v.toFixed(1))
+  animate(hours).then(v => animatedHours.value = v.toFixed(1))
+}, { immediate: true })
 </script>
 
 <style scoped>

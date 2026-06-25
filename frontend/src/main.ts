@@ -5,6 +5,7 @@ import router from './router'
 import './index.css'
 import { token, user } from './composables/useAuth'
 import './composables/usePWA'
+import { useToast } from './composables/useToast'
 
 const urlParams = new URLSearchParams(window.location.search)
 const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))

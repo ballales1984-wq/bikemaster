@@ -21,17 +21,20 @@ describe('ToastContainer', () => {
     const exposed = wrapper.vm.add
     exposed('Test message', 'success')
     await wrapper.vm.$nextTick()
-    expect(wrapper.find('.toast').text()).toBe('Test message')
+    expect(wrapper.find('.toast-content').text()).toBe('Test message')
     expect(wrapper.find('.toast').classes()).toContain('success')
   })
 
-  it('auto-removes toast after timeout', async () => {
+  it('auto-removes toast after timeout with animation', async () => {
     const wrapper = mount(ToastContainer)
     const exposed = wrapper.vm.add
     exposed('Fading toast', 'info', 1000)
     await wrapper.vm.$nextTick()
     expect(wrapper.find('.toast').exists()).toBe(true)
-    vi.advanceTimersByTime(1100)
+    vi.advanceTimersByTime(1000)
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.toast').classes()).toContain('exiting')
+    vi.advanceTimersByTime(300)
     await wrapper.vm.$nextTick()
     expect(wrapper.find('.toast').exists()).toBe(false)
   })
@@ -48,5 +51,19 @@ describe('ToastContainer', () => {
     const wrapper = mount(ToastContainer)
     expect(wrapper.find('#toast-container').exists()).toBe(true)
     expect(wrapper.find('[role="status"]').exists()).toBe(true)
+  })
+
+  it('renders close button', async () => {
+    const wrapper = mount(ToastContainer)
+    wrapper.vm.add('Closable', 'info')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.toast-close').exists()).toBe(true)
+  })
+
+  it('has toast icon', async () => {
+    const wrapper = mount(ToastContainer)
+    wrapper.vm.add('With icon', 'success')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.toast-icon').exists()).toBe(true)
   })
 })
