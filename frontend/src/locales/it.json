@@ -1,37 +1,37 @@
-export default {
-  nav: {
-    dashboard: "Dashboard",
-    rides: "Rides",
-    coach: "AI Coach",
-    import: "Import",
-    knowledge: "Knowledge",
-    heatmap: "Heatmap",
-    logout: "Logout"
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "rides": "Uscite",
+    "coach": "AI Coach",
+    "import": "Importa",
+    "knowledge": "Knowledge",
+    "heatmap": "Heatmap",
+    "logout": "Esci"
   },
-  rides: {
-    title: "My Rides",
-    import: "Import Ride",
-    analyze: "Analyze",
-    delete: "Delete",
-    edit: "Edit",
-    distance: "Distance",
-    duration: "Duration",
-    avg_speed: "Avg Speed",
-    calories: "Calories"
+  "rides": {
+    "title": "Le Mie Uscite",
+    "importRide": "Importa Uscita",
+    "analyze": "Analizza",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "distance": "Distanza",
+    "duration": "Durata",
+    "avgSpeed": "Velocità Media",
+    "calories": "Calorie"
   },
-  coach: {
-    title: "AI Cycling Coach",
-    ask: "Ask for advice...",
-    advice: "Training Advice",
-    recovery: "Recovery Recommendations"
+  "coach": {
+    "title": "AI Cycling Coach",
+    "ask": "Chiedi consigli...",
+    "advice": "Consigli Allenamento",
+    "recovery": "Consigli Recupero"
   },
-  common: {
-    save: "Save",
-    cancel: "Cancel",
-    delete: "Delete",
-    edit: "Edit",
-    loading: "Loading...",
-    error: "Error",
-    retry: "Retry"
+  "common": {
+    "save": "Salva",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "loading": "Caricamento...",
+    "error": "Errore",
+    "retry": "Riprova"
   }
 }

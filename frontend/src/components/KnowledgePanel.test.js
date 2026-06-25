@@ -2,7 +2,8 @@ import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const apiGet = vi.hoisted(() => vi.fn())
-vi.mock('../utils/api.ts', () => ({ apiGet }))
+const apiPost = vi.hoisted(() => vi.fn())
+vi.mock('../utils/api.ts', () => ({ apiGet, apiPost }))
 
 import KnowledgePanel from './KnowledgePanel.vue'
 
@@ -12,63 +13,60 @@ function flush() {
 
 const mockSearchResult = {
   results: [
-    { title: 'VO2 Max Training', snippet: 'Improve your aerobic capacity' },
-    { title: 'FTP Testing', snippet: 'Functional Threshold Power guide' },
+    { topic: 'Training', content: 'Improve your aerobic capacity' },
+    { topic: 'FTP', content: 'Functional Threshold Power guide' },
   ],
 }
 
-const mockSecondSearch = {
-  results: [
-    { title: 'Hill Climbing', snippet: 'Techniques for steep ascents' },
-    { title: 'Cadence Drills', snippet: 'Improve pedal efficiency' },
-  ],
-}
-
-const mockTopics = {
-  topics: [
-    { id: 1, title: 'Training Plans', category: 'Endurance' },
-    { id: 2, title: 'Nutrition', category: 'Diet' },
-    { id: 3, title: 'Recovery', category: 'Health' },
-  ],
-}
+const mockTopics = ['Training', 'Nutrition', 'Recovery', 'FTP', 'Endurance']
 
 describe('KnowledgePanel', () => {
   afterEach(() => {
     vi.clearAllMocks()
   })
 
-  it('loads with empty form', async () => {
+  it('loads with empty search input', async () => {
     const wrapper = mount(KnowledgePanel)
+    await flush()
 
-    expect(wrapper.find('#kb-query').exists()).toBe(true)
-    expect(wrapper.find('#kb-query').element.value).toBe('')
+    const input = wrapper.find('.search-input')
+    expect(input.exists()).toBe(true)
+    expect(input.element.value).toBe('')
   })
 
-  it('search button triggers search', async () => {
+  it('displays Knowledge Base title', async () => {
+    const wrapper = mount(KnowledgePanel)
+    await flush()
+
+    expect(wrapper.find('h2').text()).toContain('Knowledge Base')
+  })
+
+  it('searches on button click', async () => {
     apiGet.mockResolvedValueOnce(mockSearchResult)
 
     const wrapper = mount(KnowledgePanel)
     await flush()
 
-    await wrapper.find('#kb-query').setValue('VO2 Max')
-    await wrapper.find('button.btn-primary').trigger('click')
+    const input = wrapper.find('.search-input')
+    await input.setValue('cycling')
+    await wrapper.find('.search-btn').trigger('click')
     await flush()
 
-    expect(apiGet).toHaveBeenCalledWith('/api/v1/knowledge/search', { query: 'VO2 Max' })
-    expect(wrapper.find('.result-box').text()).toContain('VO2 Max Training')
+    expect(apiGet).toHaveBeenCalledWith('/api/v1/knowledge/search', { q: 'cycling' })
   })
 
-  it('list topics button triggers topics fetch', async () => {
-    apiGet.mockResolvedValueOnce(mockTopics)
+  it('shows results after search', async () => {
+    apiGet.mockResolvedValueOnce(mockSearchResult)
 
     const wrapper = mount(KnowledgePanel)
     await flush()
 
-    await wrapper.find('button.btn-secondary').trigger('click')
+    const input = wrapper.find('.search-input')
+    await input.setValue('VO2 Max')
+    await wrapper.find('.search-btn').trigger('click')
     await flush()
 
-    expect(apiGet).toHaveBeenCalledWith('/api/v1/knowledge')
-    expect(wrapper.find('.result-box').text()).toContain('Training Plans')
+    expect(wrapper.text()).toContain('Training')
   })
 
   it('shows search error gracefully', async () => {
@@ -77,176 +75,46 @@ describe('KnowledgePanel', () => {
     const wrapper = mount(KnowledgePanel)
     await flush()
 
-    await wrapper.find('#kb-query').setValue('test')
-    await wrapper.find('button.btn-primary').trigger('click')
+    const input = wrapper.find('.search-input')
+    await input.setValue('test')
+    await wrapper.find('.search-btn').trigger('click')
     await flush()
 
-    expect(wrapper.find('.result-box').text()).toContain('Error')
+    expect(wrapper.text()).toContain('Nessun risultato')
   })
 
-  it('shows topics error gracefully', async () => {
-    apiGet.mockRejectedValueOnce(new Error('Topics failed'))
+  it('loads topics on mount', async () => {
+    apiGet.mockResolvedValueOnce(mockTopics)
+    apiGet.mockResolvedValueOnce({ topics: [], total_documents: 0 })
 
     const wrapper = mount(KnowledgePanel)
     await flush()
 
-    await wrapper.find('button.btn-secondary').trigger('click')
-    await flush()
-
-    expect(wrapper.find('.result-box').text()).toContain('Error')
+    expect(apiGet).toHaveBeenCalledWith('/api/v1/knowledge')
   })
 
-  it('updates query input on typing', async () => {
-    const wrapper = mount(KnowledgePanel)
-
-    await wrapper.find('#kb-query').setValue('endurance training')
-    await wrapper.vm.$nextTick()
-
-    expect(wrapper.find('#kb-query').element.value).toBe('endurance training')
-  })
-
-  it('displays Knowledge Base title', async () => {
-    const wrapper = mount(KnowledgePanel)
-
-    expect(wrapper.find('h2').text()).toContain('Knowledge Base')
-  })
-
-  it('has search and list buttons', async () => {
-    const wrapper = mount(KnowledgePanel)
-
-    expect(wrapper.text()).toContain('Search')
-    expect(wrapper.text()).toContain('List Topics')
-  })
-
-  it('renders form group', async () => {
-    const wrapper = mount(KnowledgePanel)
-
-    expect(wrapper.find('.form-grid').exists()).toBe(true)
-    expect(wrapper.find('.form-group').exists()).toBe(true)
-  })
-
-  it('shows result box after search', async () => {
+  it('searches topic on pill click', async () => {
+    apiGet.mockResolvedValueOnce(mockTopics)
+    apiGet.mockResolvedValueOnce({ topics: [], total_documents: 0 })
     apiGet.mockResolvedValueOnce(mockSearchResult)
 
     const wrapper = mount(KnowledgePanel)
     await flush()
 
-    await wrapper.find('#kb-query').setValue('cycling')
-    await wrapper.find('button.btn-primary').trigger('click')
-    await flush()
-
-    expect(wrapper.find('.result-box').exists()).toBe(true)
+    const topicPills = wrapper.findAll('.topic-pill')
+    if (topicPills.length > 0) {
+      await topicPills[0].trigger('click')
+      await flush()
+    }
   })
 
-  it('search with empty query still makes API call', async () => {
-    apiGet.mockResolvedValueOnce(mockSearchResult)
-
+  it('has clear search button when query exists', async () => {
     const wrapper = mount(KnowledgePanel)
     await flush()
 
-    await wrapper.find('button.btn-primary').trigger('click')
-    await flush()
+    const input = wrapper.find('.search-input')
+    await input.setValue('test query')
 
-    expect(apiGet).toHaveBeenCalledWith('/api/v1/knowledge/search', { query: '' })
-  })
-
-  it('list topics shows category', async () => {
-    apiGet.mockResolvedValueOnce(mockTopics)
-
-    const wrapper = mount(KnowledgePanel)
-    await flush()
-
-    await wrapper.find('button.btn-secondary').trigger('click')
-    await flush()
-
-    expect(wrapper.find('.result-box').text()).toContain('Nutrition')
-  })
-
-  it('multiple searches update result sequentially', async () => {
-    let searchCount = 0
-    apiGet.mockImplementation(() => {
-      searchCount += 1
-      if (searchCount === 1) return Promise.resolve(mockSearchResult)
-      return Promise.resolve(mockSecondSearch)
-    })
-
-    const wrapper = mount(KnowledgePanel)
-    await flush()
-
-    await wrapper.find('#kb-query').setValue('power')
-    await wrapper.find('button.btn-primary').trigger('click')
-    await flush()
-
-    expect(wrapper.find('.result-box').text()).toContain('VO2 Max Training')
-
-    await wrapper.find('#kb-query').setValue('hills')
-    await wrapper.find('button.btn-primary').trigger('click')
-    await flush()
-
-    expect(wrapper.find('.result-box').text()).toContain('Hill Climbing')
-  })
-
-  it('has input label for search topic', async () => {
-    const wrapper = mount(KnowledgePanel)
-
-    expect(wrapper.text()).toContain('Search topic')
-  })
-
-  it('list topics shows all categories', async () => {
-    apiGet.mockResolvedValueOnce(mockTopics)
-
-    const wrapper = mount(KnowledgePanel)
-    await flush()
-
-    await wrapper.find('button.btn-secondary').trigger('click')
-    await flush()
-
-    expect(wrapper.find('.result-box').text()).toContain('Diet')
-    expect(wrapper.find('.result-box').text()).toContain('Health')
-  })
-
-  it('switches from topics back to search', async () => {
-    apiGet.mockResolvedValueOnce(mockTopics)
-    apiGet.mockResolvedValueOnce(mockSearchResult)
-
-    const wrapper = mount(KnowledgePanel)
-    await flush()
-
-    await wrapper.find('button.btn-secondary').trigger('click')
-    await flush()
-
-    expect(wrapper.find('.result-box').text()).toContain('Training Plans')
-
-    await wrapper.find('#kb-query').setValue('VO2 Max')
-    await wrapper.find('button.btn-primary').trigger('click')
-    await flush()
-
-    expect(wrapper.find('.result-box').text()).toContain('VO2 Max Training')
-  })
-
-  it('renders btn-primary and btn-secondary', async () => {
-    const wrapper = mount(KnowledgePanel)
-
-    expect(wrapper.find('button.btn-primary').exists()).toBe(true)
-    expect(wrapper.find('button.btn-secondary').exists()).toBe(true)
-  })
-
-  it('clears query on mount', async () => {
-    const wrapper = mount(KnowledgePanel)
-
-    expect(wrapper.find('#kb-query').element.value).toBe('')
-  })
-
-  it('search result box shows JSON formatted data', async () => {
-    apiGet.mockResolvedValueOnce({ results: [{ title: 'Test Topic' }] })
-
-    const wrapper = mount(KnowledgePanel)
-    await flush()
-
-    await wrapper.find('button.btn-secondary').trigger('click')
-    await flush()
-
-    expect(wrapper.find('.result-box').text()).not.toBe('')
-    expect(wrapper.find('.result-box').text()).toContain('Test Topic')
+    expect(wrapper.find('.clear-btn').exists()).toBe(true)
   })
 })

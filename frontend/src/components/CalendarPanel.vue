@@ -28,9 +28,9 @@
          <span class="legend-item legend-other">Other</span>
        </div>
 
-       <div class="calendar-grid">
-         <div class="cal-header" v-for="d in weekDays" :key="d">{{ d }}</div>
-<div v-for="(day, idx) in calendarDays" :key="idx" class="cal-cell" :class="{
+        <div class="calendar-grid">
+          <div class="cal-header" v-for="d in weekDays" :key="d">{{ d }}</div>
+          <div v-for="(day, idx) in calendarDays" :key="idx" class="cal-cell" :class="{
             'other-month': !day.currentMonth,
             'today': isToday(day),
             'has-events': day.events.length > 0
@@ -43,32 +43,17 @@
               <span v-if="day.events.length > 3" class="more-events">+{{ day.events.length - 3 }}</span>
             </div>
           </div>
-       </div>
+        </div>
 
-       <div v-if="selectedDateEvents.length" class="day-detail">
-         <h3>Events for {{ selectedDate }} <span class="event-count">({{ selectedDateEvents.length }})</span></h3>
-         <ul class="event-list">
-           <li v-for="ev in selectedDateEvents" :key="ev.id" class="event-item" :class="{ completed: ev.completed }">
-<span class="event-check">
-                <input type="checkbox" :checked="ev.completed" @change="toggleComplete(ev)" @touchstart="toggleComplete(ev)" :name="'event-complete-' + ev.id" />
-              </span>
-             <span class="event-info">
-               <strong class="event-title">{{ ev.title }}</strong>
-               <span class="event-meta">
-                 <span class="badge" :class="'badge-' + ev.event_type">{{ eventLabel(ev.event_type) }}</span>
-               </span>
-             </span>
-<span class="event-actions">
-                <button class="btn btn-secondary btn-xs" @click="openEdit(ev)" @touchstart="openEdit(ev)">Edit</button>
-                <button class="btn btn-danger btn-xs" @click="askDeleteEvent(ev.id)" @touchstart="askDeleteEvent(ev.id)">Delete</button>
-              </span>
-           </li>
-         </ul>
-       </div>
-     </div>
+        <div v-if="fitnessData.length" class="panel fitness-chart-panel">
+          <h2>📈 Fitness ATL / CTL / TSB</h2>
+          <canvas ref="fitnessCanvas" height="200"></canvas>
+        </div>
 
-     <div class="panel">
-       <h2>🎯 Linked Goals</h2>
+      </div>
+
+      <div class="panel">
+        <h2>🎯 Linked Goals</h2>
        <div class="objectives-box">
          <div class="obj-card" v-for="obj in recommendedObjectives" :key="obj.label">
            <div class="obj-icon">{{ obj.icon }}</div>
@@ -136,18 +121,27 @@
 .score-8, .score-9, .score-10 { color: #166534; }
 .score-5, .score-6, .score-7 { color: #92400e; }
 .score-0, .score-1, .score-2, .score-3, .score-4 { color: #991b1b; }
+
+.fitness-chart-panel {
+  position: relative;
+  height: 260px;
+}
 </style>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api'
 import ConfirmModal from './ConfirmModal.vue'
+import Chart from 'chart.js/auto'
 
 const athleteId = ref(null)
 const athletes = ref([])
 const currentYear = ref(new Date().getFullYear())
 const currentMonth = ref(new Date().getMonth())
 const events = ref([])
+const fitnessData = ref([])
+const fitnessCanvas = ref(null)
+let fitnessChart = null
 const showForm = ref(false)
 const showDeleteModal = ref(false)
 const deleteTargetId = ref(null)
@@ -280,13 +274,54 @@ async function loadAthletes() {
 }
 
 async function loadEvents() {
-  if (!athleteId.value) { events.value = []; return }
+  if (!athleteId.value) { events.value = []; fitnessData.value = []; return }
   try {
-    const data = await apiGet('/api/v1/calendar/events', { athlete_id: athleteId.value, year: currentYear.value, month: currentMonth.value + 1 })
-    events.value = data.events || []
+    const [eventsData, fitness] = await Promise.all([
+      apiGet('/api/v1/calendar/events', { athlete_id: athleteId.value, year: currentYear.value, month: currentMonth.value + 1 }),
+      apiGet('/api/v1/training/load', { athlete_id: athleteId.value, days: 30 }).catch(() => ({ training_loads: [] })),
+    ])
+    events.value = eventsData.events || []
+    fitnessData.value = fitness.training_loads || []
   } catch (e) {
     events.value = []
+    fitnessData.value = []
   }
+}
+
+function renderFitnessChart() {
+  if (!fitnessCanvas.value || !fitnessData.value.length) return
+  const labels = fitnessData.value.map(d => {
+    const dt = new Date(d.date)
+    return `${dt.getDate()}/${dt.getMonth() + 1}`
+  })
+  const atl = fitnessData.value.map(d => d.atl)
+  const ctl = fitnessData.value.map(d => d.ctl)
+  const tsb = fitnessData.value.map(d => d.tsb)
+  if (fitnessChart) fitnessChart.destroy()
+  const ctx = fitnessCanvas.value.getContext('2d')
+  fitnessChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'ATL (Fatica)', data: atl, borderColor: '#ff6b35', backgroundColor: 'rgba(255,107,53,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
+        { label: 'CTL (Fitness)', data: ctl, borderColor: '#0088ff', backgroundColor: 'rgba(0,136,255,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
+        { label: 'TSB (Forma)', data: tsb, borderColor: '#00ffcc', backgroundColor: 'rgba(0,255,204,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#b0b5c1', usePointStyle: true, padding: 16 } },
+      },
+      scales: {
+        x: { ticks: { color: '#6e7687', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#6e7687' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+      },
+    },
+  })
 }
 
 async function loadGoals() {
@@ -378,12 +413,22 @@ onMounted(async () => {
   initialized = true
   await loadEvents()
   await loadGoals()
+  renderFitnessChart()
 })
 
 watch(athleteId, () => {
   if (!initialized) return
   loadEvents()
   loadGoals()
+})
+
+watch(fitnessData, () => {
+  renderFitnessChart()
+}, { deep: true })
+
+watch([currentYear, currentMonth], () => {
+  if (!initialized) return
+  loadEvents()
 })
 
 watch(form, () => {

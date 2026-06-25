@@ -38,19 +38,35 @@
   --transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
+/* Light theme (default) */
+body.light-theme {
+  --bg-primary: #f5f7fa;
+  --bg-secondary: rgba(255, 255, 255, 0.85);
+  --bg-tertiary: rgba(240, 242, 248, 0.95);
+  --text-primary: #1a1d2e;
+  --text-secondary: #4a4f63;
+  --text-muted: #7a7f92;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.14);
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg-primary);
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(0, 255, 204, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 85% 30%, rgba(0, 136, 255, 0.04) 0%, transparent 50%);
-  background-attachment: fixed;
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+body.light-theme {
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(0, 136, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(0, 255, 204, 0.03) 0%, transparent 50%);
+  background-attachment: fixed;
 }
 
 .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
@@ -222,6 +238,11 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
 }
 
 .skeleton-text {

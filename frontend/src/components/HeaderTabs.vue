@@ -11,6 +11,7 @@
   <router-link to="/map" class="tab" active-class="active" @touchstart="$router.push('/map')"><span>Maps</span></router-link>
   <router-link to="/heatmap" class="tab" active-class="active" @touchstart="$router.push('/heatmap')">🔥 <span>Heatmap</span></router-link>
   <router-link to="/badges" class="tab" active-class="active" @touchstart="$router.push('/badges')">🏅 <span>Badges</span></router-link>
+  <router-link to="/comparison" class="tab" active-class="active" @touchstart="$router.push('/comparison')">⚖️ <span>Compare</span></router-link>
   <router-link to="/weather" class="tab" active-class="active" @touchstart="$router.push('/weather')">🌤️ <span>Weather</span></router-link>
   <router-link v-if="isAdmin" to="/admin" class="tab" active-class="active" @touchstart="$router.push('/admin')">⚙️ <span>Admin</span></router-link>
   <span class="user-info">{{ isAdmin ? '👑 Admin' : '👤 User' }}</span>

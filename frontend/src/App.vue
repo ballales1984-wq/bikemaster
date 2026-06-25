@@ -1,8 +1,11 @@
 <template>
-  <div class="app">
+  <div class="app" :class="{ 'light-theme': !isDark }">
     <header class="app-header" v-show="showHeader">
       <h1 class="logo">🚴 BikeMaster</h1>
       <p v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
+      <button class="theme-toggle" @click="toggleTheme" :aria-label="isDark ? 'Light mode' : 'Dark mode'">
+        {{ isDark ? '☀️' : '🌙' }}
+      </button>
       <nav v-if="isPublicPage" class="public-links">
         <router-link to="/about">Chi Siamo</router-link>
         <router-link to="/contact">Contatti</router-link>
@@ -41,7 +44,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import { isLoggedIn, isAdmin as checkIsAdmin, login as doLogin, register as doRegister, logout as doLogout } from './composables/useAuth'
@@ -61,6 +64,26 @@ const showHeader = computed(() => loggedIn.value || isPublicPage.value)
 const summary = ref({ rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 })
 const summaryLoading = ref(false)
 const loginError = ref(localStorage.getItem('bikemaster_login_error') || '')
+
+const isDark = ref(true)
+
+function loadTheme() {
+  const saved = localStorage.getItem('bikemaster_theme')
+  if (saved === 'light') {
+    isDark.value = false
+  } else {
+    isDark.value = true
+  }
+}
+
+function toggleTheme() {
+  isDark.value = !isDark.value
+  localStorage.setItem('bikemaster_theme', isDark.value ? 'dark' : 'light')
+}
+
+watch(isDark, (val) => {
+  document.body.classList.toggle('light-theme', !val)
+})
 
 const { fetchSummary } = useRides()
 
@@ -110,6 +133,7 @@ async function onSummaryChange() {
 }
 
 onMounted(() => {
+  loadTheme()
   if (loggedIn.value) loadSummary()
 })
 </script>
@@ -181,5 +205,26 @@ onMounted(() => {
   color: var(--error);
   text-align: center;
   margin-top: 0.5rem;
+}
+
+.theme-toggle {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(0, 255, 204, 0.2);
 }
 </style>

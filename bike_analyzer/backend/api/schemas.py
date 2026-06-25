@@ -6,14 +6,14 @@ from pydantic import BaseModel, Field
 
 
 class RideCreate(BaseModel):
-    date: str = Field(..., min_length=1)
-    distance_km: float = Field(default=0.0, ge=0)
-    duration_minutes: float = Field(default=0.0, ge=0)
-    avg_speed_kmh: float = Field(default=0.0, ge=0)
+    date: str = Field(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
+    distance_km: float = Field(default=0.0, ge=0, le=500)
+    duration_minutes: float = Field(default=0.0, ge=1, le=1440)
+    avg_speed_kmh: float | None = Field(default=None, ge=0, le=150)
     weight_kg: float = Field(default=70.0, ge=20, le=300)
-    calories: float = Field(default=0.0, ge=0)
+    calories: float | None = Field(default=None, ge=0, le=50000)
     heart_rate_avg: float | None = Field(default=None, ge=30, le=220)
-    elevation_gain_m: float | None = Field(default=None, ge=0)
+    elevation_gain_m: float | None = Field(default=None, ge=0, le=15000)
     gps_points: list[dict] | None = None
 
 

@@ -7,7 +7,7 @@ from ..models.models import Ride
 
 def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:
     """Calculate fatigue score based on ride intensity and duration."""
-    duration_h = ride.duration_hours
+    duration_h = ride.duration_hours or 0
     hr_avg = ride.heart_rate_avg
     DURATION_FACTOR = min(duration_h / 2.0, 3.0)
     if hr_avg:
@@ -21,7 +21,8 @@ def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:
         )
     else:
         INTENSITY_FACTOR = 1.0
-    SPEED_FACTOR = min(ride.avg_speed_kmh / 25.0, 2.0)
+    speed = ride.avg_speed_kmh or 0
+    SPEED_FACTOR = min(speed / 25.0, 2.0)
     ELEV_FACTOR = (
         1.0 + min((ride.elevation_gain_m / ride.distance_km) / 20.0, 1.0)
         if ride.elevation_gain_m and ride.distance_km and ride.distance_km > 0
