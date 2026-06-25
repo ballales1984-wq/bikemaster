@@ -50,6 +50,9 @@
       <div class="list-header">
         <h2>🏍️ Le Tue Uscite <span class="ride-count" v-if="!loading">{{ filteredRides.length }}</span></h2>
         <div class="list-controls">
+          <button class="btn btn-sm btn-secondary" @click="exportCSV" :disabled="rides.length === 0">
+            📥 CSV
+          </button>
           <button class="btn btn-sm btn-secondary" @click="toggleFilters">
             🔧 Filtri{{ hasActiveFilters ? ' ●' : '' }}
           </button>
@@ -328,11 +331,19 @@ async function handleAdd() {
   adding.value = true
   addError.value = ''
   try {
+    const dist = Number(form.value.distance_km)
+    const dur = Number(form.value.duration_minutes)
+    if (dist <= 0) { addError.value = 'La distanza deve essere maggiore di 0'; return }
+    if (dur < 1) { addError.value = 'La durata deve essere di almeno 1 minuto'; return }
+    if (dur > 1440) { addError.value = 'La durata non può superare 24 ore'; return }
+    if (dist > 500) { addError.value = 'La distanza non può superare 500 km'; return }
+    const speed = form.value.avg_speed_kmh ? Number(form.value.avg_speed_kmh) : undefined
+    if (speed && speed > 150) { addError.value = 'Velocità nonrealistica (>150 km/h)'; return }
     await apiPost('/api/v1/rides', {
       date: form.value.date,
-      distance_km: Number(form.value.distance_km),
-      duration_minutes: Number(form.value.duration_minutes),
-      avg_speed_kmh: form.value.avg_speed_kmh ? Number(form.value.avg_speed_kmh) : undefined,
+      distance_km: dist,
+      duration_minutes: dur,
+      avg_speed_kmh: speed,
       elevation_gain_m: form.value.elevation_gain_m ? Number(form.value.elevation_gain_m) : undefined,
       calories: form.value.calories ? Number(form.value.calories) : undefined
     })
@@ -383,6 +394,21 @@ async function handleDelete() {
     deleteTargetId.value = null
     deleteTargetDate.value = ''
   }
+}
+
+function exportCSV() {
+  const headers = ['Date', 'Distance (km)', 'Duration (min)', 'Avg Speed (km/h)', 'Elevation (m)', 'Calories']
+  const rows = filteredRides.value.map(r => [
+    r.date, r.distance_km, r.duration_minutes, r.avg_speed_kmh ?? '', r.elevation_gain_m ?? '', r.calories ?? ''
+  ])
+  const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `rides_export_${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 onMounted(() => load())

@@ -300,7 +300,13 @@ onMounted(() => load().catch(e => { error.value = e.message }))
   width: 80px;
   height: 80px;
   transform: rotate(-90deg);
+  animation: ringAppear 0.6s ease both;
 }
+
+.ring-svg:nth-child(1) { animation-delay: 0.05s; }
+.ring-svg:nth-child(2) { animation-delay: 0.15s; }
+.ring-svg:nth-child(3) { animation-delay: 0.25s; }
+.ring-svg:nth-child(4) { animation-delay: 0.35s; }
 
 .ring-bg {
   fill: none;
@@ -576,6 +582,11 @@ onMounted(() => load().catch(e => { error.value = e.message }))
   font-size: 0.85rem;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+@keyframes ringAppear {
+  from { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+  to { opacity: 1; transform: rotate(-90deg) scale(1); }
 }
 
 @media (max-width: 768px) {

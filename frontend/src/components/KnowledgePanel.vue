@@ -45,7 +45,7 @@
 
     <!-- Loading -->
     <div v-if="loading" class="skeleton-container">
-      <div class="skeleton skeleton-card" v-for="i in 3" :key="i" style="height: 90px; margin-bottom: 12px;"></div>
+      <div class="skeleton skeleton-card skeleton-pulse" v-for="i in 3" :key="i" style="height: 90px; margin-bottom: 12px;"></div>
     </div>
 
     <!-- Results -->
@@ -472,4 +472,11 @@ code {
   font-size: 0.85rem;
   color: var(--accent);
 }
+
+.skeleton-pulse {
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-pulse:nth-child(2) { animation-delay: 0.2s; }
+.skeleton-pulse:nth-child(3) { animation-delay: 0.4s; }
 </style>

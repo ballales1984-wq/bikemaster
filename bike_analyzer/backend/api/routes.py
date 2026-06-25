@@ -38,6 +38,7 @@ from ..maps.map_renderer import create_route_map
 from ..maps.osm_maps import get_local_results, search_nearby, search_places
 from ..models.models import AthleteProfile, GPSPoint, Ride
 from ..rate_limiter import limiter
+from ..redis_client import cache_delete as _cache_delete
 from ..redis_client import cache_set as _cache_set
 from ..redis_client import cached as _cached
 from ..security import get_admin_user, get_current_user
@@ -549,6 +550,7 @@ async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_cu
         ride = Ride(**{k: v for k, v in ride_dict.items() if k != "gps_points"})
         ride_dict["calories"] = estimate_calories(ride, method="physics")
     ride_id = save_ride(ride_dict)
+    await _cache_delete(f"dashboard:{current_user['id']}")
     return {"id": int(ride_id), **ride_dict}
 
 
@@ -661,6 +663,7 @@ async def delete_ride(ride_id: int, current_user: dict = Depends(get_current_use
         _ensure_ride_access(ride, current_user)
     if not _delete(ride_id):
         raise HTTPException(status_code=404, detail="Ride not found")
+    await _cache_delete(f"dashboard:{current_user['id']}")
     return {"deleted": True}
 
 
@@ -2547,6 +2550,11 @@ async def get_dashboard(request: Request, current_user: dict = Depends(get_curre
     from ..db.database import get_athlete, get_rides_by_athlete
 
     athlete_id = _ensure_int_user_id(current_user)
+    cache_key = f"dashboard:{athlete_id}"
+    cached_result = await _cached(cache_key, ttl=120)
+    if cached_result:
+        return cached_result
+
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
     athlete = get_athlete(athlete_id)
     athlete_dict = _public_athlete(athlete) if athlete else None
@@ -2558,7 +2566,7 @@ async def get_dashboard(request: Request, current_user: dict = Depends(get_curre
         "weekly_progress": [r.distance_km for r in rides[-7:]] if rides else [],
         "monthly_stats": None,
     }
-    return {
+    result = {
         "athlete": athlete_dict,
         "summary": summary,
         "scores": scores,
@@ -2566,6 +2574,8 @@ async def get_dashboard(request: Request, current_user: dict = Depends(get_curre
         "trends": trends,
         "rides_count": len(rides),
     }
+    await _cache_set(cache_key, result, ttl=120)
+    return result
 
 
 @admin_router.get("/test-sentry")

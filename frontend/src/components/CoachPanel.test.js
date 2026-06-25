@@ -2,7 +2,8 @@ import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const apiGet = vi.hoisted(() => vi.fn())
-vi.mock('../utils/api.ts', () => ({ apiGet }))
+const apiPost = vi.hoisted(() => vi.fn())
+vi.mock('../utils/api.ts', () => ({ apiGet, apiPost }))
 
 import CoachPanel from './CoachPanel.vue'
 
@@ -15,9 +16,6 @@ const mockAthletes = {
 }
 
 const mockCoachData = {
-  training_advice: 'Increase volume gradually',
-  recovery_advice: 'Sleep 8+ hours nightly',
-  historical_analysis: 'Performance improved 10% last month',
   training_scores: [
     { label: 'Performance', value: 88 },
     { label: 'Endurance', value: 76 },
@@ -25,91 +23,25 @@ const mockCoachData = {
   ],
 }
 
+const mockChatResponse = {
+  response: 'Increase volume gradually',
+}
+
 describe('CoachPanel', () => {
   afterEach(() => {
     vi.clearAllMocks()
   })
 
-  it('loads first athlete and displays coach data', async () => {
-    apiGet
-      .mockResolvedValueOnce(mockAthletes)
-      .mockResolvedValueOnce(mockCoachData)
-
-    const wrapper = mount(CoachPanel)
-    await flush()
-
-    expect(apiGet).toHaveBeenCalledWith('/api/v1/athletes')
-    expect(apiGet).toHaveBeenCalledWith('/api/v1/coach/full', { athlete_id: 1 })
-    expect(wrapper.text()).toContain('88')
-    expect(wrapper.text()).toContain('Increase volume gradually')
-  })
-
-  it('displays recovery advice and historical analysis', async () => {
-    apiGet
-      .mockResolvedValueOnce(mockAthletes)
-      .mockResolvedValueOnce(mockCoachData)
-
-    const wrapper = mount(CoachPanel)
-    await flush()
-
-    expect(wrapper.text()).toContain('Sleep 8+ hours nightly')
-    expect(wrapper.text()).toContain('Performance improved 10% last month')
-  })
-
-  it('shows all training scores', async () => {
-    apiGet
-      .mockResolvedValueOnce(mockAthletes)
-      .mockResolvedValueOnce(mockCoachData)
-
-    const wrapper = mount(CoachPanel)
-    await flush()
-
-    expect(wrapper.text()).toContain('Performance')
-    expect(wrapper.text()).toContain('Endurance')
-    expect(wrapper.text()).toContain('Efficiency')
-    expect(wrapper.text()).toContain('76')
-    expect(wrapper.text()).toContain('91')
-  })
-
-  it('shows empty state when no athletes', async () => {
-    apiGet.mockResolvedValueOnce({ athletes: [] })
-
-    const wrapper = mount(CoachPanel)
-    await flush()
-
-    expect(apiGet).toHaveBeenCalledWith('/api/v1/athletes')
-    expect(wrapper.text()).toContain('No coach data')
-  })
-
-  it('handles athlete API failure gracefully', async () => {
-    apiGet.mockRejectedValueOnce(new Error('API error'))
-
-    const wrapper = mount(CoachPanel)
-    await flush()
-
-    expect(wrapper.find('.empty-state').exists()).toBe(true)
-  })
-
-  it('renders form grid with athlete selector', async () => {
+  it('loads first athlete on mount', async () => {
     apiGet.mockResolvedValueOnce(mockAthletes)
 
     const wrapper = mount(CoachPanel)
     await flush()
 
-    expect(wrapper.find('.form-grid').exists()).toBe(true)
-    expect(wrapper.find('#coach-athlete-id').exists()).toBe(true)
+    expect(apiGet).toHaveBeenCalledWith('/api/v1/athletes')
   })
 
-  it('displays button text correctly', async () => {
-    apiGet.mockResolvedValueOnce(mockAthletes)
-
-    const wrapper = mount(CoachPanel)
-    await flush()
-
-    expect(wrapper.text()).toContain('Load Full Coach')
-  })
-
-  it('has AI Coach title', async () => {
+  it('displays AI Coach title', async () => {
     apiGet.mockResolvedValueOnce(mockAthletes)
 
     const wrapper = mount(CoachPanel)
@@ -118,7 +50,7 @@ describe('CoachPanel', () => {
     expect(wrapper.find('h2').text()).toContain('AI Coach')
   })
 
-  it('shows stat cards after loading coach data', async () => {
+  it('shows score pills after loading coach data', async () => {
     apiGet
       .mockResolvedValueOnce(mockAthletes)
       .mockResolvedValueOnce(mockCoachData)
@@ -126,30 +58,60 @@ describe('CoachPanel', () => {
     const wrapper = mount(CoachPanel)
     await flush()
 
-    expect(wrapper.findAll('.stat-card').length).toBe(3)
+    expect(wrapper.text()).toContain('88')
   })
 
-  it('shows training advice sections after loading', async () => {
-    apiGet
-      .mockResolvedValueOnce(mockAthletes)
-      .mockResolvedValueOnce(mockCoachData)
+  it('has chat input', async () => {
+    apiGet.mockResolvedValueOnce(mockAthletes)
 
     const wrapper = mount(CoachPanel)
     await flush()
 
-    expect(wrapper.text()).toContain('Training Advice')
-    expect(wrapper.text()).toContain('Historical Analysis')
-    expect(wrapper.text()).toContain('Recovery Advice')
+    expect(wrapper.find('.chat-input').exists()).toBe(true)
   })
 
-  it('displays stats container after coach data loaded', async () => {
-    apiGet
-      .mockResolvedValueOnce(mockAthletes)
-      .mockResolvedValueOnce(mockCoachData)
+  it('has send button', async () => {
+    apiGet.mockResolvedValueOnce(mockAthletes)
 
     const wrapper = mount(CoachPanel)
     await flush()
 
-    expect(wrapper.find('.stats').exists()).toBe(true)
+    expect(wrapper.find('.send-btn').exists()).toBe(true)
+  })
+
+  it('has quick action buttons', async () => {
+    apiGet.mockResolvedValueOnce(mockAthletes)
+
+    const wrapper = mount(CoachPanel)
+    await flush()
+
+    expect(wrapper.findAll('.quick-btn').length).toBeGreaterThan(0)
+  })
+
+  it('shows welcome message in chat', async () => {
+    apiGet.mockResolvedValueOnce(mockAthletes)
+
+    const wrapper = mount(CoachPanel)
+    await flush()
+
+    expect(wrapper.text()).toContain('Ciao!')
+  })
+
+  it('has Report button for full coach data', async () => {
+    apiGet.mockResolvedValueOnce(mockAthletes)
+
+    const wrapper = mount(CoachPanel)
+    await flush()
+
+    expect(wrapper.text()).toContain('Report')
+  })
+
+  it('handles athlete API failure gracefully', async () => {
+    apiGet.mockRejectedValueOnce(new Error('API error'))
+
+    const wrapper = mount(CoachPanel)
+    await flush()
+
+    expect(wrapper.find('.coach-panel').exists()).toBe(true)
   })
 })

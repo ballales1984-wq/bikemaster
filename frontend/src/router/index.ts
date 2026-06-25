@@ -56,6 +56,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/comparison',
+    name: 'comparison',
+    component: () => import('../components/RideComparison.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/heatmap',
     name: 'heatmap',
     component: () => import(/* webpackChunkName: "heatmap" */ '../components/HeatmapPanel.vue'),
