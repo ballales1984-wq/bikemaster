@@ -60,8 +60,6 @@ def search_places(
         "addressdetails": 1,
     }
     if lat is not None and lon is not None:
-        params["lat"] = lat
-        params["lon"] = lon
         params["viewbox"] = f"{lon - 0.05},{lat + 0.05},{lon + 0.05},{lat - 0.05}"
         params["bounded"] = 0
     data = _nominatim_get("/search", params)

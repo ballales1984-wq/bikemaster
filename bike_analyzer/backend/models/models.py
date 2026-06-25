@@ -30,6 +30,7 @@ class GPSPoint:
     lon: float
     timestamp: datetime
     altitude: float | None = None
+    elevation: float | None = None
     speed: float | None = None
     power: float | None = None
     heart_rate: float | None = None

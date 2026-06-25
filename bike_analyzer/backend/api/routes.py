@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import base64
 import json
+import time
 from collections.abc import AsyncGenerator
 from dataclasses import fields
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlencode, urlparse
 
 import requests
@@ -24,7 +26,7 @@ from fastapi import (
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
-from ..analytics.analytics import analyze_ride, calculate_summary
+from ..analytics.analytics import calculate_summary
 from ..analytics.badges import calculate_badges, get_heatmap_points
 from ..analytics.calories import calories_per_km, estimate_calories
 from ..analytics.fatigue import (
@@ -52,7 +54,26 @@ from .schemas import (
     RideCreate,
 )
 
+_PLACE_CACHE: dict[str, tuple[Any, float]] = {}
+_PLACE_CACHE_TTL_S = 600
+
 logger = get_logger(__name__)
+
+
+def _place_cache_get(key: str) -> Any | None:
+    entry = _PLACE_CACHE.get(key)
+    if entry is None:
+        return None
+    value, ts = entry
+    if time.time() - ts > _PLACE_CACHE_TTL_S:
+        del _PLACE_CACHE[key]
+        return None
+    return value
+
+
+def _place_cache_set(key: str, value: Any) -> None:
+    _PLACE_CACHE[key] = (value, time.time())
+
 
 router = APIRouter()
 admin_router = APIRouter()
@@ -574,6 +595,61 @@ async def get_ride(ride_id: int, current_user: dict = Depends(get_current_user))
     return ride
 
 
+@router.get("/rides/{ride_id}/map")
+async def generate_ride_map(
+    ride_id: int, current_user: dict = Depends(get_current_user)
+):
+    from pathlib import Path
+
+    from ..db.database import get_ride as _get_ride
+    from ..maps.map_renderer import create_route_map
+    from ..models.models import GPSPoint
+
+    ride = _get_ride(ride_id)
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
+    gps_points = ride.get("gps_points")
+    if not gps_points:
+        raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    normalized = []
+    for p in gps_points:
+        if "altitude" not in p and "elevation" in p:
+            normalized.append({**p, "altitude": p.get("elevation")})
+        else:
+            normalized.append(p)
+    points = [GPSPoint(**p) for p in normalized]
+    base_dir = Path(__file__).resolve().parent.parent / "static"
+    safe_id = "".join(c if c.isalnum() or c == "_" else "_" for c in str(ride_id))
+    path = base_dir / f"ride_{safe_id}_map.html"
+    resolved = path.resolve()
+    if not resolved.is_relative_to(base_dir.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    try:
+        create_route_map(points, output_path=str(resolved))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Map generation failed: {exc}") from exc
+    return {"map_url": f"/static/{resolved.name}"}
+
+
+@router.post("/rides/analyze")
+async def analyze_rides(request: Request, payload: RideAnalysisRequest):
+    from ..analytics.analytics import calculate_summary
+    from ..models.models import Ride
+
+    return calculate_summary([Ride(**r.model_dump()) for r in payload.rides])
+
+
+@router.post("/rides/{ride_id}/analyze")
+async def analyze_single_ride(
+    ride_id: int, ride_data: RideCreate, current_user: dict = Depends(get_current_user)
+):
+    from ..analytics.analytics import analyze_ride
+    from ..models.models import Ride
+
+    return analyze_ride(Ride(id=ride_id, **ride_data.model_dump()))
+
+
 @router.delete("/rides/{ride_id}")
 async def delete_ride(ride_id: int, current_user: dict = Depends(get_current_user)):
     """Delete ride - user can only delete owned rides."""
@@ -595,11 +671,6 @@ async def get_ride_segments(
     """Detect and return significant segments from ride GPS points."""
     from ..db.database import get_ride as _get_ride
     from ..models.models import GPSPoint
-    from ..processing.segment_detector import (
-        detect_all_segments,
-        detect_climb_segments,
-        segment_to_dict,
-    )
 
     ride = _get_ride(ride_id)
     if not ride:
@@ -609,55 +680,13 @@ async def get_ride_segments(
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
-
-    points = [GPSPoint(**p) for p in gps_points]
-    climbs = detect_climb_segments(points)
-    segments = detect_all_segments(points, min_length_m=min_distance_m)
-
-    return {
-        "ride_id": ride_id,
-        "climbs": [segment_to_dict(c) for c in climbs],
-        "segments": [
-            {
-                "distance_km": round(s.distance_m / 1000, 2),
-                "elevation_gain_m": s.elevation_gain_m,
-                "avg_speed_kmh": round(s.avg_speed_km_h, 1),
-            }
-            for s in segments
-        ],
-        "climb_count": len(climbs),
-        "segment_count": len(segments),
-    }
-
-
-@router.post("/rides/analyze")
-async def analyze_rides(request: Request, payload: RideAnalysisRequest):
-    return calculate_summary([Ride(**r.model_dump()) for r in payload.rides])
-
-
-@router.post("/rides/{ride_id}/analyze")
-async def analyze_single_ride(
-    ride_id: int, ride_data: RideCreate, current_user: dict = Depends(get_current_user)
-):
-    return analyze_ride(Ride(id=ride_id, **ride_data.model_dump()))
-
-
-@router.get("/rides/{ride_id}/map")
-async def generate_ride_map(
-    ride_id: int, current_user: dict = Depends(get_current_user)
-):
-    from pathlib import Path
-
-    from ..db.database import get_ride as _get_ride
-
-    ride = _get_ride(ride_id)
-    if not ride:
-        raise HTTPException(status_code=404, detail="Ride not found")
-    _ensure_ride_access(ride, current_user)
-    gps_points = ride.get("gps_points")
-    if not gps_points:
-        raise HTTPException(status_code=400, detail="No GPS points for this ride")
-    points = [GPSPoint(**p) for p in gps_points]
+    normalized = []
+    for p in gps_points:
+        if "altitude" not in p and "elevation" in p:
+            normalized.append({**p, "altitude": p.get("elevation")})
+        else:
+            normalized.append(p)
+    points = [GPSPoint(**p) for p in normalized]
     base_dir = Path(__file__).resolve().parent.parent / "static"
     safe_id = "".join(c if c.isalnum() or c == "_" else "_" for c in str(ride_id))
     path = base_dir / f"ride_{safe_id}_map.html"
@@ -1474,11 +1503,17 @@ async def google_static_map(
         raise HTTPException(status_code=400, detail="No GPS points")
     api_key = get_google_api_key()
     if not api_key:
+        logger.warning("Google static map requested for ride %d but API key not configured", ride_id)
         raise HTTPException(status_code=500, detail="GOOGLE_MAPS_API_KEY not configured")
     points = [GPSPoint(**p) for p in gps_points]
     suffix = "_colored" if colored else ""
     path = f"ride_{ride_id}_google_map{suffix}.png"
-    create_google_static_map(points, api_key, path, colored=colored)
+    try:
+        create_google_static_map(points, api_key, path, colored=colored)
+        logger.info("Google static map generated: %s (colored=%s, %d points)", path, colored, len(points))
+    except RuntimeError as exc:
+        logger.error("Google static map failed for ride %d: %s", ride_id, exc)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return FileResponse(path, media_type="image/png", filename="map.png")
 
 
@@ -1717,6 +1752,13 @@ async def nearby_places(
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
     points = [GPSPoint(**p) for p in gps_points]
+    center_lat = round(sum(p.lat for p in points) / len(points), 3)
+    center_lon = round(sum(p.lon for p in points) / len(points), 3)
+    cache_key_str = f"places:nearby:{use_osm}:{query}:{center_lat}:{center_lon}"
+    cached_result = _place_cache_get(cache_key_str)
+    if cached_result is not None:
+        logger.debug("Place search cache hit: nearby %s", query)
+        return cached_result
     if use_osm:
         from ..maps.osm_maps import get_local_results as osm_search
 
@@ -1725,7 +1767,10 @@ async def nearby_places(
         results = get_local_results(points, query=query)
     if results is None:
         raise HTTPException(status_code=502, detail="Place search request failed")
-    return {"query": query, "count": len(results), "results": results}
+    resp = {"query": query, "count": len(results), "results": results}
+    _place_cache_set(cache_key_str, resp)
+    logger.debug("Place search cached: nearby %s (%d results)", query, len(results))
+    return resp
 
 
 @router.get("/maps/places/osm-search")
@@ -1736,10 +1781,16 @@ async def osm_places_search(
     limit: int = Query(10),
 ):
     """OpenStreetMap search for places - no API key required."""
+    cache_key_str = f"places:osm:{query}:{round(lat,3)}:{round(lon,3)}:{limit}"
+    cached_result = _place_cache_get(cache_key_str)
+    if cached_result is not None:
+        logger.debug("Place search cache hit: osm %s", query)
+        return cached_result
     result = search_places(query, lat=lat, lon=lon, limit=limit)
-    if result is None:
-        return {"query": query, "results": []}
-    return {"query": query, "results": result.get("results", [])}
+    resp = {"query": query, "results": result.get("results", []) if result else []}
+    _place_cache_set(cache_key_str, resp)
+    logger.debug("Place search cached: osm %s", query)
+    return resp
 
 
 @router.get("/maps/places/search")
