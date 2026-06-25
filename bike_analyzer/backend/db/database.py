@@ -159,6 +159,7 @@ def init_db():
         conn.execute("""CREATE TABLE IF NOT EXISTS training_goals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
+            tenant_id INTEGER DEFAULT 0,
             title TEXT NOT NULL,
             description TEXT,
             goal_type TEXT DEFAULT 'granfondo',
@@ -172,6 +173,7 @@ def init_db():
         conn.execute("""CREATE TABLE IF NOT EXISTS planned_workouts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
+            tenant_id INTEGER DEFAULT 0,
             goal_id INTEGER,
             date TEXT NOT NULL,
             title TEXT NOT NULL,
@@ -243,6 +245,14 @@ def init_db():
         metric_cols = [row[1] for row in cur.fetchall()]
         if "tenant_id" not in metric_cols:
             conn.execute("ALTER TABLE metrics ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        cur.execute("PRAGMA table_info(training_goals)")
+        goal_cols = [row[1] for row in cur.fetchall()]
+        if "tenant_id" not in goal_cols:
+            conn.execute("ALTER TABLE training_goals ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        cur.execute("PRAGMA table_info(planned_workouts)")
+        workout_cols = [row[1] for row in cur.fetchall()]
+        if "tenant_id" not in workout_cols:
+            conn.execute("ALTER TABLE planned_workouts ADD COLUMN tenant_id INTEGER DEFAULT 0")
         _ensure_external_identity_index(conn)
         conn.commit()
 
