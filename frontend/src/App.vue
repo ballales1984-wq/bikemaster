@@ -1,9 +1,9 @@
 <template>
   <div class="app">
-    <header class="app-header">
-      <h1>🚴 BikeMaster</h1>
-      <p>Cycling Performance Intelligence</p>
-      <nav class="public-links">
+    <header class="app-header" :class="{ 'header-login': !loggedIn && route.path === '/', 'header-app': loggedIn }">
+      <h1 class="logo">🚴 BikeMaster</h1>
+      <p v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
+      <nav v-if="!loggedIn || isPublicPage" class="public-links">
         <router-link to="/about">Chi Siamo</router-link>
         <router-link to="/contact">Contatti</router-link>
         <router-link to="/privacy">Privacy</router-link>
@@ -13,8 +13,10 @@
     </header>
 
     <template v-if="!loggedIn && !isPublicPage">
-      <LoginForm @login="onLogin" @register="onRegister" @error="loginError = $event" />
-      <p v-if="loginError" class="login-error">{{ loginError }}</p>
+      <div class="login-wrapper">
+        <LoginForm @login="onLogin" @register="onRegister" @error="loginError = $event" />
+        <p v-if="loginError" class="login-error">{{ loginError }}</p>
+      </div>
     </template>
 
     <template v-else>
@@ -121,14 +123,32 @@ onMounted(() => {
   text-align: center;
   padding: 1.5rem 1rem;
   border-bottom: 1px solid var(--border);
+  transition: var(--transition);
 }
-.app-header h1 {
+.app-header.header-login {
+  padding: 2.5rem 1rem 1.5rem;
+  border-bottom: none;
+}
+.app-header.header-app {
+  padding: 1rem;
+}
+.logo {
   font-size: 1.8rem;
   margin: 0 0 0.3rem;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: logoGlow 3s ease-in-out infinite alternate;
 }
-.app-header p {
-  color: #888;
+@keyframes logoGlow {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.2) drop-shadow(0 0 8px rgba(0, 255, 204, 0.4)); }
+}
+.tagline {
+  color: var(--text-muted);
   margin: 0;
+  font-size: 0.9rem;
 }
 .public-links {
   display: flex;
@@ -138,7 +158,7 @@ onMounted(() => {
   margin-top: 0.8rem;
 }
 .public-links a {
-  color: #aaa;
+  color: var(--text-muted);
   text-decoration: none;
   font-size: 0.85rem;
   padding: 0.3rem 0.6rem;
@@ -146,7 +166,14 @@ onMounted(() => {
   transition: color 0.2s;
 }
 .public-links a:hover {
-  color: #fff;
+  color: var(--accent);
+}
+.login-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px;
 }
 .footer {
   margin-top: auto;
@@ -154,10 +181,10 @@ onMounted(() => {
   padding: 1rem;
   border-top: 1px solid var(--border);
   font-size: 0.85rem;
-  color: #666;
+  color: var(--text-muted);
 }
 .login-error {
-  color: #e74c3c;
+  color: var(--error);
   text-align: center;
   margin-top: 0.5rem;
 }

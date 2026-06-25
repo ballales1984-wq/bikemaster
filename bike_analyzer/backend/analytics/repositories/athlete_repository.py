@@ -104,9 +104,12 @@ class AthleteRepository:
     def _get_by_id_sync(self, athlete_id: int, tenant_id: int | None = None) -> dict | None:
         from ..db.database import get_athlete
 
-        if tenant_id is not None:
-            return get_athlete(athlete_id)
-        return get_athlete(athlete_id)
+        athlete = get_athlete(athlete_id)
+        if athlete is None:
+            return None
+        if tenant_id is not None and athlete.get("tenant_id") != tenant_id:
+            return None
+        return athlete
 
     def _get_by_name_sync(self, name: str, tenant_id: int | None = None) -> dict | None:
         from ..db.database import get_athlete_by_name

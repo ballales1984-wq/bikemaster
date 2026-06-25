@@ -109,18 +109,21 @@ class RideRepository:
         from ...db.database import get_rides_by_athlete
         return get_rides_by_athlete(athlete_id)
 
-    async def list_all(self) -> list[dict]:
+    async def list_all(self, athlete_id: int | None = None) -> list[dict]:
         if self._session_factory:
-            return await self._list_all_async()
+            return await self._list_all_async(athlete_id)
         if self._sync_conn:
-            return self._sync_conn.get_all_rides()
-        return self._list_all_sync()
+            return self._sync_conn.get_all_rides(athlete_id)
+        return self._list_all_sync(athlete_id)
 
-    async def _list_all_async(self) -> list[dict]:
+    async def _list_all_async(self, athlete_id: int | None = None) -> list[dict]:
         from sqlalchemy import select
 
         async with self._session_factory() as session:
-            stmt = select(self._table).order_by(self._table.date.desc())
+            stmt = select(self._table)
+            if athlete_id is not None:
+                stmt = stmt.where(self._table.athlete_id == athlete_id)
+            stmt = stmt.order_by(self._table.date.desc())
             result = await session.execute(stmt)
             rows = result.mappings().all()
             rides = []
@@ -131,9 +134,10 @@ class RideRepository:
                 rides.append(data)
             return rides
 
-    def _list_all_sync(self) -> list[dict]:
+    def _list_all_sync(self, athlete_id: int | None = None) -> list[dict]:
         from ...db.database import get_all_rides
-        return get_all_rides()
+
+        return get_all_rides(athlete_id)
 
     async def delete(self, ride_id: int) -> bool:
         if self._session_factory:
