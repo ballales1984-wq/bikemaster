@@ -1,9 +1,9 @@
 <template>
   <div class="app">
-    <header class="app-header" :class="{ 'header-login': !loggedIn && route.path === '/', 'header-app': loggedIn }">
+    <header class="app-header" v-show="showHeader">
       <h1 class="logo">🚴 BikeMaster</h1>
       <p v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
-      <nav v-if="!loggedIn || isPublicPage" class="public-links">
+      <nav v-if="isPublicPage" class="public-links">
         <router-link to="/about">Chi Siamo</router-link>
         <router-link to="/contact">Contatti</router-link>
         <router-link to="/privacy">Privacy</router-link>
@@ -57,6 +57,7 @@ const router = useRouter()
 const loggedIn = computed(() => isLoggedIn())
 const isAdmin = computed(() => checkIsAdmin())
 const isPublicPage = computed(() => ['/privacy', '/terms', '/cookies', '/about', '/contact'].includes(route.path))
+const showHeader = computed(() => loggedIn.value || isPublicPage.value)
 const summary = ref({ rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 })
 const summaryLoading = ref(false)
 const loginError = ref(localStorage.getItem('bikemaster_login_error') || '')
@@ -124,13 +125,6 @@ onMounted(() => {
   padding: 1.5rem 1rem;
   border-bottom: 1px solid var(--border);
   transition: var(--transition);
-}
-.app-header.header-login {
-  padding: 2.5rem 1rem 1.5rem;
-  border-bottom: none;
-}
-.app-header.header-app {
-  padding: 1rem;
 }
 .logo {
   font-size: 1.8rem;
