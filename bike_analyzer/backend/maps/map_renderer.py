@@ -2,9 +2,21 @@
 
 from __future__ import annotations
 
-import folium
-
 from ..models.models import GPSPoint, RouteStatistics
+
+
+def _speed_to_color(speed_kmh: float | None) -> str:
+    if speed_kmh is None:
+        return "#4488ff"
+    if speed_kmh >= 35:
+        return "#00cc44"
+    if speed_kmh >= 25:
+        return "#88cc00"
+    if speed_kmh >= 15:
+        return "#ddbb00"
+    if speed_kmh >= 5:
+        return "#ee8800"
+    return "#ee3333"
 
 
 def create_route_map(
@@ -16,6 +28,8 @@ def create_route_map(
     if not points:
         raise ValueError("No GPS points provided")
 
+    import folium
+
     route_map = folium.Map(
         location=[
             sum(p.lat for p in points) / len(points),
@@ -24,20 +38,8 @@ def create_route_map(
         zoom_start=13,
     )
 
-    if statistics is None:
-        min_spd = 0.0
-        max_spd = 25.0
-    else:
-        speeds_with_values = [p.speed for p in points if p.speed is not None]
-        if speeds_with_values:
-            min_spd = min(speeds_with_values)
-            max_spd = max(speeds_with_values)
-        else:
-            min_spd = 0.0
-            max_spd = 25.0
-
     for i, point in enumerate(points[:-1]):
-        color = _speed_to_color(point.speed or 15, min_spd, max_spd) if color_by_speed else "#FF6B00"
+        color = _speed_to_color(point.speed) if color_by_speed else "#FF6B00"
         folium.PolyLine(
             locations=[(point.lat, point.lon), (points[i + 1].lat, points[i + 1].lon)],
             color=color,
@@ -68,16 +70,3 @@ def create_route_map(
 
     route_map.save(output_path)
     return output_path
-
-
-def _speed_to_color(speed: float, min_speed: float, max_speed: float) -> str:
-    if max_speed == min_speed:
-        return "#FFFF00"
-    ratio = (speed - min_speed) / (max_speed - min_speed)
-    if ratio < 0.5:
-        r = int(255 * ratio * 2)
-        g = 255
-    else:
-        r = 255
-        g = int(255 * (1 - (ratio - 0.5) * 2))
-    return f"#{r:02x}{g:02x}00"

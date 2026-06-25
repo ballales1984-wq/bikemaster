@@ -104,7 +104,7 @@ async function connectGoogleFit() {
   importStatus.value = null
   try {
     // Get Google Fit auth URL
-    const redirectUri = `${window.location.origin}/api/v1/import/google-fit/callback`
+    const redirectUri = `${import.meta.env.DEV ? 'http://localhost:8000' : window.location.origin}/api/v1/import/google-fit/callback`
     const state = btoa(JSON.stringify({ redirect_uri: redirectUri }))
     const authResp = await fetch(`/api/v1/import/google-fit/auth?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`)
 if (!authResp.ok) {

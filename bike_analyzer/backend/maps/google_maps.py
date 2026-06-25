@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,6 +10,9 @@ import httpx
 
 from ..config import GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_SIZE, GOOGLE_MAPS_ZOOM
 from ..models.models import GPSPoint
+
+logger = logging.getLogger(__name__)
+_MAX_URL_LENGTH = 2000
 
 
 @dataclass
@@ -138,12 +142,32 @@ def create_google_static_map(
             f"center={center_lat},{center_lon}&zoom={zoom}&size={size}&{path_str}"
             f"{markers}&key={api_key}"
         )
+        if len(url) > _MAX_URL_LENGTH:
+            coords_all = "|".join([f"{p.lat},{p.lon}" for p in points])
+            speeds = [p.speed for p in points if p.speed is not None]
+            min_spd = min(speeds) if speeds else 0.0
+            max_spd = max(speeds) if speeds else 35.0
+            median_color = _interpolate_color(
+                (min_spd + max_spd) / 2, min_spd, max_spd
+            )
+            url = (
+                "https://maps.googleapis.com/maps/api/staticmap?"
+                f"center={center_lat},{center_lon}&zoom={zoom}&size={size}"
+                f"&path=color:{_css_to_google_hex(median_color)}|weight:5|{coords_all}"
+                f"{markers}&key={api_key}"
+            )
     if api_key.startswith("test-") or api_key.endswith("-mock"):
         Path(output_path).write_bytes(b"")
         return output_path
 
     with httpx.Client(timeout=15.0) as client:
         resp = client.get(url)
+        if resp.status_code == 429:
+            logger.error("Google Maps API rate limit exceeded for key ending in ...%s", api_key[-4:])
+            raise RuntimeError("Google Maps API rate limit exceeded")
+        if resp.status_code == 403:
+            logger.error("Google Maps API 403 for key ending in ...%s — quota exceeded or invalid key", api_key[-4:])
+            raise RuntimeError("Google Maps API quota exceeded or invalid key")
         resp.raise_for_status()
     Path(output_path).write_bytes(resp.content)
     return output_path

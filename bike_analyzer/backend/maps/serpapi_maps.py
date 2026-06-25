@@ -2,12 +2,25 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from typing import Any
 
 import requests
 
 from ..config import SERPAPI_API_KEY, SERPAPI_BASE_URL, SERPAPI_ENGINE
 from ..models.models import GPSPoint
+
+logger = logging.getLogger(__name__)
+_SERPAPI_RATE_LIMIT_S = 1.0
+_serpapi_last_request_ts: float = 0.0
+
+
+def _wait_for_rate_limit() -> None:
+    global _serpapi_last_request_ts
+    elapsed = time.time() - _serpapi_last_request_ts
+    if elapsed < _SERPAPI_RATE_LIMIT_S:
+        time.sleep(_SERPAPI_RATE_LIMIT_S - elapsed)
 
 
 def search_places(
@@ -25,11 +38,20 @@ def search_places(
         params["nearby"] = lat
 
     try:
+        _wait_for_rate_limit()
         resp = requests.get(SERPAPI_BASE_URL, params=params, timeout=20)
+        global _serpapi_last_request_ts
+        _serpapi_last_request_ts = time.time()
+        if resp.status_code == 429:
+            logger.warning("SerpApi rate limit hit for query: %s", query)
+            return None
+        if resp.status_code == 403:
+            logger.error("SerpApi 403 — invalid or exhausted API key")
+            return None
         if resp.ok:
             return resp.json()
-    except requests.RequestException:
-        pass
+    except requests.RequestException as exc:
+        logger.warning("SerpApi request failed: %s", exc)
     return None
 
 

@@ -266,7 +266,7 @@ def test_ride_map_endpoint(client):
         },
     )
     ride_id = ride.json()["id"]
-    r = client.post(f"/api/v1/rides/{ride_id}/map")
+    r = client.get(f"/api/v1/rides/{ride_id}/map")
     assert r.status_code == 200
 
 

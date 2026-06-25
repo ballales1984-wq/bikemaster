@@ -24,6 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger("bikemaster.startup")
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+os.environ.setdefault("MPLBACKEND", "Agg")
 
 try:
     from bike_analyzer.backend.api.app_factory import create_app

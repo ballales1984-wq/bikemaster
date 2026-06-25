@@ -110,9 +110,12 @@ class TestGoogleMapsErrorPaths:
             create_route_map([])
 
     def test_speed_to_color_edge_cases(self):
-        assert _speed_to_color(15, 15, 15) == "#FFFF00"
-        assert _speed_to_color(0, 0, 25) == "#00ff00"
-        assert _speed_to_color(25, 0, 25) == "#ff0000"
+        assert _speed_to_color(None) == "#4488ff"
+        assert _speed_to_color(3) == "#ee3333"
+        assert _speed_to_color(5) == "#ee8800"
+        assert _speed_to_color(15) == "#ddbb00"
+        assert _speed_to_color(25) == "#88cc00"
+        assert _speed_to_color(35) == "#00cc44"
 
 
 # ============================================================

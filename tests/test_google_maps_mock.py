@@ -134,6 +134,23 @@ def test_create_google_static_map_colored():
     assert path == "test_map_colored.png"
 
 
+def test_create_google_static_map_colored_url_overflow():
+    base = datetime(2024, 1, 1, tzinfo=UTC)
+    many_points = [
+        GPSPoint(
+            lat=45.0 + i * 0.001,
+            lon=9.0 + i * 0.001,
+            timestamp=base.replace(minute=(i // 60) % 60, second=i % 60),
+            speed=10 + i,
+        )
+        for i in range(200)
+    ]
+    path = create_google_static_map(
+        many_points, "test-api-key-mock", "test_map_overflow.png", colored=True
+    )
+    assert path == "test_map_overflow.png"
+
+
 def test_create_google_static_map_empty_points():
     try:
         create_google_static_map([], "test-api-key-mock", "empty_map.png")
@@ -208,7 +225,38 @@ def test_init_chroma_db_error():
         pass
 
 
+def test_map_renderer_no_folium_import_at_module_level():
+    """Verify folium is not imported at module load time (lazy import)."""
+    import sys
+
+    before = set(sys.modules.keys())
+    import importlib
+
+    importlib.import_module("bike_analyzer.backend.maps.map_renderer")
+    after = set(sys.modules.keys())
+    new_mods = after - before
+    assert "folium" not in new_mods, "folium should be lazily imported, not at module level"
+
+
+def test_map_renderer_folium_loaded_after_call():
+    """Verify folium is imported when create_route_map is called."""
+    import sys
+    from datetime import UTC, datetime
+
+    from bike_analyzer.backend.maps.map_renderer import create_route_map
+    from bike_analyzer.backend.models.models import GPSPoint
+
+    points = [
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
+    ]
+    path = create_route_map(points, output_path="test_lazy_folium.html")
+    assert path == "test_lazy_folium.html"
+    assert "folium" in sys.modules, "folium should be loaded after create_route_map call"
+
+
 def teardown_function():
-    for f in ["test_map.png", "test_map_colored.png", "test_map_colored2.png", "empty_map.png"]:
+    for f in ["test_map.png", "test_map_colored.png", "test_map_colored2.png", "empty_map.png",
+              "test_map_overflow.png", "test_lazy_folium.html"]:
         if os.path.exists(f):
             os.remove(f)
