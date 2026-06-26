@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import RidesView from '../views/RidesView.vue'
+
+vi.mock('../components/RidesPanel.vue', () => ({
+  default: { template: '<div class="rides-panel-stub" />' },
+}))
 
 describe('RidesView', () => {
   it('renders welcome section', () => {
