@@ -16,7 +16,7 @@ class FitnessStateRepository:
 
     @property
     def _table(self):
-        from ..db.models import FitnessStateModel
+        from ...db.models import FitnessStateModel
         return FitnessStateModel
 
     async def save(self, state: dict[str, Any]) -> int:
