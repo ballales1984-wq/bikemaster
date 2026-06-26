@@ -136,7 +136,7 @@ class HealthStatus:
 
 async def check_database_health() -> tuple[str, str]:
     try:
-        from ..db.database import get_db_connection
+        from .db.database import get_db_connection
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute("SELECT 1")
@@ -149,7 +149,7 @@ async def check_database_health() -> tuple[str, str]:
 
 async def check_redis_health() -> tuple[str, str]:
     try:
-        from ..redis_client import get_redis
+        from .redis_client import get_redis
         r = await get_redis()
         if r is not None:
             await asyncio_if_awaitable(r.ping())
@@ -162,7 +162,7 @@ async def check_redis_health() -> tuple[str, str]:
 
 async def check_task_queue_health() -> tuple[str, str]:
     try:
-        from ..task_queue import get_task_queue
+        from .task_queue import get_task_queue
         q = get_task_queue()
         return "healthy", f"Task queue: {len(q._tasks)} tasks tracked"
     except Exception as exc:
