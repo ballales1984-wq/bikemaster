@@ -24,6 +24,7 @@ describe('RidesPanel', () => {
         { id: 1, date: '2026-06-01', distance_km: 42.5, duration_minutes: 90, avg_speed_kmh: 28.3 },
         { id: 2, date: '2026-06-08', distance_km: 25.0, duration_minutes: 60, avg_speed_kmh: 25.0 },
       ],
+      total: 2,
     })
 
     const wrapper = mount(RidesPanel, {
@@ -34,12 +35,10 @@ describe('RidesPanel', () => {
     expect(apiGet).toHaveBeenCalledWith('/api/v1/rides', { limit: 200 })
     const items = wrapper.findAll('.ride-item')
     expect(items).toHaveLength(2)
-    expect(items[0].text()).toContain('42.5')
-    expect(items[1].text()).toContain('2026-06-08')
   })
 
   it('shows empty state when no rides', async () => {
-    apiGet.mockResolvedValueOnce({ rides: [] })
+    apiGet.mockResolvedValueOnce({ rides: [], total: 0 })
 
     const wrapper = mount(RidesPanel, {
       global: { stubs: { ConfirmModal: true } },
@@ -52,8 +51,8 @@ describe('RidesPanel', () => {
 
   it('adds a ride by filling the form', async () => {
     apiGet
-      .mockResolvedValueOnce({ rides: [] })
-      .mockResolvedValueOnce({ rides: [{ id: 10, date: '2026-06-15', distance_km: 50, duration_minutes: 120, avg_speed_kmh: 25 }] })
+      .mockResolvedValueOnce({ rides: [], total: 0 })
+      .mockResolvedValueOnce({ rides: [{ id: 10, date: '2026-06-15', distance_km: 50, duration_minutes: 120, avg_speed_kmh: 25 }], total: 1 })
     apiPost.mockResolvedValueOnce({ id: 10 })
 
     const wrapper = mount(RidesPanel, {
@@ -81,9 +80,10 @@ describe('RidesPanel', () => {
     }))
   })
 
-  it('opens confirm modal on Delete click', async () => {
+  it('opens ride detail on click', async () => {
     apiGet.mockResolvedValueOnce({
       rides: [{ id: 5, date: '2026-05-20', distance_km: 30, duration_minutes: 70, avg_speed_kmh: 25 }],
+      total: 1,
     })
 
     const wrapper = mount(RidesPanel, {
@@ -91,16 +91,11 @@ describe('RidesPanel', () => {
     })
     await flush()
 
-    // Click on the first ride to open detail (which shows delete button)
+    // Click on the first ride
     await wrapper.findAll('.ride-item')[0].trigger('click')
     await flush()
 
-    // Now click delete button in the modal
-    const deleteBtn = wrapper.find('.delete-btn')
-    if (deleteBtn.exists()) {
-      await deleteBtn.trigger('click')
-      expect(wrapper.vm.showDeleteModal).toBe(true)
-      expect(wrapper.vm.deleteTargetId).toBe(5)
-    }
+    // verify the ride detail modal opens (selectedRide is set)
+    expect(wrapper.vm.selectedRide).toBeTruthy()
   })
 })

@@ -403,3 +403,33 @@ def test_generate_distance_chart_no_points():
 def test_generate_time_chart_no_points():
     result = generate_time_chart(None)
     assert result == ""
+
+
+def test_generate_distance_chart_with_points():
+    points = [
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
+    ]
+    result = generate_distance_chart(points)
+    assert result != ""
+
+
+def test_generate_time_chart_with_points():
+    points = [
+        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, 10, 0, tzinfo=UTC)),
+        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 10, 30, tzinfo=UTC)),
+    ]
+    result = generate_time_chart(points)
+    assert result != ""
+
+
+def test_calculate_summary_no_rides():
+    result = calculate_summary([])
+    assert result["total_rides"] == 0
+    assert result["avg_fatigue"] == 0.0
+
+
+def test_analyze_ride_no_id():
+    r = Ride(date="2024-06-01", distance_km=20.0, duration_minutes=60.0, avg_speed_kmh=20.0)
+    result = analyze_ride(r)
+    assert result["ride_id"] is None

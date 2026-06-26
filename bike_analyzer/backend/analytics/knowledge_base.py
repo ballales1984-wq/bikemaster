@@ -1,7 +1,7 @@
 """Knowledge base RAG engine: PGVector similarity search with BM25 fallback.
 
 Primary search uses PGVector cosine similarity. Falls back to BM25 when
-vector database is unavailable. Supports ChromaDB as intermediate layer.
+vector database is unavailable or incompatible. Supports ChromaDB as intermediate layer.
 """
 
 from __future__ import annotations
@@ -30,156 +30,20 @@ EMBEDDING_DIMENSION = 1536
 
 _STOP_WORDS: frozenset[str] = frozenset(
     {
-        "il",
-        "lo",
-        "la",
-        "i",
-        "gli",
-        "le",
-        "un",
-        "uno",
-        "una",
-        "di",
-        "a",
-        "da",
-        "in",
-        "con",
-        "su",
-        "per",
-        "tra",
-        "fra",
-        "che",
-        "e",
-        "ma",
-        "o",
-        "non",
-        "come",
-        "quando",
-        "dove",
-        "perche",
-        "quale",
-        "questo",
-        "quella",
-        "questi",
-        "quelle",
-        "mio",
-        "mia",
-        "miei",
-        "mie",
-        "tuo",
-        "tua",
-        "tuoi",
-        "tue",
-        "suo",
-        "sua",
-        "suoi",
-        "sue",
-        "nostro",
-        "nostra",
-        "nostri",
-        "nostre",
-        "vostro",
-        "vostra",
-        "essere",
-        "avere",
-        "andare",
-        "fare",
-        "potere",
-        "dovere",
-        "volere",
-        "sapere",
-        "vedere",
-        "dare",
-        "stare",
-        "venire",
-        "dire",
-        "the",
-        "an",
-        "is",
-        "are",
-        "was",
-        "were",
-        "be",
-        "been",
-        "being",
-        "have",
-        "has",
-        "had",
-        "do",
-        "does",
-        "did",
-        "will",
-        "would",
-        "shall",
-        "should",
-        "may",
-        "might",
-        "must",
-        "can",
-        "could",
-        "of",
-        "for",
-        "on",
-        "with",
-        "at",
-        "by",
-        "from",
-        "as",
-        "into",
-        "about",
-        "through",
-        "during",
-        "before",
-        "after",
-        "above",
-        "below",
-        "between",
-        "out",
-        "off",
-        "over",
-        "under",
-        "again",
-        "further",
-        "then",
-        "once",
-        "here",
-        "there",
-        "when",
-        "where",
-        "why",
-        "how",
-        "all",
-        "both",
-        "each",
-        "few",
-        "more",
-        "most",
-        "other",
-        "some",
-        "such",
-        "no",
-        "nor",
-        "not",
-        "only",
-        "own",
-        "same",
-        "so",
-        "than",
-        "too",
-        "very",
-        "just",
-        "because",
-        "but",
-        "and",
-        "or",
-        "if",
-        "while",
-        "that",
-        "this",
-        "these",
-        "those",
-        "it",
-        "its",
+        "il", "lo", "la", "i", "gli", "le", "un", "uno", "una", "di", "a", "da", "in",
+        "con", "su", "per", "tra", "fra", "che", "e", "ma", "o", "non", "come", "quando",
+        "dove", "perche", "quale", "questo", "quella", "questi", "quelle", "mio", "mia",
+        "miei", "mie", "tuo", "tua", "tuoi", "tue", "suo", "sua", "suoi", "sue", "nostro",
+        "nostra", "nostri", "nostre", "vostro", "vostra", "essere", "avere", "andare",
+        "fare", "potere", "dovere", "volere", "sapere", "vedere", "dare", "stare", "venire",
+        "dire", "the", "an", "is", "are", "was", "were", "be", "been", "being", "have",
+        "has", "had", "do", "does", "did", "will", "would", "shall", "should", "may", "might",
+        "must", "can", "could", "of", "for", "on", "with", "at", "by", "from", "as", "into",
+        "about", "through", "during", "before", "after", "above", "below", "between", "out",
+        "off", "over", "under", "again", "further", "then", "once", "here", "there", "when",
+        "where", "why", "how", "all", "both", "each", "few", "more", "most", "other", "some",
+        "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "just",
+        "because", "but", "and", "or", "if", "while", "that", "this", "these", "those", "it", "its",
     }
 )
 
@@ -258,13 +122,6 @@ def load_chunks(force_reload: bool = False) -> list[dict]:
 
     Cache key is the modification time of the knowledge_base directory.
     Call with force_reload=True to bypass the cache.
-
-    Args:
-        force_reload: if True, clear the LRU cache and load from disk.
-
-    Returns:
-        List of chunk dicts with keys: topic, chunk_id, text, word_count,
-        char_count, token_count, section.
     """
     if force_reload:
         _cached_load.cache_clear()
@@ -273,7 +130,7 @@ def load_chunks(force_reload: bool = False) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# BM25 scoring
+# BM25 scoring (fallback)
 # ---------------------------------------------------------------------------
 
 
@@ -335,17 +192,7 @@ def search_knowledge_base(
     """PGVector similarity search over the knowledge base.
 
     Primary search uses embedding-based cosine similarity via ChromaDB.
-    Falls back to BM25 when vector database is unavailable.
-
-    Args:
-        query:      Natural-language query in Italian or English.
-        max_chunks:  Cap on the number of chunks returned.
-        min_score:   Similarity score cutoff (0 disables the filter).
-        as_string:   If True, return a formatted string (backward-compatible output).
-
-    Returns:
-        Ordered list of chunk dicts with a ``score`` field, or a formatted
-        string if ``as_string=True``.
+    Falls back to BM25 when vector database is unavailable or incompatible.
     """
     try:
         import chromadb
@@ -361,27 +208,30 @@ def search_knowledge_base(
                     n_results=max_chunks,
                     include=["documents", "metadatas", "distances"],
                 )
-                results = []
-                for i, dist in enumerate(results_raw.get("distances", [[]])[0]):
-                    sim = 1.0 - dist
-                    if sim < min_score:
-                        continue
-                    meta = results_raw.get("metadatas", [[None]])[0][i] or {}
-                    results.append(
-                        {
-                            "topic": meta.get("topic", ""),
-                            "chunk_id": results_raw.get("ids", [[]])[0][i]
-                            if results_raw.get("ids")
-                            else f"chunk_{i}",
-                            "text": results_raw.get("documents", [[None]])[0][i] or "",
-                            "section": meta.get("section", ""),
-                            "score": round(sim, 4),
-                        }
-                    )
-                if results:
-                    if as_string:
-                        return format_context_for_llm(results)
-                    return results
+                distances = results_raw.get("distances", [[]])[0]
+                if distances:
+                    all_positive = all((1.0 - d) >= 0 for d in distances)
+                    if all_positive:
+                        results = []
+                        for i, dist in enumerate(distances):
+                            sim = 1.0 - dist
+                            if sim >= min_score:
+                                meta = results_raw.get("metadatas", [[None]])[0][i] or {}
+                                results.append(
+                                    {
+                                        "topic": meta.get("topic", ""),
+                                        "chunk_id": results_raw.get("ids", [[]])[0][i]
+                                        if results_raw.get("ids")
+                                        else f"chunk_{i}",
+                                        "text": results_raw.get("documents", [[None]])[0][i] or "",
+                                        "section": meta.get("section", ""),
+                                        "score": round(sim, 4),
+                                    }
+                                )
+                        if results:
+                            if as_string:
+                                return format_context_for_llm(results)
+                            return results
     except Exception as e:
         logger.debug("Vector search unavailable: %s", e)
 
@@ -452,10 +302,7 @@ def get_kb_stats() -> dict:
 
 
 def format_context_for_llm(results: list[dict], max_chars: int = CONTEXT_WINDOW_CHARS) -> str:
-    """Format ranked chunks for inclusion in an LLM prompt.
-
-    Respects ``max_chars`` to keep the context window in bounds.
-    """
+    """Format ranked chunks for inclusion in an LLM prompt."""
     if not results:
         return ""
     parts: list[str] = []
@@ -482,10 +329,7 @@ def reload_kb() -> dict:
 
 
 def init_kb_embeddings(session=None) -> dict:
-    """Generate and save embeddings for all knowledge base chunks.
-
-    Can be called via admin endpoint to bootstrap vector search.
-    """
+    """Generate and save embeddings for all knowledge base chunks."""
     chunks = load_chunks()
     if session is not None:
         saved = save_chunks_to_pgvector(chunks, session)
@@ -609,21 +453,7 @@ def search_knowledge_base_pgvector(
     min_score: float = 0.1,
     as_string: bool = False,
 ) -> list[dict] | str:
-    """Semantic search using PGVector or ChromaDB cosine similarity.
-
-    Tries PGVector first (via VectorDB class), falls back to ChromaDB,
-    then falls back to BM25 if vector search unavailable.
-
-    Args:
-        query: Natural-language query in Italian or English.
-        session: SQLAlchemy session (unused, kept for API compatibility).
-        max_chunks: Cap on number of chunks returned.
-        min_score: Minimum similarity score threshold.
-        as_string: If True, return formatted string for LLM.
-
-    Returns:
-        Ordered list of chunk dicts with similarity score, or formatted string.
-    """
+    """Semantic search using PGVector or ChromaDB cosine similarity."""
     try:
         import chromadb
 
@@ -703,10 +533,7 @@ def search_knowledge_base_pgvector(
 
 
 def save_chunks_to_pgvector(chunks: list[dict], session) -> int:
-    """Save knowledge base chunks to PostgreSQL/SQLite with embeddings.
-
-    Tries PGVector first, falls back to SQLite table for vector storage.
-    """
+    """Save knowledge base chunks to PostgreSQL/SQLite with embeddings."""
     saved = 0
     for c in chunks:
         if "embedding" not in c or c["embedding"] is None:
@@ -735,10 +562,7 @@ def save_chunks_to_pgvector(chunks: list[dict], session) -> int:
 
 
 def init_chroma_db(persist_path: str | None = None) -> dict:
-    """Initialize ChromaDB vector store with knowledge base embeddings.
-
-    Simple embedded solution that works everywhere without external dependencies.
-    """
+    """Initialize ChromaDB vector store with knowledge base embeddings."""
     try:
         import chromadb
     except ImportError:
