@@ -1,15 +1,14 @@
-"""Knowledge base RAG engine: BM25 scoring, caching, chunk assembly.
+"""Knowledge base RAG engine: PGVector similarity search with BM25 fallback.
 
-Replaces the original token-overlap implementation with BM25 retrieval,
-LRU-cached loading, metadata-enriched chunks, and proper context assembly.
-
-Phase 24: Added PGVector semantic search with BM25 fallback.
+Primary search uses PGVector cosine similarity. Falls back to BM25 when
+vector database is unavailable. Supports ChromaDB as intermediate layer.
 """
 
 from __future__ import annotations
 
 import contextlib
 import json
+import logging
 import math
 import os
 import re
@@ -20,6 +19,9 @@ import numpy as np
 import sqlalchemy as sa
 
 from ..config import KB_PATH, OPENAI_API_KEY
+from ..db.models import KnowledgeChunkModel
+
+logger = logging.getLogger(__name__)
 
 MAX_CHARS_PER_CHUNK = 1200
 CHUNK_OVERLAP = 200
@@ -330,18 +332,59 @@ def search_knowledge_base(
     min_score: float = 0.05,
     as_string: bool = False,
 ) -> list[dict] | str:
-    """BM25-ranked search over the knowledge base.
+    """PGVector similarity search over the knowledge base.
+
+    Primary search uses embedding-based cosine similarity via ChromaDB.
+    Falls back to BM25 when vector database is unavailable.
 
     Args:
         query:      Natural-language query in Italian or English.
         max_chunks:  Cap on the number of chunks returned.
-        min_score:   BM25 score cutoff (0 disables the filter).
+        min_score:   Similarity score cutoff (0 disables the filter).
         as_string:   If True, return a formatted string (backward-compatible output).
 
     Returns:
         Ordered list of chunk dicts with a ``score`` field, or a formatted
         string if ``as_string=True``.
     """
+    try:
+        import chromadb
+
+        query_emb = embed_text(query)
+        if query_emb is not None:
+            chroma_path = str(KB_PATH.parent / ".chroma_db")
+            if os.path.exists(chroma_path):
+                client = chromadb.PersistentClient(path=chroma_path)
+                collection = client.get_collection(name="bikemaster_knowledge")
+                results_raw = collection.query(
+                    query_embeddings=[query_emb],
+                    n_results=max_chunks,
+                    include=["documents", "metadatas", "distances"],
+                )
+                results = []
+                for i, dist in enumerate(results_raw.get("distances", [[]])[0]):
+                    sim = 1.0 - dist
+                    if sim < min_score:
+                        continue
+                    meta = results_raw.get("metadatas", [[None]])[0][i] or {}
+                    results.append(
+                        {
+                            "topic": meta.get("topic", ""),
+                            "chunk_id": results_raw.get("ids", [[]])[0][i]
+                            if results_raw.get("ids")
+                            else f"chunk_{i}",
+                            "text": results_raw.get("documents", [[None]])[0][i] or "",
+                            "section": meta.get("section", ""),
+                            "score": round(sim, 4),
+                        }
+                    )
+                if results:
+                    if as_string:
+                        return format_context_for_llm(results)
+                    return results
+    except Exception as e:
+        logger.debug("Vector search unavailable: %s", e)
+
     chunks = load_chunks()
     if not chunks:
         return "" if as_string else []
@@ -528,6 +571,37 @@ def _is_postgres(session) -> bool:
         return False
 
 
+async def _search_pgvector_async(
+    query: str,
+    session,
+    max_chunks: int = 4,
+    min_score: float = 0.1,
+) -> list[dict]:
+    """Search using PGVector cosine similarity with async session."""
+    try:
+        from ..database.vectordb import VectorDB
+
+        vector_db = VectorDB()
+        query_embedding = embed_text(query)
+        if not query_embedding:
+            return []
+
+        results_raw = await vector_db.search_similar(query_embedding, top_k=max_chunks, min_similarity=min_score)
+        return [
+            {
+                "topic": r["topic"],
+                "chunk_id": r["id"],
+                "text": r["content"],
+                "section": r["section"],
+                "score": round(r["similarity"], 4),
+            }
+            for r in results_raw
+        ]
+    except Exception as e:
+        logger.debug("PGVector async search failed: %s", e)
+        return []
+
+
 def search_knowledge_base_pgvector(
     query: str,
     session,
@@ -535,7 +609,21 @@ def search_knowledge_base_pgvector(
     min_score: float = 0.1,
     as_string: bool = False,
 ) -> list[dict] | str:
-    """Semantic search using PGVector OR ChromaDB cosine similarity."""
+    """Semantic search using PGVector or ChromaDB cosine similarity.
+
+    Tries PGVector first (via VectorDB class), falls back to ChromaDB,
+    then falls back to BM25 if vector search unavailable.
+
+    Args:
+        query: Natural-language query in Italian or English.
+        session: SQLAlchemy session (unused, kept for API compatibility).
+        max_chunks: Cap on number of chunks returned.
+        min_score: Minimum similarity score threshold.
+        as_string: If True, return formatted string for LLM.
+
+    Returns:
+        Ordered list of chunk dicts with similarity score, or formatted string.
+    """
     try:
         import chromadb
 
@@ -551,7 +639,8 @@ def search_knowledge_base_pgvector(
             )
             results = []
             for i, dist in enumerate(results_raw.get("distances", [[]])[0]):
-                if dist > (1 - min_score):
+                sim = 1.0 - dist
+                if sim < min_score:
                     continue
                 meta = results_raw.get("metadatas", [[None]])[0][i] or {}
                 results.append(
@@ -562,56 +651,55 @@ def search_knowledge_base_pgvector(
                         else f"chunk_{i}",
                         "text": results_raw.get("documents", [[None]])[0][i] or "",
                         "section": meta.get("section", ""),
-                        "score": round(1.0 - dist, 4),
+                        "score": round(sim, 4),
                     }
                 )
             if results and as_string:
                 return format_context_for_llm(results)
             return results
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("ChromaDB search failed: %s", e)
 
     try:
-        from ..db.models import KnowledgeChunkModel
-
         query_embedding = embed_text(query)
         if not query_embedding:
             return search_knowledge_base(query, max_chunks, min_score, as_string)
 
-        embedding_json = json.dumps(query_embedding)
-
-        stmt = (
-            session.query(
-                KnowledgeChunkModel,
-                KnowledgeChunkModel.embedding.op("<=>")(embedding_json).label("similarity"),
+        if _is_postgres(session):
+            embedding_str = json.dumps(query_embedding)
+            stmt = (
+                sa.select(
+                    KnowledgeChunkModel,
+                    KnowledgeChunkModel.embedding.op("<->")(embedding_str).label("distance"),
+                )
+                .filter(KnowledgeChunkModel.embedding.is_not(None))
+                .order_by(sa.asc("distance"))
+                .limit(max_chunks)
             )
-            .filter(KnowledgeChunkModel.embedding.is_not(None))
-            .order_by(sa.asc("similarity"))
-            .limit(max_chunks)
-        )
+            results = []
+            for chunk, distance in session.execute(stmt):
+                similarity = 1.0 - float(distance)
+                if similarity < min_score:
+                    continue
+                results.append(
+                    {
+                        "topic": chunk.topic,
+                        "chunk_id": chunk.chunk_id,
+                        "text": chunk.text,
+                        "word_count": chunk.word_count,
+                        "char_count": chunk.char_count,
+                        "token_count": chunk.token_count,
+                        "section": chunk.section,
+                        "score": round(similarity, 4),
+                    }
+                )
+            if results and as_string:
+                return format_context_for_llm(results)
+            return results
+    except Exception as e:
+        logger.debug("PGVector search failed: %s", e)
 
-        results = []
-        for chunk, similarity in session.execute(stmt):
-            if similarity < min_score:
-                continue
-            results.append(
-                {
-                    "topic": chunk.topic,
-                    "chunk_id": chunk.chunk_id,
-                    "text": chunk.text,
-                    "word_count": chunk.word_count,
-                    "char_count": chunk.char_count,
-                    "token_count": chunk.token_count,
-                    "section": chunk.section,
-                    "score": round(1.0 - similarity, 4),
-                }
-            )
-
-        if as_string:
-            return format_context_for_llm(results)
-        return results
-    except Exception:
-        return search_knowledge_base(query, max_chunks, min_score, as_string)
+    return search_knowledge_base(query, max_chunks, min_score, as_string)
 
 
 def save_chunks_to_pgvector(chunks: list[dict], session) -> int:

@@ -149,6 +149,32 @@ import {
   const showFamousRoutes = ref(false)
   const mapStyle = ref(localStorage.getItem('mapStyle') || 'standard')
 
+  const weatherLegend = computed(() => [
+    { label: 'Good', color: '#27ae60' },
+    { label: 'Fair', color: '#f1c40f' },
+    { label: 'Poor', color: '#e74c3c' },
+  ])
+
+  const riskLevels = computed(() => [
+    { label: 'Low', range: '0-24', color: '#27ae60' },
+    { label: 'Medium', range: '25-49', color: '#f1c40f' },
+    { label: 'High', range: '50-74', color: '#e67e22' },
+    { label: 'Severe', range: '75-100', color: '#e74c3c' },
+  ])
+
+  const gradeLegend = computed(() => [
+    { label: 'Flat', color: '#27ae60' },
+    { label: 'Moderate', color: '#f1c40f' },
+    { label: 'Steep', color: '#e67e22' },
+    { label: 'Very steep', color: '#e74c3c' },
+  ])
+
+  const speedLegend = computed(() => [
+    { label: 'Fast', color: '#27ae60' },
+    { label: 'Medium', color: '#f1c40f' },
+    { label: 'Slow', color: '#e74c3c' },
+  ])
+
   const MAP_STYLES = {
     standard: {
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',

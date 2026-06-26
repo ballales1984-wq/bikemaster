@@ -76,27 +76,33 @@ async def get_db_session():
     return get_session_factory()()
 
 
-async def get_ride(ride_id: int) -> dict | None:
+async def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
     async with get_session_factory()() as session:
         from sqlalchemy import select
 
-        result = await session.execute(select(RideModel).where(RideModel.id == ride_id))
+        stmt = select(RideModel).where(RideModel.id == ride_id)
+        if tenant_id is not None:
+            stmt = stmt.where(RideModel.tenant_id == tenant_id)
+        result = await session.execute(stmt)
         row = result.scalar_one_or_none()
         if not row:
             return None
         return _ride_to_dict(row)
 
 
-async def get_rides_by_athlete(athlete_id: int, limit: int = 1000) -> list[dict]:
+async def get_rides_by_athlete(athlete_id: int, limit: int = 1000, tenant_id: int | None = None) -> list[dict]:
     async with get_session_factory()() as session:
         from sqlalchemy import select
 
-        result = await session.execute(
+        stmt = (
             select(RideModel)
             .where(RideModel.athlete_id == athlete_id)
             .order_by(RideModel.date.desc())
             .limit(limit)
         )
+        if tenant_id is not None:
+            stmt = stmt.where(RideModel.tenant_id == tenant_id)
+        result = await session.execute(stmt)
         rows = result.scalars().all()
         return [_ride_to_dict(r) for r in rows]
 
@@ -185,6 +191,7 @@ async def save_athlete(athlete_data: dict, athlete_id: int | None = None) -> int
                 model.weight_kg = athlete_data.get("weight_kg", model.weight_kg)
                 model.age = athlete_data.get("age", model.age)
                 model.password_hash = athlete_data.get("password_hash", model.password_hash)
+                model.tenant_id = athlete_data.get("tenant_id", athlete_id)
                 await session.commit()
                 return athlete_id
 
@@ -210,6 +217,7 @@ async def save_athlete(athlete_data: dict, athlete_id: int | None = None) -> int
                 equipment=athlete_data.get("equipment"),
                 ftp_watts=athlete_data.get("ftp_watts"),
                 password_hash=athlete_data.get("password_hash"),
+                tenant_id=athlete_data.get("tenant_id", athlete_id),
                 created_at=datetime.now(UTC),
             )
             .returning(AthleteModel.id)
@@ -224,6 +232,7 @@ async def save_ride(ride_data: dict) -> int:
 
     async with get_session_factory()() as session:
         gps_points = json.dumps(ride_data.get("gps_points")) if ride_data.get("gps_points") else None
+        tenant_id = ride_data.get("tenant_id", ride_data.get("athlete_id"))
         stmt = (
             insert(RideModel)
             .values(
@@ -240,6 +249,7 @@ async def save_ride(ride_data: dict) -> int:
                 external_source=ride_data.get("external_source"),
                 external_id=ride_data.get("external_id"),
                 title=ride_data.get("title"),
+                tenant_id=tenant_id,
                 created_at=datetime.now(UTC),
             )
             .returning(RideModel.id)

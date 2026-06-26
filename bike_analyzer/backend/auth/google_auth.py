@@ -61,10 +61,12 @@ def create_google_session(user_info: dict, athlete_id: int | str | None = None) 
     from ..security import create_access_token
 
     subject = str(athlete_id) if athlete_id is not None else user_info.get("sub", "")
+    tenant_id = int(athlete_id) if athlete_id is not None else None
     return {
         "access_token": create_access_token(
             subject=subject,
             is_admin=False,
+            tenant_id=tenant_id,
         ),
         "token_type": "bearer",
         "user_id": subject,

@@ -3,20 +3,20 @@ import pytest
 
 
 def test_embed_text_returns_list():
-    from bike_analyzer.backend.db.vector_db import VECTOR_AVAILABLE, embed_text
+    from bike_analyzer.backend.db.vector_db import EMBEDDING_DIMENSION, SKLEARN_AVAILABLE, embed_text
 
-    if not VECTOR_AVAILABLE:
+    if not SKLEARN_AVAILABLE:
         pytest.skip("sklearn not available")
 
     result = embed_text("test text embedding")
-    assert result is not None
     assert isinstance(result, list)
+    assert len(result) == EMBEDDING_DIMENSION
 
 
 def test_similarity_search():
-    from bike_analyzer.backend.db.vector_db import VECTOR_AVAILABLE, similarity_search
+    from bike_analyzer.backend.db.vector_db import SKLEARN_AVAILABLE, similarity_search
 
-    if not VECTOR_AVAILABLE:
+    if not SKLEARN_AVAILABLE:
         pytest.skip("sklearn not available")
 
     docs = ["cycling training advice", "nutrition for athletes", "bike maintenance guide"]
@@ -36,9 +36,9 @@ def test_vector_store_add_and_search():
     import os
     import tempfile
 
-    from bike_analyzer.backend.db.vector_db import VECTOR_AVAILABLE, VectorStore
+    from bike_analyzer.backend.db.vector_db import SKLEARN_AVAILABLE, VectorStore
 
-    if not VECTOR_AVAILABLE:
+    if not SKLEARN_AVAILABLE:
         pytest.skip("sklearn not available")
 
     with tempfile.TemporaryDirectory() as tmpdir:

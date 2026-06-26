@@ -44,3 +44,22 @@ def test_calculate_granfondo_workouts_from_goal():
 def test_calculate_granfondo_workouts_defaults():
     plan = calculate_granfondo_workouts_from_goal({})
     assert len(plan) > 0
+
+
+def test_generate_granfondo_plan_12_weeks():
+    plan = generate_granfondo_plan("2024-06-01", target_weeks=12, ftp=200.0)
+    assert len(plan) == 37  # 12 weeks * 3 workouts + 1 event
+
+
+def test_generate_granfondo_plan_intensity():
+    plan = generate_granfondo_plan("2024-06-01", target_weeks=1)
+    for workout in plan[:-1]:  # exclude race day
+        assert "target_intensity" in workout
+        assert 0 < workout["target_intensity"] <= 0.9
+
+
+def test_generate_granfondo_plan_taper_final_week():
+    plan = generate_granfondo_plan("2024-06-01", target_weeks=2)
+    event_workout = plan[-1]
+    assert event_workout["workout_type"] == "race"
+    assert "goal_id" not in event_workout

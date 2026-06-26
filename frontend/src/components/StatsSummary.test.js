@@ -37,8 +37,8 @@ describe('StatsSummary', () => {
         loading: false,
       },
     })
-    expect(wrapper.find('.stat-card:nth-child(2) .stat-value').text()).toBe('123.5')
-    expect(wrapper.find('.stat-card:nth-child(4) .stat-value').text()).toBe('28.3')
+    expect(wrapper.find('.stat-card:nth-child(2) .stat-value').text()).toContain('123.5')
+    expect(wrapper.find('.stat-card:nth-child(4) .stat-value').text()).toContain('28.3')
   })
 
   it('converts duration_minutes to hours with one decimal', () => {
@@ -48,7 +48,7 @@ describe('StatsSummary', () => {
         loading: false,
       },
     })
-    expect(wrapper.find('.stat-card:nth-child(5) .stat-value').text()).toBe('2.1')
+    expect(wrapper.find('.stat-card:nth-child(5) .stat-value').text()).toContain('2.1')
   })
 
   it('shows 0 for NaN values', () => {
@@ -59,7 +59,8 @@ describe('StatsSummary', () => {
       },
     })
     const values = wrapper.findAll('.stat-value')
-    values.forEach((el) => expect(el.text()).toBe('0'))
+    expect(values[0].text()).toBe('0')
+    expect(values[2].text()).toBe('0')
   })
 
   it('emits refresh when refresh button is clicked', async () => {

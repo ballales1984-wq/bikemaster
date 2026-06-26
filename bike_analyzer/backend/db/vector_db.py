@@ -1,4 +1,7 @@
-"""Vector database for RAG with PGVector/SQLAlchemy fallback to BM25."""
+"""Vector database for RAG with PGVector similarity.
+
+Provides PGVector-backed semantic search with TF-IDF fallback.
+"""
 
 from __future__ import annotations
 
@@ -9,40 +12,43 @@ try:
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
 
-    VECTOR_AVAILABLE = True
+    SKLEARN_AVAILABLE = True
 except ImportError:
-    VECTOR_AVAILABLE = False
+    SKLEARN_AVAILABLE = False
 
-# Simple fallback embedding using TF-IDF
-_embeddings_cache: dict[str, np.ndarray] = {}
+EMBEDDING_DIMENSION = 1536
+_vectorizer: TfidfVectorizer | None = None
 
 
 def _get_vectorizer() -> TfidfVectorizer | None:
-    return (
-        TfidfVectorizer(max_features=1000, stop_words="english")
-        if VECTOR_AVAILABLE
-        else None
-    )
+    global _vectorizer
+    if SKLEARN_AVAILABLE and _vectorizer is None:
+        _vectorizer = TfidfVectorizer(max_features=EMBEDDING_DIMENSION, stop_words="english")
+    return _vectorizer
 
 
 def embed_text(text: str) -> list[float] | None:
-    """Get TF-IDF embedding for text (fallback to BM25)."""
-    if not VECTOR_AVAILABLE:
-        return None
-    if text not in _embeddings_cache:
-        vec = _get_vectorizer()
-        if vec is None:
-            return None
-        _embeddings_cache[text] = vec.fit_transform([text]).toarray()[0]
-    return _embeddings_cache[text].tolist()
+    """Get TF-IDF embedding for text (fallback when OpenAI unavailable)."""
+    if not SKLEARN_AVAILABLE:
+        return [0.0] * EMBEDDING_DIMENSION
+    vec = _get_vectorizer()
+    if vec is None:
+        return [0.0] * EMBEDDING_DIMENSION
+    try:
+        embedding = vec.fit_transform([text]).toarray()[0]
+        if len(embedding) < EMBEDDING_DIMENSION:
+            embedding = np.pad(embedding, (0, EMBEDDING_DIMENSION - len(embedding)))
+        return embedding.tolist()
+    except Exception:
+        return [0.0] * EMBEDDING_DIMENSION
 
 
 def similarity_search(
     query: str, documents: list[str], threshold: float = 0.1, top_k: int = 4
 ) -> list[tuple[str, float]]:
-    """Search documents by similarity."""
-    if not documents or not VECTOR_AVAILABLE:
-        return [(d, 1.0) for d in documents[:top_k]]
+    """Search documents by similarity using TF-IDF cosine similarity."""
+    if not documents:
+        return []
 
     vec = _get_vectorizer()
     if vec is None:
@@ -54,11 +60,11 @@ def similarity_search(
     scores = cosine_similarity(query_vec, doc_vectors).flatten()
     pairs = list(zip(documents, scores, strict=True))
     pairs.sort(key=lambda x: x[1], reverse=True)
-    return [(d, s) for d, s in pairs[:top_k] if s >= threshold]
+    return [(d, float(s)) for d, s in pairs[:top_k] if s >= threshold]
 
 
 class VectorStore:
-    """Simple SQLite-backed vector store for development."""
+    """SQLite-backed vector store for development fallback."""
 
     def __init__(self, db_path: str = "vectors.db"):
         self.db_path = db_path
@@ -68,7 +74,7 @@ class VectorStore:
         conn = sqlite3.connect(self.db_path)
         conn.execute(
             "CREATE TABLE IF NOT EXISTS vectors "
-            "(id INTEGER PRIMARY KEY, doc TEXT, embedding BLOB)"
+            "(id INTEGER PRIMARY KEY, doc TEXT, embedding TEXT)"
         )
         conn.commit()
         conn.close()

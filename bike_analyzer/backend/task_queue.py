@@ -134,6 +134,8 @@ class BackgroundTaskQueue:
 
         results = {"imported": [], "failed": []}
         files = payload.get("files", [])
+        athlete_id = payload.get("athlete_id")
+        tenant_id = payload.get("tenant_id", athlete_id)
         for f in files:
             try:
                 pts = (
@@ -143,6 +145,8 @@ class BackgroundTaskQueue:
                 )
                 ride_data = points_to_ride(pts, name=f["name"])
                 if "error" not in ride_data:
+                    ride_data["athlete_id"] = athlete_id
+                    ride_data["tenant_id"] = tenant_id
                     ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
                     ride_data["id"] = int(ride_id)
                     results["imported"].append(ride_data)
@@ -212,6 +216,7 @@ class BackgroundTaskQueue:
         )
 
         athlete_id = payload["athlete_id"]
+        tenant_id = payload.get("tenant_id", athlete_id)
         access_token = get_valid_token(athlete_id)
         if not access_token:
             return {"imported": 0, "error": "no_valid_token"}
@@ -223,6 +228,7 @@ class BackgroundTaskQueue:
             if ride_data.get("skipped") or "error" in ride_data:
                 continue
             ride_data["athlete_id"] = athlete_id
+            ride_data["tenant_id"] = tenant_id
             db_ride = {k: v for k, v in ride_data.items() if k != "id"}
             ride_id = save_ride(db_ride)
             if ride_id not in imported_ids:
@@ -239,6 +245,7 @@ class BackgroundTaskQueue:
         )
 
         athlete_id = payload["athlete_id"]
+        tenant_id = payload.get("tenant_id", athlete_id)
         access_token = get_valid_token(athlete_id)
         if not access_token:
             return {"imported": 0, "error": "no_valid_token"}
@@ -250,6 +257,7 @@ class BackgroundTaskQueue:
             if ride_data.get("skipped") or "error" in ride_data:
                 continue
             ride_data["athlete_id"] = athlete_id
+            ride_data["tenant_id"] = tenant_id
             db_ride = {k: v for k, v in ride_data.items() if k != "id"}
             ride_id = save_ride(db_ride)
             if ride_id not in imported_ids:
