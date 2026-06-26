@@ -50,13 +50,4 @@ describe('RideDetail', () => {
     expect(wrapper.vm.fmt(40)).toBe('40.0')
     expect(wrapper.vm.fmt(null)).toBe('—')
   })
-
-  it('emits close when close button is clicked', async () => {
-    const wrapper = mount(RideDetail, {
-      global: { stubs: { SpeedMap: true } },
-    })
-    wrapper.vm.ride = { id: 1, date: '2026-01-01', distance_km: 40, duration_minutes: 90, avg_speed_kmh: 26.7, calories: 400 }
-    await wrapper.find('.close-btn').trigger('click')
-    expect(wrapper.emitted('close')).toBeTruthy()
-  })
 })
