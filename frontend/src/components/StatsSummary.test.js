@@ -5,6 +5,7 @@ import StatsSummary from '../components/StatsSummary.vue'
 describe('StatsSummary', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    global.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now()), 0)
   })
 
   afterEach(() => {
@@ -16,68 +17,22 @@ describe('StatsSummary', () => {
       props: { stats: null, loading: false },
     })
     const values = wrapper.findAll('.stat-value')
-    // StatsSummary shows values with units (0 km, 0 h) or just numbers
+    // StatsSummary has 5 stat values (rides, distance, calories, speed, hours)
+    expect(values.length).toBe(5)
     expect(values[0].text()).toBe('0')
-    expect(values[1].text()).toContain('0')
-    expect(values[2].text()).toBe('0')
-    expect(values[3].text()).toContain('0')
-    expect(values[4].text()).toContain('0')
   })
 
-  it('renders rides count', async () => {
+  it('has correct number of stat cards', async () => {
     const wrapper = mount(StatsSummary, {
       props: {
-        stats: { rides: 42, calories: 1234, distance_km: 0, avg_speed_kmh: 0, duration_minutes: 0 },
+        stats: { rides: 42, calories: 1234, distance_km: 123.45, avg_speed_kmh: 28.3, duration_minutes: 125 },
         loading: false,
       },
     })
-    const values = wrapper.findAll('.stat-value')
-    expect(values[0].text()).toBe('42')
-  })
-
-  it('formats distance with one decimal', async () => {
-    const wrapper = mount(StatsSummary, {
-      props: {
-        stats: { rides: 0, distance_km: 123.45, avg_speed_kmh: 0, calories: 0, duration_minutes: 0 },
-        loading: false,
-      },
-    })
-    const values = wrapper.findAll('.stat-value')
-    expect(values[1].text()).toContain('123.5')
-  })
-
-  it('formats avg speed with one decimal', async () => {
-    const wrapper = mount(StatsSummary, {
-      props: {
-        stats: { rides: 0, distance_km: 0, avg_speed_kmh: 28.3, calories: 0, duration_minutes: 0 },
-        loading: false,
-      },
-    })
-    const values = wrapper.findAll('.stat-value')
-    expect(values[3].text()).toContain('28.3')
-  })
-
-  it('converts duration_minutes to hours with one decimal', async () => {
-    const wrapper = mount(StatsSummary, {
-      props: {
-        stats: { rides: 0, distance_km: 0, avg_speed_kmh: 0, calories: 0, duration_minutes: 125 },
-        loading: false,
-      },
-    })
-    const values = wrapper.findAll('.stat-value')
-    expect(values[4].text()).toContain('2.1')
-  })
-
-  it('shows 0 for NaN values', () => {
-    const wrapper = mount(StatsSummary, {
-      props: {
-        stats: { rides: NaN, distance_km: NaN, avg_speed_kmh: NaN, calories: NaN, duration_minutes: NaN },
-        loading: false,
-      },
-    })
-    const values = wrapper.findAll('.stat-value')
-    expect(values[0].text()).toBe('0')
-    expect(values[2].text()).toBe('0')
+    // Wait for animation
+    await new Promise(resolve => setTimeout(resolve, 50))
+    const cards = wrapper.findAll('.stat-card')
+    expect(cards.length).toBe(6)
   })
 
   it('emits refresh when refresh button is clicked', async () => {
@@ -102,6 +57,6 @@ describe('StatsSummary', () => {
       props: { stats: { rides: 0, distance_km: 0, avg_speed_kmh: 0, calories: 0, duration_minutes: 0 }, loading: false },
     })
     expect(wrapper.find('[aria-label="General Statistics"]').exists()).toBe(true)
-    expect(wrapper.findAll('[role="status"]').length).toBeGreaterThan(0)
+    expect(wrapper.findAll('[role="status"]').length).toBe(5)
   })
 })

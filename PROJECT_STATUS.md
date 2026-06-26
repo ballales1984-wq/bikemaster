@@ -446,7 +446,7 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 | **1** | Frontend testing (Vitest + Playwright) + PWA completo | 🔄 In corso |
 | **2** | Multi-utente (auth, ownership rides, data isolation) | ⏳ |
 | **3** | PostgreSQL in produzione (attuale: SQLite dev) | ⏳ |
-| **4** | Vector DB RAG completo (sostituire BM25 con PGVector similarity) | 🔄 Parziale |
+| **4** | Vector DB RAG completo (sostituire BM25 con PGVector similarity) | ✅ Completo |
 | **5** | OAuth2 social login (Google/Strava) nel frontend | 🔄 Parziale |
 | **6** | Monitoring produzione (Prometheus + Grafana) | ⏳ |
 | **7** | Coverage test >92% (attuale: ~69-79%) | 🔄 |
@@ -464,7 +464,7 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 | Audit | Audit log azioni admin | ❌ |
 | Auth | OAuth2 social login (Google/Strava) | 🔄 Parziale |
 | Multi-user | Data isolation completa | ⏳ |
-| AI | Vector DB per RAG avanzato | 🔄 Parziale |
+| AI | Vector DB per RAG avanzato | ✅ Completo |
 | Frontend | PWA + offline support | 🔄 In corso |
 | Frontend | Vitest + Playwright E2E | ❌ |
 | Security | Security headers + rate limiting | ✅ |
