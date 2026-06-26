@@ -16,7 +16,9 @@ function flush() {
 
 describe('RideDetail', () => {
   it('does not render when no ride', () => {
-    const wrapper = mount(RideDetail)
+    const wrapper = mount(RideDetail, {
+      global: { stubs: { SpeedMap: true } },
+    })
     expect(wrapper.find('section').exists()).toBe(false)
   })
 
@@ -42,6 +44,9 @@ describe('RideDetail', () => {
   })
 
   it('formats distance correctly', () => {
+    const wrapper = mount(RideDetail, {
+      global: { stubs: { SpeedMap: true } },
+    })
     expect(wrapper.vm.fmt(40)).toBe('40.0')
     expect(wrapper.vm.fmt(null)).toBe('—')
   })
@@ -50,7 +55,7 @@ describe('RideDetail', () => {
     const wrapper = mount(RideDetail, {
       global: { stubs: { SpeedMap: true } },
     })
-    wrapper.vm.ride = { id: 1, date: '2026-01-01' }
+    wrapper.vm.ride = { id: 1, date: '2026-01-01', distance_km: 40, duration_minutes: 90, avg_speed_kmh: 26.7, calories: 400 }
     await wrapper.find('.close-btn').trigger('click')
     expect(wrapper.emitted('close')).toBeTruthy()
   })
