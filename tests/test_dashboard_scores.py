@@ -52,3 +52,21 @@ def test_get_score_breakdown():
     assert "performance" in breakdown
     assert "recovery" in breakdown
     assert "efficiency" in breakdown
+
+
+def test_create_score_dashboard_multiple_rides():
+    rides = [
+        Ride(date="2024-01-01", distance_km=30.0, duration_minutes=90.0, avg_speed_kmh=20.0, calories=600),
+        Ride(date="2024-01-02", distance_km=40.0, duration_minutes=120.0, avg_speed_kmh=20.0, calories=800),
+    ]
+    athlete = AthleteProfile(name="Test", experience_level="Intermediate")
+    result = create_score_dashboard(rides, athlete)
+    assert result["total_rides"] == 2
+    assert result["total_km"] == 70.0
+
+
+def test_create_score_dashboard_level():
+    rides = [Ride(date=f"2024-01-{i:02d}", distance_km=100.0) for i in range(1, 40)]
+    athlete = AthleteProfile(name="Test", experience_level="Intermediate")
+    result = create_score_dashboard(rides, athlete)
+    assert result["level"] in ["Beginner", "Amateur", "Intermediate", "Advanced", "Elite"]
