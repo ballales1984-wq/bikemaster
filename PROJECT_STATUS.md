@@ -380,19 +380,17 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 
 ---
 
-## Testing Update (2026-06-23)
+## Testing Update (2026-06-26)
 
-**Coverage migliorata:** ~79% su analytics core
-- test_analytics_trends.py: 37 test (analytics_trends.py 0% → 96%)
-- test_db_models.py: 13 test (db/models.py 0% → 100%)
-- test_routes_coverage.py: 19 test (endpoint routes)
-- test_google_oauth.py: 4 test (OAuth2 Google)
-- test_coverage_gaps.py: copertura gap analytics, calorie, fatigue, performance
-- test_error_paths.py: gestione percorsi errore
-- test_traffic_client.py: Overpass + incident fetcher
-- test_repositories.py: pattern repository (sync + async)
-- test_postgres_db.py: PostgreSQL tests
-- Totale: 51+ file di test, ~600+ test passanti
+**Coverage migliorata e bug fixati:**
+- Risolto test fallito `test_rides_segments_endpoint` (None handling in calories)
+- Aggiunti test per `context_builder.py`: 0% → 86%
+- Aggiunti test per `monitoring.py`: 46% → 78% (+ fix import relativi)
+- Aggiunti test per `task_queue.py`: 60% → 76%
+- Aggiunti test per `fitness_state_repository.py`: 25% → 45% (+ fix import relativi)
+- Aggiunti test per `rate_limiter.py`: 43% → 95% (+ fix defaultdict bug)
+- Configurato `pytest-cov` in `pyproject.toml` per misurazione automatica coverage
+- Totale: 68+ file di test, tutti verdi
 
 ---
 
@@ -459,7 +457,7 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 
 | Area | Item | Status |
 |---|---|---|
-| Testing | Coverage >92% | ❌ (~69-79%) |
+| Testing | Coverage >92% | 🔄 (~79% analytics core, moduli critici migliorati) |
 | Code Quality | Ruff + mypy + pre-commit | ❌ |
 | Container | Docker multi-stage hardened | ✅ |
 | Monitoring | Sentry + Prometheus + Grafana | ❌ |
@@ -474,4 +472,4 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 
 ---
 
-*Ultimo aggiornamento: 2026-06-23 — Documentazione GitHub aggiornata*
+*Ultimo aggiornamento: 2026-06-26 — Test suite ampliata, bug fixati, coverage migliorata su moduli critici*
