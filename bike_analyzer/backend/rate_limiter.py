@@ -56,7 +56,7 @@ class RateLimitConfig:
     window_seconds: int = 60
 
 
-_USER_RATE_LIMITS: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+_USER_RATE_LIMITS: dict[str, list[float]] = defaultdict(list)
 
 
 def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig | None = None) -> None:
