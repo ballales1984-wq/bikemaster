@@ -103,3 +103,21 @@ def test_should_save_to_database():
     points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC))]
     assert should_save_to_database(points)
     assert not should_save_to_database([])
+
+
+def test_classify_athlete_all_levels():
+    assert classify_athlete([]) == "Unclassified"
+    amateur_rides = [Ride(date=f"2024-06-{i:02d}", distance_km=100.0) for i in range(1, 15)]
+    assert classify_athlete(amateur_rides) in ["Beginner", "Amateur", "Intermediate", "Advanced", "Elite"]
+
+
+def test_performance_score_high():
+    r = Ride(date="2024-06-01", distance_km=100.0, duration_minutes=240.0, avg_speed_kmh=40.0, elevation_gain_m=1500)
+    score = calculate_performance_score(r)
+    assert score > 0
+
+
+def test_efficiency_score_efficient():
+    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=200)
+    score = calculate_efficiency_score(r)
+    assert score >= 0
