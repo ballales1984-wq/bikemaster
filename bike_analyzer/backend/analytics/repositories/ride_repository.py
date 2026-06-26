@@ -28,6 +28,7 @@ class RideRepository:
         from sqlalchemy import insert
 
         gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
+        tenant_id = ride.get("tenant_id", ride.get("athlete_id"))
         async with self._session_factory() as session:
             stmt = (
                 insert(self._table)
@@ -42,6 +43,7 @@ class RideRepository:
                     heart_rate_avg=ride.get("heart_rate_avg"),
                     elevation_gain_m=ride.get("elevation_gain_m"),
                     gps_points=gps_points,
+                    tenant_id=tenant_id,
                     created_at=datetime.now(UTC),
                 )
                 .returning(self._table.id)
@@ -54,18 +56,20 @@ class RideRepository:
         from ...db.database import save_ride
         return save_ride(ride)
 
-    async def get_by_id(self, ride_id: int) -> dict | None:
+    async def get_by_id(self, ride_id: int, tenant_id: int | None = None) -> dict | None:
         if self._session_factory:
-            return await self._get_by_id_async(ride_id)
+            return await self._get_by_id_async(ride_id, tenant_id)
         if self._sync_conn:
-            return self._sync_conn.get_ride(ride_id)
-        return self._get_by_id_sync(ride_id)
+            return self._sync_conn.get_ride(ride_id, tenant_id)
+        return self._get_by_id_sync(ride_id, tenant_id)
 
-    async def _get_by_id_async(self, ride_id: int) -> dict | None:
+    async def _get_by_id_async(self, ride_id: int, tenant_id: int | None = None) -> dict | None:
         from sqlalchemy import select
 
         async with self._session_factory() as session:
             stmt = select(self._table).where(self._table.id == ride_id)
+            if tenant_id is not None:
+                stmt = stmt.where(self._table.tenant_id == tenant_id)
             result = await session.execute(stmt)
             row = result.mappings().first()
             if not row:
@@ -75,54 +79,26 @@ class RideRepository:
                 data["gps_points"] = json.loads(data["gps_points"])
             return data
 
-    def _get_by_id_sync(self, ride_id: int) -> dict | None:
+    def _get_by_id_sync(self, ride_id: int, tenant_id: int | None = None) -> dict | None:
         from ...db.database import get_ride
-        return get_ride(ride_id)
+        return get_ride(ride_id, tenant_id)
 
-    async def get_by_athlete(self, athlete_id: int) -> list[dict]:
+    async def list_all(self, athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
         if self._session_factory:
-            return await self._get_by_athlete_async(athlete_id)
+            return await self._list_all_async(athlete_id, tenant_id)
         if self._sync_conn:
-            return self._sync_conn.get_rides_by_athlete(athlete_id)
-        return self._get_by_athlete_sync(athlete_id)
+            return self._sync_conn.get_all_rides(athlete_id, tenant_id)
+        return self._list_all_sync(athlete_id, tenant_id)
 
-    async def _get_by_athlete_async(self, athlete_id: int) -> list[dict]:
-        from sqlalchemy import select
-
-        async with self._session_factory() as session:
-            stmt = (
-                select(self._table)
-                .where(self._table.athlete_id == athlete_id)
-                .order_by(self._table.date.desc())
-            )
-            result = await session.execute(stmt)
-            rows = result.mappings().all()
-            rides = []
-            for row in rows:
-                data = dict(row)
-                if data.get("gps_points"):
-                    data["gps_points"] = json.loads(data["gps_points"])
-                rides.append(data)
-            return rides
-
-    def _get_by_athlete_sync(self, athlete_id: int) -> list[dict]:
-        from ...db.database import get_rides_by_athlete
-        return get_rides_by_athlete(athlete_id)
-
-    async def list_all(self, athlete_id: int | None = None) -> list[dict]:
-        if self._session_factory:
-            return await self._list_all_async(athlete_id)
-        if self._sync_conn:
-            return self._sync_conn.get_all_rides(athlete_id)
-        return self._list_all_sync(athlete_id)
-
-    async def _list_all_async(self, athlete_id: int | None = None) -> list[dict]:
+    async def _list_all_async(self, athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
         from sqlalchemy import select
 
         async with self._session_factory() as session:
             stmt = select(self._table)
             if athlete_id is not None:
                 stmt = stmt.where(self._table.athlete_id == athlete_id)
+            if tenant_id is not None:
+                stmt = stmt.where(self._table.tenant_id == tenant_id)
             stmt = stmt.order_by(self._table.date.desc())
             result = await session.execute(stmt)
             rows = result.mappings().all()
@@ -134,27 +110,14 @@ class RideRepository:
                 rides.append(data)
             return rides
 
-    def _list_all_sync(self, athlete_id: int | None = None) -> list[dict]:
+    def _get_by_athlete_sync(self, athlete_id: int, tenant_id: int | None = None) -> list[dict]:
+        from ...db.database import get_rides_by_athlete
+        return get_rides_by_athlete(athlete_id, tenant_id)
+
+    def _list_all_sync(self, athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
         from ...db.database import get_all_rides
+        return get_all_rides(athlete_id, tenant_id)
 
-        return get_all_rides(athlete_id)
-
-    async def delete(self, ride_id: int) -> bool:
-        if self._session_factory:
-            return await self._delete_async(ride_id)
-        if self._sync_conn:
-            return self._sync_conn.delete_ride(ride_id)
-        return self._delete_sync(ride_id)
-
-    async def _delete_async(self, ride_id: int) -> bool:
-        from sqlalchemy import delete
-
-        async with self._session_factory() as session:
-            stmt = delete(self._table).where(self._table.id == ride_id)
-            result = await session.execute(stmt)
-            await session.commit()
-            return result.rowcount > 0
-
-    def _delete_sync(self, ride_id: int) -> bool:
+    def _delete_sync(self, ride_id: int, tenant_id: int | None = None) -> bool:
         from ...db.database import delete_ride
-        return delete_ride(ride_id)
+        return delete_ride(ride_id, tenant_id)

@@ -56,7 +56,9 @@ describe('KnowledgePanel', () => {
   })
 
   it('shows results after search', async () => {
-    apiGet.mockResolvedValueOnce(mockSearchResult)
+    apiGet
+      .mockResolvedValueOnce({ topics: [], total_documents: 0 })
+      .mockResolvedValueOnce(mockSearchResult)
 
     const wrapper = mount(KnowledgePanel)
     await flush()

@@ -38,3 +38,17 @@ def test_estimate_tss_with_ftp():
     ride = Ride(date="2024-01-15", duration_minutes=90.0, avg_speed_kmh=35.0)
     tss_fast = estimate_tss(ride, ftp=250.0)
     assert tss_fast > 0
+
+
+def test_estimate_tss_with_intensity_factor():
+    ride = Ride(date="2024-01-15", duration_minutes=90.0, avg_speed_kmh=25.0)
+    ride.intensity_factor = 0.8
+    tss = estimate_tss(ride)
+    assert tss > 0
+
+
+def test_estimate_tss_high_speed():
+    ride = Ride(date="2024-01-15", duration_minutes=120.0, avg_speed_kmh=50.0)
+    tss = estimate_tss(ride)
+    assert tss > 0
+    assert tss <= 500

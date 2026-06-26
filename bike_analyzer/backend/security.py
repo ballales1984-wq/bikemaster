@@ -158,6 +158,7 @@ def create_access_token(
     is_admin: bool = False,
     expires_delta: timedelta | None = None,
     jti: str | None = None,
+    tenant_id: int | None = None,
 ) -> str:
     expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     if jti is None:
@@ -171,6 +172,8 @@ def create_access_token(
         "aud": JWT_AUDIENCE,
         "jti": jti,
     }
+    if tenant_id is not None:
+        payload["tenant_id"] = tenant_id
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -238,6 +241,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     payload = await decode_token(token)
     user_id: str = payload.get("sub")
     is_admin: bool = payload.get("is_admin", False)
+    tenant_id: int | None = payload.get("tenant_id")
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token non valido")
     try:
@@ -246,7 +250,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token non valido"
         ) from exc
-    return {"id": user_id_int, "is_admin": is_admin}
+    result = {"id": user_id_int, "is_admin": is_admin}
+    if tenant_id is not None:
+        result["tenant_id"] = tenant_id
+    return result
 
 
 async def get_admin_user(token: str = Depends(oauth2_scheme)) -> dict:

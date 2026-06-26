@@ -198,13 +198,20 @@ def _ensure_int_user_id(current_user: dict) -> int:
 def _ensure_athlete_access(athlete_id: int, current_user: dict) -> None:
     if current_user.get("is_admin"):
         return
+    user_tenant_id = current_user.get("tenant_id", current_user.get("id"))
+    athlete_tenant_id = current_user.get("tenant_id") if isinstance(current_user, dict) else None
     if int(athlete_id) != _ensure_int_user_id(current_user):
         raise HTTPException(status_code=403, detail="Access denied to this athlete")
 
 
 def _ensure_ride_access(ride: dict, current_user: dict) -> None:
-    if not current_user.get("is_admin") and ride.get("athlete_id") != _user_id(current_user):
-        raise HTTPException(status_code=403, detail="Access denied to this ride")
+    if not current_user.get("is_admin"):
+        user_id = _user_id(current_user)
+        user_tenant_id = current_user.get("tenant_id", user_id)
+        ride_athlete_id = ride.get("athlete_id")
+        ride_tenant_id = ride.get("tenant_id")
+        if ride_athlete_id != user_id and ride_tenant_id != user_tenant_id:
+            raise HTTPException(status_code=403, detail="Access denied to this ride")
 
 
 def _sse(event: str, data: str) -> str:
@@ -293,7 +300,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"}
         )
     athlete_id = int(row[0])
-    access_token = create_access_token(subject=str(athlete_id), is_admin=False)
+    access_token = create_access_token(subject=str(athlete_id), is_admin=False, tenant_id=athlete_id)
     refresh_token = create_refresh_token(athlete_id)
     from ..security import save_refresh_token
     await save_refresh_token(athlete_id, refresh_token)
@@ -354,7 +361,7 @@ async def refresh_token(
     if jti and await is_token_revoked(jti):
         raise HTTPException(status_code=401, detail="Refresh token revoked")
     return {
-        "access_token": create_access_token(subject=str(user_id), is_admin=False),
+        "access_token": create_access_token(subject=str(user_id), is_admin=False, tenant_id=int(user_id)),
         "token_type": "bearer",
     }
 
@@ -388,6 +395,8 @@ async def register(
             "password_hash": password_hash,
         }
     )
+    if athlete_id:
+        update_athlete(athlete_id, {"tenant_id": athlete_id})
     return {
         "username": username,
         "email": email,
@@ -536,6 +545,7 @@ async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_cu
 
     ride_dict = ride_data.model_dump()
     ride_dict["athlete_id"] = current_user["id"]
+    ride_dict["tenant_id"] = current_user["id"]
     points = ride_dict.get("gps_points", [])
     if points:
         ride_dict["gps_points"] = points
@@ -547,7 +557,7 @@ async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_cu
     ):
         ride_dict["avg_speed_kmh"] = ride_dict["distance_km"] / (ride_dict["duration_minutes"] / 60)
     if not ride_dict.get("calories"):
-        ride = Ride(**{k: v for k, v in ride_dict.items() if k != "gps_points"})
+        ride = Ride(**{k: v for k, v in ride_dict.items() if k not in ("gps_points", "tenant_id")})
         method = "physics" if ride_dict.get("avg_speed_kmh") else "met"
         ride_dict["calories"] = estimate_calories(ride, method=method)
     ride_id = save_ride(ride_dict)
@@ -565,7 +575,8 @@ async def list_rides(
     """List rides - only for current user."""
     from ..db.database import get_rides_by_athlete
 
-    all_rides = get_rides_by_athlete(current_user["id"])
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    all_rides = get_rides_by_athlete(current_user["id"], tenant_id)
     start = (page - 1) * page_size
     rides = all_rides[start : start + page_size]
     return {
@@ -580,7 +591,8 @@ async def list_rides(
 async def count_rides(current_user: dict = Depends(get_current_user)):
     from ..db.database import get_rides_by_athlete
 
-    return {"count": len(get_rides_by_athlete(current_user["id"]))}
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    return {"count": len(get_rides_by_athlete(current_user["id"], tenant_id))}
 
 
 @router.get("/rides/{ride_id}")
@@ -746,6 +758,7 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
     ride_data = points_to_ride(points_data, name=file.filename)
     if "error" not in ride_data:
         ride_data["athlete_id"] = _user_id(current_user)
+        ride_data["tenant_id"] = current_user["id"]
         ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
         ride_data["id"] = int(ride_id)
         from ..monitoring import record_gps_import
@@ -818,6 +831,7 @@ async def import_multiple(
             ride_data = points_to_ride(points, name=file.filename)
             if "error" not in ride_data:
                 ride_data["athlete_id"] = _user_id(current_user)
+                ride_data["tenant_id"] = current_user["id"]
                 ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
                 ride_data["id"] = int(ride_id)
                 imported.append(ride_data)
@@ -839,7 +853,8 @@ async def export_json(current_user: dict = Depends(get_current_user)):
     from ..analytics.analytics import export_rides_json
     from ..db.database import get_rides_by_athlete
 
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
     path = export_rides_json(rides, "rides_export.json")
     from fastapi.responses import FileResponse
 
@@ -851,7 +866,8 @@ async def export_csv(current_user: dict = Depends(get_current_user)):
     from ..analytics.analytics import export_rides_csv
     from ..db.database import get_rides_by_athlete
 
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
     path = export_rides_csv(rides, "rides_export.csv")
     from fastapi.responses import FileResponse
 
@@ -898,7 +914,8 @@ async def duration_chart(current_user: dict = Depends(get_current_user)):
     from ..analytics.analytics import create_duration_chart
     from ..db.database import get_rides_by_athlete
 
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
     path = "duration_chart.png"
     create_duration_chart(rides, path)
     from fastapi.responses import FileResponse
@@ -1019,7 +1036,8 @@ async def get_athlete_endpoint(athlete_id: int, current_user: dict = Depends(get
     from ..db.database import get_athlete as _get_athlete
 
     _ensure_athlete_access(athlete_id, current_user)
-    athlete = _get_athlete(athlete_id)
+    tenant_id = current_user.get("tenant_id", athlete_id)
+    athlete = _get_athlete(athlete_id, tenant_id)
     if not athlete:
         raise HTTPException(status_code=404, detail="Athlete not found")
     return _public_athlete(athlete)
@@ -1033,7 +1051,8 @@ async def add_metric(
     _ensure_athlete_access(athlete_id, current_user)
     from ..db.database import save_metric
 
-    metric_id = save_metric({"athlete_id": athlete_id, **metric_data.model_dump()})
+    tenant_id = current_user.get("tenant_id", athlete_id)
+    metric_id = save_metric({"athlete_id": athlete_id, "tenant_id": tenant_id, **metric_data.model_dump()})
     return {"id": int(metric_id), "athlete_id": athlete_id, **metric_data.model_dump()}
 
 
@@ -1217,6 +1236,7 @@ async def import_google_fit(payload: dict, current_user: dict = Depends(get_curr
     for ride_data in rides_data:
         ride_data = {k: v for k, v in ride_data.items() if k != "id"}
         ride_data["athlete_id"] = current_user["id"]
+        ride_data["tenant_id"] = current_user["id"]
         ride_id = save_ride(ride_data)
         ride_data["id"] = int(ride_id)
         imported.append(ride_data)
@@ -1416,7 +1436,8 @@ async def coach_full_data(
         athlete = AthleteProfile(**_athlete_profile_data(athlete_data))
         result = ai_coach_full(athlete, rides, resolved_id)
         if athlete_id and result.get("training_advice"):
-            save_chat_message(resolved_id, "assistant", result["training_advice"][:500])
+            tenant_id = current_user.get("tenant_id", resolved_id)
+            save_chat_message(resolved_id, "assistant", result["training_advice"][:500], tenant_id)
         return result
     except HTTPException:
         raise
@@ -1460,10 +1481,10 @@ async def recovery_recommendations(
                 ride_obj = Ride(**ride_data)
                 athlete_data = get_athlete(ride_data.get("athlete_id"))
         elif current_user:
-            # If no ride_id but authenticated, use user's most recent ride
-            rides = get_rides_by_athlete(current_user["id"])
+            tenant_id = current_user.get("tenant_id", current_user["id"])
+            rides = get_rides_by_athlete(current_user["id"], tenant_id)
             if rides:
-                athlete_data = get_athlete(current_user["id"])
+                athlete_data = get_athlete(current_user["id"], tenant_id)
         if athlete_data:
             athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
@@ -1483,7 +1504,8 @@ async def historical_trends(current_user: dict = Depends(get_current_user)):
     from ..analytics.ai_coach import analyze_historical_trends
     from ..db.database import get_rides_by_athlete
 
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
     return analyze_historical_trends(rides)
 
 
@@ -1713,23 +1735,25 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
     )
     from ..models.models import AthleteProfile
 
+    tenant_id = current_user.get("tenant_id", athlete_id)
     _ensure_athlete_access(athlete_id, current_user)
-    save_chat_message(athlete_id, "user", message[:500])
-    athlete_data = get_athlete(athlete_id)
+    save_chat_message(athlete_id, "user", message[:500], tenant_id)
+    athlete_data = get_athlete(athlete_id, tenant_id)
     if athlete_data:
         athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
     athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
-    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id, tenant_id=tenant_id)]
     response = generate_training_advice(athlete, rides, athlete_id)
-    save_chat_message(athlete_id, "assistant", response[:500])
-    return {"response": response, "history": get_chat_history(athlete_id)}
+    save_chat_message(athlete_id, "assistant", response[:500], tenant_id)
+    return {"response": response, "history": get_chat_history(athlete_id, tenant_id=tenant_id)}
 
 
 @router.get("/analytics/speed-data")
 async def speed_analytics(limit: int = Query(10, ge=1, le=50), current_user: dict = Depends(get_current_user)):
     from ..db.database import get_rides_by_athlete
 
-    rides = get_rides_by_athlete(current_user["id"])
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    rides = get_rides_by_athlete(current_user["id"], tenant_id)
     recent = rides[-limit:] if len(rides) > limit else rides
     return {
         "labels": [r.get("date", "Ride")[-10:] if r.get("date") else "Ride" for r in recent],
@@ -1833,6 +1857,7 @@ async def create_calendar_event(
 
     event_data_dict = event_data.model_dump()
     event_data_dict["date"] = date_only(event_data_dict.get("date"))
+    event_data_dict["tenant_id"] = current_user.get("tenant_id", current_user["id"])
     _ensure_athlete_access(event_data_dict["athlete_id"], current_user)
     event_id = save_calendar_event(event_data_dict)
     event = get_calendar_event(int(event_id))
@@ -1848,8 +1873,9 @@ async def list_calendar_events(
 ):
     from ..db.database import get_events_by_month
 
+    tenant_id = current_user.get("tenant_id", athlete_id)
     _ensure_athlete_access(athlete_id, current_user)
-    events = get_events_by_month(athlete_id, year, month)
+    events = get_events_by_month(athlete_id, year, month, tenant_id)
     return {"events": events}
 
 
@@ -1862,8 +1888,9 @@ async def list_events_by_range(
 ):
     from ..db.database import get_events_by_date_range
 
+    tenant_id = current_user.get("tenant_id", athlete_id)
     _ensure_athlete_access(athlete_id, current_user)
-    events = get_events_by_date_range(athlete_id, start, end)
+    events = get_events_by_date_range(athlete_id, start, end, tenant_id)
     return {"events": events}
 
 
@@ -1894,7 +1921,8 @@ async def update_calendar_event_endpoint(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     _ensure_athlete_access(event["athlete_id"], current_user)
-    ok = update_calendar_event(event_id, update_dict)
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    ok = update_calendar_event(event_id, update_dict, tenant_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Event not found")
     from ..db.database import get_calendar_event
@@ -1912,7 +1940,8 @@ async def delete_calendar_event_endpoint(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     _ensure_athlete_access(event["athlete_id"], current_user)
-    ok = delete_calendar_event(event_id)
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    ok = delete_calendar_event(event_id, tenant_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Event not found")
     return {"deleted": True}
@@ -1926,7 +1955,8 @@ async def toggle_event_complete(event_id: int, current_user: dict = Depends(get_
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     _ensure_athlete_access(event["athlete_id"], current_user)
-    update_calendar_event(event_id, {"completed": not event["completed"]})
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    update_calendar_event(event_id, {"completed": not event["completed"]}, tenant_id)
     return get_calendar_event(event_id)
 
 
@@ -2159,7 +2189,8 @@ async def get_fitness_trends(
     from ..analytics.analytics_trends import calculate_fitness_trends
     from ..db.database import get_rides_by_athlete
 
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
     return calculate_fitness_trends(rides, metric=metric, window=window)
 
 
@@ -2169,7 +2200,8 @@ async def get_monthly_progression(current_user: dict = Depends(get_current_user)
     from ..analytics.analytics_trends import calculate_monthly_progression
     from ..db.database import get_rides_by_athlete
 
-    rides = get_rides_by_athlete(current_user["id"])
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    rides = get_rides_by_athlete(current_user["id"], tenant_id)
     return calculate_monthly_progression(rides)
 
 
@@ -2182,7 +2214,8 @@ async def get_period_comparison(
     from ..analytics.analytics_trends import calculate_period_comparison
     from ..db.database import get_rides_by_athlete
 
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
     return calculate_period_comparison(rides, period_days=period_days)
 
 
@@ -2195,7 +2228,8 @@ async def get_volume_projection(
     from ..analytics.analytics_trends import calculate_training_volume_projection
     from ..db.database import get_rides_by_athlete
 
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"])]
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
     return calculate_training_volume_projection(rides, target_days=target_days)
 
 
@@ -2366,6 +2400,7 @@ async def analyze_ride_safety(
     safety = await analyze_route_safety(points, incidents=incidents)
     safety["ride_id"] = ride_id
     safety["athlete_id"] = ride.get("athlete_id")
+    safety["tenant_id"] = current_user.get("tenant_id", current_user["id"])
     from ..db.database import save_route_safety_score
 
     score_id = save_route_safety_score(safety)
@@ -2443,6 +2478,7 @@ async def strava_sync(
         if ride_data.get("skipped") or "error" in ride_data:
             continue
         ride_data["athlete_id"] = current_user["id"]
+        ride_data["tenant_id"] = current_user["id"]
         db_ride = {k: v for k, v in ride_data.items() if k != "id"}
         ride_id = save_ride(db_ride)
         if ride_id not in imported_ids:
@@ -2525,6 +2561,7 @@ async def garmin_sync(
         if ride_data.get("skipped") or "error" in ride_data:
             continue
         ride_data["athlete_id"] = current_user["id"]
+        ride_data["tenant_id"] = current_user["id"]
         db_ride = {k: v for k, v in ride_data.items() if k != "id"}
         ride_id = save_ride(db_ride)
         if ride_id not in imported_ids:

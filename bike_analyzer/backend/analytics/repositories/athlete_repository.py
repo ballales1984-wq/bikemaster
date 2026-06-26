@@ -10,12 +10,12 @@ class AthleteRepository:
         self._session_factory = session_factory
         self._sync_conn = sync_conn
 
-    async def save(self, athlete: dict, athlete_id=None) -> int:
+    async def save(self, athlete: dict, athlete_id=None, tenant_id: int = 0) -> int:
         if self._session_factory:
-            return await self._save_async(athlete)
+            return await self._save_async(athlete, tenant_id)
         if self._sync_conn:
-            return self._sync_conn.save_athlete(athlete, athlete_id)
-        return self._save_sync(athlete, athlete_id)
+            return self._sync_conn.save_athlete(athlete, athlete_id, tenant_id)
+        return self._save_sync(athlete, athlete_id, tenant_id)
 
     async def get_by_id(self, athlete_id: int, tenant_id: int | None = None) -> dict | None:
         if self._session_factory:
@@ -38,7 +38,7 @@ class AthleteRepository:
             return self._sync_conn.get_all_athletes()
         return self._list_all_sync()
 
-    async def _save_async(self, athlete: dict) -> int:
+    async def _save_async(self, athlete: dict, tenant_id: int = 0) -> int:
         from sqlalchemy import insert
 
         async with self._session_factory() as session:
@@ -54,6 +54,7 @@ class AthleteRepository:
                     preferred_terrain=athlete.get("preferred_terrain"),
                     weekly_volume_km=athlete.get("weekly_volume_km", 0.0),
                     ftp_watts=athlete.get("ftp_watts"),
+                    tenant_id=athlete.get("tenant_id", tenant_id),
                     created_at=datetime.now(UTC),
                 )
                 .returning(self._table.id)
@@ -97,24 +98,15 @@ class AthleteRepository:
         from ...db.models import AthleteModel
         return AthleteModel
 
-    def _save_sync(self, athlete: dict, athlete_id=None) -> int:
+    def _save_sync(self, athlete: dict, athlete_id=None, tenant_id: int = 0) -> int:
         from ..db.database import save_athlete
-        return save_athlete(athlete, athlete_id)
+        return save_athlete(athlete, athlete_id, tenant_id)
 
     def _get_by_id_sync(self, athlete_id: int, tenant_id: int | None = None) -> dict | None:
         from ..db.database import get_athlete
 
-        athlete = get_athlete(athlete_id)
-        if athlete is None:
-            return None
-        if tenant_id is not None and athlete.get("tenant_id") != tenant_id:
-            return None
+        athlete = get_athlete(athlete_id, tenant_id)
         return athlete
-
-    def _get_by_name_sync(self, name: str, tenant_id: int | None = None) -> dict | None:
-        from ..db.database import get_athlete_by_name
-
-        return get_athlete_by_name(name, tenant_id)
 
     def _list_all_sync(self) -> list[dict]:
         from ..db.database import get_all_athletes

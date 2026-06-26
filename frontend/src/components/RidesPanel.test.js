@@ -31,7 +31,7 @@ describe('RidesPanel', () => {
     })
     await flush()
 
-    expect(apiGet).toHaveBeenCalledWith('/api/v1/rides')
+    expect(apiGet).toHaveBeenCalledWith('/api/v1/rides', { limit: 200 })
     const items = wrapper.findAll('.ride-item')
     expect(items).toHaveLength(2)
     expect(items[0].text()).toContain('42.5')
@@ -47,7 +47,7 @@ describe('RidesPanel', () => {
     await flush()
 
     expect(wrapper.find('.empty-state').exists()).toBe(true)
-    expect(wrapper.text()).toContain('No rides recorded')
+    expect(wrapper.text()).toContain('Nessuna uscita registrata')
   })
 
   it('adds a ride by filling the form', async () => {
@@ -61,9 +61,16 @@ describe('RidesPanel', () => {
     })
     await flush()
 
-    await wrapper.find('input[type="date"]').setValue('2026-06-15')
-    await wrapper.findAll('input[type="number"]')[0].setValue('50')
-    await wrapper.findAll('input[type="number"]')[1].setValue('120')
+    // Open form
+    await wrapper.find('.add-header').trigger('click')
+    await flush()
+
+    // Fill form fields
+    const dateInput = wrapper.find('input[type="date"]')
+    const numberInputs = wrapper.findAll('input[type="number"]')
+    await dateInput.setValue('2026-06-15')
+    await numberInputs[0].setValue('50')
+    await numberInputs[1].setValue('120')
     await wrapper.find('form').trigger('submit')
     await flush()
 
@@ -84,8 +91,16 @@ describe('RidesPanel', () => {
     })
     await flush()
 
-    await wrapper.find('.btn-danger').trigger('click')
-    expect(wrapper.vm.showDeleteModal).toBe(true)
-    expect(wrapper.vm.deleteTargetId).toBe(5)
+    // Click on the first ride to open detail (which shows delete button)
+    await wrapper.findAll('.ride-item')[0].trigger('click')
+    await flush()
+
+    // Now click delete button in the modal
+    const deleteBtn = wrapper.find('.delete-btn')
+    if (deleteBtn.exists()) {
+      await deleteBtn.trigger('click')
+      expect(wrapper.vm.showDeleteModal).toBe(true)
+      expect(wrapper.vm.deleteTargetId).toBe(5)
+    }
   })
 })

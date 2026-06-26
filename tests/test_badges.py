@@ -89,3 +89,45 @@ def test_heatmap_points_with_gps():
     result = get_heatmap_points(rides)
     assert result["total_points"] == 2
     assert len(result["points"]) > 0
+
+
+def test_heatmap_points_no_gps_points():
+    result = get_heatmap_points([{"gps_points": []}])
+    assert result["total_points"] == 0
+
+
+def test_heatmap_points_missing_lat_lon():
+    rides = [{"gps_points": [{"lat": None, "lon": None}, {"lat": 45.0, "lon": 9.0}]}]
+    result = get_heatmap_points(rides)
+    assert result["total_points"] == 1
+
+
+def test_calculate_badges_elevation():
+    rides = [{"elevation_gain_m": 6000.0}]
+    badges = calculate_badges(1, rides)
+    elevation = next(b for b in badges if b["id"] == 7)
+    assert elevation["achieved"] is True
+
+
+def test_calculate_badges_supersonic():
+    rides = [{"avg_speed_kmh": 36.0, "distance_km": 50.0}]
+    badges = calculate_badges(1, rides)
+    speed = next(b for b in badges if b["id"] == 10)
+    assert speed["achieved"] is True
+
+
+def test_calculate_badges_consistency():
+    from datetime import datetime, timedelta
+    from datetime import UTC
+    now = datetime.now(UTC)
+    rides = [{"date": (now - timedelta(days=i)).isoformat(), "distance_km": 20.0} for i in range(7)]
+    badges = calculate_badges(1, rides)
+    coach = next(b for b in badges if b["id"] == 11)
+    assert coach["achieved"] is True
+
+
+def test_calculate_badges_progress():
+    rides = [{"distance_km": 50.0}]
+    badges = calculate_badges(1, rides)
+    centomiglia = next(b for b in badges if b["id"] == 2)
+    assert centomiglia["progress"] == 50.0
