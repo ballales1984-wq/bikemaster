@@ -7,6 +7,8 @@ from ..models import Ride
 
 def calories_met(ride: Ride) -> float:
     speed = ride.avg_speed_kmh
+    if speed is None:
+        return 0.0
     met = (
         4.0
         if speed < 16
@@ -20,6 +22,8 @@ def calories_met(ride: Ride) -> float:
 
 
 def calories_physics(ride: Ride) -> float:
+    if ride.avg_speed_kmh is None:
+        return 0.0
     g, crr, rho, cdA, eff, J_PER_CAL = 9.81, 0.005, 1.225, 0.4, 0.25, 4184
     v_ms = ride.avg_speed_kmh * 1000 / 3600
     w_n = ride.weight_kg * g

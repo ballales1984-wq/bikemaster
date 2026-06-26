@@ -548,7 +548,8 @@ async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_cu
         ride_dict["avg_speed_kmh"] = ride_dict["distance_km"] / (ride_dict["duration_minutes"] / 60)
     if not ride_dict.get("calories"):
         ride = Ride(**{k: v for k, v in ride_dict.items() if k != "gps_points"})
-        ride_dict["calories"] = estimate_calories(ride, method="physics")
+        method = "physics" if ride_dict.get("avg_speed_kmh") else "met"
+        ride_dict["calories"] = estimate_calories(ride, method=method)
     ride_id = save_ride(ride_dict)
     await _cache_delete(f"dashboard:{current_user['id']}")
     return {"id": int(ride_id), **ride_dict}
