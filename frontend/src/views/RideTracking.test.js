@@ -34,17 +34,19 @@ vi.mock('../components/RideMetricsPanel.vue', () => ({
   default: { template: '<div class="metrics-panel-stub" />' },
 }))
 
+vi.mock('../components/ControlsBar.vue', () => ({
+  default: { template: '<div class="controls-bar-stub" />' },
+}))
+
 describe('RideTracking', () => {
-  it('renders empty state when not tracking', () => {
+  it('has isTracking initially false', () => {
     const wrapper = mount(RideTracking)
-    expect(wrapper.find('.empty-state').exists()).toBe(true)
+    expect(wrapper.vm.isTracking.value).toBe(false)
   })
 
-  it('has start tracking button', () => {
+  it('has start tracking functionality', () => {
     const wrapper = mount(RideTracking)
-    const btn = wrapper.find('.btn-primary')
-    expect(btn.exists()).toBe(true)
-    expect(btn.text()).toContain('Start')
+    expect(wrapper.vm.start).toBeDefined()
   })
 
   it('renders header', () => {

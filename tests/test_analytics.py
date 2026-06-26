@@ -41,7 +41,6 @@ def test_calorie_estimation():
 
 
 def test_fatigue_calculation():
-
     r = Ride(
         date="2024-06-01",
         distance_km=25.0,
@@ -51,9 +50,19 @@ def test_fatigue_calculation():
         heart_rate_avg=150.0,
         elevation_gain_m=200.0,
     )
-
     f = calculate_fatigue_score(r)
+    assert 0 <= f <= 10
 
+
+def test_fatigue_no_heart_rate():
+    r = Ride(
+        date="2024-06-01",
+        distance_km=25.0,
+        duration_minutes=90.0,
+        avg_speed_kmh=22.0,
+        elevation_gain_m=200.0,
+    )
+    f = calculate_fatigue_score(r)
     assert 0 <= f <= 10
 
 
