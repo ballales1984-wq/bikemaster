@@ -8,6 +8,7 @@ _DB_ATTRS = {
     "get_ride": ("database", "get_ride"),
     "init_db": ("database", "init_db"),
     "save_ride": ("database", "save_ride"),
+    "update_ride": ("database", "update_ride"),
 }
 
 
@@ -21,4 +22,4 @@ def __getattr__(name: str) -> Any:
     return getattr(module, attr_name)
 
 
-__all__ = ["save_ride", "get_ride", "get_all_rides", "delete_ride", "init_db"]
+__all__ = ["save_ride", "get_ride", "get_all_rides", "delete_ride", "init_db", "update_ride"]
