@@ -495,7 +495,7 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
             if ride.get("gps_points")
             else None
         )
-        ride_tenant_id = ride.get("tenant_id", tenant_id, ride.get("athlete_id"))
+        ride_tenant_id = ride.get("tenant_id", tenant_id) or ride.get("athlete_id")
         if tenant_id is not None:
             cur.execute(
                 """UPDATE rides SET athlete_id=?, date=?, distance_km=?,

@@ -75,6 +75,7 @@ class RouteStatistics:
 class Ride:
     id: int | None = None
     athlete_id: int | None = None
+    tenant_id: int = 0
     date: str = ""
     distance_km: float = 0.0
     duration_minutes: float = 0.0
