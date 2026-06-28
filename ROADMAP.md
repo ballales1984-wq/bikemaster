@@ -93,7 +93,7 @@
 | 163 | Dark/Light theme | 🔄 (dark theme completo) |
 | 164 | Grafici interattivi Chart.js | ✅ |
 | 165 | Componenti riutilizzabili + Pinia state management | ✅ |
-| 166 | Progressive Web App (PWA) | 🔄 Parziale |
+| 166 | Progressive Web App (PWA) | ✅ |
 | 167 | Mobile-first responsive design | ✅ |
 | 168 | App Android + Capacitor | ✅ |
 
@@ -207,7 +207,7 @@
 |:---:|---|---|
 | 240 | Vitest + Vue Test Utils | ✅ (configurato) |
 | 241 | Playwright E2E tests | ✅ (configurato) |
-| 242 | PWA completa: service worker, offline | 🔄 Parziale |
+| 242 | PWA completa: service worker, offline | ✅ |
 | 243 | Code splitting + lazy loading | ❌ |
 | 244 | Design System + theme tokens | 🔄 |
 | 245 | Accessibilità (ARIA, keyboard nav) | ❌ |
