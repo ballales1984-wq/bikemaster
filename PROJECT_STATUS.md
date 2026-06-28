@@ -466,7 +466,7 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 | Auth | OAuth2 social login (Google/Strava) | 🔄 Parziale |
 | Multi-user | Data isolation completa | ✅ |
 | AI | Vector DB per RAG avanzato | ✅ Completo |
-| Frontend | PWA + offline support | 🔄 In corso |
+| Frontend | PWA + offline support | ✅ |
 | Frontend | Vitest + Playwright E2E | ❌ |
 | Security | Security headers + rate limiting | ✅ |
 | Database | Dual-mode SQLite/PostgreSQL | ✅ |

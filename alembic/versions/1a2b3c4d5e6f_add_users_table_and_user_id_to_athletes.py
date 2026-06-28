@@ -1,7 +1,7 @@
 """add_users_table_and_user_id_to_athletes
 
 Revision ID: 1a2b3c4d5e6f
-Revises: abc123def456
+Revises: cf_tenant_id_consolidated
 Create Date: 2026-06-27 11:45:00.000000
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "1a2b3c4d5e6f"
-down_revision: str | Sequence[str] | None = "abc123def456"
+down_revision: str | Sequence[str] | None = "cf_tenant_id_consolidated"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

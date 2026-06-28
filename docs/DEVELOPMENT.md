@@ -507,8 +507,8 @@ render deploy
 | Frontend Modern | ✅ Done | Vue 3 + Vite + TS + Pinia |
 | CI/CD | ✅ Done | GitHub Actions + Trivy |
 | Multi-user | ⏳ Todo | Data isolation + auth |
-| PWA complete | 🔄 Partial | Offline + service worker |
-| Coverage >90% | ❌ Todo | Current ~69-79% |
+| PWA complete | ✅ Done | Offline + service worker |
+| Coverage >92% | ✓ Enforced | Threshold configured in pyproject.toml and CI |
 | Production monitoring | ❌ Todo | Prometheus + Grafana |
 
 See [ROADMAP.md](../ROADMAP.md) for full details.

@@ -6,8 +6,12 @@ All settings are loaded from environment variables with sensible defaults.
 
 from __future__ import annotations
 
+import logging
+import os
+import sys
 from pathlib import Path
 
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -142,6 +146,21 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
 
 _settings: Settings | None = None
+
+
+@model_validator(mode="after")
+def _validate_production_database(self) -> "Settings":
+    _ENV = self.environment.lower()
+    _IS_PROD = _ENV in ("production", "prod", "staging")
+    if _IS_PROD and not self.database_url:
+        logging.warning(
+            "DATABASE_URL not set in production environment. "
+            "Expected PostgreSQL connection string. Falling back to SQLite (db_path=%s).",
+            self.db_path,
+        )
+    elif not self.database_url and not self.db_path:
+        self.db_path = "rides.db"
+    return self
 
 
 def get_settings() -> Settings:

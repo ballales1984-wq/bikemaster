@@ -15,7 +15,7 @@ jobs:
           python-version: '3.11'
       - run: pip install -r requirements.txt
       - run: pip install pytest-cov pytest-asyncio
-      - run: pytest tests/ --cov=bike_analyzer --cov-report=xml --cov-fail-under=68
+      - run: pytest tests/ --cov=bike_analyzer --cov-report=xml --cov-fail-under=92
       - uses: codecov/codecov-action@v4
         with:
           files: ./coverage.xml
