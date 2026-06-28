@@ -102,6 +102,29 @@ def create_app() -> FastAPI:
     app.add_middleware(SlowAPIMiddleware)
     app.add_middleware(MetricsMiddleware)
 
+    @app.exception_handler(ValidationError)
+    async def validation_exception_handler(request: Request, exc: ValidationError):
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "Dati non validi", "errors": exc.errors()},
+        )
+
+    from bike_analyzer.core.validators import ValidationError as BusinessValidationError
+
+    @app.exception_handler(BusinessValidationError)
+    async def business_validation_error_handler(request: Request, exc: BusinessValidationError):
+        return JSONResponse(
+            status_code=400,
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(ValueError)
+    async def value_error_handler(request: Request, exc: ValueError):
+        return JSONResponse(
+            status_code=400,
+            content={"detail": str(exc)},
+        )
+
     @app.middleware("http")
     async def audit_log_middleware(request: Request, call_next):
         import time
