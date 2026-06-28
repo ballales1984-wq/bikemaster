@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from ..models.models import Ride
 from bike_analyzer.core.calculators.calories import estimate as _core_estimate
+
+from ..models.models import Ride
 
 
 def calculate_calories_met(ride: Ride) -> float:
