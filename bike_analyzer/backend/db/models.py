@@ -25,6 +25,29 @@ class Base(DeclarativeBase):
     pass
 
 
+class UserModel(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    username: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="0"
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="1"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC)
+    )
+
+
 class AthleteModel(Base):
     __tablename__ = "athletes"
 
@@ -64,6 +87,9 @@ class AthleteModel(Base):
     medical_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     equipment: Mapped[str | None] = mapped_column(Text, nullable=True)
     ftp_watts: Mapped[float | None] = mapped_column(Float, nullable=True)
+    user_id: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, index=True
+    )
     tenant_id: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, index=True
     )
@@ -165,6 +191,7 @@ class FitnessStateModel(Base):
 AthleteTable = AthleteModel
 RideTable = RideModel
 FitnessStateTable = FitnessStateModel
+UserTable = UserModel
 
 
 class MetricModel(Base):
