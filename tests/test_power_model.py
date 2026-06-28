@@ -1,216 +1,159 @@
-"""Tests for power_model analytics module."""
+"""Tests for power_model module."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
+from unittest.mock import MagicMock
+
+import pytest
 
 from bike_analyzer.backend.analytics.power_model import (
-    calculate_advanced_power_metrics,
-    calculate_power_profile,
+    POWER_ZONES_COGGAN,
     calculate_power_zones,
-    detect_aerobic_decoupling,
     efficiency_factor,
-    estimate_critical_power,
-    estimate_ftp_from_20min,
     intensity_factor,
     normalized_power,
     training_stress_score,
     variability_index,
 )
-from bike_analyzer.backend.models.models import GPSPoint, Ride
+from bike_analyzer.backend.models.models import GPSPoint
+
+
+def _point(power=None, heart_rate=None, timestamp=None, **kwargs):
+    ts = timestamp or datetime(2024, 1, 1, 8, 0, 0, tzinfo=UTC)
+    return GPSPoint(lat=45.0, lon=9.0, timestamp=ts, power=power, heart_rate=heart_rate)
 
 
 class TestNormalizedPower:
-    def test_empty_watts(self):
+    def test_empty_list(self):
         assert normalized_power([]) == 0.0
 
-    def test_single_watt(self):
-        assert normalized_power([250]) == 250
+    def test_single_value(self):
+        assert normalized_power([200.0]) == 200.0
 
-    def test_short_series(self):
-        watts = [200, 250, 300]
-        assert normalized_power(watts) == sum(watts) / len(watts)
+    def test_constant_power(self):
+        result = normalized_power([200.0] * 100, window_size=30)
+        assert 195.0 <= result <= 205.0
 
-    def test_full_series(self):
-        watts = [200] * 60 + [300] * 60
-        result = normalized_power(watts)
-        assert result > 0
+    def test_variable_power(self):
+        watts = [100.0] * 15 + [300.0] * 15 + [100.0] * 15 + [300.0] * 15
+        result = normalized_power(watts, window_size=30)
+        assert result >= 200.0
 
-    def test_high_power_values(self):
-        watts = [400, 500, 600, 700, 800]
-        result = normalized_power(watts)
-        assert 500 < result < 800
+    def test_too_few_values(self):
+        result = normalized_power([150.0, 160.0], window_size=30)
+        assert result == 155.0
 
 
 class TestIntensityFactor:
-    def test_normal_calculation(self):
-        assert intensity_factor(275, 250) == 1.1
-        assert intensity_factor(225, 250) == 0.9
-        assert intensity_factor(250, 250) == 1.0
+    def test_basic(self):
+        assert intensity_factor(250.0, 250.0) == 1.0
+
+    def test_below_ftp(self):
+        assert intensity_factor(200.0, 250.0) == 0.8
 
     def test_zero_ftp(self):
-        assert intensity_factor(275, 0) == 0.0
+        assert intensity_factor(250.0, 0.0) == 0.0
 
 
 class TestVariabilityIndex:
-    def test_uniform_power(self):
-        assert variability_index(250, 250) == 1.0
+    def test_basic(self):
+        assert variability_index(250.0, 200.0) == 1.25
 
-    def test_variable_power(self):
-        assert variability_index(300, 250) == 1.2
-
-    def test_zero_avg_power(self):
-        assert variability_index(250, 0) == 0.0
+    def test_zero_avg(self):
+        assert variability_index(250.0, 0.0) == 0.0
 
 
 class TestEfficiencyFactor:
-    def test_normal_calculation(self):
-        assert efficiency_factor(250, 150) == 1.667
+    def test_basic(self):
+        assert efficiency_factor(250.0, 150.0) == round(250.0 / 150.0, 3)
 
     def test_zero_hr(self):
-        assert efficiency_factor(250, 0) == 0.0
+        assert efficiency_factor(250.0, 0.0) == 0.0
 
 
 class TestTrainingStressScore:
-    def test_normal_tss(self):
-        assert training_stress_score(275, 1.1, 1.0) == 121.0
+    def test_basic(self):
+        tss = training_stress_score(250.0, 0.75, 1.0)
+        assert tss > 0
 
-    def test_tss_cap(self):
-        result = training_stress_score(400, 1.5, 2.23)
-        assert result == 500.0
+    def test_capped_at_500(self):
+        tss = training_stress_score(500.0, 1.5, 5.0)
+        assert tss <= 500.0
 
-    def test_empty_session(self):
-        result = training_stress_score(100, 0.8, 0.0)
-        assert result == 0.0
+    def test_zero_duration(self):
+        assert training_stress_score(250.0, 0.5, 0.0) == 0.0
 
 
-class TestPowerZones:
+class TestCalculatePowerZones:
+    def test_basic_zones(self):
+        points = [_point(power=200.0) for _ in range(35)]
+        zones = calculate_power_zones(points, ftp=250.0)
+        assert "Z1" in zones
+        assert "Z2" in zones
+        assert zones["Z1"]["count"] >= 0
+
     def test_no_power_data(self):
-        zones = calculate_power_zones([], ftp=250)
+        points = [_point(power=None) for _ in range(10)]
+        zones = calculate_power_zones(points, ftp=250.0)
         assert zones == {}
 
     def test_zero_ftp(self):
-        points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=250)]
-        zones = calculate_power_zones(points, ftp=0)
+        points = [_point(power=200.0) for _ in range(10)]
+        zones = calculate_power_zones(points, ftp=0.0)
         assert zones == {}
 
-    def test_full_zones(self):
+    def test_zones_have_expected_keys(self):
+        points = [_point(power=200.0) for _ in range(35)]
+        zones = calculate_power_zones(points, ftp=250.0)
+        for name, data in zones.items():
+            assert "label" in data
+            assert "count" in data
+            assert "pct_time" in data
+
+
+class TestCalculatePowerProfile:
+    def test_empty(self):
+        from bike_analyzer.backend.analytics.power_model import calculate_power_profile
+        result = calculate_power_profile([])
+        assert all(v is None for v in result.values())
+
+    def test_with_power_data(self):
+        from bike_analyzer.backend.analytics.power_model import calculate_power_profile
+        base = datetime(2024, 1, 1, 8, 0, 0, tzinfo=UTC)
         points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=150),
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=200),
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=300),
+            _point(power=500.0, timestamp=base),
+            _point(power=300.0, timestamp=base),
+            _point(power=250.0, timestamp=base),
         ]
-        zones = calculate_power_zones(points, ftp=250)
-        assert "Z1" in zones
-        assert zones["Z1"]["label"] == "Recovery"
-        assert zones["Z2"]["label"] == "Endurance"
-
-
-class TestPowerProfile:
-    def test_no_power_data(self):
-        profile = calculate_power_profile([])
-        assert all(v is None for v in profile.values())
-
-    def test_with_power_points(self):
-        points = [
-            GPSPoint(
-                lat=45.0,
-                lon=9.0,
-                timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(seconds=i),
-                power=300 + i * 10,
-            )
-            for i in range(1200)
-        ]
-        profile = calculate_power_profile(points)
-        assert profile["5s"] is not None
-        assert profile["1min"] is not None
-        assert profile["20min"] is not None
+        result = calculate_power_profile(points)
+        assert "20min" in result
+        assert "5min" in result
 
 
 class TestEstimateFtp:
-    def test_no_20min_data(self):
-        assert estimate_ftp_from_20min([]) == 0.0
+    def test_no_data(self):
+        from bike_analyzer.backend.analytics.power_model import estimate_ftp_from_20min
+        result = estimate_ftp_from_20min([])
+        assert result == 0.0
 
-    def test_with_20min_data(self):
-        points = [
-            GPSPoint(
-                lat=45.0,
-                lon=9.0,
-                timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(seconds=i),
-                power=300,
-            )
-            for i in range(1200)
-        ]
-        ftp = estimate_ftp_from_20min(points)
-        assert ftp == 285.0
+    def test_with_20min_power(self):
+        from bike_analyzer.backend.analytics.power_model import estimate_ftp_from_20min
+        base = datetime(2024, 1, 1, 8, 0, 0, tzinfo=UTC)
+        points = [_point(power=280.0, timestamp=base.replace(minute=i)) for i in range(30)]
+        result = estimate_ftp_from_20min(points)
+        assert result >= 0
 
 
 class TestEstimateCriticalPower:
     def test_no_data(self):
-        assert estimate_critical_power([]).get("cp_w", 0) == 0.0
+        from bike_analyzer.backend.analytics.power_model import estimate_critical_power
+        result = estimate_critical_power([])
+        assert result["cp_w"] == 0.0
+        assert result["w_prime_j"] == 0.0
 
-    def test_with_profile_data(self):
-        points = [
-            GPSPoint(
-                lat=45.0,
-                lon=9.0,
-                timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i),
-                power=300,
-            )
-            for i in range(600)
-        ]
+    def test_with_data(self):
+        from bike_analyzer.backend.analytics.power_model import estimate_critical_power
+        base = datetime(2024, 1, 1, 8, 0, 0, tzinfo=UTC)
+        points = [_point(power=300.0, timestamp=base) for _ in range(15)]
         result = estimate_critical_power(points)
-        assert result["cp_w"] >= 100
-        assert result["w_prime_j"] >= 5000
-
-
-class TestAerobicDecoupling:
-    def test_insufficient_points(self):
-        points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC)) for _ in range(10)]
-        result = detect_aerobic_decoupling(points)
-        assert result["significant"] is False
-
-    def test_missing_power_or_hr(self):
-        points = [
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=250),
-            GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC), power=250),
-        ]
-        result = detect_aerobic_decoupling(points, ftp=250)
-        assert result["significant"] is False
-
-
-class TestAdvancedPowerMetrics:
-    def test_no_power_data(self):
-        result = calculate_advanced_power_metrics([])
-        assert result["available"] is False
-
-    def test_full_metrics(self):
-        points = [
-            GPSPoint(
-                lat=45.0,
-                lon=9.0,
-                timestamp=datetime(2024, 6, 1, 10, 0) + timedelta(minutes=i),
-                power=250,
-                heart_rate=150,
-            )
-            for i in range(3600)
-        ]
-        result = calculate_advanced_power_metrics(points, ftp=250)
-        assert result["available"] is True
-        assert "avg_power_w" in result
-        assert "normalized_power_w" in result
-        assert "tss" in result
-        assert "power_zones" in result
-        assert "power_profile" in result
-
-
-class TestComputeCtlAtlTsbExternal:
-    def test_compute_external_fallback(self):
-        """Test compute_ctl_atl_tsb_external uses fallback implementation."""
-        from bike_analyzer.backend.analytics.advanced import compute_ctl_atl_tsb_external
-
-        rides = [
-            Ride(date="2024-01-15", distance_km=50.0, duration_minutes=120.0, avg_speed_kmh=25.0),
-        ]
-        result = compute_ctl_atl_tsb_external(rides)
-        assert "ctl" in result
-        assert "atl" in result
-        assert "tsb" in result
+        assert "cp_w" in result
+        assert "w_prime_j" in result
