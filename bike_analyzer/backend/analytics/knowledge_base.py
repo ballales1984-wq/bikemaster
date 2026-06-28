@@ -212,12 +212,12 @@ def search_knowledge_base(
                 if distances:
                     all_positive = all((1.0 - d) >= 0 for d in distances)
                     if all_positive:
-                        results = []
+                        vector_results = []
                         for i, dist in enumerate(distances):
                             sim = 1.0 - dist
                             if sim >= min_score:
                                 meta = results_raw.get("metadatas", [[None]])[0][i] or {}
-                                results.append(
+                                vector_results.append(
                                     {
                                         "topic": meta.get("topic", ""),
                                         "chunk_id": results_raw.get("ids", [[]])[0][i]
@@ -228,10 +228,10 @@ def search_knowledge_base(
                                         "score": round(sim, 4),
                                     }
                                 )
-                        if results:
+                        if vector_results:
                             if as_string:
-                                return format_context_for_llm(results)
-                            return results
+                                return format_context_for_llm(vector_results)
+                            return vector_results
     except Exception as e:
         logger.debug("Vector search unavailable: %s", e)
 

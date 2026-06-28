@@ -2,7 +2,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from fastapi import HTTPException, Request
+from fastapi import HTTPException
 
 from bike_analyzer.backend.rate_limiter import (
     RateLimitConfig,

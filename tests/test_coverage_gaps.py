@@ -11,7 +11,6 @@ from bike_analyzer.core.engine import AnalysisEngine
 from bike_analyzer.core.models import Ride
 from bike_analyzer.core.pipeline import PipelineResult
 
-
 # ---------------------------------------------------------------------------
 # Strava client token refresh
 # ---------------------------------------------------------------------------
@@ -367,8 +366,10 @@ class TestEngineAsyncPaths:
         async def fake_update(ride, athlete_id, session_factory, historical_rides=None):
             return mock_fitness
 
-        with patch.object(engine.pipeline, "run", side_effect=fake_run):
-            with patch.object(engine, "_update_fitness_state", side_effect=fake_update):
+        with (
+            patch.object(engine.pipeline, "run", side_effect=fake_run),
+            patch.object(engine, "_update_fitness_state", side_effect=fake_update),
+        ):
                 import asyncio
                 result = asyncio.run(engine.process_ride(ride, athlete_id=1))
                 assert result.success is True

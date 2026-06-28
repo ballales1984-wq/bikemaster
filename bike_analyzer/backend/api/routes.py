@@ -198,8 +198,8 @@ def _ensure_int_user_id(current_user: dict) -> int:
 def _ensure_athlete_access(athlete_id: int, current_user: dict) -> None:
     if current_user.get("is_admin"):
         return
-    user_tenant_id = current_user.get("tenant_id", current_user.get("id"))
-    athlete_tenant_id = current_user.get("tenant_id") if isinstance(current_user, dict) else None
+    _user_tenant_id = current_user.get("tenant_id", current_user.get("id"))
+    _athlete_tenant_id = current_user.get("tenant_id") if isinstance(current_user, dict) else None
     if int(athlete_id) != _ensure_int_user_id(current_user):
         raise HTTPException(status_code=403, detail="Access denied to this athlete")
 
@@ -258,7 +258,7 @@ async def alerts_webhook(request: Request):
 @router.get("/sentry-debug")
 async def sentry_debug():
     """Debug endpoint to verify Sentry error tracking."""
-    1 / 0
+    raise ZeroDivisionError("Sentry sentinel")
 
 
 @router.get("/health/redis")

@@ -6,9 +6,9 @@ from collections import defaultdict
 from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 
+from ....core.calculators import power, stress
 from ....core.fitness_state import FitnessStateVector
 from ....core.models import Ride
-from ....core.calculators import power, stress
 
 
 class FitnessStateEngine:

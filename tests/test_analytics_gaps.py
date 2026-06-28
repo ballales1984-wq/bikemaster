@@ -1,15 +1,18 @@
 """Tests for analytics module coverage gaps."""
 
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 from bike_analyzer.backend.analytics.analytics import (
-    calculate_summary,
     analyze_ride,
+    calculate_summary,
+    export_rides_csv,
+    export_rides_json,
+    generate_text_report,
     ride_to_json,
-    rides_to_json,
     rides_to_csv,
+    rides_to_json,
 )
-from bike_analyzer.core.models import Ride, GPSPoint
+from bike_analyzer.core.models import GPSPoint, Ride
 
 
 def _make_ride(date="2024-06-15", distance_km=25.0, duration_minutes=60,
@@ -94,3 +97,36 @@ class TestSerialization:
     def test_rides_to_csv_empty(self):
         result = rides_to_csv([])
         assert result == ""
+
+
+class TestExportFunctions:
+    def test_export_rides_json(self, tmp_path):
+        rides = [_make_ride(date="2024-06-16")]
+        out = str(tmp_path / "rides.json")
+        result = export_rides_json(rides, out)
+        assert result == out
+        import json
+        with open(out) as f:
+            data = json.load(f)
+        assert len(data) == 1
+        assert data[0]["date"] == "2024-06-16"
+
+    def test_export_rides_csv(self, tmp_path):
+        rides = [_make_ride()]
+        out = str(tmp_path / "rides.csv")
+        result = export_rides_csv(rides, out)
+        assert result == out
+        with open(out) as f:
+            content = f.read()
+        assert "date" in content
+        assert "2024-06-15" in content
+
+
+class TestTextReport:
+    def test_generate_text_report(self):
+        ride = _make_ride()
+        report = generate_text_report(ride)
+        assert "BikeMaster Report" in report
+        assert "2024-06-15" in report
+        assert "25.0 km" in report
+        assert "Fatigue Score" in report

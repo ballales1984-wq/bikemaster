@@ -1,17 +1,18 @@
 """Tests for Strava client unit-level coverage."""
 
-import pytest
-from unittest.mock import patch, MagicMock
 import time
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from bike_analyzer.backend.ingestion.strava_client import (
-    generate_code_verifier,
-    generate_code_challenge,
     build_authorization_url,
-    get_authorization_url,
     exchange_code_for_token,
-    refresh_access_token,
     fetch_activities,
+    generate_code_challenge,
+    generate_code_verifier,
+    get_authorization_url,
+    refresh_access_token,
     strava_to_ride,
 )
 
@@ -54,9 +55,11 @@ class TestStravaPKCE:
             assert result["state"] == "custom_state"
 
     def test_get_authorization_url_missing_client_id(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", ""):
-            with pytest.raises(RuntimeError, match="STRAVA_CLIENT_ID"):
-                get_authorization_url()
+        with (
+            patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", ""),
+            pytest.raises(RuntimeError, match="STRAVA_CLIENT_ID"),
+        ):
+            get_authorization_url()
 
 
 class TestStravaTokenExchange:
@@ -71,25 +74,29 @@ class TestStravaTokenExchange:
         }
         mock_post.return_value = mock_resp
 
-        with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", "test"):
-            with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_SECRET", "secret"):
-                with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_TOKEN_URL", "https://test"):
-                    with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_REDIRECT_URI", "https://test"):
-                        result = exchange_code_for_token("auth_code", "verifier123")
-                        assert result["access_token"] == "strava_access"
+        with (
+            patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", "test"),
+            patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_SECRET", "secret"),
+            patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_TOKEN_URL", "https://test"),
+            patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_REDIRECT_URI", "https://test"),
+        ):
+            result = exchange_code_for_token("auth_code", "verifier123")
+            assert result["access_token"] == "strava_access"
 
     @patch("bike_analyzer.backend.ingestion.strava_client.requests.post")
     def test_exchange_code_raises_on_error(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.status_code = 400
-        mock_resp.raise_for_status.side_effect = Exception("Bad request")
+        mock_resp.raise_for_status.side_effect = ValueError("Bad request")
         mock_post.return_value = mock_resp
 
-        with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", "test"):
-            with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_SECRET", "secret"):
-                with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_TOKEN_URL", "https://test"):
-                    with pytest.raises(Exception):
-                        exchange_code_for_token("bad_code")
+        with (
+            patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", "test"),
+            patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_SECRET", "secret"),
+            patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_TOKEN_URL", "https://test"),
+            pytest.raises(ValueError),
+        ):
+            exchange_code_for_token("bad_code", "bad_verifier")
 
 
 class TestStravaTokenRefresh:
@@ -100,11 +107,13 @@ class TestStravaTokenRefresh:
         mock_resp.json.return_value = {"access_token": "new_token", "expires_at": int(time.time()) + 3600}
         mock_post.return_value = mock_resp
 
-        with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", "test"):
-            with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_SECRET", "secret"):
-                with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_TOKEN_URL", "https://test"):
-                    result = refresh_access_token("refresh_token")
-                    assert result["access_token"] == "new_token"
+        with (
+            patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", "test"),
+            patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_SECRET", "secret"),
+            patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_TOKEN_URL", "https://test"),
+        ):
+            result = refresh_access_token("refresh_token")
+            assert result["access_token"] == "new_token"
 
 
 class TestStravaActivities:

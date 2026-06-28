@@ -107,7 +107,7 @@ def test_get_7day_fitness_summary():
 
 def test_get_current_training_status_all_statuses():
     rides_fresh = [Ride(date="2024-01-15", distance_km=20.0, duration_minutes=60.0, avg_speed_kmh=20.0)]
-    status = get_current_training_status(rides_fresh)
+    get_current_training_status(rides_fresh)
     rides_fatigued = [
         Ride(date=f"2024-01-{15+i:02d}", distance_km=50.0, duration_minutes=180.0, avg_speed_kmh=40.0)
         for i in range(14)

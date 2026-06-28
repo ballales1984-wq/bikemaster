@@ -1,24 +1,28 @@
 """Tests for async_db layer coverage."""
 
-import pytest
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from bike_analyzer.backend.db.async_db import (
     _get_engine,
-    get_session_factory,
     _ride_model_to_dict,
+    get_session_factory,
 )
 
 
 class TestEngineFactory:
     def test_get_engine_caches(self):
-        with patch("bike_analyzer.backend.db.async_db._engine", None):
-            with patch("bike_analyzer.backend.db.async_db.get_settings") as mock_settings:
-                mock_settings.return_value.database_url = ""
-                mock_settings.return_value.db_path = ":memory:"
-                engine1 = _get_engine()
-                engine2 = _get_engine()
-                assert engine1 is engine2
+        with (
+            patch("bike_analyzer.backend.db.async_db._engine", None),
+            patch("bike_analyzer.backend.db.async_db.get_settings") as mock_settings,
+        ):
+            mock_settings.return_value.database_url = ""
+            mock_settings.return_value.db_path = ":memory:"
+            engine1 = _get_engine()
+            engine2 = _get_engine()
+            assert engine1 is engine2
 
     @patch("bike_analyzer.backend.db.async_db._engine", None)
     def test_get_engine_sqlite_url(self):
@@ -75,13 +79,13 @@ class TestRideModelToDict:
 
     def test_row_with_gps_points(self):
         import json
+
         gps_data = [{"lat": 45.0, "lon": 9.0}]
         row = self._make_row(gps_points=json.dumps(gps_data))
         result = _ride_model_to_dict(row)
         assert result["gps_points"] == gps_data
 
     def test_row_with_datetime(self):
-        from datetime import datetime, UTC
         row = self._make_row(created_at=datetime(2024, 6, 15, 10, 0, 0, tzinfo=UTC))
         result = _ride_model_to_dict(row)
         assert "2024-06-15" in result["created_at"]
