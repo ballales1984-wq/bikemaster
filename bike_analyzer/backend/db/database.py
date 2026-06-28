@@ -45,6 +45,17 @@ def get_db_connection():
 
 def init_db():
     with get_db_connection() as conn:
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_metrics_ride ON metrics(ride_id)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT UNIQUE,
+            password_hash TEXT,
+            is_admin INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT,
+            updated_at TEXT
+        )""")
         conn.execute("""CREATE TABLE IF NOT EXISTS rides (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
@@ -1140,6 +1151,64 @@ def upsert_training_stress_day(
         conn.commit()
 
 
+def save_user(user: dict) -> int:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO users (username, email, password_hash, is_admin, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                user.get("username"),
+                user.get("email"),
+                user.get("password_hash"),
+                1 if user.get("is_admin") else 0,
+                1 if user.get("is_active", True) else 0,
+                datetime.now(UTC).isoformat(),
+                datetime.now(UTC).isoformat(),
+            ),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def get_user_by_username(username: str) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+        row = cur.fetchone()
+        if row:
+            return {
+                "id": row[0],
+                "username": row[1],
+                "email": row[2],
+                "password_hash": row[3],
+                "is_admin": bool(row[4]),
+                "is_active": bool(row[5]),
+                "created_at": row[6],
+                "updated_at": row[7],
+            }
+        return None
+
+
+def get_user_by_id(user_id: int) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+        row = cur.fetchone()
+        if row:
+            return {
+                "id": row[0],
+                "username": row[1],
+                "email": row[2],
+                "password_hash": row[3],
+                "is_admin": bool(row[4]),
+                "is_active": bool(row[5]),
+                "created_at": row[6],
+                "updated_at": row[7],
+            }
+        return None
+
+
 def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | None = None) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -1370,4 +1439,7 @@ __all__ = [
     "save_road_incident",
     "save_route_safety_score",
     "get_route_safety_score",
+    "save_user",
+    "get_user_by_username",
+    "get_user_by_id",
 ]

@@ -13,6 +13,7 @@ from typing import Any
 from urllib.parse import urlencode, urlparse
 
 import requests
+from sqlalchemy import insert
 from fastapi import (
     APIRouter,
     Body,
@@ -283,8 +284,45 @@ async def google_maps_key(current_user: dict = Depends(get_current_user)):
 @router.post("/auth/login")
 @limiter.limit("5/minute")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+    from ..config import DATABASE_URL
+    from ..security import (
+        create_access_token,
+        create_refresh_token,
+        save_refresh_token,
+        verify_password,
+    )
+
+    if DATABASE_URL:
+        from ..db.async_db import get_session_factory
+        from ..db.models import UserModel
+        from sqlalchemy import select
+
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            stmt = select(UserModel).where(UserModel.username == form_data.username)
+            result = await session.execute(stmt)
+            user = result.scalar_one_or_none()
+
+            if not user or not verify_password(form_data.password, user.password_hash or ""):
+                raise HTTPException(
+                    status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"}
+                )
+
+            access_token = create_access_token(
+                subject=str(user.id), is_admin=user.is_admin, tenant_id=user.id
+            )
+            refresh_token = create_refresh_token(user.id)
+            await save_refresh_token(user.id, refresh_token)
+            return {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "token_type": "bearer",
+                "username": user.username,
+                "id": user.id,
+                "is_admin": user.is_admin,
+            }
+
     from ..db.database import get_db_connection
-    from ..security import create_access_token, create_refresh_token, verify_password
 
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -300,7 +338,6 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     athlete_id = int(row[0])
     access_token = create_access_token(subject=str(athlete_id), is_admin=False, tenant_id=athlete_id)
     refresh_token = create_refresh_token(athlete_id)
-    from ..security import save_refresh_token
     await save_refresh_token(athlete_id, refresh_token)
     return {
         "access_token": access_token,
@@ -372,11 +409,62 @@ async def register(
     password: str = Body(..., min_length=6),
     email: str = Body(None),
 ):
+    from ..config import DATABASE_URL
     from ..db.database import get_athlete_by_email, get_athlete_by_name, save_athlete
     from ..security import hash_password
 
     if len(username) < 3 or len(password) < 6:
         raise HTTPException(status_code=400, detail="Username must be >= 3 chars, password >= 6")
+
+    if DATABASE_URL:
+        from ..db.async_db import get_session_factory
+        from ..db.models import AthleteModel, UserModel
+        from sqlalchemy import select
+
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            stmt = select(UserModel).where(
+                (UserModel.username == username) | (UserModel.email == email)
+            )
+            result = await session.execute(stmt)
+            existing = result.scalar_one_or_none()
+            if existing:
+                detail = "Email already registered" if email and existing.email == email else "Username already exists"
+                raise HTTPException(status_code=400, detail=detail)
+
+            password_hash = hash_password(password)
+            stmt = insert(UserModel).values(
+                username=username,
+                email=email,
+                password_hash=password_hash,
+                is_admin=False,
+                is_active=True,
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            ).returning(UserModel.id)
+            result = await session.execute(stmt)
+            user_id = result.scalar_one()
+            await session.commit()
+
+            athlete = AthleteModel(
+                id=user_id,
+                name=username,
+                email=email,
+                experience_level="Beginner",
+                tenant_id=user_id,
+                created_at=datetime.now(UTC),
+            )
+            session.add(athlete)
+            await session.commit()
+            return {
+                "username": username,
+                "email": email,
+                "msg": "Utente creato",
+                "is_admin": False,
+                "id": user_id,
+                "profile_complete": False,
+            }
+
     if email:
         existing_email = get_athlete_by_email(email)
         if existing_email:
