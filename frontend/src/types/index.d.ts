@@ -34,6 +34,7 @@ export interface Athlete {
   username: string
   email?: string | null
   is_admin?: boolean
+  tenant_id?: number
   goal_type?: string
   goal_target?: number
   goal_current?: number

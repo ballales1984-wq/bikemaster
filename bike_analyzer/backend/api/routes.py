@@ -198,8 +198,6 @@ def _ensure_int_user_id(current_user: dict) -> int:
 def _ensure_athlete_access(athlete_id: int, current_user: dict) -> None:
     if current_user.get("is_admin"):
         return
-    _user_tenant_id = current_user.get("tenant_id", current_user.get("id"))
-    _athlete_tenant_id = current_user.get("tenant_id") if isinstance(current_user, dict) else None
     if int(athlete_id) != _ensure_int_user_id(current_user):
         raise HTTPException(status_code=403, detail="Access denied to this athlete")
 
@@ -396,6 +394,7 @@ async def register(
         }
     )
     if athlete_id:
+        from ..db.database import update_athlete
         update_athlete(athlete_id, {"tenant_id": athlete_id})
     return {
         "username": username,
@@ -405,6 +404,77 @@ async def register(
         "id": athlete_id,
         "profile_complete": False,
     }
+
+
+@router.get("/auth/me")
+async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    from ..db.database import get_athlete as _get_athlete
+
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete = _get_athlete(current_user["id"], tenant_id)
+    if not athlete:
+        return {
+            "id": current_user["id"],
+            "username": "",
+            "email": None,
+            "is_admin": current_user.get("is_admin", False),
+            "tenant_id": current_user.get("tenant_id", current_user["id"]),
+            "profile_complete": False,
+        }
+    return {
+        "id": athlete["id"],
+        "username": athlete.get("name", ""),
+        "email": athlete.get("email"),
+        "is_admin": current_user.get("is_admin", False),
+        "tenant_id": current_user.get("tenant_id", current_user["id"]),
+        "profile_complete": bool(
+            athlete.get("age") is not None
+            and athlete.get("weight_kg") is not None
+            and athlete.get("experience_level", "").strip() != ""
+        ),
+    }
+
+
+@router.put("/auth/profile")
+async def update_profile(
+    profile_data: dict = Body(...),
+    current_user: dict = Depends(get_current_user),
+):
+    from ..db.database import update_athlete as _update_athlete
+    from ..db.database import get_athlete as _get_athlete
+
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    allowed_fields = {"name", "email", "age", "weight_kg", "height_cm",
+                      "experience_level", "goals", "preferred_terrain",
+                      "weekly_volume_km", "ftp_watts", "equipment", "medical_notes"}
+    update_data = {k: v for k, v in profile_data.items() if k in allowed_fields}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    _update_athlete(current_user["id"], update_data)
+    athlete = _get_athlete(current_user["id"], tenant_id)
+    return _public_athlete(athlete)
+
+
+@router.post("/auth/change-password")
+async def change_password(
+    current_password: str = Body(..., embed=True),
+    new_password: str = Body(..., min_length=6, embed=True),
+    current_user: dict = Depends(get_current_user),
+):
+    from ..db.database import get_athlete as _get_athlete
+    from ..security import hash_password, verify_password
+
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete = _get_athlete(current_user["id"], tenant_id)
+    if not athlete:
+        raise HTTPException(status_code=404, detail="User not found")
+    stored_hash = athlete.get("password_hash", "")
+    if not verify_password(current_password, stored_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    new_hash = hash_password(new_password)
+    from ..db.database import update_athlete
+    update_athlete(current_user["id"], {"password_hash": new_hash})
+    return {"msg": "Password changed successfully"}
 
 
 @router.get("/auth/google")
@@ -520,6 +590,9 @@ async def google_oauth_callback_get(
                     "email": email,
                     "experience_level": "Beginner",
                 })
+                if athlete_id:
+                    from ..db.database import update_athlete
+                    update_athlete(athlete_id, {"tenant_id": athlete_id})
                 existing = get_athlete(athlete_id)
         finally:
             if r is not None:
@@ -791,7 +864,8 @@ async def coach_chat_history(
     from ..db.database import get_chat_history
 
     _ensure_athlete_access(athlete_id, current_user)
-    history = get_chat_history(athlete_id)
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    history = get_chat_history(athlete_id, tenant_id=tenant_id)
     return {"athlete_id": athlete_id, "history": history}
 
 
@@ -978,8 +1052,9 @@ async def create_athlete(
     from ..db.database import get_athlete_by_name, save_athlete
     from ..db.database import update_athlete as _update
 
+    tenant_id = current_user.get("tenant_id", current_user["id"])
     target_athlete_id = _ensure_int_user_id(current_user)
-    existing = _get_athlete(target_athlete_id)
+    existing = _get_athlete(target_athlete_id, tenant_id)
     if athlete_data.name:
         existing_by_name = get_athlete_by_name(athlete_data.name)
         if existing_by_name and existing_by_name["id"] != target_athlete_id:
@@ -988,10 +1063,10 @@ async def create_athlete(
     data = athlete_data.model_dump()
     if existing:
         _update(target_athlete_id, data)
-        return _public_athlete(_get_athlete(target_athlete_id))
+        return _public_athlete(_get_athlete(target_athlete_id, tenant_id))
 
     athlete_id = save_athlete(data, athlete_id=target_athlete_id)
-    return _public_athlete(_get_athlete(athlete_id))
+    return _public_athlete(_get_athlete(athlete_id, tenant_id))
 
 
 @router.get("/athletes")
@@ -999,7 +1074,8 @@ async def list_athletes(current_user: dict = Depends(get_current_user)):
     """Get current user's athlete profile."""
     from ..db.database import get_athlete as _get_athlete
 
-    athlete = _get_athlete(current_user["id"])
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete = _get_athlete(current_user["id"], tenant_id)
     if not athlete:
         return {"athletes": []}
     return {"athletes": [_public_athlete(athlete)]}
@@ -1009,6 +1085,9 @@ async def list_athletes(current_user: dict = Depends(get_current_user)):
 async def get_my_athlete_profile(current_user: dict = Depends(get_current_user)):
     """Get the authenticated user's own athlete profile."""
     from ..db.database import get_athlete as _get_athlete
+
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete = _get_athlete(current_user["id"], tenant_id)
 
     athlete = _get_athlete(current_user["id"])
     if not athlete:
@@ -2383,7 +2462,8 @@ async def analyze_ride_safety(
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
     _ensure_ride_access(ride, current_user)
-    existing = get_route_safety_score(ride_id)
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    existing = get_route_safety_score(ride_id, tenant_id)
     if existing and existing.get("computed_at"):
         return existing
     gps_points = ride.get("gps_points")

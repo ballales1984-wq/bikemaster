@@ -1,84 +1,67 @@
-"""Migration script to set tenant_id = athlete_id for existing rows.
+"""Migration script: add multi-user tenant_id coverage to SQLite tables.
 
-This migrates data from the old single-tenant model to the new multi-tenant model.
-Run this script once after deploying the multi-tenant changes.
-
-Usage:
-    python scripts/migrate_tenant_id.py
+Ensures all tables have tenant_id column and adds composite indexes
+for tenant-scoped queries.
 """
+
 from __future__ import annotations
 
 import sqlite3
-import sys
-from pathlib import Path
 
-DEFAULT_DB_PATH = "rides.db"
+DB_PATH = "rides.db"
 
 
-def migrate(db_path: str = DEFAULT_DB_PATH) -> dict:
-    if not Path(db_path).exists():
-        print(f"Database not found: {db_path}")
-        return {"status": "error", "message": "database not found"}
+def migrate():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("PRAGMA journal_mode=WAL")
+        cur = conn.cursor()
 
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
+        tables_to_check = [
+            ("metrics", "tenant_id"),
+            ("route_safety_scores", "tenant_id"),
+            ("fitness_states", "tenant_id"),
+            ("training_stress_days", "tenant_id"),
+            ("training_goals", "tenant_id"),
+            ("planned_workouts", "tenant_id"),
+            ("strava_tokens", "tenant_id"),
+            ("garmin_tokens", "tenant_id"),
+            ("knowledge_chunks", "tenant_id"),
+            ("chat_messages", "tenant_id"),
+        ]
 
-    updates = {}
-
-    tables_with_tenant = [
-        ("athletes", "id"),
-        ("rides", "id"),
-        ("calendar_events", "id"),
-        ("chat_history", "id"),
-        ("training_stress_days", "id"),
-        ("metrics", "id"),
-        ("training_goals", "id"),
-        ("planned_workouts", "id"),
-        ("knowledge_chunks", "id"),
-        ("chat_messages", "id"),
-        ("strava_tokens", "id"),
-        ("garmin_tokens", "id"),
-        ("route_safety_scores", "id"),
-    ]
-
-    for table, pk in tables_with_tenant:
-        try:
+        for table, column in tables_to_check:
             cur.execute(f"PRAGMA table_info({table})")
-            columns = [row["name"] for row in cur.fetchall()]
-            if "tenant_id" not in columns:
-                print(f"  SKIP {table}: tenant_id column not found")
-                continue
-            if "athlete_id" not in columns:
-                print(f"  SKIP {table}: athlete_id column not found")
-                continue
-
-            cur.execute(
-                f"SELECT COUNT(*) FROM {table} WHERE tenant_id = 0 OR tenant_id IS NULL"
-            )
-            count = cur.fetchone()[0]
-
-            if count > 0:
-                cur.execute(
-                    f"UPDATE {table} SET tenant_id = athlete_id "
-                    f"WHERE tenant_id = 0 OR tenant_id IS NULL"
+            columns = [row[1] for row in cur.fetchall()]
+            if column not in columns:
+                default_val = "0"
+                if table in ("metrics", "route_safety_scores"):
+                    default_val = "0"
+                conn.execute(
+                    f"ALTER TABLE {table} ADD COLUMN {column} INTEGER DEFAULT {default_val}"
                 )
-                conn.commit()
-                updates[table] = cur.rowcount
-                print(f"  OK {table}: updated {cur.rowcount} rows")
-            else:
-                updates[table] = 0
-                print(f"  OK {table}: no rows to update")
-        except sqlite3.OperationalError as exc:
-            print(f"  ERR {table}: {exc}")
-            updates[table] = f"error: {exc}"
+                print(f"  Added {column} to {table}")
 
-    conn.close()
-    return {"status": "completed", "updates": updates}
+        indexes = [
+            ("idx_metrics_athlete_tenant", "metrics", "athlete_id, tenant_id"),
+            ("idx_route_safety_tenant", "route_safety_scores", "ride_id, tenant_id"),
+            ("idx_fitness_states_tenant", "fitness_states", "athlete_id, tenant_id"),
+            ("idx_training_stress_tenant", "training_stress_days", "athlete_id, tenant_id"),
+            ("idx_training_goals_tenant", "training_goals", "athlete_id, tenant_id"),
+            ("idx_planned_workouts_tenant", "planned_workouts", "athlete_id, tenant_id"),
+        ]
+
+        for idx_name, table, cols in indexes:
+            try:
+                conn.execute(
+                    f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table} ({cols})"
+                )
+                print(f"  Created index {idx_name}")
+            except sqlite3.OperationalError as exc:
+                print(f"  Index {idx_name}: {exc}")
+
+        conn.commit()
+        print("Migration completed.")
 
 
 if __name__ == "__main__":
-    db_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_DB_PATH
-    print(f"Migrating tenant_id in {db_path}...")
-    result = migrate(db_path)
-    print(f"\nResult: {result}")
+    migrate()

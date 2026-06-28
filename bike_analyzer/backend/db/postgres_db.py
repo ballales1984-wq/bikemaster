@@ -34,6 +34,7 @@ class RideModel(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     athlete_id = Column(Integer, ForeignKey("athletes.id"), nullable=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
     date = Column(String, nullable=False, index=True)
     distance_km = Column(Float, default=0.0)
     duration_minutes = Column(Float, default=0.0)
@@ -44,6 +45,11 @@ class RideModel(Base):
     elevation_gain_m = Column(Float, nullable=True)
     gps_points = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+
+    __table_args__ = (
+        Index("ix_rides_tenant", "tenant_id"),
+        Index("ix_rides_athlete_date", "athlete_id", "date"),
+    )
 
 
 class AthleteModel(Base):
@@ -67,6 +73,7 @@ class AthleteModel(Base):
     medical_notes = Column(Text, nullable=True)
     equipment = Column(Text, nullable=True)
     ftp_watts = Column(Float, nullable=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
 
@@ -75,6 +82,7 @@ class TrainingLoadModel(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     athlete_id = Column(Integer, ForeignKey("athletes.id"), nullable=False)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
     date = Column(String, nullable=False, index=True)
     tss = Column(Float, default=0.0)
     atl = Column(Float, default=0.0)
@@ -84,6 +92,7 @@ class TrainingLoadModel(Base):
 
     __table_args__ = (
         Index("idx_training_loads_athlete_date", "athlete_id", "date"),
+        Index("idx_training_loads_tenant", "tenant_id"),
     )
 
 
@@ -92,6 +101,7 @@ class TrainingGoalModel(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     athlete_id = Column(Integer, ForeignKey("athletes.id"), nullable=False)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     goal_type = Column(String, default="granfondo")
@@ -107,6 +117,7 @@ class PlannedWorkoutModel(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     athlete_id = Column(Integer, ForeignKey("athletes.id"), nullable=False)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
     goal_id = Column(Integer, ForeignKey("training_goals.id"), nullable=True)
     date = Column(String, nullable=False)
     title = Column(String, nullable=False)
@@ -167,11 +178,12 @@ def get_session():
         session.close()
 
 
-def save_training_load(athlete_id: int, load_data: dict) -> int:
+def save_training_load(athlete_id: int, load_data: dict, tenant_id: int = 0) -> int:
     """Save ATL/CTL/TSB values for a specific date."""
     with get_session() as session:
         model = TrainingLoadModel(
             athlete_id=athlete_id,
+            tenant_id=tenant_id,
             date=load_data["date"],
             tss=load_data.get("tss", 0),
             atl=load_data.get("atl", 0),
@@ -183,15 +195,16 @@ def save_training_load(athlete_id: int, load_data: dict) -> int:
         return model.id
 
 
-def get_training_loads(athlete_id: int, days: int = 30) -> list[dict]:
+def get_training_loads(athlete_id: int, days: int = 30, tenant_id: int | None = None) -> list[dict]:
     """Get training load history for athlete."""
     with get_session() as session:
         from sqlalchemy import desc
 
+        query = session.query(TrainingLoadModel).filter(TrainingLoadModel.athlete_id == athlete_id)
+        if tenant_id is not None:
+            query = query.filter(TrainingLoadModel.tenant_id == tenant_id)
         models = (
-            session.query(TrainingLoadModel)
-            .filter(TrainingLoadModel.athlete_id == athlete_id)
-            .order_by(desc(TrainingLoadModel.date))
+            query.order_by(desc(TrainingLoadModel.date))
             .limit(days)
             .all()
         )
@@ -208,11 +221,12 @@ def get_training_loads(athlete_id: int, days: int = 30) -> list[dict]:
         ]
 
 
-def save_training_goal(athlete_id: int, goal: dict) -> int:
+def save_training_goal(athlete_id: int, goal: dict, tenant_id: int = 0) -> int:
     """Save a training goal for athlete."""
     with get_session() as session:
         model = TrainingGoalModel(
             athlete_id=athlete_id,
+            tenant_id=tenant_id,
             title=goal["title"],
             description=goal.get("description"),
             goal_type=goal.get("goal_type", "granfondo"),
@@ -227,13 +241,15 @@ def save_training_goal(athlete_id: int, goal: dict) -> int:
 
 
 def get_training_goals(
-    athlete_id: int, status: str | None = None
+    athlete_id: int, status: str | None = None, tenant_id: int | None = None
 ) -> list[dict]:
     """Get training goals for athlete."""
     with get_session() as session:
         query = session.query(TrainingGoalModel).filter(
             TrainingGoalModel.athlete_id == athlete_id
         )
+        if tenant_id is not None:
+            query = query.filter(TrainingGoalModel.tenant_id == tenant_id)
         if status:
             query = query.filter(TrainingGoalModel.status == status)
 
@@ -257,11 +273,12 @@ def get_training_goals(
         ]
 
 
-def save_planned_workout(athlete_id: int, workout: dict) -> int:
+def save_planned_workout(athlete_id: int, workout: dict, tenant_id: int = 0) -> int:
     """Save a planned workout."""
     with get_session() as session:
         model = PlannedWorkoutModel(
             athlete_id=athlete_id,
+            tenant_id=tenant_id,
             goal_id=workout.get("goal_id"),
             date=workout["date"],
             title=workout["title"],
@@ -276,13 +293,16 @@ def save_planned_workout(athlete_id: int, workout: dict) -> int:
 
 
 def get_planned_workouts(
-    athlete_id: int, start_date: str | None = None, end_date: str | None = None
+    athlete_id: int, start_date: str | None = None, end_date: str | None = None,
+    tenant_id: int | None = None,
 ) -> list[dict]:
     """Get planned workouts for athlete."""
     with get_session() as session:
         query = session.query(PlannedWorkoutModel).filter(
             PlannedWorkoutModel.athlete_id == athlete_id
         )
+        if tenant_id is not None:
+            query = query.filter(PlannedWorkoutModel.tenant_id == tenant_id)
         if start_date and end_date:
             query = query.filter(PlannedWorkoutModel.date >= start_date)
             query = query.filter(PlannedWorkoutModel.date <= end_date)

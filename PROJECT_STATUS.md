@@ -1,10 +1,11 @@
 # Stato Attuale del Progetto
 
-**Completati: 148/145 step base + 45/80 estensioni**
+**Completati: 155/145 step base + 50/80 estensioni**
 
 > **Stato**: Late Beta / Early Production — architettura solida con Clean Architecture, deve essere finalizzato per produzione.
 
 ### Ultimo Commit
+- `feat: complete multi-tenant support — tenant_id + user management endpoints`
 - `eed6afd` - feat: implement frontend authentication, tracking controls, and core UI components with native Android project scaffolding
 - `9b68e48` - fix: skip OpenTelemetry/Zipkin exporters in development mode
 - `9257bfe` - feat: implement PWA install prompt, service worker navigate fix, ride tracking updates
@@ -444,7 +445,7 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 | Priorita | Feature | Status |
 |:---:|---|---|
 | **1** | Frontend testing (Vitest + Playwright) + PWA completo | 🔄 In corso |
-| **2** | Multi-utente (auth, ownership rides, data isolation) | ⏳ |
+| **2** | Multi-utente (auth, ownership rides, data isolation) | ✅ Completo |
 | **3** | PostgreSQL in produzione (attuale: SQLite dev) | ⏳ |
 | **4** | Vector DB RAG completo (sostituire BM25 con PGVector similarity) | ✅ Completo |
 | **5** | OAuth2 social login (Google/Strava) nel frontend | 🔄 Parziale |
@@ -463,7 +464,7 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 | Monitoring | Sentry + Prometheus + Grafana | ❌ |
 | Audit | Audit log azioni admin | ❌ |
 | Auth | OAuth2 social login (Google/Strava) | 🔄 Parziale |
-| Multi-user | Data isolation completa | ⏳ |
+| Multi-user | Data isolation completa | ✅ |
 | AI | Vector DB per RAG avanzato | ✅ Completo |
 | Frontend | PWA + offline support | 🔄 In corso |
 | Frontend | Vitest + Playwright E2E | ❌ |
@@ -472,4 +473,4 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 
 ---
 
-*Ultimo aggiornamento: 2026-06-26 — Test suite ampliata, bug fixati, coverage migliorata su moduli critici*
+*Ultimo aggiornamento: 2026-06-28 — Multi-user completo: tenant_id, user management API, PostgreSQL allineato, frontend types*

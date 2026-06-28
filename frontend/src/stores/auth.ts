@@ -67,6 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
       id: typeof data.id === 'number' ? data.id : 0,
       username: typeof payload?.sub === 'string' ? payload.sub : '',
       is_admin: !!payload?.is_admin,
+      tenant_id: typeof payload?.tenant_id === 'number' ? payload.tenant_id : (typeof data.id === 'number' ? data.id : 0),
     }
     localStorage.setItem(TOKEN_KEY, data.access_token)
     localStorage.setItem(USER_KEY, JSON.stringify(user.value))
@@ -101,7 +102,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function setAuthFromUrl(urlToken: string, email: string) {
-    const userData = { username: email || '', email, is_admin: false }
+    const payload = parseJWTPayload(urlToken)
+    const userData = {
+      username: email || '',
+      email,
+      is_admin: false,
+      tenant_id: typeof payload?.tenant_id === 'number' ? payload.tenant_id : 0,
+    }
     localStorage.setItem(TOKEN_KEY, urlToken)
     localStorage.setItem(USER_KEY, JSON.stringify(userData))
     token.value = urlToken

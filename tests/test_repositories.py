@@ -127,7 +127,7 @@ class TestTrainingStressRepository:
         repo = TrainingStressRepository(sync_conn=conn)
         import asyncio
         asyncio.run(repo.upsert_day(1, "2024-06-15", 100.0, 80.0, 90.0, 10.0))
-        conn.upsert_training_stress_day.assert_called_once_with(1, "2024-06-15", 100.0, 80.0, 90.0, 10.0)
+        conn.upsert_training_stress_day.assert_called_once_with(1, "2024-06-15", 100.0, 80.0, 90.0, 10.0, 0)
 
     def test_get_history_sync_via_conn(self):
         conn = MagicMock()
