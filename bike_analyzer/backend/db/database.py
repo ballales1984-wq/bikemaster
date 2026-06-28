@@ -45,7 +45,6 @@ def get_db_connection():
 
 def init_db():
     with get_db_connection() as conn:
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_metrics_ride ON metrics(ride_id)")
         conn.execute("""CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
@@ -167,6 +166,7 @@ def init_db():
             FOREIGN KEY (athlete_id) REFERENCES athletes(id),
             FOREIGN KEY (ride_id) REFERENCES rides(id)
         )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_metrics_ride ON metrics(ride_id)")
         conn.execute("""CREATE TABLE IF NOT EXISTS training_goals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
