@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import urllib.parse
 import xml.etree.ElementTree as ET
 from datetime import UTC, datetime, timedelta
@@ -9,7 +10,6 @@ from typing import Any
 
 from ..config import GOOGLE_HEALTH_SCOPE
 from .gps_parser import points_to_ride
-
 
 GOOGLE_HEALTH_API_BASE = "https://health.googleapis.com/v4"
 
@@ -152,20 +152,14 @@ def tcx_to_points(tcx_content: str) -> list[dict[str, Any]]:
         hr_value = _child_text(trackpoint, "Value")
         speed_text = _child_text(trackpoint, "Speed")
         if ele_text:
-            try:
+            with contextlib.suppress(ValueError):
                 point["altitude"] = float(ele_text)
-            except ValueError:
-                pass
         if hr_value:
-            try:
+            with contextlib.suppress(ValueError):
                 point["heart_rate"] = int(float(hr_value))
-            except ValueError:
-                pass
         if speed_text:
-            try:
+            with contextlib.suppress(ValueError):
                 point["speed"] = float(speed_text) * 3.6
-            except ValueError:
-                pass
         points.append(point)
     return points
 

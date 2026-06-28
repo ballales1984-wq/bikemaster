@@ -1,11 +1,11 @@
 """Tests for core fatigue calculator."""
 
-from bike_analyzer.core.models import Ride
 from bike_analyzer.core.calculators.fatigue import (
     calculate_fatigue_score,
     estimate_recovery_hours,
     get_recovery_recommendation,
 )
+from bike_analyzer.core.models import Ride
 
 
 def test_fatigue_basic():

@@ -8,8 +8,8 @@ from io import StringIO
 
 import matplotlib
 
-from .fatigue import calculate_fatigue_score, estimate_recovery_hours, get_recovery_recommendation
 from ..models.models import GPSPoint, Ride, Segment, haversine_distance_m
+from .fatigue import calculate_fatigue_score, estimate_recovery_hours, get_recovery_recommendation
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt

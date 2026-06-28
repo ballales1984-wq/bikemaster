@@ -1,8 +1,9 @@
 """Tests for RideAnalysisService."""
 
-import pytest
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from bike_analyzer.backend.analytics.services.ride_analysis_service import (
     RideAnalysisService,
@@ -10,7 +11,7 @@ from bike_analyzer.backend.analytics.services.ride_analysis_service import (
 
 
 def _make_ride():
-    from bike_analyzer.core.models import Ride, GPSPoint
+    from bike_analyzer.core.models import GPSPoint, Ride
     ts = datetime(2024, 6, 15, 10, 0, 0, tzinfo=UTC)
     points = [
         GPSPoint(lat=45.0, lon=9.0, altitude=100.0, speed=10.0, timestamp=ts),
@@ -44,8 +45,8 @@ class TestRideAnalysisService:
         svc = RideAnalysisService()
         ride = _make_ride()
         with patch.object(svc.pipeline, 'run', new_callable=AsyncMock) as mock_run:
-            from bike_analyzer.core.pipeline import PipelineResult
             from bike_analyzer.core.models import RouteStatistics
+            from bike_analyzer.core.pipeline import PipelineResult
             pr = PipelineResult(
                 ride=ride,
                 metrics={"fatigue_score": 3.0},

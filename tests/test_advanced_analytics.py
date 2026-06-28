@@ -189,7 +189,9 @@ def test_pace_consistency_empty_segments():
 
 
 def test_pace_consistency_zero_speeds():
-    s = Segment(start=GPSPoint(46.0, 11.0, datetime.now(UTC)), end=GPSPoint(46.1, 11.1, datetime.now(UTC)), distance_m=1000, duration_s=60, avg_speed_km_h=0)
+    s = Segment(start=GPSPoint(46.0, 11.0, datetime.now(UTC)),
+                end=GPSPoint(46.1, 11.1, datetime.now(UTC)),
+                distance_m=1000, duration_s=60, avg_speed_km_h=0)
     result = calculate_pace_consistency([s])
     assert result["pace_strategy"] == "unknown"
 
@@ -302,14 +304,16 @@ def test_ride_difficulty_unknown():
 
 
 def test_ride_difficulty_challenging():
-    ride = Ride(date="2024-06-01", distance_km=80, duration_minutes=180, avg_speed_kmh=28, heart_rate_avg=150, elevation_gain_m=1500)
+    ride = Ride(date="2024-06-01", distance_km=80, duration_minutes=180,
+                avg_speed_kmh=28, heart_rate_avg=150, elevation_gain_m=1500)
     result = classify_ride_difficulty(ride)
     assert result["score"] > 0
     assert result["level"] in ["Easy", "Moderate", "Challenging", "Hard", "Extreme"]
 
 
 def test_ride_difficulty_extreme():
-    ride = Ride(date="2024-06-01", distance_km=200, duration_minutes=600, avg_speed_kmh=40, heart_rate_avg=180, elevation_gain_m=4000)
+    ride = Ride(date="2024-06-01", distance_km=200, duration_minutes=600,
+                avg_speed_kmh=40, heart_rate_avg=180, elevation_gain_m=4000)
     result = classify_ride_difficulty(ride)
     assert result["level"] == "Extreme"
 
@@ -361,13 +365,15 @@ def test_ideal_weight_boundary():
 
 
 def test_power_estimate_explicit_weight():
-    ride = Ride(date="2024-06-01", distance_km=30, duration_minutes=60, avg_speed_kmh=30, weight_kg=70, elevation_gain_m=200)
+    ride = Ride(date="2024-06-01", distance_km=30, duration_minutes=60,
+                avg_speed_kmh=30, weight_kg=70, elevation_gain_m=200)
     result = calculate_power_estimate(ride, rider_weight_kg=65)
     assert result["power_avg_w"] > 0
 
 
 def test_power_estimate_gravel():
-    ride = Ride(date="2024-06-01", distance_km=30, duration_minutes=60, avg_speed_kmh=25, weight_kg=70, elevation_gain_m=200)
+    ride = Ride(date="2024-06-01", distance_km=30, duration_minutes=60,
+                avg_speed_kmh=25, weight_kg=70, elevation_gain_m=200)
     result = calculate_power_estimate(ride, crr=0.006)
     assert result["power_avg_w"] > 0
 

@@ -1,6 +1,7 @@
 """Tests for BackgroundTaskQueue coverage gaps."""
 
 import asyncio
+
 import pytest
 
 from bike_analyzer.backend.task_queue import (

@@ -447,7 +447,8 @@ def get_paginated_rides(
             cur.execute("SELECT COUNT(*) FROM rides WHERE athlete_id = ? AND tenant_id = ?", (athlete_id, tenant_id))
             total = cur.fetchone()[0]
             cur.execute(
-                f"SELECT * FROM rides WHERE athlete_id = ? AND tenant_id = ? ORDER BY {order_col} DESC LIMIT ? OFFSET ?",
+                f"SELECT * FROM rides WHERE athlete_id = ? AND tenant_id = ? "
+                f"ORDER BY {order_col} DESC LIMIT ? OFFSET ?",
                 (athlete_id, tenant_id, page_size, offset),
             )
         elif athlete_id is not None:

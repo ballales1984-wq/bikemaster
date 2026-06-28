@@ -1,7 +1,8 @@
 """Tests for AthleteRepository coverage gaps."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from bike_analyzer.backend.analytics.repositories.athlete_repository import (
     AthleteRepository,

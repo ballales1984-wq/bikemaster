@@ -1,5 +1,6 @@
 """Tests for ContextBuilder."""
 import pytest
+
 from bike_analyzer.backend.analytics.services.context_builder import ContextBuilder
 
 
@@ -127,7 +128,7 @@ def test_build_explanation_fresh(builder):
 def test_build_explanation_stable(builder):
     fitness = {"tsb": 5, "atl": 55, "ctl": 60}
     exp = builder._build_explanation(fitness)
-    assert "Stato di forma stabile" == exp
+    assert exp == "Stato di forma stabile"
 
 
 def test_build_explanation_no_data(builder):

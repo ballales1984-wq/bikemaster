@@ -1,8 +1,8 @@
 """Tests for fitness state repository."""
-import json
+
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from unittest.mock import AsyncMock, patch
 
 from bike_analyzer.backend.analytics.repositories.fitness_state_repository import (
     FitnessStateRepository,
