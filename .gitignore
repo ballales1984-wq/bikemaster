@@ -29,6 +29,7 @@ env/
 # Database
 *.db
 *.sqlite
+.chroma_db/
 
 # Secrets
 .env
@@ -46,6 +47,7 @@ env/
 # Test
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
 .pytest_cache/
 
