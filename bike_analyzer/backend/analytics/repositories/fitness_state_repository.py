@@ -19,17 +19,18 @@ class FitnessStateRepository:
         from ...db.models import FitnessStateModel
         return FitnessStateModel
 
-    async def save(self, state: dict[str, Any]) -> int:
+    async def save(self, state: dict[str, Any], tenant_id: int = 0) -> int:
         if self._session_factory:
-            return await self._save_async(state)
+            return await self._save_async(state, tenant_id)
         raise RuntimeError("Async session factory required for FitnessStateRepository")
 
-    async def _save_async(self, state: dict[str, Any]) -> int:
+    async def _save_async(self, state: dict[str, Any], tenant_id: int = 0) -> int:
         from sqlalchemy import insert
 
         async with self._session_factory() as session:
             stmt = insert(self._table).values(
                 athlete_id=state.get("athlete_id"),
+                tenant_id=state.get("tenant_id", tenant_id),
                 date=state.get("date", date.today().isoformat()),
                 computed_at=state.get("computed_at", datetime.now(UTC)),
                 fitness=state.get("fitness", 0.0),
@@ -50,21 +51,22 @@ class FitnessStateRepository:
             await session.commit()
             return result.scalar_one()
 
-    async def get_latest(self, athlete_id: int) -> dict[str, Any] | None:
+    async def get_latest(self, athlete_id: int, tenant_id: int | None = None) -> dict[str, Any] | None:
         if self._session_factory:
-            return await self._get_latest_async(athlete_id)
+            return await self._get_latest_async(athlete_id, tenant_id)
         return None
 
-    async def _get_latest_async(self, athlete_id: int) -> dict[str, Any] | None:
+    async def _get_latest_async(self, athlete_id: int, tenant_id: int | None = None) -> dict[str, Any] | None:
         from sqlalchemy import desc, select
 
         async with self._session_factory() as session:
             stmt = (
                 select(self._table)
                 .where(self._table.athlete_id == athlete_id)
-                .order_by(desc(self._table.date))
-                .limit(1)
             )
+            if tenant_id is not None:
+                stmt = stmt.where(self._table.tenant_id == tenant_id)
+            stmt = stmt.order_by(desc(self._table.date)).limit(1)
             result = await session.execute(stmt)
             row = result.mappings().first()
             if not row:
@@ -74,21 +76,22 @@ class FitnessStateRepository:
                 data["risk_indicators"] = json.loads(data["risk_indicators"])
             return data
 
-    async def get_history(self, athlete_id: int, days: int = 30) -> list[dict[str, Any]]:
+    async def get_history(self, athlete_id: int, days: int = 30, tenant_id: int | None = None) -> list[dict[str, Any]]:
         if self._session_factory:
-            return await self._get_history_async(athlete_id, days)
+            return await self._get_history_async(athlete_id, days, tenant_id)
         return []
 
-    async def _get_history_async(self, athlete_id: int, days: int = 30) -> list[dict[str, Any]]:
+    async def _get_history_async(self, athlete_id: int, days: int = 30, tenant_id: int | None = None) -> list[dict[str, Any]]:
         from sqlalchemy import desc, select
 
         async with self._session_factory() as session:
             stmt = (
                 select(self._table)
                 .where(self._table.athlete_id == athlete_id)
-                .order_by(desc(self._table.date))
-                .limit(days)
             )
+            if tenant_id is not None:
+                stmt = stmt.where(self._table.tenant_id == tenant_id)
+            stmt = stmt.order_by(desc(self._table.date)).limit(days)
             result = await session.execute(stmt)
             rows = result.mappings().all()
             histories = []

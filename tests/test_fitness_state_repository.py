@@ -28,7 +28,7 @@ async def test_save_success():
     with patch.object(repo, "_save_async", new_callable=AsyncMock, return_value=42) as mock_save:
         result = await repo.save({"athlete_id": 1})
     assert result == 42
-    mock_save.assert_called_once_with({"athlete_id": 1})
+    mock_save.assert_called_once_with({"athlete_id": 1}, 0)
 
 
 @pytest.mark.asyncio
@@ -50,7 +50,7 @@ async def test_get_latest_success():
     with patch.object(repo, "_get_latest_async", new_callable=AsyncMock, return_value=sample) as mock_get:
         result = await repo.get_latest(1)
     assert result == sample
-    mock_get.assert_called_once_with(1)
+    mock_get.assert_called_once_with(1, None)
 
 
 @pytest.mark.asyncio
@@ -70,7 +70,7 @@ async def test_get_history_success():
     with patch.object(repo, "_get_history_async", new_callable=AsyncMock, return_value=history) as mock_hist:
         result = await repo.get_history(1, days=7)
     assert result == history
-    mock_hist.assert_called_once_with(1, 7)
+    mock_hist.assert_called_once_with(1, 7, None)
 
 
 @pytest.mark.asyncio
@@ -79,8 +79,9 @@ async def test_save_async_persists_fields():
     # Call the internal method directly via patch on class
     captured = {}
 
-    async def fake_save_async(self, state):
+    async def fake_save_async(self, state, tenant_id=0):
         captured["state"] = state
+        captured["tenant_id"] = tenant_id
         return 99
 
     with patch.object(FitnessStateRepository, "_save_async", fake_save_async):
@@ -94,8 +95,9 @@ async def test_get_history_async_returns_list():
     repo = FitnessStateRepository(session_factory=object())
     captured = {}
 
-    async def fake_get_history(self, athlete_id, days=30):
+    async def fake_get_history(self, athlete_id, days=30, tenant_id=None):
         captured["days"] = days
+        captured["tenant_id"] = tenant_id
         return [{"date": "2024-06-15"}]
 
     with patch.object(FitnessStateRepository, "_get_history_async", fake_get_history):

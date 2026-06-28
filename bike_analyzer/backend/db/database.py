@@ -404,10 +404,13 @@ def get_athlete_by_name(name: str, tenant_id: int | None = None) -> dict | None:
         return None
 
 
-def get_athlete_by_email(email: str) -> dict | None:
+def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM athletes WHERE email = ?", (email,))
+        if tenant_id is not None:
+            cur.execute("SELECT * FROM athletes WHERE email = ? AND tenant_id = ?", (email, tenant_id))
+        else:
+            cur.execute("SELECT * FROM athletes WHERE email = ?", (email,))
         row = cur.fetchone()
         if row:
             return _row_to_athlete(row)
@@ -1191,14 +1194,14 @@ def get_latest_training_stress(athlete_id: int, tenant_id: int | None = None) ->
 
 
 def recalculate_training_stress_for_athlete(
-    athlete_id: int, ftp: float = 250.0
+    athlete_id: int, ftp: float = 250.0, tenant_id: int = 0
 ) -> None:
     from ..analytics.training_stress import (
         estimate_tss,
         exponentially_weighted_moving_average,
     )
 
-    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id, tenant_id)]
     if not rides:
         return
     daily: dict[str, float] = {}
@@ -1229,6 +1232,7 @@ def recalculate_training_stress_for_athlete(
             atl_series[i],
             ctl_series[i],
             tsb,
+            tenant_id,
         )
 
 
@@ -1283,14 +1287,21 @@ def save_route_safety_score(score_data: dict, tenant_id: int = 0) -> int:
         return cur.lastrowid
 
 
-def get_route_safety_score(ride_id: int) -> dict | None:
+def get_route_safety_score(ride_id: int, tenant_id: int | None = None) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM route_safety_scores WHERE ride_id = ? "
-            "ORDER BY id DESC LIMIT 1",
-            (ride_id,),
-        )
+        if tenant_id is not None:
+            cur.execute(
+                "SELECT * FROM route_safety_scores WHERE ride_id = ? AND tenant_id = ? "
+                "ORDER BY id DESC LIMIT 1",
+                (ride_id, tenant_id),
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM route_safety_scores WHERE ride_id = ? "
+                "ORDER BY id DESC LIMIT 1",
+                (ride_id,),
+            )
         row = cur.fetchone()
         if row:
             return {
