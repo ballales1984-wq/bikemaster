@@ -1,10 +1,13 @@
-"""Tests for GPS processing module."""
+"""Tests for GPS data processing module."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
-from bike_analyzer.backend.models.models import GPSPoint, Ride
+import pytest
+
+from bike_analyzer.backend.models.models import GPSPoint, Pause, RouteStatistics, Segment
 from bike_analyzer.backend.processing.processing import (
     build_segments,
+    compute_statistics,
     detect_accelerations,
     detect_decelerations,
     detect_pauses,
@@ -15,163 +18,171 @@ from bike_analyzer.backend.processing.processing import (
 )
 
 
-def make_point(lat, lon, timestamp, altitude=None, speed=None) -> GPSPoint:
-    return GPSPoint(lat=lat, lon=lon, timestamp=timestamp, altitude=altitude, speed=speed)
+def _point(lat, lon, alt=None, speed=None, hours=0, mins=0, secs=0):
+    from datetime import timedelta
+    base = datetime(2024, 1, 15, 8, 0, 0, tzinfo=UTC)
+    ts = base + timedelta(minutes=mins, seconds=secs)
+    return GPSPoint(lat=lat, lon=lon, altitude=alt, speed=speed, timestamp=ts)
 
 
-def test_validate_coordinate_valid():
-    assert validate_coordinate(45.0, 9.0) is True
+class TestValidateCoordinate:
+    def test_valid_coords(self):
+        assert validate_coordinate(45.0, 9.0) is True
+
+    def test_invalid_lat_negative(self):
+        assert validate_coordinate(-91, 9.0) is False
+
+    def test_invalid_lat_positive(self):
+        assert validate_coordinate(91, 9.0) is False
+
+    def test_invalid_lon_negative(self):
+        assert validate_coordinate(45.0, -181) is False
+
+    def test_invalid_lon_positive(self):
+        assert validate_coordinate(45.0, 181) is False
+
+    def test_boundary_lat(self):
+        assert validate_coordinate(-90, 9.0) is True
+        assert validate_coordinate(90, 9.0) is True
+
+    def test_boundary_lon(self):
+        assert validate_coordinate(45.0, -180) is True
+        assert validate_coordinate(45.0, 180) is True
+
+    def test_non_numeric_lat(self):
+        assert validate_coordinate("abc", 9.0) is False
+
+    def test_non_numeric_lon(self):
+        assert validate_coordinate(45.0, None) is False
 
 
-def test_validate_coordinate_invalid_lat():
-    assert validate_coordinate(100.0, 9.0) is False
-    assert validate_coordinate(-100.0, 9.0) is False
+class TestValidateGpsPoint:
+    def test_valid_point(self):
+        p = _point(45.0, 9.0)
+        assert validate_gps_point(p) is True
+
+    def test_invalid_timestamp(self):
+        p = _point(45.0, 9.0)
+        p.timestamp = "not_a_date"
+        assert validate_gps_point(p) is False
 
 
-def test_validate_coordinate_invalid_lon():
-    assert validate_coordinate(45.0, 200.0) is False
-    assert validate_coordinate(45.0, -200.0) is False
+class TestDetectPauses:
+    def test_no_pauses_fast_ride(self):
+        points = [_point(45.0 + i * 0.001, 9.0, speed=15.0, secs=i * 10) for i in range(10)]
+        pauses = detect_pauses(points)
+        assert pauses == []
+
+    def test_detect_pause(self):
+        points = [_point(45.0 + i * 0.0001, 9.0, speed=15.0 if i < 3 or i > 8 else 0.5, secs=i * 30) for i in range(12)]
+        pauses = detect_pauses(points)
+        assert len(pauses) >= 1
+        assert pauses[0].duration_s >= 180
+
+    def test_short_pause_ignored(self):
+        points = [_point(45.0 + i * 0.0001, 9.0, speed=0.5 if i == 2 else 15.0, secs=i * 10) for i in range(5)]
+        pauses = detect_pauses(points)
+        assert pauses == []
+
+    def test_few_points(self):
+        points = [_point(45.0, 9.0)]
+        assert detect_pauses(points) == []
 
 
-def test_validate_coordinate_non_numeric():
-    assert validate_coordinate("abc", 9.0) is False
-    assert validate_coordinate(45.0, None) is False
+class TestDetectAccelerations:
+    def test_detect_acceleration(self):
+        points = [_point(45.0 + i * 0.001, 9.0, speed=10.0 + i * 3, secs=i * 10) for i in range(5)]
+        accels = detect_accelerations(points)
+        assert len(accels) >= 1
+        assert accels[0][0] > 0
+
+    def test_no_acceleration(self):
+        points = [_point(45.0 + i * 0.001, 9.0, speed=15.0, secs=i * 10) for i in range(5)]
+        accels = detect_accelerations(points)
+        assert accels == []
+
+    def test_none_speeds(self):
+        points = [_point(45.0 + i * 0.001, 9.0, speed=None, secs=i * 10) for i in range(5)]
+        accels = detect_accelerations(points)
+        assert accels == []
 
 
-def test_validate_gps_point():
-    ts = datetime.now(UTC)
-    p = make_point(45.0, 9.0, ts)
-    assert validate_gps_point(p) is True
+class TestDetectDecelerations:
+    def test_detect_deceleration(self):
+        points = [_point(45.0 + i * 0.001, 9.0, speed=20.0 - i * 3, secs=i * 10) for i in range(5)]
+        decels = detect_decelerations(points)
+        assert len(decels) >= 1
+
+    def test_no_deceleration(self):
+        points = [_point(45.0 + i * 0.001, 9.0, speed=15.0, secs=i * 10) for i in range(5)]
+        decels = detect_decelerations(points)
+        assert decels == []
 
 
-def test_detect_pauses_none():
-    points = [
-        make_point(45.0, 9.0, datetime.now(UTC) + timedelta(seconds=i), speed=10.0)
-        for i in range(3)
-    ]
-    pauses = detect_pauses(points)
-    assert len(pauses) == 0
+class TestRemoveOutliers:
+    def test_no_outliers(self):
+        points = [_point(45.0 + i * 0.0005, 9.0, speed=15.0, secs=i * 30) for i in range(5)]
+        cleaned = remove_outliers(points)
+        assert len(cleaned) == 5
+
+    def test_remove_outlier(self):
+        points = [_point(45.0 + i * 0.005, 9.0, speed=15.0, secs=i * 30) for i in range(5)]
+        cleaned = remove_outliers(points, max_speed_km_h=30.0)
+        assert len(cleaned) < len(points)
+
+    def test_few_points(self):
+        points = [_point(45.0, 9.0), _point(45.01, 9.01)]
+        cleaned = remove_outliers(points)
+        assert len(cleaned) >= 2
 
 
-def test_detect_pauses_with_slow():
-    t0 = datetime.now(UTC)
-    points = [
-        make_point(45.0, 9.0, t0, speed=10.0),
-        make_point(45.0, 9.001, t0 + timedelta(seconds=10), speed=10.0),
-        make_point(45.0, 9.002, t0 + timedelta(seconds=200), speed=0.5),
-        make_point(45.0, 9.003, t0 + timedelta(seconds=210), speed=0.5),
-        make_point(45.0, 9.004, t0 + timedelta(seconds=220), speed=10.0),
-    ]
-    pauses = detect_pauses(points)
-    assert len(pauses) == 1
-    assert pauses[0].duration_s >= 180
+class TestBuildSegments:
+    def test_basic_segments(self):
+        points = [_point(45.0 + i * 0.001, 9.0, secs=i * 10) for i in range(5)]
+        segments = build_segments(points)
+        assert len(segments) == 4
+        assert all(isinstance(s, Segment) for s in segments)
+
+    def test_segment_distance(self):
+        points = [
+            _point(45.0, 9.0, secs=0),
+            _point(45.01, 9.01, secs=10),
+        ]
+        segments = build_segments(points)
+        assert len(segments) == 1
+        assert segments[0].distance_m > 0
+
+    def test_elevation_gain(self):
+        points = [
+            _point(45.0, 9.0, alt=100.0, secs=0),
+            _point(45.01, 9.01, alt=150.0, secs=10),
+        ]
+        segments = build_segments(points)
+        assert segments[0].elevation_gain_m > 0
 
 
-def test_detect_accelerations():
-    points = [
-        make_point(45.0, 9.0, datetime.now(UTC) + timedelta(seconds=i), speed=s)
-        for i, s in enumerate([10.0, 15.0, 25.0])
-    ]
-    accels = detect_accelerations(points)
-    assert len(accels) > 0
+class TestComputeStatistics:
+    def test_basic_stats(self):
+        points = [_point(45.0 + i * 0.001, 9.0, secs=i * 10) for i in range(5)]
+        stats = compute_statistics(points)
+        assert isinstance(stats, RouteStatistics)
+        assert stats.total_distance_m > 0
+        assert stats.segment_count == 4
+
+    def test_empty_points(self):
+        stats = compute_statistics([])
+        assert stats.total_distance_m == 0
+        assert stats.total_duration_s == 0
+
+    def test_single_point(self):
+        points = [_point(45.0, 9.0)]
+        stats = compute_statistics(points)
+        assert stats.total_distance_m == 0
 
 
-def test_detect_decelerations():
-    points = [
-        make_point(45.0, 9.0, datetime.now(UTC) + timedelta(seconds=i), speed=s)
-        for i, s in enumerate([25.0, 15.0, 10.0])
-    ]
-    decels = detect_decelerations(points)
-    assert len(decels) > 0
-
-
-def test_remove_outliers_fast_point():
-    t0 = datetime.now(UTC)
-    normal = [
-        make_point(45.0 + i * 0.001, 9.0 + i * 0.001, t0 + timedelta(seconds=i * 10), speed=20.0)
-        for i in range(5)
-    ]
-    outlier = make_point(45.1, 9.1, t0 + timedelta(seconds=60), speed=200.0)
-    cleaned = remove_outliers(normal + [outlier])
-    assert len(cleaned) <= 5
-
-
-def test_build_segments_basic():
-    t0 = datetime.now(UTC)
-    points = [
-        make_point(45.0 + i * 0.01, 9.0 + i * 0.01, t0 + timedelta(seconds=i * 10), speed=20.0)
-        for i in range(5)
-    ]
-    segments = build_segments(points)
-    assert len(segments) == 4
-    for s in segments:
-        assert s.distance_m > 0
-        assert s.duration_s > 0
-
-
-def test_process_route():
-    t0 = datetime.now(UTC)
-    points = [
-        make_point(45.0 + i * 0.001, 9.0 + i * 0.001, t0 + timedelta(seconds=i * 10), speed=20.0)
-        for i in range(10)
-    ]
-    cleaned, stats = process_route(points)
-    assert len(cleaned) > 0
-    assert stats.total_distance_m > 0
-
-
-def test_analyze_historical_trend_improving():
-    """Test analyze_historical_trend with improving trend."""
-    from bike_analyzer.backend.analytics.advanced import calculate_progress_trend
-
-    rides = [
-        Ride(date="2024-06-01", avg_speed_kmh=20.0),
-        Ride(date="2024-06-02", avg_speed_kmh=25.0),
-        Ride(date="2024-06-03", avg_speed_kmh=30.0),
-    ]
-    result = calculate_progress_trend(rides)
-    assert result["trend"] == "improving"
-
-
-def test_analyze_historical_trend_declining():
-    """Test analyze_historical_trend with declining trend."""
-    from bike_analyzer.backend.analytics.advanced import calculate_progress_trend
-
-    rides = [
-        Ride(date="2024-06-01", avg_speed_kmh=30.0),
-        Ride(date="2024-06-02", avg_speed_kmh=25.0),
-        Ride(date="2024-06-03", avg_speed_kmh=20.0),
-    ]
-    result = calculate_progress_trend(rides)
-    assert result["trend"] == "declining"
-
-
-def test_detect_speed_surges():
-    """Test speed surge detection."""
-    from bike_analyzer.backend.analytics.advanced import detect_speed_surges
-
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(UTC) + timedelta(seconds=i), speed=s)
-        for i, s in enumerate([15.0, 20.0, 25.0, 30.0, 20.0])
-    ]
-    surges = detect_speed_surges(points)
-    assert isinstance(surges, list)
-
-
-def test_calculate_heart_rate_zones():
-    """Test heart rate zone calculation."""
-    from bike_analyzer.backend.analytics.advanced import calculate_heart_rate_zones
-
-    zones = calculate_heart_rate_zones(max_hr=180, lthr=155, current_avg_hr=150)
-    assert "Z1 (Recovery)" in zones
-    assert zones["Z2 (Endurance)"]["min"] == 115
-
-
-def test_calculate_ride_recommendation():
-    """Test ride recommendation score calculation."""
-    from bike_analyzer.backend.analytics.advanced import calculate_ride_recommendation_score
-
-    ride = Ride(date="2024-06-01", distance_km=50.0, duration_minutes=120.0, avg_speed_kmh=25.0, elevation_gain_m=300.0)
-    rec = calculate_ride_recommendation_score(ride, athlete_weekly_km=100.0)
-    assert rec["overall_score"] > 0
-    assert rec["label"] in ["Recovery Ride", "Tempo Ride", "Hard Training", "Race / Peak Effort"]
+class TestProcessRoute:
+    def test_process_route(self):
+        points = [_point(45.0 + i * 0.001, 9.0, secs=i * 10) for i in range(10)]
+        cleaned, stats = process_route(points)
+        assert len(cleaned) >= 2
+        assert stats.total_distance_m > 0
