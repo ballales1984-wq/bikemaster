@@ -39,10 +39,10 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name="com.bikemaster.TrackingService"
-            android:exported="false"
-            android:foregroundServiceType="location" />
+<service
+             android:name="com.bikemaster.BikeTrackingService"
+             android:exported="false"
+             android:foregroundServiceType="location" />
 
         <meta-data
             android:name="com.getcapacitor.android.defaultScheme"
