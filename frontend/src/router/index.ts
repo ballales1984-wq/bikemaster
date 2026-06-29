@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isLoggedIn, isAdmin, token, user, parseJWTPayload } from '../composables/useAuth'
+import { useToast } from '../composables/useToast'
 
 const routes = [
   {
@@ -126,7 +127,20 @@ const router = createRouter({
   }
 })
 
-router.beforeEach((to, from, next) => {
+async function checkProfileComplete(): Promise<boolean> {
+  try {
+    const resp = await fetch('/api/v1/auth/me', {
+      headers: { Authorization: `Bearer ${token.value}` }
+    })
+    if (!resp.ok) return false
+    const data = await resp.json()
+    return data.profile_complete === true
+  } catch {
+    return false
+  }
+}
+
+router.beforeEach(async (to, from, next) => {
   // Handle OAuth callback token from URL fragment
   if (!to.query.token && to.hash) {
     const hashParams = new URLSearchParams(to.hash.substring(1))
@@ -160,7 +174,21 @@ router.beforeEach((to, from, next) => {
   const loggedIn = isLoggedIn()
 
   if (to.path === '/' && loggedIn) {
-    next('/rides')
+    const hasCompleteProfile = await checkProfileComplete()
+    if (!hasCompleteProfile) {
+      const toast = useToast()
+      toast.show('Welcome! Please complete your athlete profile', 'info')
+    }
+    window.dispatchEvent(new CustomEvent('oauth-loading-end'))
+    next(hasCompleteProfile ? '/rides' : '/athlete')
+  } else if (to.path === '/rides' && loggedIn) {
+    const hasCompleteProfile = await checkProfileComplete()
+    if (!hasCompleteProfile) {
+      const toast = useToast()
+      toast.show('Complete your profile to see your rides', 'info')
+    }
+    window.dispatchEvent(new CustomEvent('oauth-loading-end'))
+    next(hasCompleteProfile ? '/rides' : '/athlete')
   } else if (to.meta.requiresAuth && !loggedIn) {
     next('/')
   } else if (to.meta.requiresAdmin && !isAdmin()) {

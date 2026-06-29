@@ -93,8 +93,16 @@
       <h2>8. Contatti</h2>
       <p>Per domande sui cookie o sulle pratiche di tracciamento: <a href="mailto:privacy@bikemaster.app">privacy@bikemaster.app</a></p>
     </div>
+
+    <div class="cta-section">
+      <RouterLink to="/" class="btn btn-primary">🏠 Torna all'Accedi</RouterLink>
+    </div>
   </div>
 </template>
+
+<script setup>
+import { RouterLink } from 'vue-router'
+</script>
 
 <style scoped>
 .legal-page {
@@ -160,5 +168,22 @@
 }
 a {
   color: #42b983;
+}
+.cta-section {
+  text-align: center;
+  margin: 2rem 0 1rem;
+}
+.btn {
+  display: inline-block;
+  padding: 10px 24px;
+  background: #42b983;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.btn:hover {
+  background: #349a6e;
 }
 </style>

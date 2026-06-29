@@ -69,13 +69,17 @@
         </ul>
       </section>
 
-      <section class="cta">
-        <p>Vuoi contribuire o saperne di più?</p>
-        <RouterLink to="/contact" class="cta-button">Contattaci</RouterLink>
-      </section>
-    </div>
-  </div>
-</template>
+<section class="cta">
+         <p>Vuoi contribuire o saperne di più?</p>
+         <RouterLink to="/contact" class="cta-button">Contattaci</RouterLink>
+       </section>
+
+       <div class="login-cta">
+         <RouterLink to="/" class="btn btn-secondary">🏠 Accedi a BikeMaster</RouterLink>
+       </div>
+     </div>
+   </div>
+ </template>
 
 <script setup>
 import { RouterLink } from 'vue-router'
@@ -164,9 +168,26 @@ import { RouterLink } from 'vue-router'
   transition: background 0.2s;
 }
 .cta-button:hover {
-  background: #349a6e;
-}
-a {
-  color: #42b983;
-}
+   background: #349a6e;
+ }
+ a {
+   color: #42b983;
+ }
+ .login-cta {
+   text-align: center;
+   margin-top: 1rem;
+ }
+ .btn.btn-secondary {
+   display: inline-block;
+   padding: 0.75rem 2rem;
+   background: #2a2a2a;
+   color: #fff;
+   text-decoration: none;
+   border-radius: 6px;
+   font-weight: 600;
+   transition: background 0.2s;
+ }
+ .btn.btn-secondary:hover {
+   background: #3a3a3a;
+ }
 </style>

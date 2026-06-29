@@ -15,7 +15,12 @@
       </nav>
     </header>
 
-    <template v-if="!loggedIn && !isPublicPage">
+    <div v-if="oauthLoading" class="oauth-loading-overlay">
+      <div class="spinner"></div>
+      <p class="loading-text">Finalizing login...</p>
+    </div>
+
+    <template v-if="!loggedIn && !isPublicPage && !oauthLoading">
       <div class="login-wrapper">
         <LoginForm @login="onLogin" @register="onRegister" @error="loginError = $event" />
         <p v-if="loginError" class="login-error">{{ loginError }}</p>
@@ -64,6 +69,7 @@ const showHeader = computed(() => loggedIn.value || isPublicPage.value)
 const summary = ref({ rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 })
 const summaryLoading = ref(false)
 const loginError = ref(localStorage.getItem('bikemaster_login_error') || '')
+const oauthLoading = ref(false)
 
 const isDark = ref(true)
 
@@ -134,6 +140,14 @@ async function onSummaryChange() {
 
 onMounted(() => {
   loadTheme()
+  const urlParams = new URLSearchParams(window.location.search)
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  if (urlParams.get('token') || hashParams.get('token')) {
+    oauthLoading.value = true
+  }
+  window.addEventListener('oauth-loading-end', () => {
+    oauthLoading.value = false
+  })
   if (loggedIn.value) loadSummary()
 })
 </script>
@@ -226,5 +240,33 @@ onMounted(() => {
 .theme-toggle:hover {
   border-color: var(--accent);
   box-shadow: 0 0 12px rgba(0, 255, 204, 0.2);
+}
+.oauth-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.loading-text {
+  margin-top: 16px;
+  color: var(--text-primary);
 }
 </style>

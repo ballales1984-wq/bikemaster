@@ -25,7 +25,7 @@ export function useRides(emit: EmitFn) {
   async function fetchSummary(): Promise<SummaryResponse> {
     try {
       const data = await apiGet('/api/v1/rides') as SummaryResponse
-      const rides = data.ridesList || []
+      const rides = data.rides || []
       const total = data.total || rides.length
       const totalKm = rides.reduce((s: number, r: Ride) => s + (Number(r.distance_km) || 0), 0)
       const totalCal = rides.reduce((s: number, r: Ride) => s + (Number(r.calories) || 0), 0)

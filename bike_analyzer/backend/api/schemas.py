@@ -239,3 +239,8 @@ class GoogleAuthRequest(BaseModel):
 class GoogleOAuthCallback(BaseModel):
     code: str
     redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"
+
+
+class CoachChatRequest(BaseModel):
+    athlete_id: int | None = None
+    message: str = Field(..., min_length=1)
