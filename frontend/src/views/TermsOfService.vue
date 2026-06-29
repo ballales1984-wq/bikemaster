@@ -77,14 +77,18 @@
       <h2>12. Contatti</h2>
       <p>Per domande relative ai presenti termini: <a href="mailto:support@bikemaster.app">support@bikemaster.app</a></p>
 
-      <h2>13. Integrazione con Altre Policy</h2>
-      <ul>
-        <li><RouterLink to="/privacy">Privacy Policy</RouterLink></li>
-        <li><RouterLink to="/cookies">Cookie Policy</RouterLink></li>
-      </ul>
-    </div>
-  </div>
-</template>
+<h2>13. Integrazione con Altre Policy</h2>
+       <ul>
+         <li><RouterLink to="/privacy">Privacy Policy</RouterLink></li>
+         <li><RouterLink to="/cookies">Cookie Policy</RouterLink></li>
+       </ul>
+     </div>
+
+     <div class="cta-section">
+       <RouterLink to="/" class="btn btn-primary">🏠 Torna all'Accedi</RouterLink>
+     </div>
+   </div>
+ </template>
 
 <script setup>
 import { RouterLink } from 'vue-router'
@@ -128,6 +132,26 @@ import { RouterLink } from 'vue-router'
   margin-bottom: 0.4rem;
 }
 a {
-  color: #42b983;
-}
+   color: #42b983;
+ }
+
+ .cta-section {
+   text-align: center;
+   margin: 2rem 0 1rem;
+ }
+
+ .btn {
+   display: inline-block;
+   padding: 10px 24px;
+   background: #42b983;
+   color: #fff;
+   text-decoration: none;
+   border-radius: 6px;
+   font-weight: 600;
+   transition: background 0.2s;
+ }
+
+ .btn:hover {
+   background: #349a6e;
+ }
 </style>

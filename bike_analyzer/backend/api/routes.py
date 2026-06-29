@@ -505,10 +505,25 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
             "id": current_user["id"],
             "username": "",
             "email": None,
+            "picture": None,
             "is_admin": current_user.get("is_admin", False),
             "tenant_id": current_user.get("tenant_id", current_user["id"]),
             "profile_complete": False,
         }
+    profile_complete = (
+        athlete.get("age") is not None
+        and athlete.get("weight_kg") is not None
+        and athlete.get("experience_level", "").strip() != ""
+    )
+    return {
+        "id": athlete["id"],
+        "username": athlete.get("name", ""),
+        "email": athlete.get("email"),
+        "picture": athlete.get("picture"),
+        "is_admin": current_user.get("is_admin", False),
+        "tenant_id": current_user.get("tenant_id", current_user["id"]),
+        "profile_complete": profile_complete,
+    }
     return {
         "id": athlete["id"],
         "username": athlete.get("name", ""),
@@ -676,6 +691,7 @@ async def google_oauth_callback_get(
                 athlete_id = save_athlete({
                     "name": name or email or google_sub,
                     "email": email,
+                    "picture": user_info.get("picture"),
                     "experience_level": "Beginner",
                 })
                 if athlete_id:
@@ -1889,11 +1905,14 @@ async def coach_chat(
 
 @router.post("/coach/chat")
 async def coach_chat_post(
-    athlete_id: int = Query(...),
-    message: str = Query(...),
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
-    return await _process_chat(athlete_id, message, current_user)
+    from .schemas import CoachChatRequest
+    body = await request.json()
+    chat_req = CoachChatRequest(**body)
+    athlete_id = chat_req.athlete_id or current_user["id"]
+    return await _process_chat(athlete_id, chat_req.message, current_user)
 
 
 async def _process_chat(athlete_id: int, message: str, current_user: dict):

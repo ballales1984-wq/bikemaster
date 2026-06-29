@@ -1,6 +1,6 @@
 <template>
-<nav class="tabs" aria-label="Main navigation">
-  <router-link to="/rides" class="tab" active-class="active" @touchstart="$router.push('/rides')">🏍️ <span>Rides</span></router-link>
+<nav class="tabs" aria-label="Main navigation" ref="tabsRef">
+   <router-link to="/rides" class="tab" active-class="active" @touchstart="$router.push('/rides')">🏍️ <span>Rides</span></router-link>
   <router-link to="/track" class="tab" active-class="active" @touchstart="$router.push('/track')">📍 <span>Tracking</span></router-link>
   <router-link to="/import" class="tab" active-class="active" @touchstart="$router.push('/import')">📥 <span>Import</span></router-link>
   <router-link to="/athlete" class="tab" active-class="active" @touchstart="$router.push('/athlete')">🏃 <span>Athlete</span></router-link>
@@ -8,7 +8,7 @@
   <router-link to="/knowledge" class="tab" active-class="active" @touchstart="$router.push('/knowledge')">📚 <span>Knowledge</span></router-link>
   <router-link to="/calendar" class="tab" active-class="active" @touchstart="$router.push('/calendar')">📅 <span>Calendar</span></router-link>
   <router-link to="/granfondo" class="tab" active-class="active" @touchstart="$router.push('/granfondo')">🚴‍♂️ <span>Granfondo</span></router-link>
-  <router-link to="/map" class="tab" active-class="active" @touchstart="$router.push('/map')"><span>Maps</span></router-link>
+  <router-link to="/map" class="tab" active-class="active" @touchstart="$router.push('/map')">🗺️ <span>Maps</span></router-link>
   <router-link to="/heatmap" class="tab" active-class="active" @touchstart="$router.push('/heatmap')">🔥 <span>Heatmap</span></router-link>
   <router-link to="/badges" class="tab" active-class="active" @touchstart="$router.push('/badges')">🏅 <span>Badges</span></router-link>
   <router-link to="/comparison" class="tab" active-class="active" @touchstart="$router.push('/comparison')">⚖️ <span>Compare</span></router-link>
@@ -20,25 +20,62 @@
 </template>
 
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
+
 defineProps({
   isAdmin: { type: Boolean, default: false },
+})
+
+const tabsRef = ref(null)
+
+function checkScrollable() {
+  if (tabsRef.value) {
+    const el = tabsRef.value
+    el.classList.toggle('scrollable', el.scrollWidth > el.clientWidth)
+  }
+}
+
+onMounted(() => {
+  checkScrollable()
+  window.addEventListener('resize', checkScrollable)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScrollable)
 })
 </script>
 
 <style scoped>
 .tabs {
-  position: relative;
-  display: flex;
-  gap: 8px;
-  margin: 20px 0 25px;
-  flex-wrap: nowrap;
-  align-items: center;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 6px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
+   position: relative;
+   display: flex;
+   gap: 8px;
+   margin: 20px 0 25px;
+   flex-wrap: nowrap;
+   align-items: center;
+   overflow-x: auto;
+   overflow-y: hidden;
+   padding-bottom: 6px;
+   scrollbar-width: none;
+   -ms-overflow-style: none;
+  }
+
+  .tabs::after {
+   content: '';
+   position: absolute;
+   right: 0;
+   top: 0;
+   bottom: 6px;
+   width: 20px;
+   background: linear-gradient(to right, transparent, var(--bg-primary));
+   pointer-events: none;
+   opacity: 0;
+   transition: opacity 0.2s;
+  }
+
+  .tabs.scrollable::after {
+   opacity: 1;
+  }
 
 .tabs::-webkit-scrollbar {
   display: none;
@@ -132,8 +169,16 @@ defineProps({
     display: none;
   }
 
-  .logout-btn span {
-    display: none;
+.logout-btn span {
+   display: none;
+  }
+
+  .logout-btn::before {
+   content: '🚪';
+  }
+
+  .logout-btn {
+   min-width: 42px;
   }
 }
 </style>

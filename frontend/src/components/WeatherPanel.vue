@@ -1,34 +1,44 @@
 <template>
   <div class="panel">
-<h2>🌤️ Weather</h2>
+    <h2>🌤️ Weather</h2>
 
-     <div class="form-grid">
-       <div class="form-group">
-         <label for="weather-lat">Latitude</label>
-         <input id="weather-lat" type="number" v-model.number="lat" step="0.0001" placeholder="Ex: 45.4642" />
-       </div>
-       <div class="form-group">
-         <label for="weather-lon">Longitude</label>
-         <input id="weather-lon" type="number" v-model.number="lon" step="0.0001" placeholder="Ex: 9.1900" />
-       </div>
-       <div class="form-group">
-         <label for="weather-date">Date (optional)</label>
-         <input id="weather-date" type="date" v-model="date" />
-       </div>
-       <div class="form-group">
-         <button class="btn btn-primary" @click="fetchWeather" :disabled="loading">
-           {{ loading ? '🔄 Loading...' : '🌡️ Get Weather' }}
-         </button>
-       </div>
-     </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="weather-lat">Latitude</label>
+        <input id="weather-lat" type="number" v-model.number="lat" step="0.0001" placeholder="Ex: 45.4642" />
+      </div>
+      <div class="form-group">
+        <label for="weather-lon">Longitude</label>
+        <input id="weather-lon" type="number" v-model.number="lon" step="0.0001" placeholder="Ex: 9.1900" />
+      </div>
+      <div class="form-group">
+        <label for="weather-date">Date (optional)</label>
+        <input id="weather-date" type="date" v-model="date" />
+      </div>
+      <div class="form-group">
+        <button class="btn btn-primary" @click="fetchWeather" :disabled="loading">
+          {{ loading ? '🔄 Loading...' : '🌡️ Get Weather' }}
+        </button>
+      </div>
+    </div>
 
-     <div v-if="weatherError" class="error-box">
-       {{ weatherError }}
-     </div>
+    <div v-if="loading" class="loading-text">
+      <span class="spinner"></span> Loading weather...
+    </div>
 
-     <div v-if="weather" class="weather-card">
-       <div class="weather-header">
-         <h3>{{ weather.location?.city || 'Location' }}</h3>
+    <div v-else-if="weatherError" class="error-box">
+      {{ weatherError }}
+    </div>
+
+    <div v-else-if="!weather" class="empty-state">
+      <div class="empty-icon">🌤️</div>
+      <div class="empty-title">Weather Information</div>
+      <div class="empty-desc">Enter coordinates and click "Get Weather" for current conditions and cycling-specific advice</div>
+    </div>
+
+    <div v-else class="weather-card">
+      <div class="weather-header">
+        <h3>{{ weather.location?.city || 'Location' }}</h3>
         <span class="weather-score" :class="'score-' + weather.score">Score: {{ weather.score }}/10</span>
       </div>
       <div class="weather-info">
@@ -36,10 +46,10 @@
           <span class="weather-icon">🌡️</span>
           <span class="weather-value">{{ weather.temperature }}°C</span>
         </div>
-<div class="weather-item">
-           <span class="weather-icon">🔥</span>
-           <span class="weather-value">{{ weather.feels_like }}°C (feels like)</span>
-         </div>
+        <div class="weather-item">
+          <span class="weather-icon">🔥</span>
+          <span class="weather-value">{{ weather.feels_like }}°C (feels like)</span>
+        </div>
         <div class="weather-item">
           <span class="weather-icon">💧</span>
           <span class="weather-value">{{ weather.humidity }}%</span>
@@ -59,16 +69,16 @@
     </div>
 
     <div class="panel" style="margin-top: 20px;">
-<h3>📅 7-Day Forecast</h3>
-       <div v-if="forecastLoading" class="loading-text">Loading forecasts...</div>
-       <div v-else class="forecast-grid">
-         <div v-for="f in forecast" :key="f.date" class="forecast-card">
-           <div class="forecast-date">{{ f.date }}</div>
-           <div class="forecast-temp">{{ f.temperature }}°C</div>
-           <div class="forecast-humidity">💧 {{ f.humidity }}%</div>
-           <div class="forecast-advice">{{ f.advice }}</div>
-         </div>
-       </div>
+      <h3>📅 7-Day Forecast</h3>
+      <div v-if="forecastLoading" class="loading-text">Loading forecasts...</div>
+      <div v-else class="forecast-grid">
+        <div v-for="f in forecast" :key="f.date" class="forecast-card">
+          <div class="forecast-date">{{ f.date }}</div>
+          <div class="forecast-temp">{{ f.temperature }}°C</div>
+          <div class="forecast-humidity">💧 {{ f.humidity }}%</div>
+          <div class="forecast-advice">{{ f.advice }}</div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -90,7 +100,7 @@ async function fetchWeather() {
   loading.value = true
   weatherError.value = ''
   weather.value = null
-  
+
   try {
     const params = { lat: lat.value, lon: lon.value }
     if (date.value) params.date = date.value
@@ -105,10 +115,10 @@ async function fetchWeather() {
 async function fetchForecast() {
   forecastLoading.value = true
   try {
-    const data = await apiGet('/api/v1/weather/forecast', { 
-      lat: lat.value, 
-      lon: lon.value, 
-      days: 7 
+    const data = await apiGet('/api/v1/weather/forecast', {
+      lat: lat.value,
+      lon: lon.value,
+      days: 7
     })
     forecast.value = data.forecasts || []
   } catch (e) {

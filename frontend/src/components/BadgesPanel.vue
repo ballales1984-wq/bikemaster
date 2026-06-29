@@ -12,17 +12,17 @@
        </div>
      </div>
      
-     <div v-if="loading" class="loading-text">
-       <span class="spinner"></span> Loading badges...
-     </div>
-    
-    <div v-if="loading && !badgesData" class="skeleton-container">
-      <div class="skeleton skeleton-card" style="height: 120px; margin-bottom: 15px;"></div>
-      <div class="skeleton skeleton-text" style="width: 70%;"></div>
-      <div class="skeleton skeleton-text" style="width: 50%;"></div>
-    </div>
-    
-    <div v-if="badgesData" class="badges-container">
+<div v-if="loading" class="loading-text">
+        <span class="spinner"></span> Loading badges...
+      </div>
+      
+      <div v-if="!loading && !badgesData" class="empty-state">
+        <div class="empty-icon">🏅</div>
+        <div class="empty-title">No badges loaded</div>
+        <div class="empty-desc">Enter an Athlete ID to view your badges</div>
+      </div>
+      
+      <div v-if="badgesData" class="badges-container">
       <div class="badges-stats">
         <div class="stat-card">
 <div class="stat-value">{{ badgesData.achieved }}/{{ badgesData.total_badges }}</div>

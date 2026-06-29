@@ -198,17 +198,17 @@ function clearChat() {
 }
 
 async function init() {
-  try {
-    const data = await apiGet('/api/v1/athletes')
-    athleteId.value = data.athletes?.[0]?.id ?? null
-    if (athleteId.value) {
-      const scores = await apiGet('/api/v1/coach/full', { athlete_id: athleteId.value })
-      coachData.value = scores
-    }
-  } catch (e) {
-    console.warn('init coach', e)
-  }
-}
+   try {
+     const me = await apiGet('/api/v1/athletes/me')
+     athleteId.value = me.athlete?.id ?? null
+     if (athleteId.value) {
+       const scores = await apiGet('/api/v1/coach/full', { athlete_id: athleteId.value })
+       coachData.value = scores
+     }
+   } catch (e) {
+     console.warn('init coach', e)
+   }
+ }
 
 onMounted(() => init())
 </script>

@@ -1,6 +1,9 @@
 <template>
   <div class="panel">
     <h2>🏃 Athlete Profile</h2>
+    <div v-if="isFirstLogin" class="welcome-banner">
+      <span class="welcome-icon">🎉</span> Welcome! Complete your profile to get started
+    </div>
     <form id="athlete-form" class="form-grid" novalidate>
       <div class="form-group"><label for="athlete-name">Name</label><input id="athlete-name" type="text" v-model="form.name" required /></div>
       <div class="form-group"><label for="athlete-age">Age</label><input id="athlete-age" type="number" v-model.number="form.age" min="10" max="100" /></div>
@@ -26,10 +29,15 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useToast } from '../composables/useToast'
 import { apiGet, apiPost, apiPut } from '../utils/api'
+import { user } from '../composables/useAuth'
 
+const router = useRouter()
+const toast = useToast()
 const emit = defineEmits(['toast'])
 const form = ref({
   name: '',
@@ -41,17 +49,22 @@ const form = ref({
   weekly_sessions: 3,
   monthly_hours: 0,
   annual_hours: 0,
-  experience_level: 'Beginner'
+  experience_level: 'Beginner',
 })
 const result = ref('')
-const athleteId = ref(null)
+const athleteId = ref<number | null>(null)
+const isFirstLogin = ref(false)
 
 async function loadAthlete() {
-  const data = await apiGet('/api/v1/athletes')
-  const athlete = data.athletes?.[0]
+  const data = await apiGet('/api/v1/athletes/me')
+  const athlete = data.athlete
   if (athlete) {
     athleteId.value = athlete.id
     form.value = { ...form.value, ...athlete }
+    isFirstLogin.value = false
+  } else {
+    isFirstLogin.value = true
+    form.value.name = user.value?.username || ''
   }
 }
 
@@ -60,30 +73,50 @@ async function save() {
     const data = athleteId.value
       ? await apiPut('/api/v1/athletes/' + athleteId.value, form.value)
       : await apiPost('/api/v1/athletes', form.value)
-athleteId.value = data.id
-     result.value = 'Athlete profile saved (ID: ' + data.id + ')'
-   } catch (e) {
-     result.value = 'Error: ' + (e.message || e)
-   }
- }
+    athleteId.value = data.id
+    result.value = 'Athlete profile saved (ID: ' + data.id + ')'
+    if (isFirstLogin.value) {
+      toast.show('Profile created! Welcome to BikeMaster!', 'success')
+      setTimeout(() => router.push('/rides'), 1500)
+    }
+  } catch (e: unknown) {
+    result.value = 'Error: ' + (e instanceof Error ? e.message : String(e))
+  }
+}
 
- async function getScores() {
-   try {
-     const id = athleteId.value
-     if (!id) {
-       result.value = 'Save athlete profile first'
-       return
-     }
-     const data = await apiGet('/api/v1/scores/athlete/' + id)
-     result.value = JSON.stringify(data, null, 2)
-   } catch (e) {
-     result.value = 'Error: ' + (e.message || e)
-   }
- }
+async function getScores() {
+  try {
+    const id = athleteId.value
+    if (!id) {
+      result.value = 'Save athlete profile first'
+      return
+    }
+    const data = await apiGet('/api/v1/scores/athlete/' + id)
+    result.value = JSON.stringify(data, null, 2)
+  } catch (e: unknown) {
+    result.value = 'Error: ' + (e instanceof Error ? e.message : String(e))
+  }
+}
 
- onMounted(() => {
-   loadAthlete().catch(e => {
-     result.value = 'Error: ' + (e.message || e)
-   })
- })
+onMounted(() => {
+  loadAthlete().catch(e => {
+    result.value = 'Error: ' + (e instanceof Error ? e.message : String(e))
+  })
+})
 </script>
+
+<style scoped>
+.welcome-banner {
+  background: linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%);
+  color: white;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.welcome-icon {
+  font-size: 1.2rem;
+}
+</style>

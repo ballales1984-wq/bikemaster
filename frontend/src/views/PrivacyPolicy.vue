@@ -99,10 +99,14 @@
       <p>Eventuali modifiche saranno comunicate attraverso il servizio o via email agli utenti registrati. Si consiglia di consultare periodicamente questa pagina.</p>
 
       <h2>12. Autorità di Controllo</h2>
-      <p>In caso di mancata risposta o insoddisfazione, è possibilepresentare reclamo al Garante per la protezione dei dati personali presso <a href="https://www.garanteprivacy.it" target="_blank" rel="noopener">www.garanteprivacy.it</a>.</p>
+<p>In caso di mancata risposta o insoddisfazione, è possibilepresentare reclamo al Garante per la protezione dei dati personali presso <a href="https://www.garanteprivacy.it" target="_blank" rel="noopener">www.garanteprivacy.it</a>.</p>
+    </div>
+
+    <div class="cta-section">
+      <RouterLink to="/" class="btn btn-primary">🏠 Torna all'Accedi</RouterLink>
     </div>
   </div>
-</template>
+ </template>
 
 <script setup>
 import { RouterLink } from 'vue-router'
@@ -146,6 +150,26 @@ import { RouterLink } from 'vue-router'
   margin-bottom: 0.4rem;
 }
 a {
-  color: #42b983;
-}
+   color: #42b983;
+ }
+
+ .cta-section {
+   text-align: center;
+   margin: 2rem 0 1rem;
+ }
+
+ .btn {
+   display: inline-block;
+   padding: 10px 24px;
+   background: #42b983;
+   color: #fff;
+   text-decoration: none;
+   border-radius: 6px;
+   font-weight: 600;
+   transition: background 0.2s;
+ }
+
+ .btn:hover {
+   background: #349a6e;
+ }
 </style>

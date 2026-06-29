@@ -25,27 +25,31 @@
 
     <div class="site-links-section">
       <h2>Risorse Utili</h2>
-      <div class="links-grid">
-        <RouterLink to="/privacy" class="link-card">
-          <span class="link-icon">🔒</span>
-          <span>Privacy Policy</span>
-        </RouterLink>
-        <RouterLink to="/terms" class="link-card">
-          <span class="link-icon">📜</span>
-          <span>Termini di Servizio</span>
-        </RouterLink>
-        <RouterLink to="/cookies" class="link-card">
-          <span class="link-icon">🍪</span>
-          <span>Cookie Policy</span>
-        </RouterLink>
-        <RouterLink to="/about" class="link-card">
-          <span class="link-icon">🚴</span>
-          <span>Chi Siamo</span>
-        </RouterLink>
-      </div>
-    </div>
-  </div>
-</template>
+<div class="links-grid">
+         <RouterLink to="/privacy" class="link-card">
+           <span class="link-icon">🔒</span>
+           <span>Privacy Policy</span>
+         </RouterLink>
+         <RouterLink to="/terms" class="link-card">
+           <span class="link-icon">📜</span>
+           <span>Termini di Servizio</span>
+         </RouterLink>
+         <RouterLink to="/cookies" class="link-card">
+           <span class="link-icon">🍪</span>
+           <span>Cookie Policy</span>
+         </RouterLink>
+         <RouterLink to="/about" class="link-card">
+           <span class="link-icon">🚴</span>
+           <span>Chi Siamo</span>
+         </RouterLink>
+       </div>
+     </div>
+
+     <div class="login-cta">
+       <RouterLink to="/" class="btn btn-primary">🏠 Accedi a BikeMaster</RouterLink>
+     </div>
+   </div>
+ </template>
 
 <script setup>
 import { RouterLink } from 'vue-router'
@@ -128,6 +132,26 @@ import { RouterLink } from 'vue-router'
   font-size: 1.2rem;
 }
 a {
-  color: #42b983;
-}
+   color: #42b983;
+ }
+
+ .login-cta {
+   text-align: center;
+   margin-top: 2rem;
+ }
+
+ .btn.btn-primary {
+   display: inline-block;
+   padding: 0.75rem 2rem;
+   background: #42b983;
+   color: #fff;
+   text-decoration: none;
+   border-radius: 6px;
+   font-weight: 600;
+   transition: background 0.2s;
+ }
+
+ .btn.btn-primary:hover {
+   background: #349a6e;
+ }
 </style>

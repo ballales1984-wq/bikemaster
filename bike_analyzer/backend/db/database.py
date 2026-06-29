@@ -74,6 +74,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             email TEXT,
+            picture TEXT,
             age INTEGER DEFAULT 30,
             weight_kg REAL DEFAULT 70,
             height_cm REAL,
@@ -132,7 +133,7 @@ def init_db():
         )""")
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(athletes)")
-        columns = [row[1] for row in cur.fetchall()]
+        athlete_cols = [row[1] for row in cur.fetchall()]
         if "goals" not in columns:
             conn.execute("ALTER TABLE athletes ADD COLUMN goals TEXT")
         if "ftp_watts" not in columns:
@@ -141,6 +142,8 @@ def init_db():
             conn.execute("ALTER TABLE athletes ADD COLUMN password_hash TEXT")
         if "email" not in columns:
             conn.execute("ALTER TABLE athletes ADD COLUMN email TEXT")
+        if "picture" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN picture TEXT")
         conn.execute("""CREATE TABLE IF NOT EXISTS training_stress_days (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
@@ -562,16 +565,17 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
         if athlete_id is None:
             cur.execute(
                 """INSERT INTO athletes
-                (name, email, age, weight_kg, height_cm, fat_percentage,
+                (name, email, picture, age, weight_kg, height_cm, fat_percentage,
                  years_active, weekly_sessions, monthly_hours, annual_hours,
                  experience_level, goals, preferred_terrain, weekly_volume_km,
                  best_segments, medical_notes, equipment, ftp_watts,
                  password_hash, tenant_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     athlete.get("name"),
                     athlete.get("email"),
+                    athlete.get("picture"),
                     athlete.get("age", 30),
                     athlete.get("weight_kg", 70),
                     athlete.get("height_cm"),
@@ -593,20 +597,21 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                     datetime.now(UTC).isoformat(),
                 ),
             )
-        else:
+else:
             cur.execute(
                 """INSERT INTO athletes
-                (id, name, email, age, weight_kg, height_cm, fat_percentage,
+                (id, name, email, picture, age, weight_kg, height_cm, fat_percentage,
                  years_active, weekly_sessions, monthly_hours, annual_hours,
                  experience_level, goals, preferred_terrain, weekly_volume_km,
                  best_segments, medical_notes, equipment, ftp_watts,
                  password_hash, tenant_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     athlete_id,
                     athlete.get("name"),
                     athlete.get("email"),
+                    athlete.get("picture"),
                     athlete.get("age", 30),
                     athlete.get("weight_kg", 70),
                     athlete.get("height_cm"),
@@ -640,6 +645,7 @@ def _row_to_athlete(row) -> dict:
         "id",
         "name",
         "email",
+        "picture",
         "age",
         "weight_kg",
         "height_cm",
@@ -1076,10 +1082,10 @@ def _row_to_calendar_event(row) -> dict:
         "id": row[0],
         "athlete_id": row[1],
         "tenant_id": row[2] if len(row) > 2 else 0,
-        "title": row[3],
-        "event_type": row[4],
-        "date": row[5],
-        "duration_minutes": row[6],
+        "title": row[3] if len(row) > 3 else None,
+        "event_type": row[4] if len(row) > 4 else "training",
+        "date": row[5] if len(row) > 5 else None,
+        "duration_minutes": row[6] if len(row) > 6 else 0,
         "description": row[7] if len(row) > 7 else None,
         "completed": bool(row[8]) if len(row) > 8 else False,
         "weather_temp": row[9] if len(row) > 9 else None,
