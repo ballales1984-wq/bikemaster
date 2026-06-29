@@ -12,7 +12,7 @@ function flush() {
 }
 
 const mockAthletes = {
-  athletes: [{ id: 1, name: 'Marco Rossi' }],
+  athlete: { id: 1, name: 'Marco Rossi' },
 }
 
 const mockCoachData = {
@@ -38,7 +38,7 @@ describe('CoachPanel', () => {
     const wrapper = mount(CoachPanel)
     await flush()
 
-    expect(apiGet).toHaveBeenCalledWith('/api/v1/athletes')
+    expect(apiGet).toHaveBeenCalledWith('/api/v1/athletes/me')
   })
 
   it('displays AI Coach title', async () => {
@@ -59,6 +59,15 @@ describe('CoachPanel', () => {
     await flush()
 
     expect(wrapper.text()).toContain('88')
+  })
+
+  it('has chat input', async () => {
+    apiGet.mockResolvedValueOnce(mockAthletes)
+
+    const wrapper = mount(CoachPanel)
+    await flush()
+
+    expect(wrapper.find('.chat-input').exists()).toBe(true)
   })
 
   it('has chat input', async () => {

@@ -20,14 +20,19 @@ const mockSearchResult = {
 
 const mockTopics = ['Training', 'Nutrition', 'Recovery', 'FTP', 'Endurance']
 
+const mockStats = {
+  total_documents: 5,
+  total_topics: 5,
+}
+
 describe('KnowledgePanel', () => {
   afterEach(() => {
     vi.clearAllMocks()
   })
 
   it('loads with empty search input', async () => {
-    apiGet.mockResolvedValueOnce({ topics: mockTopics, total_documents: 5 })
-    apiGet.mockResolvedValueOnce({ topics: [], total_documents: 0 })
+    apiGet.mockResolvedValueOnce({ topics: mockTopics })
+    apiGet.mockResolvedValueOnce(mockStats)
 
     const wrapper = mount(KnowledgePanel)
     await flush()
@@ -38,8 +43,8 @@ describe('KnowledgePanel', () => {
   })
 
   it('displays Knowledge Base title', async () => {
-    apiGet.mockResolvedValueOnce({ topics: mockTopics, total_documents: 5 })
-    apiGet.mockResolvedValueOnce({ topics: [], total_documents: 0 })
+    apiGet.mockResolvedValueOnce({ topics: mockTopics })
+    apiGet.mockResolvedValueOnce(mockStats)
 
     const wrapper = mount(KnowledgePanel)
     await flush()
@@ -48,7 +53,8 @@ describe('KnowledgePanel', () => {
   })
 
   it('searches on button click', async () => {
-    apiGet.mockResolvedValueOnce({ topics: mockTopics, total_documents: 5 })
+    apiGet.mockResolvedValueOnce({ topics: mockTopics })
+    apiGet.mockResolvedValueOnce(mockStats)
     apiGet.mockResolvedValueOnce(mockSearchResult)
 
     const wrapper = mount(KnowledgePanel)
@@ -63,7 +69,8 @@ describe('KnowledgePanel', () => {
   })
 
   it('shows results after search', async () => {
-    apiGet.mockResolvedValueOnce({ topics: mockTopics, total_documents: 5 })
+    apiGet.mockResolvedValueOnce({ topics: mockTopics })
+    apiGet.mockResolvedValueOnce(mockStats)
     apiGet.mockResolvedValueOnce(mockSearchResult)
 
     const wrapper = mount(KnowledgePanel)
@@ -78,7 +85,8 @@ describe('KnowledgePanel', () => {
   })
 
   it('shows search error gracefully', async () => {
-    apiGet.mockResolvedValueOnce({ topics: mockTopics, total_documents: 5 })
+    apiGet.mockResolvedValueOnce({ topics: mockTopics })
+    apiGet.mockResolvedValueOnce(mockStats)
     apiGet.mockRejectedValueOnce(new Error('Search failed'))
 
     const wrapper = mount(KnowledgePanel)
@@ -93,7 +101,7 @@ describe('KnowledgePanel', () => {
   })
 
   it('loads topics on mount', async () => {
-    apiGet.mockResolvedValueOnce({ topics: mockTopics, total_documents: 5 })
+    apiGet.mockResolvedValueOnce({ topics: mockTopics })
 
     const wrapper = mount(KnowledgePanel)
     await flush()
@@ -102,8 +110,9 @@ describe('KnowledgePanel', () => {
   })
 
   it('searches topic on pill click', async () => {
-    apiGet.mockResolvedValueOnce({ topics: mockTopics, total_documents: 5 })
-    apiGet.mockResolvedValueOnce({ topics: [], total_documents: 0 })
+    apiGet.mockResolvedValueOnce({ topics: mockTopics })
+    apiGet.mockResolvedValueOnce(mockStats)
+    apiGet.mockResolvedValueOnce({ topics: [] })
     apiGet.mockResolvedValueOnce(mockSearchResult)
 
     const wrapper = mount(KnowledgePanel)
@@ -117,7 +126,8 @@ describe('KnowledgePanel', () => {
   })
 
   it('has clear search button when query exists', async () => {
-    apiGet.mockResolvedValueOnce({ topics: mockTopics, total_documents: 5 })
+    apiGet.mockResolvedValueOnce({ topics: mockTopics })
+    apiGet.mockResolvedValueOnce(mockStats)
 
     const wrapper = mount(KnowledgePanel)
     await flush()
