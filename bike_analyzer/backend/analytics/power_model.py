@@ -44,7 +44,7 @@ def normalized_power(watts: list[float], window_size: int = 30) -> float:
         avg = sum(segment) / window_size
         smoothed.append(avg**4)
     if not smoothed:
-        return sum(watts) / len(watts)
+        return sum(watts) / len(watts) if watts else 0.0
     mean_powered = sum(smoothed) / len(smoothed)
     return round(mean_powered**0.25, 1)
 
