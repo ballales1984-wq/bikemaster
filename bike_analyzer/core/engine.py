@@ -75,22 +75,22 @@ class AnalysisEngine:
             return EngineResult(success=False, error=str(exc))
 
     async def process_rides_batch(
-        self, rides: Sequence[Ride], athlete_id: int | None = None, session_factory=None
+        self, rides: Sequence[Ride], athlete_id: int | None = None, session_factory=None, tenant_id: int | None = None
     ) -> list[EngineResult]:
         results = []
         all_rides = list(rides)
         historical_rides = None
         if athlete_id is not None and session_factory is not None:
-            historical_rides = await self._load_historical_rides(athlete_id, session_factory)
+            historical_rides = await self._load_historical_rides(athlete_id, session_factory, tenant_id=tenant_id)
             all_rides = list(historical_rides) + list(rides)
         for ride in rides:
             results.append(await self.process_ride(ride, athlete_id, session_factory, all_rides))
         return results
 
-    async def _load_historical_rides(self, athlete_id: int, session_factory, limit: int = 90) -> list[Ride]:
+    async def _load_historical_rides(self, athlete_id: int, session_factory, tenant_id: int | None = None, limit: int = 90) -> list[Ride]:
         try:
             from ..db.async_db import get_rides_by_athlete_async
-            raw_rides = await get_rides_by_athlete_async(athlete_id, limit=limit)
+            raw_rides = await get_rides_by_athlete_async(athlete_id, tenant_id=tenant_id, limit=limit)
             return [Ride(**r) for r in raw_rides]
         except Exception as exc:
             logger.debug("Could not load historical rides for athlete %s: %s", athlete_id, exc)

@@ -18,6 +18,7 @@ def get_google_oauth_url(
         "scope": "openid email profile",
         "access_type": "offline",
         "state": state,
+        "prompt": "consent",
     }
     return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
 

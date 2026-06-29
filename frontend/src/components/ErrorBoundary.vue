@@ -10,18 +10,18 @@
   <slot v-else />
 </template>
 
-<script>
+<script lang="ts">
 import { onErrorCaptured } from 'vue'
 
 export default {
   name: 'ErrorBoundary',
   data() {
     return {
-      error: null,
+      error: null as string | null,
     }
   },
   mounted() {
-    onErrorCaptured((err) => {
+    onErrorCaptured((err: unknown) => {
       this.error = err instanceof Error ? err.message : String(err)
       return false
     })

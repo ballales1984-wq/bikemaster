@@ -126,8 +126,25 @@ const router = createRouter({
   }
 })
 
-router.beforeEach((to, from) => {
-  // Handle OAuth callback token from URL params
+router.beforeEach((to, from, next) => {
+  // Handle OAuth callback token from URL fragment
+  if (!to.query.token && to.hash) {
+    const hashParams = new URLSearchParams(to.hash.substring(1))
+    const fragmentToken = hashParams.get('token')
+    if (fragmentToken) {
+      token.value = fragmentToken
+      const payload = parseJWTPayload(fragmentToken)
+      user.value = {
+        id: hashParams.get('user_id') ? parseInt(hashParams.get('user_id')!, 10) : 0,
+        username: typeof payload?.sub === 'string' ? payload.sub : '',
+        is_admin: !!payload?.is_admin,
+      }
+      localStorage.setItem('bikemaster_token', fragmentToken)
+      localStorage.setItem('bikemaster_user', JSON.stringify(user.value))
+    }
+  }
+
+  // Also handle query params for backward compatibility
   if (to.query.token && typeof to.query.token === 'string') {
     token.value = to.query.token
     const payload = parseJWTPayload(to.query.token)
@@ -143,11 +160,13 @@ router.beforeEach((to, from) => {
   const loggedIn = isLoggedIn()
 
   if (to.path === '/' && loggedIn) {
-    return '/rides'
+    next('/rides')
   } else if (to.meta.requiresAuth && !loggedIn) {
-    return '/'
+    next('/')
   } else if (to.meta.requiresAdmin && !isAdmin()) {
-    return '/'
+    next('/')
+  } else {
+    next()
   }
 })
 

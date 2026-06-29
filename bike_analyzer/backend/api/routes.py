@@ -691,6 +691,8 @@ async def google_oauth_callback_get(
     frontend_origin = f"{parsed_redirect.scheme}://{parsed_redirect.netloc}/" if parsed_redirect.scheme else None
     if not frontend_origin or not parsed_redirect.path.endswith("/api/v1/auth/google/callback"):
         frontend_origin = _build_redirect_uri(request, "")
+    if frontend_origin and "localhost:8000" in frontend_origin:
+        frontend_origin = "http://localhost:5173/"
     redirect_url = (
         f"{frontend_origin}#"
         f"{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
@@ -1143,6 +1145,8 @@ async def create_athlete(
     tenant_id = current_user.get("tenant_id", current_user["id"])
     target_athlete_id = _ensure_int_user_id(current_user)
     existing = _get_athlete(target_athlete_id, tenant_id)
+    if not existing:
+        existing = _get_athlete(target_athlete_id, None)
     if athlete_data.name:
         existing_by_name = get_athlete_by_name(athlete_data.name)
         if existing_by_name and existing_by_name["id"] != target_athlete_id:
@@ -1176,8 +1180,6 @@ async def get_my_athlete_profile(current_user: dict = Depends(get_current_user))
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete = _get_athlete(current_user["id"], tenant_id)
-
-    athlete = _get_athlete(current_user["id"])
     if not athlete:
         return {"athlete": None, "profile_complete": False}
     profile_complete = (
@@ -1731,6 +1733,8 @@ async def ride_speed_path(
     speeds = [p.speed for p in points if p.speed is not None]
     min_spd = min(speeds) if speeds else 0.0
     max_spd = max(speeds) if speeds else 35.0
+    center_lat = sum(p.lat for p in points) / len(points) if points else 0.0
+    center_lon = sum(p.lon for p in points) / len(points) if points else 0.0
     return {
         "ride_id": ride_id,
         "segments": segments,
@@ -1738,8 +1742,8 @@ async def ride_speed_path(
         "max_speed": max_spd,
         "point_count": len(points),
         "center": {
-            "lat": sum(p.lat for p in points) / len(points),
-            "lon": sum(p.lon for p in points) / len(points),
+            "lat": center_lat,
+            "lon": center_lon,
         },
     }
 
@@ -2560,8 +2564,8 @@ async def analyze_ride_safety(
     points = [{"lat": p["lat"], "lon": p["lon"]} for p in gps_points]
     lats = [p["lat"] for p in points]
     lons = [p["lon"] for p in points]
-    center_lat = sum(lats) / len(lats)
-    center_lon = sum(lons) / len(lons)
+    center_lat = sum(lats) / len(lats) if lats else 0.0
+    center_lon = sum(lons) / len(lons) if lons else 0.0
     incidents = fetch_incidents(
         center_lat, center_lon, radius_km=INCIDENT_RADIUS_KM, days=INCIDENT_DAYS
     )

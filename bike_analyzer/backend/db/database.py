@@ -1006,7 +1006,7 @@ def get_events_by_month(athlete_id: int, year: int, month: int, tenant_id: int |
         f"{year + 1}-01-01" if month == 12 else f"{year}-{month + 1:02d}-01"
     )
     month_start = f"{year}-{month:02d}-01"
-    return get_events_by_date_range(athlete_id, month_start, next_month)
+    return get_events_by_date_range(athlete_id, month_start, next_month, tenant_id)
 
 
 def update_calendar_event(event_id: int, event_data: dict, tenant_id: int | None = None) -> bool:
@@ -1075,16 +1075,17 @@ def _row_to_calendar_event(row) -> dict:
     return {
         "id": row[0],
         "athlete_id": row[1],
-        "title": row[2],
-        "event_type": row[3],
-        "date": row[4],
-        "duration_minutes": row[5],
-        "description": row[6],
-        "completed": bool(row[7]),
-        "created_at": row[8],
+        "tenant_id": row[2] if len(row) > 2 else 0,
+        "title": row[3],
+        "event_type": row[4],
+        "date": row[5],
+        "duration_minutes": row[6],
+        "description": row[7] if len(row) > 7 else None,
+        "completed": bool(row[8]) if len(row) > 8 else False,
         "weather_temp": row[9] if len(row) > 9 else None,
         "weather_humidity": row[10] if len(row) > 10 else None,
         "weather_description": row[11] if len(row) > 11 else None,
+        "created_at": row[12] if len(row) > 12 else None,
     }
 
 

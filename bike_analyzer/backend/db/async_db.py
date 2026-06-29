@@ -76,10 +76,12 @@ async def save_ride_async(ride: dict) -> int:
             if ride.get("gps_points")
             else None
         )
+        tenant_id = ride.get("tenant_id", ride.get("athlete_id", 0))
         stmt = (
             insert(RideModel)
             .values(
                 athlete_id=ride.get("athlete_id"),
+                tenant_id=tenant_id,
                 date=ride.get("date"),
                 distance_km=ride.get("distance_km", 0),
                 duration_minutes=ride.get("duration_minutes", 0),
@@ -88,6 +90,9 @@ async def save_ride_async(ride: dict) -> int:
                 calories=ride.get("calories", 0),
                 heart_rate_avg=ride.get("heart_rate_avg"),
                 elevation_gain_m=ride.get("elevation_gain_m"),
+                external_source=ride.get("external_source"),
+                external_id=ride.get("external_id"),
+                title=ride.get("title"),
                 gps_points=gps_points,
                 created_at=datetime.now(UTC),
             )
@@ -139,15 +144,14 @@ async def get_all_rides_async(athlete_id: int | None = None) -> list[dict]:
         return [_ride_model_to_dict(r) for r in rows]
 
 
-async def get_rides_by_athlete_async(athlete_id: int, limit: int | None = None) -> list[dict]:
+async def get_rides_by_athlete_async(athlete_id: int, tenant_id: int | None = None, limit: int | None = None) -> list[dict]:
     from ..db.models import RideModel
 
     async with await get_async_session() as session:
-        stmt = (
-            select(RideModel)
-            .where(RideModel.athlete_id == athlete_id)
-            .order_by(RideModel.date.desc())
-        )
+        stmt = select(RideModel).where(RideModel.athlete_id == athlete_id)
+        if tenant_id is not None:
+            stmt = stmt.where(RideModel.tenant_id == tenant_id)
+        stmt = stmt.order_by(RideModel.date.desc())
         if limit is not None:
             stmt = stmt.limit(limit)
         result = await session.execute(stmt)
@@ -203,6 +207,7 @@ def _ride_model_to_dict(row) -> dict:
     return {
         "id": row.id,
         "athlete_id": row.athlete_id,
+        "tenant_id": row.tenant_id,
         "date": row.date,
         "distance_km": row.distance_km,
         "duration_minutes": row.duration_minutes,
@@ -213,6 +218,9 @@ def _ride_model_to_dict(row) -> dict:
         "elevation_gain_m": row.elevation_gain_m,
         "gps_points": gps,
         "created_at": row.created_at.isoformat() if row.created_at else None,
+        "external_source": getattr(row, "external_source", None),
+        "external_id": getattr(row, "external_id", None),
+        "title": getattr(row, "title", None),
     }
 
 
