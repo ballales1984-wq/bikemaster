@@ -15,6 +15,10 @@ const mockAthletes = {
   athletes: [{ id: 1, name: 'Test Rider' }],
 }
 
+const mockAthleteMe = {
+  athlete: { id: 1, name: 'Test Rider' },
+}
+
 const mockPlan = [
   { date: '2026-06-20', title: 'Endurance Ride', workout_type: 'endurance', duration_minutes: 120, target_intensity: 0.7 },
   { date: '2026-06-22', title: 'Recovery', workout_type: 'recovery', duration_minutes: 60, target_intensity: 0.5 },
@@ -25,7 +29,7 @@ describe('GranfondoPlanner', () => {
     vi.clearAllMocks()
   })
 
-  it('loads athlete ID on mount', async () => {
+it('loads athlete ID on mount', async () => {
     apiGet.mockResolvedValueOnce(mockAthletes)
 
     const wrapper = mount(GranfondoPlanner)

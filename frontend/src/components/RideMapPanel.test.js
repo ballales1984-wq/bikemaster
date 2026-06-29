@@ -11,10 +11,14 @@ vi.mock('leaflet', () => ({
       invalidateSize: vi.fn().mockReturnThis(),
     })),
     tileLayer: vi.fn(() => ({ addTo: vi.fn().mockReturnThis() })),
-    layerGroup: vi.fn(() => ({
-      clearLayers: vi.fn(),
-      addLayer: vi.fn().mockReturnThis(),
-    })),
+    layerGroup: vi.fn(() => {
+      const mockGroup = {
+        clearLayers: vi.fn(),
+        addLayer: vi.fn().mockReturnThis(),
+        addTo: vi.fn().mockReturnThis(),
+      }
+      return mockGroup
+    }),
     polyline: vi.fn(() => ({ addTo: vi.fn().mockReturnThis() })),
     latLngBounds: vi.fn(() => ({
       extend: vi.fn().mockReturnThis(),
@@ -73,58 +77,76 @@ describe('RideMapPanel', () => {
     vi.clearAllMocks()
   })
 
-  it('renders panel with title', () => {
+  it('renders panel with title', async () => {
+    apiGet.mockResolvedValueOnce(mockRides)
     const wrapper = mount(RideMapPanel)
+    await flush()
     expect(wrapper.text()).toContain('Route Maps')
   })
 
-  it('has map container', () => {
+  it('has map container', async () => {
+    apiGet.mockResolvedValueOnce(mockRides)
     const wrapper = mount(RideMapPanel)
+    await flush()
     expect(wrapper.find('#route-map').exists()).toBe(true)
   })
 
-  it('has update button', () => {
+  it('has update button', async () => {
+    apiGet.mockResolvedValueOnce(mockRides)
     const wrapper = mount(RideMapPanel)
+    await flush()
     expect(wrapper.find('.btn-primary').exists()).toBe(true)
   })
 
-  it('has coloring mode selector', () => {
+  it('has coloring mode selector', async () => {
+    apiGet.mockResolvedValueOnce(mockRides)
     const wrapper = mount(RideMapPanel)
+    await flush()
     const selects = wrapper.findAll('select')
     expect(selects.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('has weather toggle checkbox', () => {
+  it('has weather toggle checkbox', async () => {
+    apiGet.mockResolvedValueOnce(mockRides)
     const wrapper = mount(RideMapPanel)
+    await flush()
     const checkbox = wrapper.find('input[type="checkbox"]')
     expect(checkbox.exists()).toBe(true)
   })
 
-  it('has risk levels defined', () => {
+  it('has risk levels defined', async () => {
+    apiGet.mockResolvedValueOnce(mockRides)
     const wrapper = mount(RideMapPanel)
-    // riskLevels is a computed property with 4 items
+    await flush()
     const legendCards = wrapper.findAll('.legend-card')
     expect(legendCards.length).toBeGreaterThan(0)
   })
 
-  it('has grade legend defined', () => {
+  it('has grade legend defined', async () => {
+    apiGet.mockResolvedValueOnce(mockRides)
     const wrapper = mount(RideMapPanel)
+    await flush()
     expect(wrapper.vm.gradeLegend).toBeDefined()
   })
 
-  it('has speed legend defined', () => {
+  it('has speed legend defined', async () => {
+    apiGet.mockResolvedValueOnce(mockRides)
     const wrapper = mount(RideMapPanel)
+    await flush()
     expect(wrapper.vm.speedLegend).toBeDefined()
   })
 
-  it('formats distances correctly', () => {
-    // formatDistance is tested in routeMap.test.js, just verify wrapper exists
+  it('formats distances correctly', async () => {
+    apiGet.mockResolvedValueOnce(mockRides)
     const wrapper = mount(RideMapPanel)
+    await flush()
     expect(wrapper.exists()).toBe(true)
   })
 
-  it('has demo route points', () => {
+  it('has demo route points', async () => {
+    apiGet.mockResolvedValueOnce(mockRides)
     const wrapper = mount(RideMapPanel)
+    await flush()
     expect(wrapper.vm.demoRoutePoints.length).toBeGreaterThan(0)
   })
 })
