@@ -134,13 +134,13 @@ def init_db():
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(athletes)")
         athlete_cols = [row[1] for row in cur.fetchall()]
-        if "goals" not in athlete_cols:
+        if "goals" not in columns:
             conn.execute("ALTER TABLE athletes ADD COLUMN goals TEXT")
-        if "ftp_watts" not in athlete_cols:
+        if "ftp_watts" not in columns:
             conn.execute("ALTER TABLE athletes ADD COLUMN ftp_watts REAL")
-        if "password_hash" not in athlete_cols:
+        if "password_hash" not in columns:
             conn.execute("ALTER TABLE athletes ADD COLUMN password_hash TEXT")
-        if "email" not in athlete_cols:
+        if "email" not in columns:
             conn.execute("ALTER TABLE athletes ADD COLUMN email TEXT")
         if "picture" not in athlete_cols:
             conn.execute("ALTER TABLE athletes ADD COLUMN picture TEXT")
