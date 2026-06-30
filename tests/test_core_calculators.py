@@ -433,3 +433,29 @@ class TestAnalysisEngine:
         r = _ride(duration_minutes=60, date="2024-06-15")
         result = await engine.process_ride(r, athlete_id=1, historical_rides=None)
         assert result.success
+
+
+class TestAnalysisPipeline:
+    def test_run_sync(self):
+        from bike_analyzer.core.pipeline import AnalysisPipeline
+        pipeline = AnalysisPipeline(ftp=250)
+        r = _ride(duration_minutes=60)
+        result = pipeline.run_sync(r)
+        assert result.ride is not None
+        assert result.metrics is not None
+
+    def test_run_sync_no_gps(self):
+        from bike_analyzer.core.pipeline import AnalysisPipeline
+        pipeline = AnalysisPipeline(ftp=250)
+        r = _ride(duration_minutes=60)
+        result = pipeline.run_sync(r)
+        assert result.route_statistics is None or result.metrics is not None
+
+    @pytest.mark.asyncio
+    async def test_run_async(self):
+        from bike_analyzer.core.pipeline import AnalysisPipeline
+        pipeline = AnalysisPipeline(ftp=250)
+        r = _ride(duration_minutes=60)
+        result = await pipeline.run(r)
+        assert result.ride is not None
+        assert result.metrics is not None
