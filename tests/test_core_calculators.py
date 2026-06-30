@@ -21,7 +21,10 @@ from bike_analyzer.core.calculators.power import intensity_factor, normalized_po
 from bike_analyzer.core.calculators.stress import ewma
 from bike_analyzer.core.engine import AnalysisEngine, EngineResult
 from bike_analyzer.core.fitness_state import FitnessStateVector, TrainingStressDay
+from pydantic import ValidationError
+
 from bike_analyzer.core.models import GPSPoint, Ride
+from bike_analyzer.core.validation import ValidatedAthleteProfile, ValidatedGPSPoint, ValidatedRide
 
 
 def _ride(**kwargs):
@@ -459,3 +462,44 @@ class TestAnalysisPipeline:
         result = await pipeline.run(r)
         assert result.ride is not None
         assert result.metrics is not None
+
+
+class TestValidatedGPSPoint:
+    def test_valid_point(self):
+        pt = ValidatedGPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC))
+        assert pt.lat == 45.0
+
+    def test_invalid_lat(self):
+        with pytest.raises(ValidationError):
+            ValidatedGPSPoint(lat=100.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC))
+
+
+class TestValidatedRide:
+    def test_valid_ride(self):
+        r = ValidatedRide(
+            athlete_id=1,
+            date=date(2024, 1, 15),
+            distance_km=25.0,
+            duration_minutes=60.0,
+            gps_points=[],
+        )
+        assert r.athlete_id == 1
+
+    def test_invalid_distance(self):
+        with pytest.raises(ValidationError):
+            ValidatedRide(athlete_id=1, date=date(2024, 1, 15), distance_km=-5, duration_minutes=60)
+
+
+class TestValidatedAthleteProfile:
+    def test_valid_profile(self):
+        p = ValidatedAthleteProfile(
+            name="Test Rider",
+            age=30,
+            weight_kg=70.0,
+            experience_level="Intermediate",
+        )
+        assert p.name == "Test Rider"
+
+    def test_invalid_weight(self):
+        with pytest.raises(ValidationError):
+            ValidatedAthleteProfile(name="Test", age=30, weight_kg=250, experience_level="Intermediate")
