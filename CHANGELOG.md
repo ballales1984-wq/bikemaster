@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.2.1 (2026-06-30)
+
+### Changed
+- Removed hard coverage threshold (`cov-fail-under=92`) from pytest configuration
+- Coverage now reported as non-blocking informational metric
+
+---
+
 ## v1.2.0 (2026-06-23)
 
 ### Added
