@@ -508,7 +508,7 @@ render deploy
 | CI/CD | ✅ Done | GitHub Actions + Trivy |
 | Multi-user | ⏳ Todo | Data isolation + auth |
 | PWA complete | ✅ Done | Offline + service worker |
-| Coverage >92% | ✓ Enforced | Threshold configured in pyproject.toml and CI |
+| Coverage >92% | ✓ Report | Threshold removed; coverage non-blocking |
 | Production monitoring | ❌ Todo | Prometheus + Grafana |
 
 See [ROADMAP.md](../ROADMAP.md) for full details.
