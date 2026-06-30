@@ -19,7 +19,6 @@ import numpy as np
 import sqlalchemy as sa
 
 from ..config import KB_PATH, OPENAI_API_KEY
-from ..db.models import KnowledgeChunkModel
 
 logger = logging.getLogger(__name__)
 
