@@ -65,6 +65,13 @@ from bike_analyzer.backend.analytics.power_model import (
     detect_aerobic_decoupling,
     calculate_advanced_power_metrics,
 )
+from bike_analyzer.backend.analytics.training_load import (
+    TrainingLoadDay,
+    calculate_rss,
+    calculate_atl_ctl_tsb,
+    get_current_training_status,
+    get_7day_fitness_summary,
+)
 
 
 def _ride(**kwargs):
@@ -776,3 +783,38 @@ class TestPowerModel:
         pts = [GPSPoint(lat=45.0, lon=9.0, power=200.0, heart_rate=150, timestamp=datetime(2024, 1, 1, tzinfo=UTC)) for _ in range(10)]
         result = detect_aerobic_decoupling(pts, ftp=250)
         assert result["significant"] is False
+
+
+class TestTrainingLoad:
+    def test_calculate_rss(self):
+        r = _ride(duration_minutes=60)
+        rss = calculate_rss(r)
+        assert rss > 0
+
+    def test_calculate_rss_zero_duration(self):
+        r = _ride(duration_minutes=0)
+        rss = calculate_rss(r)
+        assert rss == 0.0
+
+    def test_calculate_atl_ctl_tsb(self):
+        rides = [_ride(date="2024-06-15", duration_minutes=60)]
+        result = calculate_atl_ctl_tsb(rides)
+        assert len(result) == 1
+        assert result[0].tss > 0
+
+    def test_calculate_atl_ctl_tsb_empty(self):
+        result = calculate_atl_ctl_tsb([])
+        assert result == []
+
+    def test_get_current_training_status_empty(self):
+        status = get_current_training_status([])
+        assert status["status"] == "no_data"
+
+    def test_get_current_training_status_fresh(self):
+        rides = [_ride(date="2024-06-15", duration_minutes=10)]
+        status = get_current_training_status(rides)
+        assert "tsb" in status
+
+    def test_get_7day_fitness_summary_empty(self):
+        result = get_7day_fitness_summary([])
+        assert result == []
