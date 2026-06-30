@@ -399,6 +399,10 @@ class TestAnalysisEngine:
         result = engine.process_ride_sync(r)
         assert result.success or result.error is not None
 
+    def test_engine_result_dataclass(self):
+        res = EngineResult(success=True, error=None)
+        assert res.success is True
+
     @pytest.mark.asyncio
     async def test_process_ride_async_no_athlete(self):
         engine = AnalysisEngine(ftp=250)
@@ -422,3 +426,10 @@ class TestAnalysisEngine:
         results = await engine.process_rides_batch(rides)
         assert len(results) == 3
         assert all(r.success for r in results)
+
+    @pytest.mark.asyncio
+    async def test_process_ride_no_historical(self):
+        engine = AnalysisEngine(ftp=250)
+        r = _ride(duration_minutes=60, date="2024-06-15")
+        result = await engine.process_ride(r, athlete_id=1, historical_rides=None)
+        assert result.success
