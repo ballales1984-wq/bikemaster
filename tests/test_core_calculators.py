@@ -818,3 +818,16 @@ class TestTrainingLoad:
     def test_get_7day_fitness_summary_empty(self):
         result = get_7day_fitness_summary([])
         assert result == []
+
+
+class TestGoogleMapsErrors:
+    def test_interpolate_color_equal_bounds(self):
+        result = _interpolate_color(25, 30, 30)
+        assert result == "#FFFF00"
+
+    def test_speed_to_color_all_ranges(self):
+        assert _speed_to_color(45) == "#00cc44"
+        assert _speed_to_color(30) == "#88cc00"
+        assert _speed_to_color(20) == "#ddbb00"
+        assert _speed_to_color(10) == "#ee8800"
+        assert _speed_to_color(3) == "#ee3333"
