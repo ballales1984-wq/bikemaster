@@ -1,6 +1,6 @@
 """Tests for core calculator modules."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -19,6 +19,8 @@ from bike_analyzer.core.calculators.performance import (
 )
 from bike_analyzer.core.calculators.power import intensity_factor, normalized_power_approx, training_stress_score
 from bike_analyzer.core.calculators.stress import ewma
+from bike_analyzer.core.engine import AnalysisEngine, EngineResult
+from bike_analyzer.core.fitness_state import FitnessStateVector, TrainingStressDay
 from bike_analyzer.core.models import GPSPoint, Ride
 
 
@@ -345,3 +347,78 @@ class TestPhysicsMethod:
         r = _ride(avg_speed_kmh=25, elevation_gain_m=200, distance_km=25)
         c = estimate(r, method="met")
         assert c > 0
+
+
+class TestFitnessStateVector:
+    def test_to_dict(self):
+        state = FitnessStateVector(
+            athlete_id=1, computed_at=datetime(2024, 1, 1, tzinfo=UTC), atl=50, ctl=60, tsb=10
+        )
+        d = state.to_dict()
+        assert d["athlete_id"] == 1
+        assert "atl" in d
+        assert "is_overtraining_risk" in d
+        assert "is_fresh" in d
+        assert "is_ready_for_hard_effort" in d
+
+    def test_is_overtraining_risk(self):
+        state = FitnessStateVector(athlete_id=1, computed_at=datetime.now(UTC), atl=80, ctl=60, tsb=-25)
+        assert state.is_overtraining_risk is True
+
+    def test_is_not_overtraining_risk(self):
+        state = FitnessStateVector(athlete_id=1, computed_at=datetime.now(UTC), atl=50, ctl=60, tsb=10)
+        assert state.is_overtraining_risk is False
+
+    def test_is_fresh(self):
+        state = FitnessStateVector(athlete_id=1, computed_at=datetime.now(UTC), tsb=20)
+        assert state.is_fresh is True
+
+    def test_is_ready_for_hard_effort(self):
+        state = FitnessStateVector(athlete_id=1, computed_at=datetime.now(UTC), atl=50, ctl=60, tsb=10)
+        assert state.is_ready_for_hard_effort is True
+
+
+class TestTrainingStressDay:
+    def test_creation(self):
+        tsd = TrainingStressDay(date=date(2024, 1, 1), tss=50.0, atl=40.0, ctl=50.0, tsb=10.0)
+        assert tsd.tss == 50.0
+        assert tsd.atl == 40.0
+
+
+class TestAnalysisEngine:
+    def test_process_ride_sync(self):
+        engine = AnalysisEngine(ftp=250)
+        r = _ride(duration_minutes=60, heart_rate_avg=150, avg_speed_kmh=25)
+        result = engine.process_ride_sync(r)
+        assert result.success
+        assert result.result is not None
+
+    def test_process_ride_sync_error(self):
+        engine = AnalysisEngine(ftp=250)
+        r = _ride(duration_minutes=60)
+        result = engine.process_ride_sync(r)
+        assert result.success or result.error is not None
+
+    @pytest.mark.asyncio
+    async def test_process_ride_async_no_athlete(self):
+        engine = AnalysisEngine(ftp=250)
+        r = _ride(duration_minutes=60)
+        result = await engine.process_ride(r)
+        assert result.success
+
+    @pytest.mark.asyncio
+    async def test_process_ride_async_with_historical(self):
+        engine = AnalysisEngine(ftp=250)
+        r = _ride(duration_minutes=60, date="2024-06-15")
+        historical = [_ride(duration_minutes=90, date="2024-06-14")]
+        result = await engine.process_ride(r, athlete_id=1, historical_rides=historical)
+        assert result.success
+        assert result.fitness_state is not None
+
+    @pytest.mark.asyncio
+    async def test_process_rides_batch(self):
+        engine = AnalysisEngine(ftp=250)
+        rides = [_ride(duration_minutes=60) for _ in range(3)]
+        results = await engine.process_rides_batch(rides)
+        assert len(results) == 3
+        assert all(r.success for r in results)

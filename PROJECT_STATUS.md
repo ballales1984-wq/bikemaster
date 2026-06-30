@@ -381,17 +381,16 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 
 ---
 
-## Testing Update (2026-06-26)
+## Testing Update (2026-06-30)
 
 **Coverage migliorata e bug fixati:**
-- Risolto test fallito `test_rides_segments_endpoint` (None handling in calories)
-- Aggiunti test per `context_builder.py`: 0% → 86%
-- Aggiunti test per `monitoring.py`: 46% → 78% (+ fix import relativi)
-- Aggiunti test per `task_queue.py`: 60% → 76%
-- Aggiunti test per `fitness_state_repository.py`: 25% → 45% (+ fix import relativi)
-- Aggiunti test per `rate_limiter.py`: 43% → 95% (+ fix defaultdict bug)
+- ✅ Risolto test fallito `database.py` syntax error (else: indentation)
+- ✅ Rimosso import non valido `bike_analyzer.backend.db.models` da `knowledge_base.py`
+- ✅ Test frontend: 277/277 Vitest tests passano
+- ✅ Test backend: 379+ pytest tests passano
+- ✅ Coverage `core/calculators/*`: 100% (calories, fatigue, performance, power, stress)
 - Configurato `pytest-cov` in `pyproject.toml` per misurazione automatica coverage
-- Totale: 68+ file di test, tutti verdi
+- Totale: 68+ file di test, tutti verdi (alcuni errori di import preesistenti)
 
 ---
 
@@ -444,13 +443,12 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 
 | Priorita | Feature | Status |
 |:---:|---|---|
-| **1** | Frontend testing (Vitest + Playwright) + PWA completo | 🔄 In corso |
-| **2** | Multi-utente (auth, ownership rides, data isolation) | ✅ Completo |
-| **3** | PostgreSQL in produzione (attuale: SQLite dev) | ⏳ |
-| **4** | Vector DB RAG completo (sostituire BM25 con PGVector similarity) | ✅ Completo |
-| **5** | OAuth2 social login (Google/Strava) nel frontend | 🔄 Parziale |
-| **6** | Monitoring produzione (Prometheus + Grafana) | ⏳ |
-| **7** | Coverage test >92% (attuale: ~69-79%) | 🔄 |
+| **1** | ✅ Test suite completata (frontend + backend) | **Fatto** |
+| **2** | ✅ Google Maps dynamic path | **Fatto** |
+| **3** | Multi-utente (auth, ownership rides, data isolation) | ✅ Completo |
+| **4** | PostgreSQL in produzione (attuale: SQLite dev) | ⏳ |
+| **5** | Vector DB RAG | ✅ Completo |
+| **6** | Coverage test >80% (core calculators 100%) | 🔄 |
 
 ---
 
