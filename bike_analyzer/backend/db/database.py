@@ -227,7 +227,7 @@ def init_db():
             FOREIGN KEY (ride_id) REFERENCES rides(id),
             FOREIGN KEY (athlete_id) REFERENCES athletes(id)
         )""")
-        conn.commit()
+conn.commit()
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(rides)")
         ride_cols = [row[1] for row in cur.fetchall()]
@@ -251,6 +251,12 @@ def init_db():
         cal_cols = [row[1] for row in cur.fetchall()]
         if "tenant_id" not in cal_cols:
             conn.execute("ALTER TABLE calendar_events ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        if "weather_temp" not in cal_cols:
+            conn.execute("ALTER TABLE calendar_events ADD COLUMN weather_temp REAL")
+        if "weather_humidity" not in cal_cols:
+            conn.execute("ALTER TABLE calendar_events ADD COLUMN weather_humidity REAL")
+        if "weather_description" not in cal_cols:
+            conn.execute("ALTER TABLE calendar_events ADD COLUMN weather_description TEXT")
         cur.execute("PRAGMA table_info(training_stress_days)")
         stress_cols = [row[1] for row in cur.fetchall()]
         if "tenant_id" not in stress_cols:
