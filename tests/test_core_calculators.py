@@ -268,6 +268,16 @@ class TestNormalizedPower:
         np = normalized_power_approx(r)
         assert np > 0
 
+    def test_low_hr_and_speed(self):
+        r = _ride(heart_rate_avg=100, avg_speed_kmh=10)
+        np = normalized_power_approx(r)
+        assert np > 0
+
+    def test_zero_if_for_tss(self):
+        r = _ride(duration_minutes=60, heart_rate_avg=None, avg_speed_kmh=0)
+        tss = training_stress_score(r, ftp=250)
+        assert tss == 0.0
+
 
 class TestIntensityFactor:
     def test_basic(self):
