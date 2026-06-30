@@ -557,3 +557,24 @@ class TestValidators:
         data = {"name": "Test", "age": 25, "weight_kg": 65.0, "experience_level": "Beginner"}
         profile = validate_athlete_profile_partial(data)
         assert profile.experience_level == "Beginner"
+
+
+class TestDashboardGenerator:
+    def test_generate_dashboard_html(self):
+        import tempfile
+        import os
+        from bike_analyzer.frontend.dashboard import DASHBOARD_HTML, generate_dashboard_html
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = generate_dashboard_html(f"{tmpdir}/test_dashboard.html")
+            assert os.path.exists(path)
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+            assert "BikeMaster" in content
+            assert "<!DOCTYPE html>" in content
+
+    def test_dashboard_html_content(self):
+        from bike_analyzer.frontend.dashboard import DASHBOARD_HTML
+        assert "🚴" in DASHBOARD_HTML
+        assert "loadRides" in DASHBOARD_HTML
+        assert "fetchWeather" in DASHBOARD_HTML
