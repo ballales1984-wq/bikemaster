@@ -52,6 +52,19 @@ from bike_analyzer.backend.maps.google_maps import (
     create_google_static_map,
     SpeedColorSegment,
 )
+from bike_analyzer.backend.analytics.power_model import (
+    normalized_power,
+    intensity_factor,
+    variability_index,
+    efficiency_factor,
+    training_stress_score,
+    calculate_power_zones,
+    calculate_power_profile,
+    estimate_ftp_from_20min,
+    estimate_critical_power,
+    detect_aerobic_decoupling,
+    calculate_advanced_power_metrics,
+)
 
 
 def _ride(**kwargs):
@@ -708,3 +721,58 @@ class TestGoogleMapsBuilder:
         ]
         result = create_google_static_map(pts, "test-mock-key", colored=True)
         assert result == "google_map.png"
+
+
+class TestPowerModel:
+    def test_normalized_power_basic(self):
+        watts = [200.0] * 50
+        np = normalized_power(watts, window_size=30)
+        assert np > 0
+
+    def test_normalized_power_empty(self):
+        assert normalized_power([]) == 0.0
+
+    def test_intensity_factor(self):
+        assert intensity_factor(200.0, 250.0) > 0
+
+    def test_variability_index(self):
+        assert variability_index(220, 200) > 1
+
+    def test_efficiency_factor(self):
+        assert efficiency_factor(200, 150) > 0
+
+    def test_training_stress_score(self):
+        tss = training_stress_score(200, 0.8, 1.0)
+        assert tss > 0
+
+    def test_calculate_power_zones(self):
+        pts = [
+            GPSPoint(lat=45.0, lon=9.0, power=200.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+            GPSPoint(lat=45.1, lon=9.1, power=250.0, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
+        ]
+        zones = calculate_power_zones(pts, 250.0)
+        assert "Z1" in zones
+
+    def test_calculate_advanced_power_metrics(self):
+        pts = [
+            GPSPoint(lat=45.0, lon=9.0, power=200.0, heart_rate=150.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+            GPSPoint(lat=45.1, lon=9.1, power=250.0, heart_rate=160.0, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
+        ]
+        metrics = calculate_advanced_power_metrics(pts, ftp=250)
+        assert metrics["available"] is True
+
+    def test_calculate_power_profile_empty(self):
+        result = calculate_power_profile([])
+        assert all(v is None for v in result.values())
+
+    def test_estimate_ftp_from_20min_none(self):
+        assert estimate_ftp_from_20min([]) == 0.0
+
+    def test_estimate_critical_power_none(self):
+        result = estimate_critical_power([])
+        assert result["cp_w"] == 0.0
+
+    def test_detect_aerobic_decoupling_short(self):
+        pts = [GPSPoint(lat=45.0, lon=9.0, power=200.0, heart_rate=150, timestamp=datetime(2024, 1, 1, tzinfo=UTC)) for _ in range(10)]
+        result = detect_aerobic_decoupling(pts, ftp=250)
+        assert result["significant"] is False
