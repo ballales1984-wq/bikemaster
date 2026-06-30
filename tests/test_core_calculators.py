@@ -2,6 +2,9 @@
 
 from datetime import UTC, date, datetime
 
+from fastapi import HTTPException
+from pydantic import ValidationError
+
 import pytest
 
 from bike_analyzer.core.calculators.calories import calories_met, calories_physics, estimate, per_km
@@ -21,7 +24,14 @@ from bike_analyzer.core.calculators.power import intensity_factor, normalized_po
 from bike_analyzer.core.calculators.stress import ewma
 from bike_analyzer.core.engine import AnalysisEngine, EngineResult
 from bike_analyzer.core.fitness_state import FitnessStateVector, TrainingStressDay
-from pydantic import ValidationError
+from bike_analyzer.backend.rate_limiter import (
+    RateLimitConfig,
+    _is_trusted_proxy,
+    check_user_rate_limit,
+    get_limiter_key,
+    limiter,
+    rate_limit_dependency,
+)
 
 from bike_analyzer.core.models import AthleteProfile, GPSPoint, Ride
 from bike_analyzer.core.validation import ValidatedAthleteProfile, ValidatedGPSPoint, ValidatedRide
@@ -578,3 +588,48 @@ class TestDashboardGenerator:
         assert "🚴" in DASHBOARD_HTML
         assert "loadRides" in DASHBOARD_HTML
         assert "fetchWeather" in DASHBOARD_HTML
+
+
+class TestRateLimiter:
+    def test_is_trusted_proxy_localhost(self):
+        assert _is_trusted_proxy("127.0.0.1") is True
+
+    def test_is_trusted_proxy_private(self):
+        assert _is_trusted_proxy("192.168.1.1") is True
+
+    def test_is_trusted_proxy_public(self):
+        assert _is_trusted_proxy("8.8.8.8") is False
+
+    def test_rate_limit_config_defaults(self):
+        cfg = RateLimitConfig()
+        assert cfg.max_requests == 100
+        assert cfg.window_seconds == 60
+
+    def test_rate_limit_config_custom(self):
+        cfg = RateLimitConfig(max_requests=50, window_seconds=30)
+        assert cfg.max_requests == 50
+        assert cfg.window_seconds == 30
+
+    def test_check_user_rate_limit_allows(self):
+        cfg = RateLimitConfig(max_requests=5, window_seconds=60)
+        check_user_rate_limit(999, "test", cfg)
+
+    def test_check_user_rate_limit_blocks(self):
+        cfg = RateLimitConfig(max_requests=2, window_seconds=60)
+        check_user_rate_limit(998, "test", cfg)
+        check_user_rate_limit(998, "test", cfg)
+        with pytest.raises(HTTPException):
+            check_user_rate_limit(998, "test", cfg)
+
+    def test_rate_limit_dependency(self):
+        from unittest.mock import MagicMock
+        dep = rate_limit_dependency(max_requests=10, window_seconds=30)
+        mock_user = {"id": "123"}
+        result = dep(mock_user)
+        assert result == mock_user
+
+    def test_is_trusted_proxy_ipv6(self):
+        assert _is_trusted_proxy("::1") is True
+
+    def test_is_trusted_proxy_invalid(self):
+        assert _is_trusted_proxy("not-an-ip") is False
