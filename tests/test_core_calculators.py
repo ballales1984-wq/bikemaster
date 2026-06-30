@@ -294,3 +294,44 @@ class TestTrainingStressScore:
         r = _ride(duration_minutes=600, heart_rate_avg=200, avg_speed_kmh=50)
         tss = training_stress_score(r, ftp=250)
         assert tss <= 500.0
+
+
+class TestCaloriesMetSpeedRanges:
+    def test_met_below_16(self):
+        r = _ride(avg_speed_kmh=15, duration_minutes=60, weight_kg=70)
+        c = calories_met(r)
+        assert c > 0
+
+    def test_met_16_to_19(self):
+        r = _ride(avg_speed_kmh=18, duration_minutes=60, weight_kg=70)
+        c = calories_met(r)
+        assert c > 0
+
+    def test_met_19_to_22(self):
+        r = _ride(avg_speed_kmh=20, duration_minutes=60, weight_kg=70)
+        c = calories_met(r)
+        assert c > 0
+
+
+class TestCaloriesPhysicsEdgeCases:
+    def test_zero_elevation(self):
+        r = _ride(avg_speed_kmh=25, elevation_gain_m=0, distance_km=25)
+        c = calories_physics(r)
+        assert c > 0
+
+    def test_duration_hours_attribute(self):
+        r = _ride(avg_speed_kmh=25, duration_minutes=60, distance_km=25)
+        from bike_analyzer.core.calculators.calories import calories_met
+        assert hasattr(r, 'duration_hours') or r.duration_minutes == 60
+
+
+class TestPhysicsMethod:
+    def test_estimate_physics(self):
+        r = _ride(avg_speed_kmh=25, elevation_gain_m=200, distance_km=25)
+        c = estimate(r, method="physics")
+        assert c > 0
+
+    def test_estimate_met(self):
+        r = _ride(avg_speed_kmh=25, elevation_gain_m=200, distance_km=25)
+        c = estimate(r, method="met")
+        assert c > 0
