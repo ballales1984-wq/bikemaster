@@ -571,7 +571,7 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                  best_segments, medical_notes, equipment, ftp_watts,
                  password_hash, tenant_id, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     athlete.get("name"),
                     athlete.get("email"),
@@ -606,7 +606,7 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                  best_segments, medical_notes, equipment, ftp_watts,
                  password_hash, tenant_id, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     athlete_id,
                     athlete.get("name"),
