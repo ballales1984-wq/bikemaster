@@ -43,6 +43,15 @@ from bike_analyzer.core.validators import (
     validate_ride_for_analysis,
     validate_ride_for_import,
 )
+from bike_analyzer.backend.maps.google_maps import (
+    _interpolate_color,
+    _speed_to_color,
+    _css_to_google_hex,
+    _build_speed_segments,
+    build_speed_colored_path,
+    create_google_static_map,
+    SpeedColorSegment,
+)
 
 
 def _ride(**kwargs):
@@ -633,3 +642,69 @@ class TestRateLimiter:
 
     def test_is_trusted_proxy_invalid(self):
         assert _is_trusted_proxy("not-an-ip") is False
+
+
+class TestGoogleMapsHelpers:
+    def test_interpolate_color_min(self):
+        assert _interpolate_color(0, 0, 30) == "#FFFF00"
+
+    def test_interpolate_color_mid(self):
+        result = _interpolate_color(15, 0, 30)
+        assert result.startswith("#")
+
+    def test_speed_to_color_fast(self):
+        assert _speed_to_color(40) == "#00cc44"
+
+    def test_speed_to_color_medium(self):
+        assert _speed_to_color(20) == "#ddbb00"
+
+    def test_speed_to_color_slow(self):
+        assert _speed_to_color(10) == "#ee8800"
+
+    def test_speed_to_color_none(self):
+        assert _speed_to_color(None) == "#4488ff"
+
+    def test_css_to_google_hex(self):
+        assert _css_to_google_hex("#FF0000") == "0XFF0000"
+
+    def test_css_to_google_hex_prefixed(self):
+        assert _css_to_google_hex("0xABC") == "0xABC"
+
+
+class TestGoogleMapsBuilder:
+    def test_build_speed_colored_path_empty(self):
+        assert build_speed_colored_path([]) == []
+
+    def test_build_speed_colored_path_single(self):
+        pts = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC))]
+        assert build_speed_colored_path(pts) == []
+
+    def test_build_speed_colored_path_multiple(self):
+        pts = [
+            GPSPoint(lat=45.0, lon=9.0, speed=25.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+            GPSPoint(lat=45.1, lon=9.1, speed=30.0, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
+        ]
+        result = build_speed_colored_path(pts)
+        assert len(result) >= 1
+        assert "start" in result[0]
+        assert "end" in result[0]
+
+    def test_create_google_static_map_invalid(self):
+        with pytest.raises(ValueError):
+            create_google_static_map([], "test-mock-key")
+
+    def test_create_google_static_map_mock(self):
+        pts = [
+            GPSPoint(lat=45.0, lon=9.0, speed=25.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+            GPSPoint(lat=45.1, lon=9.1, speed=30.0, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
+        ]
+        result = create_google_static_map(pts, "test-mock-key")
+        assert result == "google_map.png"
+
+    def test_create_google_static_map_colored_mock(self):
+        pts = [
+            GPSPoint(lat=45.0, lon=9.0, speed=25.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
+            GPSPoint(lat=45.1, lon=9.1, speed=30.0, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
+        ]
+        result = create_google_static_map(pts, "test-mock-key", colored=True)
+        assert result == "google_map.png"
