@@ -23,8 +23,16 @@ from bike_analyzer.core.engine import AnalysisEngine, EngineResult
 from bike_analyzer.core.fitness_state import FitnessStateVector, TrainingStressDay
 from pydantic import ValidationError
 
-from bike_analyzer.core.models import GPSPoint, Ride
+from bike_analyzer.core.models import AthleteProfile, GPSPoint, Ride
 from bike_analyzer.core.validation import ValidatedAthleteProfile, ValidatedGPSPoint, ValidatedRide
+from bike_analyzer.core.validators import (
+    BusinessValidationError,
+    validate_athlete_profile,
+    validate_athlete_profile_partial,
+    validate_gps_points,
+    validate_ride_for_analysis,
+    validate_ride_for_import,
+)
 
 
 def _ride(**kwargs):
@@ -503,3 +511,49 @@ class TestValidatedAthleteProfile:
     def test_invalid_weight(self):
         with pytest.raises(ValidationError):
             ValidatedAthleteProfile(name="Test", age=30, weight_kg=250, experience_level="Intermediate")
+
+
+class TestValidators:
+    def test_validate_ride_for_analysis(self):
+        ride_data = {
+            "athlete_id": 1,
+            "date": "2024-06-15",
+            "distance_km": 25.0,
+            "duration_minutes": 60.0,
+            "gps_points": [],
+        }
+        ride = validate_ride_for_analysis(ride_data)
+        assert isinstance(ride, Ride)
+        assert ride.athlete_id == 1
+
+    def test_validate_ride_for_import(self):
+        ride_data = {"athlete_id": 1, "date": "2024-06-15", "distance_km": 25, "duration_minutes": 60}
+        ride = validate_ride_for_import(ride_data)
+        assert isinstance(ride, Ride)
+
+    def test_validate_ride_invalid(self):
+        with pytest.raises(BusinessValidationError):
+            validate_ride_for_analysis({"athlete_id": -1, "date": "2024-06-15", "distance_km": 25, "duration_minutes": 60})
+
+    def test_validate_gps_points_too_few(self):
+        with pytest.raises(BusinessValidationError):
+            validate_gps_points([{"lat": 45.0, "lon": 9.0, "timestamp": "2024-01-01T00:00:00Z"}])
+
+    def test_validate_gps_points_valid(self):
+        pts = [
+            {"lat": 45.0, "lon": 9.0, "timestamp": "2024-01-01T00:00:00Z"},
+            {"lat": 45.1, "lon": 9.1, "timestamp": "2024-01-01T00:01:00Z"},
+        ]
+        result = validate_gps_points(pts)
+        assert len(result) == 2
+
+    def test_validate_athlete_profile(self):
+        data = {"name": "Test Rider", "age": 30, "weight_kg": 70.0, "experience_level": "Intermediate"}
+        profile = validate_athlete_profile(data)
+        assert isinstance(profile, AthleteProfile)
+        assert profile.name == "Test Rider"
+
+    def test_validate_athlete_profile_partial(self):
+        data = {"name": "Test", "age": 25, "weight_kg": 65.0, "experience_level": "Beginner"}
+        profile = validate_athlete_profile_partial(data)
+        assert profile.experience_level == "Beginner"
