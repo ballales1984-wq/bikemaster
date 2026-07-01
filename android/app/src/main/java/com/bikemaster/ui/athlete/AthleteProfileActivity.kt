@@ -27,9 +27,13 @@ class AthleteProfileActivity : AppCompatActivity() {
     private fun loadAthlete() {
         lifecycleScope.launch {
             try {
+<<<<<<< Updated upstream
                 val response = ApiClient.getApi(this@AthleteProfileActivity).getAthletes()
                 response.values.flatten().firstOrNull()?.let { athlete ->
                     athleteId = athlete.id
+=======
+                ApiClient.getApi(this@AthleteProfileActivity).getAthletes().values.flatten().firstOrNull()?.let { athlete ->
+>>>>>>> Stashed changes
                     displayAthlete(athlete)
                 }
             } catch (e: Exception) {

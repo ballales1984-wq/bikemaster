@@ -92,9 +92,14 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
             return
         }
 
+<<<<<<< Updated upstream
         val outputPath = getDefaultFilePath()
         currentOutputPath = outputPath
         BikeTrackingService.startService(this, outputPath)
+=======
+        currentOutputPath = getDefaultFilePath()
+        BikeTrackingService.startService(this, currentOutputPath ?: return)
+>>>>>>> Stashed changes
         binding.btnStart.isEnabled = false
         binding.btnStop.isEnabled = true
         binding.btnPause.isEnabled = true
@@ -175,6 +180,10 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
                     binding.btnStart.isEnabled = true
                     binding.btnStop.isEnabled = false
                     binding.btnPause.isEnabled = false
+<<<<<<< Updated upstream
+=======
+                    binding.btnPause.text = "Pausa"
+>>>>>>> Stashed changes
                 }
             }
         }
@@ -184,15 +193,16 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
         binding.distanceText.text = String.format("%.2f km", state.distance)
         binding.durationText.text = formatDuration(state.elapsedTime)
         binding.speedText.text = String.format("%.1f km/h", state.avgSpeed)
+        binding.btnPause.text = if (state.isPaused) "Riprendi" else "Pausa"
         state.heartRate?.let { binding.heartRateText.text = it.toString() }
         state.cadence?.let { binding.cadenceText.text = it.toString() }
         state.power?.let { binding.powerText.text = it.toString() }
 
         val latest = trackingPoints.lastOrNull()
-        if (latest != null) {
+        if (::googleMap.isInitialized && latest != null) {
             googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latest, 16f))
         }
-        if (state.lastLatitude != null && state.lastLongitude != null) {
+        if (::googleMap.isInitialized && state.lastLatitude != null && state.lastLongitude != null) {
             addPoint(state.lastLatitude, state.lastLongitude)
         }
     }
@@ -216,7 +226,13 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
                 PolylineOptions().add(point).color(getColor(R.color.purple_500)).width(8f)
             )
         } else {
+<<<<<<< Updated upstream
             polyline?.setPoints(trackingPoints)
+=======
+            val points = polyline?.points?.toMutableList() ?: mutableListOf()
+            points.add(point)
+            polyline?.points = points
+>>>>>>> Stashed changes
             polyline
         }
     }

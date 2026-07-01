@@ -68,6 +68,12 @@ class Settings(BaseSettings):
     serpapi_base_url: str = "https://serpapi.com/search"
     nominatim_base_url: str = "https://nominatim.openstreetmap.org"
 
+    # === Google Health ===
+    google_health_scope: str = (
+        "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly "
+        "https://www.googleapis.com/auth/googlehealth.location.readonly"
+    )
+
     # === Google Fit ===
     google_fit_scope: str = (
         "https://www.googleapis.com/auth/fitness.activity.read "

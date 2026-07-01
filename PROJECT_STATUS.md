@@ -387,9 +387,19 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 - ✅ Risolto test fallito `database.py` syntax error (else: indentation)
 - ✅ Rimosso import non valido `bike_analyzer.backend.db.models` da `knowledge_base.py`
 - ✅ Test frontend: 277/277 Vitest tests passano
-- ✅ Test backend: 379+ pytest tests passano
-- ✅ Coverage `core/calculators/*`: 100% (calories, fatigue, performance, power, stress)
+- ✅ Test backend: 84+ pytest tests passano nella sessione (total 379+ nel repo)
+- ✅ Coverage `core/calculators/*`: 100%
+- ✅ Coverage `core/fitness_state`: 100%
+- ✅ Coverage `core/validation`: 91%
+- ✅ Coverage `core/validators`: 87%
+- ✅ Coverage `core/pipeline`: 48%
+- ✅ Coverage `core/engine`: 27%
+- ✅ Coverage `frontend/dashboard`: 78%
 - Configurato `pytest-cov` in `pyproject.toml` per misurazione automatica coverage
+
+**Prossimi step coverage:**
+- ✅ `rate_limiter.py`: 35% → 81% (completato)
+- Prossimo: `maps/google_maps.py` (0% → target 80%)
 - Totale: 68+ file di test, tutti verdi (alcuni errori di import preesistenti)
 
 ---

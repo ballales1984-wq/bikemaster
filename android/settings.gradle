@@ -2,7 +2,11 @@ pluginManagement {
     repositories {
         google()
         mavenCentral()
+<<<<<<< Updated upstream
         maven { url = uri("https://www.jitpack.io") }
+=======
+        maven { url 'https://jitpack.io' }
+>>>>>>> Stashed changes
         gradlePluginPortal()
     }
 }
@@ -16,4 +20,8 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "BikeMaster"
+<<<<<<< Updated upstream
 include ":app"
+=======
+include ':app'
+>>>>>>> Stashed changes
