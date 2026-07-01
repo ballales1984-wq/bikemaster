@@ -1,0 +1,44 @@
+{
+  "name": "bikemaster-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "e2e": "playwright test",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
+  },
+  "dependencies": {
+    "@capacitor/android": "^5.7.4",
+    "@capacitor/core": "^5.7.4",
+    "chart.js": "^4.5.1",
+    "leaflet": "^1.9.4",
+    "leaflet.heat": "^0.2.0",
+    "pinia": "^2.3.1",
+    "vue": "^3.4.0",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^5.7.4",
+    "@playwright/test": "^1.60.0",
+    "@tsconfig/node-lts": "^24.0.0",
+    "@vitejs/plugin-vue": "^4.5.0",
+    "@vitest/coverage-v8": "^1.6.1",
+    "@vue/eslint-config-prettier": "^9.0.0",
+    "@vue/eslint-config-typescript": "^13.0.0",
+    "@vue/test-utils": "^2.4.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-vue": "^9.0.0",
+    "jsdom": "^22.1.0",
+    "playwright": "^1.60.0",
+    "typescript": "^6.0.3",
+    "vite": "^5.4.0",
+    "vite-plugin-pwa": "0.16.7",
+    "vitest": "^1.4.0"
+  }
+}

@@ -1,9 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-<<<<<<< Updated upstream
 import type { GpsPoint } from '../types/index'
-=======
->>>>>>> Stashed changes
 
 export const useTrackingStore = defineStore('tracking', () => {
   const isTracking = ref(false)
