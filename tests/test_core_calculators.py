@@ -20,7 +20,9 @@ from bike_analyzer.core.calculators.performance import (
     performance_score,
     recovery_score,
 )
-from bike_analyzer.core.calculators.power import intensity_factor as intensity_factor_core, normalized_power_approx, training_stress_score as training_stress_score_core
+from bike_analyzer.core.calculators.power import intensity_factor as core_intensity_factor
+from bike_analyzer.core.calculators.power import normalized_power_approx
+from bike_analyzer.core.calculators.power import training_stress_score as tss_from_ride
 from bike_analyzer.core.calculators.stress import ewma
 from bike_analyzer.core.engine import AnalysisEngine, EngineResult
 from bike_analyzer.core.fitness_state import FitnessStateVector, TrainingStressDay
@@ -54,10 +56,10 @@ from bike_analyzer.backend.maps.google_maps import (
 )
 from bike_analyzer.backend.analytics.power_model import (
     normalized_power,
-    intensity_factor as intensity_factor_power_model,
+    intensity_factor as power_intensity_factor,
     variability_index,
     efficiency_factor,
-    training_stress_score as training_stress_score_power_model,
+    training_stress_score as tss_from_values,
     calculate_power_zones,
     calculate_power_profile,
     estimate_ftp_from_20min,
@@ -327,34 +329,34 @@ class TestNormalizedPower:
 
     def test_zero_if_for_tss(self):
         r = _ride(duration_minutes=60, heart_rate_avg=None, avg_speed_kmh=0)
-        tss = training_stress_score_core(r, ftp=250)
+        tss = tss_from_ride(r, ftp=250)
         assert tss == 0.0
 
 
 class TestIntensityFactor:
     def test_basic(self):
         r = _ride(heart_rate_avg=150, avg_speed_kmh=25)
-        if_ = intensity_factor_core(r, ftp=250)
+        if_ = core_intensity_factor(r, ftp=250)
         assert 0 <= if_ <= 1.0
 
     def test_zero_ftp(self):
         r = _ride()
-        assert intensity_factor_core(r, ftp=0) == 0.0
+        assert core_intensity_factor(r, ftp=0) == 0.0
 
 
 class TestTrainingStressScore:
     def test_basic(self):
         r = _ride(duration_minutes=60, heart_rate_avg=150, avg_speed_kmh=25)
-        tss = training_stress_score_core(r, ftp=250)
+        tss = tss_from_ride(r, ftp=250)
         assert tss > 0
 
     def test_zero_duration(self):
         r = _ride(duration_minutes=0)
-        assert training_stress_score_core(r) == 0.0
+        assert tss_from_ride(r) == 0.0
 
     def test_capped_at_500(self):
         r = _ride(duration_minutes=600, heart_rate_avg=200, avg_speed_kmh=50)
-        tss = training_stress_score_core(r, ftp=250)
+        tss = tss_from_ride(r, ftp=250)
         assert tss <= 500.0
 
 
@@ -665,8 +667,13 @@ class TestRateLimiter:
 
 
 class TestGoogleMapsHelpers:
-    def test_interpolate_color_min(self):
-        assert _interpolate_color(30, 30, 30) == "#FFFF00"
+    def test_interpolate_color_equal_bounds(self):
+        result = _interpolate_color(30, 30, 30)
+        assert result == "#FFFF00"
+
+    def test_interpolate_color_min_ratio(self):
+        result = _interpolate_color(0, 0, 30)
+        assert result.startswith("#")
 
     def test_interpolate_color_mid(self):
         result = _interpolate_color(15, 0, 30)
@@ -740,7 +747,7 @@ class TestPowerModel:
         assert normalized_power([]) == 0.0
 
     def test_intensity_factor(self):
-        assert intensity_factor_power_model(200.0, 250.0) > 0
+        assert power_intensity_factor(200.0, 250.0) > 0
 
     def test_variability_index(self):
         assert variability_index(220, 200) > 1
@@ -749,7 +756,7 @@ class TestPowerModel:
         assert efficiency_factor(200, 150) > 0
 
     def test_training_stress_score(self):
-        tss = training_stress_score_power_model(200, 0.8, 1.0)
+        tss = tss_from_values(200, 0.8, 1.0)
         assert tss > 0
 
     def test_calculate_power_zones(self):
