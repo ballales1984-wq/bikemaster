@@ -225,9 +225,9 @@ def init_db():
             route_length_km REAL,
             computed_at TEXT,
             FOREIGN KEY (ride_id) REFERENCES rides(id),
-            FOREIGN KEY (athlete_id) REFERENCES athletes(id)
-        )""")
-conn.commit()
+FOREIGN KEY (athlete_id) REFERENCES athletes(id)
+         )""")
+        conn.commit()
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(rides)")
         ride_cols = [row[1] for row in cur.fetchall()]
@@ -1084,20 +1084,21 @@ def delete_calendar_event(event_id: int, tenant_id: int | None = None) -> bool:
 
 
 def _row_to_calendar_event(row) -> dict:
+    keys = row.keys() if hasattr(row, "keys") else []
     return {
-        "id": row[0],
-        "athlete_id": row[1],
-        "tenant_id": row[2] if len(row) > 2 else 0,
-        "title": row[3] if len(row) > 3 else None,
-        "event_type": row[4] if len(row) > 4 else "training",
-        "date": row[5] if len(row) > 5 else None,
-        "duration_minutes": row[6] if len(row) > 6 else 0,
-        "description": row[7] if len(row) > 7 else None,
-        "completed": bool(row[8]) if len(row) > 8 else False,
-        "weather_temp": row[9] if len(row) > 9 else None,
-        "weather_humidity": row[10] if len(row) > 10 else None,
-        "weather_description": row[11] if len(row) > 11 else None,
-        "created_at": row[12] if len(row) > 12 else None,
+        "id": row["id"] if "id" in keys else (row[0] if len(row) > 0 else None),
+        "athlete_id": row["athlete_id"] if "athlete_id" in keys else (row[1] if len(row) > 1 else 0),
+        "tenant_id": row["tenant_id"] if "tenant_id" in keys else (row[2] if len(row) > 2 else 0),
+        "title": row["title"] if "title" in keys else (row[3] if len(row) > 3 else None),
+        "event_type": row["event_type"] if "event_type" in keys else (row[4] if len(row) > 4 else "training"),
+        "date": row["date"] if "date" in keys else (row[5] if len(row) > 5 else None),
+        "duration_minutes": row["duration_minutes"] if "duration_minutes" in keys else (row[6] if len(row) > 6 else 0),
+        "description": row["description"] if "description" in keys else (row[7] if len(row) > 7 else None),
+        "completed": row["completed"] if "completed" in keys else (bool(row[8]) if len(row) > 8 else False),
+        "weather_temp": row["weather_temp"] if "weather_temp" in keys else (row[9] if len(row) > 9 else None),
+        "weather_humidity": row["weather_humidity"] if "weather_humidity" in keys else (row[10] if len(row) > 10 else None),
+        "weather_description": row["weather_description"] if "weather_description" in keys else (row[11] if len(row) > 11 else None),
+        "created_at": row["created_at"] if "created_at" in keys else (row[12] if len(row) > 12 else None),
     }
 
 

@@ -16,6 +16,10 @@ class AddRideDialog(private val activity: Activity, private val onRideAdded: (Ri
             AddRideDialog(activity, onRideAdded).show()
         }
     }
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     private lateinit var binding: DialogAddRideBinding
     
     fun show() {

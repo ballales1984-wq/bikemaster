@@ -53,6 +53,7 @@ SERPAPI_API_KEY = _s.serpapi_api_key
 SERPAPI_ENGINE = _s.serpapi_engine
 SERPAPI_BASE_URL = _s.serpapi_base_url
 NOMINATIM_BASE_URL = _s.nominatim_base_url
+GOOGLE_HEALTH_SCOPE = _s.google_health_scope
 GOOGLE_FIT_SCOPE = _s.google_fit_scope
 KB_PATH = _s.kb_path
 AI_COACH_MODE = _s.ai_coach_mode

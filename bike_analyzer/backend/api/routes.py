@@ -241,6 +241,12 @@ def _google_fit_message_html(message: dict) -> HTMLResponse:
     )
 
 
+def _google_health_message_html(message: dict) -> HTMLResponse:
+    return HTMLResponse(
+        f"<script>window.opener.postMessage({json.dumps(message)}, '*'); window.close();</script>"
+    )
+
+
 @router.get("/health")
 async def health_check():
     return {"status": "ok", "service": "bikemaster"}
@@ -1281,6 +1287,98 @@ async def google_fit_auth(
     _validate_redirect_uri(redirect_uri)
     auth_url = get_authorization_url(google_client_id, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
+
+
+@router.get("/import/google-health/auth")
+@limiter.limit("10/minute")
+async def google_health_auth(
+    request: Request,
+    redirect_uri: str | None = Query(None),
+    state: str = Query(""),
+):
+    from ..config import GOOGLE_CLIENT_ID
+    from ..ingestion.google_health import get_authorization_url
+
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
+    redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-health/callback")
+    _validate_redirect_uri(redirect_uri)
+    auth_url = get_authorization_url(GOOGLE_CLIENT_ID, redirect_uri=redirect_uri, state=state)
+    return {"auth_url": auth_url}
+
+
+@router.get("/import/google-health/callback")
+async def google_health_callback(
+    request: Request,
+    code: str | None = Query(None),
+    error: str | None = Query(None),
+    error_description: str | None = Query(None),
+    redirect_uri: str | None = Query(None),
+    state: str = Query(""),
+):
+    from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+    from ..ingestion.google_health import exchange_code_for_token
+
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Google Health OAuth not configured")
+    redirect_uri = (
+        redirect_uri
+        or _redirect_uri_from_state(state)
+        or _build_redirect_uri(request, "/api/v1/import/google-health/callback")
+    )
+    _validate_redirect_uri(redirect_uri)
+
+    if error:
+        return _google_health_message_html(
+            {
+                "type": "google-health-error",
+                "error": error,
+                "error_description": error_description or "OAuth Google Health fallito",
+            }
+        )
+
+    if not code:
+        return _google_health_message_html(
+            {
+                "type": "google-health-error",
+                "error": "missing_code",
+                "error_description": "Callback OAuth Google Health ricevuto senza codice",
+            }
+        )
+
+    try:
+        token_data = exchange_code_for_token(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
+    except requests.exceptions.HTTPError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=_http_error_detail(exc, "Google Health token exchange failed"),
+        ) from exc
+    access_token = token_data.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Failed to get access token from Google Health")
+
+    token = access_token
+    return _google_health_message_html({"type": "google-health-success", "token": token})
+
+
+@router.post("/import/google-health")
+async def import_google_health(payload: dict, current_user: dict = Depends(get_current_user)):
+    from ..db.database import save_ride
+    from ..ingestion.google_health import google_health_to_rides
+
+    access_token = payload.get("access_token")
+    if not access_token or not isinstance(access_token, str) or len(access_token) > 2048:
+        raise HTTPException(status_code=400, detail="access_token required")
+
+    rides_data = google_health_to_rides(access_token, athlete_id=current_user["id"])
+    imported = []
+    for ride_data in rides_data:
+        ride_data = {k: v for k, v in ride_data.items() if k != "id"}
+        ride_data["athlete_id"] = current_user["id"]
+        ride_id = save_ride(ride_data)
+        ride_data["id"] = int(ride_id)
+        imported.append(ride_data)
+    return {"imported": imported, "count": len(imported)}
 
 
 @router.post("/import/google-fit/token")

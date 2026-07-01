@@ -34,7 +34,21 @@
          {{ importing ? 'Connecting...' : 'Import from Google Fit' }}
        </button>
 
+<<<<<<< Updated upstream
        <div v-if="uploading || uploadProgress > 0" class="progress-track" aria-label="Import progress">
+=======
+      <button @click="connectGoogleHealth" class="btn btn-google-fit" :disabled="importing" type="button">
+        <svg viewBox="0 0 24 24" width="18" height="18" style="margin-right: 6px;">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.76h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c3.05 0 5.84-1.15 7.86-3l-3.57-2.76c-.98.66-2.23 1.06-3.62 1.44v2.26C15.24 21.23 13.71 22 12 22z"/>
+          <path fill="#FBBC05" d="M6.27 15.73a7.5 7.5 0 0 1 0-3.46l2.93-2.27a7.5 7.5 0 0 0 1.74 3.19l-2.93 2.27z"/>
+          <path fill="#EA4335" d="M18.57 6.43a7.5 7.5 0 0 0-6.57-4.43 7.5 7.5 0 0 0-1.57.23l2.93 2.26a4.99 4.99 0 0 1 5.17 4.17z"/>
+        </svg>
+        {{ importing ? 'Connessione...' : 'Importa da Google Health' }}
+      </button>
+
+      <div v-if="uploading || uploadProgress > 0" class="progress-track" aria-label="Avanzamento importazione">
+>>>>>>> Stashed changes
         <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
       </div>
       <div id="import-progress" v-if="status" class="result-box">{{ status }}</div>
@@ -148,6 +162,58 @@ if (!popup) {
           emit('summary-change')
         } else {
           importStatus.value = { success: false, message: 'Google Fit import error' }
+        }
+        importing.value = false
+      }
+    }
+    window.addEventListener('message', handleMessage)
+  } catch (e) {
+    importStatus.value = { success: false, message: e.message }
+    importing.value = false
+  }
+}
+
+async function connectGoogleHealth() {
+  importing.value = true
+  importStatus.value = null
+  try {
+    const redirectUri = `${window.location.origin}/api/v1/import/google-health/callback`
+    const state = btoa(JSON.stringify({ redirect_uri: redirectUri }))
+    const authResp = await fetch(`/api/v1/import/google-health/auth?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`)
+    if (!authResp.ok) {
+      throw new Error('Impossibile iniziare autenticazione Google Health')
+    }
+    const { auth_url } = await authResp.json()
+
+    const popup = window.open(auth_url, 'google-health-auth', 'width=500,height=600')
+    if (!popup) {
+      throw new Error('Popup bloccato - abilita i popup')
+    }
+
+    const handleMessage = async (event) => {
+      if (event.data?.type === 'google-health-error') {
+        window.removeEventListener('message', handleMessage)
+        importStatus.value = {
+          success: false,
+          message: event.data.error_description || event.data.error || 'Errore Google Health'
+        }
+        importing.value = false
+        return
+      }
+
+      if (event.data?.type === 'google-health-success') {
+        window.removeEventListener('message', handleMessage)
+        const importResp = await fetch('/api/v1/import/google-health', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: event.data.token })
+        })
+        if (importResp.ok) {
+          const result = await importResp.json()
+          importStatus.value = { success: true, message: `Importati ${result.count} percorsi da Google Health` }
+          emit('summary-change')
+        } else {
+          importStatus.value = { success: false, message: 'Errore importazione Google Health' }
         }
         importing.value = false
       }
