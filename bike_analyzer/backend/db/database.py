@@ -33,6 +33,7 @@ def get_db_connection():
             conn.row_factory = sqlite3.Row
             try:
                 yield conn
+                conn.commit()
             finally:
                 conn.close()
             return

@@ -130,7 +130,7 @@
 | # | Feature | Status |
 |:---:|---|---|
 | 185 | Vector Database (PGVector) per RAG | ✅ |
-| 186 | Tool calling / function calling | ❌ |
+| 186 | Tool calling / function calling | 🔄 Parziale |
 | 187 | Memory persistente conversazioni per utente | 🔄 Parziale |
 | 188 | Personalizzazione basata su storico completo | ✅ |
 | 189 | Voice input/output | ❌ |
