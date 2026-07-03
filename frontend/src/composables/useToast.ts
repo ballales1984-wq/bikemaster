@@ -26,10 +26,12 @@ function useToast() {
   function error(message: string, ms?: number) { add(message, 'error', ms) }
   function warning(message: string, ms?: number) { add(message, 'warning', ms) }
   function info(message: string, ms?: number) { add(message, 'info', ms) }
+  function show(message: string, type?: string, ms?: number) { add(message, (type as any) || 'info', ms) }
 
   return {
     items,
     add,
+    show,
     remove,
     success,
     error,

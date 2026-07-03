@@ -204,18 +204,24 @@ async function connectGoogleHealth() {
 
       if (event.data?.type === 'google-health-success') {
         window.removeEventListener('message', handleMessage)
+        const token = localStorage.getItem('bikemaster_token')
         const importResp = await fetch('/api/v1/import/google-health', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
           body: JSON.stringify({ access_token: event.data.token })
         })
-        if (importResp.ok) {
-          const result = await importResp.json()
-          importStatus.value = { success: true, message: `Importati ${result.count} percorsi da Google Health` }
-          emit('summary-change')
-        } else {
-          importStatus.value = { success: false, message: 'Errore importazione Google Health' }
-        }
+if (importResp.ok) {
+           const result = await importResp.json()
+           importStatus.value = { success: true, message: `Importati ${result.count} percorsi da Google Health` }
+           emit('summary-change')
+         } else if (importResp.status === 401) {
+           importStatus.value = { success: false, message: 'Devi effettuare il login per importare' }
+         } else {
+           importStatus.value = { success: false, message: 'Errore importazione Google Health' }
+         }
         importing.value = false
       }
     }
