@@ -283,6 +283,8 @@ onMounted(() => load().catch(e => { error.value = e.message }))
   justify-content: center;
   margin-bottom: 28px;
   background: var(--bg-secondary);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
@@ -348,6 +350,8 @@ onMounted(() => load().catch(e => { error.value = e.message }))
 
 .dash-card {
   background: var(--bg-secondary);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;

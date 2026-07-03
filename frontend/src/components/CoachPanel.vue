@@ -274,13 +274,15 @@ onMounted(() => init())
 
 .score-pill {
   background: var(--bg-secondary);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 4px 14px;
   display: flex;
   align-items: center;
   gap: 6px;
-}
+ }
 
 .pill-val {
   font-size: 1rem;
