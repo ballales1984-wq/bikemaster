@@ -75,6 +75,8 @@ defineExpose({ add, remove })
   align-items: center;
   gap: 10px;
   backdrop-filter: blur(var(--glass-blur));
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .toast.exiting {
@@ -116,12 +118,12 @@ defineExpose({ add, remove })
 .toast.info .toast-icon { color: var(--accent); }
 
 @keyframes slideIn {
-  from { transform: translateX(380px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from { transform: translate3d(380px, 0, 0); opacity: 0; }
+  to { transform: translate3d(0, 0, 0); opacity: 1; }
 }
 
 @keyframes slideOut {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(380px); opacity: 0; }
+  from { transform: translate3d(0, 0, 0); opacity: 1; }
+  to { transform: translate3d(380px, 0, 0); opacity: 0; }
 }
 </style>

@@ -12,8 +12,17 @@ if (typeof window !== 'undefined') {
 }
 
 export function usePWA() {
-  function prompt() {
-    return deferredPrompt.value?.prompt()
+  async function prompt() {
+    const evt = deferredPrompt.value
+    if (!evt) return
+    evt.preventDefault()
+    await evt.prompt()
+    const { outcome } = await evt.userChoice
+    if (outcome !== 'accepted') {
+      deferredPrompt.value = null
+      showPrompt.value = false
+    }
+    return outcome
   }
   return { showPrompt, deferredPrompt, prompt }
 }
