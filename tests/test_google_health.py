@@ -43,6 +43,8 @@ class TestGetAuthorizationUrl:
     def test_scope_present(self):
         url = get_authorization_url("cid")
         assert "scope=" in url
+        assert "health.activity.read" in url
+        assert "health.location.read" in url
 
     def test_response_type(self):
         url = get_authorization_url("cid")
@@ -108,6 +110,17 @@ class TestFetchExercises:
 
         result = fetch_exercises("token_abc", days=7)
         assert result == []
+
+    @patch("requests.get")
+    def test_raises_on_forbidden(self, mock_get):
+        import requests
+
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.side_effect = requests.HTTPError("403")
+        mock_get.return_value = mock_resp
+
+        with pytest.raises(requests.HTTPError):
+            fetch_exercises("token_abc", days=7)
 
 
 class TestExportExerciseTcx:

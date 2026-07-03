@@ -1370,7 +1370,18 @@ async def import_google_health(payload: dict, current_user: dict = Depends(get_c
     if not access_token or not isinstance(access_token, str) or len(access_token) > 2048:
         raise HTTPException(status_code=400, detail="access_token required")
 
-    rides_data = google_health_to_rides(access_token, athlete_id=current_user["id"])
+    try:
+        rides_data = google_health_to_rides(access_token, athlete_id=current_user["id"])
+    except requests.exceptions.HTTPError as exc:
+        if exc.response is not None and exc.response.status_code == 403:
+            raise HTTPException(
+                status_code=400,
+                detail="Google Health access denied: missing or invalid scopes. Re-authorize with Google Health permissions.",
+            ) from exc
+        raise HTTPException(
+            status_code=502,
+            detail=_http_error_detail(exc, "Google Health import failed"),
+        ) from exc
     imported = []
     for ride_data in rides_data:
         ride_data = {k: v for k, v in ride_data.items() if k != "id"}
