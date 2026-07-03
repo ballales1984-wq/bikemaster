@@ -176,9 +176,9 @@ def _user_id(current_user: dict) -> int:
     return int(current_user["id"])
 
 
-def _public_athlete(athlete: dict | None) -> dict | None:
+def _public_athlete(athlete: dict | None) -> dict:
     if athlete is None:
-        return None
+        return {}
     return {k: v for k, v in athlete.items() if k != "password_hash"}
 
 
