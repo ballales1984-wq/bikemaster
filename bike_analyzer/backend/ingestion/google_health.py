@@ -8,7 +8,10 @@ import xml.etree.ElementTree as ET
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from ..config import GOOGLE_HEALTH_SCOPE
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+
+from ..config import GOOGLE_HEALTH_CLIENT_ID, GOOGLE_HEALTH_CLIENT_SECRET, GOOGLE_HEALTH_SCOPE
 from .gps_parser import points_to_ride
 
 GOOGLE_HEALTH_API_BASE = "https://health.googleapis.com/v4"
@@ -25,6 +28,7 @@ def get_authorization_url(
         "access_type": "offline",
         "include_granted_scopes": "true",
         "state": state,
+        "prompt": "consent",
     }
     return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
 
@@ -49,6 +53,29 @@ def exchange_code_for_token(
     return resp.json()
 
 
+def _build_credentials(token_data: dict) -> Credentials:
+    return Credentials(
+        token=token_data.get("access_token", ""),
+        refresh_token=token_data.get("refresh_token", ""),
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=GOOGLE_HEALTH_CLIENT_ID,
+        client_secret=GOOGLE_HEALTH_CLIENT_SECRET,
+        scopes=GOOGLE_HEALTH_SCOPE.split(),
+    )
+
+
+def validate_and_refresh_token(token_data: dict) -> dict:
+    creds = _build_credentials(token_data)
+    if creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+    return {
+        "access_token": creds.token,
+        "refresh_token": creds.refresh_token or token_data.get("refresh_token", ""),
+        "expires_at": int(creds.expiry.timestamp()) if creds.expiry else 0,
+        "scope": " ".join(creds.scopes or []),
+    }
+
+
 def fetch_exercises(access_token: str, days: int = 180) -> list[dict]:
     import requests
 
@@ -70,6 +97,10 @@ def fetch_exercises(access_token: str, days: int = 180) -> list[dict]:
     exercises: list[dict] = []
     while url:
         resp = requests.get(url, headers=headers, params=params, timeout=20)
+        if resp.status_code == 403:
+            raise requests.exceptions.HTTPError(
+                "403 Client Error: Forbidden for url: %s" % resp.url, response=resp
+            )
         resp.raise_for_status()
         data = resp.json()
         exercises.extend(data.get("dataPoints", []))

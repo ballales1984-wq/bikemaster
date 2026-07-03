@@ -147,7 +147,6 @@ async function connectGoogleFit() {
 
       if (event.data?.type === 'google-fit-success') {
         window.removeEventListener('message', handleMessage)
-        // Import activities
         const token = localStorage.getItem('bikemaster_token')
         const importResp = await fetch('/api/v1/import/google-fit', {
           method: 'POST',
@@ -155,7 +154,10 @@ async function connectGoogleFit() {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {})
           },
-          body: JSON.stringify({ access_token: event.data.token })
+          body: JSON.stringify({
+            access_token: event.data.token,
+            refresh_token: event.data.refresh_token || ''
+          })
         })
         if (importResp.ok) {
           const result = await importResp.json()
@@ -211,17 +213,20 @@ async function connectGoogleHealth() {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {})
           },
-          body: JSON.stringify({ access_token: event.data.token })
+          body: JSON.stringify({
+            access_token: event.data.token,
+            refresh_token: event.data.refresh_token || ''
+          })
         })
-if (importResp.ok) {
-           const result = await importResp.json()
-           importStatus.value = { success: true, message: `Importati ${result.count} percorsi da Google Health` }
-           emit('summary-change')
-         } else if (importResp.status === 401) {
-           importStatus.value = { success: false, message: 'Devi effettuare il login per importare' }
-         } else {
-           importStatus.value = { success: false, message: 'Errore importazione Google Health' }
-         }
+        if (importResp.ok) {
+          const result = await importResp.json()
+          importStatus.value = { success: true, message: `Importati ${result.count} percorsi da Google Health` }
+          emit('summary-change')
+        } else if (importResp.status === 401) {
+          importStatus.value = { success: false, message: 'Devi effettuare il login per importare' }
+        } else {
+          importStatus.value = { success: false, message: 'Errore importazione Google Health' }
+        }
         importing.value = false
       }
     }

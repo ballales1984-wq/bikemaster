@@ -1270,19 +1270,18 @@ async def update_athlete(
 
 
 @router.get("/import/google-fit/auth")
-@limiter.limit("10/minute")
 async def google_fit_auth(
     request: Request,
     client_id: str | None = Query(None),
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
-    from ..config import GOOGLE_CLIENT_ID
+    from ..config import GOOGLE_FIT_CLIENT_ID
     from ..ingestion.google_fit import get_authorization_url
 
-    google_client_id = client_id or GOOGLE_CLIENT_ID
+    google_client_id = client_id or GOOGLE_FIT_CLIENT_ID
     if not google_client_id:
-        raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
+        raise HTTPException(status_code=500, detail="Google Fit OAuth not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
     _validate_redirect_uri(redirect_uri)
     auth_url = get_authorization_url(google_client_id, redirect_uri=redirect_uri, state=state)
@@ -1296,14 +1295,14 @@ async def google_health_auth(
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
-    from ..config import GOOGLE_CLIENT_ID
+    from ..config import GOOGLE_HEALTH_CLIENT_ID
     from ..ingestion.google_health import get_authorization_url
 
-    if not GOOGLE_CLIENT_ID:
-        raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
+    if not GOOGLE_HEALTH_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="Google Health OAuth not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-health/callback")
     _validate_redirect_uri(redirect_uri)
-    auth_url = get_authorization_url(GOOGLE_CLIENT_ID, redirect_uri=redirect_uri, state=state)
+    auth_url = get_authorization_url(GOOGLE_HEALTH_CLIENT_ID, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
 
 
@@ -1316,10 +1315,10 @@ async def google_health_callback(
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
-    from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+    from ..config import GOOGLE_HEALTH_CLIENT_ID, GOOGLE_HEALTH_CLIENT_SECRET
     from ..ingestion.google_health import exchange_code_for_token
 
-    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+    if not GOOGLE_HEALTH_CLIENT_ID or not GOOGLE_HEALTH_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google Health OAuth not configured")
     redirect_uri = (
         redirect_uri
@@ -1347,31 +1346,60 @@ async def google_health_callback(
         )
 
     try:
-        token_data = exchange_code_for_token(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
+        token_data = exchange_code_for_token(GOOGLE_HEALTH_CLIENT_ID, GOOGLE_HEALTH_CLIENT_SECRET, code, redirect_uri)
     except requests.exceptions.HTTPError as exc:
+        if exc.response is not None and exc.response.status_code == 400:
+            body = exc.response.text or ""
+            if "invalid_grant" in body:
+                return _google_health_message_html(
+                    {
+                        "type": "google-health-error",
+                        "error": "invalid_grant",
+                        "error_description": "Codice OAuth non valido o scaduto. Riprova l'autorizzazione.",
+                    }
+                )
         raise HTTPException(
-            status_code=400,
+            status_code=502,
             detail=_http_error_detail(exc, "Google Health token exchange failed"),
         ) from exc
     access_token = token_data.get("access_token")
     if not access_token:
         raise HTTPException(status_code=400, detail="Failed to get access token from Google Health")
 
-    token = access_token
-    return _google_health_message_html({"type": "google-health-success", "token": token})
+    return _google_health_message_html({
+        "type": "google-health-success",
+        "token": access_token,
+        "refresh_token": token_data.get("refresh_token", ""),
+    })
 
 
 @router.post("/import/google-health")
 async def import_google_health(payload: dict, current_user: dict = Depends(get_current_user)):
     from ..db.database import save_ride
     from ..ingestion.google_health import google_health_to_rides
+    from ..ingestion.google_oauth_store import get_valid_google_token, store_google_token
+
+    athlete_id = int(current_user["id"])
 
     access_token = payload.get("access_token")
-    if not access_token or not isinstance(access_token, str) or len(access_token) > 2048:
-        raise HTTPException(status_code=400, detail="access_token required")
+    refresh_token = payload.get("refresh_token")
+    if access_token and refresh_token and isinstance(access_token, str) and isinstance(refresh_token, str):
+        try:
+            store_google_token(athlete_id, "google_health", {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+            })
+        except Exception:
+            pass
+
+    stored_token = get_valid_google_token(athlete_id, "google_health")
+    if stored_token:
+        access_token = stored_token
+    elif not access_token or not isinstance(access_token, str) or len(access_token) > 2048:
+        raise HTTPException(status_code=400, detail="access_token required or re-authorize Google Health")
 
     try:
-        rides_data = google_health_to_rides(access_token, athlete_id=current_user["id"])
+        rides_data = google_health_to_rides(access_token, athlete_id=athlete_id)
     except requests.exceptions.HTTPError as exc:
         if exc.response is not None and exc.response.status_code == 403:
             raise HTTPException(
@@ -1385,7 +1413,7 @@ async def import_google_health(payload: dict, current_user: dict = Depends(get_c
     imported = []
     for ride_data in rides_data:
         ride_data = {k: v for k, v in ride_data.items() if k != "id"}
-        ride_data["athlete_id"] = current_user["id"]
+        ride_data["athlete_id"] = athlete_id
         ride_id = save_ride(ride_data)
         ride_data["id"] = int(ride_id)
         imported.append(ride_data)
@@ -1398,9 +1426,11 @@ async def google_fit_exchange_token(
     payload: dict,
     current_user: dict = Depends(get_current_user),
 ):
+    from ..config import GOOGLE_FIT_CLIENT_ID, GOOGLE_FIT_CLIENT_SECRET
     from ..ingestion.google_fit import exchange_code_for_token
 
-    client_id = payload.get("client_id", "")
+    client_id = payload.get("client_id") or GOOGLE_FIT_CLIENT_ID
+    client_secret = payload.get("client_secret") or GOOGLE_FIT_CLIENT_SECRET
     if not client_id or not isinstance(client_id, str) or len(client_id) > 256:
         raise HTTPException(status_code=400, detail="Invalid client_id")
 
@@ -1412,11 +1442,18 @@ async def google_fit_exchange_token(
     try:
         token_data = exchange_code_for_token(
             client_id,
-            payload.get("client_secret", ""),
+            client_secret,
             payload.get("code"),
             redirect_uri,
         )
     except requests.exceptions.HTTPError as exc:
+        if exc.response is not None and exc.response.status_code == 400:
+            body = exc.response.text or ""
+            if "invalid_grant" in body:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Codice OAuth non valido o scaduto. Riprova l'autorizzazione.",
+                ) from exc
         raise HTTPException(
             status_code=400,
             detail=_http_error_detail(exc, "Google Fit token exchange failed"),
@@ -1438,10 +1475,10 @@ async def google_fit_callback(
     state: str = Query(""),
 ):
     """Handle Google Fit OAuth callback - exchange code for token."""
-    from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+    from ..config import GOOGLE_FIT_CLIENT_ID, GOOGLE_FIT_CLIENT_SECRET
     from ..ingestion.google_fit import exchange_code_for_token
 
-    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+    if not GOOGLE_FIT_CLIENT_ID or not GOOGLE_FIT_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google Fit OAuth not configured")
     redirect_uri = (
         redirect_uri
@@ -1474,7 +1511,7 @@ async def google_fit_callback(
         return HTMLResponse(content=cached_result["html"])
 
     try:
-        token_data = exchange_code_for_token(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
+        token_data = exchange_code_for_token(GOOGLE_FIT_CLIENT_ID, GOOGLE_FIT_CLIENT_SECRET, code, redirect_uri)
     except requests.exceptions.HTTPError as exc:
         response = getattr(exc, "response", None)
         if response is not None and response.status_code == 400:
@@ -1506,7 +1543,7 @@ async def google_fit_callback(
             }
         )
 
-    payload = {"type": "google-fit-success", "token": access_token}
+    payload = {"type": "google-fit-success", "token": access_token, "refresh_token": token_data.get("refresh_token", "")}
     html_content = f"<script>window.opener.postMessage({json.dumps(payload)}, '*'); window.close();</script>"
     await _cache_set(cache_key, {"html": html_content}, ttl=300)
     return HTMLResponse(content=html_content)
@@ -1516,12 +1553,27 @@ async def google_fit_callback(
 async def import_google_fit(payload: dict, current_user: dict = Depends(get_current_user)):
     from ..db.database import save_ride
     from ..ingestion.google_fit import fetch_cycling_activities, google_fit_to_ride
+    from ..ingestion.google_oauth_store import get_valid_google_token, store_google_token
+
+    athlete_id = int(current_user["id"])
 
     access_token = payload.get("access_token")
-    if not access_token or not isinstance(access_token, str) or len(access_token) > 2048:
-        raise HTTPException(status_code=400, detail="access_token required")
-    if not isinstance(payload.get("activities"), list | type(None)):
-        raise HTTPException(status_code=422, detail="Invalid payload structure")
+    refresh_token = payload.get("refresh_token")
+    if access_token and refresh_token and isinstance(access_token, str) and isinstance(refresh_token, str):
+        try:
+            store_google_token(athlete_id, "google_fit", {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+            })
+        except Exception:
+            pass
+
+    stored_token = get_valid_google_token(athlete_id, "google_fit")
+    if stored_token:
+        access_token = stored_token
+    elif not access_token or not isinstance(access_token, str) or len(access_token) > 2048:
+        raise HTTPException(status_code=400, detail="access_token required or re-authorize Google Fit")
+
     activities = fetch_cycling_activities(access_token)
     rides_data = google_fit_to_ride(activities)
     imported = []
@@ -1529,8 +1581,8 @@ async def import_google_fit(payload: dict, current_user: dict = Depends(get_curr
 
     for ride_data in rides_data:
         ride_data = {k: v for k, v in ride_data.items() if k != "id"}
-        ride_data["athlete_id"] = current_user["id"]
-        ride_data["tenant_id"] = current_user["id"]
+        ride_data["athlete_id"] = athlete_id
+        ride_data["tenant_id"] = athlete_id
         ride_id = save_ride(ride_data)
         ride_data["id"] = int(ride_id)
         imported.append(ride_data)

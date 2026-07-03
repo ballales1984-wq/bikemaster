@@ -5,7 +5,10 @@ from __future__ import annotations
 import urllib.parse
 from datetime import UTC, datetime
 
-from ..config import GOOGLE_FIT_SCOPE
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+
+from ..config import GOOGLE_FIT_CLIENT_ID, GOOGLE_FIT_CLIENT_SECRET, GOOGLE_FIT_SCOPE
 
 
 def get_authorization_url(
@@ -18,6 +21,7 @@ def get_authorization_url(
         "scope": GOOGLE_FIT_SCOPE,
         "access_type": "offline",
         "state": state,
+        "prompt": "consent",
     }
     return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
 
@@ -40,6 +44,29 @@ def exchange_code_for_token(
     )
     resp.raise_for_status()
     return resp.json()
+
+
+def _build_credentials(token_data: dict) -> Credentials:
+    return Credentials(
+        token=token_data.get("access_token", ""),
+        refresh_token=token_data.get("refresh_token", ""),
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=GOOGLE_FIT_CLIENT_ID,
+        client_secret=GOOGLE_FIT_CLIENT_SECRET,
+        scopes=GOOGLE_FIT_SCOPE.split(),
+    )
+
+
+def validate_and_refresh_token(token_data: dict) -> dict:
+    creds = _build_credentials(token_data)
+    if creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+    return {
+        "access_token": creds.token,
+        "refresh_token": creds.refresh_token or token_data.get("refresh_token", ""),
+        "expires_at": int(creds.expiry.timestamp()) if creds.expiry else 0,
+        "scope": " ".join(creds.scopes or []),
+    }
 
 
 def _ms_to_iso(ms_str: str | int | None) -> str:

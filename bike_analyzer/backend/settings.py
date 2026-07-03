@@ -151,6 +151,12 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
+    # === Google Fit / Google Health OAuth2 (fallback to generic Google client) ===
+    google_fit_client_id: str = ""
+    google_fit_client_secret: str = ""
+    google_health_client_id: str = ""
+    google_health_client_secret: str = ""
+
 _settings: Settings | None = None
 
 
