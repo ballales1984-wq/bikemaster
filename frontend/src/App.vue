@@ -172,6 +172,7 @@ onMounted(() => {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: logoGlow 3s ease-in-out infinite alternate;
+  will-change: filter;
 }
 @keyframes logoGlow {
   from { filter: brightness(1); }

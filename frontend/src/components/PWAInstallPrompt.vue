@@ -19,17 +19,14 @@ const { showPrompt, deferredPrompt, prompt } = usePWA()
 
 async function install() {
   if (!deferredPrompt.value) return
-  await prompt()
-  const { outcome } = await deferredPrompt.value.userChoice
+  const outcome = await prompt()
   if (outcome === 'accepted') {
     showPrompt.value = false
   }
-  deferredPrompt.value = null
 }
 
 function dismiss() {
   showPrompt.value = false
-  deferredPrompt.value = null
 }
 </script>
 

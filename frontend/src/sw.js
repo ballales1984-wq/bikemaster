@@ -17,9 +17,6 @@ const RIDE_QUEUE_CACHE = 'bikemaster-ride-queue-v1'
 
 self.addEventListener('install', event => {
   self.skipWaiting()
-  if (self.registration.navigationPreload) {
-    self.registration.navigationPreload.enable()
-  }
   event.waitUntil(
     caches.open(STATIC_CACHE).then(cache => cache.addAll([
       '/index.html',
@@ -30,7 +27,11 @@ self.addEventListener('install', event => {
       '/pwa-512x512.png',
       '/favicon.svg',
       '/apple-touch-icon.png',
-    ])),
+    ])).then(() => {
+      if (self.registration.navigationPreload) {
+        return self.registration.navigationPreload.enable().catch(() => {})
+      }
+    }),
   )
 })
 
