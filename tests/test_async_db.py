@@ -208,9 +208,8 @@ async def test_save_athlete_async_default_values():
     athlete = {"name": "Min Athlete"}
     athlete_id = await async_db.save_athlete_async(athlete)
 
-    from sqlalchemy import select
-
     from bike_analyzer.backend.db.models import AthleteModel
+    from sqlalchemy import select
 
     session = await async_db.get_async_session()
     async with session as s:

@@ -2,10 +2,6 @@
 
 import pytest
 
-from bike_analyzer.backend.ingestion import _INGESTION_ATTRS
-from bike_analyzer.backend.maps import _MAP_ATTRS
-from bike_analyzer.backend.processing import _PROCESSING_ATTRS
-from bike_analyzer.backend.traffic import _TRAFFIC_ATTRS
 from bike_analyzer.backend.events import (
     AthleteUpdated,
     BadgeEarned,
@@ -93,6 +89,7 @@ class TestEventsPackage:
 
     def test_events_subscribe(self):
         import asyncio
+
         from bike_analyzer.backend.events import (
             clear_handlers,
             publish,
@@ -111,10 +108,8 @@ class TestEventsPackage:
         clear_handlers()
 
     def test_clear_handlers(self):
-        import asyncio
         from bike_analyzer.backend.events import (
             clear_handlers,
-            publish,
             subscribe,
         )
 
@@ -129,6 +124,7 @@ class TestEventsPackage:
 
     def test_multiple_handlers(self):
         import asyncio
+
         from bike_analyzer.backend.events import (
             clear_handlers,
             publish,

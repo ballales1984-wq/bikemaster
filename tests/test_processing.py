@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timedelta
 
+from bike_analyzer.backend.models.models import GPSPoint
 from bike_analyzer.backend.processing.processing import (
     ACCEL_THRESHOLD_KM_H_S,
     DECEL_THRESHOLD_KM_H_S,
@@ -20,7 +20,6 @@ from bike_analyzer.backend.processing.processing import (
     validate_coordinate,
     validate_gps_point,
 )
-from bike_analyzer.backend.models.models import GPSPoint, haversine_distance_m
 
 
 def make_point(lat: float, lon: float, speed: float | None = None,

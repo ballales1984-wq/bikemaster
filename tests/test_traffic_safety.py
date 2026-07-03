@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 from bike_analyzer.backend.traffic.safety_analyzer import (
-    _BIKE_INFRASTRUCTURE_BONUS,
-    _INCIDENT_PENALTY_PER_KM,
-    _ROAD_SAFETY_WEIGHTS,
     analyze_route_safety,
     compute_risk_score,
 )

@@ -14,11 +14,11 @@ from bike_analyzer.backend.ingestion.google_health import (
     _strip_ns,
     _summary_from_exercise,
     exchange_code_for_token,
+    export_exercise_tcx,
     fetch_exercises,
     get_authorization_url,
     google_health_to_ride,
     google_health_to_rides,
-    export_exercise_tcx,
     tcx_to_points,
 )
 

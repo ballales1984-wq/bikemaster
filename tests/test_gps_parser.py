@@ -7,7 +7,6 @@ import pytest
 
 from bike_analyzer.backend.ingestion.gps_parser import parse_gpx_file, points_to_ride
 
-
 SAMPLE_GPX = """<?xml version="1.0" encoding="UTF-8"?>
 <gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1">
   <trk>

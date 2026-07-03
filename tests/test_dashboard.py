@@ -3,8 +3,6 @@
 import os
 import tempfile
 
-import pytest
-
 from bike_analyzer.frontend.dashboard import DASHBOARD_HTML, generate_dashboard_html
 
 

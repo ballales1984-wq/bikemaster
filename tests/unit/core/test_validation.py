@@ -15,7 +15,6 @@ from bike_analyzer.core.validators import (
     validate_ride_for_import,
 )
 
-
 # ============================================================
 # ValidatedGPSPoint
 # ============================================================

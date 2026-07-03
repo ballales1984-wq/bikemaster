@@ -2,18 +2,14 @@
 
 import hashlib
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from bike_analyzer.backend.redis_client import (
     cache,
-    cache_delete,
     cache_key,
-    cache_set,
     check_rate_limit,
-    close_redis,
-    get_redis,
     rate_limit_key,
 )
 

@@ -7,11 +7,9 @@ All settings are loaded from environment variables with sensible defaults.
 from __future__ import annotations
 
 import logging
-import os
-import sys
 from pathlib import Path
 
-from pydantic import Field, model_validator
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

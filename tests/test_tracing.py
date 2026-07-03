@@ -2,9 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from bike_analyzer.backend.tracing import OTLP_AVAILABLE, setup_tracing
+from bike_analyzer.backend.tracing import setup_tracing
 
 
 class TestSetupTracing:

@@ -2,11 +2,46 @@
 
 from datetime import UTC, date, datetime
 
+import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-import pytest
-
+from bike_analyzer.backend.analytics.power_model import (
+    calculate_advanced_power_metrics,
+    calculate_power_profile,
+    calculate_power_zones,
+    detect_aerobic_decoupling,
+    efficiency_factor,
+    estimate_critical_power,
+    estimate_ftp_from_20min,
+    normalized_power,
+    variability_index,
+)
+from bike_analyzer.backend.analytics.power_model import (
+    intensity_factor as power_intensity_factor,
+)
+from bike_analyzer.backend.analytics.power_model import (
+    training_stress_score as tss_from_values,
+)
+from bike_analyzer.backend.analytics.training_load import (
+    calculate_atl_ctl_tsb,
+    calculate_rss,
+    get_7day_fitness_summary,
+    get_current_training_status,
+)
+from bike_analyzer.backend.maps.google_maps import (
+    _css_to_google_hex,
+    _interpolate_color,
+    _speed_to_color,
+    build_speed_colored_path,
+    create_google_static_map,
+)
+from bike_analyzer.backend.rate_limiter import (
+    RateLimitConfig,
+    _is_trusted_proxy,
+    check_user_rate_limit,
+    rate_limit_dependency,
+)
 from bike_analyzer.core.calculators.calories import calories_met, calories_physics, estimate, per_km
 from bike_analyzer.core.calculators.fatigue import (
     calculate_fatigue_score,
@@ -26,15 +61,6 @@ from bike_analyzer.core.calculators.power import training_stress_score as tss_fr
 from bike_analyzer.core.calculators.stress import ewma
 from bike_analyzer.core.engine import AnalysisEngine, EngineResult
 from bike_analyzer.core.fitness_state import FitnessStateVector, TrainingStressDay
-from bike_analyzer.backend.rate_limiter import (
-    RateLimitConfig,
-    _is_trusted_proxy,
-    check_user_rate_limit,
-    get_limiter_key,
-    limiter,
-    rate_limit_dependency,
-)
-
 from bike_analyzer.core.models import AthleteProfile, GPSPoint, Ride
 from bike_analyzer.core.validation import ValidatedAthleteProfile, ValidatedGPSPoint, ValidatedRide
 from bike_analyzer.core.validators import (
@@ -44,35 +70,6 @@ from bike_analyzer.core.validators import (
     validate_gps_points,
     validate_ride_for_analysis,
     validate_ride_for_import,
-)
-from bike_analyzer.backend.maps.google_maps import (
-    _interpolate_color,
-    _speed_to_color,
-    _css_to_google_hex,
-    _build_speed_segments,
-    build_speed_colored_path,
-    create_google_static_map,
-    SpeedColorSegment,
-)
-from bike_analyzer.backend.analytics.power_model import (
-    normalized_power,
-    intensity_factor as power_intensity_factor,
-    variability_index,
-    efficiency_factor,
-    training_stress_score as tss_from_values,
-    calculate_power_zones,
-    calculate_power_profile,
-    estimate_ftp_from_20min,
-    estimate_critical_power,
-    detect_aerobic_decoupling,
-    calculate_advanced_power_metrics,
-)
-from bike_analyzer.backend.analytics.training_load import (
-    TrainingLoadDay,
-    calculate_rss,
-    calculate_atl_ctl_tsb,
-    get_current_training_status,
-    get_7day_fitness_summary,
 )
 
 
@@ -385,7 +382,6 @@ class TestCaloriesPhysicsEdgeCases:
 
     def test_duration_hours_attribute(self):
         r = _ride(avg_speed_kmh=25, duration_minutes=60, distance_km=25)
-        from bike_analyzer.core.calculators.calories import calories_met
         assert hasattr(r, 'duration_hours') or r.duration_minutes == 60
 
 
@@ -602,9 +598,10 @@ class TestValidators:
 
 class TestDashboardGenerator:
     def test_generate_dashboard_html(self):
-        import tempfile
         import os
-        from bike_analyzer.frontend.dashboard import DASHBOARD_HTML, generate_dashboard_html
+        import tempfile
+
+        from bike_analyzer.frontend.dashboard import generate_dashboard_html
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = generate_dashboard_html(f"{tmpdir}/test_dashboard.html")
@@ -653,7 +650,6 @@ class TestRateLimiter:
             check_user_rate_limit(998, "test", cfg)
 
     def test_rate_limit_dependency(self):
-        from unittest.mock import MagicMock
         dep = rate_limit_dependency(max_requests=10, window_seconds=30)
         mock_user = {"id": "123"}
         result = dep(mock_user)

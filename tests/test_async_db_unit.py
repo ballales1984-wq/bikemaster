@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from bike_analyzer.backend.db.async_db import (
     _get_engine,
     _ride_model_to_dict,

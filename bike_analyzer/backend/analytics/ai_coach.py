@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import json
 import logging
 import os
 import re
@@ -416,7 +417,6 @@ def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete
             record_ai_coach_query("fallback", "fallback")
             return _generate_fallback_training_advice(athlete, rides)
 
-        model = GROQ_MODEL if provider == "groq" else OLLAMA_MODEL if provider == "ollama" else OPENAI_MODEL
         try:
             messages = [{"role": "user", "content": prompt}]
             result = chat_with_tools(messages, athlete_id=athlete_id, athlete=athlete, rides=rides)
@@ -920,5 +920,5 @@ def chat_with_tools(
             ).choices[0].message
 
         return {"content": response.content or ""}
-    except Exception as e:
+    except Exception:
         raise

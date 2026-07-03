@@ -1,7 +1,5 @@
 """Tests for PostgreSQL database layer with SQLAlchemy."""
 import pytest
-from sqlalchemy.exc import IntegrityError
-
 from bike_analyzer.backend.db.postgres_db import (
     SQLALCHEMY_AVAILABLE,
     AthleteModel,
@@ -22,6 +20,7 @@ from bike_analyzer.backend.db.postgres_db import (
     save_training_goal,
     save_training_load,
 )
+from sqlalchemy.exc import IntegrityError
 
 
 @pytest.fixture

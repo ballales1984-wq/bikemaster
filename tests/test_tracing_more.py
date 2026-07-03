@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from bike_analyzer.backend.tracing import OTLP_AVAILABLE, setup_tracing
 from bike_analyzer.backend.monitoring import MetricsMiddleware
+from bike_analyzer.backend.tracing import setup_tracing
 
 
 class TestMetricsMiddleware:

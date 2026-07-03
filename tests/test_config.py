@@ -2,14 +2,12 @@
 
 import os
 
-import pytest
-
 
 def test_dev_mode_uses_sqlite_default():
     os.environ["SECRET_KEY"] = "test-secret-key-at-least-32-chars-long-123456"
     os.environ["ENVIRONMENT"] = "development"
     os.environ.pop("DATABASE_URL", None)
-    from bike_analyzer.backend.config import DB_PATH, DATABASE_URL
+    from bike_analyzer.backend.config import DB_PATH
 
     assert "rides.db" in DB_PATH or DB_PATH.endswith(".db")
 
@@ -20,7 +18,6 @@ def test_config_exposes_expected_constants():
         ACCESS_TOKEN_EXPIRE_MINUTES,
         ALGORITHM,
         CORS_ORIGINS,
-        DB_PATH,
         GROQ_MODEL,
         OPENAI_MODEL,
         SECRET_KEY,
@@ -43,6 +40,5 @@ def test_production_without_database_url_logs_warning(caplog):
         import bike_analyzer.backend.settings as settings_mod
 
         settings_mod._settings = None
-        from bike_analyzer.backend.config import DATABASE_URL
 
         assert any("DATABASE_URL" in str(r.message) for r in caplog.records)
