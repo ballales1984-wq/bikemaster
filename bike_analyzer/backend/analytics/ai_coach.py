@@ -418,7 +418,9 @@ def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete
 
         model = GROQ_MODEL if provider == "groq" else OLLAMA_MODEL if provider == "ollama" else OPENAI_MODEL
         try:
-            content = _chat_completion_text(client, model, prompt, 500)
+            messages = [{"role": "user", "content": prompt}]
+            result = chat_with_tools(messages, athlete_id=athlete_id, athlete=athlete, rides=rides)
+            content = result.get("content", "")
             from ..monitoring import record_ai_coach_query
 
             record_ai_coach_query(provider, "success")
@@ -810,13 +812,17 @@ def chat_with_tools(
     messages: list[dict],
     athlete_id: int | None = None,
     session_factory=None,
+    athlete: AthleteProfile | None = None,
+    rides: list[Ride] | None = None,
 ) -> dict:
-    """LLM chat completion with tool calling support.
+    """LLM chat completion with tool calling support and execution loop.
 
     Args:
         messages: List of chat messages with {role, content}
         athlete_id: Athlete ID for context and persistence
         session_factory: Async session factory for tool execution
+        athlete: AthleteProfile for tool execution context
+        rides: List of Ride for tool execution context
 
     Returns:
         {"content": str, "tool_calls": list} or {"content": str} if no tools called
@@ -833,33 +839,86 @@ def chat_with_tools(
 
     tools = [GENERATE_WORKOUT_PLAN_TOOL, ANALYZE_ANOMALIES_TOOL]
 
+    tool_map = {
+        "generate_workout_plan": lambda args: generate_training_plan(
+            athlete or AthleteProfile(name="Atleta"),
+            int(args.get("days", 7)),
+            bool(args.get("include_recovery", True)),
+        ),
+        "analyze_anomalies": lambda args: analyze_anomalies(rides or []),
+    }
+
+    def _execute_tool_calls(tool_calls: list) -> list[dict]:
+        results = []
+        for tc in tool_calls:
+            func_name = tc.function.name
+            func_args = {}
+            if tc.function.arguments:
+                try:
+                    func_args = json.loads(tc.function.arguments)
+                except json.JSONDecodeError:
+                    func_args = {}
+            if func_name in tool_map:
+                try:
+                    result = tool_map[func_name](func_args)
+                    results.append({
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "content": json.dumps(result) if not isinstance(result, str) else result,
+                    })
+                except Exception as exc:
+                    logger.warning("Tool execution failed %s: %s", func_name, exc)
+                    results.append({
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "content": json.dumps({"error": str(exc)}),
+                    })
+            else:
+                results.append({
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "content": json.dumps({"error": f"Unknown tool: {func_name}"}),
+                })
+        return results
+
     try:
-        chat = client.chat.completions.create(
+        tool_calls = []
+        response = client.chat.completions.create(
             model=model,
             messages=messages,
             tools=tools,
-        )
-        response = chat.choices[0].message
+        ).choices[0].message
 
         if hasattr(response, "tool_calls") and response.tool_calls:
-            tool_results = []
-            for tc in response.tool_calls:
-                if tc.function.name == "generate_workout_plan":
-                    tool_results.append({"generate_workout_plan": tc.function.arguments})
-                elif tc.function.name == "analyze_anomalies":
-                    tool_results.append({"analyze_anomalies": tc.function.arguments})
+            tool_calls = response.tool_calls
+            messages.append({
+                "role": "assistant",
+                "content": response.content or "",
+                "tool_calls": [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments,
+                        },
+                    }
+                    for tc in tool_calls
+                ],
+            })
+
+            tool_results = _execute_tool_calls(tool_calls)
+            messages.extend(tool_results)
 
             if athlete_id:
                 from ..db.database import save_chat_message
-
                 save_chat_message(athlete_id, "assistant", str(tool_results))
 
-            return {"tool_calls": tool_results}
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+            ).choices[0].message
+
         return {"content": response.content or ""}
     except Exception as e:
-        logger.warning("Tool calling failed: %s", e)
-        return {
-            "content": _generate_fallback_training_advice(
-                AthleteProfile(name="Atleta", weight_kg=70, experience_level="Beginner"), []
-            )
-        }
+        raise
