@@ -1,9 +1,7 @@
 services:
   - type: web
     name: bikemaster-api
-    runtime: python
-    buildCommand: cd frontend && npm install && npm run build && cd .. && rm -rf bike_analyzer/backend/static && mkdir -p bike_analyzer/backend/static && cp -r frontend/dist/. bike_analyzer/backend/static/ && pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: python main.py api --port $PORT
+    runtime: docker
     envVars:
       - key: SECRET_KEY
         generateValue: true
