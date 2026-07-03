@@ -1,10 +1,7 @@
 """Tests for security module."""
 
-import hashlib
-import hmac
-import time
-from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import timedelta
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -15,6 +12,8 @@ from bike_analyzer.backend.security import (
     JWT_AUDIENCE,
     JWT_ISSUER,
     SECRET_KEY,
+    _generate_totp_secret,
+    _hotp,
     create_access_token,
     create_refresh_token,
     decode_token,
@@ -23,18 +22,16 @@ from bike_analyzer.backend.security import (
     generate_totp,
     get_refresh_token,
     get_totp_secret,
+    get_totp_secret_key,
     hash_password,
     is_token_revoked,
+    provisioning_uri,
     revoke_refresh_token,
     revoke_token,
     save_refresh_token,
     save_totp_secret,
     verify_password,
     verify_totp,
-    _generate_totp_secret,
-    _hotp,
-    get_totp_secret_key,
-    provisioning_uri,
 )
 
 

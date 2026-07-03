@@ -5,11 +5,7 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from bike_analyzer.backend.maps.serpapi_maps import (
-    SERPAPI_API_KEY,
-    SERPAPI_BASE_URL,
     _wait_for_rate_limit,
     get_local_results,
     search_nearby,

@@ -7,8 +7,6 @@ import time
 from ..config import (
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
-    GOOGLE_FIT_SCOPE,
-    GOOGLE_HEALTH_SCOPE,
 )
 
 _GOOGLE_TOKEN_TABLE = """

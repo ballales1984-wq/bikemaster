@@ -3,8 +3,6 @@
 import time
 from unittest.mock import patch
 
-import pytest
-
 from bike_analyzer.backend.ingestion.google_fit import (
     _ms_to_iso,
     fetch_cycling_activities,
@@ -42,7 +40,7 @@ class TestMsToIso:
     def test_recent_timestamp(self):
         ms = int(time.time() * 1000)
         result = _ms_to_iso(ms)
-        from datetime import UTC, datetime
+        from datetime import datetime
         dt = datetime.fromisoformat(result)
         assert dt.year >= 2024
 

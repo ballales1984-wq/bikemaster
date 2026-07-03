@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from bike_analyzer.backend.db.api_compat import get_athlete_by_query
 
 

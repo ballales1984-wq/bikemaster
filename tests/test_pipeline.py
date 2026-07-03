@@ -3,8 +3,6 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from bike_analyzer.core.models import GPSPoint, Ride
 from bike_analyzer.core.pipeline import AnalysisPipeline, PipelineResult
 

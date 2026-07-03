@@ -16,15 +16,14 @@ from bike_analyzer.backend.ingestion.google_oauth_store import (
     store_google_token,
 )
 
-
 os.environ.setdefault("GOOGLE_CLIENT_ID", "test-client-id")
 os.environ.setdefault("GOOGLE_CLIENT_SECRET", "test-client-secret")
 
 
 @pytest.fixture(autouse=True)
 def _db_path(db_path):
-    import bike_analyzer.backend.db.database as db_mod
     import bike_analyzer.backend.config as cfg_mod
+    import bike_analyzer.backend.db.database as db_mod
 
     os.environ["DB_PATH"] = db_path
     cfg_mod.DB_PATH = db_path

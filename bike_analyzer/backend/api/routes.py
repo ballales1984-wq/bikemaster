@@ -13,7 +13,6 @@ from typing import Any
 from urllib.parse import urlencode, urlparse
 
 import requests
-from sqlalchemy import insert
 from fastapi import (
     APIRouter,
     Body,
@@ -26,6 +25,7 @@ from fastapi import (
 )
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import insert
 
 from ..analytics.analytics import calculate_summary
 from ..analytics.badges import calculate_badges, get_heatmap_points
@@ -299,9 +299,10 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     )
 
     if DATABASE_URL:
+        from sqlalchemy import select
+
         from ..db.async_db import get_session_factory
         from ..db.models import UserModel
-        from sqlalchemy import select
 
         session_factory = get_session_factory()
         async with session_factory() as session:
@@ -423,9 +424,10 @@ async def register(
         raise HTTPException(status_code=400, detail="Username must be >= 3 chars, password >= 6")
 
     if DATABASE_URL:
+        from sqlalchemy import select
+
         from ..db.async_db import get_session_factory
         from ..db.models import AthleteModel, UserModel
-        from sqlalchemy import select
 
         session_factory = get_session_factory()
         async with session_factory() as session:
@@ -549,8 +551,8 @@ async def update_profile(
     profile_data: dict = Body(...),
     current_user: dict = Depends(get_current_user),
 ):
-    from ..db.database import update_athlete as _update_athlete
     from ..db.database import get_athlete as _get_athlete
+    from ..db.database import update_athlete as _update_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     allowed_fields = {"name", "email", "age", "weight_kg", "height_cm",
@@ -1404,7 +1406,10 @@ async def import_google_health(payload: dict, current_user: dict = Depends(get_c
         if exc.response is not None and exc.response.status_code == 403:
             raise HTTPException(
                 status_code=400,
-                detail="Google Health access denied: missing or invalid scopes. Re-authorize with Google Health permissions.",
+                detail=(
+                    "Google Health access denied: missing or invalid scopes. "
+                    "Re-authorize with Google Health permissions."
+                ),
             ) from exc
         raise HTTPException(
             status_code=502,
@@ -1543,7 +1548,11 @@ async def google_fit_callback(
             }
         )
 
-    payload = {"type": "google-fit-success", "token": access_token, "refresh_token": token_data.get("refresh_token", "")}
+    payload = {
+        "type": "google-fit-success",
+        "token": access_token,
+        "refresh_token": token_data.get("refresh_token", ""),
+    }
     html_content = f"<script>window.opener.postMessage({json.dumps(payload)}, '*'); window.close();</script>"
     await _cache_set(cache_key, {"html": html_content}, ttl=300)
     return HTMLResponse(content=html_content)

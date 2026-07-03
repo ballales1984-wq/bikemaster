@@ -1,12 +1,8 @@
 """Tests for power_model module."""
 
 from datetime import UTC, datetime
-from unittest.mock import MagicMock
-
-import pytest
 
 from bike_analyzer.backend.analytics.power_model import (
-    POWER_ZONES_COGGAN,
     calculate_power_zones,
     efficiency_factor,
     intensity_factor,

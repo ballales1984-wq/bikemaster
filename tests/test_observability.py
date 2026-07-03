@@ -5,11 +5,7 @@ from __future__ import annotations
 import sys
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from bike_analyzer.backend.observability import (
-    ZIPKIN_AVAILABLE,
-    OTLP_AVAILABLE,
     _patch_fastapi_instrumentation,
     init_observability,
 )

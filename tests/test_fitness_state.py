@@ -2,8 +2,6 @@
 
 from datetime import UTC, datetime
 
-import pytest
-
 from bike_analyzer.core.fitness_state import FitnessStateVector, TrainingStressDay
 
 

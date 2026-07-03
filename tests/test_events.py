@@ -3,14 +3,13 @@
 import pytest
 
 from bike_analyzer.backend.events import (
+    AthleteUpdated,
     BadgeEarned,
     RideCreated,
     TrainingGenerated,
-    AthleteUpdated,
     clear_handlers,
     publish,
     subscribe,
-    STRICT_MODE,
 )
 
 

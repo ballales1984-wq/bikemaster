@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import math
-
 import pytest
 
 from bike_analyzer.backend.analytics.advanced import (
-    ENDURANCE_METRICS_AVAILABLE,
     CLIMB_CATEGORIES,
     POWER_CONSTANTS,
     analyze_elevation_profile,

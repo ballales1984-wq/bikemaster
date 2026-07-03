@@ -5,14 +5,11 @@ from __future__ import annotations
 import base64
 import hashlib
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
 
 from bike_analyzer.backend.ingestion.strava_client import (
-    _STRAVA_PER_PAGE,
-    _ensure_token_table,
     build_authorization_url,
     exchange_code_for_token,
     fetch_activities,
