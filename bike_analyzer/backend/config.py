@@ -118,3 +118,8 @@ GARMIN_API_BASE_URL = "https://apis.garmin.com/fitness/v1"
 # === Google OAuth2 ===
 GOOGLE_CLIENT_ID = _s.google_client_id
 GOOGLE_CLIENT_SECRET = _s.google_client_secret
+
+GOOGLE_FIT_CLIENT_ID = _s.google_fit_client_id or _s.google_client_id
+GOOGLE_FIT_CLIENT_SECRET = _s.google_fit_client_secret or _s.google_client_secret
+GOOGLE_HEALTH_CLIENT_ID = _s.google_health_client_id or _s.google_client_id
+GOOGLE_HEALTH_CLIENT_SECRET = _s.google_health_client_secret or _s.google_client_secret

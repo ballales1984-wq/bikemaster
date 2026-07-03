@@ -2,14 +2,18 @@
 
 ## Stato Attuale
 
-**Completati: 145/145 step base + 60/80 estensioni**
+**Completati: 145/145 base + 63/80 estensioni**
 
-> **Stato**: Late Beta / Early Production — test suite completata, serving coverage >80%.
+> **Stato**: Late Beta / Early Production — multi-tenant completato, deploy in produzione su Render.
 
 ---
 
 ## ✅ Completati di recente (post-1.3.0)
 
+- [x] **Multi-tenant Support** — tenant_id across DB, routes, JWT, full data isolation
+- [x] **Docker Hardening** — Multi-stage build with non-root user, healthcheck, Render deployment
+- [x] **Security Hardening** — Auth on public endpoints (/knowledge, /traffic), production OAuth redirect fix
+- [x] **Google Health Integration** — OAuth scopes fixed, 403/401 handling in import route
 - [x] **Frontend Authentication** — JWT auth integration, tracking controls, native Android scaffolding
 - [x] **PWA Install Prompt** — Service worker navigate fix, install prompt component
 - [x] **Ride Tracking Updates** — Enhanced GPS tracking with live map updates
@@ -21,7 +25,7 @@
 - [x] **Garmin Connect Integration** — OAuth2 + activity fetch + normalization
 - [x] **Vector Database** — PGVector wrapper + TF-IDF fallback for RAG
 - [x] **Google OAuth2** — Auth endpoints + session creation
-- [x] **Security Hardening** — CSP, HSTS, X-Frame-Options, slowapi rate limiting, Docker hardening
+- [x] **Security Hardening** — CSP, HSTS, X-Frame-Options, slowapi rate limiting
 - [x] **Frontend Modernization** — Vue 3 + Vite + TypeScript + Pinia + Router + Composables
 - [x] **Error Handling** — ErrorBoundary component + ErrorState UI
 - [x] **Playwright E2E** — E2E test suite configured
@@ -158,7 +162,7 @@
 
 | # | Feature | Status |
 |:---:|---|---|
-| 203 | Multi-utente completo | ⏳ |
+| 203 | Multi-utente + tenant isolation | ✅ |
 | 204 | Versione cloud hosted | ❌ |
 | 205 | Helm chart Kubernetes | ❌ |
 | 206 | One-click deploy (Railway, Fly.io, Vercel) | ❌ |
@@ -197,7 +201,7 @@
 | # | Feature | Status |
 |:---:|---|---|
 | 235 | PGVector per embedder RAG | ✅ |
-| 236 | Tool calling per AI Coach | ❌ |
+| 236 | Tool calling per AI Coach | 🔄 Parziale |
 | 237 | Memory persistente conversazioni per utente | 🔄 Parziale |
 | 238 | Weekly/Monthly training plan generator LLM | ❌ |
 | 239 | Anomaly detection uscite | ❌ |
@@ -220,13 +224,13 @@
 
 | Priorita | Miglioramento | Impatto | Difficolta |
 |:---:|---|---|:---:|
-| **1** | Multi-utente + data isolation | Molto alto | Alta |
-| **2** | Frontend testing suite (Vitest + Playwright E2E attivi) | Molto alto | Media |
+| **1** | Tool calling AI Coach completo + execution loop | Molto alto | Media |
+| **2** | Frontend testing suite (Vitest + Playwright E2E con test attivi) | Molto alto | Media |
 | **3** | PostgreSQL in produzione + connection pooling | Alto | Media |
-| **4** | PWA completa + offline support | Alto | Media |
-| **5** | Vector DB RAG completo (sostituire BM25) | Alto | Media |
-| **6** | Coverage test >90% | Medio-Alto | Alta |
-| **7** | Ruff + mypy + pre-commit | Medio | Bassa |
+| **4** | Anomaly detection uscite + Weekly/Monthly training plan LLM | Alto | Media |
+| **5** | PWA completa + offline support | Alto | Media |
+| **6** | Ruff + mypy + pre-commit | Medio-Alto | Bassa |
+| **7** | Coverage test >90% | Medio | Alta |
 
 ---
 
@@ -239,8 +243,8 @@
 | Container | Docker multi-stage hardened | ✅ |
 | Monitoring | Sentry + Prometheus + Grafana | 🔄 Parziale |
 | Audit | Audit log azioni admin | ❌ |
-| Auth | OAuth2 social login (Google, Strava) | 🔄 Parziale |
-| Multi-user | Data isolation completa | ❌ |
+| Auth | OAuth2 social login (Google, Strava) | ✅ |
+| Multi-user | Data isolation completa | ✅ |
 | AI | Vector DB per RAG | 🔄 Parziale |
 | Frontend | PWA + offline support | 🔄 Parziale |
 | Frontend | Vitest + Playwright E2E | 🔄 Configurato |
@@ -250,4 +254,4 @@
 
 ---
 
-*Ultimo aggiornamento: 2026-06-23*
+*Ultimo aggiornamento: 2026-07-03*
