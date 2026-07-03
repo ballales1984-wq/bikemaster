@@ -121,14 +121,16 @@ async function loginWithGoogle() {
 
 <style scoped>
 .login-panel {
-  max-width: 420px;
-  margin: 40px auto;
-  background: var(--bg-secondary);
-  padding: 32px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-}
+   max-width: 420px;
+   margin: 40px auto;
+   background: var(--bg-secondary);
+   backdrop-filter: blur(var(--glass-blur));
+   -webkit-backdrop-filter: blur(var(--glass-blur));
+   padding: 32px;
+   border-radius: var(--radius);
+   border: 1px solid var(--border);
+   box-shadow: var(--shadow);
+ }
 
 .login-tabs {
   display: flex;
