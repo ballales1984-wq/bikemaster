@@ -2,8 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from '../composables/useToast'
 
-const auth = useAuthStore()
-
 const routes = [
   {
     path: '/',
@@ -129,7 +127,7 @@ const router = createRouter({
   }
 })
 
-async function checkProfileComplete(): Promise<boolean> {
+async function checkProfileComplete(auth: ReturnType<typeof useAuthStore>): Promise<boolean> {
   try {
     const resp = await fetch('/api/v1/auth/me', {
       headers: { Authorization: `Bearer ${auth.token.value}` }
@@ -143,6 +141,7 @@ async function checkProfileComplete(): Promise<boolean> {
 }
 
 router.beforeEach(async (to, from, next) => {
+  const auth = useAuthStore()
    // Handle OAuth callback token from URL fragment
    if (!to.query.token && to.hash) {
      const hashParams = new URLSearchParams(to.hash.replace(/^#/, ''))
