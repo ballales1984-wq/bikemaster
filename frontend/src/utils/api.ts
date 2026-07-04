@@ -29,10 +29,11 @@ async function apiGet(path: string, params: Record<string, string> = {}, options
 }
 
 async function apiPost(path: string, body: unknown, options: RequestInit = {}): Promise<ApiResponse> {
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData
   const resp = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
-    body: JSON.stringify(body),
+    headers: isForm ? { ...authHeaders(), ...(options.headers as Record<string, string> || {}) } : { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
+    body: isForm ? body as BodyInit : JSON.stringify(body),
     ...options,
   })
   if (!resp.ok) {

@@ -7,9 +7,7 @@ interface GPSPoint {
   lon: number
 }
 
-type EmitFn = (event: string, data?: unknown) => void
-
-interface SummaryResponse {
+type SummaryResponse {
   rides?: number
   total?: number
   distance_km?: number
@@ -19,7 +17,7 @@ interface SummaryResponse {
   ridesList?: Ride[]
 }
 
-export function useRides(emit: EmitFn) {
+export function useRides() {
   let map: L.Map | null = null
 
   async function fetchSummary(): Promise<SummaryResponse> {
