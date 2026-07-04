@@ -33,6 +33,9 @@
         </svg>
         {{ importing ? 'Connecting...' : 'Import from Google Fit' }}
       </button>
+      <button @click="disconnectGoogleFit" class="btn btn-secondary" :disabled="importing" type="button" style="margin-top: 8px;">
+        Disconnect Google Fit
+      </button>
 
       <div v-if="uploading || uploadProgress > 0" class="progress-track" aria-label="Import progress">
         <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
@@ -50,6 +53,9 @@
           <path fill="#EA4335" d="M18.57 6.43a7.5 7.5 0 0 0-6.57-4.43 7.5 7.5 0 0 0-1.57.23l2.93 2.26a4.99 4.99 0 0 1 5.17 4.17z"/>
         </svg>
         {{ importing ? 'Connecting...' : 'Import from Google Health' }}
+      </button>
+      <button @click="disconnectGoogleHealth" class="btn btn-secondary" :disabled="importing" type="button" style="margin-top: 8px;">
+        Disconnect Google Health
       </button>
 
       <div id="import-progress" v-if="status" class="result-box">{{ status }}</div>
@@ -237,6 +243,40 @@ async function connectGoogleHealth() {
   }
 }
 
+async function disconnectGoogleFit() {
+  try {
+    const token = localStorage.getItem('bikemaster_token')
+    const resp = await fetch('/api/v1/import/google-fit/disconnect', {
+      method: 'DELETE',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (resp.ok) {
+      importStatus.value = { success: true, message: 'Google Fit disconnected' }
+    } else {
+      importStatus.value = { success: false, message: 'Failed to disconnect Google Fit' }
+    }
+  } catch (e) {
+    importStatus.value = { success: false, message: e.message }
+  }
+}
+
+async function disconnectGoogleHealth() {
+  try {
+    const token = localStorage.getItem('bikemaster_token')
+    const resp = await fetch('/api/v1/import/google-health/disconnect', {
+      method: 'DELETE',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (resp.ok) {
+      importStatus.value = { success: true, message: 'Google Health disconnected' }
+    } else {
+      importStatus.value = { success: false, message: 'Failed to disconnect Google Health' }
+    }
+  } catch (e) {
+    importStatus.value = { success: false, message: e.message }
+  }
+}
+
 onMounted(() => {
   // offer manual upload via button in markdown if needed
 })
@@ -297,6 +337,16 @@ onMounted(() => {
 
 .btn-primary:hover:not(:disabled) {
   opacity: 0.9;
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--border);
 }
 
 .btn-google-fit {
