@@ -81,6 +81,8 @@ def fetch_cycling_activities(access_token: str) -> list[dict]:
     Uses the Sessions endpoint, which returns activity sessions with
     startTimeMillis/endTimeMillis timestamps and activity type codes.
     """
+    import logging
+
     import requests
 
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -94,19 +96,19 @@ def fetch_cycling_activities(access_token: str) -> list[dict]:
         params=params,
         timeout=10,
     )
+    resp.raise_for_status()
     activities: list[dict] = []
-    if resp.ok:
-        for session in resp.json().get("session", []):
-            activity_type = session.get("activity", 0)
-            if activity_type == 1:
-                activities.append(
-                    {
-                        "id": session.get("id", ""),
-                        "startTimeMillis": session.get("startTimeMillis", ""),
-                        "endTimeMillis": session.get("endTimeMillis", ""),
-                        "name": session.get("name", ""),
-                    }
-                )
+    for session in resp.json().get("session", []):
+        activity_type = session.get("activity", 0)
+        if activity_type == 1:
+            activities.append(
+                {
+                    "id": session.get("id", ""),
+                    "startTimeMillis": session.get("startTimeMillis", ""),
+                    "endTimeMillis": session.get("endTimeMillis", ""),
+                    "name": session.get("name", ""),
+                }
+            )
     return activities
 
 
