@@ -39,10 +39,20 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=F
 
 JWT_BLACKLIST_PREFIX = "bikemaster:jwt:blacklist:"
 JWT_BLACKLIST_TTL = 7200
-_memory_revoked_tokens: set[str] = set()
+_memory_revoked_tokens: dict[str, float] = {}
 REFRESH_PREFIX = "bikemaster:refresh:"
 REFRESH_TTL = 86400 * 30
 REFRESH_MAX_ACTIVE = 5
+
+
+def _sweep_revoked_tokens() -> None:
+    now = time.time()
+    cutoff = now - (JWT_BLACKLIST_TTL * 2)
+    stale = [jti for jti, ts in _memory_revoked_tokens.items() if ts < cutoff]
+    for jti in stale:
+        del _memory_revoked_tokens[jti]
+    if stale:
+        logger.debug("Swept %d stale revoked tokens from memory", len(stale))
 
 
 async def get_refresh_token(athlete_id: int) -> str | None:
@@ -104,7 +114,9 @@ def jti_key(jti: str) -> str:
 
 
 async def revoke_token(jti: str, ttl: int = JWT_BLACKLIST_TTL) -> bool:
-    _memory_revoked_tokens.add(jti)
+    _memory_revoked_tokens[jti] = time.time()
+    if len(_memory_revoked_tokens) % 100 == 0:
+        _sweep_revoked_tokens()
     r = await get_redis()
     if r is None:
         return True
@@ -118,6 +130,7 @@ async def revoke_token(jti: str, ttl: int = JWT_BLACKLIST_TTL) -> bool:
 
 async def is_token_revoked(jti: str) -> bool:
     if jti in _memory_revoked_tokens:
+        _sweep_revoked_tokens()
         return True
     r = await get_redis()
     if r is None:

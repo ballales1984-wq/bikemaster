@@ -87,6 +87,7 @@
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
 import { apiGet, apiPost } from '../utils/api'
+import DOMPurify from 'dompurify'
 
 const messages = ref([])
 const userInput = ref('')
@@ -112,23 +113,14 @@ const scores = computed(() => {
   return s.map(sc => ({ label: sc.label, value: Number(sc.value || 0).toFixed(1), color: colors[sc.label] || '#fff' }))
 })
 
-function escapeHtml(text) {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
-
 function formatMsg(text) {
   if (!text) return ''
-  const safe = escapeHtml(text)
-  return safe
+  const html = text
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/\n/g, '<br>')
     .replace(/^- (.+)/gm, '<li>$1</li>')
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['strong', 'em', 'br', 'li', 'ul'], ALLOWED_ATTR: [] })
 }
 
 function getTime() {

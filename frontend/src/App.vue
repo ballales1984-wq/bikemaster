@@ -50,10 +50,12 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+import { useRides } from './composables/useRides'
 const auth = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 const loggedIn = computed(() => auth.isLoggedIn.value)
 const isAdmin = computed(() => auth.isAdmin.value)
 const isPublicPage = computed(() => ['/privacy', '/terms', '/cookies', '/about', '/contact'].includes(route.path))
