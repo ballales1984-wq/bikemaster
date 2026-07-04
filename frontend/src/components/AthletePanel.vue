@@ -34,7 +34,9 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '../composables/useToast'
 import { apiGet, apiPost, apiPut } from '../utils/api'
-import { user } from '../composables/useAuth'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
 
 const router = useRouter()
 const toast = useToast()
@@ -64,7 +66,7 @@ async function loadAthlete() {
     isFirstLogin.value = false
   } else {
     isFirstLogin.value = true
-    form.value.name = user.value?.username || ''
+    form.value.name = auth.user.value?.username || ''
   }
 }
 

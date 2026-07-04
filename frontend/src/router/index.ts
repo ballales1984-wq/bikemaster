@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { isLoggedIn, isTokenValid, isAdmin, token, user, parseJWTPayload } from '../composables/useAuth'
+import { useAuthStore } from '../stores/auth'
 import { useToast } from '../composables/useToast'
+
+const auth = useAuthStore()
 
 const routes = [
   {
@@ -130,7 +132,7 @@ const router = createRouter({
 async function checkProfileComplete(): Promise<boolean> {
   try {
     const resp = await fetch('/api/v1/auth/me', {
-      headers: { Authorization: `Bearer ${token.value}` }
+      headers: { Authorization: `Bearer ${auth.token.value}` }
     })
     if (!resp.ok) return false
     const data = await resp.json()
@@ -143,70 +145,70 @@ async function checkProfileComplete(): Promise<boolean> {
 router.beforeEach(async (to, from, next) => {
    // Handle OAuth callback token from URL fragment
    if (!to.query.token && to.hash) {
-     const hashParams = new URLSearchParams(to.hash.substring(1))
+     const hashParams = new URLSearchParams(to.hash.replace(/^#/, ''))
      const fragmentToken = hashParams.get('token')
      if (fragmentToken) {
-       token.value = fragmentToken
-       const payload = parseJWTPayload(fragmentToken)
-       user.value = {
+       auth.token.value = fragmentToken
+       const payload = auth.parseJWTPayload(fragmentToken)
+       auth.user.value = {
          id: hashParams.get('user_id') ? parseInt(hashParams.get('user_id')!, 10) : 0,
          username: typeof payload?.sub === 'string' ? payload.sub : '',
          is_admin: !!payload?.is_admin,
        }
-       localStorage.setItem('bikemaster_token', fragmentToken)
-       localStorage.setItem('bikemaster_user', JSON.stringify(user.value))
-     }
-   }
+        localStorage.setItem('bikemaster_token', fragmentToken)
+        localStorage.setItem('bikemaster_user', JSON.stringify(auth.user.value))
+      }
+    }
 
-   // Also handle query params for backward compatibility
+    // Also handle query params for backward compatibility
    if (to.query.token && typeof to.query.token === 'string') {
-     token.value = to.query.token
-     const payload = parseJWTPayload(to.query.token)
-     user.value = {
+     auth.token.value = to.query.token
+     const payload = auth.parseJWTPayload(to.query.token)
+     auth.user.value = {
        id: typeof to.query.user_id === 'string' ? parseInt(to.query.user_id, 10) : 0,
        username: typeof payload?.sub === 'string' ? payload.sub : '',
        is_admin: !!payload?.is_admin,
      }
      localStorage.setItem('bikemaster_token', to.query.token)
-     localStorage.setItem('bikemaster_user', JSON.stringify(user.value))
+     localStorage.setItem('bikemaster_user', JSON.stringify(auth.user.value))
    }
 
    // Check for invalid/expired token and clean up
-   if (token.value && !isTokenValid()) {
-     token.value = ''
-     user.value = null
+   if (auth.token.value && !auth.isTokenValid()) {
+     auth.token.value = ''
+     auth.user.value = null
      localStorage.removeItem('bikemaster_token')
      localStorage.removeItem('bikemaster_user')
    }
 
-   const loggedIn = isLoggedIn()
+    const loggedIn = auth.isLoggedIn.value
 
-  if (to.path === '/' && loggedIn) {
-    const hasCompleteProfile = await checkProfileComplete()
-    if (!hasCompleteProfile) {
-      const toast = useToast()
-      toast.show('Welcome! Please complete your athlete profile', 'info')
-    }
-    window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-    next(hasCompleteProfile ? '/rides' : '/athlete')
-  } else if (to.path === '/rides' && loggedIn) {
-    const hasCompleteProfile = await checkProfileComplete()
-    if (!hasCompleteProfile) {
-      const toast = useToast()
-      toast.show('Complete your profile to see your rides', 'info')
-      window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-      next('/athlete')
-    } else {
-      window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-      next()
-    }
-  } else if (to.meta.requiresAuth && !loggedIn) {
-    next('/')
-  } else if (to.meta.requiresAdmin && !isAdmin()) {
-    next('/')
-  } else {
-    next()
-  }
+   if (to.path === '/' && loggedIn) {
+     const hasCompleteProfile = await checkProfileComplete()
+     if (!hasCompleteProfile) {
+       const toast = useToast()
+       toast.show('Welcome! Please complete your athlete profile', 'info')
+     }
+     window.dispatchEvent(new CustomEvent('oauth-loading-end'))
+     next(hasCompleteProfile ? '/rides' : '/athlete')
+   } else if (to.path === '/rides' && loggedIn) {
+     const hasCompleteProfile = await checkProfileComplete()
+     if (!hasCompleteProfile) {
+       const toast = useToast()
+       toast.show('Complete your profile to see your rides', 'info')
+       window.dispatchEvent(new CustomEvent('oauth-loading-end'))
+       next('/athlete')
+     } else {
+       window.dispatchEvent(new CustomEvent('oauth-loading-end'))
+       next()
+     }
+   } else if (to.meta.requiresAuth && !loggedIn) {
+     next('/')
+    } else if (to.meta.requiresAdmin && !auth.isAdmin.value) {
+     next('/')
+   } else {
+     next()
+   }
 })
 
 export default router

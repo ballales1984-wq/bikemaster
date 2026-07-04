@@ -116,7 +116,12 @@ include = ["bike_analyzer*"]
 testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
-addopts = "--cov=bike_analyzer --cov-report=term-missing --cov-report=xml"
+addopts = "--cov=bike_analyzer --cov-branch --cov-report=term-missing --cov-report=xml --cov-report=json"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+timeout = 60
 
 [tool.pyright]
 typeCheckingMode = "basic"
