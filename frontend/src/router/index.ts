@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { isLoggedIn, isAdmin, token, user, parseJWTPayload } from '../composables/useAuth'
+import { isLoggedIn, isTokenValid, isAdmin, token, user, parseJWTPayload } from '../composables/useAuth'
 import { useToast } from '../composables/useToast'
 
 const routes = [
@@ -141,37 +141,45 @@ async function checkProfileComplete(): Promise<boolean> {
 }
 
 router.beforeEach(async (to, from, next) => {
-  // Handle OAuth callback token from URL fragment
-  if (!to.query.token && to.hash) {
-    const hashParams = new URLSearchParams(to.hash.substring(1))
-    const fragmentToken = hashParams.get('token')
-    if (fragmentToken) {
-      token.value = fragmentToken
-      const payload = parseJWTPayload(fragmentToken)
-      user.value = {
-        id: hashParams.get('user_id') ? parseInt(hashParams.get('user_id')!, 10) : 0,
-        username: typeof payload?.sub === 'string' ? payload.sub : '',
-        is_admin: !!payload?.is_admin,
-      }
-      localStorage.setItem('bikemaster_token', fragmentToken)
-      localStorage.setItem('bikemaster_user', JSON.stringify(user.value))
-    }
-  }
+   // Handle OAuth callback token from URL fragment
+   if (!to.query.token && to.hash) {
+     const hashParams = new URLSearchParams(to.hash.substring(1))
+     const fragmentToken = hashParams.get('token')
+     if (fragmentToken) {
+       token.value = fragmentToken
+       const payload = parseJWTPayload(fragmentToken)
+       user.value = {
+         id: hashParams.get('user_id') ? parseInt(hashParams.get('user_id')!, 10) : 0,
+         username: typeof payload?.sub === 'string' ? payload.sub : '',
+         is_admin: !!payload?.is_admin,
+       }
+       localStorage.setItem('bikemaster_token', fragmentToken)
+       localStorage.setItem('bikemaster_user', JSON.stringify(user.value))
+     }
+   }
 
-  // Also handle query params for backward compatibility
-  if (to.query.token && typeof to.query.token === 'string') {
-    token.value = to.query.token
-    const payload = parseJWTPayload(to.query.token)
-    user.value = {
-      id: typeof to.query.user_id === 'string' ? parseInt(to.query.user_id, 10) : 0,
-      username: typeof payload?.sub === 'string' ? payload.sub : '',
-      is_admin: !!payload?.is_admin,
-    }
-    localStorage.setItem('bikemaster_token', to.query.token)
-    localStorage.setItem('bikemaster_user', JSON.stringify(user.value))
-  }
+   // Also handle query params for backward compatibility
+   if (to.query.token && typeof to.query.token === 'string') {
+     token.value = to.query.token
+     const payload = parseJWTPayload(to.query.token)
+     user.value = {
+       id: typeof to.query.user_id === 'string' ? parseInt(to.query.user_id, 10) : 0,
+       username: typeof payload?.sub === 'string' ? payload.sub : '',
+       is_admin: !!payload?.is_admin,
+     }
+     localStorage.setItem('bikemaster_token', to.query.token)
+     localStorage.setItem('bikemaster_user', JSON.stringify(user.value))
+   }
 
-  const loggedIn = isLoggedIn()
+   // Check for invalid/expired token and clean up
+   if (token.value && !isTokenValid()) {
+     token.value = ''
+     user.value = null
+     localStorage.removeItem('bikemaster_token')
+     localStorage.removeItem('bikemaster_user')
+   }
+
+   const loggedIn = isLoggedIn()
 
   if (to.path === '/' && loggedIn) {
     const hasCompleteProfile = await checkProfileComplete()
