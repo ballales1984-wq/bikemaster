@@ -3,6 +3,8 @@
 import time
 from unittest.mock import patch
 
+import pytest
+
 from bike_analyzer.backend.ingestion.google_fit import (
     _ms_to_iso,
     fetch_cycling_activities,
@@ -139,6 +141,7 @@ class TestGoogleFitToRide:
         from unittest.mock import MagicMock
 
         mock_resp = MagicMock()
+        mock_resp.raise_for_status.return_value = None
         mock_resp.ok = True
         mock_resp.json.return_value = {"session": [{"activity": 1}]}
         mock_get.return_value = mock_resp
@@ -146,12 +149,13 @@ class TestGoogleFitToRide:
         assert isinstance(result, list)
 
     @patch("requests.get")
-    def test_fetch_cycling_activities_failure(self, mock_get):
+    def test_fetch_cycling_activities_raises_on_failure(self, mock_get):
+        import requests
         from unittest.mock import MagicMock
 
         mock_resp = MagicMock()
         mock_resp.ok = False
-        mock_resp.json.return_value = {}
+        mock_resp.raise_for_status.side_effect = requests.HTTPError("403 Client Error")
         mock_get.return_value = mock_resp
-        result = fetch_cycling_activities("token")
-        assert result == []
+        with pytest.raises(requests.HTTPError):
+            fetch_cycling_activities("token")

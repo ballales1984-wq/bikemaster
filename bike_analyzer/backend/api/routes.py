@@ -1562,7 +1562,22 @@ async def import_google_fit(payload: dict, current_user: dict = Depends(get_curr
     elif not access_token or not isinstance(access_token, str) or len(access_token) > 2048:
         raise HTTPException(status_code=400, detail="access_token required or re-authorize Google Fit")
 
-    activities = fetch_cycling_activities(access_token)
+    try:
+        activities = fetch_cycling_activities(access_token)
+    except requests.exceptions.HTTPError as exc:
+        if exc.response is not None and exc.response.status_code == 403:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Google Fit API access denied (HTTP 403). "
+                    "Google Fit API has been deprecated by Google. "
+                    "Please use Google Health instead."
+                ),
+            ) from exc
+        raise HTTPException(
+            status_code=502,
+            detail=_http_error_detail(exc, "Google Fit import failed"),
+        ) from exc
     rides_data = google_fit_to_ride(activities)
     imported = []
     from ..monitoring import record_gps_import
