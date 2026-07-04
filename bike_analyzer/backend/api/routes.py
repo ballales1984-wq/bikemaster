@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import json
+import secrets
 import time
 from collections.abc import AsyncGenerator
 from dataclasses import fields
@@ -511,18 +512,6 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "is_admin": current_user.get("is_admin", False),
         "tenant_id": current_user.get("tenant_id", current_user["id"]),
         "profile_complete": profile_complete,
-    }
-    return {
-        "id": athlete["id"],
-        "username": athlete.get("name", ""),
-        "email": athlete.get("email"),
-        "is_admin": current_user.get("is_admin", False),
-        "tenant_id": current_user.get("tenant_id", current_user["id"]),
-        "profile_complete": bool(
-            athlete.get("age") is not None
-            and athlete.get("weight_kg") is not None
-            and athlete.get("experience_level", "").strip() != ""
-        ),
     }
 
 
@@ -1273,13 +1262,26 @@ async def google_health_auth(
     state: str = Query(""),
 ):
     from ..config import GOOGLE_HEALTH_CLIENT_ID
-    from ..ingestion.google_health import get_authorization_url
+    from ..ingestion.google_health import _compute_code_challenge, _generate_code_verifier, get_authorization_url
 
     if not GOOGLE_HEALTH_CLIENT_ID:
         raise HTTPException(status_code=500, detail="Google Health OAuth not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-health/callback")
     _validate_redirect_uri(redirect_uri)
-    auth_url = get_authorization_url(GOOGLE_HEALTH_CLIENT_ID, redirect_uri=redirect_uri, state=state)
+    code_verifier = _generate_code_verifier()
+    code_challenge = _compute_code_challenge(code_verifier)
+    pkce_id = secrets.token_urlsafe(8)
+    pkce_key = f"oauth:pkce:google-health:{pkce_id}"
+    await _cache_set(pkce_key, {"code_verifier": code_verifier, "redirect_uri": redirect_uri}, ttl=600)
+    state_data = _decode_oauth_state(state)
+    state_data["pkce_id"] = pkce_id
+    state = _encode_oauth_state(**state_data)
+    auth_url = get_authorization_url(
+        GOOGLE_HEALTH_CLIENT_ID,
+        redirect_uri=redirect_uri,
+        state=state,
+        code_challenge=code_challenge,
+    )
     return {"auth_url": auth_url}
 
 
@@ -1301,6 +1303,69 @@ async def google_health_callback(
         redirect_uri
         or _redirect_uri_from_state(state)
         or _build_redirect_uri(request, "/api/v1/import/google-health/callback")
+    )
+    _validate_redirect_uri(redirect_uri)
+    if state:
+        _validate_oauth_state(state, redirect_uri)
+
+    if error:
+        return _google_health_message_html(
+            {
+                "type": "google-health-error",
+                "error": error,
+                "error_description": error_description or "OAuth Google Health fallito",
+            }
+        )
+
+    if not code:
+        return _google_health_message_html(
+            {
+                "type": "google-health-error",
+                "error": "missing_code",
+                "error_description": "Callback OAuth Google Health ricevuto senza codice",
+            }
+        )
+
+    code_verifier = ""
+    if state:
+        state_data = _decode_oauth_state(state)
+        pkce_key = f"oauth:pkce:google-health:{state_data.get('pkce_id', '')}"
+        pkce_data = await _cached(pkce_key)
+        if pkce_data:
+            code_verifier = pkce_data.get("code_verifier", "")
+    try:
+        token_data = exchange_code_for_token(
+            GOOGLE_HEALTH_CLIENT_ID,
+            GOOGLE_HEALTH_CLIENT_SECRET,
+            code,
+            redirect_uri,
+            code_verifier=code_verifier,
+        )
+    except requests.exceptions.HTTPError as exc:
+        if exc.response is not None and exc.response.status_code == 400:
+            body = exc.response.text or ""
+            if "invalid_grant" in body:
+                return _google_health_message_html(
+                    {
+                        "type": "google-health-error",
+                        "error": "invalid_grant",
+                        "error_description": "Codice OAuth non valido o scaduto. Riprova l'autorizzazione.",
+                    }
+                )
+        raise HTTPException(
+            status_code=502,
+            detail=_http_error_detail(exc, "Google Health token exchange failed"),
+        ) from exc
+    access_token = token_data.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Failed to get access token from Google Health")
+
+    return _google_health_message_html(
+        {
+            "type": "google-health-success",
+            "token": access_token,
+            "refresh_token": token_data.get("refresh_token", ""),
+        }
     )
     _validate_redirect_uri(redirect_uri)
 
@@ -2815,6 +2880,22 @@ async def strava_disconnect(current_user: dict = Depends(get_current_user)):
     from ..ingestion.strava_client import revoke_token
 
     revoke_token(current_user["id"])
+    return {"status": "disconnected"}
+
+
+@router.delete("/import/google-fit/disconnect")
+async def google_fit_disconnect(current_user: dict = Depends(get_current_user)):
+    from ..ingestion.google_oauth_store import delete_google_token
+
+    delete_google_token(int(current_user["id"]), "google_fit")
+    return {"status": "disconnected"}
+
+
+@router.delete("/import/google-health/disconnect")
+async def google_health_disconnect(current_user: dict = Depends(get_current_user)):
+    from ..ingestion.google_oauth_store import delete_google_token
+
+    delete_google_token(int(current_user["id"]), "google_health")
     return {"status": "disconnected"}
 
 

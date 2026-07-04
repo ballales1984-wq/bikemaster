@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
+import os
+import secrets
 import urllib.parse
 import xml.etree.ElementTree as ET
 from datetime import UTC, datetime, timedelta
@@ -17,8 +20,23 @@ from .gps_parser import points_to_ride
 GOOGLE_HEALTH_API_BASE = "https://health.googleapis.com/v4"
 
 
-def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:8000/callback", state: str = "") -> str:
-    params = {
+def _generate_code_verifier() -> str:
+    return secrets.token_urlsafe(64)
+
+
+def _compute_code_challenge(code_verifier: str) -> str:
+    digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+    return secrets.token_urlsafe(digest).rstrip("=")
+
+
+def get_authorization_url(
+    client_id: str,
+    redirect_uri: str = "http://localhost:8000/callback",
+    state: str = "",
+    code_challenge: str = "",
+    code_challenge_method: str = "S256",
+) -> str:
+    params: dict[str, str] = {
         "client_id": client_id,
         "redirect_uri": redirect_uri,
         "response_type": "code",
@@ -28,21 +46,33 @@ def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:
         "state": state,
         "prompt": "consent",
     }
+    if code_challenge:
+        params["code_challenge"] = code_challenge
+        params["code_challenge_method"] = code_challenge_method
     return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
 
 
-def exchange_code_for_token(client_id: str, client_secret: str, code: str, redirect_uri: str) -> dict:
+def exchange_code_for_token(
+    client_id: str,
+    client_secret: str,
+    code: str,
+    redirect_uri: str,
+    code_verifier: str = "",
+) -> dict:
     import requests
 
+    data: dict[str, str] = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "code": code,
+        "grant_type": "authorization_code",
+        "redirect_uri": redirect_uri,
+    }
+    if code_verifier:
+        data["code_verifier"] = code_verifier
     resp = requests.post(
         "https://oauth2.googleapis.com/token",
-        data={
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "code": code,
-            "grant_type": "authorization_code",
-            "redirect_uri": redirect_uri,
-        },
+        data=data,
         timeout=10,
     )
     resp.raise_for_status()

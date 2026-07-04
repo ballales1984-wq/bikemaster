@@ -140,3 +140,9 @@ def get_valid_google_token(athlete_id: int, provider: str) -> str | None:
         except Exception:
             return token_data.get("access_token")
     return token_data.get("access_token")
+
+
+def delete_google_token(athlete_id: int, provider: str) -> None:
+    ensure_google_tokens_table()
+    with _get_conn() as conn:
+        conn.execute("DELETE FROM google_tokens WHERE athlete_id = ? AND provider = ?", (athlete_id, provider))
