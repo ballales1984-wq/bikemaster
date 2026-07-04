@@ -14,7 +14,7 @@ from google.oauth2.credentials import Credentials
 from ..config import GOOGLE_HEALTH_CLIENT_ID, GOOGLE_HEALTH_CLIENT_SECRET, GOOGLE_HEALTH_SCOPE
 from .gps_parser import points_to_ride
 
-GOOGLE_HEALTH_API_BASE = "https://health.googleapis.com/v1"
+GOOGLE_HEALTH_API_BASE = "https://health.googleapis.com/v4"
 
 
 def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:8000/callback", state: str = "") -> str:

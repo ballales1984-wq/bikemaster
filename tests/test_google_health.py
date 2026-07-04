@@ -43,8 +43,8 @@ class TestGetAuthorizationUrl:
     def test_scope_present(self):
         url = get_authorization_url("cid")
         assert "scope=" in url
-        assert "health.activity.read" in url
-        assert "health.location.read" in url
+        assert "googlehealth.activity_and_fitness.readonly" in url
+        assert "googlehealth.location.readonly" in url
 
     def test_response_type(self):
         url = get_authorization_url("cid")
