@@ -25,13 +25,14 @@ export function useRides(emit: EmitFn) {
   async function fetchSummary(): Promise<SummaryResponse> {
     try {
       const data = await apiGet('/api/v1/rides') as SummaryResponse
-      const rides = data.rides || []
-      const total = data.total || rides.length
-      const totalKm = rides.reduce((s: number, r: Ride) => s + (Number(r.distance_km) || 0), 0)
-      const totalCal = rides.reduce((s: number, r: Ride) => s + (Number(r.calories) || 0), 0)
-      const avgSp = rides.length ? rides.reduce((s: number, r: Ride) => s + (Number(r.avg_speed_kmh) || 0), 0) / rides.length : 0
-      const totalMin = rides.reduce((s: number, r: Ride) => s + (Number(r.duration_minutes) || 0), 0)
-      return { rides: total, distance_km: totalKm, calories: totalCal, avg_speed_kmh: avgSp, duration_minutes: totalMin, ridesList: rides }
+      const rides = data.ridesList || data.rides || []
+      const ridesArray = Array.isArray(rides) ? rides : []
+      const total = data.total || ridesArray.length
+      const totalKm = ridesArray.reduce((s: number, r: Ride) => s + (Number(r.distance_km) || 0), 0)
+      const totalCal = ridesArray.reduce((s: number, r: Ride) => s + (Number(r.calories) || 0), 0)
+      const avgSp = ridesArray.length ? ridesArray.reduce((s: number, r: Ride) => s + (Number(r.avg_speed_kmh) || 0), 0) / ridesArray.length : 0
+      const totalMin = ridesArray.reduce((s: number, r: Ride) => s + (Number(r.duration_minutes) || 0), 0)
+      return { rides: total, distance_km: totalKm, calories: totalCal, avg_speed_kmh: avgSp, duration_minutes: totalMin, ridesList: ridesArray }
     } catch {
       return { rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0, ridesList: [] }
     }

@@ -18,11 +18,11 @@ const user = ref<Athlete | null>(
   })()
 )
 
-function isLoggedIn(): boolean {
+export function isLoggedIn(): boolean {
   return !!token.value
 }
 
-function isTokenValid(): boolean {
+export function isTokenValid(): boolean {
   if (!token.value) return false
   const payload = parseJWTPayload(token.value)
   if (!payload) return false
@@ -31,11 +31,11 @@ function isTokenValid(): boolean {
   return Date.now() < exp * 1000
 }
 
-function isAdmin(): boolean {
+export function isAdmin(): boolean {
   return user.value?.is_admin === true
 }
 
-function getAuthHeader(): Record<string, string> {
+export function getAuthHeader(): Record<string, string> {
   return token.value ? { Authorization: `Bearer ${token.value}` } : {}
 }
 
@@ -117,9 +117,6 @@ const authToken = computed(() => token.value)
 const authUser = computed(() => user.value)
 
 export {
-  isLoggedIn,
-  isAdmin,
-  getAuthHeader,
   login,
   register,
   logout,

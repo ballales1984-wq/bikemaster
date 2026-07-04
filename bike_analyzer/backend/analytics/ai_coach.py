@@ -407,7 +407,9 @@ def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete
  - Non mostrare valori con .0 se sono interi (es: scrivi "3 volte" non "3.0 volte")
         """
 
-    while True:
+    max_retries = 3
+    attempt = 0
+    while attempt < max_retries:
         try:
             client, provider = get_ai_coach_client()
         except ValueError:
@@ -436,6 +438,7 @@ def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete
                 logger.error("AI Coach: non-recoverable error from %s, using fallback", provider)
                 record_ai_coach_query("fallback", "fallback")
                 return _generate_fallback_training_advice(athlete, rides)
+            attempt += 1
             continue
     return _generate_fallback_training_advice(athlete, rides)
 
@@ -500,7 +503,9 @@ def generate_recovery_advice(
  - Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
  """
 
-    while True:
+    max_retries = 3
+    attempt = 0
+    while attempt < max_retries:
         try:
             client, provider = get_ai_coach_client()
         except ValueError:
@@ -523,6 +528,7 @@ def generate_recovery_advice(
             logger.warning("AI Coach API call failed: %s: %s", type(e).__name__, e)
             logger.debug("AI Coach API error details", exc_info=True)
             _ban_provider(provider, "connection error" if "connection" in str(e).lower() else "auth error")
+            attempt += 1
             continue
     return _generate_fallback_recovery_advice(athlete, rides, recovery)
 

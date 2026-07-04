@@ -27,6 +27,7 @@
     "@capacitor/cli": "^5.7.4",
     "@playwright/test": "^1.60.0",
     "@tsconfig/node-lts": "^24.0.0",
+    "@types/chart.js": "^2.9.41",
     "@vitejs/plugin-vue": "^4.5.0",
     "@vitest/coverage-v8": "^1.6.1",
     "@vue/eslint-config-prettier": "^9.0.0",

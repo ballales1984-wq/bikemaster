@@ -104,7 +104,7 @@ def init_observability(app=None):
             send_default_pii=False,
             attach_stacktrace=True,
         )
-        print("Sentry initialized with OpenTelemetry support")
+        logger.info("Sentry initialized with OpenTelemetry support")
 
     # === OPENTELEMETRY ===
     resource = Resource.create(
@@ -128,9 +128,9 @@ def init_observability(app=None):
             trace.get_tracer_provider().add_span_processor(
                 BatchSpanProcessor(zipkin_exporter, schedule_delay_millis=5000, max_export_batch_size=100)
             )
-            print(f"Zipkin exporter configured: {zipkin_endpoint}")
+            logger.info("Zipkin exporter configured: %s", zipkin_endpoint)
         except Exception as e:
-            print(f"Zipkin exporter init failed: {e}")
+            logger.warning("Zipkin exporter init failed: %s", e)
     elif settings.otel_exporter_otlp_endpoint and OTLP_AVAILABLE and not is_dev:
         try:
             otlp_exporter = OTLPSpanExporter(
@@ -140,11 +140,11 @@ def init_observability(app=None):
             trace.get_tracer_provider().add_span_processor(
                 BatchSpanProcessor(otlp_exporter, schedule_delay_millis=5000, max_export_batch_size=100)
             )
-            print(f"OTLP exporter configured: {settings.otel_exporter_otlp_endpoint}")
+            logger.info("OTLP exporter configured: %s", settings.otel_exporter_otlp_endpoint)
         except Exception as e:
-            print(f"OTLP exporter init failed: {e}")
+            logger.warning("OTLP exporter init failed: %s", e)
     else:
-        print("No telemetry exporter configured - tracing disabled")
+        logger.info("No telemetry exporter configured - tracing disabled")
 
     # === FASTAPI INSTRUMENTATION ===
     if app is not None:
@@ -154,4 +154,4 @@ def init_observability(app=None):
             excluded_urls="metrics,health,docs,redoc,openapi",
         )
 
-    print("Zipkin + Sentry correlation ready")
+    logger.info("Zipkin + Sentry correlation ready")
