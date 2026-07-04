@@ -7,7 +7,7 @@ interface GPSPoint {
   lon: number
 }
 
-type SummaryResponse {
+type SummaryResponse = {
   rides?: number
   total?: number
   distance_km?: number

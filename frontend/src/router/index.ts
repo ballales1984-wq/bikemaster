@@ -49,7 +49,7 @@ const routes = [
   {
     path: '/granfondo',
     name: 'granfondo',
-    component: () => import(/* webpackChunkName: "granfondo" */ '../components/GranfondoPlanner.vue'),
+    component: () => import('../components/GranfondoPlanner.vue'),
     meta: { requiresAuth: true }
   },
   {
