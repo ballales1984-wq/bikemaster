@@ -13,12 +13,14 @@ import hashlib
 import hmac
 import inspect
 import logging
+import os
 import struct
 import time
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.responses import Response
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
@@ -214,6 +216,20 @@ def _try_decode(token: str, secret: str) -> dict | None:
         return None
 
 
+async def decode_token_with_fallback(token: str | None) -> dict | None:
+    if not isinstance(token, str):
+        return None
+    payload = _try_decode(token, SECRET_KEY)
+    if payload is not None:
+        return payload
+    if SECRET_KEY_PREVIOUS:
+        payload = _try_decode(token, SECRET_KEY_PREVIOUS)
+        if payload is not None:
+            logger.debug("Token decoded with previous secret key")
+            return payload
+    return None
+
+
 async def decode_token(token: str | None) -> dict:
     if not isinstance(token, str):
         raise HTTPException(
@@ -221,36 +237,28 @@ async def decode_token(token: str | None) -> dict:
             detail="Token non valido o scaduto",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    payload = _try_decode(token, SECRET_KEY)
-    if payload is not None:
-        jti = payload.get("jti")
-        if jti and await is_token_revoked(jti):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token revocato",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        return payload
-    if SECRET_KEY_PREVIOUS:
-        payload = _try_decode(token, SECRET_KEY_PREVIOUS)
-        if payload is not None:
-            jti = payload.get("jti")
-            if jti and await is_token_revoked(jti):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Token revocato",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-            return payload
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Token non valido o scaduto",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    payload = await decode_token_with_fallback(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token non valido o scaduto",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    jti = payload.get("jti")
+    if jti and await is_token_revoked(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token revocato",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
-    payload = await decode_token(token)
+
+async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)) -> dict:
+    cookie_token = request.cookies.get("bikemaster_access")
+    active_token = cookie_token or token
+    payload = await decode_token(active_token)
     user_id: str = payload.get("sub")
     is_admin: bool = payload.get("is_admin", False)
     tenant_id: int | None = payload.get("tenant_id")
@@ -370,3 +378,37 @@ def verify_totp(
 
 def provisioning_uri(secret: str, user_id: int, issuer: str = TOTP_ISSUER) -> str:
     return f"otpauth://totp/{issuer}:user{user_id}?secret={secret}&issuer={issuer}&algorithm=sha256&digits=6&period=30"
+
+
+def _cookie_secure() -> bool:
+    env = os.getenv("ENVIRONMENT", "development")
+    return env.lower() in ("production", "prod", "staging")
+
+
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str | None = None) -> None:
+    secure = _cookie_secure()
+    samesite = "lax" if secure else "none"
+    response.set_cookie(
+        key="bikemaster_access",
+        value=access_token,
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+    if refresh_token:
+        response.set_cookie(
+            key="bikemaster_refresh",
+            value=refresh_token,
+            httponly=True,
+            secure=secure,
+            samesite=samesite,
+            max_age=REFRESH_TTL,
+            path="/api/v1/auth",
+        )
+
+
+def delete_auth_cookies(response: Response) -> None:
+    response.delete_cookie(key="bikemaster_access", path="/")
+    response.delete_cookie(key="bikemaster_refresh", path="/api/v1/auth")

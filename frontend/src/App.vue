@@ -53,6 +53,11 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { useRides } from './composables/useRides'
+import LoginForm from './components/LoginForm.vue'
+import HeaderTabs from './components/HeaderTabs.vue'
+import StatsSummary from './components/StatsSummary.vue'
+import ToastContainer from './components/ToastContainer.vue'
+import PWAInstallPrompt from './components/PWAInstallPrompt.vue'
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
