@@ -6,7 +6,11 @@ OpenTelemetry as the shared instrumentation layer.
 
 from __future__ import annotations
 
+import logging
+
 import sentry_sdk
+
+logger = logging.getLogger(__name__)
 from opentelemetry import trace
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import Resource
