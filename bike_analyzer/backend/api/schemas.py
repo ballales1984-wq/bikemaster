@@ -132,9 +132,7 @@ class UserResponse(BaseModel):
 class CalendarEventCreate(BaseModel):
     athlete_id: int
     title: str = Field(..., min_length=1, max_length=200)
-    event_type: str = Field(
-        default="training", pattern="^(training|race|recovery|goal_deadline|test|other)$"
-    )
+    event_type: str = Field(default="training", pattern="^(training|race|recovery|goal_deadline|test|other)$")
     date: str = Field(..., min_length=10, max_length=10)
     duration_minutes: int = Field(default=0, ge=0)
     description: str | None = Field(default=None, max_length=1000)
@@ -154,9 +152,7 @@ class WeatherResponse(BaseModel):
 
 class CalendarEventUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
-    event_type: str | None = Field(
-        default=None, pattern="^(training|race|recovery|goal_deadline|test|other)$"
-    )
+    event_type: str | None = Field(default=None, pattern="^(training|race|recovery|goal_deadline|test|other)$")
     date: str | None = Field(default=None, min_length=10, max_length=10)
     duration_minutes: int | None = Field(default=None, ge=0)
     description: str | None = Field(default=None, max_length=1000)

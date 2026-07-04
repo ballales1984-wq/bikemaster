@@ -152,9 +152,7 @@ def create_speed_chart(segments: list[Segment], output_path: str = "speed_chart.
     return output_path
 
 
-def create_elevation_chart(
-    segments: list[Segment], output_path: str = "elevation_chart.png"
-) -> str:
+def create_elevation_chart(segments: list[Segment], output_path: str = "elevation_chart.png") -> str:
     elev = [s.elevation_gain_m for s in segments] if segments else [0]
     plt.figure(figsize=(10, 4))
     plt.fill_between(range(len(elev)), elev, color="#4ecca3", alpha=0.7)
@@ -204,6 +202,7 @@ def generate_speed_chart(points: list[GPSPoint] | None, title: str = "Speed Prof
     plt.ylabel("km/h")
     plt.xlabel("Point")
     import tempfile
+
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         path = f.name
     plt.savefig(path)
@@ -211,17 +210,13 @@ def generate_speed_chart(points: list[GPSPoint] | None, title: str = "Speed Prof
     return path
 
 
-def generate_distance_chart(
-    points: list[GPSPoint] | None, title: str = "Distance Progression"
-) -> str:
+def generate_distance_chart(points: list[GPSPoint] | None, title: str = "Distance Progression") -> str:
     if not points:
         return ""
     distances = [0.0]
     total = 0.0
     for i in range(1, len(points)):
-        total += haversine_distance_m(
-            points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon
-        )
+        total += haversine_distance_m(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon)
         distances.append(total / 1000)
     plt.figure(figsize=(10, 4))
     plt.plot(range(len(distances)), distances, color="#0066CC", linewidth=2)
@@ -229,6 +224,7 @@ def generate_distance_chart(
     plt.ylabel("km")
     plt.xlabel("Point")
     import tempfile
+
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         path = f.name
     plt.savefig(path)
@@ -245,6 +241,7 @@ def generate_time_chart(points: list[GPSPoint] | None, title: str = "Time Analys
     plt.title(title)
     plt.yticks([])
     import tempfile
+
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         path = f.name
     plt.savefig(path)

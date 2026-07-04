@@ -102,10 +102,7 @@ class VectorDB:
                 {"q": query_embedding, "min_similarity": min_similarity, "limit": top_k},
             )
             rows = result.fetchall()
-            return [
-                {"id": r[0], "topic": r[1], "section": r[2], "content": r[3], "similarity": r[4]}
-                for r in rows
-            ]
+            return [{"id": r[0], "topic": r[1], "section": r[2], "content": r[3], "similarity": r[4]} for r in rows]
 
 
 def get_embedding(text: str) -> list[float]:
@@ -113,9 +110,7 @@ def get_embedding(text: str) -> list[float]:
     try:
         import openai
 
-        client = (
-            openai.AsyncOpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
-        )
+        client = openai.AsyncOpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
         if client:
             resp = asyncio.run(client.embeddings.create(model="text-embedding-3-small", input=text))
             return resp.data[0].embedding

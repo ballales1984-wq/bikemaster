@@ -15,19 +15,30 @@ from bike_analyzer.backend.analytics.analytics import (
 from bike_analyzer.core.models import GPSPoint, Ride
 
 
-def _make_ride(date="2024-06-15", distance_km=25.0, duration_minutes=60,
-               avg_speed_kmh=25.0, calories=600, heart_rate_avg=150.0,
-               elevation_gain_m=200.0):
+def _make_ride(
+    date="2024-06-15",
+    distance_km=25.0,
+    duration_minutes=60,
+    avg_speed_kmh=25.0,
+    calories=600,
+    heart_rate_avg=150.0,
+    elevation_gain_m=200.0,
+):
     ts = datetime(2024, 6, 15, 10, 0, 0, tzinfo=UTC)
     points = [
         GPSPoint(lat=45.0, lon=9.0, altitude=100.0, speed=10.0, timestamp=ts),
         GPSPoint(lat=45.01, lon=9.01, altitude=105.0, speed=12.0, timestamp=ts),
     ]
     return Ride(
-        id=1, athlete_id=1, date=date,
-        distance_km=distance_km, duration_minutes=duration_minutes,
-        avg_speed_kmh=avg_speed_kmh, calories=calories,
-        heart_rate_avg=heart_rate_avg, elevation_gain_m=elevation_gain_m,
+        id=1,
+        athlete_id=1,
+        date=date,
+        distance_km=distance_km,
+        duration_minutes=duration_minutes,
+        avg_speed_kmh=avg_speed_kmh,
+        calories=calories,
+        heart_rate_avg=heart_rate_avg,
+        elevation_gain_m=elevation_gain_m,
         gps_points=points,
     )
 
@@ -106,6 +117,7 @@ class TestExportFunctions:
         result = export_rides_json(rides, out)
         assert result == out
         import json
+
         with open(out) as f:
             data = json.load(f)
         assert len(data) == 1

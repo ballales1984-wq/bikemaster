@@ -96,9 +96,7 @@ def remove_outliers(points: list[GPSPoint], max_speed_km_h: float = 120.0) -> li
         last = points[-1]
         time_s = (last.timestamp - cleaned[-1].timestamp).total_seconds()
         if time_s > 0:
-            speed = (
-                haversine_distance_m(cleaned[-1].lat, cleaned[-1].lon, last.lat, last.lon) / time_s
-            ) * 3.6
+            speed = (haversine_distance_m(cleaned[-1].lat, cleaned[-1].lon, last.lat, last.lon) / time_s) * 3.6
             if speed <= max_speed_km_h:
                 cleaned.append(last)
     return cleaned if len(cleaned) >= 2 else points[:2]
@@ -138,9 +136,7 @@ def compute_statistics(points: list[GPSPoint]) -> RouteStatistics:
     pauses = detect_pauses(points)
     total_distance_m = sum(s.distance_m for s in segments)
     total_duration_s = (
-        (segments[-1].end.timestamp.timestamp() - segments[0].start.timestamp.timestamp())
-        if segments
-        else 0.0
+        (segments[-1].end.timestamp.timestamp() - segments[0].start.timestamp.timestamp()) if segments else 0.0
     )
     moving_s = total_duration_s - sum(p.duration_s for p in pauses)
     return RouteStatistics(
@@ -156,9 +152,7 @@ def compute_statistics(points: list[GPSPoint]) -> RouteStatistics:
     )
 
 
-def process_route(
-    points: list[GPSPoint], max_speed_km_h: float = 120.0
-) -> tuple[list[GPSPoint], RouteStatistics]:
+def process_route(points: list[GPSPoint], max_speed_km_h: float = 120.0) -> tuple[list[GPSPoint], RouteStatistics]:
     points = sorted(points, key=lambda p: p.timestamp)
     cleaned = remove_outliers(points, max_speed_km_h)
     return cleaned, compute_statistics(cleaned)

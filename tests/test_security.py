@@ -56,6 +56,7 @@ def _patch_get_redis(redis_mock):
 # Password hashing
 # ---------------------------------------------------------------------------
 
+
 class TestHashPassword:
     def test_hash_returns_string(self):
         h = hash_password("mypassword")
@@ -86,6 +87,7 @@ class TestHashPassword:
 # JWT token creation/decoding
 # ---------------------------------------------------------------------------
 
+
 class TestCreateAccessToken:
     def test_basic(self):
         token = create_access_token(subject="1")
@@ -94,8 +96,7 @@ class TestCreateAccessToken:
 
     def test_decoded_payload(self):
         token = create_access_token(subject="42", is_admin=True)
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM],
-                             audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
         assert payload["sub"] == "42"
         assert payload["is_admin"] is True
         assert "jti" in payload
@@ -103,20 +104,17 @@ class TestCreateAccessToken:
 
     def test_with_tenant_id(self):
         token = create_access_token(subject="1", tenant_id=5)
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM],
-                             audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
         assert payload.get("tenant_id") == 5
 
     def test_without_tenant_id(self):
         token = create_access_token(subject="1")
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM],
-                             audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
         assert "tenant_id" not in payload
 
     def test_custom_expiry(self):
         token = create_access_token(subject="1", expires_delta=timedelta(hours=1))
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM],
-                             audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
         assert "exp" in payload
 
 
@@ -128,14 +126,14 @@ class TestCreateRefreshToken:
 
     def test_has_type_refresh(self):
         token = create_refresh_token(subject="1")
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM],
-                             audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
         assert payload.get("type") == "refresh"
 
 
 # ---------------------------------------------------------------------------
 # Token fingerprint
 # ---------------------------------------------------------------------------
+
 
 class TestFingerprintToken:
     def test_returns_string(self):
@@ -158,30 +156,35 @@ class TestFingerprintToken:
 # decode_token
 # ---------------------------------------------------------------------------
 
+
 class TestDecodeToken:
     def test_valid_token(self):
         r = _make_redis_mock(exists_return=0)
         with _patch_get_redis(r):
             token = create_access_token(subject="42", is_admin=False)
             import asyncio
+
             payload = asyncio.run(decode_token(token))
             assert payload["sub"] == "42"
 
     def test_invalid_token(self):
         with pytest.raises(HTTPException) as exc_info:
             import asyncio
+
             asyncio.run(decode_token("not.a.valid.token"))
         assert exc_info.value.status_code == 401
 
     def test_none_token(self):
         with pytest.raises(HTTPException) as exc_info:
             import asyncio
+
             asyncio.run(decode_token(None))
         assert exc_info.value.status_code == 401
 
     def test_non_string_token(self):
         with pytest.raises(HTTPException) as exc_info:
             import asyncio
+
             asyncio.run(decode_token(123))
         assert exc_info.value.status_code == 401
 
@@ -191,6 +194,7 @@ class TestDecodeToken:
             token = create_access_token(subject="1")
             with pytest.raises(HTTPException) as exc_info:
                 import asyncio
+
                 asyncio.run(decode_token(token))
             assert exc_info.value.status_code == 401
 
@@ -199,11 +203,13 @@ class TestDecodeToken:
 # refresh token storage
 # ---------------------------------------------------------------------------
 
+
 class TestRefreshTokenStorage:
     def test_get_refresh_token(self):
         r = _make_redis_mock(get_return="token123")
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(get_refresh_token(1))
             assert result == "token123"
 
@@ -211,6 +217,7 @@ class TestRefreshTokenStorage:
         r = _make_redis_mock(get_return=None)
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(get_refresh_token(1))
             assert result is None
 
@@ -218,6 +225,7 @@ class TestRefreshTokenStorage:
         r = _make_redis_mock()
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(save_refresh_token(1, "token123"))
             assert result is True
 
@@ -226,6 +234,7 @@ class TestRefreshTokenStorage:
         r.return_value = None
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(get_refresh_token(1))
             assert result is None
 
@@ -233,6 +242,7 @@ class TestRefreshTokenStorage:
         r = AsyncMock(return_value=None)
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(save_refresh_token(1, "token123"))
             assert result is False
 
@@ -240,6 +250,7 @@ class TestRefreshTokenStorage:
         r = _make_redis_mock()
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(revoke_refresh_token(1))
             assert result is True
 
@@ -248,13 +259,16 @@ class TestRefreshTokenStorage:
 # JWT blacklist
 # ---------------------------------------------------------------------------
 
+
 class TestJwtBlacklist:
     def test_revoke_token(self):
         from bike_analyzer.backend.security import _memory_revoked_tokens
+
         _memory_revoked_tokens.clear()
         r = _make_redis_mock()
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(revoke_token("jti-123"))
             assert result is True
             assert "jti-123" in _memory_revoked_tokens
@@ -262,10 +276,12 @@ class TestJwtBlacklist:
 
     def test_revoke_token_no_redis(self):
         from bike_analyzer.backend.security import _memory_revoked_tokens
+
         _memory_revoked_tokens.clear()
         r = AsyncMock(return_value=None)
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(revoke_token("jti-123"))
             assert result is True
             assert "jti-123" in _memory_revoked_tokens
@@ -273,21 +289,25 @@ class TestJwtBlacklist:
 
     def test_is_token_revoked_in_memory(self):
         from bike_analyzer.backend.security import _memory_revoked_tokens
+
         _memory_revoked_tokens.clear()
         _memory_revoked_tokens.add("revoked-jti")
         r = _make_redis_mock(exists_return=0)
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(is_token_revoked("revoked-jti"))
             assert result is True
         _memory_revoked_tokens.clear()
 
     def test_is_token_not_revoked(self):
         from bike_analyzer.backend.security import _memory_revoked_tokens
+
         _memory_revoked_tokens.clear()
         r = _make_redis_mock(exists_return=0)
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(is_token_revoked("fresh-jti"))
             assert result is False
         _memory_revoked_tokens.clear()
@@ -296,6 +316,7 @@ class TestJwtBlacklist:
 # ---------------------------------------------------------------------------
 # TOTP
 # ---------------------------------------------------------------------------
+
 
 class TestTotp:
     def test_generate_secret(self):
@@ -358,6 +379,7 @@ class TestTotpRedis:
         r.set = AsyncMock(return_value=True)
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(save_totp_secret(42, "secret123"))
             assert result is True
 
@@ -365,6 +387,7 @@ class TestTotpRedis:
         r = _make_redis_mock(get_return="stored_secret")
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(get_totp_secret(42))
             assert result == "stored_secret"
 
@@ -372,6 +395,7 @@ class TestTotpRedis:
         r = _make_redis_mock()
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(delete_totp_secret(42))
             assert result is True
 
@@ -380,5 +404,6 @@ class TestTotpRedis:
         r.return_value = None
         with _patch_get_redis(r):
             import asyncio
+
             result = asyncio.run(get_totp_secret(42))
             assert result is None

@@ -17,9 +17,7 @@ from .gps_parser import points_to_ride
 GOOGLE_HEALTH_API_BASE = "https://health.googleapis.com/v4"
 
 
-def get_authorization_url(
-    client_id: str, redirect_uri: str = "http://localhost:8000/callback", state: str = ""
-) -> str:
+def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:8000/callback", state: str = "") -> str:
     params = {
         "client_id": client_id,
         "redirect_uri": redirect_uri,
@@ -33,9 +31,7 @@ def get_authorization_url(
     return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
 
 
-def exchange_code_for_token(
-    client_id: str, client_secret: str, code: str, redirect_uri: str
-) -> dict:
+def exchange_code_for_token(client_id: str, client_secret: str, code: str, redirect_uri: str) -> dict:
     import requests
 
     resp = requests.post(
@@ -85,9 +81,9 @@ def fetch_exercises(access_token: str, days: int = 180) -> list[dict]:
         "pageSize": 25,
         "filter": (
             'exercise.interval.start_time >= "'
-            f'{start.isoformat(timespec="seconds")}'
+            f"{start.isoformat(timespec='seconds')}"
             '" AND exercise.interval.start_time < "'
-            f'{end.isoformat(timespec="seconds")}'
+            f"{end.isoformat(timespec='seconds')}"
             '"'
         ),
     }
@@ -98,9 +94,7 @@ def fetch_exercises(access_token: str, days: int = 180) -> list[dict]:
     while url:
         resp = requests.get(url, headers=headers, params=params, timeout=20)
         if resp.status_code == 403:
-            raise requests.exceptions.HTTPError(
-                "403 Client Error: Forbidden for url: %s" % resp.url, response=resp
-            )
+            raise requests.exceptions.HTTPError(f"403 Client Error: Forbidden for url: {resp.url}", response=resp)
         resp.raise_for_status()
         data = resp.json()
         exercises.extend(data.get("dataPoints", []))
@@ -273,9 +267,7 @@ def google_health_to_rides(access_token: str, athlete_id: int, days: int = 180) 
                 tcx = export_exercise_tcx(access_token, exercise_name)
                 points = tcx_to_points(tcx)
                 if points:
-                    ride_data = points_to_ride(
-                        points, exercise.get("displayName") or "Uscita Google Health"
-                    )
+                    ride_data = points_to_ride(points, exercise.get("displayName") or "Uscita Google Health")
                     heart_rates = [p["heart_rate"] for p in points if p.get("heart_rate") is not None]
                     if heart_rates:
                         ride_data["heart_rate_avg"] = round(sum(heart_rates) / len(heart_rates), 1)

@@ -11,9 +11,7 @@ from google.oauth2.credentials import Credentials
 from ..config import GOOGLE_FIT_CLIENT_ID, GOOGLE_FIT_CLIENT_SECRET, GOOGLE_FIT_SCOPE
 
 
-def get_authorization_url(
-    client_id: str, redirect_uri: str = "http://localhost:8000/callback", state: str = ""
-) -> str:
+def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:8000/callback", state: str = "") -> str:
     params = {
         "client_id": client_id,
         "redirect_uri": redirect_uri,
@@ -26,9 +24,7 @@ def get_authorization_url(
     return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
 
 
-def exchange_code_for_token(
-    client_id: str, client_secret: str, code: str, redirect_uri: str
-) -> dict:
+def exchange_code_for_token(client_id: str, client_secret: str, code: str, redirect_uri: str) -> dict:
     import requests
 
     resp = requests.post(
@@ -157,9 +153,7 @@ def google_fit_to_ride(activities: list[dict]) -> list[dict]:
             "date": start_iso[:10] if start_iso else "",
             "duration_minutes": duration_min,
             "distance_km": round(distance_m / 1000, 2) if distance_m else 0,
-            "avg_speed_kmh": round(
-                (distance_m / 1000) / (duration_min / 60), 1
-            )
+            "avg_speed_kmh": round((distance_m / 1000) / (duration_min / 60), 1)
             if distance_m and duration_min > 0
             else 0,
             "title": act.get("name") or "Google Fit Cycling",

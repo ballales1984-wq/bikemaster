@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import json
 import time
 from collections.abc import AsyncGenerator
@@ -92,9 +93,7 @@ def _forwarded_value(header_value: str | None) -> str:
 def _build_redirect_uri(request: Request, path: str) -> str:
     proto = _forwarded_value(request.headers.get("x-forwarded-proto")) or request.url.scheme
     host = (
-        _forwarded_value(request.headers.get("x-forwarded-host"))
-        or request.headers.get("host")
-        or request.url.netloc
+        _forwarded_value(request.headers.get("x-forwarded-host")) or request.headers.get("host") or request.url.netloc
     )
     return f"{proto}://{host}{path}"
 
@@ -107,21 +106,11 @@ def _build_frontend_redirect_url(
 ) -> str:
     parsed = urlparse(redirect_uri or "")
     origin = (
-        f"{parsed.scheme}://{parsed.netloc}"
-        if parsed.scheme and parsed.netloc
-        else _build_redirect_uri(request, "")
+        f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else _build_redirect_uri(request, "")
     )
     fragment_keys = fragment_keys or set()
-    params = {
-        key: value
-        for key, value in query_values.items()
-        if key not in fragment_keys and value is not None
-    }
-    fragment_params = {
-        key: value
-        for key, value in query_values.items()
-        if key in fragment_keys and value is not None
-    }
+    params = {key: value for key, value in query_values.items() if key not in fragment_keys and value is not None}
+    fragment_params = {key: value for key, value in query_values.items() if key in fragment_keys and value is not None}
     query_suffix = f"?{urlencode(params)}" if params else ""
     fragment_suffix = f"#{urlencode(fragment_params)}" if fragment_params else ""
     return f"{origin}/{query_suffix}{fragment_suffix}"
@@ -217,9 +206,7 @@ def _sse(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
 
 
-def _make_streaming_response(
-    generator: AsyncGenerator[str, None], event_type: str = "chunk"
-) -> StreamingResponse:
+def _make_streaming_response(generator: AsyncGenerator[str, None], event_type: str = "chunk") -> StreamingResponse:
     async def stream_gen() -> AsyncGenerator[str, None]:
         try:
             async for chunk in generator:
@@ -236,15 +223,11 @@ def _make_streaming_response(
 
 
 def _google_fit_message_html(message: dict) -> HTMLResponse:
-    return HTMLResponse(
-        f"<script>window.opener.postMessage({json.dumps(message)}, '*'); window.close();</script>"
-    )
+    return HTMLResponse(f"<script>window.opener.postMessage({json.dumps(message)}, '*'); window.close();</script>")
 
 
 def _google_health_message_html(message: dict) -> HTMLResponse:
-    return HTMLResponse(
-        f"<script>window.opener.postMessage({json.dumps(message)}, '*'); window.close();</script>"
-    )
+    return HTMLResponse(f"<script>window.opener.postMessage({json.dumps(message)}, '*'); window.close();</script>")
 
 
 @router.get("/health")
@@ -315,9 +298,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
                     status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"}
                 )
 
-            access_token = create_access_token(
-                subject=str(user.id), is_admin=user.is_admin, tenant_id=user.id
-            )
+            access_token = create_access_token(subject=str(user.id), is_admin=user.is_admin, tenant_id=user.id)
             refresh_token = create_refresh_token(user.id)
             await save_refresh_token(user.id, refresh_token)
             return {
@@ -339,9 +320,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
         )
         row = cur.fetchone()
     if not row or not verify_password(form_data.password, row[2] or ""):
-        raise HTTPException(
-            status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"}
-        )
+        raise HTTPException(status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"})
     athlete_id = int(row[0])
     access_token = create_access_token(subject=str(athlete_id), is_admin=False, tenant_id=athlete_id)
     refresh_token = create_refresh_token(athlete_id)
@@ -385,9 +364,7 @@ async def logout(request: Request, current_user: dict = Depends(get_current_user
 
 @router.post("/auth/refresh")
 @limiter.limit("10/minute")
-async def refresh_token(
-    request: Request, payload: RefreshTokenRequest
-):
+async def refresh_token(request: Request, payload: RefreshTokenRequest):
     from ..security import _try_decode, create_access_token, is_token_revoked
 
     refresh_token = payload.refresh_token
@@ -431,9 +408,7 @@ async def register(
 
         session_factory = get_session_factory()
         async with session_factory() as session:
-            stmt = select(UserModel).where(
-                (UserModel.username == username) | (UserModel.email == email)
-            )
+            stmt = select(UserModel).where((UserModel.username == username) | (UserModel.email == email))
             result = await session.execute(stmt)
             existing = result.scalar_one_or_none()
             if existing:
@@ -441,15 +416,19 @@ async def register(
                 raise HTTPException(status_code=400, detail=detail)
 
             password_hash = hash_password(password)
-            stmt = insert(UserModel).values(
-                username=username,
-                email=email,
-                password_hash=password_hash,
-                is_admin=False,
-                is_active=True,
-                created_at=datetime.now(UTC),
-                updated_at=datetime.now(UTC),
-            ).returning(UserModel.id)
+            stmt = (
+                insert(UserModel)
+                .values(
+                    username=username,
+                    email=email,
+                    password_hash=password_hash,
+                    is_admin=False,
+                    is_active=True,
+                    created_at=datetime.now(UTC),
+                    updated_at=datetime.now(UTC),
+                )
+                .returning(UserModel.id)
+            )
             result = await session.execute(stmt)
             user_id = result.scalar_one()
             await session.commit()
@@ -491,6 +470,7 @@ async def register(
     )
     if athlete_id:
         from ..db.database import update_athlete
+
         update_athlete(athlete_id, {"tenant_id": athlete_id})
     return {
         "username": username,
@@ -555,9 +535,20 @@ async def update_profile(
     from ..db.database import update_athlete as _update_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    allowed_fields = {"name", "email", "age", "weight_kg", "height_cm",
-                      "experience_level", "goals", "preferred_terrain",
-                      "weekly_volume_km", "ftp_watts", "equipment", "medical_notes"}
+    allowed_fields = {
+        "name",
+        "email",
+        "age",
+        "weight_kg",
+        "height_cm",
+        "experience_level",
+        "goals",
+        "preferred_terrain",
+        "weekly_volume_km",
+        "ftp_watts",
+        "equipment",
+        "medical_notes",
+    }
     update_data = {k: v for k, v in profile_data.items() if k in allowed_fields}
     if not update_data:
         raise HTTPException(status_code=400, detail="No valid fields to update")
@@ -584,6 +575,7 @@ async def change_password(
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     new_hash = hash_password(new_password)
     from ..db.database import update_athlete
+
     update_athlete(current_user["id"], {"password_hash": new_hash})
     return {"msg": "Password changed successfully"}
 
@@ -627,9 +619,7 @@ async def google_oauth_callback_get(
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
     redirect_uri = (
-        redirect_uri
-        or _redirect_uri_from_state(state)
-        or _build_redirect_uri(request, "/api/v1/auth/google/callback")
+        redirect_uri or _redirect_uri_from_state(state) or _build_redirect_uri(request, "/api/v1/auth/google/callback")
     )
     _validate_redirect_uri(redirect_uri)
     if state:
@@ -652,19 +642,13 @@ async def google_oauth_callback_get(
     except requests.exceptions.HTTPError as exc:
         response = getattr(exc, "response", None)
         if response is not None and response.status_code == 400:
-            return RedirectResponse(
-                url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="oauth_error")
-            )
+            return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="oauth_error"))
         error_body = response.text if response is not None else str(exc)
         error_detail = f"token_exchange_failed:{error_body[:200]}"
-        return RedirectResponse(
-            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=error_detail)
-        )
+        return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=error_detail))
     access_token = token_data.get("access_token")
     if not access_token:
-        return RedirectResponse(
-            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="no_access_token")
-        )
+        return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="no_access_token"))
 
     try:
         user_info = get_google_user_info(access_token)
@@ -686,6 +670,7 @@ async def google_oauth_callback_get(
     existing = get_athlete_by_email(email) if email else None
     if not existing:
         from ..redis_client import get_redis
+
         lock_key = f"oauth:lock:athlete:{email or google_sub}"
         r = await get_redis()
         if r is not None:
@@ -696,14 +681,17 @@ async def google_oauth_callback_get(
             if lock_acquired:
                 existing = get_athlete_by_email(email) if email else None
             if not existing:
-                athlete_id = save_athlete({
-                    "name": name or email or google_sub,
-                    "email": email,
-                    "picture": user_info.get("picture"),
-                    "experience_level": "Beginner",
-                })
+                athlete_id = save_athlete(
+                    {
+                        "name": name or email or google_sub,
+                        "email": email,
+                        "picture": user_info.get("picture"),
+                        "experience_level": "Beginner",
+                    }
+                )
                 if athlete_id:
                     from ..db.database import update_athlete
+
                     update_athlete(athlete_id, {"tenant_id": athlete_id})
                 existing = get_athlete(athlete_id)
         finally:
@@ -718,8 +706,7 @@ async def google_oauth_callback_get(
     if frontend_origin and "localhost:8000" in frontend_origin:
         frontend_origin = "http://localhost:5173/"
     redirect_url = (
-        f"{frontend_origin}#"
-        f"{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
+        f"{frontend_origin}#{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
     )
     await _cache_set(f"oauth:code:{code}", {"redirect_url": redirect_url}, ttl=300)
     return RedirectResponse(url=redirect_url)
@@ -798,9 +785,7 @@ async def get_ride(ride_id: int, current_user: dict = Depends(get_current_user))
 
 
 @router.get("/rides/{ride_id}/map")
-async def generate_ride_map(
-    ride_id: int, current_user: dict = Depends(get_current_user)
-):
+async def generate_ride_map(ride_id: int, current_user: dict = Depends(get_current_user)):
     from pathlib import Path
 
     from ..db.database import get_ride as _get_ride
@@ -843,9 +828,7 @@ async def analyze_rides(request: Request, payload: RideAnalysisRequest):
 
 
 @router.post("/rides/{ride_id}/analyze")
-async def analyze_single_ride(
-    ride_id: int, ride_data: RideCreate, current_user: dict = Depends(get_current_user)
-):
+async def analyze_single_ride(ride_id: int, ride_data: RideCreate, current_user: dict = Depends(get_current_user)):
     from ..analytics.analytics import analyze_ride
     from ..models.models import Ride
 
@@ -972,9 +955,7 @@ async def health_detailed(request: Request):
 
 
 @router.get("/coach/history")
-async def coach_chat_history(
-    athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)
-):
+async def coach_chat_history(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
     from ..db.database import get_chat_history
 
     _ensure_athlete_access(athlete_id, current_user)
@@ -984,9 +965,7 @@ async def coach_chat_history(
 
 
 @router.post("/import/multiple")
-async def import_multiple(
-    files: list[UploadFile] = File(...), current_user: dict = Depends(get_current_user)
-):
+async def import_multiple(files: list[UploadFile] = File(...), current_user: dict = Depends(get_current_user)):
     import tempfile
 
     from ..db.database import save_ride
@@ -1158,9 +1137,7 @@ async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current
 
 
 @router.post("/athletes", response_model=dict)
-async def create_athlete(
-    athlete_data: AthleteCreate, current_user: dict = Depends(get_current_user)
-):
+async def create_athlete(athlete_data: AthleteCreate, current_user: dict = Depends(get_current_user)):
     """Create or update the authenticated user's athlete profile."""
     from ..db.database import get_athlete as _get_athlete
     from ..db.database import get_athlete_by_name, save_athlete
@@ -1237,9 +1214,7 @@ async def get_athlete_endpoint(athlete_id: int, current_user: dict = Depends(get
 
 
 @router.post("/athletes/{athlete_id}/metrics")
-async def add_metric(
-    athlete_id: int, metric_data: MetricCreate, current_user: dict = Depends(get_current_user)
-):
+async def add_metric(athlete_id: int, metric_data: MetricCreate, current_user: dict = Depends(get_current_user)):
     """Add metric - user can only add metrics to own profile."""
     _ensure_athlete_access(athlete_id, current_user)
     from ..db.database import save_metric
@@ -1368,11 +1343,13 @@ async def google_health_callback(
     if not access_token:
         raise HTTPException(status_code=400, detail="Failed to get access token from Google Health")
 
-    return _google_health_message_html({
-        "type": "google-health-success",
-        "token": access_token,
-        "refresh_token": token_data.get("refresh_token", ""),
-    })
+    return _google_health_message_html(
+        {
+            "type": "google-health-success",
+            "token": access_token,
+            "refresh_token": token_data.get("refresh_token", ""),
+        }
+    )
 
 
 @router.post("/import/google-health")
@@ -1386,13 +1363,15 @@ async def import_google_health(payload: dict, current_user: dict = Depends(get_c
     access_token = payload.get("access_token")
     refresh_token = payload.get("refresh_token")
     if access_token and refresh_token and isinstance(access_token, str) and isinstance(refresh_token, str):
-        try:
-            store_google_token(athlete_id, "google_health", {
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-            })
-        except Exception:
-            pass
+        with contextlib.suppress(Exception):
+            store_google_token(
+                athlete_id,
+                "google_health",
+                {
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                },
+            )
 
     stored_token = get_valid_google_token(athlete_id, "google_health")
     if stored_token:
@@ -1439,9 +1418,7 @@ async def google_fit_exchange_token(
     if not client_id or not isinstance(client_id, str) or len(client_id) > 256:
         raise HTTPException(status_code=400, detail="Invalid client_id")
 
-    redirect_uri = payload.get("redirect_uri") or _build_redirect_uri(
-        request, "/api/v1/import/google-fit/callback"
-    )
+    redirect_uri = payload.get("redirect_uri") or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
     _validate_redirect_uri(redirect_uri)
 
     try:
@@ -1569,13 +1546,15 @@ async def import_google_fit(payload: dict, current_user: dict = Depends(get_curr
     access_token = payload.get("access_token")
     refresh_token = payload.get("refresh_token")
     if access_token and refresh_token and isinstance(access_token, str) and isinstance(refresh_token, str):
-        try:
-            store_google_token(athlete_id, "google_fit", {
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-            })
-        except Exception:
-            pass
+        with contextlib.suppress(Exception):
+            store_google_token(
+                athlete_id,
+                "google_fit",
+                {
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                },
+            )
 
     stored_token = get_valid_google_token(athlete_id, "google_fit")
     if stored_token:
@@ -1644,9 +1623,7 @@ async def benchmark_compare(ride_data: dict, current_user: dict = Depends(get_cu
     from ..models.models import Ride
 
     ride = Ride(**ride_data)
-    return compare_athlete_to_benchmark(
-        AthleteProfile(), ride.distance_km, ride.avg_speed_kmh, ride.duration_hours
-    )
+    return compare_athlete_to_benchmark(AthleteProfile(), ride.distance_km, ride.avg_speed_kmh, ride.duration_hours)
 
 
 @router.get("/knowledge")
@@ -1664,9 +1641,7 @@ async def list_knowledge():
 
 @router.get("/knowledge/search")
 @limiter.limit("10/minute")
-async def search_knowledge_endpoint(
-    request: Request, query: str = "", max_chunks: int = 4, min_score: float = 0.05
-):
+async def search_knowledge_endpoint(request: Request, query: str = "", max_chunks: int = 4, min_score: float = 0.05):
     from ..analytics.knowledge_base import format_context_for_llm, search_knowledge_base
 
     if not query or not query.strip():
@@ -1765,9 +1740,7 @@ async def coach_full_data(
         if not resolved_id:
             resolved_id = current_user["id"]
         if not resolved_id:
-            profile_message = (
-                "Create an athlete profile in the Dashboard to receive personalized recommendations."
-            )
+            profile_message = "Create an athlete profile in the Dashboard to receive personalized recommendations."
             return {
                 "training_advice": profile_message,
                 "recovery_advice": profile_message,
@@ -1843,9 +1816,7 @@ async def recovery_recommendations(
         if athlete_data:
             athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
-        result = generate_recovery_recommendations(
-            athlete, [ride_obj] if ride_obj else [], fatigue_score
-        )
+        result = generate_recovery_recommendations(athlete, [ride_obj] if ride_obj else [], fatigue_score)
         return {"recommendations": result}
     except HTTPException:
         raise
@@ -2008,9 +1979,7 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
     last_month = sum(
         1
         for r in rides
-        if r.get("date", "").startswith(
-            f"{now.year}-{now.month - 1:02d}" if now.month > 1 else f"{now.year - 1}-12"
-        )
+        if r.get("date", "").startswith(f"{now.year}-{now.month - 1:02d}" if now.month > 1 else f"{now.year - 1}-12")
     )
     db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
     level_counts = {"Beginner": 0, "Amateur": 0, "Intermediate": 0, "Advanced": 0, "Elite": 0}
@@ -2029,9 +1998,7 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
         "growth": {
             "rides_this_month": this_month,
             "rides_last_month": last_month,
-            "growth_rate": round((this_month - last_month) / last_month * 100, 1)
-            if last_month
-            else 0,
+            "growth_rate": round((this_month - last_month) / last_month * 100, 1) if last_month else 0,
         },
         "engagement": {
             "rides_per_athlete": round(total_rides / total_athletes, 1) if total_athletes else 0,
@@ -2048,9 +2015,7 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
 
 
 @router.put("/rides/{ride_id}")
-async def update_ride(
-    ride_id: int, ride: dict = Body(...), current_user: dict = Depends(get_current_user)
-):
+async def update_ride(ride_id: int, ride: dict = Body(...), current_user: dict = Depends(get_current_user)):
     from ..db.database import get_ride as _get_ride
     from ..db.database import update_ride as _update_ride
 
@@ -2079,6 +2044,7 @@ async def coach_chat_post(
     current_user: dict = Depends(get_current_user),
 ):
     from .schemas import CoachChatRequest
+
     body = await request.json()
     chat_req = CoachChatRequest(**body)
     athlete_id = chat_req.athlete_id or current_user["id"]
@@ -2169,7 +2135,7 @@ async def osm_places_search(
     limit: int = Query(10),
 ):
     """OpenStreetMap search for places - no API key required."""
-    cache_key_str = f"places:osm:{query}:{round(lat,3)}:{round(lon,3)}:{limit}"
+    cache_key_str = f"places:osm:{query}:{round(lat, 3)}:{round(lon, 3)}:{limit}"
     cached_result = _place_cache_get(cache_key_str)
     if cached_result is not None:
         logger.debug("Place search cache hit: osm %s", query)
@@ -2209,9 +2175,7 @@ async def search_places_endpoint(
 
 
 @router.post("/calendar/events")
-async def create_calendar_event(
-    event_data: CalendarEventCreate, current_user: dict = Depends(get_current_user)
-):
+async def create_calendar_event(event_data: CalendarEventCreate, current_user: dict = Depends(get_current_user)):
     from ..db.database import get_calendar_event, save_calendar_event
     from ..utils.dates import date_only
 
@@ -2255,9 +2219,7 @@ async def list_events_by_range(
 
 
 @router.get("/calendar/events/{event_id}")
-async def get_calendar_event_endpoint(
-    event_id: int, current_user: dict = Depends(get_current_user)
-):
+async def get_calendar_event_endpoint(event_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import get_calendar_event
 
     event = get_calendar_event(event_id)
@@ -2291,9 +2253,7 @@ async def update_calendar_event_endpoint(
 
 
 @router.delete("/calendar/events/{event_id}")
-async def delete_calendar_event_endpoint(
-    event_id: int, current_user: dict = Depends(get_current_user)
-):
+async def delete_calendar_event_endpoint(event_id: int, current_user: dict = Depends(get_current_user)):
     from ..db.database import delete_calendar_event, get_calendar_event
 
     event = get_calendar_event(event_id)
@@ -2339,9 +2299,7 @@ async def get_training_load(
 
 
 @router.get("/training/status")
-async def get_training_status(
-    athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)
-):
+async def get_training_status(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
     """Get current fitness status with ATL/CTL/TSB recommendation."""
     from ..analytics.training_load import get_current_training_status
     from ..db.database import get_rides_by_athlete
@@ -2354,9 +2312,7 @@ async def get_training_status(
 
 
 @router.get("/training/summary")
-async def get_7day_summary(
-    athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)
-):
+async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
     """Get 7-day fitness summary for dashboard."""
     from ..analytics.training_load import get_7day_fitness_summary
     from ..db.database import get_rides_by_athlete
@@ -2542,8 +2498,9 @@ async def get_weather_forecast(
 
 @router.get("/analytics/trends")
 async def get_fitness_trends(
-    metric: str = Query("distance_km"), window: int = Query(7, ge=1, le=90),
-    current_user: dict = Depends(get_current_user)
+    metric: str = Query("distance_km"),
+    window: int = Query(7, ge=1, le=90),
+    current_user: dict = Depends(get_current_user),
 ):
     """Get fitness trend analysis for athlete's rides."""
     from ..analytics.analytics_trends import calculate_fitness_trends
@@ -2594,9 +2551,7 @@ async def get_volume_projection(
 
 
 @router.get("/heatmap")
-async def get_heatmap(
-    athlete_id: int = Query(0), current_user: dict = Depends(get_current_user)
-):
+async def get_heatmap(athlete_id: int = Query(0), current_user: dict = Depends(get_current_user)):
     """Get heatmap data from all GPS points for an athlete."""
     from ..db.database import get_rides_by_athlete
 
@@ -2610,9 +2565,7 @@ async def get_heatmap(
 
 
 @router.get("/badges")
-async def get_badges(
-    athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)
-):
+async def get_badges(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
     """Get badge achievements for an athlete."""
     from ..db.database import get_athlete, get_rides_by_athlete
 
@@ -2673,9 +2626,7 @@ async def get_ride_power_metrics(
 
 
 @router.get("/traffic/road-types")
-async def get_road_types(
-    lat: float = Query(...), lon: float = Query(...), radius_km: float = Query(2.0)
-):
+async def get_road_types(lat: float = Query(...), lon: float = Query(...), radius_km: float = Query(2.0)):
     """Get road type distribution for an area using OSM Overpass."""
     from ..traffic.overpass_client import get_road_type_summary
 
@@ -2685,9 +2636,7 @@ async def get_road_types(
 
 
 @router.get("/traffic/bike-infrastructure")
-async def get_bike_infrastructure(
-    lat: float = Query(...), lon: float = Query(...), radius_km: float = Query(2.0)
-):
+async def get_bike_infrastructure(lat: float = Query(...), lon: float = Query(...), radius_km: float = Query(2.0)):
     """Get bike lanes and cycleways for an area using OSM Overpass."""
     from ..traffic.overpass_client import fetch_bike_lanes
 
@@ -2729,9 +2678,7 @@ async def get_traffic_incidents(
 
 
 @router.get("/rides/{ride_id}/safety")
-async def analyze_ride_safety(
-    ride_id: int, current_user: dict = Depends(get_current_user)
-):
+async def analyze_ride_safety(ride_id: int, current_user: dict = Depends(get_current_user)):
     """Analyze route safety for a ride using OSM data and incident data."""
     from ..config import INCIDENT_DAYS, INCIDENT_RADIUS_KM
     from ..db.database import get_ride as _get_ride
@@ -2755,9 +2702,7 @@ async def analyze_ride_safety(
     lons = [p["lon"] for p in points]
     center_lat = sum(lats) / len(lats) if lats else 0.0
     center_lon = sum(lons) / len(lons) if lons else 0.0
-    incidents = fetch_incidents(
-        center_lat, center_lon, radius_km=INCIDENT_RADIUS_KM, days=INCIDENT_DAYS
-    )
+    incidents = fetch_incidents(center_lat, center_lon, radius_km=INCIDENT_RADIUS_KM, days=INCIDENT_DAYS)
     safety = await analyze_route_safety(points, incidents=incidents)
     safety["ride_id"] = ride_id
     safety["athlete_id"] = ride.get("athlete_id")
@@ -2773,6 +2718,7 @@ async def analyze_ride_safety(
 # ------------------------------------------------------------------
 # Strava integration routes
 # ------------------------------------------------------------------
+
 
 @router.get("/import/strava/auth")
 async def strava_auth(
@@ -2860,6 +2806,7 @@ async def strava_disconnect(current_user: dict = Depends(get_current_user)):
 # ------------------------------------------------------------------
 # Garmin integration routes
 # ------------------------------------------------------------------
+
 
 @router.get("/import/garmin/auth")
 async def garmin_auth(
@@ -2984,4 +2931,3 @@ async def test_sentry(current_user: dict = Depends(get_admin_user)):
 
     sentry_sdk.capture_exception(Exception("Test Sentry integration - bikemaster"))
     return {"status": "test_event_sent", "message": "Check Sentry dashboard for error event"}
-

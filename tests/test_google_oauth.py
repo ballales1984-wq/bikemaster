@@ -1,4 +1,5 @@
 """Tests for Google OAuth integration."""
+
 import os
 from unittest.mock import MagicMock, Mock, patch
 

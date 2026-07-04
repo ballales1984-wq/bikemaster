@@ -125,9 +125,7 @@ def _bin_powers(watts_series: list, ride: Any | None = None) -> dict:
 
 def _power_profile_to_dict(binned: dict) -> dict[str, float | None]:
     labels = {5: "5s", 60: "1min", 300: "5min", 600: "10min", 1200: "20min", 1800: "30min"}
-    return {
-        label: round(binned[d], 1) if binned.get(d, 0) > 0 else None for d, label in labels.items()
-    }
+    return {label: round(binned[d], 1) if binned.get(d, 0) > 0 else None for d, label in labels.items()}
 
 
 def estimate_ftp_from_20min(points: list[GPSPoint]) -> float:

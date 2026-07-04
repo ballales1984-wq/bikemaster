@@ -138,11 +138,7 @@ class BackgroundTaskQueue:
         tenant_id = payload.get("tenant_id", athlete_id)
         for f in files:
             try:
-                pts = (
-                    parse_gpx_file(f["content"])
-                    if f["type"] == "gpx"
-                    else parse_fit_file(f["path"])
-                )
+                pts = parse_gpx_file(f["content"]) if f["type"] == "gpx" else parse_fit_file(f["path"])
                 ride_data = points_to_ride(pts, name=f["name"])
                 if "error" not in ride_data:
                     ride_data["athlete_id"] = athlete_id

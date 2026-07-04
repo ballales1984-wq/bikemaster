@@ -6,6 +6,7 @@ Supports three modes:
   python main.py web      -> alias for api, serving the web dashboard
   python main.py cli      -> run CLI analytics on sample data
 """
+
 import argparse
 import asyncio
 import logging

@@ -156,6 +156,7 @@ class TestGetTaskQueue:
 
     def test_creates_if_none(self):
         import bike_analyzer.backend.task_queue as tq
+
         old = tq._task_queue
         tq._task_queue = None
         try:

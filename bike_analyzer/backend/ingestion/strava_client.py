@@ -47,6 +47,7 @@ TOKEN_REFRESH_BUFFER_SECONDS = 300
 # OAuth 2.0 + PKCE helpers
 # ---------------------------------------------------------------------------
 
+
 def generate_code_verifier() -> str:
     return secrets.token_urlsafe(64)
 
@@ -92,6 +93,7 @@ def get_authorization_url(state: str | None = None) -> dict[str, str]:
 # Token exchange / refresh
 # ---------------------------------------------------------------------------
 
+
 def exchange_code_for_token(code: str, code_verifier: str) -> dict[str, Any]:
     payload = {
         "client_id": STRAVA_CLIENT_ID,
@@ -122,8 +124,10 @@ def refresh_access_token(refresh_token: str) -> dict[str, Any]:
 # Token storage helpers (SQLite-backed)
 # ---------------------------------------------------------------------------
 
+
 def _get_conn():
     from ..db.database import get_db_connection
+
     return get_db_connection()
 
 
@@ -250,6 +254,7 @@ def fetch_all_activities(access_token: str, max_pages: int = 20) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Normalization
 # ---------------------------------------------------------------------------
+
 
 def strava_to_ride(activity: dict[str, Any], weight_kg: float = 70.0) -> dict[str, Any]:
     """Convert a single Strava activity dict into a BikeMaster Ride dict."""

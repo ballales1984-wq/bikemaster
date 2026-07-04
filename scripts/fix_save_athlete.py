@@ -15,6 +15,6 @@ for i, line in enumerate(lines):
                 break
         break
 
-with open("bike_analyzer/backend/db/database.py", 'w') as f:
+with open("bike_analyzer/backend/db/database.py", "w") as f:
     f.writelines(lines)
 print("Done")

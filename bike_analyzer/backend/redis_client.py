@@ -105,9 +105,7 @@ def rate_limit_key(user_id: int | None, endpoint: str) -> str:
     return f"bikemaster:ratelimit:{uid}:{endpoint}"
 
 
-async def check_rate_limit(
-    user_id: int | None, endpoint: str, limit: int = 60, window: int = 60
-) -> bool:
+async def check_rate_limit(user_id: int | None, endpoint: str, limit: int = 60, window: int = 60) -> bool:
     """Per-user rate limit using sliding window."""
     r = await get_redis()
     if r is None:

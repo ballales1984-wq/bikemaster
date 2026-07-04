@@ -8,6 +8,7 @@ from bike_analyzer.core.fitness_state import FitnessStateVector, TrainingStressD
 class TestTrainingStressDay:
     def test_default(self):
         from datetime import date
+
         d = TrainingStressDay(date=date(2024, 6, 15))
         assert d.tss == 0.0
         assert d.atl == 0.0
@@ -16,6 +17,7 @@ class TestTrainingStressDay:
 
     def test_with_values(self):
         from datetime import date
+
         d = TrainingStressDay(date=date(2024, 6, 15), tss=100.0, atl=80.0, ctl=90.0, tsb=10.0)
         assert d.tss == 100.0
         assert d.tsb == 10.0
@@ -23,15 +25,21 @@ class TestTrainingStressDay:
 
 class TestFitnessStateVector:
     def _make(self, **kwargs):
-        defaults = dict(
-            athlete_id=1,
-            computed_at=datetime(2024, 6, 15, 10, 0, 0, tzinfo=UTC),
-            atl=75.0, ctl=85.0, tsb=10.0,
-            fitness=85.0, fatigue=75.0, form=10.0,
-            recovery_hours_needed=12.0,
-            weekly_tss=500.0, monthly_tss=2000.0,
-            trend_7d="improving", trend_30d="stable",
-        )
+        defaults = {
+            "athlete_id": 1,
+            "computed_at": datetime(2024, 6, 15, 10, 0, 0, tzinfo=UTC),
+            "atl": 75.0,
+            "ctl": 85.0,
+            "tsb": 10.0,
+            "fitness": 85.0,
+            "fatigue": 75.0,
+            "form": 10.0,
+            "recovery_hours_needed": 12.0,
+            "weekly_tss": 500.0,
+            "monthly_tss": 2000.0,
+            "trend_7d": "improving",
+            "trend_30d": "stable",
+        }
         defaults.update(kwargs)
         return FitnessStateVector(**defaults)
 

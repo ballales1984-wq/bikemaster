@@ -125,12 +125,12 @@
 | 170 | Garmin Connect API | ✅ |
 | 171 | Wahoo | ❌ |
 
-## ✅ Fase 18 — AI Coach Avanzato (Completata)
+## 🔄 Fase 18 — AI Coach Avanzato (In Corso)
 
 | # | Feature | Status |
 |:---:|---|---|
 | 185 | Vector Database (PGVector) per RAG | ✅ |
-| 186 | Tool calling / function calling | 🔄 Parziale |
+| 186 | Tool calling / function calling | ✅ |
 | 187 | Memory persistente conversazioni per utente | 🔄 Parziale |
 | 188 | Personalizzazione basata su storico completo | ✅ |
 | 189 | Voice input/output | ❌ |
@@ -201,7 +201,7 @@
 | # | Feature | Status |
 |:---:|---|---|
 | 235 | PGVector per embedder RAG | ✅ |
-| 236 | Tool calling per AI Coach | 🔄 Parziale |
+| 236 | Tool calling per AI Coach | ✅ |
 | 237 | Memory persistente conversazioni per utente | 🔄 Parziale |
 | 238 | Weekly/Monthly training plan generator LLM | ❌ |
 | 239 | Anomaly detection uscite | ❌ |
@@ -224,13 +224,12 @@
 
 | Priorita | Miglioramento | Impatto | Difficolta |
 |:---:|---|---|:---:|
-| **1** | Tool calling AI Coach completo + execution loop | Molto alto | Media |
-| **2** | Frontend testing suite (Vitest + Playwright E2E con test attivi) | Molto alto | Media |
-| **3** | PostgreSQL in produzione + connection pooling | Alto | Media |
-| **4** | Anomaly detection uscite + Weekly/Monthly training plan LLM | Alto | Media |
-| **5** | PWA completa + offline support | Alto | Media |
-| **6** | Ruff + mypy + pre-commit | Medio-Alto | Bassa |
-| **7** | Coverage test >90% | Medio | Alta |
+| **1** | Frontend testing suite (Vitest + Playwright E2E con test attivi) | Molto alto | Media |
+| **2** | PostgreSQL in produzione + connection pooling | Alto | Media |
+| **3** | Anomaly detection uscite + Weekly/Monthly training plan LLM | Alto | Media |
+| **4** | PWA completa + offline support | Alto | Media |
+| **5** | Ruff + mypy + pre-commit | Medio-Alto | Bassa |
+| **6** | Coverage test >90% | Medio | Alta |
 
 ---
 
@@ -239,7 +238,7 @@
 | Area | Item | Status |
 |---|---|---|
 | Testing | Coverage reported as informational | ✅ |
-| Code Quality | Ruff + mypy + pre-commit | ❌ |
+| Code Quality | Ruff + mypy + pre-commit | 🔄 Parziale |
 | Container | Docker multi-stage hardened | ✅ |
 | Monitoring | Sentry + Prometheus + Grafana | 🔄 Parziale |
 | Audit | Audit log azioni admin | ❌ |

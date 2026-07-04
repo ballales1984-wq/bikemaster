@@ -28,5 +28,6 @@ FLUXO_GPS = """
 - analytics/performance.py → performance_score, recovery_score, etc.
 """
 
+
 def get_gps_flow_doc() -> str:
     return FLUXO_GPS

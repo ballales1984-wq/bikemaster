@@ -1,4 +1,5 @@
 """Frontend dashboard generator."""
+
 from __future__ import annotations
 
 DASHBOARD_HTML = """<!DOCTYPE html>
@@ -107,10 +108,12 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 </body>
 </html>"""
 
+
 def generate_dashboard_html(output_path: str = "dashboard.html") -> str:
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(DASHBOARD_HTML)
     return output_path
+
 
 if __name__ == "__main__":
     generate_dashboard_html()

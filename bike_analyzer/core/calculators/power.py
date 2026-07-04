@@ -39,5 +39,5 @@ def training_stress_score(ride: Ride, ftp: float = 250.0) -> float:
     if_ = intensity_factor(ride, ftp)
     if if_ <= 0:
         return 0.0
-    tss = hours * 100.0 * (if_ ** 2)
+    tss = hours * 100.0 * (if_**2)
     return round(min(tss, 500.0), 1)

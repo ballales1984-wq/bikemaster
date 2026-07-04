@@ -1,4 +1,5 @@
 """Tests for ContextBuilder."""
+
 import pytest
 
 from bike_analyzer.backend.analytics.services.context_builder import ContextBuilder

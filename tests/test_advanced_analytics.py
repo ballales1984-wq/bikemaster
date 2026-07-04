@@ -26,23 +26,23 @@ from bike_analyzer.backend.models.models import GPSPoint, Ride, Segment
 
 
 def make_ride(**kwargs):
-    defaults = dict(
-        id=1,
-        athlete_id=1,
-        date="2024-06-15T10:00:00",
-        distance_km=50.0,
-        duration_minutes=120.0,
-        avg_speed_kmh=25.0,
-        weight_kg=70.0,
-        calories=800.0,
-        heart_rate_avg=150.0,
-        elevation_gain_m=500.0,
-        gps_points=None,
-        external_source=None,
-        external_id=None,
-        title=None,
-        duration_hours=2.0,
-    )
+    defaults = {
+        "id": 1,
+        "athlete_id": 1,
+        "date": "2024-06-15T10:00:00",
+        "distance_km": 50.0,
+        "duration_minutes": 120.0,
+        "avg_speed_kmh": 25.0,
+        "weight_kg": 70.0,
+        "calories": 800.0,
+        "heart_rate_avg": 150.0,
+        "elevation_gain_m": 500.0,
+        "gps_points": None,
+        "external_source": None,
+        "external_id": None,
+        "title": None,
+        "duration_hours": 2.0,
+    }
     defaults.update(kwargs)
     return Ride(**{k: v for k, v in defaults.items() if k in {f.name for f in Ride.__dataclass_fields__.values()}})
 
@@ -138,7 +138,9 @@ class TestCalculatePowerEstimate:
         assert result["grade_percent"] == 0.0
 
     def test_hilly_ride(self):
-        ride = make_ride(avg_speed_kmh=20.0, elevation_gain_m=1000.0, distance_km=50.0, duration_minutes=150.0, weight_kg=75.0)
+        ride = make_ride(
+            avg_speed_kmh=20.0, elevation_gain_m=1000.0, distance_km=50.0, duration_minutes=150.0, weight_kg=75.0
+        )
         result = calculate_power_estimate(ride)
         assert result["power_avg_w"] > 0
         assert result["grade_percent"] > 0
@@ -164,15 +166,18 @@ class TestCalculatePowerEstimate:
 
 
 class TestClassifyClimb:
-    @pytest.mark.parametrize("length,gradient,expected", [
-        (0.2, 10.0, "none"),
-        (0.5, 1.0, "none"),
-        (1.0, 3.0, "4"),
-        (2.0, 6.0, "3"),
-        (3.0, 9.0, "2"),
-        (5.0, 12.0, "1"),
-        (10.0, 15.0, "HC"),
-    ])
+    @pytest.mark.parametrize(
+        "length,gradient,expected",
+        [
+            (0.2, 10.0, "none"),
+            (0.5, 1.0, "none"),
+            (1.0, 3.0, "4"),
+            (2.0, 6.0, "3"),
+            (3.0, 9.0, "2"),
+            (5.0, 12.0, "1"),
+            (10.0, 15.0, "HC"),
+        ],
+    )
     def test_classify(self, length, gradient, expected):
         result = classify_climb(length, gradient)
         assert result["category"] == expected
@@ -216,14 +221,16 @@ class TestClassifyRideDifficulty:
         assert result["score"] == 0
 
     def test_easy_ride(self):
-        ride = make_ride(distance_km=10.0, duration_minutes=30.0, avg_speed_kmh=20.0,
-                         elevation_gain_m=50.0, heart_rate_avg=110.0)
+        ride = make_ride(
+            distance_km=10.0, duration_minutes=30.0, avg_speed_kmh=20.0, elevation_gain_m=50.0, heart_rate_avg=110.0
+        )
         result = classify_ride_difficulty(ride)
         assert result["level"] in ("Easy", "Moderate")
 
     def test_extreme_ride(self):
-        ride = make_ride(distance_km=200.0, duration_minutes=600.0, avg_speed_kmh=35.0,
-                         elevation_gain_m=5000.0, heart_rate_avg=175.0)
+        ride = make_ride(
+            distance_km=200.0, duration_minutes=600.0, avg_speed_kmh=35.0, elevation_gain_m=5000.0, heart_rate_avg=175.0
+        )
         result = classify_ride_difficulty(ride)
         assert result["level"] == "Extreme"
 
@@ -235,8 +242,9 @@ class TestClassifyRideDifficulty:
         assert "distance" in result["factors"]
 
     def test_score_bounded(self):
-        ride = make_ride(distance_km=150.0, duration_minutes=300.0, avg_speed_kmh=40.0,
-                         elevation_gain_m=3000.0, heart_rate_avg=180.0)
+        ride = make_ride(
+            distance_km=150.0, duration_minutes=300.0, avg_speed_kmh=40.0, elevation_gain_m=3000.0, heart_rate_avg=180.0
+        )
         result = classify_ride_difficulty(ride)
         assert 0 <= result["score"] <= 10
 
@@ -303,24 +311,51 @@ class TestCalculateProgressTrend:
         assert result["trend"] == "insufficient_data"
 
     def test_improving_trend(self):
-        rides = [make_ride(date=f"2024-0{i}-15T10:00:00", avg_speed_kmh=20.0 + i * 2, distance_km=30.0 + i * 5, duration_minutes=80 - i * 5) for i in range(1, 7)]
+        rides = [
+            make_ride(
+                date=f"2024-0{i}-15T10:00:00",
+                avg_speed_kmh=20.0 + i * 2,
+                distance_km=30.0 + i * 5,
+                duration_minutes=80 - i * 5,
+            )
+            for i in range(1, 7)
+        ]
         result = calculate_progress_trend(rides)
         assert result["trend"] == "improving"
         assert result["slope"] > 0
 
     def test_declining_trend(self):
-        rides = [make_ride(date=f"2024-0{i}-15T10:00:00", avg_speed_kmh=30.0 - i * 2, distance_km=40.0 - i * 3, duration_minutes=70 + i * 3) for i in range(1, 7)]
+        rides = [
+            make_ride(
+                date=f"2024-0{i}-15T10:00:00",
+                avg_speed_kmh=30.0 - i * 2,
+                distance_km=40.0 - i * 3,
+                duration_minutes=70 + i * 3,
+            )
+            for i in range(1, 7)
+        ]
         result = calculate_progress_trend(rides)
         assert result["trend"] == "declining"
         assert result["slope"] < 0
 
     def test_stable_trend(self):
-        rides = [make_ride(date=f"2024-0{i}-15T10:00:00", avg_speed_kmh=25.0, distance_km=35.0, duration_minutes=84.0) for i in range(1, 7)]
+        rides = [
+            make_ride(date=f"2024-0{i}-15T10:00:00", avg_speed_kmh=25.0, distance_km=35.0, duration_minutes=84.0)
+            for i in range(1, 7)
+        ]
         result = calculate_progress_trend(rides)
         assert result["trend"] == "stable"
 
     def test_returns_expected_keys(self):
-        rides = [make_ride(date=f"2024-0{i}-15T10:00:00", avg_speed_kmh=20.0 + i, distance_km=30.0 + i * 2, duration_minutes=80 - i * 2) for i in range(1, 7)]
+        rides = [
+            make_ride(
+                date=f"2024-0{i}-15T10:00:00",
+                avg_speed_kmh=20.0 + i,
+                distance_km=30.0 + i * 2,
+                duration_minutes=80 - i * 2,
+            )
+            for i in range(1, 7)
+        ]
         result = calculate_progress_trend(rides)
         assert "r_squared" in result
         assert "improvement_pct" in result
@@ -390,7 +425,7 @@ class TestCalculateGarminPowerFactor:
         assert "tss_est" in result
 
     def test_higher_speed_higher_power(self):
-        flat_kwargs = dict(elevation_gain_m=0, distance_km=40.0, duration_minutes=96.0)
+        flat_kwargs = {"elevation_gain_m": 0, "distance_km": 40.0, "duration_minutes": 96.0}
         slow = make_ride(avg_speed_kmh=20.0, **flat_kwargs)
         fast = make_ride(avg_speed_kmh=35.0, **flat_kwargs)
         assert calculate_garmin_power_factor(fast)["np_w"] > calculate_garmin_power_factor(slow)["np_w"]
@@ -477,7 +512,9 @@ class TestDetectSpeedSurges:
 class TestComputeCtlAtlTsbExternal:
     def test_returns_dict(self):
         rides = [make_ride(date="2024-06-15T10:00:00", calories=800.0)]
-        result = __import__("bike_analyzer.backend.analytics.advanced", fromlist=["compute_ctl_atl_tsb_external"]).compute_ctl_atl_tsb_external(rides)
+        result = __import__(
+            "bike_analyzer.backend.analytics.advanced", fromlist=["compute_ctl_atl_tsb_external"]
+        ).compute_ctl_atl_tsb_external(rides)
         assert "ctl" in result
         assert "atl" in result
         assert "tsb" in result

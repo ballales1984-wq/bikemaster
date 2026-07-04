@@ -17,6 +17,7 @@ class FitnessStateRepository:
     @property
     def _table(self):
         from ...db.models import FitnessStateModel
+
         return FitnessStateModel
 
     async def save(self, state: dict[str, Any], tenant_id: int = 0) -> int:
@@ -28,25 +29,29 @@ class FitnessStateRepository:
         from sqlalchemy import insert
 
         async with self._session_factory() as session:
-            stmt = insert(self._table).values(
-                athlete_id=state.get("athlete_id"),
-                tenant_id=state.get("tenant_id", tenant_id),
-                date=state.get("date", date.today().isoformat()),
-                computed_at=state.get("computed_at", datetime.now(UTC)),
-                fitness=state.get("fitness", 0.0),
-                fatigue=state.get("fatigue", 0.0),
-                form=state.get("form", 0.0),
-                atl=state.get("atl", 0.0),
-                ctl=state.get("ctl", 0.0),
-                tsb=state.get("tsb", 0.0),
-                recovery_hours_needed=state.get("recovery_hours_needed", 0.0),
-                weekly_tss=state.get("weekly_tss", 0.0),
-                monthly_tss=state.get("monthly_tss", 0.0),
-                trend_7d=state.get("trend_7d", "stable"),
-                trend_30d=state.get("trend_30d", "stable"),
-                risk_indicators=json.dumps(state.get("risk_indicators", [])),
-                recommendation=state.get("recommendation"),
-            ).returning(self._table.id)
+            stmt = (
+                insert(self._table)
+                .values(
+                    athlete_id=state.get("athlete_id"),
+                    tenant_id=state.get("tenant_id", tenant_id),
+                    date=state.get("date", date.today().isoformat()),
+                    computed_at=state.get("computed_at", datetime.now(UTC)),
+                    fitness=state.get("fitness", 0.0),
+                    fatigue=state.get("fatigue", 0.0),
+                    form=state.get("form", 0.0),
+                    atl=state.get("atl", 0.0),
+                    ctl=state.get("ctl", 0.0),
+                    tsb=state.get("tsb", 0.0),
+                    recovery_hours_needed=state.get("recovery_hours_needed", 0.0),
+                    weekly_tss=state.get("weekly_tss", 0.0),
+                    monthly_tss=state.get("monthly_tss", 0.0),
+                    trend_7d=state.get("trend_7d", "stable"),
+                    trend_30d=state.get("trend_30d", "stable"),
+                    risk_indicators=json.dumps(state.get("risk_indicators", [])),
+                    recommendation=state.get("recommendation"),
+                )
+                .returning(self._table.id)
+            )
             result = await session.execute(stmt)
             await session.commit()
             return result.scalar_one()
@@ -60,10 +65,7 @@ class FitnessStateRepository:
         from sqlalchemy import desc, select
 
         async with self._session_factory() as session:
-            stmt = (
-                select(self._table)
-                .where(self._table.athlete_id == athlete_id)
-            )
+            stmt = select(self._table).where(self._table.athlete_id == athlete_id)
             if tenant_id is not None:
                 stmt = stmt.where(self._table.tenant_id == tenant_id)
             stmt = stmt.order_by(desc(self._table.date)).limit(1)
@@ -81,14 +83,13 @@ class FitnessStateRepository:
             return await self._get_history_async(athlete_id, days, tenant_id)
         return []
 
-    async def _get_history_async(self, athlete_id: int, days: int = 30, tenant_id: int | None = None) -> list[dict[str, Any]]:
+    async def _get_history_async(
+        self, athlete_id: int, days: int = 30, tenant_id: int | None = None
+    ) -> list[dict[str, Any]]:
         from sqlalchemy import desc, select
 
         async with self._session_factory() as session:
-            stmt = (
-                select(self._table)
-                .where(self._table.athlete_id == athlete_id)
-            )
+            stmt = select(self._table).where(self._table.athlete_id == athlete_id)
             if tenant_id is not None:
                 stmt = stmt.where(self._table.tenant_id == tenant_id)
             stmt = stmt.order_by(desc(self._table.date)).limit(days)

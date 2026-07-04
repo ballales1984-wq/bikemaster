@@ -13,9 +13,7 @@ from bike_analyzer.backend.models.models import Ride
 
 
 def test_performance_score_zero_speed():
-    r = Ride(
-        date="2024-06-01", distance_km=0.0, duration_minutes=60.0, avg_speed_kmh=0.0, calories=0
-    )
+    r = Ride(date="2024-06-01", distance_km=0.0, duration_minutes=60.0, avg_speed_kmh=0.0, calories=0)
     score = calculate_performance_score(r)
     assert 0 <= score <= 10
 

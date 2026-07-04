@@ -37,11 +37,7 @@ def _forwarded_value(header_value: str | None) -> str:
 
 def _static_file_response(file_path: Path, media_type: str | None = None) -> Response:
     if file_path.exists():
-        content = (
-            file_path.read_bytes()
-            if media_type.startswith("image/")
-            else file_path.read_text(encoding="utf-8")
-        )
+        content = file_path.read_bytes() if media_type.startswith("image/") else file_path.read_text(encoding="utf-8")
         return Response(content=content, media_type=media_type)
     return Response(status_code=404)
 
@@ -54,6 +50,7 @@ async def lifespan(app: FastAPI):
     init_db()
     try:
         from ..settings import get_settings
+
         settings = get_settings()
         if settings.environment.lower() not in ("test", "testing"):
             start_metrics_server()
@@ -128,12 +125,14 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def audit_log_middleware(request: Request, call_next):
         import time
+
         start = time.time()
         user_id = "anonymous"
         try:
             auth_header = request.headers.get("authorization", "")
             if auth_header.startswith("Bearer "):
                 from ..security import _try_decode
+
                 token = auth_header[7:]
                 payload = _try_decode(token, SECRET_KEY)
                 if payload:
@@ -163,9 +162,7 @@ def create_app() -> FastAPI:
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         if ENVIRONMENT.lower() in ("production", "prod"):
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=63072000; includeSubDomains; preload"
-            )
+            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; img-src 'self' data: https:; "
                 "script-src 'self' 'unsafe-inline' "
@@ -179,9 +176,7 @@ def create_app() -> FastAPI:
         return response
 
     cors_origins = (
-        [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
-        if isinstance(CORS_ORIGINS, str)
-        else CORS_ORIGINS
+        [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()] if isinstance(CORS_ORIGINS, str) else CORS_ORIGINS
     )
     if "*" in cors_origins:
         if ENVIRONMENT.lower() in ("production", "prod", "staging"):
@@ -273,8 +268,8 @@ def create_app() -> FastAPI:
         async def favicon():
             return Response(
                 content='<svg xmlns="http://www.w3.org/2000/svg" '
-                        'viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#4ecca3"/>'
-                        '<text x="50" y="55" font-size="40" text-anchor="middle">🚴</text></svg>',
+                'viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#4ecca3"/>'
+                '<text x="50" y="55" font-size="40" text-anchor="middle">🚴</text></svg>',
                 media_type="image/svg+xml",
             )
 

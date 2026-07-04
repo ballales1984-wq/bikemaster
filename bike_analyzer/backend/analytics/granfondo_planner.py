@@ -16,9 +16,7 @@ class PlannedWorkout:
     description: str = ""
 
 
-def generate_granfondo_plan(
-    start_date: str, target_weeks: int = 8, ftp: float = 200.0
-) -> list[dict]:
+def generate_granfondo_plan(start_date: str, target_weeks: int = 8, ftp: float = 200.0) -> list[dict]:
     """Generate an 8-12 week granfondo training plan with tapering.
 
     Tapering starts 2 weeks before event:

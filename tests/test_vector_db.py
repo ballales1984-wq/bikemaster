@@ -1,4 +1,5 @@
 """Tests for vector database integration."""
+
 import pytest
 
 

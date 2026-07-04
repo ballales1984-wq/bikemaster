@@ -36,9 +36,7 @@ def migrate():
                 default_val = "0"
                 if table in ("metrics", "route_safety_scores"):
                     default_val = "0"
-                conn.execute(
-                    f"ALTER TABLE {table} ADD COLUMN {column} INTEGER DEFAULT {default_val}"
-                )
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} INTEGER DEFAULT {default_val}")
                 print(f"  Added {column} to {table}")
 
         indexes = [
@@ -52,9 +50,7 @@ def migrate():
 
         for idx_name, table, cols in indexes:
             try:
-                conn.execute(
-                    f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table} ({cols})"
-                )
+                conn.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table} ({cols})")
                 print(f"  Created index {idx_name}")
             except sqlite3.OperationalError as exc:
                 print(f"  Index {idx_name}: {exc}")

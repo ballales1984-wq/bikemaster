@@ -55,9 +55,7 @@ def _filter_valid_rides(rides: list) -> list:
         dur = _safe_float(r.get("duration_minutes") or r.get("duration"))
         d = _to_date(r.get("date") or r.get("start_date") or r.get("startTimeLocal"))
         has_date = d is not None
-        has_numeric = (
-            s is not None and a is not None and dur is not None and s > 0 and a > 0 and dur > 0
-        )
+        has_numeric = s is not None and a is not None and dur is not None and s > 0 and a > 0 and dur > 0
         if has_date and has_numeric:
             result.append(r)
     return result
@@ -107,9 +105,7 @@ def _rolling_average(values: list, window: int = 7) -> list:
     return result
 
 
-def calculate_fitness_trends(
-    rides: list, metric: str = "distance_km", window: int = 7
-) -> dict[str, Any]:
+def calculate_fitness_trends(rides: list, metric: str = "distance_km", window: int = 7) -> dict[str, Any]:
     """
     Calculate fitness trends from ride data.
 
@@ -285,14 +281,10 @@ def calculate_monthly_progression(rides: list) -> dict[str, Any]:
         cal_values = m["calories"]
 
         result["total_distance_km"].append(round(sum(cleaned_dist), 2) if cleaned_dist else 0.0)
-        result["avg_speed_kmh"].append(
-            round(sum(cleaned_speed) / len(cleaned_speed), 2) if cleaned_speed else 0.0
-        )
+        result["avg_speed_kmh"].append(round(sum(cleaned_speed) / len(cleaned_speed), 2) if cleaned_speed else 0.0)
         result["total_duration_hours"].append(round(sum(m["durations"]), 2))
         result["ride_count"].append(len(cleaned_dist) if cleaned_dist else 0)
-        result["avg_calories"].append(
-            round(sum(cal_values) / len(cal_values), 1) if cal_values else 0.0
-        )
+        result["avg_calories"].append(round(sum(cal_values) / len(cal_values), 1) if cal_values else 0.0)
 
     return result
 

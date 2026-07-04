@@ -50,6 +50,7 @@ _TOKEN_REFRESH_BUFFER_SECONDS = 300
 # OAuth 2.0 (standard authorization code)
 # ---------------------------------------------------------------------------
 
+
 def get_authorization_url(state: str | None = None) -> dict[str, str]:
     """Return dict with auth_url and state."""
     if not GARMIN_CONSUMER_KEY:
@@ -98,8 +99,10 @@ def refresh_access_token(refresh_token: str) -> dict[str, Any]:
 # Token storage (SQLite-backed, shares strava_tokens-like table shape)
 # ---------------------------------------------------------------------------
 
+
 def _get_conn():
     from ..db.database import get_db_connection
+
     return get_db_connection()
 
 
@@ -186,6 +189,7 @@ def get_valid_token(athlete_id: int) -> str | None:
 # Activity fetch
 # ---------------------------------------------------------------------------
 
+
 def fetch_activities(access_token: str) -> list[dict[str, Any]]:
     """Fetch cycling activities from Garmin Connect."""
     headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
@@ -204,6 +208,7 @@ def fetch_activities(access_token: str) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # Normalization
 # ---------------------------------------------------------------------------
+
 
 def garmin_to_ride(activity: dict[str, Any], weight_kg: float = 70.0) -> dict[str, Any]:
     """Convert a Garmin activity dict into a BikeMaster Ride dict."""

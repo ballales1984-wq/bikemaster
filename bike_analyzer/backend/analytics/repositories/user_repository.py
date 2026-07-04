@@ -94,6 +94,7 @@ class UserRepository:
     @property
     def _table(self):
         from ...db.models import UserModel
+
         return UserModel
 
     def _save_sync(self, user: dict) -> int:

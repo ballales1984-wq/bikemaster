@@ -94,12 +94,7 @@ async def get_rides_by_athlete(athlete_id: int, limit: int = 1000, tenant_id: in
     async with get_session_factory()() as session:
         from sqlalchemy import select
 
-        stmt = (
-            select(RideModel)
-            .where(RideModel.athlete_id == athlete_id)
-            .order_by(RideModel.date.desc())
-            .limit(limit)
-        )
+        stmt = select(RideModel).where(RideModel.athlete_id == athlete_id).order_by(RideModel.date.desc()).limit(limit)
         if tenant_id is not None:
             stmt = stmt.where(RideModel.tenant_id == tenant_id)
         result = await session.execute(stmt)

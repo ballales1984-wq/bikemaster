@@ -96,10 +96,12 @@ class AthleteRepository:
     @property
     def _table(self):
         from ...db.models import AthleteModel
+
         return AthleteModel
 
     def _save_sync(self, athlete: dict, athlete_id=None, tenant_id: int = 0) -> int:
         from ..db.database import save_athlete
+
         return save_athlete(athlete, athlete_id, tenant_id)
 
     def _get_by_id_sync(self, athlete_id: int, tenant_id: int | None = None) -> dict | None:
@@ -110,4 +112,5 @@ class AthleteRepository:
 
     def _list_all_sync(self) -> list[dict]:
         from ..db.database import get_all_athletes
+
         return get_all_athletes()

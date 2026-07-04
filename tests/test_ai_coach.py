@@ -47,9 +47,7 @@ def test_local_training_advice_does_not_call_model(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     monkeypatch.setenv("GROQ_API_KEY", "gsk_should_not_call")
     profile = AthleteProfile(name="Test", weight_kg=70, experience_level="Beginner")
-    rides = [
-        Ride(date="2026-06-11", distance_km=42.0, duration_minutes=100, avg_speed_kmh=25.2)
-    ]
+    rides = [Ride(date="2026-06-11", distance_km=42.0, duration_minutes=100, avg_speed_kmh=25.2)]
 
     advice = generate_training_advice(profile, rides)
 
@@ -62,9 +60,7 @@ def test_local_recovery_advice_does_not_call_model(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     monkeypatch.setenv("GROQ_API_KEY", "gsk_should_not_call")
     profile = AthleteProfile(name="Test", weight_kg=70, experience_level="Beginner")
-    rides = [
-        Ride(date="2026-06-11", distance_km=42.0, duration_minutes=100, avg_speed_kmh=25.2)
-    ]
+    rides = [Ride(date="2026-06-11", distance_km=42.0, duration_minutes=100, avg_speed_kmh=25.2)]
 
     advice = generate_recovery_advice(profile, rides, fatigue_score=5.0)
 
@@ -99,6 +95,7 @@ def test_training_advice_falls_back_to_openai_after_groq_403(monkeypatch):
     import bike_analyzer.backend.analytics.ai_coach as ai_coach
 
     monkeypatch.setenv("AI_COACH_MODE", "external")
+
     class Choice:
         def __init__(self, content):
             self.message = types.SimpleNamespace(content=content)
@@ -150,6 +147,7 @@ def test_training_advice_uses_local_fallback_when_all_providers_fail(monkeypatch
     import bike_analyzer.backend.analytics.ai_coach as ai_coach
 
     monkeypatch.setenv("AI_COACH_MODE", "external")
+
     class FailingCompletions:
         def create(self, **kwargs):
             raise PermissionError("403 Access denied")
@@ -189,12 +187,33 @@ def test_analyze_anomalies_detects_hr_elevation():
 
     # Create significant HR elevation: avg 100, last ride 130 (30% increase)
     rides = [
-        Ride(date="2024-06-01", distance_km=30.0, duration_minutes=60.0,
-             avg_speed_kmh=25.0, calories=400, elevation_gain_m=100, heart_rate_avg=95.0),
-        Ride(date="2024-06-02", distance_km=30.0, duration_minutes=60.0,
-             avg_speed_kmh=25.0, calories=400, elevation_gain_m=100, heart_rate_avg=100.0),
-        Ride(date="2024-06-03", distance_km=30.0, duration_minutes=60.0,
-             avg_speed_kmh=25.0, calories=400, elevation_gain_m=100, heart_rate_avg=130.0),
+        Ride(
+            date="2024-06-01",
+            distance_km=30.0,
+            duration_minutes=60.0,
+            avg_speed_kmh=25.0,
+            calories=400,
+            elevation_gain_m=100,
+            heart_rate_avg=95.0,
+        ),
+        Ride(
+            date="2024-06-02",
+            distance_km=30.0,
+            duration_minutes=60.0,
+            avg_speed_kmh=25.0,
+            calories=400,
+            elevation_gain_m=100,
+            heart_rate_avg=100.0,
+        ),
+        Ride(
+            date="2024-06-03",
+            distance_km=30.0,
+            duration_minutes=60.0,
+            avg_speed_kmh=25.0,
+            calories=400,
+            elevation_gain_m=100,
+            heart_rate_avg=130.0,
+        ),
     ]
     result = analyze_anomalies(rides)
     assert result["status"] == "analyzed"

@@ -23,9 +23,7 @@ def get_google_oauth_url(
     return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
 
 
-def exchange_google_code(
-    client_id: str, client_secret: str, code: str, redirect_uri: str
-) -> dict:
+def exchange_google_code(client_id: str, client_secret: str, code: str, redirect_uri: str) -> dict:
     """Exchange authorization code for token."""
     import requests
 

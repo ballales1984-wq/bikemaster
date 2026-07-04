@@ -64,10 +64,12 @@ class TestGetRoadTypeSummary:
             new_callable=AsyncMock,
             return_value=mock_data,
         ):
-            result = await get_road_type_summary([
-                {"lat": 45.0, "lon": 9.0},
-                {"lat": 45.1, "lon": 9.1},
-            ])
+            result = await get_road_type_summary(
+                [
+                    {"lat": 45.0, "lon": 9.0},
+                    {"lat": 45.1, "lon": 9.1},
+                ]
+            )
         assert result["primary"] == 2
         assert result["secondary"] == 1
         assert result["residential"] == 1
@@ -80,10 +82,12 @@ class TestGetRoadTypeSummary:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            result = await get_road_type_summary([
-                {"lat": 45.0, "lon": 9.0},
-                {"lat": 45.1, "lon": 9.1},
-            ])
+            result = await get_road_type_summary(
+                [
+                    {"lat": 45.0, "lon": 9.0},
+                    {"lat": 45.1, "lon": 9.1},
+                ]
+            )
         assert result == {}
 
     @pytest.mark.asyncio
@@ -93,10 +97,12 @@ class TestGetRoadTypeSummary:
             new_callable=AsyncMock,
             return_value={"elements": []},
         ):
-            result = await get_road_type_summary([
-                {"lat": 45.0, "lon": 9.0},
-                {"lat": 45.1, "lon": 9.1},
-            ])
+            result = await get_road_type_summary(
+                [
+                    {"lat": 45.0, "lon": 9.0},
+                    {"lat": 45.1, "lon": 9.1},
+                ]
+            )
         assert result == {}
 
     @pytest.mark.asyncio
@@ -112,9 +118,11 @@ class TestGetRoadTypeSummary:
             new_callable=AsyncMock,
             return_value=mock_data,
         ):
-            result = await get_road_type_summary([
-                {"lat": 45.0, "lon": 9.0},
-                {"lat": 45.1, "lon": 9.1},
-            ])
+            result = await get_road_type_summary(
+                [
+                    {"lat": 45.0, "lon": 9.0},
+                    {"lat": 45.1, "lon": 9.1},
+                ]
+            )
         assert result["unknown_type"] == 1
         assert result["unknown"] == 1

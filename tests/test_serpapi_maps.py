@@ -125,9 +125,7 @@ class TestGetLocalResults:
         monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
         points = [GPSPoint(lat=45.0, lon=9.0, timestamp=None)]
         mock_data = {"local_results": [{"name": "Cafe"}]}
-        with patch(
-            "bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=mock_data
-        ):
+        with patch("bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=mock_data):
             result = get_local_results(points, query="cafe")
             assert len(result) == 1
 
@@ -137,9 +135,7 @@ class TestGetLocalResults:
         monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
         points = [GPSPoint(lat=45.0, lon=9.0, timestamp=None)]
         mock_data = {"places_results": [{"name": "Cafe"}]}
-        with patch(
-            "bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=mock_data
-        ):
+        with patch("bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=mock_data):
             result = get_local_results(points, query="cafe")
             assert len(result) == 1
 
@@ -149,9 +145,7 @@ class TestGetLocalResults:
         monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
         points = [GPSPoint(lat=45.0, lon=9.0, timestamp=None)]
         mock_data = {"local_results": []}
-        with patch(
-            "bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=mock_data
-        ):
+        with patch("bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=mock_data):
             result = get_local_results(points)
             assert result == []
 
@@ -170,8 +164,6 @@ class TestSearchNearby:
             GPSPoint(lat=45.1, lon=9.1, timestamp=None),
         ]
         mock_data = {"local_results": []}
-        with patch(
-            "bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=mock_data
-        ):
+        with patch("bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=mock_data):
             result = search_nearby(points, "cafe")
             assert result == mock_data

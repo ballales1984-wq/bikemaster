@@ -25,6 +25,7 @@ def endurance_score(rides: list[Ride]) -> float:
 
 def recovery_score(ride: Ride) -> float:
     from .fatigue import calculate_fatigue_score
+
     fatigue = calculate_fatigue_score(ride)
     return round(10.0 - fatigue, 1)
 
@@ -42,6 +43,7 @@ def monthly_scores(rides: list[Ride]) -> dict:
     if not rides:
         return {"performance": 0, "endurance": 0, "recovery": 0, "efficiency": 0, "avg_fatigue": 0}
     from .fatigue import calculate_fatigue_score
+
     return {
         "performance": round(sum(performance_score(r) for r in rides) / len(rides), 1),
         "endurance": endurance_score(rides),

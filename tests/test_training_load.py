@@ -96,8 +96,9 @@ def test_calculate_atl_ctl_tsb_status_fatigued():
 
 def test_get_7day_fitness_summary():
     from bike_analyzer.backend.analytics.training_load import get_7day_fitness_summary
+
     rides = [
-        Ride(date=f"2024-01-{15+i:02d}", distance_km=40.0, duration_minutes=100.0, avg_speed_kmh=24.0)
+        Ride(date=f"2024-01-{15 + i:02d}", distance_km=40.0, duration_minutes=100.0, avg_speed_kmh=24.0)
         for i in range(10)
     ]
     result = get_7day_fitness_summary(rides)
@@ -109,7 +110,7 @@ def test_get_current_training_status_all_statuses():
     rides_fresh = [Ride(date="2024-01-15", distance_km=20.0, duration_minutes=60.0, avg_speed_kmh=20.0)]
     get_current_training_status(rides_fresh)
     rides_fatigued = [
-        Ride(date=f"2024-01-{15+i:02d}", distance_km=50.0, duration_minutes=180.0, avg_speed_kmh=40.0)
+        Ride(date=f"2024-01-{15 + i:02d}", distance_km=50.0, duration_minutes=180.0, avg_speed_kmh=40.0)
         for i in range(14)
     ]
     status2 = get_current_training_status(rides_fatigued)
@@ -133,14 +134,16 @@ def test_calculate_atl_ctl_tsb_tsb_values():
 
 def test_get_7day_fitness_summary_empty():
     from bike_analyzer.backend.analytics.training_load import get_7day_fitness_summary
+
     result = get_7day_fitness_summary([])
     assert result == []
 
 
 def test_status_optimal():
     from bike_analyzer.backend.analytics.training_load import get_current_training_status
+
     rides = [
-        Ride(date=f"2024-01-{10+i:02d}", distance_km=30.0, duration_minutes=90.0, avg_speed_kmh=22.0)
+        Ride(date=f"2024-01-{10 + i:02d}", distance_km=30.0, duration_minutes=90.0, avg_speed_kmh=22.0)
         for i in range(10)
     ]
     status = get_current_training_status(rides)
@@ -149,15 +152,21 @@ def test_status_optimal():
 
 def test_status_overreached():
     from bike_analyzer.backend.analytics.training_load import get_current_training_status
-    rides = [Ride(date=f"2024-01-{15+i:02d}", distance_km=60.0, duration_minutes=180.0, avg_speed_kmh=35.0)
-             for i in range(14)]
+
+    rides = [
+        Ride(date=f"2024-01-{15 + i:02d}", distance_km=60.0, duration_minutes=180.0, avg_speed_kmh=35.0)
+        for i in range(14)
+    ]
     status = get_current_training_status(rides)
     assert "recommendation" in status
 
 
 def test_status_burnout():
     from bike_analyzer.backend.analytics.training_load import get_current_training_status
-    rides = [Ride(date=f"2024-01-{15+i:02d}", distance_km=80.0, duration_minutes=240.0, avg_speed_kmh=45.0)
-             for i in range(21)]
+
+    rides = [
+        Ride(date=f"2024-01-{15 + i:02d}", distance_km=80.0, duration_minutes=240.0, avg_speed_kmh=45.0)
+        for i in range(21)
+    ]
     status = get_current_training_status(rides)
     assert "recommendation" in status

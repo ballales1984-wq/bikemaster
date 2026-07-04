@@ -31,9 +31,7 @@ def upgrade() -> None:
         sa.Column("atl", sa.Float(), nullable=False, server_default="0.0"),
         sa.Column("ctl", sa.Float(), nullable=False, server_default="0.0"),
         sa.Column("tsb", sa.Float(), nullable=False, server_default="0.0"),
-        sa.Column(
-            "recovery_hours_needed", sa.Float(), nullable=False, server_default="0.0"
-        ),
+        sa.Column("recovery_hours_needed", sa.Float(), nullable=False, server_default="0.0"),
         sa.Column("weekly_tss", sa.Float(), nullable=False, server_default="0.0"),
         sa.Column("monthly_tss", sa.Float(), nullable=False, server_default="0.0"),
         sa.Column("trend_7d", sa.String(length=20), nullable=False, server_default="stable"),

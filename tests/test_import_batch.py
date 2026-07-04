@@ -33,9 +33,7 @@ def test_batch_import_invalid_extension():
     from bike_analyzer.backend.ingestion.gps_parser import points_to_ride
 
     ts = datetime(2024, 1, 1, 10, 0, 0)
-    ride_data = points_to_ride(
-        [{"lat": 45.0, "lon": 9.0, "ele": 100, "timestamp": ts}], name="file.xyz"
-    )
+    ride_data = points_to_ride([{"lat": 45.0, "lon": 9.0, "ele": 100, "timestamp": ts}], name="file.xyz")
     assert "error" not in ride_data
 
 

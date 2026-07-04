@@ -30,6 +30,7 @@ TOKEN_REFRESH_BUFFER_SECONDS = 300
 
 def _get_conn():
     from ..db.database import get_db_connection
+
     return get_db_connection()
 
 
@@ -75,7 +76,8 @@ def get_google_token(athlete_id: int, provider: str) -> dict | None:
     ensure_google_tokens_table()
     with _get_conn() as conn:
         row = conn.execute(
-            "SELECT access_token, refresh_token, expires_at, scope FROM google_tokens WHERE athlete_id = ? AND provider = ?",
+            "SELECT access_token, refresh_token, expires_at, scope "
+            "FROM google_tokens WHERE athlete_id = ? AND provider = ?",
             (athlete_id, provider),
         ).fetchone()
     if not row:
@@ -120,7 +122,9 @@ def refresh_google_token(athlete_id: int, provider: str) -> str | None:
             body = exc.response.text or ""
             if "invalid_grant" in body:
                 with _get_conn() as conn:
-                    conn.execute("DELETE FROM google_tokens WHERE athlete_id = ? AND provider = ?", (athlete_id, provider))
+                    conn.execute(
+                        "DELETE FROM google_tokens WHERE athlete_id = ? AND provider = ?", (athlete_id, provider)
+                    )
                 return None
         raise
 

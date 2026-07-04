@@ -49,9 +49,7 @@ class Settings(BaseSettings):
     api_port: int = 8000
 
     # === CORS ===
-    cors_origins: str = (
-        "http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000,http://127.0.0.1:8080"
-    )
+    cors_origins: str = "http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000,http://127.0.0.1:8080"
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -68,14 +66,12 @@ class Settings(BaseSettings):
 
     # === Google Health ===
     google_health_scope: str = (
-        "https://www.googleapis.com/auth/health.activity.read "
-        "https://www.googleapis.com/auth/health.location.read"
+        "https://www.googleapis.com/auth/health.activity.read https://www.googleapis.com/auth/health.location.read"
     )
 
     # === Google Fit ===
     google_fit_scope: str = (
-        "https://www.googleapis.com/auth/fitness.activity.read "
-        "https://www.googleapis.com/auth/fitness.location.read"
+        "https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.location.read"
     )
 
     # === Knowledge Base ===
@@ -155,11 +151,12 @@ class Settings(BaseSettings):
     google_health_client_id: str = ""
     google_health_client_secret: str = ""
 
+
 _settings: Settings | None = None
 
 
 @model_validator(mode="after")
-def _validate_production_database(self) -> "Settings":
+def _validate_production_database(self) -> Settings:
     _ENV = self.environment.lower()
     _IS_PROD = _ENV in ("production", "prod", "staging")
     if _IS_PROD and not self.database_url:

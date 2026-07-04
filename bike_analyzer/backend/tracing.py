@@ -11,6 +11,7 @@ from .settings import get_settings
 
 try:
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
     OTLP_AVAILABLE = True
 except ImportError:
     OTLP_AVAILABLE = False

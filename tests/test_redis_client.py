@@ -60,6 +60,7 @@ class TestCacheDecorator:
         mock_redis.get = AsyncMock(return_value=json.dumps("cached_value"))
 
         with patch("bike_analyzer.backend.redis_client.get_redis", return_value=mock_redis):
+
             @cache(ttl=60)
             async def expensive_func(x):
                 return x * 2
@@ -74,6 +75,7 @@ class TestCacheDecorator:
         mock_redis.set = AsyncMock(return_value=True)
 
         with patch("bike_analyzer.backend.redis_client.get_redis", return_value=mock_redis):
+
             @cache(ttl=60)
             async def compute(x):
                 return x * 2
@@ -85,6 +87,7 @@ class TestCacheDecorator:
     @pytest.mark.asyncio
     async def test_no_redis_returns_none(self):
         with patch("bike_analyzer.backend.redis_client.get_redis", return_value=None):
+
             @cache(ttl=60)
             async def compute(x):
                 return x * 2

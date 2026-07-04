@@ -128,9 +128,7 @@ def test_create_google_static_map_colored():
         GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=30),
         GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=UTC), speed=None),
     ]
-    path = create_google_static_map(
-        points, "test-api-key-mock", "test_map_colored.png", colored=True
-    )
+    path = create_google_static_map(points, "test-api-key-mock", "test_map_colored.png", colored=True)
     assert path == "test_map_colored.png"
 
 
@@ -145,9 +143,7 @@ def test_create_google_static_map_colored_url_overflow():
         )
         for i in range(200)
     ]
-    path = create_google_static_map(
-        many_points, "test-api-key-mock", "test_map_overflow.png", colored=True
-    )
+    path = create_google_static_map(many_points, "test-api-key-mock", "test_map_overflow.png", colored=True)
     assert path == "test_map_overflow.png"
 
 
@@ -164,9 +160,7 @@ def test_create_google_static_map_colored_branch():
         GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10),
         GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=10),
     ]
-    path = create_google_static_map(
-        points, "test-api-key-mock", "test_map_colored2.png", colored=True
-    )
+    path = create_google_static_map(points, "test-api-key-mock", "test_map_colored2.png", colored=True)
     assert path == "test_map_colored2.png"
 
 
@@ -256,7 +250,13 @@ def test_map_renderer_folium_loaded_after_call():
 
 
 def teardown_function():
-    for f in ["test_map.png", "test_map_colored.png", "test_map_colored2.png", "empty_map.png",
-              "test_map_overflow.png", "test_lazy_folium.html"]:
+    for f in [
+        "test_map.png",
+        "test_map_colored.png",
+        "test_map_colored2.png",
+        "empty_map.png",
+        "test_map_overflow.png",
+        "test_lazy_folium.html",
+    ]:
         if os.path.exists(f):
             os.remove(f)

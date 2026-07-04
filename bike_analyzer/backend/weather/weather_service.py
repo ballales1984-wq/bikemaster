@@ -16,6 +16,7 @@ def _get_weather_api_key() -> str:
     if key:
         return key
     from ..config import WEATHER_API_KEY
+
     return WEATHER_API_KEY
 
 
@@ -99,9 +100,7 @@ def get_forecast_for_date(lat: float, lon: float, date: str) -> dict:
                 "feels_like": closest["main"]["feels_like"],
                 "humidity": closest["main"]["humidity"],
                 "pressure": closest["main"]["pressure"],
-                "description": closest["weather"][0]["description"]
-                if closest.get("weather")
-                else "",
+                "description": closest["weather"][0]["description"] if closest.get("weather") else "",
                 "wind_speed": closest.get("wind", {}).get("speed"),
                 "location": {
                     "lat": lat,

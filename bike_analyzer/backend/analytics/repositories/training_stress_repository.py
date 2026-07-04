@@ -32,7 +32,9 @@ class TrainingStressRepository:
     def _table(self):
         return TRAINING_STRESS_DAYS_TABLE
 
-    async def upsert_day(self, athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float, tenant_id: int = 0) -> None:
+    async def upsert_day(
+        self, athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float, tenant_id: int = 0
+    ) -> None:
         if self._session_factory:
             return await self._upsert_async(athlete_id, date, tss, atl, ctl, tsb, tenant_id)
         if self._sync_conn:
@@ -53,7 +55,9 @@ class TrainingStressRepository:
             return self._sync_conn.get_latest_training_stress(athlete_id, tenant_id)
         return self._get_latest_sync(athlete_id, tenant_id)
 
-    async def _upsert_async(self, athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float, tenant_id: int = 0) -> None:
+    async def _upsert_async(
+        self, athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float, tenant_id: int = 0
+    ) -> None:
         now = datetime.now(UTC)
         async with self._session_factory() as session:
             stmt = (
@@ -107,12 +111,15 @@ class TrainingStressRepository:
 
     def _upsert_sync(self, athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float) -> None:
         from ..db.database import upsert_training_stress_day
+
         upsert_training_stress_day(athlete_id, date, tss, atl, ctl, tsb)
 
     def _get_history_sync(self, athlete_id: int, limit: int = 90, tenant_id: int | None = None) -> list[dict]:
         from ..db.database import get_training_stress_days
+
         return get_training_stress_days(athlete_id, limit, tenant_id)
 
     def _get_latest_sync(self, athlete_id: int, tenant_id: int | None = None) -> dict | None:
         from ..db.database import get_latest_training_stress
+
         return get_latest_training_stress(athlete_id, tenant_id)

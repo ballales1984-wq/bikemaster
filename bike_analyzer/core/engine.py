@@ -58,9 +58,7 @@ class AnalysisEngine:
     ) -> EngineResult:
         try:
             result = await self.pipeline.run(ride)
-            fitness_state = await self._update_fitness_state(
-                ride, athlete_id, session_factory, historical_rides
-            )
+            fitness_state = await self._update_fitness_state(ride, athlete_id, session_factory, historical_rides)
             return EngineResult(success=True, result=result, fitness_state=fitness_state)
         except Exception as exc:
             logger.exception("Failed to process ride")
@@ -87,9 +85,12 @@ class AnalysisEngine:
             results.append(await self.process_ride(ride, athlete_id, session_factory, all_rides))
         return results
 
-    async def _load_historical_rides(self, athlete_id: int, session_factory, tenant_id: int | None = None, limit: int = 90) -> list[Ride]:
+    async def _load_historical_rides(
+        self, athlete_id: int, session_factory, tenant_id: int | None = None, limit: int = 90
+    ) -> list[Ride]:
         try:
             from ..db.async_db import get_rides_by_athlete_async
+
             raw_rides = await get_rides_by_athlete_async(athlete_id, tenant_id=tenant_id, limit=limit)
             return [Ride(**r) for r in raw_rides]
         except Exception as exc:
@@ -97,7 +98,10 @@ class AnalysisEngine:
             return []
 
     async def _update_fitness_state(
-        self, ride: Ride, athlete_id: int | None, session_factory,
+        self,
+        ride: Ride,
+        athlete_id: int | None,
+        session_factory,
         historical_rides: Sequence[Ride] | None = None,
     ) -> FitnessStateVector | None:
         if athlete_id is None:
@@ -147,9 +151,7 @@ class AnalysisEngine:
 
         return fitness_state
 
-    async def _persist_fitness_state(
-        self, state: FitnessStateVector, session_factory
-    ) -> None:
+    async def _persist_fitness_state(self, state: FitnessStateVector, session_factory) -> None:
         if FitnessStateRepository is None:
             logger.warning("Could not persist fitness state - repository unavailable")
             return

@@ -12,6 +12,7 @@ from bike_analyzer.backend.analytics.services.ride_analysis_service import (
 
 def _make_ride():
     from bike_analyzer.core.models import GPSPoint, Ride
+
     ts = datetime(2024, 6, 15, 10, 0, 0, tzinfo=UTC)
     points = [
         GPSPoint(lat=45.0, lon=9.0, altitude=100.0, speed=10.0, timestamp=ts),
@@ -44,9 +45,10 @@ class TestRideAnalysisService:
     async def test_analyze_returns_dict(self):
         svc = RideAnalysisService()
         ride = _make_ride()
-        with patch.object(svc.pipeline, 'run', new_callable=AsyncMock) as mock_run:
+        with patch.object(svc.pipeline, "run", new_callable=AsyncMock) as mock_run:
             from bike_analyzer.core.models import RouteStatistics
             from bike_analyzer.core.pipeline import PipelineResult
+
             pr = PipelineResult(
                 ride=ride,
                 metrics={"fatigue_score": 3.0},
@@ -72,8 +74,9 @@ class TestRideAnalysisService:
     async def test_analyze_without_route_statistics(self):
         svc = RideAnalysisService()
         ride = _make_ride()
-        with patch.object(svc.pipeline, 'run', new_callable=AsyncMock) as mock_run:
+        with patch.object(svc.pipeline, "run", new_callable=AsyncMock) as mock_run:
             from bike_analyzer.core.pipeline import PipelineResult
+
             pr = PipelineResult(ride=ride, metrics={"fatigue_score": 2.0}, route_statistics=None)
             mock_run.return_value = pr
             result = await svc.analyze(ride)
@@ -84,8 +87,9 @@ class TestRideAnalysisService:
     def test_analyze_sync_returns_dict(self):
         svc = RideAnalysisService()
         ride = _make_ride()
-        with patch.object(svc.pipeline, 'run_sync') as mock_run:
+        with patch.object(svc.pipeline, "run_sync") as mock_run:
             from bike_analyzer.core.pipeline import PipelineResult
+
             pr = PipelineResult(ride=ride, metrics={"fatigue_score": 3.5}, route_statistics=None)
             mock_run.return_value = pr
             result = svc.analyze_sync(ride)
@@ -98,6 +102,7 @@ class TestRideAnalysisService:
         ride = _make_ride()
         result = await svc.compute_fitness_state([ride], athlete_id=1)
         from bike_analyzer.core.fitness_state import FitnessStateVector
+
         assert isinstance(result, FitnessStateVector)
         assert result.athlete_id == 1
 
@@ -106,5 +111,6 @@ class TestRideAnalysisService:
         svc = RideAnalysisService(ftp=250.0)
         result = await svc.compute_fitness_state([], athlete_id=1)
         from bike_analyzer.core.fitness_state import FitnessStateVector
+
         assert isinstance(result, FitnessStateVector)
         assert result.athlete_id == 1

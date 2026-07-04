@@ -15,6 +15,7 @@ from bike_analyzer.core.pipeline import PipelineResult
 # Strava client token refresh
 # ---------------------------------------------------------------------------
 
+
 class TestStravaTokenRefresh:
     """Test get_valid_token refresh flow and related functions."""
 
@@ -33,12 +34,14 @@ class TestStravaTokenRefresh:
             int(now - 10000),
         )
 
-        with patch.object(sc, "_ensure_token_table"), patch.object(
-            sc, "_get_conn", return_value=mock_conn
-        ), patch.object(
-            sc,
-            "refresh_access_token",
-            return_value={"access_token": "new_access", "refresh_token": "new_refresh"},
+        with (
+            patch.object(sc, "_ensure_token_table"),
+            patch.object(sc, "_get_conn", return_value=mock_conn),
+            patch.object(
+                sc,
+                "refresh_access_token",
+                return_value={"access_token": "new_access", "refresh_token": "new_refresh"},
+            ),
         ):
             result = sc.get_valid_token(1)
             assert result == "new_access"
@@ -58,9 +61,7 @@ class TestStravaTokenRefresh:
             int(now + 3600),
         )
 
-        with patch.object(sc, "_ensure_token_table"), patch.object(
-            sc, "_get_conn", return_value=mock_conn
-        ):
+        with patch.object(sc, "_ensure_token_table"), patch.object(sc, "_get_conn", return_value=mock_conn):
             result = sc.get_valid_token(1)
             assert result == "valid_access"
 
@@ -74,9 +75,7 @@ class TestStravaTokenRefresh:
         mock_conn.execute.return_value = mock_cursor
         mock_cursor.fetchone.return_value = None
 
-        with patch.object(sc, "_ensure_token_table"), patch.object(
-            sc, "_get_conn", return_value=mock_conn
-        ):
+        with patch.object(sc, "_ensure_token_table"), patch.object(sc, "_get_conn", return_value=mock_conn):
             result = sc.get_valid_token(999)
             assert result is None
 
@@ -87,9 +86,7 @@ class TestStravaTokenRefresh:
         mock_conn.__enter__ = MagicMock(return_value=mock_conn)
         mock_conn.__exit__ = MagicMock(return_value=False)
 
-        with patch.object(sc, "_ensure_token_table"), patch.object(
-            sc, "_get_conn", return_value=mock_conn
-        ):
+        with patch.object(sc, "_ensure_token_table"), patch.object(sc, "_get_conn", return_value=mock_conn):
             sc.store_token(1, {"access_token": "at", "refresh_token": "rt", "expires_at": 12345})
             assert mock_conn.execute.called
 
@@ -100,9 +97,7 @@ class TestStravaTokenRefresh:
         mock_conn.__enter__ = MagicMock(return_value=mock_conn)
         mock_conn.__exit__ = MagicMock(return_value=False)
 
-        with patch.object(sc, "_ensure_token_table"), patch.object(
-            sc, "_get_conn", return_value=mock_conn
-        ):
+        with patch.object(sc, "_ensure_token_table"), patch.object(sc, "_get_conn", return_value=mock_conn):
             sc.revoke_token(1)
             assert mock_conn.execute.called
 
@@ -149,12 +144,14 @@ class TestStravaTokenRefresh:
             int(now - 10000),
         )
 
-        with patch.object(sc, "_ensure_token_table"), patch.object(
-            sc, "_get_conn", return_value=mock_conn
-        ), patch.object(
-            sc,
-            "refresh_access_token",
-            side_effect=RuntimeError("refresh failed"),
+        with (
+            patch.object(sc, "_ensure_token_table"),
+            patch.object(sc, "_get_conn", return_value=mock_conn),
+            patch.object(
+                sc,
+                "refresh_access_token",
+                side_effect=RuntimeError("refresh failed"),
+            ),
         ):
             result = sc.get_valid_token(1)
             assert result is None
@@ -192,6 +189,7 @@ class TestStravaTokenRefresh:
 # Garmin client token refresh
 # ---------------------------------------------------------------------------
 
+
 class TestGarminTokenRefresh:
     """Test get_valid_token refresh flow and related functions."""
 
@@ -210,12 +208,14 @@ class TestGarminTokenRefresh:
             int(now - 10000),
         )
 
-        with patch.object(gc, "_ensure_garmin_table"), patch.object(
-            gc, "_get_conn", return_value=mock_conn
-        ), patch.object(
-            gc,
-            "refresh_access_token",
-            return_value={"access_token": "new_access", "refresh_token": "new_refresh"},
+        with (
+            patch.object(gc, "_ensure_garmin_table"),
+            patch.object(gc, "_get_conn", return_value=mock_conn),
+            patch.object(
+                gc,
+                "refresh_access_token",
+                return_value={"access_token": "new_access", "refresh_token": "new_refresh"},
+            ),
         ):
             result = gc.get_valid_token(1)
             assert result == "new_access"
@@ -235,9 +235,7 @@ class TestGarminTokenRefresh:
             int(now + 3600),
         )
 
-        with patch.object(gc, "_ensure_garmin_table"), patch.object(
-            gc, "_get_conn", return_value=mock_conn
-        ):
+        with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
             result = gc.get_valid_token(1)
             assert result == "valid_access"
 
@@ -251,9 +249,7 @@ class TestGarminTokenRefresh:
         mock_conn.execute.return_value = mock_cursor
         mock_cursor.fetchone.return_value = None
 
-        with patch.object(gc, "_ensure_garmin_table"), patch.object(
-            gc, "_get_conn", return_value=mock_conn
-        ):
+        with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
             result = gc.get_valid_token(999)
             assert result is None
 
@@ -264,9 +260,7 @@ class TestGarminTokenRefresh:
         mock_conn.__enter__ = MagicMock(return_value=mock_conn)
         mock_conn.__exit__ = MagicMock(return_value=False)
 
-        with patch.object(gc, "_ensure_garmin_table"), patch.object(
-            gc, "_get_conn", return_value=mock_conn
-        ):
+        with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
             gc.store_token(1, {"access_token": "at", "refresh_token": "rt", "expires_at": "9999999999"})
             assert mock_conn.execute.called
 
@@ -277,9 +271,7 @@ class TestGarminTokenRefresh:
         mock_conn.__enter__ = MagicMock(return_value=mock_conn)
         mock_conn.__exit__ = MagicMock(return_value=False)
 
-        with patch.object(gc, "_ensure_garmin_table"), patch.object(
-            gc, "_get_conn", return_value=mock_conn
-        ):
+        with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
             gc.store_token(1, {"access_token": "at", "refresh_token": "rt", "expires_in": 3600})
             assert mock_conn.execute.called
 
@@ -290,9 +282,7 @@ class TestGarminTokenRefresh:
         mock_conn.__enter__ = MagicMock(return_value=mock_conn)
         mock_conn.__exit__ = MagicMock(return_value=False)
 
-        with patch.object(gc, "_ensure_garmin_table"), patch.object(
-            gc, "_get_conn", return_value=mock_conn
-        ):
+        with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
             gc.revoke_token(1)
             assert mock_conn.execute.called
 
@@ -335,6 +325,7 @@ class TestGarminTokenRefresh:
 # Engine async paths
 # ---------------------------------------------------------------------------
 
+
 class TestEngineAsyncPaths:
     """Test AnalysisEngine async methods."""
 
@@ -370,11 +361,12 @@ class TestEngineAsyncPaths:
             patch.object(engine.pipeline, "run", side_effect=fake_run),
             patch.object(engine, "_update_fitness_state", side_effect=fake_update),
         ):
-                import asyncio
-                result = asyncio.run(engine.process_ride(ride, athlete_id=1))
-                assert result.success is True
-                assert result.result == mock_result
-                assert result.fitness_state == mock_fitness
+            import asyncio
+
+            result = asyncio.run(engine.process_ride(ride, athlete_id=1))
+            assert result.success is True
+            assert result.result == mock_result
+            assert result.fitness_state == mock_fitness
 
     def test_process_ride_async_failure(self):
         engine = AnalysisEngine()
@@ -385,6 +377,7 @@ class TestEngineAsyncPaths:
 
         with patch.object(engine.pipeline, "run", side_effect=fake_run):
             import asyncio
+
             result = asyncio.run(engine.process_ride(ride))
             assert result.success is False
             assert "Pipeline error" in result.error

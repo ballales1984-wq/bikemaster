@@ -46,9 +46,7 @@ def _load_local_incidents() -> list[dict[str, Any]]:
     return []
 
 
-def _fetch_from_api(
-    lat: float, lon: float, radius_km: float = 5.0, days: int = 90
-) -> list[dict[str, Any]]:
+def _fetch_from_api(lat: float, lon: float, radius_km: float = 5.0, days: int = 90) -> list[dict[str, Any]]:
     if not _INCIDENT_API_URL:
         return []
     headers = {}

@@ -156,9 +156,7 @@ class TestGarminTokenStorage:
         mock_conn.__exit__ = MagicMock(return_value=False)
         with patch("bike_analyzer.backend.ingestion.garmin_client._get_conn", return_value=mock_conn):
             revoke_token(1)
-            mock_conn.execute.assert_called_once_with(
-                "DELETE FROM garmin_tokens WHERE athlete_id = ?", (1,)
-            )
+            mock_conn.execute.assert_called_once_with("DELETE FROM garmin_tokens WHERE athlete_id = ?", (1,))
 
     def test_get_valid_token_no_token(self):
         mock_conn = MagicMock()
@@ -171,6 +169,7 @@ class TestGarminTokenStorage:
 
     def test_get_valid_token_fresh(self):
         import time
+
         mock_conn = MagicMock()
         mock_conn.__enter__ = MagicMock(return_value=mock_conn)
         mock_conn.__exit__ = MagicMock(return_value=False)
@@ -182,6 +181,7 @@ class TestGarminTokenStorage:
 
     def test_get_valid_token_refreshes_when_expired(self):
         import time
+
         mock_conn = MagicMock()
         mock_conn.__enter__ = MagicMock(return_value=mock_conn)
         mock_conn.__exit__ = MagicMock(return_value=False)

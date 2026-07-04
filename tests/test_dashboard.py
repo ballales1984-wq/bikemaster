@@ -11,7 +11,7 @@ class TestDashboardHtml:
         assert "BikeMaster" in DASHBOARD_HTML
 
     def test_html_contains_stats_section(self):
-        assert "id=\"stats\"" in DASHBOARD_HTML
+        assert 'id="stats"' in DASHBOARD_HTML
 
     def test_html_contains_weather_section(self):
         assert "weather-section" in DASHBOARD_HTML
