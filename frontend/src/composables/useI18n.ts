@@ -1,6 +1,8 @@
 import { ref, computed } from 'vue'
 
-type LocaleMessages = Record<string, string | LocaleMessages>
+interface LocaleMessages {
+  [key: string]: string | LocaleMessages
+}
 
 const itMessages: LocaleMessages = {}
 const enMessages: LocaleMessages = {}

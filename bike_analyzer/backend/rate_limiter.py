@@ -2,6 +2,7 @@
 
 import logging
 import time
+import threading
 from collections import defaultdict
 from dataclasses import dataclass
 from ipaddress import AddressValueError, ip_address, ip_network
@@ -57,6 +58,7 @@ class RateLimitConfig:
 
 
 _USER_RATE_LIMITS: dict[str, list[float]] = defaultdict(list)
+_USER_RATE_LIMIT_LOCK = threading.RLock()
 
 
 def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig | None = None) -> None:
@@ -64,22 +66,23 @@ def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig |
     key = f"user:{user_id}:{endpoint}"
     now = time.time()
     window_start = now - cfg.window_seconds
-    requests = _USER_RATE_LIMITS[key]
-    requests[:] = [t for t in requests if t > window_start]
-    if len(requests) >= cfg.max_requests:
-        logger.warning(
-            "Rate limit exceeded for user %s on %s (%d/%d in %ds)",
-            user_id,
-            endpoint,
-            len(requests),
-            cfg.max_requests,
-            cfg.window_seconds,
-        )
-        raise HTTPException(
-            status_code=429,
-            detail=f"Rate limit exceeded: {cfg.max_requests} requests per {cfg.window_seconds}s",
-        )
-    requests.append(now)
+    with _USER_RATE_LIMIT_LOCK:
+        requests = _USER_RATE_LIMITS[key]
+        requests[:] = [t for t in requests if t > window_start]
+        if len(requests) >= cfg.max_requests:
+            logger.warning(
+                "Rate limit exceeded for user %s on %s (%d/%d in %ds)",
+                user_id,
+                endpoint,
+                len(requests),
+                cfg.max_requests,
+                cfg.window_seconds,
+            )
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded: {cfg.max_requests} requests per {cfg.window_seconds}s",
+            )
+        requests.append(now)
 
 
 def rate_limit_dependency(max_requests: int = 100, window_seconds: int = 60):

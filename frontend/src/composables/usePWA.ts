@@ -1,5 +1,10 @@
 import { ref } from 'vue'
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => void
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
 const showPrompt = ref(false)
 const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null)
 

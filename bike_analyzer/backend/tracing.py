@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
+
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from .settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 try:
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -35,8 +39,8 @@ def setup_tracing(app=None):
                 insecure=True,
             )
             trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(exporter))
-            print(f"Jaeger Tracing (OpenTelemetry) initialized -> {settings.otel_exporter_otlp_endpoint}")
+            logger.info("Jaeger Tracing (OpenTelemetry) initialized -> %s", settings.otel_exporter_otlp_endpoint)
         except Exception as e:
-            print(f"OTLP exporter init failed (tracing disabled): {e}")
+            logger.warning("OTLP exporter init failed (tracing disabled): %s", e)
     else:
-        print("No OTLP endpoint configured - tracing disabled")
+        logger.info("No OTLP endpoint configured - tracing disabled")

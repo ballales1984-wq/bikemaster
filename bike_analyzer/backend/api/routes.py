@@ -224,11 +224,17 @@ def _make_streaming_response(generator: AsyncGenerator[str, None], event_type: s
 
 
 def _google_fit_message_html(message: dict) -> HTMLResponse:
-    return HTMLResponse(f"<script>window.opener.postMessage({json.dumps(message)}, '*'); window.close();</script>")
+    payload = json.dumps(message)
+    return HTMLResponse(
+        f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
+    )
 
 
 def _google_health_message_html(message: dict) -> HTMLResponse:
-    return HTMLResponse(f"<script>window.opener.postMessage({json.dumps(message)}, '*'); window.close();</script>")
+    payload = json.dumps(message)
+    return HTMLResponse(
+        f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
+    )
 
 
 @router.get("/health")

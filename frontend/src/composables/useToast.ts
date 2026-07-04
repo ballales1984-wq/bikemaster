@@ -1,7 +1,14 @@
 import { ref } from 'vue'
 
+interface ToastItem {
+  id: number
+  message: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  exiting: boolean
+}
+
 function useToast() {
-  const items = ref([])
+  const items = ref<ToastItem[]>([])
   let nextId = 1
 
   function add(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', ms: number = 3000) {

@@ -361,11 +361,11 @@ def calculate_training_stress_balance(
         daily_tss[date_key] = daily_tss.get(date_key, 0.0) + tss
     if not daily_tss:
         return {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "form": "no_data", "daily_load": []}
-    from datetime import datetime, timedelta
+    from datetime import UTC, datetime, timedelta
 
     dates = sorted(daily_tss.keys())
     first = datetime.fromisoformat(dates[0])
-    end = datetime.now()
+    end = datetime.now(UTC)
     all_dates: list[str] = []
     cur = first
     while cur <= end:
