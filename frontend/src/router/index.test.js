@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createRouter, createWebHistory } from 'vue-router'
-import { isLoggedIn, isAdmin } from '../composables/useAuth'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
 
 const routes = [
   { path: '/', name: 'home', component: { template: '<div />' } },
@@ -191,13 +193,13 @@ describe('router route configuration', () => {
   })
 })
 
-describe('useAuth composable integration with router', () => {
-  it('isLoggedIn is used by router guard', () => {
-    expect(typeof isLoggedIn).toBe('function')
+describe('useAuth store integration with router', () => {
+  it('auth store has isLoggedIn', () => {
+    expect(typeof auth.isLoggedIn.value).toBe('boolean')
   })
 
-  it('isAdmin is used by router guard', () => {
-    expect(typeof isAdmin).toBe('function')
+  it('auth store has isAdmin', () => {
+    expect(typeof auth.isAdmin.value).toBe('boolean')
   })
 })
 

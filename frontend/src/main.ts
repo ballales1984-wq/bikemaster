@@ -3,9 +3,11 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import './index.css'
-import { token, user } from './composables/useAuth'
+import { useAuthStore } from './stores/auth'
 import './composables/usePWA'
 import { useToast } from './composables/useToast'
+
+const auth = useAuthStore()
 
 const urlParams = new URLSearchParams(window.location.search)
 const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
@@ -16,13 +18,13 @@ if (urlToken) {
   const userData = { username: email || '', email, is_admin: false }
   localStorage.setItem('bikemaster_token', urlToken)
   localStorage.setItem('bikemaster_user', JSON.stringify(userData))
-  token.value = urlToken
-  user.value = userData
+  auth.token.value = urlToken
+  auth.user.value = userData
   localStorage.removeItem('bikemaster_login_error')
   window.history.replaceState({}, document.title, '/')
 } else if (oauthError) {
-  token.value = ''
-  user.value = null
+  auth.token.value = ''
+  auth.user.value = null
   localStorage.setItem('bikemaster_login_error', oauthError)
   window.history.replaceState({}, document.title, '/')
 }

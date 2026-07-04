@@ -52,18 +52,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
-import { isLoggedIn, isAdmin as checkIsAdmin, login as doLogin, register as doRegister, logout as doLogout } from './composables/useAuth'
-import HeaderTabs from './components/HeaderTabs.vue'
-import StatsSummary from './components/StatsSummary.vue'
-import ToastContainer from './components/ToastContainer.vue'
-import LoginForm from './components/LoginForm.vue'
-import PWAInstallPrompt from './components/PWAInstallPrompt.vue'
-import { useRides } from './composables/useRides'
-
-const route = useRoute()
-const router = useRouter()
-const loggedIn = computed(() => isLoggedIn())
-const isAdmin = computed(() => checkIsAdmin())
+import { useAuthStore } from './stores/auth'
+const auth = useAuthStore()
+const loggedIn = computed(() => auth.isLoggedIn.value)
+const isAdmin = computed(() => auth.isAdmin.value)
 const isPublicPage = computed(() => ['/privacy', '/terms', '/cookies', '/about', '/contact'].includes(route.path))
 const showHeader = computed(() => loggedIn.value || isPublicPage.value)
 const summary = ref({ rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 })
@@ -107,7 +99,7 @@ async function onLogin(creds) {
   try {
     loginError.value = ''
     localStorage.removeItem('bikemaster_login_error')
-    await doLogin(creds.username, creds.password)
+    await auth.login(creds.username, creds.password)
     router.push('/rides')
     await loadSummary()
   } catch (e) {
@@ -119,8 +111,8 @@ async function onRegister(creds) {
   try {
     loginError.value = ''
     localStorage.removeItem('bikemaster_login_error')
-    await doRegister(creds.username, creds.password)
-    await doLogin(creds.username, creds.password)
+    await auth.register(creds.username, creds.password)
+    await auth.login(creds.username, creds.password)
     await loadSummary()
   } catch (e) {
     loginError.value = e.message
@@ -128,7 +120,7 @@ async function onRegister(creds) {
 }
 
 async function onLogout() {
-  await doLogout()
+  await auth.logout()
     .catch(() => {})
   router.push('/')
   summary.value = { rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 }

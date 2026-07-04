@@ -43,6 +43,15 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => user.value?.is_admin === true)
 
+  function isTokenValid(): boolean {
+    if (!token.value) return false
+    const payload = parseJWTPayload(token.value)
+    if (!payload) return false
+    const exp = payload.exp as number | undefined
+    if (!exp) return true
+    return Date.now() < exp * 1000
+  }
+
   function getAuthHeader(): Record<string, string> {
     return token.value ? { Authorization: `Bearer ${token.value}` } : {}
   }
@@ -127,6 +136,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     isLoggedIn,
     isAdmin,
+    isTokenValid,
     getAuthHeader,
     login,
     register,
