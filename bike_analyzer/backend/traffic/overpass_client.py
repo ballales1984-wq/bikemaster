@@ -55,9 +55,7 @@ def _validate_coords(points: list[dict[str, float]]) -> None:
             raise ValueError(f"Invalid coordinates: lat={lat}, lon={lon}")
 
 
-async def fetch_road_data(
-    points: list[dict[str, float]], include_geometry: bool = False
-) -> dict[str, Any] | None:
+async def fetch_road_data(points: list[dict[str, float]], include_geometry: bool = False) -> dict[str, Any] | None:
     """Fetch road network data for a bounding box defined by GPS points."""
     if not points or len(points) < 2:
         return None
@@ -76,9 +74,7 @@ async def fetch_road_data(
     return await _overpass_query(query)
 
 
-async def fetch_bike_lanes(
-    points: list[dict[str, float]], include_geometry: bool = False
-) -> dict[str, Any] | None:
+async def fetch_bike_lanes(points: list[dict[str, float]], include_geometry: bool = False) -> dict[str, Any] | None:
     """Fetch dedicated bike infrastructure for a bounding box."""
     if not points or len(points) < 2:
         return None

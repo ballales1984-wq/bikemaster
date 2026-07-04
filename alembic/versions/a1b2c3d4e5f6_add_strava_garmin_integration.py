@@ -5,6 +5,7 @@ Revises: 08ee39bfe529
 Create Date: 2026-06-14 17:10:00.000000
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -33,9 +34,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["athlete_id"], ["athletes.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "ix_strava_tokens_athlete", "strava_tokens", ["athlete_id"], unique=True
-    )
+    op.create_index("ix_strava_tokens_athlete", "strava_tokens", ["athlete_id"], unique=True)
     op.create_table(
         "garmin_tokens",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -50,15 +49,11 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["athlete_id"], ["athletes.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "ix_garmin_tokens_athlete", "garmin_tokens", ["athlete_id"], unique=True
-    )
+    op.create_index("ix_garmin_tokens_athlete", "garmin_tokens", ["athlete_id"], unique=True)
     op.add_column("rides", sa.Column("external_source", sa.String(length=50), nullable=True))
     op.add_column("rides", sa.Column("external_id", sa.String(length=100), nullable=True))
     op.add_column("rides", sa.Column("title", sa.String(length=200), nullable=True))
-    op.create_index(
-        "ix_rides_external_source", "rides", ["external_source", "external_id"], unique=False
-    )
+    op.create_index("ix_rides_external_source", "rides", ["external_source", "external_id"], unique=False)
 
 
 def downgrade() -> None:

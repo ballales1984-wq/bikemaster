@@ -290,9 +290,7 @@ class TestSearchKnowledgeBase:
         training_results = search_knowledge_base(
             "polarized training periodization intervals weekly structure", max_chunks=3
         )
-        nutrition_results = search_knowledge_base(
-            "carbohydrates protein hydration electrolytes", max_chunks=3
-        )
+        nutrition_results = search_knowledge_base("carbohydrates protein hydration electrolytes", max_chunks=3)
         if isinstance(training_results, list) and isinstance(nutrition_results, list):
             training_topics = {r["topic"] for r in training_results}
             nutrition_topics = {r["topic"] for r in nutrition_results}
@@ -493,6 +491,7 @@ class TestPGVectorFallback:
             def get_bind(self):
                 class FakeDialect:
                     name = "sqlite"
+
                 return FakeDialect()
 
         results = search_knowledge_base_pgvector("recupero", FakeSession())
@@ -503,10 +502,24 @@ class TestPGVectorFallback:
         from bike_analyzer.backend.models.models import Ride
 
         rides = [
-            Ride(date="2024-06-01", distance_km=30.0, duration_minutes=60.0,
-                 avg_speed_kmh=25.0, calories=400, elevation_gain_m=100, heart_rate_avg=150),
-            Ride(date="2024-06-02", distance_km=30.0, duration_minutes=60.0,
-                 avg_speed_kmh=25.0, calories=400, elevation_gain_m=100, heart_rate_avg=180),
+            Ride(
+                date="2024-06-01",
+                distance_km=30.0,
+                duration_minutes=60.0,
+                avg_speed_kmh=25.0,
+                calories=400,
+                elevation_gain_m=100,
+                heart_rate_avg=150,
+            ),
+            Ride(
+                date="2024-06-02",
+                distance_km=30.0,
+                duration_minutes=60.0,
+                avg_speed_kmh=25.0,
+                calories=400,
+                elevation_gain_m=100,
+                heart_rate_avg=180,
+            ),
         ]
         result = analyze_anomalies(rides)
         assert "status" in result

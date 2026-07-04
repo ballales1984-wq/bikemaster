@@ -15,12 +15,7 @@ def haversine_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> 
     return (
         2
         * EARTH_RADIUS_M
-        * math.asin(
-            math.sqrt(
-                math.sin(dphi / 2) ** 2
-                + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
-            )
-        )
+        * math.asin(math.sqrt(math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2))
     )
 
 

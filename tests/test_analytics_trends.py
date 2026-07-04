@@ -20,8 +20,14 @@ from bike_analyzer.backend.analytics.analytics_trends import (
 )
 
 
-def make_ride(date_str: str, distance_km: float = 30.0, avg_speed_kmh: float = 25.0,
-              duration_minutes: float = 72.0, calories: float | None = 800.0, **kwargs) -> dict:
+def make_ride(
+    date_str: str,
+    distance_km: float = 30.0,
+    avg_speed_kmh: float = 25.0,
+    duration_minutes: float = 72.0,
+    calories: float | None = 800.0,
+    **kwargs,
+) -> dict:
     ride = {
         "date": date_str,
         "distance_km": distance_km,
@@ -174,13 +180,19 @@ class TestCalculateFitnessTrends:
         assert result["ready"] is False
 
     def test_improving_trend(self):
-        rides = [make_ride(f"2024-06-{i:02d}", distance_km=20.0 + i * 5.0, avg_speed_kmh=22.0 + i * 0.5) for i in range(1, 10)]
+        rides = [
+            make_ride(f"2024-06-{i:02d}", distance_km=20.0 + i * 5.0, avg_speed_kmh=22.0 + i * 0.5)
+            for i in range(1, 10)
+        ]
         result = calculate_fitness_trends(rides, metric="distance_km")
         assert result["ready"] is True
         assert result["trend"] == "improving"
 
     def test_declining_trend(self):
-        rides = [make_ride(f"2024-06-{i:02d}", distance_km=50.0 - i * 3.0, avg_speed_kmh=28.0 - i * 0.5) for i in range(1, 10)]
+        rides = [
+            make_ride(f"2024-06-{i:02d}", distance_km=50.0 - i * 3.0, avg_speed_kmh=28.0 - i * 0.5)
+            for i in range(1, 10)
+        ]
         result = calculate_fitness_trends(rides, metric="distance_km")
         assert result["trend"] == "declining"
 

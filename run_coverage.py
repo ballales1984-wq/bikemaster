@@ -1,7 +1,20 @@
-import subprocess, json, re
+import subprocess
+
 result = subprocess.run(
-    ["python", "-m", "pytest", "tests/", "--cov=bike_analyzer", "--cov-report=term-missing", "--no-header", "-q", "--timeout=60"],
-    capture_output=True, text=True, timeout=300
+    [
+        "python",
+        "-m",
+        "pytest",
+        "tests/",
+        "--cov=bike_analyzer",
+        "--cov-report=term-missing",
+        "--no-header",
+        "-q",
+        "--timeout=60",
+    ],
+    capture_output=True,
+    text=True,
+    timeout=300,
 )
 # Parse coverage from output
 lines = result.stdout.split("\n")

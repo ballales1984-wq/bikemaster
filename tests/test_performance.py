@@ -31,33 +31,27 @@ def test_performance_score():
 
 def test_endurance_score():
     rides = [
-        Ride(date=f"2024-06-{i:02d}", distance_km=20.0, duration_minutes=45.0, avg_speed_kmh=25.0)
-        for i in range(1, 22)
+        Ride(date=f"2024-06-{i:02d}", distance_km=20.0, duration_minutes=45.0, avg_speed_kmh=25.0) for i in range(1, 22)
     ]
     score = calculate_endurance_score(rides)
     assert 0 <= score <= 10
 
 
 def test_recovery_score():
-    r = Ride(
-        date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=600
-    )
+    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=600)
     score = calculate_recovery_score(r)
     assert 0 <= score <= 10
 
 
 def test_efficiency_score():
-    r = Ride(
-        date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=600
-    )
+    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=600)
     score = calculate_efficiency_score(r)
     assert 0 <= score <= 10
 
 
 def test_classify_athlete():
     beginner_rides = [
-        Ride(date=f"2024-06-{i:02d}", distance_km=20.0, duration_minutes=45.0, avg_speed_kmh=20.0)
-        for i in range(1, 5)
+        Ride(date=f"2024-06-{i:02d}", distance_km=20.0, duration_minutes=45.0, avg_speed_kmh=20.0) for i in range(1, 5)
     ]
     assert classify_athlete(beginner_rides) == "Beginner"
     elite_rides = [
@@ -88,9 +82,7 @@ def test_annual_scores_empty():
 
 
 def test_efficiency_score_zero_distance():
-    r = Ride(
-        date="2024-06-01", distance_km=0.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500
-    )
+    r = Ride(date="2024-06-01", distance_km=0.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500)
     assert calculate_efficiency_score(r) == 0.0
 
 

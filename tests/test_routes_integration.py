@@ -135,12 +135,15 @@ class TestTrainingRoutes:
 
     def test_training_goals_post(self, athlete_client):
         tc, aid = athlete_client
-        resp = tc.post(f"/api/v1/training/goals?athlete_id={aid}", json={
-            "title": "Test Goal",
-            "goal_type": "granfondo",
-            "target_date": "2026-12-31",
-            "target_distance_km": 100,
-        })
+        resp = tc.post(
+            f"/api/v1/training/goals?athlete_id={aid}",
+            json={
+                "title": "Test Goal",
+                "goal_type": "granfondo",
+                "target_date": "2026-12-31",
+                "target_distance_km": 100,
+            },
+        )
         assert resp.status_code == 200
 
     def test_training_goals_list(self, athlete_client):

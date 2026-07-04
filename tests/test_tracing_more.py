@@ -19,7 +19,7 @@ class TestMetricsMiddleware:
 
     @pytest.mark.asyncio
     async def test_non_http_request(self):
-        app = MagicMock()
+        MagicMock()
         app_call = AsyncMock()
         middleware = MetricsMiddleware(app_call)
         scope = {"type": "websocket"}
@@ -34,7 +34,7 @@ class TestMetricsMiddleware:
         middleware = MetricsMiddleware(app)
         scope = {"type": "http", "method": "GET", "path": "/api/test"}
         receive = MagicMock()
-        send = MagicMock()
+        MagicMock()
 
         async def mock_send(message):
             if message["type"] == "http.response.start":
@@ -50,7 +50,7 @@ class TestMetricsMiddleware:
         middleware = MetricsMiddleware(app)
         scope = {"type": "http", "method": "POST", "path": "/api/rides"}
         receive = MagicMock()
-        send = MagicMock()
+        MagicMock()
 
         async def mock_send(message):
             if message["type"] == "http.response.start":

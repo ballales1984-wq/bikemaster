@@ -8,7 +8,6 @@ to core domain dataclass instances.
 from __future__ import annotations
 
 from datetime import date
-from typing import List
 
 from pydantic import ValidationError
 
@@ -30,9 +29,7 @@ def validate_ride_for_analysis(ride_data: dict) -> RideDataclass:
     try:
         validated = ValidatedRide.model_validate(ride_data)
     except ValidationError as exc:
-        raise BusinessValidationError(
-            {"message": "Dati ride non validi", "errors": exc.errors()}
-        ) from exc
+        raise BusinessValidationError({"message": "Dati ride non validi", "errors": exc.errors()}) from exc
     return _to_domain_ride(validated)
 
 
@@ -40,13 +37,11 @@ def validate_ride_for_import(ride_data: dict) -> RideDataclass:
     try:
         validated = ValidatedRide.model_validate(ride_data)
     except ValidationError as exc:
-        raise BusinessValidationError(
-            {"message": "Dati ride import non validi", "errors": exc.errors()}
-        ) from exc
+        raise BusinessValidationError({"message": "Dati ride import non validi", "errors": exc.errors()}) from exc
     return _to_domain_ride(validated)
 
 
-def validate_gps_points(points_data: list[dict]) -> List[GPSPointDataclass]:
+def validate_gps_points(points_data: list[dict]) -> list[GPSPointDataclass]:
     if len(points_data) < 2:
         raise BusinessValidationError("Servono almeno 2 punti GPS per una ride valida")
     validated_points = []
@@ -58,9 +53,7 @@ def validate_gps_points(points_data: list[dict]) -> List[GPSPointDataclass]:
         except ValidationError as exc:
             errors.append({"index": i, "errors": exc.errors()})
     if errors:
-        raise BusinessValidationError(
-            {"message": "Punti GPS non validi", "errors": errors}
-        )
+        raise BusinessValidationError({"message": "Punti GPS non validi", "errors": errors})
     return validated_points
 
 
@@ -68,9 +61,7 @@ def validate_athlete_profile(data: dict) -> AthleteProfileDataclass:
     try:
         validated = ValidatedAthleteProfile.model_validate(data)
     except ValidationError as exc:
-        raise BusinessValidationError(
-            {"message": "Dati profilo atleta non validi", "errors": exc.errors()}
-        ) from exc
+        raise BusinessValidationError({"message": "Dati profilo atleta non validi", "errors": exc.errors()}) from exc
     return _to_domain_athlete(validated)
 
 

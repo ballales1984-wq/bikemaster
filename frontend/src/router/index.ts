@@ -186,9 +186,12 @@ router.beforeEach(async (to, from, next) => {
     if (!hasCompleteProfile) {
       const toast = useToast()
       toast.show('Complete your profile to see your rides', 'info')
+      window.dispatchEvent(new CustomEvent('oauth-loading-end'))
+      next('/athlete')
+    } else {
+      window.dispatchEvent(new CustomEvent('oauth-loading-end'))
+      next()
     }
-    window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-    next(hasCompleteProfile ? '/rides' : '/athlete')
   } else if (to.meta.requiresAuth && !loggedIn) {
     next('/')
   } else if (to.meta.requiresAdmin && !isAdmin()) {

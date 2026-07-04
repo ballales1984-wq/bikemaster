@@ -41,6 +41,7 @@ class TestMsToIso:
         ms = int(time.time() * 1000)
         result = _ms_to_iso(ms)
         from datetime import datetime
+
         dt = datetime.fromisoformat(result)
         assert dt.year >= 2024
 
@@ -67,9 +68,12 @@ class TestGetAuthorizationUrl:
 class TestGoogleFitToRide:
     def test_cycling_activity(self):
         from datetime import UTC, datetime
+
         now_ms = int(datetime(2024, 6, 15, 8, 0, tzinfo=UTC).timestamp() * 1000)
         later_ms = int(datetime(2024, 6, 15, 10, 0, tzinfo=UTC).timestamp() * 1000)
-        activities = [{"activity": 1, "startTimeMillis": str(now_ms), "endTimeMillis": str(later_ms), "name": "Morning Ride"}]
+        activities = [
+            {"activity": 1, "startTimeMillis": str(now_ms), "endTimeMillis": str(later_ms), "name": "Morning Ride"}
+        ]
         rides = google_fit_to_ride(activities)
         assert len(rides) == 1
         assert rides[0]["date"] == "2024-06-15"
@@ -77,6 +81,7 @@ class TestGoogleFitToRide:
 
     def test_non_cycling_filtered(self):
         from datetime import UTC, datetime
+
         now_ms = int(datetime(2024, 6, 15, 8, 0, tzinfo=UTC).timestamp() * 1000)
         later_ms = int(datetime(2024, 6, 15, 9, 0, tzinfo=UTC).timestamp() * 1000)
         activities = [{"activity": 2, "startTimeMillis": str(now_ms), "endTimeMillis": str(later_ms)}]
@@ -85,9 +90,12 @@ class TestGoogleFitToRide:
 
     def test_cycling_by_name(self):
         from datetime import UTC, datetime
+
         now_ms = int(datetime(2024, 6, 15, 8, 0, tzinfo=UTC).timestamp() * 1000)
         later_ms = int(datetime(2024, 6, 15, 9, 0, tzinfo=UTC).timestamp() * 1000)
-        activities = [{"activity": 0, "startTimeMillis": str(now_ms), "endTimeMillis": str(later_ms), "name": "Road cycling"}]
+        activities = [
+            {"activity": 0, "startTimeMillis": str(now_ms), "endTimeMillis": str(later_ms), "name": "Road cycling"}
+        ]
         rides = google_fit_to_ride(activities)
         assert len(rides) == 1
 
@@ -96,33 +104,40 @@ class TestGoogleFitToRide:
 
     def test_distance_from_legacy_format(self):
         from datetime import UTC, datetime
+
         now_ms = int(datetime(2024, 6, 15, 8, 0, tzinfo=UTC).timestamp() * 1000)
         later_ms = int(datetime(2024, 6, 15, 9, 0, tzinfo=UTC).timestamp() * 1000)
-        activities = [{
-            "activity": 1,
-            "startTimeMillis": str(now_ms),
-            "endTimeMillis": str(later_ms),
-            "value": [{"name": "distance.sum", "fpVal": 25000.0}],
-        }]
+        activities = [
+            {
+                "activity": 1,
+                "startTimeMillis": str(now_ms),
+                "endTimeMillis": str(later_ms),
+                "value": [{"name": "distance.sum", "fpVal": 25000.0}],
+            }
+        ]
         rides = google_fit_to_ride(activities)
         assert rides[0]["distance_km"] == 25.0
 
     def test_avg_speed_calculation(self):
         from datetime import UTC, datetime
+
         now_ms = int(datetime(2024, 6, 15, 8, 0, tzinfo=UTC).timestamp() * 1000)
         later_ms = int(datetime(2024, 6, 15, 9, 0, tzinfo=UTC).timestamp() * 1000)
-        activities = [{
-            "activity": 1,
-            "startTimeMillis": str(now_ms),
-            "endTimeMillis": str(later_ms),
-            "value": [{"name": "distance.sum", "fpVal": 30000.0}],
-        }]
+        activities = [
+            {
+                "activity": 1,
+                "startTimeMillis": str(now_ms),
+                "endTimeMillis": str(later_ms),
+                "value": [{"name": "distance.sum", "fpVal": 30000.0}],
+            }
+        ]
         rides = google_fit_to_ride(activities)
         assert rides[0]["avg_speed_kmh"] == 30.0
 
     @patch("requests.get")
     def test_fetch_cycling_activities_success(self, mock_get):
         from unittest.mock import MagicMock
+
         mock_resp = MagicMock()
         mock_resp.ok = True
         mock_resp.json.return_value = {"session": [{"activity": 1}]}
@@ -133,6 +148,7 @@ class TestGoogleFitToRide:
     @patch("requests.get")
     def test_fetch_cycling_activities_failure(self, mock_get):
         from unittest.mock import MagicMock
+
         mock_resp = MagicMock()
         mock_resp.ok = False
         mock_resp.json.return_value = {}

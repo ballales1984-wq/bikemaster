@@ -86,6 +86,7 @@ async def revoke_refresh_token(athlete_id: int) -> bool:
         logger.warning("Failed to revoke refresh token for athlete %s: %s", athlete_id, exc)
         return False
 
+
 UNAUTH_401 = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Token non valido o scaduto",
@@ -195,9 +196,7 @@ def create_refresh_token(subject: str) -> str:
 
 def _try_decode(token: str, secret: str) -> dict | None:
     try:
-        return jwt.decode(
-            token, secret, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE
-        )
+        return jwt.decode(token, secret, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE)
     except JWTError:
         return None
 
@@ -247,9 +246,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     try:
         user_id_int = int(user_id)
     except (TypeError, ValueError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token non valido"
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token non valido") from exc
     result = {"id": user_id_int, "is_admin": is_admin}
     if tenant_id is not None:
         result["tenant_id"] = tenant_id

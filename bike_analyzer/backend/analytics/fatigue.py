@@ -13,11 +13,7 @@ def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:
     if hr_avg:
         hr_pct = hr_avg / (220 - rider_age) if rider_age < 220 else 0.5
         INTENSITY_FACTOR = (
-            0.5
-            if hr_pct <= 0.5
-            else 0.5 + (hr_pct - 0.5) * 2.0
-            if hr_pct <= 0.85
-            else 1.5 + (hr_pct - 0.85) * 3.33
+            0.5 if hr_pct <= 0.5 else 0.5 + (hr_pct - 0.5) * 2.0 if hr_pct <= 0.85 else 1.5 + (hr_pct - 0.85) * 3.33
         )
     else:
         INTENSITY_FACTOR = 1.0
@@ -30,13 +26,7 @@ def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:
     )
     WEIGHT_FACTOR = ride.weight_kg / 70.0
     return min(
-        (
-            DURATION_FACTOR * 0.3
-            + INTENSITY_FACTOR * 0.3
-            + SPEED_FACTOR * 0.2
-            + ELEV_FACTOR * 0.1
-            + WEIGHT_FACTOR * 0.1
-        )
+        (DURATION_FACTOR * 0.3 + INTENSITY_FACTOR * 0.3 + SPEED_FACTOR * 0.2 + ELEV_FACTOR * 0.1 + WEIGHT_FACTOR * 0.1)
         * 3.0,
         10.0,
     )

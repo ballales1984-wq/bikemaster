@@ -87,6 +87,7 @@ def test_publish_non_strict_logs_error():
 
     os.environ["EVENT_BUS_STRICT_MODE"] = "false"
     try:
+
         def bad_handler(data):
             raise RuntimeError("handler error")
 

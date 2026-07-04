@@ -14,17 +14,23 @@ from bike_analyzer.backend.observability import (
 class TestPatchFastapiInstrumentation:
     def test_patch_applies_successfully(self):
         mock_fastapi_instr = MagicMock()
-        with patch.dict(sys.modules, {
-            "starlette.routing": MagicMock(),
-            "opentelemetry.instrumentation.fastapi": mock_fastapi_instr,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "starlette.routing": MagicMock(),
+                "opentelemetry.instrumentation.fastapi": mock_fastapi_instr,
+            },
+        ):
             _patch_fastapi_instrumentation()
             assert mock_fastapi_instr._get_route_details is not None
 
     def test_patch_handles_import_error(self):
-        with patch.dict(sys.modules, {
-            "starlette.routing": None,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "starlette.routing": None,
+            },
+        ):
             _patch_fastapi_instrumentation()
 
 
@@ -128,7 +134,7 @@ class TestInitObservability:
         mock_get_settings.return_value = mock_settings
 
         mock_app = MagicMock()
-        with patch("bike_analyzer.backend.observability.trace") as mock_trace:
+        with patch("bike_analyzer.backend.observability.trace"):
             init_observability(app=mock_app)
             mock_instr.instrument_app.assert_called_once()
 
@@ -147,7 +153,7 @@ class TestInitObservability:
         mock_settings.otel_exporter_otlp_endpoint = ""
         mock_get_settings.return_value = mock_settings
 
-        with patch("bike_analyzer.backend.observability.trace") as mock_trace:
+        with patch("bike_analyzer.backend.observability.trace"):
             init_observability()
 
     @patch("bike_analyzer.backend.observability.FastAPIInstrumentor")
@@ -167,6 +173,6 @@ class TestInitObservability:
 
         mock_app = MagicMock()
         with patch("bike_analyzer.backend.observability.ZIPKIN_AVAILABLE", False):
-            with patch("bike_analyzer.backend.observability.trace") as mock_trace:
+            with patch("bike_analyzer.backend.observability.trace"):
                 init_observability(app=mock_app)
                 mock_instr.instrument_app.assert_called_once()

@@ -28,6 +28,7 @@ class TestSubscribePublish:
 
         subscribe("test.event", handler)
         import asyncio
+
         asyncio.run(publish("test.event", {"key": "value"}))
         assert len(received) == 1
         assert received[0] == {"key": "value"}
@@ -44,23 +45,25 @@ class TestSubscribePublish:
         subscribe("multi", h1)
         subscribe("multi", h2)
         import asyncio
+
         asyncio.run(publish("multi"))
         assert sorted(results) == [1, 2]
 
     def test_publish_no_handlers(self):
         import asyncio
+
         result = asyncio.run(publish("nonexistent.event"))
         assert result is None
 
     def test_handler_exception_non_strict(self, monkeypatch):
         monkeypatch.setattr("bike_analyzer.backend.events.STRICT_MODE", False)
-        errors = []
 
         async def bad_handler(data):
             raise RuntimeError("oops")
 
         subscribe("error.test", bad_handler)
         import asyncio
+
         asyncio.run(publish("error.test"))
         # Should not raise, just log
 
@@ -72,6 +75,7 @@ class TestSubscribePublish:
 
         subscribe("error.strict", bad_handler)
         import asyncio
+
         with pytest.raises(RuntimeError, match="oops"):
             asyncio.run(publish("error.strict"))
 
@@ -82,6 +86,7 @@ class TestSubscribePublish:
         subscribe("test", h)
         clear_handlers()
         import asyncio
+
         asyncio.run(publish("test"))
         # No handlers should fire without error
 

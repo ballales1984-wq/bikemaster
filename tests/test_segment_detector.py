@@ -13,9 +13,7 @@ from bike_analyzer.backend.processing.segment_detector import (
 )
 
 
-def make_point(
-    lat: float, lon: float, alt: float = None, hours: int = 0, mins: int = 0, secs: int = 0
-):
+def make_point(lat: float, lon: float, alt: float = None, hours: int = 0, mins: int = 0, secs: int = 0):
     """Create a GPS point with timestamp."""
     ts = datetime(2024, 1, 15, 8, 0, 0, tzinfo=UTC)
     total_secs = hours * 3600 + mins * 60 + secs
@@ -35,10 +33,7 @@ def test_detect_climb_basic():
 
 def test_detect_all_segments():
     """Test segment detection."""
-    points = [
-        make_point(45.0 + i * 0.002, 10.0, alt=i * 5 if i % 2 == 0 else None, secs=i * 60)
-        for i in range(20)
-    ]
+    points = [make_point(45.0 + i * 0.002, 10.0, alt=i * 5 if i % 2 == 0 else None, secs=i * 60) for i in range(20)]
     segments = detect_all_segments(points, min_length_m=500)
     assert len(segments) >= 1
     for seg in segments:
@@ -142,8 +137,14 @@ class TestSegmentToDict:
     def test_rounding(self):
         start = make_point(45.0, 9.0)
         seg = ClimbSegment(
-            start_idx=0, end_idx=1, distance_m=1234.0, elevation_gain_m=56.789,
-            avg_grade_percent=4.56, category="cat4", start_point=start, end_point=start,
+            start_idx=0,
+            end_idx=1,
+            distance_m=1234.0,
+            elevation_gain_m=56.789,
+            avg_grade_percent=4.56,
+            category="cat4",
+            start_point=start,
+            end_point=start,
         )
         d = segment_to_dict(seg)
         assert d["distance_km"] == 1.23

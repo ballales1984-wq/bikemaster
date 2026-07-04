@@ -36,9 +36,7 @@ def test_generate_training_advice_validates_profile():
 def test_generate_training_advice_with_local_mode(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     monkeypatch.setenv("GROQ_API_KEY", "gsk_should_not_call")
-    result = generate_training_advice(
-        AthleteProfile(name="Marco", weight_kg=70.0, experience_level="Beginner"), []
-    )
+    result = generate_training_advice(AthleteProfile(name="Marco", weight_kg=70.0, experience_level="Beginner"), [])
     assert isinstance(result, str)
     assert len(result) > 0
 
@@ -67,9 +65,7 @@ def test_analyze_historical_trend_with_rides():
 def test_ai_coach_full_returns_dict(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     monkeypatch.setenv("GROQ_API_KEY", "gsk_should_not_call")
-    result = ai_coach_full(
-        AthleteProfile(name="Test", weight_kg=70.0, experience_level="Beginner"), [], athlete_id=0
-    )
+    result = ai_coach_full(AthleteProfile(name="Test", weight_kg=70.0, experience_level="Beginner"), [], athlete_id=0)
     assert isinstance(result, dict)
     assert "training_advice" in result
     assert "recovery_advice" in result
@@ -88,9 +84,8 @@ def test_ai_coach_workout_endpoint(client):
 
 def test_ai_coach_workout_endpoint_with_athlete(client, db_path):
     from bike_analyzer.backend.db import database as db_mod
-    athlete_id = db_mod.save_athlete(
-        {"name": "Test Athlete", "weight_kg": 70.0, "experience_level": "Beginner"}
-    )
+
+    athlete_id = db_mod.save_athlete({"name": "Test Athlete", "weight_kg": 70.0, "experience_level": "Beginner"})
     r = client.get("/api/v1/coach/workout", params={"athlete_id": athlete_id})
     assert r.status_code == 200
     data = r.json()

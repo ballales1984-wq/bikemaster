@@ -8,12 +8,19 @@ from bike_analyzer.core.pipeline import AnalysisPipeline, PipelineResult
 
 
 def _ride(**kwargs):
-    defaults = dict(
-        id=1, athlete_id=1, date="2024-06-15",
-        distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0,
-        weight_kg=70.0, calories=600.0, heart_rate_avg=150.0,
-        elevation_gain_m=200.0, gps_points=[],
-    )
+    defaults = {
+        "id": 1,
+        "athlete_id": 1,
+        "date": "2024-06-15",
+        "distance_km": 25.0,
+        "duration_minutes": 60.0,
+        "avg_speed_kmh": 25.0,
+        "weight_kg": 70.0,
+        "calories": 600.0,
+        "heart_rate_avg": 150.0,
+        "elevation_gain_m": 200.0,
+        "gps_points": [],
+    }
     defaults.update(kwargs)
     return Ride(**defaults)
 

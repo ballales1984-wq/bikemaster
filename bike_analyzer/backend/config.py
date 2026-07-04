@@ -34,9 +34,7 @@ if not _SECRET_KEY_IS_PLACEHOLDER:
     _SECRET_KEY_PREVIOUS = ""
 else:
     if _IS_PROD:
-        logging.critical(
-            "SECRET_KEY non valida. Usa un valore casuale >= 32 caratteri (es. openssl rand -hex 32)."
-        )
+        logging.critical("SECRET_KEY non valida. Usa un valore casuale >= 32 caratteri (es. openssl rand -hex 32).")
         sys.exit(1)
     _SECRET_KEY_PRIMARY = "test-secret-key-for-development-please-override"
     _SECRET_KEY_PREVIOUS = os.getenv("SECRET_KEY_PREVIOUS", "")

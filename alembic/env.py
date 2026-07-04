@@ -3,14 +3,15 @@
 Uses sync engine for reliable autogenerate support.
 PostgreSQL uses psycopg2 (sync) for migrations, asyncpg only for app runtime.
 """
+
 from __future__ import annotations
 
 from logging.config import fileConfig
 
+from bike_analyzer.backend.db.models import Base
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-from bike_analyzer.backend.db.models import Base
 
 config = context.config
 
@@ -22,6 +23,7 @@ target_metadata = Base.metadata
 
 def get_database_url() -> str:
     from bike_analyzer.backend.settings import get_settings
+
     s = get_settings()
     if s.database_url:
         url = s.database_url

@@ -1,4 +1,5 @@
 """Tests for API routes - missing coverage."""
+
 from io import BytesIO
 
 import pytest

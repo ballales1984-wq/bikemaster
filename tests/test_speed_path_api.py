@@ -27,13 +27,16 @@ def test_speed_path_endpoint_ride_not_found(client):
 
 
 def test_speed_path_endpoint_no_gps(client):
-    resp = client.post("/api/v1/rides", json={
-        "date": "2024-01-01",
-        "distance_km": 10.0,
-        "duration_minutes": 60.0,
-        "weight_kg": 70,
-        "gps_points": [],
-    })
+    resp = client.post(
+        "/api/v1/rides",
+        json={
+            "date": "2024-01-01",
+            "distance_km": 10.0,
+            "duration_minutes": 60.0,
+            "weight_kg": 70,
+            "gps_points": [],
+        },
+    )
     assert resp.status_code == 200
     ride_id = resp.json()["id"]
     resp = client.get(f"/api/v1/rides/{ride_id}/speed-path")
@@ -46,13 +49,16 @@ def test_speed_path_endpoint_success(client):
         {"lat": 45.0 + i * 0.01, "lon": 9.0 + i * 0.01, "speed": 10 + i * 2, "timestamp": "2024-01-01T10:00:00Z"}
         for i in range(10)
     ]
-    resp = client.post("/api/v1/rides", json={
-        "date": "2024-01-01",
-        "distance_km": 10.0,
-        "duration_minutes": 60.0,
-        "weight_kg": 70,
-        "gps_points": points,
-    })
+    resp = client.post(
+        "/api/v1/rides",
+        json={
+            "date": "2024-01-01",
+            "distance_km": 10.0,
+            "duration_minutes": 60.0,
+            "weight_kg": 70,
+            "gps_points": points,
+        },
+    )
     assert resp.status_code == 200
     ride_id = resp.json()["id"]
     resp = client.get(f"/api/v1/rides/{ride_id}/speed-path")
@@ -78,13 +84,16 @@ def test_speed_path_endpoint_gradient_colors(client):
         {"lat": 45.0 + i * 0.01, "lon": 9.0 + i * 0.01, "speed": i * 5, "timestamp": "2024-01-01T10:00:00Z"}
         for i in range(8)
     ]
-    resp = client.post("/api/v1/rides", json={
-        "date": "2024-01-01",
-        "distance_km": 10.0,
-        "duration_minutes": 60.0,
-        "weight_kg": 70,
-        "gps_points": points,
-    })
+    resp = client.post(
+        "/api/v1/rides",
+        json={
+            "date": "2024-01-01",
+            "distance_km": 10.0,
+            "duration_minutes": 60.0,
+            "weight_kg": 70,
+            "gps_points": points,
+        },
+    )
     assert resp.status_code == 200
     ride_id = resp.json()["id"]
     resp = client.get(f"/api/v1/rides/{ride_id}/speed-path")
@@ -117,13 +126,16 @@ def test_speed_path_endpoint_color_hex_format(client):
         {"lat": 45.0 + i * 0.01, "lon": 9.0 + i * 0.01, "speed": 15, "timestamp": "2024-01-01T10:00:00Z"}
         for i in range(5)
     ]
-    resp = client.post("/api/v1/rides", json={
-        "date": "2024-01-01",
-        "distance_km": 10.0,
-        "duration_minutes": 60.0,
-        "weight_kg": 70,
-        "gps_points": points,
-    })
+    resp = client.post(
+        "/api/v1/rides",
+        json={
+            "date": "2024-01-01",
+            "distance_km": 10.0,
+            "duration_minutes": 60.0,
+            "weight_kg": 70,
+            "gps_points": points,
+        },
+    )
     assert resp.status_code == 200
     ride_id = resp.json()["id"]
     resp = client.get(f"/api/v1/rides/{ride_id}/speed-path")

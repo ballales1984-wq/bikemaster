@@ -1,4 +1,5 @@
 """Tests for rate limiter module."""
+
 from unittest.mock import MagicMock
 
 import pytest

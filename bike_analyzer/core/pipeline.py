@@ -33,6 +33,7 @@ class AnalysisPipeline:
         if not ride.gps_points:
             return None
         from bike_analyzer.backend.processing.processing import process_route
+
         cleaned, stats = process_route(ride.gps_points)
         ride.gps_points = cleaned
         return stats

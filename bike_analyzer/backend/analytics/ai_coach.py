@@ -861,63 +861,80 @@ def chat_with_tools(
             if func_name in tool_map:
                 try:
                     result = tool_map[func_name](func_args)
-                    results.append({
-                        "role": "tool",
-                        "tool_call_id": tc.id,
-                        "content": json.dumps(result) if not isinstance(result, str) else result,
-                    })
+                    results.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc.id,
+                            "content": json.dumps(result) if not isinstance(result, str) else result,
+                        }
+                    )
                 except Exception as exc:
                     logger.warning("Tool execution failed %s: %s", func_name, exc)
-                    results.append({
+                    results.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc.id,
+                            "content": json.dumps({"error": str(exc)}),
+                        }
+                    )
+            else:
+                results.append(
+                    {
                         "role": "tool",
                         "tool_call_id": tc.id,
-                        "content": json.dumps({"error": str(exc)}),
-                    })
-            else:
-                results.append({
-                    "role": "tool",
-                    "tool_call_id": tc.id,
-                    "content": json.dumps({"error": f"Unknown tool: {func_name}"}),
-                })
+                        "content": json.dumps({"error": f"Unknown tool: {func_name}"}),
+                    }
+                )
         return results
 
     try:
         tool_calls = []
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=tools,
-        ).choices[0].message
+        response = (
+            client.chat.completions.create(
+                model=model,
+                messages=messages,
+                tools=tools,
+            )
+            .choices[0]
+            .message
+        )
 
         if hasattr(response, "tool_calls") and response.tool_calls:
             tool_calls = response.tool_calls
-            messages.append({
-                "role": "assistant",
-                "content": response.content or "",
-                "tool_calls": [
-                    {
-                        "id": tc.id,
-                        "type": "function",
-                        "function": {
-                            "name": tc.function.name,
-                            "arguments": tc.function.arguments,
-                        },
-                    }
-                    for tc in tool_calls
-                ],
-            })
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": response.content or "",
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments,
+                            },
+                        }
+                        for tc in tool_calls
+                    ],
+                }
+            )
 
             tool_results = _execute_tool_calls(tool_calls)
             messages.extend(tool_results)
 
             if athlete_id:
                 from ..db.database import save_chat_message
+
                 save_chat_message(athlete_id, "assistant", str(tool_results))
 
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-            ).choices[0].message
+            response = (
+                client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                )
+                .choices[0]
+                .message
+            )
 
         return {"content": response.content or ""}
     except Exception:

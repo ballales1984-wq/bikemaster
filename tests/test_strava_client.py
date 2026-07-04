@@ -104,7 +104,11 @@ class TestRefreshAccessToken:
     def test_refreshes_token(self):
         with patch("bike_analyzer.backend.ingestion.strava_client.requests.post") as mock_post:
             mock_resp = MagicMock()
-            mock_resp.json.return_value = {"access_token": "new_token", "refresh_token": "new_refresh", "expires_in": 21600}
+            mock_resp.json.return_value = {
+                "access_token": "new_token",
+                "refresh_token": "new_refresh",
+                "expires_in": 21600,
+            }
             mock_resp.raise_for_status.return_value = None
             mock_post.return_value = mock_resp
             result = refresh_access_token("old_refresh")
@@ -178,20 +182,30 @@ class TestTokenStorage:
     def test_get_valid_token_returns_access(self):
         with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
             conn = MagicMock()
-            conn.execute.return_value.fetchone.return_value = ("access_token_xyz", "refresh_xyz", int(time.time()) + 7200)
+            conn.execute.return_value.fetchone.return_value = (
+                "access_token_xyz",
+                "refresh_xyz",
+                int(time.time()) + 7200,
+            )
             mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
             mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
             assert get_valid_token(1) == "access_token_xyz"
 
     def test_get_valid_token_refreshes_when_expired(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn, \
-             patch("bike_analyzer.backend.ingestion.strava_client.refresh_access_token") as mock_refresh:
+        with (
+            patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn,
+            patch("bike_analyzer.backend.ingestion.strava_client.refresh_access_token") as mock_refresh,
+        ):
             conn = MagicMock()
             expired_ts = int(time.time()) - 100
             conn.execute.return_value.fetchone.return_value = ("old_token", "refresh_xyz", expired_ts)
             mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
             mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
-            mock_refresh.return_value = {"access_token": "new_token", "refresh_token": "new_refresh", "expires_in": 21600}
+            mock_refresh.return_value = {
+                "access_token": "new_token",
+                "refresh_token": "new_refresh",
+                "expires_in": 21600,
+            }
             token = get_valid_token(1)
             assert token == "new_token"
             mock_refresh.assert_called_once_with("refresh_xyz")

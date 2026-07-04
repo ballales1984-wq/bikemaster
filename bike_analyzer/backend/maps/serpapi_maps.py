@@ -23,9 +23,7 @@ def _wait_for_rate_limit() -> None:
         time.sleep(_SERPAPI_RATE_LIMIT_S - elapsed)
 
 
-def search_places(
-    query: str, lat: float | None = None, lon: float | None = None
-) -> dict[str, Any] | None:
+def search_places(query: str, lat: float | None = None, lon: float | None = None) -> dict[str, Any] | None:
     if not SERPAPI_API_KEY:
         return None
     params = {
@@ -55,9 +53,7 @@ def search_places(
     return None
 
 
-def get_local_results(
-    points: list[GPSPoint], query: str = "cafe,bakery,restaurant"
-) -> list[dict[str, Any]] | None:
+def get_local_results(points: list[GPSPoint], query: str = "cafe,bakery,restaurant") -> list[dict[str, Any]] | None:
     if not points:
         return None
     center_lat = sum(p.lat for p in points) / len(points)

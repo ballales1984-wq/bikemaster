@@ -47,9 +47,7 @@ def compare_athlete_to_benchmark(
     pct_speed = (
         min(
             100,
-            (avg_speed - bench["avg_speed"][0])
-            / (bench["avg_speed"][1] - bench["avg_speed"][0])
-            * 100,
+            (avg_speed - bench["avg_speed"][0]) / (bench["avg_speed"][1] - bench["avg_speed"][0]) * 100,
         )
         if bench["avg_speed"][1] > bench["avg_speed"][0]
         else 50
@@ -57,9 +55,7 @@ def compare_athlete_to_benchmark(
     pct_hours = (
         min(
             100,
-            (total_hours - bench["weekly_hours"][0])
-            / (bench["weekly_hours"][1] - bench["weekly_hours"][0])
-            * 100,
+            (total_hours - bench["weekly_hours"][0]) / (bench["weekly_hours"][1] - bench["weekly_hours"][0]) * 100,
         )
         if bench["weekly_hours"][1] > bench["weekly_hours"][0]
         else 50
@@ -109,10 +105,7 @@ def generate_benchmark_report(athlete: AthleteProfile, rides: list) -> str:
             f"Level: {athlete.experience_level}",
             f"Age: {athlete.age} ({get_age_category(athlete.age)})",
             f"Weight: {athlete.weight_kg}kg ({get_weight_category(athlete.weight_kg)})",
-            (
-                f"Experience: {athlete.years_active} years "
-                f"({get_experience_category(athlete.years_active)})"
-            ),
+            (f"Experience: {athlete.years_active} years ({get_experience_category(athlete.years_active)})"),
             f"Percentile: {comparison.get('overall_percentile', 0)}%",
             f"Total km: {total_km:.0f} (level average: {level_average})",
         ]

@@ -134,6 +134,4 @@ class ContextBuilder:
             fs_repo = FitnessStateRepository(session_factory=self._session_factory)
             fitness_state = await fs_repo.get_latest(self.athlete_id)
 
-        return self.build_training_context(
-            athlete=athlete, rides=rides, fitness_state=fitness_state
-        )
+        return self.build_training_context(athlete=athlete, rides=rides, fitness_state=fitness_state)

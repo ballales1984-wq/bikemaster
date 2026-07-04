@@ -30,6 +30,7 @@ class TestAthleteRepository:
         conn.save_athlete.return_value = 1
         repo = AthleteRepository(sync_conn=conn)
         import asyncio
+
         result = asyncio.run(repo.save({"name": "Test"}, athlete_id=1))
         assert result == 1
 
@@ -38,6 +39,7 @@ class TestAthleteRepository:
         conn.get_athlete.return_value = {"id": 1, "name": "Test"}
         repo = AthleteRepository(sync_conn=conn)
         import asyncio
+
         result = asyncio.run(repo.get_by_id(1))
         assert result == {"id": 1, "name": "Test"}
 
@@ -46,6 +48,7 @@ class TestAthleteRepository:
         conn.get_athlete_by_name.return_value = {"id": 1, "name": "Test"}
         repo = AthleteRepository(sync_conn=conn)
         import asyncio
+
         result = asyncio.run(repo.get_by_name("Test"))
         assert result["name"] == "Test"
 
@@ -54,6 +57,7 @@ class TestAthleteRepository:
         conn.get_all_athletes.return_value = [{"id": 1}, {"id": 2}]
         repo = AthleteRepository(sync_conn=conn)
         import asyncio
+
         result = asyncio.run(repo.list_all())
         assert len(result) == 2
 
@@ -68,6 +72,7 @@ class TestRideRepository:
         conn.save_ride.return_value = 1
         repo = RideRepository(sync_conn=conn)
         import asyncio
+
         result = asyncio.run(repo.save({"distance_km": 25.0}))
         assert result == 1
 
@@ -76,6 +81,7 @@ class TestRideRepository:
         conn.get_ride.return_value = {"id": 1, "distance_km": 25.0}
         repo = RideRepository(sync_conn=conn)
         import asyncio
+
         result = asyncio.run(repo.get_by_id(1))
         assert result["distance_km"] == 25.0
 
@@ -84,6 +90,7 @@ class TestRideRepository:
         conn.get_all_rides.return_value = [{"id": 1}, {"id": 2}]
         repo = RideRepository(sync_conn=conn)
         import asyncio
+
         result = asyncio.run(repo.list_all())
         assert len(result) == 2
 
@@ -92,6 +99,7 @@ class TestFitnessStateRepository:
     def test_requires_session_factory(self):
         repo = FitnessStateRepository()
         import asyncio
+
         with pytest.raises(RuntimeError, match="Async session factory required"):
             asyncio.run(repo.save({"athlete_id": 1}))
 
@@ -107,6 +115,7 @@ class TestFitnessStateRepository:
         factory = MagicMock(return_value=mock_session)
         repo = FitnessStateRepository(session_factory=factory)
         import asyncio
+
         result = asyncio.run(repo.save({"athlete_id": 1, "fitness": 85.0}))
         assert result == 1
 
@@ -126,6 +135,7 @@ class TestTrainingStressRepository:
         conn = MagicMock()
         repo = TrainingStressRepository(sync_conn=conn)
         import asyncio
+
         asyncio.run(repo.upsert_day(1, "2024-06-15", 100.0, 80.0, 90.0, 10.0))
         conn.upsert_training_stress_day.assert_called_once_with(1, "2024-06-15", 100.0, 80.0, 90.0, 10.0, 0)
 
@@ -134,6 +144,7 @@ class TestTrainingStressRepository:
         conn.get_training_stress_days.return_value = [{"date": "2024-06-15", "tss": 100.0}]
         repo = TrainingStressRepository(sync_conn=conn)
         import asyncio
+
         result = asyncio.run(repo.get_history(1))
         assert len(result) == 1
         assert result[0]["tss"] == 100.0
@@ -143,6 +154,7 @@ class TestTrainingStressRepository:
         conn.get_latest_training_stress.return_value = {"date": "2024-06-15", "tss": 100.0}
         repo = TrainingStressRepository(sync_conn=conn)
         import asyncio
+
         result = asyncio.run(repo.get_latest(1))
         assert result["tss"] == 100.0
 

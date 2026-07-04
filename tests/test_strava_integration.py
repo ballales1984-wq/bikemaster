@@ -108,4 +108,3 @@ def test_strava_sync_endpoint_is_idempotent(client, monkeypatch):
     assert len(rides) == 1
     assert rides[0]["external_source"] == "strava"
     assert rides[0]["external_id"] == "12345"
-

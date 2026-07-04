@@ -85,9 +85,7 @@ class TestFetchRoadData:
             "bike_analyzer.backend.traffic.overpass_client._overpass_query",
             return_value=mock_data,
         ):
-            result = await fetch_road_data(
-                [{"lat": 45.0, "lon": 9.0}, {"lat": 45.1, "lon": 9.1}]
-            )
+            result = await fetch_road_data([{"lat": 45.0, "lon": 9.0}, {"lat": 45.1, "lon": 9.1}])
             assert result == mock_data
 
     @pytest.mark.asyncio
@@ -119,9 +117,7 @@ class TestFetchBikeLanes:
             "bike_analyzer.backend.traffic.overpass_client._overpass_query",
             return_value={"elements": []},
         ):
-            await fetch_bike_lanes(
-                [{"lat": 45.0, "lon": 9.0}, {"lat": 45.1, "lon": 9.1}]
-            )
+            await fetch_bike_lanes([{"lat": 45.0, "lon": 9.0}, {"lat": 45.1, "lon": 9.1}])
 
 
 class TestGetRoadTypeSummary:
@@ -133,9 +129,7 @@ class TestGetRoadTypeSummary:
             "bike_analyzer.backend.traffic.overpass_client.fetch_road_data",
             return_value=None,
         ):
-            result = await get_road_type_summary(
-                [{"lat": 45.0, "lon": 9.0}]
-            )
+            result = await get_road_type_summary([{"lat": 45.0, "lon": 9.0}])
             assert result == {}
 
     @pytest.mark.asyncio
@@ -154,9 +148,7 @@ class TestGetRoadTypeSummary:
             "bike_analyzer.backend.traffic.overpass_client.fetch_road_data",
             return_value=mock_data,
         ):
-            result = await get_road_type_summary(
-                [{"lat": 45.0, "lon": 9.0}]
-            )
+            result = await get_road_type_summary([{"lat": 45.0, "lon": 9.0}])
             assert result["residential"] == 2
             assert result["primary"] == 1
             assert result.get("unknown") == 1
@@ -200,9 +192,7 @@ class TestLoadLocalIncidents:
         import bike_analyzer.backend.traffic.incident_fetcher as inc_mod
 
         p = tmp_path / "incidents.json"
-        p.write_text(
-            json.dumps({"features": [{"id": "1", "properties": {}}]})
-        )
+        p.write_text(json.dumps({"features": [{"id": "1", "properties": {}}]}))
         with patch.object(inc_mod, "_INCIDENT_DATA_PATH", str(p)):
             result = inc_mod._load_local_incidents()
             assert len(result) == 1
@@ -287,9 +277,7 @@ class TestNormalizeIncident:
     def test_zero_coords_returns_none(self):
         import bike_analyzer.backend.traffic.incident_fetcher as inc_mod
 
-        assert inc_mod._normalize_incident(
-            {"id": "1", "lat": 0.0, "lon": 0.0}, "test"
-        ) is None
+        assert inc_mod._normalize_incident({"id": "1", "lat": 0.0, "lon": 0.0}, "test") is None
 
     def test_invalid_severity_defaults_to_medium(self):
         import bike_analyzer.backend.traffic.incident_fetcher as inc_mod
@@ -416,9 +404,7 @@ class TestComputeRiskScore:
     def test_motorway_low_score(self):
         from bike_analyzer.backend.traffic.safety_analyzer import compute_risk_score
 
-        result = compute_risk_score(
-            {"motorway": 3}, incident_count=5, route_length_km=1.0
-        )
+        result = compute_risk_score({"motorway": 3}, incident_count=5, route_length_km=1.0)
         assert result["label"] == "high_risk"
 
     def test_bike_infra_bonus(self):
@@ -431,12 +417,8 @@ class TestComputeRiskScore:
     def test_incident_penalty(self):
         from bike_analyzer.backend.traffic.safety_analyzer import compute_risk_score
 
-        base = compute_risk_score(
-            {"residential": 2}, incident_count=0, route_length_km=10.0
-        )
-        with_incidents = compute_risk_score(
-            {"residential": 2}, incident_count=10, route_length_km=10.0
-        )
+        base = compute_risk_score({"residential": 2}, incident_count=0, route_length_km=10.0)
+        with_incidents = compute_risk_score({"residential": 2}, incident_count=10, route_length_km=10.0)
         assert with_incidents["risk_score"] < base["risk_score"]
 
     def test_score_clamped(self):
@@ -448,9 +430,7 @@ class TestComputeRiskScore:
     def test_dominant_road_types_sorted(self):
         from bike_analyzer.backend.traffic.safety_analyzer import compute_risk_score
 
-        result = compute_risk_score(
-            {"residential": 5, "primary": 2, "secondary": 3, "cycleway": 1}
-        )
+        result = compute_risk_score({"residential": 5, "primary": 2, "secondary": 3, "cycleway": 1})
         types = [t[0] for t in result["dominant_road_types"]]
         assert types.index("residential") < types.index("primary")
 
@@ -479,12 +459,15 @@ class TestAnalyzeRouteSafety:
             {"lat": 45.01, "lon": 9.01},
             {"lat": 45.02, "lon": 9.02},
         ]
-        with patch(
-            "bike_analyzer.backend.traffic.overpass_client.fetch_bike_lanes",
-            return_value={"elements": []},
-        ), patch(
-            "bike_analyzer.backend.traffic.overpass_client.get_road_type_summary",
-            return_value={"residential": 2},
+        with (
+            patch(
+                "bike_analyzer.backend.traffic.overpass_client.fetch_bike_lanes",
+                return_value={"elements": []},
+            ),
+            patch(
+                "bike_analyzer.backend.traffic.overpass_client.get_road_type_summary",
+                return_value={"residential": 2},
+            ),
         ):
             result = await analyze_route_safety(points)
             assert "risk_score" in result

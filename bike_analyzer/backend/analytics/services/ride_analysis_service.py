@@ -77,7 +77,5 @@ class RideAnalysisService:
         finally:
             record_ride_analysis_duration(_time.perf_counter() - start)
 
-    async def compute_fitness_state(
-        self, rides: Sequence[Ride], athlete_id: int
-    ) -> FitnessStateVector:
+    async def compute_fitness_state(self, rides: Sequence[Ride], athlete_id: int) -> FitnessStateVector:
         return self.fitness_engine.compute(rides, athlete_id)

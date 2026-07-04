@@ -9,18 +9,14 @@ def parse_gpx_file(content: str) -> list[dict]:
     import re
     import xml.etree.ElementTree as ET
 
-    content = re.sub(r'<!DOCTYPE[^>]*?>', '', content, flags=re.IGNORECASE | re.DOTALL)
+    content = re.sub(r"<!DOCTYPE[^>]*?>", "", content, flags=re.IGNORECASE | re.DOTALL)
     root = ET.fromstring(content)
     points, ns = [], {"d": "http://www.topografix.com/GPX/1/1"}
     for trkpt in root.findall(".//d:trkpt", ns):
         lat, lon = float(trkpt.get("lat")), float(trkpt.get("lon"))
         ele, time_elem = trkpt.find("d:ele", ns), trkpt.find("d:time", ns)
         altitude = float(ele.text) if ele is not None else None
-        timestamp = (
-            datetime.fromisoformat(time_elem.text.replace("Z", "+00:00"))
-            if time_elem is not None
-            else None
-        )
+        timestamp = datetime.fromisoformat(time_elem.text.replace("Z", "+00:00")) if time_elem is not None else None
         if timestamp:
             points.append({"lat": lat, "lon": lon, "timestamp": timestamp, "altitude": altitude})
     return points
@@ -39,9 +35,7 @@ def parse_fit_file(file_path: str) -> list[dict]:
                 alt = d.get("enhanced_altitude") or d.get("altitude")
                 spd = d.get("speed") * 3.6 if d.get("speed") else None
                 if lat is not None and lon is not None and ts:
-                    points.append(
-                        {"lat": lat, "lon": lon, "timestamp": ts, "altitude": alt, "speed": spd}
-                    )
+                    points.append({"lat": lat, "lon": lon, "timestamp": ts, "altitude": alt, "speed": spd})
         return points
     except ImportError:
         raise ImportError("fitparse not installed") from None
@@ -61,9 +55,7 @@ def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float
         if len(points) > 1
         else 0
     )
-    duration_s = (
-        (points[-1]["timestamp"] - points[0]["timestamp"]).total_seconds() if len(points) > 1 else 0
-    )
+    duration_s = (points[-1]["timestamp"] - points[0]["timestamp"]).total_seconds() if len(points) > 1 else 0
     avg_speed = (total_distance / duration_s * 3.6) if duration_s > 0 else 0
     return {
         "date": points[0]["timestamp"].strftime("%Y-%m-%d") if points else "",

@@ -36,7 +36,5 @@ def test_frontend_main_block(capsys):
     import subprocess
     import sys
 
-    result = subprocess.run(
-        [sys.executable, "-m", "bike_analyzer.frontend.dashboard"], capture_output=True, text=True
-    )
+    result = subprocess.run([sys.executable, "-m", "bike_analyzer.frontend.dashboard"], capture_output=True, text=True)
     assert "Dashboard generated" in result.stdout

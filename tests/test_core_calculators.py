@@ -74,12 +74,19 @@ from bike_analyzer.core.validators import (
 
 
 def _ride(**kwargs):
-    defaults = dict(
-        id=1, athlete_id=1, date="2024-06-15",
-        distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0,
-        weight_kg=70.0, calories=600.0, heart_rate_avg=150.0,
-        elevation_gain_m=200.0, gps_points=[],
-    )
+    defaults = {
+        "id": 1,
+        "athlete_id": 1,
+        "date": "2024-06-15",
+        "distance_km": 25.0,
+        "duration_minutes": 60.0,
+        "avg_speed_kmh": 25.0,
+        "weight_kg": 70.0,
+        "calories": 600.0,
+        "heart_rate_avg": 150.0,
+        "elevation_gain_m": 200.0,
+        "gps_points": [],
+    }
     defaults.update(kwargs)
     return Ride(**defaults)
 
@@ -309,7 +316,9 @@ class TestNormalizedPower:
         assert normalized_power_approx(r) == 0.0
 
     def test_with_power_data(self):
-        points = [GPSPoint(lat=45.0, lon=9.0, power=200.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)) for _ in range(15)]
+        points = [
+            GPSPoint(lat=45.0, lon=9.0, power=200.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)) for _ in range(15)
+        ]
         r = _ride(gps_points=points)
         np = normalized_power_approx(r)
         assert np > 0
@@ -382,7 +391,7 @@ class TestCaloriesPhysicsEdgeCases:
 
     def test_duration_hours_attribute(self):
         r = _ride(avg_speed_kmh=25, duration_minutes=60, distance_km=25)
-        assert hasattr(r, 'duration_hours') or r.duration_minutes == 60
+        assert hasattr(r, "duration_hours") or r.duration_minutes == 60
 
 
 class TestPhysicsMethod:
@@ -399,9 +408,7 @@ class TestPhysicsMethod:
 
 class TestFitnessStateVector:
     def test_to_dict(self):
-        state = FitnessStateVector(
-            athlete_id=1, computed_at=datetime(2024, 1, 1, tzinfo=UTC), atl=50, ctl=60, tsb=10
-        )
+        state = FitnessStateVector(athlete_id=1, computed_at=datetime(2024, 1, 1, tzinfo=UTC), atl=50, ctl=60, tsb=10)
         d = state.to_dict()
         assert d["athlete_id"] == 1
         assert "atl" in d
@@ -486,6 +493,7 @@ class TestAnalysisEngine:
 class TestAnalysisPipeline:
     def test_run_sync(self):
         from bike_analyzer.core.pipeline import AnalysisPipeline
+
         pipeline = AnalysisPipeline(ftp=250)
         r = _ride(duration_minutes=60)
         result = pipeline.run_sync(r)
@@ -494,6 +502,7 @@ class TestAnalysisPipeline:
 
     def test_run_sync_no_gps(self):
         from bike_analyzer.core.pipeline import AnalysisPipeline
+
         pipeline = AnalysisPipeline(ftp=250)
         r = _ride(duration_minutes=60)
         result = pipeline.run_sync(r)
@@ -502,6 +511,7 @@ class TestAnalysisPipeline:
     @pytest.mark.asyncio
     async def test_run_async(self):
         from bike_analyzer.core.pipeline import AnalysisPipeline
+
         pipeline = AnalysisPipeline(ftp=250)
         r = _ride(duration_minutes=60)
         result = await pipeline.run(r)
@@ -570,7 +580,9 @@ class TestValidators:
 
     def test_validate_ride_invalid(self):
         with pytest.raises(BusinessValidationError):
-            validate_ride_for_analysis({"athlete_id": -1, "date": "2024-06-15", "distance_km": 25, "duration_minutes": 60})
+            validate_ride_for_analysis(
+                {"athlete_id": -1, "date": "2024-06-15", "distance_km": 25, "duration_minutes": 60}
+            )
 
     def test_validate_gps_points_too_few(self):
         with pytest.raises(BusinessValidationError):
@@ -606,13 +618,14 @@ class TestDashboardGenerator:
         with tempfile.TemporaryDirectory() as tmpdir:
             path = generate_dashboard_html(f"{tmpdir}/test_dashboard.html")
             assert os.path.exists(path)
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 content = f.read()
             assert "BikeMaster" in content
             assert "<!DOCTYPE html>" in content
 
     def test_dashboard_html_content(self):
         from bike_analyzer.frontend.dashboard import DASHBOARD_HTML
+
         assert "🚴" in DASHBOARD_HTML
         assert "loadRides" in DASHBOARD_HTML
         assert "fetchWeather" in DASHBOARD_HTML
@@ -766,7 +779,9 @@ class TestPowerModel:
     def test_calculate_advanced_power_metrics(self):
         pts = [
             GPSPoint(lat=45.0, lon=9.0, power=200.0, heart_rate=150.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
-            GPSPoint(lat=45.1, lon=9.1, power=250.0, heart_rate=160.0, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
+            GPSPoint(
+                lat=45.1, lon=9.1, power=250.0, heart_rate=160.0, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)
+            ),
         ]
         metrics = calculate_advanced_power_metrics(pts, ftp=250)
         assert metrics["available"] is True
@@ -783,7 +798,10 @@ class TestPowerModel:
         assert result["cp_w"] == 0.0
 
     def test_detect_aerobic_decoupling_short(self):
-        pts = [GPSPoint(lat=45.0, lon=9.0, power=200.0, heart_rate=150, timestamp=datetime(2024, 1, 1, tzinfo=UTC)) for _ in range(10)]
+        pts = [
+            GPSPoint(lat=45.0, lon=9.0, power=200.0, heart_rate=150, timestamp=datetime(2024, 1, 1, tzinfo=UTC))
+            for _ in range(10)
+        ]
         result = detect_aerobic_decoupling(pts, ftp=250)
         assert result["significant"] is False
 

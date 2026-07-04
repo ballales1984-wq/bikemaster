@@ -39,12 +39,8 @@ def test_save_metric_and_retrieve():
     )
 
     athlete_id = save_athlete({"name": "Metric Test Athlete"})
-    ride_id = save_ride(
-        {"athlete_id": athlete_id, "date": "2024-07-02", "distance_km": 20.0}
-    )
-    save_metric(
-        {"athlete_id": athlete_id, "ride_id": ride_id, "fatigue_score": 5.0}
-    )
+    ride_id = save_ride({"athlete_id": athlete_id, "date": "2024-07-02", "distance_km": 20.0})
+    save_metric({"athlete_id": athlete_id, "ride_id": ride_id, "fatigue_score": 5.0})
     rides = get_rides_by_athlete(athlete_id)
     assert isinstance(rides, list)
 

@@ -36,33 +36,25 @@ class TestValidatedGPSPoint:
         from bike_analyzer.core.validation import ValidatedGPSPoint
 
         with pytest.raises(ValidationError):
-            ValidatedGPSPoint(
-                lat=91, lon=0, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC)
-            )
+            ValidatedGPSPoint(lat=91, lon=0, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC))
 
     def test_lat_too_low(self):
         from bike_analyzer.core.validation import ValidatedGPSPoint
 
         with pytest.raises(ValidationError):
-            ValidatedGPSPoint(
-                lat=-91, lon=0, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC)
-            )
+            ValidatedGPSPoint(lat=-91, lon=0, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC))
 
     def test_lon_too_high(self):
         from bike_analyzer.core.validation import ValidatedGPSPoint
 
         with pytest.raises(ValidationError):
-            ValidatedGPSPoint(
-                lat=45.0, lon=181, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC)
-            )
+            ValidatedGPSPoint(lat=45.0, lon=181, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC))
 
     def test_lon_too_low(self):
         from bike_analyzer.core.validation import ValidatedGPSPoint
 
         with pytest.raises(ValidationError):
-            ValidatedGPSPoint(
-                lat=45.0, lon=-181, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC)
-            )
+            ValidatedGPSPoint(lat=45.0, lon=-181, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC))
 
     def test_timestamp_in_future(self):
         from bike_analyzer.core.validation import ValidatedGPSPoint
@@ -76,7 +68,9 @@ class TestValidatedGPSPoint:
 
         with pytest.raises(ValidationError):
             ValidatedGPSPoint(
-                lat=45.0, lon=9.0, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC),
+                lat=45.0,
+                lon=9.0,
+                timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC),
                 speed=150.0,
             )
 
@@ -85,7 +79,9 @@ class TestValidatedGPSPoint:
 
         with pytest.raises(ValidationError):
             ValidatedGPSPoint(
-                lat=45.0, lon=9.0, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC),
+                lat=45.0,
+                lon=9.0,
+                timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC),
                 heart_rate=300,
             )
 
@@ -94,16 +90,16 @@ class TestValidatedGPSPoint:
 
         with pytest.raises(ValidationError):
             ValidatedGPSPoint(
-                lat=45.0, lon=9.0, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC),
+                lat=45.0,
+                lon=9.0,
+                timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC),
                 power=3000.0,
             )
 
     def test_optional_fields_default_none(self):
         from bike_analyzer.core.validation import ValidatedGPSPoint
 
-        p = ValidatedGPSPoint(
-            lat=45.0, lon=9.0, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC)
-        )
+        p = ValidatedGPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2025, 6, 24, 10, 0, 0, tzinfo=UTC))
         assert p.altitude is None
         assert p.speed is None
         assert p.power is None
@@ -277,73 +273,55 @@ class TestValidatedAthleteProfile:
         from bike_analyzer.core.validation import ValidatedAthleteProfile
 
         with pytest.raises(ValidationError, match="name"):
-            ValidatedAthleteProfile(
-                name="A", age=30, weight_kg=70, experience_level="Beginner"
-            )
+            ValidatedAthleteProfile(name="A", age=30, weight_kg=70, experience_level="Beginner")
 
     def test_name_too_long(self):
         from bike_analyzer.core.validation import ValidatedAthleteProfile
 
         with pytest.raises(ValidationError):
-            ValidatedAthleteProfile(
-                name="x" * 101, age=30, weight_kg=70, experience_level="Beginner"
-            )
+            ValidatedAthleteProfile(name="x" * 101, age=30, weight_kg=70, experience_level="Beginner")
 
     def test_age_too_low(self):
         from bike_analyzer.core.validation import ValidatedAthleteProfile
 
         with pytest.raises(ValidationError):
-            ValidatedAthleteProfile(
-                name="Test", age=9, weight_kg=70, experience_level="Beginner"
-            )
+            ValidatedAthleteProfile(name="Test", age=9, weight_kg=70, experience_level="Beginner")
 
     def test_age_too_high(self):
         from bike_analyzer.core.validation import ValidatedAthleteProfile
 
         with pytest.raises(ValidationError):
-            ValidatedAthleteProfile(
-                name="Test", age=101, weight_kg=70, experience_level="Beginner"
-            )
+            ValidatedAthleteProfile(name="Test", age=101, weight_kg=70, experience_level="Beginner")
 
     def test_weight_too_low(self):
         from bike_analyzer.core.validation import ValidatedAthleteProfile
 
         with pytest.raises(ValidationError, match="realistico"):
-            ValidatedAthleteProfile(
-                name="Test", age=30, weight_kg=31, experience_level="Beginner"
-            )
+            ValidatedAthleteProfile(name="Test", age=30, weight_kg=31, experience_level="Beginner")
 
     def test_weight_too_high(self):
         from bike_analyzer.core.validation import ValidatedAthleteProfile
 
         with pytest.raises(ValidationError, match="realistico"):
-            ValidatedAthleteProfile(
-                name="Test", age=30, weight_kg=200, experience_level="Beginner"
-            )
+            ValidatedAthleteProfile(name="Test", age=30, weight_kg=200, experience_level="Beginner")
 
     def test_invalid_experience_level(self):
         from bike_analyzer.core.validation import ValidatedAthleteProfile
 
         with pytest.raises(ValidationError, match="experience_level"):
-            ValidatedAthleteProfile(
-                name="Test", age=30, weight_kg=70, experience_level="SuperPro"
-            )
+            ValidatedAthleteProfile(name="Test", age=30, weight_kg=70, experience_level="SuperPro")
 
     def test_all_experience_levels(self):
         from bike_analyzer.core.validation import ValidatedAthleteProfile
 
         for level in ("Beginner", "Intermediate", "Advanced", "Elite"):
-            p = ValidatedAthleteProfile(
-                name="Test", age=30, weight_kg=70, experience_level=level
-            )
+            p = ValidatedAthleteProfile(name="Test", age=30, weight_kg=70, experience_level=level)
             assert p.experience_level == level
 
     def test_optional_fields_defaults(self):
         from bike_analyzer.core.validation import ValidatedAthleteProfile
 
-        p = ValidatedAthleteProfile(
-            name="Test", age=30, weight_kg=70, experience_level="Beginner"
-        )
+        p = ValidatedAthleteProfile(name="Test", age=30, weight_kg=70, experience_level="Beginner")
         assert p.id is None
         assert p.height_cm is None
         assert p.ftp_watts is None
@@ -402,9 +380,7 @@ class TestValidateRideForImport:
 
     def test_invalid_import_raises(self):
         with pytest.raises(BusinessValidationError):
-            validate_ride_for_import(
-                {"athlete_id": 0, "date": "2025-06-24", "distance_km": 0, "duration_minutes": 0}
-            )
+            validate_ride_for_import({"athlete_id": 0, "date": "2025-06-24", "distance_km": 0, "duration_minutes": 0})
 
 
 class TestValidateGPSPoints:
@@ -419,9 +395,7 @@ class TestValidateGPSPoints:
 
     def test_single_point_raises(self):
         with pytest.raises(BusinessValidationError, match="almeno 2"):
-            validate_gps_points(
-                [{"lat": 45.0, "lon": 9.0, "timestamp": "2025-06-24T10:00:00+00:00"}]
-            )
+            validate_gps_points([{"lat": 45.0, "lon": 9.0, "timestamp": "2025-06-24T10:00:00+00:00"}])
 
     def test_empty_list_raises(self):
         with pytest.raises(BusinessValidationError, match="almeno 2"):
@@ -455,15 +429,11 @@ class TestValidateAthleteProfile:
 
     def test_invalid_name_raises(self):
         with pytest.raises(BusinessValidationError):
-            validate_athlete_profile(
-                {"name": "A", "age": 30, "weight_kg": 70, "experience_level": "Beginner"}
-            )
+            validate_athlete_profile({"name": "A", "age": 30, "weight_kg": 70, "experience_level": "Beginner"})
 
     def test_invalid_level_raises(self):
         with pytest.raises(BusinessValidationError):
-            validate_athlete_profile(
-                {"name": "Test", "age": 30, "weight_kg": 70, "experience_level": "Pro"}
-            )
+            validate_athlete_profile({"name": "Test", "age": 30, "weight_kg": 70, "experience_level": "Pro"})
 
 
 class TestValidateAthleteProfilePartial:

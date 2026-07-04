@@ -373,9 +373,7 @@ def test_google_fit_auth_uses_forwarded_redirect_uri(client, monkeypatch):
     assert r.status_code == 200
     parsed = urlparse(r.json()["auth_url"])
     params = parse_qs(parsed.query)
-    assert params["redirect_uri"] == [
-        "https://bikemaster.onrender.com/api/v1/import/google-fit/callback"
-    ]
+    assert params["redirect_uri"] == ["https://bikemaster.onrender.com/api/v1/import/google-fit/callback"]
 
 
 def test_static_fallback_routes(client):

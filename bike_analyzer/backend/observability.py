@@ -17,12 +17,14 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 
 try:
     from opentelemetry.exporter.zipkin.proto.http import ZipkinExporter
+
     ZIPKIN_AVAILABLE = True
 except ImportError:
     ZIPKIN_AVAILABLE = False
 
 try:
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
     OTLP_AVAILABLE = True
 except ImportError:
     OTLP_AVAILABLE = False
@@ -63,6 +65,7 @@ def _patch_fastapi_instrumentation():
             return route
 
         import opentelemetry.instrumentation.fastapi as fastapi_instr
+
         fastapi_instr._get_route_details = _patched_get_route_details
     except Exception:
         pass
@@ -75,6 +78,7 @@ def init_observability(app=None):
     Errors captured by Sentry will include the trace_id linking to Zipkin.
     """
     from .settings import get_settings
+
     settings = get_settings()
 
     # Skip observability in test environment
@@ -103,16 +107,18 @@ def init_observability(app=None):
         print("Sentry initialized with OpenTelemetry support")
 
     # === OPENTELEMETRY ===
-    resource = Resource.create({
-        "service.name": settings.otel_service_name,
-        "deployment.environment": settings.otel_environment,
-    })
+    resource = Resource.create(
+        {
+            "service.name": settings.otel_service_name,
+            "deployment.environment": settings.otel_environment,
+        }
+    )
 
     trace.set_tracer_provider(TracerProvider(resource=resource))
 
     # Skip telemetry in development without explicit endpoints
     is_dev = settings.environment.lower() in ("development", "dev", "local")
-    
+
     # Zipkin exporter (preferred) or fallback to OTLP/Jaeger
     zipkin_endpoint = settings.otel_exporter_zipkin_endpoint or "http://localhost:9411/api/v2/spans"
     zipkin_endpoint = zipkin_endpoint.strip() if zipkin_endpoint else ""

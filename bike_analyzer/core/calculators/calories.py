@@ -9,15 +9,7 @@ def calories_met(ride: Ride) -> float:
     speed = ride.avg_speed_kmh
     if speed is None:
         return 0.0
-    met = (
-        4.0
-        if speed < 16
-        else 6.0
-        if speed < 19
-        else 8.0
-        if speed < 22
-        else 10.0 + (speed - 22) * 0.5
-    )
+    met = 4.0 if speed < 16 else 6.0 if speed < 19 else 8.0 if speed < 22 else 10.0 + (speed - 22) * 0.5
     return met * ride.weight_kg * ride.duration_hours
 
 

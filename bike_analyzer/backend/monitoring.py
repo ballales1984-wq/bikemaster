@@ -137,6 +137,7 @@ class HealthStatus:
 async def check_database_health() -> tuple[str, str]:
     try:
         from .db.database import get_db_connection
+
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute("SELECT 1")
@@ -150,6 +151,7 @@ async def check_database_health() -> tuple[str, str]:
 async def check_redis_health() -> tuple[str, str]:
     try:
         from .redis_client import get_redis
+
         r = await get_redis()
         if r is not None:
             await asyncio_if_awaitable(r.ping())
@@ -163,6 +165,7 @@ async def check_redis_health() -> tuple[str, str]:
 async def check_task_queue_health() -> tuple[str, str]:
     try:
         from .task_queue import get_task_queue
+
         q = get_task_queue()
         return "healthy", f"Task queue: {len(q._tasks)} tasks tracked"
     except Exception as exc:
@@ -295,11 +298,13 @@ class MetricsMiddleware:
             return
 
         import time as _time
+
         start_time = _time.time()
         method = scope.get("method", "unknown")
         path = scope.get("path", "unknown")
 
         status_code = 500
+
         async def send_with_metrics(message):
             nonlocal status_code
             if message["type"] == "http.response.start":

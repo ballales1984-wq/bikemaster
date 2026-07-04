@@ -54,9 +54,7 @@ def _css_to_google_hex(color: str) -> str:
     return "0x" + color.lstrip("#").upper()
 
 
-def _build_speed_segments(
-    gps_points: list[GPSPoint], min_segment: int = 3
-) -> list[SpeedColorSegment]:
+def _build_speed_segments(gps_points: list[GPSPoint], min_segment: int = 3) -> list[SpeedColorSegment]:
     if not gps_points:
         return []
     speeds = [p.speed for p in gps_points if p.speed is not None]
@@ -147,9 +145,7 @@ def create_google_static_map(
             speeds = [p.speed for p in points if p.speed is not None]
             min_spd = min(speeds) if speeds else 0.0
             max_spd = max(speeds) if speeds else 35.0
-            median_color = _interpolate_color(
-                (min_spd + max_spd) / 2, min_spd, max_spd
-            )
+            median_color = _interpolate_color((min_spd + max_spd) / 2, min_spd, max_spd)
             url = (
                 "https://maps.googleapis.com/maps/api/staticmap?"
                 f"center={center_lat},{center_lon}&zoom={zoom}&size={size}"
@@ -177,10 +173,7 @@ def create_google_elevation_chart(points: list[GPSPoint], api_key: str) -> list[
     if not points or not api_key.startswith("AIza") or len(api_key) < 30:
         return None
     locations = "|".join([f"{p.lat},{p.lon}" for p in points])
-    url = (
-        "https://maps.googleapis.com/maps/api/elevation/json?"
-        f"locations={locations}&key={api_key}"
-    )
+    url = f"https://maps.googleapis.com/maps/api/elevation/json?locations={locations}&key={api_key}"
     with httpx.Client(timeout=15.0) as client:
         resp = client.get(url)
     if resp.status_code == 200:

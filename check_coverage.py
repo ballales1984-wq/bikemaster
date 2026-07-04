@@ -1,4 +1,5 @@
 import json
+
 with open("coverage.json") as f:
     data = json.load(f)
 files = data["files"]

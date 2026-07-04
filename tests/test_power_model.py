@@ -109,11 +109,13 @@ class TestCalculatePowerZones:
 class TestCalculatePowerProfile:
     def test_empty(self):
         from bike_analyzer.backend.analytics.power_model import calculate_power_profile
+
         result = calculate_power_profile([])
         assert all(v is None for v in result.values())
 
     def test_with_power_data(self):
         from bike_analyzer.backend.analytics.power_model import calculate_power_profile
+
         base = datetime(2024, 1, 1, 8, 0, 0, tzinfo=UTC)
         points = [
             _point(power=500.0, timestamp=base),
@@ -128,11 +130,13 @@ class TestCalculatePowerProfile:
 class TestEstimateFtp:
     def test_no_data(self):
         from bike_analyzer.backend.analytics.power_model import estimate_ftp_from_20min
+
         result = estimate_ftp_from_20min([])
         assert result == 0.0
 
     def test_with_20min_power(self):
         from bike_analyzer.backend.analytics.power_model import estimate_ftp_from_20min
+
         base = datetime(2024, 1, 1, 8, 0, 0, tzinfo=UTC)
         points = [_point(power=280.0, timestamp=base.replace(minute=i)) for i in range(30)]
         result = estimate_ftp_from_20min(points)
@@ -142,12 +146,14 @@ class TestEstimateFtp:
 class TestEstimateCriticalPower:
     def test_no_data(self):
         from bike_analyzer.backend.analytics.power_model import estimate_critical_power
+
         result = estimate_critical_power([])
         assert result["cp_w"] == 0.0
         assert result["w_prime_j"] == 0.0
 
     def test_with_data(self):
         from bike_analyzer.backend.analytics.power_model import estimate_critical_power
+
         base = datetime(2024, 1, 1, 8, 0, 0, tzinfo=UTC)
         points = [_point(power=300.0, timestamp=base) for _ in range(15)]
         result = estimate_critical_power(points)

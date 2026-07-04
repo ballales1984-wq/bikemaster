@@ -214,33 +214,26 @@ class TestWeatherPaths:
         assert score < 10
 
     def test_get_forecast_no_api_key(self):
-        with patch(
-            "bike_analyzer.backend.weather.weather_service._get_weather_api_key",
-            return_value=""
-        ):
+        with patch("bike_analyzer.backend.weather.weather_service._get_weather_api_key", return_value=""):
             result = get_forecast_for_date(45.0, 9.0, "2024-06-15")
             assert "error" in result
 
     def test_get_forecast_api_error(self):
-        with patch(
-            "bike_analyzer.backend.weather.weather_service._get_weather_api_key",
-            return_value="fake_key"
-        ), patch(
-            "bike_analyzer.backend.db.database.get_weather_cache", return_value=None
-        ), patch("bike_analyzer.backend.db.database.save_weather_cache"), patch(
-            "bike_analyzer.backend.weather.weather_service.requests"
-        ) as mock_req:
+        with (
+            patch("bike_analyzer.backend.weather.weather_service._get_weather_api_key", return_value="fake_key"),
+            patch("bike_analyzer.backend.db.database.get_weather_cache", return_value=None),
+            patch("bike_analyzer.backend.db.database.save_weather_cache"),
+            patch("bike_analyzer.backend.weather.weather_service.requests") as mock_req,
+        ):
             mock_req.get.return_value.raise_for_status.side_effect = Exception("API error")
             result = get_forecast_for_date(45.0, 9.0, "2099-01-01")
             assert "error" in result
 
     def test_get_weather_cache_hit(self):
         cache_data = {"temperature": 20, "humidity": 50, "description": "cached"}
-        with patch(
-            "bike_analyzer.backend.weather.weather_service._get_weather_api_key",
-            return_value="fake_key"
-        ), patch(
-            "bike_analyzer.backend.db.database.get_weather_cache", return_value=cache_data
+        with (
+            patch("bike_analyzer.backend.weather.weather_service._get_weather_api_key", return_value="fake_key"),
+            patch("bike_analyzer.backend.db.database.get_weather_cache", return_value=cache_data),
         ):
             result = get_weather_for_coordinates(45.0, 9.0)
             assert result["temperature"] == 20

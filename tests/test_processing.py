@@ -22,8 +22,9 @@ from bike_analyzer.backend.processing.processing import (
 )
 
 
-def make_point(lat: float, lon: float, speed: float | None = None,
-               altitude: float | None = None, timestamp_offset_s: float = 0.0) -> GPSPoint:
+def make_point(
+    lat: float, lon: float, speed: float | None = None, altitude: float | None = None, timestamp_offset_s: float = 0.0
+) -> GPSPoint:
     base = datetime(2024, 6, 15, 10, 0, 0)
     return GPSPoint(
         lat=lat,
@@ -109,12 +110,7 @@ class TestDetectPauses:
     def test_multiple_pauses(self):
         points = []
         for i in range(40):
-            if 5 <= i <= 10:
-                speed = 0.5
-            elif 20 <= i <= 26:
-                speed = 0.5
-            else:
-                speed = 15.0
+            speed = 0.5 if 5 <= i <= 10 or 20 <= i <= 26 else 15.0
             points.append(make_point(45.0, 9.0, speed=speed, timestamp_offset_s=i * 60))
         pauses = detect_pauses(points)
         assert len(pauses) == 2
@@ -143,12 +139,16 @@ class TestDetectAccelerations:
         assert all(delta >= ACCEL_THRESHOLD_KM_H_S for _, delta in accels)
 
     def test_no_acceleration_smooth(self):
-        points = [make_point(45.0, 9.0, speed=s, timestamp_offset_s=i * 5) for i, s in enumerate([20, 21, 22, 21.5, 22])]
+        points = [
+            make_point(45.0, 9.0, speed=s, timestamp_offset_s=i * 5) for i, s in enumerate([20, 21, 22, 21.5, 22])
+        ]
         assert detect_accelerations(points) == []
 
     def test_none_speeds_ignored(self):
-        points = [make_point(45.0, 9.0, speed=None, timestamp_offset_s=0),
-                  make_point(45.001, 9.001, speed=25.0, timestamp_offset_s=10)]
+        points = [
+            make_point(45.0, 9.0, speed=None, timestamp_offset_s=0),
+            make_point(45.001, 9.001, speed=25.0, timestamp_offset_s=10),
+        ]
         result = detect_accelerations(points)
         assert isinstance(result, list)
 
@@ -172,7 +172,9 @@ class TestDetectDecelerations:
         assert all(delta <= DECEL_THRESHOLD_KM_H_S for _, delta in decels)
 
     def test_no_deceleration_smooth(self):
-        points = [make_point(45.0, 9.0, speed=s, timestamp_offset_s=i * 5) for i, s in enumerate([20, 19, 18, 18.5, 19])]
+        points = [
+            make_point(45.0, 9.0, speed=s, timestamp_offset_s=i * 5) for i, s in enumerate([20, 19, 18, 18.5, 19])
+        ]
         assert detect_decelerations(points) == []
 
 
@@ -198,7 +200,10 @@ class TestRemoveOutliers:
 
     def test_keeps_normal_points(self):
         base_ts = [0, 10, 20, 30, 40]
-        points = [make_point(45.0 + i * 0.0001, 9.0 + i * 0.0001, speed=25.0, timestamp_offset_s=ts) for i, ts in enumerate(base_ts)]
+        points = [
+            make_point(45.0 + i * 0.0001, 9.0 + i * 0.0001, speed=25.0, timestamp_offset_s=ts)
+            for i, ts in enumerate(base_ts)
+        ]
         cleaned = remove_outliers(points, max_speed_km_h=200.0)
         assert len(cleaned) == 5
 
@@ -294,7 +299,9 @@ class TestProcessRoute:
         assert stats.total_distance_m == 0.0
 
     def test_returns_cleaned_and_stats(self):
-        points = [make_point(45.0 + i * 0.001, 9.0 + i * 0.001, speed=25.0, timestamp_offset_s=i * 10) for i in range(5)]
+        points = [
+            make_point(45.0 + i * 0.001, 9.0 + i * 0.001, speed=25.0, timestamp_offset_s=i * 10) for i in range(5)
+        ]
         cleaned, stats = process_route(points)
         assert len(cleaned) >= 2
         assert stats.total_distance_m > 0

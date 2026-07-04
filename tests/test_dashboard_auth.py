@@ -33,11 +33,9 @@ class TestEmailField:
 
     def test_athlete_create_with_email(self, client):
         """Test athlete creation with email."""
-        resp = client.post("/api/v1/athletes", json={
-            "name": "Test User",
-            "email": "test@example.com",
-            "experience_level": "Beginner"
-        })
+        resp = client.post(
+            "/api/v1/athletes", json={"name": "Test User", "email": "test@example.com", "experience_level": "Beginner"}
+        )
         assert resp.status_code in (200, 409)
         if resp.status_code == 200:
             data = resp.json()
@@ -45,10 +43,7 @@ class TestEmailField:
 
     def test_athlete_update_email(self, client):
         """Test athlete can update email."""
-        resp = client.post("/api/v1/athletes", json={
-            "name": "Email Test User",
-            "email": "emailtest@example.com"
-        })
+        resp = client.post("/api/v1/athletes", json={"name": "Email Test User", "email": "emailtest@example.com"})
         assert resp.status_code in (200, 409)
 
 
@@ -57,16 +52,12 @@ class TestRefreshToken:
 
     def test_refresh_endpoint_exists(self, client):
         """Test that the refresh endpoint exists."""
-        resp = client.post("/api/v1/auth/refresh", json={
-            "refresh_token": "invalid-token"
-        })
+        resp = client.post("/api/v1/auth/refresh", json={"refresh_token": "invalid-token"})
         assert resp.status_code in (200, 401)
 
     def test_refresh_token_invalid(self, client):
         """Test refresh with invalid token returns 401."""
-        resp = client.post("/api/v1/auth/refresh", json={
-            "refresh_token": "invalid-refresh-token"
-        })
+        resp = client.post("/api/v1/auth/refresh", json={"refresh_token": "invalid-refresh-token"})
         assert resp.status_code == 401
 
 
@@ -84,6 +75,7 @@ class TestLoginWithRefresh:
 
         import bike_analyzer.backend.config as cfg_mod
         import bike_analyzer.backend.db.database as db_mod
+
         cfg_mod.DB_PATH = db_path
         db_mod.DB_PATH = db_path
 
@@ -94,10 +86,7 @@ class TestLoginWithRefresh:
         app = create_app()
         tc = TestClient(app)
 
-        form = {
-            "username": "loginuser",
-            "password": "testpass123"
-        }
+        form = {"username": "loginuser", "password": "testpass123"}
         resp = tc.post("/api/v1/auth/login", data=form)
         assert resp.status_code == 200
         data = resp.json()
@@ -110,11 +99,10 @@ class TestRegisterWithEmail:
 
     def test_register_with_email(self, client):
         """Test registration includes email field."""
-        resp = client.post("/api/v1/auth/register", json={
-            "username": "emailuser",
-            "password": "testpass123",
-            "email": "emailuser@test.com"
-        })
+        resp = client.post(
+            "/api/v1/auth/register",
+            json={"username": "emailuser", "password": "testpass123", "email": "emailuser@test.com"},
+        )
         assert resp.status_code == 200 or resp.status_code == 400  # 400 if user exists
         if resp.status_code == 200:
             data = resp.json()

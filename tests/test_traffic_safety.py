@@ -108,8 +108,18 @@ class TestAnalyzeRouteSafety:
     @pytest.mark.asyncio
     async def test_no_incidents(self):
         points = [{"lat": 45.0 + i * 0.001, "lon": 9.0 + i * 0.001} for i in range(5)]
-        with patch("bike_analyzer.backend.traffic.overpass_client.get_road_type_summary", new_callable=AsyncMock, return_value={"residential": 3}), \
-             patch("bike_analyzer.backend.traffic.overpass_client.fetch_bike_lanes", new_callable=AsyncMock, return_value=None):
+        with (
+            patch(
+                "bike_analyzer.backend.traffic.overpass_client.get_road_type_summary",
+                new_callable=AsyncMock,
+                return_value={"residential": 3},
+            ),
+            patch(
+                "bike_analyzer.backend.traffic.overpass_client.fetch_bike_lanes",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+        ):
             result = await analyze_route_safety(points, incidents=[])
             assert "risk_score" in result
             assert result["incident_count"] == 0
@@ -118,16 +128,36 @@ class TestAnalyzeRouteSafety:
     async def test_with_incidents(self):
         points = [{"lat": 45.0 + i * 0.001, "lon": 9.0 + i * 0.001} for i in range(5)]
         incidents = [{"id": 1, "severity": "high"}]
-        with patch("bike_analyzer.backend.traffic.overpass_client.get_road_type_summary", new_callable=AsyncMock, return_value={"residential": 3}), \
-             patch("bike_analyzer.backend.traffic.overpass_client.fetch_bike_lanes", new_callable=AsyncMock, return_value=None):
+        with (
+            patch(
+                "bike_analyzer.backend.traffic.overpass_client.get_road_type_summary",
+                new_callable=AsyncMock,
+                return_value={"residential": 3},
+            ),
+            patch(
+                "bike_analyzer.backend.traffic.overpass_client.fetch_bike_lanes",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+        ):
             result = await analyze_route_safety(points, incidents=incidents)
             assert result["incident_count"] == 1
 
     @pytest.mark.asyncio
     async def test_returns_route_length(self):
         points = [{"lat": 45.0 + i * 0.01, "lon": 9.0 + i * 0.01} for i in range(5)]
-        with patch("bike_analyzer.backend.traffic.overpass_client.get_road_type_summary", new_callable=AsyncMock, return_value={"residential": 3}), \
-             patch("bike_analyzer.backend.traffic.overpass_client.fetch_bike_lanes", new_callable=AsyncMock, return_value=None):
+        with (
+            patch(
+                "bike_analyzer.backend.traffic.overpass_client.get_road_type_summary",
+                new_callable=AsyncMock,
+                return_value={"residential": 3},
+            ),
+            patch(
+                "bike_analyzer.backend.traffic.overpass_client.fetch_bike_lanes",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+        ):
             result = await analyze_route_safety(points)
             assert "route_length_km" in result
             assert result["route_length_km"] > 0

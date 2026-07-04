@@ -44,6 +44,7 @@ try:
         from endurance_metrics.decoupling import calculate_decoupling  # noqa: F401
         from endurance_metrics.fitness import calculate_tsb  # noqa: F401
         from endurance_metrics.workload import calculate_ramp_rate  # noqa: F401
+
         ENDURANCE_METRICS_AVAILABLE = True
     else:
         ENDURANCE_METRICS_AVAILABLE = False
@@ -110,9 +111,7 @@ def calculate_pace_consistency(segments: list[Segment]) -> dict[str, float]:
         "negative_split": negative_split,
         "first_half_avg": round(first_half, 1),
         "second_half_avg": round(second_half, 1),
-        "pace_diff_percent": round((second_half - first_half) / first_half * 100, 1)
-        if first_half > 0
-        else 0,
+        "pace_diff_percent": round((second_half - first_half) / first_half * 100, 1) if first_half > 0 else 0,
     }
 
 
@@ -220,13 +219,7 @@ def classify_ride_difficulty(ride: Ride) -> dict[str, Any]:
     dur_factor = min(ride.duration_hours / 5.0, 1.0)
     speed_factor = min(ride.avg_speed_kmh / 35.0, 1.0)
     hr_factor = min((ride.heart_rate_avg / 180) if ride.heart_rate_avg else 0.5, 1.0)
-    score = (
-        grade_factor * 0.30
-        + dist_factor * 0.20
-        + dur_factor * 0.20
-        + speed_factor * 0.15
-        + hr_factor * 0.15
-    )
+    score = grade_factor * 0.30 + dist_factor * 0.20 + dur_factor * 0.20 + speed_factor * 0.15 + hr_factor * 0.15
     if score < 0.2:
         level = "Easy"
     elif score < 0.4:
@@ -257,9 +250,7 @@ def analyze_elevation_profile(points: list[GPSPoint]) -> dict[str, Any]:
     max_grade = 0.0
     for i in range(1, len(points)):
         if points[i].altitude is not None and points[i - 1].altitude is not None:
-            dist_m = haversine_distance_m(
-                points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon
-            )
+            dist_m = haversine_distance_m(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon)
             elev_change = points[i].altitude - points[i - 1].altitude
             if dist_m > 0:
                 grade_pct = (elev_change / dist_m) * 100
@@ -275,11 +266,7 @@ def analyze_elevation_profile(points: list[GPSPoint]) -> dict[str, Any]:
                 else:
                     grades["extreme"] += 1
     total = sum(grades.values()) or 1
-    hardship = (
-        (grades.get("steep", 0) * 3 + grades.get("extreme", 0) * 5 + grades.get("moderate", 0) * 1)
-        / total
-        * 100
-    )
+    hardship = (grades.get("steep", 0) * 3 + grades.get("extreme", 0) * 5 + grades.get("moderate", 0) * 1) / total * 100
     return {
         "grade_distribution": {k: round(v / total * 100, 1) for k, v in grades.items()},
         "hardship_index": round(hardship, 1),
@@ -340,7 +327,7 @@ def calculate_progress_trend(rides: list[Ride], metric: str = "avg_speed_kmh") -
     ss_xx = sum((i - x_mean) ** 2 for i in range(n))
     ss_yy = sum((v - y_mean) ** 2 for v in values)
     slope = ss_xy / ss_xx if ss_xx != 0 else 0
-    r_squared = ss_xy ** 2 / (ss_xx * ss_yy) if ss_yy > 0 and ss_xx > 0 else 0.0
+    r_squared = ss_xy**2 / (ss_xx * ss_yy) if ss_yy > 0 and ss_xx > 0 else 0.0
     improvement = ((values[-1] - values[0]) / values[0] * 100) if values[0] != 0 else 0
     if slope > 0.05:
         trend = "improving"
@@ -503,14 +490,8 @@ def calculate_heart_rate_zones(
     return zones
 
 
-def calculate_ride_recommendation_score(
-    ride: Ride, athlete_weekly_km: float = 50.0
-) -> dict[str, Any]:
-    volume_score = (
-        min(ride.distance_km / (athlete_weekly_km / 7 * 0.5) * 10, 10)
-        if athlete_weekly_km > 0
-        else 5
-    )
+def calculate_ride_recommendation_score(ride: Ride, athlete_weekly_km: float = 50.0) -> dict[str, Any]:
+    volume_score = min(ride.distance_km / (athlete_weekly_km / 7 * 0.5) * 10, 10) if athlete_weekly_km > 0 else 5
     intensity_score = min(ride.avg_speed_kmh / 25.0 * 10, 10)
     elevation_score = (
         min((ride.elevation_gain_m / ride.distance_km) / 20.0 * 10, 10)

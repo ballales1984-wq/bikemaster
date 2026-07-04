@@ -1,4 +1,5 @@
 """Tests for task queue module."""
+
 import asyncio
 from unittest.mock import AsyncMock, patch
 
@@ -136,10 +137,13 @@ async def test_handle_recalculate_stress_no_rides():
 async def test_handle_warm_weather():
     q = BackgroundTaskQueue()
     payload = {"lat": 45.0, "lon": 7.0, "dates": ["2024-06-15"]}
-    with patch(
-        "bike_analyzer.backend.weather.weather_service.get_forecast_for_date",
-        return_value={"temp": 25},
-    ), patch("bike_analyzer.backend.db.database.save_weather_cache"):
+    with (
+        patch(
+            "bike_analyzer.backend.weather.weather_service.get_forecast_for_date",
+            return_value={"temp": 25},
+        ),
+        patch("bike_analyzer.backend.db.database.save_weather_cache"),
+    ):
         result = await q._handle_warm_weather(payload)
     assert result["cached_days"] == 1
 

@@ -1,6 +1,5 @@
 """Tests for Garmin integration."""
 
-
 from bike_analyzer.backend.ingestion.garmin_client import garmin_to_ride
 
 

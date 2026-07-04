@@ -15,6 +15,7 @@ class RideRepository:
     @property
     def _table(self):
         from ...db.models import RideModel
+
         return RideModel
 
     async def save(self, ride: dict[str, Any]) -> int:
@@ -54,6 +55,7 @@ class RideRepository:
 
     def _save_sync(self, ride: dict) -> int:
         from ...db.database import save_ride
+
         return save_ride(ride)
 
     async def get_by_id(self, ride_id: int, tenant_id: int | None = None) -> dict | None:
@@ -81,6 +83,7 @@ class RideRepository:
 
     def _get_by_id_sync(self, ride_id: int, tenant_id: int | None = None) -> dict | None:
         from ...db.database import get_ride
+
         return get_ride(ride_id, tenant_id)
 
     async def list_all(self, athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
@@ -112,12 +115,15 @@ class RideRepository:
 
     def _get_by_athlete_sync(self, athlete_id: int, tenant_id: int | None = None) -> list[dict]:
         from ...db.database import get_rides_by_athlete
+
         return get_rides_by_athlete(athlete_id, tenant_id)
 
     def _list_all_sync(self, athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
         from ...db.database import get_all_rides
+
         return get_all_rides(athlete_id, tenant_id)
 
     def _delete_sync(self, ride_id: int, tenant_id: int | None = None) -> bool:
         from ...db.database import delete_ride
+
         return delete_ride(ride_id, tenant_id)

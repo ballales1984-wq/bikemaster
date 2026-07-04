@@ -118,6 +118,7 @@ def test_calculate_badges_supersonic():
 
 def test_calculate_badges_consistency():
     from datetime import UTC, datetime, timedelta
+
     now = datetime.now(UTC)
     rides = [{"date": (now - timedelta(days=i)).isoformat(), "distance_km": 20.0} for i in range(7)]
     badges = calculate_badges(1, rides)

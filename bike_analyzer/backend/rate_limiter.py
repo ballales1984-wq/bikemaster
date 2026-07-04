@@ -67,8 +67,14 @@ def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig |
     requests = _USER_RATE_LIMITS[key]
     requests[:] = [t for t in requests if t > window_start]
     if len(requests) >= cfg.max_requests:
-        logger.warning("Rate limit exceeded for user %s on %s (%d/%d in %ds)",
-                       user_id, endpoint, len(requests), cfg.max_requests, cfg.window_seconds)
+        logger.warning(
+            "Rate limit exceeded for user %s on %s (%d/%d in %ds)",
+            user_id,
+            endpoint,
+            len(requests),
+            cfg.max_requests,
+            cfg.window_seconds,
+        )
         raise HTTPException(
             status_code=429,
             detail=f"Rate limit exceeded: {cfg.max_requests} requests per {cfg.window_seconds}s",
@@ -86,4 +92,3 @@ def rate_limit_dependency(max_requests: int = 100, window_seconds: int = 60):
         return current_user
 
     return _check
-

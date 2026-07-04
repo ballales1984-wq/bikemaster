@@ -64,11 +64,7 @@ def calculate_atl_ctl_tsb(
 
         tsb = ctl - atl
 
-        result.append(
-            TrainingLoadDay(
-                date=date, tss=tss, atl=round(atl, 1), ctl=round(ctl, 1), tsb=round(tsb, 1)
-            )
-        )
+        result.append(TrainingLoadDay(date=date, tss=tss, atl=round(atl, 1), ctl=round(ctl, 1), tsb=round(tsb, 1)))
 
     return result
 
@@ -123,9 +119,7 @@ def get_7day_fitness_summary(rides: list[Ride], ftp: float | None = None) -> lis
         return []
 
     recent = load_history[-7:] if len(load_history) >= 7 else load_history
-    return [
-        {"date": d.date, "atl": d.atl, "ctl": d.ctl, "tsb": d.tsb, "tss": d.tss} for d in recent
-    ]
+    return [{"date": d.date, "atl": d.atl, "ctl": d.ctl, "tsb": d.tsb, "tss": d.tss} for d in recent]
 
 
 __all__ = [
