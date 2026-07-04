@@ -353,15 +353,15 @@ watch(weatherEnabled, () => {
   loadRides()
 })
 
-   watch(selectedRideId, () => {
-     renderMap()
-   })
+watch(selectedRideId, () => {
+    renderMap()
+  })
 
-   watch(showFamousRoutes, () => {
-     renderFamousRoutes()
-   })
+  watch(showFamousRoutes, () => {
+    renderFamousRoutes()
+  })
 
-   function renderFamousRoutes() {
+  function renderFamousRoutes() {
      if (!famousRoutesLayer) return
      famousRoutesLayer.clearLayers()
      if (!showFamousRoutes.value) return
@@ -384,11 +384,7 @@ watch(weatherEnabled, () => {
        `)
        polyline.addTo(famousRoutesLayer)
      })
-   }
-
-watch(showFamousRoutes, () => {
-  renderFamousRoutes()
-})
+    }
 
 async function loadRides() {
   loading.value = true

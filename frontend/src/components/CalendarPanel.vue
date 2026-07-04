@@ -1,14 +1,13 @@
 <template>
   <section>
     <div class="panel">
-<h2>📅 Calendar & Goals</h2>
+  <h2>📅 Calendar & Goals</h2>
 
-<div class="calendar-controls">
+  <div class="calendar-controls">
           <div class="calendar-nav">
-            <button class="btn btn-secondary btn-sm" @click="prevMonth" @touchstart="prevMonth">◀</button>
-            <span class="month-label">{{ monthLabel }}</span>
-            <button class="btn btn-secondary btn-sm" @click="nextMonth" @touchstart="nextMonth">▶</button>
-            <button class="btn btn-secondary btn-sm" @click="goToday" @touchstart="goToday">Today</button>
+            <button class="btn btn-secondary btn-sm" @click="prevMonth">◀</button>
+            <button class="btn btn-secondary btn-sm" @click="nextMonth">▶</button>
+            <button class="btn btn-secondary btn-sm" @click="goToday">Today</button>
           </div>
           <div class="athlete-select">
             <label>Athlete:</label>
@@ -34,7 +33,7 @@
             'other-month': !day.currentMonth,
             'today': isToday(day),
             'has-events': day.events.length > 0
-          }" @click="openAddForDate(day.date)" @touchstart="openAddForDate(day.date)">
+          }" @click="openAddForDate(day.date)">
             <span class="day-num">{{ day.day }}</span>
             <div class="day-events">
               <span v-for="ev in day.events.slice(0, 3)" :key="ev.id" class="event-dot" :class="'dot-' + ev.event_type">
@@ -72,9 +71,9 @@
            <label for="event-title">Title *</label>
            <input id="event-title" v-model="form.title" required maxlength="200" />
          </div>
-<div class="form-actions">
-            <button type="submit" class="btn btn-primary" @touchstart="saveEvent">Save</button>
-            <button type="button" class="btn btn-secondary" @click="showForm = false" @touchstart="showForm = false">Cancel</button>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-secondary" @click="showForm = false">Cancel</button>
           </div>
        </form>
      </div>

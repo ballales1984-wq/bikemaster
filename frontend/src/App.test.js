@@ -4,15 +4,23 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
 import App from './App.vue'
 
-const isLoggedIn = vi.hoisted(() => vi.fn())
-const isAdmin = vi.hoisted(() => vi.fn())
-
-vi.mock('./composables/useAuth', () => ({
-  isLoggedIn,
-  isAdmin,
+const authStore = vi.hoisted(() => ({
+  token: { value: '' },
+  user: { value: null },
+  isLoggedIn: vi.fn(() => false),
+  isAdmin: vi.fn(() => false),
+  isTokenValid: vi.fn(() => false),
+  getAuthHeader: vi.fn(() => ({})),
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
+  parseJWTPayload: vi.fn(),
+  setAuthFromUrl: vi.fn(),
+  setOauthError: vi.fn(),
+}))
+
+vi.mock('./stores/auth', () => ({
+  useAuthStore: () => authStore,
 }))
 
 vi.mock('./composables/useRides', () => ({
@@ -37,7 +45,7 @@ describe('App.vue', () => {
   }
 
   it('shows login form when not logged in', () => {
-    isLoggedIn.mockReturnValue(false)
+    authStore.isLoggedIn.mockReturnValue(false)
     const router = createRouter({ history: createWebHistory(), routes: [] })
     router.push = vi.fn()
     const wrapper = mount(App, {
@@ -50,8 +58,8 @@ describe('App.vue', () => {
   })
 
   it('shows header tabs and summary when logged in', () => {
-    isLoggedIn.mockReturnValue(true)
-    isAdmin.mockReturnValue(false)
+    authStore.isLoggedIn.mockReturnValue(true)
+    authStore.isAdmin.mockReturnValue(false)
     const router = createRouter({ history: createWebHistory(), routes: [] })
     router.push = vi.fn()
     const wrapper = mount(App, {
@@ -65,7 +73,7 @@ describe('App.vue', () => {
   })
 
   it('displays login error when present', () => {
-    isLoggedIn.mockReturnValue(false)
+    authStore.isLoggedIn.mockReturnValue(false)
     localStorage.setItem('bikemaster_login_error', 'bad')
     const router = createRouter({ history: createWebHistory(), routes: [] })
     router.push = vi.fn()

@@ -112,7 +112,7 @@ const scores = computed(() => {
   return s.map(sc => ({ label: sc.label, value: Number(sc.value || 0).toFixed(1), color: colors[sc.label] || '#fff' }))
 })
 
-function escapeHtml(text: string): string {
+function escapeHtml(text) {
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -121,7 +121,7 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;')
 }
 
-function formatMsg(text: string): string {
+function formatMsg(text) {
   if (!text) return ''
   const safe = escapeHtml(text)
   return safe

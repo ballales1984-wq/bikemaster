@@ -9,16 +9,16 @@
        </div>
      </div>
 
-     <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
-       <div class="empty-icon">📍</div>
-       <div class="empty-title">Ready to track your ride</div>
-       <div class="empty-desc">
-         Press the button below to start recording your route in real-time.
-       </div>
-       <button class="btn btn-primary btn-large" @click="startTracking" @touchstart="startTracking">
-         Start Tracking
-       </button>
-     </div>
+      <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
+        <div class="empty-icon">📍</div>
+        <div class="empty-title">Ready to track your ride</div>
+        <div class="empty-desc">
+          Press the button below to start recording your route in real-time.
+        </div>
+        <button class="btn btn-primary btn-large" @click="startTracking">
+          Start Tracking
+        </button>
+      </div>
 
      <div v-else class="tracking-content">
        <LiveMap ref="liveMapRef" />
@@ -27,7 +27,7 @@
 
        <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete">
          <p>Tracking completed! File ready for upload.</p>
-         <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide" @touchstart="uploadRide">
+         <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide">
            {{ isUploading ? 'Uploading...' : 'Upload to BikeMaster' }}
          </button>
        </div>
