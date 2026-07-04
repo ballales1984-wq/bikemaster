@@ -17,14 +17,14 @@ const tracking = useTrackingStore()
 const points = ref<L.LatLng[]>([])
 
 watch(
-  () => tracking.routePoints,
-  (newPoints) => {
-    const point = newPoints[newPoints.length - 1]
+  () => tracking.routePoints.length,
+  () => {
+    const pts = tracking.routePoints
+    const point = pts[pts.length - 1]
     if (point && map.value) {
       addPoint(point.lat, point.lon)
     }
-  },
-  { deep: true }
+  }
 )
 
 onMounted(() => {

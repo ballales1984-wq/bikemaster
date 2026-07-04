@@ -20,8 +20,21 @@ vi.mock('../composables/useToast', () => ({
   }),
 }))
 
-vi.mock('../composables/useAuth', () => ({
-  user: { value: { username: 'testuser' } },
+vi.mock('../stores/auth', () => ({
+  useAuthStore: () => ({
+    user: { value: { username: 'testuser' } },
+    token: { value: 'test-token' },
+    isLoggedIn: true,
+    isAdmin: false,
+    isTokenValid: true,
+    getAuthHeader: () => ({}),
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+    parseJWTPayload: vi.fn(),
+    setAuthFromUrl: vi.fn(),
+    setOauthError: vi.fn(),
+  }),
 }))
 
 import AthletePanel from './AthletePanel.vue'
