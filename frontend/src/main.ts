@@ -7,13 +7,18 @@ import { useAuthStore } from './stores/auth'
 import './composables/usePWA'
 import { useToast } from './composables/useToast'
 
-const auth = useAuthStore()
+const pinia = createPinia()
 
 const urlParams = new URLSearchParams(window.location.search)
 const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
 const urlToken = urlParams.get('token') || hashParams.get('token')
 const email = urlParams.get('email') || hashParams.get('email')
 const oauthError = urlParams.get('oauth_error') || hashParams.get('oauth_error')
+
+const app = createApp(App).use(pinia).use(router)
+
+const auth = useAuthStore()
+
 if (urlToken) {
   const userData = { username: email || '', email, is_admin: false }
   localStorage.setItem('bikemaster_token', urlToken)
@@ -29,4 +34,4 @@ if (urlToken) {
   window.history.replaceState({}, document.title, '/')
 }
 
-createApp(App).use(createPinia()).use(router).mount('#app')
+app.mount('#app')
