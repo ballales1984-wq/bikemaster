@@ -22,6 +22,15 @@ function isLoggedIn(): boolean {
   return !!token.value
 }
 
+function isTokenValid(): boolean {
+  if (!token.value) return false
+  const payload = parseJWTPayload(token.value)
+  if (!payload) return false
+  const exp = payload.exp as number | undefined
+  if (!exp) return true
+  return Date.now() < exp * 1000
+}
+
 function isAdmin(): boolean {
   return user.value?.is_admin === true
 }

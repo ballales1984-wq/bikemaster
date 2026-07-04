@@ -1,7 +1,12 @@
-# Recovery Theory
+# Recovery
 
-## Fatigue Model
-- D+1: Light ride or rest (fatigue < 4)
-- D+2: Easy spin (fatigue 4-6)
-- D+3: Rest day (fatigue 6-8)
-- D+4+: Multiple rest days (fatigue > 8)
+Il recupero e' parte fondamentale dell'allenamento. Senza recupero adeguato:
+- Il risultato dell'allenamento diminuisce
+- Il rischio di infortunii aumenta
+- La performance cala
+
+Strategie di recupero:
+- Sonno 7-9 ore a notte
+- Idratazione: 500ml per ogni ora di allenamento
+- Stretching 10-15 minuti post-allenamento
+- Giorni di riposo completo: 1-2 a settimana
