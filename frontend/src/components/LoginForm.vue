@@ -2,11 +2,11 @@
   <div class="login-panel">
 <h2>🔐 BikeMaster Login</h2>
 <div class="login-tabs" role="tablist" aria-label="Login modes">
-       <button :class="['tab-btn', { active: mode === 'login' }]" @click="mode = 'login'" @touchstart="mode = 'login'" role="tab" :aria-selected="mode === 'login'" aria-controls="login-form">Login</button>
-       <button :class="['tab-btn', { active: mode === 'register' }]" @click="mode = 'register'" @touchstart="mode = 'register'" role="tab" :aria-selected="mode === 'register'" aria-controls="login-form">Sign Up</button>
+       <button :class="['tab-btn', { active: mode === 'login' }]" @click="mode = 'login'" role="tab" :aria-selected="mode === 'login'" aria-controls="login-form">Login</button>
+       <button :class="['tab-btn', { active: mode === 'register' }]" @click="mode = 'register'" role="tab" :aria-selected="mode === 'register'" aria-controls="login-form">Sign Up</button>
      </div>
 
-<form @submit.prevent="submit" class="login-form" novalidate @touchstart="handleTouch">
+<form @submit.prevent="submit" class="login-form" novalidate>
        <div class="form-group">
          <label for="username">Username</label>
          <input id="username" v-model="form.username" type="text" placeholder="min 3 characters" :disabled="loading" required autocomplete="username" :aria-invalid="!!usernameError" :aria-describedby="usernameError ? 'username-error' : undefined" :class="{ error: usernameError, valid: form.username.length >= 3 && !usernameError }" />
@@ -16,13 +16,13 @@
          <label for="password">Password</label>
          <div class="password-wrapper">
            <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" :placeholder="mode === 'register' ? 'min 6 characters' : ''" :disabled="loading" required autocomplete="current-password" :aria-invalid="!!passwordError" :aria-describedby="passwordError ? 'password-error' : undefined" :class="{ error: passwordError, valid: form.password.length >= 6 && !passwordError }" />
-           <button type="button" class="password-toggle" @click="showPassword = !showPassword" @touchstart="showPassword = !showPassword" :aria-label="showPassword ? 'Hide password' : 'Show password'" :aria-pressed="showPassword">
+           <button type="button" class="password-toggle" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Hide password' : 'Show password'" :aria-pressed="showPassword">
              {{ showPassword ? '🙈' : '👁️' }}
            </button>
          </div>
          <span v-if="passwordError" id="password-error" class="field-error" role="alert" aria-live="assertive">{{ passwordError }}</span>
        </div>
-       <button type="submit" class="btn btn-primary" :disabled="loading || !isFormValid" :aria-busy="loading" @touchstart="submit">
+       <button type="submit" class="btn btn-primary" :disabled="loading || !isFormValid" :aria-busy="loading">
          {{ loading ? '🔄 Loading...' : (mode === 'login' ? 'Sign In' : 'Create Account') }}
        </button>
      </form>
