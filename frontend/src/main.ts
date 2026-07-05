@@ -35,4 +35,22 @@ if (urlToken) {
   window.history.replaceState({}, document.title, '/')
 }
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.ready.then(reg => {
+    if (reg.waiting) {
+      reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+    }
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing
+      if (newWorker) {
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            window.location.reload()
+          }
+        })
+      }
+    })
+  })
+}
+
 app.mount('#app')

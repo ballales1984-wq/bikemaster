@@ -33,6 +33,8 @@ export default defineConfig({
       },
       injectRegister: 'script',
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
