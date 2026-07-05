@@ -36,9 +36,11 @@ def _forwarded_value(header_value: str | None) -> str:
 
 
 def _static_file_response(file_path: Path, media_type: str | None = None) -> Response:
-    if file_path.exists():
+    if file_path.exists() and media_type:
         content = file_path.read_bytes() if media_type.startswith("image/") else file_path.read_text(encoding="utf-8")
         return Response(content=content, media_type=media_type)
+    if file_path.exists() and media_type is None:
+        return Response(content=file_path.read_bytes(), media_type="application/octet-stream")
     return Response(status_code=404)
 
 

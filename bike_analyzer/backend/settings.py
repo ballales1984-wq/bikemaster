@@ -152,23 +152,22 @@ class Settings(BaseSettings):
     google_health_client_id: str = ""
     google_health_client_secret: str = ""
 
+    @model_validator(mode="after")
+    def _validate_production_database(self) -> Settings:
+        _ENV = self.environment.lower()
+        _IS_PROD = _ENV in ("production", "prod", "staging")
+        if _IS_PROD and not self.database_url:
+            logging.warning(
+                "DATABASE_URL not set in production environment. "
+                "Expected PostgreSQL connection string. Falling back to SQLite (db_path=%s).",
+                self.db_path,
+            )
+        elif not self.database_url and not self.db_path:
+            self.db_path = "rides.db"
+        return self
+
 
 _settings: Settings | None = None
-
-
-@model_validator(mode="after")
-def _validate_production_database(self) -> Settings:
-    _ENV = self.environment.lower()
-    _IS_PROD = _ENV in ("production", "prod", "staging")
-    if _IS_PROD and not self.database_url:
-        logging.warning(
-            "DATABASE_URL not set in production environment. "
-            "Expected PostgreSQL connection string. Falling back to SQLite (db_path=%s).",
-            self.db_path,
-        )
-    elif not self.database_url and not self.db_path:
-        self.db_path = "rides.db"
-    return self
 
 
 def get_settings() -> Settings:

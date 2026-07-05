@@ -20,7 +20,6 @@ export function usePWA() {
   async function prompt() {
     const evt = deferredPrompt.value
     if (!evt) return
-    evt.preventDefault()
     await evt.prompt()
     const { outcome } = await evt.userChoice
     if (outcome !== 'accepted') {
