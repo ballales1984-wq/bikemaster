@@ -51,7 +51,7 @@ async function apiDelete(path: string, options: RequestInit = {}): Promise<ApiRe
   return resp.json()
 }
 
-async function apiUpload(path: string, file: File, options: RequestInit = {}): Promise<ApiResponse> {
+async function apiUpload(path: string, file: Blob | File, options: RequestInit = {}): Promise<ApiResponse> {
   const form = new FormData()
   form.append('file', file)
   const resp = await fetch(`${API_BASE}${path}`, {
