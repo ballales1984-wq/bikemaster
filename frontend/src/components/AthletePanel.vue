@@ -56,6 +56,7 @@ const form = ref({
 const result = ref('')
 const athleteId = ref<number | null>(null)
 const isFirstLogin = ref(false)
+const profileWasIncomplete = ref(false)
 
 async function loadAthlete() {
   const data = await apiGet('/api/v1/athletes/me')
@@ -64,8 +65,14 @@ async function loadAthlete() {
     athleteId.value = athlete.id
     form.value = { ...form.value, ...athlete }
     isFirstLogin.value = false
+    profileWasIncomplete.value = !(
+      athlete.age != null &&
+      athlete.weight_kg != null &&
+      (athlete.experience_level || '').trim() !== ''
+    )
   } else {
     isFirstLogin.value = true
+    profileWasIncomplete.value = true
     form.value.name = auth.user?.username || ''
   }
 }
@@ -79,7 +86,9 @@ async function save() {
     result.value = 'Athlete profile saved (ID: ' + data.id + ')'
     if (isFirstLogin.value) {
       toast.show('Profile created! Welcome to BikeMaster!', 'success')
-      setTimeout(() => router.push('/rides'), 1500)
+    }
+    if (profileWasIncomplete.value) {
+      setTimeout(() => router.push('/rides'), isFirstLogin.value ? 1500 : 500)
     }
   } catch (e: unknown) {
     result.value = 'Error: ' + (e instanceof Error ? e.message : String(e))
