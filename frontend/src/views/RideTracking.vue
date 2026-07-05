@@ -326,6 +326,17 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.tracking-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tracking-content :deep(.map-container) {
+  height: 400px;
+  min-height: 400px;
+}
+
 .gps-waiting {
   display: flex;
   align-items: center;
