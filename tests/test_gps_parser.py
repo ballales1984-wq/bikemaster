@@ -61,10 +61,12 @@ class TestParseGpxFile:
         with pytest.raises(ET.ParseError):
             parse_gpx_file("not valid xml")
 
-    def test_parse_invalid_lat_raises(self):
+    def test_parse_invalid_lat_skips_point(self):
         gpx = SAMPLE_GPX.replace('lat="45.0"', 'lat="not_a_number"')
-        with pytest.raises(ValueError):
-            parse_gpx_file(gpx)
+        result = parse_gpx_file(gpx)
+        assert len(result) == 2
+        for p in result:
+            assert isinstance(p["lat"], float)
 
 
 class TestPointsToRide:

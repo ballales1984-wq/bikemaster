@@ -5,6 +5,12 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+declare global {
+  interface Window {
+    __pwaInstallPrompt?: BeforeInstallPromptEvent
+  }
+}
+
 const showPrompt = ref(false)
 const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null)
 

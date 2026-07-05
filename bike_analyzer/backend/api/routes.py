@@ -121,6 +121,9 @@ def _validate_redirect_uri(redirect_uri: str) -> None:
     parsed = urlparse(redirect_uri)
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         raise HTTPException(status_code=400, detail="Invalid redirect_uri")
+    allowed_hosts = {"bikemaster.onrender.com", "localhost", "127.0.0.1", "testserver"}
+    if parsed.hostname.lower() not in allowed_hosts:
+        raise HTTPException(status_code=400, detail="Invalid redirect_uri host")
 
 
 def _encode_oauth_state(**values: str) -> str:
@@ -213,7 +216,7 @@ def _make_streaming_response(generator: AsyncGenerator[str, None], event_type: s
             async for chunk in generator:
                 yield _sse(event_type, chunk.replace("\n", " "))
         except Exception as e:
-            yield _sse("error", str(e)[:200])
+            yield _sse("error", "Internal server error")
             yield _sse("done", "")
 
     return StreamingResponse(
@@ -815,7 +818,7 @@ async def generate_ride_map(ride_id: int, current_user: dict = Depends(get_curre
 
 
 @router.post("/rides/analyze")
-async def analyze_rides(request: Request, payload: RideAnalysisRequest):
+async def analyze_rides(request: Request, payload: RideAnalysisRequest, current_user: dict = Depends(get_current_user)):
     from ..analytics.analytics import calculate_summary
     from ..models.models import Ride
 
@@ -1601,7 +1604,7 @@ async def google_fit_callback(
         "token": access_token,
         "refresh_token": token_data.get("refresh_token", ""),
     }
-    html_content = f"<script>window.opener.postMessage({json.dumps(payload)}, '*'); window.close();</script>"
+    html_content = f"<script>window.opener.postMessage({json.dumps(payload)}, window.location.origin); window.close();</script>"
     await _cache_set(cache_key, {"html": html_content}, ttl=300)
     return HTMLResponse(content=html_content)
 
