@@ -44,21 +44,24 @@ def parse_fit_file(file_path: str) -> list[dict]:
 def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float = 70.0) -> dict:
     if not points:
         return {"error": "No GPS points provided"}
+    valid_points = [p for p in points if p.get("lat") is not None and p.get("lon") is not None and p.get("timestamp") is not None]
+    if not valid_points:
+        return {"error": "No valid GPS points provided"}
     from ..models.models import haversine_distance_m
 
     total_distance = (
         sum(
-            haversine_distance_m(points[i - 1]["lat"], points[i - 1]["lon"], p["lat"], p["lon"])
-            for i, p in enumerate(points)
+            haversine_distance_m(valid_points[i - 1]["lat"], valid_points[i - 1]["lon"], p["lat"], p["lon"])
+            for i, p in enumerate(valid_points)
             if i > 0
         )
-        if len(points) > 1
+        if len(valid_points) > 1
         else 0
     )
-    duration_s = (points[-1]["timestamp"] - points[0]["timestamp"]).total_seconds() if len(points) > 1 else 0
+    duration_s = (valid_points[-1]["timestamp"] - valid_points[0]["timestamp"]).total_seconds() if len(valid_points) > 1 else 0
     avg_speed = (total_distance / duration_s * 3.6) if duration_s > 0 else 0
     return {
-        "date": points[0]["timestamp"].strftime("%Y-%m-%d") if points else "",
+        "date": valid_points[0]["timestamp"].strftime("%Y-%m-%d") if valid_points else "",
         "distance_km": total_distance / 1000,
         "duration_minutes": duration_s / 60,
         "avg_speed_kmh": avg_speed,
@@ -71,6 +74,6 @@ def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float
                 "altitude": p.get("altitude"),
                 "speed": p.get("speed"),
             }
-            for p in points
+            for p in valid_points
         ],
     }

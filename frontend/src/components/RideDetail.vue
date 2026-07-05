@@ -75,7 +75,7 @@ import { ref, onMounted, computed } from "vue"
 import { apiGet } from "../utils/api"
 import SpeedMap from "./SpeedMap.vue"
 
-defineProps({ rideId: Number })
+const props = defineProps({ rideId: Number })
 const emit = defineEmits(['close'])
 
 const ride = ref(null)

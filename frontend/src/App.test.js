@@ -4,11 +4,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
 import App from './App.vue'
 
+const authState = { isLoggedIn: false, isAdmin: false }
 const authStore = vi.hoisted(() => ({
   token: { value: '' },
   user: { value: null },
-  isLoggedIn: vi.fn(() => false),
-  isAdmin: vi.fn(() => false),
+  get isLoggedIn() { return authState.isLoggedIn },
+  get isAdmin() { return authState.isAdmin },
   isTokenValid: vi.fn(() => false),
   getAuthHeader: vi.fn(() => ({})),
   login: vi.fn(),
@@ -32,6 +33,8 @@ vi.mock('./composables/useRides', () => ({
 describe('App.vue', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    authState.isLoggedIn = false
+    authState.isAdmin = false
     localStorage.clear()
     vi.clearAllMocks()
   })
@@ -45,7 +48,7 @@ describe('App.vue', () => {
   }
 
   it('shows login form when not logged in', () => {
-    authStore.isLoggedIn.mockReturnValue(false)
+    authState.isLoggedIn = false
     const router = createRouter({ history: createWebHistory(), routes: [] })
     router.push = vi.fn()
     const wrapper = mount(App, {
@@ -58,8 +61,8 @@ describe('App.vue', () => {
   })
 
   it('shows header tabs and summary when logged in', () => {
-    authStore.isLoggedIn.mockReturnValue(true)
-    authStore.isAdmin.mockReturnValue(false)
+    authState.isLoggedIn = true
+    authState.isAdmin = false
     const router = createRouter({ history: createWebHistory(), routes: [] })
     router.push = vi.fn()
     const wrapper = mount(App, {
@@ -73,7 +76,7 @@ describe('App.vue', () => {
   })
 
   it('displays login error when present', () => {
-    authStore.isLoggedIn.mockReturnValue(false)
+    authState.isLoggedIn = false
     localStorage.setItem('bikemaster_login_error', 'bad')
     const router = createRouter({ history: createWebHistory(), routes: [] })
     router.push = vi.fn()
@@ -88,7 +91,7 @@ describe('App.vue', () => {
   })
 
   it('loads summary on mount when already logged in', async () => {
-    isLoggedIn.mockReturnValue(true)
+    authState.isLoggedIn = true
     const router = createRouter({ history: createWebHistory(), routes: [] })
     router.push = vi.fn()
     const wrapper = mount(App, {

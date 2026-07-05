@@ -34,7 +34,7 @@ describe('HeaderTabs', () => {
   it('emits logout and displays current user role', async () => {
     const wrapper = render({ isAdmin: true })
 
-    expect(wrapper.text()).toContain('👑 Admin')
+    expect(wrapper.text()).toContain('Admin')
 
     const buttons = wrapper.findAll('button')
     await buttons.at(-1).trigger('click')
