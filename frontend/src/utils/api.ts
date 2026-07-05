@@ -1,5 +1,11 @@
 const API_BASE = ''
 
+function clearAuth() {
+  localStorage.removeItem('bikemaster_token')
+  localStorage.removeItem('bikemaster_user')
+  window.location.href = '/'
+}
+
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('bikemaster_token')
   return token ? { Authorization: `Bearer ${token}` } : {}
@@ -17,6 +23,10 @@ async function apiGet(path: string, params: Record<string, string> = {}, options
     headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
   })
   if (!resp.ok) {
+    if (resp.status === 401) {
+      clearAuth()
+      throw new Error('expired')
+    }
     const err = await resp.json().catch(() => ({}))
     throw new Error((err as Record<string, string>).detail || `GET ${path}: ${resp.status}`)
   }
@@ -32,6 +42,10 @@ async function apiPost(path: string, body: unknown, options: RequestInit = {}): 
     ...options,
   })
   if (!resp.ok) {
+    if (resp.status === 401) {
+      clearAuth()
+      throw new Error('expired')
+    }
     const err = await resp.json().catch(() => ({}))
     throw new Error((err as Record<string, string>).detail || `POST ${path}: ${resp.status}`)
   }
@@ -45,6 +59,10 @@ async function apiDelete(path: string, options: RequestInit = {}): Promise<ApiRe
     ...options,
   })
   if (!resp.ok) {
+    if (resp.status === 401) {
+      clearAuth()
+      throw new Error('expired')
+    }
     const err = await resp.json().catch(() => ({}))
     throw new Error((err as Record<string, string>).detail || `DELETE ${path}: ${resp.status}`)
   }
@@ -61,6 +79,10 @@ async function apiUpload(path: string, file: Blob | File, options: RequestInit =
     ...options,
   })
   if (!resp.ok) {
+    if (resp.status === 401) {
+      clearAuth()
+      throw new Error('expired')
+    }
     const err = await resp.json().catch(() => ({}))
     throw new Error((err as Record<string, string>).detail || `UPLOAD ${path}: ${resp.status}`)
   }
@@ -75,6 +97,10 @@ async function apiPut(path: string, body: unknown, options: RequestInit = {}): P
     ...options,
   })
   if (!resp.ok) {
+    if (resp.status === 401) {
+      clearAuth()
+      throw new Error('expired')
+    }
     const err = await resp.json().catch(() => ({}))
     throw new Error((err as Record<string, string>).detail || `PUT ${path}: ${resp.status}`)
   }

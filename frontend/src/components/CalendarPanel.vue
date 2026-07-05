@@ -6,6 +6,7 @@
   <div class="calendar-controls">
           <div class="calendar-nav">
             <button class="btn btn-secondary btn-sm" @click="prevMonth">◀</button>
+            <span class="month-label">{{ monthLabel }}</span>
             <button class="btn btn-secondary btn-sm" @click="nextMonth">▶</button>
             <button class="btn btn-secondary btn-sm" @click="goToday">Today</button>
           </div>
@@ -124,6 +125,13 @@
 .fitness-chart-panel {
   position: relative;
   height: 260px;
+}
+
+.month-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 0 12px;
+  font-size: 0.95rem;
 }
 </style>
 
