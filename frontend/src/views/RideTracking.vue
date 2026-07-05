@@ -44,11 +44,14 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useTrackingStore } from '../stores/trackingStore'
+import { useRouter } from 'vue-router'
 import LiveMap from '../components/LiveMap.vue'
 import RideMetricsPanel from '../components/RideMetricsPanel.vue'
 import ControlsBar from '../components/ControlsBar.vue'
 import { apiUpload } from '../utils/api'
 import type { GpsPoint } from '../types/index'
+
+const router = useRouter()
 
 const liveMapRef = ref<InstanceType<typeof LiveMap> | null>(null)
 const isUploading = ref(false)
@@ -151,6 +154,7 @@ async function uploadRide() {
        await apiUpload('/api/v1/import/gpx', file)
        alert('Ride uploaded successfully!')
        resetTrackingState()
+       router.push('/rides')
        return
      }
      if (tracking.gpxPath) {
