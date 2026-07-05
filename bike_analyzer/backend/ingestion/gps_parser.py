@@ -13,10 +13,21 @@ def parse_gpx_file(content: str) -> list[dict]:
     root = ET.fromstring(content)
     points, ns = [], {"d": "http://www.topografix.com/GPX/1/1"}
     for trkpt in root.findall(".//d:trkpt", ns):
-        lat, lon = float(trkpt.get("lat")), float(trkpt.get("lon"))
+        lat_raw, lon_raw = trkpt.get("lat"), trkpt.get("lon")
+        try:
+            lat, lon = float(lat_raw), float(lon_raw)
+        except (TypeError, ValueError):
+            continue
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            continue
         ele, time_elem = trkpt.find("d:ele", ns), trkpt.find("d:time", ns)
-        altitude = float(ele.text) if ele is not None else None
-        timestamp = datetime.fromisoformat(time_elem.text.replace("Z", "+00:00")) if time_elem is not None else None
+        altitude = float(ele.text) if ele is not None and ele.text is not None else None
+        timestamp = None
+        if time_elem is not None and time_elem.text:
+            try:
+                timestamp = datetime.fromisoformat(time_elem.text.replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                pass
         if timestamp:
             points.append({"lat": lat, "lon": lon, "timestamp": timestamp, "altitude": altitude})
     return points
@@ -29,13 +40,20 @@ def parse_fit_file(file_path: str) -> list[dict]:
         points = []
         for record in FitFile(file_path).get_messages("record"):
             d = record.get_values()
-            if "position_lat" in d and "position_long" in d:
-                lat, lon = d["position_lat"] * (180 / 2**31), d["position_long"] * (180 / 2**31)
-                ts = d.get("timestamp")
-                alt = d.get("enhanced_altitude") or d.get("altitude")
-                spd = d.get("speed") * 3.6 if d.get("speed") else None
-                if lat is not None and lon is not None and ts:
-                    points.append({"lat": lat, "lon": lon, "timestamp": ts, "altitude": alt, "speed": spd})
+            lat_raw, lon_raw = d.get("position_lat"), d.get("position_long")
+            if lat_raw is None or lon_raw is None:
+                continue
+            try:
+                lat, lon = float(lat_raw) * (180 / 2**31), float(lon_raw) * (180 / 2**31)
+            except (TypeError, ValueError):
+                continue
+            if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                continue
+            ts = d.get("timestamp")
+            alt = d.get("enhanced_altitude") or d.get("altitude")
+            spd = d.get("speed") * 3.6 if d.get("speed") is not None else None
+            if ts:
+                points.append({"lat": lat, "lon": lon, "timestamp": ts, "altitude": alt, "speed": spd})
         return points
     except ImportError:
         raise ImportError("fitparse not installed") from None

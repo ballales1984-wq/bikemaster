@@ -151,7 +151,11 @@ async function uploadRide() {
      const blob = getUploadBlob()
      if (blob) {
        const file = new File([blob], `ride-${Date.now()}.gpx`, { type: 'application/gpx+xml' })
-       await apiUpload('/api/v1/import/gpx', file)
+       const result = await apiUpload('/api/v1/import/gpx', file)
+       if (result.error) {
+         alert(result.error || 'Upload failed')
+         return
+       }
        alert('Ride uploaded successfully!')
        resetTrackingState()
        router.push('/rides')
@@ -171,6 +175,10 @@ async function uploadRide() {
  }
 
 function startWebTracking() {
+  if (webWatchId !== null) {
+    navigator.geolocation.clearWatch(webWatchId)
+    webWatchId = null
+  }
   webStartTime = Date.now()
   webPausedAccumulatedMs = 0
   webPausedAt = null
@@ -199,6 +207,12 @@ function startWebTracking() {
 function handleWebPosition(position: GeolocationPosition) {
   if (!isTracking.value || isPaused.value) return
 
+  const lat = position.coords.latitude
+  const lon = position.coords.longitude
+  if (!isFinite(lat) || !isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return
+  }
+
   if (gpsWaiting.value) {
     gpsWaiting.value = false
     gpsError.value = ''
@@ -209,16 +223,26 @@ function handleWebPosition(position: GeolocationPosition) {
   }
 
   const point = {
-    lat: position.coords.latitude,
-    lon: position.coords.longitude,
+    lat,
+    lon,
     altitude: position.coords.altitude,
     timestamp: new Date(position.timestamp).toISOString(),
   }
 
-  const distanceDelta = webLastPoint
-    ? haversineDistanceMeters(webLastPoint.lat, webLastPoint.lon, point.lat, point.lon)
-    : 0
-  webDistance += distanceDelta
+  if (webLastPoint) {
+    const samePosition = webLastPoint.lat === lat && webLastPoint.lon === lon
+    const elapsedSinceLastMs = position.timestamp - webLastPoint.timestampNumber
+    if (samePosition && elapsedSinceLastMs < 5000) {
+      return
+    }
+    if (elapsedSinceLastMs > 0) {
+      const distanceDelta = haversineDistanceMeters(webLastPoint.lat, webLastPoint.lon, lat, lon)
+      if (distanceDelta > 5000) {
+        return
+      }
+      webDistance += distanceDelta
+    }
+  }
 
   if (
     webLastPoint?.altitude !== null &&
@@ -235,7 +259,7 @@ function handleWebPosition(position: GeolocationPosition) {
     ? position.timestamp - webLastPoint.timestampNumber
     : 0
   const currentSpeed = elapsedSinceLastMs > 0
-    ? (distanceDelta / 1000) / (elapsedSinceLastMs / 3600000)
+    ? (webDistance / 1000) / (elapsedSinceLastMs / 3600000)
     : 0
 
   addPoint(point)
@@ -261,6 +285,10 @@ function handleWebError(error: GeolocationPositionError) {
     gpsError.value = 'GPS permission denied. Please allow location access and try again.'
     alert('GPS permission denied. Please allow location access and try again.')
     void stopTracking()
+    return
+  }
+  if (error.code === 2 || error.code === 3) {
+    gpsError.value = 'GPS signal lost. Please move outdoors or check your device.'
     return
   }
   alert(`GPS Error: ${error.message}`)

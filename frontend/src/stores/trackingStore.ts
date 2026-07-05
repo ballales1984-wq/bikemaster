@@ -61,7 +61,7 @@ export const useTrackingStore = defineStore('tracking', () => {
   }
 
   function addPoint(point: GpsPoint) {
-    routePoints.value = [...routePoints.value, point]
+    routePoints.value.push(point)
     lastPoint.value = point
     points.value = routePoints.value.length
   }
