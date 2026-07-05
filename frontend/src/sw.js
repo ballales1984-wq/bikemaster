@@ -67,15 +67,14 @@ const bgSyncPlugin = new BackgroundSyncPlugin(RIDE_QUEUE_CACHE, {
 
 registerRoute(
   ({ request }) => request.mode === 'navigate',
-  new NetworkFirst({
-    cacheName: STATIC_CACHE,
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 10,
-        maxAgeSeconds: 60,
-      }),
-    ],
-  }),
+  async ({ event }) => {
+    try {
+      const response = await fetch(event.request)
+      if (response.ok) return response
+    } catch (_) { /* network error, fall through */ }
+    const cache = await caches.open(STATIC_CACHE)
+    return await cache.match('/index.html') || new Response('', { status: 503, statusText: 'Offline' })
+  },
 )
 
 registerRoute(
