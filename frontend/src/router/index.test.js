@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createRouter, createWebHistory } from 'vue-router'
+import { setActivePinia, createPinia } from 'pinia'
 import { useAuthStore } from '../stores/auth'
 
+setActivePinia(createPinia())
 const auth = useAuthStore()
 
 const routes = [
@@ -195,11 +197,11 @@ describe('router route configuration', () => {
 
 describe('useAuth store integration with router', () => {
   it('auth store has isLoggedIn', () => {
-    expect(typeof auth.isLoggedIn.value).toBe('boolean')
+    expect(typeof auth.isLoggedIn).toBe('boolean')
   })
 
   it('auth store has isAdmin', () => {
-    expect(typeof auth.isAdmin.value).toBe('boolean')
+    expect(typeof auth.isAdmin).toBe('boolean')
   })
 })
 

@@ -130,7 +130,7 @@ const router = createRouter({
 async function checkProfileComplete(auth: ReturnType<typeof useAuthStore>): Promise<boolean> {
   try {
     const resp = await fetch('/api/v1/auth/me', {
-      headers: { Authorization: `Bearer ${auth.token.value}` }
+      headers: { Authorization: `Bearer ${auth.token}` }
     })
     if (!resp.ok) return false
     const data = await resp.json()
@@ -147,42 +147,42 @@ router.beforeEach(async (to, from, next) => {
      const hashParams = new URLSearchParams(to.hash.replace(/^#/, ''))
      const fragmentToken = hashParams.get('token')
      if (fragmentToken) {
-       auth.token.value = fragmentToken
-       const payload = auth.parseJWTPayload(fragmentToken)
-       auth.user.value = {
-         id: hashParams.get('user_id') ? parseInt(hashParams.get('user_id')!, 10) : 0,
-         username: typeof payload?.sub === 'string' ? payload.sub : '',
-         is_admin: !!payload?.is_admin,
-       }
-        localStorage.setItem('bikemaster_token', fragmentToken)
-        localStorage.setItem('bikemaster_user', JSON.stringify(auth.user.value))
+        auth.token = fragmentToken
+        const payload = auth.parseJWTPayload(fragmentToken)
+        auth.user = {
+          id: hashParams.get('user_id') ? parseInt(hashParams.get('user_id')!, 10) : 0,
+          username: typeof payload?.sub === 'string' ? payload.sub : '',
+          is_admin: !!payload?.is_admin,
+        }
+         localStorage.setItem('bikemaster_token', fragmentToken)
+         localStorage.setItem('bikemaster_user', JSON.stringify(auth.user))
       }
     }
 
     // Also handle query params for backward compatibility
-   if (to.query.token && typeof to.query.token === 'string') {
-     auth.token.value = to.query.token
-     const payload = auth.parseJWTPayload(to.query.token)
-     auth.user.value = {
-       id: typeof to.query.user_id === 'string' ? parseInt(to.query.user_id, 10) : 0,
-       username: typeof payload?.sub === 'string' ? payload.sub : '',
-       is_admin: !!payload?.is_admin,
-     }
-     localStorage.setItem('bikemaster_token', to.query.token)
-     localStorage.setItem('bikemaster_user', JSON.stringify(auth.user.value))
+    if (to.query.token && typeof to.query.token === 'string') {
+      auth.token = to.query.token
+      const payload = auth.parseJWTPayload(to.query.token)
+      auth.user = {
+        id: typeof to.query.user_id === 'string' ? parseInt(to.query.user_id, 10) : 0,
+        username: typeof payload?.sub === 'string' ? payload.sub : '',
+        is_admin: !!payload?.is_admin,
+      }
+      localStorage.setItem('bikemaster_token', to.query.token)
+      localStorage.setItem('bikemaster_user', JSON.stringify(auth.user))
    }
 
    // Check for invalid/expired token and clean up
-   if (auth.token.value && !auth.isTokenValid()) {
-     auth.token.value = ''
-     auth.user.value = null
-     localStorage.removeItem('bikemaster_token')
-     localStorage.removeItem('bikemaster_user')
-   }
+    if (auth.token && !auth.isTokenValid()) {
+      auth.token = ''
+      auth.user = null
+      localStorage.removeItem('bikemaster_token')
+      localStorage.removeItem('bikemaster_user')
+    }
 
-    const loggedIn = auth.isLoggedIn.value
+     const loggedIn = auth.isLoggedIn
 
-    if (to.path === '/' && loggedIn) {
+     if (to.path === '/' && loggedIn) {
       const hasCompleteProfile = await checkProfileComplete(auth)
       if (!hasCompleteProfile) {
         const toast = useToast()
@@ -203,7 +203,7 @@ router.beforeEach(async (to, from, next) => {
       }
     } else if (to.meta.requiresAuth && !loggedIn) {
       next('/')
-    } else if (to.meta.requiresAdmin && !auth.isAdmin.value) {
+    } else if (to.meta.requiresAdmin && !auth.isAdmin) {
       next('/')
     } else {
       next()

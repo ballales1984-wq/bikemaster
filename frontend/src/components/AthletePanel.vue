@@ -66,7 +66,7 @@ async function loadAthlete() {
     isFirstLogin.value = false
   } else {
     isFirstLogin.value = true
-    form.value.name = auth.user.value?.username || ''
+    form.value.name = auth.user?.username || ''
   }
 }
 
