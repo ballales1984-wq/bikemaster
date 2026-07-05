@@ -9,29 +9,35 @@
        </div>
      </div>
 
-      <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
-        <div class="empty-icon">📍</div>
-        <div class="empty-title">Ready to track your ride</div>
-        <div class="empty-desc">
-          Press the button below to start recording your route in real-time.
-        </div>
-        <button class="btn btn-primary btn-large" @click="startTracking">
-          Start Tracking
-        </button>
-      </div>
-
-     <div v-else class="tracking-content">
-       <LiveMap ref="liveMapRef" />
-       <RideMetricsPanel />
-       <ControlsBar :is-paused="isPaused" @pause="pauseTracking" @resume="resumeTracking" @stop="stopTracking" />
-
-       <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete">
-         <p>Tracking completed! File ready for upload.</p>
-         <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide">
-           {{ isUploading ? 'Uploading...' : 'Upload to BikeMaster' }}
+       <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
+         <div class="empty-icon">📍</div>
+         <div class="empty-title">Ready to track your ride</div>
+         <div class="empty-desc">
+           Press the button below to start recording your route in real-time.
+         </div>
+         <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
+         <button class="btn btn-primary btn-large" @click="startTracking">
+           Start Tracking
          </button>
        </div>
-     </div>
+
+      <div v-else class="tracking-content">
+        <div v-if="gpsWaiting" class="gps-waiting">
+          <span class="gps-spinner"></span>
+          Acquiring GPS signal... Move outdoors for better accuracy.
+        </div>
+        <div v-if="gpsError && !gpsWaiting" class="gps-error-banner">{{ gpsError }}</div>
+        <LiveMap ref="liveMapRef" />
+        <RideMetricsPanel />
+        <ControlsBar :is-paused="isPaused" @pause="pauseTracking" @resume="resumeTracking" @stop="stopTracking" />
+
+        <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete">
+          <p>Tracking completed! File ready for upload.</p>
+          <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide">
+            {{ isUploading ? 'Uploading...' : 'Upload to BikeMaster' }}
+          </button>
+        </div>
+      </div>
    </section>
 </template>
 
@@ -46,6 +52,8 @@ import type { GpsPoint } from '../types/index'
 
 const liveMapRef = ref<InstanceType<typeof LiveMap> | null>(null)
 const isUploading = ref(false)
+const gpsWaiting = ref(false)
+const gpsError = ref('')
 
 let webWatchId: number | null = null
 let webStartTime = 0
@@ -54,6 +62,7 @@ let webPausedAt: number | null = null
 let webLastPoint: GpsPoint | null = null
 let webDistance = 0
 let webElevationGain = 0
+let webFirstFixTimeout: number | null = null
 
 const tracking = useTrackingStore()
 const {
@@ -164,6 +173,8 @@ function startWebTracking() {
   webLastPoint = null
   webDistance = 0
   webElevationGain = 0
+  gpsWaiting.value = true
+  gpsError.value = ''
   webWatchId = navigator.geolocation.watchPosition(
     handleWebPosition,
     handleWebError,
@@ -173,10 +184,25 @@ function startWebTracking() {
       timeout: 10000,
     }
   )
+  webFirstFixTimeout = window.setTimeout(() => {
+    if (gpsWaiting.value) {
+      gpsWaiting.value = false
+      gpsError.value = 'No GPS signal. On desktop, try moving near a window or use a GPS device.'
+    }
+  }, 15000)
 }
 
 function handleWebPosition(position: GeolocationPosition) {
   if (!isTracking.value || isPaused.value) return
+
+  if (gpsWaiting.value) {
+    gpsWaiting.value = false
+    gpsError.value = ''
+    if (webFirstFixTimeout !== null) {
+      clearTimeout(webFirstFixTimeout)
+      webFirstFixTimeout = null
+    }
+  }
 
   const point = {
     lat: position.coords.latitude,
@@ -222,14 +248,30 @@ function handleWebPosition(position: GeolocationPosition) {
 }
 
 function handleWebError(error: GeolocationPositionError) {
+  gpsWaiting.value = false
+  if (webFirstFixTimeout !== null) {
+    clearTimeout(webFirstFixTimeout)
+    webFirstFixTimeout = null
+  }
+  if (error.code === 1) {
+    gpsError.value = 'GPS permission denied. Please allow location access and try again.'
+    alert('GPS permission denied. Please allow location access and try again.')
+    void stopTracking()
+    return
+  }
   alert(`GPS Error: ${error.message}`)
 }
 
 function stopWebTracking() {
+  if (webFirstFixTimeout !== null) {
+    clearTimeout(webFirstFixTimeout)
+    webFirstFixTimeout = null
+  }
   if (webWatchId !== null) {
     navigator.geolocation.clearWatch(webWatchId)
     webWatchId = null
   }
+  gpsWaiting.value = false
   const blob = new Blob([toGpx()], { type: 'application/gpx+xml' })
   setGpxBlob(blob)
   return { gpxPath: null, gpxBlob: blob }
@@ -269,6 +311,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (webFirstFixTimeout !== null) {
+    clearTimeout(webFirstFixTimeout)
+    webFirstFixTimeout = null
+  }
   if (webWatchId !== null) {
     navigator.geolocation.clearWatch(webWatchId)
     webWatchId = null
@@ -278,3 +324,48 @@ onBeforeUnmount(() => {
   }
 })
 </script>
+
+<style scoped>
+.gps-waiting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.gps-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.gps-error-banner {
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-sm);
+  color: var(--error);
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.gps-error {
+  color: var(--error);
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+</style>
