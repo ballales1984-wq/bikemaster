@@ -83,8 +83,7 @@ class TestCoachRoutes:
 
     def test_coach_chat_post(self, athlete_client):
         tc, aid = athlete_client
-        resp = tc.post(f"/api/v1/coach/chat?athlete_id={aid}&message=test")
-        # 422 if message required but not provided
+        resp = tc.post("/api/v1/coach/chat", json={"athlete_id": aid, "message": "test"})
         assert resp.status_code in (200, 422)
 
     def test_coach_history(self, athlete_client):

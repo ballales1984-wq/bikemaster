@@ -274,18 +274,18 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
     return result
 
 
-async def get_admin_user(token: str = Depends(oauth2_scheme)) -> dict:
-    user = await get_current_user(token)
+async def get_admin_user(request: Request, token: str = Depends(oauth2_scheme)) -> dict:
+    user = await get_current_user(request, token)
     if not user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Accesso amministratore richiesto")
     return user
 
 
-async def get_optional_current_user(token: str | None = Depends(oauth2_scheme)) -> dict | None:
+async def get_optional_current_user(request: Request, token: str | None = Depends(oauth2_scheme)) -> dict | None:
     if not token:
         return None
     try:
-        return await get_current_user(token)
+        return await get_current_user(request, token)
     except HTTPException:
         return None
 

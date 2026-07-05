@@ -7,7 +7,7 @@ Falls back gracefully when SQLAlchemy is not available or DATABASE_URL is not se
 from __future__ import annotations
 
 try:
-    from sqlalchemy import create_engine, event
+    from sqlalchemy import create_engine
     from sqlalchemy.orm import (
         DeclarativeBase,
         Mapped,

@@ -5,7 +5,6 @@ from __future__ import annotations
 import base64
 import contextlib
 import hashlib
-import os
 import secrets
 import urllib.parse
 import xml.etree.ElementTree as ET

@@ -1,8 +1,8 @@
 """Shared rate limiter for slowapi."""
 
 import logging
-import time
 import threading
+import time
 from collections import defaultdict
 from dataclasses import dataclass
 from ipaddress import AddressValueError, ip_address, ip_network

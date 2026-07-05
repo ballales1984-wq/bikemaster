@@ -231,7 +231,7 @@ def test_coach_chat(client):
         },
     )
     athlete_id = athlete.json()["id"]
-    r = client.post(f"/api/v1/coach/chat?athlete_id={athlete_id}&message=test")
+    r = client.post("/api/v1/coach/chat", json={"athlete_id": athlete_id, "message": "test"})
     assert r.status_code == 200
     assert "response" in r.json()
 
@@ -362,7 +362,7 @@ def test_google_oauth_callback_uses_redirect_uri_from_state(client, monkeypatch)
 def test_google_fit_auth_uses_forwarded_redirect_uri(client, monkeypatch):
     import bike_analyzer.backend.config as cfg_mod
 
-    monkeypatch.setattr(cfg_mod, "GOOGLE_CLIENT_ID", "test-client")
+    monkeypatch.setattr(cfg_mod, "GOOGLE_FIT_CLIENT_ID", "test-client")
     r = client.get(
         "/api/v1/import/google-fit/auth",
         headers={

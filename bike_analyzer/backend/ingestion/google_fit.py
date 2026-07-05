@@ -81,8 +81,6 @@ def fetch_cycling_activities(access_token: str) -> list[dict]:
     Uses the Sessions endpoint, which returns activity sessions with
     startTimeMillis/endTimeMillis timestamps and activity type codes.
     """
-    import logging
-
     import requests
 
     headers = {"Authorization": f"Bearer {access_token}"}

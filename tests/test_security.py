@@ -1,5 +1,6 @@
 """Tests for security module."""
 
+import time
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
@@ -291,7 +292,7 @@ class TestJwtBlacklist:
         from bike_analyzer.backend.security import _memory_revoked_tokens
 
         _memory_revoked_tokens.clear()
-        _memory_revoked_tokens.add("revoked-jti")
+        _memory_revoked_tokens["revoked-jti"] = time.time()
         r = _make_redis_mock(exists_return=0)
         with _patch_get_redis(r):
             import asyncio

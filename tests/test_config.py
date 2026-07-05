@@ -40,5 +40,6 @@ def test_production_without_database_url_logs_warning(caplog):
         import bike_analyzer.backend.settings as settings_mod
 
         settings_mod._settings = None
+        settings_mod.get_settings()
 
         assert any("DATABASE_URL" in str(r.message) for r in caplog.records)
