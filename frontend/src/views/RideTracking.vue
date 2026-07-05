@@ -138,15 +138,14 @@ async function uploadRide() {
      isUploading.value = true
      const blob = getUploadBlob()
      if (blob) {
-       await apiUpload('/api/v1/import/gpx', blob)
+       const file = new File([blob], `ride-${Date.now()}.gpx`, { type: 'application/gpx+xml' })
+       await apiUpload('/api/v1/import/gpx', file)
        alert('Ride uploaded successfully!')
        resetTrackingState()
        return
      }
      if (tracking.gpxPath) {
-       await apiUpload('/api/v1/import/gpx', tracking.gpxPath)
-       alert('Ride uploaded successfully!')
-       resetTrackingState()
+       alert('Unable to upload file from native path. Please use GPX export instead.')
        return
      }
      alert('No ride to upload')
@@ -275,7 +274,7 @@ onBeforeUnmount(() => {
     webWatchId = null
   }
   if (tracking.isTracking && !tracking.gpxBlob) {
-    void stopTracking()
+    stopWebTracking()
   }
 })
 </script>

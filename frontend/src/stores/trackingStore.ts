@@ -105,7 +105,7 @@ export const useTrackingStore = defineStore('tracking', () => {
       .join('\n')
 
     return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="BikeMaster-Web" xmlns="http://www.topografix.com/GPX/1/1/">
+<gpx version="1.1" creator="BikeMaster-Web" xmlns="http://www.topografix.com/GPX/1/1">
   <trk>
     <name>${safeName}</name>
     <trkseg>
