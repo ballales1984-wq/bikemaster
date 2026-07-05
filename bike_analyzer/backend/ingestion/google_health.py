@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import contextlib
 import hashlib
 import os
@@ -26,7 +27,7 @@ def _generate_code_verifier() -> str:
 
 def _compute_code_challenge(code_verifier: str) -> str:
     digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
-    return secrets.token_urlsafe(digest).rstrip("=")
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
 def get_authorization_url(
