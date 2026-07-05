@@ -9,6 +9,10 @@ const showPrompt = ref(false)
 const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null)
 
 if (typeof window !== 'undefined') {
+  if (window.__pwaInstallPrompt) {
+    deferredPrompt.value = window.__pwaInstallPrompt as BeforeInstallPromptEvent
+    showPrompt.value = true
+  }
   window.addEventListener('beforeinstallprompt', (e: Event) => {
     e.preventDefault()
     deferredPrompt.value = e as BeforeInstallPromptEvent
