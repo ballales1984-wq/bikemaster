@@ -14,7 +14,7 @@ const routes = [
     component: () => import('../views/RidesView.vue'),
     meta: { requiresAuth: true }
   },
-{
+  {
     path: '/import',
     name: 'import',
     component: () => import('../components/ImportPanel.vue'),
@@ -53,7 +53,7 @@ const routes = [
   {
     path: '/map',
     name: 'map',
-    component: () => import(/* webpackChunkName: "map" */ '../components/RideMapPanel.vue'),
+    component: () => import('../components/RideMapPanel.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -65,7 +65,7 @@ const routes = [
   {
     path: '/heatmap',
     name: 'heatmap',
-    component: () => import(/* webpackChunkName: "heatmap" */ '../components/HeatmapPanel.vue'),
+    component: () => import('../components/HeatmapPanel.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -182,32 +182,32 @@ router.beforeEach(async (to, from, next) => {
 
     const loggedIn = auth.isLoggedIn.value
 
-   if (to.path === '/' && loggedIn) {
-     const hasCompleteProfile = await checkProfileComplete()
-     if (!hasCompleteProfile) {
-       const toast = useToast()
-       toast.show('Welcome! Please complete your athlete profile', 'info')
-     }
-     window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-     next(hasCompleteProfile ? '/rides' : '/athlete')
-   } else if (to.path === '/rides' && loggedIn) {
-     const hasCompleteProfile = await checkProfileComplete()
-     if (!hasCompleteProfile) {
-       const toast = useToast()
-       toast.show('Complete your profile to see your rides', 'info')
-       window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-       next('/athlete')
-     } else {
-       window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-       next()
-     }
-   } else if (to.meta.requiresAuth && !loggedIn) {
-     next('/')
+    if (to.path === '/' && loggedIn) {
+      const hasCompleteProfile = await checkProfileComplete(auth)
+      if (!hasCompleteProfile) {
+        const toast = useToast()
+        toast.show('Welcome! Please complete your athlete profile', 'info')
+      }
+      window.dispatchEvent(new CustomEvent('oauth-loading-end'))
+      next(hasCompleteProfile ? '/rides' : '/athlete')
+    } else if (to.path === '/rides' && loggedIn) {
+      const hasCompleteProfile = await checkProfileComplete(auth)
+      if (!hasCompleteProfile) {
+        const toast = useToast()
+        toast.show('Complete your profile to see your rides', 'info')
+        window.dispatchEvent(new CustomEvent('oauth-loading-end'))
+        next('/athlete')
+      } else {
+        window.dispatchEvent(new CustomEvent('oauth-loading-end'))
+        next()
+      }
+    } else if (to.meta.requiresAuth && !loggedIn) {
+      next('/')
     } else if (to.meta.requiresAdmin && !auth.isAdmin.value) {
-     next('/')
-   } else {
-     next()
-   }
+      next('/')
+    } else {
+      next()
+    }
 })
 
 export default router
