@@ -225,8 +225,9 @@ def init_db():
             incident_count INTEGER,
             route_length_km REAL,
             computed_at TEXT,
+            tenant_id INTEGER DEFAULT 0,
             FOREIGN KEY (ride_id) REFERENCES rides(id),
-FOREIGN KEY (athlete_id) REFERENCES athletes(id)
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id)
          )""")
         conn.commit()
         cur = conn.cursor()
