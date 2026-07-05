@@ -65,7 +65,8 @@ defineExpose({
 <style scoped>
 .live-map-wrapper {
   width: 100%;
-  height: 100%;
+  height: 400px;
+  min-height: 400px;
 }
 .live-map {
   height: 100%;
