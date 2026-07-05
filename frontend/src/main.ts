@@ -24,13 +24,13 @@ if (urlToken) {
   const userData = { username: email || '', email, is_admin: false }
   localStorage.setItem('bikemaster_token', urlToken)
   localStorage.setItem('bikemaster_user', JSON.stringify(userData))
-  auth.token.value = urlToken
-  auth.user.value = userData
+  auth.token = urlToken
+  auth.user = userData
   localStorage.removeItem('bikemaster_login_error')
   window.history.replaceState({}, document.title, '/')
 } else if (oauthError) {
-  auth.token.value = ''
-  auth.user.value = null
+  auth.token = ''
+  auth.user = null
   localStorage.setItem('bikemaster_login_error', oauthError)
   window.history.replaceState({}, document.title, '/')
 }
