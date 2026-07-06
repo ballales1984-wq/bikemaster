@@ -12,7 +12,7 @@ const routes = [
     path: '/rides',
     name: 'rides',
     component: () => import('../views/RidesView.vue'),
-    meta: { requiresAuth: true, title: 'Le mie uscite' }
+    meta: { title: 'Le mie uscite' }
   },
   {
     path: '/import',

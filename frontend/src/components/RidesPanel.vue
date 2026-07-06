@@ -97,6 +97,14 @@
         <div class="skeleton" style="height:60px; border-radius: var(--radius); margin-bottom: 8px;" v-for="i in 5" :key="i"></div>
       </div>
 
+      <!-- Guest state -->
+      <div v-else-if="guest" class="empty-state">
+        <div class="empty-icon">🔐</div>
+        <div class="empty-title">{{ t('rides.noRides') }}</div>
+        <div class="empty-desc">Accedi per vedere le tue uscite.</div>
+        <router-link to="/" class="btn btn-sm" style="margin-top:14px">🔑 Accedi</router-link>
+      </div>
+
       <!-- Empty state -->
       <div v-else-if="rides.length === 0" class="empty-state">
         <div class="empty-icon">🚵</div>
@@ -234,9 +242,11 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from '../composables/useI18n'
 import { apiGet, apiDelete, apiPost } from '../utils/api'
+import { useAuthStore } from '../stores/auth'
 import ConfirmModal from './ConfirmModal.vue'
 
 const { t } = useI18n()
+const auth = useAuthStore()
 
 const emit = defineEmits(['summary-change'])
 
@@ -244,6 +254,7 @@ const loading = ref(true)
 const adding = ref(false)
 const addError = ref('')
 const rides = ref([])
+const guest = ref(false)
 const showForm = ref(false)
 const filtersOpen = ref(false)
 const selectedRide = ref(null)
@@ -325,6 +336,13 @@ async function load() {
   try {
     const data = await apiGet('/api/v1/rides', { limit: 200 })
     rides.value = data.rides || []
+  } catch (e) {
+    if (!auth.isLoggedIn) {
+      guest.value = true
+      rides.value = []
+    } else {
+      console.error('load rides', e)
+    }
   } finally {
     loading.value = false
   }

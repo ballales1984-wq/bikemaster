@@ -3,7 +3,6 @@ const API_BASE = ''
 function clearAuth() {
   localStorage.removeItem('bikemaster_token')
   localStorage.removeItem('bikemaster_user')
-  window.location.href = '/'
 }
 
 function authHeaders(): Record<string, string> {
