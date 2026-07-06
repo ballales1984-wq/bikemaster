@@ -46,6 +46,7 @@ from ..redis_client import cache_set as _cache_set
 from ..redis_client import cached as _cached
 from ..security import get_admin_user, get_current_user
 from ..utils.logger import get_logger
+from ..audit_log import log_action, read_audit_logs
 from .schemas import (
     AthleteCreate,
     AthleteUpdate,
@@ -2001,6 +2002,7 @@ async def create_backup(current_user: dict = Depends(get_admin_user)):
     from ..db.database import backup_database
 
     path = backup_database()
+    log_action(current_user["id"], "download_backup", "database")
     return FileResponse(path, media_type="application/octet-stream", filename="backup.db")
 
 
@@ -2009,6 +2011,7 @@ async def create_scheduled_backup(current_user: dict = Depends(get_admin_user)):
     from ..db.database import scheduled_backup
 
     result = scheduled_backup(max_backups=10)
+    log_action(current_user["id"], "scheduled_backup", "database")
     return result
 
 
@@ -2017,6 +2020,7 @@ async def create_db_indexes(current_user: dict = Depends(get_admin_user)):
     from ..db.database import create_indices
 
     create_indices()
+    log_action(current_user["id"], "create_indexes", "database")
     return {"status": "indexes_created"}
 
 
