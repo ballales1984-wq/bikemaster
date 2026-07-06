@@ -57,6 +57,10 @@ htmlcov/
 # Frontend build assets
 bike_analyzer/backend/static/assets/
 frontend/dist/
+frontend/dist_build/
+frontend/tsconfig.tsbuildinfo
+frontend/tests/e2e/debug-rides2.spec.js
+frontend/vitest_auth.log
 frontend/coverage/
 frontend/test-results/
 frontend/test-results-summary.json

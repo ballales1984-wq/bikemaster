@@ -101,3 +101,18 @@ export interface RideSegment {
   weatherRisk?: number
   speedRisk?: number
 }
+
+export interface BikeTrackingInstance {
+  startTracking?: () => Promise<void>
+  stopTracking?: () => void
+  pauseTracking?: () => Promise<void>
+  resumeTracking?: () => Promise<void>
+  checkPermissions?: () => Promise<{ granted: boolean }>
+  isTracking?: () => boolean
+}
+
+declare global {
+  interface Window {
+    BikeTracking?: BikeTrackingInstance
+  }
+}
