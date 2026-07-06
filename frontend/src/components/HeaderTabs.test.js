@@ -1,44 +1,44 @@
-import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
-import HeaderTabs from './HeaderTabs.vue'
+import { mount } from "@vue/test-utils";
+import { describe, expect, it } from "vitest";
+import HeaderTabs from "./HeaderTabs.vue";
 
-describe('HeaderTabs', () => {
+describe("HeaderTabs", () => {
   const render = (props = {}) =>
     mount(HeaderTabs, {
       props: { isAdmin: false, ...props },
       global: {
         stubs: {
           RouterLink: {
-            template: '<a><slot /></a>',
+            template: "<a><slot /></a>",
           },
         },
       },
-    })
+    });
 
-  it('renders navigation links', () => {
-    const wrapper = render({ active: 'rides' })
+  it("renders navigation links", () => {
+    const wrapper = render({ active: "rides" });
 
-    const links = wrapper.findAll('a')
-    expect(links.length).toBeGreaterThan(0)
-    expect(links.some(a => a.text().includes('nav.rides'))).toBe(true)
-  })
+    const links = wrapper.findAll("a");
+    expect(links.length).toBeGreaterThan(0);
+    expect(links.some((a) => a.text().includes("nav.rides"))).toBe(true);
+  });
 
-  it('shows admin link only for admins', () => {
-    const userLinks = render().text()
-    const adminLinks = render({ isAdmin: true }).text()
+  it("shows admin link only for admins", () => {
+    const userLinks = render().text();
+    const adminLinks = render({ isAdmin: true }).text();
 
-    expect(userLinks).not.toContain('nav.admin')
-    expect(adminLinks).toContain('nav.admin')
-  })
+    expect(userLinks).not.toContain("nav.admin");
+    expect(adminLinks).toContain("nav.admin");
+  });
 
-  it('emits logout and displays current user role', async () => {
-    const wrapper = render({ isAdmin: true })
+  it("emits logout and displays current user role", async () => {
+    const wrapper = render({ isAdmin: true });
 
-    expect(wrapper.text()).toContain('nav.admin')
+    expect(wrapper.text()).toContain("nav.admin");
 
-    const buttons = wrapper.findAll('button')
-    await buttons.at(-1).trigger('click')
+    const buttons = wrapper.findAll("button");
+    await buttons.at(-1).trigger("click");
 
-    expect(wrapper.emitted().logout).toEqual([[]])
-  })
-})
+    expect(wrapper.emitted().logout).toEqual([[]]);
+  });
+});

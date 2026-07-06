@@ -1,80 +1,101 @@
 <template>
-  <div class="stats" aria-label="General Statistics">
-    <div class="stat-card" role="status">
-      <div class="stat-value">{{ animatedRides }}</div>
+  <div class="stats"
+aria-label="General Statistics">
+    <div class="stat-card"
+role="status">
+      <div class="stat-value">
+        {{ animatedRides }}
+      </div>
       <div class="stat-label">Rides</div>
     </div>
-    <div class="stat-card" role="status">
+    <div class="stat-card"
+role="status">
       <div class="stat-value">{{ animatedDistance }} km</div>
       <div class="stat-label">Total Distance</div>
     </div>
-    <div class="stat-card" role="status">
-      <div class="stat-value">{{ animatedCalories }}</div>
+    <div class="stat-card"
+role="status">
+      <div class="stat-value">
+        {{ animatedCalories }}
+      </div>
       <div class="stat-label">Calories</div>
     </div>
-    <div class="stat-card" role="status">
+    <div class="stat-card"
+role="status">
       <div class="stat-value">{{ animatedSpeed }} km/h</div>
       <div class="stat-label">Avg Speed</div>
     </div>
-    <div class="stat-card" role="status">
+    <div class="stat-card"
+role="status">
       <div class="stat-value">{{ animatedHours }} h</div>
       <div class="stat-label">Total Hours</div>
     </div>
-    <button class="stat-card stat-refresh" @click="$emit('refresh')" :disabled="loading" :aria-label="loading ? 'Updating in progress' : 'Refresh statistics'">
-      <span :class="{ spinner: loading }">{{ loading ? '' : '🔄' }}</span>
-      <div class="stat-label">{{ loading ? 'Updating...' : 'Refresh' }}</div>
+    <button
+      class="stat-card stat-refresh"
+      :disabled="loading"
+      :aria-label="loading ? 'Updating in progress' : 'Refresh statistics'"
+      @click="$emit('refresh')"
+    >
+      <span :class="{ spinner: loading }">{{ loading ? "" : "🔄" }}</span>
+      <div class="stat-label">
+        {{ loading ? "Updating..." : "Refresh" }}
+      </div>
     </button>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch } from "vue";
 
 const props = defineProps({
   stats: { type: Object, default: null },
   loading: { type: Boolean, default: false },
-})
+});
 
-defineEmits(['refresh'])
+defineEmits(["refresh"]);
 
-const animatedRides = ref(0)
-const animatedDistance = ref(0)
-const animatedCalories = ref(0)
-const animatedSpeed = ref(0)
-const animatedHours = ref(0)
+const animatedRides = ref(0);
+const animatedDistance = ref(0);
+const animatedCalories = ref(0);
+const animatedSpeed = ref(0);
+const animatedHours = ref(0);
 
 function animate(to, from = 0, duration = 800) {
-  return new Promise(resolve => {
-    const start = performance.now()
+  return new Promise((resolve) => {
+    const start = performance.now();
     const step = (now) => {
-      const elapsed = now - start
-      const progress = Math.min(elapsed / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      const value = from + (to - from) * eased
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = from + (to - from) * eased;
       if (progress < 1) {
-        requestAnimationFrame(step)
+        requestAnimationFrame(step);
       } else {
-        resolve(value)
+        resolve(value);
       }
-    }
-    requestAnimationFrame(step)
-  })
+    };
+    requestAnimationFrame(step);
+  });
 }
 
-watch(() => props.stats, (newStats) => {
-  if (!newStats) return
-  const rides = Number(newStats.rides) || 0
-  const dist = Number(newStats.distance_km) || 0
-  const cals = Number(newStats.calories) || 0
-  const speed = Number(newStats.avg_speed_kmh) || 0
-  const hours = (Number(newStats.duration_minutes) || 0) / 60
-  
-  animate(rides).then(v => animatedRides.value = Math.round(v))
-  animate(dist).then(v => animatedDistance.value = v.toFixed(1))
-  animate(cals).then(v => animatedCalories.value = Math.round(v))
-  animate(speed).then(v => animatedSpeed.value = v.toFixed(1))
-  animate(hours).then(v => animatedHours.value = v.toFixed(1))
-}, { immediate: true })
+watch(
+  () => props.stats,
+  (newStats) => {
+    if (!newStats) return;
+    const rides = Number(newStats.rides) || 0;
+    const dist = Number(newStats.distance_km) || 0;
+    const cals = Number(newStats.calories) || 0;
+    const speed = Number(newStats.avg_speed_kmh) || 0;
+    const hours = (Number(newStats.duration_minutes) || 0) / 60;
+
+    animate(rides).then((v) => (animatedRides.value = Math.round(v)));
+    animate(dist).then((v) => (animatedDistance.value = v.toFixed(1)));
+    animate(cals).then((v) => (animatedCalories.value = Math.round(v)));
+    animate(speed).then((v) => (animatedSpeed.value = v.toFixed(1)));
+    animate(hours).then((v) => (animatedHours.value = v.toFixed(1)));
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>
@@ -99,9 +120,12 @@ watch(() => props.stats, (newStats) => {
 }
 
 .stat-card::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 2px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
   background: var(--accent-gradient);
   opacity: 0;
   transition: var(--transition);
@@ -113,7 +137,9 @@ watch(() => props.stats, (newStats) => {
   border-color: var(--border-light);
 }
 
-.stat-card:hover::after { opacity: 1; }
+.stat-card:hover::after {
+  opacity: 1;
+}
 
 .stat-value {
   font-size: 2rem;
@@ -122,13 +148,13 @@ watch(() => props.stats, (newStats) => {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-weight: 700;
-  font-family: 'Outfit', sans-serif;
+  font-family: "Outfit", sans-serif;
 }
 
-.stat-label { 
-  color: var(--text-secondary); 
-  margin-top: 6px; 
-  font-size: 0.9rem; 
+.stat-label {
+  color: var(--text-secondary);
+  margin-top: 6px;
+  font-size: 0.9rem;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 1px;

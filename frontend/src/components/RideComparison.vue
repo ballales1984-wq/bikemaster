@@ -6,127 +6,178 @@
       <div class="select-row">
         <div class="select-group">
           <label>Uscita A</label>
-          <select v-model="rideA" @change="onSelectChange" class="form-select">
+          <select v-model="rideA"
+@change="onSelectChange" class="form-select">
             <option :value="null">Seleziona...</option>
-            <option v-for="r in rides" :key="r.id" :value="r">{{ r.date }} — {{ fmt(r.distance_km) }} km</option>
+            <option v-for="r in rides"
+:key="r.id" :value="r">
+              {{ r.date }} — {{ fmt(r.distance_km) }} km
+            </option>
           </select>
         </div>
-        <button class="swap-btn" @click="swapRides" :disabled="!rideA || !rideB" title="Scambia">
+        <button
+          class="swap-btn"
+          :disabled="!rideA || !rideB"
+          title="Scambia"
+          @click="swapRides"
+        >
           ⇄
         </button>
         <div class="select-group">
           <label>Uscita B</label>
-          <select v-model="rideB" @change="onSelectChange" class="form-select">
+          <select v-model="rideB"
+@change="onSelectChange" class="form-select">
             <option :value="null">Seleziona...</option>
-            <option v-for="r in rides" :key="r.id" :value="r">{{ r.date }} — {{ fmt(r.distance_km) }} km</option>
+            <option v-for="r in rides"
+:key="r.id" :value="r">
+              {{ r.date }} — {{ fmt(r.distance_km) }} km
+            </option>
           </select>
         </div>
       </div>
 
-      <div v-if="loading" class="skeleton-container">
-        <div class="skeleton skeleton-card" style="height: 120px;"></div>
+      <div v-if="loading"
+class="skeleton-container">
+        <div class="skeleton skeleton-card"
+style="height: 120px"
+/>
       </div>
 
-      <div v-else-if="comparison.ready" class="comparison-grid">
-        <div class="comp-card" v-for="m in metrics" :key="m.key">
-          <div class="comp-label">{{ m.label }}</div>
+      <div v-else-if="comparison.ready"
+class="comparison-grid">
+        <div v-for="m in metrics" class="comp-card" :key="m.key">
+          <div class="comp-label">
+            {{ m.label }}
+          </div>
           <div class="comp-values">
-            <div class="comp-a" :class="{ winner: comparison.winners[m.key] === 'A' }">
+            <div
+              class="comp-a"
+              :class="{ winner: comparison.winners[m.key] === 'A' }"
+            >
               <span class="comp-val">{{ m.format(comparison.a[m.key]) }}</span>
-              <span class="comp-delta" v-if="comparison.deltas[m.key] !== 0">
-                {{ comparison.deltas[m.key] > 0 ? '+' : '' }}{{ comparison.deltas[m.key].toFixed(1) }}%
+              <span v-if="comparison.deltas[m.key] !== 0" class="comp-delta">
+                {{ comparison.deltas[m.key] > 0 ? "+" : ""
+                }}{{ comparison.deltas[m.key].toFixed(1) }}%
               </span>
             </div>
             <div class="comp-divider">vs</div>
-            <div class="comp-b" :class="{ winner: comparison.winners[m.key] === 'B' }">
+            <div
+              class="comp-b"
+              :class="{ winner: comparison.winners[m.key] === 'B' }"
+            >
               <span class="comp-val">{{ m.format(comparison.b[m.key]) }}</span>
-              <span class="comp-delta" v-if="comparison.deltas[m.key] !== 0">
-                {{ comparison.deltas[m.key] < 0 ? '+' : '' }}{{ Math.abs(comparison.deltas[m.key]).toFixed(1) }}%
+              <span v-if="comparison.deltas[m.key] !== 0" class="comp-delta">
+                {{ comparison.deltas[m.key] < 0 ? "+" : ""
+                }}{{ Math.abs(comparison.deltas[m.key]).toFixed(1) }}%
               </span>
             </div>
           </div>
         </div>
 
-        <div class="verdict" v-if="verdict">
+        <div v-if="verdict" class="verdict">
           <span class="verdict-icon">🏆</span>
           <span>{{ verdict }}</span>
         </div>
       </div>
 
-      <div v-else class="empty-state">
+      <div v-else
+class="empty-state">
         <div class="empty-icon">⚖️</div>
         <div class="empty-title">Seleziona due uscite per confrontarle</div>
-        <div class="empty-desc">Scegli dall'elenco le uscite che vuoi analizzare a confronto.</div>
+        <div class="empty-desc">
+          Scegli dall'elenco le uscite che vuoi analizzare a confronto.
+        </div>
       </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { apiGet } from '../utils/api'
+import { ref, computed, onMounted } from "vue";
+import { apiGet } from "../utils/api";
 
-const rides = ref([])
-const rideA = ref(null)
-const rideB = ref(null)
-const loading = ref(false)
+const rides = ref([]);
+const rideA = ref(null);
+const rideB = ref(null);
+const loading = ref(false);
 
 const metrics = [
-  { key: 'distance_km', label: 'Distanza (km)', format: v => v == null ? '—' : Number(v).toFixed(1) },
-  { key: 'duration_minutes', label: 'Durata (min)', format: v => v == null ? '—' : Math.round(v) },
-  { key: 'avg_speed_kmh', label: 'Velocità media', format: v => v == null ? '—' : Number(v).toFixed(1) + ' km/h' },
-  { key: 'elevation_gain_m', label: 'Dislivello (m)', format: v => v == null ? '—' : Math.round(v) },
-  { key: 'calories', label: 'Calorie', format: v => v == null ? '—' : Math.round(v) },
-]
+  {
+    key: "distance_km",
+    label: "Distanza (km)",
+    format: (v) => (v == null ? "—" : Number(v).toFixed(1)),
+  },
+  {
+    key: "duration_minutes",
+    label: "Durata (min)",
+    format: (v) => (v == null ? "—" : Math.round(v)),
+  },
+  {
+    key: "avg_speed_kmh",
+    label: "Velocità media",
+    format: (v) => (v == null ? "—" : Number(v).toFixed(1) + " km/h"),
+  },
+  {
+    key: "elevation_gain_m",
+    label: "Dislivello (m)",
+    format: (v) => (v == null ? "—" : Math.round(v)),
+  },
+  {
+    key: "calories",
+    label: "Calorie",
+    format: (v) => (v == null ? "—" : Math.round(v)),
+  },
+];
 
 function fmt(v, dec = 1) {
-  if (v == null || isNaN(Number(v))) return '—'
-  return Number(v).toFixed(dec)
+  if (v == null || isNaN(Number(v))) return "—";
+  return Number(v).toFixed(dec);
 }
 
 const comparison = computed(() => {
-  if (!rideA.value || !rideB.value) return { ready: false }
-  const a = rideA.value
-  const b = rideB.value
-  const deltas = {}
-  const winners = {}
+  if (!rideA.value || !rideB.value) return { ready: false };
+  const a = rideA.value;
+  const b = rideB.value;
+  const deltas = {};
+  const winners = {};
   for (const m of metrics) {
-    const av = Number(a[m.key]) || 0
-    const bv = Number(b[m.key]) || 0
+    const av = Number(a[m.key]) || 0;
+    const bv = Number(b[m.key]) || 0;
     if (av === 0 && bv === 0) {
-      deltas[m.key] = 0
-      winners[m.key] = ''
+      deltas[m.key] = 0;
+      winners[m.key] = "";
     } else if (av === 0) {
-      deltas[m.key] = -100
-      winners[m.key] = 'B'
+      deltas[m.key] = -100;
+      winners[m.key] = "B";
     } else if (bv === 0) {
-      deltas[m.key] = 100
-      winners[m.key] = 'A'
+      deltas[m.key] = 100;
+      winners[m.key] = "A";
     } else {
-      deltas[m.key] = ((av - bv) / bv) * 100
-      winners[m.key] = av > bv ? 'A' : 'B'
+      deltas[m.key] = ((av - bv) / bv) * 100;
+      winners[m.key] = av > bv ? "A" : "B";
     }
   }
-  return { ready: true, a, b, deltas, winners }
-})
+  return { ready: true, a, b, deltas, winners };
+});
 
 const verdict = computed(() => {
-  if (!comparison.value.ready) return ''
-  const { winners } = comparison.value
-  let scoreA = 0, scoreB = 0
+  if (!comparison.value.ready) return "";
+  const { winners } = comparison.value;
+  let scoreA = 0,
+    scoreB = 0;
   for (const k in winners) {
-    if (winners[k] === 'A') scoreA++
-    else if (winners[k] === 'B') scoreB++
+    if (winners[k] === "A") scoreA++;
+    else if (winners[k] === "B") scoreB++;
   }
-  if (scoreA === scoreB) return 'Pareggio — uscite equivalenti'
-  if (scoreA > scoreB) return `Uscita A Vincente (${scoreA}/${metrics.length})`
-  return `Uscita B Vincente (${scoreB}/${metrics.length})`
-})
+  if (scoreA === scoreB) return "Pareggio — uscite equivalenti";
+  if (scoreA > scoreB) return `Uscita A Vincente (${scoreA}/${metrics.length})`;
+  return `Uscita B Vincente (${scoreB}/${metrics.length})`;
+});
 
 function swapRides() {
-  const tmp = rideA.value
-  rideA.value = rideB.value
-  rideB.value = tmp
+  const tmp = rideA.value;
+  rideA.value = rideB.value;
+  rideB.value = tmp;
 }
 
 function onSelectChange() {
@@ -134,22 +185,26 @@ function onSelectChange() {
 }
 
 async function load() {
-  loading.value = true
+  loading.value = true;
   try {
-    const data = await apiGet('/api/v1/rides', { limit: 50 })
-    rides.value = data.rides || []
+    const data = await apiGet("/api/v1/rides", { limit: 50 });
+    rides.value = data.rides || [];
   } catch (e) {
-    console.error('load rides for comparison', e)
+    console.error("load rides for comparison", e);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
-onMounted(() => load())
+onMounted(() => load());
 </script>
 
 <style scoped>
-.comparison-panel { display: flex; flex-direction: column; gap: 20px; }
+.comparison-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
 .select-row {
   display: flex;
@@ -158,7 +213,10 @@ onMounted(() => load())
   flex-wrap: wrap;
 }
 
-.select-group { flex: 1; min-width: 200px; }
+.select-group {
+  flex: 1;
+  min-width: 200px;
+}
 
 .select-group label {
   display: block;
@@ -197,7 +255,10 @@ onMounted(() => load())
   color: var(--accent);
 }
 
-.swap-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.swap-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
 
 .comparison-grid {
   display: grid;
@@ -227,7 +288,8 @@ onMounted(() => load())
   gap: 12px;
 }
 
-.comp-a, .comp-b {
+.comp-a,
+.comp-b {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -238,12 +300,16 @@ onMounted(() => load())
 .comp-val {
   font-size: 1.3rem;
   font-weight: 700;
-  font-family: 'Outfit', sans-serif;
+  font-family: "Outfit", sans-serif;
   color: var(--text-primary);
 }
 
-.comp-a.winner .comp-val { color: var(--success); }
-.comp-b.winner .comp-val { color: var(--success); }
+.comp-a.winner .comp-val {
+  color: var(--success);
+}
+.comp-b.winner .comp-val {
+  color: var(--success);
+}
 
 .comp-delta {
   font-size: 0.72rem;
@@ -269,7 +335,9 @@ onMounted(() => load())
   font-size: 1rem;
 }
 
-.verdict-icon { margin-right: 8px; }
+.verdict-icon {
+  margin-right: 8px;
+}
 
 .skeleton-container {
   margin-top: 15px;
@@ -281,7 +349,16 @@ onMounted(() => load())
   color: var(--text-muted);
 }
 
-.empty-icon { font-size: 2.5rem; margin-bottom: 8px; }
-.empty-title { font-size: 1rem; color: var(--text-secondary); margin-bottom: 4px; }
-.empty-desc { font-size: 0.85rem; }
+.empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+}
+.empty-title {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.empty-desc {
+  font-size: 0.85rem;
+}
 </style>

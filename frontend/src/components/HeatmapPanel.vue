@@ -1,66 +1,91 @@
 <template>
   <div class="panel">
-<h2>🔥 Personal Heatmap</h2>
-     
-     <div class="form-grid">
-       <div class="form-group">
-         <label for="heatmap-athlete-id">Athlete ID</label>
-         <input id="heatmap-athlete-id" type="number" v-model.number="athleteId" min="1" />
-       </div>
-       <div class="form-group">
-         <button class="btn btn-primary" @click="loadHeatmap">🔄 Load Heatmap</button>
-       </div>
-     </div>
-     
-     <div v-if="loading && !heatmapData" class="loading-text">
-       <span class="spinner"></span> Loading heatmap...
-     </div>
-     
-     <div v-if="heatmapData && heatmapData.points && heatmapData.points.length" class="heatmap-container">
-       <div id="leaflet-heatmap" class="heatmap-map"></div>
-       <div class="heatmap-stats">
-         <span class="badge badge-info">{{ heatmapData.total_points }} GPS points</span>
-         <span class="badge badge-info">{{ heatmapData.points.length }} cells</span>
-       </div>
-     </div>
-     
-     <div v-if="heatmapData && (!heatmapData.points || !heatmapData.points.length)" class="loading-text">
-       No GPS data available
-     </div>
-   </div>
+    <h2>🔥 Personal Heatmap</h2>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="heatmap-athlete-id">Athlete ID</label>
+        <input
+          id="heatmap-athlete-id"
+          v-model.number="athleteId"
+          type="number"
+          min="1"
+        >
+      </div>
+      <div class="form-group">
+        <button
+          class="btn btn-primary"
+          @click="loadHeatmap"
+        >
+          🔄 Load Heatmap
+        </button>
+      </div>
+    </div>
+
+    <div
+      v-if="loading && !heatmapData"
+      class="loading-text"
+    >
+      <span class="spinner" /> Loading heatmap...
+    </div>
+
+    <div
+      v-if="heatmapData && heatmapData.points && heatmapData.points.length"
+      class="heatmap-container"
+    >
+      <div
+        id="leaflet-heatmap"
+        class="heatmap-map"
+      />
+      <div class="heatmap-stats">
+        <span class="badge badge-info">{{ heatmapData.total_points }} GPS points</span>
+        <span class="badge badge-info">{{ heatmapData.points.length }} cells</span>
+      </div>
+    </div>
+    <div
+      v-if="heatmapData && (!heatmapData.points || !heatmapData.points.length)"
+      <div
+      class="loading-text"
+    >
+      No GPS data available
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { apiGet } from '../utils/api'
+import "leaflet/dist/leaflet.css";
+import { ref, onMounted, watch } from "vue";
+import { apiGet } from "../utils/api";
 
-const athleteId = ref(null)
-const loading = ref(false)
-const heatmapData = ref(null)
+const athleteId = ref(null);
+const loading = ref(false);
+const heatmapData = ref(null);
 
 async function loadAthleteId() {
-  const data = await apiGet('/api/v1/athletes')
-  athleteId.value = data.athletes?.[0]?.id ?? null
+  const data = await apiGet("/api/v1/athletes");
+  athleteId.value = data.athletes?.[0]?.id ?? null;
 }
 
 async function loadHeatmap() {
-  if (!athleteId.value) return
-  loading.value = true
-  heatmapData.value = null
+  if (!athleteId.value) return;
+  loading.value = true;
+  heatmapData.value = null;
   try {
-    heatmapData.value = await apiGet('/api/v1/heatmap', { athlete_id: athleteId.value })
+    heatmapData.value = await apiGet("/api/v1/heatmap", {
+      athlete_id: athleteId.value,
+    });
   } catch (e) {
-    console.error('heatmap error', e)
-    heatmapData.value = null
+    console.error("heatmap error", e);
+    heatmapData.value = null;
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 onMounted(() => {
-  loadAthleteId().then(loadHeatmap).catch(console.error)
-})
-watch(athleteId, loadHeatmap)
+  loadAthleteId().then(loadHeatmap).catch(console.error);
+});
+watch(athleteId, loadHeatmap);
 </script>
 
 <style scoped>

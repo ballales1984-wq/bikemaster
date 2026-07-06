@@ -1,36 +1,50 @@
 <template>
   <Transition name="slide">
-    <div v-if="showBanner" class="pwa-banner" role="alert" aria-live="polite">
-      <div class="pwa-banner-icon" aria-hidden="true">🚴</div>
+    <div v-if="showBanner"
+class="pwa-banner" role="alert" aria-live="polite">
+      <div
+class="pwa-banner-icon" aria-hidden="true">🚴</div>
       <div class="pwa-banner-text">
         <strong>Install BikeMaster</strong>
         <span>Add to home screen for offline access</span>
       </div>
-      <button class="btn btn-primary btn-sm" @click="install" aria-label="Install BikeMaster app">Install</button>
-      <button class="pwa-banner-close" @click="dismiss" aria-label="Dismiss install prompt">×</button>
+      <button
+        class="btn btn-primary btn-sm"
+        aria-label="Install BikeMaster app"
+        @click="install"
+      >
+        Install
+      </button>
+      <button
+        class="pwa-banner-close"
+        aria-label="Dismiss install prompt"
+        @click="dismiss"
+      >
+        ×
+      </button>
     </div>
   </Transition>
 </template>
 
 <script setup>
-import { usePWA } from '../composables/usePWA'
-import { computed } from 'vue'
+import { usePWA } from "../composables/usePWA";
+import { computed } from "vue";
 
-const { showPrompt, deferredPrompt, prompt } = usePWA()
+const { showPrompt, deferredPrompt, prompt } = usePWA();
 
 const showBanner = computed(() => {
-  if (!showPrompt.value) return false
-  if (!deferredPrompt.value) return false
-  return typeof deferredPrompt.value.prompt === 'function'
-})
+  if (!showPrompt.value) return false;
+  if (!deferredPrompt.value) return false;
+  return typeof deferredPrompt.value.prompt === "function";
+});
 
 async function install() {
-  if (!showBanner.value) return
-  const outcome = await prompt()
+  if (!showBanner.value) return;
+  const outcome = await prompt();
 }
 
 function dismiss() {
-  showPrompt.value = false
+  showPrompt.value = false;
 }
 </script>
 
@@ -89,7 +103,9 @@ function dismiss() {
 
 .slide-enter-active,
 .slide-leave-active {
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
 }
 
 .slide-enter-from {

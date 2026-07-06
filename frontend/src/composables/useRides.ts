@@ -1,6 +1,6 @@
 import type { Ride } from '../types/index'
+import type * as L from 'leaflet'
 import { apiGet, apiPost, apiDelete } from '../utils/api'
-import * as L from 'leaflet'
 
 interface GPSPoint {
   lat: number
@@ -44,12 +44,13 @@ export function useRides() {
     await apiDelete(`/api/v1/rides/${id}`)
   }
 
-  function initMap(el: HTMLElement, points: GPSPoint[]) {
+  async function initMap(el: HTMLElement, points: GPSPoint[]) {
     if (map) {
       map.remove()
       map = null
     }
     if (!el) return
+    const L = await import('leaflet')
     map = L.map(el).setView([45.0, 9.0], 13)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: 'OSM contributors',

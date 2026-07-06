@@ -2,7 +2,7 @@
   <div class="knowledge-panel">
     <div class="panel-header">
       <h2>📚 Knowledge Base</h2>
-      <div class="kb-stats" v-if="stats">
+      <div v-if="stats" class="kb-stats">
         <span class="kb-badge">{{ stats.total_documents ?? 0 }} documenti</span>
         <span class="kb-badge">{{ stats.total_topics ?? 0 }} argomenti</span>
       </div>
@@ -10,11 +10,12 @@
 
     <!-- Search bar -->
     <div class="search-container">
-      <div class="search-box" :class="{ focused: searchFocused }">
+      <div class="search-box"
+:class="{ focused: searchFocused }">
         <span class="search-icon">🔍</span>
         <input
-          v-model="query"
           ref="searchInput"
+          v-model="query"
           type="text"
           placeholder="Cerca... (es. 'come migliorare resistenza', 'FTP training')"
           class="search-input"
@@ -23,212 +24,289 @@
           @keydown.enter="search"
           @input="onInput"
         />
-        <button v-if="query" class="clear-btn" @click="clearSearch">✕</button>
+        <button
+v-if="query" class="clear-btn" @click="clearSearch">✕</button>
       </div>
-      <button class="btn search-btn" @click="search" :disabled="!query.trim() || loading">
-        {{ loading ? '⏳' : 'Cerca' }}
+      <button
+        class="btn search-btn"
+        :disabled="!query.trim() || loading"
+        @click="search"
+      >
+        {{ loading ? "⏳" : "Cerca" }}
       </button>
     </div>
 
     <!-- Topic pills -->
-    <div class="topics-row" v-if="topics.length && !results.length && !loading">
+    <div v-if="topics.length && !results.length && !loading" class="topics-row">
       <div class="topics-label">Argomenti:</div>
       <div class="topics-list">
         <button
-          class="topic-pill"
           v-for="t in topics"
           :key="t"
+          class="topic-pill"
           @click="searchTopic(t)"
-        >{{ t }}</button>
+        >
+          {{ t }}
+        </button>
       </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="skeleton-container">
-      <div class="skeleton skeleton-card skeleton-pulse" v-for="i in 3" :key="i" style="height: 90px; margin-bottom: 12px;"></div>
+    <div v-if="loading"
+class="skeleton-container">
+      <div
+        v-for="i in 3"
+        :key="i"
+        class="skeleton skeleton-card skeleton-pulse"
+        style="height: 90px; margin-bottom: 12px"
+      />
     </div>
 
     <!-- Results -->
-    <div v-else-if="results.length" class="results-section">
+    <div v-else-if="results.length"
+class="results-section">
       <div class="results-header">
         <span class="results-count">{{ results.length }} risultati per "<strong>{{ lastQuery }}</strong>"</span>
-        <button class="btn btn-sm btn-secondary" @click="clearSearch">← Tutti gli argomenti</button>
+        <button class="btn btn-sm btn-secondary"
+@click="clearSearch">
+          ← Tutti gli argomenti
+        </button>
       </div>
-      <div class="result-card" v-for="(r, i) in results" :key="i" :style="{ animationDelay: i * 0.05 + 's' }">
+      <div
+        v-for="(r, i) in results"
+        :key="i"
+        class="result-card"
+        :style="{ animationDelay: i * 0.05 + 's' }"
+      >
         <div class="result-header">
-          <div class="result-topic">{{ r.topic || r.source || 'Documento' }}</div>
-          <div class="result-score" v-if="r.score != null">
-            <div class="score-bar"><div class="score-fill" :style="{ width: (r.score * 100) + '%' }"></div></div>
+          <div class="result-topic">
+            {{ r.topic || r.source || "Documento" }}
+          </div>
+          <div v-if="r.score != null" class="result-score">
+            <div class="score-bar">
+              <div class="score-fill"
+:style="{ width: r.score * 100 + '%' }" />
+            </div>
             <span>{{ (r.score * 100).toFixed(0) }}%</span>
           </div>
         </div>
-        <div class="result-text" v-html="highlightQuery(r.content || r.text || r.chunk || '', lastQuery)"></div>
-        <div class="result-meta" v-if="r.source_file">
+        <div
+          class="result-text"
+          v-html="
+            highlightQuery(r.content || r.text || r.chunk || '', lastQuery)
+          "
+        />
+        <div v-if="r.source_file" class="result-meta">
           <span>📄 {{ r.source_file }}</span>
         </div>
       </div>
     </div>
 
     <!-- Empty search -->
-    <div v-else-if="searched && !loading" class="empty-state">
+    <div v-else-if="searched && !loading"
+class="empty-state">
       <div class="empty-icon">🔎</div>
       <div class="empty-title">Nessun risultato per "{{ lastQuery }}"</div>
-      <div class="empty-desc">Prova con altre parole chiave o sfoglia gli argomenti disponibili.</div>
-      <button class="btn btn-sm btn-secondary" style="margin-top: 12px;" @click="clearSearch">← Torna agli argomenti</button>
+      <div class="empty-desc">
+        Prova con altre parole chiave o sfoglia gli argomenti disponibili.
+      </div>
+      <button
+        class="btn btn-sm btn-secondary"
+        style="margin-top: 12px"
+        @click="clearSearch"
+      >
+        ← Torna agli argomenti
+      </button>
     </div>
 
     <!-- Topic browser (default view) -->
-    <div v-else-if="!loading && topics.length" class="topics-browser">
+    <div v-else-if="!loading && topics.length"
+class="topics-browser">
       <div class="browser-grid">
         <div
-          class="topic-card"
           v-for="t in topics"
           :key="t"
+          class="topic-card"
           @click="searchTopic(t)"
         >
-          <div class="topic-icon">{{ topicIcon(t) }}</div>
-          <div class="topic-name">{{ t }}</div>
+          <div class="topic-icon">
+            {{ topicIcon(t) }}
+          </div>
+          <div class="topic-name">
+            {{ t }}
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Total empty -->
-    <div v-else-if="!loading" class="empty-state">
+    <div v-else-if="!loading"
+class="empty-state">
       <div class="empty-icon">📚</div>
       <div class="empty-title">Knowledge Base vuota</div>
-      <div class="empty-desc">Aggiungi documenti nella cartella <code>knowledge_base/</code> e ricarica gli indici.</div>
-      <button class="btn btn-sm" style="margin-top: 12px;" @click="reload">🔄 Ricarica indici</button>
+      <div class="empty-desc">
+        Aggiungi documenti nella cartella <code>knowledge_base/</code> e
+        ricarica gli indici.
+      </div>
+      <button class="btn btn-sm"
+style="margin-top: 12px" @click="reload">
+        🔄 Ricarica indici
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { apiGet, apiPost } from '../utils/api'
+import { ref, onMounted } from "vue";
+import { apiGet, apiPost } from "../utils/api";
 
-const query = ref('')
-const results = ref([])
-const topics = ref([])
-const stats = ref(null)
-const loading = ref(false)
-const searched = ref(false)
-const lastQuery = ref('')
-const searchFocused = ref(false)
-const searchInput = ref(null)
+const query = ref("");
+const results = ref([]);
+const topics = ref([]);
+const stats = ref(null);
+const loading = ref(false);
+const searched = ref(false);
+const lastQuery = ref("");
+const searchFocused = ref(false);
+const searchInput = ref(null);
 
-let debounceTimer = null
+let debounceTimer = null;
 
 const TOPIC_ICONS = {
-  allenamento: '🏋️', training: '🏋️', recovery: '😴', recupero: '😴',
-  potenza: '⚡', power: '⚡', nutrition: '🥗', nutrizione: '🥗',
-  gps: '📍', route: '🗺️', percorso: '🗺️', ftp: '⚙️', stress: '📊',
-  ciclismo: '🚴', cycling: '🚴', salita: '⛰️', climb: '⛰️',
-  cardio: '❤️', hr: '❤️', frequenza: '❤️', speed: '💨', velocità: '💨',
-}
+  allenamento: "🏋️",
+  training: "🏋️",
+  recovery: "😴",
+  recupero: "😴",
+  potenza: "⚡",
+  power: "⚡",
+  nutrition: "🥗",
+  nutrizione: "🥗",
+  gps: "📍",
+  route: "🗺️",
+  percorso: "🗺️",
+  ftp: "⚙️",
+  stress: "📊",
+  ciclismo: "🚴",
+  cycling: "🚴",
+  salita: "⛰️",
+  climb: "⛰️",
+  cardio: "❤️",
+  hr: "❤️",
+  frequenza: "❤️",
+  speed: "💨",
+  velocità: "💨",
+};
 
 function topicIcon(topic) {
-  const t = topic.toLowerCase()
+  const t = topic.toLowerCase();
   for (const [key, icon] of Object.entries(TOPIC_ICONS)) {
-    if (t.includes(key)) return icon
+    if (t.includes(key)) return icon;
   }
-  return '📖'
+  return "📖";
 }
 
 function highlightQuery(text, q) {
-  if (!q || !text) return escapeHtml(text)
-  const escaped = escapeHtml(text)
-  const words = q.split(/\s+/).filter(Boolean)
-  let result = escaped
+  if (!q || !text) return escapeHtml(text);
+  const escaped = escapeHtml(text);
+  const words = q.split(/\s+/).filter(Boolean);
+  let result = escaped;
   for (const word of words) {
-    const re = new RegExp(`(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-    result = result.replace(re, '<mark>$1</mark>')
+    const re = new RegExp(
+      `(${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
+      "gi",
+    );
+    result = result.replace(re, "<mark>$1</mark>");
   }
-  return result
+  return result;
 }
 
 function escapeHtml(str) {
-  return (str || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+  return (str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function onInput() {
-  clearTimeout(debounceTimer)
+  clearTimeout(debounceTimer);
   if (query.value.trim().length >= 3) {
-    debounceTimer = setTimeout(search, 600)
+    debounceTimer = setTimeout(search, 600);
   }
 }
 
 async function search() {
-  const q = query.value.trim()
-  if (!q) return
-  loading.value = true
-  searched.value = true
-  lastQuery.value = q
-  results.value = []
+  const q = query.value.trim();
+  if (!q) return;
+  loading.value = true;
+  searched.value = true;
+  lastQuery.value = q;
+  results.value = [];
   try {
-    const data = await apiGet('/api/v1/knowledge/search', { q })
-    results.value = data.results || data.chunks || data || []
+    const data = await apiGet("/api/v1/knowledge/search", { q });
+    results.value = data.results || data.chunks || data || [];
   } catch (e) {
-    console.error('search', e)
-    results.value = []
+    console.error("search", e);
+    results.value = [];
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function searchTopic(topic) {
-  query.value = topic
-  await search()
+  query.value = topic;
+  await search();
 }
 
 function clearSearch() {
-  query.value = ''
-  results.value = []
-  searched.value = false
-  lastQuery.value = ''
-  searchInput.value?.focus()
+  query.value = "";
+  results.value = [];
+  searched.value = false;
+  lastQuery.value = "";
+  searchInput.value?.focus();
 }
 
 async function reload() {
-  loading.value = true
+  loading.value = true;
   try {
-    await apiPost('/api/v1/knowledge/reload', {})
-    await loadTopics()
+    await apiPost("/api/v1/knowledge/reload", {});
+    await loadTopics();
   } catch (e) {
-    console.error('reload', e)
+    console.error("reload", e);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function loadTopics() {
   try {
-    const data = await apiGet('/api/v1/knowledge')
-    topics.value = Array.isArray(data) ? data : (data.topics || [])
+    const data = await apiGet("/api/v1/knowledge");
+    topics.value = Array.isArray(data) ? data : data.topics || [];
   } catch (e) {
-    console.warn('topics', e)
-    topics.value = []
+    console.warn("topics", e);
+    topics.value = [];
   }
 }
 
 async function loadStats() {
   try {
-    stats.value = await apiGet('/api/v1/knowledge/stats')
+    stats.value = await apiGet("/api/v1/knowledge/stats");
   } catch (e) {
-    console.warn('stats', e)
+    console.warn("stats", e);
   }
 }
 
 onMounted(async () => {
-  await Promise.all([loadTopics(), loadStats()])
-})
+  await Promise.all([loadTopics(), loadStats()]);
+});
 </script>
 
 <style scoped>
-.knowledge-panel { display: flex; flex-direction: column; gap: 20px; }
+.knowledge-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
 .panel-header {
   display: flex;
@@ -244,7 +322,10 @@ onMounted(async () => {
   font-size: 1.3rem;
 }
 
-.kb-stats { display: flex; gap: 8px; }
+.kb-stats {
+  display: flex;
+  gap: 8px;
+}
 
 .kb-badge {
   background: var(--bg-secondary);
@@ -271,7 +352,9 @@ onMounted(async () => {
   border-radius: var(--radius);
   padding: 0 14px;
   gap: 10px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .search-box.focused {
@@ -279,7 +362,11 @@ onMounted(async () => {
   box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.1);
 }
 
-.search-icon { font-size: 1rem; color: var(--text-muted); flex-shrink: 0; }
+.search-icon {
+  font-size: 1rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
 
 .search-input {
   flex: 1;
@@ -291,7 +378,9 @@ onMounted(async () => {
   padding: 12px 0;
   font-family: inherit;
 }
-.search-input::placeholder { color: var(--text-muted); }
+.search-input::placeholder {
+  color: var(--text-muted);
+}
 
 .clear-btn {
   background: none;
@@ -303,9 +392,14 @@ onMounted(async () => {
   line-height: 1;
   flex-shrink: 0;
 }
-.clear-btn:hover { color: var(--text-primary); }
+.clear-btn:hover {
+  color: var(--text-primary);
+}
 
-.search-btn { flex-shrink: 0; min-width: 70px; }
+.search-btn {
+  flex-shrink: 0;
+  min-width: 70px;
+}
 
 /* Topics row */
 .topics-row {
@@ -314,8 +408,16 @@ onMounted(async () => {
   gap: 10px;
   flex-wrap: wrap;
 }
-.topics-label { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; }
-.topics-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.topics-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.topics-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 
 .topic-pill {
   background: var(--bg-secondary);
@@ -334,7 +436,11 @@ onMounted(async () => {
 }
 
 /* Results */
-.results-section { display: flex; flex-direction: column; gap: 12px; }
+.results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 .results-header {
   display: flex;
@@ -348,7 +454,9 @@ onMounted(async () => {
   font-size: 0.85rem;
   color: var(--text-muted);
 }
-.results-count strong { color: var(--text-primary); }
+.results-count strong {
+  color: var(--text-primary);
+}
 
 .result-card {
   background: var(--bg-secondary);
@@ -360,8 +468,14 @@ onMounted(async () => {
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .result-card:hover {
@@ -457,7 +571,9 @@ onMounted(async () => {
   box-shadow: var(--shadow-sm);
 }
 
-.topic-icon { font-size: 1.8rem; }
+.topic-icon {
+  font-size: 1.8rem;
+}
 
 .topic-name {
   font-size: 0.82rem;
@@ -477,6 +593,10 @@ code {
   animation: skeletonPulse 1.4s ease-in-out infinite;
 }
 
-.skeleton-pulse:nth-child(2) { animation-delay: 0.2s; }
-.skeleton-pulse:nth-child(3) { animation-delay: 0.4s; }
+.skeleton-pulse:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.skeleton-pulse:nth-child(3) {
+  animation-delay: 0.4s;
+}
 </style>

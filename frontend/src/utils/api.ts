@@ -1,8 +1,24 @@
+import { useAuthStore } from '../stores/auth'
+
 const API_BASE = ''
 
 function clearAuth() {
   localStorage.removeItem('bikemaster_token')
   localStorage.removeItem('bikemaster_user')
+}
+
+let sessionExpiredNotified = false
+
+function notifySessionExpired() {
+  const toast = (window as unknown as { __toast?: { add?: (msg: string, type?: string, ms?: number) => void } }).__toast
+  if (toast?.add && !sessionExpiredNotified) {
+    toast.add('Sessione scaduta. Effettua di nuovo il login.', 'error')
+    sessionExpiredNotified = true
+  }
+  const auth = useAuthStore()
+  if (auth.isLoggedIn) {
+    void auth.logout().catch(() => {})
+  }
 }
 
 function authHeaders(): Record<string, string> {
@@ -24,6 +40,7 @@ async function apiGet(path: string, params: Record<string, string> = {}, options
   if (!resp.ok) {
     if (resp.status === 401) {
       clearAuth()
+      notifySessionExpired()
       throw new Error('expired')
     }
     const err = await resp.json().catch(() => ({}))
@@ -43,6 +60,7 @@ async function apiPost(path: string, body: unknown, options: RequestInit = {}): 
   if (!resp.ok) {
     if (resp.status === 401) {
       clearAuth()
+      notifySessionExpired()
       throw new Error('expired')
     }
     const err = await resp.json().catch(() => ({}))
@@ -60,6 +78,7 @@ async function apiDelete(path: string, options: RequestInit = {}): Promise<ApiRe
   if (!resp.ok) {
     if (resp.status === 401) {
       clearAuth()
+      notifySessionExpired()
       throw new Error('expired')
     }
     const err = await resp.json().catch(() => ({}))
@@ -80,6 +99,7 @@ async function apiUpload(path: string, file: Blob | File, options: RequestInit =
   if (!resp.ok) {
     if (resp.status === 401) {
       clearAuth()
+      notifySessionExpired()
       throw new Error('expired')
     }
     const err = await resp.json().catch(() => ({}))
@@ -98,6 +118,7 @@ async function apiPut(path: string, body: unknown, options: RequestInit = {}): P
   if (!resp.ok) {
     if (resp.status === 401) {
       clearAuth()
+      notifySessionExpired()
       throw new Error('expired')
     }
     const err = await resp.json().catch(() => ({}))

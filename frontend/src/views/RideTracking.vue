@@ -46,6 +46,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useTrackingStore } from '../stores/trackingStore'
 import { useRouter } from 'vue-router'
 import { useI18n } from '../composables/useI18n'
@@ -83,17 +84,7 @@ const tracking = useTrackingStore()
 const {
   isTracking,
   isPaused,
-  start,
-  stop,
-  pause,
-  resume,
-  addPoint,
-  updateMetrics,
-  resetMetrics,
-  setGpxPath,
-  setGpxBlob,
-  toGpx,
-} = tracking
+} = storeToRefs(tracking)
 
 async function startTracking() {
   const hasPermission = await checkPermissions()
@@ -106,7 +97,7 @@ async function startTracking() {
   } else {
     startWebTracking()
   }
-  start()
+  tracking.start()
 }
 
 async function checkPermissions(): Promise<boolean> {
@@ -130,7 +121,7 @@ async function pauseTracking() {
   } else if (isPaused.value === false) {
     webPausedAt = Date.now()
   }
-  pause()
+  tracking.pause()
 }
 
 async function resumeTracking() {
@@ -140,7 +131,7 @@ async function resumeTracking() {
     webPausedAccumulatedMs += Date.now() - webPausedAt
     webPausedAt = null
   }
-  resume()
+  tracking.resume()
 }
 
 async function stopTracking() {
@@ -150,11 +141,11 @@ async function stopTracking() {
   } else {
     result = stopWebTracking()
   }
-  setGpxPath(result?.gpxPath || null)
+  tracking.setGpxPath(result?.gpxPath || null)
   if (result?.gpxBlob) {
-    setGpxBlob(result.gpxBlob)
+    tracking.setGpxBlob(result.gpxBlob)
   }
-  stop()
+  tracking.stop()
 }
 
 async function uploadRide() {
@@ -241,7 +232,7 @@ function handleWebPosition(position: GeolocationPosition) {
     timestamp: new Date(position.timestamp).toISOString(),
   }
 
-  if (webLastPoint) {
+  if (webLastPoint && webLastPoint.timestampNumber != null) {
     const samePosition = webLastPoint.lat === lat && webLastPoint.lon === lon
     const elapsedSinceLastMs = position.timestamp - webLastPoint.timestampNumber
     if (samePosition && elapsedSinceLastMs < 5000) {
@@ -274,8 +265,8 @@ function handleWebPosition(position: GeolocationPosition) {
     ? (webDistance / 1000) / (elapsedSinceLastMs / 3600000)
     : 0
 
-  addPoint(point)
-  updateMetrics({
+  tracking.addPoint(point)
+  tracking.updateMetrics({
     distance: webDistance,
     currentSpeed,
     avgSpeed,
@@ -316,15 +307,15 @@ function stopWebTracking() {
     webWatchId = null
   }
   gpsWaiting.value = false
-  const blob = new Blob([toGpx()], { type: 'application/gpx+xml' })
-  setGpxBlob(blob)
+  const blob = new Blob([tracking.toGpx()], { type: 'application/gpx+xml' })
+  tracking.setGpxBlob(blob)
   return { gpxPath: null, gpxBlob: blob }
 }
 
 function getUploadBlob() {
   if (tracking.gpxBlob) return tracking.gpxBlob
   if (tracking.routePoints.length > 0) {
-    return new Blob([toGpx()], { type: 'application/gpx+xml' })
+    return new Blob([tracking.toGpx()], { type: 'application/gpx+xml' })
   }
   return null
 }
@@ -345,9 +336,9 @@ function haversineDistanceMeters(lat1: number, lon1: number, lat2: number, lon2:
 }
 
 function resetTrackingState() {
-  resetMetrics()
-  setGpxPath(null)
-  setGpxBlob(null)
+  tracking.resetMetrics()
+  tracking.setGpxPath(null)
+  tracking.setGpxBlob(null)
 }
 
 onMounted(() => {

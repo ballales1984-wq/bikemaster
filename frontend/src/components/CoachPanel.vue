@@ -4,37 +4,60 @@
       <div class="coach-title">
         <span class="coach-avatar">🧠</span>
         <div>
-          <h2>{{ t('coach.title') }}</h2>
-          <span class="coach-status">{{ connected ? '🟢 ' + t('coach.online') : '⚪ ' + t('coach.offline') }}</span>
+          <h2>{{ t("coach.title") }}</h2>
+          <span class="coach-status">{{
+            connected ? "🟢 " + t("coach.online") : "⚪ " + t("coach.offline")
+          }}</span>
         </div>
       </div>
       <div class="header-actions">
-         <button class="btn btn-sm btn-secondary" @click="loadFullReport" :disabled="loadingReport" :title="t('coach.report')" :aria-label="t('coach.report')">
-           {{ loadingReport ? '⏳' : '📊' }} {{ t('coach.report') }}
-         </button>
-         <button class="btn btn-sm btn-secondary" @click="clearChat" :title="t('coach.clear')" :aria-label="t('coach.clear')">🗑️</button>
+        <button
+          class="btn btn-sm btn-secondary"
+          :disabled="loadingReport"
+          :title="t('coach.report')"
+          :aria-label="t('coach.report')"
+          @click="loadFullReport"
+        >
+          {{ loadingReport ? "⏳" : "📊" }} {{ t("coach.report") }}
+        </button>
+        <button
+          class="btn btn-sm btn-secondary"
+          :title="t('coach.clear')"
+          :aria-label="t('coach.clear')"
+          @click="clearChat"
+        >
+          🗑️
+        </button>
       </div>
     </div>
 
     <!-- Score cards -->
-    <div class="score-strip" v-if="scores.length">
-      <div class="score-pill" v-for="s in scores" :key="s.label">
-        <span class="pill-val" :style="{ color: s.color }">{{ s.value }}</span>
+    <div v-if="scores.length" class="score-strip">
+      <div v-for="s in scores" class="score-pill" :key="s.label">
+        <span class="pill-val"
+:style="{ color: s.color }">{{ s.value }}</span>
         <span class="pill-lbl">{{ s.label }}</span>
       </div>
     </div>
 
     <!-- Chat window -->
-    <div class="chat-window" ref="chatWindow">
+    <div ref="chatWindow" class="chat-window">
       <!-- Welcome message -->
-      <div class="message bot-msg" v-if="messages.length === 0">
+      <div v-if="messages.length === 0" class="message bot-msg">
         <div class="msg-avatar">🧠</div>
         <div class="msg-content">
           <div class="msg-bubble">
-            {{ t('coach.welcome') }}
+            {{ t("coach.welcome") }}
           </div>
           <div class="quick-actions">
-            <button class="quick-btn" v-for="q in quickQuestions" :key="q" @click="sendQuick(q)">{{ q }}</button>
+            <button
+              v-for="q in quickQuestions"
+              :key="q"
+              class="quick-btn"
+              @click="sendQuick(q)"
+            >
+              {{ q }}
+            </button>
           </div>
         </div>
       </div>
@@ -46,19 +69,24 @@
         class="message"
         :class="msg.role === 'user' ? 'user-msg' : 'bot-msg'"
       >
-        <div class="msg-avatar">{{ msg.role === 'user' ? '🚴' : '🧠' }}</div>
+        <div class="msg-avatar">
+          {{ msg.role === "user" ? "🚴" : "🧠" }}
+        </div>
         <div class="msg-content">
-          <div class="msg-bubble" v-html="formatMsg(msg.content)"></div>
-          <div class="msg-time">{{ msg.time }}</div>
+          <div
+class="msg-bubble" v-html="formatMsg(msg.content)" />
+          <div class="msg-time">
+            {{ msg.time }}
+          </div>
         </div>
       </div>
 
       <!-- Typing indicator -->
-      <div class="message bot-msg" v-if="thinking">
+      <div v-if="thinking" class="message bot-msg">
         <div class="msg-avatar">🧠</div>
         <div class="msg-content">
           <div class="msg-bubble typing-bubble">
-            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="dot" /><span class="dot" /><span class="dot" />
           </div>
         </div>
       </div>
@@ -67,156 +95,190 @@
     <!-- Input area -->
     <div class="chat-input-area">
       <textarea
-        v-model="userInput"
         ref="inputRef"
+        v-model="userInput"
         class="chat-input"
         :placeholder="t('coach.placeholder')"
         rows="1"
-        @keydown.enter.prevent="sendMessage"
-        @input="autoResize"
         :disabled="thinking"
         :aria-label="t('coach.ask')"
-      ></textarea>
-      <button class="send-btn" @click="sendMessage" :disabled="!userInput.trim() || thinking">
+        @keydown.enter.prevent="sendMessage"
+        @input="autoResize"
+      />
+      <button
+        class="send-btn"
+        :disabled="!userInput.trim() || thinking"
+        @click="sendMessage"
+      >
         <span v-if="!thinking">➤</span>
-        <span v-else class="spinner" style="width:16px;height:16px;border-width:2px;"></span>
+        <span
+          v-else
+          class="spinner"
+          style="width: 16px; height: 16px; border-width: 2px"
+        />
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue'
-import { useI18n } from '../composables/useI18n'
-import { apiGet, apiPost } from '../utils/api'
-import DOMPurify from 'dompurify'
+import { ref, computed, nextTick, onMounted } from "vue";
+import { useI18n } from "../composables/useI18n";
+import { apiGet, apiPost } from "../utils/api";
+import DOMPurify from "dompurify";
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const messages = ref([])
-const userInput = ref('')
-const thinking = ref(false)
-const loadingReport = ref(false)
-const connected = ref(true)
-const chatWindow = ref(null)
-const inputRef = ref(null)
-const coachData = ref(null)
-const athleteId = ref(null)
+const messages = ref([]);
+const userInput = ref("");
+const thinking = ref(false);
+const loadingReport = ref(false);
+const connected = ref(true);
+const chatWindow = ref(null);
+const inputRef = ref(null);
+const coachData = ref(null);
+const athleteId = ref(null);
 
 const quickQuestions = [
-  '💪 Prossimo allenamento consigliato',
-  '😴 Quanto recupero mi serve?',
-  '📈 Analizza le mie ultime uscite',
-  '🎯 Come aumentare il FTP?',
-]
+  "💪 Prossimo allenamento consigliato",
+  "😴 Quanto recupero mi serve?",
+  "📈 Analizza le mie ultime uscite",
+  "🎯 Come aumentare il FTP?",
+];
 
 const scores = computed(() => {
-  const s = coachData.value?.training_scores
-  if (!s) return []
-  const colors = { Performance: '#00ffcc', Endurance: '#0088ff', Efficiency: '#ff6b35', Recovery: '#a855f7' }
-  return s.map(sc => ({ label: sc.label, value: Number(sc.value || 0).toFixed(1), color: colors[sc.label] || '#fff' }))
-})
+  const s = coachData.value?.training_scores;
+  if (!s) return [];
+  const colors = {
+    Performance: "#00ffcc",
+    Endurance: "#0088ff",
+    Efficiency: "#ff6b35",
+    Recovery: "#a855f7",
+  };
+  return s.map((sc) => ({
+    label: sc.label,
+    value: Number(sc.value || 0).toFixed(1),
+    color: colors[sc.label] || "#fff",
+  }));
+});
 
 function formatMsg(text) {
-  if (!text) return ''
+  if (!text) return "";
   const html = text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\n/g, '<br>')
-    .replace(/^- (.+)/gm, '<li>$1</li>')
-  return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['strong', 'em', 'br', 'li', 'ul'], ALLOWED_ATTR: [] })
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/\n/g, "<br>")
+    .replace(/^- (.+)/gm, "<li>$1</li>");
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["strong", "em", "br", "li", "ul"],
+    ALLOWED_ATTR: [],
+  });
 }
 
 function getTime() {
-  return new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  return new Date().toLocaleTimeString("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 async function scrollToBottom() {
-  await nextTick()
+  await nextTick();
   if (chatWindow.value) {
-    chatWindow.value.scrollTop = chatWindow.value.scrollHeight
+    chatWindow.value.scrollTop = chatWindow.value.scrollHeight;
   }
 }
 
 function autoResize(e) {
-  const el = e.target
-  el.style.height = 'auto'
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  const el = e.target;
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 120) + "px";
 }
 
 async function sendMessage() {
-  const text = userInput.value.trim()
-  if (!text || thinking.value) return
+  const text = userInput.value.trim();
+  if (!text || thinking.value) return;
 
-  messages.value.push({ role: 'user', content: text, time: getTime() })
-  userInput.value = ''
-  if (inputRef.value) { inputRef.value.style.height = 'auto' }
-  thinking.value = true
-  await scrollToBottom()
+  messages.value.push({ role: "user", content: text, time: getTime() });
+  userInput.value = "";
+  if (inputRef.value) {
+    inputRef.value.style.height = "auto";
+  }
+  thinking.value = true;
+  await scrollToBottom();
 
   try {
-    const params = {}
-    if (athleteId.value) params.athlete_id = athleteId.value
-    const resp = await apiPost('/api/v1/coach/chat', { message: text, ...params })
-    const reply = resp.response || resp.message || resp.advice || JSON.stringify(resp)
-    messages.value.push({ role: 'assistant', content: reply, time: getTime() })
+    const params = {};
+    if (athleteId.value) params.athlete_id = athleteId.value;
+    const resp = await apiPost("/api/v1/coach/chat", {
+      message: text,
+      ...params,
+    });
+    const reply =
+      resp.response || resp.message || resp.advice || JSON.stringify(resp);
+    messages.value.push({ role: "assistant", content: reply, time: getTime() });
   } catch (e) {
     messages.value.push({
-      role: 'assistant',
-      content: '⚠️ Errore nella risposta. Verifica la configurazione di GROQ_API_KEY nel backend.',
-      time: getTime()
-    })
-    connected.value = false
+      role: "assistant",
+      content:
+        "⚠️ Errore nella risposta. Verifica la configurazione di GROQ_API_KEY nel backend.",
+      time: getTime(),
+    });
+    connected.value = false;
   } finally {
-    thinking.value = false
-    await scrollToBottom()
+    thinking.value = false;
+    await scrollToBottom();
   }
 }
 
 async function sendQuick(question) {
-  userInput.value = question
-  await sendMessage()
+  userInput.value = question;
+  await sendMessage();
 }
 
 async function loadFullReport() {
-  if (!athleteId.value) return
-  loadingReport.value = true
+  if (!athleteId.value) return;
+  loadingReport.value = true;
   try {
-    const data = await apiGet('/api/v1/coach/full', { athlete_id: athleteId.value })
-    coachData.value = data
+    const data = await apiGet("/api/v1/coach/full", {
+      athlete_id: athleteId.value,
+    });
+    coachData.value = data;
     if (data.training_advice) {
       messages.value.push({
-        role: 'assistant',
-        content: `**📊 Report Completo**\n\n**Allenamento:**\n${data.training_advice}\n\n**Recupero:**\n${data.recovery_advice || '—'}`,
-        time: getTime()
-      })
-      await scrollToBottom()
+        role: "assistant",
+        content: `**📊 Report Completo**\n\n**Allenamento:**\n${data.training_advice}\n\n**Recupero:**\n${data.recovery_advice || "—"}`,
+        time: getTime(),
+      });
+      await scrollToBottom();
     }
   } catch (e) {
-    console.error('coach full', e)
+    console.error("coach full", e);
   } finally {
-    loadingReport.value = false
+    loadingReport.value = false;
   }
 }
 
 function clearChat() {
-  messages.value = []
+  messages.value = [];
 }
 
 async function init() {
-   try {
-     const me = await apiGet('/api/v1/athletes/me')
-     athleteId.value = me.athlete?.id ?? null
-     if (athleteId.value) {
-       const scores = await apiGet('/api/v1/coach/full', { athlete_id: athleteId.value })
-       coachData.value = scores
-     }
-   } catch (e) {
-     console.warn('init coach', e)
-   }
- }
+  try {
+    const me = await apiGet("/api/v1/athletes/me");
+    athleteId.value = me.athlete?.id ?? null;
+    if (athleteId.value) {
+      const scores = await apiGet("/api/v1/coach/full", {
+        athlete_id: athleteId.value,
+      });
+      coachData.value = scores;
+    }
+  } catch (e) {
+    console.warn("init coach", e);
+  }
+}
 
-onMounted(() => init())
+onMounted(() => init());
 </script>
 
 <style scoped>
@@ -288,12 +350,12 @@ onMounted(() => init())
   display: flex;
   align-items: center;
   gap: 6px;
- }
+}
 
 .pill-val {
   font-size: 1rem;
   font-weight: 700;
-  font-family: 'Outfit', sans-serif;
+  font-family: "Outfit", sans-serif;
 }
 
 .pill-lbl {
@@ -336,8 +398,14 @@ onMounted(() => init())
 }
 
 @keyframes msgIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .msg-avatar {
@@ -360,7 +428,9 @@ onMounted(() => init())
   max-width: 80%;
 }
 
-.user-msg .msg-content { align-items: flex-end; }
+.user-msg .msg-content {
+  align-items: flex-end;
+}
 
 .msg-bubble {
   background: var(--bg-secondary);
@@ -404,12 +474,24 @@ onMounted(() => init())
   background: var(--accent);
   animation: bounce 1.2s infinite;
 }
-.dot:nth-child(2) { animation-delay: 0.2s; }
-.dot:nth-child(3) { animation-delay: 0.4s; }
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes bounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-6px); opacity: 1; }
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
 }
 
 /* Quick actions */
@@ -462,7 +544,9 @@ onMounted(() => init())
   resize: none;
   outline: none;
   overflow: hidden;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   min-height: 46px;
   max-height: 120px;
   line-height: 1.5;
@@ -473,8 +557,12 @@ onMounted(() => init())
   box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.1);
 }
 
-.chat-input::placeholder { color: var(--text-muted); }
-.chat-input:disabled { opacity: 0.5; }
+.chat-input::placeholder {
+  color: var(--text-muted);
+}
+.chat-input:disabled {
+  opacity: 0.5;
+}
 
 .send-btn {
   width: 46px;
@@ -504,9 +592,18 @@ onMounted(() => init())
 }
 
 @media (max-width: 768px) {
-  .coach-panel { height: 60vh; }
-  .msg-content { max-width: 90%; }
-  .quick-actions { gap: 4px; }
-  .quick-btn { font-size: 0.72rem; padding: 5px 10px; }
+  .coach-panel {
+    height: 60vh;
+  }
+  .msg-content {
+    max-width: 90%;
+  }
+  .quick-actions {
+    gap: 4px;
+  }
+  .quick-btn {
+    font-size: 0.72rem;
+    padding: 5px 10px;
+  }
 }
 </style>

@@ -3,11 +3,16 @@
     <div class="panel">
       <div class="detail-header">
         <h2>🚴 Dettaglio Uscita</h2>
-        <button class="close-btn" @click="$emit('close')" aria-label="Chiudi">✕</button>
+        <button class="close-btn"
+@click="$emit('close')" aria-label="Chiudi">
+          ✕
+        </button>
       </div>
-      
-      <div class="ride-date-large">{{ formatDate(ride.date) }}</div>
-      
+
+      <div class="ride-date-large">
+        {{ formatDate(ride.date) }}
+      </div>
+
       <div class="metrics-grid">
         <div class="metric-card">
           <div class="metric-icon">📏</div>
@@ -31,39 +36,60 @@
         </div>
       </div>
 
-      <div class="analysis-section" v-if="ride.elevation_gain_m || ride.max_speed_kmh || ride.avg_heart_rate">
+      <div
+        v-if="
+          ride.elevation_gain_m || ride.max_speed_kmh || ride.avg_heart_rate
+        "
+        class="analysis-section"
+      >
         <h3>📊 Analisi Dettagliata</h3>
         <div class="analysis-grid">
-          <div class="a-item" v-if="ride.elevation_gain_m">
+          <div v-if="ride.elevation_gain_m" class="a-item">
             <span class="a-lbl">⛰️ Dislivello</span>
             <span class="a-val">{{ fmt(ride.elevation_gain_m, 0) }} m</span>
           </div>
-          <div class="a-item" v-if="ride.max_speed_kmh">
+          <div v-if="ride.max_speed_kmh" class="a-item">
             <span class="a-lbl">💨 Velocità Max</span>
             <span class="a-val">{{ fmt(ride.max_speed_kmh) }} km/h</span>
           </div>
-          <div class="a-item" v-if="ride.avg_heart_rate">
+          <div v-if="ride.avg_heart_rate" class="a-item">
             <span class="a-lbl">❤️ FC Media</span>
             <span class="a-val">{{ fmt(ride.avg_heart_rate, 0) }} bpm</span>
           </div>
-          <div class="a-item" v-if="ride.max_heart_rate">
+          <div v-if="ride.max_heart_rate" class="a-item">
             <span class="a-lbl">❤️ FC Massima</span>
             <span class="a-val">{{ fmt(ride.max_heart_rate, 0) }} bpm</span>
           </div>
-          <div class="a-item" v-if="ride.fatigue_score !== undefined">
+          <div v-if="ride.fatigue_score !== undefined" class="a-item">
             <span class="a-lbl">😰 Affaticamento</span>
-            <span class="a-val" :class="fatigueClass">{{ ride.fatigue_score }}/10</span>
+            <span
+class="a-val" :class="fatigueClass"
+            >{{ ride.fatigue_score }}/10</span>
           </div>
         </div>
       </div>
 
-      <SpeedMap v-if="googleMapsApiKey" :ride-id="ride.id" :api-key="googleMapsApiKey" />
+      <SpeedMap
+        v-if="googleMapsApiKey"
+        :ride-id="ride.id"
+        :api-key="googleMapsApiKey"
+      />
 
-      <div class="chart-section" v-if="speedChart || elevationChart">
+      <div v-if="speedChart || elevationChart" class="chart-section">
         <h3>📈 Grafici</h3>
         <div class="chart-row">
-          <img v-if="speedChart" :src="speedChart" alt="Speed chart" class="chart-img" />
-          <img v-if="elevationChart" :src="elevationChart" alt="Elevation chart" class="chart-img" />
+          <img
+            v-if="speedChart"
+            :src="speedChart"
+            alt="Speed chart"
+            class="chart-img"
+          >
+          <img
+            v-if="elevationChart"
+            :src="elevationChart"
+            alt="Elevation chart"
+            class="chart-img"
+          >
         </div>
       </div>
     </div>
@@ -71,47 +97,54 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue"
-import { apiGet } from "../utils/api"
-import SpeedMap from "./SpeedMap.vue"
+import { ref, onMounted, computed } from "vue";
+import { apiGet } from "../utils/api";
+import SpeedMap from "./SpeedMap.vue";
 
-const props = defineProps({ rideId: Number })
-const emit = defineEmits(['close'])
+const props = defineProps({ rideId: Number });
+const emit = defineEmits(["close"]);
 
-const ride = ref(null)
-const speedChart = ref("")
-const elevationChart = ref("")
-const googleMapsApiKey = ref("")
+const ride = ref(null);
+const speedChart = ref("");
+const elevationChart = ref("");
+const googleMapsApiKey = ref("");
 
 const fatigueClass = computed(() => {
-  const score = ride.value?.fatigue_score ?? 0
-  if (score <= 3) return 'fatigue-low'
-  if (score <= 6) return 'fatigue-medium'
-  return 'fatigue-high'
-})
+  const score = ride.value?.fatigue_score ?? 0;
+  if (score <= 3) return "fatigue-low";
+  if (score <= 6) return "fatigue-medium";
+  return "fatigue-high";
+});
 
 function fmt(v, dec = 1) {
-  if (v == null || isNaN(Number(v))) return '—'
-  return Number(v).toFixed(dec)
+  if (v == null || isNaN(Number(v))) return "—";
+  return Number(v).toFixed(dec);
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return ''
+  if (!dateStr) return "";
   try {
-    return new Date(dateStr).toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
-  } catch { return dateStr }
+    return new Date(dateStr).toLocaleDateString("it-IT", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
 }
 
 async function load() {
-  const data = await apiGet(`/api/v1/rides/${props.rideId}`)
-  ride.value = data
-  speedChart.value = `/api/v1/charts/speed/${props.rideId}`
-  elevationChart.value = `/api/v1/charts/elevation/${props.rideId}`
-  const config = await apiGet('/api/v1/config/google-maps-key')
-  googleMapsApiKey.value = config.google_maps_api_key || ''
+  const data = await apiGet(`/api/v1/rides/${props.rideId}`);
+  ride.value = data;
+  speedChart.value = `/api/v1/charts/speed/${props.rideId}`;
+  elevationChart.value = `/api/v1/charts/elevation/${props.rideId}`;
+  const config = await apiGet("/api/v1/config/google-maps-key");
+  googleMapsApiKey.value = config.google_maps_api_key || "";
 }
 
-onMounted(() => load())
+onMounted(() => load());
 </script>
 
 <style scoped>
@@ -176,7 +209,7 @@ onMounted(() => load())
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--accent);
-  font-family: 'Outfit', sans-serif;
+  font-family: "Outfit", sans-serif;
 }
 
 .metric-label {
@@ -224,9 +257,15 @@ onMounted(() => load())
   color: var(--text-primary);
 }
 
-.fatigue-low { color: var(--success); }
-.fatigue-medium { color: var(--warning); }
-.fatigue-high { color: var(--error); }
+.fatigue-low {
+  color: var(--success);
+}
+.fatigue-medium {
+  color: var(--warning);
+}
+.fatigue-high {
+  color: var(--error);
+}
 
 .chart-section {
   margin-top: 24px;

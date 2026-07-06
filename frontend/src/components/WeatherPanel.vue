@@ -5,41 +5,67 @@
     <div class="form-grid">
       <div class="form-group">
         <label for="weather-lat">Latitude</label>
-        <input id="weather-lat" type="number" v-model.number="lat" step="0.0001" placeholder="Ex: 45.4642" />
+        <input
+          id="weather-lat"
+          v-model.number="lat"
+          type="number"
+          step="0.0001"
+          placeholder="Ex: 45.4642"
+        >
       </div>
       <div class="form-group">
         <label for="weather-lon">Longitude</label>
-        <input id="weather-lon" type="number" v-model.number="lon" step="0.0001" placeholder="Ex: 9.1900" />
+        <input
+          id="weather-lon"
+          v-model.number="lon"
+          type="number"
+          step="0.0001"
+          placeholder="Ex: 9.1900"
+        >
       </div>
       <div class="form-group">
         <label for="weather-date">Date (optional)</label>
-        <input id="weather-date" type="date" v-model="date" />
+        <input
+id="weather-date" type="date" v-model="date" />
       </div>
       <div class="form-group">
-        <button class="btn btn-primary" @click="fetchWeather" :disabled="loading">
-          {{ loading ? '🔄 Loading...' : '🌡️ Get Weather' }}
+        <button
+          class="btn btn-primary"
+          :disabled="loading"
+          @click="fetchWeather"
+        >
+          {{ loading ? "🔄 Loading..." : "🌡️ Get Weather" }}
         </button>
       </div>
     </div>
 
-    <div v-if="loading" class="loading-text">
-      <span class="spinner"></span> Loading weather...
+    <div v-if="loading"
+class="loading-text">
+      <span class="spinner" /> Loading weather...
     </div>
 
-    <div v-else-if="weatherError" class="error-box">
+    <div v-else-if="weatherError"
+class="error-box">
       {{ weatherError }}
     </div>
 
-    <div v-else-if="!weather" class="empty-state">
+    <div v-else-if="!weather"
+class="empty-state">
       <div class="empty-icon">🌤️</div>
       <div class="empty-title">Weather Information</div>
-      <div class="empty-desc">Enter coordinates and click "Get Weather" for current conditions and cycling-specific advice</div>
+      <div class="empty-desc">
+        Enter coordinates and click "Get Weather" for current conditions and
+        cycling-specific advice
+      </div>
     </div>
 
-    <div v-else class="weather-card">
+    <div v-else
+class="weather-card">
       <div class="weather-header">
-        <h3>{{ weather.location?.city || 'Location' }}</h3>
-        <span class="weather-score" :class="'score-' + weather.score">Score: {{ weather.score }}/10</span>
+        <h3>{{ weather.location?.city || "Location" }}</h3>
+        <span
+class="weather-score" :class="'score-' + weather.score"
+        >Score: {{ weather.score }}/10</span>
       </div>
       <div class="weather-info">
         <div class="weather-item">
@@ -68,15 +94,25 @@
       </div>
     </div>
 
-    <div class="panel" style="margin-top: 20px;">
+    <div class="panel"
+style="margin-top: 20px">
       <h3>📅 7-Day Forecast</h3>
-      <div v-if="forecastLoading" class="loading-text">Loading forecasts...</div>
-      <div v-else class="forecast-grid">
-        <div v-for="f in forecast" :key="f.date" class="forecast-card">
-          <div class="forecast-date">{{ f.date }}</div>
+      <div v-if="forecastLoading"
+class="loading-text">
+        Loading forecasts...
+      </div>
+      <div v-else
+class="forecast-grid">
+        <div v-for="f in forecast"
+:key="f.date" class="forecast-card">
+          <div class="forecast-date">
+            {{ f.date }}
+          </div>
           <div class="forecast-temp">{{ f.temperature }}°C</div>
           <div class="forecast-humidity">💧 {{ f.humidity }}%</div>
-          <div class="forecast-advice">{{ f.advice }}</div>
+          <div class="forecast-advice">
+            {{ f.advice }}
+          </div>
         </div>
       </div>
     </div>
@@ -84,55 +120,55 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { apiGet } from '../utils/api'
+import { ref, watch } from "vue";
+import { apiGet } from "../utils/api";
 
-const lat = ref(45.4642)
-const lon = ref(9.1900)
-const date = ref('')
-const loading = ref(false)
-const weather = ref(null)
-const weatherError = ref('')
-const forecast = ref([])
-const forecastLoading = ref(false)
+const lat = ref(45.4642);
+const lon = ref(9.19);
+const date = ref("");
+const loading = ref(false);
+const weather = ref(null);
+const weatherError = ref("");
+const forecast = ref([]);
+const forecastLoading = ref(false);
 
 async function fetchWeather() {
-  loading.value = true
-  weatherError.value = ''
-  weather.value = null
+  loading.value = true;
+  weatherError.value = "";
+  weather.value = null;
 
   try {
-    const params = { lat: lat.value, lon: lon.value }
-    if (date.value) params.date = date.value
-    weather.value = await apiGet('/api/v1/weather', params)
+    const params = { lat: lat.value, lon: lon.value };
+    if (date.value) params.date = date.value;
+    weather.value = await apiGet("/api/v1/weather", params);
   } catch (e) {
-    weatherError.value = e.message || 'Error loading weather'
+    weatherError.value = e.message || "Error loading weather";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function fetchForecast() {
-  forecastLoading.value = true
+  forecastLoading.value = true;
   try {
-    const data = await apiGet('/api/v1/weather/forecast', {
+    const data = await apiGet("/api/v1/weather/forecast", {
       lat: lat.value,
       lon: lon.value,
-      days: 7
-    })
-    forecast.value = data.forecasts || []
+      days: 7,
+    });
+    forecast.value = data.forecasts || [];
   } catch (e) {
-    forecast.value = []
+    forecast.value = [];
   } finally {
-    forecastLoading.value = false
+    forecastLoading.value = false;
   }
 }
 
 watch(date, (newDate) => {
   if (newDate && lat.value && lon.value) {
-    fetchWeather()
+    fetchWeather();
   }
-})
+});
 </script>
 
 <style scoped>
@@ -177,9 +213,26 @@ watch(date, (newDate) => {
   font-weight: bold;
 }
 
-.score-8, .score-9, .score-10 { background: #dcfce7; color: #166534; }
-.score-5, .score-6, .score-7 { background: #fef3c7; color: #92400e; }
-.score-0, .score-1, .score-2, .score-3, .score-4 { background: #fee2e2; color: #991b1b; }
+.score-8,
+.score-9,
+.score-10 {
+  background: #dcfce7;
+  color: #166534;
+}
+.score-5,
+.score-6,
+.score-7 {
+  background: #fef3c7;
+  color: #92400e;
+}
+.score-0,
+.score-1,
+.score-2,
+.score-3,
+.score-4 {
+  background: #fee2e2;
+  color: #991b1b;
+}
 
 .forecast-grid {
   display: grid;
@@ -206,7 +259,8 @@ watch(date, (newDate) => {
   margin: 5px 0;
 }
 
-.forecast-humidity, .forecast-score {
+.forecast-humidity,
+.forecast-score {
   font-size: 0.85rem;
   margin: 3px 0;
 }
