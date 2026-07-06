@@ -2,43 +2,43 @@
   <section class="rides-section">
     <!-- Add ride form -->
     <div class="panel add-panel">
-      <div class="add-header" @click="showForm = !showForm" role="button" tabindex="0">
-        <h2>➕ Aggiungi Uscita</h2>
+      <div class="add-header" @click="showForm = !showForm" role="button" tabindex="0" @keydown.enter="showForm = !showForm" @keydown.space.prevent="showForm = !showForm">
+        <h2>➕ {{ t('rides.addTitle') }}</h2>
         <span class="toggle-icon">{{ showForm ? '▲' : '▼' }}</span>
       </div>
       <transition name="slide-down">
         <form v-if="showForm" @submit.prevent="handleAdd" class="ride-form">
           <div class="form-grid">
             <div class="form-group">
-              <label for="ride-date">Data</label>
+              <label for="ride-date">{{ t('common.date') }}</label>
               <input id="ride-date" v-model="form.date" type="date" required class="form-input" />
             </div>
             <div class="form-group">
-              <label for="ride-dist">Distanza (km)</label>
+              <label for="ride-dist">{{ t('rides.distance') }} (km)</label>
               <input id="ride-dist" v-model="form.distance_km" type="number" step="0.01" placeholder="0.0" required class="form-input" />
             </div>
             <div class="form-group">
-              <label for="ride-dur">Durata (min)</label>
+              <label for="ride-dur">{{ t('rides.duration') }} (min)</label>
               <input id="ride-dur" v-model="form.duration_minutes" type="number" placeholder="0" required class="form-input" />
             </div>
             <div class="form-group">
-              <label for="ride-speed">Velocità media (km/h)</label>
+              <label for="ride-speed">{{ t('rides.avgSpeed') }} (km/h)</label>
               <input id="ride-speed" v-model="form.avg_speed_kmh" type="number" step="0.01" placeholder="0.0" class="form-input" />
             </div>
             <div class="form-group">
-              <label for="ride-elev">Dislivello (m)</label>
+              <label for="ride-elev">{{ t('rides.elevation') }} (m)</label>
               <input id="ride-elev" v-model="form.elevation_gain_m" type="number" placeholder="0" class="form-input" />
             </div>
             <div class="form-group">
-              <label for="ride-cal">Calorie</label>
+              <label for="ride-cal">{{ t('common.calories') }}</label>
               <input id="ride-cal" v-model="form.calories" type="number" placeholder="0" class="form-input" />
             </div>
           </div>
           <div class="form-actions">
             <button type="submit" class="btn" :disabled="adding">
-              {{ adding ? '⏳ Aggiunta...' : '✅ Aggiungi Uscita' }}
+              {{ adding ? '⏳ ' + t('common.loading') : '✅ ' + t('rides.addTitle') }}
             </button>
-            <button type="button" class="btn btn-secondary" @click="showForm = false">Annulla</button>
+            <button type="button" class="btn btn-secondary" @click="showForm = false">{{ t('common.cancel') }}</button>
           </div>
           <p v-if="addError" class="error-text">⚠️ {{ addError }}</p>
         </form>
@@ -48,19 +48,19 @@
     <!-- Rides list panel -->
     <div class="panel">
       <div class="list-header">
-        <h2>🏍️ Le Tue Uscite <span class="ride-count" v-if="!loading">{{ filteredRides.length }}</span></h2>
+        <h2>🏍️ {{ t('rides.title') }} <span class="ride-count" v-if="!loading">{{ filteredRides.length }}</span></h2>
         <div class="list-controls">
-          <button class="btn btn-sm btn-secondary" @click="exportCSV" :disabled="rides.length === 0">
+          <button class="btn btn-sm btn-secondary" @click="exportCSV" :disabled="rides.length === 0" :aria-label="t('common.download') + ' CSV'">
             📥 CSV
           </button>
-          <button class="btn btn-sm btn-secondary" @click="toggleFilters">
-            🔧 Filtri{{ hasActiveFilters ? ' ●' : '' }}
+          <button class="btn btn-sm btn-secondary" @click="toggleFilters" :aria-label="'Filters'">
+            🔧 {{ t('common.filter') }}{{ hasActiveFilters ? ' ●' : '' }}
           </button>
-          <select v-model="sortBy" class="sort-select">
-            <option value="date_desc">📅 Più recenti</option>
-            <option value="date_asc">📅 Meno recenti</option>
-            <option value="distance_desc">🛣️ Distanza ↓</option>
-            <option value="speed_desc">⚡ Velocità ↓</option>
+          <select v-model="sortBy" class="sort-select" :aria-label="t('common.filter')">
+            <option value="date_desc">📅 {{ t('common.date') }} ▼</option>
+            <option value="date_asc">📅 {{ t('common.date') }} ▲</option>
+            <option value="distance_desc">🛣️ {{ t('rides.distance') }} ↓</option>
+            <option value="speed_desc">⚡ {{ t('rides.avgSpeed') }} ↓</option>
           </select>
         </div>
       </div>
@@ -70,25 +70,25 @@
         <div v-if="filtersOpen" class="filters-panel">
           <div class="filters-grid">
             <div class="form-group">
-              <label>Da data</label>
+              <label>{{ t('common.date') }} {{ t('common.from') }}</label>
               <input v-model="filters.dateFrom" type="date" class="form-input" />
             </div>
             <div class="form-group">
-              <label>A data</label>
+              <label>{{ t('common.date') }} {{ t('common.to') }}</label>
               <input v-model="filters.dateTo" type="date" class="form-input" />
             </div>
-            <div class="form-group">
-              <label>Distanza min (km)</label>
-              <input v-model.number="filters.distMin" type="number" min="0" placeholder="0" class="form-input" />
-            </div>
-            <div class="form-group">
-              <label>Distanza max (km)</label>
-              <input v-model.number="filters.distMax" type="number" min="0" placeholder="∞" class="form-input" />
-            </div>
-          </div>
-          <div class="filter-actions">
-            <button class="btn btn-sm btn-secondary" @click="resetFilters">🗑️ Reset filtri</button>
-          </div>
+             <div class="form-group">
+               <label>{{ t('rides.distance') }} min (km)</label>
+               <input v-model.number="filters.distMin" type="number" min="0" placeholder="0" class="form-input" />
+             </div>
+             <div class="form-group">
+               <label>{{ t('rides.distance') }} max (km)</label>
+               <input v-model.number="filters.distMax" type="number" min="0" placeholder="∞" class="form-input" />
+             </div>
+           </div>
+           <div class="filter-actions">
+             <button class="btn btn-sm btn-secondary" @click="resetFilters">🗑️ {{ t('common.clear') }}</button>
+           </div>
         </div>
       </transition>
 
@@ -100,16 +100,16 @@
       <!-- Empty state -->
       <div v-else-if="rides.length === 0" class="empty-state">
         <div class="empty-icon">🚵</div>
-        <div class="empty-title">Nessuna uscita registrata</div>
-        <div class="empty-desc">Importa un file GPX/FIT o aggiungi la tua prima uscita manualmente.</div>
-        <button class="btn btn-sm" style="margin-top:14px" @click="showForm = true">➕ Aggiungi uscita</button>
+        <div class="empty-title">{{ t('rides.noRides') }}</div>
+        <div class="empty-desc">{{ t('import.selectFile') }}</div>
+        <button class="btn btn-sm" style="margin-top:14px" @click="showForm = true">➕ {{ t('rides.addTitle') }}</button>
       </div>
 
       <!-- Filtered empty -->
       <div v-else-if="filteredRides.length === 0" class="empty-state">
         <div class="empty-icon">🔍</div>
-        <div class="empty-title">Nessuna uscita corrisponde ai filtri</div>
-        <button class="btn btn-sm btn-secondary" style="margin-top:14px" @click="resetFilters">Reset filtri</button>
+        <div class="empty-title">{{ t('common.none') }}</div>
+        <button class="btn btn-sm btn-secondary" style="margin-top:14px" @click="resetFilters">{{ t('common.clear') }}</button>
       </div>
 
       <!-- Ride list -->
@@ -147,9 +147,9 @@
 
       <!-- Pagination -->
       <div class="pagination" v-if="totalPages > 1">
-        <button class="btn btn-sm btn-secondary" :disabled="page === 1" @click="page--">← Prec</button>
+        <button class="btn btn-sm btn-secondary" :disabled="page === 1" @click="page--" :aria-label="t('common.back')">← {{ t('common.back') }}</button>
         <span class="page-info">{{ page }} / {{ totalPages }}</span>
-        <button class="btn btn-sm btn-secondary" :disabled="page === totalPages" @click="page++">Succ →</button>
+        <button class="btn btn-sm btn-secondary" :disabled="page === totalPages" @click="page++" :aria-label="t('common.next')">{{ t('common.next') }} →</button>
       </div>
     </div>
 
@@ -232,8 +232,11 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from '../composables/useI18n'
 import { apiGet, apiDelete, apiPost } from '../utils/api'
 import ConfirmModal from './ConfirmModal.vue'
+
+const { t } = useI18n()
 
 const emit = defineEmits(['summary-change'])
 

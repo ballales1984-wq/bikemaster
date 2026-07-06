@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import tempfile
 from io import StringIO
 
 import matplotlib
@@ -200,8 +201,6 @@ def generate_speed_chart(points: list[GPSPoint] | None, title: str = "Speed Prof
     plt.title(title)
     plt.ylabel("km/h")
     plt.xlabel("Point")
-    import tempfile
-
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         path = f.name
     plt.savefig(path)
@@ -222,8 +221,6 @@ def generate_distance_chart(points: list[GPSPoint] | None, title: str = "Distanc
     plt.title(title)
     plt.ylabel("km")
     plt.xlabel("Point")
-    import tempfile
-
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         path = f.name
     plt.savefig(path)
@@ -239,8 +236,6 @@ def generate_time_chart(points: list[GPSPoint] | None, title: str = "Time Analys
     plt.plot(range(len(times)), [1] * len(times), "o", markersize=3, color="#333333")
     plt.title(title)
     plt.yticks([])
-    import tempfile
-
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         path = f.name
     plt.savefig(path)

@@ -271,7 +271,6 @@ def validate_athlete_profile(athlete: AthleteProfile) -> tuple[bool, str]:
 
 
 def _build_athlete_context(athlete: AthleteProfile) -> str:
-    _SENSITIVE_FIELDS = {"medical_notes", "equipment", "password_hash"}
     parts = [
         f"Nome: {athlete.name or 'N/A'}",
         f"Livello: {athlete.experience_level}",

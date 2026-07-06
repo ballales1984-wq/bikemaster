@@ -4,15 +4,15 @@
       <div class="coach-title">
         <span class="coach-avatar">🧠</span>
         <div>
-          <h2>AI Coach</h2>
-          <span class="coach-status">{{ connected ? '🟢 Online' : '⚪ Offline' }}</span>
+          <h2>{{ t('coach.title') }}</h2>
+          <span class="coach-status">{{ connected ? '🟢 ' + t('coach.online') : '⚪ ' + t('coach.offline') }}</span>
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-sm btn-secondary" @click="loadFullReport" :disabled="loadingReport" title="Report completo">
-          {{ loadingReport ? '⏳' : '📊' }} Report
-        </button>
-        <button class="btn btn-sm btn-secondary" @click="clearChat" title="Nuova conversazione">🗑️</button>
+         <button class="btn btn-sm btn-secondary" @click="loadFullReport" :disabled="loadingReport" :title="t('coach.report')" :aria-label="t('coach.report')">
+           {{ loadingReport ? '⏳' : '📊' }} {{ t('coach.report') }}
+         </button>
+         <button class="btn btn-sm btn-secondary" @click="clearChat" :title="t('coach.clear')" :aria-label="t('coach.clear')">🗑️</button>
       </div>
     </div>
 
@@ -31,7 +31,7 @@
         <div class="msg-avatar">🧠</div>
         <div class="msg-content">
           <div class="msg-bubble">
-            Ciao! Sono il tuo AI Coach. Posso analizzare le tue performance, consigliarti allenamenti personalizzati e aiutarti con il recupero. Cosa vuoi sapere?
+            {{ t('coach.welcome') }}
           </div>
           <div class="quick-actions">
             <button class="quick-btn" v-for="q in quickQuestions" :key="q" @click="sendQuick(q)">{{ q }}</button>
@@ -70,11 +70,12 @@
         v-model="userInput"
         ref="inputRef"
         class="chat-input"
-        placeholder="Chiedi al tuo coach... (es. 'Come migliorare la resistenza?')"
+        :placeholder="t('coach.placeholder')"
         rows="1"
         @keydown.enter.prevent="sendMessage"
         @input="autoResize"
         :disabled="thinking"
+        :aria-label="t('coach.ask')"
       ></textarea>
       <button class="send-btn" @click="sendMessage" :disabled="!userInput.trim() || thinking">
         <span v-if="!thinking">➤</span>
@@ -86,8 +87,11 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
+import { useI18n } from '../composables/useI18n'
 import { apiGet, apiPost } from '../utils/api'
 import DOMPurify from 'dompurify'
+
+const { t } = useI18n()
 
 const messages = ref([])
 const userInput = ref('')

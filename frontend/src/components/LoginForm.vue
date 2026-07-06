@@ -1,39 +1,39 @@
 <template>
   <div class="login-panel">
-<h2>🔐 BikeMaster Login</h2>
+<h2>🔐 {{ mode === 'login' ? t('auth.login') : t('auth.register') }}</h2>
 <div class="login-tabs" role="tablist" aria-label="Login modes">
-       <button :class="['tab-btn', { active: mode === 'login' }]" @click="mode = 'login'" role="tab" :aria-selected="mode === 'login'" aria-controls="login-form">Login</button>
-       <button :class="['tab-btn', { active: mode === 'register' }]" @click="mode = 'register'" role="tab" :aria-selected="mode === 'register'" aria-controls="login-form">Sign Up</button>
+        <button :class="['tab-btn', { active: mode === 'login' }]" @click="mode = 'login'" role="tab" :aria-selected="mode === 'login'" aria-controls="login-form" :id="'tab-login'" @keydown.arrowleft="mode = 'register'" @keydown.arrowright="mode = 'login'">{{ t('auth.login') }}</button>
+        <button :class="['tab-btn', { active: mode === 'register' }]" @click="mode = 'register'" role="tab" :aria-selected="mode === 'register'" aria-controls="login-form" :id="'tab-register'" @keydown.arrowleft="mode = 'login'" @keydown.arrowright="mode = 'register'">{{ t('auth.register') }}</button>
+      </div>
+
+<form @submit.prevent="submit" class="login-form" novalidate :id="'login-form'" role="tabpanel" :aria-labelledby="mode === 'login' ? 'tab-login' : 'tab-register'">
+        <div class="form-group">
+          <label for="username">{{ t('auth.username') }}</label>
+          <input id="username" v-model="form.username" type="text" :placeholder="t('common.name')" :disabled="loading" required autocomplete="username" :aria-invalid="!!usernameError" :aria-describedby="usernameError ? 'username-error' : undefined" :class="{ error: usernameError, valid: form.username.length >= 3 && !usernameError }" />
+          <span v-if="usernameError" id="username-error" class="field-error" role="alert" aria-live="assertive">{{ usernameError }}</span>
+        </div>
+        <div class="form-group">
+          <label for="password">{{ t('auth.password') }}</label>
+          <div class="password-wrapper">
+            <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" :placeholder="mode === 'register' ? 'min 6 characters' : ''" :disabled="loading" required autocomplete="current-password" :aria-invalid="!!passwordError" :aria-describedby="passwordError ? 'password-error' : undefined" :class="{ error: passwordError, valid: form.password.length >= 6 && !passwordError }" />
+            <button type="button" class="password-toggle" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Hide password' : 'Show password'" :aria-pressed="showPassword">
+              {{ showPassword ? '🙈' : '👁️' }}
+            </button>
+          </div>
+          <span v-if="passwordError" id="password-error" class="field-error" role="alert" aria-live="assertive">{{ passwordError }}</span>
+        </div>
+        <button type="submit" class="btn btn-primary" :disabled="loading || !isFormValid" :aria-busy="loading">
+          {{ loading ? '🔄 ' + t('common.loading') : (mode === 'login' ? t('auth.login') : t('auth.register')) }}
+        </button>
+      </form>
+
+     <div class="oauth-separator">
+       <span>{{ t('common.or') }}</span>
      </div>
-
-<form @submit.prevent="submit" class="login-form" novalidate>
-       <div class="form-group">
-         <label for="username">Username</label>
-         <input id="username" v-model="form.username" type="text" placeholder="min 3 characters" :disabled="loading" required autocomplete="username" :aria-invalid="!!usernameError" :aria-describedby="usernameError ? 'username-error' : undefined" :class="{ error: usernameError, valid: form.username.length >= 3 && !usernameError }" />
-         <span v-if="usernameError" id="username-error" class="field-error" role="alert" aria-live="assertive">{{ usernameError }}</span>
-       </div>
-       <div class="form-group">
-         <label for="password">Password</label>
-         <div class="password-wrapper">
-           <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" :placeholder="mode === 'register' ? 'min 6 characters' : ''" :disabled="loading" required autocomplete="current-password" :aria-invalid="!!passwordError" :aria-describedby="passwordError ? 'password-error' : undefined" :class="{ error: passwordError, valid: form.password.length >= 6 && !passwordError }" />
-           <button type="button" class="password-toggle" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Hide password' : 'Show password'" :aria-pressed="showPassword">
-             {{ showPassword ? '🙈' : '👁️' }}
-           </button>
-         </div>
-         <span v-if="passwordError" id="password-error" class="field-error" role="alert" aria-live="assertive">{{ passwordError }}</span>
-       </div>
-       <button type="submit" class="btn btn-primary" :disabled="loading || !isFormValid" :aria-busy="loading">
-         {{ loading ? '🔄 Loading...' : (mode === 'login' ? 'Sign In' : 'Create Account') }}
-       </button>
-     </form>
-
-    <div class="oauth-separator">
-      <span>or</span>
-    </div>
-     <button @click="loginWithGoogle" class="btn btn-google" :disabled="loading" type="button">
-      <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.76h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c3.05 0 5.84-1.15 7.86-3l-3.57-2.76c-.98.66-2.23 1.06-3.62 1.44v2.26C15.24 21.23 13.71 22 12 22z"/><path fill="#FBBC05" d="M6.27 15.73a7.5 7.5 0 0 1 0-3.46l2.93-2.27a7.5 7.5 0 0 0 1.74 3.19l-2.93 2.27z"/><path fill="#EA4335" d="M18.57 6.43a7.5 7.5 0 0 0-6.57-4.43 7.5 7.5 0 0 0-1.57.23l2.93 2.26a4.99 4.99 0 0 1 5.17 4.17z"/></svg>
-      Sign in with Google
-    </button>
+      <button @click="loginWithGoogle" class="btn btn-google" :disabled="loading" type="button" :aria-label="'Sign in with Google'">
+       <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.76h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c3.05 0 5.84-1.15 7.86-3l-3.57-2.76c-.98.66-2.23 1.06-3.62 1.44v2.26C15.24 21.23 13.71 22 12 22z"/><path fill="#FBBC05" d="M6.27 15.73a7.5 7.5 0 0 1 0-3.46l2.93-2.27a7.5 7.5 0 0 0 1.74 3.19l-2.93 2.27z"/><path fill="#EA4335" d="M18.57 6.43a7.5 7.5 0 0 0-6.57-4.43 7.5 7.5 0 0 0-1.57.23l2.93 2.26a4.99 4.99 0 0 1 5.17 4.17z"/></svg>
+       Sign in with Google
+     </button>
   </div>
   </template>
 
@@ -162,6 +162,11 @@ async function loginWithGoogle() {
 .tab-btn:hover:not(.active) {
    background: var(--border);
    color: var(--text-primary);
+   outline: none;
+ }
+ .tab-btn:focus-visible {
+   outline: 2px solid var(--accent);
+   outline-offset: 2px;
  }
 
 .tab-btn.touch-active,
