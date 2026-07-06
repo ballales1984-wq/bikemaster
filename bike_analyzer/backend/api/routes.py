@@ -509,11 +509,7 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
             "tenant_id": current_user.get("tenant_id", current_user["id"]),
             "profile_complete": False,
         }
-    profile_complete = (
-        athlete.get("age") is not None
-        and athlete.get("weight_kg") is not None
-        and athlete.get("experience_level", "").strip() != ""
-    )
+    profile_complete = athlete.get("experience_level", "").strip() != ""
     return {
         "id": athlete["id"],
         "username": athlete.get("name", ""),
@@ -1182,11 +1178,7 @@ async def get_my_athlete_profile(current_user: dict = Depends(get_current_user))
     athlete = _get_athlete(current_user["id"], tenant_id)
     if not athlete:
         return {"athlete": None, "profile_complete": False}
-    profile_complete = (
-        athlete.get("age") is not None
-        and athlete.get("weight_kg") is not None
-        and athlete.get("experience_level", "").strip() != ""
-    )
+    profile_complete = athlete.get("experience_level", "").strip() != ""
     return {"athlete": _public_athlete(athlete), "profile_complete": profile_complete}
 
 
@@ -2032,6 +2024,7 @@ async def get_system_stats(current_user: dict = Depends(get_admin_user)):
     total_km = sum(r.get("distance_km", 0) for r in rides)
     total_duration = sum(r.get("duration_minutes", 0) for r in rides)
     db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
+    log_action(current_user["id"], "view_stats", "system")
     return {
         "rides_count": len(rides),
         "total_km": round(total_km, 1),
@@ -2051,6 +2044,7 @@ async def reset_demo_data(current_user: dict = Depends(get_admin_user)):
     from scripts.generate_sample_ride import generate_sample_ride
 
     generate_sample_ride()
+    log_action(current_user["id"], "reset_demo", "system")
     return {"status": "demo_reset", "message": "Demo data regenerated"}
 
 
@@ -2080,6 +2074,7 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
         level = a.get("experience_level", "Beginner")
         if level in level_counts:
             level_counts[level] += 1
+    log_action(current_user["id"], "view_ceo_analytics", "system")
     return {
         "overview": {
             "total_athletes": total_athletes,
@@ -3040,3 +3035,10 @@ async def test_sentry(current_user: dict = Depends(get_admin_user)):
 
     sentry_sdk.capture_exception(Exception("Test Sentry integration - bikemaster"))
     return {"status": "test_event_sent", "message": "Check Sentry dashboard for error event"}
+
+
+@admin_router.get("/audit-logs")
+async def get_audit_logs(limit: int = Query(100, ge=1, le=500), current_user: dict = Depends(get_admin_user)):
+    """Return recent admin audit log entries."""
+    log_action(current_user["id"], "view_audit_logs", "audit")
+    return {"logs": read_audit_logs(limit=limit)}
