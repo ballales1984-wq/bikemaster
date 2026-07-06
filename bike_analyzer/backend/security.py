@@ -252,6 +252,8 @@ async def decode_token(token: str | None) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
     return payload
+
+
 async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)) -> dict:
     cookie_token = request.cookies.get("bikemaster_access")
     active_token = cookie_token or token
