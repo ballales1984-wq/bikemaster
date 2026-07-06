@@ -61,3 +61,4 @@ if (typeof performance === 'undefined' || typeof performance.now !== 'function')
     now: () => Date.now(),
   }
 }
+

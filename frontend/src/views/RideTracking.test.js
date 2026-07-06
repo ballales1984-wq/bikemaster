@@ -38,6 +38,25 @@ vi.mock('../components/ControlsBar.vue', () => ({
   default: { template: '<div class="controls-bar-stub" />' },
 }))
 
+vi.mock('../composables/useI18n', () => ({
+  useI18n: () => ({
+    locale: { value: 'en' },
+    t: (key) => {
+      const translations = {
+        'tracking.title': 'GPS Tracking',
+        'tracking.paused': 'Paused',
+        'tracking.inProgress': 'In progress',
+        'tracking.ready': 'Ready to track your ride',
+        'tracking.readyDesc': 'Press the button below to start recording your route in real-time.',
+        'tracking.offline': 'Offline: tracking works, but map tiles may be limited until connectivity returns.',
+        'tracking.start': 'Start Tracking',
+      }
+      return translations[key] || key
+    },
+    setLocale: vi.fn(),
+  }),
+}))
+
 describe('RideTracking', () => {
   it('has isTracking initially false', () => {
     const wrapper = mount(RideTracking)
@@ -52,6 +71,6 @@ describe('RideTracking', () => {
   it('renders header', () => {
     const wrapper = mount(RideTracking)
     expect(wrapper.find('h2').exists()).toBe(true)
-    expect(wrapper.find('h2').text()).toContain('Tracking')
+    expect(wrapper.find('h2').text()).toBe('GPS Tracking')
   })
 })
