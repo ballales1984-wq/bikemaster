@@ -4,6 +4,7 @@ import type { Athlete } from '../types/index'
 
 const TOKEN_KEY = 'bikemaster_token'
 const USER_KEY = 'bikemaster_user'
+const JUST_LOGGED_IN_KEY = 'bikemaster_just_logged_in'
 
 function parseBase64Url(base64Url: string): string {
   const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
@@ -39,6 +40,8 @@ export const useAuthStore = defineStore('auth', () => {
       }
     })()
   )
+
+  const justLoggedIn = ref(false)
 
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => user.value?.is_admin === true)
@@ -123,6 +126,8 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = urlToken
     user.value = userData
     localStorage.removeItem('bikemaster_login_error')
+    localStorage.setItem(JUST_LOGGED_IN_KEY, 'true')
+    justLoggedIn.value = true
   }
 
   function setOauthError(oauthError: string) {

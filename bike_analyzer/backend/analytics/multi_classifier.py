@@ -8,7 +8,7 @@ objective metrics rather than guessed labels:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from ..models.models import Ride

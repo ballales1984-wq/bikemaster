@@ -7,7 +7,7 @@ load, consistency, and fatigue recovery patterns.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from datetime import date
 
 from ..models.models import Ride
 
@@ -29,8 +29,6 @@ def _consistency_score(rides: list[Ride]) -> float:
     gaps = []
     for i in range(1, len(dates)):
         try:
-            from datetime import date
-
             d1 = date.fromisoformat(dates[i - 1][:10])
             d2 = date.fromisoformat(dates[i][:10])
             gaps.append((d2 - d1).days)
