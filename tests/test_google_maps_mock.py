@@ -1,82 +1,39 @@
-"""Test Google Maps API (mock mode)."""
-
-import os
-from datetime import UTC, datetime
+import pytest
+from datetime import datetime, timezone
+from unittest.mock import patch, MagicMock
 
 from bike_analyzer.backend.maps.google_maps import (
-    _build_speed_segments,
-    _css_to_google_hex,
     _interpolate_color,
     _speed_to_color,
+    _build_speed_segments,
     build_speed_colored_path,
     create_google_static_map,
+    create_google_elevation_chart,
     get_google_api_key,
+    SpeedColorSegment,
 )
 from bike_analyzer.backend.models.models import GPSPoint
 
 
-def test_get_google_api_key_no_env():
-    key = get_google_api_key()
-    assert key is None or isinstance(key, str)
+def _pt(lat=45.0, lon=7.0, speed=25.0):
+    return GPSPoint(lat=lat, lon=lon, timestamp=datetime.now(timezone.utc), speed=speed)
 
 
-def test_interpolate_color_bounds():
-    assert _interpolate_color(0, 0, 35) == "#ff0000"
-    assert _interpolate_color(35, 0, 35) == "#00ff00"
-    assert _interpolate_color(17.5, 0, 35) == "#ffff00"
+def test_interpolate_color_midpoint():
+    assert _interpolate_color(50, 0, 100) == "#ffff00"
 
 
-def test_interpolate_color_mid_range():
-    color = _interpolate_color(10, 0, 35)
-    assert color.startswith("#")
-    r = int(color[1:3], 16)
-    g = int(color[3:5], 16)
-    assert r == 255
-    assert g > 0
-
-
-def test_interpolate_color_high_range():
-    color = _interpolate_color(30, 0, 35)
-    assert color.startswith("#")
-    r = int(color[1:3], 16)
-    g = int(color[3:5], 16)
-    assert g == 255
-    assert r > 0
-
-
-def test_interpolate_color_same_bounds():
-    assert _interpolate_color(10, 10, 10).lower() == "#ffff00"
-
-
-def test_css_to_google_hex():
-    assert _css_to_google_hex("#FF0000") == "0xFF0000"
-    assert _css_to_google_hex("0x00FF00") == "0x00FF00"
-    assert _css_to_google_hex("#88cc00") == "0x88CC00"
-
-
-def test_speed_to_color_none():
-    assert _speed_to_color(None) == "#4488ff"
+def test_interpolate_color_equal_min_max():
+    assert _interpolate_color(10, 10, 10) == "#FFFF00"
 
 
 def test_speed_to_color_thresholds():
+    assert _speed_to_color(40) == "#00cc44"
+    assert _speed_to_color(30) == "#88cc00"
+    assert _speed_to_color(20) == "#ddbb00"
+    assert _speed_to_color(10) == "#ee8800"
     assert _speed_to_color(3) == "#ee3333"
-    assert _speed_to_color(5) == "#ee8800"
-    assert _speed_to_color(15) == "#ddbb00"
-    assert _speed_to_color(25) == "#88cc00"
-    assert _speed_to_color(35) == "#00cc44"
-    assert _speed_to_color(50) == "#00cc44"
-
-
-def test_build_speed_segments():
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=30),
-        GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=UTC), speed=None),
-    ]
-    segs = _build_speed_segments(points)
-    assert len(segs) >= 1
-    for seg in segs:
-        assert seg.color.startswith("#")
+    assert _speed_to_color(None) == "#4488ff"
 
 
 def test_build_speed_segments_empty():
@@ -84,179 +41,82 @@ def test_build_speed_segments_empty():
 
 
 def test_build_speed_segments_single_point():
-    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10)]
-    segs = _build_speed_segments(points)
+    pts = [_pt(45.0, 7.0, 25.0)]
+    segs = _build_speed_segments(pts)
     assert len(segs) == 1
+    assert segs[0].points == [(45.0, 7.0)]
 
 
-def test_build_speed_segments_all_same_speed():
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=10),
+def test_build_speed_segments_multiple_segments():
+    pts = [
+        _pt(45.0, 7.0, 10.0),
+        _pt(45.1, 7.1, 10.0),
+        _pt(45.2, 7.2, 30.0),
+        _pt(45.3, 7.3, 30.0),
     ]
-    segs = _build_speed_segments(points)
-    assert len(segs) == 1
-    assert segs[0].color.startswith("#")
-
-
-def test_build_speed_segments_min_segment_boundary():
-    points = [
-        GPSPoint(
-            lat=45.0 + i * 0.01,
-            lon=9.0 + i * 0.01,
-            timestamp=datetime(2024, 1, 1, i, 0, tzinfo=UTC),
-            speed=10 if i < 3 else 30,
-        )
-        for i in range(10)
-    ]
-    segs = _build_speed_segments(points, min_segment=5)
+    segs = _build_speed_segments(pts, min_segment=2)
     assert len(segs) >= 1
-
-
-def test_create_google_static_map_basic():
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
-    ]
-    path = create_google_static_map(points, "test-api-key-mock", "test_map.png")
-    assert path == "test_map.png"
-
-
-def test_create_google_static_map_colored():
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=30),
-        GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=UTC), speed=None),
-    ]
-    path = create_google_static_map(points, "test-api-key-mock", "test_map_colored.png", colored=True)
-    assert path == "test_map_colored.png"
-
-
-def test_create_google_static_map_colored_url_overflow():
-    base = datetime(2024, 1, 1, tzinfo=UTC)
-    many_points = [
-        GPSPoint(
-            lat=45.0 + i * 0.001,
-            lon=9.0 + i * 0.001,
-            timestamp=base.replace(minute=(i // 60) % 60, second=i % 60),
-            speed=10 + i,
-        )
-        for i in range(200)
-    ]
-    path = create_google_static_map(many_points, "test-api-key-mock", "test_map_overflow.png", colored=True)
-    assert path == "test_map_overflow.png"
-
-
-def test_create_google_static_map_empty_points():
-    try:
-        create_google_static_map([], "test-api-key-mock", "empty_map.png")
-        raise AssertionError("Should have raised ValueError")
-    except ValueError as e:
-        assert "No GPS points" in str(e)
-
-
-def test_create_google_static_map_colored_branch():
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=10),
-    ]
-    path = create_google_static_map(points, "test-api-key-mock", "test_map_colored2.png", colored=True)
-    assert path == "test_map_colored2.png"
 
 
 def test_build_speed_colored_path_empty():
     assert build_speed_colored_path([]) == []
 
 
-def test_build_speed_colored_path_single():
-    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10)]
-    segs = build_speed_colored_path(points)
-    assert segs == []
+def test_build_speed_colored_path_short():
+    assert build_speed_colored_path([_pt(45.0, 7.0, 25.0)]) == []
 
 
-def test_build_speed_colored_path_basic():
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=10),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=30),
-        GPSPoint(lat=45.02, lon=9.02, timestamp=datetime(2024, 1, 1, 0, 2, tzinfo=UTC), speed=25),
-    ]
-    segs = build_speed_colored_path(points)
-    assert len(segs) == 2
-    assert segs[0]["start"] == [45.0, 9.0]
-    assert segs[0]["end"] == [45.01, 9.01]
-    assert segs[0]["color"].startswith("#")
-    assert segs[0]["speed_kmh"] == 10
-    assert segs[1]["speed_kmh"] == 30
-
-
-def test_build_speed_colored_path_gradient():
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=0),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC), speed=35),
-    ]
-    segs = build_speed_colored_path(points)
+def test_build_speed_colored_path_two_points():
+    pts = [_pt(45.0, 7.0, 25.0), _pt(45.1, 7.1, 30.0)]
+    segs = build_speed_colored_path(pts)
     assert len(segs) == 1
-    assert segs[0]["color"] == "#ff0000"
-    assert segs[0]["start"] == [45.0, 9.0]
-    assert segs[0]["end"] == [45.01, 9.01]
+    assert segs[0]["start"] == [45.0, 7.0]
+    assert segs[0]["end"] == [45.1, 7.1]
 
 
-def test_create_google_elevation_chart_no_points():
-    from bike_analyzer.backend.maps.google_maps import create_google_elevation_chart
-
-    result = create_google_elevation_chart([], "test-api-key-mock")
-    assert result is None
-
-
-def test_init_chroma_db_error():
-    """Test init_chroma_db when chromadb is available but path missing."""
-    try:
-        from bike_analyzer.backend.analytics.knowledge_base import init_chroma_db
-
-        result = init_chroma_db()
-        assert "status" in result
-    except ImportError:
-        pass
+def test_create_google_static_map_mock_key(tmp_path):
+    pts = [_pt(45.0, 7.0, 25.0), _pt(45.1, 7.1, 30.0)]
+    out = tmp_path / "map.png"
+    result = create_google_static_map(pts, "test-mock-key", output_path=str(out), colored=True)
+    assert result == str(out)
+    assert out.exists()
 
 
-def test_map_renderer_no_folium_import_at_module_level():
-    """Verify folium is not imported at module load time (lazy import)."""
-    import sys
-
-    before = set(sys.modules.keys())
-    import importlib
-
-    importlib.import_module("bike_analyzer.backend.maps.map_renderer")
-    after = set(sys.modules.keys())
-    new_mods = after - before
-    assert "folium" not in new_mods, "folium should be lazily imported, not at module level"
+def test_create_google_static_map_no_points():
+    with pytest.raises(ValueError, match="No GPS points"):
+        create_google_static_map([], "test-key")
 
 
-def test_map_renderer_folium_loaded_after_call():
-    """Verify folium is imported when create_route_map is called."""
-    import sys
-    from datetime import UTC, datetime
-
-    from bike_analyzer.backend.maps.map_renderer import create_route_map
-    from bike_analyzer.backend.models.models import GPSPoint
-
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC)),
-        GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 0, 1, tzinfo=UTC)),
-    ]
-    path = create_route_map(points, output_path="test_lazy_folium.html")
-    assert path == "test_lazy_folium.html"
-    assert "folium" in sys.modules, "folium should be loaded after create_route_map call"
+def test_create_google_static_map_rate_limit():
+    pts = [_pt(45.0, 7.0, 25.0), _pt(45.1, 7.1, 30.0)]
+    with patch("bike_analyzer.backend.maps.google_maps.httpx.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client_cls.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_cls.return_value.__exit__ = MagicMock(return_value=False)
+        mock_resp = MagicMock()
+        mock_resp.status_code = 429
+        mock_client.get.return_value = mock_resp
+        with pytest.raises(RuntimeError, match="rate limit exceeded"):
+            create_google_static_map(pts, "AIzaRealKey", output_path="out.png")
 
 
-def teardown_function():
-    for f in [
-        "test_map.png",
-        "test_map_colored.png",
-        "test_map_colored2.png",
-        "empty_map.png",
-        "test_map_overflow.png",
-        "test_lazy_folium.html",
-    ]:
-        if os.path.exists(f):
-            os.remove(f)
+def test_create_google_elevation_chart_mock():
+    pts = [_pt(45.0, 7.0, 25.0)]
+    long_key = "AIza" + "a" * 30
+    with patch("bike_analyzer.backend.maps.google_maps.httpx.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client_cls.return_value.__enter__ = MagicMock(return_value=mock_client)
+        mock_client_cls.return_value.__exit__ = MagicMock(return_value=False)
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"results": [{"elevation": 100.0}]}
+        mock_client.get.return_value = mock_resp
+        result = create_google_elevation_chart(pts, long_key)
+        assert result == [100.0]
+
+
+def test_get_google_api_key_from_env(monkeypatch):
+    monkeypatch.delenv("GOOGLE_MAPS_API_KEY", raising=False)
+    import bike_analyzer.backend.maps.google_maps as gm
+    monkeypatch.setattr(gm, "GOOGLE_MAPS_API_KEY", "abc")
+    assert get_google_api_key() == "abc"

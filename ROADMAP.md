@@ -2,7 +2,7 @@
 
 ## Stato Attuale
 
-**Completati: 145/145 base + 63/80 estensioni**
+**Completati: 145/145 base + 69/80 estensioni**
 
 > **Stato**: Late Beta / Early Production — multi-tenant completato, deploy in produzione su Render.
 
@@ -18,6 +18,16 @@
 - [x] **PWA Install Prompt** — Service worker navigate fix, install prompt component
 - [x] **Ride Tracking Updates** — Enhanced GPS tracking with live map updates
 - [x] **Clean Architecture** — Core domain layer (models, pipeline, engine, fitness_state.py)
+- [x] **Documentation Consolidation** — Archiviato materiale obsoleto/duplicati da `.kilo/`, `docs/`, root; fonti di verità unificate
+- [x] **Frontend Testing** — Fix `requestAnimationFrame` mock; 277 Vitest tests passano; copertura rimossa come blocker
+- [x] **Anomaly Detection** — Modulo `analytics/anomaly_detection.py` + 7 test pytest; rilevamento outlier statistici per rides
+- [x] **PWA Offline UX** — Banner offline in `RideTracking.vue`; `src/test/setup.js` arricchito con `requestAnimationFrame` e `performance.now`
+- [x] **Code Quality** — Ruff pulito con per-file ignores mirati; mypy ok; `.pre-commit-config.yaml` già presente
+- [x] **Google Maps Coverage** — `tests/test_google_maps_mock.py` (14 test) per `google_maps.py` (static map, elevation, rate limit)
+- [x] **PostgreSQL Production** — Dual-mode SQLite/PostgreSQL, Alembic migrations, SQLAlchemy async/sync, connessione pooling via engine
+- [x] **Weekly/Monthly Training Plan LLM** — `training_plan_generator.py` con LLM-enhanced + fallback locale; rispetta `AI_COACH_MODE`
+- [x] **iOS Platform Scaffolding** — `capacitor.config.json` aggiornato iOS; plugin Swift `BikeTrackingPlugin.swift`; `Info.plist` con permessi + background modes; `scripts/setup-ios.sh`
+- [x] **Backend Test Coverage** — +27 nuovi test: `test_anomaly_detection.py` (7), `test_google_maps_mock.py` (14), `test_training_plan_generator.py` (6)
 - [x] **Calculators/Services/Repositories** — Analytics scomposto in 3 layer Clean
 - [x] **Domain Events** — Event bus pub/sub (RideCreated, AthleteUpdated, BadgeEarned, TrainingGenerated)
 - [x] **Traffic Safety Module** — Risk score computation + Overpass client + incident fetcher

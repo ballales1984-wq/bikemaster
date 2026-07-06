@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleDisplayName</key>
+    <string>BikeMaster</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>BikeMaster needs location access to track your rides.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>BikeMaster needs background location access to continue tracking your ride when the app is in the background.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>BikeMaster needs background location access to continue tracking your ride.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>location</string>
+        <string>fetch</string>
+    </array>
+    <key>NSMotionUsageDescription</key>
+    <string>BikeMaster uses motion data to detect activity type and improve GPS tracking.</string>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>BikeMaster uses Bluetooth to connect to heart rate, cadence, and power sensors.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>BikeMaster uses the camera to scan QR codes for quick ride setup.</string>
+</dict>
+</plist>
