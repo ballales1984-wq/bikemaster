@@ -17,21 +17,14 @@ const auth = useAuthStore()
 const urlParams = new URLSearchParams(window.location.search)
 const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
 const urlToken = urlParams.get('token') || hashParams.get('token')
-const email = urlParams.get('email') || hashParams.get('email')
+const email = urlParams.get('email') || hashParams.get('email') || ''
 const oauthError = urlParams.get('oauth_error') || hashParams.get('oauth_error')
 
 if (urlToken) {
-  const userData = { username: email || '', email, is_admin: false }
-  localStorage.setItem('bikemaster_token', urlToken)
-  localStorage.setItem('bikemaster_user', JSON.stringify(userData))
-  auth.token = urlToken
-  auth.user = userData
-  localStorage.removeItem('bikemaster_login_error')
+  auth.setAuthFromUrl(urlToken, email)
   window.history.replaceState({}, document.title, '/')
 } else if (oauthError) {
-  auth.token = ''
-  auth.user = null
-  localStorage.setItem('bikemaster_login_error', oauthError)
+  auth.setOauthError(oauthError)
   window.history.replaceState({}, document.title, '/')
 }
 

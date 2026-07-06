@@ -134,6 +134,18 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = ''
     user.value = null
     localStorage.setItem('bikemaster_login_error', oauthError)
+    
+    justLoggedIn.value = false
+    localStorage.removeItem(JUST_LOGGED_IN_KEY)
+  }
+
+  function setJustLoggedIn(value: boolean) {
+    justLoggedIn.value = value
+    if (value) {
+      localStorage.setItem(JUST_LOGGED_IN_KEY, 'true')
+    } else {
+      localStorage.removeItem(JUST_LOGGED_IN_KEY)
+    }
   }
 
   return {
@@ -141,6 +153,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     isLoggedIn,
     isAdmin,
+    justLoggedIn,
     isTokenValid,
     getAuthHeader,
     login,
@@ -148,6 +161,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     parseJWTPayload,
     setAuthFromUrl,
-    setOauthError
+    setOauthError,
+    setJustLoggedIn
   }
 })
