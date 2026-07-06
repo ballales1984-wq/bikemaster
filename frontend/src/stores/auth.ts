@@ -28,11 +28,12 @@ function parseJWTPayload(tokenStr: string): Record<string, unknown> | null {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref(localStorage.getItem(TOKEN_KEY) || '')
+  const token = ref(typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_KEY) || '' : '')
   
   const user = ref<Athlete | null>(
     (function() {
       try {
+        if (typeof localStorage === 'undefined') return null
         const raw = localStorage.getItem(USER_KEY)
         return raw ? JSON.parse(raw) : null
       } catch {

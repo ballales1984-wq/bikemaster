@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from './router'
 import './index.css'
 import { useAuthStore } from './stores/auth'
+import { useUIStore } from './stores/ui'
 import './composables/usePWA'
 import { useToast } from './composables/useToast'
 
@@ -13,6 +14,7 @@ setActivePinia(pinia)
 const app = createApp(App).use(pinia).use(router)
 
 const auth = useAuthStore()
+const ui = useUIStore()
 
 const urlParams = new URLSearchParams(window.location.search)
 const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
@@ -22,17 +24,16 @@ const oauthError = urlParams.get('oauth_error') || hashParams.get('oauth_error')
 
 if (urlToken) {
   auth.setAuthFromUrl(urlToken, email)
+  ui.setOauthLoading(true)
   window.history.replaceState({}, document.title, '/')
 } else if (oauthError) {
   auth.setOauthError(oauthError)
+  ui.setOauthLoading(false)
   window.history.replaceState({}, document.title, '/')
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.ready.then(reg => {
-    if (reg.waiting) {
-      reg.waiting.postMessage({ type: 'SKIP_WAITING' })
-    }
+  navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing
       if (newWorker) {
@@ -43,7 +44,10 @@ if ('serviceWorker' in navigator) {
         })
       }
     })
-  })
+    if (reg.waiting) {
+      reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+    }
+  }).catch(() => {})
 }
 
 app.mount('#app')
