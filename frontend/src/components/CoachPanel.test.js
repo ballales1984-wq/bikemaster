@@ -103,7 +103,7 @@ describe('CoachPanel', () => {
     const wrapper = mount(CoachPanel)
     await flush()
 
-    expect(wrapper.text()).toContain('Ciao!')
+    expect(wrapper.text()).toContain('coach.welcome')
   })
 
   it('has Report button for full coach data', async () => {
@@ -112,7 +112,7 @@ describe('CoachPanel', () => {
     const wrapper = mount(CoachPanel)
     await flush()
 
-    expect(wrapper.text()).toContain('Report')
+    expect(wrapper.text()).toContain('coach.report')
   })
 
   it('handles athlete API failure gracefully', async () => {
