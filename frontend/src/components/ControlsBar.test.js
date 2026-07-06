@@ -7,21 +7,21 @@ describe('ControlsBar', () => {
     const wrapper = mount(ControlsBar, {
       props: { isPaused: true },
     })
-    expect(wrapper.text()).toContain('Resume')
+    expect(wrapper.text()).toContain('tracking.resume')
   })
 
   it('shows pause button when not paused', () => {
     const wrapper = mount(ControlsBar, {
       props: { isPaused: false },
     })
-    expect(wrapper.text()).toContain('Pause')
+    expect(wrapper.text()).toContain('tracking.pause')
   })
 
   it('always shows stop button', () => {
     const wrapper = mount(ControlsBar, {
       props: { isPaused: true },
     })
-    expect(wrapper.text()).toContain('Stop')
+    expect(wrapper.text()).toContain('tracking.stop')
   })
 
   it('emits pause event', async () => {
