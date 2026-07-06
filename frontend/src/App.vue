@@ -21,7 +21,7 @@
       <p class="loading-text">Finalizing login...</p>
     </div>
 
-    <template v-if="!loggedIn && !isPublicPage && !ui.oauthLoading && (typeof localStorage === 'undefined' || localStorage.getItem('bikemaster_just_logged_in') !== 'true')">
+    <template v-if="!loggedIn && !isPublicPage && !ui.oauthLoading">
       <div class="login-wrapper">
         <LoginForm @login="onLogin" @register="onRegister" @error="loginError = $event" />
         <p v-if="loginError" class="login-error">{{ loginError }}</p>
@@ -128,11 +128,6 @@ async function onSummaryChange() {
 onMounted(() => {
   ui.loadTheme()
   setLocale(locale.value || 'en')
-  const urlParams = new URLSearchParams(window.location.search)
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
-  if (urlParams.get('token') || hashParams.get('token')) {
-    ui.setOauthLoading(true)
-  }
   window.addEventListener('oauth-loading-end', () => {
     ui.setOauthLoading(false)
   })

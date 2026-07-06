@@ -219,13 +219,12 @@ router.beforeEach(async (to, from, next) => {
 
   // Handle post-login redirect - redirect logged-in users from / to their dashboard
   if (hasToken && (to.path === '/' || justLoggedIn)) {
-    // Clean up justLoggedIn flag
+    const hasCompleteProfile = await checkProfileComplete(auth)
+    next(hasCompleteProfile ? '/rides' : '/athlete')
+    // Clean up justLoggedIn flag AFTER navigation so App.vue can render the dashboard
     localStorage.removeItem('bikemaster_just_logged_in')
     auth.setJustLoggedIn(false)
-    
-    const hasCompleteProfile = await checkProfileComplete(auth)
     ui.setOauthLoading(false)
-    next(hasCompleteProfile ? '/rides' : '/athlete')
     return
   }
 

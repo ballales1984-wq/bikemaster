@@ -24,11 +24,9 @@ const oauthError = urlParams.get('oauth_error') || hashParams.get('oauth_error')
 
 if (urlToken) {
   auth.setAuthFromUrl(urlToken, email)
-  ui.setOauthLoading(true)
   window.history.replaceState({}, document.title, '/')
 } else if (oauthError) {
   auth.setOauthError(oauthError)
-  ui.setOauthLoading(false)
   window.history.replaceState({}, document.title, '/')
 }
 
