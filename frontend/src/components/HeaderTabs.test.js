@@ -20,21 +20,21 @@ describe('HeaderTabs', () => {
 
     const links = wrapper.findAll('a')
     expect(links.length).toBeGreaterThan(0)
-    expect(links.some(a => a.text().includes('Rides'))).toBe(true)
+    expect(links.some(a => a.text().includes('nav.rides'))).toBe(true)
   })
 
   it('shows admin link only for admins', () => {
     const userLinks = render().text()
     const adminLinks = render({ isAdmin: true }).text()
 
-    expect(userLinks).not.toContain('Admin')
-    expect(adminLinks).toContain('Admin')
+    expect(userLinks).not.toContain('nav.admin')
+    expect(adminLinks).toContain('nav.admin')
   })
 
   it('emits logout and displays current user role', async () => {
     const wrapper = render({ isAdmin: true })
 
-    expect(wrapper.text()).toContain('Admin')
+    expect(wrapper.text()).toContain('nav.admin')
 
     const buttons = wrapper.findAll('button')
     await buttons.at(-1).trigger('click')
