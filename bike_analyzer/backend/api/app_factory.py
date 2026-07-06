@@ -226,15 +226,27 @@ def create_app() -> FastAPI:
 
         @app.get("/registerSW.js")
         async def register_sw():
-            return _static_file_response(STATIC_DIR / "registerSW.js", "text/javascript", headers={"Cache-Control": "no-store"})
+            return _static_file_response(
+                STATIC_DIR / "registerSW.js",
+                "text/javascript",
+                headers={"Cache-Control": "no-store"},
+            )
 
         @app.get("/manifest.json")
         async def manifest():
-            return _static_file_response(STATIC_DIR / "manifest.json", "application/json", headers={"Cache-Control": "no-store"})
+            return _static_file_response(
+                STATIC_DIR / "manifest.json",
+                "application/json",
+                headers={"Cache-Control": "no-store"},
+            )
 
         @app.get("/manifest.webmanifest")
         async def manifest_webmanifest():
-            return _static_file_response(STATIC_DIR / "manifest.webmanifest", "application/manifest+json", headers={"Cache-Control": "no-store"})
+            return _static_file_response(
+                STATIC_DIR / "manifest.webmanifest",
+                "application/manifest+json",
+                headers={"Cache-Control": "no-store"},
+            )
 
         CEO_FILE = STATIC_DIR / "ceo_dashboard.html"
         if CEO_FILE.exists():

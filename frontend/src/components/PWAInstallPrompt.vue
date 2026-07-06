@@ -1,6 +1,6 @@
 <template>
   <Transition name="slide">
-    <div v-if="showPrompt" class="pwa-banner" role="alert" aria-live="polite">
+    <div v-if="showBanner" class="pwa-banner" role="alert" aria-live="polite">
       <div class="pwa-banner-icon" aria-hidden="true">🚴</div>
       <div class="pwa-banner-text">
         <strong>Install BikeMaster</strong>
@@ -14,15 +14,19 @@
 
 <script setup>
 import { usePWA } from '../composables/usePWA'
+import { computed } from 'vue'
 
 const { showPrompt, deferredPrompt, prompt } = usePWA()
 
+const showBanner = computed(() => {
+  if (!showPrompt.value) return false
+  if (!deferredPrompt.value) return false
+  return typeof deferredPrompt.value.prompt === 'function'
+})
+
 async function install() {
-  if (!deferredPrompt.value) return
+  if (!showBanner.value) return
   const outcome = await prompt()
-  if (outcome === 'accepted') {
-    showPrompt.value = false
-  }
 }
 
 function dismiss() {
