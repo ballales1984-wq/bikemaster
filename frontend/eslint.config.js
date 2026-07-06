@@ -1,16 +1,28 @@
-{
-  "extends": ["eslint:recommended", "plugin:vue/vue3-recommended", "prettier"],
-  "plugins": ["vue"],
-  "env": {
-    "browser": true,
-    "node": true,
-    "vitest": true
+import js from '@eslint/js'
+import pluginVue from 'eslint-plugin-vue'
+import pluginPrettier from 'eslint-plugin-prettier'
+
+export default [
+  js.configs.recommended,
+  ...pluginVue.configs['flat/recommended'],
+  {
+    name: 'bikemaster/custom',
+    languageOptions: {
+      globals: {
+        browser: true,
+        node: true,
+        vitest: true,
+      },
+    },
   },
-  "parserOptions": {
-    "ecmaVersion": "latest",
-    "sourceType": "module"
+  {
+    name: 'bikemaster/rules',
+    plugins: {
+      prettier: pluginPrettier,
+    },
+    rules: {
+      'prettier/prettier': 'warn',
+      'vue/multi-word-component-names': ['error', { ignores: ['ToastContainer'] }],
+    },
   },
-  "rules": {
-    "vue/multi-word-component-names": ["error", { "ignores": ["ToastContainer"] }]
-  }
-}
+]

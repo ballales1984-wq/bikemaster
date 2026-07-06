@@ -1,6 +1,6 @@
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+from bike_analyzer.backend.models.models import GPSPoint
 from bike_analyzer.backend.processing.processing import (
     PAUSE_MIN_DURATION_MINUTES,
     RouteStatistics,
@@ -13,14 +13,13 @@ from bike_analyzer.backend.processing.processing import (
     remove_outliers,
     validate_coordinate,
 )
-from bike_analyzer.backend.models.models import GPSPoint
 
 
 def _point(lat, lon, speed=None, timestamp=None):
     return GPSPoint(
         lat=lat,
         lon=lon,
-        timestamp=timestamp or datetime.now(timezone.utc),
+        timestamp=timestamp or datetime.now(UTC),
         speed=speed,
     )
 
@@ -46,7 +45,7 @@ def test_detect_pauses_single_point():
 
 
 def test_detect_pauses_detects_stop():
-    base = datetime.now(timezone.utc)
+    base = datetime.now(UTC)
     points = [
         _point(45.0, 7.0, speed=10, timestamp=base),
         _point(45.0, 7.0, speed=0.5, timestamp=base),

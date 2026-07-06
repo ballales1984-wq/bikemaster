@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from datetime import UTC, datetime
@@ -13,10 +14,8 @@ _AUDIT_LOG_PATH = Path("logs/audit.jsonl")
 
 
 def _ensure_log_dir() -> None:
-    try:
+    with contextlib.suppress(Exception):
         _AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    except Exception:
-        pass
 
 
 def log_action(

@@ -1,10 +1,10 @@
 <template>
-  <div class="app" :class="{ 'light-theme': !isDark }">
+  <div class="app" :class="{ 'light-theme': !ui.isDark }">
     <header class="app-header" v-show="showHeader">
       <h1 class="logo">🚴 BikeMaster</h1>
       <p v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
-      <button class="theme-toggle" @click="toggleTheme" :aria-label="isDark ? 'Light mode' : 'Dark mode'">
-        {{ isDark ? '☀️' : '🌙' }}
+      <button class="theme-toggle" @click="ui.toggleTheme" :aria-label="ui.isDark ? 'Light mode' : 'Dark mode'">
+        {{ ui.isDark ? '☀️' : '🌙' }}
       </button>
       <LanguageSwitcher />
       <nav v-if="isPublicPage" class="public-links">
@@ -16,12 +16,12 @@
       </nav>
     </header>
 
-    <div v-if="oauthLoading" class="oauth-loading-overlay">
+    <div v-if="ui.oauthLoading" class="oauth-loading-overlay">
       <div class="spinner"></div>
       <p class="loading-text">Finalizing login...</p>
     </div>
 
-    <template v-if="!loggedIn && !isPublicPage && !oauthLoading">
+    <template v-if="!loggedIn && !isPublicPage && !ui.oauthLoading">
       <div class="login-wrapper">
         <LoginForm @login="onLogin" @register="onRegister" @error="loginError = $event" />
         <p v-if="loginError" class="login-error">{{ loginError }}</p>
@@ -31,12 +31,12 @@
     <template v-else>
       <HeaderTabs :is-admin="isAdmin" @logout="onLogout" />
 
-      <StatsSummary v-if="loggedIn" :stats="summary" :loading="summaryLoading" @refresh="onSummaryChange" />
+      <StatsSummary v-if="loggedIn" :stats="summary" :loading="summaryLoading" @summary-change="onSummaryChange" />
 
       <main>
-        <router-view v-slot="{ Component, ComponentProps }">
+        <router-view v-slot="{ Component }">
           <transition name="panel" mode="out-in">
-            <component :is="Component" v-bind="ComponentProps" @summary-change="onSummaryChange" />
+            <component :is="Component" @summary-change="onSummaryChange" />
           </transition>
         </router-view>
       </main>
@@ -53,6 +53,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+import { useUIStore } from './stores/ui'
 import { useRides } from './composables/useRides'
 import { useI18n } from './composables/useI18n'
 import LoginForm from './components/LoginForm.vue'
@@ -62,6 +63,7 @@ import ToastContainer from './components/ToastContainer.vue'
 import PWAInstallPrompt from './components/PWAInstallPrompt.vue'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 const auth = useAuthStore()
+const ui = useUIStore()
 const route = useRoute()
 const router = useRouter()
 const { locale, setLocale } = useI18n()
@@ -72,29 +74,11 @@ const showHeader = computed(() => loggedIn.value || isPublicPage.value)
 const summary = ref({ rides: 0, distance_km: 0, calories: 0, avg_speed_kmh: 0, duration_minutes: 0 })
 const summaryLoading = ref(false)
 const loginError = ref(localStorage.getItem('bikemaster_login_error') || '')
-const oauthLoading = ref(false)
+const { fetchSummary } = useRides()
 
-const isDark = ref(true)
-
-function loadTheme() {
-  const saved = localStorage.getItem('bikemaster_theme')
-  if (saved === 'light') {
-    isDark.value = false
-  } else {
-    isDark.value = true
-  }
-}
-
-function toggleTheme() {
-  isDark.value = !isDark.value
-  localStorage.setItem('bikemaster_theme', isDark.value ? 'dark' : 'light')
-}
-
-watch(isDark, (val) => {
+watch(() => ui.isDark, (val) => {
   document.body.classList.toggle('light-theme', !val)
 })
-
-const { fetchSummary } = useRides()
 
 async function loadSummary() {
   summaryLoading.value = true
@@ -142,15 +126,15 @@ async function onSummaryChange() {
 }
 
 onMounted(() => {
-  loadTheme()
+  ui.loadTheme()
   setLocale(locale.value || 'en')
   const urlParams = new URLSearchParams(window.location.search)
   const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
   if (urlParams.get('token') || hashParams.get('token')) {
-    oauthLoading.value = true
+    ui.setOauthLoading(true)
   }
   window.addEventListener('oauth-loading-end', () => {
-    oauthLoading.value = false
+    ui.setOauthLoading(false)
   })
   if (loggedIn.value) loadSummary()
 })
@@ -275,3 +259,4 @@ onMounted(() => {
   color: var(--text-primary);
 }
 </style>
+

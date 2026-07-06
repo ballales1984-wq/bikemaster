@@ -1,8 +1,5 @@
-import pytest
-from datetime import datetime, timezone
 
 from bike_analyzer.backend.analytics.multi_classifier import (
-    ClassifiedRide,
     category_distribution,
     classify_rides,
 )

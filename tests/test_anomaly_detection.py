@@ -1,7 +1,5 @@
-import pytest
 
 from bike_analyzer.backend.analytics.anomaly_detection import (
-    RideAnomalyReport,
     detect_ride_anomalies,
     summarize_anomalies,
 )

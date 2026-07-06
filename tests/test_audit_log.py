@@ -1,8 +1,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from bike_analyzer.backend.audit_log import log_action, read_audit_logs
 
 

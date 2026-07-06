@@ -7,7 +7,7 @@ with strong type constraints and business rules.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 

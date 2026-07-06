@@ -133,13 +133,16 @@ def _local_monthly_plan(athlete: AthleteProfile, rides: list[Ride], start_date: 
 def _llm_plan_prompt(athlete: AthleteProfile, rides: list[Ride], plan_type: str, start_date: datetime) -> str:
     summary = _plan_summary(athlete, rides)
     recent = rides[-3:]
-    recent_info = (
-        "; ".join(f"{r.date}: {r.distance_km:.1f}km/{r.duration_minutes:.0f}min" for r in recent) if recent else "nessuna"
-    )
-    if plan_type == "weekly":
-        end_date = start_date + timedelta(days=7)
+    if recent:
+        parts = [f"{r.date}: {r.distance_km:.1f}km/{r.duration_minutes:.0f}min" for r in recent]
+        recent_info = "; ".join(parts)
     else:
-        end_date = start_date + timedelta(days=28)
+        recent_info = "nessuna"
+    end_date = (
+        start_date + timedelta(days=7)
+        if plan_type == "weekly"
+        else start_date + timedelta(days=28)
+    )
 
     return f"""Sei un coach ciclistico esperto. Genera un piano di allenamento {plan_type} personalizzato.
 
@@ -167,7 +170,14 @@ REGOLE:
     "start_date": "{start_date.strftime('%Y-%m-%d')}",
     "end_date": "{end_date.strftime('%Y-%m-%d')}",
     "days": [
-      {{"date": "YYYY-MM-DD", "title": "...", "workout_type": "...", "duration_minutes": 60, "target_zone": "Z2", "description": "..."}}
+      {{
+        "date": "YYYY-MM-DD",
+        "title": "...",
+        "workout_type": "...",
+        "duration_minutes": 60,
+        "target_zone": "Z2",
+        "description": "..."
+      }}
     ],
     "summary": "Frase breve di spiegazione"
   }}
@@ -178,9 +188,14 @@ REGOLE:
 """
 
 
-def _try_llm_plan(athlete: AthleteProfile, rides: list[Ride], plan_type: str, start_date: datetime) -> dict[str, Any] | None:
+def _try_llm_plan(
+    athlete: AthleteProfile,
+    rides: list[Ride],
+    plan_type: str,
+    start_date: datetime,
+) -> dict[str, Any] | None:
     try:
-        from ..analytics.ai_coach import get_ai_coach_client, _chat_completion_text, _clean_ai_output
+        from ..analytics.ai_coach import _chat_completion_text, _clean_ai_output, get_ai_coach_client
         from ..config import GROQ_MODEL, OPENAI_MODEL
 
         client, provider = get_ai_coach_client()

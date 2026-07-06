@@ -1,4 +1,3 @@
-import pytest
 
 from bike_analyzer.backend.analytics.ride_route_estimator import estimate_route_preferences
 from bike_analyzer.backend.models.models import AthleteProfile, Ride
