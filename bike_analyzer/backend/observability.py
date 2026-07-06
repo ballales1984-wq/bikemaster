@@ -7,7 +7,6 @@ OpenTelemetry as the shared instrumentation layer.
 from __future__ import annotations
 
 import logging
-
 import sentry_sdk
 
 logger = logging.getLogger(__name__)

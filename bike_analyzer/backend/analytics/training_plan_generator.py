@@ -49,7 +49,6 @@ def _plan_summary(athlete: AthleteProfile, rides: list[Ride]) -> dict[str, Any]:
 
 def _local_weekly_plan(athlete: AthleteProfile, rides: list[Ride], start_date: datetime) -> list[WorkoutDay]:
     level = (athlete.experience_level or "beginner").lower()
-    ftp = athlete.ftp_watts or 250
     zone2 = 75 if level in ("beginner", "intermediate") else 90
     zone3 = int(zone2 * 0.7)
     zone4 = int(zone2 * 0.4)
@@ -182,6 +181,7 @@ REGOLE:
 def _try_llm_plan(athlete: AthleteProfile, rides: list[Ride], plan_type: str, start_date: datetime) -> dict[str, Any] | None:
     try:
         from ..analytics.ai_coach import get_ai_coach_client, _chat_completion_text, _clean_ai_output
+        from ..config import GROQ_MODEL, OPENAI_MODEL
 
         client, provider = get_ai_coach_client()
         model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
