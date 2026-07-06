@@ -203,17 +203,20 @@ bike_analyzer/
 │
 ├── knowledge_base/                    # Documenti indicizzati per RAG
 ├── docs/                              # Documentazione sviluppatore
-│   ├── API_DOCS.md
-│   ├── API_DOCUMENTAZIONE.md
-│   ├── CHANGELOG.md
-│   ├── DEVELOPMENT.md
+│   ├── API_DOCS.md                    # API reference (EN, v1.3)
+│   ├── API_EXAMPLES.http
+│   ├── DEVELOPMENT.md                 # Developer guide (EN, aggiornato)
 │   ├── PHONE_TRACKING.md
 │   ├── PHONE_TRACKING_TESTING.md
-│   ├── PROJECT_DOCUMENTATION.md
-│   ├── USER_GUIDE.md
-│   ├── GUIDA_UTENTE.md
-│   ├── SVILUPPO.md
-│   └── database-migration.md
+│   ├── USER_GUIDE.md                  # User guide (EN)
+│   └── archive/                       # Materiale obsoleto / disallineato
+│       ├── API_DOCUMENTAZIONE.md
+│       ├── CHANGELOG_IT.md
+│       ├── GUIDA_UTENTE.md
+│       ├── SVILUPPO.md
+│       └── obsolete/
+│           ├── PROJECT_DOCUMENTATION.md
+│           └── database-migration.md
 │
 ├── alembic/                           # Migrazioni DB versionate
 │   ├── versions/08ee39bfe529_initial_models.py
@@ -481,4 +484,4 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 
 ---
 
-*Ultimo aggiornamento: 2026-06-28 — Multi-user completo: tenant_id, user management API, PostgreSQL allineato, frontend types*
+*Ultimo aggiornamento: 2026-07-05 — Consolida documentazione: archiviati piani obsolete, duplicati docs/ (API_DOCUMENTAZIONE, SVILUPPO, GUIDA_UTENTE, CHANGELOG_IT, PROJECT_DOCUMENTATION), FRONTEND_IMPROVEMENT_PLAN sostituito da ROADMAP.md*

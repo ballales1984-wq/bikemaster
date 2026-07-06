@@ -790,29 +790,49 @@ Suite di 51+ test automatici:
 
 ## Roadmap
 
-Stato progetto: Late Beta / Early Production.
+Stato progetto: **Late Beta / Early Production** — 145/145 base + 63/80 estensioni completate.
 
-| Fase | Descrizione | Status |
-|---|---|---|
-| 1. Fondamenta | Progetto, struttura, modelli | ✅ |
-| 2. Analisi percorso | GPS, segmenti, statistiche | ✅ |
-| 3. Database | SQLite, CRUD, backup | ✅ |
-| 4. Profilo atleta | Campi atleta, storico | ✅ |
-| 5. Performance engine | Score, endurance, fatigue | ✅ |
-| 6. Benchmark | Categorie, percentile | ✅ |
-| 7. Knowledge Base | Indicizzazione, RAG | ✅ |
-| 8. AI Coach | Consigli, chat, trend | ✅ |
-| 9. Google Fit | OAuth2, import | ✅ |
-| 10. Strava | OAuth2 + PKCE, import/sync | ✅ |
-| 11. Garmin Connect | OAuth2, import attivita | ✅ |
-| 12. Tracciamento Telefono | Android foreground service + Capacitor | ✅ |
-| 13. Traffic Safety | Road risk score + OSM data | ✅ |
-| 14. Architettura Clean | Core layer, calculators/services/repositories | ✅ |
-| 15. Event Bus | Domain events pub/sub | ✅ |
-| 16. Vector DB | PGVector per RAG avanzato | ✅ |
-| 17. UI/UX | Dashboard dark theme + PWA | ✅ |
-| 18. Deployment | Docker hardened, CI/CD, Android release | ✅ |
-| 19. Test Coverage | 79% (target 80-92%) | 🔄 |
+### Fasi completate
+
+| # | Fase | Status |
+|:---:|---|---|
+| 1 | Fondamenta | ✅ |
+| 2 | Analisi percorso | ✅ |
+| 3 | Database | ✅ |
+| 4 | Profilo atleta | ✅ |
+| 5 | Performance engine | ✅ |
+| 6 | Benchmark | ✅ |
+| 7 | Knowledge Base | ✅ |
+| 8 | AI Coach | ✅ |
+| 9 | Google Fit | ✅ |
+| 10 | Strava | ✅ |
+| 11 | Garmin Connect | ✅ |
+| 12 | Tracciamento Telefono (Android) | ✅ |
+| 13 | Traffic Safety | ✅ |
+| 14 | Architettura Clean | ✅ |
+| 15 | Event Bus | ✅ |
+| 16 | Vector DB (PGVector) | ✅ |
+| 17 | UI/UX (Dashboard + PWA) | ✅ |
+| 18 | Deployment (Docker + CI/CD) | ✅ |
+| 19 | Testing & DevOps | 🔄 Parziale |
+| 20 | Multi-utente + Tenant Isolation | ✅ |
+| 21 | Deployment & Distribuzione | 🔄 In corso |
+| 22 | Phone GPS Tracking Android | 🔄 Parziale |
+| 23 | Event-Driven & Clean Architecture | 🔄 Parziale |
+| 24 | Vector DB & AI RAG Avanzato | 🔄 Parziale |
+| 25 | Frontend Testing & PWA | 🔄 In corso |
+
+### Priorità — Prossimi 3-6 mesi
+
+| Priorità | Miglioramento | Impatto | Difficoltà |
+|:---:|---|---|:---:|
+| **1** | Frontend testing suite attiva (Vitest + Playwright E2E) | Molto alto | Media |
+| **2** | PostgreSQL in produzione + connection pooling | Alto | Media |
+| **3** | Anomaly detection uscite + Weekly/Monthly training plan LLM | Alto | Media |
+| **4** | iOS mobile app (Capacitor iOS) | Alto | Media |
+| **5** | PWA completa + offline support | Alto | Media |
+| **6** | Ruff + mypy + pre-commit linting | Medio-Alto | Bassa |
+| **7** | Coverage test >90% | Medio | Alta |
 
 ---
 

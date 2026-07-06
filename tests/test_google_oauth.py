@@ -1,6 +1,5 @@
 """Tests for Google OAuth integration."""
 
-import os
 from unittest.mock import MagicMock, Mock, patch
 
 from jose import jwt
@@ -10,7 +9,7 @@ from bike_analyzer.backend.auth.google_auth import (
     exchange_google_code,
     get_google_oauth_url,
 )
-from bike_analyzer.backend.config import SECRET_KEY, JWT_ISSUER, JWT_AUDIENCE
+from bike_analyzer.backend.config import JWT_AUDIENCE, JWT_ISSUER, SECRET_KEY
 
 
 def test_get_google_oauth_url():

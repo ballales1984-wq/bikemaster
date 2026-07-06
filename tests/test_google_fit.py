@@ -150,8 +150,9 @@ class TestGoogleFitToRide:
 
     @patch("requests.get")
     def test_fetch_cycling_activities_raises_on_failure(self, mock_get):
-        import requests
         from unittest.mock import MagicMock
+
+        import requests
 
         mock_resp = MagicMock()
         mock_resp.ok = False

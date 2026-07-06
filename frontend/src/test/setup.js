@@ -50,3 +50,14 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   rect: vi.fn(),
   clip: vi.fn(),
 }))
+
+if (typeof requestAnimationFrame === 'undefined') {
+  globalThis.requestAnimationFrame = (cb) => setTimeout(cb, 0)
+  globalThis.cancelAnimationFrame = (id) => clearTimeout(id)
+}
+
+if (typeof performance === 'undefined' || typeof performance.now !== 'function') {
+  globalThis.performance = {
+    now: () => Date.now(),
+  }
+}

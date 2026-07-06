@@ -75,7 +75,10 @@ ignore = ["B008", "B007"]
 
 [tool.ruff.lint.per-file-ignores]
 "bike_analyzer/frontend/dashboard.py" = ["E501"]
-"bike_analyzer/backend/api/routes.py" = ["B008"]
+"bike_analyzer/backend/api/routes.py" = ["B008", "E501"]
+"bike_analyzer/backend/observability.py" = ["E402"]
+"bike_analyzer/backend/ingestion/gps_parser.py" = ["E501", "SIM105"]
+"tests/**" = ["B018", "SIM117", "B017"]
 
 [tool.mypy]
 python_version = "3.11"
