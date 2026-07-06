@@ -157,13 +157,14 @@ router.beforeEach(async (to, from, next) => {
 
   // Sync state from localStorage in case Pinia hasn't updated reactively yet
   // This handles the race condition when main.ts sets the token before router guard runs
-  const storedToken = localStorage.getItem('bikemaster_token')
-  const storedJustLoggedIn = localStorage.getItem('bikemaster_just_logged_in') === 'true'
-  
-  if (!auth.token && storedToken) {
+  const hasLocalStorage = typeof localStorage !== 'undefined'
+  const storedToken = hasLocalStorage ? localStorage.getItem('bikemaster_token') : null
+  const storedJustLoggedIn = hasLocalStorage ? localStorage.getItem('bikemaster_just_logged_in') === 'true' : false
+
+  if (hasLocalStorage && !auth.token && storedToken) {
     auth.token = storedToken
   }
-  if (!auth.user && localStorage.getItem('bikemaster_user')) {
+  if (hasLocalStorage && !auth.user && localStorage.getItem('bikemaster_user')) {
     try {
       auth.user = JSON.parse(localStorage.getItem('bikemaster_user')!)
     } catch {}

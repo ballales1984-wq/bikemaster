@@ -35,13 +35,13 @@ def _forwarded_value(header_value: str | None) -> str:
     return header_value.split(",", 1)[0].strip()
 
 
-def _static_file_response(file_path: Path, media_type: str | None = None) -> Response:
+def _static_file_response(file_path: Path, media_type: str | None = None, headers: dict | None = None) -> Response:
     if file_path.exists() and media_type:
         content = file_path.read_bytes() if media_type.startswith("image/") else file_path.read_text(encoding="utf-8")
-        return Response(content=content, media_type=media_type)
+        return Response(content=content, media_type=media_type, headers=headers or {})
     if file_path.exists() and media_type is None:
-        return Response(content=file_path.read_bytes(), media_type="application/octet-stream")
-    return Response(status_code=404)
+        return Response(content=file_path.read_bytes(), media_type="application/octet-stream", headers=headers or {})
+    return Response(status_code=404, headers=headers or {})
 
 
 @asynccontextmanager
@@ -214,27 +214,27 @@ def create_app() -> FastAPI:
 
         @app.get("/")
         async def dashboard_root():
-            return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"))
+            return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"), headers={"Cache-Control": "no-store"})
 
         @app.get("/index.html")
         async def dashboard_index():
-            return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"))
+            return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"), headers={"Cache-Control": "no-store"})
 
         @app.get("/dashboard", response_class=HTMLResponse)
         async def dashboard():
-            return INDEX_FILE.read_text(encoding="utf-8")
+            return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"), headers={"Cache-Control": "no-store"})
 
         @app.get("/registerSW.js")
         async def register_sw():
-            return _static_file_response(STATIC_DIR / "registerSW.js", "text/javascript")
+            return _static_file_response(STATIC_DIR / "registerSW.js", "text/javascript", headers={"Cache-Control": "no-store"})
 
         @app.get("/manifest.json")
         async def manifest():
-            return _static_file_response(STATIC_DIR / "manifest.json", "application/json")
+            return _static_file_response(STATIC_DIR / "manifest.json", "application/json", headers={"Cache-Control": "no-store"})
 
         @app.get("/manifest.webmanifest")
         async def manifest_webmanifest():
-            return _static_file_response(STATIC_DIR / "manifest.webmanifest", "application/manifest+json")
+            return _static_file_response(STATIC_DIR / "manifest.webmanifest", "application/manifest+json", headers={"Cache-Control": "no-store"})
 
         CEO_FILE = STATIC_DIR / "ceo_dashboard.html"
         if CEO_FILE.exists():

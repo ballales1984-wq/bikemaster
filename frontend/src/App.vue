@@ -21,7 +21,7 @@
       <p class="loading-text">Finalizing login...</p>
     </div>
 
-    <template v-if="!loggedIn && !isPublicPage && !ui.oauthLoading">
+    <template v-if="!loggedIn && !isPublicPage && !ui.oauthLoading && (typeof localStorage === 'undefined' || localStorage.getItem('bikemaster_just_logged_in') !== 'true')">
       <div class="login-wrapper">
         <LoginForm @login="onLogin" @register="onRegister" @error="loginError = $event" />
         <p v-if="loginError" class="login-error">{{ loginError }}</p>
