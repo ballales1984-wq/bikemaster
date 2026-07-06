@@ -47,7 +47,7 @@ describe('CoachPanel', () => {
     const wrapper = mount(CoachPanel)
     await flush()
 
-    expect(wrapper.find('h2').text()).toContain('AI Coach')
+    expect(wrapper.find('h2').text()).toContain('coach.title')
   })
 
   it('shows score pills after loading coach data', async () => {
