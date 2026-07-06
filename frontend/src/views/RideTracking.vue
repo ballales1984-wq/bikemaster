@@ -15,9 +15,9 @@
       <div class="empty-desc">
         Press the button below to start recording your route in real-time.
       </div>
-      <div v-if="!navigator.onLine" class="gps-error-banner" style="margin-bottom:12px">
-        Offline: tracking works, but map tiles may be limited until connectivity returns.
-      </div>
+       <div v-if="!isOnline" class="gps-error-banner" style="margin-bottom:12px">
+         Offline: tracking works, but map tiles may be limited until connectivity returns.
+       </div>
       <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
       <button class="btn btn-primary btn-large" @click="startTracking">
         Start Tracking
@@ -55,6 +55,13 @@ import { apiUpload } from '../utils/api'
 import type { GpsPoint } from '../types/index'
 
 const router = useRouter()
+
+const isOnline = ref(typeof navigator !== 'undefined' ? navigator.onLine : true)
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => { isOnline.value = true })
+  window.addEventListener('offline', () => { isOnline.value = false })
+}
 
 const liveMapRef = ref<InstanceType<typeof LiveMap> | null>(null)
 const isUploading = ref(false)
