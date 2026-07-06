@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { useToast } from '../composables/useToast'
+import { useUIStore } from '../stores/ui'
 
 const routes = [
   {
@@ -12,117 +12,128 @@ const routes = [
     path: '/rides',
     name: 'rides',
     component: () => import('../views/RidesView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Le mie uscite' }
   },
   {
     path: '/import',
     name: 'import',
     component: () => import('../components/ImportPanel.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Importa uscite' }
   },
   {
     path: '/athlete',
     name: 'athlete',
     component: () => import('../components/AthletePanel.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Profilo atleta' }
   },
   {
     path: '/coach',
     name: 'coach',
     component: () => import('../components/CoachPanel.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'AI Coach' }
   },
   {
     path: '/knowledge',
     name: 'knowledge',
     component: () => import('../components/KnowledgePanel.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Knowledge Base' }
   },
   {
     path: '/calendar',
     name: 'calendar',
     component: () => import('../components/CalendarPanel.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Calendario' }
   },
   {
     path: '/granfondo',
     name: 'granfondo',
     component: () => import('../components/GranfondoPlanner.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Granfondo Planner' }
   },
   {
     path: '/map',
     name: 'map',
     component: () => import('../components/RideMapPanel.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Mappa uscite' }
   },
   {
     path: '/comparison',
     name: 'comparison',
     component: () => import('../components/RideComparison.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Confronto uscite' }
   },
   {
     path: '/heatmap',
     name: 'heatmap',
     component: () => import('../components/HeatmapPanel.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Heatmap' }
   },
   {
     path: '/badges',
     name: 'badges',
     component: () => import('../components/BadgesPanel.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Badge' }
   },
   {
     path: '/weather',
     name: 'weather',
     component: () => import('../components/WeatherPanel.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Meteo' }
   },
   {
     path: '/admin',
     name: 'admin',
     component: () => import('../components/AdminPanel.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { requiresAuth: true, requiresAdmin: true, title: 'Amministrazione' }
   },
   {
     path: '/track',
     name: 'tracking',
     component: () => import('../views/RideTracking.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'Tracciamento uscita' }
   },
   {
     path: '/privacy',
     name: 'privacy',
-    component: () => import('../views/PrivacyPolicy.vue')
+    component: () => import('../views/PrivacyPolicy.vue'),
+    meta: { title: 'Privacy Policy' }
   },
   {
     path: '/terms',
     name: 'terms',
-    component: () => import('../views/TermsOfService.vue')
+    component: () => import('../views/TermsOfService.vue'),
+    meta: { title: 'Termini di servizio' }
   },
   {
     path: '/cookies',
     name: 'cookies',
-    component: () => import('../views/CookiePolicy.vue')
+    component: () => import('../views/CookiePolicy.vue'),
+    meta: { title: 'Cookie Policy' }
   },
   {
     path: '/about',
     name: 'about',
-    component: () => import('../views/AboutUs.vue')
+    component: () => import('../views/AboutUs.vue'),
+    meta: { title: 'Chi siamo' }
   },
   {
     path: '/contact',
     name: 'contact',
-    component: () => import('../views/ContactUs.vue')
+    component: () => import('../views/ContactUs.vue'),
+    meta: { title: 'Contatti' }
   }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior() {
+  scrollBehavior(to, from, savedPosition) {
+    if (to && to.hash) {
+      return { el: to.hash, behavior: 'smooth' }
+    }
+    if (savedPosition) {
+      return savedPosition
+    }
     return { top: 0 }
   }
 })
@@ -142,24 +153,41 @@ async function checkProfileComplete(auth: ReturnType<typeof useAuthStore>): Prom
 
 router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
-  let justLoggedIn = false
+  const ui = useUIStore()
 
-  // Handle OAuth callback token from URL fragment
+  // Sync state from localStorage in case Pinia hasn't updated reactively yet
+  // This handles the race condition when main.ts sets the token before router guard runs
+  const storedToken = localStorage.getItem('bikemaster_token')
+  const storedJustLoggedIn = localStorage.getItem('bikemaster_just_logged_in') === 'true'
+  
+  if (!auth.token && storedToken) {
+    auth.token = storedToken
+  }
+  if (!auth.user && localStorage.getItem('bikemaster_user')) {
+    try {
+      auth.user = JSON.parse(localStorage.getItem('bikemaster_user')!)
+    } catch {}
+  }
+  if (!auth.justLoggedIn && storedJustLoggedIn) {
+    auth.setJustLoggedIn(true)
+  }
+
+  if (auth.token && !auth.isTokenValid()) {
+    auth.token = ''
+    auth.user = null
+    localStorage.removeItem('bikemaster_token')
+    localStorage.removeItem('bikemaster_user')
+    auth.setJustLoggedIn(false)
+  }
+
+  // Process OAuth token from URL (fallback for cases where main.ts doesn't handle it)
   if (!to.query.token && to.hash) {
     const hashParams = new URLSearchParams(to.hash.replace(/^#/, ''))
     const fragmentToken = hashParams.get('token')
     if (fragmentToken) {
-      auth.token = fragmentToken
-      const payload = auth.parseJWTPayload(fragmentToken)
-      auth.user = {
-        id: hashParams.get('user_id') ? parseInt(hashParams.get('user_id')!, 10) : 0,
-        username: typeof payload?.sub === 'string' ? payload.sub : '',
-        is_admin: !!payload?.is_admin,
-      }
-      localStorage.setItem('bikemaster_token', fragmentToken)
-      localStorage.setItem('bikemaster_user', JSON.stringify(auth.user))
-      justLoggedIn = true
-      // Clean up URL hash
+      const email = hashParams.get('email') || ''
+      auth.setAuthFromUrl(fragmentToken, email)
+      ui.setOauthLoading(false)
       if (window.history.replaceState) {
         window.history.replaceState(null, '', to.path)
       }
@@ -168,62 +196,44 @@ router.beforeEach(async (to, from, next) => {
 
   // Also handle query params for backward compatibility
   if (to.query.token && typeof to.query.token === 'string') {
-    auth.token = to.query.token
-    const payload = auth.parseJWTPayload(to.query.token)
-    auth.user = {
-      id: typeof to.query.user_id === 'string' ? parseInt(to.query.user_id, 10) : 0,
-      username: typeof payload?.sub === 'string' ? payload.sub : '',
-      is_admin: !!payload?.is_admin,
-    }
-    localStorage.setItem('bikemaster_token', to.query.token)
-    localStorage.setItem('bikemaster_user', JSON.stringify(auth.user))
-    justLoggedIn = true
+    const email = typeof to.query.email === 'string' ? to.query.email : ''
+    auth.setAuthFromUrl(to.query.token, email)
+    auth.setJustLoggedIn(true)
+    ui.setOauthLoading(false)
   }
 
-  // Check for invalid/expired token and clean up
-  if (auth.token && !auth.isTokenValid()) {
-    auth.token = ''
-    auth.user = null
-    localStorage.removeItem('bikemaster_token')
-    localStorage.removeItem('bikemaster_user')
+  // Use auth.token directly to avoid reactivity timing issues
+  const hasToken = !!auth.token
+  const justLoggedIn = auth.justLoggedIn || storedJustLoggedIn
+
+  if (to.meta.requiresAuth && !hasToken) {
+    next('/')
+    return
   }
 
-  const loggedIn = auth.isLoggedIn
+  if (to.meta.requiresAdmin && !auth.isAdmin) {
+    next('/')
+    return
+  }
 
-  if (justLoggedIn) {
-    window.dispatchEvent(new CustomEvent('oauth-loading-end'))
+  // Handle post-login redirect - redirect logged-in users from / to their dashboard
+  if (hasToken && (to.path === '/' || justLoggedIn)) {
+    // Clean up justLoggedIn flag
+    localStorage.removeItem('bikemaster_just_logged_in')
+    auth.setJustLoggedIn(false)
+    
     const hasCompleteProfile = await checkProfileComplete(auth)
+    ui.setOauthLoading(false)
     next(hasCompleteProfile ? '/rides' : '/athlete')
-  } else if (to.path === '/' && loggedIn) {
-    const hasCompleteProfile = await checkProfileComplete(auth)
-    if (!hasCompleteProfile) {
-      const toast = useToast()
-      toast.show('Welcome! Please complete your athlete profile', 'info')
-    }
-    window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-    next(hasCompleteProfile ? '/rides' : '/athlete')
-  } else if (to.path === '/rides' && loggedIn) {
-    const hasCompleteProfile = await checkProfileComplete(auth)
-    if (!hasCompleteProfile) {
-      const toast = useToast()
-      toast.show('Complete your profile to see your rides', 'info')
-      window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-      next('/athlete')
-    } else {
-      window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-      next()
-    }
-  } else if (to.meta.requiresAuth && !loggedIn) {
-    window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-    next('/')
-  } else if (to.meta.requiresAdmin && !auth.isAdmin) {
-    window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-    next('/')
-  } else {
-    if (justLoggedIn) {
-      window.dispatchEvent(new CustomEvent('oauth-loading-end'))
-    }
-    next()
+    return
+  }
+
+  next()
+})
+
+router.afterEach((to) => {
+  if (to.meta.title) {
+    document.title = to.meta.title as string
   }
 })
 
