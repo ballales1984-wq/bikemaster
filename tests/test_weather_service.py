@@ -1,4 +1,3 @@
-import pytest
 
 from bike_analyzer.backend.weather.weather_service import (
     _get_weather_api_key,

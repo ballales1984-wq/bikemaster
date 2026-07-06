@@ -11,7 +11,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "e2e": "playwright test",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-pattern node_modules,.git,.dist,.output"
   },
   "dependencies": {
     "@capacitor/android": "^5.7.4",

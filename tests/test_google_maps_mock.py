@@ -1,21 +1,22 @@
+from datetime import UTC, datetime
+from unittest.mock import MagicMock, patch
+
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
 
 from bike_analyzer.backend.maps.google_maps import (
+    _build_speed_segments,
     _interpolate_color,
     _speed_to_color,
-    _build_speed_segments,
     build_speed_colored_path,
-    create_google_static_map,
     create_google_elevation_chart,
+    create_google_static_map,
     get_google_api_key,
 )
 from bike_analyzer.backend.models.models import GPSPoint
 
 
 def _pt(lat=45.0, lon=7.0, speed=25.0):
-    return GPSPoint(lat=lat, lon=lon, timestamp=datetime.now(timezone.utc), speed=speed)
+    return GPSPoint(lat=lat, lon=lon, timestamp=datetime.now(UTC), speed=speed)
 
 
 def test_interpolate_color_midpoint():

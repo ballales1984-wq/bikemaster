@@ -1,4 +1,3 @@
-import pytest
 
 from bike_analyzer.backend.traffic.safety_analyzer import (
     _ROAD_SAFETY_WEIGHTS,

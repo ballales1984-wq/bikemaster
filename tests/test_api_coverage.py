@@ -184,7 +184,7 @@ def test_coach_workout(client):
 def test_benchmark_compare(client):
     r = client.post(
         "/api/v1/benchmark/compare",
-        json={"distance_km": 50.0, "duration_minutes": 120, "avg_speed_kmh": 25.0},
+        json={"date": "2024-06-15", "distance_km": 50.0, "duration_minutes": 120, "avg_speed_kmh": 25.0},
     )
     assert r.status_code == 200
 

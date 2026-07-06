@@ -36,6 +36,7 @@ from ..analytics.fatigue import (
     calculate_fatigue_score,
 )
 from ..analytics.granfondo_planner import generate_granfondo_plan
+from ..audit_log import log_action, read_audit_logs
 from ..config import DB_PATH, SECRET_KEY
 from ..maps.map_renderer import create_route_map
 from ..maps.osm_maps import get_local_results, search_nearby, search_places
@@ -46,17 +47,25 @@ from ..redis_client import cache_set as _cache_set
 from ..redis_client import cached as _cached
 from ..security import get_admin_user, get_current_user
 from ..utils.logger import get_logger
-from ..audit_log import log_action, read_audit_logs
 from .schemas import (
     AthleteCreate,
     AthleteUpdate,
+    BenchmarkCompareRequest,
     CalendarEventCreate,
     CalendarEventUpdate,
+    CoachChatRequest,
+    GarminCallbackRequest,
+    GoogleFitImportPayload,
+    GoogleFitTokenRequest,
+    GoogleHealthImportPayload,
     GranfondoPlanRequest,
     MetricCreate,
+    ProfileUpdate,
     RefreshTokenRequest,
     RideAnalysisRequest,
     RideCreate,
+    RideUpdate,
+    StravaCallbackRequest,
 )
 
 _PLACE_CACHE: dict[str, tuple[Any, float]] = {}
@@ -531,7 +540,7 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
 
 @router.put("/auth/profile")
 async def update_profile(
-    profile_data: dict = Body(...),
+    profile_data: ProfileUpdate,
     current_user: dict = Depends(get_current_user),
 ):
     from ..db.database import get_athlete as _get_athlete
@@ -552,7 +561,7 @@ async def update_profile(
         "equipment",
         "medical_notes",
     }
-    update_data = {k: v for k, v in profile_data.items() if k in allowed_fields}
+    update_data = {k: v for k, v in profile_data.model_dump().items() if k in allowed_fields and v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No valid fields to update")
     _update_athlete(current_user["id"], update_data)
@@ -562,8 +571,8 @@ async def update_profile(
 
 @router.post("/auth/change-password")
 async def change_password(
-    current_password: str = Body(..., embed=True),
-    new_password: str = Body(..., min_length=6, embed=True),
+    current_password: str = Body(..., min_length=6, embed=True),
+    new_password: str = Body(..., min_length=8, max_length=100, embed=True),
     current_user: dict = Depends(get_current_user),
 ):
     from ..db.database import get_athlete as _get_athlete
@@ -1428,16 +1437,16 @@ async def google_health_callback(
 
 
 @router.post("/import/google-health")
-async def import_google_health(payload: dict, current_user: dict = Depends(get_current_user)):
+async def import_google_health(payload: GoogleHealthImportPayload, current_user: dict = Depends(get_current_user)):
     from ..db.database import save_ride
     from ..ingestion.google_health import google_health_to_rides
     from ..ingestion.google_oauth_store import get_valid_google_token, store_google_token
 
     athlete_id = int(current_user["id"])
 
-    access_token = payload.get("access_token")
-    refresh_token = payload.get("refresh_token")
-    if access_token and refresh_token and isinstance(access_token, str) and isinstance(refresh_token, str):
+    access_token = payload.access_token
+    refresh_token = payload.refresh_token
+    if access_token and refresh_token:
         with contextlib.suppress(Exception):
             store_google_token(
                 athlete_id,
@@ -1451,7 +1460,7 @@ async def import_google_health(payload: dict, current_user: dict = Depends(get_c
     stored_token = get_valid_google_token(athlete_id, "google_health")
     if stored_token:
         access_token = stored_token
-    elif not access_token or not isinstance(access_token, str) or len(access_token) > 2048:
+    elif not access_token:
         raise HTTPException(status_code=400, detail="access_token required or re-authorize Google Health")
 
     try:
@@ -1482,7 +1491,7 @@ async def import_google_health(payload: dict, current_user: dict = Depends(get_c
 @router.post("/import/google-fit/token")
 async def google_fit_exchange_token(
     request: Request,
-    payload: dict,
+    payload: GoogleFitTokenRequest,
     current_user: dict = Depends(get_current_user),
 ):
     from ..config import GOOGLE_FIT_CLIENT_ID, GOOGLE_FIT_CLIENT_SECRET
@@ -1611,16 +1620,16 @@ async def google_fit_callback(
 
 
 @router.post("/import/google-fit")
-async def import_google_fit(payload: dict, current_user: dict = Depends(get_current_user)):
+async def import_google_fit(payload: GoogleFitImportPayload, current_user: dict = Depends(get_current_user)):
     from ..db.database import save_ride
     from ..ingestion.google_fit import fetch_cycling_activities, google_fit_to_ride
     from ..ingestion.google_oauth_store import get_valid_google_token, store_google_token
 
     athlete_id = int(current_user["id"])
 
-    access_token = payload.get("access_token")
-    refresh_token = payload.get("refresh_token")
-    if access_token and refresh_token and isinstance(access_token, str) and isinstance(refresh_token, str):
+    access_token = payload.access_token
+    refresh_token = payload.refresh_token
+    if access_token and refresh_token:
         with contextlib.suppress(Exception):
             store_google_token(
                 athlete_id,
@@ -1634,7 +1643,7 @@ async def import_google_fit(payload: dict, current_user: dict = Depends(get_curr
     stored_token = get_valid_google_token(athlete_id, "google_fit")
     if stored_token:
         access_token = stored_token
-    elif not access_token or not isinstance(access_token, str) or len(access_token) > 2048:
+    elif not access_token:
         raise HTTPException(status_code=400, detail="access_token required or re-authorize Google Fit")
 
     try:
@@ -1708,11 +1717,17 @@ async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_c
 
 
 @router.post("/benchmark/compare")
-async def benchmark_compare(ride_data: dict, current_user: dict = Depends(get_current_user)):
+async def benchmark_compare(ride_data: BenchmarkCompareRequest, current_user: dict = Depends(get_current_user)):
     from ..analytics.benchmark import compare_athlete_to_benchmark
-    from ..models.models import Ride
+    from ..models.models import AthleteProfile, Ride
 
-    ride = Ride(**ride_data)
+    ride = Ride(
+        date=ride_data.date,
+        distance_km=ride_data.distance_km,
+        duration_minutes=ride_data.duration_minutes,
+        avg_speed_kmh=ride_data.avg_speed_kmh or 0.0,
+        elevation_gain_m=ride_data.elevation_gain_m or 0.0,
+    )
     return compare_athlete_to_benchmark(AthleteProfile(), ride.distance_km, ride.avg_speed_kmh, ride.duration_hours)
 
 
@@ -2111,7 +2126,7 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
 
 
 @router.put("/rides/{ride_id}")
-async def update_ride(ride_id: int, ride: dict = Body(...), current_user: dict = Depends(get_current_user)):
+async def update_ride(ride_id: int, ride: RideUpdate, current_user: dict = Depends(get_current_user)):
     from ..db.database import get_ride as _get_ride
     from ..db.database import update_ride as _update_ride
 
@@ -2120,7 +2135,8 @@ async def update_ride(ride_id: int, ride: dict = Body(...), current_user: dict =
         raise HTTPException(status_code=404, detail="Ride not found")
     _ensure_ride_access(existing, current_user)
     protected = {k: v for k, v in existing.items() if k in ("id", "athlete_id", "created_at")}
-    merged = {**existing, **{k: v for k, v in ride.items() if k not in protected}}
+    update_data = {k: v for k, v in ride.model_dump().items() if v is not None and k not in protected}
+    merged = {**existing, **update_data}
     _update_ride(ride_id, merged)
     return merged
 
@@ -2139,7 +2155,6 @@ async def coach_chat_post(
     request: Request,
     current_user: dict = Depends(get_current_user),
 ):
-    from .schemas import CoachChatRequest
 
     body = await request.json()
     chat_req = CoachChatRequest(**body)
@@ -2934,15 +2949,13 @@ async def strava_auth(
 
 @router.post("/import/strava/callback")
 async def strava_callback(
-    payload: dict,
+    payload: StravaCallbackRequest,
     current_user: dict = Depends(get_current_user),
 ):
     from ..ingestion.strava_client import exchange_code_for_token, store_token
 
-    code = payload.get("code", "")
-    code_verifier = payload.get("code_verifier", "")
-    if not code or not code_verifier:
-        raise HTTPException(status_code=400, detail="code and code_verifier required")
+    code = payload.code
+    code_verifier = payload.code_verifier
     try:
         token_data = exchange_code_for_token(code, code_verifier)
     except requests.HTTPError as exc:
@@ -3038,15 +3051,13 @@ async def garmin_auth(
 
 @router.post("/import/garmin/callback")
 async def garmin_callback(
-    payload: dict,
+    payload: GarminCallbackRequest,
     current_user: dict = Depends(get_current_user),
 ):
     from ..ingestion.garmin_client import exchange_code_for_token, store_token
 
-    code = payload.get("code", "")
-    redirect_uri = payload.get("redirect_uri")
-    if not code:
-        raise HTTPException(status_code=400, detail="code required")
+    code = payload.code
+    redirect_uri = payload.redirect_uri
     try:
         token_data = exchange_code_for_token(code, redirect_uri=redirect_uri or "")
     except requests.HTTPError as exc:

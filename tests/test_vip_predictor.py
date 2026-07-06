@@ -1,5 +1,4 @@
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bike_analyzer.backend.analytics.vip_predictor import estimate_vip
 
@@ -26,9 +25,13 @@ def test_estimate_vip_insufficient_data():
 
 
 def test_estimate_vip_high_probability():
-    base = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    base = datetime(2024, 1, 1, tzinfo=UTC)
     rides = [
-        _ride({"date": (base.replace(day=base.day + i * 2)).isoformat(), "duration_minutes": 90 + i * 5, "avg_speed_kmh": 28 + i * 0.3})
+        _ride({
+            "date": (base.replace(day=base.day + i * 2)).isoformat(),
+            "duration_minutes": 90 + i * 5,
+            "avg_speed_kmh": 28 + i * 0.3,
+        })
         for i in range(10)
     ]
     result = estimate_vip(rides, athlete_ftp=250)

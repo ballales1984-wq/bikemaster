@@ -5,20 +5,52 @@
       <span class="welcome-icon">🎉</span> Welcome! Complete your profile to get started
     </div>
     <form id="athlete-form" class="form-grid" novalidate>
-      <div class="form-group"><label for="athlete-name">Name</label><input id="athlete-name" type="text" v-model="form.name" required /></div>
-      <div class="form-group"><label for="athlete-age">Age</label><input id="athlete-age" type="number" v-model.number="form.age" min="10" max="100" /></div>
-      <div class="form-group"><label for="athlete-weight">Weight (kg)</label><input id="athlete-weight" type="number" v-model.number="form.weight_kg" min="20" max="300" step="0.1" /></div>
-      <div class="form-group"><label for="athlete-height">Height (cm)</label><input id="athlete-height" type="number" v-model.number="form.height_cm" min="100" max="250" /></div>
-      <div class="form-group"><label for="athlete-fat">Body Fat (%)</label><input id="athlete-fat" type="number" v-model.number="form.fat_percentage" min="3" max="60" step="0.1" /></div>
-      <div class="form-group"><label for="athlete-years">Years Active</label><input id="athlete-years" type="number" v-model.number="form.years_active" min="0" max="80" /></div>
-      <div class="form-group"><label for="athlete-weekly">Sessions/week</label><input id="athlete-weekly" type="number" v-model.number="form.weekly_sessions" min="0" max="14" /></div>
-      <div class="form-group"><label for="athlete-monthly">Hours/month</label><input id="athlete-monthly" type="number" v-model.number="form.monthly_hours" min="0" step="0.5" /></div>
-      <div class="form-group"><label for="athlete-annual">Hours/year</label><input id="athlete-annual" type="number" v-model.number="form.annual_hours" min="0" step="0.5" /></div>
+      <div class="form-group">
+        <label for="athlete-name">Name</label>
+        <input id="athlete-name" type="text" v-model="form.name" required :class="{ error: fieldErrors.name, valid: !fieldErrors.name && form.name.length >= 2 }" />
+        <span v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</span>
+      </div>
+      <div class="form-group">
+        <label for="athlete-age">Age</label>
+        <input id="athlete-age" type="number" v-model.number="form.age" min="10" max="100" :class="{ error: fieldErrors.age, valid: !fieldErrors.age }" />
+        <span v-if="fieldErrors.age" class="field-error">{{ fieldErrors.age }}</span>
+      </div>
+      <div class="form-group">
+        <label for="athlete-weight">Weight (kg)</label>
+        <input id="athlete-weight" type="number" v-model.number="form.weight_kg" min="20" max="300" step="0.1" :class="{ error: fieldErrors.weight_kg, valid: !fieldErrors.weight_kg }" />
+        <span v-if="fieldErrors.weight_kg" class="field-error">{{ fieldErrors.weight_kg }}</span>
+      </div>
+      <div class="form-group">
+        <label for="athlete-height">Height (cm)</label>
+        <input id="athlete-height" type="number" v-model.number="form.height_cm" min="100" max="250" :class="{ error: fieldErrors.height_cm, valid: !fieldErrors.height_cm }" />
+        <span v-if="fieldErrors.height_cm" class="field-error">{{ fieldErrors.height_cm }}</span>
+      </div>
+      <div class="form-group">
+        <label for="athlete-fat">Body Fat (%)</label>
+        <input id="athlete-fat" type="number" v-model.number="form.fat_percentage" min="3" max="60" step="0.1" />
+      </div>
+      <div class="form-group">
+        <label for="athlete-years">Years Active</label>
+        <input id="athlete-years" type="number" v-model.number="form.years_active" min="0" max="80" />
+      </div>
+      <div class="form-group">
+        <label for="athlete-weekly">Sessions/week</label>
+        <input id="athlete-weekly" type="number" v-model.number="form.weekly_sessions" min="0" max="14" />
+      </div>
+      <div class="form-group">
+        <label for="athlete-monthly">Hours/month</label>
+        <input id="athlete-monthly" type="number" v-model.number="form.monthly_hours" min="0" step="0.5" />
+      </div>
+      <div class="form-group">
+        <label for="athlete-annual">Hours/year</label>
+        <input id="athlete-annual" type="number" v-model.number="form.annual_hours" min="0" step="0.5" />
+      </div>
       <div class="form-group">
         <label for="athlete-level">Level</label>
-        <select id="athlete-level" v-model="form.experience_level">
+        <select id="athlete-level" v-model="form.experience_level" :class="{ error: fieldErrors.experience_level, valid: !fieldErrors.experience_level }">
           <option>Beginner</option><option>Amateur</option><option>Intermediate</option><option>Advanced</option><option>Elite</option>
         </select>
+        <span v-if="fieldErrors.experience_level" class="field-error">{{ fieldErrors.experience_level }}</span>
       </div>
     </form>
     <div class="form-actions">
@@ -35,6 +67,7 @@ import { useRouter } from 'vue-router'
 import { useToast } from '../composables/useToast'
 import { apiGet, apiPost, apiPut } from '../utils/api'
 import { useAuthStore } from '../stores/auth'
+import { validateAthleteForm } from '../utils/validation'
 
 const auth = useAuthStore()
 
@@ -57,6 +90,12 @@ const result = ref('')
 const athleteId = ref<number | null>(null)
 const isFirstLogin = ref(false)
 const profileWasIncomplete = ref(false)
+const fieldErrors = ref<Record<string, string>>({})
+
+function validateForm(): boolean {
+  fieldErrors.value = validateAthleteForm(form.value)
+  return Object.keys(fieldErrors.value).length === 0
+}
 
 async function loadAthlete() {
   const data = await apiGet('/api/v1/athletes/me')
@@ -78,6 +117,10 @@ async function loadAthlete() {
 }
 
 async function save() {
+  if (!validateForm()) {
+    result.value = 'Correggi gli errori nel form'
+    return
+  }
   try {
     const data = athleteId.value
       ? await apiPut('/api/v1/athletes/' + athleteId.value, form.value)
