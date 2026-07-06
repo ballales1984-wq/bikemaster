@@ -1,4 +1,8 @@
 {
+  "appId": "com.bikemaster.app",
+  "appName": "BikeMaster",
+  "webDir": "www",
+  "bundledWebRuntime": false,
   "plugins": {
     "BikeTracking": {
       "android": {
@@ -7,7 +11,29 @@
         "distanceFilter": 5,
         "notificationTitle": "BikeMaster Tracking",
         "notificationText": "Registrazione GPS in corso..."
+      },
+      "ios": {
+        "locationAccuracy": "best",
+        "stationaryRadius": 10,
+        "distanceFilter": 5,
+        "notificationTitle": "BikeMaster Tracking",
+        "notificationText": "Registrazione GPS in corso...",
+        "backgroundMode": "location"
       }
+    },
+    "LocalNotification": {
+      "smallIcon": "ic_stat_icon_config_default",
+      "iconColor": "#488AFF"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
     }
+  },
+  "ios": {
+    "buildVersion": "1.0.0",
+    "deploymentTarget": "16.0"
+  },
+  "android": {
+    "buildVersion": "1.0.0"
   }
 }

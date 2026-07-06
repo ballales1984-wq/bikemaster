@@ -6,6 +6,9 @@
 
 - Anomaly detection module (`analytics/anomaly_detection.py`) with z-score outlier detection for rides
 - `tests/test_anomaly_detection.py` (7 tests) and `tests/test_google_maps_mock.py` (14 tests)
+- Training plan generator (`analytics/training_plan_generator.py`) with weekly/monthly plans and LLM enhancement
+- `tests/test_training_plan_generator.py` (6 tests)
+- iOS platform scaffolding: Capacitor iOS config, `BikeTrackingPlugin.swift`, `Info.plist`, `scripts/setup-ios.sh`
 - PWA offline UX banner in RideTracking.vue for desktop/web offline tracking scenarios
 - Documentation consolidation: archived obsolete plans/docs under `.kilo/archive/` and `docs/archive/`
 
@@ -14,6 +17,7 @@
 - Frontend test setup: `src/test/setup.js` now mocks `requestAnimationFrame` and `performance.now`
 - README roadmap aligned to `ROADMAP.md` (phases up to 25 + 3-6 month priorities)
 - PostgreSQL production readiness confirmed: dual-mode SQLite/PostgreSQL, Alembic migrations, async engine, SQLAlchemy session pooling
+- `capacitor.config.json` extended with iOS config (location accuracy, background modes, push notifications)
 
 ### Fixed
 
@@ -24,8 +28,9 @@
 ### Technical Details
 
 - Frontend: 277 Vitest tests pass, 20 pre-existing uncaught exception errors remain (non-blocking)
-- Backend: 1387 tests collected; new anomaly detection + google maps tests added
+- Backend: 1387 tests collected; 27 new backend tests added (anomaly detection, google maps mock, training plan generator)
 - Code quality: Ruff clean, mypy clean, pre-commit hooks already configured
+- iOS: Swift plugin implements foreground GPS tracking equivalent to Android `BikeTrackingService.kt`
 
 ---
 
