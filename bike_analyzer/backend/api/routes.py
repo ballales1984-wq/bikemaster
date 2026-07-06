@@ -207,6 +207,14 @@ def _ensure_ride_access(ride: dict, current_user: dict) -> None:
             raise HTTPException(status_code=403, detail="Access denied to this ride")
 
 
+def _get_athlete_rides(athlete_id: int, current_user: dict) -> list[Ride]:
+    """Fetch rides for athlete with access control."""
+    from ..db.database import get_rides_by_athlete
+
+    _ensure_athlete_access(athlete_id, current_user)
+    return [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+
+
 def _sse(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
 
