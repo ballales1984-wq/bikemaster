@@ -6,6 +6,13 @@ const apiPost = vi.hoisted(() => vi.fn())
 const apiDelete = vi.hoisted(() => vi.fn())
 
 vi.mock('../utils/api.ts', () => ({ apiGet, apiPost, apiDelete }))
+vi.mock('../composables/useI18n', () => ({
+  useI18n: () => ({
+    locale: { value: 'en' },
+    t: (key) => key,
+    setLocale: vi.fn(),
+  }),
+}))
 
 import RidesPanel from './RidesPanel.vue'
 
@@ -46,7 +53,7 @@ describe('RidesPanel', () => {
     await flush()
 
     expect(wrapper.find('.empty-state').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Nessuna uscita registrata')
+    expect(wrapper.text()).toContain('rides.noRides')
   })
 
   it('adds a ride by filling the form', async () => {

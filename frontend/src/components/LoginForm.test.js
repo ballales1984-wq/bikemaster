@@ -2,6 +2,14 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import LoginForm from '../components/LoginForm.vue'
 
+vi.mock('../composables/useI18n', () => ({
+  useI18n: () => ({
+    locale: { value: 'en' },
+    t: (key) => key,
+    setLocale: vi.fn(),
+  }),
+}))
+
 describe('LoginForm', () => {
   beforeEach(() => {
     vi.clearAllMocks()
