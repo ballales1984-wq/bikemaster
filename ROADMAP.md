@@ -2,7 +2,7 @@
 
 ## Stato Attuale
 
-**Completati: 145/145 base + 74/80 estensioni**
+**Completati: 145/145 base + 78/80 estensioni**
 
 > **Stato**: Late Beta / Early Production — multi-tenant completato, deploy in produzione su Render.
 
@@ -27,7 +27,14 @@
 - [x] **PostgreSQL Production** — Dual-mode SQLite/PostgreSQL, Alembic migrations, SQLAlchemy async/sync, connessione pooling via engine
 - [x] **Weekly/Monthly Training Plan LLM** — `training_plan_generator.py` con LLM-enhanced + fallback locale; rispetta `AI_COACH_MODE`
 - [x] **iOS Platform Scaffolding** — `capacitor.config.json` aggiornato iOS; plugin Swift `BikeTrackingPlugin.swift`; `Info.plist` con permessi + background modes; `scripts/setup-ios.sh`
-- [x] **Backend Test Coverage** — +31 nuovi test: `test_anomaly_detection.py` (7), `test_google_maps_mock.py` (14), `test_training_plan_generator.py` (6), `test_audit_log.py` (4)
+- [x] **Backend Test Coverage** — +55 nuovi test: `test_anomaly_detection.py` (7), `test_google_maps_mock.py` (14), `test_training_plan_generator.py` (6), `test_audit_log.py` (4), `test_processing.py` (11), `test_traffic_safety.py` (6), `test_weather_service.py` (7)
+- [x] **Accessibility Improvements** — ARIA labels + keyboard navigation su `LoginForm.vue`, `ControlsBar.vue`, `HeaderTabs.vue`
+- [x] **Multi-lingua Integration** — Traduzioni IT/EN integrate in `RideTracking.vue`, `RidesPanel.vue`, `CoachPanel.vue`, `HeaderTabs.vue`, `ControlsBar.vue`, `LoginForm.vue`
+- [x] **FIT File Parsing** — Completato in `gps_parser.py` con `parse_fit_file`, usato in routes e task_queue
+- [x] **Multi-class Classifier** — Modulo `analytics/multi_classifier.py` con categorizzazione uscite (endurance, vo2max, hilly, ecc.)
+- [x] **VIP Predictor** — Modulo `analytics/vip_predictor.py` con predittore performance basato su consistenza e carico
+- [x] **Inactivity Balance Estimator** — Modulo `analytics/inactivity_estimator.py` per stima decadimento fitness
+- [x] **Ride Routes Estimator** — Modulo `analytics/ride_route_estimator.py` per suggerimenti percorso personalizzati
 - [x] **Admin Audit Log** — Modulo `audit_log.py` + endpoint `/admin/audit-logs`; logging azioni sensibili in JSONL
 - [x] **Monitoring Completo** — Sentry + Prometheus `/metrics` + MetricsMiddleware + Grafana provisioning in docker-compose
 - [x] **Multi-lingua IT+EN** — Scaffolding `useI18n.ts`, `locales/it.json`/`en.json`, `LanguageSwitcher.vue` integrato in `App.vue`

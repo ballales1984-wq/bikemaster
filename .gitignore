@@ -84,6 +84,14 @@ bike_route_demo.html
 .ruff_cache/
 .sixth/
 
+# Test/CI artifacts
+backend_results.txt
+frontend_results.txt
+frontend/tsc_results.txt
+
+# Logs
+logs/
+
 # Misc
 .DS_Store
 Thumbs.db

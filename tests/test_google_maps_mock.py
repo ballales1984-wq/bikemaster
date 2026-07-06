@@ -10,7 +10,6 @@ from bike_analyzer.backend.maps.google_maps import (
     create_google_static_map,
     create_google_elevation_chart,
     get_google_api_key,
-    SpeedColorSegment,
 )
 from bike_analyzer.backend.models.models import GPSPoint
 

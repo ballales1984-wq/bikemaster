@@ -2691,6 +2691,107 @@ async def generate_granfondo_workouts(
     }
 
 
+@router.get("/analytics/multi-classify")
+async def multi_classify_rides(
+    athlete_id: int | None = None,
+    current_user: dict = Depends(get_current_user),
+):
+    """Classify athlete rides into multiple performance categories."""
+    from ..analytics.multi_classifier import classify_rides
+
+    rides = _get_athlete_rides(athlete_id or current_user["id"], current_user)
+    results = classify_rides(rides)
+    return {
+        "athlete_id": athlete_id or current_user["id"],
+        "total_rides": len(results),
+        "rides": [
+            {
+                "ride_id": r.ride_id,
+                "date": r.date,
+                "categories": r.categories,
+                "primary_category": r.primary_category,
+                "confidence": r.confidence,
+                "metrics": r.metrics,
+            }
+            for r in results
+        ],
+    }
+
+
+@router.get("/analytics/vip")
+async def get_vip_prediction(
+    athlete_id: int | None = None,
+    ftp: float = Query(250.0),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get VIP (Very Important Performance) prediction for athlete."""
+    from ..analytics.vip_predictor import estimate_vip
+
+    rides = _get_athlete_rides(athlete_id or current_user["id"], current_user)
+    result = estimate_vip(rides, athlete_ftp=ftp)
+    return {
+        "athlete_id": athlete_id or current_user["id"],
+        "probability_index": result.probability_index,
+        "readiness_score": result.readiness_score,
+        "recommendation": result.recommendation,
+        "risk_factors": result.risk_factors,
+    }
+
+
+@router.get("/analytics/inactivity")
+async def get_inactivity_report(
+    athlete_id: int | None = None,
+    current_user: dict = Depends(get_current_user),
+):
+    """Estimate fitness decay after inactivity."""
+    from ..analytics.inactivity_estimator import estimate_inactivity
+
+    rides = _get_athlete_rides(athlete_id or current_user["id"], current_user)
+    result = estimate_inactivity(rides)
+    return {
+        "athlete_id": athlete_id or current_user["id"],
+        "current_streak_days": result.current_streak_days,
+        "estimated_ftp_loss_pct": result.estimated_ftp_loss_pct,
+        "estimated_endurance_loss_pct": result.estimated_endurance_loss_pct,
+        "recovery_plan_days": result.recovery_plan_days,
+        "advice": result.advice,
+    }
+
+
+@router.get("/analytics/route-suggestions")
+async def get_route_suggestions(
+    athlete_id: int | None = None,
+    current_user: dict = Depends(get_current_user),
+):
+    """Suggest ride routes based on historical preferences."""
+    from ..analytics.ride_route_estimator import estimate_route_preferences
+    from ..db.database import get_athlete
+
+    athlete_id = athlete_id or current_user["id"]
+    athlete_data = get_athlete(athlete_id)
+    if not athlete_data:
+        athlete_data = {"name": "Unknown", "preferred_terrain": "mixed", "ftp_watts": 250.0}
+    athlete = AthleteProfile(**athlete_data)
+    rides = _get_athlete_rides(athlete_id, current_user)
+    suggestions = estimate_route_preferences(athlete, rides)
+    return {
+        "athlete_id": athlete_id,
+        "total_suggestions": len(suggestions),
+        "routes": [
+            {
+                "name": s.name,
+                "distance_km": s.distance_km,
+                "elevation_gain_m": s.elevation_gain_m,
+                "avg_speed_target_kmh": s.avg_speed_target_kmh,
+                "duration_minutes": s.duration_minutes,
+                "terrain": s.terrain,
+                "rationale": s.rationale,
+            }
+            for s in suggestions
+        ],
+    }
+
+
 @router.get("/rides/{ride_id}/power-metrics")
 async def get_ride_power_metrics(
     ride_id: int,

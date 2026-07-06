@@ -1,28 +1,28 @@
 <template>
    <section class="panel">
-     <div class="tracking-header">
-       <h2>GPS Tracking</h2>
-       <div v-if="isTracking" class="tracking-status">
-         <span class="status-badge" :class="{ paused: isPaused }">
-           {{ isPaused ? 'Paused' : 'In progress' }}
-         </span>
-       </div>
-     </div>
-
-       <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
-      <div class="empty-icon">📍</div>
-      <div class="empty-title">Ready to track your ride</div>
-      <div class="empty-desc">
-        Press the button below to start recording your route in real-time.
+      <div class="tracking-header">
+        <h2>{{ t('tracking.title') }}</h2>
+        <div v-if="isTracking" class="tracking-status">
+          <span class="status-badge" :class="{ paused: isPaused }">
+            {{ isPaused ? t('tracking.paused') : t('tracking.inProgress') }}
+          </span>
+        </div>
       </div>
-       <div v-if="!isOnline" class="gps-error-banner" style="margin-bottom:12px">
-         Offline: tracking works, but map tiles may be limited until connectivity returns.
+
+        <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
+       <div class="empty-icon">📍</div>
+       <div class="empty-title">{{ t('tracking.ready') }}</div>
+       <div class="empty-desc">
+         {{ t('tracking.readyDesc') }}
        </div>
-      <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
-      <button class="btn btn-primary btn-large" @click="startTracking">
-        Start Tracking
-      </button>
-       </div>
+        <div v-if="!isOnline" class="gps-error-banner" style="margin-bottom:12px">
+          {{ t('tracking.offline') }}
+        </div>
+       <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
+       <button class="btn btn-primary btn-large" @click="startTracking">
+         {{ t('tracking.start') }}
+       </button>
+        </div>
 
       <div v-else class="tracking-content">
         <div v-if="gpsWaiting" class="gps-waiting">
@@ -48,12 +48,14 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useTrackingStore } from '../stores/trackingStore'
 import { useRouter } from 'vue-router'
+import { useI18n } from '../composables/useI18n'
 import LiveMap from '../components/LiveMap.vue'
 import RideMetricsPanel from '../components/RideMetricsPanel.vue'
 import ControlsBar from '../components/ControlsBar.vue'
 import { apiUpload } from '../utils/api'
 import type { GpsPoint } from '../types/index'
 
+const { t } = useI18n()
 const router = useRouter()
 
 const isOnline = ref(typeof navigator !== 'undefined' ? navigator.onLine : true)
