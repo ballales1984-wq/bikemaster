@@ -69,12 +69,30 @@ import { apiGet, apiPost, apiPut } from '../utils/api'
 import { useAuthStore } from '../stores/auth'
 import { validateAthleteForm } from '../utils/validation'
 
+interface AthleteForm {
+  name: string
+  age: number
+  weight_kg: number
+  height_cm: number
+  fat_percentage: number
+  years_active: number
+  weekly_sessions: number
+  monthly_hours: number
+  annual_hours: number
+  experience_level: string
+}
+
+interface AthleteResponse {
+  athlete?: Partial<AthleteForm> & { id?: number }
+  id?: number
+}
+
 const auth = useAuthStore()
 
 const router = useRouter()
 const toast = useToast()
 const emit = defineEmits(['toast'])
-const form = ref({
+const form = ref<AthleteForm>({
   name: '',
   age: 30,
   weight_kg: 70,
@@ -98,11 +116,11 @@ function validateForm(): boolean {
 }
 
 async function loadAthlete() {
-  const data = await apiGet('/api/v1/athletes/me')
+  const data = await apiGet('/api/v1/athletes/me') as AthleteResponse
   const athlete = data.athlete
   if (athlete) {
-    athleteId.value = athlete.id
-    form.value = { ...form.value, ...athlete }
+    athleteId.value = athlete.id ?? null
+    form.value = { ...form.value, ...athlete } as AthleteForm
     isFirstLogin.value = false
     profileWasIncomplete.value = !(
       athlete.age != null &&
@@ -122,10 +140,10 @@ async function save() {
     return
   }
   try {
-    const data = athleteId.value
+    const data = (athleteId.value
       ? await apiPut('/api/v1/athletes/' + athleteId.value, form.value)
-      : await apiPost('/api/v1/athletes', form.value)
-    athleteId.value = data.id
+      : await apiPost('/api/v1/athletes', form.value)) as { id?: number }
+    athleteId.value = data.id ?? null
     result.value = 'Athlete profile saved (ID: ' + data.id + ')'
     if (isFirstLogin.value) {
       toast.show('Profile created! Welcome to BikeMaster!', 'success')

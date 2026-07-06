@@ -4,8 +4,12 @@
   "description": "BikeMaster - Cycling Performance Intelligence (backend Python/FastAPI)",
   "private": true,
   "scripts": {
-    "info": "echo \"Frontend served by FastAPI from bike_analyzer/backend/static/\""
+    "info": "echo \"Frontend served by FastAPI from bike_analyzer/backend/static/\"",
+    "prepare": "lefthook install"
   },
   "keywords": ["bike", "cycling", "performance", "fastapi"],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "lefthook": "^1.7.0"
+  }
 }

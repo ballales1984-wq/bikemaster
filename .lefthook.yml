@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: true
+  commands:
+    typecheck:
+      root: "frontend/"
+      run: "npm run typecheck"
+      glob: "*.{ts,tsx,vue,js,jsx}"
+      stage_fixed: true
+    lint:
+      root: "frontend/"
+      run: "npx eslint --fix {staged_files}"
+      glob: "*.{ts,tsx,vue,js,jsx}"
+      stage_fixed: true
+    unit:
+      root: "frontend/"
+      run: "npm run test -- --run"
+      glob: "*.{ts,tsx,vue}"

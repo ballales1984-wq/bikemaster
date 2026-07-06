@@ -1,9 +1,17 @@
 <template>
   <div class="error-state">
     <div class="error-icon">⚠️</div>
-    <div class="error-title">{{ title }}</div>
-    <div class="error-desc">{{ message }}</div>
-    <button v-if="showRetry" class="btn btn-primary retry-btn" @click="$emit('retry')">
+    <div class="error-title">
+      {{ title }}
+    </div>
+    <div class="error-desc">
+      {{ message }}
+    </div>
+    <button
+      v-if="showRetry"
+      class="btn btn-primary retry-btn"
+      @click="$emit('retry')"
+    >
       🔄 Retry
     </button>
   </div>
@@ -11,11 +19,11 @@
 
 <script setup>
 defineProps({
-  title: { type: String, default: 'Loading error' },
-  message: { type: String, default: 'Unable to load data. Try again later.' },
+  title: { type: String, default: "Loading error" },
+  message: { type: String, default: "Unable to load data. Try again later." },
   showRetry: { type: Boolean, default: true },
-})
-defineEmits(['retry'])
+});
+defineEmits(["retry"]);
 </script>
 
 <style scoped>

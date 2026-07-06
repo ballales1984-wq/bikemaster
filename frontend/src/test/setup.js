@@ -1,8 +1,8 @@
-import { vi } from 'vitest'
+import { vi } from "vitest";
 
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -12,16 +12,16 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   })),
-})
+});
 
-HTMLElement.prototype.scrollIntoView = vi.fn()
+HTMLElement.prototype.scrollIntoView = vi.fn();
 
-if (typeof atob === 'undefined') {
-  globalThis.atob = (str) => Buffer.from(str, 'binary').toString('base64')
+if (typeof atob === "undefined") {
+  globalThis.atob = (str) => Buffer.from(str, "binary").toString("base64");
 }
 
-if (typeof alert === 'undefined') {
-  window.alert = vi.fn()
+if (typeof alert === "undefined") {
+  window.alert = vi.fn();
 }
 
 HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
@@ -49,16 +49,18 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   transform: vi.fn(),
   rect: vi.fn(),
   clip: vi.fn(),
-}))
+}));
 
-if (typeof requestAnimationFrame === 'undefined') {
-  globalThis.requestAnimationFrame = (cb) => setTimeout(cb, 0)
-  globalThis.cancelAnimationFrame = (id) => clearTimeout(id)
+if (typeof requestAnimationFrame === "undefined") {
+  globalThis.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+  globalThis.cancelAnimationFrame = (id) => clearTimeout(id);
 }
 
-if (typeof performance === 'undefined' || typeof performance.now !== 'function') {
+if (
+  typeof performance === "undefined" ||
+  typeof performance.now !== "function"
+) {
   globalThis.performance = {
     now: () => Date.now(),
-  }
+  };
 }
-

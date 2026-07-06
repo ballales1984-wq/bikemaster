@@ -1,162 +1,218 @@
 <template>
   <div class="panel">
-<h2>🚴‍♂️ Granfondo Planner</h2>
-     
-     <div class="form-grid">
-       <div class="form-group">
-         <label for="gf-start-date">Start Date</label>
-         <input id="gf-start-date" type="date" v-model="startDate" />
-       </div>
-       <div class="form-group">
-         <label for="gf-weeks">Number of Weeks</label>
-         <select id="gf-weeks" v-model.number="weeks">
-           <option :value="8">8 weeks</option>
-           <option :value="9">9 weeks</option>
-           <option :value="10">10 weeks</option>
-           <option :value="11">11 weeks</option>
-           <option :value="12">12 weeks</option>
-         </select>
-       </div>
-       <div class="form-group">
-         <button class="btn btn-primary" @click="generatePlan">📅 Generate Plan</button>
-       </div>
-     </div>
-     
-     <div v-if="loading" class="loading-text">Generating plan...</div>
-     
-     <div v-if="plan" class="plan-container">
-       <div class="plan-header">
-         <h3>Training Plan {{ weeks }} weeks</h3>
-         <p class="plan-dates">From {{ startDate }} to {{ endDate }}</p>
-       </div>
+    <h2>🚴‍♂️ Granfondo Planner</h2>
 
-       <div class="plan-actions">
-         <button class="btn btn-success" @click="savePlan" :disabled="saving">
-           {{ saving ? 'Saving...' : '💾 Save to Calendar' }}
-         </button>
-         <span v-if="saveMessage" class="save-message" :class="{ success: saveSuccess, error: !saveSuccess }">
-           {{ saveMessage }}
-         </span>
-       </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="gf-start-date">Start Date</label>
+        <input
+          id="gf-start-date"
+          v-model="startDate"
+          type="date"
+        >
+      </div>
+      <div class="form-group">
+        <label for="gf-weeks">Number of Weeks</label>
+        <select
+          id="gf-weeks"
+          v-model.number="weeks"
+        >
+          <option :value="8">
+            8 weeks
+          </option>
+          <option :value="9">
+            9 weeks
+          </option>
+          <option :value="10">
+            10 weeks
+          </option>
+          <option :value="11">
+            11 weeks
+          </option>
+          <option :value="12">
+            12 weeks
+          </option>
+        </select>
+      </div>
+      <div class="form-group">
+        <button
+          class="btn btn-primary"
+          @click="generatePlan"
+        >
+          📅 Generate Plan
+        </button>
+      </div>
+    </div>
 
-       <div class="tapering-info">
-         <span class="badge badge-info">📊 Tapering: -40% volume 2 weeks before, -60% last week</span>
-       </div>
-       
-       <div class="calendar-grid plan-grid">
-         <div class="cal-header" v-for="d in weekDays" :key="d">{{ d }}</div>
-         <div v-for="(day, idx) in calendarDays" :key="idx" class="cal-cell" :class="{ today: day.isToday }">
-           <span class="day-num">{{ day.day }}</span>
-           <div class="day-workouts">
-             <div v-for="w in day.workouts" :key="w.title" class="workout-item" :class="'type-' + w.workout_type">
-               {{ w.title }}
-               <span class="workout-meta">{{ w.duration_minutes }}min {{ Math.round(w.target_intensity * 100) }}%</span>
-             </div>
-           </div>
-         </div>
-       </div>
-       
-       <div class="workout-legend">
-         <span class="legend-item legend-endurance">Endurance</span>
-         <span class="legend-item legend-threshold">Thresholds</span>
-         <span class="legend-item legend-sweetspot">Sweetspot</span>
-         <span class="legend-item legend-recovery">Recovery</span>
-         <span class="legend-item legend-race">Race</span>
-       </div>
-     </div>
-   </div>
-   </template>
+    <div
+      v-if="loading"
+      class="loading-text"
+    >
+      Generating plan...
+    </div>
+
+    <div
+      v-if="plan"
+      class="plan-container"
+    >
+      <div class="plan-header">
+        <h3>Training Plan {{ weeks }} weeks</h3>
+        <p class="plan-dates">
+          From {{ startDate }} to {{ endDate }}
+        </p>
+      </div>
+
+      <div class="plan-actions">
+        <button
+          class="btn btn-success"
+          :disabled="saving"
+          @click="savePlan"
+        >
+          {{ saving ? 'Saving...' : '💾 Save to Calendar' }}
+        </button>
+        <span
+          v-if="saveMessage"
+          class="save-message"
+          :class="{ success: saveSuccess, error: !saveSuccess }"
+        >
+          {{ saveMessage }}
+        </span>
+      </div>
+
+      <div class="tapering-info">
+        <span class="badge badge-info">📊 Tapering: -40% volume 2 weeks before, -60% last week</span>
+      </div>
+    </div>
+    <div class="calendar-grid plan-grid">
+      <div
+        v-for="d in weekDays"
+        :key="d"
+        class="cal-header"
+      >
+        {{ d }}
+      </div>
+      <div
+        v-for="(day, idx) in calendarDays"
+        :key="idx"
+        class="cal-cell"
+        :class="{ today: day.isToday }"
+      >
+        <span class="day-num">{{ day.day }}</span>
+        <div class="day-workouts">
+          <div
+            v-for="w in day.workouts"
+            :key="w.title"
+            class="workout-item"
+            :class="'type-' + w.workout_type"
+          >
+            {{ w.title }}
+            <span class="workout-meta">{{ w.duration_minutes }}min {{ Math.round(w.target_intensity * 100) }}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="workout-legend">
+    <span class="legend-item legend-endurance">Endurance</span>
+    <span class="legend-item legend-threshold">Thresholds</span>
+    <span class="legend-item legend-sweetspot">Sweetspot</span>
+    <span class="legend-item legend-recovery">Recovery</span>
+    <span class="legend-item legend-race">Race</span>
+  </div>
+  </div>
+  </div>
+</template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { apiGet, apiPost } from '../utils/api'
+import { ref, computed, onMounted } from "vue";
+import { apiGet, apiPost } from "../utils/api";
 
-const athleteId = ref(null)
-const startDate = ref(new Date().toISOString().split('T')[0])
-const weeks = ref(8)
-const loading = ref(false)
-const saving = ref(false)
-const plan = ref(null)
-const saveMessage = ref('')
-const saveSuccess = ref(true)
+const athleteId = ref(null);
+const startDate = ref(new Date().toISOString().split("T")[0]);
+const weeks = ref(8);
+const loading = ref(false);
+const saving = ref(false);
+const plan = ref(null);
+const saveMessage = ref("");
+const saveSuccess = ref(true);
 
-const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 async function loadAthleteId() {
-  const data = await apiGet('/api/v1/athletes')
-  athleteId.value = data.athletes?.[0]?.id ?? 0
+  const data = await apiGet("/api/v1/athletes");
+  athleteId.value = data.athletes?.[0]?.id ?? 0;
 }
 
 async function savePlan() {
-  if (!plan.value) return
-  saving.value = true
-  saveMessage.value = ''
+  if (!plan.value) return;
+  saving.value = true;
+  saveMessage.value = "";
   try {
-    await apiPost('/api/v1/training/granfondo/save', { plan: plan.value })
-    saveMessage.value = 'Plan saved successfully'
-    saveSuccess.value = true
+    await apiPost("/api/v1/training/granfondo/save", { plan: plan.value });
+    saveMessage.value = "Plan saved successfully";
+    saveSuccess.value = true;
   } catch (e) {
-    saveMessage.value = e.message || 'Failed to save plan'
-    saveSuccess.value = false
+    saveMessage.value = e.message || "Failed to save plan";
+    saveSuccess.value = false;
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 const endDate = computed(() => {
-  const d = new Date(startDate.value)
-  d.setDate(d.getDate() + weeks.value * 7)
-  return d.toISOString().split('T')[0]
-})
+  const d = new Date(startDate.value);
+  d.setDate(d.getDate() + weeks.value * 7);
+  return d.toISOString().split("T")[0];
+});
 
 async function generatePlan() {
-  if (!athleteId.value) return
-  loading.value = true
+  if (!athleteId.value) return;
+  loading.value = true;
   try {
-    const result = await apiPost('/api/v1/training/granfondo/plan', {
+    const result = await apiPost("/api/v1/training/granfondo/plan", {
       athlete_id: athleteId.value,
       start_date: startDate.value,
-      target_weeks: weeks.value
-    })
-    plan.value = result.plan
+      target_weeks: weeks.value,
+    });
+    plan.value = result.plan;
   } catch (e) {
-    console.error('plan error', e)
-    plan.value = null
+    console.error("plan error", e);
+    plan.value = null;
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 const calendarDays = computed(() => {
-  if (!plan.value) return []
-  
-  const start = new Date(startDate.value)
-  const firstDay = start.getDay() || 7
-  const totalDays = weeks.value * 7 + 1
-  
-  const result = []
-  const today = new Date().toISOString().split('T')[0]
-  
+  if (!plan.value) return [];
+
+  const start = new Date(startDate.value);
+  const firstDay = start.getDay() || 7;
+  const totalDays = weeks.value * 7 + 1;
+
+  const result = [];
+  const today = new Date().toISOString().split("T")[0];
+
   for (let i = -firstDay + 1; i < totalDays; i++) {
-    const d = new Date(start)
-    d.setDate(d.getDate() + i)
-    const dateStr = d.toISOString().split('T')[0]
-    const dayWorkouts = plan.value.filter(w => w.date === dateStr)
-    
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    const dateStr = d.toISOString().split("T")[0];
+    const dayWorkouts = plan.value.filter((w) => w.date === dateStr);
+
     result.push({
       day: d.getDate(),
       date: dateStr,
       workouts: dayWorkouts,
-      isToday: dateStr === today
-    })
+      isToday: dateStr === today,
+    });
   }
-  
-  return result
-})
+
+  return result;
+});
 
 onMounted(() => {
-  loadAthleteId().catch(console.error)
-})
+  loadAthleteId().catch(console.error);
+});
 </script>
 
 <style scoped>
@@ -210,11 +266,21 @@ onMounted(() => {
   opacity: 0.8;
 }
 
-.legend-endurance { background: #3498db; }
-.legend-threshold { background: #e74c3c; }
-.legend-sweetspot { background: #9b59b6; }
-.legend-recovery { background: #2ecc71; }
-.legend-race { background: #f39c12; }
+.legend-endurance {
+  background: #3498db;
+}
+.legend-threshold {
+  background: #e74c3c;
+}
+.legend-sweetspot {
+  background: #9b59b6;
+}
+.legend-recovery {
+  background: #2ecc71;
+}
+.legend-race {
+  background: #f39c12;
+}
 
 .workout-legend {
   display: flex;

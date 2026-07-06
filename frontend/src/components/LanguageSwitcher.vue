@@ -5,8 +5,8 @@
       :key="loc.code"
       class="lang-btn"
       :class="{ active: locale === loc.code }"
-      @click="setLocale(loc.code)"
       :aria-label="'Switch to ' + loc.label"
+      @click="setLocale(loc.code)"
     >
       {{ loc.label }}
     </button>
@@ -14,14 +14,14 @@
 </template>
 
 <script setup>
-import { useI18n } from '../composables/useI18n'
+import { useI18n } from "../composables/useI18n";
 
-const { locale, setLocale } = useI18n()
+const { locale, setLocale } = useI18n();
 
 const locales = [
-  { code: 'it', label: 'IT' },
-  { code: 'en', label: 'EN' },
-]
+  { code: "it", label: "IT" },
+  { code: "en", label: "EN" },
+];
 </script>
 
 <style scoped>

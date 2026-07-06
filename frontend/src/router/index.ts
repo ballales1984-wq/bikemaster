@@ -201,6 +201,9 @@ router.beforeEach(async (to, from, next) => {
     auth.setAuthFromUrl(to.query.token, email)
     auth.setJustLoggedIn(true)
     ui.setOauthLoading(false)
+  } else if (ui.oauthLoading) {
+    // Safety net: OAuth flow finished but no reset was triggered
+    ui.setOauthLoading(false)
   }
 
   // Use auth.token directly to avoid reactivity timing issues

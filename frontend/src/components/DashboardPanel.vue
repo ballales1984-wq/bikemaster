@@ -3,40 +3,61 @@
     <!-- Header -->
     <div class="dash-header">
       <h2>📊 Dashboard</h2>
-      <button class="btn btn-sm btn-secondary" @click="load" :disabled="loading">
-        <span :class="{ spinner: loading }">{{ loading ? '' : '🔄' }}</span>
-        {{ loading ? 'Aggiornamento...' : 'Aggiorna' }}
+      <button
+        class="btn btn-sm btn-secondary"
+        :disabled="loading"
+        @click="load"
+      >
+        <span :class="{ spinner: loading }">{{ loading ? "" : "🔄" }}</span>
+        {{ loading ? "Aggiornamento..." : "Aggiorna" }}
       </button>
     </div>
 
     <!-- Loading skeleton -->
-    <div v-if="loading && !dashboard.summary" class="skeleton-grid">
-      <div class="skeleton skeleton-card" v-for="i in 4" :key="i"></div>
+    <div v-if="loading && !dashboard.summary"
+class="skeleton-grid">
+      <div v-for="i in 4"
+class="skeleton skeleton-card" :key="i"
+/>
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="error-state">
+    <div v-else-if="error"
+class="error-state">
       <div class="error-icon">⚠️</div>
       <p>{{ error }}</p>
-      <button class="btn btn-sm" @click="load">Riprova</button>
+      <button
+class="btn btn-sm" @click="load">Riprova</button>
     </div>
 
     <template v-else>
       <!-- Score Rings -->
-      <div class="score-row" v-if="dashboard.scores">
-        <div class="score-ring" v-for="score in scoreCards" :key="score.label">
-          <svg viewBox="0 0 80 80" class="ring-svg">
-            <circle cx="40" cy="40" r="32" class="ring-bg"/>
+      <div v-if="dashboard.scores" class="score-row">
+        <div v-for="score in scoreCards" class="score-ring" :key="score.label">
+          <svg viewBox="0 0 80 80"
+class="ring-svg">
             <circle
-              cx="40" cy="40" r="32"
+cx="40" cy="40" r="32" class="ring-bg" />
+            <circle
+              cx="40"
+              cy="40"
+              r="32"
               class="ring-fill"
-              :style="{ strokeDashoffset: ringOffset(score.value), stroke: score.color }"
+              :style="{
+                strokeDashoffset: ringOffset(score.value),
+                stroke: score.color,
+              }"
               stroke-dasharray="201"
             />
           </svg>
           <div class="ring-label">
-            <div class="ring-value" :style="{ color: score.color }">{{ score.value }}</div>
-            <div class="ring-name">{{ score.label }}</div>
+            <div class="ring-value"
+:style="{ color: score.color }">
+              {{ score.value }}
+            </div>
+            <div class="ring-name">
+              {{ score.label }}
+            </div>
           </div>
         </div>
       </div>
@@ -44,31 +65,48 @@
       <!-- Main Grid -->
       <div class="dash-grid">
         <!-- Profile Card -->
-        <div class="dash-card profile-card" v-if="dashboard.athlete">
+        <div v-if="dashboard.athlete" class="dash-card profile-card">
           <div class="card-icon">👤</div>
           <div class="card-body">
-            <div class="card-title">{{ dashboard.athlete.name || 'Atleta' }}</div>
-            <div class="card-sub">{{ dashboard.athlete.experience_level || 'Livello N/D' }}</div>
+            <div class="card-title">
+              {{ dashboard.athlete.name || "Atleta" }}
+            </div>
+            <div class="card-sub">
+              {{ dashboard.athlete.experience_level || "Livello N/D" }}
+            </div>
             <div class="athlete-chips">
-              <span class="chip" v-if="dashboard.athlete.weight_kg">{{ dashboard.athlete.weight_kg }} kg</span>
-              <span class="chip" v-if="dashboard.athlete.ftp_watts">FTP {{ dashboard.athlete.ftp_watts }}W</span>
-              <span class="chip" v-if="dashboard.athlete.age">{{ dashboard.athlete.age }} anni</span>
+              <span v-if="dashboard.athlete.weight_kg"
+class="chip"
+                >{{ dashboard.athlete.weight_kg }} kg</span
+              >
+              <span v-if="dashboard.athlete.ftp_watts"
+class="chip"
+                >FTP {{ dashboard.athlete.ftp_watts }}W</span
+              >
+              <span v-if="dashboard.athlete.age"
+class="chip"
+                >{{ dashboard.athlete.age }} anni</span
+              >
             </div>
           </div>
         </div>
 
         <!-- Stats Card -->
-        <div class="dash-card stats-card" v-if="dashboard.summary">
+        <div v-if="dashboard.summary" class="dash-card stats-card">
           <div class="card-icon">🚴</div>
           <div class="card-body">
             <div class="card-title">Statistiche Globali</div>
             <div class="mini-stats">
               <div class="mini-stat">
-                <span class="mini-val">{{ dashboard.summary.total_rides ?? 0 }}</span>
+                <span class="mini-val">{{
+                  dashboard.summary.total_rides ?? 0
+                }}</span>
                 <span class="mini-lbl">Uscite</span>
               </div>
               <div class="mini-stat">
-                <span class="mini-val">{{ fmt(dashboard.summary.total_km) }}</span>
+                <span class="mini-val">{{
+                  fmt(dashboard.summary.total_km)
+                }}</span>
                 <span class="mini-lbl">km totali</span>
               </div>
               <div class="mini-stat">
@@ -76,7 +114,9 @@
                 <span class="mini-lbl">ore in sella</span>
               </div>
               <div class="mini-stat">
-                <span class="mini-val">{{ fmt(dashboard.summary.total_calories, 0) }}</span>
+                <span class="mini-val">{{
+                  fmt(dashboard.summary.total_calories, 0)
+                }}</span>
                 <span class="mini-lbl">kcal</span>
               </div>
             </div>
@@ -84,37 +124,61 @@
         </div>
 
         <!-- Fitness State -->
-        <div class="dash-card fitness-card" v-if="dashboard.fitness">
+        <div v-if="dashboard.fitness" class="dash-card fitness-card">
           <div class="card-icon">📈</div>
           <div class="card-body">
             <div class="card-title">Fitness State</div>
             <div class="fitness-bars">
               <div class="fitness-bar-row">
                 <span class="bar-label">ATL</span>
-                <div class="bar-track"><div class="bar-fill atl" :style="{ width: barPct(dashboard.fitness.atl) + '%' }"></div></div>
+                <div class="bar-track">
+                  <div
+                    class="bar-fill atl"
+                    :style="{ width: barPct(dashboard.fitness.atl) + '%' }"
+                  />
+                </div>
                 <span class="bar-val">{{ fmt(dashboard.fitness.atl) }}</span>
               </div>
               <div class="fitness-bar-row">
                 <span class="bar-label">CTL</span>
-                <div class="bar-track"><div class="bar-fill ctl" :style="{ width: barPct(dashboard.fitness.ctl) + '%' }"></div></div>
+                <div class="bar-track">
+                  <div
+                    class="bar-fill ctl"
+                    :style="{ width: barPct(dashboard.fitness.ctl) + '%' }"
+                  />
+                </div>
                 <span class="bar-val">{{ fmt(dashboard.fitness.ctl) }}</span>
               </div>
               <div class="fitness-bar-row">
                 <span class="bar-label">TSB</span>
                 <div class="bar-track">
-                  <div class="bar-fill tsb" :style="tsbStyle"></div>
+                  <div
+class="bar-fill tsb" :style="tsbStyle" />
                 </div>
-                <span class="bar-val" :class="{ positive: (dashboard.fitness.tsb ?? 0) >= 0, negative: (dashboard.fitness.tsb ?? 0) < 0 }">
-                  {{ dashboard.fitness.tsb >= 0 ? '+' : '' }}{{ fmt(dashboard.fitness.tsb) }}
+                <span
+                  class="bar-val"
+                  :class="{
+                    positive: (dashboard.fitness.tsb ?? 0) >= 0,
+                    negative: (dashboard.fitness.tsb ?? 0) < 0,
+                  }"
+                >
+                  {{ dashboard.fitness.tsb >= 0 ? "+" : ""
+                  }}{{ fmt(dashboard.fitness.tsb) }}
                 </span>
               </div>
             </div>
-            <div class="fitness-status" :class="statusClass">{{ dashboard.fitness.status || 'N/D' }}</div>
+            <div class="fitness-status"
+:class="statusClass">
+              {{ dashboard.fitness.status || "N/D" }}
+            </div>
           </div>
         </div>
 
         <!-- Trends -->
-        <div class="dash-card trends-card" v-if="dashboard.trends?.weekly_progress?.length">
+        <div
+          v-if="dashboard.trends?.weekly_progress?.length"
+          class="dash-card trends-card"
+        >
           <div class="card-icon">📅</div>
           <div class="card-body">
             <div class="card-title">Ultimi 7 giorni</div>
@@ -123,23 +187,35 @@
                 v-for="(km, i) in dashboard.trends.weekly_progress"
                 :key="i"
                 class="chart-bar"
-                :style="{ height: chartBarH(km) + '%', background: km > 0 ? 'var(--accent)' : 'var(--border)' }"
+                :style="{
+                  height: chartBarH(km) + '%',
+                  background: km > 0 ? 'var(--accent)' : 'var(--border)',
+                }"
                 :title="km + ' km'"
-              ></div>
+              />
             </div>
             <div class="chart-labels">
-              <span v-for="d in dayLabels" :key="d" class="day-label">{{ d }}</span>
+              <span v-for="d in dayLabels"
+:key="d" class="day-label">{{
+                d
+              }}</span>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Recent Rides -->
-      <div class="dash-section" v-if="dashboard.recent_rides?.length">
+      <div v-if="dashboard.recent_rides?.length" class="dash-section">
         <h3>🕐 Uscite Recenti</h3>
         <div class="recent-rides">
-          <div class="recent-ride" v-for="ride in dashboard.recent_rides" :key="ride.id">
-            <div class="recent-ride-date">{{ formatDate(ride.date) }}</div>
+          <div
+            v-for="ride in dashboard.recent_rides"
+            :key="ride.id"
+            class="recent-ride"
+          >
+            <div class="recent-ride-date">
+              {{ formatDate(ride.date) }}
+            </div>
             <div class="recent-ride-stats">
               <span>🛣️ {{ fmt(ride.distance_km) }} km</span>
               <span>⏱️ {{ ride.duration_minutes }} min</span>
@@ -151,95 +227,115 @@
       </div>
 
       <!-- Empty state -->
-      <div v-if="!dashboard.summary && !loading" class="empty-state">
+      <div v-if="!dashboard.summary && !loading"
+class="empty-state">
         <div class="empty-icon">📊</div>
         <div class="empty-title">Nessun dato disponibile</div>
-        <div class="empty-desc">Importa le tue prime uscite per vedere la dashboard.</div>
+        <div class="empty-desc">
+          Importa le tue prime uscite per vedere la dashboard.
+        </div>
       </div>
     </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { apiGet } from '../utils/api'
+import { ref, computed, onMounted } from "vue";
+import { apiGet } from "../utils/api";
 
-const dashboard = ref({})
-const loading = ref(true)
-const error = ref('')
+const dashboard = ref({});
+const loading = ref(true);
+const error = ref("");
 
-const dayLabels = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
+const dayLabels = ["L", "M", "M", "G", "V", "S", "D"];
 
 const scoreCards = computed(() => {
-  const s = dashboard.value.scores
-  if (!s) return []
+  const s = dashboard.value.scores;
+  if (!s) return [];
   return [
-    { label: 'Performance', value: fmt(s.performance), color: '#00ffcc' },
-    { label: 'Endurance', value: fmt(s.endurance), color: '#0088ff' },
-    { label: 'Efficiency', value: fmt(s.efficiency), color: '#ff6b35' },
-    { label: 'Recovery', value: fmt(s.recovery), color: '#a855f7' },
-  ].filter(c => c.value !== '0.0' && c.value !== '—')
-})
+    { label: "Performance", value: fmt(s.performance), color: "#00ffcc" },
+    { label: "Endurance", value: fmt(s.endurance), color: "#0088ff" },
+    { label: "Efficiency", value: fmt(s.efficiency), color: "#ff6b35" },
+    { label: "Recovery", value: fmt(s.recovery), color: "#a855f7" },
+  ].filter((c) => c.value !== "0.0" && c.value !== "—");
+});
 
 function fmt(v, dec = 1) {
-  if (v == null || isNaN(Number(v))) return '0'
-  return Number(v).toFixed(dec)
+  if (v == null || isNaN(Number(v))) return "0";
+  return Number(v).toFixed(dec);
 }
 
 function ringOffset(val) {
-  const pct = Math.min(Math.max(Number(val) / 10, 0), 1)
-  return 201 - pct * 201
+  const pct = Math.min(Math.max(Number(val) / 10, 0), 1);
+  return 201 - pct * 201;
 }
 
 function barPct(val, max = 100) {
-  return Math.min(Math.max((Number(val) / max) * 100, 0), 100)
+  return Math.min(Math.max((Number(val) / max) * 100, 0), 100);
 }
 
 const tsbStyle = computed(() => {
-  const tsb = dashboard.value.fitness?.tsb ?? 0
-  const pct = Math.min(Math.abs(tsb) / 50 * 50, 50)
+  const tsb = dashboard.value.fitness?.tsb ?? 0;
+  const pct = Math.min((Math.abs(tsb) / 50) * 50, 50);
   if (tsb >= 0) {
-    return { width: pct + '%', marginLeft: '50%', background: 'var(--success)' }
+    return {
+      width: pct + "%",
+      marginLeft: "50%",
+      background: "var(--success)",
+    };
   } else {
-    return { width: pct + '%', marginLeft: (50 - pct) + '%', background: 'var(--error)' }
+    return {
+      width: pct + "%",
+      marginLeft: 50 - pct + "%",
+      background: "var(--error)",
+    };
   }
-})
+});
 
 const statusClass = computed(() => {
-  const s = (dashboard.value.fitness?.status || '').toLowerCase()
-  if (s.includes('fresh') || s.includes('form')) return 'status-good'
-  if (s.includes('train') || s.includes('load')) return 'status-warn'
-  if (s.includes('overtrain') || s.includes('fatigue')) return 'status-bad'
-  return ''
-})
+  const s = (dashboard.value.fitness?.status || "").toLowerCase();
+  if (s.includes("fresh") || s.includes("form")) return "status-good";
+  if (s.includes("train") || s.includes("load")) return "status-warn";
+  if (s.includes("overtrain") || s.includes("fatigue")) return "status-bad";
+  return "";
+});
 
 function chartBarH(km) {
-  const all = dashboard.value.trends?.weekly_progress ?? []
-  const max = Math.max(...all, 1)
-  return Math.max((km / max) * 100, 4)
+  const all = dashboard.value.trends?.weekly_progress ?? [];
+  const max = Math.max(...all, 1);
+  return Math.max((km / max) * 100, 4);
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return ''
+  if (!dateStr) return "";
   try {
-    return new Date(dateStr).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
-  } catch { return dateStr }
-}
-
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    const data = await apiGet('/api/v1/dashboard')
-    dashboard.value = data
-  } catch (e) {
-    error.value = 'Errore caricamento: ' + (e.message || e)
-  } finally {
-    loading.value = false
+    return new Date(dateStr).toLocaleDateString("it-IT", {
+      day: "2-digit",
+      month: "short",
+    });
+  } catch {
+    return dateStr;
   }
 }
 
-onMounted(() => load().catch(e => { error.value = e.message }))
+async function load() {
+  loading.value = true;
+  error.value = "";
+  try {
+    const data = await apiGet("/api/v1/dashboard");
+    dashboard.value = data;
+  } catch (e) {
+    error.value = "Errore caricamento: " + (e.message || e);
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(() =>
+  load().catch((e) => {
+    error.value = e.message;
+  }),
+);
 </script>
 
 <style scoped>
@@ -305,10 +401,18 @@ onMounted(() => load().catch(e => { error.value = e.message }))
   animation: ringAppear 0.6s ease both;
 }
 
-.ring-svg:nth-child(1) { animation-delay: 0.05s; }
-.ring-svg:nth-child(2) { animation-delay: 0.15s; }
-.ring-svg:nth-child(3) { animation-delay: 0.25s; }
-.ring-svg:nth-child(4) { animation-delay: 0.35s; }
+.ring-svg:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.ring-svg:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.ring-svg:nth-child(3) {
+  animation-delay: 0.25s;
+}
+.ring-svg:nth-child(4) {
+  animation-delay: 0.35s;
+}
 
 .ring-bg {
   fill: none;
@@ -330,7 +434,7 @@ onMounted(() => load().catch(e => { error.value = e.message }))
 .ring-value {
   font-size: 1.1rem;
   font-weight: 700;
-  font-family: 'Outfit', sans-serif;
+  font-family: "Outfit", sans-serif;
 }
 
 .ring-name {
@@ -363,20 +467,24 @@ onMounted(() => load().catch(e => { error.value = e.message }))
 }
 
 .dash-card::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 2px;
   background: var(--accent-gradient);
   opacity: 0;
   transition: var(--transition);
 }
 
-.dash-card:hover { 
+.dash-card:hover {
   box-shadow: var(--shadow-lg);
   border-color: var(--border-light);
 }
-.dash-card:hover::after { opacity: 1; }
+.dash-card:hover::after {
+  opacity: 1;
+}
 
 .card-icon {
   font-size: 1.8rem;
@@ -384,7 +492,10 @@ onMounted(() => load().catch(e => { error.value = e.message }))
   flex-shrink: 0;
 }
 
-.card-body { flex: 1; min-width: 0; }
+.card-body {
+  flex: 1;
+  min-width: 0;
+}
 
 .card-title {
   font-weight: 600;
@@ -408,8 +519,8 @@ onMounted(() => load().catch(e => { error.value = e.message }))
 }
 
 .chip {
-  background: rgba(0,255,204,0.1);
-  border: 1px solid rgba(0,255,204,0.2);
+  background: rgba(0, 255, 204, 0.1);
+  border: 1px solid rgba(0, 255, 204, 0.2);
   color: var(--accent);
   padding: 2px 8px;
   border-radius: 20px;
@@ -434,7 +545,7 @@ onMounted(() => load().catch(e => { error.value = e.message }))
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
-  font-family: 'Outfit', sans-serif;
+  font-family: "Outfit", sans-serif;
 }
 
 .mini-lbl {
@@ -445,7 +556,11 @@ onMounted(() => load().catch(e => { error.value = e.message }))
 }
 
 /* Fitness bars */
-.fitness-bars { display: flex; flex-direction: column; gap: 8px; }
+.fitness-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
 .fitness-bar-row {
   display: flex;
@@ -476,9 +591,19 @@ onMounted(() => load().catch(e => { error.value = e.message }))
   transition: width 0.8s ease;
 }
 
-.bar-fill.atl { background: linear-gradient(90deg, #ff6b35, #ff3366); }
-.bar-fill.ctl { background: linear-gradient(90deg, #0088ff, #00ffcc); }
-.bar-fill.tsb { position: absolute; top: 0; transition: all 0.8s ease; height: 100%; border-radius: 3px; }
+.bar-fill.atl {
+  background: linear-gradient(90deg, #ff6b35, #ff3366);
+}
+.bar-fill.ctl {
+  background: linear-gradient(90deg, #0088ff, #00ffcc);
+}
+.bar-fill.tsb {
+  position: absolute;
+  top: 0;
+  transition: all 0.8s ease;
+  height: 100%;
+  border-radius: 3px;
+}
 
 .bar-val {
   font-size: 0.75rem;
@@ -487,8 +612,12 @@ onMounted(() => load().catch(e => { error.value = e.message }))
   text-align: right;
   color: var(--text-secondary);
 }
-.bar-val.positive { color: var(--success); }
-.bar-val.negative { color: var(--error); }
+.bar-val.positive {
+  color: var(--success);
+}
+.bar-val.negative {
+  color: var(--error);
+}
 
 .fitness-status {
   margin-top: 10px;
@@ -502,9 +631,18 @@ onMounted(() => load().catch(e => { error.value = e.message }))
   background: var(--bg-tertiary);
   color: var(--text-muted);
 }
-.status-good { background: rgba(0,255,204,0.15); color: var(--success); }
-.status-warn { background: rgba(255,184,0,0.15); color: var(--warning); }
-.status-bad  { background: rgba(255,51,102,0.15); color: var(--error); }
+.status-good {
+  background: rgba(0, 255, 204, 0.15);
+  color: var(--success);
+}
+.status-warn {
+  background: rgba(255, 184, 0, 0.15);
+  color: var(--warning);
+}
+.status-bad {
+  background: rgba(255, 51, 102, 0.15);
+  color: var(--error);
+}
 
 /* Mini chart */
 .mini-chart {
@@ -589,8 +727,14 @@ onMounted(() => load().catch(e => { error.value = e.message }))
 }
 
 @keyframes ringAppear {
-  from { opacity: 0; transform: rotate(-90deg) scale(0.5); }
-  to { opacity: 1; transform: rotate(-90deg) scale(1); }
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-90deg) scale(1);
+  }
 }
 
 @media (max-width: 768px) {
@@ -602,13 +746,18 @@ onMounted(() => load().catch(e => { error.value = e.message }))
     justify-content: space-around;
   }
 
-  .ring-svg { width: 70px; height: 70px; }
+  .ring-svg {
+    width: 70px;
+    height: 70px;
+  }
 
   .recent-ride {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .recent-ride-stats { gap: 8px; }
+  .recent-ride-stats {
+    gap: 8px;
+  }
 }
 </style>

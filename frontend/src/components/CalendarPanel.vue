@@ -1,139 +1,174 @@
 <template>
   <section>
     <div class="panel">
-  <h2>📅 Calendar & Goals</h2>
+      <h2>📅 Calendar & Goals</h2>
 
-  <div class="calendar-controls">
-          <div class="calendar-nav">
-            <button class="btn btn-secondary btn-sm" @click="prevMonth">◀</button>
-            <span class="month-label">{{ monthLabel }}</span>
-            <button class="btn btn-secondary btn-sm" @click="nextMonth">▶</button>
-            <button class="btn btn-secondary btn-sm" @click="goToday">Today</button>
-          </div>
-          <div class="athlete-select">
-            <label>Athlete:</label>
-            <select v-model.number="athleteId" @change="loadEvents">
-              <option :value="0">General</option>
-              <option v-for="a in athletes" :key="a.id" :value="a.id">{{ a.name }}</option>
-            </select>
-          </div>
+      <div class="calendar-controls">
+        <div class="calendar-nav">
+          <button
+            class="btn btn-secondary btn-sm"
+            @click="prevMonth"
+          >
+            ◀
+          </button>
+          <span class="month-label">{{ monthLabel }}</span>
+          <button
+            class="btn btn-secondary btn-sm"
+            @click="nextMonth"
+          >
+            ▶
+          </button>
+          <button
+            class="btn btn-secondary btn-sm"
+            @click="goToday"
+          >
+            Today
+          </button>
         </div>
-
-       <div class="calendar-legend">
-         <span class="legend-item legend-training">Training</span>
-         <span class="legend-item legend-race">Race</span>
-         <span class="legend-item legend-recovery">Recovery</span>
-         <span class="legend-item legend-goal">Goal</span>
-         <span class="legend-item legend-test">Test</span>
-         <span class="legend-item legend-other">Other</span>
-       </div>
-
-        <div class="calendar-grid">
-          <div class="cal-header" v-for="d in weekDays" :key="d">{{ d }}</div>
-          <div v-for="(day, idx) in calendarDays" :key="idx" class="cal-cell" :class="{
-            'other-month': !day.currentMonth,
-            'today': isToday(day),
-            'has-events': day.events.length > 0
-          }" @click="openAddForDate(day.date)">
-            <span class="day-num">{{ day.day }}</span>
-            <div class="day-events">
-              <span v-for="ev in day.events.slice(0, 3)" :key="ev.id" class="event-dot" :class="'dot-' + ev.event_type">
-                {{ ev.title }}
-              </span>
-              <span v-if="day.events.length > 3" class="more-events">+{{ day.events.length - 3 }}</span>
-            </div>
-          </div>
+        <div class="athlete-select">
+          <label>Athlete:</label>
+          <select
+            v-model.number="athleteId"
+            @change="loadEvents"
+          >
+            <option :value="0">
+              General
+            </option>
+            <option
+              v-for="a in athletes"
+              :key="a.id"
+              :value="a.id"
+            >
+              {{ a.name }}
+            </option>
+          </select>
         </div>
-
-        <div v-if="fitnessData.length" class="panel fitness-chart-panel">
-          <h2>📈 Fitness ATL / CTL / TSB</h2>
-          <canvas ref="fitnessCanvas" height="200"></canvas>
-        </div>
-
       </div>
 
-      <div class="panel">
-        <h2>🎯 Linked Goals</h2>
-       <div class="objectives-box">
-         <div class="obj-card" v-for="obj in recommendedObjectives" :key="obj.label">
-           <div class="obj-icon">{{ obj.icon }}</div>
-           <div class="obj-text">
-             <strong>{{ obj.label }}</strong>
-             <small>{{ obj.hint }}</small>
-           </div>
-         </div>
-       </div>
-     </div>
+      <div class="calendar-legend">
+        <span class="legend-item legend-training">Training</span>
+        <span class="legend-item legend-race">Race</span>
+        <span class="legend-item legend-recovery">Recovery</span>
+        <span class="legend-item legend-goal">Goal</span>
+        <span class="legend-item legend-test">Test</span>
+        <span class="legend-item legend-other">Other</span>
+      </div>
 
-     <div v-if="showForm" class="panel form-overlay">
-       <h3>{{ editingEvent ? 'Edit Event' : 'New Event' }}</h3>
-       <form @submit.prevent="saveEvent" class="form-grid">
-         <div class="form-group">
-           <label for="event-title">Title *</label>
-           <input id="event-title" v-model="form.title" required maxlength="200" />
-         </div>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Save</button>
-            <button type="button" class="btn btn-secondary" @click="showForm = false">Cancel</button>
+      <div class="calendar-grid">
+        <div
+          v-for="d in weekDays"
+          :key="d"
+          class="cal-header"
+        >
+          {{ d }}
+        </div>
+        <div
+          v-for="(day, idx) in calendarDays"
+          :key="idx"
+          class="cal-cell"
+          :class="{
+            'other-month': !day.currentMonth,
+            'today': isToday(day),
+            'has-events': day.events.length > 0,
+          }"
+          <span
+          class="day-num"
+          @click="openAddForDate(day.date)"
+        >
+          {{ day.day }}</span>
+          <div class="day-events">
+            <span
+              v-for="ev in day.events.slice(0, 3)"
+              :key="ev.id"
+              class="event-dot"
+              :class="'dot-' + ev.event_type"
+            >
+              {{ ev.title }}
+            </span>
+            <span
+              v-if="day.events.length > 3"
+              class="more-events"
+            >+{{ day.events.length - 3 }}</span>
           </div>
-       </form>
-     </div>
-     <ConfirmModal
-       v-model="showDeleteModal"
-       title="Delete Event"
-       :message="`Delete event '${deleteTargetTitle}'?`"
-       confirm-label="Delete"
-       cancel-label="Cancel"
-       @confirm="handleDelete"
-     />
+        </div>
+      </div>
+
+      <div
+        v-if="fitnessData.length"
+        class="panel fitness-chart-panel"
+      >
+        <h2>📈 Fitness ATL / CTL / TSB</h2>
+        <canvas
+          ref="fitnessCanvas"
+          height="200"
+        />
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>🎯 Linked Goals</h2>
+      <div class="objectives-box">
+        <div
+          v-for="obj in recommendedObjectives"
+          :key="obj.label"
+          class="obj-card"
+        >
+          <div class="obj-icon">
+            {{ obj.icon }}
+          </div>
+          <div class="obj-text">
+            <strong>{{ obj.label }}</strong>
+            <small>{{ obj.hint }}</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="showForm"
+      class="panel form-overlay"
+    >
+      <h3>{{ editingEvent ? 'Edit Event' : 'New Event' }}</h3>
+      <form
+        class="form-grid"
+        @submit.prevent="saveEvent"
+      >
+        <div class="form-group">
+          <label for="event-title">Title *</label>
+          <input
+            id="event-title"
+            v-model="form.title"
+            required
+            maxlength="200"
+          >
+        </div>
+        <div class="form-actions">
+          <button
+            type="submit"
+            class="btn btn-primary"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            @click="showForm = false"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+    <ConfirmModal
+      v-model="showDeleteModal"
+      title="Delete Event"
+      :message="`Delete event '${deleteTargetTitle}'?`"
+      confirm-label="Delete"
+      cancel-label="Cancel"
+      @confirm="handleDelete"
+    />
   </section>
 </template>
-
-<style scoped>
-.weather-badge {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.75em;
-  margin-left: 6px;
-}
-.weather-score-0 { background: #fee2e2; color: #991b1b; }
-.weather-score-1 { background: #fef3c7; color: #92400e; }
-.weather-score-2 { background: #dbeafe; color: #1e40af; }
-.weather-score-3 { background: #dcfce7; color: #166534; }
-.weather-score-4 { background: #dcfce7; color: #166534; }
-
-.weather-preview {
-  grid-column: span 2;
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-  margin-top: 8px;
-}
-.weather-info {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.weather-score {
-  font-weight: 600;
-}
-.score-8, .score-9, .score-10 { color: #166534; }
-.score-5, .score-6, .score-7 { color: #92400e; }
-.score-0, .score-1, .score-2, .score-3, .score-4 { color: #991b1b; }
-
-.fitness-chart-panel {
-  position: relative;
-  height: 260px;
-}
-
-.month-label {
-  font-weight: 600;
-  color: var(--text-primary);
-  padding: 0 12px;
-  font-size: 0.95rem;
-}
-</style>
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
@@ -444,3 +479,49 @@ watch(form, () => {
   }
 }, { deep: true })
 </script>
+
+<style scoped>
+.weather-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  margin-left: 6px;
+}
+.weather-score-0 { background: #fee2e2; color: #991b1b; }
+.weather-score-1 { background: #fef3c7; color: #92400e; }
+.weather-score-2 { background: #dbeafe; color: #1e40af; }
+.weather-score-3 { background: #dcfce7; color: #166534; }
+.weather-score-4 { background: #dcfce7; color: #166534; }
+
+.weather-preview {
+  grid-column: span 2;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+.weather-info {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.weather-score {
+  font-weight: 600;
+}
+.score-8, .score-9, .score-10 { color: #166534; }
+.score-5, .score-6, .score-7 { color: #92400e; }
+.score-0, .score-1, .score-2, .score-3, .score-4 { color: #991b1b; }
+
+.fitness-chart-panel {
+  position: relative;
+  height: 260px;
+}
+
+.month-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 0 12px;
+  font-size: 0.95rem;
+}
+</style>

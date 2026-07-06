@@ -9,10 +9,11 @@
       <section class="hero">
         <h2>Chi Siamo</h2>
         <p>
-          BikeMaster è un progetto open-source dedicato all'analisi avanzata delle performance ciclistiche.
-          La nostra missione è fornire strumenti professionali per ciclisti di ogni livello, dai principianti
-          agli atleti agonistici, per comprendere e migliorare le proprie performance attraverso dati,
-          algoritmi e intelligenza artificiale.
+          BikeMaster è un progetto open-source dedicato all'analisi avanzata
+          delle performance ciclistiche. La nostra missione è fornire strumenti
+          professionali per ciclisti di ogni livello, dai principianti agli
+          atleti agonistici, per comprendere e migliorare le proprie performance
+          attraverso dati, algoritmi e intelligenza artificiale.
         </p>
       </section>
 
@@ -21,27 +22,45 @@
         <div class="feature-grid">
           <div class="feature-card">
             <h3>📊 Analisi Performance</h3>
-            <p>Analisi completa delle uscite con metriche avanzate: Normalized Power, TSS, FTP, Critical Power, CTL/ATL/TSB.</p>
+            <p>
+              Analisi completa delle uscite con metriche avanzate: Normalized
+              Power, TSS, FTP, Critical Power, CTL/ATL/TSB.
+            </p>
           </div>
           <div class="feature-card">
             <h3>🤖 AI Coach</h3>
-            <p>Consigli personalizzati di allenamento e recupero tramite modelli LLM e conoscenze basate su dati scientifici.</p>
+            <p>
+              Consigli personalizzati di allenamento e recupero tramite modelli
+              LLM e conoscenze basate su dati scientifici.
+            </p>
           </div>
           <div class="feature-card">
             <h3>🗺️ Mappe Interattive</h3>
-            <p>Visualizzazione percorsi colorati per velocità, heatmap GPS, e analisi della sicurezza stradale.</p>
+            <p>
+              Visualizzazione percorsi colorati per velocità, heatmap GPS, e
+              analisi della sicurezza stradale.
+            </p>
           </div>
           <div class="feature-card">
             <h3>📱 Tracking Mobile</h3>
-            <p>Registrazione uscite direttamente dal telefono Android con servizio GPS in foreground.</p>
+            <p>
+              Registrazione uscite direttamente dal telefono Android con
+              servizio GPS in foreground.
+            </p>
           </div>
           <div class="feature-card">
             <h3>🔄 Integrazioni</h3>
-            <p>Sincronizzazione con Strava, Garmin Connect e Google Fit per importare tutte le tue attività.</p>
+            <p>
+              Sincronizzazione con Strava, Garmin Connect e Google Fit per
+              importare tutte le tue attività.
+            </p>
           </div>
           <div class="feature-card">
             <h3>📈 Benchmarking</h3>
-            <p>Confronta le tue performance con atleti della tua categoria per capire il tuo livello.</p>
+            <p>
+              Confronta le tue performance con atleti della tua categoria per
+              capire il tuo livello.
+            </p>
           </div>
         </div>
       </section>
@@ -62,27 +81,43 @@
       <section class="values">
         <h2>I Nostri Valori</h2>
         <ul>
-          <li><strong>Open Source:</strong> il codice è pubblico su GitHub sotto licenza MIT</li>
-          <li><strong>Privacy First:</strong> i tuoi dati sono tuoi, non li vendiamo a terzi</li>
-          <li><strong>Community Driven:</strong> sviluppiamo con e per la comunità ciclistica</li>
-          <li><strong>Scientific Approach:</strong> algoritmi basati su principi fisiologici e scientifici</li>
+          <li>
+            <strong>Open Source:</strong> il codice è pubblico su GitHub sotto
+            licenza MIT
+          </li>
+          <li>
+            <strong>Privacy First:</strong> i tuoi dati sono tuoi, non li
+            vendiamo a terzi
+          </li>
+          <li>
+            <strong>Community Driven:</strong> sviluppiamo con e per la comunità
+            ciclistica
+          </li>
+          <li>
+            <strong>Scientific Approach:</strong> algoritmi basati su principi
+            fisiologici e scientifici
+          </li>
         </ul>
       </section>
 
-<section class="cta">
-         <p>Vuoi contribuire o saperne di più?</p>
-         <RouterLink to="/contact" class="cta-button">Contattaci</RouterLink>
-       </section>
+      <section class="cta">
+        <p>Vuoi contribuire o saperne di più?</p>
+        <RouterLink
+to="/contact" class="cta-button"> Contattaci </RouterLink>
+      </section>
 
-       <div class="login-cta">
-         <RouterLink to="/" class="btn btn-secondary">🏠 Accedi a BikeMaster</RouterLink>
-       </div>
-     </div>
-   </div>
- </template>
+      <div class="login-cta">
+        <RouterLink to="/"
+class="btn btn-secondary">
+          🏠 Accedi a BikeMaster
+        </RouterLink>
+      </div>
+    </div>
+  </div>
+</template>
 
 <script setup>
-import { RouterLink } from 'vue-router'
+import { RouterLink } from "vue-router";
 </script>
 
 <style scoped>
@@ -168,26 +203,26 @@ import { RouterLink } from 'vue-router'
   transition: background 0.2s;
 }
 .cta-button:hover {
-   background: #349a6e;
- }
- a {
-   color: #42b983;
- }
- .login-cta {
-   text-align: center;
-   margin-top: 1rem;
- }
- .btn.btn-secondary {
-   display: inline-block;
-   padding: 0.75rem 2rem;
-   background: #2a2a2a;
-   color: #fff;
-   text-decoration: none;
-   border-radius: 6px;
-   font-weight: 600;
-   transition: background 0.2s;
- }
- .btn.btn-secondary:hover {
-   background: #3a3a3a;
- }
+  background: #349a6e;
+}
+a {
+  color: #42b983;
+}
+.login-cta {
+  text-align: center;
+  margin-top: 1rem;
+}
+.btn.btn-secondary {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background: #2a2a2a;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.btn.btn-secondary:hover {
+  background: #3a3a3a;
+}
 </style>

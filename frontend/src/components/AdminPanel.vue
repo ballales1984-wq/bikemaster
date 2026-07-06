@@ -2,98 +2,116 @@
   <div class="admin-panel">
     <div class="panel">
       <h2>⚙️ Administration</h2>
-      
+
       <div class="admin-grid">
-        <button class="admin-card" @click="loadStats" :disabled="loadingStats">
+        <button class="admin-card"
+@click="loadStats" :disabled="loadingStats">
           <div class="admin-icon">📊</div>
           <div class="admin-label">System Stats</div>
           <div class="admin-desc">View database and API metrics</div>
         </button>
-        
-        <a class="admin-card" href="/api/v1/admin/backup" download>
+
+        <a class="admin-card"
+href="/api/v1/admin/backup" download>
           <div class="admin-icon">💾</div>
           <div class="admin-label">Backup DB</div>
           <div class="admin-desc">Download database dump</div>
         </a>
-        
-        <button class="admin-card" @click="createIndexes" :disabled="loadingIndexes">
+
+        <button
+          class="admin-card"
+          :disabled="loadingIndexes"
+          @click="createIndexes"
+        >
           <div class="admin-icon">🗂️</div>
           <div class="admin-label">Create Indexes</div>
           <div class="admin-desc">Rebuild knowledge base indexes</div>
         </button>
-        
-        <button class="admin-card danger" @click="resetDemo" :disabled="loadingReset">
+
+        <button
+          class="admin-card danger"
+          :disabled="loadingReset"
+          @click="resetDemo"
+        >
           <div class="admin-icon">🔄</div>
           <div class="admin-label">Reset Demo</div>
           <div class="admin-desc">Restore demo data</div>
         </button>
       </div>
-      
-      <div v-if="stats" class="result-section">
+
+      <div v-if="stats"
+class="result-section">
         <div class="result-header">📋 Statistics Output</div>
         <pre class="result-box">{{ stats }}</pre>
       </div>
-      
-      <div v-if="error" class="error-section">
+
+      <div v-if="error"
+class="error-section">
         <div class="error-icon">⛔</div>
-        <div class="error-text">{{ error }}</div>
+        <div class="error-text">
+          {{ error }}
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { apiGet, apiPost } from '../utils/api'
+import { ref } from "vue";
+import { apiGet, apiPost } from "../utils/api";
 
-const stats = ref('')
-const error = ref('')
-const loadingStats = ref(false)
-const loadingIndexes = ref(false)
-const loadingReset = ref(false)
+const stats = ref("");
+const error = ref("");
+const loadingStats = ref(false);
+const loadingIndexes = ref(false);
+const loadingReset = ref(false);
 
 async function loadStats() {
-  loadingStats.value = true
+  loadingStats.value = true;
   try {
-    error.value = ''
-    const data = await apiGet('/api/v1/admin/stats')
-    stats.value = JSON.stringify(data, null, 2)
+    error.value = "";
+    const data = await apiGet("/api/v1/admin/stats");
+    stats.value = JSON.stringify(data, null, 2);
   } catch (e) {
-    error.value = 'Access denied: ' + (e.message || e)
+    error.value = "Access denied: " + (e.message || e);
   } finally {
-    loadingStats.value = false
+    loadingStats.value = false;
   }
 }
 
 async function createIndexes() {
-  loadingIndexes.value = true
+  loadingIndexes.value = true;
   try {
-    error.value = ''
-    await apiPost('/api/v1/admin/indexes', {})
-    stats.value = '✅ Indexes created successfully'
+    error.value = "";
+    await apiPost("/api/v1/admin/indexes", {});
+    stats.value = "✅ Indexes created successfully";
   } catch (e) {
-    error.value = 'Error: ' + (e.message || e)
+    error.value = "Error: " + (e.message || e);
   } finally {
-    loadingIndexes.value = false
+    loadingIndexes.value = false;
   }
 }
 
 async function resetDemo() {
-  loadingReset.value = true
+  loadingReset.value = true;
   try {
-    error.value = ''
-    await apiPost('/api/v1/admin/reset-demo', {})
-    stats.value = '✅ Demo data restored successfully'
+    error.value = "";
+    await apiPost("/api/v1/admin/reset-demo", {});
+    stats.value = "✅ Demo data restored successfully";
   } catch (e) {
-    error.value = 'Error: ' + (e.message || e)
+    error.value = "Error: " + (e.message || e);
   } finally {
-    loadingReset.value = false
+    loadingReset.value = false;
   }
 }
 </script>
 
 <style scoped>
-.admin-panel { display: flex; flex-direction: column; gap: 20px; }
+.admin-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
 .admin-grid {
   display: grid;
@@ -232,7 +250,7 @@ async function resetDemo() {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--accent);
-  font-family: 'Outfit', sans-serif;
+  font-family: "Outfit", sans-serif;
 }
 
 .stat-label {

@@ -5,15 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "prebuild": "node scripts/safe-build.mjs --preclear || node -e \"require('fs').rmSync('dist',{recursive:true,force:true,maxRetries:3,retryDelay:500})\"",
+    "build": "node scripts/safe-build.mjs",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "typecheck": "vue-tsc --noEmit --incremental",
     "e2e": "playwright test",
-    "e2e:local": "playwright test --config playwright.local.config.js",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-pattern node_modules,.git,.dist,.output"
+    "typecheck": "vue-tsc --noEmit --incremental",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-pattern node_modules,.git,dist,.output"
   },
   "dependencies": {
     "@capacitor/android": "^5.7.4",
@@ -45,6 +45,7 @@
     "typescript": "^6.0.3",
     "vite": "^5.4.0",
     "vite-plugin-pwa": "0.16.7",
-    "vitest": "^1.6.1"
+    "vitest": "^1.6.1",
+    "vue-tsc": "^2.2.12"
   }
 }

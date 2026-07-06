@@ -1,27 +1,27 @@
-import { describe, expect, it } from 'vitest'
-import { mount } from '@vue/test-utils'
-import TermsOfService from '../views/TermsOfService.vue'
+import { describe, expect, it } from "vitest";
+import { mount } from "@vue/test-utils";
+import TermsOfService from "../views/TermsOfService.vue";
 
-describe('TermsOfService', () => {
-  it('renders the page title', () => {
+describe("TermsOfService", () => {
+  it("renders the page title", () => {
     const wrapper = mount(TermsOfService, {
       global: { stubs: { RouterLink: true } },
-    })
-    expect(wrapper.find('h1').exists()).toBe(true)
-  })
+    });
+    expect(wrapper.find("h1").exists()).toBe(true);
+  });
 
-  it('has multiple sections', () => {
+  it("has multiple sections", () => {
     const wrapper = mount(TermsOfService, {
       global: { stubs: { RouterLink: true } },
-    })
-    const sections = wrapper.findAll('h2')
-    expect(sections.length).toBeGreaterThanOrEqual(2)
-  })
+    });
+    const sections = wrapper.findAll("h2");
+    expect(sections.length).toBeGreaterThanOrEqual(2);
+  });
 
-  it('mentions MIT license', () => {
+  it("mentions MIT license", () => {
     const wrapper = mount(TermsOfService, {
       global: { stubs: { RouterLink: true } },
-    })
-    expect(wrapper.text()).toContain('MIT')
-  })
-})
+    });
+    expect(wrapper.text()).toContain("MIT");
+  });
+});

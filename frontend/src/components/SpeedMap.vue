@@ -1,37 +1,43 @@
 <template>
   <div class="google-speed-map">
-    <div ref="mapEl" class="map-canvas"></div>
-<div v-if="loading" class="map-loading">Loading speed map...</div>
-     <div v-if="!loading && !error" class="map-speed-legend">
-       <div class="legend-title">Speed (km/h)</div>
+    <div
+ref="mapEl" class="map-canvas" />
+    <div
+v-if="loading" class="map-loading">Loading speed map...</div>
+    <div
+v-if="!loading && !error" class="map-speed-legend">
+      <div class="legend-title">Speed (km/h)</div>
       <div class="legend-bar">
         <span>{{ maxSpeed.toFixed(1) }}</span>
-        <div class="bar-gradient"></div>
+        <div class="bar-gradient" />
         <span>{{ minSpeed.toFixed(1) }}</span>
       </div>
     </div>
-    <div v-if="error" class="map-error">{{ error }}</div>
+    <div v-if="error"
+class="map-error">
+      {{ error }}
+    </div>
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { apiGet } from '../utils/api'
+import { onBeforeUnmount, onMounted, ref } from "vue";
+import { apiGet } from "../utils/api";
 
 const props = defineProps({
   rideId: { type: Number, required: true },
-  apiKey: { type: String, default: '' },
-})
+  apiKey: { type: String, default: "" },
+});
 
-const mapEl = ref(null)
-const loading = ref(true)
-const error = ref('')
-const minSpeed = ref(0)
-const maxSpeed = ref(35)
+const mapEl = ref(null);
+const loading = ref(true);
+const error = ref("");
+const minSpeed = ref(0);
+const maxSpeed = ref(35);
 
-let googleMap = null
-let pathLayer = null
-let infoWindow = null
+let googleMap = null;
+let pathLayer = null;
+let infoWindow = null;
 
 function initMap(center, zoom = 14) {
   googleMap = new google.maps.Map(mapEl.value, {
@@ -42,119 +48,121 @@ function initMap(center, zoom = 14) {
     mapTypeControl: false,
     streetViewControl: false,
     fullscreenControl: true,
-  })
+  });
 
-  infoWindow = new google.maps.InfoWindow()
+  infoWindow = new google.maps.InfoWindow();
 
-  pathLayer = new google.maps.Data({ map: googleMap })
-  pathLayer.setStyle(feature => ({
-    strokeColor: feature.getProperty('color'),
+  pathLayer = new google.maps.Data({ map: googleMap });
+  pathLayer.setStyle((feature) => ({
+    strokeColor: feature.getProperty("color"),
     strokeWeight: 5,
     strokeOpacity: 0.85,
-  }))
+  }));
 
-  pathLayer.addListener('mouseover', event => {
-    const spd = event.feature.getProperty('speed_kmh')
+  pathLayer.addListener("mouseover", (event) => {
+    const spd = event.feature.getProperty("speed_kmh");
     if (spd != null && infoWindow) {
-      infoWindow.setContent('<div><strong>' + spd.toFixed(1) + ' km/h</strong></div>')
-      infoWindow.setPosition(event.latLng)
-      infoWindow.open(googleMap)
+      infoWindow.setContent(
+        "<div><strong>" + spd.toFixed(1) + " km/h</strong></div>",
+      );
+      infoWindow.setPosition(event.latLng);
+      infoWindow.open(googleMap);
     }
-  })
+  });
 
-  pathLayer.addListener('mouseout', () => {
-    if (infoWindow) infoWindow.close()
-  })
+  pathLayer.addListener("mouseout", () => {
+    if (infoWindow) infoWindow.close();
+  });
 }
 
 async function loadSpeedPath() {
-  loading.value = true
-  error.value = ''
+  loading.value = true;
+  error.value = "";
   try {
-    const data = await apiGet('/api/v1/rides/' + props.rideId + '/speed-path')
-    minSpeed.value = data.min_speed || 0
-    maxSpeed.value = data.max_speed || 35
-    renderMap(data)
+    const data = await apiGet("/api/v1/rides/" + props.rideId + "/speed-path");
+    minSpeed.value = data.min_speed || 0;
+    maxSpeed.value = data.max_speed || 35;
+    renderMap(data);
   } catch (err) {
-error.value = err.message || 'Unable to load speed path'
-   } finally {
-     loading.value = false
-   }
- }
+    error.value = err.message || "Unable to load speed path";
+  } finally {
+    loading.value = false;
+  }
+}
 
- function renderMap(data) {
-   if (!mapEl.value || !data.segments || !data.segments.length) return
+function renderMap(data) {
+  if (!mapEl.value || !data.segments || !data.segments.length) return;
 
-   if (!googleMap) {
-     initMap({ lat: data.center.lat, lng: data.center.lon }, 14)
+  if (!googleMap) {
+    initMap({ lat: data.center.lat, lng: data.center.lon }, 14);
 
-     const first = data.segments[0]
-     new google.maps.Marker({
-       position: new google.maps.LatLng(first.start[0], first.start[1]),
-       map: googleMap,
-       label: { text: 'S', color: '#fff', fontSize: '12px', fontWeight: 'bold' },
-       title: 'Start',
-     })
+    const first = data.segments[0];
+    new google.maps.Marker({
+      position: new google.maps.LatLng(first.start[0], first.start[1]),
+      map: googleMap,
+      label: { text: "S", color: "#fff", fontSize: "12px", fontWeight: "bold" },
+      title: "Start",
+    });
 
-     const last = data.segments[data.segments.length - 1]
-     new google.maps.Marker({
-       position: new google.maps.LatLng(last.end[0], last.end[1]),
-       map: googleMap,
-       label: { text: 'E', color: '#fff', fontSize: '12px', fontWeight: 'bold' },
-       title: 'Finish',
-     })
-   }
+    const last = data.segments[data.segments.length - 1];
+    new google.maps.Marker({
+      position: new google.maps.LatLng(last.end[0], last.end[1]),
+      map: googleMap,
+      label: { text: "E", color: "#fff", fontSize: "12px", fontWeight: "bold" },
+      title: "Finish",
+    });
+  }
 
-   pathLayer.forEach(feature => pathLayer.remove(feature))
+  pathLayer.forEach((feature) => pathLayer.remove(feature));
 
-   const features = []
-   data.segments.forEach(seg => {
-     const feature = new google.maps.Data.Feature()
-     feature.setGeometry(
-       new google.maps.Data.LineString([
-         new google.maps.LatLng(seg.start[0], seg.start[1]),
-         new google.maps.LatLng(seg.end[0], seg.end[1]),
-       ])
-     )
-     feature.setProperty('color', seg.color)
-     feature.setProperty('speed_kmh', seg.speed_kmh)
-     features.push(feature)
-   })
-   features.forEach(f => pathLayer.add(f))
+  const features = [];
+  data.segments.forEach((seg) => {
+    const feature = new google.maps.Data.Feature();
+    feature.setGeometry(
+      new google.maps.Data.LineString([
+        new google.maps.LatLng(seg.start[0], seg.start[1]),
+        new google.maps.LatLng(seg.end[0], seg.end[1]),
+      ]),
+    );
+    feature.setProperty("color", seg.color);
+    feature.setProperty("speed_kmh", seg.speed_kmh);
+    features.push(feature);
+  });
+  features.forEach((f) => pathLayer.add(f));
 
-   const bounds = new google.maps.LatLngBounds()
-   data.segments.forEach(seg => {
-     bounds.extend(new google.maps.LatLng(seg.start[0], seg.start[1]))
-     bounds.extend(new google.maps.LatLng(seg.end[0], seg.end[1]))
-   })
-   googleMap.fitBounds(bounds, 30)
- }
+  const bounds = new google.maps.LatLngBounds();
+  data.segments.forEach((seg) => {
+    bounds.extend(new google.maps.LatLng(seg.start[0], seg.start[1]));
+    bounds.extend(new google.maps.LatLng(seg.end[0], seg.end[1]));
+  });
+  googleMap.fitBounds(bounds, 30);
+}
 
- onMounted(() => {
-   if (!props.apiKey) {
-     loading.value = false
-     error.value = 'Google Maps API key not configured'
-     return
-   }
+onMounted(() => {
+  if (!props.apiKey) {
+    loading.value = false;
+    error.value = "Google Maps API key not configured";
+    return;
+  }
 
-   const script = document.createElement('script')
-   script.src = 'https://maps.googleapis.com/maps/api/js?key=' + props.apiKey
-   script.async = true
-   script.defer = true
-   script.onload = () => loadSpeedPath()
-   script.onerror = () => {
-     loading.value = false
-     error.value = 'Unable to load Google Maps JS API'
-   }
-   document.head.appendChild(script)
- })
+  const script = document.createElement("script");
+  script.src = "https://maps.googleapis.com/maps/api/js?key=" + props.apiKey;
+  script.async = true;
+  script.defer = true;
+  script.onload = () => loadSpeedPath();
+  script.onerror = () => {
+    loading.value = false;
+    error.value = "Unable to load Google Maps JS API";
+  };
+  document.head.appendChild(script);
+});
 
 onBeforeUnmount(() => {
-  if (infoWindow) infoWindow.close()
-  googleMap = null
-  pathLayer = null
-  infoWindow = null
-})
+  if (infoWindow) infoWindow.close();
+  googleMap = null;
+  pathLayer = null;
+  infoWindow = null;
+});
 </script>
 
 <style scoped>
@@ -221,6 +229,13 @@ onBeforeUnmount(() => {
   flex: 1;
   height: 10px;
   border-radius: 999px;
-  background: linear-gradient(to right, #ee3333, #ee8800, #ddbb00, #88cc00, #00cc44);
+  background: linear-gradient(
+    to right,
+    #ee3333,
+    #ee8800,
+    #ddbb00,
+    #88cc00,
+    #00cc44
+  );
 }
 </style>

@@ -154,4 +154,68 @@ describe('auth store', () => {
     expect(store.justLoggedIn).toBe(false)
     expect(localStorage.getItem('bikemaster_just_logged_in')).toBe(null)
   })
+
+  it('isTokenValid false for token with malformed payload', async () => {
+    const { useAuthStore } = await import('./auth')
+    const store = useAuthStore()
+    const payload = Buffer.from('not-json').toString('base64url')
+    store.token = `h.${payload}.s`
+    expect(store.isTokenValid()).toBe(false)
+  })
+
+  it('isTokenValid false at exact exp boundary', async () => {
+    const { useAuthStore } = await import('./auth')
+    const store = useAuthStore()
+    const exp = Math.floor(Date.now() / 1000)
+    const payload = Buffer.from(JSON.stringify({ exp })).toString('base64url')
+    store.token = `h.${payload}.s`
+    expect(store.isTokenValid()).toBe(false)
+  })
+
+  it('parseJWTPayload decodes base64url payload with padding omitted', async () => {
+    const { useAuthStore } = await import('./auth')
+    const store = useAuthStore()
+    const payload = Buffer.from(JSON.stringify({ sub: 'x', n: 123 })).toString('base64url')
+    const decoded = store.parseJWTPayload(`h.${payload}.s`)
+    expect(decoded?.sub).toBe('x')
+    expect(decoded?.n).toBe(123)
+  })
+
+  it('setOauthError clears token, user and justLoggedIn', async () => {
+    const { useAuthStore } = await import('./auth')
+    const store = useAuthStore()
+    store.token = 'abc'
+    store.user = { id: 1, username: 'u', is_admin: false, tenant_id: 1 }
+    store.setJustLoggedIn(true)
+    localStorage.setItem('bikemaster_token', 'abc')
+    store.setOauthError('oops')
+    expect(store.token).toBe('')
+    expect(store.user).toBe(null)
+    expect(store.justLoggedIn).toBe(false)
+    expect(localStorage.getItem('bikemaster_token')).toBe(null)
+    expect(localStorage.getItem('bikemaster_login_error')).toBe('oops')
+  })
+
+  it('register resolves on success', async () => {
+    const { useAuthStore } = await import('./auth')
+    const store = useAuthStore()
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 1 }),
+    } as Response)
+    await expect(store.register('bob', 'secret')).resolves.toBeDefined()
+    expect(spy).toHaveBeenCalledWith('/api/v1/auth/register', expect.objectContaining({ method: 'POST' }))
+    spy.mockRestore()
+  })
+
+  it('register throws on failure', async () => {
+    const { useAuthStore } = await import('./auth')
+    const store = useAuthStore()
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      json: async () => ({}),
+    } as Response)
+    await expect(store.register('bob', 'secret')).rejects.toThrow('Registration failed')
+    spy.mockRestore()
+  })
 })

@@ -7,66 +7,159 @@
 
     <div class="legal-content">
       <h2>1. Titolare del Trattamento</h2>
-      <p>Il titolare del trattamento dei dati personali raccolti attraverso BikeMaster è:</p>
+      <p>
+        Il titolare del trattamento dei dati personali raccolti attraverso
+        BikeMaster è:
+      </p>
       <ul>
         <li><strong>Denominazione:</strong> BikeMaster Team</li>
         <li><strong>Email:</strong> privacy@bikemaster.app</li>
       </ul>
 
       <h2>2. Tipologie di Dati Raccolti</h2>
-      <p>Attraverso l'utilizzo di BikeMaster, raccogliamo le seguenti categorie di dati:</p>
+      <p>
+        Attraverso l'utilizzo di BikeMaster, raccogliamo le seguenti categorie
+        di dati:
+      </p>
       <ul>
-        <li><strong>Dati di navigazione:</strong> indirizzo IP, tipo di browser, sistema operativo, dati di log</li>
-        <li><strong>Dati personali dell'utente:</strong> nome, email, età, peso, altezza, dati medici forniti volontariamente nel profilo atleta</li>
-        <li><strong>Dati GPS e attività fisica:</strong> coordinate geografiche, tracciato percorso, velocità, altitudine, frequenza cardiaca, potenza, cadenza, distanza, dislivello</li>
-        <li><strong>Dati di geolocalizzazione:</strong> posizione in tempo reale durante il tracciamento GPS da telefono</li>
-        <li><strong>Dati da servizi esterni:</strong> dati di attività da Strava, Garmin Connect, Google Fit (solo se autorizzati dall'utente)</li>
-        <li><strong>Credenziali di accesso:</strong> username e password (memorizzati in forma crittografata)</li>
+        <li>
+          <strong>Dati di navigazione:</strong> indirizzo IP, tipo di browser,
+          sistema operativo, dati di log
+        </li>
+        <li>
+          <strong>Dati personali dell'utente:</strong> nome, email, età, peso,
+          altezza, dati medici forniti volontariamente nel profilo atleta
+        </li>
+        <li>
+          <strong>Dati GPS e attività fisica:</strong> coordinate geografiche,
+          tracciato percorso, velocità, altitudine, frequenza cardiaca, potenza,
+          cadenza, distanza, dislivello
+        </li>
+        <li>
+          <strong>Dati di geolocalizzazione:</strong> posizione in tempo reale
+          durante il tracciamento GPS da telefono
+        </li>
+        <li>
+          <strong>Dati da servizi esterni:</strong> dati di attività da Strava,
+          Garmin Connect, Google Fit (solo se autorizzati dall'utente)
+        </li>
+        <li>
+          <strong>Credenziali di accesso:</strong> username e password
+          (memorizzati in forma crittografata)
+        </li>
       </ul>
 
       <h2>3. Finalità del Trattamento</h2>
       <p>I dati personali sono trattati per le seguenti finalità:</p>
       <ul>
-        <li><strong>Fornitura del servizio:</strong> analisi delle performance ciclistiche, calcolo metriche (calorie, TSS, CTL/ATL/TSB), generazione mappe e report</li>
-        <li><strong>Funzionalità AI Coach:</strong> consigli personalizzati di allenamento e recupero</li>
-        <li><strong>Autenticazione:</strong> gestione account e accesso al servizio</li>
-        <li><strong>Integrazioni:</strong> sincronizzazione con servizi esterni previo consenso</li>
-        <li><strong>Miglioramento del servizio:</strong> statistica aggregata e anonimizzata per migliorare le funzionalità</li>
-        <li><strong>Sicurezza:</strong> protezione da accessi non autorizzati e rilevamento anomalie</li>
+        <li>
+          <strong>Fornitura del servizio:</strong> analisi delle performance
+          ciclistiche, calcolo metriche (calorie, TSS, CTL/ATL/TSB), generazione
+          mappe e report
+        </li>
+        <li>
+          <strong>Funzionalità AI Coach:</strong> consigli personalizzati di
+          allenamento e recupero
+        </li>
+        <li>
+          <strong>Autenticazione:</strong> gestione account e accesso al
+          servizio
+        </li>
+        <li>
+          <strong>Integrazioni:</strong> sincronizzazione con servizi esterni
+          previo consenso
+        </li>
+        <li>
+          <strong>Miglioramento del servizio:</strong> statistica aggregata e
+          anonimizzata per migliorare le funzionalità
+        </li>
+        <li>
+          <strong>Sicurezza:</strong> protezione da accessi non autorizzati e
+          rilevamento anomalie
+        </li>
       </ul>
 
       <h2>4. Base Giuridica del Trattamento</h2>
       <ul>
-        <li><strong>Esecuzione del contratto:</strong> trattamento necessario per fornire il servizio richiesto (Art. 6, comma 1, lett. b GDPR)</li>
-        <li><strong>Consenso:</strong> trattamento dati sanitari e geolocalizzazione in tempo reale (Art. 6, comma 1, lett. a GDPR)</li>
-        <li><strong>Interesse legittimo:</strong> sicurezza dei dati, statistiche aggregate (Art. 6, comma 1, lett. f GDPR)</li>
+        <li>
+          <strong>Esecuzione del contratto:</strong> trattamento necessario per
+          fornire il servizio richiesto (Art. 6, comma 1, lett. b GDPR)
+        </li>
+        <li>
+          <strong>Consenso:</strong> trattamento dati sanitari e
+          geolocalizzazione in tempo reale (Art. 6, comma 1, lett. a GDPR)
+        </li>
+        <li>
+          <strong>Interesse legittimo:</strong> sicurezza dei dati, statistiche
+          aggregate (Art. 6, comma 1, lett. f GDPR)
+        </li>
       </ul>
 
       <h2>5. Dati Sensibili e Geolocalizzazione</h2>
       <p>Il servizio raccoglie dati sensibili potenziali tra cui:</p>
       <ul>
-        <li><strong>Dati di salute:</strong> frequenza cardiaca, dati di affaticamento, punteggi di performance (Art. 9 GDPR)</li>
-        <li><strong>Geolocalizzazione:</strong> posizione GPS continua durante il tracciamento da dispositivo mobile</li>
+        <li>
+          <strong>Dati di salute:</strong> frequenza cardiaca, dati di
+          affaticamento, punteggi di performance (Art. 9 GDPR)
+        </li>
+        <li>
+          <strong>Geolocalizzazione:</strong> posizione GPS continua durante il
+          tracciamento da dispositivo mobile
+        </li>
       </ul>
-      <p>Tali dati sono trattati esclusivamente previo consenso esplicito dell'utente e sono utilizzati solo per le finalità indicate nella presente informativa.</p>
+      <p>
+        Tali dati sono trattati esclusivamente previo consenso esplicito
+        dell'utente e sono utilizzati solo per le finalità indicate nella
+        presente informativa.
+      </p>
 
       <h2>6. Condivisione dei Dati e Terze Parti</h2>
-      <p>I dati personali non sono ceduti a terzi a titolo oneroso. Sono condivisi esclusivamente con:</p>
+      <p>
+        I dati personali non sono ceduti a terzi a titolo oneroso. Sono
+        condivisi esclusivamente con:
+      </p>
       <ul>
-        <li><strong>Strava:</strong> previa autorizzazione OAuth2 dell'utente</li>
-        <li><strong>Garmin Connect:</strong> previa autorizzazione OAuth2 dell'utente</li>
-        <li><strong>Google Fit:</strong> previa autorizzazione OAuth2 dell'utente</li>
-        <li><strong>Google Maps / OpenStreetMap:</strong> dati di geolocalizzazione per rendering mappe</li>
-        <li><strong>Groq API:</strong> dati di allenamento per l'AI Coach (non condivide dati identificativi)</li>
-        <li><strong>OpenAI API:</strong> embedding per ricerca semantica nella Knowledge Base (dati anonimizzati)</li>
+        <li>
+          <strong>Strava:</strong> previa autorizzazione OAuth2 dell'utente
+        </li>
+        <li>
+          <strong>Garmin Connect:</strong> previa autorizzazione OAuth2
+          dell'utente
+        </li>
+        <li>
+          <strong>Google Fit:</strong> previa autorizzazione OAuth2 dell'utente
+        </li>
+        <li>
+          <strong>Google Maps / OpenStreetMap:</strong> dati di
+          geolocalizzazione per rendering mappe
+        </li>
+        <li>
+          <strong>Groq API:</strong> dati di allenamento per l'AI Coach (non
+          condivide dati identificativi)
+        </li>
+        <li>
+          <strong>OpenAI API:</strong> embedding per ricerca semantica nella
+          Knowledge Base (dati anonimizzati)
+        </li>
       </ul>
 
       <h2>7. Conservazione dei Dati</h2>
       <ul>
-        <li><strong>Dati di tracciamento GPS:</strong> conservati fino a eliminazione da parte dell'utente</li>
-        <li><strong>Dati profilo atleta:</strong> conservati fino a eliminazione account</li>
-        <li><strong>Dati di accesso (JWT):</strong> conservati per la durata della sessione</li>
-        <li><strong>Token OAuth:</strong> conservati fino a revoca esplicita</li>
+        <li>
+          <strong>Dati di tracciamento GPS:</strong> conservati fino a
+          eliminazione da parte dell'utente
+        </li>
+        <li>
+          <strong>Dati profilo atleta:</strong> conservati fino a eliminazione
+          account
+        </li>
+        <li>
+          <strong>Dati di accesso (JWT):</strong> conservati per la durata della
+          sessione
+        </li>
+        <li>
+          <strong>Token OAuth:</strong> conservati fino a revoca esplicita
+        </li>
       </ul>
 
       <h2>8. Diritti dell'Utente</h2>
@@ -93,23 +186,40 @@
       </ul>
 
       <h2>10. Cookie e Tecnologie Simili</h2>
-      <p>Per informazioni dettagliate sui cookie, consulta la <RouterLink to="/cookies">Cookie Policy</RouterLink>.</p>
+      <p>
+        Per informazioni dettagliate sui cookie, consulta la
+        <RouterLink to="/cookies">
+Cookie Policy
+</RouterLink>.
+      </p>
 
       <h2>11. Modifiche alla Presente Informativa</h2>
-      <p>Eventuali modifiche saranno comunicate attraverso il servizio o via email agli utenti registrati. Si consiglia di consultare periodicamente questa pagina.</p>
+      <p>
+        Eventuali modifiche saranno comunicate attraverso il servizio o via
+        email agli utenti registrati. Si consiglia di consultare periodicamente
+        questa pagina.
+      </p>
 
       <h2>12. Autorità di Controllo</h2>
-<p>In caso di mancata risposta o insoddisfazione, è possibilepresentare reclamo al Garante per la protezione dei dati personali presso <a href="https://www.garanteprivacy.it" target="_blank" rel="noopener">www.garanteprivacy.it</a>.</p>
+      <p>
+        In caso di mancata risposta o insoddisfazione, è possibilepresentare
+        reclamo al Garante per la protezione dei dati personali presso
+        <a href="https://www.garanteprivacy.it"
+target="_blank" rel="noopener">www.garanteprivacy.it</a>.
+      </p>
     </div>
 
     <div class="cta-section">
-      <RouterLink to="/" class="btn btn-primary">🏠 Torna all'Accedi</RouterLink>
+      <RouterLink to="/"
+class="btn btn-primary">
+        🏠 Torna all'Accedi
+      </RouterLink>
     </div>
   </div>
- </template>
+</template>
 
 <script setup>
-import { RouterLink } from 'vue-router'
+import { RouterLink } from "vue-router";
 </script>
 
 <style scoped>
@@ -150,26 +260,26 @@ import { RouterLink } from 'vue-router'
   margin-bottom: 0.4rem;
 }
 a {
-   color: #42b983;
- }
+  color: #42b983;
+}
 
- .cta-section {
-   text-align: center;
-   margin: 2rem 0 1rem;
- }
+.cta-section {
+  text-align: center;
+  margin: 2rem 0 1rem;
+}
 
- .btn {
-   display: inline-block;
-   padding: 10px 24px;
-   background: #42b983;
-   color: #fff;
-   text-decoration: none;
-   border-radius: 6px;
-   font-weight: 600;
-   transition: background 0.2s;
- }
+.btn {
+  display: inline-block;
+  padding: 10px 24px;
+  background: #42b983;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
 
- .btn:hover {
-   background: #349a6e;
- }
+.btn:hover {
+  background: #349a6e;
+}
 </style>

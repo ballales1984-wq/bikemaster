@@ -135,8 +135,10 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = ''
     user.value = null
     localStorage.setItem('bikemaster_login_error', oauthError)
-    
+
     justLoggedIn.value = false
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
     localStorage.removeItem(JUST_LOGGED_IN_KEY)
   }
 
