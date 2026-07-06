@@ -1,7 +1,7 @@
 import { registerRoute, setCatchHandler } from 'workbox-routing'
 import { CacheFirst, StaleWhileRevalidate, NetworkFirst } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
-import { precacheAndRoute, matchPrecache, addRoute } from 'workbox-precaching'
+import { precacheAndRoute, matchPrecache, addRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 import { setCacheNameDetails } from 'workbox-core'
 import { BackgroundSyncPlugin } from 'workbox-background-sync'
 
@@ -37,6 +37,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
+    cleanupOutdatedCaches()
     const keys = await caches.keys()
     await Promise.all(
       keys
@@ -118,8 +119,10 @@ registerRoute(
 )
 
 registerRoute(
-  ({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/') && !url.pathname.endsWith('.html'),
-  new StaleWhileRevalidate({
+  ({ request }) =>
+    (request.destination === 'script' || request.destination === 'style') &&
+    request.url.startsWith(self.location.origin),
+  new NetworkFirst({
     cacheName: STATIC_CACHE,
     plugins: [
       new ExpirationPlugin({

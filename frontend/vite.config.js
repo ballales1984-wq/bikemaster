@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       strategies: 'injectManifest',
       srcDir: 'src',
@@ -31,7 +31,6 @@ export default defineConfig({
         enabled: false,
         type: 'module',
       },
-      injectRegister: 'script',
       workbox: {
         skipWaiting: true,
         clientsClaim: true,

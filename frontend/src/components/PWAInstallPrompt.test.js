@@ -5,7 +5,7 @@ import PWAInstallPrompt from '../components/PWAInstallPrompt.vue'
 vi.mock('../composables/usePWA', () => ({
   usePWA: () => ({
     showPrompt: { value: true },
-    deferredPrompt: { value: null },
+    deferredPrompt: { value: { prompt: vi.fn().mockResolvedValue({ outcome: 'accepted' }) } },
     prompt: vi.fn(),
   }),
 }))
