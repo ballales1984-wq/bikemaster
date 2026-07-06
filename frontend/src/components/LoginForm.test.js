@@ -14,13 +14,13 @@ describe('LoginForm', () => {
 
   it('renders login and register tabs', () => {
     const wrapper = mount(LoginForm)
-    expect(wrapper.text()).toContain('Login')
-    expect(wrapper.text()).toContain('Sign Up')
+    expect(wrapper.text()).toContain('auth.login')
+    expect(wrapper.text()).toContain('auth.register')
   })
 
   it('switches between login and register modes', async () => {
     const wrapper = mount(LoginForm)
-    const registerBtn = wrapper.findAll('button').find((b) => b.text().includes('Sign Up'))
+    const registerBtn = wrapper.findAll('button').find((b) => b.text().includes('auth.register'))
     if (registerBtn) {
       await registerBtn.trigger('click')
       expect(wrapper.find('input[type="password"]').attributes('placeholder')).toContain('min 6 characters')
@@ -36,7 +36,7 @@ describe('LoginForm', () => {
 
   it('validates password length in register mode', async () => {
     const wrapper = mount(LoginForm)
-    const registerBtn = wrapper.findAll('button').find((b) => b.text().includes('Sign Up'))
+    const registerBtn = wrapper.findAll('button').find((b) => b.text().includes('auth.register'))
     if (registerBtn) {
       await registerBtn.trigger('click')
     }
