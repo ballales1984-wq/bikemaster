@@ -1,12 +1,31 @@
 {
+  "app": {
+    "title": "BikeMaster",
+    "tagline": "Cycling Performance Intelligence",
+    "welcome": "Bentornato in BikeMaster",
+    "welcomeDesc": "Monitora le tue performance, pianifica gli allenamenti e raggiungi i tuoi obiettivi ciclistici.",
+    "footer": "BikeMaster v2 — Cycling Performance Intelligence"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "rides": "Uscite",
-    "coach": "AI Coach",
+    "tracking": "Tracciamento",
     "import": "Importa",
+    "athlete": "Atleta",
+    "coach": "AI Coach",
     "knowledge": "Knowledge",
+    "calendar": "Calendario",
+    "granfondo": "Granfondo",
+    "maps": "Mappe",
     "heatmap": "Heatmap",
-    "logout": "Esci"
+    "badges": "Badge",
+    "comparison": "Confronta",
+    "weather": "Meteo",
+    "admin": "Admin",
+    "logout": "Esci",
+    "track": "Traccia Uscita",
+    "plan": "Pianifica",
+    "aiCoach": "AI Coach"
   },
   "rides": {
     "title": "Le Mie Uscite",
@@ -17,13 +36,156 @@
     "distance": "Distanza",
     "duration": "Durata",
     "avgSpeed": "Velocità Media",
-    "calories": "Calorie"
+    "calories": "Calorie",
+    "addTitle": "Aggiungi Uscita",
+    "addSuccess": "Uscita aggiunta con successo",
+    "noRides": "Nessuna uscita registrata",
+    "date": "Data",
+    "elevation": "Dislivello",
+    "actions": "Azioni"
+  },
+  "tracking": {
+    "title": "GPS Tracking",
+    "start": "Avvia Tracciamento",
+    "stop": "Ferma Tracciamento",
+    "pause": "Pausa",
+    "resume": "Riprendi",
+    "inProgress": "In corso",
+    "paused": "In pausa",
+    "ready": "Pronto per tracciare la tua uscita",
+    "readyDesc": "Premi il pulsante per iniziare a registrare il percorso in tempo reale.",
+    "offline": "Offline: il tracciamento funziona, ma le mappe potrebbero essere limitate.",
+    "upload": "Carica su BikeMaster",
+    "uploading": "Caricamento...",
+    "uploadSuccess": "Uscita caricata con successo",
+    "uploadError": "Caricamento fallito",
+    "gpsWaiting": "Acquisizione segnale GPS... Spostati all'aperto per una maggiore accuratezza.",
+    "gpsError": "Errore GPS",
+    "gpsPermissionDenied": "Permesso GPS negato. Abilita l'accesso e riprova.",
+    "gpsSignalLost": "Segnale GPS perso. Spostati all'aperto.",
+    "completed": "Tracciamento completato! File pronto per il caricamento."
   },
   "coach": {
     "title": "AI Cycling Coach",
     "ask": "Chiedi consigli...",
     "advice": "Consigli Allenamento",
-    "recovery": "Consigli Recupero"
+    "recovery": "Consigli Recupero",
+    "online": "Online",
+    "offline": "Offline",
+    "welcome": "Ciao! Sono il tuo AI Coach. Posso analizzare le tue performance, consigliarti allenamenti personalizzati e aiutarti con il recupero. Cosa vuoi sapere?",
+    "report": "Report completo",
+    "clear": "Nuova conversazione",
+    "send": "Invia",
+    "placeholder": "Scrivi un messaggio..."
+  },
+  "import": {
+    "title": "Importa Dati",
+    "gpx": "Importa GPX",
+    "fit": "Importa FIT",
+    "strava": "Strava",
+    "garmin": "Garmin Connect",
+    "googleFit": "Google Fit",
+    "selectFile": "Seleziona file",
+    "upload": "Carica",
+    "success": "Importazione completata",
+    "error": "Errore di importazione"
+  },
+  "knowledge": {
+    "title": "Knowledge Base",
+    "search": "Cerca nella knowledge base...",
+    "noResults": "Nessun risultato trovato",
+    "loading": "Caricamento...",
+    "error": "Errore nel caricamento della knowledge base"
+  },
+  "calendar": {
+    "title": "Calendario Allenamenti",
+    "addEvent": "Aggiungi Evento",
+    "editEvent": "Modifica Evento",
+    "deleteEvent": "Elimina Evento",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "complete": "Completa",
+    "incomplete": "Incompleto",
+    "noEvents": "Nessun evento programmato"
+  },
+  "granfondo": {
+    "title": "Granfondo Planner",
+    "startDate": "Data inizio",
+    "targetWeeks": "Settimane",
+    "ftp": "FTP (W)",
+    "generate": "Genera Piano",
+    "planGenerated": "Piano generato con successo",
+    "noPlan": "Nessun piano generato"
+  },
+  "maps": {
+    "title": "Mappe",
+    "loading": "Caricamento mappa...",
+    "error": "Errore nel caricamento della mappa",
+    "nearby": "Luoghi vicini",
+    "search": "Cerca luoghi"
+  },
+  "heatmap": {
+    "title": "Heatmap GPS",
+    "loading": "Caricamento heatmap...",
+    "noData": "Nessun dato GPS disponibile per la heatmap",
+    "error": "Errore nel caricamento della heatmap"
+  },
+  "badges": {
+    "title": "Badge e Traguardi",
+    "loading": "Caricamento badge...",
+    "noBadges": "Nessun badge disponibile",
+    "achieved": "Conquistati",
+    "total": "Totali"
+  },
+  "comparison": {
+    "title": "Confronto Uscite",
+    "selectRides": "Seleziona uscite da confrontare",
+    "noSelection": "Seleziona almeno 2 uscite per il confronto",
+    "vs": "vs"
+  },
+  "weather": {
+    "title": "Meteo",
+    "loading": "Caricamento meteo...",
+    "error": "Errore nel caricamento del meteo",
+    "score": "Punteggio",
+    "advice": "Consiglio"
+  },
+  "admin": {
+    "title": "Pannello Admin",
+    "stats": "Statistiche",
+    "backup": "Backup",
+    "resetDemo": "Reset Demo",
+    "indexes": "Crea Indici",
+    "auditLogs": "Log Audit",
+    "ceoAnalytics": "Analytics CEO",
+    "testSentry": "Test Sentry"
+  },
+  "athlete": {
+    "title": "Profilo Atleta",
+    "name": "Nome",
+    "age": "Età",
+    "weight": "Peso (kg)",
+    "height": "Altezza (cm)",
+    "ftp": "FTP (W)",
+    "experience": "Livello esperienza",
+    "goals": "Obiettivi",
+    "terrain": "Terreno preferito",
+    "weeklyVolume": "Volume settimanale (km)",
+    "save": "Salva profilo",
+    "saved": "Profilo salvato con successo",
+    "error": "Errore nel salvataggio del profilo"
+  },
+  "auth": {
+    "login": "Accedi",
+    "register": "Registrati",
+    "username": "Username",
+    "password": "Password",
+    "confirmPassword": "Conferma password",
+    "loginSuccess": "Accesso effettuato",
+    "registerSuccess": "Registrazione completata",
+    "invalidCredentials": "Credenziali non valide",
+    "usernameRequired": "Username richiesto",
+    "passwordRequired": "Password richiesta"
   },
   "common": {
     "save": "Salva",
@@ -32,6 +194,72 @@
     "edit": "Modifica",
     "loading": "Caricamento...",
     "error": "Errore",
-    "retry": "Riprova"
+    "retry": "Riprova",
+    "success": "Successo",
+    "warning": "Attenzione",
+    "info": "Informazione",
+    "confirm": "Conferma",
+    "close": "Chiudi",
+    "back": "Indietro",
+    "next": "Avanti",
+    "submit": "Invia",
+    "search": "Cerca",
+    "filter": "Filtra",
+    "clear": "Cancella",
+    "download": "Scarica",
+    "upload": "Carica",
+    "view": "Visualizza",
+    "actions": "Azioni",
+    "status": "Stato",
+    "date": "Data",
+    "time": "Ora",
+    "description": "Descrizione",
+    "type": "Tipo",
+    "name": "Nome",
+    "value": "Valore",
+    "total": "Totale",
+    "average": "Media",
+    "min": "Minimo",
+    "max": "Massimo",
+    "none": "Nessuno",
+    "yes": "Sì",
+    "no": "No",
+    "or": "o",
+    "and": "e",
+    "language": "Lingua",
+    "theme": "Tema",
+    "dark": "Scuro",
+    "light": "Chiaro",
+    "auto": "Automatico"
+  },
+  "offline": {
+    "title": "Modalità Offline",
+    "message": "Sei offline. Alcune funzionalità potrebbero non essere disponibili.",
+    "tracking": "Tracciamento offline disponibile",
+    "maps": "Mappe limitate offline",
+    "sync": "Sincronizzazione in corso..."
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Ultimo aggiornamento"
+  },
+  "terms": {
+    "title": "Termini di Servizio"
+  },
+  "cookies": {
+    "title": "Cookie Policy"
+  },
+  "about": {
+    "title": "Chi Siamo",
+    "description": "BikeMaster è un sistema di analisi performance ciclistiche avanzato."
+  },
+  "contact": {
+    "title": "Contatti",
+    "name": "Nome",
+    "email": "Email",
+    "message": "Messaggio",
+    "send": "Invia messaggio",
+    "success": "Messaggio inviato con successo",
+    "error": "Errore nell'invio del messaggio"
   }
 }

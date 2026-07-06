@@ -2,7 +2,7 @@
 
 ## Stato Attuale
 
-**Completati: 145/145 base + 69/80 estensioni**
+**Completati: 145/145 base + 74/80 estensioni**
 
 > **Stato**: Late Beta / Early Production — multi-tenant completato, deploy in produzione su Render.
 
@@ -27,7 +27,11 @@
 - [x] **PostgreSQL Production** — Dual-mode SQLite/PostgreSQL, Alembic migrations, SQLAlchemy async/sync, connessione pooling via engine
 - [x] **Weekly/Monthly Training Plan LLM** — `training_plan_generator.py` con LLM-enhanced + fallback locale; rispetta `AI_COACH_MODE`
 - [x] **iOS Platform Scaffolding** — `capacitor.config.json` aggiornato iOS; plugin Swift `BikeTrackingPlugin.swift`; `Info.plist` con permessi + background modes; `scripts/setup-ios.sh`
-- [x] **Backend Test Coverage** — +27 nuovi test: `test_anomaly_detection.py` (7), `test_google_maps_mock.py` (14), `test_training_plan_generator.py` (6)
+- [x] **Backend Test Coverage** — +31 nuovi test: `test_anomaly_detection.py` (7), `test_google_maps_mock.py` (14), `test_training_plan_generator.py` (6), `test_audit_log.py` (4)
+- [x] **Admin Audit Log** — Modulo `audit_log.py` + endpoint `/admin/audit-logs`; logging azioni sensibili in JSONL
+- [x] **Monitoring Completo** — Sentry + Prometheus `/metrics` + MetricsMiddleware + Grafana provisioning in docker-compose
+- [x] **Multi-lingua IT+EN** — Scaffolding `useI18n.ts`, `locales/it.json`/`en.json`, `LanguageSwitcher.vue` integrato in `App.vue`
+- [x] **Code Splitting** — Route-based lazy loading nel router + `manualChunks` per vendor/charts/maps in `vite.config.js`
 - [x] **Calculators/Services/Repositories** — Analytics scomposto in 3 layer Clean
 - [x] **Domain Events** — Event bus pub/sub (RideCreated, AthleteUpdated, BadgeEarned, TrainingGenerated)
 - [x] **Traffic Safety Module** — Risk score computation + Overpass client + incident fetcher

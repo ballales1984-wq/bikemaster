@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.3.1 (2026-07-06)
+
+### Added
+
+- Admin audit log module (`bike_analyzer/backend/audit_log.py`) with JSONL persistence
+- Admin endpoint `GET /api/v1/admin/audit-logs` for reading recent audit entries
+- Audit logging integrated in admin routes: backup, scheduled backup, indexes, stats, reset-demo, CEO analytics
+- `tests/test_audit_log.py` (4 tests) covering write, read, empty, and error cases
+
+### Changed
+
+- iOS Capacitor config updated with `locationAccuracy: "best"`, `backgroundMode: "location"`, push notification plugins
+- Added Swift native plugin `frontend/ios/App/BikeTracking/BikeTrackingPlugin.swift` for foreground GPS tracking
+- Added `frontend/ios/App/Info.plist` with iOS permissions (location, background modes, Bluetooth, motion)
+- Added `frontend/scripts/setup-ios.sh` for macOS setup automation
+- LanguageSwitcher component integrated in App.vue with IT/EN toggle
+- Training plan generator now respects `AI_COACH_MODE=local/offline/fallback` to skip LLM calls in test/local environments
+- ROADMAP.md updated to 74/80 extensions completed
+
+### Fixed
+
+- Test fix: `generate_weekly_plan` and `generate_monthly_plan` no longer attempt LLM calls when `AI_COACH_MODE=local`
+
+### Technical Details
+
+- Backend: 31 new tests added this session (anomaly detection, google maps mock, training plan generator, audit log)
+- iOS: Swift plugin mirrors Android `BikeTrackingService.kt` functionality using CoreLocation
+- i18n: `useI18n.ts` composable loads `locales/it.json` or `locales/en.json` based on stored preference
+
+---
+
 ## v1.3.0 (2026-07-05)
 
 ### Added
@@ -8,7 +39,10 @@
 - `tests/test_anomaly_detection.py` (7 tests) and `tests/test_google_maps_mock.py` (14 tests)
 - Training plan generator (`analytics/training_plan_generator.py`) with weekly/monthly plans and LLM enhancement
 - `tests/test_training_plan_generator.py` (6 tests)
+- Admin audit log (`audit_log.py`) with JSONL persistence + `/admin/audit-logs` endpoint
+- `tests/test_audit_log.py` (4 tests)
 - iOS platform scaffolding: Capacitor iOS config, `BikeTrackingPlugin.swift`, `Info.plist`, `scripts/setup-ios.sh`
+- Multi-lingua IT+EN: `LanguageSwitcher.vue`, `useI18n.ts` integration in `App.vue`
 - PWA offline UX banner in RideTracking.vue for desktop/web offline tracking scenarios
 - Documentation consolidation: archived obsolete plans/docs under `.kilo/archive/` and `docs/archive/`
 
@@ -18,6 +52,8 @@
 - README roadmap aligned to `ROADMAP.md` (phases up to 25 + 3-6 month priorities)
 - PostgreSQL production readiness confirmed: dual-mode SQLite/PostgreSQL, Alembic migrations, async engine, SQLAlchemy session pooling
 - `capacitor.config.json` extended with iOS config (location accuracy, background modes, push notifications)
+- Monitoring: Prometheus `/metrics` endpoint active via `Instrumentator`; Grafana provisioning present in docker-compose
+- Code splitting: router uses lazy-loaded routes + `manualChunks` for vendor/charts/maps
 
 ### Fixed
 
@@ -28,7 +64,7 @@
 ### Technical Details
 
 - Frontend: 277 Vitest tests pass, 20 pre-existing uncaught exception errors remain (non-blocking)
-- Backend: 1387 tests collected; 27 new backend tests added (anomaly detection, google maps mock, training plan generator)
+- Backend: 1387 tests collected; 31 new backend tests added (anomaly detection, google maps mock, training plan generator, audit log)
 - Code quality: Ruff clean, mypy clean, pre-commit hooks already configured
 - iOS: Swift plugin implements foreground GPS tracking equivalent to Android `BikeTrackingService.kt`
 

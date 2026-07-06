@@ -6,6 +6,7 @@
       <button class="theme-toggle" @click="toggleTheme" :aria-label="isDark ? 'Light mode' : 'Dark mode'">
         {{ isDark ? '☀️' : '🌙' }}
       </button>
+      <LanguageSwitcher />
       <nav v-if="isPublicPage" class="public-links">
         <router-link to="/about">Chi Siamo</router-link>
         <router-link to="/contact">Contatti</router-link>
@@ -53,14 +54,17 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { useRides } from './composables/useRides'
+import { useI18n } from './composables/useI18n'
 import LoginForm from './components/LoginForm.vue'
 import HeaderTabs from './components/HeaderTabs.vue'
 import StatsSummary from './components/StatsSummary.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import PWAInstallPrompt from './components/PWAInstallPrompt.vue'
+import LanguageSwitcher from './components/LanguageSwitcher.vue'
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
+const { locale, setLocale } = useI18n()
 const loggedIn = computed(() => auth.isLoggedIn)
 const isAdmin = computed(() => auth.isAdmin)
 const isPublicPage = computed(() => ['/privacy', '/terms', '/cookies', '/about', '/contact'].includes(route.path))
@@ -139,6 +143,7 @@ async function onSummaryChange() {
 
 onMounted(() => {
   loadTheme()
+  setLocale(locale.value || 'en')
   const urlParams = new URLSearchParams(window.location.search)
   const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
   if (urlParams.get('token') || hashParams.get('token')) {
