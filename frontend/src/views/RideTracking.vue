@@ -10,15 +10,18 @@
      </div>
 
        <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
-         <div class="empty-icon">📍</div>
-         <div class="empty-title">Ready to track your ride</div>
-         <div class="empty-desc">
-           Press the button below to start recording your route in real-time.
-         </div>
-         <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
-         <button class="btn btn-primary btn-large" @click="startTracking">
-           Start Tracking
-         </button>
+      <div class="empty-icon">📍</div>
+      <div class="empty-title">Ready to track your ride</div>
+      <div class="empty-desc">
+        Press the button below to start recording your route in real-time.
+      </div>
+      <div v-if="!navigator.onLine" class="gps-error-banner" style="margin-bottom:12px">
+        Offline: tracking works, but map tiles may be limited until connectivity returns.
+      </div>
+      <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
+      <button class="btn btn-primary btn-large" @click="startTracking">
+        Start Tracking
+      </button>
        </div>
 
       <div v-else class="tracking-content">

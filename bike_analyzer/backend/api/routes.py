@@ -215,7 +215,7 @@ def _make_streaming_response(generator: AsyncGenerator[str, None], event_type: s
         try:
             async for chunk in generator:
                 yield _sse(event_type, chunk.replace("\n", " "))
-        except Exception as e:
+        except Exception:
             yield _sse("error", "Internal server error")
             yield _sse("done", "")
 
