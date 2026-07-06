@@ -9,6 +9,7 @@ COPY frontend/*.json ./
 COPY frontend/*.js ./
 COPY frontend/*.html ./
 COPY frontend/public/ ./public/
+COPY frontend/scripts/ ./scripts/
 RUN npm run build
 
 # === Production Stage ===
