@@ -483,9 +483,12 @@ def init_kb_embeddings(session=None) -> dict:
         }
 
 
-# ---------------------------------------------------------------------------
 # Embedding functions (OpenAI + local fallback)
 # ---------------------------------------------------------------------------
+
+# Set to True once OpenAI embeddings are observed to be rate-limited (HTTP 429)
+# so we stop hammering the API and consistently use the local fallback.
+_openai_embeddings_unavailable = False
 
 
 def _get_embedding_provider():
@@ -496,19 +499,36 @@ def _get_embedding_provider():
 
 
 def _embed_text_openai(text: str) -> list[float] | None:
-    """Embed text using OpenAI text-embedding-3-small."""
+    """Embed text using OpenAI text-embedding-3-small.
+
+    Fails fast on rate limiting (HTTP 429): once OpenAI reports it is
+    unavailable we stop retrying for the rest of the process and let the
+    caller fall back to the local embedding. This avoids long backoff waits
+    and 429 log spam during bulk embedding (e.g. KB init over many chunks).
+    """
+    global _openai_embeddings_unavailable
     if not OPENAI_API_KEY or not OPENAI_API_KEY.strip():
+        return None
+    if _openai_embeddings_unavailable:
         return None
     try:
         from openai import OpenAI
 
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = OpenAI(api_key=OPENAI_API_KEY, max_retries=0)
         response = client.embeddings.create(
             model="text-embedding-3-small",
             input=text,
         )
         return response.data[0].embedding
-    except Exception:
+    except Exception as e:
+        from openai import APIStatusError
+
+        if isinstance(e, APIStatusError) and e.status_code == 429:
+            logger.warning(
+                "OpenAI embeddings rate-limited (429); disabling OpenAI "
+                "embeddings for this process and using local fallback."
+            )
+            _openai_embeddings_unavailable = True
         return None
 
 
