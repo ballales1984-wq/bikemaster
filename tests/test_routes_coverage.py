@@ -60,6 +60,7 @@ def test_import_gpx_endpoint_sets_current_athlete(client):
     response = client.post("/api/v1/import/gpx", files=files)
     assert response.status_code == 200
     assert response.json()["athlete_id"] == 0
+    assert response.json()["tenant_id"] == 0
 
 
 def test_import_fit_endpoint(client):
