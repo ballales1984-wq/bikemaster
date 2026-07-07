@@ -946,14 +946,6 @@ textarea {
     display: none;
   }
 
-  .logout-btn span {
-    display: none;
-  }
-
-  .logout-btn::before {
-    content: "🚪";
-  }
-
   .logout-btn {
     min-width: 42px;
   }

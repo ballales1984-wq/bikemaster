@@ -34,7 +34,6 @@ self.addEventListener("install", (event) => {
           "/index.html",
           "/registerSW.js",
           "/manifest.json",
-          "/manifest.webmanifest",
           "/pwa-192x192.png",
           "/pwa-512x512.png",
           "/favicon.svg",

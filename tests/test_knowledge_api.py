@@ -12,16 +12,29 @@ Tests cover:
 from __future__ import annotations
 
 import pytest
+import time
 
 from bike_analyzer.backend.analytics.knowledge_base import (
     CHUNK_OVERLAP,
+    EMBEDDING_DIMENSION,
     KB_PATH,
     MAX_CHARS_PER_CHUNK,
     _bm25_score,
     _build_bm25_index,
+    _embed_text_openai,
+    _embed_text_local,
     _extract_heading,
+    _get_or_create_sentence_transformer,
+    _get_or_create_tfidf_vectorizer,
+    _openai_circuit_cooldown,
+    _openai_circuit_failures,
+    _openai_circuit_last_failure,
+    _openai_circuit_max_failures,
+    _openai_embeddings_unavailable,
     _split_text,
     _tokenize,
+    _circuit_breaker_allows,
+    embed_text,
     format_context_for_llm,
     get_kb_stats,
     init_kb_embeddings,
@@ -29,6 +42,9 @@ from bike_analyzer.backend.analytics.knowledge_base import (
     load_chunks,
     reload_kb,
     search_knowledge_base,
+    _cache_get,
+    _cache_set,
+    _text_hash,
 )
 
 # ---------------------------------------------------------------------------
@@ -412,7 +428,12 @@ class TestCachingReload:
 
 class TestInitKbEmbeddings:
     def test_init_kb_embeddings_without_openai(self, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
         monkeypatch.setenv("OPENAI_API_KEY", "")
+        monkeypatch.setattr(kb_mod, "OPENAI_API_KEY", "")
+        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", False)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_failures", 0)
         result = init_kb_embeddings(session=None)
         assert "status" in result
         assert result["status"] in ("embedded_local", "error")
@@ -531,3 +552,202 @@ class TestPGVectorFallback:
 
         result = chat_with_tools([{"role": "user", "content": "Fammi un piano"}])
         assert "content" in result
+
+
+# ---------------------------------------------------------------------------
+# Circuit breaker & 429 handling
+# ---------------------------------------------------------------------------
+
+
+class TestCircuitBreaker429:
+    def teardown_method(self, method):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        kb_mod._openai_embeddings_unavailable = False
+        kb_mod._openai_circuit_failures = 0
+        kb_mod._openai_circuit_last_failure = 0.0
+        kb_mod._openai_circuit_cooldown = 300
+        kb_mod._openai_circuit_max_failures = 3
+
+    def test_429_sets_circuit_breaker_flag_and_falls_back(self, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        from openai import APIStatusError
+
+        class FakeResponse:
+            status_code = 429
+            headers = {}
+            request = type("Req", (), {"id": "test"})()
+
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test")
+        monkeypatch.setattr(kb_mod, "OPENAI_API_KEY", "sk-proj-test")
+        monkeypatch.setattr(kb_mod, "_openai_circuit_max_failures", 1)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_cooldown", 300)
+
+        class FakeOpenAI:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            class embeddings:
+                @staticmethod
+                def create(*args, **kwargs):
+                    raise APIStatusError(
+                        message="Rate limit exceeded",
+                        response=FakeResponse(),
+                        body=None,
+                    )
+
+        monkeypatch.setattr(kb_mod, "OpenAI", FakeOpenAI)
+
+        result = kb_mod.embed_text("testo di embedding")
+        assert kb_mod._openai_embeddings_unavailable is True
+        assert isinstance(result, list)
+        assert len(result) == kb_mod.EMBEDDING_DIMENSION
+
+    def test_circuit_breaker_cooldown_resets_flag(self, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", True)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_last_failure", time.time() - 301)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_failures", 3)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_cooldown", 300)
+
+        allowed = kb_mod._circuit_breaker_allows()
+        assert allowed is True
+        assert kb_mod._openai_embeddings_unavailable is False
+        assert kb_mod._openai_circuit_failures == 0
+
+    def test_circuit_breaker_blocks_during_cooldown(self, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", True)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_last_failure", time.time() - 10)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_failures", 3)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_cooldown", 300)
+
+        allowed = kb_mod._circuit_breaker_allows()
+        assert allowed is False
+        assert kb_mod._openai_embeddings_unavailable is True
+        assert isinstance(result, list)
+        assert len(result) == kb_mod.EMBEDDING_DIMENSION
+
+    def test_circuit_breaker_cooldown_resets_flag(self, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", True)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_last_failure", time.time() - 301)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_failures", 3)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_cooldown", 300)
+
+        allowed = kb_mod._circuit_breaker_allows()
+        assert allowed is True
+        assert kb_mod._openai_embeddings_unavailable is False
+        assert kb_mod._openai_circuit_failures == 0
+
+    def test_circuit_breaker_blocks_during_cooldown(self, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", True)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_last_failure", time.time() - 10)
+        monkeypatch.setattr(kb_mod, "_openai_circuit_cooldown", 300)
+
+        allowed = kb_mod._circuit_breaker_allows()
+        assert allowed is False
+        assert kb_mod._openai_embeddings_unavailable is True
+
+
+# ---------------------------------------------------------------------------
+# Embedding cache
+# ---------------------------------------------------------------------------
+
+
+class TestEmbeddingCache:
+    def test_cache_set_and_get(self, tmp_path, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        cache_path = tmp_path / "cache.json"
+        monkeypatch.setattr(kb_mod, "_EMBEDDING_CACHE_PATH", cache_path)
+
+        test_emb = [0.1, 0.2, 0.3]
+        kb_mod._cache_set("hello world", test_emb, provider="test")
+        result = kb_mod._cache_get("hello world")
+        assert result == test_emb
+
+    def test_cache_miss_for_empty(self, tmp_path, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        cache_path = tmp_path / "cache.json"
+        monkeypatch.setattr(kb_mod, "_EMBEDDING_CACHE_PATH", cache_path)
+        assert kb_mod._cache_get("nonexistent") is None
+
+    def test_cache_expiry(self, tmp_path, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        cache_path = tmp_path / "cache.json"
+        monkeypatch.setattr(kb_mod, "_EMBEDDING_CACHE_PATH", cache_path)
+        monkeypatch.setattr(kb_mod, "EMBEDDING_CACHE_TTL", 1)
+
+        kb_mod._cache_set("stale text", [0.5], provider="test")
+        time.sleep(1.1)
+        assert kb_mod._cache_get("stale text") is None
+
+
+# ---------------------------------------------------------------------------
+# Local fallback quality
+# ---------------------------------------------------------------------------
+
+
+class TestLocalFallback:
+    def test_tfidf_vectorizer_initialized(self):
+        vec = _get_or_create_tfidf_vectorizer()
+        assert vec is not None
+
+    def test_tfidf_fallback_returns_correct_dimension(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "")
+        result = _embed_text_local("testo di allenamento e recupero")
+        assert isinstance(result, list)
+        assert len(result) == EMBEDDING_DIMENSION
+
+    def test_local_fallback_returns_list_when_no_openai(self, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        monkeypatch.setenv("OPENAI_API_KEY", "")
+        monkeypatch.setattr(kb_mod, "OPENAI_API_KEY", "")
+        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", False)
+        result = embed_text("testo di prova")
+        assert isinstance(result, list)
+        assert len(result) == EMBEDDING_DIMENSION
+
+    def test_sentence_transformer_returns_list_when_available(self, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        class FakeModel:
+            def encode(self, text, normalize_embeddings=False):
+                return [0.1] * 384
+
+        monkeypatch.setattr(kb_mod, "_sentence_transformer_model", None)
+        monkeypatch.setattr(kb_mod, "_get_or_create_sentence_transformer", lambda: FakeModel())
+        result = kb_mod._embed_text_sentence_transformer("test")
+        assert isinstance(result, list)
+        assert len(result) == EMBEDDING_DIMENSION
+
+
+# ---------------------------------------------------------------------------
+# Embedding provider
+# ---------------------------------------------------------------------------
+
+
+class TestEmbeddingProvider:
+    def test_get_embedding_provider_openai_when_key_set(self, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test")
+        monkeypatch.setattr(kb_mod, "OPENAI_API_KEY", "sk-proj-test")
+        assert kb_mod._get_embedding_provider() == "openai"
+
+    def test_get_embedding_provider_local_when_key_missing(self, monkeypatch):
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+        monkeypatch.setenv("OPENAI_API_KEY", "")
+        monkeypatch.setattr(kb_mod, "OPENAI_API_KEY", "")
+        assert kb_mod._get_embedding_provider() == "local"

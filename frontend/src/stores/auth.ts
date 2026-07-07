@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Athlete } from '../types/index'
+import { resetSessionExpiredNotification } from '../utils/api'
 
 const TOKEN_KEY = 'bikemaster_token'
 const USER_KEY = 'bikemaster_user'
@@ -84,6 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
     localStorage.setItem(TOKEN_KEY, data.access_token)
     localStorage.setItem(USER_KEY, JSON.stringify(user.value))
+    resetSessionExpiredNotification()
   }
 
   async function register(username: string, password: string): Promise<unknown> {
@@ -141,6 +143,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('bikemaster_login_error')
     localStorage.setItem(JUST_LOGGED_IN_KEY, 'true')
     justLoggedIn.value = true
+    resetSessionExpiredNotification()
   }
 
   function setOauthError(oauthError: string) {

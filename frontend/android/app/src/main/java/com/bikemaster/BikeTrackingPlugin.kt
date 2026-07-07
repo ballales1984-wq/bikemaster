@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.Context
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 
 @CapacitorPlugin(
     name = "BikeTracking",
@@ -33,7 +34,7 @@ class BikeTrackingPlugin : Plugin() {
             action = BikeTrackingService.ACTION_START
             putExtra(BikeTrackingService.EXTRA_OUTPUT_PATH, outputPath)
         }
-        android.content.ContextCompat.startForegroundService(activity, intent)
+        ContextCompat.startForegroundService(activity, intent)
         call.resolve()
     }
 
@@ -52,7 +53,7 @@ class BikeTrackingPlugin : Plugin() {
         val intent = Intent(activity, BikeTrackingService::class.java).apply {
             action = BikeTrackingService.ACTION_STOP
         }
-        android.content.ContextCompat.startForegroundService(activity, intent)
+        ContextCompat.startForegroundService(activity, intent)
     }
 
     @PluginMethod
@@ -60,7 +61,7 @@ class BikeTrackingPlugin : Plugin() {
         val intent = Intent(activity, BikeTrackingService::class.java).apply {
             action = BikeTrackingService.ACTION_PAUSE
         }
-        android.content.ContextCompat.startForegroundService(activity, intent)
+        ContextCompat.startForegroundService(activity, intent)
         call.resolve()
     }
 
@@ -69,16 +70,16 @@ class BikeTrackingPlugin : Plugin() {
         val intent = Intent(activity, BikeTrackingService::class.java).apply {
             action = BikeTrackingService.ACTION_RESUME
         }
-        android.content.ContextCompat.startForegroundService(activity, intent)
+        ContextCompat.startForegroundService(activity, intent)
         call.resolve()
     }
 
     @PluginMethod
     fun checkPermissions(call: PluginCall) {
-        val granted = android.content.ContextCompat.checkSelfPermission(
+        val granted = ContextCompat.checkSelfPermission(
             activity, android.Manifest.permission.ACCESS_FINE_LOCATION
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
-        android.content.ContextCompat.checkSelfPermission(
+        ContextCompat.checkSelfPermission(
             activity, android.Manifest.permission.ACCESS_COARSE_LOCATION
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 

@@ -5,7 +5,7 @@
 
 import { spawnSync } from 'node:child_process'
 import { rmSync, existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { resolve, join } from 'node:path'
 
 const MAX_ATTEMPTS = 3
 const RETRY_DELAY_MS = 4000
@@ -15,8 +15,17 @@ const outDirArg = buildArgs.find((a) => a.startsWith('--outDir'))
 const outDir = outDirArg ? outDirArg.split('=')[1] : 'dist'
 const outDirPath = resolve(process.cwd(), outDir)
 
+function getViteBin() {
+  const bin = resolve(process.cwd(), 'node_modules', '.bin', 'vite.cmd')
+  if (existsSync(bin)) return bin
+  const binSh = resolve(process.cwd(), 'node_modules', '.bin', 'vite')
+  if (existsSync(binSh)) return binSh
+  return 'vite'
+}
+
 function tryBuild() {
-  const result = spawnSync('vite', ['build', ...buildArgs], {
+  const viteBin = getViteBin()
+  const result = spawnSync(viteBin, ['build', ...buildArgs], {
     stdio: 'inherit',
     shell: true,
   })
