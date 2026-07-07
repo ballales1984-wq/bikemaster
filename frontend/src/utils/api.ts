@@ -30,6 +30,24 @@ interface ApiResponse {
   [key: string]: unknown
 }
 
+function extractErrorMessage(err: unknown, fallback: string): string {
+  const detail = (err as { detail?: unknown })?.detail
+  if (detail == null) return fallback
+  if (typeof detail === "string") return detail
+  // FastAPI 422 validation errors return detail as an array of {loc, msg, type}
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((d) => (typeof d === "object" && d && "msg" in d ? String((d as { msg?: unknown }).msg) : String(d)))
+      .filter(Boolean)
+    return messages.length ? messages.join("; ") : fallback
+  }
+  try {
+    return JSON.stringify(detail)
+  } catch {
+    return fallback
+  }
+}
+
 async function apiGet(path: string, params: Record<string, string> = {}, options: RequestInit = {}): Promise<ApiResponse> {
   const qs = new URLSearchParams(params).toString()
   const url = qs ? `${API_BASE}${path}?${qs}` : `${API_BASE}${path}`
@@ -44,7 +62,7 @@ async function apiGet(path: string, params: Record<string, string> = {}, options
       throw new Error('expired')
     }
     const err = await resp.json().catch(() => ({}))
-    throw new Error((err as Record<string, string>).detail || `GET ${path}: ${resp.status}`)
+    throw new Error(extractErrorMessage(err, `GET ${path}: ${resp.status}`))
   }
   return resp.json()
 }
@@ -64,7 +82,7 @@ async function apiPost(path: string, body: unknown, options: RequestInit = {}): 
       throw new Error('expired')
     }
     const err = await resp.json().catch(() => ({}))
-    throw new Error((err as Record<string, string>).detail || `POST ${path}: ${resp.status}`)
+    throw new Error(extractErrorMessage(err, `POST ${path}: ${resp.status}`))
   }
   return resp.json()
 }
@@ -82,7 +100,7 @@ async function apiDelete(path: string, options: RequestInit = {}): Promise<ApiRe
       throw new Error('expired')
     }
     const err = await resp.json().catch(() => ({}))
-    throw new Error((err as Record<string, string>).detail || `DELETE ${path}: ${resp.status}`)
+    throw new Error(extractErrorMessage(err, `DELETE ${path}: ${resp.status}`))
   }
   return resp.json()
 }
@@ -103,7 +121,7 @@ async function apiUpload(path: string, file: Blob | File, options: RequestInit =
       throw new Error('expired')
     }
     const err = await resp.json().catch(() => ({}))
-    throw new Error((err as Record<string, string>).detail || `UPLOAD ${path}: ${resp.status}`)
+    throw new Error(extractErrorMessage(err, `UPLOAD ${path}: ${resp.status}`))
   }
   return resp.json()
 }
@@ -122,7 +140,7 @@ async function apiPut(path: string, body: unknown, options: RequestInit = {}): P
       throw new Error('expired')
     }
     const err = await resp.json().catch(() => ({}))
-    throw new Error((err as Record<string, string>).detail || `PUT ${path}: ${resp.status}`)
+    throw new Error(extractErrorMessage(err, `PUT ${path}: ${resp.status}`))
   }
   return resp.json()
 }

@@ -235,9 +235,24 @@ async function connectGoogleFit() {
     }
 
     // Listen for callback
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener("message", handleMessage);
+      clearTimeout(timer);
+    };
+    const timer = setTimeout(() => {
+      finish();
+      importStatus.value = {
+        success: false,
+        message: "Timeout: autenticazione Google Fit annullata",
+      };
+      importing.value = false;
+    }, 5 * 60 * 1000);
     const handleMessage = async (event) => {
       if (event.data?.type === "google-fit-error") {
-        window.removeEventListener("message", handleMessage);
+        finish();
         importStatus.value = {
           success: false,
           message:
@@ -250,7 +265,7 @@ async function connectGoogleFit() {
       }
 
       if (event.data?.type === "google-fit-success") {
-        window.removeEventListener("message", handleMessage);
+        finish();
         const token = localStorage.getItem("bikemaster_token");
         const importResp = await fetch("/api/v1/import/google-fit", {
           method: "POST",
@@ -290,7 +305,7 @@ async function connectGoogleHealth() {
   importing.value = true;
   importStatus.value = null;
   try {
-    const redirectUri = `${window.location.origin}/api/v1/import/google-health/callback`;
+    const redirectUri = `${import.meta.env.DEV ? "http://localhost:8000" : window.location.origin}/api/v1/import/google-health/callback`;
     const state = btoa(JSON.stringify({ redirect_uri: redirectUri }));
     const authResp = await fetch(
       `/api/v1/import/google-health/auth?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`,
@@ -309,9 +324,24 @@ async function connectGoogleHealth() {
       throw new Error("Popup bloccato - abilita i popup");
     }
 
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener("message", handleMessage);
+      clearTimeout(timer);
+    };
+    const timer = setTimeout(() => {
+      finish();
+      importStatus.value = {
+        success: false,
+        message: "Timeout: autenticazione Google Health annullata",
+      };
+      importing.value = false;
+    }, 5 * 60 * 1000);
     const handleMessage = async (event) => {
       if (event.data?.type === "google-health-error") {
-        window.removeEventListener("message", handleMessage);
+        finish();
         importStatus.value = {
           success: false,
           message:
@@ -324,7 +354,7 @@ async function connectGoogleHealth() {
       }
 
       if (event.data?.type === "google-health-success") {
-        window.removeEventListener("message", handleMessage);
+        finish();
         const token = localStorage.getItem("bikemaster_token");
         const importResp = await fetch("/api/v1/import/google-health", {
           method: "POST",
