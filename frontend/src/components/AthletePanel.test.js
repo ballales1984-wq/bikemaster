@@ -135,7 +135,7 @@ describe("AthletePanel", () => {
     await wrapper.find("button.btn-primary").trigger("click");
     await flush();
 
-    expect(wrapper.find(".result-box").text()).toContain("Error");
+    expect(wrapper.find(".result-box").text()).toContain("Correggi gli errori nel form");
   });
 
   it("scores button calls scores endpoint", async () => {

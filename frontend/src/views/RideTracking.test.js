@@ -1,6 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
+import { createRouter, createWebHistory } from "vue-router";
+
+vi.mock("pinia", async () => {
+  const actual = await vi.importActual("pinia");
+  return {
+    ...actual,
+    storeToRefs: (store) => store,
+  };
+});
+
 import RideTracking from "../views/RideTracking.vue";
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [{ path: '/', component: { template: '<div />' } }],
+})
 
 vi.mock("../stores/trackingStore", () => ({
   useTrackingStore: () => ({
@@ -61,17 +76,23 @@ vi.mock("../composables/useI18n", () => ({
 
 describe("RideTracking", () => {
   it("has isTracking initially false", () => {
-    const wrapper = mount(RideTracking);
+    const wrapper = mount(RideTracking, {
+      global: { plugins: [router] },
+    });
     expect(wrapper.vm.isTracking.value).toBe(false);
   });
 
   it("has start tracking functionality", () => {
-    const wrapper = mount(RideTracking);
-    expect(wrapper.vm.start).toBeDefined();
+    const wrapper = mount(RideTracking, {
+      global: { plugins: [router] },
+    });
+    expect(wrapper.vm.startTracking).toBeDefined();
   });
 
   it("renders header", () => {
-    const wrapper = mount(RideTracking);
+    const wrapper = mount(RideTracking, {
+      global: { plugins: [router] },
+    });
     expect(wrapper.find("h2").exists()).toBe(true);
     expect(wrapper.find("h2").text()).toBe("GPS Tracking");
   });

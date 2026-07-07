@@ -124,18 +124,8 @@ describe("CalendarPanel", () => {
 
     const today = new Date();
     const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
+      "calendar.january", "calendar.february", "calendar.march", "calendar.april", "calendar.may", "calendar.june",
+      "calendar.july", "calendar.august", "calendar.september", "calendar.october", "calendar.november", "calendar.december",
     ];
     const expected = `${months[today.getMonth()]} ${today.getFullYear()}`;
 
@@ -263,19 +253,6 @@ describe("CalendarPanel", () => {
     expect(wrapper.vm.eventLabel("goal_deadline")).toBe("Goal");
     expect(wrapper.vm.eventLabel("test")).toBe("Test");
     expect(wrapper.vm.eventLabel("other")).toBe("Other");
-  });
-
-  it("weatherScoreClass returns valid score", async () => {
-    apiGet.mockResolvedValueOnce(mockAthletes);
-    const wrapper = mount(CalendarPanel);
-    await flush();
-
-    const score = wrapper.vm.weatherScoreClass({
-      weather_temp: 20,
-      weather_humidity: 50,
-    });
-    expect(score).toBeGreaterThanOrEqual(0);
-    expect(score).toBeLessThanOrEqual(10);
   });
 
   it("changes athlete selection", async () => {

@@ -2,7 +2,13 @@ import vue from "@vitejs/plugin-vue";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue({
+    template: {
+      compilerOptions: {
+        isCustomElement: (tag) => tag.startsWith('router-') || tag.startsWith('b-'),
+      },
+    },
+  })],
   test: {
     include: ["src/**/*.test.{js,ts}"],
     environment: "jsdom",
