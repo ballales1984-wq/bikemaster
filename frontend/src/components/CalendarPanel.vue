@@ -71,6 +71,7 @@
             'today': isToday(day),
             'has-events': day.events.length > 0,
           }"
+        >
           <span
           class="day-num"
           @click="openAddForDate(day.date)"

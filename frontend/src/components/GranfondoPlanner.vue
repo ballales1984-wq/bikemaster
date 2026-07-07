@@ -111,14 +111,12 @@
         </div>
       </div>
     </div>
-  </div>
   <div class="workout-legend">
     <span class="legend-item legend-endurance">Endurance</span>
     <span class="legend-item legend-threshold">Thresholds</span>
     <span class="legend-item legend-sweetspot">Sweetspot</span>
     <span class="legend-item legend-recovery">Recovery</span>
     <span class="legend-item legend-race">Race</span>
-  </div>
   </div>
   </div>
 </template>
