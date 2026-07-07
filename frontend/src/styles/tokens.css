@@ -1,19 +1,31 @@
 :root {
+  color-scheme: light dark;
+
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
   --bg-primary: #0a0b10;
   --bg-secondary: rgba(22, 27, 40, 0.65);
   --bg-tertiary: rgba(30, 36, 51, 0.85);
+  --text-primary: #f8f9fa;
+  --text-secondary: #b0b5c1;
+  --text-muted: #6e7687;
   --accent: #00ffcc;
   --accent-hover: #00d6aa;
   --accent-secondary: #ff3366;
   --accent-gradient: linear-gradient(135deg, #00ffcc 0%, #0088ff 100%);
-  --text-primary: #f8f9fa;
-  --text-secondary: #b0b5c1;
-  --text-muted: #6e7687;
   --border: rgba(255, 255, 255, 0.08);
   --border-light: rgba(255, 255, 255, 0.15);
   --error: #ff3366;
   --warning: #ffb800;
   --success: #00ffcc;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
   --radius: 16px;
   --radius-sm: 8px;
   --shadow-sm: 0 4px 12px rgba(0,0,0,0.2);
@@ -31,4 +43,29 @@ body.light-theme {
   --text-muted: #7a7f92;
   --border: rgba(0, 0, 0, 0.08);
   --border-light: rgba(0, 0, 0, 0.14);
+}
+
+:root {
+  --color-performance: #00ffcc;
+  --color-endurance: #0088ff;
+  --color-efficiency: #ff6b35;
+  --color-recovery: #a855f7;
+  --color-alert: #ff3366;
+  --color-alert-bg: rgba(255, 51, 102, 0.15);
+  --color-alert-border: rgba(255, 51, 102, 0.4);
+  --color-calendar-1: #1e2a4a;
+  --color-calendar-2: #111528;
+  --color-calendar-3: #1a2a3a;
+  --color-panel-border: rgba(0, 255, 204, 0.2);
+  --color-panel-border-hover: rgba(0, 255, 204, 0.25);
+  --color-panel-bg: rgba(0, 255, 204, 0.08);
+
+  --color-legend-endurance: #3498db;
+  --color-legend-threshold: #e74c3c;
+  --color-legend-sweetspot: #9b59b6;
+  --color-legend-recovery: #2ecc71;
+  --color-legend-race: #f39c12;
+  --color-success-strong: #22c55e;
+  --color-success-text: #166534;
+  --color-error-text: #991b1b;
 }

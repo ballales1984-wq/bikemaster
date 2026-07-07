@@ -35,9 +35,9 @@ function render() {
     data: {
       labels,
       datasets: [
-        { label: 'ATL (Fatica)', data: atl, borderColor: '#ff6b35', backgroundColor: 'rgba(255,107,53,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
-        { label: 'CTL (Fitness)', data: ctl, borderColor: '#0088ff', backgroundColor: 'rgba(0,136,255,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
-        { label: 'TSB (Forma)', data: tsb, borderColor: '#00ffcc', backgroundColor: 'rgba(0,255,204,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
+        { label: 'ATL (Fatica)', data: atl, borderColor: 'var(--color-efficiency)', backgroundColor: 'rgba(255,107,53,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
+        { label: 'CTL (Fitness)', data: ctl, borderColor: 'var(--color-endurance)', backgroundColor: 'rgba(0,136,255,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
+        { label: 'TSB (Forma)', data: tsb, borderColor: 'var(--color-performance)', backgroundColor: 'rgba(0,255,204,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
       ],
     },
     options: {
@@ -45,11 +45,11 @@ function render() {
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { labels: { color: '#b0b5c1', usePointStyle: true, padding: 16 } },
+        legend: { labels: { color: 'var(--text-secondary)', usePointStyle: true, padding: 16 } },
       },
       scales: {
-        x: { ticks: { color: '#6e7687', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y: { ticks: { color: '#6e7687' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+        x: { ticks: { color: 'var(--text-muted)', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: 'var(--text-muted)' }, grid: { color: 'rgba(255,255,255,0.06)' } },
       },
     },
   })

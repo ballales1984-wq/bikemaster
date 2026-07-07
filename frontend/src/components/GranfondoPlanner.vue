@@ -237,7 +237,7 @@ onMounted(() => {
 
 .badge-info {
   background: var(--accent-secondary);
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .plan-grid {
@@ -255,7 +255,7 @@ onMounted(() => {
   padding: 2px 4px;
   border-radius: 3px;
   margin-bottom: 2px;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -268,19 +268,19 @@ onMounted(() => {
 }
 
 .legend-endurance {
-  background: #3498db;
+  background: var(--color-legend-endurance);
 }
 .legend-threshold {
-  background: #e74c3c;
+  background: var(--color-legend-threshold);
 }
 .legend-sweetspot {
-  background: #9b59b6;
+  background: var(--color-legend-sweetspot);
 }
 .legend-recovery {
-  background: #2ecc71;
+  background: var(--color-legend-recovery);
 }
 .legend-race {
-  background: #f39c12;
+  background: var(--color-legend-race);
 }
 
 .workout-legend {
@@ -294,7 +294,7 @@ onMounted(() => {
   font-size: 0.78rem;
   padding: 3px 8px;
   border-radius: 12px;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .plan-actions {
@@ -309,16 +309,16 @@ onMounted(() => {
 }
 
 .save-message.success {
-  color: #166534;
+  color: var(--color-success-text);
 }
 
 .save-message.error {
-  color: #991b1b;
+  color: var(--color-error-text);
 }
 
 .btn-success {
-  background: #22c55e;
-  color: #fff;
+  background: var(--color-success-strong);
+  color: var(--text-primary);
   border: none;
   padding: 8px 12px;
   border-radius: 6px;
