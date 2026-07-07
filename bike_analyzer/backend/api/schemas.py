@@ -173,6 +173,11 @@ class GarminCallbackRequest(BaseModel):
     redirect_uri: str | None = Field(default=None, max_length=2048)
 
 
+class WahooCallbackRequest(BaseModel):
+    code: str = Field(..., min_length=1, max_length=2048)
+    code_verifier: str = Field(..., min_length=1, max_length=256)
+
+
 class Token(BaseModel):
     access_token: str = Field(..., min_length=1, max_length=4096)
     token_type: str = Field(default="bearer", pattern="^(bearer|Bearer)$")

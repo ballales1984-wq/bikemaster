@@ -97,8 +97,8 @@
 | 151 | Async SQLAlchemy (asyncpg + aiosqlite) | ✅ |
 | 152 | Clean Architecture (services, repositories, use_cases) | ✅ |
 | 153 | Dependency injection con FastAPI Depends | ✅ |
-| 154 | Type hints completi + mypy | 🔄 Parziale |
-| 155 | Linting: Ruff + Black + pre-commit hooks | ❌ |
+| 154 | Type hints completi + mypy | ✅ |
+| 155 | Linting: Ruff + Black + pre-commit hooks | ✅ |
 | 156 | Logging centralizzato e strutturato | 🔄 |
 
 ## ✅ Fase 15 — Database & Scalabilità (Completata)
@@ -224,8 +224,8 @@
 | 235 | PGVector per embedder RAG | ✅ |
 | 236 | Tool calling per AI Coach | ✅ |
 | 237 | Memory persistente conversazioni per utente | 🔄 Parziale |
-| 238 | Weekly/Monthly training plan generator LLM | ❌ |
-| 239 | Anomaly detection uscite | ❌ |
+| 238 | Weekly/Monthly training plan generator LLM | ✅ |
+| 239 | Anomaly detection uscite | ✅ |
 
 ## 🔄 Fase 25 — Frontend Testing & PWA (In Corso)
 
@@ -234,23 +234,28 @@
 | 240 | Vitest + Vue Test Utils | ✅ (configurato) |
 | 241 | Playwright E2E tests | ✅ (configurato) |
 | 242 | PWA completa: service worker, offline | ✅ |
-| 243 | Code splitting + lazy loading | ❌ |
+| 243 | Code splitting + lazy loading | ✅ |
 | 244 | Design System + theme tokens | 🔄 |
-| 245 | Accessibilità (ARIA, keyboard nav) | ❌ |
-| 246 | Multi-lingua (IT + EN) | ❌ |
+| 245 | Accessibilità (ARIA, keyboard nav) | ✅ |
+| 246 | Multi-lingua (IT + EN) | ✅ |
 
 ---
 
 ## 📊 Priorità Consigliate (Prossimi 3-6 mesi)
 
-| Priorita | Miglioramento | Impatto | Difficolta |
-|:---:|---|---|:---:|
-| **1** | Frontend testing suite (Vitest + Playwright E2E con test attivi) | Molto alto | Media |
-| **2** | PostgreSQL in produzione + connection pooling | Alto | Media |
-| **3** | Anomaly detection uscite + Weekly/Monthly training plan LLM | Alto | Media |
-| **4** | PWA completa + offline support | Alto | Media |
-| **5** | Ruff + mypy + pre-commit | Medio-Alto | Bassa |
-| **6** | Coverage test >90% | Medio | Alta |
+| Priorita | Miglioramento | Impatto | Difficolta | Stato |
+|:---:|---|---|:---:|:---:|
+| ~~1~~ | ~~Frontend testing suite (Vitest + Playwright E2E)~~ | ~~Molto alto~~ | ~~Media~~ | ✅ |
+| ~~2~~ | ~~PostgreSQL in produzione + connection pooling~~ | ~~Alto~~ | ~~Media~~ | ✅ |
+| ~~3~~ | ~~Anomaly detection + Weekly/Monthly training plan LLM~~ | ~~Alto~~ | ~~Media~~ | ✅ |
+| ~~4~~ | ~~PWA completa + offline support~~ | ~~Alto~~ | ~~Media~~ | ✅ |
+| ~~5~~ | ~~Ruff + mypy + pre-commit~~ | ~~Medio-Alto~~ | ~~Bassa~~ | ✅ |
+| **1** | Integazioni restanti (Wahoo, cloud hosted, Helm, one-click deploy) | Alto | Alta | ❌ |
+| **2** | Phone GPS follow-up (upload auto, push, activity recognition, test Kotlin/strada) | Alto | Media | ❌ |
+| **3** | Voice input/output AI Coach + prompt engineering avanzato | Medio | Media | ❌ |
+| **4** | Design System + theme tokens + rimozione config.py legacy | Medio | Bassa | 🔄 |
+| **5** | Coverage test >90% (metrica informativa) | Medio | Alta | 🔄 |
+| **6** | Logging centralizzato e strutturato | Medio | Bassa | 🔄 |
 
 ---
 
@@ -259,19 +264,19 @@
 | Area | Item | Status |
 |---|---|---|
 | Testing | Coverage reported as informational | ✅ |
-| Code Quality | Ruff + mypy + pre-commit | 🔄 Parziale |
+| Code Quality | Ruff + mypy + pre-commit | ✅ |
 | Container | Docker multi-stage hardened | ✅ |
-| Monitoring | Sentry + Prometheus + Grafana | 🔄 Parziale |
-| Audit | Audit log azioni admin | ❌ |
+| Monitoring | Sentry + Prometheus + Grafana | ✅ |
+| Audit | Audit log azioni admin | ✅ |
 | Auth | OAuth2 social login (Google, Strava) | ✅ |
 | Multi-user | Data isolation completa | ✅ |
-| AI | Vector DB per RAG | 🔄 Parziale |
-| Frontend | PWA + offline support | 🔄 Parziale |
-| Frontend | Vitest + Playwright E2E | 🔄 Configurato |
+| AI | Vector DB per RAG | ✅ |
+| Frontend | PWA + offline support | ✅ |
+| Frontend | Vitest + Playwright E2E | ✅ |
 | Security | Security headers + rate limiting | ✅ |
 | Database | Dual-mode SQLite/PostgreSQL | ✅ |
 | CI/CD | GitHub Actions | ✅ |
 
 ---
 
-*Ultimo aggiornamento: 2026-07-03*
+*Ultimo aggiornamento: 2026-07-07*

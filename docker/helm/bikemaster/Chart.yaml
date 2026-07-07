@@ -1,0 +1,13 @@
+apiVersion: v2
+name: bikemaster
+description: BikeMaster cycling performance intelligence (FastAPI + Vue)
+type: application
+version: 0.1.0
+appVersion: "1.0"
+keywords:
+  - cycling
+  - fastapi
+  - vue
+maintainers:
+  - name: bikemaster
+    email: maintainers@bikemaster.local

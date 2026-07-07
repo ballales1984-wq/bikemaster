@@ -95,6 +95,8 @@ class BackgroundTaskQueue:
                 result = await self._handle_strava_sync(payload)
             elif kind == "garmin_sync":
                 result = await self._handle_garmin_sync(payload)
+            elif kind == "wahoo_sync":
+                result = await self._handle_wahoo_sync(payload)
             else:
                 raise ValueError(f"Unknown task kind: {kind}")
 
@@ -260,6 +262,35 @@ class BackgroundTaskQueue:
                 imported.append({"id": int(ride_id), **ride_data})
                 imported_ids.add(int(ride_id))
         return {"imported": len(imported), "total_fetched": len(activities)}
+
+    async def _handle_wahoo_sync(self, payload: dict) -> dict:
+        from bike_analyzer.backend.db.database import save_ride
+        from bike_analyzer.backend.ingestion.wahoo_client import (
+            fetch_workouts,
+            get_valid_token,
+            wahoo_to_ride,
+        )
+
+        athlete_id = payload["athlete_id"]
+        tenant_id = payload.get("tenant_id", athlete_id)
+        access_token = get_valid_token(athlete_id)
+        if not access_token:
+            return {"imported": 0, "error": "no_valid_token"}
+        workouts = fetch_workouts(access_token)
+        imported = []
+        imported_ids: set[int] = set()
+        for workout in workouts:
+            ride_data = wahoo_to_ride(workout)
+            if ride_data.get("skipped") or "error" in ride_data:
+                continue
+            ride_data["athlete_id"] = athlete_id
+            ride_data["tenant_id"] = tenant_id
+            db_ride = {k: v for k, v in ride_data.items() if k != "id"}
+            ride_id = save_ride(db_ride)
+            if ride_id not in imported_ids:
+                imported.append({"id": int(ride_id), **ride_data})
+                imported_ids.add(int(ride_id))
+        return {"imported": len(imported), "total_fetched": len(workouts)}
 
 
 _task_queue: BackgroundTaskQueue | None = None

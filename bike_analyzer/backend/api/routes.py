@@ -68,6 +68,7 @@ from .schemas import (
     RideCreate,
     RideUpdate,
     StravaCallbackRequest,
+    WahooCallbackRequest,
 )
 
 _PLACE_CACHE: dict[str, tuple[Any, float]] = {}
@@ -3131,6 +3132,92 @@ async def garmin_sync(
 @router.delete("/import/garmin/disconnect")
 async def garmin_disconnect(current_user: dict = Depends(get_current_user)):
     from ..ingestion.garmin_client import revoke_token
+
+    revoke_token(current_user["id"])
+    return {"status": "disconnected"}
+
+
+# ------------------------------------------------------------------
+# Wahoo integration routes
+# ------------------------------------------------------------------
+
+
+@router.get("/import/wahoo/auth")
+async def wahoo_auth(
+    state: str = "",
+    current_user: dict = Depends(get_current_user),
+):
+    from ..ingestion.wahoo_client import get_authorization_url
+
+    try:
+        result = get_authorization_url(state=state)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    result["athlete_id"] = current_user["id"]
+    return result
+
+
+@router.post("/import/wahoo/callback")
+async def wahoo_callback(
+    payload: WahooCallbackRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    from ..ingestion.wahoo_client import exchange_code_for_token, store_token
+
+    code = payload.code
+    code_verifier = payload.code_verifier
+    try:
+        token_data = exchange_code_for_token(code, code_verifier)
+    except requests.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Wahoo token exchange failed: {exc}") from exc
+    store_token(current_user["id"], token_data, code_verifier=code_verifier)
+    return {
+        "status": "connected",
+        "athlete_id": current_user["id"],
+        "athlete_name": "",
+    }
+
+
+@router.post("/import/wahoo/sync")
+async def wahoo_sync(
+    background: bool = True,
+    current_user: dict = Depends(get_current_user),
+):
+    from ..task_queue import get_task_queue
+
+    payload = {"athlete_id": current_user["id"]}
+    if background:
+        task = await get_task_queue().enqueue("wahoo_sync", payload)
+        return {"task_id": task.id, "status": "queued", "athlete_id": current_user["id"]}
+    from ..db.database import save_ride
+    from ..ingestion.wahoo_client import fetch_workouts, get_valid_token, wahoo_to_ride
+
+    access_token = get_valid_token(current_user["id"])
+    if not access_token:
+        raise HTTPException(status_code=401, detail="No Wahoo token. Connect first.")
+    workouts = fetch_workouts(access_token)
+    imported = []
+    imported_ids: set[int] = set()
+    from ..monitoring import record_gps_import
+
+    for workout in workouts:
+        ride_data = wahoo_to_ride(workout)
+        if ride_data.get("skipped") or "error" in ride_data:
+            continue
+        ride_data["athlete_id"] = current_user["id"]
+        ride_data["tenant_id"] = current_user["id"]
+        db_ride = {k: v for k, v in ride_data.items() if k != "id"}
+        ride_id = save_ride(db_ride)
+        if ride_id not in imported_ids:
+            imported.append({"id": int(ride_id), **ride_data})
+            imported_ids.add(int(ride_id))
+            record_gps_import("wahoo_api", "wahoo")
+    return {"imported": len(imported), "total_fetched": len(workouts), "rides": imported}
+
+
+@router.delete("/import/wahoo/disconnect")
+async def wahoo_disconnect(current_user: dict = Depends(get_current_user)):
+    from ..ingestion.wahoo_client import revoke_token
 
     revoke_token(current_user["id"])
     return {"status": "disconnected"}
