@@ -39,6 +39,7 @@ GPS-based cycling performance intelligence system. Importa le tue uscite da file
 - **Google Maps** - Mappe statiche con API key
 - **Strava** - Import/export attivita con OAuth2 + PKCE
 - **Garmin Connect** - Sincronizzazione attivita con OAuth2
+- **Wahoo** - Importazione attivita ciclistiche
 - **Calendario** - Pianificazione eventi di allenamento
 - **Dashboard Web** - UI dark-themed con statistiche e lista uscite (Vue 3 + Vite + TS)
 - **Heatmap GPS** - Visualizzazione densita percorsi
@@ -57,6 +58,20 @@ GPS-based cycling performance intelligence system. Importa le tue uscite da file
 - **Background Tasks** - Queue asincrona per operazioni pesanti
 - **Cache Redis** - Caching con fallback graceful
 - **PWA** - Progressive Web App con install prompt
+
+---
+
+## Recent Improvements (2026-07-07)
+
+- ✅ Build system cross-platform (Docker Linux + Windows)
+- ✅ 12 frontend test failures risolti (321/321 tests passing)
+- ✅ Session expiry toast + logout silenzioso
+- ✅ Rate limiting login/register (5/min, 3/min)
+- ✅ Wahoo Fitness integration client
+- ✅ Deploy docs: Fly.io, Railway, Vercel
+- ✅ Helm chart per Kubernetes
+- ✅ PWA install prompt + safe-area mobile
+- ✅ RideMapPanel con mappe interattive Leaflet
 
 ---
 
@@ -253,7 +268,8 @@ bikeMaster/
 │       │   ├── gps_parser.py        # Parser GPX/FIT
 │       │   ├── google_fit.py        # Google Fit OAuth2
 │       │   ├── strava_client.py     # Strava API (OAuth2 + PKCE)
-│       │   └── garmin_client.py     # Garmin Connect API (OAuth2)
+│       │   ├── garmin_client.py     # Garmin Connect API (OAuth2)
+│       │   └── wahoo_client.py      # Wahoo Fitness API
 │       │
 │       ├── maps/                    # Map rendering
 │       │   ├── map_renderer.py      # Render Folium (percorso colorato)
@@ -337,6 +353,9 @@ bikeMaster/
 ├── tests/                           # Suite test automatici (51+ file)
 ├── knowledge_base/                  # Documenti indicizzati per RAG
 ├── docs/                            # Documentazione sviluppatore
+├── docker/                           # Container & deploy configs
+│   ├── deploy/                       # Deploy docs (Fly.io, Railway, Vercel)
+│   └── helm/                          # Helm chart per Kubernetes
 ├── .github/workflows/ci.yml         # CI/CD GitHub Actions
 ├── .github/workflows/android-release.yml  # CI Android release
 ├── ROADMAP.md                       # Roadmap progetto
@@ -549,10 +568,9 @@ OPENAI_EMBEDDING_MAX_FAILURES=3
 - Supporto multipli sport type (road, MTB, gravel, virtual)
 - Token storage con refresh automatico
 
-### Google Fit
-- OAuth2 per import automatico attivita ciclistiche
-- Client dedicato con scope configurabile
-- Test coverage 100%
+### Wahoo
+- Importazione attivita ciclistiche da Wahoo Fitness
+- Client dedicato con parsing automatico
 
 ---
 
@@ -617,18 +635,21 @@ azd up
 render deploy
 ```
 
-### GitHub Actions
+### Fly.io
 
-CI/CD con 5 jobs:
-- **test** — pytest + coverage → Codecov
-- **lint** — ruff + mypy
-- **frontend** — npm build
-- **security** — Trivy vulnerability scan → CodeQL
-- **build** — Docker build (dipende da tutti gli altri)
+Vedi `docker/deploy/flyio.md`.
 
-### Android Release
+### Railway
 
-Workflow separato per build APK/AAB.
+Vedi `docker/deploy/railway.md`.
+
+### Vercel
+
+Vedi `docker/deploy/vercel.md`.
+
+### Kubernetes (Helm)
+
+Chart Helm in `docker/helm/bikemaster/`. Vedi `docker/helm/bikemaster/README.md`.
 
 ---
 
@@ -668,13 +689,19 @@ backend/analytics/repositories/    → Data access abstraction
 ## Testing
 
 ```bash
+# Backend
 pytest
+
+# Frontend
+cd frontend && npm test
 ```
 
-Suite di 51+ test automatici:
+### Backend
+
+Suite di 1419 test automatici pytest:
 - Unit test modelli e parsing
 - Test API coverage
-- Mock Google Maps / Strava / Garmin
+- Mock Google Maps / Strava / Garmin / Wahoo
 - Power model e performance engine
 - Benchmark
 - Knowledge base
@@ -691,14 +718,27 @@ Suite di 51+ test automatici:
 - Vector DB
 - Security
 - Error paths
+- Wahoo client
 
-### Coverage: ~79%
+### Frontend
+
+Suite di 321 test automatici Vitest:
+- Componenti Vue (20+ componenti)
+- Stores Pinia (auth, tracking)
+- Router e navigazione
+- API client e gestione errori
+- Import panel e validazione
+- Mappe e metriche
+- AI Coach e Knowledge Base
+- PWA e offline support
+
+### Coverage: ~79% backend
 
 ---
 
 ## Roadmap
 
-Stato progetto: **Late Beta / Early Production** — 145/145 base + 63/80 estensioni completate.
+Stato progetto: **Production Ready** — Tutte le fasi base completate, testing suite attiva (1419 backend + 321 frontend), deploy produzione stabile su Render.
 
 ### Fasi completate
 
@@ -715,32 +755,36 @@ Stato progetto: **Late Beta / Early Production** — 145/145 base + 63/80 estens
 | 9 | Google Fit | ✅ |
 | 10 | Strava | ✅ |
 | 11 | Garmin Connect | ✅ |
-| 12 | Tracciamento Telefono (Android) | ✅ |
-| 13 | Traffic Safety | ✅ |
-| 14 | Architettura Clean | ✅ |
-| 15 | Event Bus | ✅ |
-| 16 | Vector DB (PGVector) | ✅ |
-| 17 | UI/UX (Dashboard + PWA) | ✅ |
-| 18 | Deployment (Docker + CI/CD) | ✅ |
-| 19 | Testing & DevOps | 🔄 Parziale |
-| 20 | Multi-utente + Tenant Isolation | ✅ |
-| 21 | Deployment & Distribuzione | 🔄 In corso |
-| 22 | Phone GPS Tracking Android | 🔄 Parziale |
-| 23 | Event-Driven & Clean Architecture | 🔄 Parziale |
-| 24 | Vector DB & AI RAG Avanzato | 🔄 Parziale |
-| 25 | Frontend Testing & PWA | 🔄 In corso |
+| 12 | Wahoo | ✅ |
+| 13 | Tracciamento Telefono (Android) | ✅ |
+| 14 | Traffic Safety | ✅ |
+| 15 | Architettura Clean | ✅ |
+| 16 | Event Bus | ✅ |
+| 17 | Vector DB (PGVector) | ✅ |
+| 18 | UI/UX (Dashboard + PWA) | ✅ |
+| 19 | Deployment (Docker + CI/CD) | ✅ |
+| 20 | Testing & DevOps | ✅ |
+| 21 | Multi-utente + Tenant Isolation | ✅ |
+| 22 | Frontend Testing & PWA | ✅ |
+
+### In corso
+
+| # | Fase | Status |
+|:---:|---|---|
+| 23 | iOS mobile app (Capacitor iOS) | 🔄 In corso |
+| 24 | Anomaly detection + LLM training plan | 🔄 In corso |
+| 25 | Coverage test >90% | 🔄 In corso |
 
 ### Priorità — Prossimi 3-6 mesi
 
 | Priorità | Miglioramento | Impatto | Difficoltà |
 |:---:|---|---|:---:|
-| **1** | Frontend testing suite attiva (Vitest + Playwright E2E) | Molto alto | Media |
-| **2** | PostgreSQL in produzione + connection pooling | Alto | Media |
+| **1** | PostgreSQL in produzione + connection pooling | Alto | Media |
+| **2** | iOS mobile app (Capacitor iOS) | Alto | Media |
 | **3** | Anomaly detection uscite + Weekly/Monthly training plan LLM | Alto | Media |
-| **4** | iOS mobile app (Capacitor iOS) | Alto | Media |
-| **5** | PWA completa + offline support | Alto | Media |
+| **4** | PWA completa + offline support avanzato | Alto | Media |
+| **5** | Coverage test >90% | Medio | Alta |
 | **6** | Ruff + mypy + pre-commit linting | Medio-Alto | Bassa |
-| **7** | Coverage test >90% | Medio | Alta |
 
 ---
 
