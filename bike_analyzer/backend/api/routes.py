@@ -327,7 +327,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
                 )
 
             access_token = create_access_token(subject=str(user.id), is_admin=user.is_admin, tenant_id=user.id)
-            refresh_token = create_refresh_token(user.id)
+            refresh_token = create_refresh_token(user.id, is_admin=user.is_admin, tenant_id=user.id)
             await save_refresh_token(user.id, refresh_token)
             return {
                 "access_token": access_token,
@@ -351,7 +351,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
         raise HTTPException(status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"})
     athlete_id = int(row[0])
     access_token = create_access_token(subject=str(athlete_id), is_admin=False, tenant_id=athlete_id)
-    refresh_token = create_refresh_token(athlete_id)
+    refresh_token = create_refresh_token(athlete_id, is_admin=False, tenant_id=athlete_id)
     await save_refresh_token(athlete_id, refresh_token)
     return {
         "access_token": access_token,
@@ -407,8 +407,13 @@ async def refresh_token(request: Request, payload: RefreshTokenRequest):
     jti = jwt_payload.get("jti")
     if jti and await is_token_revoked(jti):
         raise HTTPException(status_code=401, detail="Refresh token revoked")
+    is_admin = bool(jwt_payload.get("is_admin", False))
+    tenant_id = jwt_payload.get("tenant_id")
+    resolved_tenant = int(tenant_id) if tenant_id is not None else int(user_id)
     return {
-        "access_token": create_access_token(subject=str(user_id), is_admin=False, tenant_id=int(user_id)),
+        "access_token": create_access_token(
+            subject=str(user_id), is_admin=is_admin, tenant_id=resolved_tenant
+        ),
         "token_type": "bearer",
     }
 

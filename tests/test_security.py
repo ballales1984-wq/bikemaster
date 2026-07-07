@@ -130,6 +130,18 @@ class TestCreateRefreshToken:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
         assert payload.get("type") == "refresh"
 
+    def test_preserves_is_admin_and_tenant(self):
+        token = create_refresh_token(subject="7", is_admin=True, tenant_id=7)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
+        assert payload.get("is_admin") is True
+        assert payload.get("tenant_id") == 7
+
+    def test_default_is_admin_false(self):
+        token = create_refresh_token(subject="1")
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], audience=JWT_AUDIENCE, issuer=JWT_ISSUER)
+        assert payload.get("is_admin") is False
+        assert "tenant_id" not in payload
+
 
 # ---------------------------------------------------------------------------
 # Token fingerprint

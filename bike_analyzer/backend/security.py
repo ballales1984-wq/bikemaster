@@ -193,12 +193,14 @@ def create_access_token(
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def create_refresh_token(subject: str) -> str:
+def create_refresh_token(
+    subject: str, is_admin: bool = False, tenant_id: int | None = None
+) -> str:
     expire = datetime.now(UTC) + timedelta(days=30)
     jti = hashlib.sha256(f"refresh:{subject}:{time.time()}:{SECRET_KEY}".encode()).hexdigest()[:32]
     payload = {
         "sub": subject,
-        "is_admin": False,
+        "is_admin": is_admin,
         "type": "refresh",
         "jti": jti,
         "iat": datetime.now(UTC),
@@ -206,6 +208,8 @@ def create_refresh_token(subject: str) -> str:
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
     }
+    if tenant_id is not None:
+        payload["tenant_id"] = tenant_id
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
