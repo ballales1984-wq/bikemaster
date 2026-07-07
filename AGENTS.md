@@ -114,13 +114,25 @@ Punti critici da NON rompere:
 
 ## Build su Windows (problema EPERM)
 
-`vite build` su Windows può fallire con `EPERM` su `dist/registerSW.js` per colpa
-del lock di Windows Defender / Antivirus sul file generato dallo SW.
+`vite build` su Windows può fallire con `EPERM` per colpa del lock di Windows
+Defender / Antivirus. Il lock colpisce sia i file generati (`dist/registerSW.js`)
+sia i file sorgente appena riscritti (es. `src/components/CalendarPanel.vue`)
+durante la trasformazione di Rollup/PWA. Sintomi tipici:
+`EPERM, Permission denied` o `EPERM: operation not permitted, realpath '<file>'`.
 Mitigazioni applicate/consigliate:
-- Usare `vite build --emptyOutDir` (svuota `dist` prima di scrivere).
-- Se persiste, aggiungere uno script `prebuild` che ritenta o esclude `dist/` da
-  Defender (`Add-MpPreference -ExclusionPath "<repo>\frontend\dist"`).
-- Documentare in `frontend/package.json` se si introduce un wrapper di retry.
+- **Wrapper di retry**: `frontend/scripts/build.mjs` esegue `vite build
+  --emptyOutDir` e, in caso di `EPERM`, ripulisce `dist` e ritenta fino a 3 volte
+  (attesa 4s). `package.json` deve puntare `build` a questo script:
+  ```json
+  "build": "node scripts/build.mjs --emptyOutDir",
+  "prebuild": "powershell -NoProfile -Command \"try { Add-MpPreference -ExclusionPath (Get-Location).Path -ErrorAction Stop } catch { Write-Host 'prebuild: skipping Defender exclusion (needs admin or already set)' }\""
+  ```
+- Esclusione Defender (richiede admin): `Add-MpPreference -ExclusionPath
+  "<repo>\frontend"` — risolve alla radice i lock persistenti. Senza admin il lock
+  è solo ritardato (Defender rilascia dopo la scansione) e il retry wrappa.
+- Alternativa: `vite build --emptyOutDir` (svuota `dist` prima di scrivere).
+- Se anche il retry fallisce in modo persistente, il file è bloccato a livello OS:
+  servono i permessi admin per l'esclusione, oppure attendere il rilascio del lock.
 
 ## Rate limiting
 - `bike_analyzer/backend/rate_limiter.py` espone `limiter` (slowapi) con chiave
