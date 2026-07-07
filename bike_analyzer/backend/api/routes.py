@@ -9,10 +9,12 @@ import secrets
 import time
 from collections.abc import AsyncGenerator
 from dataclasses import fields
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urlparse
+
+from jose import JWTError, jwt
 
 import requests
 from fastapi import (
@@ -45,7 +47,7 @@ from ..rate_limiter import limiter
 from ..redis_client import cache_delete as _cache_delete
 from ..redis_client import cache_set as _cache_set
 from ..redis_client import cached as _cached
-from ..security import get_admin_user, get_current_user
+from ..security import ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, get_admin_user, get_current_user
 from ..utils.logger import get_logger
 from .schemas import (
     AthleteCreate,
@@ -136,37 +138,43 @@ def _validate_redirect_uri(redirect_uri: str) -> None:
         raise HTTPException(status_code=400, detail="Invalid redirect_uri host")
 
 
-def _encode_oauth_state(**values: str) -> str:
-    payload = json.dumps(values, separators=(",", ":")).encode("utf-8")
-    return base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+OAUTH_STATE_TTL_MIN = 10
 
 
-def _decode_oauth_state(state: str) -> dict:
+def _issue_oauth_state(redirect_uri: str, pkce_id: str | None = None) -> str:
+    """Issue a signed, server-only OAuth state (random nonce + redirect_uri + pkce_id).
+
+    Replaces the previous client-generated ``base64({redirect_uri})`` state which was
+    predictable and provided no CSRF protection.
+    """
+    payload = {
+        "nonce": secrets.token_urlsafe(32),
+        "redirect_uri": redirect_uri,
+        "pkce_id": pkce_id,
+        "exp": datetime.now(UTC) + timedelta(minutes=OAUTH_STATE_TTL_MIN),
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
+        "type": "oauth_state",
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def _verify_oauth_state(state: str) -> dict | None:
+    """Verify a signed OAuth state. Returns {redirect_uri, pkce_id} or None if invalid/expired."""
     if not state:
-        return {}
+        return None
     try:
-        padded = state + "=" * (-len(state) % 4)
-        decoded = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
-        data = json.loads(decoded)
-        return data if isinstance(data, dict) else {}
-    except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
-        return {}
-
-
-def _redirect_uri_from_state(state: str) -> str | None:
-    redirect_uri = _decode_oauth_state(state).get("redirect_uri")
-    return redirect_uri if isinstance(redirect_uri, str) else None
-
-
-def _validate_oauth_state(state: str, expected_redirect_uri: str) -> None:
-    decoded = _decode_oauth_state(state)
-    if not decoded:
-        raise HTTPException(status_code=400, detail="Invalid or missing state parameter")
-    state_redirect = decoded.get("redirect_uri")
-    if not isinstance(state_redirect, str) or not state_redirect:
-        raise HTTPException(status_code=400, detail="State missing redirect_uri")
-    if state_redirect != expected_redirect_uri:
-        raise HTTPException(status_code=400, detail="State redirect_uri mismatch")
+        payload = jwt.decode(
+            state, SECRET_KEY, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE
+        )
+    except JWTError:
+        return None
+    if payload.get("type") != "oauth_state":
+        return None
+    redirect_uri = payload.get("redirect_uri")
+    if not isinstance(redirect_uri, str):
+        return None
+    return {"redirect_uri": redirect_uri, "pkce_id": payload.get("pkce_id")}
 
 
 def _http_error_detail(exc: Exception, fallback: str) -> str:
@@ -612,6 +620,7 @@ async def google_oauth_login(
         raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/auth/google/callback")
     _validate_redirect_uri(redirect_uri)
+    state = _issue_oauth_state(redirect_uri)
     auth_url = get_google_oauth_url(GOOGLE_CLIENT_ID, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
 
@@ -635,12 +644,15 @@ async def google_oauth_callback_get(
 
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
-    redirect_uri = (
-        redirect_uri or _redirect_uri_from_state(state) or _build_redirect_uri(request, "/api/v1/auth/google/callback")
-    )
+    state_data = _verify_oauth_state(state)
+    if not state_data:
+        return RedirectResponse(
+            url=_build_frontend_redirect_url(
+                request, _build_redirect_uri(request, "/api/v1/auth/google/callback"), oauth_error="invalid_state"
+            )
+        )
+    redirect_uri = state_data["redirect_uri"]
     _validate_redirect_uri(redirect_uri)
-    if state:
-        _validate_oauth_state(state, redirect_uri)
 
     if error:
         message = error_description or error
@@ -1275,6 +1287,7 @@ async def google_fit_auth(
         raise HTTPException(status_code=500, detail="Google Fit OAuth not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
     _validate_redirect_uri(redirect_uri)
+    state = _issue_oauth_state(redirect_uri)
     auth_url = get_authorization_url(google_client_id, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
 
@@ -1298,9 +1311,7 @@ async def google_health_auth(
     pkce_id = secrets.token_urlsafe(8)
     pkce_key = f"oauth:pkce:google-health:{pkce_id}"
     await _cache_set(pkce_key, {"code_verifier": code_verifier, "redirect_uri": redirect_uri}, ttl=600)
-    state_data = _decode_oauth_state(state)
-    state_data["pkce_id"] = pkce_id
-    state = _encode_oauth_state(**state_data)
+    state = _issue_oauth_state(redirect_uri, pkce_id=pkce_id)
     auth_url = get_authorization_url(
         GOOGLE_HEALTH_CLIENT_ID,
         redirect_uri=redirect_uri,
@@ -1324,14 +1335,17 @@ async def google_health_callback(
 
     if not GOOGLE_HEALTH_CLIENT_ID or not GOOGLE_HEALTH_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google Health OAuth not configured")
-    redirect_uri = (
-        redirect_uri
-        or _redirect_uri_from_state(state)
-        or _build_redirect_uri(request, "/api/v1/import/google-health/callback")
-    )
+    state_data = _verify_oauth_state(state)
+    if not state_data:
+        return _google_health_message_html(
+            {
+                "type": "google-health-error",
+                "error": "invalid_state",
+                "error_description": "OAuth Google Health: state non valido o scaduto",
+            }
+        )
+    redirect_uri = state_data["redirect_uri"]
     _validate_redirect_uri(redirect_uri)
-    if state:
-        _validate_oauth_state(state, redirect_uri)
 
     if error:
         return _google_health_message_html(
@@ -1352,9 +1366,9 @@ async def google_health_callback(
         )
 
     code_verifier = ""
-    if state:
-        state_data = _decode_oauth_state(state)
-        pkce_key = f"oauth:pkce:google-health:{state_data.get('pkce_id', '')}"
+    pkce_id = state_data.get("pkce_id") if isinstance(state_data, dict) else None
+    if pkce_id:
+        pkce_key = f"oauth:pkce:google-health:{pkce_id}"
         pkce_data = await _cached(pkce_key)
         if pkce_data:
             code_verifier = pkce_data.get("code_verifier", "")
@@ -1552,11 +1566,16 @@ async def google_fit_callback(
 
     if not GOOGLE_FIT_CLIENT_ID or not GOOGLE_FIT_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google Fit OAuth not configured")
-    redirect_uri = (
-        redirect_uri
-        or _redirect_uri_from_state(state)
-        or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
-    )
+    state_data = _verify_oauth_state(state)
+    if not state_data:
+        return _google_fit_message_html(
+            {
+                "type": "google-fit-error",
+                "error": "invalid_state",
+                "error_description": "OAuth Google Fit: state non valido o scaduto",
+            }
+        )
+    redirect_uri = state_data["redirect_uri"]
     _validate_redirect_uri(redirect_uri)
 
     if error:

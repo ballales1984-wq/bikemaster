@@ -325,6 +325,7 @@ def test_google_oauth_uses_forwarded_redirect_uri(client, monkeypatch):
 def test_google_oauth_callback_uses_redirect_uri_from_state(client, monkeypatch):
     import bike_analyzer.backend.auth.google_auth as google_auth_mod
     import bike_analyzer.backend.config as cfg_mod
+    from bike_analyzer.backend.api.routes import _issue_oauth_state
 
     redirect_uri = "https://bikemaster.onrender.com/api/v1/auth/google/callback"
     monkeypatch.setattr(cfg_mod, "GOOGLE_CLIENT_ID", "test-client")
@@ -347,9 +348,11 @@ def test_google_oauth_callback_uses_redirect_uri_from_state(client, monkeypatch)
         lambda user_info, athlete_id=None: {"access_token": "jwt-token"},
     )
 
+    # State must be a server-signed token (random nonce), not a client-controlled value.
+    state = _issue_oauth_state(redirect_uri)
     r = client.get(
         "/api/v1/auth/google/callback",
-        params={"code": "code", "state": _oauth_state(redirect_uri)},
+        params={"code": "code", "state": state},
         follow_redirects=False,
     )
 
@@ -357,6 +360,48 @@ def test_google_oauth_callback_uses_redirect_uri_from_state(client, monkeypatch)
     assert r.headers["location"].startswith("https://bikemaster.onrender.com/#token=jwt-token")
     assert "token=jwt-token" in r.headers["location"]
     assert "?token=" not in r.headers["location"]
+
+
+def test_google_oauth_callback_rejects_invalid_state(client, monkeypatch):
+    import bike_analyzer.backend.config as cfg_mod
+
+    monkeypatch.setattr(cfg_mod, "GOOGLE_CLIENT_ID", "test-client")
+    monkeypatch.setattr(cfg_mod, "GOOGLE_CLIENT_SECRET", "test-secret")
+
+    # Predictable, client-generated state (old behaviour) must be rejected -> CSRF protection.
+    bad_state = (
+        base64.urlsafe_b64encode(
+            json.dumps(
+                {"redirect_uri": "https://bikemaster.onrender.com/api/v1/auth/google/callback"}
+            ).encode()
+        )
+        .decode()
+        .rstrip("=")
+    )
+    r = client.get(
+        "/api/v1/auth/google/callback",
+        params={"code": "code", "state": bad_state},
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 307
+    assert "oauth_error=invalid_state" in r.headers["location"]
+
+
+def test_google_oauth_callback_rejects_missing_state(client, monkeypatch):
+    import bike_analyzer.backend.config as cfg_mod
+
+    monkeypatch.setattr(cfg_mod, "GOOGLE_CLIENT_ID", "test-client")
+    monkeypatch.setattr(cfg_mod, "GOOGLE_CLIENT_SECRET", "test-secret")
+
+    r = client.get(
+        "/api/v1/auth/google/callback",
+        params={"code": "code"},
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 307
+    assert "oauth_error=invalid_state" in r.headers["location"]
 
 
 def test_google_fit_auth_uses_forwarded_redirect_uri(client, monkeypatch):
