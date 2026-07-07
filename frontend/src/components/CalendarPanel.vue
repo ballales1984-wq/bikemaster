@@ -54,56 +54,16 @@
         <span class="legend-item legend-other">Other</span>
       </div>
 
-      <div class="calendar-grid">
-        <div
-          v-for="d in weekDays"
-          :key="d"
-          class="cal-header"
-        >
-          {{ d }}
-        </div>
-        <div
-          v-for="(day, idx) in calendarDays"
-          :key="idx"
-          class="cal-cell"
-          :class="{
-            'other-month': !day.currentMonth,
-            'today': isToday(day),
-            'has-events': day.events.length > 0,
-          }"
-        >
-          <span
-          class="day-num"
-          @click="openAddForDate(day.date)"
-        >
-          {{ day.day }}</span>
-          <div class="day-events">
-            <span
-              v-for="ev in day.events.slice(0, 3)"
-              :key="ev.id"
-              class="event-dot"
-              :class="'dot-' + ev.event_type"
-            >
-              {{ ev.title }}
-            </span>
-            <span
-              v-if="day.events.length > 3"
-              class="more-events"
-            >+{{ day.events.length - 3 }}</span>
-          </div>
-        </div>
-      </div>
+      <CalendarGrid
+        :days="calendarDays"
+        :week-days="weekDays"
+        @add-for-date="openAddForDate"
+      />
 
-      <div
+      <FitnessChart
         v-if="fitnessData.length"
-        class="panel fitness-chart-panel"
-      >
-        <h2>📈 Fitness ATL / CTL / TSB</h2>
-        <canvas
-          ref="fitnessCanvas"
-          height="200"
-        />
-      </div>
+        :data="fitnessData"
+      />
     </div>
 
     <div class="panel">
@@ -172,11 +132,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from '../composables/useI18n'
 import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api'
 import ConfirmModal from './ConfirmModal.vue'
-import Chart from 'chart.js/auto'
+import CalendarGrid from './calendar/CalendarGrid.vue'
+import FitnessChart from './calendar/FitnessChart.vue'
 
 const { t } = useI18n()
 
@@ -186,8 +147,6 @@ const currentYear = ref(new Date().getFullYear())
 const currentMonth = ref(new Date().getMonth())
 const events = ref([])
 const fitnessData = ref([])
-const fitnessCanvas = ref(null)
-let fitnessChart = null
 const showForm = ref(false)
 const showDeleteModal = ref(false)
 const deleteTargetId = ref(null)
@@ -337,42 +296,6 @@ async function loadEvents() {
   }
 }
 
-function renderFitnessChart() {
-  if (!fitnessCanvas.value || !fitnessData.value.length) return
-  const labels = fitnessData.value.map(d => {
-    const dt = new Date(d.date)
-    return `${dt.getDate()}/${dt.getMonth() + 1}`
-  })
-  const atl = fitnessData.value.map(d => d.atl)
-  const ctl = fitnessData.value.map(d => d.ctl)
-  const tsb = fitnessData.value.map(d => d.tsb)
-  if (fitnessChart) fitnessChart.destroy()
-  const ctx = fitnessCanvas.value.getContext('2d')
-  fitnessChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'ATL (Fatica)', data: atl, borderColor: '#ff6b35', backgroundColor: 'rgba(255,107,53,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
-        { label: 'CTL (Fitness)', data: ctl, borderColor: '#0088ff', backgroundColor: 'rgba(0,136,255,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
-        { label: 'TSB (Forma)', data: tsb, borderColor: '#00ffcc', backgroundColor: 'rgba(0,255,204,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { labels: { color: '#b0b5c1', usePointStyle: true, padding: 16 } },
-      },
-      scales: {
-        x: { ticks: { color: '#6e7687', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y: { ticks: { color: '#6e7687' }, grid: { color: 'rgba(255,255,255,0.06)' } },
-      },
-    },
-  })
-}
-
 async function loadGoals() {
   if (!athleteId.value) { athleteGoals.value = ''; return }
   try {
@@ -436,7 +359,6 @@ onMounted(async () => {
   initialized = true
   await loadEvents()
   await loadGoals()
-  renderFitnessChart()
 })
 
 watch(athleteId, () => {
@@ -444,10 +366,6 @@ watch(athleteId, () => {
   loadEvents()
   loadGoals()
 })
-
-watch(fitnessData, () => {
-  renderFitnessChart()
-}, { deep: true })
 
 watch([currentYear, currentMonth], () => {
   if (!initialized) return
