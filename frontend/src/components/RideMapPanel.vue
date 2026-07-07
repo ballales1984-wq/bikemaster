@@ -176,6 +176,7 @@ import {
 } from "../utils/routeMap";
 import { famousItalianRoutes } from "../data/italianRoutes";
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, RISK_COLORS, GRADE_COLORS, SPEED_COLORS } from "../constants";
+import { normalizePoints, downsamplePoints, buildSegments, buildDemoSegments, getCenter, haversineDistanceM } from "../utils/rideMapEnrichment";
 
 const mapContainer = ref(null);
 const loading = ref(false);
@@ -308,7 +309,7 @@ function renderMap() {
 
     let segments = ride.segments;
     if (ride.isDemo) {
-      segments = buildDemoSegments(points);
+      segments = buildDemoSegments(points, gradeRiskPercent, riskColor);
     }
 
     buildRidePolylines({ ...ride, segments }).forEach((polylineData) => {
@@ -528,75 +529,6 @@ function enrichRide(ride) {
   };
 }
 
-function normalizePoints(points = []) {
-  return points
-    .map((point) => ({
-      lat: Number(point.lat),
-      lon: Number(point.lon),
-      altitude: point.altitude ?? point.elevation ?? point.elevation_m ?? null,
-      timestamp: point.timestamp ?? null,
-      speed: point.speed ?? null,
-    }))
-    .filter(
-      (point) => Number.isFinite(point.lat) && Number.isFinite(point.lon),
-    );
-}
-
-function downsamplePoints(points, stride = 3) {
-  if (points.length <= 200) return points;
-  return points.filter(
-    (_, index) => index % stride === 0 || index === points.length - 1,
-  );
-}
-
-function buildSegments(points) {
-  const segments = [];
-  if (points.length < 2) return segments;
-
-  let previous = points[0];
-  for (let index = 1; index < points.length; index += 1) {
-    const current = points[index];
-    const distance_m = haversineDistanceM(
-      previous.lat,
-      previous.lon,
-      current.lat,
-      current.lon,
-    );
-    const altitudeA = Number(previous.altitude);
-    const altitudeB = Number(current.altitude);
-    const elevation_delta_m =
-      Number.isFinite(altitudeA) && Number.isFinite(altitudeB)
-        ? altitudeB - altitudeA
-        : 0;
-    const grade = distance_m > 0 ? (elevation_delta_m / distance_m) * 100 : 0;
-
-    segments.push({
-      start: [previous.lat, previous.lon],
-      end: [current.lat, current.lon],
-      distance_m,
-      elevation_delta_m,
-      grade,
-      risk: 0,
-      color: "#4ecca3",
-    });
-    previous = current;
-  }
-  return segments;
-}
-
-function buildDemoSegments(points) {
-  const segments = buildSegments(points);
-  return segments.map((segment) => {
-    const gradeRisk = gradeRiskPercent(segment.grade);
-    const risk = Math.round(gradeRisk * 0.7); // Demo risk
-    return {
-      ...segment,
-      risk,
-      color: riskColor(risk),
-    };
-  });
-}
-
 function applyRideRisk(ride) {
   const weatherScore = Number.isFinite(ride.weatherScore)
     ? ride.weatherScore
@@ -667,24 +599,6 @@ function ridePopup(ride) {
      Average risk: ${escapeHtml(ride.overallRisk)}/100<br>
      ${weatherText}
    `;
-}
-
-function getCenter(points) {
-  if (!points.length) return null;
-  const lat = points.reduce((sum, point) => sum + point.lat, 0) / points.length;
-  const lon = points.reduce((sum, point) => sum + point.lon, 0) / points.length;
-  return { lat, lon };
-}
-
-function haversineDistanceM(lat1, lon1, lat2, lon2) {
-  const radius = 6371000;
-  const toRad = (value) => (value * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return 2 * radius * Math.asin(Math.sqrt(a));
 }
 
 onMounted(() => {
