@@ -110,7 +110,7 @@ def get_embedding(text: str) -> list[float]:
     try:
         import openai
 
-        client = openai.AsyncOpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
+        client = openai.AsyncOpenAI(api_key=settings.openai_api_key, max_retries=0) if settings.openai_api_key else None
         if client:
             resp = asyncio.run(client.embeddings.create(model="text-embedding-3-small", input=text))
             return resp.data[0].embedding
