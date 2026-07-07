@@ -106,7 +106,22 @@
     "cancel": "Annulla",
     "complete": "Completa",
     "incomplete": "Incompleto",
-    "noEvents": "Nessun evento programmato"
+    "noEvents": "Nessun evento programmato",
+    "today": "Oggi",
+    "general": "Generale",
+    "athlete": "Atleta",
+    "january": "Gennaio",
+    "february": "Febbraio",
+    "march": "Marzo",
+    "april": "Aprile",
+    "may": "Maggio",
+    "june": "Giugno",
+    "july": "Luglio",
+    "august": "Agosto",
+    "september": "Settembre",
+    "october": "Ottobre",
+    "november": "Novembre",
+    "december": "Dicembre"
   },
   "granfondo": {
     "title": "Granfondo Planner",
@@ -149,13 +164,22 @@
     "loading": "Caricamento mappa...",
     "error": "Errore nel caricamento della mappa",
     "nearby": "Luoghi vicini",
-    "search": "Cerca luoghi"
+    "search": "Cerca luoghi",
+    "routeMaps": "Mappe Percorsi",
+    "route": "Percorso",
+    "coloring": "Colorazione",
+    "includeWeather": "Includi meteo",
+    "famousRoutes": "Percorsi famosi",
+    "updateMap": "Aggiorna mappa",
+    "updating": "Aggiornamento..."
   },
   "heatmap": {
     "title": "Heatmap GPS",
     "loading": "Caricamento heatmap...",
     "noData": "Nessun dato GPS disponibile per la heatmap",
-    "error": "Errore nel caricamento della heatmap"
+    "error": "Errore nel caricamento della heatmap",
+    "athleteId": "ID Atleta",
+    "loadHeatmap": "Carica Heatmap"
   },
   "badges": {
     "title": "Badge e Traguardi",

@@ -4,7 +4,7 @@
 
     <div class="form-grid">
       <div class="form-group">
-        <label for="heatmap-athlete-id">Athlete ID</label>
+        <label for="heatmap-athlete-id">{{ t("heatmap.athleteId") }}</label>
         <input
           id="heatmap-athlete-id"
           v-model.number="athleteId"
@@ -17,7 +17,7 @@
           class="btn btn-primary"
           @click="loadHeatmap"
         >
-          🔄 Load Heatmap
+          {{ t("heatmap.loadHeatmap") }}
         </button>
       </div>
     </div>
@@ -26,7 +26,7 @@
       v-if="loading && !heatmapData"
       class="loading-text"
     >
-      <span class="spinner" /> Loading heatmap...
+      {{ t("heatmap.loading") }}
     </div>
 
     <div
@@ -46,7 +46,7 @@
       v-if="heatmapData && (!heatmapData.points || !heatmapData.points.length)"
       class="loading-text"
     >
-      No GPS data available
+      {{ t("heatmap.noData") }}
     </div>
   </div>
 </template>
@@ -54,7 +54,10 @@
 <script setup>
 import "leaflet/dist/leaflet.css";
 import { ref, onMounted, watch } from "vue";
+import { useI18n } from "../composables/useI18n";
 import { apiGet } from "../utils/api";
+
+const { t } = useI18n()
 
 const athleteId = ref(null);
 const loading = ref(false);
