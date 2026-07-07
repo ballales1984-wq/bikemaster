@@ -2,7 +2,7 @@
   <section class="panel">
     <div class="map-header">
       <div>
-        <h2>Route Maps</h2>
+        <h2>{{ t("maps.routeMaps") }}</h2>
         <p class="map-subtitle">
           GPS segments are colored by gradient, weather conditions, or combined
           risk.
@@ -10,7 +10,7 @@
       </div>
       <button class="btn btn-primary"
 :disabled="loading" @click="loadRides">
-        {{ loading ? "Updating..." : "Update map" }}
+         {{ loading ? t("maps.updating") : t("maps.updateMap") }}
       </button>
     </div>
 
@@ -27,7 +27,7 @@ class="form-input">
       </label>
 
       <label class="control">
-        <span>Route</span>
+        <span>{{ t("maps.route") }}</span>
         <select v-model="selectedRideId"
 class="form-input">
           <option :value="null">All routes</option>
@@ -39,7 +39,7 @@ class="form-input">
       </label>
 
       <label class="control">
-        <span>Coloring</span>
+        <span>{{ t("maps.coloring") }}</span>
         <select v-model="colorMode"
 class="form-input">
           <option value="combined">Grade + weather</option>
@@ -52,13 +52,13 @@ class="form-input">
       <label class="checkbox-control">
         <input
 v-model="weatherEnabled" type="checkbox" />
-        <span>Include weather</span>
+        <span>{{ t("maps.includeWeather") }}</span>
       </label>
 
       <label class="checkbox-control">
         <input
 v-model="showFamousRoutes" type="checkbox" />
-        <span>Famous routes</span>
+        <span>{{ t("maps.famousRoutes") }}</span>
       </label>
     </div>
 
@@ -163,6 +163,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { useI18n } from "../composables/useI18n";
 import L from "leaflet";
 import { apiGet } from "../utils/api";
 import {
@@ -177,6 +178,8 @@ import {
 import { famousItalianRoutes } from "../data/italianRoutes";
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, RISK_COLORS, GRADE_COLORS, SPEED_COLORS } from "../constants";
 import { normalizePoints, downsamplePoints, buildSegments, buildDemoSegments, getCenter, haversineDistanceM } from "../utils/rideMapEnrichment";
+
+const { t } = useI18n()
 
 const mapContainer = ref(null);
 const loading = ref(false);

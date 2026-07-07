@@ -106,7 +106,22 @@
     "cancel": "Cancel",
     "complete": "Complete",
     "incomplete": "Incomplete",
-    "noEvents": "No scheduled events"
+    "noEvents": "No scheduled events",
+    "today": "Today",
+    "general": "General",
+    "athlete": "Athlete",
+    "january": "January",
+    "february": "February",
+    "march": "March",
+    "april": "April",
+    "may": "May",
+    "june": "June",
+    "july": "July",
+    "august": "August",
+    "september": "September",
+    "october": "October",
+    "november": "November",
+    "december": "December"
   },
   "granfondo": {
     "title": "Granfondo Planner",
@@ -149,13 +164,22 @@
     "loading": "Loading map...",
     "error": "Error loading map",
     "nearby": "Nearby places",
-    "search": "Search places"
+    "search": "Search places",
+    "routeMaps": "Route Maps",
+    "route": "Route",
+    "coloring": "Coloring",
+    "includeWeather": "Include weather",
+    "famousRoutes": "Famous routes",
+    "updateMap": "Update map",
+    "updating": "Updating..."
   },
   "heatmap": {
     "title": "GPS Heatmap",
     "loading": "Loading heatmap...",
     "noData": "No GPS data available for heatmap",
-    "error": "Error loading heatmap"
+    "error": "Error loading heatmap",
+    "athleteId": "Athlete ID",
+    "loadHeatmap": "Load Heatmap"
   },
   "badges": {
     "title": "Badges & Achievements",

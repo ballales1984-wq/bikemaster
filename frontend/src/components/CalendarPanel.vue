@@ -22,17 +22,17 @@
             class="btn btn-secondary btn-sm"
             @click="goToday"
           >
-            Today
+            {{ t("calendar.today") }}
           </button>
         </div>
         <div class="athlete-select">
-          <label>Athlete:</label>
+          <label>{{ t("calendar.athlete") }}:</label>
           <select
             v-model.number="athleteId"
             @change="loadEvents"
           >
             <option :value="0">
-              General
+                {{ t("calendar.general") }}
             </option>
             <option
               v-for="a in athletes"
@@ -129,7 +129,7 @@
       v-if="showForm"
       class="panel form-overlay"
     >
-      <h3>{{ editingEvent ? 'Edit Event' : 'New Event' }}</h3>
+       <h3>{{ editingEvent ? t("calendar.editEvent") : t("calendar.addEvent") }}</h3>
       <form
         class="form-grid"
         @submit.prevent="saveEvent"
@@ -162,7 +162,7 @@
     </div>
     <ConfirmModal
       v-model="showDeleteModal"
-      title="Delete Event"
+             title="{{ t('calendar.deleteEvent') }}"
       :message="`Delete event '${deleteTargetTitle}'?`"
       confirm-label="Delete"
       cancel-label="Cancel"
@@ -173,9 +173,12 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { useI18n } from '../composables/useI18n'
 import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api'
 import ConfirmModal from './ConfirmModal.vue'
 import Chart from 'chart.js/auto'
+
+const { t } = useI18n()
 
 const athleteId = ref(null)
 const athletes = ref([])
@@ -197,7 +200,10 @@ const calendarError = ref('')
 const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
  const monthLabel = computed(() => {
-   const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+    const months = [
+      t('calendar.january'), t('calendar.february'), t('calendar.march'), t('calendar.april'), t('calendar.may'), t('calendar.june'),
+      t('calendar.july'), t('calendar.august'), t('calendar.september'), t('calendar.october'), t('calendar.november'), t('calendar.december')
+    ]
    return `${months[currentMonth.value]} ${currentYear.value}`
  })
 
