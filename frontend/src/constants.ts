@@ -19,7 +19,7 @@ export const ATHLETE_LIMITS = {
 
 export const DEFAULT_MAP_CENTER = [45.4642, 9.19] as const
 export const DEFAULT_MAP_ZOOM = 11
-export const DEFAULT_RIDE_MAP_CENTER = [45.0, 9.0] as const
+export const DEFAULT_RIDE_MAP_CENTER = [45.0, 9.0] as [number, number]
 export const DEFAULT_RIDE_MAP_ZOOM = 13
 
 export const RISK_COLORS = {

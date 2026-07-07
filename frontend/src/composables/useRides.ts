@@ -52,7 +52,7 @@ export function useRides() {
       map.value = null
     }
     if (!el) return
-    const L = await import('leaflet')
+    const L = await import('leaflet') as any
     map.value = L.map(el).setView(DEFAULT_RIDE_MAP_CENTER, DEFAULT_RIDE_MAP_ZOOM)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: 'OSM contributors',
