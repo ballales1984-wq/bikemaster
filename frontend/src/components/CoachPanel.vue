@@ -172,15 +172,15 @@ const scores = computed(() => {
   const s = coachData.value?.training_scores;
   if (!s) return [];
   const colors = {
-    Performance: "#00ffcc",
-    Endurance: "#0088ff",
-    Efficiency: "#ff6b35",
-    Recovery: "#a855f7",
+    Performance: 'var(--color-performance)',
+    Endurance: 'var(--color-endurance)',
+    Efficiency: 'var(--color-efficiency)',
+    Recovery: 'var(--color-recovery)',
   };
   return s.map((sc) => ({
     label: sc.label,
     value: Number(sc.value || 0).toFixed(1),
-    color: colors[sc.label] || "#fff",
+    color: colors[sc.label] || 'var(--accent)',
   }));
 });
 

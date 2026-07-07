@@ -164,7 +164,7 @@ onUnmounted(() => {
 
 .tab.active {
   background: var(--accent-gradient);
-  color: #000;
+  color: var(--text-primary);
   font-weight: bold;
   position: relative;
 }
@@ -192,10 +192,10 @@ onUnmounted(() => {
 }
 
 .logout-btn {
-  background: rgba(255, 51, 102, 0.15);
+  background: var(--color-alert-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
-  border-color: rgba(255, 51, 102, 0.4);
+  border-color: var(--color-alert-border);
   flex-shrink: 0;
   position: relative;
 }

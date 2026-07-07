@@ -89,11 +89,11 @@ function isToday(day) {
 }
 
 .cal-cell:hover {
-  background: #1e2a4a;
+  background: var(--color-calendar-1);
 }
 
 .cal-cell.other-month {
-  background: #111528;
+  background: var(--color-calendar-2);
   opacity: 0.7;
 }
 
@@ -102,13 +102,13 @@ function isToday(day) {
 }
 
 .cal-cell.has-events {
-  background: #1a2a3a;
+  background: var(--color-calendar-3);
 }
 
 .day-num {
   font-size: 0.85rem;
   font-weight: bold;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .day-events {
@@ -122,7 +122,7 @@ function isToday(day) {
   font-size: 0.7rem;
   padding: 1px 4px;
   border-radius: 3px;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
