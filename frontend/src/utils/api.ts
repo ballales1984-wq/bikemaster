@@ -48,8 +48,8 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   }
 }
 
-async function apiGet(path: string, params: Record<string, string> = {}, options: RequestInit = {}): Promise<ApiResponse> {
-  const qs = new URLSearchParams(params).toString()
+async function apiGet(path: string, params: Record<string, string | number> = {}, options: RequestInit = {}): Promise<ApiResponse> {
+  const qs = new URLSearchParams(params as Record<string, string>).toString()
   const url = qs ? `${API_BASE}${path}?${qs}` : `${API_BASE}${path}`
   const resp = await fetch(url, {
     ...options,
