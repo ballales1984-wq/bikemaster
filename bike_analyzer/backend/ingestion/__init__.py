@@ -12,6 +12,9 @@ _INGESTION_ATTRS = {
     "garmin_to_ride": ("garmin_client", "garmin_to_ride"),
     "fetch_garmin_activities": ("garmin_client", "fetch_activities"),
     "get_garmin_token": ("garmin_client", "get_valid_token"),
+    "wahoo_to_ride": ("wahoo_client", "wahoo_to_ride"),
+    "fetch_wahoo_workouts": ("wahoo_client", "fetch_workouts"),
+    "get_wahoo_token": ("wahoo_client", "get_valid_token"),
 }
 
 

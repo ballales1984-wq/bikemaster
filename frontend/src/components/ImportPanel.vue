@@ -82,9 +82,40 @@
         :disabled="importing"
         type="button"
         style="margin-top: 8px"
-        @click="disconnectGoogleFit"
+        @click="disconnectGoogleHealth"
       >
-        Disconnect Google Fit
+        Disconnect Google Health
+      </button>
+
+      <div class="oauth-separator">
+        <span>or</span>
+      </div>
+
+      <button
+        class="btn btn-secondary"
+        :disabled="importing"
+        type="button"
+        @click="connectWahoo"
+      >
+        Connect Wahoo
+      </button>
+      <button
+        class="btn btn-secondary"
+        :disabled="importing"
+        type="button"
+        style="margin-top: 8px"
+        @click="disconnectWahoo"
+      >
+        Disconnect Wahoo
+      </button>
+      <button
+        class="btn btn-primary"
+        :disabled="importing"
+        type="button"
+        style="margin-top: 8px"
+        @click="wahooSync"
+      >
+        Import from Wahoo
       </button>
 
       <div
@@ -93,7 +124,7 @@
         aria-label="Import progress"
       >
         <div class="progress-fill"
-:style="{ width: uploadProgress + '%' }" />
+ :style="{ width: uploadProgress + '%' }" />
       </div>
 
       <div class="oauth-separator">
@@ -437,7 +468,143 @@ async function disconnectGoogleHealth() {
       };
     }
   } catch (e) {
+    importStatus.value = { success: false, message: e.message || e };
+  }
+}
+
+async function connectWahoo() {
+  importing.value = true;
+  importStatus.value = null;
+  try {
+    const state = btoa(JSON.stringify({ redirect_uri: window.location.origin }));
+    const authResp = await fetch(
+      `/api/v1/import/wahoo/auth?state=${encodeURIComponent(state)}`,
+    );
+    if (!authResp.ok) {
+      throw new Error("Unable to start Wahoo authentication");
+    }
+    const result = await authResp.json();
+    const codeVerifier = result.code_verifier;
+    const popup = window.open(
+      result.auth_url,
+      "wahoo-auth",
+      "width=500,height=600",
+    );
+    if (!popup) {
+      throw new Error("Popup blocked - enable popups");
+    }
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener("message", handleMessage);
+      clearTimeout(timer);
+    };
+    const timer = setTimeout(() => {
+      finish();
+      importStatus.value = {
+        success: false,
+        message: "Timeout: Wahoo authentication cancelled",
+      };
+      importing.value = false;
+    }, 5 * 60 * 1000);
+    const handleMessage = async (event) => {
+      if (event.data?.type === "wahoo-error") {
+        finish();
+        importStatus.value = {
+          success: false,
+          message:
+            event.data.error_description ||
+            event.data.error ||
+            "Wahoo error",
+        };
+        importing.value = false;
+        return;
+      }
+      if (event.data?.type === "wahoo-success") {
+        finish();
+        const token = localStorage.getItem("bikemaster_token");
+        const callbackResp = await fetch("/api/v1/import/wahoo/callback", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            code: event.data.code,
+            code_verifier: codeVerifier,
+          }),
+        });
+        if (callbackResp.ok) {
+          importStatus.value = {
+            success: true,
+            message: "Wahoo connected successfully",
+          };
+        } else {
+          const err = await callbackResp.json().catch(() => ({}));
+          importStatus.value = {
+            success: false,
+            message: err.detail || "Wahoo connect failed",
+          };
+        }
+        importing.value = false;
+      }
+    };
+    window.addEventListener("message", handleMessage);
+  } catch (e) {
     importStatus.value = { success: false, message: e.message };
+    importing.value = false;
+  }
+}
+
+async function disconnectWahoo() {
+  try {
+    const token = localStorage.getItem("bikemaster_token");
+    const resp = await fetch("/api/v1/import/wahoo/disconnect", {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (resp.ok) {
+      importStatus.value = {
+        success: true,
+        message: "Wahoo disconnected",
+      };
+    } else {
+      importStatus.value = {
+        success: false,
+        message: "Failed to disconnect Wahoo",
+      };
+    }
+  } catch (e) {
+    importStatus.value = { success: false, message: e.message || e };
+  }
+}
+
+async function wahooSync() {
+  if (importing.value) return;
+  try {
+    importing.value = true;
+    status.value = "Wahoo import in progress...";
+    const token = localStorage.getItem("bikemaster_token");
+    const resp = await fetch("/api/v1/import/wahoo/sync", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (resp.ok) {
+      const result = await resp.json();
+      status.value = `Imported ${result.imported} rides from Wahoo`;
+      emit("summary-change");
+    } else {
+      const err = await resp.json().catch(() => ({}));
+      status.value = "Wahoo import failed: " + (err.detail || resp.statusText);
+    }
+  } catch (e) {
+    status.value = "Wahoo import error: " + (e.message || e);
+  } finally {
+    importing.value = false;
   }
 }
 

@@ -1,0 +1,66 @@
+replicaCount: 1
+
+image:
+  repository: bikemaster
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: "nginx"
+  hosts:
+    - host: bikemaster.local
+      paths:
+        - path: /
+          pathType: Prefix
+  annotations: {}
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  limits:
+    cpu: "1"
+    memory: "512Mi"
+  requests:
+    cpu: "200m"
+    memory: "256Mi"
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+env:
+  - name: SECRET_KEY
+    value: "CHANGE_ME"
+  - name: DATABASE_URL
+    value: ""
+  - name: REDIS_URL
+    value: ""
+  - name: AI_COACH_MODE
+    value: external
+  - name: PYTHON_VERSION
+    value: "3.11"

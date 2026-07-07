@@ -142,6 +142,12 @@ class Settings(BaseSettings):
     garmin_redirect_uri: str = "http://localhost:8000/api/v1/import/garmin/callback"
     garmin_scope: str = "read"
 
+    # === Wahoo Integration ===
+    wahoo_client_id: str = ""
+    wahoo_client_secret: str = ""
+    wahoo_redirect_uri: str = "http://localhost:8000/api/v1/integrations/wahoo/callback"
+    wahoo_scope: str = "workouts_read user_read"
+
     # === Map Styles ===
     default_map_style: str = "standard"
 

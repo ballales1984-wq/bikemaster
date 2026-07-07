@@ -116,6 +116,15 @@ GARMIN_AUTH_URL = "https://connect.garmin.com/oauthConfirm"
 GARMIN_TOKEN_URL = "https://connect.garmin.com/oauth2/token"
 GARMIN_API_BASE_URL = "https://apis.garmin.com/fitness/v1"
 
+# === Wahoo Integration ===
+WAHOO_CLIENT_ID = _s.wahoo_client_id
+WAHOO_CLIENT_SECRET = _s.wahoo_client_secret
+WAHOO_REDIRECT_URI = _s.wahoo_redirect_uri
+WAHOO_SCOPE = _s.wahoo_scope
+WAHOO_AUTH_URL = "https://api.wahooligan.com/oauth/authorize"
+WAHOO_TOKEN_URL = "https://api.wahooligan.com/oauth/token"
+WAHOO_API_BASE_URL = "https://api.wahooligan.com"
+
 # === Google OAuth2 ===
 GOOGLE_CLIENT_ID = _s.google_client_id
 GOOGLE_CLIENT_SECRET = _s.google_client_secret
