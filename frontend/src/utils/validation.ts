@@ -1,3 +1,5 @@
+import { ATHLETE_LIMITS } from '../constants'
+
 const VALID_EXPERIENCE_LEVELS = ['Beginner', 'Amateur', 'Intermediate', 'Advanced', 'Elite']
 
 function validateEmail(email: string): string | null {
@@ -44,18 +46,18 @@ export function validateAthleteForm(form: Record<string, unknown>): Record<strin
   }
 
   const age = Number(form.age)
-  if (isNaN(age) || age < 10 || age > 100) {
-    errors.age = 'Età deve essere tra 10 e 100'
+  if (isNaN(age) || age < ATHLETE_LIMITS.MIN_AGE || age > ATHLETE_LIMITS.MAX_AGE) {
+    errors.age = `Età deve essere tra ${ATHLETE_LIMITS.MIN_AGE} e ${ATHLETE_LIMITS.MAX_AGE}`
   }
 
   const weight = Number(form.weight_kg)
-  if (isNaN(weight) || weight < 20 || weight > 300) {
-    errors.weight_kg = 'Peso deve essere tra 20 e 300 kg'
+  if (isNaN(weight) || weight < ATHLETE_LIMITS.MIN_WEIGHT_KG || weight > ATHLETE_LIMITS.MAX_WEIGHT_KG) {
+    errors.weight_kg = `Peso deve essere tra ${ATHLETE_LIMITS.MIN_WEIGHT_KG} e ${ATHLETE_LIMITS.MAX_WEIGHT_KG} kg`
   }
 
   const height = Number(form.height_cm)
-  if (!isNaN(height) && (height < 100 || height > 250)) {
-    errors.height_cm = 'Altezza deve essere tra 100 e 250 cm'
+  if (!isNaN(height) && (height < ATHLETE_LIMITS.MIN_HEIGHT_CM || height > ATHLETE_LIMITS.MAX_HEIGHT_CM)) {
+    errors.height_cm = `Altezza deve essere tra ${ATHLETE_LIMITS.MIN_HEIGHT_CM} e ${ATHLETE_LIMITS.MAX_HEIGHT_CM} cm`
   }
 
   const level = String(form.experience_level || '')
@@ -70,8 +72,8 @@ export function validateAthleteForm(form: Record<string, unknown>): Record<strin
   }
 
   const ftp = Number(form.ftp_watts)
-  if (form.ftp_watts !== undefined && form.ftp_watts !== null && form.ftp_watts !== '' && !isNaN(ftp) && (ftp < 50 || ftp > 500)) {
-    errors.ftp_watts = 'FTP deve essere tra 50 e 500 watt'
+  if (form.ftp_watts !== undefined && form.ftp_watts !== null && form.ftp_watts !== '' && !isNaN(ftp) && (ftp < ATHLETE_LIMITS.MIN_FTP_W || ftp > ATHLETE_LIMITS.MAX_FTP_W)) {
+    errors.ftp_watts = `FTP deve essere tra ${ATHLETE_LIMITS.MIN_FTP_W} e ${ATHLETE_LIMITS.MAX_FTP_W} watt`
   }
 
   return errors

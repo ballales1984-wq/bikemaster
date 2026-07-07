@@ -175,6 +175,7 @@ import {
   weatherRiskPercent,
 } from "../utils/routeMap";
 import { famousItalianRoutes } from "../data/italianRoutes";
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, RISK_COLORS, GRADE_COLORS, SPEED_COLORS } from "../constants";
 
 const mapContainer = ref(null);
 const loading = ref(false);
@@ -186,30 +187,30 @@ const showFamousRoutes = ref(false);
 const mapStyle = ref(localStorage.getItem("mapStyle") || "standard");
 
 const weatherLegend = computed(() => [
-  { label: "Good", color: "#27ae60" },
-  { label: "Fair", color: "#f1c40f" },
-  { label: "Poor", color: "#e74c3c" },
-]);
+  { label: "Good", color: RISK_COLORS.LOW },
+  { label: "Fair", color: RISK_COLORS.MEDIUM },
+  { label: "Poor", color: RISK_COLORS.SEVERE },
+])
 
 const riskLevels = computed(() => [
-  { label: "Low", range: "0-24", color: "#27ae60" },
-  { label: "Medium", range: "25-49", color: "#f1c40f" },
-  { label: "High", range: "50-74", color: "#e67e22" },
-  { label: "Severe", range: "75-100", color: "#e74c3c" },
-]);
+  { label: "Low", range: "0-24", color: RISK_COLORS.LOW },
+  { label: "Medium", range: "25-49", color: RISK_COLORS.MEDIUM },
+  { label: "High", range: "50-74", color: RISK_COLORS.HIGH },
+  { label: "Severe", range: "75-100", color: RISK_COLORS.SEVERE },
+])
 
 const gradeLegend = computed(() => [
-  { label: "Flat", color: "#27ae60" },
-  { label: "Moderate", color: "#f1c40f" },
-  { label: "Steep", color: "#e67e22" },
-  { label: "Very steep", color: "#e74c3c" },
-]);
+  { label: "Flat", color: GRADE_COLORS.FLAT },
+  { label: "Moderate", color: GRADE_COLORS.MODERATE },
+  { label: "Steep", color: GRADE_COLORS.STEEP },
+  { label: "Very steep", color: GRADE_COLORS.VERY_STEEP },
+])
 
 const speedLegend = computed(() => [
-  { label: "Fast", color: "#27ae60" },
-  { label: "Medium", color: "#f1c40f" },
-  { label: "Slow", color: "#e74c3c" },
-]);
+  { label: "Fast", color: SPEED_COLORS.FAST },
+  { label: "Medium", color: SPEED_COLORS.MEDIUM },
+  { label: "Slow", color: SPEED_COLORS.SLOW },
+])
 
 const MAP_STYLES = {
   standard: {
@@ -284,8 +285,8 @@ function renderMap() {
 
   if (!map) {
     map = L.map(mapContainer.value, { preferCanvas: true }).setView(
-      [45.4642, 9.19],
-      11,
+      DEFAULT_MAP_CENTER,
+      DEFAULT_MAP_ZOOM,
     );
     tileLayer = createTileLayer(mapStyle.value);
     tileLayer.addTo(map);
@@ -701,7 +702,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
+  <style scoped>
 .map-header {
   display: flex;
   align-items: flex-start;
@@ -757,24 +758,6 @@ onBeforeUnmount(() => {
   margin-bottom: 14px;
 }
 
-.kpi {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-}
-
-.kpi strong {
-  display: block;
-  color: var(--accent);
-  font-size: 1.35rem;
-}
-
-.kpi span {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-}
-
 .route-map {
   height: 560px;
   width: 100%;
@@ -810,74 +793,5 @@ onBeforeUnmount(() => {
   font-size: 0.9rem;
   margin-top: 8px;
   color: var(--text-secondary);
-}
-
-.legend-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.legend-card {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-}
-
-.legend-card h4 {
-  margin: 0 0 10px;
-  font-size: 0.95rem;
-}
-
-.legend-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 7px 0;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.legend-swatch {
-  width: 18px;
-  height: 10px;
-  border-radius: 999px;
-  flex: 0 0 18px;
-}
-
-.legend-note {
-  margin: 10px 0 0;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-}
-
-@media (max-width: 900px) {
-  .map-header,
-  .map-toolbar {
-    grid-template-columns: 1fr;
-    flex-direction: column;
-  }
-
-  .map-kpis,
-  .legend-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .route-map {
-    height: 460px;
-  }
-}
-
-@media (max-width: 560px) {
-  .map-kpis,
-  .legend-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .route-map {
-    height: 380px;
-  }
 }
 </style>

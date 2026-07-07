@@ -44,7 +44,6 @@
     </div>
     <div
       v-if="heatmapData && (!heatmapData.points || !heatmapData.points.length)"
-      <div
       class="loading-text"
     >
       No GPS data available

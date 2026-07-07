@@ -2,6 +2,14 @@ import { useAuthStore } from '../stores/auth'
 
 const API_BASE = ''
 
+export class ApiError extends Error {
+  status?: number
+  constructor(message: string, status?: number) {
+    super(message)
+    this.status = status
+  }
+}
+
 function clearAuth() {
   localStorage.removeItem('bikemaster_token')
   localStorage.removeItem('bikemaster_user')
@@ -26,123 +34,61 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-interface ApiResponse {
+interface RequestOptions extends Omit<RequestInit, 'body'> {
+  path: string
+  body?: unknown
+}
+
+async function request<T>(options: RequestOptions): Promise<T> {
+  const { path, method = 'GET', body, headers = {}, ...rest } = options
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData
+  const resp = await fetch(path, {
+    ...rest,
+    method,
+    headers: {
+      ...(isForm ? {} : { 'Content-Type': 'application/json' }),
+      ...authHeaders(),
+      ...(headers as Record<string, string> || {}),
+    } as Record<string, string>,
+    body: isForm ? body as BodyInit : body !== undefined ? JSON.stringify(body) : undefined,
+  })
+  if (!resp.ok) {
+    if (resp.status === 401) {
+      clearAuth()
+      notifySessionExpired()
+      throw new ApiError('expired', 401)
+    }
+    const err = await resp.json().catch(() => ({}))
+    const message = (err as Record<string, string>).detail || (err as Record<string, string>).message || `${method} ${path}: ${resp.status}`
+    throw new ApiError(message, resp.status)
+  }
+  return resp.json() as Promise<T>
+}
+
+export interface ApiResponse {
   [key: string]: unknown
 }
 
-function extractErrorMessage(err: unknown, fallback: string): string {
-  const detail = (err as { detail?: unknown })?.detail
-  if (detail == null) return fallback
-  if (typeof detail === "string") return detail
-  // FastAPI 422 validation errors return detail as an array of {loc, msg, type}
-  if (Array.isArray(detail)) {
-    const messages = detail
-      .map((d) => (typeof d === "object" && d && "msg" in d ? String((d as { msg?: unknown }).msg) : String(d)))
-      .filter(Boolean)
-    return messages.length ? messages.join("; ") : fallback
-  }
-  try {
-    return JSON.stringify(detail)
-  } catch {
-    return fallback
-  }
-}
-
-async function apiGet(path: string, params: Record<string, string | number> = {}, options: RequestInit = {}): Promise<ApiResponse> {
-  const qs = new URLSearchParams(params as Record<string, string>).toString()
+export async function apiGet<T = ApiResponse>(path: string, params: Record<string, string> = {}, options: RequestInit = {}): Promise<T> {
+  const qs = new URLSearchParams(params).toString()
   const url = qs ? `${API_BASE}${path}?${qs}` : `${API_BASE}${path}`
-  const resp = await fetch(url, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
-  })
-  if (!resp.ok) {
-    if (resp.status === 401) {
-      clearAuth()
-      notifySessionExpired()
-      throw new Error('expired')
-    }
-    const err = await resp.json().catch(() => ({}))
-    throw new Error(extractErrorMessage(err, `GET ${path}: ${resp.status}`))
-  }
-  return resp.json()
+  return request<T>({ ...options, path: url, method: 'GET' })
 }
 
-async function apiPost(path: string, body: unknown, options: RequestInit = {}): Promise<ApiResponse> {
-  const isForm = typeof FormData !== 'undefined' && body instanceof FormData
-  const resp = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: isForm ? { ...authHeaders(), ...(options.headers as Record<string, string> || {}) } : { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
-    body: isForm ? body as BodyInit : JSON.stringify(body),
-    ...options,
-  })
-  if (!resp.ok) {
-    if (resp.status === 401) {
-      clearAuth()
-      notifySessionExpired()
-      throw new Error('expired')
-    }
-    const err = await resp.json().catch(() => ({}))
-    throw new Error(extractErrorMessage(err, `POST ${path}: ${resp.status}`))
-  }
-  return resp.json()
+export async function apiPost<T = ApiResponse>(path: string, body: unknown, options: RequestInit = {}): Promise<T> {
+  return request<T>({ ...options, path: `${API_BASE}${path}`, method: 'POST', body })
 }
 
-async function apiDelete(path: string, options: RequestInit = {}): Promise<ApiResponse> {
-  const resp = await fetch(`${API_BASE}${path}`, {
-    method: 'DELETE',
-    headers: { ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
-    ...options,
-  })
-  if (!resp.ok) {
-    if (resp.status === 401) {
-      clearAuth()
-      notifySessionExpired()
-      throw new Error('expired')
-    }
-    const err = await resp.json().catch(() => ({}))
-    throw new Error(extractErrorMessage(err, `DELETE ${path}: ${resp.status}`))
-  }
-  return resp.json()
+export async function apiDelete<T = ApiResponse>(path: string, options: RequestInit = {}): Promise<T> {
+  return request<T>({ ...options, path: `${API_BASE}${path}`, method: 'DELETE' })
 }
 
-async function apiUpload(path: string, file: Blob | File, options: RequestInit = {}): Promise<ApiResponse> {
+export async function apiUpload<T = ApiResponse>(path: string, file: Blob | File, options: RequestInit = {}): Promise<T> {
   const form = new FormData()
   form.append('file', file)
-  const resp = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
-    body: form,
-    ...options,
-  })
-  if (!resp.ok) {
-    if (resp.status === 401) {
-      clearAuth()
-      notifySessionExpired()
-      throw new Error('expired')
-    }
-    const err = await resp.json().catch(() => ({}))
-    throw new Error(extractErrorMessage(err, `UPLOAD ${path}: ${resp.status}`))
-  }
-  return resp.json()
+  return request<T>({ ...options, path: `${API_BASE}${path}`, method: 'POST', body: form })
 }
 
-async function apiPut(path: string, body: unknown, options: RequestInit = {}): Promise<ApiResponse> {
-  const resp = await fetch(`${API_BASE}${path}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
-    body: JSON.stringify(body),
-    ...options,
-  })
-  if (!resp.ok) {
-    if (resp.status === 401) {
-      clearAuth()
-      notifySessionExpired()
-      throw new Error('expired')
-    }
-    const err = await resp.json().catch(() => ({}))
-    throw new Error(extractErrorMessage(err, `PUT ${path}: ${resp.status}`))
-  }
-  return resp.json()
+export async function apiPut<T = ApiResponse>(path: string, body: unknown, options: RequestInit = {}): Promise<T> {
+  return request<T>({ ...options, path: `${API_BASE}${path}`, method: 'PUT', body })
 }
-
-export { apiGet, apiPost, apiDelete, apiUpload, apiPut }

@@ -324,7 +324,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
+  <style scoped>
 .charts-panel {
   margin: 1rem 0;
 }
@@ -347,41 +347,5 @@ onUnmounted(() => {
   border: 1px solid #333;
   padding: 0.3rem 0.6rem;
   border-radius: 4px;
-}
-.chart-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: 1.5rem;
-}
-.chart-card {
-  background: #16213e;
-  border-radius: 8px;
-  padding: 1rem;
-}
-.chart-card h3 {
-  margin: 0 0 0.75rem;
-  font-size: 1rem;
-  color: #eee;
-}
-.chart-card canvas {
-  height: 260px;
-}
-.chart-summary {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.75rem;
-  font-size: 0.85rem;
-  color: #ccc;
-}
-.trend-up {
-  color: #4ecca3;
-  font-weight: bold;
-}
-.trend-down {
-  color: #ff6b6b;
-  font-weight: bold;
-}
-.trend-neutral {
-  color: #ffc107;
 }
 </style>

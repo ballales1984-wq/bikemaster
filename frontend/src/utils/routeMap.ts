@@ -1,4 +1,5 @@
 import type { GpsPoint, RideSegment, EnrichedRide } from '../types/index'
+import { RISK_COLORS, GRADE_COLORS, SPEED_COLORS } from '../constants'
 
 export function buildRidePolylines(ride: { segments: RideSegment[] }): { color: string; points: [number, number][] }[] {
   const groups: { color: string; points: [number, number][] }[] = []
@@ -29,10 +30,10 @@ export function escapeHtml(value: unknown): string {
 }
 
 export function riskColor(risk: number): string {
-  if (risk < 25) return '#27ae60'
-  if (risk < 50) return '#f1c40f'
-  if (risk < 75) return '#e67e22'
-  return '#e74c3c'
+  if (risk < 25) return RISK_COLORS.LOW
+  if (risk < 50) return RISK_COLORS.MEDIUM
+  if (risk < 75) return RISK_COLORS.HIGH
+  return RISK_COLORS.SEVERE
 }
 
 export function gradeRiskPercent(grade: number): number {
