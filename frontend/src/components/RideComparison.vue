@@ -187,8 +187,18 @@ function onSelectChange() {
 async function load() {
   loading.value = true;
   try {
-    const data = await apiGet("/api/v1/rides", { limit: 50 });
-    rides.value = data.rides || [];
+    const all = [];
+    let page = 1;
+    const pageSize = 100;
+    while (true) {
+      const data = await apiGet("/api/v1/rides", { page, page_size: pageSize });
+      const batch = data.rides || [];
+      all.push(...batch);
+      const total = typeof data.total === "number" ? data.total : all.length;
+      if (batch.length === 0 || all.length >= total) break;
+      page += 1;
+    }
+    rides.value = all;
   } catch (e) {
     console.error("load rides for comparison", e);
   } finally {

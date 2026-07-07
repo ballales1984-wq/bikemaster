@@ -580,7 +580,6 @@ async function load() {
       const data = await apiGet("/api/v1/rides", {
         page,
         page_size: pageSize,
-        sort: "date_desc",
       });
       const batch = data.rides || [];
       all.push(...batch);
