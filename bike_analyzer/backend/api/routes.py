@@ -907,6 +907,7 @@ async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(
     ride_data = points_to_ride(points_data, name=file.filename)
     if "error" not in ride_data:
         ride_data["athlete_id"] = _user_id(current_user)
+        ride_data["tenant_id"] = current_user["id"]
         ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
         ride_data["id"] = int(ride_id)
         from ..monitoring import record_gps_import
