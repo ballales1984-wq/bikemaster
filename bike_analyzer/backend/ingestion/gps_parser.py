@@ -2,7 +2,37 @@
 
 from __future__ import annotations
 
+import math
+import os
 from datetime import datetime
+
+
+def _perpendicular_distance(point: dict, start: dict, end: dict) -> float:
+    dx = end["lon"] - start["lon"]
+    dy = end["lat"] - start["lat"]
+    if dx == 0 and dy == 0:
+        return math.hypot(point["lat"] - start["lat"], point["lon"] - start["lon"])
+    num = abs(dy * point["lon"] - dx * point["lat"] + end["lon"] * start["lat"] - end["lat"] * start["lon"])
+    den = math.hypot(dx, dy)
+    return num / den if den else 0.0
+
+
+def douglas_peucker(points: list[dict], tolerance: float = 0.00005) -> list[dict]:
+    if len(points) <= 2:
+        return points
+    start, end = points[0], points[-1]
+    max_dist = 0.0
+    index = 0
+    for i in range(1, len(points) - 1):
+        d = _perpendicular_distance(points[i], start, end)
+        if d > max_dist:
+            max_dist = d
+            index = i
+    if max_dist > tolerance:
+        left = douglas_peucker(points[: index + 1], tolerance)
+        right = douglas_peucker(points[index:], tolerance)
+        return left[:-1] + right
+    return [start, end]
 
 
 def parse_gpx_file(content: str) -> list[dict]:
@@ -59,27 +89,29 @@ def parse_fit_file(file_path: str) -> list[dict]:
         raise ImportError("fitparse not installed") from None
 
 
-def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float = 70.0) -> dict:
+def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float = 70.0, gps_tolerance: float | None = None) -> dict:
     if not points:
         return {"error": "No GPS points provided"}
     valid_points = [p for p in points if p.get("lat") is not None and p.get("lon") is not None and p.get("timestamp") is not None]
     if not valid_points:
         return {"error": "No valid GPS points provided"}
+    tolerance = gps_tolerance if gps_tolerance is not None else float(os.getenv("GPS_DECIMATION_TOLERANCE", "0.00005"))
+    compressed = douglas_peucker(valid_points, tolerance=tolerance)
     from ..models.models import haversine_distance_m
 
     total_distance = (
         sum(
-            haversine_distance_m(valid_points[i - 1]["lat"], valid_points[i - 1]["lon"], p["lat"], p["lon"])
-            for i, p in enumerate(valid_points)
+            haversine_distance_m(compressed[i - 1]["lat"], compressed[i - 1]["lon"], p["lat"], p["lon"])
+            for i, p in enumerate(compressed)
             if i > 0
         )
-        if len(valid_points) > 1
+        if len(compressed) > 1
         else 0
     )
-    duration_s = (valid_points[-1]["timestamp"] - valid_points[0]["timestamp"]).total_seconds() if len(valid_points) > 1 else 0
+    duration_s = (compressed[-1]["timestamp"] - compressed[0]["timestamp"]).total_seconds() if len(compressed) > 1 else 0
     avg_speed = (total_distance / duration_s * 3.6) if duration_s > 0 else 0
     return {
-        "date": valid_points[0]["timestamp"].strftime("%Y-%m-%d") if valid_points else "",
+        "date": compressed[0]["timestamp"].strftime("%Y-%m-%d") if compressed else "",
         "distance_km": total_distance / 1000,
         "duration_minutes": duration_s / 60,
         "avg_speed_kmh": avg_speed,
@@ -92,6 +124,6 @@ def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float
                 "altitude": p.get("altitude"),
                 "speed": p.get("speed"),
             }
-            for p in valid_points
+            for p in compressed
         ],
     }

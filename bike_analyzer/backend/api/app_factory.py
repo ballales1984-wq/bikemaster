@@ -47,8 +47,10 @@ def _static_file_response(file_path: Path, media_type: str | None = None, header
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from ..db.database import init_db
+    from ..logging_config import setup_logging
     from ..monitoring import start_metrics_server
 
+    setup_logging()
     init_db()
     try:
         from ..settings import get_settings
@@ -125,6 +127,20 @@ def create_app() -> FastAPI:
         )
 
     @app.middleware("http")
+    async def correlation_id_middleware(request: Request, call_next):
+        import uuid
+
+        request_id = request.headers.get(REQUEST_ID_HEADER, str(uuid.uuid4()))
+        request.state.request_id = request_id
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception("Unhandled exception for request_id=%s", request_id)
+            raise
+        response.headers[REQUEST_ID_HEADER] = request_id
+        return response
+
+    @app.middleware("http")
     async def audit_log_middleware(request: Request, call_next):
         import time
 
@@ -143,14 +159,16 @@ def create_app() -> FastAPI:
             pass
         response = await call_next(request)
         elapsed_ms = int((time.time() - start) * 1000)
+        request_id = getattr(request.state, "request_id", "-")
         logger.info(
-            "AUDIT %s %s %s user=%s ip=%s %dms",
+            "AUDIT %s %s %s user=%s ip=%s %dms request_id=%s",
             request.method,
             request.url.path,
             response.status_code,
             user_id,
             request.client.host if request.client else "unknown",
             elapsed_ms,
+            request_id,
         )
         if user_id != "anonymous":
             sentry_sdk.set_user({"id": user_id})
