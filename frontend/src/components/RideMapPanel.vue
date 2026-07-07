@@ -711,4 +711,18 @@ onBeforeUnmount(() => {
   margin-top: 8px;
   color: var(--text-secondary);
 }
+
+@media (max-width: 768px) {
+  .map-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .map-kpis {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
+  .route-map {
+    height: 320px;
+  }
+}
 </style>

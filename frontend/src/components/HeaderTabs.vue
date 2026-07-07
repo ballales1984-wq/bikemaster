@@ -63,7 +63,7 @@ to="/admin" class="tab" active-class="active">
       :aria-label="t('nav.logout')"
       @click="$emit('logout')"
     >
-      🚪 <span>{{ t("nav.logout") }}</span>
+      <span>{{ t("nav.logout") }}</span>
     </button>
   </nav>
 </template>
@@ -87,13 +87,20 @@ function checkScrollable() {
   }
 }
 
+let resizeTimer;
+function onResize() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(checkScrollable, 150);
+}
+
 onMounted(() => {
   checkScrollable();
-  window.addEventListener("resize", checkScrollable);
+  window.addEventListener("resize", onResize);
 });
 
 onUnmounted(() => {
-  window.removeEventListener("resize", checkScrollable);
+  window.removeEventListener("resize", onResize);
+  clearTimeout(resizeTimer);
 });
 </script>
 
@@ -190,6 +197,11 @@ onUnmounted(() => {
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border-color: rgba(255, 51, 102, 0.4);
   flex-shrink: 0;
+  position: relative;
+}
+
+.logout-btn::before {
+  content: "🚪";
 }
 
 .logout-btn:hover {
@@ -217,10 +229,6 @@ onUnmounted(() => {
 
   .logout-btn span {
     display: none;
-  }
-
-  .logout-btn::before {
-    content: "🚪";
   }
 
   .logout-btn {

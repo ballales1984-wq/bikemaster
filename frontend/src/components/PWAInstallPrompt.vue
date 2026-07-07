@@ -51,7 +51,7 @@ function dismiss() {
 <style scoped>
 .pwa-banner {
   position: fixed;
-  bottom: 20px;
+  bottom: env(safe-area-inset-bottom, 20px);
   left: 20px;
   right: 20px;
   max-width: 480px;
@@ -59,6 +59,7 @@ function dismiss() {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   display: flex;
   align-items: center;
   gap: 14px;

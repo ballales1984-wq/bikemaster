@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "powershell -NoProfile -Command \"try { Add-MpPreference -ExclusionPath (Get-Location).Path -ErrorAction Stop } catch { Write-Host 'prebuild: skipping Defender exclusion (needs admin or already set)' }\"",
+    "prebuild": "node scripts/prebuild.mjs",
     "build": "node scripts/build.mjs --emptyOutDir",
     "preview": "vite preview",
     "test": "vitest",

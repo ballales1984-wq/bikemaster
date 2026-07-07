@@ -1,12 +1,14 @@
 """Knowledge base RAG engine: PGVector similarity search with BM25 fallback.
 
-Primary search uses PGVector cosine similarity. Falls back to BM25 when
-vector database is unavailable or incompatible. Supports ChromaDB as intermediate layer.
+Primary search uses embedding-based cosine similarity via ChromaDB.
+Falls back to BM25 when vector database is unavailable or incompatible.
+Supports ChromaDB as intermediate layer.
 """
 
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import logging
 import math
@@ -14,11 +16,29 @@ import os
 import re
 import time
 from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 import sqlalchemy as sa
 
-from ..config import KB_PATH, OPENAI_API_KEY
+from ..config import (
+    KB_PATH,
+    OPENAI_API_KEY,
+    OPENAI_EMBEDDING_COOLDOWN_SECONDS,
+    OPENAI_EMBEDDING_MAX_FAILURES,
+    OPENAI_LOG_LEVEL,
+)
+
+try:
+    from openai import APIStatusError, OpenAI
+except Exception:
+    OpenAI = None
+    APIStatusError = None
+
+try:
+    from sklearn.feature_extraction.text import TfidfVectorizer
+except Exception:
+    TfidfVectorizer = None
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +46,7 @@ MAX_CHARS_PER_CHUNK = 1200
 CHUNK_OVERLAP = 200
 CONTEXT_WINDOW_CHARS = 3000
 EMBEDDING_DIMENSION = 1536
+EMBEDDING_CACHE_TTL = 86400  # 24 hours
 
 _STOP_WORDS: frozenset[str] = frozenset(
     {
@@ -265,8 +286,192 @@ def load_chunks(force_reload: bool = False) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# BM25 scoring (fallback)
+# Embedding utilities
 # ---------------------------------------------------------------------------
+
+
+def _configure_openai_logging() -> None:
+    """Reduce verbosity of openai/httpx loggers based on OPENAI_LOG_LEVEL."""
+    log_level = getattr(
+        logging, str(OPENAI_LOG_LEVEL or "WARNING").upper(), logging.WARNING
+    )
+    for name in ("openai", "httpx"):
+        logging.getLogger(name).setLevel(log_level)
+
+
+_configure_openai_logging()
+
+_EMBEDDING_CACHE_PATH = KB_PATH.parent / ".chroma_db" / "embeddings_cache.json"
+_openai_embeddings_unavailable = False
+_openai_circuit_failures = 0
+_openai_circuit_last_failure = 0.0
+_openai_circuit_cooldown = OPENAI_EMBEDDING_COOLDOWN_SECONDS or 300
+_openai_circuit_max_failures = OPENAI_EMBEDDING_MAX_FAILURES or 3
+_bm25_tfidf_vectorizer = None
+_sentence_transformer_model = None
+
+_configure_openai_logging()
+
+
+def _circuit_breaker_allows() -> bool:
+    """Return True if OpenAI is allowed (circuit closed or half-open in cooldown)."""
+    global _openai_embeddings_unavailable, _openai_circuit_failures, _openai_circuit_last_failure
+    if not _openai_embeddings_unavailable:
+        return True
+    if time.time() - _openai_circuit_last_failure > _openai_circuit_cooldown:
+        _openai_embeddings_unavailable = False
+        _openai_circuit_failures = 0
+        logger.info(
+            "OpenAI embedding circuit breaker cooldown expired; retrying OpenAI."
+        )
+        return True
+    return False
+
+
+def _text_hash(text: str) -> str:
+    """Return SHA256 hex digest of stripped text for cache keys."""
+    normalized = re.sub(r"\s+", " ", text.strip())
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _load_embedding_cache() -> dict:
+    """Load embedding cache from disk."""
+    try:
+        if _EMBEDDING_CACHE_PATH.exists():
+            data = json.loads(_EMBEDDING_CACHE_PATH.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return data
+    except Exception as exc:
+        logger.debug("Embedding cache load failed: %s", exc)
+    return {}
+
+
+def _save_embedding_cache(cache: dict) -> None:
+    """Persist embedding cache to disk."""
+    try:
+        _EMBEDDING_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _EMBEDDING_CACHE_PATH.write_text(
+            json.dumps(cache, separators=(",", ":")), encoding="utf-8"
+        )
+    except Exception as exc:
+        logger.debug("Embedding cache save failed: %s", exc)
+
+
+def _cache_get(text: str) -> list[float] | None:
+    """Return cached embedding if fresh, else None."""
+    cache = _load_embedding_cache()
+    entry = cache.get(_text_hash(text))
+    if entry is None:
+        return None
+    age = time.time() - entry.get("timestamp", 0)
+    if age > EMBEDDING_CACHE_TTL:
+        return None
+    return entry.get("embedding")
+
+
+def _cache_set(text: str, embedding: list[float], provider: str = "openai") -> None:
+    """Persist embedding to cache."""
+    cache = _load_embedding_cache()
+    cache[_text_hash(text)] = {
+        "embedding": embedding,
+        "timestamp": time.time(),
+        "provider": provider,
+    }
+    _save_embedding_cache(cache)
+
+
+def _get_or_create_tfidf_vectorizer():
+    """Fit a single TF-IDF vectorizer over the entire KB corpus."""
+    global _bm25_tfidf_vectorizer
+    if _bm25_tfidf_vectorizer is None:
+        try:
+            from sklearn.feature_extraction.text import TfidfVectorizer
+
+            chunks = load_chunks()
+            corpus = [c["text"] for c in chunks] if chunks else [""]
+            _bm25_tfidf_vectorizer = TfidfVectorizer(
+                max_features=EMBEDDING_DIMENSION,
+                stop_words=list(_STOP_WORDS),
+                norm="l2",
+            )
+            if any(c.strip() for c in corpus):
+                _bm25_tfidf_vectorizer.fit(corpus)
+        except Exception as exc:
+            logger.warning("TF-IDF vectorizer init failed: %s", exc)
+            _bm25_tfidf_vectorizer = None
+    return _bm25_tfidf_vectorizer
+
+
+def _import_with_timeout(module_name: str, timeout: int = 15):
+    """Import a module in a daemon thread, returning None on timeout or error."""
+    import queue
+    import threading
+
+    q: queue.Queue = queue.Queue()
+
+    def _target():
+        try:
+            import importlib
+            q.put(importlib.import_module(module_name))
+        except Exception as exc:
+            q.put(exc)
+
+    t = threading.Thread(target=_target, daemon=True)
+    t.start()
+    t.join(timeout=timeout)
+    if t.is_alive():
+        logger.debug("Import of %s timed out after %ss", module_name, timeout)
+        return None
+    result = q.get()
+    if isinstance(result, Exception):
+        logger.debug("Import of %s failed: %s", module_name, result)
+        return None
+    return result
+
+
+def _get_or_create_sentence_transformer():
+    """Lazy-load a sentence-transformers model (semantic embeddings).
+
+    Import is performed in a background thread with timeout to avoid
+    blocking startup/init when transformers is slow to load.
+    """
+    global _sentence_transformer_model
+    if _sentence_transformer_model is not None:
+        if _sentence_transformer_model is False:
+            return None
+        return _sentence_transformer_model
+
+    _sentence_transformer_model = False
+    st = _import_with_timeout("sentence_transformers", timeout=5)
+    if st is None:
+        return None
+    try:
+        _sentence_transformer_model = st.SentenceTransformer("all-MiniLM-L6-v2")
+    except Exception as exc:
+        logger.debug("sentence-transformers init failed: %s", exc)
+        _sentence_transformer_model = False
+    if _sentence_transformer_model is False:
+        return None
+    return _sentence_transformer_model
+
+
+def _embed_text_sentence_transformer(text: str) -> list[float] | None:
+    """Embed text using sentence-transformers (semantic model)."""
+    model = _get_or_create_sentence_transformer()
+    if model is None:
+        return None
+    try:
+        emb = model.encode(text, normalize_embeddings=True)
+        if hasattr(emb, "tolist"):
+            emb = emb.tolist()
+        if len(emb) < EMBEDDING_DIMENSION:
+            emb = np.pad(emb, (0, EMBEDDING_DIMENSION - len(emb))).tolist()
+        elif len(emb) > EMBEDDING_DIMENSION:
+            emb = emb[:EMBEDDING_DIMENSION]
+        return emb
+    except Exception as exc:
+        logger.debug("sentence-transformers embedding failed: %s", exc)
+        return None
 
 
 def _bm25_score(
@@ -483,71 +688,114 @@ def init_kb_embeddings(session=None) -> dict:
         }
 
 
-# Embedding functions (OpenAI + local fallback)
+# ---------------------------------------------------------------------------
+# Embedding functions (OpenAI + sentence-transformers + local TF-IDF)
 # ---------------------------------------------------------------------------
 
 # Set to True once OpenAI embeddings are observed to be rate-limited (HTTP 429)
 # so we stop hammering the API and consistently use the local fallback.
+# After a cooldown period this flag resets and OpenAI is retried.
 _openai_embeddings_unavailable = False
+_openai_circuit_failures = 0
+_openai_circuit_last_failure = 0.0
 
 
-def _get_embedding_provider():
-    """Return embedding provider: 'openai' if available, else 'local'."""
-    if OPENAI_API_KEY and OPENAI_API_KEY.strip():
-        return "openai"
-    return "local"
+def _get_embedding_provider() -> str:
+    """Return current embedding provider name."""
+    return "openai" if OPENAI_API_KEY and OPENAI_API_KEY.strip() else "local"
 
 
 def _embed_text_openai(text: str) -> list[float] | None:
     """Embed text using OpenAI text-embedding-3-small.
 
-    Fails fast on rate limiting (HTTP 429): once OpenAI reports it is
-    unavailable we stop retrying for the rest of the process and let the
-    caller fall back to the local embedding. This avoids long backoff waits
-    and 429 log spam during bulk embedding (e.g. KB init over many chunks).
+    Uses file cache to avoid redundant calls. Implements a circuit breaker:
+    after OPENAI_EMBEDDING_MAX_FAILURES consecutive 429s, OpenAI is disabled
+    for OPENAI_EMBEDDING_COOLDOWN_SECONDS seconds, then retried.
     """
-    global _openai_embeddings_unavailable
+    global _openai_embeddings_unavailable, _openai_circuit_failures, _openai_circuit_last_failure
     if not OPENAI_API_KEY or not OPENAI_API_KEY.strip():
         return None
-    if _openai_embeddings_unavailable:
+    if not _circuit_breaker_allows():
+        return None
+    cached = _cache_get(text)
+    if cached is not None:
+        return cached
+    if OpenAI is None:
         return None
     try:
-        from openai import OpenAI
-
         client = OpenAI(api_key=OPENAI_API_KEY, max_retries=0)
         response = client.embeddings.create(
             model="text-embedding-3-small",
             input=text,
         )
-        return response.data[0].embedding
+        embedding = response.data[0].embedding
+        _cache_set(text, embedding, provider="openai")
+        return embedding
     except Exception as e:
-        from openai import APIStatusError
+        if APIStatusError is None or not isinstance(e, APIStatusError):
+            return None
+        if e.status_code == 429:
+            _openai_circuit_failures += 1
+            _openai_circuit_last_failure = time.time()
+            if _openai_circuit_failures >= _openai_circuit_max_failures:
+                _openai_embeddings_unavailable = True
+                logger.warning(
+                    "OpenAI embeddings rate-limited (%d/%d attempts); "
+                    "circuit breaker open for %ss.",
+                    _openai_circuit_failures,
+                    _openai_circuit_max_failures,
+                    _openai_circuit_cooldown,
+                )
+            else:
+                logger.warning(
+                    "OpenAI embeddings rate-limited (429); attempt %d/%d.",
+                    _openai_circuit_failures,
+                    _openai_circuit_max_failures,
+                )
+        return None
 
-        if isinstance(e, APIStatusError) and e.status_code == 429:
-            logger.warning(
-                "OpenAI embeddings rate-limited (429); disabling OpenAI "
-                "embeddings for this process and using local fallback."
-            )
-            _openai_embeddings_unavailable = True
+
+def _embed_text_sentence_transformer(text: str) -> list[float] | None:
+    """Embed text using sentence-transformers (semantic model)."""
+    model = _get_or_create_sentence_transformer()
+    if model is None:
+        return None
+    try:
+        emb = model.encode(text, normalize_embeddings=True)
+        if hasattr(emb, "tolist"):
+            emb = emb.tolist()
+        if len(emb) < EMBEDDING_DIMENSION:
+            emb = np.pad(emb, (0, EMBEDDING_DIMENSION - len(emb))).tolist()
+        elif len(emb) > EMBEDDING_DIMENSION:
+            emb = emb[:EMBEDDING_DIMENSION]
+        return emb
+    except Exception as exc:
+        logger.debug("sentence-transformers embedding failed: %s", exc)
         return None
 
 
 def _embed_text_local(text: str) -> list[float] | None:
-    """Embed text using local TF-IDF (fallback)."""
+    """Embed text using sentence-transformers if available, else TF-IDF."""
+    result = _embed_text_sentence_transformer(text)
+    if result is not None:
+        return result
+    if TfidfVectorizer is None:
+        return None
     try:
-        from sklearn.feature_extraction.text import TfidfVectorizer
-
-        vec = TfidfVectorizer(max_features=1536, stop_words="english")
-        embedding = vec.fit_transform([text]).toarray()[0]
-        if len(embedding) < EMBEDDING_DIMENSION:
-            embedding = np.pad(embedding, (0, EMBEDDING_DIMENSION - len(embedding)))
-        return embedding.tolist()
-    except Exception:
+        vec = _get_or_create_tfidf_vectorizer()
+        if vec is None:
+            return None
+        tfidf_vec = vec.transform([text]).toarray()[0]
+        if len(tfidf_vec) < EMBEDDING_DIMENSION:
+            tfidf_vec = np.pad(tfidf_vec, (0, EMBEDDING_DIMENSION - len(tfidf_vec)))
+        return tfidf_vec.tolist()
+    except Exception as exc:
+        logger.debug("Local TF-IDF embedding failed: %s", exc)
         return None
 
 
 def embed_text(text: str) -> list[float] | None:
-    """Embed text using preferred provider (OpenAI) with local fallback."""
+    """Embed text using preferred provider with local fallback."""
     provider = _get_embedding_provider()
     if provider == "openai":
         result = _embed_text_openai(text)
@@ -615,9 +863,10 @@ def search_knowledge_base_pgvector(
         chroma_path = str(KB_PATH.parent / ".chroma_db")
         if os.path.exists(chroma_path):
             client = chromadb.PersistentClient(path=chroma_path)
-            collection = client.get_collection(name="bikemaster_knowledge")
             query_emb = embed_text(query) or [0.0] * EMBEDDING_DIMENSION
-            results_raw = collection.query(
+            results_raw = client.get_collection(
+                name="bikemaster_knowledge"
+            ).query(
                 query_embeddings=[query_emb],
                 n_results=max_chunks,
                 include=["documents", "metadatas", "distances"],

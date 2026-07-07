@@ -13,9 +13,14 @@ export class ApiError extends Error {
 function clearAuth() {
   localStorage.removeItem('bikemaster_token')
   localStorage.removeItem('bikemaster_user')
+  localStorage.removeItem('bikemaster_just_logged_in')
 }
 
 let sessionExpiredNotified = false
+
+export function resetSessionExpiredNotification() {
+  sessionExpiredNotified = false
+}
 
 function notifySessionExpired() {
   const toast = (window as unknown as { __toast?: { add?: (msg: string, type?: string, ms?: number) => void } }).__toast

@@ -503,119 +503,6 @@ Base URL: `/api/v1`
 | POST | `/benchmark/compare` | No | Confronto benchmark |
 
 ### AI Coach
-| Metodo | Endpoint | Auth | Descrizione |
-|---|---|---|---|
-| GET | `/coach/workout` | Yes | Consigli allenamento |
-| GET | `/coach/recovery` | No | Consigli recupero |
-| GET | `/coach/trends` | Yes | Analisi storico |
-| GET | `/coach/full` | Yes | Report completo |
-| POST | `/coach/chat` | No | Chat AI |
-| GET | `/coach/history` | No | Storico conversazioni |
-
-### Knowledge Base
-| Metodo | Endpoint | Descrizione |
-|---|---|---|
-| GET | `/knowledge` | Lista topic |
-| GET | `/knowledge/search?q=` | Ricerca semantica |
-| GET | `/knowledge/stats` | Statistiche KB |
-| POST | `/knowledge/reload` | Ricarica indici |
-
-### Training & Weather
-| Metodo | Endpoint | Auth | Descrizione |
-|---|---|---|---|
-| GET | `/training/load` | Yes | Carico allenamento (RSS/TSS) |
-| GET | `/training/status` | Yes | Status forma |
-| GET | `/training/summary` | Yes | Riepilogo periodo |
-| GET | `/training/goals` | Yes | Obiettivi |
-| GET | `/training/workouts/generate` | Yes | Genera workout |
-| GET | `/training/granfondo/plan` | Yes | Piano granfondo |
-| GET | `/weather` | No | Meteo corrente |
-| GET | `/weather/forecast` | No | Previsioni meteo |
-
-### Maps
-| Metodo | Endpoint | Descrizione |
-|---|---|---|
-| POST | `/rides/{id}/map` | Genera mappa Folium |
-| GET | `/rides/{id}/map/google` | Google Static Map (richiedere API key) |
-| GET | `/maps/places/nearby` | Luoghi vicini |
-| GET | `/maps/places/search` | Ricerca luoghi |
-
-### Admin
-| Metodo | Endpoint | Auth | Descrizione |
-|---|---|---|---|
-| GET | `/admin/backup` | Yes | Download backup DB |
-| POST | `/admin/indexes` | No | Crea indici DB |
-| GET | `/admin/stats` | No | Statistiche sistema |
-| POST | `/admin/reset-demo` | No | Rigenera dati demo |
-
----
-
-## Motore Analitico
-
-### Architettura Clean (Calculators / Services / Repositories)
-
-Il motore analitico segue il pattern **Clean Architecture**:
-
-- **Calculators** (`analytics/calculators/`) — Funzioni pure per metriche individuali (calorie, potenza, fatigue, performance, stress). Testabili in isolamento.
-- **Services** (`analytics/services/`) — Orchestrazione use case (analisi uscita completa, FitnessStateVector computation, context builder).
-- **Repositories** (`analytics/repositories/`) — Astrazione accesso dati (ride, athlete, fitness state, training stress). Supporta sync e async.
-
-### Core Pipeline
-```
-GPS Input → Processing (pulizia, segmentazione, pause) → Analytics (calcoli) → FitnessState
-```
-
-### Calorie (physics + MET)
-Calcola il costo energetico in due modalita:
-- **Fisica** - Integrazione della potenza (resistenza rotolamento + attrito aria + gravita) divisa per rendimento neuromuscolare 25%
-- **MET** - Tabella Metabolic Equivalents per intensita basata su velocita media
-
-### Affaticamento
-Score 1-10 basato su 5 fattori pesati:
-- Durata (30%)
-- Intensita cardiaca/HF (30%)
-- Velocita media (20%)
-- Dislivello (10%)
-- Peso corporeo (10%)
-
-Consigli di recupero dinamici: 8h, 16h, 24h, 48h.
-
-### Performance Scores & Power Metrics
-- **Performance Score** - Punteggio assoluto uscita corrente
-- **Endurance Score** - Indice di resistenza su storico
-- **Efficiency Score** - Rapporto potenza-distanza
-- **Normalized Power (NP)** - Algoritmo Coggan con rolling average 30s
-- **Intensity Factor (IF)** - NP / FTP ratio
-- **Variability Index (VI)** - NP / avg power
-- **Training Stress Score (TSS)** - IF² × durata × 100
-- **FTP Estimation** - 20min test × 0.95
-- **Critical Power Model** - CP e W' prime
-- **Aerobic Decoupling** - Rilevamento scompenso aerobico
-
-### Benchmark
-Confronata le metriche dell'atleta con distribuzioni benchmark per categoria (eta, peso, esperienza) e calcola i percentile.
-
----
-
-## Dashboard
-
-UI dark-theme con:
-- Lista uscite con filtri (data, distanza, durata)
-- Card statistiche aggregate
-- Mappa percorso interattiva
-- Grafici velocita/elevazione/distanza/durata (Chart.js)
-- Widget AI Coach sidebar
-- Profilo atleta con score (Performance, Endurance, Efficiency)
-- Pannello meteo integrati
-- Pannello heatmap GPS
-- Pannello badge e achievements
-- Pannello granfondo planner
-- Prompt installazione PWA
-
----
-
-## AI Coach
-
 Integrazione con Groq (LLM) per:
 - Raccomandazioni di allenamento personalizzate
 - Consigli di recupero basati su fatigue score
@@ -624,6 +511,27 @@ Integrazione con Groq (LLM) per:
 - Vector DB (PGVector) per RAG avanzato con embedding OpenAI
 
 Dipendenze: `GROQ_API_KEY` e `OPENAI_API_KEY` in `.env`.
+
+#### Knowledge Base senza OpenAI
+
+Se `OPENAI_API_KEY` non ha quota disponibile (HTTP 429), il sistema:
+1. **Cache embedding su file**: gli embedding OpenAI sono salvati in `.chroma_db/embeddings_cache.json` e riutilizzati senza chiamate API ripetute.
+2. **Circuit breaker con cooldown**: dopo `OPENAI_EMBEDDING_MAX_FAILURES` 429 consecutivi, OpenAI viene disabilitato per `OPENAI_EMBEDDING_COOLDOWN_SECONDS` secondi, poi ritentato in background.
+3. **Fallback semantico locale**: se `sentence-transformers` è installato (`pip install sentence-transformers`), viene usato il modello `all-MiniLM-L6-v2` per embedding semantici; altrimenti TF-IDF con normalizzazione L2 e vocabolario condiviso su tutto il corpus.
+4. **Log ridotti**: il logger `httpx`/`openai` rispetta `OPENAI_LOG_LEVEL` (default `WARNING`) per evitare spam di DEBUG in produzione.
+
+Configurazioni disponibili in `.env`:
+
+```env
+# Log verbosity for openai/httpx
+OPENAI_LOG_LEVEL=WARNING
+
+# Circuit breaker cooldown after 429 (seconds)
+OPENAI_EMBEDDING_COOLDOWN_SECONDS=300
+
+# Failures before circuit breaker opens
+OPENAI_EMBEDDING_MAX_FAILURES=3
+```
 
 ---
 

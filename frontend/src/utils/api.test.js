@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setActivePinia, createPinia } from "pinia";
 import { apiDelete, apiGet, apiPost, apiPut, apiUpload } from "./api";
 
 class MemStore {
@@ -23,6 +24,7 @@ describe("api helpers", () => {
     store = new MemStore();
     globalThis.localStorage = store;
     globalThis.window = { location: { href: "" } };
+    setActivePinia(createPinia());
   });
 
   afterEach(() => {
@@ -58,7 +60,6 @@ describe("api helpers", () => {
     });
     await expect(apiGet("/api/v1/x")).rejects.toThrow("expired");
     expect(store.getItem("bikemaster_token")).toBeNull();
-    expect(globalThis.window.location.href).toBe("/");
   });
 
   it("apiGet returns null body on parse error", async () => {

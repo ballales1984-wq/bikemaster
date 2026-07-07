@@ -1,7 +1,7 @@
 {
   "appId": "com.bikemaster.app",
   "appName": "BikeMaster",
-  "webDir": "www",
+  "webDir": "dist",
   "bundledWebRuntime": false,
   "plugins": {
     "BikeTracking": {
