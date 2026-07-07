@@ -1,0 +1,319 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+body.light-theme {
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(0, 136, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(0, 255, 204, 0.03) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+.container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+header {
+  text-align: center;
+  padding: 30px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+header h1 { color: var(--accent); font-size: 2.5rem; }
+
+.panel-enter-active,
+.panel-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.panel-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.panel-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(380px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(380px); opacity: 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+}
+
+.skeleton-title {
+  height: 20px;
+  width: 60%;
+  margin-bottom: 12px;
+}
+
+.skeleton-card {
+  height: 80px;
+  border-radius: var(--radius);
+}
+
+.skeleton-container {
+  margin-top: 15px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.empty-state .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.empty-state .empty-title {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.empty-state .empty-desc {
+  font-size: 0.9rem;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.error-state {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--error);
+}
+
+.error-state .error-icon {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.retry-btn {
+  margin-top: 12px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-dialog {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.25s ease;
+}
+
+.modal-dialog h3 {
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.modal-dialog p {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.hidden { display: none !important; }
+.loading-text { color: var(--text-muted); text-align: center; padding: 20px; }
+
+.footer {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+}
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  padding-right: 40px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.password-toggle:hover {
+  color: var(--text-primary);
+}
+
+.field-error {
+  color: var(--error);
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+.form-group input.error,
+.form-group select.error {
+  border-color: var(--error);
+}
+
+.form-group input.valid {
+  border-color: var(--success);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .btn, .tab, .tab-btn, button, input[type="checkbox"], input[type="radio"] {
+    min-height: 48px !important;
+    min-width: 48px !important;
+    touch-action: manipulation;
+  }
+
+  .tab {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+
+  .tab-badge {
+    min-height: 20px;
+    min-width: 20px;
+  }
+
+  .btn-xs {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  .btn-sm {
+    min-height: 38px;
+    padding: 8px 14px;
+  }
+
+  .btn-large {
+    min-height: 56px;
+    padding: 14px 28px;
+    font-size: 1.1rem;
+  }
+
+  .event-check input {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .password-toggle {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .form-group input, .form-group select, .form-group textarea {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  input[type="text"], input[type="email"], input[type="password"], input[type="number"] {
+    font-size: 16px;
+  }
+}
+
+.btn, .tab {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.btn:focus, .tab:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

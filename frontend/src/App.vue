@@ -55,13 +55,15 @@ class="login-error">
       />
 
       <main>
-        <router-view v-slot="{ Component }">
-          <transition name="panel"
+        <ErrorBoundary>
+          <router-view v-slot="{ Component }">
+            <transition name="panel"
 mode="out-in">
-            <component :is="Component"
+              <component :is="Component"
 @summary-change="onSummaryChange" />
-          </transition>
-        </router-view>
+            </transition>
+          </router-view>
+        </ErrorBoundary>
       </main>
 
       <ToastContainer />
@@ -87,6 +89,7 @@ import StatsSummary from "./components/StatsSummary.vue";
 import ToastContainer from "./components/ToastContainer.vue";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.vue";
 import LanguageSwitcher from "./components/LanguageSwitcher.vue";
+import ErrorBoundary from "./components/ErrorBoundary.vue";
 const auth = useAuthStore();
 const ui = useUIStore();
 const route = useRoute();

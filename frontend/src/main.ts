@@ -7,6 +7,8 @@ import { useAuthStore } from './stores/auth'
 import { useUIStore } from './stores/ui'
 import './composables/usePWA'
 import { useToast } from './composables/useToast'
+import { processOAuthToken } from './services/oauth'
+import { syncAuthState } from './services/authSync'
 
 const pinia = createPinia()
 setActivePinia(pinia)
@@ -16,21 +18,8 @@ const app = createApp(App).use(pinia).use(router)
 const auth = useAuthStore()
 const ui = useUIStore()
 
-const urlParams = new URLSearchParams(window.location.search)
-const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
-const urlToken = urlParams.get('token') || hashParams.get('token')
-const email = urlParams.get('email') || hashParams.get('email') || ''
-const oauthError = urlParams.get('oauth_error') || hashParams.get('oauth_error')
-
-if (urlToken) {
-  auth.setAuthFromUrl(urlToken, email)
-  ui.setOauthLoading(false)
-  window.history.replaceState({}, document.title, '/')
-} else if (oauthError) {
-  auth.setOauthError(oauthError)
-  ui.setOauthLoading(false)
-  window.history.replaceState({}, document.title, '/')
-}
+processOAuthToken()
+syncAuthState()
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {

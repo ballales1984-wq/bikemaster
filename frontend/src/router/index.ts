@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
+import { syncAuthState } from '../services/authSync'
 
 const routes = [
   {
@@ -154,61 +155,7 @@ async function checkProfileComplete(auth: ReturnType<typeof useAuthStore>): Prom
 router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
   const ui = useUIStore()
-
-  // Sync state from localStorage in case Pinia hasn't updated reactively yet
-  // This handles the race condition when main.ts sets the token before router guard runs
-  const hasLocalStorage = typeof localStorage !== 'undefined'
-  const storedToken = hasLocalStorage ? localStorage.getItem('bikemaster_token') : null
-  const storedJustLoggedIn = hasLocalStorage ? localStorage.getItem('bikemaster_just_logged_in') === 'true' : false
-
-  if (hasLocalStorage && !auth.token && storedToken) {
-    auth.token = storedToken
-  }
-  if (hasLocalStorage && !auth.user && localStorage.getItem('bikemaster_user')) {
-    try {
-      auth.user = JSON.parse(localStorage.getItem('bikemaster_user')!)
-    } catch {}
-  }
-  if (!auth.justLoggedIn && storedJustLoggedIn) {
-    auth.setJustLoggedIn(true)
-  }
-
-  if (auth.token && !auth.isTokenValid()) {
-    auth.token = ''
-    auth.user = null
-    localStorage.removeItem('bikemaster_token')
-    localStorage.removeItem('bikemaster_user')
-    auth.setJustLoggedIn(false)
-  }
-
-  // Process OAuth token from URL (fallback for cases where main.ts doesn't handle it)
-  if (!to.query.token && to.hash) {
-    const hashParams = new URLSearchParams(to.hash.replace(/^#/, ''))
-    const fragmentToken = hashParams.get('token')
-    if (fragmentToken) {
-      const email = hashParams.get('email') || ''
-      auth.setAuthFromUrl(fragmentToken, email)
-      ui.setOauthLoading(false)
-      if (window.history.replaceState) {
-        window.history.replaceState(null, '', to.path)
-      }
-    }
-  }
-
-  // Also handle query params for backward compatibility
-  if (to.query.token && typeof to.query.token === 'string') {
-    const email = typeof to.query.email === 'string' ? to.query.email : ''
-    auth.setAuthFromUrl(to.query.token, email)
-    auth.setJustLoggedIn(true)
-    ui.setOauthLoading(false)
-  } else if (ui.oauthLoading) {
-    // Safety net: OAuth flow finished but no reset was triggered
-    ui.setOauthLoading(false)
-  }
-
-  // Use auth.token directly to avoid reactivity timing issues
-  const hasToken = !!auth.token
-  const justLoggedIn = auth.justLoggedIn || storedJustLoggedIn
+  const { hasToken, justLoggedIn } = syncAuthState()
 
   if (to.meta.requiresAuth && !hasToken) {
     next('/')
@@ -220,15 +167,17 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  // Handle post-login redirect - redirect logged-in users from / to their dashboard
   if (hasToken && (to.path === '/' || justLoggedIn)) {
     const hasCompleteProfile = await checkProfileComplete(auth)
     next(hasCompleteProfile ? '/rides' : '/athlete')
-    // Clean up justLoggedIn flag AFTER navigation so App.vue can render the dashboard
     localStorage.removeItem('bikemaster_just_logged_in')
     auth.setJustLoggedIn(false)
     ui.setOauthLoading(false)
     return
+  }
+
+  if (ui.oauthLoading) {
+    ui.setOauthLoading(false)
   }
 
   next()

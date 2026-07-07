@@ -421,35 +421,9 @@ calendarError.value = e.message || 'Error deleting'
    } catch (e) {
      calendarError.value = e.message || 'Error completing'
    }
- }
-
-async function fetchWeatherForecast() {
-  if (!form.value.lat || !form.value.lon || !form.value.date) {
-    weatherForecast.value = null
-    return
   }
-  try {
-    weatherForecast.value = await apiGet('/api/v1/weather', { lat: form.value.lat, lon: form.value.lon, date: form.value.date })
-  } catch (e) {
-    weatherForecast.value = null
-  }
-}
 
-function weatherScoreClass(ev) {
-  if (!ev.weather_temp || !ev.weather_humidity) return 5
-  const score = Math.round((ev.weather_temp >= 5 && ev.weather_temp <= 30 && ev.weather_humidity < 70) ? 8 : (ev.weather_temp >= 0 && ev.weather_temp <= 35 ? 6 : 3))
-  return score
-}
-
-const weatherScore = computed(() => {
-  if (!weatherForecast.value) return 5
-  const s = weatherForecast.value.score || 5
-  return s
-})
-
-const weatherForecast = ref(null)
-
-let initialized = false
+  let initialized = false
 
 onMounted(async () => {
   await loadAthletes()
@@ -473,56 +447,11 @@ watch([currentYear, currentMonth], () => {
   if (!initialized) return
   loadEvents()
 })
-
-watch(form, () => {
-  if (form.value.lat && form.value.lon && form.value.date) {
-    fetchWeatherForecast()
-  }
-}, { deep: true })
 </script>
 
-<style scoped>
-.weather-badge {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.75em;
-  margin-left: 6px;
-}
-.weather-score-0 { background: #fee2e2; color: #991b1b; }
-.weather-score-1 { background: #fef3c7; color: #92400e; }
-.weather-score-2 { background: #dbeafe; color: #1e40af; }
-.weather-score-3 { background: #dcfce7; color: #166534; }
-.weather-score-4 { background: #dcfce7; color: #166534; }
-
-.weather-preview {
-  grid-column: span 2;
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-  margin-top: 8px;
-}
-.weather-info {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.weather-score {
-  font-weight: 600;
-}
-.score-8, .score-9, .score-10 { color: #166534; }
-.score-5, .score-6, .score-7 { color: #92400e; }
-.score-0, .score-1, .score-2, .score-3, .score-4 { color: #991b1b; }
-
+  <style scoped>
 .fitness-chart-panel {
   position: relative;
   height: 260px;
-}
-
-.month-label {
-  font-weight: 600;
-  color: var(--text-primary);
-  padding: 0 12px;
-  font-size: 0.95rem;
 }
 </style>

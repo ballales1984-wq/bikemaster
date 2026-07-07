@@ -215,10 +215,6 @@ onUnmounted(() => {
     font-size: 0.78rem;
   }
 
-  .tab span {
-    display: none;
-  }
-
   .logout-btn span {
     display: none;
   }
