@@ -86,15 +86,27 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem(USER_KEY, JSON.stringify(user.value))
   }
 
-  function register(username: string, password: string): Promise<unknown> {
-    return fetch('/api/v1/auth/register', {
+  async function register(username: string, password: string): Promise<unknown> {
+    const resp = await fetch('/api/v1/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
-    }).then(r => {
-      if (!r.ok) throw new Error('Registration failed')
-      return r.json()
-    })
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      const detail = (err as { detail?: unknown }).detail;
+      let message = 'Registration failed';
+      if (typeof detail === 'string') {
+        message = detail;
+      } else if (Array.isArray(detail)) {
+        const messages = detail
+          .map((d) => (typeof d === 'object' && d && 'msg' in d ? String((d as { msg?: unknown }).msg) : String(d)))
+          .filter(Boolean);
+        if (messages.length) message = messages.join('; ');
+      }
+      throw new Error(message);
+    }
+    return resp.json();
   }
 
   async function logout(): Promise<void> {

@@ -203,8 +203,6 @@ async function submit() {
   loading.value = true;
   try {
     emit(mode.value, { ...form.value });
-  } catch (e) {
-    emit("error", e.message);
   } finally {
     loading.value = false;
   }
