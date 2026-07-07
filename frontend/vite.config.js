@@ -41,6 +41,14 @@ export default defineConfig({
         clientsClaim: true,
         runtimeCaching: [
           {
+            urlPattern: ({ url }) => url.pathname.startsWith("/api/v1/rides"),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "bikemaster-rides",
+              expiration: { maxEntries: 50, maxAgeSeconds: 30 },
+            },
+          },
+          {
             urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
             handler: "NetworkFirst",
             options: {
