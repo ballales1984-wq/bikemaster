@@ -173,6 +173,45 @@ def _kb(query: str, max_chunks: int = 3, session=None) -> str:
     return "\n\n---\n\n".join(parts)
 
 
+def _system_prompt() -> str:
+    return (
+        "Sei un coach ciclistico esperto. Rispondi in modo BREVE, SPECIFICO e PRATICO. "
+        "Usa la conoscenza fornita quando disponibile. Non chiedere informazioni gia date."
+    )
+
+
+def _few_shot_training_examples() -> str:
+    return (
+        "ESEMPI:\n"
+        "Q: Come migliorare il FTP?\n"
+        "A: **1.** Aggiungi 2 sessioni di soglia da 20 min a settimana. "
+        "**2.** Inserisci una sessione di VO2max (6x3 min) per stimolare la potenza. "
+        "**3.** Monitora la recovery: se TSB <-15 riduci l'intensita."
+    )
+
+
+def _few_shot_recovery_examples() -> str:
+    return (
+        "ESEMPI:\n"
+        "Q: Recupero dopo una gara?\n"
+        "A: **1.** Dormi 8-10 ore per 48h e reintegra carboidrati entro 30 min. "
+        "**2.** Fai 15-20 min di pedalata molto leggera per attivare il circolo. "
+        "**3.** Evita sessioni intense per 24-48h se il TSB e molto negativo."
+    )
+
+
+def _rules_section() -> str:
+    return (
+        "REGOLE:\n"
+        f"- {_LANG_INSTRUCTION}\n"
+        "- Ogni consiglio inizia con numero e titolo in grassetto.\n"
+        "- Massimo 2 righe per consiglio.\n"
+        "- Non usare backtick, codice o emoji.\n"
+        "- Non aggiungere saluti o chiusure.\n"
+        "- Usa numeri interi quando possibile."
+    )
+
+
 def _generate_local_training_advice(athlete: AthleteProfile, rides: list[Ride]) -> str:
     level = (athlete.experience_level or "beginner").lower()
     terrain = (athlete.preferred_terrain or "").lower()
@@ -365,46 +404,36 @@ def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete
     history_section = ""
     if athlete_id:
         try:
-            from ..db.database import get_chat_history
+            from ..db.database import get_chat_history, prune_chat_history
+            from ..settings import get_settings
 
+            prune_chat_history(athlete_id, None, get_settings().ai_coach_chat_retention_days)
             history = get_chat_history(athlete_id, limit=5)
             if history:
-                history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join(
-                    [f"{h['role']}: {h['content'][:200]}" for h in reversed(history)]
+                history_section = (
+                    "\n\nCONVERSAZIONE PRECEDENTE:\n"
+                    + "\n".join(f"{h['role']}: {h['content'][:200]}" for h in reversed(history))
                 )
         except Exception as exc:
             logger.debug("Chat history fetch failed (non-critical): %s", exc)
-            pass
     total_rides = stats.get("total_rides", 0)
     avg_distance = stats.get("avg_distance_km", 0)
     today_str = now.strftime("%Y-%m-%d")
-    training_intro = "Sei un coach ciclistico esperto. Genera 3 consigli di allenamento BREVI e SPECIFICI."
-    prompt = f"""{training_intro}{history_section}{rag_section}
-
- Profilo atleta:
- {_build_athlete_context(athlete)}
-
- Dati recenti:
- - Performance score: {perf}/10
- - Recovery score: {recovery}/10
- - Ultime 3 uscite: {recent_info}
- - Totale uscite in archivio: {int(total_rides) if total_rides == int(total_rides) else total_rides}
- - Distanza media: {int(avg_distance) if avg_distance == int(avg_distance) else avg_distance:.1f} km
- - Giorno corrente: {today_str}
- - Archivio temporale: {days_span} giorni
-
- REGOLE:
- - {_LANG_INSTRUCTION}
- - Ogni consiglio deve iniziare con un numero e un titolo in grassetto (es: **1. Obiettivo principale**)
- - Massimo 2 righe per consiglio
- - Usa i numeri interi quando possibile (es: 3 volte, non 3.0 volte)
- - Non usare backtick, codice o formattazione markdown speciale
- - Non usare emoji
- - Non aggiungere saluti o chiusure tipo "Buon allenamento!"
- - Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
- - Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
- - Non mostrare valori con .0 se sono interi (es: scrivi "3 volte" non "3.0 volte")
-        """
+    prompt = (
+        f"{_system_prompt()}\n"
+        f"{_few_shot_training_examples()}\n"
+        f"{history_section}{rag_section}\n\n"
+        f"Profilo atleta:\n{_build_athlete_context(athlete)}\n\n"
+        f"Dati recenti:\n"
+        f"- Performance score: {perf}/10\n"
+        f"- Recovery score: {recovery}/10\n"
+        f"- Ultime 3 uscite: {recent_info}\n"
+        f"- Totale uscite in archivio: {int(total_rides) if total_rides == int(total_rides) else total_rides}\n"
+        f"- Distanza media: {int(avg_distance) if avg_distance == int(avg_distance) else avg_distance:.1f} km\n"
+        f"- Giorno corrente: {today_str}\n"
+        f"- Archivio temporale: {days_span} giorni\n\n"
+        f"{_rules_section()}"
+    )
 
     max_retries = 3
     attempt = 0
@@ -469,38 +498,31 @@ def generate_recovery_advice(
     history_section = ""
     if athlete_id:
         try:
-            from ..db.database import get_chat_history
+            from ..db.database import get_chat_history, prune_chat_history
+            from ..settings import get_settings
 
+            prune_chat_history(athlete_id, None, get_settings().ai_coach_chat_retention_days)
             history = get_chat_history(athlete_id, limit=5)
             if history:
-                history_section = "\n\nCONVERSAZIONE PRECEDENTE:\n" + "\n".join(
-                    [f"{h['role']}: {h['content'][:200]}" for h in reversed(history)]
+                history_section = (
+                    "\n\nCONVERSAZIONE PRECEDENTE:\n"
+                    + "\n".join(f"{h['role']}: {h['content'][:200]}" for h in reversed(history))
                 )
         except Exception as exc:
             logger.debug("Chat history fetch failed (non-critical): %s", exc)
-            pass
     recovery_intro = "Sei un coach di recupero ciclistico. Genera 2 consigli BREVI per il recupero di oggi."
-    prompt = f"""{recovery_intro}{history_section}{rag_section}
-
- Profilo atleta:
- {_build_athlete_context(athlete)}
-
-        Dati:
- - Recovery score: {recovery}/10
- - Ultima uscita: {recent_info}
- - Allenamenti archiviati: {stats.get("total_rides", 0)}
- - Giorno corrente: {now.strftime("%Y-%m-%d")}
-
- REGOLE:
- - {_LANG_INSTRUCTION}
- - Ogni consiglio deve iniziare con un numero e un titolo in grassetto
- - Massimo 2 righe per consiglio
- - Sei CONCRETO: parla di durata sonno, idratazione, stretching, alimentazione
- - Non ripetere numeri o dati gia forniti nella risposta
- - Non usare backtick o markdown speciale
- - Se la sezione CONOSCENZE APPLICATE e presente, integrale nei consigli in modo naturale
- - Se la sezione CONVERSAZIONE PRECEDENTE e presente, NON chiedere informazioni gia fornite
- """
+    prompt = (
+        f"{_system_prompt()}\n"
+        f"{_few_shot_recovery_examples()}\n"
+        f"{history_section}{rag_section}\n\n"
+        f"Profilo atleta:\n{_build_athlete_context(athlete)}\n\n"
+        f"Dati:\n"
+        f"- Recovery score: {recovery}/10\n"
+        f"- Ultima uscita: {recent_info}\n"
+        f"- Allenamenti archiviati: {stats.get('total_rides', 0)}\n"
+        f"- Giorno corrente: {now.strftime('%Y-%m-%d')}\n\n"
+        f"{_rules_section()}"
+    )
 
     max_retries = 3
     attempt = 0

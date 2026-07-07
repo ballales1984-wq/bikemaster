@@ -2,6 +2,7 @@ package com.bikemaster.tracking
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,10 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.bikemaster.R
+import com.google.android.gms.location.ActivityRecognition
+import com.google.android.gms.location.ActivityRecognitionClient
+import com.google.android.gms.location.ActivityRecognitionResult
+import com.google.android.gms.location.DetectedActivity
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -37,6 +42,7 @@ class BikeTrackingService : Service() {
         const val ACTION_STOP = "com.bikemaster.action.STOP_TRACKING"
         const val ACTION_STATE = "com.bikemaster.action.TRACKING_STATE"
         const val ACTION_STOPPED = "com.bikemaster.action.TRACKING_STOPPED"
+        const val ACTION_ACTIVITY = "com.bikemaster.action.ACTIVITY_EVENT"
         const val EXTRA_OUTPUT_PATH = "output_path"
         const val EXTRA_ERROR = "error"
 
@@ -61,6 +67,8 @@ class BikeTrackingService : Service() {
     }
 
     private var fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+    private var activityRecognitionClient: ActivityRecognitionClient? = null
+    private var activityPendingIntent: PendingIntent? = null
     private var locationCallback: LocationCallback? = null
     private val isTracking = AtomicBoolean(false)
     private val isPaused = AtomicBoolean(false)
@@ -79,6 +87,7 @@ class BikeTrackingService : Service() {
         super.onCreate()
         createNotificationChannel()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        activityRecognitionClient = ActivityRecognition.getClient(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -87,6 +96,12 @@ class BikeTrackingService : Service() {
             ACTION_PAUSE -> pauseTracking()
             ACTION_RESUME -> resumeTracking()
             ACTION_STOP -> stopTrackingAndSave()
+            ACTION_ACTIVITY -> {
+                if (ActivityRecognitionResult.hasResult(intent)) {
+                    val result = ActivityRecognitionResult.extractResult(intent)
+                    handleActivityRecognition(result)
+                }
+            }
         }
         return START_STICKY
     }
@@ -144,6 +159,7 @@ class BikeTrackingService : Service() {
         }
 
         startLocationUpdates()
+        startActivityRecognition()
         broadcastState()
     }
 
@@ -297,10 +313,56 @@ class BikeTrackingService : Service() {
         return results[0] / 1000.0
     }
 
+    private fun startActivityRecognition() {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACTIVITY_RECOGNITION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        val intent = Intent(this, BikeTrackingService::class.java).apply { action = ACTION_ACTIVITY }
+        activityPendingIntent = PendingIntent.getService(this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
+        activityRecognitionClient?.requestActivityUpdates(5000L, activityPendingIntent!!)
+    }
+
+    private fun handleActivityRecognition(result: ActivityRecognitionResult?) {
+        val event = result?.mostProbableActivity ?: return
+        when (event.type) {
+            DetectedActivity.STILL -> considerAutoPause()
+            DetectedActivity.ON_BICYCLE, DetectedActivity.IN_VEHICLE, DetectedActivity.ON_FOOT -> considerAutoResume()
+            else -> Unit
+        }
+    }
+
+    private fun considerAutoPause() {
+        if (!isTracking.get() || isPaused.get()) return
+        val state = _trackingState.value
+        if (AutoPausePolicy.shouldPause(state.currentSpeed, DetectedActivity.STILL, false)) {
+            pauseTracking()
+        }
+    }
+
+    private fun considerAutoResume() {
+        if (!isTracking.get() || !isPaused.get()) return
+        val state = _trackingState.value
+        val activityType = if (state.currentSpeed >= 3.0) DetectedActivity.ON_BICYCLE else DetectedActivity.STILL
+        if (AutoPausePolicy.shouldPause(state.currentSpeed, activityType, true).not()) {
+            resumeTracking()
+        }
+    }
+
+    private fun stopActivityRecognition() {
+        activityPendingIntent?.let {
+            activityRecognitionClient?.removeActivityUpdates(it)
+            it.cancel()
+        }
+        activityPendingIntent = null
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
         locationCallback?.let { fusedLocationClient.removeLocationUpdates(it) }
+        stopActivityRecognition()
         gpxWriter?.close()
         super.onDestroy()
     }

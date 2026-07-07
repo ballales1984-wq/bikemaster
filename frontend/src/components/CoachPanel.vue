@@ -106,6 +106,28 @@ class="msg-bubble" v-html="formatMsg(msg.content)" />
         @input="autoResize"
       />
       <button
+        v-if="voiceSupported"
+        class="voice-btn"
+        :class="{ listening: isListening }"
+        :disabled="thinking"
+        :title="isListening ? 'Stop listening' : 'Voice input'"
+        :aria-label="isListening ? 'Stop listening' : 'Voice input'"
+        @click="toggleVoice"
+      >
+        <span v-if="!isListening">🎤</span>
+        <span v-else>⏹️</span>
+      </button>
+      <button
+        v-if="ttsSupported"
+        class="voice-btn"
+        :disabled="thinking || !lastAssistantMessage"
+        :title="autoRead ? 'Disable voice' : 'Enable voice'"
+        :aria-label="autoRead ? 'Disable voice' : 'Enable voice'"
+        @click="toggleAutoRead"
+      >
+        <span>{{ autoRead ? "🔊" : "🔇" }}</span>
+      </button>
+      <button
         class="send-btn"
         :disabled="!userInput.trim() || thinking"
         @click="sendMessage"
@@ -195,6 +217,61 @@ function autoResize(e) {
   el.style.height = Math.min(el.scrollHeight, 120) + "px";
 }
 
+const voiceSupported = ref(false)
+const ttsSupported = ref(false)
+const isListening = ref(false)
+const autoRead = ref(false)
+const lastAssistantMessage = ref("")
+const recognition = ref<any>(null)
+
+function initVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+  voiceSupported.value = !!SpeechRecognition
+  ttsSupported.value = typeof window !== 'undefined' && 'speechSynthesis' in window
+  if (voiceSupported.value) {
+    recognition.value = new SpeechRecognition()
+    recognition.value.continuous = false
+    recognition.value.interimResults = false
+    recognition.value.lang = 'it-IT'
+    recognition.value.onresult = (event) => {
+      const transcript = event.results[0][0].transcript
+      userInput.value = transcript
+    }
+    recognition.value.onend = () => {
+      isListening.value = false
+    }
+    recognition.value.onerror = () => {
+      isListening.value = false
+    }
+  }
+}
+
+function toggleVoice() {
+  if (!recognition.value) return
+  if (isListening.value) {
+    recognition.value.stop()
+    isListening.value = false
+  } else {
+    isListening.value = true
+    recognition.value.start()
+  }
+}
+
+function toggleAutoRead() {
+  autoRead.value = !autoRead.value
+  if (autoRead.value && lastAssistantMessage.value) {
+    speak(lastAssistantMessage.value)
+  }
+}
+
+function speak(text) {
+  if (!ttsSupported.value) return
+  window.speechSynthesis.cancel()
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.lang = 'it-IT'
+  window.speechSynthesis.speak(utterance)
+}
+
 async function sendMessage() {
   const text = userInput.value.trim();
   if (!text || thinking.value) return;
@@ -217,6 +294,10 @@ async function sendMessage() {
     const reply =
       resp.response || resp.message || resp.advice || JSON.stringify(resp);
     messages.value.push({ role: "assistant", content: reply, time: getTime() });
+    lastAssistantMessage.value = reply
+    if (autoRead.value) {
+      speak(reply)
+    }
   } catch (e) {
     messages.value.push({
       role: "assistant",
@@ -278,7 +359,10 @@ async function init() {
   }
 }
 
-onMounted(() => init());
+onMounted(() => {
+  init();
+  initVoice();
+});
 </script>
 
 <style scoped>
@@ -579,6 +663,49 @@ onMounted(() => init());
   flex-shrink: 0;
   transition: var(--transition);
   box-shadow: 0 4px 12px rgba(0, 255, 204, 0.3);
+}
+
+.voice-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+
+.voice-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.voice-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.voice-btn.listening {
+  background: rgba(255, 80, 80, 0.15);
+  border-color: #ff5050;
+  color: #ff5050;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 80, 80, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 80, 80, 0);
+  }
 }
 
 .send-btn:hover:not(:disabled) {

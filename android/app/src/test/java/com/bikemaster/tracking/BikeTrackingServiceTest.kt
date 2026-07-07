@@ -48,4 +48,24 @@ class TrackingUtilsTest {
         assertEquals(25.5, state.currentSpeed, 0.1)
         assertEquals(100, state.points)
     }
+
+    @Test
+    fun autoPausePolicy_pausesWhenStillBelowThreshold() {
+        assertTrue(AutoPausePolicy.shouldPause(0.5, 3, false))
+    }
+
+    @Test
+    fun autoPausePolicy_keepsTrackingWhenMovingFastAndStill() {
+        assertFalse(AutoPausePolicy.shouldPause(15.0, 3, false))
+    }
+
+    @Test
+    fun autoPausePolicy_resumesWhenOnBikeAndFast() {
+        assertFalse(AutoPausePolicy.shouldPause(10.0, 7, true))
+    }
+
+    @Test
+    fun autoPausePolicy_staysPausedWhenStillAndSlow() {
+        assertTrue(AutoPausePolicy.shouldPause(0.5, 3, true))
+    }
 }

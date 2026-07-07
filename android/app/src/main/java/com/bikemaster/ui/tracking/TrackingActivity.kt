@@ -18,6 +18,7 @@ import com.bikemaster.R
 import com.bikemaster.databinding.ActivityTrackingBinding
 import com.bikemaster.network.ApiClient
 import com.bikemaster.sensors.SensorManager
+import com.bikemaster.tracking.BikeTrackingPlugin
 import com.bikemaster.tracking.BikeTrackingService
 import com.bikemaster.tracking.TrackingState
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -92,14 +93,8 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
             return
         }
 
-<<<<<<< Updated upstream
-        val outputPath = getDefaultFilePath()
-        currentOutputPath = outputPath
-        BikeTrackingService.startService(this, outputPath)
-=======
         currentOutputPath = getDefaultFilePath()
         BikeTrackingService.startService(this, currentOutputPath ?: return)
->>>>>>> Stashed changes
         binding.btnStart.isEnabled = false
         binding.btnStop.isEnabled = true
         binding.btnPause.isEnabled = true
@@ -176,14 +171,12 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
                         currentOutputPath = outputPath
                         binding.btnSave.isEnabled = true
                         Toast.makeText(this@TrackingActivity, "Tracciamento completato", Toast.LENGTH_SHORT).show()
+                        BikeTrackingPlugin.notifyTrackingComplete(this, outputPath)
                     }
                     binding.btnStart.isEnabled = true
                     binding.btnStop.isEnabled = false
                     binding.btnPause.isEnabled = false
-<<<<<<< Updated upstream
-=======
                     binding.btnPause.text = "Pausa"
->>>>>>> Stashed changes
                 }
             }
         }
@@ -226,13 +219,9 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
                 PolylineOptions().add(point).color(getColor(R.color.purple_500)).width(8f)
             )
         } else {
-<<<<<<< Updated upstream
-            polyline?.setPoints(trackingPoints)
-=======
             val points = polyline?.points?.toMutableList() ?: mutableListOf()
             points.add(point)
             polyline?.points = points
->>>>>>> Stashed changes
             polyline
         }
     }
