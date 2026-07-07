@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { GpsPoint } from '../types/index'
+import { apiUpload } from '../utils/api'
 
 export const useTrackingStore = defineStore('tracking', () => {
   const isTracking = ref(false)
@@ -36,6 +37,17 @@ export const useTrackingStore = defineStore('tracking', () => {
   function stop() {
     isTracking.value = false
     isPaused.value = false
+    void autoUpload()
+  }
+
+  async function autoUpload() {
+    const blob = gpxBlob.value
+    if (!blob) return
+    try {
+      await apiUpload('/api/v1/import/gpx', blob)
+    } catch (e) {
+      console.error('Auto-upload GPX failed', e)
+    }
   }
 
   function updateMetrics(payload: {

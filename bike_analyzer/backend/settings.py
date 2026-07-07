@@ -80,6 +80,7 @@ class Settings(BaseSettings):
 
     # === AI Coach ===
     ai_coach_mode: str = "external"
+    ai_coach_chat_retention_days: int = 90
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
     openai_api_key: str = ""
