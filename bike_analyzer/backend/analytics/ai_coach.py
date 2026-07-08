@@ -638,7 +638,9 @@ def _generate_fallback_recovery_advice(
             else f"{base}\n**3. Alimentazione** Consumate carboidrati e proteine "
             "nella ratio 3:1 entro 30 min dal termine"
         )
-    return f"{_FALLBACK_PREFIX}{advice}"
+    return f"{_FALLBACK_PREFIX}{advice}" if not message else (
+        f"Domanda: {message}\n\n{_FALLBACK_PREFIX}{advice}"
+    )
 
 
 generate_recovery_recommendations = generate_recovery_advice

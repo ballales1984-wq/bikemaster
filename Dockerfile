@@ -5,6 +5,7 @@ ENV PATH="./node_modules/.bin:$PATH"
 COPY frontend/package*.json ./
 RUN npm install --legacy-peer-deps
 COPY frontend/src/ ./src/
+COPY frontend/scripts/ ./scripts/
 COPY frontend/*.json ./
 COPY frontend/*.js ./
 COPY frontend/*.html ./
