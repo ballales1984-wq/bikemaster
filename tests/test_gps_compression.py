@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import pytest
+from datetime import UTC, datetime
 
 from bike_analyzer.backend.ingestion.gps_parser import douglas_peucker, points_to_ride
-from datetime import datetime, timezone
 
 
 def _ts(i: int) -> datetime:
-    return datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc).replace(second=i)
+    return datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC).replace(second=i)
 
 
 def test_douglas_peucker_preserves_endpoints():

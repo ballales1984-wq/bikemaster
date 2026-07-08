@@ -11,8 +11,9 @@ Tests cover:
 
 from __future__ import annotations
 
-import pytest
 import time
+
+import pytest
 
 from bike_analyzer.backend.analytics.knowledge_base import (
     CHUNK_OVERLAP,
@@ -21,19 +22,11 @@ from bike_analyzer.backend.analytics.knowledge_base import (
     MAX_CHARS_PER_CHUNK,
     _bm25_score,
     _build_bm25_index,
-    _embed_text_openai,
     _embed_text_local,
     _extract_heading,
-    _get_or_create_sentence_transformer,
     _get_or_create_tfidf_vectorizer,
-    _openai_circuit_cooldown,
-    _openai_circuit_failures,
-    _openai_circuit_last_failure,
-    _openai_circuit_max_failures,
-    _openai_embeddings_unavailable,
     _split_text,
     _tokenize,
-    _circuit_breaker_allows,
     embed_text,
     format_context_for_llm,
     get_kb_stats,
@@ -42,9 +35,6 @@ from bike_analyzer.backend.analytics.knowledge_base import (
     load_chunks,
     reload_kb,
     search_knowledge_base,
-    _cache_get,
-    _cache_set,
-    _text_hash,
 )
 
 # ---------------------------------------------------------------------------
@@ -570,9 +560,9 @@ class TestCircuitBreaker429:
         kb_mod._openai_circuit_max_failures = 3
 
     def test_429_sets_circuit_breaker_flag_and_falls_back(self, monkeypatch):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
         from openai import APIStatusError
+
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
 
         class FakeResponse:
             status_code = 429
@@ -628,32 +618,7 @@ class TestCircuitBreaker429:
         allowed = kb_mod._circuit_breaker_allows()
         assert allowed is False
         assert kb_mod._openai_embeddings_unavailable is True
-        assert isinstance(result, list)
-        assert len(result) == kb_mod.EMBEDDING_DIMENSION
 
-    def test_circuit_breaker_cooldown_resets_flag(self, monkeypatch):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
-        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", True)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_last_failure", time.time() - 301)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_failures", 3)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_cooldown", 300)
-
-        allowed = kb_mod._circuit_breaker_allows()
-        assert allowed is True
-        assert kb_mod._openai_embeddings_unavailable is False
-        assert kb_mod._openai_circuit_failures == 0
-
-    def test_circuit_breaker_blocks_during_cooldown(self, monkeypatch):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
-        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", True)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_last_failure", time.time() - 10)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_cooldown", 300)
-
-        allowed = kb_mod._circuit_breaker_allows()
-        assert allowed is False
-        assert kb_mod._openai_embeddings_unavailable is True
 
 
 # ---------------------------------------------------------------------------

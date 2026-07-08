@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-import pytest
-
 from bike_analyzer.core.models import (
     AthleteProfile,
     CalendarEvent,

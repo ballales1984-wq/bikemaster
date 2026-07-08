@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import contextlib
 import json
 import secrets
@@ -13,8 +12,6 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urlparse
-
-from jose import JWTError, jwt
 
 import requests
 from fastapi import (
@@ -29,6 +26,7 @@ from fastapi import (
 )
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from jose import JWTError, jwt
 from sqlalchemy import insert
 
 from ..analytics.analytics import calculate_summary

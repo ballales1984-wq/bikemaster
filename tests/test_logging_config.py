@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 
 import pytest
 
@@ -33,7 +32,6 @@ def test_request_id_filter_adds_field(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setenv("LOG_FORMAT", "json")
     setup_logging()
-    logger = logging.getLogger("test_request_id")
     record = logging.LogRecord(
         name="test",
         level=logging.INFO,
@@ -46,4 +44,4 @@ def test_request_id_filter_adds_field(monkeypatch: pytest.MonkeyPatch):
     record.request_id = "abc-123"
     filt = lc._RequestIdFilter()
     assert filt.filter(record) is True
-    assert getattr(record, "request_id") == "abc-123"
+    assert record.request_id == "abc-123"

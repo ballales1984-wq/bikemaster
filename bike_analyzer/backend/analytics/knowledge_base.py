@@ -16,7 +16,6 @@ import os
 import re
 import time
 from functools import lru_cache
-from pathlib import Path
 
 import numpy as np
 import sqlalchemy as sa
@@ -752,25 +751,6 @@ def _embed_text_openai(text: str) -> list[float] | None:
                     _openai_circuit_failures,
                     _openai_circuit_max_failures,
                 )
-        return None
-
-
-def _embed_text_sentence_transformer(text: str) -> list[float] | None:
-    """Embed text using sentence-transformers (semantic model)."""
-    model = _get_or_create_sentence_transformer()
-    if model is None:
-        return None
-    try:
-        emb = model.encode(text, normalize_embeddings=True)
-        if hasattr(emb, "tolist"):
-            emb = emb.tolist()
-        if len(emb) < EMBEDDING_DIMENSION:
-            emb = np.pad(emb, (0, EMBEDDING_DIMENSION - len(emb))).tolist()
-        elif len(emb) > EMBEDDING_DIMENSION:
-            emb = emb[:EMBEDDING_DIMENSION]
-        return emb
-    except Exception as exc:
-        logger.debug("sentence-transformers embedding failed: %s", exc)
         return None
 
 

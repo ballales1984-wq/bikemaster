@@ -220,7 +220,12 @@ def test_generate_speed_chart_with_data():
         mock_plt.savefig = lambda *a, **k: None
         mock_plt.close = lambda: None
         points = [
-            GPSPoint(lat=45.0 + i * 0.01, lon=9.0 + i * 0.01, timestamp=datetime(2024, 1, 1, i, tzinfo=UTC), speed=20.0 + i)
+            GPSPoint(
+                lat=45.0 + i * 0.01,
+                lon=9.0 + i * 0.01,
+                timestamp=datetime(2024, 1, 1, i, tzinfo=UTC),
+                speed=20.0 + i,
+            )
             for i in range(5)
         ]
         result = generate_speed_chart(points)

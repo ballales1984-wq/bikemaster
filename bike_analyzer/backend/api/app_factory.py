@@ -127,6 +127,8 @@ def create_app() -> FastAPI:
             content={"detail": str(exc)},
         )
 
+    AUDIT_SKIP_PATHS = {"/healthz", "/health", "/metrics", "/api/v1/health", "/api/v1/health/redis", "/api/v1/health/detailed"}
+
     @app.middleware("http")
     async def correlation_id_middleware(request: Request, call_next):
         import uuid
@@ -144,6 +146,9 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def audit_log_middleware(request: Request, call_next):
         import time
+
+        if request.url.path in AUDIT_SKIP_PATHS:
+            return await call_next(request)
 
         start = time.time()
         user_id = "anonymous"
