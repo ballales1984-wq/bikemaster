@@ -1,11 +1,14 @@
 """Tests for core engine module."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from bike_analyzer.core.engine import AnalysisEngine, EngineResult
+from bike_analyzer.core.fitness_state import FitnessStateVector
 from bike_analyzer.core.models import Ride
+from bike_analyzer.core.pipeline import PipelineResult
+from bike_analyzer.core.fitness_state import FitnessStateVector
 
 
 def _ride(**kwargs):
@@ -122,3 +125,115 @@ class TestProcessRidesBatch:
         rides = [_ride(id=i) for i in range(2)]
         results = await engine.process_rides_batch(rides, athlete_id=1)
         assert len(results) == 2
+
+
+class TestProcessRideBatchHistorical:
+    @pytest.mark.asyncio
+    async def test_batch_loads_history_and_processes(self):
+        engine = AnalysisEngine()
+        ride = _ride(id=10)
+        historical = [_ride(id=i, date=f"2024-05-{10+i:02d}") for i in range(5)]
+        with patch.object(engine, "_load_historical_rides", return_value=historical), \
+             patch.object(engine, "_persist_fitness_state"):
+            results = await engine.process_rides_batch([ride], athlete_id=1, session_factory=object())
+        assert len(results) == 1
+        assert results[0].success is True
+
+
+class TestLoadHistoricalRides:
+    @pytest.mark.asyncio
+    async def test_load_history_success(self):
+        engine = AnalysisEngine()
+        fake_rides = [
+            {"id": 1, "date": "2024-05-01", "distance_km": 20.0, "athlete_id": 1}
+        ]
+        mock_fn = AsyncMock(return_value=fake_rides)
+        with patch("bike_analyzer.backend.db.async_db.get_rides_by_athlete_async", mock_fn):
+            result = await engine._load_historical_rides(1, lambda: None)
+        assert len(result) == 1
+        assert result[0].id == 1
+
+    @pytest.mark.asyncio
+    async def test_load_history_failure_returns_empty(self):
+        engine = AnalysisEngine()
+        mock_fn = AsyncMock(side_effect=RuntimeError("db down"))
+        with patch("bike_analyzer.backend.db.async_db.get_rides_by_athlete_async", mock_fn):
+            result = await engine._load_historical_rides(1, lambda: None)
+        assert result == []
+
+
+class TestUpdateFitnessState:
+    @pytest.mark.asyncio
+    async def test_without_historical_rides(self):
+        engine = AnalysisEngine(ftp=250.0)
+        ride = _ride(duration_minutes=60)
+        state = await engine._update_fitness_state(ride, athlete_id=1, session_factory=None)
+        assert state is not None
+        assert state.athlete_id == 1
+        assert state.atl > 0
+        assert state.ctl > 0
+
+    @pytest.mark.asyncio
+    async def test_with_historical_rides(self):
+        engine = AnalysisEngine(ftp=250.0)
+        historical = [
+            _ride(id=i, date="2024-05-01", duration_minutes=60)
+            for i in range(3)
+        ]
+        ride = _ride(id=10, date="2024-05-02", duration_minutes=60)
+        state = await engine._update_fitness_state(ride, athlete_id=1, session_factory=None, historical_rides=historical)
+        assert state is not None
+        assert state.athlete_id == 1
+
+    @pytest.mark.asyncio
+    async def test_no_athlete_id_returns_none(self):
+        engine = AnalysisEngine()
+        ride = _ride()
+        state = await engine._update_fitness_state(ride, athlete_id=None, session_factory=None)
+        assert state is None
+
+
+class TestPersistFitnessState:
+    @pytest.mark.asyncio
+    async def test_persist_when_repository_unavailable(self):
+        engine = AnalysisEngine()
+        state = FitnessStateVector(
+            athlete_id=1,
+            computed_at=datetime.now(UTC),
+            atl=10.0,
+            ctl=20.0,
+            tsb=-10.0,
+            fitness=20.0,
+            fatigue=10.0,
+            form=-10.0,
+            recovery_hours_needed=20.0,
+            weekly_tss=100.0,
+            monthly_tss=400.0,
+            trend_7d="stable",
+            trend_30d="stable",
+        )
+        with patch("bike_analyzer.core.engine.FitnessStateRepository", None):
+            await engine._persist_fitness_state(state, lambda: None)
+
+    @pytest.mark.asyncio
+    async def test_persist_error_is_swallowed(self):
+        engine = AnalysisEngine()
+        state = FitnessStateVector(
+            athlete_id=1,
+            computed_at=datetime.now(UTC),
+            atl=10.0,
+            ctl=20.0,
+            tsb=-10.0,
+            fitness=20.0,
+            fatigue=10.0,
+            form=-10.0,
+            recovery_hours_needed=20.0,
+            weekly_tss=100.0,
+            monthly_tss=400.0,
+            trend_7d="stable",
+            trend_30d="stable",
+        )
+        fake_repo = AsyncMock()
+        fake_repo.save.side_effect = RuntimeError("db error")
+        with patch("bike_analyzer.core.engine.FitnessStateRepository", return_value=fake_repo):
+            await engine._persist_fitness_state(state, lambda: None)

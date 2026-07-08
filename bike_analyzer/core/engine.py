@@ -89,7 +89,7 @@ class AnalysisEngine:
         self, athlete_id: int, session_factory, tenant_id: int | None = None, limit: int = 90
     ) -> list[Ride]:
         try:
-            from ..db.async_db import get_rides_by_athlete_async
+            from ..backend.db.async_db import get_rides_by_athlete_async
 
             raw_rides = await get_rides_by_athlete_async(athlete_id, tenant_id=tenant_id, limit=limit)
             return [Ride(**r) for r in raw_rides]
