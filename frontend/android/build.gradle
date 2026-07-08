@@ -4,6 +4,11 @@ plugins {
     id 'kotlin-parcelize'
 }
 
+repositories {
+    google()
+    mavenCentral()
+}
+
 android {
     namespace 'com.bikemaster'
     compileSdk 34
@@ -14,10 +19,36 @@ android {
         targetSdk 34
         versionCode 1
         versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    testOptions {
+        unitTests {
+            returnDefaultValues = true
+            includeAndroidResources = true
+        }
     }
 }
 
 dependencies {
     implementation project(':capacitor')
     implementation 'com.getcapacitor:capacitor:5.7.4'
+
+    // Activity Recognition (Google Play Location Services) for #224
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
+
+    // Local unit tests (#227)
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20231013'
+
+    // Instrumented (road) tests (#228)
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test:rules:1.5.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }

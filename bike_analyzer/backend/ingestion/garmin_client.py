@@ -30,17 +30,15 @@ from typing import Any
 
 import requests
 
-from ..config import (
-    GARMIN_API_BASE_URL,
-    GARMIN_AUTH_URL,
-    GARMIN_CONSUMER_KEY,
-    GARMIN_CONSUMER_SECRET,
-    GARMIN_REDIRECT_URI,
-    GARMIN_SCOPE,
-    GARMIN_TOKEN_URL,
-)
+from ..settings import get_settings
+
+_s = get_settings()
 
 logger = logging.getLogger(__name__)
+
+_GARMIN_AUTH_URL = "https://connect.garmin.com/oauthConfirm"
+_GARMIN_TOKEN_URL = "https://connect.garmin.com/oauth2/token"
+_GARMIN_API_BASE_URL = "https://apis.garmin.com/fitness/v1"
 
 _TOKEN_TTL_SECONDS = 3600
 _TOKEN_REFRESH_BUFFER_SECONDS = 300
@@ -53,31 +51,31 @@ _TOKEN_REFRESH_BUFFER_SECONDS = 300
 
 def get_authorization_url(state: str | None = None) -> dict[str, str]:
     """Return dict with auth_url and state."""
-    if not GARMIN_CONSUMER_KEY:
+    if not _s.garmin_consumer_key:
         raise RuntimeError("GARMIN_CONSUMER_KEY not configured")
     state = state or secrets.token_urlsafe(16)
     params = {
-        "client_id": GARMIN_CONSUMER_KEY,
-        "redirect_uri": GARMIN_REDIRECT_URI,
+        "client_id": _s.garmin_consumer_key,
+        "redirect_uri": _s.garmin_redirect_uri,
         "response_type": "code",
-        "scope": GARMIN_SCOPE,
+        "scope": _s.garmin_scope,
         "state": state,
     }
-    auth_url = f"{GARMIN_AUTH_URL}?{requests.compat.urlencode(params)}"
+    auth_url = f"{_GARMIN_AUTH_URL}?{requests.compat.urlencode(params)}"
     return {"auth_url": auth_url, "state": state}
 
 
 def exchange_code_for_token(code: str, redirect_uri: str | None = None) -> dict[str, Any]:
     """Exchange authorization code for access + refresh tokens."""
-    redirect_uri = redirect_uri or GARMIN_REDIRECT_URI
+    redirect_uri = redirect_uri or _s.garmin_redirect_uri
     payload = {
         "grant_type": "authorization_code",
         "code": code,
-        "client_id": GARMIN_CONSUMER_KEY,
-        "client_secret": GARMIN_CONSUMER_SECRET,
+        "client_id": _s.garmin_consumer_key,
+        "client_secret": _s.garmin_consumer_secret,
         "redirect_uri": redirect_uri,
     }
-    resp = requests.post(GARMIN_TOKEN_URL, data=payload, timeout=15)
+    resp = requests.post(_GARMIN_TOKEN_URL, data=payload, timeout=15)
     resp.raise_for_status()
     return resp.json()
 
@@ -87,10 +85,10 @@ def refresh_access_token(refresh_token: str) -> dict[str, Any]:
     payload = {
         "grant_type": "refresh_token",
         "refresh_token": refresh_token,
-        "client_id": GARMIN_CONSUMER_KEY,
-        "client_secret": GARMIN_CONSUMER_SECRET,
+        "client_id": _s.garmin_consumer_key,
+        "client_secret": _s.garmin_consumer_secret,
     }
-    resp = requests.post(GARMIN_TOKEN_URL, data=payload, timeout=15)
+    resp = requests.post(_GARMIN_TOKEN_URL, data=payload, timeout=15)
     resp.raise_for_status()
     return resp.json()
 
@@ -194,7 +192,7 @@ def fetch_activities(access_token: str) -> list[dict[str, Any]]:
     """Fetch cycling activities from Garmin Connect."""
     headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
     resp = requests.get(
-        f"{GARMIN_API_BASE_URL}/activities",
+        f"{_GARMIN_API_BASE_URL}/activities",
         headers=headers,
         timeout=20,
     )

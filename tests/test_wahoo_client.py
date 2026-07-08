@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from bike_analyzer.backend.ingestion import wahoo_client
 from bike_analyzer.backend.ingestion.wahoo_client import (
     build_authorization_url,
     exchange_code_for_token,
@@ -61,28 +62,28 @@ class TestBuildAuthorizationUrl:
 
 
 class TestGetAuthorizationUrl:
-    def test_raises_without_client_id(self):
-        with patch("bike_analyzer.backend.ingestion.wahoo_client.WAHOO_CLIENT_ID", ""):
-            with pytest.raises(RuntimeError, match="WAHOO_CLIENT_ID not configured"):
-                get_authorization_url()
+    def test_raises_without_client_id(self, monkeypatch):
+        monkeypatch.setattr(wahoo_client._s, "wahoo_client_id", "")
+        with pytest.raises(RuntimeError, match="WAHOO_CLIENT_ID not configured"):
+            get_authorization_url()
 
-    def test_returns_expected_keys(self):
-        with patch("bike_analyzer.backend.ingestion.wahoo_client.WAHOO_CLIENT_ID", "test_id"):
-            result = get_authorization_url()
-            assert "auth_url" in result
-            assert "state" in result
-            assert "code_verifier" in result
+    def test_returns_expected_keys(self, monkeypatch):
+        monkeypatch.setattr(wahoo_client._s, "wahoo_client_id", "test_id")
+        result = get_authorization_url()
+        assert "auth_url" in result
+        assert "state" in result
+        assert "code_verifier" in result
 
-    def test_uses_provided_state(self):
-        with patch("bike_analyzer.backend.ingestion.wahoo_client.WAHOO_CLIENT_ID", "test_id"):
-            result = get_authorization_url(state="custom_state")
-            assert result["state"] == "custom_state"
+    def test_uses_provided_state(self, monkeypatch):
+        monkeypatch.setattr(wahoo_client._s, "wahoo_client_id", "test_id")
+        result = get_authorization_url(state="custom_state")
+        assert result["state"] == "custom_state"
 
-    def test_generates_unique_verifiers(self):
-        with patch("bike_analyzer.backend.ingestion.wahoo_client.WAHOO_CLIENT_ID", "test_id"):
-            r1 = get_authorization_url()
-            r2 = get_authorization_url()
-            assert r1["code_verifier"] != r2["code_verifier"]
+    def test_generates_unique_verifiers(self, monkeypatch):
+        monkeypatch.setattr(wahoo_client._s, "wahoo_client_id", "test_id")
+        r1 = get_authorization_url()
+        r2 = get_authorization_url()
+        assert r1["code_verifier"] != r2["code_verifier"]
 
 
 class TestExchangeCodeForToken:

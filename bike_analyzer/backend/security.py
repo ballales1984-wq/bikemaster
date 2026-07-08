@@ -24,17 +24,19 @@ from fastapi.responses import Response
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
-from .config import (
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-    ALGORITHM,
-    JWT_AUDIENCE,
-    JWT_ISSUER,
-    SECRET_KEY,
-    SECRET_KEY_PREVIOUS,
-)
 from .redis_client import get_redis
+from .settings import get_settings
 
 logger = logging.getLogger(__name__)
+
+_s = get_settings()
+
+ALGORITHM = _s.algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = _s.access_token_expire_minutes
+JWT_AUDIENCE = _s.jwt_audience
+JWT_ISSUER = _s.jwt_issuer
+SECRET_KEY = _s.secret_key
+SECRET_KEY_PREVIOUS = _s.secret_key_previous
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
@@ -151,7 +153,7 @@ async def _await_if_needed(value):
 
 
 def fingerprint_token(token: str) -> str:
-    raw = f"{token}:{SECRET_KEY}"
+    raw = f"{token}:{_s.secret_key}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
@@ -176,28 +178,28 @@ def create_access_token(
     jti: str | None = None,
     tenant_id: int | None = None,
 ) -> str:
-    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=_s.access_token_expire_minutes))
     if jti is None:
-        jti = hashlib.sha256(f"{subject}:{time.time()}:{SECRET_KEY}".encode()).hexdigest()[:32]
+        jti = hashlib.sha256(f"{subject}:{time.time()}:{_s.secret_key}".encode()).hexdigest()[:32]
     payload = {
         "sub": subject,
         "is_admin": is_admin,
         "iat": datetime.now(UTC),
         "exp": expire,
-        "iss": JWT_ISSUER,
-        "aud": JWT_AUDIENCE,
+        "iss": _s.jwt_issuer,
+        "aud": _s.jwt_audience,
         "jti": jti,
     }
     if tenant_id is not None:
         payload["tenant_id"] = tenant_id
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, _s.secret_key, algorithm=_s.algorithm)
 
 
 def create_refresh_token(
     subject: str, is_admin: bool = False, tenant_id: int | None = None
 ) -> str:
     expire = datetime.now(UTC) + timedelta(days=30)
-    jti = hashlib.sha256(f"refresh:{subject}:{time.time()}:{SECRET_KEY}".encode()).hexdigest()[:32]
+    jti = hashlib.sha256(f"refresh:{subject}:{time.time()}:{_s.secret_key}".encode()).hexdigest()[:32]
     payload = {
         "sub": subject,
         "is_admin": is_admin,
@@ -205,17 +207,17 @@ def create_refresh_token(
         "jti": jti,
         "iat": datetime.now(UTC),
         "exp": expire,
-        "iss": JWT_ISSUER,
-        "aud": JWT_AUDIENCE,
+        "iss": _s.jwt_issuer,
+        "aud": _s.jwt_audience,
     }
     if tenant_id is not None:
         payload["tenant_id"] = tenant_id
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, _s.secret_key, algorithm=_s.algorithm)
 
 
 def _try_decode(token: str, secret: str) -> dict | None:
     try:
-        return jwt.decode(token, secret, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE)
+        return jwt.decode(token, secret, algorithms=[_s.algorithm], issuer=_s.jwt_issuer, audience=_s.jwt_audience)
     except JWTError:
         return None
 
@@ -223,11 +225,11 @@ def _try_decode(token: str, secret: str) -> dict | None:
 async def decode_token_with_fallback(token: str | None) -> dict | None:
     if not isinstance(token, str):
         return None
-    payload = _try_decode(token, SECRET_KEY)
+    payload = _try_decode(token, _s.secret_key)
     if payload is not None:
         return payload
-    if SECRET_KEY_PREVIOUS:
-        payload = _try_decode(token, SECRET_KEY_PREVIOUS)
+    if _s.secret_key_previous:
+        payload = _try_decode(token, _s.secret_key_previous)
         if payload is not None:
             logger.debug("Token decoded with previous secret key")
             return payload
@@ -397,7 +399,7 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str |
         httponly=True,
         secure=secure,
         samesite=samesite,
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        max_age=_s.access_token_expire_minutes * 60,
         path="/",
     )
     if refresh_token:

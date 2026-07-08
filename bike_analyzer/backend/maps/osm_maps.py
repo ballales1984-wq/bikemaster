@@ -12,10 +12,12 @@ from typing import Any
 
 import requests
 
-from ..config import NOMINATIM_BASE_URL
 from ..models.models import GPSPoint
+from ..settings import get_settings
 
-_NOMINATIM_BASE = NOMINATIM_BASE_URL
+_s = get_settings()
+
+_NOMINATIM_BASE = _s.nominatim_base_url
 _USER_AGENT = "BikeMaster/1.0 (https://github.com/your-repo)"
 _RATE_LIMIT_S = 1.05
 

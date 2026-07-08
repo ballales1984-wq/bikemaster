@@ -27,7 +27,10 @@ except ImportError:
     sessionmaker = None
     create_engine = None
 
-from ..config import DATABASE_URL
+from ..settings import get_settings
+
+_s = get_settings()
+DATABASE_URL = _s.database_url
 
 if SQLALCHEMY_AVAILABLE and DATABASE_URL:
     engine = create_engine(DATABASE_URL, echo=False)

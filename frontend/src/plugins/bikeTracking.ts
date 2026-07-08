@@ -1,7 +1,17 @@
 import { registerPlugin } from '@capacitor/core'
 
+export interface StartTrackingOptions {
+  outputPath?: string
+  authToken?: string
+  apiBaseUrl?: string
+  rideName?: string
+}
+
 export interface TrackingResult {
   gpxPath: string | null
+  activities?: string
+  uploadStatus?: 'success' | 'error' | 'skipped' | 'unknown'
+  rideId?: number | null
 }
 
 export interface PermissionsResult {
@@ -11,7 +21,7 @@ export interface PermissionsResult {
 export const BikeTracking = registerPlugin<BikeTrackingApi>('BikeTracking')
 
 export interface BikeTrackingApi {
-  startTracking(): Promise<void>
+  startTracking(options?: StartTrackingOptions): Promise<void>
   stopTracking(): Promise<TrackingResult>
   pauseTracking(): Promise<void>
   resumeTracking(): Promise<void>

@@ -18,7 +18,6 @@ import pytest
 from bike_analyzer.backend.analytics.knowledge_base import (
     CHUNK_OVERLAP,
     EMBEDDING_DIMENSION,
-    KB_PATH,
     MAX_CHARS_PER_CHUNK,
     _bm25_score,
     _build_bm25_index,
@@ -160,18 +159,18 @@ class TestLoadChunks:
         assert a is b  # same cached object
 
     def test_missing_kb_path(self, tmp_path):
-        original = KB_PATH
-        try:
-            import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
 
-            kb_mod.KB_PATH = tmp_path / "missing"
+        original = kb_mod._s.kb_path
+        try:
+            kb_mod._s.kb_path = tmp_path / "missing"
             from bike_analyzer.backend.analytics.knowledge_base import reload_kb
 
             reload_kb()
             chunks = load_chunks()
             assert chunks == []
         finally:
-            kb_mod.KB_PATH = original
+            kb_mod._s.kb_path = original
             reload_kb()
 
 

@@ -14,8 +14,10 @@ from typing import Any
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
-from ..config import GOOGLE_HEALTH_CLIENT_ID, GOOGLE_HEALTH_CLIENT_SECRET, GOOGLE_HEALTH_SCOPE
+from ..settings import get_settings
 from .gps_parser import points_to_ride
+
+_s = get_settings()
 
 GOOGLE_HEALTH_API_BASE = "https://health.googleapis.com/v4"
 
@@ -40,7 +42,7 @@ def get_authorization_url(
         "client_id": client_id,
         "redirect_uri": redirect_uri,
         "response_type": "code",
-        "scope": GOOGLE_HEALTH_SCOPE,
+        "scope": _s.google_health_scope,
         "access_type": "offline",
         "include_granted_scopes": "true",
         "state": state,
@@ -84,9 +86,9 @@ def _build_credentials(token_data: dict) -> Credentials:
         token=token_data.get("access_token", ""),
         refresh_token=token_data.get("refresh_token", ""),
         token_uri="https://oauth2.googleapis.com/token",
-        client_id=GOOGLE_HEALTH_CLIENT_ID,
-        client_secret=GOOGLE_HEALTH_CLIENT_SECRET,
-        scopes=GOOGLE_HEALTH_SCOPE.split(),
+        client_id=_s.google_health_client_id,
+        client_secret=_s.google_health_client_secret,
+        scopes=_s.google_health_scope.split(),
     )
 
 
