@@ -127,7 +127,14 @@ def create_app() -> FastAPI:
             content={"detail": str(exc)},
         )
 
-    AUDIT_SKIP_PATHS = {"/healthz", "/health", "/metrics", "/api/v1/health", "/api/v1/health/redis", "/api/v1/health/detailed"}
+    AUDIT_SKIP_PATHS = {
+        "/healthz",
+        "/health",
+        "/metrics",
+        "/api/v1/health",
+        "/api/v1/health/redis",
+        "/api/v1/health/detailed",
+    }
 
     @app.middleware("http")
     async def correlation_id_middleware(request: Request, call_next):
