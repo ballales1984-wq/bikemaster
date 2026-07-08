@@ -7,6 +7,8 @@ All settings are loaded from environment variables with sensible defaults.
 from __future__ import annotations
 
 import logging
+import os
+import sys
 from pathlib import Path
 
 from pydantic import model_validator
@@ -94,6 +96,7 @@ class Settings(BaseSettings):
 
     # === JWT / Auth ===
     secret_key: str = ""
+    secret_key_previous: str = ""
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     jwt_issuer: str = "bikemaster"
@@ -174,6 +177,31 @@ class Settings(BaseSettings):
             )
         elif not self.database_url and not self.db_path:
             self.db_path = "rides.db"
+        return self
+
+    @model_validator(mode="after")
+    def _validate_secret_key(self) -> Settings:
+        _ENV = self.environment.lower()
+        _IS_PROD = _ENV in ("production", "prod", "staging")
+        _PLACEHOLDER_KEYS = (
+            "your-secret-key-here",
+            "changeme",
+            "change-me",
+            "secret",
+            "<SECRET_KEY>",
+            "REPLACE_ME",
+            "",
+        )
+        if self.secret_key.strip() not in _PLACEHOLDER_KEYS:
+            self.secret_key_previous = ""
+        else:
+            if _IS_PROD:
+                logging.critical(
+                    "SECRET_KEY non valida. Usa un valore casuale >= 32 caratteri (es. openssl rand -hex 32)."
+                )
+                sys.exit(1)
+            self.secret_key = "test-secret-key-for-development-please-override"
+            self.secret_key_previous = os.getenv("SECRET_KEY_PREVIOUS", "")
         return self
 
 

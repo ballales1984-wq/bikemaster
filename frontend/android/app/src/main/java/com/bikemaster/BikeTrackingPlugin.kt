@@ -12,12 +12,14 @@ import android.content.BroadcastReceiver
 import android.content.IntentFilter
 import androidx.core.content.ContextCompat
 
-@CapacitorPlugin(
+    @CapacitorPlugin(
     name = "BikeTracking",
     permissions = [
         Permission(strings = ["android.permission.ACCESS_COARSE_LOCATION"], description = "GPS location for tracking rides"),
         Permission(strings = ["android.permission.ACCESS_FINE_LOCATION"], description = "Precise GPS location for ride tracking"),
-        Permission(strings = ["android.permission.ACCESS_BACKGROUND_LOCATION"], description = "Background GPS for continuous tracking")
+        Permission(strings = ["android.permission.ACCESS_BACKGROUND_LOCATION"], description = "Background GPS for continuous tracking"),
+        Permission(strings = ["android.permission.ACTIVITY_RECOGNITION"], description = "Detect walking/cycling/still during rides"),
+        Permission(strings = ["android.permission.POST_NOTIFICATIONS"], description = "Notify when a ride upload completes")
     ]
 )
 class BikeTrackingPlugin : Plugin() {
@@ -30,9 +32,15 @@ class BikeTrackingPlugin : Plugin() {
         }
 
         val outputPath = call.getString("outputPath", "")
+        val authToken = call.getString("authToken", "")
+        val apiBaseUrl = call.getString("apiBaseUrl", "")
+        val rideName = call.getString("rideName", "")
         val intent = Intent(activity, BikeTrackingService::class.java).apply {
             action = BikeTrackingService.ACTION_START
             putExtra(BikeTrackingService.EXTRA_OUTPUT_PATH, outputPath)
+            putExtra(BikeTrackingService.EXTRA_AUTH_TOKEN, authToken)
+            putExtra(BikeTrackingService.EXTRA_API_BASE_URL, apiBaseUrl)
+            putExtra(BikeTrackingService.EXTRA_RIDE_NAME, rideName)
         }
         ContextCompat.startForegroundService(activity, intent)
         call.resolve()
@@ -44,7 +52,15 @@ class BikeTrackingPlugin : Plugin() {
         val stopReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 val outputPath = intent?.getStringExtra(BikeTrackingService.EXTRA_OUTPUT_PATH)
-                val result = JSObject().apply { put("gpxPath", outputPath) }
+                val activities = intent?.getStringExtra(BikeTrackingService.EXTRA_ACTIVITIES)
+                val uploadStatus = intent?.getStringExtra(BikeTrackingService.EXTRA_UPLOAD_STATUS)
+                val rideId = intent?.getLongExtra(BikeTrackingService.EXTRA_RIDE_ID, -1L)
+                val result = JSObject().apply {
+                    put("gpxPath", outputPath)
+                    put("activities", activities ?: "[]")
+                    put("uploadStatus", uploadStatus ?: "unknown")
+                    put("rideId", if (rideId != null && rideId >= 0) rideId else null)
+                }
                 savedCall.resolve(result)
             }
         }

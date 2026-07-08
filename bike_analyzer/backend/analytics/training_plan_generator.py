@@ -16,8 +16,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from ..config import AI_COACH_MODE
 from ..models.models import AthleteProfile, Ride
+from ..settings import get_settings
+
+_s = get_settings()
 
 
 @dataclass
@@ -196,10 +198,9 @@ def _try_llm_plan(
 ) -> dict[str, Any] | None:
     try:
         from ..analytics.ai_coach import _chat_completion_text, _clean_ai_output, get_ai_coach_client
-        from ..config import GROQ_MODEL, OPENAI_MODEL
 
         client, provider = get_ai_coach_client()
-        model = GROQ_MODEL if provider == "groq" else OPENAI_MODEL
+        model = _s.groq_model if provider == "groq" else _s.openai_model
         prompt = _llm_plan_prompt(athlete, rides, plan_type, start_date)
         raw = _chat_completion_text(client, model, prompt, max_tokens=1200)
         cleaned = _clean_ai_output(raw)
@@ -229,7 +230,7 @@ def generate_weekly_plan(
     """
     rides = rides or []
     start = datetime.fromisoformat(start_date) if start_date else datetime.now(UTC)
-    env_mode = (AI_COACH_MODE or "").strip().lower()
+    env_mode = (_s.ai_coach_mode or "").strip().lower()
     if env_mode not in {"local", "offline", "fallback"}:
         llm = _try_llm_plan(athlete, rides, "settimanale", start)
         if llm:
@@ -267,7 +268,7 @@ def generate_monthly_plan(
     """
     rides = rides or []
     start = datetime.fromisoformat(start_date) if start_date else datetime.now(UTC)
-    env_mode = (AI_COACH_MODE or "").strip().lower()
+    env_mode = (_s.ai_coach_mode or "").strip().lower()
     if env_mode not in {"local", "offline", "fallback"}:
         llm = _try_llm_plan(athlete, rides, "mensile", start)
         if llm:

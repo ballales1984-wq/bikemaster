@@ -8,12 +8,14 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
-from ..config import DB_PATH
 from ..models.models import Ride
+from ..settings import get_settings
 from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+_s = get_settings()
+DB_PATH = _s.db_path
 _INITIAL_DB_PATH = DB_PATH
 
 

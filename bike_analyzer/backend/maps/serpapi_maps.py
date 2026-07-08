@@ -8,8 +8,10 @@ from typing import Any
 
 import requests
 
-from ..config import SERPAPI_API_KEY, SERPAPI_BASE_URL, SERPAPI_ENGINE
 from ..models.models import GPSPoint
+from ..settings import get_settings
+
+_s = get_settings()
 
 logger = logging.getLogger(__name__)
 _SERPAPI_RATE_LIMIT_S = 1.0
@@ -24,12 +26,12 @@ def _wait_for_rate_limit() -> None:
 
 
 def search_places(query: str, lat: float | None = None, lon: float | None = None) -> dict[str, Any] | None:
-    if not SERPAPI_API_KEY:
+    if not _s.serpapi_api_key:
         return None
     params = {
-        "engine": SERPAPI_ENGINE,
+        "engine": _s.serpapi_engine,
         "q": query,
-        "api_key": SERPAPI_API_KEY,
+        "api_key": _s.serpapi_api_key,
     }
     if lat is not None and lon is not None:
         params["ll"] = f"@{lat},{lon},15z"
@@ -37,7 +39,7 @@ def search_places(query: str, lat: float | None = None, lon: float | None = None
 
     try:
         _wait_for_rate_limit()
-        resp = requests.get(SERPAPI_BASE_URL, params=params, timeout=20)
+        resp = requests.get(_s.serpapi_base_url, params=params, timeout=20)
         global _serpapi_last_request_ts
         _serpapi_last_request_ts = time.time()
         if resp.status_code == 429:

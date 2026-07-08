@@ -144,7 +144,7 @@
 |:---:|---|---|
 | 169 | Strava API (import/export) | ✅ |
 | 170 | Garmin Connect API | ✅ |
-| 171 | Wahoo | ❌ |
+| 171 | Wahoo | ✅ |
 
 ## 🔄 Fase 18 — AI Coach Avanzato (In Corso)
 
@@ -154,7 +154,7 @@
 | 186 | Tool calling / function calling | ✅ |
 | 187 | Memory persistente conversazioni per utente | 🔄 Parziale |
 | 188 | Personalizzazione basata su storico completo | ✅ |
-| 189 | Voice input/output | ❌ |
+| 189 | Voice input/output | ✅ |
 | 190 | Prompt engineering avanzato | 🔄 |
 
 ## ✅ Fase 19 — Sicurezza & Produzione (Completata)
@@ -200,11 +200,11 @@
 | 221 | Auto-pause (< 3 km/h) | ✅ |
 | 222 | Permessi runtime Android | ✅ |
 | 223 | Sensori BLE (HR, Cadence, Power) | ✅ |
-| 224 | Activity recognition | ❌ |
-| 225 | Upload automatico su /rides/import | ❌ |
-| 226 | Notifica push completamento | ❌ |
-| 227 | Unit test Kotlin | ❌ |
-| 228 | Test strada Android | ❌ |
+| 224 | Activity recognition | ✅ |
+| 225 | Upload automatico su /rides/import | ✅ |
+| 226 | Notifica push completamento | ✅ |
+| 227 | Unit test Kotlin | ✅ |
+| 228 | Test strada Android | ✅ |
 | 229 | Documentazione | ✅ |
 | 230 | README + link pagina track | ✅ |
 
@@ -215,7 +215,7 @@
 | 231 | Domain events (RideCreated, AthleteUpdated, BadgeEarned) | ✅ |
 | 232 | Separazione layer domain/application/infrastructure | ✅ |
 | 233 | Servizi registrati nel lifespan FastAPI | 🔄 |
-| 234 | Rimozione config.py legacy | ❌ (mantenuto per compatibilita) |
+| 234 | Rimozione config.py legacy | ✅ (decoupled; file in attesa di rimozione per lock OS) |
 
 ## ✅ Fase 24 — Vector DB & AI RAG Avanzato (Completata)
 
@@ -251,8 +251,8 @@
 | ~~4~~ | ~~PWA completa + offline support~~ | ~~Alto~~ | ~~Media~~ | ✅ |
 | ~~5~~ | ~~Ruff + mypy + pre-commit~~ | ~~Medio-Alto~~ | ~~Bassa~~ | ✅ |
 | **1** | Integazioni restanti (Wahoo, cloud hosted, Helm, one-click deploy) | Alto | Alta | ❌ |
-| **2** | Phone GPS follow-up (upload auto, push, activity recognition, test Kotlin/strada) | Alto | Media | ❌ |
-| **3** | Voice input/output AI Coach + prompt engineering avanzato | Medio | Media | ❌ |
+| **2** | Phone GPS follow-up (upload auto, push, activity recognition, test Kotlin/strada) | Alto | Media | ✅ |
+| **3** | Voice input/output AI Coach + prompt engineering avanzato | Medio | Media | ✅ |
 | **4** | Design System + theme tokens + rimozione config.py legacy | Medio | Bassa | 🔄 |
 | **5** | Coverage test >90% (metrica informativa) | Medio | Alta | 🔄 |
 | **6** | Logging centralizzato e strutturato | Medio | Bassa | 🔄 |

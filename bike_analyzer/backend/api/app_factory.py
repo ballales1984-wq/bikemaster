@@ -16,16 +16,18 @@ from pydantic import ValidationError
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
-from ..config import CORS_ORIGINS, ENVIRONMENT, SECRET_KEY
 from ..logging_config import REQUEST_ID_HEADER
 from ..monitoring import MetricsMiddleware
 from ..observability import init_observability
 from ..rate_limiter import limiter
 from ..redis_client import close_redis, get_redis
+from ..settings import get_settings
 from ..task_queue import get_task_queue
 from .routes import admin_router, router
 
 logger = logging.getLogger(__name__)
+
+_s = get_settings()
 STATIC_DIR = Path(__file__).parent.parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
 
@@ -76,7 +78,7 @@ def create_app() -> FastAPI:
     init_observability(app)
 
     # Conditional Prometheus instrumentation for compatibility
-    if ENVIRONMENT.lower() not in ("test", "testing"):
+    if _s.environment.lower() not in ("test", "testing"):
         try:
             instrumentator = Instrumentator(
                 should_group_status_codes=True,
@@ -88,7 +90,7 @@ def create_app() -> FastAPI:
         except Exception:
             pass
     # Skip OpenTelemetry instrumentation in test environment
-    if ENVIRONMENT.lower() in ("test", "testing"):
+    if _s.environment.lower() in ("test", "testing"):
         pass  # Observability already skipped
     app.state.limiter = limiter
     app.add_exception_handler(429, _rate_limit_exceeded_handler)
@@ -156,7 +158,7 @@ def create_app() -> FastAPI:
                 from ..security import _try_decode
 
                 token = auth_header[7:]
-                payload = _try_decode(token, SECRET_KEY)
+                payload = _try_decode(token, _s.secret_key)
                 if payload:
                     user_id = str(payload.get("sub", "anonymous"))
         except Exception:
@@ -186,7 +188,7 @@ def create_app() -> FastAPI:
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        if ENVIRONMENT.lower() in ("production", "prod"):
+        if _s.environment.lower() in ("production", "prod"):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; img-src 'self' data: https:; "
@@ -201,10 +203,12 @@ def create_app() -> FastAPI:
         return response
 
     cors_origins = (
-        [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()] if isinstance(CORS_ORIGINS, str) else CORS_ORIGINS
+        [o.strip() for o in _s.cors_origins.split(",") if o.strip()]
+        if isinstance(_s.cors_origins, str)
+        else _s.cors_origins
     )
     if "*" in cors_origins:
-        if ENVIRONMENT.lower() in ("production", "prod", "staging"):
+        if _s.environment.lower() in ("production", "prod", "staging"):
             logger.error(
                 "CORS wildcard origin detected in production — forbidding. "
                 "Set CORS_ORIGINS to explicit allowed origins."
@@ -212,7 +216,7 @@ def create_app() -> FastAPI:
             cors_origins = []
         else:
             logger.warning("Wildcard CORS origin detected - this is dangerous in production")
-    if not cors_origins and ENVIRONMENT.lower() not in ("development", "dev", "test"):
+    if not cors_origins and _s.environment.lower() not in ("development", "dev", "test"):
         logger.error("No CORS origins configured in non-development environment")
         cors_origins = []
     app.add_middleware(

@@ -7,17 +7,18 @@ from datetime import UTC, datetime
 
 import requests
 
+from ..settings import get_settings
+
+_s = get_settings()
+
 WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5"
 
 
 def _get_weather_api_key() -> str:
-    # Check environment first (for testing), then fallback to config
     key = os.environ.get("WEATHER_API_KEY") or os.environ.get("OPENWEATHER_API_KEY")
     if key:
         return key
-    from ..config import WEATHER_API_KEY
-
-    return WEATHER_API_KEY
+    return _s.weather_api_key
 
 
 def get_weather_for_coordinates(lat: float, lon: float, date: str | None = None) -> dict:

@@ -29,17 +29,15 @@ from typing import Any
 
 import requests
 
-from ..config import (
-    WAHOO_API_BASE_URL,
-    WAHOO_AUTH_URL,
-    WAHOO_CLIENT_ID,
-    WAHOO_CLIENT_SECRET,
-    WAHOO_REDIRECT_URI,
-    WAHOO_SCOPE,
-    WAHOO_TOKEN_URL,
-)
+from ..settings import get_settings
+
+_s = get_settings()
 
 logger = logging.getLogger(__name__)
+
+WAHOO_AUTH_URL = "https://api.wahooligan.com/oauth/authorize"
+WAHOO_TOKEN_URL = "https://api.wahooligan.com/oauth/token"
+WAHOO_API_BASE_URL = "https://api.wahooligan.com"
 
 OAUTH_STATE_TTL_SECONDS = 600
 TOKEN_REFRESH_BUFFER_SECONDS = 300
@@ -58,10 +56,10 @@ def generate_code_challenge(verifier: str) -> str:
 
 def build_authorization_url(state: str, code_challenge: str) -> str:
     params = {
-        "client_id": WAHOO_CLIENT_ID,
-        "redirect_uri": WAHOO_REDIRECT_URI,
+        "client_id": _s.wahoo_client_id,
+        "redirect_uri": _s.wahoo_redirect_uri,
         "response_type": "code",
-        "scope": WAHOO_SCOPE,
+        "scope": _s.wahoo_scope,
         "state": state,
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
@@ -70,7 +68,7 @@ def build_authorization_url(state: str, code_challenge: str) -> str:
 
 
 def get_authorization_url(state: str | None = None) -> dict[str, str]:
-    if not WAHOO_CLIENT_ID:
+    if not _s.wahoo_client_id:
         raise RuntimeError("WAHOO_CLIENT_ID not configured")
     state = state or secrets.token_urlsafe(16)
     verifier = generate_code_verifier()
@@ -85,11 +83,11 @@ def get_authorization_url(state: str | None = None) -> dict[str, str]:
 
 def exchange_code_for_token(code: str, code_verifier: str) -> dict[str, Any]:
     payload = {
-        "client_id": WAHOO_CLIENT_ID,
-        "client_secret": WAHOO_CLIENT_SECRET,
+        "client_id": _s.wahoo_client_id,
+        "client_secret": _s.wahoo_client_secret,
         "code": code,
         "grant_type": "authorization_code",
-        "redirect_uri": WAHOO_REDIRECT_URI,
+        "redirect_uri": _s.wahoo_redirect_uri,
         "code_verifier": code_verifier,
     }
     resp = requests.post(WAHOO_TOKEN_URL, data=payload, timeout=15)
@@ -99,8 +97,8 @@ def exchange_code_for_token(code: str, code_verifier: str) -> dict[str, Any]:
 
 def refresh_access_token(refresh_token: str, code_verifier: str) -> dict[str, Any]:
     payload = {
-        "client_id": WAHOO_CLIENT_ID,
-        "client_secret": WAHOO_CLIENT_SECRET,
+        "client_id": _s.wahoo_client_id,
+        "client_secret": _s.wahoo_client_secret,
         "grant_type": "refresh_token",
         "refresh_token": refresh_token,
         "code_verifier": code_verifier,

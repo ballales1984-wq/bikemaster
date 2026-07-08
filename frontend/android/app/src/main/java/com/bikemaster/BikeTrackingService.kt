@@ -10,7 +10,9 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -24,7 +26,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 class BikeTrackingService : Service(), LocationListener {
     companion object {
         const val CHANNEL_ID = "bikemaster_tracking"
+        const val CHANNEL_UPLOAD_ID = "bikemaster_uploads"
         const val NOTIFICATION_ID = 101
+        const val NOTIFICATION_UPLOAD_ID = 102
         const val ACTION_START = "com.bikemaster.action.START_TRACKING"
         const val ACTION_PAUSE = "com.bikemaster.action.PAUSE_TRACKING"
         const val ACTION_RESUME = "com.bikemaster.action.RESUME_TRACKING"
@@ -32,7 +36,13 @@ class BikeTrackingService : Service(), LocationListener {
         const val ACTION_STATE = "com.bikemaster.action.TRACKING_STATE"
         const val ACTION_STOPPED = "com.bikemaster.action.TRACKING_STOPPED"
         const val EXTRA_OUTPUT_PATH = "output_path"
+        const val EXTRA_AUTH_TOKEN = "auth_token"
+        const val EXTRA_API_BASE_URL = "api_base_url"
+        const val EXTRA_RIDE_NAME = "ride_name"
         const val EXTRA_ERROR = "error"
+        const val EXTRA_ACTIVITIES = "activities"
+        const val EXTRA_UPLOAD_STATUS = "upload_status"
+        const val EXTRA_RIDE_ID = "ride_id"
 
         @JvmStatic
         fun startService(context: Context, outputPath: String) {
@@ -69,11 +79,17 @@ class BikeTrackingService : Service(), LocationListener {
     private val trackingPoints = mutableListOf<Location>()
     private lateinit var locationManager: LocationManager
 
+    private var recognizer: BikeActivityRecognizer? = null
+    private var authToken: String? = null
+    private var apiBaseUrl: String? = null
+    private var rideName: String? = null
+
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        createUploadChannel()
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
     }
 
@@ -85,6 +101,19 @@ class BikeTrackingService : Service(), LocationListener {
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "GPS tracking for rides"
+            }
+            (getSystemService(NotificationManager::class.java)).createNotificationChannel(channel)
+        }
+    }
+
+    private fun createUploadChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_UPLOAD_ID,
+                "BikeMaster Uploads",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Ride upload completion notifications"
             }
             (getSystemService(NotificationManager::class.java)).createNotificationChannel(channel)
         }
@@ -105,7 +134,12 @@ class BikeTrackingService : Service(), LocationListener {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_START -> startTracking(intent.getStringExtra(EXTRA_OUTPUT_PATH) ?: getDefaultFilePath())
+            ACTION_START -> startTracking(
+                outputPath = intent.getStringExtra(EXTRA_OUTPUT_PATH) ?: getDefaultFilePath(),
+                authToken = intent.getStringExtra(EXTRA_AUTH_TOKEN),
+                apiBaseUrl = intent.getStringExtra(EXTRA_API_BASE_URL),
+                rideName = intent.getStringExtra(EXTRA_RIDE_NAME)
+            )
             ACTION_PAUSE -> pauseTracking()
             ACTION_RESUME -> resumeTracking()
             ACTION_STOP -> stopTrackingAndSave()
@@ -113,8 +147,12 @@ class BikeTrackingService : Service(), LocationListener {
         return START_STICKY
     }
 
-    private fun startTracking(outputPath: String) {
+    private fun startTracking(outputPath: String, authToken: String?, apiBaseUrl: String?, rideName: String?) {
         if (isTracking.get()) return
+
+        this.authToken = authToken
+        this.apiBaseUrl = apiBaseUrl
+        this.rideName = rideName
 
         isTracking.set(true)
         isPaused.set(false)
@@ -122,12 +160,25 @@ class BikeTrackingService : Service(), LocationListener {
         totalDistance = 0.0
         trackingPoints.clear()
 
+        // #225: retry any rides that failed to upload while offline (background thread)
+        if (!apiBaseUrl.isNullOrBlank()) {
+            Thread { RideUploader.flushPending(this) }.start()
+        }
+
+        // #224: activity recognition (Play Services + speed heuristic fallback)
+        recognizer = BikeActivityRecognizer(this).also {
+            it.start(intervalMs = 5000L) { activity ->
+                updateNotification("Tracking — ${activity.label}")
+            }
+        }
+
         val file = File(outputPath)
         gpxFile = file
         gpxFile?.parentFile?.mkdirs()
         gpxWriter = FileWriter(file).apply {
             append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-            append("<gpx version=\"1.1\" creator=\"BikeMaster-Mobile\" xmlns=\"http://www.topografix.com/GPX/1/1/\">\n")
+            append("<gpx version=\"1.1\" creator=\"BikeMaster-Mobile\" xmlns=\"http://www.topografix.com/GPX/1/1/\" ")
+            append("xmlns:bikemaster=\"https://bikemaster.app/ns\">\n")
             append("  <trk>\n")
             append("    <trkseg>\n")
             flush()
@@ -151,6 +202,7 @@ class BikeTrackingService : Service(), LocationListener {
             return
         }
         isPaused.set(true)
+        recognizer?.onLocationSpeed(0f)
         updateNotification("Tracking in pausa")
         broadcastState()
     }
@@ -174,10 +226,15 @@ class BikeTrackingService : Service(), LocationListener {
         isTracking.set(false)
         isPaused.set(false)
         locationManager.removeUpdates(this)
+        recognizer?.finalize()
+        recognizer?.stop()
+        val segments = recognizer?.getSegments() ?: emptyList()
+        recognizer = null
 
         val outputPath = gpxFile?.absolutePath
         gpxWriter?.let {
             it.append("    </trkseg>\n")
+            it.append(GpxExtensions.buildActivityExtensionsXml(segments))
             it.append("  </trk>\n")
             it.append("</gpx>\n")
             it.flush()
@@ -186,8 +243,54 @@ class BikeTrackingService : Service(), LocationListener {
         gpxWriter = null
 
         stopForeground(STOP_FOREGROUND_REMOVE)
-        sendBroadcast(Intent(ACTION_STOPPED).apply { putExtra(EXTRA_OUTPUT_PATH, outputPath) })
+
+        val activitiesJson = GpxExtensions.segmentsToJson(segments)
+        // #225: automatic upload to the backend instead of local-only storage (background thread)
+        if (outputPath != null && !apiBaseUrl.isNullOrBlank()) {
+            val file = File(outputPath)
+            Thread {
+                RideUploader.uploadRide(this, file, apiBaseUrl!!, authToken, rideName) { result ->
+                    Handler(Looper.getMainLooper()).post {
+                        notifyUploadResult(result)
+                        sendBroadcast(
+                            Intent(ACTION_STOPPED).apply {
+                                putExtra(EXTRA_OUTPUT_PATH, outputPath)
+                                putExtra(EXTRA_ACTIVITIES, activitiesJson)
+                                putExtra(EXTRA_UPLOAD_STATUS, if (result.success) "success" else "error")
+                                putExtra(EXTRA_RIDE_ID, result.rideId ?: -1L)
+                            }
+                        )
+                    }
+                }
+            }.start()
+        } else {
+            sendBroadcast(
+                Intent(ACTION_STOPPED).apply {
+                    putExtra(EXTRA_OUTPUT_PATH, outputPath)
+                    putExtra(EXTRA_ACTIVITIES, activitiesJson)
+                    putExtra(EXTRA_UPLOAD_STATUS, "skipped")
+                }
+            )
+        }
         stopSelf()
+    }
+
+    // #226: local completion push notification (success / error)
+    private fun notifyUploadResult(result: RideUploader.UploadResult) {
+        val (title, text) = if (result.success) {
+            "Upload completato" to "La tua uscita è stata salvata${result.rideId?.let { " (ID $it)" } ?: ""}."
+        } else {
+            "Upload fallito" to result.message
+        }
+        val notification = NotificationCompat.Builder(this, CHANNEL_UPLOAD_ID)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setSmallIcon(R.drawable.ic_bike_icon)
+            .setAutoCancel(true)
+            .build()
+        (getSystemService(NotificationManager::class.java))
+            .notify(NOTIFICATION_UPLOAD_ID, notification)
     }
 
     private fun updateNotification(content: String) {
@@ -213,6 +316,11 @@ class BikeTrackingService : Service(), LocationListener {
         if (trackingPoints.size > 1) {
             val prev = trackingPoints[trackingPoints.size - 2]
             totalDistance += calculateDistance(prev, location)
+        }
+
+        // #224: feed GPS speed to the activity recognizer (used by the heuristic fallback)
+        if (location.hasSpeed()) {
+            recognizer?.onLocationSpeed(location.speed)
         }
 
         broadcastState()
@@ -260,6 +368,7 @@ class BikeTrackingService : Service(), LocationListener {
     override fun onDestroy() {
         locationManager.removeUpdates(this)
         gpxWriter?.close()
+        recognizer?.stop()
         super.onDestroy()
     }
 }
