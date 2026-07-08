@@ -48,6 +48,7 @@ env/
 .pytest_cache/
 .coverage
 coverage.xml
+coverage.json
 htmlcov/
 .pytest_cache/
 
