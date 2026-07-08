@@ -39,8 +39,10 @@ class _JsonFormatter(logging.Formatter):
         ]
 
     def format(self, record: logging.LogRecord) -> str:
+        from datetime import datetime, timezone
+
         data: dict[str, Any] = {
-            "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S.%fZ"),
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
