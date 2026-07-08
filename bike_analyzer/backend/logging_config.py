@@ -27,6 +27,35 @@ class _RequestIdFilter(logging.Filter):
         return True
 
 
+_STANDARD_RECORD_ATTRS = frozenset(
+    {
+        "args",
+        "asctime",
+        "created",
+        "exc_info",
+        "exc_text",
+        "filename",
+        "funcName",
+        "levelname",
+        "levelno",
+        "lineno",
+        "module",
+        "msecs",
+        "message",
+        "msg",
+        "name",
+        "pathname",
+        "process",
+        "processName",
+        "relativeCreated",
+        "stack_info",
+        "thread",
+        "threadName",
+        "taskName",
+    }
+)
+
+
 class _JsonFormatter(logging.Formatter):
     def __init__(self) -> None:
         super().__init__()
@@ -52,7 +81,15 @@ class _JsonFormatter(logging.Formatter):
             data["exc_info"] = self.formatException(record.exc_info)
         if record.stack_info:
             data["stack_info"] = record.stack_info
-        extra = {k: v for k, v in record.__dict__.items() if k not in self._default_fields and not k.startswith("_")}
+        # Only surface genuinely custom "extra" fields, not the standard
+        # LogRecord attributes (msg, args, pathname, lineno, thread, ...).
+        extra = {
+            k: v
+            for k, v in record.__dict__.items()
+            if k not in _STANDARD_RECORD_ATTRS
+            and k not in self._default_fields
+            and not k.startswith("_")
+        }
         if extra:
             data["extra"] = extra
         lines = ["{"]
