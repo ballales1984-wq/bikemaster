@@ -77,6 +77,37 @@ def test_detect_accelerations():
     assert len(accels) >= 0
 
 
+def test_detect_pauses_short_pause_not_appended():
+    base = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
+    points = [
+        _point(45.0, 7.0, speed=10, timestamp=base),
+        _point(45.0, 7.0, speed=0.5, timestamp=base.replace(minute=1)),
+        _point(45.0, 7.0, speed=10, timestamp=base.replace(minute=2)),
+    ]
+    pauses = detect_pauses(points)
+    assert pauses == []
+
+
+def test_detect_pauses_long_pause_appended():
+    base = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
+    points = [
+        _point(45.0, 7.0, speed=10, timestamp=base),
+        _point(45.0, 7.0, speed=0.5, timestamp=base.replace(minute=4)),
+        _point(45.0, 7.0, speed=10, timestamp=base.replace(minute=5)),
+    ]
+    pauses = detect_pauses(points)
+    assert len(pauses) == 1
+    assert pauses[0].duration_s >= PAUSE_MIN_DURATION_MINUTES * 60
+
+
+def test_detect_accelerations_single_point():
+    assert detect_accelerations([_point(45.0, 7.0)]) == []
+
+
+def test_detect_decelerations_single_point():
+    assert detect_decelerations([_point(45.0, 7.0)]) == []
+
+
 def test_detect_accelerations_none_speed():
     base = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
     points = [
@@ -182,8 +213,22 @@ def test_remove_outliers_skips_zero_time_delta():
     points = [
         _point(45.0, 7.0, speed=20, timestamp=base),
         _point(45.0, 7.0, speed=200, timestamp=base),
+        _point(45.0, 7.0, speed=20, timestamp=base.replace(minute=1)),
     ]
     cleaned = remove_outliers(points)
+    assert len(cleaned) == 2
+
+
+def test_remove_outliers_skips_middle_outlier():
+    base = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
+    points = [
+        _point(45.0, 7.0, speed=20, timestamp=base),
+        _point(45.05, 7.05, speed=200, timestamp=base.replace(second=30)),
+        _point(45.0005, 7.0005, speed=20, timestamp=base.replace(minute=1)),
+    ]
+    cleaned = remove_outliers(points)
+    assert cleaned[0] is points[0]
+    assert cleaned[-1] is points[-1]
     assert len(cleaned) == 2
 
 
