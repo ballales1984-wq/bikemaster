@@ -49,18 +49,9 @@ def _static_file_response(file_path: Path, media_type: str | None = None, header
 async def lifespan(app: FastAPI):
     from ..db.database import init_db
     from ..logging_config import setup_logging
-    from ..monitoring import start_metrics_server
 
     setup_logging()
     init_db()
-    try:
-        from ..settings import get_settings
-
-        settings = get_settings()
-        if settings.environment.lower() not in ("test", "testing"):
-            start_metrics_server()
-    except Exception:
-        pass
     await get_redis()
     task_queue = get_task_queue()
     await task_queue.start()
