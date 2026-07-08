@@ -8,7 +8,7 @@ from bike_analyzer.core.engine import AnalysisEngine, EngineResult
 from bike_analyzer.core.fitness_state import FitnessStateVector
 from bike_analyzer.core.models import Ride
 from bike_analyzer.core.pipeline import PipelineResult
-from bike_analyzer.core.fitness_state import FitnessStateVector
+from datetime import UTC, datetime
 
 
 def _ride(**kwargs):
