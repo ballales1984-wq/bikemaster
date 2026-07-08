@@ -170,6 +170,7 @@ def create_app() -> FastAPI:
             request.client.host if request.client else "unknown",
             elapsed_ms,
             request_id,
+            extra={"request_id": request_id},
         )
         if user_id != "anonymous":
             sentry_sdk.set_user({"id": user_id})
