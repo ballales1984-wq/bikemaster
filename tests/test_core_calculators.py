@@ -333,6 +333,15 @@ class TestNormalizedPower:
         np = normalized_power_approx(r)
         assert np > 0
 
+    def test_insufficient_power_falls_back_to_hr(self):
+        points = [
+            GPSPoint(lat=45.0, lon=9.0, power=200.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC))
+            for _ in range(5)
+        ]
+        r = _ride(gps_points=points, heart_rate_avg=150, avg_speed_kmh=25)
+        np = normalized_power_approx(r)
+        assert np > 0
+
     def test_zero_if_for_tss(self):
         r = _ride(duration_minutes=60, heart_rate_avg=None, avg_speed_kmh=0)
         tss = tss_from_ride(r, ftp=250)

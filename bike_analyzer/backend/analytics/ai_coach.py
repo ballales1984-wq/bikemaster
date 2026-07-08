@@ -510,7 +510,6 @@ def generate_recovery_advice(
                 )
         except Exception as exc:
             logger.debug("Chat history fetch failed (non-critical): %s", exc)
-    recovery_intro = "Sei un coach di recupero ciclistico. Genera 2 consigli BREVI per il recupero di oggi."
     prompt = (
         f"{_system_prompt()}\n"
         f"{_few_shot_recovery_examples()}\n"

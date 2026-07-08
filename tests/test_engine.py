@@ -1,5 +1,6 @@
 """Tests for core engine module."""
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -7,8 +8,6 @@ import pytest
 from bike_analyzer.core.engine import AnalysisEngine, EngineResult
 from bike_analyzer.core.fitness_state import FitnessStateVector
 from bike_analyzer.core.models import Ride
-from bike_analyzer.core.pipeline import PipelineResult
-from datetime import UTC, datetime
 
 
 def _ride(**kwargs):
@@ -181,7 +180,9 @@ class TestUpdateFitnessState:
             for i in range(3)
         ]
         ride = _ride(id=10, date="2024-05-02", duration_minutes=60)
-        state = await engine._update_fitness_state(ride, athlete_id=1, session_factory=None, historical_rides=historical)
+        state = await engine._update_fitness_state(
+            ride, athlete_id=1, session_factory=None, historical_rides=historical
+        )
         assert state is not None
         assert state.athlete_id == 1
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-import traceback
+from datetime import UTC
 from logging.config import DictConfigurator
 from typing import Any
 
@@ -23,7 +23,7 @@ REQUEST_ID_HEADER = os.getenv("LOG_REQUEST_ID_HEADER", "X-Request-ID")
 class _RequestIdFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         request_id = getattr(record, "request_id", None) or "-"
-        setattr(record, "request_id", request_id)
+        record.request_id = request_id
         return True
 
 
@@ -39,10 +39,10 @@ class _JsonFormatter(logging.Formatter):
         ]
 
     def format(self, record: logging.LogRecord) -> str:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         data: dict[str, Any] = {
-            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "timestamp": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -109,4 +109,7 @@ def setup_logging() -> None:
         DictConfigurator(config).configure()
     except Exception:
         logging.basicConfig(level=LOG_LEVEL)
-        logging.getLogger(__name__).warning("Structured logging config failed, falling back to basicConfig", exc_info=True)
+        logging.getLogger(__name__).warning(
+            "Structured logging config failed, falling back to basicConfig",
+            exc_info=True,
+        )
