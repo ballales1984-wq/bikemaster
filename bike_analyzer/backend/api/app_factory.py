@@ -127,6 +127,11 @@ def create_app() -> FastAPI:
         "/api/v1/health",
         "/api/v1/health/redis",
         "/api/v1/health/detailed",
+        # PWA static assets — not user actions, only add audit noise
+        "/registerSW.js",
+        "/sw.js",
+        "/manifest.json",
+        "/manifest.webmanifest",
     }
 
     @app.middleware("http")

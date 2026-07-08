@@ -8,8 +8,6 @@ COPY frontend/src/ ./src/
 COPY frontend/*.json ./
 COPY frontend/*.js ./
 COPY frontend/*.html ./
-COPY frontend/public/ ./public/
-COPY frontend/scripts/ ./scripts/
 RUN npm run build
 
 # === Production Stage ===
@@ -45,13 +43,20 @@ RUN chown -R bikemaster:bikemaster /app
 
 USER bikemaster
 
-ENV SENTRY_DSN="" \
-    SENTRY_ENVIRONMENT=production \
-    SENTRY_TRACES_SAMPLE_RATE=0.2
+ENV SENTRY_DSN=""
+ENV SENTRY_ENVIRONMENT=production
+ENV SENTRY_TRACES_SAMPLE_RATE=0.2
 
-EXPOSE ${PORT:-8000}
+EXPOSE 8000
 
+# Security: Healthcheck with curl
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/api/v1/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Security hardening labels for docker-compose reference
+LABEL security_profile="hardened" \
+      security_no_new_privileges="true" \
+      security_read_only="true" \
+      security_tmpfs="/tmp:noexec,nosuid,size=64m"
 
 CMD ["sh", "-c", "python main.py api --port ${PORT:-8000}"]
