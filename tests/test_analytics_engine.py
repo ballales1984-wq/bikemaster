@@ -213,11 +213,53 @@ def test_generate_speed_chart_no_speeds():
     assert result == ""
 
 
+def test_generate_speed_chart_with_data():
+    import unittest.mock as mock
+
+    with mock.patch("bike_analyzer.backend.analytics.analytics.plt") as mock_plt:
+        mock_plt.savefig = lambda *a, **k: None
+        mock_plt.close = lambda: None
+        points = [
+            GPSPoint(lat=45.0 + i * 0.01, lon=9.0 + i * 0.01, timestamp=datetime(2024, 1, 1, i, tzinfo=UTC), speed=20.0 + i)
+            for i in range(5)
+        ]
+        result = generate_speed_chart(points)
+        assert result.endswith(".png")
+
+
 def test_generate_distance_chart_empty():
     result = generate_distance_chart([])
     assert result == ""
 
 
+def test_generate_distance_chart_with_data():
+    import unittest.mock as mock
+
+    with mock.patch("bike_analyzer.backend.analytics.analytics.plt") as mock_plt:
+        mock_plt.savefig = lambda *a, **k: None
+        mock_plt.close = lambda: None
+        points = [
+            GPSPoint(lat=45.0 + i * 0.01, lon=9.0 + i * 0.01, timestamp=datetime(2024, 1, 1, i, tzinfo=UTC))
+            for i in range(3)
+        ]
+        result = generate_distance_chart(points)
+        assert result.endswith(".png")
+
+
 def test_generate_time_chart_empty():
     result = generate_time_chart([])
     assert result == ""
+
+
+def test_generate_time_chart_with_data():
+    import unittest.mock as mock
+
+    with mock.patch("bike_analyzer.backend.analytics.analytics.plt") as mock_plt:
+        mock_plt.savefig = lambda *a, **k: None
+        mock_plt.close = lambda: None
+        points = [
+            GPSPoint(lat=45.0 + i * 0.01, lon=9.0 + i * 0.01, timestamp=datetime(2024, 1, 1, i, tzinfo=UTC))
+            for i in range(3)
+        ]
+        result = generate_time_chart(points)
+        assert result.endswith(".png")
