@@ -25,6 +25,7 @@ class TestGarminOAuth:
             result = get_authorization_url()
             assert "auth_url" in result
             assert "state" in result
+            assert "response_type=code" in result["auth_url"]
             assert "garmin.com" in result["auth_url"]
 
     def test_get_authorization_url_with_state(self):

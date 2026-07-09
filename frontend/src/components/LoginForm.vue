@@ -214,10 +214,19 @@ async function submit() {
   }
 }
 
+const isMobile = /Android|iPhone|iPad|iPod|Capacitor/i.test(navigator.userAgent || '') || typeof window.Capacitor !== 'undefined';
+
+function getRedirectUri(): string {
+  if (isMobile) {
+    return 'com.bikemaster.app://callback';
+  }
+  return `${window.location.origin}/api/v1/auth/google/callback`;
+}
+
 async function loginWithGoogle() {
   loading.value = true;
   try {
-    const redirectUri = `${window.location.origin}/api/v1/auth/google/callback`;
+    const redirectUri = getRedirectUri();
     const state = btoa(JSON.stringify({ redirect_uri: redirectUri }));
     const response = await fetch(
       `/api/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`,
@@ -232,7 +241,11 @@ async function loginWithGoogle() {
       throw new Error("Google login error: invalid server response");
     }
 
-    window.location.href = data.auth_url;
+    if (isMobile) {
+      window.location.href = data.auth_url;
+    } else {
+      window.location.href = data.auth_url;
+    }
   } catch (e) {
     emit("error", e.message);
     alert(e.message);
