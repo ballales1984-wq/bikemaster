@@ -328,10 +328,10 @@ def _build_athlete_context(athlete: AthleteProfile) -> str:
     parts = [
         f"Nome: {athlete.name or 'N/A'}",
         f"Livello: {athlete.experience_level}",
-        f"Peso: {athlete.weight_kg} kg",
-        f"Eta: {athlete.age} anni",
-        f"Anni attivo: {athlete.years_active}",
-        f"Settimane/anno: {athlete.annual_hours:.0f}h totali",
+        f"Peso: {athlete.weight_kg if athlete.weight_kg is not None else 'N/A'} kg",
+        f"Eta: {athlete.age if athlete.age is not None else 'N/A'}",
+        f"Anni attivo: {athlete.years_active if athlete.years_active is not None else 'N/A'}",
+        f"Settimane/anno: {(athlete.annual_hours or 0):.0f}h totali",
     ]
     if getattr(athlete, "goals", None):
         parts.append(f"Obiettivi: {athlete.goals}")
@@ -409,13 +409,17 @@ def generate_training_advice(
         else "nessuna uscita recente"
     )
     if len(rides) >= 2:
-        first_date = min(r.date for r in rides if r.date)
-        last_date = max(r.date for r in rides if r.date)
-        try:
-            first_dt = datetime.fromisoformat(first_date)
-            last_dt = datetime.fromisoformat(last_date)
-            days_span = (last_dt - first_dt).days
-        except Exception:
+        dated = [r.date for r in rides if r.date]
+        if dated:
+            first_date = min(dated)
+            last_date = max(dated)
+            try:
+                first_dt = datetime.fromisoformat(first_date)
+                last_dt = datetime.fromisoformat(last_date)
+                days_span = (last_dt - first_dt).days
+            except Exception:
+                days_span = 0
+        else:
             days_span = 0
     else:
         days_span = 0
