@@ -8,7 +8,9 @@ from datetime import UTC, datetime
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
-from ..config import GOOGLE_FIT_CLIENT_ID, GOOGLE_FIT_CLIENT_SECRET, GOOGLE_FIT_SCOPE
+from ..settings import get_settings
+
+_s = get_settings()
 
 
 def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:8000/callback", state: str = "") -> str:
@@ -16,7 +18,7 @@ def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:
         "client_id": client_id,
         "redirect_uri": redirect_uri,
         "response_type": "code",
-        "scope": GOOGLE_FIT_SCOPE,
+        "scope": _s.google_fit_scope,
         "access_type": "offline",
         "state": state,
         "prompt": "consent",
@@ -47,9 +49,9 @@ def _build_credentials(token_data: dict) -> Credentials:
         token=token_data.get("access_token", ""),
         refresh_token=token_data.get("refresh_token", ""),
         token_uri="https://oauth2.googleapis.com/token",
-        client_id=GOOGLE_FIT_CLIENT_ID,
-        client_secret=GOOGLE_FIT_CLIENT_SECRET,
-        scopes=GOOGLE_FIT_SCOPE.split(),
+        client_id=_s.google_fit_client_id,
+        client_secret=_s.google_fit_client_secret,
+        scopes=_s.google_fit_scope.split(),
     )
 
 

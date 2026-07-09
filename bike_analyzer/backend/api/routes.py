@@ -37,7 +37,6 @@ from ..analytics.fatigue import (
 )
 from ..analytics.granfondo_planner import generate_granfondo_plan
 from ..audit_log import log_action, read_audit_logs
-from ..config import DB_PATH, SECRET_KEY
 from ..maps.map_renderer import create_route_map
 from ..maps.osm_maps import get_local_results, search_nearby, search_places
 from ..models.models import AthleteProfile, GPSPoint, Ride
@@ -46,6 +45,7 @@ from ..redis_client import cache_delete as _cache_delete
 from ..redis_client import cache_set as _cache_set
 from ..redis_client import cached as _cached
 from ..security import ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, get_admin_user, get_current_user
+from ..settings import get_settings
 from ..utils.logger import get_logger
 from .schemas import (
     AthleteCreate,
@@ -68,6 +68,8 @@ from .schemas import (
     StravaCallbackRequest,
     WahooCallbackRequest,
 )
+
+_s = get_settings()
 
 _PLACE_CACHE: dict[str, tuple[Any, float]] = {}
 _PLACE_CACHE_TTL_S = 600
@@ -155,7 +157,7 @@ def _issue_oauth_state(redirect_uri: str, pkce_id: str | None = None) -> str:
         "aud": JWT_AUDIENCE,
         "type": "oauth_state",
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, _s.secret_key, algorithm=ALGORITHM)
 
 
 def _verify_oauth_state(state: str) -> dict | None:
@@ -164,7 +166,7 @@ def _verify_oauth_state(state: str) -> dict | None:
         return None
     try:
         payload = jwt.decode(
-            state, SECRET_KEY, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE
+            state, _s.secret_key, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE
         )
     except JWTError:
         return None
@@ -300,15 +302,12 @@ async def health_redis():
 
 @router.get("/config/google-maps-key")
 async def google_maps_key(current_user: dict = Depends(get_current_user)):
-    from ..config import GOOGLE_MAPS_API_KEY
-
-    return {"google_maps_api_key": GOOGLE_MAPS_API_KEY or ""}
+    return {"google_maps_api_key": _s.google_maps_api_key or ""}
 
 
 @router.post("/auth/login")
 @limiter.limit("5/minute")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
-    from ..config import DATABASE_URL
     from ..security import (
         create_access_token,
         create_refresh_token,
@@ -316,7 +315,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
         verify_password,
     )
 
-    if DATABASE_URL:
+    if _s.database_url:
         from sqlalchemy import select
 
         from ..db.async_db import get_session_factory
@@ -403,7 +402,7 @@ async def refresh_token(request: Request, payload: RefreshTokenRequest):
     from ..security import _try_decode, create_access_token, is_token_revoked
 
     refresh_token = payload.refresh_token
-    jwt_payload = _try_decode(refresh_token, SECRET_KEY)
+    jwt_payload = _try_decode(refresh_token, _s.secret_key)
     if not jwt_payload:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
     if jwt_payload.get("type") != "refresh":
@@ -433,14 +432,13 @@ async def register(
     password: str = Body(..., min_length=6),
     email: str = Body(None),
 ):
-    from ..config import DATABASE_URL
     from ..db.database import get_athlete_by_email, get_athlete_by_name, save_athlete
     from ..security import hash_password
 
     if len(username) < 3 or len(password) < 6:
         raise HTTPException(status_code=400, detail="Username must be >= 3 chars, password >= 6")
 
-    if DATABASE_URL:
+    if _s.database_url:
         from sqlalchemy import select
 
         from ..db.async_db import get_session_factory
@@ -613,14 +611,13 @@ async def google_oauth_login(
 ):
     """Get Google OAuth2 authorization URL."""
     from ..auth.google_auth import get_google_oauth_url
-    from ..config import GOOGLE_CLIENT_ID
 
-    if not GOOGLE_CLIENT_ID:
+    if not _s.google_client_id:
         raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/auth/google/callback")
     _validate_redirect_uri(redirect_uri)
     state = _issue_oauth_state(redirect_uri)
-    auth_url = get_google_oauth_url(GOOGLE_CLIENT_ID, redirect_uri=redirect_uri, state=state)
+    auth_url = get_google_oauth_url(_s.google_client_id, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
 
 
@@ -638,10 +635,9 @@ async def google_oauth_callback_get(
     from fastapi.responses import RedirectResponse
 
     from ..auth.google_auth import create_google_session, exchange_google_code, get_google_user_info
-    from ..config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
     from ..db.database import get_athlete, get_athlete_by_email, save_athlete
 
-    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+    if not _s.google_client_id or not _s.google_client_secret:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
     state_data = _verify_oauth_state(state)
     if not state_data:
@@ -666,7 +662,7 @@ async def google_oauth_callback_get(
         return RedirectResponse(url=cached_result["redirect_url"])
 
     try:
-        token_data = exchange_google_code(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, redirect_uri)
+        token_data = exchange_google_code(_s.google_client_id, _s.google_client_secret, code, redirect_uri)
     except requests.exceptions.HTTPError as exc:
         response = getattr(exc, "response", None)
         if response is not None and response.status_code == 400:
@@ -972,7 +968,7 @@ async def health_detailed(request: Request):
 
     rides = get_all_rides()
     athletes = get_all_athletes()
-    db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
+    db_size = Path(_s.db_path).stat().st_size if Path(_s.db_path).exists() else 0
     return {
         "service": "bikemaster",
         "status": "ok",
@@ -1278,10 +1274,9 @@ async def google_fit_auth(
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
-    from ..config import GOOGLE_FIT_CLIENT_ID
     from ..ingestion.google_fit import get_authorization_url
 
-    google_client_id = client_id or GOOGLE_FIT_CLIENT_ID
+    google_client_id = client_id or _s.google_fit_client_id
     if not google_client_id:
         raise HTTPException(status_code=500, detail="Google Fit OAuth not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
@@ -1298,10 +1293,9 @@ async def google_health_auth(
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
-    from ..config import GOOGLE_HEALTH_CLIENT_ID
     from ..ingestion.google_health import _compute_code_challenge, _generate_code_verifier, get_authorization_url
 
-    if not GOOGLE_HEALTH_CLIENT_ID:
+    if not _s.google_health_client_id:
         raise HTTPException(status_code=500, detail="Google Health OAuth not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-health/callback")
     _validate_redirect_uri(redirect_uri)
@@ -1312,7 +1306,7 @@ async def google_health_auth(
     await _cache_set(pkce_key, {"code_verifier": code_verifier, "redirect_uri": redirect_uri}, ttl=600)
     state = _issue_oauth_state(redirect_uri, pkce_id=pkce_id)
     auth_url = get_authorization_url(
-        GOOGLE_HEALTH_CLIENT_ID,
+        _s.google_health_client_id,
         redirect_uri=redirect_uri,
         state=state,
         code_challenge=code_challenge,
@@ -1329,10 +1323,9 @@ async def google_health_callback(
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
-    from ..config import GOOGLE_HEALTH_CLIENT_ID, GOOGLE_HEALTH_CLIENT_SECRET
     from ..ingestion.google_health import exchange_code_for_token
 
-    if not GOOGLE_HEALTH_CLIENT_ID or not GOOGLE_HEALTH_CLIENT_SECRET:
+    if not _s.google_health_client_id or not _s.google_health_client_secret:
         raise HTTPException(status_code=500, detail="Google Health OAuth not configured")
     state_data = _verify_oauth_state(state)
     if not state_data:
@@ -1373,8 +1366,8 @@ async def google_health_callback(
             code_verifier = pkce_data.get("code_verifier", "")
     try:
         token_data = exchange_code_for_token(
-            GOOGLE_HEALTH_CLIENT_ID,
-            GOOGLE_HEALTH_CLIENT_SECRET,
+            _s.google_health_client_id,
+            _s.google_health_client_secret,
             code,
             redirect_uri,
             code_verifier=code_verifier,
@@ -1426,7 +1419,7 @@ async def google_health_callback(
         )
 
     try:
-        token_data = exchange_code_for_token(GOOGLE_HEALTH_CLIENT_ID, GOOGLE_HEALTH_CLIENT_SECRET, code, redirect_uri)
+        token_data = exchange_code_for_token(_s.google_health_client_id, _s.google_health_client_secret, code, redirect_uri)
     except requests.exceptions.HTTPError as exc:
         if exc.response is not None and exc.response.status_code == 400:
             body = exc.response.text or ""
@@ -1513,11 +1506,10 @@ async def google_fit_exchange_token(
     payload: GoogleFitTokenRequest,
     current_user: dict = Depends(get_current_user),
 ):
-    from ..config import GOOGLE_FIT_CLIENT_ID, GOOGLE_FIT_CLIENT_SECRET
     from ..ingestion.google_fit import exchange_code_for_token
 
-    client_id = payload.get("client_id") or GOOGLE_FIT_CLIENT_ID
-    client_secret = payload.get("client_secret") or GOOGLE_FIT_CLIENT_SECRET
+    client_id = payload.get("client_id") or _s.google_fit_client_id
+    client_secret = payload.get("client_secret") or _s.google_fit_client_secret
     if not client_id or not isinstance(client_id, str) or len(client_id) > 256:
         raise HTTPException(status_code=400, detail="Invalid client_id")
 
@@ -1560,10 +1552,9 @@ async def google_fit_callback(
     state: str = Query(""),
 ):
     """Handle Google Fit OAuth callback - exchange code for token."""
-    from ..config import GOOGLE_FIT_CLIENT_ID, GOOGLE_FIT_CLIENT_SECRET
     from ..ingestion.google_fit import exchange_code_for_token
 
-    if not GOOGLE_FIT_CLIENT_ID or not GOOGLE_FIT_CLIENT_SECRET:
+    if not _s.google_fit_client_id or not _s.google_fit_client_secret:
         raise HTTPException(status_code=500, detail="Google Fit OAuth not configured")
     state_data = _verify_oauth_state(state)
     if not state_data:
@@ -1601,7 +1592,7 @@ async def google_fit_callback(
         return HTMLResponse(content=cached_result["html"])
 
     try:
-        token_data = exchange_code_for_token(GOOGLE_FIT_CLIENT_ID, GOOGLE_FIT_CLIENT_SECRET, code, redirect_uri)
+        token_data = exchange_code_for_token(_s.google_fit_client_id, _s.google_fit_client_secret, code, redirect_uri)
     except requests.exceptions.HTTPError as exc:
         response = getattr(exc, "response", None)
         if response is not None and response.status_code == 400:
@@ -2065,12 +2056,12 @@ async def create_db_indexes(current_user: dict = Depends(get_admin_user)):
 
 @admin_router.get("/stats")
 async def get_system_stats(current_user: dict = Depends(get_admin_user)):
-    from ..db.database import DB_PATH, get_all_rides
+    from ..db.database import get_all_rides
 
     rides = get_all_rides()
     total_km = sum(r.get("distance_km", 0) for r in rides)
     total_duration = sum(r.get("duration_minutes", 0) for r in rides)
-    db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
+    db_size = Path(_s.db_path).stat().st_size if Path(_s.db_path).exists() else 0
     log_action(current_user["id"], "view_stats", "system")
     return {
         "rides_count": len(rides),
@@ -2115,7 +2106,7 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
         for r in rides
         if r.get("date", "").startswith(f"{now.year}-{now.month - 1:02d}" if now.month > 1 else f"{now.year - 1}-12")
     )
-    db_size = Path(DB_PATH).stat().st_size if Path(DB_PATH).exists() else 0
+    db_size = Path(_s.db_path).stat().st_size if Path(_s.db_path).exists() else 0
     level_counts = {"Beginner": 0, "Amateur": 0, "Intermediate": 0, "Advanced": 0, "Elite": 0}
     for a in athletes:
         level = a.get("experience_level", "Beginner")
@@ -2299,9 +2290,7 @@ async def search_places_endpoint(
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
     points = [GPSPoint(**p) for p in gps_points]
-    from ..config import SERPAPI_API_KEY
-
-    if not SERPAPI_API_KEY:
+    if not _s.serpapi_api_key:
         raise HTTPException(status_code=500, detail="SERPAPI_API_KEY not configured")
     data = search_nearby(points, query=query)
     if data is None:
@@ -2568,14 +2557,13 @@ async def get_weather(
     date: str | None = Query(None, description="Date (YYYY-MM-DD) or today"),
 ):
     """Get weather for coordinates, optionally for a specific date."""
-    from ..config import WEATHER_API_KEY
     from ..weather.weather_service import (
         get_forecast_for_date,
         get_weather_for_coordinates,
         get_weather_score,
     )
 
-    if not WEATHER_API_KEY:
+    if not _s.weather_api_key:
         raise HTTPException(status_code=500, detail="WEATHER_API_KEY not configured in .env file")
 
     weather = get_forecast_for_date(lat, lon, date) if date else get_weather_for_coordinates(lat, lon)
@@ -2607,10 +2595,9 @@ async def get_weather_forecast(
     """Get multi-day weather forecast."""
     from datetime import datetime, timedelta
 
-    from ..config import WEATHER_API_KEY
     from ..weather.weather_service import get_forecast_for_date, get_weather_score
 
-    if not WEATHER_API_KEY:
+    if not _s.weather_api_key:
         raise HTTPException(status_code=500, detail="WEATHER_API_KEY not configured in .env file")
 
     forecasts = []
@@ -2896,11 +2883,10 @@ async def get_traffic_incidents(
     days: int = Query(90, ge=1, le=365),
 ):
     """Get traffic incidents near coordinates."""
-    from ..config import INCIDENT_DAYS, INCIDENT_RADIUS_KM
     from ..traffic.incident_fetcher import fetch_incidents, get_incident_stats
 
-    radius = radius_km if radius_km > 0 else INCIDENT_RADIUS_KM
-    lookback = days if days > 0 else INCIDENT_DAYS
+    radius = radius_km if radius_km > 0 else _s.incident_radius_km
+    lookback = days if days > 0 else _s.incident_days
     incidents = fetch_incidents(lat, lon, radius_km=radius, days=lookback)
     stats = get_incident_stats(incidents)
     return {
@@ -2916,7 +2902,6 @@ async def get_traffic_incidents(
 @router.get("/rides/{ride_id}/safety")
 async def analyze_ride_safety(ride_id: int, current_user: dict = Depends(get_current_user)):
     """Analyze route safety for a ride using OSM data and incident data."""
-    from ..config import INCIDENT_DAYS, INCIDENT_RADIUS_KM
     from ..db.database import get_ride as _get_ride
     from ..db.database import get_route_safety_score
     from ..traffic.incident_fetcher import fetch_incidents
@@ -2938,7 +2923,7 @@ async def analyze_ride_safety(ride_id: int, current_user: dict = Depends(get_cur
     lons = [p["lon"] for p in points]
     center_lat = sum(lats) / len(lats) if lats else 0.0
     center_lon = sum(lons) / len(lons) if lons else 0.0
-    incidents = fetch_incidents(center_lat, center_lon, radius_km=INCIDENT_RADIUS_KM, days=INCIDENT_DAYS)
+    incidents = fetch_incidents(center_lat, center_lon, radius_km=_s.incident_radius_km, days=_s.incident_days)
     safety = await analyze_route_safety(points, incidents=incidents)
     safety["ride_id"] = ride_id
     safety["athlete_id"] = ride.get("athlete_id")

@@ -20,13 +20,9 @@ from functools import lru_cache
 import numpy as np
 import sqlalchemy as sa
 
-from ..config import (
-    KB_PATH,
-    OPENAI_API_KEY,
-    OPENAI_EMBEDDING_COOLDOWN_SECONDS,
-    OPENAI_EMBEDDING_MAX_FAILURES,
-    OPENAI_LOG_LEVEL,
-)
+from ..settings import get_settings
+
+_s = get_settings()
 
 try:
     from openai import APIStatusError, OpenAI
@@ -241,9 +237,9 @@ def _split_text(text: str) -> list[str]:
 def _cached_load(kb_mtime: float) -> list[dict]:
     """Cached chunk loader keyed by the directory modification time."""
     chunks: list[dict] = []
-    if not KB_PATH.exists():
+    if not _s.kb_path.exists():
         return chunks
-    for md_file in sorted(KB_PATH.glob("*.md")):
+    for md_file in sorted(_s.kb_path.glob("*.md")):
         text = md_file.read_text(encoding="utf-8")
         topic = md_file.stem
         parts = _split_text(text)
@@ -280,7 +276,7 @@ def load_chunks(force_reload: bool = False) -> list[dict]:
     """
     if force_reload:
         _cached_load.cache_clear()
-    mtime = KB_PATH.stat().st_mtime if KB_PATH.exists() else 0.0
+    mtime = _s.kb_path.stat().st_mtime if _s.kb_path.exists() else 0.0
     return _cached_load(mtime)
 
 
@@ -292,7 +288,7 @@ def load_chunks(force_reload: bool = False) -> list[dict]:
 def _configure_openai_logging() -> None:
     """Reduce verbosity of openai/httpx loggers based on OPENAI_LOG_LEVEL."""
     log_level = getattr(
-        logging, str(OPENAI_LOG_LEVEL or "WARNING").upper(), logging.WARNING
+        logging, str(_s.openai_log_level or "WARNING").upper(), logging.WARNING
     )
     for name in ("openai", "httpx"):
         logging.getLogger(name).setLevel(log_level)
@@ -300,12 +296,12 @@ def _configure_openai_logging() -> None:
 
 _configure_openai_logging()
 
-_EMBEDDING_CACHE_PATH = KB_PATH.parent / ".chroma_db" / "embeddings_cache.json"
+_EMBEDDING_CACHE_PATH = _s.kb_path.parent / ".chroma_db" / "embeddings_cache.json"
 _openai_embeddings_unavailable = False
 _openai_circuit_failures = 0
 _openai_circuit_last_failure = 0.0
-_openai_circuit_cooldown = OPENAI_EMBEDDING_COOLDOWN_SECONDS or 300
-_openai_circuit_max_failures = OPENAI_EMBEDDING_MAX_FAILURES or 3
+_openai_circuit_cooldown = _s.openai_embedding_cooldown_seconds or 300
+_openai_circuit_max_failures = _s.openai_embedding_max_failures or 3
 _bm25_tfidf_vectorizer = None
 _sentence_transformer_model = None
 
@@ -538,7 +534,7 @@ def search_knowledge_base(
 
         query_emb = embed_text(query)
         if query_emb is not None:
-            chroma_path = str(KB_PATH.parent / ".chroma_db")
+            chroma_path = str(_s.kb_path.parent / ".chroma_db")
             if os.path.exists(chroma_path):
                 client = chromadb.PersistentClient(path=chroma_path)
                 collection = client.get_collection(name="bikemaster_knowledge")
@@ -611,9 +607,9 @@ def search_knowledge_base(
 
 def list_topics() -> list[str]:
     """Return sorted list of knowledge-base topic names (file stems)."""
-    if not KB_PATH.exists():
+    if not _s.kb_path.exists():
         return []
-    return sorted(f.stem for f in KB_PATH.glob("*.md"))
+    return sorted(f.stem for f in _s.kb_path.glob("*.md"))
 
 
 def get_kb_stats() -> dict:
@@ -634,7 +630,7 @@ def get_kb_stats() -> dict:
         "chunks_per_topic": topics,
         "total_words": total_words,
         "total_chars": total_chars,
-        "kb_path": str(KB_PATH),
+        "kb_path": str(_s.kb_path),
         "chunk_size": MAX_CHARS_PER_CHUNK,
         "overlap": CHUNK_OVERLAP,
     }
@@ -701,7 +697,7 @@ _openai_circuit_last_failure = 0.0
 
 def _get_embedding_provider() -> str:
     """Return current embedding provider name."""
-    return "openai" if OPENAI_API_KEY and OPENAI_API_KEY.strip() else "local"
+    return "openai" if _s.openai_api_key and _s.openai_api_key.strip() else "local"
 
 
 def _embed_text_openai(text: str) -> list[float] | None:
@@ -712,7 +708,7 @@ def _embed_text_openai(text: str) -> list[float] | None:
     for OPENAI_EMBEDDING_COOLDOWN_SECONDS seconds, then retried.
     """
     global _openai_embeddings_unavailable, _openai_circuit_failures, _openai_circuit_last_failure
-    if not OPENAI_API_KEY or not OPENAI_API_KEY.strip():
+    if not _s.openai_api_key or not _s.openai_api_key.strip():
         return None
     if not _circuit_breaker_allows():
         return None
@@ -722,7 +718,7 @@ def _embed_text_openai(text: str) -> list[float] | None:
     if OpenAI is None:
         return None
     try:
-        client = OpenAI(api_key=OPENAI_API_KEY, max_retries=0)
+        client = OpenAI(api_key=_s.openai_api_key, max_retries=0)
         response = client.embeddings.create(
             model="text-embedding-3-small",
             input=text,
@@ -840,7 +836,7 @@ def search_knowledge_base_pgvector(
     try:
         import chromadb
 
-        chroma_path = str(KB_PATH.parent / ".chroma_db")
+        chroma_path = str(_s.kb_path.parent / ".chroma_db")
         if os.path.exists(chroma_path):
             client = chromadb.PersistentClient(path=chroma_path)
             query_emb = embed_text(query) or [0.0] * EMBEDDING_DIMENSION
@@ -952,9 +948,7 @@ def init_chroma_db(persist_path: str | None = None) -> dict:
         return {"status": "error", "message": "chromadb not installed"}
 
     try:
-        from ..config import KB_PATH
-
-        persist_path = persist_path or str(KB_PATH.parent / ".chroma_db")
+        persist_path = persist_path or str(_s.kb_path.parent / ".chroma_db")
         client = chromadb.PersistentClient(path=persist_path)
 
         collection_name = "bikemaster_knowledge"

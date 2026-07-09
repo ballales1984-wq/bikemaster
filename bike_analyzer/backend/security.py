@@ -24,17 +24,19 @@ from fastapi.responses import Response
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
-from .config import (
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-    ALGORITHM,
-    JWT_AUDIENCE,
-    JWT_ISSUER,
-    SECRET_KEY,
-    SECRET_KEY_PREVIOUS,
-)
 from .redis_client import get_redis
+from .settings import get_settings
 
 logger = logging.getLogger(__name__)
+
+_s = get_settings()
+
+ALGORITHM = _s.algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = _s.access_token_expire_minutes
+JWT_AUDIENCE = _s.jwt_audience
+JWT_ISSUER = _s.jwt_issuer
+SECRET_KEY = _s.secret_key
+SECRET_KEY_PREVIOUS = _s.secret_key_previous
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 

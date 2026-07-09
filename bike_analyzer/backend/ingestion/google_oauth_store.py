@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import time
 
-from ..config import (
-    GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET,
-)
+from ..settings import get_settings
+
+_s = get_settings()
 
 _GOOGLE_TOKEN_TABLE = """
 CREATE TABLE IF NOT EXISTS google_tokens (
@@ -105,8 +104,8 @@ def refresh_google_token(athlete_id: int, provider: str) -> str | None:
         resp = requests.post(
             "https://oauth2.googleapis.com/token",
             data={
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
+                "client_id": _s.google_client_id,
+                "client_secret": _s.google_client_secret,
                 "refresh_token": refresh_token,
                 "grant_type": "refresh_token",
             },

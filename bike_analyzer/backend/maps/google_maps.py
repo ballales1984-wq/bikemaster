@@ -8,8 +8,10 @@ from pathlib import Path
 
 import httpx
 
-from ..config import GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_SIZE, GOOGLE_MAPS_ZOOM
 from ..models.models import GPSPoint
+from ..settings import get_settings
+
+_s = get_settings()
 
 logger = logging.getLogger(__name__)
 _MAX_URL_LENGTH = 2000
@@ -107,8 +109,8 @@ def create_google_static_map(
     points: list[GPSPoint],
     api_key: str,
     output_path: str = "google_map.png",
-    zoom: int = GOOGLE_MAPS_ZOOM,
-    size: str = GOOGLE_MAPS_SIZE,
+    zoom: int = _s.google_maps_zoom,
+    size: str = _s.google_maps_size,
     colored: bool = False,
 ) -> str:
     if not points:
@@ -183,5 +185,5 @@ def create_google_elevation_chart(points: list[GPSPoint], api_key: str) -> list[
 
 
 def get_google_api_key() -> str | None:
-    key = GOOGLE_MAPS_API_KEY
+    key = _s.google_maps_api_key
     return key if key else None

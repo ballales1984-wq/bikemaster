@@ -9,22 +9,15 @@ import os
 import re
 from datetime import UTC
 
-from ..config import (
-    AI_COACH_MODE,
-    GROQ_API_KEY,
-    GROQ_MODEL,
-    OLLAMA_API_KEY,
-    OLLAMA_BASE_URL,
-    OLLAMA_MODEL,
-    OPENAI_API_KEY,
-    OPENAI_MODEL,
-)
 from ..models.models import AthleteProfile, Ride
+from ..settings import get_settings
 from .analytics import calculate_summary, create_duration_chart, create_speed_chart
 from .knowledge_base import format_context_for_llm, search_knowledge_base
 from .performance import calculate_performance_score, calculate_recovery_score
 
 logger = logging.getLogger(__name__)
+
+_s = get_settings()
 
 LOCALE: str = os.getenv("LOCALE", "it")
 _LANG_PROMPT = {
@@ -54,7 +47,7 @@ def _clean_ai_output(text: str) -> str:
 
 def _coach_mode() -> str:
     env_mode = os.getenv("AI_COACH_MODE")
-    return (env_mode if env_mode else AI_COACH_MODE).strip().lower()
+    return (env_mode if env_mode else _s.ai_coach_mode).strip().lower()
 
 
 def _provider_order() -> list[str]:
@@ -85,12 +78,12 @@ def get_ai_coach_client():
     if _current_client and _current_provider and _current_provider not in _BANNED_PROVIDERS:
         return _current_client, _current_provider
 
-    groq_key = os.getenv("GROQ_API_KEY", "").strip() or (GROQ_API_KEY or "").strip()
-    openai_key = os.getenv("OPENAI_API_KEY", "").strip() or (OPENAI_API_KEY or "").strip()
-    ollama_key = os.getenv("OLLAMA_API_KEY", "ollama").strip() or (OLLAMA_API_KEY or "ollama").strip()
+    groq_key = os.getenv("GROQ_API_KEY", "").strip() or (_s.groq_api_key or "").strip()
+    openai_key = os.getenv("OPENAI_API_KEY", "").strip() or (_s.openai_api_key or "").strip()
+    ollama_key = os.getenv("OLLAMA_API_KEY", "ollama").strip() or (_s.ollama_api_key or "ollama").strip()
     ollama_url = (
         os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1").strip()
-        or (OLLAMA_BASE_URL or "http://localhost:11434/v1").strip()
+        or (_s.ollama_base_url or "http://localhost:11434/v1").strip()
     )
     keys = {"groq": groq_key, "openai": openai_key, "ollama": ollama_key}
 
@@ -534,7 +527,7 @@ def generate_recovery_advice(
             record_ai_coach_query("fallback", "fallback")
             return _generate_fallback_recovery_advice(athlete, rides, recovery)
 
-        model = GROQ_MODEL if provider == "groq" else OLLAMA_MODEL if provider == "ollama" else OPENAI_MODEL
+        model = _s.groq_model if provider == "groq" else _s.ollama_model if provider == "ollama" else _s.openai_model
         try:
             content = _chat_completion_text(client, model, prompt, 300)
             from ..monitoring import record_ai_coach_query
@@ -861,7 +854,7 @@ def chat_with_tools(
     except ValueError:
         return {"content": "Nessun provider LLM configurato."}
 
-    model = GROQ_MODEL if provider == "groq" else OLLAMA_MODEL if provider == "ollama" else OPENAI_MODEL
+        model = _s.groq_model if provider == "groq" else _s.ollama_model if provider == "ollama" else _s.openai_model
 
     tools = [GENERATE_WORKOUT_PLAN_TOOL, ANALYZE_ANOMALIES_TOOL]
 

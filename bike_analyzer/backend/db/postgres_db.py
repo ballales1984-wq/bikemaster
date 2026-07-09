@@ -27,10 +27,12 @@ except ImportError:
     sessionmaker = None
     create_engine = None
 
-from ..config import DATABASE_URL
+from ..settings import get_settings
 
-if SQLALCHEMY_AVAILABLE and DATABASE_URL:
-    engine = create_engine(DATABASE_URL, echo=False)
+_s = get_settings()
+
+if SQLALCHEMY_AVAILABLE and _s.database_url:
+    engine = create_engine(_s.database_url, echo=False)
     SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
     def get_session():
