@@ -118,5 +118,5 @@ def test_create_google_elevation_chart_mock():
 def test_get_google_api_key_from_env(monkeypatch):
     monkeypatch.delenv("GOOGLE_MAPS_API_KEY", raising=False)
     import bike_analyzer.backend.maps.google_maps as gm
-    monkeypatch.setattr(gm, "GOOGLE_MAPS_API_KEY", "abc")
+    monkeypatch.setattr(gm._s, "google_maps_api_key", "abc")
     assert get_google_api_key() == "abc"

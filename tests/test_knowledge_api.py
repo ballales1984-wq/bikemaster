@@ -427,7 +427,7 @@ class TestInitKbEmbeddings:
         import bike_analyzer.backend.analytics.knowledge_base as kb_mod
 
         monkeypatch.setenv("OPENAI_API_KEY", "")
-        monkeypatch.setattr(kb_mod, "OPENAI_API_KEY", "")
+        monkeypatch.setattr(kb_mod._s, "openai_api_key", "")
         monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", False)
         monkeypatch.setattr(kb_mod, "_openai_circuit_failures", 0)
         result = init_kb_embeddings(session=None)
@@ -576,7 +576,7 @@ class TestCircuitBreaker429:
             request = type("Req", (), {"id": "test"})()
 
         monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test")
-        monkeypatch.setattr(kb_mod, "OPENAI_API_KEY", "sk-proj-test")
+        monkeypatch.setattr(kb_mod._s, "openai_api_key", "sk-proj-test")
         monkeypatch.setattr(kb_mod, "_openai_circuit_max_failures", 1)
         monkeypatch.setattr(kb_mod, "_openai_circuit_cooldown", 300)
 
@@ -683,7 +683,7 @@ class TestLocalFallback:
         import bike_analyzer.backend.analytics.knowledge_base as kb_mod
 
         monkeypatch.setenv("OPENAI_API_KEY", "")
-        monkeypatch.setattr(kb_mod, "OPENAI_API_KEY", "")
+        monkeypatch.setattr(kb_mod._s, "openai_api_key", "")
         monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", False)
         result = embed_text("testo di prova")
         assert isinstance(result, list)
@@ -713,12 +713,12 @@ class TestEmbeddingProvider:
         import bike_analyzer.backend.analytics.knowledge_base as kb_mod
 
         monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test")
-        monkeypatch.setattr(kb_mod, "OPENAI_API_KEY", "sk-proj-test")
+        monkeypatch.setattr(kb_mod._s, "openai_api_key", "sk-proj-test")
         assert kb_mod._get_embedding_provider() == "openai"
 
     def test_get_embedding_provider_local_when_key_missing(self, monkeypatch):
         import bike_analyzer.backend.analytics.knowledge_base as kb_mod
 
         monkeypatch.setenv("OPENAI_API_KEY", "")
-        monkeypatch.setattr(kb_mod, "OPENAI_API_KEY", "")
+        monkeypatch.setattr(kb_mod._s, "openai_api_key", "")
         assert kb_mod._get_embedding_provider() == "local"

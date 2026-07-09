@@ -131,12 +131,38 @@ def _build_frontend_redirect_url(
     return f"{origin}/{query_suffix}{fragment_suffix}"
 
 
-def _validate_redirect_uri(redirect_uri: str) -> None:
+def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) -> None:
     parsed = urlparse(redirect_uri)
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         raise HTTPException(status_code=400, detail="Invalid redirect_uri")
-    allowed_hosts = {"bikemaster.onrender.com", "localhost", "127.0.0.1", "testserver"}
-    if parsed.hostname.lower() not in allowed_hosts:
+    host_lower = parsed.hostname.lower()
+    dynamic_hosts = set()
+    if request is not None:
+        req_origin = _forwarded_value(request.headers.get("origin"))
+        if req_origin:
+            try:
+                req_host = urlparse(req_origin).hostname
+                if req_host:
+                    dynamic_hosts.add(req_host.lower())
+            except ValueError:
+                pass
+    cors_hosts = set()
+    try:
+        cors_list = _s.cors_origins_list if hasattr(_s, "cors_origins_list") else []
+        for origin in cors_list:
+            try:
+                cors_hosts.add(urlparse(origin).hostname.lower())
+            except ValueError:
+                pass
+    except Exception:
+        pass
+    localhost_ports = {"localhost", "127.0.0.1", "0.0.0.0"}
+    if host_lower in localhost_ports:
+        return
+    allowed_hosts = (
+        {"bikemaster.onrender.com", "testserver"} | cors_hosts | dynamic_hosts
+    )
+    if host_lower not in allowed_hosts:
         raise HTTPException(status_code=400, detail="Invalid redirect_uri host")
 
 
@@ -616,7 +642,7 @@ async def google_oauth_login(
     if not _s.google_client_id:
         raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/auth/google/callback")
-    _validate_redirect_uri(redirect_uri)
+    _validate_redirect_uri(redirect_uri, request)
     state = _issue_oauth_state(redirect_uri)
     auth_url = get_google_oauth_url(_s.google_client_id, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
@@ -648,7 +674,7 @@ async def google_oauth_callback_get(
             )
         )
     redirect_uri = state_data["redirect_uri"]
-    _validate_redirect_uri(redirect_uri)
+    _validate_redirect_uri(redirect_uri, request)
 
     if error:
         message = error_description or error
@@ -1325,7 +1351,7 @@ async def google_fit_auth(
     if not google_client_id:
         raise HTTPException(status_code=500, detail="Google Fit OAuth not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
-    _validate_redirect_uri(redirect_uri)
+    _validate_redirect_uri(redirect_uri, request)
     state = _issue_oauth_state(redirect_uri)
     auth_url = get_authorization_url(google_client_id, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
@@ -1343,7 +1369,7 @@ async def google_health_auth(
     if not _s.google_health_client_id:
         raise HTTPException(status_code=500, detail="Google Health OAuth not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-health/callback")
-    _validate_redirect_uri(redirect_uri)
+    _validate_redirect_uri(redirect_uri, request)
     code_verifier = _generate_code_verifier()
     code_challenge = _compute_code_challenge(code_verifier)
     pkce_id = secrets.token_urlsafe(8)
@@ -1382,7 +1408,7 @@ async def google_health_callback(
             }
         )
     redirect_uri = state_data["redirect_uri"]
-    _validate_redirect_uri(redirect_uri)
+    _validate_redirect_uri(redirect_uri, request)
 
     if error:
         return _google_health_message_html(

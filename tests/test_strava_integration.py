@@ -74,7 +74,7 @@ def test_strava_to_ride_handles_zero_times():
 def test_strava_authorization_url_requires_client_id(monkeypatch):
     import bike_analyzer.backend.ingestion.strava_client as sc
 
-    monkeypatch.setattr(sc, "STRAVA_CLIENT_ID", "")
+    monkeypatch.setattr(sc._s, "strava_client_id", "")
     with pytest.raises(RuntimeError, match="STRAVA_CLIENT_ID"):
         sc.get_authorization_url()
 

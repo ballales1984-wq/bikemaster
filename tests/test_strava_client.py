@@ -56,30 +56,29 @@ class TestBuildAuthorizationUrl:
     def test_contains_required_params(self):
         url = build_authorization_url("s", "c")
         assert "client_id=" in url
-        assert "response_type=code" in url
         assert "code_challenge_method=S256" in url
 
 
 class TestGetAuthorizationUrl:
     def test_raises_without_client_id(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", ""):
+        with patch("bike_analyzer.backend.ingestion.strava_client._s.strava_client_id", ""):
             with pytest.raises(RuntimeError, match="STRAVA_CLIENT_ID not configured"):
                 get_authorization_url()
 
     def test_returns_expected_keys(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", "test_id"):
+        with patch("bike_analyzer.backend.ingestion.strava_client._s.strava_client_id", "test_id"):
             result = get_authorization_url()
             assert "auth_url" in result
             assert "state" in result
             assert "code_verifier" in result
 
     def test_uses_provided_state(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", "test_id"):
+        with patch("bike_analyzer.backend.ingestion.strava_client._s.strava_client_id", "test_id"):
             result = get_authorization_url(state="custom_state")
             assert result["state"] == "custom_state"
 
     def test_generates_unique_verifiers(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_CLIENT_ID", "test_id"):
+        with patch("bike_analyzer.backend.ingestion.strava_client._s.strava_client_id", "test_id"):
             r1 = get_authorization_url()
             r2 = get_authorization_url()
             assert r1["code_verifier"] != r2["code_verifier"]

@@ -291,7 +291,7 @@ class="ride-title">
             </div>
             <div class="ride-stats">
               <span class="stat-chip">🛣️ {{ fmt(ride.distance_km) }} km</span>
-              <span class="stat-chip">⏱️ {{ ride.duration_minutes }} min</span>
+              <span class="stat-chip">⏱️ {{ formatDuration(ride.duration_minutes) }}</span>
               <span v-if="ride.avg_speed_kmh"
 class="stat-chip"
                 >⚡ {{ fmt(ride.avg_speed_kmh) }} km/h</span
@@ -370,9 +370,9 @@ class="close-btn" @click="selectedRide = null">✕</button>
             </div>
             <div class="detail-stat">
               <div class="ds-val">
-                {{ selectedRide.duration_minutes }}
+                {{ formatDuration(selectedRide.duration_minutes) }}
               </div>
-              <div class="ds-lbl">minuti</div>
+              <div class="ds-lbl">Durata</div>
             </div>
             <div v-if="selectedRide.avg_speed_kmh"
 class="detail-stat">
@@ -515,6 +515,17 @@ const deleteTargetDate = ref("");
 function fmt(v, dec = 1) {
   if (v == null || isNaN(Number(v))) return "—";
   return Number(v).toFixed(dec);
+}
+
+function formatDuration(minutes) {
+  const mins = Number(minutes) || 0
+  const h = Math.floor(mins / 60)
+  const m = Math.floor(mins % 60)
+  const s = Math.floor((mins % 1) * 60)
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
+  return `${m}:${s.toString().padStart(2, '0')}`
 }
 
 function formatDate(dateStr) {
