@@ -921,13 +921,24 @@ async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(
     filename = file.filename
 
     def _work() -> dict:
+        t0 = time.perf_counter()
         points_data = parse_gpx_file(content.decode())
+        t1 = time.perf_counter()
         ride_data = points_to_ride(points_data, name=filename, max_points=5000)
+        t2 = time.perf_counter()
         if "error" not in ride_data:
             ride_data["athlete_id"] = user_id
             ride_data["tenant_id"] = tenant_id
             ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
             ride_data["id"] = int(ride_id)
+        t3 = time.perf_counter()
+        logger.info(
+            "gpx_import_timing parse_ms=%.1f process_ms=%.1f db_ms=%.1f points=%d",
+            (t1 - t0) * 1000,
+            (t2 - t1) * 1000,
+            (t3 - t2) * 1000,
+            len(points_data),
+        )
         return ride_data
 
     ride_data = await asyncio.to_thread(_work)
