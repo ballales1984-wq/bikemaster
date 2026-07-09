@@ -88,7 +88,7 @@ def test_validate_athlete_profile_missing_name():
     assert "nome" in msg
 
 
-def test_training_advice_falls_back_to_openai_after_groq_403(monkeypatch):
+def test_training_advice_falls_back_to_ollama_after_groq_403(monkeypatch):
     import sys
     import types
 
@@ -102,7 +102,7 @@ def test_training_advice_falls_back_to_openai_after_groq_403(monkeypatch):
 
     class OpenAICompletions:
         def create(self, **kwargs):
-            return types.SimpleNamespace(choices=[Choice("OpenAI advice")])
+            return types.SimpleNamespace(choices=[Choice("Ollama advice")])
 
     class OpenAIChat:
         completions = OpenAICompletions()
@@ -124,9 +124,8 @@ def test_training_advice_falls_back_to_openai_after_groq_403(monkeypatch):
             self.api_key = api_key
             self.chat = OpenAIChat()
 
-    monkeypatch.setenv("AI_COACH_PROVIDER_ORDER", "groq,openai")
+    monkeypatch.setenv("AI_COACH_PROVIDER_ORDER", "groq,ollama")
     monkeypatch.setenv("GROQ_API_KEY", "gsk_test")
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test")
     monkeypatch.setattr(ai_coach, "_BANNED_PROVIDERS", set())
     monkeypatch.setattr(ai_coach, "_current_client", None)
     monkeypatch.setattr(ai_coach, "_current_provider", None)
@@ -136,7 +135,7 @@ def test_training_advice_falls_back_to_openai_after_groq_403(monkeypatch):
     profile = AthleteProfile(name="Test", weight_kg=70, experience_level="Beginner")
     advice = ai_coach.generate_training_advice(profile, [])
 
-    assert advice == "OpenAI advice"
+    assert advice == "Ollama advice"
     assert "groq" in ai_coach._BANNED_PROVIDERS
 
 
@@ -165,9 +164,8 @@ def test_training_advice_uses_local_fallback_when_all_providers_fail(monkeypatch
             self.api_key = api_key
             self.chat = FailingChat()
 
-    monkeypatch.setenv("AI_COACH_PROVIDER_ORDER", "groq,openai")
+    monkeypatch.setenv("AI_COACH_PROVIDER_ORDER", "groq,ollama")
     monkeypatch.setenv("GROQ_API_KEY", "gsk_test")
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test")
     monkeypatch.setattr(ai_coach, "_BANNED_PROVIDERS", set())
     monkeypatch.setattr(ai_coach, "_current_client", None)
     monkeypatch.setattr(ai_coach, "_current_provider", None)
@@ -179,7 +177,7 @@ def test_training_advice_uses_local_fallback_when_all_providers_fail(monkeypatch
 
     assert advice.startswith(ai_coach._FALLBACK_PREFIX)
     assert "groq" in ai_coach._BANNED_PROVIDERS
-    assert "openai" in ai_coach._BANNED_PROVIDERS
+    assert "ollama" in ai_coach._BANNED_PROVIDERS
 
 
 def test_analyze_anomalies_detects_hr_elevation():

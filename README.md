@@ -90,7 +90,7 @@ GPS-based cycling performance intelligence system. Importa le tue uscite da file
 | Analytics | NumPy, Pandas, Matplotlib, SciPy, scikit-learn, statsmodels |
 | Parsers | gpxpy, fitparse |
 | Auth | python-jose, passlib, bcrypt, Google OAuth2 |
-| AI/LLM | Groq SDK + OpenAI SDK |
+| AI/LLM | Groq SDK |
 | Rate Limit | slowapi |
 | Config | Pydantic Settings v2 |
 | Testing | pytest, pytest-asyncio, Playwright |
@@ -168,8 +168,7 @@ GARMIN_CONSUMER_KEY=your_key_here        # Opzionale
 GARMIN_CONSUMER_SECRET=your_key_here     # Opzionale
 
 # AI Coach
-GROQ_API_KEY=your_key_here               # Opzionale per AI Coach
-OPENAI_API_KEY=your_key_here             # Opzionale per Vector DB
+GROQ_API_KEY=your_key_here               # Obbligatoria per AI Coach (unica chiave AI attiva)
 
 # Security (OBBLIGATORIO in produzione)
 SECRET_KEY=your_secret_key               # Min 32 caratteri
@@ -527,30 +526,20 @@ Integrazione con Groq (LLM) per:
 - Consigli di recupero basati su fatigue score
 - Analisi trend storici
 - Chat conversazionale con storico
-- Vector DB (PGVector) per RAG avanzato con embedding OpenAI
+- Vector DB (PGVector) per RAG avanzato con embedding locali
 
-Dipendenze: `GROQ_API_KEY` e `OPENAI_API_KEY` in `.env`.
-
-#### Knowledge Base senza OpenAI
-
-Se `OPENAI_API_KEY` non ha quota disponibile (HTTP 429), il sistema:
-1. **Cache embedding su file**: gli embedding OpenAI sono salvati in `.chroma_db/embeddings_cache.json` e riutilizzati senza chiamate API ripetute.
-2. **Circuit breaker con cooldown**: dopo `OPENAI_EMBEDDING_MAX_FAILURES` 429 consecutivi, OpenAI viene disabilitato per `OPENAI_EMBEDDING_COOLDOWN_SECONDS` secondi, poi ritentato in background.
-3. **Fallback semantico locale**: se `sentence-transformers` è installato (`pip install sentence-transformers`), viene usato il modello `all-MiniLM-L6-v2` per embedding semantici; altrimenti TF-IDF con normalizzazione L2 e vocabolario condiviso su tutto il corpus.
-4. **Log ridotti**: il logger `httpx`/`openai` rispetta `OPENAI_LOG_LEVEL` (default `WARNING`) per evitare spam di DEBUG in produzione.
+L'unica chiave AI attiva è `GROQ_API_KEY` (in `.env`). Gli embedding della
+knowledge base non richiedono API esterne: usano `sentence-transformers`
+(`all-MiniLM-L6-v2`) se installato, altrimenti TF-IDF con normalizzazione L2
+e vocabolario condiviso su tutto il corpus.
 
 Configurazioni disponibili in `.env`:
 
 ```env
-# Log verbosity for openai/httpx
-OPENAI_LOG_LEVEL=WARNING
-
-# Circuit breaker cooldown after 429 (seconds)
-OPENAI_EMBEDDING_COOLDOWN_SECONDS=300
-
-# Failures before circuit breaker opens
-OPENAI_EMBEDDING_MAX_FAILURES=3
+# Fallback semantico locale (opzionale, richiede sentence-transformers)
+# pip install sentence-transformers
 ```
+
 
 ---
 

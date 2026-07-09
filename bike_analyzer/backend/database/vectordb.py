@@ -5,11 +5,9 @@ Provides embedding storage and similarity search for knowledge base.
 
 from __future__ import annotations
 
-import asyncio
-from typing import Any
-
 import numpy as np
 from sqlalchemy import text
+from typing import Any
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from ..settings import get_settings
@@ -108,16 +106,7 @@ class VectorDB:
 
 
 def get_embedding(text: str) -> list[float]:
-    """Get embedding from OpenAI (fallback to deterministic for tests)."""
-    try:
-        import openai
-
-        client = openai.AsyncOpenAI(api_key=_s.openai_api_key, max_retries=0) if _s.openai_api_key else None
-        if client:
-            resp = asyncio.run(client.embeddings.create(model="text-embedding-3-small", input=text))
-            return resp.data[0].embedding
-    except Exception:
-        pass
-    # Deterministic fallback for offline/dev
+    """Get deterministic embedding (offline/dev fallback)."""
+    # Deterministic fallback so tests/imports work without an external API.
     np.random.seed(len(text))
     return np.random.random(1536).tolist()

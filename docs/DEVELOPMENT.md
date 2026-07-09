@@ -75,7 +75,7 @@ Struttura Clean Architecture:
 | Maps | Folium, Leaflet.js, Google Static Maps | >=0.16.0 |
 | Traffic | OpenStreetMap Overpass API | - |
 | Parsers | gpxpy, fitparse | >=1.6.2, >=1.2.0 |
-| AI | Groq SDK + OpenAI SDK (embeddings) | >=0.4.0, >=1.0.0 |
+| AI | Groq SDK (LLM) + sentence-transformers (embeddings locali) | >=0.4.0 |
 | Auth | python-jose[cryptography], passlib, bcrypt | >=3.3.0, >=4.0.0 |
 | Rate Limit | slowapi | >=0.1.9 |
 | Config | Pydantic Settings v2 | >=2.0.0 |
@@ -438,8 +438,7 @@ alembic upgrade head
 | STRAVA_REDIRECT_URI | http://localhost:8000/api/v1/auth/strava/callback | Strava callback |
 | GARMIN_CONSUMER_KEY | - | Garmin OAuth key |
 | GARMIN_CONSUMER_SECRET | - | Garmin OAuth secret |
-| GROQ_API_KEY | - | Groq LLM API key |
-| OPENAI_API_KEY | - | OpenAI API key (for embeddings) |
+| GROQ_API_KEY | - | Groq LLM API key (unica chiave AI attiva) |
 | REDIS_URL | - | Redis connection URL |
 | SENTRY_DSN | - | Sentry error tracking |
 | MAP_DEFAULT_ZOOM | 13 | Default map zoom level |

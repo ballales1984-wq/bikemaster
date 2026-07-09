@@ -82,7 +82,6 @@ class TestAICoachErrorPaths:
         import os
 
         os.environ.pop("GROQ_API_KEY", None)
-        os.environ.pop("OPENAI_API_KEY", None)
         rides = [
             Ride(date="2024-01-01", distance_km=20, duration_minutes=60, avg_speed_kmh=20),
             Ride(date="2024-02-01", distance_km=30, duration_minutes=60, avg_speed_kmh=25),

@@ -802,7 +802,7 @@ async def google_code_exchange(
 
     if not _s.google_client_id or not _s.google_client_secret:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
-    _validate_redirect_uri(redirect_uri)
+    _validate_redirect_uri(redirect_uri, request)
     try:
         token_data = exchange_google_code(_s.google_client_id, _s.google_client_secret, code, redirect_uri)
     except requests.exceptions.HTTPError as exc:

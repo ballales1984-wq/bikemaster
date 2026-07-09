@@ -56,7 +56,7 @@ def _provider_order() -> list[str]:
         providers = [p.strip() for p in configured.split(",") if p.strip()]
         if providers:
             return providers
-    return ["ollama", "groq", "openai"]
+    return ["ollama", "groq"]
 
 
 def _ban_provider(provider: str, reason: str = "error") -> None:
@@ -79,13 +79,12 @@ def get_ai_coach_client():
         return _current_client, _current_provider
 
     groq_key = os.getenv("GROQ_API_KEY", "").strip() or (_s.groq_api_key or "").strip()
-    openai_key = os.getenv("OPENAI_API_KEY", "").strip() or (_s.openai_api_key or "").strip()
     ollama_key = os.getenv("OLLAMA_API_KEY", "ollama").strip() or (_s.ollama_api_key or "ollama").strip()
     ollama_url = (
         os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1").strip()
         or (_s.ollama_base_url or "http://localhost:11434/v1").strip()
     )
-    keys = {"groq": groq_key, "openai": openai_key, "ollama": ollama_key}
+    keys = {"groq": groq_key, "ollama": ollama_key}
 
     for provider in _provider_order():
         api_key = keys.get(provider)
@@ -93,19 +92,11 @@ def get_ai_coach_client():
             continue
         if provider == "groq" and not api_key.startswith("gsk_"):
             continue
-        if provider == "openai" and not api_key.startswith("sk-"):
-            continue
-        if provider == "ollama" and not api_key:
-            continue
         try:
             if provider == "groq":
                 from groq import Groq
 
                 _current_client = Groq(api_key=api_key)
-            elif provider == "openai":
-                from openai import OpenAI
-
-                _current_client = OpenAI(api_key=api_key)
             elif provider == "ollama":
                 from openai import OpenAI
 
@@ -132,7 +123,7 @@ def get_ai_coach_client():
 
     msg = (
         "AI Coach: no valid API key (GROQ=gsk_..., "
-        "OPENAI=sk-..., OLLAMA=http://localhost:11434/v1) or all providers failed"
+        "OLLAMA=http://localhost:11434/v1) or all providers failed"
     )
     logger.error(msg)
     raise ValueError(msg)
@@ -527,7 +518,7 @@ def generate_recovery_advice(
             record_ai_coach_query("fallback", "fallback")
             return _generate_fallback_recovery_advice(athlete, rides, recovery)
 
-        model = _s.groq_model if provider == "groq" else _s.ollama_model if provider == "ollama" else _s.openai_model
+        model = _s.groq_model if provider == "groq" else _s.ollama_model
         try:
             content = _chat_completion_text(client, model, prompt, 300)
             from ..monitoring import record_ai_coach_query
@@ -854,7 +845,7 @@ def chat_with_tools(
     except ValueError:
         return {"content": "Nessun provider LLM configurato."}
 
-    model = _s.groq_model if provider == "groq" else _s.ollama_model if provider == "ollama" else _s.openai_model
+        model = _s.groq_model if provider == "groq" else _s.ollama_model
 
     tools = [GENERATE_WORKOUT_PLAN_TOOL, ANALYZE_ANOMALIES_TOOL]
 
