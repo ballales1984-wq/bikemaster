@@ -125,6 +125,27 @@ const routes = [
   }
 ]
 
+// Retry a lazy component import a few times before giving up. Route chunks can
+// briefly return 5xx while the (free-tier) backend cold-starts or redeploys.
+function retryImport<T>(loader: () => Promise<T>, retries = 3, delayMs = 800): Promise<T> {
+  return loader().catch((err) => {
+    if (retries <= 0) throw err
+    return new Promise<T>((resolve) => setTimeout(resolve, delayMs)).then(() =>
+      retryImport(loader, retries - 1, delayMs * 1.5)
+    )
+  })
+}
+
+// Wrap every lazy route loader with the retry helper (single place, no need to
+// touch each route definition).
+for (const route of routes) {
+  const component = route.component as unknown
+  if (typeof component === 'function') {
+    const loader = component as () => Promise<unknown>
+    route.component = () => retryImport(loader)
+  }
+}
+
 const router = createRouter({
   history: createWebHistory(),
   routes,
@@ -187,6 +208,21 @@ router.afterEach((to) => {
   if (to.meta.title) {
     document.title = to.meta.title as string
   }
+})
+
+// Last-resort recovery: if a route chunk still fails to load (e.g. a redeploy
+// replaced the hashed asset that the current index.html references), force a
+// full page reload so the browser fetches the fresh index + chunks. Guarded
+// against reload loops.
+router.onError((error, to) => {
+  const message = (error as Error)?.message || ''
+  const isChunkError = /dynamically imported module|Importing a module script failed|Failed to fetch|Loading chunk|error loading dynamically/i.test(message)
+  if (!isChunkError) return
+  const key = 'bikemaster_chunk_reload_at'
+  const last = Number(sessionStorage.getItem(key) || '0')
+  if (Date.now() - last < 10000) return // already tried recently, avoid a loop
+  sessionStorage.setItem(key, String(Date.now()))
+  window.location.assign(to?.fullPath || window.location.href)
 })
 
 export default router

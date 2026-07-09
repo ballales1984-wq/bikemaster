@@ -39,6 +39,26 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+// Gateway statuses returned by Render while the free instance is asleep or
+// restarting. The request never reached the app, so retrying is always safe.
+const RETRYABLE_STATUS = new Set([502, 503, 504])
+const MAX_RETRIES = 4
+const RETRY_BASE_DELAY_MS = 1500
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+let wakingNotified = false
+
+function notifyServerWaking() {
+  const toast = (window as unknown as { __toast?: { add?: (msg: string, type?: string, ms?: number) => void } }).__toast
+  if (toast?.add && !wakingNotified) {
+    toast.add('Il server si sta riavviando, attendo qualche secondo…', 'info', 8000)
+    wakingNotified = true
+  }
+}
+
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   path: string
   body?: unknown
@@ -47,7 +67,7 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
 async function request<T>(options: RequestOptions): Promise<T> {
   const { path, method = 'GET', body, headers = {}, ...rest } = options
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData
-  const resp = await fetch(path, {
+  const init: RequestInit = {
     ...rest,
     method,
     headers: {
@@ -56,7 +76,30 @@ async function request<T>(options: RequestOptions): Promise<T> {
       ...(headers as Record<string, string> || {}),
     } as Record<string, string>,
     body: isForm ? body as BodyInit : body !== undefined ? JSON.stringify(body) : undefined,
-  })
+  }
+
+  let resp: Response
+  for (let attempt = 0; ; attempt++) {
+    try {
+      resp = await fetch(path, init)
+    } catch (networkErr) {
+      // Connection refused / DNS / abort: typically a cold-starting server.
+      if (attempt < MAX_RETRIES) {
+        notifyServerWaking()
+        await sleep(RETRY_BASE_DELAY_MS * (attempt + 1))
+        continue
+      }
+      throw new ApiError('Server non raggiungibile. Riprova tra qualche istante.', 0)
+    }
+    if (RETRYABLE_STATUS.has(resp.status) && attempt < MAX_RETRIES) {
+      notifyServerWaking()
+      await sleep(RETRY_BASE_DELAY_MS * (attempt + 1))
+      continue
+    }
+    break
+  }
+
+  wakingNotified = false
   if (!resp.ok) {
     if (resp.status === 401) {
       clearAuth()
