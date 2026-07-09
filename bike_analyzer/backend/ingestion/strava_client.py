@@ -62,7 +62,6 @@ def build_authorization_url(state: str, code_challenge: str) -> str:
     params = {
         "client_id": _s.strava_client_id,
         "redirect_uri": _s.strava_redirect_uri,
-        "response_type": "code",
         "scope": _s.strava_scope,
         "state": state,
         "code_challenge": code_challenge,

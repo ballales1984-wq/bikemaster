@@ -58,7 +58,6 @@ def build_authorization_url(state: str, code_challenge: str) -> str:
     params = {
         "client_id": _s.wahoo_client_id,
         "redirect_uri": _s.wahoo_redirect_uri,
-        "response_type": "code",
         "scope": _s.wahoo_scope,
         "state": state,
         "code_challenge": code_challenge,

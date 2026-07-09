@@ -324,8 +324,8 @@ def test_google_oauth_uses_forwarded_redirect_uri(client, monkeypatch):
 
 def test_google_oauth_callback_uses_redirect_uri_from_state(client, monkeypatch):
     import bike_analyzer.backend.auth.google_auth as google_auth_mod
-    from bike_analyzer.backend.settings import get_settings
     from bike_analyzer.backend.api.routes import _issue_oauth_state
+    from bike_analyzer.backend.settings import get_settings
 
     redirect_uri = "https://bikemaster.onrender.com/api/v1/auth/google/callback"
     monkeypatch.setattr(get_settings(), "google_client_id", "test-client")

@@ -57,7 +57,6 @@ def get_authorization_url(state: str | None = None) -> dict[str, str]:
     params = {
         "client_id": _s.garmin_consumer_key,
         "redirect_uri": _s.garmin_redirect_uri,
-        "response_type": "code",
         "scope": _s.garmin_scope,
         "state": state,
     }

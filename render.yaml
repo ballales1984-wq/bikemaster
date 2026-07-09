@@ -2,6 +2,7 @@ services:
   - type: web
     name: bikemaster-api
     runtime: docker
+    plan: free
     envVars:
       - key: SECRET_KEY
         generateValue: true
@@ -23,6 +24,17 @@ services:
         fromDatabase:
           name: bikemaster-db
           property: connectionString
+      - key: REDIS_URL
+        value: redis://localhost:6379
+      - key: LOG_LEVEL
+        value: WARNING
+    startCommand: python main.py api --port $PORT --workers 1
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+
+  - type: redis
+    name: bikemaster-cache
+    plan: free
 
   - type: postgresql
     name: bikemaster-db

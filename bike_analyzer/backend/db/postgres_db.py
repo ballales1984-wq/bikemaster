@@ -30,10 +30,9 @@ except ImportError:
 from ..settings import get_settings
 
 _s = get_settings()
-DATABASE_URL = _s.database_url
 
-if SQLALCHEMY_AVAILABLE and DATABASE_URL:
-    engine = create_engine(DATABASE_URL, echo=False)
+if SQLALCHEMY_AVAILABLE and _s.database_url:
+    engine = create_engine(_s.database_url, echo=False)
     SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
     def get_session():

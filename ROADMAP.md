@@ -144,7 +144,7 @@
 |:---:|---|---|
 | 169 | Strava API (import/export) | ✅ |
 | 170 | Garmin Connect API | ✅ |
-| 171 | Wahoo | ✅ |
+| 171 | Wahoo | ❌ |
 
 ## 🔄 Fase 18 — AI Coach Avanzato (In Corso)
 
@@ -154,7 +154,7 @@
 | 186 | Tool calling / function calling | ✅ |
 | 187 | Memory persistente conversazioni per utente | 🔄 Parziale |
 | 188 | Personalizzazione basata su storico completo | ✅ |
-| 189 | Voice input/output | ✅ |
+| 189 | Voice input/output | ❌ |
 | 190 | Prompt engineering avanzato | 🔄 |
 
 ## ✅ Fase 19 — Sicurezza & Produzione (Completata)
@@ -207,6 +207,16 @@
 | 228 | Test strada Android | ✅ |
 | 229 | Documentazione | ✅ |
 | 230 | README + link pagina track | ✅ |
+| 231 | Race condition stopTracking risolta | ✅ |
+| 232 | Unità metriche sincronizzate (metri) | ✅ |
+| 233 | Persistenza stato tracking su Android | ✅ |
+| 234 | Filtro accuratezza GPS (>20m scartato) | ✅ |
+| 235 | BikeTrackingPlugin.swift (Capacitor iOS bridge) | ✅ |
+| 236 | Info.plist permessi + background modes iOS | ✅ |
+| 237 | Persistenza stato tracking su iOS | ✅ |
+| 238 | Filtro accuratezza GPS iOS (>20m scartato) | ✅ |
+| 239 | Unità metriche sincronizzate iOS (km/h, metri) | ✅ |
+| 240 | Verifica build iOS con Xcode su dispositivo | ❌ |
 
 ## ✅ Fase 23 — Event-Driven & Clean Architecture (Completata)
 
@@ -215,7 +225,7 @@
 | 231 | Domain events (RideCreated, AthleteUpdated, BadgeEarned) | ✅ |
 | 232 | Separazione layer domain/application/infrastructure | ✅ |
 | 233 | Servizi registrati nel lifespan FastAPI | 🔄 |
-| 234 | Rimozione config.py legacy | ✅ (decoupled; file in attesa di rimozione per lock OS) |
+| 234 | Rimozione config.py legacy | ✅ |
 
 ## ✅ Fase 24 — Vector DB & AI RAG Avanzato (Completata)
 
@@ -250,12 +260,12 @@
 | ~~3~~ | ~~Anomaly detection + Weekly/Monthly training plan LLM~~ | ~~Alto~~ | ~~Media~~ | ✅ |
 | ~~4~~ | ~~PWA completa + offline support~~ | ~~Alto~~ | ~~Media~~ | ✅ |
 | ~~5~~ | ~~Ruff + mypy + pre-commit~~ | ~~Medio-Alto~~ | ~~Bassa~~ | ✅ |
-| **1** | Integazioni restanti (Wahoo, cloud hosted, Helm, one-click deploy) | Alto | Alta | ❌ |
-| **2** | Phone GPS follow-up (upload auto, push, activity recognition, test Kotlin/strada) | Alto | Media | ✅ |
-| **3** | Voice input/output AI Coach + prompt engineering avanzato | Medio | Media | ✅ |
-| **4** | Design System + theme tokens + rimozione config.py legacy | Medio | Bassa | 🔄 |
-| **5** | Coverage test >90% (metrica informativa) | Medio | Alta | 🔄 |
-| **6** | Logging centralizzato e strutturato | Medio | Bassa | 🔄 |
+| **2** | Integrazioni restanti (Wahoo, cloud hosted, Helm, one-click deploy) | Alto | Alta | ❌ |
+| **3** | Verifica build iOS con Xcode su dispositivo per tracking nativo | Alto | Media | ❌ |
+| **4** | Voice input/output AI Coach + prompt engineering avanzato | Medio | Media | ❌ |
+| **5** | Design System + theme tokens + rimozione config.py legacy | Medio | Bassa | 🔄 |
+| **6** | Coverage test >90% (metrica informativa) | Medio | Alta | 🔄 |
+| **7** | Logging centralizzato e strutturato | Medio | Bassa | 🔄 |
 
 ---
 
@@ -279,4 +289,4 @@
 
 ---
 
-*Ultimo aggiornamento: 2026-07-07*
+*Ultimo aggiornamento: 2026-07-09*

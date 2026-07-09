@@ -9,9 +9,7 @@ from bike_analyzer.backend.auth.google_auth import (
     exchange_google_code,
     get_google_oauth_url,
 )
-from bike_analyzer.backend.settings import get_settings
-
-_S = get_settings()
+from bike_analyzer.backend.security import JWT_AUDIENCE, JWT_ISSUER, SECRET_KEY
 
 
 def test_get_google_oauth_url():
@@ -50,10 +48,10 @@ def test_create_google_session_uses_athlete_id_as_jwt_subject():
 
     payload = jwt.decode(
         result["access_token"],
-        _S.secret_key,
+        SECRET_KEY,
         algorithms=["HS256"],
-        issuer=_S.jwt_issuer,
-        audience=_S.jwt_audience,
+        issuer=JWT_ISSUER,
+        audience=JWT_AUDIENCE,
     )
 
     assert result["user_id"] == "42"

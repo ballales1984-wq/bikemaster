@@ -198,7 +198,6 @@ def _try_llm_plan(
 ) -> dict[str, Any] | None:
     try:
         from ..analytics.ai_coach import _chat_completion_text, _clean_ai_output, get_ai_coach_client
-
         client, provider = get_ai_coach_client()
         model = _s.groq_model if provider == "groq" else _s.openai_model
         prompt = _llm_plan_prompt(athlete, rides, plan_type, start_date)

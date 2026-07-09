@@ -159,18 +159,25 @@ class TestLoadChunks:
         assert a is b  # same cached object
 
     def test_missing_kb_path(self, tmp_path):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+        from bike_analyzer.backend.analytics.knowledge_base import reload_kb
+        from bike_analyzer.backend.settings import get_settings
 
-        original = kb_mod._s.kb_path
+        original = get_settings().kb_path
         try:
-            kb_mod._s.kb_path = tmp_path / "missing"
-            from bike_analyzer.backend.analytics.knowledge_base import reload_kb
+            import bike_analyzer.backend.analytics.knowledge_base as kb_mod
+
+            kb_mod._s = get_settings()
+            # Monkeypatch the settings object
+            settings = get_settings()
+            settings.kb_path = tmp_path / "missing"
+            kb_mod._s = settings
 
             reload_kb()
             chunks = load_chunks()
             assert chunks == []
         finally:
-            kb_mod._s.kb_path = original
+            settings.kb_path = original
+            kb_mod._s = get_settings()
             reload_kb()
 
 
