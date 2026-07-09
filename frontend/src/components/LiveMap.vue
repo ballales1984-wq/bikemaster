@@ -39,6 +39,8 @@ function addPoint(lat: number, lon: number) {
       weight: 5,
       opacity: 0.9,
     }).addTo(map.value)
+  } else if (polyline.value) {
+    polyline.value.addLatLng([lat, lon])
   }
   map.value?.setView([lat, lon], 16)
 }

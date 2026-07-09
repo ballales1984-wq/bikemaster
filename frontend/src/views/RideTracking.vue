@@ -274,7 +274,6 @@ function handleWebPosition(position: GeolocationPosition) {
     elevation: webElevationGain,
     points: tracking.routePoints.length,
   })
-  liveMapRef.value?.addPoint(point.lat, point.lon)
   webLastPoint = { ...point, timestampNumber: position.timestamp }
 }
 
