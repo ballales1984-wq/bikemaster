@@ -26,6 +26,7 @@ def get_db_connection():
 
     max_retries = 3
     retry_delay = 0.1
+    conn = None
     for attempt in range(max_retries):
         try:
             conn = sqlite3.connect(DB_PATH, timeout=10)
@@ -33,17 +34,21 @@ def get_db_connection():
             conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("PRAGMA foreign_keys=ON")
             conn.row_factory = sqlite3.Row
-            try:
-                yield conn
-                conn.commit()
-            finally:
-                conn.close()
-            return
+            break
         except sqlite3.OperationalError as e:
             if "locked" in str(e).lower() and attempt < max_retries - 1:
                 time.sleep(retry_delay * (attempt + 1))
                 continue
             raise
+
+    if conn is None:
+        return
+
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def init_db():
