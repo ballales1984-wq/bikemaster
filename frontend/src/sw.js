@@ -122,6 +122,18 @@ registerRoute(
 );
 
 registerRoute(
+  ({ url }) =>
+    url.pathname.startsWith("/api/") &&
+    (url.pathname.includes("/auth/") || url.pathname.includes("/auth")),
+  new NetworkFirst({
+    cacheName: API_CACHE,
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 0 }),
+    ],
+  }),
+);
+
+registerRoute(
   ({ url }) => url.pathname.startsWith("/api/"),
   new NetworkFirst({
     cacheName: API_CACHE,

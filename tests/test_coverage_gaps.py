@@ -104,7 +104,7 @@ class TestStravaTokenRefresh:
     def test_get_authorization_url_returns_dict(self, monkeypatch):
         import bike_analyzer.backend.ingestion.strava_client as sc
 
-        monkeypatch.setattr(sc, "STRAVA_CLIENT_ID", "test_client_id")
+        monkeypatch.setattr(sc._s, "strava_client_id", "test_client_id")
         result = sc.get_authorization_url()
         assert "auth_url" in result
         assert "state" in result

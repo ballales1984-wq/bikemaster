@@ -19,8 +19,8 @@ from bike_analyzer.backend.ingestion.garmin_client import (
 class TestGarminOAuth:
     def test_get_authorization_url_returns_dict(self):
         with (
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_CONSUMER_KEY", "test_key"),
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_REDIRECT_URI", "https://test"),
+            patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_consumer_key", "test_key"),
+            patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_redirect_uri", "https://test"),
         ):
             result = get_authorization_url()
             assert "auth_url" in result
@@ -29,15 +29,15 @@ class TestGarminOAuth:
 
     def test_get_authorization_url_with_state(self):
         with (
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_CONSUMER_KEY", "test"),
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_REDIRECT_URI", "https://test"),
+            patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_consumer_key", "test"),
+            patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_redirect_uri", "https://test"),
         ):
             result = get_authorization_url(state="custom_state")
             assert result["state"] == "custom_state"
 
     def test_get_authorization_url_missing_key(self):
         with (
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_CONSUMER_KEY", ""),
+            patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_consumer_key", ""),
             pytest.raises(RuntimeError, match="GARMIN_CONSUMER_KEY"),
         ):
             get_authorization_url()
@@ -54,9 +54,9 @@ class TestGarminOAuth:
         mock_post.return_value = mock_resp
 
         with (
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_CONSUMER_KEY", "test"),
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_CONSUMER_SECRET", "secret"),
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_TOKEN_URL", "https://test"),
+            patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_consumer_key", "test"),
+            patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_consumer_secret", "secret"),
+            patch("bike_analyzer.backend.ingestion.garmin_client._GARMIN_TOKEN_URL", "https://test"),
         ):
             result = exchange_code_for_token("auth_code")
             assert result["access_token"] == "garmin_access"
@@ -70,9 +70,9 @@ class TestGarminOAuth:
         mock_post.return_value = mock_resp
 
         with (
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_CONSUMER_KEY", "test"),
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_CONSUMER_SECRET", "secret"),
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_TOKEN_URL", "https://test"),
+            patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_consumer_key", "test"),
+            patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_consumer_secret", "secret"),
+            patch("bike_analyzer.backend.ingestion.garmin_client._GARMIN_TOKEN_URL", "https://test"),
             pytest.raises(HTTPError),
         ):
             exchange_code_for_token("bad_code")
@@ -89,7 +89,7 @@ class TestGarminActivities:
         mock_get.return_value = mock_resp
 
         with (
-            patch("bike_analyzer.backend.ingestion.garmin_client.GARMIN_API_BASE_URL", "https://test"),
+            patch("bike_analyzer.backend.ingestion.garmin_client._GARMIN_API_BASE_URL", "https://test"),
             patch("bike_analyzer.backend.ingestion.garmin_client.store_token"),
         ):
             activities = fetch_activities("access_token_123")

@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { Athlete } from "../types/index";
-import { resetSessionExpiredNotification } from "../utils/api";
+import { apiPost, resetSessionExpiredNotification } from "../utils/api";
 
 const TOKEN_KEY = "bikemaster_token";
 const USER_KEY = "bikemaster_user";
@@ -66,21 +66,18 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   async function login(username: string, password: string): Promise<void> {
-    const form = new URLSearchParams();
-    form.append("username", username);
-    form.append("password", password);
-    const resp = await fetch("/api/v1/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: form.toString(),
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({ detail: "Login failed" }));
-      throw new Error((err as { detail?: string }).detail || "Login failed");
-    }
-    const data = await resp.json();
-    token.value = data.access_token;
-    const payload = parseJWTPayload(data.access_token);
+    const form = new URLSearchParams()
+    form.append("username", username)
+    form.append("password", password)
+    const data = await apiPost<{ access_token: string; id?: number }>(
+      "/api/v1/auth/login",
+      form,
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      },
+    )
+    token.value = data.access_token
+    const payload = parseJWTPayload(data.access_token)
     user.value = {
       id: typeof data.id === "number" ? data.id : 0,
       username: typeof payload?.sub === "string" ? payload.sub : "",
@@ -91,10 +88,10 @@ export const useAuthStore = defineStore("auth", () => {
           : typeof data.id === "number"
             ? data.id
             : 0,
-    };
-    localStorage.setItem(TOKEN_KEY, data.access_token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user.value));
-    resetSessionExpiredNotification();
+    }
+    localStorage.setItem(TOKEN_KEY, data.access_token)
+    localStorage.setItem(USER_KEY, JSON.stringify(user.value))
+    resetSessionExpiredNotification()
   }
 
   async function register(

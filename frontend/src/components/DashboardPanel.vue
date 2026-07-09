@@ -231,7 +231,7 @@ class="dash-section">
             </div>
             <div class="recent-ride-stats">
               <span>🛣️ {{ fmt(ride.distance_km) }} km</span>
-              <span>⏱️ {{ ride.duration_minutes }} min</span>
+              <span>⏱️ {{ formatDuration(ride.duration_minutes) }}</span>
               <span>⚡ {{ fmt(ride.avg_speed_kmh) }} km/h</span>
               <span v-if="ride.elevation_gain_m">⛰️ {{ fmt(ride.elevation_gain_m, 0) }}m</span>
             </div>
@@ -277,6 +277,17 @@ const scoreCards = computed(() => {
 function fmt(v, dec = 1) {
   if (v == null || isNaN(Number(v))) return "0";
   return Number(v).toFixed(dec);
+}
+
+function formatDuration(minutes) {
+  const mins = Number(minutes) || 0
+  const h = Math.floor(mins / 60)
+  const m = Math.floor(mins % 60)
+  const s = Math.floor((mins % 1) * 60)
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
+  return `${m}:${s.toString().padStart(2, '0')}`
 }
 
 function ringOffset(val) {

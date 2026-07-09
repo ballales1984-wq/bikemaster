@@ -77,34 +77,29 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
 }
 
 async function request<T>(options: RequestOptions): Promise<T> {
-  const { path, method = "GET", body, headers = {}, ...rest } = options;
-  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
+  const { path, method = "GET", body, headers = {}, ...rest } = options
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData
+  const isUrlSearchParams =
+    typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams
   const init: RequestInit = {
     ...rest,
     method,
     headers: {
-      ...(isForm ? {} : { "Content-Type": "application/json" }),
+      ...(isForm || isUrlSearchParams
+        ? {}
+        : { "Content-Type": "application/json" }),
       ...authHeaders(),
-      ...((headers as Record<string, string>) || {}),
+      ...(headers as Record<string, string>),
     } as Record<string, string>,
-    body: isForm
-      ? (body as BodyInit)
-      : body !== undefined
-        ? JSON.stringify(body)
-        : undefined,
-  };
-
-  let resp: Response;
-  for (let attempt = 0; ; attempt++) {
-    try {
-      resp = await fetch(path, init);
-    } catch (networkErr) {
-      // Connection refused / DNS / abort: typically a cold-starting server.
-      if (attempt < MAX_RETRIES) {
-        notifyServerWaking();
-        await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
-        continue;
-      }
+    body:
+      (isForm
+        ? (body as BodyInit)
+        : isUrlSearchParams
+          ? (body as URLSearchParams).toString()
+          : body !== undefined
+            ? JSON.stringify(body)
+            : undefined) as BodyInit | undefined,
+  }
       throw new ApiError(
         "Server non raggiungibile. Riprova tra qualche istante.",
         0,

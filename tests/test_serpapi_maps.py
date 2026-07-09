@@ -11,6 +11,7 @@ from bike_analyzer.backend.maps.serpapi_maps import (
     search_nearby,
     search_places,
 )
+import bike_analyzer.backend.maps.serpapi_maps as sm
 
 
 class TestWaitForRateLimit:
@@ -32,12 +33,12 @@ class TestWaitForRateLimit:
 
 class TestSearchPlaces:
     def test_no_api_key(self, monkeypatch):
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "")
         result = search_places("cafe")
         assert result is None
 
     def test_no_coords(self, monkeypatch):
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "key_abc")
         with patch("bike_analyzer.backend.maps.serpapi_maps.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.ok = True
@@ -48,7 +49,7 @@ class TestSearchPlaces:
             assert result is not None
 
     def test_with_coords(self, monkeypatch):
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "key_abc")
         with patch("bike_analyzer.backend.maps.serpapi_maps.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.ok = True
@@ -62,7 +63,7 @@ class TestSearchPlaces:
             assert "nearby" in call_kwargs["params"]
 
     def test_rate_limit_429(self, monkeypatch):
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "key_abc")
         with patch("bike_analyzer.backend.maps.serpapi_maps.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.status_code = 429
@@ -72,7 +73,7 @@ class TestSearchPlaces:
             assert result is None
 
     def test_forbidden_403(self, monkeypatch):
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "key_abc")
         with patch("bike_analyzer.backend.maps.serpapi_maps.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.status_code = 403
@@ -82,7 +83,7 @@ class TestSearchPlaces:
             assert result is None
 
     def test_request_exception(self, monkeypatch):
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "key_abc")
         import requests
 
         with patch(
@@ -94,7 +95,7 @@ class TestSearchPlaces:
             assert result is None
 
     def test_error_status_code(self, monkeypatch):
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "key_abc")
         with patch("bike_analyzer.backend.maps.serpapi_maps.requests.get") as mock_get:
             mock_resp = MagicMock()
             mock_resp.ok = False
@@ -113,7 +114,7 @@ class TestGetLocalResults:
     def test_with_points_no_data(self, monkeypatch):
         from bike_analyzer.backend.models.models import GPSPoint
 
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "key_abc")
         points = [GPSPoint(lat=45.0, lon=9.0, timestamp=None)]
         with patch("bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=None):
             result = get_local_results(points)
@@ -122,7 +123,7 @@ class TestGetLocalResults:
     def test_with_points_returns_local_results(self, monkeypatch):
         from bike_analyzer.backend.models.models import GPSPoint
 
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "key_abc")
         points = [GPSPoint(lat=45.0, lon=9.0, timestamp=None)]
         mock_data = {"local_results": [{"name": "Cafe"}]}
         with patch("bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=mock_data):
@@ -132,7 +133,7 @@ class TestGetLocalResults:
     def test_falls_back_to_places_results(self, monkeypatch):
         from bike_analyzer.backend.models.models import GPSPoint
 
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "key_abc")
         points = [GPSPoint(lat=45.0, lon=9.0, timestamp=None)]
         mock_data = {"places_results": [{"name": "Cafe"}]}
         with patch("bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=mock_data):
@@ -142,7 +143,7 @@ class TestGetLocalResults:
     def test_empty_local_results(self, monkeypatch):
         from bike_analyzer.backend.models.models import GPSPoint
 
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "key_abc")
         points = [GPSPoint(lat=45.0, lon=9.0, timestamp=None)]
         mock_data = {"local_results": []}
         with patch("bike_analyzer.backend.maps.serpapi_maps.search_places", return_value=mock_data):
@@ -158,7 +159,7 @@ class TestSearchNearby:
     def test_with_points(self, monkeypatch):
         from bike_analyzer.backend.models.models import GPSPoint
 
-        monkeypatch.setattr("bike_analyzer.backend.maps.serpapi_maps.SERPAPI_API_KEY", "key_abc")
+        monkeypatch.setattr(sm._s, "serpapi_api_key", "key_abc")
         points = [
             GPSPoint(lat=45.0, lon=9.0, timestamp=None),
             GPSPoint(lat=45.1, lon=9.1, timestamp=None),

@@ -23,7 +23,7 @@ aria-label="Chiudi"
         </div>
         <div class="metric-card">
           <div class="metric-icon">⏱️</div>
-          <div class="metric-value">{{ ride.duration_minutes }} min</div>
+          <div class="metric-value">{{ formatDuration(ride.duration_minutes) }}</div>
           <div class="metric-label">Durata</div>
         </div>
         <div class="metric-card">
@@ -127,6 +127,17 @@ const fatigueClass = computed(() => {
 function fmt(v, dec = 1) {
   if (v == null || isNaN(Number(v))) return "—";
   return Number(v).toFixed(dec);
+}
+
+function formatDuration(minutes) {
+  const mins = Number(minutes) || 0
+  const h = Math.floor(mins / 60)
+  const m = Math.floor(mins % 60)
+  const s = Math.floor((mins % 1) * 60)
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
+  return `${m}:${s.toString().padStart(2, '0')}`
 }
 
 function formatDate(dateStr) {
