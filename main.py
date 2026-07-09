@@ -9,6 +9,7 @@ Supports three modes:
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -16,12 +17,27 @@ import traceback
 
 import uvicorn
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    stream=sys.stdout,
-    force=True,
-)
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "timestamp": self.formatTime(record, self.datefmt or "%Y-%m-%dT%H:%M:%S%z"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            payload["exc_info"] = self.formatException(record.exc_info)
+        return json.dumps(payload, default=str)
+
+
+_root = logging.getLogger()
+if not _root.handlers:
+    _root.setLevel(os.environ.get("LOG_LEVEL", "DEBUG").upper())
+    _handler = logging.StreamHandler(stream=sys.stdout)
+    _handler.setFormatter(JsonFormatter())
+    _root.addHandler(_handler)
+
 logger = logging.getLogger("bikemaster.startup")
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
@@ -45,12 +61,13 @@ def main():
     args = parser.parse_args()
 
     if args.mode in {"api", "web"}:
-        print(f"Starting API + Dashboard on http://localhost:{args.port}")
+        logger.info("Starting API + Dashboard on http://localhost:%s", args.port)
         uvicorn.run(
             "main:app",
             host="0.0.0.0",
             port=args.port,
             reload=args.reload,
+            log_config=None,
         )
     elif args.mode == "cli":
         asyncio.run(run_cli())
