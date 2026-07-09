@@ -11,8 +11,6 @@ Tests cover:
 
 from __future__ import annotations
 
-import time
-
 import pytest
 
 from bike_analyzer.backend.analytics.knowledge_base import (
@@ -423,13 +421,9 @@ class TestCachingReload:
 
 
 class TestInitKbEmbeddings:
-    def test_init_kb_embeddings_without_openai(self, monkeypatch):
+    def test_init_kb_embeddings_local(self, monkeypatch):
         import bike_analyzer.backend.analytics.knowledge_base as kb_mod
 
-        monkeypatch.setenv("OPENAI_API_KEY", "")
-        monkeypatch.setattr(kb_mod._s, "openai_api_key", "")
-        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", False)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_failures", 0)
         result = init_kb_embeddings(session=None)
         assert "status" in result
         assert result["status"] in ("embedded_local", "error")
@@ -491,7 +485,6 @@ class TestPGVectorFallback:
         assert result is None or isinstance(result, list)
 
     def test_embed_text_local_fallback_returns_list(self, monkeypatch):
-        monkeypatch.setenv("OPENAI_API_KEY", "")
         from bike_analyzer.backend.analytics.knowledge_base import EMBEDDING_DIMENSION, embed_text
 
         result = embed_text("allenamento ciclistico recupero")
@@ -499,7 +492,6 @@ class TestPGVectorFallback:
         assert len(result) == EMBEDDING_DIMENSION
 
     def test_search_knowledge_base_pgvector_fallback_to_bm25(self, monkeypatch):
-        monkeypatch.setenv("OPENAI_API_KEY", "")
         from bike_analyzer.backend.analytics.knowledge_base import (
             search_knowledge_base_pgvector,
         )
@@ -551,119 +543,6 @@ class TestPGVectorFallback:
 
 
 # ---------------------------------------------------------------------------
-# Circuit breaker & 429 handling
-# ---------------------------------------------------------------------------
-
-
-class TestCircuitBreaker429:
-    def teardown_method(self, method):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
-        kb_mod._openai_embeddings_unavailable = False
-        kb_mod._openai_circuit_failures = 0
-        kb_mod._openai_circuit_last_failure = 0.0
-        kb_mod._openai_circuit_cooldown = 300
-        kb_mod._openai_circuit_max_failures = 3
-
-    def test_429_sets_circuit_breaker_flag_and_falls_back(self, monkeypatch):
-        from openai import APIStatusError
-
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
-        class FakeResponse:
-            status_code = 429
-            headers = {}
-            request = type("Req", (), {"id": "test"})()
-
-        monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test")
-        monkeypatch.setattr(kb_mod._s, "openai_api_key", "sk-proj-test")
-        monkeypatch.setattr(kb_mod, "_openai_circuit_max_failures", 1)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_cooldown", 300)
-
-        class FakeOpenAI:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            class embeddings:
-                @staticmethod
-                def create(*args, **kwargs):
-                    raise APIStatusError(
-                        message="Rate limit exceeded",
-                        response=FakeResponse(),
-                        body=None,
-                    )
-
-        monkeypatch.setattr(kb_mod, "OpenAI", FakeOpenAI)
-
-        result = kb_mod.embed_text("testo di embedding")
-        assert kb_mod._openai_embeddings_unavailable is True
-        assert isinstance(result, list)
-        assert len(result) == kb_mod.EMBEDDING_DIMENSION
-
-    def test_circuit_breaker_cooldown_resets_flag(self, monkeypatch):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
-        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", True)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_last_failure", time.time() - 301)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_failures", 3)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_cooldown", 300)
-
-        allowed = kb_mod._circuit_breaker_allows()
-        assert allowed is True
-        assert kb_mod._openai_embeddings_unavailable is False
-        assert kb_mod._openai_circuit_failures == 0
-
-    def test_circuit_breaker_blocks_during_cooldown(self, monkeypatch):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
-        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", True)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_last_failure", time.time() - 10)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_failures", 3)
-        monkeypatch.setattr(kb_mod, "_openai_circuit_cooldown", 300)
-
-        allowed = kb_mod._circuit_breaker_allows()
-        assert allowed is False
-        assert kb_mod._openai_embeddings_unavailable is True
-
-
-
-# ---------------------------------------------------------------------------
-# Embedding cache
-# ---------------------------------------------------------------------------
-
-
-class TestEmbeddingCache:
-    def test_cache_set_and_get(self, tmp_path, monkeypatch):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
-        cache_path = tmp_path / "cache.json"
-        monkeypatch.setattr(kb_mod, "_EMBEDDING_CACHE_PATH", cache_path)
-
-        test_emb = [0.1, 0.2, 0.3]
-        kb_mod._cache_set("hello world", test_emb, provider="test")
-        result = kb_mod._cache_get("hello world")
-        assert result == test_emb
-
-    def test_cache_miss_for_empty(self, tmp_path, monkeypatch):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
-        cache_path = tmp_path / "cache.json"
-        monkeypatch.setattr(kb_mod, "_EMBEDDING_CACHE_PATH", cache_path)
-        assert kb_mod._cache_get("nonexistent") is None
-
-    def test_cache_expiry(self, tmp_path, monkeypatch):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
-        cache_path = tmp_path / "cache.json"
-        monkeypatch.setattr(kb_mod, "_EMBEDDING_CACHE_PATH", cache_path)
-        monkeypatch.setattr(kb_mod, "EMBEDDING_CACHE_TTL", 1)
-
-        kb_mod._cache_set("stale text", [0.5], provider="test")
-        time.sleep(1.1)
-        assert kb_mod._cache_get("stale text") is None
-
-
-# ---------------------------------------------------------------------------
 # Local fallback quality
 # ---------------------------------------------------------------------------
 
@@ -674,17 +553,11 @@ class TestLocalFallback:
         assert vec is not None
 
     def test_tfidf_fallback_returns_correct_dimension(self, monkeypatch):
-        monkeypatch.setenv("OPENAI_API_KEY", "")
         result = _embed_text_local("testo di allenamento e recupero")
         assert isinstance(result, list)
         assert len(result) == EMBEDDING_DIMENSION
 
-    def test_local_fallback_returns_list_when_no_openai(self, monkeypatch):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
-        monkeypatch.setenv("OPENAI_API_KEY", "")
-        monkeypatch.setattr(kb_mod._s, "openai_api_key", "")
-        monkeypatch.setattr(kb_mod, "_openai_embeddings_unavailable", False)
+    def test_local_fallback_returns_list(self, monkeypatch):
         result = embed_text("testo di prova")
         assert isinstance(result, list)
         assert len(result) == EMBEDDING_DIMENSION
@@ -709,16 +582,7 @@ class TestLocalFallback:
 
 
 class TestEmbeddingProvider:
-    def test_get_embedding_provider_openai_when_key_set(self, monkeypatch):
+    def test_get_embedding_provider_is_local(self):
         import bike_analyzer.backend.analytics.knowledge_base as kb_mod
 
-        monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test")
-        monkeypatch.setattr(kb_mod._s, "openai_api_key", "sk-proj-test")
-        assert kb_mod._get_embedding_provider() == "openai"
-
-    def test_get_embedding_provider_local_when_key_missing(self, monkeypatch):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
-        monkeypatch.setenv("OPENAI_API_KEY", "")
-        monkeypatch.setattr(kb_mod._s, "openai_api_key", "")
         assert kb_mod._get_embedding_provider() == "local"

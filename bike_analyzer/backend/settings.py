@@ -85,11 +85,6 @@ class Settings(BaseSettings):
     ai_coach_chat_retention_days: int = 90
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
-    openai_api_key: str = ""
-    openai_model: str = "gpt-4o-mini"
-    openai_log_level: str = "WARNING"
-    openai_embedding_cooldown_seconds: int = 300
-    openai_embedding_max_failures: int = 3
     ollama_base_url: str = "http://localhost:11434/v1"
     ollama_model: str = "llama3"
     ollama_api_key: str = ""

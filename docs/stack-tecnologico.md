@@ -62,9 +62,8 @@ un'applicazione per l'analisi e il tracking di uscite ciclistiche.
 - **folium** — mappe (fallback OSM)
 
 ### AI e Knowledge Base
-- **OpenAI SDK** — provider LLM (anche compatibile con Ollama)
-- **Groq SDK** — inferenza LLM ad alta velocita
-- **sentence-transformers** — embedding di testo
+- **Groq SDK** — unico provider LLM attivo (inferenza ad alta velocità)
+- **sentence-transformers** — embedding di testo (locale)
 - **ChromaDB** — vector database per RAG (Retrieval-Augmented Generation)
 - **AI Coach** — sistema di coaching ciclistico con RAG
 
@@ -191,7 +190,7 @@ un'applicazione per l'analisi e il tracking di uscite ciclistiche.
 - **Race condition risolta** nel router guard: sincronizzazione `localStorage` → Pinia prima della valutazione auth
 - **Build Windows EPERM**: gestito con retry wrapper (`scripts/build.mjs`) + esclusione Defender
 - **Service worker caching** su `/api`: richiede invalidazione cache per dati freschi sulle rides
-- **Multi-provider AI**: configurabile (`groq,openai`) con fallback
+- **Multi-provider AI**: configurabile (`groq`) con fallback locale
 - **Key rotation JWT**: supporto `SECRET_KEY_PREVIOUS` per rotazione senza logout massivo
 - **Sicurezza Docker**: `read_only`, `no-new-privileges`, tmpfs noexec
 

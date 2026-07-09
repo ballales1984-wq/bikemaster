@@ -8,7 +8,6 @@ Supports ChromaDB as intermediate layer.
 from __future__ import annotations
 
 import contextlib
-import hashlib
 import json
 import logging
 import math
@@ -25,12 +24,6 @@ from ..settings import get_settings
 _s = get_settings()
 
 try:
-    from openai import APIStatusError, OpenAI
-except Exception:
-    OpenAI = None
-    APIStatusError = None
-
-try:
     from sklearn.feature_extraction.text import TfidfVectorizer
 except Exception:
     TfidfVectorizer = None
@@ -41,7 +34,6 @@ MAX_CHARS_PER_CHUNK = 1200
 CHUNK_OVERLAP = 200
 CONTEXT_WINDOW_CHARS = 3000
 EMBEDDING_DIMENSION = 1536
-EMBEDDING_CACHE_TTL = 86400  # 24 hours
 
 _STOP_WORDS: frozenset[str] = frozenset(
     {
@@ -285,94 +277,8 @@ def load_chunks(force_reload: bool = False) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def _configure_openai_logging() -> None:
-    """Reduce verbosity of openai/httpx loggers based on OPENAI_LOG_LEVEL."""
-    log_level = getattr(
-        logging, str(_s.openai_log_level or "WARNING").upper(), logging.WARNING
-    )
-    for name in ("openai", "httpx"):
-        logging.getLogger(name).setLevel(log_level)
-
-
-_configure_openai_logging()
-
-_EMBEDDING_CACHE_PATH = _s.kb_path.parent / ".chroma_db" / "embeddings_cache.json"
-_openai_embeddings_unavailable = False
-_openai_circuit_failures = 0
-_openai_circuit_last_failure = 0.0
-_openai_circuit_cooldown = _s.openai_embedding_cooldown_seconds or 300
-_openai_circuit_max_failures = _s.openai_embedding_max_failures or 3
 _bm25_tfidf_vectorizer = None
 _sentence_transformer_model = None
-
-_configure_openai_logging()
-
-
-def _circuit_breaker_allows() -> bool:
-    """Return True if OpenAI is allowed (circuit closed or half-open in cooldown)."""
-    global _openai_embeddings_unavailable, _openai_circuit_failures, _openai_circuit_last_failure
-    if not _openai_embeddings_unavailable:
-        return True
-    if time.time() - _openai_circuit_last_failure > _openai_circuit_cooldown:
-        _openai_embeddings_unavailable = False
-        _openai_circuit_failures = 0
-        logger.info(
-            "OpenAI embedding circuit breaker cooldown expired; retrying OpenAI."
-        )
-        return True
-    return False
-
-
-def _text_hash(text: str) -> str:
-    """Return SHA256 hex digest of stripped text for cache keys."""
-    normalized = re.sub(r"\s+", " ", text.strip())
-    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-
-
-def _load_embedding_cache() -> dict:
-    """Load embedding cache from disk."""
-    try:
-        if _EMBEDDING_CACHE_PATH.exists():
-            data = json.loads(_EMBEDDING_CACHE_PATH.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                return data
-    except Exception as exc:
-        logger.debug("Embedding cache load failed: %s", exc)
-    return {}
-
-
-def _save_embedding_cache(cache: dict) -> None:
-    """Persist embedding cache to disk."""
-    try:
-        _EMBEDDING_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _EMBEDDING_CACHE_PATH.write_text(
-            json.dumps(cache, separators=(",", ":")), encoding="utf-8"
-        )
-    except Exception as exc:
-        logger.debug("Embedding cache save failed: %s", exc)
-
-
-def _cache_get(text: str) -> list[float] | None:
-    """Return cached embedding if fresh, else None."""
-    cache = _load_embedding_cache()
-    entry = cache.get(_text_hash(text))
-    if entry is None:
-        return None
-    age = time.time() - entry.get("timestamp", 0)
-    if age > EMBEDDING_CACHE_TTL:
-        return None
-    return entry.get("embedding")
-
-
-def _cache_set(text: str, embedding: list[float], provider: str = "openai") -> None:
-    """Persist embedding to cache."""
-    cache = _load_embedding_cache()
-    cache[_text_hash(text)] = {
-        "embedding": embedding,
-        "timestamp": time.time(),
-        "provider": provider,
-    }
-    _save_embedding_cache(cache)
 
 
 def _get_or_create_tfidf_vectorizer():
@@ -684,70 +590,14 @@ def init_kb_embeddings(session=None) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Embedding functions (OpenAI + sentence-transformers + local TF-IDF)
+# Embedding functions (sentence-transformers + local TF-IDF)
 # ---------------------------------------------------------------------------
-
-# Set to True once OpenAI embeddings are observed to be rate-limited (HTTP 429)
-# so we stop hammering the API and consistently use the local fallback.
-# After a cooldown period this flag resets and OpenAI is retried.
-_openai_embeddings_unavailable = False
-_openai_circuit_failures = 0
-_openai_circuit_last_failure = 0.0
 
 
 def _get_embedding_provider() -> str:
-    """Return current embedding provider name."""
-    return "openai" if _s.openai_api_key and _s.openai_api_key.strip() else "local"
+    """Return current embedding provider name (always local)."""
+    return "local"
 
-
-def _embed_text_openai(text: str) -> list[float] | None:
-    """Embed text using OpenAI text-embedding-3-small.
-
-    Uses file cache to avoid redundant calls. Implements a circuit breaker:
-    after OPENAI_EMBEDDING_MAX_FAILURES consecutive 429s, OpenAI is disabled
-    for OPENAI_EMBEDDING_COOLDOWN_SECONDS seconds, then retried.
-    """
-    global _openai_embeddings_unavailable, _openai_circuit_failures, _openai_circuit_last_failure
-    if not _s.openai_api_key or not _s.openai_api_key.strip():
-        return None
-    if not _circuit_breaker_allows():
-        return None
-    cached = _cache_get(text)
-    if cached is not None:
-        return cached
-    if OpenAI is None:
-        return None
-    try:
-        client = OpenAI(api_key=_s.openai_api_key, max_retries=0)
-        response = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text,
-        )
-        embedding = response.data[0].embedding
-        _cache_set(text, embedding, provider="openai")
-        return embedding
-    except Exception as e:
-        if APIStatusError is None or not isinstance(e, APIStatusError):
-            return None
-        if e.status_code == 429:
-            _openai_circuit_failures += 1
-            _openai_circuit_last_failure = time.time()
-            if _openai_circuit_failures >= _openai_circuit_max_failures:
-                _openai_embeddings_unavailable = True
-                logger.warning(
-                    "OpenAI embeddings rate-limited (%d/%d attempts); "
-                    "circuit breaker open for %ss.",
-                    _openai_circuit_failures,
-                    _openai_circuit_max_failures,
-                    _openai_circuit_cooldown,
-                )
-            else:
-                logger.warning(
-                    "OpenAI embeddings rate-limited (429); attempt %d/%d.",
-                    _openai_circuit_failures,
-                    _openai_circuit_max_failures,
-                )
-        return None
 
 
 def _embed_text_local(text: str) -> list[float] | None:
@@ -771,12 +621,7 @@ def _embed_text_local(text: str) -> list[float] | None:
 
 
 def embed_text(text: str) -> list[float] | None:
-    """Embed text using preferred provider with local fallback."""
-    provider = _get_embedding_provider()
-    if provider == "openai":
-        result = _embed_text_openai(text)
-        if result:
-            return result
+    """Embed text using local providers (sentence-transformers, TF-IDF)."""
     return _embed_text_local(text)
 
 

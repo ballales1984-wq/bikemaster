@@ -255,7 +255,7 @@ bike_analyzer/
 | Cache | Redis 7 (opzionale, fallback in-memory) |
 | Analytics | NumPy, Pandas, Matplotlib, SciPy, scikit-learn, statsmodels, endurance-metrics |
 | Parsing GPS | gpxpy, fitparse |
-| AI/LLM | Groq SDK + OpenAI SDK (embeddings) |
+| AI/LLM | Groq SDK (embeddings locali via sentence-transformers) |
 | Auth | python-jose[cryptography], passlib, bcrypt, Google OAuth2 |
 | Rate Limit | slowapi (proxy-aware) |
 | Security | Security headers (CSP, HSTS, X-Frame-Options, XSS) |

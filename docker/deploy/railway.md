@@ -13,7 +13,7 @@
    - `DATABASE_URL` (from PostgreSQL plugin)
    - `REDIS_URL` (from Redis plugin)
    - `AI_COACH_MODE=external`
-   - `OPENAI_API_KEY` / `GROQ_API_KEY` as needed
+   - `GROQ_API_KEY` (unica chiave AI attiva)
 8. Deploy. Railway exposes the service via a public URL automatically.
 
 No extra files needed if your root `Dockerfile` is up to date.
