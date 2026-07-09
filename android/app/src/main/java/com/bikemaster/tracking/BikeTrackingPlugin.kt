@@ -119,4 +119,27 @@ class BikeTrackingPlugin : Plugin() {
         }
         call.resolve(data)
     }
+
+    @PluginMethod
+    fun readGpx(call: PluginCall) {
+        val path = call.getString("path") ?: run {
+            call.reject("Path is required")
+            return
+        }
+        try {
+            val file = java.io.File(path)
+            if (!file.exists()) {
+                call.reject("File not found")
+                return
+            }
+            val content = file.readText(Charsets.UTF_8.name())
+            val base64 = android.util.Base64.encodeToString(content.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
+            val data = JSObject().apply {
+                put("base64", base64)
+            }
+            call.resolve(data)
+        } catch (e: Exception) {
+            call.reject("Failed to read GPX file", e)
+        }
+    }
 }

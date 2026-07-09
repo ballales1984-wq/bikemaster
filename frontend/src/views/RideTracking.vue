@@ -55,6 +55,7 @@ import RideMetricsPanel from '../components/RideMetricsPanel.vue'
 import ControlsBar from '../components/ControlsBar.vue'
 import { apiUpload } from '../utils/api'
 import type { GpsPoint } from '../types/index'
+import { BikeTracking, type TrackingStateEvent, type TrackingStoppedEvent } from '../plugins/bikeTracking'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -70,6 +71,7 @@ const liveMapRef = ref<InstanceType<typeof LiveMap> | null>(null)
 const isUploading = ref(false)
 const gpsWaiting = ref(false)
 const gpsError = ref('')
+const isNativeTracking = ref(false)
 
 let webWatchId: number | null = null
 let webStartTime = 0
@@ -79,6 +81,9 @@ let webLastPoint: GpsPoint | null = null
 let webDistance = 0
 let webElevationGain = 0
 let webFirstFixTimeout: number | null = null
+
+let stateListener: { remove: () => void } | null = null
+let stoppedListener: { remove: () => void } | null = null
 
 const tracking = useTrackingStore()
 const {
@@ -92,32 +97,117 @@ async function startTracking() {
     alert('GPS permissions required for tracking')
     return
   }
-  if (window.BikeTracking?.startTracking) {
-    await window.BikeTracking.startTracking()
+  if (BikeTracking.startTracking) {
+    isNativeTracking.value = true
+    await BikeTracking.startTracking()
+    registerNativeListeners()
   } else {
+    isNativeTracking.value = false
     startWebTracking()
   }
   tracking.start()
 }
 
-async function checkPermissions(): Promise<boolean> {
-  if (!window.BikeTracking?.checkPermissions) {
-    if (!navigator.geolocation) return false
-    try {
-      const result = await navigator.permissions.query({ name: 'geolocation' })
-      if (result.state === 'granted') return true
-      if (result.state === 'prompt') return true
-      return false
-    } catch {
-      return true
-    }
+async function registerNativeListeners() {
+  if (stateListener) {
+    stateListener.remove()
+    stateListener = null
   }
-  return window.BikeTracking.checkPermissions().then((result) => result.granted)
+  if (stoppedListener) {
+    stoppedListener.remove()
+    stoppedListener = null
+  }
+
+  stateListener = await BikeTracking.addListener('trackingState', (info: TrackingStateEvent) => {
+    if (!isTracking.value || isPaused.value) return
+
+    const distance = info.distance
+    const currentSpeed = info.currentSpeed
+    const avgSpeed = info.avgSpeed
+    const elapsedTime = info.elapsedTime
+    const elevation = info.elevation
+    const points = info.points
+
+    tracking.updateMetrics({
+      distance,
+      currentSpeed,
+      avgSpeed,
+      elapsedTime,
+      elevation,
+      points,
+    })
+
+    if (info.lastLatitude != null && info.lastLongitude != null) {
+      tracking.addPoint({
+        lat: info.lastLatitude,
+        lon: info.lastLongitude,
+        altitude: info.elevation ?? undefined,
+        timestamp: new Date().toISOString(),
+      })
+      liveMapRef.value?.addPoint(info.lastLatitude, info.lastLongitude)
+    }
+
+    if (info.heartRate !== null && info.heartRate !== undefined) {
+      tracking.updateMetrics({ heartRate: info.heartRate })
+    }
+    if (info.cadence !== null && info.cadence !== undefined) {
+      tracking.updateMetrics({ cadence: info.cadence })
+    }
+    if (info.power !== null && info.power !== undefined) {
+      tracking.updateMetrics({ power: info.power })
+    }
+  })
+
+  stoppedListener = await BikeTracking.addListener('trackingStopped', async (info: TrackingStoppedEvent) => {
+    if (info.error) {
+      alert('Tracking error: ' + info.error)
+      return
+    }
+    let nativeBlob: Blob | null = null
+    if (info.gpxPath) {
+      tracking.setGpxPath(info.gpxPath)
+      try {
+        const result = await BikeTracking.readGpx({ path: info.gpxPath })
+        const binary = atob(result.base64)
+        const bytes = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i)
+        }
+        nativeBlob = new Blob([bytes], { type: 'application/gpx+xml' })
+        tracking.setGpxBlob(nativeBlob)
+      } catch {
+        console.error('Failed to read native GPX file')
+      }
+    }
+    tracking.stop(nativeBlob)
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('BikeMaster', {
+        body: 'Tracciamento completato! Carica la tua uscita.',
+        icon: '/icon-192.png',
+      })
+    }
+  })
+}
+
+async function checkPermissions(): Promise<boolean> {
+  if (BikeTracking?.checkPermissions) {
+    const result = await BikeTracking.checkPermissions()
+    return result.granted
+  }
+  if (!navigator.geolocation) return false
+  try {
+    const result = await navigator.permissions.query({ name: 'geolocation' })
+    if (result.state === 'granted') return true
+    if (result.state === 'prompt') return true
+    return false
+  } catch {
+    return true
+  }
 }
 
 async function pauseTracking() {
-  if (window.BikeTracking?.pauseTracking) {
-    await window.BikeTracking.pauseTracking()
+  if (BikeTracking?.pauseTracking) {
+    await BikeTracking.pauseTracking()
   } else if (isPaused.value === false) {
     webPausedAt = Date.now()
   }
@@ -125,8 +215,8 @@ async function pauseTracking() {
 }
 
 async function resumeTracking() {
-  if (window.BikeTracking?.resumeTracking) {
-    await window.BikeTracking.resumeTracking()
+  if (BikeTracking?.resumeTracking) {
+    await BikeTracking.resumeTracking()
   } else if (webPausedAt !== null) {
     webPausedAccumulatedMs += Date.now() - webPausedAt
     webPausedAt = null
@@ -135,17 +225,12 @@ async function resumeTracking() {
 }
 
 async function stopTracking() {
-  let result: { gpxPath?: string | null; gpxBlob?: Blob | null } | void
-  if (window.BikeTracking?.stopTracking) {
-    result = await window.BikeTracking.stopTracking()
+  if (BikeTracking?.stopTracking) {
+    await BikeTracking.stopTracking()
   } else {
-    result = stopWebTracking()
+    const webBlob = stopWebTracking()
+    tracking.stop(webBlob.gpxBlob)
   }
-  tracking.setGpxPath(result?.gpxPath || null)
-  if (result?.gpxBlob) {
-    tracking.setGpxBlob(result.gpxBlob)
-  }
-  tracking.stop()
 }
 
 async function uploadRide() {
@@ -346,6 +431,14 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (stateListener) {
+    stateListener.remove()
+    stateListener = null
+  }
+  if (stoppedListener) {
+    stoppedListener.remove()
+    stoppedListener = null
+  }
   if (webFirstFixTimeout !== null) {
     clearTimeout(webFirstFixTimeout)
     webFirstFixTimeout = null
@@ -354,7 +447,7 @@ onBeforeUnmount(() => {
     navigator.geolocation.clearWatch(webWatchId)
     webWatchId = null
   }
-  if (tracking.isTracking && !tracking.gpxBlob) {
+  if (!isNativeTracking.value && tracking.isTracking && !tracking.gpxBlob) {
     stopWebTracking()
   }
 })

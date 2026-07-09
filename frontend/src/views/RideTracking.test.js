@@ -10,6 +10,19 @@ vi.mock("pinia", async () => {
   };
 });
 
+vi.mock("../plugins/bikeTracking", () => ({
+  BikeTracking: {
+    startTracking: vi.fn(),
+    stopTracking: vi.fn(),
+    pauseTracking: vi.fn(),
+    resumeTracking: vi.fn(),
+    checkPermissions: vi.fn().mockResolvedValue({ granted: true }),
+    readGpx: vi.fn(),
+    addListener: vi.fn().mockResolvedValue({ remove: vi.fn() }),
+    removeAllListeners: vi.fn(),
+  },
+}));
+
 import RideTracking from "../views/RideTracking.vue";
 
 const router = createRouter({
@@ -95,5 +108,15 @@ describe("RideTracking", () => {
     });
     expect(wrapper.find("h2").exists()).toBe(true);
     expect(wrapper.find("h2").text()).toBe("GPS Tracking");
+  });
+
+  it("uses native tracking when BikeTracking is available", async () => {
+    const wrapper = mount(RideTracking, {
+      global: { plugins: [router] },
+    });
+    const { BikeTracking } = await import("../plugins/bikeTracking");
+    vi.mocked(BikeTracking.checkPermissions).mockResolvedValue({ granted: true });
+    await wrapper.vm.startTracking();
+    expect(BikeTracking.startTracking).toHaveBeenCalled();
   });
 });

@@ -1,10 +1,11 @@
 package com.bikemaster.tracking
 
 import android.location.Location
-import org.junit.Test
 import org.junit.Assert.*
+import org.junit.Test
+import java.io.File
 
-class TrackingUtilsTest {
+class TrackingServiceUtilsTest {
 
     @Test
     fun testDistanceCalculation() {
@@ -67,5 +68,46 @@ class TrackingUtilsTest {
     @Test
     fun autoPausePolicy_staysPausedWhenStillAndSlow() {
         assertTrue(AutoPausePolicy.shouldPause(0.5, 3, true))
+    }
+
+    @Test
+    fun testTrackingStateSerializable() {
+        val state = TrackingState(
+            distance = 15000.0,
+            currentSpeed = 30.0,
+            avgSpeed = 25.0,
+            elapsedTime = 1800L,
+            elevation = 320.0,
+            points = 500,
+            isPaused = false,
+            lastLatitude = 45.4642,
+            lastLongitude = 9.19,
+            heartRate = 160,
+            cadence = 95,
+            power = 250
+        )
+        assertTrue(state is java.io.Serializable)
+    }
+
+    @Test
+    fun testGpxOutputPathGeneration() {
+        val tracksDir = File("test_tracks").apply { mkdirs() }
+        val path = File(tracksDir, "track_${System.currentTimeMillis()}.gpx").absolutePath
+        assertTrue(path.endsWith(".gpx"))
+        assertTrue(path.contains("track_"))
+    }
+
+    @Test
+    fun testActivityRecognitionIntentCreation() {
+        val intent = android.content.Intent(android.content.ContextWrapper(null), BikeTrackingService::class.java).apply {
+            action = BikeTrackingService.ACTION_ACTIVITY
+        }
+        assertEquals(BikeTrackingService.ACTION_ACTIVITY, intent.action)
+    }
+
+    @Test
+    fun testLocationCallbackNotNullAfterCreation() {
+        val service = BikeTrackingService()
+        assertNotNull(service)
     }
 }

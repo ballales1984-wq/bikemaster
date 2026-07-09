@@ -1,5 +1,5 @@
 {
-  "appId": "com.bikemaster.app",
+  "appId": "com.bikemaster",
   "appName": "BikeMaster",
   "webDir": "dist",
   "bundledWebRuntime": false,

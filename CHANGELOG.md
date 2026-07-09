@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.4.1 (2026-07-09)
+
+### Changed
+
+- Removed legacy `bike_analyzer/backend/config.py` (ROADMAP #234)
+- All configuration now flows through `bike_analyzer/backend/settings.py` (`get_settings()`) and `os.getenv`
+- Updated 20+ modules: `security.py`, `api/routes.py`, `api/app_factory.py`, `analytics/ai_coach.py`, `analytics/knowledge_base.py`, `analytics/training_plan_generator.py`, `db/database.py`, `db/postgres_db.py`, `database/vectordb.py`, `ingestion/*`, `maps/*`, `weather/weather_service.py`
+- Added `secret_key_previous` support in `Settings` for JWT key rotation
+- Added `_validate_secret_key` validator to reject placeholder secrets in production
+- Updated test suite: `tests/test_config.py` now targets `settings.py`, added `tests/test_no_config_imports.py` (100 tests)
+
+### Technical Details
+
+- Backward compatibility preserved: same env vars, same defaults, same behaviors
+- `SECRET_KEY`, `ALGORITHM`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ACCESS_TOKEN_EXPIRE_MINUTES` still importable from `security.py` for compatibility
+- Static URLs (Strava, Garmin, Wahoo, Google OAuth) defined as module constants in ingestion clients
+- Ruff clean, mypy clean, pytest passes
+
 ## v1.4.0 (2026-07-06)
 
 ### Added

@@ -34,17 +34,17 @@ export const useTrackingStore = defineStore('tracking', () => {
     isPaused.value = false
   }
 
-  function stop() {
+  function stop(blob?: Blob | null) {
     isTracking.value = false
     isPaused.value = false
-    void autoUpload()
+    void autoUpload(blob)
   }
 
-  async function autoUpload() {
-    const blob = gpxBlob.value
-    if (!blob) return
+  async function autoUpload(blob?: Blob | null) {
+    const file = blob ?? gpxBlob.value
+    if (!file) return
     try {
-      await apiUpload('/api/v1/import/gpx', blob)
+      await apiUpload('/api/v1/import/gpx', file)
     } catch (e) {
       console.error('Auto-upload GPX failed', e)
     }
