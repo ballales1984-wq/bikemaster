@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useUIStore } from "../stores/ui";
 import { syncAuthState } from "../services/authSync";
+import { apiGet } from "../utils/api";
 import { processOAuthToken } from "../services/oauth";
 
 const routes = [
@@ -169,11 +170,9 @@ async function checkProfileComplete(
   auth: ReturnType<typeof useAuthStore>,
 ): Promise<boolean> {
   try {
-    const resp = await fetch("/api/v1/auth/me", {
+    const data = await apiGet<{ profile_complete?: boolean }>("/api/v1/auth/me", {}, {
       headers: { Authorization: `Bearer ${auth.token}` },
     });
-    if (!resp.ok) return false;
-    const data = await resp.json();
     return data.profile_complete === true;
   } catch {
     return false;
