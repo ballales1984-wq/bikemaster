@@ -3284,6 +3284,15 @@ async def garmin_disconnect(current_user: dict = Depends(get_current_user)):
     return {"status": "disconnected"}
 
 
+@router.get("/import/providers")
+async def list_import_providers():
+    return {
+        "google_fit": bool(_s.google_fit_client_id and _s.google_fit_client_secret),
+        "google_health": bool(_s.google_health_client_id and _s.google_health_client_secret),
+        "wahoo": bool(_s.wahoo_client_id and _s.wahoo_client_secret),
+    }
+
+
 # ------------------------------------------------------------------
 # Wahoo integration routes
 # ------------------------------------------------------------------

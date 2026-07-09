@@ -8,7 +8,6 @@ import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.bikemaster.R
 import com.bikemaster.databinding.ActivityLoginBinding
-import com.bikemaster.models.LoginRequest
 import com.bikemaster.network.ApiClient
 import kotlinx.coroutines.launch
 
@@ -43,7 +42,8 @@ class LoginActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val response = ApiClient.getApi(this@LoginActivity).login(
-                    LoginRequest(username = username, password = password)
+                    username = username,
+                    password = password
                 )
                 saveAuthToken(response.accessToken)
                 finish()

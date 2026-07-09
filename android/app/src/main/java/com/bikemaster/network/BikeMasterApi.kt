@@ -11,8 +11,12 @@ interface BikeMasterApi {
     @GET("health")
     suspend fun healthCheck(): Map<String, String>
     
+    @FormUrlEncoded
     @POST("auth/login")
-    suspend fun login(@Body request: LoginRequest): AuthResponse
+    suspend fun login(
+        @Field("username") username: String,
+        @Field("password") password: String
+    ): AuthResponse
     
     @POST("auth/register")
     suspend fun register(@Body map: Map<String, String>): Map<String, Any>
