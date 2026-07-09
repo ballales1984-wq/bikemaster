@@ -6,16 +6,14 @@
 
 <script setup lang="ts">
 import 'leaflet/dist/leaflet.css'
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import L from 'leaflet'
-import { useTrackingStore } from '../stores/trackingStore'
 
 const mapEl = ref<HTMLElement | null>(null)
 const map = ref<L.Map | null>(null)
 const polyline = ref<L.Polyline | null>(null)
 const currentMarker = ref<L.CircleMarker | null>(null)
 
-const tracking = useTrackingStore()
 const points = ref<Array<[number, number]>>([])
 
 function addPoint(lat: number, lon: number) {
@@ -46,17 +44,6 @@ function addPoint(lat: number, lon: number) {
 
   map.value.setView([lat, lon], 16)
 }
-
-watch(
-  () => tracking.routePoints.length,
-  () => {
-    const pts = tracking.routePoints
-    const point = pts[pts.length - 1]
-    if (point && map.value) {
-      addPoint(point.lat, point.lon)
-    }
-  }
-)
 
 onMounted(() => {
   if (!mapEl.value) return

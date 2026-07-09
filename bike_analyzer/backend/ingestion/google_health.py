@@ -15,7 +15,6 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
 from ..settings import get_settings
-
 from .gps_parser import points_to_ride
 
 _s = get_settings()

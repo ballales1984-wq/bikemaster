@@ -9,15 +9,10 @@ vi.mock("leaflet", () => ({
       remove: vi.fn(),
     })),
     tileLayer: vi.fn(() => ({ addTo: vi.fn().mockReturnThis() })),
-    polyline: vi.fn(() => ({ addTo: vi.fn().mockReturnThis() })),
+    polyline: vi.fn(() => ({ addTo: vi.fn().mockReturnThis(), setLatLngs: vi.fn() })),
+    circleMarker: vi.fn(() => ({ addTo: vi.fn().mockReturnThis(), setLatLng: vi.fn() })),
     latLng: vi.fn((lat, lon) => ({ lat, lng: lon })),
   },
-}));
-
-vi.mock("../stores/trackingStore", () => ({
-  useTrackingStore: () => ({
-    routePoints: [],
-  }),
 }));
 
 describe("LiveMap", () => {
