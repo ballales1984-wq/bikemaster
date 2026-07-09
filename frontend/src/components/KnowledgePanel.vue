@@ -2,7 +2,8 @@
   <div class="knowledge-panel">
     <div class="panel-header">
       <h2>📚 Knowledge Base</h2>
-      <div v-if="stats" class="kb-stats">
+      <div v-if="stats"
+class="kb-stats">
         <span class="kb-badge">{{ stats.total_documents ?? 0 }} documenti</span>
         <span class="kb-badge">{{ stats.total_topics ?? 0 }} argomenti</span>
       </div>
@@ -10,8 +11,9 @@
 
     <!-- Search bar -->
     <div class="search-container">
-      <div class="search-box"
-:class="{ focused: searchFocused }">
+      <div
+class="search-box" :class="{ focused: searchFocused }"
+>
         <span class="search-icon">🔍</span>
         <input
           ref="searchInput"
@@ -37,7 +39,8 @@ v-if="query" class="clear-btn" @click="clearSearch">✕</button>
     </div>
 
     <!-- Topic pills -->
-    <div v-if="topics.length && !results.length && !loading" class="topics-row">
+    <div v-if="topics.length && !results.length && !loading"
+class="topics-row">
       <div class="topics-label">Argomenti:</div>
       <div class="topics-list">
         <button
@@ -52,8 +55,9 @@ v-if="query" class="clear-btn" @click="clearSearch">✕</button>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading"
-class="skeleton-container">
+    <div
+v-if="loading" class="skeleton-container"
+>
       <div
         v-for="i in 3"
         :key="i"
@@ -63,12 +67,14 @@ class="skeleton-container">
     </div>
 
     <!-- Results -->
-    <div v-else-if="results.length"
-class="results-section">
+    <div
+v-else-if="results.length" class="results-section"
+>
       <div class="results-header">
         <span class="results-count">{{ results.length }} risultati per "<strong>{{ lastQuery }}</strong>"</span>
-        <button class="btn btn-sm btn-secondary"
-@click="clearSearch">
+        <button
+class="btn btn-sm btn-secondary" @click="clearSearch"
+>
           ← Tutti gli argomenti
         </button>
       </div>
@@ -82,10 +88,12 @@ class="results-section">
           <div class="result-topic">
             {{ r.topic || r.source || "Documento" }}
           </div>
-          <div v-if="r.score != null" class="result-score">
+          <div v-if="r.score != null"
+class="result-score">
             <div class="score-bar">
-              <div class="score-fill"
-:style="{ width: r.score * 100 + '%' }" />
+              <div
+class="score-fill" :style="{ width: r.score * 100 + '%' }"
+/>
             </div>
             <span>{{ (r.score * 100).toFixed(0) }}%</span>
           </div>
@@ -96,15 +104,17 @@ class="results-section">
             highlightQuery(r.content || r.text || r.chunk || '', lastQuery)
           "
         />
-        <div v-if="r.source_file" class="result-meta">
+        <div v-if="r.source_file"
+class="result-meta">
           <span>📄 {{ r.source_file }}</span>
         </div>
       </div>
     </div>
 
     <!-- Empty search -->
-    <div v-else-if="searched && !loading"
-class="empty-state">
+    <div
+v-else-if="searched && !loading" class="empty-state"
+>
       <div class="empty-icon">🔎</div>
       <div class="empty-title">Nessun risultato per "{{ lastQuery }}"</div>
       <div class="empty-desc">
@@ -120,8 +130,9 @@ class="empty-state">
     </div>
 
     <!-- Topic browser (default view) -->
-    <div v-else-if="!loading && topics.length"
-class="topics-browser">
+    <div
+v-else-if="!loading && topics.length" class="topics-browser"
+>
       <div class="browser-grid">
         <div
           v-for="t in topics"
@@ -140,16 +151,19 @@ class="topics-browser">
     </div>
 
     <!-- Total empty -->
-    <div v-else-if="!loading"
-class="empty-state">
+    <div
+v-else-if="!loading" class="empty-state"
+>
       <div class="empty-icon">📚</div>
       <div class="empty-title">Knowledge Base vuota</div>
       <div class="empty-desc">
         Aggiungi documenti nella cartella <code>knowledge_base/</code> e
         ricarica gli indici.
       </div>
-      <button class="btn btn-sm"
-style="margin-top: 12px" @click="reload">
+      <button
+class="btn btn-sm" style="margin-top: 12px"
+@click="reload"
+>
         🔄 Ricarica indici
       </button>
     </div>

@@ -1,10 +1,6 @@
 <template>
   <div class="calendar-grid">
-    <div
-      v-for="d in weekDays"
-      :key="d"
-      class="cal-header"
-    >
+    <div v-for="d in weekDays" :key="d" class="cal-header">
       {{ d }}
     </div>
     <div
@@ -13,14 +9,11 @@
       class="cal-cell"
       :class="{
         'other-month': !day.currentMonth,
-        'today': isToday(day),
+        today: isToday(day),
         'has-events': day.events.length > 0,
       }"
     >
-      <span
-        class="day-num"
-        @click="$emit('add-for-date', day.date)"
-      >
+      <span class="day-num" @click="$emit('add-for-date', day.date)">
         {{ day.day }}
       </span>
       <div class="day-events">
@@ -32,9 +25,8 @@
         >
           {{ ev.title }}
         </span>
-        <span
-          v-if="day.events.length > 3"
-          class="more-events"
+        <span v-if="day.events.length > 3"
+class="more-events"
         >+{{ day.events.length - 3 }}</span>
       </div>
     </div>
@@ -42,21 +34,24 @@
 </template>
 
 <script setup>
-import { useI18n } from '../../composables/useI18n'
+import { useI18n } from "../../composables/useI18n";
 
-const { t } = useI18n()
+const { t } = useI18n();
 
 defineProps({
   days: Array,
   weekDays: Array,
-})
+});
 
-defineEmits(['add-for-date'])
+defineEmits(["add-for-date"]);
 
 function isToday(day) {
-  if (!day.isToday) return false
-  const today = new Date()
-  return day.date === `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`
+  if (!day.isToday) return false;
+  const today = new Date();
+  return (
+    day.date ===
+    `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`
+  );
 }
 </script>
 

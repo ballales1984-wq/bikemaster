@@ -13,19 +13,13 @@
         >
       </div>
       <div class="form-group">
-        <button
-          class="btn btn-primary"
-          @click="loadHeatmap"
-        >
+        <button class="btn btn-primary" @click="loadHeatmap">
           {{ t("heatmap.loadHeatmap") }}
         </button>
       </div>
     </div>
 
-    <div
-      v-if="loading && !heatmapData"
-      class="loading-text"
-    >
+    <div v-if="loading && !heatmapData" class="loading-text">
       {{ t("heatmap.loading") }}
     </div>
 
@@ -33,10 +27,7 @@
       v-if="heatmapData && heatmapData.points && heatmapData.points.length"
       class="heatmap-container"
     >
-      <div
-        id="leaflet-heatmap"
-        class="heatmap-map"
-      />
+      <div id="leaflet-heatmap" class="heatmap-map" />
       <div class="heatmap-stats">
         <span class="badge badge-info">{{ heatmapData.total_points }} GPS points</span>
         <span class="badge badge-info">{{ heatmapData.points.length }} cells</span>
@@ -57,7 +48,7 @@ import { ref, onMounted, watch } from "vue";
 import { useI18n } from "../composables/useI18n";
 import { apiGet } from "../utils/api";
 
-const { t } = useI18n()
+const { t } = useI18n();
 
 const athleteId = ref(null);
 const loading = ref(false);

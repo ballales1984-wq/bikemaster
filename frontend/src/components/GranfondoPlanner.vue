@@ -5,70 +5,56 @@
     <div class="form-grid">
       <div class="form-group">
         <label for="gf-start-date">{{ t("granfondo.startDate") }}</label>
-        <input
-          id="gf-start-date"
-          v-model="startDate"
-          type="date"
-        >
+        <input id="gf-start-date"
+v-model="startDate" type="date"
+/>
       </div>
       <div class="form-group">
-          <label for="gf-weeks">{{ t("granfondo.targetWeeks") }}</label>
-        <select
-          id="gf-weeks"
-          v-model.number="weeks"
-        >
+        <label for="gf-weeks">{{ t("granfondo.targetWeeks") }}</label>
+        <select id="gf-weeks" v-model.number="weeks">
           <option :value="8">
-              {{ t("granfondo.week8") }}
-            </option>
-            <option :value="9">
-              {{ t("granfondo.week9") }}
-            </option>
-            <option :value="10">
-              {{ t("granfondo.week10") }}
-            </option>
-            <option :value="11">
-              {{ t("granfondo.week11") }}
-            </option>
-            <option :value="12">
-              {{ t("granfondo.week12") }}
-            </option>
+            {{ t("granfondo.week8") }}
+          </option>
+          <option :value="9">
+            {{ t("granfondo.week9") }}
+          </option>
+          <option :value="10">
+            {{ t("granfondo.week10") }}
+          </option>
+          <option :value="11">
+            {{ t("granfondo.week11") }}
+          </option>
+          <option :value="12">
+            {{ t("granfondo.week12") }}
+          </option>
         </select>
       </div>
       <div class="form-group">
-        <button
-          class="btn btn-primary"
-          @click="generatePlan"
-        >
+        <button class="btn btn-primary" @click="generatePlan">
           📅 {{ t("granfondo.generate") }}
         </button>
       </div>
     </div>
 
-    <div
-      v-if="loading"
-      class="loading-text"
-    >
+    <div v-if="loading" class="loading-text">
       {{ t("granfondo.generating") }}
     </div>
 
-    <div
-      v-if="plan"
-      class="plan-container"
-    >
+    <div v-if="plan" class="plan-container">
       <div class="plan-header">
-        <h3>{{ t("granfondo.planTitle") }} {{ weeks }} {{ t("granfondo.weeksLabel") }}</h3>
+        <h3>
+          {{ t("granfondo.planTitle") }} {{ weeks }}
+          {{ t("granfondo.weeksLabel") }}
+        </h3>
         <p class="plan-dates">
-          {{ t("granfondo.from") }} {{ startDate }} {{ t("granfondo.to") }} {{ endDate }}
+          {{ t("granfondo.from") }} {{ startDate }} {{ t("granfondo.to") }}
+          {{ endDate }}
         </p>
       </div>
 
       <div class="plan-actions">
-        <button
-          class="btn btn-success"
-          :disabled="saving"
-          @click="savePlan"
-        >
-          {{ saving ? t('granfondo.saving') : t('granfondo.saveToCalendar') }}
+        <button class="btn btn-success" :disabled="saving" @click="savePlan">
+          {{ saving ? t("granfondo.saving") : t("granfondo.saveToCalendar") }}
         </button>
         <span
           v-if="saveMessage"
@@ -84,11 +70,7 @@
       </div>
     </div>
     <div class="calendar-grid plan-grid">
-      <div
-        v-for="d in weekDays"
-        :key="d"
-        class="cal-header"
-      >
+      <div v-for="d in weekDays" :key="d" class="cal-header">
         {{ d }}
       </div>
       <div
@@ -106,18 +88,29 @@
             :class="'type-' + w.workout_type"
           >
             {{ w.title }}
-            <span class="workout-meta">{{ w.duration_minutes }}min {{ Math.round(w.target_intensity * 100) }}%</span>
+            <span class="workout-meta">{{ w.duration_minutes }}min
+              {{ Math.round(w.target_intensity * 100) }}%</span>
           </div>
         </div>
       </div>
     </div>
-  <div class="workout-legend">
-    <span class="legend-item legend-endurance">{{ t("granfondo.legendEndurance") }}</span>
-    <span class="legend-item legend-threshold">{{ t("granfondo.legendThreshold") }}</span>
-    <span class="legend-item legend-sweetspot">{{ t("granfondo.legendSweetspot") }}</span>
-    <span class="legend-item legend-recovery">{{ t("granfondo.legendRecovery") }}</span>
-    <span class="legend-item legend-race">{{ t("granfondo.legendRace") }}</span>
-  </div>
+    <div class="workout-legend">
+      <span class="legend-item legend-endurance">{{
+        t("granfondo.legendEndurance")
+      }}</span>
+      <span class="legend-item legend-threshold">{{
+        t("granfondo.legendThreshold")
+      }}</span>
+      <span class="legend-item legend-sweetspot">{{
+        t("granfondo.legendSweetspot")
+      }}</span>
+      <span class="legend-item legend-recovery">{{
+        t("granfondo.legendRecovery")
+      }}</span>
+      <span class="legend-item legend-race">{{
+        t("granfondo.legendRace")
+      }}</span>
+    </div>
   </div>
 </template>
 
@@ -137,7 +130,15 @@ const plan = ref(null);
 const saveMessage = ref("");
 const saveSuccess = ref(true);
 
-  const weekDays = [t("granfondo.weekMon"), t("granfondo.weekTue"), t("granfondo.weekWed"), t("granfondo.weekThu"), t("granfondo.weekFri"), t("granfondo.weekSat"), t("granfondo.weekSun")];
+const weekDays = [
+  t("granfondo.weekMon"),
+  t("granfondo.weekTue"),
+  t("granfondo.weekWed"),
+  t("granfondo.weekThu"),
+  t("granfondo.weekFri"),
+  t("granfondo.weekSat"),
+  t("granfondo.weekSun"),
+];
 
 async function loadAthleteId() {
   const data = await apiGet("/api/v1/athletes");
@@ -149,11 +150,11 @@ async function savePlan() {
   saving.value = true;
   saveMessage.value = "";
   try {
-      await apiPost("/api/v1/training/granfondo/save", { plan: plan.value });
-      saveMessage.value = t("granfondo.saveSuccess");
-      saveSuccess.value = true;
-    } catch (e) {
-      saveMessage.value = e.message || t("granfondo.saveError");
+    await apiPost("/api/v1/training/granfondo/save", { plan: plan.value });
+    saveMessage.value = t("granfondo.saveSuccess");
+    saveSuccess.value = true;
+  } catch (e) {
+    saveMessage.value = e.message || t("granfondo.saveError");
     saveSuccess.value = false;
   } finally {
     saving.value = false;

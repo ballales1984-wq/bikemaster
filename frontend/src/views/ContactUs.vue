@@ -64,8 +64,9 @@ to="/about" class="link-card">
     </div>
 
     <div class="login-cta">
-      <RouterLink to="/"
-class="btn btn-primary">
+      <RouterLink
+to="/" class="btn btn-primary"
+>
         🏠 Accedi a BikeMaster
       </RouterLink>
     </div>
