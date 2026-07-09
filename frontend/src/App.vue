@@ -28,10 +28,12 @@ v-if="isPublicPage" class="public-links"
 
     <div
 v-if="ui.oauthLoading" class="oauth-loading-overlay"
->
+    >
       <div class="spinner" />
       <p class="loading-text">Finalizing login...</p>
     </div>
+
+    <PWAInstallPrompt />
 
     <template v-if="!loggedIn && !isPublicPage && !ui.oauthLoading">
       <div class="login-wrapper">
@@ -42,7 +44,7 @@ v-if="ui.oauthLoading" class="oauth-loading-overlay"
         />
         <p
 v-if="loginError" class="login-error"
->
+        >
           {{ loginError }}
         </p>
       </div>
@@ -51,7 +53,7 @@ v-if="loginError" class="login-error"
     <template v-else>
       <HeaderTabs
 :is-admin="isAdmin" @logout="onLogout"
-/>
+      />
 
       <StatsSummary
         v-if="loggedIn"
@@ -65,17 +67,16 @@ v-if="loginError" class="login-error"
           <router-view v-slot="{ Component }">
             <transition
 name="panel" mode="out-in"
->
+            >
               <component
 :is="Component" @summary-change="onSummaryChange"
-/>
+              />
             </transition>
           </router-view>
         </ErrorBoundary>
       </main>
 
       <ToastContainer />
-      <PWAInstallPrompt />
     </template>
 
     <footer class="footer">
@@ -161,6 +162,7 @@ async function onRegister(creds) {
     localStorage.removeItem("bikemaster_login_error");
     await auth.register(creds.username, creds.password);
     await auth.login(creds.username, creds.password);
+    router.push("/rides");
     await loadSummary();
   } catch (e) {
     loginError.value = e.message;

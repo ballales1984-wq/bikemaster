@@ -42,7 +42,7 @@ def get_db_connection():
             raise
 
     if conn is None:
-        return
+        raise RuntimeError(f"Failed to connect to database at {DB_PATH} after {max_retries} retries")
 
     try:
         yield conn

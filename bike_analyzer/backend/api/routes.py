@@ -98,11 +98,7 @@ admin_router = APIRouter()
 
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 
-
-def _forwarded_value(header_value: str | None) -> str:
-    if not header_value:
-        return ""
-    return header_value.split(",", 1)[0].strip()
+from .utils import _forwarded_value
 
 
 def _build_redirect_uri(request: Request, path: str) -> str:
@@ -126,16 +122,26 @@ def _build_frontend_redirect_url(
     fragment_keys = fragment_keys or set()
     params = {key: value for key, value in query_values.items() if key not in fragment_keys and value is not None}
     fragment_params = {key: value for key, value in query_values.items() if key in fragment_keys and value is not None}
+    base = origin.rstrip("/")
     query_suffix = f"?{urlencode(params)}" if params else ""
     fragment_suffix = f"#{urlencode(fragment_params)}" if fragment_params else ""
-    return f"{origin}/{query_suffix}{fragment_suffix}"
+    return f"{base}/{query_suffix}{fragment_suffix}"
 
 
 def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) -> None:
     parsed = urlparse(redirect_uri)
-    if not parsed.scheme or not parsed.hostname:
-        if parsed.scheme and parsed.scheme not in ("http", "https"):
+    if not parsed.scheme:
+        raise HTTPException(status_code=400, detail="Invalid redirect_uri")
+    # Custom (non-http/https) URI schemes, e.g. mobile deep links like
+    # "com.bikemaster.app://callback". Validate against the configured allow-list.
+    if parsed.scheme not in ("http", "https"):
+        allowed_schemes = (
+            _s.oauth_redirect_schemes_list if hasattr(_s, "oauth_redirect_schemes_list") else set()
+        )
+        if parsed.scheme.lower() in allowed_schemes and parsed.netloc:
             return
+        raise HTTPException(status_code=400, detail="Invalid redirect_uri scheme")
+    if not parsed.hostname:
         raise HTTPException(status_code=400, detail="Invalid redirect_uri")
     host_lower = parsed.hostname.lower()
     dynamic_hosts = set()
@@ -416,10 +422,14 @@ async def logout(request: Request, current_user: dict = Depends(get_current_user
             payload_data = json.loads(decoded)
             jti = payload_data.get("jti")
             if jti:
-                await revoke_token(jti)
+                revoked = await revoke_token(jti)
+                if not revoked:
+                    logger.warning("Logout: access token revocation failed for jti=%s", jti)
             athlete_id = payload_data.get("sub")
             if athlete_id:
-                await revoke_refresh_token(int(athlete_id))
+                refresh_revoked = await revoke_refresh_token(int(athlete_id))
+                if not refresh_revoked:
+                    logger.warning("Logout: refresh token revocation failed for athlete_id=%s", athlete_id)
     except Exception as exc:
         logger.warning("Logout: failed to revoke token: %s", exc)
     return {"msg": "Logged out successfully"}
@@ -475,7 +485,10 @@ async def register(
 
         session_factory = get_session_factory()
         async with session_factory() as session:
-            stmt = select(UserModel).where((UserModel.username == username) | (UserModel.email == email))
+            if email:
+                stmt = select(UserModel).where((UserModel.username == username) | (UserModel.email == email))
+            else:
+                stmt = select(UserModel).where(UserModel.username == username)
             result = await session.execute(stmt)
             existing = result.scalar_one_or_none()
             if existing:
