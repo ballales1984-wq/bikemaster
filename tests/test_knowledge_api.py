@@ -422,8 +422,6 @@ class TestCachingReload:
 
 class TestInitKbEmbeddings:
     def test_init_kb_embeddings_local(self, monkeypatch):
-        import bike_analyzer.backend.analytics.knowledge_base as kb_mod
-
         result = init_kb_embeddings(session=None)
         assert "status" in result
         assert result["status"] in ("embedded_local", "error")

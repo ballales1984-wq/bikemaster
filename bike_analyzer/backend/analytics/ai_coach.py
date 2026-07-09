@@ -845,7 +845,7 @@ def chat_with_tools(
     except ValueError:
         return {"content": "Nessun provider LLM configurato."}
 
-        model = _s.groq_model if provider == "groq" else _s.ollama_model
+    model = _s.groq_model if provider == "groq" else _s.ollama_model
 
     tools = [GENERATE_WORKOUT_PLAN_TOOL, ANALYZE_ANOMALIES_TOOL]
 
