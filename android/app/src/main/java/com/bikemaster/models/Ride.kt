@@ -1,6 +1,7 @@
 package com.bikemaster.models
 
 import android.os.Parcelable
+import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -69,8 +70,12 @@ data class WorkoutRecommendation(
 )
 
 data class AuthResponse(
-    val accessToken: String,
-    val tokenType: String
+    @SerializedName("access_token") val accessToken: String,
+    @SerializedName("token_type") val tokenType: String,
+    @SerializedName("refresh_token") val refreshToken: String? = null,
+    val username: String? = null,
+    val id: Int? = null,
+    @SerializedName("is_admin") val isAdmin: Boolean? = null
 )
 
 data class LoginRequest(

@@ -56,7 +56,7 @@ def _provider_order() -> list[str]:
         providers = [p.strip() for p in configured.split(",") if p.strip()]
         if providers:
             return providers
-    return ["ollama", "groq"]
+    return ["groq"]
 
 
 def _ban_provider(provider: str, reason: str = "error") -> None:
@@ -79,35 +79,17 @@ def get_ai_coach_client():
         return _current_client, _current_provider
 
     groq_key = os.getenv("GROQ_API_KEY", "").strip() or (_s.groq_api_key or "").strip()
-    ollama_key = os.getenv("OLLAMA_API_KEY", "ollama").strip() or (_s.ollama_api_key or "ollama").strip()
-    ollama_url = (
-        os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1").strip()
-        or (_s.ollama_base_url or "http://localhost:11434/v1").strip()
-    )
-    keys = {"groq": groq_key, "ollama": ollama_key}
 
     for provider in _provider_order():
-        api_key = keys.get(provider)
-        if provider in _BANNED_PROVIDERS or not api_key:
+        if provider in _BANNED_PROVIDERS or provider != "groq":
             continue
-        if provider == "groq" and not api_key.startswith("gsk_"):
+        api_key = groq_key
+        if not api_key or not api_key.startswith("gsk_"):
             continue
         try:
-            if provider == "groq":
-                from groq import Groq
+            from groq import Groq
 
-                _current_client = Groq(api_key=api_key)
-            elif provider == "ollama":
-                from openai import OpenAI
-
-                _current_client = OpenAI(
-                    base_url=ollama_url,
-                    api_key=api_key,
-                    timeout=300.0,
-                    max_retries=1,
-                )
-            else:
-                continue
+            _current_client = Groq(api_key=api_key)
             _current_provider = provider
             return _current_client, _current_provider
         except Exception as e:
@@ -122,8 +104,7 @@ def get_ai_coach_client():
             _current_provider = None
 
     msg = (
-        "AI Coach: no valid API key (GROQ=gsk_..., "
-        "OLLAMA=http://localhost:11434/v1) or all providers failed"
+        "AI Coach: no valid GROQ API key (gsk_...) configured"
     )
     logger.error(msg)
     raise ValueError(msg)
@@ -518,7 +499,7 @@ def generate_recovery_advice(
             record_ai_coach_query("fallback", "fallback")
             return _generate_fallback_recovery_advice(athlete, rides, recovery)
 
-        model = _s.groq_model if provider == "groq" else _s.ollama_model
+        model = _s.groq_model
         try:
             content = _chat_completion_text(client, model, prompt, 300)
             from ..monitoring import record_ai_coach_query
@@ -845,7 +826,7 @@ def chat_with_tools(
     except ValueError:
         return {"content": "Nessun provider LLM configurato."}
 
-    model = _s.groq_model if provider == "groq" else _s.ollama_model
+    model = _s.groq_model
 
     tools = [GENERATE_WORKOUT_PLAN_TOOL, ANALYZE_ANOMALIES_TOOL]
 

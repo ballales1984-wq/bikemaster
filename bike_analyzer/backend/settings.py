@@ -94,9 +94,6 @@ class Settings(BaseSettings):
     ai_coach_chat_retention_days: int = 90
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
-    ollama_base_url: str = "http://localhost:11434/v1"
-    ollama_model: str = "llama3"
-    ollama_api_key: str = ""
 
     # === JWT / Auth ===
     secret_key: str = ""

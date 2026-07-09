@@ -71,6 +71,30 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// Navigation handler MUST be registered before `precacheAndRoute` so it wins
+// over Workbox's precache route. Workbox's precache route matches "/" requests
+// (SPA directory index) and would otherwise serve a *stale* cached index.html
+// whose hashed JS/CSS chunks were deleted by a newer deploy — breaking the app
+// boot on OAuth returns and forcing a manual refresh to log in.
+registerRoute(
+  ({ request }) => request.mode === "navigate",
+  async ({ event }) => {
+    try {
+      // `cache: "reload"` bypasses the browser/HTTP cache so we always fetch
+      // the current index.html (with current asset hashes).
+      const response = await fetch(event.request, { cache: "reload" });
+      if (response.ok) return response;
+    } catch (_) {
+      /* network error, fall through to cache */
+    }
+    const cache = await caches.open(STATIC_CACHE);
+    return (
+      (await cache.match("/index.html")) ||
+      new Response("", { status: 503, statusText: "Offline" })
+    );
+  },
+);
+
 precacheAndRoute(self.__WB_MANIFEST || []);
 
 const bgSyncPlugin = new BackgroundSyncPlugin(RIDE_QUEUE_CACHE, {
@@ -88,23 +112,6 @@ const bgSyncPlugin = new BackgroundSyncPlugin(RIDE_QUEUE_CACHE, {
     }
   },
 });
-
-registerRoute(
-  ({ request }) => request.mode === "navigate",
-  async ({ event }) => {
-    try {
-      const response = await fetch(event.request);
-      if (response.ok) return response;
-    } catch (_) {
-      /* network error, fall through */
-    }
-    const cache = await caches.open(STATIC_CACHE);
-    return (
-      (await cache.match("/index.html")) ||
-      new Response("", { status: 503, statusText: "Offline" })
-    );
-  },
-);
 
 registerRoute(
   ({ url }) =>

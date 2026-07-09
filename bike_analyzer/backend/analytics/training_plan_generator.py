@@ -199,7 +199,7 @@ def _try_llm_plan(
     try:
         from ..analytics.ai_coach import _chat_completion_text, _clean_ai_output, get_ai_coach_client
         client, provider = get_ai_coach_client()
-        model = _s.groq_model if provider == "groq" else _s.ollama_model
+        model = _s.groq_model
         prompt = _llm_plan_prompt(athlete, rides, plan_type, start_date)
         raw = _chat_completion_text(client, model, prompt, max_tokens=1200)
         cleaned = _clean_ai_output(raw)
