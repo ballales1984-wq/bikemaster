@@ -126,6 +126,7 @@ watch(
   (val) => {
     document.body.classList.toggle("light-theme", !val);
   },
+  { immediate: true },
 );
 
 async function loadSummary() {
@@ -191,7 +192,6 @@ async function onSummaryChange() {
 }
 
 onMounted(() => {
-  ui.loadTheme();
   setLocale(locale.value || "en");
   window.addEventListener("oauth-loading-end", () => {
     ui.setOauthLoading(false);

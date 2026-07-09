@@ -120,9 +120,11 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.removeItem(USER_KEY);
   }
 
-  function setAuthFromUrl(urlToken: string, email: string) {
+  function setAuthFromUrl(urlToken: string, email: string, userId?: string) {
     const payload = parseJWTPayload(urlToken);
+    const parsedId = userId ? parseInt(userId, 10) : (typeof payload?.sub === "string" ? parseInt(payload.sub as string, 10) : 0);
     const userData = {
+      id: isNaN(parsedId) ? 0 : parsedId,
       username: email || "",
       email,
       is_admin: false,

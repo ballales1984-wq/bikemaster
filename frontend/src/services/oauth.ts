@@ -10,6 +10,7 @@ export function processOAuthToken() {
   );
   const urlToken = urlParams.get("token") || hashParams.get("token");
   const email = urlParams.get("email") || hashParams.get("email") || "";
+  const userId = urlParams.get("user_id") || hashParams.get("user_id") || "";
   const oauthError =
     urlParams.get("oauth_error") || hashParams.get("oauth_error");
 
@@ -30,7 +31,7 @@ export function processOAuthToken() {
       }
       return false;
     }
-    auth.setAuthFromUrl(urlToken, email);
+    auth.setAuthFromUrl(urlToken, email, userId);
     ui.setOauthLoading(false);
     if (window.history.replaceState) {
       window.history.replaceState({}, document.title, "/");

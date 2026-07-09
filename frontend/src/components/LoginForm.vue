@@ -153,8 +153,10 @@ viewBox="0 0 24 24" width="20" height="20"
 <script setup>
 import { ref, computed } from "vue";
 import { useI18n } from "../composables/useI18n";
+import { useUIStore } from "../stores/ui";
 
 const { t } = useI18n();
+const ui = useUIStore();
 
 const emit = defineEmits(["login", "register", "google-login", "error"]);
 
@@ -227,9 +229,8 @@ async function loginWithGoogle() {
   loading.value = true;
   try {
     const redirectUri = getRedirectUri();
-    const state = btoa(JSON.stringify({ redirect_uri: redirectUri }));
     const response = await fetch(
-      `/api/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`,
+      `/api/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`,
     );
     const data = await response.json().catch(() => ({}));
 
@@ -241,8 +242,10 @@ async function loginWithGoogle() {
       throw new Error("Google login error: invalid server response");
     }
 
+    ui.setOauthLoading(true);
     window.location.href = data.auth_url;
   } catch (e) {
+    ui.setOauthLoading(false);
     emit("error", e.message);
     alert(e.message);
   } finally {
@@ -314,12 +317,7 @@ async function loginWithGoogle() {
   margin-top: 8px;
 }
 
-.login-error {
-  color: var(--error);
-  text-align: center;
-  font-size: 0.9rem;
-  margin-top: 8px;
-}
+
 
 .password-wrapper {
   position: relative;

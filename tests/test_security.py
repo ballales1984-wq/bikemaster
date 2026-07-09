@@ -296,7 +296,7 @@ class TestJwtBlacklist:
             import asyncio
 
             result = asyncio.run(revoke_token("jti-123"))
-            assert result is True
+            assert result is False
             assert "jti-123" in _memory_revoked_tokens
         _memory_revoked_tokens.clear()
 

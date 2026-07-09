@@ -18,6 +18,7 @@ const app = createApp(App).use(pinia).use(router);
 const auth = useAuthStore();
 const ui = useUIStore();
 
+ui.loadTheme();
 processOAuthToken();
 syncAuthState();
 
