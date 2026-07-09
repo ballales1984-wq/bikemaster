@@ -73,12 +73,17 @@ suite frontend (`frontend/src/**/*.test.{js,ts}`).
      `vitest.config.js` non abbia alias che mascherano `../components/*`.
 
 ## Passi di implementazione (ordine)
-1. `LoginForm.test.js`: aggiungere Pinia (blocco `beforeEach` con
+1. **Frontend** `LoginForm.test.js`: aggiungere Pinia (blocco `beforeEach` con
    `setActivePinia(createPinia())` e/o `global.plugins`). → sblocca 10 test.
-2. `api.test.js`: applicare la decisione A o B del punto 2.
-3. `HeatmapPanel.test.js` e `RideMapPanel.test.js`: allineare le asserzioni alle
-   chiavi i18n (`heatmap.load`, `maps.routeMaps`).
-4. `router/index.test.js`: verificare in isolamento / pulire cache Vite.
+2. **Frontend** `api.test.js`: aggiornare l'asserzione del test a
+   `.toThrow("Request failed")` (decisione A, confermata dall'utente).
+3. **Frontend** `HeatmapPanel.test.js` e `RideMapPanel.test.js`: allineare le
+   asserzioni alle chiavi i18n (`heatmap.load`, `maps.routeMaps`).
+4. **Frontend** `router/index.test.js`: verificare in isolamento / pulire cache
+   Vite se ripete l'errore.
+5. **Backend** `security.py` (`revoke_token`, riga ~127): ritornare `True` invece
+   di `False` quando `get_redis()` è `None` (fallback in memoria = successo).
+   → sblocca 1 test.
 
 ## Validazione
 - Eseguire in frontend:
@@ -88,16 +93,26 @@ suite frontend (`frontend/src/**/*.test.{js,ts}`).
   npx vitest run src/router/index.test.js   # deve passare
   npx vitest run                            # run completa, target: 0 fail
   ```
+- Backend:
+  ```powershell
+  cd D:\BikeMaster
+  python -m pytest tests/test_auth_enhanced.py -q
+  python -m pytest -q   # run completa, target: 0 failed
+  ```
 - Opzionale: `npm run typecheck` per non introdurre regressioni TS nei test.
 
 ## Rischi / note
 - I componenti usano `useI18n` che ritorna la **chiave** nei test (convenzione del
   repo). Le asserzioni su stringhe letterali inglesi sono fragile: meglio
   asserire sulle chiavi o introdurre un mock i18n con dizionario EN condiviso.
-- Modifica di `extractApiErrorMessage` (opzione B) ha effetto globale sui messaggi
-  di errore dell'app: verificare che nessun altro test o UI dipenda da
-  `"Request failed"` esatto.
+- I log `Failed to export traces to localhost:4317 ... UNAVAILABLE` durante
+  `pytest` sono **rumore** di OpenTelemetry (nessun collector in esecuzione), non
+  fallimenti di test.
+- La modifica a `revoke_token` cambia il valore di ritorno solo nel caso Redis
+  assente; i chiamanti che gestiscono il fallback in memoria ne traggono
+  beneficio. Verificare che nessun caller interpreti `False` come "revoca non
+  effettuata" in modo critico.
 
-## Open questions
-- L'utente vuole anche debuggare i test backend Python? (non analizzati qui)
-- Per il punto 2, preferisce l'opzione A (test) o B (comportamento impl)?
+## Riepilogo fallimenti
+- Frontend: LoginForm 10, api 1, HeatmapPanel 1, RideMapPanel 1, router 5 (transient).
+- Backend: test_auth_enhanced 1 (revoke_token fallback).
