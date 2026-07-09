@@ -5,9 +5,10 @@ Provides embedding storage and similarity search for knowledge base.
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 from sqlalchemy import text
-from typing import Any
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from ..settings import get_settings

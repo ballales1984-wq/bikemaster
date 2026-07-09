@@ -120,7 +120,7 @@ def test_training_advice_falls_back_to_ollama_after_groq_403(monkeypatch):
             self.chat = FailingChat()
 
     class FakeOpenAI:
-        def __init__(self, api_key):
+        def __init__(self, api_key=None, **kwargs):
             self.api_key = api_key
             self.chat = OpenAIChat()
 
