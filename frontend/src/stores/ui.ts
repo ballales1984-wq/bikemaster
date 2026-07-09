@@ -4,7 +4,11 @@ import { ref, computed } from "vue";
 export const useUIStore = defineStore("ui", () => {
   const isDark = ref(true);
 
-  const oauthLoading = ref(false);
+  const oauthLoading = ref(
+    typeof sessionStorage !== "undefined"
+      ? sessionStorage.getItem("bikemaster_oauth_loading") === "true"
+      : false,
+  );
   const sidebarCollapsed = ref(false);
 
   const theme = computed({
@@ -26,6 +30,13 @@ export const useUIStore = defineStore("ui", () => {
 
   function setOauthLoading(value: boolean) {
     oauthLoading.value = value;
+    if (typeof sessionStorage !== "undefined") {
+      if (value) {
+        sessionStorage.setItem("bikemaster_oauth_loading", "true");
+      } else {
+        sessionStorage.removeItem("bikemaster_oauth_loading");
+      }
+    }
   }
 
   function toggleSidebar() {
