@@ -29,9 +29,13 @@ if (typeof window !== "undefined") {
   window.addEventListener("beforeinstallprompt", (e: Event) => {
     const evt = e as BeforeInstallPromptEvent;
     if (!isPromptValid(evt)) return;
-    e.preventDefault();
     deferredPrompt.value = evt;
     showPrompt.value = true;
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredPrompt.value = null;
+    showPrompt.value = false;
   });
 }
 

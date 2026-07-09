@@ -30,7 +30,7 @@ class="pwa-banner-icon" aria-hidden="true">🚴</div>
 
 <script setup>
 import { usePWA } from "../composables/usePWA";
-import { computed } from "vue";
+import { computed, onMounted, onBeforeUnmount } from "vue";
 
 const { showPrompt, deferredPrompt, prompt } = usePWA();
 
@@ -43,11 +43,26 @@ const showBanner = computed(() => {
 async function install() {
   if (!showBanner.value) return;
   const outcome = await prompt();
+  if (outcome === "accepted") {
+    showPrompt.value = false;
+  }
 }
 
 function dismiss() {
   showPrompt.value = false;
+  deferredPrompt.value = null;
 }
+
+onMounted(() => {
+  const handler = () => {
+    showPrompt.value = false;
+    deferredPrompt.value = null;
+  };
+  window.addEventListener("appinstalled", handler);
+  onBeforeUnmount(() => {
+    window.removeEventListener("appinstalled", handler);
+  });
+});
 </script>
 
 <style scoped>
