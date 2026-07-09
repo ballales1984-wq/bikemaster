@@ -684,83 +684,99 @@ async def google_oauth_callback_get(
         return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="missing_code"))
 
     cache_key = f"oauth:code:{code}"
-    cached_result = await _cached(cache_key)
-    if cached_result:
-        return RedirectResponse(url=cached_result["redirect_url"])
-
     try:
-        token_data = exchange_google_code(_s.google_client_id, _s.google_client_secret, code, redirect_uri)
-    except requests.exceptions.HTTPError as exc:
-        response = getattr(exc, "response", None)
-        if response is not None and response.status_code == 400:
-            return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="oauth_error"))
-        error_body = response.text if response is not None else str(exc)
-        error_detail = f"token_exchange_failed:{error_body[:200]}"
-        return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=error_detail))
-    access_token = token_data.get("access_token")
-    if not access_token:
-        return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="no_access_token"))
+        cached_result = await _cached(cache_key)
+        if cached_result:
+            return RedirectResponse(url=cached_result["redirect_url"])
 
-    try:
-        user_info = get_google_user_info(access_token)
-    except requests.exceptions.HTTPError as exc:
-        response = getattr(exc, "response", None)
-        error_body = response.text if response is not None else str(exc)
-        return RedirectResponse(
-            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=f"userinfo_failed:{error_body[:200]}")
-        )
-    google_sub = user_info.get("sub")
-    email = user_info.get("email")
-    name = user_info.get("name")
-
-    if not google_sub:
-        return RedirectResponse(
-            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="invalid_user_info")
-        )
-
-    existing = get_athlete_by_email(email) if email else None
-    if not existing:
-        from ..redis_client import get_redis
-
-        lock_key = f"oauth:lock:athlete:{email or google_sub}"
-        r = await get_redis()
-        if r is not None:
-            lock_acquired = await r.set(lock_key, "1", ex=10, nx=True)
-        else:
-            lock_acquired = True
         try:
-            if lock_acquired:
-                existing = get_athlete_by_email(email) if email else None
-            if not existing:
-                athlete_id = save_athlete(
-                    {
-                        "name": name or email or google_sub,
-                        "email": email,
-                        "picture": user_info.get("picture"),
-                        "experience_level": "Beginner",
-                    }
-                )
-                if athlete_id:
-                    from ..db.database import update_athlete
+            token_data = exchange_google_code(_s.google_client_id, _s.google_client_secret, code, redirect_uri)
+        except Exception as exc:
+            response = getattr(exc, "response", None)
+            if response is not None and getattr(response, "status_code", None) == 400:
+                return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="oauth_error"))
+            error_body = response.text if response is not None else str(exc)
+            error_detail = f"token_exchange_failed:{error_body[:200]}"
+            return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=error_detail))
+        access_token = token_data.get("access_token")
+        if not access_token:
+            return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="no_access_token"))
 
-                    update_athlete(athlete_id, {"tenant_id": athlete_id})
-                existing = get_athlete(athlete_id)
-        finally:
+        try:
+            user_info = get_google_user_info(access_token)
+        except Exception as exc:
+            response = getattr(exc, "response", None)
+            error_body = response.text if response is not None else str(exc)
+            return RedirectResponse(
+                url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=f"userinfo_failed:{error_body[:200]}")
+            )
+        google_sub = user_info.get("sub")
+        email = user_info.get("email")
+        name = user_info.get("name")
+
+        if not google_sub:
+            return RedirectResponse(
+                url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="invalid_user_info")
+            )
+
+        existing = get_athlete_by_email(email) if email else None
+        if not existing:
+            from ..redis_client import get_redis
+
+            lock_key = f"oauth:lock:athlete:{email or google_sub}"
+            r = await get_redis()
             if r is not None:
-                await r.delete(lock_key)
+                lock_acquired = await r.set(lock_key, "1", ex=10, nx=True)
+            else:
+                lock_acquired = True
+            try:
+                if lock_acquired:
+                    existing = get_athlete_by_email(email) if email else None
+                if not existing:
+                    athlete_id = save_athlete(
+                        {
+                            "name": name or email or google_sub,
+                            "email": email,
+                            "picture": user_info.get("picture"),
+                            "experience_level": "Beginner",
+                        }
+                    )
+                    if athlete_id:
+                        from ..db.database import update_athlete
 
-    jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
-    parsed_redirect = urlparse(redirect_uri or "")
-    frontend_origin = f"{parsed_redirect.scheme}://{parsed_redirect.netloc}/" if parsed_redirect.scheme else None
-    if not frontend_origin or not parsed_redirect.path.endswith("/api/v1/auth/google/callback"):
-        frontend_origin = _build_redirect_uri(request, "")
-    if frontend_origin and "localhost:8000" in frontend_origin:
-        frontend_origin = "http://localhost:5173/"
-    redirect_url = (
-        f"{frontend_origin}#{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
-    )
-    await _cache_set(f"oauth:code:{code}", {"redirect_url": redirect_url}, ttl=300)
-    return RedirectResponse(url=redirect_url)
+                        update_athlete(athlete_id, {"tenant_id": athlete_id})
+                    existing = get_athlete(athlete_id)
+            finally:
+                if r is not None:
+                    await r.delete(lock_key)
+
+        if not existing:
+            return RedirectResponse(
+                url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="user_creation_failed")
+            )
+
+        jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
+        parsed_redirect = urlparse(redirect_uri or "")
+        frontend_origin = f"{parsed_redirect.scheme}://{parsed_redirect.netloc}/" if parsed_redirect.scheme else None
+        if not frontend_origin or not parsed_redirect.path.endswith("/api/v1/auth/google/callback"):
+            frontend_origin = _build_redirect_uri(request, "")
+        if frontend_origin and "localhost:8000" in frontend_origin:
+            frontend_origin = "http://localhost:5173/"
+        redirect_url = (
+            f"{frontend_origin}#{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
+        )
+        await _cache_set(f"oauth:code:{code}", {"redirect_url": redirect_url}, ttl=300)
+        return RedirectResponse(url=redirect_url)
+    except Exception as exc:
+        logger.exception("Google OAuth callback failed: %s", exc)
+        return RedirectResponse(
+            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="server_error")
+        )
+    except Exception as exc:
+        logger.exception("Google OAuth callback failed")
+        return RedirectResponse(
+            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=f"server_error:{str(exc)[:200]}")
+        )
 
 
 @router.post("/rides")
@@ -1469,7 +1485,7 @@ async def google_health_callback(
             "refresh_token": token_data.get("refresh_token", ""),
         }
     )
-    _validate_redirect_uri(redirect_uri)
+    _validate_redirect_uri(redirect_uri, request)
 
     if error:
         return _google_health_message_html(
@@ -1585,7 +1601,7 @@ async def google_fit_exchange_token(
         raise HTTPException(status_code=400, detail="Invalid client_id")
 
     redirect_uri = payload.get("redirect_uri") or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
-    _validate_redirect_uri(redirect_uri)
+    _validate_redirect_uri(redirect_uri, request)
 
     try:
         token_data = exchange_code_for_token(
@@ -1637,7 +1653,7 @@ async def google_fit_callback(
             }
         )
     redirect_uri = state_data["redirect_uri"]
-    _validate_redirect_uri(redirect_uri)
+    _validate_redirect_uri(redirect_uri, request)
 
     if error:
         return _google_fit_message_html(

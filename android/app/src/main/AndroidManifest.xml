@@ -35,13 +35,19 @@
             android:name=".ui.coach.CoachActivity"
             android:exported="false" />
 <activity
-             android:name=".ui.MainActivity"
-             android:exported="true">
-             <intent-filter>
-                 <action android:name="android.intent.action.MAIN" />
-                 <category android:name="android.intent.category.LAUNCHER" />
-             </intent-filter>
-         </activity>
+              android:name=".ui.MainActivity"
+              android:exported="true">
+              <intent-filter>
+                  <action android:name="android.intent.action.MAIN" />
+                  <category android:name="android.intent.category.LAUNCHER" />
+              </intent-filter>
+              <intent-filter android:autoVerify="true">
+                  <action android:name="android.intent.action.VIEW" />
+                  <category android:name="android.intent.category.DEFAULT" />
+                  <category android:name="android.intent.category.BROWSABLE" />
+                  <data android:scheme="https" android:host="bikemaster.onrender.com" />
+              </intent-filter>
+          </activity>
          <service
              android:name=".tracking.BikeTrackingService"
              android:enabled="true"
