@@ -16,6 +16,7 @@ interface LeafletMap {
 }
 interface LeafletPolyline {
   addTo(map: LeafletMap): LeafletPolyline
+  addLatLng(latlng: [number, number]): LeafletPolyline
 }
 
 const Ln = L as unknown as {
