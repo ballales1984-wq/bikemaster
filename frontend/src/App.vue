@@ -170,7 +170,12 @@ async function onRegister(creds) {
 }
 
 async function onLogout() {
-  await auth.logout().catch(() => {});
+  try {
+    await auth.logout();
+  } catch (e) {
+    console.error("Logout failed", e);
+    loginError.value = "Logout failed. Please try again.";
+  }
   router.push("/");
   summary.value = {
     rides: 0,

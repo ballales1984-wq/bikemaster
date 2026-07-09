@@ -13,8 +13,8 @@ export function processOAuthToken() {
   const oauthError =
     urlParams.get("oauth_error") || hashParams.get("oauth_error");
 
-  if (urlToken) {
-    auth.setAuthFromUrl(urlToken, email);
+  if (oauthError) {
+    auth.setOauthError(oauthError);
     ui.setOauthLoading(false);
     if (window.history.replaceState) {
       window.history.replaceState({}, document.title, "/");
@@ -22,8 +22,15 @@ export function processOAuthToken() {
     return true;
   }
 
-  if (oauthError) {
-    auth.setOauthError(oauthError);
+  if (urlToken) {
+    if (auth.isLoggedIn && auth.isTokenValid()) {
+      ui.setOauthLoading(false);
+      if (window.history.replaceState) {
+        window.history.replaceState({}, document.title, "/");
+      }
+      return false;
+    }
+    auth.setAuthFromUrl(urlToken, email);
     ui.setOauthLoading(false);
     if (window.history.replaceState) {
       window.history.replaceState({}, document.title, "/");
