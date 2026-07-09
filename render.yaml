@@ -8,8 +8,6 @@ services:
         generateValue: true
       - key: GROQ_API_KEY
         sync: false
-      - key: OPENAI_API_KEY
-        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
@@ -17,7 +15,7 @@ services:
       - key: AI_COACH_MODE
         value: external
       - key: AI_COACH_PROVIDER_ORDER
-        value: groq,openai
+        value: groq
       - key: PYTHON_VERSION
         value: "3.11"
       - key: DATABASE_URL

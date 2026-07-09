@@ -216,7 +216,7 @@ async function submit() {
 
 const isMobile = /Android|iPhone|iPad|iPod|Capacitor/i.test(navigator.userAgent || '') || typeof window.Capacitor !== 'undefined';
 
-function getRedirectUri(): string {
+function getRedirectUri() {
   if (isMobile) {
     return 'com.bikemaster.app://callback';
   }
