@@ -123,13 +123,14 @@ async def revoke_token(jti: str, ttl: int = JWT_BLACKLIST_TTL) -> bool:
         _sweep_revoked_tokens()
     r = await get_redis()
     if r is None:
-        return True
+        logger.warning("Redis unavailable: token revocation is in-memory only for jti=%s", jti)
+        return False
     try:
         await _await_if_needed(r.set(jti_key(jti), "1", ex=ttl))
         return True
     except Exception as exc:
         logger.warning("Failed to revoke token %s: %s", jti, exc)
-        return True
+        return False
 
 
 async def is_token_revoked(jti: str) -> bool:

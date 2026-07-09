@@ -214,11 +214,11 @@ async function submit() {
   }
 }
 
-const isMobile = /Android|iPhone|iPad|iPod|Capacitor/i.test(navigator.userAgent || '') || typeof window.Capacitor !== 'undefined';
+const isCapacitorApp = typeof window.Capacitor !== "undefined";
 
 function getRedirectUri() {
-  if (isMobile) {
-    return 'com.bikemaster.app://callback';
+  if (isCapacitorApp) {
+    return "com.bikemaster.app://callback";
   }
   return `${window.location.origin}/api/v1/auth/google/callback`;
 }
@@ -241,11 +241,7 @@ async function loginWithGoogle() {
       throw new Error("Google login error: invalid server response");
     }
 
-    if (isMobile) {
-      window.location.href = data.auth_url;
-    } else {
-      window.location.href = data.auth_url;
-    }
+    window.location.href = data.auth_url;
   } catch (e) {
     emit("error", e.message);
     alert(e.message);

@@ -198,8 +198,16 @@ router.beforeEach(async (to, from, next) => {
   }
 
   if (hasToken && (to.path === "/" || justLoggedIn)) {
-    const hasCompleteProfile = await checkProfileComplete(auth);
-    next(hasCompleteProfile ? "/rides" : "/athlete");
+    try {
+      const hasCompleteProfile = await checkProfileComplete(auth);
+      next(hasCompleteProfile ? "/rides" : "/athlete");
+    } catch {
+      if (!auth.isLoggedIn) {
+        next("/");
+        return;
+      }
+      next("/athlete");
+    }
     localStorage.removeItem("bikemaster_just_logged_in");
     auth.setJustLoggedIn(false);
     ui.setOauthLoading(false);

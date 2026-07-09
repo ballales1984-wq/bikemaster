@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { Athlete } from "../types/index";
-import { apiPost, resetSessionExpiredNotification } from "../utils/api";
+import { apiPost, ApiError, resetSessionExpiredNotification } from "../utils/api";
 
 const TOKEN_KEY = "bikemaster_token";
 const USER_KEY = "bikemaster_user";
@@ -69,7 +69,7 @@ export const useAuthStore = defineStore("auth", () => {
     const form = new URLSearchParams()
     form.append("username", username)
     form.append("password", password)
-    const data = await apiPost<{ access_token: string; id?: number }>(
+    const data = await apiPost<{ access_token: string; refresh_token?: string; token_type?: string; username?: string; id?: number; is_admin?: boolean }>(
       "/api/v1/auth/login",
       form,
       {
@@ -80,14 +80,12 @@ export const useAuthStore = defineStore("auth", () => {
     const payload = parseJWTPayload(data.access_token)
     user.value = {
       id: typeof data.id === "number" ? data.id : 0,
-      username: typeof payload?.sub === "string" ? payload.sub : "",
-      is_admin: !!payload?.is_admin,
+      username: typeof data.username === "string" ? data.username : "",
+      is_admin: !!data.is_admin,
       tenant_id:
-        typeof payload?.tenant_id === "number"
-          ? payload.tenant_id
-          : typeof data.id === "number"
-            ? data.id
-            : 0,
+        typeof data.id === "number"
+          ? data.id
+          : 0,
     }
     localStorage.setItem(TOKEN_KEY, data.access_token)
     localStorage.setItem(USER_KEY, JSON.stringify(user.value))
@@ -98,30 +96,11 @@ export const useAuthStore = defineStore("auth", () => {
     username: string,
     password: string,
   ): Promise<unknown> {
-    const resp = await fetch("/api/v1/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      const detail = (err as { detail?: unknown }).detail;
-      let message = "Registration failed";
-      if (typeof detail === "string") {
-        message = detail;
-      } else if (Array.isArray(detail)) {
-        const messages = detail
-          .map((d) =>
-            typeof d === "object" && d && "msg" in d
-              ? String((d as { msg?: unknown }).msg)
-              : String(d),
-          )
-          .filter(Boolean);
-        if (messages.length) message = messages.join("; ");
-      }
-      throw new Error(message);
-    }
-    return resp.json();
+    const data = await apiPost<{ detail?: unknown; message?: unknown }>(
+      "/api/v1/auth/register",
+      { username, password },
+    );
+    return data;
   }
 
   async function logout(): Promise<void> {

@@ -22,6 +22,24 @@ export function resetSessionExpiredNotification() {
   sessionExpiredNotified = false;
 }
 
+function extractApiErrorMessage(body: unknown): string {
+  if (typeof body === "string") return body;
+  const obj = body as Record<string, unknown>;
+  if (typeof obj.detail === "string") return obj.detail;
+  if (Array.isArray(obj.detail)) {
+    const messages = obj.detail
+      .map((d: unknown) =>
+        typeof d === "object" && d && "msg" in d
+          ? String((d as { msg?: unknown }).msg)
+          : String(d),
+      )
+      .filter(Boolean);
+    if (messages.length) return messages.join("; ");
+  }
+  if (typeof obj.message === "string") return obj.message;
+  return "Request failed";
+}
+
 function notifySessionExpired() {
   const toast = (
     window as unknown as {
@@ -132,10 +150,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
       throw new ApiError("expired", 401);
     }
     const err = await resp.json().catch(() => ({}));
-    const message =
-      (err as Record<string, string>).detail ||
-      (err as Record<string, string>).message ||
-      `${method} ${path}: ${resp.status}`;
+    const message = extractApiErrorMessage(err) || `${method} ${path}: ${resp.status}`;
     throw new ApiError(message, resp.status);
   }
   return resp.json() as Promise<T>;

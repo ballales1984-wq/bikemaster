@@ -57,6 +57,15 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
+    # === OAuth redirect URI allow-list ===
+    # Custom (non-http/https) URI schemes allowed as OAuth redirect targets,
+    # e.g. mobile app deep links like "com.bikemaster.app://callback".
+    oauth_redirect_schemes: str = "com.bikemaster.app"
+
+    @property
+    def oauth_redirect_schemes_list(self) -> set[str]:
+        return {s.strip().lower() for s in self.oauth_redirect_schemes.split(",") if s.strip()}
+
     # === SerpApi / Google Maps (deprecated) ===
     google_maps_api_key: str = ""
     google_maps_zoom: int = 13
