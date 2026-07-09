@@ -139,10 +139,10 @@ function retryImport<T>(loader: () => Promise<T>, retries = 3, delayMs = 800): P
 // Wrap every lazy route loader with the retry helper (single place, no need to
 // touch each route definition).
 for (const route of routes) {
-  const component = route.component as unknown
-  if (typeof component === 'function') {
-    const loader = component as () => Promise<unknown>
-    route.component = () => retryImport(loader)
+  const holder = route as { component: unknown }
+  if (typeof holder.component === 'function') {
+    const loader = holder.component as () => Promise<unknown>
+    holder.component = () => retryImport(loader)
   }
 }
 
