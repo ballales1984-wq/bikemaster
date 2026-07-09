@@ -60,13 +60,11 @@ def reset_rate_limiter():
 
 @pytest.fixture
 def client(db_path):
-    import bike_analyzer.backend.config as cfg_mod
     from bike_analyzer.backend.api.app_factory import create_app
     from bike_analyzer.backend.db import database as db_mod
     from bike_analyzer.backend.security import create_access_token
 
     os.environ["DB_PATH"] = db_path
-    cfg_mod.DB_PATH = db_path
     db_mod.DB_PATH = db_path
     db_mod.init_db()
 
@@ -80,12 +78,10 @@ def client(db_path):
 @pytest.fixture
 def unauthenticated_client(db_path):
     """TestClient without default auth headers."""
-    import bike_analyzer.backend.config as cfg_mod
     from bike_analyzer.backend.api.app_factory import create_app
     from bike_analyzer.backend.db import database as db_mod
 
     os.environ["DB_PATH"] = db_path
-    cfg_mod.DB_PATH = db_path
     db_mod.DB_PATH = db_path
     db_mod.init_db()
     app = create_app()

@@ -9,7 +9,7 @@ from bike_analyzer.backend.auth.google_auth import (
     exchange_google_code,
     get_google_oauth_url,
 )
-from bike_analyzer.backend.config import JWT_AUDIENCE, JWT_ISSUER, SECRET_KEY
+from bike_analyzer.backend.security import JWT_AUDIENCE, JWT_ISSUER, SECRET_KEY
 
 
 def test_get_google_oauth_url():

@@ -22,11 +22,9 @@ os.environ.setdefault("GOOGLE_CLIENT_SECRET", "test-client-secret")
 
 @pytest.fixture(autouse=True)
 def _db_path(db_path):
-    import bike_analyzer.backend.config as cfg_mod
     import bike_analyzer.backend.db.database as db_mod
 
     os.environ["DB_PATH"] = db_path
-    cfg_mod.DB_PATH = db_path
     db_mod.DB_PATH = db_path
     db_mod.init_db()
 

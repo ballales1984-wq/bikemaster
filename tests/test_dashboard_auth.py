@@ -73,10 +73,8 @@ class TestLoginWithRefresh:
         password_hash = hash_password("testpass123")
         save_athlete({"name": "loginuser", "email": "loginuser@test.com", "password_hash": password_hash})
 
-        import bike_analyzer.backend.config as cfg_mod
         import bike_analyzer.backend.db.database as db_mod
 
-        cfg_mod.DB_PATH = db_path
         db_mod.DB_PATH = db_path
 
         from starlette.testclient import TestClient

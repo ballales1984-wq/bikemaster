@@ -10,37 +10,41 @@ import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import L from 'leaflet'
 import { useTrackingStore } from '../stores/trackingStore'
 
-interface LeafletMap {
-  setView(center: [number, number], zoom: number): LeafletMap
-  remove(): void
-}
-interface LeafletPolyline {
-  addTo(map: LeafletMap): LeafletPolyline
-}
-
-const Ln = L as unknown as {
-  map(element: HTMLElement, options?: Record<string, unknown>): LeafletMap
-  tileLayer(url: string, options?: Record<string, unknown>): { addTo(map: LeafletMap): unknown }
-  polyline(latlngs: Array<[number, number]>, options?: Record<string, unknown>): LeafletPolyline
-}
-
 const mapEl = ref<HTMLElement | null>(null)
-const map = ref<LeafletMap | null>(null)
-const polyline = ref<LeafletPolyline | null>(null)
+const map = ref<L.Map | null>(null)
+const polyline = ref<L.Polyline | null>(null)
+const currentMarker = ref<L.CircleMarker | null>(null)
 
 const tracking = useTrackingStore()
 const points = ref<Array<[number, number]>>([])
 
 function addPoint(lat: number, lon: number) {
   points.value.push([lat, lon])
-  if (!polyline.value && map.value) {
-    polyline.value = Ln.polyline(points.value, {
+  if (!map.value) return
+
+  if (!polyline.value) {
+    polyline.value = L.polyline(points.value, {
       color: '#4ecca3',
       weight: 5,
       opacity: 0.9,
     }).addTo(map.value)
+  } else {
+    polyline.value.setLatLngs(points.value)
   }
-  map.value?.setView([lat, lon], 16)
+
+  if (!currentMarker.value) {
+    currentMarker.value = L.circleMarker([lat, lon], {
+      radius: 8,
+      color: '#4ecca3',
+      fillColor: '#4ecca3',
+      fillOpacity: 1,
+      weight: 2,
+    }).addTo(map.value)
+  } else {
+    currentMarker.value.setLatLng([lat, lon])
+  }
+
+  map.value.setView([lat, lon], 16)
 }
 
 watch(
@@ -56,11 +60,28 @@ watch(
 
 onMounted(() => {
   if (!mapEl.value) return
-  map.value = Ln.map(mapEl.value, { preferCanvas: true }).setView([45.4642, 9.19], 16)
-  Ln.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap',
+  map.value = L.map(mapEl.value, { preferCanvas: true }).setView([45.4642, 9.19], 16)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
     maxZoom: 19,
   }).addTo(map.value)
+
+  if (points.value.length > 0) {
+    const last = points.value[points.value.length - 1]
+    polyline.value = L.polyline(points.value, {
+      color: '#4ecca3',
+      weight: 5,
+      opacity: 0.9,
+    }).addTo(map.value)
+    currentMarker.value = L.circleMarker(last, {
+      radius: 8,
+      color: '#4ecca3',
+      fillColor: '#4ecca3',
+      fillOpacity: 1,
+      weight: 2,
+    }).addTo(map.value)
+    map.value.setView(last, 16)
+  }
 })
 
 onBeforeUnmount(() => {
@@ -75,6 +96,7 @@ defineExpose({
   clear() {
     points.value = []
     polyline.value = null
+    currentMarker.value = null
   },
 })
 </script>
