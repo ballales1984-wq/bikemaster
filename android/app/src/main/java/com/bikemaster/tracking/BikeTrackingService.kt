@@ -64,6 +64,12 @@ class BikeTrackingService : Service() {
         fun sendStopIntent(context: Context) {
             sendActionIntent(context, ACTION_STOP)
         }
+
+        // #230: on-device tracking performance tuning.
+        private const val GPX_FLUSH_POINTS = 20
+        private const val MAX_ACCURACY_METERS = 80f
+        private const val MAX_PLAUSIBLE_SPEED_MPS = 45.0
+        private const val GPS_TOLERANCE = 0.00005
     }
 
     private var fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -74,7 +80,12 @@ class BikeTrackingService : Service() {
     private val isPaused = AtomicBoolean(false)
     private var startTime = 0L
     private var totalDistance = 0.0
-    private val trackingPoints = mutableListOf<Location>()
+    private val trackPoints = mutableListOf<GpxPt>()
+    private var lastLocation: Location? = null
+    private var pointCount = 0
+    private val gpxBuffer = StringBuilder()
+    private var gpxBufferPoints = 0
+    private var samplingBand = -1
     private var gpxFile: File? = null
     private var gpxWriter: FileWriter? = null
 
@@ -132,7 +143,12 @@ class BikeTrackingService : Service() {
         isPaused.set(false)
         startTime = System.currentTimeMillis()
         totalDistance = 0.0
-        trackingPoints.clear()
+        trackPoints.clear()
+        lastLocation = null
+        pointCount = 0
+        gpxBuffer.setLength(0)
+        gpxBufferPoints = 0
+        samplingBand = -1
 
         val file = if (outputPath.isNotBlank()) File(outputPath) else File(getDefaultFilePath())
         gpxFile = file
@@ -189,6 +205,7 @@ class BikeTrackingService : Service() {
         locationCallback = null
 
         val outputPath = gpxFile?.absolutePath
+        flushGpx()
         gpxWriter?.let {
             it.append("    </trkseg>\n")
             it.append("  </trk>\n")
@@ -197,6 +214,7 @@ class BikeTrackingService : Service() {
             it.close()
         }
         gpxWriter = null
+        outputPath?.let { compressAndRewriteGpx(it) }
 
         stopForeground(STOP_FOREGROUND_REMOVE)
         sendBroadcast(
@@ -250,13 +268,21 @@ class BikeTrackingService : Service() {
     }
 
     private fun updateTracking(location: Location) {
-        trackingPoints.add(location)
+        // #230: drop low-accuracy fixes so the recorded track stays clean (beats naive logging).
+        if (location.accuracy > 0f && location.accuracy > MAX_ACCURACY_METERS) return
+
+        val prev = lastLocation
+        if (prev != null) {
+            val dist = calculateDistance(prev, location)
+            val dt = (location.time - prev.time) / 1000.0
+            // Reject GPS jumps that imply an impossible speed (outlier rejection).
+            if (dt > 0 && dist / dt > MAX_PLAUSIBLE_SPEED_MPS) return
+            totalDistance += dist
+        }
+        lastLocation = location
+        pointCount++
 
         val speedKmh = if (location.hasSpeed()) location.speed * 3.6 else 0.0
-        if (trackingPoints.size > 1) {
-            val prev = trackingPoints[trackingPoints.size - 2]
-            totalDistance += calculateDistance(prev, location)
-        }
 
         val elapsedSeconds = ((System.currentTimeMillis() - startTime).coerceAtLeast(0L)) / 1000.0
         val avgSpeed = if (elapsedSeconds > 0) totalDistance / (elapsedSeconds / 3600.0) else 0.0
@@ -267,23 +293,71 @@ class BikeTrackingService : Service() {
             avgSpeed = avgSpeed,
             elapsedTime = elapsedSeconds.toLong(),
             elevation = location.altitude,
-            points = trackingPoints.size,
+            points = pointCount,
             isPaused = isPaused.get(),
             lastLatitude = location.latitude,
             lastLongitude = location.longitude
         )
+
+        trackPoints.add(GpxPt(location.latitude, location.longitude, location.altitude, dateFormat.format(Date(location.time))))
+
+        applyAdaptiveSampling(speedKmh)
         broadcastState()
         appendToGpx(location)
     }
 
     private fun appendToGpx(location: Location) {
-        gpxWriter?.let {
-            val time = dateFormat.format(Date(location.time))
-            it.append("      <trkpt lat=\"${location.latitude}\" lon=\"${location.longitude}\">\n")
-            it.append("        <ele>${location.altitude}</ele>\n")
-            it.append("        <time>$time</time>\n")
-            it.append("      </trkpt>\n")
-            it.flush()
+        val time = dateFormat.format(Date(location.time))
+        gpxBuffer.append("      <trkpt lat=\"${location.latitude}\" lon=\"${location.longitude}\">\n")
+        gpxBuffer.append("        <ele>${location.altitude}</ele>\n")
+        gpxBuffer.append("        <time>$time</time>\n")
+        gpxBuffer.append("      </trkpt>\n")
+        if (++gpxBufferPoints >= GPX_FLUSH_POINTS) flushGpx()
+    }
+
+    private fun flushGpx() {
+        if (gpxBufferPoints == 0) return
+        gpxWriter?.append(gpxBuffer)
+        gpxWriter?.flush()
+        gpxBuffer.setLength(0)
+        gpxBufferPoints = 0
+    }
+
+    /**
+     * #230: adaptive GPS sampling. Faster fixes when moving (accuracy), slower when
+     * stopped (battery). Re-requests Fused updates only when the speed band changes.
+     */
+    private fun applyAdaptiveSampling(speedKmh: Double) {
+        val band = when {
+            speedKmh < 5 -> 0
+            speedKmh < 25 -> 1
+            else -> 2
+        }
+        if (band == samplingBand || locationCallback == null) return
+        samplingBand = band
+        val intervalMs = when (band) {
+            0 -> 5000L
+            1 -> 2000L
+            else -> 1000L
+        }
+        if (ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) return
+        try {
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs)
+                .setMinUpdateIntervalMillis((intervalMs / 2).coerceAtLeast(500L))
+                .setMaxUpdateDelayMillis(intervalMs * 2)
+                .build()
+            fusedLocationClient.removeLocationUpdates(locationCallback!!)
+            fusedLocationClient.requestLocationUpdates(
+                request,
+                locationCallback!!,
+                android.os.Looper.getMainLooper()
+            )
+        } catch (_: Exception) {
+            // Keep current update rate if re-request fails.
         }
     }
 
@@ -363,8 +437,80 @@ class BikeTrackingService : Service() {
     override fun onDestroy() {
         locationCallback?.let { fusedLocationClient.removeLocationUpdates(it) }
         stopActivityRecognition()
+        flushGpx()
         gpxWriter?.close()
         super.onDestroy()
+    }
+
+    // ---- On-device GPX compression (#230) ---------------------------------
+
+    private data class GpxPt(val lat: Double, val lon: Double, val ele: Double, val time: String)
+
+    /** Iterative Ramer-Douglas-Peucker (no recursion limit). Mirrors the backend. */
+    private fun douglasPeucker(points: List<GpxPt>): List<GpxPt> {
+        val n = points.size
+        if (n <= 2) return points
+        val keep = BooleanArray(n)
+        keep[0] = true
+        keep[n - 1] = true
+        val stack = ArrayDeque<IntRange>()
+        stack.add(0..n - 1)
+        while (stack.isNotEmpty()) {
+            val range = stack.removeLast()
+            val start = range.first
+            val end = range.last
+            if (end <= start + 1) continue
+            var maxDist = 0.0
+            var index = start + 1
+            for (i in start + 1 until end) {
+                val d = perpendicularDistance(points[i], points[start], points[end])
+                if (d > maxDist) {
+                    maxDist = d
+                    index = i
+                }
+            }
+            if (maxDist > GPS_TOLERANCE) {
+                keep[index] = true
+                stack.add(start..index)
+                stack.add(index..end)
+            }
+        }
+        return points.filterIndexed { i, _ -> keep[i] }
+    }
+
+    private fun perpendicularDistance(p: GpxPt, a: GpxPt, b: GpxPt): Double {
+        val dx = b.lon - a.lon
+        val dy = b.lat - a.lat
+        if (dx == 0.0 && dy == 0.0) return kotlin.math.hypot(p.lat - a.lat, p.lon - a.lon)
+        val num = kotlin.math.abs(dy * p.lon - dx * p.lat + b.lon * a.lat - b.lat * a.lon)
+        val den = kotlin.math.hypot(dx, dy)
+        return if (den == 0.0) 0.0 else num / den
+    }
+
+    /** Rewrite the saved GPX with a decimated point set to shrink the upload payload. */
+    private fun compressAndRewriteGpx(path: String) {
+        if (trackPoints.size <= 2) return
+        val simplified = douglasPeucker(trackPoints)
+        if (simplified.size >= trackPoints.size) return
+        try {
+            FileWriter(path).use { w ->
+                w.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+                w.append("<gpx version=\"1.1\" creator=\"BikeMaster-Mobile\" xmlns=\"http://www.topografix.com/GPX/1/1/\">\n")
+                w.append("  <trk>\n")
+                w.append("    <trkseg>\n")
+                for (p in simplified) {
+                    w.append("      <trkpt lat=\"${p.lat}\" lon=\"${p.lon}\">\n")
+                    w.append("        <ele>${p.ele}</ele>\n")
+                    w.append("        <time>${p.time}</time>\n")
+                    w.append("      </trkpt>\n")
+                }
+                w.append("    </trkseg>\n")
+                w.append("  </trk>\n")
+                w.append("</gpx>\n")
+            }
+        } catch (_: Exception) {
+            // Keep the uncompressed GPX if rewrite fails.
+        }
     }
 }
 
