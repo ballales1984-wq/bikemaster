@@ -13,12 +13,10 @@ from bike_analyzer.backend.api.app_factory import create_app
 @pytest.fixture
 def athlete_client(client, tmp_db):
     """Client with a pre-created athlete for authenticated routes."""
-    import bike_analyzer.backend.config as cfg_mod
     from bike_analyzer.backend.db import database as db_mod
     from bike_analyzer.backend.security import create_access_token
 
     os.environ["DB_PATH"] = tmp_db
-    cfg_mod.DB_PATH = tmp_db
     db_mod.DB_PATH = tmp_db
     db_mod.init_db()
     athlete_id = db_mod.save_athlete({"name": "Test Rider", "experience_level": "Intermediate"})
@@ -31,12 +29,10 @@ def athlete_client(client, tmp_db):
 
 @pytest.fixture
 def admin_client(tmp_db):
-    import bike_analyzer.backend.config as cfg_mod
     from bike_analyzer.backend.db import database as db_mod
     from bike_analyzer.backend.security import create_access_token
 
     os.environ["DB_PATH"] = tmp_db
-    cfg_mod.DB_PATH = tmp_db
     db_mod.DB_PATH = tmp_db
     db_mod.init_db()
     token = create_access_token(subject="0", is_admin=True)
