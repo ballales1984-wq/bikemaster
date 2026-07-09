@@ -58,6 +58,23 @@ async def lifespan(app: FastAPI):
     task_queue = get_task_queue()
     await task_queue.start()
     app.state.task_queue = task_queue
+
+    # Log effective AI Coach configuration so silent config changes
+    # (e.g. a revoked/mistyped GROQ_API_KEY or AI_COACH_MODE override) are
+    # visible immediately in the startup logs.
+    _mode = os.getenv("AI_COACH_MODE", _s.ai_coach_mode)
+    _order = os.getenv("AI_COACH_PROVIDER_ORDER", "groq,openai")
+    _groq_set = bool(os.getenv("GROQ_API_KEY", "").strip() or _s.groq_api_key)
+    _openai_set = bool(os.getenv("OPENAI_API_KEY", "").strip() or _s.openai_api_key)
+    _groq_fmt = "valid" if _groq_set and os.getenv("GROQ_API_KEY", _s.groq_api_key or "").startswith("gsk_") else ("present" if _groq_set else "MISSING")
+    logger.info(
+        "AI Coach config: mode=%s provider_order=%s groq_key=%s openai_key=%s",
+        _mode,
+        _order,
+        _groq_fmt,
+        "set" if _openai_set else "MISSING",
+    )
+
     yield
     await task_queue.stop()
     await close_redis()
