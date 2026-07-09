@@ -1,4 +1,4 @@
-"""Tests for config.py settings wrapper."""
+"""Tests for settings.py configuration model."""
 
 import os
 
@@ -7,29 +7,28 @@ def test_dev_mode_uses_sqlite_default():
     os.environ["SECRET_KEY"] = "test-secret-key-at-least-32-chars-long-123456"
     os.environ["ENVIRONMENT"] = "development"
     os.environ.pop("DATABASE_URL", None)
-    from bike_analyzer.backend.config import DB_PATH
+    from bike_analyzer.backend import settings as settings_mod
 
-    assert "rides.db" in DB_PATH or DB_PATH.endswith(".db")
+    settings_mod._settings = None
+    s = settings_mod.get_settings()
+
+    assert "rides.db" in s.db_path or s.db_path.endswith(".db")
 
 
-def test_config_exposes_expected_constants():
+def test_settings_exposes_expected_constants():
     os.environ["SECRET_KEY"] = "test-secret-key-at-least-32-chars-long-123456"
-    from bike_analyzer.backend.config import (
-        ACCESS_TOKEN_EXPIRE_MINUTES,
-        ALGORITHM,
-        CORS_ORIGINS,
-        GROQ_MODEL,
-        OPENAI_MODEL,
-        SECRET_KEY,
-    )
+    from bike_analyzer.backend import settings as settings_mod
 
-    assert SECRET_KEY is not None
-    assert ALGORITHM == "HS256"
-    assert ACCESS_TOKEN_EXPIRE_MINUTES == 30
-    assert isinstance(CORS_ORIGINS, list)
-    assert len(CORS_ORIGINS) > 0
-    assert GROQ_MODEL == "llama-3.3-70b-versatile"
-    assert OPENAI_MODEL == "gpt-4o-mini"
+    settings_mod._settings = None
+    s = settings_mod.get_settings()
+
+    assert s.secret_key is not None
+    assert s.algorithm == "HS256"
+    assert s.access_token_expire_minutes == 30
+    assert isinstance(s.cors_origins_list, list)
+    assert len(s.cors_origins_list) > 0
+    assert s.groq_model == "llama-3.3-70b-versatile"
+    assert s.openai_model == "gpt-4o-mini"
 
 
 def test_production_without_database_url_logs_warning(caplog):
@@ -37,7 +36,7 @@ def test_production_without_database_url_logs_warning(caplog):
     os.environ["ENVIRONMENT"] = "production"
     os.environ.pop("DATABASE_URL", None)
     with caplog.at_level("WARNING"):
-        import bike_analyzer.backend.settings as settings_mod
+        from bike_analyzer.backend import settings as settings_mod
 
         settings_mod._settings = None
         settings_mod.get_settings()
