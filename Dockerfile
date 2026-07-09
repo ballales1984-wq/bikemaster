@@ -18,11 +18,11 @@ FROM python:3.11-slim AS production
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    MALLOC_TRIM_THRESHOLD_=65536
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-       build-essential \
        curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,10 +31,8 @@ RUN groupadd -r bikemaster && useradd -r -g bikemaster bikemaster
 WORKDIR /app
 
 COPY requirements.txt ./
-# Use uv for faster/better dependency resolution with complex graphs
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir uv && \
-    uv pip install --system --prerelease=allow -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
 COPY main.py ./
 COPY bike_analyzer ./bike_analyzer
@@ -47,7 +45,9 @@ USER bikemaster
 
 ENV SENTRY_DSN="" \
     SENTRY_ENVIRONMENT=production \
-    SENTRY_TRACES_SAMPLE_RATE=0.2
+    SENTRY_TRACES_SAMPLE_RATE=0.2 \
+    LOG_LEVEL=WARNING \
+    UVICORN_WORKERS=1
 
 EXPOSE ${PORT:-8000}
 

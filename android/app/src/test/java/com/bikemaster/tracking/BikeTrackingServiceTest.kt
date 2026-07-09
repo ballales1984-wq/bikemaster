@@ -1,5 +1,6 @@
 package com.bikemaster.tracking
 
+import android.content.Context
 import android.location.Location
 import org.junit.Assert.*
 import org.junit.Test
@@ -8,7 +9,7 @@ import java.io.File
 class TrackingServiceUtilsTest {
 
     @Test
-    fun testDistanceCalculation() {
+    fun testDistanceCalculationInMeters() {
         val loc1 = Location("test").apply {
             latitude = 45.4642
             longitude = 9.19
@@ -23,9 +24,25 @@ class TrackingServiceUtilsTest {
             loc2.latitude, loc2.longitude,
             results
         )
-        val distance = results[0] / 1000.0
-        assertTrue(distance > 0)
-        assertTrue(distance < 2.0)
+        val distance = results[0]
+        assertTrue("Distance should be > 0", distance > 0)
+        assertTrue("Distance should be < 2000m", distance < 2000)
+    }
+
+    @Test
+    fun testDistanceCalculationSamePoint() {
+        val loc = Location("test").apply {
+            latitude = 45.4642
+            longitude = 9.19
+        }
+        val results = FloatArray(1)
+        Location.distanceBetween(
+            loc.latitude, loc.longitude,
+            loc.latitude, loc.longitude,
+            results
+        )
+        val distance = results[0]
+        assertEquals("Same point distance should be 0", 0.0f, distance, 0.1f)
     }
 
     @Test
@@ -109,5 +126,40 @@ class TrackingServiceUtilsTest {
     fun testLocationCallbackNotNullAfterCreation() {
         val service = BikeTrackingService()
         assertNotNull(service)
+    }
+
+    @Test
+    fun testSaveTrackingState() {
+        val context = android.content.ContextWrapper(null)
+        val prefs = context.getSharedPreferences("tracking_state", Context.MODE_PRIVATE)
+        prefs.edit().clear().apply()
+        BikeTrackingService::class.java.getDeclaredMethod("saveTrackingState", Boolean::class.java, String::class.java).apply {
+            isAccessible = true
+            invoke(BikeTrackingService(), true, "/test/path.gpx")
+        }
+        val saved = prefs.getBoolean("is_tracking", false)
+        val path = prefs.getString("output_path", null)
+        assertTrue(saved)
+        assertEquals("/test/path.gpx", path)
+    }
+
+    @Test
+    fun testHasActiveTracking() {
+        val context = android.content.ContextWrapper(null)
+        val prefs = context.getSharedPreferences("tracking_state", Context.MODE_PRIVATE)
+        prefs.edit().clear().apply()
+        assertFalse(BikeTrackingService.hasActiveTracking(context))
+        prefs.edit().putBoolean("is_tracking", true).apply()
+        assertTrue(BikeTrackingService.hasActiveTracking(context))
+    }
+
+    @Test
+    fun testGetActiveTrackingPath() {
+        val context = android.content.ContextWrapper(null)
+        val prefs = context.getSharedPreferences("tracking_state", Context.MODE_PRIVATE)
+        prefs.edit().clear().apply()
+        assertNull(BikeTrackingService.getActiveTrackingPath(context))
+        prefs.edit().putString("output_path", "/test/track.gpx").apply()
+        assertEquals("/test/track.gpx", BikeTrackingService.getActiveTrackingPath(context))
     }
 }

@@ -16,6 +16,7 @@ import com.getcapacitor.annotation.CapacitorPlugin
 class BikeTrackingPlugin : Plugin() {
 
     private var stateReceiver: BroadcastReceiver? = null
+    private var stopPromise: PluginCall? = null
 
     override fun load() {
         registerStateReceiver()
@@ -57,6 +58,8 @@ class BikeTrackingPlugin : Plugin() {
                             put("error", error ?: JSObject.Null)
                         }
                         notifyListeners("trackingStopped", data)
+                        stopPromise?.resolve(data)
+                        stopPromise = null
                     }
                 }
             }
@@ -75,6 +78,10 @@ class BikeTrackingPlugin : Plugin() {
             context.applicationContext.unregisterReceiver(it)
         }
         stateReceiver = null
+        stopPromise?.let {
+            it.reject("Plugin destroyed while stop tracking")
+        }
+        stopPromise = null
         super.protectedOnDestroy()
     }
 
@@ -87,7 +94,26 @@ class BikeTrackingPlugin : Plugin() {
 
     @PluginMethod
     fun stopTracking(call: PluginCall) {
+        stopPromise = call
         BikeTrackingService.sendStopIntent(context)
+    }
+
+    @PluginMethod
+    fun getTrackingState(call: PluginCall) {
+        val prefs = context.getSharedPreferences("tracking_state", Context.MODE_PRIVATE)
+        val isTracking = prefs.getBoolean("is_tracking", false)
+        val outputPath = prefs.getString("output_path", null)
+        val data = JSObject().apply {
+            put("isTracking", isTracking)
+            put("outputPath", outputPath ?: JSObject.Null)
+        }
+        call.resolve(data)
+    }
+
+    @PluginMethod
+    fun clearTrackingState(call: PluginCall) {
+        val prefs = context.getSharedPreferences("tracking_state", Context.MODE_PRIVATE)
+        prefs.edit().clear().apply()
         call.resolve()
     }
 

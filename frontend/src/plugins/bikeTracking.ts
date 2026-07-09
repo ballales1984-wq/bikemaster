@@ -34,13 +34,20 @@ export interface ReadGpxResult {
   base64: string
 }
 
+export interface TrackingStateQuery {
+  isTracking: boolean
+  outputPath: string | null
+}
+
 export const BikeTracking = registerPlugin<{
   startTracking(options?: { outputPath?: string }): Promise<void>
-  stopTracking(): Promise<void>
+  stopTracking(): Promise<TrackingStoppedEvent>
   pauseTracking(): Promise<void>
   resumeTracking(): Promise<void>
   checkPermissions(): Promise<PermissionsResult>
   readGpx(options: { path: string }): Promise<ReadGpxResult>
+  getTrackingState(): Promise<TrackingStateQuery>
+  clearTrackingState(): Promise<void>
   addListener(
     eventName: 'trackingState',
     listener: (info: TrackingStateEvent) => void

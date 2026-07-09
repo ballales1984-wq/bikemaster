@@ -207,6 +207,10 @@
 | 228 | Test strada Android | ✅ |
 | 229 | Documentazione | ✅ |
 | 230 | README + link pagina track | ✅ |
+| 231 | Race condition stopTracking risolta | ✅ |
+| 232 | Unità metriche sincronizzate (metri) | ✅ |
+| 233 | Persistenza stato tracking su Android | ✅ |
+| 234 | Filtro accuratezza GPS (>20m scartato) | ✅ |
 
 ## ✅ Fase 23 — Event-Driven & Clean Architecture (Completata)
 

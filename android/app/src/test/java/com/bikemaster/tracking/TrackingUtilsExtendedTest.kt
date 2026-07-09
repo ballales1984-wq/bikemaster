@@ -55,7 +55,7 @@ class TrackingUtilsExtendedTest {
         )
         val distance = tracker.calculateDistance(points)
         assertTrue("Distance should be > 0", distance > 0.0)
-        assertTrue("Distance should be < 10km", distance < 10.0)
+        assertTrue("Distance should be < 10000m", distance < 10000.0)
     }
 
     @Test

@@ -84,6 +84,7 @@ let webFirstFixTimeout: number | null = null
 
 let stateListener: { remove: () => void } | null = null
 let stoppedListener: { remove: () => void } | null = null
+let isHandlingStop = false
 
 const tracking = useTrackingStore()
 const {
@@ -159,11 +160,11 @@ async function registerNativeListeners() {
   })
 
   stoppedListener = await BikeTracking.addListener('trackingStopped', async (info: TrackingStoppedEvent) => {
+    if (isHandlingStop) return
     if (info.error) {
       alert('Tracking error: ' + info.error)
       return
     }
-    let nativeBlob: Blob | null = null
     if (info.gpxPath) {
       tracking.setGpxPath(info.gpxPath)
       try {
@@ -173,13 +174,13 @@ async function registerNativeListeners() {
         for (let i = 0; i < binary.length; i++) {
           bytes[i] = binary.charCodeAt(i)
         }
-        nativeBlob = new Blob([bytes], { type: 'application/gpx+xml' })
-        tracking.setGpxBlob(nativeBlob)
+        const blob = new Blob([bytes], { type: 'application/gpx+xml' })
+        tracking.setGpxBlob(blob)
       } catch {
         console.error('Failed to read native GPX file')
       }
     }
-    tracking.stop(nativeBlob)
+    tracking.stop()
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('BikeMaster', {
         body: 'Tracciamento completato! Carica la tua uscita.',
@@ -225,11 +226,38 @@ async function resumeTracking() {
 }
 
 async function stopTracking() {
-  if (BikeTracking?.stopTracking) {
-    await BikeTracking.stopTracking()
-  } else {
-    const webBlob = stopWebTracking()
-    tracking.stop(webBlob.gpxBlob)
+  try {
+    isHandlingStop = true
+    if (BikeTracking.stopTracking) {
+      const result = await BikeTracking.stopTracking()
+      if (result.gpxPath) {
+        tracking.setGpxPath(result.gpxPath)
+        try {
+          const gpx = await BikeTracking.readGpx({ path: result.gpxPath })
+          const binary = atob(gpx.base64)
+          const bytes = new Uint8Array(binary.length)
+          for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i)
+          }
+          const blob = new Blob([bytes], { type: 'application/gpx+xml' })
+          tracking.setGpxBlob(blob)
+          tracking.stop(blob)
+        } catch {
+          console.error('Failed to read native GPX file')
+          tracking.stop()
+        }
+      } else {
+        tracking.stop()
+      }
+    } else {
+      const webBlob = stopWebTracking()
+      tracking.stop(webBlob.gpxBlob)
+    }
+  } catch (error) {
+    console.error('Stop tracking failed:', error)
+    tracking.stop()
+  } finally {
+    isHandlingStop = false
   }
 }
 
@@ -298,6 +326,11 @@ function handleWebPosition(position: GeolocationPosition) {
   const lat = position.coords.latitude
   const lon = position.coords.longitude
   if (!isFinite(lat) || !isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return
+  }
+
+  const accuracy = position.coords.accuracy
+  if (accuracy != null && accuracy > 20) {
     return
   }
 
@@ -428,6 +461,28 @@ function resetTrackingState() {
 
 onMounted(() => {
   resetTrackingState()
+  if (BikeTracking.getTrackingState) {
+    BikeTracking.getTrackingState().then((state) => {
+      if (state.isTracking && state.outputPath) {
+        gpsWaiting.value = true
+        BikeTracking.readGpx({ path: state.outputPath }).then((gpx) => {
+          const binary = atob(gpx.base64)
+          const bytes = new Uint8Array(binary.length)
+          for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i)
+          }
+          const blob = new Blob([bytes], { type: 'application/gpx+xml' })
+          tracking.setGpxBlob(blob)
+          tracking.setGpxPath(state.outputPath)
+          gpsWaiting.value = false
+        }).catch(() => {
+          gpsWaiting.value = false
+        })
+      }
+    }).catch(() => {
+      // ignore
+    })
+  }
 })
 
 onBeforeUnmount(() => {

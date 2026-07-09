@@ -77,6 +77,7 @@ class BikeTrackingService : Service() {
     private val trackingPoints = mutableListOf<Location>()
     private var gpxFile: File? = null
     private var gpxWriter: FileWriter? = null
+    private var lastLocation: Location? = null
 
     private val _trackingState = MutableStateFlow(TrackingState())
     val trackingState: StateFlow<TrackingState> = _trackingState
@@ -133,6 +134,7 @@ class BikeTrackingService : Service() {
         startTime = System.currentTimeMillis()
         totalDistance = 0.0
         trackingPoints.clear()
+        lastLocation = null
 
         val file = if (outputPath.isNotBlank()) File(outputPath) else File(getDefaultFilePath())
         gpxFile = file
@@ -158,6 +160,7 @@ class BikeTrackingService : Service() {
             return
         }
 
+        saveTrackingState(true, file.absolutePath)
         startLocationUpdates()
         startActivityRecognition()
         broadcastState()
@@ -204,6 +207,7 @@ class BikeTrackingService : Service() {
                 putExtra(EXTRA_OUTPUT_PATH, outputPath)
             }
         )
+        saveTrackingState(false, null)
         stopSelf()
     }
 
@@ -229,6 +233,7 @@ class BikeTrackingService : Service() {
             override fun onLocationResult(result: LocationResult) {
                 if (!isTracking.get() || isPaused.get()) return
                 result.lastLocation?.let { location ->
+                    if (location.accuracy > 20) return
                     updateTracking(location)
                 }
             }
@@ -259,7 +264,7 @@ class BikeTrackingService : Service() {
         }
 
         val elapsedSeconds = ((System.currentTimeMillis() - startTime).coerceAtLeast(0L)) / 1000.0
-        val avgSpeed = if (elapsedSeconds > 0) totalDistance / (elapsedSeconds / 3600.0) else 0.0
+        val avgSpeed = if (elapsedSeconds > 0) (totalDistance / 1000.0) / (elapsedSeconds / 3600.0) else 0.0
 
         _trackingState.value = TrackingState(
             distance = totalDistance,
@@ -272,6 +277,7 @@ class BikeTrackingService : Service() {
             lastLatitude = location.latitude,
             lastLongitude = location.longitude
         )
+        lastLocation = location
         broadcastState()
         appendToGpx(location)
     }
@@ -310,7 +316,7 @@ class BikeTrackingService : Service() {
             loc2.latitude, loc2.longitude,
             results
         )
-        return results[0] / 1000.0
+        return results[0].toDouble()
     }
 
     private fun startActivityRecognition() {
@@ -365,6 +371,27 @@ class BikeTrackingService : Service() {
         stopActivityRecognition()
         gpxWriter?.close()
         super.onDestroy()
+    }
+
+    private fun saveTrackingState(tracking: Boolean, outputPath: String?) {
+        val prefs = getSharedPreferences("tracking_state", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putBoolean("is_tracking", tracking)
+            .putString("output_path", outputPath ?: "")
+            .apply()
+    }
+
+    companion object {
+        fun hasActiveTracking(context: Context): Boolean {
+            val prefs = context.getSharedPreferences("tracking_state", Context.MODE_PRIVATE)
+            return prefs.getBoolean("is_tracking", false)
+        }
+
+        fun getActiveTrackingPath(context: Context): String? {
+            val prefs = context.getSharedPreferences("tracking_state", Context.MODE_PRIVATE)
+            val path = prefs.getString("output_path", null)
+            return if (path.isNullOrBlank()) null else path
+        }
     }
 }
 
