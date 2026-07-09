@@ -222,7 +222,7 @@ const ttsSupported = ref(false)
 const isListening = ref(false)
 const autoRead = ref(false)
 const lastAssistantMessage = ref("")
-const recognition = ref<any>(null)
+const recognition = ref(null)
 
 function initVoice() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
