@@ -2229,7 +2229,7 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
         athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
     athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id, tenant_id=tenant_id)]
-    response = generate_training_advice(athlete, rides, athlete_id, message=message)
+    response = generate_training_advice(athlete, rides, athlete_id)
     save_chat_message(athlete_id, "assistant", response[:500], tenant_id)
     return {"response": response, "history": get_chat_history(athlete_id, tenant_id=tenant_id)}
 
