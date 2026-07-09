@@ -130,7 +130,7 @@ describe("auth store", () => {
     const fakeJwt = `${header}.${payload}.sig`;
     const formSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
-      json: async () => ({ access_token: fakeJwt, id: 42 }),
+      json: async () => ({ access_token: fakeJwt, id: 42, username: "alice" }),
     } as Response);
     await store.login("alice", "pw");
     expect(store.token).toBe(fakeJwt);
@@ -242,7 +242,7 @@ describe("auth store", () => {
       json: async () => ({}),
     } as Response);
     await expect(store.register("bob", "secret")).rejects.toThrow(
-      "Registration failed",
+      "Request failed",
     );
     spy.mockRestore();
   });

@@ -24,18 +24,13 @@ from ..redis_client import close_redis, get_redis
 from ..settings import get_settings
 from ..task_queue import get_task_queue
 from .routes import admin_router, router
+from .utils import _forwarded_value
 
 logger = logging.getLogger(__name__)
 
 _s = get_settings()
 STATIC_DIR = Path(__file__).parent.parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
-
-
-def _forwarded_value(header_value: str | None) -> str:
-    if not header_value:
-        return ""
-    return header_value.split(",", 1)[0].strip()
 
 
 def _static_file_response(file_path: Path, media_type: str | None = None, headers: dict | None = None) -> Response:
@@ -192,10 +187,10 @@ def create_app() -> FastAPI:
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; img-src 'self' data: https:; "
-                "script-src 'self' 'unsafe-inline' "
+                "script-src 'self' "
                 "https://cdn.jsdelivr.net https://code.jquery.com "
                 "https://cdnjs.cloudflare.com https://unpkg.com; "
-                "style-src 'self' 'unsafe-inline' "
+                "style-src 'self' "
                 "https://cdn.jsdelivr.net https://netdna.bootstrapcdn.com "
                 "https://cdnjs.cloudflare.com https://unpkg.com; "
                 "connect-src 'self'"
