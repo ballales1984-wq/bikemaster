@@ -1,110 +1,126 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import type { Athlete } from '../types/index'
-import { resetSessionExpiredNotification } from '../utils/api'
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import type { Athlete } from "../types/index";
+import { resetSessionExpiredNotification } from "../utils/api";
 
-const TOKEN_KEY = 'bikemaster_token'
-const USER_KEY = 'bikemaster_user'
-const JUST_LOGGED_IN_KEY = 'bikemaster_just_logged_in'
+const TOKEN_KEY = "bikemaster_token";
+const USER_KEY = "bikemaster_user";
+const JUST_LOGGED_IN_KEY = "bikemaster_just_logged_in";
 
 function parseBase64Url(base64Url: string): string {
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-  const padded = base64 + '=='.slice(0, (4 - (base64.length % 4)) % 4)
+  const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64 + "==".slice(0, (4 - (base64.length % 4)) % 4);
   return decodeURIComponent(
     Array.from(atob(padded))
-      .map(c => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`)
-      .join('')
-  )
+      .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`)
+      .join(""),
+  );
 }
 
 function parseJWTPayload(tokenStr: string): Record<string, unknown> | null {
   try {
-    const parts = tokenStr.split('.')
-    if (parts.length < 2) return null
-    const decoded = parseBase64Url(parts[1])
-    return JSON.parse(decoded)
+    const parts = tokenStr.split(".");
+    if (parts.length < 2) return null;
+    const decoded = parseBase64Url(parts[1]);
+    return JSON.parse(decoded);
   } catch {
-    return null
+    return null;
   }
 }
 
-export const useAuthStore = defineStore('auth', () => {
-  const token = ref(typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_KEY) || '' : '')
-  
+export const useAuthStore = defineStore("auth", () => {
+  const token = ref(
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem(TOKEN_KEY) || ""
+      : "",
+  );
+
   const user = ref<Athlete | null>(
-    (function() {
+    (function () {
       try {
-        if (typeof localStorage === 'undefined') return null
-        const raw = localStorage.getItem(USER_KEY)
-        return raw ? JSON.parse(raw) : null
+        if (typeof localStorage === "undefined") return null;
+        const raw = localStorage.getItem(USER_KEY);
+        return raw ? JSON.parse(raw) : null;
       } catch {
-        return null
+        return null;
       }
-    })()
-  )
+    })(),
+  );
 
-  const justLoggedIn = ref(false)
+  const justLoggedIn = ref(false);
 
-  const isLoggedIn = computed(() => !!token.value)
-  const isAdmin = computed(() => user.value?.is_admin === true)
+  const isLoggedIn = computed(() => !!token.value);
+  const isAdmin = computed(() => user.value?.is_admin === true);
 
   function isTokenValid(): boolean {
-    if (!token.value) return false
-    const payload = parseJWTPayload(token.value)
-    if (!payload) return false
-    const exp = payload.exp as number | undefined
-    if (!exp) return true
-    return Date.now() < exp * 1000
+    if (!token.value) return false;
+    const payload = parseJWTPayload(token.value);
+    if (!payload) return false;
+    const exp = payload.exp as number | undefined;
+    if (!exp) return true;
+    return Date.now() < exp * 1000;
   }
 
   function getAuthHeader(): Record<string, string> {
-    return token.value ? { Authorization: `Bearer ${token.value}` } : {}
+    return token.value ? { Authorization: `Bearer ${token.value}` } : {};
   }
 
   async function login(username: string, password: string): Promise<void> {
-    const form = new URLSearchParams()
-    form.append('username', username)
-    form.append('password', password)
-    const resp = await fetch('/api/v1/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    const form = new URLSearchParams();
+    form.append("username", username);
+    form.append("password", password);
+    const resp = await fetch("/api/v1/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: form.toString(),
-    })
+    });
     if (!resp.ok) {
-      const err = await resp.json().catch(() => ({ detail: 'Login failed' }))
-      throw new Error((err as { detail?: string }).detail || 'Login failed')
+      const err = await resp.json().catch(() => ({ detail: "Login failed" }));
+      throw new Error((err as { detail?: string }).detail || "Login failed");
     }
-    const data = await resp.json()
-    token.value = data.access_token
-    const payload = parseJWTPayload(data.access_token)
+    const data = await resp.json();
+    token.value = data.access_token;
+    const payload = parseJWTPayload(data.access_token);
     user.value = {
-      id: typeof data.id === 'number' ? data.id : 0,
-      username: typeof payload?.sub === 'string' ? payload.sub : '',
+      id: typeof data.id === "number" ? data.id : 0,
+      username: typeof payload?.sub === "string" ? payload.sub : "",
       is_admin: !!payload?.is_admin,
-      tenant_id: typeof payload?.tenant_id === 'number' ? payload.tenant_id : (typeof data.id === 'number' ? data.id : 0),
-    }
-    localStorage.setItem(TOKEN_KEY, data.access_token)
-    localStorage.setItem(USER_KEY, JSON.stringify(user.value))
-    resetSessionExpiredNotification()
+      tenant_id:
+        typeof payload?.tenant_id === "number"
+          ? payload.tenant_id
+          : typeof data.id === "number"
+            ? data.id
+            : 0,
+    };
+    localStorage.setItem(TOKEN_KEY, data.access_token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user.value));
+    resetSessionExpiredNotification();
   }
 
-  async function register(username: string, password: string): Promise<unknown> {
-    const resp = await fetch('/api/v1/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+  async function register(
+    username: string,
+    password: string,
+  ): Promise<unknown> {
+    const resp = await fetch("/api/v1/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
       const detail = (err as { detail?: unknown }).detail;
-      let message = 'Registration failed';
-      if (typeof detail === 'string') {
+      let message = "Registration failed";
+      if (typeof detail === "string") {
         message = detail;
       } else if (Array.isArray(detail)) {
         const messages = detail
-          .map((d) => (typeof d === 'object' && d && 'msg' in d ? String((d as { msg?: unknown }).msg) : String(d)))
+          .map((d) =>
+            typeof d === "object" && d && "msg" in d
+              ? String((d as { msg?: unknown }).msg)
+              : String(d),
+          )
           .filter(Boolean);
-        if (messages.length) message = messages.join('; ');
+        if (messages.length) message = messages.join("; ");
       }
       throw new Error(message);
     }
@@ -113,56 +129,56 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout(): Promise<void> {
     try {
-      const currentToken = localStorage.getItem(TOKEN_KEY)
+      const currentToken = localStorage.getItem(TOKEN_KEY);
       if (currentToken) {
-        await fetch('/api/v1/auth/logout', {
-          method: 'POST',
+        await fetch("/api/v1/auth/logout", {
+          method: "POST",
           headers: { ...getAuthHeader() },
-        }).catch(() => {})
+        }).catch(() => {});
       }
     } catch {}
-  
-    token.value = ''
-    user.value = null
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+
+    token.value = "";
+    user.value = null;
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
   }
 
   function setAuthFromUrl(urlToken: string, email: string) {
-    const payload = parseJWTPayload(urlToken)
+    const payload = parseJWTPayload(urlToken);
     const userData = {
-      username: email || '',
+      username: email || "",
       email,
       is_admin: false,
-      tenant_id: typeof payload?.tenant_id === 'number' ? payload.tenant_id : 0,
-    }
-    localStorage.setItem(TOKEN_KEY, urlToken)
-    localStorage.setItem(USER_KEY, JSON.stringify(userData))
-    token.value = urlToken
-    user.value = userData
-    localStorage.removeItem('bikemaster_login_error')
-    localStorage.setItem(JUST_LOGGED_IN_KEY, 'true')
-    justLoggedIn.value = true
-    resetSessionExpiredNotification()
+      tenant_id: typeof payload?.tenant_id === "number" ? payload.tenant_id : 0,
+    };
+    localStorage.setItem(TOKEN_KEY, urlToken);
+    localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    token.value = urlToken;
+    user.value = userData;
+    localStorage.removeItem("bikemaster_login_error");
+    localStorage.setItem(JUST_LOGGED_IN_KEY, "true");
+    justLoggedIn.value = true;
+    resetSessionExpiredNotification();
   }
 
   function setOauthError(oauthError: string) {
-    token.value = ''
-    user.value = null
-    localStorage.setItem('bikemaster_login_error', oauthError)
+    token.value = "";
+    user.value = null;
+    localStorage.setItem("bikemaster_login_error", oauthError);
 
-    justLoggedIn.value = false
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
-    localStorage.removeItem(JUST_LOGGED_IN_KEY)
+    justLoggedIn.value = false;
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(JUST_LOGGED_IN_KEY);
   }
 
   function setJustLoggedIn(value: boolean) {
-    justLoggedIn.value = value
+    justLoggedIn.value = value;
     if (value) {
-      localStorage.setItem(JUST_LOGGED_IN_KEY, 'true')
+      localStorage.setItem(JUST_LOGGED_IN_KEY, "true");
     } else {
-      localStorage.removeItem(JUST_LOGGED_IN_KEY)
+      localStorage.removeItem(JUST_LOGGED_IN_KEY);
     }
   }
 
@@ -180,6 +196,6 @@ export const useAuthStore = defineStore('auth', () => {
     parseJWTPayload,
     setAuthFromUrl,
     setOauthError,
-    setJustLoggedIn
-  }
-})
+    setJustLoggedIn,
+  };
+});

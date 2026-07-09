@@ -16,18 +16,18 @@ vi.mock("../composables/useI18n", () => ({
   }),
 }));
 
-const pinia = createPinia()
-setActivePinia(pinia)
+const pinia = createPinia();
+setActivePinia(pinia);
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [{ path: '/', component: { template: '<div />' } }],
-})
+  routes: [{ path: "/", component: { template: "<div />" } }],
+});
 
 const globalConfig = {
   plugins: [pinia, router],
   stubs: { ConfirmModal: true, RouterLink: true },
-}
+};
 
 import RidesPanel from "./RidesPanel.vue";
 
@@ -66,7 +66,10 @@ describe("RidesPanel", () => {
     });
     await flush();
 
-    expect(apiGet).toHaveBeenCalledWith("/api/v1/rides", { page: 1, page_size: 100 });
+    expect(apiGet).toHaveBeenCalledWith("/api/v1/rides", {
+      page: 1,
+      page_size: 100,
+    });
     const items = wrapper.findAll(".ride-item");
     expect(items).toHaveLength(2);
   });

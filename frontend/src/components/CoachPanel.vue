@@ -32,18 +32,23 @@
     </div>
 
     <!-- Score cards -->
-    <div v-if="scores.length" class="score-strip">
-      <div v-for="s in scores" class="score-pill" :key="s.label">
+    <div v-if="scores.length"
+class="score-strip">
+      <div v-for="s in scores"
+class="score-pill" :key="s.label">
         <span class="pill-val"
-:style="{ color: s.color }">{{ s.value }}</span>
+:style="{ color: s.color }"
+>{{ s.value }}</span>
         <span class="pill-lbl">{{ s.label }}</span>
       </div>
     </div>
 
     <!-- Chat window -->
-    <div ref="chatWindow" class="chat-window">
+    <div ref="chatWindow"
+class="chat-window">
       <!-- Welcome message -->
-      <div v-if="messages.length === 0" class="message bot-msg">
+      <div v-if="messages.length === 0"
+class="message bot-msg">
         <div class="msg-avatar">🧠</div>
         <div class="msg-content">
           <div class="msg-bubble">
@@ -73,8 +78,7 @@
           {{ msg.role === "user" ? "🚴" : "🧠" }}
         </div>
         <div class="msg-content">
-          <div
-class="msg-bubble" v-html="formatMsg(msg.content)" />
+          <div class="msg-bubble" v-html="formatMsg(msg.content)" />
           <div class="msg-time">
             {{ msg.time }}
           </div>
@@ -82,7 +86,8 @@ class="msg-bubble" v-html="formatMsg(msg.content)" />
       </div>
 
       <!-- Typing indicator -->
-      <div v-if="thinking" class="message bot-msg">
+      <div v-if="thinking"
+class="message bot-msg">
         <div class="msg-avatar">🧠</div>
         <div class="msg-content">
           <div class="msg-bubble typing-bubble">
@@ -172,15 +177,15 @@ const scores = computed(() => {
   const s = coachData.value?.training_scores;
   if (!s) return [];
   const colors = {
-    Performance: 'var(--color-performance)',
-    Endurance: 'var(--color-endurance)',
-    Efficiency: 'var(--color-efficiency)',
-    Recovery: 'var(--color-recovery)',
+    Performance: "var(--color-performance)",
+    Endurance: "var(--color-endurance)",
+    Efficiency: "var(--color-efficiency)",
+    Recovery: "var(--color-recovery)",
   };
   return s.map((sc) => ({
     label: sc.label,
     value: Number(sc.value || 0).toFixed(1),
-    color: colors[sc.label] || 'var(--accent)',
+    color: colors[sc.label] || "var(--accent)",
   }));
 });
 
@@ -217,59 +222,61 @@ function autoResize(e) {
   el.style.height = Math.min(el.scrollHeight, 120) + "px";
 }
 
-const voiceSupported = ref(false)
-const ttsSupported = ref(false)
-const isListening = ref(false)
-const autoRead = ref(false)
-const lastAssistantMessage = ref("")
-const recognition = ref(null)
+const voiceSupported = ref(false);
+const ttsSupported = ref(false);
+const isListening = ref(false);
+const autoRead = ref(false);
+const lastAssistantMessage = ref("");
+const recognition = ref(null);
 
 function initVoice() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-  voiceSupported.value = !!SpeechRecognition
-  ttsSupported.value = typeof window !== 'undefined' && 'speechSynthesis' in window
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+  voiceSupported.value = !!SpeechRecognition;
+  ttsSupported.value =
+    typeof window !== "undefined" && "speechSynthesis" in window;
   if (voiceSupported.value) {
-    recognition.value = new SpeechRecognition()
-    recognition.value.continuous = false
-    recognition.value.interimResults = false
-    recognition.value.lang = 'it-IT'
+    recognition.value = new SpeechRecognition();
+    recognition.value.continuous = false;
+    recognition.value.interimResults = false;
+    recognition.value.lang = "it-IT";
     recognition.value.onresult = (event) => {
-      const transcript = event.results[0][0].transcript
-      userInput.value = transcript
-    }
+      const transcript = event.results[0][0].transcript;
+      userInput.value = transcript;
+    };
     recognition.value.onend = () => {
-      isListening.value = false
-    }
+      isListening.value = false;
+    };
     recognition.value.onerror = () => {
-      isListening.value = false
-    }
+      isListening.value = false;
+    };
   }
 }
 
 function toggleVoice() {
-  if (!recognition.value) return
+  if (!recognition.value) return;
   if (isListening.value) {
-    recognition.value.stop()
-    isListening.value = false
+    recognition.value.stop();
+    isListening.value = false;
   } else {
-    isListening.value = true
-    recognition.value.start()
+    isListening.value = true;
+    recognition.value.start();
   }
 }
 
 function toggleAutoRead() {
-  autoRead.value = !autoRead.value
+  autoRead.value = !autoRead.value;
   if (autoRead.value && lastAssistantMessage.value) {
-    speak(lastAssistantMessage.value)
+    speak(lastAssistantMessage.value);
   }
 }
 
 function speak(text) {
-  if (!ttsSupported.value) return
-  window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = 'it-IT'
-  window.speechSynthesis.speak(utterance)
+  if (!ttsSupported.value) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "it-IT";
+  window.speechSynthesis.speak(utterance);
 }
 
 async function sendMessage() {
@@ -294,9 +301,9 @@ async function sendMessage() {
     const reply =
       resp.response || resp.message || resp.advice || JSON.stringify(resp);
     messages.value.push({ role: "assistant", content: reply, time: getTime() });
-    lastAssistantMessage.value = reply
+    lastAssistantMessage.value = reply;
     if (autoRead.value) {
-      speak(reply)
+      speak(reply);
     }
   } catch (e) {
     messages.value.push({

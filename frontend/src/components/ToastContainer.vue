@@ -14,8 +14,10 @@
     >
       <span class="toast-icon">{{ toastIcon(t.type) }}</span>
       <span class="toast-content">{{ t.message }}</span>
-      <button class="toast-close"
-@click="remove(t.id)" aria-label="Close">
+      <button
+class="toast-close" @click="remove(t.id)"
+aria-label="Close"
+>
         ✕
       </button>
     </div>

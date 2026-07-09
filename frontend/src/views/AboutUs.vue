@@ -107,8 +107,9 @@ to="/contact" class="cta-button"> Contattaci </RouterLink>
       </section>
 
       <div class="login-cta">
-        <RouterLink to="/"
-class="btn btn-secondary">
+        <RouterLink
+to="/" class="btn btn-secondary"
+>
           🏠 Accedi a BikeMaster
         </RouterLink>
       </div>

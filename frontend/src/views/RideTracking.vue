@@ -1,195 +1,236 @@
 <template>
-   <section class="panel">
-      <div class="tracking-header">
-        <h2>{{ t('tracking.title') }}</h2>
-        <div v-if="isTracking" class="tracking-status">
-          <span class="status-badge" :class="{ paused: isPaused }">
-            {{ isPaused ? t('tracking.paused') : t('tracking.inProgress') }}
-          </span>
-        </div>
+  <section class="panel">
+    <div class="tracking-header">
+      <h2>{{ t("tracking.title") }}</h2>
+      <div
+v-if="isTracking" class="tracking-status">
+        <span
+class="status-badge" :class="{ paused: isPaused }">
+          {{ isPaused ? t("tracking.paused") : t("tracking.inProgress") }}
+        </span>
       </div>
+    </div>
 
-        <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
-       <div class="empty-icon">📍</div>
-       <div class="empty-title">{{ t('tracking.ready') }}</div>
-       <div class="empty-desc">
-         {{ t('tracking.readyDesc') }}
-       </div>
-        <div v-if="!isOnline" class="gps-error-banner" style="margin-bottom:12px">
-          {{ t('tracking.offline') }}
-        </div>
-       <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
-       <button class="btn btn-primary btn-large" @click="startTracking">
-         {{ t('tracking.start') }}
-       </button>
-        </div>
-
-      <div v-else class="tracking-content">
-        <div v-if="gpsWaiting" class="gps-waiting">
-          <span class="gps-spinner"></span>
-          Acquiring GPS signal... Move outdoors for better accuracy.
-        </div>
-        <div v-if="gpsError && !gpsWaiting" class="gps-error-banner">{{ gpsError }}</div>
-        <LiveMap ref="liveMapRef" />
-        <RideMetricsPanel />
-        <ControlsBar :is-paused="isPaused" @pause="pauseTracking" @resume="resumeTracking" @stop="stopTracking" />
-
-        <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete">
-          <p>Tracking completed! File ready for upload.</p>
-          <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide">
-            {{ isUploading ? 'Uploading...' : 'Upload to BikeMaster' }}
-          </button>
-        </div>
+    <div
+      v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob"
+      class="empty-state"
+    >
+      <div class="empty-icon">📍</div>
+      <div class="empty-title">
+        {{ t("tracking.ready") }}
       </div>
-   </section>
+      <div class="empty-desc">
+        {{ t("tracking.readyDesc") }}
+      </div>
+      <div
+        v-if="!isOnline"
+        class="gps-error-banner"
+        style="margin-bottom: 12px"
+      >
+        {{ t("tracking.offline") }}
+      </div>
+      <div v-if="gpsError"
+class="gps-error">
+        {{ gpsError }}
+      </div>
+      <button
+class="btn btn-primary btn-large" @click="startTracking">
+        {{ t("tracking.start") }}
+      </button>
+    </div>
+
+    <div
+v-else class="tracking-content">
+      <div
+v-if="gpsWaiting" class="gps-waiting">
+        <span class="gps-spinner" />
+        Acquiring GPS signal... Move outdoors for better accuracy.
+      </div>
+      <div v-if="gpsError && !gpsWaiting"
+class="gps-error-banner">
+        {{ gpsError }}
+      </div>
+      <LiveMap ref="liveMapRef" />
+      <RideMetricsPanel />
+      <ControlsBar
+        :is-paused="isPaused"
+        @pause="pauseTracking"
+        @resume="resumeTracking"
+        @stop="stopTracking"
+      />
+
+      <div
+        v-if="tracking.gpxPath || tracking.gpxBlob"
+        class="tracking-complete"
+      >
+        <p>Tracking completed! File ready for upload.</p>
+        <button
+          class="btn btn-primary"
+          :disabled="isUploading"
+          @click="uploadRide"
+        >
+          {{ isUploading ? "Uploading..." : "Upload to BikeMaster" }}
+        </button>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useTrackingStore } from '../stores/trackingStore'
-import { useRouter } from 'vue-router'
-import { useI18n } from '../composables/useI18n'
-import LiveMap from '../components/LiveMap.vue'
-import RideMetricsPanel from '../components/RideMetricsPanel.vue'
-import ControlsBar from '../components/ControlsBar.vue'
-import { apiUpload } from '../utils/api'
-import type { GpsPoint } from '../types/index'
+import { onBeforeUnmount, onMounted, ref } from "vue";
+import { storeToRefs } from "pinia";
+import { useTrackingStore } from "../stores/trackingStore";
+import { useRouter } from "vue-router";
+import { useI18n } from "../composables/useI18n";
+import LiveMap from "../components/LiveMap.vue";
+import RideMetricsPanel from "../components/RideMetricsPanel.vue";
+import ControlsBar from "../components/ControlsBar.vue";
+import { apiUpload } from "../utils/api";
+import type { GpsPoint } from "../types/index";
 
-const { t } = useI18n()
-const router = useRouter()
+const { t } = useI18n();
+const router = useRouter();
 
-const isOnline = ref(typeof navigator !== 'undefined' ? navigator.onLine : true)
+const isOnline = ref(
+  typeof navigator !== "undefined" ? navigator.onLine : true,
+);
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => { isOnline.value = true })
-  window.addEventListener('offline', () => { isOnline.value = false })
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => {
+    isOnline.value = true;
+  });
+  window.addEventListener("offline", () => {
+    isOnline.value = false;
+  });
 }
 
-const liveMapRef = ref<InstanceType<typeof LiveMap> | null>(null)
-const isUploading = ref(false)
-const gpsWaiting = ref(false)
-const gpsError = ref('')
+const liveMapRef = ref<InstanceType<typeof LiveMap> | null>(null);
+const isUploading = ref(false);
+const gpsWaiting = ref(false);
+const gpsError = ref("");
 
-let webWatchId: number | null = null
-let webStartTime = 0
-let webPausedAccumulatedMs = 0
-let webPausedAt: number | null = null
-let webLastPoint: GpsPoint | null = null
-let webDistance = 0
-let webElevationGain = 0
-let webFirstFixTimeout: number | null = null
+let webWatchId: number | null = null;
+let webStartTime = 0;
+let webPausedAccumulatedMs = 0;
+let webPausedAt: number | null = null;
+let webLastPoint: GpsPoint | null = null;
+let webDistance = 0;
+let webElevationGain = 0;
+let webFirstFixTimeout: number | null = null;
 
-const tracking = useTrackingStore()
-const {
-  isTracking,
-  isPaused,
-} = storeToRefs(tracking)
+const tracking = useTrackingStore();
+const { isTracking, isPaused } = storeToRefs(tracking);
 
 async function startTracking() {
-  const hasPermission = await checkPermissions()
+  const hasPermission = await checkPermissions();
   if (!hasPermission) {
-    alert('GPS permissions required for tracking')
-    return
+    alert("GPS permissions required for tracking");
+    return;
   }
   if (window.BikeTracking?.startTracking) {
-    await window.BikeTracking.startTracking()
+    await window.BikeTracking.startTracking();
   } else {
-    startWebTracking()
+    startWebTracking();
   }
-  tracking.start()
+  tracking.start();
 }
 
 async function checkPermissions(): Promise<boolean> {
   if (!window.BikeTracking?.checkPermissions) {
-    if (!navigator.geolocation) return false
+    if (!navigator.geolocation) return false;
     try {
-      const result = await navigator.permissions.query({ name: 'geolocation' })
-      if (result.state === 'granted') return true
-      if (result.state === 'prompt') return true
-      return false
+      const result = await navigator.permissions.query({ name: "geolocation" });
+      if (result.state === "granted") return true;
+      if (result.state === "prompt") return true;
+      return false;
     } catch {
-      return true
+      return true;
     }
   }
-  return window.BikeTracking.checkPermissions().then((result) => result.granted)
+  return window.BikeTracking.checkPermissions().then(
+    (result) => result.granted,
+  );
 }
 
 async function pauseTracking() {
   if (window.BikeTracking?.pauseTracking) {
-    await window.BikeTracking.pauseTracking()
+    await window.BikeTracking.pauseTracking();
   } else if (isPaused.value === false) {
-    webPausedAt = Date.now()
+    webPausedAt = Date.now();
   }
-  tracking.pause()
+  tracking.pause();
 }
 
 async function resumeTracking() {
   if (window.BikeTracking?.resumeTracking) {
-    await window.BikeTracking.resumeTracking()
+    await window.BikeTracking.resumeTracking();
   } else if (webPausedAt !== null) {
-    webPausedAccumulatedMs += Date.now() - webPausedAt
-    webPausedAt = null
+    webPausedAccumulatedMs += Date.now() - webPausedAt;
+    webPausedAt = null;
   }
-  tracking.resume()
+  tracking.resume();
 }
 
 async function stopTracking() {
-  let result: { gpxPath?: string | null; gpxBlob?: Blob | null } | void
+  let result: { gpxPath?: string | null; gpxBlob?: Blob | null } | void;
   if (window.BikeTracking?.stopTracking) {
-    result = await window.BikeTracking.stopTracking()
+    result = await window.BikeTracking.stopTracking();
   } else {
-    result = stopWebTracking()
+    result = stopWebTracking();
   }
-  tracking.setGpxPath(result?.gpxPath || null)
+  tracking.setGpxPath(result?.gpxPath || null);
   if (result?.gpxBlob) {
-    tracking.setGpxBlob(result.gpxBlob)
+    tracking.setGpxBlob(result.gpxBlob);
   }
-  tracking.stop()
+  tracking.stop();
 }
 
 async function uploadRide() {
-   try {
-     isUploading.value = true
-     const blob = getUploadBlob()
-     if (blob) {
-       const file = new File([blob], `ride-${Date.now()}.gpx`, { type: 'application/gpx+xml' })
-       const result = await apiUpload('/api/v1/import/gpx', file)
-       if (result.error) {
-         alert(result.error || 'Upload failed')
-         return
-       }
-       alert('Ride uploaded successfully!')
-       resetTrackingState()
-       router.push('/rides')
-       return
-     }
-     if (tracking.gpxPath) {
-       alert('Unable to upload file from native path. Please use GPX export instead.')
-       return
-     }
-     alert('No ride to upload')
-   } catch (error) {
-    console.error('Upload failed:', error)
-    alert('Error during upload')
-   } finally {
-     isUploading.value = false
-   }
- }
+  try {
+    isUploading.value = true;
+    const blob = getUploadBlob();
+    if (blob) {
+      const file = new File([blob], `ride-${Date.now()}.gpx`, {
+        type: "application/gpx+xml",
+      });
+      const result = await apiUpload("/api/v1/import/gpx", file);
+      if (result.error) {
+        alert(result.error || "Upload failed");
+        return;
+      }
+      alert("Ride uploaded successfully!");
+      resetTrackingState();
+      router.push("/rides");
+      return;
+    }
+    if (tracking.gpxPath) {
+      alert(
+        "Unable to upload file from native path. Please use GPX export instead.",
+      );
+      return;
+    }
+    alert("No ride to upload");
+  } catch (error) {
+    console.error("Upload failed:", error);
+    alert("Error during upload");
+  } finally {
+    isUploading.value = false;
+  }
+}
 
 function startWebTracking() {
   if (webWatchId !== null) {
-    navigator.geolocation.clearWatch(webWatchId)
-    webWatchId = null
+    navigator.geolocation.clearWatch(webWatchId);
+    webWatchId = null;
   }
-  webStartTime = Date.now()
-  webPausedAccumulatedMs = 0
-  webPausedAt = null
-  webLastPoint = null
-  webDistance = 0
-  webElevationGain = 0
-  gpsWaiting.value = true
-  gpsError.value = ''
+  webStartTime = Date.now();
+  webPausedAccumulatedMs = 0;
+  webPausedAt = null;
+  webLastPoint = null;
+  webDistance = 0;
+  webElevationGain = 0;
+  gpsWaiting.value = true;
+  gpsError.value = "";
   webWatchId = navigator.geolocation.watchPosition(
     handleWebPosition,
     handleWebError,
@@ -197,31 +238,39 @@ function startWebTracking() {
       enableHighAccuracy: true,
       maximumAge: 1000,
       timeout: 10000,
-    }
-  )
+    },
+  );
   webFirstFixTimeout = window.setTimeout(() => {
     if (gpsWaiting.value) {
-      gpsWaiting.value = false
-      gpsError.value = 'No GPS signal. On desktop, try moving near a window or use a GPS device.'
+      gpsWaiting.value = false;
+      gpsError.value =
+        "No GPS signal. On desktop, try moving near a window or use a GPS device.";
     }
-  }, 15000)
+  }, 15000);
 }
 
 function handleWebPosition(position: GeolocationPosition) {
-  if (!isTracking.value || isPaused.value) return
+  if (!isTracking.value || isPaused.value) return;
 
-  const lat = position.coords.latitude
-  const lon = position.coords.longitude
-  if (!isFinite(lat) || !isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    return
+  const lat = position.coords.latitude;
+  const lon = position.coords.longitude;
+  if (
+    !isFinite(lat) ||
+    !isFinite(lon) ||
+    lat < -90 ||
+    lat > 90 ||
+    lon < -180 ||
+    lon > 180
+  ) {
+    return;
   }
 
   if (gpsWaiting.value) {
-    gpsWaiting.value = false
-    gpsError.value = ''
+    gpsWaiting.value = false;
+    gpsError.value = "";
     if (webFirstFixTimeout !== null) {
-      clearTimeout(webFirstFixTimeout)
-      webFirstFixTimeout = null
+      clearTimeout(webFirstFixTimeout);
+      webFirstFixTimeout = null;
     }
   }
 
@@ -230,20 +279,26 @@ function handleWebPosition(position: GeolocationPosition) {
     lon,
     altitude: position.coords.altitude,
     timestamp: new Date(position.timestamp).toISOString(),
-  }
+  };
 
   if (webLastPoint && webLastPoint.timestampNumber != null) {
-    const samePosition = webLastPoint.lat === lat && webLastPoint.lon === lon
-    const elapsedSinceLastMs = position.timestamp - webLastPoint.timestampNumber
+    const samePosition = webLastPoint.lat === lat && webLastPoint.lon === lon;
+    const elapsedSinceLastMs =
+      position.timestamp - webLastPoint.timestampNumber;
     if (samePosition && elapsedSinceLastMs < 5000) {
-      return
+      return;
     }
     if (elapsedSinceLastMs > 0) {
-      const distanceDelta = haversineDistanceMeters(webLastPoint.lat, webLastPoint.lon, lat, lon)
+      const distanceDelta = haversineDistanceMeters(
+        webLastPoint.lat,
+        webLastPoint.lon,
+        lat,
+        lon,
+      );
       if (distanceDelta > 5000) {
-        return
+        return;
       }
-      webDistance += distanceDelta
+      webDistance += distanceDelta;
     }
   }
 
@@ -253,19 +308,21 @@ function handleWebPosition(position: GeolocationPosition) {
     point.altitude !== null &&
     point.altitude !== undefined
   ) {
-    webElevationGain += Math.max(0, point.altitude - webLastPoint.altitude)
+    webElevationGain += Math.max(0, point.altitude - webLastPoint.altitude);
   }
 
-  const elapsedSeconds = getWebElapsedSeconds()
-  const avgSpeed = elapsedSeconds > 0 ? (webDistance / 1000) / (elapsedSeconds / 3600) : 0
+  const elapsedSeconds = getWebElapsedSeconds();
+  const avgSpeed =
+    elapsedSeconds > 0 ? webDistance / 1000 / (elapsedSeconds / 3600) : 0;
   const elapsedSinceLastMs = webLastPoint?.timestampNumber
     ? position.timestamp - webLastPoint.timestampNumber
-    : 0
-  const currentSpeed = elapsedSinceLastMs > 0
-    ? (webDistance / 1000) / (elapsedSinceLastMs / 3600000)
-    : 0
+    : 0;
+  const currentSpeed =
+    elapsedSinceLastMs > 0
+      ? webDistance / 1000 / (elapsedSinceLastMs / 3600000)
+      : 0;
 
-  tracking.addPoint(point)
+  tracking.addPoint(point);
   tracking.updateMetrics({
     distance: webDistance,
     currentSpeed,
@@ -273,90 +330,102 @@ function handleWebPosition(position: GeolocationPosition) {
     elapsedTime: elapsedSeconds,
     elevation: webElevationGain,
     points: tracking.routePoints.length,
-  })
-  webLastPoint = { ...point, timestampNumber: position.timestamp }
+  });
+  webLastPoint = { ...point, timestampNumber: position.timestamp };
 }
 
 function handleWebError(error: GeolocationPositionError) {
-  gpsWaiting.value = false
+  gpsWaiting.value = false;
   if (webFirstFixTimeout !== null) {
-    clearTimeout(webFirstFixTimeout)
-    webFirstFixTimeout = null
+    clearTimeout(webFirstFixTimeout);
+    webFirstFixTimeout = null;
   }
   if (error.code === 1) {
-    gpsError.value = 'GPS permission denied. Please allow location access and try again.'
-    alert('GPS permission denied. Please allow location access and try again.')
-    void stopTracking()
-    return
+    gpsError.value =
+      "GPS permission denied. Please allow location access and try again.";
+    alert("GPS permission denied. Please allow location access and try again.");
+    void stopTracking();
+    return;
   }
   if (error.code === 2 || error.code === 3) {
-    gpsError.value = 'GPS signal lost. Please move outdoors or check your device.'
-    return
+    gpsError.value =
+      "GPS signal lost. Please move outdoors or check your device.";
+    return;
   }
-  alert(`GPS Error: ${error.message}`)
+  alert(`GPS Error: ${error.message}`);
 }
 
 function stopWebTracking() {
   if (webFirstFixTimeout !== null) {
-    clearTimeout(webFirstFixTimeout)
-    webFirstFixTimeout = null
+    clearTimeout(webFirstFixTimeout);
+    webFirstFixTimeout = null;
   }
   if (webWatchId !== null) {
-    navigator.geolocation.clearWatch(webWatchId)
-    webWatchId = null
+    navigator.geolocation.clearWatch(webWatchId);
+    webWatchId = null;
   }
-  gpsWaiting.value = false
-  const blob = new Blob([tracking.toGpx()], { type: 'application/gpx+xml' })
-  tracking.setGpxBlob(blob)
-  return { gpxPath: null, gpxBlob: blob }
+  gpsWaiting.value = false;
+  const blob = new Blob([tracking.toGpx()], { type: "application/gpx+xml" });
+  tracking.setGpxBlob(blob);
+  return { gpxPath: null, gpxBlob: blob };
 }
 
 function getUploadBlob() {
-  if (tracking.gpxBlob) return tracking.gpxBlob
+  if (tracking.gpxBlob) return tracking.gpxBlob;
   if (tracking.routePoints.length > 0) {
-    return new Blob([tracking.toGpx()], { type: 'application/gpx+xml' })
+    return new Blob([tracking.toGpx()], { type: "application/gpx+xml" });
   }
-  return null
+  return null;
 }
 
 function getWebElapsedSeconds() {
-  return Math.max(0, (Date.now() - webStartTime - webPausedAccumulatedMs) / 1000)
+  return Math.max(
+    0,
+    (Date.now() - webStartTime - webPausedAccumulatedMs) / 1000,
+  );
 }
 
-function haversineDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const radius = 6371000
-  const toRadians = (value: number) => (value * Math.PI) / 180
-  const dLat = toRadians(lat2 - lat1)
-  const dLon = toRadians(lon2 - lon1)
+function haversineDistanceMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+) {
+  const radius = 6371000;
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) ** 2
-  return 2 * radius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+  return 2 * radius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function resetTrackingState() {
-  tracking.resetMetrics()
-  tracking.setGpxPath(null)
-  tracking.setGpxBlob(null)
+  tracking.resetMetrics();
+  tracking.setGpxPath(null);
+  tracking.setGpxBlob(null);
 }
 
 onMounted(() => {
-  resetTrackingState()
-})
+  resetTrackingState();
+});
 
 onBeforeUnmount(() => {
   if (webFirstFixTimeout !== null) {
-    clearTimeout(webFirstFixTimeout)
-    webFirstFixTimeout = null
+    clearTimeout(webFirstFixTimeout);
+    webFirstFixTimeout = null;
   }
   if (webWatchId !== null) {
-    navigator.geolocation.clearWatch(webWatchId)
-    webWatchId = null
+    navigator.geolocation.clearWatch(webWatchId);
+    webWatchId = null;
   }
   if (tracking.isTracking && !tracking.gpxBlob) {
-    stopWebTracking()
+    stopWebTracking();
   }
-})
+});
 </script>
 
 <style scoped>
@@ -395,7 +464,9 @@ onBeforeUnmount(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .gps-error-banner {

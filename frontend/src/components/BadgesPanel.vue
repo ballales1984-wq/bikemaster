@@ -13,14 +13,16 @@
         />
       </div>
       <div class="form-group">
-        <button class="btn btn-primary"
-@click="loadBadges">
+        <button
+class="btn btn-primary" @click="loadBadges"
+>
           🔄 Load Badges
         </button>
       </div>
     </div>
 
-    <div v-if="loading" class="loading-text">
+    <div v-if="loading"
+class="loading-text">
       <span class="spinner" /> Loading badges...
     </div>
 
@@ -49,8 +51,10 @@ v-if="badgesData" class="badges-container">
       </div>
 
       <div class="badge-categories">
-        <div v-for="cat in categories"
-:key="cat.key" class="badge-category">
+        <div
+v-for="cat in categories" :key="cat.key"
+class="badge-category"
+>
           <h4>{{ cat.label }}</h4>
           <div class="badge-grid">
             <div

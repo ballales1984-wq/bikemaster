@@ -123,8 +123,9 @@
         class="progress-track"
         aria-label="Import progress"
       >
-        <div class="progress-fill"
- :style="{ width: uploadProgress + '%' }" />
+        <div
+class="progress-fill" :style="{ width: uploadProgress + '%' }"
+/>
       </div>
 
       <div class="oauth-separator">
@@ -172,7 +173,8 @@
         Disconnect Google Health
       </button>
 
-      <div v-if="status" id="import-progress" class="result-box">
+      <div v-if="status"
+id="import-progress" class="result-box">
         {{ status }}
       </div>
     </div>
@@ -273,14 +275,17 @@ async function connectGoogleFit() {
       window.removeEventListener("message", handleMessage);
       clearTimeout(timer);
     };
-    const timer = setTimeout(() => {
-      finish();
-      importStatus.value = {
-        success: false,
-        message: "Timeout: autenticazione Google Fit annullata",
-      };
-      importing.value = false;
-    }, 5 * 60 * 1000);
+    const timer = setTimeout(
+      () => {
+        finish();
+        importStatus.value = {
+          success: false,
+          message: "Timeout: autenticazione Google Fit annullata",
+        };
+        importing.value = false;
+      },
+      5 * 60 * 1000,
+    );
     const handleMessage = async (event) => {
       if (event.data?.type === "google-fit-error") {
         finish();
@@ -362,14 +367,17 @@ async function connectGoogleHealth() {
       window.removeEventListener("message", handleMessage);
       clearTimeout(timer);
     };
-    const timer = setTimeout(() => {
-      finish();
-      importStatus.value = {
-        success: false,
-        message: "Timeout: autenticazione Google Health annullata",
-      };
-      importing.value = false;
-    }, 5 * 60 * 1000);
+    const timer = setTimeout(
+      () => {
+        finish();
+        importStatus.value = {
+          success: false,
+          message: "Timeout: autenticazione Google Health annullata",
+        };
+        importing.value = false;
+      },
+      5 * 60 * 1000,
+    );
     const handleMessage = async (event) => {
       if (event.data?.type === "google-health-error") {
         finish();
@@ -476,7 +484,9 @@ async function connectWahoo() {
   importing.value = true;
   importStatus.value = null;
   try {
-    const state = btoa(JSON.stringify({ redirect_uri: window.location.origin }));
+    const state = btoa(
+      JSON.stringify({ redirect_uri: window.location.origin }),
+    );
     const authResp = await fetch(
       `/api/v1/import/wahoo/auth?state=${encodeURIComponent(state)}`,
     );
@@ -500,23 +510,24 @@ async function connectWahoo() {
       window.removeEventListener("message", handleMessage);
       clearTimeout(timer);
     };
-    const timer = setTimeout(() => {
-      finish();
-      importStatus.value = {
-        success: false,
-        message: "Timeout: Wahoo authentication cancelled",
-      };
-      importing.value = false;
-    }, 5 * 60 * 1000);
+    const timer = setTimeout(
+      () => {
+        finish();
+        importStatus.value = {
+          success: false,
+          message: "Timeout: Wahoo authentication cancelled",
+        };
+        importing.value = false;
+      },
+      5 * 60 * 1000,
+    );
     const handleMessage = async (event) => {
       if (event.data?.type === "wahoo-error") {
         finish();
         importStatus.value = {
           success: false,
           message:
-            event.data.error_description ||
-            event.data.error ||
-            "Wahoo error",
+            event.data.error_description || event.data.error || "Wahoo error",
         };
         importing.value = false;
         return;

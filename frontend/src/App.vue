@@ -1,7 +1,9 @@
 <template>
-  <div class="app"
-:class="{ 'light-theme': !ui.isDark }">
-    <header v-show="showHeader" class="app-header">
+  <div
+class="app" :class="{ 'light-theme': !ui.isDark }"
+>
+    <header v-show="showHeader"
+class="app-header">
       <h1 class="logo">🚴 BikeMaster</h1>
       <p
 v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
@@ -13,8 +15,9 @@ v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
         {{ ui.isDark ? "☀️" : "🌙" }}
       </button>
       <LanguageSwitcher />
-      <nav v-if="isPublicPage"
-class="public-links">
+      <nav
+v-if="isPublicPage" class="public-links"
+>
         <router-link to="/about"> Chi Siamo </router-link>
         <router-link to="/contact"> Contatti </router-link>
         <router-link to="/privacy"> Privacy </router-link>
@@ -23,8 +26,9 @@ class="public-links">
       </nav>
     </header>
 
-    <div v-if="ui.oauthLoading"
-class="oauth-loading-overlay">
+    <div
+v-if="ui.oauthLoading" class="oauth-loading-overlay"
+>
       <div class="spinner" />
       <p class="loading-text">Finalizing login...</p>
     </div>
@@ -36,16 +40,18 @@ class="oauth-loading-overlay">
           @register="onRegister"
           @error="loginError = $event"
         />
-        <p v-if="loginError"
-class="login-error">
+        <p
+v-if="loginError" class="login-error"
+>
           {{ loginError }}
         </p>
       </div>
     </template>
 
     <template v-else>
-      <HeaderTabs :is-admin="isAdmin"
-@logout="onLogout" />
+      <HeaderTabs
+:is-admin="isAdmin" @logout="onLogout"
+/>
 
       <StatsSummary
         v-if="loggedIn"
@@ -57,10 +63,12 @@ class="login-error">
       <main>
         <ErrorBoundary>
           <router-view v-slot="{ Component }">
-            <transition name="panel"
-mode="out-in">
-              <component :is="Component"
-@summary-change="onSummaryChange" />
+            <transition
+name="panel" mode="out-in"
+>
+              <component
+:is="Component" @summary-change="onSummaryChange"
+/>
             </transition>
           </router-view>
         </ErrorBoundary>

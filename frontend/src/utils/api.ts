@@ -1,142 +1,202 @@
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore } from "../stores/auth";
 
-const API_BASE = ''
+const API_BASE = "";
 
 export class ApiError extends Error {
-  status?: number
+  status?: number;
   constructor(message: string, status?: number) {
-    super(message)
-    this.status = status
+    super(message);
+    this.status = status;
   }
 }
 
 function clearAuth() {
-  localStorage.removeItem('bikemaster_token')
-  localStorage.removeItem('bikemaster_user')
-  localStorage.removeItem('bikemaster_just_logged_in')
+  localStorage.removeItem("bikemaster_token");
+  localStorage.removeItem("bikemaster_user");
+  localStorage.removeItem("bikemaster_just_logged_in");
 }
 
-let sessionExpiredNotified = false
+let sessionExpiredNotified = false;
 
 export function resetSessionExpiredNotification() {
-  sessionExpiredNotified = false
+  sessionExpiredNotified = false;
 }
 
 function notifySessionExpired() {
-  const toast = (window as unknown as { __toast?: { add?: (msg: string, type?: string, ms?: number) => void } }).__toast
+  const toast = (
+    window as unknown as {
+      __toast?: { add?: (msg: string, type?: string, ms?: number) => void };
+    }
+  ).__toast;
   if (toast?.add && !sessionExpiredNotified) {
-    toast.add('Sessione scaduta. Effettua di nuovo il login.', 'error')
-    sessionExpiredNotified = true
+    toast.add("Sessione scaduta. Effettua di nuovo il login.", "error");
+    sessionExpiredNotified = true;
   }
-  const auth = useAuthStore()
+  const auth = useAuthStore();
   if (auth.isLoggedIn) {
-    void auth.logout().catch(() => {})
+    void auth.logout().catch(() => {});
   }
 }
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('bikemaster_token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  const token = localStorage.getItem("bikemaster_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 // Gateway statuses returned by Render while the free instance is asleep or
 // restarting. The request never reached the app, so retrying is always safe.
-const RETRYABLE_STATUS = new Set([502, 503, 504])
-const MAX_RETRIES = 4
-const RETRY_BASE_DELAY_MS = 1500
+const RETRYABLE_STATUS = new Set([502, 503, 504]);
+const MAX_RETRIES = 4;
+const RETRY_BASE_DELAY_MS = 1500;
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-let wakingNotified = false
+let wakingNotified = false;
 
 function notifyServerWaking() {
-  const toast = (window as unknown as { __toast?: { add?: (msg: string, type?: string, ms?: number) => void } }).__toast
+  const toast = (
+    window as unknown as {
+      __toast?: { add?: (msg: string, type?: string, ms?: number) => void };
+    }
+  ).__toast;
   if (toast?.add && !wakingNotified) {
-    toast.add('Il server si sta riavviando, attendo qualche secondo…', 'info', 8000)
-    wakingNotified = true
+    toast.add(
+      "Il server si sta riavviando, attendo qualche secondo…",
+      "info",
+      8000,
+    );
+    wakingNotified = true;
   }
 }
 
-interface RequestOptions extends Omit<RequestInit, 'body'> {
-  path: string
-  body?: unknown
+interface RequestOptions extends Omit<RequestInit, "body"> {
+  path: string;
+  body?: unknown;
 }
 
 async function request<T>(options: RequestOptions): Promise<T> {
-  const { path, method = 'GET', body, headers = {}, ...rest } = options
-  const isForm = typeof FormData !== 'undefined' && body instanceof FormData
+  const { path, method = "GET", body, headers = {}, ...rest } = options;
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
   const init: RequestInit = {
     ...rest,
     method,
     headers: {
-      ...(isForm ? {} : { 'Content-Type': 'application/json' }),
+      ...(isForm ? {} : { "Content-Type": "application/json" }),
       ...authHeaders(),
-      ...(headers as Record<string, string> || {}),
+      ...((headers as Record<string, string>) || {}),
     } as Record<string, string>,
-    body: isForm ? body as BodyInit : body !== undefined ? JSON.stringify(body) : undefined,
-  }
+    body: isForm
+      ? (body as BodyInit)
+      : body !== undefined
+        ? JSON.stringify(body)
+        : undefined,
+  };
 
-  let resp: Response
+  let resp: Response;
   for (let attempt = 0; ; attempt++) {
     try {
-      resp = await fetch(path, init)
+      resp = await fetch(path, init);
     } catch (networkErr) {
       // Connection refused / DNS / abort: typically a cold-starting server.
       if (attempt < MAX_RETRIES) {
-        notifyServerWaking()
-        await sleep(RETRY_BASE_DELAY_MS * (attempt + 1))
-        continue
+        notifyServerWaking();
+        await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
+        continue;
       }
-      throw new ApiError('Server non raggiungibile. Riprova tra qualche istante.', 0)
+      throw new ApiError(
+        "Server non raggiungibile. Riprova tra qualche istante.",
+        0,
+      );
     }
     if (RETRYABLE_STATUS.has(resp.status) && attempt < MAX_RETRIES) {
-      notifyServerWaking()
-      await sleep(RETRY_BASE_DELAY_MS * (attempt + 1))
-      continue
+      notifyServerWaking();
+      await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
+      continue;
     }
-    break
+    break;
   }
 
-  wakingNotified = false
+  wakingNotified = false;
   if (!resp.ok) {
     if (resp.status === 401) {
-      clearAuth()
-      notifySessionExpired()
-      throw new ApiError('expired', 401)
+      clearAuth();
+      notifySessionExpired();
+      throw new ApiError("expired", 401);
     }
-    const err = await resp.json().catch(() => ({}))
-    const message = (err as Record<string, string>).detail || (err as Record<string, string>).message || `${method} ${path}: ${resp.status}`
-    throw new ApiError(message, resp.status)
+    const err = await resp.json().catch(() => ({}));
+    const message =
+      (err as Record<string, string>).detail ||
+      (err as Record<string, string>).message ||
+      `${method} ${path}: ${resp.status}`;
+    throw new ApiError(message, resp.status);
   }
-  return resp.json() as Promise<T>
+  return resp.json() as Promise<T>;
 }
 
 export interface ApiResponse {
-  [key: string]: unknown
+  [key: string]: unknown;
 }
 
-export async function apiGet<T = ApiResponse>(path: string, params: Record<string, string> = {}, options: RequestInit = {}): Promise<T> {
-  const qs = new URLSearchParams(params).toString()
-  const url = qs ? `${API_BASE}${path}?${qs}` : `${API_BASE}${path}`
-  return request<T>({ ...options, path: url, method: 'GET' })
+export async function apiGet<T = ApiResponse>(
+  path: string,
+  params: Record<string, string> = {},
+  options: RequestInit = {},
+): Promise<T> {
+  const qs = new URLSearchParams(params).toString();
+  const url = qs ? `${API_BASE}${path}?${qs}` : `${API_BASE}${path}`;
+  return request<T>({ ...options, path: url, method: "GET" });
 }
 
-export async function apiPost<T = ApiResponse>(path: string, body: unknown, options: RequestInit = {}): Promise<T> {
-  return request<T>({ ...options, path: `${API_BASE}${path}`, method: 'POST', body })
+export async function apiPost<T = ApiResponse>(
+  path: string,
+  body: unknown,
+  options: RequestInit = {},
+): Promise<T> {
+  return request<T>({
+    ...options,
+    path: `${API_BASE}${path}`,
+    method: "POST",
+    body,
+  });
 }
 
-export async function apiDelete<T = ApiResponse>(path: string, options: RequestInit = {}): Promise<T> {
-  return request<T>({ ...options, path: `${API_BASE}${path}`, method: 'DELETE' })
+export async function apiDelete<T = ApiResponse>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  return request<T>({
+    ...options,
+    path: `${API_BASE}${path}`,
+    method: "DELETE",
+  });
 }
 
-export async function apiUpload<T = ApiResponse>(path: string, file: Blob | File, options: RequestInit = {}): Promise<T> {
-  const form = new FormData()
-  form.append('file', file)
-  return request<T>({ ...options, path: `${API_BASE}${path}`, method: 'POST', body: form })
+export async function apiUpload<T = ApiResponse>(
+  path: string,
+  file: Blob | File,
+  options: RequestInit = {},
+): Promise<T> {
+  const form = new FormData();
+  form.append("file", file);
+  return request<T>({
+    ...options,
+    path: `${API_BASE}${path}`,
+    method: "POST",
+    body: form,
+  });
 }
 
-export async function apiPut<T = ApiResponse>(path: string, body: unknown, options: RequestInit = {}): Promise<T> {
-  return request<T>({ ...options, path: `${API_BASE}${path}`, method: 'PUT', body })
+export async function apiPut<T = ApiResponse>(
+  path: string,
+  body: unknown,
+  options: RequestInit = {},
+): Promise<T> {
+  return request<T>({
+    ...options,
+    path: `${API_BASE}${path}`,
+    method: "PUT",
+    body,
+  });
 }

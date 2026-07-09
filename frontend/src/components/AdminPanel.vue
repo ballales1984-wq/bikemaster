@@ -4,15 +4,19 @@
       <h2>⚙️ Administration</h2>
 
       <div class="admin-grid">
-        <button class="admin-card"
-@click="loadStats" :disabled="loadingStats">
+        <button
+class="admin-card" @click="loadStats"
+:disabled="loadingStats"
+>
           <div class="admin-icon">📊</div>
           <div class="admin-label">System Stats</div>
           <div class="admin-desc">View database and API metrics</div>
         </button>
 
-        <a class="admin-card"
-href="/api/v1/admin/backup" download>
+        <a
+class="admin-card" href="/api/v1/admin/backup"
+download
+>
           <div class="admin-icon">💾</div>
           <div class="admin-label">Backup DB</div>
           <div class="admin-desc">Download database dump</div>
@@ -39,14 +43,16 @@ href="/api/v1/admin/backup" download>
         </button>
       </div>
 
-      <div v-if="stats"
-class="result-section">
+      <div
+v-if="stats" class="result-section"
+>
         <div class="result-header">📋 Statistics Output</div>
         <pre class="result-box">{{ stats }}</pre>
       </div>
 
-      <div v-if="error"
-class="error-section">
+      <div
+v-if="error" class="error-section"
+>
         <div class="error-icon">⛔</div>
         <div class="error-text">
           {{ error }}

@@ -13,8 +13,9 @@ v-if="!loading && !error" class="map-speed-legend">
         <span>{{ minSpeed.toFixed(1) }}</span>
       </div>
     </div>
-    <div v-if="error"
-class="map-error">
+    <div
+v-if="error" class="map-error"
+>
       {{ error }}
     </div>
   </div>

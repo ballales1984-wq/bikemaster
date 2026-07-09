@@ -1,19 +1,25 @@
 <template>
   <Teleport to="body">
     <transition name="fade">
-      <div v-if="visible"
-class="modal-overlay" @click.self="cancel">
-        <div class="modal-dialog"
-role="dialog" aria-modal="true">
+      <div
+v-if="visible" class="modal-overlay"
+@click.self="cancel"
+>
+        <div
+class="modal-dialog" role="dialog"
+aria-modal="true"
+>
           <h3>{{ title }}</h3>
           <p>{{ message }}</p>
           <div class="modal-actions">
-            <button class="btn btn-secondary"
-@click="cancel">
+            <button
+class="btn btn-secondary" @click="cancel"
+>
               {{ cancelLabel }}
             </button>
-            <button class="btn btn-danger"
-@click="confirm">
+            <button
+class="btn btn-danger" @click="confirm"
+>
               {{ confirmLabel }}
             </button>
           </div>

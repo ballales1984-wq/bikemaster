@@ -8,19 +8,24 @@
           risk.
         </p>
       </div>
-      <button class="btn btn-primary"
-:disabled="loading" @click="loadRides">
-         {{ loading ? t("maps.updating") : t("maps.updateMap") }}
+      <button
+class="btn btn-primary" :disabled="loading"
+@click="loadRides"
+>
+        {{ loading ? t("maps.updating") : t("maps.updateMap") }}
       </button>
     </div>
 
     <div class="map-toolbar">
       <label class="control">
         <span>Map</span>
-        <select v-model="mapStyle"
-class="form-input">
-          <option v-for="(cfg, key) in MAP_STYLES"
-:key="key" :value="key">
+        <select
+v-model="mapStyle" class="form-input"
+>
+          <option
+v-for="(cfg, key) in MAP_STYLES" :key="key"
+:value="key"
+>
             {{ cfg.label }}
           </option>
         </select>
@@ -28,11 +33,14 @@ class="form-input">
 
       <label class="control">
         <span>{{ t("maps.route") }}</span>
-        <select v-model="selectedRideId"
-class="form-input">
+        <select
+v-model="selectedRideId" class="form-input"
+>
           <option :value="null">All routes</option>
-          <option v-for="ride in ridesWithGps"
-:key="ride.id" :value="ride.id">
+          <option
+v-for="ride in ridesWithGps" :key="ride.id"
+:value="ride.id"
+>
             {{ ride.date }} · {{ formatDistance(ride.distanceM) }}
           </option>
         </select>
@@ -40,8 +48,9 @@ class="form-input">
 
       <label class="control">
         <span>{{ t("maps.coloring") }}</span>
-        <select v-model="colorMode"
-class="form-input">
+        <select
+v-model="colorMode" class="form-input"
+>
           <option value="combined">Grade + weather</option>
           <option value="slope">Grade only</option>
           <option value="weather">Weather only</option>
@@ -176,10 +185,23 @@ import {
   weatherRiskPercent,
 } from "../utils/routeMap";
 import { famousItalianRoutes } from "../data/italianRoutes";
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, RISK_COLORS, GRADE_COLORS, SPEED_COLORS } from "../constants";
-import { normalizePoints, downsamplePoints, buildSegments, buildDemoSegments, getCenter, haversineDistanceM } from "../utils/rideMapEnrichment";
+import {
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_ZOOM,
+  RISK_COLORS,
+  GRADE_COLORS,
+  SPEED_COLORS,
+} from "../constants";
+import {
+  normalizePoints,
+  downsamplePoints,
+  buildSegments,
+  buildDemoSegments,
+  getCenter,
+  haversineDistanceM,
+} from "../utils/rideMapEnrichment";
 
-const { t } = useI18n()
+const { t } = useI18n();
 
 const mapContainer = ref(null);
 const loading = ref(false);
@@ -194,27 +216,27 @@ const weatherLegend = computed(() => [
   { label: "Good", color: RISK_COLORS.LOW },
   { label: "Fair", color: RISK_COLORS.MEDIUM },
   { label: "Poor", color: RISK_COLORS.SEVERE },
-])
+]);
 
 const riskLevels = computed(() => [
   { label: "Low", range: "0-24", color: RISK_COLORS.LOW },
   { label: "Medium", range: "25-49", color: RISK_COLORS.MEDIUM },
   { label: "High", range: "50-74", color: RISK_COLORS.HIGH },
   { label: "Severe", range: "75-100", color: RISK_COLORS.SEVERE },
-])
+]);
 
 const gradeLegend = computed(() => [
   { label: "Flat", color: GRADE_COLORS.FLAT },
   { label: "Moderate", color: GRADE_COLORS.MODERATE },
   { label: "Steep", color: GRADE_COLORS.STEEP },
   { label: "Very steep", color: GRADE_COLORS.VERY_STEEP },
-])
+]);
 
 const speedLegend = computed(() => [
   { label: "Fast", color: SPEED_COLORS.FAST },
   { label: "Medium", color: SPEED_COLORS.MEDIUM },
   { label: "Slow", color: SPEED_COLORS.SLOW },
-])
+]);
 
 const MAP_STYLES = {
   standard: {
@@ -619,7 +641,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-  <style scoped>
+<style scoped>
 .map-header {
   display: flex;
   align-items: flex-start;

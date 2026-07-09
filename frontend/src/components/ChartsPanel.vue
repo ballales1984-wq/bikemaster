@@ -3,7 +3,7 @@
     <div class="panel">
       <h2>📊 Performance Trends</h2>
       <div class="chart-controls">
-          <label>
+        <label>
           {{ t("charts.metric") }}
           <select v-model="selectedMetric">
             <option value="distance_km">Distance (km)</option>
@@ -13,7 +13,7 @@
             <option value="elevation_gain_m">Elevation (m)</option>
           </select>
         </label>
-          <label>
+        <label>
           {{ t("charts.window") }}
           <select v-model="windowSize">
             <option value="3">3 rides</option>
@@ -27,7 +27,8 @@
         <div class="chart-card">
           <h3>Trend {{ metricLabel }}</h3>
           <canvas ref="trendCanvas" />
-          <div v-if="trendData.ready" class="chart-summary">
+          <div v-if="trendData.ready"
+class="chart-summary">
             <span :class="trendClass">{{ trendData.trend }}</span>
             <span>R²: {{ trendData.r2 }}</span>
             <span>Mean: {{ trendData.mean?.toFixed(1) }}</span>
@@ -40,7 +41,8 @@
         <div class="chart-card">
           <h3>{{ t("charts.periodComparison") }}</h3>
           <canvas ref="comparisonCanvas" />
-          <div v-if="comparisonData.ready" class="chart-summary">
+          <div v-if="comparisonData.ready"
+class="chart-summary">
             <span :class="trendClass"
               >{{ comparisonData.distance_change_pct >= 0 ? "+" : ""
               }}{{ comparisonData.distance_change_pct }}% km</span
@@ -61,7 +63,7 @@ import { ref, computed, onMounted, watch, onUnmounted } from "vue";
 import { useI18n } from "../composables/useI18n";
 import { apiGet } from "../utils/api";
 
-const { t } = useI18n()
+const { t } = useI18n();
 
 const props = defineProps({ rides: Array });
 const selectedMetric = ref("distance_km");
@@ -327,7 +329,7 @@ onUnmounted(() => {
 });
 </script>
 
-  <style scoped>
+<style scoped>
 .charts-panel {
   margin: 1rem 0;
 }

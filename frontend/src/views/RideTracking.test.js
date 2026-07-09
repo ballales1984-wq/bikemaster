@@ -14,8 +14,8 @@ import RideTracking from "../views/RideTracking.vue";
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [{ path: '/', component: { template: '<div />' } }],
-})
+  routes: [{ path: "/", component: { template: "<div />" } }],
+});
 
 vi.mock("../stores/trackingStore", () => ({
   useTrackingStore: () => ({

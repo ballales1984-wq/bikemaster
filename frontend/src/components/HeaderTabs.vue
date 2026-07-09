@@ -1,60 +1,88 @@
 <template>
   <nav
 class="tabs" aria-label="Main navigation" ref="tabsRef">
-    <router-link to="/rides"
-class="tab" active-class="active">
+    <router-link
+to="/rides" class="tab"
+active-class="active"
+>
       🏍️ <span>{{ t("nav.rides") }}</span>
     </router-link>
-    <router-link to="/track"
-class="tab" active-class="active">
+    <router-link
+to="/track" class="tab"
+active-class="active"
+>
       📍 <span>{{ t("nav.tracking") }}</span>
     </router-link>
-    <router-link to="/import"
-class="tab" active-class="active">
+    <router-link
+to="/import" class="tab"
+active-class="active"
+>
       📥 <span>{{ t("nav.import") }}</span>
     </router-link>
-    <router-link to="/athlete"
-class="tab" active-class="active">
+    <router-link
+to="/athlete" class="tab"
+active-class="active"
+>
       🏃 <span>{{ t("nav.athlete") }}</span>
     </router-link>
-    <router-link to="/coach"
-class="tab" active-class="active">
+    <router-link
+to="/coach" class="tab"
+active-class="active"
+>
       🧠 <span>{{ t("nav.coach") }}</span>
     </router-link>
-    <router-link to="/knowledge"
-class="tab" active-class="active">
+    <router-link
+to="/knowledge" class="tab"
+active-class="active"
+>
       📚 <span>{{ t("nav.knowledge") }}</span>
     </router-link>
-    <router-link to="/calendar"
-class="tab" active-class="active">
+    <router-link
+to="/calendar" class="tab"
+active-class="active"
+>
       📅 <span>{{ t("nav.calendar") }}</span>
     </router-link>
-    <router-link to="/granfondo"
-class="tab" active-class="active">
+    <router-link
+to="/granfondo" class="tab"
+active-class="active"
+>
       🚴‍♂️ <span>{{ t("nav.granfondo") }}</span>
     </router-link>
-    <router-link to="/map"
-class="tab" active-class="active">
+    <router-link
+to="/map" class="tab"
+active-class="active"
+>
       🗺️ <span>{{ t("nav.maps") }}</span>
     </router-link>
-    <router-link to="/heatmap"
-class="tab" active-class="active">
+    <router-link
+to="/heatmap" class="tab"
+active-class="active"
+>
       🔥 <span>{{ t("nav.heatmap") }}</span>
     </router-link>
-    <router-link to="/badges"
-class="tab" active-class="active">
+    <router-link
+to="/badges" class="tab"
+active-class="active"
+>
       🏅 <span>{{ t("nav.badges") }}</span>
     </router-link>
-    <router-link to="/comparison"
-class="tab" active-class="active">
+    <router-link
+to="/comparison" class="tab"
+active-class="active"
+>
       ⚖️ <span>{{ t("nav.comparison") }}</span>
     </router-link>
-    <router-link to="/weather"
-class="tab" active-class="active">
+    <router-link
+to="/weather" class="tab"
+active-class="active"
+>
       🌤️ <span>{{ t("nav.weather") }}</span>
     </router-link>
-    <router-link v-if="isAdmin"
-to="/admin" class="tab" active-class="active">
+    <router-link
+v-if="isAdmin" to="/admin"
+class="tab" active-class="active"
+>
       ⚙️ <span>{{ t("nav.admin") }}</span>
     </router-link>
 
