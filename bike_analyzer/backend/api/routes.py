@@ -133,7 +133,9 @@ def _build_frontend_redirect_url(
 
 def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) -> None:
     parsed = urlparse(redirect_uri)
-    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+    if not parsed.scheme or not parsed.hostname:
+        if parsed.scheme and parsed.scheme not in ("http", "https"):
+            return
         raise HTTPException(status_code=400, detail="Invalid redirect_uri")
     host_lower = parsed.hostname.lower()
     dynamic_hosts = set()
@@ -757,14 +759,21 @@ async def google_oauth_callback_get(
 
         jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
         parsed_redirect = urlparse(redirect_uri or "")
-        frontend_origin = f"{parsed_redirect.scheme}://{parsed_redirect.netloc}/" if parsed_redirect.scheme else None
-        if not frontend_origin or not parsed_redirect.path.endswith("/api/v1/auth/google/callback"):
-            frontend_origin = _build_redirect_uri(request, "")
-        if frontend_origin and "localhost:8000" in frontend_origin:
-            frontend_origin = "http://localhost:5173/"
-        redirect_url = (
-            f"{frontend_origin}#{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
-        )
+        is_app_scheme = parsed_redirect.scheme not in ("http", "https")
+        if is_app_scheme:
+            redirect_url = (
+                f"{parsed_redirect.scheme}://{parsed_redirect.netloc or parsed_redirect.path.lstrip('/')}"
+                f"?{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
+            )
+        else:
+            frontend_origin = f"{parsed_redirect.scheme}://{parsed_redirect.netloc}/" if parsed_redirect.scheme else None
+            if not frontend_origin or not parsed_redirect.path.endswith("/api/v1/auth/google/callback"):
+                frontend_origin = _build_redirect_uri(request, "")
+            if frontend_origin and "localhost:8000" in frontend_origin:
+                frontend_origin = "http://localhost:5173/"
+            redirect_url = (
+                f"{frontend_origin}#{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
+            )
         await _cache_set(f"oauth:code:{code}", {"redirect_url": redirect_url}, ttl=300)
         return RedirectResponse(url=redirect_url)
     except Exception as exc:
@@ -777,6 +786,61 @@ async def google_oauth_callback_get(
         return RedirectResponse(
             url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=f"server_error:{str(exc)[:200]}")
         )
+
+
+@router.post("/auth/google/code-exchange")
+@limiter.limit("10/minute")
+async def google_code_exchange(
+    request: Request,
+    payload: dict[str, str] = Body(...),
+):
+    code = payload.get("code")
+    redirect_uri = payload.get("redirect_uri")
+    if not code or not redirect_uri:
+        raise HTTPException(status_code=400, detail="code and redirect_uri required")
+    from ..auth.google_auth import create_google_session, exchange_google_code, get_google_user_info
+
+    if not _s.google_client_id or not _s.google_client_secret:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    _validate_redirect_uri(redirect_uri)
+    try:
+        token_data = exchange_google_code(_s.google_client_id, _s.google_client_secret, code, redirect_uri)
+    except requests.exceptions.HTTPError as exc:
+        response = getattr(exc, "response", None)
+        error_body = response.text if response is not None else str(exc)
+        raise HTTPException(status_code=400, detail=f"token_exchange_failed:{error_body[:200]}")
+    access_token = token_data.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="no_access_token")
+    try:
+        user_info = get_google_user_info(access_token)
+    except requests.exceptions.HTTPError as exc:
+        response = getattr(exc, "response", None)
+        error_body = response.text if response is not None else str(exc)
+        raise HTTPException(status_code=400, detail=f"userinfo_failed:{error_body[:200]}")
+    google_sub = user_info.get("sub")
+    email = user_info.get("email")
+    if not google_sub:
+        raise HTTPException(status_code=400, detail="invalid_user_info")
+    from ..db.database import get_athlete_by_email, save_athlete
+    existing = get_athlete_by_email(email) if email else None
+    if not existing:
+        athlete_id = save_athlete(
+            {
+                "name": user_info.get("name") or email or google_sub,
+                "email": email,
+                "picture": user_info.get("picture"),
+                "experience_level": "Beginner",
+            }
+        )
+        if athlete_id:
+            from ..db.database import update_athlete
+            update_athlete(athlete_id, {"tenant_id": athlete_id})
+        existing = get_athlete(athlete_id)
+    if not existing:
+        raise HTTPException(status_code=500, detail="user_creation_failed")
+    jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
+    return {"access_token": jwt_token, "email": email or "", "user_id": str(existing["id"])}
 
 
 @router.post("/rides")

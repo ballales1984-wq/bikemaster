@@ -55,6 +55,7 @@ def get_authorization_url(state: str | None = None) -> dict[str, str]:
         raise RuntimeError("GARMIN_CONSUMER_KEY not configured")
     state = state or secrets.token_urlsafe(16)
     params = {
+        "response_type": "code",
         "client_id": _s.garmin_consumer_key,
         "redirect_uri": _s.garmin_redirect_uri,
         "scope": _s.garmin_scope,

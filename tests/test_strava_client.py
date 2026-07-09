@@ -56,6 +56,7 @@ class TestBuildAuthorizationUrl:
     def test_contains_required_params(self):
         url = build_authorization_url("s", "c")
         assert "client_id=" in url
+        assert "response_type=code" in url
         assert "code_challenge_method=S256" in url
 
 

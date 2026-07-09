@@ -100,6 +100,17 @@ async function request<T>(options: RequestOptions): Promise<T> {
             ? JSON.stringify(body)
             : undefined) as BodyInit | undefined,
   }
+
+  let resp: Response;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      resp = await fetch(path, init);
+    } catch {
+      if (attempt < MAX_RETRIES) {
+        notifyServerWaking();
+        await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
+        continue;
+      }
       throw new ApiError(
         "Server non raggiungibile. Riprova tra qualche istante.",
         0,
