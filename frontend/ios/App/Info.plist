@@ -45,6 +45,11 @@
     <string>BikeMaster needs background location access to continue tracking your ride when the app is in the background.</string>
     <key>NSLocationAlwaysUsageDescription</key>
     <string>BikeMaster needs background location access to continue tracking your ride.</string>
+    <key>NSLocationTemporaryUsageDescriptionDictionary</key>
+    <dict>
+        <key>PreciseLocation</key>
+        <string>BikeMaster needs precise location to track your ride accurately.</string>
+    </dict>
     <key>UIBackgroundModes</key>
     <array>
         <string>location</string>

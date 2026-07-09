@@ -211,6 +211,12 @@
 | 232 | Unità metriche sincronizzate (metri) | ✅ |
 | 233 | Persistenza stato tracking su Android | ✅ |
 | 234 | Filtro accuratezza GPS (>20m scartato) | ✅ |
+| 235 | BikeTrackingPlugin.swift (Capacitor iOS bridge) | ✅ |
+| 236 | Info.plist permessi + background modes iOS | ✅ |
+| 237 | Persistenza stato tracking su iOS | ✅ |
+| 238 | Filtro accuratezza GPS iOS (>20m scartato) | ✅ |
+| 239 | Unità metriche sincronizzate iOS (km/h, metri) | ✅ |
+| 240 | Verifica build iOS con Xcode su dispositivo | 🔄 In attesa di macOS/Xcode |
 
 ## ✅ Fase 23 — Event-Driven & Clean Architecture (Completata)
 
@@ -255,10 +261,11 @@
 | ~~4~~ | ~~PWA completa + offline support~~ | ~~Alto~~ | ~~Media~~ | ✅ |
 | ~~5~~ | ~~Ruff + mypy + pre-commit~~ | ~~Medio-Alto~~ | ~~Bassa~~ | ✅ |
 | **2** | Integrazioni restanti (Wahoo, cloud hosted, Helm, one-click deploy) | Alto | Alta | ❌ |
-| **3** | Voice input/output AI Coach + prompt engineering avanzato | Medio | Media | ❌ |
-| **4** | Design System + theme tokens + rimozione config.py legacy | Medio | Bassa | 🔄 |
-| **5** | Coverage test >90% (metrica informativa) | Medio | Alta | 🔄 |
-| **6** | Logging centralizzato e strutturato | Medio | Bassa | 🔄 |
+| **3** | Verifica build iOS con Xcode su dispositivo per tracking nativo | Alto | Media | ❌ |
+| **4** | Voice input/output AI Coach + prompt engineering avanzato | Medio | Media | ❌ |
+| **5** | Design System + theme tokens + rimozione config.py legacy | Medio | Bassa | 🔄 |
+| **6** | Coverage test >90% (metrica informativa) | Medio | Alta | 🔄 |
+| **7** | Logging centralizzato e strutturato | Medio | Bassa | 🔄 |
 
 ---
 
@@ -282,4 +289,4 @@
 
 ---
 
-*Ultimo aggiornamento: 2026-07-07*
+*Ultimo aggiornamento: 2026-07-09*
