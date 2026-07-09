@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import json
 import secrets
@@ -915,13 +916,22 @@ async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(
     content = await file.read()
     if len(content) > MAX_UPLOAD_SIZE:
         raise HTTPException(status_code=413, detail="File too large. Maximum size is 50MB.")
-    points_data = parse_gpx_file(content.decode())
-    ride_data = points_to_ride(points_data, name=file.filename)
+    user_id = _user_id(current_user)
+    tenant_id = current_user["id"]
+    filename = file.filename
+
+    def _work() -> dict:
+        points_data = parse_gpx_file(content.decode())
+        ride_data = points_to_ride(points_data, name=filename, max_points=5000)
+        if "error" not in ride_data:
+            ride_data["athlete_id"] = user_id
+            ride_data["tenant_id"] = tenant_id
+            ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
+            ride_data["id"] = int(ride_id)
+        return ride_data
+
+    ride_data = await asyncio.to_thread(_work)
     if "error" not in ride_data:
-        ride_data["athlete_id"] = _user_id(current_user)
-        ride_data["tenant_id"] = current_user["id"]
-        ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
-        ride_data["id"] = int(ride_id)
         from ..monitoring import record_gps_import
 
         record_gps_import("gpx", "upload")
@@ -938,24 +948,33 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
     content = await file.read()
     if len(content) > MAX_UPLOAD_SIZE:
         raise HTTPException(status_code=413, detail="File too large. Maximum size is 50MB.")
-    with tempfile.NamedTemporaryFile(suffix=".fit", delete=False) as tmp:
-        tmp.write(content)
-        temp_path = tmp.name
-    try:
-        try:
-            points_data = parse_fit_file(temp_path)
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=f"Invalid FIT file: {exc}") from exc
-    finally:
-        import os
+    user_id = _user_id(current_user)
+    tenant_id = current_user["id"]
+    filename = file.filename
 
-        os.unlink(temp_path)
-    ride_data = points_to_ride(points_data, name=file.filename)
+    def _work() -> dict:
+        with tempfile.NamedTemporaryFile(suffix=".fit", delete=False) as tmp:
+            tmp.write(content)
+            temp_path = tmp.name
+        try:
+            try:
+                points_data = parse_fit_file(temp_path)
+            except Exception as exc:
+                raise HTTPException(status_code=400, detail=f"Invalid FIT file: {exc}") from exc
+        finally:
+            import os
+
+            os.unlink(temp_path)
+        ride_data = points_to_ride(points_data, name=filename, max_points=5000)
+        if "error" not in ride_data:
+            ride_data["athlete_id"] = user_id
+            ride_data["tenant_id"] = tenant_id
+            ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
+            ride_data["id"] = int(ride_id)
+        return ride_data
+
+    ride_data = await asyncio.to_thread(_work)
     if "error" not in ride_data:
-        ride_data["athlete_id"] = _user_id(current_user)
-        ride_data["tenant_id"] = current_user["id"]
-        ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
-        ride_data["id"] = int(ride_id)
         from ..monitoring import record_gps_import
 
         record_gps_import("fit", "upload")
@@ -996,42 +1015,57 @@ async def import_multiple(files: list[UploadFile] = File(...), current_user: dic
     from ..db.database import save_ride
     from ..ingestion.gps_parser import parse_fit_file, parse_gpx_file, points_to_ride
 
-    imported = []
-    failed = []
+    user_id = _user_id(current_user)
+    tenant_id = current_user["id"]
+
+    contents = []
     total_size = 0
     for file in files:
         content = await file.read()
         total_size += len(content)
         if total_size > MAX_UPLOAD_SIZE * 2:
             raise HTTPException(status_code=413, detail="Total upload size exceeds 100MB limit.")
-        try:
-            ext = file.filename.lower().split(".")[-1] if file.filename else ""
-            if ext == "gpx":
-                points = parse_gpx_file(content.decode())
-            elif ext in ("fit", "fitf"):
-                with tempfile.NamedTemporaryFile(suffix=".fit", delete=False) as tmp:
-                    tmp.write(content)
-                    temp_path = tmp.name
-                try:
-                    points = parse_fit_file(temp_path)
-                finally:
-                    import os
+        contents.append((file.filename, content))
 
-                    os.unlink(temp_path)
-            else:
-                points = []
-            ride_data = points_to_ride(points, name=file.filename)
-            if "error" not in ride_data:
-                ride_data["athlete_id"] = _user_id(current_user)
-                ride_data["tenant_id"] = current_user["id"]
-                ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
-                ride_data["id"] = int(ride_id)
-                imported.append(ride_data)
-                from ..monitoring import record_gps_import
+    def _process(filename: str | None, raw: bytes) -> dict:
+        ext = filename.lower().split(".")[-1] if filename else ""
+        if ext == "gpx":
+            points = parse_gpx_file(raw.decode())
+        elif ext in ("fit", "fitf"):
+            with tempfile.NamedTemporaryFile(suffix=".fit", delete=False) as tmp:
+                tmp.write(raw)
+                temp_path = tmp.name
+            try:
+                points = parse_fit_file(temp_path)
+            finally:
+                import os
 
-                record_gps_import(ext or "unknown", "upload")
-        except Exception as e:
-            failed.append({"filename": file.filename, "error": str(e)})
+                os.unlink(temp_path)
+        else:
+            points = []
+        ride_data = points_to_ride(points, name=filename, max_points=5000)
+        if "error" not in ride_data:
+            ride_data["athlete_id"] = user_id
+            ride_data["tenant_id"] = tenant_id
+            ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
+            ride_data["id"] = int(ride_id)
+            from ..monitoring import record_gps_import
+
+            record_gps_import(ext or "unknown", "upload")
+        return ride_data
+
+    results = await asyncio.gather(
+        *(asyncio.to_thread(_process, fn, c) for fn, c in contents),
+        return_exceptions=True,
+    )
+
+    imported = []
+    failed = []
+    for filename, result in zip((fn for fn, _ in contents), results):
+        if isinstance(result, Exception):
+            failed.append({"filename": filename, "error": str(result)})
+        elif "error" not in result:
+            imported.append(result)
     return {
         "imported": imported,
         "failed": failed,

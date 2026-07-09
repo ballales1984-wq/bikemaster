@@ -5,10 +5,11 @@ ENV PATH="./node_modules/.bin:$PATH"
 COPY frontend/package*.json ./
 RUN npm install --legacy-peer-deps
 COPY frontend/src/ ./src/
-COPY frontend/scripts/ ./scripts/
 COPY frontend/*.json ./
 COPY frontend/*.js ./
 COPY frontend/*.html ./
+COPY frontend/public/ ./public/
+COPY frontend/scripts/ ./scripts/
 RUN npm run build
 
 # === Production Stage ===
@@ -17,11 +18,11 @@ FROM python:3.11-slim AS production
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    MALLOC_TRIM_THRESHOLD_=65536
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-       build-essential \
        curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -30,10 +31,8 @@ RUN groupadd -r bikemaster && useradd -r -g bikemaster bikemaster
 WORKDIR /app
 
 COPY requirements.txt ./
-# Use uv for faster/better dependency resolution with complex graphs
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir uv && \
-    uv pip install --system --prerelease=allow -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
 COPY main.py ./
 COPY bike_analyzer ./bike_analyzer
@@ -44,20 +43,15 @@ RUN chown -R bikemaster:bikemaster /app
 
 USER bikemaster
 
-ENV SENTRY_DSN=""
-ENV SENTRY_ENVIRONMENT=production
-ENV SENTRY_TRACES_SAMPLE_RATE=0.2
+ENV SENTRY_DSN="" \
+    SENTRY_ENVIRONMENT=production \
+    SENTRY_TRACES_SAMPLE_RATE=0.2 \
+    LOG_LEVEL=WARNING \
+    UVICORN_WORKERS=1
 
-EXPOSE 8000
+EXPOSE ${PORT:-8000}
 
-# Security: Healthcheck with curl
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-# Security hardening labels for docker-compose reference
-LABEL security_profile="hardened" \
-      security_no_new_privileges="true" \
-      security_read_only="true" \
-      security_tmpfs="/tmp:noexec,nosuid,size=64m"
+    CMD curl -f http://localhost:${PORT:-8000}/api/v1/health || exit 1
 
 CMD ["sh", "-c", "python main.py api --port ${PORT:-8000}"]

@@ -18,21 +18,28 @@ def _perpendicular_distance(point: dict, start: dict, end: dict) -> float:
 
 
 def douglas_peucker(points: list[dict], tolerance: float = 0.00005) -> list[dict]:
-    if len(points) <= 2:
+    n = len(points)
+    if n <= 2:
         return points
-    start, end = points[0], points[-1]
-    max_dist = 0.0
-    index = 0
-    for i in range(1, len(points) - 1):
-        d = _perpendicular_distance(points[i], start, end)
-        if d > max_dist:
-            max_dist = d
-            index = i
-    if max_dist > tolerance:
-        left = douglas_peucker(points[: index + 1], tolerance)
-        right = douglas_peucker(points[index:], tolerance)
-        return left[:-1] + right
-    return [start, end]
+    keep = [False] * n
+    keep[0] = keep[-1] = True
+    stack = [(0, n - 1)]
+    while stack:
+        start, end = stack.pop()
+        if end <= start + 1:
+            continue
+        max_dist = 0.0
+        index = start + 1
+        for i in range(start + 1, end):
+            d = _perpendicular_distance(points[i], points[start], points[end])
+            if d > max_dist:
+                max_dist = d
+                index = i
+        if max_dist > tolerance:
+            keep[index] = True
+            stack.append((start, index))
+            stack.append((index, end))
+    return [points[i] for i in range(n) if keep[i]]
 
 
 def parse_gpx_file(content: str) -> list[dict]:
@@ -89,7 +96,7 @@ def parse_fit_file(file_path: str) -> list[dict]:
         raise ImportError("fitparse not installed") from None
 
 
-def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float = 70.0, gps_tolerance: float | None = None) -> dict:
+def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float = 70.0, gps_tolerance: float | None = None, max_points: int | None = None) -> dict:
     if not points:
         return {"error": "No GPS points provided"}
     valid_points = [p for p in points if p.get("lat") is not None and p.get("lon") is not None and p.get("timestamp") is not None]
@@ -97,6 +104,10 @@ def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float
         return {"error": "No valid GPS points provided"}
     tolerance = gps_tolerance if gps_tolerance is not None else float(os.getenv("GPS_DECIMATION_TOLERANCE", "0.00005"))
     compressed = douglas_peucker(valid_points, tolerance=tolerance)
+    cap = max_points if max_points is not None else int(os.getenv("GPS_MAX_POINTS", "0") or 0)
+    if cap > 0 and len(compressed) > cap:
+        step = len(compressed) / cap
+        compressed = [compressed[int(i * step)] for i in range(cap)] + [compressed[-1]]
     from ..models.models import haversine_distance_m
 
     total_distance = (

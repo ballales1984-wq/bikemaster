@@ -205,18 +205,7 @@ def _rules_section() -> str:
     )
 
 
-def _generate_local_training_advice(
-    athlete: AthleteProfile, rides: list[Ride], message: str | None = None
-) -> str:
-    if message:
-        return (
-            f"Domanda: {message}\n\n"
-            + _generate_local_training_advice_body(athlete, rides)
-        )
-    return _generate_local_training_advice_body(athlete, rides)
-
-
-def _generate_local_training_advice_body(athlete: AthleteProfile, rides: list[Ride]) -> str:
+def _generate_local_training_advice(athlete: AthleteProfile, rides: list[Ride]) -> str:
     level = (athlete.experience_level or "beginner").lower()
     terrain = (athlete.preferred_terrain or "").lower()
     goals = (athlete.goals or "").lower()
@@ -263,18 +252,7 @@ def _generate_local_training_advice_body(athlete: AthleteProfile, rides: list[Ri
     return "\n\n".join(suggestions)
 
 
-def _generate_local_recovery_advice(
-    athlete: AthleteProfile, rides: list[Ride], recovery_score: float, message: str | None = None
-) -> str:
-    if message:
-        return (
-            f"Domanda: {message}\n\n"
-            + _generate_local_recovery_advice_body(athlete, rides, recovery_score)
-        )
-    return _generate_local_recovery_advice_body(athlete, rides, recovery_score)
-
-
-def _generate_local_recovery_advice_body(athlete: AthleteProfile, rides: list[Ride], recovery_score: float) -> str:
+def _generate_local_recovery_advice(athlete: AthleteProfile, rides: list[Ride], recovery_score: float) -> str:
     recent = rides[-1] if rides else None
     fatigue_flag = "fatigued" if recovery_score < 5 else "normal"
 
@@ -328,10 +306,10 @@ def _build_athlete_context(athlete: AthleteProfile) -> str:
     parts = [
         f"Nome: {athlete.name or 'N/A'}",
         f"Livello: {athlete.experience_level}",
-        f"Peso: {athlete.weight_kg if athlete.weight_kg is not None else 'N/A'} kg",
-        f"Eta: {athlete.age if athlete.age is not None else 'N/A'}",
-        f"Anni attivo: {athlete.years_active if athlete.years_active is not None else 'N/A'}",
-        f"Settimane/anno: {(athlete.annual_hours or 0):.0f}h totali",
+        f"Peso: {athlete.weight_kg} kg",
+        f"Eta: {athlete.age} anni",
+        f"Anni attivo: {athlete.years_active}",
+        f"Settimane/anno: {athlete.annual_hours:.0f}h totali",
     ]
     if getattr(athlete, "goals", None):
         parts.append(f"Obiettivi: {athlete.goals}")
@@ -382,17 +360,12 @@ def _chat_completion_text(client: object, model: str, prompt: str, max_tokens: i
     return chat.choices[0].message.content or ""
 
 
-def generate_training_advice(
-    athlete: AthleteProfile,
-    rides: list[Ride],
-    athlete_id: int | None = None,
-    message: str | None = None,
-) -> str:
+def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete_id: int | None = None) -> str:
     is_valid, err = validate_athlete_profile(athlete)
     if not is_valid:
         return f"Completa il profilo atleta: {err}"
     if _use_local_coach():
-        return _generate_local_training_advice(athlete, rides, message)
+        return _generate_local_training_advice(athlete, rides)
 
     stats = calculate_summary(rides) if rides else {}
     perf = calculate_performance_score(rides[-1]) if rides else 0
@@ -409,17 +382,13 @@ def generate_training_advice(
         else "nessuna uscita recente"
     )
     if len(rides) >= 2:
-        dated = [r.date for r in rides if r.date]
-        if dated:
-            first_date = min(dated)
-            last_date = max(dated)
-            try:
-                first_dt = datetime.fromisoformat(first_date)
-                last_dt = datetime.fromisoformat(last_date)
-                days_span = (last_dt - first_dt).days
-            except Exception:
-                days_span = 0
-        else:
+        first_date = min(r.date for r in rides if r.date)
+        last_date = max(r.date for r in rides if r.date)
+        try:
+            first_dt = datetime.fromisoformat(first_date)
+            last_dt = datetime.fromisoformat(last_date)
+            days_span = (last_dt - first_dt).days
+        except Exception:
             days_span = 0
     else:
         days_span = 0
@@ -458,13 +427,6 @@ def generate_training_advice(
         f"- Archivio temporale: {days_span} giorni\n\n"
         f"{_rules_section()}"
     )
-    if message:
-        prompt += (
-            f"\n\nDOMANDA DELL'ATLETA:\n{message}\n\n"
-            f"Rispondi direttamente alla domanda dell'atleta sfruttando il profilo e i dati "
-            f"forniti sopra. Se la domanda riguarda allenamento o recupero, dai consigli "
-            f"numerati e specifici come da regole."
-        )
 
     max_retries = 3
     attempt = 0
@@ -476,7 +438,7 @@ def generate_training_advice(
             from ..monitoring import record_ai_coach_query
 
             record_ai_coach_query("fallback", "fallback")
-            return _generate_fallback_training_advice(athlete, rides, message)
+            return _generate_fallback_training_advice(athlete, rides)
 
         try:
             messages = [{"role": "user", "content": prompt}]
@@ -496,10 +458,10 @@ def generate_training_advice(
             if not _is_recoverable_provider_error(e):
                 logger.error("AI Coach: non-recoverable error from %s, using fallback", provider)
                 record_ai_coach_query("fallback", "fallback")
-                return _generate_fallback_training_advice(athlete, rides, message)
+                return _generate_fallback_training_advice(athlete, rides)
             attempt += 1
             continue
-    return _generate_fallback_training_advice(athlete, rides, message)
+    return _generate_fallback_training_advice(athlete, rides)
 
 
 generate_workout_recommendations = generate_training_advice
@@ -510,7 +472,6 @@ def generate_recovery_advice(
     rides: list[Ride],
     fatigue_score: float = 5.0,
     athlete_id: int | None = None,
-    message: str | None = None,
 ) -> str:
     from datetime import datetime
 
@@ -518,7 +479,7 @@ def generate_recovery_advice(
     if not is_valid:
         return f"Completa il profilo atleta prima di usare l'AI Coach: {err}"
     if _use_local_coach():
-        return _generate_local_recovery_advice(athlete, rides, fatigue_score, message)
+        return _generate_local_recovery_advice(athlete, rides, fatigue_score)
 
     now = datetime.now(UTC)
     recovery = calculate_recovery_score(rides[-1]) if rides else fatigue_score
@@ -554,12 +515,6 @@ def generate_recovery_advice(
         f"- Giorno corrente: {now.strftime('%Y-%m-%d')}\n\n"
         f"{_rules_section()}"
     )
-    if message:
-        prompt += (
-            f"\n\nDOMANDA DELL'ATLETA:\n{message}\n\n"
-            f"Rispondi direttamente alla domanda dell'atleta sfruttando il profilo e i dati "
-            f"forniti sopra."
-        )
 
     max_retries = 3
     attempt = 0
@@ -570,14 +525,9 @@ def generate_recovery_advice(
             from ..monitoring import record_ai_coach_query
 
             record_ai_coach_query("fallback", "fallback")
-            return _generate_fallback_recovery_advice(athlete, rides, recovery, message)
+            return _generate_fallback_recovery_advice(athlete, rides, recovery)
 
-        if provider == "groq":
-            model: str = _s.groq_model
-        elif provider == "ollama":
-            model = _s.ollama_model
-        else:
-            model = _s.openai_model
+        model = _s.groq_model if provider == "groq" else _s.ollama_model if provider == "ollama" else _s.openai_model
         try:
             content = _chat_completion_text(client, model, prompt, 300)
             from ..monitoring import record_ai_coach_query
@@ -593,15 +543,13 @@ def generate_recovery_advice(
             _ban_provider(provider, "connection error" if "connection" in str(e).lower() else "auth error")
             attempt += 1
             continue
-    return _generate_fallback_recovery_advice(athlete, rides, recovery, message)
+    return _generate_fallback_recovery_advice(athlete, rides, recovery)
 
 
 _FALLBACK_PREFIX = "(AI service temporarily unavailable - model-based advice)\n\n"
 
 
-def _generate_fallback_training_advice(
-    athlete: AthleteProfile, rides: list[Ride], message: str | None = None
-) -> str:
+def _generate_fallback_training_advice(athlete: AthleteProfile, rides: list[Ride]) -> str:
     kb = search_knowledge_base("base training periodization", max_chunks=3)
     if kb:
         context = format_context_for_llm(kb)
@@ -618,14 +566,10 @@ def _generate_fallback_training_advice(
             "to avoid overtraining\n"
             "**3. Recovery** Include 1-2 full rest days per week"
         )
-    return f"{_FALLBACK_PREFIX}{advice}" if not message else (
-        f"Domanda: {message}\n\n{_FALLBACK_PREFIX}{advice}"
-    )
+    return f"{_FALLBACK_PREFIX}{advice}"
 
 
-def _generate_fallback_recovery_advice(
-    athlete: AthleteProfile, rides: list[Ride], recovery_score: float = 5.0, message: str | None = None
-) -> str:
+def _generate_fallback_recovery_advice(athlete: AthleteProfile, rides: list[Ride], recovery_score: float = 5.0) -> str:
     kb = search_knowledge_base("recupero sonno idratazione stretching", max_chunks=3)
     context = format_context_for_llm(kb) if kb else ""
     if context:
@@ -642,9 +586,7 @@ def _generate_fallback_recovery_advice(
             else f"{base}\n**3. Alimentazione** Consumate carboidrati e proteine "
             "nella ratio 3:1 entro 30 min dal termine"
         )
-    return f"{_FALLBACK_PREFIX}{advice}" if not message else (
-        f"Domanda: {message}\n\n{_FALLBACK_PREFIX}{advice}"
-    )
+    return f"{_FALLBACK_PREFIX}{advice}"
 
 
 generate_recovery_recommendations = generate_recovery_advice
@@ -912,12 +854,7 @@ def chat_with_tools(
     except ValueError:
         return {"content": "Nessun provider LLM configurato."}
 
-    if provider == "groq":
-        model: str = _s.groq_model
-    elif provider == "ollama":
-        model = _s.ollama_model
-    else:
-        model = _s.openai_model
+    model = _s.groq_model if provider == "groq" else _s.ollama_model if provider == "ollama" else _s.openai_model
 
     tools = [GENERATE_WORKOUT_PLAN_TOOL, ANALYZE_ANOMALIES_TOOL]
 

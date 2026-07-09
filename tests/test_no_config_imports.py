@@ -18,13 +18,11 @@ def _is_legacy_config_import(module: str) -> bool:
     parts = module.split(".")
     if parts[-1] != "config":
         return False
-    if module in {"logging.config", "logging.config", "unittest.config"}:
+    if module in {"logging.config", "unittest.config"}:
         return False
     if module.startswith("bike_analyzer.backend.config"):
         return True
-    if module == "config" or module.endswith(".config"):
-        return True
-    return False
+    return module == "config" or module.endswith(".config")
 
 
 @pytest.mark.parametrize("py_file", list(BIKE_ANALYZER_DIR.rglob("*.py")))

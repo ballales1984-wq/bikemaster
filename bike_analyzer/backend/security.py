@@ -153,7 +153,7 @@ async def _await_if_needed(value):
 
 
 def fingerprint_token(token: str) -> str:
-    raw = f"{token}:{_s.secret_key}"
+    raw = f"{token}:{SECRET_KEY}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
@@ -178,28 +178,28 @@ def create_access_token(
     jti: str | None = None,
     tenant_id: int | None = None,
 ) -> str:
-    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=_s.access_token_expire_minutes))
+    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     if jti is None:
-        jti = hashlib.sha256(f"{subject}:{time.time()}:{_s.secret_key}".encode()).hexdigest()[:32]
+        jti = hashlib.sha256(f"{subject}:{time.time()}:{SECRET_KEY}".encode()).hexdigest()[:32]
     payload = {
         "sub": subject,
         "is_admin": is_admin,
         "iat": datetime.now(UTC),
         "exp": expire,
-        "iss": _s.jwt_issuer,
-        "aud": _s.jwt_audience,
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
         "jti": jti,
     }
     if tenant_id is not None:
         payload["tenant_id"] = tenant_id
-    return jwt.encode(payload, _s.secret_key, algorithm=_s.algorithm)
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def create_refresh_token(
     subject: str, is_admin: bool = False, tenant_id: int | None = None
 ) -> str:
     expire = datetime.now(UTC) + timedelta(days=30)
-    jti = hashlib.sha256(f"refresh:{subject}:{time.time()}:{_s.secret_key}".encode()).hexdigest()[:32]
+    jti = hashlib.sha256(f"refresh:{subject}:{time.time()}:{SECRET_KEY}".encode()).hexdigest()[:32]
     payload = {
         "sub": subject,
         "is_admin": is_admin,
@@ -207,17 +207,17 @@ def create_refresh_token(
         "jti": jti,
         "iat": datetime.now(UTC),
         "exp": expire,
-        "iss": _s.jwt_issuer,
-        "aud": _s.jwt_audience,
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
     }
     if tenant_id is not None:
         payload["tenant_id"] = tenant_id
-    return jwt.encode(payload, _s.secret_key, algorithm=_s.algorithm)
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def _try_decode(token: str, secret: str) -> dict | None:
     try:
-        return jwt.decode(token, secret, algorithms=[_s.algorithm], issuer=_s.jwt_issuer, audience=_s.jwt_audience)
+        return jwt.decode(token, secret, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE)
     except JWTError:
         return None
 
@@ -225,11 +225,11 @@ def _try_decode(token: str, secret: str) -> dict | None:
 async def decode_token_with_fallback(token: str | None) -> dict | None:
     if not isinstance(token, str):
         return None
-    payload = _try_decode(token, _s.secret_key)
+    payload = _try_decode(token, SECRET_KEY)
     if payload is not None:
         return payload
-    if _s.secret_key_previous:
-        payload = _try_decode(token, _s.secret_key_previous)
+    if SECRET_KEY_PREVIOUS:
+        payload = _try_decode(token, SECRET_KEY_PREVIOUS)
         if payload is not None:
             logger.debug("Token decoded with previous secret key")
             return payload
@@ -399,7 +399,7 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str |
         httponly=True,
         secure=secure,
         samesite=samesite,
-        max_age=_s.access_token_expire_minutes * 60,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
     )
     if refresh_token:
