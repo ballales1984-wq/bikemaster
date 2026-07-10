@@ -54,6 +54,9 @@ def _make_async_url(raw: str) -> str:
         return "postgresql+asyncpg://" + raw[len("postgres://"):]
     if raw.startswith("sqlite://"):
         return "sqlite+aiosqlite://" + raw[len("sqlite://"):]
+    if "://" not in raw:
+        # Bare file path (e.g. "./rides.db" or "rides.db") -> SQLite file.
+        return "sqlite+aiosqlite:///" + raw
     return raw
 
 
@@ -61,10 +64,48 @@ def _get_engine() -> AsyncEngine | None:
     global _engine
     if _engine is not None:
         return _engine
+    # Strip first: a value with surrounding whitespace (e.g. a pasted
+    # connection string with a trailing newline/space) is truthy and would
+    # otherwise slip past the `if not url` guard and crash create_async_engine.
+    url = (_s.database_url or "").strip()
+    if not url:
+        logger.warning(
+            "DATABASE_URL not set or empty; async DB disabled "
+            "(falling back to synchronous SQLite layer)."
+        )
+        return None
+    try:
+        _engine = create_async_engine(_make_async_url(url), echo=False, pool_pre_ping=True)
+    except Exception as exc:  # noqa: BLE001
+        # Never let a malformed DATABASE_URL take down startup. Log the
+        # scheme only (never the full URL, which embeds the password) and
+        # fall back to SQLite; get_session_factory() will surface a clear
+        # RuntimeError if the async path is actually requested.
+        scheme = url.split("://", 1)[0] if "://" in url else url[:12]
+        logger.error(
+            "Failed to build async engine from DATABASE_URL (scheme=%r); "
+            "async DB disabled (falling back to SQLite): %s",
+            scheme,
+            exc,
+        )
+        return None
+    return _engine
     url = _s.database_url
     if not url:
         return None
-    _engine = create_async_engine(_make_async_url(url), echo=False, pool_pre_ping=True)
+    try:
+        _engine = create_async_engine(
+            _make_async_url(url), echo=False, pool_pre_ping=True
+        )
+    except Exception as exc:  # noqa: BLE001
+        # Never let a bad DATABASE_URL crash startup. The app falls back to the
+        # synchronous SQLite layer (see db/database.py) when the async engine is
+        # unavailable.
+        logger.error(
+            "Failed to create async engine from DATABASE_URL; async DB disabled: %s",
+            exc,
+        )
+        return None
     return _engine
 
 
