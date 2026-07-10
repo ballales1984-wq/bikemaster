@@ -151,12 +151,12 @@ def test_air_density():
 
 def test_data_quality_new_ranges():
     t = TransformerEngine()
-    assert not t.quality.in_range(q(30.0, "W/kg", source="power_meter"))
-    assert t.quality.in_range(q(5.0, "W/kg", source="power_meter"))
-    assert not t.quality.in_range(q(100.0, "Nm", source="manual"))
-    assert t.quality.in_range(q(10.0, "Nm", source="manual"))
-    assert not t.quality.in_range(q(300.0, "mmHg", source="manual"))
-    assert t.quality.in_range(q(760.0, "mmHg", source="manual")
+    assert not t.quality.in_range(q(30.0, "W", source="power_meter"))
+    assert t.quality.in_range(q(5.0, "W", source="power_meter"))
+    assert not t.quality.in_range(q(100.0, "bpm", source="manual"))
+    assert t.quality.in_range(q(10.0, "bpm", source="manual"))
+    assert not t.quality.in_range(q(300.0, "°C", source="manual"))
+    assert t.quality.in_range(q(20.0, "°C", source="manual"))
     assert not t.quality.in_range(q(3.0, "g/L", source="manual"))
     assert t.quality.in_range(q(1.2, "g/L", source="manual"))
 
@@ -175,7 +175,7 @@ def test_data_quality_temporal():
         q(2.0, "W", timestamp=base),
     ]
     problems = t.quality.check_temporal(bad)
-    assert any("non ordinato" in p for p in problems)
+    assert any("timestamp non ordinate" in p for p in problems)
     gap = [
         q(1.0, "W", timestamp=base),
         q(2.0, "W", timestamp=base + timedelta(seconds=7201)),

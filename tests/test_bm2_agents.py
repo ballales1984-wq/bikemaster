@@ -15,7 +15,7 @@ from bike_analyzer.bm2.agents import (
     StravaAgent,
 )
 from bike_analyzer.bm2.models import Activity, Athlete, WorldObject
-from bike_analyzer.bm2.transformer import TransformerEngine
+from bike_analyzer.bm2.transformer import GeoPoint, TransformerEngine
 from bike_analyzer.bm2.units import q
 
 

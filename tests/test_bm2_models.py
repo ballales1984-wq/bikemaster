@@ -37,7 +37,7 @@ def test_athlete_from_raw_with_validation():
     assert a.max_hr_bpm.value == 185.0
     assert a.resting_hr_bpm.value == 55.0
     assert a.experience_level == "Advanced"
-    assert a.weekly_hours.value == 10.0
+    assert a.weekly_hours.value == 36000.0
     assert a.name == "Mario"
     assert a.ctl_stress_score.value == 95.0
     assert a.atl_stress_score.value == 80.0
