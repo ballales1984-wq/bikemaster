@@ -635,6 +635,7 @@ async function connectStrava() {
       success: true,
       message: "Strava connected. Importing your rides...",
     };
+    importing.value = false;
     await stravaSync();
   } catch (e) {
     cleanup();

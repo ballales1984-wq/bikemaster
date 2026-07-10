@@ -602,7 +602,11 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
             "tenant_id": current_user.get("tenant_id", current_user["id"]),
             "profile_complete": False,
         }
-    profile_complete = athlete.get("experience_level", "").strip() != ""
+    profile_complete = (
+        athlete.get("age") is not None
+        and athlete.get("weight_kg") is not None
+        and (athlete.get("experience_level") or "").strip() != ""
+    )
     return {
         "id": athlete["id"],
         "username": athlete.get("name", ""),
@@ -1444,7 +1448,11 @@ async def get_my_athlete_profile(current_user: dict = Depends(get_current_user))
     athlete = _get_athlete(current_user["id"], tenant_id)
     if not athlete:
         return {"athlete": None, "profile_complete": False}
-    profile_complete = athlete.get("experience_level", "").strip() != ""
+    profile_complete = (
+        athlete.get("age") is not None
+        and athlete.get("weight_kg") is not None
+        and (athlete.get("experience_level") or "").strip() != ""
+    )
     return {"athlete": _public_athlete(athlete), "profile_complete": profile_complete}
 
 

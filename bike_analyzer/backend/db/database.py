@@ -248,6 +248,18 @@ def init_db():
             conn.execute("ALTER TABLE rides ADD COLUMN title TEXT")
         if "tenant_id" not in ride_cols:
             conn.execute("ALTER TABLE rides ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        if "weight_kg" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN weight_kg REAL DEFAULT 70")
+        if "calories" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN calories REAL DEFAULT 0")
+        if "heart_rate_avg" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN heart_rate_avg REAL")
+        if "elevation_gain_m" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN elevation_gain_m REAL")
+        if "gps_points" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN gps_points TEXT")
+        if "created_at" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN created_at TEXT")
         cur.execute("PRAGMA table_info(athletes)")
         athlete_cols = [row[1] for row in cur.fetchall()]
         if "tenant_id" not in athlete_cols:
@@ -272,6 +284,18 @@ def init_db():
             conn.execute("ALTER TABLE training_stress_days ADD COLUMN tenant_id INTEGER DEFAULT 0")
         cur.execute("PRAGMA table_info(metrics)")
         metric_cols = [row[1] for row in cur.fetchall()]
+        if "athlete_id" not in metric_cols:
+            conn.execute("ALTER TABLE metrics ADD COLUMN athlete_id INTEGER")
+        if "fatigue_score" not in metric_cols:
+            conn.execute("ALTER TABLE metrics ADD COLUMN fatigue_score REAL")
+        if "recovery_hours" not in metric_cols:
+            conn.execute("ALTER TABLE metrics ADD COLUMN recovery_hours REAL")
+        if "calories_per_km" not in metric_cols:
+            conn.execute("ALTER TABLE metrics ADD COLUMN calories_per_km REAL")
+        if "efficiency_score" not in metric_cols:
+            conn.execute("ALTER TABLE metrics ADD COLUMN efficiency_score REAL")
+        if "created_at" not in metric_cols:
+            conn.execute("ALTER TABLE metrics ADD COLUMN created_at TEXT")
         if "tenant_id" not in metric_cols:
             conn.execute("ALTER TABLE metrics ADD COLUMN tenant_id INTEGER DEFAULT 0")
         cur.execute("PRAGMA table_info(training_goals)")
@@ -571,7 +595,7 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                     athlete.get("name"),
                     athlete.get("email"),
                     athlete.get("picture"),
-                    athlete.get("age", 30),
+                    athlete.get("age"),
                     athlete.get("weight_kg", 70),
                     athlete.get("height_cm"),
                     athlete.get("fat_percentage"),
@@ -607,7 +631,7 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                     athlete.get("name"),
                     athlete.get("email"),
                     athlete.get("picture"),
-                    athlete.get("age", 30),
+                    athlete.get("age"),
                     athlete.get("weight_kg", 70),
                     athlete.get("height_cm"),
                     athlete.get("fat_percentage"),
@@ -759,18 +783,33 @@ def create_indices():
                 """CREATE TABLE IF NOT EXISTS rides (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     athlete_id INTEGER,
+                    tenant_id INTEGER DEFAULT 0,
                     date TEXT NOT NULL,
                     distance_km REAL DEFAULT 0,
                     duration_minutes REAL DEFAULT 0,
                     avg_speed_kmh REAL DEFAULT 0,
+                    weight_kg REAL DEFAULT 70,
+                    calories REAL DEFAULT 0,
+                    heart_rate_avg REAL,
+                    elevation_gain_m REAL,
+                    gps_points TEXT,
                     external_source TEXT,
-                    external_id TEXT
+                    external_id TEXT,
+                    title TEXT,
+                    created_at TEXT
                 )"""
             )
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS metrics (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    ride_id INTEGER
+                    athlete_id INTEGER,
+                    ride_id INTEGER,
+                    fatigue_score REAL,
+                    recovery_hours REAL,
+                    calories_per_km REAL,
+                    efficiency_score REAL,
+                    created_at TEXT,
+                    tenant_id INTEGER DEFAULT 0
                 )"""
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_date ON rides(date)")
