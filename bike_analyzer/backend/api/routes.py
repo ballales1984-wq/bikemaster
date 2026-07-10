@@ -3314,6 +3314,7 @@ async def list_import_providers():
         "google_fit": bool(_s.google_fit_client_id and _s.google_fit_client_secret),
         "google_health": bool(_s.google_health_client_id and _s.google_health_client_secret),
         "wahoo": bool(_s.wahoo_client_id and _s.wahoo_client_secret),
+        "strava": bool(_s.strava_client_id and _s.strava_client_secret),
     }
 
 
