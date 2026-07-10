@@ -60,7 +60,7 @@ class GPSAgent:
             raw_points.append({
                 "lat": trkpt.get("lat", "0.0"),
                 "lon": trkpt.get("lon", "0.0"),
-                "altitude": ele.text if ele is not None and ele.text else "0.0",
+                "altitude": float(ele.text) if ele is not None and ele.text else 0.0,
                 "timestamp": time.text if time is not None and time.text else None,
             })
         return cls(transformer).collect(raw_points, title=title)

@@ -291,3 +291,72 @@ def test_model_result_compare_with():
     assert comp["comparable_units"] is True
     assert comp["self"] == "A"
     assert comp["other"] == "B"
+
+
+# --- Simulation Engine: preset, override combinati, sensitivita' -----------
+
+def test_scenario_presets_are_valid_overrides():
+    for name in ScenarioPresets.names():
+        ov = ScenarioPresets.get(name)
+        assert isinstance(ov, ScenarioOverride)
+    race = ScenarioPresets.get("race")
+    assert race.cda_override is not None
+    assert race.experience_override == "Elite"
+    # build() ritorna una copia modificata senza alterare il preset originale
+    light = ScenarioPresets.build("light_bike", bike_weight_delta_kg=-3.0)
+    assert light.bike_weight_delta_kg == -3.0
+    assert ScenarioPresets.get("light_bike").bike_weight_delta_kg == -2.0
+
+
+def test_compare_preset_changes_energy_and_summary_is_readable():
+    ctx = _ctx()
+    engine = SimulationEngine(ALL_ALGORITHMS)
+    comp = engine.compare_preset(ctx, "race")
+    assert comp.deltas["EnergyModel"] < 0  # meno massa + cda -> meno energia
+    text = comp.summary()
+    assert "EnergyModel:" in text
+    assert "->" in text
+    assert "%" in text
+    assert comp.to_dict()["deltas"]["EnergyModel"] < 0
+
+
+def test_compare_combined_override():
+    ctx = _ctx()
+    engine = SimulationEngine(ALL_ALGORITHMS)
+    ov = ScenarioOverride(athlete_weight_delta_kg=-3.0, bike_weight_delta_kg=-1.0,
+                          slope_delta_percent=1.0, cda_override=0.30,
+                          experience_override="Elite")
+    comp = engine.compare(ctx, ov)
+    assert comp.deltas["EnergyModel"] < 0
+    # il contratto to_dict resta valido con baseline/scenario/deltas
+    d = comp.to_dict()
+    assert set(d.keys()) == {"baseline", "scenario", "deltas"}
+
+
+def test_sensitivity_athlete_weight_monotonic_energy():
+    ctx = _ctx()
+    engine = SimulationEngine(ALL_ALGORITHMS)
+    sens = engine.sensitivity(ctx, "athlete_weight", [-10.0, -5.0, 0.0, 5.0])
+    assert isinstance(sens, SensitivityResult)
+    assert sens.param == "athlete_weight"
+    assert len(sens.points) == 4
+    values = [v for _, v in sens.curve("EnergyModel")]
+    assert values[0] < values[1] < values[2] < values[3]  # piu' peso -> piu' energia
+    assert sens.to_dict()["values"] == [-10.0, -5.0, 0.0, 5.0]
+
+
+def test_sensitivity_slope_changes_movement():
+    ctx = _ctx()
+    engine = SimulationEngine(ALL_ALGORITHMS)
+    sens = engine.sensitivity(ctx, "slope", [0.0, 2.0, 5.0, 10.0])
+    perf = [v for _, v in sens.curve("MovementModel")]
+    assert perf[0] != perf[-1]  # la pendenza influenza il movimento
+
+
+def test_parse_override_from_text_recognizes_multiple_deltas():
+    ov = parse_override_from_text("Se peso -5 kg e pendenza +2% quanto risparmio?")
+    assert ov.athlete_weight_delta_kg == -5.0
+    assert ov.slope_delta_percent == 2.0
+    bike_ov = parse_override_from_text("con bici -1 kg e cda 0.32")
+    assert bike_ov.bike_weight_delta_kg == -1.0
+    assert bike_ov.cda_override == 0.32
