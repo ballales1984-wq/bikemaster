@@ -170,9 +170,14 @@ async function checkProfileComplete(
   auth: ReturnType<typeof useAuthStore>,
 ): Promise<boolean> {
   try {
-    const data = await apiGet<{ profile_complete?: boolean }>("/api/v1/auth/me", {}, {
-      headers: { Authorization: `Bearer ${auth.token}` },
-    });
+    const data = await apiGet<{ profile_complete?: boolean }>(
+      "/api/v1/auth/me",
+      {},
+      {
+        headers: { Authorization: `Bearer ${auth.token}` },
+        suppressAuthClear: true,
+      } as RequestInit,
+    );
     return data.profile_complete === true;
   } catch {
     return false;
@@ -198,15 +203,15 @@ router.beforeEach(async (to, from, next) => {
   }
 
   if (hasToken && (to.path === "/" || justLoggedIn)) {
+    const hadToken = hasToken;
     try {
       const hasCompleteProfile = await checkProfileComplete(auth);
       next(hasCompleteProfile ? "/rides" : "/athlete");
     } catch {
-      if (!auth.isLoggedIn) {
-        next("/");
-        return;
-      }
-      next("/athlete");
+      // We already hold a valid token from the OAuth return / fresh login.
+      // A failed profile check must never log the user out to the login
+      // screen — keep them on an authenticated dashboard route instead.
+      next(hadToken || justLoggedIn ? "/athlete" : "/");
     }
     localStorage.removeItem("bikemaster_just_logged_in");
     auth.setJustLoggedIn(false);

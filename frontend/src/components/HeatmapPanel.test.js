@@ -82,7 +82,7 @@ describe("HeatmapPanel", () => {
   it("renders load button text", () => {
     apiGet.mockResolvedValueOnce(mockAthletes);
     const wrapper = mount(HeatmapPanel);
-    expect(wrapper.text()).toContain("Load Heatmap");
+    expect(wrapper.text()).toContain("heatmap.load");
   });
 
   it("allows manual athlete ID input and triggers heatmap load", async () => {

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import LoginForm from "../components/LoginForm.vue";
 
@@ -12,6 +13,7 @@ vi.mock("../composables/useI18n", () => ({
 
 describe("LoginForm", () => {
   beforeEach(() => {
+    setActivePinia(createPinia());
     vi.clearAllMocks();
     localStorage.clear();
   });

@@ -149,6 +149,16 @@ class="field-error">{{
           fieldErrors.experience_level
         }}</span>
       </div>
+      <div class="form-group">
+        <label for="athlete-goals">Goal</label>
+        <input
+          id="athlete-goals"
+          v-model="form.goals"
+          type="text"
+          maxlength="500"
+          placeholder="Gran Fondo, criterium, etc."
+        >
+      </div>
     </form>
     <div class="form-actions">
       <button
@@ -182,6 +192,7 @@ interface AthleteForm {
   monthly_hours: number;
   annual_hours: number;
   experience_level: string;
+  goals: string;
 }
 
 interface AthleteResponse {
@@ -205,6 +216,7 @@ const form = ref<AthleteForm>({
   monthly_hours: 0,
   annual_hours: 0,
   experience_level: "Beginner",
+  goals: "",
 });
 const result = ref("");
 const athleteId = ref<number | null>(null);

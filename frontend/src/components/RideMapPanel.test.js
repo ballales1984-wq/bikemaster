@@ -89,7 +89,7 @@ describe("RideMapPanel", () => {
     apiGet.mockResolvedValueOnce(mockRides);
     const wrapper = mount(RideMapPanel);
     await flush();
-    expect(wrapper.text()).toContain("Route Maps");
+    expect(wrapper.text()).toContain("maps.routeMaps");
   });
 
   it("has map container", async () => {
