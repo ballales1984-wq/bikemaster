@@ -345,12 +345,13 @@ def test_sensitivity_athlete_weight_monotonic_energy():
     assert sens.to_dict()["values"] == [-10.0, -5.0, 0.0, 5.0]
 
 
-def test_sensitivity_slope_changes_movement():
+def test_sensitivity_slope_changes_energy():
     ctx = _ctx()
     engine = SimulationEngine(ALL_ALGORITHMS)
     sens = engine.sensitivity(ctx, "slope", [0.0, 2.0, 5.0, 10.0])
-    perf = [v for _, v in sens.curve("MovementModel")]
-    assert perf[0] != perf[-1]  # la pendenza influenza il movimento
+    energy = [v for _, v in sens.curve("EnergyModel")]
+    # pendenza maggiore -> piu' lavoro gravitazionale -> piu' energia
+    assert energy[0] < energy[-1]
 
 
 def test_parse_override_from_text_recognizes_multiple_deltas():

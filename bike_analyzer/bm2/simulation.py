@@ -16,10 +16,11 @@ from __future__ import annotations
 
 import re
 from copy import deepcopy
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass, field, replace
+from typing import ClassVar, Optional
 
 from .models import AnalysisContext, Athlete, Bike, WorldObject
+from .transformer import GeoPoint
 from .algorithms.base import Algorithm, ModelResult
 
 __all__ = [
@@ -82,7 +83,7 @@ class SimulationComparison:
 class ScenarioPresets:
     """Preset di scenario predefiniti, espressi come ``ScenarioOverride``."""
 
-    PRESETS: dict[str, ScenarioOverride] = field(default_factory=lambda: {
+    PRESETS: ClassVar[dict[str, ScenarioOverride]] = {
         "race": ScenarioOverride(
             athlete_weight_delta_kg=-2.0,
             bike_weight_delta_kg=-1.0,
@@ -98,7 +99,7 @@ class ScenarioPresets:
             bike_weight_delta_kg=-2.0,
             cda_override=0.33,
         ),
-    })
+    }
 
     @classmethod
     def names(cls) -> list[str]:
@@ -241,7 +242,15 @@ class SimulationEngine:
                 avg_slope_percent=None, wind_speed_ms=new.world.wind_speed_ms,
                 temperature_c=new.world.temperature_c,
             )
-        elif ov.cda_override is not None and new.bike.cda != ov.cda_override:
+        # Gli algoritmi ricavano la pendenza dalla traccia GPS (activity.metrics),
+        # non da world: per rendere effettivo il delta di pendenza adeguiamo le
+        # altitudini dei punti in modo progressivo lungo la distanza orizzontale.
+        if ov.slope_delta_percent:
+            self._apply_slope_to_track(new, ov.slope_delta_percent)
+        # Override CdA senza cambio peso bici (i rami sopra lo applicano gia'
+        # quando bike_weight_delta_kg e' impostato).
+        if ov.cda_override is not None and not ov.bike_weight_delta_kg \
+                and new.bike.cda != ov.cda_override:
             new.bike = Bike(
                 weight_kg=new.bike.weight_kg,
                 crr=new.bike.crr,
@@ -250,6 +259,30 @@ class SimulationEngine:
                 name=new.bike.name,
             )
         return new
+
+    @staticmethod
+    def _apply_slope_to_track(ctx: AnalysisContext, delta_percent: float) -> None:
+        """Aggiunge ``delta_percent`` alla pendenza media alzando le altitudini.
+
+        L'incremento di quota applicato a ogni punto e' proporzionale alla
+        distanza orizzontale cumulata dall'inizio della traccia, cosi' la
+        pendenza media (net/run) aumenta esattamente di ``delta_percent``.
+        """
+        pts = ctx.activity.points
+        if len(pts) < 2:
+            return
+        geo = ctx.transformer.geo
+        metric = geo.to_metric_points(pts)
+        frac = delta_percent / 100.0
+        cum = 0.0
+        prev = None
+        new_pts = []
+        for orig, mp in zip(pts, metric):
+            if prev is not None:
+                cum += geo.distance_2d_m(prev, mp)
+            prev = mp
+            new_pts.append(replace(orig, altitude=orig.altitude + frac * cum))
+        ctx.activity.points = new_pts
 
     def compare(self, ctx: AnalysisContext, override: ScenarioOverride,
                 extra: Optional[dict] = None) -> SimulationComparison:
