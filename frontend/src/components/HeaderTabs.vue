@@ -19,6 +19,9 @@ class="tabs" aria-label="Main navigation" ref="tabsRef">
     <router-link to="/knowledge" class="tab" active-class="active">
       📚 <span>{{ t("nav.knowledge") }}</span>
     </router-link>
+    <router-link to="/bm2" class="tab" active-class="active">
+      🧮 <span>{{ t("nav.bm2") }}</span>
+    </router-link>
     <router-link to="/calendar" class="tab" active-class="active">
       📅 <span>{{ t("nav.calendar") }}</span>
     </router-link>

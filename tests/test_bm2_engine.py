@@ -306,6 +306,27 @@ def test_model_result_repr_and_from_dict():
     assert r2.confidence == r.confidence
 
 
+def test_algorithm_input_validation_missing_ftp():
+    t = TransformerEngine()
+    athlete = Athlete(
+        weight_kg=t.normalize(q(75.0, "kg", source="manual")),
+        age=34,
+        experience_level="Intermediate",
+    )
+    bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
+    pts = [
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+    ]
+    activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=pts)
+    world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(5.0, "%", source="dem")))
+    ctx = AnalysisContext(athlete=athlete, activity=activity, bike=bike, world=world, transformer=t)
+    r = PowerModel().run(ctx)
+    assert r.value == 0.0
+    assert r.confidence == 0.0
+    assert "error" in r.details
+
+
 # --- Simulation Engine: preset, override combinati, sensitivita' -----------
 
 def test_scenario_presets_are_valid_overrides():
