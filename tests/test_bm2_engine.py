@@ -395,3 +395,47 @@ def test_parse_override_from_text_recognizes_multiple_deltas():
     bike_ov = parse_override_from_text("con bici -1 kg e cda 0.32")
     assert bike_ov.bike_weight_delta_kg == -1.0
     assert bike_ov.cda_override == 0.32
+
+
+def test_scenario_presets_error_paths():
+    with pytest.raises(KeyError):
+        ScenarioPresets.get("nonexistent")
+    with pytest.raises(AttributeError):
+        ScenarioPresets.build("race", not_a_field=1.0)
+
+
+def test_sensitivity_unknown_param_raises():
+    engine = SimulationEngine(ALL_ALGORITHMS)
+    with pytest.raises(ValueError):
+        engine.sensitivity(_ctx(), "bogus_param", [1.0, 2.0])
+
+
+def test_sensitivity_cda_alias_and_empty_values():
+    ctx = _ctx()
+    engine = SimulationEngine(ALL_ALGORITHMS)
+    # alias 'cda' -> cda_override: cda piu' basso riduce l'energia
+    sens = engine.sensitivity(ctx, "cda", [0.45, 0.30])
+    energy = [v for _, v in sens.curve("EnergyModel")]
+    assert energy[1] < energy[0]
+    # lista vuota -> nessun punto ma struttura valida
+    empty = engine.sensitivity(ctx, "cda", [])
+    assert empty.points == []
+    assert empty.to_dict()["values"] == []
+
+
+def test_slope_delta_noop_on_single_point_track():
+    ctx = _ctx()
+    ctx.activity.points = ctx.activity.points[:1]  # traccia con un solo punto
+    engine = SimulationEngine(ALL_ALGORITHMS)
+    # non deve sollevare eccezioni pur con delta di pendenza
+    comp = engine.compare(ctx, ScenarioOverride(slope_delta_percent=5.0))
+    assert set(comp.to_dict().keys()) == {"baseline", "scenario", "deltas"}
+
+
+def test_compare_with_no_algorithms_is_empty():
+    engine = SimulationEngine([])
+    comp = engine.compare(_ctx(), ScenarioOverride(athlete_weight_delta_kg=-5.0))
+    assert comp.baseline == {}
+    assert comp.scenario == {}
+    assert comp.deltas == {}
+    assert comp.summary() == ""
