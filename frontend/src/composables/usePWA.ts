@@ -1,4 +1,4 @@
-import { ref, onBeforeUnmount } from "vue";
+import { ref } from "vue";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => void;
@@ -57,11 +57,6 @@ export function usePWA() {
       return "dismissed";
     }
   }
-
-  onBeforeUnmount(() => {
-    deferredPrompt.value = null;
-    showPrompt.value = false;
-  });
 
   return { showPrompt, deferredPrompt, prompt };
 }

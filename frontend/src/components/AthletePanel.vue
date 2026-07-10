@@ -1,13 +1,16 @@
 <template>
   <div class="panel">
     <h2>🏃 Athlete Profile</h2>
-    <div v-if="isFirstLogin"
-class="welcome-banner">
+    <div
+v-if="isFirstLogin" class="welcome-banner"
+>
       <span class="welcome-icon">🎉</span> Welcome! Complete your profile to get
       started
     </div>
-    <form id="athlete-form"
-class="form-grid" novalidate>
+    <form
+id="athlete-form" class="form-grid"
+novalidate
+>
       <div class="form-group">
         <label for="athlete-name">Name</label>
         <input
@@ -20,10 +23,11 @@ class="form-grid" novalidate>
             valid: !fieldErrors.name && form.name.length >= 2,
           }"
         >
-        <span v-if="fieldErrors.name"
-class="field-error">{{
-          fieldErrors.name
-        }}</span>
+        <span
+v-if="fieldErrors.name" class="field-error"
+>{{
+                fieldErrors.name
+              }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-age">Age</label>
@@ -35,10 +39,11 @@ class="field-error">{{
           max="100"
           :class="{ error: fieldErrors.age, valid: !fieldErrors.age }"
         >
-        <span v-if="fieldErrors.age"
-class="field-error">{{
-          fieldErrors.age
-        }}</span>
+        <span
+v-if="fieldErrors.age" class="field-error"
+>{{
+                fieldErrors.age
+              }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-weight">Weight (kg)</label>
@@ -54,10 +59,11 @@ class="field-error">{{
             valid: !fieldErrors.weight_kg,
           }"
         >
-        <span v-if="fieldErrors.weight_kg"
-class="field-error">{{
-          fieldErrors.weight_kg
-        }}</span>
+        <span
+v-if="fieldErrors.weight_kg" class="field-error"
+>{{
+                fieldErrors.weight_kg
+              }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-height">Height (cm)</label>
@@ -72,10 +78,11 @@ class="field-error">{{
             valid: !fieldErrors.height_cm,
           }"
         >
-        <span v-if="fieldErrors.height_cm"
-class="field-error">{{
-          fieldErrors.height_cm
-        }}</span>
+        <span
+v-if="fieldErrors.height_cm" class="field-error"
+>{{
+                fieldErrors.height_cm
+              }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-fat">Body Fat (%)</label>
@@ -144,10 +151,11 @@ class="field-error">{{
           <option>Advanced</option>
           <option>Elite</option>
         </select>
-        <span v-if="fieldErrors.experience_level"
-class="field-error">{{
-          fieldErrors.experience_level
-        }}</span>
+        <span
+v-if="fieldErrors.experience_level" class="field-error"
+>{{
+                fieldErrors.experience_level
+              }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-goals">Goal</label>
@@ -166,8 +174,9 @@ class="btn btn-primary" @click="save">Save Athlete</button>
       <button
 class="btn btn-secondary" @click="getScores">📊 Scores</button>
     </div>
-    <div v-if="result"
-class="result-box">
+    <div
+v-if="result" class="result-box"
+>
       {{ result }}
     </div>
   </div>

@@ -5,7 +5,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import hmac
+import os
 import secrets
+import tempfile
 import time
 from collections.abc import AsyncGenerator
 from dataclasses import fields
@@ -25,6 +28,8 @@ from fastapi import (
     Request,
     UploadFile,
 )
+from fastapi.background import BackgroundTasks
+from starlette.background import BackgroundTask
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -98,13 +103,13 @@ admin_router = APIRouter()
 
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 
-from .utils import _forwarded_value
+from .utils import _trusted_forwarded_value
 
 
 def _build_redirect_uri(request: Request, path: str) -> str:
-    proto = _forwarded_value(request.headers.get("x-forwarded-proto")) or request.url.scheme
+    proto = _trusted_forwarded_value(request, "x-forwarded-proto") or request.url.scheme
     host = (
-        _forwarded_value(request.headers.get("x-forwarded-host")) or request.headers.get("host") or request.url.netloc
+        _trusted_forwarded_value(request, "x-forwarded-host") or request.headers.get("host") or request.url.netloc
     )
     return f"{proto}://{host}{path}"
 
@@ -306,6 +311,13 @@ async def health_check():
 @router.post("/alerts/webhook")
 async def alerts_webhook(request: Request):
     """Receive alerts from Prometheus Alertmanager."""
+    expected_token = os.getenv("ALERTMANAGER_WEBHOOK_TOKEN")
+    if expected_token:
+        provided = request.headers.get("X-Alertmanager-Webhook-Token", "")
+        if not provided or not hmac.compare_digest(provided, expected_token):
+            raise HTTPException(status_code=401, detail="Invalid webhook token")
+    elif _s.environment.lower() in ("production", "prod", "staging"):
+        logger.warning("ALERTMANAGER_WEBHOOK_TOKEN not set: /alerts/webhook is unauthenticated")
     body = await request.json()
     logger.info("Alert received: %s", body.get("receiver", "unknown"))
     return {"status": "ok"}
@@ -337,7 +349,15 @@ async def health_redis():
 
 
 @router.get("/config/google-maps-key")
-async def google_maps_key(current_user: dict = Depends(get_current_user)):
+async def google_maps_key(request: Request, current_user: dict = Depends(get_current_user)):
+    # The Maps JS key is inherently client-side, so it MUST be restricted via
+    # HTTP-referrer in Google Cloud. As defense in depth, only serve it to
+    # requests originating from the app's own configured origins.
+    origin = request.headers.get("origin") or request.headers.get("referer") or ""
+    allowed = {urlparse(o).netloc for o in _s.cors_origins_list}
+    if origin:
+        if urlparse(origin).netloc not in allowed:
+            raise HTTPException(status_code=403, detail="Origin not allowed")
     return {"google_maps_api_key": _s.google_maps_api_key or ""}
 
 
@@ -798,11 +818,6 @@ async def google_oauth_callback_get(
         return RedirectResponse(
             url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="server_error")
         )
-    except Exception as exc:
-        logger.exception("Google OAuth callback failed")
-        return RedirectResponse(
-            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=f"server_error:{str(exc)[:200]}")
-        )
 
 
 @router.post("/auth/google/code-exchange")
@@ -1031,6 +1046,45 @@ async def get_ride_segments(
     return {"map_url": f"/static/{resolved.name}"}
 
 
+def _validate_gpx_fit_import(ride_data: dict, user_id: int) -> None:
+    """Validate a parsed ride before persisting it.
+
+    Each GPS point is run through ``ValidatedGPSPoint`` (invalid points are dropped);
+    the assembled ride is validated with ``ValidatedRide``. Raises HTTPException (400)
+    on failure so malformed uploads are rejected instead of being stored.
+    """
+    from ..core.validation import ValidatedGPSPoint, ValidatedRide
+
+    gps = ride_data.get("gps_points") or []
+    valid_points: list[dict] = []
+    for p in gps:
+        try:
+            valid_points.append(ValidatedGPSPoint(**p).model_dump(mode="json"))
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Dropping invalid GPS point during import: %s (%s)", p, exc)
+    if len(valid_points) < 2:
+        raise HTTPException(
+            status_code=400, detail="Serve almeno 2 punti GPS validi per importare la corsa."
+        )
+    try:
+        ValidatedRide(
+            athlete_id=user_id,
+            date=ride_data["date"],
+            distance_km=ride_data["distance_km"],
+            duration_minutes=ride_data["duration_minutes"],
+            avg_speed_kmh=ride_data.get("avg_speed_kmh"),
+            elevation_gain_m=ride_data.get("elevation_gain_m"),
+            calories=ride_data.get("calories"),
+            gps_points=valid_points,
+            title=ride_data.get("title"),
+            external_source=ride_data.get("external_source"),
+            external_id=ride_data.get("external_id"),
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"Dati corsa non validi: {exc}") from exc
+    ride_data["gps_points"] = valid_points
+
+
 @router.post("/import/gpx")
 async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     from ..db.database import save_ride
@@ -1050,6 +1104,7 @@ async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(
         ride_data = points_to_ride(points_data, name=filename, max_points=5000)
         t2 = time.perf_counter()
         if "error" not in ride_data:
+            _validate_gpx_fit_import(ride_data, user_id)
             ride_data["athlete_id"] = user_id
             ride_data["tenant_id"] = tenant_id
             ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
@@ -1101,6 +1156,7 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
             os.unlink(temp_path)
         ride_data = points_to_ride(points_data, name=filename, max_points=5000)
         if "error" not in ride_data:
+            _validate_gpx_fit_import(ride_data, user_id)
             ride_data["athlete_id"] = user_id
             ride_data["tenant_id"] = tenant_id
             ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
@@ -1212,26 +1268,38 @@ async def import_multiple(files: list[UploadFile] = File(...), current_user: dic
 async def export_json(current_user: dict = Depends(get_current_user)):
     from ..analytics.analytics import export_rides_json
     from ..db.database import get_rides_by_athlete
+    from fastapi.responses import FileResponse
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
-    path = export_rides_json(rides, "rides_export.json")
-    from fastapi.responses import FileResponse
-
-    return FileResponse(path, media_type="application/json", filename="rides.json")
+    with tempfile.NamedTemporaryFile(prefix=f"rides_export_{current_user['id']}_", suffix=".json", delete=False) as tmp:
+        path = tmp.name
+    export_rides_json(rides, path)
+    return FileResponse(
+        path,
+        media_type="application/json",
+        filename="rides.json",
+        background=BackgroundTask(os.remove, path),
+    )
 
 
 @router.get("/rides/export/csv")
 async def export_csv(current_user: dict = Depends(get_current_user)):
     from ..analytics.analytics import export_rides_csv
     from ..db.database import get_rides_by_athlete
+    from fastapi.responses import FileResponse
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
-    path = export_rides_csv(rides, "rides_export.csv")
-    from fastapi.responses import FileResponse
-
-    return FileResponse(path, media_type="text/csv", filename="rides.csv")
+    with tempfile.NamedTemporaryFile(prefix=f"rides_export_{current_user['id']}_", suffix=".csv", delete=False) as tmp:
+        path = tmp.name
+    export_rides_csv(rides, path)
+    return FileResponse(
+        path,
+        media_type="text/csv",
+        filename="rides.csv",
+        background=BackgroundTask(os.remove, path),
+    )
 
 
 @router.get("/rides/{ride_id}/report")
@@ -1540,54 +1608,6 @@ async def google_health_callback(
             redirect_uri,
             code_verifier=code_verifier,
         )
-    except requests.exceptions.HTTPError as exc:
-        if exc.response is not None and exc.response.status_code == 400:
-            body = exc.response.text or ""
-            if "invalid_grant" in body:
-                return _google_health_message_html(
-                    {
-                        "type": "google-health-error",
-                        "error": "invalid_grant",
-                        "error_description": "Codice OAuth non valido o scaduto. Riprova l'autorizzazione.",
-                    }
-                )
-        raise HTTPException(
-            status_code=502,
-            detail=_http_error_detail(exc, "Google Health token exchange failed"),
-        ) from exc
-    access_token = token_data.get("access_token")
-    if not access_token:
-        raise HTTPException(status_code=400, detail="Failed to get access token from Google Health")
-
-    return _google_health_message_html(
-        {
-            "type": "google-health-success",
-            "token": access_token,
-            "refresh_token": token_data.get("refresh_token", ""),
-        }
-    )
-    _validate_redirect_uri(redirect_uri, request)
-
-    if error:
-        return _google_health_message_html(
-            {
-                "type": "google-health-error",
-                "error": error,
-                "error_description": error_description or "OAuth Google Health fallito",
-            }
-        )
-
-    if not code:
-        return _google_health_message_html(
-            {
-                "type": "google-health-error",
-                "error": "missing_code",
-                "error_description": "Callback OAuth Google Health ricevuto senza codice",
-            }
-        )
-
-    try:
-        token_data = exchange_code_for_token(_s.google_health_client_id, _s.google_health_client_secret, code, redirect_uri)
     except requests.exceptions.HTTPError as exc:
         if exc.response is not None and exc.response.status_code == 400:
             body = exc.response.text or ""

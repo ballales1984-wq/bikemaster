@@ -1,7 +1,8 @@
 <template>
   <div class="panel fitness-chart-panel">
     <h2>📈 Fitness ATL / CTL / TSB</h2>
-    <canvas ref="canvas" height="200" />
+    <canvas ref="canvas"
+height="200" />
   </div>
 </template>
 

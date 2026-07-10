@@ -29,8 +29,9 @@ class="status-badge" :class="{ paused: isPaused }">
       >
         {{ t("tracking.offline") }}
       </div>
-      <div v-if="gpsError"
-class="gps-error">
+      <div
+v-if="gpsError" class="gps-error"
+>
         {{ gpsError }}
       </div>
       <button
@@ -46,8 +47,9 @@ v-if="gpsWaiting" class="gps-waiting">
         <span class="gps-spinner" />
         Acquiring GPS signal... Move outdoors for better accuracy.
       </div>
-      <div v-if="gpsError && !gpsWaiting"
-class="gps-error-banner">
+      <div
+v-if="gpsError && !gpsWaiting" class="gps-error-banner"
+>
         {{ gpsError }}
       </div>
       <LiveMap ref="liveMapRef" />
@@ -95,13 +97,15 @@ const isOnline = ref(
   typeof navigator !== "undefined" ? navigator.onLine : true,
 );
 
+function handleOnline() {
+  isOnline.value = true;
+}
+function handleOffline() {
+  isOnline.value = false;
+}
 if (typeof window !== "undefined") {
-  window.addEventListener("online", () => {
-    isOnline.value = true;
-  });
-  window.addEventListener("offline", () => {
-    isOnline.value = false;
-  });
+  window.addEventListener("online", handleOnline);
+  window.addEventListener("offline", handleOffline);
 }
 
 const liveMapRef = ref<InstanceType<typeof LiveMap> | null>(null);
@@ -281,6 +285,7 @@ function handleWebPosition(position: GeolocationPosition) {
     timestamp: new Date(position.timestamp).toISOString(),
   };
 
+  let distanceDelta = 0;
   if (webLastPoint && webLastPoint.timestampNumber != null) {
     const samePosition = webLastPoint.lat === lat && webLastPoint.lon === lon;
     const elapsedSinceLastMs =
@@ -289,7 +294,7 @@ function handleWebPosition(position: GeolocationPosition) {
       return;
     }
     if (elapsedSinceLastMs > 0) {
-      const distanceDelta = haversineDistanceMeters(
+      distanceDelta = haversineDistanceMeters(
         webLastPoint.lat,
         webLastPoint.lon,
         lat,
@@ -319,7 +324,7 @@ function handleWebPosition(position: GeolocationPosition) {
     : 0;
   const currentSpeed =
     elapsedSinceLastMs > 0
-      ? webDistance / 1000 / (elapsedSinceLastMs / 3600000)
+      ? distanceDelta / 1000 / (elapsedSinceLastMs / 3600000)
       : 0;
 
   tracking.addPoint(point);
@@ -425,6 +430,9 @@ onBeforeUnmount(() => {
   if (tracking.isTracking && !tracking.gpxBlob) {
     stopWebTracking();
   }
+  window.removeEventListener("online", handleOnline);
+  window.removeEventListener("offline", handleOffline);
+  window.BikeTracking?.stopTracking?.();
 });
 </script>
 

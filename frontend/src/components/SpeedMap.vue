@@ -13,9 +13,7 @@ v-if="!loading && !error" class="map-speed-legend">
         <span>{{ minSpeed.toFixed(1) }}</span>
       </div>
     </div>
-    <div
-v-if="error" class="map-error"
->
+    <div v-if="error" class="map-error">
       {{ error }}
     </div>
   </div>
@@ -146,8 +144,19 @@ onMounted(() => {
     return;
   }
 
+  const src = "https://maps.googleapis.com/maps/api/js?key=" + props.apiKey;
+  const existing = document.querySelector(`script[src="${src}"]`);
+  if (existing) {
+    if (window.google?.maps) {
+      loadSpeedPath();
+    } else {
+      existing.addEventListener("load", loadSpeedPath, { once: true });
+    }
+    return;
+  }
+
   const script = document.createElement("script");
-  script.src = "https://maps.googleapis.com/maps/api/js?key=" + props.apiKey;
+  script.src = src;
   script.async = true;
   script.defer = true;
   script.onload = () => loadSpeedPath();

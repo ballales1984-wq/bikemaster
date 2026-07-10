@@ -14,18 +14,14 @@
     </div>
 
     <!-- Loading skeleton -->
-    <div
-v-if="loading && !dashboard.summary" class="skeleton-grid"
->
+    <div v-if="loading && !dashboard.summary" class="skeleton-grid">
       <div v-for="i in 4"
 class="skeleton skeleton-card" :key="i"
 />
     </div>
 
     <!-- Error -->
-    <div
-v-else-if="error" class="error-state"
->
+    <div v-else-if="error" class="error-state">
       <div class="error-icon">⚠️</div>
       <p>{{ error }}</p>
       <button
@@ -34,13 +30,14 @@ class="btn btn-sm" @click="load">Riprova</button>
 
     <template v-else>
       <!-- Score Rings -->
-      <div v-if="dashboard.scores"
-class="score-row">
-        <div v-for="score in scoreCards"
-class="score-ring" :key="score.label">
-          <svg
-viewBox="0 0 80 80" class="ring-svg"
+      <div
+v-if="dashboard.scores" class="score-row"
 >
+        <div
+v-for="score in scoreCards" class="score-ring"
+:key="score.label"
+>
+          <svg viewBox="0 0 80 80" class="ring-svg">
             <circle
 cx="40" cy="40" r="32" class="ring-bg" />
             <circle
@@ -56,9 +53,7 @@ cx="40" cy="40" r="32" class="ring-bg" />
             />
           </svg>
           <div class="ring-label">
-            <div
-class="ring-value" :style="{ color: score.color }"
->
+            <div class="ring-value" :style="{ color: score.color }">
               {{ score.value }}
             </div>
             <div class="ring-name">
@@ -71,8 +66,9 @@ class="ring-value" :style="{ color: score.color }"
       <!-- Main Grid -->
       <div class="dash-grid">
         <!-- Profile Card -->
-        <div v-if="dashboard.athlete"
-class="dash-card profile-card">
+        <div
+v-if="dashboard.athlete" class="dash-card profile-card"
+>
           <div class="card-icon">👤</div>
           <div class="card-body">
             <div class="card-title">
@@ -99,8 +95,9 @@ class="chip"
         </div>
 
         <!-- Stats Card -->
-        <div v-if="dashboard.summary"
-class="dash-card stats-card">
+        <div
+v-if="dashboard.summary" class="dash-card stats-card"
+>
           <div class="card-icon">🚴</div>
           <div class="card-body">
             <div class="card-title">Statistiche Globali</div>
@@ -132,8 +129,9 @@ class="dash-card stats-card">
         </div>
 
         <!-- Fitness State -->
-        <div v-if="dashboard.fitness"
-class="dash-card fitness-card">
+        <div
+v-if="dashboard.fitness" class="dash-card fitness-card"
+>
           <div class="card-icon">📈</div>
           <div class="card-body">
             <div class="card-title">Fitness State</div>
@@ -176,9 +174,7 @@ class="bar-fill tsb" :style="tsbStyle" />
                 </span>
               </div>
             </div>
-            <div
-class="fitness-status" :class="statusClass"
->
+            <div class="fitness-status" :class="statusClass">
               {{ dashboard.fitness.status || "N/D" }}
             </div>
           </div>
@@ -205,20 +201,18 @@ class="fitness-status" :class="statusClass"
               />
             </div>
             <div class="chart-labels">
-              <span
-v-for="d in dayLabels" :key="d"
-class="day-label"
->{{
-                      d
-                    }}</span>
+              <span v-for="d in dayLabels" :key="d" class="day-label">{{
+                d
+              }}</span>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Recent Rides -->
-      <div v-if="dashboard.recent_rides?.length"
-class="dash-section">
+      <div
+v-if="dashboard.recent_rides?.length" class="dash-section"
+>
         <h3>🕐 Uscite Recenti</h3>
         <div class="recent-rides">
           <div
@@ -240,9 +234,7 @@ class="dash-section">
       </div>
 
       <!-- Empty state -->
-      <div
-v-if="!dashboard.summary && !loading" class="empty-state"
->
+      <div v-if="!dashboard.summary && !loading" class="empty-state">
         <div class="empty-icon">📊</div>
         <div class="empty-title">Nessun dato disponibile</div>
         <div class="empty-desc">
@@ -280,14 +272,14 @@ function fmt(v, dec = 1) {
 }
 
 function formatDuration(minutes) {
-  const mins = Number(minutes) || 0
-  const h = Math.floor(mins / 60)
-  const m = Math.floor(mins % 60)
-  const s = Math.floor((mins % 1) * 60)
+  const mins = Number(minutes) || 0;
+  const h = Math.floor(mins / 60);
+  const m = Math.floor(mins % 60);
+  const s = Math.floor((mins % 1) * 60);
   if (h > 0) {
-    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   }
-  return `${m}:${s.toString().padStart(2, '0')}`
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function ringOffset(val) {

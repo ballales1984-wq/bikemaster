@@ -1,6 +1,8 @@
 <template>
-  <div class="controls-bar"
-role="group" aria-label="Tracking controls">
+  <div
+class="controls-bar" role="group"
+aria-label="Tracking controls"
+>
     <button
       v-if="isPaused"
       class="btn btn-primary"

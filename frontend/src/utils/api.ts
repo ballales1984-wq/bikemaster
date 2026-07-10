@@ -99,10 +99,17 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
 }
 
 async function request<T>(options: RequestOptions): Promise<T> {
-  const { path, method = "GET", body, headers = {}, suppressAuthClear, ...rest } = options
-  const isForm = typeof FormData !== "undefined" && body instanceof FormData
+  const {
+    path,
+    method = "GET",
+    body,
+    headers = {},
+    suppressAuthClear,
+    ...rest
+  } = options;
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
   const isUrlSearchParams =
-    typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams
+    typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams;
   const init: RequestInit = {
     ...rest,
     method,
@@ -113,22 +120,24 @@ async function request<T>(options: RequestOptions): Promise<T> {
       ...authHeaders(),
       ...(headers as Record<string, string>),
     } as Record<string, string>,
-    body:
-      (isForm
-        ? (body as BodyInit)
-        : isUrlSearchParams
-          ? (body as URLSearchParams).toString()
-          : body !== undefined
-            ? JSON.stringify(body)
-            : undefined) as BodyInit | undefined,
-  }
+    body: (isForm
+      ? (body as BodyInit)
+      : isUrlSearchParams
+        ? (body as URLSearchParams).toString()
+        : body !== undefined
+          ? JSON.stringify(body)
+          : undefined) as BodyInit | undefined,
+  };
+
+  const idempotent =
+    method === "GET" || method === "HEAD" || method === "OPTIONS";
 
   let resp: Response;
   for (let attempt = 0; ; attempt++) {
     try {
       resp = await fetch(path, init);
     } catch {
-      if (attempt < MAX_RETRIES) {
+      if (idempotent && attempt < MAX_RETRIES) {
         notifyServerWaking();
         await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
         continue;
@@ -138,7 +147,11 @@ async function request<T>(options: RequestOptions): Promise<T> {
         0,
       );
     }
-    if (RETRYABLE_STATUS.has(resp.status) && attempt < MAX_RETRIES) {
+    if (
+      idempotent &&
+      RETRYABLE_STATUS.has(resp.status) &&
+      attempt < MAX_RETRIES
+    ) {
       notifyServerWaking();
       await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
       continue;
@@ -154,8 +167,15 @@ async function request<T>(options: RequestOptions): Promise<T> {
       throw new ApiError("expired", 401);
     }
     const err = await resp.json().catch(() => ({}));
-    const message = extractApiErrorMessage(err) || `${method} ${path}: ${resp.status}`;
+    const message =
+      extractApiErrorMessage(err) || `${method} ${path}: ${resp.status}`;
     throw new ApiError(message, resp.status);
+  }
+  if (
+    resp.status === 204 ||
+    !resp.headers.get("content-type")?.includes("application/json")
+  ) {
+    return {} as T;
   }
   return resp.json() as Promise<T>;
 }

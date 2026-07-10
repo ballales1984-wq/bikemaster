@@ -168,9 +168,7 @@
     </div>
 
     <div class="cta-section">
-      <RouterLink
-to="/" class="btn btn-primary"
->
+      <RouterLink to="/" class="btn btn-primary">
         🏠 Torna all'Accedi
       </RouterLink>
     </div>

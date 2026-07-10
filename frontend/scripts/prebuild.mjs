@@ -8,7 +8,9 @@ if (platform() === "win32") {
       { stdio: "ignore" },
     );
   } catch {
-    console.log("prebuild: skipping Defender exclusion (needs admin or already set)");
+    console.log(
+      "prebuild: skipping Defender exclusion (needs admin or already set)",
+    );
   }
 } else {
   console.log("prebuild: skipping Defender exclusion (Windows only)");

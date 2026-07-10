@@ -19,6 +19,7 @@ from functools import lru_cache
 import numpy as np
 import sqlalchemy as sa
 
+from ..db.models import EMBEDDING_DIMENSION
 from ..settings import get_settings
 
 _s = get_settings()
@@ -33,7 +34,7 @@ logger = logging.getLogger(__name__)
 MAX_CHARS_PER_CHUNK = 1200
 CHUNK_OVERLAP = 200
 CONTEXT_WINDOW_CHARS = 3000
-EMBEDDING_DIMENSION = 1536
+# Embedding dimension matches all-MiniLM-L6-v2 (see db/models.py).
 
 _STOP_WORDS: frozenset[str] = frozenset(
     {

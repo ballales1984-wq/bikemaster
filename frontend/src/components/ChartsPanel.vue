@@ -5,7 +5,8 @@
       <div class="chart-controls">
         <label>
           {{ t("charts.metric") }}
-          <select id="metric-select" name="metric" v-model="selectedMetric">
+          <select id="metric-select"
+name="metric" v-model="selectedMetric">
             <option value="distance_km">Distance (km)</option>
             <option value="avg_speed_kmh">Avg Speed (km/h)</option>
             <option value="duration_minutes">Duration (min)</option>
@@ -15,7 +16,8 @@
         </label>
         <label>
           {{ t("charts.window") }}
-          <select id="window-select" name="window" v-model="windowSize">
+          <select id="window-select"
+name="window" v-model="windowSize">
             <option value="3">3 rides</option>
             <option value="7">7 rides</option>
             <option value="14">14 rides</option>
@@ -27,8 +29,9 @@
         <div class="chart-card">
           <h3>Trend {{ metricLabel }}</h3>
           <canvas ref="trendCanvas" />
-          <div v-if="trendData.ready"
-class="chart-summary">
+          <div
+v-if="trendData.ready" class="chart-summary"
+>
             <span :class="trendClass">{{ trendData.trend }}</span>
             <span>R²: {{ trendData.r2 }}</span>
             <span>Mean: {{ trendData.mean?.toFixed(1) }}</span>
@@ -41,8 +44,9 @@ class="chart-summary">
         <div class="chart-card">
           <h3>{{ t("charts.periodComparison") }}</h3>
           <canvas ref="comparisonCanvas" />
-          <div v-if="comparisonData.ready"
-class="chart-summary">
+          <div
+v-if="comparisonData.ready" class="chart-summary"
+>
             <span :class="trendClass"
               >{{ comparisonData.distance_change_pct >= 0 ? "+" : ""
               }}{{ comparisonData.distance_change_pct }}% km</span
@@ -60,6 +64,7 @@ class="chart-summary">
 
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from "vue";
+import Chart from "chart.js/auto";
 import { useI18n } from "../composables/useI18n";
 import { apiGet } from "../utils/api";
 

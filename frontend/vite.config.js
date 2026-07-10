@@ -51,7 +51,8 @@ export default defineConfig({
           {
             urlPattern: ({ url }) =>
               url.pathname.startsWith("/api/") &&
-              (url.pathname.includes("/auth/") || url.pathname.includes("/auth")),
+              (url.pathname.includes("/auth/") ||
+                url.pathname.includes("/auth")),
             handler: "NetworkFirst",
             options: {
               cacheName: "bikemaster-api",

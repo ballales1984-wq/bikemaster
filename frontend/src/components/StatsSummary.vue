@@ -1,38 +1,26 @@
 <template>
-  <div
-class="stats" aria-label="General Statistics"
->
-    <div
-class="stat-card" role="status"
->
+  <div class="stats" aria-label="General Statistics">
+    <div class="stat-card" role="status">
       <div class="stat-value">
         {{ animatedRides }}
       </div>
       <div class="stat-label">Rides</div>
     </div>
-    <div
-class="stat-card" role="status"
->
+    <div class="stat-card" role="status">
       <div class="stat-value">{{ animatedDistance }} km</div>
       <div class="stat-label">Total Distance</div>
     </div>
-    <div
-class="stat-card" role="status"
->
+    <div class="stat-card" role="status">
       <div class="stat-value">
         {{ animatedCalories }}
       </div>
       <div class="stat-label">Calories</div>
     </div>
-    <div
-class="stat-card" role="status"
->
+    <div class="stat-card" role="status">
       <div class="stat-value">{{ animatedSpeed }} km/h</div>
       <div class="stat-label">Avg Speed</div>
     </div>
-    <div
-class="stat-card" role="status"
->
+    <div class="stat-card" role="status">
       <div class="stat-value">{{ animatedHours }} h</div>
       <div class="stat-label">Total Hours</div>
     </div>

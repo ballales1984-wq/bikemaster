@@ -32,10 +32,13 @@
     </div>
 
     <!-- Score cards -->
-    <div v-if="scores.length"
-class="score-strip">
-      <div v-for="s in scores"
-class="score-pill" :key="s.label">
+    <div
+v-if="scores.length" class="score-strip"
+>
+      <div
+v-for="s in scores" class="score-pill"
+:key="s.label"
+>
         <span class="pill-val"
 :style="{ color: s.color }"
 >{{ s.value }}</span>
@@ -44,11 +47,13 @@ class="score-pill" :key="s.label">
     </div>
 
     <!-- Chat window -->
-    <div ref="chatWindow"
-class="chat-window">
+    <div
+ref="chatWindow" class="chat-window"
+>
       <!-- Welcome message -->
-      <div v-if="messages.length === 0"
-class="message bot-msg">
+      <div
+v-if="messages.length === 0" class="message bot-msg"
+>
         <div class="msg-avatar">🧠</div>
         <div class="msg-content">
           <div class="msg-bubble">
@@ -78,7 +83,8 @@ class="message bot-msg">
           {{ msg.role === "user" ? "🚴" : "🧠" }}
         </div>
         <div class="msg-content">
-          <div class="msg-bubble" v-html="formatMsg(msg.content)" />
+          <div class="msg-bubble"
+v-html="formatMsg(msg.content)" />
           <div class="msg-time">
             {{ msg.time }}
           </div>
@@ -86,8 +92,9 @@ class="message bot-msg">
       </div>
 
       <!-- Typing indicator -->
-      <div v-if="thinking"
-class="message bot-msg">
+      <div
+v-if="thinking" class="message bot-msg"
+>
         <div class="msg-avatar">🧠</div>
         <div class="msg-content">
           <div class="msg-bubble typing-bubble">
