@@ -161,13 +161,18 @@ def create_app() -> FastAPI:
         response = await call_next(request)
         elapsed_ms = int((time.time() - start) * 1000)
         request_id = getattr(request.state, "request_id", "-")
+        # Honor X-Forwarded-For behind a reverse proxy so the audit log records
+        # the real client IP instead of the proxy's.
+        client_ip = _forwarded_value(request.headers.get("x-forwarded-for")) or (
+            request.client.host if request.client else "unknown"
+        )
         logger.info(
             "AUDIT %s %s %s user=%s ip=%s %dms request_id=%s",
             request.method,
             request.url.path,
             response.status_code,
             user_id,
-            request.client.host if request.client else "unknown",
+            client_ip,
             elapsed_ms,
             request_id,
             extra={"request_id": request_id},
@@ -183,7 +188,9 @@ def create_app() -> FastAPI:
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        if _s.environment.lower() in ("production", "prod"):
+        response.headers["Permissions-Policy"] = "geolocation=(self), microphone=(), camera=()"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        if _s.environment.lower() in ("production", "prod", "staging"):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; img-src 'self' data: https:; "

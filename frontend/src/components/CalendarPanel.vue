@@ -22,7 +22,7 @@
         </div>
         <div class="athlete-select">
           <label>{{ t("calendar.athlete") }}:</label>
-          <select v-model.number="athleteId" @change="loadEvents">
+          <select id="athlete-select" name="athleteId" v-model.number="athleteId" @change="loadEvents">
             <option :value="0">
               {{ t("calendar.general") }}
             </option>

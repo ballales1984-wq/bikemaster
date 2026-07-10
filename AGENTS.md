@@ -76,10 +76,13 @@ pytest                      # test Python (tests/)
 ### Token storage
 - Il JWT è letto/scritto da **`localStorage`** (chiave `bikemaster_token`,
   `bikemaster_user`, `bikemaster_just_logged_in`).
-- `utils/api.ts` `clearAuth()` rimuove solo le chiavi localStorage su 401 e lancia
-  `'expired'`. Non reindirizza e non fa logout silenzioso nello store: chi chiama
-  deve gestire lo stato inconsistente. (Opportunità di miglioramento: toast
-  "Sessione scaduta" + logout silenzioso nello store.)
+- `utils/api.ts` `request()` su 401 (senza `suppressAuthClear`) chiama
+  `clearAuth()` (rimuove le chiavi localStorage), lancia `ApiError("expired", 401)`
+  e, tramite `notifySessionExpired()`, mostra il toast "Sessione scaduta" ed esegue
+  un **logout silenzioso** nello store (`auth.logout()`). `logout()` richiama anche
+  `POST /api/v1/auth/logout` (no-op perché il token è già stato cancellato).
+  Nota: il logout silenzioso è già implementato; AGENTS.md versioni precedenti
+  lo descrivevano come mancante.
 
 ### Flusso login
 1. `auth.login()` (stores/auth.ts:63) chiama `POST /api/v1/auth/login`

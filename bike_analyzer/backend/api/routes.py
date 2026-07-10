@@ -144,16 +144,6 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
     if not parsed.hostname:
         raise HTTPException(status_code=400, detail="Invalid redirect_uri")
     host_lower = parsed.hostname.lower()
-    dynamic_hosts = set()
-    if request is not None:
-        req_origin = _forwarded_value(request.headers.get("origin"))
-        if req_origin:
-            try:
-                req_host = urlparse(req_origin).hostname
-                if req_host:
-                    dynamic_hosts.add(req_host.lower())
-            except ValueError:
-                pass
     cors_hosts = set()
     try:
         cors_list = _s.cors_origins_list if hasattr(_s, "cors_origins_list") else []
@@ -164,11 +154,17 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
                 pass
     except Exception:
         pass
+    configured_hosts = set()
+    if hasattr(_s, "oauth_allowed_hosts_list"):
+        configured_hosts = set(_s.oauth_allowed_hosts_list)
     localhost_ports = {"localhost", "127.0.0.1", "0.0.0.0"}
     if host_lower in localhost_ports:
         return
+    # NOTE: the request Origin header is intentionally NOT trusted here.
+    # Allowing it would let an attacker craft redirect_uri=https://evil.com with
+    # Origin: https://evil.com and achieve an open redirect.
     allowed_hosts = (
-        {"bikemaster.onrender.com", "testserver"} | cors_hosts | dynamic_hosts
+        {"bikemaster.onrender.com", "testserver"} | cors_hosts | configured_hosts
     )
     if host_lower not in allowed_hosts:
         raise HTTPException(status_code=400, detail="Invalid redirect_uri host")
@@ -317,7 +313,12 @@ async def alerts_webhook(request: Request):
 
 @router.get("/sentry-debug")
 async def sentry_debug():
-    """Debug endpoint to verify Sentry error tracking."""
+    """Debug endpoint to verify Sentry error tracking.
+
+    Only available outside production to avoid exposing a crash endpoint.
+    """
+    if _s.environment.lower() in ("production", "prod"):
+        raise HTTPException(status_code=404, detail="Not found")
     raise ZeroDivisionError("Sentry sentinel")
 
 
@@ -438,10 +439,10 @@ async def logout(request: Request, current_user: dict = Depends(get_current_user
 @router.post("/auth/refresh")
 @limiter.limit("10/minute")
 async def refresh_token(request: Request, payload: RefreshTokenRequest):
-    from ..security import _try_decode, create_access_token, is_token_revoked
+    from ..security import decode_token_with_fallback, create_access_token, is_token_revoked
 
     refresh_token = payload.refresh_token
-    jwt_payload = _try_decode(refresh_token, _s.secret_key)
+    jwt_payload = await decode_token_with_fallback(refresh_token)
     if not jwt_payload:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
     if jwt_payload.get("type") != "refresh":
@@ -467,15 +468,18 @@ async def refresh_token(request: Request, payload: RefreshTokenRequest):
 @limiter.limit("3/minute")
 async def register(
     request: Request,
-    username: str = Body(..., min_length=3),
-    password: str = Body(..., min_length=6),
+    username: str = Body(..., min_length=3, max_length=64),
+    password: str = Body(..., min_length=8, max_length=128),
     email: str = Body(None),
 ):
     from ..db.database import get_athlete_by_email, get_athlete_by_name, save_athlete
     from ..security import hash_password
 
-    if len(username) < 3 or len(password) < 6:
-        raise HTTPException(status_code=400, detail="Username must be >= 3 chars, password >= 6")
+    if len(username) < 3 or len(username) > 64 or len(password) < 8 or len(password) > 128:
+        raise HTTPException(
+            status_code=400,
+            detail="Username must be 3-64 chars, password 8-128 chars",
+        )
 
     if _s.database_url:
         from sqlalchemy import select
