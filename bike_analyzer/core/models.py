@@ -88,6 +88,9 @@ class Ride:
     title: str | None = None
     gps_points: list[GPSPoint] | None = None
     created_at: str | None = None
+    activity_type: str = "ride"
+    is_official: bool = True
+    source: str = "manual"
 
     @property
     def duration_hours(self) -> float:
@@ -106,6 +109,9 @@ class Ride:
             "heart_rate_avg": self.heart_rate_avg,
             "elevation_gain_m": self.elevation_gain_m,
             "created_at": self.created_at,
+            "activity_type": self.activity_type,
+            "is_official": self.is_official,
+            "source": self.source,
         }
         if self.gps_points:
             result["gps_points"] = [
