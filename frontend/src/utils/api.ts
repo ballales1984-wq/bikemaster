@@ -92,10 +92,14 @@ function notifyServerWaking() {
 interface RequestOptions extends Omit<RequestInit, "body"> {
   path: string;
   body?: unknown;
+  // When true, a 401 response does NOT clear the stored session or trigger a
+  // "session expired" logout. Used by the OAuth-return profile check, where a
+  // transient 401 must never wipe a freshly established session.
+  suppressAuthClear?: boolean;
 }
 
 async function request<T>(options: RequestOptions): Promise<T> {
-  const { path, method = "GET", body, headers = {}, ...rest } = options
+  const { path, method = "GET", body, headers = {}, suppressAuthClear, ...rest } = options
   const isForm = typeof FormData !== "undefined" && body instanceof FormData
   const isUrlSearchParams =
     typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams
@@ -144,7 +148,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
 
   wakingNotified = false;
   if (!resp.ok) {
-    if (resp.status === 401) {
+    if (resp.status === 401 && !suppressAuthClear) {
       clearAuth();
       notifySessionExpired();
       throw new ApiError("expired", 401);

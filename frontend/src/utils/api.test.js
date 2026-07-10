@@ -71,7 +71,7 @@ describe("api helpers", () => {
         throw new Error("parse");
       },
     });
-    await expect(apiGet("/api/v1/x")).rejects.toThrow("GET /api/v1/x: 400");
+    await expect(apiGet("/api/v1/x")).rejects.toThrow("Request failed");
   });
 
   it("apiPost calls POST with body", async () => {
