@@ -293,6 +293,19 @@ def test_model_result_compare_with():
     assert comp["other"] == "B"
 
 
+def test_model_result_repr_and_from_dict():
+    from bike_analyzer.bm2.algorithms.base import ModelResult
+    r = ModelResult(value=100.0, unit="W", formula="test", data_used=[],
+                    precision=5.0, confidence=0.8, source="test")
+    s = repr(r)
+    assert "ModelResult" in s
+    assert "test" in s
+    r2 = ModelResult.from_dict(r.to_dict())
+    assert r2.value == r.value
+    assert r2.unit == r.unit
+    assert r2.confidence == r.confidence
+
+
 # --- Simulation Engine: preset, override combinati, sensitivita' -----------
 
 def test_scenario_presets_are_valid_overrides():

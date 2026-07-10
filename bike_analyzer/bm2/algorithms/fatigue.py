@@ -43,6 +43,8 @@ class FatigueModel(Algorithm):
         )
         precision = 0.8
         confidence = 0.75 if m["duration_s"] > 0 else 0.3
+        if ctx.athlete.max_hr_bpm is not None:
+            confidence = min(confidence + 0.05, 0.85)
         return score, precision, confidence
 
     def _recovery_hours(self, score: float) -> float:

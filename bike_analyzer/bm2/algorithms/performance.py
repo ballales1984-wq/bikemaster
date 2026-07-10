@@ -31,6 +31,8 @@ class PerformanceModel(Algorithm):
         index = max(0.0, min(v_kmh / ref * 100.0, 120.0))
         precision = 6.0
         confidence = 0.7 if v_kmh > 0 else 0.3
+        if ctx.athlete.experience_level in ("Advanced", "Elite"):
+            confidence = min(confidence + 0.05, 0.85)
         return index, precision, confidence
 
     def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:

@@ -56,6 +56,23 @@ class ModelResult:
             "details": self.details,
         }
 
+    @classmethod
+    def from_dict(cls, d: dict) -> "ModelResult":
+        return cls(
+            value=d.get("value", 0.0),
+            unit=d.get("unit", ""),
+            formula=d.get("formula", ""),
+            data_used=d.get("data_used", []),
+            precision=d.get("precision", 0.0),
+            confidence=d.get("confidence", 0.0),
+            source=d.get("source", ""),
+            details=d.get("details", {}),
+        )
+
+    def __repr__(self) -> str:
+        return (f"ModelResult({self.source}: {self.value:.3g} {self.unit} "
+                f"±{self.precision:.3g}, conf={self.confidence:.2f})")
+
     def uncertainty_bounds(self) -> tuple[float, float]:
         """Intervallo di incertezza: (value - precision, value + precision)."""
         return (self.value - self.precision, self.value + self.precision)
