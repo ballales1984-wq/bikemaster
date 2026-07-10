@@ -42,6 +42,12 @@ const routes = [
     meta: { requiresAuth: true, title: "Knowledge Base" },
   },
   {
+    path: "/bm2",
+    name: "bm2",
+    component: () => import("../components/Bm2Panel.vue"),
+    meta: { requiresAuth: true, title: "BikeMaster 2.0" },
+  },
+  {
     path: "/calendar",
     name: "calendar",
     component: () => import("../components/CalendarPanel.vue"),
