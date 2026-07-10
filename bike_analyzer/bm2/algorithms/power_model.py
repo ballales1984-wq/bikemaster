@@ -9,9 +9,6 @@ from .base import Algorithm
 
 __all__ = ["PowerModel"]
 
-G = 9.81
-RHO = 1.225
-
 
 class PowerModel(Algorithm):
     name = "PowerModel"
@@ -24,28 +21,41 @@ class PowerModel(Algorithm):
     @staticmethod
     def _power_for_speed(v_ms: float, mass_kg: float, slope_pct: float,
                          crr: float, cda: float, eta: float, wind_ms: float = 0.0) -> float:
-        slope = slope_pct / 100.0
-        v_air = max(v_ms + wind_ms, 0.0)
-        f_roll = crr * mass_kg * G
-        f_grav = mass_kg * G * slope
-        f_air = 0.5 * RHO * cda * (v_air ** 2)
-        return (f_roll + f_grav + f_air) * v_ms / max(eta, 1e-3)
+        return Algorithm._cycling_forces(mass_kg, slope_pct, crr, cda, v_ms, wind_ms, eta)["power_w"]
 
     @staticmethod
-    def _speed_for_power(ftp_w: float, mass_kg: float, slope_pct: float,
+    def _speed_for_power(target_w: float, mass_kg: float, slope_pct: float,
                          crr: float, cda: float, eta: float, wind_ms: float = 0.0) -> float:
-        if ftp_w <= 0:
+        """Risoluzione numerica (Newton) di P = f(v) per la velocità sostenibile."""
+        if target_w <= 0:
             return 0.0
         slope = slope_pct / 100.0
-        f_grav = mass_kg * G * slope
-        f_roll = crr * mass_kg * G
-        a = 0.5 * RHO * cda / max(eta, 1e-3)
-        b = f_roll + f_grav + 0.5 * RHO * cda * (wind_ms ** 2) / max(eta, 1e-3)
-        c = -ftp_w
-        disc = b * b - 4 * a * c
-        if disc < 0:
-            disc = 0.0
-        return (-b + disc ** 0.5) / (2 * a)
+        f_roll = crr * mass_kg * Algorithm.G
+        f_grav = mass_kg * Algorithm.G * slope
+        a = 0.5 * Algorithm.RHO * cda
+        b = a * (wind_ms ** 2)
+
+        def f(v: float) -> float:
+            return target_w * eta / max(v, 1e-6) - (f_roll + f_grav) - a * ((v + wind_ms) ** 2)
+
+        def fp(v: float) -> float:
+            return -target_w * eta / max(v * v, 1e-6) - 2.0 * a * (v + wind_ms)
+
+        v = 2.0
+        for _ in range(48):
+            fv = f(v)
+            if abs(fv) < 1e-3:
+                break
+            fvp = fp(v)
+            if abs(fvp) < 1e-9:
+                break
+            step = fv / fvp
+            step = max(min(step, v * 0.5), -v * 0.5)
+            v -= step
+            if v <= 1e-3:
+                v = 1e-3
+                break
+        return max(v, 0.0)
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
         m = ctx.activity.metrics(ctx.transformer)
@@ -58,25 +68,25 @@ class PowerModel(Algorithm):
 
         power_from_sensors = self._avg_power_from_sensors(ctx)
         if power_from_sensors > 0:
-            precision = 5.0
-            confidence = 0.9
-            return power_from_sensors, precision, confidence
+            confidence = self._confidence_for_source("power_meter", 0.9)
+            return power_from_sensors, 5.0, confidence
 
         if ftp <= 0:
             est_power = self._power_for_speed(m["avg_speed_ms"], mass, slope,
                                               ctx.bike.crr, ctx.bike.cda,
                                               ctx.bike.drivetrain_efficiency, wind)
-            precision = est_power * 0.25
             confidence = 0.5
-            return est_power, precision, confidence
+            if ctx.athlete.weight_kg.source != "estimate":
+                confidence = 0.6
+            return est_power, est_power * 0.25, confidence
 
         v_ftp = self._speed_for_power(ftp, mass, slope, ctx.bike.crr,
                                       ctx.bike.cda, ctx.bike.drivetrain_efficiency, wind)
         est_power = self._power_for_speed(v_ftp, mass, slope, ctx.bike.crr,
                                           ctx.bike.cda, ctx.bike.drivetrain_efficiency, wind)
-        precision = est_power * 0.18
-        confidence = 0.75 if ftp > 0 else 0.4
-        return est_power, precision, confidence
+        ftp_source = ctx.athlete.ftp_w.source if ctx.athlete.ftp_w else "estimate"
+        confidence = self._confidence_for_source(ftp_source, 0.75)
+        return est_power, est_power * 0.18, confidence
 
     @staticmethod
     def _avg_power_from_sensors(ctx: AnalysisContext) -> float:
@@ -95,13 +105,13 @@ class PowerModel(Algorithm):
         if ftp > 0:
             v_ftp = self._speed_for_power(ftp, mass, slope, ctx.bike.crr,
                                           ctx.bike.cda, ctx.bike.drivetrain_efficiency, wind)
-        est_power = self._power_for_speed(v_ftp or m["avg_speed_ms"], mass, slope,
-                                          ctx.bike.crr, ctx.bike.cda,
-                                          ctx.bike.drivetrain_efficiency, wind)
+        forces = self._cycling_forces(mass, slope, ctx.bike.crr, ctx.bike.cda,
+                                      v_ftp or m["avg_speed_ms"], wind,
+                                      ctx.bike.drivetrain_efficiency)
         return {
             "ftp_w": ftp,
             "sustainable_speed_ms": round(v_ftp, 3) if v_ftp > 0 else None,
-            "estimated_power_w": round(est_power, 1),
+            "estimated_power_w": round(forces["power_w"], 1),
             "avg_speed_ms": round(m["avg_speed_ms"], 3),
             "slope_percent": slope,
             "sensor_avg_power_w": round(self._avg_power_from_sensors(ctx), 1),

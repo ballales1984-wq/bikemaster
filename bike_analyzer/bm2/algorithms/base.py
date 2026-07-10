@@ -4,9 +4,9 @@ Principio fondamentale del sistema: ogni risultato deve riportare
 
     RISULTATO + formula usata + dati utilizzati + precisione + fonte
 
-questo è incapsulato in :class:`ModelResult`. Ogni algoritmo dichiara i
-suoi input richiesti e produce sempre un :class:`ModelResult` normalizzato.
-"""
+ questo è incapsulato in :class:`ModelResult`. Ogni algoritmo dichiara i
+ suoi input richiesti e produce sempre un :class:`ModelResult` normalizzato.
+ """
 
 from __future__ import annotations
 
@@ -76,6 +76,21 @@ class ModelResult:
 class Algorithm(ABC):
     """Base di tutti gli algoritmi del Model Engine."""
 
+    G = 9.81            # m/s^2
+    RHO = 1.225         # densità aria kg/m^3
+    SOURCE_CONFIDENCE: dict[str, float] = {
+        "power_meter": 0.95,
+        "hr_band": 0.8,
+        "hr_sensor": 0.85,
+        "gps": 0.85,
+        "gps/dem": 0.75,
+        "baro": 0.8,
+        "manual": 0.8,
+        "scale": 0.9,
+        "dem": 0.7,
+        "estimate": 0.5,
+    }
+
     name: str = "algorithm"
     formula: str = ""
     description: str = ""
@@ -110,3 +125,25 @@ class Algorithm(ABC):
     @staticmethod
     def _has(value: Optional[Quantity]) -> bool:
         return value is not None and value.value != 0.0
+
+    @classmethod
+    def _cycling_forces(cls, mass_kg: float, slope_pct: float, crr: float, cda: float,
+                        v_ms: float, wind_ms: float = 0.0, eta: float = 1.0) -> dict:
+        """Forze di resistenza e potenza meccanica richiesta."""
+        slope = slope_pct / 100.0
+        v_air = max(v_ms + wind_ms, 0.0)
+        f_roll = crr * mass_kg * cls.G
+        f_grav = mass_kg * cls.G * slope
+        f_air = 0.5 * cls.RHO * cda * (v_air ** 2)
+        p = (f_roll + f_grav + f_air) * v_ms / max(eta, 1e-3)
+        return {"roll": f_roll, "grav": f_grav, "air": f_air, "power_w": p}
+
+    @classmethod
+    def _source_confidence(cls, source: str, default: float = 0.7) -> float:
+        """Affidabilità di base per fonte dati (0..1)."""
+        return cls.SOURCE_CONFIDENCE.get(source, default)
+
+    @classmethod
+    def _confidence_for_source(cls, source: str, base: float = 1.0) -> float:
+        """Scala una confidenza base con la qualità della fonte (capped a 1)."""
+        return min(1.0, base * cls._source_confidence(source))

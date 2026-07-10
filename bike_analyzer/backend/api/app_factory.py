@@ -23,6 +23,7 @@ from ..rate_limiter import limiter
 from ..redis_client import close_redis, get_redis
 from ..settings import get_settings
 from ..task_queue import get_task_queue
+from .bm2_routes import bm2_router
 from .routes import admin_router, router
 from .utils import _trusted_forwarded_value
 
@@ -237,6 +238,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
+    app.include_router(bm2_router, prefix="/api/v1/bm2", tags=["bm2"])
 
     if STATIC_DIR.exists() and INDEX_FILE.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

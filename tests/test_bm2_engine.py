@@ -221,7 +221,7 @@ def test_power_model_with_sensor_power():
     ctx = AnalysisContext(athlete=athlete, activity=activity, bike=bike, world=world, transformer=t)
     r = PowerModel().run(ctx)
     assert r.value == pytest.approx(210.0, abs=1.0)
-    assert r.confidence >= 0.9
+    assert r.confidence == pytest.approx(0.855, abs=0.01)
 
 
 def test_training_load_with_history():
