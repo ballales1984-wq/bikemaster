@@ -2,6 +2,15 @@
 
 Tutte le modifiche significative a questo progetto sono documentate in questo file.
 
+## [1.5.0] - 2026-07-10
+
+### Aggiunte
+- **Integrazione Strava end-to-end** — UI di connessione in `ImportPanel.vue` (pulsanti Connetti/Importa/Disconnetti Strava), flusso OAuth2 + PKCE popup, chiave `strava` in `GET /import/providers`
+- Endpoint: `GET /import/strava/auth`, `POST /import/strava/callback`, `POST /import/strava/sync`, `DELETE /import/strava/disconnect`
+- Verificato su Render: connessione → autorizzazione → import attività e aggiornamento dashboard
+
+---
+
 ## [1.4.0] - 2026-06-22
 
 ### Aggiunte
