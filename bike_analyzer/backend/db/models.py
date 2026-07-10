@@ -131,6 +131,27 @@ class FitnessStateModel(Base):
     recommendation: Mapped[str | None] = mapped_column(Text)
 
 
+class POIModel(Base):
+    """Point of Interest (vista, fontana, ristoro, bivio, pericolo, culturale, tecnico)."""
+
+    __tablename__ = "pois"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+    lon: Mapped[float] = mapped_column(Float, nullable=False)
+    type: Mapped[str] = mapped_column(String, nullable=False)
+    photos: Mapped[str | None] = mapped_column(Text)
+    video_url: Mapped[str | None] = mapped_column(String)
+    difficulty_note: Mapped[str | None] = mapped_column(Text)
+    tags: Mapped[str | None] = mapped_column(Text)
+    itinerary_id: Mapped[int | None] = mapped_column(Integer)
+    created_by: Mapped[int | None] = mapped_column(Integer)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class KnowledgeChunkModel(Base):
     """Knowledge base chunk for PGVector similarity search (optional)."""
 
@@ -156,5 +177,6 @@ __all__ = [
     "AthleteModel",
     "RideModel",
     "FitnessStateModel",
+    "POIModel",
     "KnowledgeChunkModel",
 ]

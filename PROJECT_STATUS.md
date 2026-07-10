@@ -410,7 +410,7 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 ## OAuth2 Integrations
 
 - **Google OAuth2** — `/auth/google` + `/auth/google/callback` endpoints
-- **Strava OAuth2 + PKCE** — `/auth/strava` + `/auth/strava/callback` endpoints
+- **Strava OAuth2 + PKCE** — `/import/strava/auth` + `/import/strava/callback` endpoints
 - **Garmin Connect OAuth2** — Client completo con token storage e refresh
 - **Google Fit OAuth2** — `/import/google-fit/auth` + `/import/google-fit/token`
 

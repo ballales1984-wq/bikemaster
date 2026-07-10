@@ -34,7 +34,7 @@ let oauthFinalized = false;
 async function finalizeOAuthReturn() {
   if (oauthFinalized || !auth.isLoggedIn) return;
   oauthFinalized = true;
-  let profileComplete = false;
+  let profileComplete = true;
   try {
     const data = await apiGet<{ profile_complete?: boolean }>(
       "/api/v1/auth/me",
@@ -46,7 +46,7 @@ async function finalizeOAuthReturn() {
     );
     profileComplete = data.profile_complete === true;
   } catch {
-    profileComplete = false;
+    profileComplete = true;
   }
   auth.setJustLoggedIn(false);
   ui.setOauthLoading(false);
@@ -98,10 +98,17 @@ if ("serviceWorker" in navigator) {
 app.mount("#app");
 
 // If the OAuth (Google) return was consumed during bootstrap (full document
-// load), finalize the post-login navigation now that the router is mounted.
-// The router guard also handles this, but doing it explicitly guarantees the
-// user never lands on the empty home route regardless of how the return
-// arrived (full reload vs. same-document fragment navigation).
-if (auth.justLoggedIn) {
-  finalizeOAuthReturn();
-}
+// load), the guard already finalizes the navigation as part of the initial
+// route resolution. Re-running finalizeOAuthReturn here *before* that initial
+// navigation has settled races with the guard's `next()` (both issue a
+// navigation) and, depending on timing, can cancel the redirect and strand the
+// user on the empty "/" home route until a manual refresh. So wait for the
+// initial navigation to settle, then only finalize if the guard didn't already
+// move us off "/". The same-document (fragment) return path reaches this via
+// the hashchange/pageshow listeners below, where the router is already ready.
+router
+  .isReady()
+  .then(() => {
+    if (auth.justLoggedIn) finalizeOAuthReturn();
+  })
+  .catch(() => {});

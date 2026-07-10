@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import sqlite3
 from contextlib import contextmanager
@@ -236,6 +237,23 @@ def init_db():
             FOREIGN KEY (ride_id) REFERENCES rides(id),
             FOREIGN KEY (athlete_id) REFERENCES athletes(id)
          )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS pois (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT NOT NULL,
+            lat REAL NOT NULL,
+            lon REAL NOT NULL,
+            type TEXT NOT NULL,
+            photos TEXT,
+            video_url TEXT,
+            difficulty_note TEXT,
+            tags TEXT,
+            itinerary_id INTEGER,
+            created_by INTEGER,
+            tenant_id INTEGER DEFAULT 0,
+            created_at TEXT
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_pois_coords ON pois(lat, lon)")
         conn.commit()
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(rides)")
@@ -1416,6 +1434,122 @@ def get_athlete_by_query(**query):
     return _shim(get_athlete_by_name, **query)
 
 
+def _row_to_poi(row) -> dict:
+    keys = row.keys() if hasattr(row, "keys") else []
+    def _col(name, default=None):
+        return row[name] if name in keys else default
+    photos = _col("photos")
+    tags = _col("tags")
+    return {
+        "id": _col("id"),
+        "name": _col("name"),
+        "description": _col("description"),
+        "lat": _col("lat"),
+        "lon": _col("lon"),
+        "type": _col("type"),
+        "photos": json.loads(photos) if photos else [],
+        "video_url": _col("video_url"),
+        "difficulty_note": _col("difficulty_note"),
+        "tags": json.loads(tags) if tags else [],
+        "itinerary_id": _col("itinerary_id"),
+        "created_by": _col("created_by"),
+        "tenant_id": _col("tenant_id", 0),
+        "created_at": _col("created_at"),
+    }
+
+
+def save_poi(poi: dict) -> int:
+    """Create a Point of Interest. Returns the new row id."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO pois
+            (name, description, lat, lon, type, photos, video_url,
+             difficulty_note, tags, itinerary_id, created_by, tenant_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                poi.get("name"),
+                poi.get("description"),
+                poi.get("lat"),
+                poi.get("lon"),
+                poi.get("type"),
+                json.dumps(poi.get("photos", [])),
+                poi.get("video_url"),
+                poi.get("difficulty_note"),
+                json.dumps(poi.get("tags", [])),
+                poi.get("itinerary_id"),
+                poi.get("created_by"),
+                poi.get("tenant_id", 0),
+                datetime.now(UTC).isoformat(),
+            ),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def get_poi(poi_id: int) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM pois WHERE id = ?", (poi_id,))
+        row = cur.fetchone()
+        return _row_to_poi(row) if row else None
+
+
+def get_nearby_pois(lat: float, lon: float, radius_km: float = 5.0) -> list[dict]:
+    """Return POIs within ``radius_km`` of (lat, lon) using the haversine distance.
+
+    A coarse lat/lon bounding box narrows the candidate set before the exact
+    distance filter, which keeps the query efficient without PostGIS.
+    """
+    from ...core.models import haversine_distance_m
+
+    radius_m = max(0.0, radius_km) * 1000.0
+    delta_lat = radius_km / 111.0
+    delta_lon = radius_km / (111.320 * max(0.000001, abs(math.cos(math.radians(lat)))))
+
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM pois WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?",
+            (lat - delta_lat, lat + delta_lat, lon - delta_lon, lon + delta_lon),
+        )
+        rows = cur.fetchall()
+
+    nearby = []
+    for row in rows:
+        poi = _row_to_poi(row)
+        distance_m = haversine_distance_m(lat, lon, poi["lat"], poi["lon"])
+        if distance_m <= radius_m:
+            poi["distance_m"] = round(distance_m)
+            nearby.append(poi)
+    nearby.sort(key=lambda p: p["distance_m"])
+    return nearby
+
+
+def list_pois(itinerary_id: int | None = None) -> list[dict]:
+    """Return all POIs, optionally filtered by ``itinerary_id``."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if itinerary_id is not None:
+            cur.execute(
+                "SELECT * FROM pois WHERE itinerary_id = ? ORDER BY id DESC",
+                (itinerary_id,),
+            )
+        else:
+            cur.execute("SELECT * FROM pois ORDER BY id DESC")
+        rows = cur.fetchall()
+    return [_row_to_poi(r) for r in rows]
+
+
+def delete_poi(poi_id: int) -> bool:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM pois WHERE id = ?", (poi_id,))
+        deleted = cur.rowcount > 0
+        conn.commit()
+        return deleted
+
+
 __all__ = [
     "save_ride",
     "get_ride",
@@ -1455,6 +1589,11 @@ __all__ = [
     "save_road_incident",
     "save_route_safety_score",
     "get_route_safety_score",
+    "save_poi",
+    "get_poi",
+    "get_nearby_pois",
+    "list_pois",
+    "delete_poi",
     "save_user",
     "get_user_by_username",
     "get_user_by_id",

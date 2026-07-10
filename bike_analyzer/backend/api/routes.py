@@ -66,6 +66,8 @@ from .schemas import (
     GoogleHealthImportPayload,
     GranfondoPlanRequest,
     MetricCreate,
+    POICreate,
+    POIResponse,
     ProfileUpdate,
     RefreshTokenRequest,
     RideAnalysisRequest,
@@ -359,6 +361,72 @@ async def google_maps_key(request: Request, current_user: dict = Depends(get_cur
         if urlparse(origin).netloc not in allowed:
             raise HTTPException(status_code=403, detail="Origin not allowed")
     return {"google_maps_api_key": _s.google_maps_api_key or ""}
+
+
+@router.get("/maps/pois/nearby")
+async def get_nearby_pois(
+    lat: float = Query(..., ge=-90, le=90, description="Latitude of the search center"),
+    lon: float = Query(..., ge=-180, le=180, description="Longitude of the search center"),
+    radius: float = Query(5.0, ge=0.1, le=200, description="Search radius in km"),
+):
+    """Return Points of Interest within ``radius`` km of (lat, lon)."""
+    from ..analytics.repositories.poi_repository import POIRepository
+    from ..db.async_db import get_session_factory
+
+    try:
+        repo = POIRepository(session_factory=get_session_factory())
+    except RuntimeError:
+        repo = POIRepository()
+    pois = await repo.get_nearby(lat, lon, radius)
+    return {"pois": pois}
+
+
+@router.get("/maps/pois")
+async def list_pois_endpoint(itinerary_id: int | None = None):
+    """List all POIs, optionally filtered by itinerary_id."""
+    from ..db.database import list_pois
+
+    return {"pois": list_pois(itinerary_id)}
+
+
+@router.post("/maps/pois", response_model=POIResponse)
+async def create_poi(poi: POICreate, current_user: dict = Depends(get_current_user)):
+    """Create a Point of Interest owned by the current user."""
+    from ..db.database import get_poi, save_poi
+
+    data = poi.model_dump()
+    data["created_by"] = current_user["id"]
+    data["tenant_id"] = current_user.get("tenant_id", current_user["id"])
+    poi_id = save_poi(data)
+    created = get_poi(poi_id)
+    if created is None:
+        raise HTTPException(status_code=500, detail="Failed to create POI")
+    return created
+
+
+@router.get("/maps/pois/{poi_id}", response_model=POIResponse)
+async def get_poi_endpoint(poi_id: int):
+    from ..db.database import get_poi
+
+    poi = get_poi(poi_id)
+    if not poi:
+        raise HTTPException(status_code=404, detail="POI not found")
+    return poi
+
+
+@router.delete("/maps/pois/{poi_id}")
+async def delete_poi_endpoint(
+    poi_id: int, current_user: dict = Depends(get_current_user)
+):
+    from ..db.database import delete_poi, get_poi
+
+    poi = get_poi(poi_id)
+    if not poi:
+        raise HTTPException(status_code=404, detail="POI not found")
+    if poi["created_by"] != current_user["id"] and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Not allowed to delete this POI")
+    delete_poi(poi_id)
+    return {"deleted": True}
 
 
 @router.post("/auth/login")

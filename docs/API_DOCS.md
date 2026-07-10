@@ -11,7 +11,7 @@ http://localhost:8000/api/v1
 The API supports multiple authentication methods:
 - **JWT Token** — `Authorization: Bearer <token>` (via `/auth/login`)
 - **Google OAuth2** — `/auth/google` → `/auth/google/callback`
-- **Strava OAuth2 + PKCE** — `/auth/strava` → `/auth/strava/callback`
+- **Strava OAuth2 + PKCE** — `/import/strava/auth` → `/import/strava/callback`
 
 Public endpoints (no auth required) are marked with `[PUBLIC]`.
 
@@ -85,23 +85,23 @@ Content-Type: application/json
 
 ### Strava OAuth URL
 ```http
-GET /auth/strava
-[PUBLIC]
+GET /import/strava/auth
+Authorization: Bearer <token>
 ```
 Returns authorization URL + state + code_verifier (PKCE).
 
 ### Strava OAuth Callback
 ```http
-POST /auth/strava/callback
+POST /import/strava/callback
+Authorization: Bearer <token>
 Content-Type: application/json
 
 {
   "code": "strava_code",
-  "state": "state_value",
   "code_verifier": "verifier_value"
 }
-[PUBLIC]
 ```
+Exchanges the authorization code for tokens and stores them in `strava_tokens`.
 
 ---
 
@@ -261,15 +261,34 @@ POST /import/google-fit
 Authorization: Bearer <token>
 ```
 
-### Import from Strava
+### Connect Strava (OAuth2 + PKCE)
 ```http
-POST /import/strava
+GET /import/strava/auth
 Authorization: Bearer <token>
+```
+
+### Strava OAuth Callback
+```http
+POST /import/strava/callback
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "code": "strava_code",
+  "code_verifier": "verifier_value"
+}
 ```
 
 ### Sync All Strava Activities
 ```http
 POST /import/strava/sync
+Authorization: Bearer <token>
+```
+Query param `background=false` runs the import inline and returns `{imported, total_fetched, rides}`.
+
+### Disconnect Strava
+```http
+DELETE /import/strava/disconnect
 Authorization: Bearer <token>
 ```
 
