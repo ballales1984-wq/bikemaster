@@ -175,7 +175,7 @@ def test_data_quality_temporal():
         q(2.0, "W", timestamp=base),
     ]
     problems = t.quality.check_temporal(bad)
-    assert any("non ordinato" in p for p in problems)
+    assert any("timestamp non ordinate" in p for p in problems)
     gap = [
         q(1.0, "W", timestamp=base),
         q(2.0, "W", timestamp=base + timedelta(seconds=7201)),
