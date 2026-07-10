@@ -181,10 +181,64 @@ class="provider-group">
         </button>
       </div>
       <div v-else
-class="provider-group provider-group--muted">
+ class="provider-group provider-group--muted">
         <h3>Google Health</h3>
         <p class="provider-hint">
           Coming soon: configure Google Health credentials to enable import.
+        </p>
+      </div>
+
+      <div v-if="providers.strava"
+ class="provider-group">
+        <h3>Strava</h3>
+        <button
+          class="btn btn-strava"
+          :disabled="importing"
+          type="button"
+          @click="connectStrava"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            style="margin-right: 6px"
+            aria-hidden="true"
+          >
+            <path
+              fill="#FC5200"
+              d="M13.5 16l-2.5 2.5L8.5 16l2.5-2.5z"
+            />
+            <path
+              fill="#FC5200"
+              d="M18 11.5L15.5 14 13 11.5l2.5-2.5z"
+            />
+          </svg>
+          {{ importing ? "Connecting..." : "Connect Strava" }}
+        </button>
+        <button
+          class="btn btn-secondary"
+          :disabled="importing"
+          type="button"
+          style="margin-top: 8px"
+          @click="disconnectStrava"
+        >
+          Disconnect Strava
+        </button>
+        <button
+          class="btn btn-primary"
+          :disabled="importing"
+          type="button"
+          style="margin-top: 8px"
+          @click="stravaSync"
+        >
+          Import from Strava
+        </button>
+      </div>
+      <div v-else
+ class="provider-group provider-group--muted">
+        <h3>Strava</h3>
+        <p class="provider-hint">
+          Coming soon: configure Strava credentials to enable import.
         </p>
       </div>
 
@@ -509,6 +563,139 @@ async function disconnectGoogleHealth() {
   }
 }
 
+async function connectStrava() {
+  importing.value = true;
+  importStatus.value = null;
+  let popup = null;
+  const cleanup = () => {
+    try {
+      if (popup) popup.close();
+    } catch (_) {
+      /* ignore */
+    }
+  };
+  try {
+    const token = localStorage.getItem("bikemaster_token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const authResp = await fetch("/api/v1/import/strava/auth", { headers });
+    if (!authResp.ok) {
+      const err = await authResp.json().catch(() => ({}));
+      throw new Error(err.detail || "Unable to start Strava authentication");
+    }
+    const { auth_url, code_verifier } = await authResp.json();
+
+    popup = window.open(auth_url, "strava-auth", "width=600,height=700");
+    if (!popup) throw new Error("Popup blocked - enable popups");
+
+    const code = await new Promise((resolve, reject) => {
+      const callbackPath = "/api/v1/import/strava/callback";
+      const started = Date.now();
+      const iv = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(iv);
+          reject(new Error("Strava window closed"));
+          return;
+        }
+        try {
+          const loc = popup.location;
+          if (
+            loc &&
+            typeof loc.pathname === "string" &&
+            loc.pathname.indexOf(callbackPath) === 0
+          ) {
+            const params = new URLSearchParams(loc.search);
+            const c = params.get("code");
+            if (c) {
+              clearInterval(iv);
+              resolve(c);
+              return;
+            }
+          }
+        } catch (_) {
+          /* cross-origin while on strava.com: ignore until same-origin */
+        }
+        if (Date.now() - started > 5 * 60 * 1000) {
+          clearInterval(iv);
+          reject(new Error("Timeout: Strava authentication cancelled"));
+        }
+      }, 500);
+    });
+
+    const cbResp = await fetch("/api/v1/import/strava/callback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify({ code, code_verifier }),
+    });
+    if (!cbResp.ok) {
+      const err = await cbResp.json().catch(() => ({}));
+      throw new Error(err.detail || "Strava connection failed");
+    }
+    cleanup();
+    importStatus.value = {
+      success: true,
+      message: "Strava connected. Importing your rides...",
+    };
+    await stravaSync();
+  } catch (e) {
+    cleanup();
+    importStatus.value = { success: false, message: e.message };
+    importing.value = false;
+  }
+}
+
+async function stravaSync() {
+  if (importing.value) return;
+  try {
+    importing.value = true;
+    const token = localStorage.getItem("bikemaster_token");
+    const resp = await fetch("/api/v1/import/strava/sync?background=false", {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (resp.ok) {
+      const result = await resp.json();
+      importStatus.value = {
+        success: true,
+        message: `Imported ${result.imported} rides from Strava (${result.total_fetched} fetched)`,
+      };
+      emit("summary-change");
+    } else {
+      const err = await resp.json().catch(() => ({}));
+      importStatus.value = {
+        success: false,
+        message: err.detail || "Strava sync failed",
+      };
+    }
+  } catch (e) {
+    importStatus.value = {
+      success: false,
+      message: "Strava sync error: " + (e.message || e),
+    };
+  } finally {
+    importing.value = false;
+  }
+}
+
+async function disconnectStrava() {
+  try {
+    const token = localStorage.getItem("bikemaster_token");
+    const resp = await fetch("/api/v1/import/strava/disconnect", {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (resp.ok) {
+      importStatus.value = { success: true, message: "Strava disconnected" };
+    } else {
+      importStatus.value = {
+        success: false,
+        message: "Failed to disconnect Strava",
+      };
+    }
+  } catch (e) {
+    importStatus.value = { success: false, message: e.message || e };
+  }
+}
+
 async function connectWahoo() {
   importing.value = true;
   importStatus.value = null;
@@ -734,6 +921,20 @@ onMounted(() => {
 
 .btn-google-fit:hover:not(:disabled) {
   background: #f8f9fa;
+}
+
+.btn-strava {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 10px 16px;
+  background: #fc5200;
+  color: #fff;
+}
+
+.btn-strava:hover:not(:disabled) {
+  background: #e64a00;
 }
 
 .progress-track {
