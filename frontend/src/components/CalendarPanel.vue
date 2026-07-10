@@ -16,17 +16,24 @@
 >
 ▶
 </button>
-          <button class="btn btn-secondary btn-sm" @click="goToday">
+          <button class="btn btn-secondary btn-sm"
+@click="goToday">
             {{ t("calendar.today") }}
           </button>
         </div>
         <div class="athlete-select">
           <label>{{ t("calendar.athlete") }}:</label>
-          <select id="athlete-select" name="athleteId" v-model.number="athleteId" @change="loadEvents">
+          <select
+            id="athlete-select"
+            v-model.number="athleteId"
+            name="athleteId"
+            @change="loadEvents"
+          >
             <option :value="0">
               {{ t("calendar.general") }}
             </option>
-            <option v-for="a in athletes" :key="a.id" :value="a.id">
+            <option v-for="a in athletes"
+:key="a.id" :value="a.id">
               {{ a.name }}
             </option>
           </select>
@@ -48,7 +55,8 @@
         @add-for-date="openAddForDate"
       />
 
-      <FitnessChart v-if="fitnessData.length" :data="fitnessData" />
+      <FitnessChart v-if="fitnessData.length"
+:data="fitnessData" />
     </div>
 
     <div class="panel">
@@ -70,12 +78,14 @@
       </div>
     </div>
 
-    <div v-if="showForm" class="panel form-overlay">
+    <div v-if="showForm"
+class="panel form-overlay">
       <h3>
         <h3>
           {{ editingEvent ? t("calendar.editEvent") : t("calendar.addEvent") }}
         </h3>
-        <form class="form-grid" @submit.prevent="saveEvent">
+        <form class="form-grid"
+@submit.prevent="saveEvent">
           <div class="form-group">
             <label for="event-title">Title *</label>
             <input

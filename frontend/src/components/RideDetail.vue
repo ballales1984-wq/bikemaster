@@ -3,10 +3,7 @@
     <div class="panel">
       <div class="detail-header">
         <h2>🚴 Dettaglio Uscita</h2>
-        <button
-class="close-btn" @click="$emit('close')"
-aria-label="Chiudi"
->
+        <button class="close-btn" @click="$emit('close')" aria-label="Chiudi">
           ✕
         </button>
       </div>
@@ -23,7 +20,9 @@ aria-label="Chiudi"
         </div>
         <div class="metric-card">
           <div class="metric-icon">⏱️</div>
-          <div class="metric-value">{{ formatDuration(ride.duration_minutes) }}</div>
+          <div class="metric-value">
+            {{ formatDuration(ride.duration_minutes) }}
+          </div>
           <div class="metric-label">Durata</div>
         </div>
         <div class="metric-card">
@@ -46,28 +45,33 @@ aria-label="Chiudi"
       >
         <h3>📊 Analisi Dettagliata</h3>
         <div class="analysis-grid">
-          <div v-if="ride.elevation_gain_m"
-class="a-item">
+          <div
+v-if="ride.elevation_gain_m" class="a-item"
+>
             <span class="a-lbl">⛰️ Dislivello</span>
             <span class="a-val">{{ fmt(ride.elevation_gain_m, 0) }} m</span>
           </div>
-          <div v-if="ride.max_speed_kmh"
-class="a-item">
+          <div
+v-if="ride.max_speed_kmh" class="a-item"
+>
             <span class="a-lbl">💨 Velocità Max</span>
             <span class="a-val">{{ fmt(ride.max_speed_kmh) }} km/h</span>
           </div>
-          <div v-if="ride.avg_heart_rate"
-class="a-item">
+          <div
+v-if="ride.avg_heart_rate" class="a-item"
+>
             <span class="a-lbl">❤️ FC Media</span>
             <span class="a-val">{{ fmt(ride.avg_heart_rate, 0) }} bpm</span>
           </div>
-          <div v-if="ride.max_heart_rate"
-class="a-item">
+          <div
+v-if="ride.max_heart_rate" class="a-item"
+>
             <span class="a-lbl">❤️ FC Massima</span>
             <span class="a-val">{{ fmt(ride.max_heart_rate, 0) }} bpm</span>
           </div>
-          <div v-if="ride.fatigue_score !== undefined"
-class="a-item">
+          <div
+v-if="ride.fatigue_score !== undefined" class="a-item"
+>
             <span class="a-lbl">😰 Affaticamento</span>
             <span
 class="a-val" :class="fatigueClass"
@@ -82,8 +86,9 @@ class="a-val" :class="fatigueClass"
         :api-key="googleMapsApiKey"
       />
 
-      <div v-if="speedChart || elevationChart"
-class="chart-section">
+      <div
+v-if="speedChart || elevationChart" class="chart-section"
+>
         <h3>📈 Grafici</h3>
         <div class="chart-row">
           <img
@@ -130,14 +135,14 @@ function fmt(v, dec = 1) {
 }
 
 function formatDuration(minutes) {
-  const mins = Number(minutes) || 0
-  const h = Math.floor(mins / 60)
-  const m = Math.floor(mins % 60)
-  const s = Math.floor((mins % 1) * 60)
+  const mins = Number(minutes) || 0;
+  const h = Math.floor(mins / 60);
+  const m = Math.floor(mins % 60);
+  const s = Math.floor((mins % 1) * 60);
   if (h > 0) {
-    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   }
-  return `${m}:${s.toString().padStart(2, '0')}`
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function formatDate(dateStr) {

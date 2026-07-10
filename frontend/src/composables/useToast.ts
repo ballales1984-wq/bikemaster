@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { onBeforeUnmount, ref } from "vue";
 
 interface ToastItem {
   id: number;
@@ -7,9 +7,19 @@ interface ToastItem {
   exiting: boolean;
 }
 
+let nextId = 1;
+
 function useToast() {
   const items = ref<ToastItem[]>([]);
-  let nextId = 1;
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+
+  function schedule(fn: () => void, ms: number) {
+    const id = setTimeout(() => {
+      timers.delete(id);
+      fn();
+    }, ms);
+    timers.add(id);
+  }
 
   function add(
     message: string,
@@ -18,7 +28,7 @@ function useToast() {
   ) {
     const id = nextId++;
     items.value.push({ id, message, type, exiting: false });
-    setTimeout(() => removeWithAnimation(id), ms);
+    schedule(() => removeWithAnimation(id), ms);
   }
 
   function remove(id: number) {
@@ -29,7 +39,7 @@ function useToast() {
     const toast = items.value.find((t) => t.id === id);
     if (toast) {
       toast.exiting = true;
-      setTimeout(() => remove(id), 300);
+      schedule(() => remove(id), 300);
     }
   }
 
@@ -46,8 +56,17 @@ function useToast() {
     add(message, "info", ms);
   }
   function show(message: string, type?: string, ms?: number) {
-    add(message, (type as any) || "info", ms);
+    add(
+      message,
+      (type as "success" | "error" | "warning" | "info") || "info",
+      ms,
+    );
   }
+
+  onBeforeUnmount(() => {
+    for (const id of timers) clearTimeout(id);
+    timers.clear();
+  });
 
   return {
     items,

@@ -76,10 +76,11 @@ async def save_refresh_token(athlete_id: int, refresh_token: str, ttl: int = REF
         return False
     try:
         tokens_raw = await r.get(f"{REFRESH_PREFIX}{athlete_id}:tokens")
-        tokens = set(tokens_raw.split(",")) if tokens_raw else set()
-        tokens.add(refresh_token)
+        tokens = tokens_raw.split(",") if tokens_raw else []
+        tokens = [t for t in tokens if t]
+        tokens.append(refresh_token)
         if len(tokens) > REFRESH_MAX_ACTIVE:
-            tokens.pop()
+            tokens.pop(0)
         await r.set(f"{REFRESH_PREFIX}{athlete_id}", refresh_token, ex=ttl)
         await r.set(f"{REFRESH_PREFIX}{athlete_id}:tokens", ",".join(tokens), ex=ttl)
         return True
@@ -393,7 +394,7 @@ def _cookie_secure() -> bool:
 
 def set_auth_cookies(response: Response, access_token: str, refresh_token: str | None = None) -> None:
     secure = _cookie_secure()
-    samesite = "lax" if secure else "none"
+    samesite = "none" if secure else "lax"
     response.set_cookie(
         key="bikemaster_access",
         value=access_token,

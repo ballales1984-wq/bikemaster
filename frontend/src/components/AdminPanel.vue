@@ -1,31 +1,31 @@
 <template>
-  <div class="admin-panel">
+  <div v-if="auth.isAdmin" class="admin-panel">
     <div class="panel">
       <h2>⚙️ Administration</h2>
 
       <div class="admin-grid">
-        <button
-class="admin-card" @click="loadStats"
-:disabled="loadingStats"
->
+        <button class="admin-card" @click="loadStats" :disabled="loadingStats">
           <div class="admin-icon">📊</div>
           <div class="admin-label">System Stats</div>
           <div class="admin-desc">View database and API metrics</div>
         </button>
 
-        <a
-class="admin-card" href="/api/v1/admin/backup"
-download
->
+        <button class="admin-card" @click="backupDb">
           <div class="admin-icon">💾</div>
           <div class="admin-label">Backup DB</div>
           <div class="admin-desc">Download database dump</div>
-        </a>
+        </button>
 
         <button
           class="admin-card"
           :disabled="loadingIndexes"
-          @click="createIndexes"
+          @click="
+            askConfirm(
+              'Create Indexes',
+              'Rebuild the knowledge base indexes?',
+              createIndexes,
+            )
+          "
         >
           <div class="admin-icon">🗂️</div>
           <div class="admin-label">Create Indexes</div>
@@ -35,7 +35,13 @@ download
         <button
           class="admin-card danger"
           :disabled="loadingReset"
-          @click="resetDemo"
+          @click="
+            askConfirm(
+              'Reset Demo',
+              'This will restore demo data and overwrite current data. Continue?',
+              resetDemo,
+            )
+          "
         >
           <div class="admin-icon">🔄</div>
           <div class="admin-label">Reset Demo</div>
@@ -43,34 +49,61 @@ download
         </button>
       </div>
 
-      <div
-v-if="stats" class="result-section"
->
+      <div v-if="stats" class="result-section">
         <div class="result-header">📋 Statistics Output</div>
         <pre class="result-box">{{ stats }}</pre>
       </div>
 
-      <div
-v-if="error" class="error-section"
->
+      <div v-if="error" class="error-section">
         <div class="error-icon">⛔</div>
         <div class="error-text">
           {{ error }}
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      v-model="confirmVisible"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      confirm-label="Confirm"
+      cancel-label="Cancel"
+      @confirm="onConfirm"
+    />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
+import { useAuthStore } from "../stores/auth";
 import { apiGet, apiPost } from "../utils/api";
+import ConfirmModal from "./ConfirmModal.vue";
+
+const auth = useAuthStore();
 
 const stats = ref("");
 const error = ref("");
 const loadingStats = ref(false);
 const loadingIndexes = ref(false);
 const loadingReset = ref(false);
+const confirmVisible = ref(false);
+const confirmTitle = ref("");
+const confirmMessage = ref("");
+let pendingAction: (() => void) | null = null;
+
+function askConfirm(title: string, message: string, action: () => void) {
+  confirmTitle.value = title;
+  confirmMessage.value = message;
+  pendingAction = action;
+  confirmVisible.value = true;
+}
+
+function onConfirm() {
+  const action = pendingAction;
+  pendingAction = null;
+  confirmVisible.value = false;
+  action?.();
+}
 
 async function loadStats() {
   loadingStats.value = true;
@@ -79,9 +112,30 @@ async function loadStats() {
     const data = await apiGet("/api/v1/admin/stats");
     stats.value = JSON.stringify(data, null, 2);
   } catch (e) {
-    error.value = "Access denied: " + (e.message || e);
+    error.value = "Access denied: " + (e instanceof Error ? e.message : e);
   } finally {
     loadingStats.value = false;
+  }
+}
+
+async function backupDb() {
+  try {
+    error.value = "";
+    const resp = await fetch("/api/v1/admin/backup", {
+      headers: auth.getAuthHeader(),
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "bikemaster_backup.db";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    error.value = "Backup failed: " + (e instanceof Error ? e.message : e);
   }
 }
 
@@ -92,7 +146,8 @@ async function createIndexes() {
     await apiPost("/api/v1/admin/indexes", {});
     stats.value = "✅ Indexes created successfully";
   } catch (e) {
-    error.value = "Error: " + (e.message || e);
+    error.value = "Error: " + (e instanceof Error ? e.message : e);
+    stats.value = "";
   } finally {
     loadingIndexes.value = false;
   }
@@ -105,7 +160,8 @@ async function resetDemo() {
     await apiPost("/api/v1/admin/reset-demo", {});
     stats.value = "✅ Demo data restored successfully";
   } catch (e) {
-    error.value = "Error: " + (e.message || e);
+    error.value = "Error: " + (e instanceof Error ? e.message : e);
+    stats.value = "";
   } finally {
     loadingReset.value = false;
   }

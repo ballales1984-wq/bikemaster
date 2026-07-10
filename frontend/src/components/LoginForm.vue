@@ -1,9 +1,8 @@
 <template>
   <div class="login-panel">
     <h2>🔐 {{ mode === "login" ? t("auth.login") : t("auth.register") }}</h2>
-    <div class="login-tabs"
-role="tablist" aria-label="Login modes"
->
+    <div
+class="login-tabs" role="tablist" aria-label="Login modes">
       <button
         :id="'tab-login'"
         :class="['tab-btn', { active: mode === 'login' }]"
@@ -54,14 +53,15 @@ role="tablist" aria-label="Login modes"
             error: usernameError,
             valid: form.username.length >= 3 && !usernameError,
           }"
-        >
+        />
         <span
           v-if="usernameError"
           id="username-error"
           class="field-error"
           role="alert"
           aria-live="assertive"
-        >{{ usernameError }}</span>
+          >{{ usernameError }}</span
+        >
       </div>
       <div class="form-group">
         <label for="password">{{ t("auth.password") }}</label>
@@ -80,7 +80,7 @@ role="tablist" aria-label="Login modes"
               error: passwordError,
               valid: form.password.length >= 6 && !passwordError,
             }"
-          >
+          />
           <button
             type="button"
             class="password-toggle"
@@ -97,7 +97,8 @@ role="tablist" aria-label="Login modes"
           class="field-error"
           role="alert"
           aria-live="assertive"
-        >{{ passwordError }}</span>
+          >{{ passwordError }}</span
+        >
       </div>
       <button
         type="submit"
@@ -125,9 +126,8 @@ role="tablist" aria-label="Login modes"
       :aria-label="'Sign in with Google'"
       @click="loginWithGoogle"
     >
-      <svg class="google-icon"
-viewBox="0 0 24 24" width="20" height="20"
->
+      <svg
+class="google-icon" viewBox="0 0 24 24" width="20" height="20">
         <path
           fill="#4285F4"
           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.76h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -316,8 +316,6 @@ async function loginWithGoogle() {
   font-size: 0.9rem;
   margin-top: 8px;
 }
-
-
 
 .password-wrapper {
   position: relative;

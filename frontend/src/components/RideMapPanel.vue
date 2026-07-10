@@ -8,10 +8,7 @@
           risk.
         </p>
       </div>
-      <button
-class="btn btn-primary" :disabled="loading"
-@click="loadRides"
->
+      <button class="btn btn-primary" :disabled="loading" @click="loadRides">
         {{ loading ? t("maps.updating") : t("maps.updateMap") }}
       </button>
     </div>
@@ -19,13 +16,8 @@ class="btn btn-primary" :disabled="loading"
     <div class="map-toolbar">
       <label class="control">
         <span>Map</span>
-        <select
-v-model="mapStyle" class="form-input"
->
-          <option
-v-for="(cfg, key) in MAP_STYLES" :key="key"
-:value="key"
->
+        <select v-model="mapStyle" class="form-input">
+          <option v-for="(cfg, key) in MAP_STYLES" :key="key" :value="key">
             {{ cfg.label }}
           </option>
         </select>
@@ -33,14 +25,9 @@ v-for="(cfg, key) in MAP_STYLES" :key="key"
 
       <label class="control">
         <span>{{ t("maps.route") }}</span>
-        <select
-v-model="selectedRideId" class="form-input"
->
+        <select v-model="selectedRideId" class="form-input">
           <option :value="null">All routes</option>
-          <option
-v-for="ride in ridesWithGps" :key="ride.id"
-:value="ride.id"
->
+          <option v-for="ride in ridesWithGps" :key="ride.id" :value="ride.id">
             {{ ride.date }} · {{ formatDistance(ride.distanceM) }}
           </option>
         </select>
@@ -48,9 +35,7 @@ v-for="ride in ridesWithGps" :key="ride.id"
 
       <label class="control">
         <span>{{ t("maps.coloring") }}</span>
-        <select
-v-model="colorMode" class="form-input"
->
+        <select v-model="colorMode" class="form-input">
           <option value="combined">Grade + weather</option>
           <option value="slope">Grade only</option>
           <option value="weather">Weather only</option>

@@ -1,6 +1,7 @@
 <template>
   <div class="calendar-grid">
-    <div v-for="d in weekDays" :key="d" class="cal-header">
+    <div v-for="d in weekDays"
+:key="d" class="cal-header">
       {{ d }}
     </div>
     <div
@@ -13,7 +14,8 @@
         'has-events': day.events.length > 0,
       }"
     >
-      <span class="day-num" @click="$emit('add-for-date', day.date)">
+      <span class="day-num"
+@click="$emit('add-for-date', day.date)">
         {{ day.day }}
       </span>
       <div class="day-events">

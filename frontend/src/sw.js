@@ -134,9 +134,7 @@ registerRoute(
     (url.pathname.includes("/auth/") || url.pathname.includes("/auth")),
   new NetworkFirst({
     cacheName: API_CACHE,
-    plugins: [
-      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 0 }),
-    ],
+    plugins: [new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 0 })],
   }),
 );
 

@@ -24,7 +24,7 @@ from ..redis_client import close_redis, get_redis
 from ..settings import get_settings
 from ..task_queue import get_task_queue
 from .routes import admin_router, router
-from .utils import _forwarded_value
+from .utils import _trusted_forwarded_value
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,13 @@ async def lifespan(app: FastAPI):
 
     setup_logging()
     init_db()
+    if _s.database_url:
+        from ..db.async_db import init_async_db
+
+        try:
+            await init_async_db()
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to initialize async database")
     await get_redis()
     task_queue = get_task_queue()
     await task_queue.start()
@@ -163,7 +170,7 @@ def create_app() -> FastAPI:
         request_id = getattr(request.state, "request_id", "-")
         # Honor X-Forwarded-For behind a reverse proxy so the audit log records
         # the real client IP instead of the proxy's.
-        client_ip = _forwarded_value(request.headers.get("x-forwarded-for")) or (
+        client_ip = _trusted_forwarded_value(request, "x-forwarded-for") or (
             request.client.host if request.client else "unknown"
         )
         logger.info(

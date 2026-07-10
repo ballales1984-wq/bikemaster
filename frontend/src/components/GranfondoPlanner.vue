@@ -11,7 +11,8 @@ v-model="startDate" type="date"
       </div>
       <div class="form-group">
         <label for="gf-weeks">{{ t("granfondo.targetWeeks") }}</label>
-        <select id="gf-weeks" v-model.number="weeks">
+        <select id="gf-weeks"
+v-model.number="weeks">
           <option :value="8">
             {{ t("granfondo.week8") }}
           </option>
@@ -30,17 +31,20 @@ v-model="startDate" type="date"
         </select>
       </div>
       <div class="form-group">
-        <button class="btn btn-primary" @click="generatePlan">
+        <button class="btn btn-primary"
+@click="generatePlan">
           📅 {{ t("granfondo.generate") }}
         </button>
       </div>
     </div>
 
-    <div v-if="loading" class="loading-text">
+    <div v-if="loading"
+class="loading-text">
       {{ t("granfondo.generating") }}
     </div>
 
-    <div v-if="plan" class="plan-container">
+    <div v-if="plan"
+class="plan-container">
       <div class="plan-header">
         <h3>
           {{ t("granfondo.planTitle") }} {{ weeks }}
@@ -53,7 +57,8 @@ v-model="startDate" type="date"
       </div>
 
       <div class="plan-actions">
-        <button class="btn btn-success" :disabled="saving" @click="savePlan">
+        <button class="btn btn-success"
+:disabled="saving" @click="savePlan">
           {{ saving ? t("granfondo.saving") : t("granfondo.saveToCalendar") }}
         </button>
         <span
@@ -70,7 +75,8 @@ v-model="startDate" type="date"
       </div>
     </div>
     <div class="calendar-grid plan-grid">
-      <div v-for="d in weekDays" :key="d" class="cal-header">
+      <div v-for="d in weekDays"
+:key="d" class="cal-header">
         {{ d }}
       </div>
       <div

@@ -21,16 +21,38 @@ risultano già applicati nel working tree.
 
 **VALIDATO:** `ruff` pulito su file modificati; import OK; `pytest tests/test_routes_coverage.py::test_register_endpoint_success` PASS.
 
-**RIMANENTE (refactor ampi/rischiosi — NON fatti in questo passo):**
-- §2.2.8/2.2.9 Data layer async/Postgres: `backend/db/models.py` inesistente + `async_db.py` stub.
-  Richiede definizione ORM + `get_session_factory`/`get_rides_by_athlete_async` reali; rischioso
-  senza conoscere lo schema. Opzione: implementare il layer async o disabilitarlo esplicitamente
-  finché non funzionante (l'app gira su SQLite oggi).
-- §2.2.10 Modelli dominio duplicati (`core/models.py` vs `backend/models/models.py`).
-- §2.3.12 Validazione Pydantic su import GPX/FIT; §2.2.11 HTTP async (`httpx`/backoff); §2.3.13 matplotlib `to_thread`.
-- §2.3.14/2.4.19 Pagination DB + index composito; §2.3.15 EMBEDDING_DIMENSION 1536→384.
-- §2.4.16/17 Consolidamento TSS/ATL-CTL-TSB; dead code; Google Fit deprecato.
-- §2.6.27 Pin TS 5.x; §2.6.28 riconciliazione requirements/pyproject.
+**FATTO (secondo passo — data layer async + embedding):**
+- §2.2.8/2.2.9 **Data layer async/Postgres implementato** (era rotto in prod: `render.yaml`
+  provisiona PostgreSQL + `DATABASE_URL` settato). Creato `backend/db/models.py` (ORM:
+  UserModel, AthleteModel, RideModel, FitnessStateModel, KnowledgeChunkModel) speculare
+  allo schema SQLite; riscritto `backend/db/async_db.py` con engine async
+  (`postgresql+asyncpg`/`sqlite+aiosqlite`), `get_session_factory`, `init_async_db`
+  (crea tabelle + estensione `vector` best-effort) e `get_rides_by_athlete_async` reale
+  (prima stub che ritornava `[]`). `app_factory.lifespan` chiama `init_async_db()` se
+  `DATABASE_URL` è settato. **Verificato** end-to-end su SQLite async (init+insert+query).
+- §2.3.15 **EMBEDDING_DIMENSION 1536 → 384** (`all-MiniLM-L6-v2`, l'unico modello
+  embedding usato; render.yaml ha solo `GROQ_API_KEY`). `knowledge_base.py` importa la
+  costante da `db/models.py`.
+- §2.x **Multi-tenant**: indagato — `tenant_id` è usato ovunque come
+  `current_user.get("tenant_id", current_user["id"])` ⇒ isolamento per-utente (ogni utente
+  = proprio tenant). Coerente con `auth.ts:85`. **Nessun bug**, non serve cambiare.
+
+**VALIDATO:** ruff pulito; `test_security.py` 46 passed; import OK; layer async funzionale
+su SQLite.
+
+**RIMANENTE (in ordine):**
+- [x] **§2.2.10 Modelli dominio duplicati — FATTO.** `backend/models/models.py` ora è
+  re-export di `core/models.py` (single source of truth); `core.Ride` ha `tenant_id`;
+  `Ride` backend è sottoclasse con `to_dict` API-safe (omette `gps_points`); `GPSPoint`
+  unificato su `altitude` (risolve bug latente: i parser/frontend usano `altitude`, il
+  duplicato backend usava `elevation`). **Validato:** ruff pulito; test modelli 59 passed;
+  `test_routes_coverage.py` 23 passed.
+- [ ] §2.3.12 Validazione Pydantic su import GPX/FIT (`routes.py:1030-1111` saltano `core/validation.py`).
+- [ ] §2.2.11 HTTP async (`httpx`/backoff) su integrazioni (Strava/Garmin/Google Fit/OSM).
+- [ ] §2.3.13 matplotlib `to_thread` nelle route async.
+- [ ] §2.3.14/2.4.19 Pagination DB + index composito `(athlete_id,date)`.
+- [ ] §2.4.16/17 Consolidamento TSS/ATL-CTL-TSB; dead code `routes.py:1565-1612` e `792-801`; Google Fit deprecato.
+- [ ] §2.6.27 Pin TS 5.x; §2.6.28 riconciliazione requirements/pyproject.
 
 ---
 

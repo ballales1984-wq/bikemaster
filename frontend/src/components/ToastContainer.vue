@@ -14,10 +14,7 @@
     >
       <span class="toast-icon">{{ toastIcon(t.type) }}</span>
       <span class="toast-content">{{ t.message }}</span>
-      <button
-class="toast-close" @click="remove(t.id)"
-aria-label="Close"
->
+      <button class="toast-close" @click="remove(t.id)" aria-label="Close">
         ✕
       </button>
     </div>
@@ -25,15 +22,21 @@ aria-label="Close"
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 
+const MAX_TOASTS = 5;
 const items = ref([]);
 let nextId = 1;
+const timers = new Set();
 
 function add(message, type = "info", ms = 3000) {
   const id = nextId++;
   items.value.push({ id, message, type, exiting: false });
-  setTimeout(() => removeWithAnimation(id), ms);
+  if (items.value.length > MAX_TOASTS) {
+    remove(items.value[0].id);
+  }
+  const timer = setTimeout(() => removeWithAnimation(id), ms);
+  timers.add(timer);
 }
 
 function toastIcon(type) {
@@ -49,12 +52,19 @@ function removeWithAnimation(id) {
   const toast = items.value.find((t) => t.id === id);
   if (toast) {
     toast.exiting = true;
-    setTimeout(() => remove(id), 300);
+    const timer = setTimeout(() => remove(id), 300);
+    timers.add(timer);
   }
 }
 
 onMounted(() => {
   window.__toast = { add, remove };
+});
+
+onBeforeUnmount(() => {
+  for (const timer of timers) clearTimeout(timer);
+  timers.clear();
+  if (window.__toast) delete window.__toast;
 });
 
 defineExpose({ add, remove });

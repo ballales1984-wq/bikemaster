@@ -1,4 +1,4 @@
-import { onMounted, watch, ref } from "vue";
+import { onBeforeUnmount, onMounted, watch, ref } from "vue";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Chart: any = (await import("chart.js")).default;
 
@@ -44,6 +44,13 @@ export function useChart(
     () => render(),
     { deep: true },
   );
+
+  onBeforeUnmount(() => {
+    if (chart) {
+      chart.destroy();
+      chart = null;
+    }
+  });
 
   return { canvas, render };
 }

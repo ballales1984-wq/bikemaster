@@ -9,19 +9,13 @@
         </p>
       </div>
       <div class="welcome-actions">
-        <router-link
-to="/track" class="btn btn-primary"
->
+        <router-link to="/track" class="btn btn-primary">
           📍 Traccia Uscita
         </router-link>
-        <router-link
-to="/calendar" class="btn btn-secondary"
->
+        <router-link to="/calendar" class="btn btn-secondary">
           📅 Pianifica
         </router-link>
-        <router-link
-to="/coach" class="btn btn-secondary"
->
+        <router-link to="/coach" class="btn btn-secondary">
           🧠 AI Coach
         </router-link>
       </div>

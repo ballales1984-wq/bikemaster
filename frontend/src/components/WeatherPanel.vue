@@ -39,21 +39,15 @@ id="weather-date" type="date" v-model="date" />
       </div>
     </div>
 
-    <div
-v-if="loading" class="loading-text"
->
+    <div v-if="loading" class="loading-text">
       <span class="spinner" /> Loading weather...
     </div>
 
-    <div
-v-else-if="weatherError" class="error-box"
->
+    <div v-else-if="weatherError" class="error-box">
       {{ weatherError }}
     </div>
 
-    <div
-v-else-if="!weather" class="empty-state"
->
+    <div v-else-if="!weather" class="empty-state">
       <div class="empty-icon">🌤️</div>
       <div class="empty-title">Weather Information</div>
       <div class="empty-desc">
@@ -62,9 +56,7 @@ v-else-if="!weather" class="empty-state"
       </div>
     </div>
 
-    <div
-v-else class="weather-card"
->
+    <div v-else class="weather-card">
       <div class="weather-header">
         <h3>{{ weather.location?.city || "Location" }}</h3>
         <span
@@ -98,22 +90,13 @@ class="weather-score" :class="'score-' + weather.score"
       </div>
     </div>
 
-    <div
-class="panel" style="margin-top: 20px"
->
+    <div class="panel" style="margin-top: 20px">
       <h3>📅 7-Day Forecast</h3>
-      <div
-v-if="forecastLoading" class="loading-text"
->
+      <div v-if="forecastLoading" class="loading-text">
         Loading forecasts...
       </div>
-      <div
-v-else class="forecast-grid"
->
-        <div
-v-for="f in forecast" :key="f.date"
-class="forecast-card"
->
+      <div v-else class="forecast-grid">
+        <div v-for="f in forecast" :key="f.date" class="forecast-card">
           <div class="forecast-date">
             {{ f.date }}
           </div>

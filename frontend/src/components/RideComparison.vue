@@ -6,15 +6,9 @@
       <div class="select-row">
         <div class="select-group">
           <label>Uscita A</label>
-          <select
-v-model="rideA" @change="onSelectChange"
-class="form-select"
->
+          <select v-model="rideA" @change="onSelectChange" class="form-select">
             <option :value="null">Seleziona...</option>
-            <option
-v-for="r in rides" :key="r.id"
-:value="r"
->
+            <option v-for="r in rides" :key="r.id" :value="r">
               {{ r.date }} — {{ fmt(r.distance_km) }} km
             </option>
           </select>
@@ -29,34 +23,26 @@ v-for="r in rides" :key="r.id"
         </button>
         <div class="select-group">
           <label>Uscita B</label>
-          <select
-v-model="rideB" @change="onSelectChange"
-class="form-select"
->
+          <select v-model="rideB" @change="onSelectChange" class="form-select">
             <option :value="null">Seleziona...</option>
-            <option
-v-for="r in rides" :key="r.id"
-:value="r"
->
+            <option v-for="r in rides" :key="r.id" :value="r">
               {{ r.date }} — {{ fmt(r.distance_km) }} km
             </option>
           </select>
         </div>
       </div>
 
-      <div
-v-if="loading" class="skeleton-container"
->
+      <div v-if="loading" class="skeleton-container">
         <div class="skeleton skeleton-card"
 style="height: 120px"
 />
       </div>
 
-      <div
-v-else-if="comparison.ready" class="comparison-grid"
+      <div v-else-if="comparison.ready" class="comparison-grid">
+        <div
+v-for="m in metrics" class="comp-card"
+:key="m.key"
 >
-        <div v-for="m in metrics"
-class="comp-card" :key="m.key">
           <div class="comp-label">
             {{ m.label }}
           </div>
@@ -66,8 +52,9 @@ class="comp-card" :key="m.key">
               :class="{ winner: comparison.winners[m.key] === 'A' }"
             >
               <span class="comp-val">{{ m.format(comparison.a[m.key]) }}</span>
-              <span v-if="comparison.deltas[m.key] !== 0"
-class="comp-delta">
+              <span
+v-if="comparison.deltas[m.key] !== 0" class="comp-delta"
+>
                 {{ comparison.deltas[m.key] > 0 ? "+" : ""
                 }}{{ comparison.deltas[m.key].toFixed(1) }}%
               </span>
@@ -78,8 +65,9 @@ class="comp-delta">
               :class="{ winner: comparison.winners[m.key] === 'B' }"
             >
               <span class="comp-val">{{ m.format(comparison.b[m.key]) }}</span>
-              <span v-if="comparison.deltas[m.key] !== 0"
-class="comp-delta">
+              <span
+v-if="comparison.deltas[m.key] !== 0" class="comp-delta"
+>
                 {{ comparison.deltas[m.key] < 0 ? "+" : ""
                 }}{{ Math.abs(comparison.deltas[m.key]).toFixed(1) }}%
               </span>
@@ -87,16 +75,15 @@ class="comp-delta">
           </div>
         </div>
 
-        <div v-if="verdict"
-class="verdict">
+        <div
+v-if="verdict" class="verdict"
+>
           <span class="verdict-icon">🏆</span>
           <span>{{ verdict }}</span>
         </div>
       </div>
 
-      <div
-v-else class="empty-state"
->
+      <div v-else class="empty-state">
         <div class="empty-icon">⚖️</div>
         <div class="empty-title">Seleziona due uscite per confrontarle</div>
         <div class="empty-desc">
