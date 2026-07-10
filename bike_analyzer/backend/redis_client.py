@@ -15,6 +15,7 @@ import functools
 import hashlib
 import json
 import logging
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -22,41 +23,56 @@ logger = logging.getLogger(__name__)
 
 _redis = None
 _REDIS_CONNECT_TIMEOUT = 3
+# After a failed connection, suppress reconnection attempts (and log spam)
+# for this long before retrying, so a downed Redis doesn't hammer every request.
+_REDIS_RETRY_COOLDOWN = 30.0
+_redis_unavailable_at = 0.0
 
 
 async def get_redis():
-    """Get or create Redis connection pool."""
-    global _redis
-    if _redis is None:
-        try:
-            import redis.asyncio as aioredis
+    """Get or create Redis connection pool.
 
-            from bike_analyzer.backend.settings import get_settings
+    On failure the error is cached and reconnection is suppressed for
+    ``_REDIS_RETRY_COOLDOWN`` seconds, so a temporarily unavailable Redis
+    does not produce a warning (and a blocking connect attempt) on every call.
+    """
+    global _redis, _redis_unavailable_at
+    if _redis is not None:
+        return _redis
+    if _redis_unavailable_at > 0 and (time.monotonic() - _redis_unavailable_at) < _REDIS_RETRY_COOLDOWN:
+        return None
+    try:
+        import redis.asyncio as aioredis
 
-            s = get_settings()
-            url = s.redis_url or "redis://localhost:6379"
-            _redis = aioredis.from_url(
-                url,
-                encoding="utf-8",
-                decode_responses=True,
-                socket_connect_timeout=_REDIS_CONNECT_TIMEOUT,
-                socket_timeout=_REDIS_CONNECT_TIMEOUT,
-                retry_on_timeout=False,
-            )
-            await asyncio.wait_for(_redis.ping(), timeout=_REDIS_CONNECT_TIMEOUT)
-            logger.info("Redis connected: %s", url)
-        except Exception as exc:
-            logger.warning("Redis unavailable: %s — cache disabled", exc)
-            _redis = None
+        from bike_analyzer.backend.settings import get_settings
+
+        s = get_settings()
+        url = s.redis_url or "redis://localhost:6379"
+        _redis = aioredis.from_url(
+            url,
+            encoding="utf-8",
+            decode_responses=True,
+            socket_connect_timeout=_REDIS_CONNECT_TIMEOUT,
+            socket_timeout=_REDIS_CONNECT_TIMEOUT,
+            retry_on_timeout=False,
+        )
+        await asyncio.wait_for(_redis.ping(), timeout=_REDIS_CONNECT_TIMEOUT)
+        logger.info("Redis connected: %s", url)
+        _redis_unavailable_at = 0.0
+    except Exception as exc:
+        _redis_unavailable_at = time.monotonic()
+        logger.warning("Redis unavailable: %s — cache disabled", exc)
+        _redis = None
     return _redis
 
 
 async def close_redis():
-    global _redis
+    global _redis, _redis_unavailable_at
     if _redis is not None:
         with contextlib.suppress(Exception):
             await _redis.close()
         _redis = None
+    _redis_unavailable_at = 0.0
 
 
 def cache_key(*args: Any, **kwargs: Any) -> str:
