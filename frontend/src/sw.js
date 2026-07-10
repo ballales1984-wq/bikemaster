@@ -48,10 +48,15 @@ self.addEventListener("install", (event) => {
   );
 });
 
+// Must run during the initial evaluation of the worker script: it registers
+// its own `activate` listener. Calling it from inside an `activate` handler
+// throws "Event handler of 'activate' event must be added on the initial
+// evaluation of worker script."
+cleanupOutdatedCaches();
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
-      cleanupOutdatedCaches();
       const keys = await caches.keys();
       await Promise.all(
         keys
