@@ -5,7 +5,7 @@
       <div class="chart-controls">
         <label>
           {{ t("charts.metric") }}
-          <select v-model="selectedMetric">
+          <select id="metric-select" name="metric" v-model="selectedMetric">
             <option value="distance_km">Distance (km)</option>
             <option value="avg_speed_kmh">Avg Speed (km/h)</option>
             <option value="duration_minutes">Duration (min)</option>
@@ -15,7 +15,7 @@
         </label>
         <label>
           {{ t("charts.window") }}
-          <select v-model="windowSize">
+          <select id="window-select" name="window" v-model="windowSize">
             <option value="3">3 rides</option>
             <option value="7">7 rides</option>
             <option value="14">14 rides</option>

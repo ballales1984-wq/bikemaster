@@ -66,6 +66,15 @@ class Settings(BaseSettings):
     def oauth_redirect_schemes_list(self) -> set[str]:
         return {s.strip().lower() for s in self.oauth_redirect_schemes.split(",") if s.strip()}
 
+    # === OAuth redirect host allow-list (http/https) ===
+    # Comma-separated hosts additionally allowed as OAuth redirect_uri targets.
+    # The request Origin header is NEVER trusted, to prevent open-redirect attacks.
+    oauth_allowed_redirect_hosts: str = ""
+
+    @property
+    def oauth_allowed_hosts_list(self) -> list[str]:
+        return [h.strip().lower() for h in self.oauth_allowed_redirect_hosts.split(",") if h.strip()]
+
     # === SerpApi / Google Maps (deprecated) ===
     google_maps_api_key: str = ""
     google_maps_zoom: int = 13
