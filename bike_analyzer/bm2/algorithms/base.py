@@ -109,6 +109,18 @@ class Algorithm(ABC):
         return {}
 
     def run(self, ctx: AnalysisContext, extra: Optional[dict] = None) -> ModelResult:
+        missing = [inp for inp in self.required_inputs if not self._has_input(ctx, extra, inp)]
+        if missing:
+            return ModelResult(
+                value=0.0,
+                unit=self.unit,
+                formula=self.formula,
+                data_used=list(self.required_inputs),
+                precision=0.0,
+                confidence=0.0,
+                source=self.name,
+                details={"error": f"input mancanti: {missing}"},
+            )
         value, precision, confidence = self._compute(ctx, extra)
         return ModelResult(
             value=value,
@@ -120,6 +132,44 @@ class Algorithm(ABC):
             source=self.name,
             details=self._extra_details(ctx, extra),
         )
+
+    @staticmethod
+    def _has_input(ctx: AnalysisContext, extra: Optional[dict], name: str) -> bool:
+        m = ctx.activity.metrics(ctx.transformer)
+        checks = {
+            "gps_points": lambda: bool(ctx.activity.points),
+            "distanza": lambda: m.get("distance_m", 0) > 0,
+            "durata": lambda: m.get("duration_s", 0) > 0,
+            "velocità": lambda: m.get("avg_speed_ms", 0) > 0,
+            "dislivello": lambda: m.get("gain_m", 0) > 0,
+            "pendenza": lambda: bool(ctx.world.avg_slope_percent),
+            "massa_totale": lambda: ctx.total_mass_kg > 0,
+            "peso": lambda: ctx.athlete.weight_kg.value > 0,
+            "ftp": lambda: ctx.athlete.ftp_w is not None and ctx.athlete.ftp_w.value > 0,
+            "crr": lambda: ctx.bike.crr > 0,
+            "cda": lambda: ctx.bike.cda > 0,
+            "efficienza": lambda: ctx.bike.drivetrain_efficiency > 0,
+            "experience_level": lambda: bool(ctx.athlete.experience_level),
+            "rugosità": lambda: True,
+            "capacità_atleta": lambda: bool(ctx.athlete.experience_level),
+            "intensità": lambda: m.get("avg_speed_ms", 0) > 0,
+            "massa_corpo": lambda: ctx.athlete.weight_kg.value > 0,
+            "fatica": lambda: True,
+            "sonno_ore": lambda: True,
+            "hrv": lambda: True,
+            "storico_attivita": lambda: True,
+        }
+        if name in checks:
+            try:
+                return checks[name]()
+            except Exception:
+                return False
+        if extra and name in extra:
+            val = extra[name]
+            if isinstance(val, (int, float)):
+                return val != 0
+            return bool(val)
+        return True
 
     # -- helper condivisi -------------------------------------------------
     @staticmethod
