@@ -435,7 +435,7 @@ alembic upgrade head
 | GOOGLE_FIT_CLIENT_SECRET | - | Google Fit OAuth secret |
 | STRAVA_CLIENT_ID | - | Strava OAuth client ID |
 | STRAVA_CLIENT_SECRET | - | Strava OAuth secret |
-| STRAVA_REDIRECT_URI | http://localhost:8000/api/v1/auth/strava/callback | Strava callback |
+| STRAVA_REDIRECT_URI | http://localhost:8000/api/v1/import/strava/callback | Strava callback |
 | GARMIN_CONSUMER_KEY | - | Garmin OAuth key |
 | GARMIN_CONSUMER_SECRET | - | Garmin OAuth secret |
 | GROQ_API_KEY | - | Groq LLM API key (unica chiave AI attiva) |

@@ -24,6 +24,7 @@ from .models import (
     Base,
     FitnessStateModel,
     KnowledgeChunkModel,
+    POIModel,
     RideModel,
     UserModel,
 )
@@ -42,6 +43,7 @@ _CORE_TABLES = [
     AthleteModel.__table__,
     RideModel.__table__,
     FitnessStateModel.__table__,
+    POIModel.__table__,
 ]
 
 

@@ -345,3 +345,26 @@ class CoachChatRequest(BaseModel):
         if not stripped:
             raise ValueError("Message cannot be empty")
         return stripped
+
+
+POI_TYPES = ("vista", "fontana", "ristoro", "bivio", "pericolo", "culturale", "tecnico")
+_POI_TYPE_PATTERN = "^(" + "|".join(POI_TYPES) + ")$"
+
+
+class POICreate(BaseModel):
+    name: str = Field(..., min_length=3, max_length=120)
+    description: str = Field(..., max_length=2000)
+    lat: float = Field(..., ge=-90, le=90)
+    lon: float = Field(..., ge=-180, le=180)
+    type: str = Field(..., pattern=_POI_TYPE_PATTERN)
+    photos: list[str] = Field(default_factory=list, max_length=20)
+    video_url: str | None = Field(default=None, max_length=2000)
+    difficulty_note: str | None = Field(default=None, max_length=500)
+    tags: list[str] = Field(default_factory=list, max_length=20)
+    itinerary_id: int | None = Field(default=None, gt=0)
+
+
+class POIResponse(POICreate):
+    id: int | None = None
+    created_by: int | None = None
+    created_at: str | None = None

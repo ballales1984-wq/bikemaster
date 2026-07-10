@@ -180,7 +180,7 @@ async function checkProfileComplete(
     );
     return data.profile_complete === true;
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -202,20 +202,24 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
-  if (hasToken && (to.path === "/" || justLoggedIn)) {
-    const hadToken = hasToken;
+  // Profile completeness check only for fresh OAuth returns / logins.
+  // A normal returning user with a valid token goes straight to /rides.
+  if (hasToken && justLoggedIn) {
+    auth.setJustLoggedIn(false);
+    localStorage.removeItem("bikemaster_just_logged_in");
     try {
       const hasCompleteProfile = await checkProfileComplete(auth);
       next(hasCompleteProfile ? "/rides" : "/athlete");
     } catch {
-      // We already hold a valid token from the OAuth return / fresh login.
-      // A failed profile check must never log the user out to the login
-      // screen — keep them on an authenticated dashboard route instead.
-      next(hadToken || justLoggedIn ? "/athlete" : "/");
+      next("/rides");
     }
-    localStorage.removeItem("bikemaster_just_logged_in");
-    auth.setJustLoggedIn(false);
     ui.setOauthLoading(false);
+    return;
+  }
+
+  // Logged-in user on the empty home route: redirect to the app.
+  if (hasToken && to.path === "/") {
+    next("/rides");
     return;
   }
 
@@ -229,6 +233,17 @@ router.beforeEach(async (to, from, next) => {
 router.afterEach((to) => {
   if (to.meta.title) {
     document.title = to.meta.title as string;
+  }
+});
+
+// Safety net: a logged-in user must never be left on the empty home route.
+// This guarantees the post-login redirect to the dashboard even if the OAuth
+// return (full reload or same-document fragment) is affected by a navigation
+// race and the guard/redirect doesn't move the user off "/". It cannot loop:
+// once on "/rides" the `to.path === "/"` condition no longer matches.
+router.afterEach((to) => {
+  if (to.path === "/" && useAuthStore().isLoggedIn) {
+    router.replace("/rides").catch(() => {});
   }
 });
 

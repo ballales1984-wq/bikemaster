@@ -109,6 +109,10 @@ Apri il browser su [http://localhost:8000](http://localhost:8000) per la dashboa
 | GET | `/api/v1/import/google-fit/auth` | URL OAuth Google Fit |
 | POST | `/api/v1/import/google-fit/token` | Scambio codice OAuth |
 | POST | `/api/v1/import/google-fit` | Importa attività Google Fit |
+| GET | `/api/v1/import/strava/auth` | URL OAuth Strava (PKCE) |
+| POST | `/api/v1/import/strava/callback` | Scambio codice OAuth Strava |
+| POST | `/api/v1/import/strava/sync` | Importa/sincronizza attività Strava |
+| DELETE | `/api/v1/import/strava/disconnect` | Disconnetti Strava |
 
 ### Esportazione
 | Metodo | Endpoint | Descrizione |

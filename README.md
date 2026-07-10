@@ -42,7 +42,7 @@ GPS-based cycling performance intelligence system. Import your rides from GPX/FI
 - **AI Coach** — Training and recovery advice powered by Groq/LLM
 - **Google Fit** — Automatic cycling activity import
 - **Google Maps** — Static maps with API key support
-- **Strava** — OAuth2 + PKCE activity import/export
+- **Strava** — OAuth2 + PKCE connect from the dashboard, batch activity import & sync
 - **Garmin Connect** — OAuth2 activity synchronization
 - **Wahoo Fitness** — Cycling activity import
 - **Calendar** — Training event planning
@@ -167,7 +167,7 @@ NOMINATIM_BASE_URL=https://nominatim.openstreetmap.org
 # Strava
 STRAVA_CLIENT_ID=your_key_here           # Optional
 STRAVA_CLIENT_SECRET=your_key_here       # Optional
-STRAVA_REDIRECT_URI=http://localhost:8000/api/v1/auth/strava/callback
+STRAVA_REDIRECT_URI=http://localhost:8000/api/v1/import/strava/callback
 
 # Garmin
 GARMIN_CONSUMER_KEY=your_key_here        # Optional
@@ -349,8 +349,8 @@ Base URL: `/api/v1`
 | POST | `/auth/register` | User registration |
 | GET | `/auth/google` | Google OAuth URL |
 | POST | `/auth/google/callback` | Google token exchange |
-| GET | `/auth/strava` | Strava OAuth URL |
-| POST | `/auth/strava/callback` | Strava token exchange |
+| GET | `/import/strava/auth` | Strava OAuth URL (PKCE) |
+| POST | `/import/strava/callback` | Strava token exchange |
 
 ### Rides CRUD
 
@@ -374,8 +374,10 @@ Base URL: `/api/v1`
 | POST | `/import/fit` | Yes | FIT upload |
 | POST | `/import/multiple` | Yes | Batch upload |
 | POST | `/import/google-fit` | Yes | Import from Google Fit |
-| POST | `/import/strava` | Yes | Import from Strava |
+| GET | `/import/strava/auth` | Yes | Strava OAuth URL (PKCE) |
+| POST | `/import/strava/callback` | Yes | Strava token exchange |
 | POST | `/import/strava/sync` | Yes | Sync all Strava activities |
+| DELETE | `/import/strava/disconnect` | Yes | Disconnect Strava |
 
 ### Export
 
@@ -438,9 +440,11 @@ The only AI key required is `GROQ_API_KEY` in `.env`. Knowledge base embeddings 
 
 ### Strava
 - OAuth 2.0 + PKCE authorization flow
-- Import cycling activities with Ride normalization
-- Batch synchronization with pagination
-- SQLite-backed token storage with auto-refresh
+- Connect directly from the dashboard (*Import* panel → *Connect Strava*)
+- Import cycling activities (Ride normalization) with batch synchronization + pagination
+- SQLite-backed token storage (`strava_tokens`) with auto-refresh via `refresh_token`
+- Endpoints: `GET /import/strava/auth`, `POST /import/strava/callback`, `POST /import/strava/sync`, `DELETE /import/strava/disconnect`
+- Configure `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REDIRECT_URI=http://localhost:8000/api/v1/import/strava/callback` (the path must match exactly, including `/import/`)
 
 ### Garmin Connect
 - OAuth 2.0 authorization flow

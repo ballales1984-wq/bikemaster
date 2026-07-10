@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.5.0 (2026-07-10) — Milestone: Strava Integration (end-to-end)
+
+### Added
+- **Strava import wired in the web UI** — new *Strava* provider section in `ImportPanel.vue` with **Connect Strava**, **Import from Strava** and **Disconnect Strava** buttons (section shown only when `providers.strava` is true).
+- **Connect flow (OAuth2 + PKCE, popup-based)** — frontend opens the Strava authorize URL, polls the redirect for `?code=`, then POSTs `{code, code_verifier}` to `POST /api/v1/import/strava/callback`. No backend GET redirect handler required (same-origin: the API serves the Vue app).
+- **`strava` key exposed in `GET /api/v1/import/providers`** so the UI renders only when `STRAVA_CLIENT_ID`/`STRAVA_CLIENT_SECRET` are configured.
+
+### Fixed
+- Frontend bug: post-connect auto-import hung on "Importing your rides..." because `stravaSync()` early-returned while `importing` was still `true`; `importing` is now reset before the auto-sync runs.
+
+### Technical Details
+- Backend Strava endpoints (already implemented): `GET /import/strava/auth`, `POST /import/strava/callback`, `POST /import/strava/sync`, `DELETE /import/strava/disconnect`.
+- Token storage: `strava_tokens` table (SQLite), with auto-refresh via `refresh_token`.
+- Verified on Render: Connect → authorize → rides imported and dashboard updated.
+
+---
+
 ## v1.4.1 (2026-07-09)
 
 ### Changed
