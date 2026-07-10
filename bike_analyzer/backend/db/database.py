@@ -77,6 +77,9 @@ def init_db():
             heart_rate_avg REAL,
             elevation_gain_m REAL,
             gps_points TEXT,
+            activity_type TEXT DEFAULT 'ride',
+            is_official INTEGER DEFAULT 1,
+            source TEXT DEFAULT 'manual',
             created_at TEXT
         )""")
         conn.execute("""CREATE TABLE IF NOT EXISTS athletes (
@@ -276,6 +279,12 @@ def init_db():
             conn.execute("ALTER TABLE rides ADD COLUMN elevation_gain_m REAL")
         if "gps_points" not in ride_cols:
             conn.execute("ALTER TABLE rides ADD COLUMN gps_points TEXT")
+        if "activity_type" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN activity_type TEXT DEFAULT 'ride'")
+        if "is_official" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN is_official INTEGER DEFAULT 1")
+        if "source" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN source TEXT DEFAULT 'manual'")
         if "created_at" not in ride_cols:
             conn.execute("ALTER TABLE rides ADD COLUMN created_at TEXT")
         cur.execute("PRAGMA table_info(athletes)")
@@ -370,6 +379,9 @@ def _row_to_ride(row) -> dict:
         "external_id": row["external_id"] if "external_id" in keys else None,
         "title": row["title"] if "title" in keys else None,
         "tenant_id": row["tenant_id"] if "tenant_id" in keys else 0,
+        "activity_type": row["activity_type"] if "activity_type" in keys else "ride",
+        "is_official": bool(row["is_official"]) if "is_official" in keys else True,
+        "source": row["source"] if "source" in keys else "manual",
     }
 
 
@@ -399,8 +411,9 @@ def save_ride(ride: dict) -> int:
             """INSERT INTO rides
             (athlete_id, date, distance_km, duration_minutes, avg_speed_kmh,
              weight_kg, calories, heart_rate_avg, elevation_gain_m, gps_points,
-             external_source, external_id, title, created_at, tenant_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             external_source, external_id, title, activity_type, is_official,
+             source, created_at, tenant_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 ride.get("athlete_id"),
                 ride.get("date"),
@@ -415,6 +428,9 @@ def save_ride(ride: dict) -> int:
                 external_source,
                 external_id,
                 ride.get("title"),
+                ride.get("activity_type", "ride"),
+                1 if ride.get("is_official", True) else 0,
+                ride.get("source", "manual"),
                 datetime.now(UTC).isoformat(),
                 tenant_id,
             ),
@@ -555,7 +571,8 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
             cur.execute(
                 """UPDATE rides SET athlete_id=?, date=?, distance_km=?,
                 duration_minutes=?, avg_speed_kmh=?, weight_kg=?, calories=?,
-                heart_rate_avg=?, elevation_gain_m=?, gps_points=?, tenant_id=? WHERE id=? AND tenant_id=?""",
+                heart_rate_avg=?, elevation_gain_m=?, gps_points=?,
+                activity_type=?, is_official=?, source=?, tenant_id=? WHERE id=? AND tenant_id=?""",
                 (
                     ride.get("athlete_id"),
                     ride.get("date"),
@@ -567,6 +584,9 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
                     ride.get("heart_rate_avg"),
                     ride.get("elevation_gain_m"),
                     gps_points,
+                    ride.get("activity_type", "ride"),
+                    1 if ride.get("is_official", True) else 0,
+                    ride.get("source", "manual"),
                     ride_tenant_id,
                     ride_id,
                     tenant_id,
@@ -576,7 +596,8 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
             cur.execute(
                 """UPDATE rides SET athlete_id=?, date=?, distance_km=?,
                 duration_minutes=?, avg_speed_kmh=?, weight_kg=?, calories=?,
-                heart_rate_avg=?, elevation_gain_m=?, gps_points=?, tenant_id=? WHERE id=?""",
+                heart_rate_avg=?, elevation_gain_m=?, gps_points=?,
+                activity_type=?, is_official=?, source=?, tenant_id=? WHERE id=?""",
                 (
                     ride.get("athlete_id"),
                     ride.get("date"),
@@ -588,6 +609,9 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
                     ride.get("heart_rate_avg"),
                     ride.get("elevation_gain_m"),
                     gps_points,
+                    ride.get("activity_type", "ride"),
+                    1 if ride.get("is_official", True) else 0,
+                    ride.get("source", "manual"),
                     ride_tenant_id,
                     ride_id,
                 ),

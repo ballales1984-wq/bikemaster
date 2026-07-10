@@ -18,11 +18,15 @@ class RideCreate(BaseModel):
     title: str | None = Field(default=None, max_length=150)
     external_source: str | None = Field(default=None, max_length=50)
     external_id: str | None = Field(default=None, max_length=100)
+    activity_type: str | None = Field(default="ride", pattern="^(ride|walk|hike|run|indoor|other)$")
+    is_official: bool | None = Field(default=True)
+    source: str | None = Field(default="manual", max_length=50)
 
 
 class RideResponse(RideCreate):
     id: int | None = None
     created_at: str | None = None
+    tenant_id: int = 0
 
 
 class RideUpdate(BaseModel):
@@ -35,6 +39,9 @@ class RideUpdate(BaseModel):
     heart_rate_avg: float | None = Field(default=None, ge=30, le=220)
     elevation_gain_m: float | None = Field(default=None, ge=0, le=15000)
     title: str | None = Field(default=None, max_length=150)
+    activity_type: str | None = Field(default=None, pattern="^(ride|walk|hike|run|indoor|other)$")
+    is_official: bool | None = Field(default=None)
+    source: str | None = Field(default=None, max_length=50)
 
 
 class AthleteCreate(BaseModel):
@@ -367,4 +374,5 @@ class POICreate(BaseModel):
 class POIResponse(POICreate):
     id: int | None = None
     created_by: int | None = None
+    tenant_id: int | None = None
     created_at: str | None = None

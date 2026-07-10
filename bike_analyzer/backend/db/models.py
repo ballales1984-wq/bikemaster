@@ -99,6 +99,9 @@ class RideModel(Base):
     external_source: Mapped[str | None] = mapped_column(String)
     external_id: Mapped[str | None] = mapped_column(String)
     title: Mapped[str | None] = mapped_column(String)
+    activity_type: Mapped[str] = mapped_column(String, default="ride")
+    is_official: Mapped[bool] = mapped_column(Boolean, default=True)
+    source: Mapped[str] = mapped_column(String, default="manual")
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
