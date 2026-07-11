@@ -23,7 +23,10 @@ services:
           name: bikemaster-db
           property: connectionString
       - key: REDIS_URL
-        value: redis://localhost:6379
+        fromService:
+          name: bikemaster-cache
+          type: redis
+          property: connectionString
       - key: LOG_LEVEL
         value: WARNING
     startCommand: python main.py api --port $PORT --workers 1
