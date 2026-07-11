@@ -75,6 +75,15 @@ async def close_redis():
     _redis_unavailable_at = 0.0
 
 
+_MEMORY_CACHE: dict[str, tuple[Any, float]] = {}
+_MEMORY_RATELIMIT: dict[str, tuple[int, float]] = {}
+
+def _cleanup_memory_cache():
+    now = time.monotonic()
+    expired = [k for k, (v, exp) in _MEMORY_CACHE.items() if now > exp]
+    for k in expired:
+        _MEMORY_CACHE.pop(k, None)
+
 def cache_key(*args: Any, **kwargs: Any) -> str:
     raw = json.dumps({"args": args, "kwargs": kwargs}, sort_keys=True, default=str)
     return "bikemaster:cache:" + hashlib.sha256(raw.encode()).hexdigest()
@@ -83,6 +92,13 @@ def cache_key(*args: Any, **kwargs: Any) -> str:
 async def cached(key: str, ttl: int = 300) -> Any | None:
     r = await get_redis()
     if r is None:
+        _cleanup_memory_cache()
+        if key in _MEMORY_CACHE:
+            val, exp = _MEMORY_CACHE[key]
+            if time.monotonic() <= exp:
+                return val
+            else:
+                _MEMORY_CACHE.pop(key, None)
         return None
     try:
         val = await r.get(key)
@@ -96,7 +112,9 @@ async def cached(key: str, ttl: int = 300) -> Any | None:
 async def cache_set(key: str, value: Any, ttl: int = 300) -> bool:
     r = await get_redis()
     if r is None:
-        return False
+        _cleanup_memory_cache()
+        _MEMORY_CACHE[key] = (value, time.monotonic() + ttl)
+        return True
     try:
         await r.set(key, json.dumps(value, default=str), ex=ttl)
         return True
@@ -108,7 +126,8 @@ async def cache_set(key: str, value: Any, ttl: int = 300) -> bool:
 async def cache_delete(key: str) -> bool:
     r = await get_redis()
     if r is None:
-        return False
+        _MEMORY_CACHE.pop(key, None)
+        return True
     try:
         await r.delete(key)
         return True
@@ -125,7 +144,22 @@ async def check_rate_limit(user_id: int | None, endpoint: str, limit: int = 60, 
     """Per-user rate limit using sliding window."""
     r = await get_redis()
     if r is None:
-        return True
+        now = time.monotonic()
+        key = rate_limit_key(user_id, endpoint)
+        count, exp = _MEMORY_RATELIMIT.get(key, (0, 0))
+        if now > exp:
+            count = 0
+            exp = now + window
+        count += 1
+        _MEMORY_RATELIMIT[key] = (count, exp)
+        
+        # Cleanup old rate limits occasionally
+        if count == 1 and len(_MEMORY_RATELIMIT) > 1000:
+            expired = [k for k, (c, e) in _MEMORY_RATELIMIT.items() if now > e]
+            for k in expired:
+                _MEMORY_RATELIMIT.pop(k, None)
+                
+        return count <= limit
     key = rate_limit_key(user_id, endpoint)
     try:
         count = await r.incr(key)
