@@ -22,20 +22,11 @@ services:
         fromDatabase:
           name: bikemaster-db
           property: connectionString
-      - key: REDIS_URL
-        fromService:
-          name: bikemaster-cache
-          type: redis
-          property: connectionString
       - key: LOG_LEVEL
         value: WARNING
-    startCommand: python main.py api --port $PORT --workers 1
+    startCommand: python main.py api --port $PORT
     healthCheckPath: /api/v1/health
     autoDeploy: true
-
-  - type: redis
-    name: bikemaster-cache
-    plan: free
 
   - type: postgresql
     name: bikemaster-db
