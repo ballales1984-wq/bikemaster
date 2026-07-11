@@ -21,7 +21,7 @@ Perché **nessuno vince ovunque**. SVG è perfetto per pochi elementi interattiv
 ### Perché NON basta Leaflet/SVG per AetherMap
 Leaflet è una raccolta di **tile piani (proiezione Mercator)**. Va bene per una *mappa 2D di sfondo*, ma viola i contratti di Fase 1:
 - impone una proiezione piana (distorzione globale nascosta);
-- non ha un digitwin 3D "vivo";
+- non ha un digital twin 3D "vivo";
 - la sua "geometria" è un'immagine, non il nostro cube-sphere heightfield.
 
 Leaflet può restare come **minimappa 2D secondaria**, non come motore. Il motore di AetherMap è **WebGL**.
