@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 
 from aethermap.render.ascii import render_ascii
+from aethermap.render.camera import Camera
 from aethermap.render.scene import Scene
 from aethermap.twin.objects import make_albero, make_montagna, make_strada
 from aethermap.twin.world import DigitalTwin, Environment
@@ -26,6 +27,11 @@ def main() -> None:
         ("NOTTE gelata", Environment(temp_c=-3.0, solar_elev_deg=0.0, ora="03:00")),
     ]:
         twin.step(env)
+        if label == "NOTTE gelata":
+            mont = next((o for o in twin.store.objects.values() if o.tipo == "montagna"), None)
+            if mont is not None:
+                print(f"\n[SVO] {mont.id} volume: {mont.volume_stats(env.temp_c)}")
+        twin.step(env)
         print(f"\n=== {label} ({env.ora}) ===")
         for s in twin.snapshot():
             print(s)
@@ -36,7 +42,7 @@ def main() -> None:
             else:
                 scene.add(obj.tipo, (obj.posizione.lat, obj.posizione.lon),
                           alt=obj.posizione.alt, char=obj.tipo[0].upper())
-        scenes.append((label, render_ascii(scene)))
+        scenes.append((label, render_ascii(scene, Camera())))
 
     for label, frame in scenes:
         print(f"\n--- vista {label} ---")

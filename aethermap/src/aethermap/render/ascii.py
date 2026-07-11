@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import numpy as np
 
-from aethermap.render.projection import cube_sphere_mesh, project
+from aethermap.render.camera import Camera
+from aethermap.render.projection import cube_sphere_mesh, project_ecef
 from aethermap.render.scene import Scene
 
 
-def render_ascii(scene: Scene, yaw: float = 0.6, pitch: float = 0.4,
-                 w: int = 70, h: int = 35, mesh_n: int = 8) -> str:
+def render_ascii(scene: Scene, camera: Camera | None = None,
+                  w: int = 70, h: int = 35, mesh_n: int = 8) -> str:
+    if camera is None:
+        camera = Camera()
     grid = [[" " for _ in range(w)] for _ in range(h)]
     segs = cube_sphere_mesh(mesh_n)
 
@@ -21,13 +24,13 @@ def render_ascii(scene: Scene, yaw: float = 0.6, pitch: float = 0.4,
         steps = 4
         for k in range(steps + 1):
             t = k / steps
-            p = project(a + (b - a) * t, yaw, pitch)
+            p = project_ecef(a + (b - a) * t, camera)
             if p:
                 plot(p[0], p[1], ".")
     for ent in scene.entities:
         ch = ent["char"]
         for pt in ent["pts"]:
-            p = project(np.array(pt), yaw, pitch)
+            p = project_ecef(np.array(pt, dtype=np.float64), camera)
             if p:
                 plot(p[0], p[1], ch)
     return "\n".join("".join(row) for row in grid)

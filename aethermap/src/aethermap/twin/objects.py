@@ -62,6 +62,19 @@ class Montagna(Oggetto):
     def neve(self, temp_c: float) -> bool:
         return temp_c < 1.0
 
+    def _volume(self, temp_c: float):
+        from aethermap.twin.svo import SparseVolume
+        h = 1500.0
+        r0 = 1500.0 + len(self.versanti()) * 500.0
+        return SparseVolume(base_alt=self.posizione.alt, height=h, radius=r0,
+                             versanti=self.versanti(), temp_c=temp_c)
+
+    def neve_interna(self, temp_c: float) -> float:
+        return self._volume(temp_c).snow_fraction()
+
+    def volume_stats(self, temp_c: float) -> dict:
+        return self._volume(temp_c).stats()
+
 
 def make_strada(id_: str, lat: float, lon: float, pts: list[dict]) -> Strada:
     return Strada(id=id_, tipo="strada",

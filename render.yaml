@@ -24,7 +24,7 @@ services:
           property: connectionString
       - key: LOG_LEVEL
         value: WARNING
-    startCommand: python main.py api --port $PORT
+    startCommand: sh -c "python main.py api --port $PORT"
     healthCheckPath: /api/v1/health
     autoDeploy: true
 

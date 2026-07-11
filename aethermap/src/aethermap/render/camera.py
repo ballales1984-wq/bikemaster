@@ -17,7 +17,7 @@ class Camera:
     lat: float = 41.9
     lon: float = 12.5
     alt: float = 500_000.0          # meters above surface
-    distance: float = 1_000_000.0   # view distance from surface
+    distance: float = 15_000_000.0  # view distance from surface (whole globe fits FOV)
     yaw: float = 0.0                # radians, around Y axis
     pitch: float = -0.3             # radians, up/down
     fov: float = math.radians(60.0)
