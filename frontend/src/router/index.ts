@@ -182,7 +182,9 @@ async function checkProfileComplete(
       {
         headers: { Authorization: `Bearer ${auth.token}` },
         suppressAuthClear: true,
-      } as RequestInit,
+        timeoutMs: 8000,
+        noRetry: true,
+      },
     );
     return data.profile_complete === true;
   } catch {
