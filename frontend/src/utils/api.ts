@@ -66,6 +66,7 @@ function authHeaders(): Record<string, string> {
 const RETRYABLE_STATUS = new Set([502, 503, 504]);
 const MAX_RETRIES = 4;
 const RETRY_BASE_DELAY_MS = 1500;
+const DEFAULT_TIMEOUT_MS = 15000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -96,6 +97,12 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
   // "session expired" logout. Used by the OAuth-return profile check, where a
   // transient 401 must never wipe a freshly established session.
   suppressAuthClear?: boolean;
+  // Per-request timeout (ms). Guarantees a hung connection (server accepts but
+  // never responds) cannot block the caller forever. 0 disables the timeout.
+  timeoutMs?: number;
+  // When true, do not retry on network errors / 5xx (used by the OAuth profile
+  // check so a slow/unreachable backend fails fast instead of stalling login).
+  noRetry?: boolean;
 }
 
 async function request<T>(options: RequestOptions): Promise<T> {
@@ -105,6 +112,9 @@ async function request<T>(options: RequestOptions): Promise<T> {
     body,
     headers = {},
     suppressAuthClear,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    noRetry = false,
+    signal,
     ...rest
   } = options;
   const isForm = typeof FormData !== "undefined" && body instanceof FormData;
@@ -134,10 +144,18 @@ async function request<T>(options: RequestOptions): Promise<T> {
 
   let resp: Response;
   for (let attempt = 0; ; attempt++) {
+    // Fresh controller/timer per attempt: a previously aborted signal cannot be
+    // reused, so each retry needs its own timeout window.
+    const controller = new AbortController();
+    const timer =
+      timeoutMs && timeoutMs > 0
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : null;
     try {
-      resp = await fetch(path, init);
+      resp = await fetch(path, { ...init, signal: signal ?? controller.signal });
     } catch {
-      if (idempotent && attempt < MAX_RETRIES) {
+      if (timer) clearTimeout(timer);
+      if (!noRetry && idempotent && attempt < MAX_RETRIES) {
         notifyServerWaking();
         await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
         continue;
@@ -146,8 +164,11 @@ async function request<T>(options: RequestOptions): Promise<T> {
         "Server non raggiungibile. Riprova tra qualche istante.",
         0,
       );
+    } finally {
+      if (timer) clearTimeout(timer);
     }
     if (
+      !noRetry &&
       idempotent &&
       RETRYABLE_STATUS.has(resp.status) &&
       attempt < MAX_RETRIES
@@ -184,10 +205,18 @@ export interface ApiResponse {
   [key: string]: unknown;
 }
 
+// Options accepted by the public api* helpers. Extends RequestInit with the
+// app-specific flags handled by `request` (suppressAuthClear, timeoutMs, noRetry).
+export type ApiRequestOptions = RequestInit & {
+  suppressAuthClear?: boolean;
+  timeoutMs?: number;
+  noRetry?: boolean;
+};
+
 export async function apiGet<T = ApiResponse>(
   path: string,
   params: Record<string, string> = {},
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
   const qs = new URLSearchParams(params).toString();
   const url = qs ? `${API_BASE}${path}?${qs}` : `${API_BASE}${path}`;
@@ -197,7 +226,7 @@ export async function apiGet<T = ApiResponse>(
 export async function apiPost<T = ApiResponse>(
   path: string,
   body: unknown,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
   return request<T>({
     ...options,
@@ -209,7 +238,7 @@ export async function apiPost<T = ApiResponse>(
 
 export async function apiDelete<T = ApiResponse>(
   path: string,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
   return request<T>({
     ...options,
@@ -221,7 +250,7 @@ export async function apiDelete<T = ApiResponse>(
 export async function apiUpload<T = ApiResponse>(
   path: string,
   file: Blob | File,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
   const form = new FormData();
   form.append("file", file);
@@ -236,7 +265,7 @@ export async function apiUpload<T = ApiResponse>(
 export async function apiPut<T = ApiResponse>(
   path: string,
   body: unknown,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
   return request<T>({
     ...options,
