@@ -45,7 +45,7 @@ Per ogni rappresentazione valutiamo quattro assi: adeguatezza geometrica, costo 
 
 ---
 
-### 1.2 Ellissoide (geode di riferimento)
+### 1.2 Ellissoide (geoide di riferimento)
 
 **Definizione.** Superficie di rivoluzione `x²/a² + y²/a² + z²/b² = 1` (semi-assi `a` equatore, `b` polo). WGS84 è un ellissoide specifico, ma **WGS84 non è la Terra**: è una *superficie di riferimento matematica* su cui si misura l'altitudine geodetica.
 
