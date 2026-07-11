@@ -22,34 +22,37 @@ _INITIAL_DB_PATH = DB_PATH
 
 @contextmanager
 def get_db_connection():
-    """Context manager for database connections with WAL mode and retry."""
+    """Context manager for database connections with WAL mode, busy timeout, and retry."""
     import time
 
-    max_retries = 3
-    retry_delay = 0.1
-    conn = None
+    max_retries = 5
+    retry_delay = 0.2
+    last_error = None
+
     for attempt in range(max_retries):
+        conn = None
         try:
             conn = sqlite3.connect(DB_PATH, timeout=10)
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("PRAGMA foreign_keys=ON")
             conn.row_factory = sqlite3.Row
-            break
+            yield conn
+            conn.commit()
+            return
         except sqlite3.OperationalError as e:
+            last_error = e
             if "locked" in str(e).lower() and attempt < max_retries - 1:
                 time.sleep(retry_delay * (attempt + 1))
                 continue
             raise
+        finally:
+            if conn is not None:
+                conn.close()
 
-    if conn is None:
-        raise RuntimeError(f"Failed to connect to database at {DB_PATH} after {max_retries} retries")
-
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError(f"Failed to connect to database at {DB_PATH} after {max_retries} retries")
 
 
 def init_db():

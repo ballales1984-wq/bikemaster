@@ -87,6 +87,28 @@ class TestCoachRoutes:
         resp = tc.get(f"/api/v1/coach/history?athlete_id={aid}")
         assert resp.status_code == 200
 
+    def test_coach_chat_missing_athlete(self, tmp_db, monkeypatch):
+        """Regression: chat must not 500 when the athlete row is missing
+        (e.g. SQLite DB reset after a redeploy while the JWT is still valid)."""
+        import bike_analyzer.backend.analytics.ai_coach as ai_coach
+
+        from bike_analyzer.backend.db import database as db_mod
+        from bike_analyzer.backend.security import create_access_token
+
+        # Stub the AI call so the test does not hit the network.
+        monkeypatch.setattr(ai_coach, "generate_training_advice", lambda *a, **k: "ok")
+        os.environ["DB_PATH"] = tmp_db
+        db_mod.DB_PATH = tmp_db
+        db_mod.init_db()
+        # Token for an id that has NO athlete row in the database.
+        token = create_access_token(subject="999999", is_admin=False)
+        tc = TestClient(create_app())
+        tc.headers["Authorization"] = f"Bearer {token}"
+        resp = tc.post("/api/v1/coach/chat", json={"message": "ciao coach"})
+        assert resp.status_code == 200
+        # The athlete profile should now exist so future chat inserts succeed.
+        assert db_mod.get_athlete(999999) is not None
+
 
 class TestKnowledgeRoutes:
     def test_list_knowledge(self, client):
