@@ -50,6 +50,7 @@ from ..rate_limiter import limiter
 from ..redis_client import cache_delete as _cache_delete
 from ..redis_client import cache_set as _cache_set
 from ..redis_client import cached as _cached
+from ..redis_client import check_rate_limit
 from ..security import ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, get_admin_user, get_current_user
 from ..settings import get_settings
 from ..utils.logger import get_logger
@@ -451,6 +452,12 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             result = await session.execute(stmt)
             user = result.scalar_one_or_none()
 
+            user_id = user.id if user else None
+            if not await check_rate_limit(user_id, "/auth/login", limit=5, window=60):
+                raise HTTPException(
+                    status_code=429, detail="Too many login attempts"
+                )
+
             if not user or not verify_password(form_data.password, user.password_hash or ""):
                 raise HTTPException(
                     status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"}
@@ -562,6 +569,11 @@ async def register(
 ):
     from ..db.database import get_athlete_by_email, get_athlete_by_name, save_athlete
     from ..security import hash_password
+
+    if not await check_rate_limit(None, "/auth/register", limit=3, window=60):
+        raise HTTPException(
+            status_code=429, detail="Too many registration attempts"
+        )
 
     if len(username) < 3 or len(username) > 64 or len(password) < 8 or len(password) > 128:
         raise HTTPException(
