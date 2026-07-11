@@ -412,6 +412,19 @@ def save_ride(ride: dict) -> int:
                 existing_ride_id = _find_existing_external_ride(conn, external_source, external_id)
                 if existing_ride_id is not None:
                     return existing_ride_id
+                if not ride.get("calories"):
+                    try:
+                        from ..analytics.calories import ensure_calories
+
+                        allowed = set(Ride.__dataclass_fields__.keys())
+                        clean = {
+                            k: v
+                            for k, v in ride.items()
+                            if k in allowed and k not in ("gps_points", "id")
+                        }
+                        ride["calories"] = ensure_calories(Ride(**clean))
+                    except Exception:
+                        logger.debug("Calorie estimate failed; storing 0", exc_info=True)
                 gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
                 tenant_id = ride.get("tenant_id", ride.get("athlete_id", 0))
                 cur.execute(
