@@ -13,6 +13,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from ..models.models import GPSPoint, Ride, Segment, haversine_distance_m
+from .calories import ensure_calories
 from .fatigue import calculate_fatigue_score, estimate_recovery_hours, get_recovery_recommendation
 
 
@@ -28,7 +29,7 @@ def calculate_summary(rides: list[Ride]) -> dict:
     return {
         "total_rides": len(rides),
         "total_km": round(sum(r.distance_km for r in rides), 1),
-        "total_calories": round(sum(r.calories for r in rides), 0),
+        "total_calories": round(sum(ensure_calories(r) for r in rides), 0),
         "avg_speed": round(sum(r.avg_speed_kmh for r in rides) / len(rides), 1),
         "avg_fatigue": round(sum(calculate_fatigue_score(r) for r in rides) / len(rides), 1),
     }
