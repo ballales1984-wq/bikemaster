@@ -22,7 +22,7 @@ class RawFeature:
 
 
 def ingest_gpx(path: str) -> list[RawPoint]:
-    tree = ET.parse(path)
+    tree = defusedxml.etree.ElementTree.parse(path)
     root = tree.getroot()
     ns = {"g": "http://www.topografix.com/GPX/1/1"}
     points: list[RawPoint] = []
