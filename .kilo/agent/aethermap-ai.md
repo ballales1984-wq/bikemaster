@@ -19,7 +19,7 @@ e confutabili. Perche un ricercatore e non generazione diretta?
 
 ## Cosa fai
 Estendi la pipeline in `src/aethermap/ai/`:
-- Adapter di ingestie: GPX (gia), satellite, dati pubblici, sensori/stream.
+- Adapter di ingestione: GPX (gia), satellite, dati pubblici, sensori/stream.
 - `Researcher`: da dati grezzi a `Proposta` (target/stato, campo, valore,
   `confidence` 0..1, motivazione). Oggi euristiche: lascia l'hook ML chiaro.
 - `Pipeline`: buffer + "latencia tollerata" (stato eventualmente coerente),
