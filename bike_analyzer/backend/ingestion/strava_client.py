@@ -253,6 +253,31 @@ def fetch_all_activities(access_token: str, max_pages: int = 20) -> list[dict]:
 # Normalization
 # ---------------------------------------------------------------------------
 
+def decode_polyline(encoded: str) -> list[dict[str, float]]:
+    """Decode a Google-encoded polyline string into a list of {lat, lon} dicts."""
+    if not encoded:
+        return []
+    points: list[dict[str, float]] = []
+    index = 0
+    lat = lng = 0
+    while index < len(encoded):
+        for coord in ("lat", "lng"):
+            shift = result = 0
+            while True:
+                byte = ord(encoded[index]) - 63
+                index += 1
+                result |= (byte & 0x1F) << shift
+                shift += 5
+                if byte < 0x20:
+                    break
+            delta = ~(result >> 1) if (result & 1) else (result >> 1)
+            if coord == "lat":
+                lat += delta
+            else:
+                lng += delta
+        points.append({"lat": lat / 1e5, "lon": lng / 1e5})
+    return points
+
 
 def strava_to_ride(activity: dict[str, Any], weight_kg: float = 70.0) -> dict[str, Any]:
     """Convert a single Strava activity dict into a BikeMaster Ride dict."""
@@ -271,6 +296,12 @@ def strava_to_ride(activity: dict[str, Any], weight_kg: float = 70.0) -> dict[st
     external_id = activity.get("id")
     name = activity.get("name", "")
 
+    # Strava's list endpoint does not include the full GPS track; it exposes a
+    # low-resolution encoded polyline in ``activity["map"]["summary_polyline"]``.
+    # Decode it so the map can render the route.
+    summary_polyline = (activity.get("map") or {}).get("summary_polyline")
+    gps_points = decode_polyline(summary_polyline)
+
     ride: dict[str, Any] = {
         "date": date_str,
         "distance_km": distance_m / 1000,
@@ -280,7 +311,7 @@ def strava_to_ride(activity: dict[str, Any], weight_kg: float = 70.0) -> dict[st
         "calories": calories,
         "elevation_gain_m": total_elevation_gain,
         "heart_rate_avg": avg_heart_rate,
-        "gps_points": [],
+        "gps_points": gps_points,
         "external_source": "strava",
         "external_id": str(external_id) if external_id else None,
         "title": name,
