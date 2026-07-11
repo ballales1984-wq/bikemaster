@@ -44,7 +44,7 @@ Percorso: `cd aethermap/src` poi `python -m aethermap.ai.demo`,
 ## Decisioni gia vincolate (checkpoint utente)
 - Hardware: ibrido web + Python backend (riusa stack BikeMaster Vue+FastAPI).
 - Risoluzione: adattiva per zona (LOD semantico).
-- Digital twin: real-time con latencia tollerata (stato eventualmente coerente).
+- Digital twin: real-time con latenza tollerata (stato eventualmente coerente).
 - Interoperabilita: supporta GeoJSON / 3D Tiles / CityGML (I/O).
 - Storage prototipo: tutto Python/Parquet + S2 (gratuito, zero server).
 - Spatial key: S2 primario (geometria/LOD), H3 per analisi.
