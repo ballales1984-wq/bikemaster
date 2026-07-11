@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="AetherMap-sample" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Strada di esempio</name>
+    <trkseg>
+      <trkpt lat="45.0000" lon="9.0000"><ele>120</ele><time>2026-07-11T10:00:00Z</time></trkpt>
+      <trkpt lat="45.0005" lon="9.0006"><ele>122</ele><time>2026-07-11T10:00:05Z</time></trkpt>
+      <trkpt lat="45.0010" lon="9.0012"><ele>121</ele><time>2026-07-11T10:00:10Z</time></trkpt>
+      <trkpt lat="45.0015" lon="9.0018"><ele>119</ele><time>2026-07-11T10:00:15Z</time></trkpt>
+      <trkpt lat="45.0020" lon="9.0024"><ele>118</ele><time>2026-07-11T10:00:20Z</time></trkpt>
+      <trkpt lat="45.0025" lon="9.0030"><ele>120</ele><time>2026-07-11T10:00:25Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
