@@ -211,6 +211,7 @@ class BackgroundTaskQueue:
             fetch_all_activities,
             get_valid_token,
             strava_to_ride,
+            StravaRateLimitError,
         )
 
         athlete_id = payload["athlete_id"]
@@ -221,8 +222,16 @@ class BackgroundTaskQueue:
         activities = fetch_all_activities(access_token)
         imported = []
         imported_ids: set[int] = set()
+        streams_rate_limited = False
         for act in activities:
-            ride_data = strava_to_ride(act)
+            if streams_rate_limited:
+                ride_data = strava_to_ride(act)
+            else:
+                try:
+                    ride_data = strava_to_ride(act, access_token=access_token)
+                except StravaRateLimitError:
+                    streams_rate_limited = True
+                    ride_data = strava_to_ride(act)
             if ride_data.get("skipped") or "error" in ride_data:
                 continue
             ride_data["athlete_id"] = athlete_id
