@@ -3288,7 +3288,12 @@ async def strava_sync(
         task = await get_task_queue().enqueue("strava_sync", payload)
         return {"task_id": task.id, "status": "queued", "athlete_id": current_user["id"]}
     from ..db.database import save_ride
-    from ..ingestion.strava_client import fetch_all_activities, get_valid_token, strava_to_ride
+    from ..ingestion.strava_client import (
+        fetch_all_activities,
+        get_valid_token,
+        strava_to_ride,
+        StravaRateLimitError,
+    )
 
     access_token = get_valid_token(current_user["id"])
     if not access_token:
@@ -3298,8 +3303,16 @@ async def strava_sync(
     imported_ids: set[int] = set()
     from ..monitoring import record_gps_import
 
+    streams_rate_limited = False
     for act in activities:
-        ride_data = strava_to_ride(act)
+        if streams_rate_limited:
+            ride_data = strava_to_ride(act)
+        else:
+            try:
+                ride_data = strava_to_ride(act, access_token=access_token)
+            except StravaRateLimitError:
+                streams_rate_limited = True
+                ride_data = strava_to_ride(act)
         if ride_data.get("skipped") or "error" in ride_data:
             continue
         ride_data["athlete_id"] = current_user["id"]

@@ -279,8 +279,73 @@ def decode_polyline(encoded: str) -> list[dict[str, float]]:
     return points
 
 
-def strava_to_ride(activity: dict[str, Any], weight_kg: float = 70.0) -> dict[str, Any]:
-    """Convert a single Strava activity dict into a BikeMaster Ride dict."""
+class StravaRateLimitError(Exception):
+    """Raised when Strava returns HTTP 429 on a streams request."""
+
+    pass
+
+
+def fetch_activity_streams(
+    access_token: str,
+    activity_id: int | str,
+    keys: tuple[str, ...] = ("latlng", "altitude"),
+    resolution: str = "medium",
+) -> dict:
+    """Fetch raw GPS streams for a single activity.
+
+    Returns the decoded Strava streams object, or raises ``StravaRateLimitError``
+    on HTTP 429 so callers can stop hammering the API.
+    """
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {
+        "keys": ",".join(keys),
+        "key_by_type": "true",
+        "resolution": resolution,
+    }
+    resp = requests.get(
+        f"{STRAVA_API_BASE_URL}/activities/{activity_id}/streams",
+        headers=headers,
+        params=params,
+        timeout=20,
+    )
+    if resp.status_code == 429:
+        raise StravaRateLimitError()
+    resp.raise_for_status()
+    return resp.json()
+
+
+def streams_to_points(streams: dict) -> list[dict[str, float]] | None:
+    """Convert a Strava streams object into [{lat, lon, altitude?}] points."""
+    if not streams:
+        return None
+    latlng = (streams.get("latlng") or {}).get("data")
+    if not latlng:
+        return None
+    altitudes = (streams.get("altitude") or {}).get("data") or []
+    points: list[dict[str, float]] = []
+    for i, (lat, lng) in enumerate(latlng):
+        pt: dict[str, float] = {"lat": float(lat), "lon": float(lng)}
+        if i < len(altitudes):
+            try:
+                pt["altitude"] = float(altitudes[i])
+            except (TypeError, ValueError):
+                pass
+        points.append(pt)
+    return points or None
+
+
+def strava_to_ride(
+    activity: dict[str, Any],
+    weight_kg: float = 70.0,
+    access_token: str | None = None,
+    resolution: str = "medium",
+) -> dict[str, Any]:
+    """Convert a single Strava activity dict into a BikeMaster Ride dict.
+
+    GPS points come from the high-resolution activity streams when ``access_token``
+    is provided (and Strava does not rate-limit); otherwise it falls back to the
+    low-resolution ``summary_polyline`` from the activity list.
+    """
     sport = activity.get("sport_type", activity.get("type", "Ride"))
     if "bike" not in sport.lower() and "ride" not in sport.lower():
         return {"error": f"Activity type '{sport}' is not a cycling activity", "skipped": True}
@@ -296,11 +361,22 @@ def strava_to_ride(activity: dict[str, Any], weight_kg: float = 70.0) -> dict[st
     external_id = activity.get("id")
     name = activity.get("name", "")
 
-    # Strava's list endpoint does not include the full GPS track; it exposes a
-    # low-resolution encoded polyline in ``activity["map"]["summary_polyline"]``.
-    # Decode it so the map can render the route.
-    summary_polyline = (activity.get("map") or {}).get("summary_polyline")
-    gps_points = decode_polyline(summary_polyline)
+    gps_points: list[dict[str, float]] = []
+    if access_token and external_id is not None:
+        try:
+            streams = fetch_activity_streams(access_token, external_id, resolution=resolution)
+            pts = streams_to_points(streams)
+            if pts:
+                gps_points = pts
+        except StravaRateLimitError:
+            raise
+        except Exception:
+            logger.exception("Failed to fetch Strava streams for activity %s", external_id)
+
+    # Fallback to the low-resolution summary polyline if streams were unavailable.
+    if not gps_points:
+        summary_polyline = (activity.get("map") or {}).get("summary_polyline")
+        gps_points = decode_polyline(summary_polyline)
 
     ride: dict[str, Any] = {
         "date": date_str,
