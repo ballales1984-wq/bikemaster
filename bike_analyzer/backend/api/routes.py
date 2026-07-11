@@ -854,21 +854,25 @@ async def google_oauth_callback_get(
                 lock_acquired = True
             try:
                 if lock_acquired:
-                    existing = get_athlete_by_email(email) if email else None
-                if not existing:
-                    athlete_id = save_athlete(
-                        {
-                            "name": name or email or google_sub,
-                            "email": email,
-                            "picture": user_info.get("picture"),
-                            "experience_level": "Beginner",
-                        }
-                    )
-                    if athlete_id:
-                        from ..db.database import update_athlete
 
-                        update_athlete(athlete_id, {"tenant_id": athlete_id})
-                    existing = get_athlete(athlete_id)
+                    def _create_athlete():
+                        result = get_athlete_by_email(email) if email else None
+                        if not result:
+                            athlete_id = save_athlete(
+                                {
+                                    "name": name or email or google_sub,
+                                    "email": email,
+                                    "picture": user_info.get("picture"),
+                                    "experience_level": "Beginner",
+                                }
+                            )
+                            if athlete_id:
+                                from ..db.database import update_athlete
+                                update_athlete(athlete_id, {"tenant_id": athlete_id})
+                            result = get_athlete(athlete_id)
+                        return result
+
+                    existing = await asyncio.to_thread(_create_athlete)
             finally:
                 if r is not None:
                     await r.delete(lock_key)
