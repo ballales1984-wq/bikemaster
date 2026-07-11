@@ -2459,12 +2459,31 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
         get_athlete,
         get_chat_history,
         get_rides_by_athlete,
+        save_athlete,
         save_chat_message,
     )
     from ..models.models import AthleteProfile
 
     tenant_id = current_user.get("tenant_id", athlete_id)
     _ensure_athlete_access(athlete_id, current_user)
+
+    # The chat_history table has a FK on athlete_id. If the athlete row is
+    # missing (e.g. the SQLite DB was reset after a redeploy while the client
+    # still holds a valid token) the INSERT would raise IntegrityError and
+    # surface as an unhandled 500. Provision the profile so the chat works.
+    if get_athlete(athlete_id) is None:
+        save_athlete(
+            {
+                "name": current_user.get("name") or f"Athlete {athlete_id}",
+                "email": current_user.get("email"),
+                "picture": current_user.get("picture"),
+                "experience_level": "Beginner",
+                "tenant_id": tenant_id,
+            },
+            athlete_id=athlete_id,
+            tenant_id=tenant_id,
+        )
+
     save_chat_message(athlete_id, "user", message[:500], tenant_id)
     athlete_data = get_athlete(athlete_id, tenant_id)
     if athlete_data:
