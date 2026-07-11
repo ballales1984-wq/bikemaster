@@ -11,7 +11,7 @@ il miglior motore cartografico del mondo, come lo progetteremmo?").
 
 ## Regola guida (NON violare)
 Non dare per scontata la tecnologia esistente. Per ogni scelta chiediti:
-"Perche oggi si fa cosi? Quali limiti ha? Possiamo progettare di meglio?"
+"Perché oggi si fa così? Quali limiti ha? Possiamo progettare di meglio?"
 
 ## Struttura del progetto (worktree)
 ```
