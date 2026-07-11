@@ -99,8 +99,13 @@ logs/
 
 # Misc
 .DS_Store
+# Misc
+.DS_Store
 Thumbs.db
 
 # Android build/debug artifacts
-frontend/android_bak/
 frontend/android_debug.apk
+
+# Backend generated static assets
+bike_analyzer/backend/static/index.html
+bike_analyzer/backend/static/sw.js
