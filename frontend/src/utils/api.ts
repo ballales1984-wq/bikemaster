@@ -194,7 +194,8 @@ async function request<T>(options: RequestOptions): Promise<T> {
   }
   if (
     resp.status === 204 ||
-    !resp.headers.get("content-type")?.includes("application/json")
+    (resp.headers &&
+      !resp.headers.get("content-type")?.includes("application/json"))
   ) {
     return {} as T;
   }

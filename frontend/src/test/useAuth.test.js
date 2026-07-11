@@ -11,7 +11,9 @@ describe("useAuthStore", () => {
   it("isLoggedIn reflects token presence", () => {
     const store = useAuthStore();
     expect(store.isLoggedIn).toBe(false);
-    store.token = "fake-token";
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    const payload = Buffer.from(JSON.stringify({ exp })).toString("base64url");
+    store.token = `h.${payload}.s`;
     expect(store.isLoggedIn).toBe(true);
   });
 

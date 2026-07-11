@@ -20,8 +20,12 @@ describe("api 401 handling (OAuth return safety)", () => {
 
   it("clears the session on a normal 401", async () => {
     const auth = useAuthStore();
-    auth.token = "valid.jwt.token";
-    localStorage.setItem("bikemaster_token", "valid.jwt.token");
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    const validJwt = `h.${Buffer.from(JSON.stringify({ exp })).toString(
+      "base64url",
+    )}.s`;
+    auth.token = validJwt;
+    localStorage.setItem("bikemaster_token", validJwt);
     (globalThis as unknown as { fetch: typeof fetch }).fetch = makeFetch(401, {
       detail: "expired",
     });
@@ -36,8 +40,12 @@ describe("api 401 handling (OAuth return safety)", () => {
 
   it("keeps the session on a 401 when suppressAuthClear is set", async () => {
     const auth = useAuthStore();
-    auth.token = "valid.jwt.token";
-    localStorage.setItem("bikemaster_token", "valid.jwt.token");
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    const validJwt = `h.${Buffer.from(JSON.stringify({ exp })).toString(
+      "base64url",
+    )}.s`;
+    auth.token = validJwt;
+    localStorage.setItem("bikemaster_token", validJwt);
     (globalThis as unknown as { fetch: typeof fetch }).fetch = makeFetch(401, {
       detail: "expired",
     });
@@ -51,7 +59,7 @@ describe("api 401 handling (OAuth return safety)", () => {
 
     // Session must survive so the OAuth return still reaches the dashboard
     // instead of being bounced to the login screen.
-    expect(localStorage.getItem("bikemaster_token")).toBe("valid.jwt.token");
+    expect(localStorage.getItem("bikemaster_token")).toBe(validJwt);
     expect(auth.isLoggedIn).toBe(true);
   });
 });

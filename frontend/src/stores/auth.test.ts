@@ -50,7 +50,9 @@ describe("auth store", () => {
   it("isLoggedIn true when token present", async () => {
     const { useAuthStore } = await import("./auth");
     const store = useAuthStore();
-    store.token = "abc";
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    const payload = Buffer.from(JSON.stringify({ exp })).toString("base64url");
+    store.token = `h.${payload}.s`;
     expect(store.isLoggedIn).toBe(true);
   });
 
@@ -130,6 +132,8 @@ describe("auth store", () => {
     const fakeJwt = `${header}.${payload}.sig`;
     const formSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
+      status: 200,
+      headers: { get: () => "application/json" },
       json: async () => ({ access_token: fakeJwt, id: 42, username: "alice" }),
     } as Response);
     await store.login("alice", "pw");
@@ -224,6 +228,8 @@ describe("auth store", () => {
     const store = useAuthStore();
     const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
+      status: 200,
+      headers: { get: () => "application/json" },
       json: async () => ({ id: 1 }),
     } as Response);
     await expect(store.register("bob", "secret")).resolves.toBeDefined();
