@@ -32,6 +32,10 @@ export function processOAuthToken() {
       return false;
     }
     auth.setAuthFromUrl(urlToken, email, userId);
+    // Clear the overlay here too: the spinner was turned on by LoginForm and
+    // relying solely on the router guard / finalizeOAuthReturn to clear it left
+    // a window where a failure downstream would strand the user on the spinner.
+    ui.setOauthLoading(false);
     if (window.history.replaceState) {
       window.history.replaceState({}, document.title, "/");
     }

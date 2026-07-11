@@ -23,6 +23,15 @@ ui.loadTheme();
 processOAuthToken();
 syncAuthState();
 
+// A dangling OAuth spinner (oauthLoading persisted in sessionStorage) must
+// never survive a bootstrap where we are not actually completing an OAuth
+// return (e.g. the user closed the Google prompt and came back with no token).
+// Otherwise the full-screen overlay would cover the app with no navigation to
+// clear it.
+if (!auth.isLoggedIn && ui.oauthLoading) {
+  ui.setOauthLoading(false);
+}
+
 // Finalize an OAuth (Google) return: check whether the athlete profile is
 // complete and navigate to the right authenticated route. Unlike a plain
 // `router.push("/")`, this targets the correct route directly, because when the
@@ -42,7 +51,9 @@ async function finalizeOAuthReturn() {
       {
         headers: { Authorization: `Bearer ${auth.token}` },
         suppressAuthClear: true,
-      } as RequestInit,
+        timeoutMs: 8000,
+        noRetry: true,
+      },
     );
     profileComplete = data.profile_complete === true;
   } catch {
@@ -51,7 +62,11 @@ async function finalizeOAuthReturn() {
   auth.setJustLoggedIn(false);
   ui.setOauthLoading(false);
   const target = profileComplete ? "/rides" : "/athlete";
-  if (router.currentRoute.value.path !== target) {
+  // Only navigate if we are still on the empty home route. On a full document
+  // reload the router guard has already performed the redirect, so re-issuing
+  // a navigation here would cause a post-mount redirect flicker / wrong page
+  // (the guard and this function each query /auth/me independently).
+  if (router.currentRoute.value.path === "/") {
     router.replace(target).catch(() => {});
   }
 }
@@ -66,10 +81,14 @@ function handleOAuthReturn() {
     finalizeOAuthReturn();
   }
 }
-window.addEventListener("hashchange", handleOAuthReturn);
-window.addEventListener("pageshow", (event: PageTransitionEvent) => {
+function handlePageShow(event: PageTransitionEvent) {
   if (event.persisted) handleOAuthReturn();
-});
+}
+// `popstate` covers same-document returns where the token arrives via the query
+// string (which `hashchange` does not fire for).
+window.addEventListener("hashchange", handleOAuthReturn);
+window.addEventListener("popstate", handleOAuthReturn);
+window.addEventListener("pageshow", handlePageShow);
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker
@@ -112,3 +131,14 @@ router
     if (auth.justLoggedIn) finalizeOAuthReturn();
   })
   .catch(() => {});
+
+// HMR safety: remove the global OAuth-return listeners before Vite re-executes
+// main.ts, otherwise repeated hot reloads would stack duplicate listeners that
+// each re-run finalizeOAuthReturn against a stale module scope.
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    window.removeEventListener("hashchange", handleOAuthReturn);
+    window.removeEventListener("popstate", handleOAuthReturn);
+    window.removeEventListener("pageshow", handlePageShow);
+  });
+}
