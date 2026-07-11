@@ -21,8 +21,8 @@ class Camera:
     yaw: float = 0.0                # radians, around Y axis
     pitch: float = -0.3             # radians, up/down
     fov: float = math.radians(60.0)
-    near: float = 100.0
-    far: float = 10_000_000.0
+    near: float = 1_000_000.0
+    far: float = 100_000_000.0
     width: int = 1024
     height: int = 768
 
@@ -81,8 +81,8 @@ class Camera:
         return [
             [f / aspect, 0.0, 0.0, 0.0],
             [0.0, f, 0.0, 0.0],
-            [0.0, 0.0, (self.far + self.near) * nf, -1.0],
-            [0.0, 0.0, 2.0 * self.far * self.near * nf, 0.0],
+            [0.0, 0.0, (self.far + self.near) * nf, 2.0 * self.far * self.near * nf],
+            [0.0, 0.0, -1.0, 0.0],
         ]
 
     def mvp(self) -> list[list[float]]:
