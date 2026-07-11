@@ -31,6 +31,21 @@ jobs:
       - run: ruff check bike_analyzer tests
       - run: mypy bike_analyzer --ignore-missing-imports
 
+  aethermap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e .
+        working-directory: aethermap
+      - run: pip install ruff pytest
+      - run: ruff check .
+        working-directory: aethermap
+      - run: pytest
+        working-directory: aethermap
+
   frontend:
     runs-on: ubuntu-latest
     steps:

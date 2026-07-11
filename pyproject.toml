@@ -78,6 +78,7 @@ ignore = ["B008", "B007"]
 "bike_analyzer/backend/observability.py" = ["E402"]
 "bike_analyzer/backend/ingestion/gps_parser.py" = ["E501", "SIM105"]
 "tests/**" = ["B018", "SIM117", "B017"]
+"aethermap/**" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -127,5 +128,5 @@ timeout = 60
 
 [tool.pyright]
 typeCheckingMode = "basic"
-include = ["bike_analyzer", "tests"]
+include = ["bike_analyzer", "tests", "aethermap/src"]
 exclude = ["**/.venv", "**/node_modules", "**/__pycache__"]
