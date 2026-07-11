@@ -100,3 +100,7 @@ logs/
 # Misc
 .DS_Store
 Thumbs.db
+
+# Android build/debug artifacts
+frontend/android_bak/
+frontend/android_debug.apk
