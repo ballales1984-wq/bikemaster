@@ -32,7 +32,6 @@ export function processOAuthToken() {
       return false;
     }
     auth.setAuthFromUrl(urlToken, email, userId);
-    ui.setOauthLoading(false);
     if (window.history.replaceState) {
       window.history.replaceState({}, document.title, "/");
     }
