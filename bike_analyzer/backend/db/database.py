@@ -22,37 +22,34 @@ _INITIAL_DB_PATH = DB_PATH
 
 @contextmanager
 def get_db_connection():
-    """Context manager for database connections with WAL mode, busy timeout, and retry."""
+    """Context manager for database connections with WAL mode and retry."""
     import time
 
-    max_retries = 5
-    retry_delay = 0.2
-    last_error = None
-
+    max_retries = 3
+    retry_delay = 0.1
+    conn = None
     for attempt in range(max_retries):
-        conn = None
         try:
             conn = sqlite3.connect(DB_PATH, timeout=10)
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("PRAGMA foreign_keys=ON")
             conn.row_factory = sqlite3.Row
-            yield conn
-            conn.commit()
-            return
+            break
         except sqlite3.OperationalError as e:
-            last_error = e
             if "locked" in str(e).lower() and attempt < max_retries - 1:
                 time.sleep(retry_delay * (attempt + 1))
                 continue
             raise
-        finally:
-            if conn is not None:
-                conn.close()
 
-    if last_error is not None:
-        raise last_error
-    raise RuntimeError(f"Failed to connect to database at {DB_PATH} after {max_retries} retries")
+    if conn is None:
+        raise RuntimeError(f"Failed to connect to database at {DB_PATH} after {max_retries} retries")
+
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def init_db():
@@ -401,45 +398,61 @@ def _find_existing_external_ride(conn, external_source: str | None, external_id:
 
 
 def save_ride(ride: dict) -> int:
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        external_source = str(ride.get("external_source") or "").strip() or None
-        external_id = str(ride.get("external_id") or "").strip() or None
-        existing_ride_id = _find_existing_external_ride(conn, external_source, external_id)
-        if existing_ride_id is not None:
-            return existing_ride_id
-        gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
-        tenant_id = ride.get("tenant_id", ride.get("athlete_id", 0))
-        cur.execute(
-            """INSERT INTO rides
-            (athlete_id, date, distance_km, duration_minutes, avg_speed_kmh,
-             weight_kg, calories, heart_rate_avg, elevation_gain_m, gps_points,
-             external_source, external_id, title, activity_type, is_official,
-             source, created_at, tenant_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                ride.get("athlete_id"),
-                ride.get("date"),
-                ride.get("distance_km", 0),
-                ride.get("duration_minutes", 0),
-                ride.get("avg_speed_kmh", 0),
-                ride.get("weight_kg", 70),
-                ride.get("calories", 0),
-                ride.get("heart_rate_avg"),
-                ride.get("elevation_gain_m"),
-                gps_points,
-                external_source,
-                external_id,
-                ride.get("title"),
-                ride.get("activity_type", "ride"),
-                1 if ride.get("is_official", True) else 0,
-                ride.get("source", "manual"),
-                datetime.now(UTC).isoformat(),
-                tenant_id,
-            ),
-        )
-        conn.commit()
-        return cur.lastrowid
+    import time
+
+    max_retries = 5
+    retry_delay = 0.2
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                external_source = str(ride.get("external_source") or "").strip() or None
+                external_id = str(ride.get("external_id") or "").strip() or None
+                existing_ride_id = _find_existing_external_ride(conn, external_source, external_id)
+                if existing_ride_id is not None:
+                    return existing_ride_id
+                gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
+                tenant_id = ride.get("tenant_id", ride.get("athlete_id", 0))
+                cur.execute(
+                    """INSERT INTO rides
+                    (athlete_id, date, distance_km, duration_minutes, avg_speed_kmh,
+                     weight_kg, calories, heart_rate_avg, elevation_gain_m, gps_points,
+                     external_source, external_id, title, activity_type, is_official,
+                     source, created_at, tenant_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        ride.get("athlete_id"),
+                        ride.get("date"),
+                        ride.get("distance_km", 0),
+                        ride.get("duration_minutes", 0),
+                        ride.get("avg_speed_kmh", 0),
+                        ride.get("weight_kg", 70),
+                        ride.get("calories", 0),
+                        ride.get("heart_rate_avg"),
+                        ride.get("elevation_gain_m"),
+                        gps_points,
+                        external_source,
+                        external_id,
+                        ride.get("title"),
+                        ride.get("activity_type", "ride"),
+                        1 if ride.get("is_official", True) else 0,
+                        ride.get("source", "manual"),
+                        datetime.now(UTC).isoformat(),
+                        tenant_id,
+                    ),
+                )
+                conn.commit()
+                return cur.lastrowid
+        except sqlite3.OperationalError as e:
+            last_error = e
+            if "locked" in str(e).lower() and attempt < max_retries - 1:
+                time.sleep(retry_delay * (attempt + 1))
+                continue
+            raise
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("Failed to save ride after retries")
 
 
 def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
@@ -624,81 +637,97 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
 
 
 def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 0) -> int:
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        if athlete_id is None:
-            cur.execute(
-                """INSERT INTO athletes
-                (name, email, picture, age, weight_kg, height_cm, fat_percentage,
-                 years_active, weekly_sessions, monthly_hours, annual_hours,
-                 experience_level, goals, preferred_terrain, weekly_volume_km,
-                 best_segments, medical_notes, equipment, ftp_watts,
-                 password_hash, tenant_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    athlete.get("name"),
-                    athlete.get("email"),
-                    athlete.get("picture"),
-                    athlete.get("age"),
-                    athlete.get("weight_kg", 70),
-                    athlete.get("height_cm"),
-                    athlete.get("fat_percentage"),
-                    athlete.get("years_active", 1),
-                    athlete.get("weekly_sessions", 3),
-                    athlete.get("monthly_hours", 0),
-                    athlete.get("annual_hours", 0),
-                    athlete.get("experience_level", "Beginner"),
-                    athlete.get("goals"),
-                    athlete.get("preferred_terrain"),
-                    athlete.get("weekly_volume_km", 0),
-                    athlete.get("best_segments"),
-                    athlete.get("medical_notes"),
-                    athlete.get("equipment"),
-                    athlete.get("ftp_watts"),
-                    athlete.get("password_hash"),
-                    athlete.get("tenant_id", tenant_id),
-                    datetime.now(UTC).isoformat(),
-                ),
-            )
-        else:
-            cur.execute(
-                """INSERT INTO athletes
-                (id, name, email, picture, age, weight_kg, height_cm, fat_percentage,
-                 years_active, weekly_sessions, monthly_hours, annual_hours,
-                 experience_level, goals, preferred_terrain, weekly_volume_km,
-                 best_segments, medical_notes, equipment, ftp_watts,
-                 password_hash, tenant_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    athlete_id,
-                    athlete.get("name"),
-                    athlete.get("email"),
-                    athlete.get("picture"),
-                    athlete.get("age"),
-                    athlete.get("weight_kg", 70),
-                    athlete.get("height_cm"),
-                    athlete.get("fat_percentage"),
-                    athlete.get("years_active", 1),
-                    athlete.get("weekly_sessions", 3),
-                    athlete.get("monthly_hours", 0),
-                    athlete.get("annual_hours", 0),
-                    athlete.get("experience_level", "Beginner"),
-                    athlete.get("goals"),
-                    athlete.get("preferred_terrain"),
-                    athlete.get("weekly_volume_km", 0),
-                    athlete.get("best_segments"),
-                    athlete.get("medical_notes"),
-                    athlete.get("equipment"),
-                    athlete.get("ftp_watts"),
-                    athlete.get("password_hash"),
-                    athlete.get("tenant_id", tenant_id),
-                    datetime.now(UTC).isoformat(),
-                ),
-            )
-        conn.commit()
-        return cur.lastrowid
+    import time
+
+    max_retries = 5
+    retry_delay = 0.2
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                if athlete_id is None:
+                    cur.execute(
+                        """INSERT INTO athletes
+                        (name, email, picture, age, weight_kg, height_cm, fat_percentage,
+                         years_active, weekly_sessions, monthly_hours, annual_hours,
+                         experience_level, goals, preferred_terrain, weekly_volume_km,
+                         best_segments, medical_notes, equipment, ftp_watts,
+                         password_hash, tenant_id, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                               ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            athlete.get("name"),
+                            athlete.get("email"),
+                            athlete.get("picture"),
+                            athlete.get("age"),
+                            athlete.get("weight_kg", 70),
+                            athlete.get("height_cm"),
+                            athlete.get("fat_percentage"),
+                            athlete.get("years_active", 1),
+                            athlete.get("weekly_sessions", 3),
+                            athlete.get("monthly_hours", 0),
+                            athlete.get("annual_hours", 0),
+                            athlete.get("experience_level", "Beginner"),
+                            athlete.get("goals"),
+                            athlete.get("preferred_terrain"),
+                            athlete.get("weekly_volume_km", 0),
+                            athlete.get("best_segments"),
+                            athlete.get("medical_notes"),
+                            athlete.get("equipment"),
+                            athlete.get("ftp_watts"),
+                            athlete.get("password_hash"),
+                            athlete.get("tenant_id", tenant_id),
+                            datetime.now(UTC).isoformat(),
+                        ),
+                    )
+                else:
+                    cur.execute(
+                        """INSERT INTO athletes
+                        (id, name, email, picture, age, weight_kg, height_cm, fat_percentage,
+                         years_active, weekly_sessions, monthly_hours, annual_hours,
+                         experience_level, goals, preferred_terrain, weekly_volume_km,
+                         best_segments, medical_notes, equipment, ftp_watts,
+                         password_hash, tenant_id, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                               ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            athlete_id,
+                            athlete.get("name"),
+                            athlete.get("email"),
+                            athlete.get("picture"),
+                            athlete.get("age"),
+                            athlete.get("weight_kg", 70),
+                            athlete.get("height_cm"),
+                            athlete.get("fat_percentage"),
+                            athlete.get("years_active", 1),
+                            athlete.get("weekly_sessions", 3),
+                            athlete.get("monthly_hours", 0),
+                            athlete.get("annual_hours", 0),
+                            athlete.get("experience_level", "Beginner"),
+                            athlete.get("goals"),
+                            athlete.get("preferred_terrain"),
+                            athlete.get("weekly_volume_km", 0),
+                            athlete.get("best_segments"),
+                            athlete.get("medical_notes"),
+                            athlete.get("equipment"),
+                            athlete.get("ftp_watts"),
+                            athlete.get("password_hash"),
+                            athlete.get("tenant_id", tenant_id),
+                            datetime.now(UTC).isoformat(),
+                        ),
+                    )
+                conn.commit()
+                return cur.lastrowid
+        except sqlite3.OperationalError as e:
+            last_error = e
+            if "locked" in str(e).lower() and attempt < max_retries - 1:
+                time.sleep(retry_delay * (attempt + 1))
+                continue
+            raise
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("Failed to save athlete after retries")
 
 
 def _row_to_athlete(row) -> dict:
