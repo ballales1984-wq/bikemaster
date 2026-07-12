@@ -1,2 +1,0 @@
-[console_scripts]
-bikemaster = bike_analyzer.main:main
