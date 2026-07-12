@@ -67,10 +67,19 @@ class Camera:
         xx, xy, xz = _normalize(_cross(up, (zx, zy, zz)))
         yx, yy, yz = _cross((zx, zy, zz), (xx, xy, xz))
 
+        # project_ecef() already translates each vertex into the
+        # camera-relative frame by subtracting the camera origin (cx,cy,cz)
+        # before applying the MVP. The view matrix must therefore translate by
+        # the eye position *relative to that same origin* (P - T = forward *
+        # distance), NOT by the absolute eye position P. Translating by P would
+        # shift the whole globe by ~distance (~1.5e7 m) and offset it from the
+        # screen centre.
+        ex, ey, ez = px - cx, py - cy, pz - cz
+
         return [
-            [xx, xy, xz, -xx * px - xy * py - xz * pz],
-            [yx, yy, yz, -yx * px - yy * py - yz * pz],
-            [zx, zy, zz, -zx * px - zy * py - zz * pz],
+            [xx, xy, xz, -xx * ex - xy * ey - xz * ez],
+            [yx, yy, yz, -yx * ex - yy * ey - yz * ez],
+            [zx, zy, zz, -zx * ex - zy * ey - zz * ez],
             [0.0, 0.0, 0.0, 1.0],
         ]
 

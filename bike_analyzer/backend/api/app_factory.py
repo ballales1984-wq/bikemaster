@@ -138,6 +138,9 @@ def create_app() -> FastAPI:
 
         request_id = request.headers.get(REQUEST_ID_HEADER, str(uuid.uuid4()))
         request.state.request_id = request_id
+        from ..logging_config import set_request_id
+
+        set_request_id(request_id)
         try:
             response = await call_next(request)
         except Exception:

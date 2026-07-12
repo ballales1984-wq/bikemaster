@@ -3,7 +3,7 @@
     <canvas ref="canvasRef" class="aethermap-canvas" />
     <div class="aethermap-hud">
       <b>AetherMap</b> · WebGL2 cube-sphere (Fase 4)<br />
-      trascina per ruotare la camera<br />
+      trascina per ruotare la camera (prospettica)<br />
       <template v-if="rideIds && rideIds.length">
         <span v-if="loading">carico scena…</span>
         <span v-else-if="error" class="aethermap-warn">scena non disponibile</span>
@@ -53,10 +53,95 @@ function geodeticToDirection(lat: number, lon: number): [number, number, number]
   const cl = Math.cos(la);
   return [cl * Math.cos(lo), cl * Math.sin(lo), Math.sin(la)];
 }
-const EARTH_R = 6371000.0;
 
-function cameraRelative(p: [number, number, number]): [number, number, number] {
-  return [p[0], p[1], p[2]];
+// Normalizza un punto entità in direzione unitaria sulla sfera.
+// Supporta sia [lat, lon] gradi (adapter live) sia vettori ECEF
+// [x, y, z] (ordine di grandezza ~6.37e6 m), come nel vecchio
+// ride_1_map.json.
+type Vec3 = [number, number, number];
+function toDir(p: number[]): Vec3 {
+  if (p.length >= 3 && Math.abs(p[0]) > 1e5) {
+    const n = Math.hypot(p[0], p[1], p[2]) || 1;
+    return [p[0] / n, p[1] / n, p[2] / n];
+  }
+  return geodeticToDirection(p[0], p[1]);
+}
+
+// Interpolazione su grande cerchio (slerp) tra due direzioni unitarie.
+function slerpDir(a: Vec3, b: Vec3, t: number): Vec3 {
+  let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  d = Math.max(-1, Math.min(1, d));
+  const theta = Math.acos(d);
+  if (theta < 1e-5) return [a[0], a[1], a[2]];
+  const s = Math.sin(theta);
+  const w1 = Math.sin((1 - t) * theta) / s;
+  const w2 = Math.sin(t * theta) / s;
+  const v: Vec3 = [a[0] * w1 + b[0] * w2, a[1] * w1 + b[1] * w2, a[2] * w1 + b[2] * w2];
+  const n = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / n, v[1] / n, v[2] / n];
+}
+
+// Aggiunge un segmento di rotta suddiviso in arche di grande cerchio, così
+// il percorso aderisce alla superficie invece di essere una corda che taglia
+// la sfera (causa dell'effetto "ventaglio/cono" in proiezione).
+function pushArc(arr: number[], a: Vec3, b: Vec3, col: Vec3): void {
+  const d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const theta = Math.acos(Math.max(-1, Math.min(1, d)));
+  const steps = Math.max(1, Math.min(64, Math.ceil(theta / (2 * DEG))));
+  for (let k = 0; k <= steps; k++) {
+    const pt = slerpDir(a, b, k / steps);
+    arr.push(pt[0], pt[1], pt[2], col[0], col[1], col[2]);
+  }
+}
+
+// --- Camera prospettica orbitale (coerente con il motore backend) ---
+const CAM_DIST = 2.7;
+const CAM_FOV = (50 * Math.PI) / 180;
+const CAM_NEAR = 0.1;
+const CAM_FAR = 100.0;
+
+function normalize3(v: Vec3): Vec3 {
+  const n = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / n, v[1] / n, v[2] / n];
+}
+function sub3(a: Vec3, b: Vec3): Vec3 {
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+}
+function cross3(a: Vec3, b: Vec3): Vec3 {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+}
+function dot3(a: Vec3, b: Vec3): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+function camEye(yaw: number, pitch: number): Vec3 {
+  const cy = Math.cos(yaw);
+  const sy = Math.sin(yaw);
+  const cp = Math.cos(pitch);
+  const sp = Math.sin(pitch);
+  return [CAM_DIST * cy * cp, CAM_DIST * sp, CAM_DIST * sy * cp];
+}
+// Matrice di prospettiva destrorsa (forma standard glPerspective), column-major.
+function mat4Perspective(fov: number, aspect: number, near: number, far: number): Float32Array {
+  const f = 1 / Math.tan(fov / 2);
+  const nf = 1 / (near - far);
+  return new Float32Array([
+    f / aspect, 0, 0, 0,
+    0, f, 0, 0,
+    0, 0, (far + near) * nf, -1,
+    0, 0, 2 * far * near * nf, 0,
+  ]);
+}
+// Matrice lookAt (colonna-major) che guarda l'origine (centro globo).
+function mat4LookAt(eye: Vec3, center: Vec3, up: Vec3): Float32Array {
+  const z = normalize3(sub3(eye, center));
+  const x = normalize3(cross3(up, z));
+  const y = cross3(z, x);
+  return new Float32Array([
+    x[0], y[0], z[0], 0,
+    x[1], y[1], z[1], 0,
+    x[2], y[2], z[2], 0,
+    -dot3(x, eye), -dot3(y, eye), -dot3(z, eye), 1,
+  ]);
 }
 
 function speedColor(speed: number | undefined): [number, number, number] {
@@ -89,12 +174,13 @@ function updateDynamicBuffers(points: MapPoint[], colorBySpeed: boolean) {
 
   const routeData: number[] = [];
   const pointData: number[] = [];
+  let prev: Vec3 | null = null;
   for (const p of points) {
     const dir = geodeticToDirection(p.lat, p.lon);
-    const rel = cameraRelative(dir);
-    const col = colorBySpeed ? speedColor(p.speed) : [0.95, 0.85, 0.25];
-    routeData.push(...rel, ...col);
-    pointData.push(...rel, ...col);
+    const col: Vec3 = colorBySpeed ? speedColor(p.speed) : [0.95, 0.85, 0.25];
+    pointData.push(...dir, ...col);
+    if (prev) pushArc(routeData, prev, dir, col);
+    prev = dir;
   }
   if (routeData.length) {
     routeBuffer = makeBuffer(routeData, gl.LINE_STRIP, 6);
@@ -128,20 +214,20 @@ function updateSceneBuffers(sc: AetherScene) {
   for (const ent of sc.entities) {
     if (ent.tipo === "segment") {
       const col = hexToRgb(ent.char);
-      for (const p of ent.pts) {
-        const rel = cameraRelative(geodeticToDirection(p[0], p[1]));
-        routeData.push(...rel, ...col);
+      const pts = ent.pts.map(toDir);
+      for (let i = 0; i + 1 < pts.length; i++) {
+        pushArc(routeData, pts[i], pts[i + 1], col);
       }
     } else if (ent.tipo === "start" || ent.tipo === "end" || ent.tipo === "stats") {
       const p = ent.pts[0];
       if (!p) continue;
-      const rel = cameraRelative(geodeticToDirection(p[0], p[1]));
+      const rel = toDir(p);
       markerData.push(...rel, ...markerColor(ent.tipo));
     } else {
       const col = hexToRgb(ent.char);
-      for (const p of ent.pts) {
-        const rel = cameraRelative(geodeticToDirection(p[0], p[1]));
-        routeData.push(...rel, ...col);
+      const pts = ent.pts.map(toDir);
+      for (let i = 0; i + 1 < pts.length; i++) {
+        pushArc(routeData, pts[i], pts[i + 1], col);
       }
     }
   }
@@ -168,32 +254,30 @@ onMounted(() => {
   const VS = `#version 300 es
 in vec3 p;
 in vec3 vColor;
-uniform mat3 rot;
-uniform vec2 scale;
+uniform mat4 uProj;
+uniform mat4 uView;
+uniform vec3 uEye;
 uniform float pointSize;
 out vec3 vColorOut;
 out float facing;
-void main() {
-  vec3 r = rot * p;
-  facing = r.z;
-  if (r.z <= 0.0) {
-    gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
-    return;
-  }
-  gl_Position = vec4(r.x * scale.x, r.y * scale.y, 0.0, 1.0);
-  gl_PointSize = pointSize;
-  vColorOut = vColor;
-}`;
+ void main() {
+   vec3 n = normalize(p);
+   facing = dot(n, normalize(uEye));
+   gl_Position = uProj * uView * vec4(p, 1.0);
+   gl_PointSize = pointSize;
+   vColorOut = vColor;
+ }`;
 
   const FS = `#version 300 es
 precision mediump float;
 in float facing;
 in vec3 vColorOut;
 out vec4 outColor;
-void main() {
-  float sh = clamp(0.55 + facing * 0.45, 0.0, 1.0);
-  outColor = vec4(vColorOut * sh, 1.0);
-}`;
+ void main() {
+   if (facing <= 0.0) discard;
+   float sh = clamp(0.40 + facing * 0.60, 0.0, 1.0);
+   outColor = vec4(vColorOut * sh, 1.0);
+ }`;
 
   function compile(type: number, src: string): WebGLShader {
     const s = gl!.createShader(type)!;
@@ -215,8 +299,9 @@ void main() {
   gl!.useProgram(prog);
 
   const U = {
-    rot: gl!.getUniformLocation(prog, "rot")!,
-    scale: gl!.getUniformLocation(prog, "scale")!,
+    proj: gl!.getUniformLocation(prog, "uProj")!,
+    view: gl!.getUniformLocation(prog, "uView")!,
+    eye: gl!.getUniformLocation(prog, "uEye")!,
     pointSize: gl!.getUniformLocation(prog, "pointSize")!,
   };
   const A_p = gl!.getAttribLocation(prog, "p");
@@ -240,7 +325,7 @@ void main() {
         else if (f === 4) d = [u, v, 1];
         else d = [u, v, -1];
         const n = Math.hypot(d[0], d[1], d[2]);
-        const p = cameraRelative([d[0] / n, d[1] / n, d[2] / n]);
+        const p = [d[0] / n, d[1] / n, d[2] / n] as Vec3;
         grid[f][i][j] = p;
       }
     }
@@ -300,17 +385,6 @@ void main() {
   addEventListener("resize", resize);
   resize();
 
-  function rotationMatrix() {
-    const cy = Math.cos(yaw);
-    const sy = Math.sin(yaw);
-    const cp = Math.cos(pitch);
-    const sp = Math.sin(pitch);
-    const c0 = [cy, 0, -sy];
-    const c1 = [sy * sp, cp, cy * sp];
-    const c2 = [sy * cp, -sp, cy * cp];
-    return new Float32Array([...c0, ...c1, ...c2]);
-  }
-
   function draw(
     buf: { buf: WebGLBuffer; count: number; mode: number },
   ) {
@@ -328,9 +402,12 @@ void main() {
     gl.clearColor(0.04, 0.05, 0.08, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    const s = 0.85;
-    gl.uniformMatrix3fv(U.rot, false, rotationMatrix());
-    gl.uniform2f(U.scale, s, s);
+    const aspect = canvasEl.width / Math.max(canvasEl.height, 1);
+    const eye = camEye(yaw, pitch);
+    gl.uniformMatrix4fv(U.proj, false, mat4Perspective(CAM_FOV, aspect, CAM_NEAR, CAM_FAR));
+    gl.uniformMatrix4fv(U.view, false, mat4LookAt(eye, [0, 0, 0], [0, 1, 0]));
+    gl.uniform3f(U.eye, eye[0], eye[1], eye[2]);
+    gl.uniform1f(U.pointSize, 6.0);
 
     if (wireBuffer) draw(wireBuffer);
     if (routeBuffer) draw(routeBuffer);

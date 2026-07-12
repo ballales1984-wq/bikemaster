@@ -1,25 +1,20 @@
-"""Structured logging configuration for BikeMaster."""
+"""Logger helper.
+
+The single source of logging configuration is :mod:`bike_analyzer.backend.logging_config`
+(structured JSON formatter + correlation id). This module keeps the ``get_logger``
+and ``setup_logging`` entry points used across the codebase but delegates to it so
+there is exactly one logging configuration in the project.
+"""
 
 from __future__ import annotations
 
-import logging
-import sys
+from logging import Logger, getLogger
 
-LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+from ..logging_config import REQUEST_ID_CONTEXT, setup_logging
 
-
-def setup_logging(level: int = logging.INFO) -> None:
-    """Configure root logger with structured format."""
-    logging.basicConfig(
-        level=level,
-        format=LOG_FORMAT,
-        datefmt=LOG_DATE_FORMAT,
-        stream=sys.stdout,
-        force=True,
-    )
+__all__ = ["get_logger", "setup_logging", "REQUEST_ID_CONTEXT"]
 
 
-def get_logger(name: str) -> logging.Logger:
-    """Get a module-level logger."""
-    return logging.getLogger(name)
+def get_logger(name: str) -> Logger:
+    """Return a module-level logger for ``name``."""
+    return getLogger(name)

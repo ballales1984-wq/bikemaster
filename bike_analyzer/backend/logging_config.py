@@ -8,21 +8,52 @@ Provides:
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import os
 import sys
+from contextlib import contextmanager
 from datetime import UTC
 from logging.config import DictConfigurator
-from typing import Any
+from typing import Any, Iterator
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 LOG_FORMAT = os.getenv("LOG_FORMAT", "json").lower()
 REQUEST_ID_HEADER = os.getenv("LOG_REQUEST_ID_HEADER", "X-Request-ID")
 
+# Request/correlation id propagated to every log emitted while the context is active
+# (HTTP request, background task, ...). Loggers do not need to pass it explicitly.
+REQUEST_ID_CONTEXT: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "request_id", default="-"
+)
+
+
+@contextmanager
+def request_context(request_id: str | None = None) -> Iterator[str]:
+    """Activate a correlation id for the surrounding block of code."""
+    import uuid
+
+    rid = request_id or str(uuid.uuid4())
+    token = REQUEST_ID_CONTEXT.set(rid)
+    try:
+        yield rid
+    finally:
+        REQUEST_ID_CONTEXT.reset(token)
+
+
+def set_request_id(request_id: str) -> None:
+    REQUEST_ID_CONTEXT.set(request_id)
+
+
+def get_request_id() -> str:
+    return REQUEST_ID_CONTEXT.get()
+
 
 class _RequestIdFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        request_id = getattr(record, "request_id", None) or "-"
+        # Prefer an explicit value passed via `extra=`, otherwise fall back to the
+        # ambient correlation id (HTTP request / background task context).
+        request_id = getattr(record, "request_id", None) or REQUEST_ID_CONTEXT.get()
         record.request_id = request_id
         return True
 

@@ -37,6 +37,23 @@ def test_globe_projection_spans_ndc_not_a_dot():
     assert max(abs(min(ys)), abs(max(ys))) > 0.1
 
 
+def test_camera_look_at_point_is_screen_centered():
+    """The camera origin (the point being looked at) must project to NDC (0,0).
+
+    Regresses the double-shift bug: project_ecef() subtracts the camera origin
+    T before applying the MVP, but view_matrix() is a world-space lookAt that
+    subtracted the absolute eye position P = T + forward*distance. That double
+    translation pushed every vertex ~1.5e7 m off, so the look-at point landed
+    around NDC (0.3, -0.23) instead of (0,0) and the whole globe was offset.
+    """
+    cam = Camera()
+    ox, oy, oz = cam.ecef_origin()
+    ndc = project_ecef(np.array([ox, oy, oz], dtype=np.float64), cam)
+    assert ndc is not None
+    assert abs(ndc[0]) < 1e-6
+    assert abs(ndc[1]) < 1e-6
+
+
 def test_back_facing_vertices_are_culled():
     cam = Camera()
     ox, oy, oz = cam.ecef_origin()

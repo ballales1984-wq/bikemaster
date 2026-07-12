@@ -73,7 +73,7 @@ def test_totp_generate_and_verify():
 
 
 def test_totp_window_skew():
-    from bike_analyzer.backend.security import _hotp
+    from bike_analyzer.backend.security import _hotp, verify_totp
 
     secret = "JBSWY3DPEHPK3PXP"
     now = int(time.time())
@@ -85,7 +85,7 @@ def test_totp_window_skew():
     assert verify_totp(secret, past, window=1) is True
     assert verify_totp(secret, current, window=1) is True
     assert verify_totp(secret, future, window=1) is True
-    assert verify_totp(secret, _hotp(secret, counter - 2), window=1)
+    assert verify_totp(secret, _hotp(secret, counter - 2), window=1) is False
 
 
 def test_totp_provisioning_uri():
@@ -114,7 +114,7 @@ def test_jwt_revoke_with_jti_in_payload():
         token = create_access_token("777", is_admin=False)
         assert token is not None
         try:
-            decode_token(token)
+            asyncio.run(decode_token(token))
             assert False, "Expected HTTPException 401"
         except Exception as exc:
             assert getattr(exc, "status_code", None) == 401
