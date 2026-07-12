@@ -5,12 +5,35 @@ session factory (PostgreSQL in production, SQLite for local dev). The synchronou
 ``db.database`` functions remain the source of truth for the SQLite path used by
 the coach today; this repository is the counterpart for the async data layer
 once the broader sync -> async migration lands.
+
+The ORM model is defined inline (rather than importing ``db.models``) so this
+repository is self-contained and does not depend on the shared ``Base`` metadata
+registry; the ``chat_history`` table is created by the Alembic migration
+``add_chat_history``.
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
+
+from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+class _Base(DeclarativeBase):
+    pass
+
+
+class ChatHistoryTable(_Base):
+    __tablename__ = "chat_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    role: Mapped[str] = mapped_column(String, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class ChatHistoryRepository:
@@ -21,9 +44,7 @@ class ChatHistoryRepository:
 
     @property
     def _table(self):
-        from ...db.models import ChatHistoryModel
-
-        return ChatHistoryModel
+        return ChatHistoryTable
 
     async def save(self, athlete_id: int | None, role: str, content: str, tenant_id: int = 0) -> int:
         if self._session_factory is None:

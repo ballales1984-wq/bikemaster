@@ -3,7 +3,7 @@
     <canvas ref="canvasRef" class="aethermap-canvas" />
     <div class="aethermap-hud">
       <b>AetherMap</b> · WebGL2 cube-sphere (Fase 4)<br />
-      trascina per ruotare la camera (prospettica)<br />
+      trascina per ruotare (prospettica) · rotella per zoom<br />
       <template v-if="rideIds && rideIds.length">
         <span v-if="loading">carico scena…</span>
         <span v-else-if="error" class="aethermap-warn">scena non disponibile</span>
@@ -96,6 +96,9 @@ function pushArc(arr: number[], a: Vec3, b: Vec3, col: Vec3): void {
 
 // --- Camera prospettica orbitale (coerente con il motore backend) ---
 const CAM_DIST = 2.7;
+const CAM_DIST_MIN = 1.3;
+const CAM_DIST_MAX = 8.0;
+let camDist = CAM_DIST;
 const CAM_FOV = (50 * Math.PI) / 180;
 const CAM_NEAR = 0.1;
 const CAM_FAR = 100.0;
@@ -118,7 +121,7 @@ function camEye(yaw: number, pitch: number): Vec3 {
   const sy = Math.sin(yaw);
   const cp = Math.cos(pitch);
   const sp = Math.sin(pitch);
-  return [CAM_DIST * cy * cp, CAM_DIST * sp, CAM_DIST * sy * cp];
+  return [camDist * cy * cp, camDist * sp, camDist * sy * cp];
 }
 // Matrice di prospettiva destrorsa (forma standard glPerspective), column-major.
 function mat4Perspective(fov: number, aspect: number, near: number, far: number): Float32Array {
@@ -355,12 +358,16 @@ out vec4 outColor;
 
   let yaw = 0.6;
   let pitch = 0.35;
+  let vyaw = 0;
+  let vpitch = 0;
   let dragging = false;
   let lx = 0;
   let ly = 0;
 
   canvasEl.addEventListener("pointerdown", (e: PointerEvent) => {
     dragging = true;
+    vyaw = 0;
+    vpitch = 0;
     lx = e.clientX;
     ly = e.clientY;
     canvasEl.setPointerCapture(e.pointerId);
@@ -370,12 +377,25 @@ out vec4 outColor;
   });
   canvasEl.addEventListener("pointermove", (e: PointerEvent) => {
     if (!dragging) return;
-    yaw += (e.clientX - lx) * 0.005;
-    pitch += (e.clientY - ly) * 0.005;
+    const dYaw = (e.clientX - lx) * 0.005;
+    const dPitch = (e.clientY - ly) * 0.005;
+    yaw += dYaw;
+    pitch += dPitch;
     pitch = Math.max(-1.5, Math.min(1.5, pitch));
+    vyaw = dYaw;
+    vpitch = dPitch;
     lx = e.clientX;
     ly = e.clientY;
   });
+  canvasEl.addEventListener(
+    "wheel",
+    (e: WheelEvent) => {
+      e.preventDefault();
+      camDist *= Math.exp(e.deltaY * 0.001);
+      camDist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, camDist));
+    },
+    { passive: false },
+  );
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -401,6 +421,16 @@ out vec4 outColor;
     gl.viewport(0, 0, canvasEl.width, canvasEl.height);
     gl.clearColor(0.04, 0.05, 0.08, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
+
+    if (!dragging) {
+      yaw += vyaw;
+      pitch += vpitch;
+      pitch = Math.max(-1.5, Math.min(1.5, pitch));
+      vyaw *= 0.92;
+      vpitch *= 0.92;
+      if (Math.abs(vyaw) < 1e-4) vyaw = 0;
+      if (Math.abs(vpitch) < 1e-4) vpitch = 0;
+    }
 
     const aspect = canvasEl.width / Math.max(canvasEl.height, 1);
     const eye = camEye(yaw, pitch);

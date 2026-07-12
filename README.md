@@ -27,7 +27,8 @@ GPS-based cycling performance intelligence system. Import your rides from GPX/FI
 14. [Development](#development)
 15. [Testing](#testing)
 16. [Roadmap](#roadmap)
-17. [Contributing](#contributing)
+17. [BikeMaster 2.0 — Deluxe Simulation](#bikemaster-20--deluxe-simulation)
+18. [Contributing](#contributing)
 
 ---
 
@@ -56,7 +57,7 @@ GPS-based cycling performance intelligence system. Import your rides from GPX/FI
 - **Event Bus** — Domain event system (RideCreated, BadgeEarned, etc.)
 - **PWA** — Progressive Web App with install prompt
 - **Phone GPS Tracking** — Record rides directly from Android mobile
-- **BikeMaster 2.0** — Deluxe simulation engine (what-if analysis, type-safe algorithms, `Quantity` units)
+- **BikeMaster 2.0** — Deluxe simulation engine (what-if analysis, type-safe algorithms, `Quantity` units) — see `docs/BM2_*.md`
 - **AetherMap** — R&D cartographic engine (cube-sphere + S2/H3, WebGL rendering, digital twin)
 - **REST API** — 40+ documented endpoints
 - **Export** — JSON and CSV
@@ -718,6 +719,42 @@ Project status: **Production Ready** — All base phases complete, active testin
 5. Open a Pull Request
 
 Please ensure all tests pass before submitting a PR.
+
+---
+
+## BikeMaster 2.0 — Deluxe Simulation
+
+BM2 is the **sport simulation engine** inside BikeMaster. It provides what-if analysis, type-safe algorithms with dimensional analysis, and a Knowledge Layer for AI-driven insights.
+
+### Documentation
+
+| Document | Description |
+|---|---|
+| [`docs/bm2/database-schema.md`](./docs/bm2/database-schema.md) | Database schema for BM2 entities |
+| [`docs/bm2/data-contracts.md`](./docs/bm2/data-contracts.md) | JSON contracts exchanged between engines |
+| [`docs/BM2_ENGINE_ARCHITECTURE.md`](./docs/BM2_ENGINE_ARCHITECTURE.md) | Engine pipeline, dependencies, and communication patterns |
+| [`docs/BM2_ALGORITHMS.md`](./docs/BM2_ALGORITHMS.md) | Algorithm specification (Movement, Energy, Fatigue, Power, etc.) |
+| [`docs/BM2_INTEGRATION_GUIDE.md`](./docs/BM2_INTEGRATION_GUIDE.md) | How to integrate BM2 with existing FastAPI routes and frontend |
+| [`docs/BM2_TESTING_STRATEGY.md`](./docs/BM2_TESTING_STRATEGY.md) | Test patterns, coverage targets, and CI integration |
+| [`docs/bm2/variables.md`](./docs/bm2/variables.md) | Complete dictionary of BM2 variables with units and code location |
+
+### Quick Start
+
+```bash
+# Run BM2 tests
+pytest tests/test_bm2_*.py -v
+
+# Run with coverage
+pytest tests/test_bm2_*.py --cov=bike_analyzer.bm2 --cov-report=term-missing
+```
+
+### Architecture Highlights
+
+- **7 specialized engines**: Import, Tracking, Measurement, Analysis, Territory, Knowledge Layer, AI Coach
+- **9 algorithms**: Movement, Energy, Performance, Fatigue, RouteDifficulty, Recovery, Nutrition, Power, TrainingLoad
+- **Shared physics kernel**: `core/physics/` (cycling_forces, instantaneous_power, required_speed_for_power)
+- **Pure algorithms**: every algorithm inherits `Algorithm` base class, returns `ModelResult` with formula, inputs used, precision, and confidence
+- **Type-safe units**: `Quantity` + `UnitRegistry` for dimensional analysis
 
 ---
 

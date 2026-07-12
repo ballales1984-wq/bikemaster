@@ -4,6 +4,8 @@
 > **Date:** 2026-07-12  
 > **Stack:** Python 3.11 · FastAPI · Vue 3 · TypeScript · SQLite/PostgreSQL · Clean Architecture
 
+For topic-specific documentation, see [docs/README.md](./README.md).
+
 ---
 
 ## Table of Contents
@@ -78,6 +80,58 @@
 - **Rate Limiting** — Per-IP API protection
 - **Background Tasks** — Async queue for heavy operations
 - **Redis Cache** — Caching with graceful fallback
+- **AetherMap** — R&D cartographic engine (cube-sphere + S2/H3, WebGL rendering, digital twin)
+
+## BikeMaster 2.0 — Deluxe Simulation
+
+> **Location:** `bike_analyzer/bm2/`
+> **Docs:** `docs/BM2_*.md`
+> **Status:** Production-ready simulation engine with what-if analysis
+
+BM2 is BikeMaster's sport simulation engine. It provides:
+
+- **Type-safe algorithms** with dimensional analysis (`Quantity` + `UnitRegistry`)
+- **What-if simulation** — modify weight, bike, slope, wind and see impact on performance
+- **Knowledge Layer** — fitness state, fatigue, recovery, route difficulty predictions
+- **AI Coach integration** — answers based exclusively on Knowledge Layer data
+
+### Core Components
+
+| Component | Location | Purpose |
+|---|---|---|
+| Models | `bm2/models.py` | Athlete, Bike, Activity, WorldObject, AnalysisContext |
+| Algorithms | `bm2/algorithms/` | 9 algorithms (Movement, Energy, Power, Fatigue, etc.) |
+| Simulation | `bm2/simulation.py` | Scenario overrides, sensitivity analysis, presets |
+| Knowledge | `bm2/knowledge.py` | Fitness, fatigue, recovery, route difficulty |
+| Adapters | `bm2/adapters.py` | Bridge between existing domain and BM2 |
+| Orchestrator | `bm2/orchestrator.py` | Multi-algorithm execution |
+| Agents | `bm2/agents.py` | AI Coach orchestrator with RAG |
+
+### Key Algorithms
+
+| Algorithm | Output | Unit |
+|---|---|---|
+| MovementModel | avg/max speed, acceleration | m/s |
+| EnergyModel | Calories | kcal |
+| PowerModel | Estimated/sustainable power | W |
+| FatigueModel | Fatigue score + recovery hours | score (0-10) |
+| PerformanceModel | Normalized performance index | score |
+| RouteDifficultyModel | Route difficulty score | score (0-100) |
+| RecoveryModel | Readiness score | score (0-100) |
+| NutritionModel | Carbs, water, proteins | g / L |
+| TrainingLoadModel | TSS, CTL, ATL, TSB | score |
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/bm2/simulate-ride` | Run what-if simulation on ride |
+| POST | `/api/v1/bm2/simulate-preset` | Run preset scenario |
+| GET | `/api/v1/bm2/models` | List available algorithms |
+
+### Documentation
+
+See `docs/BM2_ENGINE_ARCHITECTURE.md`, `docs/BM2_ALGORITHMS.md`, `docs/BM2_TESTING_STRATEGY.md`, and `docs/BM2_INTEGRATION_GUIDE.md` for complete specifications.
 
 ---
 
