@@ -270,6 +270,29 @@ def test_ride_map_endpoint(client):
     assert r.status_code == 200
 
 
+def test_ride_map_endpoint_aethermap(client):
+    ride = client.post(
+        "/api/v1/rides",
+        json={
+            "date": "2024-06-15",
+            "distance_km": 25.0,
+            "duration_minutes": 60,
+            "calories": 400,
+            "gps_points": [
+                {"lat": 45.0, "lon": 9.0, "timestamp": "2024-06-15T10:00:00Z", "speed": 25.0},
+                {"lat": 45.01, "lon": 9.01, "timestamp": "2024-06-15T10:01:00Z", "speed": 25.0},
+            ],
+        },
+    )
+    ride_id = ride.json()["id"]
+    r = client.get(f"/api/v1/rides/{ride_id}/map?provider=aethermap")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["engine"] == "aethermap"
+    assert "map_url" in body
+    assert body["map_url"].endswith(".json")
+
+
 def test_ride_single_analyze(client):
     ride = client.post(
         "/api/v1/rides",

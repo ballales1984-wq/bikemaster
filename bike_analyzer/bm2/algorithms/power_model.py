@@ -6,13 +6,14 @@ from typing import Optional
 
 from ..models import AnalysisContext
 from .base import Algorithm
+from bike_analyzer.core.physics import RiderBikeParams, instantaneous_power, required_speed_for_power
 
 __all__ = ["PowerModel"]
 
 
 class PowerModel(Algorithm):
     name = "PowerModel"
-    formula = ("P = (crr·m·g + m·g·sin(atan(slope)) + ½·ρ·CdA·v²)·v / η  [stima da FTP]; "
+    formula = ("P = (crr·m·g + m·g·slope + ½·ρ·CdA·v²)·v / η  [stima da FTP]; "
                "v_ftp = risolvi P=FTP per la velocità")
     description = "Stima potenza richiesta e velocità sostenibile da FTP e profilo di pendenza."
     unit = "W"
@@ -21,41 +22,26 @@ class PowerModel(Algorithm):
     @staticmethod
     def _power_for_speed(v_ms: float, mass_kg: float, slope_pct: float,
                          crr: float, cda: float, eta: float, wind_ms: float = 0.0) -> float:
-        return Algorithm._cycling_forces(mass_kg, slope_pct, crr, cda, v_ms, wind_ms, eta)["power_w"]
+        return instantaneous_power(
+            v_ms, slope_pct / 100.0,
+            RiderBikeParams(rider_mass_kg=mass_kg, cda=cda, crr=crr, drivetrain_efficiency=eta),
+            wind_ms=wind_ms,
+        )
 
     @staticmethod
     def _speed_for_power(target_w: float, mass_kg: float, slope_pct: float,
                          crr: float, cda: float, eta: float, wind_ms: float = 0.0) -> float:
-        """Risoluzione numerica (Newton) di P = f(v) per la velocità sostenibile."""
+        """Risoluzione numerica (bisezione) di P = f(v) per la velocità sostenibile.
+
+        Delegato al kernel unico ``core.physics.required_speed_for_power``.
+        """
         if target_w <= 0:
             return 0.0
-        slope = slope_pct / 100.0
-        f_roll = crr * mass_kg * Algorithm.G
-        f_grav = mass_kg * Algorithm.G * slope
-        a = 0.5 * Algorithm.RHO * cda
-        b = a * (wind_ms ** 2)
-
-        def f(v: float) -> float:
-            return target_w * eta / max(v, 1e-6) - (f_roll + f_grav) - a * ((v + wind_ms) ** 2)
-
-        def fp(v: float) -> float:
-            return -target_w * eta / max(v * v, 1e-6) - 2.0 * a * (v + wind_ms)
-
-        v = 2.0
-        for _ in range(48):
-            fv = f(v)
-            if abs(fv) < 1e-3:
-                break
-            fvp = fp(v)
-            if abs(fvp) < 1e-9:
-                break
-            step = fv / fvp
-            step = max(min(step, v * 0.5), -v * 0.5)
-            v -= step
-            if v <= 1e-3:
-                v = 1e-3
-                break
-        return max(v, 0.0)
+        return required_speed_for_power(
+            target_w, slope_pct / 100.0,
+            RiderBikeParams(rider_mass_kg=mass_kg, cda=cda, crr=crr, drivetrain_efficiency=eta),
+            wind_ms=wind_ms,
+        )
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
         m = ctx.activity.metrics(ctx.transformer)

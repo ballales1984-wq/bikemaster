@@ -64,6 +64,18 @@ jobs:
       - run: npm run build
         working-directory: frontend
 
+  integration:
+    runs-on: ubuntu-latest
+    needs: [test, lint, aethermap]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e ./aethermap
+      - run: pip install -e ".[maps]"
+      - run: python -c "from bike_analyzer.backend.maps.aethermap_adapter import create_route_map; print('integration ok')"
+
   security:
     runs-on: ubuntu-latest
     needs: [test, lint]

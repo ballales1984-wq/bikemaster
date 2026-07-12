@@ -52,6 +52,21 @@ aethermap/                # Progetto R&D separato (motore cartografico) — vedi
 - Fasi: 1→2→{3,4}→5 (vedi `aethermap/docs/phase-*.md`). Tracciato in git; non
   rimuovere senza consenso esplicito.
 
+## Progetto BikeMaster 2.0 (`bm2/`) — Deluxe Simulation Engine
+`bike_analyzer/bm2/` è il motore di **simulazione sportiva** ("what-if") della
+visione "BikeMaster Deluxe". A differenza di AetherMap, **è parte del prodotto** e
+risiede dentro il package `bike_analyzer` (non in una cartella R&D separata).
+- Filosofia type-safe: `Quantity` + `UnitRegistry` (analisi dimensionale),
+  algoritmi `Algorithm`→`ModelResult`, dominio proprio `AnalysisContext`.
+- **Kernel fisico condiviso**: `bm2` delega a `bike_analyzer/core/physics/`
+  (`cycling_forces`, `instantaneous_power`, `required_speed_for_power`). Non
+  duplicare la fisica in `bm2`: usare `core.physics`.
+- È **già cablato** via `bike_analyzer/backend/api/bm2_routes.py` (montato in
+  `app_factory.py`) e testato da `tests/test_bm2_*.py`.
+- **Non è ancora integrato** col flusso `Ride`/analytics esistente, né validato
+  su dati reali di potenza/HR. Vedi `docs/DELUXE_ROADMAP.md` (Track D in
+  `ROADMAP.md`) per stato e next-step.
+
 
 ## Comandi
 
@@ -162,6 +177,29 @@ Mitigazioni applicate/consigliate:
 - Altri endpoint limitati: OAuth Google (`10/minute`), `/api/v1/rides`
   (`10/minute`), ecc. Cercare `@limiter.limit` in `routes.py` per l'elenco
   completo.
+
+## Redis su Render (free plan) — WARNING ATTESO, NON UN BUG
+- L'istanza Redis su Render è su **piano free** ed è una connessione **solo demo**
+  (usata per verificare la connettività, non per produzione).
+- Sintomo atteso nei log di avvio del web service:
+  ```
+  WARNING bike_analyzer.backend.redis_client Redis unavailable:
+  Error 111 connecting to red-<hash>:6379. Connection refused. — cache disabled
+  ```
+- `Error 111` / `Connection refused` significa: l'host Redis è stato **risolto e
+  raggiunto** (DNS/region OK, hostname corretto) ma **niente ascolta sulla 6379**
+  perché l'istanza free è in pausa/spenta per inattività o non ancora rialzata.
+  NON è un errore DNS (*"Name or service not known"*) né (quasi mai) mismatch di
+  region. Non confondere le due cose durante il debug.
+- L'app **degrada con grazie** (`redis_client.py` ritorna `None`, logga
+  `cache disabled`): il servizio va `live` comunque, solo senza cache/rate-limiting
+  Redis. Quindi il WARNING è atteso e non blocca il deploy.
+- `REDIS_URL` è l'**Internal Redis URL** (`redis://red-<hash>:6379`, host senza
+  `.render.com`), impostato manualmente nella tab *Environment* del web service
+  (NON dichiarato in `render.yaml`, che non contiene alcun servizio Redis).
+- Se il WARNING persiste o serve Redis davvero: controllare stato del servizio
+  Redis nel dashboard (Live/Paused) e svegliarlo; verificare che web service e
+  Redis siano nella **stessa region**; NON usare l'External URL.
 
 ## Note per agenti
 - Non introdurre dipendenze non presenti in `package.json` / `requirements` senza

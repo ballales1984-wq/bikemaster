@@ -187,8 +187,7 @@ async function checkProfileComplete(
       },
     );
     return data.profile_complete === true;
-  } catch (err) {
-    console.warn("[Router] profile check failed:", err);
+  } catch {
     return false;
   }
 }

@@ -65,7 +65,7 @@ v-if="loading && !enrichedRides.length" class="loading-text">
 
     <div
     id="route-map" ref="mapContainer" class="route-map">
-      <AetherMapViewer v-if="useAetherMap" />
+      <AetherMapViewer v-if="useAetherMap" :points="aetherPoints" />
       <div
       v-if="!ridesWithGps.length" class="demo-map-overlay">
         <div class="demo-map-content">
@@ -150,7 +150,7 @@ class="legend-swatch" :style="{ background: item.color }" />
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import "leaflet/dist/leaflet.css";
 import {
   computed,
@@ -381,6 +381,20 @@ const visibleRides = computed(() => {
   return ridesWithGps.value;
 });
 
+const aetherPoints = computed(() => {
+  const points: { lat: number; lon: number; speed?: number }[] = [];
+  for (const ride of visibleRides.value) {
+    for (const p of ride.gps_points || []) {
+      points.push({
+        lat: p.lat,
+        lon: p.lon,
+        speed: p.speed,
+      });
+    }
+  }
+  return points;
+});
+
 const totalGpsPoints = computed(() =>
   visibleRides.value.reduce((sum, ride) => sum + ride.gps_points.length, 0),
 );
@@ -438,6 +452,14 @@ watch(showFamousRoutes, () => {
   renderFamousRoutes();
 });
 
+watch(useAetherMap, (val) => {
+  if (val) {
+    destroyMap();
+  } else {
+    renderMap();
+  }
+});
+
 function renderFamousRoutes() {
   if (!famousRoutesLayer) return;
   famousRoutesLayer.clearLayers();
@@ -461,6 +483,16 @@ function renderFamousRoutes() {
        `);
     polyline.addTo(famousRoutesLayer);
   });
+}
+
+function destroyMap() {
+  if (map) {
+    map.remove();
+    map = null;
+    layerGroup = null;
+    tileLayer = null;
+    famousRoutesLayer = null;
+  }
 }
 
 async function loadRides() {
@@ -623,13 +655,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  if (map) {
-    map.remove();
-    map = null;
-    layerGroup = null;
-    tileLayer = null;
-    famousRoutesLayer = null;
-  }
+  destroyMap();
 });
 </script>
 

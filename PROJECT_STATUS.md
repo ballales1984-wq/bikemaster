@@ -242,6 +242,30 @@ bike_analyzer/
 
 ---
 
+## Sottosistema BikeMaster 2.0 (`bm2/`) — Deluxe Simulation Engine
+
+Motore di simulazione sportiva ("what-if") con filosofia type-safe, **parallelo al
+prodotto ma già cablato** via `bm2_routes.py` (montato in `app_factory.py`). Il
+kernel fisico è **condiviso** con `core/physics/`: dal 2026-07-12 `bm2` delega a
+`core.physics` (`cycling_forces`, `instantaneous_power`, `required_speed_for_power`),
+eliminando il forward model duplicato. La visione "Deluxe" è in `docs/DELUXE_ROADMAP.md`.
+
+| Modulo | Ruolo |
+|---|---|
+| `bm2/units.py` | `Quantity` (valore + unità + precisione + fonte) + `UnitRegistry` (analisi dimensionale, lineare/non-lineare) |
+| `bm2/models.py` | `AnalysisContext`, `Athlete`, `Bike`, `WorldObject`, `Activity` (dominio proprio, separato da `core/models.py`) |
+| `bm2/algorithms/` | 9 algoritmi (`Algorithm`→`ModelResult` con formula + dati + incertezza + confidence): power, energy, fatigue, performance, recovery, nutrition, movement, route_difficulty, training_load |
+| `bm2/simulation.py` | `SimulationEngine` (compare/preset/sensitivity) + `parse_override_from_text` (estrazione override da NL) |
+| `bm2/orchestrator.py` | `AIOrchestrator` + agenti (Athlete/Environment/GPS/Sensor) per domande in linguaggio naturale (italiano) |
+| `bm2/transformer.py` | `TransformerEngine` (geo → metric points, distanze 2D) |
+| `bm2_routes.py` | Endpoint API esposti (montati in `app_factory.py`) |
+
+Stato: baseline completo e testato (`test_bm2_*`); **non ancora integrato** col
+flusso `Ride`/analytics esistente (item D7) né **validato su dati reali** di
+potenza/HR misurate (item D8).
+
+---
+
 ## Stack Tecnologico
 
 | Layer | Tecnologia |

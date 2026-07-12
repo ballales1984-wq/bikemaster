@@ -6,6 +6,7 @@ from datetime import datetime
 from bike_analyzer.core.models import GPSPoint
 from bike_analyzer.core.physics import (
     RiderBikeParams,
+    cycling_forces,
     grade_between,
     instantaneous_power,
     required_speed_for_power,
@@ -67,8 +68,8 @@ class TestInstantaneousPower:
         assert descend < flat
 
     def test_consistent_with_calories_constants(self):
-        # bike_mass=0 + flat must match calories_physics coefficients.
-        params = RiderBikeParams(rider_mass_kg=70.0, bike_mass_kg=0.0)
+        # bike_mass=0 + flat + eta=1 must match calories_physics coefficients.
+        params = RiderBikeParams(rider_mass_kg=70.0, bike_mass_kg=0.0, drivetrain_efficiency=1.0)
         p = instantaneous_power(10.0, 0.0, params)
         expected = (0.005 * 70.0 * 9.81 + 0.5 * 1.225 * 0.4 * 10.0**2) * 10.0
         assert p == pytest.approx(expected)
@@ -92,3 +93,28 @@ class TestRequiredSpeedForPower:
         v_low = required_speed_for_power(150.0, 0.0)
         v_high = required_speed_for_power(350.0, 0.0)
         assert v_high > v_low
+
+
+class TestCyclingForces:
+    def test_breakdown_is_positive_on_flat(self):
+        f = cycling_forces(8.0, 78.0, 0.0, 0.005, 0.4)
+        assert f["roll"] > 0
+        assert f["grav"] == 0.0
+        assert f["air"] > 0
+        assert f["power_w"] > 0
+
+    def test_power_equals_sum_times_velocity(self):
+        f = cycling_forces(10.0, 78.0, 0.02, 0.005, 0.4)
+        expected = (f["roll"] + f["grav"] + f["air"]) * 10.0
+        assert f["power_w"] == pytest.approx(expected)
+
+    def test_drivetrain_efficiency_divides_power(self):
+        no_eff = cycling_forces(10.0, 78.0, 0.0, 0.005, 0.4, drivetrain_efficiency=1.0)["power_w"]
+        with_eff = cycling_forces(10.0, 78.0, 0.0, 0.005, 0.4, drivetrain_efficiency=0.25)["power_w"]
+        assert with_eff == pytest.approx(no_eff / 0.25)
+
+    def test_matches_instantaneous_power(self):
+        params = RiderBikeParams(rider_mass_kg=78.0, bike_mass_kg=0.0, cda=0.4, crr=0.005, drivetrain_efficiency=0.25)
+        p = instantaneous_power(10.0, 0.02, params)
+        f = cycling_forces(10.0, 78.0, 0.02, 0.005, 0.4, drivetrain_efficiency=0.25)["power_w"]
+        assert p == pytest.approx(f)

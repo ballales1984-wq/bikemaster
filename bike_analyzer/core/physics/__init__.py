@@ -10,7 +10,12 @@ from .constants import (
     RIDER_MASS_DEFAULT,
     RiderBikeParams,
 )
-from .power import grade_between, instantaneous_power, required_speed_for_power
+from .power import (
+    cycling_forces,
+    grade_between,
+    instantaneous_power,
+    required_speed_for_power,
+)
 
 __all__ = [
     "AIR_DENSITY",
@@ -21,6 +26,7 @@ __all__ = [
     "GRAVITY",
     "RIDER_MASS_DEFAULT",
     "RiderBikeParams",
+    "cycling_forces",
     "grade_between",
     "instantaneous_power",
     "required_speed_for_power",

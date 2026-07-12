@@ -74,6 +74,34 @@ flowchart TD
 3. **SIM** come primo traguardo "Deluxe" visibile all'utente, appoggiandosi a B.
 4. **C** solo dopo aver deciso esplicitamente se `aethermap` converge nel prodotto.
 
+## Aggiornamento fusione (2026-07-12)
+
+Durante l'esplorazione è emerso che **`bike_analyzer/bm2/` è già un "BikeMaster 2.0"
+completo** — motore di simulazione con filosofia diversa (`Quantity`+`UnitRegistry`
+con analisi dimensionale, framework ad algoritmi `Algorithm`→`ModelResult`, dominio
+proprio `AnalysisContext(Athlete,Bike,WorldObject,Activity)`, `SimulationEngine`
+what-if/preset/sensitivity, `AIOrchestrator` con agenti NL). È **già cablato**
+(`bm2_routes.py`, montato in `app_factory.py`) e ha test dedicati (`test_bm2_*`).
+
+### Decisione: un solo kernel numerico
+Esistevano **due forward model fisici** duplicati: `bm2`'s `Algorithm._cycling_forces`
+e `core/physics.power`. Fusione eseguita:
+- `core/physics/` è ora il **kernel numerico unico** (`cycling_forces`,
+  `instantaneous_power`, `required_speed_for_power`, `grade_between`), con
+  convenzioni allineate a `bm2` (gradiente lineare, divisione per η drivetrain).
+- `bm2.algorithms.base.Algorithm._cycling_forces` e `bm2.algorithms.power_model`
+  (`_power_for_speed`, `_speed_for_power`) **delegono a `core.physics`**.
+- Test: 87 verdi (`test_core_physics` + `test_bm2_*`).
+
+### Conseguenza sulla roadmap
+- **Fase 4 (Physics Engine)** e **Fase 6 (Simulation "what-if")** della visione
+  Deluxe sono in larga parte **già presenti dentro `bm2`**, non da scrivere ex novo.
+- Il vero lavoro restante è: (a) **integrare `bm2` col flusso `Ride`/analytics**
+  esistente (oggi è un sottosistema isolato, non citato in `ROADMAP.md`);
+  (b) **validazione su dati reali** (potenza/HR misurate) — manca in entrambi;
+  (c) documentare `bm2` in `ROADMAP.md`/`PROJECT_STATUS.md` — **fatto** (Track D +
+      sottosistema in `PROJECT_STATUS.md` + nota in `AGENTS.md`).
+
 ## Note di rischio (dal confronto visione ↔ repo)
 
 - **Scope creep**: il prodotto ha già una roadmap propria (`ROADMAP.md` Track A) con item

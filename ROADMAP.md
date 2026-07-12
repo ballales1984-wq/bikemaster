@@ -4,7 +4,7 @@
 
 > Stato: **Late Beta / Early Production** (multi-tenant completato, deploy su Render stabile).
 > Questo documento è la *fonte di verità* unica per le idee/feature. Le fasi 1-25
-> sono completate; sotto il backlog riordinato (3 track) e lo stato di pulizia repo.
+> sono completate; sotto il backlog riordinato (4 track) e lo stato di pulizia repo.
 
 ---
 
@@ -50,6 +50,33 @@ Catena di dipendenze: **1 → 2 → {3,4} → 5**.
 | AM5 | Fase 5 — Digital twin: `twin/` | 🔄 in corso |
 
 Demo: `cd aethermap/src && python -m aethermap.ai.demo|.render.demo|.twin.demo`.
+
+---
+
+## Track D — BikeMaster 2.0 / Deluxe Simulation Engine (`bm2`)
+
+Motore di simulazione sportiva ("what-if") già presente in `bike_analyzer/bm2/`,
+con filosofia type-safe (`Quantity` + `UnitRegistry` con analisi dimensionale,
+algoritmi `Algorithm`→`ModelResult`, dominio `AnalysisContext`). È **già cablato**
+via `bm2_routes.py` (montato in `app_factory.py`). La visione "BikeMaster Deluxe"
+è documentata in `docs/DELUXE_ROADMAP.md`.
+
+Catena: kernel fisico (`core/physics`) → algoritmi (`bm2/algorithms`) →
+`SimulationEngine` (what-if/preset/sensitivity) → `AIOrchestrator` (agenti NL).
+Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
+2026-07-12).
+
+| ID | Modulo | Stato |
+|:--:|---|---|
+| D1 | `core/physics/` — kernel numerico unico (`cycling_forces`, `instantaneous_power`, `required_speed_for_power`, `grade_between`) | ✅ consolidato |
+| D2 | `bm2/algorithms/` — 9 algoritmi (power, energy, fatigue, performance, recovery, nutrition, movement, route_difficulty, training_load) | ✅ baseline |
+| D3 | `bm2/simulation.py` — `SimulationEngine` (compare/preset/sensitivity) + `parse_override_from_text` | ✅ baseline |
+| D4 | `bm2/orchestrator.py` — `AIOrchestrator` + agenti (Athlete/Environment/GPS/Sensor) | ✅ baseline |
+| D5 | `bm2/units.py` — `Quantity` + `UnitRegistry` (analisi dimensionale) | ✅ baseline |
+| D6 | `bm2_routes.py` — endpoint API esposti | ✅ cablato |
+| D7 | Integrazione col flusso `Ride`/analytics esistente (oggi `bm2` è isolato) | ❌ da fare |
+| D8 | Validazione su dati reali (potenza/HR misurate) | ❌ da fare |
+| D9 | Documentazione `bm2` in `PROJECT_STATUS.md` + `AGENTS.md` | ✅ completato |
 
 ---
 

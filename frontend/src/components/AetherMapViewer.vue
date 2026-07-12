@@ -10,9 +10,68 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch } from "vue";
+
+interface MapPoint {
+  lat: number;
+  lon: number;
+  speed?: number;
+}
+
+const props = defineProps<{
+  points?: MapPoint[];
+}>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
+let gl: WebGL2RenderingContext | null = null;
+
+let wireBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
+let routeBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
+let pointBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
+
+const DEG = Math.PI / 180;
+function geodeticToDirection(lat: number, lon: number): [number, number, number] {
+  const la = lat * DEG;
+  const lo = lon * DEG;
+  const cl = Math.cos(la);
+  return [cl * Math.cos(lo), cl * Math.sin(lo), Math.sin(la)];
+}
+const EARTH_R = 6371000.0;
+
+function cameraRelative(p: [number, number, number]): [number, number, number] {
+  return [p[0], p[1], p[2]];
+}
+
+function makeBuffer(arr: number[], mode: number) {
+  if (!gl) throw new Error("WebGL context not initialized");
+  const b = gl.createBuffer()!;
+  gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
+  return { buf: b, count: arr.length / 3, mode };
+}
+
+function updateDynamicBuffers(points: MapPoint[]) {
+  if (routeBuffer && gl) {
+    gl.deleteBuffer(routeBuffer.buf);
+    routeBuffer = null;
+  }
+  if (pointBuffer && gl) {
+    gl.deleteBuffer(pointBuffer.buf);
+    pointBuffer = null;
+  }
+  if (!points.length || !gl) return;
+
+  const routeData: number[] = [];
+  const pointData: number[] = [];
+  for (const p of points) {
+    const dir = geodeticToDirection(p.lat, p.lon);
+    const rel = cameraRelative(dir);
+    routeData.push(...rel);
+    pointData.push(...rel);
+  }
+  routeBuffer = makeBuffer(routeData, gl.LINE_STRIP);
+  pointBuffer = makeBuffer(pointData, gl.POINTS);
+}
 
 onMounted(() => {
   const canvas = canvasRef.value;
@@ -24,20 +83,7 @@ onMounted(() => {
     console.error("WebGL2 non disponibile in questo browser.");
     return;
   }
-  const gl = glCtx;
-
-  const DEG = Math.PI / 180;
-  function geodeticToDirection(lat: number, lon: number): [number, number, number] {
-    const la = lat * DEG;
-    const lo = lon * DEG;
-    const cl = Math.cos(la);
-    return [cl * Math.cos(lo), cl * Math.sin(lo), Math.sin(la)];
-  }
-  const EARTH_R = 6371000.0;
-
-  function cameraRelative(p: [number, number, number]): [number, number, number] {
-    return [p[0], p[1], p[2]];
-  }
+  gl = glCtx;
 
   const VS = `#version 300 es
 in vec3 p;
@@ -67,31 +113,31 @@ void main() {
 }`;
 
   function compile(type: number, src: string): WebGLShader {
-    const s = gl.createShader(type)!;
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-      throw new Error(gl.getShaderInfoLog(s) ?? "shader compile failed");
+    const s = gl!.createShader(type)!;
+    gl!.shaderSource(s, src);
+    gl!.compileShader(s);
+    if (!gl!.getShaderParameter(s, gl!.COMPILE_STATUS)) {
+      throw new Error(gl!.getShaderInfoLog(s) ?? "shader compile failed");
     }
     return s;
   }
 
-  const prog = gl.createProgram()!;
-  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
-  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
-  gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-    throw new Error(gl.getProgramInfoLog(prog) ?? "program link failed");
+  const prog = gl!.createProgram()!;
+  gl!.attachShader(prog, compile(gl!.VERTEX_SHADER, VS));
+  gl!.attachShader(prog, compile(gl!.FRAGMENT_SHADER, FS));
+  gl!.linkProgram(prog);
+  if (!gl!.getProgramParameter(prog, gl!.LINK_STATUS)) {
+    throw new Error(gl!.getProgramInfoLog(prog) ?? "program link failed");
   }
-  gl.useProgram(prog);
+  gl!.useProgram(prog);
 
   const U = {
-    rot: gl.getUniformLocation(prog, "rot")!,
-    scale: gl.getUniformLocation(prog, "scale")!,
-    pointSize: gl.getUniformLocation(prog, "pointSize")!,
-    color: gl.getUniformLocation(prog, "color")!,
+    rot: gl!.getUniformLocation(prog, "rot")!,
+    scale: gl!.getUniformLocation(prog, "scale")!,
+    pointSize: gl!.getUniformLocation(prog, "pointSize")!,
+    color: gl!.getUniformLocation(prog, "color")!,
   };
-  const A_p = gl.getAttribLocation(prog, "p");
+  const A_p = gl!.getAttribLocation(prog, "p");
 
   const N = 16;
   const wire: number[] = [];
@@ -133,37 +179,8 @@ void main() {
     }
   }
 
-  const road: number[] = [];
-  for (const [lat, lon] of [
-    [45.0, 9.0],
-    [45.01, 9.02],
-    [45.02, 9.04],
-  ]) {
-    const p = cameraRelative(geodeticToDirection(lat, lon));
-    road.push(...p);
-  }
-  const tree = cameraRelative(geodeticToDirection(45.005, 9.01));
-  const mountainDir = geodeticToDirection(45.015, 9.03);
-  const mountainR = 1.0 + 8000.0 / EARTH_R;
-  const mountain = [
-    mountainDir[0] * mountainR,
-    mountainDir[1] * mountainR,
-    mountainDir[2] * mountainR,
-  ];
-
-  function makeBuffer(arr: number[], mode: number) {
-    const b = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, b);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
-    return { buf: b, count: arr.length / 3, mode };
-  }
-
-  const BUF = {
-    wire: makeBuffer(wire, gl.LINES),
-    road: makeBuffer(road, gl.LINE_STRIP),
-    tree: makeBuffer(tree, gl.POINTS),
-    mountain: makeBuffer(mountain, gl.POINTS),
-  };
+  wireBuffer = makeBuffer(wire, gl!.LINES);
+  updateDynamicBuffers(props.points || []);
 
   let yaw = 0.6;
   let pitch = 0.35;
@@ -213,15 +230,16 @@ void main() {
     color: [number, number, number],
     size: number,
   ) {
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf.buf);
-    gl.enableVertexAttribArray(A_p);
-    gl.vertexAttribPointer(A_p, 3, gl.FLOAT, false, 0, 0);
-    gl.uniform3fv(U.color, color);
-    gl.uniform1f(U.pointSize, size);
-    gl.drawArrays(buf.mode, 0, buf.count);
+    gl!.bindBuffer(gl!.ARRAY_BUFFER, buf.buf);
+    gl!.enableVertexAttribArray(A_p);
+    gl!.vertexAttribPointer(A_p, 3, gl!.FLOAT, false, 0, 0);
+    gl!.uniform3fv(U.color, color);
+    gl!.uniform1f(U.pointSize, size);
+    gl!.drawArrays(buf.mode, 0, buf.count);
   }
 
   function frame() {
+    if (!gl) return;
     gl.viewport(0, 0, canvasEl.width, canvasEl.height);
     gl.clearColor(0.04, 0.05, 0.08, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -230,19 +248,27 @@ void main() {
     gl.uniformMatrix3fv(U.rot, false, rotationMatrix());
     gl.uniform2f(U.scale, s, s);
 
-    draw(BUF.wire, [0.30, 0.55, 0.85], 1.0);
-    draw(BUF.road, [0.95, 0.85, 0.25], 3.0);
-    draw(BUF.tree, [0.35, 0.95, 0.45], 9.0);
-    draw(BUF.mountain, [0.95, 0.35, 0.30], 11.0);
+    if (wireBuffer) draw(wireBuffer, [0.30, 0.55, 0.85], 1.0);
+    if (routeBuffer) draw(routeBuffer, [0.95, 0.85, 0.25], 3.0);
+    if (pointBuffer) draw(pointBuffer, [0.35, 0.95, 0.45], 9.0);
 
     requestAnimationFrame(frame);
   }
 
   frame();
+});
 
-  onBeforeUnmount(() => {
-    removeEventListener("resize", resize);
-  });
+watch(() => props.points, (newPoints) => {
+  if (!gl) return;
+  updateDynamicBuffers(newPoints || []);
+});
+
+onBeforeUnmount(() => {
+  if (gl) {
+    if (wireBuffer) gl.deleteBuffer(wireBuffer.buf);
+    if (routeBuffer) gl.deleteBuffer(routeBuffer.buf);
+    if (pointBuffer) gl.deleteBuffer(pointBuffer.buf);
+  }
 });
 </script>
 

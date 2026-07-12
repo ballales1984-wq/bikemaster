@@ -16,6 +16,7 @@ from typing import Optional
 
 from ..models import AnalysisContext
 from ..units import Quantity
+from bike_analyzer.core.physics import cycling_forces
 
 __all__ = ["ModelResult", "Algorithm", "AnalysisContext"]
 
@@ -196,14 +197,11 @@ class Algorithm(ABC):
     @classmethod
     def _cycling_forces(cls, mass_kg: float, slope_pct: float, crr: float, cda: float,
                         v_ms: float, wind_ms: float = 0.0, eta: float = 1.0) -> dict:
-        """Forze di resistenza e potenza meccanica richiesta."""
-        slope = slope_pct / 100.0
-        v_air = max(v_ms + wind_ms, 0.0)
-        f_roll = crr * mass_kg * cls.G
-        f_grav = mass_kg * cls.G * slope
-        f_air = 0.5 * cls.RHO * cda * (v_air ** 2)
-        p = (f_roll + f_grav + f_air) * v_ms / max(eta, 1e-3)
-        return {"roll": f_roll, "grav": f_grav, "air": f_air, "power_w": p}
+        """Forze di resistenza e potenza meccanica richiesta.
+
+        Delegato al kernel numerico unico ``core.physics.cycling_forces``.
+        """
+        return cycling_forces(v_ms, mass_kg, slope_pct / 100.0, crr, cda, cls.RHO, wind_ms, eta)
 
     @classmethod
     def _source_confidence(cls, source: str, default: float = 0.7) -> float:

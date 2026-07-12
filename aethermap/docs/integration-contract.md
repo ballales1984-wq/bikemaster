@@ -1,54 +1,79 @@
-# AetherMap ↔ BikeMaster — Contratto di Integrazione (roadmap futura)
+# AetherMap ↔ BikeMaster — Contratto di Integrazione
 
-> **Stato**: NON implementato. Questo documento definisce *come* AetherMap diventera'
-> il motore cartografico di BikeMaster, **senza mai rompere** il tracking esistente.
+> **Stato**: Fase 1 e 2 completate. Integrazione runtime attiva tra `aethermap` e
+> `bike_analyzer` senza modifiche al tracking esistente.
 
 ## Premessa
 - `bike_analyzer/` è il prodotto corrente. Il tracking
   (`frontend/src/views/RideTracking.vue` + service Android foreground) funziona ed è
-  da preservare.
+  preservato.
 - `aethermap/` è il motore cartografico "evoluzione": cube-sphere, S2/H3, WebGL stub,
   digital twin (`ai/`, `render/`, `twin/`).
-- Oggi i due package sono **indipendenti**: `aethermap` importa solo `aethermap.*` e
-  non dipende da `bike_analyzer`. Il tooling root (pyproject, ruff/mypy/pytest, CI,
-  pre-commit) copre entrambi, ma non c'è ancora integrazione runtime.
+- I due package sono **integrati** a runtime attraverso un adapter esplicito.
 
 ## Principi
 1. **Tracking intatto**: nessuna modifica a `RideTracking.vue`, al service Android, né a
-   `bike_analyzer/backend/maps/` durante l'organizzazione.
+   `bike_analyzer/backend/maps/map_renderer.py` durante l'integrazione.
 2. **Integrazione a valle**: AetherMap sostituisce il layer mappe di BikeMaster
-   (`bike_analyzer/backend/maps/`: `google_maps.py`, `map_renderer.py`, `osm_maps.py`,
-   `serpapi_maps.py`) come passo successivo, dietro una interfaccia stabile.
+   (`bike_analyzer/backend/maps/`) come passo successivo, dietro un'interfaccia stabile.
 3. **Interfaccia stabile**: BikeMaster consuma AetherMap tramite un adapter esplicito,
    non importando i moduli interni di `aethermap`.
+4. **Fallback automatico**: se AetherMap non è installato o la feature flag è disattivata,
+   il sistema usa Folium/Google Maps come prima dell'integrazione.
 
-## Contratto (interfaccia proposta)
-AetherMap esporra' un punto d'ingresso minimo, es.:
+## Contratto (implementato)
+AetherMap espone un punto d'ingresso minimo in `aethermap/src/aethermap/__init__.py`:
 
 ```python
-# aethermap/src/aethermap/__init__.py (futuro)
 from aethermap.core.coordinates import geodetic_to_cube, cube_cell_id
 from aethermap.render.scene import Scene
 from aethermap.render.projection import project
 ```
 
-BikeMaster (futuro adapter in `bike_analyzer/backend/maps/aethermap_adapter.py`):
-- input: tracciato GPX / punti GPS (lat, lon, alt, t).
-- output: tile/scene cube-sphere pronte per il rendering WebGL (coerente con
-  `render/webgl_stub.html`).
+BikeMaster usa l'adapter in `bike_analyzer/backend/maps/aethermap_adapter.py`:
+- input: tracciato GPX / punti GPS (`GPSPoint` da `bike_analyzer.core.models`).
+- output: JSON serializzato della scena AetherMap con entità e statistiche opzionali.
+- endpoint API: `GET /api/v1/rides/{ride_id}/map?provider=aethermap`.
+
+L'adapter replica la firma di `map_renderer.create_route_map` per consentire swap
+senza modificare i chiamanti.
 
 ## Dipendenze / packaging
 - `aethermap` ha `pyproject.toml` autonomo (`pip install -e ./aethermap`); dipendenze
-  minime: numpy, h3, s2geometry, pydantic. Nessun vincolo su quelle di BikeMaster.
+  minime: numpy, h3, pydantic. `s2geometry` è opzionale (`[s2]`) per compatibilità
+  Windows.
+- `bikemaster` include `aethermap` come dipendenza opzionale:
+  ```bash
+  pip install -e ".[maps]"
+  ```
 
-## Step futuri (fuori scope corrente)
-1. Definire `Scene`/serializzazione condivisa (es. GeoJSON/3D Tiles).
-2. Adapter `bike_analyzer/backend/maps/aethermap_adapter.py` con fallback a
-   `map_renderer.py`.
-3. Flag di feature per abilitare AetherMap lato backend + frontend Vue.
-4. Benchmark latenza vs Folium/Google Static per parita' funzionale.
+## Feature flag
+- Backend: variabile ambiente `BIKEMASTER_MAP_PROVIDER=aethermap` (default: `folium`).
+- Frontend: variabile ambiente `VITE_AETHERMAP_ENABLED=true` (default: `false`).
+- Quando disattivata, `bike_analyzer/backend/maps/__init__.py` e `RideMapPanel.vue`
+  mantengono il comportamento esistente (Folium/Leaflet).
 
-## Validazione (corrente)
-- `pytest` (root) verde → tracking BikeMaster intatto.
-- `ruff`/`mypy` puliti su entrambi i package.
-- `python -m aethermap.ai.demo`, `render.demo`, `twin.demo` eseguono.
+## Step completati
+1. API pubblica `aethermap` esposta (`__init__.py`).
+2. Adapter `bike_analyzer/backend/maps/aethermap_adapter.py` creato.
+3. Dispatch lazy in `bike_analyzer/backend/maps/__init__.py` con supporto
+   `BIKEMASTER_MAP_PROVIDER=aethermap`.
+4. Endpoint API `/rides/{ride_id}/map` esteso con query param `provider`.
+5. Feature flag frontend `useAetherMap` in `frontend/src/stores/ui.ts`.
+6. Componente `AetherMapViewer.vue` (WebGL2 cube-sphere stub) integrato in
+   `RideMapPanel.vue`.
+
+## Step futuri
+1. Serializzazione condivisa avanzata (GeoJSON / 3D Tiles) al posto del JSON attuale.
+2. Rendering WebGL reale in `AetherMapViewer.vue` con entità dinamiche dalla scena.
+3. Sostituzione completa di Folium/Google Maps quando `useAetherMap` è attivo.
+4. Benchmark latenza vs Folium/Google Static per parità funzionale.
+5. Estensione CI con job di integrazione dedicato.
+
+## Validazione
+- `ruff` pulito sui nuovi file.
+- `mypy` pulito su adapter e maps package.
+- `vue-tsc` pulito su `AetherMapViewer.vue` e `RideMapPanel.vue`.
+- `pytest`: 1720 passed; fallimenti pre-esistenti non correlati alle modifiche.
+- Test manuale endpoint: `GET /api/v1/rides/{id}/map?provider=aethermap` restituisce
+  `{"map_url": "/static/ride_{id}_map.json", "engine": "aethermap"}`.
