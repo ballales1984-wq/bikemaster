@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Iterator
@@ -22,7 +22,7 @@ class RawFeature:
 
 
 def ingest_gpx(path: str) -> list[RawPoint]:
-    tree = defusedxml.etree.ElementTree.parse(path)
+    tree = ET.parse(path)
     root = tree.getroot()
     ns = {"g": "http://www.topografix.com/GPX/1/1"}
     points: list[RawPoint] = []
