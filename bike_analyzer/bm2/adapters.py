@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Optional
 
 from ..core.models import AthleteProfile, GPSPoint, Ride
-from .models import AnalysisContext
+from .models import Activity, AnalysisContext, Athlete, Bike, WorldObject
 from .transformer import TransformerEngine
 
 
@@ -105,4 +105,10 @@ def ride_to_analysis_context(
     """Costruisce direttamente un ``AnalysisContext`` bm2 da una ``Ride`` prodotto."""
     t = transformer or TransformerEngine()
     raw = ride_to_bm2_raw(ride, athlete, **kwargs)
-    return AnalysisContext.from_raw(raw, t)
+    return AnalysisContext(
+        athlete=Athlete.from_raw(raw["athlete"], t),
+        activity=Activity.from_raw(raw, t),
+        bike=Bike.from_raw(raw["bike"], t),
+        world=WorldObject.from_raw(raw["world"], t),
+        transformer=t,
+    )

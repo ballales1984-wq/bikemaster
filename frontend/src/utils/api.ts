@@ -14,6 +14,7 @@ function clearAuth() {
   localStorage.removeItem("bikemaster_token");
   localStorage.removeItem("bikemaster_user");
   localStorage.removeItem("bikemaster_just_logged_in");
+  localStorage.removeItem("bikemaster_refresh_token");
 }
 
 let sessionExpiredNotified = false;
@@ -56,9 +57,65 @@ function notifySessionExpired() {
   }
 }
 
+function getActiveAuthToken(): string {
+  if (typeof localStorage === "undefined") return "";
+  try {
+    const auth = useAuthStore();
+    if (auth.token) return auth.token;
+  } catch {
+    // no active pinia, fallback to localStorage
+  }
+  return localStorage.getItem("bikemaster_token") || "";
+}
+
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem("bikemaster_token");
+  const token = getActiveAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+let authRefreshing = false;
+
+async function tryRefreshAccessToken(): Promise<boolean> {
+  if (authRefreshing) return false;
+  let refreshToken = "";
+  try {
+    const auth = useAuthStore();
+    refreshToken = auth.refreshToken || "";
+  } catch {
+    // ignore
+  }
+  if (!refreshToken && typeof localStorage !== "undefined") {
+    refreshToken = localStorage.getItem("bikemaster_refresh_token") || "";
+  }
+  if (!refreshToken) return false;
+
+  authRefreshing = true;
+  try {
+    const resp = await fetch("/api/v1/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!resp.ok) return false;
+    const data = (await resp.json()) as { access_token: string; refresh_token?: string };
+    const newToken = data.access_token;
+    localStorage.setItem("bikemaster_token", newToken);
+    try {
+      const auth = useAuthStore();
+      auth.token = newToken;
+      if (data.refresh_token) {
+        auth.refreshToken = data.refresh_token;
+        localStorage.setItem("bikemaster_refresh_token", data.refresh_token);
+      }
+    } catch {
+      // ignore
+    }
+    return true;
+  } catch {
+    return false;
+  } finally {
+    authRefreshing = false;
+  }
 }
 
 // Gateway statuses returned by Render while the free instance is asleep or
@@ -173,6 +230,12 @@ async function request<T>(options: RequestOptions): Promise<T> {
   wakingNotified = false;
   if (!resp.ok) {
     if (resp.status === 401 && !suppressAuthClear) {
+      const refreshed = await tryRefreshAccessToken();
+      if (refreshed && idempotent && !noRetry && attempt < MAX_RETRIES) {
+        notifyServerWaking();
+        await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
+        continue;
+      }
       clearAuth();
       notifySessionExpired();
       throw new ApiError("expired", 401);

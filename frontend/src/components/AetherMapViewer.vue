@@ -20,6 +20,7 @@ interface MapPoint {
 
 const props = defineProps<{
   points?: MapPoint[];
+  colorBySpeed?: boolean;
 }>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
@@ -42,15 +43,24 @@ function cameraRelative(p: [number, number, number]): [number, number, number] {
   return [p[0], p[1], p[2]];
 }
 
-function makeBuffer(arr: number[], mode: number) {
+function speedColor(speed: number | undefined): [number, number, number] {
+  if (speed == null) return [0.40, 40 / 255, 1.0];
+  if (speed >= 35) return [0.0, 0.8, 0.27];
+  if (speed >= 25) return [0.53, 0.8, 0.0];
+  if (speed >= 15) return [0.87, 0.73, 0.0];
+  if (speed >= 5) return [0.93, 0.53, 0.0];
+  return [0.93, 0.2, 0.2];
+}
+
+function makeBuffer(arr: number[], mode: number, stride: number) {
   if (!gl) throw new Error("WebGL context not initialized");
   const b = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, b);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
-  return { buf: b, count: arr.length / 3, mode };
+  return { buf: b, count: arr.length / stride, mode };
 }
 
-function updateDynamicBuffers(points: MapPoint[]) {
+function updateDynamicBuffers(points: MapPoint[], colorBySpeed: boolean) {
   if (routeBuffer && gl) {
     gl.deleteBuffer(routeBuffer.buf);
     routeBuffer = null;
@@ -59,18 +69,21 @@ function updateDynamicBuffers(points: MapPoint[]) {
     gl.deleteBuffer(pointBuffer.buf);
     pointBuffer = null;
   }
-  if (!points.length || !gl) return;
+  if (!gl) return;
 
   const routeData: number[] = [];
   const pointData: number[] = [];
   for (const p of points) {
     const dir = geodeticToDirection(p.lat, p.lon);
     const rel = cameraRelative(dir);
-    routeData.push(...rel);
-    pointData.push(...rel);
+    const col = colorBySpeed ? speedColor(p.speed) : [0.95, 0.85, 0.25];
+    routeData.push(...rel, ...col);
+    pointData.push(...rel, ...col);
   }
-  routeBuffer = makeBuffer(routeData, gl.LINE_STRIP);
-  pointBuffer = makeBuffer(pointData, gl.POINTS);
+  if (routeData.length) {
+    routeBuffer = makeBuffer(routeData, gl.LINE_STRIP, 6);
+    pointBuffer = makeBuffer(pointData, gl.POINTS, 6);
+  }
 }
 
 onMounted(() => {
@@ -87,9 +100,11 @@ onMounted(() => {
 
   const VS = `#version 300 es
 in vec3 p;
+in vec3 vColor;
 uniform mat3 rot;
 uniform vec2 scale;
 uniform float pointSize;
+out vec3 vColorOut;
 out float facing;
 void main() {
   vec3 r = rot * p;
@@ -100,16 +115,17 @@ void main() {
   }
   gl_Position = vec4(r.x * scale.x, r.y * scale.y, 0.0, 1.0);
   gl_PointSize = pointSize;
+  vColorOut = vColor;
 }`;
 
   const FS = `#version 300 es
 precision mediump float;
 in float facing;
-uniform vec3 color;
+in vec3 vColorOut;
 out vec4 outColor;
 void main() {
   float sh = clamp(0.55 + facing * 0.45, 0.0, 1.0);
-  outColor = vec4(color * sh, 1.0);
+  outColor = vec4(vColorOut * sh, 1.0);
 }`;
 
   function compile(type: number, src: string): WebGLShader {
@@ -135,9 +151,9 @@ void main() {
     rot: gl!.getUniformLocation(prog, "rot")!,
     scale: gl!.getUniformLocation(prog, "scale")!,
     pointSize: gl!.getUniformLocation(prog, "pointSize")!,
-    color: gl!.getUniformLocation(prog, "color")!,
   };
   const A_p = gl!.getAttribLocation(prog, "p");
+  const A_color = gl!.getAttribLocation(prog, "vColor");
 
   const N = 16;
   const wire: number[] = [];
@@ -168,19 +184,18 @@ void main() {
         if (i < N) {
           const a = grid[f][i][j];
           const b = grid[f][i + 1][j];
-          wire.push(...a, ...b);
+          wire.push(...a, ...b, 0.30, 0.55, 0.85, 0.30, 0.55, 0.85);
         }
         if (j < N) {
           const a = grid[f][i][j];
           const b = grid[f][i][j + 1];
-          wire.push(...a, ...b);
+          wire.push(...a, ...b, 0.30, 0.55, 0.85, 0.30, 0.55, 0.85);
         }
       }
     }
   }
-
-  wireBuffer = makeBuffer(wire, gl!.LINES);
-  updateDynamicBuffers(props.points || []);
+  wireBuffer = makeBuffer(wire, gl!.LINES, 6);
+  updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
 
   let yaw = 0.6;
   let pitch = 0.35;
@@ -227,14 +242,12 @@ void main() {
 
   function draw(
     buf: { buf: WebGLBuffer; count: number; mode: number },
-    color: [number, number, number],
-    size: number,
   ) {
     gl!.bindBuffer(gl!.ARRAY_BUFFER, buf.buf);
     gl!.enableVertexAttribArray(A_p);
-    gl!.vertexAttribPointer(A_p, 3, gl!.FLOAT, false, 0, 0);
-    gl!.uniform3fv(U.color, color);
-    gl!.uniform1f(U.pointSize, size);
+    gl!.vertexAttribPointer(A_p, 3, gl!.FLOAT, false, 24, 0);
+    gl!.enableVertexAttribArray(A_color);
+    gl!.vertexAttribPointer(A_color, 3, gl!.FLOAT, false, 24, 12);
     gl!.drawArrays(buf.mode, 0, buf.count);
   }
 
@@ -248,9 +261,9 @@ void main() {
     gl.uniformMatrix3fv(U.rot, false, rotationMatrix());
     gl.uniform2f(U.scale, s, s);
 
-    if (wireBuffer) draw(wireBuffer, [0.30, 0.55, 0.85], 1.0);
-    if (routeBuffer) draw(routeBuffer, [0.95, 0.85, 0.25], 3.0);
-    if (pointBuffer) draw(pointBuffer, [0.35, 0.95, 0.45], 9.0);
+    if (wireBuffer) draw(wireBuffer);
+    if (routeBuffer) draw(routeBuffer);
+    if (pointBuffer) draw(pointBuffer);
 
     requestAnimationFrame(frame);
   }
@@ -258,9 +271,9 @@ void main() {
   frame();
 });
 
-watch(() => props.points, (newPoints) => {
+watch(() => [props.points, props.colorBySpeed], () => {
   if (!gl) return;
-  updateDynamicBuffers(newPoints || []);
+  updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
 });
 
 onBeforeUnmount(() => {

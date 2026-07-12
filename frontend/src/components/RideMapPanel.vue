@@ -11,6 +11,9 @@
       <button class="btn btn-primary" :disabled="loading" @click="loadRides">
         {{ loading ? t("maps.updating") : t("maps.updateMap") }}
       </button>
+      <button class="btn btn-secondary" @click="useAetherMap.value = !useAetherMap.value">
+        {{ useAetherMap ? '2D Map' : '3D Globe' }}
+      </button>
     </div>
 
     <div
@@ -65,21 +68,23 @@ v-if="loading && !enrichedRides.length" class="loading-text">
 
     <div
     id="route-map" ref="mapContainer" class="route-map">
-      <AetherMapViewer v-if="useAetherMap" :points="aetherPoints" />
-      <div
-      v-if="!ridesWithGps.length" class="demo-map-overlay">
-        <div class="demo-map-content">
-          <span class="demo-icon">🗺️</span>
-          <p>Milan-Monza demo route</p>
-          <p class="demo-hint">
-            Import GPX/FIT or add a ride with GPS points to view your routes
-          </p>
+      <AetherMapViewer v-if="useAetherMap" :points="aetherPoints" :color-by-speed="true" />
+      <template v-else>
+        <div
+        v-if="!ridesWithGps.length" class="demo-map-overlay">
+          <div class="demo-map-content">
+            <span class="demo-icon">🗺️</span>
+            <p>Milan-Monza demo route</p>
+            <p class="demo-hint">
+              Import GPX/FIT or add a ride with GPS points to view your routes
+            </p>
+          </div>
         </div>
-      </div>
+      </template>
     </div>
 
     <div
-v-if="ridesWithGps.length" class="map-kpis">
+    v-if="!useAetherMap && ridesWithGps.length" class="map-kpis">
       <div class="kpi">
         <strong>{{ visibleRides.length }}</strong>
         <span>{{ visibleRides.length === 1 ? "route" : "routes" }}</span>
@@ -98,13 +103,13 @@ v-if="ridesWithGps.length" class="map-kpis">
       </div>
     </div>
 
-    <div class="legend-grid">
+    <div v-if="!useAetherMap" class="legend-grid">
       <div class="legend-card">
         <h4>Combined Risk</h4>
         <div
-v-for="level in riskLevels" :key="level.label" class="legend-row">
+        v-for="level in riskLevels" :key="level.label" class="legend-row">
           <span
-class="legend-swatch" :style="{ background: level.color }" />
+        class="legend-swatch" :style="{ background: level.color }" />
           <span>{{ level.label }} · {{ level.range }}</span>
         </div>
       </div>
@@ -112,24 +117,24 @@ class="legend-swatch" :style="{ background: level.color }" />
       <div class="legend-card">
         <h4>Gradients</h4>
         <div
-v-for="item in gradeLegend" :key="item.label" class="legend-row">
+        v-for="item in gradeLegend" :key="item.label" class="legend-row">
           <span
-class="legend-swatch" :style="{ background: item.color }" />
+        class="legend-swatch" :style="{ background: item.color }" />
           <span>{{ item.label }}</span>
         </div>
       </div>
 
       <div
-v-if="weatherEnabled" class="legend-card">
+      v-if="weatherEnabled" class="legend-card">
         <h4>Weather</h4>
         <div
-v-for="item in weatherLegend" :key="item.label" class="legend-row">
+        v-for="item in weatherLegend" :key="item.label" class="legend-row">
           <span
-class="legend-swatch" :style="{ background: item.color }" />
+        class="legend-swatch" :style="{ background: item.color }" />
           <span>{{ item.label }}</span>
         </div>
         <p
-v-if="weatherUnavailableCount" class="legend-note">
+        v-if="weatherUnavailableCount" class="legend-note">
           {{ weatherUnavailableCount }}
           {{ weatherUnavailableCount === 1 ? "route" : "routes" }} without
           weather: weather risk set to 50/100.
@@ -137,12 +142,12 @@ v-if="weatherUnavailableCount" class="legend-note">
       </div>
 
       <div
-v-if="colorMode === 'speed'" class="legend-card">
+      v-if="colorMode === 'speed'" class="legend-card">
         <h4>Speed</h4>
         <div
-v-for="item in speedLegend" :key="item.label" class="legend-row">
+        v-for="item in speedLegend" :key="item.label" class="legend-row">
           <span
-class="legend-swatch" :style="{ background: item.color }" />
+        class="legend-swatch" :style="{ background: item.color }" />
           <span>{{ item.label }}</span>
         </div>
       </div>

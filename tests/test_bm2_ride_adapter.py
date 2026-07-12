@@ -16,8 +16,8 @@ from bike_analyzer.core.models import AthleteProfile, GPSPoint, Ride
 
 def _ride():
     pts = [
-        GPSPoint(45.0, 9.0, 200.0, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GPSPoint(45.005, 9.005, 360.0, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+        GPSPoint(lat=45.0, lon=9.0, altitude=200.0, timestamp=datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
+        GPSPoint(lat=45.005, lon=9.005, altitude=360.0, timestamp=datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
     ]
     return Ride(
         id=1, athlete_id=1, distance_km=12.0, duration_minutes=60.0,

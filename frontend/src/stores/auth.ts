@@ -10,6 +10,7 @@ import {
 const TOKEN_KEY = "bikemaster_token";
 const USER_KEY = "bikemaster_user";
 const JUST_LOGGED_IN_KEY = "bikemaster_just_logged_in";
+const REFRESH_TOKEN_KEY = "bikemaster_refresh_token";
 
 function parseBase64Url(base64Url: string): string {
   const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -53,6 +54,12 @@ export const useAuthStore = defineStore("auth", () => {
 
   const justLoggedIn = ref(false);
 
+  const refreshToken = ref(
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem(REFRESH_TOKEN_KEY) || ""
+      : "",
+  );
+
   const isLoggedIn = computed(() => !!token.value && isTokenValid());
   const isAdmin = computed(() => user.value?.is_admin === true);
 
@@ -84,6 +91,10 @@ export const useAuthStore = defineStore("auth", () => {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
     token.value = data.access_token;
+    if (data.refresh_token) {
+      refreshToken.value = data.refresh_token;
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
+    }
     const payload = parseJWTPayload(data.access_token);
     user.value = {
       id: typeof data.id === "number" ? data.id : 0,
@@ -120,8 +131,10 @@ export const useAuthStore = defineStore("auth", () => {
 
     token.value = "";
     user.value = null;
+    refreshToken.value = "";
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   }
 
   function setAuthFromUrl(urlToken: string, email: string, userId?: string) {
@@ -142,7 +155,9 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.setItem(USER_KEY, JSON.stringify(userData));
     token.value = urlToken;
     user.value = userData;
+    refreshToken.value = "";
     localStorage.removeItem("bikemaster_login_error");
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.setItem(JUST_LOGGED_IN_KEY, "true");
     justLoggedIn.value = true;
     resetSessionExpiredNotification();
@@ -171,9 +186,10 @@ export const useAuthStore = defineStore("auth", () => {
   return {
     token,
     user,
+    refreshToken,
+    justLoggedIn,
     isLoggedIn,
     isAdmin,
-    justLoggedIn,
     isTokenValid,
     getAuthHeader,
     login,
