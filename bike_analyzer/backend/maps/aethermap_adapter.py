@@ -88,9 +88,14 @@ def create_route_map(
         raise ValueError("No GPS points provided")
 
     scene = _build_scene(points, statistics, color_by_speed)
-    payload = {
+    entities = []
+    for entity in scene.entities:
+        ent = dict(entity)
+        ent["pts"] = [p.tolist() if hasattr(p, "tolist") else list(p) for p in entity["pts"]]
+        entities.append(ent)
+    payload: dict[str, object] = {
         "engine": "aethermap",
-        "entities": scene.entities,
+        "entities": entities,
     }
 
     if statistics:

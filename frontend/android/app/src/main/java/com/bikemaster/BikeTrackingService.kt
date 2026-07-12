@@ -44,6 +44,9 @@ class BikeTrackingService : Service(), LocationListener {
         const val EXTRA_UPLOAD_STATUS = "upload_status"
         const val EXTRA_RIDE_ID = "ride_id"
 
+        private val isTracking = AtomicBoolean(false)
+        private val isPaused = AtomicBoolean(false)
+
         @JvmStatic
         fun startService(context: Context, outputPath: String) {
             val intent = Intent(context, BikeTrackingService::class.java).apply {
@@ -75,8 +78,6 @@ class BikeTrackingService : Service(), LocationListener {
         private const val MAX_PLAUSIBLE_SPEED_MPS = 45.0 // reject GPS jumps implying > ~162 km/h
     }
 
-    private val isTracking = AtomicBoolean(false)
-    private val isPaused = AtomicBoolean(false)
     private var startTime = 0L
     private var totalDistance = 0.0
     private var gpxFile: File? = null

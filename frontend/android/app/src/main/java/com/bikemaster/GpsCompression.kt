@@ -2,6 +2,7 @@ package com.bikemaster
 
 import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.math.pow
 
 /**
  * Pure GPS math utilities, kept free of Android framework dependencies so they can be
@@ -67,7 +68,7 @@ object GpsCompression {
         val a = kotlin.math.sin(dLat / 2).pow(2.0) +
             kotlin.math.cos(Math.toRadians(lat1)) * kotlin.math.cos(Math.toRadians(lat2)) *
             kotlin.math.sin(dLon / 2).pow(2.0)
-        return r * 2 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))
+        return r * 2 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1.0 - a))
     }
 
     /** Total length in metres of a polyline. */

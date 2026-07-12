@@ -22,20 +22,12 @@
     <TextView
         android:id="@+id/distance_chart"
         android:layout_width="match_parent"
-<<<<<<< Updated upstream
         android:layout_height="wrap_content"
         android:padding="12dp"
         android:background="@color/white"
         android:textColor="@color/black"
         android:textSize="14sp"
         android:layout_marginBottom="16dp" />
-=======
-        android:layout_height="200dp"
-        android:layout_marginBottom="16dp"
-        android:gravity="center"
-        android:background="#F3F4F6"
-        android:text="Grafico distanza non disponibile" />
->>>>>>> Stashed changes
 
     <TextView
         android:layout_width="wrap_content"
@@ -46,17 +38,10 @@
     <TextView
         android:id="@+id/speed_chart"
         android:layout_width="match_parent"
-<<<<<<< Updated upstream
         android:layout_height="wrap_content"
         android:padding="12dp"
         android:background="@color/white"
         android:textColor="@color/black"
         android:textSize="14sp" />
-=======
-        android:layout_height="200dp"
-        android:gravity="center"
-        android:background="#F3F4F6"
-        android:text="Grafico velocità non disponibile" />
->>>>>>> Stashed changes
 
 </LinearLayout>

@@ -1,0 +1,72 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.parcelize' version '1.9.24'
+}
+
+android {
+    namespace 'com.bikemaster'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.bikemaster"
+        minSdk 24
+        targetSdk 34
+        versionCode 2
+        versionName "1.1"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    testOptions {
+        unitTests {
+            returnDefaultValues = true
+            includeAndroidResources = true
+        }
+    }
+
+    signingConfigs {
+        def localProps = new Properties()
+        def localPropsFile = rootProject.file('local.properties')
+        if (localPropsFile.exists()) {
+            localProps.load(new FileInputStream(localPropsFile))
+        }
+        release {
+            storeFile file(localProps['RELEASE_STORE_FILE'] ?: '../release.keystore')
+            storePassword localProps['RELEASE_STORE_PASSWORD']
+            keyAlias localProps['RELEASE_KEY_ALIAS']
+            keyPassword localProps['RELEASE_KEY_PASSWORD']
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+dependencies {
+    implementation project(':capacitor-android')
+
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.core:core:1.10.0'
+    implementation 'androidx.activity:activity:1.7.0'
+
+    // Activity Recognition (Google Play Location Services) for #224
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
+
+    // Local unit tests (#227)
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20231013'
+
+    // Instrumented (road) tests (#228)
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test:rules:1.5.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}

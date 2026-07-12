@@ -49,28 +49,4 @@ class StatsActivity : AppCompatActivity() {
             "${ride.date}: ${"%.1f".format(ride.avgSpeedKmh)} km/h"
         }.ifEmpty { "Nessuna attività disponibile" }
     }
-<<<<<<< Updated upstream
 }
-=======
-    
-    private fun setupDistanceChart(rides: List<Ride>) {
-        val lastTen = rides.takeLast(10)
-        val totalDistance = lastTen.sumOf { it.distanceKm }
-        binding.distanceChart.text = if (lastTen.isEmpty()) {
-            "Nessuna attività disponibile"
-        } else {
-            "Ultime ${lastTen.size} attività\nDistanza totale: ${String.format("%.1f", totalDistance)} km"
-        }
-    }
-    
-    private fun setupSpeedChart(rides: List<Ride>) {
-        val lastTen = rides.takeLast(10)
-        val avgSpeed = lastTen.map { it.avgSpeedKmh }.takeIf { it.isNotEmpty() }?.average() ?: 0.0
-        binding.speedChart.text = if (lastTen.isEmpty()) {
-            "Nessuna attività disponibile"
-        } else {
-            "Ultime ${lastTen.size} attività\nVelocità media: ${String.format("%.1f", avgSpeed)} km/h"
-        }
-    }
-}
->>>>>>> Stashed changes

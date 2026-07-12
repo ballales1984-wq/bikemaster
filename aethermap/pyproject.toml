@@ -21,11 +21,11 @@ classifiers = [
 dependencies = [
     "numpy>=1.26.4",
     "h3>=4.0.0",
-    "s2geometry>=0.3.0",
     "pydantic>=2.0.0",
 ]
 
 [project.optional-dependencies]
+s2 = ["s2geometry>=0.3.0"]
 viewer = ["pygame>=2.5.0"]
 
 [tool.setuptools.packages.find]

@@ -5,7 +5,6 @@ import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
-import com.getcapacitor.annotation.PluginMethod
 import android.content.Intent
 import android.content.Context
 import android.content.BroadcastReceiver
@@ -15,16 +14,15 @@ import androidx.core.content.ContextCompat
     @CapacitorPlugin(
     name = "BikeTracking",
     permissions = [
-        Permission(strings = ["android.permission.ACCESS_COARSE_LOCATION"], description = "GPS location for tracking rides"),
-        Permission(strings = ["android.permission.ACCESS_FINE_LOCATION"], description = "Precise GPS location for ride tracking"),
-        Permission(strings = ["android.permission.ACCESS_BACKGROUND_LOCATION"], description = "Background GPS for continuous tracking"),
-        Permission(strings = ["android.permission.ACTIVITY_RECOGNITION"], description = "Detect walking/cycling/still during rides"),
-        Permission(strings = ["android.permission.POST_NOTIFICATIONS"], description = "Notify when a ride upload completes")
+        Permission(strings = ["android.permission.ACCESS_COARSE_LOCATION"]),
+        Permission(strings = ["android.permission.ACCESS_FINE_LOCATION"]),
+        Permission(strings = ["android.permission.ACCESS_BACKGROUND_LOCATION"]),
+        Permission(strings = ["android.permission.ACTIVITY_RECOGNITION"]),
+        Permission(strings = ["android.permission.POST_NOTIFICATIONS"])
     ]
 )
 class BikeTrackingPlugin : Plugin() {
 
-    @PluginMethod
     fun startTracking(call: PluginCall) {
         if (BikeTrackingService.isServiceActive()) {
             call.resolve()
@@ -46,7 +44,6 @@ class BikeTrackingPlugin : Plugin() {
         call.resolve()
     }
 
-    @PluginMethod
     fun stopTracking(call: PluginCall) {
         val savedCall = call
         val stopReceiver = object : BroadcastReceiver() {
@@ -72,7 +69,6 @@ class BikeTrackingPlugin : Plugin() {
         ContextCompat.startForegroundService(activity, intent)
     }
 
-    @PluginMethod
     fun pauseTracking(call: PluginCall) {
         val intent = Intent(activity, BikeTrackingService::class.java).apply {
             action = BikeTrackingService.ACTION_PAUSE
@@ -81,7 +77,6 @@ class BikeTrackingPlugin : Plugin() {
         call.resolve()
     }
 
-    @PluginMethod
     fun resumeTracking(call: PluginCall) {
         val intent = Intent(activity, BikeTrackingService::class.java).apply {
             action = BikeTrackingService.ACTION_RESUME
@@ -90,8 +85,7 @@ class BikeTrackingPlugin : Plugin() {
         call.resolve()
     }
 
-    @PluginMethod
-    fun checkPermissions(call: PluginCall) {
+    override fun checkPermissions(call: PluginCall) {
         val granted = ContextCompat.checkSelfPermission(
             activity, android.Manifest.permission.ACCESS_FINE_LOCATION
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||

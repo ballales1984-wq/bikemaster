@@ -97,7 +97,7 @@ class BikeActivityRecognizer(private val context: Context) {
         val action = "${context.packageName}.ACTION_ACTIVITY_RECOGNITION"
         receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context?, intent: Intent?) {
-                val result = ActivityRecognitionResult.extractResult(intent) ?: return
+                val result = ActivityRecognitionResult.extractResult(intent ?: return) ?: return
                 val mostProbable = result.mostProbableActivity
                 recordActivity(
                     DetectedActivityType.fromGoogleType(mostProbable.type),

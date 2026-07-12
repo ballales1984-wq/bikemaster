@@ -106,6 +106,13 @@ Thumbs.db
 # Android build/debug artifacts
 frontend/android_debug.apk
 
+# Android signing secrets (NEVER commit)
+*.keystore
+*.jks
+*.p12
+**/local.properties
+.release_pw_tmp
+
 # Backend generated static assets
 bike_analyzer/backend/static/index.html
 bike_analyzer/backend/static/sw.js
