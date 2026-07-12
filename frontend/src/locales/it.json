@@ -18,6 +18,7 @@
     "calendar": "Calendario",
     "granfondo": "Granfondo",
     "maps": "Mappe",
+    "aethermap": "AetherMap",
     "pois": "Itinerari & POI",
     "heatmap": "Heatmap",
     "badges": "Badge",
@@ -28,6 +29,16 @@
     "track": "Traccia Uscita",
     "plan": "Pianifica",
     "aiCoach": "AI Coach"
+  },
+  "aethermap": {
+    "title": "AetherMap",
+    "subtitle": "Globo cube-sphere WebGL2: esplora le tue uscite come percorsi 3D su una Terra rotante.",
+    "rides": "Uscite",
+    "selectAll": "Seleziona tutte",
+    "clear": "Pulisci",
+    "colorBySpeed": "Colora per velocità",
+    "loading": "Caricamento uscite...",
+    "noRides": "Nessuna uscita disponibile."
   },
   "rides": {
     "title": "Le Mie Uscite",

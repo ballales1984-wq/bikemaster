@@ -76,6 +76,12 @@ const routes = [
     meta: { requiresAuth: true, title: "Itinerari & POI" },
   },
   {
+    path: "/aethermap",
+    name: "aethermap",
+    component: () => import("../views/AetherMapView.vue"),
+    meta: { requiresAuth: true, title: "AetherMap" },
+  },
+  {
     path: "/comparison",
     name: "comparison",
     component: () => import("../components/RideComparison.vue"),

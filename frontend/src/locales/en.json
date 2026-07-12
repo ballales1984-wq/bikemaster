@@ -18,6 +18,7 @@
     "calendar": "Calendar",
     "granfondo": "Granfondo",
     "maps": "Maps",
+    "aethermap": "AetherMap",
     "pois": "Itineraries & POI",
     "heatmap": "Heatmap",
     "badges": "Badges",
@@ -28,6 +29,16 @@
     "track": "Track Ride",
     "plan": "Plan",
     "aiCoach": "AI Coach"
+  },
+  "aethermap": {
+    "title": "AetherMap",
+    "subtitle": "WebGL2 cube-sphere globe: explore your rides as 3D routes on a rotating Earth.",
+    "rides": "Rides",
+    "selectAll": "Select all",
+    "clear": "Clear",
+    "colorBySpeed": "Color by speed",
+    "loading": "Loading rides...",
+    "noRides": "No rides available yet."
   },
   "rides": {
     "title": "My Rides",
