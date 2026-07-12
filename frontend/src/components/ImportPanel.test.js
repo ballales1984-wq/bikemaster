@@ -27,7 +27,7 @@ describe("ImportPanel", () => {
   });
 
   it("shows placeholder text when no files selected", async () => {
-    const wrapper = mount(ImportPanel);
+    const wrapper = mount(ImportPanel, { global: { plugins: [createPinia()] } });
     expect(wrapper.find(".upload-placeholder").text()).toContain("Drag files");
   });
 
@@ -50,7 +50,7 @@ describe("ImportPanel", () => {
   });
 
   it("calls onDrop to collect files", async () => {
-    const wrapper = mount(ImportPanel);
+    const wrapper = mount(ImportPanel, { global: { plugins: [createPinia()] } });
 
     wrapper.vm.onDrop({ dataTransfer: { files: [makeFile("drop.gpx")] } });
     await wrapper.vm.$nextTick();
@@ -59,7 +59,7 @@ describe("ImportPanel", () => {
   });
 
   it("disables import button when no files", async () => {
-    const wrapper = mount(ImportPanel);
+    const wrapper = mount(ImportPanel, { global: { plugins: [createPinia()] } });
 
     const button = wrapper.find("button.btn-primary");
     expect(button.attributes("disabled")).toBeDefined();
@@ -163,13 +163,13 @@ describe("ImportPanel", () => {
   });
 
   it("has Google Fit connect button", async () => {
-    const wrapper = mount(ImportPanel);
+    const wrapper = mount(ImportPanel, { global: { plugins: [createPinia()] } });
 
     expect(wrapper.text()).toContain("Import from Google Fit");
   });
 
   it("shows upload section title", async () => {
-    const wrapper = mount(ImportPanel);
+    const wrapper = mount(ImportPanel, { global: { plugins: [createPinia()] } });
 
     expect(wrapper.text()).toContain("Import Routes");
     expect(wrapper.text()).toContain("GPX or FIT");
@@ -214,7 +214,7 @@ describe("ImportPanel", () => {
   });
 
   it("pickFile triggers file input click", async () => {
-    const wrapper = mount(ImportPanel);
+    const wrapper = mount(ImportPanel, { global: { plugins: [createPinia()] } });
 
     const clickSpy = vi.fn();
     wrapper.vm.fileInput = { click: clickSpy };
@@ -241,7 +241,7 @@ describe("ImportPanel", () => {
   });
 
   it("onChange collects files from event", async () => {
-    const wrapper = mount(ImportPanel);
+    const wrapper = mount(ImportPanel, { global: { plugins: [createPinia()] } });
 
     wrapper.vm.onChange({ target: { files: [makeFile("test.gpx")] } });
     expect(wrapper.vm.files.length).toBe(1);
