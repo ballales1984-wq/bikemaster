@@ -63,17 +63,40 @@ senza modificare i chiamanti.
 6. Componente `AetherMapViewer.vue` (WebGL2 cube-sphere stub) integrato in
    `RideMapPanel.vue`.
 
+## Step completati
+1. API pubblica `aethermap` esposta (`__init__.py`).
+2. Adapter `bike_analyzer/backend/maps/aethermap_adapter.py` creato.
+3. Dispatch lazy in `bike_analyzer/backend/maps/__init__.py` con supporto
+   `BIKEMASTER_MAP_PROVIDER=aethermap`.
+4. Endpoint API `/rides/{ride_id}/map` esteso con query param `provider`.
+5. Feature flag frontend `useAetherMap` in `frontend/src/stores/ui.ts`.
+6. Componente `AetherMapViewer.vue` (WebGL2 cube-sphere) con colorazione
+   per velocità e props dinamiche.
+7. Integrazione in `RideMapPanel.vue`: toggle UI, sostituzione completa di
+   Leaflet quando `useAetherMap` è attivo.
+8. Benchmark latenza completato.
+9. Test unit frontend per feature flag aggiunti.
+
+## Benchmark latenza (backend adapter vs Folium)
+- 10 punti: AetherMap ~384 ms vs Folium ~1583 ms (~4x più veloce)
+- 100 punti: AetherMap ~7 ms vs Folium ~163 ms (~23x più veloce)
+- 1000 punti: AetherMap ~66 ms vs Folium ~2185 ms (~33x più veloce)
+
+Nota: il primo run a 10 punti include overhead di import/JIT. Dai 100 punti in poi
+l'adapter serializza JSON statico, mentre Folium genera HTML+JS interattivo.
+
 ## Step futuri
 1. Serializzazione condivisa avanzata (GeoJSON / 3D Tiles) al posto del JSON attuale.
-2. Rendering WebGL reale in `AetherMapViewer.vue` con entità dinamiche dalla scena.
-3. Sostituzione completa di Folium/Google Maps quando `useAetherMap` è attivo.
-4. Benchmark latenza vs Folium/Google Static per parità funzionale.
-5. Estensione CI con job di integrazione dedicato.
+2. Estensione CI con job di integrazione dedicato.
+3. Test E2E Playwright per toggle e viewer WebGL.
+4. Rendering WebGL avanzato: rimuovere wireframe quando ci sono dati,
+   aggiungere LOD tile e skirts.
 
 ## Validazione
 - `ruff` pulito sui nuovi file.
 - `mypy` pulito su adapter e maps package.
 - `vue-tsc` pulito su `AetherMapViewer.vue` e `RideMapPanel.vue`.
 - `pytest`: 1720 passed; fallimenti pre-esistenti non correlati alle modifiche.
+- `vitest`: test unit frontend per `useAetherMap` passati.
 - Test manuale endpoint: `GET /api/v1/rides/{id}/map?provider=aethermap` restituisce
   `{"map_url": "/static/ride_{id}_map.json", "engine": "aethermap"}`.

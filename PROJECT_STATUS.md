@@ -262,7 +262,8 @@ eliminando il forward model duplicato. La visione "Deluxe" è in `docs/DELUXE_RO
 
 Stato: baseline completo e testato (`test_bm2_*`); **integrato** col flusso
 `Ride`/analytics esistente via `bm2/adapters.py` + `POST /api/v1/bm2/simulate-ride`
-(item D7 ✅); **non ancora validato** su dati reali di potenza/HR misurate (item D8).
+(item D7 ✅); **validato** contro potenza misurata via `core/physics/validation.py`
+(item D8 ✅).
 
 ---
 

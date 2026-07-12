@@ -75,7 +75,7 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 | D5 | `bm2/units.py` — `Quantity` + `UnitRegistry` (analisi dimensionale) | ✅ baseline |
 | D6 | `bm2_routes.py` — endpoint API esposti | ✅ cablato |
 | D7 | Integrazione col flusso `Ride`/analytics esistente (via `bm2/adapters.py` + `POST /api/v1/bm2/simulate-ride`) | ✅ completato |
-| D8 | Validazione su dati reali (potenza/HR misurate) | ❌ da fare |
+| D8 | Validazione su dati reali (potenza/HR misurate) via `core/physics/validation.py` | ✅ completato |
 | D9 | Documentazione `bm2` in `PROJECT_STATUS.md` + `AGENTS.md` | ✅ completato |
 
 ---

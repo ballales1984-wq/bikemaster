@@ -16,6 +16,7 @@ from .power import (
     instantaneous_power,
     required_speed_for_power,
 )
+from .validation import PowerValidationResult, validate_ride_power, validate_rides
 
 __all__ = [
     "AIR_DENSITY",
@@ -30,4 +31,7 @@ __all__ = [
     "grade_between",
     "instantaneous_power",
     "required_speed_for_power",
+    "PowerValidationResult",
+    "validate_ride_power",
+    "validate_rides",
 ]

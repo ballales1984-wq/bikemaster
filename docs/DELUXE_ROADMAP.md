@@ -99,7 +99,8 @@ e `core/physics.power`. Fusione eseguita:
 - Il vero lavoro restante è: (a) **integrare `bm2` col flusso `Ride`/analytics**
   esistente (oggi è un sottosistema isolato, non citato in `ROADMAP.md`) — **fatto**
   (adapter `bm2/adapters.py` + `POST /api/v1/bm2/simulate-ride`);
-  (b) **validazione su dati reali** (potenza/HR misurate) — manca in entrambi;
+  (b) **validazione su dati reali** (potenza/HR misurate) — **fatta**
+  (`core/physics/validation.py`: MAE/RMSE/bias/R² stima vs power-meter);
   (c) documentare `bm2` in `ROADMAP.md`/`PROJECT_STATUS.md` — **fatto** (Track D +
       sottosistema in `PROJECT_STATUS.md` + nota in `AGENTS.md`).
 

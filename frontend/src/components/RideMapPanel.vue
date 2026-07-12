@@ -167,6 +167,7 @@ import {
 } from "vue";
 import { useI18n } from "../composables/useI18n";
 import { useUIStore } from "../stores/ui";
+import { storeToRefs } from "pinia";
 import L from "leaflet";
 import { apiGet } from "../utils/api";
 import {
@@ -197,7 +198,8 @@ import {
 import AetherMapViewer from "./AetherMapViewer.vue";
 
 const { t } = useI18n();
-const { useAetherMap } = useUIStore();
+const uiStore = useUIStore();
+const { useAetherMap } = storeToRefs(uiStore);
 
 function toggleAetherMap() {
   useAetherMap.value = !useAetherMap.value;

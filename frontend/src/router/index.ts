@@ -225,7 +225,7 @@ router.beforeEach(async (to, from, next) => {
     }
     ui.setOauthLoading(false);
     auth.setJustLoggedIn(false);
-    localStorage.removeItem("bikemaster_just_logged_in");
+    localStorage.removeItem(AUTH_JUST_LOGGED_IN_KEY);
     return;
   }
 
@@ -270,7 +270,7 @@ router.onError((error, to) => {
       message,
     );
   if (!isChunkError) return;
-  const key = "bikemaster_chunk_reload_at";
+  const key = AUTH_CHUNK_RELOAD_KEY;
   const last = Number(sessionStorage.getItem(key) || "0");
   if (Date.now() - last < 10000) return; // already tried recently, avoid a loop
   sessionStorage.setItem(key, String(Date.now()));

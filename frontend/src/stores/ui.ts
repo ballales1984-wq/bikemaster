@@ -1,12 +1,13 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { AUTH_OAUTH_LOADING_KEY } from "../utils/auth-storage";
 
 export const useUIStore = defineStore("ui", () => {
   const isDark = ref(true);
 
   const oauthLoading = ref(
     typeof sessionStorage !== "undefined"
-      ? sessionStorage.getItem("bikemaster_oauth_loading") === "true"
+      ? sessionStorage.getItem(AUTH_OAUTH_LOADING_KEY) === "true"
       : false,
   );
   const sidebarCollapsed = ref(false);
@@ -36,9 +37,9 @@ export const useUIStore = defineStore("ui", () => {
     oauthLoading.value = value;
     if (typeof sessionStorage !== "undefined") {
       if (value) {
-        sessionStorage.setItem("bikemaster_oauth_loading", "true");
+        sessionStorage.setItem(AUTH_OAUTH_LOADING_KEY, "true");
       } else {
-        sessionStorage.removeItem("bikemaster_oauth_loading");
+        sessionStorage.removeItem(AUTH_OAUTH_LOADING_KEY);
       }
     }
   }
