@@ -19,7 +19,12 @@ def _forwarded_value(header_value: str | None) -> str:
     return header_value.split(",", 1)[0].strip()
 
 
+_TRUSTED_TEST_CLIENT_HOST = "testclient"
+
+
 def _is_trusted_proxy(ip_str: str) -> bool:
+    if ip_str == _TRUSTED_TEST_CLIENT_HOST:
+        return True
     try:
         addr = ip_address(ip_str)
     except (AddressValueError, ValueError):

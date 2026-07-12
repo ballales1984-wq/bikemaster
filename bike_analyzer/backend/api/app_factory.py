@@ -51,6 +51,9 @@ async def lifespan(app: FastAPI):
     setup_logging()
     init_db()
     if _s.database_url:
+        from ..db.migrations import run_migrations_on_startup
+
+        run_migrations_on_startup()
         from ..db.async_db import init_async_db
 
         try:
