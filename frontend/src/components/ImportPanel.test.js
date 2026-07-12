@@ -33,7 +33,7 @@ describe("ImportPanel", () => {
 
   it("displays selected file count after onChange", async () => {
     const wrapper = mount(ImportPanel, {
-      global: { stubs: { Teleport: true } },
+      global: { plugins: [createPinia()], stubs: { Teleport: true } },
     });
 
     const input = wrapper.find("input").element;
@@ -67,7 +67,7 @@ describe("ImportPanel", () => {
 
   it("enables import button after file selection", async () => {
     const wrapper = mount(ImportPanel, {
-      global: { stubs: { Teleport: true } },
+      global: { plugins: [createPinia()], stubs: { Teleport: true } },
     });
 
     const input = wrapper.find("input").element;
@@ -86,7 +86,7 @@ describe("ImportPanel", () => {
     apiUpload.mockResolvedValue({ id: 1 });
 
     const wrapper = mount(ImportPanel, {
-      global: { stubs: { Teleport: true } },
+      global: { plugins: [createPinia()], stubs: { Teleport: true } },
     });
 
     wrapper.vm.files = [makeFile("ride.gpx")];
@@ -107,7 +107,7 @@ describe("ImportPanel", () => {
     apiUpload.mockResolvedValue({ id: 2 });
 
     const wrapper = mount(ImportPanel, {
-      global: { stubs: { Teleport: true } },
+      global: { plugins: [createPinia()], stubs: { Teleport: true } },
     });
 
     wrapper.vm.files = [makeFile("ride.fit")];
@@ -127,7 +127,7 @@ describe("ImportPanel", () => {
     apiUpload.mockResolvedValue({ id: 1 });
 
     const wrapper = mount(ImportPanel, {
-      global: { stubs: { Teleport: true } },
+      global: { plugins: [createPinia()], stubs: { Teleport: true } },
     });
 
     wrapper.vm.files = [
@@ -149,7 +149,7 @@ describe("ImportPanel", () => {
     apiUpload.mockRejectedValue(new Error("Upload failed"));
 
     const wrapper = mount(ImportPanel, {
-      global: { stubs: { Teleport: true } },
+      global: { plugins: [createPinia()], stubs: { Teleport: true } },
     });
 
     wrapper.vm.files = [makeFile("ride.gpx")];
@@ -181,7 +181,7 @@ describe("ImportPanel", () => {
     );
 
     const wrapper = mount(ImportPanel, {
-      global: { stubs: { Teleport: true } },
+      global: { plugins: [createPinia()], stubs: { Teleport: true } },
     });
 
     wrapper.vm.files = [makeFile("ride.gpx")];
@@ -200,7 +200,7 @@ describe("ImportPanel", () => {
     apiUpload.mockResolvedValue({ id: 1 });
 
     const wrapper = mount(ImportPanel, {
-      global: { stubs: { Teleport: true } },
+      global: { plugins: [createPinia()], stubs: { Teleport: true } },
     });
 
     wrapper.vm.files = [makeFile("ride.gpx")];
@@ -227,7 +227,7 @@ describe("ImportPanel", () => {
     apiUpload.mockResolvedValue({ id: 1 });
 
     const wrapper = mount(ImportPanel, {
-      global: { stubs: { Teleport: true } },
+      global: { plugins: [createPinia()], stubs: { Teleport: true } },
     });
 
     wrapper.vm.files = [makeFile("ride.gpx")];
