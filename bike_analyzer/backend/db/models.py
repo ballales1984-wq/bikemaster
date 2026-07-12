@@ -173,6 +173,19 @@ class KnowledgeChunkModel(Base):
     )
 
 
+class ChatHistoryModel(Base):
+    """Persistent AI Coach conversation history (mirrors SQLite ``chat_history``)."""
+
+    __tablename__ = "chat_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    role: Mapped[str] = mapped_column(String, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 __all__ = [
     "Base",
     "EMBEDDING_DIMENSION",
@@ -182,4 +195,5 @@ __all__ = [
     "FitnessStateModel",
     "POIModel",
     "KnowledgeChunkModel",
+    "ChatHistoryModel",
 ]
