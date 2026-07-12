@@ -45,13 +45,13 @@
 
       <label class="checkbox-control">
         <input
-v-model="weatherEnabled" type="checkbox" />
+v-model="weatherEnabled" type="checkbox" id="weather-enabled" />
         <span>{{ t("maps.includeWeather") }}</span>
       </label>
 
       <label class="checkbox-control">
         <input
-v-model="showFamousRoutes" type="checkbox" />
+v-model="showFamousRoutes" type="checkbox" id="show-famous-routes" />
         <span>{{ t("maps.famousRoutes") }}</span>
       </label>
     </div>

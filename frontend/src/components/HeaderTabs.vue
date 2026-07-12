@@ -31,6 +31,9 @@ class="tabs" aria-label="Main navigation" ref="tabsRef">
     <router-link to="/map" class="tab" active-class="active">
       🗺️ <span>{{ t("nav.maps") }}</span>
     </router-link>
+    <router-link to="/pois" class="tab" active-class="active">
+      📍 <span>{{ t("nav.pois") }}</span>
+    </router-link>
     <router-link to="/heatmap" class="tab" active-class="active">
       🔥 <span>{{ t("nav.heatmap") }}</span>
     </router-link>

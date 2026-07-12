@@ -1,8 +1,8 @@
 # BikeMaster — Roadmap Consolidata
 
-*Ultimo aggiornamento: 2026-07-11*
+*Ultimo aggiornamento: 2026-07-12*
 
-> Stato: **Late Beta / Early Production** (multi-tenant completato, deploy su Render).
+> Stato: **Late Beta / Early Production** (multi-tenant completato, deploy su Render stabile).
 > Questo documento è la *fonte di verità* unica per le idee/feature. Le fasi 1-25
 > sono completate; sotto il backlog riordinato (3 track) e lo stato di pulizia repo.
 
@@ -13,29 +13,24 @@
 ### A.1 Stato di completamento
 - **Fasi 1-25**: completate (fondamenta, analytics, AI Coach base, sicurezza,
   testing/DevOps, phone GPS tracking, event-driven/clean arch, vector DB/RAG).
-- Conteggio storico: 145/145 base + 78/80 estensioni (2 item respinti: Wahoo,
-  verifica build iOS — vedi A.3).
+- Conteggio storico: 145/145 base + 78/80 estensioni.
 
 ### A.2 Backlog riordinato per priorità
 Ordine: stabilità → mobile nativo → maturità AI → distribuzione/integrazioni.
 
 | ID | Idea | Fascia | Stato |
 |:--:|---|---|:--:|
-| P0.1 | Logging centralizzato e strutturato (unifica 156/268) | Stabilità | 🔄 |
-| P0.2 | Servizi registrati nel lifespan FastAPI (233) | Stabilità | 🔄 |
-| P0.3 | Rimozione `config.py` legacy (parte di 266/5) | Stabilità | 🔄 |
-| P1.1 | Verifica build iOS con Xcode su dispositivo (228/240) | Mobile nativo | ❌ |
-| P1.2 | Voice input/output AI Coach (189) + prompt engineering avanzato (190) | Mobile nativo | ❌ |
-| P2.1 | Memory persistente conversazioni per utente → completare (187/237) | AI Coach | 🔄 |
-| P2.2 | Design System + theme tokens (unifica 244/266 + dark theme 163) | AI Coach | 🔄 |
-| P3.1 | Wahoo integration (171) | Distribuzione | ❌ |
-| P3.2 | Versione cloud hosted (204) | Distribuzione | ❌ |
-| P3.3 | Helm chart Kubernetes (205) | Distribuzione | ❌ |
-| P3.4 | One-click deploy (Railway/Fly/Vercel) (206) | Distribuzione | ❌ |
-| P3.5 | Coverage test >90% come metrica informativa (267) | Qualità | 🔄 |
-
-> Note: gli item 🔄 duplicati del roadmap precedente (logging 156/268, design
-> system 244/266, memory 187/237) sono stati fusi in un solo ID.
+| P0.1 | Logging centralizzato e strutturato | Stabilità | 🔄 |
+| P0.2 | Servizi registrati nel lifespan FastAPI | Stabilità | 🔄 |
+| P1.1 | Verifica build iOS con Xcode su dispositivo | Mobile nativo | 🔄 |
+| P1.2 | Voice input/output AI Coach + prompt engineering avanzato | Mobile nativo | ❌ |
+| P2.1 | Memory persistente conversazioni per utente | AI Coach | 🔄 |
+| P2.2 | Design System + theme tokens | AI Coach | 🔄 |
+| P3.1 | Wahoo integration | Distribuzione | ✅ |
+| P3.2 | Versione cloud hosted (Render/Azure/Fly/Railway/Vercel) | Distribuzione | ✅ |
+| P3.3 | Helm chart Kubernetes | Distribuzione | ✅ |
+| P3.4 | One-click deploy docs (Railway/Fly/Vercel) | Distribuzione | ✅ |
+| P3.5 | Coverage test >90% come metrica informativa | Qualità | 🔄 |
 
 ---
 
@@ -65,7 +60,9 @@ Demo: `cd aethermap/src && python -m aethermap.ai.demo|.render.demo|.twin.demo`.
 - [x] Eliminati branch locali fusi: `android-fix`, `chain-pomelo`.
 - [x] Eliminato branch scratch `temp-security-fix-tmp` (security hardening già in main, item 15).
 - [x] `AGENTS.md` aggiornato per documentare AetherMap come track R&D.
-- [x] ROADMAP.md riorganizzato in 3 track con numerazione corretta (niente 🔄 duplicati).
+- [x] ROADMAP.md riorganizzato in 3 track con numerazione corretta.
+- [x] Documentazione obsoleta IT spostata in `docs/archive/obsolete/`.
+- [x] `config.py` legacy rimosso (v1.4.1).
 
 ### C.2 Branch non-fusi aperti (da revisionare, NON eliminati — contengono lavoro)
 | Branch | Contenuto | Azione suggerita |

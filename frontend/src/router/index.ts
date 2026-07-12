@@ -60,10 +60,10 @@ const routes = [
     meta: { requiresAuth: true, title: "Granfondo Planner" },
   },
   {
-    path: "/map",
-    name: "map",
-    component: () => import("../components/RideMapPanel.vue"),
-    meta: { requiresAuth: true, title: "Mappa uscite" },
+    path: "/pois",
+    name: "pois",
+    component: () => import("../views/PoiMapView.vue"),
+    meta: { requiresAuth: true, title: "Itinerari & POI" },
   },
   {
     path: "/comparison",
@@ -187,8 +187,9 @@ async function checkProfileComplete(
       },
     );
     return data.profile_complete === true;
-  } catch {
-    return true;
+  } catch (err) {
+    console.warn("[Router] profile check failed:", err);
+    return false;
   }
 }
 
@@ -213,13 +214,16 @@ router.beforeEach(async (to, from, next) => {
   // Profile completeness check only for fresh OAuth returns / logins.
   // A normal returning user with a valid token goes straight to /rides.
   if (hasToken && justLoggedIn) {
+    console.log("[Router] justLoggedIn guard: hasToken=", hasToken, "justLoggedIn=", justLoggedIn);
     auth.setJustLoggedIn(false);
     localStorage.removeItem("bikemaster_just_logged_in");
     try {
       const hasCompleteProfile = await checkProfileComplete(auth);
+      console.log("[Router] profile check result:", hasCompleteProfile);
       next(hasCompleteProfile ? "/rides" : "/athlete");
-    } catch {
-      next("/rides");
+    } catch (err) {
+      console.warn("[Router] profile check threw:", err);
+      next("/athlete");
     }
     ui.setOauthLoading(false);
     return;

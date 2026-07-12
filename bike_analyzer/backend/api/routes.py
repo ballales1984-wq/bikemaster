@@ -998,12 +998,19 @@ async def list_rides(
     current_user: dict = Depends(get_current_user),
 ):
     """List rides - only for current user."""
+    from ..analytics.calories import ensure_calories
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     all_rides = get_rides_by_athlete(current_user["id"], tenant_id)
     start = (page - 1) * page_size
     rides = all_rides[start : start + page_size]
+    for ride in rides:
+        if not ride.get("calories"):
+            try:
+                ride["calories"] = ensure_calories(Ride(**{k: v for k, v in ride.items() if k in Ride.__dataclass_fields__}))
+            except Exception:
+                logger.debug("Calorie estimate failed for ride list", exc_info=True)
     return {
         "rides": rides,
         "total": len(all_rides),

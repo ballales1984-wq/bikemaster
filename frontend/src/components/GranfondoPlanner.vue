@@ -4,62 +4,71 @@
 
     <div class="form-grid">
       <div class="form-group">
-        <label for="gf-start-date">{{ t("granfondo.startDate") }}</label>
-        <input id="gf-start-date"
-v-model="startDate" type="date"
-/>
+        <label for="gf-start-date">Start Date</label>
+        <input
+          id="gf-start-date"
+          v-model="startDate"
+          type="date"
+        >
       </div>
       <div class="form-group">
-        <label for="gf-weeks">{{ t("granfondo.targetWeeks") }}</label>
-        <select id="gf-weeks"
-v-model.number="weeks">
+        <label for="gf-weeks">Number of Weeks</label>
+        <select
+          id="gf-weeks"
+          v-model.number="weeks"
+        >
           <option :value="8">
-            {{ t("granfondo.week8") }}
+            8 weeks
           </option>
           <option :value="9">
-            {{ t("granfondo.week9") }}
+            9 weeks
           </option>
           <option :value="10">
-            {{ t("granfondo.week10") }}
+            10 weeks
           </option>
           <option :value="11">
-            {{ t("granfondo.week11") }}
+            11 weeks
           </option>
           <option :value="12">
-            {{ t("granfondo.week12") }}
+            12 weeks
           </option>
         </select>
       </div>
       <div class="form-group">
-        <button class="btn btn-primary"
-@click="generatePlan">
-          📅 {{ t("granfondo.generate") }}
+        <button
+          class="btn btn-primary"
+          @click="generatePlan"
+        >
+          📅 Generate Plan
         </button>
       </div>
     </div>
 
-    <div v-if="loading"
-class="loading-text">
-      {{ t("granfondo.generating") }}
+    <div
+      v-if="loading"
+      class="loading-text"
+    >
+      Generating plan...
     </div>
 
-    <div v-if="plan"
-class="plan-container">
+    <div
+      v-if="plan"
+      class="plan-container"
+    >
       <div class="plan-header">
-        <h3>
-          {{ t("granfondo.planTitle") }} {{ weeks }}
-          {{ t("granfondo.weeksLabel") }}
-        </h3>
+        <h3>Training Plan {{ weeks }} weeks</h3>
         <p class="plan-dates">
-          {{ t("granfondo.from") }} {{ startDate }} {{ t("granfondo.to") }}
-          {{ endDate }}
+          From {{ startDate }} to {{ endDate }}
         </p>
       </div>
 
       <div class="plan-actions">
-        <button class="btn btn-success"
-:disabled="saving" @click="savePlan">
-          {{ saving ? t("granfondo.saving") : t("granfondo.saveToCalendar") }}
+        <button
+          class="btn btn-success"
+          :disabled="saving"
+          @click="savePlan"
+        >
+          {{ saving ? 'Saving...' : '💾 Save to Calendar' }}
         </button>
         <span
           v-if="saveMessage"
@@ -71,12 +80,15 @@ class="plan-container">
       </div>
 
       <div class="tapering-info">
-        <span class="badge badge-info">{{ t("granfondo.tapering") }}</span>
+        <span class="badge badge-info">📊 Tapering: -40% volume 2 weeks before, -60% last week</span>
       </div>
     </div>
     <div class="calendar-grid plan-grid">
-      <div v-for="d in weekDays"
-:key="d" class="cal-header">
+      <div
+        v-for="d in weekDays"
+        :key="d"
+        class="cal-header"
+      >
         {{ d }}
       </div>
       <div
@@ -94,38 +106,24 @@ class="plan-container">
             :class="'type-' + w.workout_type"
           >
             {{ w.title }}
-            <span class="workout-meta">{{ w.duration_minutes }}min
-              {{ Math.round(w.target_intensity * 100) }}%</span>
+            <span class="workout-meta">{{ w.duration_minutes }}min {{ Math.round(w.target_intensity * 100) }}%</span>
           </div>
         </div>
       </div>
     </div>
-    <div class="workout-legend">
-      <span class="legend-item legend-endurance">{{
-        t("granfondo.legendEndurance")
-      }}</span>
-      <span class="legend-item legend-threshold">{{
-        t("granfondo.legendThreshold")
-      }}</span>
-      <span class="legend-item legend-sweetspot">{{
-        t("granfondo.legendSweetspot")
-      }}</span>
-      <span class="legend-item legend-recovery">{{
-        t("granfondo.legendRecovery")
-      }}</span>
-      <span class="legend-item legend-race">{{
-        t("granfondo.legendRace")
-      }}</span>
-    </div>
+  </div>
+  <div class="workout-legend">
+    <span class="legend-item legend-endurance">Endurance</span>
+    <span class="legend-item legend-threshold">Thresholds</span>
+    <span class="legend-item legend-sweetspot">Sweetspot</span>
+    <span class="legend-item legend-recovery">Recovery</span>
+    <span class="legend-item legend-race">Race</span>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useI18n } from "../composables/useI18n";
 import { apiGet, apiPost } from "../utils/api";
-
-const { t } = useI18n();
 
 const athleteId = ref(null);
 const startDate = ref(new Date().toISOString().split("T")[0]);
@@ -136,15 +134,7 @@ const plan = ref(null);
 const saveMessage = ref("");
 const saveSuccess = ref(true);
 
-const weekDays = [
-  t("granfondo.weekMon"),
-  t("granfondo.weekTue"),
-  t("granfondo.weekWed"),
-  t("granfondo.weekThu"),
-  t("granfondo.weekFri"),
-  t("granfondo.weekSat"),
-  t("granfondo.weekSun"),
-];
+const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 async function loadAthleteId() {
   const data = await apiGet("/api/v1/athletes");
@@ -157,10 +147,10 @@ async function savePlan() {
   saveMessage.value = "";
   try {
     await apiPost("/api/v1/training/granfondo/save", { plan: plan.value });
-    saveMessage.value = t("granfondo.saveSuccess");
+    saveMessage.value = "Plan saved successfully";
     saveSuccess.value = true;
   } catch (e) {
-    saveMessage.value = e.message || t("granfondo.saveError");
+    saveMessage.value = e.message || "Failed to save plan";
     saveSuccess.value = false;
   } finally {
     saving.value = false;
@@ -244,7 +234,7 @@ onMounted(() => {
 
 .badge-info {
   background: var(--accent-secondary);
-  color: var(--text-primary);
+  color: #fff;
 }
 
 .plan-grid {
@@ -262,7 +252,7 @@ onMounted(() => {
   padding: 2px 4px;
   border-radius: 3px;
   margin-bottom: 2px;
-  color: var(--text-primary);
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -275,19 +265,19 @@ onMounted(() => {
 }
 
 .legend-endurance {
-  background: var(--color-legend-endurance);
+  background: #3498db;
 }
 .legend-threshold {
-  background: var(--color-legend-threshold);
+  background: #e74c3c;
 }
 .legend-sweetspot {
-  background: var(--color-legend-sweetspot);
+  background: #9b59b6;
 }
 .legend-recovery {
-  background: var(--color-legend-recovery);
+  background: #2ecc71;
 }
 .legend-race {
-  background: var(--color-legend-race);
+  background: #f39c12;
 }
 
 .workout-legend {
@@ -301,7 +291,7 @@ onMounted(() => {
   font-size: 0.78rem;
   padding: 3px 8px;
   border-radius: 12px;
-  color: var(--text-primary);
+  color: #fff;
 }
 
 .plan-actions {
@@ -316,16 +306,16 @@ onMounted(() => {
 }
 
 .save-message.success {
-  color: var(--color-success-text);
+  color: #166534;
 }
 
 .save-message.error {
-  color: var(--color-error-text);
+  color: #991b1b;
 }
 
 .btn-success {
-  background: var(--color-success-strong);
-  color: var(--text-primary);
+  background: #22c55e;
+  color: #fff;
   border: none;
   padding: 8px 12px;
   border-radius: 6px;

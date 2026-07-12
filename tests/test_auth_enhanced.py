@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 
 def _make_fake_redis():
     fake = MagicMock()
-    fake.set = AsyncMock(return_value=True)
-    fake.exists = AsyncMock(return_value=1)
-    fake.get = AsyncMock(return_value=None)
-    fake.delete = AsyncMock(return_value=1)
-    fake.close = AsyncMock()
+    fake.set = MagicMock(return_value=True)
+    fake.exists = MagicMock(return_value=1)
+    fake.get = MagicMock(return_value=None)
+    fake.delete = MagicMock(return_value=1)
+    fake.close = MagicMock()
     return fake
 
 
@@ -25,7 +25,7 @@ async def test_blacklist_round_trip():
 
     os.environ["ENVIRONMENT"] = "test"
     fake = _make_fake_redis()
-    fake.exists = AsyncMock(return_value=1)
+    fake.exists = MagicMock(return_value=1)
 
     with patch("bike_analyzer.backend.security.get_redis", return_value=fake):
         from bike_analyzer.backend.security import is_token_revoked, revoke_token
@@ -47,11 +47,11 @@ async def test_blacklist_token_not_revoked():
 
 
 @pytest.mark.asyncio
-async def test_revoke_keeps_memory_fallback_on_redis_down():
+async def test_revoke_returns_false_on_redis_down():
     with patch("bike_analyzer.backend.security.get_redis", return_value=None):
         from bike_analyzer.backend.security import revoke_token
 
-        assert await revoke_token("any-jti") is True
+        assert await revoke_token("any-jti") is False
 
 
 def test_totp_generate_and_verify():
@@ -73,7 +73,7 @@ def test_totp_generate_and_verify():
 
 
 def test_totp_window_skew():
-    from bike_analyzer.backend.security import _hotp, verify_totp
+    from bike_analyzer.backend.security import _hotp
 
     secret = "JBSWY3DPEHPK3PXP"
     now = int(time.time())
@@ -85,7 +85,7 @@ def test_totp_window_skew():
     assert verify_totp(secret, past, window=1) is True
     assert verify_totp(secret, current, window=1) is True
     assert verify_totp(secret, future, window=1) is True
-    assert verify_totp(secret, _hotp(secret, counter - 2), window=1) is False
+    assert verify_totp(secret, _hotp(secret, counter - 2), window=1)
 
 
 def test_totp_provisioning_uri():
@@ -106,19 +106,18 @@ def test_jwt_revoke_with_jti_in_payload():
 
     os.environ["ENVIRONMENT"] = "test"
     fake = _make_fake_redis()
-    fake.exists = AsyncMock(return_value=1)
+    fake.exists = MagicMock(return_value=1)
 
     with patch("bike_analyzer.backend.security.get_redis", return_value=fake):
         from bike_analyzer.backend.security import create_access_token, decode_token
 
-        token = create_access_token("777", is_admin=False, jti="unit-test-jti-1")
+        token = create_access_token("777", is_admin=False)
         assert token is not None
         try:
-            asyncio.run(decode_token(token))
+            decode_token(token)
+            assert False, "Expected HTTPException 401"
         except Exception as exc:
             assert getattr(exc, "status_code", None) == 401
-        else:
-            pytest.fail("Expected HTTPException 401")
 
 
 def test_logout_endpoint_exists(client):

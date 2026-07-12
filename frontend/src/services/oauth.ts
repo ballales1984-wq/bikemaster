@@ -42,5 +42,9 @@ export function processOAuthToken() {
     return true;
   }
 
+  // Safety: if there is no OAuth token/error to process, never leave the app
+  // stuck behind the loading overlay (e.g. a backend redirect that dropped
+  // the param, or a transient round-trip error).
+  ui.setOauthLoading(false);
   return false;
 }

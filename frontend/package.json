@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/prebuild.mjs",
-    "build": "node scripts/build.mjs --emptyOutDir",
+    "prebuild": "node -e \"try{require('fs').rmSync('dist',{recursive:true,force:true,maxRetries:5,retryDelay:300})}catch(e){}\"",
+    "build": "node scripts/safe-build.mjs",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",

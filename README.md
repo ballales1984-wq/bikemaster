@@ -66,7 +66,7 @@ GPS-based cycling performance intelligence system. Import your rides from GPX/FI
 
 ---
 
-## Recent Improvements (2026-07-07)
+## Recent Improvements (2026-07-12)
 
 - ✅ Cross-platform build system (Docker Linux + Windows)
 - ✅ 12 frontend test failures resolved (321/321 tests passing)
@@ -226,15 +226,17 @@ bike_analyzer/
 │   ├── events/                  # Domain event bus
 │   └── ...
 │
-├── frontend/                    # Vue 3 + Vite + TypeScript SWA
+├── frontend/                    # Vue 3 + Vite + TypeScript SPA
 │   ├── src/
 │   │   ├── main.ts              # Vue app bootstrap
-│   │   ├── App.vue              # Root component
-│   │   ├── components/          # 20+ Vue components
+│   │   ├── App.vue              # Root shell + overlay auth
+│   │   ├── router/index.ts      # Guard auth, sync localStorage
 │   │   ├── stores/              # Pinia state management
-│   │   ├── composables/         # Reusable composables
+│   │   ├── components/          # 30 Vue components
 │   │   ├── views/               # Page views
-│   │   └── utils/               # API client & utilities
+│   │   ├── composables/         # useRides, useToast, usePWA, useI18n, useChart
+│   │   ├── utils/               # API client & utilities
+│   │   └── plugins/             # Capacitor native bridge
 │   ├── android/                 # Android app (Kotlin + Capacitor)
 │   └── package.json
 │
@@ -573,6 +575,8 @@ backend/analytics/repositories/ → Data access abstraction
 
 ## Frontend
 
+Standalone Vue 3 SPA built with Vite + TypeScript.
+
 ### Prerequisites
 
 - Node.js 18+
@@ -618,7 +622,7 @@ npm run e2e          # Playwright E2E
 pytest
 ```
 
-Suite of ~1419 automated pytest tests covering:
+Suite of 98 pytest files covering:
 - Core models and parsing
 - API coverage
 - Mocked Google Maps / Strava / Garmin / Wahoo
