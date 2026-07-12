@@ -268,7 +268,12 @@ const uploading = ref(false);
 const uploadProgress = ref(0);
 const importing = ref(false);
 const importStatus = ref(null);
-const providers = ref({});
+const providers = ref({
+  google_fit: true,
+  google_health: false,
+  wahoo: false,
+  strava: false,
+});
 
 const label = computed(() => {
   if (!files.value.length)
@@ -291,7 +296,7 @@ function onDrop(e) {
 async function loadProviders() {
   try {
     const data = await apiGet("/api/v1/import/providers");
-    providers.value = data ?? {};
+    providers.value = { ...providers.value, ...(data || {}) };
   } catch {
     providers.value = {};
   }

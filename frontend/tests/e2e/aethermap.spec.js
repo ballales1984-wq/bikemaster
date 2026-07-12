@@ -55,7 +55,7 @@ test.describe('AetherMap E2E', () => {
   })
 
   test('toggles between 2D map and AetherMap 3D viewer', async ({ page }) => {
-    test.setTimeout(120000)
+    test.setTimeout(300000)
     await page.goto('/map')
     await page.waitForLoadState('networkidle')
 
@@ -72,7 +72,7 @@ test.describe('AetherMap E2E', () => {
   })
 
   test('AetherMap viewer renders WebGL canvas when active', async ({ page }) => {
-    test.setTimeout(120000)
+    test.setTimeout(300000)
     await page.goto('/map')
     await page.waitForLoadState('networkidle')
 

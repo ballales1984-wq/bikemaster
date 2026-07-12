@@ -251,6 +251,8 @@ void main() {
     gl!.drawArrays(buf.mode, 0, buf.count);
   }
 
+  let rafId: number | null = null;
+
   function frame() {
     if (!gl) return;
     gl.viewport(0, 0, canvasEl.width, canvasEl.height);
@@ -268,7 +270,6 @@ void main() {
     rafId = requestAnimationFrame(frame);
   }
 
-  let rafId: number | null = null;
   rafId = requestAnimationFrame(frame);
 });
 
