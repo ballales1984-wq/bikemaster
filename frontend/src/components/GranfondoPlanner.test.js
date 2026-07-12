@@ -152,13 +152,13 @@ describe("GranfondoPlanner", () => {
     await flush();
 
     expect(wrapper.vm.weekDays).toEqual([
-      "granfondo.weekMon",
-      "granfondo.weekTue",
-      "granfondo.weekWed",
-      "granfondo.weekThu",
-      "granfondo.weekFri",
-      "granfondo.weekSat",
-      "granfondo.weekSun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun",
     ]);
   });
 

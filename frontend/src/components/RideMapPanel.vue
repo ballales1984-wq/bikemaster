@@ -13,7 +13,9 @@
       </button>
     </div>
 
-    <div class="map-toolbar">
+    <div
+      v-if="!useAetherMap"
+      class="map-toolbar">
       <label class="control">
         <span>Map</span>
         <select v-model="mapStyle" class="form-input">
@@ -62,9 +64,10 @@ v-if="loading && !enrichedRides.length" class="loading-text">
     </div>
 
     <div
-id="route-map" ref="mapContainer" class="route-map">
+    id="route-map" ref="mapContainer" class="route-map">
+      <AetherMapViewer v-if="useAetherMap" />
       <div
-v-if="!ridesWithGps.length" class="demo-map-overlay">
+      v-if="!ridesWithGps.length" class="demo-map-overlay">
         <div class="demo-map-content">
           <span class="demo-icon">🗺️</span>
           <p>Milan-Monza demo route</p>
@@ -158,6 +161,7 @@ import {
   watch,
 } from "vue";
 import { useI18n } from "../composables/useI18n";
+import { useUIStore } from "../stores/ui";
 import L from "leaflet";
 import { apiGet } from "../utils/api";
 import {
@@ -185,8 +189,10 @@ import {
   getCenter,
   haversineDistanceM,
 } from "../utils/rideMapEnrichment";
+import AetherMapViewer from "./AetherMapViewer.vue";
 
 const { t } = useI18n();
+const { useAetherMap } = useUIStore();
 
 const mapContainer = ref(null);
 const loading = ref(false);
@@ -292,6 +298,7 @@ function switchTileLayer(styleKey) {
 }
 
 function renderMap() {
+  if (useAetherMap.value) return;
   if (!mapContainer.value) return;
 
   if (!map) {

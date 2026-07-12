@@ -18,11 +18,12 @@ onMounted(() => {
   const canvas = canvasRef.value;
   if (!canvas) return;
 
-  const gl = canvas.getContext("webgl2", { antialias: true });
-  if (!gl) {
+  const glCtx = canvas.getContext("webgl2", { antialias: true });
+  if (!glCtx) {
     console.error("WebGL2 non disponibile in questo browser.");
     return;
   }
+  const gl = glCtx;
 
   const DEG = Math.PI / 180;
   function geodeticToDirection(lat: number, lon: number): [number, number, number] {
@@ -64,12 +65,12 @@ void main() {
   outColor = vec4(color * sh, 1.0);
 }`;
 
-  function compile(type: number, src: string) {
+  function compile(type: number, src: string): WebGLShader {
     const s = gl.createShader(type)!;
     gl.shaderSource(s, src);
     gl.compileShader(s);
     if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-      throw new Error(gl.getShaderInfoLog(s));
+      throw new Error(gl.getShaderInfoLog(s) ?? "shader compile failed");
     }
     return s;
   }
@@ -79,7 +80,7 @@ void main() {
   gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
   gl.linkProgram(prog);
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-    throw new Error(gl.getProgramInfoLog(prog));
+    throw new Error(gl.getProgramInfoLog(prog) ?? "program link failed");
   }
   gl.useProgram(prog);
 
@@ -93,7 +94,7 @@ void main() {
 
   const N = 16;
   const wire: number[] = [];
-  const grid: number[][][] = [];
+  const grid: Array<Array<Array<number[]>>> = [];
   for (let f = 0; f < 6; f++) {
     grid[f] = [];
     for (let i = 0; i <= N; i++) {
