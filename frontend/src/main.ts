@@ -34,7 +34,7 @@ let oauthFinalized = false;
 async function finalizeOAuthReturn() {
   if (oauthFinalized || !auth.isLoggedIn) return;
   oauthFinalized = true;
-  let profileComplete = true;
+  let profileComplete = false;
   try {
     const data = await apiGet<{ profile_complete?: boolean }>(
       "/api/v1/auth/me",
@@ -45,8 +45,9 @@ async function finalizeOAuthReturn() {
       } as RequestInit,
     );
     profileComplete = data.profile_complete === true;
-  } catch {
-    profileComplete = true;
+  } catch (err) {
+    console.warn("[OAuth] profile check failed:", err);
+    profileComplete = false;
   }
   auth.setJustLoggedIn(false);
   ui.setOauthLoading(false);
