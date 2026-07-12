@@ -56,6 +56,8 @@ GPS-based cycling performance intelligence system. Import your rides from GPX/FI
 - **Event Bus** — Domain event system (RideCreated, BadgeEarned, etc.)
 - **PWA** — Progressive Web App with install prompt
 - **Phone GPS Tracking** — Record rides directly from Android mobile
+- **BikeMaster 2.0** — Deluxe simulation engine (what-if analysis, type-safe algorithms, `Quantity` units)
+- **AetherMap** — R&D cartographic engine (cube-sphere + S2/H3, WebGL rendering, digital twin)
 - **REST API** — 40+ documented endpoints
 - **Export** — JSON and CSV
 - **JWT Auth** — Login and endpoint protection
@@ -189,64 +191,53 @@ REDIS_URL=redis://localhost:6379/0
 ## Repository Architecture
 
 ```
-bike_analyzer/
-├── core/                        # Domain layer (Clean Architecture)
-│   ├── models.py                # Domain entities (Ride, GPSPoint, Athlete...)
-│   ├── pipeline.py              # AnalysisPipeline: GPS → processing → metrics
-│   ├── engine.py                # AnalysisEngine orchestrator with FitnessState
-│   └── fitness_state.py         # FitnessStateVector: CTL/ATL/TSB snapshot
-│
-├── backend/
-│   ├── api/
-│   │   ├── app_factory.py       # FastAPI application factory
-│   │   ├── routes.py            # 40+ API endpoints
-│   │   ├── schemas.py           # Pydantic DTOs
-│   │   └── async_db_facade.py   # Async DB facade
-│   │
-│   ├── analytics/               # Analytics engine
-│   │   ├── analytics.py         # Summary, export, report, charts
-│   │   ├── advanced.py          # 14 advanced mathematical models
-│   │   ├── power_model.py       # Power metrics (NP, IF, TSS, CP, FTP)
-│   │   ├── calories.py          # Calorie estimation (physics + MET)
-│   │   ├── fatigue.py           # Fatigue model + recovery
-│   │   ├── performance.py       # Score engine (performance/endurance/efficiency)
-│   │   ├── training_stress.py   # Training Stress Score + EWMA
-│   │   ├── ai_coach.py          # AI Coach (Groq + RAG + memory)
-│   │   ├── knowledge_base.py    # RAG engine BM25 + LRU cache
-│   │   ├── calculators/         # Pure functions (testable in isolation)
-│   │   ├── services/            # Use case orchestration
-│   │   └── repositories/        # Data access abstraction
-│   │
-│   ├── auth/                    # OAuth2 providers (Google, Strava, Garmin)
-│   ├── db/                      # Data access layer (sync + async)
-│   ├── database/vectordb.py     # PGVector wrapper
-│   ├── ingestion/               # GPS parsers, Strava/Garmin/Wahoo/Google Fit clients
-│   ├── maps/                    # Map rendering (Folium, Google, OSM)
-│   ├── traffic/                 # Traffic & road safety analysis
-│   ├── events/                  # Domain event bus
+D:\BikeMaster
+├── main.py                      # Unified entrypoint (api | web | cli)
+├── bike_analyzer/               # Python backend package
+│   ├── core/                    # Domain layer (Clean Architecture)
+│   ├── core/physics/            # Shared physics kernel
+│   ├── bm2/                     # BikeMaster 2.0 simulation engine
+│   ├── backend/
+│   │   ├── api/                 # FastAPI routes, schemas, factory
+│   │   ├── analytics/           # Analytics engine (power, fatigue, calories...)
+│   │   ├── auth/                # OAuth2 providers (Google, Strava, Garmin)
+│   │   ├── db/                  # Data access layer
+│   │   ├── ingestion/           # GPS parsers + external clients
+│   │   ├── maps/                # Map rendering
+│   │   ├── traffic/             # Traffic safety analysis
+│   │   └── events/              # Domain event bus
+│   ├── frontend/
+│   │   └── dashboard.py         # Server-side dashboard template
+│   ├── docs/
 │   └── ...
-│
-├── frontend/                    # Vue 3 + Vite + TypeScript SPA
+├── frontend/                    # Vue 3 + Vite 5 + TypeScript SPA
 │   ├── src/
-│   │   ├── main.ts              # Vue app bootstrap
-│   │   ├── App.vue              # Root shell + overlay auth
-│   │   ├── router/index.ts      # Guard auth, sync localStorage
+│   │   ├── main.ts
+│   │   ├── App.vue
+│   │   ├── router/index.ts
 │   │   ├── stores/              # Pinia state management
-│   │   ├── components/          # 30 Vue components
+│   │   ├── components/          # Vue panels
 │   │   ├── views/               # Page views
 │   │   ├── composables/         # useRides, useToast, usePWA, useI18n, useChart
 │   │   ├── utils/               # API client & utilities
 │   │   └── plugins/             # Capacitor native bridge
 │   ├── android/                 # Android app (Kotlin + Capacitor)
 │   └── package.json
-│
+├── aethermap/                   # R&D cartographic engine (separate project)
+│   └── src/
+│       └── aethermap/
+│           ├── core/            # Earth model, coordinates, S2/H3
+│           ├── data/            # Data model, storage
+│           ├── ai/              # Researcher pipeline, confidence
+│           ├── render/          # WebGL/Canvas rendering
+│           └── twin/            # Digital twin objects
+├── docs/                        # Developer and user documentation
 ├── tests/                       # ~90 pytest files
-├── knowledge_base/              # RAG documents
-├── docs/                        # Developer documentation
 ├── docker/                      # Container & deploy configs
 ├── alembic/                     # DB migrations
 ├── prometheus/                   # Metrics & alerts config
-└── main.py                      # Unified entrypoint (api | web | cli)
+├── render.yaml                   # Render deployment config
+└── pyproject.toml
 ```
 
 ---
