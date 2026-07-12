@@ -26,11 +26,11 @@
       </div>
 
       <div
-        v-if="importStatus?.message"
+        v-if="importStatus?.message || status"
         class="result-box"
-        :class="importStatus.success ? 'success' : 'error'"
+        :class="importStatus?.success ? 'success' : 'error'"
       >
-        {{ importStatus.message }}
+        {{ importStatus?.message || status }}
       </div>
       <div class="form-actions">
         <button
