@@ -17,8 +17,9 @@ const canvasRef = ref<HTMLCanvasElement | null>(null);
 onMounted(() => {
   const canvas = canvasRef.value;
   if (!canvas) return;
+  const canvasEl = canvas as HTMLCanvasElement;
 
-  const glCtx = canvas.getContext("webgl2", { antialias: true });
+  const glCtx = canvasEl.getContext("webgl2", { antialias: true });
   if (!glCtx) {
     console.error("WebGL2 non disponibile in questo browser.");
     return;
@@ -170,16 +171,16 @@ void main() {
   let lx = 0;
   let ly = 0;
 
-  canvas.addEventListener("pointerdown", (e: PointerEvent) => {
+  canvasEl.addEventListener("pointerdown", (e: PointerEvent) => {
     dragging = true;
     lx = e.clientX;
     ly = e.clientY;
-    canvas.setPointerCapture(e.pointerId);
+    canvasEl.setPointerCapture(e.pointerId);
   });
-  canvas.addEventListener("pointerup", () => {
+  canvasEl.addEventListener("pointerup", () => {
     dragging = false;
   });
-  canvas.addEventListener("pointermove", (e: PointerEvent) => {
+  canvasEl.addEventListener("pointermove", (e: PointerEvent) => {
     if (!dragging) return;
     yaw += (e.clientX - lx) * 0.005;
     pitch += (e.clientY - ly) * 0.005;
@@ -190,8 +191,8 @@ void main() {
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.floor(innerWidth * dpr);
-    canvas.height = Math.floor(innerHeight * dpr);
+    canvasEl.width = Math.floor(innerWidth * dpr);
+    canvasEl.height = Math.floor(innerHeight * dpr);
   }
   addEventListener("resize", resize);
   resize();
@@ -221,7 +222,7 @@ void main() {
   }
 
   function frame() {
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.viewport(0, 0, canvasEl.width, canvasEl.height);
     gl.clearColor(0.04, 0.05, 0.08, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
