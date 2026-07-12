@@ -11,6 +11,10 @@ export const useUIStore = defineStore("ui", () => {
   );
   const sidebarCollapsed = ref(false);
 
+  const useAetherMap = ref(
+    typeof import.meta !== "undefined" &&
+      (import.meta as ImportMeta).env?.VITE_AETHERMAP_ENABLED === "true",
+  );
   const theme = computed({
     get: () => (isDark.value ? "dark" : "light"),
     set: (val: string) => {
@@ -52,5 +56,6 @@ export const useUIStore = defineStore("ui", () => {
     toggleTheme,
     setOauthLoading,
     toggleSidebar,
+    useAetherMap,
   };
 });

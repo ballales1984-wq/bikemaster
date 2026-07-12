@@ -1050,11 +1050,14 @@ async def get_ride(ride_id: int, current_user: dict = Depends(get_current_user))
 
 
 @router.get("/rides/{ride_id}/map")
-async def generate_ride_map(ride_id: int, current_user: dict = Depends(get_current_user)):
+async def generate_ride_map(
+    ride_id: int,
+    provider: str = Query("folium", description="Map provider: folium or aethermap"),
+    current_user: dict = Depends(get_current_user),
+):
     from pathlib import Path
 
     from ..db.database import get_ride as _get_ride
-    from ..maps.map_renderer import create_route_map
     from ..models.models import GPSPoint
 
     ride = _get_ride(ride_id)
@@ -1073,6 +1076,35 @@ async def generate_ride_map(ride_id: int, current_user: dict = Depends(get_curre
     points = [GPSPoint(**p) for p in normalized]
     base_dir = Path(__file__).resolve().parent.parent / "static"
     safe_id = "".join(c if c.isalnum() or c == "_" else "_" for c in str(ride_id))
+
+    if provider == "aethermap":
+        try:
+            from ..maps.aethermap_adapter import create_route_map as aether_create_route_map
+        except ImportError as exc:
+            raise HTTPException(status_code=500, detail="AetherMap provider not available") from exc
+        from ..models.models import RouteStatistics
+
+        stats = None
+        if ride.get("distance_km") and ride.get("duration_minutes"):
+            stats = RouteStatistics(
+                total_distance_m=ride.get("distance_km", 0.0) * 1000.0,
+                total_duration_s=ride.get("duration_minutes", 0.0) * 60.0,
+                avg_speed_km_h=ride.get("avg_speed_kmh", 0.0),
+                max_speed_km_h=ride.get("max_speed_kmh", 0.0),
+                total_elevation_gain_m=ride.get("elevation_gain_m", 0.0),
+            )
+        path = base_dir / f"ride_{safe_id}_map.json"
+        resolved = path.resolve()
+        if not resolved.is_relative_to(base_dir.resolve()):
+            raise HTTPException(status_code=400, detail="Invalid path")
+        try:
+            aether_create_route_map(points, statistics=stats, output_path=str(resolved))
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Map generation failed: {exc}") from exc
+        return {"map_url": f"/static/{resolved.name}", "engine": "aethermap"}
+
+    from ..maps.map_renderer import create_route_map
+
     path = base_dir / f"ride_{safe_id}_map.html"
     resolved = path.resolve()
     if not resolved.is_relative_to(base_dir.resolve()):

@@ -121,24 +121,39 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { apiGet, apiPost } from "../utils/api";
 
-const athleteId = ref(null);
+interface PlanWorkout {
+  date: string;
+  title: string;
+  workout_type: string;
+  duration_minutes: number;
+  target_intensity: number;
+  description: string;
+}
+
+const athleteId = ref<number>(0);
 const startDate = ref(new Date().toISOString().split("T")[0]);
 const weeks = ref(8);
 const loading = ref(false);
 const saving = ref(false);
-const plan = ref(null);
+const plan = ref<PlanWorkout[] | null>(null);
 const saveMessage = ref("");
 const saveSuccess = ref(true);
 
 const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 async function loadAthleteId() {
-  const data = await apiGet("/api/v1/athletes");
+  const data = await apiGet<{ athletes: Array<{ id: number }> }>("/api/v1/athletes");
   athleteId.value = data.athletes?.[0]?.id ?? 0;
+}
+
+function workoutEventType(workoutType: string): string {
+  if (workoutType === "recovery") return "recovery";
+  if (workoutType === "race") return "race";
+  return "training";
 }
 
 async function savePlan() {
@@ -146,11 +161,21 @@ async function savePlan() {
   saving.value = true;
   saveMessage.value = "";
   try {
-    await apiPost("/api/v1/training/granfondo/save", { plan: plan.value });
+    const workouts = plan.value;
+    for (const workout of workouts) {
+      await apiPost("/api/v1/calendar/events", {
+        athlete_id: athleteId.value,
+        title: workout.title,
+        event_type: workoutEventType(workout.workout_type),
+        date: workout.date,
+        duration_minutes: workout.duration_minutes,
+        description: workout.description || "",
+      });
+    }
     saveMessage.value = "Plan saved successfully";
     saveSuccess.value = true;
-  } catch (e) {
-    saveMessage.value = e.message || "Failed to save plan";
+  } catch {
+    saveMessage.value = "Failed to save plan";
     saveSuccess.value = false;
   } finally {
     saving.value = false;
@@ -172,9 +197,8 @@ async function generatePlan() {
       start_date: startDate.value,
       target_weeks: weeks.value,
     });
-    plan.value = result.plan;
-  } catch (e) {
-    console.error("plan error", e);
+    plan.value = result.plan as PlanWorkout[];
+  } catch {
     plan.value = null;
   } finally {
     loading.value = false;
@@ -209,7 +233,7 @@ const calendarDays = computed(() => {
 });
 
 onMounted(() => {
-  loadAthleteId().catch(console.error);
+  loadAthleteId().catch(() => {});
 });
 </script>
 
