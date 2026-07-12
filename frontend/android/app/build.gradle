@@ -4,6 +4,19 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.parcelize' version '1.9.24'
 }
 
+// --- Auto-increment versionCode ---------------------------------------------
+// Il valore corrente da usare per il prossimo build release è memorizzato in
+// app/version.properties. Dopo ogni packaging release (APK o AAB) il valore
+// viene incrementato automaticamente, così ogni upload sul Play Store ha un
+// versionCode univoco e crescente.
+def versionPropsFile = file('version.properties')
+def computedVersionCode = 3
+if (versionPropsFile.exists()) {
+    def vp = new Properties()
+    versionPropsFile.withInputStream { vp.load(it) }
+    computedVersionCode = (vp.getProperty('VERSION_CODE') ?: '3').toInteger()
+}
+
 android {
     namespace 'com.bikemaster'
     compileSdk 34
@@ -12,8 +25,8 @@ android {
         applicationId "com.bikemaster"
         minSdk 24
         targetSdk 34
-        versionCode 2
-        versionName "1.1"
+        versionCode computedVersionCode
+        versionName "1.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -46,6 +59,23 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
+        }
+    }
+}
+
+// Incrementa il versionCode in version.properties dopo ogni packaging release
+tasks.whenTaskAdded { task ->
+    if (task.name == 'packageRelease' || task.name == 'packageReleaseBundle') {
+        task.doLast {
+            def vp = new Properties()
+            if (versionPropsFile.exists()) {
+                versionPropsFile.withInputStream { vp.load(it) }
+            }
+            def current = (vp.getProperty('VERSION_CODE') ?: computedVersionCode.toString()).toInteger()
+            def next = current + 1
+            vp.setProperty('VERSION_CODE', next.toString())
+            versionPropsFile.withOutputStream { vp.store(it, 'Auto-incremented versionCode') }
+            println "versionCode: build eseguito con ${current}, prossimo release -> ${next}"
         }
     }
 }
