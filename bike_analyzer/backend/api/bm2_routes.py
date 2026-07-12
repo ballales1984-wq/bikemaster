@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -17,6 +19,7 @@ from bike_analyzer.bm2.algorithms import ALL_ALGORITHMS
 from bike_analyzer.bm2.orchestrator import AIOrchestrator
 from bike_analyzer.bm2.simulation import ScenarioOverride, SimulationEngine
 from bike_analyzer.core.models import AthleteProfile, GPSPoint, Ride
+from bike_analyzer.core.physics import RiderBikeParams, validate_ride_power
 from ..security import get_current_user
 
 bm2_router = APIRouter()
@@ -85,6 +88,14 @@ class Bm2SimulateRideRequest(BaseModel):
     gps_points: list[dict[str, Any]] = Field(default_factory=list)
 
 
+def _to_gps(p: dict) -> GPSPoint:
+    point = dict(p)
+    ts = point.get("timestamp")
+    if isinstance(ts, str):
+        point["timestamp"] = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    return GPSPoint(**point)
+
+
 def _ride_from_request(req: Bm2SimulateRideRequest, current_user: dict) -> Ride:
     """Carica la ``Ride`` dal flusso prodotto (DB + access control) o da payload inline."""
     if req.ride_id is not None:
@@ -95,14 +106,14 @@ def _ride_from_request(req: Bm2SimulateRideRequest, current_user: dict) -> Ride:
         if not ride_dict:
             raise HTTPException(status_code=404, detail="Ride not found")
         _ensure_ride_access(ride_dict, current_user)
-        gps = [GPSPoint(**p) for p in (ride_dict.get("gps_points") or [])]
+        gps = [_to_gps(p) for p in (ride_dict.get("gps_points") or [])]
         ride = Ride(**{k: v for k, v in ride_dict.items() if k in Ride.__dataclass_fields__})
         ride.gps_points = gps
         return ride
 
     if not req.gps_points:
         raise HTTPException(status_code=400, detail="Serve ride_id o gps_points inline")
-    gps = [GPSPoint(**p) for p in req.gps_points]
+    gps = [_to_gps(p) for p in req.gps_points]
     ride = Ride(gps_points=gps, weight_kg=float(req.bike.get("weight", 70.0)))
     return ride
 
@@ -145,6 +156,53 @@ async def simulate_ride(
             "comparison": comp.to_dict(),
             "summary": comp.summary(),
         }
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+class Bm2ValidateRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    ride_id: int | None = None
+    athlete: dict[str, Any] = Field(default_factory=dict)
+    bike: dict[str, Any] = Field(default_factory=dict)
+    world: dict[str, Any] = Field(default_factory=dict)
+    override: dict[str, Any] = Field(default_factory=dict)
+    gps_points: list[dict[str, Any]] = Field(default_factory=list)
+
+
+def _rider_bike_params(bike: dict[str, Any]) -> RiderBikeParams:
+    return RiderBikeParams(
+        rider_mass_kg=float(bike.get("weight", 70.0)),
+        bike_mass_kg=float(bike.get("bike_weight", 8.0)),
+        cda=float(bike.get("cda", 0.40)),
+        crr=float(bike.get("crr", 0.005)),
+        drivetrain_efficiency=float(bike.get("drivetrain_efficiency", 0.25)),
+    )
+
+
+@bm2_router.post("/validate")
+async def validate(
+    req: Bm2ValidateRequest, current_user: dict = Depends(get_current_user)
+) -> dict:
+    """Valida il kernel fisico contro i power-meter di una Ride reale.
+
+    Ritorna le metriche di errore (MAE/RMSE/bias/R²) tra potenza stimata e
+    potenza misurata. 422 se la ride non ha abbastanza dati power-meter.
+    """
+    try:
+        ride = _ride_from_request(req, current_user)
+        params = _rider_bike_params(req.bike)
+        wind = req.world.get("wind_speed")
+        result = validate_ride_power(ride, params, wind_ms=wind if wind is not None else 0.0)
+        if result is None:
+            raise HTTPException(
+                status_code=422,
+                detail="Dati power-meter insufficienti per la validazione",
+            )
+        return {"ride_id": req.ride_id, "validation": result.to_dict()}
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001

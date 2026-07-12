@@ -40,7 +40,11 @@ describe("api helpers", () => {
     store.setItem("bikemaster_token", "tok");
     origFetch = globalThis.fetch = vi
       .fn()
-      .mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
+      .mockResolvedValue({
+        ok: true,
+        headers: { get: () => "application/json" },
+        json: async () => ({ ok: true }),
+      });
     const result = await apiGet("/api/v1/rides", { q: "1" });
     expect(result).toEqual({ ok: true });
     expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -93,7 +97,11 @@ describe("api helpers", () => {
     store.setItem("bikemaster_token", "tok");
     origFetch = globalThis.fetch = vi
       .fn()
-      .mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
+      .mockResolvedValue({
+        ok: true,
+        headers: { get: () => "application/json" },
+        json: async () => ({ ok: true }),
+      });
     await apiPut("/api/v1/rides/1", { distance_km: 50 });
     expect(globalThis.fetch).toHaveBeenCalledWith(
       "/api/v1/rides/1",

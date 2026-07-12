@@ -77,3 +77,38 @@ def test_simulate_ride_not_found(client, monkeypatch):
         json={"ride_id": 999, "override": {"athlete_weight_delta_kg": -5.0}},
     )
     assert resp.status_code == 404
+
+
+def _power_ride_dict():
+    return {
+        "id": 1, "athlete_id": 1, "tenant_id": 1,
+        "distance_km": 12.0, "duration_minutes": 60.0, "avg_speed_kmh": 12.0,
+        "weight_kg": 75.0,
+        "gps_points": [
+            {
+                "lat": 45.0 + 0.001 * i, "lon": 9.0, "altitude": 100.0 + 5.0 * i,
+                "timestamp": f"2026-07-10T08:0{i}:00+00:00",
+                "power": 200.0 + i,
+            }
+            for i in range(8)
+        ],
+    }
+
+
+def test_validate_ride_with_power_meter(client, monkeypatch):
+    monkeypatch.setattr(
+        "bike_analyzer.backend.db.database.get_ride", lambda ride_id: _power_ride_dict()
+    )
+    resp = client.post("/api/v1/bm2/validate", json={"ride_id": 1})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert "validation" in body
+    for key in ("mae_w", "rmse_w", "bias_w", "r2", "n_points"):
+        assert key in body["validation"]
+    assert body["validation"]["n_points"] >= 5
+
+
+def test_validate_insufficient_power_data_returns_422(client):
+    # _fake_ride_dict non ha dati power-meter -> 422
+    resp = client.post("/api/v1/bm2/validate", json={"ride_id": 1})
+    assert resp.status_code == 422

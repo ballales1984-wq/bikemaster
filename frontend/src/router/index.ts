@@ -64,6 +64,12 @@ const routes = [
     meta: { requiresAuth: true, title: "Granfondo Planner" },
   },
   {
+    path: "/map",
+    name: "map",
+    component: () => import("../components/RideMapPanel.vue"),
+    meta: { requiresAuth: true, title: "Route Maps" },
+  },
+  {
     path: "/pois",
     name: "pois",
     component: () => import("../views/PoiMapView.vue"),

@@ -265,10 +265,11 @@ void main() {
     if (routeBuffer) draw(routeBuffer);
     if (pointBuffer) draw(pointBuffer);
 
-    requestAnimationFrame(frame);
+    rafId = requestAnimationFrame(frame);
   }
 
-  frame();
+  let rafId: number | null = null;
+  rafId = requestAnimationFrame(frame);
 });
 
 watch(() => [props.points, props.colorBySpeed], () => {
@@ -277,6 +278,10 @@ watch(() => [props.points, props.colorBySpeed], () => {
 });
 
 onBeforeUnmount(() => {
+  if (rafId != null) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
   if (gl) {
     if (wireBuffer) gl.deleteBuffer(wireBuffer.buf);
     if (routeBuffer) gl.deleteBuffer(routeBuffer.buf);

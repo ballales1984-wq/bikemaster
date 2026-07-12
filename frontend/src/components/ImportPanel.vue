@@ -46,7 +46,7 @@
         <span>or import from connected services</span>
       </div>
 
-      <div v-if="providers.google_fit"
+      <div v-if="providers?.google_fit"
 class="provider-group">
         <h3>Google Fit</h3>
         <button
@@ -98,7 +98,7 @@ class="provider-group provider-group--muted">
         </p>
       </div>
 
-      <div v-if="providers.wahoo"
+      <div v-if="providers?.wahoo"
 class="provider-group">
         <h3>Wahoo</h3>
         <button
@@ -136,7 +136,7 @@ class="provider-group provider-group--muted">
         </p>
       </div>
 
-      <div v-if="providers.google_health"
+      <div v-if="providers?.google_health"
 class="provider-group">
         <h3>Google Health</h3>
         <button
@@ -188,7 +188,7 @@ class="provider-group">
         </p>
       </div>
 
-      <div v-if="providers.strava"
+      <div v-if="providers?.strava"
  class="provider-group">
         <h3>Strava</h3>
         <button
@@ -291,7 +291,7 @@ function onDrop(e) {
 async function loadProviders() {
   try {
     const data = await apiGet("/api/v1/import/providers");
-    providers.value = data;
+    providers.value = data ?? {};
   } catch {
     providers.value = {};
   }
