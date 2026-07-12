@@ -1,9 +1,10 @@
 """AetherMap adapter for BikeMaster route visualization.
 
-Exposes the same public interface as ``map_renderer.create_route_map`` so it
-can be swapped in behind the existing lazy registry without touching callers.
-
-Requires the ``aethermap`` package (optional dependency ``bikemaster[maps]``).
+Produces a GeoJSON-like scene consumed by the frontend ``AetherMapViewer``
+(WebGL2 cube-sphere globe). Coordinates are geographic ``[lat, lon]`` in
+degrees; the ``stats`` entity carries ``[lat, lon, elevation_m]``. This keeps
+the payload consistent with the consumer, which projects lat/lon onto the
+unit sphere.
 """
 
 from __future__ import annotations
@@ -11,12 +12,9 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Any
 
 from ..models.models import GPSPoint, RouteStatistics
-
-if TYPE_CHECKING:
-    from aethermap.render.scene import Scene
 
 logger = logging.getLogger(__name__)
 
@@ -35,21 +33,20 @@ def _speed_to_color(speed_kmh: float | None) -> str:
     return "#ee3333"
 
 
+class _Scene:
+    def __init__(self) -> None:
+        self.entities: list[dict] = []
+
+    def add(self, tipo: str, pts: list[list[float]], char: str) -> None:
+        self.entities.append({"tipo": tipo, "pts": pts, "char": char})
+
+
 def _build_scene(
     points: list[GPSPoint],
     statistics: RouteStatistics | None,
     color_by_speed: bool,
-) -> Scene:
-    try:
-        from aethermap.render.scene import Scene
-    except ImportError as exc:
-        raise RuntimeError(
-            "aethermap is not installed. Install it with "
-            "`pip install -e ./aethermap` or enable the optional "
-            "`bikemaster[maps]` extra."
-        ) from exc
-
-    scene = Scene()
+) -> _Scene:
+    scene = _Scene()
     if not points:
         return scene
 
@@ -57,22 +54,18 @@ def _build_scene(
         color = _speed_to_color(point.speed) if color_by_speed else "#FF6B00"
         scene.add(
             "segment",
-            [(point.lat, point.lon), (points[i + 1].lat, points[i + 1].lon)],
-            char=color,
+            [[point.lat, point.lon], [points[i + 1].lat, points[i + 1].lon]],
+            color,
         )
 
-    scene.add("start", (points[0].lat, points[0].lon), char="S")
-    scene.add("end", (points[-1].lat, points[-1].lon), char="E")
+    scene.add("start", [[points[0].lat, points[0].lon]], "S")
+    scene.add("end", [[points[-1].lat, points[-1].lon]], "E")
 
     if statistics:
         scene.add(
             "stats",
-            (
-                points[0].lat,
-                points[0].lon,
-                statistics.total_elevation_gain_m or 0.0,
-            ),
-            char="M",
+            [[points[0].lat, points[0].lon, statistics.total_elevation_gain_m or 0.0]],
+            "M",
         )
 
     return scene
@@ -88,14 +81,9 @@ def create_route_map(
         raise ValueError("No GPS points provided")
 
     scene = _build_scene(points, statistics, color_by_speed)
-    entities = []
-    for entity in scene.entities:
-        ent = dict(entity)
-        ent["pts"] = [p.tolist() if hasattr(p, "tolist") else list(p) for p in entity["pts"]]
-        entities.append(ent)
-    payload: dict[str, object] = {
+    payload: dict[str, Any] = {
         "engine": "aethermap",
-        "entities": entities,
+        "entities": scene.entities,
     }
 
     if statistics:

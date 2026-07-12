@@ -1,10 +1,4 @@
 import { useAuthStore } from "../stores/auth";
-import {
-  AUTH_TOKEN_KEY,
-  AUTH_USER_KEY,
-  AUTH_JUST_LOGGED_IN_KEY,
-  AUTH_REFRESH_TOKEN_KEY,
-} from "../utils/auth-storage";
 
 const API_BASE = "";
 
@@ -17,10 +11,9 @@ export class ApiError extends Error {
 }
 
 function clearAuth() {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-  localStorage.removeItem(AUTH_USER_KEY);
-  localStorage.removeItem(AUTH_JUST_LOGGED_IN_KEY);
-  localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
+  localStorage.removeItem("bikemaster_token");
+  localStorage.removeItem("bikemaster_user");
+  localStorage.removeItem("bikemaster_just_logged_in");
 }
 
 let sessionExpiredNotified = false;
@@ -63,65 +56,9 @@ function notifySessionExpired() {
   }
 }
 
-function getActiveAuthToken(): string {
-  if (typeof localStorage === "undefined") return "";
-  try {
-    const auth = useAuthStore();
-    if (auth.token) return auth.token;
-  } catch {
-    // no active pinia, fallback to localStorage
-  }
-  return localStorage.getItem(AUTH_TOKEN_KEY) || "";
-}
-
 function authHeaders(): Record<string, string> {
-  const token = getActiveAuthToken();
+  const token = localStorage.getItem("bikemaster_token");
   return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-let authRefreshing = false;
-
-async function tryRefreshAccessToken(): Promise<boolean> {
-  if (authRefreshing) return false;
-  let refreshToken = "";
-  try {
-    const auth = useAuthStore();
-    refreshToken = auth.refreshToken || "";
-  } catch {
-    // ignore
-  }
-  if (!refreshToken && typeof localStorage !== "undefined") {
-    refreshToken = localStorage.getItem(AUTH_REFRESH_TOKEN_KEY) || "";
-  }
-  if (!refreshToken) return false;
-
-  authRefreshing = true;
-  try {
-    const resp = await fetch("/api/v1/auth/refresh", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-    if (!resp.ok) return false;
-    const data = (await resp.json()) as { access_token: string; refresh_token?: string };
-    const newToken = data.access_token;
-    localStorage.setItem(AUTH_TOKEN_KEY, newToken);
-    try {
-      const auth = useAuthStore();
-      auth.token = newToken;
-      if (data.refresh_token) {
-        auth.refreshToken = data.refresh_token;
-        localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, data.refresh_token);
-      }
-    } catch {
-      // ignore
-    }
-    return true;
-  } catch {
-    return false;
-  } finally {
-    authRefreshing = false;
-  }
 }
 
 // Gateway statuses returned by Render while the free instance is asleep or
@@ -155,15 +92,10 @@ function notifyServerWaking() {
 interface RequestOptions extends Omit<RequestInit, "body"> {
   path: string;
   body?: unknown;
+  // When true, a 401 response does NOT clear the stored session or trigger a
+  // "session expired" logout. Used by the OAuth-return profile check, where a
+  // transient 401 must never wipe a freshly established session.
   suppressAuthClear?: boolean;
-  timeoutMs?: number;
-  noRetry?: boolean;
-}
-
-export interface ApiRequestOptions extends Omit<RequestInit, "body"> {
-  suppressAuthClear?: boolean;
-  timeoutMs?: number;
-  noRetry?: boolean;
 }
 
 async function request<T>(options: RequestOptions): Promise<T> {
@@ -173,8 +105,6 @@ async function request<T>(options: RequestOptions): Promise<T> {
     body,
     headers = {},
     suppressAuthClear,
-    timeoutMs,
-    noRetry,
     ...rest
   } = options;
   const isForm = typeof FormData !== "undefined" && body instanceof FormData;
@@ -199,17 +129,13 @@ async function request<T>(options: RequestOptions): Promise<T> {
           : undefined) as BodyInit | undefined,
   };
 
-  const idempotent = !noRetry && (method === "GET" || method === "HEAD" || method === "OPTIONS");
+  const idempotent =
+    method === "GET" || method === "HEAD" || method === "OPTIONS";
 
   let resp: Response;
   for (let attempt = 0; ; attempt++) {
     try {
-      const controller = new AbortController();
-      const timer = timeoutMs
-        ? setTimeout(() => controller.abort(), timeoutMs)
-        : undefined;
-      resp = await fetch(path, { ...init, signal: controller.signal });
-      if (timer) clearTimeout(timer);
+      resp = await fetch(path, init);
     } catch {
       if (idempotent && attempt < MAX_RETRIES) {
         notifyServerWaking();
@@ -230,32 +156,28 @@ async function request<T>(options: RequestOptions): Promise<T> {
       await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
       continue;
     }
-
-    if (!resp.ok) {
-      if (resp.status === 401 && !suppressAuthClear) {
-        const refreshed = await tryRefreshAccessToken();
-        if (refreshed && idempotent && !noRetry && attempt < MAX_RETRIES) {
-          notifyServerWaking();
-          await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
-          continue;
-        }
-        clearAuth();
-        notifySessionExpired();
-        throw new ApiError("expired", 401);
-      }
-      const err = await resp.json().catch(() => ({}));
-      const message =
-        extractApiErrorMessage(err) || `${method} ${path}: ${resp.status}`;
-      throw new ApiError(message, resp.status);
-    }
-    if (
-      resp.status === 204 ||
-      !resp.headers?.get("content-type")?.includes("application/json")
-    ) {
-      return {} as T;
-    }
-    return resp.json() as Promise<T>;
+    break;
   }
+
+  wakingNotified = false;
+  if (!resp.ok) {
+    if (resp.status === 401 && !suppressAuthClear) {
+      clearAuth();
+      notifySessionExpired();
+      throw new ApiError("expired", 401);
+    }
+    const err = await resp.json().catch(() => ({}));
+    const message =
+      extractApiErrorMessage(err) || `${method} ${path}: ${resp.status}`;
+    throw new ApiError(message, resp.status);
+  }
+  if (
+    resp.status === 204 ||
+    !resp.headers?.get("content-type")?.includes("application/json")
+  ) {
+    return {} as T;
+  }
+  return resp.json() as Promise<T>;
 }
 
 export interface ApiResponse {
@@ -265,7 +187,7 @@ export interface ApiResponse {
 export async function apiGet<T = ApiResponse>(
   path: string,
   params: Record<string, string> = {},
-  options: ApiRequestOptions = {},
+  options: RequestInit = {},
 ): Promise<T> {
   const qs = new URLSearchParams(params).toString();
   const url = qs ? `${API_BASE}${path}?${qs}` : `${API_BASE}${path}`;
@@ -275,7 +197,7 @@ export async function apiGet<T = ApiResponse>(
 export async function apiPost<T = ApiResponse>(
   path: string,
   body: unknown,
-  options: ApiRequestOptions = {},
+  options: RequestInit = {},
 ): Promise<T> {
   return request<T>({
     ...options,
@@ -287,7 +209,7 @@ export async function apiPost<T = ApiResponse>(
 
 export async function apiDelete<T = ApiResponse>(
   path: string,
-  options: ApiRequestOptions = {},
+  options: RequestInit = {},
 ): Promise<T> {
   return request<T>({
     ...options,
@@ -299,7 +221,7 @@ export async function apiDelete<T = ApiResponse>(
 export async function apiUpload<T = ApiResponse>(
   path: string,
   file: Blob | File,
-  options: ApiRequestOptions = {},
+  options: RequestInit = {},
 ): Promise<T> {
   const form = new FormData();
   form.append("file", file);
@@ -314,7 +236,7 @@ export async function apiUpload<T = ApiResponse>(
 export async function apiPut<T = ApiResponse>(
   path: string,
   body: unknown,
-  options: ApiRequestOptions = {},
+  options: RequestInit = {},
 ): Promise<T> {
   return request<T>({
     ...options,

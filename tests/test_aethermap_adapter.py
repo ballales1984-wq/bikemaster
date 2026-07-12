@@ -69,4 +69,10 @@ def test_build_scene_entities_have_serializable_pts() -> None:
         assert "pts" in entity
         assert "char" in entity
         for pt in entity["pts"]:
-            assert len(pt) == 3
+            # Geographic [lat, lon] (or [lat, lon, elevation] for stats).
+            assert len(pt) in (2, 3)
+            assert -90 <= pt[0] <= 90
+            assert -180 <= pt[1] <= 180
+
+    tipi = {e["tipo"] for e in scene.entities}
+    assert {"segment", "start", "end"}.issubset(tipi)
