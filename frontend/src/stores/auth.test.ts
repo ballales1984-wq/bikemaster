@@ -135,7 +135,7 @@ describe("auth store", () => {
       status: 200,
       headers: { get: () => "application/json" },
       json: async () => ({ access_token: fakeJwt, id: 42, username: "alice" }),
-    } as Response);
+    } as unknown as Response);
     await store.login("alice", "pw");
     expect(store.token).toBe(fakeJwt);
     expect(store.user?.username).toBe("alice");
@@ -150,7 +150,7 @@ describe("auth store", () => {
     const formSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: false,
       json: async () => ({ detail: "Invalid credentials" }),
-    } as Response);
+    } as unknown as Response);
     await expect(store.login("alice", "bad")).rejects.toThrow(
       "Invalid credentials",
     );
@@ -231,7 +231,7 @@ describe("auth store", () => {
       status: 200,
       headers: { get: () => "application/json" },
       json: async () => ({ id: 1 }),
-    } as Response);
+    } as unknown as Response);
     await expect(store.register("bob", "secret")).resolves.toBeDefined();
     expect(spy).toHaveBeenCalledWith(
       "/api/v1/auth/register",
@@ -246,7 +246,7 @@ describe("auth store", () => {
     const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: false,
       json: async () => ({}),
-    } as Response);
+    } as unknown as Response);
     await expect(store.register("bob", "secret")).rejects.toThrow(
       "Request failed",
     );

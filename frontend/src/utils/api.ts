@@ -92,10 +92,15 @@ function notifyServerWaking() {
 interface RequestOptions extends Omit<RequestInit, "body"> {
   path: string;
   body?: unknown;
-  // When true, a 401 response does NOT clear the stored session or trigger a
-  // "session expired" logout. Used by the OAuth-return profile check, where a
-  // transient 401 must never wipe a freshly established session.
   suppressAuthClear?: boolean;
+  timeoutMs?: number;
+  noRetry?: boolean;
+}
+
+export interface ApiRequestOptions extends Omit<RequestInit, "body"> {
+  suppressAuthClear?: boolean;
+  timeoutMs?: number;
+  noRetry?: boolean;
 }
 
 async function request<T>(options: RequestOptions): Promise<T> {
@@ -105,6 +110,8 @@ async function request<T>(options: RequestOptions): Promise<T> {
     body,
     headers = {},
     suppressAuthClear,
+    timeoutMs,
+    noRetry,
     ...rest
   } = options;
   const isForm = typeof FormData !== "undefined" && body instanceof FormData;
@@ -129,13 +136,17 @@ async function request<T>(options: RequestOptions): Promise<T> {
           : undefined) as BodyInit | undefined,
   };
 
-  const idempotent =
-    method === "GET" || method === "HEAD" || method === "OPTIONS";
+  const idempotent = !noRetry && (method === "GET" || method === "HEAD" || method === "OPTIONS");
 
   let resp: Response;
   for (let attempt = 0; ; attempt++) {
     try {
-      resp = await fetch(path, init);
+      const controller = new AbortController();
+      const timer = timeoutMs
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : undefined;
+      resp = await fetch(path, { ...init, signal: controller.signal });
+      if (timer) clearTimeout(timer);
     } catch {
       if (idempotent && attempt < MAX_RETRIES) {
         notifyServerWaking();
@@ -187,7 +198,7 @@ export interface ApiResponse {
 export async function apiGet<T = ApiResponse>(
   path: string,
   params: Record<string, string> = {},
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
   const qs = new URLSearchParams(params).toString();
   const url = qs ? `${API_BASE}${path}?${qs}` : `${API_BASE}${path}`;
@@ -197,7 +208,7 @@ export async function apiGet<T = ApiResponse>(
 export async function apiPost<T = ApiResponse>(
   path: string,
   body: unknown,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
   return request<T>({
     ...options,
@@ -209,7 +220,7 @@ export async function apiPost<T = ApiResponse>(
 
 export async function apiDelete<T = ApiResponse>(
   path: string,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
   return request<T>({
     ...options,
@@ -221,7 +232,7 @@ export async function apiDelete<T = ApiResponse>(
 export async function apiUpload<T = ApiResponse>(
   path: string,
   file: Blob | File,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
   const form = new FormData();
   form.append("file", file);
@@ -236,7 +247,7 @@ export async function apiUpload<T = ApiResponse>(
 export async function apiPut<T = ApiResponse>(
   path: string,
   body: unknown,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
   return request<T>({
     ...options,
