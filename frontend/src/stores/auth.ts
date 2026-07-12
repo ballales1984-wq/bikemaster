@@ -6,11 +6,19 @@ import {
   ApiError,
   resetSessionExpiredNotification,
 } from "../utils/api";
+import {
+  AUTH_TOKEN_KEY,
+  AUTH_USER_KEY,
+  AUTH_JUST_LOGGED_IN_KEY,
+  AUTH_REFRESH_TOKEN_KEY,
+  AUTH_LOGIN_ERROR_KEY,
+} from "../utils/auth-storage";
 
-const TOKEN_KEY = "bikemaster_token";
-const USER_KEY = "bikemaster_user";
-const JUST_LOGGED_IN_KEY = "bikemaster_just_logged_in";
-const REFRESH_TOKEN_KEY = "bikemaster_refresh_token";
+const TOKEN_KEY = AUTH_TOKEN_KEY;
+const USER_KEY = AUTH_USER_KEY;
+const JUST_LOGGED_IN_KEY = AUTH_JUST_LOGGED_IN_KEY;
+const REFRESH_TOKEN_KEY = AUTH_REFRESH_TOKEN_KEY;
+const LOGIN_ERROR_KEY = AUTH_LOGIN_ERROR_KEY;
 
 function parseBase64Url(base64Url: string): string {
   const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -156,7 +164,7 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = urlToken;
     user.value = userData;
     refreshToken.value = "";
-    localStorage.removeItem("bikemaster_login_error");
+    localStorage.removeItem(AUTH_LOGIN_ERROR_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.setItem(JUST_LOGGED_IN_KEY, "true");
     justLoggedIn.value = true;
@@ -166,7 +174,7 @@ export const useAuthStore = defineStore("auth", () => {
   function setOauthError(oauthError: string) {
     token.value = "";
     user.value = null;
-    localStorage.setItem("bikemaster_login_error", oauthError);
+    localStorage.setItem(AUTH_LOGIN_ERROR_KEY, oauthError);
 
     justLoggedIn.value = false;
     localStorage.removeItem(TOKEN_KEY);

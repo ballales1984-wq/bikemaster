@@ -86,6 +86,7 @@ import ToastContainer from "./components/ToastContainer.vue";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.vue";
 import LanguageSwitcher from "./components/LanguageSwitcher.vue";
 import ErrorBoundary from "./components/ErrorBoundary.vue";
+import { AUTH_LOGIN_ERROR_KEY } from "./utils/auth-storage";
 const auth = useAuthStore();
 const ui = useUIStore();
 const route = useRoute();
@@ -105,7 +106,7 @@ const summary = ref({
   duration_minutes: 0,
 });
 const summaryLoading = ref(false);
-const loginError = ref(localStorage.getItem("bikemaster_login_error") || "");
+const loginError = ref(localStorage.getItem(AUTH_LOGIN_ERROR_KEY) || "");
 const { fetchSummary } = useRides();
 
 watch(
@@ -135,7 +136,7 @@ async function loadSummary() {
 async function onLogin(creds) {
   try {
     loginError.value = "";
-    localStorage.removeItem("bikemaster_login_error");
+    localStorage.removeItem(AUTH_LOGIN_ERROR_KEY);
     await auth.login(creds.username, creds.password);
     router.push("/rides");
     await loadSummary();
@@ -147,7 +148,7 @@ async function onLogin(creds) {
 async function onRegister(creds) {
   try {
     loginError.value = "";
-    localStorage.removeItem("bikemaster_login_error");
+    localStorage.removeItem(AUTH_LOGIN_ERROR_KEY);
     await auth.register(creds.username, creds.password);
     await auth.login(creds.username, creds.password);
     router.push("/rides");

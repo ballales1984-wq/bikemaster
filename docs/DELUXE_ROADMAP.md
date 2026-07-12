@@ -97,7 +97,8 @@ e `core/physics.power`. Fusione eseguita:
 - **Fase 4 (Physics Engine)** e **Fase 6 (Simulation "what-if")** della visione
   Deluxe sono in larga parte **già presenti dentro `bm2`**, non da scrivere ex novo.
 - Il vero lavoro restante è: (a) **integrare `bm2` col flusso `Ride`/analytics**
-  esistente (oggi è un sottosistema isolato, non citato in `ROADMAP.md`);
+  esistente (oggi è un sottosistema isolato, non citato in `ROADMAP.md`) — **fatto**
+  (adapter `bm2/adapters.py` + `POST /api/v1/bm2/simulate-ride`);
   (b) **validazione su dati reali** (potenza/HR misurate) — manca in entrambi;
   (c) documentare `bm2` in `ROADMAP.md`/`PROJECT_STATUS.md` — **fatto** (Track D +
       sottosistema in `PROJECT_STATUS.md` + nota in `AGENTS.md`).

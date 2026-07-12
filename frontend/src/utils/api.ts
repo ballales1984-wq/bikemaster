@@ -1,4 +1,10 @@
 import { useAuthStore } from "../stores/auth";
+import {
+  AUTH_TOKEN_KEY,
+  AUTH_USER_KEY,
+  AUTH_JUST_LOGGED_IN_KEY,
+  AUTH_REFRESH_TOKEN_KEY,
+} from "../utils/auth-storage";
 
 const API_BASE = "";
 
@@ -11,10 +17,10 @@ export class ApiError extends Error {
 }
 
 function clearAuth() {
-  localStorage.removeItem("bikemaster_token");
-  localStorage.removeItem("bikemaster_user");
-  localStorage.removeItem("bikemaster_just_logged_in");
-  localStorage.removeItem("bikemaster_refresh_token");
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_USER_KEY);
+  localStorage.removeItem(AUTH_JUST_LOGGED_IN_KEY);
+  localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
 }
 
 let sessionExpiredNotified = false;
@@ -65,7 +71,7 @@ function getActiveAuthToken(): string {
   } catch {
     // no active pinia, fallback to localStorage
   }
-  return localStorage.getItem("bikemaster_token") || "";
+  return localStorage.getItem(AUTH_TOKEN_KEY) || "";
 }
 
 function authHeaders(): Record<string, string> {
@@ -85,7 +91,7 @@ async function tryRefreshAccessToken(): Promise<boolean> {
     // ignore
   }
   if (!refreshToken && typeof localStorage !== "undefined") {
-    refreshToken = localStorage.getItem("bikemaster_refresh_token") || "";
+    refreshToken = localStorage.getItem(AUTH_REFRESH_TOKEN_KEY) || "";
   }
   if (!refreshToken) return false;
 
@@ -99,13 +105,13 @@ async function tryRefreshAccessToken(): Promise<boolean> {
     if (!resp.ok) return false;
     const data = (await resp.json()) as { access_token: string; refresh_token?: string };
     const newToken = data.access_token;
-    localStorage.setItem("bikemaster_token", newToken);
+    localStorage.setItem(AUTH_TOKEN_KEY, newToken);
     try {
       const auth = useAuthStore();
       auth.token = newToken;
       if (data.refresh_token) {
         auth.refreshToken = data.refresh_token;
-        localStorage.setItem("bikemaster_refresh_token", data.refresh_token);
+        localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, data.refresh_token);
       }
     } catch {
       // ignore
@@ -224,34 +230,32 @@ async function request<T>(options: RequestOptions): Promise<T> {
       await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
       continue;
     }
-    break;
-  }
 
-  wakingNotified = false;
-  if (!resp.ok) {
-    if (resp.status === 401 && !suppressAuthClear) {
-      const refreshed = await tryRefreshAccessToken();
-      if (refreshed && idempotent && !noRetry && attempt < MAX_RETRIES) {
-        notifyServerWaking();
-        await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
-        continue;
+    if (!resp.ok) {
+      if (resp.status === 401 && !suppressAuthClear) {
+        const refreshed = await tryRefreshAccessToken();
+        if (refreshed && idempotent && !noRetry && attempt < MAX_RETRIES) {
+          notifyServerWaking();
+          await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
+          continue;
+        }
+        clearAuth();
+        notifySessionExpired();
+        throw new ApiError("expired", 401);
       }
-      clearAuth();
-      notifySessionExpired();
-      throw new ApiError("expired", 401);
+      const err = await resp.json().catch(() => ({}));
+      const message =
+        extractApiErrorMessage(err) || `${method} ${path}: ${resp.status}`;
+      throw new ApiError(message, resp.status);
     }
-    const err = await resp.json().catch(() => ({}));
-    const message =
-      extractApiErrorMessage(err) || `${method} ${path}: ${resp.status}`;
-    throw new ApiError(message, resp.status);
+    if (
+      resp.status === 204 ||
+      !resp.headers?.get("content-type")?.includes("application/json")
+    ) {
+      return {} as T;
+    }
+    return resp.json() as Promise<T>;
   }
-  if (
-    resp.status === 204 ||
-    !resp.headers?.get("content-type")?.includes("application/json")
-  ) {
-    return {} as T;
-  }
-  return resp.json() as Promise<T>;
 }
 
 export interface ApiResponse {

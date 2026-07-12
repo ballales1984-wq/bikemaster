@@ -256,6 +256,9 @@ class="provider-group">
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { apiUpload, apiPost, apiGet } from "../utils/api";
+import { useAuthStore } from "../stores/auth";
+
+const auth = useAuthStore();
 
 const emit = defineEmits(["summary-change"]);
 const fileInput = ref(null);
@@ -385,7 +388,7 @@ async function connectGoogleFit() {
 
       if (event.data?.type === "google-fit-success") {
         finish();
-        const token = localStorage.getItem("bikemaster_token");
+        const token = auth.token;
         const importResp = await fetch("/api/v1/import/google-fit", {
           method: "POST",
           headers: {
@@ -477,7 +480,7 @@ async function connectGoogleHealth() {
 
       if (event.data?.type === "google-health-success") {
         finish();
-        const token = localStorage.getItem("bikemaster_token");
+        const token = auth.token;
         const importResp = await fetch("/api/v1/import/google-health", {
           method: "POST",
           headers: {
@@ -519,7 +522,7 @@ async function connectGoogleHealth() {
 
 async function disconnectGoogleFit() {
   try {
-    const token = localStorage.getItem("bikemaster_token");
+    const token = auth.token;
     const resp = await fetch("/api/v1/import/google-fit/disconnect", {
       method: "DELETE",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -542,7 +545,7 @@ async function disconnectGoogleFit() {
 
 async function disconnectGoogleHealth() {
   try {
-    const token = localStorage.getItem("bikemaster_token");
+    const token = auth.token;
     const resp = await fetch("/api/v1/import/google-health/disconnect", {
       method: "DELETE",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -575,7 +578,7 @@ async function connectStrava() {
     }
   };
   try {
-    const token = localStorage.getItem("bikemaster_token");
+    const token = auth.token;
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const authResp = await fetch("/api/v1/import/strava/auth", { headers });
     if (!authResp.ok) {
@@ -649,7 +652,7 @@ async function stravaSync() {
   if (importing.value) return;
   try {
     importing.value = true;
-    const token = localStorage.getItem("bikemaster_token");
+    const token = auth.token;
     const resp = await fetch("/api/v1/import/strava/sync?background=false", {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -680,7 +683,7 @@ async function stravaSync() {
 
 async function disconnectStrava() {
   try {
-    const token = localStorage.getItem("bikemaster_token");
+    const token = auth.token;
     const resp = await fetch("/api/v1/import/strava/disconnect", {
       method: "DELETE",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -752,7 +755,7 @@ async function connectWahoo() {
       }
       if (event.data?.type === "wahoo-success") {
         finish();
-        const token = localStorage.getItem("bikemaster_token");
+        const token = auth.token;
         const callbackResp = await fetch("/api/v1/import/wahoo/callback", {
           method: "POST",
           headers: {
@@ -788,7 +791,7 @@ async function connectWahoo() {
 
 async function disconnectWahoo() {
   try {
-    const token = localStorage.getItem("bikemaster_token");
+    const token = auth.token;
     const resp = await fetch("/api/v1/import/wahoo/disconnect", {
       method: "DELETE",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -814,7 +817,7 @@ async function wahooSync() {
   try {
     importing.value = true;
     status.value = "Wahoo import in progress...";
-    const token = localStorage.getItem("bikemaster_token");
+    const token = auth.token;
     const resp = await fetch("/api/v1/import/wahoo/sync", {
       method: "POST",
       headers: {

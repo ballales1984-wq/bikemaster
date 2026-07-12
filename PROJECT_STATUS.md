@@ -260,9 +260,9 @@ eliminando il forward model duplicato. La visione "Deluxe" è in `docs/DELUXE_RO
 | `bm2/transformer.py` | `TransformerEngine` (geo → metric points, distanze 2D) |
 | `bm2_routes.py` | Endpoint API esposti (montati in `app_factory.py`) |
 
-Stato: baseline completo e testato (`test_bm2_*`); **non ancora integrato** col
-flusso `Ride`/analytics esistente (item D7) né **validato su dati reali** di
-potenza/HR misurate (item D8).
+Stato: baseline completo e testato (`test_bm2_*`); **integrato** col flusso
+`Ride`/analytics esistente via `bm2/adapters.py` + `POST /api/v1/bm2/simulate-ride`
+(item D7 ✅); **non ancora validato** su dati reali di potenza/HR misurate (item D8).
 
 ---
 

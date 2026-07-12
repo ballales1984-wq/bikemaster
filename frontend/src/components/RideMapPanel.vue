@@ -11,7 +11,7 @@
       <button class="btn btn-primary" :disabled="loading" @click="loadRides">
         {{ loading ? t("maps.updating") : t("maps.updateMap") }}
       </button>
-      <button class="btn btn-secondary" @click="useAetherMap.value = !useAetherMap.value">
+      <button class="btn btn-secondary" @click="toggleAetherMap">
         {{ useAetherMap ? '2D Map' : '3D Globe' }}
       </button>
     </div>
@@ -198,6 +198,10 @@ import AetherMapViewer from "./AetherMapViewer.vue";
 
 const { t } = useI18n();
 const { useAetherMap } = useUIStore();
+
+function toggleAetherMap() {
+  useAetherMap.value = !useAetherMap.value;
+}
 
 const mapContainer = ref(null);
 const loading = ref(false);
@@ -457,7 +461,7 @@ watch(showFamousRoutes, () => {
   renderFamousRoutes();
 });
 
-watch(useAetherMap, (val) => {
+watch(() => useAetherMap.value, (val) => {
   if (val) {
     destroyMap();
   } else {

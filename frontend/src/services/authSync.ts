@@ -1,13 +1,18 @@
 import { useAuthStore } from "../stores/auth";
+import {
+  AUTH_TOKEN_KEY,
+  AUTH_USER_KEY,
+  AUTH_JUST_LOGGED_IN_KEY,
+} from "../utils/auth-storage";
 
 export function syncAuthState() {
   const auth = useAuthStore();
   const hasLocalStorage = typeof localStorage !== "undefined";
   const storedToken = hasLocalStorage
-    ? localStorage.getItem("bikemaster_token")
+    ? localStorage.getItem(AUTH_TOKEN_KEY)
     : null;
   const storedJustLoggedIn = hasLocalStorage
-    ? localStorage.getItem("bikemaster_just_logged_in") === "true"
+    ? localStorage.getItem(AUTH_JUST_LOGGED_IN_KEY) === "true"
     : false;
 
   if (hasLocalStorage && !auth.token && storedToken) {
@@ -16,10 +21,10 @@ export function syncAuthState() {
   if (
     hasLocalStorage &&
     !auth.user &&
-    localStorage.getItem("bikemaster_user")
+    localStorage.getItem(AUTH_USER_KEY)
   ) {
     try {
-      auth.user = JSON.parse(localStorage.getItem("bikemaster_user")!);
+      auth.user = JSON.parse(localStorage.getItem(AUTH_USER_KEY)!);
     } catch {}
   }
   if (!auth.justLoggedIn && storedJustLoggedIn) {
@@ -29,8 +34,8 @@ export function syncAuthState() {
   if (auth.token && !auth.isTokenValid()) {
     auth.token = "";
     auth.user = null;
-    localStorage.removeItem("bikemaster_token");
-    localStorage.removeItem("bikemaster_user");
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
     auth.setJustLoggedIn(false);
     return { hasToken: false, justLoggedIn: false };
   }

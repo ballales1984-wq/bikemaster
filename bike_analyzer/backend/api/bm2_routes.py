@@ -130,10 +130,11 @@ async def simulate_ride(
     """What-if su una Ride reale del prodotto (by id o payload inline)."""
     try:
         ride = _ride_from_request(req, current_user)
-        athlete = AthleteProfile(**{k: v for k, v in req.athlete.items()
-                                    if k in AthleteProfile.__dataclass_fields__}) or None
-        if not req.athlete:
-            athlete = None
+        athlete = (
+            AthleteProfile(**{k: v for k, v in req.athlete.items()
+                              if k in AthleteProfile.__dataclass_fields__})
+            if req.athlete else None
+        )
         override_fields = {k: v for k, v in req.override.items()
                            if k in ScenarioOverride.__dataclass_fields__}
         override = ScenarioOverride(**override_fields)
