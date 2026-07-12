@@ -306,6 +306,13 @@ def _google_health_message_html(message: dict) -> HTMLResponse:
     )
 
 
+def _strava_message_html(message: dict) -> HTMLResponse:
+    payload = json.dumps(message)
+    return HTMLResponse(
+        f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
+    )
+
+
 @router.get("/health")
 async def health_check():
     return {"status": "ok", "service": "bikemaster"}
@@ -3260,6 +3267,39 @@ async def strava_auth(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     result["athlete_id"] = current_user["id"]
     return result
+
+
+@router.get("/import/strava/callback")
+async def strava_callback_page(
+    code: str | None = Query(None),
+    error: str | None = Query(None),
+    error_description: str | None = Query(None),
+    state: str = Query(""),
+):
+    """Handle Strava OAuth redirect (popup) and relay the result to the opener.
+
+    The Strava popup cannot be polled via `popup.location` when the app sets
+    `Cross-Origin-Opener-Policy: same-origin` (it blocks the cross-origin window
+    access). Instead we serve a tiny page that postMessages the result back to
+    the opener window, which is COOP-safe.
+    """
+    if error:
+        return _strava_message_html(
+            {
+                "type": "strava-error",
+                "error": error,
+                "error_description": error_description or "Strava OAuth fallito",
+            }
+        )
+    if not code:
+        return _strava_message_html(
+            {
+                "type": "strava-error",
+                "error": "missing_code",
+                "error_description": "Callback Strava ricevuto senza codice",
+            }
+        )
+    return _strava_message_html({"type": "strava-success", "code": code})
 
 
 @router.post("/import/strava/callback")

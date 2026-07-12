@@ -588,37 +588,38 @@ async function connectStrava() {
     if (!popup) throw new Error("Popup blocked - enable popups");
 
     const code = await new Promise((resolve, reject) => {
-      const callbackPath = "/api/v1/import/strava/callback";
-      const started = Date.now();
-      const iv = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(iv);
-          reject(new Error("Strava window closed"));
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener("message", handleMessage);
+        clearTimeout(timer);
+      };
+      const timer = setTimeout(
+        () => {
+          finish();
+          reject(new Error("Timeout: Strava authentication cancelled"));
+        },
+        5 * 60 * 1000,
+      );
+      const handleMessage = (event) => {
+        if (!event.data || event.data.type !== "strava-success") {
+          if (event.data?.type === "strava-error") {
+            finish();
+            reject(
+              new Error(
+                event.data.error_description ||
+                  event.data.error ||
+                  "Strava OAuth failed",
+              ),
+            );
+          }
           return;
         }
-        try {
-          const loc = popup.location;
-          if (
-            loc &&
-            typeof loc.pathname === "string" &&
-            loc.pathname.indexOf(callbackPath) === 0
-          ) {
-            const params = new URLSearchParams(loc.search);
-            const c = params.get("code");
-            if (c) {
-              clearInterval(iv);
-              resolve(c);
-              return;
-            }
-          }
-        } catch (_) {
-          /* cross-origin while on strava.com: ignore until same-origin */
-        }
-        if (Date.now() - started > 5 * 60 * 1000) {
-          clearInterval(iv);
-          reject(new Error("Timeout: Strava authentication cancelled"));
-        }
-      }, 500);
+        finish();
+        resolve(event.data.code);
+      };
+      window.addEventListener("message", handleMessage);
     });
 
     const cbResp = await fetch("/api/v1/import/strava/callback", {
