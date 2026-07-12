@@ -66,6 +66,7 @@ from .schemas import (
     GoogleFitTokenRequest,
     GoogleHealthImportPayload,
     GranfondoPlanRequest,
+    GranfondoSaveRequest,
     MetricCreate,
     POICreate,
     POIResponse,
@@ -3067,6 +3068,49 @@ async def generate_granfondo_workouts(
         "weeks": weeks,
         "plan": plan,
         "total_workouts": len(plan),
+    }
+
+
+def _granfondo_event_type(workout_type: str) -> str:
+    """Map a granfondo workout type to a valid calendar event type."""
+    if workout_type == "race":
+        return "race"
+    if workout_type == "recovery":
+        return "recovery"
+    return "training"
+
+
+@router.post("/training/granfondo/save")
+async def save_granfondo_plan(
+    request: GranfondoSaveRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Persist a generated granfondo plan as calendar events."""
+    from ..db.database import save_calendar_event
+    from ..utils.dates import date_only
+
+    athlete_id = request.athlete_id if request.athlete_id else current_user["id"]
+    _ensure_athlete_access(athlete_id, current_user)
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+
+    event_ids: list[int] = []
+    for workout in request.plan:
+        event = {
+            "athlete_id": athlete_id,
+            "title": workout.title,
+            "event_type": _granfondo_event_type(workout.workout_type),
+            "date": date_only(workout.date),
+            "duration_minutes": workout.duration_minutes,
+            "description": workout.description or "",
+            "completed": False,
+            "tenant_id": tenant_id,
+        }
+        event_ids.append(int(save_calendar_event(event)))
+
+    return {
+        "saved": len(event_ids),
+        "event_ids": event_ids,
+        "athlete_id": athlete_id,
     }
 
 

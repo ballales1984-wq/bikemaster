@@ -199,3 +199,32 @@ def test_google_static_map_colored_endpoint(client, db_path):
     )
     response = client.get(f"/api/v1/rides/{ride_id}/map/google?colored=true")
     assert response.status_code in (200, 500)
+
+
+def test_granfondo_plan_and_save(client):
+    """Generate a granfondo plan and persist it as calendar events."""
+    from bike_analyzer.backend.db import database as db_mod
+
+    athlete_id = db_mod.save_athlete({"name": "GF Athlete", "experience_level": "Intermediate"})
+
+    plan_resp = client.post(
+        "/api/v1/training/granfondo/plan",
+        json={"athlete_id": athlete_id, "start_date": "2024-06-01", "target_weeks": 8},
+    )
+    assert plan_resp.status_code == 200
+    plan = plan_resp.json()["plan"]
+    assert len(plan) > 0
+
+    save_resp = client.post(
+        "/api/v1/training/granfondo/save",
+        json={"plan": plan, "athlete_id": athlete_id},
+    )
+    assert save_resp.status_code == 200
+    data = save_resp.json()
+    assert data["saved"] == len(plan)
+    assert len(data["event_ids"]) == len(plan)
+    assert data["athlete_id"] == athlete_id
+
+    # Verify events were actually persisted for the athlete.
+    stored = db_mod.get_events_by_athlete(athlete_id)
+    assert len(stored) == len(plan)

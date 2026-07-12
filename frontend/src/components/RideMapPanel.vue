@@ -68,7 +68,7 @@ v-if="loading && !enrichedRides.length" class="loading-text">
 
     <div
     id="route-map" ref="mapContainer" class="route-map">
-      <AetherMapViewer v-if="useAetherMap" :points="aetherPoints" :color-by-speed="true" />
+      <AetherMapViewer v-if="useAetherMap" :ride-ids="visibleRideIds" :color-by-speed="true" />
       <template v-else>
         <div
         v-if="!ridesWithGps.length" class="demo-map-overlay">
@@ -392,19 +392,7 @@ const visibleRides = computed(() => {
   return ridesWithGps.value;
 });
 
-const aetherPoints = computed(() => {
-  const points: { lat: number; lon: number; speed?: number }[] = [];
-  for (const ride of visibleRides.value) {
-    for (const p of ride.gps_points || []) {
-      points.push({
-        lat: p.lat,
-        lon: p.lon,
-        speed: p.speed,
-      });
-    }
-  }
-  return points;
-});
+const visibleRideIds = computed(() => visibleRides.value.map((r) => r.id));
 
 const totalGpsPoints = computed(() =>
   visibleRides.value.reduce((sum, ride) => sum + ride.gps_points.length, 0),

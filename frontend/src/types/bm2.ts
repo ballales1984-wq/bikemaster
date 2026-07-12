@@ -50,3 +50,50 @@ export interface Bm2AskPayload {
   sensors?: Record<string, unknown>[];
   extra?: Record<string, unknown> | null;
 }
+
+/** Payload per lo scenario "what if" su una ride reale del prodotto. */
+export interface Bm2SimulateRidePayload {
+  ride_id?: number | null;
+  override?: Record<string, unknown>;
+  athlete?: Record<string, unknown>;
+  bike?: Record<string, unknown>;
+  world?: Record<string, unknown>;
+  gps_points?: Record<string, unknown>[];
+}
+
+export interface Bm2Comparison {
+  baseline: Record<string, Bm2ModelResult>;
+  scenario: Record<string, Bm2ModelResult>;
+  deltas: Record<string, number>;
+}
+
+export interface Bm2SimulateRideResult {
+  ride_id: number | null;
+  comparison: Bm2Comparison;
+  summary: string;
+}
+
+/** Payload per la validazione del kernel fisico contro i power-meter. */
+export interface Bm2ValidatePayload {
+  ride_id?: number | null;
+  athlete?: Record<string, unknown>;
+  bike?: Record<string, unknown>;
+  world?: Record<string, unknown>;
+  override?: Record<string, unknown>;
+  gps_points?: Record<string, unknown>[];
+}
+
+export interface Bm2Validation {
+  n_points: number;
+  mae_w: number;
+  rmse_w: number;
+  bias_w: number;
+  mean_measured_w: number;
+  mean_estimated_w: number;
+  r2: number;
+}
+
+export interface Bm2ValidateResult {
+  ride_id: number | null;
+  validation: Bm2Validation;
+}

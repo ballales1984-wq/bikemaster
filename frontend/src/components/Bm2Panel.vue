@@ -3,7 +3,17 @@ import { reactive, ref } from "vue";
 import { useBm2 } from "../composables/useBm2";
 import type { Bm2Insight, Bm2ModelResult } from "../types/bm2";
 
-const { answer, loading, error, ask } = useBm2();
+const {
+  answer,
+  rideSimulation,
+  validation,
+  loading,
+  error,
+  ask,
+  simulate,
+  simulateRide,
+  validate,
+} = useBm2();
 
 const form = reactive({
   question: "Quanta energia consumo in questo giro?",
@@ -12,6 +22,58 @@ const form = reactive({
   slope: 4,
   gpsPoints: 3,
 });
+
+// Analisi avanzata su una ride reale del prodotto (per ride_id).
+const rideForm = reactive({
+  rideId: null as number | null,
+  athleteWeightDelta: 0,
+  bikeWeightDelta: 0,
+  slopeDelta: 0,
+  cdaOverride: null as number | null,
+  bikeWeight: 8,
+  cda: 0.4,
+  crr: 0.005,
+});
+
+function buildOverride() {
+  const override: Record<string, number> = {};
+  if (rideForm.athleteWeightDelta)
+    override.athlete_weight_delta_kg = rideForm.athleteWeightDelta;
+  if (rideForm.bikeWeightDelta)
+    override.bike_weight_delta_kg = rideForm.bikeWeightDelta;
+  if (rideForm.slopeDelta) override.slope_delta_percent = rideForm.slopeDelta;
+  if (rideForm.cdaOverride != null) override.cda_override = rideForm.cdaOverride;
+  return override;
+}
+
+function onSimulateRide() {
+  if (!rideForm.rideId) return;
+  simulateRide({
+    ride_id: rideForm.rideId,
+    athlete: { weight: form.weight },
+    bike: { weight: rideForm.bikeWeight },
+    override: buildOverride(),
+  });
+}
+
+function onValidate() {
+  if (!rideForm.rideId) return;
+  validate({
+    ride_id: rideForm.rideId,
+    bike: {
+      weight: form.weight,
+      bike_weight: rideForm.bikeWeight,
+      cda: rideForm.cda,
+      crr: rideForm.crr,
+    },
+  });
+}
+
+function comparisonList(): [string, number][] {
+  return rideSimulation.value
+    ? Object.entries(rideSimulation.value.comparison.deltas)
+    : [];
+}
 
 function buildPayload() {
   const pts = [];
@@ -42,7 +104,7 @@ const isSimulation = ref(false);
 function onSubmit() {
   const payload = buildPayload();
   if (isSimulation.value || /se\s|what if|simula|ipotizz/i.test(form.question)) {
-    useBm2().simulate(payload);
+    simulate(payload);
   } else {
     ask(payload);
   }
@@ -117,6 +179,70 @@ function resultList(): [string, Bm2ModelResult][] {
         </ul>
       </aside>
     </div>
+
+    <hr class="bm2-divider" />
+
+    <section class="bm2-realride">
+      <h3>Analisi su ride reale</h3>
+      <p class="bm2-hint">
+        Applica il motore fisico BM2 a una tua uscita salvata (per ID) per uno
+        scenario "what if" o per validare la potenza stimata contro il power-meter.
+      </p>
+      <div class="bm2-row">
+        <label>ID ride<input v-model.number="rideForm.rideId" type="number" min="1" /></label>
+      </div>
+
+      <fieldset class="bm2-fieldset">
+        <legend>Scenario "what if"</legend>
+        <div class="bm2-row">
+          <label>Δ peso atleta (kg)<input v-model.number="rideForm.athleteWeightDelta" type="number" step="0.5" /></label>
+          <label>Δ peso bici (kg)<input v-model.number="rideForm.bikeWeightDelta" type="number" step="0.5" /></label>
+          <label>Δ pendenza (%)<input v-model.number="rideForm.slopeDelta" type="number" step="0.5" /></label>
+          <label>CdA override<input v-model.number="rideForm.cdaOverride" type="number" step="0.01" placeholder="es. 0.30" /></label>
+        </div>
+        <button type="button" :disabled="loading || !rideForm.rideId" @click="onSimulateRide">
+          {{ loading ? "Calcolo…" : "Simula sulla ride" }}
+        </button>
+      </fieldset>
+
+      <fieldset class="bm2-fieldset">
+        <legend>Validazione potenza (power-meter)</legend>
+        <div class="bm2-row">
+          <label>Peso bici (kg)<input v-model.number="rideForm.bikeWeight" type="number" step="0.1" /></label>
+          <label>CdA<input v-model.number="rideForm.cda" type="number" step="0.01" /></label>
+          <label>Crr<input v-model.number="rideForm.crr" type="number" step="0.001" /></label>
+        </div>
+        <button type="button" :disabled="loading || !rideForm.rideId" @click="onValidate">
+          {{ loading ? "Calcolo…" : "Valida potenza" }}
+        </button>
+      </fieldset>
+
+      <div v-if="rideSimulation" class="bm2-results">
+        <h4>Scenario ride #{{ rideSimulation.ride_id }}</h4>
+        <ul class="bm2-deltas">
+          <li v-for="[model, delta] in comparisonList()" :key="model">
+            {{ model }}:
+            <span :class="delta >= 0 ? 'bm2-up' : 'bm2-down'">
+              {{ delta >= 0 ? "+" : "" }}{{ delta.toFixed(2) }}
+            </span>
+          </li>
+        </ul>
+        <pre class="bm2-summary">{{ rideSimulation.summary }}</pre>
+      </div>
+
+      <div v-if="validation" class="bm2-results">
+        <h4>Validazione ride #{{ validation.ride_id }}</h4>
+        <dl class="bm2-valgrid">
+          <dt>Punti</dt><dd>{{ validation.validation.n_points }}</dd>
+          <dt>MAE</dt><dd>{{ validation.validation.mae_w.toFixed(1) }} W</dd>
+          <dt>RMSE</dt><dd>{{ validation.validation.rmse_w.toFixed(1) }} W</dd>
+          <dt>Bias</dt><dd>{{ validation.validation.bias_w.toFixed(1) }} W</dd>
+          <dt>Potenza media misurata</dt><dd>{{ validation.validation.mean_measured_w.toFixed(1) }} W</dd>
+          <dt>Potenza media stimata</dt><dd>{{ validation.validation.mean_estimated_w.toFixed(1) }} W</dd>
+          <dt>R²</dt><dd>{{ validation.validation.r2.toFixed(3) }}</dd>
+        </dl>
+      </div>
+    </section>
   </section>
 </template>
 
@@ -136,4 +262,16 @@ function resultList(): [string, Bm2ModelResult][] {
 .bm2-critical { color: #ff6b6b; }
 .bm2-info { color: #4ecca3; }
 .bm2-note { color: #9ad; }
+.bm2-divider { border: none; border-top: 1px solid #2a3b34; margin: 1.5rem 0; }
+.bm2-realride { margin-top: 0.5rem; }
+.bm2-hint { color: #8aa; font-size: 0.85rem; margin: 0.25rem 0 0.75rem; }
+.bm2-fieldset { border: 1px solid #2a3b34; border-radius: 8px; padding: 0.75rem; margin-top: 0.75rem; }
+.bm2-fieldset legend { padding: 0 0.4rem; color: #9ad; font-size: 0.85rem; }
+.bm2-fieldset button { margin-top: 0.75rem; }
+.bm2-deltas { list-style: none; padding: 0; margin: 0.5rem 0; }
+.bm2-up { color: #4ecca3; font-weight: 700; }
+.bm2-down { color: #ff6b6b; font-weight: 700; }
+.bm2-summary { background: #101c18; padding: 0.6rem; border-radius: 6px; font-size: 0.8rem; white-space: pre-wrap; overflow-x: auto; }
+.bm2-valgrid { display: grid; grid-template-columns: 190px 1fr; gap: 2px 8px; font-size: 0.85rem; margin: 0.5rem 0 0; }
+.bm2-valgrid dt { color: #8aa; }
 </style>

@@ -331,6 +331,20 @@ class GranfondoPlanRequest(BaseModel):
     target_weeks: int = Field(default=8, ge=8, le=12)
 
 
+class GranfondoPlanWorkout(BaseModel):
+    date: str = Field(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
+    title: str = Field(..., min_length=1, max_length=200)
+    workout_type: str = Field(default="training", min_length=1, max_length=100)
+    duration_minutes: int = Field(default=0, ge=0, le=1440)
+    target_intensity: float = Field(default=0.0, ge=0, le=1)
+    description: str | None = Field(default=None, max_length=1000)
+
+
+class GranfondoSaveRequest(BaseModel):
+    plan: list[GranfondoPlanWorkout] = Field(..., min_length=1, max_length=200)
+    athlete_id: int | None = Field(default=None, gt=0)
+
+
 class GoogleAuthRequest(BaseModel):
     code: str = Field(..., min_length=1, max_length=2048)
     redirect_uri: str = Field(default="http://localhost:8000/api/v1/auth/google/callback", max_length=2048)

@@ -2,15 +2,25 @@
   <div class="aethermap-viewer">
     <canvas ref="canvasRef" class="aethermap-canvas" />
     <div class="aethermap-hud">
-      <b>AetherMap</b> — WebGL2 cube-sphere (Fase 4)<br />
-      trascina per ruotare la camera · resize automatico<br />
-      wireframe = cube-sphere · giallo = strada · verde = albero · rosso = montagna
+      <b>AetherMap</b> · WebGL2 cube-sphere (Fase 4)<br />
+      trascina per ruotare la camera<br />
+      <template v-if="rideIds && rideIds.length">
+        <span v-if="loading">carico scena…</span>
+        <span v-else-if="error" class="aethermap-warn">scena non disponibile</span>
+        <template v-else-if="scene && scene.statistics">
+          dist: {{ Math.round(scene.statistics.total_distance_m) }} m ·
+          avg: {{ scene.statistics.avg_speed_km_h }} km/h ·
+          &Delta;h: {{ Math.round(scene.statistics.total_elevation_gain_m) }} m
+        </template>
+      </template>
+      <br />linea = percorso · verde = start · rosso = end · giallo = stats
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import { useAetherMap, hexToRgb, type AetherScene } from "../composables/useAetherMap";
 
 interface MapPoint {
   lat: number;
@@ -20,15 +30,21 @@ interface MapPoint {
 
 const props = defineProps<{
   points?: MapPoint[];
+  rideIds?: number[];
   colorBySpeed?: boolean;
 }>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 let gl: WebGL2RenderingContext | null = null;
+let rafId: number | null = null;
 
 let wireBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
 let routeBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
 let pointBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
+let markerBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
+
+const rideIdsRef = computed(() => props.rideIds ?? []);
+const { scene, loading, error } = useAetherMap(rideIdsRef);
 
 const DEG = Math.PI / 180;
 function geodeticToDirection(lat: number, lon: number): [number, number, number] {
@@ -83,6 +99,57 @@ function updateDynamicBuffers(points: MapPoint[], colorBySpeed: boolean) {
   if (routeData.length) {
     routeBuffer = makeBuffer(routeData, gl.LINE_STRIP, 6);
     pointBuffer = makeBuffer(pointData, gl.POINTS, 6);
+  }
+}
+
+function markerColor(tipo: string): [number, number, number] {
+  if (tipo === "start") return [0.2, 0.9, 0.3];
+  if (tipo === "end") return [0.95, 0.3, 0.3];
+  return [1.0, 0.85, 0.2];
+}
+
+function updateSceneBuffers(sc: AetherScene) {
+  if (routeBuffer && gl) {
+    gl.deleteBuffer(routeBuffer.buf);
+    routeBuffer = null;
+  }
+  if (pointBuffer && gl) {
+    gl.deleteBuffer(pointBuffer.buf);
+    pointBuffer = null;
+  }
+  if (markerBuffer && gl) {
+    gl.deleteBuffer(markerBuffer.buf);
+    markerBuffer = null;
+  }
+  if (!gl) return;
+
+  const routeData: number[] = [];
+  const markerData: number[] = [];
+  for (const ent of sc.entities) {
+    if (ent.tipo === "segment") {
+      const col = hexToRgb(ent.char);
+      for (const p of ent.pts) {
+        const rel = cameraRelative(geodeticToDirection(p[0], p[1]));
+        routeData.push(...rel, ...col);
+      }
+    } else if (ent.tipo === "start" || ent.tipo === "end" || ent.tipo === "stats") {
+      const p = ent.pts[0];
+      if (!p) continue;
+      const rel = cameraRelative(geodeticToDirection(p[0], p[1]));
+      markerData.push(...rel, ...markerColor(ent.tipo));
+    } else {
+      const col = hexToRgb(ent.char);
+      for (const p of ent.pts) {
+        const rel = cameraRelative(geodeticToDirection(p[0], p[1]));
+        routeData.push(...rel, ...col);
+      }
+    }
+  }
+  if (routeData.length) {
+    routeBuffer = makeBuffer(routeData, gl.LINE_STRIP, 6);
+  }
+  if (markerData.length) {
+    markerBuffer = makeBuffer(markerData, gl.POINTS, 6);
   }
 }
 
@@ -195,7 +262,11 @@ void main() {
     }
   }
   wireBuffer = makeBuffer(wire, gl!.LINES, 6);
-  updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
+  if (scene.value) {
+    updateSceneBuffers(scene.value);
+  } else {
+    updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
+  }
 
   let yaw = 0.6;
   let pitch = 0.35;
@@ -251,8 +322,6 @@ void main() {
     gl!.drawArrays(buf.mode, 0, buf.count);
   }
 
-  let rafId: number | null = null;
-
   function frame() {
     if (!gl) return;
     gl.viewport(0, 0, canvasEl.width, canvasEl.height);
@@ -266,6 +335,7 @@ void main() {
     if (wireBuffer) draw(wireBuffer);
     if (routeBuffer) draw(routeBuffer);
     if (pointBuffer) draw(pointBuffer);
+    if (markerBuffer) draw(markerBuffer);
 
     rafId = requestAnimationFrame(frame);
   }
@@ -275,8 +345,18 @@ void main() {
 
 watch(() => [props.points, props.colorBySpeed], () => {
   if (!gl) return;
-  updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
+  if (!scene.value) updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
 });
+
+watch(
+  scene,
+  (sc) => {
+    if (!gl) return;
+    if (sc) updateSceneBuffers(sc);
+    else updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
+  },
+  { deep: false },
+);
 
 onBeforeUnmount(() => {
   if (rafId != null) {
@@ -287,6 +367,7 @@ onBeforeUnmount(() => {
     if (wireBuffer) gl.deleteBuffer(wireBuffer.buf);
     if (routeBuffer) gl.deleteBuffer(routeBuffer.buf);
     if (pointBuffer) gl.deleteBuffer(pointBuffer.buf);
+    if (markerBuffer) gl.deleteBuffer(markerBuffer.buf);
   }
 });
 </script>
@@ -322,5 +403,8 @@ onBeforeUnmount(() => {
 }
 .aethermap-hud b {
   color: #fff;
+}
+.aethermap-warn {
+  color: #ff8888;
 }
 </style>

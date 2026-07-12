@@ -24,7 +24,7 @@ try {
   self["workbox:routing:7.4.0"] && _();
 } catch {
 }
-const Z = "GET", N = (s) => s && typeof s == "object" ? s : { handle: s };
+const Z = "GET", T = (s) => s && typeof s == "object" ? s : { handle: s };
 class x {
   /**
    * Constructor for Route class.
@@ -38,7 +38,7 @@ class x {
    * against.
    */
   constructor(e, t, n = Z) {
-    this.handler = N(t), this.match = e, this.method = n;
+    this.handler = T(t), this.match = e, this.method = n;
   }
   /**
    *
@@ -46,7 +46,7 @@ class x {
    * function that returns a Promise resolving to a Response
    */
   setCatchHandler(e) {
-    this.catchHandler = N(e);
+    this.catchHandler = T(e);
   }
 }
 class he extends x {
@@ -218,7 +218,7 @@ class ue {
    * default handler. Each method has its own default.
    */
   setDefaultHandler(e, t = Z) {
-    this._defaultHandlerMap.set(t, N(e));
+    this._defaultHandlerMap.set(t, T(e));
   }
   /**
    * If a Route throws an error while handling a request, this `handler`
@@ -228,7 +228,7 @@ class ue {
    * function that returns a Promise resulting in a Response.
    */
   setCatchHandler(e) {
-    this._catchHandler = N(e);
+    this._catchHandler = T(e);
   }
   /**
    * Registers a route with the router.
@@ -282,7 +282,7 @@ const f = {
   prefix: "workbox",
   runtime: "runtime",
   suffix: typeof registration < "u" ? registration.scope : ""
-}, P = (s) => [f.prefix, s, f.suffix].filter((e) => e && e.length > 0).join("-"), fe = (s) => {
+}, S = (s) => [f.prefix, s, f.suffix].filter((e) => e && e.length > 0).join("-"), fe = (s) => {
   for (const e of Object.keys(f))
     s(e);
 }, g = {
@@ -291,10 +291,10 @@ const f = {
       typeof s[e] == "string" && (f[e] = s[e]);
     });
   },
-  getGoogleAnalyticsName: (s) => s || P(f.googleAnalytics),
-  getPrecacheName: (s) => s || P(f.precache),
+  getGoogleAnalyticsName: (s) => s || S(f.googleAnalytics),
+  getPrecacheName: (s) => s || S(f.precache),
   getPrefix: () => f.prefix,
-  getRuntimeName: (s) => s || P(f.runtime),
+  getRuntimeName: (s) => s || S(f.runtime),
   getSuffix: () => f.suffix
 };
 function H(s, e) {
@@ -336,7 +336,7 @@ try {
   self["workbox:strategies:7.4.0"] && _();
 } catch {
 }
-function k(s) {
+function N(s) {
   return typeof s == "string" ? new Request(s) : s;
 }
 class we {
@@ -377,7 +377,7 @@ class we {
    */
   async fetch(e) {
     const { event: t } = this;
-    let n = k(e);
+    let n = N(e);
     if (n.mode === "navigate" && t instanceof FetchEvent && t.preloadResponse) {
       const r = await t.preloadResponse;
       if (r)
@@ -440,7 +440,7 @@ class we {
    * @return {Promise<Response|undefined>} A matching response, if found.
    */
   async cacheMatch(e) {
-    const t = k(e);
+    const t = N(e);
     let n;
     const { cacheName: a, matchOptions: i } = this._strategy, r = await this.getCacheKey(t, "read"), c = Object.assign(Object.assign({}, i), { cacheName: a });
     n = await caches.match(r, c);
@@ -470,7 +470,7 @@ class we {
    * not be cached, and `true` otherwise.
    */
   async cachePut(e, t) {
-    const n = k(e);
+    const n = N(e);
     await ge(0);
     const a = await this.getCacheKey(n, "write");
     if (!t)
@@ -521,7 +521,7 @@ class we {
     if (!this._cacheKeys[n]) {
       let a = e;
       for (const i of this.iterateCallbacks("cacheKeyWillBeUsed"))
-        a = k(await i({
+        a = N(await i({
           mode: t,
           request: a,
           event: this.event,
@@ -647,7 +647,7 @@ class we {
     return n || t && t.status !== 200 && (t = void 0), t;
   }
 }
-class O {
+class B {
   /**
    * Creates a new instance of the strategy and sets all documented option
    * properties as public instance properties.
@@ -769,7 +769,7 @@ class O {
       throw r;
   }
 }
-class _e extends O {
+class _e extends B {
   /**
    * @private
    * @param {Request|string} request A request to run this strategy for.
@@ -803,7 +803,7 @@ const be = {
    */
   cacheWillUpdate: async ({ response: s }) => s.status === 200 || s.status === 0 ? s : null
 };
-class K extends O {
+class I extends B {
   /**
    * @param {Object} [options]
    * @param {string} [options.cacheName] Cache name to store and retrieve
@@ -919,7 +919,7 @@ function Ce() {
     IDBCursor.prototype.continuePrimaryKey
   ]);
 }
-const se = /* @__PURE__ */ new WeakMap(), A = /* @__PURE__ */ new WeakMap(), ne = /* @__PURE__ */ new WeakMap(), q = /* @__PURE__ */ new WeakMap(), B = /* @__PURE__ */ new WeakMap();
+const se = /* @__PURE__ */ new WeakMap(), O = /* @__PURE__ */ new WeakMap(), ne = /* @__PURE__ */ new WeakMap(), L = /* @__PURE__ */ new WeakMap(), j = /* @__PURE__ */ new WeakMap();
 function xe(s) {
   const e = new Promise((t, n) => {
     const a = () => {
@@ -934,10 +934,10 @@ function xe(s) {
   return e.then((t) => {
     t instanceof IDBCursor && se.set(t, s);
   }).catch(() => {
-  }), B.set(e, s), e;
+  }), j.set(e, s), e;
 }
 function De(s) {
-  if (A.has(s))
+  if (O.has(s))
     return;
   const e = new Promise((t, n) => {
     const a = () => {
@@ -949,13 +949,13 @@ function De(s) {
     };
     s.addEventListener("complete", i), s.addEventListener("error", r), s.addEventListener("abort", r);
   });
-  A.set(s, e);
+  O.set(s, e);
 }
-let M = {
+let K = {
   get(s, e, t) {
     if (s instanceof IDBTransaction) {
       if (e === "done")
-        return A.get(s);
+        return O.get(s);
       if (e === "objectStoreNames")
         return s.objectStoreNames || ne.get(s);
       if (e === "store")
@@ -971,30 +971,30 @@ let M = {
   }
 };
 function ke(s) {
-  M = s(M);
+  K = s(K);
 }
 function Ne(s) {
   return s === IDBDatabase.prototype.transaction && !("objectStoreNames" in IDBTransaction.prototype) ? function(e, ...t) {
-    const n = s.call(L(this), e, ...t);
+    const n = s.call(U(this), e, ...t);
     return ne.set(n, e.sort ? e.sort() : [e]), p(n);
   } : Ce().includes(s) ? function(...e) {
-    return s.apply(L(this), e), p(se.get(this));
+    return s.apply(U(this), e), p(se.get(this));
   } : function(...e) {
-    return p(s.apply(L(this), e));
+    return p(s.apply(U(this), e));
   };
 }
 function Te(s) {
-  return typeof s == "function" ? Ne(s) : (s instanceof IDBTransaction && De(s), Re(s, Ee()) ? new Proxy(s, M) : s);
+  return typeof s == "function" ? Ne(s) : (s instanceof IDBTransaction && De(s), Re(s, Ee()) ? new Proxy(s, K) : s);
 }
 function p(s) {
   if (s instanceof IDBRequest)
     return xe(s);
-  if (q.has(s))
-    return q.get(s);
+  if (L.has(s))
+    return L.get(s);
   const e = Te(s);
-  return e !== s && (q.set(s, e), B.set(e, s)), e;
+  return e !== s && (L.set(s, e), j.set(e, s)), e;
 }
-const L = (s) => B.get(s);
+const U = (s) => j.get(s);
 function ae(s, e, { blocked: t, upgrade: n, blocking: a, terminated: i } = {}) {
   const r = indexedDB.open(s, e), c = p(r);
   return n && r.addEventListener("upgradeneeded", (o) => {
@@ -1018,12 +1018,12 @@ function Ie(s, { blocked: e } = {}) {
   )), p(t).then(() => {
   });
 }
-const Pe = ["get", "getKey", "getAll", "getAllKeys", "count"], qe = ["put", "add", "delete", "clear"], S = /* @__PURE__ */ new Map();
+const Pe = ["get", "getKey", "getAll", "getAllKeys", "count"], qe = ["put", "add", "delete", "clear"], v = /* @__PURE__ */ new Map();
 function $(s, e) {
   if (!(s instanceof IDBDatabase && !(e in s) && typeof e == "string"))
     return;
-  if (S.get(e))
-    return S.get(e);
+  if (v.get(e))
+    return v.get(e);
   const t = e.replace(/FromIndex$/, ""), n = e !== t, a = qe.includes(t);
   if (
     // Bail if the target doesn't exist on the target. Eg, getAll isn't in Edge.
@@ -1038,7 +1038,7 @@ function $(s, e) {
       a && o.done
     ]))[0];
   };
-  return S.set(e, i), i;
+  return v.set(e, i), i;
 }
 ke((s) => ({
   ...s,
@@ -1049,11 +1049,11 @@ try {
   self["workbox:expiration:7.4.0"] && _();
 } catch {
 }
-const Le = "workbox-expiration", R = "cache-entries", G = (s) => {
+const Se = "workbox-expiration", R = "cache-entries", G = (s) => {
   const e = new URL(s, location.href);
   return e.hash = "", e.href;
 };
-class Se {
+class Le {
   /**
    *
    * @param {string} cacheName
@@ -1159,7 +1159,7 @@ class Se {
    * @private
    */
   async getDb() {
-    return this._db || (this._db = await ae(Le, 1, {
+    return this._db || (this._db = await ae(Se, 1, {
       upgrade: this._upgradeDbAndDeleteOldDbs.bind(this)
     })), this._db;
   }
@@ -1179,7 +1179,7 @@ class Ue {
    * that will be used when calling `delete()` on the cache.
    */
   constructor(e, t = {}) {
-    this._isRunning = !1, this._rerunRequested = !1, this._maxEntries = t.maxEntries, this._maxAgeSeconds = t.maxAgeSeconds, this._matchOptions = t.matchOptions, this._cacheName = e, this._timestampModel = new Se(e);
+    this._isRunning = !1, this._rerunRequested = !1, this._maxEntries = t.maxEntries, this._maxAgeSeconds = t.maxAgeSeconds, this._matchOptions = t.matchOptions, this._cacheName = e, this._timestampModel = new Le(e);
   }
   /**
    * Expires entries for the given cache and given criteria.
@@ -1234,7 +1234,7 @@ class Ue {
 function ve(s) {
   ee.add(s);
 }
-class T {
+class k {
   /**
    * @param {ExpirationPluginOptions} config
    * @param {number} [config.maxEntries] The maximum number of entries to cache.
@@ -1412,7 +1412,7 @@ async function je(s, e) {
   }, r = Be() ? n.body : await n.blob();
   return new Response(r, i);
 }
-class m extends O {
+class m extends B {
   /**
    *
    * @param {Object} [options]
@@ -1710,8 +1710,8 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     return (n) => (n.request = new Request(e), n.params = Object.assign({ cacheKey: t }, n.params), this.strategy.handle(n));
   }
 }
-let U;
-const ie = () => (U || (U = new Fe()), U);
+let A;
+const ie = () => (A || (A = new Fe()), A);
 function We(s, e = []) {
   for (const t of [...s.searchParams.keys()])
     e.some((n) => n.test(t)) && s.searchParams.delete(t);
@@ -2058,7 +2058,7 @@ class D {
     return new D(this.toObject());
   }
 }
-const X = "workbox-background-sync", nt = 60 * 24 * 7, v = /* @__PURE__ */ new Set(), Y = (s) => {
+const X = "workbox-background-sync", nt = 60 * 24 * 7, M = /* @__PURE__ */ new Set(), Y = (s) => {
   const e = {
     request: new D(s.requestData).toRequest(),
     timestamp: s.timestamp
@@ -2092,9 +2092,9 @@ class at {
    *     implementation.
    */
   constructor(e, { forceSyncFallback: t, onSync: n, maxRetentionTime: a } = {}) {
-    if (this._syncInProgress = !1, this._requestsAddedDuringSync = !1, v.has(e))
+    if (this._syncInProgress = !1, this._requestsAddedDuringSync = !1, M.has(e))
       throw new l("duplicate-queue-name", { name: e });
-    v.add(e), this._name = e, this._onSync = n || this.replayRequests, this._maxRetentionTime = a || nt, this._forceSyncFallback = !!t, this._queueStore = new tt(this._name), this._addSyncListener();
+    M.add(e), this._name = e, this._onSync = n || this.replayRequests, this._maxRetentionTime = a || nt, this._forceSyncFallback = !!t, this._queueStore = new tt(this._name), this._addSyncListener();
   }
   /**
    * @return {string}
@@ -2292,7 +2292,7 @@ class at {
    * @private
    */
   static get _queueNames() {
-    return v;
+    return M;
   }
 }
 class it {
@@ -2313,10 +2313,10 @@ Ye({
   prefix: "bikemaster",
   suffix: "v2"
 });
-const I = "bikemaster-static-v7", j = "bikemaster-api-v1", re = "bikemaster-images-v1", F = "bikemaster-ride-queue-v1";
+const P = "bikemaster-static-v7", q = "bikemaster-api-v1", re = "bikemaster-images-v1", F = "bikemaster-ride-queue-v1";
 self.addEventListener("install", (s) => {
   self.skipWaiting(), s.waitUntil(
-    caches.open(I).then(
+    caches.open(P).then(
       (e) => e.addAll([
         "/index.html",
         "/registerSW.js",
@@ -2333,16 +2333,16 @@ self.addEventListener("install", (s) => {
     })
   );
 });
+ze();
 self.addEventListener("activate", (s) => {
   s.waitUntil(
     (async () => {
-      ze();
       const e = await caches.keys();
       await Promise.all(
         e.filter(
           (t) => ![
-            I,
-            j,
+            P,
+            q,
             re,
             F
           ].includes(t)
@@ -2351,6 +2351,17 @@ self.addEventListener("activate", (s) => {
     })()
   );
 });
+y(
+  ({ request: s }) => s.mode === "navigate",
+  async ({ event: s }) => {
+    try {
+      const t = await fetch(s.request, { cache: "reload" });
+      if (t.ok) return t;
+    } catch {
+    }
+    return await (await caches.open(P)).match("/index.html") || new Response("", { status: 503, statusText: "Offline" });
+  }
+);
 Xe(self.__WB_MANIFEST || []);
 const rt = new it(F, {
   maxRetentionTime: 24 * 60,
@@ -2367,23 +2378,12 @@ const rt = new it(F, {
   }
 });
 y(
-  ({ request: s }) => s.mode === "navigate",
-  async ({ event: s }) => {
-    try {
-      const t = await fetch(s.request);
-      if (t.ok) return t;
-    } catch {
-    }
-    return await (await caches.open(I)).match("/index.html") || new Response("", { status: 503, statusText: "Offline" });
-  }
-);
-y(
   ({ url: s }) => s.pathname.startsWith("/api/") && s.pathname.includes("rides"),
-  new K({
-    cacheName: j,
+  new I({
+    cacheName: q,
     plugins: [
       rt,
-      new T({
+      new k({
         maxEntries: 100,
         maxAgeSeconds: 60
       })
@@ -2391,11 +2391,18 @@ y(
   })
 );
 y(
+  ({ url: s }) => s.pathname.startsWith("/api/") && (s.pathname.includes("/auth/") || s.pathname.includes("/auth")),
+  new I({
+    cacheName: q,
+    plugins: [new k({ maxEntries: 10, maxAgeSeconds: 0 })]
+  })
+);
+y(
   ({ url: s }) => s.pathname.startsWith("/api/"),
-  new K({
-    cacheName: j,
+  new I({
+    cacheName: q,
     plugins: [
-      new T({
+      new k({
         maxEntries: 100,
         maxAgeSeconds: 60
       })
@@ -2407,7 +2414,7 @@ y(
   new _e({
     cacheName: re,
     plugins: [
-      new T({
+      new k({
         maxEntries: 60,
         maxAgeSeconds: 30 * 24 * 60 * 60
       })
@@ -2416,10 +2423,10 @@ y(
 );
 y(
   ({ request: s }) => (s.destination === "script" || s.destination === "style") && s.url.startsWith(self.location.origin),
-  new K({
-    cacheName: I,
+  new I({
+    cacheName: P,
     plugins: [
-      new T({
+      new k({
         maxEntries: 100,
         maxAgeSeconds: 24 * 60 * 60
       })

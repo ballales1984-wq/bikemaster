@@ -93,7 +93,10 @@ async function savePlan() {
   errorMessage.value = "";
   success.value = false;
   try {
-    await apiPost("/api/v1/training/granfondo/save", { plan: plan.value });
+    await apiPost("/api/v1/training/granfondo/save", {
+      plan: plan.value,
+      athlete_id: athleteId.value,
+    });
     success.value = true;
   } catch (e: unknown) {
     success.value = false;
