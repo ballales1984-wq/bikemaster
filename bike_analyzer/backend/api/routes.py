@@ -3707,3 +3707,4 @@ async def get_audit_logs(limit: int = Query(100, ge=1, le=500), current_user: di
     """Return recent admin audit log entries."""
     log_action(current_user["id"], "view_audit_logs", "audit")
     return {"logs": read_audit_logs(limit=limit)}
+
