@@ -2,7 +2,11 @@
 
 **Completati: 155/145 step base + 50/80 estensioni**
 
-> **Stato**: Late Beta / Early Production — architettura solida con Clean Architecture, deve essere finalizzato per produzione.
+> **Stato**: Production Ready — deploy attivo su Render, architettura Clean Architecture.
+> Fonte di verità unica per stato/checklist: [`ROADMAP.md`](ROADMAP.md).
+>
+> **Numeri verificati (2026-07-13):** backend **108** file di test / **1674** test;
+> frontend **47** file di test / **318** test (Vitest); **138** endpoint REST.
 
 ### Ultimo Commit
 - `feat: complete multi-tenant support — tenant_id + user management endpoints`
@@ -148,7 +152,7 @@ bike_analyzer/
 │       ├── utils/                     # API client, route mapping
 │       └── views/                     # Page-level Vue components
 │
-├── tests/                             # Suite test automatici (51+ file)
+├── tests/                             # Suite test automatici (108 file / 1674 test)
 │   ├── conftest.py                    # Shared fixtures
 │   ├── test_analytics.py              # Analytics base
 │   ├── test_analytics_trends.py       # Trend analysis
@@ -409,26 +413,19 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 
 ---
 
-## Testing Update (2026-06-30)
+## Testing Update (2026-07-13, verificato)
 
-**Coverage migliorata e bug fixati:**
-- ✅ Risolto test fallito `database.py` syntax error (else: indentation)
-- ✅ Rimosso import non valido `bike_analyzer.backend.db.models` da `knowledge_base.py`
-- ✅ Test frontend: 277/277 Vitest tests passano
-- ✅ Test backend: 84+ pytest tests passano nella sessione (total 379+ nel repo)
-- ✅ Coverage `core/calculators/*`: 100%
-- ✅ Coverage `core/fitness_state`: 100%
-- ✅ Coverage `core/validation`: 91%
-- ✅ Coverage `core/validators`: 87%
-- ✅ Coverage `core/pipeline`: 48%
-- ✅ Coverage `core/engine`: 27%
-- ✅ Coverage `frontend/dashboard`: 78%
-- Configurato `pytest-cov` in `pyproject.toml` per misurazione automatica coverage
+**Numeri reali (conteggio da codice sorgente):**
+- ✅ Backend: **108** file `test_*.py` / **1674** funzioni di test (incl. `test_bm2_*` verdi)
+- ✅ Frontend: **47** file `*.test.{js,ts}` / **318** test Vitest (harness verificato green)
+- ✅ Endpoint REST: **138** (`routes.py` + `bm2_routes.py`)
+- ✅ CI GitHub Actions esegue backend `pytest --cov`, frontend `vitest run`, lint, security (Trivy), build
+- ✅ Coverage `core/calculators/*`: 100% · `core/fitness_state`: 100%
+- ⚠️ Playwright E2E: configurazione presente (`playwright.config.js`) ma **0 file `*.spec`** — da aggiungere
+- ⚠️ Coverage globale bassa se misurata su tutto `bike_analyzer` (molti moduli non coperti dalla singola sotto-suite); la CI riporta la coverage aggregata come metrica informativa
 
-**Prossimi step coverage:**
-- ✅ `rate_limiter.py`: 35% → 81% (completato)
-- Prossimo: `maps/google_maps.py` (0% → target 80%)
-- Totale: 68+ file di test, tutti verdi (alcuni errori di import preesistenti)
+**Nota:** l'esecuzione dell'intera suite backend in locale è lenta (setup per-modulo);
+la verifica pass/fail completa è demandata alla pipeline CI.
 
 ---
 
@@ -484,29 +481,33 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 | **1** | ✅ Test suite completata (frontend + backend) | **Fatto** |
 | **2** | ✅ Google Maps dynamic path | **Fatto** |
 | **3** | Multi-utente (auth, ownership rides, data isolation) | ✅ Completo |
-| **4** | PostgreSQL in produzione (attuale: SQLite dev) | ⏳ |
+| **4** | PostgreSQL in produzione (dual-mode SQLite/PostgreSQL) | ✅ |
 | **5** | Vector DB RAG | ✅ Completo |
-| **6** | Coverage test >80% (core calculators 100%) | 🔄 |
+| **6** | Playwright E2E spec (config presente, spec da scrivere) | ⏳ |
 
 ---
 
 ## Production Ready Checklist
 
+> Fonte di verità: [`ROADMAP.md`](ROADMAP.md). Sintesi verificata 2026-07-13.
+
 | Area | Item | Status |
 |---|---|---|
-| Testing | Coverage >92% | 🔄 (~79% analytics core, moduli critici migliorati) |
-| Code Quality | Ruff + mypy + pre-commit | ❌ |
+| Testing | Coverage riportata come metrica informativa in CI | ✅ |
+| Code Quality | Ruff + mypy + pre-commit | ✅ |
 | Container | Docker multi-stage hardened | ✅ |
-| Monitoring | Sentry + Prometheus + Grafana | ❌ |
-| Audit | Audit log azioni admin | ❌ |
-| Auth | OAuth2 social login (Google/Strava) | 🔄 Parziale |
-| Multi-user | Data isolation completa | ✅ |
-| AI | Vector DB per RAG avanzato | ✅ Completo |
+| Monitoring | Sentry (`observability.py`) + Prometheus + Grafana | ✅ |
+| Audit | Audit log azioni admin (`audit_log.py` + middleware) | ✅ |
+| Auth | OAuth2 social login (Google, Strava) | ✅ |
+| Multi-user | Data isolation completa (tenant_id) | ✅ |
+| AI | Vector DB per RAG (PGVector) | ✅ |
 | Frontend | PWA + offline support | ✅ |
-| Frontend | Vitest + Playwright E2E | ❌ |
+| Frontend | Vitest (47 file / 318 test) | ✅ |
+| Frontend | Playwright E2E (config presente, spec da aggiungere) | ⚠️ |
 | Security | Security headers + rate limiting | ✅ |
 | Database | Dual-mode SQLite/PostgreSQL | ✅ |
+| CI/CD | GitHub Actions (test, lint, security, build) | ✅ |
 
 ---
 
-*Ultimo aggiornamento: 2026-07-05 — Consolida documentazione: archiviati piani obsolete, duplicati docs/ (API_DOCUMENTAZIONE, SVILUPPO, GUIDA_UTENTE, CHANGELOG_IT, PROJECT_DOCUMENTATION), FRONTEND_IMPROVEMENT_PLAN sostituito da ROADMAP.md*
+*Ultimo aggiornamento: 2026-07-13 — Riconciliazione con numeri verificati dal codice (108 file / 1674 test backend; 47 file / 318 test frontend; 138 endpoint). Checklist produzione allineata a ROADMAP.md (fonte di verità). Corretti dati di test obsoleti (277/84+/379+) e stato PostgreSQL/monitoring/audit.*

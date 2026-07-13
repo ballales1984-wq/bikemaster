@@ -1,10 +1,11 @@
 # BikeMaster — Roadmap Consolidata
 
-*Ultimo aggiornamento: 2026-07-12*
+*Ultimo aggiornamento: 2026-07-13*
 
-> Stato: **Late Beta / Early Production** (multi-tenant completato, deploy su Render stabile).
-> Questo documento è la *fonte di verità* unica per le idee/feature. Le fasi 1-25
-> sono completate; sotto il backlog riordinato (4 track) e lo stato di pulizia repo.
+> Stato: **Production Ready** (multi-tenant completato, deploy su Render stabile).
+> Numeri verificati: backend 108 file / 1674 test · frontend 47 file / 318 test · 138 endpoint REST.
+> Questo documento è la *fonte di verità* unica per stato, checklist e idee/feature.
+> Le fasi 1-25 sono completate; sotto il backlog riordinato (4 track) e lo stato di pulizia repo.
 
 ---
 
@@ -119,7 +120,8 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 | Multi-user | Data isolation completa | ✅ |
 | AI | Vector DB per RAG | ✅ |
 | Frontend | PWA + offline support | ✅ |
-| Frontend | Vitest + Playwright E2E | ✅ |
+| Frontend | Vitest (47 file / 318 test) | ✅ |
+| Frontend | Playwright E2E (config presente, spec da aggiungere) | ⚠️ |
 | Security | Security headers + rate limiting | ✅ |
 | Database | Dual-mode SQLite/PostgreSQL | ✅ |
 | CI/CD | GitHub Actions | ✅ |
