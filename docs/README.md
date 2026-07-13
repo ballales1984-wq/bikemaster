@@ -78,12 +78,6 @@ Riferimento tecnico esaustivo generato dal codice sorgente — **il punto di par
 |---|---|
 | [agent/README.md](./agent/README.md) | AI agent instructions (progressive disclosure) |
 
-## ⚠️ Deprecated / Da Cancellare
-
-| File | Note |
-|---|---|
-| `PROJECT_DOCUMENTATION.md` | **OBSOLETO** — duplicato completo di `MASTER.md`, bloccato da OS (chiusura editor/processo + `del /f`). Ignorare. |
-
 ---
 
 ## Quick Links
