@@ -369,11 +369,10 @@ def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete
     history_section = ""
     if athlete_id:
         try:
-            from ..db.database import get_chat_history, prune_chat_history
-            from ..settings import get_settings
+            from .conversation_store import load, prune
 
-            prune_chat_history(athlete_id, None, get_settings().ai_coach_chat_retention_days)
-            history = get_chat_history(athlete_id, limit=5)
+            prune(athlete_id, 50)
+            history = load(athlete_id)
             if history:
                 history_section = (
                     "\n\nCONVERSAZIONE PRECEDENTE:\n"
@@ -419,7 +418,15 @@ def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete
             from ..monitoring import record_ai_coach_query
 
             record_ai_coach_query(provider, "success")
-            return _clean_ai_output(content)
+            cleaned = _clean_ai_output(content)
+            if athlete_id:
+                try:
+                    from .conversation_store import append
+
+                    append(athlete_id, {"role": "assistant", "content": cleaned})
+                except Exception:
+                    pass
+            return cleaned
         except Exception as e:
             from ..monitoring import record_ai_coach_query
 
@@ -463,11 +470,10 @@ def generate_recovery_advice(
     history_section = ""
     if athlete_id:
         try:
-            from ..db.database import get_chat_history, prune_chat_history
-            from ..settings import get_settings
+            from .conversation_store import load, prune
 
-            prune_chat_history(athlete_id, None, get_settings().ai_coach_chat_retention_days)
-            history = get_chat_history(athlete_id, limit=5)
+            prune(athlete_id, 50)
+            history = load(athlete_id)
             if history:
                 history_section = (
                     "\n\nCONVERSAZIONE PRECEDENTE:\n"
@@ -505,7 +511,15 @@ def generate_recovery_advice(
             from ..monitoring import record_ai_coach_query
 
             record_ai_coach_query(provider, "success")
-            return _clean_ai_output(content)
+            cleaned = _clean_ai_output(content)
+            if athlete_id:
+                try:
+                    from .conversation_store import append
+
+                    append(athlete_id, {"role": "assistant", "content": cleaned})
+                except Exception:
+                    pass
+            return cleaned
         except Exception as e:
             from ..monitoring import record_ai_coach_query
 
@@ -914,9 +928,9 @@ def chat_with_tools(
             messages.extend(tool_results)
 
             if athlete_id:
-                from ..db.database import save_chat_message
+                from .conversation_store import append
 
-                save_chat_message(athlete_id, "assistant", str(tool_results))
+                append(athlete_id, {"role": "assistant", "content": str(tool_results)})
 
             response = (
                 client.chat.completions.create(
