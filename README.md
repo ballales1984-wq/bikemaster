@@ -60,11 +60,13 @@ Riferimento tecnico esaustivo generato dal codice sorgente — **il punto di par
 | Documento | Contenuto |
 |---|---|
 | [`docs/reference/README.md`](docs/reference/README.md) | Indice del riferimento completo |
+| [`docs/reference/architecture.md`](docs/reference/architecture.md) | Architettura di sistema: layer, flusso richieste, mappa moduli |
 | [`docs/reference/api-reference.md`](docs/reference/api-reference.md) | Tutti i 138 endpoint REST (metodo, path, auth) |
 | [`docs/reference/database-schema.md`](docs/reference/database-schema.md) | Schema DB completo: tabelle, indici, migrazioni Alembic |
 | [`docs/reference/domain-models.md`](docs/reference/domain-models.md) | Entità di dominio + modelli BM2 campo per campo |
 | [`docs/reference/configuration.md`](docs/reference/configuration.md) | Tutte le variabili d'ambiente / settings |
 | [`docs/reference/engines-and-analytics.md`](docs/reference/engines-and-analytics.md) | Engine BM2 (9 algoritmi) + motore analytics |
+| [`docs/reference/frontend.md`](docs/reference/frontend.md) | SPA Vue 3: route, store, componenti, mobile/PWA |
 
 ### Visione e architettura
 
