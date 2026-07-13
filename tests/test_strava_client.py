@@ -86,32 +86,26 @@ class TestGetAuthorizationUrl:
 
 
 class TestExchangeCodeForToken:
-    def test_posts_to_token_url(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.requests.post") as mock_post:
-            mock_resp = MagicMock()
-            mock_resp.json.return_value = {"access_token": "abc", "refresh_token": "def", "expires_at": 9999999999}
-            mock_resp.raise_for_status.return_value = None
-            mock_post.return_value = mock_resp
-            result = exchange_code_for_token("code123", "verifier123")
+    async def test_posts_to_token_url(self):
+        with patch("bike_analyzer.backend.ingestion.strava_client.request_json") as mock_req:
+            mock_req.return_value = {"access_token": "abc", "refresh_token": "def", "expires_at": 9999999999}
+            result = await exchange_code_for_token("code123", "verifier123")
             assert result["access_token"] == "abc"
-            mock_post.assert_called_once()
-            call_args = mock_post.call_args
-            assert call_args[1]["data"]["code"] == "code123"
-            assert call_args[1]["data"]["code_verifier"] == "verifier123"
+            mock_req.assert_called_once()
+            kwargs = mock_req.call_args.kwargs
+            assert kwargs["data"]["code"] == "code123"
+            assert kwargs["data"]["code_verifier"] == "verifier123"
 
 
 class TestRefreshAccessToken:
-    def test_refreshes_token(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.requests.post") as mock_post:
-            mock_resp = MagicMock()
-            mock_resp.json.return_value = {
+    async def test_refreshes_token(self):
+        with patch("bike_analyzer.backend.ingestion.strava_client.request_json") as mock_req:
+            mock_req.return_value = {
                 "access_token": "new_token",
                 "refresh_token": "new_refresh",
                 "expires_in": 21600,
             }
-            mock_resp.raise_for_status.return_value = None
-            mock_post.return_value = mock_resp
-            result = refresh_access_token("old_refresh")
+            result = await refresh_access_token("old_refresh")
             assert result["access_token"] == "new_token"
             assert "refresh_token" in result
             assert "expires_in" in result
@@ -212,42 +206,33 @@ class TestTokenStorage:
 
 
 class TestFetchActivities:
-    def test_fetches_with_auth_header(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.requests.get") as mock_get:
-            mock_resp = MagicMock()
-            mock_resp.json.return_value = [{"id": 1, "name": "Ride"}]
-            mock_resp.raise_for_status.return_value = None
-            mock_get.return_value = mock_resp
-            activities = fetch_activities("token_xyz", page=2, per_page=20)
+    async def test_fetches_with_auth_header(self):
+        with patch("bike_analyzer.backend.ingestion.strava_client.request_json") as mock_get:
+            mock_get.return_value = [{"id": 1, "name": "Ride"}]
+            activities = await fetch_activities("token_xyz", page=2, per_page=20)
             assert len(activities) == 1
             assert activities[0]["name"] == "Ride"
-            call_kwargs = mock_get.call_args[1]
+            call_kwargs = mock_get.call_args.kwargs
             assert call_kwargs["headers"]["Authorization"] == "Bearer token_xyz"
             assert call_kwargs["params"]["page"] == 2
 
-    def test_fetch_all_paginates(self):
+    async def test_fetch_all_paginates(self):
         page_sizes = [30, 30, 10]
 
         def mock_get(*args, **kwargs):
             page = kwargs.get("params", {}).get("page", 1)
-            resp = MagicMock()
-            resp.json.return_value = [{"id": page}] * page_sizes[page - 1]
-            resp.raise_for_status.return_value = None
-            return resp
+            return [{"id": page}] * page_sizes[page - 1]
 
-        with patch("bike_analyzer.backend.ingestion.strava_client.requests.get", side_effect=mock_get):
-            activities = fetch_all_activities("token_xyz", max_pages=5)
+        with patch("bike_analyzer.backend.ingestion.strava_client.request_json", side_effect=mock_get):
+            activities = await fetch_all_activities("token_xyz", max_pages=5)
             assert len(activities) == 70
 
-    def test_fetch_all_stops_on_empty_page(self):
+    async def test_fetch_all_stops_on_empty_page(self):
         def mock_get(*args, **kwargs):
-            resp = MagicMock()
-            resp.json.return_value = []
-            resp.raise_for_status.return_value = None
-            return resp
+            return []
 
-        with patch("bike_analyzer.backend.ingestion.strava_client.requests.get", side_effect=mock_get):
-            activities = fetch_all_activities("token_xyz")
+        with patch("bike_analyzer.backend.ingestion.strava_client.request_json", side_effect=mock_get):
+            activities = await fetch_all_activities("token_xyz")
             assert activities == []
 
 

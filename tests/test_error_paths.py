@@ -124,19 +124,19 @@ class TestGoogleMapsErrorPaths:
 
 class TestOSMMapsErrorPaths:
     def test_search_places_request_error(self):
-        with patch("bike_analyzer.backend.maps.osm_maps.requests") as mock_req:
-            import requests as req_mod
-
-            mock_req.get.side_effect = req_mod.RequestException("Connection error")
+        with patch(
+            "bike_analyzer.backend.maps.osm_maps.request_json",
+            side_effect=Exception("Connection error"),
+        ):
             result = search_places("cafe")
             assert result is None
 
     def test_search_nearby_request_error(self):
         pts = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime.now(tz=UTC))]
-        with patch("bike_analyzer.backend.maps.osm_maps.requests") as mock_req:
-            import requests as req_mod
-
-            mock_req.get.side_effect = req_mod.RequestException("Connection error")
+        with patch(
+            "bike_analyzer.backend.maps.osm_maps.request_json",
+            side_effect=Exception("Connection error"),
+        ):
             result = search_nearby(pts, "cafe")
             assert result is None
 
@@ -145,10 +145,10 @@ class TestOSMMapsErrorPaths:
         assert result is None or "results" in result
 
     def test_reverse_geocode_request_error(self):
-        with patch("bike_analyzer.backend.maps.osm_maps.requests") as mock_req:
-            import requests as req_mod
-
-            mock_req.get.side_effect = req_mod.RequestException("Connection error")
+        with patch(
+            "bike_analyzer.backend.maps.osm_maps.request_json",
+            side_effect=Exception("Connection error"),
+        ):
             from bike_analyzer.backend.maps.osm_maps import reverse_geocode
 
             result = reverse_geocode(45.0, 9.0)

@@ -24,9 +24,11 @@ import logging
 import secrets
 import time
 from typing import Any
+from urllib.parse import urlencode
 
-import requests
+import httpx
 
+from ..http_async import request_json
 from ..settings import get_settings
 
 _s = get_settings()
@@ -69,7 +71,7 @@ def build_authorization_url(state: str, code_challenge: str) -> str:
         "code_challenge_method": "S256",
         "approval_prompt": "auto",
     }
-    return f"{STRAVA_AUTH_URL}?{requests.compat.urlencode(params)}"
+    return f"{STRAVA_AUTH_URL}?{urlencode(params)}"
 
 
 def get_authorization_url(state: str | None = None) -> dict[str, str]:
@@ -92,7 +94,7 @@ def get_authorization_url(state: str | None = None) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 
 
-def exchange_code_for_token(code: str, code_verifier: str) -> dict[str, Any]:
+async def exchange_code_for_token(code: str, code_verifier: str) -> dict[str, Any]:
     payload = {
         "client_id": _s.strava_client_id,
         "client_secret": _s.strava_client_secret,
@@ -101,21 +103,17 @@ def exchange_code_for_token(code: str, code_verifier: str) -> dict[str, Any]:
         "redirect_uri": _s.strava_redirect_uri,
         "code_verifier": code_verifier,
     }
-    resp = requests.post(STRAVA_TOKEN_URL, data=payload, timeout=15)
-    resp.raise_for_status()
-    return resp.json()
+    return await request_json("POST", STRAVA_TOKEN_URL, data=payload, timeout=15)
 
 
-def refresh_access_token(refresh_token: str) -> dict[str, Any]:
+async def refresh_access_token(refresh_token: str) -> dict[str, Any]:
     payload = {
         "client_id": _s.strava_client_id,
         "client_secret": _s.strava_client_secret,
         "grant_type": "refresh_token",
         "refresh_token": refresh_token,
     }
-    resp = requests.post(STRAVA_TOKEN_URL, data=payload, timeout=15)
-    resp.raise_for_status()
-    return resp.json()
+    return await request_json("POST", STRAVA_TOKEN_URL, data=payload, timeout=15)
 
 
 # ---------------------------------------------------------------------------
@@ -194,7 +192,7 @@ def revoke_token(athlete_id: int) -> None:
         conn.execute("DELETE FROM strava_tokens WHERE athlete_id = ?", (athlete_id,))
 
 
-def get_valid_token(athlete_id: int) -> str | None:
+async def get_valid_token(athlete_id: int) -> str | None:
     _ensure_token_table()
     with _get_conn() as conn:
         row = conn.execute(
@@ -206,7 +204,7 @@ def get_valid_token(athlete_id: int) -> str | None:
     access_token, refresh_token, expires_at = row
     if expires_at and expires_at - time.time() < TOKEN_REFRESH_BUFFER_SECONDS:
         try:
-            new_data = refresh_access_token(refresh_token)
+            new_data = await refresh_access_token(refresh_token)
             store_token(athlete_id, new_data)
             return new_data.get("access_token")
         except Exception:
@@ -222,24 +220,23 @@ def get_valid_token(athlete_id: int) -> str | None:
 _STRAVA_PER_PAGE = 30
 
 
-def fetch_activities(access_token: str, page: int = 1, per_page: int = _STRAVA_PER_PAGE) -> list[dict]:
+async def fetch_activities(access_token: str, page: int = 1, per_page: int = _STRAVA_PER_PAGE) -> list[dict]:
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"page": page, "per_page": per_page}
-    resp = requests.get(
+    return await request_json(
+        "GET",
         f"{STRAVA_API_BASE_URL}/athlete/activities",
         headers=headers,
         params=params,
         timeout=20,
     )
-    resp.raise_for_status()
-    return resp.json()
 
 
-def fetch_all_activities(access_token: str, max_pages: int = 20) -> list[dict]:
+async def fetch_all_activities(access_token: str, max_pages: int = 20) -> list[dict]:
     all_activities: list[dict] = []
     page = 1
     while page <= max_pages:
-        batch = fetch_activities(access_token, page=page)
+        batch = await fetch_activities(access_token, page=page)
         if not batch:
             break
         all_activities.extend(batch)
@@ -285,7 +282,7 @@ class StravaRateLimitError(Exception):
     pass
 
 
-def fetch_activity_streams(
+async def fetch_activity_streams(
     access_token: str,
     activity_id: int | str,
     keys: tuple[str, ...] = ("latlng", "altitude"),
@@ -294,7 +291,8 @@ def fetch_activity_streams(
     """Fetch raw GPS streams for a single activity.
 
     Returns the decoded Strava streams object, or raises ``StravaRateLimitError``
-    on HTTP 429 so callers can stop hammering the API.
+    on HTTP 429 so callers can stop hammering the API (no retries, since a 429
+    here means the whole import should fall back to the summary polyline).
     """
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {
@@ -302,12 +300,12 @@ def fetch_activity_streams(
         "key_by_type": "true",
         "resolution": resolution,
     }
-    resp = requests.get(
-        f"{STRAVA_API_BASE_URL}/activities/{activity_id}/streams",
-        headers=headers,
-        params=params,
-        timeout=20,
-    )
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.get(
+            f"{STRAVA_API_BASE_URL}/activities/{activity_id}/streams",
+            headers=headers,
+            params=params,
+        )
     if resp.status_code == 429:
         raise StravaRateLimitError()
     resp.raise_for_status()
@@ -337,14 +335,16 @@ def streams_to_points(streams: dict) -> list[dict[str, float]] | None:
 def strava_to_ride(
     activity: dict[str, Any],
     weight_kg: float = 70.0,
-    access_token: str | None = None,
+    gps_points: list[dict[str, float]] | None = None,
     resolution: str = "medium",
 ) -> dict[str, Any]:
     """Convert a single Strava activity dict into a BikeMaster Ride dict.
 
-    GPS points come from the high-resolution activity streams when ``access_token``
-    is provided (and Strava does not rate-limit); otherwise it falls back to the
-    low-resolution ``summary_polyline`` from the activity list.
+    GPS points are taken from ``gps_points`` when provided; otherwise the
+    low-resolution ``summary_polyline`` from the activity list is decoded. The
+    high-resolution Strava streams are fetched by the async
+    :func:`strava_to_ride_with_streams` helper so this function stays free of
+    blocking network I/O.
     """
     sport = activity.get("sport_type", activity.get("type", "Ride"))
     if "bike" not in sport.lower() and "ride" not in sport.lower():
@@ -361,20 +361,7 @@ def strava_to_ride(
     external_id = activity.get("id")
     name = activity.get("name", "")
 
-    gps_points: list[dict[str, float]] = []
-    if access_token and external_id is not None:
-        try:
-            streams = fetch_activity_streams(access_token, external_id, resolution=resolution)
-            pts = streams_to_points(streams)
-            if pts:
-                gps_points = pts
-        except StravaRateLimitError:
-            raise
-        except Exception:
-            logger.exception("Failed to fetch Strava streams for activity %s", external_id)
-
-    # Fallback to the low-resolution summary polyline if streams were unavailable.
-    if not gps_points:
+    if gps_points is None:
         summary_polyline = (activity.get("map") or {}).get("summary_polyline")
         gps_points = decode_polyline(summary_polyline)
 
@@ -393,3 +380,28 @@ def strava_to_ride(
         "title": name,
     }
     return ride
+
+
+async def strava_to_ride_with_streams(
+    activity: dict[str, Any],
+    access_token: str,
+    weight_kg: float = 70.0,
+    resolution: str = "medium",
+) -> dict[str, Any]:
+    """Build a Strava ride dict, fetching high-resolution GPS streams.
+
+    Falls back to the summary polyline (via :func:`strava_to_ride`) when streams
+    are unavailable, but re-raises ``StravaRateLimitError`` so callers can stop
+    requesting streams for the rest of the batch.
+    """
+    external_id = activity.get("id")
+    points: list[dict[str, float]] | None = None
+    if external_id is not None:
+        try:
+            streams = await fetch_activity_streams(access_token, external_id, resolution=resolution)
+            points = streams_to_points(streams)
+        except StravaRateLimitError:
+            raise
+        except Exception:
+            logger.exception("Failed to fetch Strava streams for activity %s", external_id)
+    return strava_to_ride(activity, weight_kg=weight_kg, gps_points=points, resolution=resolution)

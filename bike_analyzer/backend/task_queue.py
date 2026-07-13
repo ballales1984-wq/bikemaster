@@ -211,15 +211,16 @@ class BackgroundTaskQueue:
             fetch_all_activities,
             get_valid_token,
             strava_to_ride,
+            strava_to_ride_with_streams,
             StravaRateLimitError,
         )
 
         athlete_id = payload["athlete_id"]
         tenant_id = payload.get("tenant_id", athlete_id)
-        access_token = get_valid_token(athlete_id)
+        access_token = await get_valid_token(athlete_id)
         if not access_token:
             return {"imported": 0, "error": "no_valid_token"}
-        activities = fetch_all_activities(access_token)
+        activities = await fetch_all_activities(access_token)
         imported = []
         imported_ids: set[int] = set()
         streams_rate_limited = False
@@ -228,7 +229,7 @@ class BackgroundTaskQueue:
                 ride_data = strava_to_ride(act)
             else:
                 try:
-                    ride_data = strava_to_ride(act, access_token=access_token)
+                    ride_data = await strava_to_ride_with_streams(act, access_token)
                 except StravaRateLimitError:
                     streams_rate_limited = True
                     ride_data = strava_to_ride(act)
@@ -253,10 +254,10 @@ class BackgroundTaskQueue:
 
         athlete_id = payload["athlete_id"]
         tenant_id = payload.get("tenant_id", athlete_id)
-        access_token = get_valid_token(athlete_id)
+        access_token = await get_valid_token(athlete_id)
         if not access_token:
             return {"imported": 0, "error": "no_valid_token"}
-        activities = fetch_activities(access_token)
+        activities = await fetch_activities(access_token)
         imported = []
         imported_ids: set[int] = set()
         for act in activities:

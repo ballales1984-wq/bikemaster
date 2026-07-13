@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
 from bike_analyzer.backend.ingestion.garmin_client import (
@@ -43,57 +44,51 @@ class TestGarminOAuth:
         ):
             get_authorization_url()
 
-    @patch("bike_analyzer.backend.ingestion.garmin_client.requests.post")
-    def test_exchange_code_for_token(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {
+    @patch("bike_analyzer.backend.ingestion.garmin_client.request_json")
+    async def test_exchange_code_for_token(self, mock_req):
+        mock_req.return_value = {
             "access_token": "garmin_access",
             "refresh_token": "garmin_refresh",
             "expires_in": 3600,
         }
-        mock_post.return_value = mock_resp
 
         with (
             patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_consumer_key", "test"),
             patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_consumer_secret", "secret"),
             patch("bike_analyzer.backend.ingestion.garmin_client._GARMIN_TOKEN_URL", "https://test"),
         ):
-            result = exchange_code_for_token("auth_code")
+            result = await exchange_code_for_token("auth_code")
             assert result["access_token"] == "garmin_access"
 
-    @patch("bike_analyzer.backend.ingestion.garmin_client.requests.post")
-    def test_exchange_code_raises_on_error(self, mock_post):
-        from requests.exceptions import HTTPError
-
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status.side_effect = HTTPError("401 Unauthorized")
-        mock_post.return_value = mock_resp
+    @patch("bike_analyzer.backend.ingestion.garmin_client.request_json")
+    async def test_exchange_code_raises_on_error(self, mock_req):
+        mock_req.side_effect = httpx.HTTPStatusError(
+            "401 Unauthorized",
+            request=httpx.Request("POST", "https://test"),
+            response=httpx.Response(401),
+        )
 
         with (
             patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_consumer_key", "test"),
             patch("bike_analyzer.backend.ingestion.garmin_client._s.garmin_consumer_secret", "secret"),
             patch("bike_analyzer.backend.ingestion.garmin_client._GARMIN_TOKEN_URL", "https://test"),
-            pytest.raises(HTTPError),
+            pytest.raises(httpx.HTTPStatusError),
         ):
-            exchange_code_for_token("bad_code")
+            await exchange_code_for_token("bad_code")
 
 
 class TestGarminActivities:
-    @patch("bike_analyzer.backend.ingestion.garmin_client.requests.get")
-    def test_fetch_activities(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = [
+    @patch("bike_analyzer.backend.ingestion.garmin_client.request_json")
+    async def test_fetch_activities(self, mock_req):
+        mock_req.return_value = [
             {"activityId": 1, "activityName": "Morning Ride", "startTimeGMT": "2024-06-15T08:00:00.000Z"},
         ]
-        mock_get.return_value = mock_resp
 
         with (
             patch("bike_analyzer.backend.ingestion.garmin_client._GARMIN_API_BASE_URL", "https://test"),
             patch("bike_analyzer.backend.ingestion.garmin_client.store_token"),
         ):
-            activities = fetch_activities("access_token_123")
+            activities = await fetch_activities("access_token_123")
             assert len(activities) == 1
 
     def test_garmin_to_ride(self):

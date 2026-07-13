@@ -882,6 +882,7 @@ def create_indices():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_duration ON rides(duration_minutes)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_speed ON rides(avg_speed_kmh)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_athlete ON rides(athlete_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_athlete_date ON rides(athlete_id, date)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_metrics_ride ON metrics(ride_id)")
         _ensure_external_identity_index(conn)
         conn.commit()

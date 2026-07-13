@@ -27,9 +27,11 @@ import logging
 import secrets
 import time
 from typing import Any
+from urllib.parse import urlencode
 
-import requests
+import httpx
 
+from ..http_async import request_json
 from ..settings import get_settings
 
 _s = get_settings()
@@ -61,11 +63,11 @@ def get_authorization_url(state: str | None = None) -> dict[str, str]:
         "scope": _s.garmin_scope,
         "state": state,
     }
-    auth_url = f"{_GARMIN_AUTH_URL}?{requests.compat.urlencode(params)}"
+    auth_url = f"{_GARMIN_AUTH_URL}?{urlencode(params)}"
     return {"auth_url": auth_url, "state": state}
 
 
-def exchange_code_for_token(code: str, redirect_uri: str | None = None) -> dict[str, Any]:
+async def exchange_code_for_token(code: str, redirect_uri: str | None = None) -> dict[str, Any]:
     """Exchange authorization code for access + refresh tokens."""
     redirect_uri = redirect_uri or _s.garmin_redirect_uri
     payload = {
@@ -75,12 +77,10 @@ def exchange_code_for_token(code: str, redirect_uri: str | None = None) -> dict[
         "client_secret": _s.garmin_consumer_secret,
         "redirect_uri": redirect_uri,
     }
-    resp = requests.post(_GARMIN_TOKEN_URL, data=payload, timeout=15)
-    resp.raise_for_status()
-    return resp.json()
+    return await request_json("POST", _GARMIN_TOKEN_URL, data=payload, timeout=15)
 
 
-def refresh_access_token(refresh_token: str) -> dict[str, Any]:
+async def refresh_access_token(refresh_token: str) -> dict[str, Any]:
     """Refresh an expired Garmin access token."""
     payload = {
         "grant_type": "refresh_token",
@@ -88,9 +88,7 @@ def refresh_access_token(refresh_token: str) -> dict[str, Any]:
         "client_id": _s.garmin_consumer_key,
         "client_secret": _s.garmin_consumer_secret,
     }
-    resp = requests.post(_GARMIN_TOKEN_URL, data=payload, timeout=15)
-    resp.raise_for_status()
-    return resp.json()
+    return await request_json("POST", _GARMIN_TOKEN_URL, data=payload, timeout=15)
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +160,7 @@ def revoke_token(athlete_id: int) -> None:
         conn.execute("DELETE FROM garmin_tokens WHERE athlete_id = ?", (athlete_id,))
 
 
-def get_valid_token(athlete_id: int) -> str | None:
+async def get_valid_token(athlete_id: int) -> str | None:
     _ensure_garmin_table()
     with _get_conn() as conn:
         row = conn.execute(
@@ -174,7 +172,7 @@ def get_valid_token(athlete_id: int) -> str | None:
     access_token, refresh_token, expires_at = row
     if expires_at and expires_at - time.time() < _TOKEN_REFRESH_BUFFER_SECONDS:
         try:
-            new_data = refresh_access_token(refresh_token)
+            new_data = await refresh_access_token(refresh_token)
             store_token(athlete_id, new_data)
             return new_data.get("access_token")
         except Exception:
@@ -188,16 +186,10 @@ def get_valid_token(athlete_id: int) -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def fetch_activities(access_token: str) -> list[dict[str, Any]]:
+async def fetch_activities(access_token: str) -> list[dict[str, Any]]:
     """Fetch cycling activities from Garmin Connect."""
     headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
-    resp = requests.get(
-        f"{_GARMIN_API_BASE_URL}/activities",
-        headers=headers,
-        timeout=20,
-    )
-    resp.raise_for_status()
-    data = resp.json()
+    data = await request_json("GET", f"{_GARMIN_API_BASE_URL}/activities", headers=headers, timeout=20)
     if isinstance(data, list):
         return data
     return data.get("activities", [])

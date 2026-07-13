@@ -75,13 +75,19 @@ class Settings(BaseSettings):
     def oauth_allowed_hosts_list(self) -> list[str]:
         return [h.strip().lower() for h in self.oauth_allowed_redirect_hosts.split(",") if h.strip()]
 
-    # === SerpApi / Google Maps (deprecated) ===
+    # === SerpApi / Google Maps ===
+    # SerpApi is used as an on-demand, budget-limited POI enrichment source that
+    # gradually populates the map database (see maps/poi_enrichment.py). OSM
+    # (osm_maps.py) remains the default keyless provider for live lookups.
     google_maps_api_key: str = ""
     google_maps_zoom: int = 13
     google_maps_size: str = "800x600"
     serpapi_api_key: str = ""
     serpapi_engine: str = "google_maps"
     serpapi_base_url: str = "https://serpapi.com/search"
+    # Max SerpApi searches per calendar month (free-tier safeguard). Enrichment
+    # stops once this budget is exhausted and can fall back to OSM.
+    serpapi_monthly_budget: int = 250
     nominatim_base_url: str = "https://nominatim.openstreetmap.org"
 
     # === Google Health ===

@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
+from ..http_async import request_json
 from ..settings import get_settings
 
 _s = get_settings()
@@ -26,10 +27,9 @@ def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:
     return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
 
 
-def exchange_code_for_token(client_id: str, client_secret: str, code: str, redirect_uri: str) -> dict:
-    import requests
-
-    resp = requests.post(
+async def exchange_code_for_token(client_id: str, client_secret: str, code: str, redirect_uri: str) -> dict:
+    return await request_json(
+        "POST",
         "https://oauth2.googleapis.com/token",
         data={
             "client_id": client_id,
@@ -40,8 +40,6 @@ def exchange_code_for_token(client_id: str, client_secret: str, code: str, redir
         },
         timeout=10,
     )
-    resp.raise_for_status()
-    return resp.json()
 
 
 def _build_credentials(token_data: dict) -> Credentials:
@@ -77,28 +75,26 @@ def _ms_to_iso(ms_str: str | int | None) -> str:
     return datetime.fromtimestamp(ms / 1000, tz=UTC).isoformat()
 
 
-def fetch_cycling_activities(access_token: str) -> list[dict]:
+async def fetch_cycling_activities(access_token: str) -> list[dict]:
     """Fetch cycling sessions from Google Fit REST API v1.
 
     Uses the Sessions endpoint, which returns activity sessions with
     startTimeMillis/endTimeMillis timestamps and activity type codes.
     """
-    import requests
-
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {
         "startTime": "2020-01-01T00:00:00Z",
         "endTime": "2099-12-31T23:59:59Z",
     }
-    resp = requests.get(
+    data = await request_json(
+        "GET",
         "https://www.googleapis.com/fitness/v1/users/me/sessions",
         headers=headers,
         params=params,
         timeout=10,
     )
-    resp.raise_for_status()
     activities: list[dict] = []
-    for session in resp.json().get("session", []):
+    for session in data.get("session", []):
         activity_type = session.get("activity", 0)
         if activity_type == 1:
             activities.append(

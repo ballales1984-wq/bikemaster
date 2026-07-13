@@ -7,7 +7,7 @@ import { useAuthStore } from "./stores/auth";
 import { useUIStore } from "./stores/ui";
 import "./composables/usePWA";
 import { useToast } from "./composables/useToast";
-import { processOAuthToken } from "./services/oauth";
+import { processOAuthToken, hasPendingOAuth } from "./services/oauth";
 import { syncAuthState } from "./services/authSync";
 import { apiGet } from "./utils/api";
 
@@ -80,9 +80,15 @@ if ("serviceWorker" in navigator) {
         const newWorker = reg.installing;
         if (newWorker) {
           newWorker.addEventListener("statechange", () => {
+            // Never force a reload while an OAuth return is being finalized:
+            // reloading mid-round-trip drops the in-flight login and strands
+            // the user on the login screen. The token is recovered from
+            // sessionStorage on the next load instead.
             if (
               newWorker.state === "installed" &&
-              navigator.serviceWorker.controller
+              navigator.serviceWorker.controller &&
+              !hasPendingOAuth() &&
+              !auth.justLoggedIn
             ) {
               window.location.reload();
             }
