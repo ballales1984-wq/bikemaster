@@ -38,6 +38,7 @@
       <label class="control itinerary-control">
         <span>{{ t("poi.itinerary") }}</span>
         <select
+          id="poi-itinerary"
           v-model="selectedItineraryId"
           class="form-input"
         >
@@ -68,13 +69,19 @@ v-if="addMode && draft" class="poi-form"
         <label class="form-label">
           {{ t("poi.name") }}
           <input
-v-model.trim="form.name" class="form-input" maxlength="120" />
+            id="poi-name"
+            v-model.trim="form.name"
+            class="form-input"
+            maxlength="120"
+          />
         </label>
         <label class="form-label">
           {{ t("poi.type") }}
           <select
-v-model="form.type" class="form-input"
->
+            id="poi-type"
+            v-model="form.type"
+            class="form-input"
+          >
             <option
 v-for="type in poiTypes" :key="type"
 :value="type"
@@ -86,6 +93,7 @@ v-for="type in poiTypes" :key="type"
         <label class="form-label">
           {{ t("poi.description") }}
           <textarea
+            id="poi-description"
             v-model.trim="form.description"
             class="form-input"
             rows="3"
@@ -95,6 +103,7 @@ v-for="type in poiTypes" :key="type"
         <label class="form-label">
           {{ t("poi.photos") }}
           <input
+            id="poi-photos"
             v-model.trim="form.photos"
             class="form-input"
             placeholder="https://..."
@@ -103,6 +112,7 @@ v-for="type in poiTypes" :key="type"
         <label class="form-label">
           {{ t("poi.videoUrl") }}
           <input
+            id="poi-video-url"
             v-model.trim="form.video_url"
             class="form-input"
             placeholder="https://..."
@@ -111,6 +121,7 @@ v-for="type in poiTypes" :key="type"
         <label class="form-label">
           {{ t("poi.difficultyNote") }}
           <input
+            id="poi-difficulty-note"
             v-model.trim="form.difficulty_note"
             class="form-input"
             maxlength="500"
@@ -119,6 +130,7 @@ v-for="type in poiTypes" :key="type"
         <label class="form-label">
           {{ t("poi.tags") }}
           <input
+            id="poi-tags"
             v-model.trim="form.tags"
             class="form-input"
             placeholder="panorama, ombra"

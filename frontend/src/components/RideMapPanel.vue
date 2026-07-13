@@ -21,7 +21,11 @@
       class="map-toolbar">
       <label class="control">
         <span>Map</span>
-        <select v-model="mapStyle" class="form-input">
+        <select
+          id="map-style"
+          v-model="mapStyle"
+          class="form-input"
+        >
           <option v-for="(cfg, key) in MAP_STYLES" :key="key" :value="key">
             {{ cfg.label }}
           </option>
@@ -30,7 +34,11 @@
 
       <label class="control">
         <span>{{ t("maps.route") }}</span>
-        <select v-model="selectedRideId" class="form-input">
+        <select
+          id="map-route"
+          v-model="selectedRideId"
+          class="form-input"
+        >
           <option :value="null">All routes</option>
           <option v-for="ride in ridesWithGps" :key="ride.id" :value="ride.id">
             {{ ride.date }} · {{ formatDistance(ride.distanceM) }}
@@ -40,7 +48,11 @@
 
       <label class="control">
         <span>{{ t("maps.coloring") }}</span>
-        <select v-model="colorMode" class="form-input">
+        <select
+          id="map-coloring"
+          v-model="colorMode"
+          class="form-input"
+        >
           <option value="combined">Grade + weather</option>
           <option value="slope">Grade only</option>
           <option value="weather">Weather only</option>

@@ -28,6 +28,7 @@
         <div class="athlete-select">
           <label>Athlete:</label>
           <select
+            id="calendar-athlete"
             v-model.number="athleteId"
             @change="loadEvents"
           >

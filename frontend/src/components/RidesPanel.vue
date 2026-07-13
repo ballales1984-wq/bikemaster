@@ -130,6 +130,7 @@ class="ride-count">{{
             🔧 {{ t("common.filter") }}{{ hasActiveFilters ? " ●" : "" }}
           </button>
           <select
+            id="ride-sort-by"
             v-model="sortBy"
             class="sort-select"
             :aria-label="t('common.filter')"
@@ -154,6 +155,7 @@ class="ride-count">{{
             <div class="form-group">
               <label>{{ t("common.date") }} {{ t("common.from") }}</label>
               <input
+                id="ride-filter-date-from"
                 v-model="filters.dateFrom"
                 type="date"
                 class="form-input"
@@ -162,11 +164,13 @@ class="ride-count">{{
             <div class="form-group">
               <label>{{ t("common.date") }} {{ t("common.to") }}</label>
               <input
+                id="ride-filter-date-to"
 v-model="filters.dateTo" type="date" class="form-input" />
             </div>
             <div class="form-group">
               <label>{{ t("rides.distance") }} min (km)</label>
               <input
+                id="ride-filter-dist-min"
                 v-model.number="filters.distMin"
                 type="number"
                 min="0"
@@ -177,6 +181,7 @@ v-model="filters.dateTo" type="date" class="form-input" />
             <div class="form-group">
               <label>{{ t("rides.distance") }} max (km)</label>
               <input
+                id="ride-filter-dist-max"
                 v-model.number="filters.distMax"
                 type="number"
                 min="0"

@@ -128,16 +128,16 @@ function resultList(): [string, Bm2ModelResult][] {
     <form class="bm2-form" @submit.prevent="onSubmit">
       <label>
         Domanda
-        <input v-model="form.question" type="text" placeholder="Es. Quanta energia consumo?" />
+        <input id="bm2-question" v-model="form.question" type="text" placeholder="Es. Quanta energia consumo?" />
       </label>
       <div class="bm2-row">
-        <label>Peso atleta (kg)<input v-model.number="form.weight" type="number" /></label>
-        <label>Peso bici (kg)<input v-model.number="form.bikeWeight" type="number" /></label>
-        <label>Pendenza (%)<input v-model.number="form.slope" type="number" /></label>
-        <label>Punti GPS<input v-model.number="form.gpsPoints" type="number" min="2" /></label>
+        <label>Peso atleta (kg)<input id="bm2-weight" v-model.number="form.weight" type="number" /></label>
+        <label>Peso bici (kg)<input id="bm2-bike-weight" v-model.number="form.bikeWeight" type="number" /></label>
+        <label>Pendenza (%)<input id="bm2-slope" v-model.number="form.slope" type="number" /></label>
+        <label>Punti GPS<input id="bm2-gps-points" v-model.number="form.gpsPoints" type="number" min="2" /></label>
       </div>
       <label class="bm2-check">
-        <input v-model="isSimulation" type="checkbox" /> Modalità simulazione ("what if")
+        <input id="bm2-simulation" v-model="isSimulation" type="checkbox" /> Modalità simulazione ("what if")
       </label>
       <button type="submit" :disabled="loading">
         {{ loading ? "Analisi…" : "Analizza" }}
@@ -189,16 +189,16 @@ function resultList(): [string, Bm2ModelResult][] {
         scenario "what if" o per validare la potenza stimata contro il power-meter.
       </p>
       <div class="bm2-row">
-        <label>ID ride<input v-model.number="rideForm.rideId" type="number" min="1" /></label>
+        <label>ID ride<input id="bm2-ride-id" v-model.number="rideForm.rideId" type="number" min="1" /></label>
       </div>
 
       <fieldset class="bm2-fieldset">
         <legend>Scenario "what if"</legend>
         <div class="bm2-row">
-          <label>Δ peso atleta (kg)<input v-model.number="rideForm.athleteWeightDelta" type="number" step="0.5" /></label>
-          <label>Δ peso bici (kg)<input v-model.number="rideForm.bikeWeightDelta" type="number" step="0.5" /></label>
-          <label>Δ pendenza (%)<input v-model.number="rideForm.slopeDelta" type="number" step="0.5" /></label>
-          <label>CdA override<input v-model.number="rideForm.cdaOverride" type="number" step="0.01" placeholder="es. 0.30" /></label>
+          <label>Δ peso atleta (kg)<input id="bm2-athlete-weight-delta" v-model.number="rideForm.athleteWeightDelta" type="number" step="0.5" /></label>
+          <label>Δ peso bici (kg)<input id="bm2-bike-weight-delta" v-model.number="rideForm.bikeWeightDelta" type="number" step="0.5" /></label>
+          <label>Δ pendenza (%)<input id="bm2-slope-delta" v-model.number="rideForm.slopeDelta" type="number" step="0.5" /></label>
+          <label>CdA override<input id="bm2-cda-override" v-model.number="rideForm.cdaOverride" type="number" step="0.01" placeholder="es. 0.30" /></label>
         </div>
         <button type="button" :disabled="loading || !rideForm.rideId" @click="onSimulateRide">
           {{ loading ? "Calcolo…" : "Simula sulla ride" }}
@@ -208,9 +208,9 @@ function resultList(): [string, Bm2ModelResult][] {
       <fieldset class="bm2-fieldset">
         <legend>Validazione potenza (power-meter)</legend>
         <div class="bm2-row">
-          <label>Peso bici (kg)<input v-model.number="rideForm.bikeWeight" type="number" step="0.1" /></label>
-          <label>CdA<input v-model.number="rideForm.cda" type="number" step="0.01" /></label>
-          <label>Crr<input v-model.number="rideForm.crr" type="number" step="0.001" /></label>
+          <label>Peso bici (kg)<input id="bm2-real-bike-weight" v-model.number="rideForm.bikeWeight" type="number" step="0.1" /></label>
+          <label>CdA<input id="bm2-real-cda" v-model.number="rideForm.cda" type="number" step="0.01" /></label>
+          <label>Crr<input id="bm2-real-crr" v-model.number="rideForm.crr" type="number" step="0.001" /></label>
         </div>
         <button type="button" :disabled="loading || !rideForm.rideId" @click="onValidate">
           {{ loading ? "Calcolo…" : "Valida potenza" }}
