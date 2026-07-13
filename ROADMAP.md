@@ -21,12 +21,12 @@ Ordine: stabilità → mobile nativo → maturità AI → distribuzione/integraz
 
 | ID | Idea | Fascia | Stato |
 |:--:|---|---|:--:|
-| P0.1 | Logging centralizzato e strutturato | Stabilità | 🔄 |
-| P0.2 | Servizi registrati nel lifespan FastAPI | Stabilità | 🔄 |
+| P0.1 | Logging centralizzato e strutturato | Stabilità | ✅ |
+| P0.2 | Servizi registrati nel lifespan FastAPI | Stabilità | ✅ |
 | P1.1 | Verifica build iOS con Xcode su dispositivo | Mobile nativo | 🔄 |
 | P1.2 | Voice input/output AI Coach + prompt engineering avanzato | Mobile nativo | ❌ |
-| P2.1 | Memory persistente conversazioni per utente | AI Coach | 🔄 |
-| P2.2 | Design System + theme tokens | AI Coach | 🔄 |
+| P2.1 | Memory persistente conversazioni per utente | AI Coach | ✅ |
+| P2.2 | Design System + theme tokens | AI Coach | ✅ |
 | P3.1 | Wahoo integration | Distribuzione | ✅ |
 | P3.2 | Versione cloud hosted (Render/Azure/Fly/Railway/Vercel) | Distribuzione | ✅ |
 | P3.3 | Helm chart Kubernetes | Distribuzione | ✅ |
@@ -34,6 +34,11 @@ Ordine: stabilità → mobile nativo → maturità AI → distribuzione/integraz
 | P3.5 | Coverage test >90% come metrica informativa | Qualità | 🔄 |
 
 ---
+
+> **Note di riconciliazione (2026-07-13):** gli item `P0.1`, `P0.2`, `P2.1`, `P2.2`
+> risultavano "🔄 in corso" ma i relativi branch sono già stati fusi in `main`
+> (`git branch --merged main`): `feat/logging-lifespan` (P0.1+P0.2),
+> `feat/aicoach-memory` (P2.1), `feat/design-system` (P2.2). Segnati ✅.
 
 ## Track B — AetherMap (R&D, progetto separato mantenuto)
 
@@ -93,11 +98,13 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 - [x] `config.py` legacy rimosso (v1.4.1).
 
 ### C.2 Branch non-fusi aperti (da revisionare, NON eliminati — contengono lavoro)
-| Branch | Contenuto | Azione suggerita |
+> **Riconciliazione (2026-07-13):** `feature/core-engine-refactor` risulta già
+> fuso in `main` (`git branch --merged main`) e `fix/frontend-assets` non esiste
+> più (già fuso/eliminato). Rimossi da questo elenco. Restano aperti:
+
+| Branch | Contenuto | Stato / Azione suggerita |
 |---|---|---|
-| `chore/sistema-repo` | Cleanup temp files + DB layer (async/postgres/vector) + fix Dockerfile | Revisionare e fare merge |
-| `feature/core-engine-refactor` | Core engine refactor, Google Fit/OAuth, PGVector RAG, Ollama | Revisionare (ampio) |
-| `fix/frontend-assets` | Asset frontend prebuild per deploy Render | Revisionare/merge |
+| `chore/sistema-repo` | Cleanup temp files (rimuove `test_tq_all.txt` ~513k righe + dump) + DB layer (async/postgres/vector) + fix Dockerfile/render | **In review**: 13 conflitti col merge in `main` (db layer, `routes.py`, `Dockerfile`, `render.yaml`, `.gitignore`). Dividere in (a) cleanup junk-file sicuro e (b) merge codice revisionato |
 | `inconclusive-pastry` | Progressi AetherMap (camera projection, SVO, ASCII render) — in worktree | Mantenere (AetherMap) |
 
 ### C.3 Da fare (richiede conferma/permessi)
