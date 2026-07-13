@@ -821,7 +821,9 @@ async def google_oauth_callback_get(
             return RedirectResponse(url=cached_result["redirect_url"])
 
         try:
-            token_data = exchange_google_code(_s.google_client_id, _s.google_client_secret, code, redirect_uri)
+            token_data = await asyncio.to_thread(
+                exchange_google_code, _s.google_client_id, _s.google_client_secret, code, redirect_uri
+            )
         except Exception as exc:
             response = getattr(exc, "response", None)
             if response is not None and getattr(response, "status_code", None) == 400:
@@ -834,7 +836,7 @@ async def google_oauth_callback_get(
             return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="no_access_token"))
 
         try:
-            user_info = get_google_user_info(access_token)
+            user_info = await asyncio.to_thread(get_google_user_info, access_token)
         except Exception as exc:
             response = getattr(exc, "response", None)
             error_body = response.text if response is not None else str(exc)
@@ -850,7 +852,7 @@ async def google_oauth_callback_get(
                 url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="invalid_user_info")
             )
 
-        existing = get_athlete_by_email(email) if email else None
+        existing = await asyncio.to_thread(get_athlete_by_email, email) if email else None
         if not existing:
             from ..redis_client import get_redis
 
@@ -932,7 +934,9 @@ async def google_code_exchange(
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
     _validate_redirect_uri(redirect_uri, request)
     try:
-        token_data = exchange_google_code(_s.google_client_id, _s.google_client_secret, code, redirect_uri)
+        token_data = await asyncio.to_thread(
+            exchange_google_code, _s.google_client_id, _s.google_client_secret, code, redirect_uri
+        )
     except requests.exceptions.HTTPError as exc:
         response = getattr(exc, "response", None)
         error_body = response.text if response is not None else str(exc)
@@ -941,7 +945,7 @@ async def google_code_exchange(
     if not access_token:
         raise HTTPException(status_code=400, detail="no_access_token")
     try:
-        user_info = get_google_user_info(access_token)
+        user_info = await asyncio.to_thread(get_google_user_info, access_token)
     except requests.exceptions.HTTPError as exc:
         response = getattr(exc, "response", None)
         error_body = response.text if response is not None else str(exc)
@@ -951,15 +955,16 @@ async def google_code_exchange(
     if not google_sub:
         raise HTTPException(status_code=400, detail="invalid_user_info")
     from ..db.database import get_athlete_by_email, save_athlete
-    existing = get_athlete_by_email(email) if email else None
+    existing = await asyncio.to_thread(get_athlete_by_email, email) if email else None
     if not existing:
-        athlete_id = save_athlete(
+        athlete_id = await asyncio.to_thread(
+            save_athlete,
             {
                 "name": user_info.get("name") or email or google_sub,
                 "email": email,
                 "picture": user_info.get("picture"),
                 "experience_level": "Beginner",
-            }
+            },
         )
         if athlete_id:
             from ..db.database import update_athlete
