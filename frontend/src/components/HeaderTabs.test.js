@@ -1,6 +1,9 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
+import { createRouter, createWebHistory } from "vue-router";
 import HeaderTabs from "./HeaderTabs.vue";
+
+const router = createRouter({ history: createWebHistory(), routes: [] });
 
 vi.mock("../composables/useI18n", () => ({
   useI18n: () => ({
@@ -15,8 +18,11 @@ describe("HeaderTabs", () => {
     mount(HeaderTabs, {
       props: { isAdmin: false, ...props },
       global: {
+        plugins: [router],
         stubs: {
-          RouterLink: true,
+          RouterLink: {
+            template: '<a><slot /></a>',
+          },
         },
       },
     });
