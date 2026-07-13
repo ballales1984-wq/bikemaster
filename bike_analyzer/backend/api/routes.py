@@ -3397,7 +3397,7 @@ async def strava_callback(
     code = payload.code
     code_verifier = payload.code_verifier
     try:
-        token_data = exchange_code_for_token(code, code_verifier)
+        token_data = await exchange_code_for_token(code, code_verifier)
     except requests.HTTPError as exc:
         raise HTTPException(status_code=502, detail=f"Strava token exchange failed: {exc}") from exc
     store_token(current_user["id"], token_data)
@@ -3427,10 +3427,10 @@ async def strava_sync(
         StravaRateLimitError,
     )
 
-    access_token = get_valid_token(current_user["id"])
+    access_token = await get_valid_token(current_user["id"])
     if not access_token:
         raise HTTPException(status_code=401, detail="No Strava token. Connect first.")
-    activities = fetch_all_activities(access_token)
+    activities = await fetch_all_activities(access_token)
     imported = []
     imported_ids: set[int] = set()
     from ..monitoring import record_gps_import
@@ -3513,7 +3513,7 @@ async def garmin_callback(
     code = payload.code
     redirect_uri = payload.redirect_uri
     try:
-        token_data = exchange_code_for_token(code, redirect_uri=redirect_uri or "")
+        token_data = await exchange_code_for_token(code, redirect_uri=redirect_uri or "")
     except requests.HTTPError as exc:
         raise HTTPException(status_code=502, detail=f"Garmin token exchange failed: {exc}") from exc
     store_token(current_user["id"], token_data)
@@ -3534,10 +3534,10 @@ async def garmin_sync(
     from ..db.database import save_ride
     from ..ingestion.garmin_client import fetch_activities, garmin_to_ride, get_valid_token
 
-    access_token = get_valid_token(current_user["id"])
+    access_token = await get_valid_token(current_user["id"])
     if not access_token:
         raise HTTPException(status_code=401, detail="No Garmin token. Connect first.")
-    activities = fetch_activities(access_token)
+    activities = await fetch_activities(access_token)
     imported = []
     imported_ids: set[int] = set()
     from ..monitoring import record_gps_import
