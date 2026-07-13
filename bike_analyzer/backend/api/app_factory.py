@@ -60,13 +60,48 @@ async def lifespan(app: FastAPI):
             await init_async_db()
         except Exception:  # noqa: BLE001
             logger.exception("Failed to initialize async database")
-    await get_redis()
+
+    # Redis (optional): a downed Redis must not prevent startup.
+    try:
+        await get_redis()
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to initialize Redis client")
+
+    # Background task queue worker.
     task_queue = get_task_queue()
-    await task_queue.start()
-    app.state.task_queue = task_queue
+    try:
+        await task_queue.start()
+        app.state.task_queue = task_queue
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to start background task queue")
+
+    # Domain event bus (optional but tracked for graceful shutdown).
+    try:
+        from ..events import start_event_bus
+
+        await start_event_bus()
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to start domain event bus")
+
     yield
-    await task_queue.stop()
-    await close_redis()
+
+    # Graceful shutdown: stop background services, guarding each step so one
+    # failure does not block the others.
+    logger.info("Shutting down background services")
+    try:
+        from ..events import stop_event_bus
+
+        await stop_event_bus()
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to stop domain event bus")
+    try:
+        await task_queue.stop()
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to stop background task queue")
+    try:
+        await close_redis()
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to close Redis client")
 
 
 def create_app() -> FastAPI:

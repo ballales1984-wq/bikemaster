@@ -9,14 +9,14 @@ Provides:
 from __future__ import annotations
 
 import contextvars
-import contextvars
 import logging
 import os
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC
 from logging.config import DictConfigurator
-from typing import Any, Iterator
+from typing import Any
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 LOG_FORMAT = os.getenv("LOG_FORMAT", "json").lower()
