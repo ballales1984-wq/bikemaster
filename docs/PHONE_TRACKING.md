@@ -19,6 +19,10 @@ Questa funzionalità permette agli utenti di registrare le proprie uscite in bic
 - Registrazione automatica in background con notifica persistente
 - Salvataggio locale sicuro (GPX) in caso di problemi di connessione
 - Sincronizzazione automatica con il backend al termine dell'uscita
+
+> Architettura completa del salvataggio dati sul dispositivo (Local Storage,
+> Service Worker, Background Sync, GPX locale, IndexedDB):
+> [local-data-storage.md](./local-data-storage.md).
 - Supporto sensori Bluetooth (HR, Cadence, Power)
 
 ### Requisiti Tecnici

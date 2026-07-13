@@ -136,27 +136,20 @@ class TestGoogleFitToRide:
         rides = google_fit_to_ride(activities)
         assert rides[0]["avg_speed_kmh"] == 30.0
 
-    @patch("requests.get")
-    def test_fetch_cycling_activities_success(self, mock_get):
-        from unittest.mock import MagicMock
-
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status.return_value = None
-        mock_resp.ok = True
-        mock_resp.json.return_value = {"session": [{"activity": 1}]}
-        mock_get.return_value = mock_resp
-        result = fetch_cycling_activities("token")
+    @patch("bike_analyzer.backend.ingestion.google_fit.request_json")
+    async def test_fetch_cycling_activities_success(self, mock_get):
+        mock_get.return_value = {"session": [{"activity": 1}]}
+        result = await fetch_cycling_activities("token")
         assert isinstance(result, list)
 
-    @patch("requests.get")
-    def test_fetch_cycling_activities_raises_on_failure(self, mock_get):
-        from unittest.mock import MagicMock
+    @patch("bike_analyzer.backend.ingestion.google_fit.request_json")
+    async def test_fetch_cycling_activities_raises_on_failure(self, mock_get):
+        import httpx
 
-        import requests
-
-        mock_resp = MagicMock()
-        mock_resp.ok = False
-        mock_resp.raise_for_status.side_effect = requests.HTTPError("403 Client Error")
-        mock_get.return_value = mock_resp
-        with pytest.raises(requests.HTTPError):
-            fetch_cycling_activities("token")
+        mock_get.side_effect = httpx.HTTPStatusError(
+            "403 Client Error",
+            request=httpx.Request("GET", "https://www.googleapis.com"),
+            response=httpx.Response(403),
+        )
+        with pytest.raises(httpx.HTTPStatusError):
+            await fetch_cycling_activities("token")

@@ -999,6 +999,17 @@ async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_cu
         method = "physics" if ride_dict.get("avg_speed_kmh") else "met"
         ride_dict["calories"] = estimate_calories(ride, method=method)
     ride_id = save_ride(ride_dict)
+    from ..events import RideCreated, publish
+
+    await publish(
+        RideCreated.type,
+        {
+            "ride_id": int(ride_id),
+            "athlete_id": current_user["id"],
+            "distance_km": ride_dict.get("distance_km"),
+            "duration_minutes": ride_dict.get("duration_minutes"),
+        },
+    )
     await _cache_delete(f"dashboard:{current_user['id']}")
     return {"id": int(ride_id), **ride_dict}
 
@@ -1557,10 +1568,17 @@ async def create_athlete(athlete_data: AthleteCreate, current_user: dict = Depen
     data = athlete_data.model_dump()
     if existing:
         _update(target_athlete_id, data)
-        return _public_athlete(_get_athlete(target_athlete_id, tenant_id))
+        result = _public_athlete(_get_athlete(target_athlete_id, tenant_id))
+        created = False
+    else:
+        athlete_id = save_athlete(data, athlete_id=target_athlete_id)
+        result = _public_athlete(_get_athlete(athlete_id, tenant_id))
+        created = True
 
-    athlete_id = save_athlete(data, athlete_id=target_athlete_id)
-    return _public_athlete(_get_athlete(athlete_id, tenant_id))
+    from ..events import AthleteUpdated, publish
+
+    await publish(AthleteUpdated.type, {"athlete_id": target_athlete_id, "created": created})
+    return result
 
 
 @router.get("/athletes")
@@ -1644,6 +1662,12 @@ async def update_athlete(
         if existing and existing["id"] != athlete_id:
             raise HTTPException(status_code=409, detail="Nome atleta già in uso")
     _update(athlete_id, update_data)
+    from ..events import AthleteUpdated, publish
+
+    await publish(
+        AthleteUpdated.type,
+        {"athlete_id": athlete_id, "updated_fields": update_data, "created": False},
+    )
     return _public_athlete(_get(athlete_id))
 
 
@@ -2597,9 +2621,9 @@ async def nearby_places(
     if use_osm:
         from ..maps.osm_maps import get_local_results as osm_search
 
-        results = osm_search(points, query=query)
+        results = await osm_search(points, query=query)
     else:
-        results = get_local_results(points, query=query)
+        results = await get_local_results(points, query=query)
     if results is None:
         raise HTTPException(status_code=502, detail="Place search request failed")
     resp = {"query": query, "count": len(results), "results": results}
@@ -2621,7 +2645,7 @@ async def osm_places_search(
     if cached_result is not None:
         logger.debug("Place search cache hit: osm %s", query)
         return cached_result
-    result = search_places(query, lat=lat, lon=lon, limit=limit)
+    result = await search_places(query, lat=lat, lon=lon, limit=limit)
     resp = {"query": query, "results": result.get("results", []) if result else []}
     _place_cache_set(cache_key_str, resp)
     logger.debug("Place search cached: osm %s", query)
@@ -2647,7 +2671,7 @@ async def search_places_endpoint(
     points = [GPSPoint(**p) for p in gps_points]
     if not _s.serpapi_api_key:
         raise HTTPException(status_code=500, detail="SERPAPI_API_KEY not configured")
-    data = search_nearby(points, query=query)
+    data = await search_nearby(points, query=query)
     if data is None:
         raise HTTPException(status_code=502, detail="SerpApi request failed")
     return data
@@ -3071,6 +3095,12 @@ async def generate_granfondo_workouts(
     athlete_id = request.athlete_id if request.athlete_id else current_user["id"]
     _ensure_athlete_access(athlete_id, current_user)
     plan = generate_granfondo_plan(start_date, weeks)
+    from ..events import TrainingGenerated, publish
+
+    await publish(
+        TrainingGenerated.type,
+        {"athlete_id": athlete_id, "type": "granfondo_plan", "weeks": weeks},
+    )
     return {
         "athlete_id": athlete_id,
         "start_date": start_date,

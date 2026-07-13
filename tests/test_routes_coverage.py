@@ -1,8 +1,10 @@
 """Tests for API routes - missing coverage."""
 
+import os
 from io import BytesIO
 
 import pytest
+from starlette.testclient import TestClient
 
 
 def test_health_redis_endpoint(client):
@@ -49,18 +51,29 @@ def test_import_gpx_endpoint(client):
     assert response.status_code in (200, 400, 422)
 
 
-def test_import_gpx_endpoint_sets_current_athlete(client):
+def test_import_gpx_endpoint_sets_current_athlete(db_path):
     """Test GPX import assigns the authenticated athlete."""
+    from bike_analyzer.backend.api.app_factory import create_app
+    from bike_analyzer.backend.db import database as db_mod
+    from bike_analyzer.backend.security import create_access_token
+
+    os.environ["DB_PATH"] = db_path
+    db_mod.DB_PATH = db_path
+    db_mod.init_db()
+    app = create_app()
+    tc = TestClient(app)
+    tc.headers["Authorization"] = f"Bearer {create_access_token(subject='1', is_admin=True)}"
+
     gpx_content = """<?xml version="1.0"?>
 <gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg>
 <trkpt lat="45.0" lon="7.0"><time>2024-06-15T10:00:00Z</time></trkpt>
 <trkpt lat="45.001" lon="7.001"><time>2024-06-15T10:30:00Z</time></trkpt>
 </trkseg></trk></gpx>"""
     files = {"file": ("test.gpx", BytesIO(gpx_content.encode()), "application/gpx+xml")}
-    response = client.post("/api/v1/import/gpx", files=files)
+    response = tc.post("/api/v1/import/gpx", files=files)
     assert response.status_code == 200
-    assert response.json()["athlete_id"] == 0
-    assert response.json()["tenant_id"] == 0
+    assert response.json()["athlete_id"] == 1
+    assert response.json()["tenant_id"] == 1
 
 
 def test_import_fit_endpoint(client):

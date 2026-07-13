@@ -1,5 +1,6 @@
 """Tests for Strava client unit-level coverage."""
 
+import httpx
 import time
 from unittest.mock import MagicMock, patch
 
@@ -63,16 +64,13 @@ class TestStravaPKCE:
 
 
 class TestStravaTokenExchange:
-    @patch("bike_analyzer.backend.ingestion.strava_client.requests.post")
-    def test_exchange_code_for_token(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {
+    @patch("bike_analyzer.backend.ingestion.strava_client.request_json")
+    async def test_exchange_code_for_token(self, mock_post):
+        mock_post.return_value = {
             "access_token": "strava_access",
             "refresh_token": "strava_refresh",
             "expires_at": int(time.time()) + 3600,
         }
-        mock_post.return_value = mock_resp
 
         with (
             patch("bike_analyzer.backend.ingestion.strava_client._s.strava_client_id", "test"),
@@ -80,48 +78,44 @@ class TestStravaTokenExchange:
             patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_TOKEN_URL", "https://test"),
             patch("bike_analyzer.backend.ingestion.strava_client._s.strava_redirect_uri", "https://test"),
         ):
-            result = exchange_code_for_token("auth_code", "verifier123")
+            result = await exchange_code_for_token("auth_code", "verifier123")
             assert result["access_token"] == "strava_access"
 
-    @patch("bike_analyzer.backend.ingestion.strava_client.requests.post")
-    def test_exchange_code_raises_on_error(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 400
-        mock_resp.raise_for_status.side_effect = ValueError("Bad request")
-        mock_post.return_value = mock_resp
+    @patch("bike_analyzer.backend.ingestion.strava_client.request_json")
+    async def test_exchange_code_raises_on_error(self, mock_post):
+        mock_post.side_effect = httpx.HTTPStatusError(
+            "400 Bad Request",
+            request=httpx.Request("POST", "https://test"),
+            response=httpx.Response(400),
+        )
 
         with (
             patch("bike_analyzer.backend.ingestion.strava_client._s.strava_client_id", "test"),
             patch("bike_analyzer.backend.ingestion.strava_client._s.strava_client_secret", "secret"),
             patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_TOKEN_URL", "https://test"),
-            pytest.raises(ValueError),
+            pytest.raises(httpx.HTTPStatusError),
         ):
-            exchange_code_for_token("bad_code", "bad_verifier")
+            await exchange_code_for_token("bad_code", "bad_verifier")
 
 
 class TestStravaTokenRefresh:
-    @patch("bike_analyzer.backend.ingestion.strava_client.requests.post")
-    def test_refresh_access_token(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {"access_token": "new_token", "expires_at": int(time.time()) + 3600}
-        mock_post.return_value = mock_resp
+    @patch("bike_analyzer.backend.ingestion.strava_client.request_json")
+    async def test_refresh_access_token(self, mock_post):
+        mock_post.return_value = {"access_token": "new_token", "expires_at": int(time.time()) + 3600}
 
         with (
             patch("bike_analyzer.backend.ingestion.strava_client._s.strava_client_id", "test"),
             patch("bike_analyzer.backend.ingestion.strava_client._s.strava_client_secret", "secret"),
             patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_TOKEN_URL", "https://test"),
         ):
-            result = refresh_access_token("refresh_token")
+            result = await refresh_access_token("refresh_token")
             assert result["access_token"] == "new_token"
 
 
 class TestStravaActivities:
-    @patch("bike_analyzer.backend.ingestion.strava_client.requests.get")
-    def test_fetch_activities(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = [
+    @patch("bike_analyzer.backend.ingestion.strava_client.request_json")
+    async def test_fetch_activities(self, mock_get):
+        mock_get.return_value = [
             {
                 "id": 1,
                 "name": "Morning Ride",
@@ -131,10 +125,9 @@ class TestStravaActivities:
                 "moving_time": 3600,
             },
         ]
-        mock_get.return_value = mock_resp
 
         with patch("bike_analyzer.backend.ingestion.strava_client.STRAVA_API_BASE_URL", "https://test"):
-            activities = fetch_activities("access_token")
+            activities = await fetch_activities("access_token")
             assert len(activities) == 1
             assert activities[0]["name"] == "Morning Ride"
 

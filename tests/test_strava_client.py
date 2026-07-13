@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -165,15 +165,15 @@ class TestTokenStorage:
             call_args = conn.execute.call_args[0]
             assert "DELETE FROM strava_tokens WHERE athlete_id = ?" in call_args[0]
 
-    def test_get_valid_token_returns_none_when_missing(self):
+    async def test_get_valid_token_returns_none_when_missing(self):
         with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
             conn = MagicMock()
             conn.execute.return_value.fetchone.return_value = None
             mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
             mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
-            assert get_valid_token(99) is None
+            assert await get_valid_token(99) is None
 
-    def test_get_valid_token_returns_access(self):
+    async def test_get_valid_token_returns_access(self):
         with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
             conn = MagicMock()
             conn.execute.return_value.fetchone.return_value = (
@@ -183,24 +183,28 @@ class TestTokenStorage:
             )
             mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
             mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
-            assert get_valid_token(1) == "access_token_xyz"
+            assert await get_valid_token(1) == "access_token_xyz"
 
-    def test_get_valid_token_refreshes_when_expired(self):
+    async def test_get_valid_token_refreshes_when_expired(self):
         with (
             patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn,
-            patch("bike_analyzer.backend.ingestion.strava_client.refresh_access_token") as mock_refresh,
+            patch(
+                "bike_analyzer.backend.ingestion.strava_client.refresh_access_token",
+                new=AsyncMock(
+                    return_value={
+                        "access_token": "new_token",
+                        "refresh_token": "new_refresh",
+                        "expires_in": 21600,
+                    }
+                ),
+            ) as mock_refresh,
         ):
             conn = MagicMock()
             expired_ts = int(time.time()) - 100
             conn.execute.return_value.fetchone.return_value = ("old_token", "refresh_xyz", expired_ts)
             mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
             mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
-            mock_refresh.return_value = {
-                "access_token": "new_token",
-                "refresh_token": "new_refresh",
-                "expires_in": 21600,
-            }
-            token = get_valid_token(1)
+            token = await get_valid_token(1)
             assert token == "new_token"
             mock_refresh.assert_called_once_with("refresh_xyz")
 

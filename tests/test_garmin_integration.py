@@ -77,8 +77,14 @@ def test_garmin_sync_endpoint_is_idempotent(client, monkeypatch):
         "averageHR": 152,
         "calories": 1200,
     }
-    monkeypatch.setattr(gc, "get_valid_token", lambda athlete_id: "token")
-    monkeypatch.setattr(gc, "fetch_activities", lambda token: [activity, activity])
+    async def _valid_token(athlete_id):
+        return "token"
+
+    async def _fetch(token):
+        return [activity, activity]
+
+    monkeypatch.setattr(gc, "get_valid_token", _valid_token)
+    monkeypatch.setattr(gc, "fetch_activities", _fetch)
 
     response = client.post("/api/v1/import/garmin/sync?background=false")
 

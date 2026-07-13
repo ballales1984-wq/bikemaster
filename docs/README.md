@@ -65,6 +65,7 @@ Riferimento tecnico esaustivo generato dal codice sorgente — **il punto di par
 | Document | Description |
 |---|---|
 | [PHONE_TRACKING.md](./PHONE_TRACKING.md) | Phone GPS tracking architecture |
+| [local-data-storage.md](./local-data-storage.md) | Come/ dove i dati sono salvati sui dispositivi (offline-first) |
 | [PHONE_TRACKING_TESTING.md](./PHONE_TRACKING_TESTING.md) | Phone tracking tests |
 | [PRIVACY_POLICY_STORE.md](./PRIVACY_POLICY_STORE.md) | Privacy policy |
 | [REFACTOR_PLAN.md](./REFACTOR_PLAN.md) | Refactor plan |

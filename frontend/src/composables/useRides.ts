@@ -2,6 +2,13 @@ import { ref } from "vue";
 import type { Ride } from "../types/index";
 import type * as L from "leaflet";
 import { apiGet, apiPost, apiDelete } from "../utils/api";
+import {
+  cacheRides,
+  cacheSummary,
+  getCachedRides,
+  getCachedSummary,
+  removeCachedRide,
+} from "../utils/localRideCache";
 import { DEFAULT_RIDE_MAP_CENTER, DEFAULT_RIDE_MAP_ZOOM } from "../constants";
 
 interface GPSPoint {
@@ -22,39 +29,50 @@ type SummaryResponse = {
 export function useRides() {
   const map = ref<L.Map | null>(null);
 
+  function computeSummary(ridesArray: Ride[]): SummaryResponse {
+    const total = ridesArray.length;
+    const totalKm = ridesArray.reduce(
+      (s: number, r: Ride) => s + (Number(r.distance_km) || 0),
+      0,
+    );
+    const totalCal = ridesArray.reduce(
+      (s: number, r: Ride) => s + (Number(r.calories) || 0),
+      0,
+    );
+    const avgSp = total
+      ? ridesArray.reduce(
+          (s: number, r: Ride) => s + (Number(r.avg_speed_kmh) || 0),
+          0,
+        ) / total
+      : 0;
+    const totalMin = ridesArray.reduce(
+      (s: number, r: Ride) => s + (Number(r.duration_minutes) || 0),
+      0,
+    );
+    return {
+      rides: total,
+      distance_km: totalKm,
+      calories: totalCal,
+      avg_speed_kmh: avgSp,
+      duration_minutes: totalMin,
+      ridesList: ridesArray,
+    };
+  }
+
   async function fetchSummary(): Promise<SummaryResponse> {
     try {
       const data = (await apiGet("/api/v1/rides")) as SummaryResponse;
       const rides = data.ridesList || data.rides || [];
       const ridesArray = Array.isArray(rides) ? rides : [];
-      const total = data.total || ridesArray.length;
-      const totalKm = ridesArray.reduce(
-        (s: number, r: Ride) => s + (Number(r.distance_km) || 0),
-        0,
-      );
-      const totalCal = ridesArray.reduce(
-        (s: number, r: Ride) => s + (Number(r.calories) || 0),
-        0,
-      );
-      const avgSp = ridesArray.length
-        ? ridesArray.reduce(
-            (s: number, r: Ride) => s + (Number(r.avg_speed_kmh) || 0),
-            0,
-          ) / ridesArray.length
-        : 0;
-      const totalMin = ridesArray.reduce(
-        (s: number, r: Ride) => s + (Number(r.duration_minutes) || 0),
-        0,
-      );
-      return {
-        rides: total,
-        distance_km: totalKm,
-        calories: totalCal,
-        avg_speed_kmh: avgSp,
-        duration_minutes: totalMin,
-        ridesList: ridesArray,
-      };
+      const summary = computeSummary(ridesArray);
+      void cacheRides(ridesArray);
+      void cacheSummary(summary as unknown as Record<string, unknown>);
+      return summary;
     } catch {
+      const cachedSummary = await getCachedSummary();
+      if (cachedSummary) return cachedSummary as SummaryResponse;
+      const cachedRides = await getCachedRides();
+      if (cachedRides) return computeSummary(cachedRides);
       return {
         rides: 0,
         distance_km: 0,
@@ -72,6 +90,7 @@ export function useRides() {
 
   async function deleteRide(id: number) {
     await apiDelete(`/api/v1/rides/${id}`);
+    void removeCachedRide(id);
   }
 
   async function initMap(el: HTMLElement, points: GPSPoint[]) {

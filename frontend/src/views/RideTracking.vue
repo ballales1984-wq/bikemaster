@@ -54,7 +54,7 @@ import { useBatteryEfficientGps } from '../composables/useBatteryEfficientGps'
 import LiveMap from '../components/LiveMap.vue'
 import RideMetricsPanel from '../components/RideMetricsPanel.vue'
 import ControlsBar from '../components/ControlsBar.vue'
-import { apiUpload } from '../utils/api'
+import { apiUpload, apiPost } from '../utils/api'
 import type { GpsPoint } from '../types/index'
 
 const { t } = useI18n()
@@ -168,32 +168,66 @@ async function stopTracking() {
 
 async function uploadRide() {
    try {
-     isUploading.value = true
-     const blob = getUploadBlob()
-     if (blob) {
-       const file = new File([blob], `ride-${Date.now()}.gpx`, { type: 'application/gpx+xml' })
-       const result = await apiUpload('/api/v1/import/gpx', file)
-       if (result.error) {
-         alert(result.error || 'Upload failed')
-         return
-       }
-       alert('Ride uploaded successfully!')
-       resetTrackingState()
-       router.push('/rides')
-       return
-     }
-     if (tracking.gpxPath) {
-       alert('Unable to upload file from native path. Please use GPX export instead.')
-       return
-     }
-     alert('No ride to upload')
-   } catch (error) {
-    console.error('Upload failed:', error)
-    alert('Error during upload')
-   } finally {
-     isUploading.value = false
-   }
- }
+      isUploading.value = true
+
+      if (tracking.routePoints.length > 1) {
+        try {
+          const validPoints = tracking.routePoints.filter(
+            (p) => Number.isFinite(p.lat) && Number.isFinite(p.lon),
+          )
+          const rideData = {
+            date: new Date().toISOString().slice(0, 10),
+            distance_km: tracking.distance / 1000,
+            duration_minutes: tracking.elapsedTime / 60,
+            avg_speed_kmh: tracking.avgSpeed > 0 ? tracking.avgSpeed : undefined,
+            elevation_gain_m: tracking.elevation > 0 ? tracking.elevation : undefined,
+            gps_points: validPoints.map((p) => ({
+              lat: p.lat,
+              lon: p.lon,
+              altitude: p.altitude ?? null,
+              timestamp: p.timestamp ?? null,
+              speed: p.speed ?? null,
+            })),
+            source: "gps_tracking",
+            title: "Tracciamento GPS",
+          }
+          const result = await apiPost("/api/v1/rides", rideData)
+          if (result.id) {
+            alert("Uscita salvata con successo!")
+            resetTrackingState()
+            router.push("/rides")
+            return
+          }
+        } catch (directError) {
+          console.warn("Salvataggio diretto fallito, provo con GPX...", directError)
+        }
+      }
+
+      const blob = getUploadBlob()
+      if (blob) {
+        const file = new File([blob], `ride-${Date.now()}.gpx`, { type: 'application/gpx+xml' })
+        const result = await apiUpload('/api/v1/import/gpx', file)
+        if (result.error) {
+          alert(result.error || 'Upload failed')
+          return
+        }
+        alert('Ride uploaded successfully!')
+        resetTrackingState()
+        router.push('/rides')
+        return
+      }
+      if (tracking.gpxPath) {
+        alert('Unable to upload file from native path. Please use GPX export instead.')
+        return
+      }
+      alert('No ride to upload')
+    } catch (error) {
+     console.error('Upload failed:', error)
+     alert('Error during upload')
+    } finally {
+      isUploading.value = false
+    }
+  }
 
 function startWebTracking() {
   webStartTime = Date.now()

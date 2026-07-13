@@ -38,6 +38,12 @@ Key components in `frontend/src/components/`:
 - `useI18n.ts` — internationalization (IT + EN)
 - `useChart.ts` — Chart.js wrappers
 
+## Client-side Data Storage
+
+BikeMaster segue un approccio *offline-first*: token in `localStorage`, cache
+shell/API/immagini e coda upload ride offline via Service Worker
+(`BackgroundSyncPlugin`). Vedi [local-data-storage.md](../local-data-storage.md).
+
 ## Native Mobile
 
 - **Android**: Kotlin foreground service (`BikeTrackingService.kt`) + Capacitor plugin

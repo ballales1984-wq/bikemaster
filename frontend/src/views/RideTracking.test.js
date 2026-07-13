@@ -39,6 +39,7 @@ vi.mock("../stores/trackingStore", () => ({
 
 vi.mock("../utils/api", () => ({
   apiUpload: vi.fn(),
+  apiPost: vi.fn(),
 }));
 
 vi.mock("../components/LiveMap.vue", () => ({

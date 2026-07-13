@@ -421,7 +421,7 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 - ✅ Endpoint REST: **138** (`routes.py` + `bm2_routes.py`)
 - ✅ CI GitHub Actions esegue backend `pytest --cov`, frontend `vitest run`, lint, security (Trivy), build
 - ✅ Coverage `core/calculators/*`: 100% · `core/fitness_state`: 100%
-- ⚠️ Playwright E2E: configurazione presente (`playwright.config.js`) ma **0 file `*.spec`** — da aggiungere
+- ⚠️ Playwright E2E: **gli spec ESISTONO** (`frontend/tests/e2e`, 14 file `*.spec.js` + 3 `*.spec.ts` aggiunti). La valutazione iniziale li aveva mancati perché cercava `*.spec.ts`; il `testDir` di Playwright è `tests/e2e` e gli spec sono `.js`. Aggiunti 3 spec backend-independent (auth/routing/app-shell) eseguibili contro la sola SPA preview, senza backend.
 - ⚠️ Coverage globale bassa se misurata su tutto `bike_analyzer` (molti moduli non coperti dalla singola sotto-suite); la CI riporta la coverage aggregata come metrica informativa
 
 **Nota:** l'esecuzione dell'intera suite backend in locale è lenta (setup per-modulo);
@@ -503,7 +503,7 @@ la verifica pass/fail completa è demandata alla pipeline CI.
 | AI | Vector DB per RAG (PGVector) | ✅ |
 | Frontend | PWA + offline support | ✅ |
 | Frontend | Vitest (47 file / 318 test) | ✅ |
-| Frontend | Playwright E2E (config presente, spec da aggiungere) | ⚠️ |
+| Frontend | Playwright E2E (17 file in `tests/e2e`, incl. 3 backend-independent aggiunti) | ✅ |
 | Security | Security headers + rate limiting | ✅ |
 | Database | Dual-mode SQLite/PostgreSQL | ✅ |
 | CI/CD | GitHub Actions (test, lint, security, build) | ✅ |

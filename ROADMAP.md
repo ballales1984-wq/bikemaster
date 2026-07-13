@@ -121,7 +121,7 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 | AI | Vector DB per RAG | ✅ |
 | Frontend | PWA + offline support | ✅ |
 | Frontend | Vitest (47 file / 318 test) | ✅ |
-| Frontend | Playwright E2E (config presente, spec da aggiungere) | ⚠️ |
+| Frontend | Playwright E2E (`frontend/tests/e2e`, 14 spec esistenti + 3 aggiunti backend-independent) | ✅ |
 | Security | Security headers + rate limiting | ✅ |
 | Database | Dual-mode SQLite/PostgreSQL | ✅ |
 | CI/CD | GitHub Actions | ✅ |
