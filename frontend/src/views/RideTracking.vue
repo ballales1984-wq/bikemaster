@@ -271,6 +271,7 @@ function handleWebPosition(position: GeolocationPosition) {
     timestamp: new Date(position.timestamp).toISOString(),
   }
 
+  let distanceDelta = 0
   if (webLastPoint && webLastPoint.timestampNumber != null) {
     const samePosition = webLastPoint.lat === lat && webLastPoint.lon === lon
     const elapsedSinceLastMs = position.timestamp - webLastPoint.timestampNumber
@@ -278,7 +279,7 @@ function handleWebPosition(position: GeolocationPosition) {
       return
     }
     if (elapsedSinceLastMs > 0) {
-      const distanceDelta = haversineDistanceMeters(webLastPoint.lat, webLastPoint.lon, lat, lon)
+      distanceDelta = haversineDistanceMeters(webLastPoint.lat, webLastPoint.lon, lat, lon)
       if (distanceDelta > 5000) {
         return
       }
@@ -300,8 +301,8 @@ function handleWebPosition(position: GeolocationPosition) {
   const elapsedSinceLastMs = webLastPoint?.timestampNumber
     ? position.timestamp - webLastPoint.timestampNumber
     : 0
-  const currentSpeed = elapsedSinceLastMs > 0
-    ? (webDistance / 1000) / (elapsedSinceLastMs / 3600000)
+  const currentSpeed = elapsedSinceLastMs > 0 && distanceDelta > 0
+    ? (distanceDelta / 1000) / (elapsedSinceLastMs / 3600000)
     : 0
 
   tracking.addPoint(point)
