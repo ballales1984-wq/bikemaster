@@ -77,9 +77,10 @@ Gli embeddings usano `sentence-transformers` (`all-MiniLM-L6-v2`, 384 dim) se in
 | `GOOGLE_MAPS_API_KEY` | `""` | Mappe statiche (opzionale) |
 | `GOOGLE_MAPS_ZOOM` | `13` | Zoom mappe |
 | `GOOGLE_MAPS_SIZE` | `800x600` | Dimensione mappe |
-| `SERPAPI_API_KEY` | `""` | SerpApi (deprecato) |
+| `SERPAPI_API_KEY` | `""` | SerpApi — arricchimento POI a budget (vedi sotto) |
 | `SERPAPI_ENGINE` | `google_maps` | Engine SerpApi |
 | `SERPAPI_BASE_URL` | `https://serpapi.com/search` | |
+| `SERPAPI_MONTHLY_BUDGET` | `250` | Max ricerche SerpApi/mese (salvaguardia free-tier) |
 | `NOMINATIM_BASE_URL` | `https://nominatim.openstreetmap.org` | Geocoding OSM |
 | `GOOGLE_CLIENT_ID` | `""` | Google OAuth2 (login) |
 | `GOOGLE_CLIENT_SECRET` | `""` | Google OAuth2 |
@@ -89,6 +90,22 @@ Gli embeddings usano `sentence-transformers` (`all-MiniLM-L6-v2`, 384 dim) se in
 | `GOOGLE_HEALTH_CLIENT_ID` | `""` | Google Health |
 | `GOOGLE_HEALTH_CLIENT_SECRET` | `""` | |
 | `GOOGLE_HEALTH_SCOPE` | `googlehealth.activity.read + location.read` | Scope Health |
+
+### Arricchimento POI (SerpApi)
+
+Il provider live di default per la ricerca luoghi è **OpenStreetMap** (`osm_maps.py`,
+keyless). SerpApi è invece usato come fonte di **arricchimento a budget** del
+database mappa: il modulo `maps/poi_enrichment.py` converte i risultati SerpApi
+in righe `pois` persistite, entro un tetto mensile di ricerche.
+
+- `enrich_pois_near(lat, lon, query=...)` esegue **al più una** ricerca SerpApi,
+  deduplica contro i POI vicini esistenti e salva i nuovi (taggati
+  `source:serpapi`).
+- Il consumo è tracciato per mese solare nella tabella `serpapi_usage` (creata
+  automaticamente) e limitato da `SERPAPI_MONTHLY_BUDGET`; a budget esaurito
+  l'arricchimento si ferma.
+- Le categorie SerpApi sono mappate sui tipi POI ammessi
+  (`vista, fontana, ristoro, bivio, pericolo, culturale, tecnico`).
 
 ## Strava
 
