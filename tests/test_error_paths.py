@@ -1,5 +1,6 @@
 """Tests targeting previously uncovered error paths and edge cases."""
 
+import asyncio
 from datetime import UTC, datetime
 from unittest.mock import patch
 
@@ -128,7 +129,7 @@ class TestOSMMapsErrorPaths:
             "bike_analyzer.backend.maps.osm_maps.request_json",
             side_effect=Exception("Connection error"),
         ):
-            result = search_places("cafe")
+            result = asyncio.run(search_places("cafe"))
             assert result is None
 
     def test_search_nearby_request_error(self):
@@ -137,11 +138,11 @@ class TestOSMMapsErrorPaths:
             "bike_analyzer.backend.maps.osm_maps.request_json",
             side_effect=Exception("Connection error"),
         ):
-            result = search_nearby(pts, "cafe")
+            result = asyncio.run(search_nearby(pts, "cafe"))
             assert result is None
 
     def test_search_places_no_points(self):
-        result = search_places("")
+        result = asyncio.run(search_places(""))
         assert result is None or "results" in result
 
     def test_reverse_geocode_request_error(self):
@@ -151,7 +152,7 @@ class TestOSMMapsErrorPaths:
         ):
             from bike_analyzer.backend.maps.osm_maps import reverse_geocode
 
-            result = reverse_geocode(45.0, 9.0)
+            result = asyncio.run(reverse_geocode(45.0, 9.0))
             assert result is None
 
 

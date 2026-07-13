@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -43,7 +44,7 @@ class TestStravaTokenRefresh:
                 return_value={"access_token": "new_access", "refresh_token": "new_refresh"},
             ),
         ):
-            result = sc.get_valid_token(1)
+            result = asyncio.run(sc.get_valid_token(1))
             assert result == "new_access"
 
     def test_get_valid_token_returns_existing_when_valid(self, monkeypatch):
@@ -62,7 +63,7 @@ class TestStravaTokenRefresh:
         )
 
         with patch.object(sc, "_ensure_token_table"), patch.object(sc, "_get_conn", return_value=mock_conn):
-            result = sc.get_valid_token(1)
+            result = asyncio.run(sc.get_valid_token(1))
             assert result == "valid_access"
 
     def test_get_valid_token_returns_none_when_no_row(self, monkeypatch):
@@ -76,7 +77,7 @@ class TestStravaTokenRefresh:
         mock_cursor.fetchone.return_value = None
 
         with patch.object(sc, "_ensure_token_table"), patch.object(sc, "_get_conn", return_value=mock_conn):
-            result = sc.get_valid_token(999)
+            result = asyncio.run(sc.get_valid_token(999))
             assert result is None
 
     def test_store_token_calls_upsert(self):
@@ -121,12 +122,11 @@ class TestStravaTokenRefresh:
     def test_refresh_access_token_http_call(self):
         import bike_analyzer.backend.ingestion.strava_client as sc
 
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"access_token": "rt_at", "refresh_token": "rt_rt"}
-        mock_response.raise_for_status.return_value = None
+        async def fake_request_json(method, url, **kwargs):
+            return {"access_token": "rt_at", "refresh_token": "rt_rt"}
 
-        with patch("bike_analyzer.backend.ingestion.strava_client.requests.post", return_value=mock_response):
-            result = sc.refresh_access_token("refresh_token_abc")
+        with patch.object(sc, "request_json", side_effect=fake_request_json):
+            result = asyncio.run(sc.refresh_access_token("refresh_token_abc"))
             assert result["access_token"] == "rt_at"
 
     def test_get_valid_token_refresh_failure_returns_none(self, monkeypatch):
@@ -153,25 +153,27 @@ class TestStravaTokenRefresh:
                 side_effect=RuntimeError("refresh failed"),
             ),
         ):
-            result = sc.get_valid_token(1)
+            result = asyncio.run(sc.get_valid_token(1))
             assert result is None
 
     def test_fetch_activities_success(self):
         import bike_analyzer.backend.ingestion.strava_client as sc
 
-        mock_response = MagicMock()
-        mock_response.json.return_value = [{"id": 1, "name": "Ride1"}, {"id": 2, "name": "Ride2"}]
-        mock_response.raise_for_status.return_value = None
+        async def fake_request_json(method, url, **kwargs):
+            return [{"id": 1, "name": "Ride1"}, {"id": 2, "name": "Ride2"}]
 
-        with patch("bike_analyzer.backend.ingestion.strava_client.requests.get", return_value=mock_response):
-            result = sc.fetch_activities("token123", page=1, per_page=10)
+        with patch.object(sc, "request_json", side_effect=fake_request_json):
+            result = asyncio.run(sc.fetch_activities("token123", page=1, per_page=10))
             assert len(result) == 2
 
     def test_fetch_all_activities_stops_on_empty_batch(self):
         import bike_analyzer.backend.ingestion.strava_client as sc
 
-        with patch.object(sc, "fetch_activities", return_value=[]) as mock_fetch:
-            result = sc.fetch_all_activities("token123", max_pages=5)
+        async def fake_fetch(*args, **kwargs):
+            return []
+
+        with patch.object(sc, "fetch_activities", side_effect=fake_fetch) as mock_fetch:
+            result = asyncio.run(sc.fetch_all_activities("token123", max_pages=5))
             assert result == []
             mock_fetch.assert_called_once()
 
@@ -180,8 +182,16 @@ class TestStravaTokenRefresh:
 
         batch = [{"id": i} for i in range(10)]
         empty_batch = []
-        with patch.object(sc, "fetch_activities", side_effect=[batch, empty_batch]):
-            result = sc.fetch_all_activities("token123", max_pages=2)
+
+        async def fake_fetch(*args, **kwargs):
+            call_count = fake_fetch.call_count
+            fake_fetch.call_count += 1
+            return batch if call_count == 0 else empty_batch
+
+        fake_fetch.call_count = 0
+
+        with patch.object(sc, "fetch_activities", side_effect=fake_fetch):
+            result = asyncio.run(sc.fetch_all_activities("token123", max_pages=2))
             assert len(result) == 10
 
 
@@ -217,7 +227,7 @@ class TestGarminTokenRefresh:
                 return_value={"access_token": "new_access", "refresh_token": "new_refresh"},
             ),
         ):
-            result = gc.get_valid_token(1)
+            result = asyncio.run(gc.get_valid_token(1))
             assert result == "new_access"
 
     def test_get_valid_token_returns_existing_when_valid(self):
@@ -236,7 +246,7 @@ class TestGarminTokenRefresh:
         )
 
         with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
-            result = gc.get_valid_token(1)
+            result = asyncio.run(gc.get_valid_token(1))
             assert result == "valid_access"
 
     def test_get_valid_token_returns_none_when_no_row(self):
@@ -250,7 +260,7 @@ class TestGarminTokenRefresh:
         mock_cursor.fetchone.return_value = None
 
         with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
-            result = gc.get_valid_token(999)
+            result = asyncio.run(gc.get_valid_token(999))
             assert result is None
 
     def test_store_token_handles_string_expires_at(self):
@@ -289,35 +299,32 @@ class TestGarminTokenRefresh:
     def test_fetch_activities_returns_list(self):
         import bike_analyzer.backend.ingestion.garmin_client as gc
 
-        mock_response = MagicMock()
-        mock_response.json.return_value = [{"activityId": 1}]
-        mock_response.raise_for_status.return_value = None
+        async def fake_request_json(method, url, **kwargs):
+            return [{"activityId": 1}]
 
-        with patch("bike_analyzer.backend.ingestion.garmin_client.requests.get", return_value=mock_response):
-            result = gc.fetch_activities("token123")
+        with patch.object(gc, "request_json", side_effect=fake_request_json):
+            result = asyncio.run(gc.fetch_activities("token123"))
             assert len(result) == 1
 
     def test_fetch_activities_returns_nested(self):
         import bike_analyzer.backend.ingestion.garmin_client as gc
 
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"activities": [{"activityId": 2}]}
-        mock_response.raise_for_status.return_value = None
+        async def fake_request_json(method, url, **kwargs):
+            return {"activities": [{"activityId": 2}]}
 
-        with patch("bike_analyzer.backend.ingestion.garmin_client.requests.get", return_value=mock_response):
-            result = gc.fetch_activities("token123")
+        with patch.object(gc, "request_json", side_effect=fake_request_json):
+            result = asyncio.run(gc.fetch_activities("token123"))
             assert len(result) == 1
             assert result[0]["activityId"] == 2
 
     def test_refresh_access_token_http_call(self):
         import bike_analyzer.backend.ingestion.garmin_client as gc
 
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"access_token": "rt_at", "refresh_token": "rt_rt"}
-        mock_response.raise_for_status.return_value = None
+        async def fake_request_json(method, url, **kwargs):
+            return {"access_token": "rt_at", "refresh_token": "rt_rt"}
 
-        with patch("bike_analyzer.backend.ingestion.garmin_client.requests.post", return_value=mock_response):
-            result = gc.refresh_access_token("refresh_token_abc")
+        with patch.object(gc, "request_json", side_effect=fake_request_json):
+            result = asyncio.run(gc.refresh_access_token("refresh_token_abc"))
             assert result["access_token"] == "rt_at"
 
 

@@ -24,12 +24,10 @@ from bike_analyzer.backend.events import (
 @pytest.fixture
 def event_client(tmp_db):
     """Create a TestClient and ensure event bus is clean before/after each test."""
-    import bike_analyzer.backend.config as cfg_mod
     from bike_analyzer.backend.db import database as db_mod
     from bike_analyzer.backend.security import create_access_token
 
     os.environ["DB_PATH"] = tmp_db
-    cfg_mod.DB_PATH = tmp_db
     db_mod.DB_PATH = tmp_db
     db_mod.init_db()
 
