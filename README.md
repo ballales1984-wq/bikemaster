@@ -1,6 +1,6 @@
 # BikeMaster 2.0
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Proprietary](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![Vue 3](https://img.shields.io/badge/Vue-3.4%2B-green.svg)](https://vuejs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-black.svg)](https://fastapi.tiangolo.com/)
@@ -53,17 +53,30 @@ Ogni Engine ha confini precisi (cosa riceve, cosa produce, cosa può leggere, co
 
 ## Documentazione
 
+### Riferimento completo (`docs/reference/`)
+
+Riferimento tecnico esaustivo generato dal codice sorgente — **il punto di partenza consigliato**.
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/reference/README.md`](docs/reference/README.md) | Indice del riferimento completo |
+| [`docs/reference/api-reference.md`](docs/reference/api-reference.md) | Tutti i 138 endpoint REST (metodo, path, auth) |
+| [`docs/reference/database-schema.md`](docs/reference/database-schema.md) | Schema DB completo: tabelle, indici, migrazioni Alembic |
+| [`docs/reference/domain-models.md`](docs/reference/domain-models.md) | Entità di dominio + modelli BM2 campo per campo |
+| [`docs/reference/configuration.md`](docs/reference/configuration.md) | Tutte le variabili d'ambiente / settings |
+| [`docs/reference/engines-and-analytics.md`](docs/reference/engines-and-analytics.md) | Engine BM2 (9 algoritmi) + motore analytics |
+
+### Visione e architettura
+
 | Documento | Contenuto |
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Visione, principi e architettura generale del sistema |
 | [`docs/BM2_ENGINE_ARCHITECTURE.md`](docs/BM2_ENGINE_ARCHITECTURE.md) | Specifica di ogni Engine: pipeline, dipendenze, pattern di comunicazione |
-| [`docs/bm2/database-schema.md`](docs/bm2/database-schema.md) | Schema relazionale delle entità BM2: tabelle, campi, relazioni |
-| [`docs/API_DOCS.md`](docs/API_DOCS.md) | Endpoint REST per ciascun Engine |
 | [`docs/BM2_ALGORITHMS.md`](docs/BM2_ALGORITHMS.md) | Formule delle variabili derivate (potenza stimata, TRIMP, CTL/ATL, difficoltà percorso, ecc.) |
 | [`docs/bm2/data-contracts.md`](docs/bm2/data-contracts.md) | Contratti JSON scambiati tra Engine (produttore/consumatore) |
 | [`docs/bm2/variables.md`](docs/bm2/variables.md) | Dizionario completo delle variabili BM2 con unità e posizione nel codice |
 
-**Ordine di lettura consigliato:** architettura generale → architettura Engine → schema database → contratti dati → specifica API → algoritmi. I primi documenti danno il quadro generale; gli altri lo formalizzano su livelli diversi (dati, interfacce, logica).
+**Ordine di lettura consigliato:** [indice riferimento](docs/reference/README.md) → architettura generale → architettura Engine → schema database → contratti dati → API → algoritmi.
 
 ---
 
@@ -163,4 +176,4 @@ Prima di proporre modifiche architetturali, verificare che rispettino i confini 
 
 ## Licenza
 
-MIT — vedi il file [LICENSE](LICENSE) per i dettagli.
+All Rights Reserved — vedi il file [LICENSE](LICENSE) per i dettagli.

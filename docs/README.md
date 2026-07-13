@@ -12,6 +12,18 @@
 
 ## Documents
 
+### 📖 Riferimento Completo (`reference/`)
+Riferimento tecnico esaustivo generato dal codice sorgente — **il punto di partenza consigliato**.
+
+| Document | Description |
+|---|---|
+| [reference/README.md](./reference/README.md) | Indice del riferimento completo |
+| [reference/api-reference.md](./reference/api-reference.md) | Tutti i 138 endpoint REST (metodo, path, auth) |
+| [reference/database-schema.md](./reference/database-schema.md) | Schema DB completo: tabelle, indici, migrazioni Alembic |
+| [reference/domain-models.md](./reference/domain-models.md) | Entità di dominio + modelli BM2 campo per campo |
+| [reference/configuration.md](./reference/configuration.md) | Tutte le variabili d'ambiente / settings |
+| [reference/engines-and-analytics.md](./reference/engines-and-analytics.md) | Engine BM2 (9 algoritmi) + motore analytics |
+
 ### Core
 | Document | Description |
 |---|---|
@@ -63,6 +75,12 @@
 | Document | Description |
 |---|---|
 | [agent/README.md](./agent/README.md) | AI agent instructions (progressive disclosure) |
+
+## ⚠️ Deprecated / Da Cancellare
+
+| File | Note |
+|---|---|
+| `PROJECT_DOCUMENTATION.md` | **OBSOLETO** — duplicato completo di `MASTER.md`, bloccato da OS (chiusura editor/processo + `del /f`). Ignorare. |
 
 ---
 
