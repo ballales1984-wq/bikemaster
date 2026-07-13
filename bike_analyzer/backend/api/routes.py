@@ -3424,6 +3424,7 @@ async def strava_sync(
         fetch_all_activities,
         get_valid_token,
         strava_to_ride,
+        strava_to_ride_with_streams,
         StravaRateLimitError,
     )
 
@@ -3441,7 +3442,7 @@ async def strava_sync(
             ride_data = strava_to_ride(act)
         else:
             try:
-                ride_data = strava_to_ride(act, access_token=access_token)
+                ride_data = await strava_to_ride_with_streams(act, access_token)
             except StravaRateLimitError:
                 streams_rate_limited = True
                 ride_data = strava_to_ride(act)
