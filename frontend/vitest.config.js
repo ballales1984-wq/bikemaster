@@ -6,8 +6,7 @@ export default defineConfig({
     vue({
       template: {
         compilerOptions: {
-          isCustomElement: (tag) =>
-            tag.startsWith("router-") || tag.startsWith("b-"),
+          isCustomElement: (tag) => tag.startsWith("b-"),
         },
       },
     }),

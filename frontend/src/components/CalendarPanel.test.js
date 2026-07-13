@@ -124,18 +124,18 @@ describe("CalendarPanel", () => {
 
     const today = new Date();
     const months = [
-      "calendar.january",
-      "calendar.february",
-      "calendar.march",
-      "calendar.april",
-      "calendar.may",
-      "calendar.june",
-      "calendar.july",
-      "calendar.august",
-      "calendar.september",
-      "calendar.october",
-      "calendar.november",
-      "calendar.december",
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
     const expected = `${months[today.getMonth()]} ${today.getFullYear()}`;
 

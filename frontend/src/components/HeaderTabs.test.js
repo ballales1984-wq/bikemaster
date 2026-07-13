@@ -1,6 +1,14 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import HeaderTabs from "./HeaderTabs.vue";
+
+vi.mock("../composables/useI18n", () => ({
+  useI18n: () => ({
+    locale: { value: "en" },
+    t: (key) => key,
+    setLocale: vi.fn(),
+  }),
+}));
 
 describe("HeaderTabs", () => {
   const render = (props = {}) =>
@@ -8,9 +16,7 @@ describe("HeaderTabs", () => {
       props: { isAdmin: false, ...props },
       global: {
         stubs: {
-          RouterLink: {
-            template: "<a><slot /></a>",
-          },
+          RouterLink: true,
         },
       },
     });
@@ -18,7 +24,7 @@ describe("HeaderTabs", () => {
   it("renders navigation links", () => {
     const wrapper = render({ active: "rides" });
 
-    const links = wrapper.findAll("a");
+    const links = wrapper.findAll("router-link");
     expect(links.length).toBeGreaterThan(0);
     expect(links.some((a) => a.text().includes("nav.rides"))).toBe(true);
   });

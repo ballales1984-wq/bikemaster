@@ -1,5 +1,8 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createPinia, setActivePinia } from "pinia";
+
+setActivePinia(createPinia());
 
 vi.mock("leaflet", () => ({
   default: {

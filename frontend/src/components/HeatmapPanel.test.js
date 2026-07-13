@@ -98,7 +98,7 @@ describe("HeatmapPanel", () => {
       (c) => c[0] === "/api/v1/heatmap",
     );
     const lastHeatmapCall = heatmapCalls[heatmapCalls.length - 1];
-    expect(lastHeatmapCall[1]).toEqual({ athlete_id: 99 });
+    expect(lastHeatmapCall[1]).toEqual({ athlete_id: "99" });
   });
 
   it("handles athletes API failure gracefully", async () => {
