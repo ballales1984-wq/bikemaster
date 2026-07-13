@@ -186,6 +186,42 @@ class ChatHistoryModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class TrainingGoalModel(Base):
+    """Training goal (e.g. granfondo target) for an athlete."""
+
+    __tablename__ = "training_goals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id"))
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    goal_type: Mapped[str] = mapped_column(String, default="granfondo")
+    target_date: Mapped[str | None] = mapped_column(String)
+    target_distance_km: Mapped[float | None] = mapped_column(Float)
+    target_elevation_m: Mapped[float | None] = mapped_column(Float)
+    status: Mapped[str] = mapped_column(String, default="active")
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class PlannedWorkoutModel(Base):
+    """Planned workout linked to a training goal."""
+
+    __tablename__ = "planned_workouts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id"))
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    goal_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("training_goals.id"))
+    date: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    workout_type: Mapped[str] = mapped_column(String, default="endurance")
+    duration_minutes: Mapped[int] = mapped_column(Integer, default=60)
+    target_intensity: Mapped[float] = mapped_column(Float, default=0.5)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[str | None] = mapped_column(String)
+
+
 __all__ = [
     "Base",
     "EMBEDDING_DIMENSION",
@@ -196,4 +232,6 @@ __all__ = [
     "POIModel",
     "KnowledgeChunkModel",
     "ChatHistoryModel",
+    "TrainingGoalModel",
+    "PlannedWorkoutModel",
 ]
