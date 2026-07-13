@@ -3076,6 +3076,18 @@ async def get_badges(athlete_id: int = Query(...), current_user: dict = Depends(
     athlete = get_athlete(athlete_id)
     badges = calculate_badges(athlete_id, [r.to_dict() for r in rides], athlete)
     achieved_count = sum(1 for b in badges if b["achieved"])
+    from ..events import BadgeEarned, publish
+
+    for badge in badges:
+        if badge.get("achieved"):
+            await publish(
+                BadgeEarned.type,
+                {
+                    "athlete_id": athlete_id,
+                    "badge_id": badge.get("id"),
+                    "badge_name": badge.get("name"),
+                },
+            )
     return {
         "athlete_id": athlete_id,
         "badges": badges,
