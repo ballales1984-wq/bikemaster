@@ -1,13 +1,13 @@
 # BikeMaster 2.0
 
-[![License: Proprietary](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
+[![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![Vue 3](https://img.shields.io/badge/Vue-3.4%2B-green.svg)](https://vuejs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-black.svg)](https://fastapi.tiangolo.com/)
 
 Digital Twin dell'atleta e dell'ambiente per il ciclismo: raccoglie dati da GPS, sensori e servizi esterni, li trasforma in conoscenza (forma, fatica, recupero, difficoltà percorso) e li mette al servizio di un AI Coach.
 
-> **Stato del progetto:** *Production Ready*. Il sistema è implementato e in esecuzione (backend FastAPI, frontend Vue 3 + PWA, app Android, suite di test ~106 file / 1546+ test, deploy su Render). Il documento di visione e architettura Engine descritto qui sotto è la base concettuale su cui il codice è costruito; la sezione [BikeMaster 2.0 — Deluxe Simulation](#bikemaster-20--deluxe-simulation-engine) descrive lo stato dell'engine di simulazione.
+> **Stato del progetto:** *Production Ready*. Il sistema è implementato e in esecuzione (backend FastAPI con 138 endpoint REST, frontend Vue 3 + PWA, app Android, deploy su Render). Suite di test verificata: **backend 108 file / 1674 test**, **frontend 47 file / 318 test** (Vitest). Il documento di visione e architettura Engine descritto qui sotto è la base concettuale su cui il codice è costruito; la sezione [BikeMaster 2.0 — Deluxe Simulation](#bikemaster-20--deluxe-simulation-engine) descrive lo stato dell'engine di simulazione.
 
 ---
 
@@ -33,19 +33,28 @@ L'obiettivo non è accumulare quanti più dati possibile, ma raccogliere solo qu
 
 ---
 
-## Architettura — panoramica moduli (Engine)
+## Architettura — moduli del sistema
+
+Il sistema si compone di **7 Engine BM2** (pipeline specializzata) e di **infrastruttura trasversale** di supporto.
+
+### Engine BM2 (7)
 
 | Engine | Responsabilità |
 |---|---|
 | **Import Engine** | Importa dati da fonti esterne (Strava, GPX, FIT, Garmin, Wahoo, altri dispositivi) |
-| **Data Layer** | Storage canonico di atleti, sessioni, bici, telemetria |
-| **Time Engine** | Timeline unificata e sincronizzazione eventi |
 | **Tracking Engine** | Registrazione sessioni live (GPS + sensori in tempo reale) |
 | **Measurement Engine** | Conversioni e grandezze derivate (velocità, pendenza, energia) — lo "standard interno" a cui tutti i sensori si adattano |
 | **Analysis Engine** | Metriche di sessione e di atleta, trend, zone, TRIMP/TSS |
 | **Territory Engine** | Modello del territorio: strade, pendenze, difficoltà segmento, sicurezza |
 | **Knowledge Layer** | Stati interpretati: `FitnessState`, `FatigueState`, `RecoveryState`, `RouteDifficulty`, `PerformancePrediction` |
 | **AI Coach** | Spiegazioni, consigli, interazione con l'utente — legge solo dal Knowledge Layer, mai dati grezzi |
+
+### Infrastruttura trasversale
+
+| Modulo | Ruolo |
+|---|---|
+| **Data Layer** | Storage canonico di atleti, sessioni, bici, telemetria — *non è un Engine*, è un outbox condiviso (vedi [`BM2_ENGINE_ARCHITECTURE.md`](docs/BM2_ENGINE_ARCHITECTURE.md) §2) |
+| **Time Engine** | Timeline unificata e sincronizzazione eventi tra gli Engine |
 
 Ogni Engine ha confini precisi (cosa riceve, cosa produce, cosa può leggere, cosa **non deve** conoscere): il dettaglio è nei documenti di architettura.
 
@@ -75,6 +84,7 @@ Riferimento tecnico esaustivo generato dal codice sorgente — **il punto di par
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Visione, principi e architettura generale del sistema |
 | [`docs/BM2_ENGINE_ARCHITECTURE.md`](docs/BM2_ENGINE_ARCHITECTURE.md) | Specifica di ogni Engine: pipeline, dipendenze, pattern di comunicazione |
 | [`docs/BM2_ALGORITHMS.md`](docs/BM2_ALGORITHMS.md) | Formule delle variabili derivate (potenza stimata, TRIMP, CTL/ATL, difficoltà percorso, ecc.) |
+| [`docs/bm2/README.md`](docs/bm2/README.md) | Indice della cartella BM2: variabili, contratti, schema, concetti chiave |
 | [`docs/bm2/data-contracts.md`](docs/bm2/data-contracts.md) | Contratti JSON scambiati tra Engine (produttore/consumatore) |
 | [`docs/bm2/variables.md`](docs/bm2/variables.md) | Dizionario completo delle variabili BM2 con unità e posizione nel codice |
 

@@ -47,6 +47,7 @@ env/
 # Test
 .pytest_cache/
 .coverage
+.coverage.*
 coverage.xml
 coverage.json
 htmlcov/
