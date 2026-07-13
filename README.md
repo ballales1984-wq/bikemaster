@@ -233,7 +233,7 @@ D:\BikeMaster
 │           ├── render/          # WebGL/Canvas rendering
 │           └── twin/            # Digital twin objects
 ├── docs/                        # Developer and user documentation
-├── tests/                       # ~90 pytest files
+├── tests/                       # ~106 pytest files (1546+ tests)
 ├── docker/                      # Container & deploy configs
 ├── alembic/                     # DB migrations
 ├── prometheus/                   # Metrics & alerts config
@@ -614,7 +614,7 @@ npm run e2e          # Playwright E2E
 pytest
 ```
 
-Suite of 98 pytest files covering:
+Suite of 106 pytest files (1546+ tests) covering:
 - Core models and parsing
 - API coverage
 - Mocked Google Maps / Strava / Garmin / Wahoo
@@ -660,7 +660,7 @@ Suite of 321 automated Vitest tests covering:
 
 ## Roadmap
 
-Project status: **Production Ready** — All base phases complete, active testing suite (1419 backend + 321 frontend), stable production deployment on Render.
+Project status: **Production Ready** — All base phases complete, active testing suite (1546+ backend + 321 frontend), stable production deployment on Render.
 
 ### Completed Phases
 
