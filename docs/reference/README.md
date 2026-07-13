@@ -4,11 +4,13 @@ Riferimento tecnico esaustivo di BikeMaster, generato direttamente dal codice so
 
 | Documento | Contenuto |
 |---|---|
+| [architecture.md](./architecture.md) | Panoramica sistema: layer, flusso richieste, mappa moduli, sicurezza, osservabilità |
 | [api-reference.md](./api-reference.md) | Tutti i 138 endpoint REST (router, admin, BM2) con metodo, path e autenticazione |
 | [database-schema.md](./database-schema.md) | Schema completo del database: tabelle, colonne, indici, migrazioni Alembic, multi-tenancy |
 | [domain-models.md](./domain-models.md) | Entità di dominio (core) e modelli BikeMaster 2.0 (BM2) campo per campo |
 | [configuration.md](./configuration.md) | Tutte le variabili d'ambiente / impostazioni (`settings.py`) |
 | [engines-and-analytics.md](./engines-and-analytics.md) | Engine BM2 (9 algoritmi) e motore analytics classico |
+| [frontend.md](./frontend.md) | SPA Vue 3: route, store, componenti, composables, mobile/PWA |
 
 ## Come è organizzata
 
