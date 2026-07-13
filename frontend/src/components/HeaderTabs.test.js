@@ -24,9 +24,7 @@ describe("HeaderTabs", () => {
   it("renders navigation links", () => {
     const wrapper = render({ active: "rides" });
 
-    const links = wrapper.findAll("router-link");
-    expect(links.length).toBeGreaterThan(0);
-    expect(links.some((a) => a.text().includes("nav.rides"))).toBe(true);
+    expect(wrapper.text()).toContain("nav.rides");
   });
 
   it("shows admin link only for admins", () => {
