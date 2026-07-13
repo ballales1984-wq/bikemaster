@@ -18,7 +18,7 @@ def _is_legacy_config_import(module: str) -> bool:
     parts = module.split(".")
     if parts[-1] != "config":
         return False
-    if module in {"logging.config", "unittest.config"}:
+    if module in {"logging.config", "unittest.config", "alembic.config"}:
         return False
     if module.startswith("bike_analyzer.backend.config"):
         return True
