@@ -257,6 +257,28 @@ def init_db():
             created_at TEXT
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_pois_coords ON pois(lat, lon)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS fitness_states (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER,
+            tenant_id INTEGER DEFAULT 0,
+            date TEXT NOT NULL,
+            computed_at TEXT,
+            fitness REAL DEFAULT 0,
+            fatigue REAL DEFAULT 0,
+            form REAL DEFAULT 0,
+            atl REAL DEFAULT 0,
+            ctl REAL DEFAULT 0,
+            tsb REAL DEFAULT 0,
+            recovery_hours_needed REAL DEFAULT 0,
+            weekly_tss REAL DEFAULT 0,
+            monthly_tss REAL DEFAULT 0,
+            trend_7d TEXT DEFAULT 'stable',
+            trend_30d TEXT DEFAULT 'stable',
+            risk_indicators TEXT,
+            recommendation TEXT,
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id)
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_fitness_states_athlete ON fitness_states(athlete_id)")
         conn.commit()
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(rides)")
