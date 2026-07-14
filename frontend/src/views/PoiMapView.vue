@@ -242,7 +242,7 @@ v-else-if="selectedPoi.created_by" class="poi-owner-note"
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import "leaflet/dist/leaflet.css";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "../composables/useI18n";

@@ -253,7 +253,7 @@ class="provider-group">
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { apiUpload, apiPost, apiGet } from "../utils/api";
 import { useAuthStore } from "../stores/auth";

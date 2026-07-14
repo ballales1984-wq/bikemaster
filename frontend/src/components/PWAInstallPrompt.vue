@@ -25,7 +25,7 @@ class="pwa-banner-icon" aria-hidden="true">🚴</div>
   </Transition>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { usePWA } from "../composables/usePWA";
 import { computed, onMounted, onBeforeUnmount } from "vue";
 

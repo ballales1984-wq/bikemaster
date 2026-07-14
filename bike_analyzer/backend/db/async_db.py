@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any
 
 from sqlalchemy import select, text
@@ -48,6 +49,7 @@ _CORE_TABLES = [
 
 
 def _make_async_url(raw: str) -> str:
+    raw = raw.strip()
     if raw.startswith("postgresql://"):
         return "postgresql+asyncpg://" + raw[len("postgresql://"):]
     if raw.startswith("postgres://"):
@@ -67,7 +69,10 @@ def _get_engine() -> AsyncEngine | None:
     # Strip first: a value with surrounding whitespace (e.g. a pasted
     # connection string with a trailing newline/space) is truthy and would
     # otherwise slip past the `if not url` guard and crash create_async_engine.
-    url = (_s.database_url or "").strip()
+    # Read DATABASE_URL fresh from the environment (falling back to the cached
+    # settings) so the engine reflects the current configuration even when the
+    # settings singleton was constructed before DATABASE_URL was set.
+    url = (os.environ.get("DATABASE_URL") or _s.database_url or "").strip()
     if not url:
         logger.warning(
             "DATABASE_URL not set or empty; async DB disabled "
@@ -86,23 +91,6 @@ def _get_engine() -> AsyncEngine | None:
             "Failed to build async engine from DATABASE_URL (scheme=%r); "
             "async DB disabled (falling back to SQLite): %s",
             scheme,
-            exc,
-        )
-        return None
-    return _engine
-    url = _s.database_url
-    if not url:
-        return None
-    try:
-        _engine = create_async_engine(
-            _make_async_url(url), echo=False, pool_pre_ping=True
-        )
-    except Exception as exc:  # noqa: BLE001
-        # Never let a bad DATABASE_URL crash startup. The app falls back to the
-        # synchronous SQLite layer (see db/database.py) when the async engine is
-        # unavailable.
-        logger.error(
-            "Failed to create async engine from DATABASE_URL; async DB disabled: %s",
             exc,
         )
         return None

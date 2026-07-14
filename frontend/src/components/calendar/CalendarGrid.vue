@@ -35,19 +35,33 @@ class="more-events"
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useI18n } from "../../composables/useI18n";
 
 const { t } = useI18n();
 
-defineProps({
-  days: Array,
-  weekDays: Array,
-});
+interface DayData {
+  date: string;
+  day: number;
+  currentMonth: boolean;
+  isToday?: boolean;
+  events: Array<{
+    id: number;
+    title: string;
+    event_type: string;
+  }>;
+}
 
-defineEmits(["add-for-date"]);
+defineProps<{
+  days: DayData[];
+  weekDays: string[];
+}>();
 
-function isToday(day) {
+defineEmits<{
+  (e: "add-for-date", date: string): void;
+}>();
+
+function isToday(day: DayData): boolean {
   if (!day.isToday) return false;
   const today = new Date();
   return (

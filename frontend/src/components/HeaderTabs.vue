@@ -4,6 +4,9 @@ class="tabs" aria-label="Main navigation" ref="tabsRef">
     <router-link to="/rides" class="tab" active-class="active">
       🏍️ <span>{{ t("nav.rides") }}</span>
     </router-link>
+    <router-link to="/dashboard" class="tab" active-class="active">
+      📊 <span>{{ t("nav.dashboard") }}</span>
+    </router-link>
     <router-link to="/track" class="tab" active-class="active">
       📍 <span>{{ t("nav.tracking") }}</span>
     </router-link>

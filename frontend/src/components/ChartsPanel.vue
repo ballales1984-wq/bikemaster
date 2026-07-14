@@ -62,7 +62,7 @@ v-if="comparisonData.ready" class="chart-summary"
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from "vue";
 import Chart from "chart.js/auto";
 import { useI18n } from "../composables/useI18n";

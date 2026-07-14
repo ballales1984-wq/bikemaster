@@ -155,7 +155,7 @@ v-if="thinking" class="message bot-msg"
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from "vue";
 import { useI18n } from "../composables/useI18n";
 import { apiGet, apiPost } from "../utils/api";

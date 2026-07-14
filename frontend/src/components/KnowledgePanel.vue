@@ -155,7 +155,7 @@ v-if="r.source_file" class="result-meta"
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { apiGet, apiPost } from "../utils/api";
 

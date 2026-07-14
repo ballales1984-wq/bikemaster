@@ -17,7 +17,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 defineProps({
   title: { type: String, default: "Loading error" },
   message: { type: String, default: "Unable to load data. Try again later." },

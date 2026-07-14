@@ -1,0 +1,175 @@
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import type { Ride, Summary } from "../types/index";
+import { apiGet, apiDelete, apiPost } from "../utils/api";
+import { useAuthStore } from "./auth";
+
+export interface RideFilters {
+  search?: string;
+  sort?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export const useRidesStore = defineStore("rides", () => {
+  const auth = useAuthStore();
+  const rides = ref<Ride[]>([]);
+  const summary = ref<Summary>({
+    rides: 0,
+    distance_km: 0,
+    calories: 0,
+    avg_speed_kmh: 0,
+    duration_minutes: 0,
+  });
+  const loading = ref(false);
+  const error = ref<string | null>(null);
+  const filters = ref<RideFilters>({
+    sort: "date",
+    page: 1,
+    page_size: 20,
+  });
+
+  const filteredRides = computed(() => rides.value);
+  const totalPages = computed(() =>
+    Math.max(1, Math.ceil(rides.value.length / (filters.value.page_size || 20))),
+  );
+
+  function loadFilters() {
+    try {
+      const saved = localStorage.getItem("bikemaster_ride_filters");
+      if (saved) {
+        const parsed = JSON.parse(saved) as RideFilters;
+        filters.value = { ...filters.value, ...parsed };
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+
+  function saveFilters() {
+    try {
+      localStorage.setItem(
+        "bikemaster_ride_filters",
+        JSON.stringify(filters.value),
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  function setFilter(key: keyof RideFilters, value: unknown) {
+    filters.value[key] = value as RideFilters[keyof RideFilters];
+    saveFilters();
+  }
+
+  function clearFilters() {
+    filters.value = {
+      sort: "date",
+      page: 1,
+      page_size: 20,
+    };
+    saveFilters();
+  }
+
+  async function fetchRides(): Promise<void> {
+    if (!auth.isLoggedIn) return;
+    loading.value = true;
+    error.value = null;
+    try {
+      const params: Record<string, string> = {};
+      if (filters.value.search) params.search = filters.value.search;
+      if (filters.value.sort) params.sort = filters.value.sort;
+      if (filters.value.page) params.page = String(filters.value.page);
+      if (filters.value.page_size)
+        params.page_size = String(filters.value.page_size);
+
+      const data = await apiGet<{ rides: Ride[] }>("/api/v1/rides", params);
+      rides.value = data.rides || [];
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to load rides";
+      rides.value = [];
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function fetchSummary(): Promise<Summary> {
+    if (!auth.isLoggedIn) return summary.value;
+    loading.value = true;
+    error.value = null;
+    try {
+      const data = await apiGet<Summary>("/api/v1/rides/summary");
+      summary.value = data;
+      return data;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to load summary";
+      return summary.value;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function deleteRide(rideId: number): Promise<void> {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiDelete(`/api/v1/rides/${rideId}`);
+      rides.value = rides.value.filter((r) => r.id !== rideId);
+      summary.value.rides = Math.max(0, summary.value.rides - 1);
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to delete ride";
+      throw e;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function addRide(ride: Partial<Ride>): Promise<Ride> {
+    loading.value = true;
+    error.value = null;
+    try {
+      const data = await apiPost<Ride>("/api/v1/rides", ride);
+      rides.value.unshift(data);
+      summary.value.rides += 1;
+      return data;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to add ride";
+      throw e;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  function reset() {
+    rides.value = [];
+    summary.value = {
+      rides: 0,
+      distance_km: 0,
+      calories: 0,
+      avg_speed_kmh: 0,
+      duration_minutes: 0,
+    };
+    error.value = null;
+  }
+
+  loadFilters();
+
+  return {
+    rides,
+    summary,
+    loading,
+    error,
+    filters,
+    filteredRides,
+    totalPages,
+    loadFilters,
+    saveFilters,
+    setFilter,
+    clearFilters,
+    fetchRides,
+    fetchSummary,
+    deleteRide,
+    addRide,
+    reset,
+  };
+});

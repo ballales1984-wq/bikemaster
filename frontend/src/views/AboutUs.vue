@@ -115,7 +115,7 @@ to="/contact" class="cta-button"> Contattaci </RouterLink>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { RouterLink } from "vue-router";
 </script>
 

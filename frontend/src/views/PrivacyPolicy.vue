@@ -217,7 +217,7 @@ target="_blank" rel="noopener">www.garanteprivacy.it</a>.
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { RouterLink } from "vue-router";
 </script>
 

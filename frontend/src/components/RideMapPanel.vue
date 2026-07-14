@@ -207,6 +207,7 @@ import {
   getCenter,
   haversineDistanceM,
 } from "../utils/rideMapEnrichment";
+import type { EnrichedRide, GpsPoint, Ride, RideSegment } from "../types/index";
 import AetherMapViewer from "./AetherMapViewer.vue";
 
 const { t } = useI18n();
@@ -217,14 +218,16 @@ function toggleAetherMap() {
   useAetherMap.value = !useAetherMap.value;
 }
 
-const mapContainer = ref(null);
+const mapContainer = ref<HTMLElement | null>(null);
 const loading = ref(false);
-const enrichedRides = ref([]);
-const selectedRideId = ref(null);
-const colorMode = ref("combined");
+const enrichedRides = ref<EnrichedRide[]>([]);
+const selectedRideId = ref<number | null>(null);
+const colorMode = ref<string>("combined");
 const weatherEnabled = ref(true);
 const showFamousRoutes = ref(false);
-const mapStyle = ref(localStorage.getItem("mapStyle") || "standard");
+const mapStyle = ref<keyof typeof MAP_STYLES>(
+  (localStorage.getItem("mapStyle") as keyof typeof MAP_STYLES) || "standard",
+);
 
 const weatherLegend = computed(() => [
   { label: "Good", color: RISK_COLORS.LOW },
@@ -298,12 +301,12 @@ const demoRoutePoints = [
   { lat: 45.63, lon: 9.12, altitude: 210 },
 ];
 
-let map = null;
-let layerGroup = null;
-let tileLayer = null;
-let famousRoutesLayer = null;
+let map: L.Map | null = null;
+let layerGroup: L.LayerGroup | null = null;
+let tileLayer: L.TileLayer | null = null;
+let famousRoutesLayer: L.LayerGroup | null = null;
 
-function createTileLayer(styleKey) {
+function createTileLayer(styleKey: keyof typeof MAP_STYLES) {
   const cfg = MAP_STYLES[styleKey] || MAP_STYLES.standard;
   return L.tileLayer(cfg.url, {
     attribution: cfg.attribution,
@@ -311,7 +314,7 @@ function createTileLayer(styleKey) {
   });
 }
 
-function switchTileLayer(styleKey) {
+function switchTileLayer(styleKey: keyof typeof MAP_STYLES) {
   if (!map) return;
   if (tileLayer) {
     map.removeLayer(tileLayer);
@@ -325,8 +328,8 @@ function renderMap() {
   if (!mapContainer.value) return;
 
   if (!map) {
-    map = L.map(mapContainer.value, { preferCanvas: true }).setView(
-      DEFAULT_MAP_CENTER,
+    map = L.map(mapContainer.value as HTMLElement, { preferCanvas: true }).setView(
+      DEFAULT_MAP_CENTER as [number, number],
       DEFAULT_MAP_ZOOM,
     );
     tileLayer = createTileLayer(mapStyle.value);
@@ -337,8 +340,8 @@ function renderMap() {
     switchTileLayer(mapStyle.value);
   }
 
-  layerGroup.clearLayers();
-  const bounds = L.latLngBounds();
+  layerGroup?.clearLayers();
+  const bounds = L.latLngBounds([]);
 
   const ridesToRender =
     visibleRides.value.length > 0 ? visibleRides.value : [demoRide.value];
@@ -357,31 +360,36 @@ function renderMap() {
         color: polylineData.color,
         weight: 5,
         opacity: 0.8,
-        dashArray: ride.isDemo ? "10,5" : null,
+        dashArray: ride.isDemo ? "10,5" : undefined,
         lineCap: "round",
         lineJoin: "round",
       });
       polyline.addTo(rideLayer);
       polylineData.points.forEach((point) => {
-        bounds.extend(point);
+        bounds.extend(point as L.LatLngExpression);
       });
     });
 
     if (ride.center) {
-      const centerMarker = L.circleMarker(ride.center, {
-        radius: 6,
-        color: ride.isDemo ? "#3498db" : riskColor(ride.overallRisk),
-        fillColor: ride.isDemo ? "#3498db" : riskColor(ride.overallRisk),
-        fillOpacity: 0.9,
-        weight: 2,
-      });
+      const centerMarker = L.circleMarker(
+        L.latLng(ride.center.lat, ride.center.lon),
+        {
+          radius: 6,
+          color: ride.isDemo ? "#3498db" : riskColor(ride.overallRisk),
+          fillColor: ride.isDemo ? "#3498db" : riskColor(ride.overallRisk),
+          fillOpacity: 0.9,
+          weight: 2,
+        },
+      );
       centerMarker.bindPopup(
         ride.isDemo ? "Milan-Monza demo route" : ridePopup(ride),
       );
       centerMarker.addTo(rideLayer);
     }
 
-    rideLayer.addTo(layerGroup);
+    if (layerGroup) {
+      layerGroup.addLayer(rideLayer);
+    }
   });
 
   if (bounds.isValid()) {
@@ -430,16 +438,26 @@ const weatherUnavailableCount = computed(
   () => enrichedRides.value.filter((ride) => ride.weatherUnavailable).length,
 );
 
-const demoRide = computed(() => ({
-  id: "demo",
-  isDemo: true,
-  date: "2026-06-19",
-  gps_points: demoRoutePoints,
-  segments: [],
-  center: getCenter(demoRoutePoints),
-  distanceM: demoRoutePoints.length * 5000,
-  overallRisk: 50,
-}));
+  const demoRide = computed((): EnrichedRide => ({
+    id: -1,
+    athlete_id: 0,
+    name: "Milan-Monza demo",
+    date: "2026-06-19",
+    duration_seconds: 0,
+    distance_meters: demoRoutePoints.length * 5000,
+    gps_points: demoRoutePoints,
+    segments: [],
+    center: getCenter(demoRoutePoints),
+    distanceM: demoRoutePoints.length * 5000,
+    elevationGain: 0,
+    weather: null,
+    weatherScore: 5,
+    weatherUnavailable: false,
+    weatherError: "",
+    overallRisk: 50,
+    maxRisk: 0,
+    isDemo: true,
+  }));
 
 watch(mapStyle, () => {
   localStorage.setItem("mapStyle", mapStyle.value);
@@ -492,7 +510,9 @@ function renderFamousRoutes() {
          ${escapeHtml(route.description)}<br>
          <span style="color:#777">Distance: ${escapeHtml(route.distanceKm)} km · Elevation: +${escapeHtml(String(route.elevationGain))} m · ${escapeHtml(route.difficulty)}</span>
        `);
-    polyline.addTo(famousRoutesLayer);
+    if (famousRoutesLayer) {
+      polyline.addTo(famousRoutesLayer);
+    }
   });
 }
 
@@ -509,13 +529,16 @@ function destroyMap() {
 async function loadRides() {
   loading.value = true;
   try {
-    const data = await apiGet("/api/v1/rides", {
-      page: 1,
-      page_size: 100,
+    const data = await apiGet<{ rides: Ride[] }>("/api/v1/rides", {
+      page: "1",
+      page_size: "100",
       sort: "date",
     });
-    const rides = data.rides || [];
-    const enriched = rides.map(enrichRide);
+    const rides = (data.rides || []).filter(
+      (ride): ride is Ride & { gps_points: GpsPoint[] } =>
+        Array.isArray(ride.gps_points) && ride.gps_points.length > 0,
+    );
+    const enriched = rides.map((ride) => enrichRide(ride));
 
     await Promise.allSettled(
       enriched
@@ -523,7 +546,7 @@ async function loadRides() {
         .map((ride) => loadWeather(ride)),
     );
 
-    enriched.forEach(applyRideRisk);
+    enriched.forEach((ride) => applyRideRisk(ride));
     enrichedRides.value = enriched;
     if (
       selectedRideId.value &&
@@ -541,26 +564,33 @@ async function loadRides() {
   }
 }
 
-async function loadWeather(ride) {
+async function loadWeather(ride: EnrichedRide): Promise<void> {
   try {
-    ride.weather = await apiGet("/api/v1/weather", {
-      lat: Number(ride.center.lat.toFixed(5)),
-      lon: Number(ride.center.lon.toFixed(5)),
-      date: ride.date,
-    });
-    ride.weatherScore = Number.isFinite(ride.weather?.score)
-      ? ride.weather.score
-      : 5;
+    if (!ride.center) {
+      ride.weatherUnavailable = true;
+      return;
+    }
+    const weatherData = await apiGet<{ score?: number; description?: string }>(
+      "/api/v1/weather",
+      {
+        lat: String(Number(ride.center.lat.toFixed(5))),
+        lon: String(Number(ride.center.lon.toFixed(5))),
+        date: ride.date,
+      },
+    );
+    ride.weather = weatherData;
+    const wScore = weatherData.score;
+    ride.weatherScore = wScore != null && Number.isFinite(wScore) ? wScore : 5;
     ride.weatherUnavailable = false;
-  } catch (error) {
+  } catch (error: unknown) {
     ride.weather = null;
     ride.weatherScore = 5;
     ride.weatherUnavailable = true;
-    ride.weatherError = error.message;
+    ride.weatherError = error instanceof Error ? error.message : String(error);
   }
 }
 
-function enrichRide(ride) {
+function enrichRide(ride: Ride & { gps_points: GpsPoint[] }): EnrichedRide {
   const gps_points = downsamplePoints(normalizePoints(ride.gps_points));
   const center = getCenter(gps_points);
   const segments = buildSegments(gps_points);
@@ -589,14 +619,14 @@ function enrichRide(ride) {
   };
 }
 
-function applyRideRisk(ride) {
+function applyRideRisk(ride: EnrichedRide): EnrichedRide {
   const weatherScore = Number.isFinite(ride.weatherScore)
     ? ride.weatherScore
     : 5;
   ride.segments = ride.segments.map((segment) => {
     const gradeRisk = gradeRiskPercent(segment.grade);
     const weatherRisk = weatherRiskPercent(weatherScore);
-    const speedRisk = speedRiskPercent(segment.speed);
+    const speedRisk = speedRiskPercent(segment.speed ?? 0);
     let risk = 0;
 
     if (colorMode.value === "slope") {
@@ -627,7 +657,7 @@ function applyRideRisk(ride) {
   return ride;
 }
 
-function segmentPopup(ride, segment) {
+function segmentPopup(ride: EnrichedRide, segment: RideSegment): string {
   const gradeText =
     segment.grade >= 0
       ? `+${segment.grade.toFixed(1)}%`
@@ -644,7 +674,7 @@ function segmentPopup(ride, segment) {
    `;
 }
 
-function ridePopup(ride) {
+function ridePopup(ride: EnrichedRide): string {
   const weatherLabel = ride.weatherUnavailable
     ? "unavailable"
     : `${ride.weatherScore}/10`;

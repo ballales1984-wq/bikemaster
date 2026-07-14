@@ -19,7 +19,7 @@ v-if="!loading && !error" class="map-speed-legend">
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { apiGet } from "../utils/api";
 

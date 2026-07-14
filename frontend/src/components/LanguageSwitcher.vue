@@ -13,7 +13,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useI18n } from "../composables/useI18n";
 
 const { locale, setLocale } = useI18n();

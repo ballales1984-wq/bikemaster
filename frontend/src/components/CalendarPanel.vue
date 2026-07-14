@@ -40,7 +40,7 @@
               :key="a.id"
               :value="a.id"
             >
-              {{ a.name }}
+               {{ a.username || `Athlete ${a.id}` }}
             </option>
           </select>
         </div>
@@ -172,35 +172,62 @@
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api'
 import ConfirmModal from './ConfirmModal.vue'
 import Chart from 'chart.js/auto'
+import type { Athlete, CalendarEvent } from '../types/index'
 
-const athleteId = ref(null)
-const athletes = ref([])
+interface FitnessPoint {
+  date: string
+  atl: number
+  ctl: number
+  tsb: number
+}
+
+interface EventForm {
+  title: string
+  event_type: CalendarEvent['event_type']
+  date: string
+  duration_minutes?: number
+  description?: string
+  completed: boolean
+  lat: number | null
+  lon: number | null
+}
+
+interface DayCell {
+  day: number
+  date: string
+  currentMonth: boolean
+  isToday?: boolean
+  events: CalendarEvent[]
+}
+
+const athleteId = ref<number | null>(null)
+const athletes = ref<Athlete[]>([])
 const currentYear = ref(new Date().getFullYear())
 const currentMonth = ref(new Date().getMonth())
-const events = ref([])
-const fitnessData = ref([])
-const fitnessCanvas = ref(null)
-let fitnessChart = null
+const events = ref<CalendarEvent[]>([])
+const fitnessData = ref<FitnessPoint[]>([])
+const fitnessCanvas = ref<HTMLCanvasElement | null>(null)
+let fitnessChart: Chart | null = null
 const showForm = ref(false)
 const showDeleteModal = ref(false)
-const deleteTargetId = ref(null)
+const deleteTargetId = ref<number | null>(null)
 const deleteTargetTitle = ref('')
-const editingEvent = ref(null)
-const form = ref({ title: '', event_type: 'training', date: '', duration_minutes: 0, description: '', completed: false })
+const editingEvent = ref<CalendarEvent | null>(null)
+const form = ref<EventForm>({ title: '', event_type: 'training', date: '', duration_minutes: 0, description: '', completed: false, lat: null, lon: null })
 const athleteGoals = ref('')
 const calendarError = ref('')
 
 const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
- const monthLabel = computed(() => {
-   const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
-   return `${months[currentMonth.value]} ${currentYear.value}`
- })
+const monthLabel = computed(() => {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  return `${months[currentMonth.value]} ${currentYear.value}`
+})
 
 const calendarDays = computed(() => {
   const firstDay = new Date(currentYear.value, currentMonth.value, 1)
@@ -208,7 +235,7 @@ const calendarDays = computed(() => {
   if (startWeekDay < 0) startWeekDay = 6
   const daysInMonth = new Date(currentYear.value, currentMonth.value + 1, 0).getDate()
   const prevMonthDays = new Date(currentYear.value, currentMonth.value, 0).getDate()
-  const result = []
+  const result: DayCell[] = []
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`
   for (let i = 0; i < startWeekDay; i++) {
@@ -219,7 +246,7 @@ const calendarDays = computed(() => {
   }
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${currentYear.value}-${(currentMonth.value+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`
-    const dayEvents = events.value.filter(e => e.date === dateStr)
+    const dayEvents = events.value.filter((e) => e.date === dateStr)
     result.push({ day: d, date: dateStr, currentMonth: true, events: dayEvents, isToday: dateStr === todayStr })
   }
   const remaining = 42 - result.length
@@ -245,7 +272,7 @@ const selectedDateEvents = computed(() => {
   const y = today.getFullYear(), m = today.getMonth(), d = today.getDate()
   if (currentMonth.value === m && currentYear.value === y) {
     const todayStr = `${y}-${(m+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`
-    return events.value.filter(e => e.date === todayStr).sort((a, b) => a.id - b.id)
+    return events.value.filter((e) => e.date === todayStr).sort((a, b) => a.id - b.id)
   }
   return []
 })
@@ -257,9 +284,9 @@ const recommendedObjectives = computed(() => [
    { label: 'FTP Test', icon: '🔬', hint: 'Power test', event_type: 'test', duration: 60, title: 'FTP Test' },
    { label: 'Race', icon: '🏁', hint: 'Competition', event_type: 'race', duration: 180, title: 'Race' },
    { label: 'Goal Deadline', icon: '🎯', hint: 'Deadline', event_type: 'goal_deadline', duration: 0, title: 'Goal Deadline' },
- ])
+  ])
 
-function isToday(day) {
+function isToday(day: DayCell) {
   if (!day.isToday) return false
   const today = new Date()
   return day.date === `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`
@@ -280,37 +307,49 @@ function goToday() {
   loadEvents()
 }
 
-function eventLabel(type) {
-   const map = { training: 'Training', race: 'Race', recovery: 'Recovery', goal_deadline: 'Goal', test: 'Test', other: 'Other' }
+function eventLabel(type: string) {
+   const map: Record<string, string> = { training: 'Training', race: 'Race', recovery: 'Recovery', goal_deadline: 'Goal', test: 'Test', other: 'Other' }
    return map[type] || type
  }
 
-function openAddForDate(date) {
+function openAddForDate(date: string) {
   editingEvent.value = null
   form.value = { title: '', event_type: 'training', date, duration_minutes: 0, description: '', completed: false, lat: null, lon: null }
   showForm.value = true
 }
 
-function openEdit(ev) {
+function openEdit(ev: CalendarEvent) {
   editingEvent.value = ev
-  form.value = { ...ev }
+  form.value = {
+    title: ev.title,
+    event_type: ev.event_type,
+    date: ev.date,
+    duration_minutes: ev.duration_minutes,
+    description: ev.description || '',
+    completed: ev.completed || false,
+    lat: null,
+    lon: null,
+  }
   showForm.value = true
 }
 
-function quickAddFromObjective(obj) {
+function quickAddFromObjective(obj: { title: string; event_type: string; duration: number; hint: string }) {
   const today = new Date()
   const dateStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`
   editingEvent.value = null
-  form.value = { title: obj.title, event_type: obj.event_type, date: dateStr, duration_minutes: obj.duration, description: obj.hint, completed: false, lat: null, lon: null }
+  form.value = { title: obj.title, event_type: obj.event_type as EventForm['event_type'], date: dateStr, duration_minutes: obj.duration, description: obj.hint, completed: false, lat: null, lon: null }
   showForm.value = true
 }
 
 async function loadAthletes() {
   try {
-    const data = await apiGet('/api/v1/athletes')
+    const data = await apiGet<{ athletes: Athlete[] }>('/api/v1/athletes')
     athletes.value = data.athletes || []
     if (athletes.value.length > 0 && !athleteId.value) {
-      athleteId.value = athletes.value[0].id
+      const firstId = athletes.value[0].id
+      if (firstId !== undefined) {
+        athleteId.value = firstId
+      }
     }
   } catch (e) {
     athletes.value = []
@@ -321,8 +360,8 @@ async function loadEvents() {
   if (!athleteId.value) { events.value = []; fitnessData.value = []; return }
   try {
     const [eventsData, fitness] = await Promise.all([
-      apiGet('/api/v1/calendar/events', { athlete_id: athleteId.value, year: currentYear.value, month: currentMonth.value + 1 }),
-      apiGet('/api/v1/training/load', { athlete_id: athleteId.value, days: 30 }).catch(() => ({ training_loads: [] })),
+      apiGet<{ events: CalendarEvent[] }>('/api/v1/calendar/events', { athlete_id: String(athleteId.value), year: String(currentYear.value), month: String(currentMonth.value + 1) }),
+      apiGet<{ training_loads: FitnessPoint[] }>('/api/v1/training/load', { athlete_id: String(athleteId.value), days: '30' }).catch(() => ({ training_loads: [] })),
     ])
     events.value = eventsData.events || []
     fitnessData.value = fitness.training_loads || []
@@ -334,15 +373,16 @@ async function loadEvents() {
 
 function renderFitnessChart() {
   if (!fitnessCanvas.value || !fitnessData.value.length) return
-  const labels = fitnessData.value.map(d => {
+  const labels = fitnessData.value.map((d) => {
     const dt = new Date(d.date)
     return `${dt.getDate()}/${dt.getMonth() + 1}`
   })
-  const atl = fitnessData.value.map(d => d.atl)
-  const ctl = fitnessData.value.map(d => d.ctl)
-  const tsb = fitnessData.value.map(d => d.tsb)
+  const atl = fitnessData.value.map((d) => d.atl)
+  const ctl = fitnessData.value.map((d) => d.ctl)
+  const tsb = fitnessData.value.map((d) => d.tsb)
   if (fitnessChart) fitnessChart.destroy()
   const ctx = fitnessCanvas.value.getContext('2d')
+  if (!ctx) return
   fitnessChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -371,7 +411,7 @@ function renderFitnessChart() {
 async function loadGoals() {
   if (!athleteId.value) { athleteGoals.value = ''; return }
   try {
-    const data = await apiGet('/api/v1/athletes/' + athleteId.value)
+    const data = await apiGet<{ goals?: string }>('/api/v1/athletes/' + String(athleteId.value))
     athleteGoals.value = data.goals || ''
   } catch (e) {
     athleteGoals.value = ''
@@ -391,7 +431,7 @@ async function saveEvent() {
     loadEvents()
     loadGoals()
   } catch (e) {
-    calendarError.value = e.message || 'Error saving'
+    calendarError.value = (e as Error).message || 'Error saving'
   }
 }
 
@@ -401,28 +441,28 @@ async function handleDelete() {
     await apiDelete(`/api/v1/calendar/events/${deleteTargetId.value}`)
     loadEvents()
   } catch (e) {
-calendarError.value = e.message || 'Error deleting'
-   } finally {
-     deleteTargetId.value = null
-     deleteTargetTitle.value = ''
-   }
- }
+    calendarError.value = (e as Error).message || 'Error deleting'
+  } finally {
+    deleteTargetId.value = null
+    deleteTargetTitle.value = ''
+  }
+}
 
- function askDeleteEvent(id) {
-   const ev = events.value.find(e => e.id === id)
-   deleteTargetId.value = id
-   deleteTargetTitle.value = ev ? ev.title : ''
-   showDeleteModal.value = true
- }
+function askDeleteEvent(id: number) {
+  const ev = events.value.find((e) => e.id === id)
+  deleteTargetId.value = id
+  deleteTargetTitle.value = ev ? ev.title : ''
+  showDeleteModal.value = true
+}
 
- async function toggleComplete(ev) {
-   try {
-     await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {})
-     loadEvents()
-   } catch (e) {
-     calendarError.value = e.message || 'Error completing'
-   }
- }
+async function toggleComplete(ev: CalendarEvent) {
+  try {
+    await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {})
+    loadEvents()
+  } catch (e) {
+    calendarError.value = (e as Error).message || 'Error completing'
+  }
+}
 
 async function fetchWeatherForecast() {
   if (!form.value.lat || !form.value.lon || !form.value.date) {
@@ -430,13 +470,13 @@ async function fetchWeatherForecast() {
     return
   }
   try {
-    weatherForecast.value = await apiGet('/api/v1/weather', { lat: form.value.lat, lon: form.value.lon, date: form.value.date })
+    weatherForecast.value = await apiGet('/api/v1/weather', { lat: String(form.value.lat), lon: String(form.value.lon), date: form.value.date })
   } catch (e) {
     weatherForecast.value = null
   }
 }
 
-function weatherScoreClass(ev) {
+function weatherScoreClass(ev: CalendarEvent & { weather_temp?: number; weather_humidity?: number }) {
   if (!ev.weather_temp || !ev.weather_humidity) return 5
   const score = Math.round((ev.weather_temp >= 5 && ev.weather_temp <= 30 && ev.weather_humidity < 70) ? 8 : (ev.weather_temp >= 0 && ev.weather_temp <= 35 ? 6 : 3))
   return score
@@ -448,7 +488,7 @@ const weatherScore = computed(() => {
   return s
 })
 
-const weatherForecast = ref(null)
+const weatherForecast = ref<{ score?: number; description?: string } | null>(null)
 
 let initialized = false
 

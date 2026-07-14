@@ -85,16 +85,32 @@ v-if="badge.achieved" class="badge-check">✓</div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { apiGet } from "../utils/api";
 
-const athleteId = ref(null);
+interface BadgeInfo {
+  id: number;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  achieved: boolean;
+  progress: number;
+}
+
+interface BadgesResponse {
+  achieved: number;
+  total_badges: number;
+  badges: BadgeInfo[];
+}
+
+const athleteId = ref<number | null>(null);
 const loading = ref(false);
-const badgesData = ref(null);
+const badgesData = ref<BadgesResponse | null>(null);
 
 async function loadAthleteId() {
-  const data = await apiGet("/api/v1/athletes");
+  const data = await apiGet<{ athletes: { id: number }[] }>("/api/v1/athletes");
   athleteId.value = data.athletes?.[0]?.id ?? null;
 }
 
@@ -104,22 +120,20 @@ const categories = [
   { key: "elevation", label: "⛰️ Elevation" },
   { key: "speed", label: "⚡ Speed" },
   { key: "consistency", label: "📆 Consistency" },
-];
+] as const;
 
 const completionPercent = computed(() => {
   if (!badgesData.value) return 0;
-  return (
-    (badgesData.value.achieved / badgesData.value.total_badges) *
-    100
-  ).toFixed(1);
+  const { achieved, total_badges } = badgesData.value;
+  return total_badges > 0 ? Number(((achieved / total_badges) * 100).toFixed(1)) : 0;
 });
 
 async function loadBadges() {
   if (!athleteId.value) return;
   loading.value = true;
   try {
-    badgesData.value = await apiGet("/api/v1/badges", {
-      athlete_id: athleteId.value,
+    badgesData.value = await apiGet<BadgesResponse>("/api/v1/badges", {
+      athlete_id: String(athleteId.value),
     });
   } catch (e) {
     console.error("badges error", e);
@@ -129,9 +143,9 @@ async function loadBadges() {
   }
 }
 
-function getBadgesByCategory(category) {
+function getBadgesByCategory(category: string): BadgeInfo[] {
   if (!badgesData.value?.badges) return [];
-  return badgesData.value.badges.filter((b) => b.category === category);
+  return badgesData.value.badges.filter((b: BadgeInfo) => b.category === category);
 }
 
 onMounted(() => {

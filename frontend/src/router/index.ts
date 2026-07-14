@@ -22,6 +22,12 @@ const routes = [
     meta: { title: "Le mie uscite" },
   },
   {
+    path: "/dashboard",
+    name: "dashboard",
+    component: () => import("../components/DashboardPanel.vue"),
+    meta: { requiresAuth: true, title: "Dashboard" },
+  },
+  {
     path: "/import",
     name: "import",
     component: () => import("../components/ImportPanel.vue"),

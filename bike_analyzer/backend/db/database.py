@@ -1523,7 +1523,9 @@ def get_athlete_by_query(**query):
 
     from .api_compat import get_athlete_by_query as _shim
 
-    return _shim(get_athlete_by_name, **query)
+    import bike_analyzer.backend.db.database as db_mod
+
+    return _shim(db_mod, **query)
 
 
 def _row_to_poi(row) -> dict:

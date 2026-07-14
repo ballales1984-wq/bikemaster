@@ -31,7 +31,7 @@ Ordine: stabilità → mobile nativo → maturità AI → distribuzione/integraz
 | P3.2 | Versione cloud hosted (Render/Azure/Fly/Railway/Vercel) | Distribuzione | ✅ |
 | P3.3 | Helm chart Kubernetes | Distribuzione | ✅ |
 | P3.4 | One-click deploy docs (Railway/Fly/Vercel) | Distribuzione | ✅ |
-| P3.5 | Coverage test >90% come metrica informativa | Qualità | 🔄 |
+| P3.5 | Coverage test >90% come metrica informativa | Qualità | 🔄 In corso (~26%, test DB layer ripristinati) |
 
 ---
 

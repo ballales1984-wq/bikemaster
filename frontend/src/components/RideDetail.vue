@@ -109,7 +109,7 @@ v-if="speedChart || elevationChart" class="chart-section"
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { apiGet } from "../utils/api";
 import SpeedMap from "./SpeedMap.vue";

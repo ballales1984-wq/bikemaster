@@ -13,6 +13,7 @@ export interface Ride {
   elev_loss_meters?: number;
   created_at?: string;
   duration_minutes?: number;
+  gps_points?: GpsPoint[];
 }
 
 export interface EnrichedRide extends Ride {
@@ -27,6 +28,7 @@ export interface EnrichedRide extends Ride {
   weatherError: string;
   overallRisk: number;
   maxRisk: number;
+  isDemo?: boolean;
 }
 
 export interface Athlete {
@@ -69,6 +71,7 @@ export interface CalendarEvent {
     "training" | "race" | "recovery" | "goal_deadline" | "test" | "other";
   description?: string;
   completed?: boolean;
+  duration_minutes?: number;
 }
 
 export interface Badge {

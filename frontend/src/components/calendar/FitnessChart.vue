@@ -6,16 +6,23 @@ height="200" />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, onUnmounted } from "vue";
 import Chart from "chart.js/auto";
 
-const props = defineProps({
-  data: Array,
-});
+interface FitnessData {
+  date: string;
+  atl: number;
+  ctl: number;
+  tsb: number;
+}
 
-const canvas = ref(null);
-let chart = null;
+const props = defineProps<{
+  data: FitnessData[];
+}>();
+
+const canvas = ref<HTMLCanvasElement | null>(null);
+let chart: Chart | null = null;
 
 function render() {
   if (!canvas.value || !props.data?.length) return;
@@ -28,6 +35,7 @@ function render() {
   const tsb = props.data.map((d) => d.tsb);
   if (chart) chart.destroy();
   const ctx = canvas.value.getContext("2d");
+  if (!ctx) return;
   chart = new Chart(ctx, {
     type: "line",
     data: {

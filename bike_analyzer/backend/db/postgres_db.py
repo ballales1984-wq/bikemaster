@@ -12,6 +12,7 @@ not set.
 
 from __future__ import annotations
 
+import os
 from contextlib import contextmanager
 
 try:
@@ -29,6 +30,11 @@ from ..settings import get_settings
 
 _s = get_settings()
 
+# Read DATABASE_URL fresh from the environment (falling back to the cached
+# settings) so a reload of this module picks up the current configuration even
+# when the settings singleton was constructed before DATABASE_URL was set.
+_database_url = os.environ.get("DATABASE_URL") or _s.database_url
+
 # Re-export the unified ORM models (single source of truth in models.py).
 if SQLALCHEMY_AVAILABLE:
     from .models import Base, PlannedWorkoutModel, TrainingGoalModel
@@ -38,8 +44,8 @@ else:  # pragma: no cover - SQLAlchemy is a hard runtime dependency
     TrainingGoalModel = None
 
 
-if SQLALCHEMY_AVAILABLE and _s.database_url:
-    engine = create_engine(_s.database_url, echo=False)
+if SQLALCHEMY_AVAILABLE and _database_url:
+    engine = create_engine(_database_url, echo=False)
     SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
     @contextmanager
@@ -66,7 +72,7 @@ def save_training_goal(athlete_id: int, goal: dict) -> int:
     if not SQLALCHEMY_AVAILABLE or engine is None:
         return 0
     with SessionLocal() as session:
-        db_goal = TrainingGoalModel(**goal)
+        db_goal = TrainingGoalModel(**{**goal, "athlete_id": athlete_id})
         session.add(db_goal)
         session.commit()
         return db_goal.id
