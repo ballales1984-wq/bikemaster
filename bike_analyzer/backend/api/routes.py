@@ -206,7 +206,9 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
     # Allowing it would let an attacker craft redirect_uri=https://evil.com with
     # Origin: https://evil.com and achieve an open redirect.
     allowed_hosts = (
-        {"bikemaster.onrender.com", "testserver"} | cors_hosts | configured_hosts
+        {"bikemaster.onrender.com", "bikemaster-api.onrender.com", "bikemaster-xi.vercel.app", "testserver"}
+        | cors_hosts
+        | configured_hosts
     )
     if host_lower not in allowed_hosts:
         raise HTTPException(status_code=400, detail="Invalid redirect_uri host")

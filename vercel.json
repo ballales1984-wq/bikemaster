@@ -5,6 +5,12 @@
   "buildCommand": "npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
   "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://bikemaster-api.onrender.com/api/$1"
+    }
+  ],
   "headers": [
     {
       "source": "/sw.js",
