@@ -137,6 +137,39 @@ def _build_frontend_redirect_url(
     return f"{base}/{query_suffix}{fragment_suffix}"
 
 
+def _build_oauth_error_url(request: Request, redirect_uri: str, error: str) -> "RedirectResponse":
+    """Redirect back to the SPA with an ``oauth_error`` query param.
+
+    The error is delivered as a query param (not a fragment) so the SPA can read
+    it even on a full document load. The ``redirect_uri`` comes from the signed
+    OAuth state, so it is already host-validated.
+    """
+    from fastapi.responses import RedirectResponse
+
+    return RedirectResponse(
+        url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=error)
+    )
+
+
+def _build_oauth_success_url(redirect_uri: str, token: str, email: str, user_id: Any) -> str:
+    """Build the post-login redirect URL that hands the JWT to the SPA.
+
+    - Mobile / custom app schemes (e.g. ``com.bikemaster.app://callback``):
+      deliver the token as a query string on the deep-link target.
+    - Web SPA: redirect to the SPA origin root with the token in the URL
+      *fragment*. Fragments are never sent to the server, so the JWT never
+      appears in backend access logs, proxies or Referer headers. The SPA
+      consumes the fragment and immediately strips it via ``history.replaceState``.
+    """
+    parsed = urlparse(redirect_uri or "")
+    if parsed.scheme and parsed.scheme not in ("http", "https"):
+        target = f"{parsed.scheme}://{parsed.netloc or parsed.path.lstrip('/')}"
+        return f"{target}?{urlencode({'token': token, 'email': email or '', 'user_id': str(user_id)})}"
+
+    origin = f"{parsed.scheme}://{parsed.netloc}/" if parsed.scheme else "/"
+    return f"{origin}#{urlencode({'token': token, 'email': email or '', 'user_id': str(user_id)})}"
+
+
 def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) -> None:
     parsed = urlparse(redirect_uri)
     if not parsed.scheme:
@@ -799,20 +832,18 @@ async def google_oauth_callback_get(
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
     state_data = _verify_oauth_state(state)
     if not state_data:
-        return RedirectResponse(
-            url=_build_frontend_redirect_url(
-                request, _build_redirect_uri(request, "/api/v1/auth/google/callback"), oauth_error="invalid_state"
-            )
+        return _build_oauth_error_url(
+            request, _build_redirect_uri(request, "/api/v1/auth/google/callback"), "invalid_state"
         )
     redirect_uri = state_data["redirect_uri"]
     _validate_redirect_uri(redirect_uri, request)
 
     if error:
         message = error_description or error
-        return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=message))
+        return _build_oauth_error_url(request, redirect_uri, message)
 
     if not code:
-        return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="missing_code"))
+        return _build_oauth_error_url(request, redirect_uri, "missing_code")
 
     cache_key = f"oauth:code:{code}"
     try:
@@ -827,30 +858,26 @@ async def google_oauth_callback_get(
         except Exception as exc:
             response = getattr(exc, "response", None)
             if response is not None and getattr(response, "status_code", None) == 400:
-                return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="oauth_error"))
+                return _build_oauth_error_url(request, redirect_uri, "oauth_error")
             error_body = response.text if response is not None else str(exc)
             error_detail = f"token_exchange_failed:{error_body[:200]}"
-            return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=error_detail))
+            return _build_oauth_error_url(request, redirect_uri, error_detail)
         access_token = token_data.get("access_token")
         if not access_token:
-            return RedirectResponse(url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="no_access_token"))
+            return _build_oauth_error_url(request, redirect_uri, "no_access_token")
 
         try:
             user_info = await asyncio.to_thread(get_google_user_info, access_token)
         except Exception as exc:
             response = getattr(exc, "response", None)
             error_body = response.text if response is not None else str(exc)
-            return RedirectResponse(
-                url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=f"userinfo_failed:{error_body[:200]}")
-            )
+            return _build_oauth_error_url(request, redirect_uri, f"userinfo_failed:{error_body[:200]}")
         google_sub = user_info.get("sub")
         email = user_info.get("email")
         name = user_info.get("name")
 
         if not google_sub:
-            return RedirectResponse(
-                url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="invalid_user_info")
-            )
+            return _build_oauth_error_url(request, redirect_uri, "invalid_user_info")
 
         existing = await asyncio.to_thread(get_athlete_by_email, email) if email else None
         if not existing:
@@ -888,34 +915,15 @@ async def google_oauth_callback_get(
                     await r.delete(lock_key)
 
         if not existing:
-            return RedirectResponse(
-                url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="user_creation_failed")
-            )
+            return _build_oauth_error_url(request, redirect_uri, "user_creation_failed")
 
         jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
-        parsed_redirect = urlparse(redirect_uri or "")
-        is_app_scheme = parsed_redirect.scheme not in ("http", "https")
-        if is_app_scheme:
-            redirect_url = (
-                f"{parsed_redirect.scheme}://{parsed_redirect.netloc or parsed_redirect.path.lstrip('/')}"
-                f"?{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
-            )
-        else:
-            frontend_origin = f"{parsed_redirect.scheme}://{parsed_redirect.netloc}/" if parsed_redirect.scheme else None
-            if not frontend_origin or not parsed_redirect.path.endswith("/api/v1/auth/google/callback"):
-                frontend_origin = _build_redirect_uri(request, "")
-            if frontend_origin and "localhost:8000" in frontend_origin:
-                frontend_origin = "http://localhost:5173/"
-            redirect_url = (
-                f"{frontend_origin}#{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(existing['id'])})}"
-            )
+        redirect_url = _build_oauth_success_url(redirect_uri, jwt_token, email or "", existing["id"])
         await _cache_set(f"oauth:code:{code}", {"redirect_url": redirect_url}, ttl=300)
         return RedirectResponse(url=redirect_url)
     except Exception as exc:
         logger.exception("Google OAuth callback failed: %s", exc)
-        return RedirectResponse(
-            url=_build_frontend_redirect_url(request, redirect_uri, oauth_error="server_error")
-        )
+        return _build_oauth_error_url(request, redirect_uri, "server_error")
 
 
 @router.post("/auth/google/code-exchange")
