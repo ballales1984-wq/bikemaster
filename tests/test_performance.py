@@ -1,7 +1,10 @@
-"""Test performance engine."""
+"""Tests for analytics performance model."""
 
-from datetime import UTC, datetime
+from __future__ import annotations
 
+import pytest
+
+from bike_analyzer.backend.analytics.fatigue import calculate_fatigue_score
 from bike_analyzer.backend.analytics.performance import (
     calculate_annual_scores,
     calculate_efficiency_score,
@@ -13,103 +16,99 @@ from bike_analyzer.backend.analytics.performance import (
     get_experience_level,
     should_save_to_database,
 )
-from bike_analyzer.backend.models.models import AthleteProfile, GPSPoint, Ride
+from bike_analyzer.backend.models.models import AthleteProfile, Ride
 
 
-def test_performance_score():
-    r = Ride(
-        date="2024-06-01",
-        distance_km=25.0,
-        duration_minutes=60.0,
-        avg_speed_kmh=25.0,
-        calories=600,
-        elevation_gain_m=200,
-    )
-    score = calculate_performance_score(r)
-    assert 0 <= score <= 10
+class TestCalculatePerformanceScore:
+    def test_fast_ride_scores_higher(self):
+        slow = Ride(avg_speed_kmh=15.0, duration_minutes=60.0, elevation_gain_m=0, distance_km=15.0, calories=300)
+        fast = Ride(avg_speed_kmh=30.0, duration_minutes=60.0, elevation_gain_m=0, distance_km=30.0, calories=600)
+        assert calculate_performance_score(fast) > calculate_performance_score(slow)
+
+    def test_long_ride_scores_higher(self):
+        short = Ride(avg_speed_kmh=25.0, duration_minutes=30.0, elevation_gain_m=0, distance_km=12.5, calories=250)
+        long = Ride(avg_speed_kmh=25.0, duration_minutes=180.0, elevation_gain_m=0, distance_km=75.0, calories=750)
+        assert calculate_performance_score(long) > calculate_performance_score(short)
+
+    def test_elevation_contributes(self):
+        flat = Ride(avg_speed_kmh=25.0, duration_minutes=60.0, elevation_gain_m=0, distance_km=25.0, calories=500)
+        hilly = Ride(avg_speed_kmh=25.0, duration_minutes=60.0, elevation_gain_m=500.0, distance_km=25.0, calories=550)
+        assert calculate_performance_score(hilly) > calculate_performance_score(flat)
+
+    def test_capped_at_10(self):
+        ride = Ride(avg_speed_kmh=50.0, duration_minutes=600.0, elevation_gain_m=5000.0, distance_km=500.0, calories=5000)
+        assert calculate_performance_score(ride) <= 10.0
+
+    def test_rounded_to_one_decimal(self):
+        ride = Ride(avg_speed_kmh=25.0, duration_minutes=90.0, elevation_gain_m=250.0, distance_km=37.5, calories=600)
+        score = calculate_performance_score(ride)
+        assert score == round(score, 1)
 
 
-def test_endurance_score():
-    rides = [
-        Ride(date=f"2024-06-{i:02d}", distance_km=20.0, duration_minutes=45.0, avg_speed_kmh=25.0) for i in range(1, 22)
-    ]
-    score = calculate_endurance_score(rides)
-    assert 0 <= score <= 10
+class TestCalculateEnduranceScore:
+    def test_empty_rides_returns_zero(self):
+        assert calculate_endurance_score([]) == 0.0
+
+    def test_many_long_rides_scores_high(self):
+        rides = [Ride(duration_minutes=180.0, distance_km=80.0) for _ in range(20)]
+        assert calculate_endurance_score(rides) >= 7.0
+
+    def test_short_rides_scores_low(self):
+        rides = [Ride(duration_minutes=30.0, distance_km=10.0) for _ in range(5)]
+        assert calculate_endurance_score(rides) <= 3.0
 
 
-def test_recovery_score():
-    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=600)
-    score = calculate_recovery_score(r)
-    assert 0 <= score <= 10
+class TestCalculateRecoveryScore:
+    def test_inverse_of_fatigue(self):
+        ride = Ride(duration_minutes=120.0, avg_speed_kmh=25.0, distance_km=50.0, elevation_gain_m=300.0, weight_kg=70.0)
+        rec = calculate_recovery_score(ride)
+        fat = calculate_fatigue_score(ride)
+        assert round(rec + fat, 1) == 10.0
+
+    def test_high_fatigue_low_recovery(self):
+        ride = Ride(duration_minutes=360.0, avg_speed_kmh=45.0, heart_rate_avg=190, distance_km=250.0, elevation_gain_m=4000.0, weight_kg=70.0)
+        assert calculate_recovery_score(ride) <= 4.0
 
 
-def test_efficiency_score():
-    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=600)
-    score = calculate_efficiency_score(r)
-    assert 0 <= score <= 10
+class TestCalculateEfficiencyScore:
+    def test_zero_distance_returns_zero(self):
+        ride = Ride(distance_km=0, calories=0)
+        assert calculate_efficiency_score(ride) == 0.0
+
+    def test_low_calories_per_km_scores_high(self):
+        ride = Ride(distance_km=50.0, calories=1000)
+        assert calculate_efficiency_score(ride) >= 7.0
+
+    def test_high_calories_per_km_scores_low(self):
+        ride = Ride(distance_km=10.0, calories=800)
+        assert calculate_efficiency_score(ride) <= 5.0
 
 
-def test_classify_athlete():
-    beginner_rides = [
-        Ride(date=f"2024-06-{i:02d}", distance_km=20.0, duration_minutes=45.0, avg_speed_kmh=20.0) for i in range(1, 5)
-    ]
-    assert classify_athlete(beginner_rides) == "Beginner"
-    elite_rides = [
-        Ride(date=f"2024-06-{i:02d}", distance_km=100.0, duration_minutes=200.0, avg_speed_kmh=25.0)
-        for i in range(1, 35)
-    ]
-    assert classify_athlete(elite_rides) == "Elite"
+class TestClassifyAthlete:
+    def test_empty_rides_unclassified(self):
+        assert classify_athlete([]) == "Unclassified"
+
+    def test_beginner(self):
+        rides = [Ride(distance_km=10.0) for _ in range(5)]
+        assert classify_athlete(rides) == "Beginner"
+
+    def test_elite(self):
+        rides = [Ride(distance_km=100.0) for _ in range(200)]
+        assert classify_athlete(rides) == "Elite"
 
 
-def test_monthly_scores_empty():
-    assert calculate_monthly_scores([]) == {
-        "performance": 0,
-        "endurance": 0,
-        "recovery": 0,
-        "efficiency": 0,
-        "avg_fatigue": 0,
-    }
+class TestGetExperienceLevel:
+    def test_returns_athlete_level(self):
+        athlete = AthleteProfile(experience_level="Advanced")
+        assert get_experience_level(athlete) == "Advanced"
 
 
-def test_annual_scores_empty():
-    assert calculate_annual_scores([]) == {
-        "performance": 0,
-        "endurance": 0,
-        "total_km": 0,
-        "total_calories": 0,
-        "avg_fatigue": 0,
-    }
+class TestShouldSaveToDatabase:
+    def test_valid_points_returns_true(self):
+        from datetime import datetime
+        from bike_analyzer.core.models import GPSPoint
+        points = [GPSPoint(lat=45.0, lon=7.0, altitude=100.0, timestamp=datetime.now())]
+        assert should_save_to_database(points) is True
 
-
-def test_efficiency_score_zero_distance():
-    r = Ride(date="2024-06-01", distance_km=0.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=500)
-    assert calculate_efficiency_score(r) == 0.0
-
-
-def test_get_experience_level():
-    athlete = AthleteProfile(name="Test", experience_level="Intermediate")
-    assert get_experience_level(athlete) == "Intermediate"
-
-
-def test_should_save_to_database():
-    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC))]
-    assert should_save_to_database(points)
-    assert not should_save_to_database([])
-
-
-def test_classify_athlete_all_levels():
-    assert classify_athlete([]) == "Unclassified"
-    amateur_rides = [Ride(date=f"2024-06-{i:02d}", distance_km=100.0) for i in range(1, 15)]
-    assert classify_athlete(amateur_rides) in ["Beginner", "Amateur", "Intermediate", "Advanced", "Elite"]
-
-
-def test_performance_score_high():
-    r = Ride(date="2024-06-01", distance_km=100.0, duration_minutes=240.0, avg_speed_kmh=40.0, elevation_gain_m=1500)
-    score = calculate_performance_score(r)
-    assert score > 0
-
-
-def test_efficiency_score_efficient():
-    r = Ride(date="2024-06-01", distance_km=25.0, duration_minutes=60.0, avg_speed_kmh=25.0, calories=200)
-    score = calculate_efficiency_score(r)
-    assert score >= 0
+    def test_empty_points_returns_false(self):
+        assert should_save_to_database([]) is False

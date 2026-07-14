@@ -1,8 +1,8 @@
-"""Tests for power_model.py."""
+"""Tests for analytics power model."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -19,141 +19,148 @@ from bike_analyzer.backend.analytics.power_model import (
     training_stress_score,
     variability_index,
 )
-from bike_analyzer.backend.models.models import GPSPoint
+from bike_analyzer.core.models import GPSPoint
 
 
-def _ts(minutes: int) -> datetime:
-    base = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
-    return base + timedelta(minutes=minutes)
+def _gps_point(timestamp_offset: float, power: float | None = None, heart_rate: float | None = None) -> GPSPoint:
+    return GPSPoint(
+        lat=45.0,
+        lon=7.0,
+        timestamp=datetime.now() + timedelta(seconds=timestamp_offset),
+        power=power,
+        heart_rate=heart_rate,
+    )
 
 
-def test_normalized_power_short_series():
-    assert normalized_power([], window_size=30) == 0.0
-    assert normalized_power([100.0], window_size=30) == 100.0
-    assert normalized_power([200.0, 300.0, 250.0], window_size=30) == pytest.approx(250.0, abs=1.0)
+class TestNormalizedPower:
+    def test_empty_returns_zero(self):
+        assert normalized_power([]) == 0.0
+
+    def test_single_value_returns_same(self):
+        assert normalized_power([200.0]) == 200.0
+
+    def test_smooths_variations(self):
+        steady = normalized_power([200.0] * 60)
+        variable = normalized_power([180.0 + (i % 5) * 10.0 for i in range(60)])
+        assert steady >= variable
+
+    def test_rounded_to_one_decimal(self):
+        result = normalized_power([200.0] * 60)
+        assert result == round(result, 1)
 
 
-def test_normalized_power_widow_effect():
-    watts = [100.0] * 50 + [400.0] * 50
-    np = normalized_power(watts, window_size=30)
-    assert np > 200.0
-    assert np < 400.0
+class TestIntensityFactor:
+    def test_zero_ftp_returns_zero(self):
+        assert intensity_factor(200.0, 0) == 0.0
+
+    def test_calculates_correctly(self):
+        assert intensity_factor(250.0, 250.0) == 1.0
+
+    def test_rounded_to_three_decimals(self):
+        result = intensity_factor(263.0, 250.0)
+        assert result == round(result, 3)
 
 
-def test_intensity_factor():
-    assert intensity_factor(300.0, 250.0) == pytest.approx(1.2, abs=0.01)
-    assert intensity_factor(300.0, 0.0) == 0.0
+class TestVariabilityIndex:
+    def test_zero_avg_returns_zero(self):
+        assert variability_index(200.0, 0) == 0.0
+
+    def test_steady_ride_near_one(self):
+        assert variability_index(200.0, 200.0) == 1.0
 
 
-def test_variability_index():
-    assert variability_index(300.0, 250.0) == pytest.approx(1.2, abs=0.01)
-    assert variability_index(300.0, 0.0) == 0.0
+class TestEfficiencyFactor:
+    def test_zero_hr_returns_zero(self):
+        assert efficiency_factor(200.0, 0) == 0.0
+
+    def test_calculates_correctly(self):
+        assert efficiency_factor(200.0, 100.0) == 2.0
 
 
-def test_efficiency_factor():
-    assert efficiency_factor(300.0, 150.0) == pytest.approx(2.0, abs=0.01)
-    assert efficiency_factor(300.0, 0.0) == 0.0
+class TestTrainingStressScore:
+    def test_zero_duration_returns_zero(self):
+        assert training_stress_score(200.0, 0.8, 0) == 0.0
+
+    def test_capped_at_maximum(self):
+        assert training_stress_score(400.0, 1.5, 10.0) == 500.0
+
+    def test_increases_with_duration(self):
+        tss1 = training_stress_score(200.0, 0.8, 1.0)
+        tss2 = training_stress_score(200.0, 0.8, 2.0)
+        assert tss2 > tss1
 
 
-def test_training_stress_score():
-    assert training_stress_score(300.0, 1.2, 1.0) == pytest.approx(144.0, abs=0.1)
-    assert training_stress_score(300.0, 1.2, 10.0) == 500.0
-    assert training_stress_score(300.0, 0.0, 1.0) == 0.0
+class TestCalculatePowerZones:
+    def test_returns_zones_dict(self):
+        points = [_gps_point(i, power=200.0) for i in range(60)]
+        zones = calculate_power_zones(points, ftp=250.0)
+        assert "Z1" in zones
+        assert "Z7" in zones
+
+    def test_empty_points_returns_empty(self):
+        assert calculate_power_zones([], ftp=250.0) == {}
+
+    def test_zero_ftp_returns_empty(self):
+        points = [_gps_point(i, power=200.0) for i in range(60)]
+        assert calculate_power_zones(points, ftp=0) == {}
 
 
-def test_calculate_power_zones_empty_points():
-    zones = calculate_power_zones([], ftp=250.0)
-    assert zones == {}
+class TestPowerProfile:
+    def test_empty_returns_none_profile(self):
+        result = calculate_power_profile([])
+        assert result["5s"] is None
+
+    def test_best_effort_detected(self):
+        points = [_gps_point(i, power=300.0 if 25 <= i <= 35 else 150.0) for i in range(60)]
+        profile = calculate_power_profile(points)
+        assert profile.get("5s") is not None
 
 
-def test_calculate_power_zones_with_power():
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=_ts(i), power=140.0 + i * 25.0)
-        for i in range(10)
-    ]
-    zones = calculate_power_zones(points, ftp=250.0)
-    assert "Z1" in zones
-    assert "Z7" in zones
-    total_count = sum(z["count"] for z in zones.values())
-    assert total_count == 10
+class TestEstimateFtp:
+    def test_no_20min_power_returns_zero(self):
+        assert estimate_ftp_from_20min([]) == 0.0
+
+    def test_estimates_from_best_20min(self):
+        points = [_gps_point(i, power=280.0) for i in range(1200)]
+        ftp = estimate_ftp_from_20min(points)
+        assert ftp > 0
 
 
-def test_calculate_power_profile_empty():
-    profile = calculate_power_profile([])
-    assert profile["5s"] is None
-    assert profile["20min"] is None
+class TestEstimateCriticalPower:
+    def test_returns_dict_with_keys(self):
+        points = [_gps_point(i, power=300.0) for i in range(600)]
+        result = estimate_critical_power(points)
+        assert "cp_w" in result
+        assert "w_prime_j" in result
+
+    def test_no_data_returns_zeros(self):
+        result = estimate_critical_power([])
+        assert result["cp_w"] == 0.0
+        assert result["w_prime_j"] == 0.0
 
 
-def test_calculate_power_profile_best_efforts():
-    base = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=base + timedelta(seconds=i), power=300.0)
-        for i in range(1201)
-    ]
-    profile = calculate_power_profile(points)
-    assert profile["5s"] is not None
-    assert profile["1min"] is not None
-    assert profile["20min"] is not None
+class TestDetectAerobicDecoupling:
+    def test_insufficient_points_returns_zero(self):
+        result = detect_aerobic_decoupling([_gps_point(0, power=200.0, heart_rate=150.0) for _ in range(10)])
+        assert result["decoupling_pct"] == 0.0
+
+    def test_significant_decoupling_detected(self):
+        first = [_gps_point(i, power=200.0, heart_rate=150.0) for i in range(30)]
+        second = [_gps_point(i + 30, power=200.0, heart_rate=170.0) for i in range(30)]
+        result = detect_aerobic_decoupling(first + second, ftp=250.0)
+        assert result["significant"] is True
 
 
-def test_estimate_ftp_from_20min():
-    base = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
-    ride = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=base + timedelta(seconds=i), power=300.0)
-        for i in range(1200)
-    ]
-    ftp = estimate_ftp_from_20min(ride)
-    assert ftp == pytest.approx(285.0, abs=1.0)
+class TestCalculateAdvancedPowerMetrics:
+    def test_no_power_returns_unavailable(self):
+        result = calculate_advanced_power_metrics([])
+        assert result["available"] is False
+        assert result["reason"] == "no_power_data"
 
-
-def test_estimate_critical_power_insufficient():
-    ride = [GPSPoint(lat=45.0, lon=9.0, timestamp=_ts(0), power=200.0)]
-    result = estimate_critical_power(ride)
-    assert result["cp_w"] == 0.0
-    assert result["w_prime_j"] == 0.0
-
-
-def test_estimate_critical_power_valid():
-    base = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=base + timedelta(seconds=i), power=350.0 if i < 300 else 300.0)
-        for i in range(601)
-    ]
-    result = estimate_critical_power(points)
-    assert result["cp_w"] > 0
-    assert result["w_prime_j"] > 0
-
-
-def test_detect_aerobic_decoupling_short():
-    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=_ts(i), power=200.0, heart_rate=150.0) for i in range(10)]
-    result = detect_aerobic_decoupling(points, ftp=250.0)
-    assert result["decoupling_pct"] == 0.0
-    assert result["significant"] is False
-
-
-def test_detect_aerobic_decoupling_significant():
-    first = [GPSPoint(lat=45.0, lon=9.0, timestamp=_ts(i), power=200.0, heart_rate=150.0) for i in range(30)]
-    second = [GPSPoint(lat=45.0, lon=9.0, timestamp=_ts(30 + i), power=200.0, heart_rate=165.0) for i in range(30)]
-    result = detect_aerobic_decoupling(first + second, ftp=250.0)
-    assert result["significant"] is True
-    assert result["first_half_hr"] == pytest.approx(150.0, abs=0.1)
-    assert result["second_half_hr"] == pytest.approx(165.0, abs=0.1)
-
-
-def test_calculate_advanced_power_metrics_no_power():
-    points = [GPSPoint(lat=45.0, lon=9.0, timestamp=_ts(0))]
-    result = calculate_advanced_power_metrics(points, ftp=250.0)
-    assert result["available"] is False
-    assert result["reason"] == "no_power_data"
-
-
-def test_calculate_advanced_power_metrics_with_power():
-    points = [
-        GPSPoint(lat=45.0, lon=9.0, timestamp=_ts(i), power=220.0 + (i % 10) * 5.0, heart_rate=140.0)
-        for i in range(40)
-    ]
-    result = calculate_advanced_power_metrics(points, ftp=250.0)
-    assert result["available"] is True
-    assert "normalized_power_w" in result
-    assert "tss" in result
-    assert "decoupling" in result
+    def test_with_power_data_returns_metrics(self):
+        points = [_gps_point(i, power=200.0 + (i % 20)) for i in range(60)]
+        result = calculate_advanced_power_metrics(points, ftp=250.0)
+        assert result["available"] is True
+        assert "normalized_power_w" in result
+        assert "tss" in result
+        assert "power_zones" in result

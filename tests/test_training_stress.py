@@ -1,4 +1,8 @@
-"""Tests for training stress score (TSS) estimation."""
+"""Tests for analytics training stress model."""
+
+from __future__ import annotations
+
+import pytest
 
 from bike_analyzer.backend.analytics.training_stress import (
     estimate_tss,
@@ -7,48 +11,40 @@ from bike_analyzer.backend.analytics.training_stress import (
 from bike_analyzer.backend.models.models import Ride
 
 
-def test_ewma_empty():
-    assert exponentially_weighted_moving_average([], 7.0) == 0.0
+class TestExponentiallyWeightedMovingAverage:
+    def test_empty_returns_zero(self):
+        assert exponentially_weighted_moving_average([], tau_days=7.0) == 0.0
+
+    def test_single_value_returns_same(self):
+        assert exponentially_weighted_moving_average([5.0], tau_days=7.0) == 5.0
+
+    def test_short_tau_fast_adaptation(self):
+        values = [10.0, 20.0, 30.0]
+        short = exponentially_weighted_moving_average(values, tau_days=1.0)
+        long = exponentially_weighted_moving_average(values, tau_days=30.0)
+        assert short > long
+
+    def test_rounded_to_one_decimal(self):
+        result = exponentially_weighted_moving_average([1.0, 2.0, 3.0], tau_days=7.0)
+        assert result == round(result, 1)
 
 
-def test_ewma_single():
-    result = exponentially_weighted_moving_average([50.0], 7.0)
-    assert result > 0
+class TestEstimateTss:
+    def test_zero_duration_returns_zero(self):
+        ride = Ride(duration_minutes=0, avg_speed_kmh=0, distance_km=0)
+        assert estimate_tss(ride) == 0.0
 
+    def test_speed_impacts_tss(self):
+        slow = Ride(duration_minutes=60.0, avg_speed_kmh=20.0, distance_km=20.0)
+        fast = Ride(duration_minutes=60.0, avg_speed_kmh=35.0, distance_km=35.0)
+        assert estimate_tss(fast) > estimate_tss(slow)
 
-def test_ewma_decays():
-    values = [100.0, 80.0, 60.0, 40.0, 20.0]
-    result = exponentially_weighted_moving_average(values, 7.0)
-    assert result > 0
+    def test_capped_at_maximum(self):
+        ride = Ride(duration_minutes=600.0, avg_speed_kmh=50.0, distance_km=500.0)
+        assert estimate_tss(ride) <= 500.0
 
-
-def test_estimate_tss_basic():
-    ride = Ride(date="2024-01-15", distance_km=50.0, duration_minutes=120.0, avg_speed_kmh=25.0)
-    tss = estimate_tss(ride, ftp=250.0)
-    assert 0 <= tss <= 500
-    assert tss > 0
-
-
-def test_estimate_tss_zero_duration():
-    ride = Ride(date="2024-01-15", distance_km=0.0, duration_minutes=0.0)
-    assert estimate_tss(ride) == 0.0
-
-
-def test_estimate_tss_with_ftp():
-    ride = Ride(date="2024-01-15", duration_minutes=90.0, avg_speed_kmh=35.0)
-    tss_fast = estimate_tss(ride, ftp=250.0)
-    assert tss_fast > 0
-
-
-def test_estimate_tss_with_intensity_factor():
-    ride = Ride(date="2024-01-15", duration_minutes=90.0, avg_speed_kmh=25.0)
-    ride.intensity_factor = 0.8
-    tss = estimate_tss(ride)
-    assert tss > 0
-
-
-def test_estimate_tss_high_speed():
-    ride = Ride(date="2024-01-15", duration_minutes=120.0, avg_speed_kmh=50.0)
-    tss = estimate_tss(ride)
-    assert tss > 0
-    assert tss <= 500
+    def test_explicit_intensity_factor_used(self):
+        ride = Ride(duration_minutes=60.0, avg_speed_kmh=20.0, distance_km=20.0)
+        ride.intensity_factor = 0.9
+        tss = estimate_tss(ride)
+        assert tss > 50.0
