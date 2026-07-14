@@ -52,7 +52,7 @@ Catena di dipendenze: **1 → 2 → {3,4} → 5**.
 | AM1 | Fase 1 — Earth model (cube-sphere + S2/H3): doc + `core/coordinates.py` | ✅ baseline |
 | AM2 | Fase 2 — Data model ("database del mondo"): doc + `data/` | ✅ baseline |
 | AM3 | Fase 3 — AI pipeline "ricercatore": `ai/` | 🔄 in corso |
-| AM4 | Fase 4 — Rendering WebGL: `render/` | 🔄 in corso |
+| AM4 | Fase 4 — Rendering WebGL: `render/` (camera projection, SVO, ASCII render) | ✅ baseline |
 | AM5 | Fase 5 — Digital twin: `twin/` | 🔄 in corso |
 
 Demo: `cd aethermap/src && python -m aethermap.ai.demo|.render.demo|.twin.demo`.
@@ -98,14 +98,15 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 - [x] `config.py` legacy rimosso (v1.4.1).
 
 ### C.2 Branch non-fusi aperti (da revisionare, NON eliminati — contengono lavoro)
-> **Riconciliazione (2026-07-13):** `feature/core-engine-refactor` risulta già
-> fuso in `main` (`git branch --merged main`) e `fix/frontend-assets` non esiste
-> più (già fuso/eliminato). Rimossi da questo elenco. Restano aperti:
+> **Riconciliazione (2026-07-14):** `chore/sistema-repo` è stato eliminato dopo che
+> il suo ultimo commit (`85faede`) risultava distruttivo (cancellava codice produttivo
+> esistente). Il lavoro utile del branch (DB layer async/postgres/vector, cleanup temp,
+> Dockerfile fix) è già stato incorporato in `main` attraverso commit separati. Rimosso
+> da questo elenco. Resta aperto:
 
 | Branch | Contenuto | Stato / Azione suggerita |
 |---|---|---|
-| `chore/sistema-repo` | Cleanup temp files (rimuove `test_tq_all.txt` ~513k righe + dump) + DB layer (async/postgres/vector) + fix Dockerfile/render | **In review**: 13 conflitti col merge in `main` (db layer, `routes.py`, `Dockerfile`, `render.yaml`, `.gitignore`). Dividere in (a) cleanup junk-file sicuro e (b) merge codice revisionato |
-| `inconclusive-pastry` | Progressi AetherMap (camera projection, SVO, ASCII render) — in worktree | Mantenere (AetherMap) |
+| `inconclusive-pastry` | Progressi AetherMap (camera projection, SVO, ASCII render) — in worktree | ✅ Già mergiato in main (PR #3, commit `907aebf`). Rimuovere dall'elenco branch aperti |
 
 ### C.3 Da fare (richiede conferma/permessi)
 - [ ] **Prune remote-tracking obsoleti** (`codex/esamina-il-codice`, `cloudy-tower`,
