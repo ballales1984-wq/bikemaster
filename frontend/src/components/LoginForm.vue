@@ -154,6 +154,7 @@ class="google-icon" viewBox="0 0 24 24" width="20" height="20">
 import { ref, computed } from "vue";
 import { useI18n } from "../composables/useI18n";
 import { useUIStore } from "../stores/ui";
+import { resolveApiBase } from "../utils/backend-config";
 
 const { t } = useI18n();
 const ui = useUIStore();
@@ -229,8 +230,9 @@ async function loginWithGoogle() {
   loading.value = true;
   try {
     const redirectUri = getRedirectUri();
+    const base = resolveApiBase();
     const response = await fetch(
-      `/api/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`,
+      `${base}/api/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`,
     );
     const data = await response.json().catch(() => ({}));
 
