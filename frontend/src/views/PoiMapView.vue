@@ -266,7 +266,7 @@ const poiTypes = [
   "tecnico",
 ];
 
-const poiMeta = {
+const poiMeta: Record<string, { color: string; icon: string }> = {
   vista: { color: "#2e86de", icon: "🌄" },
   fontana: { color: "#00b894", icon: "⛲" },
   ristoro: { color: "#e17055", icon: "🍝" },
@@ -276,15 +276,15 @@ const poiMeta = {
   tecnico: { color: "#636e72", icon: "🔧" },
 };
 
-const mapContainer = ref(null);
-const pois = ref([]);
-const rides = ref([]);
+const mapContainer = ref<HTMLElement | null>(null);
+const pois = ref<any[]>([]);
+const rides = ref<any[]>([]);
 const activeTypes = ref([...poiTypes]);
 const addMode = ref(false);
-const draft = ref(null);
+const draft = ref<{ lat: number; lon: number } | null>(null);
 const submitting = ref(false);
-const selectedPoi = ref(null);
-const selectedItineraryId = ref(null);
+const selectedPoi = ref<any>(null);
+const selectedItineraryId = ref<number | null>(null);
 
 const form = ref({
   name: "",
@@ -296,10 +296,10 @@ const form = ref({
   tags: "",
 });
 
-let map = null;
-let poiLayer = null;
-let routeLayer = null;
-let draftMarker = null;
+let map: any = null;
+let poiLayer: any = null;
+let routeLayer: any = null;
+let draftMarker: any = null;
 
 const canSubmit = computed(
   () =>
@@ -308,19 +308,19 @@ const canSubmit = computed(
     form.value.description.length > 0,
 );
 
-function formatDistanceKm(km) {
+function formatDistanceKm(km: number | string | undefined) {
   if (!km) return "—";
   return `${Number(km).toFixed(1)} km`;
 }
-function formatDistanceM(m) {
+function formatDistanceM(m: number) {
   return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`;
 }
-function safeHttpUrl(url) {
+function safeHttpUrl(url: unknown) {
   if (typeof url !== "string") return "";
   return /^https?:\/\//i.test(url.trim()) ? url.trim() : "";
 }
 
-function markerIcon(type, highlighted = false) {
+function markerIcon(type: string, highlighted = false) {
   const meta = poiMeta[type] || poiMeta.vista;
   return L.divIcon({
     className: "poi-div-icon",
@@ -344,7 +344,7 @@ function createTileLayer() {
 function initMap() {
   if (!mapContainer.value) return;
   map = L.map(mapContainer.value, { preferCanvas: true }).setView(
-    DEFAULT_MAP_CENTER,
+    [...DEFAULT_MAP_CENTER] as [number, number],
     DEFAULT_MAP_ZOOM,
   );
   createTileLayer().addTo(map);
@@ -373,7 +373,7 @@ function renderPois() {
 
 async function loadPois() {
   try {
-    const data = await apiGet("/api/v1/maps/pois");
+    const data = await apiGet<{ pois: any[] }>("/api/v1/maps/pois");
     pois.value = data.pois || [];
     renderPois();
   } catch (err) {
@@ -383,22 +383,23 @@ async function loadPois() {
 
 async function loadRides() {
   try {
-    const data = await apiGet("/api/v1/rides", {
-      page: 1,
-      page_size: 100,
+    const data = await apiGet<{ rides: any[] }>("/api/v1/rides", {
+      page: "1",
+      page_size: "100",
       sort: "date",
     });
     rides.value = (data.rides || []).filter(
-      (r) => r.gps_points && r.gps_points.length > 1,
+      (r: any) => r.gps_points && r.gps_points.length > 1,
     );
   } catch (err) {
     console.error("rides load failed", err);
   }
 }
 
-function onMapClick(e) {
+function onMapClick(e: { latlng: { lat: () => number; lng: () => number } }) {
   if (!addMode.value) return;
-  const { lat, lng } = e.latlng;
+  const lat = e.latlng.lat();
+  const lng = e.latlng.lng();
   draft.value = { lat, lon: lng };
   if (draftMarker) {
     draftMarker.setLatLng([lat, lng]);
@@ -436,7 +437,7 @@ function cancelDraft() {
   };
 }
 
-function toggleType(type) {
+function toggleType(type: string) {
   const idx = activeTypes.value.indexOf(type);
   if (idx >= 0) activeTypes.value.splice(idx, 1);
   else activeTypes.value.push(type);
@@ -455,7 +456,7 @@ async function submitPoi() {
     photos: form.value.photos
       ? form.value.photos
           .split(",")
-          .map((s) => s.trim())
+          .map((s: string) => s.trim())
           .filter(Boolean)
       : [],
     video_url: form.value.video_url || null,
@@ -463,7 +464,7 @@ async function submitPoi() {
     tags: form.value.tags
       ? form.value.tags
           .split(",")
-          .map((s) => s.trim())
+          .map((s: string) => s.trim())
           .filter(Boolean)
       : [],
     itinerary_id: selectedItineraryId.value || null,
@@ -475,7 +476,7 @@ async function submitPoi() {
     cancelDraft();
     addMode.value = false;
     renderPois();
-  } catch (err) {
+  } catch (err: unknown) {
     const msg = err instanceof ApiError ? err.message : "Errore";
     toast.error(msg);
   } finally {
@@ -483,26 +484,26 @@ async function submitPoi() {
   }
 }
 
-function openDetail(poi) {
+function openDetail(poi: any) {
   selectedPoi.value = poi;
 }
 function closeDetail() {
   selectedPoi.value = null;
 }
 
-function canDelete(poi) {
+function canDelete(poi: any) {
   return auth.user && (poi.created_by === auth.user.id || auth.isAdmin);
 }
 
-async function removePoi(poi) {
+async function removePoi(poi: any) {
   if (!window.confirm(t("poi.confirmDelete"))) return;
   try {
     await apiDelete(`/api/v1/maps/pois/${poi.id}`);
-    pois.value = pois.value.filter((p) => p.id !== poi.id);
+    pois.value = pois.value.filter((p: any) => p.id !== poi.id);
     toast.success("POI eliminato");
     closeDetail();
     renderPois();
-  } catch (err) {
+  } catch (err: unknown) {
     const msg = err instanceof ApiError ? err.message : "Errore";
     toast.error(msg);
   }
@@ -512,14 +513,14 @@ function drawRoute() {
   if (!routeLayer) return;
   routeLayer.clearLayers();
   if (selectedItineraryId.value == null) return;
-  const ride = rides.value.find((r) => r.id === selectedItineraryId.value);
+  const ride = rides.value.find((r: any) => r.id === selectedItineraryId.value);
   if (!ride || !ride.gps_points || ride.gps_points.length < 2) return;
   const points = ride.gps_points
-    .map((p) => [
+    .map((p: any) => [
       Number(p.lat ?? p.latitude),
       Number(p.lon ?? p.lng ?? p.longitude),
     ])
-    .filter(([la, lo]) => Number.isFinite(la) && Number.isFinite(lo));
+    .filter(([la, lo]: [number, number]) => Number.isFinite(la) && Number.isFinite(lo));
   if (!points.length) return;
   const polyline = L.polyline(points, {
     color: "#1abc9c",

@@ -115,13 +115,31 @@ class="weather-score" :class="'score-' + weather.score"
 import { ref, watch } from "vue";
 import { apiGet } from "../utils/api";
 
+interface WeatherData {
+  location?: { city?: string };
+  score?: number;
+  temperature?: number;
+  feels_like?: number;
+  humidity?: number;
+  wind_speed?: number;
+  pressure?: number;
+  advice?: string;
+}
+
+interface ForecastItem {
+  date: string;
+  temperature: number;
+  humidity: number;
+  advice: string;
+}
+
 const lat = ref(45.4642);
 const lon = ref(9.19);
 const date = ref("");
 const loading = ref(false);
-const weather = ref(null);
+const weather = ref<WeatherData | null>(null);
 const weatherError = ref("");
-const forecast = ref([]);
+const forecast = ref<ForecastItem[]>([]);
 const forecastLoading = ref(false);
 
 async function fetchWeather() {
@@ -130,11 +148,11 @@ async function fetchWeather() {
   weather.value = null;
 
   try {
-    const params = { lat: lat.value, lon: lon.value };
+    const params: Record<string, string> = { lat: String(lat.value), lon: String(lon.value) };
     if (date.value) params.date = date.value;
-    weather.value = await apiGet("/api/v1/weather", params);
-  } catch (e) {
-    weatherError.value = e.message || "Error loading weather";
+    weather.value = await apiGet<WeatherData>("/api/v1/weather", params);
+  } catch (e: unknown) {
+    weatherError.value = e instanceof Error ? e.message : "Error loading weather";
   } finally {
     loading.value = false;
   }
@@ -143,13 +161,13 @@ async function fetchWeather() {
 async function fetchForecast() {
   forecastLoading.value = true;
   try {
-    const data = await apiGet("/api/v1/weather/forecast", {
-      lat: lat.value,
-      lon: lon.value,
-      days: 7,
+    const data = await apiGet<{ forecasts: ForecastItem[] }>("/api/v1/weather/forecast", {
+      lat: String(lat.value),
+      lon: String(lon.value),
+      days: "7",
     });
     forecast.value = data.forecasts || [];
-  } catch (e) {
+  } catch (e: unknown) {
     forecast.value = [];
   } finally {
     forecastLoading.value = false;

@@ -58,7 +58,7 @@ export const useRidesStore = defineStore("rides", () => {
   }
 
   function setFilter(key: keyof RideFilters, value: unknown) {
-    filters.value[key] = value as RideFilters[keyof RideFilters];
+    filters.value = { ...filters.value, [key]: value as RideFilters[keyof RideFilters] };
     saveFilters();
   }
 

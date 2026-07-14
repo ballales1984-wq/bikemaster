@@ -24,35 +24,42 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 
-const MAX_TOASTS = 5;
-const items = ref([]);
-let nextId = 1;
-const timers = new Set();
+interface ToastItem {
+  id: number;
+  message: string;
+  type: string;
+  exiting: boolean;
+}
 
-function add(message, type = "info", ms = 3000) {
+const MAX_TOASTS = 5;
+const items = ref<ToastItem[]>([]);
+let nextId = 1;
+const timers = new Set<number>();
+
+function add(message: string, type = "info", ms = 3000) {
   const id = nextId++;
   items.value.push({ id, message, type, exiting: false });
   if (items.value.length > MAX_TOASTS) {
     remove(items.value[0].id);
   }
-  const timer = setTimeout(() => removeWithAnimation(id), ms);
+  const timer = window.setTimeout(() => removeWithAnimation(id), ms);
   timers.add(timer);
 }
 
-function toastIcon(type) {
-  const icons = { success: "✓", error: "✗", warning: "⚠", info: "ℹ" };
+function toastIcon(type: string) {
+  const icons: Record<string, string> = { success: "✓", error: "✗", warning: "⚠", info: "ℹ" };
   return icons[type] || icons.info;
 }
 
-function remove(id) {
+function remove(id: number) {
   items.value = items.value.filter((t) => t.id !== id);
 }
 
-function removeWithAnimation(id) {
+function removeWithAnimation(id: number) {
   const toast = items.value.find((t) => t.id === id);
   if (toast) {
     toast.exiting = true;
-    const timer = setTimeout(() => remove(id), 300);
+    const timer = window.setTimeout(() => remove(id), 300);
     timers.add(timer);
   }
 }
@@ -62,7 +69,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  for (const timer of timers) clearTimeout(timer);
+  for (const timer of timers) window.clearTimeout(timer);
   timers.clear();
   if (window.__toast) delete window.__toast;
 });

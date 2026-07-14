@@ -13,5 +13,12 @@ declare global {
       resumeTracking: () => Promise<void>;
       checkPermissions: () => Promise<{ granted: boolean }>;
     };
+    __toast?: {
+      add: (msg: string, type?: string, ms?: number) => void;
+      remove: (id: number) => void;
+    };
+    google?: any;
   }
 }
+
+export {};

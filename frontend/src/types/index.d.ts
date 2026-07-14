@@ -11,9 +11,13 @@ export interface Ride {
   max_speed_kmh?: number;
   elev_gain_meters?: number;
   elev_loss_meters?: number;
+  elevation_gain_m?: number;
   created_at?: string;
   duration_minutes?: number;
   gps_points?: GpsPoint[];
+  avg_heart_rate?: number;
+  max_heart_rate?: number;
+  fatigue_score?: number;
 }
 
 export interface EnrichedRide extends Ride {

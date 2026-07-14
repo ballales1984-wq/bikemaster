@@ -23,22 +23,24 @@ v-if="!loading && !error" class="map-speed-legend">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { apiGet } from "../utils/api";
 
+declare const google: any;
+
 const props = defineProps({
   rideId: { type: Number, required: true },
   apiKey: { type: String, default: "" },
 });
 
-const mapEl = ref(null);
+const mapEl = ref<HTMLElement | null>(null);
 const loading = ref(true);
 const error = ref("");
 const minSpeed = ref(0);
 const maxSpeed = ref(35);
 
-let googleMap = null;
-let pathLayer = null;
-let infoWindow = null;
+let googleMap: any = null;
+let pathLayer: any = null;
+let infoWindow: any = null;
 
-function initMap(center, zoom = 14) {
+function initMap(center: [number, number], zoom = 14) {
   googleMap = new google.maps.Map(mapEl.value, {
     center,
     zoom,
@@ -52,19 +54,19 @@ function initMap(center, zoom = 14) {
   infoWindow = new google.maps.InfoWindow();
 
   pathLayer = new google.maps.Data({ map: googleMap });
-  pathLayer.setStyle((feature) => ({
+  pathLayer.setStyle((feature: any) => ({
     strokeColor: feature.getProperty("color"),
     strokeWeight: 5,
     strokeOpacity: 0.85,
   }));
 
-  pathLayer.addListener("mouseover", (event) => {
+  pathLayer.addListener("mouseover", (event: { feature: { getProperty: (key: string) => unknown }; latLng?: { lat: () => number; lng: () => number } }) => {
     const spd = event.feature.getProperty("speed_kmh");
     if (spd != null && infoWindow) {
       infoWindow.setContent(
-        "<div><strong>" + spd.toFixed(1) + " km/h</strong></div>",
+        "<div><strong>" + Number(spd).toFixed(1) + " km/h</strong></div>",
       );
-      infoWindow.setPosition(event.latLng);
+      infoWindow.setPosition([event.latLng?.lat?.() ?? 0, event.latLng?.lng?.() ?? 0]);
       infoWindow.open(googleMap);
     }
   });
@@ -78,22 +80,22 @@ async function loadSpeedPath() {
   loading.value = true;
   error.value = "";
   try {
-    const data = await apiGet("/api/v1/rides/" + props.rideId + "/speed-path");
+    const data = await apiGet<{ min_speed: number; max_speed: number; segments: any[]; center: { lat: number; lon: number } }>("/api/v1/rides/" + props.rideId + "/speed-path");
     minSpeed.value = data.min_speed || 0;
     maxSpeed.value = data.max_speed || 35;
     renderMap(data);
-  } catch (err) {
-    error.value = err.message || "Unable to load speed path";
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : "Unable to load speed path";
   } finally {
     loading.value = false;
   }
 }
 
-function renderMap(data) {
+function renderMap(data: { segments: any[]; center: { lat: number; lon: number } }) {
   if (!mapEl.value || !data.segments || !data.segments.length) return;
 
   if (!googleMap) {
-    initMap({ lat: data.center.lat, lng: data.center.lon }, 14);
+    initMap([data.center.lat, data.center.lon], 14);
 
     const first = data.segments[0];
     new google.maps.Marker({
@@ -112,10 +114,10 @@ function renderMap(data) {
     });
   }
 
-  pathLayer.forEach((feature) => pathLayer.remove(feature));
+  pathLayer?.forEach?.((feature: any) => pathLayer?.remove?.(feature));
 
-  const features = [];
-  data.segments.forEach((seg) => {
+  const features: any[] = [];
+  data.segments.forEach((seg: any) => {
     const feature = new google.maps.Data.Feature();
     feature.setGeometry(
       new google.maps.Data.LineString([
@@ -127,14 +129,14 @@ function renderMap(data) {
     feature.setProperty("speed_kmh", seg.speed_kmh);
     features.push(feature);
   });
-  features.forEach((f) => pathLayer.add(f));
+  features.forEach((f: any) => pathLayer?.add?.(f));
 
   const bounds = new google.maps.LatLngBounds();
-  data.segments.forEach((seg) => {
+  data.segments.forEach((seg: any) => {
     bounds.extend(new google.maps.LatLng(seg.start[0], seg.start[1]));
     bounds.extend(new google.maps.LatLng(seg.end[0], seg.end[1]));
   });
-  googleMap.fitBounds(bounds, 30);
+  googleMap?.fitBounds?.(bounds, 30);
 }
 
 onMounted(() => {

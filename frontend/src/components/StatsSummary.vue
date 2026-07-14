@@ -54,10 +54,10 @@ const animatedCalories = ref(0);
 const animatedSpeed = ref(0);
 const animatedHours = ref(0);
 
-function animate(to, from = 0, duration = 800) {
-  return new Promise((resolve) => {
+function animate(to: number, from = 0, duration = 800) {
+  return new Promise<number>((resolve) => {
     const start = performance.now();
-    const step = (now) => {
+    const step = (now: number) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
@@ -83,10 +83,10 @@ watch(
     const hours = (Number(newStats.duration_minutes) || 0) / 60;
 
     animate(rides).then((v) => (animatedRides.value = Math.round(v)));
-    animate(dist).then((v) => (animatedDistance.value = v.toFixed(1)));
+    animate(dist).then((v) => (animatedDistance.value = parseFloat(v.toFixed(1))));
     animate(cals).then((v) => (animatedCalories.value = Math.round(v)));
-    animate(speed).then((v) => (animatedSpeed.value = v.toFixed(1)));
-    animate(hours).then((v) => (animatedHours.value = v.toFixed(1)));
+    animate(speed).then((v) => (animatedSpeed.value = parseFloat(v.toFixed(1))));
+    animate(hours).then((v) => (animatedHours.value = parseFloat(v.toFixed(1))));
   },
   { immediate: true },
 );

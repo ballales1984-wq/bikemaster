@@ -58,7 +58,7 @@ describe("BadgesPanel", () => {
     await flush();
 
     expect(apiGet).toHaveBeenCalledWith("/api/v1/athletes");
-    expect(apiGet).toHaveBeenCalledWith("/api/v1/badges", { athlete_id: 7 });
+    expect(apiGet).toHaveBeenCalledWith("/api/v1/badges", { athlete_id: "7" });
     expect(wrapper.text()).toContain("3/10");
   });
 

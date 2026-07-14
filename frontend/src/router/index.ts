@@ -234,7 +234,7 @@ router.beforeEach(async (to, from, next) => {
 
   // Profile completeness check only for fresh OAuth returns / logins.
   // A normal returning user with a valid token goes straight to /rides.
-  if (hasToken && justLoggedIn) {
+  if (hasToken && justLoggedIn && to.path === "/") {
     try {
       const hasCompleteProfile = await checkProfileComplete(auth);
       await next(hasCompleteProfile ? "/rides" : "/athlete");
@@ -263,17 +263,6 @@ router.beforeEach(async (to, from, next) => {
 router.afterEach((to) => {
   if (to.meta.title) {
     document.title = to.meta.title as string;
-  }
-});
-
-// Safety net: a logged-in user must never be left on the empty home route.
-// This guarantees the post-login redirect to the dashboard even if the OAuth
-// return (full reload or same-document fragment) is affected by a navigation
-// race and the guard/redirect doesn't move the user off "/". It cannot loop:
-// once on "/rides" the `to.path === "/"` condition no longer matches.
-router.afterEach((to) => {
-  if (to.path === "/" && useAuthStore().isLoggedIn) {
-    router.replace("/rides").catch(() => {});
   }
 });
 

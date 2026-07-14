@@ -47,8 +47,8 @@ describe("WeatherPanel", () => {
     expect(apiGet).toHaveBeenCalledWith(
       "/api/v1/weather",
       expect.objectContaining({
-        lat: expect.any(Number),
-        lon: expect.any(Number),
+        lat: expect.any(String),
+        lon: expect.any(String),
       }),
     );
   });
