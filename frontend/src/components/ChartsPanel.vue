@@ -70,13 +70,50 @@ import { apiGet } from "../utils/api";
 
 const { t } = useI18n();
 
-const props = defineProps({ rides: Array });
-const selectedMetric = ref("distance_km");
+const props = defineProps<{
+  rides?: Array<{ id: number; date: string; distance_km?: number; avg_speed_kmh?: number; duration_minutes?: number; calories?: number; elevation_gain_m?: number }>;
+}>();
+
+type MetricKey = "distance_km" | "avg_speed_kmh" | "duration_minutes" | "calories" | "elevation_gain_m";
+
+const selectedMetric = ref<MetricKey>("distance_km");
 const windowSize = ref(7);
-const trendCanvas = ref(null);
-const monthlyCanvas = ref(null);
-const comparisonCanvas = ref(null);
-const trendData = ref({
+const trendCanvas = ref<HTMLCanvasElement | null>(null);
+const monthlyCanvas = ref<HTMLCanvasElement | null>(null);
+const comparisonCanvas = ref<HTMLCanvasElement | null>(null);
+
+interface TrendResponse {
+  ready: boolean;
+  trend: string;
+  r2: number;
+  mean: number;
+  values: number[];
+  dates: string[];
+  rolling_avg: number[];
+}
+
+interface MonthlyResponse {
+  ready: boolean;
+  months: string[];
+  total_distance_km: number[];
+  avg_speed_kmh: number[];
+  total_duration_hours: number[];
+  ride_count: number[];
+}
+
+interface ComparisonResponse {
+  ready: boolean;
+  distance_change_pct: number;
+  speed_change_pct: number;
+  recent_distance_km?: number;
+  previous_distance_km?: number;
+  recent_avg_speed?: number;
+  previous_avg_speed?: number;
+  recent_rides: number;
+  previous_rides: number;
+}
+
+const trendData = ref<TrendResponse>({
   ready: false,
   trend: "—",
   r2: 0,
@@ -85,7 +122,8 @@ const trendData = ref({
   dates: [],
   rolling_avg: [],
 });
-const monthlyData = ref({
+
+const monthlyData = ref<MonthlyResponse>({
   ready: false,
   months: [],
   total_distance_km: [],
@@ -93,26 +131,28 @@ const monthlyData = ref({
   total_duration_hours: [],
   ride_count: [],
 });
-const comparisonData = ref({
+
+const comparisonData = ref<ComparisonResponse>({
   ready: false,
   distance_change_pct: 0,
   speed_change_pct: 0,
   recent_rides: 0,
   previous_rides: 0,
 });
-let trendChart = null;
-let monthlyChart = null;
-let comparisonChart = null;
+
+let trendChart: Chart | null = null;
+let monthlyChart: Chart | null = null;
+let comparisonChart: Chart | null = null;
 
 const metricLabel = computed(() => {
-  const map = {
+  const map: Record<MetricKey, string> = {
     distance_km: "Distance",
     avg_speed_kmh: "Speed",
     duration_minutes: "Duration",
     calories: "Calories",
     elevation_gain_m: "Elevation",
   };
-  return map[selectedMetric.value] || selectedMetric.value;
+  return map[selectedMetric.value];
 });
 
 const trendClass = computed(() => {
@@ -123,7 +163,7 @@ const trendClass = computed(() => {
 
 async function loadTrends() {
   try {
-    const data = await apiGet(
+    const data = await apiGet<TrendResponse>(
       `/api/v1/analytics/trends?metric=${selectedMetric.value}&window=${windowSize.value}`,
     );
     trendData.value = data;
@@ -135,7 +175,7 @@ async function loadTrends() {
 
 async function loadMonthly() {
   try {
-    const data = await apiGet("/api/v1/analytics/monthly");
+    const data = await apiGet<MonthlyResponse>("/api/v1/analytics/monthly");
     monthlyData.value = data;
     renderMonthlyChart();
   } catch (e) {
@@ -145,7 +185,7 @@ async function loadMonthly() {
 
 async function loadComparison() {
   try {
-    const data = await apiGet("/api/v1/analytics/comparison?period_days=7");
+    const data = await apiGet<ComparisonResponse>("/api/v1/analytics/comparison?period_days=7");
     comparisonData.value = data;
     renderComparisonChart();
   } catch (e) {
@@ -156,6 +196,7 @@ async function loadComparison() {
 function renderTrendChart() {
   if (!trendCanvas.value) return;
   const ctx = trendCanvas.value.getContext("2d");
+  if (!ctx) return;
   if (trendChart) trendChart.destroy();
 
   const data = trendData.value;
@@ -219,6 +260,7 @@ function renderTrendChart() {
 function renderMonthlyChart() {
   if (!monthlyCanvas.value) return;
   const ctx = monthlyCanvas.value.getContext("2d");
+  if (!ctx) return;
   if (monthlyChart) monthlyChart.destroy();
 
   const data = monthlyData.value;
@@ -273,6 +315,7 @@ function renderMonthlyChart() {
 function renderComparisonChart() {
   if (!comparisonCanvas.value) return;
   const ctx = comparisonCanvas.value.getContext("2d");
+  if (!ctx) return;
   if (comparisonChart) comparisonChart.destroy();
 
   const data = comparisonData.value;
@@ -288,12 +331,12 @@ function renderComparisonChart() {
       datasets: [
         {
           label: "Distance (km)",
-          data: [data.recent_distance_km, data.previous_distance_km],
+          data: [data.recent_distance_km ?? 0, data.previous_distance_km ?? 0],
           backgroundColor: ["#4ecca3", "#888"],
         },
         {
           label: "Avg Speed (km/h)",
-          data: [data.recent_avg_speed, data.previous_avg_speed],
+          data: [data.recent_avg_speed ?? 0, data.previous_avg_speed ?? 0],
           backgroundColor: ["#FF6B00", "#666"],
         },
       ],

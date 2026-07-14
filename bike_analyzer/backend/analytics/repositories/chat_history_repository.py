@@ -78,7 +78,10 @@ class ChatHistoryRepository:
                 stmt = stmt.where(self._table.tenant_id == tenant_id)
             stmt = stmt.order_by(desc(self._table.created_at)).limit(limit)
             result = await session.execute(stmt)
-            return [dict(row) for row in result.mappings().all()]
+            return [
+                {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
+                for row in result.scalars().all()
+            ]
 
     async def clear(self, athlete_id: int, tenant_id: int | None = None) -> int:
         if self._session_factory is None:

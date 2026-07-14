@@ -18,6 +18,17 @@ class POIRepository:
 
         return POIModel
 
+    @staticmethod
+    def _parse_json_fields(data: dict) -> dict:
+        for key in ("photos", "tags"):
+            value = data.get(key)
+            if isinstance(value, str):
+                try:
+                    data[key] = json.loads(value)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        return data
+
     async def create(self, poi: dict[str, Any]) -> int:
         if self._session_factory:
             return await self._create_async(poi)
@@ -75,8 +86,11 @@ class POIRepository:
 
         async with self._session_factory() as session:
             stmt = select(self._table).where(self._table.id == poi_id)
-            row = (await session.execute(stmt)).mappings().first()
-            return dict(row) if row else None
+            row = (await session.execute(stmt)).scalars().first()
+            if row is None:
+                return None
+            data = {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
+            return self._parse_json_fields(data)
 
     async def get_nearby(
         self, lat: float, lon: float, radius_km: float = 5.0
@@ -97,18 +111,18 @@ class POIRepository:
     ) -> list[dict]:
         from sqlalchemy import select
 
-        from ...core.models import haversine_distance_m
+        from ....core.models import haversine_distance_m
 
         radius_m = max(0.0, radius_km) * 1000.0
         async with self._session_factory() as session:
             stmt = select(self._table)
-            rows = (await session.execute(stmt)).mappings().all()
+            rows = (await session.execute(stmt)).scalars().all()
         nearby = []
         for row in rows:
-            data = dict(row)
+            data = {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
             distance_m = haversine_distance_m(lat, lon, data["lat"], data["lon"])
             if distance_m <= radius_m:
                 data["distance_m"] = round(distance_m)
-                nearby.append(data)
+                nearby.append(self._parse_json_fields(data))
         nearby.sort(key=lambda p: p["distance_m"])
         return nearby

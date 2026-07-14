@@ -160,18 +160,49 @@ import { ref, computed, nextTick, onMounted } from "vue";
 import { useI18n } from "../composables/useI18n";
 import { apiGet, apiPost } from "../utils/api";
 import DOMPurify from "dompurify";
+import type { CoachData } from "../types/index";
+
+interface SpeechRecognition {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: (event: any) => void;
+  onend: () => void;
+  onerror: () => void;
+  start(): void;
+  stop(): void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => SpeechRecognition;
+    webkitSpeechRecognition?: new () => SpeechRecognition;
+  }
+}
 
 const { t } = useI18n();
 
-const messages = ref([]);
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  time: string;
+}
+
+interface ScoreItem {
+  label: string;
+  value: string;
+  color: string;
+}
+
+const messages = ref<ChatMessage[]>([]);
 const userInput = ref("");
 const thinking = ref(false);
 const loadingReport = ref(false);
 const connected = ref(true);
-const chatWindow = ref(null);
-const inputRef = ref(null);
-const coachData = ref(null);
-const athleteId = ref(null);
+const chatWindow = ref<HTMLElement | null>(null);
+const inputRef = ref<HTMLTextAreaElement | null>(null);
+const coachData = ref<CoachData | null>(null);
+const athleteId = ref<number | null>(null);
 
 const quickQuestions = [
   "💪 Prossimo allenamento consigliato",
@@ -180,10 +211,10 @@ const quickQuestions = [
   "🎯 Come aumentare il FTP?",
 ];
 
-const scores = computed(() => {
+const scores = computed<ScoreItem[]>(() => {
   const s = coachData.value?.training_scores;
   if (!s) return [];
-  const colors = {
+  const colors: Record<string, string> = {
     Performance: "var(--color-performance)",
     Endurance: "var(--color-endurance)",
     Efficiency: "var(--color-efficiency)",
@@ -196,7 +227,7 @@ const scores = computed(() => {
   }));
 });
 
-function formatMsg(text) {
+function formatMsg(text: string): string {
   if (!text) return "";
   const html = text
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
@@ -209,7 +240,7 @@ function formatMsg(text) {
   });
 }
 
-function getTime() {
+function getTime(): string {
   return new Date().toLocaleTimeString("it-IT", {
     hour: "2-digit",
     minute: "2-digit",
@@ -223,8 +254,8 @@ async function scrollToBottom() {
   }
 }
 
-function autoResize(e) {
-  const el = e.target;
+function autoResize(e: Event) {
+  const el = e.target as HTMLTextAreaElement;
   el.style.height = "auto";
   el.style.height = Math.min(el.scrollHeight, 120) + "px";
 }
@@ -234,21 +265,23 @@ const ttsSupported = ref(false);
 const isListening = ref(false);
 const autoRead = ref(false);
 const lastAssistantMessage = ref("");
-const recognition = ref(null);
+const recognition = ref<SpeechRecognition | null>(null);
 
 function initVoice() {
-  const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
-  voiceSupported.value = !!SpeechRecognition;
+  const SpeechRecognitionCtor =
+    (window as unknown as { SpeechRecognition?: new () => SpeechRecognition; webkitSpeechRecognition?: new () => SpeechRecognition }).SpeechRecognition ||
+    (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognition }).webkitSpeechRecognition;
+  voiceSupported.value = !!SpeechRecognitionCtor;
   ttsSupported.value =
     typeof window !== "undefined" && "speechSynthesis" in window;
-  if (voiceSupported.value) {
-    recognition.value = new SpeechRecognition();
+  if (voiceSupported.value && SpeechRecognitionCtor) {
+    recognition.value = new SpeechRecognitionCtor();
     recognition.value.continuous = false;
     recognition.value.interimResults = false;
     recognition.value.lang = "it-IT";
-    recognition.value.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
+    recognition.value.onresult = (event: unknown) => {
+      const ev = event as { results: { [key: number]: { [key: number]: { transcript: string } } } };
+      const transcript = ev.results[0][0].transcript;
       userInput.value = transcript;
     };
     recognition.value.onend = () => {
@@ -278,7 +311,7 @@ function toggleAutoRead() {
   }
 }
 
-function speak(text) {
+function speak(text: string) {
   if (!ttsSupported.value) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
@@ -299,14 +332,17 @@ async function sendMessage() {
   await scrollToBottom();
 
   try {
-    const params = {};
+    const params: Record<string, unknown> = {};
     if (athleteId.value) params.athlete_id = athleteId.value;
-    const resp = await apiPost("/api/v1/coach/chat", {
+    const resp = await apiPost<Record<string, unknown>>("/api/v1/coach/chat", {
       message: text,
       ...params,
     });
     const reply =
-      resp.response || resp.message || resp.advice || JSON.stringify(resp);
+      (resp.response as string) ||
+      (resp.message as string) ||
+      (resp.advice as string) ||
+      JSON.stringify(resp);
     messages.value.push({ role: "assistant", content: reply, time: getTime() });
     lastAssistantMessage.value = reply;
     if (autoRead.value) {
@@ -326,7 +362,7 @@ async function sendMessage() {
   }
 }
 
-async function sendQuick(question) {
+async function sendQuick(question: string) {
   userInput.value = question;
   await sendMessage();
 }
@@ -335,8 +371,8 @@ async function loadFullReport() {
   if (!athleteId.value) return;
   loadingReport.value = true;
   try {
-    const data = await apiGet("/api/v1/coach/full", {
-      athlete_id: athleteId.value,
+    const data = await apiGet<CoachData>("/api/v1/coach/full", {
+      athlete_id: String(athleteId.value),
     });
     coachData.value = data;
     if (data.training_advice) {
@@ -360,11 +396,11 @@ function clearChat() {
 
 async function init() {
   try {
-    const me = await apiGet("/api/v1/athletes/me");
+    const me = await apiGet<{ athlete?: { id: number } }>("/api/v1/athletes/me");
     athleteId.value = me.athlete?.id ?? null;
     if (athleteId.value) {
-      const scores = await apiGet("/api/v1/coach/full", {
-        athlete_id: athleteId.value,
+      const scores = await apiGet<CoachData>("/api/v1/coach/full", {
+        athlete_id: String(athleteId.value),
       });
       coachData.value = scores;
     }

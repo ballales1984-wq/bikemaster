@@ -180,8 +180,8 @@ async def save_athlete(athlete_data: dict, athlete_id: int | None = None) -> int
 
         if athlete_id:
             existing = await session.execute(select(AthleteModel).where(AthleteModel.id == athlete_id))
-            if existing.scalar_one_or_none():
-                model = existing.scalar_one()
+            model = existing.scalar_one_or_none()
+            if model is not None:
                 model.name = athlete_data.get("name", model.name)
                 model.weight_kg = athlete_data.get("weight_kg", model.weight_kg)
                 model.age = athlete_data.get("age", model.age)

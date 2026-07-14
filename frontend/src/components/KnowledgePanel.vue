@@ -159,17 +159,42 @@ v-if="r.source_file" class="result-meta"
 import { ref, onMounted } from "vue";
 import { apiGet, apiPost } from "../utils/api";
 
+interface KnowledgeStats {
+  total_documents: number;
+  total_topics: number;
+}
+
+interface KnowledgeResult {
+  topic?: string;
+  source?: string;
+  score?: number;
+  content?: string;
+  text?: string;
+  chunk?: string;
+  source_file?: string;
+}
+
+interface KnowledgeTopic {
+  topic: string;
+  source: string;
+  score: number;
+  content: string;
+  text?: string;
+  chunk?: string;
+  source_file?: string;
+}
+
 const query = ref("");
-const results = ref([]);
-const topics = ref([]);
-const stats = ref(null);
+const results = ref<KnowledgeResult[]>([]);
+const topics = ref<string[]>([]);
+const stats = ref<KnowledgeStats | null>(null);
 const loading = ref(false);
 const searched = ref(false);
 const lastQuery = ref("");
 const searchFocused = ref(false);
-const searchInput = ref(null);
+const searchInput = ref<HTMLInputElement | null>(null);
 
-let debounceTimer = null;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 const TOPIC_ICONS = {
   allenamento: "🏋️",
@@ -196,7 +221,7 @@ const TOPIC_ICONS = {
   velocità: "💨",
 };
 
-function topicIcon(topic) {
+function topicIcon(topic: string): string {
   const t = topic.toLowerCase();
   for (const [key, icon] of Object.entries(TOPIC_ICONS)) {
     if (t.includes(key)) return icon;
@@ -204,7 +229,7 @@ function topicIcon(topic) {
   return "📖";
 }
 
-function highlightQuery(text, q) {
+function highlightQuery(text: string, q: string): string {
   if (!q || !text) return escapeHtml(text);
   const escaped = escapeHtml(text);
   const words = q.split(/\s+/).filter(Boolean);
@@ -219,8 +244,8 @@ function highlightQuery(text, q) {
   return result;
 }
 
-function escapeHtml(str) {
-  return (str || "")
+function escapeHtml(str: string | unknown): string {
+  return String(str || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -228,7 +253,7 @@ function escapeHtml(str) {
 }
 
 function onInput() {
-  clearTimeout(debounceTimer);
+  if (debounceTimer) clearTimeout(debounceTimer);
   if (query.value.trim().length >= 3) {
     debounceTimer = setTimeout(search, 600);
   }
@@ -242,8 +267,8 @@ async function search() {
   lastQuery.value = q;
   results.value = [];
   try {
-    const data = await apiGet("/api/v1/knowledge/search", { q });
-    results.value = data.results || data.chunks || data || [];
+    const data = await apiGet<{ results?: KnowledgeResult[]; chunks?: KnowledgeResult[] }>("/api/v1/knowledge/search", { q });
+    results.value = data.results || data.chunks || [];
   } catch (e) {
     console.error("search", e);
     results.value = [];
@@ -252,7 +277,7 @@ async function search() {
   }
 }
 
-async function searchTopic(topic) {
+async function searchTopic(topic: string) {
   query.value = topic;
   await search();
 }
@@ -279,7 +304,7 @@ async function reload() {
 
 async function loadTopics() {
   try {
-    const data = await apiGet("/api/v1/knowledge");
+    const data = await apiGet<{ topics?: string[] } | string[]>("/api/v1/knowledge");
     topics.value = Array.isArray(data) ? data : data.topics || [];
   } catch (e) {
     console.warn("topics", e);
@@ -289,7 +314,7 @@ async function loadTopics() {
 
 async function loadStats() {
   try {
-    stats.value = await apiGet("/api/v1/knowledge/stats");
+    stats.value = await apiGet<KnowledgeStats>("/api/v1/knowledge/stats");
   } catch (e) {
     console.warn("stats", e);
   }

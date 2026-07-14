@@ -62,8 +62,10 @@ class UserRepository:
         async with self._session_factory() as session:
             stmt = select(self._table).where(self._table.id == user_id)
             result = await session.execute(stmt)
-            row = result.mappings().first()
-            return dict(row) if row else None
+            row = result.scalars().first()
+            if row is None:
+                return None
+            return {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
 
     async def _get_by_username_async(self, username: str) -> dict | None:
         from sqlalchemy import select
@@ -71,8 +73,10 @@ class UserRepository:
         async with self._session_factory() as session:
             stmt = select(self._table).where(self._table.username == username)
             result = await session.execute(stmt)
-            row = result.mappings().first()
-            return dict(row) if row else None
+            row = result.scalars().first()
+            if row is None:
+                return None
+            return {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
 
     async def _get_by_email_async(self, email: str) -> dict | None:
         from sqlalchemy import select
@@ -80,8 +84,10 @@ class UserRepository:
         async with self._session_factory() as session:
             stmt = select(self._table).where(self._table.email == email)
             result = await session.execute(stmt)
-            row = result.mappings().first()
-            return dict(row) if row else None
+            row = result.scalars().first()
+            if row is None:
+                return None
+            return {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
 
     async def _list_all_async(self) -> list[dict]:
         from sqlalchemy import select
@@ -89,7 +95,10 @@ class UserRepository:
         async with self._session_factory() as session:
             stmt = select(self._table)
             result = await session.execute(stmt)
-            return [dict(row) for row in result.mappings().all()]
+            return [
+                {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
+                for row in result.scalars().all()
+            ]
 
     @property
     def _table(self):

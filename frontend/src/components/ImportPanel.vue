@@ -261,13 +261,13 @@ import { useAuthStore } from "../stores/auth";
 const auth = useAuthStore();
 
 const emit = defineEmits(["summary-change"]);
-const fileInput = ref(null);
-const files = ref([]);
+const fileInput = ref<HTMLInputElement | null>(null);
+const files = ref<File[]>([]);
 const status = ref("");
 const uploading = ref(false);
 const uploadProgress = ref(0);
 const importing = ref(false);
-const importStatus = ref(null);
+const importStatus = ref<{ success: boolean; message: string } | null>(null);
 const providers = ref({
   google_fit: true,
   google_health: false,
@@ -285,12 +285,12 @@ function pickFile() {
   fileInput.value?.click();
 }
 
-function onChange(e) {
-  files.value = Array.from(e.target.files || []);
+function onChange(e: Event) {
+  files.value = Array.from((e.target as HTMLInputElement).files || []);
 }
 
-function onDrop(e) {
-  files.value = Array.from(e.dataTransfer.files || []);
+function onDrop(e: DragEvent) {
+  files.value = Array.from(e.dataTransfer?.files || []);
 }
 
 async function loadProviders() {
@@ -298,7 +298,7 @@ async function loadProviders() {
     const data = await apiGet("/api/v1/import/providers");
     providers.value = { ...providers.value, ...(data || {}) };
   } catch {
-    providers.value = {};
+    providers.value = { google_fit: false, google_health: false, wahoo: false, strava: false };
   }
 }
 
@@ -306,7 +306,7 @@ onMounted(() => {
   loadProviders();
 });
 
-async function uploadOne(file) {
+async function uploadOne(file: File) {
   const ext = file.name.toLowerCase().split(".").pop();
   const path =
     ext === "fit" || ext === "fitf"
@@ -329,8 +329,8 @@ async function upload() {
     status.value = "Import completed";
     files.value = [];
     emit("summary-change");
-  } catch (e) {
-    status.value = "Import failed: " + (e.message || e);
+  } catch (e: unknown) {
+    status.value = "Import failed: " + (e instanceof Error ? e.message : String(e));
   } finally {
     uploading.value = false;
   }
@@ -377,7 +377,7 @@ async function connectGoogleFit() {
       },
       5 * 60 * 1000,
     );
-    const handleMessage = async (event) => {
+    const handleMessage = async (event: MessageEvent) => {
       if (event.data?.type === "google-fit-error") {
         finish();
         importStatus.value = {
@@ -422,11 +422,11 @@ async function connectGoogleFit() {
       }
     };
     window.addEventListener("message", handleMessage);
-  } catch (e) {
-    importStatus.value = { success: false, message: e.message };
-    importing.value = false;
+    } catch (e: unknown) {
+      importStatus.value = { success: false, message: e instanceof Error ? e.message : String(e) };
+      importing.value = false;
+    }
   }
-}
 
 async function connectGoogleHealth() {
   importing.value = true;
@@ -469,7 +469,7 @@ async function connectGoogleHealth() {
       },
       5 * 60 * 1000,
     );
-    const handleMessage = async (event) => {
+    const handleMessage = async (event: MessageEvent) => {
       if (event.data?.type === "google-health-error") {
         finish();
         importStatus.value = {
@@ -519,11 +519,11 @@ async function connectGoogleHealth() {
       }
     };
     window.addEventListener("message", handleMessage);
-  } catch (e) {
-    importStatus.value = { success: false, message: e.message };
-    importing.value = false;
+    } catch (e: unknown) {
+      importStatus.value = { success: false, message: e instanceof Error ? e.message : String(e) };
+      importing.value = false;
+    }
   }
-}
 
 async function disconnectGoogleFit() {
   try {
@@ -543,8 +543,8 @@ async function disconnectGoogleFit() {
         message: "Failed to disconnect Google Fit",
       };
     }
-  } catch (e) {
-    importStatus.value = { success: false, message: e.message };
+  } catch (e: unknown) {
+    importStatus.value = { success: false, message: e instanceof Error ? e.message : "Failed to disconnect Google Fit" };
   }
 }
 
@@ -566,25 +566,25 @@ async function disconnectGoogleHealth() {
         message: "Failed to disconnect Google Health",
       };
     }
-  } catch (e) {
-    importStatus.value = { success: false, message: e.message || e };
+  } catch (e: unknown) {
+    importStatus.value = { success: false, message: e instanceof Error ? e.message : "Failed to disconnect Google Health" };
   }
 }
 
 async function connectStrava() {
   importing.value = true;
   importStatus.value = null;
-  let popup = null;
+  let popup: Window | null = null;
   const cleanup = () => {
     try {
-      if (popup) popup.close();
-    } catch (_) {
+      popup?.close();
+    } catch {
       /* ignore */
     }
   };
   try {
     const token = auth.token;
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
     const authResp = await fetch("/api/v1/import/strava/auth", { headers });
     if (!authResp.ok) {
       const err = await authResp.json().catch(() => ({}));
@@ -610,7 +610,7 @@ async function connectStrava() {
         },
         5 * 60 * 1000,
       );
-      const handleMessage = (event) => {
+      const handleMessage = (event: MessageEvent) => {
         if (!event.data || event.data.type !== "strava-success") {
           if (event.data?.type === "strava-error") {
             finish();
@@ -632,7 +632,7 @@ async function connectStrava() {
 
     const cbResp = await fetch("/api/v1/import/strava/callback", {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...headers },
+      headers: { "Content-Type": "application/json", ...headers } as HeadersInit,
       body: JSON.stringify({ code, code_verifier }),
     });
     if (!cbResp.ok) {
@@ -646,9 +646,9 @@ async function connectStrava() {
     };
     importing.value = false;
     await stravaSync();
-  } catch (e) {
+  } catch (e: unknown) {
     cleanup();
-    importStatus.value = { success: false, message: e.message };
+    importStatus.value = { success: false, message: e instanceof Error ? e.message : "Strava connection failed" };
     importing.value = false;
   }
 }
@@ -676,10 +676,10 @@ async function stravaSync() {
         message: err.detail || "Strava sync failed",
       };
     }
-  } catch (e) {
+  } catch (e: unknown) {
     importStatus.value = {
       success: false,
-      message: "Strava sync error: " + (e.message || e),
+      message: "Strava sync error: " + (e instanceof Error ? e.message : String(e)),
     };
   } finally {
     importing.value = false;
@@ -701,8 +701,8 @@ async function disconnectStrava() {
         message: "Failed to disconnect Strava",
       };
     }
-  } catch (e) {
-    importStatus.value = { success: false, message: e.message || e };
+  } catch (e: unknown) {
+    importStatus.value = { success: false, message: e instanceof Error ? e.message : "Failed to disconnect Strava" };
   }
 }
 
@@ -747,7 +747,7 @@ async function connectWahoo() {
       },
       5 * 60 * 1000,
     );
-    const handleMessage = async (event) => {
+    const handleMessage = async (event: MessageEvent) => {
       if (event.data?.type === "wahoo-error") {
         finish();
         importStatus.value = {
@@ -788,11 +788,11 @@ async function connectWahoo() {
       }
     };
     window.addEventListener("message", handleMessage);
-  } catch (e) {
-    importStatus.value = { success: false, message: e.message };
-    importing.value = false;
+    } catch (e: unknown) {
+      importStatus.value = { success: false, message: e instanceof Error ? e.message : String(e) };
+      importing.value = false;
+    }
   }
-}
 
 async function disconnectWahoo() {
   try {
@@ -812,8 +812,8 @@ async function disconnectWahoo() {
         message: "Failed to disconnect Wahoo",
       };
     }
-  } catch (e) {
-    importStatus.value = { success: false, message: e.message || e };
+  } catch (e: unknown) {
+    importStatus.value = { success: false, message: e instanceof Error ? e.message : "Failed to disconnect Wahoo" };
   }
 }
 
@@ -838,8 +838,8 @@ async function wahooSync() {
       const err = await resp.json().catch(() => ({}));
       status.value = "Wahoo import failed: " + (err.detail || resp.statusText);
     }
-  } catch (e) {
-    status.value = "Wahoo import error: " + (e.message || e);
+  } catch (e: unknown) {
+    status.value = "Wahoo import error: " + (e instanceof Error ? e.message : String(e));
   } finally {
     importing.value = false;
   }

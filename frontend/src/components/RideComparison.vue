@@ -51,7 +51,7 @@ v-for="m in metrics" class="comp-card"
               class="comp-a"
               :class="{ winner: comparison.winners[m.key] === 'A' }"
             >
-              <span class="comp-val">{{ m.format(comparison.a[m.key]) }}</span>
+              <span class="comp-val">{{ m.format(Number(comparison.a[m.key as keyof Ride]) || 0) }}</span>
               <span
 v-if="comparison.deltas[m.key] !== 0" class="comp-delta"
 >
@@ -64,7 +64,7 @@ v-if="comparison.deltas[m.key] !== 0" class="comp-delta"
               class="comp-b"
               :class="{ winner: comparison.winners[m.key] === 'B' }"
             >
-              <span class="comp-val">{{ m.format(comparison.b[m.key]) }}</span>
+              <span class="comp-val">{{ m.format(Number(comparison.b[m.key as keyof Ride]) || 0) }}</span>
               <span
 v-if="comparison.deltas[m.key] !== 0" class="comp-delta"
 >
@@ -97,54 +97,69 @@ v-if="verdict" class="verdict"
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { apiGet } from "../utils/api";
+import type { Ride } from "../types/index";
 
-const rides = ref([]);
-const rideA = ref(null);
-const rideB = ref(null);
+interface ComparisonResult {
+  ready: boolean;
+  a: Ride;
+  b: Ride;
+  deltas: Record<string, number>;
+  winners: Record<string, string>;
+}
+
+interface MetricDef {
+  key: string;
+  label: string;
+  format: (v: number | undefined) => string;
+}
+
+const rides = ref<Ride[]>([]);
+const rideA = ref<Ride | null>(null);
+const rideB = ref<Ride | null>(null);
 const loading = ref(false);
 
-const metrics = [
+const metrics: MetricDef[] = [
   {
     key: "distance_km",
     label: "Distanza (km)",
-    format: (v) => (v == null ? "—" : Number(v).toFixed(1)),
+    format: (v: number | undefined): string => (v == null ? "—" : Number(v).toFixed(1)),
   },
   {
     key: "duration_minutes",
     label: "Durata (min)",
-    format: (v) => (v == null ? "—" : Math.round(v)),
+    format: (v: number | undefined): string => (v == null ? "—" : Math.round(v).toString()),
   },
   {
     key: "avg_speed_kmh",
     label: "Velocità media",
-    format: (v) => (v == null ? "—" : Number(v).toFixed(1) + " km/h"),
+    format: (v: number | undefined): string => (v == null ? "—" : Number(v).toFixed(1) + " km/h"),
   },
   {
-    key: "elevation_gain_m",
+    key: "elev_gain_meters",
     label: "Dislivello (m)",
-    format: (v) => (v == null ? "—" : Math.round(v)),
+    format: (v: number | undefined): string => (v == null ? "—" : Math.round(v).toString()),
   },
   {
     key: "calories",
     label: "Calorie",
-    format: (v) => (v == null ? "—" : Math.round(v)),
+    format: (v: number | undefined): string => (v == null ? "—" : Math.round(v).toString()),
   },
 ];
 
-function fmt(v, dec = 1) {
+function fmt(v: number | undefined, dec = 1) {
   if (v == null || isNaN(Number(v))) return "—";
   return Number(v).toFixed(dec);
 }
 
-const comparison = computed(() => {
-  if (!rideA.value || !rideB.value) return { ready: false };
+const comparison = computed<ComparisonResult>(() => {
+  if (!rideA.value || !rideB.value) return { ready: false, a: rideA.value!, b: rideB.value!, deltas: {}, winners: {} };
   const a = rideA.value;
   const b = rideB.value;
-  const deltas = {};
-  const winners = {};
+  const deltas: Record<string, number> = {};
+  const winners: Record<string, string> = {};
   for (const m of metrics) {
-    const av = Number(a[m.key]) || 0;
-    const bv = Number(b[m.key]) || 0;
+    const av = Number(a[m.key as keyof Ride]) || 0;
+    const bv = Number(b[m.key as keyof Ride]) || 0;
     if (av === 0 && bv === 0) {
       deltas[m.key] = 0;
       winners[m.key] = "";
@@ -165,8 +180,8 @@ const comparison = computed(() => {
 const verdict = computed(() => {
   if (!comparison.value.ready) return "";
   const { winners } = comparison.value;
-  let scoreA = 0,
-    scoreB = 0;
+  let scoreA = 0;
+  let scoreB = 0;
   for (const k in winners) {
     if (winners[k] === "A") scoreA++;
     else if (winners[k] === "B") scoreB++;
@@ -189,11 +204,11 @@ function onSelectChange() {
 async function load() {
   loading.value = true;
   try {
-    const all = [];
+    const all: Ride[] = [];
     let page = 1;
     const pageSize = 100;
     while (true) {
-      const data = await apiGet("/api/v1/rides", { page, page_size: pageSize });
+      const data = await apiGet<{ rides: Ride[]; total?: number }>("/api/v1/rides", { page: String(page), page_size: String(pageSize) });
       const batch = data.rides || [];
       all.push(...batch);
       const total = typeof data.total === "number" ? data.total : all.length;

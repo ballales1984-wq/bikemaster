@@ -70,10 +70,10 @@ class FitnessStateRepository:
                 stmt = stmt.where(self._table.tenant_id == tenant_id)
             stmt = stmt.order_by(desc(self._table.date)).limit(1)
             result = await session.execute(stmt)
-            row = result.mappings().first()
-            if not row:
+            row = result.scalars().first()
+            if row is None:
                 return None
-            data = dict(row)
+            data = {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
             if data.get("risk_indicators"):
                 data["risk_indicators"] = json.loads(data["risk_indicators"])
             return data
@@ -94,10 +94,9 @@ class FitnessStateRepository:
                 stmt = stmt.where(self._table.tenant_id == tenant_id)
             stmt = stmt.order_by(desc(self._table.date)).limit(days)
             result = await session.execute(stmt)
-            rows = result.mappings().all()
             histories = []
-            for row in rows:
-                data = dict(row)
+            for row in result.scalars().all():
+                data = {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
                 if data.get("risk_indicators"):
                     data["risk_indicators"] = json.loads(data["risk_indicators"])
                 histories.append(data)

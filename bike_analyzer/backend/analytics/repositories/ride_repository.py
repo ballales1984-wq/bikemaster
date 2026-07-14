@@ -73,10 +73,10 @@ class RideRepository:
             if tenant_id is not None:
                 stmt = stmt.where(self._table.tenant_id == tenant_id)
             result = await session.execute(stmt)
-            row = result.mappings().first()
-            if not row:
+            row = result.scalars().first()
+            if row is None:
                 return None
-            data = dict(row)
+            data = {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
             if data.get("gps_points"):
                 data["gps_points"] = json.loads(data["gps_points"])
             return data
@@ -104,10 +104,10 @@ class RideRepository:
                 stmt = stmt.where(self._table.tenant_id == tenant_id)
             stmt = stmt.order_by(self._table.date.desc())
             result = await session.execute(stmt)
-            rows = result.mappings().all()
+            rows = result.scalars().all()
             rides = []
             for row in rows:
-                data = dict(row)
+                data = {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
                 if data.get("gps_points"):
                     data["gps_points"] = json.loads(data["gps_points"])
                 rides.append(data)

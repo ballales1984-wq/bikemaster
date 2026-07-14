@@ -4,7 +4,17 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, DateTime, Float, Integer, MetaData, String, Table, insert, select
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Float,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    UniqueConstraint,
+    select,
+)
 
 _METADATA = MetaData()
 TRAINING_STRESS_DAYS_TABLE = Table(
@@ -20,6 +30,7 @@ TRAINING_STRESS_DAYS_TABLE = Table(
     Column("tsb", Float),
     Column("created_at", DateTime(timezone=True)),
     Column("updated_at", DateTime(timezone=True)),
+    UniqueConstraint("athlete_id", "date", name="uq_training_stress_days"),
 )
 
 
@@ -58,10 +69,12 @@ class TrainingStressRepository:
     async def _upsert_async(
         self, athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float, tenant_id: int = 0
     ) -> None:
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
         now = datetime.now(UTC)
         async with self._session_factory() as session:
             stmt = (
-                insert(self._table)
+                sqlite_insert(self._table)
                 .values(
                     athlete_id=athlete_id,
                     tenant_id=tenant_id,
@@ -74,7 +87,7 @@ class TrainingStressRepository:
                     updated_at=now,
                 )
                 .on_conflict_do_update(
-                    index_elements=[self._table.athlete_id, self._table.date],
+                    index_elements=[self._table.c.athlete_id, self._table.c.date],
                     set_={
                         "tss": tss,
                         "atl": atl,
@@ -89,10 +102,10 @@ class TrainingStressRepository:
 
     async def _get_history_async(self, athlete_id: int, limit: int = 90, tenant_id: int | None = None) -> list[dict]:
         async with self._session_factory() as session:
-            stmt = select(self._table).where(self._table.athlete_id == athlete_id)
+            stmt = select(self._table).where(self._table.c.athlete_id == athlete_id)
             if tenant_id is not None:
-                stmt = stmt.where(self._table.tenant_id == tenant_id)
-            stmt = stmt.order_by(self._table.date.desc()).limit(limit)
+                stmt = stmt.where(self._table.c.tenant_id == tenant_id)
+            stmt = stmt.order_by(self._table.c.date.desc()).limit(limit)
             result = await session.execute(stmt)
             return [self._row_to_day(row) for row in result.mappings().all()]
 

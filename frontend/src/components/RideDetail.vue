@@ -112,12 +112,13 @@ v-if="speedChart || elevationChart" class="chart-section"
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { apiGet } from "../utils/api";
+import type { Ride } from "../types/index";
 import SpeedMap from "./SpeedMap.vue";
 
 const props = defineProps({ rideId: Number });
 const emit = defineEmits(["close"]);
 
-const ride = ref(null);
+const ride = ref<Ride | null>(null);
 const speedChart = ref("");
 const elevationChart = ref("");
 const googleMapsApiKey = ref("");
@@ -129,12 +130,12 @@ const fatigueClass = computed(() => {
   return "fatigue-high";
 });
 
-function fmt(v, dec = 1) {
+function fmt(v: number | undefined, dec = 1) {
   if (v == null || isNaN(Number(v))) return "—";
   return Number(v).toFixed(dec);
 }
 
-function formatDuration(minutes) {
+function formatDuration(minutes: number | string | undefined) {
   const mins = Number(minutes) || 0;
   const h = Math.floor(mins / 60);
   const m = Math.floor(mins % 60);
@@ -145,7 +146,7 @@ function formatDuration(minutes) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr: string | undefined) {
   if (!dateStr) return "";
   try {
     return new Date(dateStr).toLocaleDateString("it-IT", {
@@ -160,12 +161,16 @@ function formatDate(dateStr) {
 }
 
 async function load() {
-  const data = await apiGet(`/api/v1/rides/${props.rideId}`);
-  ride.value = data;
-  speedChart.value = `/api/v1/charts/speed/${props.rideId}`;
-  elevationChart.value = `/api/v1/charts/elevation/${props.rideId}`;
-  const config = await apiGet("/api/v1/config/google-maps-key");
-  googleMapsApiKey.value = config.google_maps_api_key || "";
+  try {
+    const data = await apiGet<Ride>(`/api/v1/rides/${props.rideId}`);
+    ride.value = data;
+    speedChart.value = `/api/v1/charts/speed/${props.rideId}`;
+    elevationChart.value = `/api/v1/charts/elevation/${props.rideId}`;
+    const config = await apiGet<{ google_maps_api_key: string }>("/api/v1/config/google-maps-key");
+    googleMapsApiKey.value = config.google_maps_api_key || "";
+  } catch {
+    // ignore load errors
+  }
 }
 
 onMounted(() => load());
