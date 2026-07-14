@@ -187,7 +187,7 @@ def create_app() -> FastAPI:
         response.headers[REQUEST_ID_HEADER] = request_id
         return response
 
-    from .user_keys import parse_user_keys_header, set_request_user_keys
+    from .user_keys import parse_user_keys_header, set_request_user_keys, reset_request_user_keys
 
     @app.middleware("http")
     async def user_api_keys_middleware(request: Request, call_next):
@@ -198,7 +198,7 @@ def create_app() -> FastAPI:
         try:
             response = await call_next(request)
         finally:
-            set_request_user_keys.reset(token)
+            reset_request_user_keys(token)
         return response
 
     @app.middleware("http")
@@ -263,7 +263,7 @@ def create_app() -> FastAPI:
                 "style-src 'self' "
                 "https://cdn.jsdelivr.net https://netdna.bootstrapcdn.com "
                 "https://cdnjs.cloudflare.com https://unpkg.com; "
-                "connect-src 'self'"
+                "connect-src 'self' https: http://localhost:* http://127.0.0.1:*"
             )
         return response
 
@@ -272,7 +272,7 @@ def create_app() -> FastAPI:
         if isinstance(_s.cors_origins, str)
         else _s.cors_origins
     )
-    if "*" in cors_origins:
+    if cors_origins and "*" in cors_origins:
         if _s.environment.lower() in ("production", "prod", "staging"):
             logger.error(
                 "CORS wildcard origin detected in production — forbidding. "

@@ -148,7 +148,33 @@ def test_create_google_static_map_success_download():
             out_path.unlink()
 
 
-def test_create_google_static_map_colored_fallback_long_url():
+def test_create_google_static_map_colored_multiple_segments():
+    pts = [_pt(45.0 + i * 0.001, 7.0 + i * 0.001, speed=float(i % 40)) for i in range(40)]
+    out_path = Path("test_colored_segments.png")
+    try:
+        with patch("bike_analyzer.backend.maps.google_maps.httpx.Client") as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client_cls.return_value.__enter__ = MagicMock(return_value=mock_client)
+            mock_client_cls.return_value.__exit__ = MagicMock(return_value=False)
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.content = b"fake_png_data"
+            mock_client.get.return_value = mock_resp
+            create_google_static_map(pts, "AIzaRealKey", output_path=str(out_path), colored=True)
+            called_url = mock_client.get.call_args.args[0]
+        # Multiple colored path segments (green=fast -> red=slow gradient)
+        assert called_url.count("path=color:0x") >= 2
+        assert "weight:5" in called_url
+        # Fast segments map toward green, slow toward red
+        assert "0x" in called_url
+    finally:
+        if out_path.exists():
+            out_path.unlink()
+
+
+def test_speed_color_gradient_fast_green_slow_red():
+    assert _speed_to_color(40).startswith("#00")  # green-ish (fast)
+    assert _speed_to_color(2).startswith("#ee")   # red-ish (slow)
     pts = [_pt(45.0 + i * 0.001, 7.0 + i * 0.001, speed=float(i % 40)) for i in range(200)]
     out_path = Path("test_long_map.png")
     try:

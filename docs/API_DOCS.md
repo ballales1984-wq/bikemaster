@@ -612,11 +612,15 @@ GET /rides/1/map/google?colored=true&zoom=14&size=640x480
 **Query Parameters:**
 | Parameter | Type | Default | Description |
 |:---|:---|:---|:---|
-| colored | boolean | false | Color by speed (green >=25, yellow 15-25, red <15) |
+| colored | boolean | false | When `true`, the route is split into speed-based segments and each segment is drawn as a separate `path` in the Google Static Maps request. Colors follow a green→yellow→red gradient where **green = fast** and **red = slow** (continuous interpolation between `min_speed` and `max_speed` of the ride). When `false`, a single blue polyline is drawn. |
 | zoom | integer | 13 | Map zoom (1-21) |
 | size | string | 640x480 | Image dimensions (max 640x640 free tier) |
 
 **Response:** PNG image. Requires `GOOGLE_MAPS_API_KEY`.
+
+The colored request embeds one `path=color:0xRRGGBB|weight:5|<lat,lon>|...` parameter per
+segment, so the resulting map shows speed variation along the route. If the generated URL
+exceeds the Static Maps URL length limit, a single median-color polyline is used as a fallback.
 
 **Error Responses:**
 | Status | Code | Description |
@@ -624,6 +628,38 @@ GET /rides/1/map/google?colored=true&zoom=14&size=640x480
 | 500 | NO_API_KEY | GOOGLE_MAPS_API_KEY not configured |
 | 404 | RIDE_NOT_FOUND | Ride ID does not exist |
 | 500 | NO_GPS_POINTS | Ride has no GPS data |
+
+### Speed Path (colored segments)
+```http
+GET /rides/1/speed-path
+Authorization: Bearer <token>
+```
+
+Returns the ride's GPS track split into speed-colored segments as JSON (no external API key
+required). Each segment carries the start/end coordinates, the segment color (hex, green = fast
+→ red = slow) and the average speed, so a frontend can render a dynamic, speed-colored route.
+
+**Response:**
+```json
+{
+  "ride_id": 1,
+  "point_count": 10,
+  "min_speed": 0,
+  "max_speed": 35,
+  "center": [45.12, 9.05],
+  "segments": [
+    {"start": [45.10, 9.00], "end": [45.11, 9.01], "color": "#00cc44", "speed_kmh": 28.0},
+    {"start": [45.11, 9.01], "end": [45.12, 9.02], "color": "#ee3333", "speed_kmh": 6.0}
+  ]
+}
+```
+
+**Error Responses:**
+| Status | Code | Description |
+|:---:|:---|:---|
+| 401 | UNAUTHORIZED | Missing/invalid token |
+| 404 | RIDE_NOT_FOUND | Ride ID does not exist |
+| 400 | NO_GPS_POINTS | Ride has no GPS data |
 
 ### Nearby Places
 ```http

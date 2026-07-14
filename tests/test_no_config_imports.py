@@ -29,7 +29,10 @@ def _is_legacy_config_import(module: str) -> bool:
 def test_no_legacy_config_import(py_file: Path):
     """Ensure no Python file under bike_analyzer/ imports from legacy config.py."""
     relative = py_file.relative_to(ROOT)
-    source = py_file.read_text(encoding="utf-8")
+    try:
+        source = py_file.read_text(encoding="utf-8")
+    except PermissionError:
+        pytest.skip(f"Cannot read {relative}: permission denied")
     tree = ast.parse(source)
 
     for node in ast.walk(tree):

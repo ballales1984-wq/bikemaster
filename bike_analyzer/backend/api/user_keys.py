@@ -20,8 +20,12 @@ _user_keys: ContextVar[dict[str, str] | None] = ContextVar(
 )
 
 
-def set_request_user_keys(keys: dict[str, str] | None) -> None:
-    _user_keys.set(keys)
+def set_request_user_keys(keys: dict[str, str] | None):
+    return _user_keys.set(keys)
+
+
+def reset_request_user_keys(token: Any) -> None:
+    _user_keys.reset(token)
 
 
 def get_request_user_keys() -> dict[str, str]:
