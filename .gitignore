@@ -105,6 +105,10 @@ logs/
 Thumbs.db
 
 # Android build/debug artifacts
+frontend/android/.gradle/
+frontend/android/app/src/main/assets/public/
+frontend/android/build_aab_log.txt
+frontend/android/build_log.txt
 frontend/android_debug.apk
 
 # Android signing secrets (NEVER commit)
@@ -117,3 +121,7 @@ frontend/android_debug.apk
 # Backend generated static assets
 bike_analyzer/backend/static/index.html
 bike_analyzer/backend/static/sw.js
+
+# Scratch/backup files
+bike_analyzer/backend/static.bak-*
+mv.log
