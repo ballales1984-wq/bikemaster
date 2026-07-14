@@ -15,6 +15,12 @@ WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5"
 
 
 def _get_weather_api_key() -> str:
+    from ..api.user_keys import get_request_user_keys
+
+    user_keys = get_request_user_keys()
+    user_key = (user_keys.get("weather") or user_keys.get("openweather") or "").strip()
+    if user_key:
+        return user_key
     key = os.environ.get("WEATHER_API_KEY") or os.environ.get("OPENWEATHER_API_KEY")
     if key:
         return key

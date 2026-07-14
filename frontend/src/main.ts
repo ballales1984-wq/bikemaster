@@ -11,6 +11,8 @@ import { processOAuthToken, hasPendingOAuth } from "./services/oauth";
 import { syncAuthState } from "./services/authSync";
 import { apiGet } from "./utils/api";
 import type { ApiCallOptions } from "./utils/api";
+import { initLocalDb } from "./db/localDb";
+import { useApiKeysStore } from "./stores/apiKeys";
 
 const pinia = createPinia();
 setActivePinia(pinia);
@@ -115,6 +117,11 @@ if ("serviceWorker" in navigator) {
     })
     .catch(() => {});
 }
+
+// Inizializza il DB SQLite locale (cache offline) e carica le chiavi API
+// per-utente salvate sul dispositivo. Best-effort se non disponibili.
+void initLocalDb();
+void useApiKeysStore().load();
 
 app.mount("#app");
 

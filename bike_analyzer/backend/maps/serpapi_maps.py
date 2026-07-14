@@ -25,13 +25,24 @@ def _wait_for_rate_limit() -> None:
         time.sleep(_SERPAPI_RATE_LIMIT_S - elapsed)
 
 
+def get_serpapi_api_key() -> str | None:
+    from ..api.user_keys import get_request_user_keys
+
+    user_keys = get_request_user_keys()
+    user_key = (user_keys.get("serpapi") or "").strip()
+    if user_key:
+        return user_key
+    key = _s.serpapi_api_key
+    return key if key else None
+
+
 def search_places(query: str, lat: float | None = None, lon: float | None = None) -> dict[str, Any] | None:
-    if not _s.serpapi_api_key:
+    if not get_serpapi_api_key():
         return None
     params = {
         "engine": _s.serpapi_engine,
         "q": query,
-        "api_key": _s.serpapi_api_key,
+        "api_key": get_serpapi_api_key(),
     }
     if lat is not None and lon is not None:
         params["ll"] = f"@{lat},{lon},15z"

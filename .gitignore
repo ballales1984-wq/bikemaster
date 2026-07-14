@@ -118,6 +118,11 @@ frontend/android_debug.apk
 **/local.properties
 .release_pw_tmp
 
+# Tauri (Desktop) build artifacts
+frontend/src-tauri/target/
+frontend/src-tauri/gen/
+frontend/src-tauri/icons/
+
 # Backend generated static assets
 bike_analyzer/backend/static/index.html
 bike_analyzer/backend/static/sw.js

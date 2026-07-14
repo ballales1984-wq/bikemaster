@@ -3,6 +3,11 @@ import { ref, computed } from "vue";
 import type { Ride, Summary } from "../types/index";
 import { apiGet, apiDelete, apiPost } from "../utils/api";
 import { useAuthStore } from "./auth";
+import {
+  isLocalDbReady,
+  upsertRide,
+  getCachedRides,
+} from "../db/localDb";
 
 export interface RideFilters {
   search?: string;
@@ -14,6 +19,7 @@ export interface RideFilters {
 export const useRidesStore = defineStore("rides", () => {
   const auth = useAuthStore();
   const rides = ref<Ride[]>([]);
+  const offline = ref(false);
   const summary = ref<Summary>({
     rides: 0,
     distance_km: 0,
@@ -71,10 +77,24 @@ export const useRidesStore = defineStore("rides", () => {
     saveFilters();
   }
 
+  async function seedFromCache(): Promise<void> {
+    if (!isLocalDbReady()) return;
+    try {
+      const cached = getCachedRides(filters.value.page_size || 20);
+      rides.value = cached
+        .map((c) => c.data as Ride)
+        .filter((r) => r && typeof r === "object");
+      offline.value = true;
+    } catch {
+      offline.value = false;
+    }
+  }
+
   async function fetchRides(): Promise<void> {
     if (!auth.isLoggedIn) return;
     loading.value = true;
     error.value = null;
+    offline.value = false;
     try {
       const params: Record<string, string> = {};
       if (filters.value.search) params.search = filters.value.search;
@@ -85,9 +105,17 @@ export const useRidesStore = defineStore("rides", () => {
 
       const data = await apiGet<{ rides: Ride[] }>("/api/v1/rides", params);
       rides.value = data.rides || [];
+      // Persisti in SQLite locale per uso offline (cache/seed).
+      if (isLocalDbReady()) {
+        for (const r of rides.value) {
+          if (typeof r.id === "number") upsertRide(r.id, r);
+        }
+      }
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to load rides";
-      rides.value = [];
+      // Fallback offline: servi dalla cache SQLite locale se disponibile.
+      await seedFromCache();
+      if (!offline.value) rides.value = [];
     } finally {
       loading.value = false;
     }
@@ -159,6 +187,7 @@ export const useRidesStore = defineStore("rides", () => {
     summary,
     loading,
     error,
+    offline,
     filters,
     filteredRides,
     totalPages,

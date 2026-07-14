@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+import types
+
 import pytest
 
 from bike_analyzer.backend.analytics.repositories.chat_history_repository import ChatHistoryRepository
+
+
+class _FakeRow:
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
 
 class _FakeResult:
@@ -18,10 +26,23 @@ class _FakeResult:
 
     def mappings(self):
         class _M:
-            def all(self_inner):
-                return self._rows
+            def __init__(self_inner, rows):
+                self_inner._rows = rows
 
-        return _M()
+            def all(self_inner):
+                return self_inner._rows
+
+        return _M(self._rows)
+
+    def scalars(self):
+        class _S:
+            def __init__(self_inner, rows):
+                self_inner._rows = rows
+
+            def all(self_inner):
+                return self_inner._rows
+
+        return _S([_FakeRow(**r) if isinstance(r, dict) else r for r in self._rows])
 
     @property
     def rowcount(self):
@@ -61,9 +82,26 @@ async def test_save_returns_id():
 
 
 async def test_get_recent_returns_rows():
-    repo = ChatHistoryRepository(session_factory=_FakeFactory(_FakeResult(rows=[{"role": "user", "content": "x"}])))
+    repo = ChatHistoryRepository(
+        session_factory=_FakeFactory(
+            _FakeResult(
+                rows=[
+                    {
+                        "id": 1,
+                        "athlete_id": 1,
+                        "tenant_id": 0,
+                        "role": "user",
+                        "content": "x",
+                        "created_at": None,
+                    }
+                ]
+            )
+        )
+    )
     rows = await repo.get_recent(1, limit=5)
-    assert rows == [{"role": "user", "content": "x"}]
+    assert rows == [
+        {"id": 1, "athlete_id": 1, "tenant_id": 0, "role": "user", "content": "x", "created_at": None}
+    ]
 
 
 async def test_clear_returns_rowcount():

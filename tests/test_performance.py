@@ -112,3 +112,63 @@ class TestShouldSaveToDatabase:
 
     def test_empty_points_returns_false(self):
         assert should_save_to_database([]) is False
+
+
+class TestCalculateMonthlyScores:
+    def test_empty_rides_returns_zeros(self):
+        result = calculate_monthly_scores([])
+        assert result == {
+            "performance": 0,
+            "endurance": 0,
+            "recovery": 0,
+            "efficiency": 0,
+            "avg_fatigue": 0,
+        }
+
+    def test_non_empty_rides_returns_averages(self):
+        rides = [
+            Ride(avg_speed_kmh=25.0, duration_minutes=60.0, distance_km=25.0, calories=500, elevation_gain_m=100.0),
+            Ride(avg_speed_kmh=30.0, duration_minutes=90.0, distance_km=40.0, calories=700, elevation_gain_m=200.0),
+        ]
+        result = calculate_monthly_scores(rides)
+        assert "performance" in result
+        assert "endurance" in result
+        assert "recovery" in result
+        assert "efficiency" in result
+        assert "avg_fatigue" in result
+        assert all(isinstance(v, (int, float)) for v in result.values())
+
+
+class TestCalculateAnnualScores:
+    def test_empty_rides_returns_zeros(self):
+        result = calculate_annual_scores([])
+        assert result["performance"] == 0
+        assert result["endurance"] == 0
+        assert result["total_km"] == 0
+        assert result["total_calories"] == 0
+        assert result["avg_fatigue"] == 0
+
+    def test_non_empty_rides_returns_summary(self):
+        rides = [
+            Ride(avg_speed_kmh=25.0, duration_minutes=60.0, distance_km=25.0, calories=500, elevation_gain_m=100.0),
+            Ride(avg_speed_kmh=30.0, duration_minutes=90.0, distance_km=40.0, calories=700, elevation_gain_m=200.0),
+        ]
+        result = calculate_annual_scores(rides)
+        assert result["performance"] > 0
+        assert result["endurance"] > 0
+        assert result["total_km"] == 65.0
+        assert result["total_calories"] == 1200.0
+
+
+class TestClassifyAthleteLevels:
+    def test_amateur(self):
+        rides = [Ride(distance_km=20.0) for _ in range(20)]
+        assert classify_athlete(rides) == "Amateur"
+
+    def test_intermediate(self):
+        rides = [Ride(distance_km=10.0) for _ in range(100)]
+        assert classify_athlete(rides) == "Intermediate"
+
+    def test_advanced(self):
+        rides = [Ride(distance_km=10.0) for _ in range(200)]
+        assert classify_athlete(rides) == "Advanced"

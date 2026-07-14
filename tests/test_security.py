@@ -296,6 +296,8 @@ class TestJwtBlacklist:
             import asyncio
 
             result = asyncio.run(revoke_token("jti-123"))
+            # La revoca in-memory di fallback è considerata un successo (ce2dccb):
+            # ritorna True anche senza Redis, e il jti resta tracciato in-memory.
             assert result is True
             assert "jti-123" in _memory_revoked_tokens
         _memory_revoked_tokens.clear()

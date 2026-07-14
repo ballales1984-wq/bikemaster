@@ -78,6 +78,22 @@ def get_ai_coach_client():
     if _current_client and _current_provider and _current_provider not in _BANNED_PROVIDERS:
         return _current_client, _current_provider
 
+    # Per-user key sent from the device app (request-scoped ContextVar).
+    from ..api.user_keys import get_request_user_keys
+
+    user_keys = get_request_user_keys()
+    user_groq = (user_keys.get("groq") or "").strip()
+    if user_groq:
+        if not user_groq.startswith("gsk_"):
+            raise ValueError("AI Coach: invalid GROQ API key (gsk_...)")
+        try:
+            from groq import Groq
+
+            return Groq(api_key=user_groq), "groq"
+        except Exception as e:  # noqa: BLE001
+            logger.warning("AI Coach: per-user Groq init error: %s: %s", type(e).__name__, e)
+            raise ValueError("AI Coach: invalid GROQ API key (gsk_...)") from e
+
     groq_key = os.getenv("GROQ_API_KEY", "").strip() or (_s.groq_api_key or "").strip()
 
     for provider in _provider_order():
@@ -599,7 +615,7 @@ def get_fitness_state_explanation(athlete_id: int, session_factory=None) -> str:
 
     import asyncio
 
-    from ..repositories.fitness_state_repository import FitnessStateRepository
+    from .repositories.fitness_state_repository import FitnessStateRepository
 
     async def _get():
         repo = FitnessStateRepository(session_factory=session_factory)

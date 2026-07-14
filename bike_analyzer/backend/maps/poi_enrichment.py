@@ -182,7 +182,7 @@ def enrich_pois_near(
         "budget_exhausted": False,
     }
 
-    if not settings.serpapi_api_key:
+    if not serpapi_maps.get_serpapi_api_key():
         summary["reason"] = "no_api_key"
         return summary
 

@@ -47,11 +47,15 @@ async def test_blacklist_token_not_revoked():
 
 
 @pytest.mark.asyncio
-async def test_revoke_returns_false_on_redis_down():
+async def test_revoke_succeeds_in_memory_when_redis_down():
+    # Per commit ce2dccb la revoca in-memory di fallback è considerata un successo:
+    # revoke_token ritorna True anche se Redis non è disponibile.
     with patch("bike_analyzer.backend.security.get_redis", return_value=None):
-        from bike_analyzer.backend.security import revoke_token
+        from bike_analyzer.backend.security import is_token_revoked, revoke_token
 
-        assert await revoke_token("any-jti") is False
+        assert await revoke_token("any-jti") is True
+        # La revoca è effettiva almeno nel processo corrente (in-memory).
+        assert await is_token_revoked("any-jti") is True
 
 
 def test_totp_generate_and_verify():

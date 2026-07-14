@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
+
 import bike_analyzer.backend.monitoring as mon
 
 
@@ -13,6 +15,15 @@ def test_health_status_to_dict():
     assert d["healthy"] is True
     assert d["checks"]["db"] == "healthy: ok"
     assert "timestamp" in d
+
+
+def test_health_status_default_timestamp():
+    import time
+
+    before = time.time()
+    status = mon.HealthStatus(healthy=False)
+    after = time.time()
+    assert before <= status.timestamp <= after
 
 
 def test_record_functions_prometheus_available():
@@ -58,6 +69,22 @@ async def test_check_database_health():
     assert isinstance(msg, str)
 
 
+async def test_check_database_health_error(monkeypatch):
+    import bike_analyzer.backend.db.database as db_mod
+
+    class FakeConn:
+        def __enter__(self):
+            raise RuntimeError("db down")
+
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(db_mod, "get_db_connection", lambda: FakeConn())
+    status, msg = await mon.check_database_health()
+    assert status == "unhealthy"
+    assert "db down" in msg
+
+
 async def test_check_redis_health_not_configured():
     status, msg = await mon.check_redis_health()
     assert status in ("degraded", "healthy", "unhealthy")
@@ -77,6 +104,21 @@ async def test_check_redis_health_configured(monkeypatch):
     monkeypatch.setattr(redis_client, "get_redis", fake_get_redis)
     status, msg = await mon.check_redis_health()
     assert status == "healthy"
+
+
+async def test_check_redis_health_ping_fails(monkeypatch):
+    import bike_analyzer.backend.redis_client as redis_client
+
+    class FakeRedis:
+        def ping(self):
+            raise ConnectionError("redis down")
+
+    async def fake_get_redis():
+        return FakeRedis()
+
+    monkeypatch.setattr(redis_client, "get_redis", fake_get_redis)
+    status, msg = await mon.check_redis_health()
+    assert status == "unhealthy"
 
 
 async def test_check_task_queue_health(monkeypatch):
@@ -108,6 +150,19 @@ async def test_comprehensive_health_check():
     assert "database" in status.checks
     assert "redis" in status.checks
     assert "task_queue" in status.checks
+
+
+async def test_asyncio_if_awaitable_with_awaitable():
+    async def coro():
+        return 42
+
+    result = await mon.asyncio_if_awaitable(coro())
+    assert result == 42
+
+
+async def test_asyncio_if_awaitable_with_plain():
+    result = await mon.asyncio_if_awaitable(42)
+    assert result == 42
 
 
 def test_metrics_middleware_http():
@@ -150,6 +205,23 @@ def test_metrics_middleware_non_http():
     mw = mon.MetricsMiddleware(fake_app)
     asyncio.run(mw({"type": "websocket"}, receive, send))
     assert called["yes"] is True
+
+
+def test_metrics_middleware_exception_handling():
+    async def fake_app(scope, receive, send):
+        raise RuntimeError("app error")
+
+    async def send(message):
+        pass
+
+    async def receive():
+        return {"type": "http.request", "body": b""}
+
+    mw = mon.MetricsMiddleware(fake_app)
+    with pytest.raises(RuntimeError, match="app error"):
+        asyncio.run(
+            mw({"type": "http", "method": "GET", "path": "/test"}, receive, send)
+        )
 
 
 def test_prometheus_unavailable_branch(monkeypatch):

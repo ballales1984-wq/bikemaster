@@ -1,6 +1,6 @@
 import { useAuthStore } from "../stores/auth";
-
-const API_BASE = "";
+import { resolveApiBase, resolveFallbackBase, isFallbackEnabled } from "./backend-config";
+import { getUserKeysHeaderValue } from "./userKeys";
 
 export class ApiError extends Error {
   status?: number;
@@ -125,6 +125,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
   const isForm = typeof FormData !== "undefined" && body instanceof FormData;
   const isUrlSearchParams =
     typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams;
+  const userKeysHeader = getUserKeysHeaderValue();
   const init: RequestInit = {
     ...rest,
     method,
@@ -133,6 +134,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
         ? {}
         : { "Content-Type": "application/json" }),
       ...authHeaders(),
+      ...(userKeysHeader ? { "X-User-Api-Keys": userKeysHeader } : {}),
       ...(headers as Record<string, string>),
     } as Record<string, string>,
     body: (isForm
@@ -148,8 +150,17 @@ async function request<T>(options: RequestOptions): Promise<T> {
     method === "GET" || method === "HEAD" || method === "OPTIONS";
   const canRetry = idempotent && !noRetry;
 
+  // Base primario (relativo di default, altrimenti backend configurato).
+  // Su Vercel/device l'app punta al backend sul PC; Render è il failover.
+  let currentBase = resolveApiBase();
+  const fallbackBase = isFallbackEnabled() ? resolveFallbackBase() : "";
+  const canUseFallback = !!fallbackBase && fallbackBase !== currentBase;
+  const buildUrl = (base: string) => (base ? `${base}${path}` : path);
+
   let resp: Response;
   for (let attempt = 0; ; attempt++) {
+    const isLastAttempt = attempt >= MAX_RETRIES;
+    const url = buildUrl(currentBase);
     const controller =
       typeof timeoutMs === "number" &&
       timeoutMs > 0 &&
@@ -162,13 +173,17 @@ async function request<T>(options: RequestOptions): Promise<T> {
         : undefined;
     try {
       resp = await fetch(
-        path,
+        url,
         controller ? { ...init, signal: controller.signal } : init,
       );
     } catch {
       if (timer) clearTimeout(timer);
-      if (canRetry && attempt < MAX_RETRIES) {
+      if (canRetry && !isLastAttempt) {
         notifyServerWaking();
+        // Ultimo tentativo: riprova contro il failover (Render) se attivo.
+        if (canUseFallback && attempt === MAX_RETRIES - 1) {
+          currentBase = fallbackBase;
+        }
         await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
         continue;
       }
@@ -183,9 +198,12 @@ async function request<T>(options: RequestOptions): Promise<T> {
       canRetry &&
       idempotent &&
       RETRYABLE_STATUS.has(resp.status) &&
-      attempt < MAX_RETRIES
+      !isLastAttempt
     ) {
       notifyServerWaking();
+      if (canUseFallback && attempt === MAX_RETRIES - 1) {
+        currentBase = fallbackBase;
+      }
       await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
       continue;
     }
@@ -223,7 +241,7 @@ export async function apiGet<T = ApiResponse>(
   options: ApiCallOptions = {},
 ): Promise<T> {
   const qs = new URLSearchParams(params).toString();
-  const url = qs ? `${API_BASE}${path}?${qs}` : `${API_BASE}${path}`;
+  const url = qs ? `${path}?${qs}` : path;
   return request<T>({ ...options, path: url, method: "GET" });
 }
 
@@ -234,7 +252,7 @@ export async function apiPost<T = ApiResponse>(
 ): Promise<T> {
   return request<T>({
     ...options,
-    path: `${API_BASE}${path}`,
+    path,
     method: "POST",
     body,
   });
@@ -246,7 +264,7 @@ export async function apiDelete<T = ApiResponse>(
 ): Promise<T> {
   return request<T>({
     ...options,
-    path: `${API_BASE}${path}`,
+    path,
     method: "DELETE",
   });
 }
@@ -260,7 +278,7 @@ export async function apiUpload<T = ApiResponse>(
   form.append("file", file);
   return request<T>({
     ...options,
-    path: `${API_BASE}${path}`,
+    path,
     method: "POST",
     body: form,
   });
@@ -273,7 +291,7 @@ export async function apiPut<T = ApiResponse>(
 ): Promise<T> {
   return request<T>({
     ...options,
-    path: `${API_BASE}${path}`,
+    path,
     method: "PUT",
     body,
   });

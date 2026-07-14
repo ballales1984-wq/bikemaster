@@ -187,6 +187,20 @@ def create_app() -> FastAPI:
         response.headers[REQUEST_ID_HEADER] = request_id
         return response
 
+    from .user_keys import parse_user_keys_header, set_request_user_keys
+
+    @app.middleware("http")
+    async def user_api_keys_middleware(request: Request, call_next):
+        # Per-request user-provided API keys (Groq, Google Maps, SerpAPI,
+        # OpenWeather). Scoped to this request via a ContextVar; never persisted.
+        keys = parse_user_keys_header(request.headers.get("x-user-api-keys"))
+        token = set_request_user_keys(keys)
+        try:
+            response = await call_next(request)
+        finally:
+            set_request_user_keys.reset(token)
+        return response
+
     @app.middleware("http")
     async def audit_log_middleware(request: Request, call_next):
         import time
@@ -275,7 +289,12 @@ def create_app() -> FastAPI:
         allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With",
+            "X-User-Api-Keys",
+        ],
     )
     app.include_router(router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])

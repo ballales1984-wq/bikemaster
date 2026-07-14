@@ -55,6 +55,9 @@ class="tabs" aria-label="Main navigation" ref="tabsRef">
     <router-link v-if="isAdmin" to="/admin" class="tab" active-class="active">
       ⚙️ <span>{{ t("nav.admin") }}</span>
     </router-link>
+    <router-link to="/settings" class="tab" active-class="active">
+      🛠️ <span>{{ t("nav.settings") }}</span>
+    </router-link>
 
     <button
       class="tab logout-btn"

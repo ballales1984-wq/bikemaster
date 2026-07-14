@@ -8,7 +8,10 @@ from bike_analyzer.backend.events import (
     RideCreated,
     TrainingGenerated,
     clear_handlers,
+    is_event_bus_running,
     publish,
+    start_event_bus,
+    stop_event_bus,
     subscribe,
 )
 
@@ -103,3 +106,58 @@ class TestDomainEvents:
 
     def test_training_generated_event(self):
         assert TrainingGenerated.type == "training.generated"
+
+
+class TestEventBusLifecycle:
+    def setup_method(self):
+        from bike_analyzer.backend.events import _event_bus_running
+
+        import bike_analyzer.backend.events as ev
+
+        ev._event_bus_running = False
+
+    def test_start_event_bus(self):
+        import asyncio
+
+        asyncio.run(start_event_bus())
+        assert is_event_bus_running() is True
+        asyncio.run(stop_event_bus())
+
+    def test_start_event_bus_idempotent(self):
+        import asyncio
+
+        asyncio.run(start_event_bus())
+        asyncio.run(start_event_bus())
+        assert is_event_bus_running() is True
+        asyncio.run(stop_event_bus())
+
+    def test_stop_event_bus(self):
+        import asyncio
+
+        asyncio.run(start_event_bus())
+        asyncio.run(stop_event_bus())
+        assert is_event_bus_running() is False
+
+    def test_stop_event_bus_idempotent(self):
+        import asyncio
+
+        asyncio.run(stop_event_bus())
+        assert is_event_bus_running() is False
+
+    def test_is_event_bus_running_initial(self):
+        assert is_event_bus_running() is False
+
+    def test_publish_after_start(self):
+        import asyncio
+
+        received = []
+
+        async def handler(data):
+            received.append(data)
+
+        subscribe("lifecycle.test", handler)
+        asyncio.run(start_event_bus())
+        asyncio.run(publish("lifecycle.test", {"lifecycle": True}))
+        assert len(received) == 1
+        asyncio.run(stop_event_bus())
+        clear_handlers()
