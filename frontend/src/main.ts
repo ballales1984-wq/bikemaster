@@ -10,6 +10,7 @@ import { useToast } from "./composables/useToast";
 import { processOAuthToken, hasPendingOAuth } from "./services/oauth";
 import { syncAuthState } from "./services/authSync";
 import { apiGet } from "./utils/api";
+import type { ApiCallOptions } from "./utils/api";
 
 const pinia = createPinia();
 setActivePinia(pinia);
@@ -42,7 +43,9 @@ async function finalizeOAuthReturn() {
       {
         headers: { Authorization: `Bearer ${auth.token}` },
         suppressAuthClear: true,
-      } as RequestInit,
+        timeoutMs: 8000,
+        noRetry: true,
+      } as ApiCallOptions,
     );
     profileComplete = data.profile_complete === true;
   } catch (err) {

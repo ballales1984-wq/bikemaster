@@ -96,6 +96,19 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
   // "session expired" logout. Used by the OAuth-return profile check, where a
   // transient 401 must never wipe a freshly established session.
   suppressAuthClear?: boolean;
+  // Per-request timeout in ms. Enforced via AbortController so a stalled
+  // backend (e.g. a cold free-tier instance) cannot hang the caller
+  // indefinitely — critical for the OAuth-return navigation in the router
+  // guard, which awaits this call before resolving the initial navigation.
+  timeoutMs?: number;
+  // When true, do not retry on network errors / 5xx gateway statuses.
+  noRetry?: boolean;
+}
+
+export interface ApiCallOptions extends Omit<RequestInit, "body"> {
+  suppressAuthClear?: boolean;
+  timeoutMs?: number;
+  noRetry?: boolean;
 }
 
 async function request<T>(options: RequestOptions): Promise<T> {
@@ -105,6 +118,8 @@ async function request<T>(options: RequestOptions): Promise<T> {
     body,
     headers = {},
     suppressAuthClear,
+    timeoutMs,
+    noRetry,
     ...rest
   } = options;
   const isForm = typeof FormData !== "undefined" && body instanceof FormData;
@@ -131,13 +146,28 @@ async function request<T>(options: RequestOptions): Promise<T> {
 
   const idempotent =
     method === "GET" || method === "HEAD" || method === "OPTIONS";
+  const canRetry = idempotent && !noRetry;
 
   let resp: Response;
   for (let attempt = 0; ; attempt++) {
+    const controller =
+      typeof timeoutMs === "number" &&
+      timeoutMs > 0 &&
+      typeof AbortController !== "undefined"
+        ? new AbortController()
+        : null;
+    const timer =
+      controller && typeof setTimeout !== "undefined"
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : undefined;
     try {
-      resp = await fetch(path, init);
+      resp = await fetch(
+        path,
+        controller ? { ...init, signal: controller.signal } : init,
+      );
     } catch {
-      if (idempotent && attempt < MAX_RETRIES) {
+      if (timer) clearTimeout(timer);
+      if (canRetry && attempt < MAX_RETRIES) {
         notifyServerWaking();
         await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
         continue;
@@ -146,8 +176,11 @@ async function request<T>(options: RequestOptions): Promise<T> {
         "Server non raggiungibile. Riprova tra qualche istante.",
         0,
       );
+    } finally {
+      if (timer) clearTimeout(timer);
     }
     if (
+      canRetry &&
       idempotent &&
       RETRYABLE_STATUS.has(resp.status) &&
       attempt < MAX_RETRIES
@@ -187,7 +220,7 @@ export interface ApiResponse {
 export async function apiGet<T = ApiResponse>(
   path: string,
   params: Record<string, string> = {},
-  options: RequestInit = {},
+  options: ApiCallOptions = {},
 ): Promise<T> {
   const qs = new URLSearchParams(params).toString();
   const url = qs ? `${API_BASE}${path}?${qs}` : `${API_BASE}${path}`;
@@ -197,7 +230,7 @@ export async function apiGet<T = ApiResponse>(
 export async function apiPost<T = ApiResponse>(
   path: string,
   body: unknown,
-  options: RequestInit = {},
+  options: ApiCallOptions = {},
 ): Promise<T> {
   return request<T>({
     ...options,
@@ -209,7 +242,7 @@ export async function apiPost<T = ApiResponse>(
 
 export async function apiDelete<T = ApiResponse>(
   path: string,
-  options: RequestInit = {},
+  options: ApiCallOptions = {},
 ): Promise<T> {
   return request<T>({
     ...options,
@@ -221,7 +254,7 @@ export async function apiDelete<T = ApiResponse>(
 export async function apiUpload<T = ApiResponse>(
   path: string,
   file: Blob | File,
-  options: RequestInit = {},
+  options: ApiCallOptions = {},
 ): Promise<T> {
   const form = new FormData();
   form.append("file", file);
@@ -236,7 +269,7 @@ export async function apiUpload<T = ApiResponse>(
 export async function apiPut<T = ApiResponse>(
   path: string,
   body: unknown,
-  options: RequestInit = {},
+  options: ApiCallOptions = {},
 ): Promise<T> {
   return request<T>({
     ...options,
