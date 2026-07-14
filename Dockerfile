@@ -36,6 +36,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY main.py ./
 COPY bike_analyzer ./bike_analyzer
+COPY alembic.ini ./
+COPY alembic ./alembic
 
 COPY --from=frontend-builder /app/frontend/dist ./bike_analyzer/backend/static
 
