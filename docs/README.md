@@ -40,6 +40,7 @@ Riferimento tecnico esaustivo generato dal codice sorgente — **il punto di par
 | [frontend.md](./frontend.md) | Vue 3 app, components, stores, mobile (Android/iOS Capacitor) |
 | [testing.md](./testing.md) | Backend (pytest) and frontend (Vitest + Playwright) test strategy |
 | [deployment.md](./deployment.md) | Docker, Render, Fly.io, Railway, Kubernetes |
+| [deployment-plan.md](./deployment-plan.md) | Piano di deployment completo: architettura, sync, sicurezza, integrazioni, backup, pricing |
 | [configuration.md](./configuration.md) | Environment variables, secrets, API keys |
 | [API_DOCS.md](./API_DOCS.md) | REST API reference with all endpoints |
 

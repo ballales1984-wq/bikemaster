@@ -118,6 +118,9 @@ const statusClass = ref("");
 const showKeys = ref(false);
 const keysStatus = ref("");
 const keysStatusClass = ref("");
+const bulkInput = ref("");
+const bulkStatus = ref("");
+const bulkStatusClass = ref("");
 
 const keyFields: { name: keyof UserApiKeys; label: string; placeholder: string }[] = [
   { name: "groq", label: "Groq (AI Coach)", placeholder: "gsk_..." },
@@ -177,6 +180,25 @@ function saveKeys() {
   apiKeys.save();
   keysStatus.value = "Chiavi salvate su questo dispositivo.";
   keysStatusClass.value = "ok";
+}
+
+function importBulk() {
+  const parsed = parseBulkKeys(bulkInput.value);
+  const found = Object.values(parsed).filter((v) => !!v).length;
+  if (found === 0) {
+    bulkStatus.value = "Nessuna chiave riconosciuta nel testo incollato.";
+    bulkStatusClass.value = "err";
+    return;
+  }
+  for (const field of keyFields) {
+    const val = (parsed[field.name] || "").trim();
+    if (val) apiKeys.setKey(field.name, val);
+    else apiKeys.clearKey(field.name);
+  }
+  apiKeys.save();
+  Object.assign(keys, apiKeys.keys);
+  bulkStatus.value = `${found} chiave/i importata/e e salvata/e.`;
+  bulkStatusClass.value = "ok";
 }
 
 async function ping() {
@@ -309,5 +331,17 @@ code {
 .key-actions {
   margin-top: 0.4rem;
   align-items: center;
+}
+.bulk-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.8rem;
+  background: #0f0f0f;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #eee;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  resize: vertical;
 }
 </style>

@@ -1,5 +1,7 @@
 # Deployment
 
+Vedi [deployment-plan.md](./deployment-plan.md) per il piano di deployment completo.
+
 ## Docker
 
 ```bash
@@ -11,7 +13,8 @@ docker compose up -d
 
 ## Render
 
-- `render.yaml` present in repo root
+- `render.yaml` presente nella repo root
+- Configurazione in [deployment-plan.md](./deployment-plan.md)
 
 ## Fly.io
 
