@@ -1,0 +1,30 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-8.4.2, pluggy-1.6.0
+benchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: D:\BikeMaster
+configfile: pytest.ini
+plugins: anyio-4.13.0, dash-4.0.0, locust-2.43.3, asyncio-0.24.0, benchmark-5.2.3, cov-7.0.0, django-4.12.0, timeout-2.4.0, xdist-3.8.0, typeguard-2.13.3
+asyncio: mode=Mode.AUTO, default_loop_scope=None
+collected 2 items
+
+tests\test_ai_coach_edge.py F                                            [ 50%]
+tests\test_poi_enrichment.py .                                           [100%]
+
+================================== FAILURES ===================================
+______________________ test_groq_workout_advice_success _______________________
+tests\test_ai_coach_edge.py:79: in test_groq_workout_advice_success
+    assert not result.startswith(coach._FALLBACK_PREFIX)
+E   AssertionError: assert not True
+E    +  where True = <built-in method startswith of str object at 0x000002408B6E4A30>('(AI service temporarily unavailable - model-based advice)\n\n')
+E    +    where <built-in method startswith of str object at 0x000002408B6E4A30> = '(AI service temporarily unavailable - model-based advice)\n\n**1. Aerobic base** Do 80% of rides at low intensity (Zo... Increase weekly volume by max 10% per week to avoid overtraining\n**3. Recovery** Include 1-2 full rest days per week'.startswith
+E    +    and   '(AI service temporarily unavailable - model-based advice)\n\n' = coach._FALLBACK_PREFIX
+------------------------------ Captured log call ------------------------------
+WARNING  bike_analyzer.backend.analytics.ai_coach:ai_coach.py:450 AI Coach API call failed: AttributeError: 'object' object has no attribute 'chat'
+WARNING  bike_analyzer.backend.analytics.ai_coach:ai_coach.py:68 AI Coach: provider 'groq' banned due to auth error, falling back
+WARNING  bike_analyzer.backend.analytics.ai_coach:ai_coach.py:450 AI Coach API call failed: AttributeError: 'object' object has no attribute 'chat'
+WARNING  bike_analyzer.backend.analytics.ai_coach:ai_coach.py:68 AI Coach: provider 'groq' banned due to auth error, falling back
+WARNING  bike_analyzer.backend.analytics.ai_coach:ai_coach.py:450 AI Coach API call failed: AttributeError: 'object' object has no attribute 'chat'
+WARNING  bike_analyzer.backend.analytics.ai_coach:ai_coach.py:68 AI Coach: provider 'groq' banned due to auth error, falling back
+=========================== short test summary info ===========================
+FAILED tests/test_ai_coach_edge.py::test_groq_workout_advice_success - Assert...
+======================== 1 failed, 1 passed in 57.42s =========================

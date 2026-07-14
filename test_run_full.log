@@ -1,0 +1,1433 @@
+........................................................................ [  3%]
+.........................................................F.............. [  6%]
+........................................................................ [  9%]
+........................................................................ [ 12%]
+........................................................................ [ 15%]
+........................................................................ [ 18%]
+........................................................................ [ 22%]
+........................................................................ [ 25%]
+........................................................................ [ 28%]
+........................................................................ [ 31%]
+........................................................................ [ 34%]
+........................................................................ [ 37%]
+........................................................................ [ 41%]
+........................................................................ [ 44%]
+........................................................................ [ 47%]
+........................................................................ [ 50%]
+........................................................................ [ 53%]
+........................................................................ [ 56%]
+........................................................................ [ 60%]
+........................................................................ [ 63%]
+...........F......................ss.................................... [ 66%]
+........................................................................ [ 69%]
+......................EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE [ 72%]
+EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE....................................... [ 75%]
+........................................................................ [ 79%]
+........................................................................ [ 82%]
+........................................................................ [ 85%]
+........................................................................ [ 88%]
+........................................................................ [ 91%]
+........................................................................ [ 94%]
+........................................................................ [ 98%]
+............................................                             [100%]{
+  "timestamp": "2026-07-14T22:07:17.154664Z"
+  "level": "ERROR"
+  "logger": "opentelemetry.exporter.otlp.proto.grpc.exporter"
+  "message": "Failed to export traces to localhost:4317, error code: StatusCode.UNAVAILABLE"
+  "request_id": "-"
+}
+{
+  "timestamp": "2026-07-14T22:07:19.214425Z"
+  "level": "WARNING"
+  "logger": "opentelemetry.exporter.otlp.proto.grpc.exporter"
+  "message": "Transient error StatusCode.UNAVAILABLE encountered while exporting traces to localhost:4317, retrying in 3.33s."
+  "request_id": "-"
+}
+{
+  "timestamp": "2026-07-14T22:07:19.240794Z"
+  "level": "ERROR"
+  "logger": "opentelemetry.exporter.otlp.proto.grpc.exporter"
+  "message": "Failed to export traces to localhost:4317, error code: StatusCode.UNAVAILABLE"
+  "request_id": "-"
+}
+{
+  "timestamp": "2026-07-14T22:07:19.263119Z"
+  "level": "WARNING"
+  "logger": "opentelemetry.exporter.otlp.proto.grpc.exporter"
+  "message": "Transient error StatusCode.UNAVAILABLE encountered while exporting traces to localhost:4317, retrying in 4.02s."
+  "request_id": "-"
+}
+{
+  "timestamp": "2026-07-14T22:07:19.268722Z"
+  "level": "ERROR"
+  "logger": "opentelemetry.exporter.otlp.proto.grpc.exporter"
+  "message": "Failed to export traces to localhost:4317, error code: StatusCode.UNAVAILABLE"
+  "request_id": "-"
+}
+{
+  "timestamp": "2026-07-14T22:07:19.942356Z"
+  "level": "ERROR"
+  "logger": "opentelemetry.exporter.otlp.proto.grpc.exporter"
+  "message": "Failed to export traces to localhost:4317, error code: StatusCode.UNAVAILABLE"
+  "request_id": "-"
+}
+{
+  "timestamp": "2026-07-14T22:07:22.967666Z"
+  "level": "WARNING"
+  "logger": "opentelemetry.exporter.otlp.proto.grpc.exporter"
+  "message": "Transient error StatusCode.UNAVAILABLE encountered while exporting traces to localhost:4317, retrying in 3.92s."
+  "request_id": "-"
+}
+{
+  "timestamp": "2026-07-14T22:07:24.438793Z"
+  "level": "WARNING"
+  "logger": "opentelemetry.exporter.otlp.proto.grpc.exporter"
+  "message": "Transient error StatusCode.UNAVAILABLE encountered while exporting traces to localhost:4317, retrying in 3.23s."
+  "request_id": "-"
+}
+{
+  "timestamp": "2026-07-14T22:07:25.839420Z"
+  "level": "ERROR"
+  "logger": "opentelemetry.exporter.otlp.proto.grpc.exporter"
+  "message": "Failed to export traces to localhost:4317, error code: StatusCode.UNAVAILABLE"
+  "request_id": "-"
+}
+
+=================================== ERRORS ====================================
+_______________ ERROR at setup of TestAuthRoutes.test_register ________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:27.907922Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+__________ ERROR at setup of TestAuthRoutes.test_register_duplicate ___________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:28.013236Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestAuthRoutes.test_login_valid ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:28.080198Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_____________ ERROR at setup of TestAuthRoutes.test_login_invalid _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:28.138731Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+__________________ ERROR at setup of TestAuthRoutes.test_me ___________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:28.214190Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestAuthRoutes.test_update_profile _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:28.404457Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_____ ERROR at setup of TestAuthRoutes.test_change_password_wrong_current _____
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:28.469628Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________ ERROR at setup of TestAuthRoutes.test_change_password_success ________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:28.681847Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestAuthRoutes.test_logout _________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:28.774828Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestCalendarRoutes.test_create _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:28.974310Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+___________ ERROR at setup of TestCalendarRoutes.test_list_by_month ___________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.095629Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+___________ ERROR at setup of TestCalendarRoutes.test_list_by_range ___________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.162211Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestCalendarRoutes.test_get ________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.273357Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestCalendarRoutes.test_update _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.329827Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestCalendarRoutes.test_delete _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.402360Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+__________ ERROR at setup of TestCalendarRoutes.test_toggle_complete __________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.478430Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestRideRoutes.test_create _________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.541529Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_________ ERROR at setup of TestRideRoutes.test_create_auto_avg_speed _________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.611153Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_________________ ERROR at setup of TestRideRoutes.test_list __________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.670807Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+__________________ ERROR at setup of TestRideRoutes.test_get __________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.740475Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestRideRoutes.test_get_missing ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.790795Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestRideRoutes.test_update _________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.842786Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestRideRoutes.test_delete _________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:29.891580Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_______________ ERROR at setup of TestRideRoutes.test_segments ________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:30.115858Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestRideRoutes.test_map_folium _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:30.417201Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestRideRoutes.test_report _________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:30.465236Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestRideRoutes.test_analyze_single _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:30.505499Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestRideRoutes.test_export_json ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:30.541994Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestRideRoutes.test_export_csv _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:30.584542Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestChartsRoutes.test_speed ________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:30.834745Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestChartsRoutes.test_duration _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:30.867246Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestChartsRoutes.test_distance _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:30.909459Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestChartsRoutes.test_elevation ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.047953Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestWeatherRoutes.test_current _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.084405Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_____________ ERROR at setup of TestWeatherRoutes.test_with_date ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.157971Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestWeatherRoutes.test_forecast ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.194271Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestMapsRoutes.test_osm_search _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.238935Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestMapsRoutes.test_nearby _________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.311231Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestMapsRoutes.test_search _________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.351951Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_______________ ERROR at setup of TestMapsRoutes.test_list_pois _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.386672Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestMapsRoutes.test_create_poi _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.418456Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestMapsRoutes.test_get_poi ________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.451312Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestMapsRoutes.test_delete_poi _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.495081Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_______________ ERROR at setup of TestCoachRoutes.test_workout ________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.535813Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_________________ ERROR at setup of TestCoachRoutes.test_full _________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.577899Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_______________ ERROR at setup of TestCoachRoutes.test_recovery _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.615146Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_______________ ERROR at setup of TestCoachRoutes.test_chat_get _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.653367Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestCoachRoutes.test_chat_post _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.695368Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_______________ ERROR at setup of TestCoachRoutes.test_history ________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:31.740985Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestCoachRoutes.test_trends ________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:32.006217Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_____________ ERROR at setup of TestTrafficRoutes.test_road_types _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:32.052385Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________ ERROR at setup of TestTrafficRoutes.test_bike_infrastructure _________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:32.335960Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_____________ ERROR at setup of TestTrafficRoutes.test_incidents ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:32.527540Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestTrafficRoutes.test_ride_safety _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:32.705215Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestDashboardRoutes.test_dashboard _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:32.756888Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_________________ ERROR at setup of TestAthleteRoutes.test_me _________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:32.795123Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_______________ ERROR at setup of TestAthleteRoutes.test_create _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:32.912502Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestAthleteRoutes.test_get _________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:32.962566Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_______________ ERROR at setup of TestAthleteRoutes.test_update _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:33.009722Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_____________ ERROR at setup of TestAthleteRoutes.test_add_metric _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:33.054536Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestAnalyticsRoutes.test_trends ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:33.100061Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_____________ ERROR at setup of TestAnalyticsRoutes.test_monthly ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:33.379683Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestAnalyticsRoutes.test_comparison ____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:33.578356Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestAnalyticsRoutes.test_projection ____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:33.813845Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestAnalyticsRoutes.test_speed_data ____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.126842Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_____________ ERROR at setup of TestAnalyticsRoutes.test_heatmap ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.260180Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestAnalyticsRoutes.test_badges ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.313170Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+___________ ERROR at setup of TestScoresRoutes.test_athlete_scores ____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.372714Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+__________ ERROR at setup of TestScoresRoutes.test_benchmark_compare __________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.417175Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+___________ ERROR at setup of TestScoresRoutes.test_knowledge_list ____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.481341Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+__________ ERROR at setup of TestScoresRoutes.test_knowledge_search ___________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.547262Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+___________ ERROR at setup of TestScoresRoutes.test_knowledge_stats ___________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.700046Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_______________ ERROR at setup of TestTrainingRoutes.test_load ________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.756718Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestTrainingRoutes.test_status _______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.796772Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestTrainingRoutes.test_summary ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.836777Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestTrainingRoutes.test_goals_post _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.893748Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestTrainingRoutes.test_goals_list _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:34.988694Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+________________ ERROR at setup of TestAdminRoutes.test_stats _________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:35.058305Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+_______________ ERROR at setup of TestAdminRoutes.test_indexes ________________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:35.121331Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestAdminRoutes.test_list_athletes _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:35.190553Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+______________ ERROR at setup of TestAdminRoutes.test_audit_logs ______________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:35.274871Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestMapsImageViews.test_google_map _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:35.388277Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+____________ ERROR at setup of TestMapsImageViews.test_speed_path _____________
+E   AttributeError: module 'bike_analyzer.backend.api' has no attribute 'routes'
+
+The above exception was the direct cause of the following exception:
+E   AttributeError: 'module' object at bike_analyzer.backend.api.routes has no attribute 'routes'
+---------------------------- Captured stdout setup ----------------------------
+{
+  "timestamp": "2026-07-14T22:03:35.497134Z"
+  "level": "INFO"
+  "logger": "slowapi"
+  "message": "Storage has been reset and all limits cleared"
+  "request_id": "-"
+}
+----------------------------- Captured log setup ------------------------------
+INFO     slowapi:extension.py:360 Storage has been reset and all limits cleared
+================================== FAILURES ===================================
+D:\BikeMaster\tests\test_ai_coach_edge.py:79: AssertionError: assert not True
+D:\BikeMaster\tests\test_poi_enrichment.py:42: assert True is False
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_postgres_db_models.py:89: DATABASE_URL configured; sync engine present
+SKIPPED [1] tests\test_postgres_db_models.py:100: DATABASE_URL configured; sync engine present
+ERROR tests/test_routes_comprehensive.py::TestAuthRoutes::test_register - Att...
+ERROR tests/test_routes_comprehensive.py::TestAuthRoutes::test_register_duplicate
+ERROR tests/test_routes_comprehensive.py::TestAuthRoutes::test_login_valid - ...
+ERROR tests/test_routes_comprehensive.py::TestAuthRoutes::test_login_invalid
+ERROR tests/test_routes_comprehensive.py::TestAuthRoutes::test_me - Attribute...
+ERROR tests/test_routes_comprehensive.py::TestAuthRoutes::test_update_profile
+ERROR tests/test_routes_comprehensive.py::TestAuthRoutes::test_change_password_wrong_current
+ERROR tests/test_routes_comprehensive.py::TestAuthRoutes::test_change_password_success
+ERROR tests/test_routes_comprehensive.py::TestAuthRoutes::test_logout - Attri...
+ERROR tests/test_routes_comprehensive.py::TestCalendarRoutes::test_create - A...
+ERROR tests/test_routes_comprehensive.py::TestCalendarRoutes::test_list_by_month
+ERROR tests/test_routes_comprehensive.py::TestCalendarRoutes::test_list_by_range
+ERROR tests/test_routes_comprehensive.py::TestCalendarRoutes::test_get - Attr...
+ERROR tests/test_routes_comprehensive.py::TestCalendarRoutes::test_update - A...
+ERROR tests/test_routes_comprehensive.py::TestCalendarRoutes::test_delete - A...
+ERROR tests/test_routes_comprehensive.py::TestCalendarRoutes::test_toggle_complete
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_create - Attri...
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_create_auto_avg_speed
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_list - Attribu...
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_get - Attribut...
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_get_missing - ...
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_update - Attri...
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_delete - Attri...
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_segments - Att...
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_map_folium - A...
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_report - Attri...
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_analyze_single
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_export_json - ...
+ERROR tests/test_routes_comprehensive.py::TestRideRoutes::test_export_csv - A...
+ERROR tests/test_routes_comprehensive.py::TestChartsRoutes::test_speed - Attr...
+ERROR tests/test_routes_comprehensive.py::TestChartsRoutes::test_duration - A...
+ERROR tests/test_routes_comprehensive.py::TestChartsRoutes::test_distance - A...
+ERROR tests/test_routes_comprehensive.py::TestChartsRoutes::test_elevation - ...
+ERROR tests/test_routes_comprehensive.py::TestWeatherRoutes::test_current - A...
+ERROR tests/test_routes_comprehensive.py::TestWeatherRoutes::test_with_date
+ERROR tests/test_routes_comprehensive.py::TestWeatherRoutes::test_forecast - ...
+ERROR tests/test_routes_comprehensive.py::TestMapsRoutes::test_osm_search - A...
+ERROR tests/test_routes_comprehensive.py::TestMapsRoutes::test_nearby - Attri...
+ERROR tests/test_routes_comprehensive.py::TestMapsRoutes::test_search - Attri...
+ERROR tests/test_routes_comprehensive.py::TestMapsRoutes::test_list_pois - At...
+ERROR tests/test_routes_comprehensive.py::TestMapsRoutes::test_create_poi - A...
+ERROR tests/test_routes_comprehensive.py::TestMapsRoutes::test_get_poi - Attr...
+ERROR tests/test_routes_comprehensive.py::TestMapsRoutes::test_delete_poi - A...
+ERROR tests/test_routes_comprehensive.py::TestCoachRoutes::test_workout - Att...
+ERROR tests/test_routes_comprehensive.py::TestCoachRoutes::test_full - Attrib...
+ERROR tests/test_routes_comprehensive.py::TestCoachRoutes::test_recovery - At...
+ERROR tests/test_routes_comprehensive.py::TestCoachRoutes::test_chat_get - At...
+ERROR tests/test_routes_comprehensive.py::TestCoachRoutes::test_chat_post - A...
+ERROR tests/test_routes_comprehensive.py::TestCoachRoutes::test_history - Att...
+ERROR tests/test_routes_comprehensive.py::TestCoachRoutes::test_trends - Attr...
+ERROR tests/test_routes_comprehensive.py::TestTrafficRoutes::test_road_types
+ERROR tests/test_routes_comprehensive.py::TestTrafficRoutes::test_bike_infrastructure
+ERROR tests/test_routes_comprehensive.py::TestTrafficRoutes::test_incidents
+ERROR tests/test_routes_comprehensive.py::TestTrafficRoutes::test_ride_safety
+ERROR tests/test_routes_comprehensive.py::TestDashboardRoutes::test_dashboard
+ERROR tests/test_routes_comprehensive.py::TestAthleteRoutes::test_me - Attrib...
+ERROR tests/test_routes_comprehensive.py::TestAthleteRoutes::test_create - At...
+ERROR tests/test_routes_comprehensive.py::TestAthleteRoutes::test_get - Attri...
+ERROR tests/test_routes_comprehensive.py::TestAthleteRoutes::test_update - At...
+ERROR tests/test_routes_comprehensive.py::TestAthleteRoutes::test_add_metric
+ERROR tests/test_routes_comprehensive.py::TestAnalyticsRoutes::test_trends - ...
+ERROR tests/test_routes_comprehensive.py::TestAnalyticsRoutes::test_monthly
+ERROR tests/test_routes_comprehensive.py::TestAnalyticsRoutes::test_comparison
+ERROR tests/test_routes_comprehensive.py::TestAnalyticsRoutes::test_projection
+ERROR tests/test_routes_comprehensive.py::TestAnalyticsRoutes::test_speed_data
+ERROR tests/test_routes_comprehensive.py::TestAnalyticsRoutes::test_heatmap
+ERROR tests/test_routes_comprehensive.py::TestAnalyticsRoutes::test_badges - ...
+ERROR tests/test_routes_comprehensive.py::TestScoresRoutes::test_athlete_scores
+ERROR tests/test_routes_comprehensive.py::TestScoresRoutes::test_benchmark_compare
+ERROR tests/test_routes_comprehensive.py::TestScoresRoutes::test_knowledge_list
+ERROR tests/test_routes_comprehensive.py::TestScoresRoutes::test_knowledge_search
+ERROR tests/test_routes_comprehensive.py::TestScoresRoutes::test_knowledge_stats
+ERROR tests/test_routes_comprehensive.py::TestTrainingRoutes::test_load - Att...
+ERROR tests/test_routes_comprehensive.py::TestTrainingRoutes::test_status - A...
+ERROR tests/test_routes_comprehensive.py::TestTrainingRoutes::test_summary - ...
+ERROR tests/test_routes_comprehensive.py::TestTrainingRoutes::test_goals_post
+ERROR tests/test_routes_comprehensive.py::TestTrainingRoutes::test_goals_list
+ERROR tests/test_routes_comprehensive.py::TestAdminRoutes::test_stats - Attri...
+ERROR tests/test_routes_comprehensive.py::TestAdminRoutes::test_indexes - Att...
+ERROR tests/test_routes_comprehensive.py::TestAdminRoutes::test_list_athletes
+ERROR tests/test_routes_comprehensive.py::TestAdminRoutes::test_audit_logs - ...
+ERROR tests/test_routes_comprehensive.py::TestMapsImageViews::test_google_map
+ERROR tests/test_routes_comprehensive.py::TestMapsImageViews::test_speed_path
+FAILED tests/test_ai_coach_edge.py::test_groq_workout_advice_success - Assert...
+FAILED tests/test_poi_enrichment.py::test_no_api_key_does_not_query - assert ...
+2 failed, 2189 passed, 2 skipped, 83 errors in 689.01s (0:11:29)
