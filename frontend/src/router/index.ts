@@ -235,10 +235,14 @@ router.beforeEach(async (to, from, next) => {
   // Profile completeness check only for fresh OAuth returns / logins.
   // A normal returning user with a valid token goes straight to /rides.
   if (hasToken && justLoggedIn && to.path === "/") {
+    console.log("[OAuth] guard redirecting, profile check...");
     try {
       const hasCompleteProfile = await checkProfileComplete(auth);
-      await next(hasCompleteProfile ? "/rides" : "/athlete");
+      const target = hasCompleteProfile ? "/rides" : "/athlete";
+      console.log("[OAuth] guard navigating to:", target);
+      await next(target);
     } catch {
+      console.warn("[OAuth] guard profile check failed, navigating to /athlete");
       await next("/athlete");
     }
     ui.setOauthLoading(false);

@@ -37,8 +37,11 @@ export function syncAuthState() {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
     auth.setJustLoggedIn(false);
+    console.warn("[OAuth] token invalid/expired, cleared");
     return { hasToken: false, justLoggedIn: false };
   }
 
-  return { hasToken: !!auth.token, justLoggedIn: storedJustLoggedIn };
+  const result = { hasToken: !!auth.token, justLoggedIn: storedJustLoggedIn };
+  console.log("[OAuth] sync result:", result);
+  return result;
 }

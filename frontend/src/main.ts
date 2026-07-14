@@ -21,8 +21,10 @@ const auth = useAuthStore();
 const ui = useUIStore();
 
 ui.loadTheme();
-processOAuthToken();
+const tokenProcessed = processOAuthToken();
+console.log("[OAuth] bootstrap processOAuthToken:", tokenProcessed, "loggedIn:", auth.isLoggedIn);
 syncAuthState();
+console.log("[OAuth] bootstrap syncAuthState done, justLoggedIn:", auth.justLoggedIn);
 
 // Finalize an OAuth (Google) return: check whether the athlete profile is
 // complete and navigate to the right authenticated route. Unlike a plain
@@ -33,8 +35,12 @@ syncAuthState();
 // a manual refresh.
 let oauthFinalized = false;
 async function finalizeOAuthReturn() {
-  if (oauthFinalized || !auth.isLoggedIn) return;
+  if (oauthFinalized || !auth.isLoggedIn) {
+    console.log("[OAuth] finalize skipped:", { finalized: oauthFinalized, loggedIn: auth.isLoggedIn });
+    return;
+  }
   oauthFinalized = true;
+  console.log("[OAuth] finalize started, current route:", router.currentRoute.value.path);
   let profileComplete = false;
   try {
     const data = await apiGet<{ profile_complete?: boolean }>(
@@ -55,8 +61,12 @@ async function finalizeOAuthReturn() {
   auth.setJustLoggedIn(false);
   ui.setOauthLoading(false);
   const target = profileComplete ? "/rides" : "/athlete";
+  console.log("[OAuth] finalize target:", target, "current:", router.currentRoute.value.path);
   if (router.currentRoute.value.path !== target) {
+    console.log("[OAuth] navigating to:", target);
     router.replace(target).catch(() => {});
+  } else {
+    console.log("[OAuth] already on target route:", target);
   }
 }
 
@@ -66,6 +76,7 @@ async function finalizeOAuthReturn() {
 // never consumed and the user is stuck on the login screen until a manual
 // refresh. Re-apply the token and finalize the navigation in those cases.
 function handleOAuthReturn() {
+  console.log("[OAuth] handleOAuthReturn, hash:", window.location.hash.slice(0, 50));
   if (processOAuthToken()) {
     finalizeOAuthReturn();
   }
@@ -124,6 +135,7 @@ setTimeout(() => ui.setOauthLoading(false), 10000);
 router
   .isReady()
   .then(() => {
+    console.log("[OAuth] router.isReady, justLoggedIn:", auth.justLoggedIn, "route:", router.currentRoute.value.path);
     if (auth.justLoggedIn) finalizeOAuthReturn();
     else ui.setOauthLoading(false);
   })

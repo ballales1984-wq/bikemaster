@@ -117,6 +117,15 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => loggedIn.value,
+  (val) => {
+    if (val && ui.oauthLoading) {
+      ui.setOauthLoading(false);
+    }
+  },
+);
+
 async function loadSummary() {
   summaryLoading.value = true;
   try {
