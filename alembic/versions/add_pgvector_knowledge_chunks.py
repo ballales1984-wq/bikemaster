@@ -42,22 +42,8 @@ def upgrade() -> None:
     )
     op.create_index("ix_knowledge_chunks_topic", "knowledge_chunks", ["topic"])
 
-    op.create_table(
-        "chat_messages",
-        sa.Column("id", sa.INTEGER(), nullable=False, autoincrement=True),
-        sa.Column("athlete_id", sa.INTEGER(), nullable=True),
-        sa.Column("role", sa.String(length=20), nullable=False),
-        sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")),
-        sa.ForeignKeyConstraint(["athlete_id"], ["athletes.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index("ix_chat_messages_athlete_id", "chat_messages", ["athlete_id"])
-
 
 def downgrade() -> None:
-    op.drop_index("ix_chat_messages_athlete_id", table_name="chat_messages")
-    op.drop_table("chat_messages")
     op.drop_index("ix_knowledge_chunks_topic", table_name="knowledge_chunks")
     with contextlib.suppress(Exception):
         op.drop_index(

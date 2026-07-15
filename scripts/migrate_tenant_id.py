@@ -26,7 +26,7 @@ def migrate():
             ("strava_tokens", "tenant_id"),
             ("garmin_tokens", "tenant_id"),
             ("knowledge_chunks", "tenant_id"),
-            ("chat_messages", "tenant_id"),
+            ("chat_history", "tenant_id"),
         ]
 
         for table, column in tables_to_check:
@@ -46,6 +46,7 @@ def migrate():
             ("idx_training_stress_tenant", "training_stress_days", "athlete_id, tenant_id"),
             ("idx_training_goals_tenant", "training_goals", "athlete_id, tenant_id"),
             ("idx_planned_workouts_tenant", "planned_workouts", "athlete_id, tenant_id"),
+            ("idx_chat_history_tenant", "chat_history", "athlete_id, tenant_id"),
         ]
 
         for idx_name, table, cols in indexes:

@@ -34,8 +34,8 @@ def upgrade() -> None:
     op.add_column("calendar_events", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
     op.create_index("ix_calendar_events_tenant", "calendar_events", ["tenant_id"])
 
-    op.add_column("chat_messages", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_chat_messages_tenant", "chat_messages", ["tenant_id"])
+    op.add_column("chat_history", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
+    op.create_index("ix_chat_history_tenant", "chat_history", ["tenant_id"])
 
     op.add_column("training_stress_days", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
     op.create_index("ix_training_stress_days_tenant", "training_stress_days", ["tenant_id"])
@@ -87,8 +87,8 @@ def downgrade() -> None:
     op.drop_index("ix_training_stress_days_tenant", table_name="training_stress_days")
     op.drop_column("training_stress_days", "tenant_id")
 
-    op.drop_index("ix_chat_messages_tenant", table_name="chat_messages")
-    op.drop_column("chat_messages", "tenant_id")
+    op.drop_index("ix_chat_history_tenant", table_name="chat_history")
+    op.drop_column("chat_history", "tenant_id")
 
     op.drop_index("ix_calendar_events_tenant", table_name="calendar_events")
     op.drop_column("calendar_events", "tenant_id")
