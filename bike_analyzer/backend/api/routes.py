@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urlparse
 
+import httpx
 import requests
 from fastapi import (
     APIRouter,
@@ -3391,15 +3392,33 @@ async def analyze_ride_safety(ride_id: int, current_user: dict = Depends(get_cur
 # ------------------------------------------------------------------
 
 
+def _strava_redirect_uri_for(request: Request) -> str:
+    """Redirect URI that follows the host the user is actually accessing.
+
+    Strava only redirects to URIs pre-registered in the Strava app, so the
+    configured ``strava_redirect_uri`` must match the request host (localhost,
+    ngrok tunnel, or the deployed domain). Falling back to the configured
+    value keeps behaviour identical when no proxy headers are present.
+    """
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    if not host:
+        return _s.strava_redirect_uri
+    return f"{proto}://{host}/api/v1/import/strava/callback"
+
+
 @router.get("/import/strava/auth")
 async def strava_auth(
+    request: Request,
     state: str = "",
     current_user: dict = Depends(get_current_user),
 ):
     from ..ingestion.strava_client import get_authorization_url
 
     try:
-        result = get_authorization_url(state=state)
+        result = get_authorization_url(
+            state=state, redirect_uri=_strava_redirect_uri_for(request)
+        )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     result["athlete_id"] = current_user["id"]
@@ -3442,6 +3461,7 @@ async def strava_callback_page(
 @router.post("/import/strava/callback")
 async def strava_callback(
     payload: StravaCallbackRequest,
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
     from ..ingestion.strava_client import exchange_code_for_token, store_token
@@ -3449,8 +3469,10 @@ async def strava_callback(
     code = payload.code
     code_verifier = payload.code_verifier
     try:
-        token_data = await exchange_code_for_token(code, code_verifier)
-    except requests.HTTPError as exc:
+        token_data = await exchange_code_for_token(
+            code, code_verifier, redirect_uri=_strava_redirect_uri_for(request)
+        )
+    except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=502, detail=f"Strava token exchange failed: {exc}") from exc
     store_token(current_user["id"], token_data)
     return {
@@ -3483,7 +3505,10 @@ async def strava_sync(
     access_token = await get_valid_token(current_user["id"])
     if not access_token:
         raise HTTPException(status_code=401, detail="No Strava token. Connect first.")
-    activities = await fetch_all_activities(access_token)
+    try:
+        activities = await fetch_all_activities(access_token)
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=502, detail=f"Strava API error: {exc}") from exc
     imported = []
     imported_ids: set[int] = set()
     from ..monitoring import record_gps_import
@@ -3503,7 +3528,11 @@ async def strava_sync(
         ride_data["athlete_id"] = current_user["id"]
         ride_data["tenant_id"] = current_user["id"]
         db_ride = {k: v for k, v in ride_data.items() if k != "id"}
-        ride_id = save_ride(db_ride)
+        try:
+            ride_id = save_ride(db_ride)
+        except Exception as exc:
+            logger.exception("Failed to save ride %s", ride_data.get("external_id"))
+            continue
         if ride_id not in imported_ids:
             imported.append({"id": int(ride_id), **ride_data})
             imported_ids.add(int(ride_id))
@@ -3567,7 +3596,7 @@ async def garmin_callback(
     redirect_uri = payload.redirect_uri
     try:
         token_data = await exchange_code_for_token(code, redirect_uri=redirect_uri or "")
-    except requests.HTTPError as exc:
+    except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=502, detail=f"Garmin token exchange failed: {exc}") from exc
     store_token(current_user["id"], token_data)
     return {"status": "connected", "athlete_id": current_user["id"]}
@@ -3590,7 +3619,10 @@ async def garmin_sync(
     access_token = await get_valid_token(current_user["id"])
     if not access_token:
         raise HTTPException(status_code=401, detail="No Garmin token. Connect first.")
-    activities = await fetch_activities(access_token)
+    try:
+        activities = await fetch_activities(access_token)
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=502, detail=f"Garmin API error: {exc}") from exc
     imported = []
     imported_ids: set[int] = set()
     from ..monitoring import record_gps_import
@@ -3602,7 +3634,11 @@ async def garmin_sync(
         ride_data["athlete_id"] = current_user["id"]
         ride_data["tenant_id"] = current_user["id"]
         db_ride = {k: v for k, v in ride_data.items() if k != "id"}
-        ride_id = save_ride(db_ride)
+        try:
+            ride_id = save_ride(db_ride)
+        except Exception as exc:
+            logger.exception("Failed to save ride %s", ride_data.get("external_id"))
+            continue
         if ride_id not in imported_ids:
             imported.append({"id": int(ride_id), **ride_data})
             imported_ids.add(int(ride_id))

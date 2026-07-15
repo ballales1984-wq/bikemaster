@@ -66,11 +66,13 @@ def generate_code_challenge(verifier: str) -> str:
     return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
 
-def build_authorization_url(state: str, code_challenge: str) -> str:
+def build_authorization_url(
+    state: str, code_challenge: str, redirect_uri: str | None = None
+) -> str:
     params = {
         "response_type": "code",
         "client_id": _s.strava_client_id,
-        "redirect_uri": _s.strava_redirect_uri,
+        "redirect_uri": redirect_uri or _s.strava_redirect_uri,
         "scope": _s.strava_scope,
         "state": state,
         "code_challenge": code_challenge,
@@ -80,14 +82,16 @@ def build_authorization_url(state: str, code_challenge: str) -> str:
     return f"{STRAVA_AUTH_URL}?{urlencode(params)}"
 
 
-def get_authorization_url(state: str | None = None) -> dict[str, str]:
+def get_authorization_url(
+    state: str | None = None, redirect_uri: str | None = None
+) -> dict[str, str]:
     """Return dict with auth_url, state, and code_verifier (to be stored server-side)."""
     if not _s.strava_client_id:
         raise RuntimeError("STRAVA_CLIENT_ID not configured")
     state = state or secrets.token_urlsafe(16)
     verifier = generate_code_verifier()
     challenge = generate_code_challenge(verifier)
-    auth_url = build_authorization_url(state, challenge)
+    auth_url = build_authorization_url(state, challenge, redirect_uri=redirect_uri)
     return {
         "auth_url": auth_url,
         "state": state,
@@ -100,13 +104,15 @@ def get_authorization_url(state: str | None = None) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 
 
-async def exchange_code_for_token(code: str, code_verifier: str) -> dict[str, Any]:
+async def exchange_code_for_token(
+    code: str, code_verifier: str, redirect_uri: str | None = None
+) -> dict[str, Any]:
     payload = {
         "client_id": _s.strava_client_id,
         "client_secret": _s.strava_client_secret,
         "code": code,
         "grant_type": "authorization_code",
-        "redirect_uri": _s.strava_redirect_uri,
+        "redirect_uri": redirect_uri or _s.strava_redirect_uri,
         "code_verifier": code_verifier,
     }
     return await request_json("POST", STRAVA_TOKEN_URL, data=payload, timeout=15)
