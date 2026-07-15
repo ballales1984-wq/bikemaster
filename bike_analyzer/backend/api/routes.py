@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import json
 import hmac
+import json
 import os
 import secrets
 import tempfile
@@ -30,11 +30,11 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.background import BackgroundTasks
-from starlette.background import BackgroundTask
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy import insert
+from starlette.background import BackgroundTask
 
 from ..analytics.analytics import calculate_summary
 from ..analytics.badges import calculate_badges, get_heatmap_points
@@ -578,7 +578,7 @@ async def logout(request: Request, current_user: dict = Depends(get_current_user
 @router.post("/auth/refresh")
 @limiter.limit("10/minute")
 async def refresh_token(request: Request, payload: RefreshTokenRequest):
-    from ..security import decode_token_with_fallback, create_access_token, is_token_revoked
+    from ..security import create_access_token, decode_token_with_fallback, is_token_revoked
 
     refresh_token = payload.refresh_token
     jwt_payload = await decode_token_with_fallback(refresh_token)
@@ -1428,9 +1428,10 @@ async def import_multiple(files: list[UploadFile] = File(...), current_user: dic
 
 @router.get("/rides/export/json")
 async def export_json(current_user: dict = Depends(get_current_user)):
+    from fastapi.responses import FileResponse
+
     from ..analytics.analytics import export_rides_json
     from ..db.database import get_rides_by_athlete
-    from fastapi.responses import FileResponse
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
@@ -1447,9 +1448,10 @@ async def export_json(current_user: dict = Depends(get_current_user)):
 
 @router.get("/rides/export/csv")
 async def export_csv(current_user: dict = Depends(get_current_user)):
+    from fastapi.responses import FileResponse
+
     from ..analytics.analytics import export_rides_csv
     from ..db.database import get_rides_by_athlete
-    from fastapi.responses import FileResponse
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
@@ -3393,17 +3395,19 @@ async def analyze_ride_safety(ride_id: int, current_user: dict = Depends(get_cur
 
 
 def _strava_redirect_uri_for(request: Request) -> str:
-    """Redirect URI that follows the host the user is actually accessing.
+    """Resolve the Strava OAuth redirect URI.
 
-    Strava only redirects to URIs pre-registered in the Strava app, so the
-    configured ``strava_redirect_uri`` must match the request host (localhost,
-    ngrok tunnel, or the deployed domain). Falling back to the configured
-    value keeps behaviour identical when no proxy headers are present.
+    Prefers the explicitly configured ``STRAVA_REDIRECT_URI`` (set per
+    environment in ``.env`` / ``render.yaml`` and pre-registered in the Strava
+    app). Only falls back to the request host when no redirect URI is
+    configured, so the value always matches what Strava expects.
     """
+    if _s.strava_redirect_uri:
+        return _s.strava_redirect_uri
     proto = request.headers.get("x-forwarded-proto") or request.url.scheme
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     if not host:
-        return _s.strava_redirect_uri
+        return "http://localhost:8000/api/v1/import/strava/callback"
     return f"{proto}://{host}/api/v1/import/strava/callback"
 
 
@@ -3421,6 +3425,9 @@ async def strava_auth(
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+    logger.debug(
+        "Strava auth redirect_uri=%s", _strava_redirect_uri_for(request)
+    )
     result["athlete_id"] = current_user["id"]
     return result
 
@@ -3468,12 +3475,17 @@ async def strava_callback(
 
     code = payload.code
     code_verifier = payload.code_verifier
+    redirect_uri = _strava_redirect_uri_for(request)
+    logger.debug("Strava token exchange redirect_uri=%s", redirect_uri)
     try:
         token_data = await exchange_code_for_token(
-            code, code_verifier, redirect_uri=_strava_redirect_uri_for(request)
+            code, code_verifier, redirect_uri=redirect_uri
         )
     except httpx.HTTPStatusError as exc:
-        raise HTTPException(status_code=502, detail=f"Strava token exchange failed: {exc}") from exc
+        detail = f"Strava token exchange failed: {exc}"
+        if exc.response is not None and exc.response.text:
+            detail += f" | Strava: {exc.response.text}"
+        raise HTTPException(status_code=502, detail=detail) from exc
     store_token(current_user["id"], token_data)
     return {
         "status": "connected",
@@ -3495,11 +3507,11 @@ async def strava_sync(
         return {"task_id": task.id, "status": "queued", "athlete_id": current_user["id"]}
     from ..db.database import save_ride
     from ..ingestion.strava_client import (
+        StravaRateLimitError,
         fetch_all_activities,
         get_valid_token,
         strava_to_ride,
         strava_to_ride_with_streams,
-        StravaRateLimitError,
     )
 
     access_token = await get_valid_token(current_user["id"])

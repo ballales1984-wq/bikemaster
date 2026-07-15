@@ -49,7 +49,6 @@ def _load_locked_modules() -> None:
 
 _load_locked_modules()
 
-# Set test environment BEFORE any imports that might trigger settings loading
 os.environ["SECRET_KEY"] = "test-secret-key-for-jwt-testing-123456"
 os.environ["ALGORITHM"] = "HS256"
 os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "30"
@@ -62,6 +61,10 @@ os.environ["ENVIRONMENT"] = "test"
 os.environ["WEATHER_API_KEY"] = ""
 os.environ["GOOGLE_CLIENT_ID"] = ""
 os.environ["GOOGLE_CLIENT_SECRET"] = ""
+os.environ.pop("DATABASE_URL", None)
+os.environ.pop("DATABASE_URL_UNPOOLED", None)
+os.environ["DATABASE_URL"] = ""
+os.environ["DATABASE_URL_UNPOOLED"] = ""
 
 _TMP = Path(os.environ.get("TEMP", "/tmp")) / "bikemaster_test_dbs"
 _TMP.mkdir(exist_ok=True)
