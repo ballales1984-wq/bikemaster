@@ -5,6 +5,12 @@
   "buildCommand": "npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
   "cleanUrls": true,
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "*/15 * * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
