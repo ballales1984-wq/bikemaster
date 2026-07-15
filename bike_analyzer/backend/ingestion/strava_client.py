@@ -18,13 +18,13 @@ Usage:
     )
 """
 
+from __future__ import annotations
+
 # Canonical Strava API v3 contract (Swagger 2.0), fetched from
 # https://developers.strava.com/swagger/swagger.json and stored next to this
 # module as ``strava_api_v3.swagger.json``. Use it to validate requests/responses
 # or to regenerate typed clients.
 STRAVA_API_V3_SCHEMA = __file__.replace(".py", ".swagger.json")
-
-from __future__ import annotations
 
 import logging
 import secrets

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 
 EARTH_RADIUS_M = 6_371_000
 
@@ -34,6 +34,17 @@ class GPSPoint:
     power: float | None = None
     heart_rate: float | None = None
     cadence: float | None = None
+
+    def __post_init__(self) -> None:
+        ts = self.timestamp
+        if isinstance(ts, str):
+            try:
+                ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            except ValueError:
+                return
+        if isinstance(ts, datetime) and ts.tzinfo is not None:
+            ts = ts.astimezone(timezone.utc).replace(tzinfo=None)
+        object.__setattr__(self, "timestamp", ts)
 
     def distance_to(self, other: GPSPoint) -> float:
         return haversine_distance_m(self.lat, self.lon, other.lat, other.lon)
