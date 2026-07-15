@@ -15,6 +15,7 @@ import json
 import logging
 import os
 from typing import Any
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
@@ -23,10 +24,13 @@ from ..settings import get_settings
 from .models import (
     AthleteModel,
     Base,
+    ChatHistoryModel,
     FitnessStateModel,
     KnowledgeChunkModel,
     POIModel,
+    PlannedWorkoutModel,
     RideModel,
+    TrainingGoalModel,
     UserModel,
 )
 
@@ -45,20 +49,34 @@ _CORE_TABLES = [
     RideModel.__table__,
     FitnessStateModel.__table__,
     POIModel.__table__,
+    ChatHistoryModel.__table__,
+    TrainingGoalModel.__table__,
+    PlannedWorkoutModel.__table__,
 ]
+
+
+# Query parameters that asyncpg does not support (libpq-specific).
+_ASYNC_UNSUPPORTED_PARAMS = {"channel_binding", "sslmode"}
 
 
 def _make_async_url(raw: str) -> str:
     raw = raw.strip()
     if raw.startswith("postgresql://"):
-        return "postgresql+asyncpg://" + raw[len("postgresql://"):]
-    if raw.startswith("postgres://"):
-        return "postgresql+asyncpg://" + raw[len("postgres://"):]
-    if raw.startswith("sqlite://"):
-        return "sqlite+aiosqlite://" + raw[len("sqlite://"):]
-    if "://" not in raw:
-        # Bare file path (e.g. "./rides.db" or "rides.db") -> SQLite file.
+        raw = "postgresql+asyncpg://" + raw[len("postgresql://"):]
+    elif raw.startswith("postgres://"):
+        raw = "postgresql+asyncpg://" + raw[len("postgres://"):]
+    elif raw.startswith("sqlite://"):
+        raw = "sqlite+aiosqlite://" + raw[len("sqlite://"):]
+    elif "://" not in raw:
         return "sqlite+aiosqlite:///" + raw
+
+    parsed = urlparse(raw)
+    if parsed.scheme.startswith("postgresql+asyncpg") and parsed.query:
+        params = parse_qs(parsed.query, keep_blank_values=True)
+        filtered = {k: v for k, v in params.items() if k not in _ASYNC_UNSUPPORTED_PARAMS}
+        if filtered != params:
+            new_query = urlencode(filtered, doseq=True)
+            raw = urlunparse(parsed._replace(query=new_query))
     return raw
 
 

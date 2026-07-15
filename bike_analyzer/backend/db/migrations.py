@@ -43,8 +43,8 @@ def run_migrations_on_startup() -> bool:
 
     try:
         cfg = Config(ini_path)
-        # Ensure Alembic uses the same URL the app uses.
-        cfg.set_main_option("sqlalchemy.url", settings.database_url)
+        migration_url = os.environ.get("DATABASE_URL_UNPOOLED") or settings.database_url
+        cfg.set_main_option("sqlalchemy.url", migration_url)
         command.upgrade(cfg, "head")
         logger.info("Database migrations applied (alembic upgrade head)")
         return True

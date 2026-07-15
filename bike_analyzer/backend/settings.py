@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     # === Database ===
     db_path: str = "rides.db"
     database_url: str = ""
+    database_url_unpooled: str = ""
 
     # === API ===
     api_host: str = "0.0.0.0"  # nosec B104  # Required for Docker container listening
@@ -185,13 +186,14 @@ class Settings(BaseSettings):
     def _validate_production_database(self) -> Settings:
         _ENV = self.environment.lower()
         _IS_PROD = _ENV in ("production", "prod", "staging")
-        if _IS_PROD and not self.database_url:
+        _url = self.database_url or self.database_url_unpooled
+        if _IS_PROD and not _url:
             logging.warning(
                 "DATABASE_URL not set in production environment. "
                 "Expected PostgreSQL connection string. Falling back to SQLite (db_path=%s).",
                 self.db_path,
             )
-        elif not self.database_url and not self.db_path:
+        elif not _url and not self.db_path:
             self.db_path = "rides.db"
         return self
 

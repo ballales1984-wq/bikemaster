@@ -33,7 +33,13 @@ _s = get_settings()
 # Read DATABASE_URL fresh from the environment (falling back to the cached
 # settings) so a reload of this module picks up the current configuration even
 # when the settings singleton was constructed before DATABASE_URL was set.
-_database_url = os.environ.get("DATABASE_URL") or _s.database_url
+# Prefer DATABASE_URL_UNPOOLED for sync operations (psycopg2 + Alembic) to
+# bypass pgbouncer, which does not handle prepared statements well.
+_database_url = (
+    os.environ.get("DATABASE_URL_UNPOOLED")
+    or os.environ.get("DATABASE_URL")
+    or _s.database_url
+)
 
 # Re-export the unified ORM models (single source of truth in models.py).
 if SQLALCHEMY_AVAILABLE:
