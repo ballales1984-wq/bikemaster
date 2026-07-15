@@ -7,8 +7,8 @@
 //   - Endpoint REST: /health, /api/v1/rides, /api/v1/auth/me
 
 use axum::{
-    extract::{Path, State as AxumState},
-    http::{HeaderValue, Method, StatusCode},
+    extract::State as AxumState,
+    http::{Method, StatusCode},
     routing::get,
     Router,
 };
@@ -18,6 +18,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::State as TauriState;
+use tauri::Manager;
 use tokio::sync::Mutex;
 use tower_http::cors::CorsLayer;
 use uuid::Uuid;
@@ -43,7 +44,7 @@ fn get_app_info() -> serde_json::Value {
 }
 
 #[tauri::command]
-fn get_db_path(state: TauriState<'_, AppState>) -> String {
+fn get_db_path(state: TauriState<AppState>) -> String {
     state.db_path.to_string_lossy().to_string()
 }
 
@@ -84,7 +85,7 @@ async fn health_handler() -> axum::Json<serde_json::Value> {
 }
 
 async fn list_rides(
-    state: AxumState<'_, AppState>,
+    state: AxumState<AppState>,
 ) -> Result<axum::Json<serde_json::Value>, StatusCode> {
     let conn = state.conn.lock().await;
     let mut stmt = conn
@@ -116,7 +117,7 @@ async fn list_rides(
 }
 
 async fn create_ride(
-    state: AxumState<'_, AppState>,
+    state: AxumState<AppState>,
     axum::Json(payload): axum::Json<serde_json::Value>,
 ) -> Result<axum::Json<serde_json::Value>, StatusCode> {
     let id = Uuid::new_v4().to_string();
@@ -157,7 +158,7 @@ async fn create_ride(
 }
 
 async fn get_ride(
-    state: AxumState<'_, AppState>,
+    state: AxumState<AppState>,
     axum::extract::Path(id): axum::extract::Path<String>,
 ) -> Result<axum::Json<serde_json::Value>, StatusCode> {
     let conn = state.conn.lock().await;
@@ -191,8 +192,8 @@ async fn get_ride(
 
 fn init_db(db_path: &std::path::Path) -> Result<Connection, rusqlite::Error> {
     if let Some(parent) = db_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| {
-            rusqlite::Error::InvalidPath(db_path.to_path_buf(), format!("{}", e))
+        std::fs::create_dir_all(parent).map_err(|_e| {
+            rusqlite::Error::InvalidPath(db_path.to_path_buf())
         })?;
     }
     let conn = Connection::open(db_path)?;
@@ -229,15 +230,7 @@ fn init_db(db_path: &std::path::Path) -> Result<Connection, rusqlite::Error> {
 
 async fn start_axum_server(state: AppState, port: u16) -> Result<(), Box<dyn std::error::Error>> {
     let cors = CorsLayer::new()
-        .allow_origin(
-            tower_http::cors::CorsOrigin::list([
-                "http://localhost:5173".parse::<HeaderValue>()?,
-                "http://127.0.0.1:5173".parse::<HeaderValue>()?,
-                "tauri://localhost".parse::<HeaderValue>()?,
-                "http://localhost:8001".parse::<HeaderValue>()?,
-                "http://127.0.0.1:8001".parse::<HeaderValue>()?,
-            ]),
-        )
+        .allow_origin(tower_http::cors::Any)
         .allow_methods([
             Method::GET,
             Method::POST,
@@ -265,12 +258,15 @@ async fn start_axum_server(state: AppState, port: u16) -> Result<(), Box<dyn std
 
 // ---- Risoluzione percorso DB multipiattaforma ----
 
-fn resolve_db_path(app: &impl tauri::Manager) -> PathBuf {
-    let base = app.path_resolver().app_data_dir().unwrap_or_else(|| {
-        dirs::data_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("bikemaster")
-    });
+fn resolve_db_path<R: tauri::Runtime>(app: &impl tauri::Manager<R>) -> PathBuf {
+    let base = app
+        .path()
+        .app_data_dir()
+        .unwrap_or_else(|_| {
+            dirs::data_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("bikemaster")
+        });
     base.join("bikemaster.db")
 }
 

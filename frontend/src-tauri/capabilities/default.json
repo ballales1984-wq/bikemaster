@@ -9,10 +9,8 @@
     "core:event:default",
     "core:webview:default",
     "core:menu:default",
-    "path:default",
-    "dialog:default",
-    "notification:default",
-    "updater:default",
-    "store:default"
+    "core:path:default",
+    "core:resources:default",
+    "core:tray:default"
   ]
 }
