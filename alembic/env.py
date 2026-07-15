@@ -1,6 +1,12 @@
 """Alembic migration environment configuration.
 
-Uses sync engine for reliable autogenerate support.
+Uses a sync engine for reliable autogenerate support. The active database is
+resolved from application settings: SQLite (the local-first PRIMARY store, used
+by default) or PostgreSQL (optional cloud sync). ``render_as_batch`` is enabled
+so ``op.alter_column`` / ``op.drop_column`` / ``op.add_column`` work on SQLite
+(batch table recreation), which it does not support natively; it is a no-op for
+PostgreSQL.
+
 PostgreSQL uses psycopg2 (sync) for migrations, asyncpg only for app runtime.
 """
 
@@ -25,14 +31,18 @@ def get_database_url() -> str:
     from bike_analyzer.backend.settings import get_settings
 
     s = get_settings()
-    if s.database_url:
-        url = s.database_url
+    url = (s.database_url or "").strip()
+    if url:
+        # Normalise async schemes back to a sync driver for the migration engine.
         if url.startswith("postgresql+asyncpg://"):
-            url = url.replace("postgresql+asyncpg://", "postgresql://")
-        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        elif url.startswith("sqlite+aiosqlite://"):
+            url = url.replace("sqlite+aiosqlite://", "sqlite://", 1)
+        elif url.startswith("sqlite://"):
             pass
         return url
-    db_path = s.db_path
+    # No cloud URL configured: SQLite is the local-first primary store.
+    db_path = s.db_path or "rides.db"
     if db_path == ":memory:":
         return "sqlite:///:memory:"
     return f"sqlite:///{db_path}"
@@ -45,6 +55,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_as_batch=True,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -60,7 +71,11 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            render_as_batch=True,
+        )
         with context.begin_transaction():
             context.run_migrations()
 

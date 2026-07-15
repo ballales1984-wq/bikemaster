@@ -1,6 +1,9 @@
-"""Vector database integration for RAG using PGVector.
+"""Vector database integration for RAG using PGVector (optional cloud sync).
 
-Provides embedding storage and similarity search for knowledge base.
+Provides embedding storage and similarity search for the knowledge base. This is
+an OPTIONAL cloud-sync feature: it only operates against a configured PostgreSQL
+(``DATABASE_URL``) with the ``vector`` extension. The local-first primary store
+is SQLite and does not use this module.
 """
 
 from __future__ import annotations
@@ -20,13 +23,19 @@ class VectorDB:
     """PGVector wrapper for embedding storage and similarity search."""
 
     def __init__(self, database_url: str | None = None):
-        self.database_url = database_url or _s.database_url
+        self.database_url = (database_url or _s.database_url or "").strip()
+        if not self.database_url:
+            # No cloud PostgreSQL configured: vector search is unavailable.
+            self._engine = None
+            return
         if self.database_url.startswith("postgresql://"):
-            self.database_url = self.database_url.replace("postgresql://", "postgresql+asyncpg://")
+            self.database_url = self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
         self._engine = None
 
     async def _get_engine(self):
         if self._engine is None:
+            if not self.database_url:
+                raise RuntimeError("No cloud PostgreSQL (DATABASE_URL) configured; vector search disabled")
             self._engine = create_async_engine(self.database_url, echo=False)
         return self._engine
 

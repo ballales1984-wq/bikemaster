@@ -5,6 +5,7 @@ import router from "./router";
 import "./index.css";
 import { useAuthStore } from "./stores/auth";
 import { useUIStore } from "./stores/ui";
+import { isTauri } from "./utils/backend-config";
 import "./composables/usePWA";
 import { useToast } from "./composables/useToast";
 import { processOAuthToken, hasPendingOAuth } from "./services/oauth";
@@ -88,7 +89,7 @@ window.addEventListener("pageshow", (event: PageTransitionEvent) => {
   if (event.persisted) handleOAuthReturn();
 });
 
-if ("serviceWorker" in navigator) {
+if ("serviceWorker" in navigator && !isTauri()) {
   navigator.serviceWorker
     .register("/sw.js", { scope: "/" })
     .then((reg) => {

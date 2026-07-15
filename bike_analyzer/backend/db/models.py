@@ -1,9 +1,10 @@
-"""SQLAlchemy ORM models for the async DB layer (PostgreSQL/SQLite).
+"""SQLAlchemy ORM models for the async DB layer (SQLite primary / optional PostgreSQL cloud sync).
 
 Mirrors the schema created by ``db/database.py`` (the synchronous SQLite layer)
-so the async code paths can run against PostgreSQL in production or SQLite for
-local development. The sync layer remains the source of truth for the SQLite
-schema; this module only defines the ORM mappings used by the async session.
+so the async code paths can run against the local SQLite store or an optional
+cloud PostgreSQL (sync). The sync layer remains the source of truth for the
+SQLite schema; this module only defines the ORM mappings used by the async
+session (cloud sync / community features).
 """
 
 from __future__ import annotations

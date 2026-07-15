@@ -1,10 +1,11 @@
 """Chat history repository - async persistence for AI Coach conversations.
 
 Mirrors :class:`FitnessStateRepository`: it only operates against the async
-session factory (PostgreSQL in production, SQLite for local dev). The synchronous
-``db.database`` functions remain the source of truth for the SQLite path used by
-the coach today; this repository is the counterpart for the async data layer
-once the broader sync -> async migration lands.
+session factory (the optional cloud PostgreSQL sync layer; the local SQLite
+store is the primary). The synchronous ``db.database`` functions remain the
+source of truth for the SQLite path used by the coach today; this repository is
+the counterpart for the async data layer once the broader sync -> async
+migration lands.
 
 The ORM model is defined inline (rather than importing ``db.models``) so this
 repository is self-contained and does not depend on the shared ``Base`` metadata

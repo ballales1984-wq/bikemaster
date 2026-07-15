@@ -1,12 +1,13 @@
 """Async DB adapter.
 
 Provides the async SQLAlchemy engine, session factory and table initialization
-used by the production (PostgreSQL) code paths. When ``DATABASE_URL`` is not set
-the application falls back to the synchronous SQLite layer in ``db/database.py``
-and this module raises if its session factory is requested.
+used by the optional cloud sync (PostgreSQL) code paths. When ``DATABASE_URL`` is
+not set the application falls back to the synchronous SQLite layer in
+``db/database.py`` and this module raises if its session factory is requested.
 
 The async URL scheme is derived from ``DATABASE_URL`` so both PostgreSQL
-(``postgresql+asyncpg://``) and SQLite (``sqlite+aiosqlite://``) are supported.
+(``postgresql+asyncpg://``, cloud sync) and SQLite (``sqlite+aiosqlite://``,
+local dev / tests) are supported.
 """
 
 from __future__ import annotations

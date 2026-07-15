@@ -1,4 +1,4 @@
-"""PostgreSQL/SQLAlchemy synchronous session layer.
+"""PostgreSQL/SQLAlchemy synchronous session layer (optional cloud sync).
 
 Provides synchronous session management and helper functions for the
 ``training_goals`` / ``planned_workouts`` tables. The ORM models themselves
@@ -6,6 +6,9 @@ live in :mod:`bike_analyzer.backend.db.models` (single source of truth,
 shared with the async layer); this module only re-exports them for backward
 compatibility and manages the synchronous engine/session.
 
+NOTE: this module is only active when an optional cloud sync ``DATABASE_URL`` is
+configured. It is NOT the primary store (which is the local SQLite database);
+it currently powers a subset of features (training goals / planned workouts).
 Falls back gracefully when SQLAlchemy is not available or ``DATABASE_URL`` is
 not set.
 """

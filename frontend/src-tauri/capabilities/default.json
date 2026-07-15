@@ -1,0 +1,18 @@
+{
+  "identifier": "default",
+  "description": "capabilities per l'app desktop BikeMaster",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:app:default",
+    "core:event:default",
+    "core:webview:default",
+    "core:menu:default",
+    "path:default",
+    "dialog:default",
+    "notification:default",
+    "updater:default",
+    "store:default"
+  ]
+}

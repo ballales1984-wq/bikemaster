@@ -1,4 +1,4 @@
-"""Database layer - supports SQLite (local) and PostgreSQL (production)."""
+"""Database layer - SQLite (local-first primary store) with optional PostgreSQL cloud sync."""
 
 from __future__ import annotations
 
@@ -356,7 +356,58 @@ def init_db():
         if "tenant_id" not in workout_cols:
             conn.execute("ALTER TABLE planned_workouts ADD COLUMN tenant_id INTEGER DEFAULT 0")
         _ensure_external_identity_index(conn)
+        _ensure_sync_tables(conn)
         conn.commit()
+
+
+def _ensure_sync_tables(conn) -> None:
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS sync_entity_state (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL,
+            entity_id INTEGER NOT NULL,
+            source TEXT DEFAULT 'device',
+            reliability_score REAL DEFAULT 1.0,
+            last_modified TEXT NOT NULL,
+            sync_status TEXT DEFAULT 'local',
+            sync_error TEXT,
+            cloud_id TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            UNIQUE(entity_type, entity_id)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS sync_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS sync_conflicts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL,
+            entity_id INTEGER NOT NULL,
+            local_data TEXT NOT NULL,
+            remote_data TEXT NOT NULL,
+            local_reliability REAL NOT NULL,
+            remote_reliability REAL NOT NULL,
+            local_modified TEXT NOT NULL,
+            remote_modified TEXT NOT NULL,
+            resolution TEXT DEFAULT 'unresolved',
+            resolved_data TEXT,
+            resolution_reason TEXT,
+            created_at TEXT,
+            updated_at TEXT
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_sync_entity_state_type ON sync_entity_state(entity_type, sync_status)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_sync_conflicts_resolution ON sync_conflicts(resolution)"
+    )
 
 
 def _ensure_external_identity_index(conn) -> None:

@@ -42,7 +42,11 @@ class Settings(BaseSettings):
     otel_traces_sampler_arg: float = 1.0
     otel_environment: str = "development"
 
-    # === Database ===
+    # === Database (local-first) ===
+    # SQLite is the PRIMARY local store on every user's device. ``db_path`` points
+    # at the local SQLite file used by the synchronous layer (db/database.py).
+    # PostgreSQL (``DATABASE_URL`` / ``DATABASE_URL_UNPOOLED``) is OPTIONAL and is
+    # used only for cloud sync / community features — never as the primary store.
     db_path: str = "rides.db"
     database_url: str = ""
     database_url_unpooled: str = ""
@@ -182,19 +186,39 @@ class Settings(BaseSettings):
     google_health_client_id: str = ""
     google_health_client_secret: str = ""
 
+    # === Sync Service ===
+    sync_default_mode: str = "never"
+    sync_cloud_url: str = ""
+    sync_auth_token: str = ""
+    sync_device_id: str = ""
+    sync_daily_hour: int = 2
+    sync_weekly_day: int = 0
+    sync_auto_on_startup: bool = False
+
+    @property
+    def cloud_sync_enabled(self) -> bool:
+        """True only when an optional cloud PostgreSQL (sync) URL is configured.
+
+        The local SQLite store is always the primary; this indicates whether the
+        optional cloud sync / community backend is enabled.
+        """
+        return bool(self.database_url or self.database_url_unpooled)
+
     @model_validator(mode="after")
     def _validate_production_database(self) -> Settings:
-        _ENV = self.environment.lower()
-        _IS_PROD = _ENV in ("production", "prod", "staging")
-        _url = self.database_url or self.database_url_unpooled
-        if _IS_PROD and not _url:
-            logging.warning(
-                "DATABASE_URL not set in production environment. "
-                "Expected PostgreSQL connection string. Falling back to SQLite (db_path=%s).",
+        # SQLite (``db_path``) is the local-first PRIMARY store in every environment,
+        # including production. PostgreSQL is OPTIONAL and only used for cloud sync /
+        # community features when ``DATABASE_URL`` is configured. There is no longer
+        # any expectation of a PostgreSQL connection string in production.
+        if not self.db_path:
+            self.db_path = "rides.db"
+        if not (self.database_url or self.database_url_unpooled):
+            logging.info(
+                "No cloud DATABASE_URL configured: running local-first with SQLite as "
+                "the primary store (db_path=%s). PostgreSQL is optional and only used "
+                "for cloud sync when DATABASE_URL is set.",
                 self.db_path,
             )
-        elif not _url and not self.db_path:
-            self.db_path = "rides.db"
         return self
 
     @model_validator(mode="after")
