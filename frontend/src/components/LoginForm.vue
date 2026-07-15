@@ -243,6 +243,11 @@ async function loginWithGoogle() {
       throw new Error(data.detail || `Google login error: ${response.status}`);
     }
 
+    if (data.auth_url) {
+      window.location.href = data.auth_url;
+      return;
+    }
+
     if (!data.access_token) {
       throw new Error("Google login error: invalid server response");
     }

@@ -170,7 +170,7 @@ class Settings(BaseSettings):
     # === Wahoo Integration ===
     wahoo_client_id: str = ""
     wahoo_client_secret: str = ""
-    wahoo_redirect_uri: str = "http://localhost:8000/api/v1/integrations/wahoo/callback"
+    wahoo_redirect_uri: str = "http://localhost:8000/api/v1/import/wahoo/callback"
     wahoo_scope: str = "workouts_read user_read"
 
     # === Map Styles ===

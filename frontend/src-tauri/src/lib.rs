@@ -7,9 +7,9 @@
 //   - Endpoint REST: /health, /api/v1/rides, /api/v1/auth/me
 
 use axum::{
-    extract::{Form, Query, State as AxumState},
+    extract::{Form, Path, Query, State as AxumState},
     http::{HeaderMap, Method, StatusCode},
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 use chrono::Utc;
@@ -170,6 +170,10 @@ async fn auth_register(
 
 async fn auth_logout(_headers: HeaderMap) -> Result<StatusCode, StatusCode> {
     Ok(StatusCode::OK)
+}
+
+async fn import_not_supported() -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    Err(StatusCode::NOT_IMPLEMENTED)
 }
 
 async fn list_rides(
@@ -335,6 +339,18 @@ async fn start_axum_server(state: AppState, port: u16) -> Result<(), Box<dyn std
         .route("/api/v1/auth/login", post(auth_login))
         .route("/api/v1/auth/register", post(auth_register))
         .route("/api/v1/auth/logout", post(auth_logout))
+        .route("/api/v1/import/strava/auth", get(import_not_supported).post(import_not_supported))
+        .route("/api/v1/import/strava/callback", get(import_not_supported).post(import_not_supported))
+        .route("/api/v1/import/strava/sync", post(import_not_supported))
+        .route("/api/v1/import/strava/disconnect", delete(import_not_supported))
+        .route("/api/v1/import/wahoo/auth", get(import_not_supported).post(import_not_supported))
+        .route("/api/v1/import/wahoo/callback", get(import_not_supported).post(import_not_supported))
+        .route("/api/v1/import/wahoo/sync", post(import_not_supported))
+        .route("/api/v1/import/wahoo/disconnect", delete(import_not_supported))
+        .route("/api/v1/import/garmin/auth", get(import_not_supported).post(import_not_supported))
+        .route("/api/v1/import/garmin/callback", get(import_not_supported).post(import_not_supported))
+        .route("/api/v1/import/garmin/sync", post(import_not_supported))
+        .route("/api/v1/import/garmin/disconnect", delete(import_not_supported))
         .route("/api/v1/rides", get(list_rides).post(create_ride))
         .route("/api/v1/rides/{id}", get(get_ride))
         .layer(cors)
