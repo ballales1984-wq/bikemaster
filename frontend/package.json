@@ -17,8 +17,8 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-pattern node_modules,.git,dist,.output"
   },
   "dependencies": {
-    "@capacitor/android": "^5.7.4",
-    "@capacitor/core": "^5.7.4",
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
     "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
     "@tauri-apps/api": "^2.5.0",
     "@types/dompurify": "^3.0.5",

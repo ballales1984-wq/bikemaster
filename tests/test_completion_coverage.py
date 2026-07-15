@@ -102,8 +102,7 @@ def test_should_save_to_database_empty():
 
 
 def test_should_save_to_database_invalid_point():
-    bad = _p(speed=20.0)
-    bad.lat = 999.0
+    bad = _p(lat=999.0, speed=20.0)
     assert perf.should_save_to_database([bad]) is False
 
 
