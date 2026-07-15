@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     api_port: int = 8000
 
     # === CORS ===
-    cors_origins: str = "http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000,http://127.0.0.1:8080,https://bikemaster-xi.vercel.app"
+    cors_origins: str = "http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000,http://127.0.0.1:8080,https://bikemaster-xi.vercel.app,https://bikemaster-6aazvtudv-alessios-projects-f1d56018.vercel.app"
 
     @property
     def cors_origins_list(self) -> list[str]:
