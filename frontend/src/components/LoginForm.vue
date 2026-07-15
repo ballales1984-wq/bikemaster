@@ -223,6 +223,10 @@ function getRedirectUri() {
   if (isCapacitorApp) {
     return "com.bikemaster.app://callback";
   }
+  const base = resolveApiBase();
+  if (base) {
+    return `${base}/api/v1/auth/google/callback`;
+  }
   return `${window.location.origin}/api/v1/auth/google/callback`;
 }
 
