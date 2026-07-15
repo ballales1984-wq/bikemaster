@@ -202,17 +202,18 @@ class BackgroundTaskQueue:
                     save_weather_cache(lat, lon, d, data)
                     cached += 1
             except Exception:
+                logger.debug("Weather cache save failed", exc_info=True)
                 pass
         return {"cached_days": cached}
 
     async def _handle_strava_sync(self, payload: dict) -> dict:
         from bike_analyzer.backend.db.database import save_ride
         from bike_analyzer.backend.ingestion.strava_client import (
+            StravaRateLimitError,
             fetch_all_activities,
             get_valid_token,
             strava_to_ride,
             strava_to_ride_with_streams,
-            StravaRateLimitError,
         )
 
         athlete_id = payload["athlete_id"]

@@ -20,12 +20,7 @@ Usage:
 
 from __future__ import annotations
 
-# Canonical Strava API v3 contract (Swagger 2.0), fetched from
-# https://developers.strava.com/swagger/swagger.json and stored next to this
-# module as ``strava_api_v3.swagger.json``. Use it to validate requests/responses
-# or to regenerate typed clients.
-STRAVA_API_V3_SCHEMA = __file__.replace(".py", ".swagger.json")
-
+import contextlib
 import logging
 import secrets
 import time
@@ -37,12 +32,18 @@ import httpx
 from ..http_async import request_json
 from ..settings import get_settings
 
+# Canonical Strava API v3 contract (Swagger 2.0), fetched from
+# https://developers.strava.com/swagger/swagger.json and stored next to this
+# module as ``strava_api_v3.swagger.json``. Use it to validate requests/responses
+# or to regenerate typed clients.
+STRAVA_API_V3_SCHEMA = __file__.replace(".py", ".swagger.json")
+
 _s = get_settings()
 
 logger = logging.getLogger(__name__)
 
 STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
-STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
+STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"  # noqa: S105
 STRAVA_API_BASE_URL = "https://www.strava.com/api/v3"
 
 OAUTH_STATE_TTL_SECONDS = 600
@@ -336,10 +337,8 @@ def streams_to_points(streams: dict) -> list[dict[str, float]] | None:
     for i, (lat, lng) in enumerate(latlng):
         pt: dict[str, float] = {"lat": float(lat), "lon": float(lng)}
         if i < len(altitudes):
-            try:
+            with contextlib.suppress(TypeError, ValueError):
                 pt["altitude"] = float(altitudes[i])
-            except (TypeError, ValueError):
-                pass
         points.append(pt)
     return points or None
 

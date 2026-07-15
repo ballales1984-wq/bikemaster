@@ -8,7 +8,7 @@ from ..settings import get_settings
 
 _s = get_settings()
 
-_GOOGLE_TOKEN_TABLE = """
+_GOOGLE_TOKEN_TABLE = """  # noqa: S105
 CREATE TABLE IF NOT EXISTS google_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     athlete_id INTEGER NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS google_tokens (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_google_tokens_athlete_provider
     ON google_tokens(athlete_id, provider);
-"""
+"""  # noqa: S105
 
 TOKEN_REFRESH_BUFFER_SECONDS = 300
 

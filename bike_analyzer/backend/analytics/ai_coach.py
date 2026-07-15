@@ -441,7 +441,7 @@ def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete
 
                     append(athlete_id, {"role": "assistant", "content": cleaned})
                 except Exception:
-                    pass
+                    logger.debug("AI Coach: failed to append conversation to store", exc_info=True)
             return cleaned
         except Exception as e:
             from ..monitoring import record_ai_coach_query
@@ -534,7 +534,7 @@ def generate_recovery_advice(
 
                     append(athlete_id, {"role": "assistant", "content": cleaned})
                 except Exception:
-                    pass
+                    logger.debug("AI Coach: failed to append conversation to store", exc_info=True)
             return cleaned
         except Exception as e:
             from ..monitoring import record_ai_coach_query
@@ -672,7 +672,7 @@ def ai_coach_full(athlete: AthleteProfile, rides: list[Ride], athlete_id: int | 
             create_duration_chart(rides, str(dp))
             charts.append("/static/coach_duration.png")
     except Exception:
-        pass
+        logger.debug("AI Coach: failed to generate charts", exc_info=True)
     training_advice = generate_workout_recommendations(athlete, rides, athlete_id)
     recovery_advice = generate_recovery_recommendations(athlete, rides, athlete_id)
     fitness_explanation = ""

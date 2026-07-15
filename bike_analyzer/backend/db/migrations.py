@@ -9,7 +9,6 @@ out via ``RUN_MIGRATIONS_ON_STARTUP=0`` (e.g. when a separate migration job runs
 from __future__ import annotations
 
 import os
-
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -29,8 +28,9 @@ def run_migrations_on_startup() -> bool:
         return False
 
     try:
-        from alembic import command
         from alembic.config import Config
+
+        from alembic import command
     except ImportError:
         logger.warning("alembic not installed, skipping migrations")
         return False

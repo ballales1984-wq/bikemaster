@@ -60,12 +60,13 @@ async def request_json(
                 return resp.json()
             except ValueError:
                 return resp.text
-        except (httpx.TransportError, asyncio.TimeoutError) as exc:
+        except (httpx.TransportError, TimeoutError) as exc:
             last_exc = exc
             if attempt < MAX_RETRIES:
                 await asyncio.sleep(_BACKOFF_BASE * (2**attempt))
                 continue
             raise
     # Only reached if every attempt failed; surface the last error.
-    assert last_exc is not None
+    if last_exc is None:
+        raise RuntimeError("All retry attempts failed but no exception was captured")
     raise last_exc

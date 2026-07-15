@@ -129,7 +129,7 @@ def create_app() -> FastAPI:
             instrumentator.add(metrics.requests())
             instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
         except Exception:
-            pass
+            logger.debug("Prometheus instrumentation setup failed", exc_info=True)
     # Skip OpenTelemetry instrumentation in test environment
     if _s.environment.lower() in ("test", "testing"):
         pass  # Observability already skipped
@@ -187,7 +187,7 @@ def create_app() -> FastAPI:
         response.headers[REQUEST_ID_HEADER] = request_id
         return response
 
-    from .user_keys import parse_user_keys_header, set_request_user_keys, reset_request_user_keys
+    from .user_keys import parse_user_keys_header, set_request_user_keys, reset_request_user_keys  # noqa: I001
 
     @app.middleware("http")
     async def user_api_keys_middleware(request: Request, call_next):
@@ -220,7 +220,7 @@ def create_app() -> FastAPI:
                 if payload:
                     user_id = str(payload.get("sub", "anonymous"))
         except Exception:
-            pass
+            logger.debug("Failed to extract user_id from auth header", exc_info=True)
         response = await call_next(request)
         elapsed_ms = int((time.time() - start) * 1000)
         request_id = getattr(request.state, "request_id", "-")

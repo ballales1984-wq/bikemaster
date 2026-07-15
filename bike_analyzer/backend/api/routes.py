@@ -29,7 +29,6 @@ from fastapi import (
     Request,
     UploadFile,
 )
-from fastapi.background import BackgroundTasks
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -79,6 +78,7 @@ from .schemas import (
     StravaCallbackRequest,
     WahooCallbackRequest,
 )
+from .utils import _trusted_forwarded_value
 
 _s = get_settings()
 
@@ -108,8 +108,6 @@ admin_router = APIRouter()
 
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 
-from .utils import _trusted_forwarded_value
-
 
 def _build_redirect_uri(request: Request, path: str) -> str:
     proto = _trusted_forwarded_value(request, "x-forwarded-proto") or request.url.scheme
@@ -138,7 +136,7 @@ def _build_frontend_redirect_url(
     return f"{base}/{query_suffix}{fragment_suffix}"
 
 
-def _build_oauth_error_url(request: Request, redirect_uri: str, error: str) -> "RedirectResponse":
+def _build_oauth_error_url(request: Request, redirect_uri: str, error: str) -> "RedirectResponse":  # noqa: F821,UP037
     """Redirect back to the SPA with an ``oauth_error`` query param.
 
     The error is delivered as a query param (not a fragment) so the SPA can read
@@ -191,16 +189,14 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
     try:
         cors_list = _s.cors_origins_list if hasattr(_s, "cors_origins_list") else []
         for origin in cors_list:
-            try:
+            with contextlib.suppress(ValueError):
                 cors_hosts.add(urlparse(origin).hostname.lower())
-            except ValueError:
-                pass
     except Exception:
-        pass
+        logger.debug("Failed to parse CORS origins", exc_info=True)
     configured_hosts = set()
     if hasattr(_s, "oauth_allowed_hosts_list"):
         configured_hosts = set(_s.oauth_allowed_hosts_list)
-    localhost_ports = {"localhost", "127.0.0.1", "0.0.0.0"}
+    localhost_ports = {"localhost", "127.0.0.1", "0.0.0.0"}  # noqa: S104
     if host_lower in localhost_ports:
         return
     # NOTE: the request Origin header is intentionally NOT trusted here.
@@ -212,6 +208,12 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
         | configured_hosts
     )
     if host_lower not in allowed_hosts:
+        # Allow any Vercel preview/production deployment. This keeps the OAuth
+        # redirect_uri validation consistent with the CORS allow_origin_regex
+        # (r"https://.*\.vercel\.app") instead of hardcoding a single subdomain,
+        # so newly generated Vercel deploy URLs keep working for login.
+        if host_lower.endswith(".vercel.app"):
+            return
         raise HTTPException(status_code=400, detail="Invalid redirect_uri host")
 
 
@@ -402,8 +404,7 @@ async def google_maps_key(request: Request, current_user: dict = Depends(get_cur
     # requests originating from the app's own configured origins.
     origin = request.headers.get("origin") or request.headers.get("referer") or ""
     allowed = {urlparse(o).netloc for o in _s.cors_origins_list}
-    if origin:
-        if urlparse(origin).netloc not in allowed:
+    if origin and urlparse(origin).netloc not in allowed:
             raise HTTPException(status_code=403, detail="Origin not allowed")
     return {"google_maps_api_key": _s.google_maps_api_key or ""}
 
@@ -951,7 +952,7 @@ async def google_code_exchange(
     except requests.exceptions.HTTPError as exc:
         response = getattr(exc, "response", None)
         error_body = response.text if response is not None else str(exc)
-        raise HTTPException(status_code=400, detail=f"token_exchange_failed:{error_body[:200]}")
+        raise HTTPException(status_code=400, detail=f"token_exchange_failed:{error_body[:200]}") from None
     access_token = token_data.get("access_token")
     if not access_token:
         raise HTTPException(status_code=400, detail="no_access_token")
@@ -960,12 +961,12 @@ async def google_code_exchange(
     except requests.exceptions.HTTPError as exc:
         response = getattr(exc, "response", None)
         error_body = response.text if response is not None else str(exc)
-        raise HTTPException(status_code=400, detail=f"userinfo_failed:{error_body[:200]}")
+        raise HTTPException(status_code=400, detail=f"userinfo_failed:{error_body[:200]}") from None
     google_sub = user_info.get("sub")
     email = user_info.get("email")
     if not google_sub:
         raise HTTPException(status_code=400, detail="invalid_user_info")
-    from ..db.database import get_athlete_by_email, save_athlete
+    from ..db.database import get_athlete, get_athlete_by_email, save_athlete
     existing = await asyncio.to_thread(get_athlete_by_email, email) if email else None
     if not existing:
         athlete_id = await asyncio.to_thread(
@@ -1413,7 +1414,7 @@ async def import_multiple(files: list[UploadFile] = File(...), current_user: dic
 
     imported = []
     failed = []
-    for filename, result in zip((fn for fn, _ in contents), results):
+    for filename, result in zip((fn for fn, _ in contents), results, strict=True):
         if isinstance(result, Exception):
             failed.append({"filename": filename, "error": str(result)})
         elif "error" not in result:
@@ -3542,7 +3543,7 @@ async def strava_sync(
         db_ride = {k: v for k, v in ride_data.items() if k != "id"}
         try:
             ride_id = save_ride(db_ride)
-        except Exception as exc:
+        except Exception:
             logger.exception("Failed to save ride %s", ride_data.get("external_id"))
             continue
         if ride_id not in imported_ids:
@@ -3648,7 +3649,7 @@ async def garmin_sync(
         db_ride = {k: v for k, v in ride_data.items() if k != "id"}
         try:
             ride_id = save_ride(db_ride)
-        except Exception as exc:
+        except Exception:
             logger.exception("Failed to save ride %s", ride_data.get("external_id"))
             continue
         if ride_id not in imported_ids:

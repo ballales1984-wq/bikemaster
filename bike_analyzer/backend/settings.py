@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     database_url_unpooled: str = ""
 
     # === API ===
-    api_host: str = "0.0.0.0"  # nosec B104  # Required for Docker container listening
+    api_host: str = "0.0.0.0"  # nosec B104  # noqa: S104  # Required for Docker container listening
     api_port: int = 8000
 
     # === CORS ===
@@ -218,7 +218,7 @@ class Settings(BaseSettings):
                     "SECRET_KEY non valida. Usa un valore casuale >= 32 caratteri (es. openssl rand -hex 32)."
                 )
                 sys.exit(1)
-            self.secret_key = "test-secret-key-for-development-please-override"
+            self.secret_key = "test-secret-key-for-development-please-override"  # noqa: S105
             self.secret_key_previous = os.getenv("SECRET_KEY_PREVIOUS", "")
         return self
 

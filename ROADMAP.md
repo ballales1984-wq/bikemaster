@@ -23,14 +23,16 @@ Ordine: stabilità → mobile nativo → maturità AI → distribuzione/integraz
 |:--:|---|---|:--:|
 | P0.1 | Logging centralizzato e strutturato | Stabilità | ✅ |
 | P0.2 | Servizi registrati nel lifespan FastAPI | Stabilità | ✅ |
-| P1.1 | Verifica build iOS con Xcode su dispositivo | Mobile nativo | 🔄 |
-| P1.2 | Voice input/output AI Coach + prompt engineering avanzato | Mobile nativo | ❌ |
+| P1.1 | Tauri 2 desktop app wrapper + backend embedded | Desktop-first | 🔄 |
+| P1.2 | SQLite come database primario (migrazione da PostgreSQL) | Desktop-first | ❌ |
+| P1.3 | Sync bidirezionale device↔cloud (opzionale, attivabile) | Desktop-first | ❌ |
+| P1.4 | Verifica build iOS con Xcode su dispositivo | Mobile nativo | 🔄 |
 | P2.1 | Memory persistente conversazioni per utente | AI Coach | ✅ |
 | P2.2 | Design System + theme tokens | AI Coach | ✅ |
 | P3.1 | Wahoo integration | Distribuzione | ✅ |
-| P3.2 | Versione cloud hosted (Render/Azure/Fly/Railway/Vercel) | Distribuzione | ✅ |
-| P3.3 | Helm chart Kubernetes | Distribuzione | ✅ |
-| P3.4 | One-click deploy docs (Railway/Fly/Vercel) | Distribuzione | ✅ |
+| P3.2 | GitHub Releases per distribuzione desktop (CI/CD Tauri) | Distribuzione | ❌ |
+| P3.3 | PWA su Vercel come canale secondario | Distribuzione | ❌ |
+| P3.4 | Helm chart Kubernetes (solo per cloud sync/community) | Distribuzione | ❌ |
 | P3.5 | Coverage test >90% come metrica informativa | Qualità | 🔄 In corso (~82% linee / ~66% branch; misurata 2026-07-14; repositories + monitoring coperti, resta `routes.py` ~51% e moduli AI) |
 
 ---
@@ -122,6 +124,10 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 | Testing | Coverage reported as informational | ✅ |
 | Code Quality | Ruff + mypy + pre-commit | ✅ |
 | Container | Docker multi-stage hardened | ✅ |
+| Desktop | Tauri 2 wrapper + backend embedded | ❌ |
+| Database | SQLite primary with Alembic migrations | ❌ |
+| Offline-first | Full functionality without cloud | ❌ |
+| Sync | Optional bidirectional device↔cloud sync | ❌ |
 | Monitoring | Sentry + Prometheus + Grafana | ✅ |
 | Audit | Audit log azioni admin | ✅ |
 | Auth | OAuth2 social login (Google, Strava) | ✅ |
@@ -131,5 +137,4 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 | Frontend | Vitest (47 file / 318 test) | ✅ |
 | Frontend | Playwright E2E (`frontend/tests/e2e`, 14 spec esistenti + 3 aggiunti backend-independent) | ✅ |
 | Security | Security headers + rate limiting | ✅ |
-| Database | Dual-mode SQLite/PostgreSQL | ✅ |
-| CI/CD | GitHub Actions | ✅ |
+| CI/CD | GitHub Actions + Tauri build pipeline | ❌ |

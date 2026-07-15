@@ -85,7 +85,7 @@ def _build_credentials(token_data: dict) -> Credentials:
     return Credentials(
         token=token_data.get("access_token", ""),
         refresh_token=token_data.get("refresh_token", ""),
-        token_uri="https://oauth2.googleapis.com/token",
+        token_uri="https://oauth2.googleapis.com/token",  # noqa: S106
         client_id=_s.google_health_client_id,
         client_secret=_s.google_health_client_secret,
         scopes=_s.google_health_scope.split(),
@@ -180,7 +180,7 @@ def _parse_tcx_time(value: str | None) -> datetime | None:
 def tcx_to_points(tcx_content: str) -> list[dict[str, Any]]:
     if not tcx_content:
         return []
-    root = ET.fromstring(tcx_content)
+    root = ET.fromstring(tcx_content)  # noqa: S314
     points: list[dict[str, Any]] = []
 
     for trackpoint in root.iter():

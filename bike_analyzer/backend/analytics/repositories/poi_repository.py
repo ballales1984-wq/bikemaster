@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 from datetime import UTC, datetime
 from typing import Any
@@ -23,10 +24,8 @@ class POIRepository:
         for key in ("photos", "tags"):
             value = data.get(key)
             if isinstance(value, str):
-                try:
+                with contextlib.suppress(json.JSONDecodeError, TypeError):
                     data[key] = json.loads(value)
-                except (json.JSONDecodeError, TypeError):
-                    pass
         return data
 
     async def create(self, poi: dict[str, Any]) -> int:

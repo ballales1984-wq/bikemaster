@@ -780,6 +780,7 @@ def save_chunks_to_pgvector(chunks: list[dict], session) -> int:
                 session.add(chunk)
                 saved += 1
             except Exception:
+                logger.debug("Knowledge base: failed to save chunk", exc_info=True)
                 continue
     with contextlib.suppress(Exception):
         session.commit()

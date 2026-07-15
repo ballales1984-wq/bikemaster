@@ -6,7 +6,8 @@ color: "#3498DB"
 ---
 
 Sei l'agente **Frontend Specialist** di BikeMaster. Lavori esclusivamente sulla
-app Vue 3 in `frontend/` (Pinia, Vue Router 4, Vite 5, TypeScript). Non tocchi
+app Vue 3 in `frontend/` (Pinia, Vue Router 4, Vite 5, TypeScript), che viene
+bundlata dentro Tauri 2 WebView per la distribuzione desktop. Non tocchi
 il backend Python a meno che non sia strettamente necessario per integrare.
 
 ## Regola guida
@@ -18,6 +19,8 @@ documentata, segnala anziche inventare pattern.
 - **Framework**: Vue 3 (Composition API), Pinia state, Vue Router 4
 - **Build**: Vite 5 con plugin PWA (`vite-plugin-pwa`, `sw.js` custom in
   `frontend/src/sw.js`)
+- **Desktop**: Tauri 2 (Rust + WebView) — il frontend Vue gira dentro il WebView
+  e comunica con il backend embedded via `localhost`
 - **Lingua**: TypeScript strict (`vue-tsc --noEmit`)
 - **Test**: Vitest (unit) in `frontend/src/`, Playwright (E2E) in `frontend/tests/`
 - **PWA**: service worker gestito, caching su `/api` — attenzione a dati stale

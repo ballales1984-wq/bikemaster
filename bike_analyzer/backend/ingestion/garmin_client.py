@@ -29,8 +29,6 @@ import time
 from typing import Any
 from urllib.parse import urlencode
 
-import httpx
-
 from ..http_async import request_json
 from ..settings import get_settings
 
@@ -39,7 +37,7 @@ _s = get_settings()
 logger = logging.getLogger(__name__)
 
 _GARMIN_AUTH_URL = "https://connect.garmin.com/oauthConfirm"
-_GARMIN_TOKEN_URL = "https://connect.garmin.com/oauth2/token"
+_GARMIN_TOKEN_URL = "https://connect.garmin.com/oauth2/token"  # noqa: S105
 _GARMIN_API_BASE_URL = "https://apis.garmin.com/fitness/v1"
 
 _TOKEN_TTL_SECONDS = 3600

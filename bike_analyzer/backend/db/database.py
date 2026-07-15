@@ -573,28 +573,30 @@ def get_paginated_rides(
             total = cur.fetchone()[0]
             cur.execute(
                 f"SELECT * FROM rides WHERE athlete_id = ? AND tenant_id = ? "
-                f"ORDER BY {order_col} DESC LIMIT ? OFFSET ?",
+                f"ORDER BY {order_col} DESC LIMIT ? OFFSET ?",  # noqa: S608
                 (athlete_id, tenant_id, page_size, offset),
             )
         elif athlete_id is not None:
             cur.execute("SELECT COUNT(*) FROM rides WHERE athlete_id = ?", (athlete_id,))
             total = cur.fetchone()[0]
             cur.execute(
-                f"SELECT * FROM rides WHERE athlete_id = ? ORDER BY {order_col} DESC LIMIT ? OFFSET ?",
+                f"SELECT * FROM rides WHERE athlete_id = ? "
+                f"ORDER BY {order_col} DESC LIMIT ? OFFSET ?",  # noqa: S608
                 (athlete_id, page_size, offset),
             )
         elif tenant_id is not None:
             cur.execute("SELECT COUNT(*) FROM rides WHERE tenant_id = ?", (tenant_id,))
             total = cur.fetchone()[0]
             cur.execute(
-                f"SELECT * FROM rides WHERE tenant_id = ? ORDER BY {order_col} DESC LIMIT ? OFFSET ?",
+                f"SELECT * FROM rides WHERE tenant_id = ? "
+                f"ORDER BY {order_col} DESC LIMIT ? OFFSET ?",  # noqa: S608
                 (tenant_id, page_size, offset),
             )
         else:
             cur.execute("SELECT COUNT(*) FROM rides")
             total = cur.fetchone()[0]
             cur.execute(
-                f"SELECT * FROM rides ORDER BY {order_col} DESC LIMIT ? OFFSET ?",
+                f"SELECT * FROM rides ORDER BY {order_col} DESC LIMIT ? OFFSET ?",  # noqa: S608
                 (page_size, offset),
             )
         rows = cur.fetchall()
@@ -1521,7 +1523,7 @@ def get_athlete_by_query(**query):
     Example: get_athlete_by_query(name="...")
     """
 
-    from .api_compat import get_athlete_by_query as _shim
+    from .api_compat import get_athlete_by_query as _shim  # noqa: I001
 
     import bike_analyzer.backend.db.database as db_mod
 

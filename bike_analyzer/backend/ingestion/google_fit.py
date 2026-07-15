@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import urllib.parse
 from datetime import UTC, datetime
 
@@ -12,6 +13,8 @@ from ..http_async import request_json
 from ..settings import get_settings
 
 _s = get_settings()
+
+logger = logging.getLogger(__name__)
 
 
 def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:8000/callback", state: str = "") -> str:
@@ -46,7 +49,7 @@ def _build_credentials(token_data: dict) -> Credentials:
     return Credentials(
         token=token_data.get("access_token", ""),
         refresh_token=token_data.get("refresh_token", ""),
-        token_uri="https://oauth2.googleapis.com/token",
+        token_uri="https://oauth2.googleapis.com/token",  # noqa: S106
         client_id=_s.google_fit_client_id,
         client_secret=_s.google_fit_client_secret,
         scopes=_s.google_fit_scope.split(),
@@ -138,7 +141,7 @@ def google_fit_to_ride(activities: list[dict]) -> list[dict]:
                 t1 = datetime.fromisoformat(end_iso[:19])
                 duration_min = round((t1 - t0).total_seconds() / 60, 1)
             except Exception:
-                pass
+                logger.debug("Google Fit: failed to parse activity duration", exc_info=True)
 
         legacy_vals = act.get("value", [])
         distance_m = 0

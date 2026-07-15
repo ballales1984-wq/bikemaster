@@ -33,17 +33,12 @@ Non modificare il comportamento runtime se non per risolvere il bug segnalato.
 8. **Verifica** riproducendo il caso e lanciando i test pertinenti.
 
 ## Perimetro BikeMaster
-- **Backend**: FastAPI + SQLAlchemy/Pydantic. Entrypoint `main.py`; router in
-  `api/` e `bike_analyzer/`. Config via `pyproject.toml` / `.env` (vedi
-  `.env.example`). Log in `logs/` (`debug_agent.log`, `errors.log`).
-- **Frontend**: Vue 3 + Pinia + Vue Router 4 + Vite. Token/utente in
-  `localStorage` (`bikemaster_token`, `bikemaster_user`). API client in
-  `frontend/src/utils/api.ts`; auth in `frontend/src/stores/auth.ts`.
-- **Test**: `pytest` (root) per il backend; `cd frontend && npm run test`
-  (vitest) per il frontend. Lint/typecheck: `cd frontend && npm run lint &&
-  npm run typecheck`.
-- **Riferimenti**: `AGENTS.md` (regole universali) e gli altri agent
-  (`.kilo/agent/frontend.md`, `security.md`, `code-explainer.md`).
+- **Architettura**: Tauri 2 desktop app (primario), PWA web (secondario). Backend embedded (FastAPI/Axum) + SQLite in locale su ogni device. Cloud PostgreSQL opzionale per sync/community.
+- **Backend**: FastAPI + SQLAlchemy/Pydantic. Entrypoint `main.py`; router in `api/` e `bike_analyzer/`. Config via `pyproject.toml` / `.env` (vedi `.env.example`). Log in `logs/` (`debug_agent.log`, `errors.log`).
+- **Frontend**: Vue 3 + Pinia + Vue Router 4 + Vite, bundled in Tauri WebView. Token/utente in `localStorage` (`bikemaster_token`, `bikemaster_user`). API client in `frontend/src/utils/api.ts`; auth in `frontend/src/stores/auth.ts`.
+- **Desktop**: Tauri 2 (Rust). Backend embedded comunica con frontend via `localhost`. Database SQLite locale. Build: `cd frontend && npm run tauri build`.
+- **Test**: `pytest` (root) per il backend; `cd frontend && npm run test` (vitest) per il frontend. Lint/typecheck: `cd frontend && npm run lint && npm run typecheck`.
+- **Riferimenti**: `AGENTS.md` (regole universali) e gli altri agent (`.kilo/agent/frontend.md`, `security.md`, `code-explainer.md`).
 
 ## Cosa fai, per area
 

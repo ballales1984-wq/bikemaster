@@ -1,24 +1,29 @@
 # Salvataggio Dati sui Dispositivi degli Utenti
 
-**Progetto:** BikeMaster · **Frontend:** Vue 3 + PWA (vite-plugin-pwa) · **Native:** Capacitor (Android/iOS)
+**Progetto:** BikeMaster · **Frontend:** Vue 3 + Vite + TypeScript (Tauri 2 WebView / PWA) · **Desktop:** Tauri 2 (Rust + WebView) · **Native:** Capacitor (Android/iOS)
 
 Questo documento descrive in modo unitario **come e dove BikeMaster salva i dati
-sul dispositivo dell'utente**, in ottica *offline-first*. È il riferimento
+sul dispositivo dell'utente**, in ottica *local-first*. È il riferimento
 centrale a cui si appoggiano `PHONE_TRACKING.md`, `frontend.md`,
 `docs/agent/auth.md` e la Cookie Policy.
+
+Nell'architettura local-first, **il device è la sorgente di verità**. Ogni utente
+ha una copia completa dell'app con SQLite locale. Il cloud è opzionale e serve
+solo per sincronizzazione e funzionalità social.
 
 ---
 
 ## 1. Principi
 
-- **Offline-first:** l'app deve avviarsi e restare utilizzabile anche senza
+- **Local-first:** l'app deve avviarsi e restare utilizzabile anche senza
   rete; le uscite GPS non devono mai essere perse per mancanza di connessione.
-- **Minimo necessario:** sul dispositivo finiscono solo token di sessione,
-  dati di cache e le tracce GPX in attesa di sincronizzazione. I dati sensibili
-  (profilo, attività storiche) risiedono sul backend e vengono ri-cache-ati
-  localmente solo in modo volatile/effimero.
-- **Sync al termine:** ogni dato generato offline viene accodato e inviato al
-  backend non appena la connessione ritorna (vedi Background Sync, §4.5).
+- **Device-complete:** ogni dispositivo ha una copia completa dell'app con
+  database SQLite locale. I dati dell'utente (profilo, attività, health data)
+  risiedono primariamente in locale, non su un server centrale.
+- **Sync contrattata:** l'utente decide se e quando sincronizzare con il cloud.
+  La sincronizzazione è bidirezionale ma sempre opzionale.
+- **Minimo necessario:** sul dispositivo finiscono tutti i dati dell'utente.
+  Il cloud riceve solo copie se l'utente attiva la sync.
 - **Pulizia esplicita:** l'utente può cancellare i dati locali (logout,
   revoca permessi, disinstallazione) e il backend espone il diritto alla
   cancellazione (GDPR, vedi `PRIVACY_POLICY_STORE.md`).
@@ -29,16 +34,14 @@ centrale a cui si appoggiano `PHONE_TRACKING.md`, `frontend.md`,
 
 ```mermaid
 graph TD
-    A[Vue App] -->|JWT + sessione| B[Local Storage]
+    A[Vue App in Tauri WebView] -->|JWT + sessione| B[Local Storage]
     A -->|stato live tracking| C[In-memory Pinia trackingStore]
     C -->|esportazione| D[GPX locale / Blob]
-    A -->|fetch /api| E[Service Worker]
-    E -->|shell + asset| F[Cache statica]
-    E -->|risposte API| G[Cache API]
-    E -->|upload ride offline| H[Coda Ride Queue]
-    E -->|push/periodic| I[Background Sync]
-    A -->|cache avanzata attività| J[(IndexedDB - pianificato)]
-    K[Android Foreground Service] -->|GPX sicuro| L[File GPX locale]
+    A -->|fetch /api| E[Backend Embedded localhost]
+    E -->|dati primari| F[(SQLite locale)]
+    E -->|sync opzionale| G[Cloud PostgreSQL]
+    A -->|cache avanzata attività| H[(IndexedDB - pianificato)]
+    I[Android Foreground Service] -->|GPX sicuro| J[File GPX locale]
 ```
 
 ### 2.1 Local Storage — token e sessione
@@ -80,35 +83,30 @@ prima del caricamento. Su Android è delegato al `BikeTrackingService.kt`
 (Local GPX Writer), su web app è il `Blob` prodotto da `trackingStore.toGpx()`.
 Vedi `PHONE_TRACKING.md` §2 (Salvataggio locale sicuro) e §3 (architettura).
 
-### 2.4 Service Worker — cache (shell, API, immagini)
+### 2.4 Backend Embedded (Tauri Desktop)
 
-`frontend/src/sw.js`, generato con `vite-plugin-pwa` (`strategies:
-injectManifest`, `registerType: autoUpdate`).
+Su desktop (Tauri), il backend FastAPI o Axum gira come processo embedded
+sullo stesso device, comunicando con il frontend via `localhost`.
+Il database primario è SQLite (file locale).
 
-| Cache | Strategia | TTL | Scope |
-|---|---|---|---|
-| `bikemaster-static-v7` | precache + navigate NetworkFirst | asset 24h | shell app, script/style |
-| `bikemaster-api-v1` | NetworkFirst | 60s (100 entry) | `/api/*` generico |
-| `bikemaster-api-v1` (auth) | NetworkFirst | 0s (10 entry) | `/api/*auth*` → **mai cache-ato** |
-| `bikemaster-images-v1` | CacheFirst | 30 giorni (60 entry) | immagini |
-| `bikemaster-ride-queue-v1` | Background Sync | 24h retention | coda upload ride offline |
+| Componente | Dove | Note |
+|---|---|---|
+| API server | `localhost` (processo embedded) | FastAPI (Python) o Axum (Rust) |
+| Database | File SQLite sul disco | Dati primari, no server centrale |
+| Sync service | `localhost` | Bidirezionale, attivato su scelta utente |
 
-- **Navigation handler** registrato *prima* di `precacheAndRoute`: fetch con
-  `cache: "reload"` per evitare `index.html` stale con hash obsoleti; fallback
-  alla shell cache in offline (altrimenti `503`).
-- `cleanupOutdatedCaches()` + `activate` eliminano cache non più usate.
-- `SKIP_WAITING` gestito via `postMessage` (vedi `docs/agent/notes.md`).
+Su web (PWA), il backend è il server cloud opzionale. Le chiamate `/api`
+possono essere dirette al backend locale (se disponibile) o al cloud.
 
-### 2.5 Background Sync — coda upload offline
+### 2.5 Sync Service — coda upload e sincronizzazione
 
-Le `POST /api/v1/rides/*` passano per un `BackgroundSyncPlugin`
-(`RIDE_QUEUE_CACHE`): se la rete non risponde, la richiesta viene accodata
-nel Cache Storage e reinviata automaticamente all'evento `sync` (e al
-`periodicsync` `"sync-rides"`, 24h di retention massima).
+Le `POST /api/v1/rides/*` passano per il sync service embedded. Se la sync
+cloud è attiva e la rete non risponde, la richiesta viene accodata
+localmente e reinviata automaticamente quando la connessione ritorna.
 
-> ⚠️ **Dato stale:** la cache API su `/api` ha TTL breve (60s) ma le ride
-> possono risultare stale dopo sync. Prevedere invalidazione esplicita
-> (problema già tracciato in `docs/agent/notes.md`).
+> Nell'architettura local-first, il backend locale (SQLite) è sempre disponibile.
+> La coda serve solo per la sincronizzazione con il cloud, non per la funzionalità
+> base dell'app.
 
 ### 2.6 IndexedDB — cache avanzata attività
 
@@ -144,22 +142,23 @@ attività`). Test: `src/utils/localRideCache.test.ts` (con `fake-indexeddb`).
 
 ## 3. Flussi chiave
 
-### 3.1 Avvio app / ripristino sessione
+### 3.1 Avvio app / ripristino sessione (Desktop Tauri)
 1. `main.ts` eventualmente legge token OAuth da URL (`setAuthFromUrl`).
 2. `router.beforeEach` sincronizza `auth.token`/`auth.user` da `localStorage`.
 3. Se token valido → dashboard; se scaduto → `clearAuth()` + toast.
+4. Backend embedded si avvia automaticamente, apre SQLite locale.
 
 ### 3.2 Tracking offline → GPX → sync
 1. `trackingStore` accumula `routePoints` in memoria.
 2. Fine uscita → `toGpx()` produce GPX; su nativo salvataggio su file.
-3. Upload `POST /rides/import`: in offline viene accodato (Background Sync).
-4. Al ritorno rete → `sync` reinvia; backend crea Ride + metriche + AI Coach.
+3. Upload al backend embedded locale → salvataggio SQLite.
+4. Se sync cloud attiva → accodamento per sincronizzazione successiva.
+5. Al ritorno rete → sync reinvia al cloud se attiva.
 
 ### 3.3 Invalidazione cache
-- Auth: mai cache-ato (`maxAgeSeconds: 0`).
-- Ride/API: TTL 60s; aggiornamenti post-sync richiedono invalidazione manuale
-  (vedi nota §2.5).
-- Static: rinnovato a ogni deploy (`skipWaiting` + cleanup cache).
+- Auth: mai cache-ato.
+- Ride/API: aggiornamenti post-sync richiedono invalidazione manuale
+- Static: rinnovato a ogni deploy.
 
 ---
 
@@ -169,8 +168,8 @@ attività`). Test: `src/utils/localRideCache.test.ts` (con `fake-indexeddb`).
   monitorare. Opzione futura: cookie `HttpOnly` + refresh via `security.py`.
 - I dati GPS grezzi restano sul dispositivo solo il tempo necessario al
   caricamento; non vengono usati per altri scopi (vedi `PRIVACY_POLICY_STORE.md` §6).
-- Directory locale (`RIDE_QUEUE_CACHE`, GPX) contengono dati di attività:
-  vanno cancellate al logout/disinstallazione.
+- SQLite locale contiene tutti i dati dell'utente: vanno cancellati al
+  logout/disinstallazione (GDPR diritto all'oblio).
 - La Cookie Policy elenca Local Storage, Session Storage e IndexedDB come
   strumenti di tracciamento alternativi (`src/views/CookiePolicy.vue`).
 
@@ -186,10 +185,10 @@ attività`). Test: `src/utils/localRideCache.test.ts` (con `fake-indexeddb`).
 | `frontend/src/utils/localRideCache.ts` | Cache IndexedDB attività (offline-first) |
 | `frontend/src/composables/useRides.ts` | Lettura/scrittura ride + fallback cache |
 | `frontend/src/router/index.ts` | Sync Local Storage → Pinia |
-| `frontend/src/sw.js` | Service Worker (cache + Background Sync) |
+| `frontend/src/sw.js` | Service Worker (PWA web) |
+| `src-tauri/tauri.conf.json` | Configurazione app desktop |
 | `frontend/vite.config.js` | Config PWA / runtime caching |
 | `frontend/android/.../BikeTrackingService.kt` | GPX locale nativo |
-| `frontend/src/views/CookiePolicy.vue` | Dichiarazione storage lato client |
 
 **Collegati:** `PHONE_TRACKING.md`, `frontend.md`, `docs/agent/auth.md`,
-`docs/agent/notes.md`, `PRIVACY_POLICY_STORE.md`.
+`docs/agent/notes.md`, `PRIVACY_POLICY_STORE.md`, `docs/deployment-plan.md`.

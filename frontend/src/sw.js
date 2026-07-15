@@ -118,9 +118,20 @@ const bgSyncPlugin = new BackgroundSyncPlugin(RIDE_QUEUE_CACHE, {
   },
 });
 
+// Only handle *same-origin* API requests. When the frontend is deployed on a
+// different origin than the backend (e.g. Vercel SPA -> ngrok/Render backend),
+// cross-origin /api calls must fall through to the browser's normal CORS
+// handling. Intercepting them here produces opaque/duplicate "no-response"
+// errors in the service worker and adds no value (we never cache third-party
+// responses meaningfully).
+function isSameOriginApi(url) {
+  return (
+    url.origin === self.location.origin && url.pathname.startsWith("/api/")
+  );
+}
+
 registerRoute(
-  ({ url }) =>
-    url.pathname.startsWith("/api/") && url.pathname.includes("rides"),
+  ({ url }) => isSameOriginApi(url) && url.pathname.includes("rides"),
   new NetworkFirst({
     cacheName: API_CACHE,
     plugins: [
@@ -135,7 +146,7 @@ registerRoute(
 
 registerRoute(
   ({ url }) =>
-    url.pathname.startsWith("/api/") &&
+    isSameOriginApi(url) &&
     (url.pathname.includes("/auth/") || url.pathname.includes("/auth")),
   new NetworkFirst({
     cacheName: API_CACHE,
@@ -144,7 +155,7 @@ registerRoute(
 );
 
 registerRoute(
-  ({ url }) => url.pathname.startsWith("/api/"),
+  ({ url }) => isSameOriginApi(url),
   new NetworkFirst({
     cacheName: API_CACHE,
     plugins: [

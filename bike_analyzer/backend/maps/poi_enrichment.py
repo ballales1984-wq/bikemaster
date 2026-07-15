@@ -172,7 +172,6 @@ def enrich_pois_near(
     Consumes at most one SerpApi search from the monthly budget. Returns a
     summary dict describing the outcome.
     """
-    settings = get_settings()
     summary: dict[str, Any] = {
         "queried": False,
         "saved": 0,

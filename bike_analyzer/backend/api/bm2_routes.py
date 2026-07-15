@@ -7,9 +7,8 @@ Ogni risposta riporta sempre, per ogni algoritmo: risultato + formula usata
 
 from __future__ import annotations
 
-from typing import Any
-
 from datetime import datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
@@ -20,6 +19,7 @@ from bike_analyzer.bm2.orchestrator import AIOrchestrator
 from bike_analyzer.bm2.simulation import ScenarioOverride, SimulationEngine
 from bike_analyzer.core.models import AthleteProfile, GPSPoint, Ride
 from bike_analyzer.core.physics import RiderBikeParams, validate_ride_power
+
 from ..security import get_current_user
 
 bm2_router = APIRouter()

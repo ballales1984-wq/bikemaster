@@ -72,7 +72,7 @@ def _patch_fastapi_instrumentation():
 
         fastapi_instr._get_route_details = _patched_get_route_details
     except Exception:
-        pass
+        logger.debug("OpenTelemetry route detail patching failed", exc_info=True)
 
 
 def init_observability(app=None):

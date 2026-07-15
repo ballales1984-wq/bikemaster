@@ -15,13 +15,11 @@ Segnala e correggi le vulnerabilita, ma non introdurre breaking change non richi
 Ogni fix di sicurezza deve mantenere il comportamento runtime e i flussi auth/OAuth.
 
 ## Perimetro BikeMaster
-- **Backend**: FastAPI + (presumibilmente) SQLAlchemy/Pydantic. JWT in `localStorage`
-  lato frontend, gestione token in `frontend/src/stores/auth.ts` e
-  `frontend/src/utils/api.ts` (gestione 401 -> `clearAuth()`).
-- **Frontend**: Vue 3 + Pinia + Vue Router 4 + Vite. Token/utente in `localStorage`
-  (`bikemaster_token`, `bikemaster_user`, `bikemaster_just_logged_in`).
-- **Riferimento**: `AGENTS.md` (regole universali) e le convenzioni negli altri agent
-  (`.kilo/agent/frontend.md`, `github-sync.md`, `production-pusher.md`).
+- **Architettura**: Tauri 2 desktop app (primario), PWA web (secondario). Backend embedded (FastAPI/Axum) + SQLite in locale su ogni device. Cloud PostgreSQL opzionale per sync/community.
+- **Backend**: FastAPI + SQLAlchemy/Pydantic. Entrypoint `main.py`; router in `api/` e `bike_analyzer/`. Config via `pyproject.toml` / `.env` (vedi `.env.example`). Log in `logs/`.
+- **Frontend**: Vue 3 + Pinia + Vue Router 4 + Vite, bundled in Tauri WebView. Token/utente in `localStorage` (`bikemaster_token`, `bikemaster_user`). API client in `frontend/src/utils/api.ts`; auth in `frontend/src/stores/auth.ts`.
+- **Desktop**: Tauri 2 (Rust). Backend embedded comunica con frontend via `localhost`. Database SQLite locale. Build: `cd frontend && npm run tauri build`.
+- **Riferimento**: `AGENTS.md` (regole universali) e le convenzioni negli altri agent (`.kilo/agent/frontend.md`, `github-sync.md`, `production-pusher.md`).
 
 ## Cosa fai
 

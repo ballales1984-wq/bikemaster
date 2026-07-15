@@ -36,7 +36,7 @@ _s = get_settings()
 logger = logging.getLogger(__name__)
 
 WAHOO_AUTH_URL = "https://api.wahooligan.com/oauth/authorize"
-WAHOO_TOKEN_URL = "https://api.wahooligan.com/oauth/token"
+WAHOO_TOKEN_URL = "https://api.wahooligan.com/oauth/token"  # noqa: S105
 WAHOO_API_BASE_URL = "https://api.wahooligan.com"
 
 OAUTH_STATE_TTL_SECONDS = 600

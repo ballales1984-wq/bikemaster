@@ -2,9 +2,10 @@
 
 ## 1. Visione d'Insieme
 
-BikeMaster è un hub intelligente per il ciclismo che integra servizi diversi mantenendo
-la maggior parte dei calcoli sul dispositivo dell'utente. L'architettura è **local-first**,
-con sincronizzazione cloud opzionale e controllata dall'utente.
+BikeMaster è un hub intelligente per il ciclismo progettato come applicazione
+**local-first**. Ogni utente ha una copia completa dell'app sul proprio dispositivo,
+con dati e calcoli che restano in locale. Il cloud è opzionale e serve solo per
+sincronizzazione, funzionalità social e backup — mai come requisito obbligatorio.
 
 ### Principi guida
 
@@ -12,7 +13,8 @@ con sincronizzazione cloud opzionale e controllata dall'utente.
 2. **Device-compute**: calcoli pesanti (GPS, calorie, VO2max, TSS, IA locale) restano sul device.
 3. **Sync contrattata**: l'utente decide frequenza e direzione della sincronizzazione.
 4. **Privacy by design**: i dati sensibili non lasciano il device a meno di sync esplicita.
-5. **Modularità**: integrazioni attivabili/disattivabili senza dipendenze forzate.
+5. **Distribuzione desktop-first**: app nativa `.exe`/`.dmg`/`.AppImage` come canale primario; web/PWA come canale secondario.
+6. **Modularità**: integrazioni attivabili/disattivabili senza dipendenze forzate.
 
 ---
 
@@ -22,12 +24,21 @@ con sincronizzazione cloud opzionale e controllata dall'utente.
 
 | Piattaforma | Tecnologia | Hosting | Note |
 |---|---|---|---|
-| Web | Vue 3 + Vite + PWA | **Vercel** | Build statico, CDN edge, HTTPS automatico |
-| Desktop | Tauri 2 (Rust + WebView) | Release su GitHub | Bundle nativo Windows/macOS/Linux |
+| **Desktop (primario)** | Tauri 2 (Rust + WebView) + Vue 3 + Vite + TypeScript | GitHub Releases | Bundle nativo `.exe`/`.dmg`/`.AppImage`, backend embedded locale |
+| Web | Vue 3 + Vite + PWA | **Vercel** | Build statico, CDN edge, HTTPS automatico, canale secondario |
 | Mobile Android | Capacitor 5 + Vue 3 | Google Play Store | APK/AAB, GPS background service |
 | Mobile iOS | Capacitor 5 + Vue 3 | Apple App Store (futuro) | Dipende da roadmap |
 
-**Flusso deploy frontend web:**
+**Flusso deploy desktop (canale primario):**
+```
+git push origin main
+  → GitHub Actions (lint, typecheck, test, build)
+  → Tauri build: frontend bundle + Rust backend embedded
+  → GitHub Release: .exe (Windows), .dmg (macOS), .AppImage (Linux)
+  → Ogni utente scarica e installa la sua copia locale
+```
+
+**Flusso deploy web (canale secondario):**
 ```
 git push origin main
   → GitHub Actions (lint, typecheck, test, build)
@@ -36,6 +47,20 @@ git push origin main
 ```
 
 ### 2.2 Backend
+
+L'architettura è **local-first**: il backend è incorporato nell'app desktop e
+gira in locale sul device dell'utente. Il cloud è opzionale.
+
+#### Backend embedded (Tauri desktop)
+
+| Componente | Tecnologia | Dove gira | Note |
+|---|---|---|---|
+| API server | FastAPI (Python) o Axum (Rust) | `localhost` sul device | Processo secondario dell'app desktop |
+| Database | SQLite (file locale) | Disco dell'utente | Dati primari, nessun server centrale |
+| Sync service | Modulo Python/Rust | `localhost` | Bidirezionale, attivato su scelta utente |
+| Cache/queue | SQLite-based o Redis locale | Disco dell'utente | Nessun server esterno richiesto |
+
+**Stack cloud (opzionale, solo per sync/community):**
 
 | Fase | Infrastruttura | Target | Note |
 |---|---|---|---|
@@ -58,29 +83,33 @@ git push origin main
 ### 2.3 Database
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    DATABASE STRATEGY                     │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  Device (SQLite)          Cloud (PostgreSQL)            │
-│  ┌──────────────┐         ┌──────────────┐             │
-│  │ rides.db     │         │  users       │             │
-│  │ activities   │◄───────►│  activities  │ (sync)     │
-│  │ health_data  │  sync   │  community   │            │
-│  │ fusion_logs  │         │  leaderboard │            │
-│  └──────────────┘         │  sessions    │            │
-│                           └──────────────┘             │
-│                                                         │
-│  Ogni riga porta metadati:                              │
-│  - source (device / strava / garmin / manual)           │
-│  - reliability_score (0.0-1.0)                          │
-│  - last_modified (UTC timestamp)                        │
-│  - sync_status (local / synced / conflict / pending)    │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│                    DATABASE STRATEGY                      │
+├───────────────────────────────────────────────────────────┤
+│                                                           │
+│  Device (SQLite - PRIMARIO)     Cloud (PostgreSQL)       │
+│  ┌──────────────┐              ┌──────────────┐          │
+│  │ rides.db     │              │  users       │          │
+│  │ activities   │  ◄───────►   │  activities  │ (sync)  │
+│  │ health_data  │   sync       │  community   │         │
+│  │ fusion_logs  │              │  leaderboard │          │
+│  │ sessions     │              │  sessions    │          │
+│  └──────────────┘              └──────────────┘          │
+│                                                           │
+│  Il device è la sorgente di verità. Il cloud è un mirror  │
+│  opzionale per sync e funzionalità sociali.               │
+│                                                           │
+│  Ogni riga porta metadati:                                │
+│  - source (device / strava / garmin / manual)             │
+│  - reliability_score (0.0-1.0)                            │
+│  - last_modified (UTC timestamp)                          │
+│  - sync_status (local / synced / conflict / pending)      │
+│                                                           │
+└───────────────────────────────────────────────────────────┘
 ```
 
 **Migrazione DB**: gestita con Alembic. Le migrazioni sono incluse in ogni release.
+SQLite è il database primario; le migrazioni Alembic gestiscono sia SQLite che PostgreSQL.
 
 ---
 
@@ -252,12 +281,13 @@ Ogni integrazione è un modulo opzionale. L'utente attiva solo quelle necessarie
 | Job | Trigger | Azioni |
 |---|---|---|
 | `test` | Push/PR | pytest + coverage → Codecov |
-| `lint` | Push/PR | ruff (Python) + eslint + vue-tsc (frontend) |
+| `lint` | Push/PR | ruff (Python) + eslint + vue-tsc (frontend) + cargo clippy (Tauri) |
 | `frontend` | Push/PR | npm run lint, typecheck, vitest, build |
+| `tauri` | Push main / tag | npm run tauri build → GitHub Release (.exe/.dmg/.AppImage) |
 | `security` | Push/PR | Trivy scan → SARIF → CodeQL |
-| `build` | Push main | Docker build + push registry |
-| `deploy-render` | Push main | Deploy backend su Render |
-| `deploy-vercel` | Push main | Deploy frontend su Vercel |
+| `build` | Push main | Docker build + push registry (solo per cloud sync/community) |
+| `deploy-render` | Push main | Deploy backend cloud su Render (opzionale) |
+| `deploy-vercel` | Push main | Deploy frontend web su Vercel (canale secondario) |
 | `android-release` | Tag `mobile-*` | Build APK/AAB + GitHub Release |
 
 ### 8.2 Git Hooks
@@ -284,33 +314,35 @@ Ogni integrazione è un modulo opzionale. L'utente attiva solo quelle necessarie
 
 ### Fase 1 — Sviluppo Locale (ora)
 
-- Backend in locale con SQLite
-- Frontend Vite dev server
+- Backend embedded (FastAPI o Axum) in locale con SQLite
+- Frontend Vue 3 in Tauri WebView (dev mode)
 - Testing E2E locale
 - Nessun deploy cloud
 
-### Fase 2 — Beta su Render (Q3 2026)
+### Fase 2 — Desktop App Beta (Q3 2026)
 
-- Deploy backend su Render (Docker, piano Starter)
-- PostgreSQL gestito su Render
-- Frontend su Vercel preview/production
+- Tauri 2 desktop app funzionante (`.exe`/`.dmg`/`.AppImage`)
+- Backend embedded stabile, comunicazione frontend↔backend via `localhost`
+- SQLite come database primario con migrazioni Alembic
+- GitHub Releases per distribuzione
+- Max 100 utenti beta
+- Cloud opzionale disattivato di default ("Mai")
+
+### Fase 3 — Produzione Desktop + Cloud Opzionale (Q4 2026)
+
+- Tauri desktop app release stabile su GitHub Releases
+- Sync bidirezionale con cloud PostgreSQL (opzionale, attivabile da utente)
+- PWA su Vercel come canale secondario (nessun obbligo di cloud)
 - Android APK distribuito via GitHub Releases
-- Max 500 utenti beta
+- Monitoring locale + reporting errori opzionale
 
-### Fase 3 — Produzione (Q4 2026)
+### Fase 4 — Scale e Community (2027+)
 
-- Upgrade Render piano o migrazione a K8s self-hosted
-- Redis per caching e sessioni
-- Backup server automatizzato
-- Tauri desktop app release
+- Funzionalità social/community sul cloud (classifiche, condivisione)
+- AI Coach con modelli personalizzati (locale + cloud fallback)
+- CDN per asset statici se PWA richiesta
+- Replica database cloud geografica per sync globale
 - iOS app (se roadmap approvata)
-
-### Fase 4 — Scale (2027+)
-
-- Infrastruttura dedicata con bilanciamento
-- CDN per mappe e asset statici
-- Replica database geografica
-- AI Coach con modelli personalizzati
 
 ---
 

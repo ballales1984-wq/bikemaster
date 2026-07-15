@@ -21,6 +21,7 @@ Each fetcher returns a normalized list of incidents:
 from __future__ import annotations
 
 import json
+import logging
 import math
 import os
 from datetime import UTC, datetime
@@ -29,6 +30,8 @@ from typing import Any
 _INCIDENT_DATA_PATH = os.environ.get("INCIDENT_DATA_PATH", "")
 _INCIDENT_API_URL = os.environ.get("INCIDENT_API_URL", "")
 _INCIDENT_API_KEY = os.environ.get("INCIDENT_API_KEY", "")
+
+logger = logging.getLogger(__name__)
 
 
 def _load_local_incidents() -> list[dict[str, Any]]:
@@ -70,8 +73,8 @@ def _fetch_from_api(lat: float, lon: float, radius_km: float = 5.0, days: int = 
         if isinstance(data, dict):
             return data.get("incidents", data.get("features", []))
     except Exception:
-        pass
-    return []
+        logger.debug("Incident fetch failed", exc_info=True)
+        return []
 
 
 def _normalize_incident(raw: dict[str, Any], source: str) -> dict[str, Any] | None:

@@ -275,13 +275,13 @@ Stato: baseline completo e testato (`test_bm2_*`); **integrato** col flusso
 
 | Layer | Tecnologia |
 |---|---|
-| Backend | FastAPI 0.110+, Python 3.11+ |
+| Backend | FastAPI 0.110+ (embedded) o Axum (Rust) — Tauri 2 desktop app |
 | Core/Domain | Python dataclasses, Clean Architecture |
-| Database | SQLite (dev sync) + PostgreSQL (prod async, asyncpg) |
+| Database | SQLite (primario, locale su ogni device) + PostgreSQL (opzionale, cloud sync) |
 | ORM | SQLAlchemy 2.0 (declarative + async) |
-| Migrations | Alembic |
-| Vector DB | PGVector (cosine similarity search) |
-| Cache | Redis 7 (opzionale, fallback in-memory) |
+| Migrations | Alembic (gestisce sia SQLite che PostgreSQL) |
+| Vector DB | PGVector (cosine similarity search, solo cloud) |
+| Cache | SQLite-based o Redis locale (no server esterno richiesto) |
 | Analytics | NumPy, Pandas, Matplotlib, SciPy, scikit-learn, statsmodels, endurance-metrics |
 | Parsing GPS | gpxpy, fitparse |
 | AI/LLM | Groq SDK (embeddings locali via sentence-transformers) |
@@ -291,8 +291,9 @@ Stato: baseline completo e testato (`test_bm2_*`); **integrato** col flusso
 | Config | Pydantic Settings v2 |
 | Testing | pytest, pytest-asyncio, Playwright |
 | Frontend | Vue 3 + Vite + TypeScript + Pinia + Chart.js + Leaflet + Capacitor |
+| Desktop | Tauri 2 (Rust + WebView) — bundle nativo |
 | Mobile | Android Kotlin (Capacitor) |
-| CI/CD | GitHub Actions (test, lint, security scan, build) |
+| CI/CD | GitHub Actions (test, lint, security scan, build, Tauri release) |
 
 ---
 

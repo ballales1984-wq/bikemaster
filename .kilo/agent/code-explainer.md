@@ -21,7 +21,7 @@ rendere chiaro cosa succede nel codice.
 2. Esegui `git diff --cached && git diff` per vedere le modifiche staged e non.
 3. Se non ci sono modifiche, avvisa l'utente e fermati.
 4. Identifica il contesto: sei nel frontend (`frontend/`), nel backend
-   (`bike_analyzer/`), o in entrambi?
+   (`bike_analyzer/`), in Tauri (`src-tauri/`), o in entrambi?
 
 ## Come spiegare
 

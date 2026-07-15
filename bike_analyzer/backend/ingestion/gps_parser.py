@@ -47,7 +47,7 @@ def parse_gpx_file(content: str) -> list[dict]:
     import xml.etree.ElementTree as ET
 
     content = re.sub(r"<!DOCTYPE[^>]*?>", "", content, flags=re.IGNORECASE | re.DOTALL)
-    root = ET.fromstring(content)
+    root = ET.fromstring(content)  # noqa: S314
     points, ns = [], {"d": "http://www.topografix.com/GPX/1/1"}
     for trkpt in root.findall(".//d:trkpt", ns):
         lat_raw, lon_raw = trkpt.get("lat"), trkpt.get("lon")
