@@ -154,10 +154,12 @@ class="google-icon" viewBox="0 0 24 24" width="20" height="20">
 import { ref, computed } from "vue";
 import { useI18n } from "../composables/useI18n";
 import { useUIStore } from "../stores/ui";
+import { useAuthStore } from "../stores/auth";
 import { resolveApiBase } from "../utils/backend-config";
 
 const { t } = useI18n();
 const ui = useUIStore();
+const auth = useAuthStore();
 
 const emit = defineEmits(["login", "register", "google-login", "error"]);
 
