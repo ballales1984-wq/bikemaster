@@ -27,8 +27,11 @@ function normalizeBase(base: string): string {
 
 export function isTauri(): boolean {
   if (typeof window === "undefined") return false;
-  const win = window as Window & { __TAURI__?: unknown };
-  return !!win.__TAURI__;
+  const win = window as Window & {
+    __TAURI__?: unknown;
+    __TAURI_INTERNALS__?: unknown;
+  };
+  return !!win.__TAURI__ || !!win.__TAURI_INTERNALS__;
 }
 
 export function getStoredApiBase(): string {

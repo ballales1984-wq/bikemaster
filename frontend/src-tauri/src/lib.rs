@@ -7,9 +7,9 @@
 //   - Endpoint REST: /health, /api/v1/rides, /api/v1/auth/me
 
 use axum::{
-    extract::State as AxumState,
-    http::{Method, StatusCode},
-    routing::get,
+    extract::{Form, Query, State as AxumState},
+    http::{HeaderMap, Method, StatusCode},
+    routing::{get, post},
     Router,
 };
 use chrono::Utc;
@@ -76,12 +76,100 @@ async fn reset_local_data(state: TauriState<'_, AppState>) -> Result<String, Str
 
 // ---- Axum HTTP Handlers ----
 
+const FAKE_JWT_TOKEN: &str =
+    "eyJhbGciOiJub25lIn0.eyJzdWIiOiIxIiwiZW1haWwiOiJsb2NhbEBiaWtlbWFzdGVyLmxvY2FsIiwidGVuYW50X2lkIjoxLCJleHAiOjk5OTk5OTk5OTl9.";
+
+fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
+    let auth = headers.get(axum::http::header::AUTHORIZATION)?;
+    let auth_str = auth.to_str().ok()?;
+    if auth_str.starts_with("Bearer ") {
+        Some(auth_str[7..].to_string())
+    } else {
+        None
+    }
+}
+
 async fn health_handler() -> axum::Json<serde_json::Value> {
     axum::Json(serde_json::json!({
         "status": "ok",
         "service": "bikemaster-backend",
         "timestamp": Utc::now().to_rfc3339(),
     }))
+}
+
+async fn auth_me(headers: HeaderMap) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    if token == FAKE_JWT_TOKEN {
+        return Ok(axum::Json(serde_json::json!({
+            "id": 1,
+            "username": "local@bikemaster.local",
+            "email": "local@bikemaster.local",
+            "is_admin": false,
+            "tenant_id": 1,
+            "profile_complete": true,
+        })));
+    }
+    Err(StatusCode::UNAUTHORIZED)
+}
+
+#[derive(serde::Deserialize)]
+struct GoogleAuthQuery {
+    redirect_uri: Option<String>,
+}
+
+async fn google_auth_handler(
+    _query: Query<GoogleAuthQuery>,
+) -> axum::Json<serde_json::Value> {
+    axum::Json(serde_json::json!({
+        "access_token": FAKE_JWT_TOKEN,
+        "refresh_token": FAKE_JWT_TOKEN,
+        "token_type": "bearer",
+        "username": "local@bikemaster.local",
+        "email": "local@bikemaster.local",
+        "id": 1,
+        "is_admin": false,
+    }))
+}
+
+#[derive(serde::Deserialize)]
+struct LoginFormData {
+    username: String,
+    password: String,
+}
+
+async fn auth_login(
+    Form(form): Form<LoginFormData>,
+) -> axum::Json<serde_json::Value> {
+    if form.username.is_empty() || form.password.is_empty() {
+        return axum::Json(serde_json::json!({"detail": "Username and password required"}));
+    }
+    axum::Json(serde_json::json!({
+        "access_token": FAKE_JWT_TOKEN,
+        "refresh_token": FAKE_JWT_TOKEN,
+        "token_type": "bearer",
+        "username": form.username,
+        "id": 1,
+        "is_admin": false,
+    }))
+}
+
+async fn auth_register(
+    Form(form): Form<LoginFormData>,
+) -> axum::Json<serde_json::Value> {
+    if form.username.is_empty() || form.password.is_empty() {
+        return axum::Json(serde_json::json!({"detail": "Username and password required"}));
+    }
+    if form.password.len() < 6 {
+        return axum::Json(serde_json::json!({"detail": "Password must be at least 6 characters"}));
+    }
+    axum::Json(serde_json::json!({
+        "message": "User registered successfully",
+        "username": form.username,
+    }))
+}
+
+async fn auth_logout(_headers: HeaderMap) -> Result<StatusCode, StatusCode> {
+    Ok(StatusCode::OK)
 }
 
 async fn list_rides(
@@ -242,6 +330,11 @@ async fn start_axum_server(state: AppState, port: u16) -> Result<(), Box<dyn std
 
     let app = Router::new()
         .route("/health", get(health_handler))
+        .route("/api/v1/auth/me", get(auth_me))
+        .route("/api/v1/auth/google", get(google_auth_handler))
+        .route("/api/v1/auth/login", post(auth_login))
+        .route("/api/v1/auth/register", post(auth_register))
+        .route("/api/v1/auth/logout", post(auth_logout))
         .route("/api/v1/rides", get(list_rides).post(create_ride))
         .route("/api/v1/rides/{id}", get(get_ride))
         .layer(cors)

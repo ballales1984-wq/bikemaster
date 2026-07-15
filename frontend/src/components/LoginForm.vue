@@ -233,23 +233,21 @@ function getRedirectUri() {
 async function loginWithGoogle() {
   loading.value = true;
   try {
-    const redirectUri = getRedirectUri();
     const base = resolveApiBase();
-    const response = await fetch(
-      `${base}/api/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`,
-    );
+    const response = await fetch(`${base}/api/v1/auth/google`);
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       throw new Error(data.detail || `Google login error: ${response.status}`);
     }
 
-    if (!data.auth_url) {
+    if (!data.access_token) {
       throw new Error("Google login error: invalid server response");
     }
 
-    ui.setOauthLoading(true);
-    window.location.href = data.auth_url;
+    auth.setAuthFromUrl(data.access_token, data.email || "", data.id ? String(data.id) : undefined);
+    ui.setOauthLoading(false);
+    emit("google-login", { token: data.access_token });
   } catch (e) {
     ui.setOauthLoading(false);
     emit("error", e.message);
