@@ -208,7 +208,13 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
     # Allowing it would let an attacker craft redirect_uri=https://evil.com with
     # Origin: https://evil.com and achieve an open redirect.
     allowed_hosts = (
-        {"bikemaster.onrender.com", "bikemaster-api.onrender.com", "bikemaster-xi.vercel.app", "testserver"}
+        {
+            "bikemaster.onrender.com",
+            "bikemaster-api.onrender.com",
+            "bikemaster-xi.vercel.app",
+            "testserver",
+            "tonita-deposable-manneristically.ngrok-free.dev",
+        }
         | cors_hosts
         | configured_hosts
     )
