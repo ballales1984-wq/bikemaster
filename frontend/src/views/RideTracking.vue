@@ -63,6 +63,30 @@ import ControlsBar from '../components/ControlsBar.vue'
 import { apiUpload, apiPost } from '../utils/api'
 import type { GpsPoint } from '../types/index'
 
+declare global {
+  interface Window {
+    BikeTracking?: BikeTrackingBridge
+  }
+}
+
+export interface NativeGpsSample {
+  lat: number
+  lon: number
+  altitude?: number | null
+  timestamp: number
+  speed?: number | null
+}
+
+export interface BikeTrackingBridge {
+  startTracking?: () => void | Promise<void>
+  stopTracking?: () => void | Promise<{ gpxPath?: string | null; gpxBlob?: Blob | null } | void>
+  pauseTracking?: () => void | Promise<void>
+  resumeTracking?: () => void | Promise<void>
+  checkPermissions?: () => Promise<{ granted: boolean }>
+  onPosition?: (cb: (sample: NativeGpsSample) => void) => void
+  onError?: (cb: (error: { code: number; message: string }) => void) => void
+}
+
 const { t } = useI18n()
 const router = useRouter()
 
@@ -122,10 +146,25 @@ async function startTracking() {
   }
   if (window.BikeTracking?.startTracking) {
     await window.BikeTracking.startTracking()
+    if (window.BikeTracking.onPosition) {
+      window.BikeTracking.onPosition(handleNativePosition)
+    }
+    if (window.BikeTracking.onError) {
+      window.BikeTracking.onError(handleWebError)
+    }
   } else {
     startWebTracking()
   }
   tracking.start()
+}
+
+function handleNativePosition(sample: NativeGpsSample) {
+  processCandidate(
+    sample.lat,
+    sample.lon,
+    sample.altitude ?? null,
+    sample.timestamp,
+  )
 }
 
 async function checkPermissions(): Promise<boolean> {
@@ -270,11 +309,16 @@ function detectGpsTurn(
   return detectTurnFromBearing(lastBearing, candidateBearing)
 }
 
-function handleWebPosition(position: GeolocationPosition) {
+function processCandidate(
+  lat: number,
+  lon: number,
+  altitude: number | null,
+  timestampMs: number,
+  opts: { haversineDistance: (aLat: number, aLon: number, bLat: number, bLon: number) => number } = {
+    haversineDistance: haversineDistanceMeters,
+  },
+) {
   if (!isTracking.value || isPaused.value) return
-
-  const lat = position.coords.latitude
-  const lon = position.coords.longitude
   if (!isFinite(lat) || !isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
     return
   }
@@ -291,12 +335,17 @@ function handleWebPosition(position: GeolocationPosition) {
   let distanceDelta = 0
   if (webLastPoint && webLastPoint.timestampNumber != null) {
     const samePosition = webLastPoint.lat === lat && webLastPoint.lon === lon
-    const elapsedSinceLastMs = position.timestamp - webLastPoint.timestampNumber
+    const elapsedSinceLastMs = timestampMs - webLastPoint.timestampNumber
     if (samePosition && elapsedSinceLastMs < 5000) {
       return
     }
     if (elapsedSinceLastMs > 0) {
-      distanceDelta = haversineDistanceMeters(webLastPoint.lat, webLastPoint.lon, lat, lon)
+      distanceDelta = opts.haversineDistance(
+        webLastPoint.lat,
+        webLastPoint.lon,
+        lat,
+        lon,
+      )
       if (distanceDelta > 5000) {
         return
       }
@@ -307,8 +356,8 @@ function handleWebPosition(position: GeolocationPosition) {
   const candidate: GpsPoint = {
     lat,
     lon,
-    altitude: position.coords.altitude,
-    timestamp: new Date(position.timestamp).toISOString(),
+    altitude,
+    timestamp: new Date(timestampMs).toISOString(),
   }
 
   const speedOutlier = gpsOutlierFilter.isOutlier(candidate)
@@ -340,7 +389,7 @@ function handleWebPosition(position: GeolocationPosition) {
   const elapsedSeconds = getWebElapsedSeconds()
   const avgSpeed = elapsedSeconds > 0 ? (webDistance / 1000) / (elapsedSeconds / 3600) : 0
   const elapsedSinceLastMs = webLastPoint?.timestampNumber
-    ? position.timestamp - webLastPoint.timestampNumber
+    ? timestampMs - webLastPoint.timestampNumber
     : 0
   const currentSpeed = elapsedSinceLastMs > 0 && distanceDelta > 0
     ? (distanceDelta / 1000) / (elapsedSinceLastMs / 3600000)
@@ -356,7 +405,16 @@ function handleWebPosition(position: GeolocationPosition) {
     points: tracking.routePoints.length,
   })
   liveMapRef.value?.addPoint(candidate.lat, candidate.lon)
-  webLastPoint = { ...candidate, timestampNumber: position.timestamp }
+  webLastPoint = { ...candidate, timestampNumber: timestampMs }
+}
+
+function handleWebPosition(position: GeolocationPosition) {
+  processCandidate(
+    position.coords.latitude,
+    position.coords.longitude,
+    position.coords.altitude,
+    position.timestamp,
+  )
 }
 
 function handleWebError(error: GeolocationPositionError) {

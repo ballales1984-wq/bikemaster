@@ -31,6 +31,7 @@ def _local(name, lat, lon, category="cafe", address="Via Test 1"):
 
 def test_no_api_key_does_not_query(enrich_db, monkeypatch):
     monkeypatch.setattr(get_settings(), "serpapi_api_key", "")
+    monkeypatch.setattr(serpapi_maps, "get_serpapi_api_key", lambda: "")
     called = {"n": 0}
 
     def _boom(*a, **k):

@@ -4,6 +4,7 @@ Bike Analyzer - Unified Entrypoint.
 Supports three modes:
   python main.py api      -> start FastAPI backend + dashboard (default)
   python main.py web      -> alias for api, serving the web dashboard
+  python main.py hub      -> start Hub backend (PostgreSQL, multi-tenant)
   python main.py cli      -> run CLI analytics on sample data
 """
 
@@ -24,27 +25,44 @@ logger = logging.getLogger("bikemaster.startup")
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 os.environ.setdefault("MPLBACKEND", "Agg")
 
-try:
-    from bike_analyzer.backend.api.app_factory import create_app
-
-    app = create_app()
-except Exception:
-    logger.error("FATAL: failed to build FastAPI app")
-    traceback.print_exc()
-    sys.exit(1)
-
 
 def main():
     parser = argparse.ArgumentParser(description="Bike Analyzer")
-    parser.add_argument("mode", nargs="?", default="api", choices=["api", "web", "cli"])
+    parser.add_argument(
+        "mode", nargs="?", default="api", choices=["api", "web", "hub", "cli"]
+    )
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--reload", action="store_true")
     args = parser.parse_args()
 
-    if args.mode in {"api", "web"}:
-        logger.info("Starting API + Dashboard on http://localhost:%s", args.port)
+    if args.mode == "hub":
+        logger.info("Starting Hub API on http://localhost:%s", args.port)
+        try:
+            from bike_analyzer.backend.hub.main import create_hub_app
+
+            app = create_hub_app()
+        except Exception:
+            logger.error("FATAL: failed to build Hub FastAPI app")
+            traceback.print_exc()
+            sys.exit(1)
         uvicorn.run(
-            "main:app",
+            app,
+            host="0.0.0.0",
+            port=args.port,
+            log_config=None,
+        )
+    elif args.mode in {"api", "web"}:
+        logger.info("Starting API + Dashboard on http://localhost:%s", args.port)
+        try:
+            from bike_analyzer.backend.api.app_factory import create_app
+
+            app = create_app()
+        except Exception:
+            logger.error("FATAL: failed to build FastAPI app")
+            traceback.print_exc()
+            sys.exit(1)
+        uvicorn.run(
+            app,
             host="0.0.0.0",
             port=args.port,
             reload=args.reload,

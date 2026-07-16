@@ -1459,6 +1459,11 @@ async def coach_chat_history(athlete_id: int = Query(...), current_user: dict = 
 
 @router.post("/import/multiple")
 async def import_multiple(files: list[UploadFile] = File(...), current_user: dict = Depends(get_current_user)):
+    """Batch import multiple GPX/FIT files in a single request.
+
+    Each file is processed in a separate thread; results are aggregated
+    into imported/failed lists. Total upload limited to 100MB.
+    """
     import tempfile
 
     from ..db.database import save_ride
@@ -1525,6 +1530,11 @@ async def import_multiple(files: list[UploadFile] = File(...), current_user: dic
 
 @router.get("/rides/export/json")
 async def export_json(current_user: dict = Depends(get_current_user)):
+    """Export all rides for the authenticated athlete as JSON.
+
+    The file is written to a temp file and streamed back with a
+    BackgroundTask that deletes it after delivery.
+    """
     from fastapi.responses import FileResponse
 
     from ..analytics.analytics import export_rides_json
@@ -1545,6 +1555,11 @@ async def export_json(current_user: dict = Depends(get_current_user)):
 
 @router.get("/rides/export/csv")
 async def export_csv(current_user: dict = Depends(get_current_user)):
+    """Export all rides for the authenticated athlete as CSV.
+
+    The file is written to a temp file and streamed back with a
+    BackgroundTask that deletes it after delivery.
+    """
     from fastapi.responses import FileResponse
 
     from ..analytics.analytics import export_rides_csv
@@ -1565,6 +1580,7 @@ async def export_csv(current_user: dict = Depends(get_current_user)):
 
 @router.get("/rides/{ride_id}/report")
 async def get_ride_report(ride_id: int, current_user: dict = Depends(get_current_user)):
+    """Generate a text performance report for a single ride."""
     from ..analytics.analytics import generate_text_report
     from ..db.database import get_ride as _get_ride
 
@@ -1577,6 +1593,7 @@ async def get_ride_report(ride_id: int, current_user: dict = Depends(get_current
 
 @router.get("/charts/speed/{ride_id}")
 async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
+    """Generate a speed profile chart PNG for a ride."""
     from ..analytics.analytics import create_speed_chart
     from ..db.database import get_ride as _get_ride
 
@@ -1608,6 +1625,7 @@ async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_use
 
 @router.get("/charts/duration")
 async def duration_chart(current_user: dict = Depends(get_current_user)):
+    """Generate a ride duration distribution chart PNG."""
     from ..analytics.analytics import create_duration_chart
     from ..db.database import get_rides_by_athlete
 
@@ -1622,6 +1640,7 @@ async def duration_chart(current_user: dict = Depends(get_current_user)):
 
 @router.get("/charts/distance/{ride_id}")
 async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
+    """Generate a distance profile chart PNG for a ride."""
     from ..analytics.analytics import create_distance_chart
     from ..db.database import get_ride as _get_ride
 
@@ -1653,6 +1672,7 @@ async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_
 
 @router.get("/charts/elevation/{ride_id}")
 async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
+    """Generate an elevation profile chart PNG for a ride."""
     from ..analytics.analytics import create_elevation_chart
     from ..db.database import get_ride as _get_ride
 
@@ -1684,7 +1704,11 @@ async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current
 
 @router.post("/athletes", response_model=dict)
 async def create_athlete(athlete_data: AthleteCreate, current_user: dict = Depends(get_current_user)):
-    """Create or update the authenticated user's athlete profile."""
+    """Create or upsert the authenticated user's athlete profile.
+
+    If a profile already exists for the athlete_id, it is updated;
+    otherwise a new record is created.
+    """
     from ..db.database import get_athlete as _get_athlete
     from ..db.database import get_athlete_by_name, save_athlete
     from ..db.database import update_athlete as _update
@@ -1717,7 +1741,7 @@ async def create_athlete(athlete_data: AthleteCreate, current_user: dict = Depen
 
 @router.get("/athletes")
 async def list_athletes(current_user: dict = Depends(get_current_user)):
-    """Get current user's athlete profile."""
+    """Return the current user's athlete profile."""
     from ..db.database import get_athlete as _get_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
@@ -1729,7 +1753,7 @@ async def list_athletes(current_user: dict = Depends(get_current_user)):
 
 @router.get("/athletes/me")
 async def get_my_athlete_profile(current_user: dict = Depends(get_current_user)):
-    """Get the authenticated user's own athlete profile."""
+    """Return the authenticated athlete's own profile with completeness flag."""
     from ..db.database import get_athlete as _get_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
@@ -1746,7 +1770,7 @@ async def get_my_athlete_profile(current_user: dict = Depends(get_current_user))
 
 @admin_router.get("/athletes")
 async def list_all_athletes(current_user: dict = Depends(get_admin_user)):
-    """Get all athletes - admin only."""
+    """Return all athlete profiles. Admin only."""
     from ..db.database import get_all_athletes as _get_all
 
     athletes = _get_all()
@@ -1755,7 +1779,7 @@ async def list_all_athletes(current_user: dict = Depends(get_admin_user)):
 
 @router.get("/athletes/{athlete_id}")
 async def get_athlete_endpoint(athlete_id: int, current_user: dict = Depends(get_current_user)):
-    """Get athlete - user can only see own profile."""
+    """Get an athlete's public profile. Users can only view their own."""
     from ..db.database import get_athlete as _get_athlete
 
     _ensure_athlete_access(athlete_id, current_user)
@@ -1768,7 +1792,7 @@ async def get_athlete_endpoint(athlete_id: int, current_user: dict = Depends(get
 
 @router.post("/athletes/{athlete_id}/metrics")
 async def add_metric(athlete_id: int, metric_data: MetricCreate, current_user: dict = Depends(get_current_user)):
-    """Add metric - user can only add metrics to own profile."""
+    """Add a health metric record for an athlete."""
     _ensure_athlete_access(athlete_id, current_user)
     from ..db.database import save_metric
 
@@ -1783,6 +1807,11 @@ async def update_athlete(
     athlete_data: AthleteUpdate,
     current_user: dict = Depends(get_current_user),
 ):
+    """Update an athlete's profile fields.
+
+    Validates name uniqueness, applies the update, and publishes an
+    AthleteUpdated event.
+    """
     _ensure_athlete_access(athlete_id, current_user)
     from ..db.database import get_athlete as _get
     from ..db.database import get_athlete_by_name
@@ -1812,6 +1841,10 @@ async def google_fit_auth(
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
+    """[Deprecated] Start Google Fit OAuth flow.
+
+    Use Google Health instead. This route is kept for backward compatibility.
+    """
     logger.warning("Deprecated Google Fit OAuth route accessed; use Google Health instead")
     from ..ingestion.google_fit import get_authorization_url
 
@@ -1832,6 +1865,11 @@ async def google_health_auth(
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
+    """Start Google Health OAuth2 PKCE flow.
+
+    Generates a code verifier/challenge, stores the verifier in cache,
+    and returns the authorization URL.
+    """
     from ..ingestion.google_health import _compute_code_challenge, _generate_code_verifier, get_authorization_url
 
     if not _s.google_health_client_id:
@@ -1862,6 +1900,11 @@ async def google_health_callback(
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
+    """Handle Google Health OAuth2 callback.
+
+    Verifies the state token, exchanges the code for an access token,
+    and returns the token via postMessage to the opener window.
+    """
     from ..ingestion.google_health import exchange_code_for_token
 
     if not _s.google_health_client_id or not _s.google_health_client_secret:
@@ -1941,6 +1984,11 @@ async def google_health_callback(
 
 @router.post("/import/google-health")
 async def import_google_health(payload: GoogleHealthImportPayload, current_user: dict = Depends(get_current_user)):
+    """Import rides from Google Health Connect.
+
+    Stores the provided tokens, fetches activities, converts them to
+    rides, and persists them. Returns the list of imported rides.
+    """
     from ..db.database import save_ride
     from ..ingestion.google_health import google_health_to_rides
     from ..ingestion.google_oauth_store import get_valid_google_token, store_google_token
@@ -1997,6 +2045,10 @@ async def google_fit_exchange_token(
     payload: GoogleFitTokenRequest,
     current_user: dict = Depends(get_current_user),
 ):
+    """[Deprecated] Exchange a Google Fit authorization code for tokens.
+
+    Use Google Health instead.
+    """
     logger.warning("Deprecated Google Fit token exchange route accessed; use Google Health instead")
     from ..ingestion.google_fit import exchange_code_for_token
 
@@ -2129,6 +2181,10 @@ async def google_fit_callback(
 
 @router.post("/import/google-fit")
 async def import_google_fit(payload: GoogleFitImportPayload, current_user: dict = Depends(get_current_user)):
+    """[Deprecated] Import rides from Google Fit.
+
+    Google Fit API has been deprecated by Google; use Google Health instead.
+    """
     logger.warning("Deprecated Google Fit import route accessed; use Google Health instead")
     from ..db.database import save_ride
     from ..ingestion.google_fit import fetch_cycling_activities, google_fit_to_ride
@@ -2188,6 +2244,7 @@ async def import_google_fit(payload: GoogleFitImportPayload, current_user: dict 
 
 @router.get("/scores/athlete/{athlete_id}")
 async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_current_user)):
+    """Compute performance, endurance, efficiency scores and experience level."""
     from ..analytics.performance import (
         calculate_efficiency_score,
         calculate_endurance_score,
@@ -2227,6 +2284,7 @@ async def get_athlete_scores(athlete_id: int, current_user: dict = Depends(get_c
 
 @router.post("/benchmark/compare")
 async def benchmark_compare(ride_data: BenchmarkCompareRequest, current_user: dict = Depends(get_current_user)):
+    """Compare a ride against benchmark data for the athlete's level."""
     from ..analytics.benchmark import compare_athlete_to_benchmark
     from ..models.models import AthleteProfile, Ride
 
@@ -2242,6 +2300,7 @@ async def benchmark_compare(ride_data: BenchmarkCompareRequest, current_user: di
 
 @router.get("/knowledge")
 async def list_knowledge():
+    """Return knowledge base statistics (topics, chunks, word counts)."""
     from ..analytics.knowledge_base import get_kb_stats
 
     stats = get_kb_stats()
@@ -2256,6 +2315,11 @@ async def list_knowledge():
 @router.get("/knowledge/search")
 @limiter.limit("10/minute")
 async def search_knowledge_endpoint(request: Request, query: str = "", max_chunks: int = 4, min_score: float = 0.05):
+    """Semantic search over the cycling knowledge base.
+
+    Returns matching chunks, an LLM-formatted context string, and
+    metadata about the search results.
+    """
     from ..analytics.knowledge_base import format_context_for_llm, search_knowledge_base
 
     if not query or not query.strip():
@@ -2273,6 +2337,7 @@ async def search_knowledge_endpoint(request: Request, query: str = "", max_chunk
 
 @router.get("/knowledge/stats")
 async def knowledge_stats(current_user: dict = Depends(get_current_user)):
+    """Return knowledge base statistics for the authenticated user."""
     from ..analytics.knowledge_base import get_kb_stats
 
     stats = get_kb_stats()
@@ -2286,6 +2351,7 @@ async def knowledge_stats(current_user: dict = Depends(get_current_user)):
 
 @router.post("/knowledge/reload")
 async def reload_knowledge(current_user: dict = Depends(get_admin_user)):
+    """Hot-reload the knowledge base from disk. Admin only."""
     from ..analytics.knowledge_base import reload_kb
 
     return reload_kb()
@@ -2293,6 +2359,7 @@ async def reload_knowledge(current_user: dict = Depends(get_admin_user)):
 
 @router.post("/knowledge/init-embeddings")
 async def init_kb_embeddings_endpoint(current_user: dict = Depends(get_admin_user)):
+    """Initialize embeddings for the knowledge base in PostgreSQL and ChromaDB."""
     from ..analytics.knowledge_base import init_chroma_db, init_kb_embeddings
     from ..db.postgres_db import get_session
 
@@ -2315,6 +2382,7 @@ async def workout_recommendations(
     athlete_id: int = 0,
     current_user: dict = Depends(get_current_user),
 ):
+    """Get AI-generated workout recommendations for an athlete."""
     from ..analytics.ai_coach import generate_workout_recommendations
     from ..db.database import get_athlete, get_rides_by_athlete
     from ..models.models import AthleteProfile
@@ -2343,6 +2411,11 @@ async def coach_full_data(
     athlete_id: int = 0,
     current_user: dict = Depends(get_current_user),
 ):
+    """Generate a full AI coach report (training, recovery, historical analysis).
+
+    The report includes training advice, recovery advice, historical
+    trends, training scores, and recovery scores. Rate limited.
+    """
     from ..analytics.ai_coach import ai_coach_full
     from ..db.database import (
         get_athlete,
@@ -2401,6 +2474,7 @@ async def coach_full_data(
 
 @router.get("/coach/page", response_class=HTMLResponse)
 async def coach_page():
+    """Serve the AI Coach static HTML page."""
     page = Path(__file__).parent.parent / "static" / "ai_coach.html"
     if page.exists():
         return page.read_text(encoding="utf-8")
@@ -2413,6 +2487,7 @@ async def recovery_recommendations(
     ride_id: int = 0,
     current_user: dict = Depends(get_current_user),
 ):
+    """Get AI recovery recommendations based on fatigue and recent rides."""
     from ..analytics.ai_coach import generate_recovery_recommendations
     from ..db.database import get_athlete, get_ride, get_rides_by_athlete
     from ..models.models import AthleteProfile, Ride
@@ -2445,6 +2520,7 @@ async def recovery_recommendations(
 
 @router.get("/coach/trends")
 async def historical_trends(current_user: dict = Depends(get_current_user)):
+    """Analyze historical training trends for the athlete."""
     from ..analytics.ai_coach import analyze_historical_trends
     from ..db.database import get_rides_by_athlete
 
@@ -2653,6 +2729,11 @@ async def google_static_map(
     colored: bool = Query(False, description="Color path by speed (green=fast, yellow=medium, red=slow)"),
     current_user: dict = Depends(get_current_user),
 ):
+    """Generate a Google Static Maps image for a ride.
+
+    Optionally colors the path by speed (green=fast, yellow=medium,
+    red=slow). Requires GOOGLE_MAPS_API_KEY to be configured.
+    """
     from fastapi.responses import FileResponse
 
     from ..db.database import get_ride as _get_ride
@@ -2686,6 +2767,7 @@ async def ride_speed_path(
     ride_id: int,
     current_user: dict = Depends(get_current_user),
 ):
+    """Return speed-colored path segments and bounding box for a ride."""
     from ..db.database import get_ride as _get_ride
     from ..maps.google_maps import build_speed_colored_path
     from ..models.models import GPSPoint
@@ -2719,6 +2801,7 @@ async def ride_speed_path(
 
 @admin_router.get("/backup")
 async def create_backup(current_user: dict = Depends(get_admin_user)):
+    """Create and download a database backup. Admin only."""
     from fastapi.responses import FileResponse
 
     from ..db.database import backup_database
@@ -2730,6 +2813,7 @@ async def create_backup(current_user: dict = Depends(get_admin_user)):
 
 @admin_router.post("/backup/scheduled")
 async def create_scheduled_backup(current_user: dict = Depends(get_admin_user)):
+    """Run a scheduled backup rotation (keeps last 10 backups). Admin only."""
     from ..db.database import scheduled_backup
 
     result = scheduled_backup(max_backups=10)
@@ -2739,6 +2823,7 @@ async def create_scheduled_backup(current_user: dict = Depends(get_admin_user)):
 
 @admin_router.post("/indexes")
 async def create_db_indexes(current_user: dict = Depends(get_admin_user)):
+    """Create database performance indexes. Admin only."""
     from ..db.database import create_indices
 
     create_indices()
@@ -2748,6 +2833,7 @@ async def create_db_indexes(current_user: dict = Depends(get_admin_user)):
 
 @admin_router.get("/stats")
 async def get_system_stats(current_user: dict = Depends(get_admin_user)):
+    """Return system-wide statistics (rides, athletes, DB size). Admin only."""
     from ..db.database import get_all_rides
 
     rides = get_all_rides()
@@ -2765,6 +2851,7 @@ async def get_system_stats(current_user: dict = Depends(get_admin_user)):
 
 @admin_router.post("/reset-demo")
 async def reset_demo_data(current_user: dict = Depends(get_admin_user)):
+    """Delete demo rides and regenerate sample data. Admin only."""
     from ..db.database import delete_ride, get_all_rides
 
     rides = get_all_rides()
@@ -2783,6 +2870,7 @@ async def reset_demo_data(current_user: dict = Depends(get_admin_user)):
 
 @admin_router.get("/ceo")
 async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
+    """Return executive-level analytics (growth, engagement, athlete levels). Admin only."""
     from ..db.database import get_all_athletes, get_all_rides
 
     rides = get_all_rides()
@@ -2837,6 +2925,7 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
 
 @router.put("/rides/{ride_id}")
 async def update_ride(ride_id: int, ride: RideUpdate, current_user: dict = Depends(get_current_user)):
+    """Update a ride's mutable fields. Protected fields (id, athlete_id, created_at) are ignored."""
     from ..db.database import get_ride as _get_ride
     from ..db.database import update_ride as _update_ride
 
@@ -2857,6 +2946,7 @@ async def coach_chat(
     message: str = Query(...),
     current_user: dict = Depends(get_current_user),
 ):
+    """Send a message to the AI coach via GET (query params)."""
     return await _process_chat(athlete_id, message, current_user)
 
 
@@ -2865,6 +2955,7 @@ async def coach_chat_post(
     request: Request,
     current_user: dict = Depends(get_current_user),
 ):
+    """Send a message to the AI coach via POST (JSON body)."""
 
     body = await request.json()
     chat_req = CoachChatRequest(**body)
@@ -2916,6 +3007,7 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
 
 @router.get("/analytics/speed-data")
 async def speed_analytics(limit: int = Query(10, ge=1, le=50), current_user: dict = Depends(get_current_user)):
+    """Return recent ride speed data for charting."""
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
@@ -2935,7 +3027,10 @@ async def nearby_places(
     use_osm: bool = Query(False),
     current_user: dict = Depends(get_current_user),
 ):
-    """Get nearby places for a ride - uses OSM (no API key) or SerpApi."""
+    """Find nearby places for a ride using OSM or SerpApi.
+
+    Results are cached in-memory for 10 minutes.
+    """
     from ..db.database import get_ride as _get_ride
 
     ride = _get_ride(ride_id)
@@ -2974,7 +3069,7 @@ async def osm_places_search(
     query: str = Query(...),
     limit: int = Query(10),
 ):
-    """OpenStreetMap search for places - no API key required."""
+    """OpenStreetMap Nominatim search for places. No API key required."""
     cache_key_str = f"places:osm:{query}:{round(lat, 3)}:{round(lon, 3)}:{limit}"
     cached_result = _place_cache_get(cache_key_str)
     if cached_result is not None:
@@ -2993,6 +3088,7 @@ async def search_places_endpoint(
     query: str = Query(..., description="Place search query"),
     current_user: dict = Depends(get_current_user),
 ):
+    """Search for places near a ride using SerpApi (requires API key)."""
     """Search places using SerpApi for a ride - user must own the ride."""
     from ..db.database import get_ride as _get_ride
 
@@ -3014,6 +3110,7 @@ async def search_places_endpoint(
 
 @router.post("/calendar/events")
 async def create_calendar_event(event_data: CalendarEventCreate, current_user: dict = Depends(get_current_user)):
+    """Create a calendar event for an athlete."""
     from ..db.database import get_calendar_event, save_calendar_event
     from ..utils.dates import date_only
 
@@ -3033,6 +3130,7 @@ async def list_calendar_events(
     month: int = Query(...),
     current_user: dict = Depends(get_current_user),
 ):
+    """List calendar events for an athlete in a given month."""
     from ..db.database import get_events_by_month
 
     tenant_id = current_user.get("tenant_id", athlete_id)
@@ -3048,6 +3146,7 @@ async def list_events_by_range(
     end: str = Query(...),
     current_user: dict = Depends(get_current_user),
 ):
+    """List calendar events for an athlete within a date range."""
     from ..db.database import get_events_by_date_range
 
     tenant_id = current_user.get("tenant_id", athlete_id)
@@ -3058,6 +3157,7 @@ async def list_events_by_range(
 
 @router.get("/calendar/events/{event_id}")
 async def get_calendar_event_endpoint(event_id: int, current_user: dict = Depends(get_current_user)):
+    """Get a single calendar event by ID."""
     from ..db.database import get_calendar_event
 
     event = get_calendar_event(event_id)
@@ -3071,6 +3171,7 @@ async def get_calendar_event_endpoint(event_id: int, current_user: dict = Depend
 async def update_calendar_event_endpoint(
     event_id: int, event_data: CalendarEventUpdate, current_user: dict = Depends(get_current_user)
 ):
+    """Update a calendar event. Only the owner can modify."""
     from ..db.database import get_calendar_event, update_calendar_event
     from ..utils.dates import date_only
 
@@ -3092,6 +3193,7 @@ async def update_calendar_event_endpoint(
 
 @router.delete("/calendar/events/{event_id}")
 async def delete_calendar_event_endpoint(event_id: int, current_user: dict = Depends(get_current_user)):
+    """Delete a calendar event. Only the owner can delete."""
     from ..db.database import delete_calendar_event, get_calendar_event
 
     event = get_calendar_event(event_id)
@@ -3107,6 +3209,7 @@ async def delete_calendar_event_endpoint(event_id: int, current_user: dict = Dep
 
 @router.post("/calendar/events/{event_id}/complete")
 async def toggle_event_complete(event_id: int, current_user: dict = Depends(get_current_user)):
+    """Toggle the completed flag on a calendar event."""
     from ..db.database import get_calendar_event, update_calendar_event
 
     event = get_calendar_event(event_id)
@@ -3124,7 +3227,7 @@ async def get_training_load(
     days: int = Query(30, ge=1, le=90),
     current_user: dict = Depends(get_current_user),
 ):
-    """Get ATL/CTL/TSB training load metrics for athlete."""
+    """Return ATL/CTL/TSB training load metrics for the last N days."""
     from ..analytics.training_load import calculate_atl_ctl_tsb
     from ..db.database import get_rides_by_athlete
 
@@ -3138,7 +3241,7 @@ async def get_training_load(
 
 @router.get("/training/status")
 async def get_training_status(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
-    """Get current fitness status with ATL/CTL/TSB recommendation."""
+    """Return current fitness status with ATL/CTL/TSB-based recommendation."""
     from ..analytics.training_load import get_current_training_status
     from ..db.database import get_rides_by_athlete
 
@@ -3151,7 +3254,7 @@ async def get_training_status(athlete_id: int = Query(...), current_user: dict =
 
 @router.get("/training/summary")
 async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
-    """Get 7-day fitness summary for dashboard."""
+    """Return a 7-day fitness summary for the dashboard."""
     from ..analytics.training_load import get_7day_fitness_summary
     from ..db.database import get_rides_by_athlete
 
@@ -3164,7 +3267,7 @@ async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = De
 
 @router.post("/training/goals")
 async def create_training_goal(goal_data: dict, current_user: dict = Depends(get_current_user)):
-    """Create a training goal for an athlete."""
+    """Create a training goal for an athlete (requires PostgreSQL)."""
     from ..db.postgres_db import SQLALCHEMY_AVAILABLE, save_training_goal
 
     if not SQLALCHEMY_AVAILABLE:

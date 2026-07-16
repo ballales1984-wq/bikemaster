@@ -215,10 +215,15 @@ class="bar-fill tsb" :style="tsbStyle" />
         </div>
       </div>
 
+      <!-- Athlete State -->
+      <div class="dash-section">
+        <AthleteStatePanel />
+      </div>
+
       <!-- Recent Rides -->
       <div
-v-if="dashboard.recent_rides?.length" class="dash-section"
->
+        v-if="dashboard.recent_rides?.length" class="dash-section"
+      >
         <h3>🕐 Uscite Recenti</h3>
         <div class="recent-rides">
           <div
@@ -255,6 +260,7 @@ v-if="dashboard.recent_rides?.length" class="dash-section"
 import { ref, computed, onMounted } from "vue";
 import { apiGet } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
+import AthleteStatePanel from "./AthleteStatePanel.vue";
 
 const auth = useAuthStore();
 const dashboard = ref({});
