@@ -8,5 +8,13 @@
   "small_model": "groq/llama-3.3-70b-versatile",
   "disabled_providers": [
     "ollama"
-  ]
+  ],
+  "provider": {
+    "deepseek": {
+      "options": {
+        "apiKey": "YOUR_DEEPSEEK_API_KEY",
+        "baseURL": "https://api.deepseek.com/v1"
+      }
+    }
+  }
 }

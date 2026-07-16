@@ -4,6 +4,7 @@ export interface DirectionFilterOptions {
   maxBearingDeviationDeg?: number;
   bearingWindowSize?: number;
   minDistanceForBearing?: number;
+  minBearingsForFilter?: number;
 }
 
 function toRad(d: number): number {
@@ -43,10 +44,20 @@ export function averageBearing(bearings: number[]): number {
   return (avg + 360) % 360;
 }
 
+export function detectTurnFromBearing(
+  prevBearing: number | null,
+  candidateBearing: number,
+  turnThresholdDeg = 35,
+): boolean {
+  if (prevBearing === null) return false;
+  return angleDiff(prevBearing, candidateBearing) >= turnThresholdDeg;
+}
+
 export function useGpsDirectionFilter(options: DirectionFilterOptions = {}) {
   const maxDeviation = options.maxBearingDeviationDeg ?? 45;
   const windowSize = options.bearingWindowSize ?? 5;
   const minDist = options.minDistanceForBearing ?? 3;
+  const minBearings = options.minBearingsForFilter ?? 2;
 
   let lastAccepted: GpsPoint | null = null;
   let bearingHistory: number[] = [];
@@ -62,7 +73,7 @@ export function useGpsDirectionFilter(options: DirectionFilterOptions = {}) {
 
     const candidateBearing = bearing(lastAccepted, point);
 
-    if (bearingHistory.length === 0) {
+    if (bearingHistory.length < minBearings) {
       return false;
     }
 
@@ -79,7 +90,7 @@ export function useGpsDirectionFilter(options: DirectionFilterOptions = {}) {
     point: GpsPoint,
     distanceFromLast: number,
     isTurning: boolean,
-  ): void {
+  ): number | null {
     if (lastAccepted && distanceFromLast >= minDist) {
       const b = bearing(lastAccepted, point);
       if (isTurning) {
@@ -88,8 +99,11 @@ export function useGpsDirectionFilter(options: DirectionFilterOptions = {}) {
         bearingHistory.push(b);
         if (bearingHistory.length > windowSize) bearingHistory.shift();
       }
+      lastAccepted = point;
+      return b;
     }
     lastAccepted = point;
+    return null;
   }
 
   function reset(): void {

@@ -132,3 +132,9 @@ bike_analyzer/backend/static.bak-*
 mv.log
 .vercel
 .env*
+
+# Scratch/duplicate dev folder
+temp_aethermap/
+
+# Local DB backups
+backups/

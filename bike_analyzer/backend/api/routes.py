@@ -1,4 +1,9 @@
-"""API routes."""
+"""API routes for BikeMaster backend.
+
+Provides REST endpoints for authentication, ride management, GPS import,
+OAuth integrations (Google, Strava, Garmin, Wahoo), analytics, coaching,
+training plans, maps, notifications, and admin operations.
+"""
 
 from __future__ import annotations
 
@@ -489,6 +494,11 @@ async def delete_poi_endpoint(
 @router.post("/auth/login")
 @limiter.limit("5/minute")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+    """Authenticate athlete and return JWT access/refresh tokens.
+
+    Supports both SQLAlchemy (async) and legacy SQLite backends.
+    Rate limited to 5 attempts per minute per IP.
+    """
     from ..security import (
         create_access_token,
         create_refresh_token,
@@ -558,6 +568,11 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
 
 @router.post("/auth/logout")
 async def logout(request: Request, current_user: dict = Depends(get_current_user)):
+    """Revoke the current access and refresh tokens.
+
+    Extracts the JWT jti from the Authorization header to revoke the
+    access token, then revokes the stored refresh token for the athlete.
+    """
     from ..security import revoke_refresh_token, revoke_token
 
     auth_header = request.headers.get("authorization", "")
@@ -590,6 +605,11 @@ async def logout(request: Request, current_user: dict = Depends(get_current_user
 @router.post("/auth/refresh")
 @limiter.limit("10/minute")
 async def refresh_token(request: Request, payload: RefreshTokenRequest):
+    """Exchange a valid refresh token for a new access token.
+
+    Validates the refresh token type, checks revocation status, and
+    issues a new access token with the same admin/tenant claims.
+    """
     from ..security import create_access_token, decode_token_with_fallback, is_token_revoked
 
     refresh_token = payload.refresh_token
@@ -623,6 +643,12 @@ async def register(
     password: str = Body(..., min_length=8, max_length=128),
     email: str = Body(None),
 ):
+    """Register a new athlete account.
+
+    Validates uniqueness of username/email, hashes the password, and
+    creates both a UserModel (for auth) and an AthleteModel profile.
+    Rate limited to 3 attempts per minute per IP.
+    """
     from ..db.database import get_athlete_by_email, get_athlete_by_name, save_athlete
     from ..security import hash_password
 
@@ -724,6 +750,11 @@ async def register(
 
 @router.get("/auth/me")
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    """Return the authenticated athlete's profile summary.
+
+    Includes profile completeness flag derived from age, weight, and
+    experience level fields.
+    """
     from ..db.database import get_athlete as _get_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
@@ -759,6 +790,11 @@ async def update_profile(
     profile_data: ProfileUpdate,
     current_user: dict = Depends(get_current_user),
 ):
+    """Update the authenticated athlete's profile fields.
+
+    Only whitelisted fields are accepted; null values are ignored.
+    The tenant_id is resolved from the current user's token.
+    """
     from ..db.database import get_athlete as _get_athlete
     from ..db.database import update_athlete as _update_athlete
 
@@ -791,6 +827,10 @@ async def change_password(
     new_password: str = Body(..., min_length=8, max_length=100, embed=True),
     current_user: dict = Depends(get_current_user),
 ):
+    """Change the authenticated athlete's password.
+
+    Verifies the current password before updating to the new hash.
+    """
     from ..db.database import get_athlete as _get_athlete
     from ..security import hash_password, verify_password
 
@@ -1001,7 +1041,11 @@ async def google_code_exchange(
 
 @router.post("/rides")
 async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_current_user)):
-    """Create ride - automatically assigned to current user."""
+    """Create a new ride and assign it to the authenticated athlete.
+
+    Automatically computes avg_speed and calories if missing, publishes
+    a RideCreated event, and invalidates the dashboard cache.
+    """
     from ..db.database import save_ride
 
     ride_dict = ride_data.model_dump()
@@ -1044,7 +1088,11 @@ async def list_rides(
     sort: str = Query("date", pattern="^(date|distance|duration)$"),
     current_user: dict = Depends(get_current_user),
 ):
-    """List rides - only for current user."""
+    """List rides for the authenticated athlete with pagination.
+
+    Missing calories are estimated on-the-fly using the physics or MET
+    method depending on available speed data.
+    """
     from ..analytics.calories import ensure_calories
     from ..db.database import get_rides_by_athlete
 
@@ -1068,6 +1116,7 @@ async def list_rides(
 
 @router.get("/rides/count")
 async def count_rides(current_user: dict = Depends(get_current_user)):
+    """Return the total number of rides for the authenticated athlete."""
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
@@ -1076,7 +1125,11 @@ async def count_rides(current_user: dict = Depends(get_current_user)):
 
 @router.get("/rides/{ride_id}")
 async def get_ride(ride_id: int, current_user: dict = Depends(get_current_user)):
-    """Get ride - user can only see owned rides."""
+    """Get a single ride by ID with computed fatigue and calories metrics.
+
+    Access control ensures the athlete can only retrieve their own rides
+    (admins can access any ride).
+    """
     from ..db.database import get_ride as _get_ride
 
     ride = _get_ride(ride_id)
@@ -1095,6 +1148,11 @@ async def generate_ride_map(
     provider: str = Query("folium", description="Map provider: folium or aethermap"),
     current_user: dict = Depends(get_current_user),
 ):
+    """Generate an interactive map HTML/JSON for a ride's GPS track.
+
+    Supports the built-in Folium renderer and the AetherMap provider.
+    GPS points are normalized (elevation -> altitude) before rendering.
+    """
     from pathlib import Path
 
     from ..db.database import get_ride as _get_ride
@@ -1160,6 +1218,7 @@ async def generate_ride_map(
 
 @router.post("/rides/analyze")
 async def analyze_rides(request: Request, payload: RideAnalysisRequest, current_user: dict = Depends(get_current_user)):
+    """Run full analytics summary over a list of ride payloads."""
     from ..analytics.analytics import calculate_summary
     from ..models.models import Ride
 
@@ -1168,6 +1227,7 @@ async def analyze_rides(request: Request, payload: RideAnalysisRequest, current_
 
 @router.post("/rides/{ride_id}/analyze")
 async def analyze_single_ride(ride_id: int, ride_data: RideCreate, current_user: dict = Depends(get_current_user)):
+    """Run analytics on a single ride with optional overrides."""
     from ..analytics.analytics import analyze_ride
     from ..models.models import Ride
 
@@ -1176,7 +1236,7 @@ async def analyze_single_ride(ride_id: int, ride_data: RideCreate, current_user:
 
 @router.delete("/rides/{ride_id}")
 async def delete_ride(ride_id: int, current_user: dict = Depends(get_current_user)):
-    """Delete ride - user can only delete owned rides."""
+    """Delete a ride. Only the owner (or admin) can delete."""
     from ..db.database import delete_ride as _delete
     from ..db.database import get_ride as _get_ride
 
@@ -1193,7 +1253,10 @@ async def delete_ride(ride_id: int, current_user: dict = Depends(get_current_use
 async def get_ride_segments(
     ride_id: int, min_distance_m: int = Query(1000), current_user: dict = Depends(get_current_user)
 ):
-    """Detect and return significant segments from ride GPS points."""
+    """Detect and return significant segments from ride GPS points.
+
+    Builds a Folium map of the detected segments and returns its URL.
+    """
     from ..db.database import get_ride as _get_ride
     from ..models.models import GPSPoint
 
@@ -1265,6 +1328,11 @@ def _validate_gpx_fit_import(ride_data: dict, user_id: int) -> None:
 
 @router.post("/import/gpx")
 async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    """Import a GPX file as a new ride.
+
+    Parses the GPX, validates GPS points, estimates missing metrics,
+    and stores the ride. Runs CPU-bound parsing in a thread pool.
+    """
     from ..db.database import save_ride
     from ..ingestion.gps_parser import parse_gpx_file, points_to_ride
 
@@ -1307,6 +1375,11 @@ async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(
 
 @router.post("/import/fit")
 async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    """Import a FIT file as a new ride.
+
+    Writes the upload to a temp file, parses it with the FIT library,
+    validates the result, and stores the ride.
+    """
     import tempfile
 
     from ..db.database import save_ride
@@ -1354,6 +1427,10 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
 
 @router.get("/health/detailed")
 async def health_detailed(request: Request):
+    """Detailed health check including database statistics.
+
+    Returns ride/athlete counts and database file size.
+    """
     from ..db.database import get_all_athletes, get_all_rides
 
     rides = get_all_rides()
@@ -1371,6 +1448,7 @@ async def health_detailed(request: Request):
 
 @router.get("/coach/history")
 async def coach_chat_history(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
+    """Retrieve AI coach chat history for an athlete."""
     from ..db.database import get_chat_history
 
     _ensure_athlete_access(athlete_id, current_user)

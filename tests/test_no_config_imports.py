@@ -11,18 +11,29 @@ ROOT = Path(__file__).resolve().parents[1]
 BIKE_ANALYZER_DIR = ROOT / "bike_analyzer"
 
 
-def _is_legacy_config_import(module: str) -> bool:
-    """Return True if the import refers to the removed bike_analyzer.backend.config."""
+def _is_legacy_config_import(module: str, level: int = 0) -> bool:
+    """Return True if the import refers to the removed bike_analyzer.backend.config.
+
+    Sub-package config modules (e.g. ``sync.config``, ``load_manager.config``)
+    imported relatively (``from .config import ...``) are legitimate and must
+    not be flagged.
+    """
     if not module:
         return False
     parts = module.split(".")
     if parts[-1] != "config":
         return False
+    if level > 0:
+        return False
     if module in {"logging.config", "unittest.config", "alembic.config"}:
         return False
-    if module.startswith("bike_analyzer.backend.config"):
+    if module == "bike_analyzer.backend.config":
         return True
-    return module == "config" or module.endswith(".config")
+    if module == "config":
+        return True
+    if module.startswith("bike_analyzer.backend.config."):
+        return True
+    return False
 
 
 @pytest.mark.parametrize("py_file", list(BIKE_ANALYZER_DIR.rglob("*.py")))
@@ -38,7 +49,7 @@ def test_no_legacy_config_import(py_file: Path):
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom):
             module = node.module or ""
-            if _is_legacy_config_import(module):
+            if _is_legacy_config_import(module, node.level):
                 pytest.fail(
                     f"{relative} still imports from legacy config module: {module}"
                 )

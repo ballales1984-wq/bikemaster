@@ -19,9 +19,9 @@ from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from typing import ClassVar, Optional
 
-from .models import AnalysisContext, Athlete, Bike, WorldObject
-from .transformer import GeoPoint
-from .algorithms.base import Algorithm, ModelResult
+from ..models import AnalysisContext, Athlete, Bike, WorldObject
+from ..transformer import GeoPoint
+from ..algorithms.base import Algorithm, ModelResult
 
 __all__ = [
     "ScenarioOverride",
