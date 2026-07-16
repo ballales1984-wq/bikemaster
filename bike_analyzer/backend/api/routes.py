@@ -3140,44 +3140,58 @@ async def generate_workouts(
             raise HTTPException(status_code=422, detail="Goal has no associated athlete")
         _ensure_athlete_access(goal.athlete_id, current_user)
 
-        rides = [Ride(**r) for r in get_rides_by_athlete(goal.athlete_id)]
-        get_current_training_status(rides) if rides else {"ctl": 0}
+    rides = [Ride(**r) for r in get_rides_by_athlete(goal.athlete_id)]
+    get_current_training_status(rides) if rides else {"ctl": 0}
 
-        workouts_to_create = []
-        start_date = datetime.now()
+    from ..analytics.athlete_state.service import AthleteStateService
+    from ..analytics.athlete_state.models import AthleteState as AthleteStateModel
 
-        workout_plan = [
-            ("Base aerobica", "endurance", 0.5),
-            ("Progressivo", "endurance", 0.6),
-            ("Base aerobica", "endurance", 0.5),
-            ("Thresholds", "threshold", 0.75),
-            ("Recupero", "recovery", 0.4),
-            ("Base aerobica", "endurance", 0.55),
-            ("Progressivo", "sweetspot", 0.8),
-            ("Recupero", "recovery", 0.45),
-            ("Thresholds", "threshold", 0.75),
-            ("Base aerobica", "endurance", 0.5),
-            ("Pre-gara", "openers", 0.65),
-            ("Giorno gara", "race", 0.9),
-        ]
+    athlete_state_service = AthleteStateService()
+    athlete_state = await athlete_state_service.calculate_current_state(
+        athlete_id=goal.athlete_id,
+        rides=rides,
+    )
 
-        for i in range(min(event_count, len(workout_plan))):
-            workout_date = (start_date + timedelta(days=7 * i)).strftime("%Y-%m-%d")
-            title, wtype, intensity = workout_plan[i]
-            workouts_to_create.append(
-                PlannedWorkoutModel(
-                    athlete_id=goal.athlete_id,
-                    goal_id=goal_id,
-                    date=workout_date,
-                    title=title,
-                    workout_type=wtype,
-                    duration_minutes=90,
-                    target_intensity=intensity,
-                )
-            )
+    from ..analytics.training.workout_generator import WorkoutGenerator
+    from ..analytics.training.models import TrainingGoal, PlanConstraints
+    from datetime import datetime as dt
 
-        session.add_all(workouts_to_create)
-        return {"generated": len(workouts_to_create), "goal_id": goal_id}
+    goal_type_map = {
+        "granfondo": "granfondo",
+        "race": "race",
+        "fitness": "maintenance",
+        "fondo": "granfondo",
+        "custom": "maintenance",
+    }
+    goal_type_str = goal_type_map.get(goal.goal_type, "maintenance")
+    try:
+        goal_enum = __import__("bike_analyzer.backend.analytics.training.models", fromlist=["GoalType"]).GoalType(goal_type_str)
+    except Exception:
+        goal_enum = __import__("bike_analyzer.backend.analytics.training.models", fromlist=["GoalType"]).GoalType.MAINTENANCE
+
+    training_goal = TrainingGoal(
+        goal_type=goal_enum,
+        target_date=goal.target_date,
+        target_distance_km=goal.target_distance_km,
+        description=goal.description or "",
+    )
+    constraints = PlanConstraints(days_per_week=4, hours_per_session=1.5)
+
+    generator = WorkoutGenerator(athlete=None, ftp=250.0)
+    workouts = generator.generate_for_week(
+        goal=training_goal,
+        constraints=constraints,
+        start_date=dt.now(),
+        fitness_tss=athlete_state.weekly_tss,
+        fatigue_score=athlete_state.fatigue_score,
+    )
+
+    return {
+        "generated": len(workouts),
+        "goal_id": goal_id,
+        "athlete_state": athlete_state.to_dict(),
+    }
+
 
 
 @router.get("/weather")
@@ -4035,6 +4049,24 @@ async def get_dashboard(request: Request, current_user: dict = Depends(get_curre
     }
     await _cache_set(cache_key, result, ttl=120)
     return result
+
+
+@router.get("/athlete/state")
+async def get_athlete_state(
+    current_user: dict = Depends(get_current_user),
+):
+    """Compute and return the current athlete state."""
+    from ..analytics.athlete_state.service import AthleteStateService
+    from ..db.database import get_rides_by_athlete
+
+    athlete_id = _ensure_int_user_id(current_user)
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    service = AthleteStateService()
+    state = await service.calculate_current_state(
+        athlete_id=athlete_id,
+        rides=rides,
+    )
+    return state.to_dict()
 
 
 @admin_router.get("/test-sentry")
