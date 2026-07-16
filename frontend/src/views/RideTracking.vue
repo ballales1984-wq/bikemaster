@@ -51,6 +51,7 @@ import { useTrackingStore } from '../stores/trackingStore'
 import { useRouter } from 'vue-router'
 import { useI18n } from '../composables/useI18n'
 import { useBatteryEfficientGps } from '../composables/useBatteryEfficientGps'
+import { useGpsOutlierFilter } from '../composables/useGpsOutlierFilter'
 import LiveMap from '../components/LiveMap.vue'
 import RideMetricsPanel from '../components/RideMetricsPanel.vue'
 import ControlsBar from '../components/ControlsBar.vue'
@@ -80,6 +81,8 @@ let webLastPoint: GpsPoint | null = null
 let webDistance = 0
 let webElevationGain = 0
 let webFirstFixTimeout: number | null = null
+
+const gpsOutlierFilter = useGpsOutlierFilter()
 
 const tracking = useTrackingStore()
 const {
@@ -236,6 +239,7 @@ function startWebTracking() {
   webLastPoint = null
   webDistance = 0
   webElevationGain = 0
+  gpsOutlierFilter.reset()
   gpsError.value = ''
   webFirstFixTimeout = window.setTimeout(() => {
     if (gpsWaiting.value) {
@@ -285,6 +289,14 @@ function handleWebPosition(position: GeolocationPosition) {
       }
       webDistance += distanceDelta
     }
+  }
+
+  if (gpsOutlierFilter.isOutlier({
+    lat,
+    lon,
+    timestamp: position.timestamp,
+  })) {
+    return
   }
 
   if (

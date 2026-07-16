@@ -1,6 +1,6 @@
-"""Tests for ingestion/strava_client.py — Strava OAuth and activity import."""
-
 from __future__ import annotations
+
+"""Tests for ingestion/strava_client.py — Strava OAuth and activity import."""
 
 import base64
 import hashlib

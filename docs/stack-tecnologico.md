@@ -1,23 +1,26 @@
 # BikeMaster — Stack Tecnologico
 
-Documento personale che descrive le tecnologie informatiche alla base di BikeMaster,
-un'applicazione per l'analisi e il tracking di uscite ciclistiche.
+Documento che descrive le tecnologie informatiche alla base di BikeMaster,
+un sistema di *performance intelligence* per ciclisti basato su GPS.
+
+**Architettura:** local-first, desktop-first (Tauri 2). Il device è la sorgente di verità.
 
 ---
 
-## 1. Frontend
+## 1. Desktop & Frontend
 
-### Framework e linguaggio
-- **Vue 3** con Composition API — framework UI reattivo
+### Platform
+- **Tauri 2** (Rust + WebView) — distribuzione primaria (`.exe`/`.dmg`/`.AppImage`)
+- **Vue 3** con Composition API — framework UI reattivo inside Tauri WebView
 - **TypeScript** — typing statico (`strict: true`)
 - **Vue Router 4** — routing lato client
 - **Pinia** — state management
 
 ### Build e bundling
 - **Vite 5** — dev server e bundler
-- **vite-plugin-pwa** — Progressive Web App con service worker custom (`src/sw.js`)
+- **vite-plugin-pwa** — Progressive Web App con service worker custom
   - Caching strategico per `/api`, immagini e dati delle uscite
-  - Supporto offline e aggiornamento automatico
+  - Supporto offline per utenti web-only
 
 ### Librerie UI e visualizzazione
 - **Chart.js** — grafici (andamenti, potenza, frequenza cardiaca, ecc.)
@@ -28,8 +31,8 @@ un'applicazione per l'analisi e il tracking di uscite ciclistiche.
 ### Mobile
 - **Capacitor 5** — wrapper per app Android nativa
   - Plugin custom `BikeTracking` per GPS in background
-  - Notifiche push e locali
   - Target: Android API 24-34
+- **iOS** — Swift plugin (`BikeTrackingPlugin.swift`) + Capacitor config
 
 ### Testing
 - **Vitest** — test unitari con jsdom
@@ -80,14 +83,14 @@ un'applicazione per l'analisi e il tracking di uscite ciclistiche.
 
 ## 3. Database
 
-- **PostgreSQL** — produzione (Render)
+- **SQLite** — primario, locale su ogni device (Tauri desktop, mobile)
+  - **aiosqlite** — driver asincrono
+- **PostgreSQL** — opzionale, cloud-only per sync/community features
   - **psycopg2** (sync) e **asyncpg** (async) — driver
   - **pgvector** — estensione per vettori (embedding AI)
-- **SQLite** — sviluppo locale
-  - **aiosqlite** — driver asincrono
 - **SQLAlchemy 2.x** — ORM con supporto async
 - **Alembic** — migration database
-- **ChromaDB** — vector store per knowledge base AI
+- **PGVector / TF-IDF** — vector store per knowledge base AI (RAG BM25 + cosine similarity)
 
 ---
 
@@ -113,6 +116,12 @@ un'applicazione per l'analisi e il tracking di uscite ciclistiche.
 
 ## 5. DevOps e Deployment
 
+### Distribuzione desktop (primaria)
+- **Tauri 2** — wrapper desktop Rust + WebView
+  - Bundle nativi: `.exe` (Windows), `.dmg` (macOS), `.AppImage` (Linux)
+  - Backend FastAPI embedded + SQLite locale
+  - CI/CD: GitHub Actions → Tauri build → GitHub Releases
+
 ### Containerizzazione
 - **Docker** multi-stage:
   - Stage 1: `node:22-alpine` — build frontend
@@ -120,19 +129,20 @@ un'applicazione per l'analisi e il tracking di uscite ciclistiche.
   - Utente non-root `bikemaster`
   - Healthcheck su `/api/v1/health`
 
-### Hosting
-- **Render** — piattaforma di deployment
+### Hosting cloud (opzionale)
+- **Render** — piattaforma di deployment cloud
   - Docker web service + PostgreSQL gestito
   - Auto-scaling, HTTPS gestito
 
 ### CI/CD
 - **GitHub Actions**:
-  - Test Python (pytest + coverage → Codecov)
+  - Test Python (pytest + coverage)
   - Lint Python (ruff + mypy)
   - Build frontend (Node 20)
   - Security scan (Trivy → SARIF → CodeQL)
   - Build Docker
   - Release APK Android (tag `mobile-*`)
+  - Build Tauri desktop
 
 ### Code quality (Python)
 - **Ruff** — linting veloce
@@ -154,34 +164,46 @@ un'applicazione per l'analisi e il tracking di uscite ciclistiche.
 ## 6. Architettura generale
 
 ```
-┌─────────────────────────────────────────────┐
-│                  CLIENT                      │
-│  Vue 3 + TypeScript + Vite + PWA            │
-│  Capacitor (Android app)                     │
-└──────────────────┬──────────────────────────┘
-                   │ HTTPS /api/v1
-                   ▼
-┌─────────────────────────────────────────────┐
-│              FASTAPI BACKEND                 │
-│  ┌───────────┐ ┌────────────┐ ┌──────────┐ │
-│  │   Auth    │ │   Rides    │ │   AI     │ │
-│  │ (JWT/OAuth│ │ (CRUD/Imp) │ │ (RAG/ML) │ │
-│  └───────────┘ └────────────┘ └──────────┘ │
-│  ┌───────────┐ ┌────────────┐ ┌──────────┐ │
-│  │ Ingest    │ │  Analysis  │ │ Monitoring│ │
-│  │(FIT/GPX/  │ │ (pandas/   │ │(Prom/    │ │
-│  │ OAuth)    │ │  sklearn)   │ │ Grafana) │ │
-│  └───────────┘ └────────────┘ └──────────┘ │
-└──────────────────┬──────────────────────────┘
-                   │
-       ┌───────────┼───────────┐
-       ▼           ▼           ▼
-┌──────────┐ ┌──────────┐ ┌──────────┐
-│PostgreSQL│ │  Redis   │ │ ChromaDB │
-│(dati +   │ │(cache +  │ │(vector   │
-│ pgvector)│ │ sessioni)│ │ store)   │
-└──────────┘ └──────────┘ └──────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                        CLIENT                                   │
+│  Tauri 2 Desktop (Rust+WebView) │ Vue 3 SPA │ Capacitor (mobile)│
+│  PWA (browser-only)                                        │
+└──────────────────────────┬───────────────────────────────────────┘
+                           │ HTTPS /api/v1
+                           ▼
+┌──────────────────────────────────────────────────────────────────┐
+│              FASTAPI BACKEND (embedded in Tauri)                │
+│  ┌───────────┐ ┌────────────┐ ┌──────────┐ ┌──────────┐       │
+│  │   Auth    │ │   Rides    │ │   AI     │ │   BM2    │       │
+│  │ (JWT/OAuth│ │ (CRUD/Imp) │ │ (RAG/ML) │ │(Simul.)  │       │
+│  └───────────┘ └────────────┘ └──────────┘ └──────────┘       │
+│  ┌───────────┐ ┌────────────┐ ┌──────────┐ ┌──────────┐       │
+│  │ Ingest    │ │  Analysis  │ │Monitor   │ │ Territory│       │
+│  │(FIT/GPX/  │ │ (pandas/   │ │(Prom/    │ │(Safety/  │       │
+│  │ OAuth)    │ │  sklearn)   │ │ Grafana) │ │ Maps)    │       │
+│  └───────────┘ └────────────┘ └──────────┘ └──────────┘       │
+└──────────────────────────┬───────────────────────────────────────┘
+                           │
+        ┌──────────────────┼───────────────────┐
+        ▼                  ▼                   ▼
+┌──────────┐      ┌──────────────┐    ┌──────────┐
+│ SQLite   │      │  Redis (opz) │    │ PGVector  │
+│ (locale,  │      │  (cache +    │    │ (cloud,   │
+│ primario) │      │   sessioni)  │    │  opzionale│
+└──────────┘      └──────────────┘    └──────────┘
 ```
+
+> **Nota:** PostgreSQL è opzionale e usato solo per cloud sync/community features. SQLite è il database primario su ogni device.
+
+---
+
+## 7. AetherMap (R&D separato)
+
+`aethermap/` è un progetto R&D indipendente — motore cartografico "dal nulla":
+- **Stack condiviso:** Vue 3 + FastAPI (stesso framework, codice separato)
+- **Tecnologie:** cube-sphere + S2/H3, WebGL rendering, digital twin, pipeline IA "ricercatore"
+- **Fasi:** 1 (earth model) → 2 (data model) → {3 AI, 4 rendering} → 5 (digital twin)
+- **Nessun accoppiamento** con il backend BikeMaster
 
 ---
 

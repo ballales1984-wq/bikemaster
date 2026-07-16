@@ -1,91 +1,136 @@
 # BikeMaster — Developer Documentation
 
-**Stack:** Python 3.11 · FastAPI · Vue 3 · TypeScript · SQLite/PostgreSQL · Clean Architecture
+**Stack:** Python 3.11 · FastAPI · Vue 3 · TypeScript · SQLite · Tauri 2 · Clean Architecture
+
+---
+
+## Indice
+
+1. [Overview](#overview)
+2. [Riferimento tecnico](#riferimento-tecnico-docsreference)
+3. [Architettura e visione](#architettura-e-visione)
+4. [BikeMaster 2.0 (BM2)](#bikemaster-20-bm2)
+5. [AetherMap (R&D)](#aethermap-rd)
+6. [Sviluppo](#sviluppo)
+7. [Testing](#testing)
+8. [Deploy e configurazione](#deploy-e-configurazione)
+9. [Guide](#guide)
+10. [Agent Instructions](#agent-instructions)
 
 ---
 
 ## Overview
 
-**BikeMaster** is a GPS-based cycling performance intelligence system. It allows cyclists of all levels to import routes from GPX/FIT or external services (Strava, Garmin, Wahoo, Google Fit), analyze performance metrics, estimate calories, receive personalized advice from an AI Coach, and visualize routes on interactive maps. The system also includes a **BikeMaster 2.0** Deluxe Simulation Engine (`bike_analyzer/bm2/`) for what-if scenario modeling.
+**BikeMaster** è un sistema di *performance intelligence* per ciclisti basato su GPS. Importa tracciati da GPX/FIT o servizi esterni (Strava, Garmin, Wahoo, Google Fit), analizza metriche, stima calorie, calcola fatigue score, confronta con benchmark, fornisce un **AI Coach** (Groq + RAG) e visualizza percorsi su mappe interattive.
+
+Architettura: **local-first, desktop-first (Tauri 2)** con backend FastAPI embedded, frontend Vue 3 SPA, SQLite come database primario. Include **BikeMaster 2.0 (BM2)** come motore di simulazione what-if e **AetherMap** come progetto R&D cartografico separato.
 
 ---
 
-## Documents
+## Riferimento tecnico (`docs/reference/`)
 
-### 📖 Riferimento Completo (`reference/`)
-Riferimento tecnico esaustivo generato dal codice sorgente — **il punto di partenza consigliato**.
+Riferimento esaustivo generato dal codice sorgente — **punto di partenza consigliato**.
 
-| Document | Description |
+| Documento | Contenuto |
 |---|---|
-| [reference/README.md](./reference/README.md) | Indice del riferimento completo |
-| [reference/architecture.md](./reference/architecture.md) | Panoramica sistema: layer, flusso richieste, mappa moduli |
-| [reference/api-reference.md](./reference/api-reference.md) | Tutti i 138 endpoint REST (metodo, path, auth) |
-| [reference/database-schema.md](./reference/database-schema.md) | Schema DB completo: tabelle, indici, migrazioni Alembic |
-| [reference/domain-models.md](./reference/domain-models.md) | Entità di dominio + modelli BM2 campo per campo |
-| [reference/configuration.md](./reference/configuration.md) | Tutte le variabili d'ambiente / settings |
-| [reference/engines-and-analytics.md](./reference/engines-and-analytics.md) | Engine BM2 (9 algoritmi) + motore analytics |
-| [reference/frontend.md](./reference/frontend.md) | SPA Vue 3: route, store, componenti, mobile/PWA |
-
-### Core
-| Document | Description |
-|---|---|
-| [MASTER.md](./MASTER.md) | Complete project reference: stack, architecture, data models, API, analytics, AI Coach |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Clean v2 Architecture — UnifiedMetricsEngine, FusionRecord, domain layers |
-| [DEVELOPMENT.md](./DEVELOPMENT.md) | Setup, build, test, lint, contribute |
-| [PRODUCT_LOGIC.md](./PRODUCT_LOGIC.md) | Central logic, product vision, four pillars, athlete state, workout generation |
-
-### Detailed References
-| Document | Description |
-|---|---|
-| [backend.md](./backend.md) | Backend modules, integrations, security, monitoring, phone tracking, traffic safety |
-| [frontend.md](./frontend.md) | Vue 3 app, components, stores, mobile (Android/iOS Capacitor) |
-| [testing.md](./testing.md) | Backend (pytest) and frontend (Vitest + Playwright) test strategy |
-| [deployment.md](./deployment.md) | Docker, Render, Fly.io, Railway, Kubernetes |
-| [deployment-plan.md](./deployment-plan.md) | Piano di deployment completo: architettura, sync, sicurezza, integrazioni, backup, pricing |
-| [configuration.md](./configuration.md) | Environment variables, secrets, API keys |
-| [API_DOCS.md](./API_DOCS.md) | REST API reference with all endpoints |
-
-### Roadmaps
-| Document | Description |
-|---|---|
-| [ROADMAP.md](../ROADMAP.md) | Main project roadmap (root level) |
-| [DELUXE_ROADMAP.md](./DELUXE_ROADMAP.md) | BikeMaster 2.0 / Deluxe Simulation Engine roadmap |
-
-### BikeMaster 2.0 (BM2)
-| Document | Description |
-|---|---|
-| [bm2/](./bm2/) | BM2 documentation index |
-| [bm2/data-contracts.md](./bm2/data-contracts.md) | JSON schemas between BM2 Engines |
-| [bm2/database-schema.md](./bm2/database-schema.md) | Relational + time-series schema |
-| [bm2/variables.md](./bm2/variables.md) | Variable dictionary (domains, units, gaps) |
-| [BM2_ENGINE_ARCHITECTURE.md](./BM2_ENGINE_ARCHITECTURE.md) | Engine pipeline, dependencies, and communication patterns |
-| [BM2_ALGORITHMS.md](./BM2_ALGORITHMS.md) | Algorithm specification (Movement, Energy, Fatigue, Power, etc.) |
-| [BM2_INTEGRATION_GUIDE.md](./BM2_INTEGRATION_GUIDE.md) | How to integrate BM2 with existing FastAPI routes and frontend |
-| [BM2_TESTING_STRATEGY.md](./BM2_TESTING_STRATEGY.md) | Test patterns, coverage targets, and CI integration |
-
-### Guides
-| Document | Description |
-|---|---|
-| [PHONE_TRACKING.md](./PHONE_TRACKING.md) | Phone GPS tracking architecture |
-| [local-data-storage.md](./local-data-storage.md) | Come/ dove i dati sono salvati sui dispositivi (offline-first) |
-| [PHONE_TRACKING_TESTING.md](./PHONE_TRACKING_TESTING.md) | Phone tracking tests |
-| [PRIVACY_POLICY_STORE.md](./PRIVACY_POLICY_STORE.md) | Privacy policy |
-| [REFACTOR_PLAN.md](./REFACTOR_PLAN.md) | Refactor plan |
-| [stack-tecnologico.md](./stack-tecnologico.md) | Tech stack (IT) |
-| [database-migration.md](./database-migration.md) | Database migration guide |
-| [USER_GUIDE.md](./USER_GUIDE.md) | User guide |
-| [API_EXAMPLES.http](./API_EXAMPLES.http) | API request examples (HTTP file) |
-
-### Agent Instructions
-| Document | Description |
-|---|---|
-| [agent/README.md](./agent/README.md) | AI agent instructions (progressive disclosure) |
+| [`docs/reference/README.md`](docs/reference/README.md) | Indice del riferimento completo |
+| [`docs/reference/architecture.md`](docs/reference/architecture.md) | Architettura di sistema: layer, flusso richieste, mappa moduli |
+| [`docs/reference/api-reference.md`](docs/reference/api-reference.md) | Tutti gli endpoint REST (metodo, path, auth) |
+| [`docs/reference/database-schema.md`](docs/reference/database-schema.md) | Schema DB completo: tabelle, indici, migrazioni |
+| [`docs/reference/domain-models.md`](docs/reference/domain-models.md) | Entità di dominio + modelli BM2 campo per campo |
+| [`docs/reference/configuration.md`](docs/reference/configuration.md) | Tutte le variabili d'ambiente / settings |
+| [`docs/reference/engines-and-analytics.md`](docs/reference/engines-and-analytics.md) | Engine BM2 (9 algoritmi) + motore analytics |
+| [`docs/reference/frontend.md`](docs/reference/frontend.md) | SPA Vue 3: route, store, componenti, mobile/PWA |
 
 ---
 
-## Quick Links
-- **Repo root:** `D:\BikeMaster`
-- **Backend package:** `bike_analyzer/`
-- **Frontend app:** `frontend/`
-- **Tests:** `tests/` (backend), `frontend/src/**/*.test.ts` (frontend)
-- **Deploy configs:** `docker/`, `render.yaml`, `docker/deploy/`
+## Architettura e visione
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/MASTER.md`](docs/MASTER.md) | Documento di riferimento completo: stack, architettura, modelli, API, analytics, AI Coach |
+| [`docs/UNIFIED_DOCUMENTATION.md`](docs/UNIFIED_DOCUMENTATION.md) | Sintesi unificante della documentazione (visione, logica di calcolo, BM2, AetherMap) |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Clean v2 Architecture — UnifiedMetricsEngine, FusionRecord, domain layers |
+| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Setup, build, test, lint, come contribuire |
+| [`docs/PRODUCT_LOGIC.md`](docs/PRODUCT_LOGIC.md) | Visione prodotto, quattro pilastri, logica centrale, athlete state |
+| [`docs/BM2_ENGINE_ARCHITECTURE.md`](docs/BM2_ENGINE_ARCHITECTURE.md) | Specifica Engine BM2: pipeline, dipendenze, contratti |
+| [`docs/BM2_ALGORITHMS.md`](docs/BM2_ALGORITHMS.md) | Formule delle variabili derivate (potenza, TRIMP, CTL/ATL, difficoltà percorso) |
+| [`docs/BM2_INTEGRATION_GUIDE.md`](docs/BM2_INTEGRATION_GUIDE.md) | Come integrare BM2 con FastAPI e frontend |
+| [`docs/BM2_TESTING_STRATEGY.md`](docs/BM2_TESTING_STRATEGY.md) | Strategia di test BM2 |
+
+---
+
+## BikeMaster 2.0 (BM2)
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/bm2/README.md`](docs/bm2/README.md) | Indice cartella BM2 |
+| [`docs/bm2/data-contracts.md`](docs/bm2/data-contracts.md) | Contratti JSON scambiati tra Engine |
+| [`docs/bm2/database-schema.md`](docs/bm2/database-schema.md) | Schema relazionale + time-series per BM2 |
+| [`docs/bm2/variables.md`](docs/bm2/variables.md) | Dizionario variabili BM2 (domini, unità, gap vs codice) |
+| [`docs/DELUXE_ROADMAP.md`](docs/DELUXE_ROADMAP.md) | Roadmap BikeMaster 2.0 / Deluxe Simulation Engine |
+
+---
+
+## AetherMap (R&D)
+
+Progetto cartografico indipendente (`aethermap/`) — motore "dal nulla" con cube-sphere, S2/H3, data model "database del mondo", pipeline IA "ricercatore", rendering WebGL, digital twin. Condivide lo stack (Vue + FastAPI) ma non è importato dal backend BikeMaster.
+
+| Documento | Contenuto |
+|---|---|
+| [`aethermap/README.md`](../aethermap/README.md) | Panoramica progetto AetherMap |
+| [`docs/agent/aethermap.md`](docs/agent/aethermap.md) | Istruzioni agent per AetherMap |
+
+---
+
+## Sviluppo
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/backend.md`](docs/backend.md) | Moduli backend, integrazioni, sicurezza, monitoring, phone tracking |
+| [`docs/frontend.md`](docs/frontend.md) | Vue 3 app, componenti, store, mobile (Android/iOS Capacitor, Tauri) |
+| [`docs/stack-tecnologico.md`](docs/stack-tecnologico.md) | Stack tecnologico dettagliato (IT) |
+| [`docs/local-data-storage.md`](docs/local-data-storage.md) | Dove e come i dati sono salvati sui dispositivi (offline-first) |
+| [`docs/database-migration.md`](docs/database-migration.md) | Guida alle migrazioni database (Alembic) |
+
+---
+
+## Testing
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/testing.md`](docs/testing.md) | Strategia di test: backend (pytest) e frontend (Vitest + Playwright) |
+| [`docs/PHONE_TRACKING_TESTING.md`](docs/PHONE_TRACKING_TESTING.md) | Test per phone GPS tracking |
+
+---
+
+## Deploy e configurazione
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/deployment.md`](docs/deployment.md) | Docker, Render, Fly.io, Railway, Kubernetes |
+| [`docs/deployment-plan.md`](docs/deployment-plan.md) | Piano di deployment completo: architettura, sync, sicurezza, integrazioni |
+| [`docs/configuration.md`](docs/configuration.md) | Variabili d'ambiente, secrets, API keys |
+| [`docs/API_DOCS.md`](docs/API_DOCS.md) | Riferimento API REST con tutti gli endpoint |
+| [`docs/API_EXAMPLES.http`](docs/API_EXAMPLES.http) | Esempi di richieste API (HTTP file) |
+
+---
+
+## Guide
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) | Guida utente |
+| [`docs/PHONE_TRACKING.md`](docs/PHONE_TRACKING.md) | Architettura phone GPS tracking |
+| [`docs/PRIVACY_POLICY_STORE.md`](docs/PRIVACY_POLICY_STORE.md) | Privacy policy |
+| [`docs/REFACTOR_PLAN.md`](docs/REFACTOR_PLAN.md) | Piano di refactoring |
+| [`ROADMAP.md`](../ROADMAP.md) | Roadmap consolidata del progetto |
+| [`PROJECT_STATUS.md`](../PROJECT_STATUS.md) | Stato attuale del progetto |
+
+---
+
+## Agent Instructions
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/agent/README.md`](docs/agent/README.md) | Istruzioni per AI agent (progressive disclosure) |

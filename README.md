@@ -1,105 +1,113 @@
-# BikeMaster 2.0
+# BikeMaster
 
 [![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Tauri 2 Desktop](https://img.shields.io/badge/Platform-Tauri%202%20Desktop-blue.svg)](https://tauri.app)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![Vue 3](https://img.shields.io/badge/Vue-3.4%2B-green.svg)](https://vuejs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-black.svg)](https://fastapi.tiangolo.com/)
 
-Digital Twin dell'atleta e dell'ambiente per il ciclismo: raccoglie dati da GPS, sensori e servizi esterni, li trasforma in conoscenza (forma, fatica, recupero, difficoltà percorso) e li mette al servizio di un AI Coach.
+**BikeMaster** è un sistema di *performance intelligence* per ciclisti basato su GPS: raccoglie dati da sensori e servizi esterni, li trasforma in conoscenza (forma, fatica, recupero, difficoltà percorso) e li mette al servizio di un AI Coach.
 
-> **Stato del progetto:** *Production Ready*. Il sistema è implementato e in esecuzione (backend FastAPI con 138 endpoint REST, frontend Vue 3 + PWA, app Android, deploy su Render). Suite di test verificata: **backend 108 file / 1674 test**, **frontend 47 file / 318 test** (Vitest). Il documento di visione e architettura Engine descritto qui sotto è la base concettuale su cui il codice è costruito; la sezione [BikeMaster 2.0 — Deluxe Simulation](#bikemaster-20--deluxe-simulation-engine) descrive lo stato dell'engine di simulazione.
+> **Piattaforma primaria:** desktop **Tauri 2** (`.exe`/`.dmg`/`.AppImage`) con backend embedded e database locale SQLite. PWA supportata per utenti web-only. Deploy cloud opzionale per sync/community.
 
----
+## Indice
+
+- [Visione](#visione)
+- [Architettura](#architettura)
+- [Documentazione](#documentazione)
+- [Quick Start](#quick-start)
+- [BikeMaster 2.0 — Simulation Engine](#bikemaster-20--simulation-engine)
+- [Roadmap](#roadmap)
+- [Come contribuire](#come-contribuire)
+- [Licenza](#licenza)
 
 ## Visione
 
-Il principio guida del sistema è che i dati grezzi non hanno valore finché non vengono trasformati in conoscenza utilizzabile:
+Il principio guida: i dati grezzi non hanno valore finché non vengono trasformati in conoscenza utilizzabile.
 
 ```
-DATI GREZZI
-     ↓
-MODELLI MATEMATICI
-     ↓
-STATI INTERPRETATI
-     ↓
-KNOWLEDGE BASE
-     ↓
-AI COACH
-     ↓
-DECISIONI
+DATI GREZZI → MODELLI MATEMATICI → STATI INTERPRETATI → KNOWLEDGE BASE → AI COACH → DECISIONI
 ```
 
-L'obiettivo non è accumulare quanti più dati possibile, ma raccogliere solo quelli necessari a costruire un modello completo di atleta + territorio + ambiente, ed evitare di mandare dati grezzi direttamente a un modello di AI.
+L'obiettivo non è accumulare dati, ma costruire un modello completo di atleta + territorio + ambiente. L'AI Coach riceve solo concetti già interpretati, mai numeri grezzi.
 
----
+**Posizionamento:** non compete con Strava/Garmin/TrainingPeaks. È uno **strato di intelligenza sopra gli strumenti che il ciclista già usa**.
 
-## Architettura — moduli del sistema
+## Architettura
 
-Il sistema si compone di **7 Engine BM2** (pipeline specializzata) e di **infrastruttura trasversale** di supporto.
+**Local-first, desktop-first (Tauri 2).** Il device è la sorgente di verità. SQLite è lo store primario per ogni utente. PostgreSQL è opzionale (cloud sync/community).
 
-### Engine BM2 (7)
+### Platform
+
+| Livello | Tecnologia |
+|---|---|
+| Desktop | Tauri 2 (Rust + WebView) — distribuzione primaria |
+| Frontend | Vue 3 + Vite + TypeScript — bundle inside Tauri WebView |
+| Backend | FastAPI (Python) embedded — `localhost` nel device |
+| Database | SQLite (primario, locale) + PostgreSQL opzionale |
+| Mobile | Capacitor 5 (Android/iOS) |
+| Web | PWA per utenti browser-only |
+
+### Engine BM2 (7 pipeline specializzate)
 
 | Engine | Responsabilità |
 |---|---|
-| **Import Engine** | Importa dati da fonti esterne (Strava, GPX, FIT, Garmin, Wahoo, altri dispositivi) |
-| **Tracking Engine** | Registrazione sessioni live (GPS + sensori in tempo reale) |
-| **Measurement Engine** | Conversioni e grandezze derivate (velocità, pendenza, energia) — lo "standard interno" a cui tutti i sensori si adattano |
-| **Analysis Engine** | Metriche di sessione e di atleta, trend, zone, TRIMP/TSS |
-| **Territory Engine** | Modello del territorio: strade, pendenze, difficoltà segmento, sicurezza |
-| **Knowledge Layer** | Stati interpretati: `FitnessState`, `FatigueState`, `RecoveryState`, `RouteDifficulty`, `PerformancePrediction` |
-| **AI Coach** | Spiegazioni, consigli, interazione con l'utente — legge solo dal Knowledge Layer, mai dati grezzi |
+| **Import Engine** | GPX/FIT/Strava/Garmin/Wahoo |
+| **Tracking Engine** | Sessioni live GPS + sensori |
+| **Measurement Engine** | Conversioni e grandezze derivate |
+| **Analysis Engine** | Metriche di sessione e atleta |
+| **Territory Engine** | Modello territorio e difficoltà percorso |
+| **Knowledge Layer** | Stati interpretati (FitnessState, FatigueState, RecoveryState...) |
+| **AI Coach** | Consigli basati solo sul Knowledge Layer |
 
 ### Infrastruttura trasversale
 
 | Modulo | Ruolo |
 |---|---|
-| **Data Layer** | Storage canonico di atleti, sessioni, bici, telemetria — *non è un Engine*, è un outbox condiviso (vedi [`BM2_ENGINE_ARCHITECTURE.md`](docs/BM2_ENGINE_ARCHITECTURE.md) §2) |
-| **Time Engine** | Timeline unificata e sincronizzazione eventi tra gli Engine |
-
-Ogni Engine ha confini precisi (cosa riceve, cosa produce, cosa può leggere, cosa **non deve** conoscere): il dettaglio è nei documenti di architettura.
-
----
+| **Data Layer** | Storage canonico atleti, sessioni, bici, telemetria |
+| **Time Engine** | Timeline unificata e sincronizzazione eventi |
 
 ## Documentazione
 
-### Riferimento completo (`docs/reference/`)
+### Indice centrale
 
-Riferimento tecnico esaustivo generato dal codice sorgente — **il punto di partenza consigliato**.
+Per una guida completa a tutti i documenti, vedi [`docs/README.md`](docs/README.md).
+
+### Riferimento tecnico (`docs/reference/`)
 
 | Documento | Contenuto |
 |---|---|
 | [`docs/reference/README.md`](docs/reference/README.md) | Indice del riferimento completo |
-| [`docs/reference/architecture.md`](docs/reference/architecture.md) | Architettura di sistema: layer, flusso richieste, mappa moduli |
-| [`docs/reference/api-reference.md`](docs/reference/api-reference.md) | Tutti i 138 endpoint REST (metodo, path, auth) |
-| [`docs/reference/database-schema.md`](docs/reference/database-schema.md) | Schema DB completo: tabelle, indici, migrazioni Alembic |
-| [`docs/reference/domain-models.md`](docs/reference/domain-models.md) | Entità di dominio + modelli BM2 campo per campo |
-| [`docs/reference/configuration.md`](docs/reference/configuration.md) | Tutte le variabili d'ambiente / settings |
-| [`docs/reference/engines-and-analytics.md`](docs/reference/engines-and-analytics.md) | Engine BM2 (9 algoritmi) + motore analytics |
-| [`docs/reference/frontend.md`](docs/reference/frontend.md) | SPA Vue 3: route, store, componenti, mobile/PWA |
+| [`docs/reference/architecture.md`](docs/reference/architecture.md) | Architettura di sistema: layer, flusso, moduli |
+| [`docs/reference/api-reference.md`](docs/reference/api-reference.md) | Tutti gli endpoint REST |
+| [`docs/reference/database-schema.md`](docs/reference/database-schema.md) | Schema DB completo |
+| [`docs/reference/domain-models.md`](docs/reference/domain-models.md) | Entità di dominio + modelli BM2 |
+| [`docs/reference/configuration.md`](docs/reference/configuration.md) | Variabili d'ambiente / settings |
+| [`docs/reference/engines-and-analytics.md`](docs/reference/engines-and-analytics.md) | Engine BM2 + motore analytics |
+| [`docs/reference/frontend.md`](docs/reference/frontend.md) | SPA Vue 3: route, store, componenti |
 
-### Visione e architettura
+### Architettura e visione
 
 | Documento | Contenuto |
 |---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Visione, principi e architettura generale del sistema |
-| [`docs/BM2_ENGINE_ARCHITECTURE.md`](docs/BM2_ENGINE_ARCHITECTURE.md) | Specifica di ogni Engine: pipeline, dipendenze, pattern di comunicazione |
-| [`docs/BM2_ALGORITHMS.md`](docs/BM2_ALGORITHMS.md) | Formule delle variabili derivate (potenza stimata, TRIMP, CTL/ATL, difficoltà percorso, ecc.) |
-| [`docs/bm2/README.md`](docs/bm2/README.md) | Indice della cartella BM2: variabili, contratti, schema, concetti chiave |
-| [`docs/bm2/data-contracts.md`](docs/bm2/data-contracts.md) | Contratti JSON scambiati tra Engine (produttore/consumatore) |
-| [`docs/bm2/variables.md`](docs/bm2/variables.md) | Dizionario completo delle variabili BM2 con unità e posizione nel codice |
+| [`docs/MASTER.md`](docs/MASTER.md) | Documento di riferimento completo del progetto |
+| [`docs/UNIFIED_DOCUMENTATION.md`](docs/UNIFIED_DOCUMENTATION.md) | Sintesi unificante di tutta la documentazione |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Architettura madre (Clean v2, UnifiedMetricsEngine) |
+| [`docs/BM2_ENGINE_ARCHITECTURE.md`](docs/BM2_ENGINE_ARCHITECTURE.md) | Specifica Engine BM2: pipeline, dipendenze, contratti |
+| [`docs/BM2_ALGORITHMS.md`](docs/BM2_ALGORITHMS.md) | Formule delle variabili derivate |
+| [`docs/PRODUCT_LOGIC.md`](docs/PRODUCT_LOGIC.md) | Visione prodotto, quattro pilastri, logica centrale |
+| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Setup, build, test, lint, come contribuire |
 
-**Ordine di lettura consigliato:** [indice riferimento](docs/reference/README.md) → architettura generale → architettura Engine → schema database → contratti dati → API → algoritmi.
+### AetherMap (R&D)
 
----
+Progetto cartografico indipendente (`aethermap/`) — motore "dal nulla" con cube-sphere, S2/H3, rendering WebGL, digital twin. Condivide lo stack (Vue + FastAPI) ma non è importato dal backend BikeMaster.
 
-## Principi di progettazione
+| Documento | Contenuto |
+|---|---|
+| [`aethermap/README.md`](../aethermap/README.md) | Panoramica progetto AetherMap |
+| [`docs/agent/aethermap.md`](docs/agent/aethermap.md) | Istruzioni agent per AetherMap |
 
-1. **Separazione delle responsabilità** — ogni Engine fa una cosa sola e non duplica logica altrui.
-2. **Standard interno unico** — qualunque sia la fonte del dato (telefono, Garmin, Strava, sensore bici), passa dal Data Normalization Layer prima di essere usato.
-3. **Dati grezzi ≠ conoscenza** — l'AI Coach riceve solo concetti già interpretati (`FatigueState`, `RecoveryState`, ecc.), mai numeri grezzi.
-4. **Apprendimento personalizzato** — modelli come `RecoveryState` si calibrano nel tempo sullo storico del singolo atleta, non su una formula fissa uguale per tutti.
-
----
+**Ordine di lettura consigliato:** [README centrale](docs/README.md) → architettura generale → [UNIFIED_DOCUMENTATION.md](docs/UNIFIED_DOCUMENTATION.md) → schema database → contratti dati → API → algoritmi.
 
 ## Quick Start
 
@@ -107,8 +115,9 @@ Riferimento tecnico esaustivo generato dal codice sorgente — **il punto di par
 
 - Python 3.11+
 - Node.js 18+ (per il frontend)
+- Rust/Cargo (per Tauri desktop, opzionale)
 
-### Backend
+### Backend (API locale)
 
 ```bash
 git clone https://github.com/ballales1984-wq/bikemaster.git
@@ -119,12 +128,19 @@ pip install -r requirements.txt
 python main.py api             # API + dashboard su http://localhost:8000
 ```
 
-### Frontend
+### Frontend (Vite dev server)
 
 ```bash
 cd frontend
 npm install
-npm run dev                    # Vite dev server su http://localhost:5173
+npm run dev                    # http://localhost:5173
+```
+
+### Desktop (Tauri 2)
+
+```bash
+cd frontend
+npm run tauri dev              # App desktop con backend embedded
 ```
 
 ### Docker
@@ -133,46 +149,47 @@ npm run dev                    # Vite dev server su http://localhost:5173
 docker compose up -d
 ```
 
-Per la configurazione delle variabili d'ambiente copia `.env.example` in `.env`. La documentazione completa di setup, deploy e testing è in [`docs/`](docs/).
+Per la configurazione delle variabili d'ambiente copia `.env.example` in `.env`.
 
----
+## BikeMaster 2.0 — Simulation Engine
 
-## BikeMaster 2.0 — Deluxe Simulation Engine
-
-BM2 è l'**engine di simulazione sportiva** interno a BikeMaster: fornisce analisi what-if, algoritmi type-safe con analisi dimensionale (`Quantity` + `UnitRegistry`) e un Knowledge Layer per gli insight guidati dall'AI.
+BM2 è l'**engine di simulazione sportiva** interno: fornisce analisi what-if, algoritmi type-safe con analisi dimensionale (`Quantity` + `UnitRegistry`) e un Knowledge Layer per insight guidati dall'AI.
 
 - **7 engine specializzati**: Import, Tracking, Measurement, Analysis, Territory, Knowledge Layer, AI Coach
 - **9 algoritmi**: Movement, Energy, Performance, Fatigue, RouteDifficulty, Recovery, Nutrition, Power, TrainingLoad
 - **Kernel fisico condiviso**: `bike_analyzer/core/physics/`
-- **Algoritmi puri**: ogni algoritmo eredita dalla classe base `Algorithm` e restituisce un `ModelResult` con formula, input usati, precisione e confidence
+- **Algoritmi puri**: ogni algoritmo restituisce `ModelResult` con formula, input, precisione e confidence
 
 ```bash
 # Test BM2
 pytest tests/test_bm2_*.py -v
-```
 
----
+# Demo simulazione
+cd bike_analyzer && python -m bm2.simulation.demo
+```
 
 ## Roadmap
 
-- [x] Architettura concettuale e mappa degli Engine
-- [x] Vocabolario delle variabili per dominio
-- [x] Schema database
-- [x] Specifica API
-- [x] Documento algoritmi
-- [x] Contratti dati tra Engine
-- [x] Data Layer + Measurement Engine
-- [x] Import Engine (GPX/FIT/Strava/Garmin/Wahoo)
-- [x] Tracking Engine (sessioni live + Android)
-- [x] Analysis Engine
-- [x] Territory Engine (difficoltà + sicurezza percorso)
-- [x] Knowledge Layer
-- [x] AI Coach (Groq + RAG con PGVector)
-- [ ] App mobile iOS (Capacitor iOS)
-- [ ] Anomaly detection + piano di allenamento generato da LLM
-- [ ] Copertura test > 90%
+**Stato:** Production Ready. Backend 108 file / 1674 test · Frontend 47 file / 318 test · 138 endpoint REST.
 
----
+### Completato
+
+- [x] Architettura locale-first Tauri 2 + SQLite primario
+- [x] 7 Engine BM2 + 9 algoritmi
+- [x] AI Coach (Groq + RAG)
+- [x] Import Strava/Garmin/Wahoo/Google Fit
+- [x] Phone GPS Tracking (Android + iOS)
+- [x] Traffic Safety Analysis
+- [x] Multi-tenant + data isolation
+- [x] AetherMap (fasi 1-4 baseline)
+
+### In corso
+
+- [ ] AetherMap fasi 3-5 (AI pipeline + digital twin)
+- [ ] Anomaly detection + piano di allenamento LLM
+- [ ] Voice Coach (TTS/audio)
+
+Vedi [`ROADMAP.md`](ROADMAP.md) per il dettaglio completo.
 
 ## Come contribuire
 
@@ -183,8 +200,6 @@ pytest tests/test_bm2_*.py -v
 5. Apri una Pull Request
 
 Prima di proporre modifiche architetturali, verificare che rispettino i confini di responsabilità definiti in [`docs/BM2_ENGINE_ARCHITECTURE.md`](docs/BM2_ENGINE_ARCHITECTURE.md). Assicurarsi che tutti i test passino prima di inviare una PR.
-
----
 
 ## Licenza
 

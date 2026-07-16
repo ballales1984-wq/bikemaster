@@ -2,11 +2,20 @@
 
 **Completati: 155/145 step base + 50/80 estensioni**
 
-> **Stato**: Production Ready — deploy attivo su Render, architettura Clean Architecture.
+> **Stato**: Production Ready — distribuzione primaria: desktop **Tauri 2** (`.exe`/`.dmg`/`.AppImage`) con backend embedded FastAPI + SQLite locale. Deploy cloud opzionale (Render) per sync/community. Architettura local-first.
 > Fonte di verità unica per stato/checklist: [`ROADMAP.md`](ROADMAP.md).
 >
 > **Numeri verificati (2026-07-13):** backend **108** file di test / **1674** test;
 > frontend **47** file di test / **318** test (Vitest); **138** endpoint REST.
+
+### AetherMap (R&D separato)
+
+Progetto cartografico indipendente in `aethermap/` — motore "dal nulla" (cube-sphere + S2/H3, data model "database del mondo", pipeline IA "ricercatore", rendering WebGL, digital twin). Condivide lo stack (Vue + FastAPI) ma non è importato dal backend BikeMaster.
+
+- **Fasi 1-4 baseline**: earth model, data model, rendering WebGL completati.
+- **Fasi 3-5 in corso**: AI pipeline "ricercatore", digital twin.
+- Demo: `cd aethermap/src && python -m aethermap.ai.demo|.render.demo|.twin.demo`.
+- Agenti dedicati: `.kilo/agent/aethermap-*.md`.
 
 ### Ultimo Commit
 - `feat: complete multi-tenant support — tenant_id + user management endpoints`

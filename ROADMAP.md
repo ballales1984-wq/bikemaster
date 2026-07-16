@@ -23,8 +23,8 @@ Ordine: stabilità → mobile nativo → maturità AI → distribuzione/integraz
 |:--:|---|---|:--:|
 | P0.1 | Logging centralizzato e strutturato | Stabilità | ✅ |
 | P0.2 | Servizi registrati nel lifespan FastAPI | Stabilità | ✅ |
-| P1.1 | Tauri 2 desktop app wrapper + backend embedded | Desktop-first | 🔄 |
-| P1.2 | SQLite come database primario (migrazione da PostgreSQL) | Desktop-first | ❌ |
+| P1.1 | Tauri 2 desktop app wrapper + backend embedded | Desktop-first | ✅ |
+| P1.2 | SQLite come database primario (migrazione da PostgreSQL) | Desktop-first | ✅ |
 | P1.3 | Sync bidirezionale device↔cloud (opzionale, attivabile) | Desktop-first | ❌ |
 | P1.4 | Verifica build iOS con Xcode su dispositivo | Mobile nativo | 🔄 |
 | P2.1 | Memory persistente conversazioni per utente | AI Coach | ✅ |
@@ -124,8 +124,8 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 | Testing | Coverage reported as informational | ✅ |
 | Code Quality | Ruff + mypy + pre-commit | ✅ |
 | Container | Docker multi-stage hardened | ✅ |
-| Desktop | Tauri 2 wrapper + backend embedded | ❌ |
-| Database | SQLite primary with Alembic migrations | ❌ |
+| Desktop | Tauri 2 wrapper + backend embedded + SQLite primario | ✅ |
+| Database | SQLite primary with Alembic migrations | ✅ |
 | Offline-first | Full functionality without cloud | ❌ |
 | Sync | Optional bidirectional device↔cloud sync | ❌ |
 | Monitoring | Sentry + Prometheus + Grafana | ✅ |
@@ -137,4 +137,4 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 | Frontend | Vitest (47 file / 318 test) | ✅ |
 | Frontend | Playwright E2E (`frontend/tests/e2e`, 14 spec esistenti + 3 aggiunti backend-independent) | ✅ |
 | Security | Security headers + rate limiting | ✅ |
-| CI/CD | GitHub Actions + Tauri build pipeline | ❌ |
+| CI/CD | GitHub Actions + Tauri build pipeline | ✅ |
