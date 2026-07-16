@@ -792,7 +792,7 @@ Key environment variables:
 
 ## 18. Roadmap
 
-Project status: **Production Ready** — All base phases complete, active testing suite (98 backend + 321 frontend), stable production deployment on Render.
+Project status: **local-first architecture complete** — desktop Tauri 2 + SQLite primary + embedded FastAPI backend, with active BM2 and AetherMap tracks. For current test counts and endpoint numbers, see [`ROADMAP.md`](ROADMAP.md) and [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
 
 ### Completed Phases
 

@@ -1,4 +1,8 @@
-"""FastAPI application factory."""
+"""FastAPI application factory.
+
+Builds the BikeMaster ASGI app with middleware, routers, static file serving,
+observability, and lifecycle management.
+"""
 
 from __future__ import annotations
 
@@ -37,6 +41,7 @@ INDEX_FILE = STATIC_DIR / "index.html"
 
 
 def _static_file_response(file_path: Path, media_type: str | None = None, headers: dict | None = None) -> Response:
+    """Serve a static file from disk, inferring media type when not provided."""
     if file_path.exists() and media_type:
         content = file_path.read_bytes() if media_type.startswith("image/") else file_path.read_text(encoding="utf-8")
         return Response(content=content, media_type=media_type, headers=headers or {})
@@ -47,6 +52,7 @@ def _static_file_response(file_path: Path, media_type: str | None = None, header
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Application lifespan: initialize services on startup, shut them down gracefully."""
     from ..db.database import init_db
     from ..logging_config import setup_logging
 
@@ -107,6 +113,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    """Create and configure the FastAPI application instance."""
     app = FastAPI(
         title="BikeMaster API",
         description="GPS-based cycling intelligence",
@@ -142,6 +149,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(ValidationError)
     async def validation_exception_handler(request: Request, exc: ValidationError):
+        """Return localized 422 for Pydantic validation failures."""
         return JSONResponse(
             status_code=422,
             content={"detail": "Dati non validi", "errors": exc.errors()},
@@ -151,6 +159,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(BusinessValidationError)
     async def business_validation_error_handler(request: Request, exc: BusinessValidationError):
+        """Return 400 for business-rule validation failures."""
         return JSONResponse(
             status_code=400,
             content={"detail": str(exc)},
@@ -158,6 +167,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):
+        """Return 400 for generic value errors raised in route handlers."""
         return JSONResponse(
             status_code=400,
             content={"detail": str(exc)},
@@ -174,6 +184,7 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def correlation_id_middleware(request: Request, call_next):
+        """Assign a request-scoped correlation id for tracing and logging."""
         import uuid
 
         request_id = request.headers.get(REQUEST_ID_HEADER, str(uuid.uuid4()))
@@ -193,8 +204,7 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def user_api_keys_middleware(request: Request, call_next):
-        # Per-request user-provided API keys (Groq, Google Maps, SerpAPI,
-        # OpenWeather). Scoped to this request via a ContextVar; never persisted.
+        """Inject per-request user-provided API keys via ContextVar."""
         keys = parse_user_keys_header(request.headers.get("x-user-api-keys"))
         token = set_request_user_keys(keys)
         try:

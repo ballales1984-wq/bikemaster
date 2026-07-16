@@ -1,5 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createPinia } from "pinia";
 
 const apiGet = vi.hoisted(() => vi.fn());
 vi.mock("../utils/api.ts", () => ({ apiGet }));
@@ -32,10 +33,16 @@ describe("DashboardPanel", () => {
     vi.clearAllMocks();
   });
 
+  function mountPanel() {
+    return mount(DashboardPanel, {
+      global: { plugins: [createPinia()] },
+    });
+  }
+
   it("shows dashboard data correctly", async () => {
     apiGet.mockResolvedValueOnce(mockDashboard);
 
-    const wrapper = mount(DashboardPanel);
+    const wrapper = mountPanel();
     await flush();
 
     expect(apiGet).toHaveBeenCalledWith("/api/v1/dashboard");
@@ -47,7 +54,7 @@ describe("DashboardPanel", () => {
   it("shows loading state initially", async () => {
     apiGet.mockResolvedValueOnce(mockDashboard);
 
-    const wrapper = mount(DashboardPanel);
+    const wrapper = mountPanel();
 
     // Initially loading is true, so skeleton-grid is shown when no summary yet
     expect(wrapper.vm.loading).toBe(true);
@@ -56,7 +63,7 @@ describe("DashboardPanel", () => {
   it("shows error if fetch fails", async () => {
     apiGet.mockRejectedValueOnce(new Error("Network error"));
 
-    const wrapper = mount(DashboardPanel);
+    const wrapper = mountPanel();
     await flush();
 
     expect(wrapper.find(".error-state").exists()).toBe(true);
@@ -66,7 +73,7 @@ describe("DashboardPanel", () => {
   it("shows dashboard cards in grid", async () => {
     apiGet.mockResolvedValueOnce(mockDashboard);
 
-    const wrapper = mount(DashboardPanel);
+    const wrapper = mountPanel();
     await flush();
 
     const cards = wrapper.findAll(".dash-card");
@@ -76,7 +83,7 @@ describe("DashboardPanel", () => {
   it("shows scores correctly", async () => {
     apiGet.mockResolvedValueOnce(mockDashboard);
 
-    const wrapper = mount(DashboardPanel);
+    const wrapper = mountPanel();
     await flush();
 
     // Scores are rendered in ring-value elements
@@ -92,7 +99,7 @@ describe("DashboardPanel", () => {
   it("shows ATL/CTL/TSB values from fitness", async () => {
     apiGet.mockResolvedValueOnce(mockDashboard);
 
-    const wrapper = mount(DashboardPanel);
+    const wrapper = mountPanel();
     await flush();
 
     expect(wrapper.text()).toContain("45.2");

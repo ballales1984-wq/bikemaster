@@ -11,7 +11,6 @@ BM2 is the "what-if" simulation and knowledge engine inside BikeMaster. It trans
 | [variables.md](./variables.md) | Variable dictionary — domains, canonical units, gaps vs code |
 | [data-contracts.md](./data-contracts.md) | JSON schemas exchanged between BM2 Engines |
 | [database-schema.md](./database-schema.md) | Relational + time-series schema for BM2 persistence |
-| [architecture.md](./architecture.md) | BM2 architecture draft (engines, data flow, principles) |
 
 ## Key Concepts
 

@@ -277,10 +277,14 @@ describe("CalendarPanel", () => {
 
     const select = wrapper.find("select");
     await select.setValue(2);
+    await new Promise((r) => setTimeout(r, 50));
     await flush();
 
     const calls = apiGet.mock.calls.filter(
-      (c) => c[0] === "/api/v1/calendar/events" && c[1]?.athlete_id === 2,
+      (c) =>
+        typeof c[0] === "string" &&
+        c[0].startsWith("/api/v1/calendar/events") &&
+        c[0].includes("athlete_id=2"),
     );
     expect(calls.length).toBeGreaterThan(0);
   });

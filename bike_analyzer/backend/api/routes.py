@@ -99,6 +99,7 @@ logger = get_logger(__name__)
 
 
 def _place_cache_get(key: str) -> Any | None:
+    """Return a cached POI result if still fresh, otherwise evict it."""
     entry = _PLACE_CACHE.get(key)
     if entry is None:
         return None
@@ -110,6 +111,7 @@ def _place_cache_get(key: str) -> Any | None:
 
 
 def _place_cache_set(key: str, value: Any) -> None:
+    """Store a POI result in the in-memory cache with the current timestamp."""
     _PLACE_CACHE[key] = (value, time.time())
 
 
@@ -120,6 +122,7 @@ MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
 def _build_redirect_uri(request: Request, path: str) -> str:
+    """Build an absolute URI honoring X-Forwarded-* headers when behind a proxy."""
     proto = _trusted_forwarded_value(request, "x-forwarded-proto") or request.url.scheme
     host = (
         _trusted_forwarded_value(request, "x-forwarded-host") or request.headers.get("host") or request.url.netloc
@@ -180,6 +183,11 @@ def _build_oauth_success_url(redirect_uri: str, token: str, email: str, user_id:
 
 
 def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) -> None:
+    """Validate an OAuth redirect_uri against the configured allow-list.
+
+    Raises ``HTTPException(400)`` on invalid scheme, missing host, or
+    disallowed hostname.
+    """
     parsed = urlparse(redirect_uri)
     if not parsed.scheme:
         raise HTTPException(status_code=400, detail="Invalid redirect_uri")
@@ -273,22 +281,26 @@ def _verify_oauth_state(state: str) -> dict | None:
 
 
 def _http_error_detail(exc: Exception, fallback: str) -> str:
+    """Extract a readable error message from an HTTP or network exception."""
     response = getattr(exc, "response", None)
     body = response.text if response is not None else str(exc)
     return f"{fallback}: {body[:500]}"
 
 
 def _user_id(current_user: dict) -> int:
+    """Extract the integer user/athlete id from the authenticated user dict."""
     return int(current_user["id"])
 
 
 def _public_athlete(athlete: dict | None) -> dict:
+    """Return an athlete dict with sensitive fields (e.g. password_hash) stripped."""
     if athlete is None:
         return {}
     return {k: v for k, v in athlete.items() if k != "password_hash"}
 
 
 def _athlete_profile_data(athlete: dict | None) -> dict | None:
+    """Return only the fields defined in ``AthleteProfile`` from an athlete dict."""
     if athlete is None:
         return None
     allowed_fields = {field.name for field in fields(AthleteProfile)}
@@ -296,6 +308,7 @@ def _athlete_profile_data(athlete: dict | None) -> dict | None:
 
 
 def _ensure_int_user_id(current_user: dict) -> int:
+    """Coerce ``current_user["id"]`` to int or raise 401."""
     try:
         return int(current_user["id"])
     except (KeyError, TypeError, ValueError) as exc:
@@ -303,6 +316,7 @@ def _ensure_int_user_id(current_user: dict) -> int:
 
 
 def _ensure_athlete_access(athlete_id: int, current_user: dict) -> None:
+    """Raise 403 if ``current_user`` is not the owner or an admin for ``athlete_id``."""
     if current_user.get("is_admin"):
         return
     if int(athlete_id) != _ensure_int_user_id(current_user):
@@ -310,6 +324,7 @@ def _ensure_athlete_access(athlete_id: int, current_user: dict) -> None:
 
 
 def _ensure_ride_access(ride: dict, current_user: dict) -> None:
+    """Raise 403 if ``current_user`` is neither the ride owner nor the tenant owner."""
     if not current_user.get("is_admin"):
         user_id = _user_id(current_user)
         user_tenant_id = current_user.get("tenant_id", user_id)
@@ -328,10 +343,12 @@ def _get_athlete_rides(athlete_id: int, current_user: dict) -> list[Ride]:
 
 
 def _sse(event: str, data: str) -> str:
+    """Format a single Server-Sent Event frame."""
     return f"event: {event}\ndata: {data}\n\n"
 
 
 def _make_streaming_response(generator: AsyncGenerator[str, None], event_type: str = "chunk") -> StreamingResponse:
+    """Wrap an async generator as a Server-Sent Events streaming response."""
     async def stream_gen() -> AsyncGenerator[str, None]:
         try:
             async for chunk in generator:
@@ -348,6 +365,7 @@ def _make_streaming_response(generator: AsyncGenerator[str, None], event_type: s
 
 
 def _google_fit_message_html(message: dict) -> HTMLResponse:
+    """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
     payload = json.dumps(message)
     return HTMLResponse(
         f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
@@ -355,6 +373,7 @@ def _google_fit_message_html(message: dict) -> HTMLResponse:
 
 
 def _google_health_message_html(message: dict) -> HTMLResponse:
+    """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
     payload = json.dumps(message)
     return HTMLResponse(
         f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
@@ -362,6 +381,7 @@ def _google_health_message_html(message: dict) -> HTMLResponse:
 
 
 def _strava_message_html(message: dict) -> HTMLResponse:
+    """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
     payload = json.dumps(message)
     return HTMLResponse(
         f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
@@ -370,12 +390,17 @@ def _strava_message_html(message: dict) -> HTMLResponse:
 
 @router.get("/health")
 async def health_check():
+    """Basic liveness probe for the API service."""
     return {"status": "ok", "service": "bikemaster"}
 
 
 @router.post("/alerts/webhook")
 async def alerts_webhook(request: Request):
-    """Receive alerts from Prometheus Alertmanager."""
+    """Receive alerts from Prometheus Alertmanager.
+
+    Optionally validates the ``X-Alertmanager-Webhook-Token`` header against
+    ``ALERTMANAGER_WEBHOOK_TOKEN``. Logs the receiver name for audit.
+    """
     expected_token = os.getenv("ALERTMANAGER_WEBHOOK_TOKEN")
     if expected_token:
         provided = request.headers.get("X-Alertmanager-Webhook-Token", "")
@@ -401,6 +426,7 @@ async def sentry_debug():
 
 @router.get("/health/redis")
 async def health_redis():
+    """Check Redis connectivity and return connection status."""
     from ..redis_client import get_redis
 
     r = await get_redis()
@@ -415,9 +441,12 @@ async def health_redis():
 
 @router.get("/config/google-maps-key")
 async def google_maps_key(request: Request, current_user: dict = Depends(get_current_user)):
-    # The Maps JS key is inherently client-side, so it MUST be restricted via
-    # HTTP-referrer in Google Cloud. As defense in depth, only serve it to
-    # requests originating from the app's own configured origins.
+    """Return the Google Maps JS API key for the frontend.
+
+    The key is served only to allowed origins as defense-in-depth, because
+    Maps JS keys are inherently client-side and must be restricted by
+    HTTP referrer in Google Cloud Console.
+    """
     origin = request.headers.get("origin") or request.headers.get("referer") or ""
     allowed = {urlparse(o).netloc for o in _s.cors_origins_list}
     if origin and urlparse(origin).netloc not in allowed:

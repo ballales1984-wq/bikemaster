@@ -15,8 +15,7 @@
 > `docs/local-data-storage.md`, `docs/reference/*`, `PROJECT_STATUS.md`,
 > `ROADMAP.md`, `aethermap/README.md`, `docs/agent/*`.
 >
-> **Stato prodotto (verificato 2026-07-13):** Production Ready. Backend
-> 108 file test / 1674 test · Frontend 47 file / 318 test Vitest · 138 endpoint REST.
+> **Stato prodotto (consolidato 2026-07-16):** architettura locale-first completata (desktop Tauri 2 + SQLite primario + backend FastAPI embedded), engine BM2 e AetherMap attivi. Per i numeri aggiornati di test/endpoint vedere [`ROADMAP.md`](ROADMAP.md) e [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
 
 ---
 

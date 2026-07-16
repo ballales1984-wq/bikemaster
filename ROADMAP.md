@@ -2,8 +2,7 @@
 
 *Ultimo aggiornamento: 2026-07-13*
 
-> Stato: **Production Ready** (multi-tenant completato, deploy su Render stabile).
-> Numeri verificati: backend 108 file / 1674 test · frontend 47 file / 318 test · 138 endpoint REST.
+> Stato: **architettura locale-first completata** (desktop Tauri 2 + SQLite primario + backend FastAPI embedded), con engine BM2 e progetto R&D AetherMap attivi. Sync bidirezionale device↔cloud e offline-first restano in corso (vedi checklist sotto).
 > Questo documento è la *fonte di verità* unica per stato, checklist e idee/feature.
 > Le fasi 1-25 sono completate; sotto il backlog riordinato (4 track) e lo stato di pulizia repo.
 
@@ -104,17 +103,16 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 > il suo ultimo commit (`85faede`) risultava distruttivo (cancellava codice produttivo
 > esistente). Il lavoro utile del branch (DB layer async/postgres/vector, cleanup temp,
 > Dockerfile fix) è già stato incorporato in `main` attraverso commit separati. Rimosso
-> da questo elenco. Resta aperto:
+> da questo elenco.
+> `inconclusive-pastry` (progressi AetherMap: camera projection, SVO, ASCII render) risulta
+> già mergiato in `main` (PR #3, commit `907aebf`) e non è più un branch aperto.
 
-| Branch | Contenuto | Stato / Azione suggerita |
-|---|---|---|
-| `inconclusive-pastry` | Progressi AetherMap (camera projection, SVO, ASCII render) — in worktree | ✅ Già mergiato in main (PR #3, commit `907aebf`). Rimuovere dall'elenco branch aperti |
+*Nessun branch non-fuso contenente lavoro risulta attualmente aperto.*
 
 ### C.3 Da fare (richiede conferma/permessi)
 - [ ] **Prune remote-tracking obsoleti** (`codex/esamina-il-codice`, `cloudy-tower`,
       `loud-paste`, `docker-create-production-dockerfile`, `models-consolidate-domain-models`,
       `security-add-auth-to-endpoints`, `bm2-*`) — richiede `git push` (conferma utente).
-- [ ] Merge/review dei branch in C.2.
 
 ---
 

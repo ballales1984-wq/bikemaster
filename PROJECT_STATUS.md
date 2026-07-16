@@ -2,11 +2,10 @@
 
 **Completati: 155/145 step base + 50/80 estensioni**
 
-> **Stato**: Production Ready — distribuzione primaria: desktop **Tauri 2** (`.exe`/`.dmg`/`.AppImage`) con backend embedded FastAPI + SQLite locale. Deploy cloud opzionale (Render) per sync/community. Architettura local-first.
+> **Stato**: architettura locale-first completata — distribuzione primaria: desktop **Tauri 2** (`.exe`/`.dmg`/`.AppImage`) con backend embedded FastAPI + SQLite locale. Deploy cloud opzionale (Render) per sync/community. Architettura local-first.
 > Fonte di verità unica per stato/checklist: [`ROADMAP.md`](ROADMAP.md).
 >
-> **Numeri verificati (2026-07-13):** backend **108** file di test / **1674** test;
-> frontend **47** file di test / **318** test (Vitest); **138** endpoint REST.
+> **Numeri backend/frontend**: vedere [`ROADMAP.md`](ROADMAP.md) e l'output dei test (`pytest` da repo root, `npm run test` in `frontend`) per i valori aggiornati; i conteggi storici (108 file backend / 1674 test, 47 file frontend / 318 test, 138 endpoint REST, verificati 2026-07-13) sono riportati a titolo di riferimento.
 
 ### AetherMap (R&D separato)
 

@@ -35,7 +35,11 @@ L'obiettivo non è accumulare dati, ma costruire un modello completo di atleta +
 
 ## Architettura
 
-**Local-first, desktop-first (Tauri 2).** Il device è la sorgente di verità. SQLite è lo store primario per ogni utente. PostgreSQL è opzionale (cloud sync/community).
+**Local-first, desktop-first (Tauri 2).** Il device è la sorgente di verità. L'architettura prevede due moduli backend:
+- **Modulo locale** (default): FastAPI embedded + SQLite, gira su `localhost` nel device.
+- **Modulo hub** (opzionale): FastAPI + PostgreSQL multi-tenant, per sync e community.
+
+L'utente può attivare la modalità **"Mai"** (mai sync) e usare l'app 100% offline.
 
 ### Platform
 
@@ -44,8 +48,8 @@ L'obiettivo non è accumulare dati, ma costruire un modello completo di atleta +
 | Desktop | Tauri 2 (Rust + WebView) — distribuzione primaria |
 | Frontend | Vue 3 + Vite + TypeScript — bundle inside Tauri WebView |
 | Backend | FastAPI (Python) embedded — `localhost` nel device |
-| Database | SQLite (primario, locale) + PostgreSQL opzionale |
-| Mobile | Capacitor 5 (Android/iOS) |
+| Database | SQLite (primario, locale) + PostgreSQL (opzionale, cloud hub) |
+| Mobile | Android (Capacitor + Kotlin) · iOS (Capacitor, in valutazione) |
 | Web | PWA per utenti browser-only |
 
 ### Engine BM2 (7 pipeline specializzate)
@@ -104,8 +108,16 @@ Progetto cartografico indipendente (`aethermap/`) — motore "dal nulla" con cub
 
 | Documento | Contenuto |
 |---|---|
-| [`aethermap/README.md`](../aethermap/README.md) | Panoramica progetto AetherMap |
+| [`aethermap/README.md`](aethermap/README.md) | Panoramica progetto AetherMap |
 | [`docs/agent/aethermap.md`](docs/agent/aethermap.md) | Istruzioni agent per AetherMap |
+
+### Modulo hub (cloud sync & community)
+
+Backend cloud opzionale per sync bidirezionale, multi-tenant e knowledge base condivisa.
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/hub.md`](docs/hub.md) | Modulo hub: architettura, avvio, endpoint, sync |
 
 **Ordine di lettura consigliato:** [README centrale](docs/README.md) → architettura generale → [UNIFIED_DOCUMENTATION.md](docs/UNIFIED_DOCUMENTATION.md) → schema database → contratti dati → API → algoritmi.
 
@@ -170,7 +182,7 @@ cd bike_analyzer && python -m bm2.simulation.demo
 
 ## Roadmap
 
-**Stato:** Production Ready. Backend 108 file / 1674 test · Frontend 47 file / 318 test · 138 endpoint REST.
+**Stato:** architettura locale-first (Tauri 2 + SQLite primario + backend FastAPI embedded) completata; engine BM2 e AetherMap attivi. Build backend e frontend con test automatizzati (vedi [`ROADMAP.md`](ROADMAP.md) e [`PROJECT_STATUS.md`](PROJECT_STATUS.md) per i numeri aggiornati).
 
 ### Completato
 

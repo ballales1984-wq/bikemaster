@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { apiDelete, apiGet, apiPost, apiPut, apiUpload } from "./api";
+import { resolveApiBase } from "./backend-config";
 
 class MemStore {
   constructor() {
@@ -36,6 +37,8 @@ describe("api helpers", () => {
     } catch {}
   });
 
+  const base = () => resolveApiBase();
+
   it("apiGet sends query params", async () => {
     store.setItem("bikemaster_token", "tok");
     origFetch = globalThis.fetch = vi
@@ -48,7 +51,7 @@ describe("api helpers", () => {
     const result = await apiGet("/api/v1/rides", { q: "1" });
     expect(result).toEqual({ ok: true });
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/v1/rides?q=1",
+      `${base()}/api/v1/rides?q=1`,
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: "Bearer tok" }),
       }),
@@ -85,7 +88,7 @@ describe("api helpers", () => {
       .mockResolvedValue({ ok: true, json: async () => ({ id: 1 }) });
     await apiPost("/api/v1/rides", { date: "2026" });
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/v1/rides",
+      `${base()}/api/v1/rides`,
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ date: "2026" }),
@@ -104,7 +107,7 @@ describe("api helpers", () => {
       });
     await apiPut("/api/v1/rides/1", { distance_km: 50 });
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/v1/rides/1",
+      `${base()}/api/v1/rides/1`,
       expect.objectContaining({
         method: "PUT",
         body: JSON.stringify({ distance_km: 50 }),
@@ -119,7 +122,7 @@ describe("api helpers", () => {
       .mockResolvedValue({ ok: true, json: async () => ({}) });
     await apiDelete("/api/v1/rides/1");
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/v1/rides/1",
+      `${base()}/api/v1/rides/1`,
       expect.objectContaining({ method: "DELETE" }),
     );
   });
