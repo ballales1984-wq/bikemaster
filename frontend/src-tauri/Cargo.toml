@@ -24,3 +24,5 @@ rusqlite = { version = "0.32", features = ["bundled", "chrono", "uuid"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 dirs = "5"
+bcrypt = "0.15"
+jsonwebtoken = "9"

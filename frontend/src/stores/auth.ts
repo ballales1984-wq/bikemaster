@@ -3,9 +3,11 @@ import { ref, computed } from "vue";
 import type { Athlete } from "../types/index";
 import {
   apiPost,
+  apiGet,
   ApiError,
   resetSessionExpiredNotification,
 } from "../utils/api";
+import { resolveApiBase } from "../utils/backend-config";
 import {
   AUTH_TOKEN_KEY,
   AUTH_USER_KEY,
@@ -82,6 +84,54 @@ export const useAuthStore = defineStore("auth", () => {
 
   function getAuthHeader(): Record<string, string> {
     return token.value ? { Authorization: `Bearer ${token.value}` } : {};
+  }
+
+  // Thin fetch wrapper that injects the Bearer header and points at the
+  // resolved backend base URL (defaults to the embedded Axum backend). Used to
+  // call endpoints outside the JSON/Form helpers, e.g. the sync endpoints.
+  async function apiFetch<T = unknown>(
+    path: string,
+    options: RequestInit = {},
+  ): Promise<T> {
+    const base = resolveApiBase();
+    const url = base ? `${base}${path}` : path;
+    const resp = await fetch(url, {
+      ...options,
+      headers: {
+        ...getAuthHeader(),
+        ...(options.headers as Record<string, string> | undefined),
+      },
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new ApiError(
+        (err as { detail?: string }).detail || `Request failed: ${resp.status}`,
+        resp.status,
+      );
+    }
+    if (
+      resp.status === 204 ||
+      !resp.headers?.get("content-type")?.includes("application/json")
+    ) {
+      return {} as T;
+    }
+    return (await resp.json()) as T;
+  }
+
+  async function fetchMe(): Promise<void> {
+    const data = await apiGet<{ id: number; username: string; email?: string }>(
+      "/api/v1/auth/me",
+      {},
+      { suppressAuthClear: true },
+    );
+    user.value = {
+      id: typeof data.id === "number" ? data.id : user.value?.id ?? 0,
+      username: data.username || user.value?.username || "",
+      email: data.email ?? user.value?.email ?? null,
+      is_admin: user.value?.is_admin ?? false,
+      tenant_id: user.value?.tenant_id ?? 0,
+    };
+    localStorage.setItem(USER_KEY, JSON.stringify(user.value));
   }
 
   async function login(username: string, password: string): Promise<void> {
@@ -200,6 +250,8 @@ export const useAuthStore = defineStore("auth", () => {
     isAdmin,
     isTokenValid,
     getAuthHeader,
+    apiFetch,
+    fetchMe,
     login,
     register,
     logout,

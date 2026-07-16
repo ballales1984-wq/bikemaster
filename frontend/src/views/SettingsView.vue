@@ -90,6 +90,8 @@
       </div>
     </section>
 
+    <SyncSettingsPanel />
+
     <section class="card">
       <h2>Stato connessione</h2>
       <div class="row">
@@ -108,6 +110,7 @@ import { useApiKeysStore } from "../stores/apiKeys";
 import { apiGet } from "../utils/api";
 import { parseBulkKeys } from "../utils/userKeys";
 import type { UserApiKeys } from "../utils/userKeys";
+import SyncSettingsPanel from "../components/SyncSettingsPanel.vue";
 
 const settings = useSettingsStore();
 const apiKeys = useApiKeysStore();

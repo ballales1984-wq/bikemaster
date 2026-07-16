@@ -2,7 +2,13 @@
   <div class="dashboard-panel">
     <!-- Header -->
     <div class="dash-header">
-      <h2>📊 Dashboard</h2>
+      <div>
+        <h2>📊 Dashboard</h2>
+        <div v-if="auth.user" class="user-line">
+          👤 {{ auth.user.username }}
+          <span class="sync-badge" :class="syncClass">{{ syncLabel }}</span>
+        </div>
+      </div>
       <button
         class="btn btn-sm btn-secondary"
         :disabled="loading"
@@ -248,10 +254,40 @@ v-if="dashboard.recent_rides?.length" class="dash-section"
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { apiGet } from "../utils/api";
+import { useAuthStore } from "../stores/auth";
 
+const auth = useAuthStore();
 const dashboard = ref({});
 const loading = ref(true);
 const error = ref("");
+
+const syncMode = ref("local");
+const syncPending = ref(0);
+
+const syncLabel = computed(() => {
+  if (syncMode.value === "cloud") return "Cloud sync";
+  if (syncMode.value === "local") return "Local (Mai)";
+  return String(syncMode.value || "—");
+});
+
+const syncClass = computed(() => ({
+  "sync-local": syncMode.value === "local",
+  "sync-cloud": syncMode.value === "cloud",
+}));
+
+async function loadSyncStatus() {
+  if (!auth.token) return;
+  try {
+    const data = await auth.apiFetch("/api/v1/sync/status", {
+      method: "GET",
+    });
+    const d = (data || {});
+    syncMode.value = (d.mode || "local");
+    syncPending.value = d.pending_count || 0;
+  } catch {
+    // Sync status is non-critical for the dashboard; ignore failures.
+  }
+}
 
 const dayLabels = ["L", "M", "M", "G", "V", "S", "D"];
 
@@ -341,6 +377,7 @@ async function load() {
   try {
     const data = await apiGet("/api/v1/dashboard");
     dashboard.value = data;
+    await loadSyncStatus();
   } catch (e) {
     error.value = "Errore caricamento: " + (e.message || e);
   } finally {
@@ -374,6 +411,32 @@ onMounted(() =>
   align-items: center;
   gap: 8px;
   margin: 0;
+}
+
+.user-line {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.sync-badge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.sync-local {
+  background: rgba(110, 184, 231, 0.15);
+  color: #6eb8e7;
+}
+
+.sync-cloud {
+  background: rgba(110, 231, 168, 0.15);
+  color: #6ee7a8;
 }
 
 /* Skeleton */
