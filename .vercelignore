@@ -1,12 +1,2 @@
-**/*.py
-bike_analyzer/
-main.py
-gpxdiag.py
-Dockerfile
-docker-compose*
-render.yaml
-alembic.ini
-alembic/
-requirements.txt
-pyproject.toml
-tests/
+node_modules
+.git
