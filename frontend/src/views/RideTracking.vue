@@ -61,31 +61,7 @@ import LiveMap from '../components/LiveMap.vue'
 import RideMetricsPanel from '../components/RideMetricsPanel.vue'
 import ControlsBar from '../components/ControlsBar.vue'
 import { apiUpload, apiPost } from '../utils/api'
-import type { GpsPoint } from '../types/index'
-
-declare global {
-  interface Window {
-    BikeTracking?: BikeTrackingBridge
-  }
-}
-
-export interface NativeGpsSample {
-  lat: number
-  lon: number
-  altitude?: number | null
-  timestamp: number
-  speed?: number | null
-}
-
-export interface BikeTrackingBridge {
-  startTracking?: () => void | Promise<void>
-  stopTracking?: () => void | Promise<{ gpxPath?: string | null; gpxBlob?: Blob | null } | void>
-  pauseTracking?: () => void | Promise<void>
-  resumeTracking?: () => void | Promise<void>
-  checkPermissions?: () => Promise<{ granted: boolean }>
-  onPosition?: (cb: (sample: NativeGpsSample) => void) => void
-  onError?: (cb: (error: { code: number; message: string }) => void) => void
-}
+import type { GpsPoint, NativeGpsSample } from '../types/index'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -150,7 +126,7 @@ async function startTracking() {
       window.BikeTracking.onPosition(handleNativePosition)
     }
     if (window.BikeTracking.onError) {
-      window.BikeTracking.onError(handleWebError)
+      window.BikeTracking.onError((err) => handleWebError(err as unknown as GeolocationPositionError))
     }
   } else {
     startWebTracking()

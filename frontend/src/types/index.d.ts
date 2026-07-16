@@ -112,6 +112,14 @@ export interface RideSegment {
   speedRisk?: number;
 }
 
+export interface NativeGpsSample {
+  lat: number;
+  lon: number;
+  altitude?: number | null;
+  timestamp: number;
+  speed?: number | null;
+}
+
 export interface BikeTrackingInstance {
   startTracking?: () => Promise<void>;
   stopTracking?: () => void;
@@ -119,6 +127,8 @@ export interface BikeTrackingInstance {
   resumeTracking?: () => Promise<void>;
   checkPermissions?: () => Promise<{ granted: boolean }>;
   isTracking?: () => boolean;
+  onPosition?: (cb: (sample: NativeGpsSample) => void) => void;
+  onError?: (cb: (error: { code: number; message: string }) => void) => void;
 }
 
 declare global {
