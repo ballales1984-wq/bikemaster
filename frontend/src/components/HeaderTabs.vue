@@ -1,6 +1,5 @@
 <template>
-  <nav
-class="tabs" aria-label="Main navigation" ref="tabsRef">
+  <nav class="tabs" aria-label="Main navigation">
     <router-link to="/rides" class="tab" active-class="active">
       🏍️ <span>{{ t("nav.rides") }}</span>
     </router-link>
@@ -70,38 +69,12 @@ class="tabs" aria-label="Main navigation" ref="tabsRef">
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "../composables/useI18n";
 
 const { t } = useI18n();
 
 defineProps({
   isAdmin: { type: Boolean, default: false },
-});
-
-const tabsRef = ref(null);
-
-function checkScrollable() {
-  if (tabsRef.value) {
-    const el = tabsRef.value;
-    el.classList.toggle("scrollable", el.scrollWidth > el.clientWidth);
-  }
-}
-
-let resizeTimer;
-function onResize() {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(checkScrollable, 150);
-}
-
-onMounted(() => {
-  checkScrollable();
-  window.addEventListener("resize", onResize);
-});
-
-onUnmounted(() => {
-  window.removeEventListener("resize", onResize);
-  clearTimeout(resizeTimer);
 });
 </script>
 
@@ -111,34 +84,9 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   margin: 20px 0 25px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
-  overflow-x: auto;
-  overflow-y: hidden;
   padding-bottom: 6px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.tabs::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 6px;
-  width: 20px;
-  background: linear-gradient(to right, transparent, var(--bg-primary));
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.tabs.scrollable::after {
-  opacity: 1;
-}
-
-.tabs::-webkit-scrollbar {
-  display: none;
 }
 
 .tab {

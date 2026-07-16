@@ -128,34 +128,9 @@ textarea {
   display: flex;
   gap: 8px;
   margin: 20px 0 25px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
-  overflow-x: auto;
-  overflow-y: hidden;
   padding-bottom: 6px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.tabs::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 6px;
-  width: 20px;
-  background: linear-gradient(to right, transparent, var(--bg-primary));
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.tabs.scrollable::after {
-  opacity: 1;
-}
-
-.tabs::-webkit-scrollbar {
-  display: none;
 }
 
 .tab {
