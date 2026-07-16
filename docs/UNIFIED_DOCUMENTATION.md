@@ -6,6 +6,10 @@
 > sorgente**. Ogni sezione rimanda ai file originali per il dettaglio.
 >
 > **Data consolidamento:** 2026-07-16
+> **Verifica codice:** 2026-07-16 — confrontate le sezioni di logica programmatica con il
+> codice reale (`core/physics/`, `bm2/algorithms/`, `backend/analytics/load_manager/`,
+> `backend/analytics/adaptation_rules.py`). Le discrepanze trovate sono state corrette
+> inline e marcate con ⚠ (vedi §3.1, §3.5, §3.9, §4.4, §11).
 > **Fonti primarie:** `AGENTS.md`, `docs/README.md`, `docs/MASTER.md`,
 > `docs/PRODUCT_LOGIC.md`, `docs/ARCHITECTURE.md`, `docs/BM2_*.md`,
 > `docs/local-data-storage.md`, `docs/reference/*`, `PROJECT_STATUS.md`,
@@ -120,7 +124,7 @@ Struttura a tre livelli (Clean Architecture applicata):
 Questa sezione evidenzia le **decisioni logiche** che definiscono il comportamento
 dell'app. Ogni formula è tratta dai documenti tecnici verificati.
 
-### 3.1 Kernel fisico condiviso (`core/physics/`)
+### 3.1 Kernel fisico condiviso (`core/physics/`) ⭐
 > **Regola ferrea:** nessun algoritmo duplica la fisica. Tutti importano dal kernel
 > `core.physics` (dal 2026-07-12 BM2 delega qui, eliminando il forward model duplicato).
 
@@ -130,6 +134,19 @@ dell'app. Ogni formula è tratta dai documenti tecnici verificati.
 | `instantaneous_power()` | PowerModel | `core/physics/power.py` |
 | `required_speed_for_power()` | PowerModel | `core/physics/validation.py`, `power.py` |
 | costanti | tutto | `core/physics/constants.py` |
+
+**Convenzioni verificate nel codice** (`core/physics/power.py`, `constants.py`):
+- `grade` = pendenza lineare rise/run (non angolo).
+- Forze: `roll = Crr·m·g`, `grav = m·g·grade`, `air = ½·ρ·CdA·(v+wind)²`.
+- **Potenza al mozzo** = `(roll + grav + air) · v / drivetrain_efficiency`.
+- **Scelta logica rilevante (⚠ discrepanza vs §3.2):** `DRIVETRAIN_EFFICIENCY = 0.25`
+  agisce come **divisore di potenza** nel kernel `core/physics` (quindi moltiplica la
+  potenza per ~4), NON come "efficienza meccanica del 25%" nel senso calorico usato in
+  `calories.py`. I due moduli usano lo stesso coefficiente 0.25 ma con semantica diversa:
+  in `calories.py` è un fattore di conversione energia-cibo→lavoro; in `core/physics` è
+  una perdita di trasmissione che aumenta la potenza richiesta. Da non confondere.
+- Costanti default: `GRAVITY=9.81`, `AIR_DENSITY=1.225`, `CDA_DEFAULT=0.4`,
+  `CRR_DEFAULT=0.005`, `RIDER_MASS_DEFAULT=70`, `BIKE_MASS_DEFAULT=8`.
 
 ### 3.2 Calorie — modello fisico + fallback MET
 Somma contributi con correzione per efficienza meccanica (`CALORIE_EFFICIENCY_FACTOR`, default ~25%):
@@ -145,18 +162,41 @@ Somma contributi con correzione per efficienza meccanica (`CALORIE_EFFICIENCY_FA
 - **Aerobic decoupling**: scompenso significativo se > 5%.
 - **Zone**: modello 7-zone Coggan; **Power Profile** best effort 5s/1min/5min/20min.
 
-### 3.4 Carico di allenamento — EWMA
+### 3.4 Carico di allenamento — EWMA + ACWR ⭐
+**Modello classico** (`power_model.py`/`training_stress.py`):
 - **ATL** (acuto) = EWMA 7 giorni · **CTL** (cronico) = EWMA 42 giorni.
 - **TSB** (forma) = `CTL − ATL` · **Monotony / Strain** per rischio sovraccarico.
 
+**Nuovo `load_manager/` (2026-07-16)** — EWMA parametrica via `tau` (non giorni fissi
+nel codice, anche se i default sono `tau_ctl=42`, `tau_atl=7`):
+- `calculate_ewma(values, tau)` con `alpha = 1 − exp(−1/tau)`; `TSB = CTL − ATL`.
+- **ACWR** (Acute:Chronic Workload Ratio) = `mean(short 7gg) / mean(long 28gg)`
+  (`acwr_short_days=7`, `acwr_long_days=28`). Soglie `SafetyThresholds`: `acwr_high_risk=1.5`,
+  `acwr_block=2.0`, `acwr_detraining=0.8`, `tsb_fatigue=−30`, `tsb_freshness_loss=20`.
+- **TSS con terrain correction**: `TSS = IF² · durata_ore · 100 · (1 + terrain_correction)`,
+  dove `terrain_correction ≈ gradiente(m/km)/100`, cap +30% (`calculators.terrain_correction`).
+- **Target settimanali per livello** (`LoadBalanceTarget`): beginner 200–400, intermediate
+  400–700, advanced 700–1000, elite 1000–1600 TSS/sett.
+
 ### 3.5 Fatigue Score (0–10) — scelta di pesatura esplicita ⭐
+> ⚠ **Nota di verifica (2026-07-16):** la formula letterale riportata in `BM2_ALGORITHMS.md`
+> (`durata·0.3 + intensità·0.3 + …`) **non corrisponde** all'implementazione in
+> `bm2/algorithms/fatigue.py`, che **normalizza** ogni input prima di pesare. La forma
+> concettuale (pesi durata/intensità 30%, velocità 20%, dislivello/peso 10%) è corretta,
+> ma i termini reali sono normalizzati come sotto.
+
+**Formula implementata** (`bm2/algorithms/fatigue.py`):
 ```
-score = min(10, (durata·0.30 + intensità·0.30 + velocità·0.20
-                 + dislivello·0.10 + peso·0.10) · 3)
+duration_f   = min(durata_ore / 2.0, 3.0)
+intensity    = HR%/maxHR  (fallback: min(v_kmh/30, 1))
+elev_factor  = 1 + min((gain_m/distance_m)/20, 1)
+weight_factor= weight_kg / 70
+score = min(10, (duration_f·0.3 + intensity·0.3 + min(v_kmh/25,2)·0.2
+                 + elev_factor·0.1 + weight_factor·0.1) · 3)
 ```
 **Logica:** durata e intensità dominano (30% ciascuna); peso minimo (10%) perché
-rumoroso. Recupero stimato a fasce: 8 / 16 / 24 / 48 h. Recovery hours estimator
-in `calculators/fatigue.py`.
+rumoroso. Recupero stimato a fasce: ≤3→8h, ≤5→16h, ≤7→24h, >7→48h. Recovery hours in
+`FatigueModel._recovery_hours`.
 
 ### 3.6 Performance Index (normalizzato per esperienza) ⭐
 ```
@@ -180,12 +220,29 @@ Snapshot fisiologico (CTL/ATL/TSB) combinato con recupero e raccomandazioni. Il
 sistema **non guarda la singola uscita**: calcola lo stato presente da
 `passato + distribuzione temporale + recupero + risposta personale`.
 
-### 3.9 Load Management — logica di ridistribuzione ⭐
-Obiettivo settimanale visto come target distribuito. Se una uscita viene ridotta:
-```
-km_rimanenti ÷ uscite_disponibili = nuovo carico consigliato
-```
-Sopra questo livello matematico si applicano fatica, recupero e risposta individuale.
+### 3.9 Adattamento dinamico — regole ACWR-based ⭐
+> ⚠ **Verifica (2026-07-16):** la logica descritta in `PRODUCT_LOGIC.md` (fasi qualitative:
+> skip→ridistribuzione, ride lunga→riduzione, recupero insufficiente→deload) è implementata
+> in `backend/analytics/adaptation_rules.py` con **soglie quantitative concrete**, non come
+> "fasi" astratte.
+
+**Regole pure** (`adaptation_rules.py`, tutte senza I/O):
+- **ACWR** = `acute_load / chronic_load` (`evaluate_acwr`). `ACWR_HIGH_RISK = 1.5`.
+- **Sudden spike**: se il carico proposto cresce >50% in una volta → `is_sudden_load_spike` (rigettato).
+- **Volume reduction**: `recommend_volume_reduction(acwr)` → frazione 20–30% (`OVERLOAD_REDUCTION_MIN/MAX`)
+  quando ACWR>1.5, scalata sull'eccesso.
+- **Recovery priority**: `recovery_priority(state)` = `TSB < −30` OR `fatigue ≥ 7` OR `readiness < 50`.
+- **Intensity cut**: `needs_intensity_cut` = `readiness < 70` AND `TSB < −10`.
+- **Quality swap**: `quality_swap_target` sostituisce fondo lungo con intervalli brevi
+  (durata×0.6, distanza×0.5, IF+0.3, cap 0.95) — mantiene stimolo, taglia volume.
+- **Enforce recovery**: `enforce_recovery_day` impone spin attivo (distanza×0.25 min 10km,
+  durata 40′, IF 0.4).
+- **Distribuzione**: `distribute_volume_evenly` ripartisce km/min proporzionalmente alla
+  capacità (`distance_km`) dei target futuri non-recovery/non-locked.
+
+**Adattamento a livello prodotto** (`PRODUCT_LOGIC.md`): il piano non è fisso; ogni evento
+(modello saltato, ride più lunga, recupero insufficiente, miglioramento) ricalcola il
+carico puntando al miglior bilancio fatica/recupero/risposta.
 
 ### 3.10 Problem-decomposition (approccio AI) ⭐
 Problemi complessi (es. "ho saltato un allenamento, che faccio?") sono scomposti in
@@ -247,12 +304,26 @@ fallisce → prosegue senza segmenti; Knowledge fallisce → AI Coach risponde "
 disponibili", **non inventa**). Versionamento contratti JSON `NomeContratto.v{MAJOR}`.
 
 ### 4.4 Nuovi moduli (2026-07-16, non ancora documentati altrove)
-- `bike_analyzer/backend/analytics/load_manager/` — `calculators.py`, `chronic_load.py`,
-  `config.py`, `models.py`, `training_stress_calculator.py`: nuova astrazione di
-  carico acuto/cronico (EWMA configurable) separata dal `training_load.py` legacy.
-- `bike_analyzer/backend/analytics/adaptation_rules.py` — regole di **adattamento
-  dinamico** (skip ride → ridistribuzione; ride lunga → riduzione; recupero insufficiente
-  → deload; miglioramento → incremento graduale). Implementa la logica di §3.9/§1.3.
+Verificati sul codice reale. Tutti in `bike_analyzer/backend/analytics/` salvo dove indicato.
+
+- **`load_manager/`** — `calculators.py` (TSS con terrain correction, EWMA `alpha=1−exp(−1/tau)`,
+  ACWR short7/long28), `chronic_load.py` (`ChronicLoadManager` → serie CTL/ATL/TSB/ACWR su
+  calendario giornaliero continuo), `config.py` (`LoadManagerConfig`: tau_ctl=42, tau_atl=7,
+  acwr 7/28, `SafetyThresholds`, target TSS per livello), `models.py`, `training_stress_calculator.py`
+  (TSS da power preferito, fallback HR/speed). Astrazione carico acuto/cronico **separata** dal
+  `training_load.py` legacy; non muta i TSS esistenti (vincolo #2).
+- **`adaptation_rules.py`** — funzioni pure di adattamento dinamico (ACWR, spike>50%, reduction
+  20–30%, recovery priority TSB<−30/fatigue≥7/readiness<50, quality-swap, enforce-recovery).
+  Dettagli in §3.9.
+- **`adaptation_engine.py`** — orchestratore dei servizi di adattamento (consuma `adaptation_rules`).
+- **`adaptation_schemas.py`** — DTO/contratti del motore di adattamento.
+- **`api/adaptation_routes.py`** — endpoint REST del motore di adattamento (montati in `app_factory.py`).
+- **`proactive.py`** — logica assistant proattivo (soglia segnale/rumore, v. §3.11).
+- **`training/`** — sottopacchetto piano di allenamento (usato da `adaptation_engine`/granfondo).
+- **`voice_coach.py`** — coach vocale (integrazione TTS/audio per Pillar 3 Live Assistant).
+- **Frontend speculare**: `frontend/src/composables/useVoiceCoach.ts`,
+  `frontend/src/services/notifications.ts`, `frontend/src/stores/notifications.ts`,
+  `frontend/src/types/notifications.ts` (notifiche + voice coach lato UI).
 
 ---
 
@@ -371,11 +442,12 @@ twin). Condivide **solo lo stack** (Vue + FastAPI) ma **non è importato** dal b
 | 1 | Stratificazione intelligenza vs strumenti esistenti | §1.1 | onboarding zero, valore unico su consiglio |
 | 2 | Clean Architecture + calculators puri | §2 | testabilità, dominio indipendente da I/O |
 | 3 | Kernel fisico unico `core/physics` | §3.1 | niente duplicazione, `bm2` delega qui |
-| 4 | Fatigue pesata (durata+intensità 30%) | §3.5 | durata/intensità dominano il costo |
+| 3b | `drivetrain_eff=0.25` = divisore potenza (non fattore caloria) | §3.1 | semantica diversa da `calories.py` (⚠ da non confondere) |
+| 4 | Fatigue pesata + input normalizzati | §3.5 | durata/intensità 30%; termini normalizzati nel codice |
 | 5 | Performance normalizzata per experience | §3.6 | confronto equo tra livelli |
 | 6 | Route difficulty con roughness+capacità | §3.7 | superficie e livello atleta modellati |
 | 7 | Athlete State = funzione del passato | §3.8 | non la singola uscita, ma la risposta |
-| 8 | Load redistribution matematica + adattamento | §3.9, §4.4 | regole esplicite, non black-box |
+| 8 | Adattamento ACWR-based + ridistribuzione | §3.9, §4.4 | regole quantitative esplicite (ACWR>1.5, TSB<−30, spike>50%) |
 | 9 | AI sceglie tra strategie, non inventa | §3.10 | affidabilità, spiegabilità |
 | 10 | Proactive assistant a soglia segnale | §3.11 | non disturba se il valore è basso |
 | 11 | Knowledge Layer boundary per AI Coach | §2, §4.3 | AI vede solo stati interpretati |
