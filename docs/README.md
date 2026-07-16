@@ -32,6 +32,7 @@ Riferimento tecnico esaustivo generato dal codice sorgente — **il punto di par
 | [MASTER.md](./MASTER.md) | Complete project reference: stack, architecture, data models, API, analytics, AI Coach |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Clean v2 Architecture — UnifiedMetricsEngine, FusionRecord, domain layers |
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | Setup, build, test, lint, contribute |
+| [PRODUCT_LOGIC.md](./PRODUCT_LOGIC.md) | Central logic, product vision, four pillars, athlete state, workout generation |
 
 ### Detailed References
 | Document | Description |
