@@ -360,5 +360,29 @@
     "send": "Send message",
     "success": "Message sent successfully",
     "error": "Error sending message"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "preferences": "Notification preferences",
+    "paused": "Notifications paused",
+    "resume": "Resume",
+    "pause": "Pause notifications",
+    "voiceCoach": "Voice Coach",
+    "enableVoice": "Enable voice coach",
+    "emailSummary": "Weekly email summary",
+    "quietHours": "Quiet hours",
+    "from": "From",
+    "to": "To",
+    "maxPerRide": "Max notifications per ride",
+    "channelPriority": "Channel order",
+    "categories": {
+      "training": "Training",
+      "recovery": "Recovery",
+      "performance": "Performance",
+      "safety": "Safety",
+      "goal": "Goals"
+    },
+    "save": "Save preferences",
+    "saved": "Preferences saved"
   }
 }

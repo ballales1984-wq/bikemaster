@@ -390,3 +390,74 @@ class POIResponse(POICreate):
     created_by: int | None = None
     tenant_id: int | None = None
     created_at: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Proactive Assistant — notifications, context, scoring
+# ---------------------------------------------------------------------------
+
+
+class NotificationPreferences(BaseModel):
+    """Athlete-controlled notification preferences (Proactive Assistant)."""
+
+    language: str = Field(default="it", pattern="^(it|en)$")
+    quiet_hours_start: int = Field(default=23, ge=0, le=23)
+    quiet_hours_end: int = Field(default=7, ge=0, le=23)
+    max_background_per_ride: int = Field(default=2, ge=1, le=10)
+    allow_voice_coach: bool = True
+    allow_email_summary: bool = True
+    paused: bool = False
+    # Preferred delivery channel order, most preferred first.
+    channel_priority: list[str] = Field(
+        default_factory=lambda: ["app", "voice", "dashboard", "email"]
+    )
+    respect_quiet_hours: bool = True
+
+    @field_validator("channel_priority")
+    @classmethod
+    def validate_channels(cls, v: list[str]) -> list[str]:
+        allowed = {"app", "voice", "dashboard", "email"}
+        cleaned = [c for c in v if c in allowed]
+        if not cleaned:
+            return ["app", "voice", "dashboard", "email"]
+        return cleaned
+
+
+class NotificationContextIn(BaseModel):
+    """Context used to evaluate whether a notification is worth sending."""
+
+    athlete_state: dict = Field(default_factory=dict)
+    plan: dict | None = None
+    current_ride: dict | None = None
+    weather: dict | None = None
+    now: str | None = Field(default=None, description="ISO datetime, defaults to now")
+    intensity_zone: int | None = Field(
+        default=None, ge=0, le=5, description="Current training zone 0-5"
+    )
+
+
+class NotificationScoreOut(BaseModel):
+    urgency: int = Field(..., ge=1, le=5)
+    relevance: int = Field(..., ge=1, le=5)
+    timeliness: int = Field(..., ge=1, le=5)
+    score: float = Field(..., ge=0, le=5)
+    should_notify: bool
+    reasons: list[str] = Field(default_factory=list)
+
+
+class NotificationOut(BaseModel):
+    id: str
+    category: str
+    channel: str
+    title: str
+    message: str
+    tts_text: str | None = None
+    score: float
+    priority: int = Field(default=5, ge=1, le=5)
+    language: str = "it"
+    created_at: str | None = None
+
+
+class NotificationListOut(BaseModel):
+    notifications: list[NotificationOut]
+    meta: dict = Field(default_factory=dict)

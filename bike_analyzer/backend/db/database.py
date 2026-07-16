@@ -1276,7 +1276,7 @@ def _row_to_calendar_event(row) -> dict:
         "date": _col("date"),
         "duration_minutes": _col("duration_minutes", 0),
         "description": _col("description"),
-        "completed": _col("completed", False),
+        "completed": bool(_col("completed", False)),
         "weather_temp": _col("weather_temp"),
         "weather_humidity": _col("weather_humidity"),
         "weather_description": _col("weather_description"),

@@ -360,5 +360,29 @@
     "send": "Invia messaggio",
     "success": "Messaggio inviato con successo",
     "error": "Errore nell'invio del messaggio"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "preferences": "Preferenze notifiche",
+    "paused": "Notifiche in pausa",
+    "resume": "Riprendi",
+    "pause": "Pausa notifiche",
+    "voiceCoach": "Coach Vocale",
+    "enableVoice": "Abilita coach vocale",
+    "emailSummary": "Riepilogo settimanale email",
+    "quietHours": "Ore di silenzio",
+    "from": "Dalle",
+    "to": "Alle",
+    "maxPerRide": "Max notifiche per uscita",
+    "channelPriority": "Ordine canali",
+    "categories": {
+      "training": "Allenamento",
+      "recovery": "Recupero",
+      "performance": "Prestazione",
+      "safety": "Sicurezza",
+      "goal": "Obiettivi"
+    },
+    "save": "Salva preferenze",
+    "saved": "Preferenze salvate"
   }
 }

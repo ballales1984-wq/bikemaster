@@ -102,6 +102,9 @@ def reset_rate_limiter():
     from bike_analyzer.backend.rate_limiter import limiter
 
     limiter.reset()
+    from bike_analyzer.backend.redis_client import _MEMORY_RATELIMIT
+
+    _MEMORY_RATELIMIT.clear()
     yield
 
 

@@ -43,7 +43,7 @@ async def _async_result(value):
     return value
 
 
-def _mock_safety(*args, **kwargs):
+async def _mock_safety(*args, **kwargs):
     return {"risk_score": 3.0, "label": "safe", "advice": "Wear a helmet"}
 
 
@@ -184,7 +184,8 @@ def athlete_client(db_path):
     db_mod.DB_PATH = db_path
     db_mod.init_db()
     athlete_id = db_mod.save_athlete({"name": "Test Rider", "experience_level": "Intermediate"})
-    token = create_access_token(subject=str(athlete_id), is_admin=False)
+    db_mod.update_athlete(athlete_id, {"tenant_id": athlete_id})
+    token = create_access_token(subject=str(athlete_id), is_admin=False, tenant_id=athlete_id)
     tc = TestClient(create_app())
     tc.headers["Authorization"] = f"Bearer {token}"
     return tc, athlete_id

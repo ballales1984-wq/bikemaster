@@ -107,16 +107,64 @@ class UserRepository:
         return UserModel
 
     def _save_sync(self, user: dict) -> int:
-        raise NotImplementedError("Sync user save not implemented")
+        conn = self._sync_conn or self._get_conn()
+        with conn:
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT INTO users
+                (username, email, password_hash, is_admin, is_active, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    user.get("username", ""),
+                    user.get("email"),
+                    user.get("password_hash"),
+                    1 if user.get("is_admin", False) else 0,
+                    1 if user.get("is_active", True) else 0,
+                    datetime.now(UTC).isoformat(),
+                    datetime.now(UTC).isoformat(),
+                ),
+            )
+        return cur.lastrowid
 
     def _get_by_id_sync(self, user_id: int) -> dict | None:
-        raise NotImplementedError("Sync user get_by_id not implemented")
+        conn = self._sync_conn or self._get_conn()
+        with conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            row = cur.fetchone()
+        if row is None:
+            return None
+        return {k: row[k] for k in row.keys()}
 
     def _get_by_username_sync(self, username: str) -> dict | None:
-        raise NotImplementedError("Sync user get_by_username not implemented")
+        conn = self._sync_conn or self._get_conn()
+        with conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+            row = cur.fetchone()
+        if row is None:
+            return None
+        return {k: row[k] for k in row.keys()}
 
     def _get_by_email_sync(self, email: str) -> dict | None:
-        raise NotImplementedError("Sync user get_by_email not implemented")
+        conn = self._sync_conn or self._get_conn()
+        with conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM users WHERE email = ?", (email,))
+            row = cur.fetchone()
+        if row is None:
+            return None
+        return {k: row[k] for k in row.keys()}
 
     def _list_all_sync(self) -> list[dict]:
-        raise NotImplementedError("Sync user list_all not implemented")
+        conn = self._sync_conn or self._get_conn()
+        with conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM users")
+            rows = cur.fetchall()
+        return [{k: row[k] for k in row.keys()} for row in rows]
+
+    def _get_conn(self):
+        from ...db.database import get_db_connection
+
+        return get_db_connection()

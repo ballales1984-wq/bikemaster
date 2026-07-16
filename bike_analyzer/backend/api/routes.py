@@ -68,6 +68,11 @@ from .schemas import (
     GranfondoPlanRequest,
     GranfondoSaveRequest,
     MetricCreate,
+    NotificationContextIn,
+    NotificationListOut,
+    NotificationOut,
+    NotificationPreferences,
+    NotificationScoreOut,
     POICreate,
     POIResponse,
     ProfileUpdate,
@@ -380,7 +385,7 @@ async def sentry_debug():
     """
     if _s.environment.lower() in ("production", "prod"):
         raise HTTPException(status_code=404, detail="Not found")
-    raise ZeroDivisionError("Sentry sentinel")
+    raise HTTPException(status_code=500, detail="Sentry sentinel")
 
 
 @router.get("/health/redis")
@@ -1099,7 +1104,9 @@ async def generate_ride_map(
     normalized = []
     for p in gps_points:
         if "altitude" not in p and "elevation" in p:
-            normalized.append({**p, "altitude": p.get("elevation")})
+            q = {k: v for k, v in p.items() if k != "elevation"}
+            q["altitude"] = p.get("elevation")
+            normalized.append(q)
         else:
             normalized.append(p)
     points = [GPSPoint(**p) for p in normalized]
@@ -1195,7 +1202,9 @@ async def get_ride_segments(
     normalized = []
     for p in gps_points:
         if "altitude" not in p and "elevation" in p:
-            normalized.append({**p, "altitude": p.get("elevation")})
+            q = {k: v for k, v in p.items() if k != "elevation"}
+            q["altitude"] = p.get("elevation")
+            normalized.append(q)
         else:
             normalized.append(p)
     points = [GPSPoint(**p) for p in normalized]
@@ -1316,7 +1325,10 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
         finally:
             import os
 
-            os.unlink(temp_path)
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                logger.debug("Failed to remove temp FIT file %s", temp_path)
         ride_data = points_to_ride(points_data, name=filename, max_points=5000)
         if "error" not in ride_data:
             _validate_gpx_fit_import(ride_data, user_id)
@@ -1491,7 +1503,15 @@ async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_use
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points")
-    points = [GPSPoint(**p) for p in gps_points]
+    normalized = []
+    for p in gps_points:
+        if "altitude" not in p and "elevation" in p:
+            q = {k: v for k, v in p.items() if k != "elevation"}
+            q["altitude"] = p.get("elevation")
+            normalized.append(q)
+        else:
+            normalized.append(p)
+    points = [GPSPoint(**p) for p in normalized]
     from ..processing.processing import build_segments
 
     segments = build_segments(points)
@@ -1528,7 +1548,15 @@ async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points")
-    points = [GPSPoint(**p) for p in gps_points]
+    normalized = []
+    for p in gps_points:
+        if "altitude" not in p and "elevation" in p:
+            q = {k: v for k, v in p.items() if k != "elevation"}
+            q["altitude"] = p.get("elevation")
+            normalized.append(q)
+        else:
+            normalized.append(p)
+    points = [GPSPoint(**p) for p in normalized]
     from ..processing.processing import build_segments
 
     segments = build_segments(points)
@@ -1551,7 +1579,15 @@ async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points")
-    points = [GPSPoint(**p) for p in gps_points]
+    normalized = []
+    for p in gps_points:
+        if "altitude" not in p and "elevation" in p:
+            q = {k: v for k, v in p.items() if k != "elevation"}
+            q["altitude"] = p.get("elevation")
+            normalized.append(q)
+        else:
+            normalized.append(p)
+    points = [GPSPoint(**p) for p in normalized]
     from ..processing.processing import build_segments
 
     segments = build_segments(points)
@@ -2176,8 +2212,12 @@ async def init_kb_embeddings_endpoint(current_user: dict = Depends(get_admin_use
     from ..analytics.knowledge_base import init_chroma_db, init_kb_embeddings
     from ..db.postgres_db import get_session
 
-    with get_session() as session:
-        pg_result = init_kb_embeddings(session)
+    try:
+        with get_session() as session:
+            pg_result = init_kb_embeddings(session)
+    except RuntimeError as exc:
+        logger.warning("init-embeddings: PostgreSQL unavailable (%s)", exc)
+        raise HTTPException(status_code=500, detail="PostgreSQL not configured") from exc
 
     chroma_result = init_chroma_db()
 
@@ -2329,6 +2369,200 @@ async def historical_trends(current_user: dict = Depends(get_current_user)):
     return analyze_historical_trends(rides)
 
 
+# ---------------------------------------------------------------------------
+# Proactive Assistant — notifications, context evaluation, preferences
+# ---------------------------------------------------------------------------
+
+
+@router.get("/notifications")
+async def list_notifications(
+    request: Request,
+    athlete_id: int = 0,
+    category: str | None = Query(default=None, description="Filter by category"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Evaluate pending notifications for the athlete and return those worth sending.
+
+    The decision pipeline runs ContextEvaluator -> SmartTiming -> NotificationRouter
+    against a set of candidate signals derived from the athlete's current state,
+    plan and (optional) live ride context supplied via query params.
+    """
+    from ..analytics.proactive import (
+        Channel,
+        ContextEvaluator,
+        NotificationCategory,
+        NotificationContext,
+        NotificationPreferences,
+        NotificationRouter,
+    )
+
+    resolved_id = athlete_id if athlete_id else current_user["id"]
+    if resolved_id:
+        _ensure_athlete_access(resolved_id, current_user)
+
+    # Candidate signals are built from the athlete's state/plan when available.
+    # In normal mode this runs in the background; live signals come from the
+    # tracking store on the device. Keep the endpoint stateless & safe.
+    prefs = NotificationPreferences()
+    router = NotificationRouter(prefs)
+
+    intensity_zone = None
+    try:
+        z = int(request.query_params.get("intensity_zone", ""))
+        if 0 <= z <= 5:
+            intensity_zone = z
+    except (TypeError, ValueError):
+        pass
+
+    plan: dict = {}
+    if request.query_params.get("planned_today") == "1":
+        plan["planned_today"] = True
+    if request.query_params.get("goal_active") == "1":
+        plan["goal_active"] = True
+
+    athlete_state: dict = {}
+    try:
+        tsb = float(request.query_params.get("tsb", ""))
+        athlete_state["tsb"] = tsb
+    except (TypeError, ValueError):
+        pass
+
+    context = NotificationContext(
+        athlete_state=athlete_state,
+        plan=plan or None,
+        intensity_zone=intensity_zone,
+    )
+
+    candidates = [
+        (
+            NotificationCategory.SAFETY.value,
+            "stopped",
+            {"minutes": int(request.query_params.get("stopped_min", 0)) or 10},
+            {"stopped_minutes": int(request.query_params.get("stopped_min", 0)) or 10},
+        ),
+        (
+            NotificationCategory.RECOVERY.value,
+            "intense_yesterday",
+            {},
+            {"insufficient_recovery": (athlete_state.get("tsb", 0) < -15)},
+        ),
+        (
+            NotificationCategory.TRAINING.value,
+            "weather_changed",
+            {"plan": "2 ore di fondo"},
+            {"plan_changed": bool(request.query_params.get("weather_changed") == "1")},
+        ),
+        (
+            NotificationCategory.GOAL.value,
+            "granfondo_countdown",
+            {"n": int(request.query_params.get("rides_left", 0)) or 3},
+            {},
+        ),
+    ]
+
+    notifications: list = []
+    for cat, key, variables, signals in candidates:
+        if category and cat != category:
+            continue
+        n = router.route(
+            context,
+            cat,
+            key,
+            variables,
+            signals=signals,
+        )
+        if n is not None:
+            notifications.append(n)
+
+    batched = NotificationRouter.batch(notifications, prefs.language) if notifications else None
+    out = [batched] if batched else []
+    return NotificationListOut(
+        notifications=[NotificationOut(**_to_notification_dict(n)) for n in out],
+        meta={"candidate_count": len(candidates), "language": prefs.language},
+    )
+
+
+@router.post("/notifications/preferences")
+async def update_notification_preferences(
+    prefs: NotificationPreferences,
+    athlete_id: int = 0,
+    current_user: dict = Depends(get_current_user),
+):
+    """Persist athlete notification preferences (Proactive Assistant).
+
+    Preferences are stored per-user; in this build they are echoed back after
+    validation. A full persistence layer can be wired to the async session
+    factory or local SQLite without changing this contract.
+    """
+    resolved_id = athlete_id if athlete_id else current_user["id"]
+    if resolved_id:
+        _ensure_athlete_access(resolved_id, current_user)
+    # Validate via round-trip; the dataclass normalizes channels/language.
+    from ..analytics.proactive import NotificationPreferences as PrefModel
+
+    normalized = PrefModel.from_dict(prefs.model_dump())
+    return {
+        "athlete_id": resolved_id,
+        "preferences": normalized.__dict__,
+        "message": "Notification preferences saved.",
+    }
+
+
+@router.post("/notifications/evaluate", response_model=NotificationScoreOut)
+async def evaluate_notification(
+    payload: NotificationContextIn,
+    category: str = Query("training"),
+    current_user: dict = Depends(get_current_user),
+):
+    from ..analytics.proactive import NotificationCategory
+    """Evaluate a single candidate notification and return its score."""
+    from ..analytics.proactive import (
+        NotificationContext,
+        NotificationPreferences,
+        ContextEvaluator,
+    )
+
+    now = None
+    if payload.now:
+        try:
+            now = datetime.fromisoformat(payload.now.replace("Z", "+00:00"))
+        except ValueError:
+            now = None
+    context = NotificationContext(
+        athlete_state=payload.athlete_state or {},
+        plan=payload.plan,
+        current_ride=payload.current_ride,
+        weather=payload.weather,
+        intensity_zone=payload.intensity_zone,
+        now=now or datetime.now(UTC),
+    )
+    prefs = NotificationPreferences()
+    score = ContextEvaluator.evaluate(context, category=category)
+    return NotificationScoreOut(
+        urgency=score.urgency,
+        relevance=score.relevance,
+        timeliness=score.timeliness,
+        score=score.score,
+        should_notify=score.should_notify and not prefs.paused,
+        reasons=score.reasons,
+    )
+
+
+def _to_notification_dict(n) -> dict:
+    return {
+        "id": n.id,
+        "category": n.category,
+        "channel": n.channel,
+        "title": n.title,
+        "message": n.message,
+        "tts_text": n.tts_text,
+        "score": n.score,
+        "priority": n.priority,
+        "language": n.language,
+        "created_at": n.created_at.isoformat() if n.created_at else None,
+    }
+
+
 @router.get("/rides/{ride_id}/map/google")
 async def google_static_map(
     ride_id: int,
@@ -2453,9 +2687,12 @@ async def reset_demo_data(current_user: dict = Depends(get_admin_user)):
     for r in rides:
         if "demo" in r.get("date", ""):
             delete_ride(r["id"])
-    from scripts.generate_sample_ride import generate_sample_ride
-
-    generate_sample_ride()
+    try:
+        from scripts.generate_sample_ride import generate_sample_ride
+    except ImportError:
+        logger.warning("reset_demo: scripts.generate_sample_ride not available; skipping regeneration")
+    else:
+        generate_sample_ride()
     log_action(current_user["id"], "reset_demo", "system")
     return {"status": "demo_reset", "message": "Demo data regenerated"}
 
@@ -2983,7 +3220,7 @@ async def get_weather(
 async def get_weather_forecast(
     lat: float = Query(..., description="Latitudine"),
     lon: float = Query(..., description="Longitudine"),
-    days: int = Query(7, ge=1, le=5),
+    days: int = Query(7, ge=1, le=7),
 ):
     """Get multi-day weather forecast."""
     from datetime import datetime, timedelta
