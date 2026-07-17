@@ -32,12 +32,19 @@ export function initLocalDb(): Promise<boolean> {
     try {
       const sqlite3InitModule = (
         await import("@sqlite.org/sqlite-wasm")
-      ).default;
-      sqlite3 = await sqlite3InitModule();
+      ).default as unknown as (
+        config?: Record<string, unknown>,
+      ) => Promise<Sqlite3Static>;
+      const sqlite3Assets = `${import.meta.env.BASE_URL}sqlite3`;
+      sqlite3 = await sqlite3InitModule({
+        locateFile: (file: string) => `${sqlite3Assets}/${file}`,
+      });
       const hasOpfs =
         !!sqlite3.oo1.OpfsDb && typeof SharedArrayBuffer !== "undefined";
       if (hasOpfs) {
-        db = new sqlite3.oo1.OpfsDb("/bikemaster.sqlite3");
+        db = new sqlite3.oo1.OpfsDb("/bikemaster.sqlite3", {
+          proxyUri: `${sqlite3Assets}/sqlite3-opfs-async-proxy.js`,
+        } as Record<string, unknown>);
       } else {
         // Default VFS transient (in-memory) se OPFS non disponibile.
         db = new sqlite3.oo1.DB("/bikemaster.sqlite3", "c");

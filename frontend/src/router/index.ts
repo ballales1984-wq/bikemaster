@@ -244,12 +244,18 @@ router.beforeEach(async (to, from, next) => {
     console.log("[OAuth] guard redirecting, profile check...");
     try {
       const hasCompleteProfile = await checkProfileComplete(auth);
+      // On a successful login the user always lands somewhere usable: the
+      // dashboard if the profile is complete, otherwise the lightweight
+      // onboarding screen. Never strand them on the empty home route.
       const target = hasCompleteProfile ? "/rides" : "/athlete";
       console.log("[OAuth] guard navigating to:", target);
       await next(target);
     } catch {
-      console.warn("[OAuth] guard profile check failed, navigating to /athlete");
-      await next("/athlete");
+      // Profile check failed (transient backend error): prefer the dashboard
+      // over the onboarding screen so the user is not blocked. They can fill
+      // in missing data later from the athlete page.
+      console.warn("[OAuth] guard profile check failed, navigating to /rides");
+      await next("/rides");
     }
     ui.setOauthLoading(false);
     auth.setJustLoggedIn(false);

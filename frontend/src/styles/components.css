@@ -78,8 +78,8 @@
 /* ===== Panels ===== */
 .panel {
   background: var(--bg-secondary);
-  backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
   padding: 28px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
@@ -211,8 +211,8 @@ textarea {
 
 .tab {
   background: var(--bg-secondary);
-  backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
   color: var(--text-secondary);
   border: 1px solid var(--border);
   padding: 10px 18px;
@@ -284,8 +284,8 @@ textarea {
 
 .stat-card {
   background: var(--bg-secondary);
-  backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
   padding: 24px 20px;
   border-radius: var(--radius);
   text-align: center;
@@ -819,8 +819,8 @@ textarea {
 
 .toast {
   background: var(--bg-secondary);
-  backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
   color: var(--text-primary);
   padding: 14px 20px;
   border-radius: var(--radius-sm);
@@ -1086,3 +1086,4 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+

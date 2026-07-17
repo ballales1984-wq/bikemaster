@@ -257,6 +257,40 @@ class TestAuthRoutes:
         assert resp.status_code == 200
         assert resp.json()["name"] == "Updated Name"
 
+    def test_me_autocreates_missing_athlete(self, db_path):
+        """A logged-in user with no athlete row must never be stranded.
+
+        /auth/me and PUT /athletes/me should auto-create a default profile so
+        the onboarding flow always has a backing record to write to.
+        """
+        from bike_analyzer.backend.db import database as db_mod
+        from bike_analyzer.backend.security import create_access_token
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        # Token for a user id that has NO athlete row yet.
+        user_id = 999999
+        token = create_access_token(subject=str(user_id), is_admin=False, tenant_id=user_id)
+        tc = TestClient(create_app())
+        tc.headers["Authorization"] = f"Bearer {token}"
+
+        me = tc.get("/api/v1/auth/me")
+        assert me.status_code == 200
+        assert me.json()["id"] == user_id
+        # Auto-created: profile not yet complete (no age/weight).
+        assert me.json()["profile_complete"] is False
+
+        # PUT /athletes/me must create (not 404) and persist the athlete.
+        resp = tc.put("/api/v1/athletes/me", json={"experience_level": "Beginner"})
+        assert resp.status_code == 200
+        assert resp.json()["athlete"]["id"] == user_id
+
+        # Subsequent GET should now return the created athlete.
+        get2 = tc.get("/api/v1/athletes/me")
+        assert get2.status_code == 200
+        assert get2.json()["athlete"]["id"] == user_id
+
     def test_change_password_wrong_current(self, athlete_client):
         tc, _ = athlete_client
         resp = tc.post(

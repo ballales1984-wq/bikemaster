@@ -35,7 +35,6 @@ from bike_analyzer.backend.db.database import (
     get_events_by_month,
     get_latest_training_stress,
     get_nearby_pois,
-    get_paginated_rides,
     get_poi,
     get_ride,
     get_rides_by_athlete,
@@ -250,15 +249,6 @@ class TestRideCrud:
         ok = delete_ride(rid)
         assert ok is True
         assert get_ride(rid) is None
-
-    def test_get_paginated_rides(self):
-        _make_athlete(db, athlete_id=1)
-        for i in range(5):
-            save_ride({"athlete_id": 1, "date": f"2024-06-{i+1:02d}", "distance_km": float(i), "tenant_id": 0})
-        page, total = get_paginated_rides(page=1, page_size=2, athlete_id=1, tenant_id=0)
-        assert len(page) == 2
-        assert total == 5
-        assert page[0]["distance_km"] == 4.0
 
     def test_ensure_external_identity_index(self):
         with get_db_connection() as conn:

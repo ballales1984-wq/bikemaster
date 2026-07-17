@@ -35,9 +35,20 @@ export const useAthleteStore = defineStore("athlete", () => {
       return data;
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) {
-        profile.value = null;
-        profileComplete.value = false;
-        return null;
+        // No athlete record yet: create a default one so the user is never
+        // stuck on the onboarding screen with an empty state.
+        try {
+          const created = await apiPut<AthleteProfile>("/api/v1/athletes/me", {
+            experience_level: "Beginner",
+          });
+          profile.value = created;
+          profileComplete.value = false;
+          return created;
+        } catch {
+          profile.value = null;
+          profileComplete.value = false;
+          return null;
+        }
       }
       error.value = e instanceof Error ? e.message : "Failed to load profile";
       return null;

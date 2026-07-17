@@ -63,6 +63,8 @@ async function finalizeOAuthReturn() {
   }
   auth.setJustLoggedIn(false);
   ui.setOauthLoading(false);
+  // If the profile check failed, send the user to the dashboard rather than
+  // the onboarding screen so a transient backend error can't strand them.
   const target = profileComplete ? "/rides" : "/athlete";
   console.log("[OAuth] finalize target:", target, "current:", router.currentRoute.value.path);
   if (router.currentRoute.value.path !== target) {

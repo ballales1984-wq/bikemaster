@@ -226,7 +226,6 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
             "bikemaster-api.onrender.com",
             "bikemaster-xi.vercel.app",
             "testserver",
-            "tonita-deposable-manneristically.ngrok-free.dev",
         }
         | cors_hosts
         | configured_hosts
@@ -237,6 +236,11 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
         # (r"https://.*\.vercel\.app") instead of hardcoding a single subdomain,
         # so newly generated Vercel deploy URLs keep working for login.
         if host_lower.endswith(".vercel.app"):
+            return
+        # Allow any ngrok-free tunnel host. The URL changes on every restart, so
+        # hardcoding it (e.g. "tonita-deposable-manneristically.ngrok-free.dev")
+        # broke Strava/OAuth whenever the tunnel was regenerated.
+        if host_lower.endswith(".ngrok-free.dev"):
             return
         raise HTTPException(status_code=400, detail="Invalid redirect_uri host")
 
@@ -784,10 +788,28 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     Includes profile completeness flag derived from age, weight, and
     experience level fields.
     """
-    from ..db.database import get_athlete as _get_athlete
+    from ..db.database import (
+        get_athlete as _get_athlete,
+        save_athlete as _save_athlete,
+        update_athlete as _update_athlete,
+    )
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete = _get_athlete(current_user["id"], tenant_id)
+    # Auto-create a default athlete profile so a freshly logged-in user is
+    # never stranded on the onboarding screen with no backing record.
+    if not athlete:
+        username = current_user.get("username") or current_user.get("email") or str(current_user["id"])
+        created_id = _save_athlete(
+            {
+                "name": username,
+                "email": current_user.get("email"),
+                "experience_level": "Beginner",
+            }
+        )
+        if created_id:
+            _update_athlete(created_id, {"tenant_id": created_id})
+        athlete = _get_athlete(current_user["id"], tenant_id)
     if not athlete:
         return {
             "id": current_user["id"],
@@ -1789,6 +1811,51 @@ async def get_my_athlete_profile(current_user: dict = Depends(get_current_user))
     athlete = _get_athlete(current_user["id"], tenant_id)
     if not athlete:
         return {"athlete": None, "profile_complete": False}
+    profile_complete = (
+        athlete.get("age") is not None
+        and athlete.get("weight_kg") is not None
+        and (athlete.get("experience_level") or "").strip() != ""
+    )
+    return {"athlete": _public_athlete(athlete), "profile_complete": profile_complete}
+
+
+@router.put("/athletes/me")
+async def upsert_my_athlete_profile(
+    profile_data: ProfileUpdate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Update or create the authenticated athlete's own profile.
+
+    Guarantees a backing athlete record always exists (auto-created with a
+    Beginner default if missing) so the frontend onboarding flow can never
+    leave the user stranded without a profile.
+    """
+    from ..db.database import (
+        get_athlete as _get_athlete,
+        save_athlete as _save_athlete,
+        update_athlete as _update_athlete,
+    )
+
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete = _get_athlete(current_user["id"], tenant_id)
+    if not athlete:
+        username = current_user.get("username") or current_user.get("email") or str(current_user["id"])
+        created_id = _save_athlete(
+            {
+                "name": username,
+                "email": current_user.get("email"),
+                "experience_level": profile_data.experience_level or "Beginner",
+            }
+        )
+        if created_id:
+            _update_athlete(created_id, {"tenant_id": created_id})
+        athlete = _get_athlete(current_user["id"], tenant_id)
+        if not athlete:
+            raise HTTPException(status_code=500, detail="Failed to create athlete profile")
+    updates = {k: v for k, v in profile_data.model_dump().items() if v is not None}
+    if updates:
+        _update_athlete(athlete["id"], updates)
+    athlete = _get_athlete(current_user["id"], tenant_id)
     profile_complete = (
         athlete.get("age") is not None
         and athlete.get("weight_kg") is not None

@@ -5,8 +5,8 @@
 > **Stato**: architettura locale-first completata — distribuzione primaria: desktop **Tauri 2** (`.exe`/`.dmg`/`.AppImage`) con backend embedded FastAPI + SQLite locale. Deploy cloud opzionale (Render) per sync/community. Architettura local-first.
 > Fonte di verità unica per stato/checklist: [`ROADMAP.md`](ROADMAP.md).
 >
-> **Numeri backend/frontend (verificati 2026-07-16, repo root):**
-> - Backend: **2333 passed / 45 failed / 223 errors** su **2607** test raccolti (`pytest`).
+> **Numeri backend/frontend (verificati 2026-07-17, repo root):**
+> - Backend: **2559 passed / 2 skipped** su ~2561 test eseguibili (`pytest`). **2 errori di collection** pre-esistenti in `tests/test_database.py` (import `get_paginated_rides` rimosso) e `tests/test_athlete_state_integration.py` (merge conflict `<<<<<<< HEAD` non risolto) — non collegati alla documentazione.
 > - Frontend: **332 passed / 31 failed / 20 errors** su **363** test (53 file) — `vitest run` eseguito 2026-07-17.
 > - Endpoint REST: **138** (conteggio storico 2026-07-13).
 > I conteggi storici di file (108 backend / 47 frontend) sono riportati a titolo di riferimento.

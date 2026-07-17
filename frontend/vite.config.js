@@ -100,10 +100,24 @@ export default defineConfig({
       },
     },
   },
+  // @sqlite.org/sqlite-wasm NON deve essere pre-bundlato da esbuild in dev:
+  // il suo grafo (wasm embedded) fa deadlockare l'optimizer e il server resta
+  // irresponsivo. Escludendolo, Vite lo serve direttamente e `localDb.ts`
+  // risolve sqlite3.wasm dalla copia in public/sqlite3/.
+  optimizeDeps: {
+    exclude: ["@sqlite.org/sqlite-wasm"],
+  },
   server: {
     host: "0.0.0.0",
     port: 5177,
     strictPort: true,
+    // Necessari per SQLite WASM/OPFS: senza questi header `crossOriginIsolated`
+    // è false, SharedArrayBuffer non esiste e l'OPFS async proxy worker non
+    // parte (fallback automatico a DB in-memory, vedi localDb.ts).
+    headers: {
+      "Cross-Origin-Embedder-Policy": "require-corp",
+      "Cross-Origin-Opener-Policy": "same-origin",
+    },
     proxy: {
       "/api": "http://localhost:8000",
       "/static": "http://localhost:8000",
@@ -111,6 +125,10 @@ export default defineConfig({
     },
   },
   preview: {
+    headers: {
+      "Cross-Origin-Embedder-Policy": "require-corp",
+      "Cross-Origin-Opener-Policy": "same-origin",
+    },
     proxy: {},
   },
 });
