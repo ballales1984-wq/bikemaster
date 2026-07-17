@@ -69,6 +69,7 @@
     "paused": "Paused",
     "ready": "Ready to track your ride",
     "readyDesc": "Press the button below to start recording your route in real-time.",
+    "activityType": "Activity type",
     "offline": "Offline: tracking works, but map tiles may be limited until connectivity returns.",
     "upload": "Upload to BikeMaster",
     "uploading": "Uploading...",

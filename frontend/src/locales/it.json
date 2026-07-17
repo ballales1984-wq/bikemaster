@@ -69,6 +69,7 @@
     "paused": "In pausa",
     "ready": "Pronto per tracciare la tua uscita",
     "readyDesc": "Premi il pulsante per iniziare a registrare il percorso in tempo reale.",
+    "activityType": "Tipo di attività",
     "offline": "Offline: il tracciamento funziona, ma le mappe potrebbero essere limitate.",
     "upload": "Carica su BikeMaster",
     "uploading": "Caricamento...",

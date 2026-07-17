@@ -10,6 +10,7 @@ import "leaflet/dist/leaflet.css";
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 import L from "leaflet";
 import { useTrackingStore } from "../stores/trackingStore";
+import { apiGet } from "../utils/api";
 
 interface LeafletMap {
   setView(center: [number, number], zoom: number): LeafletMap;
@@ -30,6 +31,13 @@ const Ln = L as unknown as {
     latlngs: Array<[number, number]>,
     options?: Record<string, unknown>,
   ): LeafletPolyline;
+  circleMarker(
+    latlng: [number, number],
+    options?: Record<string, unknown>,
+  ): {
+    addTo(map: LeafletMap): { bindPopup(html: string): unknown };
+    bindPopup(html: string): unknown;
+  };
 };
 
 const mapEl = ref<HTMLElement | null>(null);
@@ -38,6 +46,44 @@ const polyline = ref<LeafletPolyline | null>(null);
 
 const tracking = useTrackingStore();
 const points = ref<Array<[number, number]>>([]);
+const poisLoaded = ref(false);
+
+const POI_COLORS: Record<string, string> = {
+  cafe: "#b45309",
+  bakery: "#b45309",
+  restaurant: "#dc2626",
+  water: "#2563eb",
+  viewpoint: "#7c3aed",
+  bike_shop: "#059669",
+  emergency: "#dc2626",
+  other: "#64748b",
+};
+
+async function loadNearbyPois(lat: number, lon: number) {
+  if (poisLoaded.value) return;
+  poisLoaded.value = true;
+  try {
+    const data = await apiGet<{ pois: Array<{ name: string; lat: number; lon: number; type?: string; description?: string }> }>(
+      "/api/v1/maps/pois/nearby",
+      { lat: String(lat), lon: String(lon), radius: "5" },
+    );
+    for (const poi of data.pois || []) {
+      if (!Number.isFinite(poi.lat) || !Number.isFinite(poi.lon)) continue;
+      const color = POI_COLORS[poi.type || "other"] || POI_COLORS.other;
+      Ln.circleMarker([poi.lat, poi.lon], {
+        radius: 6,
+        color,
+        fillColor: color,
+        fillOpacity: 0.9,
+        weight: 2,
+      })
+        .addTo(map.value as unknown as LeafletMap)
+        .bindPopup(`<strong>${poi.name}</strong><br>${poi.type || ""}${poi.description ? "<br>" + poi.description : ""}`);
+    }
+  } catch {
+    /* POIs are optional; ignore failures so tracking keeps working */
+  }
+}
 
 function addPoint(lat: number, lon: number) {
   points.value.push([lat, lon]);
@@ -51,6 +97,7 @@ function addPoint(lat: number, lon: number) {
     polyline.value.addLatLng([lat, lon]);
   }
   map.value?.setView([lat, lon], 16);
+  void loadNearbyPois(lat, lon);
 }
 
 watch(
@@ -88,6 +135,7 @@ defineExpose({
   clear() {
     points.value = [];
     polyline.value = null;
+    poisLoaded.value = false;
   },
 });
 </script>

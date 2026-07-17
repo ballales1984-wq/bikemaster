@@ -126,7 +126,7 @@ def create_hub_app() -> FastAPI:
         if isinstance(_s.cors_origins, str)
         else _s.cors_origins
     )
-    vercel_regex = r"https://.*\.vercel\.app"
+    vercel_regex = r"https://.*\.(vercel\.app|ngrok-free\.dev)"
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,

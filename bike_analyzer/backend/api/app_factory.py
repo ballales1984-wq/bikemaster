@@ -296,7 +296,7 @@ def create_app() -> FastAPI:
     if not cors_origins and _s.environment.lower() not in ("development", "dev", "test"):
         logger.error("No CORS origins configured in non-development environment")
         cors_origins = []
-    vercel_regex = r"https://.*\.vercel\.app"
+    vercel_regex = r"https://.*\.(vercel\.app|ngrok-free\.dev)"
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,

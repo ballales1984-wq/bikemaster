@@ -9,20 +9,28 @@
         </div>
       </div>
 
-        <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
-       <div class="empty-icon">📍</div>
-       <div class="empty-title">{{ t('tracking.ready') }}</div>
-       <div class="empty-desc">
-         {{ t('tracking.readyDesc') }}
-       </div>
-        <div v-if="!isOnline" class="gps-error-banner" style="margin-bottom:12px">
-          {{ t('tracking.offline') }}
+         <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
+        <div class="empty-icon">📍</div>
+        <div class="empty-title">{{ t('tracking.ready') }}</div>
+        <div class="empty-desc">
+          {{ t('tracking.readyDesc') }}
         </div>
-       <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
-       <button class="btn btn-primary btn-large" @click="startTracking">
-         {{ t('tracking.start') }}
-       </button>
+        <div class="activity-select">
+          <label for="activity-type">{{ t('tracking.activityType') }}</label>
+          <select id="activity-type" v-model="activityType">
+            <option v-for="opt in activityOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
         </div>
+         <div v-if="!isOnline" class="gps-error-banner" style="margin-bottom:12px">
+           {{ t('tracking.offline') }}
+         </div>
+        <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
+        <button class="btn btn-primary btn-large" @click="startTracking">
+          {{ t('tracking.start') }}
+        </button>
+         </div>
 
       <div v-else class="tracking-content">
         <div v-if="gpsWaiting" class="gps-waiting">
@@ -78,6 +86,27 @@ const isUploading = ref(false)
 const gpsWaiting = ref(false)
 const gpsError = ref('')
 const batterySaver = ref(false)
+
+// Generic tracking: the same GPS session can become a bike ride, a run, a
+// walk, etc. The chosen activity type is sent to the backend so the ride is
+// categorised correctly.
+const activityType = ref<'ride' | 'walk' | 'hike' | 'run' | 'indoor' | 'other'>('ride')
+const activityOptions = [
+  { value: 'ride', label: '🚴 Bici' },
+  { value: 'run', label: '🏃 Corsa' },
+  { value: 'walk', label: '🚶 Passeggiata' },
+  { value: 'hike', label: '🥾 Trekking' },
+  { value: 'indoor', label: '🏠 Indoor' },
+  { value: 'other', label: '📍 Altro' },
+]
+const activityTitle: Record<string, string> = {
+  ride: 'Tracciamento in bici',
+  run: 'Corsa',
+  walk: 'Passeggiata',
+  hike: 'Trekking',
+  indoor: 'Sessione indoor',
+  other: 'Tracciamento GPS',
+}
 
 let webStartTime = 0
 let webPausedAccumulatedMs = 0
@@ -214,7 +243,8 @@ async function uploadRide() {
               speed: p.speed ?? null,
             })),
             source: "gps_tracking",
-            title: "Tracciamento GPS",
+            activity_type: activityType.value,
+            title: activityTitle[activityType.value] || "Tracciamento GPS",
           }
           const result = await apiPost("/api/v1/rides", rideData)
           if (result.id) {
@@ -522,5 +552,28 @@ onBeforeUnmount(() => {
   color: var(--error);
   font-size: 0.85rem;
   margin-top: 8px;
+}
+
+.activity-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 16px auto 8px;
+  max-width: 280px;
+  text-align: left;
+}
+
+.activity-select label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.activity-select select {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
 }
 </style>
