@@ -312,7 +312,7 @@ describe("router actual implementation integration", () => {
 
   it("router has correct routes count", async () => {
     const router = await import("./index");
-    expect(router.default.options.routes).toHaveLength(25);
+    expect(router.default.options.routes).toHaveLength(30);
   });
 });
 

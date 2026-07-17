@@ -17,49 +17,81 @@
         }"
       >
         <div class="connection-header">
-          <span class="connection-icon">{{ serviceIcons[service.service] || "🔌" }}</span>
+          <span class="connection-icon">{{
+            serviceIcons[service.service] || "🔌"
+          }}</span>
           <div class="connection-title">
-            <div class="connection-name">{{ service.label }}</div>
+            <div class="connection-name">
+              {{ service.label }}
+            </div>
             <div class="connection-method">
-              <span class="badge" :class="service.method === 'oauth' ? 'badge-oauth' : 'badge-apikey'">
-                {{ service.method === "oauth" ? t("connections.oauth") : t("connections.apiKey") }}
+              <span
+                class="badge"
+                :class="
+                  service.method === 'oauth' ? 'badge-oauth' : 'badge-apikey'
+                "
+              >
+                {{
+                  service.method === "oauth"
+                    ? t("connections.oauth")
+                    : t("connections.apiKey")
+                }}
               </span>
             </div>
           </div>
         </div>
 
-        <p v-if="service.description" class="connection-desc">
+        <p v-if="service.description"
+class="connection-desc">
           {{ service.description }}
         </p>
 
         <div class="connection-status">
-          <span class="status-dot" :class="service.connected ? 'online' : 'offline'" />
+          <span
+            class="status-dot"
+            :class="service.connected ? 'online' : 'offline'"
+          />
           <span class="status-text">
-            {{ service.connected ? t("connections.connected") : t("connections.disconnected") }}
+            {{
+              service.connected
+                ? t("connections.connected")
+                : t("connections.disconnected")
+            }}
           </span>
-          <span v-if="service.lastConnectedAt" class="last-connected">
+          <span v-if="service.lastConnectedAt"
+class="last-connected">
             {{ formatDate(service.lastConnectedAt) }}
           </span>
         </div>
 
         <!-- Servizi OAuth -->
         <template v-if="service.method === 'oauth'">
-          <div v-if="!service.connected" class="connection-actions">
+          <div v-if="!service.connected"
+class="connection-actions">
             <button
               class="btn btn-primary"
               :disabled="connecting === service.service"
               @click="startOAuth(service.service)"
             >
-              {{ connecting === service.service ? t("connections.connecting") : t("connections.connect") }}
+              {{
+                connecting === service.service
+                  ? t("connections.connecting")
+                  : t("connections.connect")
+              }}
             </button>
           </div>
-          <div v-else class="connection-actions">
+          <div v-else
+class="connection-actions">
             <button
               class="btn btn-danger"
               :disabled="disconnecting === service.service"
               @click="disconnectService(service.service)"
             >
-              {{ disconnecting === service.service ? t("connections.disconnecting") : t("connections.disconnect") }}
+              {{
+                disconnecting === service.service
+                  ? t("connections.disconnecting")
+                  : t("connections.disconnect")
+              }}
             </button>
           </div>
         </template>
@@ -83,7 +115,11 @@
                 :disabled="savingKey === service.service"
                 @click="saveApiKey(service.service)"
               >
-                {{ savingKey === service.service ? t("connections.saving") : t("connections.saveKey") }}
+                {{
+                  savingKey === service.service
+                    ? t("connections.saving")
+                    : t("connections.saveKey")
+                }}
               </button>
               <button
                 class="btn btn-ghost"
@@ -96,7 +132,8 @@
           </div>
         </template>
 
-        <div v-if="serviceError === service.service" class="connection-error">
+        <div v-if="serviceError === service.service"
+class="connection-error">
           {{ lastServiceError }}
         </div>
       </div>
@@ -104,18 +141,26 @@
 
     <section class="card bulk-section">
       <h2>{{ t("connections.bulkTitle") }}</h2>
-      <p class="hint">{{ t("connections.bulkHint") }}</p>
+      <p class="hint">
+        {{ t("connections.bulkHint") }}
+      </p>
       <textarea
         v-model="bulkInput"
         class="bulk-input"
         rows="5"
         :placeholder="t('connections.bulkPlaceholder')"
-      ></textarea>
+      />
       <div class="row key-actions">
-        <button class="btn" :disabled="importingBulk" @click="importBulkKeys">
-          {{ importingBulk ? t("connections.importing") : t("connections.importBulk") }}
+        <button class="btn"
+:disabled="importingBulk" @click="importBulkKeys">
+          {{
+            importingBulk
+              ? t("connections.importing")
+              : t("connections.importBulk")
+          }}
         </button>
-        <span class="status" :class="bulkStatusClass">{{ bulkStatus }}</span>
+        <span class="status"
+:class="bulkStatusClass">{{ bulkStatus }}</span>
       </div>
     </section>
   </div>
@@ -137,8 +182,6 @@ const authStore = useAuthStore();
 const toast = useToast();
 
 const services = computed(() => connectionsStore.services);
-const loading = computed(() => connectionsStore.loading);
-const error = computed(() => connectionsStore.error);
 
 const connecting = ref("");
 const disconnecting = ref("");
@@ -208,11 +251,15 @@ async function startOAuth(service: string) {
 
 async function connectStrava() {
   const token = authStore.token;
-  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
   const authResp = await fetch("/api/v1/import/strava/auth", { headers });
   if (!authResp.ok) {
     const err = await authResp.json().catch(() => ({}));
-    throw new Error(err.detail || "Impossibile avviare l'autenticazione Strava");
+    throw new Error(
+      err.detail || "Impossibile avviare l'autenticazione Strava",
+    );
   }
   const { auth_url, code_verifier } = await authResp.json();
   const popup = window.open(auth_url, "strava-auth", "width=600,height=700");
@@ -255,7 +302,7 @@ async function connectStrava() {
 
   const cbResp = await fetch("/api/v1/import/strava/callback", {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...headers } as HeadersInit,
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify({ code, code_verifier }),
   });
   if (!cbResp.ok) {
@@ -283,7 +330,11 @@ async function connectGoogleFit() {
     throw new Error("Impossibile avviare l'autenticazione Google Fit");
   }
   const { auth_url } = await authResp.json();
-  const popup = window.open(auth_url, "google-fit-auth", "width=500,height=600");
+  const popup = window.open(
+    auth_url,
+    "google-fit-auth",
+    "width=500,height=600",
+  );
   if (!popup) throw new Error("Popup bloccato - abilita i popup");
 
   await new Promise<void>((resolve, reject) => {
@@ -304,7 +355,13 @@ async function connectGoogleFit() {
     const handleMessage = async (event: MessageEvent) => {
       if (event.data?.type === "google-fit-error") {
         finish();
-        reject(new Error(event.data.error_description || event.data.error || "Errore Google Fit"));
+        reject(
+          new Error(
+            event.data.error_description ||
+              event.data.error ||
+              "Errore Google Fit",
+          ),
+        );
         return;
       }
       if (event.data?.type === "google-fit-success") {
@@ -344,7 +401,11 @@ async function connectGoogleHealth() {
     throw new Error("Impossibile avviare l'autenticazione Google Health");
   }
   const { auth_url } = await authResp.json();
-  const popup = window.open(auth_url, "google-health-auth", "width=500,height=600");
+  const popup = window.open(
+    auth_url,
+    "google-health-auth",
+    "width=500,height=600",
+  );
   if (!popup) throw new Error("Popup bloccato - abilita i popup");
 
   await new Promise<void>((resolve, reject) => {
@@ -365,7 +426,13 @@ async function connectGoogleHealth() {
     const handleMessage = async (event: MessageEvent) => {
       if (event.data?.type === "google-health-error") {
         finish();
-        reject(new Error(event.data.error_description || event.data.error || "Errore Google Health"));
+        reject(
+          new Error(
+            event.data.error_description ||
+              event.data.error ||
+              "Errore Google Health",
+          ),
+        );
         return;
       }
       if (event.data?.type === "google-health-success") {
@@ -405,7 +472,11 @@ async function connectWahoo() {
   }
   const result = await authResp.json();
   const codeVerifier = result.code_verifier;
-  const popup = window.open(result.auth_url, "wahoo-auth", "width=500,height=600");
+  const popup = window.open(
+    result.auth_url,
+    "wahoo-auth",
+    "width=500,height=600",
+  );
   if (!popup) throw new Error("Popup bloccato - abilita i popup");
 
   await new Promise<void>((resolve, reject) => {
@@ -426,7 +497,11 @@ async function connectWahoo() {
     const handleMessage = async (event: MessageEvent) => {
       if (event.data?.type === "wahoo-error") {
         finish();
-        reject(new Error(event.data.error_description || event.data.error || "Errore Wahoo"));
+        reject(
+          new Error(
+            event.data.error_description || event.data.error || "Errore Wahoo",
+          ),
+        );
         return;
       }
       if (event.data?.type === "wahoo-success") {

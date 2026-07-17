@@ -75,7 +75,9 @@ export function parseBulkKeys(text: string): UserApiKeys {
   try {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === "object") {
-      for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      for (const [key, value] of Object.entries(
+        parsed as Record<string, unknown>,
+      )) {
         const slot = (ENV_KEY_MAP[key.toUpperCase()] ||
           (key.toLowerCase() as keyof UserApiKeys)) as keyof UserApiKeys;
         if (typeof value === "string") assign(slot, value);
@@ -91,8 +93,14 @@ export function parseBulkKeys(text: string): UserApiKeys {
     if (!trimmed || trimmed.startsWith("#")) continue;
     const eq = trimmed.indexOf("=");
     if (eq === -1) continue;
-    const name = trimmed.slice(0, eq).replace(/^(export|set)\s+/i, "").trim();
-    const value = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+    const name = trimmed
+      .slice(0, eq)
+      .replace(/^(export|set)\s+/i, "")
+      .trim();
+    const value = trimmed
+      .slice(eq + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
     const slot = ENV_KEY_MAP[name.toUpperCase()];
     if (slot) assign(slot, value);
   }

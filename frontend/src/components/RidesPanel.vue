@@ -829,12 +829,19 @@ onMounted(() => load());
   align-items: center;
 }
 
+.list-controls .btn,
+.list-controls .btn-secondary {
+  border-radius: 6px;
+}
+
 .sort-select {
   background: var(--bg-secondary);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 7px 10px;
+  border-radius: 6px;
+  border-color: rgba(255, 255, 255, 0.1);
+  height: 36.8px;
+  padding: 0 10px;
   font-size: 0.85rem;
   font-family: inherit;
   cursor: pointer;

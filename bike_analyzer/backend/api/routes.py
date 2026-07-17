@@ -1980,7 +1980,7 @@ async def google_fit_auth(
 
     google_client_id = client_id or _s.google_fit_client_id
     if not google_client_id:
-        raise HTTPException(status_code=500, detail="Google Fit OAuth not configured")
+        raise HTTPException(status_code=503, detail="Google Fit OAuth not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
     _validate_redirect_uri(redirect_uri, request)
     state = _issue_oauth_state(redirect_uri)

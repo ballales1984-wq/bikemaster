@@ -59,6 +59,36 @@ class="admin-panel">
           <div class="admin-label">Reset Demo</div>
           <div class="admin-desc">Restore demo data</div>
         </button>
+
+        <button
+          class="admin-card"
+          :disabled="loadingAudit"
+          @click="loadAuditLogs"
+        >
+          <div class="admin-icon">📝</div>
+          <div class="admin-label">{{ t("admin.auditLogs") }}</div>
+          <div class="admin-desc">{{ t("admin.auditLogsDesc") }}</div>
+        </button>
+
+        <button
+          class="admin-card"
+          :disabled="loadingCeo"
+          @click="loadCeoAnalytics"
+        >
+          <div class="admin-icon">📈</div>
+          <div class="admin-label">{{ t("admin.ceoAnalytics") }}</div>
+          <div class="admin-desc">{{ t("admin.ceoAnalyticsDesc") }}</div>
+        </button>
+
+        <button
+          class="admin-card"
+          :disabled="loadingSentry"
+          @click="testSentry"
+        >
+          <div class="admin-icon">🚨</div>
+          <div class="admin-label">{{ t("admin.testSentry") }}</div>
+          <div class="admin-desc">{{ t("admin.testSentryDesc") }}</div>
+        </button>
       </div>
 
       <div v-if="stats"
@@ -102,6 +132,9 @@ const error = ref("");
 const loadingStats = ref(false);
 const loadingIndexes = ref(false);
 const loadingReset = ref(false);
+const loadingAudit = ref(false);
+const loadingCeo = ref(false);
+const loadingSentry = ref(false);
 const confirmVisible = ref(false);
 const confirmTitle = ref("");
 const confirmMessage = ref("");
@@ -180,6 +213,45 @@ async function resetDemo() {
     stats.value = "";
   } finally {
     loadingReset.value = false;
+  }
+}
+
+async function loadAuditLogs() {
+  loadingAudit.value = true;
+  try {
+    error.value = "";
+    const data = await apiGet("/api/v1/admin/audit-logs");
+    stats.value = JSON.stringify(data, null, 2);
+  } catch (e) {
+    error.value = "Access denied: " + (e instanceof Error ? e.message : e);
+  } finally {
+    loadingAudit.value = false;
+  }
+}
+
+async function loadCeoAnalytics() {
+  loadingCeo.value = true;
+  try {
+    error.value = "";
+    const data = await apiGet("/api/v1/admin/ceo");
+    stats.value = JSON.stringify(data, null, 2);
+  } catch (e) {
+    error.value = "Access denied: " + (e instanceof Error ? e.message : e);
+  } finally {
+    loadingCeo.value = false;
+  }
+}
+
+async function testSentry() {
+  loadingSentry.value = true;
+  try {
+    error.value = "";
+    const data = await apiGet("/api/v1/admin/test-sentry");
+    stats.value = JSON.stringify(data, null, 2);
+  } catch (e) {
+    error.value = "Error: " + (e instanceof Error ? e.message : e);
+  } finally {
+    loadingSentry.value = false;
   }
 }
 </script>

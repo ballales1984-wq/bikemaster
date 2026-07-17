@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { apiGet, apiPost, apiDelete } from "../utils/api";
+import { apiGet } from "../utils/api";
 import { useAuthStore } from "./auth";
 
 export type ConnectionMethod = "oauth" | "apikey";
@@ -22,8 +22,8 @@ export const useConnectionsStore = defineStore("connections", () => {
   const error = ref("");
 
   const services = computed(() => items.value);
-  const connectedServices = computed(
-    () => items.value.filter((s) => s.connected),
+  const connectedServices = computed(() =>
+    items.value.filter((s) => s.connected),
   );
 
   async function load() {
@@ -44,11 +44,31 @@ export const useConnectionsStore = defineStore("connections", () => {
       }));
       // Assicurati che i servizi noti siano presenti anche se non tornati dal backend.
       const known = [
-        { service: "strava", method: "oauth" as ConnectionMethod, label: "Strava" },
-        { service: "google_fit", method: "oauth" as ConnectionMethod, label: "Google Fit" },
-        { service: "google_health", method: "oauth" as ConnectionMethod, label: "Google Health" },
-        { service: "wahoo", method: "oauth" as ConnectionMethod, label: "Wahoo" },
-        { service: "garmin", method: "apikey" as ConnectionMethod, label: "Garmin Connect" },
+        {
+          service: "strava",
+          method: "oauth" as ConnectionMethod,
+          label: "Strava",
+        },
+        {
+          service: "google_fit",
+          method: "oauth" as ConnectionMethod,
+          label: "Google Fit",
+        },
+        {
+          service: "google_health",
+          method: "oauth" as ConnectionMethod,
+          label: "Google Health",
+        },
+        {
+          service: "wahoo",
+          method: "oauth" as ConnectionMethod,
+          label: "Wahoo",
+        },
+        {
+          service: "garmin",
+          method: "apikey" as ConnectionMethod,
+          label: "Garmin Connect",
+        },
       ];
       const merged = known.map((k) => {
         const existing = mapped.find((m) => m.service === k.service);
@@ -87,7 +107,8 @@ export const useConnectionsStore = defineStore("connections", () => {
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
         throw new Error(
-          (err as { detail?: string }).detail || `Disconnessione ${service} fallita`,
+          (err as { detail?: string }).detail ||
+            `Disconnessione ${service} fallita`,
         );
       }
       const target = items.value.find((s) => s.service === service);
@@ -96,8 +117,7 @@ export const useConnectionsStore = defineStore("connections", () => {
         target.lastConnectedAt = null;
       }
     } catch (e) {
-      error.value =
-        e instanceof Error ? e.message : "Disconnessione fallita";
+      error.value = e instanceof Error ? e.message : "Disconnessione fallita";
     } finally {
       loading.value = false;
     }
