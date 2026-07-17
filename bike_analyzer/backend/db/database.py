@@ -1,4 +1,22 @@
-"""Database layer - SQLite (local-first primary store) with optional PostgreSQL cloud sync."""
+"""Database layer — SQLite (local-first primary store) with optional PostgreSQL cloud sync.
+
+Questo modulo costituisce il layer di persistenza primario dell'applicazione.
+E' organizzato come un insieme di funzioni sincrone che operano su SQLite
+tramite ``sqlite3`` standard, con le seguenti caratteristiche:
+
+- Modalita' WAL (Write-Ahead Logging) per concorrenza lettura/scrittura.
+- Retry automatico su lock contention (max 5 tentativi, backoff esponenziale).
+- Migrazioni leggere inline (``ALTER TABLE`` condizionali) per evoluzione
+  dello schema senza tool esterni.
+- Indici performance per query frequenti su ``athlete_id``, ``date`` e
+  ``distance_km``.
+- Supporto multi-tenant tramite colonna ``tenant_id`` su ogni tabella.
+- Deduplicazione per sorgenti esterne (Strava, Garmin) tramite indice
+  unique su ``(external_source, external_id)``.
+- Funzioni di backup e rotazione automatica dei file di database.
+
+Per il cloud (Hub) si usa invece ``async_db.py`` con PostgreSQL/SQLAlchemy.
+"""
 
 from __future__ import annotations
 
@@ -22,7 +40,18 @@ _INITIAL_DB_PATH = DB_PATH
 
 @contextmanager
 def get_db_connection():
-    """Context manager for database connections with WAL mode and retry."""
+    """Context manager per connessioni SQLite con WAL e retry su lock.
+
+    Configura la connessione con:
+    - ``journal_mode=WAL`` per letture concorrenti durante la scrittura.
+    - ``busy_timeout=5000`` per attendere il rilascio del lock.
+    - ``foreign_keys=ON`` per integrita' referenziale.
+    - ``row_factory=sqlite3.Row`` per accesso per colonna.
+
+    In caso di ``OperationalError`` con messaggio ``locked`` ritenta fino a
+    3 volte con backoff lineare (0.1s, 0.2s, 0.3s). Il commit e' automatico
+    se il blocco ``with`` completa senza eccezioni.
+    """
     import time
 
     max_retries = 3
@@ -53,7 +82,14 @@ def get_db_connection():
 
 
 def init_db():
-    """Create all tables and apply lightweight migrations for the SQLite store."""
+    """Crea tutte le tabelle e applica le migrazioni leggere per SQLite.
+
+    Esegue ``CREATE TABLE IF NOT EXISTS`` per ogni entita' del dominio,
+    poi applica migrazioni incrementali con ``ALTER TABLE`` condizionali
+    (controlla ``PRAGMA table_info`` prima di aggiungere colonne).
+    Include anche la creazione degli indici performance e delle tabelle
+    per il sync bidirezionale.
+    """
     with get_db_connection() as conn:
         conn.execute("""CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -361,6 +397,14 @@ def init_db():
         workout_cols = [row[1] for row in cur.fetchall()]
         if "tenant_id" not in workout_cols:
             conn.execute("ALTER TABLE planned_workouts ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        cur.execute("PRAGMA table_info(athletes)")
+        athlete_cols = [row[1] for row in cur.fetchall()]
+        if "user_id" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN user_id INTEGER")
+        cur.execute("PRAGMA table_info(rides)")
+        ride_cols = [row[1] for row in cur.fetchall()]
+        if "updated_at" not in ride_cols:
+            conn.execute("ALTER TABLE rides ADD COLUMN updated_at TEXT")
         _ensure_external_identity_index(conn)
         _ensure_sync_tables(conn)
         conn.commit()
@@ -479,10 +523,16 @@ def _find_existing_external_ride(conn, external_source: str | None, external_id:
 
 
 def save_ride(ride: dict) -> int:
-    """Insert a new ride, deduplicating by external source/id when present.
+    """Inserisce una nuova attivita' (ride) nel database.
 
-    Estimates missing calories on-the-fly, serializes GPS points as JSON,
-    and retries on SQLite lock contention. Returns the new ride id.
+    Effettua la deduplicazione automatica per sorgenti esterne (Strava,
+    Garmin, ecc.) confrontando ``external_source`` + ``external_id``. Se
+    l'attivita' esiste gia', restituisce l'id esistente senza inserire
+    duplicati.
+
+    Stima automaticamente le calorie se mancanti tramite ``ensure_calories``
+    e serializza i punti GPS come JSON. Riprova fino a 5 volte in caso di
+    lock SQLite con backoff esponenziale.
     """
     import time
 
@@ -555,7 +605,11 @@ def save_ride(ride: dict) -> int:
 
 
 def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
-    """Return a single ride by id, optionally filtered by tenant."""
+    """Recupera una singola attivita' per id, opzionalmente filtrata per tenant.
+
+    Restituisce un dict con tutti i campi della tabella ``rides`` oppure
+    ``None`` se l'attivita' non esiste o non appartiene al tenant.
+    """
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -569,7 +623,11 @@ def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
 
 
 def get_rides_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
-    """Return all rides for an athlete, optionally filtered by tenant."""
+    """Restituisce tutte le attivita' di un atleta, opzionalmente filtrate per tenant.
+
+    I risultati sono ordinati per id crescente (dal piu' vecchio al piu'
+    recente). Usa ``_row_to_ride`` per deserializzare i punti GPS da JSON.
+    """
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -697,11 +755,12 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
 
 
 def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 0) -> int:
-    """Insert or update an athlete profile.
+    """Inserisce o aggiorna il profilo di un atleta.
 
-    When ``athlete_id`` is provided the existing row is overwritten;
-    otherwise a new athlete is created. Retries on SQLite lock contention.
-    Returns the athlete id.
+    Se ``athlete_id`` e' fornito sovrascrive la riga esistente (UPSERT
+    implicito tramite INSERT con id esplicito). Altrimenti crea un nuovo
+    atleta. Riprova fino a 5 volte su lock SQLite con backoff esponenziale.
+    Restituisce l'id dell'atleta creato/aggiornato.
     """
     import time
 
@@ -824,13 +883,18 @@ def _row_to_athlete(row) -> dict:
         "password_hash",
         "tenant_id",
         "created_at",
+        "user_id",
     ]
     keys = row.keys()
     return {col: row[col] if col in keys else None for col in columns}
 
 
 def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
-    """Return an athlete profile by id, optionally filtered by tenant."""
+    """Recupera il profilo di un atleta per id, opzionalmente filtrato per tenant.
+
+    Restituisce un dict con tutti i campi della tabella ``athletes`` oppure
+    ``None`` se l'atleta non esiste o non appartiene al tenant.
+    """
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -1491,6 +1555,16 @@ def get_latest_training_stress(athlete_id: int, tenant_id: int | None = None) ->
 
 
 def recalculate_training_stress_for_athlete(athlete_id: int, ftp: float = 250.0, tenant_id: int = 0) -> None:
+    """Ricalcola ATL/CTL/TSB storici per tutti i giorni con attivita' dell'atleta.
+
+    Per ogni giorno calcola il TSS cumulato, poi applica due EWMA:
+    - ATL ( Acute Training Load ) con tau di 7 giorni.
+    - CTL ( Chronic Training Load ) con tau di 42 giorni.
+    Il TSB ( Form ) e' la differenza CTL - ATL.
+
+    I risultati vengono salvati/aggiornati nella tabella
+    ``training_stress_days`` tramite ``upsert_training_stress_day``.
+    """
     from ..analytics.training_stress import (
         estimate_tss,
         exponentially_weighted_moving_average,
