@@ -398,8 +398,9 @@ v-if="selectedRide.heart_rate_avg" class="detail-stat"
             <h4>📊 Analisi</h4>
             <div class="analysis-grid">
               <div
-v-if="analysis.fatigue_score" class="a-stat"
->
+                v-if="analysis.fatigue_score != null"
+                class="a-stat"
+              >
                 <span class="a-lbl">Affaticamento</span>
                 <div class="a-bar">
                   <div
@@ -413,14 +414,16 @@ v-if="analysis.fatigue_score" class="a-stat"
                 <span class="a-val">{{ fmt(analysis.fatigue_score) }}/10</span>
               </div>
               <div
-v-if="analysis.recovery_hours" class="a-item"
->
+                v-if="analysis.recovery_hours != null"
+                class="a-item"
+              >
                 <span class="a-lbl">Recupero consigliato</span>
                 <span class="a-val accent">{{ analysis.recovery_hours }}h</span>
               </div>
               <div
-v-if="analysis.calories_per_km" class="a-item"
->
+                v-if="analysis.calories_per_km != null"
+                class="a-item"
+              >
                 <span class="a-lbl">Calorie/km</span>
                 <span class="a-val">{{ fmt(analysis.calories_per_km) }}</span>
               </div>

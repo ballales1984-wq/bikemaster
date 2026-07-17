@@ -3,10 +3,22 @@
 // singola richiesta al posto delle sue chiavi di server.
 
 export interface UserApiKeys {
+  // Servizi interni/app
   groq?: string;
   google_maps?: string;
   serpapi?: string;
   weather?: string;
+
+  // Servizi esterni - API keys personali dell'utente
+  strava_client_id?: string;
+  strava_client_secret?: string;
+  garmin_api_key?: string;
+  wahoo_client_id?: string;
+  wahoo_client_secret?: string;
+  google_fit_client_id?: string;
+  google_fit_client_secret?: string;
+  google_health_client_id?: string;
+  google_health_client_secret?: string;
 }
 
 // Stato corrente in memoria, aggiornato dallo store Pinia e letto da api.ts.
@@ -37,6 +49,15 @@ const ENV_KEY_MAP: Record<string, keyof UserApiKeys> = {
   SERPAPI_API_KEY: "serpapi",
   WEATHER_API_KEY: "weather",
   OPENWEATHER_API_KEY: "weather",
+  STRAVA_CLIENT_ID: "strava_client_id",
+  STRAVA_CLIENT_SECRET: "strava_client_secret",
+  GARMIN_API_KEY: "garmin_api_key",
+  WAHOO_CLIENT_ID: "wahoo_client_id",
+  WAHOO_CLIENT_SECRET: "wahoo_client_secret",
+  GOOGLE_FIT_CLIENT_ID: "google_fit_client_id",
+  GOOGLE_FIT_CLIENT_SECRET: "google_fit_client_secret",
+  GOOGLE_HEALTH_CLIENT_ID: "google_health_client_id",
+  GOOGLE_HEALTH_CLIENT_SECRET: "google_health_client_secret",
 };
 
 // Parsa un blocco incollato (JSON o righe KEY=VALUE) nelle chiavi per-utente.

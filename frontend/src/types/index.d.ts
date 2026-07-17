@@ -18,6 +18,8 @@ export interface Ride {
   avg_heart_rate?: number;
   max_heart_rate?: number;
   fatigue_score?: number;
+  recovery_hours?: number;
+  calories_per_km?: number;
 }
 
 export interface EnrichedRide extends Ride {

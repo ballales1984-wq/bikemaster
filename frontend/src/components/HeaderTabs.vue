@@ -51,6 +51,14 @@
       >
         🛠️ <span>{{ t("nav.settings") }}</span>
       </router-link>
+      <router-link
+        ref="tabEls"
+        to="/settings/connections"
+        class="tab"
+        active-class="active"
+      >
+        🔌 <span>{{ t("nav.connections") }}</span>
+      </router-link>
 
       <button
         class="tab logout-btn"

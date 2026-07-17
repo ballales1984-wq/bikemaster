@@ -68,9 +68,31 @@ v-model="weatherEnabled" type="checkbox" id="weather-enabled" />
 
       <label class="checkbox-control">
         <input
-v-model="showFamousRoutes" type="checkbox" id="show-famous-routes" />
+          v-model="showFamousRoutes" type="checkbox" id="show-famous-routes" />
         <span>{{ t("maps.famousRoutes") }}</span>
       </label>
+
+      <label class="checkbox-control">
+        <input
+          v-model="showPois" type="checkbox" id="show-pois" />
+        <span>{{ t("maps.showPois") }}</span>
+      </label>
+    </div>
+
+    <!-- Replay controls: animate the selected ride's GPS track over time. -->
+    <div v-if="!useAetherMap && selectedRideId && replayPoints.length > 1" class="replay-bar">
+      <button class="btn btn-sm" @click="toggleReplay">
+        {{ replaying ? '⏸ ' + t('maps.pause') : '▶ ' + t('maps.play') }}
+      </button>
+      <input
+        class="replay-slider"
+        type="range"
+        min="0"
+        :max="replayPoints.length - 1"
+        v-model.number="replayIndex"
+        @input="onReplayScrub"
+      />
+      <span class="replay-label">{{ replayIndex + 1 }} / {{ replayPoints.length }}</span>
     </div>
 
     <div
@@ -225,6 +247,7 @@ const selectedRideId = ref<number | null>(null);
 const colorMode = ref<string>("combined");
 const weatherEnabled = ref(true);
 const showFamousRoutes = ref(false);
+const showPois = ref(true);
 const mapStyle = ref<keyof typeof MAP_STYLES>(
   (localStorage.getItem("mapStyle") as keyof typeof MAP_STYLES) || "standard",
 );
@@ -414,6 +437,137 @@ const visibleRides = computed(() => {
 
 const visibleRideIds = computed(() => visibleRides.value.map((r) => r.id));
 
+// --- Replay (animated track of the selected ride) ---
+const replayPoints = ref<Array<{ lat: number; lon: number }>>([]);
+const replayIndex = ref(0);
+const replaying = ref(false);
+let replayTimer: number | null = null;
+let replayMarker: L.CircleMarker | null = null;
+let replayPath: L.Polyline | null = null;
+
+const POI_COLORS: Record<string, string> = {
+  cafe: "#b45309",
+  bakery: "#b45309",
+  restaurant: "#dc2626",
+  water: "#2563eb",
+  viewpoint: "#7c3aed",
+  bike_shop: "#059669",
+  emergency: "#dc2626",
+  other: "#64748b",
+};
+let poiLayer: L.LayerGroup | null = null;
+
+function loadReplayPoints() {
+  stopReplay();
+  const ride = visibleRides.value.find((r) => r.id === selectedRideId.value);
+  replayPoints.value = (ride?.gps_points || []).filter(
+    (p) => Number.isFinite(p.lat) && Number.isFinite(p.lon),
+  );
+  replayIndex.value = 0;
+  drawReplay();
+}
+
+function drawReplay() {
+  if (!map) return;
+  if (replayPath) {
+    map.removeLayer(replayPath);
+    replayPath = null;
+  }
+  if (replayMarker) {
+    map.removeLayer(replayMarker);
+    replayMarker = null;
+  }
+  const pts = replayPoints.value.slice(0, replayIndex.value + 1).map(
+    (p) => [p.lat, p.lon] as [number, number],
+  );
+  if (pts.length > 1) {
+    replayPath = L.polyline(pts, { color: "#4ecca3", weight: 5, opacity: 0.9 }).addTo(map);
+  }
+  const cur = replayPoints.value[replayIndex.value];
+  if (cur) {
+    replayMarker = L.circleMarker([cur.lat, cur.lon], {
+      radius: 7,
+      color: "#4ecca3",
+      fillColor: "#4ecca3",
+      fillOpacity: 1,
+      weight: 3,
+    }).addTo(map);
+  }
+}
+
+function toggleReplay() {
+  if (replaying.value) {
+    stopReplay();
+  } else {
+    if (replayIndex.value >= replayPoints.value.length - 1) replayIndex.value = 0;
+    replaying.value = true;
+    replayTimer = window.setInterval(() => {
+      if (replayIndex.value >= replayPoints.value.length - 1) {
+        stopReplay();
+        return;
+      }
+      replayIndex.value += 1;
+      drawReplay();
+    }, 120);
+  }
+}
+
+function stopReplay() {
+  replaying.value = false;
+  if (replayTimer !== null) {
+    clearInterval(replayTimer);
+    replayTimer = null;
+  }
+}
+
+function onReplayScrub() {
+  stopReplay();
+  drawReplay();
+}
+
+async function loadPois() {
+  if (!poiLayer && map) {
+    poiLayer = L.layerGroup().addTo(map);
+  }
+  if (!poiLayer) return;
+  poiLayer.clearLayers();
+  if (!showPois.value) return;
+  const targets =
+    replayPoints.value.length > 1
+      ? [replayPoints.value[Math.floor(replayPoints.value.length / 2)]]
+      : visibleRides.value
+          .map((r) => r.center)
+          .filter((c): c is { lat: number; lon: number } => !!c);
+  for (const center of targets.slice(0, 3)) {
+    try {
+      const data = await apiGet<{
+        pois: Array<{ name: string; lat: number; lon: number; type?: string; description?: string }>;
+      }>("/api/v1/maps/pois/nearby", {
+        lat: String(center.lat),
+        lon: String(center.lon),
+        radius: "5",
+      });
+      for (const poi of data.pois || []) {
+        if (!Number.isFinite(poi.lat) || !Number.isFinite(poi.lon)) continue;
+        const color = POI_COLORS[poi.type || "other"] || POI_COLORS.other;
+        L.circleMarker([poi.lat, poi.lon], {
+          radius: 6,
+          color,
+          fillColor: color,
+          fillOpacity: 0.9,
+          weight: 2,
+        })
+          .addTo(poiLayer)
+          .bindPopup(
+            `<strong>${poi.name}</strong><br>${poi.type || ""}${poi.description ? "<br>" + poi.description : ""}`,
+          );
+      }
+    } catch {
+      /* POIs optional */
+    }
+  }
+}
+
 const totalGpsPoints = computed(() =>
   visibleRides.value.reduce((sum, ride) => sum + ride.gps_points.length, 0),
 );
@@ -475,6 +629,12 @@ watch(weatherEnabled, () => {
 
 watch(selectedRideId, () => {
   renderMap();
+  loadReplayPoints();
+  void loadPois();
+});
+
+watch(showPois, () => {
+  void loadPois();
 });
 
 watch(showFamousRoutes, () => {
@@ -556,6 +716,8 @@ async function loadRides() {
     }
     await nextTick();
     renderMap();
+    if (selectedRideId.value) loadReplayPoints();
+    void loadPois();
   } catch (error) {
     console.error("ride map load failed", error);
     enrichedRides.value = [];
@@ -805,5 +967,28 @@ onBeforeUnmount(() => {
   .route-map {
     height: 320px;
   }
+}
+
+.replay-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.replay-slider {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.replay-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  min-width: 70px;
+  text-align: right;
 }
 </style>

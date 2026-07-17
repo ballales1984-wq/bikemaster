@@ -45,6 +45,7 @@ from ..analytics.badges import calculate_badges, get_heatmap_points
 from ..analytics.calories import calories_per_km, estimate_calories
 from ..analytics.fatigue import (
     calculate_fatigue_score,
+    estimate_recovery_hours,
 )
 from ..analytics.granfondo_planner import generate_granfondo_plan
 from ..audit_log import log_action, read_audit_logs
@@ -1191,6 +1192,7 @@ async def get_ride(ride_id: int, current_user: dict = Depends(get_current_user))
     _ensure_ride_access(ride, current_user)
     r = Ride(**ride)
     ride["fatigue_score"] = round(calculate_fatigue_score(r), 1)
+    ride["recovery_hours"] = round(estimate_recovery_hours(ride["fatigue_score"]), 1)
     ride["calories_per_km"] = round(calories_per_km(r), 0) if r.distance_km else 0
     return ride
 
