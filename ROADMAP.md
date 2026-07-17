@@ -1,8 +1,9 @@
 # BikeMaster — Roadmap Consolidata
 
-*Ultimo aggiornamento: 2026-07-13*
+*Ultimo aggiornamento: 2026-07-17*
 
 > Stato: **architettura locale-first completata** (desktop Tauri 2 + SQLite primario + backend FastAPI embedded), con engine BM2 e progetto R&D AetherMap attivi. Sync bidirezionale device↔cloud e offline-first restano in corso (vedi checklist sotto).
+> Test (verificati): backend **2333 passed / 45 failed / 223 errors** su 2607 (`pytest`, 2026-07-16); frontend **332 passed / 31 failed / 20 errors** su 363 (`vitest run`, 2026-07-17). Endpoint REST: **138**.
 > Questo documento è la *fonte di verità* unica per stato, checklist e idee/feature.
 > Le fasi 1-25 sono completate; sotto il backlog riordinato (4 track) e lo stato di pulizia repo.
 
