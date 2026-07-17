@@ -17,7 +17,7 @@ name="metric" v-model="selectedMetric">
         <label>
           {{ t("charts.window") }}
           <select id="window-select"
-name="window" v-model="windowSize">
+name="window" v-model.number="windowSize">
             <option value="3">3 rides</option>
             <option value="7">7 rides</option>
             <option value="14">14 rides</option>
@@ -28,10 +28,9 @@ name="window" v-model="windowSize">
       <div class="chart-grid">
         <div class="chart-card">
           <h3>Trend {{ metricLabel }}</h3>
-          <canvas ref="trendCanvas" />
-          <div
-v-if="trendData.ready" class="chart-summary"
->
+          <BaseChart :config="trendConfig" empty-label="Dati insufficienti" />
+          <div v-if="trendData.ready"
+class="chart-summary">
             <span :class="trendClass">{{ trendData.trend }}</span>
             <span>R²: {{ trendData.r2 }}</span>
             <span>Mean: {{ trendData.mean?.toFixed(1) }}</span>
@@ -39,14 +38,19 @@ v-if="trendData.ready" class="chart-summary"
         </div>
         <div class="chart-card">
           <h3>📆 Monthly Progression</h3>
-          <canvas ref="monthlyCanvas" />
+          <BaseChart
+            :config="monthlyConfig"
+            empty-label="Nessun dato mensile"
+          />
         </div>
         <div class="chart-card">
           <h3>{{ t("charts.periodComparison") }}</h3>
-          <canvas ref="comparisonCanvas" />
-          <div
-v-if="comparisonData.ready" class="chart-summary"
->
+          <BaseChart
+            :config="comparisonConfig"
+            empty-label="Nessun confronto"
+          />
+          <div v-if="comparisonData.ready"
+class="chart-summary">
             <span :class="trendClass"
               >{{ comparisonData.distance_change_pct >= 0 ? "+" : ""
               }}{{ comparisonData.distance_change_pct }}% km</span
@@ -63,24 +67,24 @@ v-if="comparisonData.ready" class="chart-summary"
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted } from "vue";
-import Chart from "chart.js/auto";
+import { computed, onMounted, ref, watch } from "vue";
+import type { ChartConfiguration } from "../utils/chartTypes";
+import BaseChart from "./BaseChart.vue";
 import { useI18n } from "../composables/useI18n";
 import { apiGet } from "../utils/api";
+import { chartTheme } from "../utils/chartTheme";
 
 const { t } = useI18n();
 
-const props = defineProps<{
-  rides?: Array<{ id: number; date: string; distance_km?: number; avg_speed_kmh?: number; duration_minutes?: number; calories?: number; elevation_gain_m?: number }>;
-}>();
-
-type MetricKey = "distance_km" | "avg_speed_kmh" | "duration_minutes" | "calories" | "elevation_gain_m";
+type MetricKey =
+  | "distance_km"
+  | "avg_speed_kmh"
+  | "duration_minutes"
+  | "calories"
+  | "elevation_gain_m";
 
 const selectedMetric = ref<MetricKey>("distance_km");
 const windowSize = ref(7);
-const trendCanvas = ref<HTMLCanvasElement | null>(null);
-const monthlyCanvas = ref<HTMLCanvasElement | null>(null);
-const comparisonCanvas = ref<HTMLCanvasElement | null>(null);
 
 interface TrendResponse {
   ready: boolean;
@@ -140,10 +144,6 @@ const comparisonData = ref<ComparisonResponse>({
   previous_rides: 0,
 });
 
-let trendChart: Chart | null = null;
-let monthlyChart: Chart | null = null;
-let comparisonChart: Chart | null = null;
-
 const metricLabel = computed(() => {
   const map: Record<MetricKey, string> = {
     distance_km: "Distance",
@@ -161,60 +161,19 @@ const trendClass = computed(() => {
   return "trend-neutral";
 });
 
-async function loadTrends() {
-  try {
-    const data = await apiGet<TrendResponse>(
-      `/api/v1/analytics/trends?metric=${selectedMetric.value}&window=${windowSize.value}`,
-    );
-    trendData.value = data;
-    renderTrendChart();
-  } catch (e) {
-    console.error("trends load failed", e);
-  }
-}
-
-async function loadMonthly() {
-  try {
-    const data = await apiGet<MonthlyResponse>("/api/v1/analytics/monthly");
-    monthlyData.value = data;
-    renderMonthlyChart();
-  } catch (e) {
-    console.error("monthly load failed", e);
-  }
-}
-
-async function loadComparison() {
-  try {
-    const data = await apiGet<ComparisonResponse>("/api/v1/analytics/comparison?period_days=7");
-    comparisonData.value = data;
-    renderComparisonChart();
-  } catch (e) {
-    console.error("comparison load failed", e);
-  }
-}
-
-function renderTrendChart() {
-  if (!trendCanvas.value) return;
-  const ctx = trendCanvas.value.getContext("2d");
-  if (!ctx) return;
-  if (trendChart) trendChart.destroy();
-
+const trendConfig = computed<ChartConfiguration>(() => {
   const data = trendData.value;
-  if (!data.ready || !data.values?.length) {
-    trendChart = null;
-    return;
-  }
-
-  trendChart = new Chart(ctx, {
+  const p = chartTheme.palette.value;
+  return {
     type: "line",
     data: {
-      labels: data.dates.map((d) => d?.slice(5) || "?"),
+      labels: (data.dates || []).map((d) => d?.slice(5) || "?"),
       datasets: [
         {
           label: metricLabel.value,
           data: data.values,
-          borderColor: "#FF6B00",
-          backgroundColor: "rgba(255,107,0,0.1)",
+          borderColor: p.accent,
+          backgroundColor: "rgba(0,255,204,0.1)",
           tension: 0.3,
           fill: true,
           pointRadius: 4,
@@ -237,94 +196,46 @@ function renderTrendChart() {
       ],
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: "#ccc" } },
-        tooltip: { mode: "index", intersect: false },
-      },
       scales: {
-        x: {
-          ticks: { color: "#999", maxTicksLimit: 12 },
-          grid: { color: "rgba(255,255,255,0.05)" },
-        },
-        y: {
-          ticks: { color: "#999" },
-          grid: { color: "rgba(255,255,255,0.1)" },
-        },
+        x: { ticks: { maxTicksLimit: 12 } },
       },
     },
-  });
-}
+  } as ChartConfiguration;
+});
 
-function renderMonthlyChart() {
-  if (!monthlyCanvas.value) return;
-  const ctx = monthlyCanvas.value.getContext("2d");
-  if (!ctx) return;
-  if (monthlyChart) monthlyChart.destroy();
-
+const monthlyConfig = computed<ChartConfiguration>(() => {
   const data = monthlyData.value;
-  if (!data.ready || !data.months?.length) {
-    monthlyChart = null;
-    return;
-  }
-
-  monthlyChart = new Chart(ctx, {
+  return {
     type: "bar",
     data: {
-      labels: data.months,
+      labels: data.months || [],
       datasets: [
         {
           label: "Distance (km)",
-          data: data.total_distance_km,
+          data: data.total_distance_km || [],
           backgroundColor: "#4ecca3",
           yAxisID: "y",
         },
         {
           label: "Duration (h)",
-          data: data.total_duration_hours,
+          data: data.total_duration_hours || [],
           backgroundColor: "#FF6B00",
           yAxisID: "y1",
         },
       ],
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: "#ccc" } } },
       scales: {
-        x: {
-          ticks: { color: "#999" },
-          grid: { color: "rgba(255,255,255,0.05)" },
-        },
-        y: {
-          position: "left",
-          ticks: { color: "#4ecca3" },
-          grid: { color: "rgba(255,255,255,0.05)", drawBorder: false },
-        },
-        y1: {
-          position: "right",
-          ticks: { color: "#FF6B00" },
-          grid: { display: false },
-        },
+        y: { position: "left", ticks: { color: "#4ecca3" } },
+        y1: { position: "right", grid: { display: false } },
       },
     },
-  });
-}
+  } as ChartConfiguration;
+});
 
-function renderComparisonChart() {
-  if (!comparisonCanvas.value) return;
-  const ctx = comparisonCanvas.value.getContext("2d");
-  if (!ctx) return;
-  if (comparisonChart) comparisonChart.destroy();
-
+const comparisonConfig = computed<ChartConfiguration>(() => {
   const data = comparisonData.value;
-  if (!data.ready) {
-    comparisonChart = null;
-    return;
-  }
-
-  comparisonChart = new Chart(ctx, {
+  return {
     type: "bar",
     data: {
       labels: ["Recent Period", "Previous Period"],
@@ -341,22 +252,38 @@ function renderComparisonChart() {
         },
       ],
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: "#ccc" } } },
-      scales: {
-        x: {
-          ticks: { color: "#999" },
-          grid: { color: "rgba(255,255,255,0.05)" },
-        },
-        y: {
-          ticks: { color: "#999" },
-          grid: { color: "rgba(255,255,255,0.1)" },
-        },
-      },
-    },
-  });
+    options: {},
+  } as ChartConfiguration;
+});
+
+async function loadTrends() {
+  try {
+    trendData.value = await apiGet<TrendResponse>(
+      `/api/v1/analytics/trends?metric=${selectedMetric.value}&window=${windowSize.value}`,
+    );
+  } catch (e) {
+    console.error("trends load failed", e);
+  }
+}
+
+async function loadMonthly() {
+  try {
+    monthlyData.value = await apiGet<MonthlyResponse>(
+      "/api/v1/analytics/monthly",
+    );
+  } catch (e) {
+    console.error("monthly load failed", e);
+  }
+}
+
+async function loadComparison() {
+  try {
+    comparisonData.value = await apiGet<ComparisonResponse>(
+      "/api/v1/analytics/comparison?period_days=7",
+    );
+  } catch (e) {
+    console.error("comparison load failed", e);
+  }
 }
 
 watch([selectedMetric, windowSize], () => {
@@ -368,12 +295,6 @@ onMounted(() => {
   loadTrends();
   loadMonthly();
   loadComparison();
-});
-
-onUnmounted(() => {
-  if (trendChart) trendChart.destroy();
-  if (monthlyChart) monthlyChart.destroy();
-  if (comparisonChart) comparisonChart.destroy();
 });
 </script>
 

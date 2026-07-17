@@ -1,56 +1,74 @@
-import { onBeforeUnmount, onMounted, watch, ref } from "vue";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Chart: any = (await import("chart.js")).default;
+import {
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowRef,
+  watch,
+  type Ref,
+} from "vue";
+import ChartConstructor from "chart.js/auto";
+import { chartTheme } from "../utils/chartTheme";
+import type { ChartConfiguration, ChartOptions } from "../utils/chartTypes";
 
-interface ChartData {
-  labels?: (string | number)[];
-  datasets?: { label?: string; data: (number | null)[] }[];
-}
+export type { ChartConfiguration, ChartOptions };
 
-export function useChart(
-  id: string,
-  getData: () => ChartData,
-  options: { type?: "bar" | "line"; extra?: Record<string, unknown> } = {},
-) {
-  const canvas = ref<HTMLElement | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let chart: any = null;
+export type ChartInstance = any;
+
+/**
+ * Reactive, theme-aware wrapper around a Chart.js instance.
+ *
+ * - (Re)creates the chart when `config` changes (deep watch).
+ * - Re-themes axis/legend colors when the active light/dark theme changes.
+ * - Observes the container resize so charts stay responsive inside flex/grid.
+ * - Destroys the instance on unmount to avoid canvas/context leaks.
+ */
+export function useChart(config: Ref<ChartConfiguration>) {
+  const canvas = ref<HTMLCanvasElement | null>(null);
+  const chart = shallowRef<ChartInstance | null>(null);
+  let observer: ResizeObserver | null = null;
+
+  function buildConfig(): ChartConfiguration {
+    return chartTheme.apply(config.value);
+  }
 
   function render() {
     if (!canvas.value) return;
-    const ctx = (canvas.value as HTMLCanvasElement).getContext("2d");
+    const ctx = canvas.value.getContext("2d");
     if (!ctx) return;
-    const data = typeof getData === "function" ? getData() : getData;
-    if (chart) chart.destroy();
-    chart = new Chart(ctx, {
-      type: options.type || "bar",
-      data,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: "#aaa" } } },
-        scales: {
-          x: { ticks: { color: "#aaa" } },
-          y: { ticks: { color: "#aaa" } },
-        },
-        ...(options.extra || {}),
-      },
-    });
+    chart.value?.destroy();
+    chart.value = new ChartConstructor(ctx, buildConfig());
   }
 
-  onMounted(() => render());
+  function retheme() {
+    if (!chart.value) return;
+    const next = buildConfig();
+    chart.value.config = next as ChartInstance["config"];
+    chart.value.options = next.options as ChartInstance["options"];
+
+    chart.value.update("none" as any);
+  }
+
+  watch(config, () => render(), { deep: true });
+
   watch(
-    () => (typeof getData === "function" ? getData() : getData),
-    () => render(),
-    { deep: true },
+    () => chartTheme.isDark.value,
+    () => retheme(),
   );
 
-  onBeforeUnmount(() => {
-    if (chart) {
-      chart.destroy();
-      chart = null;
+  onMounted(() => {
+    render();
+    if (canvas.value?.parentElement && typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => chart.value?.resize());
+      observer.observe(canvas.value.parentElement);
     }
   });
 
-  return { canvas, render };
+  onBeforeUnmount(() => {
+    observer?.disconnect();
+    observer = null;
+    chart.value?.destroy();
+    chart.value = null;
+  });
+
+  return { canvas, chart, render };
 }

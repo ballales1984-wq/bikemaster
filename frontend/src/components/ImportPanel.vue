@@ -637,7 +637,19 @@ async function connectStrava() {
     });
     if (!cbResp.ok) {
       const err = await cbResp.json().catch(() => ({}));
-      throw new Error(err.detail || "Strava connection failed");
+      const detail: string = err.detail || "";
+      // Strava returns 401 "Authorization Error / invalid" when the connected
+      // app is still in sandbox mode and the authorizing athlete is not an
+      // approved "Athlete Tester". Surface a clear, actionable message instead
+      // of the raw backend error.
+      if (cbResp.status === 502 && /Authorization Error|invalid/i.test(detail)) {
+        throw new Error(
+          "Strava ha rifiutato la connessione: l'app BikeMaster è in modalità sandbox. " +
+            "Apri strava.com/settings/api, entra nell'app BikeMaster e aggiungi il tuo account " +
+            "Strava tra gli 'Athlete Testers', poi riprova.",
+        );
+      }
+      throw new Error(detail || "Strava connection failed");
     }
     cleanup();
     importStatus.value = {

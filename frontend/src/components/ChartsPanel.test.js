@@ -9,6 +9,15 @@ vi.mock("chart.js", () => ({
   registerables: [],
 }));
 
+vi.mock("chart.js/auto", () => ({
+  default: vi
+    .fn()
+    .mockImplementation(() => ({ destroy: vi.fn(), update: vi.fn(), resize: vi.fn() })),
+  Chart: vi
+    .fn()
+    .mockImplementation(() => ({ destroy: vi.fn(), update: vi.fn(), resize: vi.fn() })),
+}));
+
 // Global Chart mock used inline in the component
 globalThis.Chart = vi.fn().mockImplementation(() => ({ destroy: vi.fn() }));
 

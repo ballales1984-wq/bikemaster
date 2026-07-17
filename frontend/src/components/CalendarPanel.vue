@@ -80,10 +80,11 @@ class="more-events"
         </div>
       </div>
 
-      <div v-if="fitnessData.length" class="panel fitness-chart-panel">
-        <h2>📈 Fitness ATL / CTL / TSB</h2>
-        <canvas ref="fitnessCanvas" height="200" />
-      </div>
+      <FitnessChart
+        v-if="fitnessData.length"
+        class="panel fitness-chart-panel"
+        :data="fitnessData"
+      />
     </div>
 
     <div class="panel">
@@ -148,7 +149,7 @@ Save
 import { ref, computed, onMounted, watch } from "vue";
 import { apiGet, apiPost, apiDelete, apiPut } from "../utils/api";
 import ConfirmModal from "./ConfirmModal.vue";
-import Chart from "chart.js/auto";
+import FitnessChart from "./calendar/FitnessChart.vue";
 import type { Athlete, CalendarEvent } from "../types/index";
 
 interface FitnessPoint {
@@ -183,8 +184,6 @@ const currentYear = ref(new Date().getFullYear());
 const currentMonth = ref(new Date().getMonth());
 const events = ref<CalendarEvent[]>([]);
 const fitnessData = ref<FitnessPoint[]>([]);
-const fitnessCanvas = ref<HTMLCanvasElement | null>(null);
-let fitnessChart: Chart | null = null;
 const showForm = ref(false);
 const showDeleteModal = ref(false);
 const deleteTargetId = ref<number | null>(null);
@@ -493,75 +492,6 @@ async function loadEvents() {
   }
 }
 
-function renderFitnessChart() {
-  if (!fitnessCanvas.value || !fitnessData.value.length) return;
-  const labels = fitnessData.value.map((d) => {
-    const dt = new Date(d.date);
-    return `${dt.getDate()}/${dt.getMonth() + 1}`;
-  });
-  const atl = fitnessData.value.map((d) => d.atl);
-  const ctl = fitnessData.value.map((d) => d.ctl);
-  const tsb = fitnessData.value.map((d) => d.tsb);
-  if (fitnessChart) fitnessChart.destroy();
-  const ctx = fitnessCanvas.value.getContext("2d");
-  if (!ctx) return;
-  fitnessChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "ATL (Fatica)",
-          data: atl,
-          borderColor: "#ff6b35",
-          backgroundColor: "rgba(255,107,53,0.1)",
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3,
-        },
-        {
-          label: "CTL (Fitness)",
-          data: ctl,
-          borderColor: "#0088ff",
-          backgroundColor: "rgba(0,136,255,0.1)",
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3,
-        },
-        {
-          label: "TSB (Forma)",
-          data: tsb,
-          borderColor: "#00ffcc",
-          backgroundColor: "rgba(0,255,204,0.1)",
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      plugins: {
-        legend: {
-          labels: { color: "#b0b5c1", usePointStyle: true, padding: 16 },
-        },
-      },
-      scales: {
-        x: {
-          ticks: { color: "#6e7687", maxRotation: 0, maxTicksLimit: 10 },
-          grid: { color: "rgba(255,255,255,0.04)" },
-        },
-        y: {
-          ticks: { color: "#6e7687" },
-          grid: { color: "rgba(255,255,255,0.06)" },
-        },
-      },
-    },
-  });
-}
-
 async function loadGoals() {
   if (!athleteId.value) {
     athleteGoals.value = "";
@@ -670,7 +600,6 @@ onMounted(async () => {
   initialized = true;
   await loadEvents();
   await loadGoals();
-  renderFitnessChart();
 });
 
 watch(athleteId, () => {
@@ -682,7 +611,7 @@ watch(athleteId, () => {
 watch(
   fitnessData,
   () => {
-    renderFitnessChart();
+    // Fitness chart re-renders reactively via the FitnessChart component.
   },
   { deep: true },
 );

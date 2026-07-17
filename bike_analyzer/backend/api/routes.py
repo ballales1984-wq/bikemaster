@@ -805,7 +805,8 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
                 "name": username,
                 "email": current_user.get("email"),
                 "experience_level": "Beginner",
-            }
+            },
+            athlete_id=current_user["id"],
         )
         if created_id:
             _update_athlete(created_id, {"tenant_id": created_id})
@@ -1845,7 +1846,8 @@ async def upsert_my_athlete_profile(
                 "name": username,
                 "email": current_user.get("email"),
                 "experience_level": profile_data.experience_level or "Beginner",
-            }
+            },
+            athlete_id=current_user["id"],
         )
         if created_id:
             _update_athlete(created_id, {"tenant_id": created_id})

@@ -1,14 +1,19 @@
 <template>
   <div class="panel fitness-chart-panel">
     <h2>📈 Fitness ATL / CTL / TSB</h2>
-    <canvas ref="canvas"
-height="200" />
+    <BaseChart
+      :config="chartConfig"
+      height="220px"
+      empty-label="Nessun dato di carico disponibile"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from "vue";
-import Chart from "chart.js/auto";
+import { computed } from "vue";
+import type { ChartConfiguration } from "../../utils/chartTypes";
+import BaseChart from "../BaseChart.vue";
+import { chartTheme } from "../../utils/chartTheme";
 
 interface FitnessData {
   date: string;
@@ -21,30 +26,24 @@ const props = defineProps<{
   data: FitnessData[];
 }>();
 
-const canvas = ref<HTMLCanvasElement | null>(null);
-let chart: Chart | null = null;
-
-function render() {
-  if (!canvas.value || !props.data?.length) return;
-  const labels = props.data.map((d) => {
+const labels = computed(() =>
+  props.data.map((d) => {
     const dt = new Date(d.date);
     return `${dt.getDate()}/${dt.getMonth() + 1}`;
-  });
-  const atl = props.data.map((d) => d.atl);
-  const ctl = props.data.map((d) => d.ctl);
-  const tsb = props.data.map((d) => d.tsb);
-  if (chart) chart.destroy();
-  const ctx = canvas.value.getContext("2d");
-  if (!ctx) return;
-  chart = new Chart(ctx, {
+  }),
+);
+
+const chartConfig = computed<ChartConfiguration>(() => {
+  const p = chartTheme.palette.value;
+  return {
     type: "line",
     data: {
-      labels,
+      labels: labels.value,
       datasets: [
         {
           label: "ATL (Fatica)",
-          data: atl,
-          borderColor: "var(--color-efficiency)",
+          data: props.data.map((d) => d.atl),
+          borderColor: p.efficiency,
           backgroundColor: "rgba(255,107,53,0.1)",
           fill: true,
           tension: 0.3,
@@ -52,8 +51,8 @@ function render() {
         },
         {
           label: "CTL (Fitness)",
-          data: ctl,
-          borderColor: "var(--color-endurance)",
+          data: props.data.map((d) => d.ctl),
+          borderColor: p.endurance,
           backgroundColor: "rgba(0,136,255,0.1)",
           fill: true,
           tension: 0.3,
@@ -61,8 +60,8 @@ function render() {
         },
         {
           label: "TSB (Forma)",
-          data: tsb,
-          borderColor: "var(--color-performance)",
+          data: props.data.map((d) => d.tsb),
+          borderColor: p.performance,
           backgroundColor: "rgba(0,255,204,0.1)",
           fill: true,
           tension: 0.3,
@@ -71,40 +70,9 @@ function render() {
       ],
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
-      plugins: {
-        legend: {
-          labels: {
-            color: "var(--text-secondary)",
-            usePointStyle: true,
-            padding: 16,
-          },
-        },
-      },
-      scales: {
-        x: {
-          ticks: {
-            color: "var(--text-muted)",
-            maxRotation: 0,
-            maxTicksLimit: 10,
-          },
-          grid: { color: "rgba(255,255,255,0.04)" },
-        },
-        y: {
-          ticks: { color: "var(--text-muted)" },
-          grid: { color: "rgba(255,255,255,0.06)" },
-        },
-      },
     },
-  });
-}
-
-watch(() => props.data, render, { deep: true });
-
-onUnmounted(() => {
-  if (chart) chart.destroy();
+  } as ChartConfiguration;
 });
 </script>
 
