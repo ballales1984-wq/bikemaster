@@ -7,7 +7,6 @@ Pipfile
 Pipfile.lock
 bike_analyzer/
 aethermap/
-scripts/
 docker/
 docs/
 tests/
