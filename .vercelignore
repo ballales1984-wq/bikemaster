@@ -1,2 +1,13 @@
 node_modules
 .git
+pyproject.toml
+uv.lock
+poetry.lock
+Pipfile
+Pipfile.lock
+bike_analyzer/
+aethermap/
+scripts/
+docker/
+docs/
+tests/
