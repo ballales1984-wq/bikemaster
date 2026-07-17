@@ -5,6 +5,7 @@ uv.lock
 poetry.lock
 Pipfile
 Pipfile.lock
+requirements.txt
 bike_analyzer/
 aethermap/
 docker/
