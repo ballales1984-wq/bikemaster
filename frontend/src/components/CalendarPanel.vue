@@ -5,23 +5,18 @@
 
       <div class="calendar-controls">
         <div class="calendar-nav">
-          <button
-            class="btn btn-secondary btn-sm"
-            @click="prevMonth"
-          >
-            ◀
-          </button>
+          <button class="btn btn-secondary btn-sm"
+@click="prevMonth"
+>
+◀
+</button>
           <span class="month-label">{{ monthLabel }}</span>
-          <button
-            class="btn btn-secondary btn-sm"
-            @click="nextMonth"
-          >
-            ▶
-          </button>
-          <button
-            class="btn btn-secondary btn-sm"
-            @click="goToday"
-          >
+          <button class="btn btn-secondary btn-sm"
+@click="nextMonth"
+>
+▶
+</button>
+          <button class="btn btn-secondary btn-sm" @click="goToday">
             Today
           </button>
         </div>
@@ -33,14 +28,10 @@
             @change="loadEvents"
           >
             <option :value="0">
-              General
-            </option>
-            <option
-              v-for="a in athletes"
-              :key="a.id"
-              :value="a.id"
-            >
-               {{ a.username || `Athlete ${a.id}` }}
+General
+</option>
+            <option v-for="a in athletes" :key="a.id" :value="a.id">
+              {{ a.username || `Athlete ${a.id}` }}
             </option>
           </select>
         </div>
@@ -56,11 +47,7 @@
       </div>
 
       <div class="calendar-grid">
-        <div
-          v-for="d in weekDays"
-          :key="d"
-          class="cal-header"
-        >
+        <div v-for="d in weekDays" :key="d" class="cal-header">
           {{ d }}
         </div>
         <div
@@ -69,15 +56,14 @@
           class="cal-cell"
           :class="{
             'other-month': !day.currentMonth,
-            'today': isToday(day),
+            today: isToday(day),
             'has-events': day.events.length > 0,
           }"
         >
-          <span
-          class="day-num"
-          @click="openAddForDate(day.date)"
-        >
-          {{ day.day }}</span>
+          <span class="day-num" @click="openAddForDate(day.date)">
+            >
+            {{ day.day }}</span
+          >
           <div class="day-events">
             <span
               v-for="ev in day.events.slice(0, 3)"
@@ -87,23 +73,16 @@
             >
               {{ ev.title }}
             </span>
-            <span
-              v-if="day.events.length > 3"
-              class="more-events"
+            <span v-if="day.events.length > 3"
+class="more-events"
             >+{{ day.events.length - 3 }}</span>
           </div>
         </div>
       </div>
 
-      <div
-        v-if="fitnessData.length"
-        class="panel fitness-chart-panel"
-      >
+      <div v-if="fitnessData.length" class="panel fitness-chart-panel">
         <h2>📈 Fitness ATL / CTL / TSB</h2>
-        <canvas
-          ref="fitnessCanvas"
-          height="200"
-        />
+        <canvas ref="fitnessCanvas" height="200" />
       </div>
     </div>
 
@@ -126,15 +105,9 @@
       </div>
     </div>
 
-    <div
-      v-if="showForm"
-      class="panel form-overlay"
-    >
-      <h3>{{ editingEvent ? 'Edit Event' : 'New Event' }}</h3>
-      <form
-        class="form-grid"
-        @submit.prevent="saveEvent"
-      >
+    <div v-if="showForm" class="panel form-overlay">
+      <h3>{{ editingEvent ? "Edit Event" : "New Event" }}</h3>
+      <form class="form-grid" @submit.prevent="saveEvent">
         <div class="form-group">
           <label for="event-title">Title *</label>
           <input
@@ -145,12 +118,11 @@
           >
         </div>
         <div class="form-actions">
-          <button
-            type="submit"
-            class="btn btn-primary"
-          >
-            Save
-          </button>
+          <button type="submit"
+class="btn btn-primary"
+>
+Save
+</button>
           <button
             type="button"
             class="btn btn-secondary"
@@ -173,353 +145,562 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api'
-import ConfirmModal from './ConfirmModal.vue'
-import Chart from 'chart.js/auto'
-import type { Athlete, CalendarEvent } from '../types/index'
+import { ref, computed, onMounted, watch } from "vue";
+import { apiGet, apiPost, apiDelete, apiPut } from "../utils/api";
+import ConfirmModal from "./ConfirmModal.vue";
+import Chart from "chart.js/auto";
+import type { Athlete, CalendarEvent } from "../types/index";
 
 interface FitnessPoint {
-  date: string
-  atl: number
-  ctl: number
-  tsb: number
+  date: string;
+  atl: number;
+  ctl: number;
+  tsb: number;
 }
 
 interface EventForm {
-  title: string
-  event_type: CalendarEvent['event_type']
-  date: string
-  duration_minutes?: number
-  description?: string
-  completed: boolean
-  lat: number | null
-  lon: number | null
+  title: string;
+  event_type: CalendarEvent["event_type"];
+  date: string;
+  duration_minutes?: number;
+  description?: string;
+  completed: boolean;
+  lat: number | null;
+  lon: number | null;
 }
 
 interface DayCell {
-  day: number
-  date: string
-  currentMonth: boolean
-  isToday?: boolean
-  events: CalendarEvent[]
+  day: number;
+  date: string;
+  currentMonth: boolean;
+  isToday?: boolean;
+  events: CalendarEvent[];
 }
 
-const athleteId = ref<number | null>(null)
-const athletes = ref<Athlete[]>([])
-const currentYear = ref(new Date().getFullYear())
-const currentMonth = ref(new Date().getMonth())
-const events = ref<CalendarEvent[]>([])
-const fitnessData = ref<FitnessPoint[]>([])
-const fitnessCanvas = ref<HTMLCanvasElement | null>(null)
-let fitnessChart: Chart | null = null
-const showForm = ref(false)
-const showDeleteModal = ref(false)
-const deleteTargetId = ref<number | null>(null)
-const deleteTargetTitle = ref('')
-const editingEvent = ref<CalendarEvent | null>(null)
-const form = ref<EventForm>({ title: '', event_type: 'training', date: '', duration_minutes: 0, description: '', completed: false, lat: null, lon: null })
-const athleteGoals = ref('')
-const calendarError = ref('')
+const athleteId = ref<number | null>(null);
+const athletes = ref<Athlete[]>([]);
+const currentYear = ref(new Date().getFullYear());
+const currentMonth = ref(new Date().getMonth());
+const events = ref<CalendarEvent[]>([]);
+const fitnessData = ref<FitnessPoint[]>([]);
+const fitnessCanvas = ref<HTMLCanvasElement | null>(null);
+let fitnessChart: Chart | null = null;
+const showForm = ref(false);
+const showDeleteModal = ref(false);
+const deleteTargetId = ref<number | null>(null);
+const deleteTargetTitle = ref("");
+const editingEvent = ref<CalendarEvent | null>(null);
+const form = ref<EventForm>({
+  title: "",
+  event_type: "training",
+  date: "",
+  duration_minutes: 0,
+  description: "",
+  completed: false,
+  lat: null,
+  lon: null,
+});
+const athleteGoals = ref("");
+const calendarError = ref("");
 
-const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const monthLabel = computed(() => {
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
-  return `${months[currentMonth.value]} ${currentYear.value}`
-})
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  return `${months[currentMonth.value]} ${currentYear.value}`;
+});
 
 const calendarDays = computed(() => {
-  const firstDay = new Date(currentYear.value, currentMonth.value, 1)
-  let startWeekDay = firstDay.getDay() - 1
-  if (startWeekDay < 0) startWeekDay = 6
-  const daysInMonth = new Date(currentYear.value, currentMonth.value + 1, 0).getDate()
-  const prevMonthDays = new Date(currentYear.value, currentMonth.value, 0).getDate()
-  const result: DayCell[] = []
-  const today = new Date()
-  const todayStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`
+  const firstDay = new Date(currentYear.value, currentMonth.value, 1);
+  let startWeekDay = firstDay.getDay() - 1;
+  if (startWeekDay < 0) startWeekDay = 6;
+  const daysInMonth = new Date(
+    currentYear.value,
+    currentMonth.value + 1,
+    0,
+  ).getDate();
+  const prevMonthDays = new Date(
+    currentYear.value,
+    currentMonth.value,
+    0,
+  ).getDate();
+  const result: DayCell[] = [];
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
   for (let i = 0; i < startWeekDay; i++) {
-    const d = prevMonthDays - startWeekDay + 1 + i
-    const m = currentMonth.value === 0 ? 12 : currentMonth.value
-    const y = currentMonth.value === 0 ? currentYear.value - 1 : currentYear.value
-    result.push({ day: d, date: `${y}-${m.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`, currentMonth: false, events: [] })
+    const d = prevMonthDays - startWeekDay + 1 + i;
+    const m = currentMonth.value === 0 ? 12 : currentMonth.value;
+    const y =
+      currentMonth.value === 0 ? currentYear.value - 1 : currentYear.value;
+    result.push({
+      day: d,
+      date: `${y}-${m.toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`,
+      currentMonth: false,
+      events: [],
+    });
   }
   for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${currentYear.value}-${(currentMonth.value+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`
-    const dayEvents = events.value.filter((e) => e.date === dateStr)
-    result.push({ day: d, date: dateStr, currentMonth: true, events: dayEvents, isToday: dateStr === todayStr })
+    const dateStr = `${currentYear.value}-${(currentMonth.value + 1).toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`;
+    const dayEvents = events.value.filter((e) => e.date === dateStr);
+    result.push({
+      day: d,
+      date: dateStr,
+      currentMonth: true,
+      events: dayEvents,
+      isToday: dateStr === todayStr,
+    });
   }
-  const remaining = 42 - result.length
+  const remaining = 42 - result.length;
   for (let i = 1; i <= remaining; i++) {
-    const m = currentMonth.value === 11 ? 1 : currentMonth.value + 2
-    const y = currentMonth.value === 11 ? currentYear.value + 1 : currentYear.value
-    result.push({ day: i, date: `${y}-${m.toString().padStart(2,'0')}-${i.toString().padStart(2,'0')}`, currentMonth: false, events: [] })
+    const m = currentMonth.value === 11 ? 1 : currentMonth.value + 2;
+    const y =
+      currentMonth.value === 11 ? currentYear.value + 1 : currentYear.value;
+    result.push({
+      day: i,
+      date: `${y}-${m.toString().padStart(2, "0")}-${i.toString().padStart(2, "0")}`,
+      currentMonth: false,
+      events: [],
+    });
   }
-  return result
-})
+  return result;
+});
 
 const selectedDate = computed(() => {
-  const today = new Date()
-  const y = today.getFullYear(), m = today.getMonth(), d = today.getDate()
+  const today = new Date();
+  const y = today.getFullYear(),
+    m = today.getMonth(),
+    d = today.getDate();
   if (currentMonth.value === m && currentYear.value === y) {
-    return today.toLocaleDateString('en-US')
+    return today.toLocaleDateString("en-US");
   }
-  return `${d}/${m+1}/${y}`
-})
+  return `${d}/${m + 1}/${y}`;
+});
 
 const selectedDateEvents = computed(() => {
-  const today = new Date()
-  const y = today.getFullYear(), m = today.getMonth(), d = today.getDate()
+  const today = new Date();
+  const y = today.getFullYear(),
+    m = today.getMonth(),
+    d = today.getDate();
   if (currentMonth.value === m && currentYear.value === y) {
-    const todayStr = `${y}-${(m+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`
-    return events.value.filter((e) => e.date === todayStr).sort((a, b) => a.id - b.id)
+    const todayStr = `${y}-${(m + 1).toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`;
+    return events.value
+      .filter((e) => e.date === todayStr)
+      .sort((a, b) => a.id - b.id);
   }
-  return []
-})
+  return [];
+});
 
 const recommendedObjectives = computed(() => [
-   { label: 'Interval Training', icon: '⚡', hint: 'HIIT session', event_type: 'training', duration: 45, title: 'Interval Training' },
-   { label: 'Long Ride', icon: '🏔️', hint: 'Easy ride', event_type: 'training', duration: 120, title: 'Long Ride' },
-   { label: 'Active Recovery', icon: '🧘', hint: 'Stretching', event_type: 'recovery', duration: 30, title: 'Active Recovery' },
-   { label: 'FTP Test', icon: '🔬', hint: 'Power test', event_type: 'test', duration: 60, title: 'FTP Test' },
-   { label: 'Race', icon: '🏁', hint: 'Competition', event_type: 'race', duration: 180, title: 'Race' },
-   { label: 'Goal Deadline', icon: '🎯', hint: 'Deadline', event_type: 'goal_deadline', duration: 0, title: 'Goal Deadline' },
-  ])
+  {
+    label: "Interval Training",
+    icon: "⚡",
+    hint: "HIIT session",
+    event_type: "training",
+    duration: 45,
+    title: "Interval Training",
+  },
+  {
+    label: "Long Ride",
+    icon: "🏔️",
+    hint: "Easy ride",
+    event_type: "training",
+    duration: 120,
+    title: "Long Ride",
+  },
+  {
+    label: "Active Recovery",
+    icon: "🧘",
+    hint: "Stretching",
+    event_type: "recovery",
+    duration: 30,
+    title: "Active Recovery",
+  },
+  {
+    label: "FTP Test",
+    icon: "🔬",
+    hint: "Power test",
+    event_type: "test",
+    duration: 60,
+    title: "FTP Test",
+  },
+  {
+    label: "Race",
+    icon: "🏁",
+    hint: "Competition",
+    event_type: "race",
+    duration: 180,
+    title: "Race",
+  },
+  {
+    label: "Goal Deadline",
+    icon: "🎯",
+    hint: "Deadline",
+    event_type: "goal_deadline",
+    duration: 0,
+    title: "Goal Deadline",
+  },
+]);
 
 function isToday(day: DayCell) {
-  if (!day.isToday) return false
-  const today = new Date()
-  return day.date === `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`
+  if (!day.isToday) return false;
+  const today = new Date();
+  return (
+    day.date ===
+    `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`
+  );
 }
 
 function prevMonth() {
-  if (currentMonth.value === 0) { currentMonth.value = 11; currentYear.value-- } else { currentMonth.value-- }
-  loadEvents()
+  if (currentMonth.value === 0) {
+    currentMonth.value = 11;
+    currentYear.value--;
+  } else {
+    currentMonth.value--;
+  }
+  loadEvents();
 }
 function nextMonth() {
-  if (currentMonth.value === 11) { currentMonth.value = 0; currentYear.value++ } else { currentMonth.value++ }
-  loadEvents()
+  if (currentMonth.value === 11) {
+    currentMonth.value = 0;
+    currentYear.value++;
+  } else {
+    currentMonth.value++;
+  }
+  loadEvents();
 }
 function goToday() {
-  const today = new Date()
-  currentYear.value = today.getFullYear()
-  currentMonth.value = today.getMonth()
-  loadEvents()
+  const today = new Date();
+  currentYear.value = today.getFullYear();
+  currentMonth.value = today.getMonth();
+  loadEvents();
 }
 
 function eventLabel(type: string) {
-   const map: Record<string, string> = { training: 'Training', race: 'Race', recovery: 'Recovery', goal_deadline: 'Goal', test: 'Test', other: 'Other' }
-   return map[type] || type
- }
+  const map: Record<string, string> = {
+    training: "Training",
+    race: "Race",
+    recovery: "Recovery",
+    goal_deadline: "Goal",
+    test: "Test",
+    other: "Other",
+  };
+  return map[type] || type;
+}
 
 function openAddForDate(date: string) {
-  editingEvent.value = null
-  form.value = { title: '', event_type: 'training', date, duration_minutes: 0, description: '', completed: false, lat: null, lon: null }
-  showForm.value = true
+  editingEvent.value = null;
+  form.value = {
+    title: "",
+    event_type: "training",
+    date,
+    duration_minutes: 0,
+    description: "",
+    completed: false,
+    lat: null,
+    lon: null,
+  };
+  showForm.value = true;
 }
 
 function openEdit(ev: CalendarEvent) {
-  editingEvent.value = ev
+  editingEvent.value = ev;
   form.value = {
     title: ev.title,
     event_type: ev.event_type,
     date: ev.date,
     duration_minutes: ev.duration_minutes,
-    description: ev.description || '',
+    description: ev.description || "",
     completed: ev.completed || false,
     lat: null,
     lon: null,
-  }
-  showForm.value = true
+  };
+  showForm.value = true;
 }
 
-function quickAddFromObjective(obj: { title: string; event_type: string; duration: number; hint: string }) {
-  const today = new Date()
-  const dateStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`
-  editingEvent.value = null
-  form.value = { title: obj.title, event_type: obj.event_type as EventForm['event_type'], date: dateStr, duration_minutes: obj.duration, description: obj.hint, completed: false, lat: null, lon: null }
-  showForm.value = true
+function quickAddFromObjective(obj: {
+  title: string;
+  event_type: string;
+  duration: number;
+  hint: string;
+}) {
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
+  editingEvent.value = null;
+  form.value = {
+    title: obj.title,
+    event_type: obj.event_type as EventForm["event_type"],
+    date: dateStr,
+    duration_minutes: obj.duration,
+    description: obj.hint,
+    completed: false,
+    lat: null,
+    lon: null,
+  };
+  showForm.value = true;
 }
 
 async function loadAthletes() {
   try {
-    const data = await apiGet<{ athletes: Athlete[] }>('/api/v1/athletes')
-    athletes.value = data.athletes || []
+    const data = await apiGet<{ athletes: Athlete[] }>("/api/v1/athletes");
+    athletes.value = data.athletes || [];
     if (athletes.value.length > 0 && !athleteId.value) {
-      const firstId = athletes.value[0].id
+      const firstId = athletes.value[0].id;
       if (firstId !== undefined) {
-        athleteId.value = firstId
+        athleteId.value = firstId;
       }
     }
   } catch (e) {
-    athletes.value = []
+    athletes.value = [];
   }
 }
 
 async function loadEvents() {
-  if (!athleteId.value) { events.value = []; fitnessData.value = []; return }
+  if (!athleteId.value) {
+    events.value = [];
+    fitnessData.value = [];
+    return;
+  }
   try {
     const [eventsData, fitness] = await Promise.all([
-      apiGet<{ events: CalendarEvent[] }>('/api/v1/calendar/events', { athlete_id: String(athleteId.value), year: String(currentYear.value), month: String(currentMonth.value + 1) }),
-      apiGet<{ training_loads: FitnessPoint[] }>('/api/v1/training/load', { athlete_id: String(athleteId.value), days: '30' }).catch(() => ({ training_loads: [] })),
-    ])
-    events.value = eventsData.events || []
-    fitnessData.value = fitness.training_loads || []
+      apiGet<{ events: CalendarEvent[] }>("/api/v1/calendar/events", {
+        athlete_id: String(athleteId.value),
+        year: String(currentYear.value),
+        month: String(currentMonth.value + 1),
+      }),
+      apiGet<{ training_loads: FitnessPoint[] }>("/api/v1/training/load", {
+        athlete_id: String(athleteId.value),
+        days: "30",
+      }).catch(() => ({ training_loads: [] })),
+    ]);
+    events.value = eventsData.events || [];
+    fitnessData.value = fitness.training_loads || [];
   } catch (e) {
-    events.value = []
-    fitnessData.value = []
+    events.value = [];
+    fitnessData.value = [];
   }
 }
 
 function renderFitnessChart() {
-  if (!fitnessCanvas.value || !fitnessData.value.length) return
+  if (!fitnessCanvas.value || !fitnessData.value.length) return;
   const labels = fitnessData.value.map((d) => {
-    const dt = new Date(d.date)
-    return `${dt.getDate()}/${dt.getMonth() + 1}`
-  })
-  const atl = fitnessData.value.map((d) => d.atl)
-  const ctl = fitnessData.value.map((d) => d.ctl)
-  const tsb = fitnessData.value.map((d) => d.tsb)
-  if (fitnessChart) fitnessChart.destroy()
-  const ctx = fitnessCanvas.value.getContext('2d')
-  if (!ctx) return
+    const dt = new Date(d.date);
+    return `${dt.getDate()}/${dt.getMonth() + 1}`;
+  });
+  const atl = fitnessData.value.map((d) => d.atl);
+  const ctl = fitnessData.value.map((d) => d.ctl);
+  const tsb = fitnessData.value.map((d) => d.tsb);
+  if (fitnessChart) fitnessChart.destroy();
+  const ctx = fitnessCanvas.value.getContext("2d");
+  if (!ctx) return;
   fitnessChart = new Chart(ctx, {
-    type: 'line',
+    type: "line",
     data: {
       labels,
       datasets: [
-        { label: 'ATL (Fatica)', data: atl, borderColor: '#ff6b35', backgroundColor: 'rgba(255,107,53,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
-        { label: 'CTL (Fitness)', data: ctl, borderColor: '#0088ff', backgroundColor: 'rgba(0,136,255,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
-        { label: 'TSB (Forma)', data: tsb, borderColor: '#00ffcc', backgroundColor: 'rgba(0,255,204,0.1)', fill: true, tension: 0.3, pointRadius: 3 },
+        {
+          label: "ATL (Fatica)",
+          data: atl,
+          borderColor: "#ff6b35",
+          backgroundColor: "rgba(255,107,53,0.1)",
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+        },
+        {
+          label: "CTL (Fitness)",
+          data: ctl,
+          borderColor: "#0088ff",
+          backgroundColor: "rgba(0,136,255,0.1)",
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+        },
+        {
+          label: "TSB (Forma)",
+          data: tsb,
+          borderColor: "#00ffcc",
+          backgroundColor: "rgba(0,255,204,0.1)",
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+        },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
+      interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { labels: { color: '#b0b5c1', usePointStyle: true, padding: 16 } },
+        legend: {
+          labels: { color: "#b0b5c1", usePointStyle: true, padding: 16 },
+        },
       },
       scales: {
-        x: { ticks: { color: '#6e7687', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y: { ticks: { color: '#6e7687' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+        x: {
+          ticks: { color: "#6e7687", maxRotation: 0, maxTicksLimit: 10 },
+          grid: { color: "rgba(255,255,255,0.04)" },
+        },
+        y: {
+          ticks: { color: "#6e7687" },
+          grid: { color: "rgba(255,255,255,0.06)" },
+        },
       },
     },
-  })
+  });
 }
 
 async function loadGoals() {
-  if (!athleteId.value) { athleteGoals.value = ''; return }
+  if (!athleteId.value) {
+    athleteGoals.value = "";
+    return;
+  }
   try {
-    const data = await apiGet<{ goals?: string }>('/api/v1/athletes/' + String(athleteId.value))
-    athleteGoals.value = data.goals || ''
+    const data = await apiGet<{ goals?: string }>(
+      "/api/v1/athletes/" + String(athleteId.value),
+    );
+    athleteGoals.value = data.goals || "";
   } catch (e) {
-    athleteGoals.value = ''
+    athleteGoals.value = "";
   }
 }
 
 async function saveEvent() {
   try {
-    const payload = { ...form.value, athlete_id: athleteId.value }
+    const payload = { ...form.value, athlete_id: athleteId.value };
     if (editingEvent.value) {
-      await apiPut(`/api/v1/calendar/events/${editingEvent.value.id}`, payload)
+      await apiPut(`/api/v1/calendar/events/${editingEvent.value.id}`, payload);
     } else {
-      await apiPost('/api/v1/calendar/events', payload)
+      await apiPost("/api/v1/calendar/events", payload);
     }
-    showForm.value = false
-    editingEvent.value = null
-    loadEvents()
-    loadGoals()
+    showForm.value = false;
+    editingEvent.value = null;
+    loadEvents();
+    loadGoals();
   } catch (e) {
-    calendarError.value = (e as Error).message || 'Error saving'
+    calendarError.value = (e as Error).message || "Error saving";
   }
 }
 
 async function handleDelete() {
-  if (!deleteTargetId.value) return
+  if (!deleteTargetId.value) return;
   try {
-    await apiDelete(`/api/v1/calendar/events/${deleteTargetId.value}`)
-    loadEvents()
+    await apiDelete(`/api/v1/calendar/events/${deleteTargetId.value}`);
+    loadEvents();
   } catch (e) {
-    calendarError.value = (e as Error).message || 'Error deleting'
+    calendarError.value = (e as Error).message || "Error deleting";
   } finally {
-    deleteTargetId.value = null
-    deleteTargetTitle.value = ''
+    deleteTargetId.value = null;
+    deleteTargetTitle.value = "";
   }
 }
 
 function askDeleteEvent(id: number) {
-  const ev = events.value.find((e) => e.id === id)
-  deleteTargetId.value = id
-  deleteTargetTitle.value = ev ? ev.title : ''
-  showDeleteModal.value = true
+  const ev = events.value.find((e) => e.id === id);
+  deleteTargetId.value = id;
+  deleteTargetTitle.value = ev ? ev.title : "";
+  showDeleteModal.value = true;
 }
 
 async function toggleComplete(ev: CalendarEvent) {
   try {
-    await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {})
-    loadEvents()
+    await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {});
+    loadEvents();
   } catch (e) {
-    calendarError.value = (e as Error).message || 'Error completing'
+    calendarError.value = (e as Error).message || "Error completing";
   }
 }
 
 async function fetchWeatherForecast() {
   if (!form.value.lat || !form.value.lon || !form.value.date) {
-    weatherForecast.value = null
-    return
+    weatherForecast.value = null;
+    return;
   }
   try {
-    weatherForecast.value = await apiGet('/api/v1/weather', { lat: String(form.value.lat), lon: String(form.value.lon), date: form.value.date })
+    weatherForecast.value = await apiGet("/api/v1/weather", {
+      lat: String(form.value.lat),
+      lon: String(form.value.lon),
+      date: form.value.date,
+    });
   } catch (e) {
-    weatherForecast.value = null
+    weatherForecast.value = null;
   }
 }
 
-function weatherScoreClass(ev: CalendarEvent & { weather_temp?: number; weather_humidity?: number }) {
-  if (!ev.weather_temp || !ev.weather_humidity) return 5
-  const score = Math.round((ev.weather_temp >= 5 && ev.weather_temp <= 30 && ev.weather_humidity < 70) ? 8 : (ev.weather_temp >= 0 && ev.weather_temp <= 35 ? 6 : 3))
-  return score
+function weatherScoreClass(
+  ev: CalendarEvent & { weather_temp?: number; weather_humidity?: number },
+) {
+  if (!ev.weather_temp || !ev.weather_humidity) return 5;
+  const score = Math.round(
+    ev.weather_temp >= 5 && ev.weather_temp <= 30 && ev.weather_humidity < 70
+      ? 8
+      : ev.weather_temp >= 0 && ev.weather_temp <= 35
+        ? 6
+        : 3,
+  );
+  return score;
 }
 
 const weatherScore = computed(() => {
-  if (!weatherForecast.value) return 5
-  const s = weatherForecast.value.score || 5
-  return s
-})
+  if (!weatherForecast.value) return 5;
+  const s = weatherForecast.value.score || 5;
+  return s;
+});
 
-const weatherForecast = ref<{ score?: number; description?: string } | null>(null)
+const weatherForecast = ref<{ score?: number; description?: string } | null>(
+  null,
+);
 
-let initialized = false
+let initialized = false;
 
 onMounted(async () => {
-  await loadAthletes()
-  initialized = true
-  await loadEvents()
-  await loadGoals()
-  renderFitnessChart()
-})
+  await loadAthletes();
+  initialized = true;
+  await loadEvents();
+  await loadGoals();
+  renderFitnessChart();
+});
 
 watch(athleteId, () => {
-  if (!initialized) return
-  loadEvents()
-  loadGoals()
-})
+  if (!initialized) return;
+  loadEvents();
+  loadGoals();
+});
 
-watch(fitnessData, () => {
-  renderFitnessChart()
-}, { deep: true })
+watch(
+  fitnessData,
+  () => {
+    renderFitnessChart();
+  },
+  { deep: true },
+);
 
 watch([currentYear, currentMonth], () => {
-  if (!initialized) return
-  loadEvents()
-})
+  if (!initialized) return;
+  loadEvents();
+});
 
-watch(form, () => {
-  if (form.value.lat && form.value.lon && form.value.date) {
-    fetchWeatherForecast()
-  }
-}, { deep: true })
+watch(
+  form,
+  () => {
+    if (form.value.lat && form.value.lon && form.value.date) {
+      fetchWeatherForecast();
+    }
+  },
+  { deep: true },
+);
 </script>
 
 <style scoped>
@@ -530,11 +711,26 @@ watch(form, () => {
   font-size: 0.75em;
   margin-left: 6px;
 }
-.weather-score-0 { background: #fee2e2; color: #991b1b; }
-.weather-score-1 { background: #fef3c7; color: #92400e; }
-.weather-score-2 { background: #dbeafe; color: #1e40af; }
-.weather-score-3 { background: #dcfce7; color: #166534; }
-.weather-score-4 { background: #dcfce7; color: #166534; }
+.weather-score-0 {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.weather-score-1 {
+  background: #fef3c7;
+  color: #92400e;
+}
+.weather-score-2 {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.weather-score-3 {
+  background: #dcfce7;
+  color: #166534;
+}
+.weather-score-4 {
+  background: #dcfce7;
+  color: #166534;
+}
 
 .weather-preview {
   grid-column: span 2;
@@ -551,9 +747,23 @@ watch(form, () => {
 .weather-score {
   font-weight: 600;
 }
-.score-8, .score-9, .score-10 { color: #166534; }
-.score-5, .score-6, .score-7 { color: #92400e; }
-.score-0, .score-1, .score-2, .score-3, .score-4 { color: #991b1b; }
+.score-8,
+.score-9,
+.score-10 {
+  color: #166534;
+}
+.score-5,
+.score-6,
+.score-7 {
+  color: #92400e;
+}
+.score-0,
+.score-1,
+.score-2,
+.score-3,
+.score-4 {
+  color: #991b1b;
+}
 
 .fitness-chart-panel {
   position: relative;

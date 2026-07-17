@@ -1,36 +1,77 @@
 <template>
-  <div class="stats" aria-label="General Statistics">
-    <div class="stat-card" role="status">
+  <div class="stats"
+aria-label="General Statistics">
+    <div
+      v-stagger
+      class="stat-card"
+      role="status"
+      :style="{ '--stagger-index': 0 }"
+    >
+      <span class="stat-icon"
+aria-hidden="true">🚴</span>
       <div class="stat-value">
         {{ animatedRides }}
       </div>
       <div class="stat-label">Rides</div>
     </div>
-    <div class="stat-card" role="status">
+    <div
+      v-stagger
+      class="stat-card"
+      role="status"
+      :style="{ '--stagger-index': 1 }"
+    >
+      <span class="stat-icon"
+aria-hidden="true">📏</span>
       <div class="stat-value">{{ animatedDistance }} km</div>
       <div class="stat-label">Total Distance</div>
     </div>
-    <div class="stat-card" role="status">
+    <div
+      v-stagger
+      class="stat-card"
+      role="status"
+      :style="{ '--stagger-index': 2 }"
+    >
+      <span class="stat-icon"
+aria-hidden="true">🔥</span>
       <div class="stat-value">
         {{ animatedCalories }}
       </div>
       <div class="stat-label">Calories</div>
     </div>
-    <div class="stat-card" role="status">
+    <div
+      v-stagger
+      class="stat-card"
+      role="status"
+      :style="{ '--stagger-index': 3 }"
+    >
+      <span class="stat-icon"
+aria-hidden="true">⚡</span>
       <div class="stat-value">{{ animatedSpeed }} km/h</div>
       <div class="stat-label">Avg Speed</div>
     </div>
-    <div class="stat-card" role="status">
+    <div
+      v-stagger
+      class="stat-card"
+      role="status"
+      :style="{ '--stagger-index': 4 }"
+    >
+      <span class="stat-icon"
+aria-hidden="true">⏱️</span>
       <div class="stat-value">{{ animatedHours }} h</div>
       <div class="stat-label">Total Hours</div>
     </div>
     <button
+      v-stagger
       class="stat-card stat-refresh"
+      :style="{ '--stagger-index': 5 }"
       :disabled="loading"
       :aria-label="loading ? 'Updating in progress' : 'Refresh statistics'"
       @click="$emit('refresh')"
     >
-      <span :class="{ spinner: loading }">{{ loading ? "" : "🔄" }}</span>
+      <span class="stat-icon"
+:class="{ spin: loading }">{{
+        loading ? "" : "🔄"
+      }}</span>
       <div class="stat-label">
         {{ loading ? "Updating..." : "Refresh" }}
       </div>
@@ -39,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, Directive } from "vue";
 
 const props = defineProps({
   stats: { type: Object, default: null },
@@ -47,6 +88,26 @@ const props = defineProps({
 });
 
 defineEmits(["refresh"]);
+
+const vStagger: Directive<HTMLElement, boolean> = {
+  mounted(el) {
+    let reduceMotion = false;
+    try {
+      reduceMotion =
+        typeof window.matchMedia === "function" &&
+        !!window.matchMedia("(prefers-reduced-motion: reduce)")?.matches;
+    } catch {
+      reduceMotion = false;
+    }
+    if (reduceMotion) return;
+    el.classList.add("stagger-item");
+    el.addEventListener(
+      "animationend",
+      () => el.classList.remove("stagger-item"),
+      { once: true },
+    );
+  },
+};
 
 const animatedRides = ref(0);
 const animatedDistance = ref(0);
@@ -57,18 +118,23 @@ const animatedHours = ref(0);
 function animate(to: number, from = 0, duration = 800) {
   return new Promise<number>((resolve) => {
     const start = performance.now();
+    const raf =
+      typeof requestAnimationFrame !== "undefined"
+        ? requestAnimationFrame
+        : (cb: FrameRequestCallback) =>
+            setTimeout(() => cb(performance.now()), 0);
     const step = (now: number) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       const value = from + (to - from) * eased;
       if (progress < 1) {
-        requestAnimationFrame(step);
+        raf(step);
       } else {
         resolve(value);
       }
     };
-    requestAnimationFrame(step);
+    raf(step);
   });
 }
 
@@ -83,10 +149,16 @@ watch(
     const hours = (Number(newStats.duration_minutes) || 0) / 60;
 
     animate(rides).then((v) => (animatedRides.value = Math.round(v)));
-    animate(dist).then((v) => (animatedDistance.value = parseFloat(v.toFixed(1))));
+    animate(dist).then(
+      (v) => (animatedDistance.value = parseFloat(v.toFixed(1))),
+    );
     animate(cals).then((v) => (animatedCalories.value = Math.round(v)));
-    animate(speed).then((v) => (animatedSpeed.value = parseFloat(v.toFixed(1))));
-    animate(hours).then((v) => (animatedHours.value = parseFloat(v.toFixed(1))));
+    animate(speed).then(
+      (v) => (animatedSpeed.value = parseFloat(v.toFixed(1))),
+    );
+    animate(hours).then(
+      (v) => (animatedHours.value = parseFloat(v.toFixed(1))),
+    );
   },
   { immediate: true },
 );
@@ -113,6 +185,39 @@ watch(
   overflow: hidden;
 }
 
+/* Gradient border via mask */
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  padding: 1px;
+  background: var(--gradient-border);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--transition);
+  pointer-events: none;
+}
+
+.stat-icon {
+  font-size: 1.4rem;
+  display: block;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 0 6px rgba(0, 255, 204, 0.35));
+  transition: transform var(--transition);
+}
+
+.stat-card:hover .stat-icon {
+  transform: scale(1.15) translateY(-2px);
+}
+
 .stat-card::after {
   content: "";
   position: absolute;
@@ -127,8 +232,13 @@ watch(
 
 .stat-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lg), var(--glow-card);
   border-color: var(--border-light);
+}
+
+.stat-card:hover::before {
+  opacity: 0.7;
+  animation: rotateGradient 6s linear infinite;
 }
 
 .stat-card:hover::after {
@@ -175,5 +285,15 @@ watch(
 .stat-refresh:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.stat-refresh .stat-icon.spin {
+  animation: statSpin 0.8s linear infinite;
+}
+
+@keyframes statSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

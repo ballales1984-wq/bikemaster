@@ -78,6 +78,7 @@ describe("CalendarPanel", () => {
       .mockResolvedValueOnce(mockGoals);
 
     const wrapper = mount(CalendarPanel);
+    expect(wrapper.vm).toBeDefined();
     await flush();
     await flush();
     await flush();
@@ -282,9 +283,7 @@ describe("CalendarPanel", () => {
 
     const calls = apiGet.mock.calls.filter(
       (c) =>
-        typeof c[0] === "string" &&
-        c[0].startsWith("/api/v1/calendar/events") &&
-        c[0].includes("athlete_id=2"),
+        typeof c[1] === "object" && c[1] !== null && c[1].athlete_id === "2",
     );
     expect(calls.length).toBeGreaterThan(0);
   });

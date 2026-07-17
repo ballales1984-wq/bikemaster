@@ -8,6 +8,11 @@ Or directly:
 
 The hub uses PostgreSQL (async_db) as its primary store and exposes only
 multi-tenant endpoints: auth, admin, and knowledge base.
+
+Note:
+    DATABASE_URL is REQUIRED for hub mode. Set it in .env.hub or the
+    environment before starting the hub. Without it the app starts but
+    database-dependent endpoints will fail.
 """
 
 from __future__ import annotations
