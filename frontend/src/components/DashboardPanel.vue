@@ -19,6 +19,26 @@
       </button>
     </div>
 
+    <!-- Quick actions: jump straight into the generic tracking, the unified
+         map, imports, or the AI coach from the dashboard. -->
+    <div class="quick-actions">
+      <button class="qa-btn qa-primary" @click="go('/track')">
+        <span class="qa-icon">📍</span> Traccia
+      </button>
+      <button class="qa-btn" @click="go('/map')">
+        <span class="qa-icon">🗺️</span> Mappa
+      </button>
+      <button class="qa-btn" @click="go('/import')">
+        <span class="qa-icon">📥</span> Importa
+      </button>
+      <button class="qa-btn" @click="go('/coach')">
+        <span class="qa-icon">🧠</span> AI Coach
+      </button>
+      <button class="qa-btn" @click="go('/athlete')">
+        <span class="qa-icon">👤</span> Profilo
+      </button>
+    </div>
+
     <!-- Loading skeleton -->
     <div v-if="loading && !dashboard.summary" class="skeleton-grid">
       <div v-for="i in 4"
@@ -263,10 +283,16 @@ class="bar-fill tsb" :style="tsbStyle" />
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { apiGet } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
 import AthleteStatePanel from "./AthleteStatePanel.vue";
 import ZonesPanel from "./ZonesPanel.vue";
+
+const router = useRouter();
+function go(path) {
+  router.push(path);
+}
 
 const auth = useAuthStore();
 const dashboard = ref({});
@@ -675,6 +701,47 @@ onMounted(() =>
   border-radius: 3px;
   overflow: hidden;
   position: relative;
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 4px 0 18px;
+}
+
+.qa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.qa-btn:hover {
+  background: var(--border);
+}
+
+.qa-primary {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-color: var(--accent);
+}
+
+.qa-primary:hover {
+  opacity: 0.9;
+  background: var(--accent);
+}
+
+.qa-icon {
+  font-size: 1.1rem;
 }
 
 .bar-fill {
