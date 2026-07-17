@@ -16,6 +16,12 @@ const routes = [
     component: { template: "<div />" },
   },
   {
+    path: "/welcome",
+    name: "welcome",
+    component: () => import("../views/WelcomePage.vue"),
+    meta: { title: "Benvenuto" },
+  },
+  {
     path: "/rides",
     name: "rides",
     component: () => import("../views/RidesView.vue"),

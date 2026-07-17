@@ -126,7 +126,9 @@ const { locale, setLocale } = useI18n();
 const loggedIn = computed(() => auth.isLoggedIn);
 const isAdmin = computed(() => auth.isAdmin);
 const isPublicPage = computed(() =>
-  ["/privacy", "/terms", "/cookies", "/about", "/contact"].includes(route.path),
+  ["/privacy", "/terms", "/cookies", "/about", "/contact", "/welcome"].includes(
+    route.path,
+  ),
 );
 const showHeader = computed(() => loggedIn.value || isPublicPage.value);
 const year = new Date().getFullYear();
