@@ -2,6 +2,34 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
 
+import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join, normalize } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Middleware che serve i file .wasm grezzi (es. public/sqlite3/sqlite3.wasm)
+// con il MIME corretto, bypassando la pipeline di transform di Vite che
+// altrimenti va in hang sulle richieste dirette al .wasm in dev.
+function wasmStaticMiddleware() {
+  return async (req, res, next) => {
+    const url = (req.url || "").split("?")[0];
+    if (!url.endsWith(".wasm")) return next();
+    const candidate = join(__dirname, "public", normalize(url));
+    if (!existsSync(candidate)) return next();
+    try {
+      const buf = await readFile(candidate);
+      res.setHeader("Content-Type", "application/wasm");
+      res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.end(buf);
+    } catch {
+      next();
+    }
+  };
+}
+
 const env =
   (typeof import.meta !== "undefined" && import.meta.env) || {};
 const isTauri =
@@ -123,6 +151,9 @@ export default defineConfig({
       "/static": "http://localhost:8000",
       "/assets": "http://localhost:8000",
     },
+    configureServer: (server) => {
+      server.middlewares.use(wasmStaticMiddleware());
+    },
   },
   preview: {
     headers: {
@@ -130,5 +161,8 @@ export default defineConfig({
       "Cross-Origin-Opener-Policy": "same-origin",
     },
     proxy: {},
+    configurePreviewServer: (server) => {
+      server.middlewares.use(wasmStaticMiddleware());
+    },
   },
 });
