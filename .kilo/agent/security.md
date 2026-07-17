@@ -1,5 +1,5 @@
 ---
-description: Agente di sicurezza per BikeMaster — audit, segreti, dipendenze vulnerabili, auth/OAuth, OWASP e hardening di backend FastAPI e frontend Vue 3. Usalo per revisioni e hardening security.
+description: Agente di sicurezza applicazione e reti per BikeMaster — audit, segreti, dipendenze vulnerabili, auth/OAuth, OWASP, hardening backend/frontend, rete, infrastruttura e deploy. Usalo per revisioni e hardening security.
 mode: all
 steps: 25
 color: "#E74C3C"

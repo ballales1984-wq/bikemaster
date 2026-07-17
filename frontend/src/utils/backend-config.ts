@@ -85,7 +85,8 @@ export function resolveApiBase(): string {
 
   const envBase =
     typeof import.meta !== "undefined"
-      ? (import.meta as ImportMeta).env?.VITE_API_BASE
+      ? // @ts-ignore Vite injects VITE_* env vars at build time
+        import.meta.env.VITE_API_BASE
       : undefined;
   if (envBase && typeof envBase === "string" && envBase.trim()) {
     return normalizeBase(envBase);
@@ -100,7 +101,8 @@ export function resolveHubApiBase(): string {
 
   const envHub =
     typeof import.meta !== "undefined"
-      ? (import.meta as ImportMeta).env?.VITE_HUB_API_BASE
+      ? // @ts-ignore Vite injects VITE_* env vars at build time
+        import.meta.env.VITE_HUB_API_BASE
       : undefined;
   if (envHub && typeof envHub === "string" && envHub.trim()) {
     return normalizeBase(envHub);

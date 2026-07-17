@@ -37,8 +37,7 @@ class="login-tabs" role="tablist" aria-label="Login modes">
       :aria-labelledby="mode === 'login' ? 'tab-login' : 'tab-register'"
       @submit.prevent="submit"
     >
-      <div class="form-group">
-        <label for="username">{{ t("auth.username") }}</label>
+      <div class="form-group" :class="{ 'has-error': usernameError }">
         <input
           id="username"
           v-model="form.username"
@@ -54,6 +53,7 @@ class="login-tabs" role="tablist" aria-label="Login modes">
             valid: form.username.length >= 3 && !usernameError,
           }"
         />
+        <label for="username" class="floating-label">{{ t("auth.username") }}</label>
         <span
           v-if="usernameError"
           id="username-error"
@@ -63,8 +63,7 @@ class="login-tabs" role="tablist" aria-label="Login modes">
           >{{ usernameError }}</span
         >
       </div>
-      <div class="form-group">
-        <label for="password">{{ t("auth.password") }}</label>
+      <div class="form-group" :class="{ 'has-error': passwordError }">
         <div class="password-wrapper">
           <input
             id="password"
@@ -81,6 +80,7 @@ class="login-tabs" role="tablist" aria-label="Login modes">
               valid: form.password.length >= 6 && !passwordError,
             }"
           />
+          <label for="password" class="floating-label">{{ t("auth.password") }}</label>
           <button
             type="button"
             class="password-toggle"
@@ -102,17 +102,23 @@ class="login-tabs" role="tablist" aria-label="Login modes">
       </div>
       <button
         type="submit"
-        class="btn btn-primary"
+        class="btn btn-primary login-submit"
+        :class="{ shake: shakeState }"
         :disabled="loading || !isFormValid"
         :aria-busy="loading"
       >
-        {{
+        <span
+          v-if="loading"
+          class="btn-spinner"
+          aria-hidden="true"
+        />
+        <span class="btn-label">{{
           loading
-            ? "🔄 " + t("common.loading")
+            ? t("common.loading")
             : mode === "login"
               ? t("auth.login")
               : t("auth.register")
-        }}
+        }}</span>
       </button>
     </form>
 
@@ -166,6 +172,7 @@ const emit = defineEmits(["login", "register", "google-login", "error"]);
 const mode = ref("login");
 const loading = ref(false);
 const showPassword = ref(false);
+const shakeState = ref(false);
 const form = ref({ username: "", password: "" });
 const usernameError = ref("");
 const passwordError = ref("");
@@ -210,13 +217,24 @@ function handleTouch(e) {
 
 async function submit() {
   validate();
-  if (!isFormValid.value) return;
+  if (!isFormValid.value) {
+    triggerShake();
+    return;
+  }
   loading.value = true;
   try {
     emit(mode.value, { ...form.value });
   } finally {
     loading.value = false;
   }
+}
+
+function triggerShake() {
+  shakeState.value = false;
+  requestAnimationFrame(() => {
+    shakeState.value = true;
+    setTimeout(() => (shakeState.value = false), 450);
+  });
 }
 
 const isCapacitorApp = typeof window.Capacitor !== "undefined";
@@ -267,6 +285,7 @@ async function loginWithGoogle() {
 
 <style scoped>
 .login-panel {
+  position: relative;
   max-width: 420px;
   margin: 40px auto;
   background: var(--bg-secondary);
@@ -276,6 +295,112 @@ async function loginWithGoogle() {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.login-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  padding: 1px;
+  background: var(--gradient-border);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0.5;
+  animation: rotateGradient 6s linear infinite;
+  pointer-events: none;
+}
+.login-panel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 25%;
+  width: 50%;
+  height: 2px;
+  background: var(--accent-gradient);
+  box-shadow: var(--glow-soft);
+  opacity: 0.7;
+  pointer-events: none;
+}
+.login-panel h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 1.4rem;
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.form-group {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.form-group input {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  font-size: 1rem;
+  transition: var(--transition);
+  font-family: inherit;
+}
+.form-group .floating-label {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  pointer-events: none;
+  transition: all var(--transition-fast);
+  background: linear-gradient(var(--bg-secondary), var(--bg-secondary));
+  padding: 0 4px;
+}
+.password-wrapper input:focus + .floating-label,
+.password-wrapper input:not(:placeholder-shown) + .floating-label,
+.form-group input:focus + .floating-label,
+.form-group input:not(:placeholder-shown) + .floating-label {
+  top: -8px;
+  font-size: 0.72rem;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.1), var(--glow-accent);
+}
+.login-submit.shake {
+  animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+.btn-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: btnSpin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes btnSpin {
+  to { transform: rotate(360deg); }
 }
 
 .login-tabs {

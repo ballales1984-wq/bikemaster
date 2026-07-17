@@ -1,3 +1,4 @@
+/* ===== Buttons ===== */
 .btn {
   background: var(--accent-gradient);
   color: #000;
@@ -10,6 +11,30 @@
   letter-spacing: 0.5px;
   transition: var(--transition);
   box-shadow: 0 4px 10px rgba(0, 255, 204, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+/* CSS-only ripple effect */
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255,255,255,0.35) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.btn:active::after {
+  opacity: 1;
+  transition: opacity 0s;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .btn:hover {
@@ -19,7 +44,7 @@
 }
 
 .btn:active { transform: translateY(0); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); transform: none; }
 
 .btn-primary {
   background: var(--accent-gradient);
@@ -50,6 +75,7 @@
   font-size: 1.1rem;
 }
 
+/* ===== Panels ===== */
 .panel {
   background: var(--bg-secondary);
   backdrop-filter: blur(var(--glass-blur));
@@ -60,10 +86,58 @@
   margin-bottom: 24px;
   box-shadow: var(--shadow-sm);
   transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated shimmer border on hover — sweeping glow line */
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 2px;
+  background: var(--accent-gradient);
+  box-shadow: var(--glow-soft);
+  transition: left 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+  pointer-events: none;
+}
+
+.panel:hover::before {
+  left: 100%;
+}
+
+/* Continuous gradient sweep highlight on hover */
+.panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 30%, rgba(0, 255, 204, 0.18), transparent 70%);
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--transition);
+  pointer-events: none;
+}
+
+.panel:hover::after {
+  opacity: 1;
+  animation: panelSweep 2.5s linear infinite;
+}
+
+@keyframes panelSweep {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 300% 300%; }
 }
 
 .panel:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lg), var(--glow-card);
   border-color: var(--border-light);
 }
 
@@ -83,6 +157,7 @@
   font-size: 1.05rem;
 }
 
+/* ===== Forms ===== */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -113,7 +188,7 @@
   outline: none;
   border-color: var(--accent);
   background: rgba(0,0,0,0.4);
-  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.1), var(--glow-accent);
 }
 
 .form-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 15px; }
@@ -123,6 +198,7 @@ textarea {
   min-height: 60px;
 }
 
+/* ===== Navigation tabs ===== */
 .tabs {
   position: relative;
   display: flex;
@@ -180,11 +256,18 @@ textarea {
   white-space: nowrap;
 }
 
+.tab:hover {
+  background: rgba(0, 255, 204, 0.06);
+  border-color: rgba(0, 255, 204, 0.2);
+  color: var(--text-primary);
+}
+
 .tab.active {
   background: var(--accent-gradient);
   color: #000;
   font-weight: bold;
   position: relative;
+  box-shadow: var(--glow-accent), var(--glow-inset);
 }
 
 .tab.active::after {
@@ -197,6 +280,8 @@ textarea {
   height: 4px;
   background: var(--accent);
   border-radius: 2px;
+  box-shadow: var(--glow-soft);
+  animation: pulseGlow 2s ease-in-out infinite;
 }
 
 .tab-badge {
@@ -214,6 +299,7 @@ textarea {
   margin-left: 4px;
 }
 
+/* ===== Stat cards ===== */
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -239,23 +325,30 @@ textarea {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 2px;
   background: var(--accent-gradient);
+  box-shadow: var(--glow-soft);
   opacity: 0;
   transition: var(--transition);
 }
 
 .stat-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--border-light);
+  box-shadow: var(--shadow-glow), var(--glow-card);
+  border-color: rgba(0, 255, 204, 0.25);
 }
 
 .stat-card:hover::before { opacity: 1; }
+
+/* Glowing stat value on hover */
+.stat-card:hover .stat-value {
+  text-shadow: var(--glow-text);
+}
 
 .stat-value {
   font-size: 2rem;
   background: var(--accent-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
   font-weight: 700;
   font-family: 'Outfit', sans-serif;
 }
@@ -269,6 +362,7 @@ textarea {
   letter-spacing: 1px;
 }
 
+/* ===== Rides list ===== */
 .rides-list { display: flex; flex-direction: column; gap: 10px; }
 
 .ride-item {
@@ -282,13 +376,35 @@ textarea {
   cursor: pointer;
   transition: var(--transition);
   gap: 10px;
+  position: relative;
+}
+
+.ride-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent-gradient);
+  border-radius: 3px 0 0 3px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .ride-item:hover {
-  border-color: var(--accent);
+  border-color: rgba(0, 255, 204, 0.25);
   transform: translateX(4px);
-  box-shadow: 0 4px 16px rgba(0, 255, 204, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 255, 204, 0.08), var(--glow-card);
   background: var(--bg-secondary);
+}
+
+.ride-item:hover .ride-title {
+  text-shadow: var(--glow-text);
+}
+
+.ride-item:hover::before {
+  opacity: 1;
 }
 
 .ride-left {
@@ -364,6 +480,7 @@ textarea {
   background: rgba(255, 51, 102, 0.1);
 }
 
+/* ===== Pagination ===== */
 .pagination {
   display: flex;
   align-items: center;
@@ -377,6 +494,7 @@ textarea {
   font-size: 0.85rem;
 }
 
+/* ===== Detail panel ===== */
 .detail-header {
   display: flex;
   align-items: center;
@@ -396,6 +514,7 @@ textarea {
   cursor: pointer;
   font-size: 1.1rem;
   padding: 4px;
+  transition: color 0.2s;
 }
 
 .close-btn:hover {
@@ -436,6 +555,7 @@ textarea {
   margin-top: 2px;
 }
 
+/* ===== Analysis ===== */
 .analysis-section {
   margin-bottom: 16px;
 }
@@ -502,6 +622,7 @@ textarea {
   font-size: 0.85rem;
 }
 
+/* ===== Badges ===== */
 .badge {
   padding: 2px 8px;
   border-radius: 10px;
@@ -517,6 +638,7 @@ textarea {
 .badge-test { background: #f39c12; }
 .badge-other { background: #95a5a6; }
 
+/* ===== Calendar ===== */
 .calendar-controls {
   display: flex;
   justify-content: space-between;
@@ -708,6 +830,7 @@ textarea {
   flex-shrink: 0;
 }
 
+/* ===== Toasts ===== */
 #toast-container {
   position: fixed;
   top: 20px;
@@ -721,6 +844,8 @@ textarea {
 
 .toast {
   background: var(--bg-secondary);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--text-primary);
   padding: 14px 20px;
   border-radius: var(--radius-sm);
@@ -757,6 +882,7 @@ textarea {
   animation: slideOut 0.3s ease forwards;
 }
 
+/* ===== Progress ===== */
 .progress-track {
   height: 10px;
   background: var(--bg-tertiary);
@@ -772,18 +898,23 @@ textarea {
   transition: width 0.2s ease;
 }
 
+/* ===== Upload ===== */
 .upload-area {
   border: 2px dashed var(--border);
   border-radius: var(--radius);
   padding: 35px;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background 0.2s;
 }
 
-.upload-area:hover { border-color: var(--accent); }
+.upload-area:hover {
+  border-color: var(--accent);
+  background: rgba(0, 255, 204, 0.03);
+}
 .upload-area input { display: none; }
 
+/* ===== Charts ===== */
 .result-box {
   background: var(--bg-tertiary);
   padding: 14px;
@@ -814,6 +945,7 @@ textarea {
   gap: 15px;
 }
 
+/* ===== KPI ===== */
 .kpi {
   padding: 14px;
   border: 1px solid var(--border);
@@ -832,6 +964,7 @@ textarea {
   font-size: 0.85rem;
 }
 
+/* ===== Legend ===== */
 .legend-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -873,6 +1006,20 @@ textarea {
   font-size: 0.85rem;
 }
 
+/* ===== Shake animation (form validation) ===== */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+
+.shake {
+  animation: shake 0.4s ease;
+}
+
+/* ===== Responsive ===== */
 @media (max-width: 768px) {
   .tabs {
     gap: 6px;

@@ -1,23 +1,134 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-family);
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
-  line-height: 1.6;
+  line-height: var(--line-height-base);
   -webkit-font-smoothing: antialiased;
-  transition: background 0.3s ease, color 0.3s ease;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.4s ease, color 0.3s ease;
+  position: relative;
+  overflow-x: hidden;
 }
 
-body.light-theme {
+/* Subtle animated background mesh */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0, 255, 204, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 90% 80%, rgba(0, 136, 255, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(168, 85, 247, 0.03) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+  animation: meshFloat 20s ease-in-out infinite alternate;
+}
+
+/* Secondary faint grid overlay for depth */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
   background-image:
-    radial-gradient(circle at 15% 50%, rgba(0, 136, 255, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 85% 30%, rgba(0, 255, 204, 0.03) 0%, transparent 50%);
-  background-attachment: fixed;
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 30%, #000 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 30%, #000 40%, transparent 100%);
+  animation: gridDrift 40s linear infinite;
 }
 
-.container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+@keyframes gridDrift {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 48px 48px, 48px 48px; }
+}
+
+body.light-theme::after {
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+  animation: none;
+}
+
+@keyframes meshFloat {
+  0% {
+    background-position: 0% 0%, 100% 100%, 50% 50%;
+  }
+  50% {
+    background-position: 20% 30%, 80% 60%, 40% 70%;
+  }
+  100% {
+    background-position: 10% 50%, 90% 40%, 60% 30%;
+  }
+}
+
+body.light-theme::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 50%, rgba(0, 136, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 80% at 85% 30%, rgba(0, 255, 204, 0.03) 0%, transparent 50%);
+  animation: none;
+}
+
+/* ===== Custom scrollbar ===== */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(0, 255, 204, 0.35), rgba(0, 136, 255, 0.35));
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(0, 255, 204, 0.6), rgba(0, 136, 255, 0.6));
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+body.light-theme ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(0, 136, 255, 0.35), rgba(0, 200, 160, 0.35));
+  background-clip: padding-box;
+}
+
+body.light-theme ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(0, 136, 255, 0.55), rgba(0, 200, 160, 0.55));
+  background-clip: padding-box;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 255, 204, 0.35) transparent;
+}
+
+body.light-theme * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 136, 255, 0.35) transparent;
+}
+
+.container { max-width: 1400px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
 
 header {
   text-align: center;
@@ -28,19 +139,7 @@ header {
 
 header h1 { color: var(--accent); font-size: 2.5rem; }
 
-.panel-enter-active,
-.panel-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-.panel-enter-from {
-  opacity: 0;
-  transform: translateY(12px);
-}
-.panel-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-
+/* ===== Route transitions ===== */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -50,6 +149,7 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
   opacity: 0;
 }
 
+/* ===== Keyframe animations ===== */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -80,6 +180,44 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
   to { transform: translateX(380px); opacity: 0; }
 }
 
+/* Stagger entry utility — set --stagger-index via JS or inline style */
+@keyframes staggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.stagger-item {
+  opacity: 0;
+  animation: staggerIn 0.5s var(--ease-out-quint) forwards;
+  animation-delay: calc(var(--stagger-index, 0) * 70ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-item {
+    animation-duration: 0.01ms;
+    animation-delay: 0ms;
+  }
+}
+
+/* Float animation for decorative elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Pulse glow for active indicators */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(0, 255, 204, 0.3); }
+  50% { box-shadow: 0 0 16px rgba(0, 255, 204, 0.5); }
+}
+
+/* ===== Skeleton loaders ===== */
 .skeleton {
   background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
   background-size: 200% 100%;
@@ -107,6 +245,7 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
   margin-top: 15px;
 }
 
+/* ===== Empty & Error states ===== */
 .empty-state {
   text-align: center;
   padding: 40px 20px;
@@ -145,6 +284,7 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
   margin-top: 12px;
 }
 
+/* ===== Modals ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -152,6 +292,8 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -187,6 +329,7 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
   justify-content: flex-end;
 }
 
+/* ===== Spinner ===== */
 .spinner {
   display: inline-block;
   width: 20px;
@@ -214,6 +357,7 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
   margin-top: 40px;
 }
 
+/* ===== Password fields ===== */
 .password-wrapper {
   position: relative;
 }
@@ -240,6 +384,7 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
   color: var(--text-primary);
 }
 
+/* ===== Form validation ===== */
 .field-error {
   color: var(--error);
   font-size: 0.78rem;
@@ -255,6 +400,7 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
   border-color: var(--success);
 }
 
+/* ===== Touch / mobile ===== */
 @media (hover: none) and (pointer: coarse) {
   .btn, .tab, .tab-btn, button, input[type="checkbox"], input[type="radio"] {
     min-height: 48px !important;

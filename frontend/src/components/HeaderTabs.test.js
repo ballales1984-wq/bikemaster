@@ -21,7 +21,7 @@ describe("HeaderTabs", () => {
         plugins: [router],
         stubs: {
           RouterLink: {
-            template: '<a><slot /></a>',
+            template: "<a><slot /></a>",
           },
         },
       },
@@ -46,8 +46,8 @@ describe("HeaderTabs", () => {
 
     expect(wrapper.text()).toContain("nav.admin");
 
-    const buttons = wrapper.findAll("button");
-    await buttons.at(-1).trigger("click");
+    const logoutBtn = wrapper.find('button[aria-label="nav.logout"]');
+    await logoutBtn.trigger("click");
 
     expect(wrapper.emitted().logout).toEqual([[]]);
   });
