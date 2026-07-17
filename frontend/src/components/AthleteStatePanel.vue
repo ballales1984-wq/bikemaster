@@ -21,65 +21,69 @@
       </button>
     </div>
 
-    <div v-else class="state-grid">
+    <div v-if="safeState" class="state-grid">
       <div class="metric-card" :class="riskClass">
-        <div class="metric-value">{{ state?.readiness }}%</div>
+        <div class="metric-value">{{ safeState.readiness }}%</div>
         <div class="metric-label">Readiness</div>
       </div>
 
       <div class="metric-card">
-        <div class="metric-value">{{ state?.fatigue_score.toFixed(1) }}</div>
+        <div class="metric-value">{{ safeState.fatigue_score.toFixed(1) }}</div>
         <div class="metric-label">Fatigue</div>
       </div>
 
       <div class="metric-card">
-        <div class="metric-value">{{ state?.ctl.toFixed(1) }}</div>
+        <div class="metric-value">{{ safeState.ctl.toFixed(1) }}</div>
         <div class="metric-label">CTL (Fitness)</div>
       </div>
 
       <div class="metric-card">
-        <div class="metric-value">{{ state?.atl.toFixed(1) }}</div>
+        <div class="metric-value">{{ safeState.atl.toFixed(1) }}</div>
         <div class="metric-label">ATL (Fatigue)</div>
       </div>
 
       <div class="metric-card" :class="tsbClass">
-        <div class="metric-value">{{ state?.tsb.toFixed(1) }}</div>
+        <div class="metric-value">{{ safeState.tsb.toFixed(1) }}</div>
         <div class="metric-label">TSB (Form)</div>
       </div>
 
       <div class="metric-card">
-        <div class="metric-value">{{ state?.acwr.toFixed(2) }}</div>
+        <div class="metric-value">{{ safeState.acwr.toFixed(2) }}</div>
         <div class="metric-label">ACWR</div>
       </div>
 
       <div class="metric-card">
-        <div class="metric-value">{{ state?.recovery_hours_needed.toFixed(1) }}h</div>
+        <div class="metric-value">{{ safeState.recovery_hours_needed.toFixed(1) }}h</div>
         <div class="metric-label">Recovery</div>
       </div>
 
       <div class="metric-card">
-        <div class="metric-value">{{ state?.weekly_tss.toFixed(0) }}</div>
+        <div class="metric-value">{{ safeState.weekly_tss.toFixed(0) }}</div>
         <div class="metric-label">Weekly TSS</div>
       </div>
     </div>
 
-    <div v-if="hasState" class="state-footer">
-      <div class="risk-badge" :class="riskClass">{{ state?.risk_level.toUpperCase() }}</div>
-      <p class="recommendation">{{ state?.recommendation }}</p>
+    <div v-if="safeState" class="state-footer">
+      <div class="risk-badge" :class="riskClass">{{ safeState.risk_level.toUpperCase() }}</div>
+      <p class="recommendation">{{ safeState.recommendation }}</p>
       <div class="trends">
-        <span class="trend">7d: {{ state?.trend_7d }}</span>
-        <span class="trend">30d: {{ state?.trend_30d }}</span>
+        <span class="trend">7d: {{ safeState.trend_7d }}</span>
+        <span class="trend">30d: {{ safeState.trend_30d }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from "pinia";
+import { computed } from "vue";
 import { useAthleteStateStore } from "../stores/athleteState";
+import { storeToRefs } from "pinia";
+import type { AthleteState } from "../types/athlete_state";
 
 const store = useAthleteStateStore();
 const { state, loading, error, hasState, riskLevel } = storeToRefs(store);
+
+const safeState = computed<AthleteState | null>(() => state.value);
 
 const riskClass = {
   get() {
@@ -89,9 +93,8 @@ const riskClass = {
 
 const tsbClass = {
   get() {
-    if (!state.value) return "";
-    if (state.value.tsb > 15) return "tsb-fresh";
-    if (state.value.tsb < -20) return "tsb-fatigued";
+    if (state.value && state.value.tsb > 15) return "tsb-fresh";
+    if (state.value && state.value.tsb < -20) return "tsb-fatigued";
     return "";
   },
 };

@@ -1,9 +1,9 @@
 # BikeMaster — Roadmap Consolidata
 
-*Ultimo aggiornamento: 2026-07-13*
+*Ultimo aggiornamento: 2026-07-17*
 
-> Stato: **Production Ready** (multi-tenant completato, deploy su Render stabile).
-> Numeri verificati: backend 108 file / 1674 test · frontend 47 file / 318 test · 138 endpoint REST.
+> Stato: **architettura locale-first completata** (desktop Tauri 2 + SQLite primario + backend FastAPI embedded), con engine BM2 e progetto R&D AetherMap attivi. Sync bidirezionale device↔cloud e offline-first restano in corso (vedi checklist sotto).
+> Test (verificati): backend **2333 passed / 45 failed / 223 errors** su 2607 (`pytest`, 2026-07-16); frontend **332 passed / 31 failed / 20 errors** su 363 (`vitest run`, 2026-07-17). Endpoint REST: **138**.
 > Questo documento è la *fonte di verità* unica per stato, checklist e idee/feature.
 > Le fasi 1-25 sono completate; sotto il backlog riordinato (4 track) e lo stato di pulizia repo.
 
@@ -23,8 +23,8 @@ Ordine: stabilità → mobile nativo → maturità AI → distribuzione/integraz
 |:--:|---|---|:--:|
 | P0.1 | Logging centralizzato e strutturato | Stabilità | ✅ |
 | P0.2 | Servizi registrati nel lifespan FastAPI | Stabilità | ✅ |
-| P1.1 | Tauri 2 desktop app wrapper + backend embedded | Desktop-first | 🔄 |
-| P1.2 | SQLite come database primario (migrazione da PostgreSQL) | Desktop-first | ❌ |
+| P1.1 | Tauri 2 desktop app wrapper + backend embedded | Desktop-first | ✅ |
+| P1.2 | SQLite come database primario (migrazione da PostgreSQL) | Desktop-first | ✅ |
 | P1.3 | Sync bidirezionale device↔cloud (opzionale, attivabile) | Desktop-first | ❌ |
 | P1.4 | Verifica build iOS con Xcode su dispositivo | Mobile nativo | 🔄 |
 | P2.1 | Memory persistente conversazioni per utente | AI Coach | ✅ |
@@ -104,17 +104,16 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 > il suo ultimo commit (`85faede`) risultava distruttivo (cancellava codice produttivo
 > esistente). Il lavoro utile del branch (DB layer async/postgres/vector, cleanup temp,
 > Dockerfile fix) è già stato incorporato in `main` attraverso commit separati. Rimosso
-> da questo elenco. Resta aperto:
+> da questo elenco.
+> `inconclusive-pastry` (progressi AetherMap: camera projection, SVO, ASCII render) risulta
+> già mergiato in `main` (PR #3, commit `907aebf`) e non è più un branch aperto.
 
-| Branch | Contenuto | Stato / Azione suggerita |
-|---|---|---|
-| `inconclusive-pastry` | Progressi AetherMap (camera projection, SVO, ASCII render) — in worktree | ✅ Già mergiato in main (PR #3, commit `907aebf`). Rimuovere dall'elenco branch aperti |
+*Nessun branch non-fuso contenente lavoro risulta attualmente aperto.*
 
 ### C.3 Da fare (richiede conferma/permessi)
 - [ ] **Prune remote-tracking obsoleti** (`codex/esamina-il-codice`, `cloudy-tower`,
       `loud-paste`, `docker-create-production-dockerfile`, `models-consolidate-domain-models`,
       `security-add-auth-to-endpoints`, `bm2-*`) — richiede `git push` (conferma utente).
-- [ ] Merge/review dei branch in C.2.
 
 ---
 
@@ -124,8 +123,8 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 | Testing | Coverage reported as informational | ✅ |
 | Code Quality | Ruff + mypy + pre-commit | ✅ |
 | Container | Docker multi-stage hardened | ✅ |
-| Desktop | Tauri 2 wrapper + backend embedded | ❌ |
-| Database | SQLite primary with Alembic migrations | ❌ |
+| Desktop | Tauri 2 wrapper + backend embedded + SQLite primario | ✅ |
+| Database | SQLite primary with Alembic migrations | ✅ |
 | Offline-first | Full functionality without cloud | ❌ |
 | Sync | Optional bidirectional device↔cloud sync | ❌ |
 | Monitoring | Sentry + Prometheus + Grafana | ✅ |
@@ -137,4 +136,4 @@ Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
 | Frontend | Vitest (47 file / 318 test) | ✅ |
 | Frontend | Playwright E2E (`frontend/tests/e2e`, 14 spec esistenti + 3 aggiunti backend-independent) | ✅ |
 | Security | Security headers + rate limiting | ✅ |
-| CI/CD | GitHub Actions + Tauri build pipeline | ❌ |
+| CI/CD | GitHub Actions + Tauri build pipeline | ✅ |

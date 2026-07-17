@@ -8,7 +8,8 @@ from ..settings import get_settings
 
 _s = get_settings()
 
-_GOOGLE_TOKEN_TABLE = """  # noqa: S105
+# noqa: S105
+_GOOGLE_TOKEN_TABLE = """
 CREATE TABLE IF NOT EXISTS google_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     athlete_id INTEGER NOT NULL,

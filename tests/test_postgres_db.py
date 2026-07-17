@@ -37,8 +37,12 @@ class TestGetSession:
         with postgres_db.get_session() as session:
             assert session is not None
 
-    def test_get_session_without_engine_raises(self):
-        os.environ.pop("DATABASE_URL", None)
+    def test_get_session_without_engine_raises(self, monkeypatch):
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+        monkeypatch.delenv("DATABASE_URL_UNPOOLED", raising=False)
+        settings = postgres_db.get_settings()
+        monkeypatch.setattr(settings, "database_url", "")
+        monkeypatch.setattr(settings, "database_url_unpooled", "")
         import importlib
 
         import bike_analyzer.backend.db.postgres_db as mod
@@ -93,8 +97,12 @@ class TestSaveTrainingGoal:
         goals = postgres_db.get_training_goals(athlete_id=999)
         assert goals == []
 
-    def test_save_returns_zero_when_no_engine(self):
-        os.environ.pop("DATABASE_URL", None)
+    def test_save_returns_zero_when_no_engine(self, monkeypatch):
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+        monkeypatch.delenv("DATABASE_URL_UNPOOLED", raising=False)
+        settings = postgres_db.get_settings()
+        monkeypatch.setattr(settings, "database_url", "")
+        monkeypatch.setattr(settings, "database_url_unpooled", "")
         import importlib
 
         import bike_analyzer.backend.db.postgres_db as mod
@@ -103,8 +111,12 @@ class TestSaveTrainingGoal:
         goal_id = mod.save_training_goal(athlete_id=1, goal={"title": "X"})
         assert goal_id == 0
 
-    def test_get_training_goals_returns_empty_when_no_engine(self):
-        os.environ.pop("DATABASE_URL", None)
+    def test_get_training_goals_returns_empty_when_no_engine(self, monkeypatch):
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+        monkeypatch.delenv("DATABASE_URL_UNPOOLED", raising=False)
+        settings = postgres_db.get_settings()
+        monkeypatch.setattr(settings, "database_url", "")
+        monkeypatch.setattr(settings, "database_url_unpooled", "")
         import importlib
 
         import bike_analyzer.backend.db.postgres_db as mod

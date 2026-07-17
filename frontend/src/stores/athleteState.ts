@@ -24,10 +24,14 @@ export const useAthleteStateStore = defineStore("athleteState", () => {
     loading.value = true;
     error.value = null;
     try {
-      const data = await apiGet<{ state: AthleteState }>("/api/v1/athlete/state");
-      state.value = data.state;
-      lastComputedAt.value = data.state.computed_at;
-      return data.state;
+      const data = await apiGet<{ state?: AthleteState } | AthleteState>(
+        "/api/v1/athlete/state",
+      );
+      const resolved: AthleteState | null =
+        "state" in data ? data.state ?? null : (data as AthleteState);
+      state.value = resolved;
+      lastComputedAt.value = resolved?.computed_at ?? null;
+      return state.value;
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) {
         state.value = null;

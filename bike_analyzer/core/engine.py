@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class EngineResult:
+    """Result of a single ride analysis run."""
     success: bool
     result: PipelineResult | None = None
     fitness_state: FitnessStateVector | None = None
@@ -45,6 +46,7 @@ class AnalysisEngine:
     """
 
     def __init__(self, ftp: float = 250.0, athlete_profile: AthleteProfile | None = None):
+        """Initialize the engine with an optional FTP and athlete profile."""
         self.pipeline = AnalysisPipeline(ftp=ftp)
         self._ftp = ftp
         self._athlete_profile = athlete_profile
@@ -56,6 +58,7 @@ class AnalysisEngine:
         session_factory=None,
         historical_rides: Sequence[Ride] | None = None,
     ) -> EngineResult:
+        """Run the analysis pipeline for a single ride and update fitness state."""
         try:
             result = await self.pipeline.run(ride)
             fitness_state = await self._update_fitness_state(ride, athlete_id, session_factory, historical_rides)
@@ -65,6 +68,7 @@ class AnalysisEngine:
             return EngineResult(success=False, error=str(exc))
 
     def process_ride_sync(self, ride: Ride) -> EngineResult:
+        """Run the analysis pipeline synchronously for a single ride."""
         try:
             result = self.pipeline.run_sync(ride)
             return EngineResult(success=True, result=result)
@@ -75,6 +79,7 @@ class AnalysisEngine:
     async def process_rides_batch(
         self, rides: Sequence[Ride], athlete_id: int | None = None, session_factory=None, tenant_id: int | None = None
     ) -> list[EngineResult]:
+        """Process multiple rides, loading historical context when available."""
         results = []
         all_rides = list(rides)
         historical_rides = None
@@ -88,6 +93,7 @@ class AnalysisEngine:
     async def _load_historical_rides(
         self, athlete_id: int, session_factory, tenant_id: int | None = None, limit: int = 90
     ) -> list[Ride]:
+        """Load up to ``limit`` recent rides for an athlete from the async DB."""
         try:
             from ..backend.db.async_db import get_rides_by_athlete_async
 
@@ -104,6 +110,7 @@ class AnalysisEngine:
         session_factory,
         historical_rides: Sequence[Ride] | None = None,
     ) -> FitnessStateVector | None:
+        """Compute ATL/CTL/TSB from ride TSS and optionally persist the state."""
         if athlete_id is None:
             return None
 
@@ -152,6 +159,7 @@ class AnalysisEngine:
         return fitness_state
 
     async def _persist_fitness_state(self, state: FitnessStateVector, session_factory) -> None:
+        """Persist a fitness state vector via the repository when available."""
         if FitnessStateRepository is None:
             logger.warning("Could not persist fitness state - repository unavailable")
             return

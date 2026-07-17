@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: bikemaster-hub
+    runtime: python
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bikemaster-hub-db
+          property: connectionString
+      - key: DATABASE_URL_UNPOOLED
+        fromDatabase:
+          name: bikemaster-hub-db
+          property: connectionString
+      - key: REDIS_URL
+        value: redis://localhost:6379
+      - key: CORS_ORIGINS
+        value: https://bikemaster-23pv3ckq6-alessios-projects-f1d56018.vercel.app,https://bikemaster-xi.vercel.app
+      - key: OAUTH_ALLOWED_REDIRECT_HOSTS
+        value: bikemaster-23pv3ckq6-alessios-projects-f1d56018.vercel.app,bikemaster-xi.vercel.app
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: AI_COACH_MODE
+        value: external
+      - key: LOG_LEVEL
+        value: WARNING
+      - key: PYTHON_VERSION
+        value: "3.11"
+    startCommand: python main.py hub --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+
+  - type: postgresql
+    name: bikemaster-hub-db
+    plan: free
+    region: frankfurt

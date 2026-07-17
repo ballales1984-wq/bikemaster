@@ -26,4 +26,4 @@ BikeMaster is a GPS-based cycling performance intelligence system (FastAPI + Vue
 - Do not introduce new dependencies without verifying they are already in `package.json` / `requirements`.
 - Never commit secrets or API keys.
 - Run relevant tests before considering a task complete.
-- For detailed instructions, see [docs/agent/README.md](./agent/README.md).
+- For detailed instructions, see [docs/agent/README.md](docs/agent/README.md).

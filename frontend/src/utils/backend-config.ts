@@ -18,6 +18,7 @@ export const API_BASE_STORAGE_KEY = "bikemaster_api_base";
 export const API_FALLBACK_ENABLED_KEY = "bikemaster_api_fallback_enabled";
 export const RENDER_FALLBACK_BASE = "https://bikemaster-api.onrender.com";
 export const TAURI_EMBEDDED_BACKEND_BASE = "http://localhost:8001";
+export const HUB_API_BASE_STORAGE_KEY = "bikemaster_hub_api_base";
 
 function normalizeBase(base: string): string {
   const trimmed = base.trim();
@@ -39,6 +40,11 @@ export function getStoredApiBase(): string {
   return localStorage.getItem(API_BASE_STORAGE_KEY) || "";
 }
 
+export function getStoredHubApiBase(): string {
+  if (typeof localStorage === "undefined") return "";
+  return localStorage.getItem(HUB_API_BASE_STORAGE_KEY) || "";
+}
+
 export function setStoredApiBase(base: string): void {
   if (typeof localStorage === "undefined") return;
   const normalized = normalizeBase(base);
@@ -46,6 +52,16 @@ export function setStoredApiBase(base: string): void {
     localStorage.setItem(API_BASE_STORAGE_KEY, normalized);
   } else {
     localStorage.removeItem(API_BASE_STORAGE_KEY);
+  }
+}
+
+export function setStoredHubApiBase(base: string): void {
+  if (typeof localStorage === "undefined") return;
+  const normalized = normalizeBase(base);
+  if (normalized) {
+    localStorage.setItem(HUB_API_BASE_STORAGE_KEY, normalized);
+  } else {
+    localStorage.removeItem(HUB_API_BASE_STORAGE_KEY);
   }
 }
 
@@ -69,10 +85,27 @@ export function resolveApiBase(): string {
 
   const envBase =
     typeof import.meta !== "undefined"
-      ? (import.meta as ImportMeta).env?.VITE_API_BASE
+      ? // @ts-ignore Vite injects VITE_* env vars at build time
+        import.meta.env.VITE_API_BASE
       : undefined;
   if (envBase && typeof envBase === "string" && envBase.trim()) {
     return normalizeBase(envBase);
+  }
+
+  return "";
+}
+
+export function resolveHubApiBase(): string {
+  const stored = getStoredHubApiBase();
+  if (stored) return stored;
+
+  const envHub =
+    typeof import.meta !== "undefined"
+      ? // @ts-ignore Vite injects VITE_* env vars at build time
+        import.meta.env.VITE_HUB_API_BASE
+      : undefined;
+  if (envHub && typeof envHub === "string" && envHub.trim()) {
+    return normalizeBase(envHub);
   }
 
   return "";
@@ -83,8 +116,9 @@ export function resolveFallbackBase(): string {
 }
 
 // "pc" quando l'utente punta al proprio backend, "render" per il fallback,
-// "local" per same-origin (dev), "tauri" per backend embedded Tauri.
-export type BackendMode = "pc" | "render" | "local" | "tauri";
+// "local" per same-origin (dev), "tauri" per backend embedded Tauri,
+// "hub" quando l'app gira su Vercel e parla con il backend cloud.
+export type BackendMode = "pc" | "render" | "local" | "tauri" | "hub";
 
 export function getBackendMode(): BackendMode {
   const base = resolveApiBase();

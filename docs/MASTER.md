@@ -2,9 +2,15 @@
 
 > **Version:** 1.5.0  
 > **Date:** 2026-07-12  
-> **Stack:** Python 3.11 · FastAPI · Vue 3 · TypeScript · SQLite/PostgreSQL · Clean Architecture
+> **Stack:** Python 3.11 · FastAPI · Vue 3 · TypeScript · SQLite/PostgreSQL · Tauri 2 · Clean Architecture
 
 For topic-specific documentation, see [docs/README.md](./README.md).
+
+### Piattaforma primaria (effective 2026-07-15)
+
+**Tauri 2 desktop** (`.exe`/`.dmg`/`.AppImage`) — Rust + WebView, frontend Vue 3 bundle inside WebView, backend FastAPI embedded su `localhost`, SQLite come database primario locale. PWA supportata per utenti web-only. PostgreSQL opzionale per cloud sync/community.
+
+Vedi anche [UNIFIED_DOCUMENTATION.md](./UNIFIED_DOCUMENTATION.md) per la sintesi architetturale aggiornata e [docs/ARCHITECTURE.md](./ARCHITECTURE.md) per Clean v2.
 
 ---
 
@@ -135,6 +141,18 @@ See `docs/BM2_ENGINE_ARCHITECTURE.md`, `docs/BM2_ALGORITHMS.md`, `docs/BM2_TESTI
 
 ---
 
+## AetherMap (R&D Project)
+
+`aethermap/` is an **independent** R&D cartographic engine: world-from-scratch cartography (cube-sphere + S2/H3), "world database" data model, AI "researcher" pipeline, WebGL rendering, digital twin. Shares the stack (Vue + FastAPI) but is **not imported** by the BikeMaster backend.
+
+- **Phases:** 1 (earth model) → 2 (data model) → {3 AI, 4 rendering} → 5 (digital twin).
+- **Key decisions:** web+Python hardware; adaptive LOD per zone; real-time digital twin with eventual consistency; GeoJSON/3D Tiles/CityGML interoperability; S2 primary (geometry/LOD), H3 for analysis; per-object retention (`stale_after`).
+- **Code:** `aethermap/src/aethermap/` (`core/coordinates.py`, `ai/`, `render/`, `twin/`).
+- **Demo:** `cd aethermap/src && python -m aethermap.ai.demo|.render.demo|.twin.demo`.
+- **Agent docs:** `.kilo/agent/aethermap-*.md`. Do not remove without explicit consent.
+
+---
+
 ## 3. Tech Stack
 
 ### Backend
@@ -179,21 +197,23 @@ See `docs/BM2_ENGINE_ARCHITECTURE.md`, `docs/BM2_ALGORITHMS.md`, `docs/BM2_TESTI
 
 ## 4. Architecture
 
-BikeMaster follows **Clean Architecture** with four distinct layers:
+BikeMaster follows **Clean Architecture** with four distinct layers. The primary distribution is **Tauri 2 desktop** (Rust + WebView) with embedded FastAPI backend and SQLite as the local-first primary store.
 
 ```
-Presentation      API (FastAPI) · Frontend Vue · Android/iOS (Capacitor)
-       │
+Presentation      API (FastAPI) · Frontend Vue · Android/iOS (Capacitor) · Tauri 2 (desktop)
+        │
 Application       Use cases: StartSession, PromoteSession, ImportActivity,
                   AnalyzeActivity, SyncHealth, CoachAdvise, PlanTraining
-       │
+        │
 Domain            Entities + UnifiedMetricsEngine (pure calculation logic)
-       │
+        │
 Infrastructure    Repositories · Ingestion (Strava/Garmin/Fit/GPX) ·
                   Tracking · Maps · Weather · Traffic · VectorDB
 ```
 
 Dependencies point only inward. The `Application` layer orchestrates; the `Domain` layer calculates; the `Infrastructure` layer persists/retrieves.
+
+> **Local-first (effective 2026-07-15):** the device is the source of truth. SQLite is the primary database for every user. PostgreSQL is optional/cloud-only for sync and community features. Users can run "Mai" (never sync) and use the app 100% offline. See [UNIFIED_DOCUMENTATION.md](./UNIFIED_DOCUMENTATION.md) §2 and §6 for details.
 
 ### Domain Layer (`core/`)
 
@@ -772,7 +792,7 @@ Key environment variables:
 
 ## 18. Roadmap
 
-Project status: **Production Ready** — All base phases complete, active testing suite (98 backend + 321 frontend), stable production deployment on Render.
+Project status: **local-first architecture complete** — desktop Tauri 2 + SQLite primary + embedded FastAPI backend, with active BM2 and AetherMap tracks. For current test counts and endpoint numbers, see [`ROADMAP.md`](ROADMAP.md) and [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
 
 ### Completed Phases
 

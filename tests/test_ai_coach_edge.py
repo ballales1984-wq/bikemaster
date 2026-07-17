@@ -72,7 +72,9 @@ def test_groq_workout_advice_success(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "groq")
     monkeypatch.setenv("GROQ_API_KEY", "gsk_testkey1234567890")
     monkeypatch.setattr(coach, "get_ai_coach_client", lambda: (object(), "groq"))
-    monkeypatch.setattr(coach, "_chat_completion_text", lambda *a, **k: "Piani di allenamento: fai Zone 2.")
+    monkeypatch.setattr(
+        coach, "chat_with_tools", lambda *a, **k: {"content": "Piani di allenamento: fai Zone 2."}
+    )
     monkeypatch.setattr(coach, "search_knowledge_base", lambda *a, **k: [])
     result = coach.generate_workout_recommendations(_athlete(), _rides())
     assert "Zone 2" in result

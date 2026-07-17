@@ -1,19 +1,33 @@
 <template>
   <div class="app" :class="{ 'light-theme': !ui.isDark }">
-    <header
-v-show="showHeader" class="app-header"
->
-      <h1 class="logo">🚴 BikeMaster</h1>
-      <p
-v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
-      <button
-        class="theme-toggle"
-        :aria-label="ui.isDark ? 'Light mode' : 'Dark mode'"
-        @click="ui.toggleTheme"
-      >
-        {{ ui.isDark ? "☀️" : "🌙" }}
-      </button>
-      <LanguageSwitcher />
+    <div class="app-bg" aria-hidden="true">
+      <span class="orb orb-1" />
+      <span class="orb orb-2" />
+      <span class="orb orb-3" />
+    </div>
+
+    <header v-show="showHeader" class="app-header">
+      <div class="header-inner">
+        <div class="header-brand">
+          <span class="brand-badge" aria-hidden="true">🚴</span>
+          <div class="brand-text">
+            <h1 class="logo">BikeMaster</h1>
+            <p v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <LanguageSwitcher />
+          <button
+            class="theme-toggle"
+            :aria-label="ui.isDark ? 'Light mode' : 'Dark mode'"
+            @click="ui.toggleTheme"
+          >
+            {{ ui.isDark ? "☀️" : "🌙" }}
+          </button>
+        </div>
+      </div>
+
       <nav v-if="isPublicPage" class="public-links">
         <router-link to="/about"> Chi Siamo </router-link>
         <router-link to="/contact"> Contatti </router-link>
@@ -53,10 +67,10 @@ v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
         @summary-change="onSummaryChange"
       />
 
-      <main>
+      <main class="app-main">
         <ErrorBoundary>
           <router-view v-slot="{ Component }">
-            <transition name="panel" mode="out-in">
+            <transition name="route" mode="out-in">
               <component :is="Component" @summary-change="onSummaryChange" />
             </transition>
           </router-view>
@@ -67,7 +81,24 @@ v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
     </template>
 
     <footer class="footer">
-      BikeMaster v2 — Cycling Performance Intelligence
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <span class="footer-logo">🚴 BikeMaster</span>
+          <span class="footer-tag">Cycling Performance Intelligence</span>
+        </div>
+        <div class="footer-links">
+          <router-link to="/about">Chi Siamo</router-link>
+          <router-link to="/contact">Contatti</router-link>
+          <router-link to="/privacy">Privacy</router-link>
+          <router-link to="/terms">Termini</router-link>
+          <router-link to="/cookies">Cookie</router-link>
+        </div>
+        <div class="footer-meta">
+          <span class="footer-version">v2.0</span>
+          <span class="footer-dot">•</span>
+          <span>© {{ year }} BikeMaster</span>
+        </div>
+      </div>
     </footer>
   </div>
 </template>
@@ -98,6 +129,7 @@ const isPublicPage = computed(() =>
   ["/privacy", "/terms", "/cookies", "/about", "/contact"].includes(route.path),
 );
 const showHeader = computed(() => loggedIn.value || isPublicPage.value);
+const year = new Date().getFullYear();
 const summary = ref({
   rides: 0,
   distance_km: 0,
@@ -202,20 +234,100 @@ onMounted(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  will-change: transform;
+}
+.orb-1 {
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(0, 255, 204, 0.5), transparent 70%);
+  top: -120px;
+  left: -100px;
+  animation: orbFloat1 18s ease-in-out infinite alternate;
+}
+.orb-2 {
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(0, 136, 255, 0.45), transparent 70%);
+  bottom: -120px;
+  right: -80px;
+  animation: orbFloat2 22s ease-in-out infinite alternate;
+}
+.orb-3 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.35), transparent 70%);
+  top: 40%;
+  left: 55%;
+  animation: orbFloat3 26s ease-in-out infinite alternate;
+}
+@keyframes orbFloat1 {
+  to { transform: translate(60px, 80px) scale(1.15); }
+}
+@keyframes orbFloat2 {
+  to { transform: translate(-70px, -40px) scale(1.1); }
+}
+@keyframes orbFloat3 {
+  to { transform: translate(-40px, 60px) scale(0.9); }
 }
 .app-header {
   text-align: center;
   padding: 1.5rem 1rem;
   border-bottom: 1px solid var(--border);
   transition: var(--transition);
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(10, 11, 16, 0.4), transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+.brand-badge {
+  font-size: 2rem;
+  filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.4));
+  animation: float 4s ease-in-out infinite;
+}
+.brand-text {
+  display: flex;
+  flex-direction: column;
 }
 .logo {
-  font-size: 1.8rem;
-  margin: 0 0 0.3rem;
+  font-size: 1.9rem;
+  margin: 0;
+  line-height: 1.1;
   background: var(--accent-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  letter-spacing: var(--letter-spacing-tight);
   animation: logoGlow 3s ease-in-out infinite alternate;
   will-change: filter;
 }
@@ -230,7 +342,14 @@ onMounted(() => {
 .tagline {
   color: var(--text-muted);
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 .public-links {
   display: flex;
@@ -238,6 +357,7 @@ onMounted(() => {
   justify-content: center;
   flex-wrap: wrap;
   margin-top: 0.8rem;
+  padding-bottom: 0.4rem;
 }
 .public-links a {
   color: var(--text-muted);
@@ -256,14 +376,83 @@ onMounted(() => {
   flex-direction: column;
   justify-content: center;
   padding: 20px;
+  position: relative;
+  z-index: 1;
+}
+.app-main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
 }
 .footer {
   margin-top: auto;
-  text-align: center;
-  padding: 1rem;
+  z-index: 1;
   border-top: 1px solid var(--border);
+  background: linear-gradient(0deg, rgba(10, 11, 16, 0.5), transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.footer-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+.footer-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.footer-logo {
+  font-weight: var(--font-weight-bold);
+  font-size: 1.05rem;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.footer-tag {
+  color: var(--text-secondary);
   font-size: 0.85rem;
+}
+.footer-links {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.footer-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: color 0.2s;
+}
+.footer-links a:hover {
+  color: var(--accent);
+}
+.footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.footer-version {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.72rem;
+  color: var(--accent);
+}
+.footer-dot {
+  opacity: 0.5;
 }
 .login-error {
   color: var(--error);
@@ -320,5 +509,33 @@ onMounted(() => {
 .loading-text {
   margin-top: 16px;
   color: var(--text-primary);
+}
+
+/* ===== Route transition ===== */
+.route-enter-active {
+  transition: opacity 0.35s var(--ease-out-quint), transform 0.35s var(--ease-out-quint);
+}
+.route-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.route-enter-from {
+  opacity: 0;
+  transform: translateY(14px) scale(0.99);
+}
+.route-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.99);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb,
+  .brand-badge,
+  .logo {
+    animation: none !important;
+  }
+  .route-enter-active,
+  .route-leave-active {
+    transition: opacity 0.1s ease;
+  }
 }
 </style>

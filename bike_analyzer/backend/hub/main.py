@@ -1,0 +1,151 @@
+"""Hub backend entrypoint — FastAPI app for cloud deployment.
+
+Run with:
+    python main.py hub --port 8001
+
+Or directly:
+    python -m bike_analyzer.backend.hub.main
+
+The hub uses PostgreSQL (async_db) as its primary store and exposes only
+multi-tenant endpoints: auth, admin, and knowledge base.
+
+Note:
+    DATABASE_URL is REQUIRED for hub mode. Set it in .env.hub or the
+    environment before starting the hub. Without it the app starts but
+    database-dependent endpoints will fail.
+"""
+
+from __future__ import annotations
+
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator, metrics
+from pydantic import ValidationError
+
+from bike_analyzer.backend.hub.routes import hub_router
+from bike_analyzer.backend.hub.sync_routes import hub_sync_router
+from bike_analyzer.backend.logging_config import setup_logging
+from bike_analyzer.backend.observability import init_observability
+from bike_analyzer.backend.rate_limiter import limiter
+from bike_analyzer.backend.settings import get_settings
+from bike_analyzer.backend.redis_client import close_redis, get_redis
+from bike_analyzer.backend.task_queue import get_task_queue
+from bike_analyzer.backend.db.async_db import init_async_db
+
+logger = logging.getLogger(__name__)
+_s = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    setup_logging()
+
+    if not _s.database_url:
+        logger.warning(
+            "Hub started without DATABASE_URL — PostgreSQL is required for hub mode. "
+            "Set DATABASE_URL in .env.hub or environment."
+        )
+
+    try:
+        await init_async_db()
+    except Exception:
+        logger.exception("Failed to initialize PostgreSQL async database")
+
+    try:
+        await get_redis()
+    except Exception:
+        logger.exception("Failed to initialize Redis client")
+
+    task_queue = get_task_queue()
+    try:
+        await task_queue.start()
+        app.state.task_queue = task_queue
+    except Exception:
+        logger.exception("Failed to start background task queue")
+
+    yield
+
+    logger.info("Shutting down hub background services")
+    try:
+        await task_queue.stop()
+    except Exception:
+        logger.exception("Failed to stop background task queue")
+    try:
+        await close_redis()
+    except Exception:
+        logger.exception("Failed to close Redis client")
+
+
+def create_hub_app() -> FastAPI:
+    app = FastAPI(
+        title="BikeMaster Hub API",
+        description="Central multi-tenant backend for BikeMaster (cloud)",
+        version="0.1.0",
+        lifespan=lifespan,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+    )
+
+    init_observability(app)
+
+    if _s.environment.lower() not in ("test", "testing"):
+        try:
+            instrumentator = Instrumentator(
+                should_group_status_codes=True,
+                should_ignore_untemplated=True,
+                excluded_handlers=["/metrics", "/health"],
+            )
+            instrumentator.add(metrics.requests())
+            instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+        except Exception:
+            logger.debug("Prometheus instrumentation setup failed", exc_info=True)
+
+    app.state.limiter = limiter
+
+    @app.exception_handler(ValidationError)
+    async def validation_exception_handler(request: Request, exc: ValidationError):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "Dati non validi", "errors": exc.errors()},
+        )
+
+    @app.exception_handler(ValueError)
+    async def value_error_handler(request: Request, exc: ValueError):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+    # Hub CORS: only Vercel origins + explicit whitelist
+    from fastapi.middleware.cors import CORSMiddleware
+
+    cors_origins = (
+        [o.strip() for o in _s.cors_origins.split(",") if o.strip()]
+        if isinstance(_s.cors_origins, str)
+        else _s.cors_origins
+    )
+    vercel_regex = r"https://.*\.vercel\.app"
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_origin_regex=vercel_regex,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With",
+            "X-User-Api-Keys",
+        ],
+    )
+
+    app.include_router(hub_router)
+    app.include_router(hub_sync_router, prefix="/api/v1", tags=["sync"])
+
+    @app.get("/health")
+    async def health():
+        return {"status": "ok", "mode": "hub", "database": "postgresql" if _s.database_url else "none"}
+
+    return app

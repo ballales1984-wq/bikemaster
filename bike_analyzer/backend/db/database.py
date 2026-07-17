@@ -53,6 +53,7 @@ def get_db_connection():
 
 
 def init_db():
+    """Create all tables and apply lightweight migrations for the SQLite store."""
     with get_db_connection() as conn:
         conn.execute("""CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -430,6 +431,7 @@ def _ensure_external_identity_index(conn) -> None:
 
 
 def _row_to_ride(row) -> dict:
+    """Convert a SQLite ``rides`` row into a plain dict, parsing JSON GPS points."""
     try:
         gps = json.loads(row["gps_points"]) if row["gps_points"] else None
     except (json.JSONDecodeError, TypeError):
@@ -459,6 +461,7 @@ def _row_to_ride(row) -> dict:
 
 
 def _find_existing_external_ride(conn, external_source: str | None, external_id: str | None) -> int | None:
+    """Return the local ride id for a given external source/id pair, or None."""
     if not external_source or not external_id:
         return None
     cur = conn.cursor()
@@ -471,6 +474,11 @@ def _find_existing_external_ride(conn, external_source: str | None, external_id:
 
 
 def save_ride(ride: dict) -> int:
+    """Insert a new ride, deduplicating by external source/id when present.
+
+    Estimates missing calories on-the-fly, serializes GPS points as JSON,
+    and retries on SQLite lock contention. Returns the new ride id.
+    """
     import time
 
     max_retries = 5
@@ -542,6 +550,7 @@ def save_ride(ride: dict) -> int:
 
 
 def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
+    """Return a single ride by id, optionally filtered by tenant."""
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -555,6 +564,7 @@ def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
 
 
 def get_rides_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
+    """Return all rides for an athlete, optionally filtered by tenant."""
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -566,6 +576,7 @@ def get_rides_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[
 
 
 def get_athlete_by_name(name: str, tenant_id: int | None = None) -> dict | None:
+    """Return the first athlete matching ``name``, optionally filtered by tenant."""
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -579,6 +590,7 @@ def get_athlete_by_name(name: str, tenant_id: int | None = None) -> dict | None:
 
 
 def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | None:
+    """Return the first athlete matching ``email``, optionally filtered by tenant."""
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -592,6 +604,7 @@ def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | Non
 
 
 def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
+    """Return rides filtered by athlete and/or tenant, or all rides if none provided."""
     with get_db_connection() as conn:
         cur = conn.cursor()
         if athlete_id is not None and tenant_id is not None:
@@ -606,55 +619,8 @@ def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -
         return [_row_to_ride(r) for r in rows]
 
 
-def get_paginated_rides(
-    page: int = 1, page_size: int = 20, sort: str = "date", athlete_id: int | None = None, tenant_id: int | None = None
-) -> tuple[list[dict], int]:
-    """Get paginated rides with safe ORDER BY whitelist."""
-    order_map = {
-        "date": "date",
-        "distance": "distance_km",
-        "duration": "duration_minutes",
-    }
-    order_col = order_map.get(sort, "date")
-    offset = (page - 1) * page_size
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        if athlete_id is not None and tenant_id is not None:
-            cur.execute("SELECT COUNT(*) FROM rides WHERE athlete_id = ? AND tenant_id = ?", (athlete_id, tenant_id))
-            total = cur.fetchone()[0]
-            cur.execute(
-                f"SELECT * FROM rides WHERE athlete_id = ? AND tenant_id = ? "
-                f"ORDER BY {order_col} DESC LIMIT ? OFFSET ?",  # noqa: S608
-                (athlete_id, tenant_id, page_size, offset),
-            )
-        elif athlete_id is not None:
-            cur.execute("SELECT COUNT(*) FROM rides WHERE athlete_id = ?", (athlete_id,))
-            total = cur.fetchone()[0]
-            cur.execute(
-                f"SELECT * FROM rides WHERE athlete_id = ? "
-                f"ORDER BY {order_col} DESC LIMIT ? OFFSET ?",  # noqa: S608
-                (athlete_id, page_size, offset),
-            )
-        elif tenant_id is not None:
-            cur.execute("SELECT COUNT(*) FROM rides WHERE tenant_id = ?", (tenant_id,))
-            total = cur.fetchone()[0]
-            cur.execute(
-                f"SELECT * FROM rides WHERE tenant_id = ? "
-                f"ORDER BY {order_col} DESC LIMIT ? OFFSET ?",  # noqa: S608
-                (tenant_id, page_size, offset),
-            )
-        else:
-            cur.execute("SELECT COUNT(*) FROM rides")
-            total = cur.fetchone()[0]
-            cur.execute(
-                f"SELECT * FROM rides ORDER BY {order_col} DESC LIMIT ? OFFSET ?",  # noqa: S608
-                (page_size, offset),
-            )
-        rows = cur.fetchall()
-        return [_row_to_ride(r) for r in rows], total
-
-
 def delete_ride(ride_id: int, tenant_id: int | None = None) -> bool:
+    """Delete a ride by id, optionally scoped to a tenant. Returns True if deleted."""
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -667,6 +633,7 @@ def delete_ride(ride_id: int, tenant_id: int | None = None) -> bool:
 
 
 def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
+    """Update an existing ride. Returns True if a row was modified."""
     with get_db_connection() as conn:
         cur = conn.cursor()
         gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
@@ -725,6 +692,12 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
 
 
 def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 0) -> int:
+    """Insert or update an athlete profile.
+
+    When ``athlete_id`` is provided the existing row is overwritten;
+    otherwise a new athlete is created. Retries on SQLite lock contention.
+    Returns the athlete id.
+    """
     import time
 
     max_retries = 5
@@ -819,7 +792,7 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
 
 
 def _row_to_athlete(row) -> dict:
-    """Convert athlete row to dict with dynamic column mapping."""
+    """Convert an athlete SQLite row to a dict with safe defaults for missing columns."""
     if row is None:
         return None
     columns = [
@@ -852,6 +825,7 @@ def _row_to_athlete(row) -> dict:
 
 
 def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
+    """Return an athlete profile by id, optionally filtered by tenant."""
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -865,6 +839,7 @@ def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
 
 
 def save_metric(metric: dict, tenant_id: int = 0) -> int:
+    """Insert a metrics row (fatigue, recovery, calories, efficiency) for a ride."""
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -888,6 +863,7 @@ def save_metric(metric: dict, tenant_id: int = 0) -> int:
 
 
 def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
+    """Merge ``athlete_data`` into the existing athlete row. Returns True if updated."""
     existing = get_athlete(athlete_id)
     if not existing:
         return False
@@ -929,6 +905,7 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
 
 
 def create_indices():
+    """Create performance indexes for rides and metrics tables."""
     with get_db_connection() as conn:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_date ON rides(date)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_rides_distance ON rides(distance_km)")
@@ -988,6 +965,7 @@ def create_indices():
 
 
 def backup_database(backup_path: str | None = None) -> str:
+    """Copy the SQLite database to ``backup_path`` (or a timestamped default)."""
     import shutil
     from pathlib import Path
 
@@ -1000,10 +978,12 @@ def backup_database(backup_path: str | None = None) -> str:
 
 
 def get_backup_dir() -> str:
+    """Return the directory used for scheduled database backups."""
     return os.path.join(os.path.dirname(DB_PATH), "backups")
 
 
 def rotate_backups(max_backups: int = 10) -> list[str]:
+    """Remove oldest backups in the backup dir, keeping at most ``max_backups``."""
     backup_dir = get_backup_dir()
     os.makedirs(backup_dir, exist_ok=True)
     backups = sorted(

@@ -48,7 +48,7 @@ Key components in `frontend/src/components/`:
 BikeMaster segue un approccio *local-first*: il database primario è SQLite
 locale sul device dell'utente. Token in `localStorage`, cache
 shell/API/immagini e coda upload ride offline via Service Worker
-(`BackgroundSyncPlugin`). Vedi [local-data-storage.md](../local-data-storage.md).
+(`BackgroundSyncPlugin`). Vedi [local-data-storage.md](./local-data-storage.md).
 
 Su desktop (Tauri), il backend embedded gestisce direttamente SQLite senza
 dipendere da servizi cloud.
@@ -74,4 +74,4 @@ npm run tauri dev    # dev mode con backend embedded
 ```
 
 Per dettagli sulla configurazione Tauri, vedere `src-tauri/` e
-[docs/deployment-plan.md](../deployment-plan.md).
+[deployment-plan.md](./deployment-plan.md).
