@@ -72,6 +72,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isLoggedIn = computed(() => !!token.value && isTokenValid());
   const isAdmin = computed(() => user.value?.is_admin === true);
+  const isClient = computed(() => user.value?.is_client === true);
 
   function isTokenValid(): boolean {
     if (!token.value) return false;
@@ -129,6 +130,7 @@ export const useAuthStore = defineStore("auth", () => {
       username: data.username || user.value?.username || "",
       email: data.email ?? user.value?.email ?? null,
       is_admin: user.value?.is_admin ?? false,
+      is_client: user.value?.is_client ?? false,
       tenant_id: user.value?.tenant_id ?? 0,
     };
     localStorage.setItem(USER_KEY, JSON.stringify(user.value));
@@ -158,6 +160,7 @@ export const useAuthStore = defineStore("auth", () => {
       id: typeof data.id === "number" ? data.id : 0,
       username: typeof data.username === "string" ? data.username : "",
       is_admin: !!data.is_admin,
+      is_client: !!(payload as { is_client?: boolean } | null)?.is_client,
       tenant_id: typeof payload?.tenant_id === "number" ? payload.tenant_id : 0,
     };
     localStorage.setItem(TOKEN_KEY, data.access_token);
@@ -207,6 +210,7 @@ export const useAuthStore = defineStore("auth", () => {
       username: email || "",
       email,
       is_admin: false,
+      is_client: false,
       tenant_id: typeof payload?.tenant_id === "number" ? payload.tenant_id : 0,
     };
     localStorage.setItem(TOKEN_KEY, urlToken);
@@ -248,6 +252,7 @@ export const useAuthStore = defineStore("auth", () => {
     justLoggedIn,
     isLoggedIn,
     isAdmin,
+    isClient,
     isTokenValid,
     getAuthHeader,
     apiFetch,

@@ -1,16 +1,28 @@
 <template>
-  <div v-if="auth.isAdmin" class="admin-panel">
+  <div v-if="auth.isAdmin"
+class="admin-panel">
     <div class="panel">
       <h2>⚙️ Administration</h2>
 
       <div class="admin-grid">
-        <button class="admin-card" @click="loadStats" :disabled="loadingStats">
+        <button class="admin-card"
+@click="$router.push('/admin/users')">
+          <div class="admin-icon">👥</div>
+          <div class="admin-label">
+            {{ t("admin.users") }}
+          </div>
+          <div class="admin-desc">Manage users and roles</div>
+        </button>
+
+        <button class="admin-card"
+@click="loadStats" :disabled="loadingStats">
           <div class="admin-icon">📊</div>
           <div class="admin-label">System Stats</div>
           <div class="admin-desc">View database and API metrics</div>
         </button>
 
-        <button class="admin-card" @click="backupDb">
+        <button class="admin-card"
+@click="backupDb">
           <div class="admin-icon">💾</div>
           <div class="admin-label">Backup DB</div>
           <div class="admin-desc">Download database dump</div>
@@ -49,12 +61,14 @@
         </button>
       </div>
 
-      <div v-if="stats" class="result-section">
+      <div v-if="stats"
+class="result-section">
         <div class="result-header">📋 Statistics Output</div>
         <pre class="result-box">{{ stats }}</pre>
       </div>
 
-      <div v-if="error" class="error-section">
+      <div v-if="error"
+class="error-section">
         <div class="error-icon">⛔</div>
         <div class="error-text">
           {{ error }}
@@ -76,9 +90,11 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useAuthStore } from "../stores/auth";
+import { useI18n } from "../composables/useI18n";
 import { apiGet, apiPost } from "../utils/api";
 import ConfirmModal from "./ConfirmModal.vue";
 
+const { t } = useI18n();
 const auth = useAuthStore();
 
 const stats = ref("");

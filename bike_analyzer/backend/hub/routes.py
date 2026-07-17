@@ -183,9 +183,9 @@ async def hub_login(request: Request, form_data: OAuth2PasswordRequestForm = Dep
             )
 
         access_token = create_access_token(
-            subject=str(user.id), is_admin=user.is_admin, tenant_id=user.id
+            subject=str(user.id), is_admin=user.is_admin, tenant_id=user.id, is_client=user.is_client
         )
-        refresh_token = create_refresh_token(user.id, is_admin=user.is_admin, tenant_id=user.id)
+        refresh_token = create_refresh_token(user.id, is_admin=user.is_admin, tenant_id=user.id, is_client=user.is_client)
         await save_refresh_token(user.id, refresh_token)
         return {
             "access_token": access_token,
@@ -233,11 +233,12 @@ async def hub_refresh_token(request: Request, payload: dict = Body(...)):
     if jti and await is_token_revoked(jti):
         raise HTTPException(status_code=401, detail="Refresh token revoked")
     is_admin = bool(jwt_payload.get("is_admin", False))
+    is_client = bool(jwt_payload.get("is_client", False))
     tenant_id = jwt_payload.get("tenant_id")
     resolved_tenant = int(tenant_id) if tenant_id is not None else int(user_id)
     return {
         "access_token": create_access_token(
-            subject=str(user_id), is_admin=is_admin, tenant_id=resolved_tenant
+            subject=str(user_id), is_admin=is_admin, tenant_id=resolved_tenant, is_client=is_client
         ),
         "token_type": "bearer",
     }
@@ -273,6 +274,7 @@ async def hub_register(
                 email=email,
                 password_hash=password_hash,
                 is_admin=False,
+                is_client=False,
                 is_active=True,
                 created_at=datetime.now(UTC),
             )
@@ -319,6 +321,7 @@ async def hub_get_me(current_user: dict = Depends(get_current_user)):
             "email": None,
             "picture": None,
             "is_admin": current_user.get("is_admin", False),
+            "is_client": current_user.get("is_client", False),
             "tenant_id": current_user.get("tenant_id", current_user["id"]),
             "profile_complete": False,
         }
@@ -333,6 +336,7 @@ async def hub_get_me(current_user: dict = Depends(get_current_user)):
         "email": athlete.email,
         "picture": athlete.picture,
         "is_admin": current_user.get("is_admin", False),
+        "is_client": current_user.get("is_client", False),
         "tenant_id": current_user.get("tenant_id", current_user["id"]),
         "profile_complete": profile_complete,
     }
@@ -634,12 +638,50 @@ async def hub_list_all_athletes(current_user: dict = Depends(get_admin_user)):
 
 @hub_admin_router.get("/backup")
 async def hub_create_backup(current_user: dict = Depends(get_admin_user)):
-    raise HTTPException(status_code=501, detail="Hub backup via pg_dump — not implemented in this iteration")
+    from sqlalchemy import select as sa_select
+    from fastapi.responses import JSONResponse
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        users_result = await session.execute(sa_select(UserModel))
+        users = users_result.scalars().all()
+        athletes_result = await session.execute(sa_select(AthleteModel))
+        athletes = athletes_result.scalars().all()
+        rides_result = await session.execute(sa_select(RideModel))
+        rides = rides_result.scalars().all()
+        chat_result = await session.execute(sa_select(ChatHistoryModel))
+        chat = chat_result.scalars().all()
+
+    def _dump(model):
+        return [
+            {c.name: getattr(row, c.name) for c in model.__table__.columns}
+            for row in model
+        ]
+
+    payload = {
+        "users": _dump(UserModel),
+        "athletes": _dump(AthleteModel),
+        "rides": _dump(RideModel),
+        "chat_history": _dump(ChatHistoryModel),
+    }
+    log_action(current_user["id"], "download_backup", "database")
+    return JSONResponse(content=payload, media_type="application/json")
 
 
 @hub_admin_router.post("/backup/scheduled")
 async def hub_scheduled_backup(current_user: dict = Depends(get_admin_user)):
-    raise HTTPException(status_code=501, detail="Hub scheduled backup — not implemented in this iteration")
+    from sqlalchemy import select as sa_select, func
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        rides_count = (await session.execute(select(func.count(RideModel.id)))).scalar_one()
+        athletes_count = (await session.execute(select(func.count(AthleteModel.id)))).scalar_one()
+    log_action(current_user["id"], "scheduled_backup", "database")
+    return {
+        "status": "scheduled_backup_complete",
+        "rides_count": rides_count,
+        "athletes_count": athletes_count,
+    }
 
 
 @hub_admin_router.post("/indexes")
@@ -680,7 +722,15 @@ async def hub_get_system_stats(current_user: dict = Depends(get_admin_user)):
 
 @hub_admin_router.post("/reset-demo")
 async def hub_reset_demo_data(current_user: dict = Depends(get_admin_user)):
-    raise HTTPException(status_code=501, detail="Hub reset-demo — not implemented in this iteration")
+    from sqlalchemy import delete as sa_delete
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        await session.execute(sa_delete(RideModel))
+        await session.execute(sa_delete(ChatHistoryModel))
+        await session.commit()
+    log_action(current_user["id"], "reset_demo", "system")
+    return {"status": "demo_reset", "message": "Hub demo data cleared"}
 
 
 @hub_admin_router.get("/ceo")

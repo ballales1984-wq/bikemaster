@@ -220,6 +220,11 @@ class="bar-fill tsb" :style="tsbStyle" />
         <AthleteStatePanel />
       </div>
 
+      <!-- Training Zones -->
+      <div class="dash-section">
+        <ZonesPanel />
+      </div>
+
       <!-- Recent Rides -->
       <div
         v-if="dashboard.recent_rides?.length" class="dash-section"
@@ -261,6 +266,7 @@ import { ref, computed, onMounted } from "vue";
 import { apiGet } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
 import AthleteStatePanel from "./AthleteStatePanel.vue";
+import ZonesPanel from "./ZonesPanel.vue";
 
 const auth = useAuthStore();
 const dashboard = ref({});

@@ -25,6 +25,7 @@
     "comparison": "Confronta",
     "weather": "Meteo",
     "admin": "Admin",
+    "client": "Client",
     "settings": "Impostazioni",
     "logout": "Esci",
     "track": "Traccia Uscita",
@@ -257,7 +258,17 @@
     "indexes": "Crea Indici",
     "auditLogs": "Log Audit",
     "ceoAnalytics": "Analytics CEO",
-    "testSentry": "Test Sentry"
+    "testSentry": "Test Sentry",
+    "users": "Gestione utenti",
+    "createUser": "Crea utente",
+    "searchUsers": "Cerca utenti...",
+    "admin": "Admin",
+    "client": "Client"
+  },
+  "client": {
+    "title": "Area Client",
+    "assignAthlete": "Assegna atleta",
+    "myAthletes": "I miei atleti"
   },
   "athlete": {
     "title": "Profilo Atleta",

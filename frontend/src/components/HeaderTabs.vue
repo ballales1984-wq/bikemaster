@@ -35,6 +35,15 @@
         ⚙️ <span>{{ t("nav.admin") }}</span>
       </router-link>
       <router-link
+        v-if="isClient"
+        ref="tabEls"
+        to="/client"
+        class="tab"
+        active-class="active"
+      >
+        👥 <span>{{ t("nav.client") }}</span>
+      </router-link>
+      <router-link
         ref="tabEls"
         to="/settings"
         class="tab"
@@ -73,6 +82,7 @@ const route = useRoute();
 
 defineProps({
   isAdmin: { type: Boolean, default: false },
+  isClient: { type: Boolean, default: false },
 });
 
 const tabEls = ref([]);

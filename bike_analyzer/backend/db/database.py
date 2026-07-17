@@ -61,10 +61,15 @@ def init_db():
             email TEXT UNIQUE,
             password_hash TEXT,
             is_admin INTEGER DEFAULT 0,
+            is_client INTEGER DEFAULT 0,
             is_active INTEGER DEFAULT 1,
             created_at TEXT,
             updated_at TEXT
         )""")
+        try:
+            conn.execute("ALTER TABLE users ADD COLUMN is_client INTEGER DEFAULT 0")
+        except Exception:
+            pass
         conn.execute("""CREATE TABLE IF NOT EXISTS rides (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
@@ -1327,13 +1332,14 @@ def save_user(user: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO users (username, email, password_hash, is_admin, is_active, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO users (username, email, password_hash, is_admin, is_client, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 user.get("username"),
                 user.get("email"),
                 user.get("password_hash"),
                 1 if user.get("is_admin") else 0,
+                1 if user.get("is_client") else 0,
                 1 if user.get("is_active", True) else 0,
                 datetime.now(UTC).isoformat(),
                 datetime.now(UTC).isoformat(),
@@ -1355,9 +1361,10 @@ def get_user_by_username(username: str) -> dict | None:
                 "email": row[2],
                 "password_hash": row[3],
                 "is_admin": bool(row[4]),
-                "is_active": bool(row[5]),
-                "created_at": row[6],
-                "updated_at": row[7],
+                "is_client": bool(row[5]),
+                "is_active": bool(row[6]),
+                "created_at": row[7],
+                "updated_at": row[8],
             }
         return None
 
@@ -1374,11 +1381,63 @@ def get_user_by_id(user_id: int) -> dict | None:
                 "email": row[2],
                 "password_hash": row[3],
                 "is_admin": bool(row[4]),
-                "is_active": bool(row[5]),
-                "created_at": row[6],
-                "updated_at": row[7],
+                "is_client": bool(row[5]),
+                "is_active": bool(row[6]),
+                "created_at": row[7],
+                "updated_at": row[8],
             }
         return None
+
+
+def get_all_users() -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM users ORDER BY id DESC")
+        rows = cur.fetchall()
+        return [
+            {
+                "id": row[0],
+                "username": row[1],
+                "email": row[2],
+                "password_hash": row[3],
+                "is_admin": bool(row[4]),
+                "is_client": bool(row[5]),
+                "is_active": bool(row[6]),
+                "created_at": row[7],
+                "updated_at": row[8],
+            }
+            for row in rows
+        ]
+
+
+def update_user(user_id: int, updates: dict) -> dict | None:
+    allowed = {"email", "password_hash", "is_admin", "is_client", "is_active"}
+    fields = []
+    values = []
+    for key, value in updates.items():
+        if key not in allowed:
+            continue
+        if key in ("is_admin", "is_client", "is_active"):
+            value = 1 if value else 0
+        fields.append(f"{key} = ?")
+        values.append(value)
+    if not fields:
+        return get_user_by_id(user_id)
+    values.append(datetime.now(UTC).isoformat())
+    values.append(user_id)
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(f"UPDATE users SET {', '.join(fields)}, updated_at = ? WHERE id = ?", values)
+        conn.commit()
+    return get_user_by_id(user_id)
+
+
+def delete_user(user_id: int) -> bool:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        conn.commit()
+        return cur.rowcount > 0
 
 
 def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | None = None) -> list[dict]:

@@ -227,8 +227,17 @@ class UserResponse(BaseModel):
     username: str
     email: str | None = None
     is_admin: bool = False
+    is_client: bool = False
     is_active: bool = True
     created_at: str | None = None
+
+
+class UserUpdate(BaseModel):
+    email: str | None = None
+    password: str | None = Field(default=None, min_length=8, max_length=100)
+    is_admin: bool | None = None
+    is_client: bool | None = None
+    is_active: bool | None = None
 
 
 class CalendarEventCreate(BaseModel):

@@ -118,10 +118,28 @@ const routes = [
     meta: { requiresAuth: true, title: "Meteo" },
   },
   {
+    path: "/zones",
+    name: "zones",
+    component: () => import("../components/ZonesPanel.vue"),
+    meta: { requiresAuth: true, title: "Zone di Allenamento" },
+  },
+  {
     path: "/admin",
     name: "admin",
     component: () => import("../components/AdminPanel.vue"),
     meta: { requiresAuth: true, requiresAdmin: true, title: "Amministrazione" },
+  },
+  {
+    path: "/admin/users",
+    name: "admin-users",
+    component: () => import("../components/AdminUserManagement.vue"),
+    meta: { requiresAuth: true, requiresAdmin: true, title: "Gestione utenti" },
+  },
+  {
+    path: "/client",
+    name: "client",
+    component: () => import("../views/ClientDashboard.vue"),
+    meta: { requiresAuth: true, requiresClient: true, title: "Area client" },
   },
   {
     path: "/track",
@@ -240,6 +258,11 @@ router.beforeEach(async (to, from, next) => {
   }
 
   if (to.meta.requiresAdmin && !auth.isAdmin) {
+    next("/");
+    return;
+  }
+
+  if (to.meta.requiresClient && !auth.isClient) {
     next("/");
     return;
   }

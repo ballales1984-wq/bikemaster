@@ -562,8 +562,8 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
                     status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"}
                 )
 
-            access_token = create_access_token(subject=str(user.id), is_admin=user.is_admin, tenant_id=user.id)
-            refresh_token = create_refresh_token(user.id, is_admin=user.is_admin, tenant_id=user.id)
+            access_token = create_access_token(subject=str(user.id), is_admin=user.is_admin, tenant_id=user.id, is_client=user.is_client)
+            refresh_token = create_refresh_token(user.id, is_admin=user.is_admin, tenant_id=user.id, is_client=user.is_client)
             await save_refresh_token(user.id, refresh_token)
             return {
                 "access_token": access_token,
@@ -586,8 +586,8 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     if not row or not verify_password(form_data.password, row[2] or ""):
         raise HTTPException(status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"})
     athlete_id = int(row[0])
-    access_token = create_access_token(subject=str(athlete_id), is_admin=False, tenant_id=athlete_id)
-    refresh_token = create_refresh_token(athlete_id, is_admin=False, tenant_id=athlete_id)
+    access_token = create_access_token(subject=str(athlete_id), is_admin=False, tenant_id=athlete_id, is_client=False)
+    refresh_token = create_refresh_token(athlete_id, is_admin=False, tenant_id=athlete_id, is_client=False)
     await save_refresh_token(athlete_id, refresh_token)
     return {
         "access_token": access_token,
@@ -658,11 +658,12 @@ async def refresh_token(request: Request, payload: RefreshTokenRequest):
     if jti and await is_token_revoked(jti):
         raise HTTPException(status_code=401, detail="Refresh token revoked")
     is_admin = bool(jwt_payload.get("is_admin", False))
+    is_client = bool(jwt_payload.get("is_client", False))
     tenant_id = jwt_payload.get("tenant_id")
     resolved_tenant = int(tenant_id) if tenant_id is not None else int(user_id)
     return {
         "access_token": create_access_token(
-            subject=str(user_id), is_admin=is_admin, tenant_id=resolved_tenant
+            subject=str(user_id), is_admin=is_admin, tenant_id=resolved_tenant, is_client=is_client
         ),
         "token_type": "bearer",
     }
@@ -1932,6 +1933,35 @@ async def update_athlete(
     return _public_athlete(_get(athlete_id))
 
 
+@router.get("/client/athletes")
+async def client_list_athletes(current_user: dict = Depends(get_current_user)):
+    """List athletes associated with the current client. Client only."""
+    if not current_user.get("is_client"):
+        raise HTTPException(status_code=403, detail="Accesso client richiesto")
+    from ..db.database import get_all_athletes as _get_all_athletes
+
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athletes = _get_all_athletes(tenant_id=tenant_id)
+    log_action(current_user["id"], "client_list_athletes", "client")
+    return {"athletes": athletes}
+
+
+@router.post("/client/athletes/{athlete_id}/assign")
+async def client_assign_athlete(athlete_id: int, current_user: dict = Depends(get_current_user)):
+    """Assign an athlete to the current client. Client only."""
+    if not current_user.get("is_client"):
+        raise HTTPException(status_code=403, detail="Accesso client richiesto")
+    from ..db.database import get_athlete as _get_athlete, update_athlete as _update_athlete
+
+    athlete = _get_athlete(athlete_id)
+    if not athlete:
+        raise HTTPException(status_code=404, detail="Athlete non trovato")
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    _update_athlete(athlete_id, {"tenant_id": tenant_id})
+    log_action(current_user["id"], "assign_athlete", "client")
+    return {"status": "assigned", "athlete_id": athlete_id, "tenant_id": tenant_id}
+
+
 @router.get("/import/google-fit/auth")
 async def google_fit_auth(
     request: Request,
@@ -3021,6 +3051,130 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
     }
 
 
+@admin_router.get("/users")
+async def admin_list_users(current_user: dict = Depends(get_admin_user)):
+    """List all users. Admin only."""
+    from ..db.database import get_all_users
+
+    users = get_all_users()
+    for u in users:
+        u.pop("password_hash", None)
+    log_action(current_user["id"], "list_users", "users")
+    return users
+
+
+@admin_router.get("/users/{user_id}")
+async def admin_get_user(current_user: dict = Depends(get_admin_user), user_id: int = ...):
+    """Get a single user. Admin only."""
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    user.pop("password_hash", None)
+    log_action(current_user["id"], "get_user", "users")
+    return user
+
+
+@admin_router.post("/users")
+async def admin_create_user(user_data: UserCreate, current_user: dict = Depends(get_admin_user)):
+    """Create a new user. Admin only."""
+    from ..db.database import get_user_by_username
+    from ..security import hash_password
+
+    if get_user_by_username(user_data.username):
+        raise HTTPException(status_code=400, detail="Username già esistente")
+    new_id = save_user(
+        {
+            "username": user_data.username,
+            "email": user_data.email,
+            "password_hash": hash_password(user_data.password),
+            "is_admin": False,
+            "is_client": False,
+            "is_active": True,
+        }
+    )
+    log_action(current_user["id"], "create_user", "users")
+    user = get_user_by_id(new_id)
+    if user:
+        user.pop("password_hash", None)
+    return user
+
+
+@admin_router.put("/users/{user_id}")
+async def admin_update_user(user_id: int, user_data: UserUpdate, current_user: dict = Depends(get_admin_user)):
+    """Update a user. Admin only."""
+    from ..db.database import update_user as _update_user
+
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    updates = user_data.model_dump(exclude_unset=True)
+    if "password" in updates:
+        from ..security import hash_password
+
+        updates["password_hash"] = hash_password(updates.pop("password"))
+    updated = _update_user(user_id, updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    updated.pop("password_hash", None)
+    log_action(current_user["id"], "update_user", "users")
+    return updated
+
+
+@admin_router.delete("/users/{user_id}")
+async def admin_delete_user(current_user: dict = Depends(get_admin_user), user_id: int = ...):
+    """Delete a user. Admin only."""
+    if user_id == current_user["id"]:
+        raise HTTPException(status_code=400, detail="Non puoi eliminare te stesso")
+    from ..db.database import delete_user as _delete_user
+
+    if not _delete_user(user_id):
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    log_action(current_user["id"], "delete_user", "users")
+    return {"status": "deleted"}
+
+
+@admin_router.post("/users/{user_id}/toggle-admin")
+async def admin_toggle_admin(current_user: dict = Depends(get_admin_user), user_id: int = ...):
+    """Toggle admin status for a user. Admin only."""
+    from ..db.database import update_user as _update_user
+
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    updated = _update_user(user_id, {"is_admin": not user["is_admin"]})
+    updated.pop("password_hash", None)
+    log_action(current_user["id"], "toggle_admin", "users")
+    return updated
+
+
+@admin_router.post("/users/{user_id}/toggle-client")
+async def admin_toggle_client(current_user: dict = Depends(get_admin_user), user_id: int = ...):
+    """Toggle client status for a user. Admin only."""
+    from ..db.database import update_user as _update_user
+
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    updated = _update_user(user_id, {"is_client": not user["is_client"]})
+    updated.pop("password_hash", None)
+    log_action(current_user["id"], "toggle_client", "users")
+    return updated
+
+
+@admin_router.post("/users/{user_id}/toggle-active")
+async def admin_toggle_active(current_user: dict = Depends(get_admin_user), user_id: int = ...):
+    """Toggle active status for a user. Admin only."""
+    from ..db.database import update_user as _update_user
+
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    updated = _update_user(user_id, {"is_active": not user["is_active"]})
+    updated.pop("password_hash", None)
+    log_action(current_user["id"], "toggle_active", "users")
+    return updated
+
+
 @router.put("/rides/{ride_id}")
 async def update_ride(ride_id: int, ride: RideUpdate, current_user: dict = Depends(get_current_user)):
     """Update a ride's mutable fields. Protected fields (id, athlete_id, created_at) are ignored."""
@@ -3585,6 +3739,28 @@ async def get_period_comparison(
     tenant_id = current_user.get("tenant_id", current_user["id"])
     rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
     return calculate_period_comparison(rides, period_days=period_days)
+
+
+@router.get("/analytics/zones")
+async def get_zone_distributions(
+    current_user: dict = Depends(get_current_user),
+):
+    """Aggregate power & heart-rate time-in-zone distributions.
+
+    Builds the data behind the frontend "Training Zones" charts from
+    the athlete's stored ride GPS samples. FTP and max HR are taken
+    from the athlete profile when available, otherwise sensible defaults.
+    """
+    from ..analytics.zone_analysis import calculate_zone_distributions
+    from ..db.database import get_athlete, get_rides_by_athlete
+
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete_id = current_user["id"]
+    athlete = get_athlete(athlete_id, tenant_id) or {}
+    ftp = athlete.get("ftp_watts")
+    max_hr = athlete.get("heart_rate_avg")
+    rides = get_rides_by_athlete(athlete_id, tenant_id)
+    return calculate_zone_distributions(rides, ftp_watts=ftp, max_hr=max_hr)
 
 
 @router.get("/analytics/projection")

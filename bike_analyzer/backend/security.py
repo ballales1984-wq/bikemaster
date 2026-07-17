@@ -181,6 +181,7 @@ def create_access_token(
     expires_delta: timedelta | None = None,
     jti: str | None = None,
     tenant_id: int | None = None,
+    is_client: bool = False,
 ) -> str:
     expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     if jti is None:
@@ -188,6 +189,7 @@ def create_access_token(
     payload = {
         "sub": subject,
         "is_admin": is_admin,
+        "is_client": is_client,
         "iat": datetime.now(UTC),
         "exp": expire,
         "iss": JWT_ISSUER,
@@ -200,13 +202,14 @@ def create_access_token(
 
 
 def create_refresh_token(
-    subject: str, is_admin: bool = False, tenant_id: int | None = None
+    subject: str, is_admin: bool = False, tenant_id: int | None = None, is_client: bool = False
 ) -> str:
     expire = datetime.now(UTC) + timedelta(days=30)
     jti = hashlib.sha256(f"refresh:{subject}:{time.time()}:{SECRET_KEY}".encode()).hexdigest()[:32]
     payload = {
         "sub": subject,
         "is_admin": is_admin,
+        "is_client": is_client,
         "type": "refresh",
         "jti": jti,
         "iat": datetime.now(UTC),
@@ -270,6 +273,7 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
     payload = await decode_token(active_token)
     user_id: str = payload.get("sub")
     is_admin: bool = payload.get("is_admin", False)
+    is_client: bool = payload.get("is_client", False)
     tenant_id: int | None = payload.get("tenant_id")
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token non valido")
@@ -277,7 +281,7 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
         user_id_int = int(user_id)
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token non valido") from exc
-    result = {"id": user_id_int, "is_admin": is_admin}
+    result = {"id": user_id_int, "is_admin": is_admin, "is_client": is_client}
     if tenant_id is not None:
         result["tenant_id"] = tenant_id
     return result

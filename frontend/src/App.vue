@@ -58,7 +58,7 @@
     </template>
 
     <template v-else>
-      <HeaderTabs :is-admin="isAdmin" @logout="onLogout" />
+      <HeaderTabs :is-admin="isAdmin" :is-client="isClient" @logout="onLogout" />
 
       <StatsSummary
         v-if="loggedIn"
@@ -125,6 +125,7 @@ const router = useRouter();
 const { locale, setLocale } = useI18n();
 const loggedIn = computed(() => auth.isLoggedIn);
 const isAdmin = computed(() => auth.isAdmin);
+const isClient = computed(() => auth.isClient);
 const isPublicPage = computed(() =>
   ["/privacy", "/terms", "/cookies", "/about", "/contact", "/welcome"].includes(
     route.path,

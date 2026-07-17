@@ -66,6 +66,7 @@ def create_google_session(user_info: dict, athlete_id: int | str | None = None) 
             subject=subject,
             is_admin=False,
             tenant_id=tenant_id,
+            is_client=False,
         ),
         "token_type": "bearer",
         "user_id": subject,
