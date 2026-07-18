@@ -1,3 +1,6 @@
+<!-- Gestione utenti per admin: elenco utenti con ricerca, form di creazione e toggle di ruoli/attivazione.
+     Props: nessuna. Eventi: nessuno (usa API admin). Stato interno: lista utenti, query di ricerca, form creazione.
+     UI: toolbar con pulsante crea + input ricerca, tabella con toggle is_admin/is_client/is_active ed eliminazione. -->
 <template>
   <div class="admin-users">
     <h2>{{ t("admin.users") }}</h2>

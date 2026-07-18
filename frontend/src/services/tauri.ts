@@ -1,12 +1,14 @@
-// Servizi di comunicazione con il backend Rust/Tauri.
-//
-// In Tauri:
-//   - Le chiamate REST vanno a http://localhost:8001 (Axum embedded)
-//   - I comandi IPC diretti usano l'API @tauri-apps/api
-//
-// In Web/PWA:
-//   - Le chiamate REST vanno all'URL configurato in Impostazioni
-//   - I comandi Tauri non sono disponibili
+/**
+ * Ponte tra il frontend e il backend Rust/Tauri embedded (Axum).
+ *
+ * In ambiente Tauri usa comandi IPC diretti per ottenere info sull'app,
+ * il percorso del DB locale e la directory dei dati. In ambiente web/PWA
+ * tutte le chiamate REST sono instradate tramite l'API base configurata.
+ *
+ * Esporta: getTauriAppInfo, getTauriDbPath, getAppDataDir,
+ *          resetLocalData, getEffectiveApiBase, getEffectiveBackendMode,
+ *          checkBackendHealth
+ */
 
 import { resolveApiBase, getBackendMode, isTauri } from "../utils/backend-config";
 

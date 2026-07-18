@@ -1,3 +1,10 @@
+/**
+ * Tipi per lo stato di forma dell'atleta (fitness, fatigue, readiness).
+ *
+ * Espone AthleteState con i principali indicatori di training load
+ * (ACWR, TSB, ATL, CTL, rischio sovrallenamento) e
+ * AthleteStateResponse che incapsula lo stato calcolato.
+ */
 export interface AthleteState {
   athlete_id: number;
   computed_at: string;

@@ -1,3 +1,15 @@
+/**
+ * Servizio per la gestione delle notifiche dell'applicazione.
+ *
+ * Fornisce funzioni per recuperare la lista delle notifiche con filtri
+ * (categoria, zona di intensità, obiettivi attivi, meteo), aggiornare
+ * le preferenze di notifica e valutare il punteggio di rilevanza di una
+ * notifica in base al contesto fornito.
+ *
+ * Esporta: DEFAULT_NOTIFICATION_PREFERENCES, fetchNotifications,
+ *           updateNotificationPreferences, evaluateNotification
+ */
+
 import { apiGet, apiPost } from "../utils/api";
 import type {
   Notification,

@@ -1,3 +1,7 @@
+<!-- Pannello di amministrazione: griglia di azioni riservate agli admin (solo se auth.isAdmin).
+     Azioni: gestione utenti, statistiche di sistema, backup DB, ricostruzione indici,
+     reset dati demo, log di audit, analytics CEO e test Sentry. Eventi/Props: nessuno (usa gli store auth e API interne).
+     UI: card cliccabili in griglia + area risultato/pre errore + ConfirmModal per azioni distruttive. -->
 <template>
   <div v-if="auth.isAdmin"
 class="admin-panel">
