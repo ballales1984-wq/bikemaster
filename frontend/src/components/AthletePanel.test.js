@@ -61,7 +61,10 @@ const mockAthlete = {
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [{ path: "/", component: { template: "<div />" } }],
+  routes: [
+    { path: "/", component: { template: "<div />" } },
+    { path: "/rides", component: { template: "<div />" } },
+  ],
 });
 
 describe("AthletePanel", () => {
