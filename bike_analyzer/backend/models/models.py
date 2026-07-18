@@ -32,6 +32,7 @@ class Ride(_CoreRide):
     """API-oriented Ride whose ``to_dict`` omits raw gps_points."""
 
     def to_dict(self) -> dict:
+        """Serializza la ride per API (omette gps_points grezzi)."""
         return {
             "id": self.id,
             "athlete_id": self.athlete_id,

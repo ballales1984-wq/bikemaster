@@ -28,6 +28,7 @@ def validate_coordinate(lat: float, lon: float) -> bool:
 
 
 def validate_gps_point(point: GPSPoint) -> bool:
+    """Verifica che il punto GPS sia valido (coordinate + timestamp)."""
     return validate_coordinate(point.lat, point.lon) and isinstance(point.timestamp, datetime)
 
 
@@ -64,6 +65,7 @@ def detect_pauses(points: list[GPSPoint]) -> list[Pause]:
 
 
 def detect_accelerations(points: list[GPSPoint]) -> list[tuple[int, float]]:
+    """Rileva eventi di accelerazione dove la variazione di velocita' supera la soglia."""
     accels = []
     if len(points) < 2:
         return accels
@@ -76,6 +78,7 @@ def detect_accelerations(points: list[GPSPoint]) -> list[tuple[int, float]]:
 
 
 def detect_decelerations(points: list[GPSPoint]) -> list[tuple[int, float]]:
+    """Rileva eventi di decelerazione dove la variazione di velocita' scende sotto la soglia."""
     decels = []
     if len(points) < 2:
         return decels
@@ -117,6 +120,7 @@ def remove_outliers(points: list[GPSPoint], max_speed_km_h: float = 120.0) -> li
 
 
 def _elevation_delta(alt_from: float | None, alt_to: float | None) -> tuple[float, float]:
+    """Restituisce (gain, loss) tra due quote: solo il dislivello positivo/negativo."""
     if alt_from is None or alt_to is None:
         return 0.0, 0.0
     return (alt_to - alt_from, 0.0) if alt_to > alt_from else (0.0, abs(alt_to - alt_from))

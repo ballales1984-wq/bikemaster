@@ -94,6 +94,7 @@ class FitnessStateVector:
         return self.tsb > 5 and self.atl < self.ctl * 1.1
 
     def to_dict(self) -> dict:
+        """Serializza lo stato fitness in dizionario JSON-compatibile."""
         return {
             "athlete_id": self.athlete_id,
             "computed_at": self.computed_at.isoformat(),

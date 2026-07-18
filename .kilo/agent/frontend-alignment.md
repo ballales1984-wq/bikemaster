@@ -1,7 +1,6 @@
 ---
 name: frontend-alignment
 description: Agente di allineamento frontend BikeMaster — tiene sincronizzati il frontend PC (Vue 3/Tauri, sorgente di verità) e il frontend mobile (Android Kotlin). Rileva il drift tra versioni e propone/porta le modifiche seguendo docs/frontend-alignment-map.md.
-context: frontend-alignment
 mode: all
 steps: 30
 color: "#16A085"

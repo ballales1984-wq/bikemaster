@@ -26,6 +26,7 @@ def normalized_power_approx(ride: Ride) -> float:
 
 
 def intensity_factor(ride: Ride, ftp: float = 250.0) -> float:
+    """Intensity Factor (IF): NP / FTP. Indica l'intensita' relativa alla soglia."""
     np = normalized_power_approx(ride)
     if not np or ftp <= 0:
         return 0.0
@@ -33,6 +34,7 @@ def intensity_factor(ride: Ride, ftp: float = 250.0) -> float:
 
 
 def training_stress_score(ride: Ride, ftp: float = 250.0) -> float:
+    """Training Stress Score (TSS): IF^2 x durata(h) x 100. Clamp a 500."""
     hours = ride.duration_hours
     if hours <= 0:
         return 0.0

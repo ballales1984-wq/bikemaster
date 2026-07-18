@@ -6,6 +6,7 @@ from bike_analyzer.core.models import Ride
 
 
 def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:
+    """Score di fatica (0-10) combinando durata, FC, velocita', dislivello e peso."""
     duration_h = ride.duration_hours
     hr_avg = ride.heart_rate_avg
     DURATION_FACTOR = min(duration_h / 2.0, 3.0)
@@ -31,6 +32,7 @@ def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:
 
 
 def estimate_recovery_hours(fatigue_score: float) -> float:
+    """Stima ore di recupero necessarie in base allo score di fatica."""
     if fatigue_score <= 3.0:
         return 8.0
     if fatigue_score <= 5.0:
@@ -41,6 +43,7 @@ def estimate_recovery_hours(fatigue_score: float) -> float:
 
 
 def get_recovery_recommendation(fatigue_score: float) -> str:
+    """Raccomandazione testuale di recupero in base al livello di fatica."""
     if fatigue_score <= 2.0:
         return "Minimal fatigue"
     if fatigue_score <= 4.0:

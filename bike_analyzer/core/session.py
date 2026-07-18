@@ -39,6 +39,7 @@ class ActivityType(str, Enum):
 
     @classmethod
     def values(cls) -> list[str]:
+        """Lista dei valori enum delle attivita' sportive supportate."""
         return [m.value for m in cls]
 
 
@@ -147,6 +148,7 @@ class HealthSample:
     source: str = "manual"
 
     def to_dict(self) -> dict[str, Any]:
+        """Serializza il campione salute in dizionario JSON-compatibile."""
         return {
             "athlete_id": self.athlete_id,
             "tenant_id": self.tenant_id,
@@ -174,6 +176,7 @@ class FusionRecord:
     fitness_state: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
+        """Serializza il record fusion in dizionario JSON-compatibile."""
         return {
             "athlete_id": self.athlete_id,
             "tenant_id": self.tenant_id,
@@ -197,6 +200,7 @@ class Recommendation:
     created_at: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
+        """Serializza la raccomandazione in dizionario JSON-compatibile."""
         return {
             "athlete_id": self.athlete_id,
             "tenant_id": self.tenant_id,

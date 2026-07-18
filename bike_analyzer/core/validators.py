@@ -22,10 +22,13 @@ from bike_analyzer.core.validation import (
 
 
 class BusinessValidationError(Exception):
-    """Raised when data fails business-rule validation."""
+    """Errore di validazione business rule per dati di ingresso non conformi."""
+
+    pass
 
 
 def validate_ride_for_analysis(ride_data: dict) -> RideDataclass:
+    """Valida e converte dati ride per analisi (controlli Pydantic + regole business)."""
     try:
         validated = ValidatedRide.model_validate(ride_data)
     except ValidationError as exc:
@@ -34,6 +37,7 @@ def validate_ride_for_analysis(ride_data: dict) -> RideDataclass:
 
 
 def validate_ride_for_import(ride_data: dict) -> RideDataclass:
+    """Valida e converte dati ride per import (controlli Pydantic + regole business)."""
     try:
         validated = ValidatedRide.model_validate(ride_data)
     except ValidationError as exc:
@@ -42,6 +46,7 @@ def validate_ride_for_import(ride_data: dict) -> RideDataclass:
 
 
 def validate_gps_points(points_data: list[dict]) -> list[GPSPointDataclass]:
+    """Valida lista di punti GPS e converte in domain dataclass."""
     if len(points_data) < 2:
         raise BusinessValidationError("Servono almeno 2 punti GPS per una ride valida")
     validated_points = []
@@ -58,6 +63,7 @@ def validate_gps_points(points_data: list[dict]) -> list[GPSPointDataclass]:
 
 
 def validate_athlete_profile(data: dict) -> AthleteProfileDataclass:
+    """Valida e converte dati profilo atleta."""
     try:
         validated = ValidatedAthleteProfile.model_validate(data)
     except ValidationError as exc:
@@ -66,11 +72,13 @@ def validate_athlete_profile(data: dict) -> AthleteProfileDataclass:
 
 
 def validate_athlete_profile_partial(data: dict) -> AthleteProfileDataclass:
+    """Valida profilo atleta senza richiedere campi obbligatori (partial update)."""
     validated = ValidatedAthleteProfile.model_validate(data)
     return _to_domain_athlete(validated)
 
 
 def _to_domain_gps_point(vp: ValidatedGPSPoint) -> GPSPointDataclass:
+    """Converte ValidatedGPSPoint (Pydantic) in GPSPointDataclass (domain)."""
     return GPSPointDataclass(
         lat=vp.lat,
         lon=vp.lon,
@@ -84,6 +92,7 @@ def _to_domain_gps_point(vp: ValidatedGPSPoint) -> GPSPointDataclass:
 
 
 def _to_domain_ride(vr: ValidatedRide) -> RideDataclass:
+    """Converte ValidatedRide (Pydantic) in RideDataclass (domain)."""
     gps_points = [_to_domain_gps_point(p) for p in vr.gps_points]
     ride = RideDataclass(
         athlete_id=vr.athlete_id,
@@ -102,6 +111,7 @@ def _to_domain_ride(vr: ValidatedRide) -> RideDataclass:
 
 
 def _to_domain_athlete(va: ValidatedAthleteProfile) -> AthleteProfileDataclass:
+    """Converte ValidatedAthleteProfile (Pydantic) in AthleteProfileDataclass (domain)."""
     return AthleteProfileDataclass(
         id=va.id,
         name=va.name,

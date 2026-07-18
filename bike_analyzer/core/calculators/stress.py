@@ -4,6 +4,7 @@ from __future__ import annotations
 
 
 def ewma(values: list[float], tau_days: float) -> float:
+    """Exponential Weighted Moving Average (EWMA) con costante di tempo tau_days."""
     if not values:
         return 0.0
     alpha = 1.0 - 2.718281828459045 ** (-1.0 / tau_days)

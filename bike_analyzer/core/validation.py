@@ -13,6 +13,8 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ValidatedGPSPoint(BaseModel):
+    """Punto GPS validato: coordinate, timestamp, altitudine, sensori."""
+
     lat: float = Field(..., ge=-90, le=90, description="Latitudine WGS84")
     lon: float = Field(..., ge=-180, le=180, description="Longitudine WGS84")
     timestamp: datetime
@@ -25,7 +27,7 @@ class ValidatedGPSPoint(BaseModel):
     @field_validator("timestamp")
     @classmethod
     def timestamp_not_in_future(cls, v: datetime) -> datetime:
-
+        """Il timestamp non puo' essere nel futuro (controllo clock skew)."""
         now = datetime.now(UTC)
         if v.tzinfo is None:
             v = v.replace(tzinfo=UTC)
@@ -35,6 +37,8 @@ class ValidatedGPSPoint(BaseModel):
 
 
 class ValidatedRide(BaseModel):
+    """Ride validata: campi obbligatori, range, coerenza velocita'/distanza/durata."""
+
     athlete_id: int = Field(..., gt=0)
     date: date
     distance_km: float = Field(..., gt=0, le=500)
@@ -49,6 +53,7 @@ class ValidatedRide(BaseModel):
 
     @model_validator(mode="after")
     def validate_ride_consistency(self) -> ValidatedRide:
+        """Controlla coerenza: almeno 2 GPS points, velocita' media plausibile."""
         if self.gps_points and len(self.gps_points) < 2:
             raise ValueError("Una ride valida richiede almeno 2 punti GPS")
 
@@ -64,6 +69,8 @@ class ValidatedRide(BaseModel):
 
 
 class ValidatedAthleteProfile(BaseModel):
+    """Profilo atleta validato: anagrafica, misure, FTP, livello."""
+
     id: int | None = None
     name: str = Field(..., min_length=2, max_length=100)
     age: int = Field(..., ge=10, le=100)
@@ -75,6 +82,7 @@ class ValidatedAthleteProfile(BaseModel):
     @field_validator("weight_kg")
     @classmethod
     def realistic_weight(cls, v: float) -> float:
+        """Il peso deve essere realistico per un ciclista (40-150 kg)."""
         if v < 40 or v > 150:
             raise ValueError("Peso non realistico per un ciclista")
         return v

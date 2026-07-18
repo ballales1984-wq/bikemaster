@@ -9,6 +9,8 @@ from ..models.models import GPSPoint, Segment, haversine_distance_m
 
 @dataclass
 class ClimbSegment:
+    """Segmento di salita rilevato: indici, distanza, dislivello, categoria."""
+
     start_idx: int
     end_idx: int
     distance_m: float

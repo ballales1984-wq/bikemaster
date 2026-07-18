@@ -6,6 +6,7 @@ from ..models import Ride
 
 
 def calories_met(ride: Ride) -> float:
+    """Stima calorie con metodo MET (Metabolic Equivalent of Task) basato su velocita'."""
     speed = ride.avg_speed_kmh
     if speed is None:
         return 0.0
@@ -14,6 +15,7 @@ def calories_met(ride: Ride) -> float:
 
 
 def calories_physics(ride: Ride) -> float:
+    """Stima calorie da modello fisico: potenza meccanica / efficienza metabolica."""
     if ride.avg_speed_kmh is None:
         return 0.0
     g, crr, rho, cdA, eff, J_PER_CAL = 9.81, 0.005, 1.225, 0.4, 0.25, 4184
@@ -33,8 +35,10 @@ def calories_physics(ride: Ride) -> float:
 
 
 def estimate(ride: Ride, method: str = "met") -> float:
+    """Wrapper unico per stima calorie (MET o physics)."""
     return calories_physics(ride) if method == "physics" else calories_met(ride)
 
 
 def per_km(ride: Ride) -> float:
+    """Calorie per chilometro (0 se distanza nulla)."""
     return ride.calories / ride.distance_km if ride.distance_km > 0 else 0.0
