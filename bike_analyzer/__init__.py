@@ -1,4 +1,4 @@
-"""BikeMaster - GPS-based cycling performance intelligence system."""
+"""BikeMaster - Lifestyle health intelligence system — health state as dynamic balance of lifestyle variables."""
 
 from typing import Any
 

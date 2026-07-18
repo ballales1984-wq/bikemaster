@@ -5,7 +5,7 @@
 > sottosistemi, R&D AetherMap) **senza cancellare né riscrivere i documenti
 > sorgente**. Ogni sezione rimanda ai file originali per il dettaglio.
 >
-> **Data consolidamento:** 2026-07-16
+> **Data consolidamento:** 2026-07-18
 > **Verifica codice:** 2026-07-16 — confrontate le sezioni di logica programmatica con il
 > codice reale (`core/physics/`, `bm2/algorithms/`, `backend/analytics/load_manager/`,
 > `backend/analytics/adaptation_rules.py`). Le discrepanze trovate sono state corrette
@@ -39,7 +39,10 @@
 
 ## 1. Cos'è BikeMaster (visione strategica)
 
-**BikeMaster** è un sistema di *performance intelligence* per ciclisti basato su GPS.
+**BikeMaster** è un sistema di *intelligenza dello stile di vita*: definisce lo stato di salute come il bilanciamento dinamico delle variabili acquisite dalla vita reale di ogni persona, e usa l'attività ciclistica come dominio strutturato per analisi, raccomandazioni e ottimizzazione.
+
+> **Mission ufficiale:** il nostro programma definisce lo stato di salute come il bilanciamento delle variabili acquisite dal tuo stile di vita. Tu scegli cosa mangiare, lui analizza, ti consiglia la quantità compatibile, ti propone micro-correzioni e ti dà la quantità giusta di movimento per mantenere l'equilibrio. Siamo simili come biologia, ma diversi come vita — e il sistema rispetta entrambe le cose.
+
 Importa tracciati da **GPX/FIT** o servizi esterni (Strava, Garmin, Wahoo, Google Fit),
 analizza metriche, stima calorie, calcola un *fatigue score*, confronta con percentile
 di benchmark, fornisce un **AI Coach** (Groq + RAG) e visualizza percorsi su mappe
@@ -47,26 +50,33 @@ interattive. Include inoltre **BikeMaster 2.0 (BM2)**, motore di simulazione "wh
 e **AetherMap**, progetto R&D cartografico separato.
 
 ### 1.1 Posizionamento — la scelta strategica fondamentale
-> **Non** compete con Strava/Garmin/TrainingPeaks. È uno **strato di intelligenza
-> sopra gli strumenti che il ciclista già usa**.
+
+> **Non** compete con app dedicate (Strava/Garmin/TrainingPeaks per il ciclismo, MyFitnessPal per la nutrizione, Oura/Whoop per il sonno). È uno **strato di intelligenza sopra tutti gli strumenti che la persona già usa**, integrato in un'unica visione olistica dello stato di salute.
 
 La motivazione programmatica di questa scelta è decisiva:
 - **Elimina la barriera di onboarding** → l'utente non parte da zero, importa i dati esistenti.
 - **Concentra il valore unico** → non si ricostruisce ciò che esiste, si aggiunge *consiglio*.
+- **Tratta la persona come un tutto** → non solo come atleta, ma come individuo con vita, stress, famiglia, abitudini.
 - Il ciclo distintivo è: `dati → comprensione → decisione → miglioramento`.
 
-### 1.2 I Quattro Pilastri (roadmap)
-1. **Core** — utile con una sola uscita (import, storico, metriche, dashboard, report).
-2. **Intelligent Coach** — profilo dinamico, consigli adattivi, piano di allenamento.
-3. **Live Assistant** — notifiche vocali, alert in corsa, stato di allenamento real-time.
-4. **Ecosystem** — solo dopo 1–3 solidi: smartwatch, community, eventi, sicurezza avanzata.
+### 1.2 Le VAR — la firma metabolica
 
-### 1.3 Il problema centrale (cuore logico del prodotto)
+Il programma considera lo stato generale di salute come l'equilibrio dinamico di tutte le variabili che raccoglie: Energia, Macronutrienti, Acqua_totale, Glicemia, VO2, Respirazione, Battito, Orario, Storico, Stato_generale. Queste VAR sono la **firma metabolica** di ogni persona.
+
+Il sistema non inventa nulla: prende le variabili direttamente dal tuo stile di vita (Stile_di_vita, Orari_di_lavoro, Famiglia, Stress, Vizi, Abitudini, Sonno, Attività_fisica). Perché siamo simili come biologia, ma diversi come vita.
+
+### 1.3 I Quattro Pilastri (roadmap)
+1. **Core** — utile con una sola uscita (import, storico, metriche, VAR, dashboard, report).
+2. **Intelligent Coach** — profilo dinamico, consigli adattivi, piano di allenamento, micro-correzioni.
+3. **Live Assistant** — notifiche vocali, alert in corsa, stato di allenamento real-time, nudges lifestyle.
+4. **Ecosystem** — solo dopo 1–3 solidi: smartwatch, community, eventi, sicurezza avanzata, integrazioni esterne.
+
+### 1.4 Il problema centrale (cuore logico del prodotto)
 > Non solo *"Quanto hai fatto?"* ma *"Quanto ti è costato?"*.
 
-Due atleti con dati esterni identici possono rispondere in modo opposto. Il sistema
-impara la **relazione personale stimolo→risposta** (carico→recupero), non si limita a
-memorizzare eventi. È la differenza fra un *database di attività* e un **modello di atleta**.
+Due persone con dati esterni identici possono rispondere in modo opposto. Il sistema
+impara la **relazione personale stimolo→risposta** (carico→recupero→vita), non si limita a
+memorizzare eventi. È la differenza fra un *database di attività* e un **modello di persona**.
 
 ---
 

@@ -1,3 +1,9 @@
+/**
+ * Store delle notifiche e preferenze.
+ *
+ * Gestisce la lista di notifiche, le preferenze utente (pausa,
+ * canali) e il push verso i toast dell'app.
+ */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useToast } from "../composables/useToast";

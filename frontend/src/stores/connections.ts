@@ -3,6 +3,12 @@ import { ref, computed } from "vue";
 import { apiGet } from "../utils/api";
 import { useAuthStore } from "./auth";
 
+/**
+ * Store delle connessioni a servizi esterni.
+ *
+ * Tiene traccia dello stato OAuth/API key per servizi come Strava,
+ * Google Fit/Wahoo/Garmin, con caricamento e disconnessione.
+ */
 export type ConnectionMethod = "oauth" | "apikey";
 
 export interface ConnectionStatus {

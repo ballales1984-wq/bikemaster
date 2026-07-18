@@ -24,11 +24,10 @@ class TrainingStressDay:
     """Dato giornaliero di carico di allenamento.
 
     Attributes:
-        date: Giorno di riferimento.
         tss: Training Stress Score del giorno.
-        atl: Acute Training Layer (fatica a breve termine).
-        ctl: Chronic Training Layer (fitness a lungo termine).
-        tsb: Training Stress Balance (forma corrente).
+        atl: Acute Training Load (fatica a breve termine, EWMA 7g).
+        ctl: Chronic Training Load (fitness a lungo termine, EWMA 42g).
+        tsb: Training Stress Balance (forma corrente = CTL - ATL).
     """
     tss: float = 0.0
     atl: float = 0.0

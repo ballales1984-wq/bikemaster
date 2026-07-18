@@ -1,6 +1,6 @@
 # AGENTS.md — BikeMaster
 
-BikeMaster is a GPS-based cycling performance intelligence system (FastAPI + Vue 3 + TypeScript) with a BikeMaster 2.0 simulation engine and an independent AetherMap R&D cartography project.
+BikeMaster is a lifestyle health intelligence system (FastAPI + Vue 3 + TypeScript) that defines health state as the dynamic balance of variables acquired from real life, with a BikeMaster 2.0 simulation engine and an independent AetherMap R&D cartography project.
 
 ## Architecture (local-first, effective 2026-07-15)
 

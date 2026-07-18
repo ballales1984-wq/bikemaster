@@ -1,3 +1,9 @@
+/**
+ * Store delle chiavi API per-utente.
+ *
+ * Inserite dall'utente, persistite in SQLite locale e propagate
+ * al backend via header ad ogni richiesta.
+ */
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import {

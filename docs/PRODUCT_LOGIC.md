@@ -1,7 +1,7 @@
 # BikeMaster — Central Logic & Product Vision
 
-> **Version:** 1.0.0
-> **Date:** 2026-07-16
+> **Version:** 2.0.0
+> **Date:** 2026-07-18
 > **Status:** Definitive — central point of the project
 
 For technical architecture, see [MASTER.md](./MASTER.md). For roadmap phases, see [ROADMAP.md](../ROADMAP.md).
@@ -10,17 +10,54 @@ For technical architecture, see [MASTER.md](./MASTER.md). For roadmap phases, se
 
 ## 1. Strategic Positioning
 
-BikeMaster does not compete with Strava, Garmin, or TrainingPeaks. It positions itself as an **intelligence layer above the tools the cyclist already uses**.
+BikeMaster is a **lifestyle health intelligence** system. It defines health state as the dynamic balance of variables acquired from real life, and uses structured physical activity — starting with cycling — as the primary domain for analysis, recommendations, and optimization.
 
-> "You already have all your data. Now let's turn it into useful advice."
+> **Official Mission:** The program defines health state as the balancing of variables acquired from your lifestyle. You choose what to eat, it analyzes, advises compatible quantities, proposes micro-corrections, and gives you the right amount of movement to maintain balance. We are similar in biology, but different in life — and the system respects both.
 
 This choice:
 - eliminates the onboarding barrier (the user does not have to start from zero);
-- allows focus on unique value instead of rebuilding existing functionality.
+- allows focus on unique value instead of rebuilding existing functionality;
+- treats the person as a whole, not just as an athlete.
+
+### 1.1 The Health Balance Framework
+
+The system considers general health state as the **dynamic equilibrium** of all variables it collects:
+
+| VAR | Description |
+|---|---|
+| **Energia** | Available energy level |
+| **Macronutrienti** | Protein/carb/fat balance |
+| **Acqua_totale** | Daily hydration |
+| **Glicemia** | Glycemic control |
+| **VO2** | Cardiorespiratory capacity |
+| **Respirazione** | Breathing efficiency |
+| **Battito** | Resting and exertion heart rate |
+| **Orario** | Circadian rhythms and timing |
+| **Storico** | Temporal trends |
+| **Stato_generale** | Subjective wellbeing perception |
+
+These VARs are every person's **metabolic signature**.
+
+### 1.2 Where the VARs Come From — Real Life
+
+The system invents nothing: it takes variables directly from lifestyle:
+
+- **Stile_di_vita** — sedentariness, spontaneous activity, routines
+- **Orari_di_lavoro** — shifts, flexibility, workload
+- **Famiglia** — responsibilities, social support, conflicts
+- **Stress** — psychological pressure, stressful events
+- **Vizi** — smoking, alcohol, substances
+- **Abitudini** — consolidated routines, automatic choices
+- **Sonno** — duration, quality, continuity
+- **Attività_fisica** — structured exercise (cycling included) and spontaneous movement
+
+Because we are similar in biology, but different in life.
 
 ---
 
 ## 2. Differentiation vs Existing Products
+
+### 2.1 Cycling-specific tools
 
 | Product | Strength | Limitation vs BikeMaster |
 |---|---|---|
@@ -28,11 +65,21 @@ This choice:
 | **Garmin** | Hardware, sensors, smartwatches, physiological data | Technical experience, not conversational |
 | **TrainingPeaks** | Structured workouts, coaches | Rigid, oriented toward athletes who want to follow a fixed program |
 
-BikeMaster's distinctive value is the **continuous cycle**:
+### 2.2 Lifestyle health tools
+
+| Product | Strength | Limitation vs BikeMaster |
+|---|---|---|
+| **MyFitnessPal** | Food tracking, calorie counting | Passive logging, no contextual intelligence |
+| **Oura / Whoop** | Sleep, recovery, readiness scores | Single-domain (sleep/recovery), no lifestyle integration |
+| **Apple Health** | Data aggregation | Dashboard of numbers, no actionable intelligence |
+
+BikeMaster's distinctive value is the **continuous cycle** across all domains:
 
 ```
 data → understanding → decision → improvement
 ```
+
+Cycling is the flagship structured activity, but the system integrates nutrition, sleep, stress, and all lifestyle variables into one coherent health model.
 
 ---
 
@@ -45,27 +92,31 @@ data → understanding → decision → improvement
 - Athlete historical database
 - Performance analysis
 - Metrics (load, fatigue, recovery)
+- VAR tracking (energy, macros, hydration, glucose, VO2, breathing, HR, sleep, stress)
 - Clear dashboard
 - Automatic post-ride report
+- Lifestyle data integration (work schedule, family, habits, vices)
 
-Output: *"I did this ride. Here's what it means."*
+Output: *"I did this ride. Here's what it means for my overall health balance."*
 
 ### Pillar 2 — Intelligent Coach
-- Dynamic athlete profile
+- Dynamic athlete profile (cycling + lifestyle)
 - Personalized goals
-- Adaptive advice
-- Training plan
-- AI that explains data
+- Adaptive advice across all VARs
+- Training plan (cycling as structured activity)
+- Micro-corrections (nutrition timing, hydration, sleep optimization)
+- AI that explains data in context of full lifestyle
 
-Output: *"Knowing your history, here's what I recommend."*
+Output: *"Knowing your history, here's what I recommend for your balance."*
 
 ### Pillar 3 — Live Assistant
 - Voice notifications
 - Audio integration
 - Ride-time alerts
 - Real-time training status
+- Real-time lifestyle nudges (hydration, posture, breathing)
 
-Output: *"While you pedal, I guide you."*
+Output: *"While you pedal, I guide you. While you live, I keep you balanced."*
 
 ### Pillar 4 — Ecosystem
 Only after Pillars 1–3 are solid:
@@ -75,6 +126,7 @@ Only after Pillars 1–3 are solid:
 - Events
 - Advanced safety
 - Social
+- External integrations (kitchen scale, glucose monitor, sleep tracker)
 
 ---
 
@@ -289,8 +341,10 @@ Over time BikeMaster learns:
 - "When this athlete does 60 km with 800 m of climbing, they recover in 48 hours."
 - "When they exceed 3 consecutive intense days, performance drops."
 - "After a light week they respond better to long workouts."
+- "When they sleep less than 6 hours, their food tolerance changes."
+- "On high-stress work days, the same ride costs more recovery."
 
-This is the difference between an activity database and a **true athlete model**: it doesn't just store events, it learns the relationship between load and individual response.
+This is the difference between an activity database and a **true person model**: it doesn't just store events, it learns the relationship between load, lifestyle, and individual response.
 
 ---
 
@@ -313,14 +367,14 @@ The value is not in GPS tracking (that already exists). The value is: *"It helps
 
 | Criterion | Score |
 |---|---|
-| As an idea | 8.5/10 |
-| Differentiation potential | 9/10 |
+| As an idea | 9/10 |
+| Differentiation potential | 9.5/10 |
 | Technical difficulty | 8/10 |
-| First solo-product potential | 7/10 (requires careful choice of the first piece) |
+| First solo-product potential | 8/10 (cycling is the structured entry point; lifestyle expands the moat) |
 
 The sentence that summarizes the project:
 
-> "Strava records what you did. BikeMaster tries to understand what you should do next."
+> "Strava records what you did. BikeMaster tries to understand what you should do next — not just on the bike, but in your whole life."
 
 The challenge is not having 100 features, but demonstrating that the cycle:
 
@@ -328,32 +382,53 @@ The challenge is not having 100 features, but demonstrating that the cycle:
 data → understanding → advice → improvement
 ```
 
-actually works for the first users.
+actually works for the first users, starting with cycling as the structured activity domain.
 
 ---
 
 ## 9. Conceptual Architecture
 
 ```
-Dati → Analisi → Stato atleta → Decisione → Comunicazione → Nuovo feedback
+Dati → Analisi → Stato persona → Decisione → Comunicazione → Nuovo feedback
 ```
 
 The system becomes a continuous cycle:
 
 ```
-Training
-   ↓
-Measurement
-   ↓
-Understanding
-   ↓
-Adaptation
-   ↓
+Training (structured activity)
+    ↓
+Measurement (VARs from sensors + lifestyle)
+    ↓
+Understanding (metabolic signature interpretation)
+    ↓
+Adaptation (micro-corrections + dynamic training)
+    ↓
+Balance (equilibrio metabolico)
+    ↓
 New training
 ```
+
+### 9.1 Health Balance Operational Cycle
+
+Every day the system:
+
+1. **Analizza** ciò che scegli di mangiare → *Analisi_cibo*
+2. **Consiglia** la quantità compatibile → *Quantita_compatibile*
+3. **Propone** micro-correzioni intelligenti → *Correzione_micro*
+4. **Calcola** la quantità giusta di movimento → *Allenamento_dinamico*
+5. **Bilancia** le VAR per riportarti in equilibrio → *Equilibrio_metabolico*
+
+### 9.2 Feedback and Direct Measurements
+
+The system becomes personal through:
+
+- **Feedback_personale** — perceptions, sensations, preferences
+- **Misurazioni_dirette** — sensors, devices, labs
+
+So it understands: how you react, how you feel, how your energy varies, how your general state changes. And it adapts everything.
 
 ### Final Objective
 
 Transform BikeMaster from a simple ride recorder into:
 
-> **A personal digital coach that knows the athlete, understands the present situation, and guides them on the improvement path.**
+> **A personal lifestyle health intelligence system that knows the person, understands their metabolic signature, and guides them toward dynamic equilibrium — with cycling as the structured activity anchor.**

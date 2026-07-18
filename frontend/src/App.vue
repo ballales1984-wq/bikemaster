@@ -1,3 +1,13 @@
+<!--
+BikeMaster Frontend — componente root.
+
+Responsabilità:
+- layout globale (header, sfondo animato, tema scuro/chiaro)
+- gestisce login/registrazione quando non autenticato
+- routing outlet verso view e pannelli autenticati
+- overlay loading OAuth e prompt installazione PWA
+-->
+
 <template>
   <div class="app" :class="{ 'light-theme': !ui.isDark }">
     <div class="app-bg" aria-hidden="true">

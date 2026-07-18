@@ -1,3 +1,9 @@
+/**
+ * Store delle uscite/ride.
+ *
+ * Gestisce la lista delle ride, i filtri, il riepilogo aggregato
+ * e la persistenza offline in SQLite locale.
+ */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { Ride, Summary } from "../types/index";

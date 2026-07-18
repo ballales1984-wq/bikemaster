@@ -1,3 +1,9 @@
+/**
+ * Composable per interrogare il motore BikeMaster 2.0 (AI Orchestrator).
+ * Espone chiamate `ask`/`simulate` (domande), `simulateRide` (scenario "what if"
+ * su una ride) e `validate` (kernel fisico vs power-meter), con stati reattivi
+ * `answer`, `rideSimulation`, `validation`, `loading`, `error`.
+ */
 import { ref } from "vue";
 import { apiPost } from "../utils/api";
 import type {

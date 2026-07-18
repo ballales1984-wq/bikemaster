@@ -1,3 +1,9 @@
+/**
+ * Store di autenticazione.
+ *
+ * Gestisce token JWT, utente corrente, login/logout/register e refresh
+ * token. Persiste lo stato in localStorage.
+ */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { Athlete } from "../types/index";

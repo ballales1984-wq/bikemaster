@@ -1,3 +1,13 @@
+/**
+ * Client HTTP verso il backend con gestione auth, retry e failover.
+ *
+ * `request` incapsula `fetch` aggiungendo header di autenticazione e delle
+ * chiavi utente, timeout via `AbortController` e retry con backoff su errori di
+ * rete e stati 502/503/504 (avviando il failover Render sull'ultimo tentativo).
+ * Su 401 pulisce la sessione e notifica la scadenza. Espone `apiGet`, `apiPost`,
+ * `apiPut`, `apiDelete`, `apiUpload` e la classe `ApiError`.
+ */
+
 import { useAuthStore } from "../stores/auth";
 import { resolveApiBase, resolveFallbackBase, isFallbackEnabled } from "./backend-config";
 import { getUserKeysHeaderValue } from "./userKeys";

@@ -1,3 +1,11 @@
+/**
+ * Composable GPS a basso consumo energetico.
+ * Fornisce uno scheduling adattivo della geolocalizzazione: l'intervallo di
+ * campionamento e l'accuratezza variano in base alla velocità rilevata e alla
+ * presenza di movimento, riducendo il drain della batteria quando fermi o con
+ * il risparmio attivo. Espone lo stato reattivo `isWaiting`/`isMoving` e i
+ * controlli `start`, `stop`, `pause`, `resume`.
+ */
 import { ref } from 'vue'
 import { haversineDistanceMeters as haversineMeters } from '../utils/geo'
 

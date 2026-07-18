@@ -1,3 +1,9 @@
+/**
+ * Store dell'interfaccia utente.
+ *
+ * Gestisce tema (chiaro/scuro), sidebar collassata, stato OAuth
+ * in caricamento e flag per AetherMap.
+ */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { AUTH_OAUTH_LOADING_KEY } from "../utils/auth-storage";

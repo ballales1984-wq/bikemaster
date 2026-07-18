@@ -1,3 +1,10 @@
+/**
+ * Composable per le notifiche toast.
+ * Gestisce una lista reattiva di toast con tipologia (success/error/warning/
+ * info), auto-rimozione con animazione e pulizia dei timer allo smontaggio.
+ * Espone `items`, `add`, `show`, `remove` e gli helper `success`/`error`/
+ * `warning`/`info`.
+ */
 import { onBeforeUnmount, ref } from "vue";
 
 interface ToastItem {

@@ -1,6 +1,6 @@
 # BikeMaster User Guide
 
-GPS-based cycling performance intelligence system. Import rides from GPX/FIT files, analyze power metrics, estimate calories and fatigue, visualize routes on interactive maps, and access everything through a REST API.
+Lifestyle health intelligence system. Import activities from GPX/FIT files, track health variables (energy, macros, hydration, glucose, VO2, breathing, HR, sleep, stress), analyze performance metrics, estimate calories and fatigue, visualize routes on interactive maps, and access everything through a REST API.
 
 ## Table of Contents
 

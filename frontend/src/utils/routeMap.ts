@@ -1,3 +1,13 @@
+/**
+ * Utilità per la mappa dei percorsi e la colorazione dei segmenti di rischio.
+ *
+ * `buildRidePolylines` raggruppa i segmenti per colore; `riskColor`,
+ * `gradeRiskPercent`, `weatherRiskPercent` e `speedRiskPercent` mappano rischio
+ * (gradiente/condizioni/velocità) in percentuale e colore. `speedColor` colora
+ * in base alla velocità rispetto al range del ride; `escapeHtml` e
+ * `formatDistance` sono helper di formattazione.
+ */
+
 import type { GpsPoint, RideSegment, EnrichedRide } from "../types/index";
 import { RISK_COLORS, GRADE_COLORS, SPEED_COLORS } from "../constants";
 

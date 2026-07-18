@@ -1,3 +1,10 @@
+/**
+ * BikeMaster Frontend — routing Vue Router.
+ *
+ * Definizione route pubbliche e protette, guard di autenticazione
+ * e gestione del titolo dinamico per ogni vista.
+ */
+
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useUIStore } from "../stores/ui";

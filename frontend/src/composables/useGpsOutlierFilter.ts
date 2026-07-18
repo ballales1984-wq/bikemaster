@@ -1,3 +1,9 @@
+/**
+ * Filtro outlier spaziali/temporali per punti GPS.
+ * Usa la distanza haversine e la velocità stimata (distanza/tempo) per scartare
+ * salti eccessivi o velocità non plausibili rispetto all'ultimo punto valido.
+ * Espone `isOutlier` e `reset`.
+ */
 import type { GpsPoint } from "../types/index";
 
 export interface GpsOutlierFilterOptions {

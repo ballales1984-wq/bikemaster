@@ -1,3 +1,9 @@
+/**
+ * Composable per l'installazione Progressive Web App (PWA).
+ * Intercetta l'evento `beforeinstallprompt`, espone lo stato reattivo
+ * `showPrompt`/`deferredPrompt` e la funzione `prompt()` per mostrare il
+ * dialogo di installazione nativo del browser.
+ */
 import { ref } from "vue";
 
 interface BeforeInstallPromptEvent extends Event {

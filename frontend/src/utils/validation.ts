@@ -1,3 +1,13 @@
+/**
+ * Validazione dei form, in particolare dell'anagrafica atleta.
+ *
+ * `validateAthleteForm` restituisce una mappa campo→errore controllando nome,
+ * email (regex), età/peso/altezza/volume/ftp nei limiti di `ATHLETE_LIMITS` e
+ * livello di esperienza ammesso. Riesporta gli helper `validateEmail`,
+ * `validateRequired`, `validateNumber`, `validateExperienceLevel` e l'elenco
+ * `VALID_EXPERIENCE_LEVELS`.
+ */
+
 import { ATHLETE_LIMITS } from "../constants";
 
 const VALID_EXPERIENCE_LEVELS = [

@@ -102,6 +102,19 @@ class GPSAgent:
 
     @classmethod
     def from_geojson(cls, transformer: TransformerEngine, data: dict[str, Any], title: str = "") -> Activity:
+        """Costruisce un'``Activity`` da un FeatureCollection GeoJSON di punti.
+
+        Considera solo le ``Feature`` con ``geometry.type == "Point"``; i
+        timestamp sono letti da ``properties.timestamp`` o ``properties.time``.
+
+        Args:
+            transformer: Motore di trasformazione unita'.
+            data: Dict GeoJSON con chiave ``features``.
+            title: Titolo opzionale per l'attivita'.
+
+        Returns:
+            Activity con i punti GeoPoint estratti dal GeoJSON.
+        """
         raw_points: list[dict] = []
         for feat in data.get("features", []):
             geom = feat.get("geometry", {})
@@ -121,33 +134,92 @@ class GPSAgent:
 
 
 class AthleteAgent:
-    """Gestisce il corpo umano, le capacità e lo storico dell'atleta."""
+    """Gestisce il corpo umano, le capacita' e lo storico dell'atleta.
+
+    Trasforma dati raw dell'atleta in oggetti ``Athlete`` del Core Model
+    tramite ``Athlete.from_raw`` e il TransformerEngine.
+    """
 
     def __init__(self, transformer: TransformerEngine) -> None:
+        """Inizializza con il TransformerEngine per la normalizzazione.
+
+        Args:
+            transformer: Motore di trasformazione unita'.
+        """
         self.t = transformer
 
     def collect(self, raw: dict) -> Athlete:
+        """Costruisce un ``Athlete`` da un dict di dati raw.
+
+        Args:
+            raw: Dizionario con dati atleta (peso, FTP, eta', ecc.).
+
+        Returns:
+            Athlete normalizzato tramite TransformerEngine.
+        """
         return Athlete.from_raw(raw, self.t)
 
 
 class EnvironmentAgent:
-    """Gestisce meteo, terreno e condizioni ambientali."""
+    """Gestisce meteo, terreno e condizioni ambientali.
+
+    Trasforma dati ambientali raw in ``WorldObject`` del Core Model.
+    """
 
     def __init__(self, transformer: TransformerEngine) -> None:
+        """Inizializza con il TransformerEngine per la normalizzazione.
+
+        Args:
+            transformer: Motore di trasformazione unita'.
+        """
         self.t = transformer
 
     def collect(self, raw: dict) -> WorldObject:
+        """Costruisce un ``WorldObject`` da un dict di dati ambientali raw.
+
+        Args:
+            raw: Dizionario con superficie, pendenza, vento, temperatura, ecc.
+
+        Returns:
+            WorldObject normalizzato tramite TransformerEngine.
+        """
         return WorldObject.from_raw(raw, self.t)
 
 
 class SensorAgent:
-    """Estrae grandezze da sensori esterni (cardio, potenza, cadenza)."""
+    """Estrae grandezze da sensori esterni (cardio, potenza, cadenza).
+
+    Arricchisce i punti di un'``Activity`` con dati di sensori esterni,
+    abbinando i campioni per timestamp o per indice sequenziale.
+    """
 
     def __init__(self, transformer: TransformerEngine) -> None:
+        """Inizializza con il TransformerEngine.
+
+        Args:
+            transformer: Motore di trasformazione unita'.
+        """
         self.t = transformer
 
     def enrich_points(self, activity: Activity, raw_samples: list[dict], match_by_timestamp: bool = True) -> Activity:
+        """Arricchisce i punti dell'attivita' con dati di sensore.
+
+        Se ``match_by_timestamp`` e' True, abbina ogni campione al punto GPS
+        piu' vicino temporalmente usando ricerca binaria (``bisect``).
+        Altrimenti associa per indice sequenziale (primo campione -> primo punto,
+        ecc.).
+
+        Args:
+            activity: Activity da arricchire (modificata in-place).
+            raw_samples: Lista di dict con ``speed``, ``power``,
+                ``heart_rate``, ``cadence`` e ``timestamp`` opzionale.
+            match_by_timestamp: Se True, abbina per timestamp anziche' per indice.
+
+        Returns:
+            La stessa Activity modificata con i valori dei sensori inseriti.
+        """
         if not match_by_timestamp or not activity.points:
+            # Abbinamento sequenziale: primo campione -> primo punto, ecc.
             for i, sample in enumerate(raw_samples):
                 if i >= len(activity.points):
                     break
@@ -162,6 +234,8 @@ class SensorAgent:
                 )
             return activity
 
+        # Ricerca binaria per trovare il punto GPS piu' vicino al timestamp
+        # del campione del sensore.
         import bisect
 
         indexed_ts = [(i, p.timestamp) for i, p in enumerate(activity.points) if p.timestamp is not None]
@@ -200,6 +274,17 @@ class SensorAgent:
         return activity
 
     def summarize(self, activity: Activity) -> dict:
+        """Calcola le statistiche riepilogative dell'attivita'.
+
+        Calcola medie per heart_rate, power, cadence e speed considerando
+        solo i punti con valore non-None.
+
+        Args:
+            activity: Activity da riassumere.
+
+        Returns:
+            Dizionario con medie e conteggio campioni per ogni metrica.
+        """
         hrs = [p.heart_rate for p in activity.points if p.heart_rate is not None]
         pwrs = [p.power for p in activity.points if p.power is not None]
         cads = [p.cadence for p in activity.points if p.cadence is not None]
@@ -215,12 +300,32 @@ class SensorAgent:
 
 
 class StravaAgent:
-    """Adapter per attività Strava verso il Core Model."""
+    """Adapter per attivita' Strava verso il Core Model.
+
+    Converte il payload JSON dell'API Strava in ``Activity`` e ``Athlete``
+    del Core Model, mappando i campi specifici di Strava (``moving_time``,
+    ``total_elevation_gain``, ``average_speed``, ecc.) nel formato raw
+    atteso da ``from_raw``.
+    """
 
     def __init__(self, transformer: TransformerEngine) -> None:
+        """Inizializza con il TransformerEngine.
+
+        Args:
+            transformer: Motore di trasformazione unita'.
+        """
         self.t = transformer
 
     def activity_from_raw(self, raw: dict[str, Any]) -> Activity:
+        """Converte il payload di un'attivita' Strava in ``Activity``.
+
+        Args:
+            raw: Dict con chiavi Strava (``gps_points``, ``moving_time``,
+                ``total_elevation_gain``, ``average_speed``, ``name``, ecc.).
+
+        Returns:
+            Activity normalizzata con dati Strava mappati.
+        """
         gps_points = raw.get("gps_points") or raw.get("points") or []
         summary = {
             "distance_km": raw.get("distance", 0) / 1000 if raw.get("distance") else 0,
@@ -237,16 +342,44 @@ class StravaAgent:
         }, self.t)
 
     def athlete_from_raw(self, raw: dict[str, Any]) -> Athlete:
+        """Converte i dati profilo atleta Strava in ``Athlete``.
+
+        Args:
+            raw: Dict con dati atleta da Strava.
+
+        Returns:
+            Athlete normalizzato.
+        """
         return Athlete.from_raw(raw, self.t)
 
 
 class GarminAgent:
-    """Adapter per attività Garmin verso il Core Model."""
+    """Adapter per attivita' Garmin verso il Core Model.
+
+    Converte il payload JSON dell'API Garmin in ``Activity`` e ``Athlete``
+    del Core Model, mappando i campi specifici Garmin (``averageSpeed``,
+    ``elevationGain``, ``duration``, ecc.) nel formato raw atteso da
+    ``from_raw``.
+    """
 
     def __init__(self, transformer: TransformerEngine) -> None:
+        """Inizializza con il TransformerEngine.
+
+        Args:
+            transformer: Motore di trasformazione unita'.
+        """
         self.t = transformer
 
     def activity_from_raw(self, raw: dict[str, Any]) -> Activity:
+        """Converte il payload di un'attivita' Garmin in ``Activity``.
+
+        Args:
+            raw: Dict con chiavi Garmin (``gps_points``, ``duration``,
+                ``elevationGain``, ``averageSpeed``, ``activityName``, ecc.).
+
+        Returns:
+            Activity normalizzata con dati Garmin mappati.
+        """
         gps_points = raw.get("gps_points") or raw.get("points") or []
         avg_speed = raw.get("averageSpeed", 0) or 0
         summary = {

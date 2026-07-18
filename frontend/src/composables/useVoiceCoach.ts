@@ -1,3 +1,11 @@
+/**
+ * Composable Voice Coach: TTS (speak) e STT (listen) via Web Speech API, con
+ * fallback testuale se il browser non supporta le API. Riconosce comandi vocali
+ * in italiano/inglese (stop, pause, resume, status) e notifica via handler
+ * `on`. Espone gli stati `ttsSupported`/`sttSupported`/`isListening`/
+ * `lastTranscript`/`lastCommand` e le azioni `speak`, `startListening`,
+ * `stopListening`, `parseCommand`.
+ */
 import { ref, onBeforeUnmount } from "vue";
 import type { ParsedVoiceCommand, VoiceCommand } from "../types/notifications";
 

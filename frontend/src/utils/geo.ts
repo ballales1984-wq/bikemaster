@@ -1,4 +1,10 @@
 /**
+ * Utility geografiche per il calcolo delle distanze tra coordinate GPS.
+ *
+ * Fornisce `haversineDistanceMeters`, che calcola la distanza ortodromica
+ * (grande cerchio) in metri tra due punti usando la formula di Haversine e il
+ * raggio terrestre medio. Usata per distanze, segmenti e statistiche dei ride.
+ *
  * Calculates the great-circle distance between two points on a sphere
  * given their longitudes and latitudes.
  *

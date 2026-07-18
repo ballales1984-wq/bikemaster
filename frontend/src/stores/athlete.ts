@@ -1,3 +1,9 @@
+/**
+ * Store profilo atleta.
+ *
+ * Mantiene il profilo dell'atleta (età, peso, FTP, FC max, ecc.),
+ * gestisce il caricamento e l'aggiornamento da backend.
+ */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { Athlete } from "../types/index";

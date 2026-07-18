@@ -43,7 +43,19 @@ class PowerValidationResult:
 
 
 def _segment_pairs(points: list[GPSPoint]):
-    """Yield (measured_power, v_ms, grade) per punto con power-meter valido."""
+    """Yield (measured_power, v_ms, grade) per segmento con power-meter valido.
+
+    Per ogni coppia consecutiva di punti GPS con power misurato e timestamp
+    validi, calcola velocita' istantanea (distanza haversine / dt) e pendenza
+    tra i due punti. Salta segmenti con dt <= 0 o distanza <= 0.
+
+    Args:
+        points: Lista di GPSPoint ordinati per timestamp.
+
+    Yields:
+        Tupla (potenza_misurata_W, velocita_ms, grade) per ogni segmento
+        con dati power-meter validi.
+    """
     from ..models import haversine_distance_m
 
     for prev, cur in zip(points, points[1:]):
@@ -93,8 +105,9 @@ def validate_ride_power(
     rmse = (sum(e * e for e in errors) / n) ** 0.5
     bias = mean_e - mean_m
 
-    ss_res = sum(e * e for e in errors)
-    ss_tot = sum((m - mean_m) ** 2 for m in measured)
+    # R^2 = 1 - SS_res / SS_tot: frazione di varianza spiegata dal modello
+    ss_res = sum(e * e for e in errors)                  # somma quadrati residui
+    ss_tot = sum((m - mean_m) ** 2 for m in measured)    # somma quadrati totali
     r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 1.0
 
     return PowerValidationResult(

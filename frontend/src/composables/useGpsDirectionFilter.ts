@@ -1,3 +1,9 @@
+/**
+ * Filtro outlier direzionali per tracciati GPS.
+ * Mantiene una finestra mobile di bearing (direzioni) accettati e scarta i
+ * punti la cui deviazione rispetto alla direzione media supera la soglia, a
+ * meno che non si sia in curva. Espone `isDirectionOutlier`, `accept`, `reset`.
+ */
 import type { GpsPoint } from "../types/index";
 
 export interface DirectionFilterOptions {

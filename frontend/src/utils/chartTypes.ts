@@ -1,4 +1,13 @@
 /**
+ * Tipizzazioni minime e senza dipendenze per le configurazioni Chart.js.
+ *
+ * Esporta `ChartDataset`, `ChartScales`, `ChartPlugins` e le interfacce
+ * `ChartConfiguration`/`ChartOptions` che descrivono solo i campi usati
+ * dall'app (tipo grafico, dataset, opzioni, assi, plugin). Serve a ovviare alle
+ * dichiarazioni mancanti del package Chart.js installato.
+ */
+
+/**
  * Minimal, dependency-free typings for the Chart.js configuration objects we
  * build. chart.js v4 ships its own declarations, but the installed package's
  * `types` entry points at a missing file, so we describe just what we use.

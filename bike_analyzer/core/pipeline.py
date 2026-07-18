@@ -45,24 +45,54 @@ class AnalysisPipeline:
     2. Calcolo metriche: fatica, recupero, calorie, performance, potenza (``_compute_metrics``).
     """
 
-    def __init__(self, ftp: float = 250.0):
-        """Create the pipeline with the athlete's FTP in watts."""
+    def __init__(self, ftp: float = 250.0) -> None:
+        """Create the pipeline with the athlete's FTP in watts.
+
+        Args:
+            ftp: Functional Threshold Power used for TSS calculation.
+                Default 250W.
+        """
         self.ftp = ftp
 
     async def run(self, ride: Ride) -> PipelineResult:
-        """Execute the pipeline asynchronously for a ride."""
+        """Execute the pipeline asynchronously for a ride.
+
+        Args:
+            ride: Cycling activity to process.
+
+        Returns:
+            PipelineResult con statistiche percorso e metriche aggregate.
+        """
         stats = self._process_gps(ride)
         metrics = self._compute_metrics(ride)
         return PipelineResult(ride=ride, route_statistics=stats, metrics=metrics)
 
     def run_sync(self, ride: Ride) -> PipelineResult:
-        """Execute the pipeline synchronously for a ride."""
+        """Execute the pipeline synchronously for a ride.
+
+        Args:
+            ride: Cycling activity to process.
+
+        Returns:
+            PipelineResult con statistiche percorso e metriche aggregate.
+        """
         stats = self._process_gps(ride)
         metrics = self._compute_metrics(ride)
         return PipelineResult(ride=ride, route_statistics=stats, metrics=metrics)
 
     def _process_gps(self, ride: Ride) -> RouteStatistics | None:
-        """Clean GPS points and compute route statistics."""
+        """Pulisce i punti GPS e calcola le statistiche di percorso.
+
+        Usa ``process_route`` dal backend processing per pulizia outlier,
+        rilevamento pause e calcolo statistiche aggregate. Modifica
+        ``ride.gps_points`` in-place con i punti puliti.
+
+        Args:
+            ride: Attivita' con punti GPS grezzi.
+
+        Returns:
+            RouteStatistics aggregate, o None se non ci sono punti GPS.
+        """
         if not ride.gps_points:
             return None
         from bike_analyzer.backend.processing.processing import process_route
@@ -72,7 +102,18 @@ class AnalysisPipeline:
         return stats
 
     def _compute_metrics(self, ride: Ride) -> dict:
-        """Compute fatigue, recovery, calories, performance, efficiency, and TSS."""
+        """Calcola tutte le metriche aggregate per l'attivita'.
+
+        Calcola: fatica, ore di recupero stimate, calorie, punteggio
+        performance, efficienza e Training Stress Score (TSS).
+
+        Args:
+            ride: Attivita' elaborata con GPS puliti.
+
+        Returns:
+            Dizionario con chiavi: ``fatigue_score``, ``recovery_hours``,
+            ``calories``, ``performance_score``, ``efficiency_score``, ``tss``.
+        """
         from .calculators import calories, fatigue, performance, power
 
         fatigue_score = fatigue.calculate_fatigue_score(ride)

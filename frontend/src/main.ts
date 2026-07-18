@@ -1,3 +1,12 @@
+/**
+ * BikeMaster Frontend — entrypoint.
+ *
+ * Bootstrap della SPA Vue 3:
+ * - inizializza Pinia, router, tema e DB locale SQLite
+ * - gestisce il ritorno OAuth Google (token fragment + finalize)
+ * - registra il service worker per PWA/aggiornamenti
+ */
+
 import { createApp } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import App from "./App.vue";

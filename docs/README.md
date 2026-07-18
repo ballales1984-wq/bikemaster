@@ -21,7 +21,11 @@
 
 ## Overview
 
-**BikeMaster** è un sistema di *performance intelligence* per ciclisti basato su GPS. Importa tracciati da GPX/FIT o servizi esterni (Strava, Garmin, Wahoo, Google Fit), analizza metriche, stima calorie, calcola fatigue score, confronta con benchmark, fornisce un **AI Coach** (Groq + RAG) e visualizza percorsi su mappe interattive.
+**BikeMaster** è un sistema di *intelligenza dello stile di vita*: definisce lo stato di salute come il bilanciamento dinamico delle variabili acquisite dalla vita reale di ogni persona, e usa l'attività ciclistica come dominio strutturato per analisi, raccomandazioni e ottimizzazione.
+
+> **Mission ufficiale:** il nostro programma definisce lo stato di salute come il bilanciamento delle variabili acquisite dal tuo stile di vita. Tu scegli cosa mangiare, lui analizza, ti consiglia la quantità compatibile, ti propone micro-correzioni e ti dà la quantità giusta di movimento per mantenere l'equilibrio. Siamo simili come biologia, ma diversi come vita — e il sistema rispetta entrambe le cose.
+
+Importa tracciati da GPX/FIT o servizi esterni (Strava, Garmin, Wahoo, Google Fit), analizza metriche, stima calorie, calcola fatigue score, confronta con benchmark, fornisce un **AI Coach** (Groq + RAG) e visualizza percorsi su mappe interattive.
 
 Architettura: **local-first, desktop-first (Tauri 2)** con backend FastAPI embedded, frontend Vue 3 SPA, SQLite come database primario. Include **BikeMaster 2.0 (BM2)** come motore di simulazione what-if e **AetherMap** come progetto R&D cartografico separato.
 

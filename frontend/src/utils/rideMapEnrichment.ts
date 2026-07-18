@@ -1,3 +1,12 @@
+/**
+ * Arricchimento dei dati GPS dei ride per la visualizzazione su mappa.
+ *
+ * Normalizza e decampiona i punti GPS, costruisce i segmenti (`buildSegments`)
+ * calcolandone distanza/gradiente via Haversine, e `buildDemoSegments` vi applica
+ * rischio e colore. `getCenter` calcola il baricentro; `haversineDistanceM` è la
+ * distanza ortodromica in metri (raggio terra 6371000 m).
+ */
+
 import type { GpsPoint, RideSegment } from "../types/index";
 
 export function normalizePoints(points: GpsPoint[] = []): GpsPoint[] {

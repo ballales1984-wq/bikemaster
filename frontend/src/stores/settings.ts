@@ -1,3 +1,9 @@
+/**
+ * Store delle impostazioni di connessione backend.
+ *
+ * Permette di configurare l'URL del backend locale (es. PC utente)
+ * e l'eventuale fallback su Render, con persistenza in localStorage.
+ */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import {

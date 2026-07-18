@@ -1,3 +1,13 @@
+/**
+ * Gestione delle chiavi API per-utente immesse sul dispositivo.
+ *
+ * Esporta l'interfaccia `UserApiKeys` (slot per servizi interni ed esterni),
+ * gli helper `setUserKeys`/`getUserKeys` per lo stato in memoria e
+ * `getUserKeysHeaderValue` che produce l'header `X-User-Api-Keys` (JSON dei soli
+ * slot non vuoti, oppure `null`). `parseBulkKeys` converte un blocco incollato
+ * (JSON o righe `KEY=VALUE`, con nomi stile-environment) nelle chiavi utente.
+ */
+
 // Chiavi API per-utente, inserite dall'utente sul dispositivo e inviate al
 // backend del PC tramite l'header `X-User-Api-Keys`. Il backend le usa per la
 // singola richiesta al posto delle sue chiavi di server.

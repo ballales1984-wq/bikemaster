@@ -1,3 +1,9 @@
+/**
+ * Store del tracking GPS in tempo reale.
+ *
+ * Registra metriche della pedalata (distanza, velocità, elevazione,
+ * FC, cadenza, potenza), traccia punti GPS e genera GPX.
+ */
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import type { GpsPoint } from "../types/index";

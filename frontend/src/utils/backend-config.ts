@@ -1,3 +1,13 @@
+/**
+ * Risoluzione configurabile a runtime dell'URL base del backend.
+ *
+ * Stabilisce il base *primario* (impostazione localStorage, `VITE_API_BASE`,
+ * auto-detect Tauri, same-origin) e quello dell'hub cloud. `resolveFallbackBase`
+ * espone il failover Render (usato solo su errore di rete/5xx se abilitato).
+ * Esporta inoltre gli storage key, i getter/setter e `getBackendMode`
+ * ("pc"|"render"|"local"|"tauri"|"hub") che descrive la modalità attiva.
+ */
+
 // Risolve l'URL base del backend in modo configurabile a runtime.
 //
 // Priorità del base *primario*:

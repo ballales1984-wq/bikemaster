@@ -1,7 +1,7 @@
 # BikeMaster — Stack Tecnologico
 
 Documento che descrive le tecnologie informatiche alla base di BikeMaster,
-un sistema di *performance intelligence* per ciclisti basato su GPS.
+un sistema di *intelligenza dello stile di vita*: definisce lo stato di salute come il bilanciamento dinamico delle variabili acquisite dalla vita reale.
 
 **Architettura:** local-first, desktop-first (Tauri 2). Il device è la sorgente di verità.
 

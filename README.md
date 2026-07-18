@@ -6,7 +6,9 @@
 [![Vue 3](https://img.shields.io/badge/Vue-3.4%2B-green.svg)](https://vuejs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-black.svg)](https://fastapi.tiangolo.com/)
 
-**BikeMaster** è un sistema di *performance intelligence* per ciclisti basato su GPS: raccoglie dati da sensori e servizi esterni, li trasforma in conoscenza (forma, fatica, recupero, difficoltà percorso) e li mette al servizio di un AI Coach.
+**BikeMaster** è un sistema di *intelligenza dello stile di vita*: definisce lo stato di salute come il bilanciamento dinamico delle variabili acquisite dalla vita reale di ogni persona, e usa l'attività ciclistica come dominio strutturato per analisi, raccomandazioni e ottimizzazione.
+
+> **Mission ufficiale:** il nostro programma definisce lo stato di salute come il bilanciamento delle variabili acquisite dal tuo stile di vita. Tu scegli cosa mangiare, lui analizza, ti consiglia la quantità compatibile, ti propone micro-correzioni e ti dà la quantità giusta di movimento per mantenere l'equilibrio. Siamo simili come biologia, ma diversi come vita — e il sistema rispetta entrambe le cose.
 
 > **Piattaforma primaria:** desktop **Tauri 2** (`.exe`/`.dmg`/`.AppImage`) con backend embedded e database locale SQLite. PWA supportata per utenti web-only. Deploy cloud opzionale per sync/community.
 
@@ -23,15 +25,80 @@
 
 ## Visione
 
-Il principio guida: i dati grezzi non hanno valore finché non vengono trasformati in conoscenza utilizzabile.
+### Missione ufficiale
+
+Il nostro programma definisce lo stato di salute come il bilanciamento delle variabili acquisite dal tuo stile di vita.
+
+```
+STATO DI SALUTE = EQUILIBRIO DINAMICO DELLE VAR
+```
+
+Tu scegli cosa mangiare, il sistema analizza, ti consiglia la quantità compatibile, ti propone micro-correzioni e ti dà la quantità giusta di movimento per mantenere l'equilibrio. Siamo simili come biologia, ma diversi come vita — e il sistema rispetta entrambe le cose.
+
+### Le VAR — la firma metabolica di ogni persona
+
+Il programma considera lo stato generale di salute come l'equilibrio dinamico di tutte le variabili che raccoglie:
+
+| VAR | Descrizione |
+|---|---|
+| **Energia** | Livello energetico disponibile |
+| **Macronutrienti** | Bilanciamento proteine/carboidrati/grassi |
+| **Acqua_totale** | Idratazione giornaliera |
+| **Glicemia** | Controllo glicemico |
+| **VO2** | Capacità cardio-respiratoria |
+| **Respirazione** | Efficienza respiratoria |
+| **Battito** | Frequenza cardiaca a riposo e sotto sforzo |
+| **Orario** | Ritmi circadiani e tempistiche |
+| **Storico** | Andamento nel tempo |
+| **Stato_generale** | Percezione soggettiva del benessere |
+
+Queste VAR sono la **firma metabolica** di ogni persona.
+
+### Origine delle VAR — la vita reale
+
+Il sistema non inventa nulla: prende le variabili direttamente dal tuo stile di vita:
+
+- **Stile_di_vita** — sedentarietà, attività spontanea, routine
+- **Orari_di_lavoro** — turni, flessibilità, carico lavorativo
+- **Famiglia** — responsabilità, supporto sociale, conflitti
+- **Stress** — pressione psicologica, eventi stressanti
+- **Vizi** — fumo, alcol, sostanze
+- **Abitudini** — routine consolidate, scelte automatiche
+- **Sonno** — durata, qualità, continuità
+- **Attività_fisica** — esercizio strutturato (ciclismo incluso) e movimento spontaneo
+
+Perché siamo simili come biologia, ma diversi come vita.
+
+### Ciclo operativo del sistema
+
+Ogni giorno il sistema:
+
+1. **Analizza** ciò che scegli di mangiare → *Analisi_cibo*
+2. **Consiglia** la quantità compatibile → *Quantita_compatibile*
+3. **Propone** micro-correzioni intelligenti → *Correzione_micro*
+4. **Calcola** la quantità giusta di movimento → *Allenamento_dinamico*
+5. **Bilancia** le VAR per riportarti in equilibrio → *Equilibrio_metabolico*
+
+### Feedback e misurazioni dirette
+
+Il sistema diventa personale grazie a:
+
+- **Feedback_personale** — percezioni, sensazioni, preferenze
+- **Misurazioni_dirette** — sensori, dispositivi, laboratori
+
+Così capisce: come reagisci, come ti senti, come varia la tua energia, come cambia il tuo stato generale. E adatta tutto.
+
+### Principio guida
+
+I dati grezzi non hanno valore finché non vengono trasformati in conoscenza utilizzabile.
 
 ```
 DATI GREZZI → MODELLI MATEMATICI → STATI INTERPRETATI → KNOWLEDGE BASE → AI COACH → DECISIONI
 ```
 
-L'obiettivo non è accumulare dati, ma costruire un modello completo di atleta + territorio + ambiente. L'AI Coach riceve solo concetti già interpretati, mai numeri grezzi.
+L'obiettivo non è accumulare dati, ma costruire un modello completo di persona + territorio + ambiente. L'AI Coach riceve solo concetti già interpretati, mai numeri grezzi.
 
-**Posizionamento:** non compete con Strava/Garmin/TrainingPeaks. È uno **strato di intelligenza sopra gli strumenti che il ciclista già usa**.
+**Posizionamento:** non compete con app dedicate (Strava/Garmin/TrainingPeaks per il ciclismo, MyFitnessPal per la nutrizione, Oura/Whoop per il sonno). È uno **strato di intelligenza sopra tutti gli strumenti che la persona già usa**, integrato in un'unica visione olistica dello stato di salute.
 
 ## Architettura
 

@@ -41,11 +41,16 @@ Vedi anche [UNIFIED_DOCUMENTATION.md](./UNIFIED_DOCUMENTATION.md) per la sintesi
 
 ## 1. Overview
 
-**BikeMaster** is a GPS-based cycling performance intelligence system. It allows cyclists of all levels to:
+**BikeMaster** is a **lifestyle health intelligence** system. It defines health state as the dynamic balance of variables acquired from real life, and uses structured physical activity — starting with cycling — as the primary domain for analysis, recommendations, and optimization.
+
+> **Official Mission:** The program defines health state as the balancing of variables acquired from your lifestyle. You choose what to eat, it analyzes, advises compatible quantities, proposes micro-corrections, and gives you the right amount of movement to maintain balance. We are similar in biology, but different in life — and the system respects both.
+
+It allows people of all levels to:
 
 - import routes from **GPX / FIT** files or external services (Strava, Garmin, Wahoo, Google Fit);
 - analyze performance metrics: distance, speed, elevation, accelerations, pauses;
 - estimate **calories** (physics + MET) and calculate a **fatigue score**;
+- track health variables (energy, macros, hydration, glucose, VO2, breathing, HR, sleep, stress);
 - compare performance with **benchmark** percentiles by category;
 - receive personalized advice from an **AI Coach** powered by Groq and a RAG knowledge base;
 - visualize routes on interactive maps and dashboards.

@@ -1,3 +1,13 @@
+/**
+ * Applicazione del tema ai grafici Chart.js, con colori concreti per tema.
+ *
+ * Riflette i token di design (chiaro/scuro) in palette concrete, perché Chart.js
+ * non legge le variabili CSS dal contesto 2d. `apply` fonde i default sensibili
+ * al tema in una configurazione senza sovrascrivere le opzioni del componente.
+ * `mergeScales` applica colori di tick/griglia agli assi; un `MutationObserver`
+ * sincronizza il tema al cambio della classe su `body`.
+ */
+
 import { computed, ref } from "vue";
 import type { ChartConfiguration, ChartOptions } from "./chartTypes";
 

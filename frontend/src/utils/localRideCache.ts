@@ -1,3 +1,12 @@
+/**
+ * Cache locale dei ride e del riepilogo su IndexedDB (via `idb`).
+ *
+ * Persiste i ride e il summary per l'uso offline in due object store (`rides`,
+ * `meta`). Espone `cacheRides`/`getCachedRides`/`removeCachedRide`,
+ * `cacheSummary`/`getCachedSummary` e `clearLocalRideCache`; ogni operazione
+ * degrada silenziosamente se IndexedDB non è disponibile.
+ */
+
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { Ride } from "../types/index";
 
