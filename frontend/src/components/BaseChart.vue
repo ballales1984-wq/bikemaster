@@ -1,3 +1,6 @@
+<!-- Componente grafico di base: wrapper che renderizza un grafico Chart.js su canvas tramite il composable useChart.
+     Props: config (ChartConfiguration), height (es. "260px"), emptyLabel (testo se non ci sono dati).
+     Eventi: nessuno. Espone "chart" via defineExpose. UI: contenitore con canvas e messaggio "nessun dato" sovrapposto se vuoto. -->
 <template>
   <div class="base-chart"
 :style="{ height }">

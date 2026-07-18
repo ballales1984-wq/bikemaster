@@ -1,3 +1,6 @@
+<!-- Pannello badge: mostra i distintivi sbloccati da un atleta raggruppati per categoria (milestone, distanza, dislivello, velocità, costanza).
+     Props: nessuna. Eventi: nessuno (usa /api/v1/badges). Stato interno: athleteId, dati badge e percentuale completamento.
+     UI: input Athlete ID + pulsante carica, barra progresso totale, griglia di card badge con progresso e spunta "ottenuto". -->
 <template>
   <div class="panel">
     <h2>🏅 Badge System</h2>

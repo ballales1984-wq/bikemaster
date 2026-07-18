@@ -1,3 +1,6 @@
+<!-- Pannello calendario e obiettivi: vista mensile navigabile con eventi (training, gara, recupero, goal, test),
+     grafico fitness CTL/ATL/TSB e obiettivi consigliati. Props: nessuna. Eventi: nessuno (usa API calendar/training).
+     UI: controlli mese+selettore atleta, legenda, griglia giorni con pallini evento, FitnessChart, form overlay e ConfirmModal eliminazione. -->
 <template>
   <section>
     <div class="panel">

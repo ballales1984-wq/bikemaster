@@ -1,3 +1,6 @@
+<!-- Pannello stato atleta: mostra metriche di fitness/fatiga (CTL, ATL, TSB, readiness, ACWR, recovery).
+     Props: nessuna. Eventi: nessuno (legge dallo store athleteState). Pulsante refresh per ricalcolare lo stato.
+     UI: griglia di card metriche, badge rischio colorato, raccomandazione e trend 7d/30d. Gestisce stati loading/errore/vuoto. -->
 <template>
   <div class="athlete-state-panel" aria-label="Athlete State">
     <div class="panel-header">

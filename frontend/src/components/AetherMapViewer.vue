@@ -1,3 +1,6 @@
+<!-- Visualizzatore AetherMap: rendering WebGL2 di una sfera cube-sphere con il percorso GPS proiettato.
+     Props: points (lista lat/lon/velocità), rideIds (ID uscite da caricare via API), colorBySpeed (colora per velocità).
+     Eventi: nessuno. UI: canvas full-size + HUD con statistiche (distanza, velocità media, dislivello) e controlli mouse (trascina/scroll). -->
 <template>
   <div class="aethermap-viewer">
     <canvas ref="canvasRef" class="aethermap-canvas" />

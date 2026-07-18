@@ -1,3 +1,6 @@
+<!-- Pannello coach AI: chat conversazionale con l'assistente di allenamento (endpoint /api/v1/coach).
+     Props: nessuna. Eventi: nessuno. Mostra pill di training scores, finestra chat con messaggi/indicatore "sta scrivendo",
+     domande rapide e input con supporto vocale (SpeechRecognition) e lettura TTS. Pulsanti report completo e pulizia chat. -->
 <template>
   <div class="coach-panel">
     <div class="coach-header">

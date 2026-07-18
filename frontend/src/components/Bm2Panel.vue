@@ -1,3 +1,7 @@
+<!-- Pannello BikeMaster 2.0: interfaccia del motore fisico/simulazione BM2. Permette domande ("energia consumata"),
+     simulazioni "what if" e validazione potenza su una ride reale (per ID) contro il power-meter.
+     Props: nessuna. Eventi: nessuno (usa il composable useBm2). UI: form domanda/parametri, card risultati con formula/affidabilità,
+     sezione "Analisi su ride reale" con scenari what-if e metriche di validazione (MAE, RMSE, R², bias). -->
 <script setup lang="ts">
 import { reactive, ref } from "vue";
 import { useBm2 } from "../composables/useBm2";

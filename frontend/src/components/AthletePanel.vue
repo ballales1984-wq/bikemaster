@@ -1,3 +1,6 @@
+<!-- Pannello profilo atleta: form di inserimento/modifica dati anagrafici e di allenamento dell'utente.
+     Props: nessuna. Eventi: emit "toast" per notifiche. Carica l'atleta da /api/v1/athletes/me e salva via POST/PUT.
+     UI: griglia di input (nome, età, peso, altezza, grasso, livello, obiettivi) con validazione e pulsanti Salva/Score. -->
 <template>
   <div class="panel">
     <h2>🏃 Athlete Profile</h2>

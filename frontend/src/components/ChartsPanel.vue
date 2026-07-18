@@ -1,3 +1,6 @@
+<!-- Pannello grafici performance: trend di una metrica selezionata, progressione mensile e confronto periodi.
+     Props: nessuna. Eventi: nessuno (usa /api/v1/analytics). Selettori metrica (distanza, velocità, durata, calorie, dislivello) e finestra.
+     UI: tre card BaseChart (trend con media mobile, barre mensili, confronto periodi) con riepilogo trend/R²/variazioni %. -->
 <template>
   <section class="charts-panel">
     <div class="panel">
