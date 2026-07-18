@@ -66,6 +66,7 @@ class VectorStore:
         self._init_db()
 
     def _init_db(self):
+        """Crea la tabella ``vectors`` (id, doc, embedding BLOB) se non esiste."""
         conn = sqlite3.connect(self.db_path)
         conn.execute(
             "CREATE TABLE IF NOT EXISTS vectors "
@@ -75,6 +76,7 @@ class VectorStore:
         conn.close()
 
     def add(self, doc: str, embedding: list[float] | None = None):
+        """Inserisce un documento (con embedding opzionale, altrimenti calcolato via TF-IDF)."""
         if embedding is None:
             embedding = embed_text(doc)
         conn = sqlite3.connect(self.db_path)
@@ -91,6 +93,7 @@ class VectorStore:
         )
 
     def _all_docs(self) -> list[tuple[str]]:
+        """Restituisce tutti i documenti memorizzati (limit 1000 righe)."""
         conn = sqlite3.connect(self.db_path)
         rows = conn.execute("SELECT doc FROM vectors LIMIT 1000").fetchall()
         conn.close()

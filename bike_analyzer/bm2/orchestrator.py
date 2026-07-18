@@ -91,10 +91,13 @@ DEFAULT_ROUTE_THRESHOLD: float = 0.5
 
 
 class AIOrchestrator:
+    """Il cicerone digitale: decide quali algoritmi usare, assembla il contesto e spiega i risultati."""
+
     def __init__(self, transformer: Optional[TransformerEngine] = None,
                  model_keywords: Optional[dict[str, dict[str, float]]] = None,
                  ambiguous_keywords: Optional[frozenset[str]] = None,
                  route_threshold: float = DEFAULT_ROUTE_THRESHOLD) -> None:
+        """Inizializza l'orchestratore con agenti, mappe keyword e soglia di routing."""
         self.t = transformer or TransformerEngine()
         self.gps = GPSAgent(self.t)
         self.athlete_agent = AthleteAgent(self.t)
@@ -108,6 +111,7 @@ class AIOrchestrator:
 
     # -- assemblaggio contesto -------------------------------------------
     def build_context(self, raw: dict) -> AnalysisContext:
+        """Assembla l'AnalysisContext completo da dati grezzi (atleta, bici, GPS, mondo)."""
         athlete = self.athlete_agent.collect(raw.get("athlete", {}))
         bike = Bike.from_raw(raw.get("bike", {}), self.t)
         activity = self.gps.collect(raw.get("gps_points", []), raw.get("title", ""))
@@ -119,10 +123,12 @@ class AIOrchestrator:
 
     # -- routing domanda -> modelli -------------------------------------
     def _is_simulation(self, question: str) -> bool:
+        """Verifica se la domanda contiene keyword di simulazione 'what if'."""
         q = question.lower()
         return any(k in q for k in _SIMULATION_KEYWORDS)
 
     def _is_ambiguous(self, question: str) -> bool:
+        """Verifica se la domanda e' aperta/ambigua (es. 'dimmi tutto')."""
         q = question.lower()
         return any(k in q for k in self.ambiguous_keywords)
 
@@ -168,6 +174,7 @@ class AIOrchestrator:
     @staticmethod
     def _score_confidence(results: dict[str, ModelResult],
                           ambiguous: bool) -> float:
+        """Calcola la confidenza media pesata sulla risposta."""
         if not results:
             return 0.0
         avg = sum(r.confidence for r in results.values()) / len(results)
@@ -177,6 +184,7 @@ class AIOrchestrator:
 
     # -- risposta --------------------------------------------------------
     def answer(self, question: str, raw: dict, extra: Optional[dict] = None) -> dict:
+        """Risponde a una domanda eseguendo i modelli selezionati o una simulazione."""
         ctx = self.build_context(raw)
         results: dict[str, ModelResult] = {}
         sim = None
@@ -207,6 +215,7 @@ class AIOrchestrator:
 
     def _run_simulation(self, ctx: AnalysisContext, question: str,
                         extra: Optional[dict]) -> "SimulationComparison":
+        """Esegue una simulazione 'what if' estraendo i delta dalla domanda."""
         # Estrazione robusta del delta: supporta "peso -5 kg", "bici -1 kg",
         # "+2% pendenza", "cda 0.3" tramite l'helper condiviso.
         ov = parse_override_from_text(question)
@@ -215,6 +224,7 @@ class AIOrchestrator:
 
     # -- spiegazione leggibile (italiano) -------------------------------
     def explain_answer(self, answer: dict) -> str:
+        """Genera una spiegazione leggibile in italiano dei risultati."""
         lines: list[str] = []
         lines.append(f"Domanda: {answer.get('question', '')}")
 

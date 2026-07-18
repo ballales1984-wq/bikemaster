@@ -228,15 +228,16 @@ class UnitRegistry:
         if quantity.unit == target_unit:
             return quantity.value, quantity.precision
         if quantity.unit == "%":
+            # % -> gradi: deg = atan(pendenza/100). La sensibilità (derivata
+            # della conversione) serve a propagare l'incertezza: d(deg)/d(%) è
+            # massima a pendenza 0 e decade con 1/(1+grade²).
             grade = quantity.value / 100.0
             deg = math.degrees(math.atan(grade))
-            # d(deg)/d(%) = (180/pi) * (1/100) / (1 + grade^2)
             scale = (math.degrees(1.0) / 100.0) / (1.0 + grade * grade)
             return deg, quantity.precision * scale
-        # da gradi a percentuale
+        # da gradi a percentuale: pct = 100·tan(rad). Sensibilità = 100·rad(1)·sec²
         grade = math.tan(math.radians(quantity.value))
         pct = grade * 100.0
-        # d(%)/d(deg) = 100 * (pi/180) * sec^2(rad) = 100 * radians(1) * (1 + grade^2)
         scale = 100.0 * math.radians(1.0) * (1.0 + grade * grade)
         return pct, quantity.precision * scale
 

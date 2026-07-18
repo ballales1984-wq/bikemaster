@@ -81,7 +81,7 @@ def _get_climb_color(cat: str) -> str:
 
 
 def calculate_pace_consistency(segments: list[Segment]) -> dict[str, float]:
-    speeds = [s.avg_speed_km_h for s in segments if s.avg_speed_km_h > 0]
+    """Coefficiente di variazione (CV%) delle velocita' e strategia di pacing."""
     if not speeds or len(speeds) < 2:
         return {
             "cv_percent": 0.0,
@@ -125,6 +125,7 @@ def calculate_power_estimate(
     cda: float = POWER_CONSTANTS["cd_a_road"],
     crr: float = POWER_CONSTANTS["crr_road"],
 ) -> dict[str, float]:
+    """Stima potenza media da fisica (gravita', resistenza rotolamento, drag)."""
     weight = rider_weight_kg or ride.weight_kg
     total_kg = weight + bike_weight_kg
     v_ms = ride.avg_speed_kmh * 1000 / 3600
@@ -170,6 +171,7 @@ def calculate_power_estimate(
 
 
 def classify_climb(segment_length_km: float, avg_gradient_percent: float) -> dict[str, Any]:
+    """Classifica una salita secondo categorie Tour de France (HC, 1, 2, 3, 4)."""
     if segment_length_km < 0.3 or avg_gradient_percent < 2:
         return {"category": "none", "difficulty_score": 0, "color": "#999", "points": 0}
     for cat, threshold in CLIMB_CATEGORIES:
@@ -186,6 +188,7 @@ def classify_climb(segment_length_km: float, avg_gradient_percent: float) -> dic
 def estimate_vo2max(
     avg_speed_kmh: float, avg_gradient_percent: float, weight_kg: float, age: int = 35
 ) -> dict[str, float]:
+    """Stima VO2max (ml/kg/min) da velocita', pendenza, peso e eta'."""
     speed_match_kmh = 21.0 - (age - 30) * 0.1
     speed_factor = avg_speed_kmh / speed_match_kmh if speed_match_kmh > 0 else 1.0
     gradient_factor = 1.0 + avg_gradient_percent * 0.03

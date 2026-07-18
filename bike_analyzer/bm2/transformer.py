@@ -74,6 +74,7 @@ class GeoPoint:
 
     @property
     def meters(self) -> tuple[float, float]:
+        """Coordinate metriche locali (x, y) in metri."""
         return self.x, self.y
 
 
@@ -81,7 +82,10 @@ class GeoPoint:
 # 1. Unit Converter
 # ---------------------------------------------------------------------------
 class UnitConverter:
+    """Converte unita' di misura verso lo standard canonico interno."""
+
     def __init__(self, registry: UnitRegistry | None = None) -> None:
+        """Registra il registry di unita' o usa quello di default."""
         self.registry = registry or default_registry
 
     def to_internal(self, quantity: Quantity) -> Quantity:
@@ -89,9 +93,11 @@ class UnitConverter:
         return self.registry.to_canonical(quantity)
 
     def convert(self, quantity: Quantity, target_unit: str) -> Quantity:
+        """Converte una grandezza a un'unita' target specifica."""
         return self.registry.convert(quantity, target_unit)
 
     def estimate_precision(self, value: float, unit: str, source: str) -> float:
+        """Stima la precisione tipica per (fonte, unita') o usa un valore di default."""
         return DEFAULT_QUALITY.get((source, unit), abs(value) * 0.02 + 0.5)
 
 
@@ -99,6 +105,8 @@ class UnitConverter:
 # 2. Geo Transformer
 # ---------------------------------------------------------------------------
 class GeoTransformer:
+    """Proiezioni geografiche, distanze, pendenze e metriche della traccia."""
+
     def project(self, lat: float, lon: float, ref_lat: float) -> tuple[float, float]:
         """Proiezione equirettangolare locale (metri) rispetto a `ref_lat`."""
         x = math.radians(lon) * EARTH_RADIUS_M * math.cos(math.radians(ref_lat))
@@ -106,6 +114,7 @@ class GeoTransformer:
         return x, y
 
     def to_metric_points(self, points: Iterable[GeoPoint]) -> list[GeoPoint]:
+        """Proietta i punti GPS in coordinate metriche locali (equirettangolari)."""
         pts = list(points)
         if not pts:
             return []
@@ -119,6 +128,7 @@ class GeoTransformer:
 
     @staticmethod
     def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """Distanza sferica (metri) tra due coordinate tramite formula di Haversine."""
         phi1, phi2 = math.radians(lat1), math.radians(lat2)
         dphi = math.radians(lat2 - lat1)
         dlam = math.radians(lon2 - lon1)
@@ -138,6 +148,7 @@ class GeoTransformer:
         return (rise_m / run_m) * 100.0
 
     def bearing_deg(self, a: GeoPoint, b: GeoPoint) -> float:
+        """Direzione (gradi) da punto A a punto B nella proiezione locale."""
         return math.degrees(math.atan2(b.x - a.x, b.y - a.y)) % 360.0
 
     def track_metrics(self, points: list[GeoPoint]) -> dict:
@@ -170,24 +181,30 @@ class GeoTransformer:
 # 3. Time Transformer
 # ---------------------------------------------------------------------------
 class TimeTransformer:
+    """Conversioni e intervalli di tempo (UTC, locale, durate)."""
+
     @staticmethod
     def to_utc(dt: datetime) -> datetime:
+        """Converte un timestamp in UTC (assume naive come UTC)."""
         if dt.tzinfo is None:
             return dt.replace(tzinfo=UTC)
         return dt.astimezone(UTC)
 
     @staticmethod
     def to_local(dt: datetime, tz: timezone) -> datetime:
+        """Converte un timestamp in un fuso orario locale specificato."""
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=UTC)
         return dt.astimezone(tz)
 
     @staticmethod
     def interval_seconds(a: datetime, b: datetime) -> float:
+        """Intervallo di secondi tra due timestamp (in UTC)."""
         return (TimeTransformer.to_utc(b) - TimeTransformer.to_utc(a)).total_seconds()
 
     @staticmethod
     def duration_from_points(points: list[GeoPoint]) -> float:
+        """Durata in secondi tra primo e ultimo punto con timestamp valido."""
         ts = [p.timestamp for p in points if p.timestamp is not None]
         if len(ts) < 2:
             return 0.0
@@ -199,13 +216,16 @@ class TimeTransformer:
 # ---------------------------------------------------------------------------
 @dataclass
 class RangeRule:
+    """Regola di range per la validazione di una grandezza."""
+
     unit: str
     min_value: float
     max_value: float
 
 
 class DataQuality:
-    # Range plausibili per unità (usati per rilevare valori errati).
+    """Controlli di validita', stima precisione e rilevamento outlier per le grandezze."""
+
     RANGES: dict[str, tuple[float, float]] = {
         "kg": (20.0, 250.0),
         "bpm": (20.0, 230.0),
@@ -220,12 +240,14 @@ class DataQuality:
     }
 
     def in_range(self, quantity: Quantity) -> bool:
+        """Verifica se il valore e' nel range plausibile per la sua unita'."""
         rng = self.RANGES.get(quantity.unit)
         if rng is None:
             return True
         return rng[0] <= quantity.value <= rng[1]
 
     def check(self, quantity: Quantity) -> list[str]:
+        """Restituisce una lista di problemi di qualita' per la grandezza."""
         problems: list[str] = []
         if not self.in_range(quantity):
             lo, hi = self.RANGES[quantity.unit]
@@ -237,6 +259,7 @@ class DataQuality:
         return problems
 
     def check_temporal(self, quantities: list[Quantity], max_gap_seconds: float = 0.0) -> list[str]:
+        """Verifica ordinamento timestamp e salti temporali eccessivi."""
         problems: list[str] = []
         ts = [q.timestamp for q in quantities if q.timestamp is not None]
         if len(ts) < 2:
@@ -269,6 +292,7 @@ class TransformerEngine:
     """Motore di trasformazione centralizzato: unità + geo + tempo + qualità."""
 
     def __init__(self, registry: UnitRegistry | None = None) -> None:
+        """Inizializza il motore con converter, geo, tempo e controlli di qualita'."""
         self.units = UnitConverter(registry)
         self.geo = GeoTransformer()
         self.time = TimeTransformer()
@@ -283,6 +307,7 @@ class TransformerEngine:
         return qn
 
     def power_to_weight(self, power: Quantity, weight: Quantity) -> Quantity:
+        """Calcola il rapporto potenza/peso (W/kg) con propagazione dell'errore."""
         pw = self.units.to_internal(power)
         wt = self.units.to_internal(weight)
         if pw.unit != "W" or wt.unit != "kg":
@@ -295,6 +320,7 @@ class TransformerEngine:
                         timestamp=pw.timestamp or wt.timestamp)
 
     def air_density(self, temperature: Quantity, pressure: Quantity) -> Quantity:
+        """Calcola la densita' dell'aria (kg/m^3) da temperatura e pressione."""
         temp = self.units.to_internal(temperature)
         pres = self.units.to_internal(pressure)
         if temp.unit != "°C" or pres.unit != "Pa":

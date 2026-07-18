@@ -9,6 +9,8 @@ from ..models.models import Ride
 
 @dataclass
 class TrainingLoadDay:
+    """Singolo giorno del modello carico-allenamento con ATL/CTL/TSB."""
+
     date: str
     tss: float
     atl: float = 0.0
@@ -17,6 +19,7 @@ class TrainingLoadDay:
 
 
 def calculate_rss(ride: Ride, ftp: float | None = None) -> float:
+    """Calcola il Training Stress Score (TSS) per una singola uscita."""
     duration_h = ride.duration_hours
     if duration_h <= 0:
         return 0.0

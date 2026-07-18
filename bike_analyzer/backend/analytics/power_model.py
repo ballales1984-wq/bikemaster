@@ -57,23 +57,28 @@ def normalized_power(watts: list[float], window_size: int = 30) -> float:
 
 
 def intensity_factor(np: float, ftp: float) -> float:
+    """Intensity Factor (IF): NP / FTP. Indica l'intensita' relativa alla soglia."""
     return round(np / ftp, 3) if ftp > 0 else 0.0
 
 
 def variability_index(np: float, avg_power: float) -> float:
+    """Variability Index (VI): NP / avg power. 1.0 = potenza perfettamente costante."""
     return round(np / avg_power, 3) if avg_power > 0 else 0.0
 
 
 def efficiency_factor(np: float, avg_hr: float) -> float:
+    """Efficiency Factor (EF): NP / avg HR. Indica l'efficienza cardiaca."""
     return round(np / avg_hr, 3) if avg_hr > 0 else 0.0
 
 
 def training_stress_score(np: float, if_value: float, duration_h: float) -> float:
+    """Training Stress Score (TSS): IF^2 x durata(h) x 100. Clamp a 500."""
     tss = duration_h * 100.0 * (if_value**2)
     return round(min(tss, 500.0), 1)
 
 
 def calculate_power_zones(points: list[GPSPoint], ftp: float) -> dict[str, dict[str, Any]]:
+    """Distribuzione tempo in zone di potenza Coggan (Z1-Z7) basate su FTP."""
     watts_series = [p.power if p.power is not None else 0.0 for p in points if p.power is not None]
     if not watts_series or ftp <= 0:
         return {}
@@ -97,6 +102,7 @@ def calculate_power_zones(points: list[GPSPoint], ftp: float) -> dict[str, dict[
 
 
 def calculate_power_profile(points: list[GPSPoint]) -> dict[str, float | None]:
+    """Best effort per durate (5s, 1min, 5min, 10min, 20min, 30min) da serie di potenza."""
     watts_series = [(p.timestamp, p.power) for p in points if p.power is not None]
     if not watts_series:
         return dict.fromkeys(["5s", "1min", "5min", "10min", "20min", "30min"])
@@ -138,11 +144,13 @@ def _bin_powers(watts_series: list, ride: Any | None = None) -> dict:
 
 
 def _power_profile_to_dict(binned: dict) -> dict[str, float | None]:
+    """Converte i best-effort binati in dizionario con etichette leggibili."""
     labels = {5: "5s", 60: "1min", 300: "5min", 600: "10min", 1200: "20min", 1800: "30min"}
     return {label: round(binned[d], 1) if binned.get(d, 0) > 0 else None for d, label in labels.items()}
 
 
 def estimate_ftp_from_20min(points: list[GPSPoint]) -> float:
+    """Stima FTP come 95% della miglior potenza media di 20 minuti."""
     profile = calculate_power_profile(points)
     best_20 = profile.get("20min")
     if best_20 is None:
@@ -151,6 +159,7 @@ def estimate_ftp_from_20min(points: list[GPSPoint]) -> float:
 
 
 def estimate_critical_power(points: list[GPSPoint]) -> dict[str, float]:
+    """Stima Critical Power (CP) e W' (J) dal power profile 5min/10min."""
     profile = calculate_power_profile(points)
     p_short = profile.get("5min") or 0.0
     p_long = profile.get("10min") or 0.0
@@ -165,6 +174,7 @@ def estimate_critical_power(points: list[GPSPoint]) -> dict[str, float]:
 
 
 def detect_aerobic_decoupling(points: list[GPSPoint], ftp: float | None = None) -> dict[str, Any]:
+    """Rileva decoupling aerobico confrontando HR/power prima e seconda meta' dell'uscita."""
     if len(points) < 60:
         return {"decoupling_pct": 0.0, "significant": False}
     mid = len(points) // 2
@@ -174,6 +184,7 @@ def detect_aerobic_decoupling(points: list[GPSPoint], ftp: float | None = None) 
         return {"decoupling_pct": 0.0, "significant": False}
 
     def avg_power_ratio(seg):
+        """Rapporto potenza media/FTP per un segmento dell'uscita."""
         return sum(p.power for p in seg) / len(seg) / ftp if ftp > 0 else 0
 
     p1 = avg_power_ratio(first_half)
@@ -195,6 +206,7 @@ def detect_aerobic_decoupling(points: list[GPSPoint], ftp: float | None = None) 
 
 
 def calculate_advanced_power_metrics(points: list[GPSPoint], ftp: float = 250.0) -> dict[str, Any]:
+    """Metriche avanzate complete: NP, IF, VI, EF, TSS, zone, profilo, decoupling."""
     watts = [p.power for p in points if p.power is not None]
     hrs = [p.heart_rate for p in points if p.heart_rate is not None]
     if not watts:
