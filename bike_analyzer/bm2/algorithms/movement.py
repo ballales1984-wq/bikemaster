@@ -11,6 +11,11 @@ __all__ = ["MovementModel"]
 
 
 class MovementModel(Algorithm):
+    """Calcola velocita' media/massima e accelerazione dalla traccia GPS.
+
+    Formula: v_media = distanza / durata; v_max = max(samples); a = d(v)/d(t)
+    """
+
     name = "MovementModel"
     formula = "v_media = distanza / durata; v_max = max(samples); a = d(v)/d(t)"
     description = "Calcola velocità media/massima e accelerazione dalla traccia GPS."
@@ -18,6 +23,7 @@ class MovementModel(Algorithm):
     required_inputs = ["gps_points", "distanza", "durata"]
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+        """Calcola velocita' media (m/s) e confidence basata su numero di punti GPS."""
         m = ctx.activity.metrics(ctx.transformer)
         dist_m = m["distance_m"]
         dur_s = m["duration_s"]
@@ -29,6 +35,7 @@ class MovementModel(Algorithm):
         return avg, precision, confidence
 
     def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+        """Restituisce distanza, durata, dislivello, velocita' max e accelerazione max."""
         m = ctx.activity.metrics(ctx.transformer)
         speeds = [p for p in ctx.activity.points if p.speed is not None]
         max_speed = max((s.speed for s in speeds), default=m["avg_speed_ms"])

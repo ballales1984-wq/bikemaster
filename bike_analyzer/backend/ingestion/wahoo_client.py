@@ -44,10 +44,12 @@ TOKEN_REFRESH_BUFFER_SECONDS = 300
 
 
 def generate_code_verifier() -> str:
+    """Genera il PKCE code_verifier Wahoo: stringa URL-safe ad alta entropia (64 byte)."""
     return secrets.token_urlsafe(64)
 
 
 def generate_code_challenge(verifier: str) -> str:
+    """Deriva il code_challenge PKCE Wahoo: SHA-256 del verifier, Base64url senza padding."""
     digest = hashlib.sha256(verifier.encode()).digest()
     import base64
 
@@ -55,6 +57,7 @@ def generate_code_challenge(verifier: str) -> str:
 
 
 def build_authorization_url(state: str, code_challenge: str) -> str:
+    """Costruisce l'URL di autorizzazione OAuth2 Wahoo con PKCE (S256)."""
     params = {
         "response_type": "code",
         "client_id": _s.wahoo_client_id,

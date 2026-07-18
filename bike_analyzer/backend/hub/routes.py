@@ -1,12 +1,15 @@
-"""Hub backend routes — PostgreSQL-backed, multi-tenant.
+"""Router principale del backend Hub (cloud, multi-tenant, PostgreSQL).
 
-Exposes the central API consumed by external users via Vercel:
-  - /auth/*       centralized auth (register, login, refresh, logout, me, profile, Google OAuth)
-  - /admin/*      admin operations (athletes, stats, backup, CEO analytics)
-  - /knowledge/*  shared knowledge base (search, stats, reload, embeddings)
+Espone l'API centrale consumata dal frontend deployato su Vercel:
+  - /auth/*       Autenticazione centralizzata (login, register, refresh,
+                  logout, profilo, Google OAuth)
+  - /admin/*      Operazioni amministrative (atleti, statistiche, backup,
+                  analytics CEO)
+  - /knowledge/*  Knowledge base condivisa (ricerca vettoriale/BM25,
+                  statistiche, reload, embeddings)
 
-All endpoints in this module expect the hub to run with DATABASE_URL configured
-(PostgreSQL). SQLite is NOT used here.
+Tutti gli endpoint in questo modulo si aspettano che il Hub sia avviato
+con ``DATABASE_URL`` configurato (PostgreSQL). SQLite NON e' usato qui.
 """
 
 from __future__ import annotations

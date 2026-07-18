@@ -1,7 +1,17 @@
 """FastAPI application factory.
 
-Builds the BikeMaster ASGI app with middleware, routers, static file serving,
-observability, and lifecycle management.
+Costruisce l'istanza ASGI di BikeMaster assemblando middleware, router,
+servizio di file statici, osservabilita' e gestione del ciclo di vita.
+
+Responsabilita' principali:
+- Inizializzazione servizi allo startup (DB, Redis, task queue, event bus).
+- Configurazione middleware: CORS, rate limiting, metriche, audit logging,
+  correlation ID, security headers.
+- Montaggio router principali: API v1, admin, BM2, sync, adaptation.
+- Serving della dashboard SPA e risorse statiche (PWA manifest, service
+  worker, icone).
+- Gestione degli errori con handler personalizzati per ValidationError,
+  ValueError e business validation errors.
 """
 
 from __future__ import annotations
@@ -52,7 +62,19 @@ def _static_file_response(file_path: Path, media_type: str | None = None, header
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan: initialize services on startup, shut them down gracefully."""
+    """Ciclo di vita dell'applicazione: startup e shutdown dei servizi.
+
+    Allo startup inizializza:
+    - Il database SQLite (schema + migrazioni).
+    - Il database PostgreSQL asincrono (se ``DATABASE_URL`` configurato).
+    - Il client Redis (opzionale, gli errori non bloccano l'avvio).
+    - La task queue per job in background.
+    - Il domain event bus (opzionale).
+
+    Allo shutdown termina nell'ordine: event bus, task queue, Redis.
+    Ogni passo e' protetto da try/except per garantire che un errore in
+    un servizio non impedisca lo shutdown degli altri.
+    """
     from ..db.database import init_db
     from ..logging_config import setup_logging
 
@@ -113,7 +135,17 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application instance."""
+    """Crea e configura l'istanza FastAPI dell'applicazione BikeMaster.
+
+    Questa funzione e' il punto di assemblaggio centrale del backend locale.
+    Configura:
+    - Middleware: CORS, rate limiting, metriche Prometheus, audit logging,
+      correlation ID, security headers.
+    - Router: API v1, admin, BM2, sync, adaptation.
+    - Servizi: osservabilita' (Sentry/OpenTelemetry), task queue, Redis.
+    - Static files: dashboard SPA, PWA manifest, service worker, icone.
+    - Exception handlers: ValidationError, ValueError, business errors.
+    """
     app = FastAPI(
         title="BikeMaster API",
         description="GPS-based cycling intelligence",

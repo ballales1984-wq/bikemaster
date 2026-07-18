@@ -12,6 +12,12 @@ __all__ = ["PowerModel"]
 
 
 class PowerModel(Algorithm):
+    """Stima potenza richiesta e velocita' sostenibile da FTP e profilo di pendenza.
+
+    Formula: P = (crr·m·g + m·g·slope + ½·ρ·CdA·v²)·v / η  [stima da FTP];
+             v_ftp = risolvi P=FTP per la velocita'
+    """
+
     name = "PowerModel"
     formula = ("P = (crr·m·g + m·g·slope + ½·ρ·CdA·v²)·v / η  [stima da FTP]; "
                "v_ftp = risolvi P=FTP per la velocità")
@@ -22,6 +28,7 @@ class PowerModel(Algorithm):
     @staticmethod
     def _power_for_speed(v_ms: float, mass_kg: float, slope_pct: float,
                          crr: float, cda: float, eta: float, wind_ms: float = 0.0) -> float:
+        """Calcola la potenza meccanica richiesta per una data velocita'."""
         return instantaneous_power(
             v_ms, slope_pct / 100.0,
             RiderBikeParams(rider_mass_kg=mass_kg, cda=cda, crr=crr, drivetrain_efficiency=eta),
@@ -44,6 +51,7 @@ class PowerModel(Algorithm):
         )
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+        """Stima la potenza da sensori o da FTP/velocita' sostenibile."""
         m = ctx.activity.metrics(ctx.transformer)
         slope = m["avg_slope_percent"]
         mass = ctx.total_mass_kg
@@ -76,12 +84,14 @@ class PowerModel(Algorithm):
 
     @staticmethod
     def _avg_power_from_sensors(ctx: AnalysisContext) -> float:
+        """Media della potenza dai punti con sensore di potenza, 0 se assenti."""
         pts = [p for p in ctx.activity.points if p.power is not None]
         if not pts:
             return 0.0
         return sum(p.power for p in pts) / len(pts)
 
     def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+        """Restituisce FTP, velocita' sostenibile, potenza stimata e media sensori."""
         m = ctx.activity.metrics(ctx.transformer)
         slope = m["avg_slope_percent"]
         mass = ctx.total_mass_kg

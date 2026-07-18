@@ -174,6 +174,12 @@ async def check_task_queue_health() -> tuple[str, str]:
 
 
 async def asyncio_if_awaitable(value):
+    """Await ``value`` se è awaitable, altrimenti restituiscilo così com'è.
+
+    Necessario perché alcune implementazioni di client Redis restituiscono
+    coroutine mentre altre (o fallback) ritornano il valore diretto. Permette di
+    trattare in modo uniforme entrambi i casi nei health check.
+    """
     if hasattr(value, "__await__"):
         return await value
     return value

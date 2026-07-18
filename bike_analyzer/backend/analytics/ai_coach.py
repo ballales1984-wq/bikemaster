@@ -1,4 +1,21 @@
-"""AI Coach with cycling knowledge base RAG and athlete memory."""
+"""AI Coach — coaching ciclistico con knowledge base RAG e memoria atleta.
+
+Questo modulo implementa il "coach digitale" di BikeMaster. Le funzionalita'
+principali sono:
+
+- Generazione consigli di allenamento personalizzati basati sul profilo
+  atleta, la storia delle uscite e la knowledge base (RAG).
+- Generazione consigli di recupero post-attivita'.
+- Fallback offline quando l'API LLM non e' disponibile (coach locale).
+- Supporto multi-provider con ban automatico e fallback (attualmente solo
+  Groq).
+- Memoria conversazionale per-utente (conversation store).
+- Integrazione con knowledge base vettoriale (ChromaDB) e BM25.
+
+La selezione del provider LLM e' configurabile tramite ``AI_COACH_PROVIDER_ORDER``
+e ``AI_COACH_MODE``. In modalita' ``local``/``offline``/``fallback`` non
+viene mai chiamata l'API esterna.
+"""
 
 from __future__ import annotations
 
@@ -38,6 +55,7 @@ _fmt_int_pattern = re.compile(r"(?<!\d)(\d+)\.0(?!\d)")
 
 
 def _clean_ai_output(text: str) -> str:
+    """Normalizza l'output del LLM: rimuove zeri decimali inutili, doppi spazi/invii."""
     text = _fmt_int_pattern.sub(lambda m: m.group(1), text)
     text = _fmt_clean_pattern.sub(lambda m: m.group(1), text)
     text = re.sub(r"\n{2,}", "\n", text)
@@ -69,12 +87,27 @@ def _ban_provider(provider: str, reason: str = "error") -> None:
 
 
 def _is_recoverable_provider_error(error: Exception) -> bool:
+    """Distingue errori recuperabili (retry) da quelli fatali.
+
+    Errori di tipo ``ValueError``/``TypeError`` o contenenti "auth" sono fatali
+    (non riprovabili: chiave/permessi errati); tutto il resto (es. timeout di
+    rete) è considerato recuperabile e innesca un retry.
+    """
     msg = str(error).lower()
     return not (isinstance(error, (ValueError, TypeError)) or "auth" in msg)
 
 
 def get_ai_coach_client():
-    global _current_client, _current_provider
+    """Restituisce il client LLM configurato per l'AI Coach.
+
+    La selezione segue questo ordine di priorita':
+    1. API key per-utente (da header ``x-user-api-keys``).
+    2. API key globale Groq (env ``GROQ_API_KEY`` o settings).
+
+    Il client viene cachato a livello di modulo per evitare connessioni
+    ripetute. Provider con errori persistenti vengono bannati
+    temporaneamente per evitare loop di fallback.
+    """
     if _current_client and _current_provider and _current_provider not in _BANNED_PROVIDERS:
         return _current_client, _current_provider
 
@@ -349,6 +382,21 @@ def _chat_completion_text(client: object, model: str, prompt: str, max_tokens: i
 
 
 def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete_id: int | None = None) -> str:
+    """Genera consigli di allenamento personalizzati per l'atleta.
+
+    Utilizza il LLM configurato (Groq) con contesto RAG dalla knowledge base
+    e memoria conversazionale. In caso di errore API o modalita' locale,
+    fallback a consigli generati deterministicamente.
+
+    Args:
+        athlete: Profilo dell'atleta con obiettivi, livello, esperienza.
+        rides: Lista delle uscite recenti (almeno l'ultima per il calcolo
+            di performance e recovery score).
+        athlete_id: Id dell'atleta per il recupero della storia conversazione.
+
+    Returns:
+        Testo dei consigli di allenamento in formato markdown-like.
+    """
     is_valid, err = validate_athlete_profile(athlete)
     if not is_valid:
         return f"Completa il profilo atleta: {err}"
@@ -468,6 +516,22 @@ def generate_recovery_advice(
     fatigue_score: float = 5.0,
     athlete_id: int | None = None,
 ) -> str:
+    """Genera consigli di recupero personalizzati per l'atleta.
+
+    Simile a ``generate_training_advice`` ma focalizzato sul recupero
+    post-attivita'. Utilizza RAG dalla knowledge base con query mirate
+    su recupero, stretching, idratazione, sonno e alimentazione.
+
+    Args:
+        athlete: Profilo dell'atleta.
+        rides: Lista delle uscite recenti.
+        fatigue_score: Punteggio di fatica percepita (0-10) se non calcolabile
+            dalle uscite.
+        athlete_id: Id dell'atleta per la memoria conversazionale.
+
+    Returns:
+        Testo dei consigli di recupero in formato markdown-like.
+    """
     from datetime import datetime
 
     is_valid, err = validate_athlete_profile(athlete)

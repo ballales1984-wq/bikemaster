@@ -1,11 +1,17 @@
 """
-Bike Analyzer - Unified Entrypoint.
+BikeMaster - Unified Entrypoint.
 
-Supports three modes:
-  python main.py api      -> start FastAPI backend + dashboard (default)
-  python main.py web      -> alias for api, serving the web dashboard
-  python main.py hub      -> start Hub backend (PostgreSQL, multi-tenant)
-  python main.py cli      -> run CLI analytics on sample data
+Entrypoint principale dell'applicazione BikeMaster. Supporta quattro modalità
+di esecuzione:
+
+    python main.py api      -> Avvia il backend FastAPI locale + dashboard SPA (default)
+    python main.py web      -> Alias per ``api``, serve la dashboard web
+    python main.py hub      -> Avvia il backend cloud Hub (PostgreSQL, multi-tenant)
+    python main.py cli      -> Esegue analytics CLI su dati di esempio
+
+La modalità viene selezionata tramite il primo argomento posizionale. Il flag
+``--port`` controlla la porta di ascolto (default 8000), mentre ``--reload``
+abilita l'hot-reload di uvicorn (solo per sviluppo).
 """
 
 import argparse

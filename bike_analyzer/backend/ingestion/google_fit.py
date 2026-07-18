@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:8000/callback", state: str = "") -> str:
+    """Costruisce l'URL di autorizzazione OAuth2 Google (access_type=offline per refresh token)."""
     params = {
         "client_id": client_id,
         "redirect_uri": redirect_uri,
@@ -31,6 +32,7 @@ def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:
 
 
 async def exchange_code_for_token(client_id: str, client_secret: str, code: str, redirect_uri: str) -> dict:
+    """Scambia il authorization code con access/refresh token presso l'endpoint token Google."""
     return await request_json(
         "POST",
         "https://oauth2.googleapis.com/token",
@@ -46,6 +48,7 @@ async def exchange_code_for_token(client_id: str, client_secret: str, code: str,
 
 
 def _build_credentials(token_data: dict) -> Credentials:
+    """Ricostruisce un oggetto ``google.oauth2.Credentials`` dai token salvati."""
     return Credentials(
         token=token_data.get("access_token", ""),
         refresh_token=token_data.get("refresh_token", ""),
@@ -57,6 +60,7 @@ def _build_credentials(token_data: dict) -> Credentials:
 
 
 def validate_and_refresh_token(token_data: dict) -> dict:
+    """Se il token è scaduto e ha refresh, lo rinnova via Google; ritorna token normalizzati."""
     creds = _build_credentials(token_data)
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
@@ -69,6 +73,7 @@ def validate_and_refresh_token(token_data: dict) -> dict:
 
 
 def _ms_to_iso(ms_str: str | int | None) -> str:
+    """Converte un timestamp in millisecondi (epoch) in stringa ISO UTC; vuoto se nullo/non valido."""
     if not ms_str:
         return ""
     try:

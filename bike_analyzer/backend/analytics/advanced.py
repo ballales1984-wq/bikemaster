@@ -76,6 +76,7 @@ _CLIMB_POINTS = {"4": 1, "3": 2, "2": 3, "1": 4, "HC": 5}
 
 
 def _get_climb_color(cat: str) -> str:
+    """Ritorna il colore esadecimale associato a una categoria di salita (fallback grigio)."""
     return _CLIMB_COLORS.get(cat, "#999")
 
 
@@ -89,6 +90,8 @@ def calculate_pace_consistency(segments: list[Segment]) -> dict[str, float]:
             "pace_strategy": "unknown",
             "negative_split": False,
         }
+    # Coefficiente di variazione (CV%) = deviazione standard / media delle velocità.
+    # Classifica la strategia di pacing: steady (<10%), variable (<25%), erratic.
     mean_spd = sum(speeds) / len(speeds)
     variance = sum((s - mean_spd) ** 2 for s in speeds) / len(speeds)
     std_dev = math.sqrt(variance)

@@ -1,10 +1,21 @@
-"""Main entry point."""
+"""Entry point di demo per il motore di analisi BikeMaster.
+
+Questo modulo è uno script standalone: costruisce due ``Ride`` di esempio,
+calcola un riepilogo tramite ``calculate_summary`` e lo stampa a console.
+Serve a verificare rapidamente il funzionamento del layer analytics senza
+avviare il server FastAPI (si esegue con ``python main.py``).
+"""
 
 from bike_analyzer.backend.analytics.analytics import calculate_summary
 from bike_analyzer.backend.models.models import Ride
 
 
-def main():
+def main() -> None:
+    """Esegue la demo: crea uscite campione, calcola il riepilogo e stampa i totali.
+
+    Le due ``Ride`` simulate coprono un giro breve (25 km) e uno medio (42 km)
+    per esercitare i percorsi di calcolo di distanza, calorie, velocità e fatica.
+    """
     rides = [
         Ride(
             date="2024-06-01",

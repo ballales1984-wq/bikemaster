@@ -36,6 +36,13 @@ POWER_ZONES_COGGAN = [
 
 
 def normalized_power(watts: list[float], window_size: int = 30) -> float:
+    """Normalized Power (Coggan): media mobile di 30s, elevata alla 4ª, mediata, radice 4ª.
+
+    L'elevamento alla quarta potenza penalizza i picchi di potenza (sforzi
+    brevi/esplosivi) molto più della media aritmetica, così la NP riflette il
+    carico metabolico reale meglio della potenza media. Se i dati sono troppo
+    pochi per una finestra, ritorna la media semplice.
+    """
     if not watts or len(watts) < window_size:
         return sum(watts) / len(watts) if watts else 0.0
     smoothed = []
@@ -98,6 +105,13 @@ def calculate_power_profile(points: list[GPSPoint]) -> dict[str, float | None]:
 
 
 def _bin_powers(watts_series: list, ride: Any | None = None) -> dict:
+    """Trova la massima potenza media sostenuta per durate target (5s..30min).
+
+    Sliding window su serie (timestamp, watt) ordinata per tempo: la finestra
+    destra avanza di un campione e la sinistra arretra finché lo span supera il
+    target, così ogni finestra ha durata ~target. Per ogni target tiene il
+    massimo watt medio ottenuto (best effort — equivale al "mean maximal power").
+    """
     if not watts_series:
         return {}
     watts_series.sort(key=lambda x: x[0])

@@ -11,6 +11,12 @@ __all__ = ["EnergyModel"]
 
 
 class EnergyModel(Algorithm):
+    """Stima il consumo energetico (kcal) da lavoro meccanico e efficienza metabolica.
+
+    Formula: P = (crr·m·g + m·g·sin(atan(slope)) + ½·ρ·CdA·v²)·v ;
+             kcal = P·t / (η·4184)
+    """
+
     name = "EnergyModel"
     formula = ("P = (crr·m·g + m·g·sin(atan(slope)) + ½·ρ·CdA·v²)·v ; "
                "kcal = P·t / (η·4184)")
@@ -19,6 +25,7 @@ class EnergyModel(Algorithm):
     required_inputs = ["massa_totale", "velocità", "pendenza", "durata", "crr", "cda"]
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+        """Calcola kcal totali dalla potenza meccanica e efficienza metabolica."""
         m = ctx.activity.metrics(ctx.transformer)
         dist_m = m["distance_m"]
         dur_s = m["duration_s"]
@@ -49,6 +56,7 @@ class EnergyModel(Algorithm):
         return kcal, precision, confidence
 
     def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+        """Restituisce dettagli: potenza meccanica, metabolica, massa totale, velocita'."""
         m = ctx.activity.metrics(ctx.transformer)
         dist_m = m["distance_m"]
         dur_s = m["duration_s"]

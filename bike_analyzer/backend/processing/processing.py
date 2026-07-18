@@ -19,6 +19,7 @@ DECEL_THRESHOLD_KM_H_S = -2.0
 
 
 def validate_coordinate(lat: float, lon: float) -> bool:
+    """Valida latitudine [-90,90] e longitudine [-180,180] come numeri finiti."""
     if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
         return False
     if lat < -90 or lat > 90:
@@ -31,6 +32,12 @@ def validate_gps_point(point: GPSPoint) -> bool:
 
 
 def detect_pauses(points: list[GPSPoint]) -> list[Pause]:
+    """Rileva le pause nella traccia: segmenti con speed < 1.5 km/h continui.
+
+    Un punto è "pausa" se la sua velocità scende sotto la soglia; quando la
+    velocità risale, se la durata accumulata >= 3 minuti viene emesso un oggetto
+    ``Pause`` (start/end/duration_s). Gestisce una sola pausa aperta per volta.
+    """
     pauses: list[Pause] = []
     if len(points) < 2:
         return pauses
@@ -81,6 +88,13 @@ def detect_decelerations(points: list[GPSPoint]) -> list[tuple[int, float]]:
 
 
 def remove_outliers(points: list[GPSPoint], max_speed_km_h: float = 120.0) -> list[GPSPoint]:
+    """Rimuove i point GPS che implicherebbero una velocità implausibile.
+
+    Calcola la velocità istantanea tra punti consecutivi via haversine/delta-t e
+    scarta i punti che la superano (default 120 km/h, tipico di errori GPS).
+    Mantiene sempre il primo e l'ultimo punto. Se pulendo restano <2 punti,
+    ritorna i primi due dell'originale per non rompere i consumatori a valle.
+    """
     if len(points) < 3:
         return points[:]
     cleaned = [points[0]]
@@ -109,6 +123,11 @@ def _elevation_delta(alt_from: float | None, alt_to: float | None) -> tuple[floa
 
 
 def build_segments(points: list[GPSPoint]) -> list[Segment]:
+    """Costruisce i segmenti punto-a-punto della rotta.
+
+    Per ogni coppia consecutiva calcola distanza (haversine), durata, velocità
+    media e variazione di quota (gain/loss), saltando i passi con delta-t <= 0.
+    """
     segments: list[Segment] = []
     for i in range(1, len(points)):
         prev, curr = points[i - 1], points[i]
@@ -132,6 +151,12 @@ def build_segments(points: list[GPSPoint]) -> list[Segment]:
 
 
 def compute_statistics(points: list[GPSPoint]) -> RouteStatistics:
+    """Aggrega statistiche di rotta: distanza, durata, pause, velocità, dislivello.
+
+    La durata totale è la finestra tra primo e ultimo segmento; il tempo in
+    movimento sottrae le pause rilevate. La velocità media usa il tempo in
+    movimento (non il tempo totale) per essere realistica.
+    """
     segments = build_segments(points)
     pauses = detect_pauses(points)
     total_distance_m = sum(s.distance_m for s in segments)
@@ -153,6 +178,7 @@ def compute_statistics(points: list[GPSPoint]) -> RouteStatistics:
 
 
 def process_route(points: list[GPSPoint], max_speed_km_h: float = 120.0) -> tuple[list[GPSPoint], RouteStatistics]:
+    """Pipeline completa di una rotta: ordina per timestamp, rimuove outlier, calcola statistiche."""
     points = sorted(points, key=lambda p: p.timestamp)
     cleaned = remove_outliers(points, max_speed_km_h)
     return cleaned, compute_statistics(cleaned)

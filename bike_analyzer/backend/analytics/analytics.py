@@ -1,4 +1,17 @@
-"""Analytics engine for ride analysis."""
+"""Motore di analytics per l'analisi delle attivita' ciclistiche.
+
+Funzionalita' principali:
+- Calcolo di statistiche riassuntive su lista di attivita' (distanza, calorie,
+  velocita' media, fatica media).
+- Analisi dettagliata di una singola attivita' con punteggi di fatica,
+  recupero e raccomandazioni.
+- Generazione di grafici matplotlib (durata, velocita', potenza, ecc.)
+  restituiti come buffer PNG in memoria.
+- Esportazione dati in JSON e CSV per backup o analisi esterne.
+
+Tutte le funzioni sono sincrone e CPU-bound. L'output dei grafici e'
+restituito come ``io.BytesIO`` per evitare la scrittura su disco.
+"""
 
 from __future__ import annotations
 
@@ -18,6 +31,14 @@ from .fatigue import calculate_fatigue_score, estimate_recovery_hours, get_recov
 
 
 def calculate_summary(rides: list[Ride]) -> dict:
+    """Calcola statistiche riassuntive su una lista di attivita'.
+
+    Attributes:
+        rides: Lista di attivita' da analizzare.
+
+    Returns:
+        Dizionario con total_rides, total_km, total_calories, avg_speed, avg_fatigue.
+    """
     if not rides:
         return {
             "total_rides": 0,
@@ -36,6 +57,16 @@ def calculate_summary(rides: list[Ride]) -> dict:
 
 
 def analyze_ride(ride: Ride) -> dict:
+    """Analizza una singola attivita' calcolando fatica, recupero e raccomandazioni.
+
+    Attributes:
+        ride: Attivita' da analizzare.
+
+    Returns:
+        Dizionario con ride_id, date, distance_km, duration_minutes,
+        avg_speed_kmh, calories, fatigue_score, recovery_hours,
+        recovery_recommendation.
+    """
     fatigue = calculate_fatigue_score(ride)
     return {
         "ride_id": ride.id,
@@ -51,14 +82,25 @@ def analyze_ride(ride: Ride) -> dict:
 
 
 def ride_to_json(ride: Ride) -> str:
+    """Serializza una singola attivita' in JSON formattato."""
     return json.dumps(ride.to_dict(), indent=2)
 
 
 def rides_to_json(rides: list[Ride]) -> str:
+    """Serializza una lista di attivita' in JSON formattato."""
     return json.dumps([r.to_dict() for r in rides], indent=2)
 
 
 def rides_to_csv(rides: list[Ride]) -> str:
+    """Esporta una lista di attivita' in formato CSV (come stringa).
+
+    Attributes:
+        rides: Lista di attivita' da esportare.
+
+    Returns:
+        Stringa CSV con header: date, distance_km, duration_minutes,
+        avg_speed_kmh, weight_kg, calories, heart_rate_avg, elevation_gain_m.
+    """
     output = StringIO()
     if not rides:
         return ""
@@ -92,12 +134,30 @@ def rides_to_csv(rides: list[Ride]) -> str:
 
 
 def export_rides_json(rides: list[Ride], output_path: str = "rides_export.json") -> str:
+    """Esporta una lista di attivita' in un file JSON.
+
+    Attributes:
+        rides: Lista di attivita' da esportare.
+        output_path: Percorso del file di destinazione.
+
+    Returns:
+        Percorso del file scritto.
+    """
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump([r.to_dict() for r in rides], f, indent=2)
     return output_path
 
 
 def export_rides_csv(rides: list[Ride], output_path: str = "rides_export.csv") -> str:
+    """Esporta una lista di attivita' in un file CSV.
+
+    Attributes:
+        rides: Lista di attivita' da esportare.
+        output_path: Percorso del file di destinazione.
+
+    Returns:
+        Percorso del file scritto.
+    """
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(
@@ -127,6 +187,14 @@ def export_rides_csv(rides: list[Ride], output_path: str = "rides_export.csv") -
 
 
 def generate_text_report(ride: Ride) -> str:
+    """Genera un report testuale leggibile per una singola attivita'.
+
+    Attributes:
+        ride: Attivita' da analizzare.
+
+    Returns:
+        Report multi-riga con le metriche principali.
+    """
     a = analyze_ride(ride)
     return "\n".join(
         [
@@ -143,6 +211,15 @@ def generate_text_report(ride: Ride) -> str:
 
 
 def create_speed_chart(segments: list[Segment], output_path: str = "speed_chart.png") -> str:
+    """Genera un grafico della velocita' media per segmento.
+
+    Attributes:
+        segments: Lista di segmenti della traccia.
+        output_path: Percorso di salvataggio del PNG.
+
+    Returns:
+        Percorso del file PNG salvato.
+    """
     speeds = [s.avg_speed_km_h for s in segments] if segments else [0]
     plt.figure(figsize=(10, 4))
     plt.plot(speeds, color="#FF6B00", linewidth=2)
@@ -155,6 +232,15 @@ def create_speed_chart(segments: list[Segment], output_path: str = "speed_chart.
 
 
 def create_elevation_chart(segments: list[Segment], output_path: str = "elevation_chart.png") -> str:
+    """Genera un grafico del dislivello per segmento.
+
+    Attributes:
+        segments: Lista di segmenti della traccia.
+        output_path: Percorso di salvataggio del PNG.
+
+    Returns:
+        Percorso del file PNG salvato.
+    """
     elev = [s.elevation_gain_m for s in segments] if segments else [0]
     plt.figure(figsize=(10, 4))
     plt.fill_between(range(len(elev)), elev, color="#4ecca3", alpha=0.7)
@@ -167,6 +253,15 @@ def create_elevation_chart(segments: list[Segment], output_path: str = "elevatio
 
 
 def create_duration_chart(rides: list[Ride], output_path: str = "duration_chart.png") -> str:
+    """Genera un grafico a barre della durata delle attivita'.
+
+    Attributes:
+        rides: Lista di attivita' da visualizzare.
+        output_path: Percorso di salvataggio del PNG.
+
+    Returns:
+        Percorso del file PNG salvato.
+    """
     durations = [r.duration_minutes for r in rides] if rides else [0]
     labels = [r.date for r in rides] if rides else ["No rides"]
     plt.figure(figsize=(10, 4))
@@ -181,6 +276,7 @@ def create_duration_chart(rides: list[Ride], output_path: str = "duration_chart.
 
 
 def create_distance_chart(segments: list[Segment], output_path: str = "distance_chart.png") -> str:
+    """Genera un grafico della distanza cumulata per segmento (in km)."""
     distances = [s.distance_m / 1000 for s in segments] if segments else [0]
     plt.figure(figsize=(10, 4))
     plt.plot(range(len(distances)), distances, color="#FF6B00", linewidth=2)
@@ -193,6 +289,7 @@ def create_distance_chart(segments: list[Segment], output_path: str = "distance_
 
 
 def generate_speed_chart(points: list[GPSPoint] | None, title: str = "Speed Profile") -> str:
+    """Genera il grafico velocità per punto GPS, salvato in PNG temporaneo."""
     if not points:
         return ""
     speeds = [p.speed for p in points if p.speed is not None]
@@ -211,6 +308,7 @@ def generate_speed_chart(points: list[GPSPoint] | None, title: str = "Speed Prof
 
 
 def generate_distance_chart(points: list[GPSPoint] | None, title: str = "Distance Progression") -> str:
+    """Genera il grafico della distanza cumulata (haversine) per punto GPS."""
     if not points:
         return ""
     distances = [0.0]
@@ -231,6 +329,7 @@ def generate_distance_chart(points: list[GPSPoint] | None, title: str = "Distanc
 
 
 def generate_time_chart(points: list[GPSPoint] | None, title: str = "Time Analysis") -> str:
+    """Genera un grafico temporale minimale (marker per punto) salvato in PNG temporaneo."""
     if not points:
         return ""
     times = [p.timestamp.strftime("%H:%M") for p in points]

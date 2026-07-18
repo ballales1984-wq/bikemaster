@@ -56,10 +56,12 @@ TOKEN_REFRESH_BUFFER_SECONDS = 300
 
 
 def generate_code_verifier() -> str:
+    """Genera il PKCE code_verifier: stringa URL-safe ad alta entropia (64 byte)."""
     return secrets.token_urlsafe(64)
 
 
 def generate_code_challenge(verifier: str) -> str:
+    """Deriva il code_challenge PKCE: SHA-256 del verifier, Base64url senza padding."""
     import base64
     import hashlib
 
@@ -70,6 +72,7 @@ def generate_code_challenge(verifier: str) -> str:
 def build_authorization_url(
     state: str, code_challenge: str, redirect_uri: str | None = None
 ) -> str:
+    """Costruisce l'URL di autorizzazione OAuth2 Strava con PKCE (S256)."""
     params = {
         "response_type": "code",
         "client_id": _s.strava_client_id,
@@ -108,6 +111,7 @@ def get_authorization_url(
 async def exchange_code_for_token(
     code: str, code_verifier: str, redirect_uri: str | None = None
 ) -> dict[str, Any]:
+    """Scambia il authorization code (più code_verifier PKCE) con token Strava."""
     payload = {
         "client_id": _s.strava_client_id,
         "client_secret": _s.strava_client_secret,
@@ -120,6 +124,7 @@ async def exchange_code_for_token(
 
 
 async def refresh_access_token(refresh_token: str) -> dict[str, Any]:
+    """Rinnova un access token Strava usando il refresh token (grant_type=refresh_token)."""
     payload = {
         "client_id": _s.strava_client_id,
         "client_secret": _s.strava_client_secret,
@@ -234,6 +239,7 @@ _STRAVA_PER_PAGE = 30
 
 
 async def fetch_activities(access_token: str, page: int = 1, per_page: int = _STRAVA_PER_PAGE) -> list[dict]:
+    """Recupera una pagina di attività dell'atleta dall'endpoint Strava v3."""
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {"page": page, "per_page": per_page}
     return await request_json(

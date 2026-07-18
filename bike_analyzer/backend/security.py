@@ -1,9 +1,18 @@
-"""JWT authentication helpers.
+"""JWT authentication, authorization, and session management.
 
-Lightweight implementation using python-jose with HS256.
-Password hashing uses bcrypt directly for maximum compatibility.
-Includes token blacklist support for logout revocation via Redis.
-TOTP/2FA is implemented with stdlib only (hmac/hashlib) — no third-party deps.
+Questo modulo fornisce:
+
+- Generazione e validazione di access token JWT (HS256) con ``python-jose``.
+- Hashing e verifica password con ``bcrypt``.
+- Revoca token tramite blacklist in-memory + Redis (per logout e sicurezza).
+- Gestione refresh token con limite di sessioni attive per atleta.
+- Autenticazione a due fattori (TOTP/2FA) implementata con solo librerie
+  standard (``hmac``, ``hashlib``) — nessuna dipendenza aggiuntiva.
+- Cookie HttpOnly sicuri per il frontend (access + refresh).
+
+I token JWT includono i claim standard (``sub``, ``iat``, ``exp``, ``iss``,
+``aud``, ``jti``) piu' i campi custom ``is_admin``, ``is_client`` e
+``tenant_id`` per l'isolamento multi-tenant.
 """
 
 from __future__ import annotations
@@ -45,11 +54,19 @@ JWT_BLACKLIST_PREFIX = "bikemaster:jwt:blacklist:"
 JWT_BLACKLIST_TTL = 7200
 _memory_revoked_tokens: dict[str, float] = {}
 REFRESH_PREFIX = "bikemaster:refresh:"
+# Durata di validità di un refresh token (30 giorni), allineata a create_refresh_token.
 REFRESH_TTL = 86400 * 30
+# Numero massimo di sessioni/refresh token attivi per atleta (FIFO in save_refresh_token).
 REFRESH_MAX_ACTIVE = 5
 
 
 def _sweep_revoked_tokens() -> None:
+    """Rimuovi token revocati scaduti dalla blacklist in-memory.
+
+    La soglia di stale e' ``JWT_BLACKLIST_TTL * 2`` per garantire che i token
+    ancora validi non vengano eliminati prematuramente. Viene chiamata
+    automaticamente ogni 100 inserimenti.
+    """
     now = time.time()
     cutoff = now - (JWT_BLACKLIST_TTL * 2)
     stale = [jti for jti, ts in _memory_revoked_tokens.items() if ts < cutoff]
@@ -60,6 +77,11 @@ def _sweep_revoked_tokens() -> None:
 
 
 async def get_refresh_token(athlete_id: int) -> str | None:
+    """Recupera il refresh token attivo per un atleta da Redis.
+
+    Restituisce ``None`` se Redis non e' disponibile o se l'atleta non ha
+    un refresh token salvato.
+    """
     r = await get_redis()
     if r is None:
         return None
@@ -71,6 +93,12 @@ async def get_refresh_token(athlete_id: int) -> str | None:
 
 
 async def save_refresh_token(athlete_id: int, refresh_token: str, ttl: int = REFRESH_TTL) -> bool:
+    """Salva un nuovo refresh token per un atleta in Redis.
+
+    Mantiene fino a ``REFRESH_MAX_ACTIVE`` token per atleta, rimuovendo il
+    piu' vecchio quando il limite viene superato. Il token piu' recente e'
+    sempre accessibile direttamente tramite la chiave ``REFRESH_PREFIX``.
+    """
     r = await get_redis()
     if r is None:
         return False
@@ -90,6 +118,10 @@ async def save_refresh_token(athlete_id: int, refresh_token: str, ttl: int = REF
 
 
 async def revoke_refresh_token(athlete_id: int) -> bool:
+    """Revoca tutti i refresh token di un atleta (logout definitivo).
+
+    Elimina sia il token corrente che la lista dei token attivi da Redis.
+    """
     r = await get_redis()
     if r is None:
         return False
@@ -119,13 +151,18 @@ def jti_key(jti: str) -> str:
 
 
 async def revoke_token(jti: str, ttl: int = JWT_BLACKLIST_TTL) -> bool:
+    """Inserisce un JWT nella blacklist di revoca.
+
+    Il token viene marcato come revocato sia in-memory (per performance)
+    che su Redis (per istanze multiple). La blacklist ha un TTL di
+    ``JWT_BLACKLIST_TTL`` secondi, dopodiche' il token scade naturalmente
+    e puo' essere rimosso dalla memoria.
+    """
     _memory_revoked_tokens[jti] = time.time()
     if len(_memory_revoked_tokens) % 100 == 0:
         _sweep_revoked_tokens()
     r = await get_redis()
     if r is None:
-        # In-memory revocation already succeeded above; Redis is only needed for
-        # distributed/multi-instance revocation, so report success here.
         logger.warning("Redis unavailable: token revocation is in-memory only for jti=%s", jti)
         return True
     try:
@@ -162,10 +199,20 @@ def fingerprint_token(token: str) -> str:
 
 
 def hash_password(password: str) -> str:
+    """Genera l'hash bcrypt di una password in chiaro.
+
+    Utilizza il costo di default di bcrypt (rounds=12). L'output e' una
+    stringa UTF-8 pronta per essere salvata nel database.
+    """
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+    """Verifica che una password in chiaro corrisponda all'hash salvato.
+
+    Gestisce anche hash vuoti/non validi restituendo ``False`` invece di
+    sollevare eccezioni, per evitare side-channel attacks.
+    """
     if not hashed:
         return False
     try:
@@ -183,6 +230,14 @@ def create_access_token(
     tenant_id: int | None = None,
     is_client: bool = False,
 ) -> str:
+    """Genera un access token JWT (HS256) per l'utente specificato.
+
+    Il token include i claim standard (``sub``, ``iat``, ``exp``, ``iss``,
+    ``aud``, ``jti``) piu' i campi custom ``is_admin``, ``is_client`` e
+    ``tenant_id``. Se ``jti`` non e' fornito viene generato un identificativo
+    univoco basato su SHA-256. La scadenza predefinita e' configurata da
+    ``ACCESS_TOKEN_EXPIRE_MINUTES``.
+    """
     expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     if jti is None:
         jti = hashlib.sha256(f"{subject}:{time.time()}:{SECRET_KEY}".encode()).hexdigest()[:32]
@@ -204,6 +259,12 @@ def create_access_token(
 def create_refresh_token(
     subject: str, is_admin: bool = False, tenant_id: int | None = None, is_client: bool = False
 ) -> str:
+    """Genera un refresh token JWT con durata di 30 giorni.
+
+    Simile a ``create_access_token`` ma con claim ``type="refresh"`` e
+    scadenza estesa. Usato per ottenere nuovi access token senza richiedere
+    nuovamente le credenziali.
+    """
     expire = datetime.now(UTC) + timedelta(days=30)
     jti = hashlib.sha256(f"refresh:{subject}:{time.time()}:{SECRET_KEY}".encode()).hexdigest()[:32]
     payload = {
@@ -223,6 +284,11 @@ def create_refresh_token(
 
 
 def _try_decode(token: str, secret: str) -> dict | None:
+    """Decodifica un JWT con la chiave specificata, restituendo None in caso di errore.
+
+    Utilizzato internamente per supportare il fallback tra chiavi vecchie e
+    nuove durante la rotazione dei segreti JWT.
+    """
     try:
         return jwt.decode(token, secret, algorithms=[ALGORITHM], issuer=JWT_ISSUER, audience=JWT_AUDIENCE)
     except JWTError:
@@ -230,6 +296,13 @@ def _try_decode(token: str, secret: str) -> dict | None:
 
 
 async def decode_token_with_fallback(token: str | None) -> dict | None:
+    """Decodifica un JWT con fallback sulla chiave precedente.
+
+    Durante la rotazione dei segreti JWT, i token emessi con la chiave
+    vecchia devono rimanere validi fino a scadenza. Questa funzione tenta
+    prima con ``SECRET_KEY`` corrente, poi con ``SECRET_KEY_PREVIOUS`` se
+    configurata.
+    """
     if not isinstance(token, str):
         return None
     payload = _try_decode(token, SECRET_KEY)
@@ -244,6 +317,13 @@ async def decode_token_with_fallback(token: str | None) -> dict | None:
 
 
 async def decode_token(token: str | None) -> dict:
+    """Decodifica e valida un access token JWT.
+
+    Verifica la firma, la scadenza, l'issuer e l'audience. Inoltre controlla
+    che il token non sia stato revocato tramite blacklist. Solleva
+    ``HTTPException`` con status 401 in caso di token non valido, scaduto o
+    revocato.
+    """
     if not isinstance(token, str):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -268,6 +348,13 @@ async def decode_token(token: str | None) -> dict:
 
 
 async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)) -> dict:
+    """Dependency FastAPI per ottenere l'utente autenticato dal token JWT.
+
+    Supporta il token sia nell'header Authorization che nel cookie
+    ``bikemaster_access``. Restituisce un dict con ``id``, ``is_admin``,
+    ``is_client`` e opzionalmente ``tenant_id``. Solleva 401 se il token
+    non e' valido.
+    """
     cookie_token = request.cookies.get("bikemaster_access")
     active_token = cookie_token or token
     payload = await decode_token(active_token)
@@ -288,6 +375,11 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
 
 
 async def get_admin_user(request: Request, token: str = Depends(oauth2_scheme)) -> dict:
+    """Dependency FastAPI che richiede privilegi di amministratore.
+
+    Estende ``get_current_user`` verificando che il claim ``is_admin`` sia
+    ``True``. Solleva 403 se l'utente autenticato non e' admin.
+    """
     user = await get_current_user(request, token)
     if not user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Accesso amministratore richiesto")
@@ -295,6 +387,12 @@ async def get_admin_user(request: Request, token: str = Depends(oauth2_scheme)) 
 
 
 async def get_optional_current_user(request: Request, token: str | None = Depends(oauth2_scheme)) -> dict | None:
+    """Dependency FastAPI opzionale per l'utente autenticato.
+
+    Se un token valido e' presente, restituisce l'utente; altrimenti
+    restituisce ``None`` senza sollevare eccezioni. Utile per endpoint
+    pubblici che hanno comportamenti diversi per utenti autenticati.
+    """
     if not token:
         return None
     try:
@@ -308,6 +406,8 @@ TOTP_KEY_PREFIX = "bikemaster:2fa:secret:"
 
 
 def _generate_totp_secret() -> str:
+    # Deriva il segreto da SECRET_KEY + entropia temporale, poi lo codifica in Base32
+    # (RFC 4226) troncando a 20 byte — lunghezza standard per i segreti TOTP.
     raw = hashlib.sha256(SECRET_KEY.encode()).digest() + hashlib.sha256(str(time.time()).encode()).digest()
     return base64.b32encode(raw[:20]).decode("utf-8").rstrip("=")
 
@@ -353,6 +453,10 @@ async def delete_totp_secret(user_id: int) -> bool:
 
 
 def _hotp(secret: str, counter: int, digits: int = 6, algorithm: str = "sha256") -> str:
+    # HMAC-based One-Time Password (RFC 4226). Calcola HMAC-SHA256 sul counter a
+    # 64 bit big-endian, poi applica l'algoritmo di "dynamic truncation" (RFC 4226
+    # §5.3): l'ultimo nibble di H sceglie un offset, da cui si estraggono 31 bit
+    # (il bit alto azzerato per evitare il segno) e si riducono a `digits` cifre.
     key = base64.b32decode(secret.upper().replace(" ", ""))
     msg = struct.pack(">Q", counter)
     h = hmac.new(key, msg, getattr(hashlib, algorithm)).digest()
@@ -367,6 +471,11 @@ def _hotp(secret: str, counter: int, digits: int = 6, algorithm: str = "sha256")
 
 
 def generate_totp(secret: str, period: int = 30, digits: int = 6, algorithm: str = "sha256") -> str:
+    """Genera un codice TOTP (Time-based One-Time Password, RFC 6238).
+
+    Il codice e' valido per ``period`` secondi e utilizza l'algoritmo di
+    hash specificato. Deriva il contatore da ``int(time.time()) // period``.
+    """
     counter = int(time.time()) // period
     return _hotp(secret, counter, digits=digits, algorithm=algorithm)
 
@@ -379,6 +488,12 @@ def verify_totp(
     algorithm: str = "sha256",
     window: int = 1,
 ) -> bool:
+    """Verifica un codice TOTP con tolleranza di clock drift.
+
+    Accetta codici validi nell'intorno di ``window`` periodi prima/dopo
+    il tempo corrente, per gestire lo drift tra i clock del client e del
+    server. Usa ``hmac.compare_digest`` per prevenire timing attacks.
+    """
     if not code or not code.isdigit() or len(code) != digits:
         return False
     counter = int(time.time()) // period
@@ -390,6 +505,11 @@ def verify_totp(
 
 
 def provisioning_uri(secret: str, user_id: int, issuer: str = TOTP_ISSUER) -> str:
+    """Genera l'URI ``otpauth://`` per la configurazione dell'app authenticator.
+
+    L'URI e' compatibile con Google Authenticator, Authy e altri client
+    TOTP standard. Include algoritmo SHA-256, 6 cifre e periodo di 30s.
+    """
     return f"otpauth://totp/{issuer}:user{user_id}?secret={secret}&issuer={issuer}&algorithm=sha256&digits=6&period=30"
 
 
@@ -399,6 +519,11 @@ def _cookie_secure() -> bool:
 
 
 def set_auth_cookies(response: Response, access_token: str, refresh_token: str | None = None) -> None:
+    """Imposta i cookie HttpOnly per l'accesso e il refresh token.
+
+    In produzione i cookie sono ``secure`` e ``samesite=none`` per supportare
+    i cross-site requests; in sviluppo sono ``samesite=lax`` e non secure.
+    """
     secure = _cookie_secure()
     samesite = "none" if secure else "lax"
     response.set_cookie(
@@ -423,5 +548,10 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str |
 
 
 def delete_auth_cookies(response: Response) -> None:
+    """Cancella i cookie di autenticazione dal browser del client.
+
+    Rimuove sia il cookie di accesso che quello di refresh, forzando il
+    logout dal lato client.
+    """
     response.delete_cookie(key="bikemaster_access", path="/")
     response.delete_cookie(key="bikemaster_refresh", path="/api/v1/auth")

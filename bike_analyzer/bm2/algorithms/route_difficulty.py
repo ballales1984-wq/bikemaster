@@ -13,6 +13,12 @@ ROUGHNESS_FACTOR = {"asphalt": 1.0, "gravel": 1.25, "dirt": 1.5, "trail": 1.8}
 
 
 class RouteDifficultyModel(Algorithm):
+    """Stima la difficolta' del percorso (0-100) rispetto alla capacita' dell'atleta.
+
+    Formula: difficolta' = clamp(100 · (0.3·norm(distanza) + 0.3·norm(dislivello)
+             + 0.25·norm(pendenza) + 0.15·rugosita') / capacita', 0, 100)
+    """
+
     name = "RouteDifficultyModel"
     formula = ("difficoltà = clamp(100 · (0.3·norm(distanza) + 0.3·norm(dislivello) "
                "+ 0.25·norm(pendenza) + 0.15·rugosità) / capacità, 0, 100)")
@@ -21,6 +27,7 @@ class RouteDifficultyModel(Algorithm):
     required_inputs = ["distanza", "dislivello", "pendenza", "rugosità", "capacità_atleta"]
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+        """Calcola il punteggio di difficolta' normalizzato per livello atleta."""
         m = ctx.activity.metrics(ctx.transformer)
         dist_km = m["distance_m"] / 1000.0
         gain_m = m["gain_m"]
@@ -41,6 +48,7 @@ class RouteDifficultyModel(Algorithm):
         return difficulty, precision, confidence
 
     def _category(self, score: float) -> str:
+        """Classifica il punteggio in categoria testuale (Facile/Moderato/Impegnativo/Estremo)."""
         if score < 20:
             return "Facile"
         if score < 45:
@@ -50,5 +58,6 @@ class RouteDifficultyModel(Algorithm):
         return "Estremo"
 
     def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+        """Restituisce categoria e superficie del percorso."""
         score, _, _ = self._compute(ctx, extra)
         return {"category": self._category(score), "surface": ctx.world.surface}

@@ -18,6 +18,11 @@ REFERENCE_SPEED_KMH = {
 
 
 class PerformanceModel(Algorithm):
+    """Indice di prestazione normalizzato sull'esperienza dell'atleta.
+
+    Formula: indice = clamp(v_media_kmh / v_riferimento(experience) · 100, 0, 120)
+    """
+
     name = "PerformanceModel"
     formula = "indice = clamp(v_media_kmh / v_riferimento(experience) · 100, 0, 120)"
     description = "Indice di prestazione normalizzato sull'esperienza dell'atleta."
@@ -25,6 +30,7 @@ class PerformanceModel(Algorithm):
     required_inputs = ["velocità_media", "experience_level"]
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+        """Calcola l'indice di prestazione normalizzato per livello di esperienza."""
         m = ctx.activity.metrics(ctx.transformer)
         v_kmh = (m["avg_speed_ms"] * 3.6) if m["avg_speed_ms"] else 0.0
         ref = REFERENCE_SPEED_KMH.get(ctx.athlete.experience_level, 24.0)
@@ -36,6 +42,7 @@ class PerformanceModel(Algorithm):
         return index, precision, confidence
 
     def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+        """Restituisce velocita' media, riferimento e livello esperienza."""
         m = ctx.activity.metrics(ctx.transformer)
         return {
             "avg_speed_kmh": m["avg_speed_ms"] * 3.6,

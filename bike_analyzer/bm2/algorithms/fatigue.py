@@ -11,6 +11,12 @@ __all__ = ["FatigueModel"]
 
 
 class FatigueModel(Algorithm):
+    """Stima il carico di fatica (0-10) e le ore di recupero necessarie.
+
+    Formula: score = min(10, (durata·0.3 + intensità·0.3 + velocità·0.2
+             + dislivello·0.1 + peso·0.1)·3)
+    """
+
     name = "FatigueModel"
     formula = ("score = min(10, (durata·0.3 + intensità·0.3 + velocità·0.2 "
                "+ dislivello·0.1 + peso·0.1)·3)")
@@ -19,7 +25,7 @@ class FatigueModel(Algorithm):
     required_inputs = ["durata", "intensità", "velocità", "dislivello", "peso"]
 
     def _intensity_factor(self, ctx: AnalysisContext, avg_speed_kmh: float) -> float:
-        # intensità da HR se disponibile, altrimenti da velocità
+        """Calcola il fattore di intensita' da FC media (se disponibile) o da velocita'."""
         hrs = [p.heart_rate for p in ctx.activity.points if p.heart_rate is not None]
         if hrs and ctx.athlete.max_hr_bpm is not None:
             hr_avg = sum(hrs) / len(hrs)
@@ -27,6 +33,7 @@ class FatigueModel(Algorithm):
         return min(avg_speed_kmh / 30.0, 1.0)
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+        """Calcola lo score di fatica (0-10) combinando durata, intensita', velocita' e dislivello."""
         m = ctx.activity.metrics(ctx.transformer)
         dur_h = m["duration_s"] / 3600.0
         v_kmh = m["avg_speed_ms"] * 3.6
@@ -48,6 +55,7 @@ class FatigueModel(Algorithm):
         return score, precision, confidence
 
     def _recovery_hours(self, score: float) -> float:
+        """Stima le ore di recupero necessarie in base allo score di fatica."""
         if score <= 3.0:
             return 8.0
         if score <= 5.0:
@@ -57,6 +65,7 @@ class FatigueModel(Algorithm):
         return 48.0
 
     def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+        """Aggiunge intensita', recupero stimato e raccomandazione al risultato."""
         m = ctx.activity.metrics(ctx.transformer)
         v_kmh = m["avg_speed_ms"] * 3.6
         intensity = self._intensity_factor(ctx, v_kmh)
@@ -69,6 +78,7 @@ class FatigueModel(Algorithm):
 
     @staticmethod
     def _recommendation(score: float) -> str:
+        """Raccomandazione testuale basata sul livello di fatica."""
         if score <= 2.0:
             return "Fatica minima"
         if score <= 4.0:

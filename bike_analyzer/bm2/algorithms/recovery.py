@@ -12,6 +12,11 @@ __all__ = ["RecoveryModel"]
 
 
 class RecoveryModel(Algorithm):
+    """Stima la prontenza (readiness 0-100) da fatica, sonno e HRV.
+
+    Formula: readiness = clamp(100 - fatica·6 - sonno_carenza·4 + hrv_bonus, 0, 100)
+    """
+
     name = "RecoveryModel"
     formula = "readiness = clamp(100 - fatica·6 - sonno_carenza·4 + hrv_bonus, 0, 100)"
     description = "Stima la prontenza (readiness 0-100) da fatica, sonno e HRV."
@@ -19,6 +24,7 @@ class RecoveryModel(Algorithm):
     required_inputs = ["fatica", "sonno_ore", "hrv"]
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+        """Calcola la readiness combinando FatigueModel, deficit sonno e bonus HRV."""
         extra = extra or {}
         fatigue_result = FatigueModel().run(ctx)
         fatigue = fatigue_result.value
@@ -37,6 +43,7 @@ class RecoveryModel(Algorithm):
         return readiness, precision, confidence
 
     def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+        """Restituisce fatica, recupero stimato, sonno e HRV utilizzati."""
         extra = extra or {}
         fatigue_result = FatigueModel().run(ctx)
         readiness, _, _ = self._compute(ctx, extra)

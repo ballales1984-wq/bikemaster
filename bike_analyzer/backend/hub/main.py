@@ -40,7 +40,14 @@ _s = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    setup_logging()
+    """Ciclo di vita dell'applicazione Hub.
+
+    Allo startup inizializza il database PostgreSQL asincrono, il client
+    Redis e la task queue. Ogni servizio e' protetto da try/except perche'
+    un errore in un servizio opzionale non deve bloccare l'avvio.
+
+    Allo shutdown termina la task queue e chiude la connessione Redis.
+    """
 
     if not _s.database_url:
         logger.warning(
@@ -79,6 +86,12 @@ async def lifespan(app: FastAPI):
 
 
 def create_hub_app() -> FastAPI:
+    """Crea l'applicazione FastAPI del backend Hub (cloud, multi-tenant).
+
+    Configura osservabilita', Prometheus, CORS limitato a Vercel/ngrok,
+    rate limiting e include i router per auth, admin, knowledge e sync.
+    Espone anche un endpoint /health per il health check.
+    """
     app = FastAPI(
         title="BikeMaster Hub API",
         description="Central multi-tenant backend for BikeMaster (cloud)",

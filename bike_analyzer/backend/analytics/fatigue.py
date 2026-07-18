@@ -12,6 +12,8 @@ def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:
     DURATION_FACTOR = min(duration_h / 2.0, 3.0)
     if hr_avg:
         hr_pct = hr_avg / (220 - rider_age) if rider_age < 220 else 0.5
+        # Tre segmenti lineari su %HRmax: piatto a 0.5 sotto il 50%, poi cresce
+        # con pendenza 2.0 fino all'85%, infine con pendenza 3.33 oltre (zona alta).
         INTENSITY_FACTOR = (
             0.5 if hr_pct <= 0.5 else 0.5 + (hr_pct - 0.5) * 2.0 if hr_pct <= 0.85 else 1.5 + (hr_pct - 0.85) * 3.33
         )

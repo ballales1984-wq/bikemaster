@@ -8,6 +8,12 @@ from datetime import datetime
 
 
 def _perpendicular_distance(point: dict, start: dict, end: dict) -> float:
+    """Distanza perpendicolare di ``point`` dal segmento ``start``-``end`` (in gradi).
+
+    Formula della distanza punto-retta |dy·x − dx·y + ...| / √(dx²+dy²). Se il
+    segmento è degenere (start==end) ritorna la distanza euclidea. Usata dal
+    Douglas-Peucker per scegliere il punto più "lontano" dalla linea.
+    """
     dx = end["lon"] - start["lon"]
     dy = end["lat"] - start["lat"]
     if dx == 0 and dy == 0:
@@ -18,6 +24,14 @@ def _perpendicular_distance(point: dict, start: dict, end: dict) -> float:
 
 
 def douglas_peucker(points: list[dict], tolerance: float = 0.00005) -> list[dict]:
+    """Decimazione della traccia GPS con l'algoritmo Ramer–Douglas–Peucker.
+
+    Approccia in modo ricorsivo (qui implementato con uno stack esplicito per
+    evitare la ricursion depth): mantiene sempre i capi estremi, poi per ogni
+    sotto-segmento trova il punto internedio più lontano (``_perpendicular_distance``);
+    se quella distanza supera ``tolerance`` il punto è "keep" e si divide il
+    segmento in due. Riduce il numero di punti preservando la forma della rotta.
+    """
     n = len(points)
     if n <= 2:
         return points

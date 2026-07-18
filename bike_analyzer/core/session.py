@@ -1,7 +1,16 @@
 """Nuovo dominio della Super App: spine che unisce tracking, salute e AI.
 
-Entità pure (nessuna dipendenza da DB/provider). Estendono il modello esistente
-in modo retro-compatibile: `Ride` resta valido, `Activity` ne è il superset.
+Entita' pure (nessuna dipendenza da DB/provider). Estendono il modello esistente
+in modo retro-compatibile: `Ride` resta valido, `SessionData` ne e' il superset.
+
+Componenti principali:
+- ``ActivityType`` - enum dei tipi di attivita' tracciabili.
+- ``SessionMode`` - enum delle modalita' di tracciamento (live, background, off).
+- ``SensorSample`` - lettura istantanea di sensori (HR, cadenza, potenza).
+- ``SessionData`` - stream grezzo di una sessione di tracciamento.
+- ``HealthSample`` - campione dati salute (sonno, HRV, passi, peso).
+- ``FusionRecord`` - snapshot fuso per l'AI Coach (salute + meteo + traffico + stato).
+- ``Recommendation`` - output strutturato dell'AI Coach.
 """
 
 from __future__ import annotations
@@ -15,7 +24,11 @@ from .models import GPSPoint, Ride
 
 
 class ActivityType(str, Enum):
-    """Tipo di attività tracciata (superset di `ride`)."""
+    """Tipo di attivita' tracciata (superset di `ride`).
+
+    I valori supportati includono: corsa, camminata, hiking, ciclismo,
+    attivita' indoor e altro.
+    """
 
     RIDE = "ride"
     WALK = "walk"
@@ -30,7 +43,12 @@ class ActivityType(str, Enum):
 
 
 class SessionMode(str, Enum):
-    """Modalità di tracciamento: live (uscita ufficiale) o background (informale)."""
+    """Modalita' di tracciamento.
+
+    - LIVE: uscita ufficiale tracciata e salvata.
+    - BACKGROUND: tracciamento informale in background.
+    - OFF: tracciamento disattivo.
+    """
 
     LIVE = "live"
     BACKGROUND = "background"
@@ -38,7 +56,11 @@ class SessionMode(str, Enum):
 
 
 class HealthMetricType(str, Enum):
-    """Tipi di campione salute (fonte nativa o Google Fit/Apple Health)."""
+    """Tipi di campione salute supportati.
+
+    Include metriche native del dispositivo e quelle importate da
+    Google Fit / Apple Health.
+    """
 
     SLEEP_HOURS = "sleep_hours"
     HRV_MS = "hrv_ms"
@@ -50,7 +72,14 @@ class HealthMetricType(str, Enum):
 
 @dataclass
 class SensorSample:
-    """Lettura sensore istantanea associata a un punto GPS."""
+    """Lettura sensore istantanea associata a un punto GPS.
+
+    Attributes:
+        timestamp: Timestamp UTC del campione.
+        heart_rate: Frequenza cardiaca in bpm (opzionale).
+        cadence: Cadenza di pedalata in rpm (opzionale).
+        power: Potenza istantanea in watt (opzionale).
+    """
 
     timestamp: datetime
     heart_rate: float | None = None

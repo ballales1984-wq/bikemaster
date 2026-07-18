@@ -50,7 +50,7 @@ _TOKEN_REFRESH_BUFFER_SECONDS = 300
 
 
 def get_authorization_url(state: str | None = None) -> dict[str, str]:
-    """Return dict with auth_url and state."""
+    """Costruisce l'URL di autorizzazione OAuth2 Garmin (authorization code flow)."""
     if not _s.garmin_consumer_key:
         raise RuntimeError("GARMIN_CONSUMER_KEY not configured")
     state = state or secrets.token_urlsafe(16)

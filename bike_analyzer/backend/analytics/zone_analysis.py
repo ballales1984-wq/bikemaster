@@ -64,6 +64,7 @@ def _to_gps_points(gps_points: Any) -> list[GPSPoint]:
 
 
 def _as_float(value: Any) -> float | None:
+    """Converte ``value`` in float, ritornando None se assente o non numerico."""
     if value is None:
         return None
     try:
@@ -75,8 +76,11 @@ def _as_float(value: Any) -> float | None:
 def _hr_distribution(
     hr_samples: list[float], max_hr: float
 ) -> list[dict[str, Any]]:
-    if not hr_samples or max_hr <= 0:
-        return []
+    """Conteggia i sample HR in ciascuna delle 5 zone Coggan (%HRmax).
+
+    Per ogni zona conta i sample con ``lo <= hr < hi`` (Z5 inclusiva di max HR:
+    ``lo <= hr <= hi``) e ne calcola la percentuale sul totale dei sample.
+    """
     total = len(hr_samples)
     zones: list[dict[str, Any]] = []
     for name, label, low, high, color in HR_ZONE_PCT:

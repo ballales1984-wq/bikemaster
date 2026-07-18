@@ -13,6 +13,12 @@ __all__ = ["NutritionModel"]
 
 
 class NutritionModel(Algorithm):
+    """Stima carboidrati, idratazione e proteine per l'attivita'.
+
+    Formula: carb = intensita'·60 g/h · ore; acqua = 0.6 L/h · ore;
+             proteine = 0.3 g/kg (post-attivita')
+    """
+
     name = "NutritionModel"
     formula = ("carb = intensità·60 g/h · ore; acqua = 0.6 L/h · ore; "
                "proteine = 0.3 g/kg (post)")
@@ -21,6 +27,7 @@ class NutritionModel(Algorithm):
     required_inputs = ["durata", "intensità", "massa_corpo"]
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+        """Calcola i carboidrati totali (g) in base a durata e intensita'."""
         m = ctx.activity.metrics(ctx.transformer)
         dur_h = m["duration_s"] / 3600.0
         if dur_h <= 0:
@@ -34,6 +41,7 @@ class NutritionModel(Algorithm):
         return carbs, precision, confidence
 
     def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+        """Aggiunge proteine, acqua, kcal e durata al risultato."""
         m = ctx.activity.metrics(ctx.transformer)
         dur_h = m["duration_s"] / 3600.0
         weight = ctx.athlete.weight_kg.value

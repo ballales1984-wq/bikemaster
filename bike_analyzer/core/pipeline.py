@@ -1,4 +1,14 @@
-"""Core processing pipeline: ingestion → processing → analytics → fitness state."""
+"""Core processing pipeline: ingestion → processing → analytics → fitness state.
+
+La pipeline trasforma una attivita' grezza (``Ride``) in:
+1. Statistiche di percorso (``RouteStatistics``) tramite pulizia GPS.
+2. Metriche aggregate (fatica, recupero, calorie, performance, TSS).
+3. (Opzionale) Fitness State Vector (ATL/CTL/TSB) tramite ``AnalysisEngine``.
+
+L'architettura e' sincrona per le operazioni CPU-bound (GPS, metriche)
+ma supporta anche un'esecuzione asincrona per compatibilita' con il resto
+del backend FastAPI.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +19,15 @@ from .models import Ride, RouteStatistics
 
 @dataclass
 class PipelineResult:
-    """Result container for a single ride analysis run."""
+    """Contenitore del risultato di una analisi di attivita'.
+
+    Attributes:
+        ride: L'attivita' originale (eventualmente modificata con GPS puliti).
+        route_statistics: Statistiche aggregate del percorso (distanza, dislivello,
+            velocita' media, ecc.) o None se non presenti punti GPS.
+        fitness_snapshot: Dizionario con ATL/CTL/TSB calcolati per questa attivita'.
+        metrics: Metriche aggregate (fatica, recupero, calorie, performance, TSS).
+    """
     ride: Ride
     route_statistics: RouteStatistics | None = None
     fitness_snapshot: dict | None = None
@@ -17,11 +35,14 @@ class PipelineResult:
 
 
 class AnalysisPipeline:
-    """Processing pipeline that turns a raw ride into cleaned stats and metrics.
+    """Pipeline di elaborazione che trasforma una attivita' grezza in statistiche e metriche.
 
-    Steps:
-    1. GPS cleaning and route statistics (``_process_gps``)
-    2. Metrics computation: fatigue, calories, performance, power (``_compute_metrics``)
+    Attributi:
+        ftp: Functional Threshold Power in watt, usata per il calcolo del TSS.
+
+    Passi della pipeline:
+    1. Pulizia GPS e calcolo statistiche di percorso (``_process_gps``).
+    2. Calcolo metriche: fatica, recupero, calorie, performance, potenza (``_compute_metrics``).
     """
 
     def __init__(self, ftp: float = 250.0):

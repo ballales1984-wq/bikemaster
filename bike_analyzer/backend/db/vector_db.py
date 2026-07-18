@@ -18,6 +18,7 @@ _embeddings_cache: dict[str, np.ndarray] = {}
 
 
 def _get_vectorizer() -> TfidfVectorizer | None:
+    """Crea un TF-IDF vectorizer (fallback embedding) se sklearn è disponibile."""
     return (
         TfidfVectorizer(max_features=1000, stop_words="english")
         if VECTOR_AVAILABLE

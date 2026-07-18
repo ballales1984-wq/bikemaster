@@ -222,8 +222,9 @@ def upgrade() -> None:
         batch_op.create_foreign_key(None, 'athletes', ['athlete_id'], ['id'], ondelete='CASCADE')
 
     with op.batch_alter_table('knowledge_chunks', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('tenant_id', sa.Integer(), nullable=False))
+        batch_op.add_column(sa.Column('tenant_id', sa.Integer(), nullable=False, server_default='0'))
         batch_op.add_column(sa.Column('created_at', sa.DateTime(timezone=True), nullable=True))
+        batch_op.alter_column('tenant_id', server_default=None)
 
     with op.batch_alter_table('planned_workouts', schema=None) as batch_op:
         batch_op.alter_column('athlete_id',

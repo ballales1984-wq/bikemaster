@@ -26,14 +26,14 @@ class ModelResult:
     """Risultato di un algoritmo, completo di provenienza e incertezza.
 
     Attributes:
-        value: valore del risultato nell'unità `unit`.
-        unit: unità del risultato.
-        formula: nome/descrizione della formula applicata.
-        data_used: elenco dei dati di ingresso utilizzati.
-        precision: incertezza assoluta stimata sul `value`.
-        confidence: affidabilità stimata (0..1) in base alla completezza dei dati.
-        source: algoritmo / metodo che ha prodotto il risultato.
-        details: output secondari eventuali.
+        value: Valore del risultato nell'unita' `unit`.
+        unit: Unita' di misura del risultato.
+        formula: Nome/descrizione della formula applicata.
+        data_used: Elenco dei dati di ingresso utilizzati.
+        precision: Incertezza assoluta stimata sul `value`.
+        confidence: Affidabilita' stimata (0..1) in base alla completezza dei dati.
+        source: Algoritmo/metodo che ha prodotto il risultato.
+        details: Output secondari eventuali.
     """
 
     value: float
@@ -46,6 +46,7 @@ class ModelResult:
     details: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
+        """Serializza il risultato in un dizionario JSON-compatibile."""
         return {
             "value": self.value,
             "unit": self.unit,
@@ -59,6 +60,7 @@ class ModelResult:
 
     @classmethod
     def from_dict(cls, d: dict) -> "ModelResult":
+        """Ricostruisce un ModelResult da un dizionario serializzato."""
         return cls(
             value=d.get("value", 0.0),
             unit=d.get("unit", ""),
@@ -71,6 +73,7 @@ class ModelResult:
         )
 
     def __repr__(self) -> str:
+        """Rappresentazione compatta per debug/logging."""
         return (f"ModelResult({self.source}: {self.value:.3g} {self.unit} "
                 f"±{self.precision:.3g}, conf={self.confidence:.2f})")
 
@@ -127,6 +130,11 @@ class Algorithm(ABC):
         return {}
 
     def run(self, ctx: AnalysisContext, extra: Optional[dict] = None) -> ModelResult:
+        """Esegue l'algoritmo dopo aver verificato gli input obbligatori.
+
+        Se mancano input richiesti restituisce un ModelResult con confidenza 0
+        e dettagli sull'errore; altrimenti delega a _compute.
+        """
         missing = [inp for inp in self.required_inputs if not self._has_input(ctx, extra, inp)]
         if missing:
             return ModelResult(
@@ -153,6 +161,7 @@ class Algorithm(ABC):
 
     @staticmethod
     def _has_input(ctx: AnalysisContext, extra: Optional[dict], name: str) -> bool:
+        """Verifica la disponibilita' di un input richiesto per l'algoritmo."""
         m = ctx.activity.metrics(ctx.transformer)
         checks = {
             "gps_points": lambda: bool(ctx.activity.points),
@@ -192,6 +201,7 @@ class Algorithm(ABC):
     # -- helper condivisi -------------------------------------------------
     @staticmethod
     def _has(value: Optional[Quantity]) -> bool:
+        """Controlla se un Quantity e' definito e non nullo."""
         return value is not None and value.value != 0.0
 
     @classmethod

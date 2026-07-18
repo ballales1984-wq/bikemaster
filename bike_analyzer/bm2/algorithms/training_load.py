@@ -11,6 +11,12 @@ __all__ = ["TrainingLoadModel"]
 
 
 class TrainingLoadModel(Algorithm):
+    """Stima carico di allenamento (TSS/CTL/ATL/TSB) da storico attivita'.
+
+    Formula: TSS = (t·NP·IF) / (FTP·3600) · 100;
+             CTL = EMA_42(TSS); ATL = EMA_7(TSS); TSB = CTL - ATL
+    """
+
     name = "TrainingLoadModel"
     formula = ("TSS = (t·NP·IF) / (FTP·3600) · 100; "
                "CTL = EMA_42(TSS); ATL = EMA_7(TSS); TSB = CTL - ATL")
@@ -20,6 +26,7 @@ class TrainingLoadModel(Algorithm):
 
     @staticmethod
     def _estimate_tss(duration_s: float, avg_power_w: float, ftp_w: float) -> float:
+        """Calcola il Training Stress Score (TSS) per una singola attivita'."""
         if ftp_w <= 0 or duration_s <= 0:
             return 0.0
         if_ = min(avg_power_w / ftp_w, 1.5)
@@ -28,6 +35,7 @@ class TrainingLoadModel(Algorithm):
 
     @staticmethod
     def _ema(values: list[float], alpha: float) -> list[float]:
+        """Exponential Moving Average (EMA) pesata con coefficiente alpha."""
         if not values:
             return []
         out = [values[0]]
@@ -36,6 +44,7 @@ class TrainingLoadModel(Algorithm):
         return out
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+        """Calcola TSB come differenza tra CTL (42 giorni) e ATL (7 giorni)."""
         extra = extra or {}
         ftp = ctx.athlete.ftp_w.value if ctx.athlete.ftp_w else 0.0
         history = extra.get("activity_history", [])
@@ -61,6 +70,7 @@ class TrainingLoadModel(Algorithm):
         return tsb, precision, confidence
 
     def _build_tss_history(self, ctx: AnalysisContext, history: list[dict], ftp: float) -> list[float]:
+        """Costruisce la serie storica di TSS da storico esterno o dai punti dell'attivita'."""
         if history:
             tss_history = []
             for act in history:
@@ -75,6 +85,7 @@ class TrainingLoadModel(Algorithm):
         return [self._estimate_tss(m["duration_s"], avg_power, ftp)]
 
     def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+        """Restituisce CTL, ATL, TSB e conteggio storico TSS."""
         if hasattr(self, "_last_details") and self._last_details:
             return dict(self._last_details)
         extra = extra or {}
