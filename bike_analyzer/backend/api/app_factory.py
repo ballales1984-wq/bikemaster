@@ -247,6 +247,7 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def audit_log_middleware(request: Request, call_next):
+        """Middleware di audit: logga metodo, path, status, utente, IP e durata."""
         import time
 
         if request.url.path in AUDIT_SKIP_PATHS:
@@ -290,6 +291,7 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def add_security_headers(request: Request, call_next):
+        """Middleware di sicurezza: imposta header HTTP e CSP in produzione."""
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -356,22 +358,27 @@ def create_app() -> FastAPI:
 
         @app.head("/")
         async def dashboard_root_head():
+            """Gestisce le richieste HEAD alla root della dashboard."""
             return Response(status_code=200)
 
         @app.get("/")
         async def dashboard_root():
+            """Restituisce l'HTML della dashboard SPA per la root."""
             return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"), headers={"Cache-Control": "no-store"})
 
         @app.get("/index.html")
         async def dashboard_index():
+            """Restituisce l'HTML della dashboard SPA per /index.html."""
             return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"), headers={"Cache-Control": "no-store"})
 
         @app.get("/dashboard", response_class=HTMLResponse)
         async def dashboard():
+            """Restituisce l'HTML della dashboard SPA per /dashboard."""
             return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"), headers={"Cache-Control": "no-store"})
 
         @app.get("/registerSW.js")
         async def register_sw():
+            """Serve il file registerSW.js per la registrazione del service worker."""
             return _static_file_response(
                 STATIC_DIR / "registerSW.js",
                 "text/javascript",
@@ -380,6 +387,7 @@ def create_app() -> FastAPI:
 
         @app.get("/manifest.json")
         async def manifest():
+            """Serve il manifest.json della PWA."""
             return _static_file_response(
                 STATIC_DIR / "manifest.json",
                 "application/json",
@@ -388,6 +396,7 @@ def create_app() -> FastAPI:
 
         @app.get("/manifest.webmanifest")
         async def manifest_webmanifest():
+            """Serve il manifest.webmanifest della PWA."""
             return _static_file_response(
                 STATIC_DIR / "manifest.webmanifest",
                 "application/manifest+json",
@@ -399,26 +408,32 @@ def create_app() -> FastAPI:
 
             @app.get("/ceo", response_class=HTMLResponse)
             async def ceo_dashboard():
+                """Restituisce la dashboard CEO se il file esiste."""
                 return CEO_FILE.read_text(encoding="utf-8")
 
         @app.get("/sw.js")
         async def service_worker():
+            """Serve il service worker sw.js."""
             return _static_file_response(STATIC_DIR / "sw.js", "application/javascript")
 
         @app.get("/pwa-192x192.png")
         async def pwa_icon_192():
+            """Serve l'icona PWA 192x192."""
             return _static_file_response(STATIC_DIR / "pwa-192x192.png", "image/png")
 
         @app.get("/pwa-512x512.png")
         async def pwa_icon_512():
+            """Serve l'icona PWA 512x512."""
             return _static_file_response(STATIC_DIR / "pwa-512x512.png", "image/png")
 
         @app.get("/favicon.svg")
         async def favicon_svg():
+            """Serve il favicon in formato SVG."""
             return _static_file_response(STATIC_DIR / "favicon.svg", "image/svg+xml")
 
         @app.get("/apple-touch-icon.png")
         async def apple_touch_icon():
+            """Serve l'icona Apple Touch Icon, con fallback all'icona PWA 192x192."""
             icon = STATIC_DIR / "apple-touch-icon.png"
             if not icon.exists():
                 icon = STATIC_DIR / "pwa-192x192.png"
@@ -426,6 +441,7 @@ def create_app() -> FastAPI:
 
         @app.get("/favicon.ico")
         async def favicon():
+            """Restituisce un favicon SVG inline di default."""
             return Response(
                 content='<svg xmlns="http://www.w3.org/2000/svg" '
                 'viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#4ecca3"/>'
@@ -435,6 +451,7 @@ def create_app() -> FastAPI:
 
         @app.get("/{full_path:path}", response_class=HTMLResponse)
         async def spa_fallback(full_path: str):
+            """Reindirizza le route non API/statiche all'index.html della SPA."""
             if full_path.startswith(("api/", "static/", "assets/")):
                 return Response(status_code=404)
             return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"))

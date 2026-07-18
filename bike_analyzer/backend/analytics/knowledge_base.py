@@ -254,6 +254,7 @@ def _cached_load(kb_mtime: float) -> list[dict]:
 
 
 def _extract_heading(text: str) -> str:
+    """Estrae il primo heading Markdown (riga che inizia con #) dal testo."""
     for line in text.split("\n"):
         s = line.strip()
         if s.startswith("#"):
@@ -312,6 +313,7 @@ def _import_with_timeout(module_name: str, timeout: int = 15):
     q: queue.Queue = queue.Queue()
 
     def _target():
+        """Funzione target del thread: importa il modulo e mette il risultato in coda."""
         try:
             import importlib
             q.put(importlib.import_module(module_name))

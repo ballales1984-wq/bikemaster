@@ -137,6 +137,7 @@ def _build_frontend_redirect_url(
     fragment_keys: set[str] | None = None,
     **query_values: str,
 ) -> str:
+    """Costruisce l'URL di redirect per il frontend, separando query string e fragment."""
     parsed = urlparse(redirect_uri or "")
     origin = (
         f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else _build_redirect_uri(request, "")
@@ -355,6 +356,7 @@ def _sse(event: str, data: str) -> str:
 def _make_streaming_response(generator: AsyncGenerator[str, None], event_type: str = "chunk") -> StreamingResponse:
     """Wrap an async generator as a Server-Sent Events streaming response."""
     async def stream_gen() -> AsyncGenerator[str, None]:
+        """Genera eventi SSE wrappando l'async generator, gestendo errori interni."""
         try:
             async for chunk in generator:
                 yield _sse(event_type, chunk.replace("\n", " "))
@@ -502,6 +504,7 @@ async def create_poi(poi: POICreate, current_user: dict = Depends(get_current_us
 
 @router.get("/maps/pois/{poi_id}", response_model=POIResponse)
 async def get_poi_endpoint(poi_id: int):
+    """Recupera un Point of Interest per ID."""
     from ..db.database import get_poi
 
     poi = get_poi(poi_id)
@@ -514,6 +517,7 @@ async def get_poi_endpoint(poi_id: int):
 async def delete_poi_endpoint(
     poi_id: int, current_user: dict = Depends(get_current_user)
 ):
+    """Elimina un POI se l'utente corrente è il proprietario o un admin."""
     from ..db.database import delete_poi, get_poi
 
     poi = get_poi(poi_id)
@@ -1002,6 +1006,7 @@ async def google_oauth_callback_get(
                 if lock_acquired:
 
                     def _create_athlete():
+                        """Crea un atleta se non esiste (per email o sub), con tenant_id isolato."""
                         result = get_athlete_by_email(email) if email else None
                         if not result:
                             athlete_id = save_athlete(
@@ -1041,6 +1046,7 @@ async def google_code_exchange(
     request: Request,
     payload: dict[str, str] = Body(...),
 ):
+    """Scambia il codice OAuth Google per token e crea una sessione JWT."""
     code = payload.get("code")
     redirect_uri = payload.get("redirect_uri")
     if not code or not redirect_uri:
@@ -1399,6 +1405,7 @@ async def import_gpx(file: UploadFile = File(...), current_user: dict = Depends(
     filename = file.filename
 
     def _work() -> dict:
+        """Esegue il flusso sincrono di importazione GPX: parsing, conversione, validazione e salvataggio."""
         t0 = time.perf_counter()
         points_data = parse_gpx_file(content.decode())
         t1 = time.perf_counter()
@@ -1448,6 +1455,7 @@ async def import_fit(file: UploadFile = File(...), current_user: dict = Depends(
     filename = file.filename
 
     def _work() -> dict:
+        """Esegue il flusso sincrono di importazione FIT da file temporaneo, con pulizia."""
         with tempfile.NamedTemporaryFile(suffix=".fit", delete=False) as tmp:
             tmp.write(content)
             temp_path = tmp.name
@@ -1537,6 +1545,7 @@ async def import_multiple(files: list[UploadFile] = File(...), current_user: dic
         contents.append((file.filename, content))
 
     def _process(filename: str | None, raw: bytes) -> dict:
+        """Elabora un singolo file GPX/FIT in thread separato e salva la corsa."""
         ext = filename.lower().split(".")[-1] if filename else ""
         if ext == "gpx":
             points = parse_gpx_file(raw.decode())
@@ -2804,6 +2813,7 @@ async def evaluate_notification(
     category: str = Query("training"),
     current_user: dict = Depends(get_current_user),
 ):
+    """Valuta una notifica candidata e restituisce il punteggio di rilevanza."""
     from ..analytics.proactive import NotificationCategory
     """Evaluate a single candidate notification and return its score."""
     from ..analytics.proactive import (
@@ -2839,6 +2849,7 @@ async def evaluate_notification(
 
 
 def _to_notification_dict(n) -> dict:
+    """Converte un modello di notifica in dizionario serializzabile."""
     return {
         "id": n.id,
         "category": n.category,
@@ -3218,6 +3229,7 @@ async def coach_chat_post(
 
 
 async def _process_chat(athlete_id: int, message: str, current_user: dict):
+    """Gestisce la chat con l'AI coach: salva messaggi, genera consigli e restituisce la storia."""
     from ..analytics.ai_coach import generate_training_advice
     from ..db.database import (
         get_athlete,
@@ -4132,6 +4144,7 @@ async def strava_auth(
     state: str = "",
     current_user: dict = Depends(get_current_user),
 ):
+    """Avvia il flusso OAuth Strava restituendo l'URL di autorizzazione."""
     from ..ingestion.strava_client import get_authorization_url
 
     try:
@@ -4186,6 +4199,7 @@ async def strava_callback(
     request: Request,
     current_user: dict = Depends(get_current_user),
 ):
+    """Gestisce il callback OAuth Strava: scambia il codice per token e lo memorizza."""
     from ..ingestion.strava_client import exchange_code_for_token, store_token
 
     code = payload.code
@@ -4214,6 +4228,7 @@ async def strava_sync(
     background: bool = True,
     current_user: dict = Depends(get_current_user),
 ):
+    """Sincronizza le attività Strava in background o sincrono, gestendo rate limit."""
     from ..task_queue import get_task_queue
 
     payload = {"athlete_id": current_user["id"]}
@@ -4269,6 +4284,7 @@ async def strava_sync(
 
 @router.delete("/import/strava/disconnect")
 async def strava_disconnect(current_user: dict = Depends(get_current_user)):
+    """Revoca il token OAuth Strava per l'utente corrente."""
     from ..ingestion.strava_client import revoke_token
 
     revoke_token(current_user["id"])
@@ -4277,6 +4293,7 @@ async def strava_disconnect(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/import/google-fit/disconnect")
 async def google_fit_disconnect(current_user: dict = Depends(get_current_user)):
+    """Elimina il token Google Fit (deprecato) per l'utente corrente."""
     logger.warning("Deprecated Google Fit disconnect route accessed; use Google Health instead")
     from ..ingestion.google_oauth_store import delete_google_token
 
@@ -4286,6 +4303,7 @@ async def google_fit_disconnect(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/import/google-health/disconnect")
 async def google_health_disconnect(current_user: dict = Depends(get_current_user)):
+    """Elimina il token Google Health per l'utente corrente."""
     from ..ingestion.google_oauth_store import delete_google_token
 
     delete_google_token(int(current_user["id"]), "google_health")
@@ -4302,6 +4320,7 @@ async def garmin_auth(
     state: str = "",
     current_user: dict = Depends(get_current_user),
 ):
+    """Avvia il flusso OAuth Garmin restituendo l'URL di autorizzazione."""
     from ..ingestion.garmin_client import get_authorization_url
 
     try:
@@ -4317,6 +4336,7 @@ async def garmin_callback(
     payload: GarminCallbackRequest,
     current_user: dict = Depends(get_current_user),
 ):
+    """Gestisce il callback OAuth Garmin: scambia il codice per token e lo memorizza."""
     from ..ingestion.garmin_client import exchange_code_for_token, store_token
 
     code = payload.code
@@ -4334,6 +4354,7 @@ async def garmin_sync(
     background: bool = True,
     current_user: dict = Depends(get_current_user),
 ):
+    """Sincronizza le attività Garmin, opzionalmente in background, e salva le corse."""
     from ..task_queue import get_task_queue
 
     payload = {"athlete_id": current_user["id"]}
@@ -4375,6 +4396,7 @@ async def garmin_sync(
 
 @router.delete("/import/garmin/disconnect")
 async def garmin_disconnect(current_user: dict = Depends(get_current_user)):
+    """Revoca il token OAuth Garmin per l'utente corrente."""
     from ..ingestion.garmin_client import revoke_token
 
     revoke_token(current_user["id"])
@@ -4383,6 +4405,7 @@ async def garmin_disconnect(current_user: dict = Depends(get_current_user)):
 
 @router.get("/import/providers")
 async def list_import_providers():
+    """Restituisce la configurazione dei provider di importazione disponibili."""
     return {
         "google_fit": bool(_s.google_fit_client_id and _s.google_fit_client_secret),
         "google_health": bool(_s.google_health_client_id and _s.google_health_client_secret),
@@ -4401,6 +4424,7 @@ async def wahoo_auth(
     state: str = "",
     current_user: dict = Depends(get_current_user),
 ):
+    """Avvia il flusso OAuth Wahoo restituendo l'URL di autorizzazione."""
     from ..ingestion.wahoo_client import get_authorization_url
 
     try:
@@ -4416,6 +4440,7 @@ async def wahoo_callback(
     payload: WahooCallbackRequest,
     current_user: dict = Depends(get_current_user),
 ):
+    """Gestisce il callback OAuth Wahoo: scambia il codice per token e lo memorizza."""
     from ..ingestion.wahoo_client import exchange_code_for_token, store_token
 
     code = payload.code
@@ -4437,6 +4462,7 @@ async def wahoo_sync(
     background: bool = True,
     current_user: dict = Depends(get_current_user),
 ):
+    """Sincronizza gli allenamenti Wahoo e salva le corse corrispondenti."""
     from ..task_queue import get_task_queue
 
     payload = {"athlete_id": current_user["id"]}
@@ -4471,6 +4497,7 @@ async def wahoo_sync(
 
 @router.delete("/import/wahoo/disconnect")
 async def wahoo_disconnect(current_user: dict = Depends(get_current_user)):
+    """Revoca il token OAuth Wahoo per l'utente corrente."""
     from ..ingestion.wahoo_client import revoke_token
 
     revoke_token(current_user["id"])

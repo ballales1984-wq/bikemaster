@@ -16,12 +16,14 @@ from ..db.models import AthleteModel, RideModel
 
 
 async def init_db() -> None:
+    """Inizializza il database asincrono (tabelle + connessione)."""
     from ..db.async_db import init_async_db
 
     await init_async_db()
 
 
 def _model_to_dict(model, extra: dict | None = None) -> dict:
+    """Converte un modello SQLAlchemy in dizionario JSON-compatibile."""
     d: dict[str, Any] = {
         "id": model.id,
         "athlete_id": model.athlete_id,
@@ -44,6 +46,7 @@ def _model_to_dict(model, extra: dict | None = None) -> dict:
 
 
 def _ride_to_dict(row) -> dict[str, Any]:
+    """Converte un RideModel in dizionario JSON-compatibile, parsando GPS points."""
     from bike_analyzer.backend.models.models import Ride as CoreRide
 
     gps = None
@@ -73,10 +76,12 @@ def _ride_to_dict(row) -> dict[str, Any]:
 
 
 async def get_db_session():
+    """Restituisce una sessione SQLAlchemy asincrona."""
     return get_session_factory()()
 
 
 async def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
+    """Recupera una ride per ID, opzionalmente filtrata per tenant."""
     async with get_session_factory()() as session:
         from sqlalchemy import select
 
@@ -91,6 +96,7 @@ async def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
 
 
 async def get_rides_by_athlete(athlete_id: int, limit: int = 1000, tenant_id: int | None = None) -> list[dict]:
+    """Recupera le ride di un atleta, ordinate per data decrescente."""
     async with get_session_factory()() as session:
         from sqlalchemy import select
 
@@ -103,6 +109,7 @@ async def get_rides_by_athlete(athlete_id: int, limit: int = 1000, tenant_id: in
 
 
 async def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
+    """Recupera un atleta per ID, opzionalmente filtrato per tenant."""
     async with get_session_factory()() as session:
         from sqlalchemy import select
 
@@ -139,6 +146,7 @@ async def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | N
 
 
 async def get_athlete_by_name(name: str, tenant_id: int | None = None) -> dict | None:
+    """Recupera un atleta per nome, opzionalmente filtrato per tenant."""
     async with get_session_factory()() as session:
         from sqlalchemy import select
 
@@ -175,6 +183,7 @@ async def get_athlete_by_name(name: str, tenant_id: int | None = None) -> dict |
 
 
 async def save_athlete(athlete_data: dict, athlete_id: int | None = None) -> int:
+    """Inserisce o aggiorna un atleta, restituendo l'ID."""
     async with get_session_factory()() as session:
         from sqlalchemy import insert, select
 
@@ -223,6 +232,7 @@ async def save_athlete(athlete_data: dict, athlete_id: int | None = None) -> int
 
 
 async def save_ride(ride_data: dict) -> int:
+    """Inserisce una nuova ride, restituendo l'ID generato."""
     import json
 
     async with get_session_factory()() as session:

@@ -14,6 +14,7 @@ _TRUSTED_PROXIES: tuple[str, ...] = (
 
 
 def _forwarded_value(header_value: str | None) -> str:
+    """Estrae il primo valore dall'header X-Forwarded-For (split su virgola)."""
     if not header_value:
         return ""
     return header_value.split(",", 1)[0].strip()
@@ -23,6 +24,7 @@ _TRUSTED_TEST_CLIENT_HOST = "testclient"
 
 
 def _is_trusted_proxy(ip_str: str) -> bool:
+    """Verifica se l'IP appartiene a una rete trusted (private loopback)."""
     if ip_str == _TRUSTED_TEST_CLIENT_HOST:
         return True
     try:

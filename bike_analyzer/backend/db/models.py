@@ -346,7 +346,7 @@ class CalendarEventModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     athlete_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE"), index=True
+        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
     )
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     title: Mapped[str] = mapped_column(String, nullable=False)

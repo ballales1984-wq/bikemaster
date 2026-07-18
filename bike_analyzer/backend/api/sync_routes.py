@@ -34,6 +34,8 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 
 class SyncSettingsUpdate(BaseModel):
+    """Aggiornamento impostazioni sync (modo, orario, URL cloud, device)."""
+
     mode: str | None = Field(default=None, pattern="^(never|manual|daily|weekly|realtime)$")
     daily_hour: int | None = Field(default=None, ge=0, le=23)
     weekly_day: int | None = Field(default=None, ge=0, le=6)
@@ -45,11 +47,15 @@ class SyncSettingsUpdate(BaseModel):
 
 
 class ConflictResolutionRequest(BaseModel):
+    """Richiesta di risoluzione conflitto sync (local/remote)."""
+
     resolution: str = Field(..., pattern="^(local|remote)$")
     reason: str | None = Field(default=None, max_length=500)
 
 
 class SyncStatusResponse(BaseModel):
+    """Stato corrente del servizio sync."""
+
     mode: str
     enabled: bool
     last_sync_ts: str | None
@@ -224,6 +230,7 @@ async def resolve_conflict_endpoint(
 # ---------------------------------------------------------------------------
 
 def _sync_result_to_dict(result: SyncResult) -> dict[str, Any]:
+    """Serializza un SyncResult in dizionario JSON-compatibile per API."""
     return {
         "success": result.success,
         "mode": result.mode,

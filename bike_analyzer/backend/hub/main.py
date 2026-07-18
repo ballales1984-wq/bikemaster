@@ -120,6 +120,7 @@ def create_hub_app() -> FastAPI:
 
     @app.exception_handler(ValidationError)
     async def validation_exception_handler(request: Request, exc: ValidationError):
+        """Handler per errori di validazione Pydantic (422)."""
         from fastapi.responses import JSONResponse
         return JSONResponse(
             status_code=422,
@@ -128,6 +129,7 @@ def create_hub_app() -> FastAPI:
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):
+        """Handler per ValueError (400)."""
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=400, content={"detail": str(exc)})
 
@@ -159,6 +161,7 @@ def create_hub_app() -> FastAPI:
 
     @app.get("/health")
     async def health():
+        """Health check endpoint per load balancer e monitoring."""
         return {"status": "ok", "mode": "hub", "database": "postgresql" if _s.database_url else "none"}
 
     return app

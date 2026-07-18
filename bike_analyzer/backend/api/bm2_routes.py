@@ -26,6 +26,8 @@ bm2_router = APIRouter()
 
 
 class Bm2AskRequest(BaseModel):
+    """Richiesta all'AI Orchestrator BM2 (domanda + dati grezzi atleta/bici/mondo)."""
+
     model_config = ConfigDict(extra="allow")
 
     question: str
@@ -38,6 +40,7 @@ class Bm2AskRequest(BaseModel):
 
 
 def _build_raw(req: Bm2AskRequest) -> dict:
+    """Costruisce il dizionario raw per l'orchestratore BM2 dalla richiesta."""
     return {
         "athlete": req.athlete,
         "bike": req.bike,
@@ -78,6 +81,8 @@ async def simulate(req: Bm2AskRequest) -> dict:
 
 
 class Bm2SimulateRideRequest(BaseModel):
+    """Richiesta di simulazione ride BM2 (ride_id o GPS inline + override)."""
+
     model_config = ConfigDict(extra="allow")
 
     ride_id: int | None = None
@@ -89,6 +94,7 @@ class Bm2SimulateRideRequest(BaseModel):
 
 
 def _to_gps(p: dict) -> GPSPoint:
+    """Converte un dict GPS in GPSPoint (parsing timestamp ISO)."""
     point = dict(p)
     ts = point.get("timestamp")
     if isinstance(ts, str):
@@ -119,6 +125,7 @@ def _ride_from_request(req: Bm2SimulateRideRequest, current_user: dict) -> Ride:
 
 
 def _context_kwargs(req: Bm2SimulateRideRequest) -> dict:
+    """Estrae parametri di contesto (bike/world) dalla richiesta per il motore BM2."""
     kwargs: dict[str, Any] = {}
     for src, key, field in (
         (req.bike, "weight", "bike_weight_kg"),
@@ -163,6 +170,8 @@ async def simulate_ride(
 
 
 class Bm2ValidateRequest(BaseModel):
+    """Richiesta di validazione fisica BM2 (dati atleta/bici/mondo + override)."""
+
     model_config = ConfigDict(extra="allow")
 
     ride_id: int | None = None
@@ -174,6 +183,7 @@ class Bm2ValidateRequest(BaseModel):
 
 
 def _rider_bike_params(bike: dict[str, Any]) -> RiderBikeParams:
+    """Costruisce RiderBikeParams da dict di configurazione bici."""
     return RiderBikeParams(
         rider_mass_kg=float(bike.get("weight", 70.0)),
         bike_mass_kg=float(bike.get("bike_weight", 8.0)),

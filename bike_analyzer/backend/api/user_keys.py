@@ -21,14 +21,17 @@ _user_keys: ContextVar[dict[str, str] | None] = ContextVar(
 
 
 def set_request_user_keys(keys: dict[str, str] | None):
+    """Imposta le chiavi API utente per la richiesta corrente (ContextVar)."""
     return _user_keys.set(keys)
 
 
 def reset_request_user_keys(token: Any) -> None:
+    """Reset delle chiavi API utente per la richiesta corrente."""
     _user_keys.reset(token)
 
 
 def get_request_user_keys() -> dict[str, str]:
+    """Restituisce le chiavi API utente per la richiesta corrente (vuoto se assenti)."""
     value = _user_keys.get()
     return value or {}
 

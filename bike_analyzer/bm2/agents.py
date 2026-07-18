@@ -27,12 +27,34 @@ __all__ = [
 
 
 class GPSAgent:
-    """Gestisce tracce GPS (coordinate, altitudine, timestamp)."""
+    """Gestisce tracce GPS (coordinate, altitudine, timestamp).
+
+    Converte dati GPS grezzi (dict, GPX, GeoJSON) in oggetti ``Activity``
+    del Core Model, normalizzando timestamp e unita' tramite il Transformer.
+    """
 
     def __init__(self, transformer: TransformerEngine) -> None:
+        """Inizializza l'agente con il TransformerEngine per la normalizzazione.
+
+        Args:
+            transformer: Motore di trasformazione unita' e coordinate.
+        """
         self.t = transformer
 
     def collect(self, raw_points: list[dict], title: str = "") -> Activity:
+        """Converte una lista di dict GPS in un'``Activity``.
+
+        Accetta punti con chiavi: ``lat``, ``lon``, ``altitude``, ``timestamp``
+        (ISO string, Unix epoch, o datetime). I timestamp sono normalizzati a
+        UTC naive.
+
+        Args:
+            raw_points: Lista di dict con dati GPS raw.
+            title: Titolo opzionale per l'attivita'.
+
+        Returns:
+            Activity con i punti GeoPoint normalizzati.
+        """
         points: list[GeoPoint] = []
         for p in raw_points:
             ts = p.get("timestamp")
@@ -51,6 +73,19 @@ class GPSAgent:
 
     @classmethod
     def from_gpx(cls, transformer: TransformerEngine, text: str, title: str = "") -> Activity:
+        """Costruisce un'``Activity`` dal contenuto XML di un file GPX 1.1.
+
+        Estrae tutti i ``trkpt`` dal file GPX usando il namespace ufficiale
+        ``http://www.topografix.com/GPX/1/1`` e converte altitudine e timestamp.
+
+        Args:
+            transformer: Motore di trasformazione unita'.
+            text: Contenuto XML del file GPX.
+            title: Titolo opzionale per l'attivita'.
+
+        Returns:
+            Activity con la traccia GPX parsata.
+        """
         root = ET.fromstring(text)
         ns = {"gpx": "http://www.topografix.com/GPX/1/1"}
         raw_points: list[dict] = []

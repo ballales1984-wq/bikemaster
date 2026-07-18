@@ -28,6 +28,7 @@ router = APIRouter(prefix="/training/plan", tags=["adaptation"])
 
 
 def _to_workout_plan(items: list[WorkoutPlanItem]) -> list[WorkoutPlan]:
+    """Converte lista di WorkoutPlanItem (schema) in WorkoutPlan (domain)."""
     return [
         WorkoutPlan(
             date=i.date,
@@ -45,6 +46,7 @@ def _to_workout_plan(items: list[WorkoutPlanItem]) -> list[WorkoutPlan]:
 
 
 def _to_response(plan: Any) -> AdaptationResponse:
+    """Converte un AdaptationPlan in AdaptationResponse per l'API."""
     data = plan.to_dict()
     return AdaptationResponse(
         triggered_by=data["triggered_by"],

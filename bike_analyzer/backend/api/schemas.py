@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class RideCreate(BaseModel):
+    """Schema di richiesta per creare una nuova uscita/ride."""
     date: str = Field(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
     distance_km: float = Field(default=0.0, ge=0, le=500)
     duration_minutes: float = Field(default=0.0, ge=1, le=1440)
@@ -24,12 +25,15 @@ class RideCreate(BaseModel):
 
 
 class RideResponse(RideCreate):
+    """Schema di risposta per una ride (include id e timestamp)."""
+
     id: int | None = None
     created_at: str | None = None
     tenant_id: int = 0
 
 
 class RideUpdate(BaseModel):
+    """Schema di richiesta per aggiornare una ride (campi opzionali)."""
     date: str | None = Field(default=None, min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
     distance_km: float | None = Field(default=None, ge=0, le=500)
     duration_minutes: float | None = Field(default=None, ge=1, le=1440)
@@ -45,6 +49,7 @@ class RideUpdate(BaseModel):
 
 
 class AthleteCreate(BaseModel):
+    """Schema di richiesta per creare un profilo atleta."""
     name: str = Field(..., min_length=2, max_length=100)
     email: str | None = Field(default=None, max_length=255)
     age: int = Field(default=30, ge=10, le=100)
@@ -67,6 +72,7 @@ class AthleteCreate(BaseModel):
     @field_validator("email")
     @classmethod
     def validate_email(cls, v: str | None) -> str | None:
+        """Valida il formato email (deve contenere @ e dominio)."""
         if v is None or v == "":
             return v
         if "@" not in v or "." not in v.split("@")[-1]:
@@ -75,6 +81,7 @@ class AthleteCreate(BaseModel):
 
 
 class AthleteUpdate(BaseModel):
+    """Schema di richiesta per aggiornare un profilo atleta (campi opzionali)."""
     name: str | None = Field(default=None, min_length=2, max_length=100)
     email: str | None = Field(default=None, max_length=255)
     age: int | None = Field(default=None, ge=10, le=100)
@@ -97,6 +104,7 @@ class AthleteUpdate(BaseModel):
     @field_validator("email")
     @classmethod
     def validate_email(cls, v: str | None) -> str | None:
+        """Valida il formato email (deve contenere @ e dominio)."""
         if v is None or v == "":
             return v
         if "@" not in v or "." not in v.split("@")[-1]:
@@ -105,6 +113,7 @@ class AthleteUpdate(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
+    """Schema di richiesta per aggiornare il profilo utente (campi opzionali)."""
     name: str | None = Field(default=None, min_length=2, max_length=100)
     email: str | None = Field(default=None, max_length=255)
     age: int | None = Field(default=None, ge=10, le=100)
@@ -121,6 +130,7 @@ class ProfileUpdate(BaseModel):
     @field_validator("email")
     @classmethod
     def validate_email(cls, v: str | None) -> str | None:
+        """Valida il formato email (deve contenere @ e dominio)."""
         if v is None or v == "":
             return v
         if "@" not in v or "." not in v.split("@")[-1]:
@@ -129,6 +139,8 @@ class ProfileUpdate(BaseModel):
 
 
 class MetricCreate(BaseModel):
+    """Schema di richiesta per creare metriche di performance."""
+
     fatigue_score: float | None = Field(default=None, ge=0, le=10)
     recovery_hours: float | None = Field(default=None, ge=0)
     calories_per_km: float | None = Field(default=None, ge=0)
@@ -136,10 +148,14 @@ class MetricCreate(BaseModel):
 
 
 class RideAnalysisRequest(BaseModel):
+    """Schema di richiesta per analisi di una lista di ride."""
+
     rides: list[RideCreate]
 
 
 class BenchmarkCompareRequest(BaseModel):
+    """Schema di richiesta per confronto benchmark."""
+
     date: str = Field(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
     distance_km: float = Field(..., gt=0, le=500)
     duration_minutes: float = Field(..., gt=0, le=1440)
@@ -148,12 +164,16 @@ class BenchmarkCompareRequest(BaseModel):
 
 
 class GoogleFitAuthQuery(BaseModel):
+    """Parametri di query per l'autenticazione Google Fit OAuth2."""
+
     client_id: str = Field(..., min_length=1, max_length=256)
     redirect_uri: str = Field(default="http://localhost:8000/api/v1/import/google-fit/callback", max_length=2048)
     state: str = Field(default="", max_length=4096)
 
 
 class GoogleFitTokenRequest(BaseModel):
+    """Schema di richiesta per scambio codice OAuth2 Google Fit."""
+
     client_id: str = Field(..., min_length=1, max_length=256)
     client_secret: str = Field(..., min_length=1, max_length=256)
     code: str = Field(..., min_length=1, max_length=2048)
@@ -161,53 +181,75 @@ class GoogleFitTokenRequest(BaseModel):
 
 
 class GoogleFitImportPayload(BaseModel):
+    """Payload per import dati da Google Fit."""
+
     access_token: str = Field(..., min_length=1, max_length=2048)
     refresh_token: str | None = Field(default=None, max_length=2048)
 
 
 class GoogleHealthImportPayload(BaseModel):
+    """Payload per import dati da Google Health Connect."""
+
     access_token: str = Field(..., min_length=1, max_length=2048)
     refresh_token: str | None = Field(default=None, max_length=2048)
 
 
 class StravaCallbackRequest(BaseModel):
+    """Payload di callback OAuth2 da Strava."""
+
     code: str = Field(..., min_length=1, max_length=2048)
     code_verifier: str = Field(..., min_length=1, max_length=256)
 
 
 class GarminCallbackRequest(BaseModel):
+    """Payload di callback OAuth2 da Garmin."""
+
     code: str = Field(..., min_length=1, max_length=2048)
     redirect_uri: str | None = Field(default=None, max_length=2048)
 
 
 class WahooCallbackRequest(BaseModel):
+    """Payload di callback OAuth2 da Wahoo."""
+
     code: str = Field(..., min_length=1, max_length=2048)
     code_verifier: str = Field(..., min_length=1, max_length=256)
 
 
 class Token(BaseModel):
+    """Token di accesso JWT."""
+
     access_token: str = Field(..., min_length=1, max_length=4096)
     token_type: str = Field(default="bearer", pattern="^(bearer|Bearer)$")
 
 
 class TokenWithRefresh(Token):
+    """Token di accesso con refresh token incluso."""
+
     refresh_token: str | None = Field(default=None, max_length=4096)
 
 
 class TokenData(BaseModel):
+    """Dati decodificati dal token JWT."""
+
     username: str | None = Field(default=None, max_length=100)
 
 
 class RefreshTokenRequest(BaseModel):
+    """Schema di richiesta per refresh del token JWT."""
+
     refresh_token: str = Field(..., min_length=1, max_length=4096)
 
 
 class UserLogin(BaseModel):
+    """Schema di richiesta per login utente."""
+
     username: str = Field(..., min_length=3, max_length=100)
     password: str = Field(..., min_length=6, max_length=100)
 
 
 class UserCreate(BaseModel):
+    """Schema di richiesta per creazione utente."""
+
     username: str = Field(..., min_length=3, max_length=100)
     email: str | None = Field(default=None, max_length=255)
     password: str = Field(..., min_length=8, max_length=100)
@@ -215,6 +257,7 @@ class UserCreate(BaseModel):
     @field_validator("email")
     @classmethod
     def validate_email(cls, v: str | None) -> str | None:
+        """Valida il formato email (deve contenere @ e dominio)."""
         if v is None or v == "":
             return v
         if "@" not in v or "." not in v.split("@")[-1]:
@@ -223,6 +266,8 @@ class UserCreate(BaseModel):
 
 
 class UserResponse(BaseModel):
+    """Schema di risposta per dati utente (senza password)."""
+
     id: int
     username: str
     email: str | None = None
@@ -233,6 +278,8 @@ class UserResponse(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    """Schema di richiesta per aggiornamento utente (campi opzionali)."""
+
     email: str | None = None
     password: str | None = Field(default=None, min_length=8, max_length=100)
     is_admin: bool | None = None
@@ -241,6 +288,8 @@ class UserUpdate(BaseModel):
 
 
 class CalendarEventCreate(BaseModel):
+    """Schema di richiesta per creare un evento di calendario."""
+
     athlete_id: int = Field(..., gt=0)
     title: str = Field(..., min_length=1, max_length=200)
     event_type: str = Field(default="training", pattern="^(training|race|recovery|goal_deadline|test|other)$")
@@ -253,6 +302,8 @@ class CalendarEventCreate(BaseModel):
 
 
 class WeatherResponse(BaseModel):
+    """Schema di risposta per dati meteo."""
+
     temperature: float | None = Field(default=None)
     humidity: float | None = Field(default=None, ge=0, le=100)
     description: str | None = Field(default=None, max_length=100)
@@ -262,6 +313,8 @@ class WeatherResponse(BaseModel):
 
 
 class CalendarEventUpdate(BaseModel):
+    """Schema di richiesta per aggiornare un evento di calendario (campi opzionali)."""
+
     title: str | None = Field(default=None, min_length=1, max_length=200)
     event_type: str | None = Field(default=None, pattern="^(training|race|recovery|goal_deadline|test|other)$")
     date: str | None = Field(default=None, min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
@@ -273,11 +326,15 @@ class CalendarEventUpdate(BaseModel):
 
 
 class TrainingStressRequest(BaseModel):
+    """Schema di richiesta per calcolo stress di allenamento."""
+
     athlete_id: int = Field(..., gt=0)
     ftp: float = Field(default=250.0, ge=50, le=500)
 
 
 class FitnessSnapshot(BaseModel):
+    """Snapshot ATL/CTL/TSB per una data specifica."""
+
     date: str = Field(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
     atl: float = Field(..., ge=0)
     ctl: float = Field(..., ge=0)
@@ -285,6 +342,8 @@ class FitnessSnapshot(BaseModel):
 
 
 class TrainingStressResponse(BaseModel):
+    """Schema di risposta per analisi stress di allenamento."""
+
     latest: FitnessSnapshot
     history: list[FitnessSnapshot]
     trend: str = Field(..., min_length=1, max_length=50)
@@ -292,6 +351,8 @@ class TrainingStressResponse(BaseModel):
 
 
 class TrainingGoalCreate(BaseModel):
+    """Schema di richiesta per creare un obiettivo di allenamento."""
+
     title: str = Field(..., min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=1000)
     goal_type: str = Field(default="granfondo", pattern="^(granfondo|race|fitness|fondo|custom)$")
@@ -301,6 +362,8 @@ class TrainingGoalCreate(BaseModel):
 
 
 class PlannedWorkoutResponse(BaseModel):
+    """Schema di risposta per una sessione di allenamento programmata."""
+
     id: int | None = None
     date: str = Field(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
     title: str = Field(..., min_length=1, max_length=200)
@@ -311,18 +374,24 @@ class PlannedWorkoutResponse(BaseModel):
 
 
 class HeatmapPoint(BaseModel):
+    """Punto della heatmap di attivita'."""
+
     lat: float = Field(..., ge=-90, le=90)
     lon: float = Field(..., ge=-180, le=180)
     count: int = Field(default=1, ge=1, le=10000)
 
 
 class HeatmapResponse(BaseModel):
+    """Schema di risposta per heatmap di attivita'."""
+
     points: list[HeatmapPoint]
     bounds: dict = Field(..., min_length=1)
     total_points: int = Field(..., ge=0)
 
 
 class BadgeResponse(BaseModel):
+    """Schema di risposta per badge/achievement."""
+
     id: int | None = None
     name: str = Field(..., min_length=1, max_length=100)
     description: str = Field(..., min_length=1, max_length=500)
@@ -335,12 +404,16 @@ class BadgeResponse(BaseModel):
 
 
 class GranfondoPlanRequest(BaseModel):
+    """Schema di richiesta per generare piano allenamento granfondo."""
+
     athlete_id: int = Field(..., gt=0)
     start_date: str = Field(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
     target_weeks: int = Field(default=8, ge=8, le=12)
 
 
 class GranfondoPlanWorkout(BaseModel):
+    """Singola sessione di allenamento nel piano granfondo."""
+
     date: str = Field(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
     title: str = Field(..., min_length=1, max_length=200)
     workout_type: str = Field(default="training", min_length=1, max_length=100)
@@ -350,27 +423,36 @@ class GranfondoPlanWorkout(BaseModel):
 
 
 class GranfondoSaveRequest(BaseModel):
+    """Schema di richiesta per salvare un piano granfondo."""
+
     plan: list[GranfondoPlanWorkout] = Field(..., min_length=1, max_length=200)
     athlete_id: int | None = Field(default=None, gt=0)
 
 
 class GoogleAuthRequest(BaseModel):
+    """Schema di richiesta per autenticazione Google OAuth2."""
+
     code: str = Field(..., min_length=1, max_length=2048)
     redirect_uri: str = Field(default="http://localhost:8000/api/v1/auth/google/callback", max_length=2048)
 
 
 class GoogleOAuthCallback(BaseModel):
+    """Payload di callback OAuth2 da Google."""
+
     code: str = Field(..., min_length=1, max_length=2048)
     redirect_uri: str = Field(default="http://localhost:8000/api/v1/auth/google/callback", max_length=2048)
 
 
 class CoachChatRequest(BaseModel):
+    """Schema di richiesta per chat con AI Coach."""
+
     athlete_id: int | None = Field(default=None, ge=0)
     message: str = Field(..., min_length=1, max_length=2000)
 
     @field_validator("message")
     @classmethod
     def validate_message(cls, v: str) -> str:
+        """Valida che il messaggio non sia vuoto dopo strip."""
         stripped = v.strip()
         if not stripped:
             raise ValueError("Message cannot be empty")
@@ -382,6 +464,8 @@ _POI_TYPE_PATTERN = "^(" + "|".join(POI_TYPES) + ")$"
 
 
 class POICreate(BaseModel):
+    """Schema di richiesta per creare un Point of Interest."""
+
     name: str = Field(..., min_length=3, max_length=120)
     description: str = Field(..., max_length=2000)
     lat: float = Field(..., ge=-90, le=90)
@@ -395,6 +479,8 @@ class POICreate(BaseModel):
 
 
 class POIResponse(POICreate):
+    """Schema di risposta per un Point of Interest (include id e metadata)."""
+
     id: int | None = None
     created_by: int | None = None
     tenant_id: int | None = None
@@ -425,6 +511,7 @@ class NotificationPreferences(BaseModel):
     @field_validator("channel_priority")
     @classmethod
     def validate_channels(cls, v: list[str]) -> list[str]:
+        """Filtra i canali di notifica mantenendo solo quelli consentiti."""
         allowed = {"app", "voice", "dashboard", "email"}
         cleaned = [c for c in v if c in allowed]
         if not cleaned:
@@ -446,6 +533,8 @@ class NotificationContextIn(BaseModel):
 
 
 class NotificationScoreOut(BaseModel):
+    """Schema di risposta per scoring notifica (urgenza, rilevanza, tempestivita')."""
+
     urgency: int = Field(..., ge=1, le=5)
     relevance: int = Field(..., ge=1, le=5)
     timeliness: int = Field(..., ge=1, le=5)
@@ -455,6 +544,8 @@ class NotificationScoreOut(BaseModel):
 
 
 class NotificationOut(BaseModel):
+    """Schema di risposta per una notifica generata."""
+
     id: str
     category: str
     channel: str
@@ -468,5 +559,7 @@ class NotificationOut(BaseModel):
 
 
 class NotificationListOut(BaseModel):
+    """Schema di risposta per lista notifiche con metadata."""
+
     notifications: list[NotificationOut]
     meta: dict = Field(default_factory=dict)

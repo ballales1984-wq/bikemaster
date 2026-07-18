@@ -87,10 +87,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 def _trusted_forwarded_value(request: Request, header: str) -> str | None:
+    """Restituisce il valore di un header di forwarding considerato attendibile."""
     return request.headers.get(header)
 
 
 def _build_redirect_uri(request: Request, path: str) -> str:
+    """Costruisce l'URI di redirect completo usando proto e host inoltrati."""
     proto = _trusted_forwarded_value(request, "x-forwarded-proto") or request.url.scheme
     host = (
         _trusted_forwarded_value(request, "x-forwarded-host")
@@ -101,12 +103,14 @@ def _build_redirect_uri(request: Request, path: str) -> str:
 
 
 def _build_oauth_error_url(request: Request, redirect_uri: str, error: str) -> HTMLResponse:
+    """Genera una pagina HTML che segnala l'errore OAuth alla finestra opener."""
     html = f"""<!DOCTYPE html>
 <html><body><script>window.opener.postMessage({{error:"{error}"}},"*");window.close();</script></body></html>"""
     return HTMLResponse(content=html)
 
 
 def _build_oauth_success_url(redirect_uri: str, jwt_token: str, email: str, user_id: int) -> str:
+    """Costruisce l'URL di successo OAuth con token, email e user_id come query params."""
     parsed = urlparse(redirect_uri)
     origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else redirect_uri
     base = origin.rstrip("/")
@@ -114,11 +118,13 @@ def _build_oauth_success_url(redirect_uri: str, jwt_token: str, email: str, user
 
 
 def _issue_oauth_state(redirect_uri: str, **extra) -> str:
+    """Emette un token di stato OAuth opaco con redirect e metadati aggiuntivi."""
     payload = {"redirect_uri": redirect_uri, "ts": time.time(), **extra}
     return secrets.token_urlsafe(16) + "." + secrets.token_urlsafe(32)
 
 
 def _verify_oauth_state(state: str) -> dict | None:
+    """Verifica e decodifica un token di stato OAuth, oppure None se non valido."""
     if not state or "." not in state:
         return None
     parts = state.split(".", 1)
@@ -126,6 +132,7 @@ def _verify_oauth_state(state: str) -> dict | None:
 
 
 def _validate_redirect_uri(redirect_uri: str, request: Request) -> None:
+    """Valida scheme e host dell'URI di redirect secondo la whitelist configurata."""
     if not redirect_uri:
         raise HTTPException(status_code=400, detail="redirect_uri obbligatoria")
     allowed_schemes = {"http", "https", *set(_s.oauth_redirect_schemes_list)}
@@ -139,6 +146,7 @@ def _validate_redirect_uri(redirect_uri: str, request: Request) -> None:
 
 
 def _public_athlete(athlete: dict | None) -> dict:
+    """Restituisce una vista pubblica e sicura dei dati di un atleta."""
     if not athlete:
         return {}
     return {
@@ -202,6 +210,7 @@ async def hub_login(request: Request, form_data: OAuth2PasswordRequestForm = Dep
 
 @hub_auth_router.post("/auth/logout")
 async def hub_logout(request: Request, current_user: dict = Depends(get_current_user)):
+    """Logout Hub: revoca il token di accesso e quello di refresh dell'utente."""
     auth_header = request.headers.get("authorization", "")
     token = auth_header.removeprefix("Bearer ").strip()
     try:
@@ -223,6 +232,7 @@ async def hub_logout(request: Request, current_user: dict = Depends(get_current_
 @hub_auth_router.post("/auth/refresh")
 @limiter.limit("10/minute")
 async def hub_refresh_token(request: Request, payload: dict = Body(...)):
+    """Rinnova l'access token a partire da un refresh token ancora valido."""
     refresh_token = payload.get("refresh_token")
     jwt_payload = await decode_token_with_fallback(refresh_token)
     if not jwt_payload:
@@ -255,6 +265,7 @@ async def hub_register(
     password: str = Body(..., min_length=8, max_length=128),
     email: str = Body(None),
 ):
+    """Registra un nuovo utente (e atleta) sul database Hub PostgreSQL."""
     from sqlalchemy import insert as sa_insert
 
     session_factory = get_session_factory()
@@ -309,6 +320,7 @@ async def hub_register(
 
 @hub_auth_router.get("/auth/me")
 async def hub_get_me(current_user: dict = Depends(get_current_user)):
+    """Restituisce il profilo e lo stato dell'utente correntemente autenticato."""
     from sqlalchemy import select as sa_select
 
     session_factory = get_session_factory()
@@ -350,6 +362,7 @@ async def hub_update_profile(
     profile_data: dict = Body(...),
     current_user: dict = Depends(get_current_user),
 ):
+    """Aggiorna i campi profilo consentiti dell'atleta autenticato."""
     from sqlalchemy import update as sa_update
 
     allowed_fields = {
@@ -399,6 +412,7 @@ async def hub_change_password(
     new_password: str = Body(..., min_length=8, max_length=100, embed=True),
     current_user: dict = Depends(get_current_user),
 ):
+    """Cambia la password dell'utente previa verifica di quella attuale."""
     from sqlalchemy import select as sa_select
 
     session_factory = get_session_factory()
@@ -430,6 +444,7 @@ async def hub_google_oauth_login(
     redirect_uri: str | None = Query(None),
     state: str = "",
 ):
+    """Avvia il flusso OAuth di Google restituendo l'URL di autorizzazione."""
     from bike_analyzer.backend.auth.google_auth import get_google_oauth_url
 
     if not _s.google_client_id:
@@ -451,6 +466,7 @@ async def hub_google_oauth_callback_get(
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
 ):
+    """Gestisce il callback OAuth di Google creando sessione e utente se necessario."""
     from bike_analyzer.backend.auth.google_auth import (
         create_google_session,
         exchange_google_code,
@@ -548,6 +564,7 @@ async def hub_google_code_exchange(
     request: Request,
     payload: dict = Body(...),
 ):
+    """Scambia il code OAuth di Google per un access token e una sessione locale."""
     code = payload.get("code")
     redirect_uri = payload.get("redirect_uri")
     if not code or not redirect_uri:
@@ -617,6 +634,7 @@ hub_admin_router = APIRouter(tags=["admin"])
 
 @hub_admin_router.get("/athletes")
 async def hub_list_all_athletes(current_user: dict = Depends(get_admin_user)):
+    """Elenca tutti gli atleti presenti nel database Hub (solo admin)."""
     from sqlalchemy import select as sa_select
 
     session_factory = get_session_factory()
@@ -641,6 +659,7 @@ async def hub_list_all_athletes(current_user: dict = Depends(get_admin_user)):
 
 @hub_admin_router.get("/backup")
 async def hub_create_backup(current_user: dict = Depends(get_admin_user)):
+    """Esporta un backup JSON di utenti, atleti, ride e cronologia chat (solo admin)."""
     from sqlalchemy import select as sa_select
     from fastapi.responses import JSONResponse
 
@@ -656,6 +675,7 @@ async def hub_create_backup(current_user: dict = Depends(get_admin_user)):
         chat = chat_result.scalars().all()
 
     def _dump(model):
+        """Serializza le righe di un modello SQLAlchemy in lista di dizionari."""
         return [
             {c.name: getattr(row, c.name) for c in model.__table__.columns}
             for row in model
@@ -673,6 +693,7 @@ async def hub_create_backup(current_user: dict = Depends(get_admin_user)):
 
 @hub_admin_router.post("/backup/scheduled")
 async def hub_scheduled_backup(current_user: dict = Depends(get_admin_user)):
+    """Esegue un backup pianificato e ritorna il conteggio di ride e atleti."""
     from sqlalchemy import select as sa_select, func
 
     session_factory = get_session_factory()
@@ -689,6 +710,7 @@ async def hub_scheduled_backup(current_user: dict = Depends(get_admin_user)):
 
 @hub_admin_router.post("/indexes")
 async def hub_create_db_indexes(current_user: dict = Depends(get_admin_user)):
+    """Crea gli indici PostgreSQL mancanti sulle tabelle principali (solo admin)."""
     from sqlalchemy import text
 
     session_factory = get_session_factory()
@@ -703,6 +725,7 @@ async def hub_create_db_indexes(current_user: dict = Depends(get_admin_user)):
 
 @hub_admin_router.get("/stats")
 async def hub_get_system_stats(current_user: dict = Depends(get_admin_user)):
+    """Restituisce statistiche di sistema aggregate (ride, km, durata, atleti)."""
     from sqlalchemy import select as sa_select
 
     session_factory = get_session_factory()
@@ -725,6 +748,7 @@ async def hub_get_system_stats(current_user: dict = Depends(get_admin_user)):
 
 @hub_admin_router.post("/reset-demo")
 async def hub_reset_demo_data(current_user: dict = Depends(get_admin_user)):
+    """Cancella i dati demo (ride e chat) dal database Hub (solo admin)."""
     from sqlalchemy import delete as sa_delete
 
     session_factory = get_session_factory()
@@ -738,6 +762,7 @@ async def hub_reset_demo_data(current_user: dict = Depends(get_admin_user)):
 
 @hub_admin_router.get("/ceo")
 async def hub_ceo_analytics(current_user: dict = Depends(get_admin_user)):
+    """Calcola le metriche di analytics executive (CEO) su atleti e ride."""
     from sqlalchemy import select as sa_select, func as sa_func
 
     session_factory = get_session_factory()
@@ -793,6 +818,7 @@ async def hub_ceo_analytics(current_user: dict = Depends(get_admin_user)):
 
 @hub_admin_router.get("/test-sentry")
 async def hub_test_sentry(current_user: dict = Depends(get_admin_user)):
+    """Invia un evento di test a Sentry per verificarne l'integrazione."""
     import sentry_sdk
 
     sentry_sdk.capture_exception(Exception("Test Sentry integration - bikemaster hub"))
@@ -801,6 +827,7 @@ async def hub_test_sentry(current_user: dict = Depends(get_admin_user)):
 
 @hub_admin_router.get("/audit-logs")
 async def hub_get_audit_logs(limit: int = Query(100, ge=1, le=500), current_user: dict = Depends(get_admin_user)):
+    """Restituisce gli ultimi log di audit del sistema (solo admin)."""
     log_action(current_user["id"], "view_audit_logs", "audit")
     return {"logs": read_audit_logs(limit=limit)}
 
@@ -814,6 +841,7 @@ hub_knowledge_router = APIRouter(tags=["knowledge"])
 
 @hub_knowledge_router.get("/knowledge")
 async def hub_list_knowledge():
+    """Elenca i topic e le statistiche della knowledge base condivisa."""
     stats = get_kb_stats()
     return {
         "topics": stats["topics"],
@@ -826,6 +854,7 @@ async def hub_list_knowledge():
 @hub_knowledge_router.get("/knowledge/search")
 @limiter.limit("10/minute")
 async def hub_search_knowledge(request: Request, query: str = "", max_chunks: int = 4, min_score: float = 0.05):
+    """Cerca nella knowledge base e restituisce risultati e contesto per LLM."""
     if not query or not query.strip():
         return {"results": [], "context": "", "count": 0}
     results = search_knowledge_base(query.strip(), max_chunks=max_chunks, min_score=min_score)
@@ -841,6 +870,7 @@ async def hub_search_knowledge(request: Request, query: str = "", max_chunks: in
 
 @hub_knowledge_router.get("/knowledge/stats")
 async def hub_knowledge_stats(current_user: dict = Depends(get_current_user)):
+    """Restituisce le statistiche della knowledge base per l'utente autenticato."""
     stats = get_kb_stats()
     return {
         "topics": stats.get("topics", []),
@@ -852,11 +882,13 @@ async def hub_knowledge_stats(current_user: dict = Depends(get_current_user)):
 
 @hub_knowledge_router.post("/knowledge/reload")
 async def hub_reload_knowledge(current_user: dict = Depends(get_admin_user)):
+    """Ricarica la knowledge base dal disco (solo admin)."""
     return reload_kb()
 
 
 @hub_knowledge_router.post("/knowledge/init-embeddings")
 async def hub_init_kb_embeddings(current_user: dict = Depends(get_admin_user)):
+    """Inizializza gli embeddings della KB su pgvector e su ChromaDB (solo admin)."""
     session_factory = get_session_factory()
     async with session_factory() as session:
         pg_result = init_kb_embeddings(session)

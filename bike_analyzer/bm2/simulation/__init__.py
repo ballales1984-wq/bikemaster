@@ -52,6 +52,14 @@ class ScenarioOverride:
 
 @dataclass
 class SimulationComparison:
+    """Confronto quantitativo tra risultati baseline e risultati scenario.
+
+    Attributes:
+        baseline: Risultati degli algoritmi sul contesto originale.
+        scenario: Risultati degli algoritmi sul contesto modificato.
+        deltas: Dizionario nome_algoritmo -> differenza (scenario - baseline).
+    """
+
     baseline: dict[str, ModelResult]
     scenario: dict[str, ModelResult]
     deltas: dict[str, float] = field(default_factory=dict)
@@ -126,6 +134,13 @@ class ScenarioPresets:
 
 @dataclass
 class SensitivityPoint:
+    """Punto singolo di un'analisi di sensitivita'.
+
+    Attributes:
+        param_value: Valore del parametro testato in questo punto.
+        results: Dizionario nome_algoritmo -> valore del risultato scenario.
+    """
+
     param_value: float
     results: dict[str, float]
 
@@ -202,10 +217,37 @@ def parse_override_from_text(text: str) -> ScenarioOverride:
 
 
 class SimulationEngine:
+    """Motore di simulazione che applica override di scenario e confronta algoritmi.
+
+    Riceve una lista di classi Algorithm; per ciascuna esegue il run su baseline
+    e su scenario, producendo un ``SimulationComparison`` con deltas.
+
+    Attributes:
+        algorithms: Lista di classi Algorithm da eseguire in ogni confronto.
+    """
+
     def __init__(self, algorithms: Optional[list[type[Algorithm]]] = None) -> None:
+        """Inizializza il motore con la lista di algoritmi da usare.
+
+        Args:
+            algorithms: Classi Algorithm da registrare. Se None, usa lista vuota.
+        """
         self.algorithms = algorithms or []
 
     def _apply(self, ctx: AnalysisContext, ov: ScenarioOverride) -> AnalysisContext:
+        """Applica un override allo scenario producendo un nuovo contesto deep-copiato.
+
+        Modifica peso atleta, peso bici, pendenza e/o CdA secondo l'override,
+        poi adegua le altitudini della traccia GPS per rendere effettivo il delta
+        di pendenza (gli algoritmi leggono la pendenza dalla traccia, non da world).
+
+        Args:
+            ctx: Contesto di analisi originale (non modificato).
+            ov: Override di scenario da applicare.
+
+        Returns:
+            Nuovo AnalysisContext con i parametri modificati.
+        """
         new = deepcopy(ctx)
         if ov.athlete_weight_delta_kg:
             w = new.athlete.weight_kg
@@ -286,6 +328,16 @@ class SimulationEngine:
 
     def compare(self, ctx: AnalysisContext, override: ScenarioOverride,
                 extra: Optional[dict] = None) -> SimulationComparison:
+        """Esegue tutti gli algoritmi su baseline e scenario e calcola i deltas.
+
+        Args:
+            ctx: Contesto di analisi originale (non modificato).
+            override: Override di scenario da applicare.
+            extra: Dati aggiuntivi passati a ogni Algorithm.run().
+
+        Returns:
+            SimulationComparison con baseline, scenario e deltas per ogni algoritmo.
+        """
         baseline_res: dict[str, ModelResult] = {}
         scenario_res: dict[str, ModelResult] = {}
         for algo_cls in self.algorithms:
@@ -303,6 +355,21 @@ class SimulationEngine:
         return self.compare(ctx, ScenarioPresets.get(preset_name), extra)
 
     def _override_for_param(self, param: str, value: object) -> ScenarioOverride:
+        """Crea uno ScenarioOverride per un singolo parametro di sensitivita'.
+
+        Risolve l'alias del parametro tramite ``_PARAM_ALIASES`` e imposta
+        il valore corrispondente.
+
+        Args:
+            param: Nome del parametro (es. ``"athlete_weight"``, ``"slope"``).
+            value: Valore da assegnare al parametro.
+
+        Returns:
+            ScenarioOverride con un solo campo impostato.
+
+        Raises:
+            ValueError: Se il parametro non e' un alias riconosciuto.
+        """
         key = _PARAM_ALIASES.get(param.lower())
         if key is None:
             raise ValueError(
