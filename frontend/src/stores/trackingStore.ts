@@ -97,12 +97,14 @@ export const useTrackingStore = defineStore("tracking", () => {
       name.replace(/[&<>]/g, "").replace(/\s+/g, " ").trim() ||
       "BikeMaster ride";
     const route = routePoints.value
-      .map(
-        (point) => `      <trkpt lat="${point.lat}" lon="${point.lon}">
-        <ele>${point.altitude ?? 0}</ele>
+      .map((point) => {
+        const eleStr = point.altitude !== null && point.altitude !== undefined 
+          ? `\n        <ele>${point.altitude}</ele>` 
+          : "";
+        return `      <trkpt lat="${point.lat}" lon="${point.lon}">${eleStr}
         <time>${point.timestamp || new Date().toISOString()}</time>
-      </trkpt>`,
-      )
+      </trkpt>`;
+      })
       .join("\n");
 
     return `<?xml version="1.0" encoding="UTF-8"?>

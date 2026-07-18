@@ -1,50 +1,61 @@
 <template>
-   <section class="panel">
+   <section class="panel tracking-panel">
       <div class="tracking-header">
         <h2>{{ t('tracking.title') }}</h2>
         <div v-if="isTracking" class="tracking-status">
           <span class="status-badge" :class="{ paused: isPaused }">
+            <span class="pulse-dot"></span>
             {{ isPaused ? t('tracking.paused') : t('tracking.inProgress') }}
           </span>
         </div>
       </div>
 
-         <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state">
-        <div class="empty-icon">📍</div>
+      <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state premium-empty">
+        <div class="empty-icon glass-icon">📍</div>
         <div class="empty-title">{{ t('tracking.ready') }}</div>
         <div class="empty-desc">
           {{ t('tracking.readyDesc') }}
         </div>
-        <div class="activity-select">
+        <div class="activity-select modern-select">
           <label for="activity-type">{{ t('tracking.activityType') }}</label>
-          <select id="activity-type" v-model="activityType">
-            <option v-for="opt in activityOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
+          <div class="select-wrapper">
+            <select id="activity-type" v-model="activityType">
+              <option v-for="opt in activityOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
         </div>
-         <div v-if="!isOnline" class="gps-error-banner" style="margin-bottom:12px">
+        <div v-if="!isOnline" class="gps-error-banner" style="margin-bottom:12px">
            {{ t('tracking.offline') }}
-         </div>
+        </div>
         <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
-        <button class="btn btn-primary btn-large" @click="startTracking">
+        <button class="btn btn-primary btn-large pulse-btn" @click="startTracking">
           {{ t('tracking.start') }}
         </button>
-         </div>
+      </div>
 
       <div v-else class="tracking-content">
-        <div v-if="gpsWaiting" class="gps-waiting">
-          <span class="gps-spinner"></span>
-          Acquiring GPS signal... Move outdoors for better accuracy.
+        <transition name="fade">
+          <div v-if="gpsWaiting" class="gps-waiting glass-banner">
+            <div class="radar-spinner"></div>
+            <span>Acquiring GPS signal... Move outdoors for better accuracy.</span>
+          </div>
+        </transition>
+        <transition name="fade">
+          <div v-if="gpsError && !gpsWaiting" class="gps-error-banner">{{ gpsError }}</div>
+        </transition>
+        
+        <div class="map-wrapper glass-panel">
+          <LiveMap ref="liveMapRef" />
         </div>
-        <div v-if="gpsError && !gpsWaiting" class="gps-error-banner">{{ gpsError }}</div>
-        <LiveMap ref="liveMapRef" />
+        
         <RideMetricsPanel />
         <ControlsBar :is-paused="isPaused" @pause="pauseTracking" @resume="resumeTracking" @stop="stopTracking" />
 
-        <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete">
+        <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete glass-panel">
           <p>Tracking completed! File ready for upload.</p>
-          <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide">
+          <button class="btn btn-primary btn-large" :disabled="isUploading" @click="uploadRide">
             {{ isUploading ? 'Uploading...' : 'Upload to BikeMaster' }}
           </button>
         </div>
@@ -70,6 +81,7 @@ import RideMetricsPanel from '../components/RideMetricsPanel.vue'
 import ControlsBar from '../components/ControlsBar.vue'
 import { apiUpload, apiPost } from '../utils/api'
 import type { GpsPoint, NativeGpsSample } from '../types/index'
+import { haversineDistanceMeters } from '../utils/geo'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -87,9 +99,6 @@ const gpsWaiting = ref(false)
 const gpsError = ref('')
 const batterySaver = ref(false)
 
-// Generic tracking: the same GPS session can become a bike ride, a run, a
-// walk, etc. The chosen activity type is sent to the backend so the ride is
-// categorised correctly.
 const activityType = ref<'ride' | 'walk' | 'hike' | 'run' | 'indoor' | 'other'>('ride')
 const activityOptions = [
   { value: 'ride', label: '🚴 Bici' },
@@ -466,17 +475,6 @@ function getWebElapsedSeconds() {
   return Math.max(0, (Date.now() - webStartTime - webPausedAccumulatedMs) / 1000)
 }
 
-function haversineDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const radius = 6371000
-  const toRadians = (value: number) => (value * Math.PI) / 180
-  const dLat = toRadians(lat2 - lat1)
-  const dLon = toRadians(lon2 - lon1)
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) ** 2
-  return 2 * radius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
-
 function resetTrackingState() {
   tracking.resetMetrics()
   tracking.setGpxPath(null)
@@ -500,42 +498,207 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.tracking-panel {
+  background: var(--bg);
+  border: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.tracking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.status-badge.paused {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+  animation: pulse 2s infinite;
+}
+
+.status-badge.paused .pulse-dot {
+  animation: none;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.premium-empty {
+  padding: 40px 20px;
+  background: linear-gradient(145deg, var(--bg-secondary), var(--bg));
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 2px 10px rgba(255, 255, 255, 0.05);
+}
+
+.glass-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.1));
+}
+
+.modern-select {
+  margin: 24px auto;
+}
+
+.modern-select label {
+  font-weight: 500;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.select-wrapper {
+  position: relative;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.select-wrapper:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.select-wrapper select {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  color: var(--text-primary);
+  appearance: none;
+  cursor: pointer;
+}
+
+.pulse-btn {
+  background: linear-gradient(135deg, var(--accent), #2563eb);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+  transform: translateY(0);
+  transition: all 0.2s ease;
+  padding: 14px 32px;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+}
+
+.pulse-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+
 .tracking-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+}
+
+.glass-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.map-wrapper {
+  padding: 2px;
 }
 
 .tracking-content :deep(.map-container) {
   height: 400px;
   min-height: 400px;
+  border-radius: calc(var(--radius-lg) - 2px);
 }
 
-.gps-waiting {
+.glass-banner {
+  background: rgba(59, 130, 246, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  border-radius: var(--radius-sm);
+  gap: 12px;
+  padding: 14px 20px;
   color: var(--accent);
-  font-size: 0.9rem;
-  margin-bottom: 16px;
+  font-weight: 500;
 }
 
-.gps-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(59, 130, 246, 0.3);
-  border-top-color: var(--accent);
+.radar-spinner {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  flex-shrink: 0;
+  background: rgba(59, 130, 246, 0.2);
+  position: relative;
+  overflow: hidden;
 }
 
-@keyframes spin {
+.radar-spinner::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50%;
+  height: 50%;
+  background: linear-gradient(45deg, transparent, var(--accent));
+  transform-origin: 0% 0%;
+  animation: radar 1.5s linear infinite;
+}
+
+@keyframes radar {
+  from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.tracking-complete {
+  padding: 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.tracking-complete p {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .gps-error-banner {
@@ -552,28 +715,5 @@ onBeforeUnmount(() => {
   color: var(--error);
   font-size: 0.85rem;
   margin-top: 8px;
-}
-
-.activity-select {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 16px auto 8px;
-  max-width: 280px;
-  text-align: left;
-}
-
-.activity-select label {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.activity-select select {
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  font-size: 0.95rem;
 }
 </style>

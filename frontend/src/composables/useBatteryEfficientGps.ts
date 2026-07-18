@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { haversineDistanceMeters as haversineMeters } from '../utils/geo'
 
 export interface BatteryGpsOptions {
   onPosition: (position: GeolocationPosition) => void
@@ -10,10 +11,12 @@ export interface BatteryGpsOptions {
 }
 
 const SPEED_STATIONARY = 0.6
+const SPEED_MODERATE = 4
 const SPEED_FAST = 8
 
 const INTERVAL_FIRST_FIX = 1000
 const INTERVAL_FAST = 2000
+const INTERVAL_MEDIUM_FAST = 3000
 const INTERVAL_MEDIUM = 4000
 const INTERVAL_SLOW = 8000
 const INTERVAL_STATIONARY = 15000
@@ -22,17 +25,6 @@ const INTERVAL_SAVER = 12000
 const NO_MOVEMENT_TIMEOUT = 20000
 const MIN_MOVEMENT_METERS = 1.5
 const ERROR_BACKOFF = 20000
-
-function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const radius = 6371000
-  const toRadians = (value: number) => (value * Math.PI) / 180
-  const dLat = toRadians(lat2 - lat1)
-  const dLon = toRadians(lon2 - lon1)
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) ** 2
-  return 2 * radius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
 
 export function useBatteryEfficientGps(options: BatteryGpsOptions) {
   const isWaiting = ref(false)
@@ -60,6 +52,7 @@ export function useBatteryEfficientGps(options: BatteryGpsOptions) {
     if (firstFix) return INTERVAL_FIRST_FIX
     const speed = currentSpeed()
     if (speed >= SPEED_FAST) return INTERVAL_FAST
+    if (speed >= SPEED_MODERATE) return INTERVAL_MEDIUM_FAST
     if (speed >= SPEED_STATIONARY) return INTERVAL_MEDIUM
     if (Date.now() - lastMovementAt > NO_MOVEMENT_TIMEOUT) return INTERVAL_STATIONARY
     return INTERVAL_SLOW
