@@ -1,3 +1,6 @@
+<!-- Stato vuoto riutilizzabile: messaggio "nessun dato" con icona/scelta, titolo, descrizione e pulsante azione opzionale.
+     Props: title (obbligatorio), description, icon, actionLabel, size ("sm"|"md"|"lg").
+     Eventi: action (click sul pulsante). UI: icona SVG o emoji, testo centrato e bottone primario. -->
 <template>
   <div class="empty-state" :class="size">
     <div class="empty-icon" v-if="icon" :aria-hidden="true">{{ icon }}</div>

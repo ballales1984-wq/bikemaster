@@ -1,3 +1,6 @@
+<!-- Modale di conferma riutilizzabile: finestra di dialogo con titolo, messaggio e pulsanti Conferma/Annulla.
+     Props: modelValue (v-model visibilità), title, message, confirmLabel, cancelLabel.
+     Eventi: update:modelValue, confirm, cancel. Gestione focus-trappola e tasto Esc; teleportato nel body. -->
 <template>
   <Teleport to="body">
     <transition name="fade">

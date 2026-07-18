@@ -1,3 +1,6 @@
+<!-- Barra di navigazione a tab: lista di link router alle sezioni principali con frecce di scorrimento orizzontale.
+     Props: isAdmin, isClient (mostrano tab Admin/Client). Eventi: logout. Tab admin/client/settings/connection aggiunti
+     in base ai ruoli; la tab attiva viene mantenuta visibile (scrollIntoView) e le frecce compaiono al bisogno. -->
 <template>
   <div class="tabs-wrap">
     <button

@@ -1,3 +1,6 @@
+<!-- Planner Granfondo: genera un piano di allenamento multi-settimana per un atleta (endpoint /api/v1/training/granfondo).
+     Props: nessuna. Eventi: nessuno. Seleziona data inizio/numero settimane e mostra un calendario con gli allenamenti;
+     permette di salvare il piano generato. UI: form, barra date, griglia giorni con i workout e pulsante "Save Plan". -->
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { apiGet, apiPost } from "../utils/api";

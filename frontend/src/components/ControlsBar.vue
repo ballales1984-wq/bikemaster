@@ -1,3 +1,5 @@
+<!-- Barra controlli tracking GPS: pulsanti per mettere in pausa/riprendere e fermare il tracciamento di un'uscita.
+     Props: isPaused (boolean). Eventi: pause, resume, stop. UI: tre bottoni con icone e label localizzate (tracking.*). -->
 <template>
   <div
 class="controls-bar" role="group"
