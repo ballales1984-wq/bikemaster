@@ -1,3 +1,6 @@
+<!-- Pannello zone di allenamento: distribuzione % del tempo per zone di potenza (FTP) e zone di frequenza cardiaca.
+     Props: nessuna. Eventi: nessuno (usa /api/v1/analytics/zones). Mostra due grafici a barre (Power Zones / HR Zones) con range negli hover.
+     UI: sottotitolo con FTP e FC max, griglia di due BaseChart e gestione stato errore; label "vuoto" se mancano power meter/FC. -->
 <template>
   <section class="zones-panel">
     <div class="panel">

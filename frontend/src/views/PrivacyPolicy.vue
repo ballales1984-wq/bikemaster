@@ -1,3 +1,9 @@
+<!--
+  Pagina statica della Privacy Policy.
+  Informativa completa sul trattamento dei dati personali, GDPR, sicurezza,
+  condivisione con terze parti e diritti dell'utente.
+  Layout: contenitore centrato con intestazione, testo formattato e link a Cookie Policy.
+-->
 <template>
   <div class="legal-page">
     <div class="legal-header">

@@ -1,3 +1,10 @@
+<!--
+  Vista di tracciamento GPS in tempo reale.
+  Permette di avviare, mettere in pausa e terminare una sessione di uscita,
+  visualizzando la mappa live, le metriche di andatura e il controllo di registrazione.
+  Componenti: LiveMap, RideMetricsPanel, ControlsBar.
+  Compositables: useBatteryEfficientGps, useGpsOutlierFilter, useGpsDirectionFilter.
+-->
 <template>
    <section class="panel tracking-panel">
       <div class="tracking-header">

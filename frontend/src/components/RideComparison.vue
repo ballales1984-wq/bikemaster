@@ -1,3 +1,6 @@
+<!-- Pannello confronto uscite: seleziona due ride (A/B) e confronta metriche (distanza, durata, velocità, dislivello, calorie).
+     Props: nessuna. Eventi: nessuno (usa /api/v1/rides). Calcola delta % e "winner" per metrica, mostra verdetto e pulsante swap.
+     UI: due select + bottone scambia, griglia di card con valori/divario e vincitore evidenziato, stato vuoto con EmptyState. -->
 <template>
   <section class="comparison-panel">
     <div class="panel">

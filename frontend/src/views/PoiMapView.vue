@@ -1,3 +1,10 @@
+<!--
+  Vista mappa interattiva dei Punti di Interesse (POI).
+  Mostra i POI su mappa Leaflet con filtri per tipo, overlay di itinerario,
+  e form per aggiungere/modificare/eliminare POI.
+  Include modale di dettaglio POI con foto, video e tag.
+  Componente: nessuno esterno (Leaflet direttamente).
+-->
 <template>
   <section class="panel">
     <div class="map-header">

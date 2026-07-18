@@ -1,3 +1,6 @@
+<!-- Pannello uscite: elenco paginato delle ride con form di aggiunta, filtri (data/distanza), ordinamento, export CSV e dettaglio/analisi.
+     Props: nessuna. Eventi: summary-change (dopo add/delete). Carica da /api/v1/rides; apre modale dettaglio con analisi e ConfirmModal eliminazione.
+     UI: header collassabile del form, lista con chip statistiche, badge sorgente, paginazione, modale dettaglio con barra affaticamento/recupero. -->
 <template>
   <section class="rides-section">
     <!-- Add ride form -->

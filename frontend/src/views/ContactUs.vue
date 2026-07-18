@@ -1,3 +1,9 @@
+<!--
+  Pagina contatti e risorse utili.
+  Mostra indirizzi email di supporto e privacy, link GitHub, e schede di navigazione
+  rapida verso Privacy Policy, Termini, Cookie Policy e Chi Siamo.
+  Layout: griglia di card informative e link interni.
+-->
 <template>
   <div class="contact-page">
     <div class="contact-header">

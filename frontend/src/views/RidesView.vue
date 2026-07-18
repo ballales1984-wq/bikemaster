@@ -1,3 +1,9 @@
+<!--
+  Vista principale del cruscotto utente.
+  Mostra un messaggio di benvenuto con azioni rapide (tracciamento, pianificazione, AI Coach)
+  e incorpora il pannello riepilogativo delle uscite recenti.
+  Componenti: RidesPanel.
+-->
 <template>
   <div>
     <div class="welcome-card">

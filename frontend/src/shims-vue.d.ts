@@ -1,3 +1,10 @@
+/**
+ * Dichiarazioni TypeScript per Vue e API globali.
+ *
+ * Abilita l'import di componenti .vue e definisce le interfacce
+ * per Window.BikeTracking, toast e google.
+ */
+
 declare module "*.vue" {
   import type { DefineComponent } from "vue";
   const component: DefineComponent<{}, {}, any>;

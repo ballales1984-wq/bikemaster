@@ -1,3 +1,6 @@
+<!-- Pannello dashboard: schermata riepilogativa dell'atleta con azioni rapide, anelli di score, statistiche globali, stato di fitness
+     (ATL/CTL/TSB), trend settimanali, stato atleta, zone e uscite recenti. Props: nessuna. Eventi: nessuno (usa /api/v1/dashboard).
+     UI: header con badge sync, quick-actions, skeleton/errore, card score SVG, griglia card e sezioni con sotto-componenti riutilizzabili. -->
 <template>
   <div class="dashboard-panel">
     <!-- Header -->

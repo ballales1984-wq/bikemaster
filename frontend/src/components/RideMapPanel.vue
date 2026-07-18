@@ -1,3 +1,6 @@
+<!-- Pannello mappa percorsi: mappa Leaflet dei percorsi GPS colorati per rischio (pendenza/meteo/velocità) o globo AetherMap 3D.
+     Props: nessuna. Eventi: nessuno (usa /api/v1/rides e /api/v1/weather). Selettori stile mappa, colorazione, POI e route famose;
+     replay animato del GPS. UI: toolbar, replay bar, mappa 560px, KPI e legende rischio/pendenza/meteo/velocita. -->
 <template>
   <section class="panel">
     <div class="map-header">

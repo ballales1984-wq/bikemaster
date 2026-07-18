@@ -1,3 +1,6 @@
+<!-- Pannello impostazioni sincronizzazione: sceglie tra modalità "Local (Mai)" (100% offline) e "Cloud sync" (bidirezionale opzionale).
+     Props: nessuna. Eventi: nessuno (usa auth.apiFetch /api/v1/sync). Mostra stato sync, elementi in attesa, ultima sync ed export/import dati.
+     UI: radiogroup di due opzioni, riga stato con badge, messaggi e azioni Esporta/Importa uscite. -->
 <template>
   <section class="card sync-card">
     <h2>🔄 Modalità di sincronizzazione</h2>

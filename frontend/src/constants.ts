@@ -1,3 +1,11 @@
+/**
+ * Costanti globali dell'app BikeMaster.
+ *
+ * Include limiti di validazione per corse e atleti, coordinate e zoom
+ * predefiniti per le mappe, e palette di colori per rischio, pendenza,
+ * velocità e tipi di allenamento.
+ */
+
 export const RIDE_LIMITS = {
   MIN_DISTANCE_KM: 0,
   MAX_DISTANCE_KM: 500,

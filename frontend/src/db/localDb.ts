@@ -1,3 +1,15 @@
+/**
+ * BikeMaster Frontend — storage SQLite locale (WASM).
+ *
+ * Cache offline/seed per la SPA:
+ * - Web/PWA: WASM SQLite (@sqlite.org/sqlite-wasm) su OPFS se COOP/COEP
+ *   header sono presenti, altrimenti in-memory (sessione).
+ * - Android/Tauri: stesso modulo WASM; su nativo si può sostituire con
+ *   SQLite nativo senza cambiare l'API esposta.
+ *
+ * Il backend resta la fonte di verità: questo DB è una cache offline.
+ */
+
 // Layer di storage SQLite locale lato client.
 //
 // Strategia per piattaforma:

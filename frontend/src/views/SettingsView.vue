@@ -1,3 +1,10 @@
+<!--
+  Vista delle impostazioni backend e preferenze utente.
+  Configurazione URL backend, fallback Render, gestione chiavi API personali,
+  importazione bulk chiavi, pannello sync e verifica stato connessione.
+  Componenti: SyncSettingsPanel.
+  Store: settingsStore, apiKeysStore.
+-->
 <template>
   <div class="settings-page">
     <h1>⚙️ Impostazioni backend</h1>

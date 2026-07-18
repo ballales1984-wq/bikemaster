@@ -1,3 +1,6 @@
+<!-- Pannello meteo: mostra condizioni correnti e previsioni 7 giorni per coordinate (endpoint /api/v1/weather).
+     Props: nessuna. Eventi: nessuno. Inserisci lat/lon/data opzionale e ottieni temperatura, umidità, vento, pressione, score e consigli.
+     UI: form coordinate, card meteo con score colorato, stati loading/errore/vuoto e griglia forecast 7 giorni. -->
 <template>
   <div class="panel">
     <h2>🌤️ Weather</h2>

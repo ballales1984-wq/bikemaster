@@ -1,3 +1,9 @@
+<!--
+Mappa di velocita' della traccia GPS: colora i segmenti in base alla velocita'
+e mostra una legenda con min/max. Usa Google Maps o Leaflet a seconda
+della configurazione. Props: gpsPoints, loading, error.
+-->
+
 <template>
   <div class="google-speed-map">
     <div
@@ -19,6 +25,9 @@ v-if="!loading && !error" class="map-speed-legend">
   </div>
 </template>
 
+<!-- Mappa velocità Google: disegna il percorso di una ride colorato per velocità (km/h) usando Google Maps JS API.
+     Props: rideId (number, obbligatorio), apiKey (string). Eventi: nessuno. Carica i segmenti da /api/v1/rides/:id/speed-path.
+     UI: canvas mappa con marker start/fine, tooltip velocità al passaggio, legenda gradiente e stati loading/errore. -->
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { apiGet } from "../utils/api";

@@ -1,3 +1,9 @@
+<!--
+  Pagina istituzionale "Chi Siamo".
+  Descrive la missione di BikeMaster, le feature principali, lo stack tecnologico
+  e i valori del progetto open-source.
+  Include link a Contattaci e all'area di login.
+-->
 <template>
   <div class="about-page">
     <div class="about-header">

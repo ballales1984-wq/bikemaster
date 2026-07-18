@@ -1,3 +1,9 @@
+<!--
+  Pagina di landing/welcome dell'applicazione.
+  Presenta il brand BikeMaster, la tagline, le funzionalità principali in card
+  e i pulsanti di accesso/registrazione.
+  Stile: sfondo con orb animate, design moderno e responsive.
+-->
 <template>
   <div class="welcome-page">
     <div class="welcome-bg" aria-hidden="true">

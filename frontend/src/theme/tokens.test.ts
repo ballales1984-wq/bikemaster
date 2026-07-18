@@ -1,3 +1,10 @@
+/**
+ * Verifica della struttura e delle chiavi dei token del design system.
+ *
+ * Assicura che tutti i gruppi (colori, spaziature, raggi, ombre) e le
+ * chiavi siano presenti e invariati rispetto a `tokens.ts`.
+ */
+
 import { describe, it, expect } from "vitest";
 import { tokens } from "./tokens";
 

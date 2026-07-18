@@ -1,3 +1,6 @@
+<!-- Pannello metriche in tempo reale: griglia di card con distanza, velocità corrente/media, tempo, dislivello, FC, cadenza e potenza.
+     Props: nessuna. Eventi: nessuno (legge trackingStore). Mostra le card solo se il dato è disponibile; evidenzia velocità alta e stile.
+     UI: card metrica con icona, valore e label; la distanza è la card primaria in evidenza. -->
 <template>
   <div class="metrics-grid">
     <div class="metric-card primary">

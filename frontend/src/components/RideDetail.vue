@@ -1,3 +1,6 @@
+<!-- Dettaglio uscita: schermata completa di una ride con metriche principali, analisi dettagliata e grafici.
+     Props: rideId (number). Eventi: close (click sul pulsante chiudi). Carica la ride da /api/v1/rides/:id e le immagini chart.
+     UI: header con data, griglia metriche, sezione analisi (dislivello/FC/fatica), SpeedMap (se API key) e grafici velocità/dislivello. -->
 <template>
   <section v-if="ride">
     <div class="panel">

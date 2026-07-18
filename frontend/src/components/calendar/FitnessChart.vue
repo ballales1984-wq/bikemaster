@@ -1,3 +1,6 @@
+<!-- Grafico fitness: linee ATL (fatica), CTL (fitness) e TSB (forma) nel tempo, basato sui dati di carico di allenamento.
+     Props: data (array di {date, atl, ctl, tsb}). Eventi: nessuno. Usa BaseChart per il rendering del grafico a linee.
+     UI: pannello con titolo e BaseChart 220px; label date formattate gg/mm; gestisce lo stato "nessun dato". -->
 <template>
   <div class="panel fitness-chart-panel">
     <h2>📈 Fitness ATL / CTL / TSB</h2>

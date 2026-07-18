@@ -1,3 +1,10 @@
+<!--
+  Vista di visualizzazione AetherMap.
+  Permette di selezionare una o più uscite da una sidebar e visualizzarle
+  sovrapposte nella mappa del componente AetherMapViewer.
+  Include opzione di colorazione per velocità e selezioni massive.
+  Componente: AetherMapViewer.
+-->
 <template>
   <section class="panel aethermap-page">
     <div class="aethermap-header">

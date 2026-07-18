@@ -1,139 +1,208 @@
-# BikeMaster — Roadmap Consolidata
+# BikeMaster — Roadmap Unificata
 
-*Ultimo aggiornamento: 2026-07-17*
+*Ultimo aggiornamento: 2026-07-18*
 
-> Stato: **architettura locale-first completata** (desktop Tauri 2 + SQLite primario + backend FastAPI embedded), con engine BM2 e progetto R&D AetherMap attivi. Sync bidirezionale device↔cloud e offline-first restano in corso (vedi checklist sotto).
-> Test (verificati 2026-07-17): backend **~3255 passed / 2 failed** su ~3257 test eseguiti (`pytest`, suddivisi in chunk per stabilità d'ambiente). I 2 failure sono errori d'ambiente SQLAlchemy async (`MissingGreenlet`/`greenlet_spawn`) in `test_ai_coach_helpers.py::test_defaults_to_external` e `test_athlete_state_integration.py::test_athlete_state_in_workout_generation`, non bug di logica. La collection completa (2611 test) ora passa dopo aver rimosso da `tests/test_database.py` l'import/test orfano di `get_paginated_rides` (funzione rimossa dal DB layer). Frontend **332 passed / 31 failed / 20 errors** su 363 (`vitest run`). Endpoint REST: **138**.
-> Questo documento è la *fonte di verità* unica per stato, checklist e idee/feature.
-> Le fasi 1-25 sono completate; sotto il backlog riordinato (4 track) e lo stato di pulizia repo.
-
----
-
-## Track A — BikeMaster (prodotto)
-
-### A.1 Stato di completamento
-- **Fasi 1-25**: completate (fondamenta, analytics, AI Coach base, sicurezza,
-  testing/DevOps, phone GPS tracking, event-driven/clean arch, vector DB/RAG).
-- Conteggio storico: 145/145 base + 78/80 estensioni.
-
-### A.2 Backlog riordinato per priorità
-Ordine: stabilità → mobile nativo → maturità AI → distribuzione/integrazioni.
-
-| ID | Idea | Fascia | Stato |
-|:--:|---|---|:--:|
-| P0.1 | Logging centralizzato e strutturato | Stabilità | ✅ |
-| P0.2 | Servizi registrati nel lifespan FastAPI | Stabilità | ✅ |
-| P1.1 | Tauri 2 desktop app wrapper + backend embedded | Desktop-first | ✅ |
-| P1.2 | SQLite come database primario (migrazione da PostgreSQL) | Desktop-first | ✅ |
-| P1.3 | Sync bidirezionale device↔cloud (opzionale, attivabile) | Desktop-first | ❌ |
-| P1.4 | Verifica build iOS con Xcode su dispositivo | Mobile nativo | 🔄 |
-| P2.1 | Memory persistente conversazioni per utente | AI Coach | ✅ |
-| P2.2 | Design System + theme tokens | AI Coach | ✅ |
-| P3.1 | Wahoo integration | Distribuzione | ✅ |
-| P3.2 | GitHub Releases per distribuzione desktop (CI/CD Tauri) | Distribuzione | ❌ |
-| P3.3 | PWA su Vercel come canale secondario | Distribuzione | ❌ |
-| P3.4 | Helm chart Kubernetes (solo per cloud sync/community) | Distribuzione | ❌ |
-| P3.5 | Coverage test >90% come metrica informativa | Qualità | 🔄 In corso (~82% linee / ~66% branch; misurata 2026-07-14; repositories + monitoring coperti, resta `routes.py` ~51% e moduli AI) |
+> **Principio guida**: fare le cose una volta, farle bene. Questo documento è la
+> *fonte di verità unica* per stato, priorità e azioni. Non eseguire feature
+> duplicate: verificare qui prima di iniziare qualsiasi lavoro.
 
 ---
 
-> **Note di riconciliazione (2026-07-13):** gli item `P0.1`, `P0.2`, `P2.1`, `P2.2`
-> risultavano "🔄 in corso" ma i relativi branch sono già stati fusi in `main`
-> (`git branch --merged main`): `feat/logging-lifespan` (P0.1+P0.2),
-> `feat/aicoach-memory` (P2.1), `feat/design-system` (P2.2). Segnati ✅.
+## 1. Stato Attuale (checklist veloce)
 
-## Track B — AetherMap (R&D, progetto separato mantenuto)
-
-Motore cartografico "dal nulla" (cube-sphere + S2/H3, data model, pipeline IA
-"ricercatore", rendering WebGL, digital twin). Indipendente da BikeMaster, ma
-tracciato in questo repo (`aethermap/`, agent `.kilo/agent/aethermap-*.md`).
-Catena di dipendenze: **1 → 2 → {3,4} → 5**.
-
-| ID | Fase | Stato |
-|:--:|---|:--:|
-| AM1 | Fase 1 — Earth model (cube-sphere + S2/H3): doc + `core/coordinates.py` | ✅ baseline |
-| AM2 | Fase 2 — Data model ("database del mondo"): doc + `data/` | ✅ baseline |
-| AM3 | Fase 3 — AI pipeline "ricercatore": `ai/` | 🔄 in corso |
-| AM4 | Fase 4 — Rendering WebGL: `render/` (camera projection, SVO, ASCII render) | ✅ baseline |
-| AM5 | Fase 5 — Digital twin: `twin/` | 🔄 in corso |
-
-Demo: `cd aethermap/src && python -m aethermap.ai.demo|.render.demo|.twin.demo`.
+| Area | Stato | Note |
+|:--|:--|:--|
+| Backend FastAPI | **Stabile** | 2611 test pass, 138 endpoint |
+| Frontend Vue 3 | **Stabile** | Vitest + Playwright configurati |
+| Tauri 2 desktop | **Funzionante** | Backend embedded + SQLite primario |
+| BM2 simulation engine | **Baseline** | 9 algoritmi, cablato via API |
+| AetherMap R&D | **Fasi 1-4 ok** | Fasi 3-5 in corso |
+| Multi-tenant / auth | **Completo** | tenant_id + OAuth2 (Google, Strava, Garmin) |
+| Sync device↔cloud | **In corso** | 3 branch aperti da mergiare |
+| Coverage test | **Informativa** | ~82% linee |
 
 ---
 
-## Track D — BikeMaster 2.0 / Deluxe Simulation Engine (`bm2`)
+## 2. Branches Aperti (azioni immediate)
 
-Motore di simulazione sportiva ("what-if") già presente in `bike_analyzer/bm2/`,
-con filosofia type-safe (`Quantity` + `UnitRegistry` con analisi dimensionale,
-algoritmi `Algorithm`→`ModelResult`, dominio `AnalysisContext`). È **già cablato**
-via `bm2_routes.py` (montato in `app_factory.py`). La visione "BikeMaster Deluxe"
-è documentata in `docs/DELUXE_ROADMAP.md`.
+Queste sono le uniche modifiche non in `main`. **Non iniziare feature nuove finché
+questi branch non sono stati revisionati e mergiati.**
 
-Catena: kernel fisico (`core/physics`) → algoritmi (`bm2/algorithms`) →
-`SimulationEngine` (what-if/preset/sensitivity) → `AIOrchestrator` (agenti NL).
-Il forward model fisico è **condiviso** (`bm2` delega a `core.physics`, fusione
-2026-07-12).
+| Branch | Contenuto | Azione |
+|:--|:--|:--|
+| `feat/local-auth` | Local auth handlers, OAuth flow Tauri, dev port 5177 | **Mergiare** — logica auth locale completata |
+| `feat/auth-sync-ui` | UI sync settings, auth sync frontend | **Mergiare dopo local-auth** — dipende da esso |
+| `feat/local-sync` | Sync locale ↔ cloud, modelli DB sync, Alembic migrations | **Mergiare dopo auth-sync-ui** — feature più grande |
 
-| ID | Modulo | Stato |
-|:--:|---|---|
-| D1 | `core/physics/` — kernel numerico unico (`cycling_forces`, `instantaneous_power`, `required_speed_for_power`, `grade_between`) | ✅ consolidato |
-| D2 | `bm2/algorithms/` — 9 algoritmi (power, energy, fatigue, performance, recovery, nutrition, movement, route_difficulty, training_load) | ✅ baseline |
-| D3 | `bm2/simulation.py` — `SimulationEngine` (compare/preset/sensitivity) + `parse_override_from_text` | ✅ baseline |
-| D4 | `bm2/orchestrator.py` — `AIOrchestrator` + agenti (Athlete/Environment/GPS/Sensor) | ✅ baseline |
-| D5 | `bm2/units.py` — `Quantity` + `UnitRegistry` (analisi dimensionale) | ✅ baseline |
-| D6 | `bm2_routes.py` — endpoint API esposti | ✅ cablato |
-| D7 | Integrazione col flusso `Ride`/analytics esistente (via `bm2/adapters.py` + `POST /api/v1/bm2/simulate-ride`) | ✅ completato |
-| D8 | Validazione su dati reali (potenza/HR misurate) via `core/physics/validation.py` + `POST /api/v1/bm2/validate` | ✅ completato |
-| D9 | Documentazione `bm2` in `PROJECT_STATUS.md` + `AGENTS.md` | ✅ completato |
+**Sequenza di merge raccomandata**:
+
+```
+git checkout main && git merge feat/local-auth
+git merge feat/auth-sync-ui
+git merge feat/local-sync
+```
+
+Dopo il merge: risolvere conflitti (se presenti), run `pytest` + `vitest run`,
+commit del merge.
 
 ---
 
-## Track C — Pulizia repo (stato)
+## 3. Working Tree Non Committato
 
-### C.1 Completato in questa sessione
-- [x] Rimosso debris non tracciato: `frontend/android_bak/`, `frontend/android_temp/`, `.sixth/`.
-- [x] Eliminati branch locali fusi: `android-fix`, `chain-pomelo`.
-- [x] Eliminato branch scratch `temp-security-fix-tmp` (security hardening già in main, item 15).
-- [x] `AGENTS.md` aggiornato per documentare AetherMap come track R&D.
-- [x] ROADMAP.md riorganizzato in 3 track con numerazione corretta.
-- [x] Documentazione obsoleta IT spostata in `docs/archive/obsolete/`.
-- [x] `config.py` legacy rimosso (v1.4.1).
+File modificati non staged in `frontend/src/components/` (10 file Vue):
+`RideComparison.vue`, `RideDetail.vue`, `RideMapPanel.vue`, `RideMetricsPanel.vue`,
+`SpeedMap.vue`, `StatsSummary.vue`, `SyncSettingsPanel.vue`, `ToastContainer.vue`,
+`WeatherPanel.vue`, `ZonesPanel.vue`.
 
-### C.2 Branch non-fusi aperti (da revisionare, NON eliminati — contengono lavoro)
-> **Riconciliazione (2026-07-14):** `chore/sistema-repo` è stato eliminato dopo che
-> il suo ultimo commit (`85faede`) risultava distruttivo (cancellava codice produttivo
-> esistente). Il lavoro utile del branch (DB layer async/postgres/vector, cleanup temp,
-> Dockerfile fix) è già stato incorporato in `main` attraverso commit separati. Rimosso
-> da questo elenco.
-> `inconclusive-pastry` (progressi AetherMap: camera projection, SVO, ASCII render) risulta
-> già mergiato in `main` (PR #3, commit `907aebf`) e non è più un branch aperto.
-
-*Nessun branch non-fuso contenente lavoro risulta attualmente aperto.*
-
-### C.3 Da fare (richiede conferma/permessi)
-- [ ] **Prune remote-tracking obsoleti** (`codex/esamina-il-codice`, `cloudy-tower`,
-      `loud-paste`, `docker-create-production-dockerfile`, `models-consolidate-domain-models`,
-      `security-add-auth-to-endpoints`, `bm2-*`) — richiede `git push` (conferma utente).
+**Azione**: verificare se queste modifiche sono già nei branch aperti oppure sono
+lavoro isolato. Se sono superflue (duplicano modifiche già nei branch), reset.
+Altrimenti, committare prima del merge.
 
 ---
 
-## Production Ready Checklist
-| Area | Item | Stato |
-|---|---|---|
-| Testing | Coverage reported as informational | ✅ |
-| Code Quality | Ruff + mypy + pre-commit | ✅ |
-| Container | Docker multi-stage hardened | ✅ |
-| Desktop | Tauri 2 wrapper + backend embedded + SQLite primario | ✅ |
-| Database | SQLite primary with Alembic migrations | ✅ |
-| Offline-first | Full functionality without cloud | ❌ |
-| Sync | Optional bidirectional device↔cloud sync | ❌ |
-| Monitoring | Sentry + Prometheus + Grafana | ✅ |
-| Audit | Audit log azioni admin | ✅ |
-| Auth | OAuth2 social login (Google, Strava) | ✅ |
-| Multi-user | Data isolation completa | ✅ |
-| AI | Vector DB per RAG | ✅ |
-| Frontend | PWA + offline support | ✅ |
-| Frontend | Vitest (47 file / 318 test) | ✅ |
-| Frontend | Playwright E2E (`frontend/tests/e2e`, 14 spec esistenti + 3 aggiunti backend-independent) | ✅ |
-| Security | Security headers + rate limiting | ✅ |
-| CI/CD | GitHub Actions + Tauri build pipeline | ✅ |
+## 4. Priorità Assoluta (ordine di esecuzione)
+
+### Fase 1 — Chiudere il lavoro in corso (questa settimana)
+
+1. **Merge dei 3 branch** in sequenza (vedi sezione 2)
+2. **Commit working tree** oppure reset se duplicato
+3. **Run test completo** backend + frontend per verificare integrità post-merge
+4. **Pulizia repo**: rimuovere file temporanei e cache dalla root:
+   - `temp_aethermap/` (duplicato di `aethermap/`, eliminare)
+   - `backend_e2e.log`, `cov_*.log`, `errlines.log`, `fail*.log`, `pytest*.txt`,
+     `test*.txt`, `test_run*.log`, `routes_*.log`, `routes_*.json`
+   - `build_log.txt`, `duration_chart.png`, `google_map.png`, `ride_1_*.png`
+   - `playwright-screenshot.png`, `dashboard.html`, `dashboard.png`
+   - `.benchmarks/`, `.chroma_db/`, `chroma.sqlite3`
+   - Backup DB nella root: `rides_backup_*.db`, `rides_export.*`
+   - File `.db` nella root: `rides.db`, `rides_api.db` (esiste già in `bike_analyzer/`)
+
+### Fase 2 — Stabilizzare (prossime 2 settimane)
+
+5. **Fix test frontend**: 31 failed + 20 errors su 363 — risolvere i fallimenti
+   bloccanti, prioritizzare quelli che rompono feature shipped
+6. **Fix 2 test backend** (MissingGreenlet): spostare in `pytest.ini` come skip
+   noto d'ambiente, oppure fixare il fixture setup
+7. **Coverage > 90%** su `routes.py` e moduli AI — oggi ~51% e sotto
+8. **Documentazione consolidata**:
+   - Eliminare duplicati IT in `docs/archive/`
+   - Unificare `docs/MASTER.md` + `docs/UNIFIED_DOCUMENTATION.md` in un solo file
+   - `docs/DELUXE_ROADMAP.md` → riferire a `ROADMAP.md` invece di duplicare
+
+### Fase 3 — Distribuzione (mese corrente)
+
+9. **Tauri build verificata**: `npm run tauri build` produce .exe funzionante
+10. **Vercel deploy**: riconfigurare `VITE_API_BASE` dopo ogni boot ngrok
+11. **GitHub Releases** per distribuzione desktop (CI/CD Tauri)
+12. **Android release**: verificare APK/AAB da workflow GitHub Actions
+
+### Fase 4 — BM2 Deluxe (prossimo mese)
+
+13. **UI simulazione frontend**: pannello "What-if" su rides esistenti
+    (`components/Bm2Panel.vue` esiste, serve integrazione completa)
+14. **Validazione fisica su dati reali**: confrontare stime BM2 vs potenza misurata
+    su 10+ ride con power meter
+15. **AI Coach + BM2**: l'orchestratore NL usa i risultati simulazione per rispondere
+    a domande tipo "se aumento FTP a 250W quanto miglioro?"
+
+### Fase 5 — AetherMap (R&D, tempo libero)
+
+16. Completare Fase 3 (AI pipeline) e Fase 5 (digital twin)
+17. Decisione esplicita: `aethermap/` converge in BikeMaster o resta R&D separato
+18. Se convergente: definire contratto dati `Ride/GPSPoint → terrain input`
+
+---
+
+## 5. Regole Anti-Duplicazione
+
+- **Prima di scrivere codice**: cercare nel repo (`grep`, `codebase_search`) per
+  verificare che la feature non esista già sotto altro nome
+- **Prima di creare un branch**: verificare che non esista un branch con lo stesso
+  scopo; riutilizzare o estendere quello esistente
+- **Documentazione**: una sola fonte di verità per ogni argomento. Se `ROADMAP.md`
+  copre lo stato, non replicarlo in `PROJECT_STATUS.md`
+- **Script**: se `scripts/tauri_agent.py` esiste, non creare `scripts/build-tauri.sh`
+- **Modelli DB**: se `bike_analyzer/backend/db/models.py` esiste, non creare
+  `backend/models.py` ex-novo — estendere quello esistente
+
+---
+
+## 6. Struttura Directory (canone attuale)
+
+```
+D:\BikeMaster/
+├── bike_analyzer/          # Backend + BM2 + core (codice Python)
+│   ├── backend/            # FastAPI app (api, analytics, db, ingestion, maps...)
+│   ├── core/               # Domain layer (models, pipeline, engine, physics)
+│   ├── bm2/                # BikeMaster 2.0 simulation engine
+│   ├── frontend/           # Dashboard Flask legacy (non il frontend principale)
+│   ├── tests/              # Test backend (pytest)
+│   └── main.py             # Entrypoint
+├── frontend/               # Frontend principale (Vue 3 + Vite + TS)
+│   ├── src/
+│   │   ├── components/     # Componenti Vue (35+)
+│   │   ├── views/          # Page-level views
+│   │   ├── stores/         # Pinia stores
+│   │   ├── composables/    # Composables
+│   │   ├── utils/          # API client, helpers
+│   │   ├── services/       # Auth, notifications, Tauri
+│   │   ├── types/          # TypeScript types
+│   │   └── db/             # Local DB (SQLite WASM)
+│   ├── src-tauri/          # Tauri 2 Rust backend
+│   └── tests/              # E2E Playwright
+├── aethermap/              # R&D cartografia (separato da BikeMaster)
+├── docs/                   # Documentazione sviluppatore
+│   ├── archive/            # Materiale obsoleto (non toccare)
+│   └── reference/          # Dizionario dati, schemi
+├── scripts/                # Utility (tauri_agent.py, frontend_aligner.py)
+├── tests/                  # Test legacy root (108 file — migrare in bike_analyzer/tests/)
+├── android/                # Android Kotlin nativo (Capacitor)
+├── knowledge_base/         # Documenti RAG
+├── alembic/                # Migrazioni DB
+├── docker/                 # Dockerfile + docker-compose
+├── .github/workflows/      # CI/CD
+├── ROADMAP.md              # ← Questo file (fonte di verità)
+├── PROJECT_STATUS.md       # Stato moduli (sintesi)
+├── AGENTS.md               # Istruzioni agenti
+├── main.py                 # Entrypoint root (delega a bike_analyzer)
+├── pyproject.toml          # Config Python
+├── requirements.txt        # Dipendenze Python
+├── render.yaml             # Deploy backend Render
+├── render-hub.yaml         # Deploy hub Render
+└── vercel.json             # Deploy frontend Vercel
+```
+
+---
+
+## 7. Comandi Rapidi
+
+```bash
+# Backend test (chunk per stabilità)
+pytest tests/
+
+# Frontend test
+cd frontend && npm run test
+
+# Frontend typecheck + lint
+cd frontend && npm run typecheck && npm run lint
+
+# Tauri build desktop
+cd frontend && npm run tauri build
+
+# BM2 demo
+cd bike_analyzer && python -m bm2.simulation.demo
+
+# AetherMap demo
+cd aethermap/src && python -m aethermap.ai.demo
+```
+
+---
+
+## 8. Note di Contesto
+
+- **Branch `feat/local-sync`** contiene ~200 file modificati (3487 insertions, 41667
+  deletions). Include lavoro su: sync locale↔cloud, adattamento frontend per offline,
+  modelli DB espansi, sicurezza, AetherMap temp refactor, cleaning generale.
+- **Non ricreare `temp_aethermap/`**: è già stato assorbito in `aethermap/`.
+- **Non ricreare script duplicati**: `scripts/` è la posizione canonica.
+- **Non modificare `docs/archive/`**: materiale storico, lasciare in pace.

@@ -1,11 +1,14 @@
+<!-- Contenitore toast: visualizza notifiche temporanee (success/error/warning/info) in alto a destra con animazione e auto-rimozione.
+     Props: nessuna. Eventi: nessuno. Espone add/remove via defineExpose e window.__toast. Gestisce max 5 toast e chiusura manuale.
+     UI: lista di toast con icona, messaggio e pulsante chiudi; colorati per tipo, accessibili (role=status, aria-live). -->
 <template>
   <div
-    id="toast-container"
-    role="status"
-    aria-live="polite"
-    aria-atomic="true"
-    class="toast-root"
-  >
+id="toast-container"
+role="status"
+aria-live="polite"
+aria-atomic="true"
+class="toast-root"
+>
     <div
       v-for="t in items"
       :key="t.id"

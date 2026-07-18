@@ -1,3 +1,10 @@
+<!--
+  Vista di gestione delle connessioni con servizi esterni.
+  Consente di connettere/disconnettere servizi (Strava, Google Fit, Google Health, Wahoo)
+  tramite OAuth o di configurare chiavi API personali.
+  Include anche l'importazione massiva di chiavi.
+  Store: connectionsStore, apiKeysStore, authStore.
+-->
 <template>
   <div class="connections-page">
     <h1>{{ t("connections.title") }}</h1>

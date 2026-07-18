@@ -1,3 +1,8 @@
+<!--
+  Vista cruscotto dedicata ai client/coach.
+  Mostra l'elenco degli atleti associati e permette di assegnare nuovi atleti tramite ID.
+  Interfaccia semplice con griglia di card atleta e modulo di assegnazione.
+-->
 <template>
   <div class="client-dashboard">
     <h2>{{ t("client.title") }}</h2>

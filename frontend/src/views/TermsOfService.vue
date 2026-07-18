@@ -1,3 +1,8 @@
+<!--
+  Pagina statica dei Termini di Servizio.
+  Contiene le sezioni normative legali per l'utilizzo di BikeMaster.
+  Layout: contenitore centrato con intestazione, testo formattato e link a Privacy/Cookies.
+-->
 <template>
   <div class="legal-page">
     <div class="legal-header">

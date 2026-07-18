@@ -1,3 +1,9 @@
+<!--
+  Pagina statica della Cookie Policy.
+  Spiega le tipologie di cookie utilizzati (tecnici, analitici, preferenze),
+  le terze parti coinvolte e le modalità di gestione dei cookie nel browser.
+  Include tabella dei cookie tecnici e note per l'app mobile.
+-->
 <template>
   <div class="legal-page">
     <div class="legal-header">

@@ -1,3 +1,6 @@
+<!-- Griglia calendario mensile riutilizzabile: intestazioni giorni + celle con numero, eventi (pallini) e indicatore "+N".
+     Props: days (array con date/eventi), weekDays (etichette Lun-Dom). Eventi: add-for-date (click sul numero di un giorno).
+     UI: griglia 7 colonne; celle evidenziate per oggi/mese-altro/eventi e cliccabili per aggiungere un evento in quella data. -->
 <template>
   <div class="calendar-grid">
     <div v-for="d in weekDays"

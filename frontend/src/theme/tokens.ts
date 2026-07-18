@@ -1,10 +1,8 @@
 /**
- * Design system tokens.
+ * Token del design system.
  *
- * Source of truth: `src/styles/tokens.css` (CSS custom properties).
- * This module mirrors those values so TS/JS code can reference them
- * without magic strings. When adding a new token, update BOTH
- * `tokens.css` and this file.
+ * Specchia le custom property CSS in `src/styles/tokens.css` per
+ * consentire riferimenti tipizzati da TypeScript senza stringhe magiche.
  */
 
 export const tokens = {

@@ -1,3 +1,6 @@
+<!-- Riepilogo statistiche generali: card animate (conteggio) per uscite, distanza totale, calorie, velocità media e ore totali.
+     Props: stats (oggetto con rides/distance_km/calories/avg_speed_kmh/duration_minutes), loading. Eventi: refresh.
+     UI: griglia di stat-card con direttiva v-stagger (animazione, rispetta prefers-reduced-motion) e pulsante Refresh. -->
 <template>
   <div class="stats"
 aria-label="General Statistics">
