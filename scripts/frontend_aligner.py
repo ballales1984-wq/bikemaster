@@ -158,7 +158,16 @@ def load_prev_snapshot() -> dict[str, Any] | None:
 def diff_snapshots(prev: dict[str, Any], cur: dict[str, Any]) -> dict[str, Any]:
     changes: dict[str, Any] = {"added": [], "removed": [], "modified": []}
 
-    def categorize(section: str) -> None:
+    # `routes` is a list of names; the rest are name->hash dicts.
+    def categorize_list(section: str) -> None:
+        p = set(prev.get(section, []))
+        c = set(cur.get(section, []))
+        for key in sorted(c - p):
+            changes["added"].append(f"{section}:{key}")
+        for key in sorted(p - c):
+            changes["removed"].append(f"{section}:{key}")
+
+    def categorize_map(section: str) -> None:
         p = prev.get(section, {})
         c = cur.get(section, {})
         for key in sorted(set(c) - set(p)):
@@ -169,9 +178,9 @@ def diff_snapshots(prev: dict[str, Any], cur: dict[str, Any]) -> dict[str, Any]:
             if p[key] != c[key]:
                 changes["modified"].append(f"{section}:{key}")
 
-    categorize("routes")
-    categorize("views")
-    categorize("components")
+    categorize_list("routes")
+    categorize_map("views")
+    categorize_map("components")
     return changes
 
 

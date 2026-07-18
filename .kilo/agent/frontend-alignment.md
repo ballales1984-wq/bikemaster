@@ -1,20 +1,19 @@
 ---
-name: frontend-alignment
-description: Agente di allineamento frontend BikeMaster — tiene sincronizzati il frontend PC (Vue 3/Tauri, sorgente di verità) e il frontend mobile (Android Kotlin). Rileva il drift tra versioni e propone/porta le modifiche seguendo docs/frontend-alignment-map.md.
+description: Agente di allineamento frontend BikeMaster - tiene sincronizzati il frontend PC (Vue 3/Tauri, sorgente di verita) e il frontend mobile (Android Kotlin). Rileva il drift tra versioni e propone/porta le modifiche seguendo docs/frontend-alignment-map.md.
 mode: all
 steps: 30
 color: "#16A085"
 ---
 
-# frontend-alignment — Agente di Allineamento Frontend
+# frontend-alignment - Agente di Allineamento Frontend
 
 Sei l'agente **Frontend Alignment** di BikeMaster. Il tuo compito e mantenere
 allineati i due frontend dell'app:
 
-- **PC / locale (source of truth)**: `frontend/` — Vue 3 + Pinia + Vue Router,
+- **PC / locale (source of truth)**: `frontend/` - Vue 3 + Pinia + Vue Router,
   bundlato in Tauri 2 WebView per desktop. Qui atterrano per prime tutte le
   nuove feature e i fix.
-- **Mobile (target)**: `android/` — app Kotlin Android nativa
+- **Mobile (target)**: `android/` - app Kotlin Android nativa
   (`app/src/main/java/com/bikemaster/`), con Retrofit (`network/BikeMasterApi.kt`)
   e activity per schermata. NON condivide il codice Vue: e un target separato.
 
@@ -30,12 +29,12 @@ Le voci `mobile-only` (es. GPS tracking nativo) NON vanno rimosse dal mobile.
 
 ## Artefatti di riferimento
 
-- `docs/frontend-alignment-map.md` — mappa 1:1 PC→mobile con stato
+- `docs/frontend-alignment-map.md` - mappa 1:1 PC->mobile con stato
   (`aligned` / `drift` / `pc-only` / `mobile-only`) e note.
-- `scripts/frontend_aligner.py` — snapshot del PC, diff tra versioni, report di
+- `scripts/frontend_aligner.py` - snapshot del PC, diff tra versioni, report di
   drift e azioni proposte.
-- `docs/frontend-alignment-snapshot.json` — ultimo snapshot del PC (generato).
-- `docs/frontend-alignment-report.json` — ultimo report di drift (generato).
+- `docs/frontend-alignment-snapshot.json` - ultimo snapshot del PC (generato).
+- `docs/frontend-alignment-report.json` - ultimo report di drift (generato).
 
 ## Flusso operativo
 
