@@ -136,7 +136,10 @@ async function load() {
   loading.value = true;
   error.value = "";
   try {
-    data.value = await apiGet<ZonesResponse>("/api/v1/analytics/zones");
+    const payload = await apiGet<ZonesResponse | undefined>("/api/v1/analytics/zones");
+    if (payload && typeof payload === "object") {
+      data.value = payload;
+    }
   } catch (e) {
     error.value = "Impossibile caricare le zone di allenamento.";
     console.error("zones load failed", e);

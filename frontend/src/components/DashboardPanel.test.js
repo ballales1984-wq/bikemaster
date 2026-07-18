@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPinia } from "pinia";
 
 const apiGet = vi.hoisted(() => vi.fn());
-vi.mock("../utils/api.ts", () => ({ apiGet }));
+vi.mock("../utils/api", () => ({ apiGet }));
 
 import DashboardPanel from "./DashboardPanel.vue";
 
@@ -34,6 +34,22 @@ describe("DashboardPanel", () => {
   });
 
   function mountPanel() {
+    apiGet.mockImplementation((path) => {
+      if (path === "/api/v1/dashboard") {
+        return Promise.resolve(mockDashboard);
+      }
+      if (path === "/api/v1/analytics/zones") {
+        return Promise.resolve({
+          ftp_watts: 250,
+          max_hr: 190,
+          rides_with_power: 3,
+          rides_with_hr: 5,
+          power: { available: true, total_samples: 1200, zones: [] },
+          hr: { available: true, total_samples: 2000, zones: [] },
+        });
+      }
+      return Promise.resolve({});
+    });
     return mount(DashboardPanel, {
       global: { plugins: [createPinia()] },
     });

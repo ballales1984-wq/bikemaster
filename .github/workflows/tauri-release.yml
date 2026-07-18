@@ -99,7 +99,7 @@ jobs:
       # artifacts (.exe / .msi on Windows, .dmg / .app on macOS, .AppImage / .deb
       # on Linux) to the GitHub Release automatically.
       - name: Build Tauri app and publish to GitHub Releases
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # --- Optional macOS code signing / notarization ---

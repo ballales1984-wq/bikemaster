@@ -1,6 +1,16 @@
 import "fake-indexeddb/auto";
 import { vi } from "vitest";
 
+vi.mock("chart.js/auto", () => ({
+  default: vi
+    .fn()
+    .mockImplementation(() => ({
+      destroy: vi.fn(),
+      update: vi.fn(),
+      resize: vi.fn(),
+    })),
+}));
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({
@@ -21,7 +31,7 @@ if (typeof atob === "undefined") {
   globalThis.atob = (str) => Buffer.from(str, "binary").toString("base64");
 }
 
-if (typeof alert === "undefined") {
+if (typeof window !== "undefined") {
   window.alert = vi.fn();
 }
 
