@@ -108,6 +108,30 @@ def reset_rate_limiter():
     yield
 
 
+@pytest.fixture(autouse=True)
+def reset_database_url_and_async_engine():
+    """Isolate each test from async-DB global state set by other tests.
+
+    Some tests configure ``DATABASE_URL`` (sqlite+aiosqlite / postgres) and rely
+    on the module-level async engine/session-factory living in
+    ``bike_analyzer.backend.db.async_db``. Those globals are process-wide, so a
+    leaked ``DATABASE_URL`` from an earlier test can make a later test (e.g. the
+    athlete-state / ai-coach integration tests that run the FastAPI app) enter an
+    async SQLAlchemy path whose lazy-loaded attributes raise ``MissingGreenlet``
+    because the original greenlet context is gone. Resetting the env vars and the
+    cached engine/factory after every test keeps the suite order-independent.
+    """
+    yield
+    os.environ.pop("DATABASE_URL", None)
+    os.environ.pop("DATABASE_URL_UNPOOLDED", None)
+    os.environ["DATABASE_URL"] = ""
+    os.environ["DATABASE_URL_UNPOOLED"] = ""
+    import bike_analyzer.backend.db.async_db as async_db_mod
+
+    async_db_mod._engine = None
+    async_db_mod._session_factory = None
+
+
 @pytest.fixture
 def client(db_path):
     from bike_analyzer.backend.api.app_factory import create_app
