@@ -1,3 +1,6 @@
+<!-- Form di login/registrazione: tab Login/Register con validazione, toggle password e accesso Google OAuth.
+     Props: nessuna. Eventi: login, register (con {username,password}), google-login, error. Usa auth store e useI18n.
+     UI: tab accessibili (role=tab), input con label fluttuanti ed errori, spinner, separatore OAuth e pulsante Google. -->
 <template>
   <div class="login-panel">
     <h2>🔐 {{ mode === "login" ? t("auth.login") : t("auth.register") }}</h2>

@@ -1,3 +1,5 @@
+<!-- Selettore lingua: toggle IT/EN che cambia la locale corrente tramite il composable useI18n.
+     Props: nessuna. Eventi: nessuno (usa setLocale di useI18n). UI: due pulsanti, quello attivo è evidenziato; aria-label descrittivo. -->
 <template>
   <div class="lang-switcher">
     <button

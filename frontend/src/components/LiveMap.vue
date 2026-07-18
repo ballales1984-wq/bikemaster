@@ -5,6 +5,9 @@ ref="mapEl" class="live-map" />
   </div>
 </template>
 
+<!-- Mappa live del tracking: mappa Leaflet che disegna in tempo reale il percorso GPS durante un'uscita.
+     Props: nessuna. Eventi: nessuno (legge trackingStore.routePoints). Aggiunge un punto alla polyline a ogni nuovo fix e
+     carica i POI vicini. Espone addPoint/clear via defineExpose. UI: contenitore mappa 400px con tile OSM e marker POI colorati. -->
 <script setup lang="ts">
 import "leaflet/dist/leaflet.css";
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";

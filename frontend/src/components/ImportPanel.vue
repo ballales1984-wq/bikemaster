@@ -1,3 +1,6 @@
+<!-- Pannello import: caricamento file GPX/FIT (drag&drop o selezione) e import da servizi connessi (Strava, Google Fit/Health, Wahoo).
+     Props: nessuna. Eventi: summary-change (dopo un import riuscito). Gestisce OAuth via popup e callback; mostra stato, errori e barra di avanzamento.
+     UI: area upload, separatore OAuth, gruppi provider con connetti/disconnetti/sync, box risultato ed eventuale progress bar. -->
 <template>
   <section>
     <div class="panel">

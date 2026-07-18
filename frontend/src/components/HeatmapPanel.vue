@@ -1,3 +1,6 @@
+<!-- Pannello heatmap personale: mappa Leaflet con layer heat (leaflet.heat) dei punti GPS percorsi dall'atleta.
+     Props: nessuna. Eventi: nessuno (usa /api/v1/heatmap). Inserisci Athlete ID e carica; mostra mappa e conteggi celle/punti.
+     UI: form Athlete ID + pulsante, contenitore mappa 500px e badge con statistiche; gestisce stati loading/no-data. -->
 <template>
   <div class="panel">
     <h2>🔥 Personal Heatmap</h2>

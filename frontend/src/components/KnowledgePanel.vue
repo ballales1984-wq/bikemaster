@@ -1,3 +1,6 @@
+<!-- Pannello knowledge base: ricerca semantica nei documenti e navigazione per argomenti (endpoint /api/v1/knowledge).
+     Props: nessuna. Eventi: nessuno. Cerca per query (con debounce), mostra pill/griglia argomenti, risultati con score e
+     evidenziazione, skeleton di caricamento e stati vuoti. Pulsante "Ricarica indici" se la base è vuota. -->
 <template>
   <div class="knowledge-panel">
     <div class="panel-header">

@@ -1,3 +1,6 @@
+<!-- Banner installazione PWA: invita a installare l'app nella home screen per l'accesso offline.
+     Props: nessuna. Eventi: nessuno (usa composable usePWA). Mostra il banner solo se è disponibile un evento beforeinstallprompt.
+     UI: banner fisso con icona, testo, pulsanti "Install" e "chiudi" (dismiss); transizione slide; nasconde dopo installazione. -->
 <template>
   <Transition name="slide">
     <div v-if="showBanner" class="pwa-banner" role="alert" aria-live="polite">
