@@ -108,6 +108,7 @@ def get_ai_coach_client():
     ripetute. Provider con errori persistenti vengono bannati
     temporaneamente per evitare loop di fallback.
     """
+    global _current_client, _current_provider
     if _current_client and _current_provider and _current_provider not in _BANNED_PROVIDERS:
         return _current_client, _current_provider
 

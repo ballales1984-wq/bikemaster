@@ -766,7 +766,13 @@ async fn start_axum_server(state: AppState, port: u16) -> Result<(), Box<dyn std
         .layer(cors)
         .with_state(state);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    let addr: SocketAddr = if port == 8001 {
+        // Bind su tutte le interfacce (IPv4 + IPv6) così la WebView Tauri
+        // raggiunge il backend sia via 127.0.0.1 che via ::1/localhost.
+        "0.0.0.0:8001".parse().unwrap()
+    } else {
+        SocketAddr::from(([127, 0, 0, 1], port))
+    };
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .map_err(|e| format!("Failed to bind to {}: {}", addr, e))?;

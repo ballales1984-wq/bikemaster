@@ -97,6 +97,7 @@ frontend/tsc_results.txt
 
 # Logs
 logs/
+*.log
 
 # Misc
 .DS_Store

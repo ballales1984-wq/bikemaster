@@ -29,6 +29,7 @@ class TrainingStressDay:
         ctl: Chronic Training Load (fitness a lungo termine, EWMA 42g).
         tsb: Training Stress Balance (forma corrente = CTL - ATL).
     """
+    date: date | None = None
     tss: float = 0.0
     atl: float = 0.0
     ctl: float = 0.0
@@ -57,6 +58,7 @@ class FitnessStateVector:
         recommendation: Consiglio generato automaticamente dal sistema.
     """
     computed_at: datetime
+    athlete_id: int = 0
     atl: float = 0.0
     ctl: float = 0.0
     tsb: float = 0.0

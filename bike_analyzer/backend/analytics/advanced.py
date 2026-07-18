@@ -82,6 +82,7 @@ def _get_climb_color(cat: str) -> str:
 
 def calculate_pace_consistency(segments: list[Segment]) -> dict[str, float]:
     """Coefficiente di variazione (CV%) delle velocita' e strategia di pacing."""
+    speeds = [float(seg.avg_speed_km_h) for seg in segments if seg.avg_speed_km_h]
     if not speeds or len(speeds) < 2:
         return {
             "cv_percent": 0.0,

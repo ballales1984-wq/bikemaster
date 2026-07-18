@@ -196,7 +196,7 @@ class AthleteModel(Base):
     training_goals: Mapped[list["TrainingGoalModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     planned_workouts: Mapped[list["PlannedWorkoutModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     metrics: Mapped[list["MetricModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    route_safety_scores: Mapped[list["RouteSafetyScoreModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    route_safety_scores: Mapped[list["RouteSafetyScore"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     pois: Mapped[list["POIModel"]] = relationship(back_populates="created_by_athlete", cascade="all, delete-orphan")
     external_identities: Mapped[list["ExternalIdentityModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     external_tokens: Mapped[list["ExternalTokenModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
@@ -238,7 +238,7 @@ class RideModel(Base):
 
     athlete: Mapped["AthleteModel | None"] = relationship(back_populates="rides")
     metrics: Mapped[list["MetricModel"]] = relationship(back_populates="ride", cascade="all, delete-orphan")
-    route_safety_scores: Mapped[list["RouteSafetyScoreModel"]] = relationship(back_populates="ride", cascade="all, delete-orphan")
+    route_safety_scores: Mapped[list["RouteSafetyScore"]] = relationship(back_populates="ride", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint(
@@ -273,6 +273,8 @@ class FitnessStateModel(Base):
     trend_30d: Mapped[str] = mapped_column(String, default="stable")
     risk_indicators: Mapped[str | None] = mapped_column(Text)
     recommendation: Mapped[str | None] = mapped_column(Text)
+
+    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="fitness_states")
 
 
 class TrainingStressDayModel(Base):
@@ -339,6 +341,8 @@ class ChatHistoryModel(Base):
     role: Mapped[str] = mapped_column(String, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="chat_history")
 
 
 class CalendarEventModel(Base):
@@ -507,7 +511,7 @@ class POIModel(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     lat: Mapped[float] = mapped_column(Float, nullable=False)
     lon: Mapped[float] = mapped_column(Float, nullable=False)
-    type: Mapped[POIType] = mapped_column(Enum(POIType), nullable=False)
+    type: Mapped[str] = mapped_column(String, nullable=False, default=POIType.OTHER.value)
     photos: Mapped[str | None] = mapped_column(Text)
     video_url: Mapped[str | None] = mapped_column(String)
     difficulty_note: Mapped[str | None] = mapped_column(Text)
