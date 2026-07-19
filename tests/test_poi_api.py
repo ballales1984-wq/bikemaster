@@ -114,13 +114,57 @@ def test_delete_poi_owner_or_admin(db_path):
     assert gone.status_code == 404
 
 
+def test_itinerary_crud(db_path):
+    client = _make_client(db_path)
+    from bike_analyzer.backend.db import database as db_mod
+
+    db_mod.save_athlete(
+        {"username": "itest", "email": "a@b.c", "name": "I Test", "age": 30, "weight_kg": 75, "goals": "x"},
+        athlete_id=0,
+    )
+    created = client.post(
+        "/api/v1/itineraries",
+        json={"name": "Tour Test", "start_date": "2026-07-20", "end_date": "2026-07-22"},
+    )
+    assert created.status_code == 200, created.text
+    it_id = created.json()["id"]
+    assert created.json()["name"] == "Tour Test"
+
+    one = client.get(f"/api/v1/itineraries/{it_id}").json()
+    assert one["itinerary"]["id"] == it_id
+    assert one["stages"] == []
+
+    stage = client.post(
+        f"/api/v1/itineraries/{it_id}/stages",
+        json={"stage_day": 1, "title": "Tappa 1", "distance_km": 40, "elevation_gain_m": 500},
+    )
+    assert stage.status_code == 200, stage.text
+    one2 = client.get(f"/api/v1/itineraries/{it_id}").json()
+    assert len(one2["stages"]) == 1
+    assert one2["stages"][0]["title"] == "Tappa 1"
+
+    lst = client.get("/api/v1/itineraries").json()
+    assert any(i["id"] == it_id for i in lst["itineraries"])
+
+
 def test_list_by_itinerary(db_path):
     client = _make_client(db_path)
-    client.post("/api/v1/maps/pois", json={**_sample_poi(), "itinerary_id": 7})
+    from bike_analyzer.backend.db import database as db_mod
+
+    db_mod.save_athlete(
+        {"username": "itest2", "email": "b@c.d", "name": "I2", "age": 30, "weight_kg": 75, "goals": "x"},
+        athlete_id=0,
+    )
+    it = client.post(
+        "/api/v1/itineraries",
+        json={"name": "Tour POI", "start_date": "2026-07-20", "end_date": "2026-07-22"},
+    )
+    it_id = it.json()["id"]
+    client.post("/api/v1/maps/pois", json={**_sample_poi(), "itinerary_id": it_id})
     client.post(
         "/api/v1/maps/pois",
-        json={**_sample_poi(), "name": "Altro POI", "type": "vista", "itinerary_id": 8},
+        json={**_sample_poi(), "name": "Altro POI", "type": "vista"},
     )
-    filtered = client.get("/api/v1/maps/pois", params={"itinerary_id": 7}).json()
+    filtered = client.get("/api/v1/maps/pois", params={"itinerary_id": it_id}).json()
     assert len(filtered["pois"]) == 1
-    assert filtered["pois"][0]["itinerary_id"] == 7
+    assert filtered["pois"][0]["itinerary_id"] == it_id

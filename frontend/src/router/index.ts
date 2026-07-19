@@ -95,6 +95,12 @@ const routes = [
     meta: { requiresAuth: true, title: "Itinerari & POI" },
   },
   {
+    path: "/itinerary",
+    name: "itinerary",
+    component: () => import("../views/ItineraryView.vue"),
+    meta: { requiresAuth: true, title: "Itinerari" },
+  },
+  {
     path: "/aethermap",
     name: "aethermap",
     component: () => import("../views/AetherMapView.vue"),

@@ -124,6 +124,9 @@ class ProfileUpdate(BaseModel):
     preferred_terrain: str | None = Field(default=None, max_length=100)
     weekly_volume_km: float | None = Field(default=None, ge=0)
     ftp_watts: float | None = Field(default=None, ge=50, le=500)
+    fat_percentage: float | None = Field(default=None, ge=2, le=60)
+    mood: float | None = Field(default=None, ge=1, le=10)
+    sleep_hours: float | None = Field(default=None, ge=0, le=24)
     equipment: str | None = Field(default=None, max_length=500)
     medical_notes: str | None = Field(default=None, max_length=500)
 
@@ -484,6 +487,48 @@ class POIResponse(POICreate):
     id: int | None = None
     created_by: int | None = None
     tenant_id: int | None = None
+    created_at: str | None = None
+
+
+class ItineraryCreate(BaseModel):
+    """Schema di richiesta per creare un itinerario."""
+
+    name: str = Field(..., min_length=2, max_length=150)
+    description: str | None = Field(default=None, max_length=2000)
+    start_date: str | None = Field(
+        default=None, min_length=10, max_length=10, pattern=r"^\d{4}-\d{2}-\d{2}$"
+    )
+    end_date: str | None = Field(
+        default=None, min_length=10, max_length=10, pattern=r"^\d{4}-\d{2}-\d{2}$"
+    )
+    total_km: float | None = Field(default=None, ge=0, le=100000)
+    total_elevation_m: float | None = Field(default=None, ge=0, le=100000)
+
+
+class ItineraryResponse(ItineraryCreate):
+    """Schema di risposta per un itinerario (include id e metadata)."""
+
+    id: int | None = None
+    athlete_id: int | None = None
+    tenant_id: int = 0
+    created_at: str | None = None
+
+
+class StageCreate(BaseModel):
+    """Schema di richiesta per creare una tappa di un itinerario."""
+
+    itinerary_id: int = Field(..., gt=0)
+    stage_day: int = Field(default=1, ge=1, le=366)
+    title: str | None = Field(default=None, max_length=150)
+    distance_km: float | None = Field(default=None, ge=0, le=100000)
+    elevation_gain_m: float | None = Field(default=None, ge=0, le=100000)
+    ride_id: int | None = Field(default=None, gt=0)
+
+
+class StageResponse(StageCreate):
+    """Schema di risposta per una tappa (include id e metadata)."""
+
+    id: int | None = None
     created_at: str | None = None
 
 

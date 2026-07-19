@@ -81,6 +81,10 @@ from .schemas import (
     NotificationScoreOut,
     POICreate,
     POIResponse,
+    ItineraryCreate,
+    ItineraryResponse,
+    StageCreate,
+    StageResponse,
     ProfileUpdate,
     RefreshTokenRequest,
     RideAnalysisRequest,
@@ -528,6 +532,67 @@ async def delete_poi_endpoint(
         raise HTTPException(status_code=403, detail="Not allowed to delete this POI")
     delete_poi(poi_id)
     return {"deleted": True}
+
+
+@router.post("/itineraries")
+async def create_itinerary(
+    payload: ItineraryCreate, current_user: dict = Depends(get_current_user)
+):
+    """Create a new itinerary owned by the current athlete."""
+    from ..db.database import save_itinerary
+
+    athlete_id = _user_id(current_user)
+    data = payload.model_dump(exclude_unset=True)
+    data["athlete_id"] = athlete_id
+    data["tenant_id"] = current_user.get("tenant_id", athlete_id)
+    itinerary_id = save_itinerary(data)
+    return {"id": itinerary_id, **data}
+
+
+@router.get("/itineraries")
+async def list_itineraries_endpoint(current_user: dict = Depends(get_current_user)):
+    """List itineraries for the current athlete."""
+    from ..db.database import list_itineraries
+
+    athlete_id = _user_id(current_user)
+    if current_user.get("is_admin"):
+        return {"itineraries": list_itineraries()}
+    return {"itineraries": list_itineraries(athlete_id)}
+
+
+@router.get("/itineraries/{itinerary_id}")
+async def get_itinerary_endpoint(
+    itinerary_id: int, current_user: dict = Depends(get_current_user)
+):
+    """Get a single itinerary with its stages."""
+    from ..db.database import get_itinerary, list_stages
+
+    itinerary = get_itinerary(itinerary_id)
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+    if itinerary["athlete_id"] != _user_id(current_user) and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    return {"itinerary": itinerary, "stages": list_stages(itinerary_id)}
+
+
+@router.post("/itineraries/{itinerary_id}/stages")
+async def create_stage(
+    itinerary_id: int,
+    payload: StageCreate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Add a stage to an itinerary owned by the current athlete."""
+    from ..db.database import get_itinerary, save_stage
+
+    itinerary = get_itinerary(itinerary_id)
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+    if itinerary["athlete_id"] != _user_id(current_user) and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    data = payload.model_dump(exclude_unset=True)
+    data["itinerary_id"] = itinerary_id
+    stage_id = save_stage(data)
+    return {"id": stage_id, **data}
 
 
 @router.post("/auth/login")
@@ -1914,6 +1979,28 @@ async def get_my_athlete_profile(current_user: dict = Depends(get_current_user))
     return {"athlete": _public_athlete(athlete), "profile_complete": profile_complete}
 
 
+@router.get("/athletes/me/metric-log")
+async def get_my_metric_log(
+    metric_type: str = Query(..., description="weight_kg|height_cm|fat_percentage|ftp_watts|mood|sleep_hours"),
+    days: int = Query(365, ge=1, le=3650),
+    current_user: dict = Depends(get_current_user),
+):
+    """Return the authenticated athlete's metric history for charting.
+
+    Returns the time series (oldest-first) of ``metric_type`` samples logged
+    on every manual update, so the frontend can plot weight / fat% / FTP /
+    mood / sleep trends over time.
+    """
+    from ..db.database import get_athlete as _get_athlete, get_athlete_metric_log
+
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete = _get_athlete(current_user["id"], tenant_id)
+    if not athlete:
+        return {"metric_type": metric_type, "series": []}
+    series = get_athlete_metric_log(athlete["id"], metric_type, tenant_id=tenant_id, days=days)
+    return {"metric_type": metric_type, "series": series}
+
+
 @router.put("/athletes/me")
 async def upsert_my_athlete_profile(
     profile_data: ProfileUpdate,
@@ -1951,6 +2038,33 @@ async def upsert_my_athlete_profile(
     updates = {k: v for k, v in profile_data.model_dump().items() if v is not None}
     if updates:
         _update_athlete(athlete["id"], updates)
+        # Registra nello storico le metriche tracciabili che sono cambiate,
+        # cosi' e' possibile disegnare grafici di andamento (peso, % grassa,
+        # FTP, umore, sonno, altezza).
+        from ..db.database import log_athlete_metric
+
+        tracked = {
+            "weight_kg": ("kg", "Peso"),
+            "height_cm": ("cm", "Altezza"),
+            "fat_percentage": ("%", "% grassa"),
+            "ftp_watts": ("W", "FTP"),
+            "mood": ("/10", "Umore"),
+            "sleep_hours": ("h", "Sono"),
+        }
+        for field, (unit, _label) in tracked.items():
+            if field in updates and updates[field] is not None:
+                old = athlete.get(field)
+                new_value = float(updates[field])
+                # Logga solo se il valore e' nuovo (o non c'era storico).
+                if old is None or float(old) != new_value:
+                    log_athlete_metric(
+                        athlete["id"],
+                        field,
+                        new_value,
+                        tenant_id=tenant_id,
+                        unit=unit,
+                        source="manual",
+                    )
     athlete = _get_athlete(current_user["id"], tenant_id)
     profile_complete = (
         athlete.get("age") is not None

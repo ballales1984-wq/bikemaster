@@ -200,6 +200,7 @@ class AthleteModel(Base):
     pois: Mapped[list["POIModel"]] = relationship(back_populates="created_by_athlete", cascade="all, delete-orphan")
     external_identities: Mapped[list["ExternalIdentityModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     external_tokens: Mapped[list["ExternalTokenModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    metric_logs: Mapped[list["AthleteMetricLogModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_athletes_tenant", "tenant_id"),
@@ -207,6 +208,39 @@ class AthleteModel(Base):
         Index("ix_athletes_experience_level", "experience_level"),
         Index("ix_athletes_email", "email"),
         Index("ix_athletes_user_id", "user_id"),
+    )
+
+
+class AthleteMetricLogModel(Base):
+    """Serie storica dei valori dell'atleta (peso, % grassa, FTP, umore, sonno).
+
+    Ogni modifica manuale (o import da bilancia) di una metrica tracciata
+    registra una riga con il valore e il timestamp dell'evento, cosi' e'
+    possibile disegnare grafici di andamento temporale. Una sola tabella
+    polivalente indicizzata per (athlete_id, metric_type, recorded_at).
+    """
+
+    __tablename__ = "athlete_metric_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
+    )
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    metric_type: Mapped[str] = mapped_column(String, nullable=False)
+    value: Mapped[float | None] = mapped_column(Float)
+    unit: Mapped[str | None] = mapped_column(String)
+    note: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String, default="manual")
+    recorded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="metric_logs")
+
+    __table_args__ = (
+        Index("ix_metric_log_athlete_metric", "athlete_id", "metric_type"),
+        Index("ix_metric_log_recorded", "athlete_id", "metric_type", "recorded_at"),
+        Index("ix_metric_log_tenant", "tenant_id"),
     )
 
 

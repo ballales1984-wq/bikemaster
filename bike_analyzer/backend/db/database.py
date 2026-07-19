@@ -25,7 +25,7 @@ import math
 import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from ..models.models import Ride
 from ..settings import get_settings
@@ -149,6 +149,26 @@ def init_db():
             tenant_id INTEGER DEFAULT 0,
             created_at TEXT
         )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS athlete_metric_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER,
+            tenant_id INTEGER DEFAULT 0,
+            metric_type TEXT NOT NULL,
+            value REAL,
+            unit TEXT,
+            note TEXT,
+            source TEXT DEFAULT 'manual',
+            recorded_at TEXT,
+            created_at TEXT
+        )""")
+        try:
+            conn.execute("CREATE INDEX IF NOT EXISTS ix_metric_log_athlete_metric ON athlete_metric_log(athlete_id, metric_type)")
+        except Exception:
+            pass
+        try:
+            conn.execute("CREATE INDEX IF NOT EXISTS ix_metric_log_recorded ON athlete_metric_log(athlete_id, metric_type, recorded_at)")
+        except Exception:
+            pass
         conn.execute("""CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
@@ -296,9 +316,37 @@ def init_db():
             itinerary_id INTEGER,
             created_by INTEGER,
             tenant_id INTEGER DEFAULT 0,
-            created_at TEXT
+            created_at TEXT,
+            FOREIGN KEY (itinerary_id) REFERENCES itineraries(id) ON DELETE SET NULL
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_pois_coords ON pois(lat, lon)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS itineraries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER,
+            tenant_id INTEGER DEFAULT 0,
+            name TEXT NOT NULL,
+            description TEXT,
+            start_date TEXT,
+            end_date TEXT,
+            total_km REAL DEFAULT 0,
+            total_elevation_m REAL DEFAULT 0,
+            created_at TEXT,
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_itineraries_athlete ON itineraries(athlete_id)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS stages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            itinerary_id INTEGER NOT NULL,
+            stage_day INTEGER DEFAULT 1,
+            title TEXT,
+            distance_km REAL DEFAULT 0,
+            elevation_gain_m REAL DEFAULT 0,
+            ride_id INTEGER,
+            created_at TEXT,
+            FOREIGN KEY (itinerary_id) REFERENCES itineraries(id) ON DELETE CASCADE,
+            FOREIGN KEY (ride_id) REFERENCES rides(id) ON DELETE SET NULL
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_stages_itinerary ON stages(itinerary_id)")
         conn.execute("""CREATE TABLE IF NOT EXISTS fitness_states (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
@@ -971,6 +1019,83 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
         )
         conn.commit()
         return cur.rowcount > 0
+
+
+def log_athlete_metric(
+    athlete_id: int,
+    metric_type: str,
+    value: float | None,
+    *,
+    tenant_id: int = 0,
+    unit: str | None = None,
+    note: str | None = None,
+    source: str = "manual",
+    recorded_at: str | None = None,
+) -> int:
+    """Append a single metric sample to the athlete history (athlete_metric_log).
+
+    ``recorded_at`` is stored as an ISO-8601 UTC timestamp so the same event
+    can later be aggregated by day / month / second when drawing charts.
+    """
+    if value is None:
+        return 0
+    if not recorded_at:
+        recorded_at = datetime.now(timezone.utc).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO athlete_metric_log
+               (athlete_id, tenant_id, metric_type, value, unit, note, source, recorded_at, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                athlete_id,
+                tenant_id,
+                metric_type,
+                value,
+                unit,
+                note,
+                source,
+                recorded_at,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def get_athlete_metric_log(
+    athlete_id: int,
+    metric_type: str,
+    *,
+    tenant_id: int | None = None,
+    days: int = 365,
+    limit: int = 2000,
+) -> list[dict]:
+    """Return the time series for one metric, oldest-first, for charting."""
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT id, value, unit, note, source, recorded_at
+               FROM athlete_metric_log
+               WHERE athlete_id=? AND metric_type=?
+                 AND (recorded_at IS NULL OR recorded_at >= ?)
+               ORDER BY recorded_at ASC
+               LIMIT ?""",
+            (athlete_id, metric_type, since, limit),
+        )
+        rows = cur.fetchall()
+    return [
+        {
+            "id": r[0],
+            "value": r[1],
+            "unit": r[2],
+            "note": r[3],
+            "source": r[4],
+            "recorded_at": r[5],
+        }
+        for r in rows
+    ]
 
 
 def create_indices():
@@ -1808,6 +1933,126 @@ def delete_poi(poi_id: int) -> bool:
         deleted = cur.rowcount > 0
         conn.commit()
         return deleted
+
+
+def save_itinerary(itinerary: dict) -> int:
+    """Create an itinerary. Returns the new row id."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO itineraries
+            (athlete_id, tenant_id, name, description, start_date, end_date,
+             total_km, total_elevation_m, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                itinerary.get("athlete_id"),
+                itinerary.get("tenant_id", 0),
+                itinerary.get("name"),
+                itinerary.get("description"),
+                itinerary.get("start_date"),
+                itinerary.get("end_date"),
+                itinerary.get("total_km", 0),
+                itinerary.get("total_elevation_m", 0),
+                datetime.now(UTC).isoformat(),
+            ),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def get_itinerary(itinerary_id: int) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM itineraries WHERE id = ?", (itinerary_id,))
+        row = cur.fetchone()
+        return _row_to_itinerary(row) if row else None
+
+
+def list_itineraries(athlete_id: int | None = None) -> list[dict]:
+    """Return all itineraries, optionally filtered by athlete."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if athlete_id is not None:
+            cur.execute(
+                "SELECT * FROM itineraries WHERE athlete_id = ? ORDER BY id DESC",
+                (athlete_id,),
+            )
+        else:
+            cur.execute("SELECT * FROM itineraries ORDER BY id DESC")
+        rows = cur.fetchall()
+    return [_row_to_itinerary(r) for r in rows]
+
+
+def save_stage(stage: dict) -> int:
+    """Create a stage for an itinerary. Returns the new row id."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO stages
+            (itinerary_id, stage_day, title, distance_km, elevation_gain_m,
+             ride_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                stage.get("itinerary_id"),
+                stage.get("stage_day", 1),
+                stage.get("title"),
+                stage.get("distance_km", 0),
+                stage.get("elevation_gain_m", 0),
+                stage.get("ride_id"),
+                datetime.now(UTC).isoformat(),
+            ),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def list_stages(itinerary_id: int) -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM stages WHERE itinerary_id = ? ORDER BY stage_day ASC, id ASC",
+            (itinerary_id,),
+        )
+        rows = cur.fetchall()
+    return [_row_to_stage(r) for r in rows]
+
+
+def _row_to_itinerary(row: tuple) -> dict:
+    cols = [d[0] for d in row.cursor_description] if hasattr(row, "cursor_description") else [
+        "id", "athlete_id", "tenant_id", "name", "description",
+        "start_date", "end_date", "total_km", "total_elevation_m", "created_at",
+    ]
+    data = dict(zip(cols, row))
+    return {
+        "id": data.get("id"),
+        "athlete_id": data.get("athlete_id"),
+        "tenant_id": data.get("tenant_id", 0),
+        "name": data.get("name"),
+        "description": data.get("description"),
+        "start_date": data.get("start_date"),
+        "end_date": data.get("end_date"),
+        "total_km": data.get("total_km", 0),
+        "total_elevation_m": data.get("total_elevation_m", 0),
+        "created_at": data.get("created_at"),
+    }
+
+
+def _row_to_stage(row: tuple) -> dict:
+    cols = [d[0] for d in row.cursor_description] if hasattr(row, "cursor_description") else [
+        "id", "itinerary_id", "stage_day", "title", "distance_km",
+        "elevation_gain_m", "ride_id", "created_at",
+    ]
+    data = dict(zip(cols, row))
+    return {
+        "id": data.get("id"),
+        "itinerary_id": data.get("itinerary_id"),
+        "stage_day": data.get("stage_day", 1),
+        "title": data.get("title"),
+        "distance_km": data.get("distance_km", 0),
+        "elevation_gain_m": data.get("elevation_gain_m", 0),
+        "ride_id": data.get("ride_id"),
+        "created_at": data.get("created_at"),
+    }
 
 
 __all__ = [

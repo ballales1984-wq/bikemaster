@@ -125,6 +125,30 @@ export interface RideSegment {
   speedRisk?: number;
 }
 
+export interface Itinerary {
+  id: number;
+  athlete_id?: number;
+  tenant_id?: number;
+  name: string;
+  description?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  total_km?: number | null;
+  total_elevation_m?: number | null;
+  created_at?: string | null;
+}
+
+export interface Stage {
+  id: number;
+  itinerary_id: number;
+  stage_day?: number;
+  title?: string | null;
+  distance_km?: number | null;
+  elevation_gain_m?: number | null;
+  ride_id?: number | null;
+  created_at?: string | null;
+}
+
 export interface NativeGpsSample {
   lat: number;
   lon: number;
