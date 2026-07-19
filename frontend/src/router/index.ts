@@ -137,6 +137,12 @@ const routes = [
     meta: { requiresAuth: true, title: "Zone di Allenamento" },
   },
   {
+    path: "/metabolism",
+    name: "metabolism",
+    component: () => import("../views/MetabolismView.vue"),
+    meta: { requiresAuth: true, title: "Metabolismo" },
+  },
+  {
     path: "/admin",
     name: "admin",
     component: () => import("../components/AdminPanel.vue"),

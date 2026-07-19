@@ -321,3 +321,165 @@ class CalendarEvent:
             "completed": self.completed,
             "created_at": self.created_at,
         }
+
+
+@dataclass
+class MetabolicProfile:
+    """Athlete metabolic profile for BMR/TDEE calculation.
+
+    Attributes:
+        athlete_id: Owner athlete id.
+        sex: Biological sex for Mifflin-St Jeor.
+        bmr_formula: ``mifflin`` or ``cunningham``.
+        activity_level: ``sedentary``, ``light``, ``moderate``, ``active``, ``very_active``.
+        bmr_kcal: Cached or manually overridden BMR.
+        tdee_kcal: Cached or manually overridden TDEE.
+        notes: Free-text metabolic notes.
+        created_at: ISO-8601 creation timestamp.
+        updated_at: ISO-8601 update timestamp.
+    """
+    athlete_id: int | None = None
+    sex: str = "male"
+    bmr_formula: str = "mifflin"
+    activity_level: str = "moderate"
+    bmr_kcal: float | None = None
+    tdee_kcal: float | None = None
+    notes: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+    def to_dict(self) -> dict:
+        return {
+            "athlete_id": self.athlete_id,
+            "sex": self.sex,
+            "bmr_formula": self.bmr_formula,
+            "activity_level": self.activity_level,
+            "bmr_kcal": self.bmr_kcal,
+            "tdee_kcal": self.tdee_kcal,
+            "notes": self.notes,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+
+@dataclass
+class FoodLog:
+    """Single food log entry for daily nutrition tracking.
+
+    Attributes:
+        id: Local database id.
+        athlete_id: Owner athlete id.
+        tenant_id: Tenant id for multi-tenant isolation.
+        date: ISO-8601 date string (YYYY-MM-DD).
+        meal_type: ``breakfast``, ``lunch``, ``dinner``, ``snack``, ``other``.
+        description: Free-text food description.
+        kcal: Energy in kcal.
+        carbs_g: Carbohydrates in grams.
+        protein_g: Protein in grams.
+        fat_g: Fat in grams.
+        fiber_g: Fiber in grams.
+        water_ml: Water intake in ml.
+        note: Optional notes.
+        recorded_at: ISO-8601 timestamp of the entry.
+        created_at: ISO-8601 creation timestamp.
+    """
+    id: int | None = None
+    athlete_id: int | None = None
+    tenant_id: int = 0
+    date: str = ""
+    meal_type: str = "other"
+    description: str = ""
+    kcal: float = 0.0
+    carbs_g: float | None = None
+    protein_g: float | None = None
+    fat_g: float | None = None
+    fiber_g: float | None = None
+    water_ml: float | None = None
+    note: str | None = None
+    recorded_at: str | None = None
+    created_at: str | None = None
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "athlete_id": self.athlete_id,
+            "tenant_id": self.tenant_id,
+            "date": self.date,
+            "meal_type": self.meal_type,
+            "description": self.description,
+            "kcal": self.kcal,
+            "carbs_g": self.carbs_g,
+            "protein_g": self.protein_g,
+            "fat_g": self.fat_g,
+            "fiber_g": self.fiber_g,
+            "water_ml": self.water_ml,
+            "note": self.note,
+            "recorded_at": self.recorded_at,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass
+class MetabolicDailySummary:
+    """Aggregated daily metabolic and nutrition summary.
+
+    Attributes:
+        id: Local database id.
+        athlete_id: Owner athlete id.
+        tenant_id: Tenant id for multi-tenant isolation.
+        date: ISO-8601 date string (YYYY-MM-DD).
+        bmr_kcal: Basal Metabolic Rate.
+        neat_kcal: Non-Exercise Activity Thermogenesis.
+        eat_kcal: Exercise Activity Thermogenesis.
+        climb_bonus_kcal: Extra kcal from elevation gain.
+        tdee_kcal: Total Daily Energy Expenditure.
+        intake_kcal: Total kcal from food logs.
+        balance_kcal: intake_kcal - tdee_kcal.
+        steps_estimated: Estimated step count.
+        elevation_gain_estimated_m: Total elevation gain for the day.
+        rides_count: Number of rides/activities for the day.
+        gps_neat_kcal: NEAT estimated from GPS low-speed segments.
+        notes: Free-text notes.
+        created_at: ISO-8601 creation timestamp.
+        updated_at: ISO-8601 update timestamp.
+    """
+    id: int | None = None
+    athlete_id: int | None = None
+    tenant_id: int = 0
+    date: str = ""
+    bmr_kcal: float = 0.0
+    neat_kcal: float = 0.0
+    eat_kcal: float = 0.0
+    climb_bonus_kcal: float = 0.0
+    tdee_kcal: float = 0.0
+    intake_kcal: float = 0.0
+    balance_kcal: float = 0.0
+    steps_estimated: int | None = None
+    elevation_gain_estimated_m: float | None = None
+    rides_count: int = 0
+    gps_neat_kcal: float = 0.0
+    notes: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "athlete_id": self.athlete_id,
+            "tenant_id": self.tenant_id,
+            "date": self.date,
+            "bmr_kcal": self.bmr_kcal,
+            "neat_kcal": self.neat_kcal,
+            "eat_kcal": self.eat_kcal,
+            "climb_bonus_kcal": self.climb_bonus_kcal,
+            "tdee_kcal": self.tdee_kcal,
+            "intake_kcal": self.intake_kcal,
+            "balance_kcal": self.balance_kcal,
+            "steps_estimated": self.steps_estimated,
+            "elevation_gain_estimated_m": self.elevation_gain_estimated_m,
+            "rides_count": self.rides_count,
+            "gps_neat_kcal": self.gps_neat_kcal,
+            "notes": self.notes,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }

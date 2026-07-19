@@ -173,3 +173,54 @@ declare global {
     BikeTracking?: BikeTrackingInstance;
   }
 }
+
+export interface MetabolicProfile {
+  athlete_id: number;
+  sex: "male" | "female";
+  bmr_formula: "mifflin" | "cunningham";
+  activity_level: "sedentary" | "light" | "moderate" | "active" | "very_active";
+  bmr_kcal?: number;
+  tdee_kcal?: number;
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface FoodLog {
+  id?: number;
+  athlete_id: number;
+  tenant_id: number;
+  date: string;
+  meal_type: "breakfast" | "lunch" | "dinner" | "snack" | "other";
+  description: string;
+  kcal: number;
+  carbs_g?: number | null;
+  protein_g?: number | null;
+  fat_g?: number | null;
+  fiber_g?: number | null;
+  water_ml?: number | null;
+  note?: string | null;
+  recorded_at?: string | null;
+  created_at?: string | null;
+}
+
+export interface MetabolicDailySummary {
+  id?: number;
+  athlete_id: number;
+  tenant_id: number;
+  date: string;
+  bmr_kcal: number;
+  neat_kcal: number;
+  eat_kcal: number;
+  climb_bonus_kcal: number;
+  tdee_kcal: number;
+  intake_kcal: number;
+  balance_kcal: number;
+  steps_estimated?: number | null;
+  elevation_gain_estimated_m?: number | null;
+  rides_count: number;
+  gps_neat_kcal: number;
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}

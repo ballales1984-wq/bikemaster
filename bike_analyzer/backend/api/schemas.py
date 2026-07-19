@@ -517,7 +517,6 @@ class ItineraryResponse(ItineraryCreate):
 class StageCreate(BaseModel):
     """Schema di richiesta per creare una tappa di un itinerario."""
 
-    itinerary_id: int = Field(..., gt=0)
     stage_day: int = Field(default=1, ge=1, le=366)
     title: str | None = Field(default=None, max_length=150)
     distance_km: float | None = Field(default=None, ge=0, le=100000)
@@ -608,3 +607,80 @@ class NotificationListOut(BaseModel):
 
     notifications: list[NotificationOut]
     meta: dict = Field(default_factory=dict)
+
+
+class MetabolicProfileCreate(BaseModel):
+    """Schema di richiesta per creare/aggiornare il profilo metabolico."""
+    sex: str = Field(default="male", pattern="^(male|female)$")
+    bmr_formula: str = Field(default="mifflin", pattern="^(mifflin|cunningham)$")
+    activity_level: str = Field(default="moderate", pattern="^(sedentary|light|moderate|active|very_active)$")
+    bmr_kcal: float | None = Field(default=None, ge=500, le=5000)
+    tdee_kcal: float | None = Field(default=None, ge=500, le=10000)
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class MetabolicProfileResponse(MetabolicProfileCreate):
+    """Schema di risposta per il profilo metabolico."""
+    athlete_id: int
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class FoodLogCreate(BaseModel):
+    """Schema di richiesta per creare un log alimentare."""
+    date: str = Field(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
+    meal_type: str = Field(default="other", pattern="^(breakfast|lunch|dinner|snack|other)$")
+    description: str = Field(..., min_length=1, max_length=500)
+    kcal: float = Field(default=0, ge=0, le=50000)
+    carbs_g: float | None = Field(default=None, ge=0, le=2000)
+    protein_g: float | None = Field(default=None, ge=0, le=1000)
+    fat_g: float | None = Field(default=None, ge=0, le=1000)
+    fiber_g: float | None = Field(default=None, ge=0, le=500)
+    water_ml: float | None = Field(default=None, ge=0, le=10000)
+    note: str | None = Field(default=None, max_length=500)
+    recorded_at: str | None = Field(default=None, description="ISO datetime")
+
+
+class FoodLogUpdate(BaseModel):
+    """Schema di richiesta per aggiornare un log alimentare."""
+    date: str | None = Field(default=None, min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
+    meal_type: str | None = Field(default=None, pattern="^(breakfast|lunch|dinner|snack|other)$")
+    description: str | None = Field(default=None, min_length=1, max_length=500)
+    kcal: float | None = Field(default=None, ge=0, le=50000)
+    carbs_g: float | None = Field(default=None, ge=0, le=2000)
+    protein_g: float | None = Field(default=None, ge=0, le=1000)
+    fat_g: float | None = Field(default=None, ge=0, le=1000)
+    fiber_g: float | None = Field(default=None, ge=0, le=500)
+    water_ml: float | None = Field(default=None, ge=0, le=10000)
+    note: str | None = Field(default=None, max_length=500)
+    recorded_at: str | None = Field(default=None, description="ISO datetime")
+
+
+class FoodLogResponse(FoodLogCreate):
+    """Schema di risposta per un log alimentare."""
+    id: int | None = None
+    athlete_id: int
+    tenant_id: int = 0
+    created_at: str | None = None
+
+
+class MetabolicDailySummaryResponse(BaseModel):
+    """Schema di risposta per il riepilogo metabolico giornaliero."""
+    id: int | None = None
+    athlete_id: int
+    tenant_id: int = 0
+    date: str
+    bmr_kcal: float = 0.0
+    neat_kcal: float = 0.0
+    eat_kcal: float = 0.0
+    climb_bonus_kcal: float = 0.0
+    tdee_kcal: float = 0.0
+    intake_kcal: float = 0.0
+    balance_kcal: float = 0.0
+    steps_estimated: int | None = None
+    elevation_gain_estimated_m: float | None = None
+    rides_count: int = 0
+    gps_neat_kcal: float = 0.0
+    notes: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None

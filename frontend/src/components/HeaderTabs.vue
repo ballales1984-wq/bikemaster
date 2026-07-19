@@ -114,6 +114,7 @@ const tabs = [
   { to: "/pois", label: "nav.pois", icon: "📍" },
   { to: "/heatmap", label: "nav.heatmap", icon: "🔥" },
   { to: "/badges", label: "nav.badges", icon: "🏅" },
+  { to: "/metabolism", label: "nav.metabolism", icon: "⚡" },
   { to: "/comparison", label: "nav.comparison", icon: "⚖️" },
   { to: "/weather", label: "nav.weather", icon: "🌤️" },
 ];

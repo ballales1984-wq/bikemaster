@@ -201,6 +201,9 @@ class AthleteModel(Base):
     external_identities: Mapped[list["ExternalIdentityModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     external_tokens: Mapped[list["ExternalTokenModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     metric_logs: Mapped[list["AthleteMetricLogModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    metabolic_profile: Mapped["MetabolicProfileModel | None"] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    food_logs: Mapped[list["FoodLogModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    metabolic_daily_summaries: Mapped[list["MetabolicDailySummaryModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_athletes_tenant", "tenant_id"),
@@ -813,6 +816,85 @@ class TOTPSecretModel(Base):
 
     __table_args__ = (
         UniqueConstraint("user_id", name="uq_totp_user"),
+    )
+
+
+class MetabolicProfileModel(Base):
+    """Metabolic profile for BMR/TDEE calculation."""
+
+    __tablename__ = "metabolic_profiles"
+
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    sex: Mapped[str] = mapped_column(String, default="male")
+    bmr_formula: Mapped[str] = mapped_column(String, default="mifflin")
+    activity_level: Mapped[str] = mapped_column(String, default="moderate")
+    bmr_kcal: Mapped[float | None] = mapped_column(Float)
+    tdee_kcal: Mapped[float | None] = mapped_column(Float)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="metabolic_profile")
+
+
+class FoodLogModel(Base):
+    """Food log entry for daily nutrition tracking."""
+
+    __tablename__ = "food_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), nullable=False)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    date: Mapped[str] = mapped_column(String, nullable=False)
+    meal_type: Mapped[str] = mapped_column(String, default="other")
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    kcal: Mapped[float] = mapped_column(Float, default=0.0)
+    carbs_g: Mapped[float | None] = mapped_column(Float)
+    protein_g: Mapped[float | None] = mapped_column(Float)
+    fat_g: Mapped[float | None] = mapped_column(Float)
+    fiber_g: Mapped[float | None] = mapped_column(Float)
+    water_ml: Mapped[float | None] = mapped_column(Float)
+    note: Mapped[str | None] = mapped_column(Text)
+    recorded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="food_logs")
+
+    __table_args__ = (
+        Index("ix_food_logs_athlete_date", "athlete_id", "date"),
+    )
+
+
+class MetabolicDailySummaryModel(Base):
+    """Aggregated daily metabolic and nutrition summary."""
+
+    __tablename__ = "metabolic_daily_summaries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), nullable=False)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    date: Mapped[str] = mapped_column(String, nullable=False)
+    bmr_kcal: Mapped[float] = mapped_column(Float, default=0.0)
+    neat_kcal: Mapped[float] = mapped_column(Float, default=0.0)
+    eat_kcal: Mapped[float] = mapped_column(Float, default=0.0)
+    climb_bonus_kcal: Mapped[float] = mapped_column(Float, default=0.0)
+    tdee_kcal: Mapped[float] = mapped_column(Float, default=0.0)
+    intake_kcal: Mapped[float] = mapped_column(Float, default=0.0)
+    balance_kcal: Mapped[float] = mapped_column(Float, default=0.0)
+    steps_estimated: Mapped[int | None] = mapped_column(Integer)
+    elevation_gain_estimated_m: Mapped[float | None] = mapped_column(Float)
+    rides_count: Mapped[int] = mapped_column(Integer, default=0)
+    gps_neat_kcal: Mapped[float] = mapped_column(Float, default=0.0)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="metabolic_daily_summaries")
+
+    __table_args__ = (
+        UniqueConstraint("athlete_id", "date", name="uq_metabolic_summary_athlete_date"),
+        Index("ix_metabolic_summaries_athlete_date", "athlete_id", "date"),
     )
 
 
