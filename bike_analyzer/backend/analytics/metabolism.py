@@ -82,9 +82,9 @@ def recalculate_daily_summary(athlete_id: int, date: str, tenant_id: int = 0) ->
     rides = get_rides_by_athlete(athlete_id, tenant_id)
     day_rides = [r for r in rides if r.get("date") == date]
     activity_level = profile.get("activity_level", "moderate") if profile else "moderate"
-    weight = athlete.get("weight_kg", 70.0)
+    weight = athlete.get("weight_kg") or 70.0
     height = athlete.get("height_cm")
-    age = athlete.get("age", 30)
+    age = athlete.get("age") or 30
     fat = athlete.get("fat_percentage")
     sex = profile.get("sex", "male") if profile else "male"
     bmr_formula = profile.get("bmr_formula", "mifflin") if profile else "mifflin"

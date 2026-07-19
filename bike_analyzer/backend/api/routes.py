@@ -2207,14 +2207,11 @@ async def upsert_my_metabolic_profile(
     payload = profile_data.model_dump(exclude_none=True)
     _save_profile(payload, athlete_id, tenant_id)
     profile = _get_profile(athlete_id, tenant_id)
-    try:
-        result = MetabolicProfileResponse(**(profile or {}))
-        return result.model_dump()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Response model error: {e}")
+    result = profile or {"athlete_id": athlete_id}
+    return result
 
 
-@router.get("/metabolism/food-log", response_model=list[FoodLogResponse])
+@router.get("/metabolism/food-log")
 async def get_my_food_logs(
     date: str = Query(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$"),
     current_user: dict = Depends(get_current_user),
@@ -2227,7 +2224,7 @@ async def get_my_food_logs(
     return _get_logs(athlete_id, date, tenant_id=tenant_id)
 
 
-@router.post("/metabolism/food-log", response_model=FoodLogResponse, status_code=201)
+@router.post("/metabolism/food-log", status_code=201)
 async def create_food_log(
     log_data: FoodLogCreate,
     current_user: dict = Depends(get_current_user),
@@ -2245,10 +2242,10 @@ async def create_food_log(
     payload["tenant_id"] = tenant_id
     log_id = _save_log(payload, tenant_id)
     row = _get_log(log_id)
-    return FoodLogResponse(**(row or {})).model_dump()
+    return row or {}
 
 
-@router.put("/metabolism/food-log/{log_id}", response_model=FoodLogResponse)
+@router.put("/metabolism/food-log/{log_id}")
 async def update_food_log_entry(
     log_id: int,
     log_data: FoodLogUpdate,
@@ -2265,7 +2262,7 @@ async def update_food_log_entry(
     payload = log_data.model_dump(exclude_none=True)
     _update_log(log_id, payload)
     row = _get_log(log_id)
-    return FoodLogResponse(**(row or {})).model_dump()
+    return row or {}
 
 
 @router.delete("/metabolism/food-log/{log_id}", status_code=204)
@@ -2285,7 +2282,7 @@ async def delete_food_log_entry(
     return None
 
 
-@router.get("/metabolism/daily-summary", response_model=MetabolicDailySummaryResponse)
+@router.get("/metabolism/daily-summary")
 async def get_my_daily_summary(
     date: str = Query(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$"),
     current_user: dict = Depends(get_current_user),
@@ -2296,10 +2293,10 @@ async def get_my_daily_summary(
     from ..analytics.metabolism import recalculate_daily_summary as _recalc
 
     summary = _recalc(athlete_id, date, tenant_id)
-    return MetabolicDailySummaryResponse(**summary).model_dump()
+    return summary
 
 
-@router.get("/metabolism/range-summary", response_model=list[MetabolicDailySummaryResponse])
+@router.get("/metabolism/range-summary")
 async def get_my_range_summary(
     start_date: str = Query(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$"),
     end_date: str = Query(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$"),
@@ -2311,10 +2308,10 @@ async def get_my_range_summary(
     from ..analytics.metabolism import recalculate_range as _recalc_range
 
     summaries = _recalc_range(athlete_id, start_date, end_date, tenant_id)
-    return [MetabolicDailySummaryResponse(**s).model_dump() for s in summaries]
+    return summaries
 
 
-@router.post("/metabolism/recalculate", response_model=MetabolicDailySummaryResponse)
+@router.post("/metabolism/recalculate")
 async def recalculate_my_daily_summary(
     date: str = Query(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$"),
     current_user: dict = Depends(get_current_user),
@@ -2325,7 +2322,7 @@ async def recalculate_my_daily_summary(
     from ..analytics.metabolism import recalculate_daily_summary as _recalc
 
     summary = _recalc(athlete_id, date, tenant_id)
-    return MetabolicDailySummaryResponse(**summary).model_dump()
+    return summary
 
 
 @router.get("/import/google-fit/auth")
