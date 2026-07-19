@@ -56,7 +56,14 @@ def calculate_efficiency_score(ride: Ride) -> float:
 
 
 def calculate_monthly_scores(rides: list[Ride]) -> dict:
-    """Aggrega gli score medi (performance, endurance, recovery, efficiency, fatica) sul mese."""
+    if not rides:
+        return {
+            "performance": 0.0,
+            "endurance": 0.0,
+            "recovery": 0.0,
+            "efficiency": 0.0,
+            "avg_fatigue": 0.0,
+        }
 
     return {
         "performance": round(sum(calculate_performance_score(r) for r in rides) / len(rides), 1),
