@@ -607,15 +607,19 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
 
 @router.post("/auth/logout")
 async def logout(request: Request, current_user: dict = Depends(get_current_user)):
-    """Revoke the current access and refresh tokens.
+    """Revoke the current access and refresh tokens, plus best-effort revocation
+    of any connected external OAuth tokens (Strava/Wahoo/Garmin/Google).
 
     Extracts the JWT jti from the Authorization header to revoke the
-    access token, then revokes the stored refresh token for the athlete.
+    access token, then revokes the stored refresh token for the athlete, and
+    finally attempts to revoke external provider tokens so a global logout
+    also disconnects linked accounts.
     """
     from ..security import revoke_refresh_token, revoke_token
 
     auth_header = request.headers.get("authorization", "")
     token = auth_header.removeprefix("Bearer ").strip()
+    athlete_id = current_user.get("id")
     try:
         import base64
         import json
@@ -631,14 +635,43 @@ async def logout(request: Request, current_user: dict = Depends(get_current_user
                 revoked = await revoke_token(jti)
                 if not revoked:
                     logger.warning("Logout: access token revocation failed for jti=%s", jti)
-            athlete_id = payload_data.get("sub")
-            if athlete_id:
-                refresh_revoked = await revoke_refresh_token(int(athlete_id))
+            sub_id = payload_data.get("sub")
+            if sub_id:
+                refresh_revoked = await revoke_refresh_token(int(sub_id))
                 if not refresh_revoked:
-                    logger.warning("Logout: refresh token revocation failed for athlete_id=%s", athlete_id)
+                    logger.warning("Logout: refresh token revocation failed for athlete_id=%s", sub_id)
     except Exception as exc:
         logger.warning("Logout: failed to revoke token: %s", exc)
+
+    # Best-effort revocation of external OAuth tokens for this athlete.
+    if athlete_id is not None:
+        _revoke_external_tokens(athlete_id)
+
     return {"msg": "Logged out successfully"}
+
+
+def _revoke_external_tokens(athlete_id: int) -> None:
+    """Revoke Strava/Wahoo/Garmin/Google tokens best-effort (never raises)."""
+    providers = [
+        ("..ingestion.strava_client", "revoke_token"),
+        ("..ingestion.wahoo_client", "revoke_token"),
+        ("..ingestion.garmin_client", "revoke_token"),
+        ("..ingestion.google_oauth_store", "delete_google_token"),
+    ]
+    for module_path, func_name in providers:
+        try:
+            import importlib
+
+            module = importlib.import_module(module_path, __name__)
+            func = getattr(module, func_name, None)
+            if func is not None:
+                func(athlete_id)
+        except Exception as exc:
+            logger.warning(
+                "Logout: external token revocation failed for %s: %s",
+                module_path,
+                exc,
+            )
 
 
 @router.post("/auth/refresh")

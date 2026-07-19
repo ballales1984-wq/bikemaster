@@ -6,6 +6,7 @@
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { getActivePinia } from "pinia";
 import type { Athlete } from "../types/index";
 import {
   apiPost,
@@ -20,6 +21,7 @@ import {
   AUTH_JUST_LOGGED_IN_KEY,
   AUTH_REFRESH_TOKEN_KEY,
   AUTH_LOGIN_ERROR_KEY,
+  AUTH_OAUTH_LOADING_KEY,
 } from "../utils/auth-storage";
 
 const TOKEN_KEY = AUTH_TOKEN_KEY;
@@ -199,9 +201,41 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = "";
     user.value = null;
     refreshToken.value = "";
+    justLoggedIn.value = false;
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(JUST_LOGGED_IN_KEY);
+    localStorage.removeItem(LOGIN_ERROR_KEY);
+    localStorage.removeItem("bikemaster_ride_filters");
+
+    // Reset every active Pinia store so no authed state lingers after logout.
+    const pinia = getActivePinia() as unknown as { _s?: Map<string, { $reset?: () => void }> } | null;
+    if (pinia && pinia._s) {
+      pinia._s.forEach((store) => {
+        const reset = store.$reset;
+        try {
+          if (typeof reset === "function") reset();
+        } catch {
+          /* setup stores without $reset are left for the next mount */
+        }
+      });
+    }
+
+    // Ensure the OAuth loading overlay never stays stuck after logout.
+    try {
+      const ui = (await import("./ui")).useUIStore();
+      ui.setOauthLoading(false);
+    } catch {
+      /* ui store may be disposed */
+    }
+    try {
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.removeItem(AUTH_OAUTH_LOADING_KEY);
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   function setAuthFromUrl(urlToken: string, email: string, userId?: string) {
