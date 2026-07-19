@@ -84,6 +84,67 @@ def parse_gpx_file(content: str) -> list[dict]:
     return points
 
 
+def parse_tcx_file(content: str) -> list[dict]:
+    """Parse a TCX (Training Center XML) file into a list of GPS points.
+
+    TCX stores ``<Trackpoint>`` elements with ``<Position>``
+    (``LatitudeDegrees`` / ``LongitudeDegrees``), optional ``<AltitudeMeters>``,
+    ``<Time>``, ``<DistanceMeters>`` and ``<HeartRateBpm>``. The output
+    shape matches :func:`parse_gpx_file` so it can feed ``points_to_ride``.
+    """
+    import re
+    import xml.etree.ElementTree as ET
+
+    content = re.sub(r"<!DOCTYPE[^>]*?>", "", content, flags=re.IGNORECASE | re.DOTALL)
+    try:
+        root = ET.fromstring(content)  # noqa: S314
+    except ET.ParseError:
+        return []
+    points = []
+    for trkpt in root.iter():
+        if trkpt.tag.split("}")[-1] != "Trackpoint":
+            continue
+        lat = lon = None
+        altitude = None
+        time_raw = None
+        for child in trkpt:
+            tag = child.tag.split("}")[-1]
+            if tag == "Position":
+                for pos in child:
+                    ptag = pos.tag.split("}")[-1]
+                    if ptag == "LatitudeDegrees":
+                        lat = _safe_float(pos.text)
+                    elif ptag == "LongitudeDegrees":
+                        lon = _safe_float(pos.text)
+            elif tag == "AltitudeMeters":
+                altitude = _safe_float(child.text)
+            elif tag == "Time":
+                time_raw = child.text
+        if lat is None or lon is None:
+            continue
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            continue
+        timestamp = None
+        if time_raw:
+            try:
+                timestamp = datetime.fromisoformat(time_raw.replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                timestamp = None
+        if timestamp:
+            points.append({"lat": lat, "lon": lon, "timestamp": timestamp, "altitude": altitude})
+    return points
+
+
+def _safe_float(value: str | None) -> float | None:
+    """Parse an optional numeric XML text, returning ``None`` on failure."""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def parse_fit_file(file_path: str) -> list[dict]:
     try:
         from fitparse import FitFile

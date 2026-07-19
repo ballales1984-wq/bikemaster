@@ -106,3 +106,39 @@ class TestPointsToRide:
         ]
         result = points_to_ride(points, weight_kg=75.0)
         assert result["weight_kg"] == 75.0
+
+
+SAMPLE_TCX = """<?xml version="1.0"?>
+<TrainingCenterDatabase>
+  <Activities><Activity Sport="Biking">
+    <Lap><Track>
+      <Trackpoint><Time>2024-06-15T08:00:00Z</Time><Position><LatitudeDegrees>45.0</LatitudeDegrees><LongitudeDegrees>9.0</LongitudeDegrees></Position><AltitudeMeters>100.0</AltitudeMeters></Trackpoint>
+      <Trackpoint><Time>2024-06-15T08:10:00Z</Time><Position><LatitudeDegrees>45.01</LatitudeDegrees><LongitudeDegrees>9.01</LongitudeDegrees></Position></Trackpoint>
+      <Trackpoint><Time>bad-date</Time><Position><LatitudeDegrees>45.02</LatitudeDegrees><LongitudeDegrees>9.02</LongitudeDegrees></Position></Trackpoint>
+    </Track></Lap>
+  </Activity></Activities>
+</TrainingCenterDatabase>"""
+
+
+class TestParseTcxFile:
+    def test_parse_valid_tcx(self):
+        from bike_analyzer.backend.ingestion.gps_parser import parse_tcx_file
+
+        points = parse_tcx_file(SAMPLE_TCX)
+        assert len(points) == 2
+        assert points[0]["lat"] == 45.0
+        assert points[0]["lon"] == 9.0
+        assert points[0]["altitude"] == 100.0
+        assert points[0]["timestamp"] == datetime(2024, 6, 15, 8, 0, 0, tzinfo=UTC)
+
+    def test_parse_invalid_time_skipped(self):
+        from bike_analyzer.backend.ingestion.gps_parser import parse_tcx_file
+
+        points = parse_tcx_file(SAMPLE_TCX)
+        # The third trackpoint has an invalid timestamp and must be dropped.
+        assert all("bad" not in str(p["timestamp"]) for p in points)
+
+    def test_parse_empty_tcx(self):
+        from bike_analyzer.backend.ingestion.gps_parser import parse_tcx_file
+
+        assert parse_tcx_file("not xml") == []
