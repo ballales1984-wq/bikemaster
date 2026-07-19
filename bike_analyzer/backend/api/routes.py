@@ -466,6 +466,7 @@ async def get_nearby_pois(
     lat: float = Query(..., ge=-90, le=90, description="Latitude of the search center"),
     lon: float = Query(..., ge=-180, le=180, description="Longitude of the search center"),
     radius: float = Query(5.0, ge=0.1, le=200, description="Search radius in km"),
+    current_user: dict = Depends(get_current_user),
 ):
     """Return Points of Interest within ``radius`` km of (lat, lon)."""
     from ..analytics.repositories.poi_repository import POIRepository
@@ -3796,9 +3797,11 @@ async def get_heatmap(athlete_id: int = Query(0), current_user: dict = Depends(g
     """Get heatmap data from all GPS points for an athlete."""
     from ..db.database import get_rides_by_athlete
 
-    target_id = athlete_id if athlete_id and current_user.get("is_admin") else current_user["id"]
-    if athlete_id:
+    if athlete_id and current_user.get("is_admin"):
+        target_id = athlete_id
         _ensure_athlete_access(athlete_id, current_user)
+    else:
+        target_id = current_user["id"]
     rides = [Ride(**r) for r in get_rides_by_athlete(target_id)]
     rides_dict = [r.to_dict() for r in rides]
     data = get_heatmap_points(rides_dict)

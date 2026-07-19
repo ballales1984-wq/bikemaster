@@ -80,6 +80,20 @@ def test_nearby_pois(db_path):
     assert len(far.json()["pois"]) == 0
 
 
+def test_nearby_requires_auth(db_path):
+    from bike_analyzer.backend.api.app_factory import create_app
+
+    os.environ["DB_PATH"] = db_path
+    db_mod.DB_PATH = db_path
+    db_mod.init_db()
+    anon = TestClient(create_app())
+    resp = anon.get(
+        "/api/v1/maps/pois/nearby",
+        params={"lat": 45.4642, "lon": 9.19, "radius": 5},
+    )
+    assert resp.status_code == 401
+
+
 def test_delete_poi_owner_or_admin(db_path):
     owner = _make_client(db_path, subject="42", is_admin=False)
     create = owner.post("/api/v1/maps/pois", json=_sample_poi())
