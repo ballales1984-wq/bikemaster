@@ -2191,7 +2191,7 @@ async def get_my_metabolic_profile(current_user: dict = Depends(get_current_user
     return MetabolicProfileResponse(**profile).model_dump()
 
 
-@router.put("/metabolism/profile", response_model=MetabolicProfileResponse)
+@router.put("/metabolism/profile")
 async def upsert_my_metabolic_profile(
     profile_data: MetabolicProfileCreate,
     current_user: dict = Depends(get_current_user),
