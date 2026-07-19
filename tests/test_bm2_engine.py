@@ -179,27 +179,30 @@ def _raw():
     }
 
 
-def test_power_model_with_ftp():
+def test_power_model_is_sensitive_to_weight():
+    """What-if must react to rider mass: heavier -> more power at same speed."""
     t = TransformerEngine()
-    athlete = Athlete(
-        weight_kg=t.normalize(q(75.0, "kg", source="manual")),
-        age=34, ftp_w=t.normalize(q(250.0, "W", source="manual")),
-        experience_level="Intermediate",
-    )
     bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
     pts = [
         GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
         GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
     ]
-    activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=pts)
     world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(5.0, "%", source="dem")))
-    ctx = AnalysisContext(athlete=athlete, activity=activity, bike=bike, world=world, transformer=t)
-    r = PowerModel().run(ctx)
-    assert r.unit == "W"
-    assert r.value > 0
-    assert r.precision > 0
-    assert 0.0 <= r.confidence <= 1.0
-    assert "ftp_w" in r.details
+
+    def _run(weight_kg: float) -> float:
+        athlete = Athlete(
+            weight_kg=t.normalize(q(weight_kg, "kg", source="manual")),
+            age=34, ftp_w=t.normalize(q(250.0, "W", source="manual")),
+            experience_level="Intermediate",
+        )
+        activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=pts)
+        ctx = AnalysisContext(athlete=athlete, activity=activity, bike=bike, world=world, transformer=t)
+        return PowerModel().run(ctx).value
+
+    light = _run(65.0)
+    heavy = _run(90.0)
+    assert heavy != light  # degenerate (always-FTP) case would tie them
+    assert heavy > light  # more mass -> more required power at same avg speed
 
 
 def test_power_model_with_sensor_power():

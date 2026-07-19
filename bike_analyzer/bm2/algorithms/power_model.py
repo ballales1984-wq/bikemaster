@@ -75,12 +75,19 @@ class PowerModel(Algorithm):
             return est_power, est_power * 0.25, confidence
 
         v_ftp = self._speed_for_power(ftp, mass, slope, ctx.bike.crr,
-                                      ctx.bike.cda, ctx.bike.drivetrain_efficiency, wind)
-        est_power = self._power_for_speed(v_ftp, mass, slope, ctx.bike.crr,
-                                          ctx.bike.cda, ctx.bike.drivetrain_efficiency, wind)
+                                       ctx.bike.cda, ctx.bike.drivetrain_efficiency, wind)
+        # The sustainable speed at FTP is the physically meaningful estimate: it is
+        # sensitive to mass/slope/CdA/wind. Resolving v for P=FTP and then
+        # recomputing P(v) would just return FTP again (degenerate what-if).
+        sustainable_speed_ms = v_ftp
+        # Estimate the power required at the *actual* average speed of the
+        # activity, so the value reacts to mass/slope/CdA changes.
+        ref_speed_ms = m["avg_speed_ms"] if m["avg_speed_ms"] > 0 else sustainable_speed_ms
+        est_power = self._power_for_speed(ref_speed_ms, mass, slope, ctx.bike.crr,
+                                           ctx.bike.cda, ctx.bike.drivetrain_efficiency, wind)
         ftp_source = ctx.athlete.ftp_w.source if ctx.athlete.ftp_w else "estimate"
         confidence = self._confidence_for_source(ftp_source, 0.75)
-        return est_power, est_power * 0.18, confidence
+        return est_power, sustainable_speed_ms, confidence
 
     @staticmethod
     def _avg_power_from_sensors(ctx: AnalysisContext) -> float:
