@@ -83,7 +83,22 @@ def _hr_distribution(
     """
     total = len(hr_samples)
     zones: list[dict[str, Any]] = []
-    for name, label, low, high, color in HR_ZONE_PCT:
+    if total == 0:
+        for name, label, low, high, color in HR_ZONE_PCT:
+            lo = low * max_hr
+            hi = high * max_hr
+            zones.append(
+                {
+                    "zone": name,
+                    "label": label,
+                    "lower_bpm": round(lo, 0),
+                    "upper_bpm": round(hi, 0),
+                    "count": 0,
+                    "pct_time": 0.0,
+                    "color": color,
+                }
+            )
+        return zones
         lo = low * max_hr
         hi = high * max_hr
         # Z5 is inclusive of max HR.

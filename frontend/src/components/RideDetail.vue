@@ -6,12 +6,64 @@
     <div class="panel">
       <div class="detail-header">
         <h2>🚴 Dettaglio Uscita</h2>
-        <button class="close-btn" @click="$emit('close')" aria-label="Chiudi">
-          ✕
-        </button>
+        <div class="header-actions">
+          <button v-if="!editMode" class="edit-btn" @click="startEdit" aria-label="Modifica">
+            ✏️
+          </button>
+          <button class="close-btn" @click="$emit('close')" aria-label="Chiudi">
+            ✕
+          </button>
+        </div>
       </div>
 
-      <div class="ride-date-large">
+      <div v-if="editMode" class="edit-form">
+        <label>
+          Data
+          <input v-model="editForm.date" type="date" />
+        </label>
+        <label>
+          Titolo
+          <input v-model="editForm.title" type="text" maxlength="150" />
+        </label>
+        <label>
+          Distanza (km)
+          <input v-model.number="editForm.distance_km" type="number" min="0" max="500" step="0.1" />
+        </label>
+        <label>
+          Durata (min)
+          <input v-model.number="editForm.duration_minutes" type="number" min="1" max="1440" step="1" />
+        </label>
+        <label>
+          FC media (bpm)
+          <input v-model.number="editForm.heart_rate_avg" type="number" min="30" max="220" step="1" />
+        </label>
+        <label>
+          Dislivello (m)
+          <input v-model.number="editForm.elevation_gain_m" type="number" min="0" max="15000" step="1" />
+        </label>
+        <label>
+          Tipo
+          <select v-model="editForm.activity_type">
+            <option value="ride">Ride</option>
+            <option value="walk">Walk</option>
+            <option value="hike">Hike</option>
+            <option value="run">Run</option>
+            <option value="indoor">Indoor</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <div class="edit-actions">
+          <button class="save-btn" :disabled="saving" @click="saveEdit">
+            {{ saving ? "Salvataggio…" : "Salva" }}
+          </button>
+          <button class="cancel-btn" :disabled="saving" @click="cancelEdit">
+            Annulla
+          </button>
+        </div>
+        <p v-if="editError" class="edit-error">{{ editError }}</p>
+      </div>
+
+      <div v-else class="ride-date-large">
         {{ formatDate(ride.date) }}
       </div>
 
@@ -60,12 +112,12 @@ v-if="ride.max_speed_kmh" class="a-item"
             <span class="a-lbl">💨 Velocità Max</span>
             <span class="a-val">{{ fmt(ride.max_speed_kmh) }} km/h</span>
           </div>
-          <div
-v-if="ride.avg_heart_rate" class="a-item"
->
-            <span class="a-lbl">❤️ FC Media</span>
-            <span class="a-val">{{ fmt(ride.avg_heart_rate, 0) }} bpm</span>
-          </div>
+        <div
+          v-if="ride.heart_rate_avg" class="a-item"
+        >
+          <span class="a-lbl">❤️ FC Media</span>
+          <span class="a-val">{{ fmt(ride.heart_rate_avg, 0) }} bpm</span>
+        </div>
           <div
 v-if="ride.max_heart_rate" class="a-item"
 >
@@ -114,7 +166,7 @@ v-if="speedChart || elevationChart" class="chart-section"
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { apiGet } from "../utils/api";
+import { apiGet, apiPut } from "../utils/api";
 import type { Ride } from "../types/index";
 import SpeedMap from "./SpeedMap.vue";
 
@@ -125,6 +177,27 @@ const ride = ref<Ride | null>(null);
 const speedChart = ref("");
 const elevationChart = ref("");
 const googleMapsApiKey = ref("");
+
+const editMode = ref(false);
+const saving = ref(false);
+const editError = ref("");
+const editForm = ref<{
+  date: string;
+  title: string;
+  distance_km: number;
+  duration_minutes: number;
+  heart_rate_avg: number | null;
+  elevation_gain_m: number | null;
+  activity_type: string;
+}>({
+  date: "",
+  title: "",
+  distance_km: 0,
+  duration_minutes: 0,
+  heart_rate_avg: null,
+  elevation_gain_m: null,
+  activity_type: "ride",
+});
 
 const fatigueClass = computed(() => {
   const score = ride.value?.fatigue_score ?? 0;
@@ -176,6 +249,50 @@ async function load() {
   }
 }
 
+function startEdit() {
+  if (!ride.value) return;
+  editForm.value = {
+    date: ride.value.date || "",
+    title: ride.value.title || "",
+    distance_km: ride.value.distance_km || 0,
+    duration_minutes: ride.value.duration_minutes || 0,
+    heart_rate_avg: ride.value.heart_rate_avg ?? null,
+    elevation_gain_m: ride.value.elevation_gain_m ?? null,
+    activity_type: ride.value.activity_type || "ride",
+  };
+  editError.value = "";
+  editMode.value = true;
+}
+
+function cancelEdit() {
+  editMode.value = false;
+  editError.value = "";
+}
+
+async function saveEdit() {
+  if (!ride.value) return;
+  saving.value = true;
+  editError.value = "";
+  try {
+    const payload = {
+      date: editForm.value.date,
+      title: editForm.value.title || null,
+      distance_km: editForm.value.distance_km,
+      duration_minutes: editForm.value.duration_minutes,
+      heart_rate_avg: editForm.value.heart_rate_avg,
+      elevation_gain_m: editForm.value.elevation_gain_m,
+      activity_type: editForm.value.activity_type,
+    };
+    const updated = await apiPut<Ride>(`/api/v1/rides/${props.rideId}`, payload);
+    ride.value = updated;
+    editMode.value = false;
+  } catch (err) {
+    editError.value = err instanceof Error ? err.message : "Salvataggio fallito";
+  } finally {
+    saving.value = false;
+  }
+}
+
 onMounted(() => load());
 </script>
 
@@ -185,6 +302,86 @@ onMounted(() => load());
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 4px;
+  line-height: 1;
+}
+
+.edit-btn:hover {
+  color: var(--accent);
+}
+
+.edit-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.edit-form input,
+.edit-form select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  color: var(--text-primary);
+}
+
+.edit-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 12px;
+}
+
+.save-btn,
+.cancel-btn {
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.save-btn {
+  background: var(--accent);
+  color: #fff;
+}
+
+.cancel-btn {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.edit-error {
+  grid-column: 1 / -1;
+  color: var(--error);
+  font-size: 0.85rem;
+  margin: 0;
 }
 
 .detail-header h2 {
