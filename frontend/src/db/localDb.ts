@@ -56,7 +56,7 @@ export function initLocalDb(): Promise<boolean> {
       if (hasOpfs) {
         db = new sqlite3.oo1.OpfsDb("/bikemaster.sqlite3", {
           proxyUri: `${sqlite3Assets}/sqlite3-opfs-async-proxy.js`,
-        } as Record<string, unknown>);
+        } as any);
       } else {
         // Default VFS transient (in-memory) se OPFS non disponibile.
         db = new sqlite3.oo1.DB("/bikemaster.sqlite3", "c");
