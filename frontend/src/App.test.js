@@ -54,6 +54,7 @@ describe("App.vue", () => {
     ToastContainer: { template: '<div class="toast-stub" />' },
     PWAInstallPrompt: { template: '<div class="pwa-stub" />' },
     HeaderTabs: { template: '<div class="tabs-stub" />' },
+    HelpGuide: { template: '<div class="help-stub" />' },
     RouterView: { template: '<div class="rv-stub" />' },
   };
 

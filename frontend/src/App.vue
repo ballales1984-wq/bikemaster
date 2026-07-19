@@ -88,6 +88,8 @@ Responsabilità:
       </main>
 
       <ToastContainer />
+
+      <HelpGuide />
     </template>
 
     <footer class="footer">
@@ -127,6 +129,7 @@ import ToastContainer from "./components/ToastContainer.vue";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.vue";
 import LanguageSwitcher from "./components/LanguageSwitcher.vue";
 import ErrorBoundary from "./components/ErrorBoundary.vue";
+import HelpGuide from "./components/HelpGuide.vue";
 import { AUTH_LOGIN_ERROR_KEY } from "./utils/auth-storage";
 const auth = useAuthStore();
 const ui = useUIStore();
