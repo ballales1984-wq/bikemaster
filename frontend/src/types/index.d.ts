@@ -23,11 +23,13 @@ export interface Ride {
   created_at?: string;
   duration_minutes?: number;
   gps_points?: GpsPoint[];
-  avg_heart_rate?: number;
+  heart_rate_avg?: number;
   max_heart_rate?: number;
   fatigue_score?: number;
   recovery_hours?: number;
   calories_per_km?: number;
+  title?: string;
+  activity_type?: string;
 }
 
 export interface EnrichedRide extends Ride {

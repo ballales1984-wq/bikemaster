@@ -10,7 +10,7 @@
           <button v-if="!editMode" class="edit-btn" @click="startEdit" aria-label="Modifica">
             ✏️
           </button>
-          <button class="close-btn" @click="$emit('close')" aria-label="Chiudi">
+          <button class="close-btn" @click="emit('close')" aria-label="Chiudi">
             ✕
           </button>
         </div>
@@ -94,7 +94,7 @@
 
       <div
         v-if="
-          ride.elevation_gain_m || ride.max_speed_kmh || ride.avg_heart_rate
+          ride.elevation_gain_m || ride.max_speed_kmh || ride.heart_rate_avg
         "
         class="analysis-section"
       >
