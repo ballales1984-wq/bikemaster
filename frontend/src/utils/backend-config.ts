@@ -93,6 +93,17 @@ export function resolveApiBase(): string {
     return TAURI_EMBEDDED_BACKEND_BASE;
   }
 
+  // Se la SPA è servita dallo stesso backend (es. http://localhost:8000
+  // o http://localhost:8001), usa same-origin per evitare richieste
+  // cross-origin (ngrok-free strip gli header CORS sulle risposte).
+  if (typeof window !== "undefined" && typeof location !== "undefined") {
+    const h = location.hostname;
+    const p = location.port;
+    if ((h === "localhost" || h === "127.0.0.1") && (p === "8000" || p === "8001")) {
+      return "";
+    }
+  }
+
   const envBase =
     typeof import.meta !== "undefined"
       ? // @ts-ignore Vite injects VITE_* env vars at build time

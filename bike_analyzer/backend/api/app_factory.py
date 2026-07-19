@@ -355,6 +355,9 @@ def create_app() -> FastAPI:
         assets_dir = STATIC_DIR / "assets"
         if assets_dir.exists():
             app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="static-assets")
+        sqlite3_dir = STATIC_DIR / "sqlite3"
+        if sqlite3_dir.exists():
+            app.mount("/sqlite3", StaticFiles(directory=str(sqlite3_dir)), name="static-sqlite3")
 
         @app.head("/")
         async def dashboard_root_head():
