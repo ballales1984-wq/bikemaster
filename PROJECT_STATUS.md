@@ -21,11 +21,11 @@ Progetto cartografico indipendente in `aethermap/` — motore "dal nulla" (cube-
 - Agenti dedicati: `.kilo/agent/aethermap-*.md`.
 
 ### Ultimo Commit
-- `feat: complete multi-tenant support — tenant_id + user management endpoints`
-- `eed6afd` - feat: implement frontend authentication, tracking controls, and core UI components with native Android project scaffolding
-- `9b68e48` - fix: skip OpenTelemetry/Zipkin exporters in development mode
-- `9257bfe` - feat: implement PWA install prompt, service worker navigate fix, ride tracking updates
-- `f5c02c6` - feat: add registration email validation, update documentation, and implement test suite for mapping and analytics modules.
+- `cdd43bb` — fix: wrap password inputs in form to suppress DOM warning
+- `1c199fd` — feat: add initial ride_1_map.json static data file
+- `091a1fa` — feat: Strava incremental sync with last_sync_ts
+- `0aea585` — feat: add nutrition database with autocomplete search and quantity-based logging
+- `22f60ca` — feat(i18n): complete frontend English translation and backend docstring localization
 
 ---
 
@@ -523,4 +523,4 @@ la verifica pass/fail completa è demandata alla pipeline CI.
 
 ---
 
-*Ultimo aggiornamento: 2026-07-13 — Riconciliazione con numeri verificati dal codice (108 file / 1674 test backend; 47 file / 318 test frontend; 138 endpoint). Checklist produzione allineata a ROADMAP.md (fonte di verità). Corretti dati di test obsoleti (277/84+/379+) e stato PostgreSQL/monitoring/audit.*
+*Ultimo aggiornamento: 2026-07-21 — Commit aggiornati a HEAD cdd43bb. Working tree: modificati routes.py, athlete.ts; rimosso ride_1_map.json; aggiunto jdk21.msi (untracked).*

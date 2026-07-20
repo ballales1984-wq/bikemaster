@@ -49,21 +49,19 @@ export const useAthleteStore = defineStore("athlete", () => {
     loading.value = true;
     error.value = null;
     try {
-      const data = await apiGet<AthleteProfile>("/api/v1/athletes/me");
-      profile.value = data;
-      profileComplete.value = true;
-      return data;
+      const data = await apiGet<{ athlete: AthleteProfile; profile_complete: boolean }>("/api/v1/athletes/me");
+      profile.value = data.athlete;
+      profileComplete.value = data.profile_complete;
+      return data.athlete;
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) {
-        // No athlete record yet: create a default one so the user is never
-        // stuck on the onboarding screen with an empty state.
         try {
-          const created = await apiPut<AthleteProfile>("/api/v1/athletes/me", {
+          const created = await apiPut<{ athlete: AthleteProfile; profile_complete: boolean }>("/api/v1/athletes/me", {
             experience_level: "Beginner",
           });
-          profile.value = created;
-          profileComplete.value = false;
-          return created;
+          profile.value = created.athlete;
+          profileComplete.value = created.profile_complete;
+          return created.athlete;
         } catch {
           profile.value = null;
           profileComplete.value = false;
@@ -84,9 +82,9 @@ export const useAthleteStore = defineStore("athlete", () => {
     saving.value = true;
     error.value = null;
     try {
-      const data = await apiPut<AthleteProfile>("/api/v1/athletes/me", updates);
-      profile.value = { ...profile.value, ...data } as AthleteProfile;
-      profileComplete.value = true;
+      const data = await apiPut<{ athlete: AthleteProfile; profile_complete: boolean }>("/api/v1/athletes/me", updates);
+      profile.value = data.athlete;
+      profileComplete.value = data.profile_complete;
       return profile.value;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to update profile";

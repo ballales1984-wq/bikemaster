@@ -7,6 +7,7 @@ training plans, maps, notifications, and admin operations.
 
 from __future__ import annotations
 
+import base64
 import asyncio
 import contextlib
 import hmac
@@ -139,7 +140,7 @@ MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 
 def _build_redirect_uri(request: Request, path: str) -> str:
     """Build an absolute URI honoring X-Forwarded-* headers when behind a proxy."""
-    proto = _trusted_forwarded_value(request, "x-forwarded-proto") or request.url.scheme
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
     host = (
         _trusted_forwarded_value(request, "x-forwarded-host") or request.headers.get("host") or request.url.netloc
     )
