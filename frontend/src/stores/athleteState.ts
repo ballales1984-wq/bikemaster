@@ -1,8 +1,8 @@
 /**
- * Store dello stato computato dell'atleta.
+ * Computed athlete state store.
  *
- * Contiene readiness, fatigue score, livello di rischio e flag
- * derivati dall'analisi delle performance (TSB/CTL/ATL).
+ * Contains readiness, fatigue score, risk level and flags
+ * derived from performance analysis (TSB/CTL/ATL).
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";

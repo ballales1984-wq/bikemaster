@@ -116,7 +116,7 @@ onMounted(() => {
 
 <template>
   <div class="panel">
-    <h2>🚴‍♂️ Granfondo Planner</h2>
+    <h2> Granfondo Planner</h2>
     <div class="form-grid">
       <div class="form-group">
         <label for="gf-start-date">Start date</label>

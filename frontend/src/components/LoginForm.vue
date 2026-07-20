@@ -3,7 +3,7 @@
      UI: tab accessibili (role=tab), input con label fluttuanti ed errori, spinner, separatore OAuth e pulsante Google. -->
 <template>
   <div class="login-panel">
-    <h2>🔐 {{ mode === "login" ? t("auth.login") : t("auth.register") }}</h2>
+    <h2> {{ mode === "login" ? t("auth.login") : t("auth.register") }}</h2>
     <div
 class="login-tabs" role="tablist" aria-label="Login modes">
       <button
@@ -91,7 +91,7 @@ class="login-tabs" role="tablist" aria-label="Login modes">
             :aria-pressed="showPassword"
             @click="showPassword = !showPassword"
           >
-            {{ showPassword ? "🙈" : "👁️" }}
+            {{ showPassword ? "" : "" }}
           </button>
         </div>
         <span

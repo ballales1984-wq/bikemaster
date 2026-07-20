@@ -1,24 +1,24 @@
-"""BikeMaster 2.0 - Sistema di misure interno.
+"""BikeMaster 2.0 - Internal measurement system.
 
-Questo modulo definisce il concetto fondamentale di *grandezza fisica*:
+This module defines the fundamental concept of *physical quantity*:
 
-    VALORE + UNITA' + PRECISIONE + FONTE
+    VALUE + UNIT + PRECISION + SOURCE
 
-e il registro delle conversioni tra unita' di misura. Tutti gli algoritmi
-del sistema lavorano su grandezze normalizzate (unità canoniche interne),
-mai su unità "grezze" di origine (Garmin, Strava, inserimento manuale...).
+and the conversion registry between measurement units. All algorithms
+in the system operate on normalized quantities (internal canonical units),
+never on "raw" source units (Garmin, Strava, manual entry...).
 
-Unita' canoniche interne (standard BikeMaster):
-    massa      -> kg
-    lunghezza  -> m
-    velocità   -> m/s
-    tempo      -> s
-    energia    -> J
-    potenza    -> W
-    pendenza   -> %  (percentuale)
-    angolo     -> deg
-    frequenza  -> Hz
-    temperatura-> °C
+Internal canonical units (BikeMaster standard):
+    mass      -> kg
+    length    -> m
+    speed     -> m/s
+    time      -> s
+    energy    -> J
+    power     -> W
+    slope     -> %  (percentage)
+    angle     -> deg
+    frequency -> Hz
+    temperature-> °C
 """
 
 from __future__ import annotations
@@ -40,18 +40,18 @@ __all__ = [
 
 
 # ---------------------------------------------------------------------------
-# Grandezza fisica: valore + unità + precisione + fonte
+# Physical quantity: value + unit + precision + source
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Quantity:
-    """Una grandezza misurata con la sua incertezza e la sua origine.
+    """A measured quantity with its uncertainty and origin.
 
     Attributes:
-        value: valore numerico nella `unit` specificata.
-        unit: simbolo di unità di misura (es. ``"kg"``, ``"m/s"``, ``"%"").
-        precision: incertezza assoluta stimata nella stessa unità di `value`.
-        source: provenienza del dato (es. ``"garmin"``, ``"manual"``, ``"gps/dem"").
-        timestamp: istante di misura, se noto.
+        value: numeric value in the specified `unit`.
+        unit: unit of measure symbol (e.g. ``"kg"``, ``"m/s"``, ``"%"").
+        precision: estimated absolute uncertainty in the same unit as `value`.
+        source: data origin (e.g. ``"garmin"``, ``"manual"``, ``"gps/dem"").
+        timestamp: measurement time, if known.
     """
 
     value: float
@@ -66,14 +66,14 @@ class Quantity:
 
 def q(value: float, unit: str, precision: float = 0.0, source: str = "unknown",
       timestamp: Optional[datetime] = None) -> Quantity:
-    """Costruttore rapido di :class:`Quantity`."""
+    """Quick constructor for :class:`Quantity`."""
     return Quantity(value=value, unit=unit, precision=precision, source=source, timestamp=timestamp)
 
 
 # ---------------------------------------------------------------------------
-# Registro delle unità di misura
+# Unit of measure registry
 # ---------------------------------------------------------------------------
-# Dimensioni lineari: fattore moltiplicativo verso l'unità canonica.
+# Linear dimensions: multiplicative factor toward canonical unit.
 _LINEAR: dict[str, dict[str, float]] = {
     "mass": {"kg": 1.0, "g": 1e-3, "t": 1000.0, "lb": 0.45359237,
              "oz": 0.028349523125, "stone": 6.35029318},
@@ -90,7 +90,7 @@ _LINEAR: dict[str, dict[str, float]] = {
     "torque": {"Nm": 1.0, "kNm": 1000.0},
 }
 
-# Unità canoniche per dimensione.
+# Canonical units per dimension.
 _CANONICAL: dict[str, str] = {
     "mass": "kg", "length": "m", "speed": "m/s", "time": "s",
     "energy": "J", "power": "W",     "frequency": "bpm",
@@ -98,20 +98,19 @@ _CANONICAL: dict[str, str] = {
     "pressure": "Pa", "density": "kg/m^3", "torque": "Nm",
 }
 
-# Dimensioni non lineari gestite con formule dedicate.
+# Non-linear dimensions handled with dedicated formulas.
 _SPECIAL = {"slope", "angle", "temperature"}
 
 
 class UnitError(ValueError):
-    """Errore di conversione di unità (dimensione incompatibile o sconosciuta)."""
+    """Unit conversion error (incompatible or unknown dimension)."""
 
 
 class UnitRegistry:
-    """Registro delle unità di misura e motore di conversione.
+    """Unit of measure registry and conversion engine.
 
-    Le conversioni lineari usano un fattore verso l'unità canonica; le
-    conversioni non lineari (temperatura, pendenza/angolo) usano formule
-    dedicate.
+    Linear conversions use a factor toward the canonical unit; non-linear
+    conversions (temperature, slope/angle) use dedicated formulas.
     """
 
     def __init__(self, linear: Optional[dict[str, dict[str, float]]] = None) -> None:
@@ -120,7 +119,7 @@ class UnitRegistry:
             for dim, units in linear.items():
                 self._linear.setdefault(dim, {}).update(units)
 
-    # -- introspezione ----------------------------------------------------
+    # -- introspection ----------------------------------------------------
     def dimension_of(self, unit: str) -> Optional[str]:
         special_units = {"%": "slope", "deg": "slope", "°": "slope",
                          "°C": "temperature", "K": "temperature", "°F": "temperature"}
@@ -134,50 +133,50 @@ class UnitRegistry:
     def canonical_unit(self, unit: str) -> str:
         dim = self.dimension_of(unit)
         if dim is None:
-            raise UnitError(f"Unità sconosciuta: {unit!r}")
+            raise UnitError(f"Unknown unit: {unit!r}")
         return _CANONICAL[dim]
 
     def to_canonical(self, quantity: Quantity) -> Quantity:
-        """Riporta una grandezza nell'unità canonica interna della sua dimensione."""
+        """Convert a quantity to the canonical unit of its dimension."""
         target = self.canonical_unit(quantity.unit)
         if target == quantity.unit:
             return quantity
         return self.convert(quantity, target)
 
-    # -- conversione ------------------------------------------------------
+    # -- conversion ------------------------------------------------------
     def explain_conversion(self, quantity: Quantity, target_unit: str) -> list[str]:
-        """Descrive i passaggi della conversione tra unità."""
+        """Describe the steps of a unit conversion."""
         src_dim = self.dimension_of(quantity.unit)
         tgt_dim = self.dimension_of(target_unit)
         steps = [
-            f"Da {quantity.value} {quantity.unit} a {target_unit}",
-            f"Dimensioni: {src_dim} -> {tgt_dim}",
+            f"From {quantity.value} {quantity.unit} to {target_unit}",
+            f"Dimensions: {src_dim} -> {tgt_dim}",
         ]
         if src_dim != tgt_dim:
-            steps.append("ERRORE: dimensioni incompatibili")
+            steps.append("ERROR: incompatible dimensions")
             return steps
         if src_dim == "temperature":
-            steps.append("Passaggio intermedio: Kelvin")
+            steps.append("Intermediate step: Kelvin")
             scale = 1.0 if target_unit != "°F" else 5.0 / 9.0
-            steps.append(f"Scala di conversione: {scale}")
+            steps.append(f"Conversion scale: {scale}")
         elif src_dim in ("slope", "angle"):
-            steps.append("Conversione non lineare: atan/tan")
+            steps.append("Non-linear conversion: atan/tan")
         else:
             f_src = self._linear[src_dim][quantity.unit]
             f_tgt = self._linear[src_dim][target_unit]
             canon = self.canonical_unit(quantity.unit)
-            steps.append(f"Fattore verso canonica ({canon}): {f_src}")
-            steps.append(f"Fattore da canonica a {target_unit}: {f_tgt}")
+            steps.append(f"Factor to canonical ({canon}): {f_src}")
+            steps.append(f"Factor from canonical to {target_unit}: {f_tgt}")
         return steps
 
     def convert(self, quantity: Quantity, target_unit: str) -> Quantity:
         src_dim = self.dimension_of(quantity.unit)
         tgt_dim = self.dimension_of(target_unit)
         if src_dim is None or tgt_dim is None:
-            raise UnitError(f"Unità sconosciuta: {quantity.unit!r} o {target_unit!r}")
+            raise UnitError(f"Unknown unit: {quantity.unit!r} or {target_unit!r}")
         if src_dim != tgt_dim:
             raise UnitError(
-                f"Conversione impossibile tra dimensioni {src_dim!r} e {tgt_dim!r}"
+                f"Cannot convert between dimensions {src_dim!r} and {tgt_dim!r}"
             )
 
         if src_dim == "temperature":
@@ -202,13 +201,13 @@ class UnitRegistry:
         f_tgt = self._linear[dim][target_unit]
         canonical = quantity.value * f_src
         value = canonical / f_tgt
-        # l'incertezza si propaga linearmente col rapporto dei fattori
+        # uncertainty propagates linearly with the ratio of factors
         precision = quantity.precision * (f_src / f_tgt)
         return value, precision
 
     @staticmethod
     def _convert_temperature(quantity: Quantity, target_unit: str) -> tuple[float, float]:
-        # passaggio per Kelvin come unità ponte
+        # Kelvin as bridge unit
         c = {
             "°C": quantity.value,
             "K": quantity.value - 273.15,
@@ -219,7 +218,7 @@ class UnitRegistry:
             "K": c + 273.15,
             "°F": c * 9.0 / 5.0 + 32.0,
         }[target_unit]
-        # la sensibilità termica è 1:1 tra °C e K, 5/9 tra °F
+        # thermal sensitivity is 1:1 between °C and K, 5/9 between °F
         scale = 1.0 if target_unit != "°F" else 5.0 / 9.0
         return out, quantity.precision * scale
 
@@ -228,14 +227,14 @@ class UnitRegistry:
         if quantity.unit == target_unit:
             return quantity.value, quantity.precision
         if quantity.unit == "%":
-            # % -> gradi: deg = atan(pendenza/100). La sensibilità (derivata
-            # della conversione) serve a propagare l'incertezza: d(deg)/d(%) è
-            # massima a pendenza 0 e decade con 1/(1+grade²).
+            # % -> degrees: deg = atan(slope/100). The sensitivity (derivative
+            # of conversion) propagates uncertainty: d(deg)/d(%) is
+            # maximum at slope 0 and decays with 1/(1+grade²).
             grade = quantity.value / 100.0
             deg = math.degrees(math.atan(grade))
             scale = (math.degrees(1.0) / 100.0) / (1.0 + grade * grade)
             return deg, quantity.precision * scale
-        # da gradi a percentuale: pct = 100·tan(rad). Sensibilità = 100·rad(1)·sec²
+        # from degrees to percentage: pct = 100·tan(rad). Sensitivity = 100·rad(1)·sec²
         grade = math.tan(math.radians(quantity.value))
         pct = grade * 100.0
         scale = 100.0 * math.radians(1.0) * (1.0 + grade * grade)

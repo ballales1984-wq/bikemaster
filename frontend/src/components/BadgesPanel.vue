@@ -3,7 +3,7 @@
      UI: input Athlete ID + pulsante carica, barra progresso totale, griglia di card badge con progresso e spunta "ottenuto". -->
 <template>
   <div class="panel">
-    <h2>🏅 Badge System</h2>
+    <h2> Badge System</h2>
 
     <div class="form-grid">
       <div class="form-group">
@@ -17,7 +17,7 @@
       </div>
       <div class="form-group">
         <button class="btn btn-primary" @click="loadBadges">
-          🔄 Load Badges
+           Load Badges
         </button>
       </div>
     </div>
@@ -30,7 +30,7 @@ v-if="loading" class="loading-text"
 
     <div
 v-if="!loading && !badgesData" class="empty-state">
-      <div class="empty-icon">🏅</div>
+      <div class="empty-icon"></div>
       <div class="empty-title">No badges loaded</div>
       <div class="empty-desc">Enter an Athlete ID to view your badges</div>
     </div>
@@ -79,7 +79,7 @@ v-if="badgesData" class="badges-container">
                 </div>
               </div>
               <div
-v-if="badge.achieved" class="badge-check">✓</div>
+v-if="badge.achieved" class="badge-check"></div>
             </div>
           </div>
         </div>
@@ -118,11 +118,11 @@ async function loadAthleteId() {
 }
 
 const categories = [
-  { key: "milestone", label: "🎯 Milestone" },
-  { key: "distance", label: "📏 Distance" },
-  { key: "elevation", label: "⛰️ Elevation" },
-  { key: "speed", label: "⚡ Speed" },
-  { key: "consistency", label: "📆 Consistency" },
+  { key: "milestone", label: " Milestone" },
+  { key: "distance", label: " Distance" },
+  { key: "elevation", label: " Elevation" },
+  { key: "speed", label: " Speed" },
+  { key: "consistency", label: " Consistency" },
 ] as const;
 
 const completionPercent = computed(() => {

@@ -1,8 +1,8 @@
 /**
- * Filtro outlier spaziali/temporali per punti GPS.
- * Usa la distanza haversine e la velocità stimata (distanza/tempo) per scartare
- * salti eccessivi o velocità non plausibili rispetto all'ultimo punto valido.
- * Espone `isOutlier` e `reset`.
+ * Spatial/temporal outlier filter for GPS points.
+ * Uses the haversine distance and estimated speed (distance/time) to discard
+ * excessive jumps or implausible speeds relative to the last valid point.
+ * Exposes `isOutlier` and `reset`.
  */
 import type { GpsPoint } from "../types/index";
 

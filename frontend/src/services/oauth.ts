@@ -1,12 +1,12 @@
 /**
- * Gestisce il flusso OAuth 2.0 lato client.
+ * Handles the client-side OAuth 2.0 flow.
  *
- * Elabora il token presente nell'URL (query o fragment) dopo il redirect
- * del provider, lo persiste nel Pinia store e lo rimuove dalla barra degli
- * indirizzi. Per sopravvivere a ricaricamenti di pagina durante il round-trip,
- * salva temporaneamente il token in sessionStorage e lo recupera se necessario.
+ * Processes the token present in the URL (query or fragment) after the provider
+ * redirect, persists it in the Pinia store and removes it from the address
+ * bar. To survive page reloads during the round-trip, it temporarily saves the
+ * token in sessionStorage and recovers it if needed.
  *
- * Esporta: hasPendingOAuth, processOAuthToken
+ * Exports: hasPendingOAuth, processOAuthToken
  */
 
 import { useAuthStore } from "../stores/auth";

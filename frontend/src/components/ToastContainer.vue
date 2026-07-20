@@ -18,7 +18,7 @@ class="toast-root"
       <span class="toast-icon">{{ toastIcon(t.type) }}</span>
       <span class="toast-content">{{ t.message }}</span>
       <button class="toast-close" @click="remove(t.id)" aria-label="Close">
-        ✕
+        
       </button>
     </div>
   </div>
@@ -50,7 +50,7 @@ function add(message: string, type = "info", ms = 3000) {
 }
 
 function toastIcon(type: string) {
-  const icons: Record<string, string> = { success: "✓", error: "✗", warning: "⚠", info: "ℹ" };
+  const icons: Record<string, string> = { success: "", error: "", warning: "", info: "ℹ" };
   return icons[type] || icons.info;
 }
 

@@ -1,8 +1,8 @@
 /**
- * Composable per caricare scene cartografiche AetherMap relative a una lista di
- * ride. Per ogni ride recupera l'URL della mappa AetherMap e aggrega le entità
- * e le statistiche in una scena unica, ricaricando al cambio degli `rideIds`.
- * Espone gli stati reattivi `scene`, `loading`, `error` e l'azione `reload`.
+ * Composable to load AetherMap map scenes for a list of rides.
+ * For each ride it fetches the AetherMap map URL and aggregates the entities
+ * and statistics into a single scene, reloading when `rideIds` change.
+ * Exposes the reactive states `scene`, `loading`, `error` and the `reload` action.
  */
 import { ref, watch, type Ref } from "vue";
 import { apiGet } from "../utils/api";

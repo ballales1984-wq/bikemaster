@@ -110,7 +110,7 @@ v-if="loading && !enrichedRides.length" class="loading-text">
         <div
         v-if="!ridesWithGps.length" class="demo-map-overlay">
           <div class="demo-map-content">
-            <span class="demo-icon">🗺️</span>
+            <span class="demo-icon"></span>
             <p>Milan-Monza demo route</p>
             <p class="demo-hint">
               Import GPX/FIT or add a ride with GPS points to view your routes

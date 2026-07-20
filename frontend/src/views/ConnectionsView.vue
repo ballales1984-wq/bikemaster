@@ -25,7 +25,7 @@
       >
         <div class="connection-header">
           <span class="connection-icon">{{
-            serviceIcons[service.service] || "🔌"
+            serviceIcons[service.service] || ""
           }}</span>
           <div class="connection-title">
             <div class="connection-name">
@@ -204,11 +204,11 @@ const bulkStatusClass = ref("");
 const apikeyDrafts: Record<string, string> = reactive({});
 
 const serviceIcons: Record<string, string> = {
-  strava: "🧡",
-  google_fit: "💚",
-  google_health: "💙",
-  wahoo: "🧹",
-  garmin: "📟",
+  strava: "",
+  google_fit: "",
+  google_health: "",
+  wahoo: "",
+  garmin: "",
 };
 
 function formatDate(value: string | null | undefined): string {

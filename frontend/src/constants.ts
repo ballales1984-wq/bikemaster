@@ -1,9 +1,9 @@
 /**
- * Costanti globali dell'app BikeMaster.
+ * Global constants for the BikeMaster app.
  *
- * Include limiti di validazione per corse e atleti, coordinate e zoom
- * predefiniti per le mappe, e palette di colori per rischio, pendenza,
- * velocità e tipi di allenamento.
+ * Includes validation limits for rides and athletes, default map
+ * coordinates and zoom, and color palettes for risk, grade,
+ * speed and workout types.
  */
 
 export const RIDE_LIMITS = {

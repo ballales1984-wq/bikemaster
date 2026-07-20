@@ -1,25 +1,25 @@
 /**
- * BikeMaster Frontend — storage SQLite locale (WASM).
+ * BikeMaster Frontend — local SQLite storage (WASM).
  *
- * Cache offline/seed per la SPA:
- * - Web/PWA: WASM SQLite (@sqlite.org/sqlite-wasm) su OPFS se COOP/COEP
- *   header sono presenti, altrimenti in-memory (sessione).
- * - Android/Tauri: stesso modulo WASM; su nativo si può sostituire con
- *   SQLite nativo senza cambiare l'API esposta.
+ * Offline/seed cache for the SPA:
+ * - Web/PWA: WASM SQLite (@sqlite.org/sqlite-wasm) on OPFS if COOP/COEP
+ *   headers are present, otherwise in-memory (session).
+ * - Android/Tauri: same WASM module; on native it can be replaced with
+ *   native SQLite without changing the exposed API.
  *
- * Il backend resta la fonte di verità: questo DB è una cache offline.
+ * The backend remains the source of truth: this DB is an offline cache.
  */
 
-// Layer di storage SQLite locale lato client.
+// Local client-side SQLite storage layer.
 //
-// Strategia per piattaforma:
-//   - Web/PWA  → WASM SQLite ufficiale (@sqlite.org/sqlite-wasm), persistente
-//                su OPFS quando i COOP/COEP header sono presenti, altrimenti
-//                in-memory (cache di sessione; il backend resta fonte di verità).
-//   - Android/Tauri → stesso modulo WASM; su nativo si può sostituire con
-//                SQLite nativo senza cambiare l'API esposta qui.
+// Per-platform strategy:
+//   - Web/PWA  → official WASM SQLite (@sqlite.org/sqlite-wasm), persistent
+//                on OPFS when the COOP/COEP headers are present, otherwise
+//                in-memory (session cache; the backend remains the source of truth).
+//   - Android/Tauri → same WASM module; on native it can be replaced with
+//                native SQLite without changing the API exposed here.
 //
-// Il backend resta la fonte di verità: questo DB è una cache offline/seed.
+// The backend remains the source of truth: this DB is an offline/seed cache.
 
 import type { UserApiKeys } from "../utils/userKeys";
 import type {
@@ -36,7 +36,7 @@ export function isLocalDbReady(): boolean {
   return db !== null;
 }
 
-// Inizializza il DB locale. Idempotente e sicuro nei test (no-op senza window).
+// Initialize the local DB. Idempotent and safe in tests (no-op without window).
 export function initLocalDb(): Promise<boolean> {
   if (initPromise) return initPromise;
   initPromise = (async () => {
@@ -58,7 +58,7 @@ export function initLocalDb(): Promise<boolean> {
           proxyUri: `${sqlite3Assets}/sqlite3-opfs-async-proxy.js`,
         } as any);
       } else {
-        // Default VFS transient (in-memory) se OPFS non disponibile.
+        // Default VFS transient (in-memory) if OPFS is not available.
         db = new sqlite3.oo1.DB("/bikemaster.sqlite3", "c");
       }
       db.exec(
@@ -117,7 +117,7 @@ export function localGet<T = Record<string, unknown>>(
   return rows.length ? rows[0] : null;
 }
 
-// --- Cache delle uscite (ride) -------------------------------------------
+// --- Ride cache (ride) -------------------------------------------
 
 export interface CachedRide {
   id: number;
@@ -154,7 +154,7 @@ export function clearRideCache(): void {
   localRun("DELETE FROM rides_cache");
 }
 
-// --- Chiavi API per-utente (salvate localmente sul dispositivo) -----------
+// --- Per-user API keys (saved locally on the device) -----------
 
 export function saveUserApiKeys(keys: UserApiKeys): void {
   localRun(

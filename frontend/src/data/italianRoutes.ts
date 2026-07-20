@@ -1,8 +1,8 @@
 /**
- * Dataset di percorsi ciclistici italiani famosi.
+ * Dataset of famous Italian cycling routes.
  *
- * Contiene coordinate, dislivello, difficoltà e descrizione di salite
- * e granfondo iconici (Stelvio, Mortirolo, Gavia, Dolomiti, ecc.).
+ * Contains coordinates, elevation gain, difficulty and description of iconic
+ * climbs and granfondos (Stelvio, Mortirolo, Gavia, Dolomites, etc.).
  */
 
 export interface FamousRoute {

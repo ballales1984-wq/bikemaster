@@ -20,7 +20,7 @@
         :disabled="submitting"
         @click="toggleAddMode"
       >
-        {{ addMode ? t("poi.cancel") : "➕ " + t("poi.addPoi") }}
+        {{ addMode ? t("poi.cancel") : " " + t("poi.addPoi") }}
       </button>
     </div>
 
@@ -61,7 +61,7 @@ v-for="ride in rides" :key="ride.id"
     </div>
 
     <div
-v-if="addMode" class="add-hint">📍 {{ t("poi.clickMapHint") }}</div>
+v-if="addMode" class="add-hint"> {{ t("poi.clickMapHint") }}</div>
 
     <div
 id="poi-map" ref="mapContainer"
@@ -202,7 +202,7 @@ class="modal-close" aria-label="close"
           <p
 v-if="selectedPoi.video_url" class="poi-video"
 >
-            🎥
+            
             <a
               :href="safeHttpUrl(selectedPoi.video_url)"
               target="_blank"
@@ -213,7 +213,7 @@ v-if="selectedPoi.video_url" class="poi-video"
           <p
 v-if="selectedPoi.difficulty_note" class="poi-note"
 >
-            ⚙️ {{ selectedPoi.difficulty_note }}
+             {{ selectedPoi.difficulty_note }}
           </p>
           <div
             v-if="selectedPoi.tags && selectedPoi.tags.length"
@@ -226,8 +226,8 @@ v-for="tag in selectedPoi.tags" :key="tag" class="poi-tag"
           </div>
 
           <div class="poi-meta">
-            <span v-if="selectedPoi.distance_m != null">📏 {{ formatDistanceM(selectedPoi.distance_m) }}</span>
-            <span>🧭 {{ selectedPoi.lat.toFixed(4) }},
+            <span v-if="selectedPoi.distance_m != null"> {{ formatDistanceM(selectedPoi.distance_m) }}</span>
+            <span> {{ selectedPoi.lat.toFixed(4) }},
               {{ selectedPoi.lon.toFixed(4) }}</span>
           </div>
 
@@ -236,7 +236,7 @@ v-for="tag in selectedPoi.tags" :key="tag" class="poi-tag"
             class="btn btn-danger poi-delete"
             @click="removePoi(selectedPoi)"
           >
-            🗑️ {{ t("poi.delete") }}
+             {{ t("poi.delete") }}
           </button>
           <p
 v-else-if="selectedPoi.created_by" class="poi-owner-note"
@@ -274,13 +274,13 @@ const poiTypes = [
 ];
 
 const poiMeta: Record<string, { color: string; icon: string }> = {
-  vista: { color: "#2e86de", icon: "🌄" },
-  fontana: { color: "#00b894", icon: "⛲" },
-  ristoro: { color: "#e17055", icon: "🍝" },
-  bivio: { color: "#fdcb6e", icon: "🛣️" },
-  pericolo: { color: "#d63031", icon: "⚠️" },
-  culturale: { color: "#9b59b6", icon: "🏛️" },
-  tecnico: { color: "#636e72", icon: "🔧" },
+  vista: { color: "#2e86de", icon: "" },
+  fontana: { color: "#00b894", icon: "" },
+  ristoro: { color: "#e17055", icon: "" },
+  bivio: { color: "#fdcb6e", icon: "" },
+  pericolo: { color: "#d63031", icon: "" },
+  culturale: { color: "#9b59b6", icon: "" },
+  tecnico: { color: "#636e72", icon: "" },
 };
 
 const mapContainer = ref<HTMLElement | null>(null);
@@ -414,7 +414,7 @@ function onMapClick(e: { latlng: { lat: () => number; lng: () => number } }) {
     draftMarker = L.marker([lat, lng], {
       icon: L.divIcon({
         className: "poi-div-icon",
-        html: '<div class="poi-marker poi-marker--draft">📍</div>',
+        html: '<div class="poi-marker poi-marker--draft"></div>',
         iconSize: [30, 30],
         iconAnchor: [15, 15],
       }),
@@ -479,7 +479,7 @@ async function submitPoi() {
   try {
     const created = await apiPost("/api/v1/maps/pois", payload);
     pois.value.unshift(created);
-    toast.success(t("poi.save") + " ✓");
+    toast.success(t("poi.save") + " ");
     cancelDraft();
     addMode.value = false;
     renderPois();

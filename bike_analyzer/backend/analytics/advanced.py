@@ -76,12 +76,12 @@ _CLIMB_POINTS = {"4": 1, "3": 2, "2": 3, "1": 4, "HC": 5}
 
 
 def _get_climb_color(cat: str) -> str:
-    """Ritorna il colore esadecimale associato a una categoria di salita (fallback grigio)."""
+    """Returns the hexadecimal color associated with a climb category (gray fallback)."""
     return _CLIMB_COLORS.get(cat, "#999")
 
 
 def calculate_pace_consistency(segments: list[Segment]) -> dict[str, float]:
-    """Coefficiente di variazione (CV%) delle velocita' e strategia di pacing."""
+    """Coefficient of variation (CV%) of speeds and pacing strategy."""
     speeds = [float(seg.avg_speed_km_h) for seg in segments if seg.avg_speed_km_h]
     if not speeds or len(speeds) < 2:
         return {
@@ -91,8 +91,8 @@ def calculate_pace_consistency(segments: list[Segment]) -> dict[str, float]:
             "pace_strategy": "unknown",
             "negative_split": False,
         }
-    # Coefficiente di variazione (CV%) = deviazione standard / media delle velocità.
-    # Classifica la strategia di pacing: steady (<10%), variable (<25%), erratic.
+    # Coefficient of variation (CV%) = standard deviation / mean of speeds.
+    # Classifies the pacing strategy: steady (<10%), variable (<25%), erratic.
     mean_spd = sum(speeds) / len(speeds)
     variance = sum((s - mean_spd) ** 2 for s in speeds) / len(speeds)
     std_dev = math.sqrt(variance)
@@ -126,7 +126,7 @@ def calculate_power_estimate(
     cda: float = POWER_CONSTANTS["cd_a_road"],
     crr: float = POWER_CONSTANTS["crr_road"],
 ) -> dict[str, float]:
-    """Stima potenza media da fisica (gravita', resistenza rotolamento, drag)."""
+    """Estimate average power from physics (gravity, rolling resistance, drag)."""
     weight = rider_weight_kg or ride.weight_kg
     total_kg = weight + bike_weight_kg
     v_ms = ride.avg_speed_kmh * 1000 / 3600
@@ -172,7 +172,7 @@ def calculate_power_estimate(
 
 
 def classify_climb(segment_length_km: float, avg_gradient_percent: float) -> dict[str, Any]:
-    """Classifica una salita secondo categorie Tour de France (HC, 1, 2, 3, 4)."""
+    """Classify a climb according to Tour de France categories (HC, 1, 2, 3, 4)."""
     if segment_length_km < 0.3 or avg_gradient_percent < 2:
         return {"category": "none", "difficulty_score": 0, "color": "#999", "points": 0}
     for cat, threshold in CLIMB_CATEGORIES:
@@ -189,7 +189,7 @@ def classify_climb(segment_length_km: float, avg_gradient_percent: float) -> dic
 def estimate_vo2max(
     avg_speed_kmh: float, avg_gradient_percent: float, weight_kg: float, age: int = 35
 ) -> dict[str, float]:
-    """Stima VO2max (ml/kg/min) da velocita', pendenza, peso e eta'."""
+    """Estimate VO2max (ml/kg/min) from speed, gradient, weight and age."""
     speed_match_kmh = 21.0 - (age - 30) * 0.1
     speed_factor = avg_speed_kmh / speed_match_kmh if speed_match_kmh > 0 else 1.0
     gradient_factor = 1.0 + avg_gradient_percent * 0.03
@@ -215,7 +215,7 @@ def estimate_vo2max(
 
 
 def classify_ride_difficulty(ride: Ride) -> dict[str, Any]:
-    """Classifica la difficolta' dell'uscita (Easy/Moderate/Challenging/Hard/Extreme)."""
+    """Classify ride difficulty (Easy/Moderate/Challenging/Hard/Extreme)."""
     if ride.distance_km <= 0:
         return {"score": 0, "level": "unknown", "factors": {}}
     grade_factor = (
@@ -252,7 +252,7 @@ def classify_ride_difficulty(ride: Ride) -> dict[str, Any]:
 
 
 def analyze_elevation_profile(points: list[GPSPoint]) -> dict[str, Any]:
-    """Distribuzione pendenze e hardship index su una traccia GPS."""
+    """Distribution of gradients and hardship index over a GPS track."""
     if not points or len(points) < 2:
         return {"grade_distribution": {}, "hardship_index": 0.0, "max_grade": 0.0, "min_grade": 0.0}
     grades: dict[str, int] = {"flat": 0, "easy": 0, "moderate": 0, "steep": 0, "extreme": 0}
@@ -284,7 +284,7 @@ def analyze_elevation_profile(points: list[GPSPoint]) -> dict[str, Any]:
 
 
 def analyze_speed_profile(points: list[GPSPoint]) -> dict[str, Any]:
-    """Eventi di accelerazione/decelerazione, varianza e percentuale di coasting."""
+    """Acceleration/deceleration events, variance and coasting percentage."""
     speeds = [p.speed for p in points if p.speed is not None and p.speed > 0]
     if not speeds or len(speeds) < 2:
         return {
@@ -310,7 +310,7 @@ def analyze_speed_profile(points: list[GPSPoint]) -> dict[str, Any]:
 
 
 def calculate_progress_trend(rides: list[Ride], metric: str = "avg_speed_kmh") -> dict[str, Any]:
-    """Trend di progressione (regressione lineare) su una metrica storica."""
+    """Progression trend (linear regression) on a historical metric."""
     if not rides or len(rides) < 2:
         return {
             "trend": "insufficient_data",
@@ -360,7 +360,7 @@ def calculate_progress_trend(rides: list[Ride], metric: str = "avg_speed_kmh") -
 def calculate_training_stress_balance(
     rides: list[Ride], atl_tau_days: float = 7.0, ctl_tau_days: float = 42.0
 ) -> dict[str, Any]:
-    """ATL/CTL/TSB completo con serie giornaliera usando EWMA esponenziale."""
+    """ATL/CTL/TSB complete with daily series using exponential EWMA."""
     if not rides:
         return {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "form": "no_data", "daily_load": []}
     sorted_rides = sorted(rides, key=lambda r: r.date)
@@ -425,7 +425,7 @@ def calculate_training_stress_balance(
 
 
 def estimate_ideal_weight(ftp: float, height_cm: float, experience: str = "Intermediate") -> float:
-    """Stima peso ideale (kg) per ottimizzare W/kg in base a FTP, altezza e livello."""
+    """Estimate ideal weight (kg) to optimize W/kg based on FTP, height and level."""
     if ftp <= 0 or height_cm <= 0:
         return 70.0
     ftp_per_kg = ftp / 70.0
@@ -441,7 +441,7 @@ def estimate_ideal_weight(ftp: float, height_cm: float, experience: str = "Inter
 
 
 def calculate_garmin_power_factor(ride: Ride, weight_kg: float | None = None) -> dict[str, float]:
-    """Garmin Power Factor e stime NP/IF/TSS da velocita' e peso."""
+    """Garmin Power Factor and NP/IF/TSS estimates from speed and weight."""
     w = weight_kg or ride.weight_kg
     if ride.avg_speed_kmh <= 0 or w <= 0:
         return {"pf": 0.0, "np_w": 0.0, "if": 0.0}
@@ -473,7 +473,7 @@ def calculate_garmin_power_factor(ride: Ride, weight_kg: float | None = None) ->
 def calculate_heart_rate_zones(
     max_hr: int = 180, lthr: int = 155, current_avg_hr: float | None = None
 ) -> dict[str, dict[str, Any]]:
-    """5 zone di frequenza cardiaca (Z1-Z5) con benefici e range."""
+    """5 heart rate zones (Z1-Z5) with benefits and ranges."""
     zones: dict[str, dict[str, Any]] = {
         "Z1 (Recovery)": {
             "min": int(max_hr * 0.55),
@@ -508,7 +508,7 @@ def calculate_heart_rate_zones(
 
 
 def calculate_ride_recommendation_score(ride: Ride, athlete_weekly_km: float = 50.0) -> dict[str, Any]:
-    """Punteggio di raccomandazione training (Recovery/Tempo/Hard/Race) per l'uscita."""
+    """Training recommendation score (Recovery/Tempo/Hard/Race) for the ride."""
     volume_score = min(ride.distance_km / (athlete_weekly_km / 7 * 0.5) * 10, 10) if athlete_weekly_km > 0 else 5
     intensity_score = min(ride.avg_speed_kmh / 25.0 * 10, 10)
     elevation_score = (
@@ -537,7 +537,7 @@ def calculate_ride_recommendation_score(ride: Ride, athlete_weekly_km: float = 5
 def detect_speed_surges(
     points: list[GPSPoint], threshold_kmh: float = 5.0, min_speed_kmh: float = 15.0
 ) -> list[dict[str, Any]]:
-    """Rileva scatti di velocita' (surge) dove l'accelerazione supera la soglia."""
+    """Detect speed surges where acceleration exceeds the threshold."""
     if len(points) < 2:
         return []
     surges = []
@@ -559,7 +559,7 @@ def detect_speed_surges(
 if ENDURANCE_METRICS_AVAILABLE:
 
     def compute_ctl_atl_tsb_external(rides: list[Ride]) -> dict[str, Any]:
-        """Calcola ATL/CTL/TSB usando la libreria esterna endurance_metrics se disponibile."""
+        """Calculate ATL/CTL/TSB using the external endurance_metrics library if available."""
         activities = []
         for ride in rides:
             date = ride.date[:10] if len(ride.date) >= 10 else ride.date
@@ -569,7 +569,7 @@ if ENDURANCE_METRICS_AVAILABLE:
 else:
 
     def compute_ctl_atl_tsb_external(rides: list[Ride]) -> dict[str, Any]:
-        """Fallback ATL/CTL/TSB interno se endurance_metrics non e' installato."""
+        """Internal ATL/CTL/TSB fallback if endurance_metrics is not installed."""
         return calculate_training_stress_balance(rides)
 
 

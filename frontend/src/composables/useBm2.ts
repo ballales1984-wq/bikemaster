@@ -1,8 +1,8 @@
 /**
- * Composable per interrogare il motore BikeMaster 2.0 (AI Orchestrator).
- * Espone chiamate `ask`/`simulate` (domande), `simulateRide` (scenario "what if"
- * su una ride) e `validate` (kernel fisico vs power-meter), con stati reattivi
- * `answer`, `rideSimulation`, `validation`, `loading`, `error`.
+ * Composable to query the BikeMaster 2.0 engine (AI Orchestrator).
+ * Exposes `ask`/`simulate` calls (questions), `simulateRide` (a "what if"
+ * scenario on a ride) and `validate` (physical kernel vs power-meter), with
+ * reactive states `answer`, `rideSimulation`, `validation`, `loading`, `error`.
  */
 import { ref } from "vue";
 import { apiPost } from "../utils/api";
@@ -16,8 +16,8 @@ import type {
 } from "../types/bm2";
 
 /**
- * Composable per interrogare il motore BikeMaster 2.0 (AI Orchestrator).
- * Segue le stesse convenzioni di useRides: usa apiPost di utils/api.ts.
+ * Composable to query the BikeMaster 2.0 engine (AI Orchestrator).
+ * Follows the same conventions as useRides: uses apiPost from utils/api.ts.
  */
 export function useBm2() {
   const answer = ref<Bm2Answer | null>(null);

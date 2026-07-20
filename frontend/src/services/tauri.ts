@@ -1,11 +1,11 @@
 /**
- * Ponte tra il frontend e il backend Rust/Tauri embedded (Axum).
+ * Bridge between the frontend and the embedded Rust/Tauri backend (Axum).
  *
- * In ambiente Tauri usa comandi IPC diretti per ottenere info sull'app,
- * il percorso del DB locale e la directory dei dati. In ambiente web/PWA
- * tutte le chiamate REST sono instradate tramite l'API base configurata.
+ * In a Tauri environment it uses direct IPC commands to obtain app info,
+ * the local DB path and the data directory. In a web/PWA environment
+ * all REST calls are routed through the configured base API.
  *
- * Esporta: getTauriAppInfo, getTauriDbPath, getAppDataDir,
+ * Exports: getTauriAppInfo, getTauriDbPath, getAppDataDir,
  *          resetLocalData, getEffectiveApiBase, getEffectiveBackendMode,
  *          checkBackendHealth
  */
@@ -95,7 +95,7 @@ export async function resetLocalData(): Promise<string | null> {
   }
 }
 
-// Restituisce l'URL base corretto per le chiamate API nel contesto corrente.
+// Returns the correct base URL for API calls in the current context.
 export function getEffectiveApiBase(): string {
   return resolveApiBase();
 }
@@ -104,7 +104,7 @@ export function getEffectiveBackendMode(): string {
   return getBackendMode();
 }
 
-// Health check del backend embedded. Usa l'endpoint /health di Axum.
+// Health check of the embedded backend. Uses the Axum /health endpoint.
 export async function checkBackendHealth(timeoutMs = 3000): Promise<boolean> {
   const base = getEffectiveApiBase();
   if (!base) return false;

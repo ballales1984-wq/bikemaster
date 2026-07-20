@@ -3,7 +3,7 @@
      UI: form Athlete ID + pulsante, contenitore mappa 500px e badge con statistiche; gestisce stati loading/no-data. -->
 <template>
   <div class="panel">
-    <h2>🔥 Personal Heatmap</h2>
+    <h2> Personal Heatmap</h2>
 
     <div class="form-grid">
       <div class="form-group">

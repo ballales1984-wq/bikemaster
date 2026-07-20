@@ -1,8 +1,4 @@
-INFO:     Will watch for changes in these directories: ['D:\\BikeMaster']
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [22976] using WatchFiles
-WARNING:  ASGI app factory detected. Using it, but please consider setting the --factory flag explicitly.
-INFO:     Started server process [22812]
+INFO:     Started server process [10212]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'bike_analyzer\backend\api\performance_routes.py'. Reloading...
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)

@@ -4,7 +4,7 @@
 <template>
   <section class="charts-panel">
     <div class="panel">
-      <h2>📊 Performance Trends</h2>
+      <h2> Performance Trends</h2>
       <div class="chart-controls">
         <label>
           {{ t("charts.metric") }}
@@ -40,7 +40,7 @@ class="chart-summary">
           </div>
         </div>
         <div class="chart-card">
-          <h3>📆 Monthly Progression</h3>
+          <h3> Monthly Progression</h3>
           <BaseChart
             :config="monthlyConfig"
             empty-label="Nessun dato mensile"

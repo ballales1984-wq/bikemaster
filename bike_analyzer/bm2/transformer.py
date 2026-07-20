@@ -1,16 +1,16 @@
-"""BikeMaster 2.0 - Transformation Layer (il trasformatore universale).
+"""BikeMaster 2.0 - Transformation Layer (the universal transformer).
 
-Responsabilità del Transformer Engine:
+Transformer Engine responsibilities:
 
-1. **Unit Converter**  - normalizza tutte le unità verso lo standard interno.
-2. **Geo Transformer** - coordinate geografiche -> coordinate metriche locali,
-   distanze, pendenze, superfici.
-3. **Time Transformer** - timestamp -> UTC -> ora locale -> intervalli.
-4. **Data Quality**     - controlli di validità, stima della precisione per
-   fonte/unità, rilevamento outlier.
+1. **Unit Converter**  - normalizes all units to the internal standard.
+2. **Geo Transformer** - geographic coordinates -> local metric coordinates,
+   distances, slopes, surfaces.
+3. **Time Transformer** - timestamp -> UTC -> local time -> intervals.
+4. **Data Quality**     - validity checks, precision estimation per
+   source/unit, outlier detection.
 
-Gli algoritmi NON devono mai convertire dati grezzi: ricevono sempre grandezze
-già normalizzate tramite questo livello.
+Algorithms MUST NEVER convert raw data: they always receive quantities
+already normalized through this layer.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ __all__ = [
 
 EARTH_RADIUS_M = 6_371_000.0
 
-# Precisione di default stimata per (fonte, unità) - valori tipici di mercato.
+# Default estimated precision for (source, unit) - typical market values.
 DEFAULT_QUALITY: dict[tuple[str, str], float] = {
     ("manual", "kg"): 0.1,
     ("scale", "kg"): 0.1,
@@ -59,7 +59,7 @@ DEFAULT_QUALITY: dict[tuple[str, str], float] = {
 
 @dataclass(frozen=True)
 class GeoPoint:
-    """Punto geografico con proiezione metrica locale (equirettangolare)."""
+    """Geographic point with local metric projection (equirectangular)."""
 
     lat: float
     lon: float
@@ -74,7 +74,7 @@ class GeoPoint:
 
     @property
     def meters(self) -> tuple[float, float]:
-        """Coordinate metriche locali (x, y) in metri."""
+        """Local metric coordinates (x, y) in meters."""
         return self.x, self.y
 
 
@@ -82,22 +82,22 @@ class GeoPoint:
 # 1. Unit Converter
 # ---------------------------------------------------------------------------
 class UnitConverter:
-    """Converte unita' di misura verso lo standard canonico interno."""
+    """Converts measurement units to the internal canonical standard."""
 
     def __init__(self, registry: UnitRegistry | None = None) -> None:
-        """Registra il registry di unita' o usa quello di default."""
+        """Registers the unit registry or uses the default one."""
         self.registry = registry or default_registry
 
     def to_internal(self, quantity: Quantity) -> Quantity:
-        """Normalizza una grandezza verso l'unità canonica interna."""
+        """Normalizes a quantity toward the internal canonical unit."""
         return self.registry.to_canonical(quantity)
 
     def convert(self, quantity: Quantity, target_unit: str) -> Quantity:
-        """Converte una grandezza a un'unita' target specifica."""
+        """Converts a quantity to a specific target unit."""
         return self.registry.convert(quantity, target_unit)
 
     def estimate_precision(self, value: float, unit: str, source: str) -> float:
-        """Stima la precisione tipica per (fonte, unita') o usa un valore di default."""
+        """Estimates typical precision for (source, unit) or uses a default value."""
         return DEFAULT_QUALITY.get((source, unit), abs(value) * 0.02 + 0.5)
 
 
@@ -105,16 +105,16 @@ class UnitConverter:
 # 2. Geo Transformer
 # ---------------------------------------------------------------------------
 class GeoTransformer:
-    """Proiezioni geografiche, distanze, pendenze e metriche della traccia."""
+    """Geographic projections, distances, slopes, and track metrics."""
 
     def project(self, lat: float, lon: float, ref_lat: float) -> tuple[float, float]:
-        """Proiezione equirettangolare locale (metri) rispetto a `ref_lat`."""
+        """Local equirectangular projection (meters) relative to `ref_lat`."""
         x = math.radians(lon) * EARTH_RADIUS_M * math.cos(math.radians(ref_lat))
         y = math.radians(lat) * EARTH_RADIUS_M
         return x, y
 
     def to_metric_points(self, points: Iterable[GeoPoint]) -> list[GeoPoint]:
-        """Proietta i punti GPS in coordinate metriche locali (equirettangolari)."""
+        """Projects GPS points to local metric coordinates (equirectangular)."""
         pts = list(points)
         if not pts:
             return []
@@ -138,21 +138,21 @@ class GeoTransformer:
         )
 
     def distance_2d_m(self, a: GeoPoint, b: GeoPoint) -> float:
-        """Distanza orizzontale tra due punti proiettati (metrica locale)."""
+        """Horizontal distance between two projected points (local metric)."""
         return math.hypot(b.x - a.x, b.y - a.y)
 
     def slope_percent(self, rise_m: float, run_m: float) -> float:
-        """Pendenza in percentuale (tan * 100)."""
+        """Slope percentage (tan * 100)."""
         if run_m <= 0:
             return 0.0
         return (rise_m / run_m) * 100.0
 
     def bearing_deg(self, a: GeoPoint, b: GeoPoint) -> float:
-        """Direzione (gradi) da punto A a punto B nella proiezione locale."""
+        """Direction (degrees) from point A to point B in local projection."""
         return math.degrees(math.atan2(b.x - a.x, b.y - a.y)) % 360.0
 
     def track_metrics(self, points: list[GeoPoint]) -> dict:
-        """Distanza, dislivello e pendenza media su una traccia proiettata."""
+        """Distance, elevation gain/loss and average slope on a projected track."""
         if len(points) < 2:
             return {"distance_m": 0.0, "gain_m": 0.0, "loss_m": 0.0,
                     "avg_slope_percent": 0.0}
@@ -181,30 +181,30 @@ class GeoTransformer:
 # 3. Time Transformer
 # ---------------------------------------------------------------------------
 class TimeTransformer:
-    """Conversioni e intervalli di tempo (UTC, locale, durate)."""
+    """Time conversions and intervals (UTC, local, durations)."""
 
     @staticmethod
     def to_utc(dt: datetime) -> datetime:
-        """Converte un timestamp in UTC (assume naive come UTC)."""
+        """Converts a timestamp to UTC (assumes naive as UTC)."""
         if dt.tzinfo is None:
             return dt.replace(tzinfo=UTC)
         return dt.astimezone(UTC)
 
     @staticmethod
     def to_local(dt: datetime, tz: timezone) -> datetime:
-        """Converte un timestamp in un fuso orario locale specificato."""
+        """Converts a timestamp to a specified local timezone."""
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=UTC)
         return dt.astimezone(tz)
 
     @staticmethod
     def interval_seconds(a: datetime, b: datetime) -> float:
-        """Intervallo di secondi tra due timestamp (in UTC)."""
+        """Seconds interval between two timestamps (in UTC)."""
         return (TimeTransformer.to_utc(b) - TimeTransformer.to_utc(a)).total_seconds()
 
     @staticmethod
     def duration_from_points(points: list[GeoPoint]) -> float:
-        """Durata in secondi tra primo e ultimo punto con timestamp valido."""
+        """Duration in seconds between first and last point with valid timestamp."""
         ts = [p.timestamp for p in points if p.timestamp is not None]
         if len(ts) < 2:
             return 0.0
@@ -216,7 +216,7 @@ class TimeTransformer:
 # ---------------------------------------------------------------------------
 @dataclass
 class RangeRule:
-    """Regola di range per la validazione di una grandezza."""
+    """Range rule for quantity validation."""
 
     unit: str
     min_value: float
@@ -224,7 +224,7 @@ class RangeRule:
 
 
 class DataQuality:
-    """Controlli di validita', stima precisione e rilevamento outlier per le grandezze."""
+    """Validity checks, precision estimation and outlier detection for quantities."""
 
     RANGES: dict[str, tuple[float, float]] = {
         "kg": (20.0, 250.0),
@@ -240,14 +240,14 @@ class DataQuality:
     }
 
     def in_range(self, quantity: Quantity) -> bool:
-        """Verifica se il valore e' nel range plausibile per la sua unita'."""
+        """Checks if the value is in the plausible range for its unit."""
         rng = self.RANGES.get(quantity.unit)
         if rng is None:
             return True
         return rng[0] <= quantity.value <= rng[1]
 
     def check(self, quantity: Quantity) -> list[str]:
-        """Restituisce una lista di problemi di qualita' per la grandezza."""
+        """Returns a list of quality problems for the quantity."""
         problems: list[str] = []
         if not self.in_range(quantity):
             lo, hi = self.RANGES[quantity.unit]
@@ -259,7 +259,7 @@ class DataQuality:
         return problems
 
     def check_temporal(self, quantities: list[Quantity], max_gap_seconds: float = 0.0) -> list[str]:
-        """Verifica ordinamento timestamp e salti temporali eccessivi."""
+        """Checks timestamp ordering and excessive temporal gaps."""
         problems: list[str] = []
         ts = [q.timestamp for q in quantities if q.timestamp is not None]
         if len(ts) < 2:
@@ -279,7 +279,7 @@ class DataQuality:
         return problems
 
     def outlier_score(self, quantity: Quantity, median: float) -> float:
-        """Scarto normalizzato rispetto alla mediana (0 = coerente)."""
+        """Normalized deviation from median (0 = consistent)."""
         if quantity.precision <= 0:
             return 0.0
         return abs(quantity.value - median) / max(quantity.precision, 1e-9)
@@ -289,17 +289,17 @@ class DataQuality:
 # Engine composto
 # ---------------------------------------------------------------------------
 class TransformerEngine:
-    """Motore di trasformazione centralizzato: unità + geo + tempo + qualità."""
+    """Centralized transformation engine: units + geo + time + quality."""
 
     def __init__(self, registry: UnitRegistry | None = None) -> None:
-        """Inizializza il motore con converter, geo, tempo e controlli di qualita'."""
+        """Initializes the engine with converter, geo, time and quality checks."""
         self.units = UnitConverter(registry)
         self.geo = GeoTransformer()
         self.time = TimeTransformer()
         self.quality = DataQuality()
 
     def normalize(self, quantity: Quantity) -> Quantity:
-        """Converte a unità canonica e completa la precisione se mancante."""
+        """Converts to canonical unit and completes precision if missing."""
         qn = self.units.to_internal(quantity)
         if qn.precision == 0.0:
             precision = self.units.estimate_precision(qn.value, qn.unit, qn.source)
@@ -307,7 +307,7 @@ class TransformerEngine:
         return qn
 
     def power_to_weight(self, power: Quantity, weight: Quantity) -> Quantity:
-        """Calcola il rapporto potenza/peso (W/kg) con propagazione dell'errore."""
+        """Calculates the power-to-weight ratio (W/kg) with error propagation."""
         pw = self.units.to_internal(power)
         wt = self.units.to_internal(weight)
         if pw.unit != "W" or wt.unit != "kg":

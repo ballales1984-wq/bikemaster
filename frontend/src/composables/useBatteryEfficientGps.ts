@@ -1,10 +1,10 @@
 /**
- * Composable GPS a basso consumo energetico.
- * Fornisce uno scheduling adattivo della geolocalizzazione: l'intervallo di
- * campionamento e l'accuratezza variano in base alla velocità rilevata e alla
- * presenza di movimento, riducendo il drain della batteria quando fermi o con
- * il risparmio attivo. Espone lo stato reattivo `isWaiting`/`isMoving` e i
- * controlli `start`, `stop`, `pause`, `resume`.
+ * Battery-efficient GPS composable.
+ * Provides adaptive geolocation scheduling: the sampling interval
+ * and accuracy vary based on the detected speed and the presence
+ * of movement, reducing battery drain when stationary or when
+ * battery saver is active. Exposes the reactive state `isWaiting`/`isMoving`
+ * and the `start`, `stop`, `pause`, `resume` controls.
  */
 import { ref } from 'vue'
 import { haversineDistanceMeters as haversineMeters } from '../utils/geo'

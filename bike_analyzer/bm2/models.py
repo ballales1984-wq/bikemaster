@@ -1,15 +1,15 @@
-"""BikeMaster 2.0 - Core Model (gli oggetti principali del dominio).
+"""BikeMaster 2.0 - Core Model (main domain objects).
 
-Ogni oggetto è costruito a partire da dati grezzi tramite il
-:class:`~bike_analyzer.bm2.transformer.TransformerEngine`, così che gli
-algoritmi trovino sempre grandezze normalizzate (unità canoniche interne).
+Each object is built from raw data via the
+:class:`~bike_analyzer.bm2.transformer.TransformerEngine`, so algorithms
+always find normalized quantities (internal canonical units).
 
-Oggetti principali:
-    Athlete     - il corpo umano e la sua capacità
-    Bike        - la bici e la sua efficienza
-    Activity    - un'uscita / giro con la sua traccia
-    WorldObject - il territorio (terreno, strada, montagna)
-    AnalysisContext - il contesto completo passato agli algoritmi
+Main objects:
+    Athlete     - the human body and its athletic capacity
+    Bike        - the bike and its efficiency
+    Activity    - a ride / trip with its track
+    WorldObject - the territory (terrain, road, mountain)
+    AnalysisContext - the complete context passed to algorithms
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ __all__ = [
 
 
 def _quantity_to_dict(quantity: Quantity) -> dict:
-    """Serializza un Quantity in dizionario JSON-compatibile."""
+    """Serializes a Quantity to JSON-compatible dictionary."""
     return {
         "value": quantity.value,
         "unit": quantity.unit,
@@ -38,7 +38,7 @@ def _quantity_to_dict(quantity: Quantity) -> dict:
 
 
 def _quantity_from_dict(raw: dict, t: TransformerEngine) -> Quantity:
-    """Ricostruisce un Quantity da dizionario, completando la precisione se mancante."""
+    """Reconstructs a Quantity from dictionary, completing precision if missing."""
     ts = datetime.fromisoformat(raw["timestamp"]) if raw.get("timestamp") else None
     quantity = Quantity(
         value=float(raw["value"]),
@@ -57,7 +57,7 @@ def _quantity_from_dict(raw: dict, t: TransformerEngine) -> Quantity:
 
 @dataclass
 class Athlete:
-    """Il corpo umano e la sua capacita' atletica."""
+    """The human body and its athletic capacity."""
 
     weight_kg: Quantity
     age: int = 30
@@ -74,9 +74,9 @@ class Athlete:
 
     @classmethod
     def from_raw(cls, raw: dict, t: TransformerEngine) -> "Athlete":
-        """Costruisce Athlete da dati grezzi, normalizzando le unita'."""
+        """Builds Athlete from raw data, normalizing units."""
         if raw.get("weight") is None:
-            raise ValueError("campo obbligatorio 'weight' mancante per Athlete")
+            raise ValueError("required field 'weight' missing for Athlete")
         weight = t.normalize(q(raw.get("weight"), raw.get("weight_unit", "kg"),
                                source=raw.get("source", "manual")))
         height = None
@@ -120,13 +120,13 @@ class Athlete:
         )
 
     def power_to_weight(self) -> Optional[float]:
-        """Rapporto potenza/peso (W/kg) da FTP, None se FTP non definito."""
+        """Power-to-weight ratio (W/kg) from FTP, None if FTP not defined."""
         if self.ftp_w is None:
             return None
         return self.ftp_w.value / self.weight_kg.value
 
     def to_dict(self) -> dict:
-        """Serializza l'atleta in dizionario JSON-compatibile."""
+        """Serializes the athlete to JSON-compatible dictionary."""
         return {
             "weight_kg": _quantity_to_dict(self.weight_kg),
             "age": self.age,
@@ -144,7 +144,7 @@ class Athlete:
 
     @classmethod
     def from_dict(cls, raw: dict, t: TransformerEngine) -> "Athlete":
-        """Ricostruisce Athlete da dizionario serializzato."""
+        """Reconstructs Athlete from serialized dictionary."""
         return cls(
             weight_kg=_quantity_from_dict(raw["weight_kg"], t),
             age=int(raw.get("age", 30)),
@@ -163,7 +163,7 @@ class Athlete:
 
 @dataclass
 class Bike:
-    """La bicicletta e i suoi parametri di resistenza."""
+    """The bicycle and its resistance parameters."""
 
     weight_kg: Quantity
     crr: float = 0.005
@@ -175,14 +175,14 @@ class Bike:
 
     @classmethod
     def from_raw(cls, raw: dict, t: TransformerEngine) -> "Bike":
-        """Costruisce Bike da dati grezzi, normalizzando le unita'."""
+        """Builds Bike from raw data, normalizing units."""
         if raw.get("weight") is None:
-            raise ValueError("campo obbligatorio 'weight' mancante per Bike")
+            raise ValueError("required field 'weight' missing for Bike")
         weight = t.normalize(q(raw.get("weight"), raw.get("weight_unit", "kg"),
                                source=raw.get("source", "manual")))
         category = raw.get("category", "road")
         if category not in {"road", "gravel", "mtb", "other"}:
-            raise ValueError(f"categoria bici non valida: {category!r}")
+            raise ValueError(f"invalid bike category: {category!r}")
         gr = None
         if raw.get("gear_ratio") is not None:
             gr = float(raw["gear_ratio"])
@@ -197,7 +197,7 @@ class Bike:
         )
 
     def to_dict(self) -> dict:
-        """Serializza la bici in dizionario JSON-compatibile."""
+        """Serializes the bike to JSON-compatible dictionary."""
         return {
             "weight_kg": _quantity_to_dict(self.weight_kg),
             "crr": self.crr,
@@ -210,7 +210,7 @@ class Bike:
 
     @classmethod
     def from_dict(cls, raw: dict, t: TransformerEngine) -> "Bike":
-        """Ricostruisce Bike da dizionario serializzato."""
+        """Reconstructs Bike from serialized dictionary."""
         return cls(
             weight_kg=_quantity_from_dict(raw["weight_kg"], t),
             crr=float(raw.get("crr", 0.005)),
@@ -224,7 +224,7 @@ class Bike:
 
 @dataclass
 class Activity:
-    """Un giro: traccia GPS + sensori. Le metriche sono calcolate a richiesta."""
+    """A ride: GPS track + sensors. Metrics are computed on demand."""
 
     points: list[GeoPoint] = field(default_factory=list)
     title: str = ""
@@ -234,7 +234,7 @@ class Activity:
     summary: dict = field(default_factory=dict)
 
     def metrics(self, t: TransformerEngine) -> dict:
-        """Metriche derivate normalizzate dalla traccia (tramite Geo/Time)."""
+        """Normalized derived metrics from the track (via Geo/Time)."""
         pts = t.geo.to_metric_points(self.points)
         geo = t.geo.track_metrics(pts)
         duration_s = t.time.duration_from_points(self.points)
@@ -251,10 +251,10 @@ class Activity:
 
     @classmethod
     def from_raw(cls, raw: dict, t: TransformerEngine) -> "Activity":
-        """Costruisce Activity da dati grezzi GPS/sensori."""
+        """Builds Activity from raw GPS/sensor data."""
         gps = raw.get("gps_points") or raw.get("points")
         if not gps:
-            raise ValueError("campo obbligatorio 'gps_points'/'points' mancante per Activity")
+            raise ValueError("required field 'gps_points'/'points' missing for Activity")
         points = []
         for p in gps:
             ts = None
@@ -282,7 +282,7 @@ class Activity:
         )
 
     def to_dict(self) -> dict:
-        """Serializza l'attivita' in dizionario JSON-compatibile."""
+        """Serializes the activity to JSON-compatible dictionary."""
         return {
             "points": [
                 {
@@ -308,7 +308,7 @@ class Activity:
 
     @classmethod
     def from_dict(cls, raw: dict, t: TransformerEngine) -> "Activity":
-        """Ricostruisce Activity da dizionario serializzato."""
+        """Reconstructs Activity from serialized dictionary."""
         points = []
         for p in raw.get("points", []):
             ts = None
@@ -338,7 +338,7 @@ class Activity:
 
 @dataclass
 class WorldObject:
-    """Il territorio attraversato dall'attività."""
+    """The territory traversed by the activity."""
 
     surface: str = "asphalt"
     roughness_index: Quantity = field(default_factory=lambda: q(0.0, "", source="manual"))
@@ -348,7 +348,7 @@ class WorldObject:
 
     @classmethod
     def from_raw(cls, raw: dict, t: TransformerEngine) -> "WorldObject":
-        """Costruisce WorldObject da dati grezzi di ambiente."""
+        """Builds WorldObject from raw environment data."""
         slope = None
         if raw.get("avg_slope") is not None:
             slope = t.normalize(q(raw["avg_slope"], raw.get("avg_slope_unit", "%"),
@@ -369,7 +369,7 @@ class WorldObject:
         )
 
     def to_dict(self) -> dict:
-        """Serializza l'oggetto mondo in dizionario JSON-compatibile."""
+        """Serializes the world object to JSON-compatible dictionary."""
         return {
             "surface": self.surface,
             "roughness_index": _quantity_to_dict(self.roughness_index),
@@ -380,7 +380,7 @@ class WorldObject:
 
     @classmethod
     def from_dict(cls, raw: dict, t: TransformerEngine) -> "WorldObject":
-        """Ricostruisce WorldObject da dizionario serializzato."""
+        """Reconstructs WorldObject from serialized dictionary."""
         return cls(
             surface=raw.get("surface", "asphalt"),
             roughness_index=_quantity_from_dict(raw["roughness_index"], t),
@@ -392,7 +392,7 @@ class WorldObject:
 
 @dataclass
 class AnalysisContext:
-    """Contesto completo passato agli algoritmi del Model Engine."""
+    """Complete context passed to Model Engine algorithms."""
 
     athlete: Athlete
     activity: Activity
@@ -402,11 +402,11 @@ class AnalysisContext:
 
     @property
     def total_mass_kg(self) -> float:
-        """Massa totale (atleta + bici) in kg, pronta per i calcoli di potenza."""
+        """Total mass (athlete + bike) in kg, ready for power calculations."""
         return self.athlete.weight_kg.value + self.bike.weight_kg.value
 
     def to_dict(self) -> dict:
-        """Serializza il contesto completo in dizionario JSON-compatibile."""
+        """Serializes the complete context to JSON-compatible dictionary."""
         return {
             "athlete": self.athlete.to_dict(),
             "activity": self.activity.to_dict(),
@@ -416,7 +416,7 @@ class AnalysisContext:
 
     @classmethod
     def from_dict(cls, raw: dict, t: TransformerEngine) -> "AnalysisContext":
-        """Ricostruisce AnalysisContext da dizionario serializzato."""
+        """Reconstructs AnalysisContext from serialized dictionary."""
         return cls(
             athlete=Athlete.from_dict(raw["athlete"], t),
             activity=Activity.from_dict(raw["activity"], t),

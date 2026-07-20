@@ -18,7 +18,7 @@
       </div>
 
       <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state premium-empty">
-        <div class="empty-icon glass-icon">📍</div>
+        <div class="empty-icon glass-icon"></div>
         <div class="empty-title">{{ t('tracking.ready') }}</div>
         <div class="empty-desc">
           {{ t('tracking.readyDesc') }}
@@ -108,12 +108,12 @@ const batterySaver = ref(false)
 
 const activityType = ref<'ride' | 'walk' | 'hike' | 'run' | 'indoor' | 'other'>('ride')
 const activityOptions = [
-  { value: 'ride', label: '🚴 Bici' },
-  { value: 'run', label: '🏃 Corsa' },
-  { value: 'walk', label: '🚶 Passeggiata' },
-  { value: 'hike', label: '🥾 Trekking' },
-  { value: 'indoor', label: '🏠 Indoor' },
-  { value: 'other', label: '📍 Altro' },
+  { value: 'ride', label: ' Bici' },
+  { value: 'run', label: ' Corsa' },
+  { value: 'walk', label: ' Passeggiata' },
+  { value: 'hike', label: ' Trekking' },
+  { value: 'indoor', label: ' Indoor' },
+  { value: 'other', label: ' Altro' },
 ]
 const activityTitle: Record<string, string> = {
   ride: 'Tracciamento in bici',

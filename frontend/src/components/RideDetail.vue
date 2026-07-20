@@ -5,13 +5,13 @@
   <section v-if="ride">
     <div class="panel">
       <div class="detail-header">
-        <h2>🚴 Dettaglio Uscita</h2>
+        <h2>{{ t("rideDetail.title") }}</h2>
         <div class="header-actions">
           <button v-if="!editMode" class="edit-btn" @click="startEdit" aria-label="Modifica">
-            ✏️
+            
           </button>
           <button class="close-btn" @click="emit('close')" aria-label="Chiudi">
-            ✕
+            
           </button>
         </div>
       </div>
@@ -69,24 +69,24 @@
 
       <div class="metrics-grid">
         <div class="metric-card">
-          <div class="metric-icon">📏</div>
+          <div class="metric-icon"></div>
           <div class="metric-value">{{ fmt(ride.distance_km) }} km</div>
           <div class="metric-label">Distanza</div>
         </div>
         <div class="metric-card">
-          <div class="metric-icon">⏱️</div>
+          <div class="metric-icon">⏱</div>
           <div class="metric-value">
             {{ formatDuration(ride.duration_minutes) }}
           </div>
           <div class="metric-label">Durata</div>
         </div>
         <div class="metric-card">
-          <div class="metric-icon">⚡</div>
+          <div class="metric-icon"></div>
           <div class="metric-value">{{ fmt(ride.avg_speed_kmh) }} km/h</div>
           <div class="metric-label">Velocità Media</div>
         </div>
         <div class="metric-card">
-          <div class="metric-icon">🔥</div>
+          <div class="metric-icon"></div>
           <div class="metric-value">{{ fmt(ride.calories, 0) }} kcal</div>
           <div class="metric-label">Calorie</div>
         </div>
@@ -98,36 +98,36 @@
         "
         class="analysis-section"
       >
-        <h3>📊 Analisi Dettagliata</h3>
+        <h3> Analisi Dettagliata</h3>
         <div class="analysis-grid">
           <div
 v-if="ride.elevation_gain_m" class="a-item"
 >
-            <span class="a-lbl">⛰️ Dislivello</span>
+            <span class="a-lbl"> Dislivello</span>
             <span class="a-val">{{ fmt(ride.elevation_gain_m, 0) }} m</span>
           </div>
           <div
 v-if="ride.max_speed_kmh" class="a-item"
 >
-            <span class="a-lbl">💨 Velocità Max</span>
+            <span class="a-lbl"> Velocità Max</span>
             <span class="a-val">{{ fmt(ride.max_speed_kmh) }} km/h</span>
           </div>
         <div
           v-if="ride.heart_rate_avg" class="a-item"
         >
-          <span class="a-lbl">❤️ FC Media</span>
+          <span class="a-lbl"> FC Media</span>
           <span class="a-val">{{ fmt(ride.heart_rate_avg, 0) }} bpm</span>
         </div>
           <div
 v-if="ride.max_heart_rate" class="a-item"
 >
-            <span class="a-lbl">❤️ FC Massima</span>
+            <span class="a-lbl"> FC Massima</span>
             <span class="a-val">{{ fmt(ride.max_heart_rate, 0) }} bpm</span>
           </div>
           <div
 v-if="ride.fatigue_score !== undefined" class="a-item"
 >
-            <span class="a-lbl">😰 Affaticamento</span>
+            <span class="a-lbl"> Affaticamento</span>
             <span
 class="a-val" :class="fatigueClass"
             >{{ ride.fatigue_score }}/10</span>
@@ -144,7 +144,7 @@ class="a-val" :class="fatigueClass"
       <div
 v-if="speedChart || elevationChart" class="chart-section"
 >
-        <h3>📈 Grafici</h3>
+        <h3> Grafici</h3>
         <div class="chart-row">
           <img
             v-if="speedChart"
@@ -167,8 +167,11 @@ v-if="speedChart || elevationChart" class="chart-section"
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { apiGet, apiPut } from "../utils/api";
+import { useI18n } from "../composables/useI18n";
 import type { Ride } from "../types/index";
 import SpeedMap from "./SpeedMap.vue";
+
+const { t } = useI18n();
 
 const props = defineProps({ rideId: Number });
 const emit = defineEmits(["close"]);

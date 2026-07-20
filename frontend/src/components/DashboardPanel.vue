@@ -6,9 +6,9 @@
     <!-- Header -->
     <div class="dash-header">
       <div>
-        <h2>📊 Dashboard</h2>
+        <h2> Dashboard</h2>
         <div v-if="auth.user" class="user-line">
-          👤 {{ auth.user.username }}
+           {{ auth.user.username }}
           <span class="sync-badge" :class="syncClass">{{ syncLabel }}</span>
         </div>
       </div>
@@ -17,7 +17,7 @@
         :disabled="loading"
         @click="load"
       >
-        <span :class="{ spinner: loading }">{{ loading ? "" : "🔄" }}</span>
+        <span :class="{ spinner: loading }">{{ loading ? "" : "" }}</span>
         {{ loading ? "Aggiornamento..." : "Aggiorna" }}
       </button>
     </div>
@@ -26,19 +26,19 @@
          map, imports, or the AI coach from the dashboard. -->
     <div class="quick-actions">
       <button class="qa-btn qa-primary" @click="go('/track')">
-        <span class="qa-icon">📍</span> Traccia
+        <span class="qa-icon"></span> Traccia
       </button>
       <button class="qa-btn" @click="go('/map')">
-        <span class="qa-icon">🗺️</span> Mappa
+        <span class="qa-icon"></span> Mappa
       </button>
       <button class="qa-btn" @click="go('/import')">
-        <span class="qa-icon">📥</span> Importa
+        <span class="qa-icon"></span> Importa
       </button>
       <button class="qa-btn" @click="go('/coach')">
-        <span class="qa-icon">🧠</span> AI Coach
+        <span class="qa-icon"></span> AI Coach
       </button>
       <button class="qa-btn" @click="go('/athlete')">
-        <span class="qa-icon">👤</span> Profilo
+        <span class="qa-icon"></span> Profilo
       </button>
     </div>
 
@@ -51,7 +51,7 @@ class="skeleton skeleton-card" :key="i"
 
     <!-- Error -->
     <div v-else-if="error" class="error-state">
-      <div class="error-icon">⚠️</div>
+      <div class="error-icon"></div>
       <p>{{ error }}</p>
       <button
 class="btn btn-sm" @click="load">Riprova</button>
@@ -98,7 +98,7 @@ cx="40" cy="40" r="32" class="ring-bg" />
         <div
 v-if="dashboard.athlete" class="dash-card profile-card"
 >
-          <div class="card-icon">👤</div>
+          <div class="card-icon"></div>
           <div class="card-body">
             <div class="card-title">
               {{ dashboard.athlete.name || "Atleta" }}
@@ -127,7 +127,7 @@ class="chip"
         <div
 v-if="dashboard.summary" class="dash-card stats-card"
 >
-          <div class="card-icon">🚴</div>
+          <div class="card-icon"></div>
           <div class="card-body">
             <div class="card-title">Statistiche Globali</div>
             <div class="mini-stats">
@@ -161,7 +161,7 @@ v-if="dashboard.summary" class="dash-card stats-card"
         <div
 v-if="dashboard.fitness" class="dash-card fitness-card"
 >
-          <div class="card-icon">📈</div>
+          <div class="card-icon"></div>
           <div class="card-body">
             <div class="card-title">Fitness State</div>
             <div class="fitness-bars">
@@ -214,7 +214,7 @@ class="bar-fill tsb" :style="tsbStyle" />
           v-if="dashboard.trends?.weekly_progress?.length"
           class="dash-card trends-card"
         >
-          <div class="card-icon">📅</div>
+          <div class="card-icon"></div>
           <div class="card-body">
             <div class="card-title">Ultimi 7 giorni</div>
             <div class="mini-chart">
@@ -252,7 +252,7 @@ class="bar-fill tsb" :style="tsbStyle" />
       <div
         v-if="dashboard.recent_rides?.length" class="dash-section"
       >
-        <h3>🕐 Uscite Recenti</h3>
+        <h3> Uscite Recenti</h3>
         <div class="recent-rides">
           <div
             v-for="ride in dashboard.recent_rides"
@@ -263,10 +263,10 @@ class="bar-fill tsb" :style="tsbStyle" />
               {{ formatDate(ride.date) }}
             </div>
             <div class="recent-ride-stats">
-              <span>🛣️ {{ fmt(ride.distance_km) }} km</span>
-              <span>⏱️ {{ formatDuration(ride.duration_minutes) }}</span>
-              <span>⚡ {{ fmt(ride.avg_speed_kmh) }} km/h</span>
-              <span v-if="ride.elevation_gain_m">⛰️ {{ fmt(ride.elevation_gain_m, 0) }}m</span>
+              <span> {{ fmt(ride.distance_km) }} km</span>
+              <span>⏱ {{ formatDuration(ride.duration_minutes) }}</span>
+              <span> {{ fmt(ride.avg_speed_kmh) }} km/h</span>
+              <span v-if="ride.elevation_gain_m"> {{ fmt(ride.elevation_gain_m, 0) }}m</span>
             </div>
           </div>
         </div>
@@ -274,7 +274,7 @@ class="bar-fill tsb" :style="tsbStyle" />
 
       <!-- Empty state -->
       <div v-if="!dashboard.summary && !loading" class="empty-state">
-        <div class="empty-icon">📊</div>
+        <div class="empty-icon"></div>
         <div class="empty-title">Nessun dato disponibile</div>
         <div class="empty-desc">
           Importa le tue prime uscite per vedere la dashboard.

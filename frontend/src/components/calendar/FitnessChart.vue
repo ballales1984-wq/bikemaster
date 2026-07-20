@@ -3,7 +3,7 @@
      UI: pannello con titolo e BaseChart 220px; label date formattate gg/mm; gestisce lo stato "nessun dato". -->
 <template>
   <div class="panel fitness-chart-panel">
-    <h2>📈 Fitness ATL / CTL / TSB</h2>
+    <h2> Fitness ATL / CTL / TSB</h2>
     <BaseChart
       :config="chartConfig"
       height="220px"

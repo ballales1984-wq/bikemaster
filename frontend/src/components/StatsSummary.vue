@@ -11,7 +11,7 @@ aria-label="General Statistics">
       :style="{ '--stagger-index': 0 }"
     >
       <span class="stat-icon"
-aria-hidden="true">🚴</span>
+aria-hidden="true"></span>
       <div class="stat-value">
         {{ animatedRides }}
       </div>
@@ -24,7 +24,7 @@ aria-hidden="true">🚴</span>
       :style="{ '--stagger-index': 1 }"
     >
       <span class="stat-icon"
-aria-hidden="true">📏</span>
+aria-hidden="true"></span>
       <div class="stat-value">{{ animatedDistance }} km</div>
       <div class="stat-label">Total Distance</div>
     </div>
@@ -35,7 +35,7 @@ aria-hidden="true">📏</span>
       :style="{ '--stagger-index': 2 }"
     >
       <span class="stat-icon"
-aria-hidden="true">🔥</span>
+aria-hidden="true"></span>
       <div class="stat-value">
         {{ animatedCalories }}
       </div>
@@ -48,7 +48,7 @@ aria-hidden="true">🔥</span>
       :style="{ '--stagger-index': 3 }"
     >
       <span class="stat-icon"
-aria-hidden="true">⚡</span>
+aria-hidden="true"></span>
       <div class="stat-value">{{ animatedSpeed }} km/h</div>
       <div class="stat-label">Avg Speed</div>
     </div>
@@ -59,7 +59,7 @@ aria-hidden="true">⚡</span>
       :style="{ '--stagger-index': 4 }"
     >
       <span class="stat-icon"
-aria-hidden="true">⏱️</span>
+aria-hidden="true">⏱</span>
       <div class="stat-value">{{ animatedHours }} h</div>
       <div class="stat-label">Total Hours</div>
     </div>
@@ -73,7 +73,7 @@ aria-hidden="true">⏱️</span>
     >
       <span class="stat-icon"
 :class="{ spin: loading }">{{
-        loading ? "" : "🔄"
+        loading ? "" : ""
       }}</span>
       <div class="stat-label">
         {{ loading ? "Updating..." : "Refresh" }}

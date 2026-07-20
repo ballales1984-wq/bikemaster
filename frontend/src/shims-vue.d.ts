@@ -1,8 +1,8 @@
 /**
- * Dichiarazioni TypeScript per Vue e API globali.
+ * TypeScript declarations for Vue and global APIs.
  *
- * Abilita l'import di componenti .vue e definisce le interfacce
- * per Window.BikeTracking, toast e google.
+ * Enables importing .vue components and defines the interfaces
+ * for Window.BikeTracking, toast and google.
  */
 
 declare module "*.vue" {

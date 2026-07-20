@@ -13,7 +13,7 @@
         @keydown.enter="showForm = !showForm"
         @keydown.space.prevent="showForm = !showForm"
       >
-        <h2>➕ {{ t("rides.addTitle") }}</h2>
+        <h2> {{ t("rides.addTitle") }}</h2>
         <span class="toggle-icon">{{ showForm ? "▲" : "▼" }}</span>
       </div>
       <transition name="slide-down">
@@ -89,7 +89,7 @@
               {{
                 adding
                   ? "⏳ " + t("common.loading")
-                  : "✅ " + t("rides.addTitle")
+                  : " " + t("rides.addTitle")
               }}
             </button>
             <button
@@ -101,7 +101,7 @@
             </button>
           </div>
           <p
-v-if="addError" class="error-text">⚠️ {{ addError }}</p>
+v-if="addError" class="error-text"> {{ addError }}</p>
         </form>
       </transition>
     </div>
@@ -110,7 +110,7 @@ v-if="addError" class="error-text">⚠️ {{ addError }}</p>
     <div class="panel">
       <div class="list-header">
         <h2>
-          🏍️ {{ t("rides.title") }}
+           {{ t("rides.title") }}
           <span v-if="!loading"
 class="ride-count">{{
             filteredRides.length
@@ -123,14 +123,14 @@ class="ride-count">{{
             :aria-label="t('common.download') + ' CSV'"
             @click="exportCSV"
           >
-            📥 CSV
+             CSV
           </button>
           <button
             class="btn btn-sm btn-secondary"
             :aria-label="'Filters'"
             @click="toggleFilters"
           >
-            🔧 {{ t("common.filter") }}{{ hasActiveFilters ? " ●" : "" }}
+             {{ t("common.filter") }}{{ hasActiveFilters ? " ●" : "" }}
           </button>
           <select
             id="ride-sort-by"
@@ -138,14 +138,14 @@ class="ride-count">{{
             class="sort-select"
             :aria-label="t('common.filter')"
           >
-            <option value="date_desc">📅 {{ t("common.date") }} ▼
+            <option value="date_desc"> {{ t("common.date") }} ▼
 </option>
-            <option value="date_asc">📅 {{ t("common.date") }} ▲
+            <option value="date_asc"> {{ t("common.date") }} ▲
 </option>
             <option value="distance_desc">
-              🛣️ {{ t("rides.distance") }} ↓
+               {{ t("rides.distance") }} ↓
             </option>
-            <option value="speed_desc">⚡ {{ t("rides.avgSpeed") }} ↓
+            <option value="speed_desc"> {{ t("rides.avgSpeed") }} ↓
 </option>
           </select>
         </div>
@@ -195,7 +195,7 @@ v-model="filters.dateTo" type="date" class="form-input" />
           </div>
           <div class="filter-actions">
             <button class="btn btn-sm btn-secondary" @click="resetFilters">
-              🗑️ {{ t("common.clear") }}
+               {{ t("common.clear") }}
             </button>
           </div>
         </div>
@@ -213,19 +213,19 @@ v-model="filters.dateTo" type="date" class="form-input" />
 
       <!-- Guest state -->
       <div v-else-if="guest" class="empty-state">
-        <div class="empty-icon">🔐</div>
+        <div class="empty-icon"></div>
         <div class="empty-title">
           {{ t("rides.noRides") }}
         </div>
         <div class="empty-desc">Accedi per vedere le tue uscite.</div>
         <router-link to="/" class="btn btn-sm" style="margin-top: 14px">
-          🔑 Accedi
+           Accedi
         </router-link>
       </div>
 
       <!-- Empty state -->
       <div v-else-if="rides.length === 0" class="empty-state">
-        <div class="empty-icon">🚵</div>
+        <div class="empty-icon"></div>
         <div class="empty-title">
           {{ t("rides.noRides") }}
         </div>
@@ -237,13 +237,13 @@ v-model="filters.dateTo" type="date" class="form-input" />
           style="margin-top: 14px"
           @click="showForm = true"
         >
-          ➕ {{ t("rides.addTitle") }}
+           {{ t("rides.addTitle") }}
         </button>
       </div>
 
       <!-- Filtered empty -->
       <div v-else-if="filteredRides.length === 0" class="empty-state">
-        <div class="empty-icon">🔍</div>
+        <div class="empty-icon"></div>
         <div class="empty-title">
           {{ t("common.none") }}
         </div>
@@ -277,19 +277,19 @@ v-if="ride.title" class="ride-title"
               {{ ride.title }}
             </div>
             <div class="ride-stats">
-              <span class="stat-chip">🛣️ {{ fmt(ride.distance_km) }} km</span>
-              <span class="stat-chip">⏱️ {{ formatDuration(ride.duration_minutes) }}</span>
+              <span class="stat-chip"> {{ fmt(ride.distance_km) }} km</span>
+              <span class="stat-chip">⏱ {{ formatDuration(ride.duration_minutes) }}</span>
               <span v-if="ride.avg_speed_kmh"
 class="stat-chip"
-                >⚡ {{ fmt(ride.avg_speed_kmh) }} km/h</span
+                > {{ fmt(ride.avg_speed_kmh) }} km/h</span
               >
               <span v-if="ride.elevation_gain_m"
 class="stat-chip"
-                >⛰️ {{ fmt(ride.elevation_gain_m, 0) }}m</span
+                > {{ fmt(ride.elevation_gain_m, 0) }}m</span
               >
               <span v-if="ride.calories"
 class="stat-chip cal"
-                >🔥 {{ fmt(ride.calories, 0) }} kcal</span
+                > {{ fmt(ride.calories, 0) }} kcal</span
               >
             </div>
           </div>
@@ -304,7 +304,7 @@ v-if="ride.external_source" class="source-badge"
               :aria-label="`Elimina uscita del ${ride.date}`"
               @click.stop="askDelete(ride)"
             >
-              🗑️
+              
             </button>
           </div>
         </div>
@@ -343,9 +343,9 @@ v-if="totalPages > 1" class="pagination"
       >
         <div class="modal-dialog ride-detail-modal">
           <div class="detail-header">
-            <h3>🚴 Dettaglio Uscita</h3>
+            <h3> Dettaglio Uscita</h3>
             <button
-class="close-btn" @click="selectedRide = null">✕</button>
+class="close-btn" @click="selectedRide = null"></button>
           </div>
           <div class="detail-date">
             {{ formatDate(selectedRide.date) }}
@@ -398,7 +398,7 @@ v-if="selectedRide.heart_rate_avg" class="detail-stat"
           </div>
           <!-- Analysis -->
           <div v-if="analysis" class="analysis-section">
-            <h4>📊 Analisi</h4>
+            <h4> Analisi</h4>
             <div class="analysis-grid">
               <div
                 v-if="analysis.fatigue_score != null"
@@ -441,7 +441,7 @@ v-if="selectedRide.heart_rate_avg" class="detail-stat"
               :disabled="analysisLoading"
               @click="analyzeRide(selectedRide.id)"
             >
-              {{ analysisLoading ? "⏳" : "🔬 Analizza" }}
+              {{ analysisLoading ? "⏳" : " Analizza" }}
             </button>
             <button
               class="btn btn-sm btn-secondary"

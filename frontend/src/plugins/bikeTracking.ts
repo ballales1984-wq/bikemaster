@@ -1,8 +1,8 @@
 /**
- * Plugin Capacitor per il tracking GPS in tempo reale delle uscite ciclistiche.
+ * Capacitor plugin for real-time GPS tracking of cycling rides.
  *
- * Espone interfacce per avvio/arresto/pausa/ripresa della registrazione,
- * controllo permessi e struttura del risultato (GPX, upload, ID uscita).
+ * Exposes interfaces for starting/stopping/pausing/resuming the recording,
+ * permission control and the result structure (GPX, upload, ride ID).
  */
 
 import { registerPlugin } from "@capacitor/core";

@@ -1,11 +1,11 @@
 /**
- * Sincronizza lo stato di autenticazione tra il Pinia store e localStorage.
+ * Syncs the authentication state between the Pinia store and localStorage.
  *
- * All'avvio ripristina token e profilo utente dal storage locale;
- * se il token è presente ma scaduto, lo rimuove. Restituisce un oggetto
- * con lo stato risultante (hasToken, justLoggedIn).
+ * On startup it restores the token and user profile from local storage;
+ * if the token is present but expired, it removes it. Returns an object
+ * with the resulting state (hasToken, justLoggedIn).
  *
- * Esporta: syncAuthState
+ * Exports: syncAuthState
  */
 
 import { useAuthStore } from "../stores/auth";

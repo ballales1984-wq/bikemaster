@@ -15,7 +15,7 @@
     <div class="welcome-content">
       <header class="welcome-header">
         <div class="brand-mark">
-          <span class="brand-emoji" aria-hidden="true">🚴</span>
+          <span class="brand-emoji" aria-hidden="true"></span>
           <h1 class="brand-name">BikeMaster</h1>
         </div>
         <p class="brand-tagline">Cycling Performance Intelligence</p>
@@ -31,7 +31,7 @@
 
       <section class="features" aria-label="Funzionalità principali">
         <div class="feature-card">
-          <div class="feature-icon">📊</div>
+          <div class="feature-icon"></div>
           <h3>Analisi Performance</h3>
           <p>
             Normalized Power, TSS, FTP, Critical Power, CTL/ATL/TSB e metriche
@@ -39,7 +39,7 @@
           </p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">🤖</div>
+          <div class="feature-icon"></div>
           <h3>AI Coach</h3>
           <p>
             Consigli personalizzati di allenamento e recupero basati su dati
@@ -47,7 +47,7 @@
           </p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">🔄</div>
+          <div class="feature-icon"></div>
           <h3>Integrazioni</h3>
           <p>
             Sincronizza Strava, Garmin Connect e Google Fit per importare tutte
@@ -55,7 +55,7 @@
           </p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">☁️</div>
+          <div class="feature-icon"></div>
           <h3>Sync Cloud</h3>
           <p>
             Backup e sincronizzazione cloud opzionale, sempre sotto il tuo

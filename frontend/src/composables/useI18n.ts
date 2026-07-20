@@ -1,8 +1,8 @@
 /**
- * Composable di internazionalizzazione (i18n) leggero.
- * Carica i messaggi delle locale `it`/`en`, espone la locale corrente
- * (`locale`) e la funzione `t(key)` per la risoluzione annidata delle chiavi,
- * più `setLocale` che persiste la scelta in localStorage.
+ * Lightweight internationalization (i18n) composable.
+ * Loads the messages for the `it`/`en` locale, exposes the current locale
+ * (`locale`) and the `t(key)` function for nested key resolution,
+ * plus `setLocale` which persists the choice in localStorage.
  */
 import { ref, computed } from "vue";
 

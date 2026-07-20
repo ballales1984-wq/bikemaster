@@ -1,7 +1,7 @@
 <!-- Itinerari: lista tour multi-giorno e dettaglio tappe. -->
 <template>
   <section class="itinerary-view">
-    <h2>🗺️ Itinerari</h2>
+    <h2> Itinerari</h2>
 
     <div v-if="store.loading" class="muted">Caricamento…</div>
     <p v-if="store.error" class="error">{{ store.error }}</p>

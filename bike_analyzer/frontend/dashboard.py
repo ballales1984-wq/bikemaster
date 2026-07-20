@@ -33,12 +33,12 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 <body>
     <div class="container">
         <header>
-            <h1>🚴 BikeMaster</h1>
+            <h1> BikeMaster</h1>
             <p>Cycling Performance Dashboard</p>
         </header>
         <div class="refresh"><button class="btn" onclick="loadRides()">Refresh Data</button></div>
         <div class="weather-section" id="weather-section">
-            <h3 style="color:#4ecca3;margin-bottom:10px;">🌤️ Meteo</h3>
+            <h3 style="color:#4ecca3;margin-bottom:10px;"> Meteo</h3>
             <div class="weather-controls">
                 <input id="weather-lat" type="number" step="0.0001" placeholder="Lat" value="45.4642" />
                 <input id="weather-lon" type="number" step="0.0001" placeholder="Lon" value="9.1900" />
@@ -93,9 +93,9 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 if (date) params.append('date', date);
                 const resp = await fetch('/api/v1/weather?' + params);
                 const data = await resp.json();
-                document.getElementById('weather-temp').textContent = '🌡️ Temperatura: ' + data.temperature + '°C';
-                document.getElementById('weather-humidity').textContent = '💧 Umidità: ' + data.humidity + '%';
-                document.getElementById('weather-description').textContent = '📝 ' + data.description;
+                document.getElementById('weather-temp').textContent = ' Temperatura: ' + data.temperature + '°C';
+                document.getElementById('weather-humidity').textContent = ' Umidità: ' + data.humidity + '%';
+                document.getElementById('weather-description').textContent = ' ' + data.description;
                 document.getElementById('weather-advice').textContent = data.advice;
                 resultDiv.style.display = 'block';
             } catch (e) {

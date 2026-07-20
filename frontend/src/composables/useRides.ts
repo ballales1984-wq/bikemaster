@@ -1,8 +1,8 @@
 /**
- * Composable per la gestione delle uscite (rides) e delle relative mappe.
- * Recupera e aggrega il riepilogo delle uscite via API con cache offline di
- * fallback, crea ed elimina uscite, e inizializza una mappa Leaflet con il
- * percorso GPS. Espone `fetchSummary`, `createRide`, `deleteRide`, `initMap`.
+ * Composable for managing rides and their related maps.
+ * Fetches and aggregates the rides summary via API with an offline cache
+ * fallback, creates and deletes rides, and initializes a Leaflet map with the
+ * GPS route. Exposes `fetchSummary`, `createRide`, `deleteRide`, `initMap`.
  */
 import { ref } from "vue";
 import type { Ride } from "../types/index";

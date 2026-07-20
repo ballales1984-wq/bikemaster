@@ -1,12 +1,12 @@
 /**
- * Servizio per la gestione delle notifiche dell'applicazione.
+ * Service for managing the application's notifications.
  *
- * Fornisce funzioni per recuperare la lista delle notifiche con filtri
- * (categoria, zona di intensità, obiettivi attivi, meteo), aggiornare
- * le preferenze di notifica e valutare il punteggio di rilevanza di una
- * notifica in base al contesto fornito.
+ * Provides functions to fetch the notification list with filters
+ * (category, intensity zone, active goals, weather), update
+ * the notification preferences and evaluate the relevance score of a
+ * notification based on the provided context.
  *
- * Esporta: DEFAULT_NOTIFICATION_PREFERENCES, fetchNotifications,
+ * Exports: DEFAULT_NOTIFICATION_PREFERENCES, fetchNotifications,
  *           updateNotificationPreferences, evaluateNotification
  */
 

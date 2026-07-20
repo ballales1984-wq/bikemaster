@@ -1,10 +1,10 @@
 /**
  * BikeMaster Frontend — entrypoint.
  *
- * Bootstrap della SPA Vue 3:
- * - inizializza Pinia, router, tema e DB locale SQLite
- * - gestisce il ritorno OAuth Google (token fragment + finalize)
- * - registra il service worker per PWA/aggiornamenti
+ * Vue 3 SPA bootstrap:
+ * - initializes Pinia, router, theme and the local SQLite DB
+ * - handles the Google OAuth return (token fragment + finalize)
+ * - registers the service worker for PWA/updates
  */
 
 import { createApp } from "vue";
@@ -147,8 +147,8 @@ if ("serviceWorker" in navigator && !isTauri()) {
     .catch(() => {});
 }
 
-// Inizializza il DB SQLite locale (cache offline) e carica le chiavi API
-// per-utente salvate sul dispositivo. Best-effort se non disponibili.
+// Initialize the local SQLite DB (offline cache) and load the per-user
+// API keys saved on the device. Best-effort if not available.
 void initLocalDb();
 void useApiKeysStore().load();
 

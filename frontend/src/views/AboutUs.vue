@@ -7,7 +7,7 @@
 <template>
   <div class="about-page">
     <div class="about-header">
-      <h1>🚴 BikeMaster</h1>
+      <h1> BikeMaster</h1>
       <p class="tagline">Cycling Performance Intelligence</p>
     </div>
 
@@ -27,42 +27,42 @@
         <h2>Cosa Facciamo</h2>
         <div class="feature-grid">
           <div class="feature-card">
-            <h3>📊 Analisi Performance</h3>
+            <h3> Analisi Performance</h3>
             <p>
               Analisi completa delle uscite con metriche avanzate: Normalized
               Power, TSS, FTP, Critical Power, CTL/ATL/TSB.
             </p>
           </div>
           <div class="feature-card">
-            <h3>🤖 AI Coach</h3>
+            <h3> AI Coach</h3>
             <p>
               Consigli personalizzati di allenamento e recupero tramite modelli
               LLM e conoscenze basate su dati scientifici.
             </p>
           </div>
           <div class="feature-card">
-            <h3>🗺️ Mappe Interattive</h3>
+            <h3> Mappe Interattive</h3>
             <p>
               Visualizzazione percorsi colorati per velocità, heatmap GPS, e
               analisi della sicurezza stradale.
             </p>
           </div>
           <div class="feature-card">
-            <h3>📱 Tracking Mobile</h3>
+            <h3> Tracking Mobile</h3>
             <p>
               Registrazione uscite direttamente dal telefono Android con
               servizio GPS in foreground.
             </p>
           </div>
           <div class="feature-card">
-            <h3>🔄 Integrazioni</h3>
+            <h3> Integrazioni</h3>
             <p>
               Sincronizzazione con Strava, Garmin Connect e Google Fit per
               importare tutte le tue attività.
             </p>
           </div>
           <div class="feature-card">
-            <h3>📈 Benchmarking</h3>
+            <h3> Benchmarking</h3>
             <p>
               Confronta le tue performance con atleti della tua categoria per
               capire il tuo livello.
@@ -114,7 +114,7 @@ to="/contact" class="cta-button"> Contattaci </RouterLink>
 
       <div class="login-cta">
         <RouterLink to="/" class="btn btn-secondary">
-          🏠 Accedi a BikeMaster
+           Accedi a BikeMaster
         </RouterLink>
       </div>
     </div>

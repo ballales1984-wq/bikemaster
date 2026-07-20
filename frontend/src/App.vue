@@ -19,7 +19,7 @@ Responsabilità:
     <header v-show="showHeader" class="app-header">
       <div class="header-inner">
         <div class="header-brand">
-          <span class="brand-badge" aria-hidden="true">🚴</span>
+          <span class="brand-badge" aria-hidden="true"></span>
           <div class="brand-text">
             <h1 class="logo">BikeMaster</h1>
             <p v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
@@ -33,7 +33,7 @@ Responsabilità:
             :aria-label="ui.isDark ? 'Light mode' : 'Dark mode'"
             @click="ui.toggleTheme"
           >
-            {{ ui.isDark ? "☀️" : "🌙" }}
+            {{ ui.isDark ? "" : "" }}
           </button>
         </div>
       </div>
@@ -95,7 +95,7 @@ Responsabilità:
     <footer class="footer">
       <div class="footer-inner">
         <div class="footer-brand">
-          <span class="footer-logo">🚴 BikeMaster</span>
+          <span class="footer-logo"> BikeMaster</span>
           <span class="footer-tag">Cycling Performance Intelligence</span>
         </div>
         <div class="footer-links">

@@ -3,7 +3,7 @@
      UI: radiogroup di due opzioni, riga stato con badge, messaggi e azioni Esporta/Importa uscite. -->
 <template>
   <section class="card sync-card">
-    <h2>🔄 Modalità di sincronizzazione</h2>
+    <h2> Modalità di sincronizzazione</h2>
     <p class="hint">
       Scegli dove risiedono i tuoi dati. <strong>Local (Mai)</strong> tiene
       tutto sul dispositivo: l'app funziona al 100% offline. <strong>Cloud
@@ -20,7 +20,7 @@
         :disabled="saving"
         @click="setMode('local')"
       >
-        <span class="sync-option-icon">📱</span>
+        <span class="sync-option-icon"></span>
         <span class="sync-option-title">Local (Mai)</span>
         <span class="sync-option-desc">100% offline, solo su questo dispositivo</span>
       </button>
@@ -32,7 +32,7 @@
         :disabled="saving"
         @click="setMode('cloud')"
       >
-        <span class="sync-option-icon">☁️</span>
+        <span class="sync-option-icon"></span>
         <span class="sync-option-title">Cloud sync</span>
         <span class="sync-option-desc">Sincronizzazione bidirezionale opzionale</span>
       </button>

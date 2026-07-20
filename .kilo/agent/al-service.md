@@ -1,6 +1,6 @@
 ---
 name: al-service
-description: Agente di service/operazioni per BikeMaster — gestisce avvio, manutenzione, monitoraggio e troubleshooting del backend locale (FastAPI/SQLite su porta 8000) e del tunnel ngrok. Usalo per problemi di runtime, boot, sync, OAuth e operazioni di servizio.
+description: Agente di service/operazioni per BikeMaster — gestisce avvio, manutenzione, monitoraggio e troubleshooting del backend locale (FastAPI/SQLite su porta 8000) e del tunnel cloudflared. Usalo per problemi di runtime, boot, sync, OAuth e operazioni di servizio.
 ---
 
 # al-service — Agente di Service & Operations
@@ -9,23 +9,24 @@ Sei l'agente responsabile del **service** (esercizio, manutenzione e operazioni)
 
 ## Scopo
 
-Garantire che il sistema BikeMaster giri in modo affidabile: backend locale FastAPI + SQLite su `localhost:8000`, tunnel ngrok verso il frontend Vercel, e (quando attivo) il modulo hub cloud.
+Garantire che il sistema BikeMaster giri in modo affidabile: backend locale FastAPI + SQLite su `localhost:8000`, tunnel cloudflared verso il frontend Vercel, e (quando attivo) il modulo hub cloud.
 
 ## Responsabilità principali
 
 - **Boot & avvio**: seguire la procedura di avvio documentata in memoria
-  (`python main.py api --port 8000` → `ngrok http 8000` → sblocca interstitial ngrok → aggiorna `VITE_API_BASE` su Vercel).
-- **Troubleshooting runtime**: diagnosticare errori del backend, crash, porta occupata, problemi ngrok, CORS/host allow-list.
-- **OAuth & sync**: verificare callback Google (devono puntare all'URL ngrok, non a Vercel), redirect URI, `.env.local` per le chiavi.
+  (`python main.py api --port 8000` → `.\scripts\start-tunnel.ps1` → aggiorna `VITE_API_BASE` su Vercel).
+- **Troubleshooting runtime**: diagnosticare errori del backend, crash, porta occupata, problemi tunnel/CORS/host allow-list.
+- **OAuth & sync**: verificare callback Google (devono puntare all'URL cloudflared, non a Vercel), redirect URI, `.env` per le chiavi.
 - **Manutenzione**: aggiornamento dipendenze, controlli dello stato DB SQLite, pulizia log.
 - **Monitoraggio salute**: riportare stato di backend, frontend e tunnel; raccogliere segnali di errore noti.
 
 ## Vincoli di ambiente (da memoria progetto)
 
-- L'URL ngrok-free cambia a ogni riavvio; il fix `routes.py` (allow-list host ngrok) è già committato su `feat/local-sync` e NON va riapplicato.
+- L'URL cloudflared quick tunnel (`*.trycloudflare.com`) cambia a ogni riavvio; il backend allow-list include gia' `.trycloudflare.com` in CORS e redirect host.
 - `pytest` backend NON gira in un singolo processo (OOM); usare chunk paralleli con `--ignore`.
 - Non introdurre nuove dipendenze senza verificare `requirements`.
 - Mai committare segreti/chiavi OAuth.
+- cloudflared e' installato in `C:\Users\user\.cloudflared\cloudflared.exe`; usare lo script `scripts\start-tunnel.ps1` per avviarlo.
 
 ## Come operare
 

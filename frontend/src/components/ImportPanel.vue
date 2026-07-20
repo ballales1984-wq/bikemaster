@@ -4,7 +4,7 @@
 <template>
   <section>
     <div class="panel">
-      <h2>📥 Import Routes</h2>
+      <h2> Import Routes</h2>
 
       <div class="form-group">
         <label for="import-file">Upload GPX or FIT file</label>

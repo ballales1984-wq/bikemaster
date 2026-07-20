@@ -1,16 +1,16 @@
-"""BikeMaster 2.0 - AI Orchestrator (il cicerone digitale).
+"""BikeMaster 2.0 - AI Orchestrator (the digital guide).
 
-Non calcola: decide *quali* agenti e *quali* algoritmi usare in base alla
-domanda, assembla il contesto e restituisce risultati + concetti + spiegazione.
+Does not calculate: it decides *which* agents and *which* algorithms to use based on the
+question, assembles the context, and returns results + concepts + explanation.
 
-Miglioramenti rispetto alla versione base:
-    * routing domanda -> modelli robusto (keyword con peso + sinonimi IT),
-      esposto come configurabile via ``_select_models`` / costruttore;
-    * scoring di confidence sulla risposta e gestione domande ambigue
-      ("dimmi tutto" -> tutti i modelli);
-    * metodo ``explain_answer`` che restituisce un testo leggibile in italiano;
-    * estrazione delta "what if" affidabile (usa ``parse_override_from_text``:
-      supporta "peso -5 kg", "bici -1 kg", "+2% pendenza", "cda 0.3").
+Improvements over the base version:
+    * robust question -> model routing (weighted keywords + IT synonyms),
+      exposed as configurable via ``_select_models`` / constructor;
+    * confidence scoring on the answer and ambiguous question handling
+      ("tell me everything" -> all models);
+    * ``explain_answer`` method that returns readable text in Italian;
+    * reliable "what if" delta extraction (uses ``parse_override_from_text``:
+      supports "weight -5 kg", "bike -1 kg", "+2% slope", "cda 0.3").
 """
 
 from __future__ import annotations
@@ -31,73 +31,73 @@ from .agents import AthleteAgent, EnvironmentAgent, GPSAgent, SensorAgent
 __all__ = ["AIOrchestrator", "OrchestratorAnswer"]
 
 
-# -- mappatura domanda -> modelli (configurabile) -------------------------
-# Ogni modello ha un dizionario {parola_chiave: peso}. Il peso serve a
-# discriminare match deboli/forti e a ordinare i modelli piu' rilevanti.
+# -- question -> model mapping (configurable) --------------------------------
+# Each model has a {keyword: weight} dictionary. The weight discriminates
+# weak/strong matches and orders the most relevant models.
 DEFAULT_MODEL_KEYWORDS: dict[str, dict[str, float]] = {
     "EnergyModel": {
-        "energia": 1.0, "calorie": 1.0, "caloria": 1.0, "consumo": 1.0,
-        "kcal": 1.0, "brucio": 1.0, "bruci": 1.0, "dispendio": 1.0,
-        "speso": 0.7, "spendi": 0.7,
+        "energy": 1.0, "calorie": 1.0, "calories": 1.0, "consumption": 1.0,
+        "kcal": 1.0, "burn": 1.0, "expenditure": 1.0,
+        "spent": 0.7, "spends": 0.7,
     },
     "NutritionModel": {
-        "nutrizione": 1.0, "mangi": 1.0, "idrata": 1.0, "idratare": 1.0,
-        "carboidrat": 1.0, "cibo": 0.9, "bere": 0.9, "proteine": 0.9,
-        "zuccheri": 0.8, "integraz": 0.8,
+        "nutrition": 1.0, "eat": 1.0, "hydrat": 1.0, "hydrate": 1.0,
+        "carb": 1.0, "food": 0.9, "drink": 0.9, "protein": 0.9,
+        "sugar": 0.8, "supplement": 0.8,
     },
     "RouteDifficultyModel": {
-        "difficile": 1.0, "difficoltà": 1.0, "difficolta": 1.0,
-        "percorso": 1.0, "percorri": 0.9, "tracciato": 0.9,
-        "salita": 1.0, "salite": 1.0, "sali": 0.8, "dislivello": 1.0,
-        "pendenza": 1.0, "pendenze": 1.0,
+        "difficult": 1.0, "difficulty": 1.0,
+        "route": 1.0, "ride": 0.9, "track": 0.9,
+        "climb": 1.0, "climbs": 1.0, "ascend": 0.8, "elevation": 1.0,
+        "slope": 1.0, "gradient": 1.0,
     },
     "FatigueModel": {
-        "fatica": 1.0, "stanco": 1.0, "stanca": 0.9, "affatic": 1.0,
-        "stanchezza": 1.0, "sforzo": 0.8, "cedimento": 1.0,
+        "fatigue": 1.0, "tired": 1.0, "tiredness": 0.9, "fatigued": 1.0,
+        "exhaustion": 1.0, "effort": 0.8, "breakdown": 1.0,
     },
     "RecoveryModel": {
-        "recupero": 1.0, "riposo": 1.0, "riposa": 0.9, "dormi": 0.9,
-        "sonno": 0.9, "recovery": 1.0, "rigenera": 1.0,
+        "recovery": 1.0, "rest": 1.0, "resting": 0.9, "sleep": 0.9,
+        "sleeping": 0.9, "recovery": 1.0, "regenerate": 1.0,
     },
     "MovementModel": {
-        "movimento": 1.0, "velocità": 1.0, "velocita": 1.0,
-        "andatura": 1.0, "cadenza": 0.9, "pedalata": 0.9, "moto": 0.8,
+        "movement": 1.0, "speed": 1.0,
+        "pace": 1.0, "cadence": 0.9, "pedaling": 0.9, "motion": 0.8,
     },
     "PerformanceModel": {
-        "prestazione": 1.0, "performance": 1.0, "miglior": 0.9,
-        "efficienza": 0.9, "potenza": 0.8, "rendimento": 0.9,
-        "ftp": 0.9, "migliora": 0.8,
+        "performance": 1.0, "improve": 0.9,
+        "efficiency": 0.9, "power": 0.8, "yield": 0.9,
+        "ftp": 0.9, "improving": 0.8,
     },
     "PowerModel": {
-        "potenza": 1.0, "watt": 1.0, "power": 1.0, "ftp": 0.6,
+        "power": 1.0, "watt": 1.0, "power": 1.0, "ftp": 0.6,
     },
     "TrainingLoadModel": {
-        "carico": 1.0, "allenamento": 0.9, "training": 1.0,
+        "load": 1.0, "training": 0.9, "workout": 1.0,
         "stress": 0.8, "ctl": 0.7, "tsb": 0.7,
     },
 }
 
-# Parole che segnalano una domanda "aperta" -> usa tutti i modelli.
+# Words signaling an "open" question -> use all models.
 DEFAULT_AMBIGUOUS_KEYWORDS: frozenset[str] = frozenset({
-    "tutto", "complet", "generale", "sommario", "panoramica", "overview",
-    "riassunto", "analisi completa", "dimmi tutto", "spiegami tutto",
+    "everything", "complete", "general", "summary", "overview",
+    "recap", "full analysis", "tell me everything", "explain everything",
 })
 
-# Parole che attivano la simulazione "what if".
-_SIMULATION_KEYWORDS: tuple[str, ...] = ("se ", "what if", "simula", "ipotizz", "ipotizzo")
+# Keywords that trigger "what if" simulation.
+_SIMULATION_KEYWORDS: tuple[str, ...] = ("if ", "what if", "simulate", "hypothes", "hypothesize")
 
-# Soglia minima di score perchè un modello sia considerato rilevante.
+# Minimum score threshold for a model to be considered relevant.
 DEFAULT_ROUTE_THRESHOLD: float = 0.5
 
 
 class AIOrchestrator:
-    """Il cicerone digitale: decide quali algoritmi usare, assembla il contesto e spiega i risultati."""
+    """The digital guide: decides which algorithms to use, assembles context, and explains results."""
 
     def __init__(self, transformer: Optional[TransformerEngine] = None,
                  model_keywords: Optional[dict[str, dict[str, float]]] = None,
                  ambiguous_keywords: Optional[frozenset[str]] = None,
                  route_threshold: float = DEFAULT_ROUTE_THRESHOLD) -> None:
-        """Inizializza l'orchestratore con agenti, mappe keyword e soglia di routing."""
+        """Initialize the orchestrator with agents, keyword maps, and routing threshold."""
         self.t = transformer or TransformerEngine()
         self.gps = GPSAgent(self.t)
         self.athlete_agent = AthleteAgent(self.t)
@@ -109,9 +109,9 @@ class AIOrchestrator:
         self.ambiguous_keywords = ambiguous_keywords or DEFAULT_AMBIGUOUS_KEYWORDS
         self.route_threshold = route_threshold
 
-    # -- assemblaggio contesto -------------------------------------------
+    # -- context assembly -------------------------------------------
     def build_context(self, raw: dict) -> AnalysisContext:
-        """Assembla l'AnalysisContext completo da dati grezzi (atleta, bici, GPS, mondo)."""
+        """Build the full AnalysisContext from raw data (athlete, bike, GPS, world)."""
         athlete = self.athlete_agent.collect(raw.get("athlete", {}))
         bike = Bike.from_raw(raw.get("bike", {}), self.t)
         activity = self.gps.collect(raw.get("gps_points", []), raw.get("title", ""))
@@ -121,14 +121,14 @@ class AIOrchestrator:
         return AnalysisContext(athlete=athlete, activity=activity, bike=bike,
                                world=world, transformer=self.t)
 
-    # -- routing domanda -> modelli -------------------------------------
+    # -- question -> model routing -------------------------------------
     def _is_simulation(self, question: str) -> bool:
-        """Verifica se la domanda contiene keyword di simulazione 'what if'."""
+        """Check if the question contains 'what if' simulation keywords."""
         q = question.lower()
         return any(k in q for k in _SIMULATION_KEYWORDS)
 
     def _is_ambiguous(self, question: str) -> bool:
-        """Verifica se la domanda e' aperta/ambigua (es. 'dimmi tutto')."""
+        """Check if the question is open/ambiguous (e.g. 'tell me everything')."""
         q = question.lower()
         return any(k in q for k in self.ambiguous_keywords)
 
@@ -136,12 +136,12 @@ class AIOrchestrator:
                        keywords: Optional[dict[str, dict[str, float]]] = None,
                        threshold: Optional[float] = None
                        ) -> list[type[Algorithm]]:
-        """Mappa la domanda ai modelli rilevanti tramite keyword scoring.
+        """Map the question to relevant models via keyword scoring.
 
-        Il mapping e' configurabile: ``keywords`` sovrascrive la mappa di
-        default (per test o personalizzazioni), ``threshold`` la soglia minima
-        di score. Domande ambigue o senza match rilevante restituiscono tutti
-        i modelli (fallback "dimmi tutto").
+        The mapping is configurable: ``keywords`` overrides the default map
+        (for tests or customizations), ``threshold`` the minimum score.
+        Ambiguous questions or those without relevant match return all
+        models (fallback "tell me everything").
         """
         kw_map = keywords if keywords is not None else self.model_keywords
         thr = threshold if threshold is not None else self.route_threshold
@@ -166,25 +166,25 @@ class AIOrchestrator:
         if not selected:
             selected = list(scores.keys())
 
-        # mantieni l'ordine canonico di ALL_ALGORITHMS per stabilità
+        # maintain canonical order of ALL_ALGORITHMS for stability
         ordered = [a for a in ALL_ALGORITHMS if a.name in selected]
         return ordered
 
-    # -- scoring di confidence sulla risposta ---------------------------
+    # -- confidence scoring on response -------------------------------
     @staticmethod
     def _score_confidence(results: dict[str, ModelResult],
                           ambiguous: bool) -> float:
-        """Calcola la confidenza media pesata sulla risposta."""
+        """Calculate weighted average confidence on the response."""
         if not results:
             return 0.0
         avg = sum(r.confidence for r in results.values()) / len(results)
-        # una domanda aperta (tutti i modelli) ha confidenza leggermente
-        # ridotta perchè i risultati sono meno mirati alla richiesta.
+        # an open question (all models) has slightly reduced confidence
+        # because results are less targeted to the request.
         return max(0.0, min(1.0, avg * (0.9 if ambiguous else 1.0)))
 
-    # -- risposta --------------------------------------------------------
+    # -- response --------------------------------------------------------
     def answer(self, question: str, raw: dict, extra: Optional[dict] = None) -> dict:
-        """Risponde a una domanda eseguendo i modelli selezionati o una simulazione."""
+        """Answers a question by running selected models or a simulation."""
         ctx = self.build_context(raw)
         results: dict[str, ModelResult] = {}
         sim = None
@@ -215,33 +215,33 @@ class AIOrchestrator:
 
     def _run_simulation(self, ctx: AnalysisContext, question: str,
                         extra: Optional[dict]) -> "SimulationComparison":
-        """Esegue una simulazione 'what if' estraendo i delta dalla domanda."""
-        # Estrazione robusta del delta: supporta "peso -5 kg", "bici -1 kg",
-        # "+2% pendenza", "cda 0.3" tramite l'helper condiviso.
+        """Runs a 'what if' simulation extracting deltas from the question."""
+        # Robust delta extraction: supports "weight -5 kg", "bike -1 kg",
+        # "+2% slope", "cda 0.3" via the shared helper.
         ov = parse_override_from_text(question)
         engine = SimulationEngine(ALL_ALGORITHMS)
         return engine.compare(ctx, ov, extra)
 
-    # -- spiegazione leggibile (italiano) -------------------------------
+    # -- readable explanation (Italian) -------------------------------
     def explain_answer(self, answer: dict) -> str:
-        """Genera una spiegazione leggibile in italiano dei risultati."""
+        """Generates a readable Italian explanation of results."""
         lines: list[str] = []
-        lines.append(f"Domanda: {answer.get('question', '')}")
+        lines.append(f"Question: {answer.get('question', '')}")
 
         ambiguous = answer.get("ambiguous", False)
         if ambiguous:
-            lines.append("(domanda aperta: analisi completa su tutti i modelli)")
+            lines.append("(open question: full analysis across all models)")
 
         conf = answer.get("confidence")
         if conf is not None:
-            lines.append(f"Confidenza stimata: {conf * 100:.0f}%")
+            lines.append(f"Estimated confidence: {conf * 100:.0f}%")
 
         models = answer.get("models_used", [])
-        lines.append("Modelli usati: " + (", ".join(models) if models else "nessuno"))
+        lines.append("Models used: " + (", ".join(models) if models else "none"))
 
         results = answer.get("results", {})
         if results:
-            lines.append("Risultati chiave:")
+            lines.append("Key results:")
             for name, r in results.items():
                 unit = r.get("unit", "")
                 value = r.get("value")
@@ -266,7 +266,7 @@ class AIOrchestrator:
 
         sim = answer.get("simulation")
         if sim:
-            lines.append("Simulazione (risparmio/stima):")
+            lines.append("Simulation (savings/estimate):")
             deltas = sim.get("deltas", {})
             results_for_unit = results or sim.get("baseline", {})
             shown = 0
@@ -276,19 +276,19 @@ class AIOrchestrator:
                 base_val = base.get("value", 0)
                 pct = (delta / base_val * 100.0) if base_val else 0.0
                 arrow = "+" if delta > 0 else ("-" if delta < 0 else "=")
-                verb = "maggior consumo" if delta > 0 else ("risparmio" if delta < 0 else "invariato")
+                verb = "higher consumption" if delta > 0 else ("savings" if delta < 0 else "unchanged")
                 lines.append(
                     f"  - {name}: {arrow}{abs(delta):.2f} {unit} "
                     f"({pct:+.1f}%) -> {verb}"
                 )
                 shown += 1
             if shown == 0:
-                lines.append("  - nessuna variazione rilevante")
+                lines.append("  - no significant variation")
 
         return "\n".join(lines)
 
 
-# Alias di tipo per il risultato simulazione
+# Type alias for simulation result
 from .simulation import SimulationComparison as SimulationResultType  # noqa: E402
 
 OrchestratorAnswer = dict

@@ -331,7 +331,7 @@ def create_app() -> FastAPI:
     if not cors_origins and _s.environment.lower() not in ("development", "dev", "test"):
         logger.error("No CORS origins configured in non-development environment")
         cors_origins = []
-    vercel_regex = r"https://.*\.(vercel\.app|ngrok-free\.dev|loca\.lt)"
+    vercel_regex = r"https://.*\.(vercel\.app|ngrok-free\.dev|trycloudflare\.com)"
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
@@ -450,7 +450,7 @@ def create_app() -> FastAPI:
             return Response(
                 content='<svg xmlns="http://www.w3.org/2000/svg" '
                 'viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#4ecca3"/>'
-                '<text x="50" y="55" font-size="40" text-anchor="middle">🚴</text></svg>',
+                '<text x="50" y="55" font-size="40" text-anchor="middle"></text></svg>',
                 media_type="image/svg+xml",
             )
 

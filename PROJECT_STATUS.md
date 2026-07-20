@@ -278,8 +278,8 @@ eliminando il forward model duplicato. La visione "Deluxe" è in `docs/DELUXE_RO
 
 Stato: baseline completo e testato (`test_bm2_*`); **integrato** col flusso
 `Ride`/analytics esistente via `bm2/adapters.py` + `POST /api/v1/bm2/simulate-ride`
-(item D7 ✅); **validato** contro potenza misurata via `core/physics/validation.py`
-+ `POST /api/v1/bm2/validate` (metriche MAE/RMSE/bias/R²) (item D8 ✅).
+(item D7 ); **validato** contro potenza misurata via `core/physics/validation.py`
++ `POST /api/v1/bm2/validate` (metriche MAE/RMSE/bias/R²) (item D8 ).
 
 ---
 
@@ -429,13 +429,13 @@ Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, At
 ## Testing Update (2026-07-13, verificato)
 
 **Numeri reali (conteggio da codice sorgente):**
-- ✅ Backend: **108** file `test_*.py` / **1674** funzioni di test (incl. `test_bm2_*` verdi)
-- ✅ Frontend: **47** file `*.test.{js,ts}` / **318** test Vitest (harness verificato green)
-- ✅ Endpoint REST: **138** (`routes.py` + `bm2_routes.py`)
-- ✅ CI GitHub Actions esegue backend `pytest --cov`, frontend `vitest run`, lint, security (Trivy), build
-- ✅ Coverage `core/calculators/*`: 100% · `core/fitness_state`: 100%
-- ⚠️ Playwright E2E: **gli spec ESISTONO** (`frontend/tests/e2e`, 14 file `*.spec.js` + 3 `*.spec.ts` aggiunti). La valutazione iniziale li aveva mancati perché cercava `*.spec.ts`; il `testDir` di Playwright è `tests/e2e` e gli spec sono `.js`. Aggiunti 3 spec backend-independent (auth/routing/app-shell) eseguibili contro la sola SPA preview, senza backend.
-- ⚠️ Coverage globale bassa se misurata su tutto `bike_analyzer` (molti moduli non coperti dalla singola sotto-suite); la CI riporta la coverage aggregata come metrica informativa
+-  Backend: **108** file `test_*.py` / **1674** funzioni di test (incl. `test_bm2_*` verdi)
+-  Frontend: **47** file `*.test.{js,ts}` / **318** test Vitest (harness verificato green)
+-  Endpoint REST: **138** (`routes.py` + `bm2_routes.py`)
+-  CI GitHub Actions esegue backend `pytest --cov`, frontend `vitest run`, lint, security (Trivy), build
+-  Coverage `core/calculators/*`: 100% · `core/fitness_state`: 100%
+-  Playwright E2E: **gli spec ESISTONO** (`frontend/tests/e2e`, 14 file `*.spec.js` + 3 `*.spec.ts` aggiunti). La valutazione iniziale li aveva mancati perché cercava `*.spec.ts`; il `testDir` di Playwright è `tests/e2e` e gli spec sono `.js`. Aggiunti 3 spec backend-independent (auth/routing/app-shell) eseguibili contro la sola SPA preview, senza backend.
+-  Coverage globale bassa se misurata su tutto `bike_analyzer` (molti moduli non coperti dalla singola sotto-suite); la CI riporta la coverage aggregata come metrica informativa
 
 **Nota:** l'esecuzione dell'intera suite backend in locale è lenta (setup per-modulo);
 la verifica pass/fail completa è demandata alla pipeline CI.
@@ -491,11 +491,11 @@ la verifica pass/fail completa è demandata alla pipeline CI.
 
 | Priorita | Feature | Status |
 |:---:|---|---|
-| **1** | ✅ Test suite completata (frontend + backend) | **Fatto** |
-| **2** | ✅ Google Maps dynamic path | **Fatto** |
-| **3** | Multi-utente (auth, ownership rides, data isolation) | ✅ Completo |
-| **4** | PostgreSQL in produzione (dual-mode SQLite/PostgreSQL) | ✅ |
-| **5** | Vector DB RAG | ✅ Completo |
+| **1** |  Test suite completata (frontend + backend) | **Fatto** |
+| **2** |  Google Maps dynamic path | **Fatto** |
+| **3** | Multi-utente (auth, ownership rides, data isolation) |  Completo |
+| **4** | PostgreSQL in produzione (dual-mode SQLite/PostgreSQL) |  |
+| **5** | Vector DB RAG |  Completo |
 | **6** | Playwright E2E spec (config presente, spec da scrivere) | ⏳ |
 
 ---
@@ -506,20 +506,20 @@ la verifica pass/fail completa è demandata alla pipeline CI.
 
 | Area | Item | Status |
 |---|---|---|
-| Testing | Coverage riportata come metrica informativa in CI | ✅ |
-| Code Quality | Ruff + mypy + pre-commit | ✅ |
-| Container | Docker multi-stage hardened | ✅ |
-| Monitoring | Sentry (`observability.py`) + Prometheus + Grafana | ✅ |
-| Audit | Audit log azioni admin (`audit_log.py` + middleware) | ✅ |
-| Auth | OAuth2 social login (Google, Strava) | ✅ |
-| Multi-user | Data isolation completa (tenant_id) | ✅ |
-| AI | Vector DB per RAG (PGVector) | ✅ |
-| Frontend | PWA + offline support | ✅ |
-| Frontend | Vitest (47 file / 318 test) | ✅ |
-| Frontend | Playwright E2E (17 file in `tests/e2e`, incl. 3 backend-independent aggiunti) | ✅ |
-| Security | Security headers + rate limiting | ✅ |
-| Database | Dual-mode SQLite/PostgreSQL | ✅ |
-| CI/CD | GitHub Actions (test, lint, security, build) | ✅ |
+| Testing | Coverage riportata come metrica informativa in CI |  |
+| Code Quality | Ruff + mypy + pre-commit |  |
+| Container | Docker multi-stage hardened |  |
+| Monitoring | Sentry (`observability.py`) + Prometheus + Grafana |  |
+| Audit | Audit log azioni admin (`audit_log.py` + middleware) |  |
+| Auth | OAuth2 social login (Google, Strava) |  |
+| Multi-user | Data isolation completa (tenant_id) |  |
+| AI | Vector DB per RAG (PGVector) |  |
+| Frontend | PWA + offline support |  |
+| Frontend | Vitest (47 file / 318 test) |  |
+| Frontend | Playwright E2E (17 file in `tests/e2e`, incl. 3 backend-independent aggiunti) |  |
+| Security | Security headers + rate limiting |  |
+| Database | Dual-mode SQLite/PostgreSQL |  |
+| CI/CD | GitHub Actions (test, lint, security, build) |  |
 
 ---
 

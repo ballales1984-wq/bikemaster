@@ -3,7 +3,7 @@
      UI: form coordinate, card meteo con score colorato, stati loading/errore/vuoto e griglia forecast 7 giorni. -->
 <template>
   <div class="panel">
-    <h2>🌤️ Weather</h2>
+    <h2> Weather</h2>
 
     <div class="form-grid">
       <div class="form-group">
@@ -37,7 +37,7 @@ id="weather-date" type="date" v-model="date" />
           :disabled="loading"
           @click="fetchWeather"
         >
-          {{ loading ? "🔄 Loading..." : "🌡️ Get Weather" }}
+          {{ loading ? " Loading..." : " Get Weather" }}
         </button>
       </div>
     </div>
@@ -51,7 +51,7 @@ id="weather-date" type="date" v-model="date" />
     </div>
 
     <div v-else-if="!weather" class="empty-state">
-      <div class="empty-icon">🌤️</div>
+      <div class="empty-icon"></div>
       <div class="empty-title">Weather Information</div>
       <div class="empty-desc">
         Enter coordinates and click "Get Weather" for current conditions and
@@ -68,23 +68,23 @@ class="weather-score" :class="'score-' + weather.score"
       </div>
       <div class="weather-info">
         <div class="weather-item">
-          <span class="weather-icon">🌡️</span>
+          <span class="weather-icon"></span>
           <span class="weather-value">{{ weather.temperature }}°C</span>
         </div>
         <div class="weather-item">
-          <span class="weather-icon">🔥</span>
+          <span class="weather-icon"></span>
           <span class="weather-value">{{ weather.feels_like }}°C (feels like)</span>
         </div>
         <div class="weather-item">
-          <span class="weather-icon">💧</span>
+          <span class="weather-icon"></span>
           <span class="weather-value">{{ weather.humidity }}%</span>
         </div>
         <div class="weather-item">
-          <span class="weather-icon">💨</span>
+          <span class="weather-icon"></span>
           <span class="weather-value">{{ weather.wind_speed }} m/s</span>
         </div>
         <div class="weather-item">
-          <span class="weather-icon">📊</span>
+          <span class="weather-icon"></span>
           <span class="weather-value">{{ weather.pressure }} hPa</span>
         </div>
       </div>
@@ -94,7 +94,7 @@ class="weather-score" :class="'score-' + weather.score"
     </div>
 
     <div class="panel" style="margin-top: 20px">
-      <h3>📅 7-Day Forecast</h3>
+      <h3> 7-Day Forecast</h3>
       <div v-if="forecastLoading" class="loading-text">
         Loading forecasts...
       </div>
@@ -104,7 +104,7 @@ class="weather-score" :class="'score-' + weather.score"
             {{ f.date }}
           </div>
           <div class="forecast-temp">{{ f.temperature }}°C</div>
-          <div class="forecast-humidity">💧 {{ f.humidity }}%</div>
+          <div class="forecast-humidity"> {{ f.humidity }}%</div>
           <div class="forecast-advice">
             {{ f.advice }}
           </div>

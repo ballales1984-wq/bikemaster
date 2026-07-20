@@ -4,7 +4,7 @@
 <template>
   <section class="zones-panel">
     <div class="panel">
-      <h2>🎯 Zone di Allenamento</h2>
+      <h2> Zone di Allenamento</h2>
       <p class="zones-sub">
         Distribuzione del tempo per zona (FTP {{ data.ftp_watts }}W ·
         FC max {{ data.max_hr }}bpm)
@@ -16,7 +16,7 @@
 
       <div v-else class="zones-grid">
         <div class="zone-card">
-          <h3>⚡ Power Zones</h3>
+          <h3> Power Zones</h3>
           <BaseChart
             :config="powerConfig"
             height="240px"
@@ -24,7 +24,7 @@
           />
         </div>
         <div class="zone-card">
-          <h3>❤️ Heart-Rate Zones</h3>
+          <h3> Heart-Rate Zones</h3>
           <BaseChart
             :config="hrConfig"
             height="240px"

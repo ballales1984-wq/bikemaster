@@ -1,9 +1,9 @@
 /**
- * Composable per le notifiche toast.
- * Gestisce una lista reattiva di toast con tipologia (success/error/warning/
- * info), auto-rimozione con animazione e pulizia dei timer allo smontaggio.
- * Espone `items`, `add`, `show`, `remove` e gli helper `success`/`error`/
- * `warning`/`info`.
+ * Composable for toast notifications.
+ * Manages a reactive list of toasts with type (success/error/warning/
+ * info), auto-removal with animation and timer cleanup on unmount.
+ * Exposes `items`, `add`, `show`, `remove` and the `success`/`error`/
+ * `warning`/`info` helpers.
  */
 import { onBeforeUnmount, ref } from "vue";
 

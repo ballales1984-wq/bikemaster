@@ -1,8 +1,8 @@
 /**
- * Store profilo atleta.
+ * Athlete profile store.
  *
- * Mantiene il profilo dell'atleta (età, peso, FTP, FC max, ecc.),
- * gestisce il caricamento e l'aggiornamento da backend.
+ * Holds the athlete profile (age, weight, FTP, max HR, etc.),
+ * handles loading and updating from the backend.
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
@@ -11,12 +11,26 @@ import { apiGet, apiPut, ApiError } from "../utils/api";
 import { useAuthStore } from "./auth";
 
 export interface AthleteProfile extends Athlete {
+  name?: string;
   age?: number;
   weight_kg?: number;
   height_cm?: number;
   ftp?: number;
+  ftp_watts?: number;
   max_hr?: number;
   resting_hr?: number;
+  fat_percentage?: number;
+  years_active?: number;
+  weekly_sessions?: number;
+  monthly_hours?: number;
+  annual_hours?: number;
+  experience_level?: string;
+  goals?: string | null;
+  preferred_terrain?: string | null;
+  weekly_volume_km?: number;
+  best_segments?: string | null;
+  medical_notes?: string | null;
+  equipment?: string | null;
 }
 
 export const useAthleteStore = defineStore("athlete", () => {

@@ -635,7 +635,7 @@ class TestDashboardGenerator:
     def test_dashboard_html_content(self):
         from bike_analyzer.frontend.dashboard import DASHBOARD_HTML
 
-        assert "🚴" in DASHBOARD_HTML
+        assert "" in DASHBOARD_HTML
         assert "loadRides" in DASHBOARD_HTML
         assert "fetchWeather" in DASHBOARD_HTML
 

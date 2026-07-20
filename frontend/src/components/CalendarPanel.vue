@@ -4,7 +4,7 @@
 <template>
   <section>
     <div class="panel">
-      <h2>📅 Calendar & Goals</h2>
+      <h2> Calendar & Goals</h2>
 
       <div class="calendar-controls">
         <div class="calendar-nav">
@@ -91,7 +91,7 @@ class="more-events"
     </div>
 
     <div class="panel">
-      <h2>🎯 Linked Goals</h2>
+      <h2> Linked Goals</h2>
       <div class="objectives-box">
         <div
           v-for="obj in recommendedObjectives"
@@ -308,7 +308,7 @@ const selectedDateEvents = computed(() => {
 const recommendedObjectives = computed(() => [
   {
     label: "Interval Training",
-    icon: "⚡",
+    icon: "",
     hint: "HIIT session",
     event_type: "training",
     duration: 45,
@@ -316,7 +316,7 @@ const recommendedObjectives = computed(() => [
   },
   {
     label: "Long Ride",
-    icon: "🏔️",
+    icon: "",
     hint: "Easy ride",
     event_type: "training",
     duration: 120,
@@ -324,7 +324,7 @@ const recommendedObjectives = computed(() => [
   },
   {
     label: "Active Recovery",
-    icon: "🧘",
+    icon: "",
     hint: "Stretching",
     event_type: "recovery",
     duration: 30,
@@ -332,7 +332,7 @@ const recommendedObjectives = computed(() => [
   },
   {
     label: "FTP Test",
-    icon: "🔬",
+    icon: "",
     hint: "Power test",
     event_type: "test",
     duration: 60,
@@ -340,7 +340,7 @@ const recommendedObjectives = computed(() => [
   },
   {
     label: "Race",
-    icon: "🏁",
+    icon: "",
     hint: "Competition",
     event_type: "race",
     duration: 180,
@@ -348,7 +348,7 @@ const recommendedObjectives = computed(() => [
   },
   {
     label: "Goal Deadline",
-    icon: "🎯",
+    icon: "",
     hint: "Deadline",
     event_type: "goal_deadline",
     duration: 0,

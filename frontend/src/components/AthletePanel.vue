@@ -3,11 +3,11 @@
      UI: griglia di input (nome, età, peso, altezza, grasso, livello, obiettivi) con validazione e pulsanti Salva/Score. -->
 <template>
   <div class="panel">
-    <h2>🏃 Athlete Profile</h2>
+    <h2> Athlete Profile</h2>
     <div
 v-if="isFirstLogin" class="welcome-banner"
 >
-      <span class="welcome-icon">🎉</span> Welcome! Complete your profile to get
+      <span class="welcome-icon"></span> Welcome! Complete your profile to get
       started
     </div>
     <form
@@ -175,7 +175,7 @@ v-if="fieldErrors.experience_level" class="field-error"
       <button
 class="btn btn-primary" @click="save">Save Athlete</button>
       <button
-class="btn btn-secondary" @click="getScores">📊 Scores</button>
+class="btn btn-secondary" @click="getScores"> Scores</button>
     </div>
     <div
 v-if="result" class="result-box"

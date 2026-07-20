@@ -4,7 +4,7 @@
 <template>
   <div class="knowledge-panel">
     <div class="panel-header">
-      <h2>📚 Knowledge Base</h2>
+      <h2> Knowledge Base</h2>
       <div
 v-if="stats" class="kb-stats"
 >
@@ -16,7 +16,7 @@ v-if="stats" class="kb-stats"
     <!-- Search bar -->
     <div class="search-container">
       <div class="search-box" :class="{ focused: searchFocused }">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon"></span>
         <input
           ref="searchInput"
           v-model="query"
@@ -29,7 +29,7 @@ v-if="stats" class="kb-stats"
           @input="onInput"
         />
         <button
-v-if="query" class="clear-btn" @click="clearSearch">✕</button>
+v-if="query" class="clear-btn" @click="clearSearch"></button>
       </div>
       <button
         class="btn search-btn"
@@ -103,14 +103,14 @@ v-if="r.score != null" class="result-score"
         <div
 v-if="r.source_file" class="result-meta"
 >
-          <span>📄 {{ r.source_file }}</span>
+          <span> {{ r.source_file }}</span>
         </div>
       </div>
     </div>
 
     <!-- Empty search -->
     <div v-else-if="searched && !loading" class="empty-state">
-      <div class="empty-icon">🔎</div>
+      <div class="empty-icon"></div>
       <div class="empty-title">Nessun risultato per "{{ lastQuery }}"</div>
       <div class="empty-desc">
         Prova con altre parole chiave o sfoglia gli argomenti disponibili.
@@ -145,14 +145,14 @@ v-if="r.source_file" class="result-meta"
 
     <!-- Total empty -->
     <div v-else-if="!loading" class="empty-state">
-      <div class="empty-icon">📚</div>
+      <div class="empty-icon"></div>
       <div class="empty-title">Knowledge Base vuota</div>
       <div class="empty-desc">
         Aggiungi documenti nella cartella <code>knowledge_base/</code> e
         ricarica gli indici.
       </div>
       <button class="btn btn-sm" style="margin-top: 12px" @click="reload">
-        🔄 Ricarica indici
+         Ricarica indici
       </button>
     </div>
   </div>
@@ -200,28 +200,28 @@ const searchInput = ref<HTMLInputElement | null>(null);
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 const TOPIC_ICONS = {
-  allenamento: "🏋️",
-  training: "🏋️",
-  recovery: "😴",
-  recupero: "😴",
-  potenza: "⚡",
-  power: "⚡",
-  nutrition: "🥗",
-  nutrizione: "🥗",
-  gps: "📍",
-  route: "🗺️",
-  percorso: "🗺️",
-  ftp: "⚙️",
-  stress: "📊",
-  ciclismo: "🚴",
-  cycling: "🚴",
-  salita: "⛰️",
-  climb: "⛰️",
-  cardio: "❤️",
-  hr: "❤️",
-  frequenza: "❤️",
-  speed: "💨",
-  velocità: "💨",
+  allenamento: "",
+  training: "",
+  recovery: "",
+  recupero: "",
+  potenza: "",
+  power: "",
+  nutrition: "",
+  nutrizione: "",
+  gps: "",
+  route: "",
+  percorso: "",
+  ftp: "",
+  stress: "",
+  ciclismo: "",
+  cycling: "",
+  salita: "",
+  climb: "",
+  cardio: "",
+  hr: "",
+  frequenza: "",
+  speed: "",
+  velocità: "",
 };
 
 function topicIcon(topic: string): string {
@@ -229,7 +229,7 @@ function topicIcon(topic: string): string {
   for (const [key, icon] of Object.entries(TOPIC_ICONS)) {
     if (t.includes(key)) return icon;
   }
-  return "📖";
+  return "";
 }
 
 function highlightQuery(text: string, q: string): string {

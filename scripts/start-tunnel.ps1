@@ -5,25 +5,22 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-if (-not (Get-Command ssh -ErrorAction SilentlyContinue)) {
-    Write-Host "ERROR: ssh (OpenSSH Client) is not available on this system." -ForegroundColor Red
+$cloudflared = Join-Path $env:USERPROFILE ".cloudflared\cloudflared.exe"
+if (-not (Test-Path $cloudflared)) {
+    Write-Host "ERROR: cloudflared not found at $cloudflared" -ForegroundColor Red
+    Write-Host "Run the setup first or download from https://github.com/cloudflare/cloudflared/releases" -ForegroundColor Yellow
     exit 1
 }
 
 $backendUrl = "http://localhost:$BackendPort"
-Write-Host "Starting localhost.run tunnel for $backendUrl ..." -ForegroundColor Cyan
+Write-Host "Starting cloudflared quick tunnel for $backendUrl ..." -ForegroundColor Cyan
 
-$args = @(
-    "-o", "StrictHostKeyChecking=no"
-    "-o", "ServerAliveInterval=30"
-    "-R", "80:localhost:$BackendPort"
-    "localhost.run"
-)
+$args = @("tunnel", "--url", $backendUrl)
 
 if ($Background) {
-    $proc = Start-Process -FilePath "ssh" -ArgumentList $args -NoNewWindow -PassThru -Wait:$false
+    $proc = Start-Process -FilePath $cloudflared -ArgumentList $args -NoNewWindow -PassThru -Wait:$false
     Write-Host "Tunnel started in background (PID $($proc.Id))." -ForegroundColor Green
     Write-Host "Check the tunnel output to get the public URL." -ForegroundColor Yellow
 } else {
-    & ssh @args
+    & $cloudflared @args
 }

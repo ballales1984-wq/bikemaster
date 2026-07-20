@@ -6,12 +6,12 @@
   <div v-if="auth.isAdmin"
 class="admin-panel">
     <div class="panel">
-      <h2>⚙️ Administration</h2>
+      <h2> Administration</h2>
 
       <div class="admin-grid">
         <button class="admin-card"
 @click="$router.push('/admin/users')">
-          <div class="admin-icon">👥</div>
+          <div class="admin-icon"></div>
           <div class="admin-label">
             {{ t("admin.users") }}
           </div>
@@ -20,14 +20,14 @@ class="admin-panel">
 
         <button class="admin-card"
 @click="loadStats" :disabled="loadingStats">
-          <div class="admin-icon">📊</div>
+          <div class="admin-icon"></div>
           <div class="admin-label">System Stats</div>
           <div class="admin-desc">View database and API metrics</div>
         </button>
 
         <button class="admin-card"
 @click="backupDb">
-          <div class="admin-icon">💾</div>
+          <div class="admin-icon"></div>
           <div class="admin-label">Backup DB</div>
           <div class="admin-desc">Download database dump</div>
         </button>
@@ -43,7 +43,7 @@ class="admin-panel">
             )
           "
         >
-          <div class="admin-icon">🗂️</div>
+          <div class="admin-icon"></div>
           <div class="admin-label">Create Indexes</div>
           <div class="admin-desc">Rebuild knowledge base indexes</div>
         </button>
@@ -59,7 +59,7 @@ class="admin-panel">
             )
           "
         >
-          <div class="admin-icon">🔄</div>
+          <div class="admin-icon"></div>
           <div class="admin-label">Reset Demo</div>
           <div class="admin-desc">Restore demo data</div>
         </button>
@@ -69,7 +69,7 @@ class="admin-panel">
           :disabled="loadingAudit"
           @click="loadAuditLogs"
         >
-          <div class="admin-icon">📝</div>
+          <div class="admin-icon"></div>
           <div class="admin-label">{{ t("admin.auditLogs") }}</div>
           <div class="admin-desc">{{ t("admin.auditLogsDesc") }}</div>
         </button>
@@ -79,7 +79,7 @@ class="admin-panel">
           :disabled="loadingCeo"
           @click="loadCeoAnalytics"
         >
-          <div class="admin-icon">📈</div>
+          <div class="admin-icon"></div>
           <div class="admin-label">{{ t("admin.ceoAnalytics") }}</div>
           <div class="admin-desc">{{ t("admin.ceoAnalyticsDesc") }}</div>
         </button>
@@ -89,7 +89,7 @@ class="admin-panel">
           :disabled="loadingSentry"
           @click="testSentry"
         >
-          <div class="admin-icon">🚨</div>
+          <div class="admin-icon"></div>
           <div class="admin-label">{{ t("admin.testSentry") }}</div>
           <div class="admin-desc">{{ t("admin.testSentryDesc") }}</div>
         </button>
@@ -97,13 +97,13 @@ class="admin-panel">
 
       <div v-if="stats"
 class="result-section">
-        <div class="result-header">📋 Statistics Output</div>
+        <div class="result-header"> Statistics Output</div>
         <pre class="result-box">{{ stats }}</pre>
       </div>
 
       <div v-if="error"
 class="error-section">
-        <div class="error-icon">⛔</div>
+        <div class="error-icon"></div>
         <div class="error-text">
           {{ error }}
         </div>
@@ -197,7 +197,7 @@ async function createIndexes() {
   try {
     error.value = "";
     await apiPost("/api/v1/admin/indexes", {});
-    stats.value = "✅ Indexes created successfully";
+    stats.value = " Indexes created successfully";
   } catch (e) {
     error.value = "Error: " + (e instanceof Error ? e.message : e);
     stats.value = "";
@@ -211,7 +211,7 @@ async function resetDemo() {
   try {
     error.value = "";
     await apiPost("/api/v1/admin/reset-demo", {});
-    stats.value = "✅ Demo data restored successfully";
+    stats.value = " Demo data restored successfully";
   } catch (e) {
     error.value = "Error: " + (e instanceof Error ? e.message : e);
     stats.value = "";

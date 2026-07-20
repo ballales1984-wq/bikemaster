@@ -1,8 +1,8 @@
 /**
- * Store delle chiavi API per-utente.
+ * Per-user API keys store.
  *
- * Inserite dall'utente, persistite in SQLite locale e propagate
- * al backend via header ad ogni richiesta.
+ * Entered by the user, persisted in local SQLite and propagated
+ * to the backend via header on every request.
  */
 import { defineStore } from "pinia";
 import { ref } from "vue";
@@ -17,8 +17,8 @@ import {
   loadUserApiKeys,
 } from "../db/localDb";
 
-// Chiavi API per-utente: inserite dall'utente, persistite in SQLite locale sul
-// dispositivo, inviate al backend via header ad ogni richiesta.
+// Per-user API keys: entered by the user, persisted in local SQLite on the
+// device, sent to the backend via header on every request.
 export const useApiKeysStore = defineStore("apiKeys", () => {
   const keys = ref<UserApiKeys>({});
   const loaded = ref(false);

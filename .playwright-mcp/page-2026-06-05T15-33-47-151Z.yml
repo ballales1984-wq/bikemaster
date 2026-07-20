@@ -1,15 +1,15 @@
 - generic [active] [ref=e1]:
   - generic [ref=e2]:
     - banner [ref=e3]:
-      - heading "🚴 BikeMaster" [level=1] [ref=e4]
+      - heading " BikeMaster" [level=1] [ref=e4]
       - paragraph [ref=e5]: Cycling Performance Intelligence
     - navigation "Navigazione principale" [ref=e6]:
-      - button "🏍️ Rides" [ref=e7] [cursor=pointer]
-      - button "📥 Import" [ref=e8] [cursor=pointer]
-      - button "🏃 Atleta" [ref=e9] [cursor=pointer]
-      - button "🧠 AI Coach" [ref=e10] [cursor=pointer]
-      - button "📚 Knowledge" [ref=e11] [cursor=pointer]
-      - button "⚙️ Admin" [ref=e12] [cursor=pointer]
+      - button " Rides" [ref=e7] [cursor=pointer]
+      - button " Import" [ref=e8] [cursor=pointer]
+      - button " Atleta" [ref=e9] [cursor=pointer]
+      - button " AI Coach" [ref=e10] [cursor=pointer]
+      - button " Knowledge" [ref=e11] [cursor=pointer]
+      - button " Admin" [ref=e12] [cursor=pointer]
     - region "Statistiche generali" [ref=e13]:
       - status [ref=e14]:
         - generic [ref=e15]: "2"
@@ -26,9 +26,9 @@
       - status [ref=e26]:
         - generic [ref=e27]: "1.0"
         - generic [ref=e28]: Ore Totali
-    - region "📋 Le tue Ride" [ref=e29]:
-      - region "➕ Aggiungi Nuova Ride" [ref=e30]:
-        - heading "➕ Aggiungi Nuova Ride" [level=2] [ref=e31]
+    - region " Le tue Ride" [ref=e29]:
+      - region " Aggiungi Nuova Ride" [ref=e30]:
+        - heading " Aggiungi Nuova Ride" [level=2] [ref=e31]
         - generic [ref=e32]:
           - generic [ref=e33]:
             - generic [ref=e34]: Data
@@ -62,13 +62,13 @@
           - button "Aggiungi" [ref=e62] [cursor=pointer]:
             - generic [ref=e63]: Aggiungi
           - button "Reset Demo" [ref=e64] [cursor=pointer]
-          - button "📄 Esporta JSON" [ref=e65] [cursor=pointer]
-          - button "📊 Esporta CSV" [ref=e66] [cursor=pointer]
-      - region "📊 Durata Ultime Ride" [ref=e67]:
-        - heading "📊 Durata Ultime Ride" [level=2] [ref=e68]
+          - button " Esporta JSON" [ref=e65] [cursor=pointer]
+          - button " Esporta CSV" [ref=e66] [cursor=pointer]
+      - region " Durata Ultime Ride" [ref=e67]:
+        - heading " Durata Ultime Ride" [level=2] [ref=e68]
         - img "Grafico durata ultime 10 ride" [ref=e70]
-      - region "📋 Le tue Ride" [ref=e71]:
-        - heading "📋 Le tue Ride" [level=2] [ref=e72]
+      - region " Le tue Ride" [ref=e71]:
+        - heading " Le tue Ride" [level=2] [ref=e72]
         - list "Lista delle ride" [ref=e73]:
           - listitem "Ride del 2024-06-16, 0 km" [ref=e74] [cursor=pointer]:
             - generic [ref=e75]:

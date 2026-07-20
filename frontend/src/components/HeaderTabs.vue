@@ -35,7 +35,7 @@
         class="tab"
         active-class="active"
       >
-        ⚙️ <span>{{ t("nav.admin") }}</span>
+         <span>{{ t("nav.admin") }}</span>
       </router-link>
       <router-link
         v-if="isClient"
@@ -44,7 +44,7 @@
         class="tab"
         active-class="active"
       >
-        👥 <span>{{ t("nav.client") }}</span>
+         <span>{{ t("nav.client") }}</span>
       </router-link>
       <router-link
         ref="tabEls"
@@ -52,7 +52,7 @@
         class="tab"
         active-class="active"
       >
-        🛠️ <span>{{ t("nav.settings") }}</span>
+         <span>{{ t("nav.settings") }}</span>
       </router-link>
       <router-link
         ref="tabEls"
@@ -60,7 +60,7 @@
         class="tab"
         active-class="active"
       >
-        🔌 <span>{{ t("nav.connections") }}</span>
+         <span>{{ t("nav.connections") }}</span>
       </router-link>
 
       <button
@@ -99,26 +99,26 @@ defineProps({
 const tabEls = ref([]);
 
 const tabs = [
-  { to: "/rides", label: "nav.rides", icon: "🏍️" },
-  { to: "/dashboard", label: "nav.dashboard", icon: "📊" },
-  { to: "/track", label: "nav.tracking", icon: "📍" },
-  { to: "/import", label: "nav.import", icon: "📥" },
-  { to: "/athlete", label: "nav.athlete", icon: "🏃" },
-  { to: "/avatar", label: "nav.avatar", icon: "🎮" },
-  { to: "/coach", label: "nav.coach", icon: "🧠" },
-  { to: "/knowledge", label: "nav.knowledge", icon: "📚" },
-  { to: "/bm2", label: "nav.bm2", icon: "🧮" },
-  { to: "/calendar", label: "nav.calendar", icon: "📅" },
-  { to: "/granfondo", label: "nav.granfondo", icon: "🚴‍♂️" },
-  { to: "/map", label: "nav.maps", icon: "🗺️" },
-  { to: "/aethermap", label: "nav.aethermap", icon: "🌐" },
-  { to: "/pois", label: "nav.pois", icon: "📍" },
-  { to: "/heatmap", label: "nav.heatmap", icon: "🔥" },
-  { to: "/badges", label: "nav.badges", icon: "🏅" },
-  { to: "/metabolism", label: "nav.metabolism", icon: "⚡" },
-  { to: "/performance", label: "nav.performance", icon: "📈" },
-  { to: "/comparison", label: "nav.comparison", icon: "⚖️" },
-  { to: "/weather", label: "nav.weather", icon: "🌤️" },
+  { to: "/rides", label: "nav.rides", icon: "" },
+  { to: "/dashboard", label: "nav.dashboard", icon: "" },
+  { to: "/track", label: "nav.tracking", icon: "" },
+  { to: "/import", label: "nav.import", icon: "" },
+  { to: "/athlete", label: "nav.athlete", icon: "" },
+  { to: "/avatar", label: "nav.avatar", icon: "" },
+  { to: "/coach", label: "nav.coach", icon: "" },
+  { to: "/knowledge", label: "nav.knowledge", icon: "" },
+  { to: "/bm2", label: "nav.bm2", icon: "" },
+  { to: "/calendar", label: "nav.calendar", icon: "" },
+  { to: "/granfondo", label: "nav.granfondo", icon: "" },
+  { to: "/map", label: "nav.maps", icon: "" },
+  { to: "/aethermap", label: "nav.aethermap", icon: "" },
+  { to: "/pois", label: "nav.pois", icon: "" },
+  { to: "/heatmap", label: "nav.heatmap", icon: "" },
+  { to: "/badges", label: "nav.badges", icon: "" },
+  { to: "/metabolism", label: "nav.metabolism", icon: "" },
+  { to: "/performance", label: "nav.performance", icon: "" },
+  { to: "/comparison", label: "nav.comparison", icon: "" },
+  { to: "/weather", label: "nav.weather", icon: "" },
 ];
 
 const tabsRef = ref(null);
@@ -335,7 +335,7 @@ onUnmounted(() => {
 }
 
 .logout-btn::before {
-  content: "🚪";
+  content: "";
 }
 
 .logout-btn:hover {

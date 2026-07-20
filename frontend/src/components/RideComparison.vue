@@ -4,7 +4,7 @@
 <template>
   <section class="comparison-panel">
     <div class="panel">
-      <h2>⚖️ Confronto Uscite</h2>
+      <h2> Confronto Uscite</h2>
 
       <div class="select-row">
         <div class="select-group">
@@ -81,13 +81,13 @@ v-if="comparison.deltas[m.key] !== 0" class="comp-delta"
         <div
 v-if="verdict" class="verdict"
 >
-          <span class="verdict-icon">🏆</span>
+          <span class="verdict-icon"></span>
           <span>{{ verdict }}</span>
         </div>
       </div>
 
       <div v-else class="empty-state">
-        <div class="empty-icon">⚖️</div>
+        <div class="empty-icon"></div>
         <div class="empty-title">Seleziona due uscite per confrontarle</div>
         <div class="empty-desc">
           Scegli dall'elenco le uscite che vuoi analizzare a confronto.

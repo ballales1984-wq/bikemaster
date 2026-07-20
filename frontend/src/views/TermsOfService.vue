@@ -156,7 +156,7 @@
 
     <div class="cta-section">
       <RouterLink to="/" class="btn btn-primary">
-        🏠 Torna all'Accedi
+         Torna all'Accedi
       </RouterLink>
     </div>
   </div>

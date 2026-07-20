@@ -7,20 +7,20 @@
 <template>
   <div class="contact-page">
     <div class="contact-header">
-      <h1>📬 Contattaci</h1>
+      <h1> Contattaci</h1>
       <p class="subtitle">Hai domande, suggerimenti o vuoi collaborare?</p>
     </div>
 
     <div class="contact-info-grid">
       <div class="info-card">
-        <h3>📧 Email</h3>
+        <h3> Email</h3>
         <p>
           <a href="mailto:support@bikemaster.app">support@bikemaster.app</a>
         </p>
         <p class="text-muted">Supporto tecnico e informazioni generali</p>
       </div>
       <div class="info-card">
-        <h3>🔒 Privacy</h3>
+        <h3> Privacy</h3>
         <p>
           <a href="mailto:privacy@bikemaster.app">privacy@bikemaster.app</a>
         </p>
@@ -29,7 +29,7 @@
         </p>
       </div>
       <div class="info-card">
-        <h3>🐙 GitHub</h3>
+        <h3> GitHub</h3>
         <p>
           <a
             href="https://github.com/ballales1984-wq/bikemaster"
@@ -48,22 +48,22 @@
       <div class="links-grid">
         <RouterLink
 to="/privacy" class="link-card">
-          <span class="link-icon">🔒</span>
+          <span class="link-icon"></span>
           <span>Privacy Policy</span>
         </RouterLink>
         <RouterLink
 to="/terms" class="link-card">
-          <span class="link-icon">📜</span>
+          <span class="link-icon"></span>
           <span>Termini di Servizio</span>
         </RouterLink>
         <RouterLink
 to="/cookies" class="link-card">
-          <span class="link-icon">🍪</span>
+          <span class="link-icon"></span>
           <span>Cookie Policy</span>
         </RouterLink>
         <RouterLink
 to="/about" class="link-card">
-          <span class="link-icon">🚴</span>
+          <span class="link-icon"></span>
           <span>Chi Siamo</span>
         </RouterLink>
       </div>
@@ -71,7 +71,7 @@ to="/about" class="link-card">
 
     <div class="login-cta">
       <RouterLink to="/" class="btn btn-primary">
-        🏠 Accedi a BikeMaster
+         Accedi a BikeMaster
       </RouterLink>
     </div>
   </div>

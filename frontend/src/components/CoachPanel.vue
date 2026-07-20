@@ -5,11 +5,11 @@
   <div class="coach-panel">
     <div class="coach-header">
       <div class="coach-title">
-        <span class="coach-avatar">🧠</span>
+        <span class="coach-avatar"></span>
         <div>
           <h2>{{ t("coach.title") }}</h2>
           <span class="coach-status">{{
-            connected ? "🟢 " + t("coach.online") : "⚪ " + t("coach.offline")
+            connected ? " " + t("coach.online") : " " + t("coach.offline")
           }}</span>
         </div>
       </div>
@@ -21,7 +21,7 @@
           :aria-label="t('coach.report')"
           @click="loadFullReport"
         >
-          {{ loadingReport ? "⏳" : "📊" }} {{ t("coach.report") }}
+          {{ loadingReport ? "⏳" : "" }} {{ t("coach.report") }}
         </button>
         <button
           class="btn btn-sm btn-secondary"
@@ -29,7 +29,7 @@
           :aria-label="t('coach.clear')"
           @click="clearChat"
         >
-          🗑️
+          
         </button>
       </div>
     </div>
@@ -57,7 +57,7 @@ ref="chatWindow" class="chat-window"
       <div
 v-if="messages.length === 0" class="message bot-msg"
 >
-        <div class="msg-avatar">🧠</div>
+        <div class="msg-avatar"></div>
         <div class="msg-content">
           <div class="msg-bubble">
             {{ t("coach.welcome") }}
@@ -83,7 +83,7 @@ v-if="messages.length === 0" class="message bot-msg"
         :class="msg.role === 'user' ? 'user-msg' : 'bot-msg'"
       >
         <div class="msg-avatar">
-          {{ msg.role === "user" ? "🚴" : "🧠" }}
+          {{ msg.role === "user" ? "" : "" }}
         </div>
         <div class="msg-content">
           <div class="msg-bubble"
@@ -98,7 +98,7 @@ v-html="formatMsg(msg.content)" />
       <div
 v-if="thinking" class="message bot-msg"
 >
-        <div class="msg-avatar">🧠</div>
+        <div class="msg-avatar"></div>
         <div class="msg-content">
           <div class="msg-bubble typing-bubble">
             <span class="dot" /><span class="dot" /><span class="dot" />
@@ -129,8 +129,8 @@ v-if="thinking" class="message bot-msg"
         :aria-label="isListening ? 'Stop listening' : 'Voice input'"
         @click="toggleVoice"
       >
-        <span v-if="!isListening">🎤</span>
-        <span v-else>⏹️</span>
+        <span v-if="!isListening"></span>
+        <span v-else>⏹</span>
       </button>
       <button
         v-if="ttsSupported"
@@ -140,14 +140,14 @@ v-if="thinking" class="message bot-msg"
         :aria-label="autoRead ? 'Disable voice' : 'Enable voice'"
         @click="toggleAutoRead"
       >
-        <span>{{ autoRead ? "🔊" : "🔇" }}</span>
+        <span>{{ autoRead ? "" : "" }}</span>
       </button>
       <button
         class="send-btn"
         :disabled="!userInput.trim() || thinking"
         @click="sendMessage"
       >
-        <span v-if="!thinking">➤</span>
+        <span v-if="!thinking"></span>
         <span
           v-else
           class="spinner"
@@ -208,10 +208,10 @@ const coachData = ref<CoachData | null>(null);
 const athleteId = ref<number | null>(null);
 
 const quickQuestions = [
-  "💪 Prossimo allenamento consigliato",
-  "😴 Quanto recupero mi serve?",
-  "📈 Analizza le mie ultime uscite",
-  "🎯 Come aumentare il FTP?",
+  " Prossimo allenamento consigliato",
+  " Quanto recupero mi serve?",
+  " Analizza le mie ultime uscite",
+  " Come aumentare il FTP?",
 ];
 
 const scores = computed<ScoreItem[]>(() => {
@@ -355,7 +355,7 @@ async function sendMessage() {
     messages.value.push({
       role: "assistant",
       content:
-        "⚠️ Errore nella risposta. Verifica la configurazione di GROQ_API_KEY nel backend.",
+        " Errore nella risposta. Verifica la configurazione di GROQ_API_KEY nel backend.",
       time: getTime(),
     });
     connected.value = false;
@@ -381,7 +381,7 @@ async function loadFullReport() {
     if (data.training_advice) {
       messages.value.push({
         role: "assistant",
-        content: `**📊 Report Completo**\n\n**Allenamento:**\n${data.training_advice}\n\n**Recupero:**\n${data.recovery_advice || "—"}`,
+        content: `** Report Completo**\n\n**Allenamento:**\n${data.training_advice}\n\n**Recupero:**\n${data.recovery_advice || "—"}`,
         time: getTime(),
       });
       await scrollToBottom();

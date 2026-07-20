@@ -7,7 +7,7 @@
 -->
 <template>
   <div class="settings-page">
-    <h1>⚙️ Impostazioni backend</h1>
+    <h1> Impostazioni backend</h1>
     <p class="subtitle">
       Configura dove l'app risiede i dati. Di default chiama lo stesso origine;
       su dispositivi/Web punta al tuo PC. Render resta come failover.
@@ -75,7 +75,7 @@
               :title="'Rimuovi ' + field.label"
               @click="clearKey(field.name)"
             >
-              ✕
+              
             </button>
           </div>
         </label>
@@ -244,7 +244,7 @@ async function ping() {
   statusClass.value = "";
   try {
     await apiGet("/api/v1/health", {}, { timeoutMs: 8000 });
-    statusText.value = "Backend raggiungibile ✓";
+    statusText.value = "Backend raggiungibile ";
     statusClass.value = "ok";
   } catch (err) {
     statusText.value = `Backend non raggiungibile: ${(err as Error).message}`;

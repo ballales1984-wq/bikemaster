@@ -1,15 +1,15 @@
-"""BikeMaster 2.0 - Simulation Engine (domande "what if").
+"""BikeMaster 2.0 - Simulation Engine ("what if" questions).
 
-Permette di modificare uno scenario (es. "peso -5 kg", "cambio bici",
-"pendenza +2%") e ricalcolare gli algoritmi per confrontare prima/dopo.
+Allows modifying a scenario (e.g. "weight -5 kg", "bike change",
+"slope +2%") and recalculating algorithms to compare before/after.
 
-Estensioni rispetto alla versione base:
-    * preset di scenario predefiniti (``ScenarioPresets``);
-    * analisi di sensitività ``SimulationEngine.sensitivity``;
-    * override multi-parametrici combinati (già supportati da
-      ``ScenarioOverride``) e metodo leggibile ``SimulationComparison.summary``;
-    * helper ``parse_override_from_text`` per estrarre un override dal testo
-      (riusabile dall'orchestrator al posto della regex inline).
+Extensions over the base version:
+    * predefined scenario presets (``ScenarioPresets``);
+    * sensitivity analysis ``SimulationEngine.sensitivity``;
+    * combined multi-parameter overrides (already supported by
+      ``ScenarioOverride``) and readable method ``SimulationComparison.summary``;
+    * ``parse_override_from_text`` helper to extract an override from text
+      (reusable by the orchestrator instead of inline regex).
 """
 
 from __future__ import annotations
@@ -36,11 +36,11 @@ __all__ = [
 
 @dataclass
 class ScenarioOverride:
-    """Modifiche da applicare a un contesto per simulare uno scenario.
+    """Changes to apply to a context to simulate a scenario.
 
-    Tutti i campi sono combinabili: un singolo override può variare peso
-    atleta, peso bici, pendenza, CdA e livello di esperienza contemporaneamente
-    (override multi-parametrico).
+    All fields are combinable: a single override can change athlete
+    weight, bike weight, slope, CdA and experience level simultaneously
+    (multi-parameter override).
     """
 
     athlete_weight_delta_kg: float = 0.0
@@ -52,12 +52,12 @@ class ScenarioOverride:
 
 @dataclass
 class SimulationComparison:
-    """Confronto quantitativo tra risultati baseline e risultati scenario.
+    """Quantitative comparison between baseline and scenario results.
 
     Attributes:
-        baseline: Risultati degli algoritmi sul contesto originale.
-        scenario: Risultati degli algoritmi sul contesto modificato.
-        deltas: Dizionario nome_algoritmo -> differenza (scenario - baseline).
+        baseline: Algorithm results on the original context.
+        scenario: Algorithm results on the modified context.
+        deltas: Algorithm name -> difference (scenario - baseline).
     """
 
     baseline: dict[str, ModelResult]
@@ -72,7 +72,7 @@ class SimulationComparison:
         }
 
     def summary(self) -> str:
-        """Rappresentazione leggibile del confronto baseline -> scenario."""
+        """Readable representation of the baseline -> scenario comparison."""
         lines: list[str] = []
         for name in self.baseline:
             base = self.baseline[name]
@@ -89,7 +89,7 @@ class SimulationComparison:
 
 @dataclass
 class ScenarioPresets:
-    """Preset di scenario predefiniti, espressi come ``ScenarioOverride``."""
+    """Predefined scenario presets, expressed as ``ScenarioOverride``."""
 
     PRESETS: ClassVar[dict[str, ScenarioOverride]] = {
         "race": ScenarioOverride(
@@ -117,28 +117,28 @@ class ScenarioPresets:
     def get(cls, name: str) -> ScenarioOverride:
         if name not in cls.PRESETS:
             raise KeyError(
-                f"preset sconosciuto {name!r}; disponibili: {cls.names()}"
+                f"unknown preset {name!r}; available: {cls.names()}"
             )
         return deepcopy(cls.PRESETS[name])
 
     @classmethod
     def build(cls, name: str, **overrides: float | str) -> ScenarioOverride:
-        """Restituisce una copia del preset ``name`` con campi sovrascritti."""
+        """Returns a copy of preset ``name`` with overridden fields."""
         ov = cls.get(name)
         for key, value in overrides.items():
             if not hasattr(ov, key):
-                raise AttributeError(f"campo ScenarioOverride sconosciuto: {key!r}")
+                raise AttributeError(f"unknown ScenarioOverride field: {key!r}")
             setattr(ov, key, value)
         return ov
 
 
 @dataclass
 class SensitivityPoint:
-    """Punto singolo di un'analisi di sensitivita'.
+    """Single point of a sensitivity analysis.
 
     Attributes:
-        param_value: Valore del parametro testato in questo punto.
-        results: Dizionario nome_algoritmo -> valore del risultato scenario.
+        param_value: Value of the tested parameter at this point.
+        results: Algorithm name -> scenario result value.
     """
 
     param_value: float
@@ -147,7 +147,7 @@ class SensitivityPoint:
 
 @dataclass
 class SensitivityResult:
-    """Curva di risposta di uno o piu' algoritmi al variare di un parametro."""
+    """Response curve of one or more algorithms as a parameter varies."""
 
     param: str
     values: list[float]
@@ -182,13 +182,13 @@ _PARAM_ALIASES = {
 
 
 def parse_override_from_text(text: str) -> ScenarioOverride:
-    """Estrae un ``ScenarioOverride`` dal testo di una domanda.
+    """Extracts a ``ScenarioOverride`` from question text.
 
-    Riconosce: delta di peso (``-5 kg`` / ``bici -2 kg``), delta di pendenza
-    (``+2%``), override CdA (``cda 0.3`` / ``cda=0.3``) ed esperienza
-    (``experience Elite``). L'orchestrator puo' usare questo helper al posto
-    della regex inline per coprire piu' casi (peso bici, CdA, pendenza) con un
-    unico punto di estrazione documentato.
+    Recognizes: weight delta (``-5 kg`` / ``bike -2 kg``), slope delta
+    (``+2%``), CdA override (``cda 0.3`` / ``cda=0.3``) and experience
+    (``experience Elite``). The orchestrator can use this helper instead of
+    inline regex to cover more cases (bike weight, CdA, slope) with a
+    single documented extraction point.
     """
     ov = ScenarioOverride()
     t = text.lower()
@@ -217,36 +217,36 @@ def parse_override_from_text(text: str) -> ScenarioOverride:
 
 
 class SimulationEngine:
-    """Motore di simulazione che applica override di scenario e confronta algoritmi.
+    """Simulation engine that applies scenario overrides and compares algorithms.
 
-    Riceve una lista di classi Algorithm; per ciascuna esegue il run su baseline
-    e su scenario, producendo un ``SimulationComparison`` con deltas.
+    Receives a list of Algorithm classes; for each it runs on baseline
+    and on scenario, producing a ``SimulationComparison`` with deltas.
 
     Attributes:
-        algorithms: Lista di classi Algorithm da eseguire in ogni confronto.
+        algorithms: List of Algorithm classes to execute in each comparison.
     """
 
     def __init__(self, algorithms: Optional[list[type[Algorithm]]] = None) -> None:
-        """Inizializza il motore con la lista di algoritmi da usare.
+        """Initialize the engine with the list of algorithms to use.
 
         Args:
-            algorithms: Classi Algorithm da registrare. Se None, usa lista vuota.
+            algorithms: Algorithm classes to register. If None, uses empty list.
         """
         self.algorithms = algorithms or []
 
     def _apply(self, ctx: AnalysisContext, ov: ScenarioOverride) -> AnalysisContext:
-        """Applica un override allo scenario producendo un nuovo contesto deep-copiato.
+        """Applies an override to the scenario producing a new deep-copied context.
 
-        Modifica peso atleta, peso bici, pendenza e/o CdA secondo l'override,
-        poi adegua le altitudini della traccia GPS per rendere effettivo il delta
-        di pendenza (gli algoritmi leggono la pendenza dalla traccia, non da world).
+        Modifies athlete weight, bike weight, slope and/or CdA per the override,
+        then adjusts GPS track altitudes to make the slope delta effective
+        (algorithms read slope from the track, not from world).
 
         Args:
-            ctx: Contesto di analisi originale (non modificato).
-            ov: Override di scenario da applicare.
+            ctx: Original analysis context (not modified).
+            ov: Scenario override to apply.
 
         Returns:
-            Nuovo AnalysisContext con i parametri modificati.
+            New AnalysisContext with modified parameters.
         """
         new = deepcopy(ctx)
         if ov.athlete_weight_delta_kg:
@@ -284,13 +284,13 @@ class SimulationEngine:
                 avg_slope_percent=None, wind_speed_ms=new.world.wind_speed_ms,
                 temperature_c=new.world.temperature_c,
             )
-        # Gli algoritmi ricavano la pendenza dalla traccia GPS (activity.metrics),
-        # non da world: per rendere effettivo il delta di pendenza adeguiamo le
-        # altitudini dei punti in modo progressivo lungo la distanza orizzontale.
+        # Algorithms derive slope from the GPS track (activity.metrics),
+        # not from world: to make the slope delta effective we adjust track
+        # altitudes progressively along horizontal distance.
         if ov.slope_delta_percent:
             self._apply_slope_to_track(new, ov.slope_delta_percent)
-        # Override CdA senza cambio peso bici (i rami sopra lo applicano gia'
-        # quando bike_weight_delta_kg e' impostato).
+        # CdA override without bike weight change (the branches above already
+        # apply it when bike_weight_delta_kg is set).
         if ov.cda_override is not None and not ov.bike_weight_delta_kg \
                 and new.bike.cda != ov.cda_override:
             new.bike = Bike(
@@ -304,11 +304,11 @@ class SimulationEngine:
 
     @staticmethod
     def _apply_slope_to_track(ctx: AnalysisContext, delta_percent: float) -> None:
-        """Aggiunge ``delta_percent`` alla pendenza media alzando le altitudini.
+        """Adds ``delta_percent`` to average slope by raising altitudes.
 
-        L'incremento di quota applicato a ogni punto e' proporzionale alla
-        distanza orizzontale cumulata dall'inizio della traccia, cosi' la
-        pendenza media (net/run) aumenta esattamente di ``delta_percent``.
+        The elevation increment applied to each point is proportional to the
+        cumulative horizontal distance from the start of the track, so the
+        average slope (net/run) increases exactly by ``delta_percent``.
         """
         pts = ctx.activity.points
         if len(pts) < 2:
@@ -328,15 +328,15 @@ class SimulationEngine:
 
     def compare(self, ctx: AnalysisContext, override: ScenarioOverride,
                 extra: Optional[dict] = None) -> SimulationComparison:
-        """Esegue tutti gli algoritmi su baseline e scenario e calcola i deltas.
+        """Runs all algorithms on baseline and scenario and calculates deltas.
 
         Args:
-            ctx: Contesto di analisi originale (non modificato).
-            override: Override di scenario da applicare.
-            extra: Dati aggiuntivi passati a ogni Algorithm.run().
+            ctx: Original analysis context (not modified).
+            override: Scenario override to apply.
+            extra: Additional data passed to each Algorithm.run().
 
         Returns:
-            SimulationComparison con baseline, scenario e deltas per ogni algoritmo.
+            SimulationComparison with baseline, scenario and deltas per algorithm.
         """
         baseline_res: dict[str, ModelResult] = {}
         scenario_res: dict[str, ModelResult] = {}
@@ -351,30 +351,30 @@ class SimulationEngine:
 
     def compare_preset(self, ctx: AnalysisContext, preset_name: str,
                        extra: Optional[dict] = None) -> SimulationComparison:
-        """Confronta il contesto con uno scenario predefinito."""
+        """Compares the context with a predefined scenario."""
         return self.compare(ctx, ScenarioPresets.get(preset_name), extra)
 
     def _override_for_param(self, param: str, value: object) -> ScenarioOverride:
-        """Crea uno ScenarioOverride per un singolo parametro di sensitivita'.
+        """Creates a ScenarioOverride for a single sensitivity parameter.
 
-        Risolve l'alias del parametro tramite ``_PARAM_ALIASES`` e imposta
-        il valore corrispondente.
+        Resolves the parameter alias via ``_PARAM_ALIASES`` and sets the
+        corresponding value.
 
         Args:
-            param: Nome del parametro (es. ``"athlete_weight"``, ``"slope"``).
-            value: Valore da assegnare al parametro.
+            param: Parameter name (e.g. ``"athlete_weight"``, ``"slope"``).
+            value: Value to assign to the parameter.
 
         Returns:
-            ScenarioOverride con un solo campo impostato.
+            ScenarioOverride with a single field set.
 
         Raises:
-            ValueError: Se il parametro non e' un alias riconosciuto.
+            ValueError: If the parameter is not a recognized alias.
         """
         key = _PARAM_ALIASES.get(param.lower())
         if key is None:
             raise ValueError(
-                f"parametro di sensitivita' sconosciuto {param!r}; "
-                f"disponibili: {sorted(_PARAM_ALIASES)}"
+                f"unknown sensitivity parameter {param!r}; "
+                f"available: {sorted(_PARAM_ALIASES)}"
             )
         ov = ScenarioOverride()
         setattr(ov, key, value)
@@ -382,13 +382,13 @@ class SimulationEngine:
 
     def sensitivity(self, ctx: AnalysisContext, param: str, values: list,
                     extra: Optional[dict] = None) -> SensitivityResult:
-        """Curva di risposta degli algoritmi al variare di ``param``.
+        """Response curve of algorithms as ``param`` varies.
 
-        ``param`` puo' essere un qualsiasi alias in ``_PARAM_ALIASES`` (es.
+        ``param`` can be any alias in ``_PARAM_ALIASES`` (e.g.
         ``"athlete_weight"``, ``"slope"``, ``"cda"``, ``"experience"``).
-        ``values`` e' la lista dei valori da testare. Restituisce un
-        ``SensitivityResult`` con, per ogni valore, i risultati di scenario di
-        tutti gli algoritmi registrati.
+        ``values`` is the list of values to test. Returns a
+        ``SensitivityResult`` with, for each value, the scenario results of
+        all registered algorithms.
         """
         result = SensitivityResult(param=param, values=list(values))
         for v in values:

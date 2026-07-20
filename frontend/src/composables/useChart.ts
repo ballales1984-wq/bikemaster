@@ -1,9 +1,9 @@
 /**
- * Wrapper reattivo e consapevole del tema per istanze Chart.js.
- * Ricrea il grafico al cambio profondo della `config`, applica il re-theme
- * (chiaro/scuro) e osserva il resize del contenitore; distrugge l'istanza
- * allo smontaggio per evitare perdite di canvas/context. Espone `canvas`,
- * `chart` e `render`.
+ * Reactive, theme-aware wrapper around Chart.js instances.
+ * Recreates the chart on deep changes of `config`, applies the re-theme
+ * (light/dark) and observes the container resize; destroys the instance
+ * on unmount to avoid canvas/context leaks. Exposes `canvas`,
+ * `chart` and `render`.
  */
 import {
   onBeforeUnmount,

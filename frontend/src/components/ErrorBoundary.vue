@@ -14,7 +14,7 @@ tabindex="-1"
 >
     <div class="error-boundary-content">
       <div
-class="error-boundary-icon" aria-hidden="true">⚠️</div>
+class="error-boundary-icon" aria-hidden="true"></div>
       <h2 id="error-title"
 class="error-boundary-title">
         Something went wrong
@@ -29,7 +29,7 @@ class="error-boundary-message" aria-describedby="error-title"
         aria-label="Try again"
         @click="resetError"
       >
-        🔄 Try Again
+         Try Again
       </button>
     </div>
   </div>

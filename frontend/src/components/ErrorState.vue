@@ -1,8 +1,8 @@
 <!-- Stato di errore riutilizzabile: messaggio di errore con icona, titolo, descrizione e pulsante "Retry" opzionale.
-     Props: title, message, showRetry (default true). Eventi: retry (click sul pulsante). UI: icona ⚠️, testo centrato e bottone primario. -->
+     Props: title, message, showRetry (default true). Eventi: retry (click sul pulsante). UI: icona , testo centrato e bottone primario. -->
 <template>
   <div class="error-state">
-    <div class="error-icon">⚠️</div>
+    <div class="error-icon"></div>
     <div class="error-title">
       {{ title }}
     </div>
@@ -14,7 +14,7 @@
       class="btn btn-primary retry-btn"
       @click="$emit('retry')"
     >
-      🔄 Retry
+       Retry
     </button>
   </div>
 </template>

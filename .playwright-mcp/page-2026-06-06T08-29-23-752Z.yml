@@ -1,6 +1,6 @@
 - generic [ref=e2]:
   - banner [ref=e3]:
-    - heading "🚴 AI Coach" [level=1] [ref=e4]
+    - heading " AI Coach" [level=1] [ref=e4]
     - paragraph [ref=e5]: Analisi intelligente delle tue prestazioni ciclistiche
   - link "← Torna alla Dashboard" [ref=e6] [cursor=pointer]:
     - /url: /
@@ -10,7 +10,7 @@
     - button "Grafici" [ref=e10] [cursor=pointer]
   - generic [ref=e11]:
     - generic [ref=e12]:
-      - heading "💡 Consigli di Allenamento" [level=2] [ref=e13]
+      - heading " Consigli di Allenamento" [level=2] [ref=e13]
       - list
-    - heading "📊 Analisi Storica" [level=2] [ref=e15]
+    - heading " Analisi Storica" [level=2] [ref=e15]
   - button "Aggiorna Dati" [ref=e17] [cursor=pointer]

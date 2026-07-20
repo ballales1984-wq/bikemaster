@@ -1,8 +1,8 @@
-"""BikeMaster 2.0 - Knowledge Engine (numeri -> concetti).
+"""BikeMaster 2.0 - Knowledge Engine (numbers -> concepts).
 
-Trasforma i risultati grezzi degli algoritmi in concetti comprensibili,
-es. "Salita impegnativa - richiede alta capacità aerobica". Non calcola:
-classifica e spiega.
+Transforms raw algorithm results into understandable concepts,
+e.g. "Challenging climb - requires high aerobic capacity". Does not calculate:
+it classifies and explains.
 """
 
 from __future__ import annotations
@@ -17,12 +17,12 @@ __all__ = ["Insight", "KnowledgeEngine"]
 
 @dataclass
 class Insight:
-    """Concetto ciclistico generato a partire dai risultati degli algoritmi.
+    """Cycling concept generated from algorithm results.
 
     Attributes:
-        concept: Etichetta breve del concetto (es. ``"Percorso: Impegnativo"``).
-        detail: Dettaglio numerico o descrittivo.
-        severity: Livello di gravita' (``"info"``, ``"note"``,
+        concept: Short concept label (e.g. ``"Route: Challenging"``).
+        detail: Numeric or descriptive detail.
+        severity: Severity level (``"info"``, ``"note"``,
             ``"warning"``, ``"critical"``).
     """
 
@@ -35,23 +35,23 @@ class Insight:
 
 
 class KnowledgeEngine:
-    """Trasforma i risultati grezzi degli algoritmi in insight comprensibili.
+    """Transforms raw algorithm results into understandable insights.
 
-    Per ogni algoritmo produce un ``Insight`` che classifica e spiega il
-    risultato in linguaggio naturale, con severity adattiva.
+    For each algorithm it produces an ``Insight`` that classifies and explains the
+    result in natural language, with adaptive severity.
 
-    Gli insight generati coprono: difficolta' percorso, fatica, performance,
-    recupero e nutrizione.
+    Generated insights cover: route difficulty, fatigue, performance,
+    recovery and nutrition.
     """
 
     def explain(self, results: dict[str, ModelResult]) -> list[Insight]:
-        """Genera insight da tutti i risultati degli algoritmi.
+        """Generates insights from all algorithm results.
 
         Args:
-            results: Dizionario nome_algoritmo -> ModelResult.
+            results: Dictionary of algorithm_name -> ModelResult.
 
         Returns:
-            Lista di ``Insight`` ordinati per categoria (route, fatigue,
+            List of ``Insight`` sorted by category (route, fatigue,
             performance, recovery, nutrition).
         """
         insights: list[Insight] = []
@@ -63,119 +63,119 @@ class KnowledgeEngine:
         return insights
 
     def _get(self, results: dict[str, ModelResult], name: str) -> Optional[ModelResult]:
-        """Helper per estrarre un ModelResult per nome algoritmo.
+        """Helper to extract a ModelResult by algorithm name.
 
         Args:
-            results: Dizionario dei risultati.
-            name: Nome dell'algoritmo da cercare.
+            results: Dictionary of results.
+            name: Name of the algorithm to look up.
 
         Returns:
-            ModelResult se trovato, altrimenti None.
+            ModelResult if found, otherwise None.
         """
         return results.get(name)
 
     def _route_insights(self, results: dict[str, ModelResult]) -> list[Insight]:
-        """Genera insight sulla difficolta' del percorso.
+        """Generates insights on route difficulty.
 
-        Legge il ``RouteDifficultyModel`` e assegna severity ``"warning"``
-        se la categoria e' ``"Impegnativo"`` o ``"Estremo"``.
+        Reads the ``RouteDifficultyModel`` and assigns severity ``"warning"``
+        if the category is ``"Challenging"`` or ``"Extreme"``.
 
         Args:
-            results: Dizionario dei risultati degli algoritmi.
+            results: Dictionary of algorithm results.
 
         Returns:
-            Lista con un ``Insight`` o vuota se il modello e' assente.
+            List with one ``Insight`` or empty if the model is absent.
         """
         r = self._get(results, "RouteDifficultyModel")
         if not r:
             return []
-        cat = r.details.get("category", "Sconosciuta")
+        cat = r.details.get("category", "Unknown")
         sev = "info"
-        if cat in ("Impegnativo", "Estremo"):
+        if cat in ("Challenging", "Extreme"):
             sev = "warning"
         return [Insight(
-            concept=f"Percorso: {cat}",
-            detail=f"Difficoltà {r.value:.0f}/100 - superficie {r.details.get('surface')}",
+            concept=f"Route: {cat}",
+            detail=f"Difficulty {r.value:.0f}/100 - surface {r.details.get('surface')}",
             severity=sev,
         )]
 
     def _fatigue_insights(self, results: dict[str, ModelResult]) -> list[Insight]:
-        """Genera insight sul livello di fatica stimato.
+        """Generates insights on estimated fatigue level.
 
-        Severity ``"warning"`` se fatica >= 6/10.
+        Severity ``"warning"`` if fatigue >= 6/10.
 
         Args:
-            results: Dizionario dei risultati degli algoritmi.
+            results: Dictionary of algorithm results.
 
         Returns:
-            Lista con un ``Insight`` o vuota se il modello e' assente.
+            List with one ``Insight`` or empty if the model is absent.
         """
         r = self._get(results, "FatigueModel")
         if not r:
             return []
         rec = r.details.get("recommendation", "")
         sev = "warning" if r.value >= 6 else "info"
-        return [Insight(concept=f"Fatica {r.value:.1f}/10", detail=rec, severity=sev)]
+        return [Insight(concept=f"Fatigue {r.value:.1f}/10", detail=rec, severity=sev)]
 
     def _performance_insights(self, results: dict[str, ModelResult]) -> list[Insight]:
-        """Genera insight sulla performance dell'atleta.
+        """Generates insights on athlete performance.
 
-        Confronta velocita' media con velocita' di riferimento.
+        Compares average speed with reference speed.
 
         Args:
-            results: Dizionario dei risultati degli algoritmi.
+            results: Dictionary of algorithm results.
 
         Returns:
-            Lista con un ``Insight`` o vuota se il modello e' assente.
+            List with one ``Insight`` or empty if the model is absent.
         """
         r = self._get(results, "PerformanceModel")
         if not r:
             return []
         return [Insight(
-            concept=f"Prestazione {r.value:.0f}/100",
-            detail=f"Velocità media {r.details.get('avg_speed_kmh', 0):.1f} km/h "
-                   f"(riferimento {r.details.get('reference_speed_kmh', 0):.0f})",
+            concept=f"Performance {r.value:.0f}/100",
+            detail=f"Avg speed {r.details.get('avg_speed_kmh', 0):.1f} km/h "
+                   f"(reference {r.details.get('reference_speed_kmh', 0):.0f})",
             severity="info",
         )]
 
     def _recovery_insights(self, results: dict[str, ModelResult]) -> list[Insight]:
-        """Genera insight sulla prontenza al recupero.
+        """Generates insights on recovery readiness.
 
-        Severity ``"warning"`` se prontenza < 40/100.
+        Severity ``"warning"`` if readiness < 40/100.
 
         Args:
-            results: Dizionario dei risultati degli algoritmi.
+            results: Dictionary of algorithm results.
 
         Returns:
-            Lista con un ``Insight`` o vuota se il modello e' assente.
+            List with one ``Insight`` or empty if the model is absent.
         """
         r = self._get(results, "RecoveryModel")
         if not r:
             return []
         sev = "warning" if r.value < 40 else "info"
         return [Insight(
-            concept=f"Prontenza {r.value:.0f}/100",
-            detail=f"Recupero stimato {r.details.get('recovery_hours', 0):.0f} h",
+            concept=f"Readiness {r.value:.0f}/100",
+            detail=f"Estimated recovery {r.details.get('recovery_hours', 0):.0f} h",
             severity=sev,
         )]
 
     def _nutrition_insights(self, results: dict[str, ModelResult]) -> list[Insight]:
-        """Genera insight sui fabbisogni nutrizionali stimati.
+        """Generates insights on estimated nutritional needs.
 
         Args:
-            results: Dizionario dei risultati degli algoritmi.
+            results: Dictionary of algorithm results.
 
         Returns:
-            Lista con un ``Insight`` o vuota se il modello e' assente.
+            List with one ``Insight`` or empty if the model is absent.
         """
         r = self._get(results, "NutritionModel")
         if not r:
             return []
         d = r.details
         return [Insight(
-            concept="Nutrizione",
-            detail=f"{d.get('carbs_g', 0):.0f} g carboidrati, "
-                   f"{d.get('water_L', 0):.1f} L acqua, "
-                   f"{d.get('protein_g', 0):.0f} g proteine",
+            concept="Nutrition",
+            detail=f"{d.get('carbs_g', 0):.0f} g carbs, "
+                   f"{d.get('water_L', 0):.1f} L water, "
+                   f"{d.get('protein_g', 0):.0f} g protein",
             severity="info",
         )]
