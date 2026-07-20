@@ -135,30 +135,31 @@ async def estimate_ftp(
 @performance_router.post("/ride/{ride_id}/compute")
 async def compute_ride_metrics(
     ride_id: int,
+    athlete_id: int | None = None,
     current_user: dict = Depends(get_current_user),
 ) -> dict:
     """Ricalcola e persiste le metriche di potenza di una ride esistente.
 
     Usa lo stream di potenza dai gps_points della ride. Se l'atleta ha un FTP
     noto, lo usa per IF/TSS; altrimenti prova a stimarlo dalla ride.
-    Restituisce anche i margini di errore per ogni metrica.
+    Un admin puo' passare ``athlete_id`` per operare su un altro atleta.
     """
-    athlete_id = _current_athlete_id(current_user)
+    target = athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
     ride = get_ride(ride_id)
     if ride is None:
         raise HTTPException(status_code=404, detail="Ride non trovata")
-    _ensure_athlete_access(athlete_id, current_user)
-    if ride.get("athlete_id") != athlete_id and not current_user.get("is_admin"):
+    _ensure_athlete_access(target, current_user)
+    if ride.get("athlete_id") != target and not current_user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Access denied to this ride")
 
-    ftp = svc.get_latest_ftp(athlete_id)
-    result = svc.save_ride_performance(athlete_id, ride, ftp)
+    ftp = svc.get_latest_ftp(ride.get("athlete_id") or target)
+    result = svc.save_ride_performance(target, ride, ftp)
     if result is None:
         raise HTTPException(
             status_code=422,
             detail="Nessuno stream di potenza disponibile per questa ride",
         )
-    return result
+    return {"ride_id": ride_id, "metrics": result}
 
 
 @performance_router.post("/compute")

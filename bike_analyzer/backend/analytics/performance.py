@@ -10,11 +10,11 @@ from .error_propagation import ErrorValue, combine_errors_quadrature, propagate_
 
 
 def calculate_performance_score(ride: Ride) -> float:
-    """Punteggio di performance (0-10) di una singola uscita.
+    """Performance score (0-10) of a single ride.
 
-    Combina velocità (40%), durata (40%) e dislivello (20%) normalizzati su
-    soglie (30 km/h, 2 h, 500 m), poi scala su 10. Premia uscite veloci,
-    lunghe e con salite.
+    Combines speed (40%), duration (40%) and elevation (20%) normalized on
+    thresholds (30 km/h, 2 h, 500 m), then scaled to 10. Rewards fast,
+    long rides with climbs.
     """
     speed_factor = min(ride.avg_speed_kmh / 30.0, 1.0)
     duration_factor = min(ride.duration_hours / 2.0, 1.0)
@@ -23,10 +23,10 @@ def calculate_performance_score(ride: Ride) -> float:
 
 
 def calculate_endurance_score(rides: list[Ride]) -> float:
-    """Punteggio di resistenza (0-10) su tutto lo storico dell'atleta.
+    """Endurance score (0-10) over the athlete's entire history.
 
-    Peso: proporzione di uscite "lunghe" >=2h (40%), costanza nel numero di
-    uscite (30%, satura a 20) e volume totale (30%, satura a 500 km).
+    Weight: proportion of "long" rides >=2h (40%), consistency in the number
+    of rides (30%, saturates at 20) and total volume (30%, saturates at 500 km).
     """
     if not rides:
         return 0.0
@@ -39,16 +39,16 @@ def calculate_endurance_score(rides: list[Ride]) -> float:
 
 
 def calculate_recovery_score(ride: Ride) -> float:
-    """Punteggio di recupero (0-10): inverso della fatica della stessa uscita."""
+    """Recovery score (0-10): inverse of the fatigue of the same ride."""
     fatigue = calculate_fatigue_score(ride)
     return round(10.0 - fatigue, 1)
 
 
 def calculate_efficiency_score(ride: Ride) -> float:
-    """Efficienza energetica (0-10): quanto poco kcal/km rispetto al benchmark.
+    """Energy efficiency (0-10): how few kcal/km compared to the benchmark.
 
-    kcal/km sotto i 30 (benchmark) dà 10; sopra, decresce linearmente di 1 punto
-    ogni 5 kcal/km in eccesso (clamp a 0). Meno calorie per km = più efficiente.
+    kcal/km below 30 (benchmark) gives 10; above, it decreases linearly by 1 point
+    every 5 kcal/km in excess (clamp at 0). Fewer calories per km = more efficient.
     """
     if ride.distance_km <= 0:
         return 0.0
@@ -78,7 +78,7 @@ def calculate_monthly_scores(rides: list[Ride]) -> dict:
 
 
 def calculate_annual_scores(rides: list[Ride]) -> dict:
-    """Aggrega score annuali + totali (km, kcal, fatica media) sullo storico."""
+    """Aggregates annual scores + totals (km, kcal, avg fatigue) over the history."""
     if not rides:
         return {
             "performance": 0,
@@ -100,10 +100,10 @@ def calculate_annual_scores(rides: list[Ride]) -> dict:
 
 
 def classify_athlete(rides: list[Ride]) -> str:
-    """Classifica l'atleta per volume (km totali e n° uscite) in 5 livelli.
+    """Classifies the athlete by volume (total km and number of rides) into 5 levels.
 
-    Beginner → Amateur → Intermediate → Advanced → Elite, con soglie crescenti
-    su km e numero di uscite.
+    Beginner → Amateur → Intermediate → Advanced → Elite, with increasing
+    thresholds on km and number of rides.
     """
     if not rides:
         return "Unclassified"
@@ -121,22 +121,22 @@ def classify_athlete(rides: list[Ride]) -> str:
 
 
 def get_experience_level(athlete: AthleteProfile) -> str:
-    """Ritorna il livello di esperienza dichiarato nel profilo atleta."""
+    """Returns the experience level declared in the athlete profile."""
     return athlete.experience_level
 
 
 def should_save_to_database(points: list) -> bool:
-    """True se tutti i GPS point superano la validazione (coordinate + timestamp)."""
+    """True if all GPS points pass validation (coordinates + timestamp)."""
     from ..processing.processing import validate_gps_point
 
     return all(validate_gps_point(p) for p in points) if points else False
 
 
 def calculate_normalized_power(power_stream: list[float], rolling_s: int = 30) -> float | None:
-    """Normalized Power (NP): media della 4° potenza su finestra mobile 30s, alla 1/4.
+    """Normalized Power (NP): mean of the 4th power over a 30s rolling window, to the 1/4.
 
-    Richiede uno stream di potenza (W) campionato a 1 Hz. Se lo stream e' vuoto o
-    piatto (tutti i valori uguali), ritorna None perche' NP non e' definita.
+    Requires a power stream (W) sampled at 1 Hz. If the stream is empty or
+    flat (all equal values), returns None because NP is not defined.
     """
     result = calculate_normalized_power_with_error(power_stream, rolling_s)
     return result.value if result is not None else None
@@ -176,7 +176,7 @@ def calculate_normalized_power_with_error(power_stream: list[float], rolling_s: 
 
 
 def calculate_intensity_factor(normalized_power: float | None, ftp: float | None) -> float | None:
-    """Intensity Factor (IF): NP / FTP. None se FTP mancante o non valido."""
+    """Intensity Factor (IF): NP / FTP. None if FTP missing or invalid."""
     result = calculate_intensity_factor_with_error(normalized_power, ftp)
     return result.value if result is not None else None
 
@@ -187,7 +187,7 @@ def calculate_intensity_factor_with_error(
     np_error: ErrorValue | None = None,
     ftp_error: float = 0.0,
 ) -> ErrorValue | None:
-    """Intensity Factor con propagazione errore da NP e FTP."""
+    """Intensity Factor with error propagation from NP and FTP."""
     if not normalized_power or not ftp or ftp <= 0:
         return None
     if_value = normalized_power / ftp
@@ -211,7 +211,7 @@ def calculate_tss(
 ) -> float | None:
     """Training Stress Score: (sec * NP * IF) / (FTP * 3600) * 100.
 
-    ACCETTA l'IF pre-calcolato oppure lo deriva da NP/FTP. None se dati mancanti.
+    ACCEPTS pre-computed IF or derives it from NP/FTP. None if data missing.
     """
     result = calculate_tss_with_error(normalized_power, ftp, duration_seconds, intensity_factor)
     return result.value if result is not None else None
@@ -226,7 +226,7 @@ def calculate_tss_with_error(
     ftp_error: float = 0.0,
     duration_error: float = 0.0,
 ) -> ErrorValue | None:
-    """Training Stress Score con propagazione errore."""
+    """Training Stress Score with error propagation."""
     if duration_seconds is None or duration_seconds <= 0:
         return None
     if intensity_factor is None:
@@ -269,10 +269,10 @@ def estimate_ftp_from_test(
     test_duration_min: float = 20.0,
     ftp_fraction: float = 0.95,
 ) -> float | None:
-    """Stima FTP da un test di soglia.
+    """Estimate FTP from a threshold test.
 
-    Default: media potenza su 20 min * 0.95 (test standard 20-min FTP).
-    Per test da 60 min usare ftp_fraction=1.0; per 8 min usare ~0.90.
+    Default: average power over 20 min * 0.95 (standard 20-min FTP test).
+    For a 60 min test use ftp_fraction=1.0; for 8 min use ~0.90.
     """
     result = estimate_ftp_from_test_with_error(test_power, test_duration_min, ftp_fraction)
     return result.value if result is not None else None
@@ -303,10 +303,11 @@ def estimate_ftp_from_ride(
     duration_seconds: float | None = None,
     ftp_fraction: float = 0.95,
 ) -> float | None:
-    """Stima FTP da un'uscita: NP della power zone piu' lunga * frazione.
+    """Estimate FTP from a ride: NP of the longest power zone * fraction.
 
-    Euristica semplificata: usa la NP dell'intera uscita come proxy del test di
-    soglia e la scalai con ftp_fraction. Ritorna None se lo stream e' insufficiente.
+    Simplified heuristic: uses the NP of the entire ride as a proxy for the
+    threshold test and scales it with ftp_fraction. Returns None if the stream
+    is insufficient.
     """
     result = estimate_ftp_from_ride_with_error(power_stream, duration_seconds, ftp_fraction)
     return result.value if result is not None else None
@@ -317,7 +318,7 @@ def estimate_ftp_from_ride_with_error(
     duration_seconds: float | None = None,
     ftp_fraction: float = 0.95,
 ) -> ErrorValue | None:
-    """Stima FTP da uscita con margine di errore."""
+    """Estimate FTP from ride with error margin."""
     if not duration_seconds or duration_seconds < 600:
         return None
     np_error = calculate_normalized_power_with_error(power_stream)
@@ -338,10 +339,10 @@ def calculate_power_metrics(
     ftp: float | None,
     duration_seconds: float | None,
 ) -> dict:
-    """Aggrega tutti i metricatori di potenza per un'uscita in un unico dict.
+    """Aggregates all power metrics for a ride into a single dict.
 
-    Campi: average_power, normalized_power, intensity_factor, tss.
-    I campi non calcolabili sono None.
+    Fields: average_power, normalized_power, intensity_factor, tss.
+    Uncomputable fields are None.
     """
     result = calculate_power_metrics_with_error(power_stream, ftp, duration_seconds)
     return {
@@ -359,7 +360,7 @@ def calculate_power_metrics_with_error(
     ftp_error: float = 0.0,
     duration_error: float = 0.0,
 ) -> dict:
-    """Aggrega metricatori di potenza con margini di errore."""
+    """Aggregates power metrics with error margins."""
     if not power_stream:
         return {
             "average_power": None,

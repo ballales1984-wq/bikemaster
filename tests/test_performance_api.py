@@ -30,7 +30,7 @@ def _make_ride(athlete_id: int, power: list[float], minutes: float = 10.0) -> in
 
 
 def test_compute_ride_power_calculates_np_if_tss(client):
-    aid = save_athlete({"name": "Perf API Athlete"})
+    aid = save_athlete({"name": "Perf API Athlete"}, athlete_id=0)
     ride_id = _make_ride(aid, [200.0] * 300 + [100.0] * 300)
     svc.record_ftp(aid, 250.0, date="2026-07-01", source="test")
 
@@ -52,7 +52,7 @@ def test_compute_ride_power_calculates_np_if_tss(client):
 
 
 def test_metrics_endpoint_returns_persisted(client):
-    aid = save_athlete({"name": "Perf Metrics Athlete"})
+    aid = save_athlete({"name": "Perf Metrics Athlete"}, athlete_id=0)
     ride_id = _make_ride(aid, [180.0] * 600)
     svc.record_ftp(aid, 240.0, date="2026-07-01")
     client.post(f"/api/v1/performance/ride/{ride_id}/compute?athlete_id={aid}")
@@ -87,7 +87,7 @@ def test_compute_from_stream_no_ftp(client):
 
 
 def test_record_ftp_upsert(client):
-    aid = save_athlete({"name": "Perf FTP Upsert"})
+    aid = save_athlete({"name": "Perf FTP Upsert"}, athlete_id=0)
     r1 = client.post(
         f"/api/v1/performance/ftp?athlete_id={aid}",
         json={"ftp_watts": 230, "date": "2026-07-02", "source": "test"},
@@ -105,7 +105,7 @@ def test_record_ftp_upsert(client):
 
 
 def test_recompute_all(client):
-    aid = save_athlete({"name": "Perf Recompute Athlete"})
+    aid = save_athlete({"name": "Perf Recompute Athlete"}, athlete_id=0)
     _make_ride(aid, [200.0] * 300 + [100.0] * 300)
     _make_ride(aid, [150.0] * 600)
     svc.record_ftp(aid, 250.0, date="2026-07-01")
@@ -116,7 +116,7 @@ def test_recompute_all(client):
 
 
 def test_ride_without_power_returns_422(client):
-    aid = save_athlete({"name": "Perf No Power"})
+    aid = save_athlete({"name": "Perf No Power"}, athlete_id=0)
     ride_id = save_ride(
         {"athlete_id": aid, "date": "2026-07-03", "distance_km": 10.0, "gps_points": []}
     )

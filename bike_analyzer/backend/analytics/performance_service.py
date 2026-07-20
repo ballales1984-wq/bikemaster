@@ -11,11 +11,18 @@ from datetime import datetime, timezone
 
 from ..db.database import get_db_connection
 from .performance import (
+    calculate_intensity_factor,
     calculate_intensity_factor_with_error,
+    calculate_normalized_power,
     calculate_normalized_power_with_error,
+    calculate_power_metrics,
     calculate_power_metrics_with_error,
+    calculate_tss,
     calculate_tss_with_error,
     estimate_ftp_from_ride,
+    estimate_ftp_from_ride_with_error,
+    estimate_ftp_from_test,
+    estimate_ftp_from_test_with_error,
 )
 
 
