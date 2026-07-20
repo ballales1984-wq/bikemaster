@@ -225,6 +225,22 @@ export interface MetabolicDailySummary {
   updated_at?: string | null;
 }
 
+export interface NutritionFoodItem {
+  id?: number;
+  tenant_id: number;
+  name: string;
+  category: string;
+  kcal_per_100g: number;
+  carbs_g_per_100g: number;
+  protein_g_per_100g: number;
+  fat_g_per_100g: number;
+  fiber_g_per_100g: number;
+  source: string;
+  is_builtin: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export interface PerformanceMetrics {
   id?: number;
   athlete_id: number;

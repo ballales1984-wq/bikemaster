@@ -2430,6 +2430,98 @@ async def recalculate_my_daily_summary_calibrated(
     return _recalc_c(athlete_id, date, tenant_id)
 
 
+# ── Nutrition database ──────────────────────────────────────────────────────────
+
+@router.get("/metabolism/nutrition/search")
+async def search_nutrition_food(
+    q: str = Query("", max_length=100),
+    category: str | None = Query(None, max_length=50),
+    limit: int = Query(50, ge=1, le=200),
+    current_user: dict = Depends(get_current_user),
+):
+    """Search food items in the nutrition database."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    from ..db.database import search_nutrition_food_items as _search
+
+    return _search(q.strip(), category=category, limit=limit)
+
+
+@router.get("/metabolism/nutrition/categories")
+async def list_nutrition_categories(
+    current_user: dict = Depends(get_current_user),
+):
+    """Return distinct food categories available in the database."""
+    from ..db.database import list_nutrition_categories as _cats
+
+    return _cats()
+
+
+@router.get("/metabolism/nutrition/{item_id}")
+async def get_nutrition_food_item(
+    item_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Return a single food item by ID."""
+    from ..db.database import get_nutrition_food_item as _get_item
+
+    item = _get_item(item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Food item not found")
+    return item
+
+
+@router.post("/metabolism/nutrition", status_code=201)
+async def create_nutrition_food_item(
+    item_data: NutritionFoodItemCreate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Add a new food item to the user's personal database."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    from ..db.database import save_nutrition_food_item as _save_item
+
+    item_id = _save_item(item_data.model_dump(), tenant_id)
+    item = get_nutrition_food_item(item_id)
+    return item or {}
+
+
+@router.put("/metabolism/nutrition/{item_id}")
+async def update_nutrition_food_item(
+    item_id: int,
+    item_data: NutritionFoodItemUpdate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Update a user-added food item (built-in items cannot be modified)."""
+    from ..db.database import get_nutrition_food_item as _get_item, update_nutrition_food_item as _update_item
+
+    existing = _get_item(item_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Food item not found")
+    if existing.get("is_builtin"):
+        raise HTTPException(status_code=403, detail="Cannot modify built-in items")
+    ok = _update_item(item_id, item_data.model_dump(exclude_none=True))
+    if not ok:
+        raise HTTPException(status_code=500, detail="Update failed")
+    item = _get_item(item_id)
+    return item or {}
+
+
+@router.delete("/metabolism/nutrition/{item_id}", status_code=204)
+async def delete_nutrition_food_item(
+    item_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Delete a user-added food item (built-in items cannot be deleted)."""
+    from ..db.database import get_nutrition_food_item as _get_item, delete_nutrition_food_item as _del_item
+
+    existing = _get_item(item_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Food item not found")
+    if existing.get("is_builtin"):
+        raise HTTPException(status_code=403, detail="Cannot delete built-in items")
+    _del_item(item_id)
+    return None
+
+
 @router.get("/import/google-fit/auth")
 async def google_fit_auth(
     request: Request,

@@ -5,6 +5,7 @@
       <span>Totale: <strong>{{ Math.round(totalKcal) }} kcal</strong></span>
       <span>Pasti: {{ logs.length }}</span>
     </div>
+    <NutritionSearch :date="date" @added="onNutritionAdded" />
     <form class="form-inline" @submit.prevent="add">
       <input v-model="newLog.description" placeholder="Descrizione" required maxlength="500" />
       <select v-model="newLog.meal_type">
@@ -50,6 +51,7 @@
 import { reactive, ref, computed } from "vue";
 import { useMetabolismStore } from "../stores/metabolism";
 import { useToast } from "../composables/useToast";
+import NutritionSearch from "./NutritionSearch.vue";
 import type { FoodLog } from "../types/index";
 
 const props = defineProps<{ date: string }>();
@@ -59,6 +61,10 @@ const saving = computed(() => store.saving);
 
 const logs = computed(() => store.foodLogs);
 const totalKcal = computed(() => logs.value.reduce((s, l) => s + (l.kcal || 0), 0));
+
+function onNutritionAdded() {
+  store.fetchFoodLogs(props.date);
+}
 
 const newLog = reactive({
   description: "",

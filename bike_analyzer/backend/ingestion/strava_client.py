@@ -349,6 +349,34 @@ def streams_to_points(streams: dict) -> list[dict[str, float]] | None:
     return points or None
 
 
+def _map_strava_sport_to_activity_type(sport: str) -> str:
+    """Map a Strava sport type to a BikeMaster activity_type."""
+    sport_lower = sport.lower()
+    if any(keyword in sport_lower for keyword in ("bike", "ride", "velomobile")):
+        return "ride"
+    if sport_lower in ("run", "trailrunning", "virtualrun"):
+        return "run"
+    if sport_lower == "walk":
+        return "walk"
+    if sport_lower == "hike":
+        return "hike"
+    if sport_lower == "swim":
+        return "other"
+    if sport_lower in (
+        "workout",
+        "weighttraining",
+        "crossfit",
+        "stretching",
+        "yoga",
+        "elliptical",
+        "stairstepper",
+        "rowing",
+        "virtualrow",
+    ):
+        return "indoor"
+    return "other"
+
+
 def strava_to_ride(
     activity: dict[str, Any],
     weight_kg: float = 70.0,
@@ -364,8 +392,7 @@ def strava_to_ride(
     blocking network I/O.
     """
     sport = activity.get("sport_type", activity.get("type", "Ride"))
-    if "bike" not in sport.lower() and "ride" not in sport.lower():
-        return {"error": f"Activity type '{sport}' is not a cycling activity", "skipped": True}
+    activity_type = _map_strava_sport_to_activity_type(sport)
 
     distance_m = activity.get("distance", 0)
     moving_time_s = activity.get("moving_time", 0)
@@ -395,6 +422,7 @@ def strava_to_ride(
         "external_source": "strava",
         "external_id": str(external_id) if external_id else None,
         "title": name,
+        "activity_type": activity_type,
     }
     return ride
 

@@ -736,3 +736,53 @@ class MetabolicCalibrationResponse(BaseModel):
     reference: dict
     sensor: dict
     weights: MetabolicWeightsResponse
+
+
+class NutritionFoodItem(BaseModel):
+    """Schema for a nutrition database food item."""
+
+    id: int | None = None
+    tenant_id: int = 0
+    name: str = Field(..., min_length=1, max_length=200)
+    category: str = Field(default="other", max_length=50)
+    kcal_per_100g: float = Field(..., ge=0, le=5000)
+    carbs_g_per_100g: float = Field(default=0, ge=0, le=500)
+    protein_g_per_100g: float = Field(default=0, ge=0, le=500)
+    fat_g_per_100g: float = Field(default=0, ge=0, le=500)
+    fiber_g_per_100g: float = Field(default=0, ge=0, le=100)
+    source: str = Field(default="builtin", max_length=50)
+    is_builtin: bool = False
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class NutritionFoodItemCreate(BaseModel):
+    """Schema for creating a new food item."""
+
+    name: str = Field(..., min_length=1, max_length=200)
+    category: str = Field(default="other", max_length=50)
+    kcal_per_100g: float = Field(..., ge=0, le=5000)
+    carbs_g_per_100g: float = Field(default=0, ge=0, le=500)
+    protein_g_per_100g: float = Field(default=0, ge=0, le=500)
+    fat_g_per_100g: float = Field(default=0, ge=0, le=500)
+    fiber_g_per_100g: float = Field(default=0, ge=0, le=100)
+
+
+class NutritionFoodItemUpdate(BaseModel):
+    """Schema for updating a food item (user-added only)."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    category: str | None = Field(default=None, max_length=50)
+    kcal_per_100g: float | None = Field(default=None, ge=0, le=5000)
+    carbs_g_per_100g: float | None = Field(default=None, ge=0, le=500)
+    protein_g_per_100g: float | None = Field(default=None, ge=0, le=500)
+    fat_g_per_100g: float | None = Field(default=None, ge=0, le=500)
+    fiber_g_per_100g: float | None = Field(default=None, ge=0, le=100)
+
+
+class NutritionSearchRequest(BaseModel):
+    """Schema for searching food items."""
+
+    query: str = Field(..., min_length=1, max_length=100)
+    category: str | None = Field(default=None, max_length=50)
+    limit: int = Field(default=50, ge=1, le=200)

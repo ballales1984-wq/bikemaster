@@ -280,7 +280,7 @@ class TestStravaToRide:
         assert ride["duration_minutes"] == 0.0
         assert ride["avg_speed_kmh"] == 0.0
 
-    def test_skips_non_bike_activity(self):
+    def test_accepts_non_bike_activity(self):
         activity = {
             "id": 1,
             "name": "Run",
@@ -290,8 +290,8 @@ class TestStravaToRide:
             "moving_time": 3600,
         }
         ride = strava_to_ride(activity)
-        assert "error" in ride
-        assert ride["skipped"] is True
+        assert "error" not in ride
+        assert ride["activity_type"] == "run"
 
     def test_none_heart_rate(self):
         activity = {

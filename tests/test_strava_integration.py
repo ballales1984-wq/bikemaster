@@ -47,7 +47,7 @@ def test_strava_to_ride_cycling_activity():
     assert ride["title"] == "Morning Ride"
 
 
-def test_strava_to_ride_skips_non_cycling():
+def test_strava_to_ride_accepts_non_cycling():
     act = {
         "id": 999,
         "sport_type": "Run",
@@ -56,7 +56,22 @@ def test_strava_to_ride_skips_non_cycling():
         "moving_time": 2400,
     }
     ride = strava_to_ride(act)
-    assert ride.get("skipped") is True
+    assert ride.get("skipped") is not True
+    assert ride["activity_type"] == "run"
+
+
+def test_strava_to_ride_maps_walk():
+    act = {
+        "id": 1001,
+        "sport_type": "Walk",
+        "start_date_local": "2026-06-15T10:00:00Z",
+        "distance": 5000,
+        "moving_time": 3600,
+    }
+    ride = strava_to_ride(act)
+    assert ride.get("skipped") is not True
+    assert ride["activity_type"] == "walk"
+    assert ride["distance_km"] == 5.0
 
 
 def test_strava_to_ride_handles_zero_times():

@@ -3,7 +3,7 @@
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import type { MetabolicProfile, FoodLog, MetabolicDailySummary } from "../types/index";
+import type { MetabolicProfile, FoodLog, MetabolicDailySummary, NutritionFoodItem } from "../types/index";
 import { apiGet, apiPut, apiPost, apiDelete, ApiError } from "../utils/api";
 import { useAuthStore } from "./auth";
 
@@ -175,6 +175,39 @@ export const useMetabolismStore = defineStore("metabolism", () => {
     }
   }
 
+  async function searchNutritionFood(
+    query: string,
+    category?: string,
+    limit = 50,
+  ): Promise<NutritionFoodItem[]> {
+    if (!auth.isLoggedIn) return [];
+    const params = new URLSearchParams({ q: query, limit: String(limit) });
+    if (category) params.set("category", category);
+    const data = await apiGet<NutritionFoodItem[]>(`/api/v1/metabolism/nutrition/search?${params.toString()}`);
+    return data;
+  }
+
+  async function fetchNutritionCategories(): Promise<string[]> {
+    if (!auth.isLoggedIn) return [];
+    const data = await apiGet<string[]>("/api/v1/metabolism/nutrition/categories");
+    return data;
+  }
+
+  async function createNutritionFoodItem(item: Partial<NutritionFoodItem>): Promise<NutritionFoodItem> {
+    if (!auth.isLoggedIn) throw new Error("Not authenticated");
+    saving.value = true;
+    error.value = null;
+    try {
+      const data = await apiPost<NutritionFoodItem>("/api/v1/metabolism/nutrition", item);
+      return data;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to create food item";
+      throw e;
+    } finally {
+      saving.value = false;
+    }
+  }
+
   function clear() {
     profile.value = null;
     todaySummary.value = null;
@@ -204,6 +237,9 @@ export const useMetabolismStore = defineStore("metabolism", () => {
     fetchDailySummary,
     fetchRangeSummary,
     recalculateSummary,
+    searchNutritionFood,
+    fetchNutritionCategories,
+    createNutritionFoodItem,
     clear,
   };
 });

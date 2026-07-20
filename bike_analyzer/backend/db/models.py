@@ -53,11 +53,11 @@ class UserRole(str, enum.Enum):
 
 class ActivityType(str, enum.Enum):
     RIDE = "ride"
-    RUN = "run"
+    WALK = "walk"
     HIKE = "hike"
-    VIRTUAL_RIDE = "virtual_ride"
-    VIRTUAL_RUN = "virtual_run"
+    RUN = "run"
     SWIM = "swim"
+    INDOOR = "indoor"
     OTHER = "other"
 
 
