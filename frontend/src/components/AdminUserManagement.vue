@@ -21,20 +21,22 @@ class="btn-primary" @click="showCreateForm = true"
 v-if="showCreateForm" class="create-form"
 >
       <h3>{{ t("admin.createUser") }}</h3>
-      <div class="form-group">
-        <label>{{ t("auth.username") }}</label>
-        <input v-model="newUser.username">
-      </div>
-      <div class="form-group">
-        <label>{{ t("auth.username") }}</label>
-        <input
+      <form @submit.prevent>
+        <div class="form-group">
+          <label>{{ t("auth.username") }}</label>
+          <input v-model="newUser.username">
+        </div>
+        <div class="form-group">
+          <label>{{ t("auth.username") }}</label>
+          <input
 v-model="newUser.email" type="email" />
-      </div>
-      <div class="form-group">
-        <label>{{ t("auth.password") }}</label>
-        <input
+        </div>
+        <div class="form-group">
+          <label>{{ t("auth.password") }}</label>
+          <input
 v-model="newUser.password" type="password" />
-      </div>
+        </div>
+      </form>
       <div class="form-actions">
         <button
 class="btn-primary" @click="createUser"

@@ -105,7 +105,7 @@ class="connection-actions">
 
         <!-- Servizi API Key -->
         <template v-if="service.method === 'apikey'">
-          <div class="apikey-form">
+          <form class="apikey-form" @submit.prevent>
             <label class="key-field">
               <span class="key-label">{{ service.label }} API Key</span>
               <input
@@ -136,7 +136,7 @@ class="connection-actions">
                 {{ t("connections.clearKey") }}
               </button>
             </div>
-          </div>
+          </form>
         </template>
 
         <div v-if="serviceError === service.service"

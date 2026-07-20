@@ -57,7 +57,7 @@
         inviate al backend del PC ad ogni richiesta, che le usa al posto delle sue.
         Non vengono mai conservate sul server.
       </p>
-      <div class="keys-grid">
+      <form @submit.prevent class="keys-grid">
         <label v-for="field in keyFields" :key="field.name" class="key-field">
           <span class="key-label">{{ field.label }}</span>
           <div class="key-input-row">
@@ -79,7 +79,7 @@
             </button>
           </div>
         </label>
-      </div>
+      </form>
       <div class="row key-actions">
         <button class="btn" @click="saveKeys">Salva chiavi</button>
         <button class="btn btn-ghost" @click="showKeys = !showKeys">
