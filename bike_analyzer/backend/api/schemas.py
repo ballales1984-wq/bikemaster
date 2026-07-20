@@ -684,3 +684,55 @@ class MetabolicDailySummaryResponse(BaseModel):
     notes: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
+
+
+class MetabolicReferenceValueCreate(BaseModel):
+    """Import a known average (mean) metabolic value for a demographic bracket."""
+
+    sex: str = Field(default="male", pattern="^(male|female)$")
+    age_bracket_lo: int = Field(..., ge=0, le=130)
+    age_bracket_hi: int = Field(..., ge=0, le=130)
+    weight_bracket_lo: int = Field(..., ge=20, le=300)
+    weight_bracket_hi: int = Field(..., ge=20, le=300)
+    bmr_kcal: float | None = Field(default=None, ge=500, le=5000)
+    tdee_kcal: float | None = Field(default=None, ge=500, le=10000)
+    activity_level: str = Field(default="moderate", pattern="^(sedentary|light|moderate|active|very_active)$")
+    source: str = Field(default="import", max_length=50)
+
+
+class MetabolicReferenceImportRequest(BaseModel):
+    """Batch import of reference values (mean values per bracket)."""
+
+    values: list[MetabolicReferenceValueCreate] = Field(default_factory=list, max_length=2000)
+
+
+class MetabolicCalibrationRequest(BaseModel):
+    """Ingest sensor-derived values to calibrate per-athlete weights."""
+
+    sensor_bmr_kcal: float | None = Field(default=None, ge=500, le=5000)
+    sensor_tdee_kcal: float | None = Field(default=None, ge=500, le=10000)
+    date: str | None = Field(default=None, min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
+
+
+class MetabolicWeightsResponse(BaseModel):
+    """Per-athlete adaptive weights and sensor confidence."""
+
+    athlete_id: int
+    activity_multiplier_w: float = 1.0
+    neat_w: float = 1.0
+    climb_bonus_w: float = 1.0
+    sensor_bmr_conf: float = 1.0
+    sensor_tdee_conf: float = 1.0
+    learning_rate: float = 0.1
+    confidence_lr: float = 0.05
+    n_updates: int = 0
+    updated_at: str | None = None
+
+
+class MetabolicCalibrationResponse(BaseModel):
+    """Result of a calibration step."""
+
+    athlete_id: int
+    reference: dict
+    sensor: dict
+    weights: MetabolicWeightsResponse

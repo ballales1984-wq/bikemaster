@@ -424,6 +424,36 @@ def init_db():
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_food_logs_athlete_date ON food_logs(athlete_id, date)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_metabolic_summaries_athlete_date ON metabolic_daily_summaries(athlete_id, date)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS metabolic_reference_values (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tenant_id INTEGER DEFAULT 0,
+            sex TEXT NOT NULL,
+            age_bracket_lo INTEGER NOT NULL,
+            age_bracket_hi INTEGER NOT NULL,
+            weight_bracket_lo INTEGER NOT NULL,
+            weight_bracket_hi INTEGER NOT NULL,
+            bmr_kcal REAL,
+            tdee_kcal REAL,
+            activity_level TEXT DEFAULT 'moderate',
+            source TEXT DEFAULT 'import',
+            created_at TEXT,
+            UNIQUE(sex, age_bracket_lo, age_bracket_hi, weight_bracket_lo, weight_bracket_hi, activity_level)
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_metabolic_ref_sex ON metabolic_reference_values(sex)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS metabolic_adaptive_weights (
+            athlete_id INTEGER PRIMARY KEY,
+            tenant_id INTEGER DEFAULT 0,
+            activity_multiplier_w REAL DEFAULT 1.0,
+            neat_w REAL DEFAULT 1.0,
+            climb_bonus_w REAL DEFAULT 1.0,
+            sensor_bmr_conf REAL DEFAULT 1.0,
+            sensor_tdee_conf REAL DEFAULT 1.0,
+            learning_rate REAL DEFAULT 0.1,
+            confidence_lr REAL DEFAULT 0.05,
+            n_updates INTEGER DEFAULT 0,
+            updated_at TEXT,
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+        )""")
         conn.execute("""CREATE TABLE IF NOT EXISTS performance_metrics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
@@ -1518,6 +1548,139 @@ def get_metabolic_daily_summary(
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         }
+
+
+def upsert_metabolic_reference_value(value: dict, tenant_id: int = 0) -> int:
+    """Upsert a reference (mean) metabolic value for a demographic bracket."""
+    now = datetime.now(UTC).isoformat()
+    sex = value.get("sex", "male")
+    alo = int(value.get("age_bracket_lo", 0))
+    ahi = int(value.get("age_bracket_hi", 0))
+    wlo = int(value.get("weight_bracket_lo", 0))
+    whi = int(value.get("weight_bracket_hi", 0))
+    activity_level = value.get("activity_level", "moderate")
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO metabolic_reference_values
+            (tenant_id, sex, age_bracket_lo, age_bracket_hi, weight_bracket_lo, weight_bracket_hi, bmr_kcal, tdee_kcal, activity_level, source, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(sex, age_bracket_lo, age_bracket_hi, weight_bracket_lo, weight_bracket_hi, activity_level) DO UPDATE SET
+                bmr_kcal=excluded.bmr_kcal,
+                tdee_kcal=excluded.tdee_kcal,
+                source=excluded.source,
+                created_at=excluded.created_at""",
+            (
+                tenant_id,
+                sex,
+                alo,
+                ahi,
+                wlo,
+                whi,
+                value.get("bmr_kcal"),
+                value.get("tdee_kcal"),
+                activity_level,
+                value.get("source", "import"),
+                now,
+            ),
+        )
+        conn.commit()
+        return int(cur.lastrowid) if cur.lastrowid else 0
+
+
+def get_metabolic_reference_value(sex: str, age: int, weight_kg: float, activity_level: str = "moderate", tenant_id: int = 0) -> dict | None:
+    """Return the imported reference row for the bracket closest to age/weight."""
+    from ..core.calculators.metabolism import age_bracket, weight_bracket
+
+    a_lo, a_hi = age_bracket(age)
+    w_lo, w_hi = weight_bracket(weight_kg)
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT * FROM metabolic_reference_values
+            WHERE sex = ? AND age_bracket_lo = ? AND age_bracket_hi = ? AND weight_bracket_lo = ? AND weight_bracket_hi = ? AND activity_level = ?
+            LIMIT 1""",
+            (sex, a_lo, a_hi, w_lo, w_hi, activity_level),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        return {
+            "id": row["id"],
+            "tenant_id": row["tenant_id"],
+            "sex": row["sex"],
+            "age_bracket_lo": row["age_bracket_lo"],
+            "age_bracket_hi": row["age_bracket_hi"],
+            "weight_bracket_lo": row["weight_bracket_lo"],
+            "weight_bracket_hi": row["weight_bracket_hi"],
+            "bmr_kcal": row["bmr_kcal"],
+            "tdee_kcal": row["tdee_kcal"],
+            "activity_level": row["activity_level"],
+            "source": row["source"],
+            "created_at": row["created_at"],
+        }
+
+
+def get_all_metabolic_reference_values(tenant_id: int | None = None) -> list[dict]:
+    """Return all imported reference values, optionally filtered by tenant."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if tenant_id is not None:
+            cur.execute("SELECT * FROM metabolic_reference_values WHERE tenant_id = ? ORDER BY id", (tenant_id,))
+        else:
+            cur.execute("SELECT * FROM metabolic_reference_values ORDER BY id")
+        return [dict(row) for row in cur.fetchall()]
+
+
+def save_metabolic_adaptive_weights(weights: dict, athlete_id: int, tenant_id: int = 0) -> int:
+    """Upsert per-athlete adaptive model weights and sensor confidence."""
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO metabolic_adaptive_weights
+            (athlete_id, tenant_id, activity_multiplier_w, neat_w, climb_bonus_w, sensor_bmr_conf, sensor_tdee_conf, learning_rate, confidence_lr, n_updates, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(athlete_id) DO UPDATE SET
+                activity_multiplier_w=excluded.activity_multiplier_w,
+                neat_w=excluded.neat_w,
+                climb_bonus_w=excluded.climb_bonus_w,
+                sensor_bmr_conf=excluded.sensor_bmr_conf,
+                sensor_tdee_conf=excluded.sensor_tdee_conf,
+                learning_rate=excluded.learning_rate,
+                confidence_lr=excluded.confidence_lr,
+                n_updates=excluded.n_updates,
+                updated_at=excluded.updated_at""",
+            (
+                athlete_id,
+                tenant_id,
+                float(weights.get("activity_multiplier_w", 1.0)),
+                float(weights.get("neat_w", 1.0)),
+                float(weights.get("climb_bonus_w", 1.0)),
+                float(weights.get("sensor_bmr_conf", 1.0)),
+                float(weights.get("sensor_tdee_conf", 1.0)),
+                float(weights.get("learning_rate", 0.1)),
+                float(weights.get("confidence_lr", 0.05)),
+                int(weights.get("n_updates", 0) or 0),
+                now,
+            ),
+        )
+        conn.commit()
+        return athlete_id
+
+
+def get_metabolic_adaptive_weights(athlete_id: int, tenant_id: int | None = None) -> dict | None:
+    """Return the per-athlete adaptive weights, if any."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if tenant_id is not None:
+            cur.execute("SELECT * FROM metabolic_adaptive_weights WHERE athlete_id = ? AND tenant_id = ?", (athlete_id, tenant_id))
+        else:
+            cur.execute("SELECT * FROM metabolic_adaptive_weights WHERE athlete_id = ?", (athlete_id,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        return dict(row)
 
 
 def create_indices():

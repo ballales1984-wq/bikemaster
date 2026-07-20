@@ -898,6 +898,50 @@ class MetabolicDailySummaryModel(Base):
     )
 
 
+class MetabolicReferenceValueModel(Base):
+    """Imported mean metabolic value for a demographic bracket (age/sex/weight)."""
+
+    __tablename__ = "metabolic_reference_values"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    sex: Mapped[str] = mapped_column(String, nullable=False)
+    age_bracket_lo: Mapped[int] = mapped_column(Integer, nullable=False)
+    age_bracket_hi: Mapped[int] = mapped_column(Integer, nullable=False)
+    weight_bracket_lo: Mapped[int] = mapped_column(Integer, nullable=False)
+    weight_bracket_hi: Mapped[int] = mapped_column(Integer, nullable=False)
+    bmr_kcal: Mapped[float | None] = mapped_column(Float)
+    tdee_kcal: Mapped[float | None] = mapped_column(Float)
+    activity_level: Mapped[str] = mapped_column(String, default="moderate")
+    source: Mapped[str] = mapped_column(String, default="import")
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class MetabolicAdaptiveWeightsModel(Base):
+    """Per-athlete adaptive model weights and sensor confidence."""
+
+    __tablename__ = "metabolic_adaptive_weights"
+
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    activity_multiplier_w: Mapped[float] = mapped_column(Float, default=1.0)
+    neat_w: Mapped[float] = mapped_column(Float, default=1.0)
+    climb_bonus_w: Mapped[float] = mapped_column(Float, default=1.0)
+    sensor_bmr_conf: Mapped[float] = mapped_column(Float, default=1.0)
+    sensor_tdee_conf: Mapped[float] = mapped_column(Float, default=1.0)
+    learning_rate: Mapped[float] = mapped_column(Float, default=0.1)
+    confidence_lr: Mapped[float] = mapped_column(Float, default=0.05)
+    n_updates: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="metabolic_adaptive_weights")
+
+
+AthleteModel.metabolic_adaptive_weights = relationship(
+    "MetabolicAdaptiveWeightsModel", back_populates="athlete", uselist=False, cascade="all, delete-orphan"
+)
+
+
 __all__ = [
     "Base",
     "EMBEDDING_DIMENSION",
@@ -938,4 +982,6 @@ __all__ = [
     "ExternalIdentityModel",
     "ExternalTokenModel",
     "TOTPSecretModel",
+    "MetabolicReferenceValueModel",
+    "MetabolicAdaptiveWeightsModel",
 ]

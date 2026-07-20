@@ -76,9 +76,14 @@ from .schemas import (
     GoogleHealthImportPayload,
     GranfondoPlanRequest,
     GranfondoSaveRequest,
+    MetabolicCalibrationRequest,
+    MetabolicCalibrationResponse,
     MetabolicDailySummaryResponse,
     MetabolicProfileCreate,
     MetabolicProfileResponse,
+    MetabolicReferenceImportRequest,
+    MetabolicReferenceValueCreate,
+    MetabolicWeightsResponse,
     MetricCreate,
     NotificationContextIn,
     NotificationListOut,
@@ -254,8 +259,10 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
         # broke Strava/OAuth whenever the tunnel was regenerated.
         if host_lower.endswith(".ngrok-free.dev"):
             return
-        # Allow any localhost.run tunnel host (no interstitial splash, free).
-        if host_lower.endswith(".loca.lt"):
+        # Allow any cloudflared quick tunnel host (trycloudflare.com).
+        # Unlike ngrok-free, cloudflared quick tunnels do NOT show an interstitial
+        # splash page, so OAuth/SPA routes work immediately.
+        if host_lower.endswith(".trycloudflare.com"):
             return
         raise HTTPException(status_code=400, detail="Invalid redirect_uri host")
 
@@ -331,7 +338,7 @@ def _ensure_int_user_id(current_user: dict) -> int:
     try:
         return int(current_user["id"])
     except (KeyError, TypeError, ValueError) as exc:
-        raise HTTPException(status_code=401, detail="Token utente non valido") from exc
+        raise HTTPException(status_code=401, detail="Invalid user token")
 
 
 def _ensure_athlete_access(athlete_id: int, current_user: dict) -> None:
@@ -518,7 +525,7 @@ async def create_poi(poi: POICreate, current_user: dict = Depends(get_current_us
 
 @router.get("/maps/pois/{poi_id}", response_model=POIResponse)
 async def get_poi_endpoint(poi_id: int):
-    """Recupera un Point of Interest per ID."""
+    """Retrieve a Point of Interest by ID."""
     from ..db.database import get_poi
 
     poi = get_poi(poi_id)
@@ -531,7 +538,7 @@ async def get_poi_endpoint(poi_id: int):
 async def delete_poi_endpoint(
     poi_id: int, current_user: dict = Depends(get_current_user)
 ):
-    """Elimina un POI se l'utente corrente è il proprietario o un admin."""
+    """Delete a POI if the current user is the owner or an admin."""
     from ..db.database import delete_poi, get_poi
 
     poi = get_poi(poi_id)
@@ -1941,7 +1948,7 @@ async def create_athlete(athlete_data: AthleteCreate, current_user: dict = Depen
     if athlete_data.name:
         existing_by_name = get_athlete_by_name(athlete_data.name)
         if existing_by_name and existing_by_name["id"] != target_athlete_id:
-            raise HTTPException(status_code=409, detail="Nome atleta già in uso")
+            raise HTTPException(status_code=409, detail="Athlete name already in use")
 
     data = athlete_data.model_dump()
     if existing:
@@ -2138,7 +2145,7 @@ async def update_athlete(
     if update_data.get("name"):
         existing = get_athlete_by_name(update_data["name"])
         if existing and existing["id"] != athlete_id:
-            raise HTTPException(status_code=409, detail="Nome atleta già in uso")
+            raise HTTPException(status_code=409, detail="Athlete name already in use")
     _update(athlete_id, update_data)
     from ..events import AthleteUpdated, publish
 
@@ -2328,6 +2335,101 @@ async def recalculate_my_daily_summary(
     return summary
 
 
+@router.post("/metabolism/reference-values")
+async def import_metabolic_reference_values(
+    payload: MetabolicReferenceImportRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Import (or replace) known average reference values for age/sex/weight brackets."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    from ..db.database import upsert_metabolic_reference_value as _upsert_ref
+
+    imported = 0
+    for v in payload.values:
+        _upsert_ref(v.model_dump(), tenant_id)
+        imported += 1
+    return {"imported": imported, "tenant_id": tenant_id}
+
+
+@router.get("/metabolism/reference-values")
+async def list_metabolic_reference_values(
+    current_user: dict = Depends(get_current_user),
+):
+    """List the imported reference values for the authenticated tenant."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    from ..db.database import get_all_metabolic_reference_values as _list_ref
+
+    return _list_ref(tenant_id)
+
+
+@router.get("/metabolism/reference")
+async def get_my_metabolic_reference(
+    current_user: dict = Depends(get_current_user),
+):
+    """Return the resolved reference mean (imported or built-in) for the athlete's bracket."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete_id = current_user["id"]
+    from ..analytics.metabolism import resolve_reference_value as _resolve
+    from ..db.database import get_athlete as _get_athlete, get_metabolic_profile as _get_profile
+
+    athlete = _get_athlete(athlete_id, tenant_id)
+    if not athlete:
+        raise HTTPException(status_code=404, detail="Athlete not found")
+    profile = _get_profile(athlete_id, tenant_id)
+    return _resolve(athlete, profile, tenant_id)
+
+
+@router.post("/metabolism/calibrate")
+async def calibrate_my_metabolic_weights(
+    payload: MetabolicCalibrationRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Ingest sensor-derived values and update per-athlete model weights + confidence."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete_id = current_user["id"]
+    from ..analytics.metabolism import calibrate_athlete as _calibrate
+
+    result = _calibrate(
+        athlete_id,
+        payload.sensor_bmr_kcal,
+        payload.sensor_tdee_kcal,
+        date=payload.date,
+        tenant_id=tenant_id,
+    )
+    return MetabolicCalibrationResponse(
+        athlete_id=result["athlete_id"],
+        reference=result["reference"],
+        sensor=result["sensor"],
+        weights=MetabolicWeightsResponse(athlete_id=athlete_id, **result["weights"]),
+    ).model_dump()
+
+
+@router.get("/metabolism/weights")
+async def get_my_metabolic_weights(
+    current_user: dict = Depends(get_current_user),
+):
+    """Return the per-athlete adaptive weights and sensor confidence."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete_id = current_user["id"]
+    from ..analytics.metabolism import get_athlete_weights as _get_weights
+
+    weights = _get_weights(athlete_id, tenant_id)
+    return MetabolicWeightsResponse(athlete_id=athlete_id, **weights.to_dict()).model_dump()
+
+
+@router.post("/metabolism/recalculate-calibrated")
+async def recalculate_my_daily_summary_calibrated(
+    date: str = Query(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Recalculate the daily summary using reference mean + adaptive weights."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete_id = current_user["id"]
+    from ..analytics.metabolism import recalculate_daily_summary_calibrated as _recalc_c
+
+    return _recalc_c(athlete_id, date, tenant_id)
+
+
 @router.get("/import/google-fit/auth")
 async def google_fit_auth(
     request: Request,
@@ -2409,7 +2511,7 @@ async def google_health_callback(
             {
                 "type": "google-health-error",
                 "error": "invalid_state",
-                "error_description": "OAuth Google Health: state non valido o scaduto",
+                "error_description": "Google Health: invalid or expired state",
             }
         )
     redirect_uri = state_data["redirect_uri"]
@@ -2456,7 +2558,7 @@ async def google_health_callback(
                     {
                         "type": "google-health-error",
                         "error": "invalid_grant",
-                        "error_description": "Codice OAuth non valido o scaduto. Riprova l'autorizzazione.",
+                        "error_description": "Invalid or expired Google Health OAuth code. Re-authorize.",
                     }
                 )
         raise HTTPException(
@@ -2567,7 +2669,7 @@ async def google_fit_exchange_token(
             if "invalid_grant" in body:
                 raise HTTPException(
                     status_code=400,
-                    detail="Codice OAuth non valido o scaduto. Riprova l'autorizzazione.",
+                     detail="Invalid or expired Google OAuth code. Try re-authorizing.",
                 ) from exc
         raise HTTPException(
             status_code=400,
@@ -2601,7 +2703,7 @@ async def google_fit_callback(
             {
                 "type": "google-fit-error",
                 "error": "invalid_state",
-                "error_description": "OAuth Google Fit: state non valido o scaduto",
+                "error_description": "Google Fit: invalid or expired state",
             }
         )
     redirect_uri = state_data["redirect_uri"]
@@ -2642,7 +2744,7 @@ async def google_fit_callback(
                 {
                     "type": "google-fit-error",
                     "error": "oauth_error",
-                    "error_description": "Codice OAuth già utilizzato o non valido",
+                    "error_description": "OAuth code already used or invalid",
                 }
             )
         error_body = response.text if response is not None else str(exc)
@@ -3449,7 +3551,7 @@ async def admin_create_user(user_data: UserCreate, current_user: dict = Depends(
     from ..security import hash_password
 
     if get_user_by_username(user_data.username):
-        raise HTTPException(status_code=400, detail="Username già esistente")
+        raise HTTPException(status_code=400, detail="Username already exists")
     new_id = save_user(
         {
             "username": user_data.username,
@@ -4536,7 +4638,7 @@ async def strava_callback_page(
             {
                 "type": "strava-error",
                 "error": error,
-                "error_description": error_description or "Strava OAuth fallito",
+                "error_description": error_description or "Strava OAuth failed",
             }
         )
     if not code:
@@ -4544,7 +4646,7 @@ async def strava_callback_page(
             {
                 "type": "strava-error",
                 "error": "missing_code",
-                "error_description": "Callback Strava ricevuto senza codice",
+                "error_description": "Strava callback received without code",
             }
         )
     return _strava_message_html({"type": "strava-success", "code": code})
@@ -4585,7 +4687,7 @@ async def strava_sync(
     background: bool = True,
     current_user: dict = Depends(get_current_user),
 ):
-    """Sincronizza le attività Strava in background o sincrono, gestendo rate limit."""
+    """Sync Strava activities in background or synchronous mode, handling rate limits."""
     from ..task_queue import get_task_queue
 
     payload = {"athlete_id": current_user["id"]}
@@ -4641,7 +4743,7 @@ async def strava_sync(
 
 @router.delete("/import/strava/disconnect")
 async def strava_disconnect(current_user: dict = Depends(get_current_user)):
-    """Revoca il token OAuth Strava per l'utente corrente."""
+    """Revoke the Strava OAuth token for the current user."""
     from ..ingestion.strava_client import revoke_token
 
     revoke_token(current_user["id"])
@@ -4650,7 +4752,7 @@ async def strava_disconnect(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/import/google-fit/disconnect")
 async def google_fit_disconnect(current_user: dict = Depends(get_current_user)):
-    """Elimina il token Google Fit (deprecato) per l'utente corrente."""
+    """Delete the Google Fit token (deprecated) for the current user."""
     logger.warning("Deprecated Google Fit disconnect route accessed; use Google Health instead")
     from ..ingestion.google_oauth_store import delete_google_token
 
@@ -4660,7 +4762,7 @@ async def google_fit_disconnect(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/import/google-health/disconnect")
 async def google_health_disconnect(current_user: dict = Depends(get_current_user)):
-    """Elimina il token Google Health per l'utente corrente."""
+    """Delete the Google Health token for the current user."""
     from ..ingestion.google_oauth_store import delete_google_token
 
     delete_google_token(int(current_user["id"]), "google_health")
@@ -4677,7 +4779,7 @@ async def garmin_auth(
     state: str = "",
     current_user: dict = Depends(get_current_user),
 ):
-    """Avvia il flusso OAuth Garmin restituendo l'URL di autorizzazione."""
+    """Start the Garmin OAuth flow, returning the authorization URL."""
     from ..ingestion.garmin_client import get_authorization_url
 
     try:
@@ -4693,7 +4795,7 @@ async def garmin_callback(
     payload: GarminCallbackRequest,
     current_user: dict = Depends(get_current_user),
 ):
-    """Gestisce il callback OAuth Garmin: scambia il codice per token e lo memorizza."""
+    """Handle the Garmin OAuth callback: exchange code for token and store it."""
     from ..ingestion.garmin_client import exchange_code_for_token, store_token
 
     code = payload.code
@@ -4711,7 +4813,7 @@ async def garmin_sync(
     background: bool = True,
     current_user: dict = Depends(get_current_user),
 ):
-    """Sincronizza le attività Garmin, opzionalmente in background, e salva le corse."""
+    """Sync Garmin activities, optionally in background, and save rides."""
     from ..task_queue import get_task_queue
 
     payload = {"athlete_id": current_user["id"]}
@@ -4753,7 +4855,7 @@ async def garmin_sync(
 
 @router.delete("/import/garmin/disconnect")
 async def garmin_disconnect(current_user: dict = Depends(get_current_user)):
-    """Revoca il token OAuth Garmin per l'utente corrente."""
+    """Revoke the Garmin OAuth token for the current user."""
     from ..ingestion.garmin_client import revoke_token
 
     revoke_token(current_user["id"])
@@ -4762,7 +4864,7 @@ async def garmin_disconnect(current_user: dict = Depends(get_current_user)):
 
 @router.get("/import/providers")
 async def list_import_providers():
-    """Restituisce la configurazione dei provider di importazione disponibili."""
+    """Return the configuration of available import providers."""
     return {
         "google_fit": bool(_s.google_fit_client_id and _s.google_fit_client_secret),
         "google_health": bool(_s.google_health_client_id and _s.google_health_client_secret),
@@ -4819,7 +4921,7 @@ async def wahoo_sync(
     background: bool = True,
     current_user: dict = Depends(get_current_user),
 ):
-    """Sincronizza gli allenamenti Wahoo e salva le corse corrispondenti."""
+    """Sync Wahoo workouts and save the corresponding rides."""
     from ..task_queue import get_task_queue
 
     payload = {"athlete_id": current_user["id"]}
