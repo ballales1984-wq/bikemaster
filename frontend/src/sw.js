@@ -82,11 +82,10 @@ self.addEventListener("activate", (event) => {
 // whose hashed JS/CSS chunks were deleted by a newer deploy — breaking the app
 // boot on OAuth returns and forcing a manual refresh to log in.
 registerRoute(
-  ({ request }) => request.mode === "navigate",
+  ({ request }) =>
+    request.mode === "navigate" && !request.url.includes("/api/"),
   async ({ event }) => {
     try {
-      // `cache: "reload"` bypasses the browser/HTTP cache so we always fetch
-      // the current index.html (with current asset hashes).
       const response = await fetch(event.request, { cache: "reload" });
       if (response.ok) return response;
     } catch (_) {
