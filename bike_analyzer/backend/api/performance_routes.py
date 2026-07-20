@@ -19,10 +19,8 @@ from ..security import get_current_user
 from ..api.routes import _ensure_athlete_access, _user_id
 from ..analytics import performance_service as svc
 from ..analytics.performance import (
-    calculate_normalized_power,
-    calculate_intensity_factor,
-    calculate_tss,
-    estimate_ftp_from_test,
+    calculate_power_metrics_with_error,
+    estimate_ftp_from_test_with_error,
 )
 
 performance_router = APIRouter(prefix="/performance", tags=["performance"])
@@ -67,39 +65,51 @@ def _current_athlete_id(current_user: dict) -> int:
 @performance_router.get("/metrics")
 async def list_performance_metrics(
     ride_id: int | None = None,
+    athlete_id: int | None = None,
     current_user: dict = Depends(get_current_user),
 ) -> dict:
-    """Restituisce le metriche di potenza persistite dell'atleta corrente."""
-    athlete_id = _current_athlete_id(current_user)
-    _ensure_athlete_access(athlete_id, current_user)
-    rows = svc.get_performance_metrics(athlete_id, ride_id=ride_id)
-    return {"athlete_id": athlete_id, "metrics": rows}
+    """Restituisce le metriche di potenza persistite dell'atleta corrente.
+
+    Un admin puo' passare ``athlete_id`` per consultare un altro atleta.
+    """
+    target = athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    _ensure_athlete_access(target, current_user)
+    rows = svc.get_performance_metrics(target, ride_id=ride_id)
+    return {"athlete_id": target, "metrics": rows}
 
 
 @performance_router.get("/ftp")
 async def list_ftp_history(
+    athlete_id: int | None = None,
     current_user: dict = Depends(get_current_user),
 ) -> dict:
-    """Restituisce lo storico FTP dell'atleta corrente (ordinato per data)."""
-    athlete_id = _current_athlete_id(current_user)
-    _ensure_athlete_access(athlete_id, current_user)
-    history = svc.get_ftp_history(athlete_id)
+    """Restituisce lo storico FTP dell'atleta corrente (ordinato per data).
+
+    Un admin puo' passare ``athlete_id`` per consultare un altro atleta.
+    """
+    target = athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    _ensure_athlete_access(target, current_user)
+    history = svc.get_ftp_history(target)
     latest = history[-1]["ftp_watts"] if history else None
-    return {"athlete_id": athlete_id, "latest_ftp": latest, "history": history}
+    return {"athlete_id": target, "latest_ftp": latest, "history": history}
 
 
 @performance_router.post("/ftp")
 async def create_ftp_record(
     payload: FtpRecordRequest,
+    athlete_id: int | None = None,
     current_user: dict = Depends(get_current_user),
 ) -> dict:
-    """Registra (UPSERT per data) un valore FTP per l'atleta corrente."""
-    athlete_id = _current_athlete_id(current_user)
-    _ensure_athlete_access(athlete_id, current_user)
+    """Registra (UPSERT per data) un valore FTP per l'atleta corrente.
+
+    Un admin puo' passare ``athlete_id`` per registrare per un altro atleta.
+    """
+    target = athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    _ensure_athlete_access(target, current_user)
     if not (1 <= payload.ftp_watts <= 2000):
         raise HTTPException(status_code=422, detail="ftp_watts fuori range plausibile (1-2000)")
     record = svc.record_ftp(
-        athlete_id,
+        target,
         ftp_watts=payload.ftp_watts,
         date=payload.date,
         source=payload.source,
@@ -113,13 +123,13 @@ async def estimate_ftp(
     payload: FtpTestRequest,
     current_user: dict = Depends(get_current_user),
 ) -> dict:
-    """Stima FTP da un test di soglia (media power * frazione)."""
-    ftp = estimate_ftp_from_test(
+    """Stima FTP da un test di soglia (media power * frazione) con margine di errore."""
+    ftp_ev = estimate_ftp_from_test_with_error(
         payload.test_power, payload.test_duration_min, payload.ftp_fraction
     )
-    if ftp is None:
+    if ftp_ev is None:
         raise HTTPException(status_code=400, detail="Impossibile stimare FTP dai dati forniti")
-    return {"estimated_ftp": ftp}
+    return {"estimated_ftp": ftp_ev.value, "estimated_ftp_error": ftp_ev.to_dict()}
 
 
 @performance_router.post("/ride/{ride_id}/compute")
@@ -131,6 +141,7 @@ async def compute_ride_metrics(
 
     Usa lo stream di potenza dai gps_points della ride. Se l'atleta ha un FTP
     noto, lo usa per IF/TSS; altrimenti prova a stimarlo dalla ride.
+    Restituisce anche i margini di errore per ogni metrica.
     """
     athlete_id = _current_athlete_id(current_user)
     ride = get_ride(ride_id)
@@ -147,7 +158,7 @@ async def compute_ride_metrics(
             status_code=422,
             detail="Nessuno stream di potenza disponibile per questa ride",
         )
-    return {"ride_id": ride_id, "metrics": result}
+    return result
 
 
 @performance_router.post("/compute")
@@ -155,35 +166,43 @@ async def compute_power_from_stream(
     payload: RidePowerRequest,
     current_user: dict = Depends(get_current_user),
 ) -> dict:
-    """Calcola NP/IF/TSS on-the-fly da uno stream di potenza (senza persistere)."""
+    """Calcola NP/IF/TSS on-the-fly da uno stream di potenza (senza persistere).
+
+    Restituisce anche i margini di errore per ogni metrica.
+    """
     athlete_id = _current_athlete_id(current_user)
     _ensure_athlete_access(athlete_id, current_user)
-    np_value = calculate_normalized_power(payload.power_stream)
-    if np_value is None:
+    metrics = calculate_power_metrics_with_error(
+        payload.power_stream, payload.ftp, payload.duration_seconds
+    )
+    if metrics.get("normalized_power") is None:
         raise HTTPException(status_code=422, detail="Stream di potenza insufficiente o non valido")
-    if_count = calculate_intensity_factor(np_value, payload.ftp)
-    tss = calculate_tss(np_value, payload.ftp, payload.duration_seconds, if_count)
-    avg = round(sum(p for p in payload.power_stream if p is not None) / len(payload.power_stream), 1)
-    return {
-        "average_power": avg,
-        "normalized_power": np_value,
-        "intensity_factor": if_count,
-        "tss": tss,
-    }
+    result = {}
+    for key, ev in metrics.items():
+        if ev is not None:
+            result[key] = ev.value
+            result[f"{key}_error"] = ev.to_dict()
+        else:
+            result[key] = None
+    return result
 
 
 @performance_router.post("/recompute")
 async def recompute_all(
+    athlete_id: int | None = None,
     current_user: dict = Depends(get_current_user),
 ) -> dict:
-    """Ricalcola e persiste le metriche per tutte le ride dell'atleta corrente."""
-    athlete_id = _current_athlete_id(current_user)
-    _ensure_athlete_access(athlete_id, current_user)
-    rides = get_rides_by_athlete(athlete_id)
+    """Ricalcola e persiste le metriche per tutte le ride dell'atleta corrente.
+
+    Un admin puo' passare ``athlete_id`` per ricalcolare un altro atleta.
+    """
+    target = athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    _ensure_athlete_access(target, current_user)
+    rides = get_rides_by_athlete(target)
     saved = svc.recompute_athlete_performance(
-        athlete_id, [dict(r) if not isinstance(r, dict) else r for r in rides]
+        target, [dict(r) if not isinstance(r, dict) else r for r in rides]
     )
-    return {"athlete_id": athlete_id, "processed": len(saved), "metrics": saved}
+    return {"athlete_id": target, "processed": len(saved), "metrics": saved}
 
 
 __all__ = ["performance_router"]

@@ -11,10 +11,10 @@ from datetime import datetime, timezone
 
 from ..db.database import get_db_connection
 from .performance import (
-    calculate_intensity_factor,
-    calculate_normalized_power,
-    calculate_power_metrics,
-    calculate_tss,
+    calculate_intensity_factor_with_error,
+    calculate_normalized_power_with_error,
+    calculate_power_metrics_with_error,
+    calculate_tss_with_error,
     estimate_ftp_from_ride,
 )
 
@@ -41,14 +41,23 @@ def _duration_seconds(ride: dict) -> float | None:
 def compute_ride_power_metrics(ride: dict, ftp: float | None) -> dict:
     """Calcola le metriche di potenza per una ride senza persistere.
 
-    Ritorna il dict ``calculate_power_metrics`` arricchito di ``ride_id``/``date``.
+    Ritorna il dict ``calculate_power_metrics`` arricchito di ``ride_id``/``date``
+    e margini di errore per ogni metrica.
     """
     power_stream = _power_stream_from_ride(ride)
     duration = _duration_seconds(ride)
-    metrics = calculate_power_metrics(power_stream, ftp, duration)
-    metrics["ride_id"] = ride.get("id")
-    metrics["date"] = ride.get("date")
-    return metrics
+    metrics = calculate_power_metrics_with_error(power_stream, ftp, duration)
+    result = {
+        "ride_id": ride.get("id"),
+        "date": ride.get("date"),
+    }
+    for key, ev in metrics.items():
+        if ev is not None:
+            result[key] = ev.value
+            result[f"{key}_error"] = ev.to_dict()
+        else:
+            result[key] = None
+    return result
 
 
 def save_ride_performance(
@@ -60,16 +69,30 @@ def save_ride_performance(
     """Calcola e persiste le metriche di potenza di una ride.
 
     Scrive su ``performance_metrics`` (UPSERT per athlete+ride) e ritorna il dict
-    calcolato. Se lo stream di potenza e' assente ritorna None (niente da calcolare).
+    calcolato arricchito di margini di errore. Se lo stream di potenza e' assente
+    ritorna None (niente da calcolare).
     """
     power_stream = _power_stream_from_ride(ride)
     if not power_stream:
         return None
 
     duration = _duration_seconds(ride)
-    metrics = calculate_power_metrics(power_stream, ftp, duration)
+    metrics = calculate_power_metrics_with_error(power_stream, ftp, duration)
     ride_id = ride.get("id")
     date = ride.get("date") or _now_iso()[:10]
+    owner_athlete_id = ride.get("athlete_id") or athlete_id
+
+    result = {
+        "ride_id": ride_id,
+        "date": date,
+        "average_power": metrics["average_power"].value if metrics["average_power"] else None,
+        "normalized_power": metrics["normalized_power"].value if metrics["normalized_power"] else None,
+        "intensity_factor": metrics["intensity_factor"].value if metrics["intensity_factor"] else None,
+        "tss": metrics["tss"].value if metrics["tss"] else None,
+    }
+    for key, ev in metrics.items():
+        if ev is not None:
+            result[f"{key}_error"] = ev.to_dict()
 
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -85,10 +108,10 @@ def save_ride_performance(
                        average_power = ?, ftp_watts = ?, created_at = ?
                    WHERE id = ?""",
                 (
-                    metrics["normalized_power"],
-                    metrics["intensity_factor"],
-                    metrics["tss"],
-                    metrics["average_power"],
+                    result["normalized_power"],
+                    result["intensity_factor"],
+                    result["tss"],
+                    result["average_power"],
                     ftp,
                     _now_iso(),
                     existing[0],
@@ -101,22 +124,20 @@ def save_ride_performance(
                     normalized_power, intensity_factor, tss, ftp_watts, created_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    athlete_id,
+                    owner_athlete_id,
                     tenant_id,
                     ride_id,
                     date,
-                    metrics["average_power"],
-                    metrics["normalized_power"],
-                    metrics["intensity_factor"],
-                    metrics["tss"],
+                    result["average_power"],
+                    result["normalized_power"],
+                    result["intensity_factor"],
+                    result["tss"],
                     ftp,
                     _now_iso(),
                 ),
             )
         conn.commit()
-    metrics["ride_id"] = ride_id
-    metrics["date"] = date
-    return metrics
+    return result
 
 
 def record_ftp(

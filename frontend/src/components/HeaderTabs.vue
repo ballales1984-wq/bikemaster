@@ -104,6 +104,7 @@ const tabs = [
   { to: "/track", label: "nav.tracking", icon: "📍" },
   { to: "/import", label: "nav.import", icon: "📥" },
   { to: "/athlete", label: "nav.athlete", icon: "🏃" },
+  { to: "/avatar", label: "nav.avatar", icon: "🎮" },
   { to: "/coach", label: "nav.coach", icon: "🧠" },
   { to: "/knowledge", label: "nav.knowledge", icon: "📚" },
   { to: "/bm2", label: "nav.bm2", icon: "🧮" },
@@ -115,6 +116,7 @@ const tabs = [
   { to: "/heatmap", label: "nav.heatmap", icon: "🔥" },
   { to: "/badges", label: "nav.badges", icon: "🏅" },
   { to: "/metabolism", label: "nav.metabolism", icon: "⚡" },
+  { to: "/performance", label: "nav.performance", icon: "📈" },
   { to: "/comparison", label: "nav.comparison", icon: "⚖️" },
   { to: "/weather", label: "nav.weather", icon: "🌤️" },
 ];

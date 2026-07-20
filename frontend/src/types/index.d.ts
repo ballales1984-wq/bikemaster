@@ -224,3 +224,41 @@ export interface MetabolicDailySummary {
   created_at?: string | null;
   updated_at?: string | null;
 }
+
+export interface PerformanceMetrics {
+  id?: number;
+  athlete_id: number;
+  tenant_id?: number;
+  ride_id?: number | null;
+  date: string;
+  average_power?: number | null;
+  normalized_power?: number | null;
+  intensity_factor?: number | null;
+  tss?: number | null;
+  ftp_watts?: number | null;
+  created_at?: string | null;
+}
+
+export interface FtpRecord {
+  id?: number;
+  athlete_id: number;
+  tenant_id?: number;
+  date: string;
+  ftp_watts: number;
+  source?: string;
+  note?: string | null;
+  created_at?: string | null;
+}
+
+export interface FtpHistoryResponse {
+  athlete_id: number;
+  latest_ftp: number | null;
+  history: FtpRecord[];
+}
+
+export interface PowerComputeResult {
+  average_power: number | null;
+  normalized_power: number | null;
+  intensity_factor: number | null;
+  tss: number | null;
+}

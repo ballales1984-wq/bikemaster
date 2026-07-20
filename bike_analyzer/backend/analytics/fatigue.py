@@ -2,18 +2,25 @@
 
 from __future__ import annotations
 
+import math
+
 from ..models.models import Ride
+from .error_propagation import ErrorValue, compute_coverage
 
 
 def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:
     """Calculate fatigue score based on ride intensity and duration."""
+    result = calculate_fatigue_score_with_error(ride, rider_age)
+    return round(result.value, 1)
+
+
+def calculate_fatigue_score_with_error(ride: Ride, rider_age: int = 35) -> ErrorValue:
+    """Calculate fatigue score with statistical and resolution error."""
     duration_h = ride.duration_hours or 0
     hr_avg = ride.heart_rate_avg
     DURATION_FACTOR = min(duration_h / 2.0, 3.0)
     if hr_avg:
         hr_pct = hr_avg / (220 - rider_age) if rider_age < 220 else 0.5
-        # Tre segmenti lineari su %HRmax: piatto a 0.5 sotto il 50%, poi cresce
-        # con pendenza 2.0 fino all'85%, infine con pendenza 3.33 oltre (zona alta).
         INTENSITY_FACTOR = (
             0.5 if hr_pct <= 0.5 else 0.5 + (hr_pct - 0.5) * 2.0 if hr_pct <= 0.85 else 1.5 + (hr_pct - 0.85) * 3.33
         )
@@ -27,10 +34,33 @@ def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:
         else 1.0
     )
     WEIGHT_FACTOR = ride.weight_kg / 70.0
-    return min(
+    fatigue_value = min(
         (DURATION_FACTOR * 0.3 + INTENSITY_FACTOR * 0.3 + SPEED_FACTOR * 0.2 + ELEV_FACTOR * 0.1 + WEIGHT_FACTOR * 0.1)
         * 3.0,
         10.0,
+    )
+
+    missing = 0
+    if not ride.duration_minutes:
+        missing += 1
+    if not ride.heart_rate_avg:
+        missing += 1
+    if not ride.avg_speed_kmh:
+        missing += 1
+    if not ride.elevation_gain_m:
+        missing += 1
+    coverage = 1.0 - missing / 4.0
+
+    base_stat_error = 0.3
+    if coverage < 1.0:
+        base_stat_error *= (2.0 - coverage)
+    base_stat_error = min(base_stat_error, 1.0)
+
+    return ErrorValue(
+        value=round(fatigue_value, 1),
+        stat_error=round(base_stat_error, 4),
+        resolution_error=0.1,
+        coverage=coverage,
     )
 
 
@@ -58,4 +88,4 @@ def get_recovery_recommendation(fatigue_score: float) -> str:
     return "Extreme fatigue - multiple rest days recommended"
 
 
-__all__ = ["calculate_fatigue_score", "estimate_recovery_hours", "get_recovery_recommendation"]
+__all__ = ["calculate_fatigue_score", "calculate_fatigue_score_with_error", "estimate_recovery_hours", "get_recovery_recommendation"]

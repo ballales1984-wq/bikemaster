@@ -53,6 +53,12 @@ const routes = [
     meta: { requiresAuth: true, title: "Profilo atleta" },
   },
   {
+    path: "/avatar",
+    name: "avatar",
+    component: () => import("../components/AthleteAvatarPanel.vue"),
+    meta: { requiresAuth: true, title: "Avatar atleta" },
+  },
+  {
     path: "/coach",
     name: "coach",
     component: () => import("../components/CoachPanel.vue"),
@@ -141,6 +147,12 @@ const routes = [
     name: "metabolism",
     component: () => import("../views/MetabolismView.vue"),
     meta: { requiresAuth: true, title: "Metabolismo" },
+  },
+  {
+    path: "/performance",
+    name: "performance",
+    component: () => import("../views/PerformanceView.vue"),
+    meta: { requiresAuth: true, title: "Analisi Prestazioni" },
   },
   {
     path: "/admin",
