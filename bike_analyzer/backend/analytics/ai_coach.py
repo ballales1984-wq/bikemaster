@@ -498,7 +498,9 @@ def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete
             record_ai_coach_query(provider, "error")
             logger.warning("AI Coach API call failed: %s: %s", type(e).__name__, e)
             logger.debug("AI Coach API error details", exc_info=True)
-            _ban_provider(provider, "connection error" if "connection" in str(e).lower() else "auth error")
+            is_auth_error = "auth" in str(e).lower() or isinstance(e, (ValueError, TypeError))
+            if not is_auth_error:
+                _ban_provider(provider, "connection error" if "connection" in str(e).lower() else "error")
             if not _is_recoverable_provider_error(e):
                 logger.error("AI Coach: non-recoverable error from %s, using fallback", provider)
                 record_ai_coach_query("fallback", "fallback")

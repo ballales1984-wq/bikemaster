@@ -424,6 +424,36 @@ def init_db():
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_food_logs_athlete_date ON food_logs(athlete_id, date)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_metabolic_summaries_athlete_date ON metabolic_daily_summaries(athlete_id, date)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS performance_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER NOT NULL,
+            tenant_id INTEGER DEFAULT 0,
+            ride_id INTEGER,
+            date TEXT NOT NULL,
+            average_power REAL,
+            normalized_power REAL,
+            intensity_factor REAL,
+            tss REAL,
+            ftp_watts REAL,
+            created_at TEXT,
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE,
+            FOREIGN KEY (ride_id) REFERENCES rides(id) ON DELETE CASCADE
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_performance_metrics_athlete ON performance_metrics(athlete_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_performance_metrics_ride ON performance_metrics(ride_id)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS ftp_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER NOT NULL,
+            tenant_id INTEGER DEFAULT 0,
+            date TEXT NOT NULL,
+            ftp_watts REAL NOT NULL,
+            source TEXT DEFAULT 'test',
+            note TEXT,
+            created_at TEXT,
+            UNIQUE(athlete_id, date),
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_ftp_history_athlete_date ON ftp_history(athlete_id, date)")
         conn.commit()
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(rides)")

@@ -39,6 +39,7 @@ from ..settings import get_settings
 from ..task_queue import get_task_queue
 from .adaptation_routes import router as adaptation_router
 from .bm2_routes import bm2_router
+from .performance_routes import performance_router
 from .routes import admin_router, router
 from .sync_routes import router as sync_router
 from .utils import _trusted_forwarded_value
@@ -330,7 +331,7 @@ def create_app() -> FastAPI:
     if not cors_origins and _s.environment.lower() not in ("development", "dev", "test"):
         logger.error("No CORS origins configured in non-development environment")
         cors_origins = []
-    vercel_regex = r"https://.*\.(vercel\.app|ngrok-free\.dev)"
+    vercel_regex = r"https://.*\.(vercel\.app|ngrok-free\.dev|loca\.lt)"
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
@@ -349,6 +350,7 @@ def create_app() -> FastAPI:
     app.include_router(bm2_router, prefix="/api/v1/bm2", tags=["bm2"])
     app.include_router(sync_router, prefix="/api/v1", tags=["sync"])
     app.include_router(adaptation_router, prefix="/api/v1", tags=["adaptation"])
+    app.include_router(performance_router, prefix="/api/v1", tags=["performance"])
 
     if STATIC_DIR.exists() and INDEX_FILE.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

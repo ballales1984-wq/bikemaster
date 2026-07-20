@@ -127,3 +127,138 @@ def should_save_to_database(points: list) -> bool:
     from ..processing.processing import validate_gps_point
 
     return all(validate_gps_point(p) for p in points) if points else False
+
+
+def calculate_normalized_power(power_stream: list[float], rolling_s: int = 30) -> float | None:
+    """Normalized Power (NP): media della 4° potenza su finestra mobile 30s, alla 1/4.
+
+    Richiede uno stream di potenza (W) campionato a 1 Hz. Se lo stream e' vuoto o
+    piatto (tutti i valori uguali), ritorna None perche' NP non e' definita.
+    """
+    if not power_stream or len(power_stream) < rolling_s:
+        return None
+    valid = [p for p in power_stream if p is not None and p >= 0]
+    if not valid:
+        return None
+
+    # Media mobile su finestra rolling_s secondi (campioni = secondi a 1 Hz).
+    rolling_avg: list[float] = []
+    for i in range(len(valid)):
+        window = valid[max(0, i - rolling_s + 1) : i + 1]
+        rolling_avg.append(sum(window) / len(window))
+
+    if not rolling_avg:
+        return None
+    mean_4th = sum(p**4 for p in rolling_avg) / len(rolling_avg)
+    return round(mean_4th**0.25, 1)
+
+
+def calculate_intensity_factor(normalized_power: float | None, ftp: float | None) -> float | None:
+    """Intensity Factor (IF): NP / FTP. None se FTP mancante o non valido."""
+    if not normalized_power or not ftp or ftp <= 0:
+        return None
+    return round(normalized_power / ftp, 3)
+
+
+def calculate_tss(
+    normalized_power: float | None,
+    ftp: float | None,
+    duration_seconds: float | None,
+    intensity_factor: float | None = None,
+) -> float | None:
+    """Training Stress Score: (sec * NP * IF) / (FTP * 3600) * 100.
+
+    ACCETTA l'IF pre-calcolato oppure lo deriva da NP/FTP. None se dati mancanti.
+    """
+    if duration_seconds is None or duration_seconds <= 0:
+        return None
+    if intensity_factor is None:
+        intensity_factor = calculate_intensity_factor(normalized_power, ftp)
+    if intensity_factor is None or not ftp or ftp <= 0:
+        return None
+    np_eff = normalized_power or (intensity_factor * ftp)
+    return round((duration_seconds * np_eff * intensity_factor) / (ftp * 3600.0) * 100.0, 1)
+
+
+def estimate_ftp_from_test(
+    test_power: float,
+    test_duration_min: float = 20.0,
+    ftp_fraction: float = 0.95,
+) -> float | None:
+    """Stima FTP da un test di soglia.
+
+    Default: media potenza su 20 min * 0.95 (test standard 20-min FTP).
+    Per test da 60 min usare ftp_fraction=1.0; per 8 min usare ~0.90.
+    """
+    if not test_power or test_power <= 0:
+        return None
+    if test_duration_min <= 0:
+        return None
+    return round(test_power * ftp_fraction, 1)
+
+
+def estimate_ftp_from_ride(
+    power_stream: list[float],
+    duration_seconds: float | None = None,
+    ftp_fraction: float = 0.95,
+) -> float | None:
+    """Stima FTP da un'uscita: NP della power zone piu' lunga * frazione.
+
+    Euristica semplificata: usa la NP dell'intera uscita come proxy del test di
+    soglia e la scalai con ftp_fraction. Ritorna None se lo stream e' insufficiente.
+    """
+    if not duration_seconds or duration_seconds < 600:  # almeno 10 min
+        return None
+    np_value = calculate_normalized_power(power_stream)
+    if not np_value:
+        return None
+    return round(np_value * ftp_fraction, 1)
+
+
+def calculate_power_metrics(
+    power_stream: list[float],
+    ftp: float | None,
+    duration_seconds: float | None,
+) -> dict:
+    """Aggrega tutti i metricatori di potenza per un'uscita in un unico dict.
+
+    Campi: average_power, normalized_power, intensity_factor, tss.
+    I campi non calcolabili sono None.
+    """
+    if not power_stream:
+        return {
+            "average_power": None,
+            "normalized_power": None,
+            "intensity_factor": None,
+            "tss": None,
+        }
+    valid = [p for p in power_stream if p is not None and p >= 0]
+    avg = round(sum(valid) / len(valid), 1) if valid else None
+    np_value = calculate_normalized_power(power_stream)
+    if_count = calculate_intensity_factor(np_value, ftp)
+    tss = calculate_tss(np_value, ftp, duration_seconds, if_count)
+    return {
+        "average_power": avg,
+        "normalized_power": np_value,
+        "intensity_factor": if_count,
+        "tss": tss,
+    }
+
+
+__all__ = [
+    "calculate_performance_score",
+    "calculate_endurance_score",
+    "calculate_recovery_score",
+    "calculate_efficiency_score",
+    "calculate_monthly_scores",
+    "calculate_annual_scores",
+    "classify_athlete",
+    "get_experience_level",
+    "should_save_to_database",
+    "calculate_normalized_power",
+    "calculate_intensity_factor",
+    "calculate_tss",
+    "estimate_ftp_from_test",
+    "estimate_ftp_from_ride",
+    "calculate_power_metrics",
+]

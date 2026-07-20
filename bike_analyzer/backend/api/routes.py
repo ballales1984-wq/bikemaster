@@ -254,6 +254,9 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
         # broke Strava/OAuth whenever the tunnel was regenerated.
         if host_lower.endswith(".ngrok-free.dev"):
             return
+        # Allow any localhost.run tunnel host (no interstitial splash, free).
+        if host_lower.endswith(".loca.lt"):
+            return
         raise HTTPException(status_code=400, detail="Invalid redirect_uri host")
 
 
@@ -724,16 +727,16 @@ async def logout(request: Request, current_user: dict = Depends(get_current_user
 def _revoke_external_tokens(athlete_id: int) -> None:
     """Revoke Strava/Wahoo/Garmin/Google tokens best-effort (never raises)."""
     providers = [
-        ("..ingestion.strava_client", "revoke_token"),
-        ("..ingestion.wahoo_client", "revoke_token"),
-        ("..ingestion.garmin_client", "revoke_token"),
-        ("..ingestion.google_oauth_store", "delete_google_token"),
+        ("bike_analyzer.backend.ingestion.strava_client", "revoke_token"),
+        ("bike_analyzer.backend.ingestion.wahoo_client", "revoke_token"),
+        ("bike_analyzer.backend.ingestion.garmin_client", "revoke_token"),
+        ("bike_analyzer.backend.ingestion.google_oauth_store", "delete_google_token"),
     ]
     for module_path, func_name in providers:
         try:
             import importlib
 
-            module = importlib.import_module(module_path, __name__)
+            module = importlib.import_module(module_path)
             func = getattr(module, func_name, None)
             if func is not None:
                 func(athlete_id)
