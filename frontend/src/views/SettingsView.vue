@@ -60,13 +60,24 @@
       <div class="keys-grid">
         <label v-for="field in keyFields" :key="field.name" class="key-field">
           <span class="key-label">{{ field.label }}</span>
-          <input
-            v-model="keys[field.name]"
-            class="text-input"
-            :type="showKeys ? 'text' : 'password'"
-            :placeholder="field.placeholder"
-            autocomplete="off"
-          />
+          <div class="key-input-row">
+            <input
+              v-model="keys[field.name]"
+              class="text-input"
+              :type="showKeys ? 'text' : 'password'"
+              :placeholder="field.placeholder"
+              autocomplete="off"
+            />
+            <button
+              v-if="keys[field.name]"
+              class="btn btn-ghost btn-key-clear"
+              type="button"
+              :title="'Rimuovi ' + field.label"
+              @click="clearKey(field.name)"
+            >
+              ✕
+            </button>
+          </div>
         </label>
       </div>
       <div class="row key-actions">
@@ -89,7 +100,7 @@
         v-model="bulkInput"
         class="bulk-input"
         rows="5"
-        placeholder='{"groq":"gsk_...","google_maps":"AIza...","serpapi":"...","weather":"..."}'
+        placeholder='{"groq":"gsk_...","google_maps":"AIza...","serpapi":"...","weather":"...","garmin_api_key":"...","strava_client_id":"...","strava_client_secret":"...","wahoo_client_id":"...","wahoo_client_secret":"...","google_fit_client_id":"...","google_fit_client_secret":"...","google_health_client_id":"...","google_health_client_secret":"..."}'
       ></textarea>
       <div class="row key-actions">
         <button class="btn" @click="importBulk">Importa e salva</button>
@@ -137,6 +148,15 @@ const keyFields: { name: keyof UserApiKeys; label: string; placeholder: string }
   { name: "google_maps", label: "Google Maps", placeholder: "AIza..." },
   { name: "serpapi", label: "SerpAPI", placeholder: "SerpAPI key" },
   { name: "weather", label: "Weather / OpenWeather", placeholder: "OpenWeather key" },
+  { name: "garmin_api_key", label: "Garmin API Key", placeholder: "Garmin Connect key" },
+  { name: "strava_client_id", label: "Strava Client ID", placeholder: "Strava OAuth client id" },
+  { name: "strava_client_secret", label: "Strava Client Secret", placeholder: "Strava OAuth client secret" },
+  { name: "wahoo_client_id", label: "Wahoo Client ID", placeholder: "Wahoo OAuth client id" },
+  { name: "wahoo_client_secret", label: "Wahoo Client Secret", placeholder: "Wahoo OAuth client secret" },
+  { name: "google_fit_client_id", label: "Google Fit Client ID", placeholder: "Google Fit OAuth client id" },
+  { name: "google_fit_client_secret", label: "Google Fit Client Secret", placeholder: "Google Fit OAuth client secret" },
+  { name: "google_health_client_id", label: "Google Health Client ID", placeholder: "Google Health OAuth client id" },
+  { name: "google_health_client_secret", label: "Google Health Client Secret", placeholder: "Google Health OAuth client secret" },
 ];
 
 const keys = reactive<UserApiKeys>({ ...apiKeys.keys });
@@ -189,6 +209,14 @@ function saveKeys() {
   }
   apiKeys.save();
   keysStatus.value = "Chiavi salvate su questo dispositivo.";
+  keysStatusClass.value = "ok";
+}
+
+function clearKey(name: keyof UserApiKeys) {
+  keys[name] = "";
+  apiKeys.clearKey(name);
+  apiKeys.save();
+  keysStatus.value = `${name} rimossa da questo dispositivo.`;
   keysStatusClass.value = "ok";
 }
 
@@ -333,6 +361,19 @@ code {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+.key-input-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.key-input-row .text-input {
+  flex: 1 1 auto;
+}
+.btn-key-clear {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.7rem;
+  line-height: 1;
 }
 .key-label {
   font-size: 0.85rem;
