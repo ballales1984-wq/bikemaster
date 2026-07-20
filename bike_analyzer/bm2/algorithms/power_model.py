@@ -1,4 +1,4 @@
-"""BikeMaster 2.0 - Power Model (stima potenza/velocità da FTP e profilo)."""
+"""BikeMaster 2.0 - Power Model (estimates power/speed from FTP and profile)."""
 
 from __future__ import annotations
 
@@ -20,8 +20,8 @@ class PowerModel(Algorithm):
 
     name = "PowerModel"
     formula = ("P = (crr·m·g + m·g·slope + ½·ρ·CdA·v²)·v / η  [stima da FTP]; "
-               "v_ftp = risolvi P=FTP per la velocità")
-    description = "Stima potenza richiesta e velocità sostenibile da FTP e profilo di pendenza."
+               "v_ftp = solve P=FTP for speed")
+    description = "Estimates required power and sustainable speed from FTP and slope profile."
     unit = "W"
     required_inputs = ["ftp", "massa_totale", "pendenza", "crr", "cda", "efficienza"]
 
@@ -38,7 +38,7 @@ class PowerModel(Algorithm):
     @staticmethod
     def _speed_for_power(target_w: float, mass_kg: float, slope_pct: float,
                          crr: float, cda: float, eta: float, wind_ms: float = 0.0) -> float:
-        """Risoluzione numerica (bisezione) di P = f(v) per la velocità sostenibile.
+        """Numerical resolution (bisection) of P = f(v) for sustainable speed.
 
         Delegato al kernel unico ``core.physics.required_speed_for_power``.
         """
@@ -119,3 +119,4 @@ class PowerModel(Algorithm):
             "slope_percent": slope,
             "sensor_avg_power_w": round(self._avg_power_from_sensors(ctx), 1),
         }
+

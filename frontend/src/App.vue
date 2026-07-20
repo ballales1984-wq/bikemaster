@@ -1,7 +1,7 @@
 <!--
 BikeMaster Frontend — componente root.
 
-Responsabilità:
+Liability:
 - layout globale (header, sfondo animato, tema scuro/chiaro)
 - gestisce login/registrazione quando non autenticato
 - routing outlet verso view e pannelli autenticati
@@ -555,3 +555,4 @@ onMounted(() => {
   }
 }
 </style>
+

@@ -18,7 +18,7 @@ class MovementModel(Algorithm):
 
     name = "MovementModel"
     formula = "v_media = distanza / durata; v_max = max(samples); a = d(v)/d(t)"
-    description = "Calcola velocità media/massima e accelerazione dalla traccia GPS."
+    description = "Calculates average/maximum speed and acceleration from GPS track."
     unit = "m/s"
     required_inputs = ["gps_points", "distanza", "durata"]
 
@@ -50,3 +50,4 @@ class MovementModel(Algorithm):
             "max_speed_ms": max_speed,
             "max_accel_ms2": accel,
         }
+

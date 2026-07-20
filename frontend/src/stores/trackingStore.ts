@@ -1,7 +1,7 @@
 /**
  * Store del tracking GPS in tempo reale.
  *
- * Registra metriche della pedalata (distanza, velocità, elevazione,
+ * Registers cycling metrics (distance, speed, elevation,
  * FC, cadenza, potenza), traccia punti GPS e genera GPX.
  */
 import { computed, ref } from "vue";
@@ -167,3 +167,4 @@ ${route}
     formattedDistance,
   };
 });
+

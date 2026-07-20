@@ -2,7 +2,7 @@
  * Validazione dei form, in particolare dell'anagrafica atleta.
  *
  * `validateAthleteForm` restituisce una mappa campo→errore controllando nome,
- * email (regex), età/peso/altezza/volume/ftp nei limiti di `ATHLETE_LIMITS` e
+ * email (regex), age/weight/height/volume/ftp within `ATHLETE_LIMITS` and
  * livello di esperienza ammesso. Riesporta gli helper `validateEmail`,
  * `validateRequired`, `validateNumber`, `validateExperienceLevel` e l'elenco
  * `VALID_EXPERIENCE_LEVELS`.
@@ -74,7 +74,7 @@ export function validateAthleteForm(
     age < ATHLETE_LIMITS.MIN_AGE ||
     age > ATHLETE_LIMITS.MAX_AGE
   ) {
-    errors.age = `Età deve essere tra ${ATHLETE_LIMITS.MIN_AGE} e ${ATHLETE_LIMITS.MAX_AGE}`;
+    errors.age = `Age must be between ${ATHLETE_LIMITS.MIN_AGE} and ${ATHLETE_LIMITS.MAX_AGE}`;
   }
 
   const weight = Number(form.weight_kg);
@@ -132,3 +132,4 @@ export {
   validateExperienceLevel,
   VALID_EXPERIENCE_LEVELS,
 };
+

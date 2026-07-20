@@ -1,215 +1,215 @@
 <!--
-  Pagina statica della Privacy Policy.
-  Informativa completa sul trattamento dei dati personali, GDPR, sicurezza,
-  condivisione con terze parti e diritti dell'utente.
-  Layout: contenitore centrato con intestazione, testo formattato e link a Cookie Policy.
+  Static Privacy Policy page.
+  Complete information on personal data processing, GDPR, security,
+  sharing with third parties and user rights.
+  Layout: centered container with header, formatted text and link to Cookie Policy.
 -->
 <template>
   <div class="legal-page">
     <div class="legal-header">
-      <h1>Privacy Policy - Informativa sulla Privacy</h1>
-      <p class="last-updated">Ultimo aggiornamento: Giugno 2025</p>
+      <h1>Privacy Policy</h1>
+      <p class="last-updated">Last updated: June 2025</p>
     </div>
 
     <div class="legal-content">
-      <h2>1. Titolare del Trattamento</h2>
+      <h2>1. Data Controller</h2>
       <p>
-        Il titolare del trattamento dei dati personali raccolti attraverso
-        BikeMaster è:
+        The data controller of the personal data collected through
+        BikeMaster is:
       </p>
       <ul>
-        <li><strong>Denominazione:</strong> BikeMaster Team</li>
+        <li><strong>Company:</strong> BikeMaster Team</li>
         <li><strong>Email:</strong> privacy@bikemaster.app</li>
       </ul>
 
-      <h2>2. Tipologie di Dati Raccolti</h2>
+      <h2>2. Types of Data Collected</h2>
       <p>
-        Attraverso l'utilizzo di BikeMaster, raccogliamo le seguenti categorie
-        di dati:
+        Through the use of BikeMaster, we collect the following categories
+        of data:
       </p>
       <ul>
         <li>
-          <strong>Dati di navigazione:</strong> indirizzo IP, tipo di browser,
-          sistema operativo, dati di log
+          <strong>Navigation data:</strong> IP address, browser type,
+          operating system, log data
         </li>
         <li>
-          <strong>Dati personali dell'utente:</strong> nome, email, età, peso,
-          altezza, dati medici forniti volontariamente nel profilo atleta
+          <strong>User personal data:</strong> name, email, age, weight,
+          height, medical data voluntarily provided in the athlete profile
         </li>
         <li>
-          <strong>Dati GPS e attività fisica:</strong> coordinate geografiche,
-          tracciato percorso, velocità, altitudine, frequenza cardiaca, potenza,
-          cadenza, distanza, dislivello
+          <strong>GPS and physical activity data:</strong> geographic coordinates,
+          route track, speed, altitude, heart rate, power,
+          cadence, distance, elevation
         </li>
         <li>
-          <strong>Dati di geolocalizzazione:</strong> posizione in tempo reale
-          durante il tracciamento GPS da telefono
+          <strong>Geolocation data:</strong> real-time position
+          during GPS tracking from phone
         </li>
         <li>
-          <strong>Dati da servizi esterni:</strong> dati di attività da Strava,
-          Garmin Connect, Google Fit (solo se autorizzati dall'utente)
+          <strong>Data from external services:</strong> activity data from Strava,
+          Garmin Connect, Google Fit (only if authorized by the user)
         </li>
         <li>
-          <strong>Credenziali di accesso:</strong> username e password
-          (memorizzati in forma crittografata)
-        </li>
-      </ul>
-
-      <h2>3. Finalità del Trattamento</h2>
-      <p>I dati personali sono trattati per le seguenti finalità:</p>
-      <ul>
-        <li>
-          <strong>Fornitura del servizio:</strong> analisi delle performance
-          ciclistiche, calcolo metriche (calorie, TSS, CTL/ATL/TSB), generazione
-          mappe e report
-        </li>
-        <li>
-          <strong>Funzionalità AI Coach:</strong> consigli personalizzati di
-          allenamento e recupero
-        </li>
-        <li>
-          <strong>Autenticazione:</strong> gestione account e accesso al
-          servizio
-        </li>
-        <li>
-          <strong>Integrazioni:</strong> sincronizzazione con servizi esterni
-          previo consenso
-        </li>
-        <li>
-          <strong>Miglioramento del servizio:</strong> statistica aggregata e
-          anonimizzata per migliorare le funzionalità
-        </li>
-        <li>
-          <strong>Sicurezza:</strong> protezione da accessi non autorizzati e
-          rilevamento anomalie
+          <strong>Access credentials:</strong> username and password
+          (stored in encrypted form)
         </li>
       </ul>
 
-      <h2>4. Base Giuridica del Trattamento</h2>
+      <h2>3. Purposes of Processing</h2>
+      <p>Personal data is processed for the following purposes:</p>
       <ul>
         <li>
-          <strong>Esecuzione del contratto:</strong> trattamento necessario per
-          fornire il servizio richiesto (Art. 6, comma 1, lett. b GDPR)
+          <strong>Service provision:</strong> cycling performance
+          analysis, metric calculation (calories, TSS, CTL/ATL/TSB), map and report
+          generation
         </li>
         <li>
-          <strong>Consenso:</strong> trattamento dati sanitari e
-          geolocalizzazione in tempo reale (Art. 6, comma 1, lett. a GDPR)
+          <strong>AI Coach features:</strong> personalized training and
+          recovery advice
         </li>
         <li>
-          <strong>Interesse legittimo:</strong> sicurezza dei dati, statistiche
-          aggregate (Art. 6, comma 1, lett. f GDPR)
+          <strong>Authentication:</strong> account management and access to the
+          service
+        </li>
+        <li>
+          <strong>Integrations:</strong> synchronization with external services
+          upon consent
+        </li>
+        <li>
+          <strong>Service improvement:</strong> aggregated and
+          anonymized statistics to improve features
+        </li>
+        <li>
+          <strong>Security:</strong> protection from unauthorized access and
+          anomaly detection
         </li>
       </ul>
 
-      <h2>5. Dati Sensibili e Geolocalizzazione</h2>
-      <p>Il servizio raccoglie dati sensibili potenziali tra cui:</p>
+      <h2>4. Legal Basis of Processing</h2>
       <ul>
         <li>
-          <strong>Dati di salute:</strong> frequenza cardiaca, dati di
-          affaticamento, punteggi di performance (Art. 9 GDPR)
+          <strong>Contract performance:</strong> processing necessary to
+          provide the requested service (Art. 6, par. 1, lett. b GDPR)
         </li>
         <li>
-          <strong>Geolocalizzazione:</strong> posizione GPS continua durante il
-          tracciamento da dispositivo mobile
+          <strong>Consent:</strong> processing of health data and
+          real-time geolocation (Art. 6, par. 1, lett. a GDPR)
+        </li>
+        <li>
+          <strong>Legitimate interest:</strong> data security, aggregate
+          statistics (Art. 6, par. 1, lett. f GDPR)
+        </li>
+      </ul>
+
+      <h2>5. Sensitive Data and Geolocation</h2>
+      <p>The service collects potentially sensitive data including:</p>
+      <ul>
+        <li>
+          <strong>Health data:</strong> heart rate, fatigue
+          data, performance scores (Art. 9 GDPR)
+        </li>
+        <li>
+          <strong>Geolocation:</strong> continuous GPS position during
+          tracking from mobile device
         </li>
       </ul>
       <p>
-        Tali dati sono trattati esclusivamente previo consenso esplicito
-        dell'utente e sono utilizzati solo per le finalità indicate nella
-        presente informativa.
+        This data is processed exclusively upon explicit consent
+        and is used only for the purposes indicated in this
+        policy.
       </p>
 
-      <h2>6. Condivisione dei Dati e Terze Parti</h2>
+      <h2>6. Data Sharing and Third Parties</h2>
       <p>
-        I dati personali non sono ceduti a terzi a titolo oneroso. Sono
-        condivisi esclusivamente con:
+        Personal data is not transferred to third parties for a fee. It is
+        shared exclusively with:
       </p>
       <ul>
         <li>
-          <strong>Strava:</strong> previa autorizzazione OAuth2 dell'utente
+          <strong>Strava:</strong> upon user OAuth2 authorization
         </li>
         <li>
-          <strong>Garmin Connect:</strong> previa autorizzazione OAuth2
-          dell'utente
+          <strong>Garmin Connect:</strong> upon user OAuth2
+          authorization
         </li>
         <li>
-          <strong>Google Fit:</strong> previa autorizzazione OAuth2 dell'utente
+          <strong>Google Fit:</strong> upon user OAuth2 authorization
         </li>
         <li>
-          <strong>Google Maps / OpenStreetMap:</strong> dati di
-          geolocalizzazione per rendering mappe
+          <strong>Google Maps / OpenStreetMap:</strong> geolocation
+          data for map rendering
         </li>
         <li>
-          <strong>Groq API:</strong> dati di allenamento per l'AI Coach (non
-          condivide dati identificativi)
+          <strong>Groq API:</strong> training data for the AI Coach (does not
+          share identifying data)
         </li>
         <li>
-          <strong>OpenAI API:</strong> embedding per ricerca semantica nella
-          Knowledge Base (dati anonimizzati)
+          <strong>OpenAI API:</strong> embeddings for semantic search in the
+          Knowledge Base (anonymized data)
         </li>
       </ul>
 
-      <h2>7. Conservazione dei Dati</h2>
+      <h2>7. Data Retention</h2>
       <ul>
         <li>
-          <strong>Dati di tracciamento GPS:</strong> conservati fino a
-          eliminazione da parte dell'utente
+          <strong>GPS tracking data:</strong> retained until
+          deleted by the user
         </li>
         <li>
-          <strong>Dati profilo atleta:</strong> conservati fino a eliminazione
-          account
+          <strong>Athlete profile data:</strong> retained until account
+          deletion
         </li>
         <li>
-          <strong>Dati di accesso (JWT):</strong> conservati per la durata della
-          sessione
+          <strong>Access data (JWT):</strong> retained for the duration of the
+          session
         </li>
         <li>
-          <strong>Token OAuth:</strong> conservati fino a revoca esplicita
+          <strong>OAuth tokens:</strong> retained until explicit revocation
         </li>
       </ul>
 
-      <h2>8. Diritti dell'Utente</h2>
-      <p>Ai sensi degli articoli 15-22 del GDPR, l'utente ha diritto di:</p>
+      <h2>8. User Rights</h2>
+      <p>Under Articles 15-22 of the GDPR, the user has the right to:</p>
       <ul>
-        <li>Accedere ai propri dati personali</li>
-        <li>Richiedere rettifica o aggiornamento</li>
-        <li>Richiedere cancellazione (right to be forgotten)</li>
-        <li>Limitare il trattamento</li>
-        <li>Opporsi al trattamento</li>
-        <li>Portabilità dei dati</li>
-        <li>Revocare il consenso in qualsiasi momento</li>
+        <li>Access their personal data</li>
+        <li>Request correction or update</li>
+        <li>Request deletion (right to be forgotten)</li>
+        <li>Restrict processing</li>
+        <li>Object to processing</li>
+        <li>Data portability</li>
+        <li>Withdraw consent at any time</li>
       </ul>
-      <p>Per esercitare i diritti: <strong>privacy@bikemaster.app</strong></p>
+      <p>To exercise these rights: <strong>privacy@bikemaster.app</strong></p>
 
-      <h2>9. Misure di Sicurezza</h2>
+      <h2>9. Security Measures</h2>
       <ul>
-        <li>Crittografia password con bcrypt</li>
-        <li>Token JWT con refresh automatico</li>
-        <li>Rate limiting per protezione API</li>
-        <li>HTTPS per tutte le comunicazioni</li>
-        <li>Database con backup periodici</li>
-        <li>Accesso ai dati minimo necessario (least privilege)</li>
+        <li>Password encryption with bcrypt</li>
+        <li>JWT tokens with automatic refresh</li>
+        <li>Rate limiting for API protection</li>
+        <li>HTTPS for all communications</li>
+        <li>Database with periodic backups</li>
+        <li>Minimum necessary data access (least privilege)</li>
       </ul>
 
-      <h2>10. Cookie e Tecnologie Simili</h2>
+      <h2>10. Cookies and Similar Technologies</h2>
       <p>
-        Per informazioni dettagliate sui cookie, consulta la
+        For detailed information on cookies, see the
         <RouterLink to="/cookies">
 Cookie Policy
 </RouterLink>.
       </p>
 
-      <h2>11. Modifiche alla Presente Informativa</h2>
+      <h2>11. Changes to This Policy</h2>
       <p>
-        Eventuali modifiche saranno comunicate attraverso il servizio o via
-        email agli utenti registrati. Si consiglia di consultare periodicamente
-        questa pagina.
+        Any changes will be communicated through the service or via
+        email to registered users. We recommend consulting this page
+        periodically.
       </p>
 
-      <h2>12. Autorità di Controllo</h2>
+      <h2>12. Supervisory Authority</h2>
       <p>
-        In caso di mancata risposta o insoddisfazione, è possibilepresentare
-        reclamo al Garante per la protezione dei dati personali presso
+        In case of no response or dissatisfaction, you may file a
+        complaint with the Italian Data Protection Authority at
         <a href="https://www.garanteprivacy.it"
 target="_blank" rel="noopener">www.garanteprivacy.it</a>.
       </p>

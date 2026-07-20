@@ -29,7 +29,8 @@ __all__ = [
 class GPSAgent:
     """Manages GPS tracks (coordinates, altitude, timestamps).
 
-    Converts raw GPS data (dict, GPX, GeoJSON) into Core Model ``Activity``\n    objects, normalizing timestamps and units via the Transformer.
+    Converts raw GPS data (dict, GPX, GeoJSON) into Core Model ``Activity``
+    objects, normalizing timestamps and units via the Transformer.
     """
 
     def __init__(self, transformer: TransformerEngine) -> None:

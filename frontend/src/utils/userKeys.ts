@@ -95,7 +95,7 @@ export function parseBulkKeys(text: string): UserApiKeys {
       return result;
     }
   } catch {
-    // Non è JSON: prova il formato KEY=VALUE (una per riga).
+    // Not JSON: try KEY=VALUE format (one per line).
   }
 
   for (const line of raw.split(/\r?\n/)) {
@@ -116,3 +116,4 @@ export function parseBulkKeys(text: string): UserApiKeys {
   }
   return result;
 }
+

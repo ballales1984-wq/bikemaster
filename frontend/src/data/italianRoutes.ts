@@ -11,7 +11,7 @@ export interface FamousRoute {
   region: string;
   distanceKm: number;
   elevationGain: number;
-  difficulty: "facile" | "medio" | "difficile" | "eroica";
+  difficulty: "easy" | "medium" | "hard" | "heroic";
   type: string;
   description: string;
   color: string;
@@ -26,10 +26,10 @@ export const famousItalianRoutes: FamousRoute[] = [
     region: "Alto Adige / Lombardia",
     distanceKm: 48,
     elevationGain: 2100,
-    difficulty: "difficile",
-    type: "scalata",
+    difficulty: "hard",
+    type: "climb",
     description:
-      "La più famosa salita delle Alpi, con 48 tornanti sul versante altoatesino. Cima del Giro d'Italia dal 1953.",
+      "The most famous Alpine climb, with 48 hairpin bends on the South Tyrol side. Giro d'Italia summit since 1953.",
     color: "#e74c3c",
     coords: [
       [46.6089, 10.5944],
@@ -60,8 +60,8 @@ export const famousItalianRoutes: FamousRoute[] = [
     region: "Lombardia",
     distanceKm: 14,
     elevationGain: 1300,
-    difficulty: "difficile",
-    type: "scalata",
+    difficulty: "hard",
+    type: "climb",
     description:
       "Salita temibile del Giro d'Italia con pendenze medie al 10,5% e punte oltre il 18%. Da Mazzo di Valtellina.",
     color: "#c0392b",
@@ -89,10 +89,10 @@ export const famousItalianRoutes: FamousRoute[] = [
     region: "Lombardia",
     distanceKm: 20,
     elevationGain: 1300,
-    difficulty: "difficile",
-    type: "scalata",
+    difficulty: "hard",
+    type: "climb",
     description:
-      "Cima più alta del Giro d'Italia (2621 m). Dal versante sud da Ponte di Legno con tratti ripetuti oltre il 15%.",
+      "Highest summit of the Giro d'Italia (2621 m). From the south side from Ponte di Legno with repeated sections over 15%.",
     color: "#d35400",
     coords: [
       [46.255, 10.535],
@@ -117,7 +117,7 @@ export const famousItalianRoutes: FamousRoute[] = [
     region: "Dolomiti (BZ/TN)",
     distanceKm: 180,
     elevationGain: 4200,
-    difficulty: "eroica",
+    difficulty: "heroic",
     type: "granfondo",
     description:
       "Il classico anello dolomitico: Passo Pordoi, Passo Sella, Passo Gardena, Passo Campolongo, Passo Falzarego.",
@@ -171,10 +171,10 @@ export const famousItalianRoutes: FamousRoute[] = [
     region: "Veneto / Lombardia",
     distanceKm: 140,
     elevationGain: 1800,
-    difficulty: "medio",
+    difficulty: "medium",
     type: "granfondo",
     description:
-      "Giro completo del lago più grande d'Italia. Salite a Brione e Torbole sul versante nord.",
+      "Complete tour of Italy's largest lake. Climbs to Brione and Torbole on the north side.",
     color: "#2980b9",
     coords: [
       [45.62, 10.64],
@@ -225,7 +225,7 @@ export const famousItalianRoutes: FamousRoute[] = [
     region: "Toscana (Siena)",
     distanceKm: 184,
     elevationGain: 3200,
-    difficulty: "medio",
+    difficulty: "medium",
     type: "classica",
     description:
       "Percorso iconico con tratti di sterrato (strade bianche) nel Chianti. Cerca il tratto su Via delle Crete.",
@@ -260,7 +260,7 @@ export const famousItalianRoutes: FamousRoute[] = [
     region: "Umbria (PG)",
     distanceKm: 120,
     elevationGain: 2000,
-    difficulty: "medio",
+    difficulty: "medium",
     type: "granfondo",
     description:
       "Tra le colline umbre tra Assisi, Spello e Perugia. Itinerario collinare ricco di uliveti e borghi medievali.",
@@ -294,8 +294,8 @@ export const famousItalianRoutes: FamousRoute[] = [
     region: "Sicilia (CT)",
     distanceKm: 96,
     elevationGain: 2600,
-    difficulty: "difficile",
-    type: "scalata",
+    difficulty: "hard",
+    type: "climb",
     description:
       "Anello attorno all'Etna con rampe fino al Rifugio Sapienza. Panorami mozzafiato sul Mar Ionio e Tirreno.",
     color: "#e67e22",
@@ -323,7 +323,7 @@ export const famousItalianRoutes: FamousRoute[] = [
     region: "Marche",
     distanceKm: 160,
     elevationGain: 1500,
-    difficulty: "medio",
+    difficulty: "medium",
     type: "granfondo",
     description:
       "Tracciato tipico della corsa dei due mari: costa tirrenica, entroterra marchigiano, costa adriatica.",
@@ -356,7 +356,7 @@ export const famousItalianRoutes: FamousRoute[] = [
     region: "Sardegna Sud",
     distanceKm: 85,
     elevationGain: 1100,
-    difficulty: "medio",
+    difficulty: "medium",
     type: "granfondo",
     description:
       "Itinerario collinare nel Sulcis con tratti panoramici sulla costa meridionale sarda. Partenza da Carbonia.",
@@ -380,3 +380,4 @@ export const famousItalianRoutes: FamousRoute[] = [
     ],
   },
 ];
+

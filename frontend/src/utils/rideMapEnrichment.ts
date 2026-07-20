@@ -3,7 +3,7 @@
  *
  * Normalizza e decampiona i punti GPS, costruisce i segmenti (`buildSegments`)
  * calcolandone distanza/gradiente via Haversine, e `buildDemoSegments` vi applica
- * rischio e colore. `getCenter` calcola il baricentro; `haversineDistanceM` è la
+ * risk and color. `getCenter` calculates the centroid; `haversineDistanceM` is the
  * distanza ortodromica in metri (raggio terra 6371000 m).
  */
 
@@ -106,3 +106,4 @@ export function haversineDistanceM(
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return 2 * radius * Math.asin(Math.sqrt(a));
 }
+

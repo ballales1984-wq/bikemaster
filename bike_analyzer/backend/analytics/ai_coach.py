@@ -1027,3 +1027,7 @@ def chat_with_tools(
         return {"content": response.content or ""}
     except Exception:
         raise
+
+
+
+

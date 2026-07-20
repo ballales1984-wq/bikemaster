@@ -1,10 +1,10 @@
 /**
- * Tipi di dominio principale dell'applicazione BikeMaster.
+ * Main domain types for the BikeMaster application.
  *
- * Definisce le interfacce per le entità core: corsa, atleta, summary,
- * training score, coach data, evento calendario, badge, punto GPS,
- * segmento di gara, campionamento GPS nativo e istanza di tracciamento.
- * Include anche l'augmentazione globale di Window per il tracking nativo.
+ * Defines interfaces for core entities: ride, athlete, summary,
+ * training score, coach data, calendar event, badge, GPS point,
+ * race segment, native GPS sampling and tracking instance.
+ * Also includes global Window augmentation for native tracking.
  */
 export interface Ride {
   id: number;

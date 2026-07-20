@@ -137,8 +137,8 @@ def quality_swap_target(original: WorkoutPlan) -> WorkoutPlan:
         distance_km=round(original.distance_km * 0.5, 1),
         duration_minutes=round(short_duration, 1),
         intensity_factor=min(0.95, original.intensity_factor + 0.3),
-        title="Qualità — intervalli brevi",
-        description="Sostituzione volume con qualità: intervalli intensi al posto del fondo lungo.",
+        title="Quality — short intervals",
+        description="Volume replacement with quality: intense intervals instead of long base.",
         is_recovery=False,
         locked=original.locked,
     )
@@ -172,3 +172,4 @@ def enforce_recovery_day(workout: WorkoutPlan) -> WorkoutPlan:
         is_recovery=True,
         locked=workout.locked,
     )
+

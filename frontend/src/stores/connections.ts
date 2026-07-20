@@ -97,7 +97,7 @@ export const useConnectionsStore = defineStore("connections", () => {
       error.value = "Questo servizio supporta solo la connessione via API key.";
       return;
     }
-    // Il flusso OAuth reale è gestito dal pannello Import/Connessioni.
+    // The real OAuth flow is handled by the Import/Connections panel.
     // Qui aggiorniamo solo lo stato dopo la conferma del callback.
     await load();
   }
@@ -141,3 +141,4 @@ export const useConnectionsStore = defineStore("connections", () => {
     disconnect,
   };
 });
+

@@ -1,14 +1,11 @@
-<!-- Pannello impostazioni sincronizzazione: sceglie tra modalità "Local (Mai)" (100% offline) e "Cloud sync" (bidirezionale opzionale).
-     Props: nessuna. Eventi: nessuno (usa auth.apiFetch /api/v1/sync). Mostra stato sync, elementi in attesa, ultima sync ed export/import dati.
-     UI: radiogroup di due opzioni, riga stato con badge, messaggi e azioni Esporta/Importa uscite. -->
+<!-- Sync settings panel: chooses between "Local (Never)" mode (100% offline) and "Cloud sync" (optional bidirectional).
+     Props: none. Events: none (uses auth.apiFetch /api/v1/sync). Shows sync status, pending items, last sync and export/import actions.
+     UI: radiogroup of two options, status row with badge, messages and Export/Import rides actions. -->
 <template>
   <section class="card sync-card">
-    <h2> Modalità di sincronizzazione</h2>
+    <h2>{{ t("sync.modeTitle") }}</h2>
     <p class="hint">
-      Scegli dove risiedono i tuoi dati. <strong>Local (Mai)</strong> tiene
-      tutto sul dispositivo: l'app funziona al 100% offline. <strong>Cloud
-        sync</strong> abilita la sincronizzazione bidirezionale opzionale con il
-      backend cloud.
+      {{ t("sync.modeHint") }}
     </p>
 
     <div class="sync-toggle" role="radiogroup" aria-label="Sync mode">
@@ -21,8 +18,8 @@
         @click="setMode('local')"
       >
         <span class="sync-option-icon"></span>
-        <span class="sync-option-title">Local (Mai)</span>
-        <span class="sync-option-desc">100% offline, solo su questo dispositivo</span>
+        <span class="sync-option-title">{{ t("sync.localTitle") }}</span>
+        <span class="sync-option-desc">{{ t("sync.localDesc") }}</span>
       </button>
       <button
         type="button"
@@ -33,19 +30,19 @@
         @click="setMode('cloud')"
       >
         <span class="sync-option-icon"></span>
-        <span class="sync-option-title">Cloud sync</span>
-        <span class="sync-option-desc">Sincronizzazione bidirezionale opzionale</span>
+        <span class="sync-option-title">{{ t("sync.cloudTitle") }}</span>
+        <span class="sync-option-desc">{{ t("sync.cloudDesc") }}</span>
       </button>
     </div>
 
     <div class="row sync-status-row">
       <span class="badge" :class="statusClass">{{ statusLabel }}</span>
       <span v-if="status.pending_count != null" class="pending">
-        {{ status.pending_count }} in attesa
+        {{ t("sync.pending") }}: {{ status.pending_count }}
       </span>
       <span v-if="lastSyncLabel" class="last-sync">{{ lastSyncLabel }}</span>
       <button class="btn btn-ghost" :disabled="loading" @click="refresh">
-        {{ loading ? "…" : "Aggiorna" }}
+        {{ loading ? "…" : t("sync.refresh") }}
       </button>
     </div>
 
@@ -53,10 +50,10 @@
 
     <div class="row sync-actions">
       <button class="btn" :disabled="saving || !canImport" @click="exportData">
-        Esporta dati
+        {{ t("sync.export") }}
       </button>
       <button class="btn btn-ghost" :disabled="saving" @click="importData">
-        Importa uscite
+        {{ t("sync.import") }}
       </button>
     </div>
   </section>
@@ -66,9 +63,11 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import { useAuthStore } from "../stores/auth";
 import { useToast } from "../composables/useToast";
+import { useI18n } from "../composables/useI18n";
 
 const auth = useAuthStore();
 const toast = useToast();
+const { t } = useI18n();
 
 type SyncMode = "local" | "cloud";
 
@@ -91,7 +90,7 @@ const status = reactive<SyncStatus>({
 
 const statusLabel = computed(() => {
   if (status.mode === "cloud") return "Cloud sync";
-  if (status.mode === "local") return "Local (Mai)";
+  if (status.mode === "local") return t("sync.localTitle");
   return String(status.mode || "—");
 });
 
@@ -104,9 +103,9 @@ const lastSyncLabel = computed(() => {
   if (!status.last_sync_at) return "";
   try {
     const d = new Date(status.last_sync_at);
-    return `Ultima sync: ${d.toLocaleString()}`;
+    return `Last sync: ${d.toLocaleString()}`;
   } catch {
-    return `Ultima sync: ${status.last_sync_at}`;
+    return `Last sync: ${status.last_sync_at}`;
   }
 });
 
@@ -125,7 +124,7 @@ async function refresh() {
     });
     mode.value = status.mode === "cloud" ? "cloud" : "local";
   } catch (e) {
-    toast.error("Impossibile leggere lo stato di sincronizzazione.");
+    toast.error(t("sync.readError"));
     message.value = (e as Error).message;
     messageClass.value = "err";
   } finally {
@@ -147,14 +146,14 @@ async function setMode(next: SyncMode) {
     status.mode = next;
     toast.success(
       next === "cloud"
-        ? "Modalità Cloud sync attivata."
-        : "Modalità Local (Mai) attivata.",
+        ? t("sync.cloudActivated")
+        : t("sync.localActivated"),
     );
     await refresh();
   } catch (e) {
-    message.value = `Impostazione non salvata: ${(e as Error).message}`;
+    message.value = `Setting not saved: ${(e as Error).message}`;
     messageClass.value = "err";
-    toast.error("Salvataggio modalità di sync fallito.");
+    toast.error(t("sync.saveError"));
   } finally {
     saving.value = false;
   }
@@ -163,9 +162,9 @@ async function setMode(next: SyncMode) {
 async function exportData() {
   try {
     await auth.apiFetch("/api/v1/sync/export", { method: "GET" });
-    toast.success("Esportazione avviata.");
+    toast.success(t("sync.exportStarted"));
   } catch (e) {
-    toast.error("Esportazione fallita.");
+    toast.error(t("sync.exportFailed"));
     message.value = (e as Error).message;
     messageClass.value = "err";
   }
@@ -178,10 +177,10 @@ async function importData() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rides: [] }),
     });
-    toast.success("Importazione completata.");
+    toast.success(t("sync.importDone"));
     await refresh();
   } catch (e) {
-    toast.error("Importazione fallita.");
+    toast.error(t("sync.importFailed"));
     message.value = (e as Error).message;
     messageClass.value = "err";
   }

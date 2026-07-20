@@ -1,16 +1,16 @@
-"""BikeMaster 2.0 - Architettura knowledge/model-driven.
+"""BikeMaster 2.0 - Knowledge/model-driven architecture.
 
-Livelli:
+Levels:
     RAW DATA  -> agents (GPS/Athlete/Environment/Sensor)
-    TRANSFORM -> TransformerEngine (unità/geo/tempo/qualità)
+    TRANSFORM -> TransformerEngine (units/geo/time/quality)
     CORE MODEL-> Athlete/Bike/Activity/WorldObject
     MODEL     -> Algorithm Engine (Movement/Energy/Performance/Fatigue/...)
     SIMULATION-> Simulation Engine ("what if")
-    KNOWLEDGE -> Knowledge Engine (numeri -> concetti)
-    ORCHESTRATOR -> AI Orchestrator (router conversazionale)
+    KNOWLEDGE -> Knowledge Engine (numbers -> concepts)
+    ORCHESTRATOR -> AI Orchestrator (conversational router)
 
-Ogni risultato è un :class:`ModelResult` contenente sempre:
-risultato + formula + dati utilizzati + precisione + fonte.
+Every result is a :class:`ModelResult` always containing:
+result + formula + data used + precision + source.
 """
 
 from __future__ import annotations

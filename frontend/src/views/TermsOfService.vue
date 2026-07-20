@@ -1,149 +1,148 @@
 <!--
-  Pagina statica dei Termini di Servizio.
-  Contiene le sezioni normative legali per l'utilizzo di BikeMaster.
-  Layout: contenitore centrato con intestazione, testo formattato e link a Privacy/Cookies.
+  Static Terms of Service page.
+  Contains the legal regulatory sections for the use of BikeMaster.
+  Layout: centered container with header, formatted text and links to Privacy/Cookies.
 -->
 <template>
   <div class="legal-page">
     <div class="legal-header">
       <h1>Termini di Servizio</h1>
-      <p class="last-updated">Ultimo aggiornamento: Giugno 2025</p>
+      <p class="last-updated">Last updated: June 2025</p>
     </div>
 
     <div class="legal-content">
-      <h2>1. Accettazione dei Termini</h2>
+      <h2>1. Acceptance of Terms</h2>
       <p>
-        Utilizzando BikeMaster, l'utente accetta integralmente i presenti
-        Termini di Servizio. Se non si accettano i termini, si prega di non
-        utilizzare il servizio.
+        By using BikeMaster, the user fully accepts these
+        Terms of Service. If you do not accept the terms, please do not
+        use the service.
       </p>
 
-      <h2>2. Descrizione del Servizio</h2>
+      <h2>2. Service Description</h2>
       <p>
-        BikeMaster è un sistema di analisi intelligente delle performance
-        ciclistiche che consente di:
+        BikeMaster is an intelligent cycling performance analysis system that allows you to:
       </p>
       <ul>
-        <li>Importare file GPX e FIT di uscite ciclistiche</li>
-        <li>Analizzare metriche di potenza, velocità, elevazione e calorie</li>
-        <li>Ricevere consigli personalizzati tramite AI Coach</li>
-        <li>Visualizzare percorsi su mappe interattive</li>
+        <li>Import GPX and FIT files of cycling rides</li>
+        <li>Analyze power, speed, elevation and calories metrics</li>
+        <li>Receive personalized advice via AI Coach</li>
+        <li>View routes on interactive maps</li>
         <li>
-          Sincronizzare attività con servizi terzi (Strava, Garmin, Google Fit)
+          Sync activities with third-party services (Strava, Garmin, Google Fit)
         </li>
-        <li>Tracciare uscite in tempo reale da dispositivo mobile</li>
+        <li>Track rides in real-time from mobile device</li>
       </ul>
 
-      <h2>3. Account Utente</h2>
+      <h2>3. User Account</h2>
       <ul>
         <li>
-          L'utente è responsabile della sicurezza delle proprie credenziali
+          The user is responsible for the security of their credentials
         </li>
         <li>
-          L'utente deve fornire informazioni accurate e aggiornate nel profilo
-          atleta
+          The user must provide accurate and up-to-date information in the athlete
+          profile
         </li>
         <li>
-          Ogni utente è responsabile di tutte le attività svolte tramite il
-          proprio account
+          Each user is responsible for all activities carried out through their
+          own account
         </li>
-        <li>È vietato condividere l'account con terzi non autorizzati</li>
+        <li>Sharing the account with unauthorized third parties is prohibited</li>
       </ul>
 
-      <h2>4. Dati e Contenuti dell'Utente</h2>
+      <h2>4. User Data and Content</h2>
       <ul>
         <li>
-          L'utente mantiene la proprietà di tutti i dati di attività caricati
+          The user retains ownership of all uploaded activity data
         </li>
         <li>
-          Concedendo una licenza limitata a BikeMaster per elaborare e
-          visualizzare i dati
+          Granting a limited license to BikeMaster to process and
+          display the data
         </li>
         <li>
-          I dati geolocalizzati sono trattati nel rispetto della Privacy Policy
+          Geolocated data is processed in accordance with the Privacy Policy
         </li>
         <li>
-          L'utente può esportare o cancellare i propri dati in qualsiasi momento
-        </li>
-      </ul>
-
-      <h2>5. Uso Accettabile</h2>
-      <p>È vietato:</p>
-      <ul>
-        <li>Utilizzare il servizio per attività illegali o non autorizzate</li>
-        <li>Tentare di accedere a dati di altri utenti</li>
-        <li>
-          Eseguire scraping, crawling o uso automatizzato non autorizzato delle
-          API
-        </li>
-        <li>
-          Utilizzare il servizio per sovraccaricare i server con richieste
-          eccessive
-        </li>
-        <li>Caricare contenuti dannosi, offensivi o illegali</li>
-      </ul>
-
-      <h2>6. Servizi di Terze Parti</h2>
-      <p>
-        BikeMaster si integra con servizi di terze parti (Strava, Garmin
-        Connect, Google Fit). L'utilizzo di tali servizi è regolato dai
-        rispettivi termini di servizio. BikeMaster non è responsabile per il
-        funzionamento o l'accuratezza dei dati forniti da terze parti.
-      </p>
-
-      <h2>7. Proprietà Intellettuale</h2>
-      <ul>
-        <li>BikeMaster e il suo logo sono di proprietà del team di sviluppo</li>
-        <li>
-          Tutti i diritti sui contenuti generati automaticamente (mappe,
-          analisi, report) rimangono all'utente
-        </li>
-        <li>
-          Il codice sorgente è rilasciato sotto licenza MIT (vedi file LICENSE)
+          The user can export or delete their data at any time
         </li>
       </ul>
 
-      <h2>8. Limitazione di Responsabilità</h2>
-      <p>BikeMaster è fornito "così com'è". Il team non garantisce:</p>
+      <h2>5. Acceptable Use</h2>
+      <p>It is prohibited to:</p>
       <ul>
-        <li>L'accuratezza delle metriche sportive calcolate</li>
-        <li>L'assenza di errori o interruzioni del servizio</li>
-        <li>La compatibilità con tutti i dispositivi e piattaforme GPS</li>
+        <li>Use the service for illegal or unauthorized activities</li>
+        <li>Attempt to access other users' data</li>
+        <li>
+          Perform scraping, crawling or unauthorized automated use of the
+          APIs
+        </li>
+        <li>
+          Use the service to overload servers with excessive
+          requests
+        </li>
+        <li>Upload harmful, offensive or illegal content</li>
+      </ul>
+
+      <h2>6. Third-Party Services</h2>
+      <p>
+        BikeMaster integrates with third-party services (Strava, Garmin
+        Connect, Google Fit). The use of such services is governed by their
+        respective terms of service. BikeMaster is not responsible for the
+        operation or accuracy of data provided by third parties.
+      </p>
+
+      <h2>7. Intellectual Property</h2>
+      <ul>
+        <li>BikeMaster and its logo are property of the development team</li>
+        <li>
+          All rights to automatically generated content (maps,
+          analyses, reports) remain with the user
+        </li>
+        <li>
+          The source code is released under the MIT license (see LICENSE file)
+        </li>
+      </ul>
+
+      <h2>8. Limitation of Liability</h2>
+      <p>BikeMaster is provided "as is". The team does not guarantee:</p>
+      <ul>
+        <li>The accuracy of calculated sports metrics</li>
+        <li>The absence of errors or service interruptions</li>
+        <li>Compatibility with all GPS devices and platforms</li>
       </ul>
       <p>
-        Il servizio non sostituisce consulenza medica o coaching professionale.
-        L'utente è responsabile delle proprie attività fisiche.
+        The service does not replace medical advice or professional coaching.
+        The user is responsible for their own physical activities.
       </p>
 
-      <h2>9. Modifiche al Servizio</h2>
+      <h2>9. Service Changes</h2>
       <p>
-        Ci riserviamo il diritto di modificare, sospendere o interrompere il
-        servizio in qualsiasi momento, con o senza preavviso. Non saremo
-        responsabili verso l'utente o terzi per eventuali modifiche, sospensioni
-        o interruzioni.
+        We reserve the right to modify, suspend or discontinue the
+        service at any time, with or without notice. We will not be
+        liable to the user or third parties for any modifications, suspensions
+        or interruptions.
       </p>
 
-      <h2>10. Risoluzione</h2>
+      <h2>10. Termination</h2>
       <p>
-        Ci riserviamo il diritto di sospendere o terminare l'accesso al servizio
-        per qualsiasi utente che violi i presenti termini, a nostra esclusiva
-        discrezione.
+        We reserve the right to suspend or terminate access to the service
+        for any user who violates these terms, at our sole
+        discretion.
       </p>
 
-      <h2>11. Legge Applicabile e Foro Competente</h2>
+      <h2>11. Applicable Law and Jurisdiction</h2>
       <p>
-        I presenti termini sono regolati dalla legislazione italiana. Per
-        qualsiasi controversia sarà competente il foro del luogo di residenza
-        del titolare del servizio.
+        These terms are governed by Italian law. For
+        any dispute, the court of the service owner's residence
+        shall have exclusive jurisdiction.
       </p>
 
-      <h2>12. Contatti</h2>
+      <h2>12. Contact</h2>
       <p>
-        Per domande relative ai presenti termini:
+        For questions regarding these terms:
         <a href="mailto:support@bikemaster.app">support@bikemaster.app</a>
       </p>
 
-      <h2>13. Integrazione con Altre Policy</h2>
+      <h2>13. Integration with Other Policies</h2>
       <ul>
         <li>
           <RouterLink to="/privacy"> Privacy Policy </RouterLink>
@@ -156,7 +155,7 @@
 
     <div class="cta-section">
       <RouterLink to="/" class="btn btn-primary">
-         Torna all'Accedi
+         Back to Login
       </RouterLink>
     </div>
   </div>

@@ -1,4 +1,4 @@
-<!-- Pannello badge: mostra i distintivi sbloccati da un atleta raggruppati per categoria (milestone, distanza, dislivello, velocità, costanza).
+<!-- Badge panel: shows unlocked badges from an athlete grouped by category (milestone, distance, elevation, speed, consistency).
      Props: nessuna. Eventi: nessuno (usa /api/v1/badges). Stato interno: athleteId, dati badge e percentuale completamento.
      UI: input Athlete ID + pulsante carica, barra progresso totale, griglia di card badge con progresso e spunta "ottenuto". -->
 <template>
@@ -265,3 +265,4 @@ onMounted(() => {
   font-size: 1.2rem;
 }
 </style>
+

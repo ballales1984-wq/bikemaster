@@ -4,7 +4,7 @@
  * Persiste i ride e il summary per l'uso offline in due object store (`rides`,
  * `meta`). Espone `cacheRides`/`getCachedRides`/`removeCachedRide`,
  * `cacheSummary`/`getCachedSummary` e `clearLocalRideCache`; ogni operazione
- * degrada silenziosamente se IndexedDB non è disponibile.
+ * silently degrades if IndexedDB is not available.
  */
 
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
@@ -142,3 +142,4 @@ export async function clearLocalRideCache(): Promise<void> {
     /* ignore */
   }
 }
+

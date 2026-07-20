@@ -1,10 +1,10 @@
 /**
- * Utilità per la mappa dei percorsi e la colorazione dei segmenti di rischio.
+ * Utility for route map and risk segment coloring.
  *
  * `buildRidePolylines` raggruppa i segmenti per colore; `riskColor`,
  * `gradeRiskPercent`, `weatherRiskPercent` e `speedRiskPercent` mappano rischio
- * (gradiente/condizioni/velocità) in percentuale e colore. `speedColor` colora
- * in base alla velocità rispetto al range del ride; `escapeHtml` e
+ * (gradient/conditions/speed) as percentage and color. `speedColor` colors
+ * based on speed relative to the ride range; `escapeHtml` and
  * `formatDistance` sono helper di formattazione.
  */
 
@@ -102,3 +102,4 @@ export function speedColor(ride: EnrichedRide, index: number): string {
   }
   return "#4488ff";
 }
+

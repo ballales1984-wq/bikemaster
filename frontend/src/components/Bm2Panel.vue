@@ -1,6 +1,6 @@
 <!-- Pannello BikeMaster 2.0: interfaccia del motore fisico/simulazione BM2. Permette domande ("energia consumata"),
      simulazioni "what if" e validazione potenza su una ride reale (per ID) contro il power-meter.
-     Props: nessuna. Eventi: nessuno (usa il composable useBm2). UI: form domanda/parametri, card risultati con formula/affidabilità,
+     Props: none. Events: none (uses useBm2 composable). UI: question/parameters form, results cards with formula/reliability,
      sezione "Analisi su ride reale" con scenari what-if e metriche di validazione (MAE, RMSE, R², bias). -->
 <script setup lang="ts">
 import { reactive, ref } from "vue";
@@ -141,7 +141,7 @@ function resultList(): [string, Bm2ModelResult][] {
         <label>Punti GPS<input id="bm2-gps-points" v-model.number="form.gpsPoints" type="number" min="2" /></label>
       </div>
       <label class="bm2-check">
-        <input id="bm2-simulation" v-model="isSimulation" type="checkbox" /> Modalità simulazione ("what if")
+        <input id="bm2-simulation" v-model="isSimulation" type="checkbox" /> Simulation mode ("what if")
       </label>
       <button type="submit" :disabled="loading">
         {{ loading ? "Analisi…" : "Analizza" }}
@@ -160,7 +160,7 @@ function resultList(): [string, Bm2ModelResult][] {
           <dt>Formula</dt><dd>{{ r.formula }}</dd>
           <dt>Dati usati</dt><dd>{{ r.data_used.join(", ") }}</dd>
           <dt>Precisione</dt><dd>±{{ r.precision.toFixed(2) }} {{ r.unit }}</dd>
-          <dt>Affidabilità</dt><dd>{{ Math.round(r.confidence * 100) }}%</dd>
+          <dt>Reliability</dt><dd>{{ Math.round(r.confidence * 100) }}%</dd>
           <dt>Fonte</dt><dd>{{ r.source }}</dd>
         </dl>
       </article>
@@ -279,3 +279,4 @@ function resultList(): [string, Bm2ModelResult][] {
 .bm2-valgrid { display: grid; grid-template-columns: 190px 1fr; gap: 2px 8px; font-size: 0.85rem; margin: 0.5rem 0 0; }
 .bm2-valgrid dt { color: #8aa; }
 </style>
+

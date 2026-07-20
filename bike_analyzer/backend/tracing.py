@@ -22,13 +22,13 @@ except ImportError:
 
 
 def setup_tracing(app=None):
-    """Configura il tracer OpenTelemetry (export verso OTLP/Jaeger).
+    """Configures the OpenTelemetry tracer (export to OTLP/Jaeger).
 
-    Registra un ``TracerProvider`` con le risorse di servizio da ``Settings`` e,
-    se è configurato ``otel_exporter_otlp_endpoint``, collega un ``BatchSpanProcessor``
-    con esportatore OTLP insecure. Se l'endpoint manca o la dipendenza non è
-    disponibile, il tracing resta disabilitato senza interrompere l'avvio.
-    ``app`` è accettato per coerenza di firma ma non ancora strumentato qui.
+    Registers a ``TracerProvider`` with service resources from ``Settings`` and,
+    if ``otel_exporter_otlp_endpoint`` is configured, attaches a ``BatchSpanProcessor``
+    with insecure OTLP exporter. If the endpoint is missing or the dependency is not
+    available, tracing remains disabled without interrupting startup.
+    ``app`` is accepted for signature consistency but not yet instrumented here.
     """
     settings = get_settings()
     resource = Resource.create(
@@ -52,3 +52,5 @@ def setup_tracing(app=None):
             logger.warning("OTLP exporter init failed (tracing disabled): %s", e)
     else:
         logger.info("No OTLP endpoint configured - tracing disabled")
+
+

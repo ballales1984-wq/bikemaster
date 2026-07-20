@@ -94,13 +94,13 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 const resp = await fetch('/api/v1/weather?' + params);
                 const data = await resp.json();
                 document.getElementById('weather-temp').textContent = ' Temperatura: ' + data.temperature + '°C';
-                document.getElementById('weather-humidity').textContent = ' Umidità: ' + data.humidity + '%';
+                document.getElementById('weather-humidity').textContent = ' Humidity: ' + data.humidity + '%';
                 document.getElementById('weather-description').textContent = ' ' + data.description;
                 document.getElementById('weather-advice').textContent = data.advice;
                 resultDiv.style.display = 'block';
             } catch (e) {
                 resultDiv.style.display = 'block';
-                document.getElementById('weather-advice').textContent = 'Errore: ' + e.message;
+                document.getElementById('weather-advice').textContent = 'Error: ' + e.message;
             }
         }
         loadRides();
@@ -118,3 +118,4 @@ def generate_dashboard_html(output_path: str = "dashboard.html") -> str:
 if __name__ == "__main__":
     generate_dashboard_html()
     print("Dashboard generated: dashboard.html")
+

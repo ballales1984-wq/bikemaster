@@ -1,16 +1,16 @@
-"""Nuovo dominio della Super App: spine che unisce tracking, salute e AI.
+"""New Super App domain: spine that connects tracking, health and AI.
 
-Entita' pure (nessuna dipendenza da DB/provider). Estendono il modello esistente
-in modo retro-compatibile: `Ride` resta valido, `SessionData` ne e' il superset.
+Pure entities (no dependency on DB/provider). Extend the existing model
+in a backward-compatible way: `Ride` remains valid, `SessionData` is its superset.
 
-Componenti principali:
-- ``ActivityType`` - enum dei tipi di attivita' tracciabili.
-- ``SessionMode`` - enum delle modalita' di tracciamento (live, background, off).
-- ``SensorSample`` - lettura istantanea di sensori (HR, cadenza, potenza).
-- ``SessionData`` - stream grezzo di una sessione di tracciamento.
-- ``HealthSample`` - campione dati salute (sonno, HRV, passi, peso).
-- ``FusionRecord`` - snapshot fuso per l'AI Coach (salute + meteo + traffico + stato).
-- ``Recommendation`` - output strutturato dell'AI Coach.
+Main components:
+- ``ActivityType`` - enum of trackable activity types.
+- ``SessionMode`` - enum of tracking modes (live, background, off).
+- ``SensorSample`` - instant sensor reading (HR, cadence, power).
+- ``SessionData`` - raw stream of a tracking session.
+- ``HealthSample`` - health data sample (sleep, HRV, steps, weight).
+- ``FusionRecord`` - fused snapshot for the AI Coach (health + weather + traffic + state).
+- ``Recommendation`` - structured output from the AI Coach.
 """
 
 from __future__ import annotations
@@ -24,10 +24,10 @@ from .models import GPSPoint, Ride
 
 
 class ActivityType(str, Enum):
-    """Tipo di attivita' tracciata (superset di `ride`).
+    """Tracked activity type (superset of `ride`).
 
-    I valori supportati includono: corsa, camminata, hiking, ciclismo,
-    attivita' indoor e altro.
+    Supported values include: ride, walk, hike, run,
+    indoor activities and more.
     """
 
     RIDE = "ride"
@@ -39,16 +39,16 @@ class ActivityType(str, Enum):
 
     @classmethod
     def values(cls) -> list[str]:
-        """Lista dei valori enum delle attivita' sportive supportate."""
+        """List of enum values of supported sports activities."""
         return [m.value for m in cls]
 
 
 class SessionMode(str, Enum):
-    """Modalita' di tracciamento.
+    """Tracking mode.
 
-    - LIVE: uscita ufficiale tracciata e salvata.
-    - BACKGROUND: tracciamento informale in background.
-    - OFF: tracciamento disattivo.
+    - LIVE: official tracked and saved ride.
+    - BACKGROUND: informal background tracking.
+    - OFF: inactive tracking.
     """
 
     LIVE = "live"
@@ -57,9 +57,9 @@ class SessionMode(str, Enum):
 
 
 class HealthMetricType(str, Enum):
-    """Tipi di campione salute supportati.
+    """Supported health sample types.
 
-    Include metriche native del dispositivo e quelle importate da
+    Includes native device metrics and those imported from
     Google Fit / Apple Health.
     """
 
@@ -73,13 +73,13 @@ class HealthMetricType(str, Enum):
 
 @dataclass
 class SensorSample:
-    """Lettura sensore istantanea associata a un punto GPS.
+    """Instant sensor reading associated with a GPS point.
 
     Attributes:
-        timestamp: Timestamp UTC del campione.
-        heart_rate: Frequenza cardiaca in bpm (opzionale).
-        cadence: Cadenza di pedalata in rpm (opzionale).
-        power: Potenza istantanea in watt (opzionale).
+        timestamp: UTC timestamp of the sample.
+        heart_rate: Heart rate in bpm (optional).
+        cadence: Pedaling cadence in rpm (optional).
+        power: Instant power in watts (optional).
     """
 
     timestamp: datetime
@@ -90,10 +90,10 @@ class SensorSample:
 
 @dataclass
 class SessionData:
-    """Stream grezzo di una sessione di tracciamento (live o background).
+    """Raw stream of a tracking session (live or background).
 
-    È l'ingresso del `UnifiedMetricsEngine`: contiene GPS + sensori + metadati,
-    ma NON ancora metriche calcolate.
+    This is the input to `UnifiedMetricsEngine`: contains GPS + sensors + metadata,
+    but NOT yet calculated metrics.
     """
 
     athlete_id: int | None
@@ -108,7 +108,7 @@ class SessionData:
     source: str = "gps_tracking"
 
     def to_ride(self) -> Ride:
-        """Promuove la sessione a `Ride` (entità di storage esistente)."""
+        """Promotes the session to `Ride` (existing storage entity)."""
         gps = self.points
         total_distance = sum(
             gps[i].distance_to(gps[i - 1]) for i in range(1, len(gps))
@@ -138,7 +138,7 @@ class SessionData:
 
 @dataclass
 class HealthSample:
-    """Campione dati salute (sonno, HRV, passi, peso, ecc.)."""
+    """Health data sample (sleep, HRV, steps, weight, etc.)."""
 
     athlete_id: int
     date: str
@@ -148,7 +148,7 @@ class HealthSample:
     source: str = "manual"
 
     def to_dict(self) -> dict[str, Any]:
-        """Serializza il campione salute in dizionario JSON-compatibile."""
+        """Serializes the health sample into a JSON-compatible dictionary."""
         return {
             "athlete_id": self.athlete_id,
             "tenant_id": self.tenant_id,
@@ -161,9 +161,9 @@ class HealthSample:
 
 @dataclass
 class FusionRecord:
-    """Snapshot fuso pronto per l'AI Coach: salute + meteo + traffico + stato.
+    """Fused snapshot ready for the AI Coach: health + weather + traffic + state.
 
-    È l'unico input che l'AI Coach deve consumare (mai sorgenti grezze).
+    This is the only input the AI Coach should consume (never raw sources).
     """
 
     athlete_id: int
@@ -176,7 +176,7 @@ class FusionRecord:
     fitness_state: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        """Serializza il record fusion in dizionario JSON-compatibile."""
+        """Serializes the fusion record into a JSON-compatible dictionary."""
         return {
             "athlete_id": self.athlete_id,
             "tenant_id": self.tenant_id,
@@ -191,7 +191,7 @@ class FusionRecord:
 
 @dataclass
 class Recommendation:
-    """Output strutturato dell'AI Coach."""
+    """Structured output from the AI Coach."""
 
     athlete_id: int
     kind: str  # recovery | nutrition | training
@@ -200,7 +200,7 @@ class Recommendation:
     created_at: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        """Serializza la raccomandazione in dizionario JSON-compatibile."""
+        """Serializes the recommendation into a JSON-compatible dictionary."""
         return {
             "athlete_id": self.athlete_id,
             "tenant_id": self.tenant_id,
@@ -208,3 +208,4 @@ class Recommendation:
             "text": self.text,
             "created_at": self.created_at or datetime.now().isoformat(),
         }
+

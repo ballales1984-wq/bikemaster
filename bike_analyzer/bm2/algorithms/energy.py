@@ -22,7 +22,7 @@ class EnergyModel(Algorithm):
                "kcal = P·t / (η·4184)")
     description = "Stima il consumo energetico (kcal) da lavoro meccanico e efficienza metabolica."
     unit = "kcal"
-    required_inputs = ["massa_totale", "velocità", "pendenza", "durata", "crr", "cda"]
+    required_inputs = ["total_mass", "speed", "slope", "duration", "crr", "cda"]
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
         """Calcola kcal totali dalla potenza meccanica e efficienza metabolica."""
@@ -73,3 +73,4 @@ class EnergyModel(Algorithm):
             "metabolic_power_w": forces["power_w"] / 0.24,
             "total_mass_kg": mass,
         }
+

@@ -289,7 +289,7 @@ def create_distance_chart(segments: list[Segment], output_path: str = "distance_
 
 
 def generate_speed_chart(points: list[GPSPoint] | None, title: str = "Speed Profile") -> str:
-    """Genera il grafico velocità per punto GPS, salvato in PNG temporaneo."""
+    """Generates speed chart per GPS point, saved as temporary PNG."""
     if not points:
         return ""
     speeds = [p.speed for p in points if p.speed is not None]
@@ -342,3 +342,4 @@ def generate_time_chart(points: list[GPSPoint] | None, title: str = "Time Analys
     plt.savefig(path)
     plt.close()
     return path
+

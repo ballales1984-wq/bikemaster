@@ -1,4 +1,4 @@
-<!-- Pannello confronto uscite: seleziona due ride (A/B) e confronta metriche (distanza, durata, velocità, dislivello, calorie).
+<!-- Ride comparison panel: select two rides (A/B) and compare metrics (distance, duration, speed, elevation, calories).
      Props: nessuna. Eventi: nessuno (usa /api/v1/rides). Calcola delta % e "winner" per metrica, mostra verdetto e pulsante swap.
      UI: due select + bottone scambia, griglia di card con valori/divario e vincitore evidenziato, stato vuoto con EmptyState. -->
 <template>
@@ -129,17 +129,17 @@ const metrics: MetricDef[] = [
   },
   {
     key: "duration_minutes",
-    label: "Durata (min)",
+    label: "Duration (min)",
     format: (v: number | undefined): string => (v == null ? "—" : Math.round(v).toString()),
   },
   {
     key: "avg_speed_kmh",
-    label: "Velocità media",
+    label: "Avg speed",
     format: (v: number | undefined): string => (v == null ? "—" : Number(v).toFixed(1) + " km/h"),
   },
   {
     key: "elev_gain_meters",
-    label: "Dislivello (m)",
+    label: "Elevation (m)",
     format: (v: number | undefined): string => (v == null ? "—" : Math.round(v).toString()),
   },
   {
@@ -392,3 +392,4 @@ onMounted(() => load());
   font-size: 0.85rem;
 }
 </style>
+

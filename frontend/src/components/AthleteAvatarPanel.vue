@@ -377,12 +377,12 @@ const loading = ref(true);
 
 // Categorie corporee con colori e configurazione
 const categoryConfig = {
-  head: { color: "#a855f7", label: "Testa / Recupero" },
-  neck: { color: "#ec4899", label: "Collo / Tensione" },
-  chest: { color: "#00ffcc", label: "Torace / Cardio" },
-  core: { color: "#ffb800", label: "Core / Stabilità" },
-  arms: { color: "#0088ff", label: "Braccia / Forza" },
-  legs: { color: "#ff3366", label: "Gambe / Potenza" },
+  head: { color: "#a855f7", label: "Head / Recovery" },
+  neck: { color: "#ec4899", label: "Neck / Tension" },
+  chest: { color: "#00ffcc", label: "Chest / Cardio" },
+  core: { color: "#ffb800", label: "Core / Stability" },
+  arms: { color: "#0088ff", label: "Arms / Strength" },
+  legs: { color: "#ff3366", label: "Legs / Power" },
 };
 
 const categoryLabels = computed(() => {
@@ -557,12 +557,12 @@ const attributes = computed(() => {
       color: "#ffb800",
     },
     {
-      name: "Forma",
+      name: "Form",
       value: s?.form ? Math.min(Math.round(s.form + 50), 100) : 30,
       color: "#22c55e",
     },
     {
-      name: "Stabilità",
+      name: "Stability",
       value:
         s?.acwr && s.acwr > 0
           ? Math.min(Math.round((1 / s.acwr) * 50), 100)

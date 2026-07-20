@@ -1,4 +1,4 @@
-"""BikeMaster 2.0 - Route Difficulty Model (difficoltà del percorso)."""
+"""BikeMaster 2.0 - Route Difficulty Model (route difficulty)."""
 
 from __future__ import annotations
 
@@ -15,16 +15,16 @@ ROUGHNESS_FACTOR = {"asphalt": 1.0, "gravel": 1.25, "dirt": 1.5, "trail": 1.8}
 class RouteDifficultyModel(Algorithm):
     """Stima la difficolta' del percorso (0-100) rispetto alla capacita' dell'atleta.
 
-    Formula: difficolta' = clamp(100 · (0.3·norm(distanza) + 0.3·norm(dislivello)
-             + 0.25·norm(pendenza) + 0.15·rugosita') / capacita', 0, 100)
+    Formula: difficolta' = clamp(100 · (0.3·norm(distanza) + 0.3·norm(elevation)
+             + 0.25·norm(slope) + 0.15·rugosita') / capacita', 0, 100)
     """
 
     name = "RouteDifficultyModel"
-    formula = ("difficoltà = clamp(100 · (0.3·norm(distanza) + 0.3·norm(dislivello) "
-               "+ 0.25·norm(pendenza) + 0.15·rugosità) / capacità, 0, 100)")
-    description = "Stima la difficoltà del percorso (0-100) rispetto alla capacità dell'atleta."
+    formula = ("difficulty = clamp(100 · (0.3·norm(distanza) + 0.3·norm(elevation) "
+               "+ 0.25·norm(slope) + 0.15·roughness) / capacity, 0, 100)")
+    description = "Estimates route difficulty (0-100) relative to athlete capacity."
     unit = "score"
-    required_inputs = ["distanza", "dislivello", "pendenza", "rugosità", "capacità_atleta"]
+    required_inputs = ["distanza", "elevation", "slope", "roughness", "athlete_capacity"]
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
         """Calcola il punteggio di difficolta' normalizzato per livello atleta."""
@@ -39,7 +39,7 @@ class RouteDifficultyModel(Algorithm):
         rough = ROUGHNESS_FACTOR.get(ctx.world.surface, 1.0)
 
         raw = (0.3 * norm_dist + 0.3 * norm_gain + 0.25 * norm_slope + 0.15 * (rough - 1.0))
-        # capacità: atleti esperti gestiscono percorsi più difficili
+        # capacity: experienced athletes handle harder routes
         cap = {"Beginner": 1.3, "Intermediate": 1.0, "Advanced": 0.8, "Elite": 0.65}.get(
             ctx.athlete.experience_level, 1.0)
         difficulty = max(0.0, min(100.0 * raw / cap, 100.0))
@@ -61,3 +61,4 @@ class RouteDifficultyModel(Algorithm):
         """Restituisce categoria e superficie del percorso."""
         score, _, _ = self._compute(ctx, extra)
         return {"category": self._category(score), "surface": ctx.world.surface}
+

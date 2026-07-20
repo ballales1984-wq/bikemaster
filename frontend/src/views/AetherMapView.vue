@@ -1,8 +1,8 @@
 <!--
   Vista di visualizzazione AetherMap.
-  Permette di selezionare una o più uscite da una sidebar e visualizzarle
+  Allows selecting one or more rides from a sidebar and visualizing them
   sovrapposte nella mappa del componente AetherMapViewer.
-  Include opzione di colorazione per velocità e selezioni massive.
+  Includes speed coloring option and bulk selections.
   Componente: AetherMapViewer.
 -->
 <template>
@@ -207,3 +207,4 @@ onMounted(async () => {
   }
 }
 </style>
+

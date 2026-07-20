@@ -1,8 +1,8 @@
 <!--
-  Pagina istituzionale "Chi Siamo".
-  Descrive la missione di BikeMaster, le feature principali, lo stack tecnologico
-  e i valori del progetto open-source.
-  Include link a Contattaci e all'area di login.
+  Institutional "About Us" page.
+  Describes BikeMaster's mission, main features, tech stack
+  and values of the open-source project.
+  Includes links to Contact Us and the login area.
 -->
 <template>
   <div class="about-page">
@@ -13,71 +13,71 @@
 
     <div class="about-content">
       <section class="hero">
-        <h2>Chi Siamo</h2>
+        <h2>About Us</h2>
         <p>
-          BikeMaster è un progetto open-source dedicato all'analisi avanzata
-          delle performance ciclistiche. La nostra missione è fornire strumenti
-          professionali per ciclisti di ogni livello, dai principianti agli
-          atleti agonistici, per comprendere e migliorare le proprie performance
-          attraverso dati, algoritmi e intelligenza artificiale.
+          BikeMaster is an open-source project dedicated to advanced cycling
+          performance analysis. Our mission is to provide professional tools
+          for cyclists of every level, from beginners to competitive
+          athletes, to understand and improve their performance
+          through data, algorithms and artificial intelligence.
         </p>
       </section>
 
       <section class="features">
-        <h2>Cosa Facciamo</h2>
+        <h2>What We Do</h2>
         <div class="feature-grid">
           <div class="feature-card">
-            <h3> Analisi Performance</h3>
+            <h3> Performance Analysis</h3>
             <p>
-              Analisi completa delle uscite con metriche avanzate: Normalized
+              Complete analysis of rides with advanced metrics: Normalized
               Power, TSS, FTP, Critical Power, CTL/ATL/TSB.
             </p>
           </div>
           <div class="feature-card">
             <h3> AI Coach</h3>
             <p>
-              Consigli personalizzati di allenamento e recupero tramite modelli
-              LLM e conoscenze basate su dati scientifici.
+              Personalized training and recovery advice via LLM
+              models and knowledge based on scientific data.
             </p>
           </div>
           <div class="feature-card">
-            <h3> Mappe Interattive</h3>
+            <h3> Interactive Maps</h3>
             <p>
-              Visualizzazione percorsi colorati per velocità, heatmap GPS, e
-              analisi della sicurezza stradale.
+              Route visualization colored by speed, GPS heatmaps, and
+              road safety analysis.
             </p>
           </div>
           <div class="feature-card">
-            <h3> Tracking Mobile</h3>
+            <h3> Mobile Tracking</h3>
             <p>
-              Registrazione uscite direttamente dal telefono Android con
-              servizio GPS in foreground.
+              Ride recording directly from your Android phone with
+              foreground GPS service.
             </p>
           </div>
           <div class="feature-card">
-            <h3> Integrazioni</h3>
+            <h3> Integrations</h3>
             <p>
-              Sincronizzazione con Strava, Garmin Connect e Google Fit per
-              importare tutte le tue attività.
+              Sync with Strava, Garmin Connect and Google Fit to
+              import all your activities.
             </p>
           </div>
           <div class="feature-card">
             <h3> Benchmarking</h3>
             <p>
-              Confronta le tue performance con atleti della tua categoria per
-              capire il tuo livello.
+              Compare your performance with athletes in your category to
+              understand your level.
             </p>
           </div>
         </div>
       </section>
 
       <section class="tech">
-        <h2>Tecnologia</h2>
-        <p>Costruiamo BikeMaster con tecnologie moderne e open-source:</p>
+        <h2>Technology</h2>
+        <p>We build BikeMaster with modern, open-source technologies:</p>
         <ul>
           <li><strong>Backend:</strong> FastAPI, Python 3.11+</li>
           <li><strong>Frontend:</strong> Vue 3, TypeScript, Vite</li>
-          <li><strong>Database:</strong> SQLite / PostgreSQL con SQLAlchemy</li>
+          <li><strong>Database:</strong> SQLite / PostgreSQL with SQLAlchemy</li>
           <li><strong>AI/ML:</strong> NumPy, Pandas, SciPy, Groq LLM</li>
           <li><strong>Maps:</strong> Leaflet.js, Folium, OpenStreetMap</li>
           <li><strong>Mobile:</strong> Android Kotlin, Capacitor</li>
@@ -85,36 +85,36 @@
       </section>
 
       <section class="values">
-        <h2>I Nostri Valori</h2>
+        <h2>Our Values</h2>
         <ul>
           <li>
-            <strong>Open Source:</strong> il codice è pubblico su GitHub sotto
-            licenza MIT
+            <strong>Open Source:</strong> the code is public on GitHub under
+            MIT license
           </li>
           <li>
-            <strong>Privacy First:</strong> i tuoi dati sono tuoi, non li
-            vendiamo a terzi
+            <strong>Privacy First:</strong> your data is yours, we do not
+            sell it to third parties
           </li>
           <li>
-            <strong>Community Driven:</strong> sviluppiamo con e per la comunità
-            ciclistica
+            <strong>Community Driven:</strong> we build with and for the cycling
+            community
           </li>
           <li>
-            <strong>Scientific Approach:</strong> algoritmi basati su principi
-            fisiologici e scientifici
+            <strong>Scientific Approach:</strong> algorithms based on physiological
+            and scientific principles
           </li>
         </ul>
       </section>
 
       <section class="cta">
-        <p>Vuoi contribuire o saperne di più?</p>
+        <p>Want to contribute or learn more?</p>
         <RouterLink
-to="/contact" class="cta-button"> Contattaci </RouterLink>
+to="/contact" class="cta-button"> Contact Us </RouterLink>
       </section>
 
       <div class="login-cta">
         <RouterLink to="/" class="btn btn-secondary">
-           Accedi a BikeMaster
+           Login to BikeMaster
         </RouterLink>
       </div>
     </div>

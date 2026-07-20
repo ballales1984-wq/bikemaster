@@ -1,9 +1,9 @@
-"""Adapter che collega il flusso prodotto (Ride / AthleteProfile) al motore bm2.
+"""Adapter connecting the product flow (Ride / AthleteProfile) to the bm2 engine.
 
 Il prodotto modella i dati con ``bike_analyzer.core.models`` (``Ride`` con
 ``gps_points: list[GPSPoint]`` e ``AthleteProfile``), mentre ``bm2`` usa il suo
 dominio proprio (``AnalysisContext`` costruito via ``from_raw``). Questo modulo
-è l'unico punto in cui le due rappresentazioni si incontrano, così il resto di
+is the only point where the two representations meet, so the rest of
 ``bm2`` resta ignorante del prodotto.
 """
 
@@ -17,16 +17,16 @@ from .transformer import TransformerEngine
 
 
 def _iso(ts) -> Optional[str]:
-    """Converte un timestamp in stringa ISO-8601.
+    """Converts a timestamp to ISO-8601 string.
 
     Accetta oggetti con metodo ``isoformat``, stringhe (passate-through)
     o valori numerici (Unix epoch).
 
     Args:
-        ts: Timestamp da convertire.
+        ts: Timestamp to convert.
 
     Returns:
-        Stringa ISO-8601 o None se ts e' None.
+        ISO-8601 string or None if ts is None.
     """
     if ts is None:
         return None
@@ -36,14 +36,13 @@ def _iso(ts) -> Optional[str]:
 
 
 def _gps_to_raw(p: GPSPoint) -> dict:
-    """Converte un ``GPSPoint`` prodotto in un dict raw per bm2.
+    """Converts a produced ``GPSPoint`` into a raw dict for bm2.
 
     Args:
-        p: Punto GPS del Core Model.
+        p: GPS point from the Core Model.
 
     Returns:
-        Dict con chiavi lat, lon, altitude, timestamp, speed, power,
-        heart_rate, cadence pronto per ``from_raw``.
+        Dict with keys lat, lon, altitude, timestamp, speed, power,\n        heart_rate, cadence ready for ``from_raw``.
     """
     return {
         "lat": p.lat,
@@ -70,29 +69,27 @@ def ride_to_bm2_raw(
 ) -> dict:
     """Mappa una ``Ride`` prodotto (+ ``AthleteProfile``) nel dict ``raw`` di bm2.
 
-    Il dict raw ha la struttura attesa dai ``from_raw`` di Athlete, Bike,
-    WorldObject e Activity di bm2. La pendenza media del ``WorldObject`` e'
-    derivata da ``elevation_gain_m / distance_km`` quando entrambi disponibili.
+    The raw dict has the structure expected by the ``from_raw`` of Athlete, Bike,\n    WorldObject and Activity in bm2. The average slope of ``WorldObject`` is\n    derived from ``elevation_gain_m / distance_km`` when both are available.
 
     Args:
-        ride: Attivita' del Core Model con GPS points.
-        athlete: Profilo atleta opzionale (sovrascrive i valori di ride).
-        bike_weight_kg: Peso bici in kg (default 8.0).
-        cda: Coefficiente di resistenza aerodinamica (default 0.40).
-        crr: Coefficiente di resistenza al rotolamento (default 0.005).
-        drivetrain_efficiency: Efficienza drivetrain (default 0.97).
-        wind_speed_ms: Velocita' vento in m/s (opzionale).
-        temperature_c: Temperatura in Celsius (opzionale).
-        surface: Tipo superficie (default ``"asphalt"``).
+        ride: Core Model activity with GPS points.
+        athlete: Optional athlete profile (overrides ride values).
+        bike_weight_kg: Bike weight in kg (default 8.0).
+        cda: Aerodynamic drag coefficient (default 0.40).
+        crr: Rolling resistance coefficient (default 0.005).
+        drivetrain_efficiency: Drivetrain efficiency (default 0.97).
+        wind_speed_ms: Wind speed in m/s (optional).
+        temperature_c: Temperature in Celsius (optional).
+        surface: Surface type (default ``"asphalt"``).
 
     Returns:
-        Dict con chiavi ``athlete``, ``bike``, ``world``, ``gps_points``.
+        Dict with keys ``athlete``, ``bike``, ``world``, ``gps_points``.
 
     Raises:
-        ValueError: Se ride non ha ``gps_points``.
+        ValueError: If ride has no ``gps_points``.
     """
     if not ride.gps_points:
-        raise ValueError("Ride senza gps_points: impossibile costruire il contesto bm2")
+        raise ValueError("Ride without gps_points: cannot build bm2 context")
 
     weight = (athlete.weight_kg if athlete and athlete.weight_kg else ride.weight_kg) or 70.0
     athlete_raw: dict = {"weight": weight, "source": "manual"}
@@ -140,20 +137,19 @@ def ride_to_analysis_context(
     transformer: Optional[TransformerEngine] = None,
     **kwargs,
 ) -> AnalysisContext:
-    """Costruisce direttamente un ``AnalysisContext`` bm2 da una ``Ride`` prodotto.
+    """Directly builds a bm2 ``AnalysisContext`` from a product ``Ride``.
 
     Combina ``ride_to_bm2_raw`` + ``from_raw`` di tutti i modelli bm2 in un
     solo passo conveniente per l'orchestrator.
 
     Args:
-        ride: Attivita' del Core Model.
-        athlete: Profilo atleta opzionale.
-        transformer: TransformerEngine opzionale (se None, ne crea uno nuovo).
-        **kwargs: Parametri aggiuntivi passati a ``ride_to_bm2_raw``
-            (es. ``bike_weight_kg``, ``cda``, ``surface``).
+        ride: Core Model activity.
+        athlete: Optional athlete profile.
+        transformer: Optional TransformerEngine (if None, creates a new one).
+        **kwargs: Additional parameters passed to ``ride_to_bm2_raw``\n            (e.g. ``bike_weight_kg``, ``cda``, ``surface``).
 
     Returns:
-        AnalysisContext pronto per l'esecuzione degli algoritmi bm2.
+        AnalysisContext ready for bm2 algorithm execution.
     """
     t = transformer or TransformerEngine()
     raw = ride_to_bm2_raw(ride, athlete, **kwargs)
@@ -164,3 +160,4 @@ def ride_to_analysis_context(
         world=WorldObject.from_raw(raw["world"], t),
         transformer=t,
     )
+

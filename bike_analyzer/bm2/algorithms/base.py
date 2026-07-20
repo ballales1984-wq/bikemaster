@@ -4,7 +4,7 @@ Principio fondamentale del sistema: ogni risultato deve riportare
 
     RISULTATO + formula usata + dati utilizzati + precisione + fonte
 
- questo è incapsulato in :class:`ModelResult`. Ogni algoritmo dichiara i
+ this is encapsulated in :class:`ModelResult`. Each algorithm declares the
  suoi input richiesti e produce sempre un :class:`ModelResult` normalizzato.
  """
 
@@ -98,7 +98,7 @@ class Algorithm(ABC):
     """Base di tutti gli algoritmi del Model Engine."""
 
     G = 9.81            # m/s^2
-    RHO = 1.225         # densità aria kg/m^3
+    RHO = 1.225         # air density kg/m^3
     SOURCE_CONFIDENCE: dict[str, float] = {
         "power_meter": 0.95,
         "hr_band": 0.8,
@@ -167,7 +167,7 @@ class Algorithm(ABC):
             "gps_points": lambda: bool(ctx.activity.points),
             "distanza": lambda: m.get("distance_m", 0) > 0,
             "durata": lambda: m.get("duration_s", 0) > 0,
-            "velocità": lambda: m.get("avg_speed_ms", 0) > 0,
+            "speed": lambda: m.get("avg_speed_ms", 0) > 0,
             "dislivello": lambda: m.get("gain_m", 0) > 0,
             "pendenza": lambda: bool(ctx.world.avg_slope_percent),
             "massa_totale": lambda: ctx.total_mass_kg > 0,
@@ -177,9 +177,9 @@ class Algorithm(ABC):
             "cda": lambda: ctx.bike.cda > 0,
             "efficienza": lambda: ctx.bike.drivetrain_efficiency > 0,
             "experience_level": lambda: bool(ctx.athlete.experience_level),
-            "rugosità": lambda: True,
-            "capacità_atleta": lambda: bool(ctx.athlete.experience_level),
-            "intensità": lambda: m.get("avg_speed_ms", 0) > 0,
+            "roughness": lambda: True,
+            "athlete_capacity": lambda: bool(ctx.athlete.experience_level),
+            "intensity": lambda: m.get("avg_speed_ms", 0) > 0,
             "massa_corpo": lambda: ctx.athlete.weight_kg.value > 0,
             "fatica": lambda: True,
             "sonno_ore": lambda: True,
@@ -215,10 +215,11 @@ class Algorithm(ABC):
 
     @classmethod
     def _source_confidence(cls, source: str, default: float = 0.7) -> float:
-        """Affidabilità di base per fonte dati (0..1)."""
+        """Base reliability for data source (0..1)."""
         return cls.SOURCE_CONFIDENCE.get(source, default)
 
     @classmethod
     def _confidence_for_source(cls, source: str, base: float = 1.0) -> float:
-        """Scala una confidenza base con la qualità della fonte (capped a 1)."""
+        """Scales a base confidence with source quality (capped at 1)."""
         return min(1.0, base * cls._source_confidence(source))
+

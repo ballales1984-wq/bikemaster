@@ -640,22 +640,22 @@ async function handleAdd() {
       return;
     }
     if (dur < 1) {
-      addError.value = "La durata deve essere di almeno 1 minuto";
+      addError.value = "Duration must be at least 1 minute";
       return;
     }
     if (dur > 1440) {
-      addError.value = "La durata non può superare 24 ore";
+      addError.value = "Duration cannot exceed 24 hours";
       return;
     }
     if (dist > 500) {
-      addError.value = "La distanza non può superare 500 km";
+      addError.value = "Distance cannot exceed 500 km";
       return;
     }
     const speed = form.value.avg_speed_kmh
       ? Number(form.value.avg_speed_kmh)
       : undefined;
     if (speed && speed > 150) {
-      addError.value = "Velocità nonrealistica (>150 km/h)";
+      addError.value = "Unrealistic speed (>150 km/h)";
       return;
     }
     await apiPost("/api/v1/rides", {

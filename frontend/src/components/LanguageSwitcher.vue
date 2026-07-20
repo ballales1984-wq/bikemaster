@@ -1,5 +1,5 @@
 <!-- Selettore lingua: toggle IT/EN che cambia la locale corrente tramite il composable useI18n.
-     Props: nessuna. Eventi: nessuno (usa setLocale di useI18n). UI: due pulsanti, quello attivo è evidenziato; aria-label descrittivo. -->
+     Props: none. Events: none (uses setLocale from useI18n). UI: two buttons, the active one is highlighted; descriptive aria-label. -->
 <template>
   <div class="lang-switcher">
     <button
@@ -49,3 +49,4 @@ const locales = [
   border-color: var(--accent);
 }
 </style>
+

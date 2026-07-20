@@ -317,14 +317,14 @@ async function connectStrava() {
     const detail: string = (err as { detail?: string }).detail || "";
     if (cbResp.status === 502 && /Authorization Error|invalid/i.test(detail)) {
       throw new Error(
-        "Strava ha rifiutato la connessione: l'app BikeMaster è in modalità sandbox. " +
-          "Apri strava.com/settings/api, entra nell'app BikeMaster e aggiungi il tuo account " +
-          "Strava tra gli 'Athlete Testers', poi riprova.",
+        "Strava rejected the connection: the BikeMaster app is in sandbox mode. " +
+          "Open strava.com/settings/api, enter the BikeMaster app and add your " +
+          "Strava account to 'Athlete Testers', then try again.",
       );
     }
-    throw new Error(detail || "Connessione Strava fallita");
+    throw new Error(detail || "Strava connection failed");
   }
-  toast.success("Strava connesso");
+  toast.success("Strava connected");
 }
 
 async function connectGoogleFit() {

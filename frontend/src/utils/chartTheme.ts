@@ -1,7 +1,7 @@
 /**
  * Applicazione del tema ai grafici Chart.js, con colori concreti per tema.
  *
- * Riflette i token di design (chiaro/scuro) in palette concrete, perché Chart.js
+ * Reflects design tokens (light/dark) into concrete palettes, because Chart.js
  * non legge le variabili CSS dal contesto 2d. `apply` fonde i default sensibili
  * al tema in una configurazione senza sovrascrivere le opzioni del componente.
  * `mergeScales` applica colori di tick/griglia agli assi; un `MutationObserver`
@@ -137,3 +137,4 @@ export const chartTheme = {
   palette,
   apply,
 };
+

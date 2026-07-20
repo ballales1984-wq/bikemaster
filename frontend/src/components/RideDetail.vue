@@ -1,6 +1,6 @@
-<!-- Dettaglio uscita: schermata completa di una ride con metriche principali, analisi dettagliata e grafici.
-     Props: rideId (number). Eventi: close (click sul pulsante chiudi). Carica la ride da /api/v1/rides/:id e le immagini chart.
-     UI: header con data, griglia metriche, sezione analisi (dislivello/FC/fatica), SpeedMap (se API key) e grafici velocità/dislivello. -->
+<!-- Ride detail: full screen for a ride with main metrics, detailed analysis and charts.
+     Props: rideId (number). Events: close (click on close button). Loads ride from /api/v1/rides/:id and chart images.
+     UI: header with date, metrics grid, analysis section (elevation/HR/fatigue), SpeedMap (if API key) and speed/elevation charts. -->
 <template>
   <section v-if="ride">
     <div class="panel">
@@ -83,7 +83,7 @@
         <div class="metric-card">
           <div class="metric-icon"></div>
           <div class="metric-value">{{ fmt(ride.avg_speed_kmh) }} km/h</div>
-          <div class="metric-label">Velocità Media</div>
+          <div class="metric-label">{{ t("rideDetail.avgSpeed") }}</div>
         </div>
         <div class="metric-card">
           <div class="metric-icon"></div>
@@ -109,7 +109,7 @@ v-if="ride.elevation_gain_m" class="a-item"
           <div
 v-if="ride.max_speed_kmh" class="a-item"
 >
-            <span class="a-lbl"> Velocità Max</span>
+            <span class="a-lbl"> {{ t("rideDetail.maxSpeed") }}</span>
             <span class="a-val">{{ fmt(ride.max_speed_kmh) }} km/h</span>
           </div>
         <div

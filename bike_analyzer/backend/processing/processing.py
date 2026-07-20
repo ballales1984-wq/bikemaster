@@ -19,7 +19,7 @@ DECEL_THRESHOLD_KM_H_S = -2.0
 
 
 def validate_coordinate(lat: float, lon: float) -> bool:
-    """Valida latitudine [-90,90] e longitudine [-180,180] come numeri finiti."""
+    """Validates latitude [-90,90] and longitude [-180,180] as finite numbers."""
     if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
         return False
     if lat < -90 or lat > 90:
@@ -28,16 +28,14 @@ def validate_coordinate(lat: float, lon: float) -> bool:
 
 
 def validate_gps_point(point: GPSPoint) -> bool:
-    """Verifica che il punto GPS sia valido (coordinate + timestamp)."""
+    """Verifies that the GPS point is valid (coordinates + timestamp)."""
     return validate_coordinate(point.lat, point.lon) and isinstance(point.timestamp, datetime)
 
 
 def detect_pauses(points: list[GPSPoint]) -> list[Pause]:
-    """Rileva le pause nella traccia: segmenti con speed < 1.5 km/h continui.
+    """Detects pauses in the track: segments with continuous speed < 1.5 km/h.
 
-    Un punto è "pausa" se la sua velocità scende sotto la soglia; quando la
-    velocità risale, se la durata accumulata >= 3 minuti viene emesso un oggetto
-    ``Pause`` (start/end/duration_s). Gestisce una sola pausa aperta per volta.
+    A point is a "pause" if its speed drops below the threshold; when speed\n    rises again, if the accumulated duration >= 3 minutes a ``Pause``\n    object is emitted (start/end/duration_s). Handles one open pause at a time.
     """
     pauses: list[Pause] = []
     if len(points) < 2:
@@ -65,7 +63,7 @@ def detect_pauses(points: list[GPSPoint]) -> list[Pause]:
 
 
 def detect_accelerations(points: list[GPSPoint]) -> list[tuple[int, float]]:
-    """Rileva eventi di accelerazione dove la variazione di velocita' supera la soglia."""
+    """Detects acceleration events where speed variation exceeds the threshold."""
     accels = []
     if len(points) < 2:
         return accels
@@ -78,7 +76,7 @@ def detect_accelerations(points: list[GPSPoint]) -> list[tuple[int, float]]:
 
 
 def detect_decelerations(points: list[GPSPoint]) -> list[tuple[int, float]]:
-    """Rileva eventi di decelerazione dove la variazione di velocita' scende sotto la soglia."""
+    """Detects deceleration events where speed variation drops below the threshold."""
     decels = []
     if len(points) < 2:
         return decels
@@ -91,12 +89,9 @@ def detect_decelerations(points: list[GPSPoint]) -> list[tuple[int, float]]:
 
 
 def remove_outliers(points: list[GPSPoint], max_speed_km_h: float = 120.0) -> list[GPSPoint]:
-    """Rimuove i point GPS che implicherebbero una velocità implausibile.
+    """Removes GPS points that would imply an implausible speed.
 
-    Calcola la velocità istantanea tra punti consecutivi via haversine/delta-t e
-    scarta i punti che la superano (default 120 km/h, tipico di errori GPS).
-    Mantiene sempre il primo e l'ultimo punto. Se pulendo restano <2 punti,
-    ritorna i primi due dell'originale per non rompere i consumatori a valle.
+    Calculates instantaneous speed between consecutive points via haversine/delta-t and\n    discards points that exceed it (default 120 km/h, typical of GPS errors).\n    Always keeps the first and last point. If cleaning leaves <2 points,\n    returns the first two of the original to avoid breaking downstream consumers.
     """
     if len(points) < 3:
         return points[:]
@@ -120,17 +115,16 @@ def remove_outliers(points: list[GPSPoint], max_speed_km_h: float = 120.0) -> li
 
 
 def _elevation_delta(alt_from: float | None, alt_to: float | None) -> tuple[float, float]:
-    """Restituisce (gain, loss) tra due quote: solo il dislivello positivo/negativo."""
+    """Returns (gain, loss) between two altitudes: only positive/negative elevation."""
     if alt_from is None or alt_to is None:
         return 0.0, 0.0
     return (alt_to - alt_from, 0.0) if alt_to > alt_from else (0.0, abs(alt_to - alt_from))
 
 
 def build_segments(points: list[GPSPoint]) -> list[Segment]:
-    """Costruisce i segmenti punto-a-punto della rotta.
+    """Builds point-to-point segments of the route.
 
-    Per ogni coppia consecutiva calcola distanza (haversine), durata, velocità
-    media e variazione di quota (gain/loss), saltando i passi con delta-t <= 0.
+    For each consecutive pair calculates distance (haversine), duration, average\n    speed and elevation change (gain/loss), skipping steps with delta-t <= 0.
     """
     segments: list[Segment] = []
     for i in range(1, len(points)):
@@ -155,11 +149,9 @@ def build_segments(points: list[GPSPoint]) -> list[Segment]:
 
 
 def compute_statistics(points: list[GPSPoint]) -> RouteStatistics:
-    """Aggrega statistiche di rotta: distanza, durata, pause, velocità, dislivello.
+    """Aggregates route statistics: distance, duration, pauses, speed, elevation.
 
-    La durata totale è la finestra tra primo e ultimo segmento; il tempo in
-    movimento sottrae le pause rilevate. La velocità media usa il tempo in
-    movimento (non il tempo totale) per essere realistica.
+    Total duration is the window between first and last segment; moving time\n    subtracts detected pauses. Average speed uses moving time\n    (not total time) to be realistic.
     """
     segments = build_segments(points)
     pauses = detect_pauses(points)
@@ -182,7 +174,9 @@ def compute_statistics(points: list[GPSPoint]) -> RouteStatistics:
 
 
 def process_route(points: list[GPSPoint], max_speed_km_h: float = 120.0) -> tuple[list[GPSPoint], RouteStatistics]:
-    """Pipeline completa di una rotta: ordina per timestamp, rimuove outlier, calcola statistiche."""
+    """Complete route pipeline: sorts by timestamp, removes outliers, calculates statistics."""
     points = sorted(points, key=lambda p: p.timestamp)
     cleaned = remove_outliers(points, max_speed_km_h)
     return cleaned, compute_statistics(cleaned)
+
+

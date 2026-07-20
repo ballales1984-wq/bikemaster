@@ -45,11 +45,11 @@ def log_action(
 
 
 def read_audit_logs(limit: int = 100) -> list[dict[str, Any]]:
-    """Leggi gli ultimi ``limit`` eventi di audit dal file JSONL.
+    """Read the last ``limit`` audit events from the JSONL file.
 
-    Il file viene scansionato per intero e le righe vengono **capovolte**
-    (``reverse``) così da restituire prima gli eventi più recenti; le righe
-    non parsabili (JSON corrotto) vengono saltate senza interrompere la lettura.
+    The file is scanned entirely and the lines are **reversed**
+    (``reverse``) so that it returns the most recent events first; the rows
+    unparsable (corrupted JSON) are skipped without interrupting reading.
     """
     if not _AUDIT_LOG_PATH.exists():
         return []
@@ -68,3 +68,5 @@ def read_audit_logs(limit: int = 100) -> list[dict[str, Any]]:
         return []
     entries.reverse()
     return entries[:limit]
+
+

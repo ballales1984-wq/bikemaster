@@ -1,181 +1,181 @@
 <!--
-  Pagina statica della Cookie Policy.
-  Spiega le tipologie di cookie utilizzati (tecnici, analitici, preferenze),
-  le terze parti coinvolte e le modalità di gestione dei cookie nel browser.
-  Include tabella dei cookie tecnici e note per l'app mobile.
+  Static Cookie Policy page.
+  Explains the types of cookies used (technical, analytics, preferences),
+  the third parties involved and how to manage cookies in the browser.
+  Includes technical cookies table and notes for the mobile app.
 -->
 <template>
   <div class="legal-page">
     <div class="legal-header">
-      <h1>Cookie Policy - Politica dei Cookie</h1>
-      <p class="last-updated">Ultimo aggiornamento: Giugno 2025</p>
+      <h1>Cookie Policy</h1>
+      <p class="last-updated">Last updated: June 2025</p>
     </div>
 
     <div class="legal-content">
-      <h2>1. Cosa sono i Cookie</h2>
+      <h2>1. What Are Cookies</h2>
       <p>
-        I cookie sono piccoli file di testo memorizzati sul dispositivo
-        dell'utente durante la navigazione su un sito web. I cookie permettono
-        al sito di riconoscere l'utente e memorizzare determinate informazioni
-        per migliorare l'esperienza di utilizzo.
+        Cookies are small text files stored on the user's device
+        while browsing a website. Cookies allow
+        the site to recognize the user and store certain information
+        to improve the user experience.
       </p>
 
-      <h2>2. Tipologie di Cookie Utilizzati</h2>
-      <h3>2.1 Cookie Tecnici (Strettamente Necessari)</h3>
+      <h2>2. Types of Cookies Used</h2>
+      <h3>2.1 Technical Cookies (Strictly Necessary)</h3>
       <p>
-        Questi cookie sono essenziali per il corretto funzionamento del servizio
-        BikeMaster:
+        These cookies are essential for the proper functioning of the BikeMaster
+        service:
       </p>
       <table class="cookie-table">
         <thead>
           <tr>
-            <th>Nome</th>
-            <th>Scopo</th>
-            <th>Durata</th>
+            <th>Name</th>
+            <th>Purpose</th>
+            <th>Duration</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><code>access_token</code></td>
-            <td>Autenticazione JWT dell'utente</td>
-            <td>Sessione browser</td>
+            <td>User JWT authentication</td>
+            <td>Browser session</td>
           </tr>
           <tr>
             <td><code>refresh_token</code></td>
-            <td>Rinnovo automatico della sessione</td>
-            <td>7 giorni</td>
+            <td>Automatic session renewal</td>
+            <td>7 days</td>
           </tr>
           <tr>
             <td><code>bikemaster_session</code></td>
-            <td>Gestione stato sessione utente</td>
-            <td>Sessione browser</td>
+            <td>User session state management</td>
+            <td>Browser session</td>
           </tr>
         </tbody>
       </table>
 
-      <h3>2.2 Cookie Analitici</h3>
+      <h3>2.2 Analytics Cookies</h3>
       <p>
-        Utilizzati per comprendere come gli utenti interagiscono con il servizio
-        (anonimizzati o aggregati):
+        Used to understand how users interact with the service
+        (anonymized or aggregated):
       </p>
       <ul>
         <li>
-          <strong>Statistiche di utilizzo:</strong> pagine visitate, durata
-          della sessione, errori riscontrati
+          <strong>Usage statistics:</strong> pages visited, session
+          duration, errors encountered
         </li>
         <li>
-          <strong>Performance:</strong> tempi di caricamento, chiamate API,
-          metriche di sistema
+          <strong>Performance:</strong> loading times, API calls,
+          system metrics
         </li>
       </ul>
 
-      <h3>2.3 Cookie di Preferenze</h3>
+      <h3>2.3 Preference Cookies</h3>
       <ul>
         <li>
-          <strong>Tema dark/light:</strong> preferenza tema dell'interfaccia
+          <strong>Dark/light theme:</strong> interface theme preference
         </li>
         <li>
-          <strong>Layout dashboard:</strong> configurazione pannelli preferiti
+          <strong>Dashboard layout:</strong> preferred panel configuration
         </li>
-        <li><strong>Unità di misura:</strong> km/mi, °C/°F, watt/kg</li>
+        <li><strong>Units:</strong> km/mi, °C/°F, watts/kg</li>
       </ul>
 
-      <h2>3. Cookie di Terze Parti</h2>
+      <h2>3. Third-Party Cookies</h2>
       <p>
-        Alcuni cookie possono essere impostati da servizi terzi integrati nel
-        servizio:
+        Some cookies may be set by third-party services integrated into the
+        service:
       </p>
       <ul>
         <li>
-          <strong>Google Maps / OpenStreetMap:</strong> per la visualizzazione
-          dei percorsi sulle mappe
+          <strong>Google Maps / OpenStreetMap:</strong> for displaying
+          routes on maps
         </li>
         <li>
-          <strong>Chart.js:</strong> nessun cookie proprio, dati gestiti
-          localmente
+          <strong>Chart.js:</strong> no own cookies, data handled
+          locally
         </li>
       </ul>
       <p>
-        Questi terzi hanno proprie informative sulla privacy, non controllate da
+        These third parties have their own privacy policies, not controlled by
         BikeMaster.
       </p>
 
-      <h2>4. Gestione e Disabilitazione dei Cookie</h2>
+      <h2>4. Cookie Management and Disabling</h2>
       <p>
-        L'utente può gestire i cookie direttamente tramite le impostazioni del
-        browser:
+        The user can manage cookies directly through the browser
+        settings:
       </p>
       <ul>
         <li>
-          <strong>Chrome:</strong> Impostazioni → Privacy e sicurezza → Cookie e
-          altri dati dei siti
+          <strong>Chrome:</strong> Settings → Privacy and security → Cookies and
+          other site data
         </li>
         <li>
-          <strong>Firefox:</strong> Impostazioni → Privacy e sicurezza → Cookie
-          e dati dei siti
+          <strong>Firefox:</strong> Settings → Privacy and security → Cookies
+          and site data
         </li>
         <li>
-          <strong>Safari:</strong> Preferenze → Privacy → Gestione siti web
+          <strong>Safari:</strong> Preferences → Privacy → Manage websites
         </li>
         <li>
-          <strong>Edge:</strong> Impostazioni → Privacy, ricerca e servizi →
-          Cookie
+          <strong>Edge:</strong> Settings → Privacy, search and services →
+          Cookies
         </li>
       </ul>
       <p>
-        <strong>Nota:</strong> La disabilitazione dei cookie tecnici potrebbe
-        compromettere il funzionamento del servizio e impedire l'accesso
-        all'account.
+        <strong>Note:</strong> Disabling technical cookies may
+        impair the functioning of the service and prevent access
+        to the account.
       </p>
 
-      <h2>5. Note per l'App Mobile (Android)</h2>
+      <h2>5. Notes for the Mobile App (Android)</h2>
       <p>
-        L'applicazione mobile Android di BikeMaster, installata tramite APK, non
-        utilizza cookie tradizionali. Utilizza invece:
+        The BikeMaster Android mobile application, installed via APK, does
+        not use traditional cookies. Instead, it uses:
       </p>
       <ul>
         <li>
-          <strong>Shared Preferences Android:</strong> per dati di sessione e
-          preferenze
+          <strong>Android Shared Preferences:</strong> for session data and
+          preferences
         </li>
-        <li><strong>Storage locale:</strong> per cache e dati offline</li>
+        <li><strong>Local Storage:</strong> for cache and offline data</li>
       </ul>
       <p>
-        Il tracciamento GPS in background richiede l'autorizzazione della
-        posizione, gestita dal sistema operativo Android.
+        Background GPS tracking requires location authorization,
+        managed by the Android operating system.
       </p>
 
-      <h2>6. Strumenti di Tracciamento Alternativi</h2>
-      <p>Oltre ai cookie, BikeMaster può utilizzare:</p>
+      <h2>6. Alternative Tracking Tools</h2>
+      <p>In addition to cookies, BikeMaster may use:</p>
       <ul>
         <li>
-          <strong>Local Storage:</strong> per la persistenza dei dati sul
+          <strong>Local Storage:</strong> for data persistence on the
           browser
         </li>
         <li>
-          <strong>Session Storage:</strong> per dati temporanei della sessione
+          <strong>Session Storage:</strong> for temporary session data
         </li>
         <li>
-          <strong>IndexedDB:</strong> per caching avanzato di dati di attività
+          <strong>IndexedDB:</strong> for advanced caching of activity data
         </li>
       </ul>
 
-      <h2>7. Aggiornamenti della Cookie Policy</h2>
+      <h2>7. Cookie Policy Updates</h2>
       <p>
-        Eventuali modifiche alla presente policy saranno pubblicate su questa
-        pagina. Si consiglia di consultarla periodicamente.
+        Any changes to this policy will be published on this
+        page. We recommend consulting it periodically.
       </p>
 
-      <h2>8. Contatti</h2>
+      <h2>8. Contact</h2>
       <p>
-        Per domande sui cookie o sulle pratiche di tracciamento:
+        For questions about cookies or tracking practices:
         <a href="mailto:privacy@bikemaster.app">privacy@bikemaster.app</a>
       </p>
     </div>
 
     <div class="cta-section">
       <RouterLink to="/" class="btn btn-primary">
-         Torna all'Accedi
+         Back to Login
       </RouterLink>
     </div>
   </div>

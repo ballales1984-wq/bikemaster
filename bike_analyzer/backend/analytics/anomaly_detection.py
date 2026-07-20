@@ -38,9 +38,9 @@ class RideAnomalyReport:
 
 
 def _z_score(value: float, mean: float, std: float) -> float:
-    """Calcola lo z-score (scarto dalla media in unità di deviazione standard).
+    """Calculates the z-score (deviation from mean in standard deviation units).
 
-    Ritorna 0 quando la deviazione standard è nulla (distribuzione degenere) per
+    Returns 0 when standard deviation is zero (degenerate distribution) to
     evitare divisione per zero.
     """
     if std <= 0:
@@ -129,7 +129,7 @@ def _risk_level(score: float, anomaly_count: int) -> str:
     """Mappa anomalie → livello di rischio.
 
     high se >=3 metriche anomale o score>=5; medium se >=2 o score>=2;
-    low se >=1; none altrimenti. Lo score è la somma di 1/(|z|+0.1), quindi
+    low if >=1; none otherwise. Score is sum of 1/(|z|+0.1), so
     premia molte anomalie con z-score moderato.
     """
     if anomaly_count >= 3 or score >= 5:
@@ -196,3 +196,4 @@ __all__ = [
     "detect_ride_anomalies",
     "summarize_anomalies",
 ]
+

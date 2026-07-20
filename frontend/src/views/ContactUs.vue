@@ -1,14 +1,14 @@
 <!--
-  Pagina contatti e risorse utili.
-  Mostra indirizzi email di supporto e privacy, link GitHub, e schede di navigazione
-  rapida verso Privacy Policy, Termini, Cookie Policy e Chi Siamo.
-  Layout: griglia di card informative e link interni.
+  Contact and useful resources page.
+  Shows support and privacy email addresses, GitHub link, and quick navigation cards
+  to Privacy Policy, Terms, Cookie Policy and About Us.
+  Layout: grid of info cards and internal links.
 -->
 <template>
   <div class="contact-page">
     <div class="contact-header">
-      <h1> Contattaci</h1>
-      <p class="subtitle">Hai domande, suggerimenti o vuoi collaborare?</p>
+      <h1> Contact Us</h1>
+      <p class="subtitle">Do you have questions, suggestions or want to collaborate?</p>
     </div>
 
     <div class="contact-info-grid">
@@ -17,7 +17,7 @@
         <p>
           <a href="mailto:support@bikemaster.app">support@bikemaster.app</a>
         </p>
-        <p class="text-muted">Supporto tecnico e informazioni generali</p>
+        <p class="text-muted">Technical support and general information</p>
       </div>
       <div class="info-card">
         <h3> Privacy</h3>
@@ -25,7 +25,7 @@
           <a href="mailto:privacy@bikemaster.app">privacy@bikemaster.app</a>
         </p>
         <p class="text-muted">
-          Richieste relative alla protezione dei dati personali
+          Personal data protection requests
         </p>
       </div>
       <div class="info-card">
@@ -38,13 +38,13 @@
           >github.com/ballales1984-wq/bikemaster</a>
         </p>
         <p class="text-muted">
-          Segnala bug, richiedi funzionalità o contribuisci al codice
+          Report bugs, request features or contribute to the code
         </p>
       </div>
     </div>
 
     <div class="site-links-section">
-      <h2>Risorse Utili</h2>
+      <h2>Useful Resources</h2>
       <div class="links-grid">
         <RouterLink
 to="/privacy" class="link-card">

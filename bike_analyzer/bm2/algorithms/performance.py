@@ -27,7 +27,7 @@ class PerformanceModel(Algorithm):
     formula = "indice = clamp(v_media_kmh / v_riferimento(experience) · 100, 0, 120)"
     description = "Indice di prestazione normalizzato sull'esperienza dell'atleta."
     unit = "score"
-    required_inputs = ["velocità_media", "experience_level"]
+    required_inputs = ["avg_speed", "experience_level"]
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
         """Calcola l'indice di prestazione normalizzato per livello di esperienza."""
@@ -49,3 +49,4 @@ class PerformanceModel(Algorithm):
             "reference_speed_kmh": REFERENCE_SPEED_KMH.get(ctx.athlete.experience_level, 24.0),
             "experience_level": ctx.athlete.experience_level,
         }
+

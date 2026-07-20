@@ -81,9 +81,9 @@ class ContextBuilder:
         ctl = fitness_state.get("ctl", 0)
 
         if tsb > 15:
-            recs.append("Pronto per sforzi intensi - TSB positivo indica freschezza")
+            recs.append("Ready for intense efforts - positive TSB indicates freshness")
         elif tsb > 5:
-            recs.append("Quasi pronto per lavori quality - TSB moderato")
+            recs.append("Almost ready for quality work - moderate TSB")
         elif tsb < -20:
             recs.append("Recupero prioritario - TSB negativo indica affaticamento")
 
@@ -103,17 +103,17 @@ class ContextBuilder:
 
         reasons = []
         if tsb < -20:
-            reasons.append(f"TSB è {tsb:.1f}, indica affaticamento accumulato")
+            reasons.append(f"TSB is {tsb:.1f}, indicates accumulated fatigue")
         elif tsb > 15:
-            reasons.append(f"TSB è {tsb:.1f}, indica buona freschezza")
+            reasons.append(f"TSB is {tsb:.1f}, indicates good freshness")
 
         if atl > ctl * 1.2:
-            reasons.append(f"ATL ({atl:.1f}) sopra il CTL ({ctl:.1f})")
+            reasons.append(f"ATL ({atl:.1f}) above CTL ({ctl:.1f})")
 
         if recovery_hours > 24:
             reasons.append(f"Recupero stimato: {recovery_hours:.0f} ore")
 
-        return " | ".join(reasons) if reasons else "Stato di forma stabile"
+        return " | ".join(reasons) if reasons else "Stable fitness state"
 
     async def fetch_full_context(self, include_history: bool = True) -> dict[str, Any]:
         athlete = None
@@ -135,3 +135,6 @@ class ContextBuilder:
             fitness_state = await fs_repo.get_latest(self.athlete_id)
 
         return self.build_training_context(athlete=athlete, rides=rides, fitness_state=fitness_state)
+
+
+

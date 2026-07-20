@@ -18,7 +18,7 @@ _embeddings_cache: dict[str, np.ndarray] = {}
 
 
 def _get_vectorizer() -> TfidfVectorizer | None:
-    """Crea un TF-IDF vectorizer (fallback embedding) se sklearn è disponibile."""
+    """Creates a TF-IDF vectorizer (fallback embedding) if sklearn is available."""
     return (
         TfidfVectorizer(max_features=1000, stop_words="english")
         if VECTOR_AVAILABLE
@@ -66,7 +66,7 @@ class VectorStore:
         self._init_db()
 
     def _init_db(self):
-        """Crea la tabella ``vectors`` (id, doc, embedding BLOB) se non esiste."""
+        """Creates the ``vectors`` table (id, doc, embedding BLOB) if it does not exist."""
         conn = sqlite3.connect(self.db_path)
         conn.execute(
             "CREATE TABLE IF NOT EXISTS vectors "
@@ -76,7 +76,7 @@ class VectorStore:
         conn.close()
 
     def add(self, doc: str, embedding: list[float] | None = None):
-        """Inserisce un documento (con embedding opzionale, altrimenti calcolato via TF-IDF)."""
+        """Inserts a document (with optional embedding, otherwise calculated via TF-IDF)."""
         if embedding is None:
             embedding = embed_text(doc)
         conn = sqlite3.connect(self.db_path)
@@ -93,8 +93,10 @@ class VectorStore:
         )
 
     def _all_docs(self) -> list[tuple[str]]:
-        """Restituisce tutti i documenti memorizzati (limit 1000 righe)."""
+        """Returns all stored documents (limit 1000 rows)."""
         conn = sqlite3.connect(self.db_path)
         rows = conn.execute("SELECT doc FROM vectors LIMIT 1000").fetchall()
         conn.close()
         return rows
+
+

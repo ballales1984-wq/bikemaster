@@ -1,5 +1,5 @@
 <!-- Banner installazione PWA: invita a installare l'app nella home screen per l'accesso offline.
-     Props: nessuna. Eventi: nessuno (usa composable usePWA). Mostra il banner solo se è disponibile un evento beforeinstallprompt.
+     Props: none. Events: none (uses usePWA composable). Shows the banner only if a beforeinstallprompt event is available.
      UI: banner fisso con icona, testo, pulsanti "Install" e "chiudi" (dismiss); transizione slide; nasconde dopo installazione. -->
 <template>
   <Transition name="slide">
@@ -145,3 +145,4 @@ onMounted(() => {
   }
 }
 </style>
+

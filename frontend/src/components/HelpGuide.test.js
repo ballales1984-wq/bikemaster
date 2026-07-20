@@ -1,7 +1,15 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
-import HelpGuide from "../components/HelpGuide.vue";
+import HelpGuide from "./HelpGuide.vue";
+
+vi.mock("../composables/useI18n", () => ({
+  useI18n: () => ({
+    locale: { value: "en" },
+    t: (key) => key,
+    setLocale: vi.fn(),
+  }),
+}));
 
 describe("HelpGuide", () => {
   beforeEach(() => {
@@ -18,7 +26,7 @@ describe("HelpGuide", () => {
     const wrapper = mount(HelpGuide, { attachTo: document.body });
     await wrapper.vm.$nextTick();
     expect(document.body.querySelector(".help-panel")).not.toBeNull();
-    expect(document.body.querySelector(".help-header h2")?.textContent).toContain("Guida BikeMaster");
+    expect(document.body.querySelector(".help-header h2")?.textContent).toContain("help.title");
     wrapper.unmount();
   });
 
@@ -26,9 +34,9 @@ describe("HelpGuide", () => {
     const wrapper = mount(HelpGuide, { attachTo: document.body });
     await wrapper.vm.$nextTick();
     const text = document.body.textContent || "";
-    expect(text).toContain("Navigazione");
-    expect(text).toContain("Tracciamento");
-    expect(text).toContain("Impostazioni");
+    expect(text).toContain("help.categoryNavigation");
+    expect(text).toContain("help.categoryTracking");
+    expect(text).toContain("help.categorySettings");
     wrapper.unmount();
   });
 
@@ -38,14 +46,14 @@ describe("HelpGuide", () => {
     const trackingBtn = document.body.querySelectorAll(".cat-btn");
     let found = false;
     trackingBtn.forEach((btn) => {
-      if (btn.textContent?.includes("Tracciamento")) {
+      if (btn.textContent?.includes("help.categoryTracking")) {
         btn.dispatchEvent(new Event("click"));
         found = true;
       }
     });
     if (found) {
       await wrapper.vm.$nextTick();
-      expect(document.body.textContent || "").toContain("Tracciamento uscita");
+      expect(document.body.textContent || "").toContain("help.secTracking");
     }
     wrapper.unmount();
   });
@@ -82,9 +90,16 @@ describe("HelpGuide", () => {
   it("renders help tags for active category", async () => {
     const wrapper = mount(HelpGuide, { attachTo: document.body });
     await wrapper.vm.$nextTick();
+    const ridesBtn = document.body.querySelectorAll(".cat-btn");
+    ridesBtn.forEach((btn) => {
+      if (btn.textContent?.includes("help.categoryRides")) {
+        btn.dispatchEvent(new Event("click"));
+      }
+    });
+    await wrapper.vm.$nextTick();
     const text = document.body.textContent || "";
-    expect(text).toContain("Uscite");
-    expect(text).toContain("velocità media");
+    expect(text).toContain("help.secRides");
+    expect(text).toContain("help.ridesListTitle");
     wrapper.unmount();
   });
 
@@ -92,7 +107,7 @@ describe("HelpGuide", () => {
     const wrapper = mount(HelpGuide, { attachTo: document.body });
     await wrapper.vm.$nextTick();
     const text = document.body.textContent || "";
-    expect(text).not.toContain("Tracciamento uscita");
+    expect(text).not.toContain("help.secTracking");
     wrapper.unmount();
   });
 });

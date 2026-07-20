@@ -161,7 +161,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
   const canRetry = idempotent && !noRetry;
 
   // Base primario (relativo di default, altrimenti backend configurato).
-  // Su Vercel/device l'app punta al backend sul PC; Render è il failover.
+  // On Vercel/device the app points to the backend on the PC; Render is the fallback.
   let currentBase = resolveApiBase();
   const fallbackBase = isFallbackEnabled() ? resolveFallbackBase() : "";
   const canUseFallback = !!fallbackBase && fallbackBase !== currentBase;
@@ -306,3 +306,4 @@ export async function apiPut<T = ApiResponse>(
     body,
   });
 }
+

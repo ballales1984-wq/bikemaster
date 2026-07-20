@@ -17,7 +17,7 @@ import {
 } from "../utils/backend-config";
 
 // Store delle impostazioni di connessione al backend.
-// L'URL è modificabile a runtime dall'utente (es. punta al proprio PC) e
+// The URL is modifiable at runtime by the user (e.g. points to their own PC) and
 // persistito in localStorage. Render resta un failover opzionale.
 export const useSettingsStore = defineStore("settings", () => {
   const apiBase = ref(getStoredApiBase());
@@ -53,3 +53,4 @@ export const useSettingsStore = defineStore("settings", () => {
     resetApiBase,
   };
 });
+

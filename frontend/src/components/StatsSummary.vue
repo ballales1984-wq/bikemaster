@@ -1,4 +1,4 @@
-<!-- Riepilogo statistiche generali: card animate (conteggio) per uscite, distanza totale, calorie, velocità media e ore totali.
+<!-- General statistics summary: animated cards (count) for rides, total distance, calories, average speed and total hours.
      Props: stats (oggetto con rides/distance_km/calories/avg_speed_kmh/duration_minutes), loading. Eventi: refresh.
      UI: griglia di stat-card con direttiva v-stagger (animazione, rispetta prefers-reduced-motion) e pulsante Refresh. -->
 <template>
@@ -300,3 +300,4 @@ watch(
   }
 }
 </style>
+

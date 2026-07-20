@@ -1,4 +1,4 @@
-"""BikeMaster 2.0 - Nutrition Model (nutrizione per l'attività)."""
+"""BikeMaster 2.0 - Nutrition Model (nutrition for the activity)."""
 
 from __future__ import annotations
 
@@ -20,14 +20,14 @@ class NutritionModel(Algorithm):
     """
 
     name = "NutritionModel"
-    formula = ("carb = intensità·60 g/h · ore; acqua = 0.6 L/h · ore; "
+    formula = ("carb = intensity·60 g/h · ore; acqua = 0.6 L/h · ore; "
                "proteine = 0.3 g/kg (post)")
-    description = "Stima carboidrati, idratazione e proteine per l'attività."
+    description = "Estimates carbs, hydration and protein for the activity."
     unit = "g"
-    required_inputs = ["durata", "intensità", "massa_corpo"]
+    required_inputs = ["duration", "intensity", "body_mass"]
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
-        """Calcola i carboidrati totali (g) in base a durata e intensita'."""
+        """Calcola i carboidrati totali (g) in base a duration e intensita'."""
         m = ctx.activity.metrics(ctx.transformer)
         dur_h = m["duration_s"] / 3600.0
         if dur_h <= 0:
@@ -41,7 +41,7 @@ class NutritionModel(Algorithm):
         return carbs, precision, confidence
 
     def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
-        """Aggiunge proteine, acqua, kcal e durata al risultato."""
+        """Aggiunge proteine, acqua, kcal e duration al risultato."""
         m = ctx.activity.metrics(ctx.transformer)
         dur_h = m["duration_s"] / 3600.0
         weight = ctx.athlete.weight_kg.value
@@ -54,3 +54,4 @@ class NutritionModel(Algorithm):
             "kcal": round(energy.value, 0),
             "duration_h": round(dur_h, 2),
         }
+

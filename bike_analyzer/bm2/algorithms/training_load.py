@@ -20,7 +20,7 @@ class TrainingLoadModel(Algorithm):
     name = "TrainingLoadModel"
     formula = ("TSS = (t·NP·IF) / (FTP·3600) · 100; "
                "CTL = EMA_42(TSS); ATL = EMA_7(TSS); TSB = CTL - ATL")
-    description = "Stima carico di allenamento (TSS/CTL/ATL/TSB) da storico attività."
+    description = "Estimates training load (TSS/CTL/ATL/TSB) from activity history."
     unit = "score"
     required_inputs = ["ftp", "storico_attivita"]
 
@@ -104,3 +104,4 @@ class TrainingLoadModel(Algorithm):
             "tsb": round(ctl - atl, 1),
             "tss_history_count": len(tss_history),
         }
+

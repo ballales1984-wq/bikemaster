@@ -1,28 +1,28 @@
 /**
- * Risoluzione configurabile a runtime dell'URL base del backend.
+ * Runtime-configurable resolution of the backend base URL.
  *
- * Stabilisce il base *primario* (impostazione localStorage, `VITE_API_BASE`,
- * auto-detect Tauri, same-origin) e quello dell'hub cloud. `resolveFallbackBase`
- * espone il failover Render (usato solo su errore di rete/5xx se abilitato).
- * Esporta inoltre gli storage key, i getter/setter e `getBackendMode`
- * ("pc"|"render"|"local"|"tauri"|"hub") che descrive la modalità attiva.
+ * Establishes the primary base (localStorage setting, `VITE_API_BASE`,
+ * auto-detect Tauri, same-origin) and the cloud hub base. `resolveFallbackBase`
+ * exposes the Render fallback (used only on network error/5xx if enabled).
+ * Also exports storage keys, getters/setters and `getBackendMode`
+ * ("pc"|"render"|"local"|"tauri"|"hub") describing the active mode.
  */
 
-// Risolve l'URL base del backend in modo configurabile a runtime.
+// Resolves the backend base URL in a configurable way at runtime.
 //
-// Priorità del base *primario*:
-//   1. Impostazione runtime (localStorage) — modificabile dalle Settings dell'app
-//   2. Variabile di build VITE_API_BASE (es. su Vercel)
-//   3. Auto-detect Tauri → localhost:8001 (backend Axum embedded)
-//   4. ""  → stesso origine (default: in dev Vite fa proxy di /api a localhost:8000)
+// Priority of the primary base:
+//   1. Runtime setting (localStorage) — modifiable from the app Settings
+//   2. Build variable VITE_API_BASE (e.g. on Vercel)
+//   3. Auto-detect Tauri → localhost:8001 (embedded Axum backend)
+//   4. "" → same origin (default: in dev Vite proxies /api to localhost:8000)
 //
-// Se il base primario è vuoto, le chiamate vanno allo stesso origine. Su Vercel
-// (frontend statico, nessun backend allo stesso origine) va impostato un base
-// esplicito: di solito l'URL del backend sul PC dell'utente.
+// If the primary base is empty, calls go to the same origin. On Vercel
+// (static frontend, no backend at same origin) an explicit base must be set:
+// usually the URL of the backend on the user's PC.
 //
-// RENDER_FALLBACK_BASE è usato SOLO come failover: se il base primario è
-// irraggiungibile (errore di rete o 502/503/504) e il failover è abilitato,
-// l'ultimo tentativo viene riprovato contro Render.
+// RENDER_FALLBACK_BASE is used ONLY as fallback: if the primary base is
+// unreachable (network error or 502/503/504) and fallback is enabled,
+// the last attempt is retried against Render.
 
 export const API_BASE_STORAGE_KEY = "bikemaster_api_base";
 export const API_FALLBACK_ENABLED_KEY = "bikemaster_api_fallback_enabled";
@@ -93,7 +93,7 @@ export function resolveApiBase(): string {
     return TAURI_EMBEDDED_BACKEND_BASE;
   }
 
-  // Se la SPA è servita dallo stesso backend (es. http://localhost:8000
+  // If the SPA is served by the same backend (e.g. http://localhost:8000
   // o http://localhost:8001), usa same-origin per evitare richieste
   // cross-origin (ngrok-free strip gli header CORS sulle risposte).
   if (typeof window !== "undefined" && typeof location !== "undefined") {
@@ -148,3 +148,4 @@ export function getBackendMode(): BackendMode {
   if (base.includes("onrender.com")) return "render";
   return "pc";
 }
+

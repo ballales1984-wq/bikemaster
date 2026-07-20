@@ -8,11 +8,9 @@ from datetime import datetime
 
 
 def _perpendicular_distance(point: dict, start: dict, end: dict) -> float:
-    """Distanza perpendicolare di ``point`` dal segmento ``start``-``end`` (in gradi).
+    """Perpendicular distance of ``point`` from segment ``start``-``end`` (in degrees).
 
-    Formula della distanza punto-retta |dy·x − dx·y + ...| / √(dx²+dy²). Se il
-    segmento è degenere (start==end) ritorna la distanza euclidea. Usata dal
-    Douglas-Peucker per scegliere il punto più "lontano" dalla linea.
+    Point-line distance formula |dy·x − dx·y + ...| / √(dx²+dy²). If the\n    segment is degenerate (start==end) returns the Euclidean distance. Used by\n    Douglas-Peucker to choose the point farthest from the line.
     """
     dx = end["lon"] - start["lon"]
     dy = end["lat"] - start["lat"]
@@ -24,13 +22,9 @@ def _perpendicular_distance(point: dict, start: dict, end: dict) -> float:
 
 
 def douglas_peucker(points: list[dict], tolerance: float = 0.00005) -> list[dict]:
-    """Decimazione della traccia GPS con l'algoritmo Ramer–Douglas–Peucker.
+    """GPS track decimation with the Ramer-Douglas-Peucker algorithm.
 
-    Approccia in modo ricorsivo (qui implementato con uno stack esplicito per
-    evitare la ricursion depth): mantiene sempre i capi estremi, poi per ogni
-    sotto-segmento trova il punto internedio più lontano (``_perpendicular_distance``);
-    se quella distanza supera ``tolerance`` il punto è "keep" e si divide il
-    segmento in due. Riduce il numero di punti preservando la forma della rotta.
+    Works recursively (here implemented with an explicit stack to avoid\n    recursion depth): always keeps the endpoints, then for each\n    sub-segment finds the farthest intermediate point (``_perpendicular_distance``);\n    if that distance exceeds ``tolerance`` the point is "kept" and the\n    segment is split in two. Reduces point count while preserving track shape.
     """
     n = len(points)
     if n <= 2:
@@ -213,3 +207,4 @@ def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float
             for p in compressed
         ],
     }
+

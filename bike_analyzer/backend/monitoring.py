@@ -174,10 +174,10 @@ async def check_task_queue_health() -> tuple[str, str]:
 
 
 async def asyncio_if_awaitable(value):
-    """Await ``value`` se è awaitable, altrimenti restituiscilo così com'è.
+    """Await ``value`` if it is awaitable, otherwise return it as-is.
 
-    Necessario perché alcune implementazioni di client Redis restituiscono
-    coroutine mentre altre (o fallback) ritornano il valore diretto. Permette di
+    Needed because some Redis client implementations return
+    coroutines while others (or fallback) return the direct value. Allows
     trattare in modo uniforme entrambi i casi nei health check.
     """
     if hasattr(value, "__await__"):
@@ -323,3 +323,5 @@ class MetricsMiddleware:
             duration = _time.time() - start_time
             if PROMETHEUS_AVAILABLE:
                 record_http_request(method, path, status_code, duration)
+
+

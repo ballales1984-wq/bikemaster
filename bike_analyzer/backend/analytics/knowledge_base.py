@@ -836,3 +836,4 @@ def init_chroma_db(persist_path: str | None = None) -> dict:
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
+

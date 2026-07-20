@@ -1,6 +1,6 @@
 <!-- Pannello knowledge base: ricerca semantica nei documenti e navigazione per argomenti (endpoint /api/v1/knowledge).
      Props: nessuna. Eventi: nessuno. Cerca per query (con debounce), mostra pill/griglia argomenti, risultati con score e
-     evidenziazione, skeleton di caricamento e stati vuoti. Pulsante "Ricarica indici" se la base è vuota. -->
+     highlighting, loading skeleton and empty states. "Reload indices" button if the base is empty. -->
 <template>
   <div class="knowledge-panel">
     <div class="panel-header">
@@ -221,7 +221,6 @@ const TOPIC_ICONS = {
   hr: "",
   frequenza: "",
   speed: "",
-  velocità: "",
 };
 
 function topicIcon(topic: string): string {
@@ -627,3 +626,4 @@ code {
   animation-delay: 0.4s;
 }
 </style>
+

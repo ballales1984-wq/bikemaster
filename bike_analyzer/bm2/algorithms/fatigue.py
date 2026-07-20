@@ -13,16 +13,16 @@ __all__ = ["FatigueModel"]
 class FatigueModel(Algorithm):
     """Stima il carico di fatica (0-10) e le ore di recupero necessarie.
 
-    Formula: score = min(10, (durata·0.3 + intensità·0.3 + velocità·0.2
-             + dislivello·0.1 + peso·0.1)·3)
+    Formula: score = min(10, (duration·0.3 + intensity·0.3 + speed·0.2
+             + elevation·0.1 + weight·0.1)·3)
     """
 
     name = "FatigueModel"
-    formula = ("score = min(10, (durata·0.3 + intensità·0.3 + velocità·0.2 "
-               "+ dislivello·0.1 + peso·0.1)·3)")
+    formula = ("score = min(10, (duration·0.3 + intensity·0.3 + speed·0.2 "
+               "+ elevation·0.1 + weight·0.1)·3)")
     description = "Stima il carico di fatica (0-10) e le ore di recupero necessarie."
     unit = "score"
-    required_inputs = ["durata", "intensità", "velocità", "dislivello", "peso"]
+    required_inputs = ["duration", "intensity", "speed", "elevation", "weight"]
 
     def _intensity_factor(self, ctx: AnalysisContext, avg_speed_kmh: float) -> float:
         """Calcola il fattore di intensita' da FC media (se disponibile) o da velocita'."""
@@ -33,7 +33,7 @@ class FatigueModel(Algorithm):
         return min(avg_speed_kmh / 30.0, 1.0)
 
     def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
-        """Calcola lo score di fatica (0-10) combinando durata, intensita', velocita' e dislivello."""
+        """Calcola lo score di fatica (0-10) combinando duration, intensita', velocita' e elevation."""
         m = ctx.activity.metrics(ctx.transformer)
         dur_h = m["duration_s"] / 3600.0
         v_kmh = m["avg_speed_ms"] * 3.6
@@ -87,4 +87,5 @@ class FatigueModel(Algorithm):
             return "Fatica moderata - giorno di riposo consigliato"
         if score <= 8.0:
             return "Fatica alta - riposo necessario"
-        return "Fatica estrema - più giorni di riposo"
+        return "Extreme fatigue - more rest days needed"
+

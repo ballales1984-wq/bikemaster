@@ -60,7 +60,7 @@ def _build_credentials(token_data: dict) -> Credentials:
 
 
 def validate_and_refresh_token(token_data: dict) -> dict:
-    """Se il token è scaduto e ha refresh, lo rinnova via Google; ritorna token normalizzati."""
+    """If the token has expired and has a refresh, renews it via Google; returns normalized tokens."""
     creds = _build_credentials(token_data)
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
@@ -168,3 +168,4 @@ def google_fit_to_ride(activities: list[dict]) -> list[dict]:
         }
         rides.append(ride)
     return rides
+

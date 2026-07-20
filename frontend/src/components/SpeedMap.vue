@@ -25,9 +25,9 @@ v-if="!loading && !error" class="map-speed-legend">
   </div>
 </template>
 
-<!-- Mappa velocità Google: disegna il percorso di una ride colorato per velocità (km/h) usando Google Maps JS API.
+<!-- Google Speed Map: draws a ride route colored by speed (km/h) using Google Maps JS API.
      Props: rideId (number, obbligatorio), apiKey (string). Eventi: nessuno. Carica i segmenti da /api/v1/rides/:id/speed-path.
-     UI: canvas mappa con marker start/fine, tooltip velocità al passaggio, legenda gradiente e stati loading/errore. -->
+     UI: map canvas with start/end markers, speed tooltip on hover, gradient legend and loading/error states. -->
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { apiGet } from "../utils/api";
@@ -260,3 +260,4 @@ onBeforeUnmount(() => {
   );
 }
 </style>
+

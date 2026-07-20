@@ -1,12 +1,12 @@
 """Validation layer for the physics kernel against measured power-meter data.
 
-Confronta la potenza istantanea stimata da ``core.physics`` con la potenza
-misurata dai power meter (``GPSPoint.power``) sulle ride reali, così da poter
-tarare ``RiderBikeParams`` (CdA, Crr, massa) e quantificare il bias del modello.
+Compares instantaneous power estimated by ``core.physics`` with power
+measured by power meters (``GPSPoint.power``) on real rides, so we can
+calibrate ``RiderBikeParams`` (CdA, Crr, mass) and quantify model bias.
 
-La velocità istantanea è calcolata da distanza/tempo tra punti consecutivi
-(``haversine`` + ``timestamp``), quindi è indipendente dall'unità di ``speed``
-memorizzata sui punti GPS.
+Instantaneous speed is calculated from distance/time between consecutive points
+(``haversine`` + ``timestamp``), so it is independent of the ``speed`` unit
+stored on GPS points.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from .power import grade_between, instantaneous_power
 
 @dataclass
 class PowerValidationResult:
-    """Statistiche di errore tra potenza stimata e misurata."""
+    """Error statistics between estimated and measured power."""
 
     n_points: int
     mae_w: float
@@ -43,18 +43,18 @@ class PowerValidationResult:
 
 
 def _segment_pairs(points: list[GPSPoint]):
-    """Yield (measured_power, v_ms, grade) per segmento con power-meter valido.
+    """Yield (measured_power, v_ms, grade) per segment with valid power-meter.
 
-    Per ogni coppia consecutiva di punti GPS con power misurato e timestamp
-    validi, calcola velocita' istantanea (distanza haversine / dt) e pendenza
-    tra i due punti. Salta segmenti con dt <= 0 o distanza <= 0.
+    For each consecutive pair of GPS points with measured power and valid
+    timestamps, calculates instantaneous speed (haversine distance / dt) and slope
+    between the two points. Skips segments with dt <= 0 or distance <= 0.
 
     Args:
-        points: Lista di GPSPoint ordinati per timestamp.
+        points: List of GPSPoint ordered by timestamp.
 
     Yields:
-        Tupla (potenza_misurata_W, velocita_ms, grade) per ogni segmento
-        con dati power-meter validi.
+        Tuple (measured_power_W, speed_ms, grade) for each segment
+        with valid power-meter data.
     """
     from ..models import haversine_distance_m
 
@@ -80,9 +80,9 @@ def validate_ride_power(
     wind_ms: float = 0.0,
     min_points: int = 5,
 ) -> PowerValidationResult | None:
-    """Valida la potenza stimata contro i power-meter di una ``Ride``.
+    """Validates estimated power against power-meters of a ``Ride``.
 
-    Ritorna ``None`` se la ride non ha abbastanza dati di potenza misurati.
+    Returns ``None`` if the ride does not have enough measured power data.
     """
     if not ride.gps_points or len(ride.gps_points) < 2:
         return None
@@ -105,9 +105,9 @@ def validate_ride_power(
     rmse = (sum(e * e for e in errors) / n) ** 0.5
     bias = mean_e - mean_m
 
-    # R^2 = 1 - SS_res / SS_tot: frazione di varianza spiegata dal modello
-    ss_res = sum(e * e for e in errors)                  # somma quadrati residui
-    ss_tot = sum((m - mean_m) ** 2 for m in measured)    # somma quadrati totali
+    # R^2 = 1 - SS_res / SS_tot: fraction of variance explained by the model
+    ss_res = sum(e * e for e in errors)                  # residual sum of squares
+    ss_tot = sum((m - mean_m) ** 2 for m in measured)    # total sum of squares
     r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 1.0
 
     return PowerValidationResult(
@@ -126,10 +126,11 @@ def validate_rides(
     params: RiderBikeParams | None = None,
     wind_ms: float = 0.0,
 ) -> list[PowerValidationResult]:
-    """Valida una lista di ride, ritornando solo quelle con dati sufficienti."""
+    """Validates a list of rides, returning only those with sufficient data."""
     results: list[PowerValidationResult] = []
     for ride in rides:
         res = validate_ride_power(ride, params, wind_ms)
         if res is not None:
             results.append(res)
     return results
+

@@ -1,6 +1,6 @@
 <!-- Visualizzatore AetherMap: rendering WebGL2 di una sfera cube-sphere con il percorso GPS proiettato.
-     Props: points (lista lat/lon/velocità), rideIds (ID uscite da caricare via API), colorBySpeed (colora per velocità).
-     Eventi: nessuno. UI: canvas full-size + HUD con statistiche (distanza, velocità media, dislivello) e controlli mouse (trascina/scroll). -->
+     Props: points (list of lat/lon/speed), rideIds (ride IDs to load via API), colorBySpeed (color by speed).
+     Events: none. UI: full-size canvas + HUD with statistics (distance, average speed, elevation) and mouse controls (drag/scroll). -->
 <template>
   <div class="aethermap-viewer">
     <canvas ref="canvasRef" class="aethermap-canvas" />
@@ -57,9 +57,9 @@ function geodeticToDirection(lat: number, lon: number): [number, number, number]
   return [cl * Math.cos(lo), cl * Math.sin(lo), Math.sin(la)];
 }
 
-// Normalizza un punto entità in direzione unitaria sulla sfera.
-// Supporta sia [lat, lon] gradi (adapter live) sia vettori ECEF
-// [x, y, z] (ordine di grandezza ~6.37e6 m), come nel vecchio
+// Normalize an entity point to unit direction on the sphere.
+// Supports both [lat, lon] degrees (live adapter) and ECEF
+// vectors [x, y, z] (order of magnitude ~6.37e6 m), as in the old
 // ride_1_map.json.
 type Vec3 = [number, number, number];
 function toDir(p: number[]): Vec3 {
@@ -84,9 +84,9 @@ function slerpDir(a: Vec3, b: Vec3, t: number): Vec3 {
   return [v[0] / n, v[1] / n, v[2] / n];
 }
 
-// Aggiunge un segmento di rotta suddiviso in arche di grande cerchio, così
-// il percorso aderisce alla superficie invece di essere una corda che taglia
-// la sfera (causa dell'effetto "ventaglio/cono" in proiezione).
+// Adds a route segment split into great-circle arcs, so
+// the path adheres to the surface instead of being a chord that cuts
+// through the sphere (cause of the "fan/cone" effect in projection).
 function pushArc(arr: number[], a: Vec3, b: Vec3, col: Vec3): void {
   const d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
   const theta = Math.acos(Math.max(-1, Math.min(1, d)));
@@ -518,3 +518,4 @@ onBeforeUnmount(() => {
   color: #ff8888;
 }
 </style>
+

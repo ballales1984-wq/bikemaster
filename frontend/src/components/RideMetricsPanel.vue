@@ -1,6 +1,6 @@
-<!-- Pannello metriche in tempo reale: griglia di card con distanza, velocità corrente/media, tempo, dislivello, FC, cadenza e potenza.
-     Props: nessuna. Eventi: nessuno (legge trackingStore). Mostra le card solo se il dato è disponibile; evidenzia velocità alta e stile.
-     UI: card metrica con icona, valore e label; la distanza è la card primaria in evidenza. -->
+<!-- Real-time metrics panel: card grid with distance, current/average speed, time, elevation, HR, cadence and power.
+     Props: none. Events: none (reads trackingStore). Shows cards only if data is available; highlights high speed and style.
+     UI: metric card with icon, value and label; distance is the primary highlighted card. -->
 <template>
   <div class="metrics-grid">
     <div class="metric-card primary">
@@ -180,3 +180,4 @@ const formattedDistance = computed(() => {
   color: #f43f5e; /* rose for HR */
 }
 </style>
+

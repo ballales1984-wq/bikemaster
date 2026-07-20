@@ -1,8 +1,8 @@
 <!--
-  Pagina di landing/welcome dell'applicazione.
-  Presenta il brand BikeMaster, la tagline, le funzionalità principali in card
-  e i pulsanti di accesso/registrazione.
-  Stile: sfondo con orb animate, design moderno e responsive.
+  Application landing/welcome page.
+  Presents the BikeMaster brand, tagline, main features in cards
+  and login/registration buttons.
+  Style: animated orb background, modern and responsive design.
 -->
 <template>
   <div class="welcome-page">
@@ -22,54 +22,53 @@
       </header>
 
       <section class="hero">
-        <h2 class="hero-title">Il tuo coach digitale per la bicicletta</h2>
+        <h2 class="hero-title">Your digital cycling coach</h2>
         <p class="hero-desc">
-          Analizza le uscite, ottimizza l'allenamento e raggiungi i tuoi obiettivi
-          con dati scientifici e intelligenza artificiale.
+          Analyze rides, optimize training and reach your goals
+          with scientific data and artificial intelligence.
         </p>
       </section>
 
-      <section class="features" aria-label="Funzionalità principali">
+      <section class="features" aria-label="Main features">
         <div class="feature-card">
           <div class="feature-icon"></div>
           <h3>Analisi Performance</h3>
           <p>
-            Normalized Power, TSS, FTP, Critical Power, CTL/ATL/TSB e metriche
-            avanzate per ogni uscita.
+            Normalized Power, TSS, FTP, Critical Power, CTL/ATL/TSB and advanced
+            metrics for every ride.
           </p>
         </div>
         <div class="feature-card">
           <div class="feature-icon"></div>
           <h3>AI Coach</h3>
           <p>
-            Consigli personalizzati di allenamento e recupero basati su dati
-            scientifici e modelli LLM.
+            Personalized training and recovery advice based on scientific
+            data and LLM models.
           </p>
         </div>
         <div class="feature-card">
           <div class="feature-icon"></div>
           <h3>Integrazioni</h3>
           <p>
-            Sincronizza Strava, Garmin Connect e Google Fit per importare tutte
-            le tue attività in automatico.
+            Sync Strava, Garmin Connect and Google Fit to import all your activities automatically.
           </p>
         </div>
         <div class="feature-card">
           <div class="feature-icon"></div>
           <h3>Sync Cloud</h3>
           <p>
-            Backup e sincronizzazione cloud opzionale, sempre sotto il tuo
-            controllo.
+            Optional cloud backup and sync, always under your
+            control.
           </p>
         </div>
       </section>
 
       <div class="welcome-actions">
         <button class="btn btn-primary btn-lg" @click="goToRegister">
-          Inizia
+          Get Started
         </button>
         <button class="btn btn-secondary btn-lg" @click="goToLogin">
-          Accedi
+          Login
         </button>
       </div>
     </div>
