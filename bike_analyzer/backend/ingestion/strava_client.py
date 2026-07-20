@@ -23,6 +23,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import secrets
+import sqlite3
 import time
 from typing import Any
 from urllib.parse import urlencode
@@ -157,6 +158,7 @@ def _ensure_token_table() -> None:
                 expires_at INTEGER,
                 scope TEXT,
                 athlete_name TEXT,
+                last_sync_ts INTEGER,
                 created_at TEXT DEFAULT (datetime('now')),
                 updated_at TEXT DEFAULT (datetime('now'))
             );
@@ -164,6 +166,10 @@ def _ensure_token_table() -> None:
                 ON strava_tokens(athlete_id);
             """
         )
+        try:
+            conn.execute("ALTER TABLE strava_tokens ADD COLUMN last_sync_ts INTEGER")
+        except sqlite3.OperationalError:
+            pass
 
 
 def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
@@ -180,7 +186,7 @@ def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
         expires_at = int(time.time()) + int(token_data["expires_in"])
     athlete_name = ""
     if token_data.get("athlete"):
-        athlete_name = token_data["athlete"].get("firstname", "")
+        athlete_name = token_data.get("athlete", {}).get("firstname", "")
     with _get_conn() as conn:
         conn.execute(
             """
@@ -202,6 +208,25 @@ def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
                 scope,
                 athlete_name,
             ),
+        )
+
+
+def get_last_sync_ts(athlete_id: int) -> int | None:
+    _ensure_token_table()
+    with _get_conn() as conn:
+        row = conn.execute(
+            "SELECT last_sync_ts FROM strava_tokens WHERE athlete_id = ?",
+            (athlete_id,),
+        ).fetchone()
+        return row["last_sync_ts"] if row and row["last_sync_ts"] is not None else None
+
+
+def set_last_sync_ts(athlete_id: int, ts: int) -> None:
+    _ensure_token_table()
+    with _get_conn() as conn:
+        conn.execute(
+            "UPDATE strava_tokens SET last_sync_ts = ? WHERE athlete_id = ?",
+            (ts, athlete_id),
         )
 
 
@@ -238,10 +263,17 @@ async def get_valid_token(athlete_id: int) -> str | None:
 _STRAVA_PER_PAGE = 30
 
 
-async def fetch_activities(access_token: str, page: int = 1, per_page: int = _STRAVA_PER_PAGE) -> list[dict]:
+async def fetch_activities(
+    access_token: str,
+    page: int = 1,
+    per_page: int = _STRAVA_PER_PAGE,
+    after: int | None = None,
+) -> list[dict]:
     """Fetches one page of athlete activities from the Strava v3 endpoint."""
     headers = {"Authorization": f"Bearer {access_token}"}
-    params = {"page": page, "per_page": per_page}
+    params: dict[str, Any] = {"page": page, "per_page": per_page}
+    if after is not None:
+        params["after"] = after
     return await request_json(
         "GET",
         f"{STRAVA_API_BASE_URL}/athlete/activities",
@@ -251,11 +283,16 @@ async def fetch_activities(access_token: str, page: int = 1, per_page: int = _ST
     )
 
 
-async def fetch_all_activities(access_token: str, max_pages: int = 20) -> list[dict]:
+async def fetch_all_activities(
+    access_token: str,
+    max_pages: int = 20,
+    after: int | None = None,
+) -> list[dict]:
+    """Fetch all athlete activities, optionally only after a Unix timestamp."""
     all_activities: list[dict] = []
     page = 1
     while page <= max_pages:
-        batch = await fetch_activities(access_token, page=page)
+        batch = await fetch_activities(access_token, page=page, after=after)
         if not batch:
             break
         all_activities.extend(batch)

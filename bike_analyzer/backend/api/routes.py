@@ -4780,6 +4780,8 @@ async def strava_sync(
     current_user: dict = Depends(get_current_user),
 ):
     """Sync Strava activities in background or synchronous mode, handling rate limits."""
+    import time
+
     from ..task_queue import get_task_queue
 
     payload = {"athlete_id": current_user["id"]}
@@ -4790,7 +4792,9 @@ async def strava_sync(
     from ..ingestion.strava_client import (
         StravaRateLimitError,
         fetch_all_activities,
+        get_last_sync_ts,
         get_valid_token,
+        set_last_sync_ts,
         strava_to_ride,
         strava_to_ride_with_streams,
     )
@@ -4798,8 +4802,10 @@ async def strava_sync(
     access_token = await get_valid_token(current_user["id"])
     if not access_token:
         raise HTTPException(status_code=401, detail="No Strava token. Connect first.")
+    last_sync = get_last_sync_ts(current_user["id"])
+    sync_ts = int(time.time())
     try:
-        activities = await fetch_all_activities(access_token)
+        activities = await fetch_all_activities(access_token, after=last_sync)
     except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=502, detail=f"Strava API error: {exc}") from exc
     imported = []
@@ -4830,6 +4836,7 @@ async def strava_sync(
             imported.append({"id": int(ride_id), **ride_data})
             imported_ids.add(int(ride_id))
             record_gps_import("strava_api", "strava")
+    set_last_sync_ts(current_user["id"], sync_ts)
     return {"imported": len(imported), "total_fetched": len(activities), "rides": imported}
 
 

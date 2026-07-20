@@ -207,11 +207,15 @@ class BackgroundTaskQueue:
         return {"cached_days": cached}
 
     async def _handle_strava_sync(self, payload: dict) -> dict:
+        import time
+
         from bike_analyzer.backend.db.database import save_ride
         from bike_analyzer.backend.ingestion.strava_client import (
             StravaRateLimitError,
             fetch_all_activities,
+            get_last_sync_ts,
             get_valid_token,
+            set_last_sync_ts,
             strava_to_ride,
             strava_to_ride_with_streams,
         )
@@ -221,7 +225,9 @@ class BackgroundTaskQueue:
         access_token = await get_valid_token(athlete_id)
         if not access_token:
             return {"imported": 0, "error": "no_valid_token"}
-        activities = await fetch_all_activities(access_token)
+        last_sync = get_last_sync_ts(athlete_id)
+        sync_ts = int(time.time())
+        activities = await fetch_all_activities(access_token, after=last_sync)
         imported = []
         imported_ids: set[int] = set()
         streams_rate_limited = False
@@ -243,6 +249,7 @@ class BackgroundTaskQueue:
             if ride_id not in imported_ids:
                 imported.append({"id": int(ride_id), **ride_data})
                 imported_ids.add(int(ride_id))
+        set_last_sync_ts(athlete_id, sync_ts)
         return {"imported": len(imported), "total_fetched": len(activities)}
 
     async def _handle_garmin_sync(self, payload: dict) -> dict:

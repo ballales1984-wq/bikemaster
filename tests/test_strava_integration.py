@@ -112,11 +112,13 @@ def test_strava_sync_endpoint_is_idempotent(client, monkeypatch):
     async def _valid_token(athlete_id):
         return "token"
 
-    async def _fetch(token):
+    async def _fetch(token, after=None):
         return [activity, activity]
 
     monkeypatch.setattr(sc, "get_valid_token", _valid_token)
     monkeypatch.setattr(sc, "fetch_all_activities", _fetch)
+    monkeypatch.setattr(sc, "get_last_sync_ts", lambda athlete_id: None)
+    monkeypatch.setattr(sc, "set_last_sync_ts", lambda athlete_id, ts: None)
 
     response = client.post("/api/v1/import/strava/sync?background=false")
 
