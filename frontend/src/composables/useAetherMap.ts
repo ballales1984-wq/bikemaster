@@ -55,7 +55,7 @@ export function useAetherMap(rideIds: Ref<number[]>): AetherMapState {
       ids.map(async (id) => {
         try {
           const meta = await apiGet<{ map_url: string; engine: string }>(
-            `/rides/${id}/map`,
+            `/api/v1/rides/${id}/map`,
             { provider: "aethermap" },
             { suppressAuthClear: true },
           );

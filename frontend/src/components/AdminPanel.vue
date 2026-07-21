@@ -10,6 +10,13 @@ class="admin-panel">
 
       <div class="admin-grid">
         <button class="admin-card"
+@click="$router.push('/admin/bm2')">
+          <div class="admin-icon">🧮</div>
+          <div class="admin-label">Admin BM2</div>
+          <div class="admin-desc">Inspect formulas, algorithms and engine config</div>
+        </button>
+
+        <button class="admin-card"
 @click="$router.push('/admin/users')">
           <div class="admin-icon"></div>
           <div class="admin-label">

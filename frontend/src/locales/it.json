@@ -338,7 +338,17 @@
     "createUser": "Crea utente",
     "searchUsers": "Cerca utenti...",
     "admin": "Admin",
-    "client": "Client"
+    "client": "Client",
+    "bm2": {
+      "title": "Admin BM2 — Motore Scientifico",
+      "catalog": "Catalogo Algoritmi",
+      "testEngine": "Test Motore",
+      "runTest": "Esegui Test",
+      "modelsUsed": "Modelli usati",
+      "simulation": "Simulazione What-If",
+      "runSimulation": "Esegui Simulazione",
+      "constants": "Costanti & Config"
+    }
   },
   "client": {
     "title": "Area Client",

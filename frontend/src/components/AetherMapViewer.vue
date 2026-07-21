@@ -55,7 +55,6 @@ const EARTH_R = 6371000.0;
 const GLOBE_RADIUS = 1.0;
 const TERRAIN_SCALE = 1.0 / EARTH_R;
 const SKIRT_HEIGHT = 0.003;
-const MESH_N = 22;
 
 function geodeticToDirection(lat: number, lon: number): [number, number, number] {
   const la = lat * DEG;
@@ -169,6 +168,204 @@ function getTerrainHeight(lat: number, lon: number): number {
   return 0;
 }
 
+const terrainTileCache = new Map<string, { heights: Float32Array; resolution: number; timestamp: number }>();
+const TILE_CACHE_TTL = 5 * 60 * 1000;
+
+async function fetchTerrainTile(
+  minLat: number, maxLat: number, minLon: number, maxLon: number, resolution: number
+): Promise<Float32Array | null> {
+  const key = `${minLat.toFixed(2)}_${maxLat.toFixed(2)}_${minLon.toFixed(2)}_${maxLon.toFixed(2)}_${resolution}`;
+  const cached = terrainTileCache.get(key);
+  if (cached && Date.now() - cached.timestamp < TILE_CACHE_TTL) {
+    return cached.heights;
+  }
+  try {
+    const params = new URLSearchParams({
+      min_lat: String(minLat),
+      max_lat: String(maxLat),
+      min_lon: String(minLon),
+      max_lon: String(maxLon),
+      resolution: String(resolution),
+      source: "auto",
+    });
+    const resp = await fetch(`/api/v1/aethermap/terrain?${params}`);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const heights = new Float32Array(data.heights);
+    terrainTileCache.set(key, { heights, resolution, timestamp: Date.now() });
+    return heights;
+  } catch {
+    return null;
+  }
+}
+
+function sampleTerrainTile(tileHeights: Float32Array, resolution: number, u: number, v: number): number {
+  const x = u * (resolution - 1);
+  const y = v * (resolution - 1);
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const x1 = Math.min(x0 + 1, resolution - 1);
+  const y1 = Math.min(y0 + 1, resolution - 1);
+  const fx = x - x0;
+  const fy = y - y0;
+  const h00 = tileHeights[y0 * resolution + x0] || 0;
+  const h10 = tileHeights[y0 * resolution + x1] || 0;
+  const h01 = tileHeights[y1 * resolution + x0] || 0;
+  const h11 = tileHeights[y1 * resolution + x1] || 0;
+  const h0 = h00 + (h10 - h00) * fx;
+  const h1 = h01 + (h11 - h01) * fx;
+  return h0 + (h1 - h0) * fy;
+}
+
+function faceLatLonBounds(face: number): { minLat: number; maxLat: number; minLon: number; maxLon: number } {
+  const corners = [
+    faceDir(face, -1, -1),
+    faceDir(face, 1, -1),
+    faceDir(face, -1, 1),
+    faceDir(face, 1, 1),
+  ];
+  let minLat = Infinity, maxLat = -Infinity;
+  let minLon = Infinity, maxLon = -Infinity;
+  const lons: number[] = [];
+  for (const c of corners) {
+    const { lat, lon } = latLonFromDir(c);
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+    lons.push(lon);
+  }
+  minLon = Math.min(...lons);
+  maxLon = Math.max(...lons);
+  if (maxLon - minLon > 180) {
+    minLon = maxLon - 360;
+  }
+  return { minLat, maxLat, minLon, maxLon };
+}
+
+function getLODResolution(camDist: number): number {
+  if (camDist < 2.0) return 48;
+  if (camDist < 3.5) return 32;
+  if (camDist < 5.0) return 20;
+  if (camDist < 6.5) return 12;
+  return 8;
+}
+
+async function buildGlobeBuffers(N: number): Promise<{ positions: Float32Array; normals: Float32Array; indices: Uint32Array; vertexCount: number }> {
+  const tilePromises = Array.from({ length: 6 }, (_, f) => {
+    const bounds = faceLatLonBounds(f);
+    return fetchTerrainTile(bounds.minLat, bounds.maxLat, bounds.minLon, bounds.maxLon, N);
+  });
+  const tiles = await Promise.all(tilePromises);
+
+  const verts: Vec3[][][] = [];
+  const skirtVerts: Vec3[][][] = [];
+
+  for (let f = 0; f < 6; f++) {
+    verts[f] = [];
+    skirtVerts[f] = [];
+    const tile = tiles[f];
+    for (let i = 0; i <= N; i++) {
+      verts[f][i] = [];
+      skirtVerts[f][i] = [];
+      for (let j = 0; j <= N; j++) {
+        const u = (i / N) * 2 - 1;
+        const v = (j / N) * 2 - 1;
+        const dir = faceDir(f, u, v);
+        const { lat, lon } = latLonFromDir(dir);
+        let terrainH = 0;
+        if (tile) {
+          const tileU = (lon - faceLatLonBounds(f).minLon) / (faceLatLonBounds(f).maxLon - faceLatLonBounds(f).minLon);
+          const tileV = 1.0 - (lat - faceLatLonBounds(f).minLat) / (faceLatLonBounds(f).maxLat - faceLatLonBounds(f).minLat);
+          const clampedU = Math.max(0, Math.min(1, tileU));
+          const clampedV = Math.max(0, Math.min(1, tileV));
+          terrainH = sampleTerrainTile(tile, N, clampedU, clampedV);
+        } else {
+          terrainH = getTerrainHeight(lat, lon);
+        }
+        const scaledH = terrainH * TERRAIN_SCALE;
+        const r = GLOBE_RADIUS + scaledH;
+        const pos: Vec3 = [dir[0] * r, dir[1] * r, dir[2] * r];
+        verts[f][i][j] = pos;
+
+        if (i === 0 || i === N || j === 0 || j === N) {
+          const sk: Vec3 = [dir[0] * (r + SKIRT_HEIGHT), dir[1] * (r + SKIRT_HEIGHT), dir[2] * (r + SKIRT_HEIGHT)];
+          skirtVerts[f][i][j] = sk;
+        } else {
+          skirtVerts[f][i][j] = pos;
+        }
+      }
+    }
+  }
+
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const indices: number[] = [];
+  let vertexCount = 0;
+
+  function addVertex(pos: Vec3, norm: Vec3) {
+    positions.push(pos[0], pos[1], pos[2]);
+    normals.push(norm[0], norm[1], norm[2]);
+    return vertexCount++;
+  }
+
+  for (let f = 0; f < 6; f++) {
+    const faceVerts: number[][] = [];
+    const faceSkirt: number[][] = [];
+
+    for (let i = 0; i <= N; i++) {
+      faceVerts[i] = [];
+      faceSkirt[i] = [];
+      for (let j = 0; j <= N; j++) {
+        const pos = verts[f][i][j];
+        const sk = skirtVerts[f][i][j];
+        faceVerts[i][j] = addVertex(pos, normalize3(pos));
+        faceSkirt[i][j] = addVertex(sk, normalize3(pos));
+      }
+    }
+
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N; j++) {
+        const a = faceVerts[i][j];
+        const b = faceVerts[i + 1][j];
+        const c = faceVerts[i][j + 1];
+        const d = faceVerts[i + 1][j + 1];
+        indices.push(a, b, c, b, d, c);
+      }
+    }
+
+    for (let i = 0; i < N; i++) {
+      const a = faceVerts[i][0];
+      const b = faceVerts[i + 1][0];
+      const sa = faceSkirt[i][0];
+      const sb = faceSkirt[i + 1][0];
+      indices.push(a, sa, b, b, sa, sb);
+      const c = faceVerts[i][N];
+      const d = faceVerts[i + 1][N];
+      const sc = faceSkirt[i][N];
+      const sd = faceSkirt[i + 1][N];
+      indices.push(c, sc, d, d, sc, sd);
+    }
+    for (let j = 0; j < N; j++) {
+      const a = faceVerts[0][j];
+      const b = faceVerts[0][j + 1];
+      const sa = faceSkirt[0][j];
+      const sb = faceSkirt[0][j + 1];
+      indices.push(a, sa, b, b, sa, sb);
+      const c = faceVerts[N][j];
+      const d = faceVerts[N][j + 1];
+      const sc = faceSkirt[N][j];
+      const sd = faceSkirt[N][j + 1];
+      indices.push(c, sc, d, d, sc, sd);
+    }
+  }
+
+  return {
+    positions: new Float32Array(positions),
+    normals: new Float32Array(normals),
+    indices: new Uint32Array(indices),
+    vertexCount,
+  };
+}
+
 function latLonFromDir(dir: Vec3): { lat: number; lon: number } {
   const n = Math.hypot(dir[0], dir[1], dir[2]) || 1;
   const x = dir[0] / n, y = dir[1] / n, z = dir[2] / n;
@@ -237,114 +434,6 @@ function faceDir(f: number, u: number, v: number): Vec3 {
   else d = [u, v, -1];
   const n = Math.hypot(d[0], d[1], d[2]) || 1;
   return [d[0] / n, d[1] / n, d[2] / n];
-}
-
-function buildGlobeBuffers(): { positions: Float32Array; normals: Float32Array; indices: Uint32Array; vertexCount: number } {
-  const N = MESH_N;
-  const verts: Vec3[][][] = [];
-  const skirtVerts: Vec3[][][] = [];
-
-  for (let f = 0; f < 6; f++) {
-    verts[f] = [];
-    skirtVerts[f] = [];
-    for (let i = 0; i <= N; i++) {
-      verts[f][i] = [];
-      skirtVerts[f][i] = [];
-      for (let j = 0; j <= N; j++) {
-        const u = (i / N) * 2 - 1;
-        const v = (j / N) * 2 - 1;
-        const dir = faceDir(f, u, v);
-        const { lat, lon } = latLonFromDir(dir);
-        const terrainH = getTerrainHeight(lat, lon) * TERRAIN_SCALE;
-        const r = GLOBE_RADIUS + terrainH;
-        const pos: Vec3 = [dir[0] * r, dir[1] * r, dir[2] * r];
-        verts[f][i][j] = pos;
-
-        if (i === 0 || i === N || j === 0 || j === N) {
-          const skirtDir = faceDir(f, u, v);
-          const sk: Vec3 = [skirtDir[0] * (r + SKIRT_HEIGHT), skirtDir[1] * (r + SKIRT_HEIGHT), skirtDir[2] * (r + SKIRT_HEIGHT)];
-          skirtVerts[f][i][j] = sk;
-        } else {
-          skirtVerts[f][i][j] = pos;
-        }
-      }
-    }
-  }
-
-  const positions: number[] = [];
-  const normals: number[] = [];
-  const indices: number[] = [];
-  let vertexCount = 0;
-
-  function addVertex(pos: Vec3, norm: Vec3) {
-    positions.push(pos[0], pos[1], pos[2]);
-    normals.push(norm[0], norm[1], norm[2]);
-    return vertexCount++;
-  }
-
-  for (let f = 0; f < 6; f++) {
-    const faceVerts: number[][] = [];
-    const faceSkirt: number[][] = [];
-
-    for (let i = 0; i <= N; i++) {
-      faceVerts[i] = [];
-      faceSkirt[i] = [];
-      for (let j = 0; j <= N; j++) {
-        const pos = verts[f][i][j];
-        const sk = skirtVerts[f][i][j];
-        faceVerts[i][j] = addVertex(pos, normalize3(pos));
-        faceSkirt[i][j] = addVertex(sk, normalize3(sk));
-      }
-    }
-
-    // Main grid triangles
-    for (let i = 0; i < N; i++) {
-      for (let j = 0; j < N; j++) {
-        const a = faceVerts[i][j];
-        const b = faceVerts[i + 1][j];
-        const c = faceVerts[i][j + 1];
-        const d = faceVerts[i + 1][j + 1];
-        indices.push(a, b, c, b, d, c);
-      }
-    }
-
-    // Skirt quads (only on boundary edges)
-    for (let i = 0; i < N; i++) {
-      // Bottom edge (j=0)
-      const a = faceVerts[i][0];
-      const b = faceVerts[i + 1][0];
-      const sa = faceSkirt[i][0];
-      const sb = faceSkirt[i + 1][0];
-      indices.push(a, sa, b, b, sa, sb);
-      // Top edge (j=N)
-      const c = faceVerts[i][N];
-      const d = faceVerts[i + 1][N];
-      const sc = faceSkirt[i][N];
-      const sd = faceSkirt[i + 1][N];
-      indices.push(c, d, sc, d, sd, sc);
-    }
-    for (let j = 0; j < N; j++) {
-      // Left edge (i=0)
-      const a = faceVerts[0][j];
-      const b = faceVerts[0][j + 1];
-      const sa = faceSkirt[0][j];
-      const sb = faceSkirt[0][j + 1];
-      indices.push(a, b, sa, b, sb, sa);
-      // Right edge (i=N)
-      const c = faceVerts[N][j];
-      const d = faceVerts[N][j + 1];
-      const sc = faceSkirt[N][j];
-      const sd = faceSkirt[N][j + 1];
-      indices.push(c, d, sc, d, sd, sc);
-    }
-  }
-
-  return {
-    positions: new Float32Array(positions),
-    normals: new Float32Array(normals),
-    indices: new Uint32Array(indices),
-    vertexCount,
-  };
 }
 
 function makeBuffer(data: ArrayBufferView, mode: number, stride: number): { buf: WebGLBuffer; count: number; mode: number } | null {
@@ -441,7 +530,10 @@ function updateSceneBuffers(sc: AetherScene) {
   if (markerData.length) markerBuffer = makeBuffer(new Float32Array(markerData), gl.POINTS, 6);
 }
 
-onMounted(() => {
+  let currentLOD = -1;
+  let globePending = false;
+
+  onMounted(async () => {
   const canvas = canvasRef.value;
   if (!canvas) return;
   const canvasEl = canvas as HTMLCanvasElement;
@@ -458,17 +550,20 @@ onMounted(() => {
   in vec3 aNormal;
   uniform mat4 uProj;
   uniform mat4 uView;
-  uniform vec3 uSunDir;
+  uniform vec3 uEyePos;
   uniform float uPointSize;
   out vec3 vNormal;
   out vec3 vViewPos;
+  out vec2 vLatLon;
   out float vElevation;
   void main() {
     vec4 viewPos = uView * vec4(aPosition, 1.0);
     gl_Position = uProj * viewPos;
     gl_PointSize = uPointSize;
-    vNormal = mat3(uView) * aNormal;
+    vNormal = aNormal;
     vViewPos = viewPos.xyz;
+    vec3 n = normalize(aPosition);
+    vLatLon = vec2(asin(clamp(n.z, -1.0, 1.0)), atan(n.y, n.x));
     vElevation = length(aPosition) - ${GLOBE_RADIUS.toFixed(1)};
   }`;
 
@@ -476,38 +571,79 @@ onMounted(() => {
   precision mediump float;
   in vec3 vNormal;
   in vec3 vViewPos;
+  in vec2 vLatLon;
   in float vElevation;
   uniform vec3 uSunDir;
+  uniform vec3 uEyePos;
   out vec4 outColor;
+
+  float hash2(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+  float noise2(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash2(i);
+    float b = hash2(i + vec2(1.0, 0.0));
+    float c = hash2(i + vec2(0.0, 1.0));
+    float d = hash2(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  }
+  float fbm2(vec2 p) {
+    float v = 0.0;
+    float a = 0.5;
+    for (int i = 0; i < 5; i++) {
+      v += a * noise2(p);
+      p *= 2.0;
+      a *= 0.5;
+    }
+    return v;
+  }
+
+  vec3 satelliteColor(vec2 latLon, float elevation) {
+    float lat = latLon.x;
+    float lon = latLon.y;
+    float landMask = step(0.52, fbm2(vec2(lon * 3.0, lat * 3.0) + 0.5));
+    float polar = smoothstep(0.85, 1.0, abs(lat) / 1.57);
+
+    vec3 oceanDeep = vec3(0.02, 0.08, 0.22);
+    vec3 oceanShallow = vec3(0.04, 0.18, 0.38);
+    vec3 ocean = mix(oceanDeep, oceanShallow, smoothstep(-0.02, 0.02, elevation));
+
+    vec3 lowland = vec3(0.12, 0.35, 0.12);
+    vec3 forest = vec3(0.06, 0.22, 0.06);
+    vec3 desert = vec3(0.76, 0.68, 0.45);
+    vec3 mountain = vec3(0.45, 0.38, 0.28);
+    vec3 snow = vec3(0.92, 0.94, 0.98);
+
+    float latFactor = smoothstep(-0.5, 0.5, abs(lat) / 1.57);
+    float desertMask = (1.0 - latFactor) * step(0.55, fbm2(vec2(lon * 5.0 + 10.0, lat * 5.0) + 0.3));
+    float forestMask = latFactor * step(0.45, fbm2(vec2(lon * 4.0, lat * 4.0) + 0.7));
+
+    vec3 land = mix(lowland, desert, desertMask);
+    land = mix(land, forest, forestMask * 0.6);
+    land = mix(land, mountain, smoothstep(0.15, 0.35, elevation));
+    land = mix(land, snow, smoothstep(0.3, 0.5, elevation));
+    land = mix(land, snow, polar);
+
+    vec3 color = mix(ocean, land, landMask);
+    return color;
+  }
+
   void main() {
     vec3 n = normalize(vNormal);
     vec3 sun = normalize(uSunDir);
     float diff = max(dot(n, sun), 0.0);
-    float ambient = 0.18;
+    float ambient = 0.15;
 
-    vec3 ocean = vec3(0.08, 0.22, 0.45);
-    vec3 land = vec3(0.18, 0.42, 0.18);
-    vec3 highland = vec3(0.55, 0.45, 0.30);
-    vec3 snow = vec3(0.92, 0.94, 0.98);
-
-    vec3 color;
-    float h = vElevation;
-    if (h < 0.005) {
-      color = ocean;
-    } else if (h < 0.06) {
-      color = mix(ocean * 1.15, land, smoothstep(0.005, 0.04, h));
-    } else if (h < 0.18) {
-      color = mix(land, highland, smoothstep(0.06, 0.15, h));
-    } else {
-      color = mix(highland, snow, smoothstep(0.18, 0.35, h));
-    }
-
-    vec3 lit = color * (ambient + diff * 0.82);
+    vec3 baseColor = satelliteColor(vLatLon, vElevation);
+    vec3 lit = baseColor * (ambient + diff * 0.85);
 
     vec3 viewDir = normalize(-vViewPos);
     float rim = 1.0 - max(dot(viewDir, n), 0.0);
     rim = pow(rim, 3.5);
-    lit += vec3(0.25, 0.45, 0.85) * rim * 0.35;
+    lit += vec3(0.2, 0.4, 0.8) * rim * 0.3;
 
     outColor = vec4(lit, 1.0);
   }`;
@@ -535,16 +671,18 @@ onMounted(() => {
     proj: gl!.getUniformLocation(prog, "uProj")!,
     view: gl!.getUniformLocation(prog, "uView")!,
     sunDir: gl!.getUniformLocation(prog, "uSunDir")!,
+    eyePos: gl!.getUniformLocation(prog, "uEyePos")!,
     pointSize: gl!.getUniformLocation(prog, "uPointSize")!,
   };
   const A_p = gl!.getAttribLocation(prog, "aPosition");
   const A_n = gl!.getAttribLocation(prog, "aNormal");
 
-  const globeData = buildGlobeBuffers();
-  const globePosBuf = makeBuffer(globeData.positions, gl!.TRIANGLES, 3);
-  const globeNormBuf = makeBuffer(globeData.normals, gl!.TRIANGLES, 3);
-  const globeIdxBuf = makeIndexBuffer(globeData.indices);
-  const globeIdxCount = globeData.indices.length;
+  const globeData = await buildGlobeBuffers(getLODResolution(camDist));
+  currentLOD = getLODResolution(camDist);
+  let globePosBuf = makeBuffer(globeData.positions, gl!.TRIANGLES, 3);
+  let globeNormBuf = makeBuffer(globeData.normals, gl!.TRIANGLES, 3);
+  let globeIdxBuf = makeIndexBuffer(globeData.indices);
+  let globeIdxCount = globeData.indices.length;
 
   if (scene.value) {
     updateSceneBuffers(scene.value);
@@ -560,6 +698,29 @@ onMounted(() => {
   let lx = 0;
   let ly = 0;
   let autoRotate = false;
+
+  async function rebuildGlobeIfNeeded(camDist: number) {
+    const targetN = getLODResolution(camDist);
+    if (targetN === currentLOD || globePending) return;
+    globePending = true;
+    currentLOD = targetN;
+    const data = await buildGlobeBuffers(targetN);
+    if (!gl) return;
+    if (globePosBuf) gl.deleteBuffer(globePosBuf.buf);
+    if (globeNormBuf) gl.deleteBuffer(globeNormBuf.buf);
+    if (globeIdxBuf) gl.deleteBuffer(globeIdxBuf);
+    globePosBuf = makeBuffer(data.positions, gl.TRIANGLES, 3);
+    globeNormBuf = makeBuffer(data.normals, gl.TRIANGLES, 3);
+    globeIdxBuf = makeIndexBuffer(data.indices);
+    globeIdxCount = data.indices.length;
+    globePending = false;
+  }
+
+  if (scene.value) {
+    updateSceneBuffers(scene.value);
+  } else {
+    updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
+  }
 
   canvasEl.addEventListener("pointerdown", (e: PointerEvent) => {
     dragging = true;
@@ -645,12 +806,14 @@ onMounted(() => {
 
     const aspect = canvasEl.width / Math.max(canvasEl.height, 1);
     const eye = camEye(yaw, pitch);
+    rebuildGlobeIfNeeded(camDist);
     const proj = mat4Perspective(CAM_FOV, aspect, CAM_NEAR, CAM_FAR);
     const view = mat4LookAt(eye, [0, 0, 0], [0, 1, 0]);
 
     gl.uniformMatrix4fv(U.proj, false, proj);
     gl.uniformMatrix4fv(U.view, false, view);
     gl.uniform3fv(U.sunDir, sunDir);
+    gl.uniform3fv(U.eyePos, eye);
     gl.uniform1f(U.pointSize, 6.0);
 
     if (globePosBuf && globeNormBuf && globeIdxBuf) {

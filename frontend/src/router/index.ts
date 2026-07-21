@@ -161,6 +161,12 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true, title: "Amministrazione" },
   },
   {
+    path: "/admin/bm2",
+    name: "admin-bm2",
+    component: () => import("../components/AdminBm2Panel.vue"),
+    meta: { requiresAuth: true, requiresAdmin: true, title: "Admin BM2" },
+  },
+  {
     path: "/admin/users",
     name: "admin-users",
     component: () => import("../components/AdminUserManagement.vue"),

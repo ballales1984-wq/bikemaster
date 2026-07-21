@@ -860,9 +860,6 @@ async function wahooSync() {
   }
 }
 
-onMounted(() => {
-  loadProviders();
-});
 </script>
 
 <style scoped>

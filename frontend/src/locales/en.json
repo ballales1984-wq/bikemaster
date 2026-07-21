@@ -338,7 +338,17 @@
     "createUser": "Create User",
     "searchUsers": "Search users...",
     "admin": "Admin",
-    "client": "Client"
+    "client": "Client",
+    "bm2": {
+      "title": "Admin BM2 — Scientific Engine",
+      "catalog": "Algorithm Catalog",
+      "testEngine": "Engine Test",
+      "runTest": "Run Test",
+      "modelsUsed": "Models used",
+      "simulation": "What-If Simulation",
+      "runSimulation": "Run Simulation",
+      "constants": "Constants & Config"
+    }
   },
   "client": {
     "title": "Client Area",

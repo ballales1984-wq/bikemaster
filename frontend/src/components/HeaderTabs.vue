@@ -38,6 +38,15 @@
          <span>{{ t("nav.admin") }}</span>
       </router-link>
       <router-link
+        v-if="isAdmin"
+        ref="tabEls"
+        to="/admin/bm2"
+        class="tab"
+        active-class="active"
+      >
+         <span>BM2 Admin</span>
+      </router-link>
+      <router-link
         v-if="isClient"
         ref="tabEls"
         to="/client"
