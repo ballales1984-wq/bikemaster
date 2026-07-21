@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from .algorithms import (
     ALL_ALGORITHMS, Algorithm, EnergyModel, FatigueModel, ModelResult,
-    MovementModel, NutritionModel, PerformanceModel, PowerModel,
+    MovementModel, MetabolismModel, NutritionModel, PerformanceModel, PowerModel,
     RecoveryModel, RouteDifficultyModel, TrainingLoadModel,
 )
 from .agents import (
@@ -25,11 +25,12 @@ from .agents import (
     EnvironmentAgent,
     GarminAgent,
     GPSAgent,
+    MetabolismAgent,
     SensorAgent,
     StravaAgent,
 )
 from .knowledge import Insight, KnowledgeEngine
-from .models import AnalysisContext, Athlete, Activity, Bike, WorldObject
+from .models import AnalysisContext, Athlete, Activity, Bike, MetabolicDailySummary, MetabolicProfile, WorldObject
 from .orchestrator import AIOrchestrator
 from .simulation import ScenarioOverride, SimulationEngine, SimulationComparison
 from .transformer import TransformerEngine
@@ -40,15 +41,16 @@ __all__ = [
     "Quantity", "q", "UnitRegistry", "convert",
     "TransformerEngine",
     "Athlete", "Bike", "Activity", "WorldObject", "AnalysisContext",
+    "MetabolicProfile", "MetabolicDailySummary",
     # algorithms
     "Algorithm", "ModelResult", "ALL_ALGORITHMS",
     "MovementModel", "EnergyModel", "PerformanceModel", "FatigueModel",
     "RouteDifficultyModel", "RecoveryModel", "NutritionModel",
-    "PowerModel", "TrainingLoadModel",
+    "PowerModel", "TrainingLoadModel", "MetabolismModel",
     # simulation / knowledge / agents / orchestrator
     "SimulationEngine", "ScenarioOverride", "SimulationComparison",
     "KnowledgeEngine", "Insight",
     "GPSAgent", "AthleteAgent", "EnvironmentAgent", "SensorAgent",
-    "StravaAgent", "GarminAgent",
+    "MetabolismAgent", "StravaAgent", "GarminAgent",
     "AIOrchestrator",
 ]

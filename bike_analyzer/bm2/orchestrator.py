@@ -20,13 +20,13 @@ from typing import Optional
 from .algorithms import (
     ALL_ALGORITHMS, Algorithm, EnergyModel, FatigueModel, ModelResult,
     MovementModel, NutritionModel, PerformanceModel, RecoveryModel,
-    RouteDifficultyModel,
+    RouteDifficultyModel, TrainingLoadModel, MetabolismModel,
 )
 from .knowledge import Insight, KnowledgeEngine
 from .models import AnalysisContext, Athlete, Bike, Activity, WorldObject
 from .simulation import ScenarioOverride, SimulationEngine, parse_override_from_text
 from .transformer import TransformerEngine
-from .agents import AthleteAgent, EnvironmentAgent, GPSAgent, SensorAgent
+from .agents import AthleteAgent, EnvironmentAgent, GPSAgent, MetabolismAgent, SensorAgent
 
 __all__ = ["AIOrchestrator", "OrchestratorAnswer"]
 
@@ -75,6 +75,15 @@ DEFAULT_MODEL_KEYWORDS: dict[str, dict[str, float]] = {
         "load": 1.0, "training": 0.9, "workout": 1.0,
         "stress": 0.8, "ctl": 0.7, "tsb": 0.7,
     },
+    "MetabolismModel": {
+        "metabolism": 1.0, "metabolico": 1.0,
+        "bmr": 1.0, "basal": 0.9, "tdee": 1.0,
+        "calorie": 0.9, "calories": 0.9, "kcal": 0.9,
+        "intake": 0.8, "food": 0.8, "diet": 0.8,
+        "weight": 0.7, "fat": 0.7, "body_fat": 0.8,
+        "energy_balance": 1.0, "bilancio": 0.9,
+        "neat": 1.0, "eat": 0.9, "climb_bonus": 0.8,
+    },
 }
 
 # Words signaling an "open" question -> use all models.
@@ -103,6 +112,7 @@ class AIOrchestrator:
         self.athlete_agent = AthleteAgent(self.t)
         self.env_agent = EnvironmentAgent(self.t)
         self.sensor_agent = SensorAgent(self.t)
+        self.metabolism_agent = MetabolismAgent(self.t)
         self.knowledge = KnowledgeEngine()
 
         self.model_keywords = model_keywords or DEFAULT_MODEL_KEYWORDS

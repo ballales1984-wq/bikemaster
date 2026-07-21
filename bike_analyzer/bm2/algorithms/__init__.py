@@ -5,6 +5,7 @@ from __future__ import annotations
 from .base import Algorithm, ModelResult
 from .energy import EnergyModel
 from .fatigue import FatigueModel
+from .metabolism import MetabolismModel
 from .movement import MovementModel
 from .nutrition import NutritionModel
 from .performance import PerformanceModel
@@ -17,7 +18,7 @@ __all__ = [
     "Algorithm", "ModelResult",
     "MovementModel", "EnergyModel", "PerformanceModel", "FatigueModel",
     "RouteDifficultyModel", "RecoveryModel", "NutritionModel",
-    "PowerModel", "TrainingLoadModel",
+    "PowerModel", "TrainingLoadModel", "MetabolismModel",
     "ALL_ALGORITHMS", "MODEL_REGISTRY",
 ]
 
@@ -25,7 +26,7 @@ __all__ = [
 ALL_ALGORITHMS: list[type[Algorithm]] = [
     MovementModel, EnergyModel, PerformanceModel, FatigueModel,
     RouteDifficultyModel, RecoveryModel, NutritionModel,
-    PowerModel, TrainingLoadModel,
+    PowerModel, TrainingLoadModel, MetabolismModel,
 ]
 
 MODEL_REGISTRY: dict[str, type[Algorithm]] = {a.name: a for a in ALL_ALGORITHMS}

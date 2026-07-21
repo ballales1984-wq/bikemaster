@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from .models import Activity, Athlete, WorldObject
+from .metabolism_agent import MetabolismAgent
 from .transformer import GeoPoint, TransformerEngine
 from .units import Quantity
 
@@ -21,6 +22,7 @@ __all__ = [
     "AthleteAgent",
     "EnvironmentAgent",
     "SensorAgent",
+    "MetabolismAgent",
     "StravaAgent",
     "GarminAgent",
 ]
