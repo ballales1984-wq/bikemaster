@@ -4,8 +4,16 @@ import { createRouter, createWebHistory } from "vue-router";
 
 const apiGet = vi.hoisted(() => vi.fn());
 const apiPost = vi.hoisted(() => vi.fn());
-const apiPut = vi.hoisted(() => vi.fn());
-vi.mock("../utils/api.ts", () => ({ apiGet, apiPost, apiPut }));
+vi.mock("../utils/api.ts", () => ({ apiGet, apiPost }));
+
+const mockUpdateProfile = vi.hoisted(() => vi.fn(() => Promise.resolve({ id: 3 })));
+vi.mock("../stores/athlete", () => ({
+  useAthleteStore: () => ({
+    profile: { value: null },
+    updateProfile: mockUpdateProfile,
+    fetchMetricLog: vi.fn(() => Promise.resolve([])),
+  }),
+}));
 
 vi.mock("../composables/useToast", () => ({
   useToast: () => ({
@@ -35,6 +43,10 @@ vi.mock("../stores/auth", () => ({
     setAuthFromUrl: vi.fn(),
     setOauthError: vi.fn(),
   }),
+}));
+
+vi.mock("./MetricHistoryChart.vue", () => ({
+  default: { template: "<div />" },
 }));
 
 import AthletePanel from "./AthletePanel.vue";
@@ -70,6 +82,7 @@ const router = createRouter({
 describe("AthletePanel", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    mockUpdateProfile.mockResolvedValue({ id: 3 });
   });
 
   it("loads existing athlete profile on mount", async () => {
@@ -86,9 +99,9 @@ describe("AthletePanel", () => {
     expect(wrapper.find("#athlete-weight").element.value).toBe("72");
   });
 
-  it("saves new athlete (POST) if none exists", async () => {
+  it("saves new athlete via store if none exists", async () => {
     apiGet.mockResolvedValueOnce({ athlete: null });
-    apiPost.mockResolvedValueOnce({ id: 10 });
+    mockUpdateProfile.mockResolvedValueOnce({ id: 10 });
 
     const wrapper = mount(AthletePanel, {
       global: { plugins: [router] },
@@ -99,16 +112,15 @@ describe("AthletePanel", () => {
     await wrapper.find("button.btn-primary").trigger("click");
     await flush();
 
-    expect(apiPost).toHaveBeenCalledWith(
-      "/api/v1/athletes",
+    expect(mockUpdateProfile).toHaveBeenCalledWith(
       expect.objectContaining({ name: "Luca Bianchi" }),
     );
-    expect(wrapper.find(".result-box").text()).toContain("ID: 10");
+    expect(wrapper.find(".result-box").text()).toContain("aggiornato");
   });
 
-  it("updates existing athlete (PUT)", async () => {
+  it("updates existing athlete via store", async () => {
     apiGet.mockResolvedValueOnce(mockAthlete);
-    apiPut.mockResolvedValueOnce({ id: 3 });
+    mockUpdateProfile.mockResolvedValueOnce({ id: 3 });
 
     const wrapper = mount(AthletePanel, {
       global: { plugins: [router] },
@@ -119,8 +131,7 @@ describe("AthletePanel", () => {
     await wrapper.find("button.btn-primary").trigger("click");
     await flush();
 
-    expect(apiPut).toHaveBeenCalledWith(
-      "/api/v1/athletes/3",
+    expect(mockUpdateProfile).toHaveBeenCalledWith(
       expect.objectContaining({ name: "Marco Verdi" }),
     );
     expect(apiPost).not.toHaveBeenCalled();
@@ -141,22 +152,6 @@ describe("AthletePanel", () => {
     expect(wrapper.find(".result-box").text()).toContain(
       "Correggi gli errori nel form",
     );
-  });
-
-  it("scores button calls scores endpoint", async () => {
-    apiGet
-      .mockResolvedValueOnce(mockAthlete)
-      .mockResolvedValueOnce({ performance: 85, endurance: 78 });
-
-    const wrapper = mount(AthletePanel, {
-      global: { plugins: [router] },
-    });
-    await flush();
-
-    await wrapper.find("button.btn-secondary").trigger("click");
-    await flush();
-
-    expect(apiGet).toHaveBeenCalledWith("/api/v1/scores/athlete/3");
   });
 
   it("renders form fields correctly", async () => {
@@ -183,11 +178,11 @@ describe("AthletePanel", () => {
     });
     await flush();
 
-    expect(wrapper.find("h2").text()).toContain("Athlete Profile");
+    expect(wrapper.find("h2").text()).toContain("Profilo Atleta");
     expect(wrapper.find("#athlete-name").element.value).toBe("Marco Rossi");
   });
 
-  it("displays save and scores buttons", async () => {
+  it("displays save button", async () => {
     apiGet.mockResolvedValueOnce({ athlete: null });
 
     const wrapper = mount(AthletePanel, {
@@ -195,13 +190,12 @@ describe("AthletePanel", () => {
     });
     await flush();
 
-    expect(wrapper.text()).toContain("Save Athlete");
-    expect(wrapper.text()).toContain("Scores");
+    expect(wrapper.text()).toContain("Salva Profilo");
   });
 
   it("saves athlete with all form fields", async () => {
     apiGet.mockResolvedValueOnce({ athlete: null });
-    apiPost.mockResolvedValueOnce({ id: 10 });
+    mockUpdateProfile.mockResolvedValueOnce({ id: 10 });
 
     const wrapper = mount(AthletePanel, {
       global: { plugins: [router] },
@@ -221,13 +215,17 @@ describe("AthletePanel", () => {
     await wrapper.find("button.btn-primary").trigger("click");
     await flush();
 
-    expect(apiPost).toHaveBeenCalledWith(
-      "/api/v1/athletes",
+    expect(mockUpdateProfile).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Giulia Neri",
         age: 28,
         weight_kg: 65,
-        experience_level: "Advanced",
+        height_cm: 168,
+        fat_percentage: 20,
+        years_active: 8,
+        weekly_sessions: 5,
+        monthly_hours: 18,
+        annual_hours: 210,
       }),
     );
   });
@@ -244,25 +242,9 @@ describe("AthletePanel", () => {
     expect(resultBox.exists()).toBe(true);
   });
 
-  it("shows warning when scores called without athlete", async () => {
-    apiGet.mockResolvedValueOnce({ athlete: null });
-
-    const wrapper = mount(AthletePanel, {
-      global: { plugins: [router] },
-    });
-    await flush();
-
-    await wrapper.find("button.btn-secondary").trigger("click");
-    await flush();
-
-    expect(wrapper.find(".result-box").text()).toContain(
-      "Save athlete profile first",
-    );
-  });
-
   it("emits toast on save", async () => {
     apiGet.mockResolvedValueOnce({ athlete: null });
-    apiPost.mockResolvedValueOnce({ id: 10 });
+    mockUpdateProfile.mockResolvedValueOnce({ id: 10 });
 
     const wrapper = mount(AthletePanel, {
       global: { plugins: [router] },
@@ -274,5 +256,23 @@ describe("AthletePanel", () => {
     await flush();
 
     expect(wrapper.find(".result-box").exists()).toBe(true);
+  });
+
+  it("shows history charts after save", async () => {
+    apiGet.mockResolvedValueOnce({ athlete: null });
+    mockUpdateProfile.mockResolvedValueOnce({ id: 10 });
+
+    const wrapper = mount(AthletePanel, {
+      global: { plugins: [router] },
+    });
+    await flush();
+
+    await wrapper.find("#athlete-name").setValue("Test User");
+    await wrapper.find("button.btn-primary").trigger("click");
+    await flush();
+    await flush();
+
+    expect(wrapper.find(".metric-history").exists()).toBe(true);
+    expect(wrapper.findAllComponents({ name: "MetricHistoryChart" }).length).toBe(3);
   });
 });

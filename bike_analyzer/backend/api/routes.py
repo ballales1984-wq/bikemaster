@@ -2180,6 +2180,7 @@ async def update_athlete(
         existing = get_athlete_by_name(update_data["name"])
         if existing and existing["id"] != athlete_id:
             raise HTTPException(status_code=409, detail="Athlete name already in use")
+    old_athlete = _get(athlete_id)
     _update(athlete_id, update_data)
     from ..events import AthleteUpdated, publish
 
@@ -2187,6 +2188,31 @@ async def update_athlete(
         AthleteUpdated.type,
         {"athlete_id": athlete_id, "updated_fields": update_data, "created": False},
     )
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    if old_athlete:
+        from ..db.database import log_athlete_metric
+
+        tracked = {
+            "weight_kg": ("kg", "Peso"),
+            "height_cm": ("cm", "Altezza"),
+            "fat_percentage": ("%", "% grassa"),
+            "ftp_watts": ("W", "FTP"),
+            "mood": ("/10", "Umore"),
+            "sleep_hours": ("h", "Sono"),
+        }
+        for field, (unit, _label) in tracked.items():
+            if field in update_data and update_data[field] is not None:
+                old = old_athlete.get(field)
+                new_value = float(update_data[field])
+                if old is None or float(old) != new_value:
+                    log_athlete_metric(
+                        athlete_id,
+                        field,
+                        new_value,
+                        tenant_id=tenant_id,
+                        unit=unit,
+                        source="manual",
+                    )
     return _public_athlete(_get(athlete_id))
 
 

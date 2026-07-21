@@ -278,3 +278,17 @@ export interface PowerComputeResult {
   intensity_factor: number | null;
   tss: number | null;
 }
+
+export interface AthleteMetricLogEntry {
+  id: number;
+  value: number;
+  unit: string | null;
+  note: string | null;
+  source: string;
+  recorded_at: string;
+}
+
+export interface AthleteMetricLogResponse {
+  metric_type: string;
+  series: AthleteMetricLogEntry[];
+}

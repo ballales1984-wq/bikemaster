@@ -6,7 +6,7 @@
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import type { Athlete } from "../types/index";
+import type { Athlete, AthleteMetricLogEntry, AthleteMetricLogResponse } from "../types/index";
 import { apiGet, apiPut, ApiError } from "../utils/api";
 import { useAuthStore } from "./auth";
 
@@ -40,6 +40,8 @@ export const useAthleteStore = defineStore("athlete", () => {
   const saving = ref(false);
   const error = ref<string | null>(null);
   const profileComplete = ref(false);
+  const metricLog = ref<Record<string, AthleteMetricLogEntry[]>>({});
+  const metricLogLoading = ref(false);
 
   const hasProfile = computed(() => profile.value !== null);
   const displayName = computed(() => profile.value?.username || auth.user?.username || "Athlete");
@@ -99,6 +101,26 @@ export const useAthleteStore = defineStore("athlete", () => {
     profileComplete.value = true;
   }
 
+  async function fetchMetricLog(metricType: string, days = 365): Promise<AthleteMetricLogEntry[]> {
+    if (!auth.isLoggedIn) return [];
+    metricLogLoading.value = true;
+    error.value = null;
+    try {
+      const data = await apiGet<AthleteMetricLogResponse>("/api/v1/athletes/me/metric-log", {
+        metric_type: metricType,
+        days: String(days),
+      });
+      const series = data.series ?? [];
+      metricLog.value[metricType] = series;
+      return series;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to load metric history";
+      return [];
+    } finally {
+      metricLogLoading.value = false;
+    }
+  }
+
   function clearProfile() {
     profile.value = null;
     profileComplete.value = false;
@@ -111,10 +133,13 @@ export const useAthleteStore = defineStore("athlete", () => {
     saving,
     error,
     profileComplete,
+    metricLog,
+    metricLogLoading,
     hasProfile,
     displayName,
     fetchProfile,
     updateProfile,
+    fetchMetricLog,
     setProfile,
     clearProfile,
   };

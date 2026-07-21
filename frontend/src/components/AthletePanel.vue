@@ -1,21 +1,25 @@
-<!-- Pannello profilo atleta: form di inserimento/modifica dati anagrafici e di allenamento dell'utente.
-     Props: nessuna. Eventi: emit "toast" per notifiche. Carica l'atleta da /api/v1/athletes/me e salva via POST/PUT.
-     UI: input grid (name, age, weight, height, body fat, level, goals) with validation and Save/Score buttons. -->
+<!--
+  Pannello profilo atleta: form di inserimento/modifica dati anagrafici e di allenamento dell'utente.
+  Props: nessuna. Eventi: emit "toast" per notifiche. Carica l'atleta da /api/v1/athletes/me e salva via store.
+  UI: input grid (name, age, weight, height, body fat, level, goals) with validation and Save button.
+       Dopo il salvataggio mostra i grafici storici delle metriche tracciate.
+-->
 <template>
   <div class="panel">
-    <h2> Athlete Profile</h2>
+    <h2> Profilo Atleta</h2>
     <div
-v-if="isFirstLogin" class="welcome-banner"
->
-      <span class="welcome-icon"></span> Welcome! Complete your profile to get
-      started
+      v-if="isFirstLogin"
+      class="welcome-banner"
+    >
+      <span class="welcome-icon"></span> Benvenuto! Completa il tuo profilo per iniziare
     </div>
     <form
-id="athlete-form" class="form-grid"
-novalidate
->
+      id="athlete-form"
+      class="form-grid"
+      novalidate
+    >
       <div class="form-group">
-        <label for="athlete-name">Name</label>
+        <label for="athlete-name">Nome</label>
         <input
           id="athlete-name"
           v-model="form.name"
@@ -27,13 +31,14 @@ novalidate
           }"
         >
         <span
-v-if="fieldErrors.name" class="field-error"
->{{
-                fieldErrors.name
-              }}</span>
+          v-if="fieldErrors.name"
+          class="field-error"
+        >{{
+            fieldErrors.name
+          }}</span>
       </div>
       <div class="form-group">
-        <label for="athlete-age">Age</label>
+        <label for="athlete-age">Età</label>
         <input
           id="athlete-age"
           v-model.number="form.age"
@@ -43,13 +48,14 @@ v-if="fieldErrors.name" class="field-error"
           :class="{ error: fieldErrors.age, valid: !fieldErrors.age }"
         >
         <span
-v-if="fieldErrors.age" class="field-error"
->{{
-                fieldErrors.age
-              }}</span>
+          v-if="fieldErrors.age"
+          class="field-error"
+        >{{
+            fieldErrors.age
+          }}</span>
       </div>
       <div class="form-group">
-        <label for="athlete-weight">Weight (kg)</label>
+        <label for="athlete-weight">Peso (kg)</label>
         <input
           id="athlete-weight"
           v-model.number="form.weight_kg"
@@ -63,13 +69,14 @@ v-if="fieldErrors.age" class="field-error"
           }"
         >
         <span
-v-if="fieldErrors.weight_kg" class="field-error"
->{{
-                fieldErrors.weight_kg
-              }}</span>
+          v-if="fieldErrors.weight_kg"
+          class="field-error"
+        >{{
+            fieldErrors.weight_kg
+          }}</span>
       </div>
       <div class="form-group">
-        <label for="athlete-height">Height (cm)</label>
+        <label for="athlete-height">Altezza (cm)</label>
         <input
           id="athlete-height"
           v-model.number="form.height_cm"
@@ -82,13 +89,14 @@ v-if="fieldErrors.weight_kg" class="field-error"
           }"
         >
         <span
-v-if="fieldErrors.height_cm" class="field-error"
->{{
-                fieldErrors.height_cm
-              }}</span>
+          v-if="fieldErrors.height_cm"
+          class="field-error"
+        >{{
+            fieldErrors.height_cm
+          }}</span>
       </div>
       <div class="form-group">
-        <label for="athlete-fat">Body Fat (%)</label>
+        <label for="athlete-fat">Massa Grassa (%)</label>
         <input
           id="athlete-fat"
           v-model.number="form.fat_percentage"
@@ -99,7 +107,7 @@ v-if="fieldErrors.height_cm" class="field-error"
         >
       </div>
       <div class="form-group">
-        <label for="athlete-years">Years Active</label>
+        <label for="athlete-years">Anni di attività</label>
         <input
           id="athlete-years"
           v-model.number="form.years_active"
@@ -109,7 +117,7 @@ v-if="fieldErrors.height_cm" class="field-error"
         >
       </div>
       <div class="form-group">
-        <label for="athlete-weekly">Sessions/week</label>
+        <label for="athlete-weekly">Sessioni/settimana</label>
         <input
           id="athlete-weekly"
           v-model.number="form.weekly_sessions"
@@ -119,7 +127,7 @@ v-if="fieldErrors.height_cm" class="field-error"
         >
       </div>
       <div class="form-group">
-        <label for="athlete-monthly">Hours/month</label>
+        <label for="athlete-monthly">Ore/mese</label>
         <input
           id="athlete-monthly"
           v-model.number="form.monthly_hours"
@@ -129,7 +137,7 @@ v-if="fieldErrors.height_cm" class="field-error"
         >
       </div>
       <div class="form-group">
-        <label for="athlete-annual">Hours/year</label>
+        <label for="athlete-annual">Ore/anno</label>
         <input
           id="athlete-annual"
           v-model.number="form.annual_hours"
@@ -139,7 +147,7 @@ v-if="fieldErrors.height_cm" class="field-error"
         >
       </div>
       <div class="form-group">
-        <label for="athlete-level">Level</label>
+        <label for="athlete-level">Livello</label>
         <select
           id="athlete-level"
           v-model="form.experience_level"
@@ -148,40 +156,63 @@ v-if="fieldErrors.height_cm" class="field-error"
             valid: !fieldErrors.experience_level,
           }"
         >
-          <option>Beginner</option>
-          <option>Amateur</option>
-          <option>Intermediate</option>
-          <option>Advanced</option>
+          <option>Principiante</option>
+          <option>Amatoriale</option>
+          <option>Intermedio</option>
+          <option>Avanzato</option>
           <option>Elite</option>
         </select>
         <span
-v-if="fieldErrors.experience_level" class="field-error"
->{{
-                fieldErrors.experience_level
-              }}</span>
+          v-if="fieldErrors.experience_level"
+          class="field-error"
+        >{{
+            fieldErrors.experience_level
+          }}</span>
       </div>
       <div class="form-group">
-        <label for="athlete-goals">Goal</label>
+        <label for="athlete-goals">Obiettivo</label>
         <input
           id="athlete-goals"
           v-model="form.goals"
           type="text"
           maxlength="500"
-          placeholder="Gran Fondo, criterium, etc."
+          placeholder="Gran Fondo, criterium, ecc."
         >
       </div>
     </form>
     <div class="form-actions">
       <button
-class="btn btn-primary" @click="save">Save Athlete</button>
-      <button
-class="btn btn-secondary" @click="getScores"> Scores</button>
+        class="btn btn-primary"
+        @click="save"
+      >
+        Salva Profilo
+      </button>
     </div>
     <div
-v-if="result" class="result-box"
->
+      v-if="result"
+      class="result-box"
+    >
       {{ result }}
     </div>
+
+    <section v-if="showHistory" class="metric-history">
+      <h3>Andamento storico</h3>
+      <MetricHistoryChart
+        metric-type="weight_kg"
+        :days="365"
+        label="Peso"
+      />
+      <MetricHistoryChart
+        metric-type="fat_percentage"
+        :days="365"
+        label="Massa Grassa"
+      />
+      <MetricHistoryChart
+        metric-type="ftp_watts"
+        :days="365"
+        label="FTP"
+      />
+    </section>
   </div>
 </template>
 
@@ -189,9 +220,11 @@ v-if="result" class="result-box"
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "../composables/useToast";
-import { apiGet, apiPost, apiPut } from "../utils/api";
+import { apiGet, apiPost } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
+import { useAthleteStore } from "../stores/athlete";
 import { validateAthleteForm } from "../utils/validation";
+import MetricHistoryChart from "./MetricHistoryChart.vue";
 
 interface AthleteForm {
   name: string;
@@ -213,6 +246,7 @@ interface AthleteResponse {
 }
 
 const auth = useAuthStore();
+const athleteStore = useAthleteStore();
 
 const router = useRouter();
 const toast = useToast();
@@ -235,6 +269,7 @@ const athleteId = ref<number | null>(null);
 const isFirstLogin = ref(false);
 const profileWasIncomplete = ref(false);
 const fieldErrors = ref<Record<string, string>>({});
+const showHistory = ref(false);
 
 function validateForm(): boolean {
   fieldErrors.value = validateAthleteForm(form.value);
@@ -266,41 +301,25 @@ async function save() {
     return;
   }
   try {
-    const data = (
-      athleteId.value
-        ? await apiPut("/api/v1/athletes/" + athleteId.value, form.value)
-        : await apiPost("/api/v1/athletes", form.value)
-    ) as { id?: number };
-    athleteId.value = data.id ?? null;
-    result.value = "Athlete profile saved (ID: " + data.id + ")";
+    await athleteStore.updateProfile(form.value);
+    athleteId.value = athleteStore.profile?.id ?? null;
+    result.value = "Profilo atleta aggiornato";
+    toast.show("Profilo salvato con successo", "success");
+    showHistory.value = true;
     if (isFirstLogin.value) {
-      toast.show("Profile created! Welcome to BikeMaster!", "success");
+      setTimeout(() => router.push("/rides"), 1500);
     }
     if (profileWasIncomplete.value) {
-      setTimeout(() => router.push("/rides"), isFirstLogin.value ? 1500 : 500);
+      setTimeout(() => router.push("/rides"), 500);
     }
   } catch (e: unknown) {
-    result.value = "Error: " + (e instanceof Error ? e.message : String(e));
-  }
-}
-
-async function getScores() {
-  try {
-    const id = athleteId.value;
-    if (!id) {
-      result.value = "Save athlete profile first";
-      return;
-    }
-    const data = await apiGet("/api/v1/scores/athlete/" + id);
-    result.value = JSON.stringify(data, null, 2);
-  } catch (e: unknown) {
-    result.value = "Error: " + (e instanceof Error ? e.message : String(e));
+    result.value = "Errore: " + (e instanceof Error ? e.message : String(e));
   }
 }
 
 onMounted(() => {
   loadAthlete().catch((e) => {
-    result.value = "Error: " + (e instanceof Error ? e.message : String(e));
+    result.value = "Errore: " + (e instanceof Error ? e.message : String(e));
   });
 });
 </script>
@@ -319,5 +338,11 @@ onMounted(() => {
 .welcome-icon {
   font-size: 1.2rem;
 }
+.metric-history {
+  margin-top: 1.5rem;
+}
+.metric-history h3 {
+  margin-bottom: 0.8rem;
+  color: #eee;
+}
 </style>
-
