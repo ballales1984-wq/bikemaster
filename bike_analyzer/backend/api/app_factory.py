@@ -43,6 +43,7 @@ from .performance_routes import performance_router
 from .routes import admin_router, router
 from .sync_routes import router as sync_router
 from .utils import _trusted_forwarded_value
+from .voice_routes import router as voice_router
 
 logger = logging.getLogger(__name__)
 
@@ -351,6 +352,7 @@ def create_app() -> FastAPI:
     app.include_router(sync_router, prefix="/api/v1", tags=["sync"])
     app.include_router(adaptation_router, prefix="/api/v1", tags=["adaptation"])
     app.include_router(performance_router, prefix="/api/v1", tags=["performance"])
+    app.include_router(voice_router, prefix="/api/v1", tags=["voice"])
 
     if STATIC_DIR.exists() and INDEX_FILE.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

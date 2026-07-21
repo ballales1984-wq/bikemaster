@@ -52,14 +52,16 @@ def _build_scene(
 
     for i, point in enumerate(points[:-1]):
         color = _speed_to_color(point.speed) if color_by_speed else "#FF6B00"
-        scene.add(
-            "segment",
-            [[point.lat, point.lon], [points[i + 1].lat, points[i + 1].lon]],
-            color,
-        )
+        seg_pts = [
+            [points[i].lat, points[i].lon, points[i].altitude or 0.0],
+            [points[i + 1].lat, points[i + 1].lon, points[i + 1].altitude or 0.0],
+        ]
+        scene.add("segment", seg_pts, color)
 
-    scene.add("start", [[points[0].lat, points[0].lon]], "S")
-    scene.add("end", [[points[-1].lat, points[-1].lon]], "E")
+    start_alt = points[0].altitude or 0.0
+    end_alt = points[-1].altitude or 0.0
+    scene.add("start", [[points[0].lat, points[0].lon, start_alt]], "S")
+    scene.add("end", [[points[-1].lat, points[-1].lon, end_alt]], "E")
 
     if statistics:
         scene.add(

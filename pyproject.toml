@@ -72,6 +72,9 @@ dependencies = [
     "opentelemetry-instrumentation-sqlalchemy>=0.38.0",
     "opentelemetry-instrumentation-requests>=0.38.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.27.0",
+    "SpeechRecognition>=3.10.0",
+    "pydub>=0.25.0",
+    "edge-tts>=7.0.0",
 ]
 
 [project.optional-dependencies]

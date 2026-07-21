@@ -140,7 +140,7 @@ MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 
 def _build_redirect_uri(request: Request, path: str) -> str:
     """Build an absolute URI honoring X-Forwarded-* headers when behind a proxy."""
-    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    proto = _trusted_forwarded_value(request, "x-forwarded-proto") or request.url.scheme
     host = (
         _trusted_forwarded_value(request, "x-forwarded-host") or request.headers.get("host") or request.url.netloc
     )
@@ -1391,6 +1391,37 @@ async def generate_ride_map(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Map generation failed: {exc}") from exc
     return {"map_url": f"/static/{resolved.name}"}
+
+
+@router.get("/aethermap/terrain")
+async def get_aethermap_terrain(
+    min_lat: float = Query(..., description="Minimum latitude"),
+    max_lat: float = Query(..., description="Maximum latitude"),
+    min_lon: float = Query(..., description="Minimum longitude"),
+    max_lon: float = Query(..., description="Maximum longitude"),
+    resolution: int = Query(64, description="Grid resolution (NxN)", ge=8, le=256),
+):
+    """Return a procedural terrain heightfield tile for the given bounding box.
+
+    Heights are in meters above sea level. The response includes the tile bounds
+    and a flat array of ``resolution x resolution`` float32 values.
+    """
+    from ..maps.terrain import get_tile
+
+    if not (-90 <= min_lat <= max_lat <= 90):
+        raise HTTPException(status_code=400, detail="Invalid latitude range")
+    if not (-180 <= min_lon <= max_lon <= 180):
+        raise HTTPException(status_code=400, detail="Invalid longitude range")
+
+    tile = get_tile(min_lat, max_lat, min_lon, max_lon, resolution)
+    return {
+        "min_lat": tile.min_lat,
+        "max_lat": tile.max_lat,
+        "min_lon": tile.min_lon,
+        "max_lon": tile.max_lon,
+        "resolution": tile.resolution,
+        "heights": tile.heights.flatten().tolist(),
+    }
 
 
 @router.post("/rides/analyze")

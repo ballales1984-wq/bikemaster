@@ -33,6 +33,11 @@ pytest-asyncio>=0.24.0
 pytest-cov>=5.0.0
 endurance-metrics>=0.1.0
 
+# Voice assistant
+SpeechRecognition>=3.10.0
+pydub>=0.25.0
+edge-tts>=7.0.0
+
 # OpenTelemetry / Jaeger Tracing
 opentelemetry-api>=1.27.0
 opentelemetry-sdk>=1.27.0
