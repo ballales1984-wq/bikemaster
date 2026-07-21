@@ -9,32 +9,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { createCommandRegistry, parseTranscript, createLogEntry } from "../services/voiceCommands";
 import type { RecognitionState, VoiceCommandResult, VoiceCommandLogEntry, ParsedCommand } from "../types/voiceCommands";
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  abort(): void;
-  addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
-  removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
-  dispatchEvent(event: Event): boolean;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  onstart: (() => void) | null;
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-  resultIndex: number;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-  message: string;
-}
+import type { SpeechRecognition, SpeechRecognitionEvent, SpeechRecognitionErrorEvent } from "../types/speechRecognition";
 
 export const useVoiceCommandsStore = defineStore("voiceCommands", () => {
   const commands = createCommandRegistry();

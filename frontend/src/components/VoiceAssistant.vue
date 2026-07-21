@@ -199,7 +199,7 @@ async function startListening(): Promise<void> {
 }
 
 async function stopAndProcess(): Promise<void> {
-  const file = recording.getAudioFile();
+  let file = recording.getAudioFile();
   if (!file) {
     const blob = recording.stopRecording();
     if (!blob) return;

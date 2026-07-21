@@ -1400,11 +1400,12 @@ async def get_aethermap_terrain(
     min_lon: float = Query(..., description="Minimum longitude"),
     max_lon: float = Query(..., description="Maximum longitude"),
     resolution: int = Query(64, description="Grid resolution (NxN)", ge=8, le=256),
+    source: str = Query("auto", description="Terrain source: auto, dem, procedural"),
 ):
-    """Return a procedural terrain heightfield tile for the given bounding box.
+    """Return a terrain heightfield tile for the given bounding box.
 
-    Heights are in meters above sea level. The response includes the tile bounds
-    and a flat array of ``resolution x resolution`` float32 values.
+    Heights are in meters above sea level. The response includes the tile bounds,
+    source, and a flat array of ``resolution x resolution`` float32 values.
     """
     from ..maps.terrain import get_tile
 
@@ -1413,13 +1414,14 @@ async def get_aethermap_terrain(
     if not (-180 <= min_lon <= max_lon <= 180):
         raise HTTPException(status_code=400, detail="Invalid longitude range")
 
-    tile = get_tile(min_lat, max_lat, min_lon, max_lon, resolution)
+    tile = get_tile(min_lat, max_lat, min_lon, max_lon, resolution, source=source)
     return {
         "min_lat": tile.min_lat,
         "max_lat": tile.max_lat,
         "min_lon": tile.min_lon,
         "max_lon": tile.max_lon,
         "resolution": tile.resolution,
+        "source": tile.source,
         "heights": tile.heights.flatten().tolist(),
     }
 
