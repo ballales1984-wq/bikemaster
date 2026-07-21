@@ -135,7 +135,8 @@ const status = ref("");
 const history = ref<{ role: "user" | "assistant"; text: string }[]>([]);
 const error = ref<string | null>(null);
 const isSpeaking = ref(false);
-  const currentAudio: { current: HTMLAudioElement | null } = { current: null };
+const currentAudio: { current: HTMLAudioElement | null } = { current: null };
+const sessionId = ref(`session_${Date.now()}`);
 
 const supported = computed(() => recording.supported);
 const isListening = computed(() => recording.isRecording);
@@ -198,8 +199,12 @@ async function startListening(): Promise<void> {
 }
 
 async function stopAndProcess(): Promise<void> {
-  const file = recording.stopRecording();
-  if (!file) return;
+  const file = recording.getAudioFile();
+  if (!file) {
+    const blob = recording.stopRecording();
+    if (!blob) return;
+    file = new File([blob], `recording_${Date.now()}.webm`, { type: blob.type });
+  }
 
   setStatus("Elaborazione...");
   recording.state.value = "processing";
@@ -390,8 +395,6 @@ async function executeIntent(intent: string, text: string): Promise<void> {
     // Intent execution is best-effort
   }
 }
-
-const sessionId = ref(`session_${Date.now()}`);
 
 function cleanup(): void {
   recording.cancelRecording();

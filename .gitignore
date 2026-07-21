@@ -141,4 +141,19 @@ temp_aethermap/
 # Local DB backups
 backups/
 
+# Installers
+*.msi
+
 jdk21.msi
+
+# Lint/test artifacts
+frontend/lint_out.txt
+frontend/lint_err.txt
+frontend/lint_single_out.txt
+frontend/lint_single_err.txt
+bike_analyzer/test_out.txt
+bike_analyzer/test_err.txt
+bike_analyzer/final_test_out.txt
+bike_analyzer/final_test_err.txt
+frontend/tc_out.txt
+frontend/tc_err.txt
