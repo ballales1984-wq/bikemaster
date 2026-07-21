@@ -165,24 +165,6 @@ import { apiGet, apiPost } from "../utils/api";
 import DOMPurify from "dompurify";
 import type { CoachData } from "../types/index";
 
-interface SpeechRecognition {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: (event: any) => void;
-  onend: () => void;
-  onerror: () => void;
-  start(): void;
-  stop(): void;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition?: new () => SpeechRecognition;
-    webkitSpeechRecognition?: new () => SpeechRecognition;
-  }
-}
-
 const { t } = useI18n();
 
 interface ChatMessage {
@@ -268,12 +250,12 @@ const ttsSupported = ref(false);
 const isListening = ref(false);
 const autoRead = ref(false);
 const lastAssistantMessage = ref("");
-const recognition = ref<SpeechRecognition | null>(null);
+const recognition = ref<any>(null);
 
 function initVoice() {
   const SpeechRecognitionCtor =
-    (window as unknown as { SpeechRecognition?: new () => SpeechRecognition; webkitSpeechRecognition?: new () => SpeechRecognition }).SpeechRecognition ||
-    (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognition }).webkitSpeechRecognition;
+    (window as any).SpeechRecognition ||
+    (window as any).webkitSpeechRecognition;
   voiceSupported.value = !!SpeechRecognitionCtor;
   ttsSupported.value =
     typeof window !== "undefined" && "speechSynthesis" in window;
