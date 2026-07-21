@@ -140,3 +140,5 @@ temp_aethermap/
 
 # Local DB backups
 backups/
+
+jdk21.msi
