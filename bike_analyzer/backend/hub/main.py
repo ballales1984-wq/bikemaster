@@ -26,6 +26,7 @@ from pydantic import ValidationError
 
 from bike_analyzer.backend.hub.routes import hub_router
 from bike_analyzer.backend.hub.sync_routes import hub_sync_router
+from bike_analyzer.backend.api.voice_routes import router as voice_router
 from bike_analyzer.backend.logging_config import setup_logging
 from bike_analyzer.backend.observability import init_observability
 from bike_analyzer.backend.rate_limiter import limiter
@@ -158,6 +159,7 @@ def create_hub_app() -> FastAPI:
 
     app.include_router(hub_router)
     app.include_router(hub_sync_router, prefix="/api/v1", tags=["sync"])
+    app.include_router(voice_router, prefix="/api/v1", tags=["voice"])
 
     @app.get("/health")
     async def health():
