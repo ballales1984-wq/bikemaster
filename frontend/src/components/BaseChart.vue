@@ -25,7 +25,7 @@ const props = withDefaults(
   }>(),
   {
     height: "260px",
-    emptyLabel: "No data",
+    emptyLabel: "Nessun dato",
   },
 );
 

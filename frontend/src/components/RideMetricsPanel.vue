@@ -7,7 +7,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ formattedDistance }}</span>
-        <span class="metric-label">Distance (km)</span>
+         <span class="metric-label">Distanza (km)</span>
       </div>
     </div>
 
@@ -15,7 +15,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ currentSpeed.toFixed(1) }}</span>
-        <span class="metric-label">Speed (km/h)</span>
+         <span class="metric-label">Velocità (km/h)</span>
       </div>
     </div>
 
@@ -23,7 +23,7 @@
       <div class="metric-icon">⏱</div>
       <div class="metric-content">
         <span class="metric-value">{{ formattedTime }}</span>
-        <span class="metric-label">Time</span>
+         <span class="metric-label">Tempo</span>
       </div>
     </div>
 
@@ -31,7 +31,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ avgSpeed.toFixed(1) }}</span>
-        <span class="metric-label">Avg (km/h)</span>
+         <span class="metric-label">Media (km/h)</span>
       </div>
     </div>
 
@@ -39,7 +39,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ elevation.toFixed(0) }}</span>
-        <span class="metric-label">Elevation (m)</span>
+         <span class="metric-label">Dislivello (m)</span>
       </div>
     </div>
 
@@ -47,7 +47,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ heartRate }}</span>
-        <span class="metric-label">HR (bpm)</span>
+         <span class="metric-label">FC (bpm)</span>
       </div>
     </div>
 
@@ -55,7 +55,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ cadence }}</span>
-        <span class="metric-label">Cadence (rpm)</span>
+         <span class="metric-label">Cadenza (rpm)</span>
       </div>
     </div>
 
@@ -63,7 +63,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ power }}</span>
-        <span class="metric-label">Power (W)</span>
+         <span class="metric-label">Potenza (W)</span>
       </div>
     </div>
   </div>

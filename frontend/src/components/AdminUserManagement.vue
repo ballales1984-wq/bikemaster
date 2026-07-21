@@ -27,7 +27,7 @@ v-if="showCreateForm" class="create-form"
           <input v-model="newUser.username">
         </div>
         <div class="form-group">
-          <label>{{ t("auth.username") }}</label>
+          <label>{{ t("auth.email") }}</label>
           <input
 v-model="newUser.email" type="email" />
         </div>

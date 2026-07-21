@@ -29,7 +29,7 @@
           :aria-label="t('coach.clear')"
           @click="clearChat"
         >
-          
+          🗑️
         </button>
       </div>
     </div>
@@ -129,7 +129,7 @@ v-if="thinking" class="message bot-msg"
         :aria-label="isListening ? 'Stop listening' : 'Voice input'"
         @click="toggleVoice"
       >
-        <span v-if="!isListening"></span>
+        <span v-if="!isListening">🎤</span>
         <span v-else>⏹</span>
       </button>
       <button
@@ -140,7 +140,7 @@ v-if="thinking" class="message bot-msg"
         :aria-label="autoRead ? 'Disable voice' : 'Enable voice'"
         @click="toggleAutoRead"
       >
-        <span>{{ autoRead ? "" : "" }}</span>
+        <span>{{ autoRead ? "🔊" : "🔇" }}</span>
       </button>
       <button
         class="send-btn"

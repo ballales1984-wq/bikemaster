@@ -4,7 +4,7 @@
 <template>
   <section>
     <div class="panel">
-      <h2> Calendar & Goals</h2>
+      <h2> Calendario e Obiettivi</h2>
 
       <div class="calendar-controls">
         <div class="calendar-nav">
@@ -24,14 +24,14 @@
           </button>
         </div>
         <div class="athlete-select">
-          <label>Athlete:</label>
+          <label>Atleta:</label>
           <select
             id="calendar-athlete"
             v-model.number="athleteId"
             @change="loadEvents"
           >
             <option :value="0">
-General
+Generale
 </option>
             <option v-for="a in athletes" :key="a.id" :value="a.id">
               {{ a.username || `Athlete ${a.id}` }}
@@ -41,12 +41,12 @@ General
       </div>
 
       <div class="calendar-legend">
-        <span class="legend-item legend-training">Training</span>
-        <span class="legend-item legend-race">Race</span>
-        <span class="legend-item legend-recovery">Recovery</span>
-        <span class="legend-item legend-goal">Goal</span>
+        <span class="legend-item legend-training">Allenamento</span>
+        <span class="legend-item legend-race">Gara</span>
+        <span class="legend-item legend-recovery">Recupero</span>
+        <span class="legend-item legend-goal">Obiettivo</span>
         <span class="legend-item legend-test">Test</span>
-        <span class="legend-item legend-other">Other</span>
+        <span class="legend-item legend-other">Altro</span>
       </div>
 
       <div class="calendar-grid">
@@ -91,7 +91,7 @@ class="more-events"
     </div>
 
     <div class="panel">
-      <h2> Linked Goals</h2>
+      <h2> Obiettivi Collegati</h2>
       <div class="objectives-box">
         <div
           v-for="obj in recommendedObjectives"
@@ -110,7 +110,7 @@ class="more-events"
     </div>
 
     <div v-if="showForm" class="panel form-overlay">
-      <h3>{{ editingEvent ? "Edit Event" : "New Event" }}</h3>
+      <h3>{{ editingEvent ? "Modifica Evento" : "Nuovo Evento" }}</h3>
       <form class="form-grid" @submit.prevent="saveEvent">
         <div class="form-group">
           <label for="event-title">Title *</label>
@@ -125,24 +125,24 @@ class="more-events"
           <button type="submit"
 class="btn btn-primary"
 >
-Save
-</button>
+         Salva
+ </button>
           <button
             type="button"
             class="btn btn-secondary"
             @click="showForm = false"
           >
-            Cancel
+            Annulla
           </button>
         </div>
       </form>
     </div>
     <ConfirmModal
       v-model="showDeleteModal"
-      title="Delete Event"
-      :message="`Delete event '${deleteTargetTitle}'?`"
-      confirm-label="Delete"
-      cancel-label="Cancel"
+      title="Elimina Evento"
+      :message="`Eliminare l'evento '${deleteTargetTitle}'?`"
+      confirm-label="Elimina"
+      cancel-label="Annulla"
       @confirm="handleDelete"
     />
   </section>
@@ -205,22 +205,22 @@ const form = ref<EventForm>({
 const athleteGoals = ref("");
 const calendarError = ref("");
 
-const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const weekDays = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
 const monthLabel = computed(() => {
   const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "Gennaio",
+    "Febbraio",
+    "Marzo",
+    "Aprile",
+    "Maggio",
+    "Giugno",
+    "Luglio",
+    "Agosto",
+    "Settembre",
+    "Ottobre",
+    "Novembre",
+    "Dicembre",
   ];
   return `${months[currentMonth.value]} ${currentYear.value}`;
 });
@@ -390,17 +390,17 @@ function goToday() {
   loadEvents();
 }
 
-function eventLabel(type: string) {
-  const map: Record<string, string> = {
-    training: "Training",
-    race: "Race",
-    recovery: "Recovery",
-    goal_deadline: "Goal",
-    test: "Test",
-    other: "Other",
-  };
-  return map[type] || type;
-}
+  function eventLabel(type: string): string {
+    const map: Record<string, string> = {
+      training: "Allenamento",
+      race: "Gara",
+      recovery: "Recupero",
+      goal_deadline: "Obiettivo",
+      test: "Test",
+      other: "Altro",
+    };
+    return map[type] || type;
+  }
 
 function openAddForDate(date: string) {
   editingEvent.value = null;

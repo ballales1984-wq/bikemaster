@@ -130,10 +130,7 @@ function resultList(): [string, Bm2ModelResult][] {
   <section class="bm2-panel">
     <h2>BikeMaster 2.0 — Analisi</h2>
     <form class="bm2-form" @submit.prevent="onSubmit">
-      <label>
-        Domanda
-        <input id="bm2-question" v-model="form.question" type="text" placeholder="Es. Quanta energia consumo?" />
-      </label>
+        <label>Domanda<input id="bm2-question" v-model="form.question" type="text" placeholder="Es. Quanta energia consumo?" /></label>
       <div class="bm2-row">
         <label>Peso atleta (kg)<input id="bm2-weight" v-model.number="form.weight" type="number" /></label>
         <label>Peso bici (kg)<input id="bm2-bike-weight" v-model.number="form.bikeWeight" type="number" /></label>
@@ -141,7 +138,7 @@ function resultList(): [string, Bm2ModelResult][] {
         <label>Punti GPS<input id="bm2-gps-points" v-model.number="form.gpsPoints" type="number" min="2" /></label>
       </div>
       <label class="bm2-check">
-        <input id="bm2-simulation" v-model="isSimulation" type="checkbox" /> Simulation mode ("what if")
+        <input id="bm2-simulation" v-model="isSimulation" type="checkbox" /> Modalità simulazione ("what if")
       </label>
       <button type="submit" :disabled="loading">
         {{ loading ? "Analisi…" : "Analizza" }}

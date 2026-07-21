@@ -75,7 +75,7 @@
               :title="'Rimuovi ' + field.label"
               @click="clearKey(field.name)"
             >
-              
+            ✕
             </button>
           </div>
         </label>

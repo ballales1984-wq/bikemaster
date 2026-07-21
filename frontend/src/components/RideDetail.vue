@@ -8,10 +8,10 @@
         <h2>{{ t("rideDetail.title") }}</h2>
         <div class="header-actions">
           <button v-if="!editMode" class="edit-btn" @click="startEdit" aria-label="Modifica">
-            
+            ✏️
           </button>
           <button class="close-btn" @click="emit('close')" aria-label="Chiudi">
-            
+            ✕
           </button>
         </div>
       </div>
@@ -44,12 +44,12 @@
         <label>
           Tipo
           <select v-model="editForm.activity_type">
-            <option value="ride">Ride</option>
-            <option value="walk">Walk</option>
-            <option value="hike">Hike</option>
-            <option value="run">Run</option>
+            <option value="ride">Bici</option>
+            <option value="walk">Passeggiata</option>
+            <option value="hike">Trekking</option>
+            <option value="run">Corsa</option>
             <option value="indoor">Indoor</option>
-            <option value="other">Other</option>
+            <option value="other">Altro</option>
           </select>
         </label>
         <div class="edit-actions">

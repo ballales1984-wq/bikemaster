@@ -15,7 +15,7 @@
         {{ loading ? t("maps.updating") : t("maps.updateMap") }}
       </button>
       <button class="btn btn-secondary" @click="toggleAetherMap">
-        {{ useAetherMap ? '2D Map' : '3D Globe' }}
+        {{ useAetherMap ? 'Mappa 2D' : 'Globo 3D' }}
       </button>
     </div>
 
@@ -100,7 +100,7 @@ v-model="weatherEnabled" type="checkbox" id="weather-enabled" />
 
     <div
 v-if="loading && !enrichedRides.length" class="loading-text">
-      <span class="spinner" /> Loading routes...
+      <span class="spinner" /> Caricamento percorsi...
     </div>
 
     <div

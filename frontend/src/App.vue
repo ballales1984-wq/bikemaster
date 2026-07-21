@@ -33,7 +33,7 @@ Liability:
             :aria-label="ui.isDark ? 'Light mode' : 'Dark mode'"
             @click="ui.toggleTheme"
           >
-            {{ ui.isDark ? "" : "" }}
+            {{ ui.isDark ? "☀️" : "🌙" }}
           </button>
         </div>
       </div>

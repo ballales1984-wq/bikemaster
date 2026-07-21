@@ -12,9 +12,9 @@
     <aside :class="['help-panel', { open }]">
       <div class="help-header">
         <h2>{{ t("help.title") }}</h2>
-        <button class="help-close" @click="close" aria-label="Close">
-          
-        </button>
+          <button class="help-close" @click="close" aria-label="Close">
+            ✕
+          </button>
       </div>
 
       <div class="help-categories">
@@ -24,7 +24,7 @@
           :class="['cat-btn', { active: activeCategory === cat.key }]"
           @click="activeCategory = cat.key"
         >
-          {{ cat.icon }} {{ cat.label }}
+          {{ cat.icon }} {{ t(cat.label) }}
         </button>
       </div>
 
@@ -351,15 +351,15 @@ const open = ref(false);
 const activeCategory = ref("navigation");
 
 const categories = [
-  { key: "welcome", label: t("help.categoryWelcome"), icon: "" },
-  { key: "navigation", label: t("help.categoryNavigation"), icon: "" },
-  { key: "tracking", label: t("help.categoryTracking"), icon: "" },
-  { key: "rides", label: t("help.categoryRides"), icon: "" },
-  { key: "import", label: t("help.categoryImport"), icon: "" },
-  { key: "settings", label: t("help.categorySettings"), icon: "" },
-  { key: "athlete", label: t("help.categoryAthlete"), icon: "" },
-  { key: "coach", label: t("help.categoryCoach"), icon: "" },
-  { key: "zones", label: t("help.categoryZones"), icon: "" },
+  { key: "welcome", label: "help.categoryWelcome", icon: "" },
+  { key: "navigation", label: "help.categoryNavigation", icon: "" },
+  { key: "tracking", label: "help.categoryTracking", icon: "" },
+  { key: "rides", label: "help.categoryRides", icon: "" },
+  { key: "import", label: "help.categoryImport", icon: "" },
+  { key: "settings", label: "help.categorySettings", icon: "" },
+  { key: "athlete", label: "help.categoryAthlete", icon: "" },
+  { key: "coach", label: "help.categoryCoach", icon: "" },
+  { key: "zones", label: "help.categoryZones", icon: "" },
 ];
 
 const loggedIn = computed(() => auth.isLoggedIn);

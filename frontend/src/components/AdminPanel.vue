@@ -28,14 +28,14 @@ class="admin-panel">
         <button class="admin-card"
 @click="loadStats" :disabled="loadingStats">
           <div class="admin-icon"></div>
-          <div class="admin-label">System Stats</div>
-          <div class="admin-desc">View database and API metrics</div>
+          <div class="admin-label">Statistiche Sistema</div>
+          <div class="admin-desc">Visualizza metriche database e API</div>
         </button>
 
         <button class="admin-card"
 @click="backupDb">
           <div class="admin-icon"></div>
-          <div class="admin-label">Backup DB</div>
+          <div class="admin-label">Backup Database</div>
           <div class="admin-desc">Download database dump</div>
         </button>
 
@@ -51,24 +51,24 @@ class="admin-panel">
           "
         >
           <div class="admin-icon"></div>
-          <div class="admin-label">Create Indexes</div>
-          <div class="admin-desc">Rebuild knowledge base indexes</div>
+          <div class="admin-label">Crea Indici</div>
+          <div class="admin-desc">Ricostruisci indici knowledge base</div>
         </button>
 
         <button
           class="admin-card danger"
           :disabled="loadingReset"
           @click="
-            askConfirm(
-              'Reset Demo',
-              'This will restore demo data and overwrite current data. Continue?',
-              resetDemo,
-            )
+              askConfirm(
+                'Reset Dati Demo',
+                'Ripristineremo i dati demo sovrascrivendo quelli correnti. Continuare?',
+                resetDemo,
+              )
           "
         >
           <div class="admin-icon"></div>
-          <div class="admin-label">Reset Demo</div>
-          <div class="admin-desc">Restore demo data</div>
+          <div class="admin-label">Reset Dati Demo</div>
+          <div class="admin-desc">Ripristina dati dimostrativi</div>
         </button>
 
         <button
@@ -104,7 +104,7 @@ class="admin-panel">
 
       <div v-if="stats"
 class="result-section">
-        <div class="result-header"> Statistics Output</div>
+        <div class="result-header">Output Statistiche</div>
         <pre class="result-box">{{ stats }}</pre>
       </div>
 
@@ -121,8 +121,8 @@ class="error-section">
       v-model="confirmVisible"
       :title="confirmTitle"
       :message="confirmMessage"
-      confirm-label="Confirm"
-      cancel-label="Cancel"
+      confirm-label="Conferma"
+      cancel-label="Annulla"
       @confirm="onConfirm"
     />
   </div>

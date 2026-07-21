@@ -7,15 +7,15 @@
       <div
 class="pwa-banner-icon" aria-hidden="true"></div>
       <div class="pwa-banner-text">
-        <strong>Install BikeMaster</strong>
-        <span>Add to home screen for offline access</span>
+        <strong>Installa BikeMaster</strong>
+        <span>Aggiungi alla home screen per accesso offline</span>
       </div>
       <button
         class="btn btn-primary btn-sm"
         aria-label="Install BikeMaster app"
         @click="install"
       >
-        Install
+        Installa
       </button>
       <button
         class="pwa-banner-close"

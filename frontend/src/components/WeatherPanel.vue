@@ -3,11 +3,11 @@
      UI: form coordinate, card meteo con score colorato, stati loading/errore/vuoto e griglia forecast 7 giorni. -->
 <template>
   <div class="panel">
-    <h2> Weather</h2>
+    <h2> Meteo</h2>
 
     <div class="form-grid">
       <div class="form-group">
-        <label for="weather-lat">Latitude</label>
+        <label for="weather-lat">Latitudine</label>
         <input
           id="weather-lat"
           v-model.number="lat"
@@ -17,7 +17,7 @@
         >
       </div>
       <div class="form-group">
-        <label for="weather-lon">Longitude</label>
+        <label for="weather-lon">Longitudine</label>
         <input
           id="weather-lon"
           v-model.number="lon"
@@ -27,7 +27,7 @@
         >
       </div>
       <div class="form-group">
-        <label for="weather-date">Date (optional)</label>
+        <label for="weather-date">Data (opzionale)</label>
         <input
 id="weather-date" type="date" v-model="date" />
       </div>
@@ -37,13 +37,13 @@ id="weather-date" type="date" v-model="date" />
           :disabled="loading"
           @click="fetchWeather"
         >
-          {{ loading ? " Loading..." : " Get Weather" }}
+          {{ loading ? " Caricamento..." : " Ottieni Meteo" }}
         </button>
       </div>
     </div>
 
     <div v-if="loading" class="loading-text">
-      <span class="spinner" /> Loading weather...
+      <span class="spinner" /> Caricamento meteo...
     </div>
 
     <div v-else-if="weatherError" class="error-box">
@@ -52,10 +52,9 @@ id="weather-date" type="date" v-model="date" />
 
     <div v-else-if="!weather" class="empty-state">
       <div class="empty-icon"></div>
-      <div class="empty-title">Weather Information</div>
+      <div class="empty-title">Informazioni Meteo</div>
       <div class="empty-desc">
-        Enter coordinates and click "Get Weather" for current conditions and
-        cycling-specific advice
+        Inserisci le coordinate e clicca "Ottieni Meteo" per le condizioni attuali e consigli ciclistici
       </div>
     </div>
 
@@ -94,9 +93,9 @@ class="weather-score" :class="'score-' + weather.score"
     </div>
 
     <div class="panel" style="margin-top: 20px">
-      <h3> 7-Day Forecast</h3>
+      <h3> Previsioni 7 Giorni</h3>
       <div v-if="forecastLoading" class="loading-text">
-        Loading forecasts...
+        Caricamento previsioni...
       </div>
       <div v-else class="forecast-grid">
         <div v-for="f in forecast" :key="f.date" class="forecast-card">

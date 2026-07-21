@@ -4,17 +4,17 @@
 <template>
   <section class="charts-panel">
     <div class="panel">
-      <h2> Performance Trends</h2>
+      <h2> Trend Performance</h2>
       <div class="chart-controls">
         <label>
           {{ t("charts.metric") }}
           <select id="metric-select"
 name="metric" v-model="selectedMetric">
-            <option value="distance_km">Distance (km)</option>
-            <option value="avg_speed_kmh">Avg Speed (km/h)</option>
-            <option value="duration_minutes">Duration (min)</option>
-            <option value="calories">Calories</option>
-            <option value="elevation_gain_m">Elevation (m)</option>
+            <option value="distance_km">Distanza (km)</option>
+            <option value="avg_speed_kmh">Velocità Media (km/h)</option>
+            <option value="duration_minutes">Durata (min)</option>
+            <option value="calories">Calorie</option>
+            <option value="elevation_gain_m">Dislivello (m)</option>
           </select>
         </label>
         <label>
@@ -40,7 +40,7 @@ class="chart-summary">
           </div>
         </div>
         <div class="chart-card">
-          <h3> Monthly Progression</h3>
+          <h3> Progressione Mensile</h3>
           <BaseChart
             :config="monthlyConfig"
             empty-label="Nessun dato mensile"

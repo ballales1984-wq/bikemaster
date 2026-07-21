@@ -15,7 +15,7 @@ aria-hidden="true"></span>
       <div class="stat-value">
         {{ animatedRides }}
       </div>
-      <div class="stat-label">Rides</div>
+       <div class="stat-label">Uscite</div>
     </div>
     <div
       v-stagger
@@ -26,7 +26,7 @@ aria-hidden="true"></span>
       <span class="stat-icon"
 aria-hidden="true"></span>
       <div class="stat-value">{{ animatedDistance }} km</div>
-      <div class="stat-label">Total Distance</div>
+       <div class="stat-label">Distanza Totale</div>
     </div>
     <div
       v-stagger
@@ -39,7 +39,7 @@ aria-hidden="true"></span>
       <div class="stat-value">
         {{ animatedCalories }}
       </div>
-      <div class="stat-label">Calories</div>
+       <div class="stat-label">Calorie</div>
     </div>
     <div
       v-stagger
@@ -50,7 +50,7 @@ aria-hidden="true"></span>
       <span class="stat-icon"
 aria-hidden="true"></span>
       <div class="stat-value">{{ animatedSpeed }} km/h</div>
-      <div class="stat-label">Avg Speed</div>
+       <div class="stat-label">Velocità Media</div>
     </div>
     <div
       v-stagger
@@ -61,23 +61,21 @@ aria-hidden="true"></span>
       <span class="stat-icon"
 aria-hidden="true">⏱</span>
       <div class="stat-value">{{ animatedHours }} h</div>
-      <div class="stat-label">Total Hours</div>
+       <div class="stat-label">Ore Totali</div>
     </div>
     <button
       v-stagger
       class="stat-card stat-refresh"
       :style="{ '--stagger-index': 5 }"
       :disabled="loading"
-      :aria-label="loading ? 'Updating in progress' : 'Refresh statistics'"
+      :aria-label="loading ? 'Aggiornamento in corso' : 'Aggiorna statistiche'"
       @click="$emit('refresh')"
     >
       <span class="stat-icon"
 :class="{ spin: loading }">{{
-        loading ? "" : ""
+        loading ? "⏳" : "🔄"
       }}</span>
-      <div class="stat-label">
-        {{ loading ? "Updating..." : "Refresh" }}
-      </div>
+      <div class="stat-label">{{ loading ? "Aggiornamento..." : "Aggiorna" }}</div>
     </button>
   </div>
 </template>

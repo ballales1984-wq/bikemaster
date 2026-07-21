@@ -304,7 +304,7 @@ v-if="ride.external_source" class="source-badge"
               :aria-label="`Elimina uscita del ${ride.date}`"
               @click.stop="askDelete(ride)"
             >
-              
+              🗑️
             </button>
           </div>
         </div>

@@ -3,7 +3,7 @@
      UI: input Athlete ID + pulsante carica, barra progresso totale, griglia di card badge con progresso e spunta "ottenuto". -->
 <template>
   <div class="panel">
-    <h2> Badge System</h2>
+    <h2> Sistema Badge</h2>
 
     <div class="form-grid">
       <div class="form-group">
@@ -17,7 +17,7 @@
       </div>
       <div class="form-group">
         <button class="btn btn-primary" @click="loadBadges">
-           Load Badges
+           Carica Badge
         </button>
       </div>
     </div>
@@ -25,14 +25,14 @@
     <div
 v-if="loading" class="loading-text"
 >
-      <span class="spinner" /> Loading badges...
+      <span class="spinner" /> Caricamento badge...
     </div>
 
     <div
 v-if="!loading && !badgesData" class="empty-state">
       <div class="empty-icon"></div>
-      <div class="empty-title">No badges loaded</div>
-      <div class="empty-desc">Enter an Athlete ID to view your badges</div>
+        <div class="empty-title">Nessun badge caricato</div>
+        <div class="empty-desc">Inserisci un ID Atleta per visualizzare i tuoi badge</div>
     </div>
 
     <div
@@ -42,7 +42,7 @@ v-if="badgesData" class="badges-container">
           <div class="stat-value">
             {{ badgesData.achieved }}/{{ badgesData.total_badges }}
           </div>
-          <div class="stat-label">Badges Unlocked</div>
+          <div class="stat-label">Badge Sbloccati</div>
         </div>
         <div class="progress-bar">
           <div

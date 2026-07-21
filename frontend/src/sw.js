@@ -19,7 +19,7 @@ setCacheNameDetails({
   suffix: "v2",
 });
 
-const STATIC_CACHE = "bikemaster-static-v7";
+const STATIC_CACHE = "bikemaster-static-v8";
 const API_CACHE = "bikemaster-api-v1";
 const IMAGE_CACHE = "bikemaster-images-v1";
 const RIDE_QUEUE_CACHE = "bikemaster-ride-queue-v1";

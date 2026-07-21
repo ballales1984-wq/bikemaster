@@ -89,7 +89,7 @@ const status = reactive<SyncStatus>({
 });
 
 const statusLabel = computed(() => {
-  if (status.mode === "cloud") return "Cloud sync";
+  if (status.mode === "cloud") return "Sincronizzazione cloud";
   if (status.mode === "local") return t("sync.localTitle");
   return String(status.mode || "—");
 });
@@ -103,9 +103,9 @@ const lastSyncLabel = computed(() => {
   if (!status.last_sync_at) return "";
   try {
     const d = new Date(status.last_sync_at);
-    return `Last sync: ${d.toLocaleString()}`;
+    return `Ultima sincronizzazione: ${d.toLocaleString()}`;
   } catch {
-    return `Last sync: ${status.last_sync_at}`;
+    return `Ultima sincronizzazione: ${status.last_sync_at}`;
   }
 });
 

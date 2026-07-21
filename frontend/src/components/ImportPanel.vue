@@ -7,7 +7,7 @@
       <h2> Import Routes</h2>
 
       <div class="form-group">
-        <label for="import-file">Upload GPX or FIT file</label>
+        <label for="import-file">Carica file GPX o FIT</label>
         <div
           class="upload-area"
           @click="pickFile"

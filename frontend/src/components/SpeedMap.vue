@@ -9,10 +9,10 @@ della configurazione. Props: gpsPoints, loading, error.
     <div
 ref="mapEl" class="map-canvas" />
     <div
-v-if="loading" class="map-loading">Loading speed map...</div>
+v-if="loading" class="map-loading">Caricamento mappa velocità...</div>
     <div
 v-if="!loading && !error" class="map-speed-legend">
-      <div class="legend-title">Speed (km/h)</div>
+      <div class="legend-title">Velocità (km/h)</div>
       <div class="legend-bar">
         <span>{{ maxSpeed.toFixed(1) }}</span>
         <div class="bar-gradient" />

@@ -46,7 +46,7 @@
         <transition name="fade">
           <div v-if="gpsWaiting" class="gps-waiting glass-banner">
             <div class="radar-spinner"></div>
-            <span>Acquiring GPS signal... Move outdoors for better accuracy.</span>
+            <span>Acquisizione segnale GPS... Spostati all'aperto per una maggiore accuratezza.</span>
           </div>
         </transition>
         <transition name="fade">
@@ -61,9 +61,9 @@
         <ControlsBar :is-paused="isPaused" @pause="pauseTracking" @resume="resumeTracking" @stop="stopTracking" />
 
         <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete glass-panel">
-          <p>Tracking completed! File ready for upload.</p>
+          <p>Tracciamento completato! File pronto per il caricamento.</p>
           <button class="btn btn-primary btn-large" :disabled="isUploading" @click="uploadRide">
-            {{ isUploading ? 'Uploading...' : 'Upload to BikeMaster' }}
+            {{ isUploading ? 'Caricamento...' : 'Carica su BikeMaster' }}
           </button>
         </div>
       </div>

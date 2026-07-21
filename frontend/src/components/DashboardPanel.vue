@@ -17,7 +17,7 @@
         :disabled="loading"
         @click="load"
       >
-        <span :class="{ spinner: loading }">{{ loading ? "" : "" }}</span>
+          <span :class="{ spinner: loading }">{{ loading ? "⏳" : "🔄" }}</span>
         {{ loading ? "Aggiornamento..." : "Aggiorna" }}
       </button>
     </div>

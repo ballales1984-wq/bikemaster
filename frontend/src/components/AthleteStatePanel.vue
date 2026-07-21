@@ -11,7 +11,7 @@
         :aria-label="loading ? 'Updating' : 'Refresh state'"
         @click="refresh"
       >
-        {{ loading ? "..." : "" }}
+        {{ loading ? "⏳" : "🔄" }}
       </button>
     </div>
 
