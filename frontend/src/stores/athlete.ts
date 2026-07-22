@@ -31,6 +31,20 @@ export interface AthleteProfile extends Athlete {
   best_segments?: string | null;
   medical_notes?: string | null;
   equipment?: string | null;
+  body_water_percentage?: number;
+  muscle_mass_percentage?: number;
+  bmr_kcal?: number;
+  fat_mass_kg?: number;
+  subcutaneous_fat_kg?: number;
+  subcutaneous_fat_percentage?: number;
+  visceral_fat_level?: number;
+  visceral_fat_kg?: number;
+  muscle_mass_kg?: number;
+  bone_mass_kg?: number;
+  protein_percentage?: number;
+  protein_kg?: number;
+  body_age?: number;
+  apparent_age?: number;
 }
 
 export const useAthleteStore = defineStore("athlete", () => {

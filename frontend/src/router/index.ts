@@ -364,7 +364,7 @@ router.onError((error, to) => {
     /dynamically imported module|Importing a module script failed|Failed to fetch|Loading chunk|error loading dynamically/i.test(
       message,
     );
-  if (!isChunkError) return;
+  console.error("[router] navigation error:", error, "to:", to?.fullPath);
   const key = AUTH_CHUNK_RELOAD_KEY;
   const last = Number(sessionStorage.getItem(key) || "0");
   if (Date.now() - last < 10000) return; // already tried recently, avoid a loop

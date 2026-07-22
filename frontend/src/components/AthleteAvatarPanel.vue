@@ -198,7 +198,7 @@ class="legend-color" :style="{ background: cat.color }"
             <div class="player-avatar">
               <span class="avatar-emoji" />
               <div class="avatar-level">
-                <span class="level-badge">Lv.{{ profile?.experience_level || "N/D" }}</span>
+                <span class="level-badge">Lv.{{ profile?.experience_level || "—" }}</span>
               </div>
             </div>
             <div class="player-info">
@@ -214,6 +214,12 @@ class="legend-color" :style="{ background: cat.color }"
                 <span class="meta-item">{{ profile?.weight_kg }} kg</span>
                 <span class="meta-divider">|</span>
                 <span class="meta-item">{{ profile?.height_cm }} cm</span>
+                <span class="meta-divider">|</span>
+                <span class="meta-item">Acqua {{ profile?.body_water_percentage }}%</span>
+                <span class="meta-divider">|</span>
+                <span class="meta-item">Muscoli {{ profile?.muscle_mass_percentage }}%</span>
+                <span class="meta-divider">|</span>
+                <span class="meta-item">BMR {{ profile?.bmr_kcal }} kcal</span>
               </div>
             </div>
           </div>
@@ -242,8 +248,8 @@ class="xp-fill" :style="{ width: xpPercent + '%' }" />
               </div>
               <div class="stat-content">
                 <div
-class="stat-value" :style="{ color: stat.color }"
->
+ class="stat-value" :style="{ color: stat.color }"
+ >
                   {{ stat.value }}
                 </div>
                 <div class="stat-label">
@@ -255,6 +261,35 @@ class="stat-value" :style="{ color: stat.color }"
                   class="stat-fill"
                   :style="{ width: stat.percent + '%', background: stat.color }"
                 />
+              </div>
+            </div>
+          </div>
+
+          <!-- Composizione corporea -->
+          <div class="body-section">
+            <div class="body-title">Composizione Corporea</div>
+            <div class="stats-grid">
+              <div
+                v-for="stat in bodyStats"
+                :key="stat.label"
+                class="stat-card"
+              >
+                <div class="stat-content">
+                  <div
+ class="stat-value" :style="{ color: stat.color }"
+ >
+                    {{ stat.value }}
+                  </div>
+                  <div class="stat-label">
+                    {{ stat.label }}
+                  </div>
+                </div>
+                <div class="stat-bar">
+                  <div
+                    class="stat-fill"
+                    :style="{ width: stat.percent + '%', background: stat.color }"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -432,12 +467,12 @@ const categoryValues = computed(() => {
   const s = athleteState.value;
   if (!s) {
     return {
-      head: "N/D",
-      neck: "N/D",
-      chest: "N/D",
-      core: "N/D",
-      arms: "N/D",
-      legs: "N/D",
+      head: "—",
+      neck: "—",
+      chest: "—",
+      core: "—",
+      arms: "—",
+      legs: "—",
     };
   }
   return {
@@ -481,14 +516,14 @@ const primaryStats = computed(() => {
   return [
     {
       label: "Performance",
-      value: s?.readiness ? `${s.readiness}%` : "N/D",
+      value: s?.readiness ? `${s.readiness}%` : "—",
       icon: "",
       color: "#00ffcc",
       percent: s?.readiness || 0,
     },
     {
       label: "FTP",
-      value: ftp > 0 ? `${ftp}W` : "N/D",
+      value: ftp > 0 ? `${ftp}W` : "—",
       icon: "",
       color: "#ff3366",
       percent: ftp > 0 ? Math.min((ftp / 400) * 100, 100) : 0,
@@ -502,10 +537,61 @@ const primaryStats = computed(() => {
     },
     {
       label: "Fitness (CTL)",
-      value: s?.ctl ? s.ctl.toFixed(1) : "N/D",
+      value: s?.ctl ? s.ctl.toFixed(1) : "—",
       icon: "",
       color: "#0088ff",
       percent: s?.ctl ? Math.min((s.ctl / 100) * 100, 100) : 0,
+    },
+  ];
+});
+
+const bodyStats = computed(() => {
+  const p = profile.value;
+  const weight = p?.weight_kg || 70;
+  const muscle = p?.muscle_mass_kg || 0;
+  const bone = p?.bone_mass_kg || 0;
+  const fat = p?.fat_mass_kg || 0;
+  const musclePct = p?.muscle_mass_percentage || 0;
+  const waterPct = p?.body_water_percentage || 0;
+  const visceral = p?.visceral_fat_level || 0;
+  const proteinPct = p?.protein_percentage || 0;
+
+  return [
+    {
+      label: "Acqua",
+      value: `${waterPct.toFixed(1)}%`,
+      color: "#00b4d8",
+      percent: Math.min(waterPct, 100),
+    },
+    {
+      label: "Muscoli",
+      value: `${muscle.toFixed(1)} kg`,
+      color: "#e63946",
+      percent: Math.min((muscle / 60) * 100, 100),
+    },
+    {
+      label: "Osso",
+      value: `${bone.toFixed(1)} kg`,
+      color: "#8ecae6",
+      percent: Math.min((bone / 6) * 100, 100),
+    },
+    {
+      label: "Grasso",
+      value: `${fat.toFixed(1)} kg`,
+      color: "#ffb703",
+      percent: Math.min((fat / weight) * 100, 100),
+    },
+    {
+      label: "Viscerale",
+      value: `${visceral.toFixed(1)}`,
+      color: "#fb8500",
+      percent: Math.min((visceral / 20) * 100, 100),
+    },
+    {
+      label: "Proteine",
+      value: `${proteinPct.toFixed(1)}%`,
+      color: "#2a9d8f",
+      percent: Math.min(proteinPct, 100),
     },
   ];
 });

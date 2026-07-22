@@ -33,6 +33,49 @@ export function hexToRgb(hex: string): [number, number, number] {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
+interface GeoJSONLike {
+  type: string;
+  features?: Array<{
+    type: string;
+    properties?: Record<string, any>;
+    geometry?: {
+      type: string;
+      coordinates?: any[];
+    };
+  }>;
+  metadata?: Record<string, any>;
+}
+
+function featureToEntity(
+  feature: GeoJSONLike["features"][0],
+): AetherEntity | null {
+  const props = feature.properties || {};
+  const tipo = props.tipo;
+  if (!tipo) return null;
+
+  const char = typeof props.char === "string" ? props.char : "#FF6B00";
+  const geom = feature.geometry;
+  if (!geom) return { tipo, pts: [], char };
+
+  let coords: number[][] = [];
+  if (geom.type === "LineString") {
+    coords = geom.coordinates as number[][];
+  } else if (geom.type === "Point") {
+    coords = [geom.coordinates as number[]];
+  } else {
+    return null;
+  }
+
+  const pts = coords.map((c) => {
+    if (Array.isArray(c) && c.length >= 2) {
+      return [c[1], c[0], c[2] ?? 0];
+    }
+    return [0, 0, 0];
+  });
+
+  return { tipo, pts, char };
+}
+
 export function useAetherMap(rideIds: Ref<number[]>): AetherMapState {
   const scene = ref<AetherScene | null>(null);
   const loading = ref(false);
@@ -60,13 +103,24 @@ export function useAetherMap(rideIds: Ref<number[]>): AetherMapState {
             { suppressAuthClear: true },
           );
           if (meta.engine !== "aethermap" || !meta.map_url) return;
-          const s = await apiGet<AetherScene>(
+          const raw = await apiGet<GeoJSONLike | AetherScene>(
             meta.map_url,
             {},
             { suppressAuthClear: true },
           );
-          if (s.entities?.length) entities.push(...s.entities);
-          if (s.statistics) statistics = s.statistics;
+          if ((raw as GeoJSONLike).type === "FeatureCollection") {
+            const fc = raw as GeoJSONLike;
+            for (const feature of fc.features || []) {
+              const ent = featureToEntity(feature);
+              if (ent) entities.push(ent);
+            }
+            const md = (fc as any).metadata;
+            if (md?.statistics) statistics = md.statistics;
+          } else {
+            const legacy = raw as AetherScene;
+            if (legacy.entities?.length) entities.push(...legacy.entities);
+            if (legacy.statistics) statistics = legacy.statistics;
+          }
         } catch (e) {
           errors.push(e instanceof Error ? e.message : String(e));
         }

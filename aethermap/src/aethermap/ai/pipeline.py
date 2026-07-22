@@ -17,11 +17,14 @@ from aethermap.ai.researcher import Researcher
 
 
 class WorldStore:
-    def __init__(self) -> None:
+    def __init__(self, store: Any = None) -> None:
+        self.store = store
         self.objects: dict[str, Oggetto] = {}
 
     def add(self, obj: Oggetto) -> None:
         self.objects[obj.id] = obj
+        if self.store is not None:
+            self.store.add(obj)
 
     def get(self, oid: str) -> Oggetto | None:
         return self.objects.get(oid)

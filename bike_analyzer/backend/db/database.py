@@ -145,6 +145,20 @@ def init_db():
             medical_notes TEXT,
             equipment TEXT,
             ftp_watts REAL,
+            body_water_percentage REAL,
+            muscle_mass_percentage REAL,
+            bmr_kcal REAL,
+            fat_mass_kg REAL,
+            subcutaneous_fat_kg REAL,
+            subcutaneous_fat_percentage REAL,
+            visceral_fat_level REAL,
+            visceral_fat_kg REAL,
+            muscle_mass_kg REAL,
+            bone_mass_kg REAL,
+            protein_percentage REAL,
+            protein_kg REAL,
+            body_age INTEGER,
+            apparent_age INTEGER,
             password_hash TEXT,
             tenant_id INTEGER DEFAULT 0,
             created_at TEXT
@@ -218,6 +232,34 @@ def init_db():
             conn.execute("ALTER TABLE athletes ADD COLUMN email TEXT")
         if "picture" not in athlete_cols:
             conn.execute("ALTER TABLE athletes ADD COLUMN picture TEXT")
+        if "body_water_percentage" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN body_water_percentage REAL")
+        if "muscle_mass_percentage" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN muscle_mass_percentage REAL")
+        if "bmr_kcal" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN bmr_kcal REAL")
+        if "fat_mass_kg" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN fat_mass_kg REAL")
+        if "subcutaneous_fat_kg" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN subcutaneous_fat_kg REAL")
+        if "subcutaneous_fat_percentage" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN subcutaneous_fat_percentage REAL")
+        if "visceral_fat_level" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN visceral_fat_level REAL")
+        if "visceral_fat_kg" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN visceral_fat_kg REAL")
+        if "muscle_mass_kg" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN muscle_mass_kg REAL")
+        if "bone_mass_kg" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN bone_mass_kg REAL")
+        if "protein_percentage" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN protein_percentage REAL")
+        if "protein_kg" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN protein_kg REAL")
+        if "body_age" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN body_age INTEGER")
+        if "apparent_age" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN apparent_age INTEGER")
         conn.execute("""CREATE TABLE IF NOT EXISTS training_stress_days (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
@@ -959,9 +1001,14 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                          years_active, weekly_sessions, monthly_hours, annual_hours,
                          experience_level, goals, preferred_terrain, weekly_volume_km,
                          best_segments, medical_notes, equipment, ftp_watts,
+                         body_water_percentage, muscle_mass_percentage, bmr_kcal,
+                         fat_mass_kg, subcutaneous_fat_kg, subcutaneous_fat_percentage,
+                         visceral_fat_level, visceral_fat_kg, muscle_mass_kg, bone_mass_kg,
+                         protein_percentage, protein_kg, body_age, apparent_age,
                          password_hash, tenant_id, created_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                               ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                               ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                               ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             athlete.get("name"),
                             athlete.get("email"),
@@ -982,6 +1029,20 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                             athlete.get("medical_notes"),
                             athlete.get("equipment"),
                             athlete.get("ftp_watts"),
+                            athlete.get("body_water_percentage"),
+                            athlete.get("muscle_mass_percentage"),
+                            athlete.get("bmr_kcal"),
+                            athlete.get("fat_mass_kg"),
+                            athlete.get("subcutaneous_fat_kg"),
+                            athlete.get("subcutaneous_fat_percentage"),
+                            athlete.get("visceral_fat_level"),
+                            athlete.get("visceral_fat_kg"),
+                            athlete.get("muscle_mass_kg"),
+                            athlete.get("bone_mass_kg"),
+                            athlete.get("protein_percentage"),
+                            athlete.get("protein_kg"),
+                            athlete.get("body_age"),
+                            athlete.get("apparent_age"),
                             athlete.get("password_hash"),
                             athlete.get("tenant_id", tenant_id),
                             datetime.now(UTC).isoformat(),
@@ -994,9 +1055,14 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                          years_active, weekly_sessions, monthly_hours, annual_hours,
                          experience_level, goals, preferred_terrain, weekly_volume_km,
                          best_segments, medical_notes, equipment, ftp_watts,
+                         body_water_percentage, muscle_mass_percentage, bmr_kcal,
+                         fat_mass_kg, subcutaneous_fat_kg, subcutaneous_fat_percentage,
+                         visceral_fat_level, visceral_fat_kg, muscle_mass_kg, bone_mass_kg,
+                         protein_percentage, protein_kg, body_age, apparent_age,
                          password_hash, tenant_id, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                               ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             athlete_id,
                             athlete.get("name"),
@@ -1018,6 +1084,20 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                             athlete.get("medical_notes"),
                             athlete.get("equipment"),
                             athlete.get("ftp_watts"),
+                            athlete.get("body_water_percentage"),
+                            athlete.get("muscle_mass_percentage"),
+                            athlete.get("bmr_kcal"),
+                            athlete.get("fat_mass_kg"),
+                            athlete.get("subcutaneous_fat_kg"),
+                            athlete.get("subcutaneous_fat_percentage"),
+                            athlete.get("visceral_fat_level"),
+                            athlete.get("visceral_fat_kg"),
+                            athlete.get("muscle_mass_kg"),
+                            athlete.get("bone_mass_kg"),
+                            athlete.get("protein_percentage"),
+                            athlete.get("protein_kg"),
+                            athlete.get("body_age"),
+                            athlete.get("apparent_age"),
                             athlete.get("password_hash"),
                             athlete.get("tenant_id", tenant_id),
                             datetime.now(UTC).isoformat(),
@@ -1061,6 +1141,20 @@ def _row_to_athlete(row) -> dict:
         "medical_notes",
         "equipment",
         "ftp_watts",
+        "body_water_percentage",
+        "muscle_mass_percentage",
+        "bmr_kcal",
+        "fat_mass_kg",
+        "subcutaneous_fat_kg",
+        "subcutaneous_fat_percentage",
+        "visceral_fat_level",
+        "visceral_fat_kg",
+        "muscle_mass_kg",
+        "bone_mass_kg",
+        "protein_percentage",
+        "protein_kg",
+        "body_age",
+        "apparent_age",
         "password_hash",
         "tenant_id",
         "created_at",
@@ -1125,7 +1219,11 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
             height_cm=?, fat_percentage=?, years_active=?, weekly_sessions=?,
             monthly_hours=?, annual_hours=?, experience_level=?, goals=?,
             preferred_terrain=?, weekly_volume_km=?, best_segments=?,
-            medical_notes=?, equipment=?, ftp_watts=?, password_hash=?, tenant_id=? WHERE id=?""",
+            medical_notes=?, equipment=?, ftp_watts=?, body_water_percentage=?,
+            muscle_mass_percentage=?, bmr_kcal=?, fat_mass_kg=?, subcutaneous_fat_kg=?,
+            subcutaneous_fat_percentage=?, visceral_fat_level=?, visceral_fat_kg=?,
+            muscle_mass_kg=?, bone_mass_kg=?, protein_percentage=?, protein_kg=?,
+            body_age=?, apparent_age=?, password_hash=?, tenant_id=? WHERE id=?""",
             (
                 merged.get("name"),
                 merged.get("email"),
@@ -1145,6 +1243,20 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
                 merged.get("medical_notes"),
                 merged.get("equipment"),
                 merged.get("ftp_watts"),
+                merged.get("body_water_percentage"),
+                merged.get("muscle_mass_percentage"),
+                merged.get("bmr_kcal"),
+                merged.get("fat_mass_kg"),
+                merged.get("subcutaneous_fat_kg"),
+                merged.get("subcutaneous_fat_percentage"),
+                merged.get("visceral_fat_level"),
+                merged.get("visceral_fat_kg"),
+                merged.get("muscle_mass_kg"),
+                merged.get("bone_mass_kg"),
+                merged.get("protein_percentage"),
+                merged.get("protein_kg"),
+                merged.get("body_age"),
+                merged.get("apparent_age"),
                 merged.get("password_hash"),
                 merged.get("tenant_id", athlete_id),
                 athlete_id,

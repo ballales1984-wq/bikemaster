@@ -1,3 +1,11 @@
+from aethermap.ai.models import (
+    Confidenza,
+    Geometria,
+    Oggetto,
+    Posizione,
+    Proposta,
+    Stato,
+)
 from aethermap.core.coordinates import (
     ECEF,
     CubeCell,
@@ -11,14 +19,23 @@ from aethermap.core.coordinates import (
     h3_cell,
     s2_cell_id,
 )
+from aethermap.data.store import SpatialStore, WorldStore
 from aethermap.render.projection import latlon_to_vec
 from aethermap.render.scene import Scene
 
 __all__ = [
+    "Confidenza",
     "CubeCell",
     "ECEF",
     "Geodetic",
+    "Geometria",
+    "Oggetto",
+    "Posizione",
+    "Proposta",
     "Scene",
+    "SpatialStore",
+    "Stato",
+    "WorldStore",
     "cube_cell_id",
     "cube_to_geodetic",
     "ecef_to_geodetic",

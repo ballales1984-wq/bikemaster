@@ -104,20 +104,28 @@ v-if="dashboard.athlete" class="dash-card profile-card"
               {{ dashboard.athlete.name || "Atleta" }}
             </div>
             <div class="card-sub">
-              {{ dashboard.athlete.experience_level || "Livello N/D" }}
+              {{ dashboard.athlete.experience_level || "Livello —" }}
             </div>
             <div class="athlete-chips">
               <span v-if="dashboard.athlete.weight_kg"
-class="chip"
+ class="chip"
                 >{{ dashboard.athlete.weight_kg }} kg</span
               >
               <span v-if="dashboard.athlete.ftp_watts"
-class="chip"
+ class="chip"
                 >FTP {{ dashboard.athlete.ftp_watts }}W</span
               >
               <span v-if="dashboard.athlete.age"
-class="chip"
+ class="chip"
                 >{{ dashboard.athlete.age }} anni</span
+              >
+              <span v-if="dashboard.athlete.body_water_percentage"
+ class="chip"
+                >Acqua {{ dashboard.athlete.body_water_percentage }}%</span
+              >
+              <span v-if="dashboard.athlete.muscle_mass_percentage"
+ class="chip"
+                >Muscoli {{ dashboard.athlete.muscle_mass_percentage }}%</span
               >
             </div>
           </div>
@@ -204,7 +212,7 @@ class="bar-fill tsb" :style="tsbStyle" />
               </div>
             </div>
             <div class="fitness-status" :class="statusClass">
-              {{ dashboard.fitness.status || "N/D" }}
+              {{ dashboard.fitness.status || "—" }}
             </div>
           </div>
         </div>

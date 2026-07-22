@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from aethermap.ai.ingest import ingest_sensor_stream_stub
-from aethermap.ai.pipeline import Pipeline, WorldStore
+from aethermap.ai.pipeline import Pipeline
+from aethermap.data.store import SpatialStore, WorldStore as DataWorldStore
 from aethermap.twin.objects import Albero, Montagna, Strada
 
 
@@ -23,11 +24,18 @@ class DigitalTwin:
     """
 
     def __init__(self) -> None:
-        self.store = WorldStore()
+        spatial = SpatialStore()
+        self.store = DataWorldStore(store=spatial)
         self.pipeline = Pipeline(self.store)
 
     def add(self, obj: Strada | Albero | Montagna) -> None:
         self.store.add(obj)
+
+    def query_radius(self, lat: float, lon: float, radius_m: float) -> list:
+        return self.store.query_radius(lat, lon, radius_m)
+
+    def query_s2(self, s2: str) -> list:
+        return self.store.query_s2(s2)
 
     def step(self, env: Environment) -> None:
         for feat in ingest_sensor_stream_stub(3):

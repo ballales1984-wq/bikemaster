@@ -42,7 +42,7 @@ class GPSPoint:
 
     lat: float
     lon: float
-    timestamp: datetime
+    timestamp: datetime | None = None
     altitude: float | None = None
     speed: float | None = None
     power: float | None = None
@@ -178,6 +178,23 @@ class Ride:
         """Duration expressed in hours."""
         return self.duration_minutes / 60.0
 
+    def __post_init__(self) -> None:
+        if self.gps_points and any(isinstance(p, dict) for p in self.gps_points):
+            base_ts = self.date if self.date else None
+            converted: list[GPSPoint] = []
+            for p in self.gps_points:
+                if isinstance(p, dict):
+                    p = dict(p)
+                    if "timestamp" not in p and base_ts:
+                        p["timestamp"] = base_ts
+                    try:
+                        converted.append(GPSPoint(**p))
+                    except Exception:
+                        converted.append(p)
+                else:
+                    converted.append(p)
+            object.__setattr__(self, "gps_points", converted)
+
     def to_dict(self) -> dict:
         """Serialize the ride to a JSON-compatible dict."""
         result = {
@@ -201,7 +218,7 @@ class Ride:
                 {
                     "lat": p.lat,
                     "lon": p.lon,
-                    "timestamp": p.timestamp.isoformat(),
+                    "timestamp": p.timestamp.isoformat() if p.timestamp else None,
                     "altitude": p.altitude,
                     "speed": p.speed,
                     "power": p.power,
@@ -236,6 +253,20 @@ class AthleteProfile:
         medical_notes: Health notes relevant to training.
         equipment: Available bikes/equipment.
         ftp_watts: Functional Threshold Power in watts.
+        body_water_percentage: Total body water percentage.
+        muscle_mass_percentage: Skeletal muscle mass percentage.
+        bmr_kcal: Basal metabolic rate in kcal.
+        fat_mass_kg: Total body fat mass in kg.
+        subcutaneous_fat_kg: Subcutaneous fat mass in kg.
+        subcutaneous_fat_percentage: Subcutaneous fat percentage.
+        visceral_fat_level: Visceral fat level.
+        visceral_fat_kg: Visceral fat mass in kg.
+        muscle_mass_kg: Skeletal muscle mass in kg.
+        bone_mass_kg: Bone mass in kg.
+        protein_percentage: Protein percentage.
+        protein_kg: Protein mass in kg.
+        body_age: Metabolic body age.
+        apparent_age: Apparent age vs chronological age.
         created_at: ISO-8601 creation timestamp.
     """
     id: int | None = None
@@ -256,6 +287,20 @@ class AthleteProfile:
     medical_notes: str | None = None
     equipment: str | None = None
     ftp_watts: float | None = None
+    body_water_percentage: float | None = None
+    muscle_mass_percentage: float | None = None
+    bmr_kcal: float | None = None
+    fat_mass_kg: float | None = None
+    subcutaneous_fat_kg: float | None = None
+    subcutaneous_fat_percentage: float | None = None
+    visceral_fat_level: float | None = None
+    visceral_fat_kg: float | None = None
+    muscle_mass_kg: float | None = None
+    bone_mass_kg: float | None = None
+    protein_percentage: float | None = None
+    protein_kg: float | None = None
+    body_age: int | None = None
+    apparent_age: int | None = None
     created_at: str | None = None
 
     def to_dict(self) -> dict:
@@ -279,6 +324,20 @@ class AthleteProfile:
             "medical_notes": self.medical_notes,
             "equipment": self.equipment,
             "ftp_watts": self.ftp_watts,
+            "body_water_percentage": self.body_water_percentage,
+            "muscle_mass_percentage": self.muscle_mass_percentage,
+            "bmr_kcal": self.bmr_kcal,
+            "fat_mass_kg": self.fat_mass_kg,
+            "subcutaneous_fat_kg": self.subcutaneous_fat_kg,
+            "subcutaneous_fat_percentage": self.subcutaneous_fat_percentage,
+            "visceral_fat_level": self.visceral_fat_level,
+            "visceral_fat_kg": self.visceral_fat_kg,
+            "muscle_mass_kg": self.muscle_mass_kg,
+            "bone_mass_kg": self.bone_mass_kg,
+            "protein_percentage": self.protein_percentage,
+            "protein_kg": self.protein_kg,
+            "body_age": self.body_age,
+            "apparent_age": self.apparent_age,
             "created_at": self.created_at,
         }
 

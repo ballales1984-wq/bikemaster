@@ -459,7 +459,22 @@ def create_app() -> FastAPI:
         @app.get("/{full_path:path}", response_class=HTMLResponse)
         async def spa_fallback(full_path: str):
             """Reindirizza le route non API/statiche all'index.html della SPA."""
-            if full_path.startswith(("api/", "static/", "assets/")):
+            if full_path.startswith(("api/", "static/", "assets/", "sqlite3/")):
+                return Response(status_code=404)
+            # Se la richiesta è per un file statico JS, CSS, WASM, JSON, PNG ecc. non trovato nella root, restituisce 404
+            # per evitare che importScripts/script tag riceva la pagina HTML di index.html.
+            if any(full_path.endswith(ext) for ext in (".js", ".css", ".wasm", ".json", ".png", ".svg", ".webmanifest")):
+                root_file = STATIC_DIR / full_path
+                if root_file.exists() and root_file.is_file():
+                    ext_map = {
+                        ".js": "application/javascript",
+                        ".css": "text/css",
+                        ".wasm": "application/wasm",
+                        ".json": "application/json",
+                        ".webmanifest": "application/manifest+json",
+                    }
+                    media_type = ext_map.get(Path(full_path).suffix)
+                    return _static_file_response(root_file, media_type)
                 return Response(status_code=404)
             return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"))
 

@@ -120,6 +120,7 @@ const tabs = [
   { to: "/calendar", label: "nav.calendar", icon: "📅" },
   { to: "/granfondo", label: "nav.granfondo", icon: "🏁" },
   { to: "/map", label: "nav.maps", icon: "🗺️" },
+  { to: "/itinerary", label: "nav.itinerary", icon: "🧭" },
   { to: "/aethermap", label: "nav.aethermap", icon: "🌍" },
   { to: "/pois", label: "nav.pois", icon: "📍" },
   { to: "/heatmap", label: "nav.heatmap", icon: "🔥" },

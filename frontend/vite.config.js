@@ -37,43 +37,15 @@ const isTauri =
   env.TAURI_ENV_PLATFORM === "win32" ||
   env.TAURI_ENV_PLATFORM === "darwin" ||
   env.TAURI_ENV_PLATFORM === "linux";
+const isDev = env.DEV !== "false" && env.NODE_ENV !== "production";
 
 export default defineConfig({
   base: isTauri ? "./" : "/",
   plugins: [
     vue(),
-    !isTauri &&
+      !isTauri && !isDev &&
       VitePWA({
         registerType: "autoUpdate",
-        includeAssets: [
-          "favicon.svg",
-          "apple-touch-icon.png",
-          "pwa-192x192.png",
-          "pwa-512x512.png",
-        ],
-        strategies: "injectManifest",
-        srcDir: "src",
-        filename: "sw.js",
-        injectManifest: {
-          swDest: "sw.js",
-          injectionPoint: null,
-        },
-        manifest: {
-          name: "BikeMaster",
-          short_name: "BikeMaster",
-          description: "Advanced cycling analytics and AI coaching",
-          theme_color: "#181a1b",
-          background_color: "#ffffff",
-          display: "standalone",
-          icons: [
-            { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
-            { src: "pwa-512x512.png", sizes: "512x512", type: "image/png" },
-          ],
-        },
-        devOptions: {
-          enabled: false,
-          type: "module",
-        },
         workbox: {
           skipWaiting: true,
           clientsClaim: true,

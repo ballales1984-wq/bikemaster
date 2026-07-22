@@ -107,6 +107,138 @@
         >
       </div>
       <div class="form-group">
+        <label for="athlete-water">Acqua Corporea (%)</label>
+        <input
+          id="athlete-water"
+          v-model.number="form.body_water_percentage"
+          type="number"
+          min="0"
+          max="100"
+          step="0.1"
+        >
+      </div>
+      <div class="form-group">
+        <label for="athlete-muscle-pct">Massa Muscolare (%)</label>
+        <input
+          id="athlete-muscle-pct"
+          v-model.number="form.muscle_mass_percentage"
+          type="number"
+          min="0"
+          max="100"
+          step="0.1"
+        >
+      </div>
+      <div class="form-group">
+        <label for="athlete-bmr">Metabolismo Basale (kcal)</label>
+        <input
+          id="athlete-bmr"
+          v-model.number="form.bmr_kcal"
+          type="number"
+          min="500"
+          max="10000"
+          step="1"
+        >
+      </div>
+      <div class="form-group">
+        <label for="athlete-fat-mass">Massa Grassa Corporea (kg)</label>
+        <input
+          id="athlete-fat-mass"
+          v-model.number="form.fat_mass_kg"
+          type="number"
+          min="0"
+          max="300"
+          step="0.1"
+        >
+      </div>
+      <div class="form-group">
+        <label for="athlete-sub-fat">Grasso Sottocutaneo (kg)</label>
+        <input
+          id="athlete-sub-fat"
+          v-model.number="form.subcutaneous_fat_kg"
+          type="number"
+          min="0"
+          max="100"
+          step="0.1"
+        >
+      </div>
+      <div class="form-group">
+        <label for="athlete-sub-fat-pct">Grasso Sottocutaneo (%)</label>
+        <input
+          id="athlete-sub-fat-pct"
+          v-model.number="form.subcutaneous_fat_percentage"
+          type="number"
+          min="0"
+          max="100"
+          step="0.1"
+        >
+      </div>
+      <div class="form-group">
+        <label for="athlete-visceral">Grasso Viscerale (lvl)</label>
+        <input
+          id="athlete-visceral"
+          v-model.number="form.visceral_fat_level"
+          type="number"
+          min="1"
+          max="59"
+          step="1"
+        >
+      </div>
+      <div class="form-group">
+        <label for="athlete-muscle">Massa Muscolare (kg)</label>
+        <input
+          id="athlete-muscle"
+          v-model.number="form.muscle_mass_kg"
+          type="number"
+          min="0"
+          max="120"
+          step="0.1"
+        >
+      </div>
+      <div class="form-group">
+        <label for="athlete-bone">Massa Ossea (kg)</label>
+        <input
+          id="athlete-bone"
+          v-model.number="form.bone_mass_kg"
+          type="number"
+          min="0"
+          max="20"
+          step="0.1"
+        >
+      </div>
+      <div class="form-group">
+        <label for="athlete-protein-pct">Proteine (%)</label>
+        <input
+          id="athlete-protein-pct"
+          v-model.number="form.protein_percentage"
+          type="number"
+          min="0"
+          max="100"
+          step="0.1"
+        >
+      </div>
+      <div class="form-group">
+        <label for="athlete-body-age">Età Corporea</label>
+        <input
+          id="athlete-body-age"
+          v-model.number="form.body_age"
+          type="number"
+          min="10"
+          max="100"
+          step="1"
+        >
+      </div>
+      <div class="form-group">
+        <label for="athlete-apparent-age">Età Apparente</label>
+        <input
+          id="athlete-apparent-age"
+          v-model.number="form.apparent_age"
+          type="number"
+          min="10"
+          max="100"
+          step="1"
+        >
+      </div>
+      <div class="form-group">
         <label for="athlete-years">Anni di attività</label>
         <input
           id="athlete-years"
@@ -208,6 +340,41 @@
         label="Massa Grassa"
       />
       <MetricHistoryChart
+        metric-type="body_water_percentage"
+        :days="365"
+        label="Acqua Corporea"
+      />
+      <MetricHistoryChart
+        metric-type="muscle_mass_percentage"
+        :days="365"
+        label="Massa Muscolare %"
+      />
+      <MetricHistoryChart
+        metric-type="bmr_kcal"
+        :days="365"
+        label="Metabolismo Basale"
+      />
+      <MetricHistoryChart
+        metric-type="fat_mass_kg"
+        :days="365"
+        label="Massa Grassa corporea"
+      />
+      <MetricHistoryChart
+        metric-type="muscle_mass_kg"
+        :days="365"
+        label="Massa Muscolare"
+      />
+      <MetricHistoryChart
+        metric-type="bone_mass_kg"
+        :days="365"
+        label="Massa Ossea"
+      />
+      <MetricHistoryChart
+        metric-type="protein_percentage"
+        :days="365"
+        label="Proteine %"
+      />
+      <MetricHistoryChart
         metric-type="ftp_watts"
         :days="365"
         label="FTP"
@@ -232,6 +399,20 @@ interface AthleteForm {
   weight_kg: number;
   height_cm: number;
   fat_percentage: number;
+  body_water_percentage: number;
+  muscle_mass_percentage: number;
+  bmr_kcal: number;
+  fat_mass_kg: number;
+  subcutaneous_fat_kg: number;
+  subcutaneous_fat_percentage: number;
+  visceral_fat_level: number;
+  visceral_fat_kg: number;
+  muscle_mass_kg: number;
+  bone_mass_kg: number;
+  protein_percentage: number;
+  protein_kg: number;
+  body_age: number;
+  apparent_age: number;
   years_active: number;
   weekly_sessions: number;
   monthly_hours: number;
@@ -257,6 +438,20 @@ const form = ref<AthleteForm>({
   weight_kg: 70,
   height_cm: 175,
   fat_percentage: 15,
+  body_water_percentage: 50,
+  muscle_mass_percentage: 40,
+  bmr_kcal: 1500,
+  fat_mass_kg: 10.5,
+  subcutaneous_fat_kg: 8,
+  subcutaneous_fat_percentage: 12,
+  visceral_fat_level: 5,
+  visceral_fat_kg: 2.5,
+  muscle_mass_kg: 28,
+  bone_mass_kg: 3.5,
+  protein_percentage: 16,
+  protein_kg: 11.2,
+  body_age: 30,
+  apparent_age: 30,
   years_active: 1,
   weekly_sessions: 3,
   monthly_hours: 0,
