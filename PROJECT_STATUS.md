@@ -21,11 +21,9 @@ Progetto cartografico indipendente in `aethermap/` — motore "dal nulla" (cube-
 - Agenti dedicati: `.kilo/agent/aethermap-*.md`.
 
 ### Ultimo Commit
-- `cdd43bb` — fix: wrap password inputs in form to suppress DOM warning
-- `1c199fd` — feat: add initial ride_1_map.json static data file
-- `091a1fa` — feat: Strava incremental sync with last_sync_ts
-- `0aea585` — feat: add nutrition database with autocomplete search and quantity-based logging
-- `22f60ca` — feat(i18n): complete frontend English translation and backend docstring localization
+- `ea2c766` — feat: expand voice commands + fix audio stop behavior
+- Nuovi moduli: `bike_analyzer/backend/geo/` (pipeline geo/mappa), `android/.../sensors/HealthConnectManager.kt` (Health Connect)
+- Frontend: 35+ comandi vocali italiani, `TrackingToolsPanel.vue`, `LiveMap.vue` arricchito, logging pasti con calendario + ricalcolo metabolismo
 
 ---
 
@@ -62,6 +60,14 @@ bike_analyzer/
 │   │   ├── safety_analyzer.py         # Risk score computation (road types + incidents)
 │   │   ├── overpass_client.py         # OpenStreetMap Overpass API (bike lanes, road types)
 │   │   └── incident_fetcher.py        # Road incident data fetching
+│   │
+│   ├── geo/                           # Geo/MAP pipeline (OSM + terrain + route builder)
+│   │   ├── __init__.py                # Exports run_geo_pipeline
+│   │   ├── engine.py                  # Pipeline orchestrator
+│   │   ├── osm.py                     # OSM enrichment (surface, highway)
+│   │   ├── terrain.py                 # DEM sampling + slope
+│   │   ├── route_builder.py           # AetherMap worldstore + GeoJSON
+│   │   └── types.py                   # GeoEnrichedPoint, SegmentEnrichment
 │   │
 │   ├── core/                          # Pure domain logic (internal)
 │   │
@@ -154,11 +160,20 @@ bike_analyzer/
 │   ├── vitest.config.js               # Unit test config
 │   ├── playwright.config.js           # E2E test config
 │   ├── android/                       # Android app (Kotlin + Capacitor)
+│   │   ├── app/src/main/java/com/bikemaster/sensors/
+│   │   │   ├── HealthConnectManager.kt  # Health Connect (weight, HR, steps, exercise)
+│   │   │   ├── BleManager.kt            # BLE scan (weight scale, HR, cadence)
+│   │   │   └── connectors/              # Connector abstraction layer
+│   │   │       ├── HealthConnectConnector.kt
+│   │   │       └── RunstarBleConnector.kt + RunstarDecoder.kt
 │   └── src/
 │       ├── main.ts                    # App Vue mount
 │       ├── App.vue                    # Root component
 │       ├── index.css                  # Global dark theme + design tokens
 │       ├── components/                # 20+ componenti Vue
+│       │   ├── VoiceAssistant.vue     # Floating FAB + Web Speech API
+│       │   ├── TrackingToolsPanel.vue # Map style, POI toggle, center-map, itinerary
+│       │   ├── LiveMap.vue            # Enhanced live tracking map
 │       ├── stores/                    # Pinia state management
 │       ├── composables/               # Composable functions
 │       ├── utils/                     # API client, route mapping

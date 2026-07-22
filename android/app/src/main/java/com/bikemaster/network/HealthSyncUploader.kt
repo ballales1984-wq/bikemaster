@@ -11,7 +11,7 @@ object HealthSyncUploader {
         return try {
             val api = ApiClient.getApi(context)
             val body = metrics.map { m ->
-                mapOf(
+                mapOf<String, Any?>(
                     "metric_type" to m.metric_type,
                     "value" to m.value,
                     "unit" to m.unit,

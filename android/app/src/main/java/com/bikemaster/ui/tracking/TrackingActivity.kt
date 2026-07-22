@@ -18,7 +18,6 @@ import com.bikemaster.R
 import com.bikemaster.databinding.ActivityTrackingBinding
 import com.bikemaster.network.ApiClient
 import com.bikemaster.sensors.SensorManager
-import com.bikemaster.tracking.BikeTrackingPlugin
 import com.bikemaster.tracking.BikeTrackingService
 import com.bikemaster.tracking.TrackingState
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -171,7 +170,6 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
                         currentOutputPath = outputPath
                         binding.btnSave.isEnabled = true
                         Toast.makeText(this@TrackingActivity, "Tracciamento completato", Toast.LENGTH_SHORT).show()
-                        BikeTrackingPlugin.notifyTrackingComplete(this, outputPath)
                     }
                     binding.btnStart.isEnabled = true
                     binding.btnStop.isEnabled = false

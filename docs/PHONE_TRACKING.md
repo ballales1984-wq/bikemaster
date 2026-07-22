@@ -86,7 +86,41 @@ Vedi file: `frontend/src/views/RideTracking.vue`
 3. Backend processa → crea Ride + calcola metriche + AI Coach
 4. Notifica push all'utente
 
-## 8. Roadmap di Sviluppo
+## 9. Health Connect (Android)
+
+Android Health Connect integration for reading/writing health data directly from the system health store.
+
+### Permessi Richiesti
+
+| Data Type | Read | Write |
+|---|---|---|
+| Weight | ✅ | ✅ |
+| Heart Rate | ✅ | ✅ |
+| Steps | ✅ | ✅ |
+| Exercise Session | ✅ | ✅ |
+| Height | ✅ | ✅ |
+| Body Fat | ✅ | ✅ |
+
+### Componenti
+
+- `HealthConnectManager.kt` — SDK availability check, permission controller, record read/write flows
+- `BleManager.kt` — BLE scan for weight scale, heart rate, cycling speed/cadence services
+- `RunstarBleConnector.kt` / `RunstarDecoder.kt` — Runstar scale specific BLE protocol decoder
+- `ConnectorManager.kt` — abstraction layer selecting Health Connect vs BLE vs other connectors
+
+### Architettura
+
+```
+Vue Frontend (HealthPanel)
+    ↓ Capacitor Bridge
+Android App (HealthConnectManager + BleManager)
+    ↓
+Android Health Connect SDK / BLE GATT
+    ↓
+Backend API (POST /api/v1/athletes/{id}/metrics)
+```
+
+## 10. Roadmap di Sviluppo
 
 | Fase | Descrizione | Durata | Priorità |
 |------|-------------|--------|----------|

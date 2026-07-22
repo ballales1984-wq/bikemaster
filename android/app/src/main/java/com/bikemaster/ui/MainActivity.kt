@@ -1,9 +1,9 @@
 package com.bikemaster.ui
 
 import android.os.Bundle
-import com.getcapacitor.BridgeActivity
+import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : BridgeActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
     }

@@ -1,11 +1,11 @@
 package com.bikemaster.sensors
 
-import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.bluetooth.le.*
 import android.content.Context
 import android.os.ParcelUuid
 import android.util.Log
+import com.bikemaster.sensors.decoders.RunstarDecoder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +22,7 @@ class BleManager(private val context: Context) {
 
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     private var bluetoothLeScanner: BluetoothLeScanner? = null
-    private var scanCallback: LeScanCallback? = null
+    private var scanCallback: ScanCallback? = null
     private val gattConnections = mutableMapOf<String, BluetoothGatt>()
     private val _scanResults = MutableStateFlow<List<ScanResult>>(emptyList())
     val scanResults: Flow<List<ScanResult>> = _scanResults.asStateFlow()
@@ -42,16 +42,17 @@ class BleManager(private val context: Context) {
     fun startScan(filters: List<ScanFilter>? = null): Flow<List<ScanResult>> {
         val results = mutableListOf<ScanResult>()
         val flow = kotlinx.coroutines.flow.callbackFlow {
-            scanCallback = object : LeScanCallback() {
+            scanCallback = object : ScanCallback() {
                 override fun onScanResult(callbackType: Int, result: ScanResult) {
                     results.add(result)
                     _scanResults.value = results.toList()
                     trySend(results.toList())
                 }
 
-                override fun onBatchScanResults(results: List<ScanResult>) {
-                    results.forEach { this@BleManager._scanResults.value += it }
-                    trySend(this@BleManager._scanResults.value)
+                override fun onBatchScanResults(scanResults: List<ScanResult>) {
+                    scanResults.forEach { results.add(it) }
+                    _scanResults.value = results.toList()
+                    trySend(results.toList())
                 }
 
                 override fun onScanFailed(errorCode: Int) {
@@ -70,13 +71,13 @@ class BleManager(private val context: Context) {
     }
 
     fun stopScan() {
-        scanCallback?.let {
-            bluetoothLeScanner?.stopScan(it)
+        val callback = scanCallback
+        if (callback != null) {
+            bluetoothLeScanner?.stopScan(callback)
             scanCallback = null
         }
     }
 
-    @SuppressLint("MissingPermission")
     fun connect(address: String): BluetoothGatt? {
         val device = bluetoothAdapter?.getRemoteDevice(address) ?: return null
         val gatt = device.connectGatt(context, false, gattCallback)
@@ -91,7 +92,6 @@ class BleManager(private val context: Context) {
         _connectionState.value = _connectionState.value - address
     }
 
-    @SuppressLint("MissingPermission")
     fun discoverServices(address: String): BluetoothGatt? {
         return gattConnections[address]?.also { gatt ->
             gatt.discoverServices()
@@ -103,7 +103,6 @@ class BleManager(private val context: Context) {
     }
 
     fun readCharacteristic(address: String, characteristic: BluetoothGattCharacteristic): ByteArray? {
-        @SuppressLint("MissingPermission")
         val gatt = gattConnections[address] ?: return null
         return if (gatt.readCharacteristic(characteristic)) {
             characteristic.value
@@ -113,7 +112,6 @@ class BleManager(private val context: Context) {
     }
 
     fun setCharacteristicNotification(address: String, characteristic: BluetoothGattCharacteristic, enable: Boolean) {
-        @SuppressLint("MissingPermission")
         val gatt = gattConnections[address] ?: return
         gatt.setCharacteristicNotification(characteristic, enable)
     }

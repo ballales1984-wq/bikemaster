@@ -58,6 +58,31 @@ dipendere da servizi cloud.
 - **Android**: Kotlin foreground service (`BikeTrackingService.kt`) + Capacitor plugin
 - **iOS**: Swift plugin (`BikeTrackingPlugin.swift`) + Capacitor config
 
+## Voice Commands
+
+BikeMaster includes an Italian voice command system powered by the Web Speech API. The registry in `frontend/src/services/voiceCommands.ts` exposes **35+ commands** organized by domain:
+
+- **Navigation**: `Apri vista` (open dashboard, rides, calendar, etc.)
+- **Athlete profile**: `Aggiorna peso`, `Aggiorna altezza`, `Aggiorna FTP`, `Aggiorna FC max`
+- **Calendar**: `Aggiungi evento calendario`
+- **Rides**: `Aggiungi uscita`, `Analizza uscita`, `Esporta uscite`, `Resetta filtri uscite`
+- **Nutrition**: `Registra pasto` — auto-estimates kcal from description keywords and auto-creates a calendar event, then triggers `metabolism/recalculate` returning intake/balance summary.
+- **Tracking**: `Avvia tracciamento`, `Ferma tracciamento`, `Pausa tracciamento`, `Riprendi tracciamento`
+- **UI**: `Cambia tema`, `Mostra/nascondi sidebar`, `Mostra calorie`, `Mostra meteo`
+- **Integrations**: `Connetti Strava`, `Sincronizza Strava`, `Connetti Google Fit`, `Carica file GPX`
+- **BM2**: `Simula gara`, `Valida piano`, `Genera piano granfondo`
+- **Knowledge**: `Cerca conoscenza`
+- **Sync**: `Sync locale`, `Sync cloud`, `Aggiorna sync`, `Esporta dati`, `Importa dati`
+
+Each command supports multiple trigger phrases and structured parameter extraction (numbers, dates, booleans).
+
+## New Components
+
+- `VoiceAssistant.vue` — floating FAB with audio stop behavior fixed
+- `TrackingToolsPanel.vue` — map style selector, POI toggle, center-map, save-as-itinerary
+- `LiveMap.vue` — enhanced live tracking map layer
+- `RideTracking.vue` — expanded ride tracking view
+
 ## Build (Frontend)
 
 ```bash

@@ -44,12 +44,6 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
     
-    companion object {
-        fun start(context: Context) {
-            context.startActivity(Intent(context, SettingsActivity::class.java))
-        }
-    }
-
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true

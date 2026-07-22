@@ -92,6 +92,9 @@ It allows people of all levels to:
 - **Background Tasks** — Async queue for heavy operations
 - **Redis Cache** — Caching with graceful fallback
 - **AetherMap** — R&D cartographic engine (cube-sphere + S2/H3, WebGL rendering, digital twin)
+- **Voice Commands** — 35+ Italian voice commands (Web Speech API) for navigation, nutrition, tracking, BM2
+- **Geo Pipeline** — OSM + terrain enrichment for GPS routes (surface, highway, DEM, slope, GeoJSON)
+- **Health Connect** — Android Health Connect + BLE sync (weight, HR, steps, exercise, height, body fat)
 
 ## BikeMaster 2.0 — Deluxe Simulation
 
@@ -662,8 +665,11 @@ class AthleteProfile:
 - `trackingStore.ts` — live GPS tracking state
 
 ### Native Mobile
-- **Android**: Kotlin foreground service (`BikeTrackingService.kt`) + Capacitor plugin
+- **Android**: Kotlin foreground service (`BikeTrackingService.kt`) + Capacitor plugin + Health Connect + BLE sensors (`HealthConnectManager.kt`, `BleManager.kt`)
 - **iOS**: Swift plugin (`BikeTrackingPlugin.swift`) + Capacitor config
+
+### Voice Commands
+- **35+ Italian commands** via Web Speech API for navigation, nutrition (with kcal estimation + calendar auto-create + metabolism recalculation), tracking, BM2 simulation, and UI control.
 
 ---
 
@@ -725,12 +731,12 @@ class AthleteProfile:
 
 ## 14. Phone GPS Tracking
 
-- **Android**: Kotlin foreground service (`BikeTrackingService.kt`) + Capacitor plugin
+- **Android**: Kotlin foreground service (`BikeTrackingService.kt`) + Capacitor plugin + Health Connect (`HealthConnectManager.kt`) + BLE sensors (`BleManager.kt`)
 - **iOS**: Swift plugin (`BikeTrackingPlugin.swift`) + Capacitor config
 - Live tracking via `RideTracking.vue` + `trackingStore.ts`
 - Incremental GPX writing in background
 - Auto-pause detection < 3 km/h
-- BLE sensor support (HR, Cadence, Power)
+- BLE sensor support (HR, Cadence, Power) + Health Connect (weight, HR, steps, exercise, height, body fat)
 
 ---
 
@@ -848,6 +854,17 @@ Project status: **local-first architecture complete** — desktop Tauri 2 + SQLi
 ---
 
 ## 19. Changelog
+
+### v1.6.0 (2026-07-22) — Voice Commands Expansion + Geo Pipeline + Health Connect
+
+**Added**
+- **Voice commands expanded to 35+ Italian commands** — new commands in `frontend/src/services/voiceCommands.ts` covering athlete profile updates, calendar, rides, import, analytics, tracking, and UI control.
+- **Nutrition voice logging with calendar integration** — `nutrition.log_meal` now auto-creates a calendar event and triggers `metabolism/recalculate`, returning intake/balance summary.
+- **Backend Geo/MAP pipeline** (`bike_analyzer/backend/geo/`) — new module with `run_geo_pipeline()` enriching GPS points via OSM (surface, highway), terrain DEM sampling, slope computation, AetherMap worldstore/GeoJSON export.
+- **Android Health Connect integration** — new `HealthConnectManager.kt`, `BleManager.kt`, `RunstarBleConnector.kt`/`RunstarDecoder.kt` for weight, heart rate, steps, exercise, height, body fat sync.
+
+**Fixed**
+- Audio stop FAB behavior in `VoiceAssistant.vue` and `autoRead` toggle in `CoachPanel.vue`.
 
 ### v1.5.0 (2026-07-10) — Milestone: Strava Integration (end-to-end)
 

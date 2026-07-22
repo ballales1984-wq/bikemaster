@@ -69,6 +69,37 @@ bike_analyzer/
 
 ---
 
+## Geo / Map Pipeline
+
+New enrichment pipeline in `bike_analyzer/backend/geo/` that enriches GPS points with OpenStreetMap and terrain data:
+
+| Module | Purpose |
+|---|---|
+| `engine.py` | `run_geo_pipeline()` orchestrates enrichment for a list of `GPSPoint` |
+| `osm.py` | Fetches OSM tags (surface, highway) via Overpass; determines dominant surface |
+| `terrain.py` | DEM sampling for elevation profile and slope computation |
+| `route_builder.py` | Builds AetherMap worldstore and exports GeoJSON |
+| `types.py` | Dataclasses: `GeoEnrichedPoint`, `SegmentEnrichment`, `RouteEnrichmentResult` |
+
+Pipeline steps:
+1. **OSM enrichment** — tags per point (surface priority: asphalt → paved → gravel → dirt → sand → mud)
+2. **DEM sampling** — elevation profile at configurable resolution (default 64 samples)
+3. **Slope computation** — percent slope per segment from DEM delta / distance
+4. **Segment building** — aggregates enriched points into `SegmentEnrichment` with distance, elevation gain/loss, avg/max slope
+5. **AetherMap export** — optional 3D worldstore + GeoJSON output for visualization
+
+---
+
+## Health Sensors (Android)
+
+New sensor integrations for Android health data sync:
+
+- **Health Connect** (`HealthConnectManager.kt`) — reads/writes weight, heart rate, steps, exercise sessions, height, body fat via Android Health Connect API
+- **BLE Manager** (`BleManager.kt`) — scans and connects to Bluetooth LE devices (weight scale, heart rate, cycling speed/cadence)
+- **Runstar Connector** (`RunstarBleConnector.kt` + `RunstarDecoder.kt`) — decodes Runstar scale payloads
+
+---
+
 ## External Integrations
 
 ### Strava

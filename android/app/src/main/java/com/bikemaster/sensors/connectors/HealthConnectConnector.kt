@@ -21,6 +21,7 @@ class HealthConnectConnector(private val healthConnectManager: HealthConnectMana
             val weightRecords = healthConnectManager.readWeight().first()
             val heartRateRecords = healthConnectManager.readHeartRate().first()
             val stepsRecords = healthConnectManager.readSteps().first()
+            val caloriesRecords = healthConnectManager.readCalories().first()
             val exerciseRecords = healthConnectManager.readExercise().first()
 
             val healthMetrics = mutableListOf<com.bikemaster.models.HealthMetric>()
@@ -42,7 +43,7 @@ class HealthConnectConnector(private val healthConnectManager: HealthConnectMana
                     value = bpm.toDouble(),
                     unit = "bpm",
                     source = "health_connect",
-                    recorded_at = r.time.toString()
+                    recorded_at = r.startTime.toString()
                 ))
             }
 
@@ -51,6 +52,16 @@ class HealthConnectConnector(private val healthConnectManager: HealthConnectMana
                     metric_type = "steps_count",
                     value = r.count.toDouble(),
                     unit = "count",
+                    source = "health_connect",
+                    recorded_at = r.startTime.toString()
+                ))
+            }
+
+            caloriesRecords.forEach { r ->
+                healthMetrics.add(com.bikemaster.models.HealthMetric(
+                    metric_type = "calories_kcal",
+                    value = r.energy.inKilocalories,
+                    unit = "kcal",
                     source = "health_connect",
                     recorded_at = r.startTime.toString()
                 ))

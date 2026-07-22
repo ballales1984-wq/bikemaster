@@ -80,6 +80,6 @@ interface BikeMasterApi {
     @POST("athletes/{athleteId}/health-metrics")
     suspend fun addHealthMetrics(
         @Path("athleteId") athleteId: Int,
-        @Body metrics: List<Map<String, Any>>
+        @Body metrics: List<Map<String, Any?>>
     ): Map<String, Any>
 }
