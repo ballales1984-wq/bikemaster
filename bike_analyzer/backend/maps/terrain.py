@@ -25,7 +25,7 @@ _DEM_SOURCE = os.environ.get("AETHERMAP_DEM_SOURCE", "auto")
 
 
 def _hash(x: int, y: int, seed: int = _SEED) -> float:
-    data = struct.pack(">II", x ^ seed, y ^ (seed >> 32))
+    data = struct.pack(">II", (x ^ seed) & 0xFFFFFFFF, (y ^ (seed >> 32)) & 0xFFFFFFFF)
     return (zlib.crc32(data) & 0xFFFF) / 0xFFFF
 
 
