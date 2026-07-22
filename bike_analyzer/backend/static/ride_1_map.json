@@ -8,16 +8,16 @@
         "tipo": "segment",
         "affidabilita": 1.0,
         "proprieta": {
-          "color": "#88cc00",
+          "color": "#4488ff",
           "idx": 0
         }
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          9.0,
+          7.0,
           45.0,
-          0.0
+          100.0
         ]
       }
     },
@@ -28,16 +28,16 @@
         "tipo": "segment",
         "affidabilita": 1.0,
         "proprieta": {
-          "color": "#88cc00",
+          "color": "#4488ff",
           "idx": 1
         }
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          9.01,
-          45.01,
-          0.0
+          7.001,
+          45.001,
+          120.0
         ]
       }
     },
@@ -54,9 +54,9 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          9.0,
+          7.0,
           45.0,
-          0.0
+          100.0
         ]
       }
     },
@@ -73,9 +73,9 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          9.01,
-          45.01,
-          0.0
+          7.001,
+          45.001,
+          120.0
         ]
       }
     }

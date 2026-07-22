@@ -126,6 +126,21 @@
     "gpsSignalLost": "Segnale GPS perso. Spostati all'aperto.",
     "completed": "Tracciamento completato! File pronto per il caricamento."
   },
+  "trackingTools": {
+    "mapStyle": "Stile mappa",
+    "styleOsm": "OpenStreetMap",
+    "styleCyclosm": "CyclOSM",
+    "showPois": "Mostra POI",
+    "centerMap": "Centra mappa",
+    "saveAsItinerary": "Salva come itinerario",
+    "showRoute": "Mostra percorso",
+    "openAetherMap": "Apri AetherMap",
+    "addToItinerary": "Aggiungi a itinerario",
+    "selectItinerary": "Seleziona itinerario",
+    "savedAsItinerary": "Itinerario salvato dalla traccia",
+    "addedStageToItinerary": "Tappa aggiunta all'itinerario",
+    "fillItineraryName": "Inserisci il nome dell'itinerario"
+  },
   "coach": {
     "title": "AI Cycling Coach",
     "ask": "Chiedi consigli...",

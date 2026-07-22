@@ -13,7 +13,17 @@ export type CommandDomain =
   | "nutrition"
   | "tracking"
   | "settings"
-  | "system";
+  | "system"
+  | "connections"
+  | "import"
+  | "maps"
+  | "badges"
+  | "weather"
+  | "knowledge"
+  | "bm2"
+  | "granfondo"
+  | "sync"
+  | "metabolism";
 
 export type ParameterType =
   | "string"

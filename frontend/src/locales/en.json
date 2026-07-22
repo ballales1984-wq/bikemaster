@@ -126,6 +126,21 @@
     "gpsSignalLost": "GPS signal lost. Please move outdoors or check your device.",
     "completed": "Tracking completed! File ready for upload."
   },
+  "trackingTools": {
+    "mapStyle": "Map style",
+    "styleOsm": "OpenStreetMap",
+    "styleCyclosm": "CyclOSM",
+    "showPois": "Show POIs",
+    "centerMap": "Center map",
+    "saveAsItinerary": "Save as itinerary",
+    "showRoute": "Show route",
+    "openAetherMap": "Open AetherMap",
+    "addToItinerary": "Add to itinerary",
+    "selectItinerary": "Select itinerary",
+    "savedAsItinerary": "Itinerary saved from track",
+    "addedStageToItinerary": "Stage added to itinerary",
+    "fillItineraryName": "Enter itinerary name"
+  },
   "coach": {
     "title": "AI Cycling Coach",
     "ask": "Ask for advice...",

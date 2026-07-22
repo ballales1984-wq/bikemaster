@@ -38,6 +38,38 @@ function requireParam(
   return v;
 }
 
+function getMealLabel(mealType: FoodLog["meal_type"]): string {
+  const map: Record<string, string> = {
+    breakfast: "Colazione",
+    lunch: "Pranzo",
+    dinner: "Cena",
+    snack: "Spuntino",
+    other: "Pasto",
+  };
+  return map[mealType] || "Pasto";
+}
+
+function estimateKcal(description: string): number {
+  const lower = description.toLowerCase();
+  if (lower.includes("pasta") && lower.includes("ragu")) return 450;
+  if (lower.includes("pasta")) return 350;
+  if (lower.includes("risotto")) return 400;
+  if (lower.includes("pizza")) return 800;
+  if (lower.includes("insalata")) return 150;
+  if (lower.includes("carne")) return 400;
+  if (lower.includes("pollo")) return 300;
+  if (lower.includes("pesce")) return 250;
+  if (lower.includes("uova")) return 200;
+  if (lower.includes("formaggio")) return 300;
+  if (lower.includes("frutta")) return 100;
+  if (lower.includes("yogurt")) return 150;
+  if (lower.includes("cappuccino")) return 150;
+  if (lower.includes("cornetto")) return 250;
+  if (lower.includes("panino")) return 350;
+  if (lower.includes("hamburger")) return 500;
+  return 0;
+}
+
 function parseItalianDate(text: string): string | null {
   const months: Record<string, number> = {
     gennaio: 0, febbrio: 1, marzo: 2, aprile: 3, maggio: 4, giugno: 5,
@@ -49,7 +81,7 @@ function parseItalianDate(text: string): string | null {
   const today = new Date();
   const lower = text.toLowerCase();
 
-  if (lower.includes("oggi")) {
+  if (lower.includes("oggi") || lower.includes("stasera")) {
     return today.toISOString().split("T")[0];
   }
   if (lower.includes("domani")) {
@@ -283,14 +315,27 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
 
         const dateTime = time ? `${date}T${time}:00` : `${date}T08:00:00`;
         const title = String(params.title || "Nuovo evento").trim();
+        const token = localStorage.getItem("bikemaster_token") || "";
+
+        const meResp = await fetch("/api/v1/athletes/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!meResp.ok) {
+          return buildResult(false, "Impossibile ottenere profilo atleta");
+        }
+        const meData = await meResp.json();
+        const athleteId = meData.athlete?.id;
+        if (!athleteId) {
+          return buildResult(false, "Profilo atleta non trovato");
+        }
 
         const res = await fetch("/api/v1/calendar/events", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("bikemaster_token") || ""}`,
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ date: dateTime, title, event_type: eventType }),
+          body: JSON.stringify({ athlete_id: athleteId, date: dateTime, title, event_type: eventType }),
         });
 
         if (!res.ok) {
@@ -344,6 +389,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Registra pasto",
       description: "Aggiunge un pasto al diario alimentare",
       examples: [
+        "stasera cena pasta al ragu",
         "alimentazione cena pasta al ragu 200 grammi",
         "colazione cappuccino cornetto",
         "pranzo risotto 300 grammi",
@@ -359,17 +405,61 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
         const raw = params._raw as string || "";
         const mealType = params.meal_type as FoodLog["meal_type"] || parseMealType(raw) || "other";
         const description = String(params.description || raw).trim();
-        const kcal = params.kcal ? Number(params.kcal) : null;
+        const kcal = params.kcal ? Number(params.kcal) : estimateKcal(description);
+
+        const today = parseItalianDate(raw) || new Date().toISOString().split("T")[0];
+        const token = localStorage.getItem("bikemaster_token") || "";
+
+        const meResp = await fetch("/api/v1/athletes/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!meResp.ok) {
+          return buildResult(false, "Impossibile ottenere profilo atleta");
+        }
+        const meData = await meResp.json();
+        const athleteId = meData.athlete?.id;
+        if (!athleteId) {
+          return buildResult(false, "Profilo atleta non trovato");
+        }
 
         const store = useMetabolismStore();
-        const today = new Date().toISOString().split("T")[0];
         const log = await store.createFoodLog({
           date: today,
           meal_type: mealType,
           description,
-          kcal: kcal || 0,
+          kcal,
         });
-        return buildResult(true, `Pasto "${description}" registrato`, log);
+
+        const calResp = await fetch("/api/v1/calendar/events", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            athlete_id: athleteId,
+            date: today,
+            title: `${getMealLabel(mealType)}: ${description}`,
+            event_type: "other",
+            description: `Pasto registrato: ${description} (${kcal} kcal)`,
+          }),
+        });
+        if (!calResp.ok) {
+          const err = await calResp.text().catch(() => "");
+          console.warn("Errore creazione evento calendario pasto:", err);
+        }
+
+        const recalcResp = await fetch(`/api/v1/metabolism/recalculate?date=${today}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        let summaryMsg = "";
+        if (recalcResp.ok) {
+          const summary = await recalcResp.json();
+          summaryMsg = ` Intake: ${Math.round(summary.intake_kcal || 0)} kcal, Balance: ${Math.round(summary.balance_kcal || 0)} kcal`;
+        }
+
+        return buildResult(true, `Pasto "${description}" registrato (${kcal} kcal).${summaryMsg}`, log);
       },
     },
     {
@@ -425,13 +515,411 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       domain: "settings",
       label: "Mostra/nascondi sidebar",
       description: "Alterna visibilita sidebar",
-      examples: ["mostra sidebar", "nascondi sidebar", "apri menu", "chiudi menu"],
+      examples: ["mostra sidebar", "nascondi sidebar", "apri menu", "chiudi menu", "toggle sidebar"],
       triggerWords: ["mostra sidebar", "nascondi sidebar", "apri menu", "chiudi menu", "toggle sidebar"],
       parameters: [],
       execute: async () => {
         const ui = useUIStore();
         ui.toggleSidebar();
         return buildResult(true, ui.sidebarCollapsed ? "Sidebar nascosta" : "Sidebar visibile");
+      },
+    },
+    {
+      id: "metabolism.show_calories",
+      domain: "nutrition",
+      label: "Mostra calorie",
+      description: "Visualizza il riepilogo calorie/metabolismo",
+      examples: ["leggi calorie", "mostra calorie", "quante calorie"],
+      triggerWords: ["leggi calorie", "mostra calorie", "calorie", "riepilogo calorie"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/metabolism");
+        return buildResult(true, "Apro metabolismo");
+      },
+    },
+    {
+      id: "rides.export_csv",
+      domain: "rides",
+      label: "Esporta uscite",
+      description: "Esporta le uscite in CSV",
+      examples: ["esporta uscite", "esporta csv", "scarica uscite"],
+      triggerWords: ["esporta uscite", "esporta csv", "scarica uscite", "esporta"],
+      parameters: [],
+      execute: async () => {
+        const store = useRidesStore();
+        const headers = ["Date", "Distance (km)", "Duration (min)", "Avg Speed (km/h)", "Elevation (m)", "Calories"];
+        const rows = store.rides.map((r) => [
+          r.date,
+          r.distance_km,
+          r.duration_minutes,
+          r.avg_speed_kmh ?? "",
+          r.elevation_gain_m ?? "",
+          r.calories ?? "",
+        ]);
+        const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `rides_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        return buildResult(true, "CSV esportato");
+      },
+    },
+    {
+      id: "rides.clear_filters",
+      domain: "rides",
+      label: "Resetta filtri uscite",
+      description: "Resetta i filtri e ricarica tutte le uscite",
+      examples: ["resetta filtri uscite", "cancella filtri uscite", "mostra tutte le uscite"],
+      triggerWords: ["resetta filtri uscite", "cancella filtri uscite", "mostra tutte le uscite", "reset uscite"],
+      parameters: [],
+      execute: async () => {
+        const store = useRidesStore();
+        store.clearFilters();
+        await store.fetchRides();
+        return buildResult(true, "Filtri resettati");
+      },
+    },
+    {
+      id: "import.connect_strava",
+      domain: "connections",
+      label: "Connetti Strava",
+      description: "Avvia connessione Strava",
+      examples: ["connetti strava", "collega strava"],
+      triggerWords: ["connetti strava", "collega strava", "strava connetti"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/settings/connections");
+        return buildResult(true, "Apro connessioni per Strava");
+      },
+    },
+    {
+      id: "import.sync_strava",
+      domain: "connections",
+      label: "Sincronizza Strava",
+      description: "Sincronizza le uscite da Strava",
+      examples: ["sincronizza strava", "sync strava"],
+      triggerWords: ["sincronizza strava", "sync strava", "strava sync", "importa da strava"],
+      parameters: [],
+      execute: async () => {
+        const token = localStorage.getItem("bikemaster_token") || "";
+        const resp = await fetch("/api/v1/import/strava/sync?background=false", {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          return buildResult(false, err.detail || "Sync Strava fallita");
+        }
+        const result = await resp.json();
+        return buildResult(true, `Importati ${result.imported} uscite da Strava`);
+      },
+    },
+    {
+      id: "import.connect_google_fit",
+      domain: "connections",
+      label: "Connetti Google Fit",
+      description: "Avvia connessione Google Fit",
+      examples: ["connetti google fit", "collega google fit"],
+      triggerWords: ["connetti google fit", "collega google fit", "google fit connetti"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/settings/connections");
+        return buildResult(true, "Apro connessioni per Google Fit");
+      },
+    },
+    {
+      id: "import.upload_gpx",
+      domain: "import",
+      label: "Carica file GPX",
+      description: "Apri pannello import per caricare file",
+      examples: ["carica file", "carica gpx", "importa file"],
+      triggerWords: ["carica file", "carica gpx", "importa file", "carica tracciamento"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/import");
+        return buildResult(true, "Apro import");
+      },
+    },
+    {
+      id: "heatmap.load",
+      domain: "maps",
+      label: "Carica heatmap",
+      description: "Carica la vista heatmap",
+      examples: ["carica heatmap", "mostra heatmap"],
+      triggerWords: ["carica heatmap", "mostra heatmap", "heatmap"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/heatmap");
+        return buildResult(true, "Apro heatmap");
+      },
+    },
+    {
+      id: "badges.load",
+      domain: "badges",
+      label: "Carica badge",
+      description: "Carica i badge dell'atleta",
+      examples: ["carica badge", "mostra badge"],
+      triggerWords: ["carica badge", "mostra badge", "badge"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/badges");
+        return buildResult(true, "Apro badge");
+      },
+    },
+    {
+      id: "weather.load",
+      domain: "weather",
+      label: "Mostra meteo",
+      description: "Mostra il meteo per l'uscita",
+      examples: ["mostra meteo", "apri meteo", "meteo"],
+      triggerWords: ["mostra meteo", "apri meteo", "meteo", "che tempo fa"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/weather");
+        return buildResult(true, "Apro meteo");
+      },
+    },
+    {
+      id: "knowledge.search",
+      domain: "knowledge",
+      label: "Cerca conoscenza",
+      description: "Cerca nella knowledge base",
+      examples: ["cerca conoscenza FTP", "cosa e la soglia", "ricerca allenamento"],
+      triggerWords: ["cerca conoscenza", "cerca nel knowledge", "cerca informazione", "ricerca"],
+      parameters: [
+        { name: "query", type: "string", required: true, description: "Query di ricerca" },
+      ],
+      execute: async (params) => {
+        const query = String(requireParam(params, "query"));
+        const router2 = (await import("../router/index")).default;
+        router2.push({ path: "/knowledge", query: { q: query } });
+        return buildResult(true, `Ricerca: ${query}`);
+      },
+    },
+    {
+      id: "bm2.simulate",
+      domain: "bm2",
+      label: "Simula gara",
+      description: "Avvia simulazione gara BM2",
+      examples: ["simula gara", "simula uscita"],
+      triggerWords: ["simula gara", "simula uscita", "avvia simulazione"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/bm2");
+        return buildResult(true, "Apro BM2");
+      },
+    },
+    {
+      id: "bm2.validate",
+      domain: "bm2",
+      label: "Valida piano",
+      description: "Valida il piano di allenamento",
+      examples: ["valida piano", "valida allenamento"],
+      triggerWords: ["valida piano", "valida allenamento", "valida workout"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/bm2");
+        return buildResult(true, "Apro BM2");
+      },
+    },
+    {
+      id: "granfondo.generate",
+      domain: "granfondo",
+      label: "Genera piano granfondo",
+      description: "Genera un piano granfondo",
+      examples: ["genera piano granfondo", "crea piano granfondo"],
+      triggerWords: ["genera piano granfondo", "crea piano granfondo", "piano granfondo"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/granfondo");
+        return buildResult(true, "Apro granfondo");
+      },
+    },
+    {
+      id: "tracking.pause",
+      domain: "tracking",
+      label: "Pausa tracciamento",
+      description: "Metti in pausa il tracciamento",
+      examples: ["pausa tracciamento", "pausa uscita", "metti in pausa"],
+      triggerWords: ["pausa tracciamento", "pausa uscita", "metti in pausa", "pausa"],
+      parameters: [],
+      execute: async () => {
+        if (window.BikeTracking?.pauseTracking) {
+          window.BikeTracking.pauseTracking();
+        }
+        return buildResult(true, "Tracciamento in pausa");
+      },
+    },
+    {
+      id: "tracking.resume",
+      domain: "tracking",
+      label: "Riprendi tracciamento",
+      description: "Riprende il tracciamento in pausa",
+      examples: ["riprendi tracciamento", "riprendi uscita", "continua tracciamento"],
+      triggerWords: ["riprendi tracciamento", "riprendi uscita", "continua tracciamento", "riprendi"],
+      parameters: [],
+      execute: async () => {
+        if (window.BikeTracking?.resumeTracking) {
+          window.BikeTracking.resumeTracking();
+        }
+        return buildResult(true, "Tracciamento ripreso");
+      },
+    },
+    {
+      id: "calendar.go_today",
+      domain: "calendar",
+      label: "Vai a oggi",
+      description: "Mostra il giorno odierno nel calendario",
+      examples: ["vai a oggi calendario", "mostra oggi"],
+      triggerWords: ["vai a oggi calendario", "mostra oggi", "calendario oggi"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/calendar");
+        return buildResult(true, "Apro calendario");
+      },
+    },
+    {
+      id: "sync.set_local",
+      domain: "sync",
+      label: "Sync locale",
+      description: "Imposta modalita sincronizzazione locale",
+      examples: ["sync locale", "modalita locale"],
+      triggerWords: ["sync locale", "modalita locale", "sincronizzazione locale", "imposta sync locale"],
+      parameters: [],
+      execute: async () => {
+        const token = localStorage.getItem("bikemaster_token") || "";
+        const resp = await fetch("/api/v1/sync/settings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ mode: "local" }),
+        });
+        if (!resp.ok) return buildResult(false, "Impostazione sync fallita");
+        return buildResult(true, "Modalita sincronizzazione locale attiva");
+      },
+    },
+    {
+      id: "sync.set_cloud",
+      domain: "sync",
+      label: "Sync cloud",
+      description: "Imposta modalita sincronizzazione cloud",
+      examples: ["sync cloud", "modalita cloud"],
+      triggerWords: ["sync cloud", "modalita cloud", "sincronizzazione cloud", "imposta sync cloud"],
+      parameters: [],
+      execute: async () => {
+        const token = localStorage.getItem("bikemaster_token") || "";
+        const resp = await fetch("/api/v1/sync/settings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ mode: "cloud" }),
+        });
+        if (!resp.ok) return buildResult(false, "Impostazione sync fallita");
+        return buildResult(true, "Modalita sincronizzazione cloud attiva");
+      },
+    },
+    {
+      id: "sync.refresh",
+      domain: "sync",
+      label: "Aggiorna sync",
+      description: "Legge lo stato di sincronizzazione",
+      examples: ["aggiorna sync", "stato sincronizzazione"],
+      triggerWords: ["aggiorna sync", "stato sincronizzazione", "sync status"],
+      parameters: [],
+      execute: async () => {
+        const token = localStorage.getItem("bikemaster_token") || "";
+        const resp = await fetch("/api/v1/sync/status", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!resp.ok) return buildResult(false, "Stato sync non disponibile");
+        const data = await resp.json();
+        return buildResult(true, `Sync: ${data.mode}, in attesa: ${data.pending_count ?? 0}`);
+      },
+    },
+    {
+      id: "sync.export",
+      domain: "sync",
+      label: "Esporta dati",
+      description: "Esporta i dati dell'app",
+      examples: ["esporta dati", "backup dati"],
+      triggerWords: ["esporta dati", "backup dati", "esporta"],
+      parameters: [],
+      execute: async () => {
+        const token = localStorage.getItem("bikemaster_token") || "";
+        const resp = await fetch("/api/v1/sync/export", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!resp.ok) return buildResult(false, "Esportazione fallita");
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `bikemaster_export_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        return buildResult(true, "Dati esportati");
+      },
+    },
+    {
+      id: "sync.import_data",
+      domain: "sync",
+      label: "Importa dati",
+      description: "Importa dati nell'app",
+      examples: ["importa dati", "ripristina dati"],
+      triggerWords: ["importa dati", "ripristina dati", "importa"],
+      parameters: [],
+      execute: async () => {
+        const token = localStorage.getItem("bikemaster_token") || "";
+        const resp = await fetch("/api/v1/sync/import", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ rides: [] }),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          return buildResult(false, err.detail || "Importazione fallita");
+        }
+        return buildResult(true, "Dati importati");
+      },
+    },
+    {
+      id: "rides.analyze",
+      domain: "rides",
+      label: "Analizza uscita",
+      description: "Analizza l'ultima uscita o una specifica",
+      examples: ["analizza uscita", "analizza ultima uscita"],
+      triggerWords: ["analizza uscita", "analizza ultima uscita", "analizza"],
+      parameters: [
+        { name: "ride_id", type: "number", required: false, description: "ID uscita" },
+      ],
+      execute: async (params) => {
+        const store = useRidesStore();
+        const rideId = params.ride_id ? Number(params.ride_id) : store.rides[0]?.id;
+        if (!rideId) return buildResult(false, "Nessuna uscita da analizzare");
+        const router2 = (await import("../router/index")).default;
+        router2.push({ path: "/rides", query: { analyze: String(rideId) } });
+        return buildResult(true, `Analisi uscita ${rideId}`);
       },
     },
   ];

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -17,6 +18,8 @@ def _utcnow() -> datetime:
 
 def _cube_cell_id_simple(cell_id: str) -> tuple[str, int, int, int]:
     parts = cell_id.split(":")
+    if len(parts) != 4:
+        raise ValueError(f"Invalid cube cell id format: {cell_id}")
     face = int(parts[0])
     level = int(parts[1])
     u_int = int(parts[2])
@@ -24,24 +27,52 @@ def _cube_cell_id_simple(cell_id: str) -> tuple[str, int, int, int]:
     return face, level, u_int, v_int
 
 
-def _cell_prefix(face: int, level: int, u_int: int, v_int: int, bits: int = 16) -> str:
-    return f"{face}:{level}:{u_int >> bits}:{v_int >> bits}"
+def _s2_prefixes(s2_token: str) -> list[str]:
+    prefixes: list[str] = []
+    for length in (4, 8, 12, 16, 20, 24):
+        if len(s2_token) > length:
+            prefixes.append(s2_token[:length])
+    return prefixes
+
+
+def _h3_prefixes(h3_token: str) -> list[str]:
+    prefixes: list[str] = []
+    for length in (5, 7, 9, 11, 13):
+        if len(h3_token) > length:
+            prefixes.append(h3_token[:length])
+    return prefixes
 
 
 @dataclass
 class SpatialIndex:
     s2_map: dict[str, set[str]] = field(default_factory=dict)
+    h3_map: dict[str, set[str]] = field(default_factory=dict)
     bbox_map: dict[str, list[tuple[float, float, float, float, str]]] = field(
         default_factory=dict
     )
 
     def insert(self, obj: Oggetto) -> None:
-        s2 = obj.posizione.s2 or ""
-        if s2:
-            face, level, u_int, v_int = _cube_cell_id_simple(s2)
-            for bits in (0, 4, 8, 12, 16):
-                prefix = f"{face}:{level}:{u_int >> bits}:{v_int >> bits}"
-                self.s2_map.setdefault(prefix, set()).add(obj.id)
+        h3 = getattr(obj.posizione, "h3", None)
+        if h3:
+            self.h3_map.setdefault(h3, set()).add(obj.id)
+            for prefix in _h3_prefixes(h3):
+                self.h3_map.setdefault(prefix, set()).add(obj.id)
+
+        s2 = obj.posizione.s2
+        if not s2:
+            return
+        if ":" in s2:
+            try:
+                face, level, u_int, v_int = _cube_cell_id_simple(s2)
+                for bits in (0, 4, 8, 12, 16):
+                    prefix = f"{face}:{level}:{u_int >> bits}:{v_int >> bits}"
+                    self.s2_map.setdefault(prefix, set()).add(obj.id)
+                return
+            except (ValueError, TypeError):
+                pass
+        self.s2_map.setdefault(s2, set()).add(obj.id)
+        for prefix in _s2_prefixes(s2):
+            self.s2_map.setdefault(prefix, set()).add(obj.id)
 
         lat, lon = obj.posizione.lat, obj.posizione.lon
         alt = getattr(obj.posizione, "alt", 0.0) or 0.0
@@ -50,18 +81,35 @@ class SpatialIndex:
     def remove(self, obj_id: str) -> None:
         for ids in self.s2_map.values():
             ids.discard(obj_id)
+        for ids in self.h3_map.values():
+            ids.discard(obj_id)
         self.bbox_map.pop(obj_id, None)
 
     def query_s2(self, s2: str) -> set[str]:
-        parts = s2.split(":")
-        face = parts[0]
-        level = parts[1]
-        u_int = int(parts[2])
-        v_int = int(parts[3])
+        if not s2:
+            return set()
         result: set[str] = set()
-        for bits in (0, 4, 8, 12, 16):
-            prefix = f"{face}:{level}:{u_int >> bits}:{v_int >> bits}"
+        if ":" in s2:
+            try:
+                face, level, u_int, v_int = _cube_cell_id_simple(s2)
+                for bits in (0, 4, 8, 12, 16):
+                    prefix = f"{face}:{level}:{u_int >> bits}:{v_int >> bits}"
+                    result.update(self.s2_map.get(prefix, set()))
+                return result
+            except (ValueError, TypeError):
+                pass
+        result.update(self.s2_map.get(s2, set()))
+        for prefix in _s2_prefixes(s2):
             result.update(self.s2_map.get(prefix, set()))
+        return result
+
+    def query_h3(self, h3: str) -> set[str]:
+        if not h3:
+            return set()
+        result: set[str] = set()
+        result.update(self.h3_map.get(h3, set()))
+        for prefix in _h3_prefixes(h3):
+            result.update(self.h3_map.get(prefix, set()))
         return result
 
     def query_radius(self, lat: float, lon: float, radius_m: float) -> set[str]:
@@ -70,7 +118,7 @@ class SpatialIndex:
         dlon = radius_m / (111_320.0 * max(math.cos(math.radians(lat)), 0.1))
         lat0, lat1 = lat - dlat, lat + dlat
         lon0, lon1 = lon - dlon, lon + dlon
-        for _oid, boxes in self.bbox_map.items():
+        for oid, boxes in self.bbox_map.items():
             for (la, lo, *_alt, oid2) in boxes:
                 if lat0 <= la <= lat1 and lon0 <= lo <= lon1:
                     result.add(oid2)
@@ -99,6 +147,10 @@ class SpatialStore:
 
     def query_s2(self, s2: str) -> list[Oggetto]:
         ids = self.index.query_s2(s2)
+        return [self.objects[i] for i in ids if i in self.objects]
+
+    def query_h3(self, h3: str) -> list[Oggetto]:
+        ids = self.index.query_h3(h3)
         return [self.objects[i] for i in ids if i in self.objects]
 
     def query_radius(self, lat: float, lon: float, radius_m: float) -> list[Oggetto]:
@@ -148,6 +200,9 @@ class WorldStore:
     def query_s2(self, s2: str) -> list[Oggetto]:
         return self.store.query_s2(s2)
 
+    def query_h3(self, h3: str) -> list[Oggetto]:
+        return self.store.query_h3(h3)
+
     def query_radius(self, lat: float, lon: float, radius_m: float) -> list[Oggetto]:
         return self.store.query_radius(lat, lon, radius_m)
 
@@ -159,24 +214,26 @@ class WorldStore:
         return self.store.objects
 
     def to_json(self) -> str:
-        return json.dumps(
-            [o.model_dump() for o in self.store.objects.values()],
-            default=str,
-            indent=2,
-        )
+        return json.dumps([o.model_dump() for o in self.store.objects.values()], default=str, indent=2)
 
     def save_geojson(self, path: str | Path, metadata: dict[str, Any] | None = None) -> None:
         features = []
         for obj in self.store.objects.values():
             geom = _oggetto_to_geojson_geometry(obj)
+            props: dict[str, Any] = {
+                "tipo": obj.tipo,
+                "affidabilita": obj.affidabilita.valore,
+                "proprieta": obj.proprieta,
+            }
+            if obj.posizione.s2:
+                props["s2"] = obj.posizione.s2
+            h3 = getattr(obj.posizione, "h3", None)
+            if h3:
+                props["h3"] = h3
             feature = {
                 "type": "Feature",
                 "id": obj.id,
-                "properties": {
-                    "tipo": obj.tipo,
-                    "affidabilita": obj.affidabilita.valore,
-                    "proprieta": obj.proprieta,
-                },
+                "properties": props,
                 "geometry": geom,
             }
             features.append(feature)
@@ -213,6 +270,7 @@ class WorldStore:
                 "lon": obj.posizione.lon,
                 "alt": obj.posizione.alt,
                 "s2": obj.posizione.s2 or "",
+                "h3": getattr(obj.posizione, "h3", None) or "",
                 "confidence": obj.affidabilita.valore,
                 "n_stati": len(obj.cronologia),
             })
@@ -221,14 +279,14 @@ class WorldStore:
         con = duckdb.connect(":memory:")
         con.execute(
             "CREATE TABLE objects (id VARCHAR, tipo VARCHAR, lat DOUBLE, "
-            "lon DOUBLE, alt DOUBLE, s2 VARCHAR, confidence DOUBLE, n_stati INTEGER)"
+            "lon DOUBLE, alt DOUBLE, s2 VARCHAR, h3 VARCHAR, confidence DOUBLE, n_stati INTEGER)"
         )
         for r in rows:
             con.execute(
-                "INSERT INTO objects VALUES (?,?,?,?,?,?,?,?)",
+                "INSERT INTO objects VALUES (?,?,?,?,?,?,?,?,?)",
                 [
                     r["id"], r["tipo"], r["lat"], r["lon"], r["alt"],
-                    r["s2"], r["confidence"], r["n_stati"],
+                    r["s2"], r["h3"], r["confidence"], r["n_stati"],
                 ],
             )
         con.execute(f"COPY objects TO '{path}' (FORMAT PARQUET)")
@@ -250,6 +308,7 @@ class WorldStore:
                     lon=float(row["lon"]),
                     alt=float(row.get("alt") or 0.0),
                     s2=row.get("s2") or None,
+                    h3=row.get("h3") or None,
                 )
                 obj = Oggetto(
                     id=str(row["id"]),
@@ -299,7 +358,13 @@ def _geojson_to_oggetto(feat: dict) -> Oggetto:
         if coords:
             lon, lat = float(coords[0][0]), float(coords[0][1])
 
-    posizione = Posizione.from_latlon(lat, lon, alt)
+    posizione = Posizione(
+        lat=lat,
+        lon=lon,
+        alt=alt,
+        s2=props.get("s2") or None,
+        h3=props.get("h3") or None,
+    )
     geometry_dict: dict[str, Any] = {"tipo": "punto"}
     if gtype == "LineString":
         punti = []

@@ -384,3 +384,22 @@ class TestMixedTwinSnapshot:
         # Montagna with cold -> neve True
         montagna_snap = next(s for s in snap if s["tipo"] == "montagna")
         assert montagna_snap["neve"] is True
+
+
+class TestDigitalTwinH3Summary:
+    def test_returns_dict_with_counts(self):
+        twin = DigitalTwin()
+        twin.add(make_albero("a1", 45.0, 9.0, "pino", 5.0))
+        twin.add(make_albero("a2", 45.001, 9.001, "quercia", 8.0))
+        twin.add(_make_strada())
+        summary = twin.h3_summary(resolution=9)
+        assert isinstance(summary, dict)
+        assert len(summary) >= 1
+
+    def test_counts_types_per_cell(self):
+        twin = DigitalTwin()
+        twin.add(make_albero("a1", 45.0, 9.0, "pino", 5.0))
+        twin.add(make_albero("a2", 45.001, 9.001, "quercia", 8.0))
+        summary = twin.h3_summary(resolution=9)
+        for cell, counts in summary.items():
+            assert counts.get("albero") == 2

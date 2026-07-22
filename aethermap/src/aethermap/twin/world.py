@@ -70,3 +70,18 @@ class DigitalTwin:
                             "versanti": obj.versanti(), "neve": obj.proprieta.get("neve"),
                             "sentieri": obj.sentieri()})
         return out
+
+    def h3_summary(self, resolution: int = 9) -> dict[str, dict[str, int]]:
+        try:
+            import h3
+        except ImportError as exc:
+            raise RuntimeError("h3 package required for H3 aggregation") from exc
+        grid: dict[str, dict[str, int]] = {}
+        for obj in self.store.objects.values():
+            h3_idx = getattr(obj.posizione, "h3", None)
+            if not h3_idx:
+                continue
+            parent = h3.cell_to_parent(h3_idx, resolution)
+            cell = grid.setdefault(parent, {})
+            cell[obj.tipo] = cell.get(obj.tipo, 0) + 1
+        return grid

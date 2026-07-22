@@ -2214,6 +2214,29 @@ async def add_metric(athlete_id: int, metric_data: MetricCreate, current_user: d
     return {"id": int(metric_id), "athlete_id": athlete_id, **metric_data.model_dump()}
 
 
+@router.post("/athletes/{athlete_id}/health-metrics")
+async def add_health_metrics(athlete_id: int, metrics: list[dict], current_user: dict = Depends(get_current_user)):
+    """Add health metric records from connectors (BLE, Health Connect) for an athlete."""
+    _ensure_athlete_access(athlete_id, current_user)
+    from ..db.database import log_athlete_metric
+
+    tenant_id = current_user.get("tenant_id", athlete_id)
+    saved = []
+    for m in metrics:
+        metric_id = log_athlete_metric(
+            athlete_id=athlete_id,
+            tenant_id=tenant_id,
+            metric_type=m.get("metric_type"),
+            value=m.get("value"),
+            unit=m.get("unit"),
+            note=m.get("source"),
+            source=m.get("source", "health_connect"),
+            recorded_at=m.get("recorded_at"),
+        )
+        saved.append({"id": int(metric_id), **m})
+    return {"saved": saved}
+
+
 @router.put("/athletes/{athlete_id}")
 async def update_athlete(
     athlete_id: int,

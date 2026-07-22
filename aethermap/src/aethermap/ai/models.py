@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from aethermap.core.coordinates import cube_cell_id, geodetic_to_cube
+from aethermap.core.coordinates import s2_cell_id, h3_cell, geodetic_to_cube
 
 
 def _now() -> datetime:
@@ -26,13 +26,21 @@ class Posizione(BaseModel):
     cube_u: float | None = None
     cube_v: float | None = None
     s2: str | None = None
+    h3: str | None = None
 
     @classmethod
     def from_latlon(cls, lat: float, lon: float, alt: float = 0.0) -> "Posizione":
         c = geodetic_to_cube(lat, lon)
-        return cls(lat=lat, lon=lon, alt=alt, cube_face=c.face,
-                   cube_u=round(c.u, 6), cube_v=round(c.v, 6),
-                   s2=cube_cell_id(c))
+        return cls(
+            lat=lat,
+            lon=lon,
+            alt=alt,
+            cube_face=c.face,
+            cube_u=round(c.u, 6),
+            cube_v=round(c.v, 6),
+            s2=s2_cell_id(lat, lon),
+            h3=h3_cell(lat, lon),
+        )
 
 
 class Geometria(BaseModel):

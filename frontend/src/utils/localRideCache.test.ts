@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import "fake-indexeddb/auto";
 import type { Ride } from "../types/index";
 import {
   cacheRides,

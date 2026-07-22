@@ -1,4 +1,3 @@
-import "fake-indexeddb/auto";
 import { vi } from "vitest";
 
 vi.mock("chart.js/auto", () => ({

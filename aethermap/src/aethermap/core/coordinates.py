@@ -59,7 +59,7 @@ def ecef_to_geodetic(x: float, y: float, z: float) -> Geodetic:
         sin_lat = math.sin(lat)
         n = WGS84_A / math.sqrt(1.0 - WGS84_E2 * sin_lat * sin_lat)
         alt = p / math.cos(lat) - n
-        lat = math.atan2(z, p * (1.0 - WGS84_E2 * n / (n + alt)))
+        lat = math.atan2(z, p * (1.0 - WGS84_E2) * n / (n + alt))
     sin_lat = math.sin(lat)
     n = WGS84_A / math.sqrt(1.0 - WGS84_E2 * sin_lat * sin_lat)
     alt = p / math.cos(lat) - n
@@ -128,16 +128,16 @@ def cube_cell_id(cell: CubeCell) -> str:
 
 def s2_cell_id(lat: float, lon: float, level: int = 16) -> str:
     try:
-        from s2geometry import pywraps2 as s2
+        import s2sphere
     except ImportError as exc:
         raise RuntimeError(
-            "s2geometry not installed; `pip install s2geometry` or use cube_cell_id"
+            "s2sphere not installed; `pip install s2sphere` or use cube_cell_id"
         ) from exc
     lat_r = math.radians(lat)
     lon_r = math.radians(lon)
-    point = s2.S2LatLng.FromRadians(lat_r, lon_r).ToPoint()
-    cell = s2.S2CellId.FromPoint(point).parent(level)
-    return str(cell.id())
+    point = s2sphere.LatLng.from_radians(lat_r, lon_r)
+    cell = s2sphere.CellId.from_lat_lng(point).parent(level)
+    return cell.to_token()
 
 
 def h3_cell(lat: float, lon: float, resolution: int = 9) -> str:
@@ -147,4 +147,4 @@ def h3_cell(lat: float, lon: float, resolution: int = 9) -> str:
         raise RuntimeError(
             "h3 not installed; `pip install h3` or skip analysis layer"
         ) from exc
-    return str(h3.latlon_to_cell(lat, lon, resolution))
+    return str(h3.latlng_to_cell(lat, lon, resolution))

@@ -24,6 +24,7 @@ export const useTrackingStore = defineStore("tracking", () => {
   const gpxBlob = ref<Blob | null>(null);
   const routePoints = ref<GpsPoint[]>([]);
   const lastPoint = ref<GpsPoint | null>(null);
+  const rideId = ref<number | null>(null);
 
   function start() {
     isTracking.value = true;
@@ -82,6 +83,10 @@ export const useTrackingStore = defineStore("tracking", () => {
     gpxBlob.value = blob;
   }
 
+  function setRideId(id: number | null = null) {
+    rideId.value = id;
+  }
+
   function resetMetrics() {
     distance.value = 0;
     currentSpeed.value = 0;
@@ -96,6 +101,7 @@ export const useTrackingStore = defineStore("tracking", () => {
     lastPoint.value = null;
     gpxPath.value = null;
     gpxBlob.value = null;
+    rideId.value = null;
   }
 
   function toGpx(name = "BikeMaster ride") {
@@ -153,6 +159,7 @@ ${route}
     gpxBlob,
     routePoints,
     lastPoint,
+    rideId,
     start,
     pause,
     resume,
@@ -161,6 +168,7 @@ ${route}
     addPoint,
     setGpxPath,
     setGpxBlob,
+    setRideId,
     resetMetrics,
     toGpx,
     formattedTime,

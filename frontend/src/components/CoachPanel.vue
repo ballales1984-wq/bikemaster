@@ -290,8 +290,11 @@ function toggleVoice() {
 }
 
 function toggleAutoRead() {
-  autoRead.value = !autoRead.value;
-  if (autoRead.value && lastAssistantMessage.value) {
+  const newAutoRead = !autoRead.value;
+  autoRead.value = newAutoRead;
+  if (!newAutoRead) {
+    window.speechSynthesis.cancel();
+  } else if (lastAssistantMessage.value) {
     speak(lastAssistantMessage.value);
   }
 }

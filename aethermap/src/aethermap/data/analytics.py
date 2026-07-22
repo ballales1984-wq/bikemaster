@@ -86,7 +86,7 @@ def h3_grid_aggregation(
 
     grid: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for obj in objects:
-        idx = h3.latlon_to_cell(obj.posizione.lat, obj.posizione.lon, resolution)
+        idx = h3.latlng_to_cell(obj.posizione.lat, obj.posizione.lon, resolution)
         grid[idx][obj.tipo] += 1
     return {k: dict(v) for k, v in grid.items()}
 

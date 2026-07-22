@@ -76,4 +76,10 @@ interface BikeMasterApi {
     suspend fun importFit(
         @Part file: MultipartBody.Part
     ): Ride
+
+    @POST("athletes/{athleteId}/health-metrics")
+    suspend fun addHealthMetrics(
+        @Path("athleteId") athleteId: Int,
+        @Body metrics: List<Map<String, Any>>
+    ): Map<String, Any>
 }

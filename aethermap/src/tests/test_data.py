@@ -74,6 +74,7 @@ class TestSpatialStoreS2Index:
         s.add(obj)
         s2 = obj.posizione.s2
         assert s2 is not None
+        assert ":" not in s2
         result = s.query_s2(s2)
         assert any(r.id == "o1" for r in result)
 
@@ -86,6 +87,40 @@ class TestSpatialStoreS2Index:
         s.add(_make_obj("o1", 45.0, 9.0))
         result = s.query_s2("0:0:0:0")
         assert result == []
+
+    def test_query_s2_prefix_matches_real_token(self):
+        pytest.importorskip("s2sphere")
+        s = SpatialStore()
+        obj = _make_obj("o1", 45.0, 9.0)
+        s.add(obj)
+        s2 = obj.posizione.s2
+        assert s2 is not None
+        prefix = s2[:8]
+        result = s.query_s2(prefix)
+        assert any(r.id == "o1" for r in result)
+
+    def test_query_h3_returns_object(self):
+        s = SpatialStore()
+        obj = _make_obj("o1", 45.0, 9.0)
+        s.add(obj)
+        h3 = obj.posizione.h3
+        assert h3 is not None
+        result = s.query_h3(h3)
+        assert any(r.id == "o1" for r in result)
+
+    def test_query_h3_prefix_matches(self):
+        s = SpatialStore()
+        obj = _make_obj("o1", 45.0, 9.0)
+        s.add(obj)
+        h3 = obj.posizione.h3
+        assert h3 is not None
+        prefix = h3[:9]
+        result = s.query_h3(prefix)
+        assert any(r.id == "o1" for r in result)
+
+    def test_query_h3_empty_store(self):
+        s = SpatialStore()
+        assert s.query_h3("8a1fb0bffffff") == []
 
 
 class TestSpatialStoreRadiusQuery:
@@ -173,6 +208,27 @@ class TestWorldStore:
         assert imported == 1
         assert w2.get("o1") is not None
         assert w2.get("o1").tipo == "strada"
+
+    def test_save_and_load_geojson_preserves_s2_h3(self, tmp_path):
+        w = WorldStore()
+        obj = _make_obj("o1", 45.0, 9.0)
+        s2 = obj.posizione.s2
+        h3 = obj.posizione.h3
+        w.add(obj)
+        path = tmp_path / "spatial.geojson"
+        w.save_geojson(path)
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        props = raw["features"][0]["properties"]
+        assert props.get("s2") == s2
+        assert props.get("h3") == h3
+
+        w2 = WorldStore()
+        imported = w2.load_geojson(path)
+        assert imported == 1
+        loaded = w2.get("o1")
+        assert loaded is not None
+        assert loaded.posizione.s2 == s2
+        assert loaded.posizione.h3 == h3
 
     def test_save_and_load_line_geojson(self, tmp_path):
         w = WorldStore()

@@ -62,9 +62,14 @@
 
         <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete glass-panel">
           <p>Tracciamento completato! File pronto per il caricamento.</p>
-          <button class="btn btn-primary btn-large" :disabled="isUploading" @click="uploadRide">
-            {{ isUploading ? 'Caricamento...' : 'Carica su BikeMaster' }}
-          </button>
+          <div class="tracking-actions">
+            <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide">
+              {{ isUploading ? t('tracking.uploading') : t('tracking.upload') }}
+            </button>
+            <button class="btn btn-secondary" @click="showFullRoute">{{ t('trackingTools.showRoute') }}</button>
+            <button class="btn btn-secondary" @click="saveAsItinerary">{{ t('trackingTools.saveAsItinerary') }}</button>
+            <button class="btn btn-secondary" @click="openAetherMap">{{ t('trackingTools.openAetherMap') }}</button>
+          </div>
         </div>
       </div>
    </section>
@@ -264,6 +269,7 @@ async function uploadRide() {
           }
           const result = await apiPost("/api/v1/rides", rideData)
           if (result.id) {
+            tracking.setRideId(result.id as number)
             alert("Uscita salvata con successo!")
             resetTrackingState()
             router.push("/rides")
@@ -486,6 +492,87 @@ function resetTrackingState() {
   tracking.resetMetrics()
   tracking.setGpxPath(null)
   tracking.setGpxBlob(null)
+  tracking.setRideId(null)
+}
+
+function showFullRoute() {
+  const map = liveMapRef.value
+  if (!map) return
+  map.setRoute(tracking.routePoints.map((p) => ({ lat: p.lat, lon: p.lon })))
+}
+
+async function saveAsItinerary() {
+  const date = new Date().toISOString().slice(0, 10)
+  const title = activityTitle[activityType.value] || 'Tracciamento GPS'
+  const name = `${title} - ${date}`
+  const distKm = tracking.distance / 1000
+  const elevM = tracking.elevation
+
+  let rideId = tracking.rideId
+  if (!rideId && tracking.routePoints.length > 1) {
+    const rideData = {
+      date,
+      distance_km: distKm || undefined,
+      duration_minutes: tracking.elapsedTime / 60,
+      avg_speed_kmh: tracking.avgSpeed > 0 ? tracking.avgSpeed : undefined,
+      elevation_gain_m: tracking.elevation > 0 ? tracking.elevation : undefined,
+      gps_points: tracking.routePoints
+        .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon))
+        .map((p) => ({
+          lat: p.lat,
+          lon: p.lon,
+          altitude: p.altitude ?? null,
+          timestamp: p.timestamp ?? null,
+          speed: p.speed ?? null,
+        })),
+      source: 'gps_tracking',
+      activity_type: activityType.value,
+      title,
+    }
+    try {
+      const result = await apiPost('/api/v1/rides', rideData)
+      if (result.id) {
+        tracking.setRideId(result.id as number)
+        rideId = result.id as number
+      }
+    } catch (e) {
+      console.warn('Salvataggio ride per itinerario fallito', e)
+      alert('Impossibile salvare l\'uscita come itinerario.')
+      return
+    }
+  }
+
+  if (!rideId) {
+    alert('Registra prima l\'uscita.')
+    return
+  }
+
+  try {
+    const it = await apiPost('/api/v1/itineraries', {
+      name,
+      start_date: date,
+      end_date: date,
+      total_km: distKm || undefined,
+      total_elevation_m: elevM || undefined,
+    })
+    if (it.id) {
+      await apiPost(`/api/v1/itineraries/${it.id}/stages`, {
+        title,
+        distance_km: distKm || undefined,
+        elevation_gain_m: elevM || undefined,
+        ride_id: rideId,
+        stage_day: 1,
+      })
+      alert('Itinerario creato!')
+    }
+  } catch (e) {
+    console.warn('Creazione itinerario fallita', e)
+    alert('Impossibile creare l\'itinerario.')
+  }
+}
+
+function openAetherMap() {
+  router.push('/aethermap')
 }
 
 onMounted(() => {
@@ -624,6 +711,18 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.tracking-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+.tracking-actions .btn {
+  min-width: 140px;
 }
 
 .glass-panel {

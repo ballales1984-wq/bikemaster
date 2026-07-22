@@ -162,11 +162,25 @@ function setStatus(msg: string) {
 }
 
 async function toggleAssistant(): Promise<void> {
-  if (isListening.value) {
+  if (isSpeaking.value) {
+    stopSpeaking();
+  } else if (isListening.value) {
     await stopAndProcess();
   } else {
     await startListening();
   }
+}
+
+function stopSpeaking(): void {
+  if (currentAudio.current) {
+    currentAudio.current.pause();
+    currentAudio.current = null;
+  }
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
+  isSpeaking.value = false;
+  setStatus("");
 }
 
 async function startListening(): Promise<void> {
