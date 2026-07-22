@@ -125,18 +125,18 @@ describe("CalendarPanel", () => {
 
     const today = new Date();
     const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
+      "Gennaio",
+      "Febbraio",
+      "Marzo",
+      "Aprile",
+      "Maggio",
+      "Giugno",
+      "Luglio",
+      "Agosto",
+      "Settembre",
+      "Ottobre",
+      "Novembre",
+      "Dicembre",
     ];
     const expected = `${months[today.getMonth()]} ${today.getFullYear()}`;
 
@@ -151,9 +151,9 @@ describe("CalendarPanel", () => {
     const wrapper = mount(CalendarPanel);
     await flush();
 
-    expect(wrapper.text()).toContain("Training");
-    expect(wrapper.text()).toContain("Race");
-    expect(wrapper.text()).toContain("Recovery");
+    expect(wrapper.text()).toContain("Allenamento");
+    expect(wrapper.text()).toContain("Gara");
+    expect(wrapper.text()).toContain("Recupero");
   });
 
   it("opens add form via openAddForDate", async () => {
@@ -222,7 +222,7 @@ describe("CalendarPanel", () => {
     const wrapper = mount(CalendarPanel);
     await flush();
 
-    expect(wrapper.text()).toContain("Linked Goals");
+    expect(wrapper.text()).toContain("Obiettivi Collegati");
     expect(wrapper.text()).toContain("Interval Training");
   });
 
@@ -258,12 +258,12 @@ describe("CalendarPanel", () => {
     const wrapper = mount(CalendarPanel);
     await flush();
 
-    expect(wrapper.vm.eventLabel("training")).toBe("Training");
-    expect(wrapper.vm.eventLabel("race")).toBe("Race");
-    expect(wrapper.vm.eventLabel("recovery")).toBe("Recovery");
-    expect(wrapper.vm.eventLabel("goal_deadline")).toBe("Goal");
+    expect(wrapper.vm.eventLabel("training")).toBe("Allenamento");
+    expect(wrapper.vm.eventLabel("race")).toBe("Gara");
+    expect(wrapper.vm.eventLabel("recovery")).toBe("Recupero");
+    expect(wrapper.vm.eventLabel("goal_deadline")).toBe("Obiettivo");
     expect(wrapper.vm.eventLabel("test")).toBe("Test");
-    expect(wrapper.vm.eventLabel("other")).toBe("Other");
+    expect(wrapper.vm.eventLabel("other")).toBe("Altro");
   });
 
   it("changes athlete selection", async () => {

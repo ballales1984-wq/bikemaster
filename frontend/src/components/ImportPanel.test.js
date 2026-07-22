@@ -172,7 +172,7 @@ describe("ImportPanel", () => {
     const wrapper = mount(ImportPanel, { global: { plugins: [createPinia()] } });
 
     expect(wrapper.text()).toContain("Import Routes");
-    expect(wrapper.text()).toContain("GPX or FIT");
+    expect(wrapper.text()).toContain("GPX o FIT");
   });
 
   it("shows importing state during upload", async () => {
