@@ -37,7 +37,8 @@ const isTauri =
   env.TAURI_ENV_PLATFORM === "win32" ||
   env.TAURI_ENV_PLATFORM === "darwin" ||
   env.TAURI_ENV_PLATFORM === "linux";
-const isDev = env.DEV !== "false" && env.NODE_ENV !== "production";
+const isDev = process.env.NODE_ENV !== "production";
+console.log("[vite-config] NODE_ENV:", process.env.NODE_ENV, "isDev:", isDev, "isTauri:", isTauri);
 
 export default defineConfig({
   base: isTauri ? "./" : "/",
@@ -63,18 +64,16 @@ export default defineConfig({
                 url.pathname.startsWith("/api/") &&
                 (url.pathname.includes("/auth/") ||
                   url.pathname.includes("/auth")),
-              handler: "NetworkFirst",
+              handler: "NetworkOnly",
               options: {
                 cacheName: "bikemaster-api",
-                expiration: { maxEntries: 10, maxAgeSeconds: 0 },
               },
             },
             {
               urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
-              handler: "NetworkFirst",
+              handler: "NetworkOnly",
               options: {
                 cacheName: "bikemaster-api",
-                expiration: { maxEntries: 100, maxAgeSeconds: 60 },
               },
             },
             {
@@ -82,7 +81,17 @@ export default defineConfig({
               handler: "CacheFirst",
               options: {
                 cacheName: "bikemaster-images",
-                expiration: { maxEntries: 60, maxAgeSeconds: 30 * 24 * 60 * 60 },
+                expiration: { maxEntries: 500, maxAgeSeconds: 2592000 },
+              },
+            },
+            {
+              urlPattern: ({ url }) =>
+                url.pathname === "/favicon.svg" ||
+                url.pathname.startsWith("/manifest"),
+              handler: "CacheFirst",
+              options: {
+                cacheName: "bikemaster-static",
+                expiration: { maxEntries: 10, maxAgeSeconds: 86400 },
               },
             },
           ],

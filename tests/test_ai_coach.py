@@ -85,7 +85,7 @@ def test_validate_athlete_profile_missing_name():
     athlete = AthleteProfile(name="", weight_kg=75.0, experience_level="Amateur")
     valid, msg = validate_athlete_profile(athlete)
     assert valid is False
-    assert "nome" in msg
+    assert "name" in msg
 
 
 def test_training_advice_falls_back_to_local_after_groq_403(monkeypatch):

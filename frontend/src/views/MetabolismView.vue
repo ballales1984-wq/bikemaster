@@ -27,6 +27,12 @@ const selectedDate = ref(new Date().toISOString().slice(0, 10));
 const rangeSummaries = ref<any[]>([]);
 
 onMounted(async () => {
+  const token = localStorage.getItem("bikemaster_token");
+  if (!token) {
+    error.value = "Sessione scaduta. Effettua di nuovo il login.";
+    loading.value = false;
+    return;
+  }
   try {
     await store.fetchProfile();
     await store.fetchFoodLogs(selectedDate.value);

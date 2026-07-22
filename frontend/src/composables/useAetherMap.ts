@@ -47,7 +47,7 @@ interface GeoJSONLike {
 }
 
 function featureToEntity(
-  feature: GeoJSONLike["features"][0],
+  feature: NonNullable<GeoJSONLike["features"]>[number],
 ): AetherEntity | null {
   const props = feature.properties || {};
   const tipo = props.tipo;

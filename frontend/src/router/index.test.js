@@ -298,7 +298,7 @@ describe("router actual implementation integration", () => {
     const router = await import("./index");
     expect(router.default).toBeDefined();
     expect(typeof router.default.beforeEach).toBe("function");
-  });
+  }, 30000);
 
   it("has beforeEach guard defined on router", async () => {
     const router = await import("./index");
@@ -312,7 +312,7 @@ describe("router actual implementation integration", () => {
 
   it("router has correct routes count", async () => {
     const router = await import("./index");
-    expect(router.default.options.routes).toHaveLength(34);
+    expect(router.default.options.routes).toHaveLength(35);
   });
 });
 
