@@ -201,7 +201,7 @@ async function startListening(): Promise<void> {
 async function stopAndProcess(): Promise<void> {
   let file = recording.getAudioFile();
   if (!file) {
-    const blob = recording.stopRecording();
+    const blob = await recording.stopRecording();
     if (!blob) return;
     file = new File([blob], `recording_${Date.now()}.webm`, { type: blob.type });
   }

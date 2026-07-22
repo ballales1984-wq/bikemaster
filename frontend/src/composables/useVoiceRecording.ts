@@ -28,6 +28,9 @@ export function useVoiceRecording() {
   let stream: MediaStream | null = null;
   let chunks: Blob[] = [];
   let animationId: number | null = null;
+  let mimeType = "audio/webm";
+  let stopResolve: ((blob: Blob | null) => void) | null = null;
+  let cancelled = false;
 
   const isRecording = computed(() => state.value === "recording");
   const isProcessing = computed(() => state.value === "processing");
@@ -51,6 +54,7 @@ export function useVoiceRecording() {
 
   async function startRecording(): Promise<void> {
     if (state.value === "recording") return;
+    cancelled = false;
 
     if (!supported.value) {
       error.value = "Registrazione audio non supportata dal browser";
@@ -69,7 +73,7 @@ export function useVoiceRecording() {
       permissionGranted.value = true;
 
       chunks = [];
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
         : MediaRecorder.isTypeSupported("audio/webm")
           ? "audio/webm"
@@ -84,12 +88,17 @@ export function useVoiceRecording() {
       };
 
       mediaRecorder.onstop = () => {
+        if (cancelled) return;
         const blob = new Blob(chunks, { type: mimeType });
         audioBlob.value = blob;
         if (audioUrl.value) URL.revokeObjectURL(audioUrl.value);
         audioUrl.value = URL.createObjectURL(blob);
         state.value = "idle";
         cleanupStream();
+        if (stopResolve) {
+          stopResolve(blob);
+          stopResolve = null;
+        }
       };
 
       mediaRecorder.onerror = () => {
@@ -109,15 +118,20 @@ export function useVoiceRecording() {
     }
   }
 
-  function stopRecording(): Blob | null {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-      mediaRecorder.stop();
-    }
-    stopVolumeMonitor();
-    return audioBlob.value;
+  function stopRecording(): Promise<Blob | null> {
+    return new Promise((resolve) => {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        stopResolve = resolve;
+        mediaRecorder.stop();
+      } else {
+        resolve(audioBlob.value);
+      }
+      stopVolumeMonitor();
+    });
   }
 
   function cancelRecording(): void {
+    cancelled = true;
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
       mediaRecorder.stop();
     }
