@@ -190,6 +190,7 @@ class AthleteModel(Base):
     subcutaneous_fat_kg: Mapped[float | None] = mapped_column(Float)
     subcutaneous_fat_percentage: Mapped[float | None] = mapped_column(Float)
     visceral_fat_level: Mapped[float | None] = mapped_column(Float)
+    visceral_fat_percentage: Mapped[float | None] = mapped_column(Float)
     visceral_fat_kg: Mapped[float | None] = mapped_column(Float)
     muscle_mass_kg: Mapped[float | None] = mapped_column(Float)
     bone_mass_kg: Mapped[float | None] = mapped_column(Float)

@@ -273,6 +273,6 @@ describe("AthletePanel", () => {
     await flush();
 
     expect(wrapper.find(".metric-history").exists()).toBe(true);
-    expect(wrapper.findAllComponents({ name: "MetricHistoryChart" }).length).toBe(3);
+    expect(wrapper.findAllComponents({ name: "MetricHistoryChart" }).length).toBe(10);
   });
 });

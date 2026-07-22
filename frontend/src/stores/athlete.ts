@@ -38,6 +38,7 @@ export interface AthleteProfile extends Athlete {
   subcutaneous_fat_kg?: number;
   subcutaneous_fat_percentage?: number;
   visceral_fat_level?: number;
+  visceral_fat_percentage?: number;
   visceral_fat_kg?: number;
   muscle_mass_kg?: number;
   bone_mass_kg?: number;

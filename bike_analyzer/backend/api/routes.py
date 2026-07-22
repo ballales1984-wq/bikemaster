@@ -969,6 +969,7 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "subcutaneous_fat_kg": athlete.get("subcutaneous_fat_kg"),
         "subcutaneous_fat_percentage": athlete.get("subcutaneous_fat_percentage"),
         "visceral_fat_level": athlete.get("visceral_fat_level"),
+        "visceral_fat_percentage": athlete.get("visceral_fat_percentage"),
         "visceral_fat_kg": athlete.get("visceral_fat_kg"),
         "muscle_mass_kg": athlete.get("muscle_mass_kg"),
         "bone_mass_kg": athlete.get("bone_mass_kg"),
@@ -1013,6 +1014,7 @@ async def update_profile(
         "subcutaneous_fat_kg",
         "subcutaneous_fat_percentage",
         "visceral_fat_level",
+        "visceral_fat_percentage",
         "visceral_fat_kg",
         "muscle_mass_kg",
         "bone_mass_kg",
@@ -1445,6 +1447,12 @@ async def get_aethermap_terrain(
 
     if not (-90 <= min_lat <= max_lat <= 90):
         raise HTTPException(status_code=400, detail="Invalid latitude range")
+    min_lon = ((min_lon + 180) % 360) - 180
+    max_lon = ((max_lon + 180) % 360) - 180
+    if max_lon < min_lon:
+        min_lon, max_lon = max_lon, min_lon
+    if max_lon - min_lon > 360:
+        raise HTTPException(status_code=400, detail="Invalid longitude range")
     if not (-180 <= min_lon <= max_lon <= 180):
         raise HTTPException(status_code=400, detail="Invalid longitude range")
 
@@ -2141,6 +2149,7 @@ async def upsert_my_athlete_profile(
             "subcutaneous_fat_kg": ("kg", "Grasso sottocutaneo"),
             "subcutaneous_fat_percentage": ("%", "Grasso sottocutaneo %"),
             "visceral_fat_level": ("lvl", "Grasso viscerale"),
+            "visceral_fat_percentage": ("%", "Grasso viscerale %"),
             "visceral_fat_kg": ("kg", "Grasso viscerale kg"),
             "muscle_mass_kg": ("kg", "Massa muscolare"),
             "bone_mass_kg": ("kg", "Massa ossea"),
@@ -2254,6 +2263,7 @@ async def update_athlete(
             "subcutaneous_fat_kg": ("kg", "Grasso sottocutaneo"),
             "subcutaneous_fat_percentage": ("%", "Grasso sottocutaneo %"),
             "visceral_fat_level": ("lvl", "Grasso viscerale"),
+            "visceral_fat_percentage": ("%", "Grasso viscerale %"),
             "visceral_fat_kg": ("kg", "Grasso viscerale kg"),
             "muscle_mass_kg": ("kg", "Massa muscolare"),
             "bone_mass_kg": ("kg", "Massa ossea"),
@@ -4473,7 +4483,25 @@ async def get_heatmap(athlete_id: int = Query(0), current_user: dict = Depends(g
     else:
         target_id = current_user["id"]
     rides = [Ride(**r) for r in get_rides_by_athlete(target_id)]
-    rides_dict = [r.to_dict() for r in rides]
+    rides_dict = []
+    for r in rides:
+        d = r.to_dict()
+        gps = getattr(r, "gps_points", None)
+        if gps:
+            d["gps_points"] = [
+                {
+                    "lat": p.lat,
+                    "lon": p.lon,
+                    "altitude": p.altitude,
+                    "speed": p.speed,
+                    "power": p.power,
+                    "heart_rate": p.heart_rate,
+                    "cadence": p.cadence,
+                    "timestamp": p.timestamp.isoformat() if p.timestamp else None,
+                }
+                for p in gps
+            ]
+        rides_dict.append(d)
     data = get_heatmap_points(rides_dict)
     return data
 

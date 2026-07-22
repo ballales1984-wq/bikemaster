@@ -152,6 +152,7 @@ def init_db():
             subcutaneous_fat_kg REAL,
             subcutaneous_fat_percentage REAL,
             visceral_fat_level REAL,
+            visceral_fat_percentage REAL,
             visceral_fat_kg REAL,
             muscle_mass_kg REAL,
             bone_mass_kg REAL,
@@ -246,6 +247,8 @@ def init_db():
             conn.execute("ALTER TABLE athletes ADD COLUMN subcutaneous_fat_percentage REAL")
         if "visceral_fat_level" not in athlete_cols:
             conn.execute("ALTER TABLE athletes ADD COLUMN visceral_fat_level REAL")
+        if "visceral_fat_percentage" not in athlete_cols:
+            conn.execute("ALTER TABLE athletes ADD COLUMN visceral_fat_percentage REAL")
         if "visceral_fat_kg" not in athlete_cols:
             conn.execute("ALTER TABLE athletes ADD COLUMN visceral_fat_kg REAL")
         if "muscle_mass_kg" not in athlete_cols:
@@ -1002,13 +1005,13 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                          experience_level, goals, preferred_terrain, weekly_volume_km,
                          best_segments, medical_notes, equipment, ftp_watts,
                          body_water_percentage, muscle_mass_percentage, bmr_kcal,
-                         fat_mass_kg, subcutaneous_fat_kg, subcutaneous_fat_percentage,
-                         visceral_fat_level, visceral_fat_kg, muscle_mass_kg, bone_mass_kg,
-                         protein_percentage, protein_kg, body_age, apparent_age,
-                         password_hash, tenant_id, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                               ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                               ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                          fat_mass_kg, subcutaneous_fat_kg, subcutaneous_fat_percentage,
+                          visceral_fat_level, visceral_fat_percentage, visceral_fat_kg, muscle_mass_kg, bone_mass_kg,
+                           protein_percentage, protein_kg, body_age, apparent_age,
+                           password_hash, tenant_id, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                   ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             athlete.get("name"),
                             athlete.get("email"),
@@ -1036,6 +1039,7 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                             athlete.get("subcutaneous_fat_kg"),
                             athlete.get("subcutaneous_fat_percentage"),
                             athlete.get("visceral_fat_level"),
+                            athlete.get("visceral_fat_percentage"),
                             athlete.get("visceral_fat_kg"),
                             athlete.get("muscle_mass_kg"),
                             athlete.get("bone_mass_kg"),
@@ -1057,12 +1061,12 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                          best_segments, medical_notes, equipment, ftp_watts,
                          body_water_percentage, muscle_mass_percentage, bmr_kcal,
                          fat_mass_kg, subcutaneous_fat_kg, subcutaneous_fat_percentage,
-                         visceral_fat_level, visceral_fat_kg, muscle_mass_kg, bone_mass_kg,
-                         protein_percentage, protein_kg, body_age, apparent_age,
-                         password_hash, tenant_id, created_at)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                         visceral_fat_level, visceral_fat_percentage, visceral_fat_kg, muscle_mass_kg, bone_mass_kg,
+                          protein_percentage, protein_kg, body_age, apparent_age,
+                          password_hash, tenant_id, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             athlete_id,
                             athlete.get("name"),
@@ -1091,6 +1095,7 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                             athlete.get("subcutaneous_fat_kg"),
                             athlete.get("subcutaneous_fat_percentage"),
                             athlete.get("visceral_fat_level"),
+                            athlete.get("visceral_fat_percentage"),
                             athlete.get("visceral_fat_kg"),
                             athlete.get("muscle_mass_kg"),
                             athlete.get("bone_mass_kg"),
@@ -1148,6 +1153,7 @@ def _row_to_athlete(row) -> dict:
         "subcutaneous_fat_kg",
         "subcutaneous_fat_percentage",
         "visceral_fat_level",
+        "visceral_fat_percentage",
         "visceral_fat_kg",
         "muscle_mass_kg",
         "bone_mass_kg",
@@ -1221,8 +1227,8 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
             preferred_terrain=?, weekly_volume_km=?, best_segments=?,
             medical_notes=?, equipment=?, ftp_watts=?, body_water_percentage=?,
             muscle_mass_percentage=?, bmr_kcal=?, fat_mass_kg=?, subcutaneous_fat_kg=?,
-            subcutaneous_fat_percentage=?, visceral_fat_level=?, visceral_fat_kg=?,
-            muscle_mass_kg=?, bone_mass_kg=?, protein_percentage=?, protein_kg=?,
+            subcutaneous_fat_percentage=?, visceral_fat_level=?, visceral_fat_percentage=?,
+            visceral_fat_kg=?, muscle_mass_kg=?, bone_mass_kg=?, protein_percentage=?, protein_kg=?,
             body_age=?, apparent_age=?, password_hash=?, tenant_id=? WHERE id=?""",
             (
                 merged.get("name"),
@@ -1250,6 +1256,7 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
                 merged.get("subcutaneous_fat_kg"),
                 merged.get("subcutaneous_fat_percentage"),
                 merged.get("visceral_fat_level"),
+                merged.get("visceral_fat_percentage"),
                 merged.get("visceral_fat_kg"),
                 merged.get("muscle_mass_kg"),
                 merged.get("bone_mass_kg"),

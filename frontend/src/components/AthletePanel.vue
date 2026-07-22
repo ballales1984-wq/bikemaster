@@ -151,20 +151,9 @@
         >
       </div>
       <div class="form-group">
-        <label for="athlete-sub-fat">Grasso Sottocutaneo (kg)</label>
+        <label for="athlete-sub-fat">Grasso Sottocutaneo (%)</label>
         <input
           id="athlete-sub-fat"
-          v-model.number="form.subcutaneous_fat_kg"
-          type="number"
-          min="0"
-          max="100"
-          step="0.1"
-        >
-      </div>
-      <div class="form-group">
-        <label for="athlete-sub-fat-pct">Grasso Sottocutaneo (%)</label>
-        <input
-          id="athlete-sub-fat-pct"
           v-model.number="form.subcutaneous_fat_percentage"
           type="number"
           min="0"
@@ -173,14 +162,14 @@
         >
       </div>
       <div class="form-group">
-        <label for="athlete-visceral">Grasso Viscerale (lvl)</label>
+        <label for="athlete-sub-fat-pct">Grasso Viscerale (%)</label>
         <input
-          id="athlete-visceral"
-          v-model.number="form.visceral_fat_level"
+          id="athlete-sub-fat-pct"
+          v-model.number="form.visceral_fat_percentage"
           type="number"
-          min="1"
-          max="59"
-          step="1"
+          min="0"
+          max="100"
+          step="0.1"
         >
       </div>
       <div class="form-group">
@@ -406,6 +395,7 @@ interface AthleteForm {
   subcutaneous_fat_kg: number;
   subcutaneous_fat_percentage: number;
   visceral_fat_level: number;
+  visceral_fat_percentage: number;
   visceral_fat_kg: number;
   muscle_mass_kg: number;
   bone_mass_kg: number;
@@ -445,6 +435,7 @@ const form = ref<AthleteForm>({
   subcutaneous_fat_kg: 8,
   subcutaneous_fat_percentage: 12,
   visceral_fat_level: 5,
+  visceral_fat_percentage: 0,
   visceral_fat_kg: 2.5,
   muscle_mass_kg: 28,
   bone_mass_kg: 3.5,

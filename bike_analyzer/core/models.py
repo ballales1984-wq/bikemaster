@@ -260,6 +260,7 @@ class AthleteProfile:
         subcutaneous_fat_kg: Subcutaneous fat mass in kg.
         subcutaneous_fat_percentage: Subcutaneous fat percentage.
         visceral_fat_level: Visceral fat level.
+        visceral_fat_percentage: Visceral fat percentage.
         visceral_fat_kg: Visceral fat mass in kg.
         muscle_mass_kg: Skeletal muscle mass in kg.
         bone_mass_kg: Bone mass in kg.
@@ -294,6 +295,7 @@ class AthleteProfile:
     subcutaneous_fat_kg: float | None = None
     subcutaneous_fat_percentage: float | None = None
     visceral_fat_level: float | None = None
+    visceral_fat_percentage: float | None = None
     visceral_fat_kg: float | None = None
     muscle_mass_kg: float | None = None
     bone_mass_kg: float | None = None
@@ -331,6 +333,7 @@ class AthleteProfile:
             "subcutaneous_fat_kg": self.subcutaneous_fat_kg,
             "subcutaneous_fat_percentage": self.subcutaneous_fat_percentage,
             "visceral_fat_level": self.visceral_fat_level,
+            "visceral_fat_percentage": self.visceral_fat_percentage,
             "visceral_fat_kg": self.visceral_fat_kg,
             "muscle_mass_kg": self.muscle_mass_kg,
             "bone_mass_kg": self.bone_mass_kg,
