@@ -104,7 +104,6 @@ export default defineConfig({
         manualChunks: {
           vendor: ["vue", "vue-router", "pinia"],
           charts: ["chart.js"],
-          maps: ["leaflet", "leaflet.heat"],
         },
       },
     },
