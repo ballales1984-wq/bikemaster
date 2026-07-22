@@ -49,15 +49,15 @@
       </label>
     </section>
 
-    <section class="card">
-      <h2>Chiavi API personali</h2>
-      <p class="hint">
-        Inserisci le <strong>tue</strong> chiavi per far funzionare l'app
-        localmente. Vengono salvate solo su questo dispositivo (SQLite locale) e
-        inviate al backend del PC ad ogni richiesta, che le usa al posto delle sue.
-        Non vengono mai conservate sul server.
-      </p>
-      <form @submit.prevent class="keys-grid">
+  <section class="card" v-if="keysLoaded">
+    <h2>Chiavi API personali</h2>
+    <p class="hint">
+      Inserisci le <strong>tue</strong> chiavi per far funzionare l'app
+      localmente. Vengono salvate solo su questo dispositivo (SQLite locale) e
+      inviate al backend del PC ad ogni richiesta, che le usa al posto delle sue.
+      Non vengono mai conservate sul server.
+    </p>
+    <form @submit.prevent class="keys-grid">
         <label v-for="field in keyFields" :key="field.name" class="key-field">
           <span class="key-label">{{ field.label }}</span>
           <div class="key-input-row">
@@ -142,6 +142,7 @@ const keysStatusClass = ref("");
 const bulkInput = ref("");
 const bulkStatus = ref("");
 const bulkStatusClass = ref("");
+const keysLoaded = ref(false);
 
 const keyFields: { name: keyof UserApiKeys; label: string; placeholder: string }[] = [
   { name: "groq", label: "Groq (AI Coach)", placeholder: "gsk_..." },
@@ -164,6 +165,7 @@ const keys = reactive<UserApiKeys>({ ...apiKeys.keys });
 onMounted(async () => {
   await apiKeys.load();
   Object.assign(keys, apiKeys.keys);
+  keysLoaded.value = true;
 });
 
 const modeLabel = computed(() => {

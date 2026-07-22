@@ -112,6 +112,7 @@ class="connection-actions">
                 v-model="apikeyDrafts[service.service]"
                 class="text-input"
                 :type="showKeys ? 'text' : 'password'"
+                :readonly="!keysLoaded"
                 :placeholder="t('connections.apiKeyPlaceholder')"
                 autocomplete="off"
               />
@@ -200,6 +201,7 @@ const importingBulk = ref(false);
 const bulkInput = ref("");
 const bulkStatus = ref("");
 const bulkStatusClass = ref("");
+const keysLoaded = ref(false);
 
 const apikeyDrafts: Record<string, string> = reactive({});
 
@@ -618,6 +620,7 @@ async function importBulkKeys() {
 onMounted(async () => {
   await apiKeysStore.load();
   await connectionsStore.load();
+  keysLoaded.value = true;
 });
 </script>
 
