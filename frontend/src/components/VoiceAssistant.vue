@@ -137,6 +137,8 @@ const error = ref<string | null>(null);
 const isSpeaking = ref(false);
 const currentAudio: { current: HTMLAudioElement | null } = { current: null };
 const sessionId = ref(`session_${Date.now()}`);
+const isProcessingStop = ref(false);
+let continuousTimeout: number | null = null;
 
 const supported = computed(() => recording.supported);
 const isListening = computed(() => recording.isRecording);
@@ -162,6 +164,11 @@ function setStatus(msg: string) {
 }
 
 async function toggleAssistant(): Promise<void> {
+  if (isProcessingStop.value) {
+    stopSpeaking();
+    recording.cancelRecording();
+    return;
+  }
   if (isSpeaking.value) {
     stopSpeaking();
   } else if (isListening.value) {
@@ -172,6 +179,10 @@ async function toggleAssistant(): Promise<void> {
 }
 
 function stopSpeaking(): void {
+  if (continuousTimeout) {
+    clearTimeout(continuousTimeout);
+    continuousTimeout = null;
+  }
   if (currentAudio.current) {
     currentAudio.current.pause();
     currentAudio.current = null;
@@ -194,14 +205,17 @@ async function startListening(): Promise<void> {
   lastResponse.value = "";
   setStatus("");
 
+  voiceStore.stopListening();
+  recording.cancelRecording();
+
   try {
     await recording.startRecording();
     expanded.value = true;
     setStatus("In ascolo...");
 
     if (continuousModel.value) {
-      // Auto-stop after silence (simple timeout for now)
-      setTimeout(() => {
+      continuousTimeout = window.setTimeout(() => {
+        continuousTimeout = null;
         if (recording.isRecording) {
           stopAndProcess();
         }
@@ -213,10 +227,20 @@ async function startListening(): Promise<void> {
 }
 
 async function stopAndProcess(): Promise<void> {
+  if (isProcessingStop.value) return;
+  if (continuousTimeout) {
+    clearTimeout(continuousTimeout);
+    continuousTimeout = null;
+  }
+  isProcessingStop.value = true;
+
   let file = recording.getAudioFile();
   if (!file) {
     const blob = await recording.stopRecording();
-    if (!blob) return;
+    if (!blob) {
+      isProcessingStop.value = false;
+      return;
+    }
     file = new File([blob], `recording_${Date.now()}.webm`, { type: blob.type });
   }
 
@@ -260,6 +284,8 @@ async function stopAndProcess(): Promise<void> {
     error.value = exc instanceof Error ? exc.message : "Errore di elaborazione";
     recording.state.value = "idle";
     setStatus("");
+  } finally {
+    isProcessingStop.value = false;
   }
 }
 
@@ -400,7 +426,8 @@ async function executeIntent(intent: string, text: string): Promise<void> {
         }
         break;
       case "add_ride":
-        voiceStore.startListening();
+        const router = (await import("../router/index")).default;
+        router.push("/rides");
         break;
       default:
         break;
@@ -412,8 +439,13 @@ async function executeIntent(intent: string, text: string): Promise<void> {
 
 function cleanup(): void {
   recording.cancelRecording();
+  voiceStore.stopListening();
   if (currentAudio.current) {
     currentAudio.current.pause();
+  }
+  if (continuousTimeout) {
+    clearTimeout(continuousTimeout);
+    continuousTimeout = null;
   }
 }
 

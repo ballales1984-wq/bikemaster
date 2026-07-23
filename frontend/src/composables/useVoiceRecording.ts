@@ -30,6 +30,8 @@ export function useVoiceRecording() {
   let animationId: number | null = null;
   let mimeType = "audio/webm";
   let stopResolve: ((blob: Blob | null) => void) | null = null;
+  let pendingStop = false;
+  let pendingCancel = false;
   let cancelled = false;
 
   const isRecording = computed(() => state.value === "recording");
@@ -55,12 +57,16 @@ export function useVoiceRecording() {
   async function startRecording(): Promise<void> {
     if (state.value === "recording") return;
     cancelled = false;
+    pendingStop = false;
+    pendingCancel = false;
 
     if (!supported.value) {
       error.value = "Registrazione audio non supportata dal browser";
       state.value = "error";
       return;
     }
+
+    resetBlobState();
 
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -88,7 +94,40 @@ export function useVoiceRecording() {
       };
 
       mediaRecorder.onstop = () => {
-        if (cancelled) return;
+        if (pendingStop) {
+          pendingStop = false;
+          const blob = new Blob(chunks, { type: mimeType });
+          audioBlob.value = blob;
+          if (audioUrl.value) URL.revokeObjectURL(audioUrl.value);
+          audioUrl.value = URL.createObjectURL(blob);
+          state.value = "idle";
+          cleanupStream();
+          if (pendingCancel) {
+            pendingCancel = false;
+            chunks = [];
+            audioBlob.value = null;
+            if (audioUrl.value) URL.revokeObjectURL(audioUrl.value);
+            audioUrl.value = null;
+            if (stopResolve) {
+              const resolve = stopResolve;
+              stopResolve = null;
+              resolve(null);
+            }
+          } else if (stopResolve) {
+            stopResolve(blob);
+            stopResolve = null;
+          }
+          return;
+        }
+        if (cancelled) {
+          if (stopResolve) {
+            stopResolve(null);
+            stopResolve = null;
+          }
+          state.value = "idle";
+          cleanupStream();
+          return;
+        }
         const blob = new Blob(chunks, { type: mimeType });
         audioBlob.value = blob;
         if (audioUrl.value) URL.revokeObjectURL(audioUrl.value);
@@ -102,6 +141,10 @@ export function useVoiceRecording() {
       };
 
       mediaRecorder.onerror = () => {
+        if (stopResolve) {
+          stopResolve(null);
+          stopResolve = null;
+        }
         error.value = "Errore durante la registrazione";
         state.value = "error";
         cleanupStream();
@@ -122,7 +165,13 @@ export function useVoiceRecording() {
     return new Promise((resolve) => {
       if (mediaRecorder && mediaRecorder.state !== "inactive") {
         stopResolve = resolve;
-        mediaRecorder.stop();
+        pendingStop = true;
+        try {
+          mediaRecorder.stop();
+        } catch {
+          mediaRecorder = null;
+          resolve(audioBlob.value);
+        }
       } else {
         resolve(audioBlob.value);
       }
@@ -131,9 +180,17 @@ export function useVoiceRecording() {
   }
 
   function cancelRecording(): void {
+    if (pendingStop) {
+      pendingCancel = true;
+      return;
+    }
     cancelled = true;
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
-      mediaRecorder.stop();
+      try {
+        mediaRecorder.stop();
+      } catch {
+        mediaRecorder = null;
+      }
     }
     chunks = [];
     audioBlob.value = null;
@@ -197,6 +254,13 @@ export function useVoiceRecording() {
 
   function reset(): void {
     cancelRecording();
+  }
+
+  function resetBlobState(): void {
+    audioBlob.value = null;
+    if (audioUrl.value) URL.revokeObjectURL(audioUrl.value);
+    audioUrl.value = null;
+    chunks = [];
   }
 
   if (typeof window !== "undefined") {
