@@ -561,6 +561,27 @@ def init_db():
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_beck_assessments_athlete ON beck_assessments(athlete_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_beck_assessments_athlete_date ON beck_assessments(athlete_id, created_at)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS ble_devices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER NOT NULL,
+            tenant_id INTEGER DEFAULT 0,
+            device_id TEXT NOT NULL,
+            name TEXT,
+            device_type TEXT DEFAULT 'weight_scale',
+            service_uuid TEXT,
+            characteristic_uuid TEXT,
+            mac_address TEXT,
+            paired INTEGER DEFAULT 0,
+            last_connected_at TEXT,
+            last_synced_at TEXT,
+            settings TEXT DEFAULT '{}',
+            created_at TEXT,
+            updated_at TEXT,
+            UNIQUE(athlete_id, device_id),
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_ble_devices_athlete ON ble_devices(athlete_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_ble_devices_type ON ble_devices(device_type)")
         conn.commit()
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(rides)")
@@ -3113,6 +3134,117 @@ def get_latest_beck_assessment(athlete_id: int, tenant_id: int = 0) -> dict | No
         }
 
 
+def register_ble_device(
+    athlete_id: int,
+    device_id: str,
+    name: str,
+    *,
+    tenant_id: int = 0,
+    device_type: str = "weight_scale",
+    service_uuid: str | None = None,
+    characteristic_uuid: str | None = None,
+    mac_address: str | None = None,
+    settings: str | None = None,
+) -> int:
+    """Register or update a BLE device for an athlete."""
+    now = datetime.now(timezone.utc).isoformat()
+    settings_json = settings or "{}"
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO ble_devices
+               (athlete_id, tenant_id, device_id, name, device_type, service_uuid, characteristic_uuid, mac_address, paired, settings, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+               ON CONFLICT(athlete_id, device_id) DO UPDATE SET
+                   name=excluded.name,
+                   device_type=excluded.device_type,
+                   service_uuid=excluded.service_uuid,
+                   characteristic_uuid=excluded.characteristic_uuid,
+                   mac_address=excluded.mac_address,
+                   paired=1,
+                   settings=excluded.settings,
+                   updated_at=excluded.updated_at""",
+            (
+                athlete_id,
+                tenant_id,
+                device_id,
+                name,
+                device_type,
+                service_uuid,
+                characteristic_uuid,
+                mac_address,
+                settings_json,
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+        cur.execute("SELECT id FROM ble_devices WHERE athlete_id = ? AND device_id = ?", (athlete_id, device_id))
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
+
+
+def get_ble_devices(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
+    """List all BLE devices registered for an athlete."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if tenant_id is not None:
+            cur.execute("SELECT * FROM ble_devices WHERE athlete_id = ? AND tenant_id = ? ORDER BY created_at DESC", (athlete_id, tenant_id))
+        else:
+            cur.execute("SELECT * FROM ble_devices WHERE athlete_id = ? ORDER BY created_at DESC", (athlete_id,))
+        rows = cur.fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_ble_device(device_id: int, athlete_id: int) -> dict | None:
+    """Get a single BLE device by its DB id, ensuring athlete ownership."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM ble_devices WHERE id = ? AND athlete_id = ?", (device_id, athlete_id))
+        row = cur.fetchone()
+    return dict(row) if row else None
+
+
+def update_ble_device(device_id: int, athlete_id: int, **updates) -> dict | None:
+    """Update fields of a BLE device."""
+    allowed = {"name", "device_type", "service_uuid", "characteristic_uuid", "mac_address", "paired", "settings", "last_connected_at", "last_synced_at"}
+    set_clause = ", ".join(f"{k} = ?" for k in updates if k in allowed)
+    if not set_clause:
+        return get_ble_device(device_id, athlete_id)
+    values = [updates[k] for k in updates if k in allowed]
+    values.extend([device_id, athlete_id])
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(f"UPDATE ble_devices SET {set_clause} WHERE id = ? AND athlete_id = ?", values)
+        conn.commit()
+    return get_ble_device(device_id, athlete_id)
+
+
+def unregister_ble_device(device_id: int, athlete_id: int) -> bool:
+    """Remove a BLE device registration."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM ble_devices WHERE id = ? AND athlete_id = ?", (device_id, athlete_id))
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def mark_ble_device_connected(device_id: int, athlete_id: int) -> None:
+    """Update last_connected_at timestamp."""
+    now = datetime.now(timezone.utc).isoformat()
+    with get_db_connection() as conn:
+        conn.execute("UPDATE ble_devices SET last_connected_at = ? WHERE id = ? AND athlete_id = ?", (now, device_id, athlete_id))
+        conn.commit()
+
+
+def mark_ble_device_synced(device_id: int, athlete_id: int) -> None:
+    """Update last_synced_at timestamp."""
+    now = datetime.now(timezone.utc).isoformat()
+    with get_db_connection() as conn:
+        conn.execute("UPDATE ble_devices SET last_synced_at = ? WHERE id = ? AND athlete_id = ?", (now, device_id, athlete_id))
+        conn.commit()
+
+
 __all__ = [
     "save_ride",
     "get_ride",
@@ -3171,4 +3303,11 @@ __all__ = [
     "get_beck_assessment",
     "get_beck_assessments_by_athlete",
     "get_latest_beck_assessment",
+    "register_ble_device",
+    "get_ble_devices",
+    "get_ble_device",
+    "update_ble_device",
+    "unregister_ble_device",
+    "mark_ble_device_connected",
+    "mark_ble_device_synced",
 ]

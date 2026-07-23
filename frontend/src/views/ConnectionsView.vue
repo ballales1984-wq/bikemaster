@@ -49,7 +49,8 @@
         </div>
 
         <p v-if="service.description"
-class="connection-desc">
+class="connection-desc"
+>
           {{ service.description }}
         </p>
 
@@ -66,7 +67,8 @@ class="connection-desc">
             }}
           </span>
           <span v-if="service.lastConnectedAt"
-class="last-connected">
+class="last-connected"
+>
             {{ formatDate(service.lastConnectedAt) }}
           </span>
         </div>
@@ -74,7 +76,8 @@ class="last-connected">
         <!-- Servizi OAuth -->
         <template v-if="service.method === 'oauth'">
           <div v-if="!service.connected"
-class="connection-actions">
+class="connection-actions"
+>
             <button
               class="btn btn-primary"
               :disabled="connecting === service.service"
@@ -88,7 +91,8 @@ class="connection-actions">
             </button>
           </div>
           <div v-else
-class="connection-actions">
+class="connection-actions"
+>
             <button
               class="btn btn-danger"
               :disabled="disconnecting === service.service"
@@ -105,7 +109,9 @@ class="connection-actions">
 
         <!-- Servizi API Key -->
         <template v-if="service.method === 'apikey'">
-          <form class="apikey-form" @submit.prevent>
+          <form
+class="apikey-form" @submit.prevent
+>
             <label class="key-field">
               <span class="key-label">{{ service.label }} API Key</span>
               <input
@@ -141,7 +147,8 @@ class="connection-actions">
         </template>
 
         <div v-if="serviceError === service.service"
-class="connection-error">
+class="connection-error"
+>
           {{ lastServiceError }}
         </div>
       </div>
@@ -160,7 +167,8 @@ class="connection-error">
       />
       <div class="row key-actions">
         <button class="btn"
-:disabled="importingBulk" @click="importBulkKeys">
+:disabled="importingBulk" @click="importBulkKeys"
+>
           {{
             importingBulk
               ? t("connections.importing")
@@ -168,7 +176,172 @@ class="connection-error">
           }}
         </button>
         <span class="status"
-:class="bulkStatusClass">{{ bulkStatus }}</span>
+:class="bulkStatusClass"
+>{{ bulkStatus }}</span>
+      </div>
+    </section>
+
+    <section class="devices-section">
+      <h2>{{ t("connections.devicesTitle") }}</h2>
+      <p class="subtitle">
+        {{ t("connections.devicesSubtitle") }}
+      </p>
+
+      <div class="devices-row">
+        <div class="device-card ble-card">
+          <div class="device-header">
+            <span class="device-icon">&#x1F4F1;</span>
+            <div>
+              <div class="device-name">Bluetooth BLE</div>
+              <div class="device-meta">
+                {{ bleStore.devices.length }} dispositivo(i)
+              </div>
+            </div>
+          </div>
+
+          <div class="device-actions">
+            <button
+              class="btn btn-primary"
+              :disabled="bleStore.scanning || !bleAvailable"
+              @click="scanBleDevices"
+            >
+              {{
+                bleStore.scanning
+                  ? t("connections.scanning")
+                  : t("connections.scanBle")
+              }}
+            </button>
+            <button
+              v-if="scannedBleDevice"
+              class="btn btn-primary"
+              :disabled="bleStore.loading"
+              @click="registerBleDevice"
+            >
+              {{ t("connections.pairBle") }}
+            </button>
+          </div>
+
+          <div
+v-if="bleStore.error" class="connection-error"
+>
+            {{ bleStore.error }}
+          </div>
+
+          <div class="device-list">
+            <div
+              v-for="device in bleStore.devices"
+              :key="device.id"
+              class="device-item"
+            >
+              <div class="device-info">
+                <span class="device-name">{{
+                  device.name || device.device_id
+                }}</span>
+                <span class="device-type">{{
+                  bleStore.getDeviceTypeLabel(device.device_type)
+                }}</span>
+              </div>
+              <div class="device-status">
+                <span
+                  class="status-dot"
+                  :class="device.paired ? 'online' : 'offline'"
+                />
+                <button
+                  class="btn btn-ghost btn-sm"
+                  :disabled="bleStore.loading"
+                  @click="bleStore.sync(device.id)"
+                >
+                  {{ t("connections.sync") }}
+                </button>
+                <button
+                  class="btn btn-danger btn-sm"
+                  :disabled="bleStore.loading"
+                  @click="removeBleDevice(device)"
+                >
+                  {{ t("connections.remove") }}
+                </button>
+              </div>
+            </div>
+            <div
+              v-if="!bleStore.devices.length && !bleStore.loading"
+              class="empty-hint"
+            >
+              {{ t("connections.noBleDevices") }}
+            </div>
+          </div>
+        </div>
+
+        <div class="device-card health-card">
+          <div class="device-header">
+            <span class="device-icon">&#x2764;&#xFE0F;</span>
+            <div>
+              <div class="device-name">Android Health Connect</div>
+              <div class="device-meta">
+                {{
+                  healthConnect.status.connected
+                    ? t("connections.connected")
+                    : t("connections.disconnected")
+                }}
+              </div>
+            </div>
+          </div>
+
+          <div class="device-actions">
+            <button
+              v-if="!healthConnect.status.connected"
+              class="btn btn-primary"
+              :disabled="
+                healthConnect.loading || !healthConnect.status.available
+              "
+              @click="connectHealthConnect"
+            >
+              {{
+                healthConnect.loading
+                  ? t("connections.connecting")
+                  : t("connections.connectHealth")
+              }}
+            </button>
+            <template v-else>
+              <button
+                class="btn btn-primary"
+                :disabled="healthConnect.loading"
+                @click="healthConnect.sync()"
+              >
+                {{ t("connections.syncHealth") }}
+              </button>
+              <button
+                class="btn btn-danger"
+                :disabled="healthConnect.loading"
+                @click="healthConnect.disconnect()"
+              >
+                {{ t("connections.disconnect") }}
+              </button>
+            </template>
+          </div>
+
+          <div
+v-if="healthConnect.error" class="connection-error"
+>
+            {{ healthConnect.error }}
+          </div>
+
+          <div
+v-if="healthConnect.status.connected" class="permission-list"
+>
+            <div class="permission-label">
+              {{ t("connections.grantedPermissions") }}:
+            </div>
+            <div class="permission-tags">
+              <span
+                v-for="perm in healthConnect.status.permissions"
+                :key="perm"
+                class="permission-tag"
+              >
+                {{ healthConnect.getPermissionLabel(perm) }}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   </div>
@@ -179,6 +352,8 @@ import { ref, reactive, computed, onMounted } from "vue";
 import { useI18n } from "../composables/useI18n";
 import { useConnectionsStore } from "../stores/connections";
 import { useApiKeysStore } from "../stores/apiKeys";
+import { useBleStore } from "../stores/ble";
+import { useHealthConnectStore } from "../stores/healthConnect";
 import { useToast } from "../composables/useToast";
 import { useAuthStore } from "../stores/auth";
 import { parseBulkKeys } from "../utils/userKeys";
@@ -186,6 +361,8 @@ import { parseBulkKeys } from "../utils/userKeys";
 const { t } = useI18n();
 const connectionsStore = useConnectionsStore();
 const apiKeysStore = useApiKeysStore();
+const bleStore = useBleStore();
+const healthConnect = useHealthConnectStore();
 const authStore = useAuthStore();
 const toast = useToast();
 
@@ -212,6 +389,13 @@ const serviceIcons: Record<string, string> = {
   wahoo: "",
   garmin: "",
 };
+
+const bleAvailable = ref(false);
+const scannedBleDevice = ref<{
+  deviceId: string;
+  name: string;
+  type: string;
+} | null>(null);
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "";
@@ -617,9 +801,80 @@ async function importBulkKeys() {
   }
 }
 
+async function scanBleDevices() {
+  clearServiceError();
+  try {
+    bleAvailable.value = await bleStore
+      .scanForDevices()
+      .then(() => true)
+      .catch(() => false);
+    if (!bleAvailable.value) {
+      const result = await bleStore.scanForDevices();
+      if (result.length) {
+        scannedBleDevice.value = result[0];
+      }
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    setServiceError(msg);
+    toast.error(msg);
+  }
+}
+
+async function registerBleDevice() {
+  clearServiceError();
+  try {
+    if (!scannedBleDevice.value) return;
+    await bleStore.register({
+      device_id: scannedBleDevice.value.deviceId,
+      name: scannedBleDevice.value.name,
+      device_type: scannedBleDevice.value.type as "weight_scale" | "generic",
+    });
+    scannedBleDevice.value = null;
+    toast.success(t("connections.devicePaired"));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    setServiceError(msg);
+    toast.error(msg);
+  }
+}
+
+async function removeBleDevice(device: { id: number }) {
+  clearServiceError();
+  try {
+    await bleStore.unregister(device.id);
+    toast.success(t("connections.deviceRemoved"));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    setServiceError(msg);
+    toast.error(msg);
+  }
+}
+
+async function connectHealthConnect() {
+  clearServiceError();
+  try {
+    await healthConnect.checkAvailability();
+    if (!healthConnect.status.available) {
+      throw new Error("Health Connect non disponibile su questo dispositivo");
+    }
+    await healthConnect.connect();
+    toast.success("Health Connect connesso");
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    setServiceError(msg);
+    toast.error(msg);
+  }
+}
+
 onMounted(async () => {
   await apiKeysStore.load();
   await connectionsStore.load();
+  await bleStore.load();
+  await healthConnect.checkAvailability();
+  bleAvailable.value =
+    typeof navigator !== "undefined" &&
+    !!(navigator as unknown as Record<string, unknown>).bluetooth;
   keysLoaded.value = true;
 });
 </script>
@@ -848,5 +1103,109 @@ onMounted(async () => {
   .connections-page {
     padding: 1rem;
   }
+}
+.devices-section {
+  margin-top: 1.5rem;
+}
+.devices-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.device-card {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.ble-card {
+  border-left: 3px solid #42b983;
+}
+.health-card {
+  border-left: 3px solid #f48fb1;
+}
+.device-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.device-icon {
+  font-size: 1.6rem;
+}
+.device-name {
+  font-weight: 600;
+  color: #eee;
+}
+.device-meta {
+  font-size: 0.82rem;
+  color: #aaa;
+}
+.device-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.device-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+}
+.device-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.device-type {
+  font-size: 0.78rem;
+  color: #aaa;
+}
+.device-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.empty-hint {
+  font-size: 0.85rem;
+  color: #777;
+  padding: 0.4rem 0;
+}
+.permission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.permission-label {
+  font-size: 0.8rem;
+  color: #bbb;
+}
+.permission-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.permission-tag {
+  background: #2a1f35;
+  color: #ce93d8;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.78rem;
+}
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  border-radius: 4px;
 }
 </style>

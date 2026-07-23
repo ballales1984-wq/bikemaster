@@ -336,7 +336,20 @@
     "importing": "Importazione...",
     "importBulk": "Importa e salva",
     "bulkNoKeys": "Nessuna chiave riconosciuta nel testo incollato.",
-    "bulkImported": "chiavi importate e salvate"
+    "bulkImported": "chiavi importate e salvate",
+    "devicesTitle": "Dispositivi",
+    "devicesSubtitle": "Gestisci dispositivi Bluetooth BLE e Android Health Connect.",
+    "scanning": "Scansione...",
+    "scanBle": "Scansiona BLE",
+    "pairBle": "Associa",
+    "devicePaired": "Dispositivo associato",
+    "deviceRemoved": "Dispositivo rimosso",
+    "sync": "Sincronizza",
+    "remove": "Rimuovi",
+    "noBleDevices": "Nessun dispositivo BLE registrato",
+    "connectHealth": "Connetti Health Connect",
+    "syncHealth": "Sincronizza Health Connect",
+    "grantedPermissions": "Permessi concessi"
   },
   "admin": {
     "title": "Pannello Admin",

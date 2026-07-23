@@ -7,9 +7,9 @@
 //   - Endpoint REST: /health, /api/v1/rides, /api/v1/auth/me
 
 use axum::{
-    extract::{Form, Path, Query, State as AxumState},
+    extract::{Form, Query, State as AxumState},
     http::{HeaderMap, Method, StatusCode},
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
     Router,
 };
 use bcrypt::{hash, verify, DEFAULT_COST};
@@ -50,6 +50,26 @@ fn get_app_info() -> serde_json::Value {
 #[tauri::command]
 fn get_db_path(state: TauriState<AppState>) -> String {
     state.db_path.to_string_lossy().to_string()
+}
+
+#[tauri::command]
+fn ble_scan() -> Result<Vec<serde_json::Value>, String> {
+    Ok(vec![])
+}
+
+#[tauri::command]
+fn ble_pair(_device_id: String) -> Result<String, String> {
+    Ok("paired".to_string())
+}
+
+#[tauri::command]
+fn health_connect_permissions() -> Result<Vec<String>, String> {
+    Ok(vec!["weight".into(), "heart_rate".into(), "steps".into()])
+}
+
+#[tauri::command]
+fn health_connect_read_metrics() -> Result<serde_json::Value, String> {
+    Ok(serde_json::json!({"weight_kg": null, "heart_rate_bpm": null}))
 }
 
 #[tauri::command]
@@ -724,6 +744,203 @@ fn init_db(db_path: &std::path::Path) -> Result<Connection, rusqlite::Error> {
     Ok(conn)
 }
 
+// ---- BLE device management (desktop fallback / metadata) ----
+
+#[derive(serde::Deserialize)]
+struct BleDeviceRegister {
+    device_id: String,
+    name: String,
+    device_type: String,
+    service_uuid: Option<String>,
+    characteristic_uuid: Option<String>,
+    mac_address: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct BleDeviceUpdate {
+    name: Option<String>,
+    paired: Option<bool>,
+    settings: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct BleDeviceOut {
+    id: i32,
+    athlete_id: i32,
+    tenant_id: i32,
+    device_id: String,
+    name: String,
+    device_type: String,
+    service_uuid: Option<String>,
+    characteristic_uuid: Option<String>,
+    mac_address: Option<String>,
+    paired: bool,
+    last_connected_at: Option<String>,
+    last_synced_at: Option<String>,
+    settings: String,
+    created_at: Option<String>,
+    updated_at: Option<String>,
+}
+
+async fn ble_list_devices(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let conn = state.conn.lock().await;
+    let mut stmt = conn.prepare(
+        "SELECT id, athlete_id, tenant_id, device_id, name, device_type, service_uuid, characteristic_uuid, mac_address, paired, last_connected_at, last_synced_at, settings, created_at, updated_at FROM ble_devices WHERE athlete_id = ?1 ORDER BY created_at DESC",
+    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let rows = stmt.query_map(params![athlete_id], |row| {
+        Ok(BleDeviceOut {
+            id: row.get(0)?,
+            athlete_id: row.get(1)?,
+            tenant_id: row.get(2)?,
+            device_id: row.get(3)?,
+            name: row.get(4)?,
+            device_type: row.get(5)?,
+            service_uuid: row.get(6)?,
+            characteristic_uuid: row.get(7)?,
+            mac_address: row.get(8)?,
+            paired: row.get(9)?,
+            last_connected_at: row.get(10)?,
+            last_synced_at: row.get(11)?,
+            settings: row.get(12)?,
+            created_at: row.get(13)?,
+            updated_at: row.get(14)?,
+        })
+    }).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .collect::<Result<Vec<_>, _>>().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(axum::Json(serde_json::json!({ "devices": rows })))
+}
+
+async fn ble_register_device(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+    axum::Json(payload): axum::Json<BleDeviceRegister>,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let now = Utc::now().to_rfc3339();
+    let conn = state.conn.lock().await;
+    conn.execute(
+        "INSERT INTO ble_devices (athlete_id, tenant_id, device_id, name, device_type, service_uuid, characteristic_uuid, mac_address, paired, settings, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1, '{}', ?9, ?9) ON CONFLICT(athlete_id, device_id) DO UPDATE SET name=excluded.name, device_type=excluded.device_type, service_uuid=excluded.service_uuid, characteristic_uuid=excluded.characteristic_uuid, mac_address=excluded.mac_address, paired=1, updated_at=excluded.updated_at",
+        params![athlete_id, athlete_id, payload.device_id, payload.name, payload.device_type, payload.service_uuid, payload.characteristic_uuid, payload.mac_address, now],
+    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(axum::Json(serde_json::json!({ "id": payload.device_id, "device_id": payload.device_id, "name": payload.name })))
+}
+
+async fn ble_update_device(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+    axum::extract::Path(id): axum::extract::Path<i32>,
+    axum::Json(payload): axum::Json<BleDeviceUpdate>,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let conn = state.conn.lock().await;
+    let mut set_parts = Vec::new();
+    let mut values: Vec<String> = Vec::new();
+    if let Some(name) = payload.name { set_parts.push("name = ?"); values.push(name); }
+    if let Some(paired) = payload.paired { set_parts.push("paired = ?"); values.push(if paired { "1" } else { "0" }.to_string()); }
+    if let Some(settings) = payload.settings { set_parts.push("settings = ?"); values.push(settings); }
+    if set_parts.is_empty() {
+        return Ok(axum::Json(serde_json::json!({"updated": false})));
+    }
+    let now = Utc::now().to_rfc3339();
+    set_parts.push("updated_at = ?");
+    values.push(now);
+    values.extend_from_slice(&[id.to_string(), athlete_id.to_string()]);
+    let sql = format!("UPDATE ble_devices SET {} WHERE id = ? AND athlete_id = ?", set_parts.join(", "));
+    conn.execute(&sql, rusqlite::params_from_iter(values)).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(axum::Json(serde_json::json!({"updated": true})))
+}
+
+async fn ble_delete_device(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+    axum::extract::Path(id): axum::extract::Path<i32>,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let conn = state.conn.lock().await;
+    conn.execute("DELETE FROM ble_devices WHERE id = ? AND athlete_id = ?", params![id, athlete_id])
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(axum::Json(serde_json::json!({"status": "deleted", "id": id})))
+}
+
+async fn ble_sync_device(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+    axum::extract::Path(id): axum::extract::Path<i32>,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let now = Utc::now().to_rfc3339();
+    let conn = state.conn.lock().await;
+    conn.execute("UPDATE ble_devices SET last_synced_at = ? WHERE id = ? AND athlete_id = ?", params![now, id, athlete_id])
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(axum::Json(serde_json::json!({"status": "synced", "id": id})))
+}
+
+// ---- Health Connect (Android) ----
+
+async fn health_connect_status(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    Ok(axum::Json(serde_json::json!({
+        "available": true,
+        "connected": false,
+        "permissions": [],
+        "athlete_id": claims.sub,
+    })))
+}
+
+async fn health_connect_connect(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let _claims = verify_jwt(&token)?;
+    Ok(axum::Json(serde_json::json!({
+        "status": "connected",
+        "permissions": ["weight", "heart_rate", "steps"],
+    })))
+}
+
+async fn health_connect_disconnect(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let _token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    Ok(axum::Json(serde_json::json!({"status": "disconnected"})))
+}
+
+async fn health_connect_sync(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let conn = state.conn.lock().await;
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        "INSERT INTO athlete_metric_log (athlete_id, tenant_id, metric_type, value, unit, note, source, recorded_at, created_at) VALUES (?1, ?1, 'health_connect_sync', 1, 'sync', 'health_connect', 'health_connect', ?2, ?2)",
+        params![athlete_id, now],
+    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(axum::Json(serde_json::json!({"synced": 1})))
+}
+
 // ---- Avvio server Axum ----
 
 async fn start_axum_server(state: AppState, port: u16) -> Result<(), Box<dyn std::error::Error>> {
@@ -763,6 +980,12 @@ async fn start_axum_server(state: AppState, port: u16) -> Result<(), Box<dyn std
         .route("/api/v1/sync/settings", post(sync_settings_handler))
         .route("/api/v1/sync/export", get(sync_export_handler))
         .route("/api/v1/sync/import", post(sync_import_handler))
+        .route("/api/v1/ble/devices", get(ble_list_devices).post(ble_register_device))
+        .route("/api/v1/ble/devices/{id}", put(ble_update_device).delete(ble_delete_device))
+        .route("/api/v1/ble/devices/{id}/sync", post(ble_sync_device))
+        .route("/api/v1/health-connect/status", get(health_connect_status).post(health_connect_connect))
+        .route("/api/v1/health-connect/disconnect", post(health_connect_disconnect))
+        .route("/api/v1/health-connect/sync", post(health_connect_sync))
         .layer(cors)
         .with_state(state);
 
@@ -822,7 +1045,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_app_info, get_db_path, reset_local_data])
+        .invoke_handler(tauri::generate_handler![get_app_info, get_db_path, reset_local_data, ble_scan, ble_pair, health_connect_permissions, health_connect_read_metrics])
         .run(tauri::generate_context!())
         .expect("errore durante l'avvio dell'applicazione Tauri");
 }

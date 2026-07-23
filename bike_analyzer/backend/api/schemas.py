@@ -263,6 +263,54 @@ class WahooCallbackRequest(BaseModel):
     code_verifier: str = Field(..., min_length=1, max_length=256)
 
 
+class BleDeviceRegister(BaseModel):
+    """Schema di registrazione di un dispositivo BLE."""
+
+    device_id: str = Field(..., min_length=1, max_length=128)
+    name: str = Field(..., min_length=1, max_length=200)
+    device_type: str = Field(default="weight_scale", pattern="^(weight_scale|heart_rate|blood_pressure|thermometer|generic)$")
+    service_uuid: str | None = Field(default=None, max_length=36)
+    characteristic_uuid: str | None = Field(default=None, max_length=36)
+    mac_address: str | None = Field(default=None, max_length=24)
+
+
+class BleDeviceUpdate(BaseModel):
+    """Schema di aggiornamento di un dispositivo BLE."""
+
+    name: str | None = Field(default=None, max_length=200)
+    paired: bool | None = None
+    settings: str | None = Field(default=None, max_length=2048)
+
+
+class BleDeviceOut(BaseModel):
+    """Schema di risposta per un dispositivo BLE."""
+
+    id: int
+    athlete_id: int
+    tenant_id: int
+    device_id: str
+    name: str
+    device_type: str
+    service_uuid: str | None
+    characteristic_uuid: str | None
+    mac_address: str | None
+    paired: bool
+    last_connected_at: str | None
+    last_synced_at: str | None
+    settings: str
+    created_at: str | None
+    updated_at: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class HealthConnectPayload(BaseModel):
+    """Payload per sincronizzazione dati da Android Health Connect."""
+
+    metrics: list[dict] = Field(default_factory=list)
+    source: str = Field(default="health_connect")
+
+
 class Token(BaseModel):
     """Token di accesso JWT."""
 
