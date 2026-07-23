@@ -123,9 +123,11 @@
 import { ref, computed, onBeforeUnmount } from "vue";
 import { useVoiceRecording } from "../composables/useVoiceRecording";
 import { useVoiceCommandsStore } from "../stores/voiceCommands";
+import { useVoiceSystemStore } from "../stores/voiceSystem";
 
 const recording = useVoiceRecording();
 const voiceStore = useVoiceCommandsStore();
+const voiceSystem = useVoiceSystemStore();
 
 const expanded = ref(false);
 const continuousModel = ref(false);
@@ -167,6 +169,8 @@ async function toggleAssistant(): Promise<void> {
   if (isProcessingStop.value) {
     stopSpeaking();
     recording.cancelRecording();
+    voiceSystem.deactivateAssistant();
+    voiceSystem.setMicBusy(false);
     return;
   }
   if (isSpeaking.value) {
@@ -174,6 +178,7 @@ async function toggleAssistant(): Promise<void> {
   } else if (isListening.value) {
     await stopAndProcess();
   } else {
+    voiceSystem.activateAssistant();
     await startListening();
   }
 }
@@ -192,6 +197,7 @@ function stopSpeaking(): void {
   }
   isSpeaking.value = false;
   setStatus("");
+  voiceSystem.setMicBusy(false);
 }
 
 async function startListening(): Promise<void> {
@@ -207,6 +213,9 @@ async function startListening(): Promise<void> {
 
   voiceStore.stopListening();
   recording.cancelRecording();
+
+  voiceSystem.activateAssistant();
+  voiceSystem.setMicBusy(true);
 
   try {
     await recording.startRecording();
@@ -272,6 +281,7 @@ async function stopAndProcess(): Promise<void> {
     if (!transcript) {
       setStatus("Nessun audio riconosciuto");
       recording.state.value = "idle";
+      voiceSystem.setMicBusy(false);
       return;
     }
 
@@ -286,6 +296,7 @@ async function stopAndProcess(): Promise<void> {
     setStatus("");
   } finally {
     isProcessingStop.value = false;
+    voiceSystem.setMicBusy(false);
   }
 }
 
@@ -440,6 +451,8 @@ async function executeIntent(intent: string, text: string): Promise<void> {
 function cleanup(): void {
   recording.cancelRecording();
   voiceStore.stopListening();
+  voiceSystem.deactivateAssistant();
+  voiceSystem.setMicBusy(false);
   if (currentAudio.current) {
     currentAudio.current.pause();
   }

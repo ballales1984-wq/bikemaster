@@ -5,6 +5,9 @@
  * `on`. Espone gli stati `ttsSupported`/`sttSupported`/`isListening`/
  * `lastTranscript`/`lastCommand` e le azioni `speak`, `startListening`,
  * `stopListening`, `parseCommand`.
+ *
+ * In modalità ride-time, attiva anche le voice cue live chiamando
+ * `/api/v1/voice/coach/speak` con le metriche correnti.
  */
 import { ref, onBeforeUnmount } from "vue";
 import type { ParsedVoiceCommand, VoiceCommand } from "../types/notifications";
@@ -56,19 +59,22 @@ function parseCommand(text: string, lang: "it" | "en"): ParsedVoiceCommand {
   return { command: "unknown", raw: text, language: lang };
 }
 
-/**
- * Voice Coach composable: TTS (speak) + STT (listen) via the Web Speech API,
- * with a graceful textual fallback when the browser lacks support. Mirrors the
- * backend VoiceCoach decision layer for the live ride experience.
- */
+async function getToken(): Promise<string> {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem("bikemaster_token") || "";
+}
+
 export function useVoiceCoach(language: "it" | "en" = "it") {
   const ttsSupported = ref(false);
   const sttSupported = ref(false);
   const isListening = ref(false);
   const lastTranscript = ref("");
   const lastCommand = ref<ParsedVoiceCommand | null>(null);
+  const voiceCoachActive = ref(false);
+  const lastSpokenAt = ref(0);
 
   let recognition: SpeechRecognitionLike | null = null;
+  let coachTimer: number | null = null;
 
   if (typeof window !== "undefined") {
     const SpeechRecognition =
@@ -136,8 +142,79 @@ export function useVoiceCoach(language: "it" | "en" = "it") {
     isListening.value = false;
   }
 
+  async function checkAndSpeakCue(
+    category: string,
+    templateKey: string,
+    intensityZone: number | null = null,
+  ): Promise<void> {
+    try {
+      const token = await getToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const canResp = await fetch("/api/v1/voice/coach/can-speak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({
+          intensity_zone: intensityZone,
+          now_ts: Date.now() / 1000,
+          language,
+        }),
+      });
+
+      if (!canResp.ok) return;
+      const canData = await canResp.json();
+      if (!canData.can_speak) return;
+
+      const speakResp = await fetch("/api/v1/voice/coach/speak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({
+          category,
+          template_key: templateKey,
+          intensity_zone: intensityZone,
+          now_ts: Date.now() / 1000,
+          language,
+        }),
+      });
+
+      if (!speakResp.ok) return;
+      const speakData = await speakResp.json();
+      if (speakData.suppressed || !speakData.text) return;
+
+      speak(speakData.text);
+      lastSpokenAt.value = Date.now() / 1000;
+    } catch {
+      // Network errors are non-fatal for voice cues
+    }
+  }
+
+  function startVoiceCoachInterval(
+    category: string,
+    templateKey: string,
+    intervalMs = 30000,
+    intensityZone: (() => number | null) | null = null,
+  ): void {
+    stopVoiceCoachInterval();
+    voiceCoachActive.value = true;
+    checkAndSpeakCue(category, templateKey, intensityZone?.() ?? null);
+    coachTimer = window.setInterval(() => {
+      const zone = intensityZone?.() ?? null;
+      void checkAndSpeakCue(category, templateKey, zone);
+    }, intervalMs);
+  }
+
+  function stopVoiceCoachInterval(): void {
+    if (coachTimer) {
+      clearInterval(coachTimer);
+      coachTimer = null;
+    }
+    voiceCoachActive.value = false;
+  }
+
   onBeforeUnmount(() => {
     stopListening();
+    stopVoiceCoachInterval();
   });
 
   const boundParse = (text: string) => parseCommand(text, language);
@@ -148,10 +225,15 @@ export function useVoiceCoach(language: "it" | "en" = "it") {
     isListening,
     lastTranscript,
     lastCommand,
+    voiceCoachActive,
+    lastSpokenAt,
     on,
     speak,
     startListening,
     stopListening,
+    checkAndSpeakCue,
+    startVoiceCoachInterval,
+    stopVoiceCoachInterval,
     parseCommand: boundParse,
   };
 }

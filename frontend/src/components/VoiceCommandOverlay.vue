@@ -111,10 +111,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useVoiceCommandsStore } from "../stores/voiceCommands";
+import { useVoiceSystemStore } from "../stores/voiceSystem";
 
 const store = useVoiceCommandsStore();
+const voiceSystem = useVoiceSystemStore();
 const expanded = ref(false);
 
 const autoListenModel = computed({
@@ -124,10 +126,25 @@ const autoListenModel = computed({
   },
 });
 
+watch(
+  () => voiceSystem.isAssistantActive,
+  (active) => {
+    if (active && store.isListening) {
+      store.stopListening();
+      expanded.value = false;
+    }
+  },
+);
+
 function toggleListening(): void {
   if (store.isListening) {
     store.stopListening();
   } else {
+    if (voiceSystem.micBusy) {
+      voiceSystem.activateAssistant();
+      return;
+    }
+    voiceSystem.activateCommands();
     store.startListening();
     expanded.value = true;
   }

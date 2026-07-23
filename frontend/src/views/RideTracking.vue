@@ -9,12 +9,16 @@
    <section class="panel tracking-panel">
       <div class="tracking-header">
         <h2>{{ t('tracking.title') }}</h2>
-        <div v-if="isTracking" class="tracking-status">
-          <span class="status-badge" :class="{ paused: isPaused }">
-            <span class="pulse-dot"></span>
-            {{ isPaused ? t('tracking.paused') : t('tracking.inProgress') }}
-          </span>
-        </div>
+      <div v-if="isTracking" class="tracking-status">
+        <span class="status-badge" :class="{ paused: isPaused }">
+          <span class="pulse-dot"></span>
+          {{ isPaused ? t('tracking.paused') : t('tracking.inProgress') }}
+        </span>
+        <label class="voice-coach-toggle">
+          <input type="checkbox" v-model="voiceCoachEnabled" />
+          <span>Voice Coach</span>
+        </label>
+      </div>
       </div>
 
       <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state premium-empty">
@@ -76,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useTrackingStore } from '../stores/trackingStore'
 import { useRouter } from 'vue-router'
@@ -94,6 +98,7 @@ import ControlsBar from '../components/ControlsBar.vue'
 import { apiUpload, apiPost } from '../utils/api'
 import type { GpsPoint, NativeGpsSample } from '../types/index'
 import { haversineDistanceMeters } from '../utils/geo'
+import { useVoiceCoach } from '../composables/useVoiceCoach'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -146,6 +151,52 @@ const {
   isTracking,
   isPaused,
 } = storeToRefs(tracking)
+
+const voiceCoach = useVoiceCoach()
+const voiceCoachEnabled = ref(false)
+
+watch(
+  voiceCoachEnabled,
+  (enabled) => {
+    if (enabled && isTracking.value) {
+      voiceCoach.startVoiceCoachInterval(
+        "recovery",
+        "default",
+        30000,
+        () => {
+          const p = tracking.power
+          if (p == null) return null
+          if (p > 250) return 4
+          if (p > 180) return 3
+          if (p > 120) return 2
+          return 1
+        },
+      )
+    } else {
+      voiceCoach.stopVoiceCoachInterval()
+    }
+  },
+)
+
+watch(isTracking, (active) => {
+  if (!active) {
+    voiceCoach.stopVoiceCoachInterval()
+  } else if (voiceCoachEnabled.value) {
+    voiceCoach.startVoiceCoachInterval(
+      "recovery",
+      "default",
+      30000,
+      () => {
+        const p = tracking.power
+        if (p == null) return null
+        if (p > 250) return 4
+        if (p > 180) return 3
+        if (p > 120) return 2
+        return 1
+      },
+    )
+  }
+})
 
 const gps = useBatteryEfficientGps({
   batterySaver: () => batterySaver.value,
@@ -632,6 +683,21 @@ onBeforeUnmount(() => {
   background-color: currentColor;
   box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
   animation: pulse 2s infinite;
+}
+
+.voice-coach-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.voice-coach-toggle input {
+  accent-color: var(--accent);
 }
 
 .status-badge.paused .pulse-dot {

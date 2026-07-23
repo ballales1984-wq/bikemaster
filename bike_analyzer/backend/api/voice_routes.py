@@ -27,6 +27,7 @@ from pydantic import BaseModel
 
 from ..settings import get_settings
 from ..utils.logger import get_logger
+from ..analytics.voice_coach import VoiceCoach, _AUDIO_CUES
 
 logger = get_logger(__name__)
 _s = get_settings()
@@ -67,6 +68,36 @@ class AssistantResponse(BaseModel):
     audio_url: str | None = None
     session_id: str
     intent: str | None = None
+
+
+class CoachCanSpeakRequest(BaseModel):
+    intensity_zone: int | None = None
+    now_ts: float | None = None
+    language: str = "it"
+
+
+class CoachCanSpeakResponse(BaseModel):
+    can_speak: bool
+    reason: str
+
+
+class CoachSpeakRequest(BaseModel):
+    category: str
+    template_key: str
+    variables: dict[str, Any] | None = None
+    intensity_zone: int | None = None
+    now_ts: float | None = None
+    language: str = "it"
+
+
+class CoachSpeakResponse(BaseModel):
+    text: str | None = None
+    suppressed: bool = False
+    reason: str | None = None
+
+
+class CoachCueResponse(BaseModel):
+    cues: dict[str, str]
 
 
 # ---------------------------------------------------------------------------
@@ -243,6 +274,10 @@ async def list_voice_commands() -> dict[str, Any]:
             {"id": "tracking.stop", "label": "Ferma tracciamento", "examples": ["ferma tracciamento"]},
             {"id": "settings.toggle_theme", "label": "Cambia tema", "examples": ["cambia tema"]},
             {"id": "settings.toggle_sidebar", "label": "Mostra/nascondi sidebar", "examples": ["mostra sidebar"]},
+            {"id": "weather.load", "label": "Mostra meteo", "examples": ["mostra meteo", "che tempo fa"]},
+            {"id": "heatmap.load", "label": "Carica heatmap", "examples": ["carica heatmap"]},
+            {"id": "badges.load", "label": "Carica badge", "examples": ["carica badge"]},
+            {"id": "itinerary.load", "label": "Mostra itinerari", "examples": ["mostra itinerari"]},
         ],
         "languages": ["it-IT", "en-US"],
     }
@@ -325,3 +360,42 @@ def _detect_intent(text: str) -> str | None:
     if any(w in lower for w in ["tema", "sidebar", "impostazioni"]):
         return "settings"
     return "general"
+
+
+@router.post("/voice/coach/can-speak", response_model=CoachCanSpeakResponse)
+async def coach_can_speak(request: CoachCanSpeakRequest) -> CoachCanSpeakResponse:
+    """Check whether a voice message is allowed now.
+
+    Used by the ride page to gate live voice coaching output.
+    """
+    coach = VoiceCoach(language=request.language)
+    allowed, reason = coach.can_speak(request.intensity_zone, request.now_ts)
+    return CoachCanSpeakResponse(can_speak=allowed, reason=reason)
+
+
+@router.post("/voice/coach/speak", response_model=CoachSpeakResponse)
+async def coach_speak(request: CoachSpeakRequest) -> CoachSpeakResponse:
+    """Return the next allowed voice message, or suppress it.
+
+    Returns the spoken text and whether it was suppressed by the
+    VoiceCoach rules (high intensity zone, minimum gap not elapsed).
+    """
+    coach = VoiceCoach(language=request.language)
+    text = coach.speak_message(
+        category=request.category,
+        template_key=request.template_key,
+        variables=request.variables,
+        intensity_zone=request.intensity_zone,
+        now_ts=request.now_ts,
+    )
+    if text is None:
+        return CoachSpeakResponse(suppressed=True, reason="not allowed now")
+    return CoachSpeakResponse(text=text, suppressed=False)
+
+
+@router.get("/voice/coach/cues", response_model=CoachCueResponse)
+async def coach_cues(language: str = Query("it")) -> CoachCueResponse:
+    """Return all predefined voice cue texts."""
+    from ..analytics.voice_coach import _AUDIO_CUES
+    lib = _AUDIO_CUES.get(language, _AUDIO_CUES.get("it", {}))
+    return CoachCueResponse(cues=lib)

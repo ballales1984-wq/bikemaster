@@ -922,6 +922,62 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
         return buildResult(true, `Analisi uscita ${rideId}`);
       },
     },
+    {
+      id: "weather.load",
+      domain: "weather",
+      label: "Mostra meteo",
+      description: "Mostra il meteo per l'uscita",
+      examples: ["mostra meteo", "apri meteo", "meteo"],
+      triggerWords: ["mostra meteo", "apri meteo", "meteo", "che tempo fa"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/weather");
+        return buildResult(true, "Apro meteo");
+      },
+    },
+    {
+      id: "heatmap.load",
+      domain: "maps",
+      label: "Carica heatmap",
+      description: "Carica la vista heatmap",
+      examples: ["carica heatmap", "mostra heatmap"],
+      triggerWords: ["carica heatmap", "mostra heatmap", "heatmap"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/heatmap");
+        return buildResult(true, "Apro heatmap");
+      },
+    },
+    {
+      id: "badges.load",
+      domain: "badges",
+      label: "Carica badge",
+      description: "Carica i badge dell'atleta",
+      examples: ["carica badge", "mostra badge"],
+      triggerWords: ["carica badge", "mostra badge", "badge"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/badges");
+        return buildResult(true, "Apro badge");
+      },
+    },
+    {
+      id: "itinerary.load",
+      domain: "itinerary",
+      label: "Mostra itinerari",
+      description: "Carica la vista itinerari",
+      examples: ["mostra itinerari", "apri itinerari"],
+      triggerWords: ["mostra itinerari", "apri itinerari", "itinerari"],
+      parameters: [],
+      execute: async () => {
+        const router2 = (await import("../router/index")).default;
+        router2.push("/itinerary");
+        return buildResult(true, "Apro itinerari");
+      },
+    },
   ];
 }
 

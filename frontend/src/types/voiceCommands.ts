@@ -23,7 +23,8 @@ export type CommandDomain =
   | "bm2"
   | "granfondo"
   | "sync"
-  | "metabolism";
+  | "metabolism"
+  | "itinerary";
 
 export type ParameterType =
   | "string"

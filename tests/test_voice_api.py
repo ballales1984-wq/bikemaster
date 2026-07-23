@@ -136,3 +136,95 @@ def test_detect_intent_tracking():
 
 def test_detect_intent_general():
     assert _detect_intent("che tempo fa") == "general"
+
+
+def test_coach_can_speak_zone_0(client):
+    resp = client.post("/api/v1/voice/coach/can-speak", json={"intensity_zone": 0})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["can_speak"] is True
+
+
+def test_coach_can_speak_zone_4_blocks(client):
+    resp = client.post("/api/v1/voice/coach/can-speak", json={"intensity_zone": 4})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["can_speak"] is False
+    assert "high intensity" in data["reason"]
+
+
+def test_coach_speak_returns_text(client):
+    resp = client.post(
+        "/api/v1/voice/coach/speak",
+        json={"category": "recovery", "template_key": "default", "variables": {"power": 120}, "intensity_zone": 1},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["suppressed"] is False
+    assert isinstance(data["text"], str)
+    assert len(data["text"]) > 0
+
+
+def test_coach_speak_suppressed_by_zone(client):
+    resp = client.post(
+        "/api/v1/voice/coach/speak",
+        json={"category": "recovery", "template_key": "default", "intensity_zone": 5},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["suppressed"] is True
+
+
+def test_coach_cues_returns_mapping(client):
+    resp = client.get("/api/v1/voice/coach/cues?language=it")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "cues" in data
+    assert isinstance(data["cues"], dict)
+    assert len(data["cues"]) > 0
+
+
+def test_coach_can_speak_zone_0(client):
+    resp = client.post("/api/v1/voice/coach/can-speak", json={"intensity_zone": 0})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["can_speak"] is True
+
+
+def test_coach_can_speak_zone_4_blocks(client):
+    resp = client.post("/api/v1/voice/coach/can-speak", json={"intensity_zone": 4})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["can_speak"] is False
+    assert "high intensity" in data["reason"]
+
+
+def test_coach_speak_returns_text(client):
+    resp = client.post(
+        "/api/v1/voice/coach/speak",
+        json={"category": "recovery", "template_key": "default", "variables": {"power": 120}, "intensity_zone": 1},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["suppressed"] is False
+    assert isinstance(data["text"], str)
+    assert len(data["text"]) > 0
+
+
+def test_coach_speak_suppressed_by_zone(client):
+    resp = client.post(
+        "/api/v1/voice/coach/speak",
+        json={"category": "recovery", "template_key": "default", "intensity_zone": 5},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["suppressed"] is True
+
+
+def test_coach_cues_returns_mapping(client):
+    resp = client.get("/api/v1/voice/coach/cues?language=it")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "cues" in data
+    assert isinstance(data["cues"], dict)
+    assert len(data["cues"]) > 0

@@ -33,7 +33,11 @@ describe("useVoiceCoach command parsing", () => {
 
 describe("useVoiceCoach speech support flags", () => {
   beforeEach(() => {
-    globalThis.window = { speechSynthesis: undefined, location: { href: "" } };
+    globalThis.window = {
+      speechSynthesis: undefined,
+      location: { href: "" },
+      localStorage: { getItem: () => null },
+    };
     delete globalThis.window.SpeechRecognition;
     delete globalThis.window.webkitSpeechRecognition;
   });
@@ -51,5 +55,33 @@ describe("useVoiceCoach speech support flags", () => {
     const v = useVoiceCoach("it");
     // No speechSynthesis in this environment; speak() should be a no-op.
     expect(() => v.speak("Inizia riscaldamento")).not.toThrow();
+  });
+});
+
+describe("useVoiceCoach live coach integration", () => {
+  beforeEach(() => {
+    globalThis.window = {
+      speechSynthesis: { cancel: vi.fn() },
+      location: { href: "" },
+      localStorage: { getItem: () => "fake-token" },
+    };
+    delete globalThis.window.SpeechRecognition;
+    delete globalThis.window.webkitSpeechRecognition;
+  });
+  afterEach(() => {
+    delete globalThis.window;
+  });
+
+  it("exposes live coach state", () => {
+    const v = useVoiceCoach("it");
+    expect(v.voiceCoachActive.value).toBe(false);
+    expect(typeof v.lastSpokenAt.value).toBe("number");
+  });
+
+  it("exposes live coach actions", () => {
+    const v = useVoiceCoach("it");
+    expect(typeof v.startVoiceCoachInterval).toBe("function");
+    expect(typeof v.stopVoiceCoachInterval).toBe("function");
+    expect(typeof v.checkAndSpeakCue).toBe("function");
   });
 });

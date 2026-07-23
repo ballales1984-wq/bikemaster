@@ -89,8 +89,7 @@ Liability:
 
       <ToastContainer />
 
-      <VoiceCommandOverlay />
-      <VoiceAssistant />
+      <VoiceSystemProvider />
 
       <HelpGuide />
     </template>
@@ -133,8 +132,7 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt.vue";
 import LanguageSwitcher from "./components/LanguageSwitcher.vue";
 import ErrorBoundary from "./components/ErrorBoundary.vue";
 import HelpGuide from "./components/HelpGuide.vue";
-import VoiceCommandOverlay from "./components/VoiceCommandOverlay.vue";
-import VoiceAssistant from "./components/VoiceAssistant.vue";
+import VoiceSystemProvider from "./components/VoiceSystemProvider.vue";
 import { AUTH_LOGIN_ERROR_KEY } from "./utils/auth-storage";
 const auth = useAuthStore();
 const ui = useUIStore();
