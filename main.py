@@ -18,7 +18,9 @@ import argparse
 import asyncio
 import logging
 import os
+import platform
 import sys
+import tempfile
 import traceback
 
 import uvicorn
@@ -28,7 +30,8 @@ from bike_analyzer.backend.logging_config import setup_logging
 setup_logging()
 logger = logging.getLogger("bikemaster.startup")
 
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+_mpl_config_dir = os.path.join(tempfile.gettempdir(), "matplotlib")
+os.environ.setdefault("MPLCONFIGDIR", _mpl_config_dir)
 os.environ.setdefault("MPLBACKEND", "Agg")
 
 

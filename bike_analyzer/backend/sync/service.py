@@ -386,7 +386,130 @@ def _write_local_entity(entity_type: str, entity_id: int, data: dict[str, Any]) 
         table = table_map.get(entity_type)
         if not table:
             return
-        cols = [k for k in data.keys() if k != "id"]
+        allowed_columns = {
+            "ride": {
+                "date",
+                "distance_km",
+                "duration_minutes",
+                "avg_speed_kmh",
+                "weight_kg",
+                "calories",
+                "heart_rate_avg",
+                "elevation_gain_m",
+                "gps_points",
+                "external_source",
+                "external_id",
+                "title",
+                "activity_type",
+                "is_official",
+                "source",
+                "updated_at",
+            },
+            "athlete": {
+                "name",
+                "email",
+                "picture",
+                "age",
+                "weight_kg",
+                "height_cm",
+                "fat_percentage",
+                "years_active",
+                "weekly_sessions",
+                "monthly_hours",
+                "annual_hours",
+                "experience_level",
+                "goals",
+                "preferred_terrain",
+                "weekly_volume_km",
+                "best_segments",
+                "medical_notes",
+                "equipment",
+                "ftp_watts",
+                "body_water_percentage",
+                "muscle_mass_percentage",
+                "bmr_kcal",
+                "fat_mass_kg",
+                "subcutaneous_fat_kg",
+                "subcutaneous_fat_percentage",
+                "visceral_fat_level",
+                "visceral_fat_percentage",
+                "visceral_fat_kg",
+                "muscle_mass_kg",
+                "bone_mass_kg",
+                "protein_percentage",
+                "protein_kg",
+                "body_age",
+                "apparent_age",
+                "bmi",
+                "lean_body_mass_kg",
+            },
+            "chat_message": {"role", "content", "created_at"},
+            "training_goal": {
+                "title",
+                "description",
+                "goal_type",
+                "target_date",
+                "target_distance_km",
+                "target_elevation_m",
+                "status",
+                "created_at",
+            },
+            "planned_workout": {
+                "date",
+                "title",
+                "workout_type",
+                "duration_minutes",
+                "target_intensity",
+                "completed",
+                "completed_at",
+            },
+            "fitness_state": {
+                "date",
+                "computed_at",
+                "fitness",
+                "fatigue",
+                "form",
+                "atl",
+                "ctl",
+                "tsb",
+                "recovery_hours_needed",
+                "weekly_tss",
+                "monthly_tss",
+                "trend_7d",
+                "trend_30d",
+                "risk_indicators",
+                "recommendation",
+            },
+            "calendar_event": {
+                "title",
+                "event_type",
+                "date",
+                "duration_minutes",
+                "description",
+                "completed",
+                "weather_temp",
+                "weather_humidity",
+                "weather_description",
+                "created_at",
+            },
+            "poi": {
+                "name",
+                "description",
+                "lat",
+                "lon",
+                "type",
+                "photos",
+                "video_url",
+                "difficulty_note",
+                "tags",
+                "itinerary_id",
+                "created_by",
+                "tenant_id",
+                "created_at",
+            },
+        }
+        allowed = allowed_columns.get(entity_type, set())
+        cols = [k for k in data.keys() if k != "id" and k in allowed]
         if not cols:
             return
         placeholders = ", ".join("?" * len(cols))
@@ -395,14 +518,9 @@ def _write_local_entity(entity_type: str, entity_id: int, data: dict[str, Any]) 
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                f"UPDATE {table} SET {col_names} = {placeholders} WHERE id = ?",
-                (*values, entity_id),
+                f"INSERT OR REPLACE INTO {table} (id, {col_names}) VALUES (?, {placeholders})",
+                (entity_id, *values),
             )
-            if cur.rowcount == 0:
-                cur.execute(
-                    f"INSERT INTO {table} (id, {col_names}) VALUES (?, {placeholders})",
-                    (entity_id, *values),
-                )
             conn.commit()
     except Exception as exc:
         logger.debug("Failed to write local entity %s/%d: %s", entity_type, entity_id, exc)

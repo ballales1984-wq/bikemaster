@@ -332,11 +332,9 @@ def create_app() -> FastAPI:
     if not cors_origins and _s.environment.lower() not in ("development", "dev", "test"):
         logger.error("No CORS origins configured in non-development environment")
         cors_origins = []
-    vercel_regex = r"https://.*\.(vercel\.app|ngrok-free\.dev|trycloudflare\.com)"
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
-        allow_origin_regex=vercel_regex,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=[
@@ -464,7 +462,11 @@ def create_app() -> FastAPI:
             # Se la richiesta è per un file statico JS, CSS, WASM, JSON, PNG ecc. non trovato nella root, restituisce 404
             # per evitare che importScripts/script tag riceva la pagina HTML di index.html.
             if any(full_path.endswith(ext) for ext in (".js", ".css", ".wasm", ".json", ".png", ".svg", ".webmanifest")):
-                root_file = STATIC_DIR / full_path
+                root_file = (STATIC_DIR / full_path).resolve()
+                try:
+                    root_file.relative_to(STATIC_DIR.resolve())
+                except ValueError:
+                    return Response(status_code=404)
                 if root_file.exists() and root_file.is_file():
                     ext_map = {
                         ".js": "application/javascript",

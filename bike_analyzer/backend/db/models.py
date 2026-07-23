@@ -198,6 +198,8 @@ class AthleteModel(Base):
     protein_kg: Mapped[float | None] = mapped_column(Float)
     body_age: Mapped[int | None] = mapped_column(Integer)
     apparent_age: Mapped[int | None] = mapped_column(Integer)
+    bmi: Mapped[float | None] = mapped_column(Float)
+    lean_body_mass_kg: Mapped[float | None] = mapped_column(Float)
     password_hash: Mapped[str | None] = mapped_column(Text)
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -260,6 +262,63 @@ class AthleteMetricLogModel(Base):
         Index("ix_metric_log_athlete_metric", "athlete_id", "metric_type"),
         Index("ix_metric_log_recorded", "athlete_id", "metric_type", "recorded_at"),
         Index("ix_metric_log_tenant", "tenant_id"),
+    )
+
+
+class AthleteHistoryModel(Base):
+    """Snapshots completi del profilo atleta ad ogni modifica.
+
+    Ogni UPDATE del profilo atleta salva un'immagine completa dello stato
+    precedente con il timestamp dell'evento. Questo permette di ricostruire
+    l'evoluzione temporale di qualsiasi campo del profilo.
+    La password_hash e' esclusa per sicurezza.
+    """
+
+    __tablename__ = "athlete_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    recorded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    changed_by: Mapped[int | None] = mapped_column(Integer)
+    name: Mapped[str | None] = mapped_column(String)
+    email: Mapped[str | None] = mapped_column(String)
+    picture: Mapped[str | None] = mapped_column(String)
+    age: Mapped[int | None] = mapped_column(Integer)
+    weight_kg: Mapped[float | None] = mapped_column(Float)
+    height_cm: Mapped[float | None] = mapped_column(Float)
+    fat_percentage: Mapped[float | None] = mapped_column(Float)
+    years_active: Mapped[int | None] = mapped_column(Integer)
+    weekly_sessions: Mapped[int | None] = mapped_column(Integer)
+    monthly_hours: Mapped[float | None] = mapped_column(Float)
+    annual_hours: Mapped[float | None] = mapped_column(Float)
+    experience_level: Mapped[str | None] = mapped_column(String)
+    goals: Mapped[str | None] = mapped_column(Text)
+    preferred_terrain: Mapped[str | None] = mapped_column(Text)
+    weekly_volume_km: Mapped[float | None] = mapped_column(Float)
+    best_segments: Mapped[str | None] = mapped_column(Text)
+    medical_notes: Mapped[str | None] = mapped_column(Text)
+    equipment: Mapped[str | None] = mapped_column(Text)
+    ftp_watts: Mapped[float | None] = mapped_column(Float)
+    body_water_percentage: Mapped[float | None] = mapped_column(Float)
+    muscle_mass_percentage: Mapped[float | None] = mapped_column(Float)
+    bmr_kcal: Mapped[float | None] = mapped_column(Float)
+    fat_mass_kg: Mapped[float | None] = mapped_column(Float)
+    subcutaneous_fat_kg: Mapped[float | None] = mapped_column(Float)
+    subcutaneous_fat_percentage: Mapped[float | None] = mapped_column(Float)
+    visceral_fat_level: Mapped[float | None] = mapped_column(Float)
+    visceral_fat_percentage: Mapped[float | None] = mapped_column(Float)
+    visceral_fat_kg: Mapped[float | None] = mapped_column(Float)
+    muscle_mass_kg: Mapped[float | None] = mapped_column(Float)
+    bone_mass_kg: Mapped[float | None] = mapped_column(Float)
+    protein_percentage: Mapped[float | None] = mapped_column(Float)
+    protein_kg: Mapped[float | None] = mapped_column(Float)
+    body_age: Mapped[int | None] = mapped_column(Integer)
+    apparent_age: Mapped[int | None] = mapped_column(Integer)
+
+    __table_args__ = (
+        Index("ix_history_athlete_recorded", "athlete_id", "recorded_at"),
+        Index("ix_history_tenant", "tenant_id"),
     )
 
 

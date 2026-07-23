@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from contextvars import ContextVar
 from typing import Any
+import json as json_module
 
 # Known key slots accepted from the client header. Unknown keys are ignored.
 USER_KEY_SLOTS = ("groq", "google_maps", "serpapi", "weather", "openweather")
@@ -48,7 +49,7 @@ def parse_user_keys_header(raw: str | None) -> dict[str, str] | None:
     if not raw:
         return None
     try:
-        data = __import__("json").loads(raw)
+        data = json_module.loads(raw)
     except Exception:
         return None
     if not isinstance(data, dict):

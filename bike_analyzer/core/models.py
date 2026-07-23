@@ -303,6 +303,8 @@ class AthleteProfile:
     protein_kg: float | None = None
     body_age: int | None = None
     apparent_age: int | None = None
+    bmi: float | None = None
+    lean_body_mass_kg: float | None = None
     created_at: str | None = None
 
     def to_dict(self) -> dict:
@@ -341,6 +343,8 @@ class AthleteProfile:
             "protein_kg": self.protein_kg,
             "body_age": self.body_age,
             "apparent_age": self.apparent_age,
+            "bmi": self.bmi,
+            "lean_body_mass_kg": self.lean_body_mass_kg,
             "created_at": self.created_at,
         }
 

@@ -228,6 +228,28 @@
         >
       </div>
       <div class="form-group">
+        <label for="athlete-bmi">BMI (IMC)</label>
+        <input
+          id="athlete-bmi"
+          v-model.number="form.bmi"
+          type="number"
+          step="0.1"
+          readonly
+        >
+        <span v-if="form.bmi" class="field-hint">{{ bmiInterpretation }}</span>
+      </div>
+      <div class="form-group">
+        <label for="athlete-lean-mass">Massa Corporea Magra (kg)</label>
+        <input
+          id="athlete-lean-mass"
+          v-model.number="form.lean_body_mass_kg"
+          type="number"
+          min="0"
+          max="300"
+          step="0.1"
+        >
+      </div>
+      <div class="form-group">
         <label for="athlete-years">Anni di attività</label>
         <input
           id="athlete-years"
@@ -373,7 +395,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "../composables/useToast";
 import { apiGet, apiPost } from "../utils/api";
@@ -403,6 +425,8 @@ interface AthleteForm {
   protein_kg: number;
   body_age: number;
   apparent_age: number;
+  bmi: number | null;
+  lean_body_mass_kg: number | null;
   years_active: number;
   weekly_sessions: number;
   monthly_hours: number;
@@ -443,6 +467,8 @@ const form = ref<AthleteForm>({
   protein_kg: 11.2,
   body_age: 30,
   apparent_age: 30,
+  bmi: null,
+  lean_body_mass_kg: null,
   years_active: 1,
   weekly_sessions: 3,
   monthly_hours: 0,
@@ -456,6 +482,49 @@ const isFirstLogin = ref(false);
 const profileWasIncomplete = ref(false);
 const fieldErrors = ref<Record<string, string>>({});
 const showHistory = ref(false);
+
+const bmiDisplay = computed(() => {
+  const w = form.value.weight_kg;
+  const h = form.value.height_cm;
+  if (w && h && h > 0) {
+    const hm = h / 100;
+    return +(w / (hm * hm)).toFixed(1);
+  }
+  return "";
+});
+
+const bmiInterpretation = computed(() => {
+  const v = Number(bmiDisplay.value);
+  if (isNaN(v)) return "";
+  if (v < 18.5) return "Sottopeso";
+  if (v < 25) return "Normopeso";
+  if (v < 30) return "Sovrappeso";
+  return "Obeso";
+});
+
+  watch(
+    [() => form.value.weight_kg, () => form.value.height_cm],
+    ([w, h]) => {
+      if (w && h && h > 0) {
+        const hm = h / 100;
+        form.value.bmi = +(w / (hm * hm)).toFixed(1);
+      } else {
+        form.value.bmi = null;
+      }
+    }
+  );
+
+watch(
+  [() => form.value.fat_mass_kg, () => form.value.fat_percentage, () => form.value.weight_kg],
+  ([fatKg, fatPct, weight]) => {
+    if (form.value.lean_body_mass_kg) return;
+    if (fatKg != null && weight != null && weight > fatKg) {
+      form.value.lean_body_mass_kg = +(weight - fatKg).toFixed(1);
+    } else if (fatPct != null && weight != null) {
+      form.value.lean_body_mass_kg = +(weight * (1 - fatPct / 100)).toFixed(1);
+    }
+  }
+);
 
 function validateForm(): boolean {
   fieldErrors.value = validateAthleteForm(form.value);

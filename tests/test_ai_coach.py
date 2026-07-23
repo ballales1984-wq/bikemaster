@@ -211,4 +211,4 @@ def test_generate_workout_plan_with_fitness_state():
     plan = generate_workout_plan(athlete, days=5, fitness_state=fitness_state)
     assert "workouts" in plan
     assert len(plan["workouts"]) == 5
-    assert "Lunedi" in plan["workouts"][0]["day"]
+    assert "Monday" in plan["workouts"][0]["day"]

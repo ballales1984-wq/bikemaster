@@ -11,6 +11,7 @@ import base64
 import asyncio
 import contextlib
 import hmac
+import html as html_module
 import json
 import os
 import secrets
@@ -399,9 +400,21 @@ def _make_streaming_response(generator: AsyncGenerator[str, None], event_type: s
     )
 
 
+def _sanitize_html_message(message: dict) -> dict:
+    escaped = {}
+    for key, value in message.items():
+        if isinstance(value, str):
+            escaped[key] = html_module.escape(value)
+        elif isinstance(value, dict):
+            escaped[key] = _sanitize_html_message(value)
+        else:
+            escaped[key] = value
+    return escaped
+
+
 def _google_fit_message_html(message: dict) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
-    payload = json.dumps(message)
+    payload = json.dumps(_sanitize_html_message(message))
     return HTMLResponse(
         f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
     )
@@ -409,7 +422,7 @@ def _google_fit_message_html(message: dict) -> HTMLResponse:
 
 def _google_health_message_html(message: dict) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
-    payload = json.dumps(message)
+    payload = json.dumps(_sanitize_html_message(message))
     return HTMLResponse(
         f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
     )
@@ -417,7 +430,7 @@ def _google_health_message_html(message: dict) -> HTMLResponse:
 
 def _strava_message_html(message: dict) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
-    payload = json.dumps(message)
+    payload = json.dumps(_sanitize_html_message(message))
     return HTMLResponse(
         f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
     )
@@ -982,9 +995,11 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "bone_mass_kg": athlete.get("bone_mass_kg"),
         "protein_percentage": athlete.get("protein_percentage"),
         "protein_kg": athlete.get("protein_kg"),
-        "body_age": athlete.get("body_age"),
-        "apparent_age": athlete.get("apparent_age"),
-    }
+         "body_age": athlete.get("body_age"),
+         "apparent_age": athlete.get("apparent_age"),
+         "bmi": athlete.get("bmi"),
+         "lean_body_mass_kg": athlete.get("lean_body_mass_kg"),
+     }
 
 
 @router.put("/auth/profile")
@@ -1029,6 +1044,8 @@ async def update_profile(
         "protein_kg",
         "body_age",
         "apparent_age",
+        "bmi",
+        "lean_body_mass_kg",
     }
     update_data = {k: v for k, v in profile_data.model_dump().items() if k in allowed_fields and v is not None}
     if not update_data:
@@ -2100,6 +2117,26 @@ async def get_my_metric_log(
     return {"metric_type": metric_type, "series": series}
 
 
+@router.get("/athletes/me/history")
+async def get_my_athlete_history(
+    limit: int = Query(100, ge=1, le=1000),
+    current_user: dict = Depends(get_current_user),
+):
+    """Return the authenticated athlete's profile change history.
+
+    Each entry is a full snapshot of the profile state at the moment it was
+    overwritten, ordered from newest to oldest.
+    """
+    from ..db.database import get_athlete as _get_athlete, get_athlete_history
+
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete = _get_athlete(current_user["id"], tenant_id)
+    if not athlete:
+        return {"history": []}
+    history = get_athlete_history(athlete["id"], tenant_id=tenant_id, limit=limit)
+    return {"history": history}
+
+
 @router.put("/athletes/me")
 async def upsert_my_athlete_profile(
     profile_data: ProfileUpdate,
@@ -2301,6 +2338,8 @@ async def update_athlete(
             "protein_kg": ("kg", "Proteine kg"),
             "body_age": ("anni", "Eta corporea"),
             "apparent_age": ("anni", "Eta apparente"),
+            "bmi": ("", "BMI"),
+            "lean_body_mass_kg": ("kg", "Massa magra"),
         }
         for field, (unit, _label) in tracked.items():
             if field in update_data and update_data[field] is not None:

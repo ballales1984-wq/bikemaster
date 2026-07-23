@@ -1,6 +1,7 @@
 """BikeMaster - Lifestyle health intelligence system — health state as dynamic balance of lifestyle variables."""
 
 from typing import Any
+import importlib
 
 __version__ = "0.1.0"
 
@@ -32,7 +33,7 @@ def __getattr__(name: str) -> Any:
     if name not in _TOP_LEVEL_ATTRS:
         raise AttributeError(name)
     module_name, attr_name = _TOP_LEVEL_ATTRS[name]
-    module = __import__(module_name, fromlist=[attr_name])
+    module = importlib.import_module(module_name)
     return getattr(module, attr_name)
 
 

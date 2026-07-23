@@ -8,18 +8,18 @@
         "tipo": "segment",
         "affidabilita": 1.0,
         "proprieta": {
-          "color": "#88cc00",
+          "color": "#4488ff",
           "idx": 0
         },
-        "s2": "47873ef2b",
-        "h3": "891f9b86307ffff"
+        "s2": "4789cf3a1",
+        "h3": "891f9e28283ffff"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          9.0,
+          7.0,
           45.0,
-          0.0
+          100.0
         ]
       }
     },
@@ -30,18 +30,18 @@
         "tipo": "segment",
         "affidabilita": 1.0,
         "proprieta": {
-          "color": "#88cc00",
+          "color": "#4488ff",
           "idx": 1
         },
-        "s2": "47873e99f",
-        "h3": "891f9b8616bffff"
+        "s2": "4789cf30b",
+        "h3": "891f9e28283ffff"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          9.01,
-          45.01,
-          0.0
+          7.001,
+          45.001,
+          120.0
         ]
       }
     },
@@ -54,15 +54,15 @@
         "proprieta": {
           "char": "S"
         },
-        "s2": "47873ef2b",
-        "h3": "891f9b86307ffff"
+        "s2": "4789cf3a1",
+        "h3": "891f9e28283ffff"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          9.0,
+          7.0,
           45.0,
-          0.0
+          100.0
         ]
       }
     },
@@ -75,15 +75,15 @@
         "proprieta": {
           "char": "E"
         },
-        "s2": "47873e99f",
-        "h3": "891f9b8616bffff"
+        "s2": "4789cf30b",
+        "h3": "891f9e28283ffff"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          9.01,
-          45.01,
-          0.0
+          7.001,
+          45.001,
+          120.0
         ]
       }
     }

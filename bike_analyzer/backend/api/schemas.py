@@ -83,6 +83,8 @@ class AthleteCreate(BaseModel):
     protein_kg: float | None = Field(default=None, ge=0, le=100)
     body_age: int | None = Field(default=None, ge=10, le=100)
     apparent_age: int | None = Field(default=None, ge=10, le=100)
+    bmi: float | None = Field(default=None, ge=0, le=100)
+    lean_body_mass_kg: float | None = Field(default=None, ge=0, le=300)
 
     @field_validator("email")
     @classmethod
@@ -130,6 +132,8 @@ class AthleteUpdate(BaseModel):
     protein_kg: float | None = Field(default=None, ge=0, le=100)
     body_age: int | None = Field(default=None, ge=10, le=100)
     apparent_age: int | None = Field(default=None, ge=10, le=100)
+    bmi: float | None = Field(default=None, ge=0, le=100)
+    lean_body_mass_kg: float | None = Field(default=None, ge=0, le=300)
 
     @field_validator("email")
     @classmethod
@@ -174,6 +178,8 @@ class ProfileUpdate(BaseModel):
     protein_kg: float | None = Field(default=None, ge=0, le=100)
     body_age: int | None = Field(default=None, ge=10, le=100)
     apparent_age: int | None = Field(default=None, ge=10, le=100)
+    bmi: float | None = Field(default=None, ge=0, le=100)
+    lean_body_mass_kg: float | None = Field(default=None, ge=0, le=300)
 
     @field_validator("email")
     @classmethod

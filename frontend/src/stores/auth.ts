@@ -209,17 +209,33 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.removeItem(LOGIN_ERROR_KEY);
     localStorage.removeItem("bikemaster_ride_filters");
 
-    // Reset every active Pinia store so no authed state lingers after logout.
-    const pinia = getActivePinia() as unknown as { _s?: Map<string, { $reset?: () => void }> } | null;
-    if (pinia && pinia._s) {
-      pinia._s.forEach((store) => {
-        const reset = store.$reset;
-        try {
-          if (typeof reset === "function") reset();
-        } catch {
-          /* setup stores without $reset are left for the next mount */
-        }
-      });
+    const resetStores = [
+      "./athlete",
+      "./athleteState",
+      "./settings",
+      "./connections",
+      "./apiKeys",
+      "./rides",
+      "./trackingStore",
+      "./ui",
+      "./notifications",
+      "./voiceCommands",
+      "./voiceSystem",
+      "./performance",
+      "./metabolism",
+      "./ble",
+      "./healthConnect",
+      "./itinerary",
+      "./beck",
+    ];
+    for (const mod of resetStores) {
+      try {
+        const mod_ = await import(mod);
+        const store = mod_.useStore();
+        if (typeof store.$reset === "function") store.$reset();
+      } catch {
+        /* store may not export useStore or may not implement $reset */
+      }
     }
 
     // Ensure the OAuth loading overlay never stays stuck after logout.

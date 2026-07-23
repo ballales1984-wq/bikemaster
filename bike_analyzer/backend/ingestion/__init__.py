@@ -1,6 +1,7 @@
 """Ingestion package."""
 
 from typing import Any
+import importlib
 
 _INGESTION_ATTRS = {
     "parse_fit_file": ("gps_parser", "parse_fit_file"),
@@ -22,7 +23,7 @@ def __getattr__(name: str) -> Any:
     if name not in _INGESTION_ATTRS:
         raise AttributeError(name)
     module_name, attr_name = _INGESTION_ATTRS[name]
-    module = __import__(f"bike_analyzer.backend.ingestion.{module_name}", fromlist=[attr_name])
+    module = importlib.import_module(f"bike_analyzer.backend.ingestion.{module_name}")
     return getattr(module, attr_name)
 
 
