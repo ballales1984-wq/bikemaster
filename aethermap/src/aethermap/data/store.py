@@ -217,80 +217,20 @@ class WorldStore:
         return json.dumps([o.model_dump() for o in self.store.objects.values()], default=str, indent=2)
 
     def save_geojson(self, path: str | Path, metadata: dict[str, Any] | None = None) -> None:
-        features = []
-        for obj in self.store.objects.values():
-            geom = _oggetto_to_geojson_geometry(obj)
-            props: dict[str, Any] = {
-                "tipo": obj.tipo,
-                "affidabilita": obj.affidabilita.valore,
-                "proprieta": obj.proprieta,
-            }
-            if obj.posizione.s2:
-                props["s2"] = obj.posizione.s2
-            h3 = getattr(obj.posizione, "h3", None)
-            if h3:
-                props["h3"] = h3
-            feature = {
-                "type": "Feature",
-                "id": obj.id,
-                "properties": props,
-                "geometry": geom,
-            }
-            features.append(feature)
-        fc: dict[str, Any] = {"type": "FeatureCollection", "features": features}
-        if metadata:
-            fc["metadata"] = metadata
-        Path(path).write_text(json.dumps(fc, default=str, indent=2), encoding="utf-8")
+        from aethermap.data.io import export_geojson
+        export_geojson(self.store.objects.values(), path, metadata)
 
     def load_geojson(self, path: str | Path) -> int:
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
-        features = data.get("features", [])
+        from aethermap.data.io import import_geojson
         imported = 0
-        for feat in features:
-            try:
-                obj = _geojson_to_oggetto(feat)
-                self.store.add(obj)
-                imported += 1
-            except Exception:
-                continue
+        for obj in import_geojson(path):
+            self.store.add(obj)
+            imported += 1
         return imported
 
     def save_parquet(self, path: str | Path) -> None:
-        try:
-            import duckdb
-        except ImportError as exc:
-            raise RuntimeError("duckdb required for parquet export") from exc
-
-        rows = []
-        for obj in self.store.objects.values():
-            rows.append({
-                "id": obj.id,
-                "tipo": obj.tipo,
-                "lat": obj.posizione.lat,
-                "lon": obj.posizione.lon,
-                "alt": obj.posizione.alt,
-                "s2": obj.posizione.s2 or "",
-                "h3": getattr(obj.posizione, "h3", None) or "",
-                "confidence": obj.affidabilita.valore,
-                "n_stati": len(obj.cronologia),
-            })
-        if not rows:
-            return
-        con = duckdb.connect(":memory:")
-        con.execute(
-            "CREATE TABLE objects (id VARCHAR, tipo VARCHAR, lat DOUBLE, "
-            "lon DOUBLE, alt DOUBLE, s2 VARCHAR, h3 VARCHAR, confidence DOUBLE, n_stati INTEGER)"
-        )
-        for r in rows:
-            con.execute(
-                "INSERT INTO objects VALUES (?,?,?,?,?,?,?,?,?)",
-                [
-                    r["id"], r["tipo"], r["lat"], r["lon"], r["alt"],
-                    r["s2"], r["h3"], r["confidence"], r["n_stati"],
-                ],
-            )
-        con.execute(f"COPY objects TO '{path}' (FORMAT PARQUET)")
-        con.close()
+        from aethermap.data.io import export_parquet
+        export_parquet(self.store.objects.values(), path)
 
     def load_parquet(self, path: str | Path) -> int:
         try:
@@ -298,87 +238,9 @@ class WorldStore:
         except ImportError as exc:
             raise RuntimeError("duckdb required for parquet import") from exc
 
-        con = duckdb.connect(":memory:")
-        df = con.execute(f"SELECT * FROM read_parquet('{path}')").fetchdf()
+        from aethermap.data.io import import_parquet
         imported = 0
-        for _, row in df.iterrows():
-            try:
-                pos = Posizione(
-                    lat=float(row["lat"]),
-                    lon=float(row["lon"]),
-                    alt=float(row.get("alt") or 0.0),
-                    s2=row.get("s2") or None,
-                    h3=row.get("h3") or None,
-                )
-                obj = Oggetto(
-                    id=str(row["id"]),
-                    tipo=str(row["tipo"]),
-                    posizione=pos,
-                    affidabilita=Confidenza(
-                        valore=float(row.get("confidence") or 1.0)
-                    ),
-                )
-                self.store.add(obj)
-                imported += 1
-            except Exception:
-                continue
-        con.close()
+        for obj in import_parquet(path):
+            self.store.add(obj)
+            imported += 1
         return imported
-
-
-def _oggetto_to_geojson_geometry(obj: Oggetto) -> dict:
-    g = obj.geometria
-    if g.tipo == "linea":
-        coords = []
-        for p in g.dati.get("punti", []):
-            alt = p.get("ele") or 0.0
-            coords.append([p["lon"], p["lat"], alt])
-        return {"type": "LineString", "coordinates": coords}
-    if g.tipo == "punto":
-        alt = getattr(obj.posizione, "alt", 0.0) or 0.0
-        return {
-            "type": "Point",
-            "coordinates": [obj.posizione.lon, obj.posizione.lat, alt],
-        }
-    return {"type": "Point", "coordinates": [obj.posizione.lon, obj.posizione.lat, 0.0]}
-
-
-def _geojson_to_oggetto(feat: dict) -> Oggetto:
-    props = feat.get("properties", {})
-    geom = feat.get("geometry", {})
-    gtype = geom.get("type", "Point")
-    lon, lat = 0.0, 0.0
-    alt = 0.0
-    if gtype == "Point":
-        coords = geom.get("coordinates", [0.0, 0.0])
-        lon, lat = float(coords[0]), float(coords[1])
-        alt = float(coords[2]) if len(coords) > 2 else 0.0
-    elif gtype == "LineString":
-        coords = geom.get("coordinates", [])
-        if coords:
-            lon, lat = float(coords[0][0]), float(coords[0][1])
-
-    posizione = Posizione(
-        lat=lat,
-        lon=lon,
-        alt=alt,
-        s2=props.get("s2") or None,
-        h3=props.get("h3") or None,
-    )
-    geometry_dict: dict[str, Any] = {"tipo": "punto"}
-    if gtype == "LineString":
-        punti = []
-        for c in geom.get("coordinates", []):
-            punti.append({"lat": float(c[1]), "lon": float(c[0]), "ele": float(c[2]) if len(c) > 2 else None})
-        geometry_dict = {"tipo": "linea", "punti": punti}
-
-    from aethermap.ai.models import Confidenza
-
-    return Oggetto(
-        id=str(feat.get("id") or props.get("id") or f"obj_{id(feat)}"),
-        tipo=props.get("tipo", "oggetto"),
-        posizione=posizione,
-        geometria=Geometria(**geometry_dict),
-        affidabilita=Confidenza(valore=float(props.get("affidabilita", 1.0))),
-        proprieta=props.get("proprieta", {}),
-    )

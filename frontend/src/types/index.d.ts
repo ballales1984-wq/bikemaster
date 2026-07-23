@@ -292,3 +292,24 @@ export interface AthleteMetricLogResponse {
   metric_type: string;
   series: AthleteMetricLogEntry[];
 }
+
+export interface BeckAssessment {
+  id?: number;
+  athlete_id: number;
+  tenant_id: number;
+  total_score: number;
+  severity: "minimal" | "mild" | "moderate" | "severe";
+  answers: [number, number][];
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface BeckHistory {
+  items: BeckAssessment[];
+  latest: BeckAssessment | null;
+  trend: { date?: string | null; score?: number | null; severity?: string | null }[];
+}
+
+export type BeckItemScore = 0 | 1 | 2 | 3;
+export type BeckItemOption = [string, BeckItemScore];

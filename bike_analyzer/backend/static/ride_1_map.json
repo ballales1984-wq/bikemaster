@@ -10,7 +10,9 @@
         "proprieta": {
           "color": "#4488ff",
           "idx": 0
-        }
+        },
+        "s2": "4789cf3a1",
+        "h3": "891f9e28283ffff"
       },
       "geometry": {
         "type": "Point",
@@ -30,7 +32,9 @@
         "proprieta": {
           "color": "#4488ff",
           "idx": 1
-        }
+        },
+        "s2": "4789cf30b",
+        "h3": "891f9e28283ffff"
       },
       "geometry": {
         "type": "Point",
@@ -49,7 +53,9 @@
         "affidabilita": 1.0,
         "proprieta": {
           "char": "S"
-        }
+        },
+        "s2": "4789cf3a1",
+        "h3": "891f9e28283ffff"
       },
       "geometry": {
         "type": "Point",
@@ -68,7 +74,9 @@
         "affidabilita": 1.0,
         "proprieta": {
           "char": "E"
-        }
+        },
+        "s2": "4789cf30b",
+        "h3": "891f9e28283ffff"
       },
       "geometry": {
         "type": "Point",

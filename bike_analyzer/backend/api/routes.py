@@ -64,6 +64,9 @@ from ..utils.logger import get_logger
 from .schemas import (
     AthleteCreate,
     AthleteUpdate,
+    BeckAssessmentCreate,
+    BeckAssessmentResponse,
+    BeckHistoryResponse,
     BenchmarkCompareRequest,
     CalendarEventCreate,
     CalendarEventUpdate,
@@ -5288,6 +5291,76 @@ async def get_athlete_state(
         rides=rides,
     )
     return state.to_dict()
+
+
+@router.post("/beck/assessments", status_code=201)
+async def create_beck_assessment(
+    payload: BeckAssessmentCreate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Salva un nuovo assessment Beck per l'atleta autenticato."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete_id = current_user["id"]
+    from ..db.database import get_athlete as _get_athlete, save_beck_assessment as _save_beck
+
+    athlete = _get_athlete(athlete_id, tenant_id)
+    if not athlete:
+        raise HTTPException(status_code=404, detail="Athlete not found")
+    assessment_id = _save_beck(
+        {
+            "athlete_id": athlete_id,
+            "tenant_id": tenant_id,
+            "answers": [list(item) for item in payload.answers],
+            "notes": payload.notes,
+        },
+        tenant_id=tenant_id,
+    )
+    row = get_beck_assessment(assessment_id)
+    return BeckAssessmentResponse(**row).model_dump()
+
+
+@router.get("/beck/assessments", response_model=list[BeckAssessmentResponse])
+async def list_beck_assessments(current_user: dict = Depends(get_current_user)):
+    """Restituisce lo storico assessment Beck dell'atleta autenticato."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete_id = current_user["id"]
+    from ..db.database import get_beck_assessments_by_athlete as _list_beck
+
+    rows = _list_beck(athlete_id, tenant_id)
+    return [BeckAssessmentResponse(**r).model_dump() for r in rows]
+
+
+@router.get("/beck/assessments/latest", response_model=BeckAssessmentResponse)
+async def get_latest_beck_assessment(current_user: dict = Depends(get_current_user)):
+    """Restituisce l'ultimo assessment Beck completato."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete_id = current_user["id"]
+    from ..db.database import get_latest_beck_assessment as _latest_beck
+
+    row = _latest_beck(athlete_id, tenant_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="No Beck assessments found")
+    return BeckAssessmentResponse(**row).model_dump()
+
+
+@router.get("/beck/history", response_model=BeckHistoryResponse)
+async def get_beck_history(current_user: dict = Depends(get_current_user)):
+    """Restituisce storico assessment Beck con trend."""
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete_id = current_user["id"]
+    from ..db.database import get_beck_assessments_by_athlete as _list_beck, get_latest_beck_assessment as _latest_beck
+
+    items = _list_beck(athlete_id, tenant_id)
+    latest = _latest_beck(athlete_id, tenant_id)
+    trend = [
+        {"date": item.get("created_at"), "score": item.get("total_score"), "severity": item.get("severity")}
+        for item in items
+    ]
+    return BeckHistoryResponse(
+        items=[BeckAssessmentResponse(**r).model_dump() for r in items],
+        latest=BeckAssessmentResponse(**latest).model_dump() if latest else None,
+        trend=trend,
+    ).model_dump()
 
 
 @admin_router.get("/test-sentry")

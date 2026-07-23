@@ -149,6 +149,12 @@ const routes = [
     meta: { requiresAuth: true, title: "Metabolismo" },
   },
   {
+    path: "/beck",
+    name: "beck",
+    component: () => import("../views/BeckView.vue"),
+    meta: { requiresAuth: true, title: "Analisi Beck" },
+  },
+  {
     path: "/performance",
     name: "performance",
     component: () => import("../views/PerformanceView.vue"),

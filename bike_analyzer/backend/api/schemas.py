@@ -831,3 +831,51 @@ class NutritionSearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=100)
     category: str | None = Field(default=None, max_length=50)
     limit: int = Field(default=50, ge=1, le=200)
+
+
+BeckAnswer = tuple[int, int]
+BeckSubmission = list[BeckAnswer]
+BeckCategory = str
+BECK_ITEMS = 21
+
+
+def _validate_beck_answer(value: int) -> int:
+    if not 0 <= value <= 3:
+        raise ValueError("BDI item score must be between 0 and 3")
+    return value
+
+
+class BeckAssessmentResponse(BaseModel):
+    """Schema di risposta per un assessment Beck completato."""
+
+    id: int | None = None
+    athlete_id: int
+    tenant_id: int = 0
+    total_score: int = Field(..., ge=0, le=63)
+    severity: BeckCategory = Field(default="minimal")
+    answers: list[BeckAnswer] = Field(default_factory=list, max_length=BECK_ITEMS)
+    notes: str | None = Field(default=None, max_length=2000)
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class BeckAssessmentCreate(BaseModel):
+    """Schema di richiesta per creare/salvare un assessment Beck."""
+
+    answers: list[BeckAnswer] = Field(..., min_length=BECK_ITEMS, max_length=BECK_ITEMS)
+    notes: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("answers")
+    @classmethod
+    def validate_answers(cls, value: list[BeckAnswer]) -> list[BeckAnswer]:
+        if len(value) != BECK_ITEMS:
+            raise ValueError(f"BDI requires exactly {BECK_ITEMS} item answers")
+        return [_validate_beck_answer(int(score)) for _, score in value]
+
+
+class BeckHistoryResponse(BaseModel):
+    """Schema di risposta per lo storico assessment Beck."""
+
+    items: list[BeckAssessmentResponse] = Field(default_factory=list)
+    latest: BeckAssessmentResponse | None = None
+    trend: list[dict] = Field(default_factory=list)

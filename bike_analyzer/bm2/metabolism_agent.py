@@ -42,7 +42,7 @@ class MetabolismAgent:
         Returns:
             MetabolicProfile with computed BMR/TDEE/NEAT/EAT.
         """
-        from ..algorithms.metabolism import MetabolismModel
+        from .algorithms.metabolism import MetabolismModel
         athlete = Athlete.from_raw(raw, self.t)
         bike = Athlete.from_raw(raw, self.t)
         bike_raw = {"weight": raw.get("weight", 70.0), "weight_unit": "kg",
@@ -77,7 +77,7 @@ class MetabolismAgent:
         Returns:
             MetabolicDailySummary with all computed components.
         """
-        from ..algorithms.metabolism import MetabolismModel
+        from .algorithms.metabolism import MetabolismModel
 
         athlete_raw = raw.get("athlete", {})
         athlete = Athlete.from_raw(athlete_raw, self.t)

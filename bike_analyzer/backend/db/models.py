@@ -219,6 +219,7 @@ class AthleteModel(Base):
     metabolic_profile: Mapped["MetabolicProfileModel | None"] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     food_logs: Mapped[list["FoodLogModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     metabolic_daily_summaries: Mapped[list["MetabolicDailySummaryModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    beck_assessments: Mapped[list["BeckAssessmentModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_athletes_tenant", "tenant_id"),
@@ -910,6 +911,29 @@ class MetabolicDailySummaryModel(Base):
     __table_args__ = (
         UniqueConstraint("athlete_id", "date", name="uq_metabolic_summary_athlete_date"),
         Index("ix_metabolic_summaries_athlete_date", "athlete_id", "date"),
+    )
+
+
+class BeckAssessmentModel(Base):
+    """Beck Depression Inventory assessment for an athlete."""
+
+    __tablename__ = "beck_assessments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), nullable=False)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    total_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    severity: Mapped[str] = mapped_column(String, nullable=False, default="minimal")
+    answers: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="beck_assessments")
+
+    __table_args__ = (
+        Index("ix_beck_assessments_athlete", "athlete_id"),
+        Index("ix_beck_assessments_athlete_date", "athlete_id", "created_at"),
     )
 
 
