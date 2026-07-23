@@ -42,6 +42,11 @@ console.log("[vite-config] NODE_ENV:", process.env.NODE_ENV, "isDev:", isDev, "i
 
 export default defineConfig({
   base: isTauri ? "./" : "/",
+  resolve: {
+    alias: {
+      "leaflet$": "leaflet/dist/leaflet-src.esm.js",
+    },
+  },
   plugins: [
     vue(),
       !isTauri && !isDev &&
