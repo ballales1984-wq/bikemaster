@@ -1,46 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { apiDelete, apiGet, apiPost, apiPut, apiUpload } from "./api";
-import { resolveApiBase } from "./backend-config";
-
-class MemStore {
-  constructor() {
-    this.s = new Map();
-  }
-  getItem(k) {
-    return this.s.has(k) ? this.s.get(k) : null;
-  }
-  setItem(k, v) {
-    this.s.set(k, String(v));
-  }
-  removeItem(k) {
-    this.s.delete(k);
-  }
-}
+import { useAuthStore } from "./stores/auth";
 
 describe("api helpers", () => {
-  let store, origFetch;
+  let origFetch;
 
   beforeEach(() => {
-    store = new MemStore();
-    globalThis.localStorage = store;
-    globalThis.window = { location: { href: "" } };
     setActivePinia(createPinia());
   });
 
   afterEach(() => {
     if (origFetch) globalThis.fetch = origFetch;
     else delete globalThis.fetch;
-    delete globalThis.window;
-    try {
-      delete globalThis.localStorage;
-    } catch {}
   });
 
-  const base = () => resolveApiBase();
-
   it("apiGet sends query params", async () => {
-    store.setItem("bikemaster_token", "tok");
+    const auth = useAuthStore();
+    auth.token = "tok";
     origFetch = globalThis.fetch = vi
       .fn()
       .mockResolvedValue({
@@ -51,7 +28,7 @@ describe("api helpers", () => {
     const result = await apiGet("/api/v1/rides", { q: "1" });
     expect(result).toEqual({ ok: true });
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      `${base()}/api/v1/rides?q=1`,
+      "/api/v1/rides?q=1",
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: "Bearer tok" }),
       }),
@@ -59,18 +36,21 @@ describe("api helpers", () => {
   });
 
   it("apiGet throws on 401 and clears auth", async () => {
-    store.setItem("bikemaster_token", "tok");
+    const auth = useAuthStore();
+    auth.token = "tok";
     origFetch = globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 401,
       json: async () => ({ detail: "expired" }),
     });
-    await expect(apiGet("/api/v1/x")).rejects.toThrow("expired");
-    expect(store.getItem("bikemaster_token")).toBeNull();
+    await expect(apiGet("/api/v1/x")).rejects.toThrow();
+    expect(auth.token).toBe("");
+    expect(auth.isLoggedIn).toBe(false);
   });
 
   it("apiGet returns null body on parse error", async () => {
-    store.setItem("bikemaster_token", "tok");
+    const auth = useAuthStore();
+    auth.token = "tok";
     origFetch = globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 400,
@@ -82,13 +62,14 @@ describe("api helpers", () => {
   });
 
   it("apiPost calls POST with body", async () => {
-    store.setItem("bikemaster_token", "tok");
+    const auth = useAuthStore();
+    auth.token = "tok";
     origFetch = globalThis.fetch = vi
       .fn()
       .mockResolvedValue({ ok: true, json: async () => ({ id: 1 }) });
     await apiPost("/api/v1/rides", { date: "2026" });
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      `${base()}/api/v1/rides`,
+      "/api/v1/rides",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ date: "2026" }),
@@ -97,17 +78,16 @@ describe("api helpers", () => {
   });
 
   it("apiPut calls PUT with body", async () => {
-    store.setItem("bikemaster_token", "tok");
-    origFetch = globalThis.fetch = vi
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        headers: { get: () => "application/json" },
-        json: async () => ({ ok: true }),
-      });
+    const auth = useAuthStore();
+    auth.token = "tok";
+    origFetch = globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => "application/json" },
+      json: async () => ({ ok: true }),
+    });
     await apiPut("/api/v1/rides/1", { distance_km: 50 });
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      `${base()}/api/v1/rides/1`,
+      "/api/v1/rides/1",
       expect.objectContaining({
         method: "PUT",
         body: JSON.stringify({ distance_km: 50 }),
@@ -116,19 +96,22 @@ describe("api helpers", () => {
   });
 
   it("apiDelete calls DELETE", async () => {
-    store.setItem("bikemaster_token", "tok");
-    origFetch = globalThis.fetch = vi
-      .fn()
-      .mockResolvedValue({ ok: true, json: async () => ({}) });
+    const auth = useAuthStore();
+    auth.token = "tok";
+    origFetch = globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
     await apiDelete("/api/v1/rides/1");
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      `${base()}/api/v1/rides/1`,
+      "/api/v1/rides/1",
       expect.objectContaining({ method: "DELETE" }),
     );
   });
 
   it("apiPost throws non-ok with detail", async () => {
-    store.setItem("bikemaster_token", "tok");
+    const auth = useAuthStore();
+    auth.token = "tok";
     origFetch = globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,

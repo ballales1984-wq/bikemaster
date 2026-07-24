@@ -74,7 +74,7 @@ describe("StatsSummary", () => {
     });
     const btn = wrapper.find("button.stat-refresh");
     expect(btn.attributes("disabled")).toBeDefined();
-    expect(btn.text()).toContain("Updating");
+    expect(btn.text()).toContain("Aggiornamento...");
   });
 
   it("has accessible labels", () => {

@@ -105,6 +105,6 @@ describe("WeatherPanel", () => {
 
   it("shows 7-Day Forecast heading", () => {
     const wrapper = mount(WeatherPanel);
-    expect(wrapper.text()).toContain("7-Day Forecast");
+    expect(wrapper.text()).toContain("Previsioni 7 Giorni");
   });
 });

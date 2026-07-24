@@ -86,9 +86,8 @@ describe("App.vue", () => {
     expect(wrapper.find(".stats-stub").exists()).toBe(true);
   });
 
-  it("displays login error when present", () => {
+  it("displays login error when present", async () => {
     authState.isLoggedIn = false;
-    localStorage.setItem("bikemaster_login_error", "bad");
     const router = createRouter({ history: createWebHistory(), routes: [] });
     router.push = vi.fn();
     const wrapper = mount(App, {
@@ -97,8 +96,10 @@ describe("App.vue", () => {
         stubs,
       },
     });
+    const loginForm = wrapper.findComponent({ name: "LoginForm" });
+    await loginForm.vm.$emit("error", "Test error message");
     expect(wrapper.find(".login-error").exists()).toBe(true);
-    expect(localStorage.getItem("bikemaster_login_error")).toBe("bad");
+    expect(wrapper.find(".login-error").text()).toBe("Test error message");
   });
 
   it("loads summary on mount when already logged in", async () => {

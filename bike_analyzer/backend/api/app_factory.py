@@ -419,7 +419,11 @@ def create_app() -> FastAPI:
         @app.get("/sw.js")
         async def service_worker():
             """Serve il service worker sw.js."""
-            return _static_file_response(STATIC_DIR / "sw.js", "application/javascript")
+            return _static_file_response(
+                STATIC_DIR / "sw.js",
+                "application/javascript",
+                headers={"Cache-Control": "no-store"},
+            )
 
         @app.get("/pwa-192x192.png")
         async def pwa_icon_192():

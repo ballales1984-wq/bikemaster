@@ -9,7 +9,7 @@
  * In modalità ride-time, attiva anche le voice cue live chiamando
  * `/api/v1/voice/coach/speak` con le metriche correnti.
  */
-import { ref, onBeforeUnmount } from "vue";
+import { ref, onBeforeUnmount, getCurrentInstance } from "vue";
 import type { ParsedVoiceCommand, VoiceCommand } from "../types/notifications";
 
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
@@ -212,10 +212,15 @@ export function useVoiceCoach(language: "it" | "en" = "it") {
     voiceCoachActive.value = false;
   }
 
-  onBeforeUnmount(() => {
-    stopListening();
-    stopVoiceCoachInterval();
-  });
+  // Only register the lifecycle hook when running inside a component instance.
+  // Without this guard, calling useVoiceCoach() in unit tests (outside setup)
+  // triggers a Vue warning: "onBeforeUnmount called outside component instance".
+  if (getCurrentInstance()) {
+    onBeforeUnmount(() => {
+      stopListening();
+      stopVoiceCoachInterval();
+    });
+  }
 
   const boundParse = (text: string) => parseCommand(text, language);
 

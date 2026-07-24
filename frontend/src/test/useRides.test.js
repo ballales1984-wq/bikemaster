@@ -1,15 +1,17 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+
+const mockApiGet = vi.hoisted(() => vi.fn());
+vi.mock("../utils/api.ts", () => ({
+  apiGet: mockApiGet,
+}));
 
 describe("useRides composable", () => {
   beforeEach(() => {
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ rides: [], total: 0 }),
-    });
+    mockApiGet.mockResolvedValue({ rides: [], total: 0 });
   });
 
   afterEach(() => {
-    delete globalThis.fetch;
+    vi.clearAllMocks();
   });
 
   it("fetchSummary returns default values on error", async () => {
@@ -39,6 +41,8 @@ describe("useRides composable", () => {
       ],
       total: 2,
     };
+    mockApiGet.mockResolvedValue(mockData);
+
     const { useRides } = await import("../composables/useRides.ts");
 
     const totalKm = mockData.rides.reduce(

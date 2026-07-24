@@ -44,7 +44,7 @@ describe("ChartsPanel", () => {
     await flush();
 
     expect(wrapper.find(".charts-panel").exists()).toBe(true);
-    expect(wrapper.find("h2").text()).toContain("Performance Trends");
+    expect(wrapper.find("h2").text()).toContain("Trend Performance");
   });
 
   it("shows metric and window selectors", async () => {
@@ -57,8 +57,8 @@ describe("ChartsPanel", () => {
     expect(selects).toHaveLength(2);
 
     const metricOptions = selects[0].findAll("option");
-    expect(metricOptions.some((o) => o.text().includes("Distance"))).toBe(true);
-    expect(metricOptions.some((o) => o.text().includes("Speed"))).toBe(true);
+    expect(metricOptions.some((o) => o.text().includes("Distanza"))).toBe(true);
+    expect(metricOptions.some((o) => o.text().includes("Velocità"))).toBe(true);
   });
 
   it("changing metric triggers loadTrends", async () => {

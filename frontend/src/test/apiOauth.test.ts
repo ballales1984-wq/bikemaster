@@ -14,7 +14,6 @@ function makeFetch(status: number, body: unknown) {
 describe("api 401 handling (OAuth return safety)", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -25,7 +24,6 @@ describe("api 401 handling (OAuth return safety)", () => {
       "base64url",
     )}.s`;
     auth.token = validJwt;
-    localStorage.setItem("bikemaster_token", validJwt);
     (globalThis as unknown as { fetch: typeof fetch }).fetch = makeFetch(401, {
       detail: "expired",
     });
@@ -34,7 +32,7 @@ describe("api 401 handling (OAuth return safety)", () => {
       apiGet("/api/v1/auth/me", {}, { headers: { Authorization: "Bearer x" } }),
     ).rejects.toThrow();
 
-    expect(localStorage.getItem("bikemaster_token")).toBeNull();
+    expect(auth.token).toBe("");
     expect(auth.isLoggedIn).toBe(false);
   });
 
@@ -45,7 +43,6 @@ describe("api 401 handling (OAuth return safety)", () => {
       "base64url",
     )}.s`;
     auth.token = validJwt;
-    localStorage.setItem("bikemaster_token", validJwt);
     (globalThis as unknown as { fetch: typeof fetch }).fetch = makeFetch(401, {
       detail: "expired",
     });
@@ -57,9 +54,7 @@ describe("api 401 handling (OAuth return safety)", () => {
       } as RequestInit),
     ).rejects.toThrow();
 
-    // Session must survive so the OAuth return still reaches the dashboard
-    // instead of being bounced to the login screen.
-    expect(localStorage.getItem("bikemaster_token")).toBe(validJwt);
+    expect(auth.token).toBe(validJwt);
     expect(auth.isLoggedIn).toBe(true);
   });
 });

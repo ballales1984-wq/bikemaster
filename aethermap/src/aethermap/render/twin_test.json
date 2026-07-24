@@ -1,0 +1,55 @@
+[
+  {
+    "id": "s1",
+    "tipo": "strada",
+    "posizione": {
+      "lat": 45.0,
+      "lon": 9.0,
+      "alt": 0.0
+    },
+    "geometria": {
+      "punti": [
+        {
+          "lat": 45.0,
+          "lon": 9.0,
+          "ele": 100
+        }
+      ]
+    },
+    "proprieta": {
+      "traffico": 40,
+      "ombrata": false
+    }
+  },
+  {
+    "id": "a1",
+    "tipo": "albero",
+    "posizione": {
+      "lat": 45.005,
+      "lon": 9.01,
+      "alt": 0.0
+    },
+    "proprieta": {
+      "specie": "quercia",
+      "altezza_m": 8.5,
+      "ombra": false
+    }
+  },
+  {
+    "id": "m1",
+    "tipo": "montagna",
+    "posizione": {
+      "lat": 45.015,
+      "lon": 9.03,
+      "alt": 1800.0
+    },
+    "proprieta": {
+      "versanti": [
+        "nord",
+        "sud"
+      ],
+      "sentieri": 4,
+      "neve": false
+    }
+  }
+]

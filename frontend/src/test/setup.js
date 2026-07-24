@@ -1,5 +1,45 @@
 import { vi } from "vitest";
 
+// Mock Leaflet globally — jsdom cannot run canvas/WebGL APIs used by Leaflet.
+// Without this mock, any component that imports Leaflet throws
+// "latLng is not a function" during test collection.
+vi.mock("leaflet", () => {
+  const noop = () => ({});
+  const leafletMock = {
+    map: vi.fn(() => ({
+      setView: vi.fn().mockReturnThis(),
+      addLayer: vi.fn().mockReturnThis(),
+      removeLayer: vi.fn().mockReturnThis(),
+      remove: vi.fn(),
+      on: vi.fn().mockReturnThis(),
+      off: vi.fn().mockReturnThis(),
+      fitBounds: vi.fn().mockReturnThis(),
+      getBounds: vi.fn(() => ({
+        getNorthEast: vi.fn(),
+        getSouthWest: vi.fn(),
+      })),
+      getZoom: vi.fn(() => 10),
+      panTo: vi.fn().mockReturnThis(),
+      setZoom: vi.fn().mockReturnThis(),
+      invalidateSize: vi.fn(),
+    })),
+    tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
+    marker: vi.fn(() => ({ addTo: vi.fn(), bindPopup: vi.fn().mockReturnThis(), remove: vi.fn() })),
+    polyline: vi.fn(() => ({ addTo: vi.fn(), remove: vi.fn(), getBounds: vi.fn() })),
+    circle: vi.fn(() => ({ addTo: vi.fn(), remove: vi.fn() })),
+    latLng: vi.fn((lat, lng) => ({ lat, lng })),
+    latLngBounds: vi.fn(() => ({ extend: vi.fn().mockReturnThis(), isValid: vi.fn(() => true) })),
+    icon: vi.fn(noop),
+    divIcon: vi.fn(noop),
+    LayerGroup: vi.fn(() => ({ addTo: vi.fn(), addLayer: vi.fn(), clearLayers: vi.fn(), remove: vi.fn() })),
+    layerGroup: vi.fn(() => ({ addTo: vi.fn(), addLayer: vi.fn(), clearLayers: vi.fn(), remove: vi.fn() })),
+    Control: { Layers: vi.fn(() => ({ addTo: vi.fn() })) },
+    control: { layers: vi.fn(() => ({ addTo: vi.fn() })) },
+    default: {},
+  };
+  return { default: leafletMock, ...leafletMock };
+});
+
 vi.mock("chart.js/auto", () => ({
   default: vi
     .fn()
