@@ -161,32 +161,32 @@ export const useAuthStore = defineStore("auth", () => {
     refreshToken.value = "";
     justLoggedIn.value = false;
 
-    const resetStores = [
-      "./athlete",
-      "./athleteState",
-      "./settings",
-      "./connections",
-      "./apiKeys",
-      "./rides",
-      "./trackingStore",
-      "./ui",
-      "./notifications",
-      "./voiceCommands",
-      "./voiceSystem",
-      "./performance",
-      "./metabolism",
-      "./ble",
-      "./healthConnect",
-      "./itinerary",
-      "./beck",
-    ];
-    for (const mod of resetStores) {
+    const resetStoreMap: Record<string, string> = {
+      "./athlete": "useAthleteStore",
+      "./athleteState": "useAthleteStateStore",
+      "./settings": "useSettingsStore",
+      "./connections": "useConnectionsStore",
+      "./apiKeys": "useApiKeysStore",
+      "./rides": "useRidesStore",
+      "./trackingStore": "useTrackingStore",
+      "./ui": "useUIStore",
+      "./notifications": "useNotificationStore",
+      "./voiceCommands": "useVoiceCommandsStore",
+      "./voiceSystem": "useVoiceSystemStore",
+      "./performance": "usePerformanceStore",
+      "./metabolism": "useMetabolismStore",
+      "./ble": "useBleStore",
+      "./healthConnect": "useHealthConnectStore",
+      "./itinerary": "useItineraryStore",
+      "./beck": "useBeckStore",
+    };
+    for (const [mod, exportName] of Object.entries(resetStoreMap)) {
       try {
         const mod_ = await import(mod);
-        const store = mod_.useStore();
+        const store = mod_[exportName]();
         if (typeof store.$reset === "function") store.$reset();
       } catch {
-        /* store may not export useStore or may not implement $reset */
+        /* store may not export the expected function or may not implement $reset */
       }
     }
 
