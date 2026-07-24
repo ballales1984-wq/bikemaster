@@ -18,9 +18,14 @@
   <div id="hud">
     <b>AetherMap</b> — WebGL2 cube-sphere (Fase 4)<br />
     drag: ruota · scroll: zoom · D: reset<br />
-    <span id="fps">--</span> FPS &middot; entita': <span id="ent-count">0</span>
+    <span id="fps">--</span> FPS &middot; entita': <span id="ent-count">0</span> &middot; relazioni: <span id="rel-count">0</span><br />
     <span id="dem"></span><br />
     <span id="hover"></span>
+    <span id="selection"></span>
+  </div>
+  <div id="detail" style="display:none; position:fixed; right:10px; top:10px; width:260px; max-height:70vh; overflow:auto; background:rgba(0,0,0,.75); color:#fff; padding:10px; border-radius:6px; font-family:monospace; font-size:11px; line-height:1.4; pointer-events:auto;">
+    <b id="detail-title"></b>
+    <pre id="detail-body" style="white-space:pre-wrap; word-break:break-all;"></pre>
   </div>
 
 <script>
@@ -170,6 +175,9 @@ void main() {
     throw e;
   }
   document.getElementById("ent-count").textContent = worldData.entities.length;
+  const relCount = (worldData.relations || []).length;
+  const relEl = document.getElementById("rel-count");
+  if (relEl) relEl.textContent = relCount;
   const demEl = document.getElementById("dem");
   if (demEl) {
     const src = worldData.dem_source || (worldData.terrain && worldData.terrain.source) || "procedurale";
@@ -267,34 +275,59 @@ void main() {
    let tyaw = yaw, tpitch = pitch, tzoom = zoom;
    let dragging = false, lx = 0, ly = 0;
    let wireframe = false;
-   let mouseX = -1, mouseY = -1;
-   let hoveredId = null;
+    let mouseX = -1, mouseY = -1;
+    let hoveredId = null;
+    let selectedId = null;
 
-   const ATM_COLOR = [0.35, 0.55, 0.95];
+    const ATM_COLOR = [0.35, 0.55, 0.95];
 
-   canvas.addEventListener("pointerdown", e => {
-     dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId);
-   });
-   canvas.addEventListener("pointerup",   () => dragging = false);
-   canvas.addEventListener("pointerleave",() => { dragging = false; mouseX = -1; mouseY = -1; hoveredId = null; });
-   canvas.addEventListener("pointermove", e => {
-     const rect = canvas.getBoundingClientRect();
-     mouseX = e.clientX - rect.left; mouseY = e.clientY - rect.top;
-     if (!dragging) return;
-     yaw += (e.clientX - lx) * 0.005;
-     pitch += (e.clientY - ly) * 0.005;
-     pitch = Math.max(-1.4, Math.min(1.4, pitch));
-     lx = e.clientX; ly = e.clientY;
-   });
-   canvas.addEventListener("wheel", e => {
-     zoom *= e.deltaY > 0 ? 1.08 : 0.93;
-     zoom = Math.max(0.5, Math.min(10.0, zoom));
-     e.preventDefault();
-   }, { passive: false });
-   addEventListener("keydown", e => {
-     if (e.key === "d" || e.key === "D") { tyaw = DEF_YAW; tpitch = DEF_PITCH; tzoom = DEF_ZOOM; }
-     if (e.key === "f" || e.key === "F") wireframe = !wireframe;
-   });
+    canvas.addEventListener("pointerdown", e => {
+      dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener("pointerup",   () => dragging = false);
+    canvas.addEventListener("pointerleave",() => { dragging = false; mouseX = -1; mouseY = -1; hoveredId = null; });
+    canvas.addEventListener("pointermove", e => {
+      const rect = canvas.getBoundingClientRect();
+      mouseX = e.clientX - rect.left; mouseY = e.clientY - rect.top;
+      if (!dragging) return;
+      yaw += (e.clientX - lx) * 0.005;
+      pitch += (e.clientY - ly) * 0.005;
+      pitch = Math.max(-1.4, Math.min(1.4, pitch));
+      lx = e.clientX; ly = e.clientY;
+    });
+    canvas.addEventListener("wheel", e => {
+      zoom *= e.deltaY > 0 ? 1.08 : 0.93;
+      zoom = Math.max(0.5, Math.min(10.0, zoom));
+      e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener("click", e => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      let best = null;
+      let bestDist = 20;
+      for (const ent of worldData.entities) {
+        const p = ent.position;
+        if (!p) continue;
+        const rx = curRot[0]*p[0] + curRot[1]*p[1] + curRot[2]*p[2];
+        const ry = curRot[3]*p[0] + curRot[4]*p[1] + curRot[5]*p[2];
+        const rz = curRot[6]*p[0] + curRot[7]*p[1] + curRot[8]*p[2];
+        if (rz <= 0) continue;
+        const sx = (rx * 0.85 / zoom + 1) * 0.5 * (canvas.width / (window.devicePixelRatio || 1));
+        const sy = (1 - (ry * 0.85 / zoom + 1) * 0.5) * (canvas.height / (window.devicePixelRatio || 1));
+        const d = Math.hypot(mx - sx, my - sy);
+        if (d < bestDist) {
+          bestDist = d;
+          best = ent;
+        }
+      }
+      selectedId = best ? best.id : null;
+      updateDetailPanel();
+    });
+    addEventListener("keydown", e => {
+      if (e.key === "d" || e.key === "D") { tyaw = DEF_YAW; tpitch = DEF_PITCH; tzoom = DEF_ZOOM; }
+      if (e.key === "f" || e.key === "F") wireframe = !wireframe;
+    });
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -368,6 +401,75 @@ void main() {
     }
   }
 
+  function updateDetailPanel() {
+    const detail = document.getElementById("detail");
+    if (!detail) return;
+    if (selectedId) {
+      const ent = worldData.entities.find(e => e.id === selectedId);
+      if (ent) {
+        document.getElementById("detail-title").textContent = ent.id;
+        const lines = [
+          `tipo: ${ent.tipo}`,
+          `position: [${(ent.position || []).map(v => (v ?? 0).toFixed(4)).join(", ")}]`,
+        ];
+        if (ent.props) {
+          for (const [k, v] of Object.entries(ent.props)) {
+            lines.push(`${k}: ${v}`);
+          }
+        }
+        if (ent.points) {
+          lines.push(`points: ${ent.points.length}`);
+        }
+        const rels = (worldData.relations || []).filter(r => r.from === ent.id || r.to === ent.id);
+        if (rels.length) {
+          lines.push("relazioni:");
+          for (const rel of rels) {
+            const other = rel.from === ent.id ? rel.to : rel.from;
+            lines.push(`  ${other} (${rel.tipo}, peso=${rel.peso})`);
+          }
+        }
+        document.getElementById("detail-body").textContent = lines.join("\n");
+        detail.style.display = "block";
+        return;
+      }
+    }
+    detail.style.display = "none";
+  }
+
+  function drawRelations() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = canvas.width / dpr;
+    const ch = canvas.height / dpr;
+    const ctx = document.getElementById("lbl").getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.lineWidth = 1;
+    const ents = Object.fromEntries(worldData.entities.map(e => [e.id, e]));
+    for (const rel of (worldData.relations || [])) {
+      const a = ents[rel.from];
+      const b = ents[rel.to];
+      if (!a || !b || !a.position || !b.position) continue;
+      const pa = project(a.position, rot, zoom, cw, ch);
+      const pb = project(b.position, rot, zoom, cw, ch);
+      if (!pa || !pb) continue;
+      ctx.beginPath();
+      ctx.moveTo(pa.sx, pa.sy);
+      ctx.lineTo(pb.sx, pb.sy);
+      ctx.stroke();
+    }
+  }
+
+  function project(p, rot, zoom, cw, ch) {
+    const rx = rot[0]*p[0] + rot[1]*p[1] + rot[2]*p[2];
+    const ry = rot[3]*p[0] + rot[4]*p[1] + rot[5]*p[2];
+    const rz = rot[6]*p[0] + rot[7]*p[1] + rot[8]*p[2];
+    if (rz <= 0) return null;
+    return {
+      sx: (rx * 0.85 / zoom + 1) * 0.5 * cw,
+      sy: (1 - (ry * 0.85 / zoom + 1) * 0.5) * ch,
+    };
+  }
+
   /* =========================================================================
      RENDER LOOP
      ========================================================================= */
@@ -435,6 +537,7 @@ void main() {
     });
 
     drawLabels();
+    drawRelations();
     gl.bindVertexArray(null);
     requestAnimationFrame(frame);
   }

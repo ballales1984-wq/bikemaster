@@ -26,8 +26,11 @@ from aethermap.ai.models import (
 )
 from aethermap.ai.models_ml import (
     RoadPlausibilityEstimator,
+    SimpleNN,
     estimate_gpx,
     extract_gpx_features,
+    load_model,
+    save_model,
 )
 from aethermap.ai.pipeline import Pipeline, WorldStore
 from aethermap.ai.researcher import Researcher
@@ -327,6 +330,63 @@ class TestRoadPlausibilityEstimator:
             fitted=False,
         )
         assert est.road_score(_make_points(5)) == 0.0
+
+
+class TestSimpleNN:
+    def test_predict_shape(self):
+        nn = SimpleNN(input_size=4)
+        x = np.random.randn(3, 4).astype(np.float64)
+        out = nn.predict(x)
+        assert out.shape == (3, 1)
+
+    def test_predict_range(self):
+        nn = SimpleNN(input_size=4, seed=0)
+        x = np.random.randn(10, 4).astype(np.float64)
+        out = nn.predict(x)
+        assert np.all(out >= 0.0) and np.all(out <= 1.0)
+
+    def test_train_reduces_loss(self):
+        nn = SimpleNN(input_size=4, seed=0)
+        rng = np.random.default_rng(0)
+        X = rng.standard_normal((32, 4)).astype(np.float64)
+        y = (X[:, 0] > 0).astype(np.float64).reshape(-1, 1)
+        hist = nn.fit(X, y, epochs=50, batch_size=8, lr=0.05, val_split=0.25)
+        assert hist["train_loss"][-1] <= hist["train_loss"][0]
+
+    def test_weights_serialization(self):
+        nn = SimpleNN(input_size=4, seed=7)
+        w = nn.weights
+        assert "W1" in w and "b1" in w and "W2" in w and "b2" in w
+
+
+class TestModelPersistence:
+    def test_save_and_load_linear(self, tmp_path):
+        est = RoadPlausibilityEstimator.from_synthetic(n_samples=40)
+        p = tmp_path / "model.json"
+        save_model(est, p)
+        loaded = load_model(p)
+        pts = _make_points(20)
+        assert loaded.road_score(pts) == pytest.approx(est.road_score(pts))
+
+    def test_loaded_model_type_linear(self, tmp_path):
+        est = RoadPlausibilityEstimator.from_synthetic(n_samples=40)
+        p = tmp_path / "model.json"
+        save_model(est, p)
+        loaded = load_model(p)
+        assert loaded.model_type == "linear"
+
+
+class TestEstimatorNNMode:
+    def test_from_synthetic_nn_returns_fitted(self):
+        est = RoadPlausibilityEstimator.from_synthetic(n_samples=80, use_nn=True)
+        assert est.model_type == "nn"
+        assert est._fitted is True
+
+    def test_nn_road_score_range(self):
+        est = RoadPlausibilityEstimator.from_synthetic(n_samples=80, use_nn=True)
+        pts = _make_points(20)
+        score = est.road_score(pts)
+        assert 0.0 <= score <= 1.0
 
 
 # ===========================================================================

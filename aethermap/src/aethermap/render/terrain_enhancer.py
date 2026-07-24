@@ -105,16 +105,16 @@ def build_enhanced_heightfield(
 ) -> np.ndarray:
     from aethermap.render.webgl_exporter import _build_heightfield
 
-    hf = _build_heightfield(n, base_alt, height_scale).flatten()
+    hf = np.zeros((6, n, n), dtype=np.float32)
+    for face in range(6):
+        hf[face] = _build_heightfield(n, base_alt, height_scale).astype(np.float32)
     if not base_url:
-        return hf
+        return hf.flatten()
     for face in faces:
-        face_start = face * n * n
-        face_end = face_start + n * n
-        face_hf = hf[face_start:face_end].reshape((n, n))
+        face_hf = hf[face]
         enhanced = enhance_face(face_hf, face, base_url, n)
-        hf[face_start:face_end] = enhanced.flatten()
-    return hf
+        hf[face] = enhanced
+    return hf.flatten()
 
 
 def get_terrain_bboxes(n: int = 64) -> dict[int, dict[str, float]]:

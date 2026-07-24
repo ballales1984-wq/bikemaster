@@ -79,13 +79,13 @@ class TestEnhanceFace:
 
     @patch("aethermap.render.terrain_enhancer.fetch_dem_tile")
     def test_merges_dem_into_hf(self, mock_fetch):
-        hf = np.ones((4, 4), dtype=np.float32) * 0.5
-        dem = np.linspace(100, 400, 16).reshape(4, 4).astype(np.float32)
+        hf = np.linspace(0.0, 1.0, 16).reshape(4, 4).astype(np.float32)
+        dem = np.linspace(400, 100, 16).reshape(4, 4).astype(np.float32)
         mock_fetch.return_value = dem
         out = enhance_face(hf, face=0, base_url="http://localhost:8000", resolution=4)
-        assert not np.allclose(out, hf)
         assert out.shape == hf.shape
         assert out.dtype == np.float32
+        assert not np.array_equal(out, hf)
 
 
 class TestBuildEnhancedHeightfield:

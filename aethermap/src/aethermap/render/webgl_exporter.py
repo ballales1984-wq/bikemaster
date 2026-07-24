@@ -71,7 +71,13 @@ def _face_direction(face: int, u: float, v: float) -> np.ndarray:
 
 
 def _terrain_mesh(n: int = 48, base_alt: float = 0.0, height_scale: float = 0.04) -> dict[str, Any]:
-    return _terrain_mesh_from_hf(_build_heightfield(n, base_alt, height_scale).flatten(), n)
+    return _terrain_mesh_from_hf(_build_full_heightfield(n, base_alt, height_scale).flatten(), n)
+
+
+def _build_full_heightfield(n: int, base_alt: float, height_scale: float) -> np.ndarray:
+    hf = _build_heightfield(n, base_alt, height_scale)
+    return np.stack([hf] * 6, axis=0)
+
 
 
 def _terrain_mesh_from_hf(hf: np.ndarray, n: int) -> dict[str, Any]:
@@ -139,6 +145,7 @@ def _entity_to_gl(obj: Any, earth_r: float = 6371000.0) -> dict[str, Any]:
         "color": color,
         "props": obj.proprieta,
         "confidence": obj.affidabilita.valore,
+        "s2": getattr(pos, "s2", None),
     }
 
     if tipo == "strada":
@@ -160,6 +167,16 @@ def _entity_to_gl(obj: Any, earth_r: float = 6371000.0) -> dict[str, Any]:
             entry["kind"] = "point"
             entry["radius"] = float(r_mountain)
             entry["position"] = [px, py, pz]
+            try:
+                stats = obj.volume_stats(temp_c=15.0)
+                entry["props"]["svo_stats"] = {
+                    "snow_pct": stats.get("snow_%", 0),
+                    "rock_pct": stats.get("rock_%", 0),
+                    "veg_pct": stats.get("veg_%", 0),
+                    "voxels": stats.get("voxel_totali", 0),
+                }
+            except Exception:
+                pass
         elif tipo == "albero":
             entry["kind"] = "point"
             entry["height_m"] = pos.alt or 5.0
@@ -188,12 +205,22 @@ def export_world(
         from aethermap.render.terrain_enhancer import build_enhanced_heightfield
         hf = build_enhanced_heightfield(n_terrain, terrain_base_alt, terrain_scale, dem_base_url)
     else:
-        hf = _build_heightfield(n_terrain, terrain_base_alt, terrain_scale).flatten()
+        hf = _build_full_heightfield(n_terrain, terrain_base_alt, terrain_scale).flatten()
     terrain = _terrain_mesh_from_hf(hf, n_terrain)
 
     entities = []
     for obj in twin.store.objects.values():
         entities.append(_entity_to_gl(obj, earth_r))
+
+    relations = []
+    for obj in twin.store.objects.values():
+        for rel in obj.relazioni:
+            relations.append({
+                "from": obj.id,
+                "to": rel.target_id,
+                "tipo": rel.tipo,
+                "peso": rel.peso,
+            })
 
     camera = {
         "yaw": 0.6,
@@ -204,6 +231,7 @@ def export_world(
         "version": "aethermap-webgl-1.0",
         "terrain": terrain,
         "entities": entities,
+        "relations": relations,
         "camera": camera,
         "earth_r": earth_r,
     }

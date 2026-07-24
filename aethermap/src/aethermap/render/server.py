@@ -16,7 +16,7 @@ import json
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from aethermap.render.webgl_exporter import _entity_to_gl, _terrain_mesh
 from aethermap.twin.objects import make_albero, make_montagna, make_strada
@@ -46,6 +46,15 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
         if path == "/api/step":
             self._serve_step()
             return
+        if path == "/api/snapshot":
+            self._serve_snapshot()
+            return
+        if path == "/api/save":
+            self._serve_save()
+            return
+        if path == "/api/export":
+            self._serve_export()
+            return
         if path == "/":
             self._serve_html()
             return
@@ -54,6 +63,46 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
             return
 
         super().do_GET()
+
+    def do_POST(self) -> None:  # noqa: N802
+        parsed = urlparse(self.path)
+        path = parsed.path.rstrip("/") or "/"
+        if path == "/api/load":
+            self._serve_load()
+            return
+        self.send_response(501)
+        self.end_headers()
+
+    def _serve_save(self) -> None:
+        if not self._dynamic or not self._dynamic_lock:
+            self._send_json_or_text(404, '{"error": "Dynamic mode not enabled"}', "application/json")
+            return
+        with self._dynamic_lock:
+            twin: DigitalTwin = self._world_data["_twin"]  # type: ignore[index]
+            out_path = Path(__file__).resolve().parent / "world_state.json"
+            twin.save_json(out_path)
+        self._send_json_or_text(200, json.dumps({"ok": True, "path": str(out_path)}), "application/json")
+
+    def _serve_load(self) -> None:
+        if not self._dynamic or not self._dynamic_lock:
+            self._send_json_or_text(404, '{"error": "Dynamic mode not enabled"}', "application/json")
+            return
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length).decode("utf-8")
+        with self._dynamic_lock:
+            twin: DigitalTwin = self._world_data["_twin"]  # type: ignore[index]
+            twin.store.objects.clear()
+            twin.load_json(json.loads(body))
+            twin._build_relations()
+            self._world_data["entities"] = [
+                _entity_to_gl(obj) for obj in twin.store.objects.values()
+            ]
+            self._world_data["relations"] = [
+                {"from": obj.id, "to": rel.target_id, "tipo": rel.tipo, "peso": rel.peso}
+                for obj in twin.store.objects.values()
+                for rel in obj.relazioni
+            ]
+        self._send_json_or_text(200, json.dumps({"ok": True, "entities": self._world_data["entities"], "relations": self._world_data.get("relations", [])}), "application/json")
 
     def _serve_terrain_tile(self, params: dict | None = None) -> None:
         bikemaster = getattr(self.__class__, "_bikemaster_url", "http://localhost:8000")
@@ -92,14 +141,38 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
         if not self._dynamic or not self._dynamic_lock:
             self._send_json_or_text(404, '{"error": "Dynamic mode not enabled"}', "application/json")
             return
+        qs = parse_qs(urlparse(self.path).query)
+        temp_c = float(qs.get("temp_c", [15.0])[0])
+        solar_elev_deg = float(qs.get("solar_elev_deg", [30.0])[0])
         with self._dynamic_lock:
-            env = Environment(temp_c=15.0, solar_elev_deg=30.0, ora="12:00")
+            env = Environment(temp_c=temp_c, solar_elev_deg=solar_elev_deg, ora="12:00")
             twin: DigitalTwin = self._world_data["_twin"]  # type: ignore[index]
             twin.step(env)
             self._world_data["entities"] = [
                 _entity_to_gl(obj) for obj in twin.store.objects.values()
             ]
-        self._send_json_or_text(200, json.dumps({"ok": True, "entities": self._world_data["entities"]}), "application/json")
+            self._world_data["relations"] = [
+                {"from": obj.id, "to": rel.target_id, "tipo": rel.tipo, "peso": rel.peso}
+                for obj in twin.store.objects.values()
+                for rel in obj.relazioni
+            ]
+        self._send_json_or_text(200, json.dumps({"ok": True, "entities": self._world_data["entities"], "relations": self._world_data.get("relations", [])}), "application/json")
+
+    def _serve_snapshot(self) -> None:
+        if not self._dynamic or not self._dynamic_lock:
+            self._send_json_or_text(404, '{"error": "Dynamic mode not enabled"}', "application/json")
+            return
+        with self._dynamic_lock:
+            twin: DigitalTwin = self._world_data["_twin"]  # type: ignore[index]
+            snap = twin.snapshot()
+        self._send_json_or_text(200, json.dumps(snap), "application/json")
+
+    def _serve_export(self) -> None:
+        if self._world_data is None:
+            self._send_json_or_text(404, '{"error": "No world data available"}', "application/json")
+            return
+        payload = json.dumps(self._world_data, ensure_ascii=False, indent=2)
+        self._send_json_or_text(200, payload, "application/json")
 
     def _send_json_or_text(self, code: int, content: str, content_type: str) -> None:
         payload = content.encode("utf-8")
@@ -135,10 +208,16 @@ def _build_dynamic_world(dem_url: str | None = None) -> dict[str, Any]:
     twin.step(env)
     terrain = _terrain_mesh(64)
     entities = [_entity_to_gl(obj) for obj in twin.store.objects.values()]
+    relations = [
+        {"from": obj.id, "to": rel.target_id, "tipo": rel.tipo, "peso": rel.peso}
+        for obj in twin.store.objects.values()
+        for rel in obj.relazioni
+    ]
     result = {
         "version": "aethermap-webgl-1.0",
         "terrain": terrain,
         "entities": entities,
+        "relations": relations,
         "camera": {"yaw": 0.6, "pitch": 0.35},
         "earth_r": 6_371_000.0,
         "_twin": twin,
