@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     # at the local SQLite file used by the synchronous layer (db/database.py).
     # PostgreSQL (``DATABASE_URL`` / ``DATABASE_URL_UNPOOLED``) is OPTIONAL and is
     # used only for cloud sync / community features — never as the primary store.
-    db_path: str = "rides.db"
+    db_path: str = str(Path(__file__).resolve().parent.parent.parent / "rides.db")
     database_url: str = ""
     database_url_unpooled: str = ""
 
@@ -211,7 +211,7 @@ class Settings(BaseSettings):
         # community features when ``DATABASE_URL`` is configured. There is no longer
         # any expectation of a PostgreSQL connection string in production.
         if not self.db_path:
-            self.db_path = "rides.db"
+            self.db_path = str(Path(__file__).resolve().parent.parent.parent / "rides.db")
         if not (self.database_url or self.database_url_unpooled):
             logging.info(
                 "No cloud DATABASE_URL configured: running local-first with SQLite as "
