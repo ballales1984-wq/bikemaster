@@ -84,15 +84,21 @@ class TestSpatialDensityByType:
 
 
 class TestRadiusSummary:
-    def test_returns_type_counts(self):
+    def test_returns_type_counts_for_nearby(self):
         store = _build_world(6)
-        summary = radius_summary(store.all(), 1000.0)
+        summary = radius_summary(store.all(), 45.0, 9.0, 1000.0)
         assert isinstance(summary, dict)
 
     def test_large_radius_includes_all(self):
         store = _build_world(6)
-        summary = radius_summary(store.all(), 1_000_000.0)
+        summary = radius_summary(store.all(), 45.0, 9.0, 1_000_000.0)
         assert sum(summary.values()) == 6
+
+    def test_small_radius_excludes_far(self):
+        store = _build_world(6)
+        summary = radius_summary(store.all(), 45.0, 9.0, 50.0)
+        assert sum(summary.values()) >= 1
+        assert sum(summary.values()) < 6
 
 
 # ===========================================================================

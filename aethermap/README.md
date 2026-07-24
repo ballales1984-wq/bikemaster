@@ -44,8 +44,8 @@ Vista WebGL con DEM reale: `python -m aethermap.render.server --dynamic --dem-ba
 
 ## Stato
 - Fase 1-2: design doc completi e vincolati.
-- Fase 3-4: prototipi Python funzionanti e verificati; WebGL2 viewer attivo con shader PBR-lite (specular + rim light), wireframe toggle (F), hover glow e label dinamiche, camera smooth reset (D), modalita' live con auto-refresh da server, overlay griglia S2 (G).
+- Fase 3-4: prototipi Python funzionanti e verificati; WebGL2 viewer attivo con shader PBR-lite (specular + rim light), wireframe toggle (F), hover glow e label dinamiche, camera smooth reset (D), modalita' live con auto-refresh da server, overlay griglia S2 (G), filtro entita' per risoluzione S2 minima basato su zoom.
 - Fase 5: digital twin attivo con SVO backend e stato ambiente-driven; nel viewer le montagne mostrano stats SVO (snow/rock/veg %) all'hover.
 - DEM reale: `webgl_exporter.py` supporta `--dem-base-url` per sostituire l'FBM procedurale con tile Copernicus/SRTM dal backend BikeMaster (`/aethermap/terrain`). Server espone `/api/terrain` come proxy.
 - ML: `models_ml.py` include SimpleNN (1-hidden-layer numpy) con persistenza JSON, oltre a ridge regression lineare.
-- In corso: storage Parquet/PostGIS completo, risoluzione S2 minima nel viewer.
+- In corso: risoluzione S2 minima nel viewer. Completato: fix radius_summary (analytics) con filtro geodesico, overlay griglia S2 nel viewer WebGL2 (toggle G), filtro entita' per livello S2 basato su zoom.

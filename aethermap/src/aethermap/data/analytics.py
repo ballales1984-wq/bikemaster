@@ -13,6 +13,8 @@ from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import Any
 
+import math
+
 from aethermap.ai.models import Oggetto
 
 
@@ -38,10 +40,26 @@ def spatial_density_by_type(objects: Iterable[Oggetto]) -> dict[str, int]:
     return dict(counts)
 
 
-def radius_summary(objects: Iterable[Oggetto], radius_m: float) -> dict[str, int]:
+def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6_371_000.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def radius_summary(
+    objects: Iterable[Oggetto],
+    center_lat: float,
+    center_lon: float,
+    radius_m: float,
+) -> dict[str, int]:
     by_type: dict[str, int] = Counter()
     for obj in objects:
-        by_type[obj.tipo] += 1
+        d = _haversine_m(center_lat, center_lon, obj.posizione.lat, obj.posizione.lon)
+        if d <= radius_m:
+            by_type[obj.tipo] += 1
     return dict(by_type)
 
 

@@ -6,11 +6,11 @@
 <title>AetherMap — WebGL2 cube-sphere renderer (Fase 4)</title>
 <style>
   html,body{margin:0;height:100%;background:#0a0c14;overflow:hidden;font-family:monospace}
-  canvas{display:block;width:100vw;height:100vh;cursor:grab;position:relative;z-index:0}
+  canvas#gl{display:block;width:100vw;height:100vh;cursor:grab;position:fixed;left:0;top:0;z-index:0}
   canvas:active{cursor:grabbing}
   #lbl{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:1}
   #hud{position:fixed;left:10px;top:10px;color:#7fd;font-size:12px;line-height:1.5;
-       background:rgba(0,0,0,.35);padding:8px 10px;border-radius:6px;pointer-events:none;max-width:320px;z-index:2}
+       background:rgba(0,0,0,.35);padding:8px 10px;border-radius:6px;z-index:2}
   #hud b{color:#fff}
   #detail{z-index:3}
 </style>
@@ -25,7 +25,8 @@
     <button id="dem-btn" style="background:#7fd;color:#000;border:none;padding:2px 8px;cursor:pointer;font-family:monospace">DEM</button>
     <span id="dem"></span><br />
     <span id="hover"></span>
-    <span id="selection"></span>
+    <span id="selection"></span><br />
+    S2 grid: <span id="s2-status">off</span> &middot; entita visibili: <span id="vis-count">0</span>
   </div>
   <div id="detail" style="display:none; position:fixed; right:10px; top:10px; width:260px; max-height:70vh; overflow:auto; background:rgba(0,0,0,.75); color:#fff; padding:10px; border-radius:6px; font-family:monospace; font-size:11px; line-height:1.4; pointer-events:auto;">
     <b id="detail-title"></b>
@@ -67,7 +68,6 @@ void main() {
   vec3 r = uRot * aPos;
   vNormal = uRot * aNorm;
   vFacing = r.z;
-  if (r.z <= -0.01) { gl_Position = vec4(2,2,2,1); return; }
   gl_Position = vec4(r.x * uScale / uZoom, r.y * uScale / uZoom, 0.0, 1.0);
 }`;
 
@@ -81,11 +81,11 @@ out vec4 outColor;
 void main() {
   vec3 n = normalize(vNormal);
   float diff = max(dot(n, uLightDir), 0.0);
-  float light = 0.22 + 0.78 * diff;
-  float sh = clamp(0.55 + 0.45 * vFacing, 0.0, 1.0);
+  float light = 0.25 + 0.75 * diff;
+  float sh = clamp(0.6 + 0.4 * vFacing, 0.0, 1.0);
   float rim = 1.0 - abs(vFacing);
-  vec3 base = mix(vec3(0.07,0.13,0.05), vec3(0.18,0.27,0.11), diff);
-  vec3 col = mix(base, uAtmColor, rim * rim * 0.6);
+  vec3 base = mix(vec3(0.12,0.20,0.09), vec3(0.28,0.42,0.18), diff);
+  vec3 col = mix(base, uAtmColor, rim * rim * 0.5);
   outColor = vec4(col * light * sh, 1.0);
 }`;
 
@@ -217,7 +217,23 @@ void main() {
     }
   }
   let worldData = await loadWorld();
+  function entityLodMinS2(zoom) {
+    if (zoom < 1.0) return 4;
+    if (zoom < 2.0) return 6;
+    if (zoom < 4.0) return 8;
+    return 0;
+  }
+
+  function visibleEntities(entities, zoom) {
+    const minLen = entityLodMinS2(zoom);
+    if (minLen === 0) return entities;
+    return entities.filter(e => !e.s2 || e.s2.length >= minLen);
+  }
+
+  const visEntities = visibleEntities(worldData.entities || [], zoom);
   document.getElementById("ent-count").textContent = (worldData.entities || []).length;
+  const visCountEl = document.getElementById("vis-count");
+  if (visCountEl) visCountEl.textContent = visEntities.length;
   const relCount = (worldData.relations || []).length;
   const relEl = document.getElementById("rel-count");
   if (relEl) relEl.textContent = relCount;
@@ -246,6 +262,7 @@ void main() {
 
   let currentLod = null;
   let lastLodUpdate = 0;
+  let lastVisCount = 0;
 
   async function updateTerrainLod() {
     const now = performance.now();
@@ -331,7 +348,8 @@ void main() {
           vao, count: ent.points.length,
           color: ent.color || [0.95, 0.78, 0.22], mode: gl.LINE_STRIP,
           prog: lineProg, u: U.line,
-          _entId: ent.id
+          _entId: ent.id,
+          _entS2: ent.s2
         });
     } else {
       const r = ent.radius || 1.0;
@@ -367,7 +385,8 @@ void main() {
           vao, count: verts.length,
           color: ent.color || [0.95, 0.78, 0.22], mode: gl.TRIANGLES,
           prog: entityProg, u: U.entity,
-          _entId: ent.id
+          _entId: ent.id,
+          _entS2: ent.s2
         });
     }
     gl.bindVertexArray(null);
@@ -382,10 +401,11 @@ void main() {
    let zoom = worldData.camera ? worldData.camera.distance : 2.5;
    let tyaw = yaw, tpitch = pitch, tzoom = zoom;
    let dragging = false, lx = 0, ly = 0;
-   let wireframe = false;
-    let mouseX = -1, mouseY = -1;
-    let hoveredId = null;
-    let selectedId = null;
+    let wireframe = false;
+     let mouseX = -1, mouseY = -1;
+     let hoveredId = null;
+     let selectedId = null;
+     let s2Grid = false;
 
     const ATM_COLOR = [0.35, 0.55, 0.95];
 
@@ -414,7 +434,9 @@ void main() {
       const my = e.clientY - rect.top;
       let best = null;
       let bestDist = 20;
+      const minS2 = entityLodMinS2(zoom);
       for (const ent of worldData.entities) {
+        if (minS2 > 0 && ent.s2 && ent.s2.length < minS2) continue;
         const p = ent.position;
         if (!p) continue;
         const rx = curRot[0]*p[0] + curRot[1]*p[1] + curRot[2]*p[2];
@@ -435,6 +457,7 @@ void main() {
     addEventListener("keydown", e => {
       if (e.key === "d" || e.key === "D") { tyaw = DEF_YAW; tpitch = DEF_PITCH; tzoom = DEF_ZOOM; }
       if (e.key === "f" || e.key === "F") wireframe = !wireframe;
+      if (e.key === "g" || e.key === "G") { s2Grid = !s2Grid; updateHud(); }
     });
 
   function resize() {
@@ -474,8 +497,10 @@ void main() {
 
     let bestDist = 24;
     hoveredId = null;
+    const minS2 = entityLodMinS2(zoom);
 
     for (const ent of worldData.entities) {
+      if (minS2 > 0 && ent.s2 && ent.s2.length < minS2) continue;
       const p = ent.position;
       if (!p) continue;
       const rx = curRot[0]*p[0] + curRot[1]*p[1] + curRot[2]*p[2];
@@ -557,10 +582,15 @@ void main() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.strokeStyle = "rgba(255,255,255,0.15)";
     ctx.lineWidth = 1;
-    const ents = Object.fromEntries(worldData.entities.map(e => [e.id, e]));
+    const minS2 = entityLodMinS2(zoom);
+    const visMap = new Map();
+    for (const e of worldData.entities || []) {
+      if (minS2 > 0 && e.s2 && e.s2.length < minS2) continue;
+      visMap.set(e.id, e);
+    }
     for (const rel of (worldData.relations || [])) {
-      const a = ents[rel.from];
-      const b = ents[rel.to];
+      const a = visMap.get(rel.from);
+      const b = visMap.get(rel.to);
       if (!a || !b || !a.position || !b.position) continue;
       const pa = project(a.position, rot, zoom, cw, ch);
       const pb = project(b.position, rot, zoom, cw, ch);
@@ -570,6 +600,62 @@ void main() {
       ctx.lineTo(pb.sx, pb.sy);
       ctx.stroke();
     }
+  }
+
+  function s2GridSpacing(zoom) {
+    if (zoom < 1.0) return 30;
+    if (zoom < 2.0) return 15;
+    return 10;
+  }
+
+  function spherePoint(lat, lon) {
+    const la = Math.radians(lat), lo = Math.radians(lon);
+    return [
+      Math.cos(la) * Math.cos(lo),
+      Math.cos(la) * Math.sin(lo),
+      Math.sin(la)
+    ];
+  }
+
+  function drawS2Grid() {
+    if (!s2Grid) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = canvas.width / dpr;
+    const ch = canvas.height / dpr;
+    const ctx = document.getElementById("lbl").getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.strokeStyle = "rgba(127,255,221,0.18)";
+    ctx.lineWidth = 1;
+    const step = s2GridSpacing(zoom);
+    for (let lat = -90 + step; lat < 90; lat += step) {
+      ctx.beginPath();
+      let first = true;
+      for (let lon = -180; lon <= 180; lon += 2) {
+        const p = spherePoint(lat, lon);
+        const pr = project(p, rot, zoom, cw, ch);
+        if (!pr) { first = true; continue; }
+        if (first) { ctx.moveTo(pr.sx, pr.sy); first = false; }
+        else ctx.lineTo(pr.sx, pr.sy);
+      }
+      ctx.stroke();
+    }
+    for (let lon = -180 + step; lon < 180; lon += step) {
+      ctx.beginPath();
+      let first = true;
+      for (let lat = -90; lat <= 90; lat += 2) {
+        const p = spherePoint(lat, lon);
+        const pr = project(p, rot, zoom, cw, ch);
+        if (!pr) { first = true; continue; }
+        if (first) { ctx.moveTo(pr.sx, pr.sy); first = false; }
+        else ctx.lineTo(pr.sx, pr.sy);
+      }
+      ctx.stroke();
+    }
+  }
+
+  function updateHud() {
+    const s2El = document.getElementById("s2-status");
+    if (s2El) s2El.textContent = s2Grid ? "on" : "off";
   }
 
   function project(p, rot, zoom, cw, ch) {
@@ -637,7 +723,11 @@ void main() {
     }
     gl.disableVertexAttribArray(1);
 
+    console.debug('terrain draw', terrainIdxCount, 'indices');
+
     entDrawCalls.forEach(dc => {
+      const minLen = entityLodMinS2(zoom);
+      if (minLen > 0 && dc._entS2 && dc._entS2.length < minLen) return;
       useProg(dc.prog);
       gl.uniformMatrix3fv(dc.u.uRot, false, rot);
       gl.uniform1f(dc.u.uScale, s);
@@ -651,6 +741,16 @@ void main() {
       gl.drawArrays(dc.mode, 0, dc.count);
     });
 
+    let visCount = 0;
+    for (const dc of entDrawCalls) {
+      const minLen = entityLodMinS2(zoom);
+      if (minLen > 0 && dc._entS2 && dc._entS2.length < minLen) continue;
+      visCount++;
+    }
+    const visEl = document.getElementById("vis-count");
+    if (visEl) visEl.textContent = visCount;
+
+    drawS2Grid();
     drawLabels();
     drawRelations();
     gl.bindVertexArray(null);
