@@ -1,6 +1,6 @@
 # BikeMaster — Roadmap Unificata
 
-*Ultimo aggiornamento: 2026-07-18*
+*Ultimo aggiornamento: 2026-07-24*
 
 > **Principio guida**: fare le cose una volta, farle bene. Questo documento è la
 > *fonte di verità unica* per stato, priorità e azioni. Non eseguire feature
@@ -19,31 +19,13 @@
 | AetherMap R&D | **Fasi 1-4 ok** | Fasi 3-5 in corso |
 | Multi-tenant / auth | **Completo** | tenant_id + OAuth2 (Google, Strava, Garmin) |
 | Sync device↔cloud | **In corso** | 3 branch aperti da mergiare |
-| Coverage test | **Informativa** | ~82% linee |
+| Coverage test | **In corso** | ~30% routes.py, ~34% ai_coach, ~55% knowledge_base — nuovi test in `tests/test_coverage_ai_routes.py` |
 
 ---
 
 ## 2. Branches Aperti (azioni immediate)
 
-Queste sono le uniche modifiche non in `main`. **Non iniziare feature nuove finché
-questi branch non sono stati revisionati e mergiati.**
-
-| Branch | Contenuto | Azione |
-|:--|:--|:--|
-| `feat/local-auth` | Local auth handlers, OAuth flow Tauri, dev port 5177 | **Mergiare** — logica auth locale completata |
-| `feat/auth-sync-ui` | UI sync settings, auth sync frontend | **Mergiare dopo local-auth** — dipende da esso |
-| `feat/local-sync` | Sync locale ↔ cloud, modelli DB sync, Alembic migrations | **Mergiare dopo auth-sync-ui** — feature più grande |
-
-**Sequenza di merge raccomandata**:
-
-```
-git checkout main && git merge feat/local-auth
-git merge feat/auth-sync-ui
-git merge feat/local-sync
-```
-
-Dopo il merge: risolvere conflitti (se presenti), run `pytest` + `vitest run`,
-commit del merge.
+Tutti e 3 i branch feat sono stati mergiati in `main`. Nessun branch aperto.
 
 ---
 
@@ -83,7 +65,7 @@ Altrimenti, committare prima del merge.
    bloccanti, prioritizzare quelli che rompono feature shipped
 6. **Fix 2 test backend** (MissingGreenlet): spostare in `pytest.ini` come skip
    noto d'ambiente, oppure fixare il fixture setup
-7. **Coverage > 90%** su `routes.py` e moduli AI — oggi ~51% e sotto
+7. **Coverage > 90%** su `routes.py` e moduli AI — routes.py ~30%, ai_coach ~34%, knowledge_base ~55% (nuovo file `tests/test_coverage_ai_routes.py`)
 8. **Documentazione consolidata**:
    - Eliminare duplicati IT in `docs/archive/`
    - Unificare `docs/MASTER.md` + `docs/UNIFIED_DOCUMENTATION.md` in un solo file
