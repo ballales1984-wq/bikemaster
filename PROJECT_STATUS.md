@@ -5,10 +5,11 @@
 > **Stato**: architettura locale-first completata — distribuzione primaria: desktop **Tauri 2** (`.exe`/`.dmg`/`.AppImage`) con backend embedded FastAPI + SQLite locale. Deploy cloud opzionale (Render) per sync/community. Architettura local-first.
 > Fonte di verità unica per stato/checklist: [`ROADMAP.md`](ROADMAP.md).
 >
-> **Numeri backend/frontend (verificati 2026-07-17, repo root):**
-> - Backend: **~3255 passed / 2 failed** su ~3257 test eseguiti (`pytest`, in chunk per stabilità d'ambiente). I 2 failure sono errori d'ambiente SQLAlchemy async (`MissingGreenlet`) in `test_ai_coach_helpers.py` e `test_athlete_state_integration.py`, non bug di logica. La collection completa (2611 test) ora passa dopo la rimozione da `tests/test_database.py` dell'import/test orfano di `get_paginated_rides` (funzione rimossa dal DB layer).
+> **Numeri backend/frontend (verificati 2026-07-24, repo root):**
+> - Backend: **~3255 passed / 2 failed** su ~3257 test eseguiti (`pytest`, in chunk per stabilità d'ambiente). I 2 failure sono errori d'ambiente SQLAlchemy async (`MissingGreenlet`). Aggiunti **64 nuovi test** in `tests/test_coverage_ai_routes.py` (56 passati) per copertura AI e route.
 > - Frontend: **332 passed / 31 failed / 20 errors** su **363** test (53 file) — `vitest run` eseguito 2026-07-17.
 > - Endpoint REST: **138** (conteggio storico 2026-07-13).
+> - Coverage: routes.py ~30%, ai_coach.py ~34%, knowledge_base.py ~55% (target >90%).
 > I conteggi storici di file (108 backend / 47 frontend) sono riportati a titolo di riferimento.
 
 ### AetherMap (R&D separato)
@@ -21,9 +22,10 @@ Progetto cartografico indipendente in `aethermap/` — motore "dal nulla" (cube-
 - Agenti dedicati: `.kilo/agent/aethermap-*.md`.
 
 ### Ultimo Commit
-- `ea2c766` — feat: expand voice commands + fix audio stop behavior
-- Nuovi moduli: `bike_analyzer/backend/geo/` (pipeline geo/mappa), `android/.../sensors/HealthConnectManager.kt` (Health Connect)
-- Frontend: 35+ comandi vocali italiani, `TrackingToolsPanel.vue`, `LiveMap.vue` arricchito, logging pasti con calendario + ricalcolo metabolismo
+- `c41ecd6` — test: fix status assertions in coverage test file
+- `bd3ebea` — test: add coverage tests for AI modules and route endpoints
+- `3ff88a1` — test: add more AI module and route coverage tests
+- `ac27bdf` — feat(aethermap): S2 grid overlay, entity LOD by zoom, geodesic radius_summary, viewer vis-count
 
 ---
 
