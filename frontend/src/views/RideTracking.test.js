@@ -1,27 +1,56 @@
 import { describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createRouter, createWebHistory } from "vue-router";
+import { setActivePinia, createPinia, defineStore } from "pinia";
+import { ref } from "vue";
+
+const useTrackingStore = defineStore("tracking", () => {
+  const isTracking = ref(false);
+  const isPaused = ref(false);
+  const distance = ref(0);
+  const currentSpeed = ref(0);
+  const avgSpeed = ref(0);
+  const elapsedTime = ref(0);
+  const elevation = ref(0);
+  const points = ref(0);
+  const heartRate = ref(null);
+  const cadence = ref(null);
+  const power = ref(null);
+  const gpxPath = ref(null);
+  const gpxBlob = ref(null);
+  const routePoints = ref([]);
+  const lastPoint = ref(null);
+  const rideId = ref(null);
+
+  function start() {
+    isTracking.value = true;
+    isPaused.value = false;
+  }
+  function stop() {
+    isTracking.value = false;
+    isPaused.value = false;
+  }
+  function pause() { isPaused.value = true; }
+  function resume() { isPaused.value = false; }
+  function addPoint() {}
+  function updateMetrics() {}
+  function resetMetrics() {}
+  function setGpxPath() {}
+  function setGpxBlob() {}
+  function setRideId() {}
+  function toGpx() { return ""; }
+
+  return {
+    isTracking, isPaused, distance, currentSpeed, avgSpeed,
+    elapsedTime, elevation, points, heartRate, cadence, power,
+    gpxPath, gpxBlob, routePoints, lastPoint, rideId,
+    start, stop, pause, resume, addPoint, updateMetrics,
+    resetMetrics, setGpxPath, setGpxBlob, setRideId, toGpx,
+  };
+});
 
 vi.mock("../stores/trackingStore", () => ({
-  useTrackingStore: () => ({
-    isTracking: false,
-    isPaused: false,
-    start: vi.fn(),
-    stop: vi.fn(),
-    pause: vi.fn(),
-    resume: vi.fn(),
-    addPoint: vi.fn(),
-    updateMetrics: vi.fn(),
-    resetMetrics: vi.fn(),
-    setGpxPath: vi.fn(),
-    setGpxBlob: vi.fn(),
-    setRideId: vi.fn(),
-    toGpx: vi.fn(() => ""),
-    routePoints: [],
-    gpxPath: null,
-    gpxBlob: null,
-    rideId: null,
-  }),
+  useTrackingStore,
 }));
 
 vi.mock("../utils/api", () => ({
@@ -63,44 +92,35 @@ vi.mock("../composables/useI18n", () => ({
 }));
 
 describe("RideTracking", () => {
-  it("has isTracking initially false", () => {
-    const wrapper = mount(await import("../views/RideTracking.vue"), {
-      global: {
-        plugins: [
-          createRouter({
-            history: createWebHistory(),
-            routes: [{ path: "/", component: { template: "<div />" } }],
-          }),
-        ],
-      },
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  const router = createRouter({
+    history: createWebHistory(),
+    routes: [{ path: "/", component: { template: "<div />" } }],
+  });
+
+  it("has isTracking initially false", async () => {
+    const mod = await import("../views/RideTracking.vue");
+    const wrapper = mount(mod.default, {
+      global: { plugins: [router] },
     });
     expect(wrapper.find(".tracking-panel").exists()).toBe(true);
   });
 
-  it("has start tracking functionality", () => {
-    const wrapper = mount(await import("../views/RideTracking.vue"), {
-      global: {
-        plugins: [
-          createRouter({
-            history: createWebHistory(),
-            routes: [{ path: "/", component: { template: "<div />" } }],
-          }),
-        ],
-      },
+  it("has start tracking functionality", async () => {
+    const mod = await import("../views/RideTracking.vue");
+    const wrapper = mount(mod.default, {
+      global: { plugins: [router] },
     });
     expect(wrapper.find("button.pulse-btn").exists()).toBe(true);
   });
 
-  it("renders header", () => {
-    const wrapper = mount(await import("../views/RideTracking.vue"), {
-      global: {
-        plugins: [
-          createRouter({
-            history: createWebHistory(),
-            routes: [{ path: "/", component: { template: "<div />" } }],
-          }),
-        ],
-      },
+  it("renders header", async () => {
+    const mod = await import("../views/RideTracking.vue");
+    const wrapper = mount(mod.default, {
+      global: { plugins: [router] },
     });
     expect(wrapper.find("h2").exists()).toBe(true);
     expect(wrapper.find("h2").text()).toBe("GPS Tracking");

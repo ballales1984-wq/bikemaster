@@ -37,8 +37,23 @@ vi.mock("leaflet", () => {
     control: { layers: vi.fn(() => ({ addTo: vi.fn() })) },
     default: {},
   };
+  globalThis.L = leafletMock;
+  leafletMock.LatLngBounds = vi.fn(() => ({ extend: vi.fn().mockReturnThis(), isValid: vi.fn(() => true) }));
   return { default: leafletMock, ...leafletMock };
 });
+
+vi.mock("leaflet.heat", () => ({
+  default: vi.fn().mockImplementation(() => ({
+    setLatLngs: vi.fn().mockReturnThis(),
+    addTo: vi.fn().mockReturnThis(),
+    remove: vi.fn(),
+  })),
+  heatLayer: vi.fn().mockImplementation(() => ({
+    setLatLngs: vi.fn().mockReturnThis(),
+    addTo: vi.fn().mockReturnThis(),
+    remove: vi.fn(),
+  })),
+}));
 
 vi.mock("chart.js/auto", () => ({
   default: vi

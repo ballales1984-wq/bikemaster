@@ -1,20 +1,15 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-
-const mockApiGet = vi.hoisted(() => vi.fn());
-vi.mock("../utils/api.ts", () => ({
-  apiGet: mockApiGet,
-}));
+import { describe, expect, it, vi } from "vitest";
 
 describe("useRides composable", () => {
-  beforeEach(() => {
-    mockApiGet.mockResolvedValue({ rides: [], total: 0 });
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("fetchSummary returns default values on error", async () => {
+    vi.resetModules();
+    const mockApiGet = vi.fn().mockResolvedValue({ rides: [], total: 0 });
+    vi.doMock("../utils/api", () => ({
+      apiGet: mockApiGet,
+      apiPost: vi.fn(),
+      apiDelete: vi.fn(),
+    }));
+
     const { useRides } = await import("../composables/useRides.ts");
     const result = await useRides().fetchSummary();
     expect(result.rides).toBe(0);
@@ -22,6 +17,7 @@ describe("useRides composable", () => {
   });
 
   it("calculates totals correctly", async () => {
+    vi.resetModules();
     const mockData = {
       rides: [
         {
@@ -41,7 +37,12 @@ describe("useRides composable", () => {
       ],
       total: 2,
     };
-    mockApiGet.mockResolvedValue(mockData);
+    const mockApiGet = vi.fn().mockResolvedValue(mockData);
+    vi.doMock("../utils/api", () => ({
+      apiGet: mockApiGet,
+      apiPost: vi.fn(),
+      apiDelete: vi.fn(),
+    }));
 
     const { useRides } = await import("../composables/useRides.ts");
 
