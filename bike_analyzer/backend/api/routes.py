@@ -152,6 +152,13 @@ def _build_redirect_uri(request: Request, path: str) -> str:
     host = (
         _trusted_forwarded_value(request, "x-forwarded-host") or request.headers.get("host") or request.url.netloc
     )
+    host_lower = host.lower()
+    if (
+        host_lower.endswith(".ngrok-free.dev")
+        or host_lower.endswith(".trycloudflare.com")
+        or host_lower.endswith(".vercel.app")
+    ):
+        proto = "https"
     return f"{proto}://{host}{path}"
 
 
