@@ -80,7 +80,7 @@ def _build_full_heightfield(n: int, base_alt: float, height_scale: float) -> np.
 
 
 
-def _terrain_mesh_from_hf(hf: np.ndarray, n: int) -> dict[str, Any]:
+def _terrain_mesh_from_hf(hf: np.ndarray, n: int, with_skirt: bool = True) -> dict[str, Any]:
     """Build cube-sphere terrain mesh from a pre-flattened NxNx6 heightfield."""
     positions: list[list[float]] = []
     normals: list[list[float]] = []
@@ -89,24 +89,30 @@ def _terrain_mesh_from_hf(hf: np.ndarray, n: int) -> dict[str, Any]:
 
     for face in range(6):
         base_idx = len(positions)
-        for i in range(n):
-            for j in range(n):
-                u = (i / (n - 1)) * 2.0 - 1.0
-                v = (j / (n - 1)) * 2.0 - 1.0
+        grid_size = n + 2 if with_skirt else n
+        for i in range(grid_size):
+            for j in range(grid_size):
+                src_i = max(0, min(i - 1, n - 1)) if with_skirt else i
+                src_j = max(0, min(j - 1, n - 1)) if with_skirt else j
+                u = (src_i / (n - 1)) * 2.0 - 1.0
+                v = (src_j / (n - 1)) * 2.0 - 1.0
                 d = _face_direction(face, u, v)
-                h = float(hf[face, i, j])
+                h = float(hf[face, src_i, src_j])
+                is_skirt = with_skirt and (i == 0 or i == grid_size - 1 or j == 0 or j == grid_size - 1)
+                if is_skirt:
+                    h = min(h, 0.0) - 0.0001
                 px = float(d[0] * (1.0 + h))
                 py = float(d[1] * (1.0 + h))
                 pz = float(d[2] * (1.0 + h))
                 positions.append([px, py, pz])
                 normals.append([float(d[0]), float(d[1]), float(d[2])])
 
-        for i in range(n - 1):
-            for j in range(n - 1):
-                a = base_idx + i * n + j
-                b = base_idx + (i + 1) * n + j
-                c = base_idx + (i + 1) * n + (j + 1)
-                d2 = base_idx + i * n + (j + 1)
+        for i in range(grid_size - 1):
+            for j in range(grid_size - 1):
+                a = base_idx + i * grid_size + j
+                b = base_idx + (i + 1) * grid_size + j
+                c = base_idx + (i + 1) * grid_size + (j + 1)
+                d2 = base_idx + i * grid_size + (j + 1)
                 indices.extend([a, b, d2])
                 indices.extend([b, c, d2])
 
@@ -114,6 +120,8 @@ def _terrain_mesh_from_hf(hf: np.ndarray, n: int) -> dict[str, Any]:
         "positions": positions,
         "normals": normals,
         "indices": indices,
+        "grid_size": grid_size,
+        "faces": 6,
     }
 
 

@@ -43,6 +43,12 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
         if path == "/api/terrain":
             self._serve_terrain_tile()
             return
+        if path == "/api/terrain-enhanced":
+            self._serve_terrain_enhanced()
+            return
+        if path == "/api/terrain-tile":
+            self._serve_terrain_tile_lod()
+            return
         if path == "/api/step":
             self._serve_step()
             return
@@ -115,6 +121,51 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
             self._send_json_or_text(200, data.decode("utf-8"), "application/json")
         except Exception as exc:
             self._send_json_or_text(502, json.dumps({"error": str(exc)}), "application/json")
+
+    def _serve_terrain_enhanced(self) -> None:
+        try:
+            from aethermap.render.terrain_enhancer import build_enhanced_heightfield
+            hf = build_enhanced_heightfield(
+                n=64,
+                base_alt=0.0,
+                height_scale=0.04,
+                base_url=getattr(self.__class__, "_bikemaster_url", "http://localhost:8000"),
+            )
+            from aethermap.render.webgl_exporter import _terrain_mesh_from_hf
+            terrain = _terrain_mesh_from_hf(hf, 64)
+            payload = json.dumps({
+                "terrain": terrain,
+                "dem_source": "backend-dem",
+            })
+            self._send_json_or_text(200, payload, "application/json")
+        except Exception as exc:
+            self._send_json_or_text(500, json.dumps({"error": str(exc)}), "application/json")
+
+    def _serve_terrain_tile_lod(self) -> None:
+        qs = parse_qs(urlparse(self.path).query)
+        face = int(qs.get("face", [0])[0])
+        resolution = int(qs.get("resolution", [64])[0])
+        try:
+            from aethermap.render.terrain_enhancer import build_enhanced_heightfield, _face_bbox
+            from aethermap.render.webgl_exporter import _terrain_mesh_from_hf
+            hf = build_enhanced_heightfield(
+                n=resolution,
+                base_alt=0.0,
+                height_scale=0.04,
+                base_url=getattr(self.__class__, "_bikemaster_url", "http://localhost:8000"),
+            )
+            bbox = _face_bbox(face, resolution)
+            tile = _terrain_mesh_from_hf(hf.reshape(6, resolution, resolution), resolution)
+            payload = json.dumps({
+                "face": face,
+                "resolution": resolution,
+                "bbox": bbox,
+                "terrain": tile,
+                "dem_source": "backend-dem",
+            })
+            self._send_json_or_text(200, payload, "application/json")
+        except Exception as exc:
+            self._send_json_or_text(500, json.dumps({"error": str(exc)}), "application/json")
 
     def _serve_html(self) -> None:
         html_path = (
