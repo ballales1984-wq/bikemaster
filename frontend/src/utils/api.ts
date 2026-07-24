@@ -21,9 +21,10 @@ export class ApiError extends Error {
 }
 
 function clearAuth() {
-  localStorage.removeItem("bikemaster_token");
-  localStorage.removeItem("bikemaster_user");
-  localStorage.removeItem("bikemaster_just_logged_in");
+  const auth = useAuthStore();
+  auth.token = "";
+  auth.user = null;
+  auth.justLoggedIn = false;
 }
 
 let sessionExpiredNotified = false;
@@ -67,8 +68,12 @@ function notifySessionExpired() {
 }
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem("bikemaster_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  try {
+    const auth = useAuthStore();
+    return auth.token ? { Authorization: `Bearer ${auth.token}` } : {};
+  } catch {
+    return {};
+  }
 }
 
 // Gateway statuses returned by Render while the free instance is asleep or

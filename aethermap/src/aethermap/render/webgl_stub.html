@@ -15,11 +15,13 @@
 </head>
 <body>
 <canvas id="gl"></canvas>
-<div id="hud">
-  <b>AetherMap</b> — WebGL2 cube-sphere (Fase 4)<br />
-  trascina per ruotare · rotella zoom ·<br />
-  <span id="fps">--</span> FPS &middot; entita': <span id="ent-count">0</span>
-</div>
+  <div id="hud">
+    <b>AetherMap</b> — WebGL2 cube-sphere (Fase 4)<br />
+    drag: ruota · scroll: zoom · D: reset<br />
+    <span id="fps">--</span> FPS &middot; entita': <span id="ent-count">0</span>
+    <span id="dem"></span><br />
+    <span id="hover"></span>
+  </div>
 
 <script>
 (async function() {
@@ -65,14 +67,17 @@ precision highp float;
 in vec3 vNormal;
 in float vFacing;
 uniform vec3 uLightDir;
+uniform vec3 uAtmColor;
 out vec4 outColor;
 void main() {
   vec3 n = normalize(vNormal);
   float diff = max(dot(n, uLightDir), 0.0);
-  float light = 0.2 + 0.8 * diff;
-  float sh = clamp(0.6 + 0.4 * vFacing, 0.0, 1.0);
-  vec3 base = mix(vec3(0.08,0.14,0.06), vec3(0.18,0.28,0.12), diff);
-  outColor = vec4(base * light * sh, 1.0);
+  float light = 0.22 + 0.78 * diff;
+  float sh = clamp(0.55 + 0.45 * vFacing, 0.0, 1.0);
+  float rim = 1.0 - abs(vFacing);
+  vec3 base = mix(vec3(0.07,0.13,0.05), vec3(0.18,0.27,0.11), diff);
+  vec3 col = mix(base, uAtmColor, rim * rim * 0.6);
+  outColor = vec4(col * light * sh, 1.0);
 }`;
 
   const ENTITY_VS = `#version 300 es
@@ -81,10 +86,14 @@ layout(location=0) in vec3 aPos;
 uniform mat3 uRot;
 uniform float uScale;
 uniform float uZoom;
+uniform float uGlow;
 out float vFacing;
+out vec3 vWorldPos;
 void main() {
-  vec3 r = uRot * aPos;
+  vec3 scaled = aPos * (1.0 + uGlow * 0.6);
+  vec3 r = uRot * scaled;
   vFacing = r.z;
+  vWorldPos = r;
   if (r.z <= 0.0) { gl_Position = vec4(2,2,2,1); return; }
   gl_Position = vec4(r.x * uScale / uZoom, r.y * uScale / uZoom, 0.0, 1.0);
 }`;
@@ -92,11 +101,18 @@ void main() {
   const ENTITY_FS = `#version 300 es
 precision highp float;
 in float vFacing;
+in vec3 vWorldPos;
 uniform vec3 uColor;
 out vec4 outColor;
 void main() {
+  vec3 n = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
   float sh = clamp(0.5 + 0.5 * vFacing, 0.0, 1.0);
-  outColor = vec4(uColor * sh, 1.0);
+  vec3 l = normalize(vec3(0.3, 0.5, 0.85));
+  float diff = max(dot(n, l), 0.0);
+  vec3 h = normalize(l + vec3(0.0, 0.0, 1.0));
+  float spec = pow(max(dot(n, h), 0.0), 48.0);
+  vec3 col = uColor * (0.25 + 0.65 * diff + 0.3 * spec) * sh;
+  outColor = vec4(col, 1.0);
 }`;
 
   const LINE_VS = ENTITY_VS;
@@ -132,8 +148,8 @@ void main() {
   const lineProg    = linkProg(LINE_VS,    LINE_FS);
 
   const U = {};
-  [["terrain", terrainProg, ["uRot","uScale","uZoom","uLightDir"]],
-   ["entity",  entityProg,  ["uRot","uScale","uZoom","uColor"]],
+  [["terrain", terrainProg, ["uRot","uScale","uZoom","uLightDir","uFog","uAtmColor"]],
+   ["entity",  entityProg,  ["uRot","uScale","uZoom","uColor","uGlow"]],
    ["line",    lineProg,    ["uRot","uScale","uZoom","uColor"]]
   ].forEach(([name, prog, uniforms]) => {
     U[name] = {};
@@ -154,6 +170,11 @@ void main() {
     throw e;
   }
   document.getElementById("ent-count").textContent = worldData.entities.length;
+  const demEl = document.getElementById("dem");
+  if (demEl) {
+    const src = worldData.dem_source || (worldData.terrain && worldData.terrain.source) || "procedurale";
+    demEl.textContent = src !== "procedurale" ? ` · DEM: ${src}` : " · FBM";
+  }
 
   /* =========================================================================
      TERRAIN BUFFERS
@@ -192,8 +213,9 @@ void main() {
       gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
       entDrawCalls.push({
         vao, count: ent.points.length,
-        color: ent.color, mode: gl.LINE_STRIP,
-        prog: lineProg, u: U.line
+        color: effColor, mode: gl.LINE_STRIP,
+        prog: lineProg, u: U.line,
+        _entId: ent.id
       });
     } else {
       const r = ent.radius || 1.0;
@@ -227,38 +249,52 @@ void main() {
       gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
       entDrawCalls.push({
         vao, count: verts.length,
-        color: ent.color, mode: gl.TRIANGLES,
-        prog: entityProg, u: U.entity
+        color: effColor, mode: gl.TRIANGLES,
+        prog: entityProg, u: U.entity,
+        _entId: ent.id
       });
     }
     gl.bindVertexArray(null);
   });
 
-  /* =========================================================================
-     CAMERA
-     ========================================================================= */
-  let yaw   = worldData.camera ? worldData.camera.yaw   : 0.6;
-  let pitch = worldData.camera ? worldData.camera.pitch  : 0.35;
-  let zoom  = worldData.camera ? worldData.camera.distance : 2.5;
-  let dragging = false, lx = 0, ly = 0;
+   /* =========================================================================
+      CAMERA
+      ========================================================================= */
+   const DEF_YAW = 0.6, DEF_PITCH = 0.35, DEF_ZOOM = 2.5;
+   let yaw = worldData.camera ? worldData.camera.yaw : 0.6;
+   let pitch = worldData.camera ? worldData.camera.pitch : 0.35;
+   let zoom = worldData.camera ? worldData.camera.distance : 2.5;
+   let tyaw = yaw, tpitch = pitch, tzoom = zoom;
+   let dragging = false, lx = 0, ly = 0;
+   let wireframe = false;
+   let mouseX = -1, mouseY = -1;
+   let hoveredId = null;
 
-  canvas.addEventListener("pointerdown", e => {
-    dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId);
-  });
-  canvas.addEventListener("pointerup",   () => dragging = false);
-  canvas.addEventListener("pointerleave",() => dragging = false);
-  canvas.addEventListener("pointermove", e => {
-    if (!dragging) return;
-    yaw += (e.clientX - lx) * 0.005;
-    pitch += (e.clientY - ly) * 0.005;
-    pitch = Math.max(-1.4, Math.min(1.4, pitch));
-    lx = e.clientX; ly = e.clientY;
-  });
-  canvas.addEventListener("wheel", e => {
-    zoom *= e.deltaY > 0 ? 1.08 : 0.93;
-    zoom = Math.max(0.5, Math.min(10.0, zoom));
-    e.preventDefault();
-  }, { passive: false });
+   const ATM_COLOR = [0.35, 0.55, 0.95];
+
+   canvas.addEventListener("pointerdown", e => {
+     dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId);
+   });
+   canvas.addEventListener("pointerup",   () => dragging = false);
+   canvas.addEventListener("pointerleave",() => { dragging = false; mouseX = -1; mouseY = -1; hoveredId = null; });
+   canvas.addEventListener("pointermove", e => {
+     const rect = canvas.getBoundingClientRect();
+     mouseX = e.clientX - rect.left; mouseY = e.clientY - rect.top;
+     if (!dragging) return;
+     yaw += (e.clientX - lx) * 0.005;
+     pitch += (e.clientY - ly) * 0.005;
+     pitch = Math.max(-1.4, Math.min(1.4, pitch));
+     lx = e.clientX; ly = e.clientY;
+   });
+   canvas.addEventListener("wheel", e => {
+     zoom *= e.deltaY > 0 ? 1.08 : 0.93;
+     zoom = Math.max(0.5, Math.min(10.0, zoom));
+     e.preventDefault();
+   }, { passive: false });
+   addEventListener("keydown", e => {
+     if (e.key === "d" || e.key === "D") { tyaw = DEF_YAW; tpitch = DEF_PITCH; tzoom = DEF_ZOOM; }
+     if (e.key === "f" || e.key === "F") wireframe = !wireframe;
+   });
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -272,6 +308,64 @@ void main() {
     const cy = Math.cos(yaw), sy = Math.sin(yaw);
     const cp = Math.cos(pitch), sp = Math.sin(pitch);
     return new Float32Array([cy,0,-sy, sy*sp,cp,cy*sp, sy*cp,-sp,cy*cp]);
+  }
+
+  /* =========================================================================
+     HUD / LABELS
+     ========================================================================= */
+  let curRot = new Float32Array(9);
+
+  function drawLabels() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = canvas.width / dpr;
+    const ch = canvas.height / dpr;
+    const ctx = document.getElementById("lbl").getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.font = "11px monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+
+    let bestDist = 24;
+    hoveredId = null;
+
+    for (const ent of worldData.entities) {
+      const p = ent.position;
+      if (!p) continue;
+      const rx = curRot[0]*p[0] + curRot[1]*p[1] + curRot[2]*p[2];
+      const ry = curRot[3]*p[0] + curRot[4]*p[1] + curRot[5]*p[2];
+      const rz = curRot[6]*p[0] + curRot[7]*p[1] + curRot[8]*p[2];
+      if (rz <= 0) continue;
+      const sx = (rx * 0.85 / zoom + 1) * 0.5 * cw;
+      const sy = (1 - (ry * 0.85 / zoom + 1) * 0.5) * ch;
+      const name = String(ent.id || "");
+      if (!name) continue;
+
+      ctx.fillStyle = "#fff8";
+      ctx.fillText(name, sx + 6, sy);
+
+      const dx = mouseX - sx;
+      const dy = mouseY - sy;
+      if (Math.hypot(dx, dy) < bestDist) {
+        bestDist = Math.hypot(dx, dy);
+        hoveredId = name;
+      }
+    }
+
+    if (hoveredId) {
+      const ent = worldData.entities.find(e => e.id === hoveredId);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(hoveredId, mouseX + 14, mouseY - 6);
+      if (ent && ent.props) {
+        ctx.font = "10px monospace";
+        ctx.fillStyle = "#aaac";
+        const parts = [];
+        for (const [k, v] of Object.entries(ent.props)) {
+          parts.push(`${k}=${v}`);
+        }
+        ctx.fillText(parts.join(" · "), mouseX + 14, mouseY + 10);
+      }
+    }
   }
 
   /* =========================================================================
@@ -294,7 +388,12 @@ void main() {
     gl.clearColor(0.02, 0.03, 0.06, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    yaw += (tyaw - yaw) * 0.1;
+    pitch += (tpitch - pitch) * 0.1;
+    zoom *= (tzoom / zoom) ** 0.1;
+
     const rot = rotMat();
+    curRot = rot;
     const s = 0.85;
 
     useProg(terrainProg);
@@ -302,6 +401,8 @@ void main() {
     gl.uniform1f(U.terrain.uScale, s);
     gl.uniform1f(U.terrain.uZoom, zoom);
     gl.uniform3fv(U.terrain.uLightDir, lightDir);
+    gl.uniform3fv(U.terrain.uAtmColor, ATM_COLOR);
+    gl.uniform3fv(U.terrain.uFog, [0.02, 0.03, 0.06]);
     gl.bindVertexArray(null);
     gl.bindBuffer(gl.ARRAY_BUFFER, terrainPosBuf);
     gl.enableVertexAttribArray(0);
@@ -310,7 +411,13 @@ void main() {
     gl.enableVertexAttribArray(1);
     gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, terrainIdxBuf);
-    if (terrainIdxCount > 0) gl.drawElements(gl.TRIANGLES, terrainIdxCount, gl.UNSIGNED_INT, 0);
+    if (wireframe) {
+      for (let i = 0; i < terrainIdxCount; i += 3) {
+        gl.drawElements(gl.LINE_LOOP, 3, gl.UNSIGNED_INT, i * 4);
+      }
+    } else if (terrainIdxCount > 0) {
+      gl.drawElements(gl.TRIANGLES, terrainIdxCount, gl.UNSIGNED_INT, 0);
+    }
     gl.disableVertexAttribArray(1);
 
     entDrawCalls.forEach(dc => {
@@ -319,10 +426,15 @@ void main() {
       gl.uniform1f(dc.u.uScale, s);
       gl.uniform1f(dc.u.uZoom, zoom);
       if (dc.u.uColor) gl.uniform3fv(dc.u.uColor, dc.color);
+      if (dc.u.uGlow) {
+        const isHover = (hoveredId !== null && dc._entId === hoveredId);
+        gl.uniform1f(dc.u.uGlow, isHover ? 0.55 : 0.0);
+      }
       gl.bindVertexArray(dc.vao);
       gl.drawArrays(dc.mode, 0, dc.count);
     });
 
+    drawLabels();
     gl.bindVertexArray(null);
     requestAnimationFrame(frame);
   }

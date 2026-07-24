@@ -11,10 +11,7 @@ import { useUIStore } from "../stores/ui";
 import { syncAuthState } from "../services/authSync";
 import { apiGet } from "../utils/api";
 import { processOAuthToken } from "../services/oauth";
-import {
-  AUTH_JUST_LOGGED_IN_KEY,
-  AUTH_CHUNK_RELOAD_KEY,
-} from "../utils/auth-storage";
+import { AUTH_CHUNK_RELOAD_KEY } from "../utils/auth-storage";
 
 const routes = [
   {
@@ -337,7 +334,6 @@ router.beforeEach(async (to, from, next) => {
     }
     ui.setOauthLoading(false);
     auth.setJustLoggedIn(false);
-    localStorage.removeItem(AUTH_JUST_LOGGED_IN_KEY);
     return;
   }
 

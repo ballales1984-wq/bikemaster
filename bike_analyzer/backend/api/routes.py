@@ -316,10 +316,13 @@ def _verify_oauth_state(state: str) -> dict | None:
 
 
 def _http_error_detail(exc: Exception, fallback: str) -> str:
-    """Extract a readable error message from an HTTP or network exception."""
-    response = getattr(exc, "response", None)
-    body = response.text if response is not None else str(exc)
-    return f"{fallback}: {body[:500]}"
+    """Extract a safe error message from an HTTP or network exception.
+
+    Upstream provider response bodies are intentionally redacted to avoid
+    leaking internal error codes, stack traces, or provider-specific details
+    to the client.
+    """
+    return fallback
 
 
 def _user_id(current_user: dict) -> int:
@@ -446,16 +449,20 @@ async def health_check():
 async def alerts_webhook(request: Request):
     """Receive alerts from Prometheus Alertmanager.
 
-    Optionally validates the ``X-Alertmanager-Webhook-Token`` header against
-    ``ALERTMANAGER_WEBHOOK_TOKEN``. Logs the receiver name for audit.
+    Validates the ``X-Alertmanager-Webhook-Token`` header against
+    ``ALERTMANAGER_WEBHOOK_TOKEN``. Always requires the token to be set.
+    Logs the receiver name for audit.
     """
     expected_token = os.getenv("ALERTMANAGER_WEBHOOK_TOKEN")
-    if expected_token:
-        provided = request.headers.get("X-Alertmanager-Webhook-Token", "")
-        if not provided or not hmac.compare_digest(provided, expected_token):
-            raise HTTPException(status_code=401, detail="Invalid webhook token")
-    elif _s.environment.lower() in ("production", "prod", "staging"):
-        logger.warning("ALERTMANAGER_WEBHOOK_TOKEN not set: /alerts/webhook is unauthenticated")
+    if not expected_token:
+        if _s.environment.lower() in ("production", "prod", "staging"):
+            logger.error("ALERTMANAGER_WEBHOOK_TOKEN not set: refusing /alerts/webhook in production")
+            raise HTTPException(status_code=500, detail="Webhook not configured")
+        else:
+            logger.warning("ALERTMANAGER_WEBHOOK_TOKEN not set: /alerts/webhook is unauthenticated (dev only)")
+    provided = request.headers.get("X-Alertmanager-Webhook-Token", "")
+    if not provided or not hmac.compare_digest(provided, expected_token or ""):
+        raise HTTPException(status_code=401, detail="Invalid webhook token")
     body = await request.json()
     logger.info("Alert received: %s", body.get("receiver", "unknown"))
     return {"status": "ok"}
@@ -522,8 +529,8 @@ async def get_nearby_pois(
 
 
 @router.get("/maps/pois")
-async def list_pois_endpoint(itinerary_id: int | None = None):
-    """List all POIs, optionally filtered by itinerary_id."""
+async def list_pois_endpoint(itinerary_id: int | None = None, current_user: dict = Depends(get_current_user)):
+    """List POIs, optionally filtered by itinerary_id."""
     from ..db.database import list_pois
 
     return {"pois": list_pois(itinerary_id)}
@@ -3694,12 +3701,14 @@ async def ride_speed_path(
 async def create_backup(current_user: dict = Depends(get_admin_user)):
     """Create and download a database backup. Admin only."""
     from fastapi.responses import FileResponse
+    import hashlib
 
     from ..db.database import backup_database
 
     path = backup_database()
     log_action(current_user["id"], "download_backup", "database")
-    return FileResponse(path, media_type="application/octet-stream", filename="backup.db")
+    h = hashlib.sha256(path.encode()).hexdigest()[:8]
+    return FileResponse(path, media_type="application/octet-stream", filename=f"bikemaster_backup_{h}.db")
 
 
 @admin_router.post("/backup/scheduled")
@@ -4904,7 +4913,7 @@ def _strava_redirect_uri_for(request: Request) -> str:
     proto = request.headers.get("x-forwarded-proto") or request.url.scheme
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     if not host:
-        return "http://localhost:8000/api/v1/import/strava/callback"
+        raise HTTPException(status_code=500, detail="Strava redirect URI not configured and no host detected")
     return f"{proto}://{host}/api/v1/import/strava/callback"
 
 
@@ -4981,10 +4990,10 @@ async def strava_callback(
             code, code_verifier, redirect_uri=redirect_uri
         )
     except httpx.HTTPStatusError as exc:
-        detail = f"Strava token exchange failed: {exc}"
-        if exc.response is not None and exc.response.text:
-            detail += f" | Strava: {exc.response.text}"
-        raise HTTPException(status_code=502, detail=detail) from exc
+        raise HTTPException(
+            status_code=502,
+            detail="Strava token exchange failed. Please try again later.",
+        ) from exc
     store_token(current_user["id"], token_data)
     return {
         "status": "connected",
@@ -5025,8 +5034,8 @@ async def strava_sync(
     sync_ts = int(time.time())
     try:
         activities = await fetch_all_activities(access_token, after=last_sync)
-    except httpx.HTTPStatusError as exc:
-        raise HTTPException(status_code=502, detail=f"Strava API error: {exc}") from exc
+    except httpx.HTTPStatusError:
+        raise HTTPException(status_code=502, detail="Strava API error. Please try again later.") from None
     imported = []
     imported_ids: set[int] = set()
     from ..monitoring import record_gps_import

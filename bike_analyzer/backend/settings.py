@@ -158,19 +158,19 @@ class Settings(BaseSettings):
     # === Strava Integration ===
     strava_client_id: str = ""
     strava_client_secret: str = ""
-    strava_redirect_uri: str = "http://localhost:8000/api/v1/import/strava/callback"
+    strava_redirect_uri: str = ""
     strava_scope: str = "activity:read_all"
 
     # === Garmin Integration ===
     garmin_consumer_key: str = ""
     garmin_consumer_secret: str = ""
-    garmin_redirect_uri: str = "http://localhost:8000/api/v1/import/garmin/callback"
+    garmin_redirect_uri: str = ""
     garmin_scope: str = "read"
 
     # === Wahoo Integration ===
     wahoo_client_id: str = ""
     wahoo_client_secret: str = ""
-    wahoo_redirect_uri: str = "http://localhost:8000/api/v1/import/wahoo/callback"
+    wahoo_redirect_uri: str = ""
     wahoo_scope: str = "workouts_read user_read"
 
     # === Map Styles ===
@@ -242,8 +242,9 @@ class Settings(BaseSettings):
                     "SECRET_KEY non valida. Usa un valore casuale >= 32 caratteri (es. openssl rand -hex 32)."
                 )
                 sys.exit(1)
-            self.secret_key = "test-secret-key-for-development-please-override"  # noqa: S105
-            self.secret_key_previous = os.getenv("SECRET_KEY_PREVIOUS", "")
+            import secrets
+            self.secret_key = secrets.token_hex(32)
+            self.secret_key_previous = ""
         return self
 
 

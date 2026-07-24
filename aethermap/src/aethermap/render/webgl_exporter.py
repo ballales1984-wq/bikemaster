@@ -71,13 +71,15 @@ def _face_direction(face: int, u: float, v: float) -> np.ndarray:
 
 
 def _terrain_mesh(n: int = 48, base_alt: float = 0.0, height_scale: float = 0.04) -> dict[str, Any]:
-    """Genera mesh terrain per tutte le 6 facce del cube-sphere."""
-    hf = _build_heightfield(n, base_alt, height_scale)
+    return _terrain_mesh_from_hf(_build_heightfield(n, base_alt, height_scale).flatten(), n)
+
+
+def _terrain_mesh_from_hf(hf: np.ndarray, n: int) -> dict[str, Any]:
+    """Build cube-sphere terrain mesh from a pre-flattened NxNx6 heightfield."""
     positions: list[list[float]] = []
     normals: list[list[float]] = []
     indices: list[int] = []
-
-    vert_map: dict[tuple[int, int], int] = {}
+    hf = hf.reshape((6, n, n))
 
     for face in range(6):
         base_idx = len(positions)
@@ -86,13 +88,12 @@ def _terrain_mesh(n: int = 48, base_alt: float = 0.0, height_scale: float = 0.04
                 u = (i / (n - 1)) * 2.0 - 1.0
                 v = (j / (n - 1)) * 2.0 - 1.0
                 d = _face_direction(face, u, v)
-                h = float(hf[i, j])
+                h = float(hf[face, i, j])
                 px = float(d[0] * (1.0 + h))
                 py = float(d[1] * (1.0 + h))
                 pz = float(d[2] * (1.0 + h))
                 positions.append([px, py, pz])
                 normals.append([float(d[0]), float(d[1]), float(d[2])])
-                vert_map[(face, i, j)] = base_idx + i * n + j
 
         for i in range(n - 1):
             for j in range(n - 1):
@@ -180,9 +181,15 @@ def export_world(
     n_terrain: int = 64,
     terrain_base_alt: float = 0.0,
     terrain_scale: float = 0.04,
+    dem_base_url: str | None = None,
 ) -> None:
     earth_r = 6_371_000.0
-    terrain = _terrain_mesh(n_terrain, terrain_base_alt, terrain_scale)
+    if dem_base_url:
+        from aethermap.render.terrain_enhancer import build_enhanced_heightfield
+        hf = build_enhanced_heightfield(n_terrain, terrain_base_alt, terrain_scale, dem_base_url)
+    else:
+        hf = _build_heightfield(n_terrain, terrain_base_alt, terrain_scale).flatten()
+    terrain = _terrain_mesh_from_hf(hf, n_terrain)
 
     entities = []
     for obj in twin.store.objects.values():
@@ -209,6 +216,11 @@ def main() -> None:
     from aethermap.twin.objects import make_albero, make_montagna, make_strada
 
     output = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent / "world_data.json"
+    dem_url = None
+    if "--dem-base-url" in sys.argv:
+        idx = sys.argv.index("--dem-base-url")
+        if idx + 1 < len(sys.argv):
+            dem_url = sys.argv[idx + 1]
 
     twin = DigitalTwin()
     pts = [{"lat": 45.0 + i * 0.0005, "lon": 9.0 + i * 0.0006, "ele": 120 + (i % 2) * 2}
@@ -220,8 +232,9 @@ def main() -> None:
     env = Environment(temp_c=15.0, solar_elev_deg=30.0, ora="12:00")
     twin.step(env)
 
-    export_world(twin, output)
-    print(f"[webgl_exporter] dati mondo esportati in {output}")
+    export_world(twin, output, dem_base_url=dem_url)
+    src_note = f" (DEM da {dem_url})" if dem_url else ""
+    print(f"[webgl_exporter] dati mondo esportati in {output}{src_note}")
     print(f"[webgl_exporter] aprire webgl_stub.html nel browser per visualizzare")
 
 

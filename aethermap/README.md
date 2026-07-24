@@ -35,13 +35,16 @@ aethermap/
 cd aethermap/src
 python -m aethermap.ai.demo      # Fase 3: GPX -> strada + sensori -> traffico
 python -m aethermap.render.demo  # Fase 4: globo cube-sphere ASCII
+python -m aethermap.render.webgl_exporter --dem-base-url http://localhost:8000  # Fase 4: export con DEM reale dal backend BikeMaster
 python -m aethermap.twin.demo    # Fase 5: oggetti vivi (giorno/sera/notte)
 ```
 Vista interattiva (richiede pygame + display): `python -m aethermap.render.app`.
-Vista WebGL (apertura browser): `aethermap/render/webgl_stub.html`.
+Vista WebGL (server locale): `python -m aethermap.render.server --dynamic`.
+Vista WebGL con DEM reale: `python -m aethermap.render.server --dynamic --dem-base-url http://localhost:8000`.
 
 ## Stato
 - Fase 1-2: design doc completi e vincolati.
-- Fase 3-5: prototipi Python funzionanti e verificati.
-- Aperto: WebGL reale, modello IA reale (hook gia pronto), layer volumetrico SVO,
-  storage Parquet/PostGIS, risoluzione S2 minima, relazioni dinamiche via IA.
+- Fase 3-4: prototipi Python funzionanti e verificati; WebGL2 viewer attivo con shader PBR-lite (specular + rim light), wireframe toggle (F), hover glow e label dinamiche, camera smooth reset (D).
+- Fase 5: digital twin attivo con SVO backend e stato ambiente-driven.
+- DEM reale: `webgl_exporter.py` supporta `--dem-base-url` per sostituire l'FBM procedurale con tile Copernicus/SRTM dal backend BikeMaster (`/aethermap/terrain`). Server espone `/api/terrain` come proxy.
+- In corso: sostituzione modello IA numpy con modello addestrato, storage Parquet/PostGIS completo, risoluzione S2 minima.

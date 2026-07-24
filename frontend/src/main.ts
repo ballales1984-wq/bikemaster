@@ -34,9 +34,7 @@ const ui = useUIStore();
 
 ui.loadTheme();
 const tokenProcessed = processOAuthToken();
-console.log("[OAuth] bootstrap processOAuthToken:", tokenProcessed, "loggedIn:", auth.isLoggedIn);
 syncAuthState();
-console.log("[OAuth] bootstrap syncAuthState done, justLoggedIn:", auth.justLoggedIn);
 
 // Set when the current page load actually consumed an OAuth (Google) token,
 // either from the URL fragment (full document load) or from the sessionStorage
@@ -49,18 +47,10 @@ let oauthReturnPending = tokenProcessed;
 let oauthFinalized = false;
 async function finalizeOAuthReturn() {
   if (oauthFinalized || !auth.isLoggedIn) {
-    console.log("[OAuth] finalize skipped:", {
-      finalized: oauthFinalized,
-      loggedIn: auth.isLoggedIn,
-    });
     return;
   }
   oauthFinalized = true;
   oauthReturnPending = false;
-  console.log(
-    "[OAuth] finalize started, current route:",
-    router.currentRoute.value.path,
-  );
   let profileComplete = false;
   try {
     const data = await apiGet<{ profile_complete?: boolean }>(
@@ -80,20 +70,11 @@ async function finalizeOAuthReturn() {
   }
   auth.setJustLoggedIn(false);
   ui.setOauthLoading(false);
-  // If the profile check failed, send the user to the dashboard rather than
-  // the onboarding screen so a transient backend error can't strand them.
   const target = profileComplete ? "/rides" : "/athlete";
-  console.log(
-    "[OAuth] finalize target:",
-    target,
-    "current:",
-    router.currentRoute.value.path,
-  );
   if (router.currentRoute.value.path !== target) {
-    console.log("[OAuth] navigating to:", target);
     router.replace(target).catch(() => {});
   } else {
-    console.log("[OAuth] already on target route:", target);
+    ui.setOauthLoading(false);
   }
 }
 
@@ -103,10 +84,6 @@ async function finalizeOAuthReturn() {
 // never consumed and the user is stuck on the login screen until a manual
 // refresh. Re-apply the token and finalize the navigation in those cases.
 function handleOAuthReturn() {
-  console.log(
-    "[OAuth] handleOAuthReturn, hash:",
-    window.location.hash.slice(0, 50),
-  );
   if (processOAuthToken()) {
     oauthReturnPending = true;
     finalizeOAuthReturn();
@@ -171,18 +148,6 @@ setTimeout(() => ui.setOauthLoading(false), 10000);
 router
   .isReady()
   .then(() => {
-    console.log(
-      "[OAuth] router.isReady, oauthReturnPending:",
-      oauthReturnPending,
-      "justLoggedIn:",
-      auth.justLoggedIn,
-      "route:",
-      router.currentRoute.value.path,
-    );
-    // The guard may already have moved us off "/" via its own redirect. In that
-    // case the OAuth return is effectively finalized; clear any loading state.
-    // Otherwise finalize now (guard didn't redirect, e.g. a same-document
-    // fragment return where the router never re-ran the guard).
     if (oauthReturnPending && router.currentRoute.value.path !== "/") {
       oauthFinalized = true;
       oauthReturnPending = false;

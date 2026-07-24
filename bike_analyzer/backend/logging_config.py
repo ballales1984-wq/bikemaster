@@ -11,6 +11,7 @@ from __future__ import annotations
 import contextvars
 import logging
 import os
+import re
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -52,11 +53,29 @@ def get_request_id() -> str:
 
 class _RequestIdFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        # Prefer an explicit value passed via `extra=`, otherwise fall back to the
-        # ambient correlation id (HTTP request / background task context).
         request_id = getattr(record, "request_id", None) or REQUEST_ID_CONTEXT.get()
         record.request_id = request_id
         return True
+
+
+class _PiiRedactionFilter(logging.Filter):
+    _EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+    _TOKEN_RE = re.compile(r"(?i)(bearer\s+)[A-Za-z0-9\-._~+/]+=*")
+    _JWT_RE = re.compile(r"[A-Za-z0-9\-._~+/]{20,}\.[A-Za-z0-9\-._~+/]{10,}\.[A-Za-z0-9\-._~+/]")
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = self._redact(str(record.msg))
+        if record.args:
+            record.args = tuple(
+                self._redact(str(a)) if isinstance(a, str) else a for a in record.args
+            )
+        return True
+
+    def _redact(self, value: str) -> str:
+        value = self._EMAIL_RE.sub("[REDACTED-EMAIL]", value)
+        value = self._TOKEN_RE.sub(r"\1[REDACTED-TOKEN]", value)
+        value = self._JWT_RE.sub("[REDACTED-JWT]", value)
+        return value
 
 
 _STANDARD_RECORD_ATTRS = frozenset(
@@ -140,7 +159,7 @@ def _build_config() -> dict[str, Any]:
             "class": "logging.StreamHandler",
             "stream": sys.stdout,
             "formatter": formatter,
-            "filters": ["request_id"],
+            "filters": ["request_id", "pii_redaction"],
         }
     }
     if os.getenv("LOG_FILE"):
@@ -149,13 +168,14 @@ def _build_config() -> dict[str, Any]:
             "filename": os.getenv("LOG_FILE"),
             "encoding": "utf-8",
             "formatter": formatter,
-            "filters": ["request_id"],
+            "filters": ["request_id", "pii_redaction"],
         }
     return {
         "version": 1,
         "disable_existing_loggers": False,
         "filters": {
             "request_id": {"()": f"{_RequestIdFilter.__module__}._RequestIdFilter"},
+            "pii_redaction": {"()": f"{_PiiRedactionFilter.__module__}._PiiRedactionFilter"},
         },
         "formatters": {
             "standard": {

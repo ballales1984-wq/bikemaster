@@ -98,9 +98,9 @@ def create_hub_app() -> FastAPI:
         description="Central multi-tenant backend for BikeMaster (cloud)",
         version="0.1.0",
         lifespan=lifespan,
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
+        docs_url="/docs" if _s.environment.lower() in ("development", "dev", "test", "testing") else None,
+        redoc_url="/redoc" if _s.environment.lower() in ("development", "dev", "test", "testing") else None,
+        openapi_url="/openapi.json" if _s.environment.lower() in ("development", "dev", "test", "testing") else None,
     )
 
     init_observability(app)
@@ -134,7 +134,7 @@ def create_hub_app() -> FastAPI:
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=400, content={"detail": str(exc)})
 
-    # Hub CORS: only Vercel origins + explicit whitelist
+    # Hub CORS: only exact allowed origins, no wildcard regex
     from fastapi.middleware.cors import CORSMiddleware
 
     cors_origins = (
@@ -142,11 +142,9 @@ def create_hub_app() -> FastAPI:
         if isinstance(_s.cors_origins, str)
         else _s.cors_origins
     )
-    vercel_regex = r"https://.*\.(vercel\.app|ngrok-free\.dev)"
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
-        allow_origin_regex=vercel_regex,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=[

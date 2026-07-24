@@ -153,9 +153,9 @@ def create_app() -> FastAPI:
         description="GPS-based cycling intelligence",
         version="0.1.0",
         lifespan=lifespan,
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
+        docs_url="/docs" if _s.environment.lower() in ("development", "dev", "test", "testing") else None,
+        redoc_url="/redoc" if _s.environment.lower() in ("development", "dev", "test", "testing") else None,
+        openapi_url="/openapi.json" if _s.environment.lower() in ("development", "dev", "test", "testing") else None,
     )
 
     # Initialize unified observability (Sentry + OpenTelemetry + Zipkin)
