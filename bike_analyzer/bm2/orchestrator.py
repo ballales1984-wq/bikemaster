@@ -93,7 +93,10 @@ DEFAULT_AMBIGUOUS_KEYWORDS: frozenset[str] = frozenset({
 })
 
 # Keywords that trigger "what if" simulation.
-_SIMULATION_KEYWORDS: tuple[str, ...] = ("if ", "what if", "simulate", "hypothes", "hypothesize")
+_SIMULATION_KEYWORDS: tuple[str, ...] = (
+    "if ", "what if", "simulate", "hypothes", "hypothesize",
+    "se ", "simula", "ipotizz", "quanto risparmio", "come cambia",
+)
 
 # Minimum score threshold for a model to be considered relevant.
 DEFAULT_ROUTE_THRESHOLD: float = 0.5
@@ -236,22 +239,22 @@ class AIOrchestrator:
     def explain_answer(self, answer: dict) -> str:
         """Generates a readable Italian explanation of results."""
         lines: list[str] = []
-        lines.append(f"Question: {answer.get('question', '')}")
+        lines.append(f"Domanda: {answer.get('question', '')}")
 
         ambiguous = answer.get("ambiguous", False)
         if ambiguous:
-            lines.append("(open question: full analysis across all models)")
+            lines.append("(domanda aperta: analisi completa su tutti i modelli)")
 
         conf = answer.get("confidence")
         if conf is not None:
-            lines.append(f"Estimated confidence: {conf * 100:.0f}%")
+            lines.append(f"Confidenza stimata: {conf * 100:.0f}%")
 
         models = answer.get("models_used", [])
-        lines.append("Models used: " + (", ".join(models) if models else "none"))
+        lines.append("Modelli usati: " + (", ".join(models) if models else "nessuno"))
 
         results = answer.get("results", {})
         if results:
-            lines.append("Key results:")
+            lines.append("Risultati chiave:")
             for name, r in results.items():
                 unit = r.get("unit", "")
                 value = r.get("value")
@@ -266,7 +269,7 @@ class AIOrchestrator:
 
         insights = answer.get("insights", [])
         if insights:
-            lines.append("Insights:")
+            lines.append("Concetti:")
             for i in insights:
                 concept = i.get("concept", "")
                 detail = i.get("detail", "")
@@ -276,7 +279,7 @@ class AIOrchestrator:
 
         sim = answer.get("simulation")
         if sim:
-            lines.append("Simulation (savings/estimate):")
+            lines.append("Simulazione (risparmio/stima):")
             deltas = sim.get("deltas", {})
             results_for_unit = results or sim.get("baseline", {})
             shown = 0
@@ -286,14 +289,14 @@ class AIOrchestrator:
                 base_val = base.get("value", 0)
                 pct = (delta / base_val * 100.0) if base_val else 0.0
                 arrow = "+" if delta > 0 else ("-" if delta < 0 else "=")
-                verb = "higher consumption" if delta > 0 else ("savings" if delta < 0 else "unchanged")
+                verb = "consumo maggiore" if delta > 0 else ("risparmio" if delta < 0 else "invariato")
                 lines.append(
                     f"  - {name}: {arrow}{abs(delta):.2f} {unit} "
                     f"({pct:+.1f}%) -> {verb}"
                 )
                 shown += 1
             if shown == 0:
-                lines.append("  - no significant variation")
+                lines.append("  - nessuna variazione significativa")
 
         return "\n".join(lines)
 

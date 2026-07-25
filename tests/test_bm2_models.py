@@ -81,7 +81,7 @@ def test_bike_from_raw_with_category_and_gear():
 
 def test_bike_from_raw_invalid_category_raises():
     t = _t()
-    with pytest.raises(ValueError, match="categoria"):
+    with pytest.raises(ValueError, match="invalid bike category"):
         Bike.from_raw({"weight": 8.0, "category": "unknown"}, t)
 
 

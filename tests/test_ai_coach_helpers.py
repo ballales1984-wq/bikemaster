@@ -6,6 +6,8 @@ import os
 
 import pytest
 
+pytestmark = pytest.mark.slow
+
 from bike_analyzer.backend.analytics.ai_coach import (
     _clean_ai_output,
     _coach_mode,

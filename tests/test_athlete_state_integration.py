@@ -9,6 +9,8 @@ import os
 import pytest
 from starlette.testclient import TestClient
 
+pytestmark = pytest.mark.slow
+
 from bike_analyzer.backend.api.app_factory import create_app
 from bike_analyzer.backend.db import database as db_mod
 from bike_analyzer.backend.security import create_access_token

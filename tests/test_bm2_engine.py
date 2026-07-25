@@ -37,7 +37,7 @@ def _ctx():
 
 
 def test_all_algorithms_registered():
-    assert len(ALL_ALGORITHMS) == 9
+    assert len(ALL_ALGORITHMS) == 10
     assert "PowerModel" in MODEL_REGISTRY
     assert "TrainingLoadModel" in MODEL_REGISTRY
 
@@ -47,7 +47,7 @@ def test_energy_model_runs_and_reports_provenance():
     assert r.unit == "kcal"
     assert r.value > 0
     assert r.formula
-    assert "massa_totale" in r.data_used
+    assert "total_mass" in r.data_used
     assert 0.0 <= r.confidence <= 1.0
     assert r.precision > 0
 
