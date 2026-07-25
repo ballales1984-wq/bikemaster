@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 
 import pytest
+
+pytestmark = pytest.mark.slow
 from starlette.testclient import TestClient
 
 from bike_analyzer.backend.api.app_factory import create_app

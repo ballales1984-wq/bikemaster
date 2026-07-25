@@ -12,6 +12,7 @@ Tests cover:
 from __future__ import annotations
 
 import pytest
+pytestmark = pytest.mark.slow
 
 from bike_analyzer.backend.analytics.knowledge_base import (
     CHUNK_OVERLAP,

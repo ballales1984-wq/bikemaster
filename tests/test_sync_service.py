@@ -7,6 +7,7 @@ import os
 import time
 
 import pytest
+pytestmark = pytest.mark.slow
 
 from bike_analyzer.backend.sync.config import (
     SyncMode,

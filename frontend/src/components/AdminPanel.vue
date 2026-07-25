@@ -3,21 +3,20 @@
      reset dati demo, log di audit, analytics CEO e test Sentry. Eventi/Props: nessuno (usa gli store auth e API interne).
      UI: card cliccabili in griglia + area risultato/pre errore + ConfirmModal per azioni distruttive. -->
 <template>
-  <div v-if="auth.isAdmin"
-class="admin-panel">
+  <div v-if="auth.isAdmin" class="admin-panel">
     <div class="panel">
-      <h2> Administration</h2>
+      <h2>Administration</h2>
 
       <div class="admin-grid">
-        <button class="admin-card"
-@click="$router.push('/admin/bm2')">
+        <button class="admin-card" @click="$router.push('/admin/bm2')">
           <div class="admin-icon">🧮</div>
           <div class="admin-label">Admin BM2</div>
-          <div class="admin-desc">Inspect formulas, algorithms and engine config</div>
+          <div class="admin-desc">
+            Inspect formulas, algorithms and engine config
+          </div>
         </button>
 
-        <button class="admin-card"
-@click="$router.push('/admin/users')">
+        <button class="admin-card" @click="$router.push('/admin/users')">
           <div class="admin-icon"></div>
           <div class="admin-label">
             {{ t("admin.users") }}
@@ -25,15 +24,13 @@ class="admin-panel">
           <div class="admin-desc">Manage users and roles</div>
         </button>
 
-        <button class="admin-card"
-@click="loadStats" :disabled="loadingStats">
+        <button class="admin-card" @click="loadStats" :disabled="loadingStats">
           <div class="admin-icon"></div>
           <div class="admin-label">Statistiche Sistema</div>
           <div class="admin-desc">Visualizza metriche database e API</div>
         </button>
 
-        <button class="admin-card"
-@click="backupDb">
+        <button class="admin-card" @click="backupDb">
           <div class="admin-icon"></div>
           <div class="admin-label">Backup Database</div>
           <div class="admin-desc">Download database dump</div>
@@ -59,11 +56,11 @@ class="admin-panel">
           class="admin-card danger"
           :disabled="loadingReset"
           @click="
-              askConfirm(
-                'Reset Dati Demo',
-                'Ripristineremo i dati demo sovrascrivendo quelli correnti. Continuare?',
-                resetDemo,
-              )
+            askConfirm(
+              'Reset Dati Demo',
+              'Ripristineremo i dati demo sovrascrivendo quelli correnti. Continuare?',
+              resetDemo,
+            )
           "
         >
           <div class="admin-icon"></div>
@@ -102,14 +99,12 @@ class="admin-panel">
         </button>
       </div>
 
-      <div v-if="stats"
-class="result-section">
+      <div v-if="stats" class="result-section">
         <div class="result-header">Output Statistiche</div>
         <pre class="result-box">{{ stats }}</pre>
       </div>
 
-      <div v-if="error"
-class="error-section">
+      <div v-if="error" class="error-section">
         <div class="error-icon"></div>
         <div class="error-text">
           {{ error }}

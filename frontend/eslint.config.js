@@ -3,6 +3,7 @@ import pluginVue from "eslint-plugin-vue";
 import pluginPrettier from "eslint-plugin-prettier";
 import tsParser from "@typescript-eslint/parser";
 import * as vueParser from "vue-eslint-parser";
+import prettierConfig from "eslint-config-prettier";
 
 export default [
   {
@@ -47,12 +48,15 @@ export default [
     plugins: {
       prettier: pluginPrettier,
     },
+    files: ["**/*.vue", "**/*.ts", "**/*.tsx"],
     rules: {
       "prettier/prettier": "warn",
       "vue/multi-word-component-names": [
         "error",
         { ignores: ["ToastContainer"] },
       ],
+      "no-undef": "off",
     },
   },
+  prettierConfig,
 ];

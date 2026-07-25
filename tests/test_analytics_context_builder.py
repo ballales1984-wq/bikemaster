@@ -27,7 +27,7 @@ def test_build_training_context_with_data(builder):
     assert ctx["athlete"] == athlete
     assert ctx["recent_rides"] == rides
     assert ctx["fitness_state"] == fitness
-    assert "Quasi pronto per lavori quality" in ctx["recommendations"][0]
+    assert "Almost ready for quality work" in ctx["recommendations"][0]
 
 
 def test_build_training_context_rides_truncated(builder):

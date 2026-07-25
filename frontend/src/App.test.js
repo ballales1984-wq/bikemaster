@@ -4,6 +4,11 @@ import { createRouter, createWebHistory } from "vue-router";
 import { createPinia, setActivePinia } from "pinia";
 import App from "./App.vue";
 
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [{ path: "/", component: { template: "<div>Home</div>" } }],
+});
+
 const authState = { isLoggedIn: false, isAdmin: false };
 const authStore = vi.hoisted(() => ({
   token: { value: "" },
@@ -60,7 +65,6 @@ describe("App.vue", () => {
 
   it("shows login form when not logged in", () => {
     authState.isLoggedIn = false;
-    const router = createRouter({ history: createWebHistory(), routes: [] });
     router.push = vi.fn();
     const wrapper = mount(App, {
       global: {
@@ -74,7 +78,6 @@ describe("App.vue", () => {
   it("shows header tabs and summary when logged in", () => {
     authState.isLoggedIn = true;
     authState.isAdmin = false;
-    const router = createRouter({ history: createWebHistory(), routes: [] });
     router.push = vi.fn();
     const wrapper = mount(App, {
       global: {
@@ -88,7 +91,6 @@ describe("App.vue", () => {
 
   it("displays login error when present", async () => {
     authState.isLoggedIn = false;
-    const router = createRouter({ history: createWebHistory(), routes: [] });
     router.push = vi.fn();
     const wrapper = mount(App, {
       global: {
@@ -104,7 +106,6 @@ describe("App.vue", () => {
 
   it("loads summary on mount when already logged in", async () => {
     authState.isLoggedIn = true;
-    const router = createRouter({ history: createWebHistory(), routes: [] });
     router.push = vi.fn();
     const wrapper = mount(App, {
       global: {

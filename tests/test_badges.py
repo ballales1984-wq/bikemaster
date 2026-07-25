@@ -1,5 +1,8 @@
 """Tests for badge/medal system."""
 
+import pytest
+pytestmark = pytest.mark.slow
+
 from datetime import UTC
 
 from bike_analyzer.backend.analytics.badges import (

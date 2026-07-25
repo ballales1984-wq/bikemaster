@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import { createRouter, createWebHistory } from "vue-router";
 import HeaderTabs from "./HeaderTabs.vue";
 
-const router = createRouter({ history: createWebHistory(), routes: [] });
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [{ path: "/", component: { template: "<div />" } }],
+});
 
 vi.mock("../composables/useI18n", () => ({
   useI18n: () => ({

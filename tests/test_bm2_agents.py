@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 import pytest
+pytestmark = pytest.mark.slow
 
 from bike_analyzer.bm2.agents import (
     EnvironmentAgent,

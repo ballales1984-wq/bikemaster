@@ -1,6 +1,8 @@
 """Test API BikeMaster 2.0 (route /api/v1/bm2)."""
 
 from __future__ import annotations
+import pytest
+pytestmark = pytest.mark.slow
 
 SAMPLE = {
     "question": "Quanta energia consumo in questo giro?",

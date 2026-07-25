@@ -87,4 +87,4 @@ def test_athlete_profile_invalid_short_circuits(monkeypatch):
     monkeypatch.setattr(coach, "search_knowledge_base", lambda *a, **k: [])
     bad = AthleteProfile(name="", weight_kg=0.0)
     result = coach.generate_recovery_recommendations(bad, [])
-    assert "profilo" in result.lower()
+    assert "profile" in result.lower()

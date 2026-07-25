@@ -2,20 +2,18 @@
      Props: stats (oggetto con rides/distance_km/calories/avg_speed_kmh/duration_minutes), loading. Eventi: refresh.
      UI: griglia di stat-card con direttiva v-stagger (animazione, rispetta prefers-reduced-motion) e pulsante Refresh. -->
 <template>
-  <div class="stats"
-aria-label="General Statistics">
+  <div class="stats" aria-label="General Statistics">
     <div
       v-stagger
       class="stat-card"
       role="status"
       :style="{ '--stagger-index': 0 }"
     >
-      <span class="stat-icon"
-aria-hidden="true"></span>
+      <span class="stat-icon" aria-hidden="true"></span>
       <div class="stat-value">
         {{ animatedRides }}
       </div>
-       <div class="stat-label">Uscite</div>
+      <div class="stat-label">Uscite</div>
     </div>
     <div
       v-stagger
@@ -23,10 +21,9 @@ aria-hidden="true"></span>
       role="status"
       :style="{ '--stagger-index': 1 }"
     >
-      <span class="stat-icon"
-aria-hidden="true"></span>
+      <span class="stat-icon" aria-hidden="true"></span>
       <div class="stat-value">{{ animatedDistance }} km</div>
-       <div class="stat-label">Distanza Totale</div>
+      <div class="stat-label">Distanza Totale</div>
     </div>
     <div
       v-stagger
@@ -34,12 +31,11 @@ aria-hidden="true"></span>
       role="status"
       :style="{ '--stagger-index': 2 }"
     >
-      <span class="stat-icon"
-aria-hidden="true"></span>
+      <span class="stat-icon" aria-hidden="true"></span>
       <div class="stat-value">
         {{ animatedCalories }}
       </div>
-       <div class="stat-label">Calorie</div>
+      <div class="stat-label">Calorie</div>
     </div>
     <div
       v-stagger
@@ -47,10 +43,9 @@ aria-hidden="true"></span>
       role="status"
       :style="{ '--stagger-index': 3 }"
     >
-      <span class="stat-icon"
-aria-hidden="true"></span>
+      <span class="stat-icon" aria-hidden="true"></span>
       <div class="stat-value">{{ animatedSpeed }} km/h</div>
-       <div class="stat-label">Velocità Media</div>
+      <div class="stat-label">Velocità Media</div>
     </div>
     <div
       v-stagger
@@ -58,10 +53,9 @@ aria-hidden="true"></span>
       role="status"
       :style="{ '--stagger-index': 4 }"
     >
-      <span class="stat-icon"
-aria-hidden="true">⏱</span>
+      <span class="stat-icon" aria-hidden="true">⏱</span>
       <div class="stat-value">{{ animatedHours }} h</div>
-       <div class="stat-label">Ore Totali</div>
+      <div class="stat-label">Ore Totali</div>
     </div>
     <button
       v-stagger
@@ -71,11 +65,12 @@ aria-hidden="true">⏱</span>
       :aria-label="loading ? 'Aggiornamento in corso' : 'Aggiorna statistiche'"
       @click="$emit('refresh')"
     >
-      <span class="stat-icon"
-:class="{ spin: loading }">{{
+      <span class="stat-icon" :class="{ spin: loading }">{{
         loading ? "⏳" : "🔄"
       }}</span>
-      <div class="stat-label">{{ loading ? "Aggiornamento..." : "Aggiorna" }}</div>
+      <div class="stat-label">
+        {{ loading ? "Aggiornamento..." : "Aggiorna" }}
+      </div>
     </button>
   </div>
 </template>
@@ -298,4 +293,3 @@ watch(
   }
 }
 </style>
-

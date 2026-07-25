@@ -1,11 +1,17 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPinia } from "pinia";
+import { createRouter, createWebHistory } from "vue-router";
 
 const apiGet = vi.hoisted(() => vi.fn());
 vi.mock("../utils/api", () => ({ apiGet }));
 
 import DashboardPanel from "./DashboardPanel.vue";
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [{ path: "/", component: { template: "<div />" } }],
+});
 
 function flush() {
   return new Promise((resolve) => setTimeout(resolve, 0));
@@ -51,7 +57,7 @@ describe("DashboardPanel", () => {
       return Promise.resolve({});
     });
     return mount(DashboardPanel, {
-      global: { plugins: [createPinia()] },
+      global: { plugins: [router, createPinia()] },
     });
   }
 

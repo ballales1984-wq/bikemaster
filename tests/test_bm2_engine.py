@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import pytest
+
+pytestmark = pytest.mark.slow
 from datetime import datetime, timezone
 
 from bike_analyzer.bm2 import (

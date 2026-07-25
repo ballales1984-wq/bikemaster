@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import pytest
+
+pytestmark = pytest.mark.slow
 from fastapi import HTTPException
 
 from bike_analyzer.backend.analytics.adaptation_schemas import (

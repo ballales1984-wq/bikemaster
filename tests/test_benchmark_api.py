@@ -1,5 +1,8 @@
 """Test benchmark comparison API."""
 
+import pytest
+pytestmark = pytest.mark.slow
+
 from bike_analyzer.backend.analytics.benchmark import (
     compare_athlete_to_benchmark,
     get_age_category,

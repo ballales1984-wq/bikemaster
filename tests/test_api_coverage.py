@@ -1,5 +1,8 @@
 """API coverage tests for endpoints."""
 
+import pytest
+pytestmark = pytest.mark.slow
+
 import base64
 import json
 from urllib.parse import parse_qs, urlparse

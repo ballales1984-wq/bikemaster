@@ -3,7 +3,7 @@
      UI: form Athlete ID + pulsante, contenitore mappa 500px e badge con statistiche; gestisce stati loading/no-data. -->
 <template>
   <div class="panel">
-    <h2> Personal Heatmap</h2>
+    <h2>Personal Heatmap</h2>
 
     <div class="form-grid">
       <div class="form-group">
@@ -13,18 +13,16 @@
           v-model.number="athleteId"
           type="number"
           min="1"
-        >
+        />
       </div>
       <div class="form-group">
-        <button class="btn btn-primary"
-@click="loadHeatmap">
+        <button class="btn btn-primary" @click="loadHeatmap">
           {{ t("heatmap.loadHeatmap") }}
         </button>
       </div>
     </div>
 
-    <div v-if="loading && !heatmapData"
-class="loading-text">
+    <div v-if="loading && !heatmapData" class="loading-text">
       {{ t("heatmap.loading") }}
     </div>
 
@@ -32,11 +30,14 @@ class="loading-text">
       v-if="heatmapData && heatmapData.points && heatmapData.points.length"
       class="heatmap-container"
     >
-      <div id="leaflet-heatmap"
-class="heatmap-map" />
+      <div id="leaflet-heatmap" class="heatmap-map" />
       <div class="heatmap-stats">
-        <span class="badge badge-info">{{ heatmapData.total_points }} GPS points</span>
-        <span class="badge badge-info">{{ heatmapData.points.length }} cells</span>
+        <span class="badge badge-info"
+          >{{ heatmapData.total_points }} GPS points</span
+        >
+        <span class="badge badge-info"
+          >{{ heatmapData.points.length }} cells</span
+        >
       </div>
     </div>
     <div

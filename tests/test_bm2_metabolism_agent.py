@@ -1,6 +1,8 @@
 """Tests for bm2.metabolism_agent."""
 
 import pytest
+
+pytestmark = pytest.mark.slow
 from bike_analyzer.bm2.metabolism_agent import MetabolismAgent
 from bike_analyzer.bm2.transformer import TransformerEngine
 

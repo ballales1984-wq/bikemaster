@@ -7,6 +7,7 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+pytestmark = pytest.mark.slow
 
 
 def _make_fake_redis():

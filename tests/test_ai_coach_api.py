@@ -1,3 +1,6 @@
+import pytest
+pytestmark = pytest.mark.slow
+
 import os
 
 os.environ["AI_COACH_MODE"] = "local"
@@ -28,7 +31,7 @@ def test_validate_athlete_profile_rejects_empty():
     profile = AthleteProfile(name="", weight_kg=70.0, experience_level="Beginner")
     valid, msg = validate_athlete_profile(profile)
     assert valid is False
-    assert "nome" in msg
+    assert "name" in msg
 
 
 def test_validate_athlete_profile_accepts_complete():
@@ -42,7 +45,7 @@ def test_validate_athlete_profile_rejects_zero_weight():
     profile = AthleteProfile(name="Marco", weight_kg=0.0, experience_level="Amateur")
     valid, msg = validate_athlete_profile(profile)
     assert valid is False
-    assert "peso" in msg
+    assert "weight" in msg
 
 
 def test_generate_training_advice_validates_profile():

@@ -14,10 +14,9 @@
     <div class="legal-content">
       <h2>1. What Are Cookies</h2>
       <p>
-        Cookies are small text files stored on the user's device
-        while browsing a website. Cookies allow
-        the site to recognize the user and store certain information
-        to improve the user experience.
+        Cookies are small text files stored on the user's device while browsing
+        a website. Cookies allow the site to recognize the user and store
+        certain information to improve the user experience.
       </p>
 
       <h2>2. Types of Cookies Used</h2>
@@ -55,25 +54,22 @@
 
       <h3>2.2 Analytics Cookies</h3>
       <p>
-        Used to understand how users interact with the service
-        (anonymized or aggregated):
+        Used to understand how users interact with the service (anonymized or
+        aggregated):
       </p>
       <ul>
         <li>
-          <strong>Usage statistics:</strong> pages visited, session
-          duration, errors encountered
+          <strong>Usage statistics:</strong> pages visited, session duration,
+          errors encountered
         </li>
         <li>
-          <strong>Performance:</strong> loading times, API calls,
-          system metrics
+          <strong>Performance:</strong> loading times, API calls, system metrics
         </li>
       </ul>
 
       <h3>2.3 Preference Cookies</h3>
       <ul>
-        <li>
-          <strong>Dark/light theme:</strong> interface theme preference
-        </li>
+        <li><strong>Dark/light theme:</strong> interface theme preference</li>
         <li>
           <strong>Dashboard layout:</strong> preferred panel configuration
         </li>
@@ -87,13 +83,10 @@
       </p>
       <ul>
         <li>
-          <strong>Google Maps / OpenStreetMap:</strong> for displaying
-          routes on maps
+          <strong>Google Maps / OpenStreetMap:</strong> for displaying routes on
+          maps
         </li>
-        <li>
-          <strong>Chart.js:</strong> no own cookies, data handled
-          locally
-        </li>
+        <li><strong>Chart.js:</strong> no own cookies, data handled locally</li>
       </ul>
       <p>
         These third parties have their own privacy policies, not controlled by
@@ -101,10 +94,7 @@
       </p>
 
       <h2>4. Cookie Management and Disabling</h2>
-      <p>
-        The user can manage cookies directly through the browser
-        settings:
-      </p>
+      <p>The user can manage cookies directly through the browser settings:</p>
       <ul>
         <li>
           <strong>Chrome:</strong> Settings → Privacy and security → Cookies and
@@ -123,15 +113,14 @@
         </li>
       </ul>
       <p>
-        <strong>Note:</strong> Disabling technical cookies may
-        impair the functioning of the service and prevent access
-        to the account.
+        <strong>Note:</strong> Disabling technical cookies may impair the
+        functioning of the service and prevent access to the account.
       </p>
 
       <h2>5. Notes for the Mobile App (Android)</h2>
       <p>
-        The BikeMaster Android mobile application, installed via APK, does
-        not use traditional cookies. Instead, it uses:
+        The BikeMaster Android mobile application, installed via APK, does not
+        use traditional cookies. Instead, it uses:
       </p>
       <ul>
         <li>
@@ -141,20 +130,17 @@
         <li><strong>Local Storage:</strong> for cache and offline data</li>
       </ul>
       <p>
-        Background GPS tracking requires location authorization,
-        managed by the Android operating system.
+        Background GPS tracking requires location authorization, managed by the
+        Android operating system.
       </p>
 
       <h2>6. Alternative Tracking Tools</h2>
       <p>In addition to cookies, BikeMaster may use:</p>
       <ul>
         <li>
-          <strong>Local Storage:</strong> for data persistence on the
-          browser
+          <strong>Local Storage:</strong> for data persistence on the browser
         </li>
-        <li>
-          <strong>Session Storage:</strong> for temporary session data
-        </li>
+        <li><strong>Session Storage:</strong> for temporary session data</li>
         <li>
           <strong>IndexedDB:</strong> for advanced caching of activity data
         </li>
@@ -162,8 +148,8 @@
 
       <h2>7. Cookie Policy Updates</h2>
       <p>
-        Any changes to this policy will be published on this
-        page. We recommend consulting it periodically.
+        Any changes to this policy will be published on this page. We recommend
+        consulting it periodically.
       </p>
 
       <h2>8. Contact</h2>
@@ -174,9 +160,7 @@
     </div>
 
     <div class="cta-section">
-      <RouterLink to="/" class="btn btn-primary">
-         Back to Login
-      </RouterLink>
+      <RouterLink to="/" class="btn btn-primary"> Back to Login </RouterLink>
     </div>
   </div>
 </template>
