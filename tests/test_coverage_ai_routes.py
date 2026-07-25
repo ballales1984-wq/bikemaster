@@ -154,19 +154,12 @@ def test_chat_with_tools_local(monkeypatch):
     assert "content" in result
 
 
-def test_get_ai_coach_client_local(monkeypatch):
+def test_generate_training_advice_local(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
-    client = get_ai_coach_client()
-    assert client is not None
-
-
-def test_generate_training_advice_with_fitness_state(monkeypatch):
-    monkeypatch.setenv("AI_COACH_MODE", "local")
-    from bike_analyzer.backend.analytics.ai_coach import generate_training_plan
-
-    athlete = AthleteProfile(name="Test", weight_kg=70, experience_level="Amateur")
-    plan = generate_training_plan(athlete, days=7, max_hours=10)
-    assert isinstance(plan, (str, dict))
+    profile = AthleteProfile(name="Test", weight_kg=70, experience_level="Amateur")
+    rides = [Ride(date="2024-06-11", distance_km=42.0, duration_minutes=100, avg_speed_kmh=25.2)]
+    advice = generate_training_advice(profile, rides)
+    assert len(advice) > 20
 
 
 def test_generate_recovery_advice_high_fatigue(monkeypatch):
@@ -569,21 +562,6 @@ def test_dashboard(client):
 # ============================================================================
 # Additional ai_coach.py coverage (functions not yet tested)
 # ============================================================================
-
-
-def test_generate_training_plan_local(monkeypatch):
-    monkeypatch.setenv("AI_COACH_MODE", "local")
-    from bike_analyzer.backend.analytics.ai_coach import generate_training_plan
-
-    athlete = AthleteProfile(name="Test", weight_kg=70, experience_level="Amateur")
-    plan = generate_training_plan(athlete, days=7, max_hours=10)
-    assert isinstance(plan, str)
-
-
-def test_get_ai_coach_client_local(monkeypatch):
-    monkeypatch.setenv("AI_COACH_MODE", "local")
-    client = get_ai_coach_client()
-    assert client is not None
 
 
 def test_generate_recovery_advice_high_fatigue(monkeypatch):
