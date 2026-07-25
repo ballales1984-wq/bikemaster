@@ -379,6 +379,19 @@
       "constants": "Constants & Config"
     }
   },
+  "monitoring": {
+    "title": "System Monitoring",
+    "refresh": "Refresh",
+    "lastUpdated": "Last updated",
+    "overallStatus": "Overall Status",
+    "healthy": "Healthy",
+    "unhealthy": "Issues detected",
+    "unknown": "Unknown",
+    "disk": "Disk",
+    "database": "Database",
+    "redis": "Redis",
+    "taskQueue": "Task Queue"
+  },
   "client": {
     "title": "Client Area",
     "assignAthlete": "Assign Athlete",
@@ -840,6 +853,8 @@
     "navSettingsText": "Configure backend URL, personal API keys and sync mode.",
     "navConnectionsTitle": "Connections",
     "navConnectionsText": "Manage external services: connect/disconnect Strava, Google Fit, Wahoo and save API key.",
+    "navMonitoringTitle": "Monitoring",
+    "navMonitoringText": "System health status: database, redis, task queue and disk metrics.",
     "navLogoutTitle": "Log out",
     "navLogoutText": "End the session and return to the login screen.",
     "secTracking": "Ride tracking",

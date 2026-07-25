@@ -523,7 +523,7 @@ void main() {
       const dy = mouseY - sy;
       if (Math.hypot(dx, dy) < bestDist) {
         bestDist = Math.hypot(dx, dy);
-        hoveredId = name;
+        hoveredId = ent.id;
       }
     }
 
@@ -613,7 +613,7 @@ void main() {
   }
 
   function spherePoint(lat, lon) {
-    const la = Math.radians(lat), lo = Math.radians(lon);
+    const la = lat * Math.PI / 180, lo = lon * Math.PI / 180;
     return [
       Math.cos(la) * Math.cos(lo),
       Math.cos(la) * Math.sin(lo),

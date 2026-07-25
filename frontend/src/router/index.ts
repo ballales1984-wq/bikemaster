@@ -229,6 +229,12 @@ const routes = [
     component: () => import("../views/ConnectionsView.vue"),
     meta: { requiresAuth: true, title: "Connessioni" },
   },
+  {
+    path: "/monitoring",
+    name: "monitoring",
+    component: () => import("../views/MonitoringView.vue"),
+    meta: { requiresAuth: true, requiresAdmin: true, title: "Monitoring" },
+  },
 ];
 
 // Retry a lazy component import a few times before giving up. Route chunks can

@@ -47,6 +47,15 @@
          <span>BM2 Admin</span>
       </router-link>
       <router-link
+        v-if="isAdmin"
+        ref="tabEls"
+        to="/monitoring"
+        class="tab"
+        active-class="active"
+      >
+         <span>{{ t("nav.monitoring") }}</span>
+      </router-link>
+      <router-link
         v-if="isClient"
         ref="tabEls"
         to="/client"

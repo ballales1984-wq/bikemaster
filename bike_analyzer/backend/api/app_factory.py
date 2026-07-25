@@ -214,6 +214,7 @@ def create_app() -> FastAPI:
         "/api/v1/health",
         "/api/v1/health/redis",
         "/api/v1/health/detailed",
+        "/api/v1/health/comprehensive",
     }
 
     @app.middleware("http")

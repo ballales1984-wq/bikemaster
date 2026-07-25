@@ -1786,6 +1786,30 @@ async def health_detailed(request: Request):
     }
 
 
+@router.get("/health/comprehensive")
+async def health_comprehensive():
+    """Comprehensive health check with system metrics.
+
+    Returns database, redis, task queue status plus memory, disk and uptime.
+    """
+    from ..monitoring import comprehensive_health_check
+
+    base = await comprehensive_health_check()
+    payload = base.to_dict()
+
+    try:
+        payload["disk"] = {
+            "db_path": _s.db_path,
+            "db_exists": Path(_s.db_path).exists(),
+        }
+        if Path(_s.db_path).exists():
+            payload["disk"]["db_size_bytes"] = Path(_s.db_path).stat().st_size
+    except Exception as exc:  # noqa: BLE001
+        payload["system_metrics_error"] = str(exc)
+
+    return payload
+
+
 @router.get("/coach/history")
 async def coach_chat_history(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
     """Retrieve AI coach chat history for an athlete."""
