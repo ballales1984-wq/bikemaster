@@ -316,3 +316,32 @@ class TestCalculateTrainingStressBalance:
         result = calculate_training_stress_balance(rides)
         assert "form" in result
         assert result["form"] in ("fatigued", "overreached", "burnout_risk", "optimal")
+
+
+class TestCalculatePaceConsistency:
+    def test_steady_pacing(self):
+        segments = [
+            Segment(start=GPSPoint(lat=45.0, lon=9.0), end=GPSPoint(lat=45.1, lon=9.1), avg_speed_km_h=20.0),
+            Segment(start=GPSPoint(lat=45.1, lon=9.1), end=GPSPoint(lat=45.2, lon=9.2), avg_speed_km_h=20.5),
+            Segment(start=GPSPoint(lat=45.2, lon=9.2), end=GPSPoint(lat=45.3, lon=9.3), avg_speed_km_h=19.8),
+        ]
+        result = calculate_pace_consistency(segments)
+        assert result["pace_strategy"] == "steady"
+
+    def test_erratic_pacing(self):
+        segments = [
+            Segment(start=GPSPoint(lat=45.0, lon=9.0), end=GPSPoint(lat=45.1, lon=9.1), avg_speed_km_h=10.0),
+            Segment(start=GPSPoint(lat=45.1, lon=9.1), end=GPSPoint(lat=45.2, lon=9.2), avg_speed_km_h=30.0),
+            Segment(start=GPSPoint(lat=45.2, lon=9.2), end=GPSPoint(lat=45.3, lon=9.3), avg_speed_km_h=5.0),
+        ]
+        result = calculate_pace_consistency(segments)
+        assert result["pace_strategy"] == "erratic"
+
+    def test_variable_pacing(self):
+        segments = [
+            Segment(start=GPSPoint(lat=45.0, lon=9.0), end=GPSPoint(lat=45.1, lon=9.1), avg_speed_km_h=15.0),
+            Segment(start=GPSPoint(lat=45.1, lon=9.1), end=GPSPoint(lat=45.2, lon=9.2), avg_speed_km_h=25.0),
+            Segment(start=GPSPoint(lat=45.2, lon=9.2), end=GPSPoint(lat=45.3, lon=9.3), avg_speed_km_h=18.0),
+        ]
+        result = calculate_pace_consistency(segments)
+        assert result["pace_strategy"] == "variable"

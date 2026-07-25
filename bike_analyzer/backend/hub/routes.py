@@ -105,7 +105,7 @@ def _build_redirect_uri(request: Request, path: str) -> str:
 def _build_oauth_error_url(request: Request, redirect_uri: str, error: str) -> HTMLResponse:
     """Genera una pagina HTML che segnala l'errore OAuth alla finestra opener."""
     html = f"""<!DOCTYPE html>
-<html><body><script>window.opener.postMessage({{error:"{error}"}},"*");window.close();</script></body></html>"""
+<html><body><script>window.opener&&window.opener.postMessage({{error:"{error}"}},"*");window.close();</script></body></html>"""
     return HTMLResponse(content=html)
 
 

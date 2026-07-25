@@ -99,9 +99,9 @@ def _hr_distribution(
                 }
             )
         return zones
+    for name, label, low, high, color in HR_ZONE_PCT:
         lo = low * max_hr
         hi = high * max_hr
-        # Z5 is inclusive of max HR.
         count = sum(1 for h in hr_samples if lo <= h < hi) if name != "Z5" else sum(
             1 for h in hr_samples if lo <= h <= hi
         )
@@ -182,7 +182,7 @@ def calculate_zone_distributions(
             )
 
     hr_zones = _hr_distribution(hr_samples, mhr)
-    hr_available = bool(hr_zones)
+    hr_available = bool(hr_samples)
 
     return {
         "ftp_watts": round(ftp, 0),

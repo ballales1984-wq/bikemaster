@@ -99,6 +99,9 @@ from .schemas import (
     NotificationOut,
     NotificationPreferences,
     NotificationScoreOut,
+    NutritionFoodItem,
+    NutritionFoodItemCreate,
+    NutritionFoodItemUpdate,
     POICreate,
     POIResponse,
     ItineraryCreate,
@@ -426,7 +429,7 @@ def _google_fit_message_html(message: dict) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
     payload = json.dumps(_sanitize_html_message(message))
     return HTMLResponse(
-        f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
+        f"<script>window.opener&&window.opener.postMessage({payload}, window.location.origin);window.close();</script>"
     )
 
 
@@ -434,7 +437,7 @@ def _google_health_message_html(message: dict) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
     payload = json.dumps(_sanitize_html_message(message))
     return HTMLResponse(
-        f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
+        f"<script>window.opener&&window.opener.postMessage({payload}, window.location.origin);window.close();</script>"
     )
 
 
@@ -442,7 +445,7 @@ def _strava_message_html(message: dict) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
     payload = json.dumps(_sanitize_html_message(message))
     return HTMLResponse(
-        f"<script>window.opener.postMessage({payload}, window.location.origin); window.close();</script>"
+        f"<script>window.opener&&window.opener.postMessage({payload}, window.location.origin);window.close();</script>"
     )
 
 
@@ -2834,15 +2837,16 @@ async def get_nutrition_food_item(
 
 @router.post("/metabolism/nutrition", status_code=201)
 async def create_nutrition_food_item(
-    item_data: NutritionFoodItemCreate = Body(...),
+    item_data: NutritionFoodItemCreate,
     current_user: dict = Depends(get_current_user),
 ):
     """Add a new food item to the user's personal database."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
     from ..db.database import save_nutrition_food_item as _save_item
+    from ..db.database import get_nutrition_food_item as _get_item
 
     item_id = _save_item(item_data.model_dump(), tenant_id)
-    item = get_nutrition_food_item(item_id)
+    item = _get_item(item_id)
     return item or {}
 
 
@@ -3224,7 +3228,7 @@ async def google_fit_callback(
         "token": access_token,
         "refresh_token": token_data.get("refresh_token", ""),
     }
-    html_content = f"<script>window.opener.postMessage({json.dumps(payload)}, window.location.origin); window.close();</script>"
+    html_content = f"<script>window.opener&&window.opener.postMessage({json.dumps(payload)}, window.location.origin);window.close();</script>"
     await _cache_set(cache_key, {"html": html_content}, ttl=300)
     return HTMLResponse(content=html_content)
 
@@ -5264,7 +5268,7 @@ async def google_health_disconnect(current_user: dict = Depends(get_current_user
 # ------------------------------------------------------------------
 
 
-@router.get("/api/v1/ble/devices")
+@router.get("/ble/devices")
 async def list_ble_devices(current_user: dict = Depends(get_current_user)):
     """List all BLE devices registered for the current athlete."""
     from ..db.database import get_ble_devices
@@ -5275,8 +5279,8 @@ async def list_ble_devices(current_user: dict = Depends(get_current_user)):
     return {"devices": [BleDeviceOut.model_validate(d).model_dump() for d in devices]}
 
 
-@router.post("/api/v1/ble/devices")
-async def register_ble_device(current_user: dict = Depends(get_current_user), payload: BleDeviceRegister = ...):
+@router.post("/ble/devices")
+async def register_ble_device(current_user: dict = Depends(get_current_user), payload: BleDeviceRegister = Body(...)):
     """Register a new BLE device (or update if already known)."""
     from ..db.database import register_ble_device
 
@@ -5295,7 +5299,7 @@ async def register_ble_device(current_user: dict = Depends(get_current_user), pa
     return {"id": device_id, "device_id": payload.device_id, "name": payload.name}
 
 
-@router.put("/api/v1/ble/devices/{device_id}")
+@router.put("/ble/devices/{device_id}")
 async def update_ble_device(current_user: dict = Depends(get_current_user), device_id: int = ..., payload: BleDeviceUpdate = ...):
     """Update a BLE device (name, paired status, settings)."""
     from ..db.database import get_ble_device, update_ble_device
@@ -5311,7 +5315,7 @@ async def update_ble_device(current_user: dict = Depends(get_current_user), devi
     return BleDeviceOut.model_validate(updated).model_dump()
 
 
-@router.delete("/api/v1/ble/devices/{device_id}")
+@router.delete("/ble/devices/{device_id}")
 async def delete_ble_device(current_user: dict = Depends(get_current_user), device_id: int = ...):
     """Unregister (delete) a BLE device."""
     from ..db.database import get_ble_device, unregister_ble_device
@@ -5324,7 +5328,7 @@ async def delete_ble_device(current_user: dict = Depends(get_current_user), devi
     return {"status": "deleted", "id": device_id}
 
 
-@router.post("/api/v1/ble/devices/{device_id}/sync")
+@router.post("/ble/devices/{device_id}/sync")
 async def sync_ble_device(current_user: dict = Depends(get_current_user), device_id: int = ...):
     """Trigger a sync/read from a BLE device. Frontend provides the data."""
     from ..db.database import get_ble_device, mark_ble_device_synced, log_athlete_metric

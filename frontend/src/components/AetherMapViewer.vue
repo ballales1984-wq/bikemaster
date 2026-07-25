@@ -32,6 +32,13 @@ interface MapPoint {
   altitude?: number;
 }
 
+const DEMO_POINTS: MapPoint[] = [
+  { lat: 45.0, lon: 9.0, speed: 20, altitude: 120 },
+  { lat: 45.001, lon: 9.002, speed: 25, altitude: 122 },
+  { lat: 45.002, lon: 9.004, speed: 30, altitude: 125 },
+  { lat: 45.003, lon: 9.006, speed: 28, altitude: 123 },
+];
+
 const props = defineProps<{
   points?: MapPoint[];
   rideIds?: number[];
@@ -41,6 +48,7 @@ const props = defineProps<{
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 let gl: WebGL2RenderingContext | null = null;
 let rafId: number | null = null;
+let resizeObserver: ResizeObserver | null = null;
 
 let globeBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
 let routeBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
@@ -180,6 +188,8 @@ async function fetchTerrainTile(
     return cached.heights;
   }
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
     const params = new URLSearchParams({
       min_lat: String(minLat),
       max_lat: String(maxLat),
@@ -188,7 +198,8 @@ async function fetchTerrainTile(
       resolution: String(resolution),
       source: "auto",
     });
-    const resp = await fetch(`/api/v1/aethermap/terrain?${params}`);
+    const resp = await fetch(`/api/v1/aethermap/terrain?${params}`, { signal: controller.signal });
+    clearTimeout(timeout);
     if (!resp.ok) return null;
     const data = await resp.json();
     const heights = new Float32Array(data.heights);
@@ -247,19 +258,14 @@ function getLODResolution(camDist: number): number {
   return 8;
 }
 
-async function buildGlobeBuffers(N: number): Promise<{ positions: Float32Array; normals: Float32Array; indices: Uint32Array; vertexCount: number }> {
-  const tilePromises = Array.from({ length: 6 }, (_, f) => {
-    const bounds = faceLatLonBounds(f);
-    return fetchTerrainTile(bounds.minLat, bounds.maxLat, bounds.minLon, bounds.maxLon, N);
-  });
-  const tiles = await Promise.all(tilePromises);
-
+function buildTerrainMesh(tiles: (Float32Array | null)[], N: number) {
   const verts: Vec3[][][] = [];
   const skirtVerts: Vec3[][][] = [];
 
   for (let f = 0; f < 6; f++) {
     verts[f] = [];
     skirtVerts[f] = [];
+    const bounds = faceLatLonBounds(f);
     const tile = tiles[f];
     for (let i = 0; i <= N; i++) {
       verts[f][i] = [];
@@ -271,8 +277,8 @@ async function buildGlobeBuffers(N: number): Promise<{ positions: Float32Array; 
         const { lat, lon } = latLonFromDir(dir);
         let terrainH = 0;
         if (tile) {
-          const tileU = (lon - faceLatLonBounds(f).minLon) / (faceLatLonBounds(f).maxLon - faceLatLonBounds(f).minLon);
-          const tileV = 1.0 - (lat - faceLatLonBounds(f).minLat) / (faceLatLonBounds(f).maxLat - faceLatLonBounds(f).minLat);
+          const tileU = (lon - bounds.minLon) / (bounds.maxLon - bounds.minLon);
+          const tileV = 1.0 - (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat);
           const clampedU = Math.max(0, Math.min(1, tileU));
           const clampedV = Math.max(0, Math.min(1, tileV));
           terrainH = sampleTerrainTile(tile, N, clampedU, clampedV);
@@ -362,6 +368,19 @@ async function buildGlobeBuffers(N: number): Promise<{ positions: Float32Array; 
     indices: new Uint32Array(indices),
     vertexCount,
   };
+}
+
+function buildProceduralGlobeBuffers(N: number) {
+  return buildTerrainMesh(Array.from({ length: 6 }, () => null), N);
+}
+
+async function buildGlobeBuffers(N: number): Promise<{ positions: Float32Array; normals: Float32Array; indices: Uint32Array; vertexCount: number }> {
+  const tilePromises = Array.from({ length: 6 }, (_, f) => {
+    const bounds = faceLatLonBounds(f);
+    return fetchTerrainTile(bounds.minLat, bounds.maxLat, bounds.minLon, bounds.maxLon, N);
+  });
+  const tiles = await Promise.all(tilePromises);
+  return buildTerrainMesh(tiles, N);
 }
 
 function latLonFromDir(dir: Vec3): { lat: number; lon: number } {
@@ -470,7 +489,6 @@ function updateDynamicBuffers(points: MapPoint[], colorBySpeed: boolean) {
 
   const routeData: number[] = [];
   const pointData: number[] = [];
-  const markerData: number[] = [];
   let prev: Vec3 | null = null;
   for (const p of points) {
     const dir = geodeticToDirection(p.lat, p.lon);
@@ -562,7 +580,7 @@ function updateSceneBuffers(sc: AetherScene) {
     vViewPos = viewPos.xyz;
     vec3 n = normalize(aPosition);
     vLatLon = vec2(asin(clamp(n.z, -1.0, 1.0)), atan(n.y, n.x));
-    vElevation = length(aPosition) - ${GLOBE_RADIUS.toFixed(1)};
+    vElevation = clamp((length(aPosition) - 1.0) * 1600.0, 0.0, 1.0);
   }`;
 
   const FS = `#version 300 es
@@ -675,17 +693,33 @@ function updateSceneBuffers(sc: AetherScene) {
   const A_p = gl!.getAttribLocation(prog, "aPosition");
   const A_n = gl!.getAttribLocation(prog, "aNormal");
 
-  const globeData = await buildGlobeBuffers(getLODResolution(camDist));
+  const globeData = buildProceduralGlobeBuffers(getLODResolution(camDist));
   currentLOD = getLODResolution(camDist);
   let globePosBuf = makeBuffer(globeData.positions, gl!.TRIANGLES, 3);
   let globeNormBuf = makeBuffer(globeData.normals, gl!.TRIANGLES, 3);
   let globeIdxBuf = makeIndexBuffer(globeData.indices);
   let globeIdxCount = globeData.indices.length;
 
-  if (scene.value) {
-    updateSceneBuffers(scene.value);
+  buildGlobeBuffers(getLODResolution(camDist)).then(data => {
+    if (!gl) return;
+    if (globePosBuf) gl.deleteBuffer(globePosBuf.buf);
+    if (globeNormBuf) gl.deleteBuffer(globeNormBuf.buf);
+    if (globeIdxBuf) gl.deleteBuffer(globeIdxBuf);
+    globePosBuf = makeBuffer(data.positions, gl!.TRIANGLES, 3);
+    globeNormBuf = makeBuffer(data.normals, gl!.TRIANGLES, 3);
+    globeIdxBuf = makeIndexBuffer(data.indices);
+    globeIdxCount = data.indices.length;
+  });
+
+  const hasScene = scene.value != null;
+  const hasPoints = props.points && props.points.length > 0;
+
+  if (hasScene) {
+    updateSceneBuffers(scene.value as AetherScene);
+  } else if (hasPoints) {
+    updateDynamicBuffers(props.points!, props.colorBySpeed || false);
   } else {
-    updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
+    updateDynamicBuffers(DEMO_POINTS, true);
   }
 
   let yaw = 0.6;
@@ -712,12 +746,6 @@ function updateSceneBuffers(sc: AetherScene) {
     globeIdxBuf = makeIndexBuffer(data.indices);
     globeIdxCount = data.indices.length;
     globePending = false;
-  }
-
-  if (scene.value) {
-    updateSceneBuffers(scene.value);
-  } else {
-    updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
   }
 
   canvasEl.addEventListener("pointerdown", (e: PointerEvent) => {
@@ -760,11 +788,15 @@ function updateSceneBuffers(sc: AetherScene) {
   canvasEl.tabIndex = 0;
 
   function resize() {
+    const container = canvasEl.parentElement;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvasEl.width = Math.floor(innerWidth * dpr);
-    canvasEl.height = Math.floor(innerHeight * dpr);
+    canvasEl.width = Math.floor(rect.width * dpr);
+    canvasEl.height = Math.floor(rect.height * dpr);
   }
-  addEventListener("resize", resize);
+  resizeObserver = new ResizeObserver(() => resize());
+  resizeObserver.observe(canvasEl.parentElement!);
   resize();
 
   const sunDir = normalize3([0.6, 0.8, 0.4]);
@@ -836,7 +868,7 @@ function updateSceneBuffers(sc: AetherScene) {
 
 watch(() => [props.points, props.colorBySpeed], () => {
   if (!gl) return;
-  if (!scene.value) updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
+  if (!scene.value) updateDynamicBuffers(props.points && props.points.length > 0 ? props.points : DEMO_POINTS, props.colorBySpeed || false);
 });
 
 watch(
@@ -844,7 +876,7 @@ watch(
   (sc) => {
     if (!gl) return;
     if (sc) updateSceneBuffers(sc);
-    else updateDynamicBuffers(props.points || [], props.colorBySpeed || false);
+    else updateDynamicBuffers(props.points && props.points.length > 0 ? props.points : DEMO_POINTS, props.colorBySpeed || false);
   },
   { deep: false },
 );
@@ -859,6 +891,7 @@ onBeforeUnmount(() => {
       globeBuffer, routeBuffer, pointBuffer, markerBuffer
     ].forEach((b) => { if (b) gl!.deleteBuffer(b.buf); });
   }
+  resizeObserver?.disconnect();
 });
 </script>
 
