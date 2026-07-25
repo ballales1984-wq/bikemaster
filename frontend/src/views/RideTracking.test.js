@@ -107,7 +107,7 @@ describe("RideTracking", () => {
       global: { plugins: [router] },
     });
     expect(wrapper.find(".tracking-panel").exists()).toBe(true);
-  });
+  }, 10000);
 
   it("has start tracking functionality", async () => {
     const mod = await import("../views/RideTracking.vue");

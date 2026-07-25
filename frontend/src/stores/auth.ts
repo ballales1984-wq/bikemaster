@@ -61,6 +61,7 @@ export const useAuthStore = defineStore("auth", () => {
     return token.value ? { Authorization: `Bearer ${token.value}` } : {};
   }
 
+  /* eslint-disable-next-line no-undef */
   async function apiFetch<T = unknown>(
     path: string,
     options: RequestInit = {},
@@ -154,7 +155,9 @@ export const useAuthStore = defineStore("auth", () => {
           headers: { ...getAuthHeader() },
         }).catch(() => {});
       }
-    } catch {}
+    } catch {
+      // ignore logout cleanup errors
+    }
 
     token.value = "";
     user.value = null;
@@ -227,7 +230,7 @@ export const useAuthStore = defineStore("auth", () => {
     resetSessionExpiredNotification();
   }
 
-  function setOauthError(oauthError: string) {
+  function setOauthError(_oauthError: string) {
     token.value = "";
     user.value = null;
     justLoggedIn.value = false;
