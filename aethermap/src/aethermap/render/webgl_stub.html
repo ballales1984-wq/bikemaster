@@ -216,7 +216,23 @@ void main() {
       }
     }
   }
+  const DEF_YAW = 0.6, DEF_PITCH = 0.35, DEF_ZOOM = 2.5;
+  let yaw = DEF_YAW, pitch = DEF_PITCH, zoom = DEF_ZOOM;
+  let tyaw = yaw, tpitch = pitch, tzoom = zoom;
+  let dragging = false, lx = 0, ly = 0;
+  let wireframe = false;
+  let mouseX = -1, mouseY = -1;
+  let hoveredId = null;
+  let selectedId = null;
+  let s2Grid = false;
+
   let worldData = await loadWorld();
+  if (worldData.camera) {
+    yaw = worldData.camera.yaw;
+    pitch = worldData.camera.pitch;
+    zoom = worldData.camera.distance;
+    tyaw = yaw; tpitch = pitch; tzoom = zoom;
+  }
   function entityLodMinS2(zoom) {
     if (zoom < 1.0) return 4;
     if (zoom < 2.0) return 6;
@@ -392,22 +408,10 @@ void main() {
     gl.bindVertexArray(null);
   });
 
-   /* =========================================================================
-      CAMERA
-      ========================================================================= */
-   const DEF_YAW = 0.6, DEF_PITCH = 0.35, DEF_ZOOM = 2.5;
-   let yaw = worldData.camera ? worldData.camera.yaw : 0.6;
-   let pitch = worldData.camera ? worldData.camera.pitch : 0.35;
-   let zoom = worldData.camera ? worldData.camera.distance : 2.5;
-   let tyaw = yaw, tpitch = pitch, tzoom = zoom;
-   let dragging = false, lx = 0, ly = 0;
-    let wireframe = false;
-     let mouseX = -1, mouseY = -1;
-     let hoveredId = null;
-     let selectedId = null;
-     let s2Grid = false;
-
-    const ATM_COLOR = [0.35, 0.55, 0.95];
+    /* =========================================================================
+       CAMERA
+       ========================================================================= */
+     const ATM_COLOR = [0.35, 0.55, 0.95];
 
     canvas.addEventListener("pointerdown", e => {
       dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId);
