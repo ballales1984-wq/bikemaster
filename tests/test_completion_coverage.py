@@ -339,10 +339,10 @@ def _reset_coach_state():
 
 
 def test_ai_coach_prompt_helpers():
-    assert "BREVE" in coach._system_prompt()
-    assert "ESEMPI" in coach._few_shot_training_examples()
-    assert "Recupero" in coach._few_shot_recovery_examples()
-    assert "REGOLE" in coach._rules_section()
+    assert "BRIEF" in coach._system_prompt()
+    assert "EXAMPLES" in coach._few_shot_training_examples()
+    assert "Recovery" in coach._few_shot_recovery_examples()
+    assert "RULES" in coach._rules_section()
 
 
 def test_build_athlete_context():
@@ -443,9 +443,9 @@ def test_get_ai_coach_client_valid_env_key(monkeypatch):
 def test_generate_training_plan_branches():
     a = AthleteProfile(name="X", weight_kg=70.0, experience_level="Beginner", ftp_watts=250)
     p1 = coach.generate_training_plan(a, fitness_state={"tsb": -20})
-    assert any(w["type"] == "Recupero" for w in p1["workouts"])
+    assert any(w["type"] == "Recovery" for w in p1["workouts"])
     p2 = coach.generate_training_plan(a, fitness_state={"tsb": 15})
-    assert any(w["type"] in ("Qualita", "VO2max") for w in p2["workouts"])
+    assert any(w["type"] in ("Quality", "VO2max") for w in p2["workouts"])
     p3 = coach.generate_training_plan(a, fitness_state={"tsb": 0})
     assert len(p3["workouts"]) >= 1
 
@@ -454,7 +454,7 @@ def test_generate_training_plan_no_fitness_state():
     a = AthleteProfile(name="X", weight_kg=70.0, experience_level="Elite", ftp_watts=300)
     p = coach.generate_training_plan(a)
     assert p["ftp_watts"] == 300
-    assert "Piano generico" in p["explanation"] or "livello" in p["explanation"]
+    assert "Generic plan" in p["explanation"] or "expert level" in p["explanation"]
 
 
 def test_analyze_anomalies_variants():
@@ -494,7 +494,7 @@ def test_ai_coach_full_local(monkeypatch, tmp_path):
 
 def test_chat_with_tools_local_mode():
     out = coach.chat_with_tools([{"role": "user", "content": "hi"}])
-    assert "configurato" in out["content"] or "locale" in out["content"]
+    assert "LLM provider" in out["content"] or "Local" in out["content"]
 
 
 def test_kb_with_session(monkeypatch):

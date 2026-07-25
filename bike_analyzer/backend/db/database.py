@@ -1502,7 +1502,7 @@ def log_athlete_metric(
     if value is None:
         return 0
     if not recorded_at:
-        recorded_at = datetime.now(timezone.utc).isoformat()
+        recorded_at = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -1518,7 +1518,7 @@ def log_athlete_metric(
                 note,
                 source,
                 recorded_at,
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
             ),
         )
         conn.commit()
@@ -3322,7 +3322,7 @@ def register_ble_device(
     settings: str | None = None,
 ) -> int:
     """Register or update a BLE device for an athlete."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     settings_json = settings or "{}"
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3406,7 +3406,7 @@ def unregister_ble_device(device_id: int, athlete_id: int) -> bool:
 
 def mark_ble_device_connected(device_id: int, athlete_id: int) -> None:
     """Update last_connected_at timestamp."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
         conn.execute("UPDATE ble_devices SET last_connected_at = ? WHERE id = ? AND athlete_id = ?", (now, device_id, athlete_id))
         conn.commit()
@@ -3414,7 +3414,7 @@ def mark_ble_device_connected(device_id: int, athlete_id: int) -> None:
 
 def mark_ble_device_synced(device_id: int, athlete_id: int) -> None:
     """Update last_synced_at timestamp."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
         conn.execute("UPDATE ble_devices SET last_synced_at = ? WHERE id = ? AND athlete_id = ?", (now, device_id, athlete_id))
         conn.commit()

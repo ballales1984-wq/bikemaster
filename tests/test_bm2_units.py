@@ -114,14 +114,14 @@ def test_imperial_length_conversions():
 
 def test_explain_conversion():
     steps = default_registry.explain_conversion(q(1.0, "km"), "m")
-    assert any("Fattore verso canonica" in s for s in steps)
-    assert any("Fattore da canonica a m" in s for s in steps)
+    assert any("Factor to canonical" in s for s in steps)
+    assert any("Factor from canonical" in s for s in steps)
     temp_steps = default_registry.explain_conversion(q(32.0, "°F"), "°C")
-    assert any("Passaggio intermedio: Kelvin" in s for s in temp_steps)
+    assert any("Intermediate step: Kelvin" in s for s in temp_steps)
     slope_steps = default_registry.explain_conversion(q(100.0, "%"), "deg")
-    assert any("Conversione non lineare" in s for s in slope_steps)
+    assert any("Non-linear conversion" in s for s in slope_steps)
     bad_steps = default_registry.explain_conversion(q(10.0, "kg"), "m")
-    assert any("ERRORE: dimensioni incompatibili" in s for s in bad_steps)
+    assert any("ERROR: incompatible dimensions" in s for s in bad_steps)
 
 
 def test_power_to_weight():

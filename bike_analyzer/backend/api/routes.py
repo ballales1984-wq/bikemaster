@@ -593,7 +593,7 @@ async def create_itinerary(
     from ..db.database import save_itinerary
 
     athlete_id = _user_id(current_user)
-    data = payload.model_dump(exclude_unset=True)
+    data = payload.model_dump()
     data["athlete_id"] = athlete_id
     data["tenant_id"] = current_user.get("tenant_id", athlete_id)
     itinerary_id = save_itinerary(data)
@@ -4189,7 +4189,8 @@ async def list_calendar_events(
     """List calendar events for an athlete in a given month."""
     from ..db.database import get_events_by_month
 
-    tenant_id = current_user.get("tenant_id", athlete_id)
+    is_admin = current_user.get("is_admin", False)
+    tenant_id = current_user.get("tenant_id", athlete_id) if not is_admin else None
     _ensure_athlete_access(athlete_id, current_user)
     events = get_events_by_month(athlete_id, year, month, tenant_id)
     return {"events": events}
@@ -4205,7 +4206,8 @@ async def list_events_by_range(
     """List calendar events for an athlete within a date range."""
     from ..db.database import get_events_by_date_range
 
-    tenant_id = current_user.get("tenant_id", athlete_id)
+    is_admin = current_user.get("is_admin", False)
+    tenant_id = current_user.get("tenant_id", athlete_id) if not is_admin else None
     _ensure_athlete_access(athlete_id, current_user)
     events = get_events_by_date_range(athlete_id, start, end, tenant_id)
     return {"events": events}

@@ -41,8 +41,8 @@ class ValidatedRide(BaseModel):
 
     athlete_id: int = Field(..., gt=0)
     date: date
-    distance_km: float = Field(..., ge=0, le=500)
-    duration_minutes: float = Field(..., ge=0, le=1440)
+    distance_km: float = Field(..., gt=0, le=500)
+    duration_minutes: float = Field(..., gt=0, le=1440)
     avg_speed_kmh: float | None = Field(None, ge=0, le=80)
     elevation_gain_m: float | None = Field(None, ge=0, le=15000)
     calories: float | None = Field(None, ge=0)

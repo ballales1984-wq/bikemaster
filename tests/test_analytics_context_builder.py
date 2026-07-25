@@ -49,7 +49,7 @@ def test_build_recovery_context_with_fitness(builder):
     assert ctx["recovery_score"] == 2.0
     assert ctx["recovery_needed"] is True
     assert ctx["hours_needed"] == 36
-    assert "affaticamento accumulato" in ctx["explanation"]
+    assert "accumulated fatigue" in ctx["explanation"]
 
 
 def test_build_recovery_context_score_clamped(builder):
@@ -96,7 +96,7 @@ def test_compute_trends_declining(builder):
 
 def test_recommendations_positive_tsb(builder):
     recs = builder._recommendations_from_state({"tsb": 20, "atl": 50, "ctl": 60})
-    assert any("freschezza" in r for r in recs)
+    assert any("Ready for intense efforts" in r for r in recs)
 
 
 def test_recommendations_negative_tsb(builder):
@@ -117,19 +117,19 @@ def test_recommendations_none(builder):
 def test_build_explanation_fatigue(builder):
     fitness = {"tsb": -25, "atl": 70, "ctl": 60, "recovery_hours_needed": 12}
     exp = builder._build_explanation(fitness)
-    assert "affaticamento accumulato" in exp
+    assert "accumulated fatigue" in exp
 
 
 def test_build_explanation_fresh(builder):
     fitness = {"tsb": 20, "atl": 50, "ctl": 60}
     exp = builder._build_explanation(fitness)
-    assert "buona freschezza" in exp
+    assert "good freshness" in exp
 
 
 def test_build_explanation_stable(builder):
     fitness = {"tsb": 5, "atl": 55, "ctl": 60}
     exp = builder._build_explanation(fitness)
-    assert exp == "Stato di forma stabile"
+    assert exp == "Stable fitness state"
 
 
 def test_build_explanation_no_data(builder):
