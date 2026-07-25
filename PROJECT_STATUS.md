@@ -6,11 +6,10 @@
 > Fonte di verità unica per stato/checklist: [`ROADMAP.md`](ROADMAP.md).
 >
 > **Numeri backend/frontend (verificati 2026-07-24, repo root):**
-> - Backend: **~3255 passed / 2 failed** su ~3257 test eseguiti (`pytest`, in chunk per stabilità d'ambiente). I 2 failure sono errori d'ambiente SQLAlchemy async (`MissingGreenlet`). Aggiunti **64 nuovi test** in `tests/test_coverage_ai_routes.py` (56 passati) per copertura AI e route.
+> - Backend: **~3255 passed / 2 failed** su ~3257 test eseguiti (`pytest`, in chunk per stabilità d'ambiente). I 2 failure sono errori d'ambiente SQLAlchemy async (`MissingGreenlet`). Aggiunti **130+ nuovi test** in `tests/test_coverage_ai_routes.py` (~120 passati) per copertura AI e route.
 > - Frontend: **332 passed / 31 failed / 20 errors** su **363** test (53 file) — `vitest run` eseguito 2026-07-17.
 > - Endpoint REST: **138** (conteggio storico 2026-07-13).
-> - Test copertura AI/route: **84+ test** in \	ests/test_coverage_ai_routes.py\, routes.py ~30%, ai_coach ~34%, knowledge_base ~55%.
-> - Coverage: routes.py ~30%, ai_coach.py ~34%, knowledge_base.py ~55% (target >90%).
+> - Coverage: routes.py ~30%, ai_coach ~55%, knowledge_base ~65% (target >90%).
 > I conteggi storici di file (108 backend / 47 frontend) sono riportati a titolo di riferimento.
 
 ### AetherMap (R&D separato)

@@ -65,7 +65,7 @@ Altrimenti, committare prima del merge.
    bloccanti, prioritizzare quelli che rompono feature shipped
 6. **Fix 2 test backend** (MissingGreenlet): spostare in `pytest.ini` come skip
    noto d'ambiente, oppure fixare il fixture setup
-7. **Coverage > 90%** su `routes.py` e moduli AI — routes.py ~30%, ai_coach ~34%, knowledge_base ~55% (`tests/test_coverage_ai_routes.py`, ~56 test function attivi, molti in miglioramento)
+7. **Coverage > 90%** su `routes.py` e moduli AI — routes.py ~30%, ai_coach ~55%, knowledge_base ~65% (file `tests/test_coverage_ai_routes.py`, 130+ test function attivi dopo fix assertion e rimozione test hanging)
 8. **Documentazione consolidata**:
    - Eliminare duplicati IT in `docs/archive/`
    - Unificare `docs/MASTER.md` + `docs/UNIFIED_DOCUMENTATION.md` in un solo file
