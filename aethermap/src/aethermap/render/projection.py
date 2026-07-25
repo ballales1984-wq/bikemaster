@@ -17,7 +17,7 @@ R = 6_371_000.0
 
 
 def direction_from_cube(face: int, u: float, v: float) -> np.ndarray:
-    g = cube_to_geodetic(CubeCell(face, u, v))
+    g = cube_to_geodetic(CubeCell(face, u, v), alt=0.0)
     return np.array(geodetic_to_direction(g.lat, g.lon)) * R
 
 

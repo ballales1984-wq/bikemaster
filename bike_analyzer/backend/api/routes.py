@@ -1506,6 +1506,129 @@ async def get_aethermap_terrain(
     }
 
 
+@router.get("/aethermap/world")
+async def get_aethermap_world():
+    """Return the full AetherMap world data for the WebGL renderer.
+
+    Returns terrain mesh, entities, relations, and camera settings
+    in the format expected by ``webgl_stub.html``.
+    """
+    import math
+    import tempfile
+    from pathlib import Path
+
+    import numpy as np
+
+    from aethermap.render.webgl_exporter import (
+        _build_full_heightfield,
+        _entity_to_gl,
+        _terrain_mesh_from_hf,
+        export_world,
+    )
+    from aethermap.twin.objects import make_albero, make_montagna, make_strada
+    from aethermap.twin.world import DigitalTwin, Environment
+
+    twin = DigitalTwin()
+    pts = [
+        {"lat": 45.0 + i * 0.0005, "lon": 9.0 + i * 0.0006, "ele": 120 + (i % 2) * 2}
+        for i in range(6)
+    ]
+    twin.add(make_strada("strada-1", 45.0, 9.0, pts))
+    twin.add(make_albero("albero-1", 45.005, 9.01, "quercia", 8.5))
+    twin.add(make_montagna("montagna-1", 45.015, 9.03, 1800.0, ["nord", "sud", "est"]))
+
+    env = Environment(temp_c=15.0, solar_elev_deg=30.0, ora="12:00")
+    twin.step(env)
+
+    n_terrain = 64
+    hf = _build_full_heightfield(n_terrain, 0.0, 0.04).flatten()
+    terrain = _terrain_mesh_from_hf(hf, n_terrain)
+
+    entities = []
+    for obj in twin.store.objects.values():
+        entities.append(_entity_to_gl(obj))
+
+    relations = []
+    for obj in twin.store.objects.values():
+        for rel in obj.relazioni:
+            relations.append({
+                "from": obj.id,
+                "to": rel.target_id,
+                "tipo": rel.tipo,
+                "peso": rel.peso,
+            })
+
+    return {
+        "version": "aethermap-webgl-1.0",
+        "terrain": terrain,
+        "entities": entities,
+        "relations": relations,
+        "camera": {"yaw": 0.6, "pitch": 0.35},
+        "earth_r": 6371000.0,
+    }
+
+
+@router.get("/aethermap/terrain-tile")
+async def get_aethermap_terrain_tile(
+    face: int = Query(0, ge=0, le=5, description="Cube face index (0-5)"),
+    resolution: int = Query(64, ge=8, le=256, description="Grid resolution"),
+):
+    """Return a cube-sphere terrain mesh for a single face.
+
+    Used by the WebGL renderer for LOD terrain streaming.
+    """
+    import numpy as np
+
+    from aethermap.core.coordinates import geodetic_to_direction
+    from aethermap.render.webgl_exporter import _build_heightfield, _face_direction
+
+    n = resolution
+    hf = _build_heightfield(n, 0.0, 0.04)
+    face_hf = hf  # same procedural heightfield for all faces
+
+    positions: list[list[float]] = []
+    normals: list[list[float]] = []
+    indices: list[int] = []
+    grid_size = n + 2
+
+    base_idx = 0
+    for i in range(grid_size):
+        for j in range(grid_size):
+            src_i = max(0, min(i - 1, n - 1))
+            src_j = max(0, min(j - 1, n - 1))
+            u = (src_i / (n - 1)) * 2.0 - 1.0
+            v = (src_j / (n - 1)) * 2.0 - 1.0
+            d = _face_direction(face, u, v)
+            h = float(face_hf[src_i, src_j])
+            is_skirt = i == 0 or i == grid_size - 1 or j == 0 or j == grid_size - 1
+            if is_skirt:
+                h = min(h, 0.0) - 0.0001
+            px = float(d[0] * (1.0 + h))
+            py = float(d[1] * (1.0 + h))
+            pz = float(d[2] * (1.0 + h))
+            positions.append([px, py, pz])
+            normals.append([float(d[0]), float(d[1]), float(d[2])])
+
+    for i in range(grid_size - 1):
+        for j in range(grid_size - 1):
+            a = base_idx + i * grid_size + j
+            b = base_idx + (i + 1) * grid_size + j
+            c = base_idx + (i + 1) * grid_size + (j + 1)
+            d2 = base_idx + i * grid_size + (j + 1)
+            indices.extend([a, b, d2])
+            indices.extend([b, c, d2])
+
+    return {
+        "positions": positions,
+        "normals": normals,
+        "indices": indices,
+        "grid_size": grid_size,
+        "face": face,
+        "resolution": resolution,
+        "source": "procedural",
+    }
+
+
 @router.post("/rides/analyze")
 async def analyze_rides(request: Request, payload: RideAnalysisRequest, current_user: dict = Depends(get_current_user)):
     """Run full analytics summary over a list of ride payloads."""
@@ -2711,7 +2834,7 @@ async def get_nutrition_food_item(
 
 @router.post("/metabolism/nutrition", status_code=201)
 async def create_nutrition_food_item(
-    item_data: NutritionFoodItemCreate,
+    item_data: NutritionFoodItemCreate = Body(...),
     current_user: dict = Depends(get_current_user),
 ):
     """Add a new food item to the user's personal database."""

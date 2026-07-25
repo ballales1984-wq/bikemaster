@@ -54,14 +54,17 @@ def geodetic_to_ecef(lat: float, lon: float, alt: float = 0.0) -> ECEF:
 def ecef_to_geodetic(x: float, y: float, z: float) -> Geodetic:
     lon = math.degrees(math.atan2(y, x))
     p = math.hypot(x, y)
-    lat = math.atan2(z, p * (1.0 - WGS84_E2))
-    for _ in range(8):
-        sin_lat = math.sin(lat)
-        n = WGS84_A / math.sqrt(1.0 - WGS84_E2 * sin_lat * sin_lat)
-        alt = p / math.cos(lat) - n
-        lat = math.atan2(z, p * (1.0 - WGS84_E2) * n / (n + alt))
+    a = WGS84_A
+    b = a * math.sqrt(1.0 - WGS84_E2)
+    e2 = WGS84_E2
+    ep2 = (a * a - b * b) / (b * b)
+    th = math.atan2(a * z, b * p)
+    lat = math.atan2(
+        z + ep2 * b * math.sin(th) ** 3,
+        p - e2 * a * math.cos(th) ** 3,
+    )
     sin_lat = math.sin(lat)
-    n = WGS84_A / math.sqrt(1.0 - WGS84_E2 * sin_lat * sin_lat)
+    n = a / math.sqrt(1.0 - e2 * sin_lat * sin_lat)
     alt = p / math.cos(lat) - n
     return Geodetic(math.degrees(lat), lon, alt)
 
@@ -102,7 +105,7 @@ def geodetic_to_cube(lat: float, lon: float, level: int = 0) -> CubeCell:
     return CubeCell(face, u, v, level)
 
 
-def cube_to_geodetic(cell: CubeCell) -> Geodetic:
+def cube_to_geodetic(cell: CubeCell, alt: float = 0.0) -> Geodetic:
     if cell.face in (0, 1):
         dx, dy, dz = _cube_face_axes(cell.face)[0], cell.u, cell.v
     elif cell.face in (2, 3):
@@ -110,7 +113,8 @@ def cube_to_geodetic(cell: CubeCell) -> Geodetic:
     else:
         dx, dy, dz = cell.u, cell.v, _cube_face_axes(cell.face)[2]
     norm = math.sqrt(dx * dx + dy * dy + dz * dz)
-    return ecef_to_geodetic_direction(dx / norm, dy / norm, dz / norm)
+    g = ecef_to_geodetic_direction(dx / norm, dy / norm, dz / norm)
+    return Geodetic(g.lat, g.lon, alt)
 
 
 def ecef_to_geodetic_direction(dx: float, dy: float, dz: float) -> Geodetic:

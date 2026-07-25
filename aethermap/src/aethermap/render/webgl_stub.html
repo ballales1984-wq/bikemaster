@@ -183,39 +183,49 @@ void main() {
   }
 
   document.getElementById("dem-btn").addEventListener("click", async () => {
-    try {
-      demEl.textContent = " · DEM: loading...";
-      const r = await fetch("/api/terrain-enhanced");
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      const data = await r.json();
-      if (data.terrain && data.terrain.positions) {
-        worldData.terrain = data.terrain;
-        worldData.dem_source = data.dem_source || "backend";
-        updateTerrainBuffers();
-        demEl.textContent = ` · DEM: ${worldData.dem_source}`;
-      }
-    } catch(e) {
-      demEl.textContent = " · DEM: error";
-    }
-  });
+     try {
+       demEl.textContent = " · DEM: loading...";
+       const faces = [];
+       for (let f = 0; f < 6; f++) {
+         const r = await fetch(`/api/v1/aethermap/terrain-tile?face=${f}&resolution=${currentLod || 64}`);
+         if (!r.ok) throw new Error("HTTP " + r.status);
+         faces.push(await r.json());
+       }
+       if (faces.length === 6) {
+         const merged = mergeTerrainParts(faces);
+         worldData.terrain = merged.terrain;
+         worldData.dem_source = faces[0].source || "backend-dem";
+         updateTerrainBuffers();
+         demEl.textContent = ` · DEM: ${worldData.dem_source}`;
+       }
+     } catch(e) {
+       demEl.textContent = " · DEM: procedural";
+     }
+   });
 
   async function loadWorld() {
-    try {
-      const resp = await fetch("/api/world");
-      if (!resp.ok) throw new Error("HTTP " + resp.status);
-      return await resp.json();
-    } catch(e) {
-      try {
-        const resp2 = await fetch("world_data.json");
-        if (!resp2.ok) throw new Error("HTTP " + resp2.status);
-        return await resp2.json();
-      } catch(e2) {
-        document.body.innerHTML +=
-          "<p style='color:#f55;padding:20px'>Impossibile caricare i dati del mondo: " + e2.message + "<br/>Esegui: python -m aethermap.render.webgl_exporter</p>";
-        throw e2;
-      }
-    }
-  }
+     try {
+       const resp = await fetch("/api/v1/aethermap/world");
+       if (!resp.ok) throw new Error("HTTP " + resp.status);
+       return await resp.json();
+     } catch(e) {
+       try {
+         const resp2 = await fetch("/api/world");
+         if (!resp2.ok) throw new Error("HTTP " + resp2.status);
+         return await resp2.json();
+       } catch(e2) {
+         try {
+           const resp3 = await fetch("world_data.json");
+           if (!resp3.ok) throw new Error("HTTP " + resp3.status);
+           return await resp3.json();
+         } catch(e3) {
+           document.body.innerHTML +=
+             "<p style='color:#f55;padding:20px'>Impossibile caricare i dati del mondo: " + e3.message + "<br/>Esegui: python -m aethermap.render.webgl_exporter</p>";
+           throw e3;
+         }
+       }
+     }
+   }
   const DEF_YAW = 0.6, DEF_PITCH = 0.35, DEF_ZOOM = 2.5;
   let yaw = DEF_YAW, pitch = DEF_PITCH, zoom = DEF_ZOOM;
   let tyaw = yaw, tpitch = pitch, tzoom = zoom;

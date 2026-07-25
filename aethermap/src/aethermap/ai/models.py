@@ -31,6 +31,14 @@ class Posizione(BaseModel):
     @classmethod
     def from_latlon(cls, lat: float, lon: float, alt: float = 0.0) -> "Posizione":
         c = geodetic_to_cube(lat, lon)
+        try:
+            s2 = s2_cell_id(lat, lon)
+        except RuntimeError:
+            s2 = None
+        try:
+            h3 = h3_cell(lat, lon)
+        except RuntimeError:
+            h3 = None
         return cls(
             lat=lat,
             lon=lon,
@@ -38,8 +46,8 @@ class Posizione(BaseModel):
             cube_face=c.face,
             cube_u=round(c.u, 6),
             cube_v=round(c.v, 6),
-            s2=s2_cell_id(lat, lon),
-            h3=h3_cell(lat, lon),
+            s2=s2,
+            h3=h3,
         )
 
 
