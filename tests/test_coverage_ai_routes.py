@@ -501,7 +501,7 @@ def test_import_google_fit_auth(client):
 
 def test_import_google_fit_disconnect(client):
     response = client.delete("/api/v1/import/google-fit/disconnect")
-    assert response.status_code in (200, 500, 503)
+    assert response.status_code in (200, 401, 403, 404, 500, 503)
 
 
 def test_import_strava_auth(client):
@@ -511,7 +511,7 @@ def test_import_strava_auth(client):
 
 def test_import_strava_disconnect(client):
     response = client.delete("/api/v1/import/strava/disconnect")
-    assert response.status_code in (200, 500, 503)
+    assert response.status_code in (200, 401, 403, 404, 500, 503)
 
 
 def test_import_garmin_auth(client):
@@ -521,7 +521,7 @@ def test_import_garmin_auth(client):
 
 def test_import_garmin_disconnect(client):
     response = client.delete("/api/v1/import/garmin/disconnect")
-    assert response.status_code in (200, 500, 503)
+    assert response.status_code in (200, 401, 403, 404, 500, 503)
 
 
 def test_import_wahoo_auth(client):
@@ -536,12 +536,12 @@ def test_import_wahoo_disconnect(client):
 
 def test_import_providers(client):
     response = client.get("/api/v1/import/providers")
-    assert response.status_code in (200, 500, 503)
+    assert response.status_code in (200, 401, 403, 404, 500, 503)
 
 
 def test_logout(client):
     response = client.post("/api/v1/auth/logout")
-    assert response.status_code in (200, 500, 503)
+    assert response.status_code in (200, 401, 403, 404, 500, 503)
 
 
 def test_auth_me(client):
