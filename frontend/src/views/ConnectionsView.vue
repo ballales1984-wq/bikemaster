@@ -489,6 +489,9 @@ async function connectStrava() {
       finish();
       resolve(event.data.code);
       clearTimeout(timer);
+      if (popup && !popup.closed) {
+        popup.close();
+      }
     };
     window.addEventListener("message", handleMessage);
   });

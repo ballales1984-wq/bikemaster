@@ -627,10 +627,13 @@ async function connectStrava() {
           }
           return;
         }
-        finish();
-        resolve(event.data.code);
-      };
-      window.addEventListener("message", handleMessage);
+      finish();
+      resolve(event.data.code);
+      if (popup && !popup.closed) {
+        popup.close();
+      }
+    };
+    window.addEventListener("message", handleMessage);
     });
 
     const cbResp = await fetch("/api/v1/import/strava/callback", {

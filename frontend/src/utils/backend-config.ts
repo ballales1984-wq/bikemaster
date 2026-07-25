@@ -86,22 +86,33 @@ export function setFallbackEnabled(enabled: boolean): void {
 }
 
 export function resolveApiBase(): string {
+  // If the SPA is served by the same backend through a tunnel domain
+  // (ngrok, cloudflared, Vercel preview), usa same-origin per evitare
+  // richieste cross-origin e problemi CORS.
+  if (typeof window !== "undefined" && typeof location !== "undefined") {
+    const h = location.hostname.toLowerCase();
+    if (
+      h === "localhost" ||
+      h === "127.0.0.1" ||
+      h.endsWith(".ngrok-free.dev") ||
+      h.endsWith(".trycloudflare.com") ||
+      h.endsWith(".vercel.app")
+    ) {
+      const p = location.port;
+      if (h === "localhost" || h === "127.0.0.1") {
+        if (p === "8000" || p === "8001") return "";
+      }
+      if (h.endsWith(".ngrok-free.dev") || h.endsWith(".trycloudflare.com") || h.endsWith(".vercel.app")) {
+        return "";
+      }
+    }
+  }
+
   const stored = getStoredApiBase();
   if (stored) return stored;
 
   if (isTauri()) {
     return TAURI_EMBEDDED_BACKEND_BASE;
-  }
-
-  // If the SPA is served by the same backend (e.g. http://localhost:8000
-  // o http://localhost:8001), usa same-origin per evitare richieste
-  // cross-origin (ngrok-free strip gli header CORS sulle risposte).
-  if (typeof window !== "undefined" && typeof location !== "undefined") {
-    const h = location.hostname;
-    const p = location.port;
-    if ((h === "localhost" || h === "127.0.0.1") && (p === "8000" || p === "8001")) {
-      return "";
-    }
   }
 
   const envBase =

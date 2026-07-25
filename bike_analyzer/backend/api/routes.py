@@ -4921,6 +4921,13 @@ def _strava_redirect_uri_for(request: Request) -> str:
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     if not host:
         raise HTTPException(status_code=500, detail="Strava redirect URI not configured and no host detected")
+    host_lower = host.lower()
+    if (
+        host_lower.endswith(".ngrok-free.dev")
+        or host_lower.endswith(".trycloudflare.com")
+        or host_lower.endswith(".vercel.app")
+    ):
+        proto = "https"
     return f"{proto}://{host}/api/v1/import/strava/callback"
 
 
