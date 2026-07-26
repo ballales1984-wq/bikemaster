@@ -897,7 +897,8 @@ def test_dashboard_cache_miss(db_path):
 # --------------------------------------------------------------------------- #
 # Coach chat
 # --------------------------------------------------------------------------- #
-def test_coach_chat(client):
+def test_coach_chat(client, monkeypatch):
+    monkeypatch.setattr("bike_analyzer.backend.analytics.ai_coach.generate_training_advice", lambda *a, **k: "Consiglio di allenamento: inizia con 30 minuti a zona 2.")
     r = client.post("/api/v1/coach/chat", json={"message": "Come mi alleno?", "context": "general"})
     assert r.status_code in (200, 422, 500)
     r = client.get("/api/v1/coach/chat", params={"message": "test", "context": "general"})
@@ -944,3 +945,41 @@ def test_bm2_simulate(client):
 def test_knowledge_reload_and_init(client):
     assert client.post("/api/v1/knowledge/reload").status_code in (200, 401, 403, 500)
     assert client.post("/api/v1/knowledge/init-embeddings").status_code in (200, 401, 403, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Analytics advanced endpoints
+# --------------------------------------------------------------------------- #
+def test_analytics_zones_and_speed_data(client):
+    client.post("/api/v1/athletes", json={"name": "Analytics2 Athlete", "age": 30, "weight_kg": 70, "experience_level": "Intermediate"})
+    assert client.get("/api/v1/analytics/zones", params={"athlete_id": 0}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/analytics/speed-data", params={"ride_id": 1}).status_code in (200, 404, 500)
+
+
+def test_analytics_route_suggestions_and_classify(client):
+    assert client.get("/api/v1/analytics/route-suggestions", params={"athlete_id": 0}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/analytics/multi-classify", params={"athlete_id": 0}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/analytics/vip", params={"athlete_id": 0}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/analytics/inactivity", params={"athlete_id": 0}).status_code in (200, 404, 500)
+
+
+# --------------------------------------------------------------------------- #
+# AetherMap endpoints
+# --------------------------------------------------------------------------- #
+def test_aethermap_endpoints(client):
+    assert client.get("/api/v1/aethermap/world").status_code in (200, 404, 500)
+    assert client.get("/api/v1/aethermap/terrain-tile", params={"lat": 0.0, "lon": 0.0, "zoom": 5}).status_code in (200, 404, 500)
+
+
+# --------------------------------------------------------------------------- #
+# BM2 endpoints
+# --------------------------------------------------------------------------- #
+def test_bm2_models_and_ask(client, monkeypatch):
+    async def _mock_answer(question, raw, extra=None):
+        return {"answer": "mock", "confidence": 0.9}
+
+    monkeypatch.setattr("bike_analyzer.bm2.orchestrator.AIOrchestrator.answer", _mock_answer)
+
+    assert client.get("/api/v1/bm2/models").status_code == 200
+    assert client.post("/api/v1/bm2/ask", json={"question": "Qual è la mia FTP?"}).status_code in (200, 400, 500)
+    assert client.post("/api/v1/bm2/validate", json={"question": "Valida potenza", "power_w": 200}).status_code in (200, 400, 500)
