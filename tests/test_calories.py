@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 
 from bike_analyzer.backend.analytics.calories import (
+    calculate_calories_met,
+    calculate_calories_physics,
     calories_per_km,
     ensure_calories,
     estimate_calories,
@@ -31,6 +33,18 @@ class TestEstimateCalories:
         assert estimate_calories(long) > estimate_calories(short)
 
 
+class TestCalculateCaloriesMet:
+    def test_returns_positive(self):
+        ride = Ride(duration_minutes=60.0, distance_km=30.0, avg_speed_kmh=30.0, weight_kg=70.0)
+        assert calculate_calories_met(ride) > 0
+
+
+class TestCalculateCaloriesPhysics:
+    def test_returns_positive(self):
+        ride = Ride(duration_minutes=60.0, distance_km=30.0, avg_speed_kmh=30.0, weight_kg=70.0)
+        assert calculate_calories_physics(ride) > 0
+
+
 class TestCaloriesPerKm:
     def test_zero_distance_returns_zero(self):
         ride = Ride(distance_km=0, calories=0)
@@ -54,3 +68,15 @@ class TestEnsureCalories:
     def test_zero_speed_returns_zero(self):
         ride = Ride(duration_minutes=60.0, distance_km=0, avg_speed_kmh=0, weight_kg=70.0, calories=0)
         assert ensure_calories(ride) == 0.0
+
+    def test_compute_missing_avg_speed_from_distance_and_duration(self):
+        ride = Ride(duration_minutes=60.0, distance_km=30.0, avg_speed_kmh=0, weight_kg=70.0, calories=0)
+        result = ensure_calories(ride)
+        assert ride.avg_speed_kmh == 30.0
+        assert result > 0
+
+    def test_default_weight_when_missing(self):
+        ride = Ride(duration_minutes=60.0, distance_km=30.0, avg_speed_kmh=30.0, weight_kg=0, calories=0)
+        result = ensure_calories(ride)
+        assert ride.weight_kg == 70.0
+        assert result > 0

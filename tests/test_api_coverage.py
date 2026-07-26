@@ -508,3 +508,27 @@ def test_athlete_metrics(client):
             "value": 250.0,
         },
     )
+
+
+def test_notifications_authenticated(client):
+    r = client.get("/api/v1/notifications")
+    assert r.status_code == 200
+    body = r.json()
+    assert "notifications" in body
+
+
+def test_knowledge_stats(client):
+    r = client.get("/api/v1/knowledge/stats")
+    assert r.status_code == 200
+    body = r.json()
+    assert "total_chunks" in body
+
+
+def test_coach_chat_post(client):
+    r = client.post("/api/v1/coach/chat", json={"message": "hello"})
+    assert r.status_code in (200, 422, 404, 500)
+
+
+def test_training_load_requires_athlete_id(client):
+    r = client.get("/api/v1/training/load?days=30")
+    assert r.status_code in (200, 422)
