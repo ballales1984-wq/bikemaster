@@ -158,8 +158,8 @@ split per cartella.
 
 ## FASE 6 — Documentazione consolidata (parallela, bassa priorità)
 
-18. Unificare `docs/MASTER.md` + `docs/UNIFIED_DOCUMENTATION.md` in un solo file;
-    `DELUXE_ROADMAP.md` → riferire a `ROADMAP.md` (anti-duplicazione).
+18. Unificare `docs/MASTER.md` e i contenuti di `docs/UNIFIED_DOCUMENTATION.md` in un solo file;
+     `docs/DELUXE_ROADMAP.md` → riferire a `ROADMAP.md` (anti-duplicazione).
 19. Non toccare `docs/archive/` (storico).
 
 ---

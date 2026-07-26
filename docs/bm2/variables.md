@@ -6,7 +6,7 @@
 stato reale nel codice, dove vive, e le variabili derivate che alimenta.
 
 > Questo documento è **ancorato al codice esistente**, non alla sola visione.
-> È il ponte tra la bozza di architettura (`docs/DELUXE_ROADMAP.md`,
+> È il ponte tra la bozza di architettura (`ROADMAP.md`,
 > `ROADMAP.md` Track D) e l'implementazione reale in `bm2/`.
 
 ---

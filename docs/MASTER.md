@@ -10,7 +10,7 @@ For topic-specific documentation, see [docs/README.md](./README.md).
 
 **Tauri 2 desktop** (`.exe`/`.dmg`/`.AppImage`) — Rust + WebView, frontend Vue 3 bundle inside WebView, backend FastAPI embedded su `localhost`, SQLite come database primario locale. PWA supportata per utenti web-only. PostgreSQL opzionale per cloud sync/community.
 
-Vedi anche [UNIFIED_DOCUMENTATION.md](./UNIFIED_DOCUMENTATION.md) per la sintesi architetturale aggiornata e [docs/ARCHITECTURE.md](./ARCHITECTURE.md) per Clean v2.
+Vedi anche [docs/ARCHITECTURE.md](./ARCHITECTURE.md) per Clean v2.
 
 ---
 
@@ -221,7 +221,7 @@ Infrastructure    Repositories · Ingestion (Strava/Garmin/Fit/GPX) ·
 
 Dependencies point only inward. The `Application` layer orchestrates; the `Domain` layer calculates; the `Infrastructure` layer persists/retrieves.
 
-> **Local-first (effective 2026-07-15):** the device is the source of truth. SQLite is the primary database for every user. PostgreSQL is optional/cloud-only for sync and community features. Users can run "Mai" (never sync) and use the app 100% offline. See [UNIFIED_DOCUMENTATION.md](./UNIFIED_DOCUMENTATION.md) §2 and §6 for details.
+> **Local-first (effective 2026-07-15):** the device is the source of truth. SQLite is the primary database for every user. PostgreSQL is optional/cloud-only for sync and community features. Users can run "Mai" (never sync) and use the app 100% offline. See §2 and §6 for details.
 
 ### Domain Layer (`core/`)
 

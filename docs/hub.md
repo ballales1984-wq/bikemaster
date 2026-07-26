@@ -14,7 +14,7 @@ Il modulo **hub** è il backend cloud opzionale di BikeMaster, separato dal modu
 python main.py hub --port 8001
 ```
 
-Richiede `DATABASE_URL` configurato per PostgreSQL. Vedi `docs/configuration.md` per le variabili d'ambiente specifiche.
+Richiede `DATABASE_URL` configurato per PostgreSQL. Vedi `docs/archive/configuration.md` per le variabili d'ambiente specifiche.
 
 ## Endpoint
 

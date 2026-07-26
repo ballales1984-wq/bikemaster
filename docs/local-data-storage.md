@@ -191,4 +191,4 @@ attività`). Test: `src/utils/localRideCache.test.ts` (con `fake-indexeddb`).
 | `frontend/android/.../BikeTrackingService.kt` | GPX locale nativo |
 
 **Collegati:** `PHONE_TRACKING.md`, `frontend.md`, `docs/agent/auth.md`,
-`docs/agent/notes.md`, `PRIVACY_POLICY_STORE.md`, `docs/deployment-plan.md`.
+`docs/agent/notes.md`, `PRIVACY_POLICY_STORE.md`, `docs/archive/deployment-plan.md`.

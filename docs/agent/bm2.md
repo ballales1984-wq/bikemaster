@@ -7,7 +7,7 @@
 - Filosofia type-safe: `Quantity` + `UnitRegistry` (analisi dimensionale), algoritmi `Algorithm`→`ModelResult`, dominio proprio `AnalysisContext`.
 - **Kernel fisico condiviso**: `bm2` delega a `bike_analyzer/core/physics/` (`cycling_forces`, `instantaneous_power`, `required_speed_for_power`). Non duplicare la fisica in `bm2`: usare `core.physics`.
 - È **già cablato** via `bike_analyzer/backend/api/bm2_routes.py` (montato in `app_factory.py`) e testato da `tests/test_bm2_*.py`.
-- **Non è ancora integrato** col flusso `Ride`/analytics esistente, né validato su dati reali di potenza/HR. Vedi `docs/DELUXE_ROADMAP.md` (Track D in `ROADMAP.md`) per stato e next-step.
+- **Non è ancora integrato** col flusso `Ride`/analytics esistente, né validato su dati reali di potenza/HR. Vedi `ROADMAP.md` (Track D) per stato e next-step.
 
 ## Struttura bm2/
 

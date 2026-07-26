@@ -12,14 +12,15 @@
 > - Coverage: routes.py ~30%, ai_coach ~55%, knowledge_base ~65% (target >90%).
 > I conteggi storici di file (108 backend / 47 frontend) sono riportati a titolo di riferimento.
 
-### AetherMap (R&D separato)
+### AetherMap (converged into BikeMaster — terrain intelligence module)
 
-Progetto cartografico indipendente in `aethermap/` — motore "dal nulla" (cube-sphere + S2/H3, data model "database del mondo", pipeline IA "ricercatore", rendering WebGL, digital twin). Condivide lo stack (Vue + FastAPI) ma non è importato dal backend BikeMaster.
+Progetto cartografico R&D fuso in BikeMaster come modulo terrain intelligence opzionale (`aethermap/`). Fornisce digital twin + AI pipeline per arricchimento coordinate terrain delle ride.
 
-- **Fasi 1-4 baseline**: earth model, data model, rendering WebGL completati.
-- **Fasi 3-5 in corso**: AI pipeline "ricercatore", digital twin.
+- **Fasi 1-5 complete**: earth model, data model, AI pipeline, WebGL rendering, digital twin. 129 test passing.
+- **Integrazione**: adapter in `bike_analyzer/backend/maps/aethermap_adapter.py`. Feature flag `BIKEMASTER_MAP_PROVIDER=aethermap` / `VITE_AETHERMAP_ENABLED=true`.
+- **Installazione**: `pip install -e ".[maps]"` (aethermap come dipendenza opzionale di bike_analyzer).
+- **Contratto dati**: `Ride/GPSPoint → terrain input` in `docs/agent/aethermap-convergence.md`.
 - Demo: `cd aethermap/src && python -m aethermap.ai.demo|.render.demo|.twin.demo`.
-- Agenti dedicati: `.kilo/agent/aethermap-*.md`.
 
 ### Ultimo Commit
 - `c41ecd6` — test: fix status assertions in coverage test file
@@ -281,7 +282,7 @@ Motore di simulazione sportiva ("what-if") con filosofia type-safe, **parallelo 
 prodotto ma già cablato** via `bm2_routes.py` (montato in `app_factory.py`). Il
 kernel fisico è **condiviso** con `core/physics/`: dal 2026-07-12 `bm2` delega a
 `core.physics` (`cycling_forces`, `instantaneous_power`, `required_speed_for_power`),
-eliminando il forward model duplicato. La visione "Deluxe" è in `docs/DELUXE_ROADMAP.md`.
+eliminando il forward model duplicato. La visione "Deluxe" è in `ROADMAP.md`.
 
 | Modulo | Ruolo |
 |---|---|

@@ -16,7 +16,7 @@
 | Frontend Vue 3 | **Stabile** | Vitest + Playwright configurati |
 | Tauri 2 desktop | **Funzionante** | Backend embedded + SQLite primario |
 | BM2 simulation engine | **Baseline** | 9 algoritmi, cablato via API |
-| AetherMap R&D | **Fasi 1-4 ok** | Fasi 3-5 in corso |
+| AetherMap R&D | **Fasi 1-5 complete** | Fasi 3-5 complete; convergence decision: AetherMap converges into BikeMaster |
 | Multi-tenant / auth | **Completo** | tenant_id + OAuth2 (Google, Strava, Garmin) |
 | Sync device↔cloud | **In corso** | 3 branch aperti da mergiare |
 | Coverage test | **In corso** | ~30% routes.py, ~34% ai_coach, ~55% knowledge_base — nuovi test in `tests/test_coverage_ai_routes.py` |
@@ -62,14 +62,14 @@ Altrimenti, committare prima del merge.
 ### Fase 2 — Stabilizzare (prossime 2 settimane)
 
 5. **Fix test frontend**: 31 failed + 20 errors su 363 — risolvere i fallimenti
-   bloccanti, prioritizzare quelli che rompono feature shipped
+    bloccanti, prioritizzare quelli che rompono feature shipped
 6. **Fix 2 test backend** (MissingGreenlet): spostare in `pytest.ini` come skip
-   noto d'ambiente, oppure fixare il fixture setup
+    noto d'ambiente, oppure fixare il fixture setup
 7. **Coverage > 90%** su `routes.py` e moduli AI — routes.py ~30%, ai_coach ~55%, knowledge_base ~65% (file `tests/test_coverage_ai_routes.py`, 130+ test function attivi dopo fix assertion e rimozione test hanging)
-8. **Documentazione consolidata**:
-   - Eliminare duplicati IT in `docs/archive/`
-   - Unificare `docs/MASTER.md` + `docs/UNIFIED_DOCUMENTATION.md` in un solo file
-   - `docs/DELUXE_ROADMAP.md` → riferire a `ROADMAP.md` invece di duplicare
+8. **Documentazione consolidata** ✅:
+    - ✅ Eliminati duplicati IT spostati in `docs/archive/` (6 file: `backend.md`, `stack-tecnologico.md`, `deployment.md`, `deployment-plan.md`, `configuration.md`, `frontend.md`)
+    - ✅ `docs/UNIFIED_DOCUMENTATION.md` unificata in `docs/MASTER.md` (redirect sostitutivo)
+    - ✅ `docs/DELUXE_ROADMAP.md` → riferisce a `ROADMAP.md` (contenuto sostituito con redirect)
 
 ### Fase 3 — Distribuzione (mese corrente)
 
@@ -87,11 +87,13 @@ Altrimenti, committare prima del merge.
 15. **AI Coach + BM2**: l'orchestratore NL usa i risultati simulazione per rispondere
     a domande tipo "se aumento FTP a 250W quanto miglioro?"
 
-### Fase 5 — AetherMap (R&D, tempo libero)
+### Fase 5 — AetherMap (R&D, completata)
 
-16. Completare Fase 3 (AI pipeline) e Fase 5 (digital twin)
-17. Decisione esplicita: `aethermap/` converge in BikeMaster o resta R&D separato
-18. Se convergente: definire contratto dati `Ride/GPSPoint → terrain input`
+16. ✅ Complete Fase 3 (AI pipeline) e Fase 5 (digital twin)
+17. ✅ Decisione esplicita: `aethermap/` converge in BikeMaster come modulo terrain intelligence
+18. ✅ Contratto dati `Ride/GPSPoint → terrain input` definito in `docs/agent/aethermap-convergence.md`
+
+> **Decisione (2026-07-26)**: AetherMap converge in BikeMaster. Il progetto rimane come sotto-package (`aethermap/`) con il suo `pyproject.toml` autonomo, ma è integrato come dipendenza opzionale (`pip install -e ".[maps]"`). La pipeline IA arricchisce le ride con dati terrain; il digital twin fornisce contesto ambientale (neve, ombra, traffico) per l'analisi e il coaching. Vedi `docs/agent/aethermap-convergence.md` per dettagli.
 
 ---
 
@@ -132,10 +134,10 @@ D:\BikeMaster/
 │   │   └── db/             # Local DB (SQLite WASM)
 │   ├── src-tauri/          # Tauri 2 Rust backend
 │   └── tests/              # E2E Playwright
-├── aethermap/              # R&D cartografia (separato da BikeMaster)
-├── docs/                   # Documentazione sviluppatore
-│   ├── archive/            # Materiale obsoleto (non toccare)
-│   └── reference/          # Dizionario dati, schemi
+├── aethermap/              # Terrain intelligence module (converged from R&D into BikeMaster)
+├── docs/                      # Documentazione sviluppatore
+│   ├── archive/                # Documentazione IT storica/douplicata (archiviata)
+│   ├── reference/              # Dizionario dati, schemi
 ├── scripts/                # Utility (tauri_agent.py, frontend_aligner.py)
 ├── tests/                  # Test legacy root (108 file — migrare in bike_analyzer/tests/)
 ├── android/                # Android Kotlin nativo (Capacitor)
@@ -187,4 +189,4 @@ cd aethermap/src && python -m aethermap.ai.demo
   modelli DB espansi, sicurezza, AetherMap temp refactor, cleaning generale.
 - **Non ricreare `temp_aethermap/`**: è già stato assorbito in `aethermap/`.
 - **Non ricreare script duplicati**: `scripts/` è la posizione canonica.
-- **Non modificare `docs/archive/`**: materiale storico, lasciare in pace.
+- **Non modificare `docs/archive/`**: contiene documentazione IT storica/douplicata archiviata, non toccare senza esplicita indicazione.

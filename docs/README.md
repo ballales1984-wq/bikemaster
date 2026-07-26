@@ -53,7 +53,6 @@ Riferimento esaustivo generato dal codice sorgente — **punto di partenza consi
 | Documento | Contenuto |
 |---|---|
 | [`docs/MASTER.md`](MASTER.md) | Documento di riferimento completo: stack, architettura, modelli, API, analytics, AI Coach |
-| [`docs/UNIFIED_DOCUMENTATION.md`](UNIFIED_DOCUMENTATION.md) | Sintesi unificante della documentazione (visione, logica di calcolo, BM2, AetherMap) |
 | [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) | Clean v2 Architecture — UnifiedMetricsEngine, FusionRecord, domain layers |
 | [`docs/DEVELOPMENT.md`](DEVELOPMENT.md) | Setup, build, test, lint, come contribuire |
 | [`docs/PRODUCT_LOGIC.md`](PRODUCT_LOGIC.md) | Visione prodotto, quattro pilastri, logica centrale, athlete state |
@@ -72,7 +71,7 @@ Riferimento esaustivo generato dal codice sorgente — **punto di partenza consi
 | [`docs/bm2/data-contracts.md`](bm2/data-contracts.md) | Contratti JSON scambiati tra Engine |
 | [`docs/bm2/database-schema.md`](bm2/database-schema.md) | Schema relazionale + time-series per BM2 |
 | [`docs/bm2/variables.md`](bm2/variables.md) | Dizionario variabili BM2 (domini, unità, gap vs codice) |
-| [`docs/DELUXE_ROADMAP.md`](DELUXE_ROADMAP.md) | Roadmap BikeMaster 2.0 / Deluxe Simulation Engine |
+| [`docs/DELUXE_ROADMAP.md`](DELUXE_ROADMAP.md) | Roadmap BikeMaster 2.0 / Deluxe Simulation Engine (vedi ROADMAP.md per la versione vigente) |
 
 ---
 
@@ -89,14 +88,6 @@ Progetto cartografico indipendente (`aethermap/`) — motore "dal nulla" con cub
 
 ## Sviluppo
 
-| Documento | Contenuto |
-|---|---|
-| [`docs/backend.md`](backend.md) | Moduli backend, integrazioni, sicurezza, monitoring, phone tracking |
-| [`docs/frontend.md`](frontend.md) | Vue 3 app, componenti, store, mobile (Android/iOS Capacitor, Tauri) |
-| [`docs/stack-tecnologico.md`](stack-tecnologico.md) | Stack tecnologico dettagliato (IT) |
-| [`docs/local-data-storage.md`](local-data-storage.md) | Dove e come i dati sono salvati sui dispositivi (offline-first) |
-| [`docs/database-migration.md`](database-migration.md) | Guida alle migrazioni database (Alembic) |
-
 ---
 
 ## Testing
@@ -112,9 +103,9 @@ Progetto cartografico indipendente (`aethermap/`) — motore "dal nulla" con cub
 
 | Documento | Contenuto |
 |---|---|
-| [`docs/deployment.md`](deployment.md) | Docker, Render, Fly.io, Railway, Kubernetes |
-| [`docs/deployment-plan.md`](deployment-plan.md) | Piano di deployment completo: architettura, sync, sicurezza, integrazioni |
-| [`docs/configuration.md`](configuration.md) | Variabili d'ambiente, secrets, API keys |
+| [`docs/deployment.md`](archive/deployment.md) | Docker, Render, Fly.io, Railway, Kubernetes |
+| [`docs/deployment-plan.md`](archive/deployment-plan.md) | Piano di deployment completo: architettura, sync, sicurezza, integrazioni |
+| [`docs/configuration.md`](archive/configuration.md) | Variabili d'ambiente, secrets, API keys |
 | [`docs/API_DOCS.md`](API_DOCS.md) | Riferimento API REST con tutti gli endpoint |
 | [`docs/API_EXAMPLES.http`](API_EXAMPLES.http) | Esempi di richieste API (HTTP file) |
 
@@ -157,3 +148,20 @@ Istruzioni specifiche per AI agent (progressive disclosure). Indice completo in 
 | [`docs/agent/aethermap.md`](agent/aethermap.md) | Confini del progetto AetherMap |
 | [`docs/agent/monitoring.md`](agent/monitoring.md) | Rate limiting, Redis, health checks |
 | [`docs/agent/notes.md`](agent/notes.md) | Note generali e gotcha per agent |
+
+---
+
+## Archivio (documentazione IT storica/douplicata)
+
+I documenti seguenti contengono contenuti IT duplicati (stack tecnologico, deployment, configurazione, backend/frontend) già coperti in `docs/MASTER.md` e sono archiviati in `docs/archive/` per eliminare ridondanze.
+
+| Documento originale | Archivio |
+|---|---|
+| `docs/backend.md` | [`archive/backend.md`](archive/backend.md) |
+| `docs/frontend.md` | [`archive/frontend.md`](archive/frontend.md) |
+| `docs/stack-tecnologico.md` | [`archive/stack-tecnologico.md`](archive/stack-tecnologico.md) |
+| `docs/deployment.md` | [`archive/deployment.md`](archive/deployment.md) |
+| `docs/deployment-plan.md` | [`archive/deployment-plan.md`](archive/deployment-plan.md) |
+| `docs/configuration.md` | [`archive/configuration.md`](archive/configuration.md) |
+
+Per la documentazione aggiornata e unificata, vedere `docs/MASTER.md`.
