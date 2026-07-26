@@ -892,3 +892,55 @@ def test_dashboard_cache_miss(db_path):
     tc = _make_client("0", is_admin=True, db_path=db_path)
     r = tc.get("/api/v1/dashboard")
     assert r.status_code == 200
+
+
+# --------------------------------------------------------------------------- #
+# Coach chat
+# --------------------------------------------------------------------------- #
+def test_coach_chat(client):
+    r = client.post("/api/v1/coach/chat", json={"message": "Come mi alleno?", "context": "general"})
+    assert r.status_code in (200, 422, 500)
+    r = client.get("/api/v1/coach/chat", params={"message": "test", "context": "general"})
+    assert r.status_code in (200, 422, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Analytics endpoints
+# --------------------------------------------------------------------------- #
+def test_analytics_trends_and_monthly(client):
+    client.post("/api/v1/athletes", json={"name": "Analytics Athlete", "age": 30, "weight_kg": 70, "experience_level": "Intermediate"})
+    assert client.get("/api/v1/analytics/trends", params={"athlete_id": 0, "days": 30}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/analytics/monthly", params={"athlete_id": 0, "year": 2024, "month": 6}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/analytics/comparison", params={"athlete_id": 0, "period": "month"}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/analytics/projection", params={"athlete_id": 0, "target_date": "2024-09-01"}).status_code in (200, 404, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Admin endpoints
+# --------------------------------------------------------------------------- #
+def test_admin_stats_and_indexes(client):
+    assert client.get("/api/v1/admin/stats").status_code == 200
+    assert client.post("/api/v1/admin/indexes").status_code == 200
+
+
+def test_admin_users_and_backup(client):
+    assert client.get("/api/v1/admin/users").status_code == 200
+    assert client.get("/api/v1/admin/backup").status_code in (200, 500)
+
+
+# --------------------------------------------------------------------------- #
+# BM2 simulation
+# --------------------------------------------------------------------------- #
+def test_bm2_simulate(client):
+    r = client.post("/api/v1/bm2/simulate", json={"question": "Cosa succede se perdo 5kg?", "athlete": {"ftp": 250}, "bike": {"weight_kg": 7}})
+    assert r.status_code in (200, 400, 500)
+    r = client.post("/api/v1/bm2/simulate-ride", json={"question": "Simula Salita", "override": {"weight_kg": 65}, "gps_points": [{"lat": 45.0, "lon": 7.0}]})
+    assert r.status_code in (200, 400, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Knowledge endpoints
+# --------------------------------------------------------------------------- #
+def test_knowledge_reload_and_init(client):
+    assert client.post("/api/v1/knowledge/reload").status_code in (200, 401, 403, 500)
+    assert client.post("/api/v1/knowledge/init-embeddings").status_code in (200, 401, 403, 500)

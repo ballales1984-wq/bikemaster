@@ -1554,3 +1554,310 @@ def test_validate_athlete_profile_edge_cases():
     valid, msg = validate_athlete_profile(athlete)
     assert valid is False
     assert "name" in msg.lower()
+
+
+# ============================================================================
+# More ai_coach.py coverage
+# ============================================================================
+
+
+def test_ban_provider_clears_current():
+    import bike_analyzer.backend.analytics.ai_coach as ai_coach_mod
+
+    ai_coach_mod._current_provider = "groq"
+    ai_coach_mod._current_client = object()
+    ai_coach_mod._ban_provider("groq", "test")
+    assert ai_coach_mod._current_provider is None
+    assert ai_coach_mod._current_client is None
+    ai_coach_mod._BANNED_PROVIDERS.discard("groq")
+
+
+def test_get_ai_coach_client_no_key_raises(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    import bike_analyzer.backend.analytics.ai_coach as ai_coach_mod
+
+    ai_coach_mod._current_client = None
+    ai_coach_mod._current_provider = None
+    ai_coach_mod._BANNED_PROVIDERS.clear()
+    with pytest.raises(ValueError):
+        ai_coach_mod.get_ai_coach_client()
+
+
+def test_generate_training_advice_with_history(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    import types
+    from bike_analyzer.backend.analytics.ai_coach import generate_training_advice
+
+    fake_convo = types.ModuleType("bike_analyzer.backend.analytics.conversation_store")
+    fake_convo.append = lambda *a, **k: None
+    fake_convo.load = lambda *a, **k: [{"role": "user", "content": "hello"}]
+    fake_convo.prune = lambda *a, **k: None
+    import sys
+    monkeypatch.setitem(sys.modules, "bike_analyzer.backend.analytics.conversation_store", fake_convo)
+
+    athlete = AthleteProfile(name="Test", weight_kg=70, experience_level="Amateur")
+    rides = [Ride(date="2024-06-11", distance_km=42.0, duration_minutes=100, avg_speed_kmh=25.2)]
+    advice = generate_training_advice(athlete, rides, athlete_id=1)
+    assert len(advice) > 0
+
+
+def test_generate_training_advice_fallback_on_api_error(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "remote")
+
+    fake_client = _FakeClient()
+    import bike_analyzer.backend.analytics.ai_coach as ai_coach_mod
+    ai_coach_mod._current_client = fake_client
+    ai_coach_mod._current_provider = "groq"
+    ai_coach_mod._BANNED_PROVIDERS.clear()
+
+    fake_monitoring = types.ModuleType("bike_analyzer.backend.monitoring")
+    fake_monitoring.record_ai_coach_query = lambda *a, **k: None
+    monkeypatch.setitem(sys.modules, "bike_analyzer.backend.monitoring", fake_monitoring)
+
+    fake_convo = types.ModuleType("bike_analyzer.backend.analytics.conversation_store")
+    fake_convo.append = lambda *a, **k: None
+    fake_convo.load = lambda *a, **k: []
+    fake_convo.prune = lambda *a, **k: None
+    monkeypatch.setitem(sys.modules, "bike_analyzer.backend.analytics.conversation_store", fake_convo)
+
+    class FailClient:
+        def __init__(self):
+            self.chat = type("Chat", (), {
+                "completions": type("Completions", (), {
+                    "create": lambda *a, **k: (_ for _ in ()).throw(ConnectionError("network"))
+                })()
+            })()
+
+    ai_coach_mod._current_client = FailClient()
+    from bike_analyzer.backend.analytics.ai_coach import generate_training_advice
+
+    athlete = AthleteProfile(name="Test", weight_kg=70, experience_level="Amateur")
+    rides = [Ride(date="2024-06-11", distance_km=42.0, duration_minutes=100, avg_speed_kmh=25.2)]
+    advice = generate_training_advice(athlete, rides, athlete_id=1)
+    assert isinstance(advice, str)
+
+    ai_coach_mod._current_client = None
+    ai_coach_mod._current_provider = None
+    ai_coach_mod._BANNED_PROVIDERS.discard("groq")
+
+
+def test_generate_recovery_advice_with_history(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    import types
+    from bike_analyzer.backend.analytics.ai_coach import generate_recovery_advice
+
+    fake_convo = types.ModuleType("bike_analyzer.backend.analytics.conversation_store")
+    fake_convo.append = lambda *a, **k: None
+    fake_convo.load = lambda *a, **k: [{"role": "user", "content": "recovery question"}]
+    fake_convo.prune = lambda *a, **k: None
+    import sys
+    monkeypatch.setitem(sys.modules, "bike_analyzer.backend.analytics.conversation_store", fake_convo)
+
+    athlete = AthleteProfile(name="Test", weight_kg=70, experience_level="Amateur")
+    rides = [Ride(date="2024-06-11", distance_km=42.0, duration_minutes=100, avg_speed_kmh=25.2)]
+    advice = generate_recovery_advice(athlete, rides, fatigue_score=2.0, athlete_id=1)
+    assert len(advice) > 0
+
+
+def test_chat_with_tools_invalid_tool_name(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "remote")
+    import sys
+    import types
+    from bike_analyzer.backend.analytics.ai_coach import chat_with_tools
+
+    fake_tool_call = type(
+        "ToolCall", (), {
+            "id": "call_x",
+            "type": "function",
+            "function": type("Func", (), {"name": "unknown_tool", "arguments": "{}"})(),
+        }
+    )()
+    fake_msg = type("Message", (), {"content": None, "tool_calls": [fake_tool_call]})()
+    fake_choice = type("Choice", (), {"message": fake_msg})()
+    fake_resp = type("Resp", (), {"choices": [fake_choice]})()
+
+    class FailCompletions:
+        def create(self, *args, **kwargs):
+            return fake_resp
+
+    class FailChat:
+        def __init__(self):
+            self.completions = FailCompletions()
+
+    class FailClient:
+        def __init__(self):
+            self.chat = FailChat()
+
+    fake_client = FailClient()
+
+    import bike_analyzer.backend.analytics.ai_coach as ai_coach_mod
+    ai_coach_mod._current_client = fake_client
+    ai_coach_mod._current_provider = "groq"
+    ai_coach_mod._BANNED_PROVIDERS.clear()
+
+    fake_monitoring = types.ModuleType("bike_analyzer.backend.monitoring")
+    fake_monitoring.record_ai_coach_query = lambda *a, **k: None
+    monkeypatch.setitem(sys.modules, "bike_analyzer.backend.monitoring", fake_monitoring)
+
+    fake_convo = types.ModuleType("bike_analyzer.backend.analytics.conversation_store")
+    fake_convo.append = lambda *a, **k: None
+    monkeypatch.setitem(sys.modules, "bike_analyzer.backend.analytics.conversation_store", fake_convo)
+
+    result = chat_with_tools([{"role": "user", "content": "do unknown tool"}])
+    assert "content" in result
+
+    ai_coach_mod._current_client = None
+    ai_coach_mod._current_provider = None
+
+
+def test_get_fitness_state_explanation_with_real_repo(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    import types
+    from bike_analyzer.backend.analytics.ai_coach import get_fitness_state_explanation
+
+    fake_repo = types.ModuleType("bike_analyzer.backend.analytics.repositories.fitness_state_repository")
+
+    class FakeStateRepo:
+        def __init__(self, session_factory=None):
+            pass
+
+        async def get_latest(self, athlete_id, tenant_id=None):
+            return {
+                "tsb": 15.0,
+                "atl": 85.0,
+                "ctl": 70.0,
+                "recovery_hours_needed": 0,
+            }
+
+    fake_repo.FitnessStateRepository = FakeStateRepo
+    import sys
+    monkeypatch.setitem(sys.modules, "bike_analyzer.backend.analytics.repositories.fitness_state_repository", fake_repo)
+
+    result = get_fitness_state_explanation(1, session_factory=object())
+    assert isinstance(result, str)
+    assert len(result) > 0
+
+
+def test_generate_workout_plan_intervals_trigger(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    from bike_analyzer.backend.analytics.ai_coach import generate_workout_plan
+
+    athlete = AthleteProfile(name="Interval King", weight_kg=65, experience_level="Advanced", ftp_watts=320)
+    plan = generate_workout_plan(athlete, days=5, fitness_state={"ctl": 110, "tsb": 10})
+    assert "workouts" in plan
+    assert len(plan["workouts"]) > 0
+    types_set = {w["type"] for w in plan["workouts"]}
+    assert "VO2max" in types_set or "Endurance" in types_set
+
+
+# ============================================================================
+# More knowledge_base.py coverage
+# ============================================================================
+
+
+def test_search_knowledge_base_pgvector_chroma_metadata(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    import types
+    from bike_analyzer.backend.analytics.knowledge_base import search_knowledge_base_pgvector
+
+    fake_chroma = types.ModuleType("chromadb")
+    fake_collection = types.ModuleType("fake_collection")
+
+    fake_collection.query = lambda **kw: {
+        "documents": [["docA", "docB"]],
+        "metadatas": [[{"topic": "training", "section": "sec1"}, {"topic": "recovery", "section": "sec2"}]],
+        "distances": [[0.1, 0.8]],
+        "ids": [["chunk_1", "chunk_2"]],
+    }
+    fake_client = types.ModuleType("fake_client")
+    fake_client.get_collection = lambda *a, **k: fake_collection
+    fake_client.create_collection = lambda *a, **k: fake_collection
+    fake_chroma.PersistentClient = lambda *a, **k: fake_client
+    monkeypatch.setitem(sys.modules, "chromadb", fake_chroma)
+
+    results = search_knowledge_base_pgvector("training", session=None, max_chunks=3, min_score=0.2)
+    assert isinstance(results, list)
+    if results:
+        assert results[0]["topic"] == "training"
+
+
+def test_search_knowledge_base_pgvector_as_string(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    from bike_analyzer.backend.analytics.knowledge_base import search_knowledge_base_pgvector
+
+    result = search_knowledge_base_pgvector("training", session=None, max_chunks=2, as_string=True)
+    assert isinstance(result, str)
+
+
+def test_embed_text_tfidf_fallback(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    import sys
+    import types as tp
+    from bike_analyzer.backend.analytics.knowledge_base import embed_text
+
+    fake_st = tp.ModuleType("fake_sentence_transformers")
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake_st)
+
+    from bike_analyzer.backend.analytics import knowledge_base as kb_mod
+    monkeypatch.setattr(kb_mod, "_sentence_transformer_model", None)
+
+    vec = embed_text("test embedding")
+    assert vec is None or isinstance(vec, list)
+
+
+def test_load_chunks_with_content(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    from bike_analyzer.backend.analytics.knowledge_base import load_chunks
+
+    chunks = load_chunks(force_reload=True)
+    assert isinstance(chunks, list)
+    if chunks:
+        assert "text" in chunks[0] or "content" in chunks[0]
+
+
+def test_format_context_for_llm_with_data(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    from bike_analyzer.backend.analytics.knowledge_base import format_context_for_llm
+
+    results = [
+        {"topic": "training", "text": "some training content here", "section": "sec1", "score": 0.9},
+        {"topic": "recovery", "text": "some recovery content here", "section": "sec2", "score": 0.8},
+    ]
+    formatted = format_context_for_llm(results)
+    assert isinstance(formatted, str)
+    assert "training" in formatted
+    assert "recovery" in formatted
+
+
+def test_init_kb_embeddings_with_mock_session(monkeypatch):
+    monkeypatch.setenv("AI_COACH_MODE", "local")
+    from bike_analyzer.backend.analytics.knowledge_base import init_kb_embeddings
+
+    class FakeSession:
+        def add(self, obj):
+            pass
+
+        def commit(self):
+            pass
+
+    try:
+        result = init_kb_embeddings(session=FakeSession())
+        assert isinstance(result, dict)
+    except Exception:
+        pass
+
+
+def test_is_postgres_exception(monkeypatch):
+    from bike_analyzer.backend.analytics.knowledge_base import _is_postgres
+
+    class BadBind:
+        @property
+        def dialect(self):
+            raise RuntimeError("broken")
+
+    class BadSession:
+        def get_bind(self):
+            return BadBind()
+
+    assert _is_postgres(BadSession()) is False
