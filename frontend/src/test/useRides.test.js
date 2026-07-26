@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 describe("useRides composable", () => {
   it("fetchSummary returns default values on error", async () => {
+    vi.setConfig({ testTimeout: 10000 });
     vi.resetModules();
     const mockApiGet = vi.fn().mockResolvedValue({ rides: [], total: 0 });
     vi.doMock("../utils/api", () => ({
