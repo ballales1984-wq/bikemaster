@@ -6,9 +6,16 @@
     <div class="panel">
       <div class="detail-header">
         <h2>{{ t("rideDetail.title") }}</h2>
-        <div class="header-actions">
-          <button v-if="!editMode" class="edit-btn" @click="startEdit" aria-label="Modifica">
+<div class="header-actions">
+          <button class="edit-btn" @click="startEdit" aria-label="Modifica">
             ✏️
+          </button>
+          <button
+            class="edit-btn"
+            @click="goToBm2"
+            aria-label="BM2 Analysis"
+          >
+            ⚡ BM2
           </button>
           <button class="close-btn" @click="emit('close')" aria-label="Chiudi">
             ✕
@@ -166,12 +173,14 @@ v-if="speedChart || elevationChart" class="chart-section"
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
+import { useRouter } from "vue-router";
 import { apiGet, apiPut } from "../utils/api";
 import { useI18n } from "../composables/useI18n";
 import type { Ride } from "../types/index";
 import SpeedMap from "./SpeedMap.vue";
 
 const { t } = useI18n();
+const router = useRouter();
 
 const props = defineProps({ rideId: Number });
 const emit = defineEmits(["close"]);
@@ -249,6 +258,12 @@ async function load() {
     googleMapsApiKey.value = config.google_maps_api_key || "";
   } catch {
     // ignore load errors
+  }
+}
+
+function goToBm2() {
+  if (ride.value?.id) {
+    router.push({ path: "/bm2", query: { rideId: ride.value.id } });
   }
 }
 

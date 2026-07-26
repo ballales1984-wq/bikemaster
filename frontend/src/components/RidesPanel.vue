@@ -293,20 +293,27 @@ class="stat-chip cal"
               >
             </div>
           </div>
-          <div class="ride-right">
+<div class="ride-right">
             <div
-v-if="ride.external_source" class="source-badge"
->
-              {{ ride.external_source }}
-            </div>
-            <button
-              class="delete-btn"
-              :aria-label="`Elimina uscita del ${ride.date}`"
-              @click.stop="askDelete(ride)"
-            >
-              🗑️
-            </button>
-          </div>
+ v-if="ride.external_source" class="source-badge"
+ >
+               {{ ride.external_source }}
+             </div>
+             <button
+               class="bm2-btn"
+               :aria-label="`BM2 analysis for ${ride.date}`"
+               @click.stop="goToBm2(ride.id)"
+             >
+               ⚡ {{ t("bm2.bm2QuickAction") }}
+             </button>
+             <button
+               class="delete-btn"
+               :aria-label="`Elimina uscita del ${ride.date}`"
+               @click.stop="askDelete(ride)"
+             >
+               🗑️
+             </button>
+           </div>
         </div>
       </div>
 
@@ -468,6 +475,7 @@ v-if="selectedRide.heart_rate_avg" class="detail-stat"
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
 import { useI18n } from "../composables/useI18n";
 import { apiGet, apiDelete, apiPost } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
@@ -475,6 +483,7 @@ import ConfirmModal from "./ConfirmModal.vue";
 
 const { t } = useI18n();
 const auth = useAuthStore();
+const router = useRouter();
 
 const emit = defineEmits(["summary-change"]);
 
@@ -686,6 +695,10 @@ async function handleAdd() {
   }
 }
 
+function goToBm2(rideId) {
+  router.push({ path: "/bm2", query: { rideId } });
+}
+
 async function openDetail(ride) {
   selectedRide.value = ride;
   analysis.value = null;
@@ -877,6 +890,20 @@ onMounted(() => load());
   .ride-item {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .bm2-btn {
+    background: var(--accent-gradient);
+    color: #000;
+    border: none;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .bm2-btn:hover {
+    opacity: 0.85;
   }
   .ride-right {
     align-self: flex-end;

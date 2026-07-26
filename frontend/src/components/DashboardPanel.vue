@@ -37,6 +37,9 @@
       <button class="qa-btn" @click="go('/coach')">
         <span class="qa-icon"></span> AI Coach
       </button>
+      <button class="qa-btn" @click="go('/bm2')">
+        <span class="qa-icon"></span> {{ t("nav.bm2") }}
+      </button>
       <button class="qa-btn" @click="go('/athlete')">
         <span class="qa-icon"></span> Profilo
       </button>
@@ -297,10 +300,12 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { apiGet } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
+import { useI18n } from "../composables/useI18n";
 import AthleteStatePanel from "./AthleteStatePanel.vue";
 import ZonesPanel from "./ZonesPanel.vue";
 
 const router = useRouter();
+const { t } = useI18n();
 function go(path) {
   router.push(path);
 }

@@ -164,6 +164,7 @@ import { useI18n } from "../composables/useI18n";
 import { apiGet, apiPost } from "../utils/api";
 import DOMPurify from "dompurify";
 import type { CoachData } from "../types/index";
+import type { Bm2Answer } from "../types/bm2";
 
 const { t } = useI18n();
 
@@ -188,12 +189,16 @@ const chatWindow = ref<HTMLElement | null>(null);
 const inputRef = ref<HTMLTextAreaElement | null>(null);
 const coachData = ref<CoachData | null>(null);
 const athleteId = ref<number | null>(null);
+const bm2Result = ref<Bm2Answer | null>(null);
+const bm2Loading = ref(false);
+const bm2Error = ref<string | null>(null);
 
 const quickQuestions = [
   " Prossimo allenamento consigliato",
   " Quanto recupero mi serve?",
   " Analizza le mie ultime uscite",
   " Come aumentare il FTP?",
+  " Analisi BM2 della ride selezionata",
 ];
 
 const scores = computed<ScoreItem[]>(() => {
@@ -319,22 +324,46 @@ async function sendMessage() {
   thinking.value = true;
   await scrollToBottom();
 
+  const isBm2Question = /bm2|bike.master 2|analisi ride|simulazione|what if|power-meter|validazione/i.test(text);
+
   try {
-    const params: Record<string, unknown> = {};
-    if (athleteId.value) params.athlete_id = athleteId.value;
-    const resp = await apiPost<Record<string, unknown>>("/api/v1/coach/chat", {
-      message: text,
-      ...params,
-    });
-    const reply =
-      (resp.response as string) ||
-      (resp.message as string) ||
-      (resp.advice as string) ||
-      JSON.stringify(resp);
-    messages.value.push({ role: "assistant", content: reply, time: getTime() });
-    lastAssistantMessage.value = reply;
-    if (autoRead.value) {
-      speak(reply);
+    if (isBm2Question) {
+      const params: Record<string, unknown> = {};
+      if (athleteId.value) params.athlete_id = athleteId.value;
+      const resp = await apiPost<Record<string, unknown>>("/api/v1/coach/chat/bm2", {
+        message: text,
+        ...params,
+      });
+      const reply =
+        (resp.response as string) ||
+        (resp.message as string) ||
+        (resp.advice as string) ||
+        JSON.stringify(resp);
+      messages.value.push({ role: "assistant", content: reply, time: getTime() });
+      lastAssistantMessage.value = reply;
+      if (autoRead.value) {
+        speak(reply);
+      }
+      if (resp.bm2_result) {
+        bm2Result.value = resp.bm2_result as Bm2Answer;
+      }
+    } else {
+      const params: Record<string, unknown> = {};
+      if (athleteId.value) params.athlete_id = athleteId.value;
+      const resp = await apiPost<Record<string, unknown>>("/api/v1/coach/chat", {
+        message: text,
+        ...params,
+      });
+      const reply =
+        (resp.response as string) ||
+        (resp.message as string) ||
+        (resp.advice as string) ||
+        JSON.stringify(resp);
+      messages.value.push({ role: "assistant", content: reply, time: getTime() });
+      lastAssistantMessage.value = reply;
+      if (autoRead.value) {
+        speak(reply);
+      }
     }
   } catch (e) {
     messages.value.push({
@@ -353,6 +382,50 @@ async function sendMessage() {
 async function sendQuick(question: string) {
   userInput.value = question;
   await sendMessage();
+}
+
+async function runBm2Analysis(question: string) {
+  bm2Loading.value = true;
+  bm2Error.value = null;
+  bm2Result.value = null;
+  try {
+    const data = await apiPost<Bm2Answer>("/api/v1/bm2/ask", {
+      question,
+      athlete: { weight: 75, age: 34, experience_level: "Intermediate", max_hr: 190 },
+      bike: { weight: 8 },
+      world: { surface: "asphalt", avg_slope: 4 },
+      gps_points: [],
+      sensors: [],
+    });
+    bm2Result.value = data;
+  } catch (e) {
+    bm2Error.value = e instanceof Error ? e.message : "BM2 analysis failed";
+  } finally {
+    bm2Loading.value = false;
+  }
+}
+
+function formatBm2Result(answer: Bm2Answer): string {
+  const lines: string[] = [];
+  lines.push(`**BM2 Analysis** — ${answer.question}`);
+  lines.push(`Modelli usati: ${answer.models_used.join(", ")}`);
+  lines.push(`Confidenza: ${Math.round(answer.confidence * 100)}%`);
+  for (const [name, r] of Object.entries(answer.results)) {
+    lines.push(`- **${name}**: ${r.value.toFixed(1)} ${r.unit} (±${r.precision.toFixed(2)}, conf ${Math.round(r.confidence * 100)}%)`);
+  }
+  if (answer.insights.length) {
+    lines.push("Concetti:");
+    for (const ins of answer.insights) {
+      lines.push(`  - [${ins.severity}] ${ins.concept}: ${ins.detail}`);
+    }
+  }
+  if (answer.simulation) {
+    lines.push("Simulazione:");
+    for (const [model, delta] of Object.entries(answer.simulation.deltas)) {
+      lines.push(`  - ${model}: ${delta >= 0 ? "+" : ""}${delta.toFixed(1)}`);
+    }
+  }
+  return lines.join("\n");
 }
 
 async function loadFullReport() {

@@ -1064,7 +1064,10 @@
     "crr": "Crr",
     "points": "Points",
     "meanMeasured": "Mean measured power",
-    "meanEstimated": "Mean estimated power"
+    "meanEstimated": "Mean estimated power",
+    "selectRide": "Select a ride...",
+    "ridePickerLabel": "Choose ride",
+    "bm2QuickAction": "BM2 Analysis"
   },
   "knowledge": {
     "placeholder": "Search... (e.g. 'how to improve endurance', 'FTP training')",
