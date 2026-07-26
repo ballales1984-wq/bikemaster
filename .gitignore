@@ -75,6 +75,7 @@ frontend/node_modules/
 
 # Ride maps and exports
 ride_*_map.html
+ride_*_map.json
 rides_export.csv
 rides_export.json
 
@@ -82,6 +83,7 @@ rides_export.json
 test_output.txt
 test_print.py
 check_env.py
+check_db.py
 check_syntax.py
 dashboard.html
 bike_route_demo.html
@@ -89,6 +91,12 @@ bike_route_demo.html
 .mypy_cache/
 .ruff_cache/
 .sixth/
+
+# Generated chart artifacts
+duration_chart.png
+ride_1_distance.png
+ride_1_elevation.png
+ride_1_speed.png
 
 # Test/CI artifacts
 backend_results.txt
