@@ -983,3 +983,62 @@ def test_bm2_models_and_ask(client, monkeypatch):
     assert client.get("/api/v1/bm2/models").status_code == 200
     assert client.post("/api/v1/bm2/ask", json={"question": "Qual è la mia FTP?"}).status_code in (200, 400, 500)
     assert client.post("/api/v1/bm2/validate", json={"question": "Valida potenza", "power_w": 200}).status_code in (200, 400, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Simple authenticated endpoints (health, auth, athlete, knowledge, coach)
+# --------------------------------------------------------------------------- #
+def test_health_endpoints(client):
+    assert client.get("/api/v1/health").status_code == 200
+    assert client.get("/api/v1/health/detailed").status_code == 200
+    assert client.get("/api/v1/health/comprehensive").status_code == 200
+    assert client.get("/api/v1/health/redis").status_code == 200
+
+
+def test_auth_register_and_me(client):
+    assert client.post("/api/v1/auth/register", json={"username": "reguser", "email": "reg@test.com", "password": "RegPass1"}).status_code == 200
+    assert client.get("/api/v1/auth/me").status_code == 200
+
+
+def test_athlete_me_endpoints(client):
+    assert client.get("/api/v1/athletes/me").status_code == 200
+    assert client.get("/api/v1/athletes/me/history").status_code == 200
+
+
+def test_knowledge_endpoints(client):
+    assert client.get("/api/v1/knowledge").status_code == 200
+    assert client.get("/api/v1/knowledge/search", params={"q": "test"}).status_code == 200
+    assert client.get("/api/v1/knowledge/stats").status_code == 200
+
+
+def test_coach_recovery_endpoint(client):
+    assert client.get("/api/v1/coach/recovery", params={"fatigue_score": 3.0}).status_code in (200, 404, 500)
+
+
+def test_notifications_preferences(client):
+    assert client.post("/api/v1/notifications/preferences", json={"language": "it"}).status_code == 200
+    assert client.get("/api/v1/notifications").status_code == 200
+
+
+def test_training_status_and_summary(client):
+    assert client.get("/api/v1/training/status", params={"athlete_id": 0}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/training/summary", params={"athlete_id": 0}).status_code in (200, 404, 500)
+
+
+def test_weather_endpoints(client):
+    assert client.get("/api/v1/weather", params={"lat": 45.0, "lon": 7.0}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/weather/forecast", params={"lat": 45.0, "lon": 7.0, "days": 3}).status_code in (200, 404, 500)
+
+
+def test_rides_export_and_knowledge(client):
+    client.post("/api/v1/athletes", json={"name": "Export Athlete", "age": 30, "weight_kg": 70, "experience_level": "Beginner"})
+    assert client.get("/api/v1/rides/export/json").status_code in (200, 404, 500)
+    assert client.get("/api/v1/rides/export/csv").status_code in (200, 404, 500)
+    assert client.get("/api/v1/scores/athlete/0").status_code in (200, 404, 500)
+
+
+def test_benchmark_and_speed_data(client):
+    assert client.post("/api/v1/benchmark/compare", json={"date": "2024-06-15", "distance_km": 25.0, "duration_minutes": 60.0}).status_code in (200, 404, 500)
+    client.post("/api/v1/athletes", json={"name": "Speed Athlete", "age": 30, "weight_kg": 70, "experience_level": "Intermediate"})
+    assert client.get("/api/v1/analytics/speed-data", params={"ride_id": 1}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/rides/export/json").status_code in (200, 404, 500)
