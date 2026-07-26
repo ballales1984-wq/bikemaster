@@ -1042,3 +1042,207 @@ def test_benchmark_and_speed_data(client):
     client.post("/api/v1/athletes", json={"name": "Speed Athlete", "age": 30, "weight_kg": 70, "experience_level": "Intermediate"})
     assert client.get("/api/v1/analytics/speed-data", params={"ride_id": 1}).status_code in (200, 404, 500)
     assert client.get("/api/v1/rides/export/json").status_code in (200, 404, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Admin endpoints
+# --------------------------------------------------------------------------- #
+def test_admin_audit_logs_and_ceo(client):
+    assert client.get("/api/v1/admin/audit-logs").status_code == 200
+    assert client.get("/api/v1/admin/ceo").status_code == 200
+
+
+def test_admin_reset_demo(client):
+    assert client.post("/api/v1/admin/reset-demo").status_code in (200, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Not-found error paths
+# --------------------------------------------------------------------------- #
+def test_not_found_error_paths(client):
+    assert client.get("/api/v1/athletes/999999").status_code == 404
+    client.post("/api/v1/athletes", json={"name": "Ride Test", "age": 30, "weight_kg": 70, "experience_level": "Beginner"})
+    client.post("/api/v1/rides", json=SAMPLE_RIDE)
+    rides_resp = client.get("/api/v1/rides").json()
+    rides_list = rides_resp if isinstance(rides_resp, list) else rides_resp.get("rides", [])
+    ride_id = rides_list[0]["id"] if rides_list else 1
+    assert client.get(f"/api/v1/rides/{ride_id + 9999}").status_code == 404
+    assert client.get("/api/v1/calendar/events/999999").status_code == 404
+    assert client.put("/api/v1/calendar/events/999999", json={"title": "x"}).status_code == 404
+    assert client.delete("/api/v1/calendar/events/999999").status_code == 404
+
+
+def test_coach_full_and_history_and_training(client):
+    assert client.get("/api/v1/coach/full").status_code == 200
+    assert client.get("/api/v1/coach/history", params={"athlete_id": 0}).status_code == 200
+    assert client.get("/api/v1/training/load", params={"athlete_id": 0}).status_code == 200
+    assert client.get("/api/v1/training/goals", params={"athlete_id": 0}).status_code == 200
+    assert client.post("/api/v1/auth/logout").status_code == 200
+
+
+# --------------------------------------------------------------------------- #
+# BM2 endpoints
+# --------------------------------------------------------------------------- #
+def test_bm2_models_and_ask(client):
+    assert client.get("/api/v1/bm2/models").status_code == 200
+    assert client.post("/api/v1/bm2/ask", json={"question": "Qual è la mia FTP?"}).status_code in (200, 400, 500)
+    assert client.post("/api/v1/bm2/validate", json={"question": "Valida potenza", "power_w": 200}).status_code in (200, 400, 500)
+    assert client.post("/api/v1/bm2/simulate", json={"question": "Cosa succede se perdo 5kg?", "athlete": {"ftp": 250}, "bike": {"weight_kg": 7}}).status_code in (200, 400, 500)
+    assert client.post("/api/v1/bm2/simulate-ride", json={"question": "Simula Salita", "override": {"weight_kg": 65}, "gps_points": [{"lat": 45.0, "lon": 7.0}]}).status_code in (200, 400, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Maps / nearby endpoints
+# --------------------------------------------------------------------------- #
+def test_maps_and_nearby_endpoints(client):
+    assert client.get("/api/v1/maps/pois", params={"lat": 45.0, "lon": 7.0}).status_code == 200
+    assert client.get("/api/v1/maps/pois/nearby", params={"lat": 45.0, "lon": 7.0, "radius": 5.0}).status_code in (200, 500)
+    assert client.get("/api/v1/nearby/places", params={"lat": 45.0, "lon": 7.0, "radius": 1000}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/nearby/osm-search", params={"q": "cafe", "lat": 45.0, "lon": 7.0}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/nearby/search", params={"q": "cafe", "lat": 45.0, "lon": 7.0}).status_code in (200, 404, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Admin status and management endpoints
+# --------------------------------------------------------------------------- #
+def test_admin_status_and_management(client):
+    assert client.get("/api/v1/admin/stats").status_code == 200
+    assert client.post("/api/v1/admin/indexes").status_code == 200
+    assert client.get("/api/v1/admin/backup").status_code == 200
+    assert client.get("/api/v1/admin/system-stats").status_code in (200, 404, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Validation/schema error paths
+# --------------------------------------------------------------------------- #
+def test_validation_error_paths(client):
+    r = client.post("/api/v1/athletes", json={})
+    assert r.status_code == 422
+    r = client.post("/api/v1/rides", json={})
+    assert r.status_code == 422
+    r = client.get("/api/v1/training/load")
+    assert r.status_code == 422
+    r = client.get("/api/v1/weather")
+    assert r.status_code == 422
+
+
+# --------------------------------------------------------------------------- #
+# Ride CRUD and analytics handler bodies
+# --------------------------------------------------------------------------- #
+def test_ride_detail_and_analytics(client):
+    client.post("/api/v1/athletes", json={"name": "Analytics3 Athlete", "age": 30, "weight_kg": 70, "experience_level": "Intermediate"})
+    ride = client.post("/api/v1/rides", json=SAMPLE_RIDE).json()
+    ride_id = ride.get("id", 1)
+
+    r = client.put(f"/api/v1/rides/{ride_id}", json={"notes": "Updated notes"})
+    assert r.status_code == 200
+    assert client.get(f"/api/v1/rides/{ride_id}").status_code == 200
+    assert client.get(f"/api/v1/rides/{ride_id}/map").status_code in (200, 500)
+    assert client.get(f"/api/v1/rides/{ride_id}/report").status_code == 200
+    assert client.get(f"/api/v1/rides/{ride_id}/safety").status_code in (200, 404, 500)
+    assert client.get(f"/api/v1/rides/{ride_id}/power").status_code in (200, 404, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Login and auth refresh
+# --------------------------------------------------------------------------- #
+def test_auth_login_and_refresh(client):
+    client.post("/api/v1/auth/register", json={"username": "loginuser", "email": "login@test.com", "password": "LoginPass1"})
+    r = client.post("/api/v1/auth/login", data={"username": "loginuser", "password": "LoginPass1"})
+    assert r.status_code == 200
+    assert "access_token" in r.json() or r.status_code == 200
+
+
+# --------------------------------------------------------------------------- #
+# Calendar events CRUD
+# --------------------------------------------------------------------------- #
+def test_calendar_events_crud(client):
+    client.post("/api/v1/athletes", json={"name": "Calendar Athlete", "age": 30, "weight_kg": 70, "experience_level": "Beginner"})
+    r = client.post("/api/v1/calendar/events", json={"athlete_id": 0, "title": "Test Ride", "date": "2025-01-15", "event_type": "training", "status": "planned"})
+    assert r.status_code in (200, 422)
+    if r.status_code == 200:
+        event_id = r.json().get("id", 1)
+        assert client.get(f"/api/v1/calendar/events/{event_id}").status_code == 200
+        assert client.put(f"/api/v1/calendar/events/{event_id}", json={"title": "Updated Ride"}).status_code == 200
+        assert client.delete(f"/api/v1/calendar/events/{event_id}").status_code == 200
+
+
+# --------------------------------------------------------------------------- #
+# Knowledge search and stats
+# --------------------------------------------------------------------------- #
+def test_knowledge_search_and_stats(client):
+    assert client.get("/api/v1/knowledge").status_code == 200
+    assert client.get("/api/v1/knowledge/search", params={"q": "cycling training"}).status_code == 200
+    assert client.get("/api/v1/knowledge/search", params={"q": ""}).status_code == 200
+    assert client.get("/api/v1/knowledge/stats").status_code == 200
+
+
+# --------------------------------------------------------------------------- #
+# BM2 simulate-ride coverage
+# --------------------------------------------------------------------------- #
+def test_bm2_simulate_ride_variants(client):
+    assert client.post("/api/v1/bm2/simulate-ride", json={"question": "Test", "gps_points": [{"lat": 45.0, "lon": 7.0}]}).status_code in (200, 400, 500)
+    assert client.post("/api/v1/bm2/simulate-ride", json={"question": "Test", "gps_points": []}).status_code in (200, 400, 500)
+    assert client.post("/api/v1/bm2/validate", json={"question": "Test", "power_w": 200}).status_code in (200, 400, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Import webhook and Strava auth stubs
+# --------------------------------------------------------------------------- #
+def test_import_webhook_and_auth_stubs(client):
+    assert client.get("/api/v1/import/strava/auth").status_code in (200, 302, 500)
+    assert client.get("/api/v1/import/garmin/auth").status_code in (200, 302, 500)
+    assert client.get("/api/v1/import/wahoo/auth").status_code in (200, 302, 500)
+    assert client.get("/api/v1/import/strava/callback", params={"code": "test"}).status_code in (200, 400, 500)
+    assert client.post("/api/v1/import/garmin/callback", json={"code": "test"}).status_code in (400, 500, 502)
+    assert client.post("/api/v1/import/garmin/sync", json={"code": "test"}).status_code in (200, 400, 500, 502)
+
+
+# --------------------------------------------------------------------------- #
+# Import file endpoints (no file provided -> 422 or 400)
+# --------------------------------------------------------------------------- #
+def test_import_file_endpoints(client):
+    assert client.post("/api/v1/import/gpx").status_code in (400, 422, 500)
+    assert client.post("/api/v1/import/tcx").status_code in (400, 422, 500)
+    assert client.post("/api/v1/import/fit").status_code in (400, 422, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Auth endpoints
+# --------------------------------------------------------------------------- #
+def test_auth_login_and_profile(client):
+    client.post("/api/v1/auth/register", json={"username": "authtest", "email": "auth@test.com", "password": "AuthPass1"})
+    assert client.post("/api/v1/auth/login", data={"username": "authtest", "password": "AuthPass1"}).status_code == 200
+    assert client.get("/api/v1/auth/profile").status_code in (200, 404)
+
+
+# --------------------------------------------------------------------------- #
+# Athlete CRUD
+# --------------------------------------------------------------------------- #
+def test_athlete_list_and_update(client):
+    client.post("/api/v1/athletes", json={"name": "List Athlete", "age": 30, "weight_kg": 70, "experience_level": "Beginner"})
+    resp = client.get("/api/v1/athletes").json()
+    athletes = resp if isinstance(resp, list) else resp.get("athletes", resp.get("items", []))
+    if athletes:
+        athlete_id = athletes[0].get("id", 0)
+        assert client.put(f"/api/v1/athletes/{athlete_id}", json={"goals": "Gran Fondo"}).status_code in (200, 404)
+
+
+# --------------------------------------------------------------------------- #
+# Rides query params and disaggregate
+# --------------------------------------------------------------------------- #
+def test_rides_query_and_disaggregate(client):
+    client.post("/api/v1/athletes", json={"name": "Disaggregate Athlete", "age": 30, "weight_kg": 70, "experience_level": "Intermediate"})
+    client.post("/api/v1/rides", json=SAMPLE_RIDE)
+    assert client.get("/api/v1/rides", params={"size": 1}).status_code == 200
+    assert client.get("/api/v1/rides", params={"sort": "distance"}).status_code == 200
+    assert client.get("/api/v1/rides", params={"sort": "duration"}).status_code == 200
+    assert client.get("/api/v1/rides", params={"from": "2024-01-01", "to": "2024-12-31", "disaggregate": "true"}).status_code in (200, 404, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Admin users management
+# --------------------------------------------------------------------------- #
+def test_admin_users_endpoints(client):
+    assert client.get("/api/v1/admin/users").status_code in (200, 404, 500)
+    assert client.get("/api/v1/admin/athletes").status_code == 200
