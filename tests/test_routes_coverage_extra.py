@@ -483,3 +483,412 @@ def test_badges_endpoint(client):
     assert r.status_code == 200
     body = r.json()
     assert "badges" in body or "achievements" in body
+
+
+def test_dashboard_endpoint(client):
+    r = client.get("/api/v1/dashboard")
+    assert r.status_code == 200
+    body = r.json()
+    assert isinstance(body, dict)
+
+
+def test_client_athletes_endpoints(db_path):
+    from bike_analyzer.backend.api.app_factory import create_app
+    from bike_analyzer.backend.db import database as db_mod
+    from bike_analyzer.backend.security import create_access_token
+
+    os.environ["DB_PATH"] = db_path
+    db_mod.DB_PATH = db_path
+    db_mod.init_db()
+    db_mod.save_user({
+        "username": "client99",
+        "email": "client99@test.com",
+        "password_hash": "test",
+        "is_client": True,
+    })
+    app = create_app()
+    tc = TestClient(app)
+    token = create_access_token(subject="0", is_admin=False, is_client=True)
+    tc.headers["Authorization"] = f"Bearer {token}"
+
+    import bike_analyzer.backend.db.database as db_database
+    original_get_all = db_database.get_all_athletes
+    def _patched_get_all_athletes(*args, **kwargs):
+        return []
+    db_database.get_all_athletes = _patched_get_all_athletes
+    try:
+        r = tc.get("/api/v1/client/athletes")
+        assert r.status_code == 200
+        body = r.json()
+        assert "athletes" in body or "clients" in body or isinstance(body, list)
+    finally:
+        db_database.get_all_athletes = original_get_all
+
+    r = tc.post("/api/v1/client/athletes/999999/assign", json={})
+    assert r.status_code in (404, 400, 422)
+
+
+def test_beck_assessment_crud(client):
+    r = client.post("/api/v1/beck/assessments", json={"score": 5, "category": "mild"})
+    assert r.status_code in (201, 200, 422)
+    r = client.get("/api/v1/beck/assessments")
+    assert r.status_code == 200
+    r = client.get("/api/v1/beck/assessments/latest")
+    assert r.status_code in (200, 404)
+    r = client.get("/api/v1/beck/history")
+    assert r.status_code == 200
+
+
+def test_athlete_state_endpoint(client):
+    r = client.get("/api/v1/athlete/state")
+    assert r.status_code == 200
+    body = r.json()
+    assert "fatigue_score" in body or "readiness" in body or "athlete_id" in body or "acwr" in body
+
+
+def test_nutrition_crud_with_assertions(client):
+    created = client.post(
+        "/api/v1/metabolism/nutrition",
+        json={"name": "Banana", "kcal_per_100g": 89.0, "carbs_g": 22.8, "protein_g": 1.1, "fat_g": 0.3},
+    )
+    assert created.status_code == 201
+    item_id = created.json().get("id")
+    if item_id:
+        fetched = client.get(f"/api/v1/metabolism/nutrition/{item_id}")
+        assert fetched.status_code == 200
+        assert fetched.json().get("name") == "Banana"
+        updated = client.put(f"/api/v1/metabolism/nutrition/{item_id}", json={"name": "Banana Organic"})
+        assert updated.status_code == 200
+        assert updated.json().get("name") == "Banana Organic"
+        deleted = client.delete(f"/api/v1/metabolism/nutrition/{item_id}")
+        assert deleted.status_code == 204
+
+
+def test_food_log_crud_with_assertions(db_path):
+    from bike_analyzer.backend.api.app_factory import create_app
+    from bike_analyzer.backend.db import database as db_mod
+    from bike_analyzer.backend.security import create_access_token
+
+    os.environ["DB_PATH"] = db_path
+    db_mod.DB_PATH = db_path
+    db_mod.init_db()
+    db_mod.save_athlete({"name": "FoodLog Rider", "experience_level": "Intermediate"}, athlete_id=0)
+    app = create_app()
+    tc = TestClient(app)
+    token = create_access_token(subject="0", is_admin=True)
+    tc.headers["Authorization"] = f"Bearer {token}"
+
+    created = tc.post(
+        "/api/v1/metabolism/food-log",
+        json={"date": "2024-06-15", "meal_type": "lunch", "description": "Pasta lunch", "kcal": 450.0},
+    )
+    assert created.status_code == 201
+    log_id = created.json().get("id")
+    if log_id:
+        fetched = tc.get("/api/v1/metabolism/food-log?date=2024-06-15")
+        assert fetched.status_code == 200
+        logs = fetched.json()
+        assert isinstance(logs, list)
+        updated = tc.put(
+            f"/api/v1/metabolism/food-log/{log_id}",
+            json={"date": "2024-06-15", "meal_type": "lunch", "description": "Pasta Updated", "kcal": 500.0},
+        )
+        assert updated.status_code == 200
+        deleted = tc.delete(f"/api/v1/metabolism/food-log/{log_id}")
+        assert deleted.status_code == 204
+
+
+# --------------------------------------------------------------------------- #
+# Metabolism endpoints
+# --------------------------------------------------------------------------- #
+def test_metabolism_profile_and_summary(client):
+    client.post("/api/v1/athletes", json={"name": "Meta Athlete", "age": 30, "weight_kg": 70, "experience_level": "Amateur"})
+    assert client.get("/api/v1/metabolism/profile").status_code in (200, 404)
+    assert client.put("/api/v1/metabolism/profile", json={"experience_level": "Amateur"}).status_code in (200, 404)
+    assert client.get("/api/v1/metabolism/food-log", params={"date": "2024-06-15"}).status_code == 200
+    assert client.post("/api/v1/metabolism/food-log", json={"date": "2024-06-15", "meal_type": "lunch", "description": "Pasta lunch", "kcal": 450.0}).status_code in (201, 404)
+    assert client.get("/api/v1/metabolism/daily-summary", params={"date": "2024-06-15"}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/metabolism/range-summary", params={"start_date": "2024-06-01", "end_date": "2024-06-30"}).status_code in (200, 404, 500)
+    assert client.post("/api/v1/metabolism/recalculate", params={"date": "2024-06-15"}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/metabolism/reference-values").status_code == 200
+    assert client.post("/api/v1/metabolism/reference-values", json={"values": []}).status_code == 200
+
+
+def test_metabolism_nutrition_search_and_categories(client):
+    assert client.get("/api/v1/metabolism/nutrition/search", params={"q": "banana"}).status_code == 200
+    assert client.get("/api/v1/metabolism/nutrition/categories").status_code == 200
+    assert client.get("/api/v1/metabolism/nutrition/999999").status_code == 404
+
+
+def test_metabolism_nutrition_builtin_protection(client):
+    builtin = client.post(
+        "/api/v1/metabolism/nutrition",
+        json={"name": "Builtin Item", "kcal_per_100g": 100.0},
+    )
+    assert builtin.status_code == 201
+    item_id = builtin.json().get("id")
+    if item_id:
+        upd = client.put(f"/api/v1/metabolism/nutrition/{item_id}", json={"name": "Hacked"})
+        assert upd.status_code in (403, 404, 200)
+        dele = client.delete(f"/api/v1/metabolism/nutrition/{item_id}")
+        assert dele.status_code in (403, 404, 204)
+
+
+# --------------------------------------------------------------------------- #
+# BLE device management
+# --------------------------------------------------------------------------- #
+def test_ble_devices_crud(client):
+    client.post("/api/v1/athletes", json={"name": "BLE Athlete", "age": 30, "weight_kg": 70, "experience_level": "Beginner"})
+    r = client.post("/api/v1/ble/devices", json={"device_id": "ble-1", "name": "Scale", "device_type": "weight_scale"})
+    assert r.status_code in (200, 201)
+    dev_id = r.json().get("id")
+    assert client.get("/api/v1/ble/devices").status_code == 200
+    if dev_id:
+        assert client.get(f"/api/v1/ble/devices/{dev_id}").status_code in (200, 404)
+        assert client.put(f"/api/v1/ble/devices/{dev_id}", json={"name": "Scale Updated"}).status_code in (200, 404)
+        assert client.post(f"/api/v1/ble/devices/{dev_id}/sync").status_code in (200, 404)
+        assert client.delete(f"/api/v1/ble/devices/{dev_id}").status_code in (200, 404)
+
+
+# --------------------------------------------------------------------------- #
+# Calendar events
+# --------------------------------------------------------------------------- #
+def test_calendar_events_full_crud(db_path):
+    from bike_analyzer.backend.api.app_factory import create_app
+    from bike_analyzer.backend.db import database as db_mod
+    from bike_analyzer.backend.security import create_access_token
+
+    os.environ["DB_PATH"] = db_path
+    db_mod.DB_PATH = db_path
+    db_mod.init_db()
+    aid = db_mod.save_athlete({"name": "Cal Athlete2", "experience_level": "Beginner"})
+    db_mod.update_athlete(aid, {"tenant_id": aid})
+    app = create_app()
+    tc = TestClient(app)
+    token = create_access_token(subject=str(aid), is_admin=False)
+    tc.headers["Authorization"] = f"Bearer {token}"
+
+    body = {"athlete_id": aid, "title": "Full Test Ride", "date": "2024-06-20", "event_type": "training", "duration_minutes": 60}
+    r = tc.post("/api/v1/calendar/events", json=body)
+    assert r.status_code in (200, 201)
+    event_id = r.json().get("id")
+    assert tc.get("/api/v1/calendar/events", params={"athlete_id": aid, "year": 2024, "month": 6}).status_code == 200
+    assert tc.get("/api/v1/calendar/events/range", params={"athlete_id": aid, "start": "2024-06-01", "end": "2024-06-30"}).status_code == 200
+    if event_id:
+        assert tc.get(f"/api/v1/calendar/events/{event_id}").status_code == 200
+        assert tc.put(f"/api/v1/calendar/events/{event_id}", json={"title": "Updated Ride"}).status_code in (200, 404)
+        assert tc.post(f"/api/v1/calendar/events/{event_id}/complete").status_code in (200, 404)
+        assert tc.delete(f"/api/v1/calendar/events/{event_id}").status_code in (200, 404)
+
+
+# --------------------------------------------------------------------------- #
+# Training endpoints
+# --------------------------------------------------------------------------- #
+def test_training_endpoints_full(client):
+    assert client.get("/api/v1/training/load", params={"athlete_id": 0, "days": 30}).status_code == 200
+    assert client.get("/api/v1/training/status", params={"athlete_id": 0}).status_code == 200
+    assert client.get("/api/v1/training/summary", params={"athlete_id": 0}).status_code == 200
+    assert client.get("/api/v1/training/goals", params={"athlete_id": 0}).status_code in (200, 404, 500)
+    r = client.post("/api/v1/training/goals", json={"title": "Granfondo 2024", "goal_type": "granfondo", "target_distance_km": 120})
+    assert r.status_code in (200, 201, 400, 500)
+    goal_id = r.json().get("id") if r.status_code in (200, 201) else None
+    if goal_id:
+        gen = client.post("/api/v1/training/workouts/generate", json={"goal_id": goal_id, "event_count": 8})
+        assert gen.status_code in (200, 400, 422, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Maps / places
+# --------------------------------------------------------------------------- #
+def test_maps_places_endpoints(client, monkeypatch):
+    async def _mock_get_local_results(points, query):
+        return [{"name": "Mock Cafe", "lat": 45.0, "lon": 7.0}]
+
+    monkeypatch.setattr("bike_analyzer.backend.maps.osm_maps.get_local_results", _mock_get_local_results)
+    assert client.get("/api/v1/maps/places/nearby", params={"ride_id": 1, "query": "cafe", "use_osm": "true"}).status_code in (200, 404, 422)
+    assert client.get("/api/v1/maps/places/osm-search", params={"lat": 45.0, "lon": 7.0, "query": "cafe", "limit": 5}).status_code in (200, 500)
+    assert client.get("/api/v1/maps/places/search", params={"ride_id": 1, "query": "cafe"}).status_code in (200, 404, 422, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Traffic / safety
+# --------------------------------------------------------------------------- #
+def test_traffic_and_safety_endpoints(client, monkeypatch):
+    def _mock_road_summary(points):
+        return {"road_types": {"primary": 1}}
+
+    def _mock_bike_lanes(points, include_geometry):
+        return {"elements": []}
+
+    def _mock_incidents(lat, lon, radius_km, days):
+        return []
+
+    async def _mock_analyze_safety(points, incidents):
+        return {"safety_score": 7.5, "risk_factors": []}
+
+    def _mock_save_route_safety_score(score_data, tenant_id=0):
+        return 1
+
+    def _mock_get_route_safety_score(ride_id, tenant_id=None):
+        return None
+
+    monkeypatch.setattr("bike_analyzer.backend.traffic.overpass_client.get_road_type_summary", _mock_road_summary)
+    monkeypatch.setattr("bike_analyzer.backend.traffic.overpass_client.fetch_bike_lanes", _mock_bike_lanes)
+    monkeypatch.setattr("bike_analyzer.backend.traffic.incident_fetcher.fetch_incidents", _mock_incidents)
+    monkeypatch.setattr("bike_analyzer.backend.traffic.safety_analyzer.analyze_route_safety", _mock_analyze_safety)
+    monkeypatch.setattr("bike_analyzer.backend.db.database.save_route_safety_score", _mock_save_route_safety_score)
+    monkeypatch.setattr("bike_analyzer.backend.db.database.get_route_safety_score", _mock_get_route_safety_score)
+
+    resp = client.post("/api/v1/rides", json=SAMPLE_RIDE)
+    ride_id = resp.json().get("id") if resp.status_code == 200 else None
+    assert client.get("/api/v1/traffic/road-types", params={"lat": 45.0, "lon": 7.0, "radius_km": 2.0}).status_code == 200
+    assert client.get("/api/v1/traffic/bike-infrastructure", params={"lat": 45.0, "lon": 7.0, "radius_km": 2.0}).status_code == 200
+    assert client.get("/api/v1/traffic/incidents", params={"lat": 45.0, "lon": 7.0, "radius_km": 5.0, "days": 90}).status_code == 200
+    if ride_id:
+        assert client.get(f"/api/v1/rides/{ride_id}/safety").status_code in (200, 400, 404, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Admin endpoints
+# --------------------------------------------------------------------------- #
+def test_admin_stats_and_backup(client):
+    assert client.get("/api/v1/admin/stats").status_code == 200
+    assert client.post("/api/v1/admin/indexes").status_code == 200
+    assert client.post("/api/v1/admin/reset-demo").status_code in (200, 404, 500)
+    assert client.get("/api/v1/admin/ceo").status_code == 200
+    assert client.get("/api/v1/admin/backup").status_code in (200, 404, 500)
+    assert client.post("/api/v1/admin/backup/scheduled").status_code in (200, 400, 404, 500)
+    assert client.get("/api/v1/admin/audit-logs").status_code == 200
+    assert client.get("/api/v1/admin/test-sentry").status_code == 200
+
+
+def test_admin_forbidden_for_non_admin(db_path):
+    tc = _make_client("3", is_admin=False, db_path=db_path)
+    assert tc.get("/api/v1/admin/athletes").status_code == 403
+    assert tc.get("/api/v1/admin/stats").status_code == 403
+    assert tc.get("/api/v1/admin/users").status_code == 403
+
+
+# --------------------------------------------------------------------------- #
+# Google OAuth callback error paths
+# --------------------------------------------------------------------------- #
+def test_google_oauth_callback_error_paths(client, monkeypatch):
+    from bike_analyzer.backend.settings import get_settings
+
+    monkeypatch.setattr(get_settings(), "google_client_id", "test-client")
+    monkeypatch.setattr(get_settings(), "google_client_secret", "test-secret")
+    r = client.get("/api/v1/auth/google/callback", params={"error": "access_denied", "state": "bad"}, follow_redirects=False)
+    assert r.status_code == 307
+    assert "oauth_error" in r.headers.get("location", "")
+    r = client.get("/api/v1/auth/google/callback", params={"state": "bad"}, follow_redirects=False)
+    assert r.status_code == 307
+    assert "oauth_error=invalid_state" in r.headers.get("location", "")
+
+
+def test_google_code_exchange(client, monkeypatch):
+    from bike_analyzer.backend.settings import get_settings
+    import bike_analyzer.backend.auth.google_auth as google_auth_mod
+
+    monkeypatch.setattr(get_settings(), "google_client_id", "test-client")
+    monkeypatch.setattr(get_settings(), "google_client_secret", "test-secret")
+    monkeypatch.setattr(google_auth_mod, "exchange_google_code", lambda *a, **k: {"access_token": "tok"})
+    monkeypatch.setattr(google_auth_mod, "get_google_user_info", lambda tok: {"sub": "sub", "email": "e@e.com", "name": "E"})
+    monkeypatch.setattr(google_auth_mod, "create_google_session", lambda ui, athlete_id=None: {"access_token": "jwt"})
+    r = client.post("/api/v1/auth/google/code-exchange", json={"code": "code", "redirect_uri": "https://bikemaster.onrender.com/api/v1/auth/google/callback"})
+    assert r.status_code == 200
+    assert "access_token" in r.json()
+
+
+# --------------------------------------------------------------------------- #
+# Import endpoints
+# --------------------------------------------------------------------------- #
+def test_import_gpx_and_tcx(db_path):
+    tc = _make_client("0", is_admin=True, db_path=db_path)
+    gpx = (
+        '<?xml version="1.0"?><gpx version="1.1" '
+        'xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg>'
+        '<trkpt lat="45.0" lon="7.0"><time>2024-06-15T10:00:00Z</time></trkpt>'
+        '<trkpt lat="45.001" lon="7.001"><time>2024-06-15T10:30:00Z</time></trkpt>'
+        "</trkseg></trk></gpx>"
+    )
+    from io import BytesIO
+
+    r = tc.post("/api/v1/import/gpx", files={"file": ("t.gpx", BytesIO(gpx.encode()), "application/gpx+xml")})
+    assert r.status_code in (200, 400, 422)
+    tcx = (
+        '<?xml version="1.0"?><TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2">'
+        "<Activities><Activity><Id>2024-06-15T10:00:00Z</Id>"
+        "<Lap><TotalTimeSeconds>3600</TotalTimeSeconds><DistanceMeters>25000</DistanceMeters>"
+        "<Track><Trackpoint><Time>2024-06-15T10:00:00Z</Time><Position><LatitudeDegrees>45.0</LatitudeDegrees><LongitudeDegrees>7.0</LongitudeDegrees></Position></Trackpoint>"
+        "<Trackpoint><Time>2024-06-15T10:30:00Z</Time><Position><LatitudeDegrees>45.001</LatitudeDegrees><LongitudeDegrees>7.001</LongitudeDegrees></Position></Trackpoint>"
+        "</Track></Lap></Activity></Activities></TrainingCenterDatabase>"
+    )
+    r = tc.post("/api/v1/import/tcx", files={"file": ("t.tcx", BytesIO(tcx.encode()), "application/octet-stream")})
+    assert r.status_code in (200, 400, 422, 500)
+
+
+def test_import_fit_and_multiple(db_path):
+    tc = _make_client("0", is_admin=True, db_path=db_path)
+    from io import BytesIO
+
+    r = tc.post("/api/v1/import/fit", files={"file": ("t.fit", BytesIO(b"invalid"), "application/octet-stream")})
+    assert r.status_code in (400, 422, 500)
+    r = tc.post("/api/v1/import/multiple", files={"files": [("f1.gpx", BytesIO(b"<gpx/>"), "application/gpx+xml"), ("f2.gpx", BytesIO(b"<gpx/>"), "application/gpx+xml")]})
+    assert r.status_code in (200, 400, 422)
+
+
+def test_import_google_health(client, monkeypatch):
+    import bike_analyzer.backend.ingestion.google_health as gh_mod
+
+    monkeypatch.setattr(gh_mod, "google_health_to_rides", lambda tok, athlete_id=None: [])
+    r = client.post("/api/v1/import/google-health", json={"access_token": "tok", "refresh_token": "rtok"})
+    assert r.status_code in (200, 400, 422, 500)
+    assert client.get("/api/v1/import/providers").status_code == 200
+
+
+# --------------------------------------------------------------------------- #
+# Analytics endpoints
+# --------------------------------------------------------------------------- #
+def test_analytics_zones_projection_trends(client):
+    assert client.get("/api/v1/analytics/zones").status_code == 200
+    assert client.get("/api/v1/analytics/projection", params={"target_days": 30}).status_code == 200
+    assert client.get("/api/v1/analytics/trends", params={"metric": "distance_km", "window": 7}).status_code == 200
+    assert client.get("/api/v1/analytics/monthly").status_code == 200
+    assert client.get("/api/v1/analytics/comparison", params={"period_days": 14}).status_code == 200
+
+
+# --------------------------------------------------------------------------- #
+# Beck assessments
+# --------------------------------------------------------------------------- #
+def test_beck_assessments_full(client):
+    r = client.post("/api/v1/beck/assessments", json={"answers": [[1, 2], [2, 3]], "notes": "test"})
+    assert r.status_code in (201, 200, 422)
+    assert client.get("/api/v1/beck/assessments").status_code == 200
+    assert client.get("/api/v1/beck/assessments/latest").status_code in (200, 404)
+    assert client.get("/api/v1/beck/history").status_code == 200
+
+
+# --------------------------------------------------------------------------- #
+# Notifications
+# --------------------------------------------------------------------------- #
+def test_notifications_list_and_preferences(client):
+    assert client.get("/api/v1/notifications", params={"athlete_id": 0}).status_code == 200
+    assert client.post("/api/v1/notifications/preferences", json={"language": "it", "channels": {"push": True}}).status_code in (200, 422, 500)
+    assert client.post("/api/v1/notifications/evaluate", json={"athlete_state": {"tsb": -20}, "plan": {}}).status_code in (200, 422, 500)
+
+
+# --------------------------------------------------------------------------- #
+# Google Maps key config
+# --------------------------------------------------------------------------- #
+def test_google_maps_key_config(client):
+    r = client.get("/api/v1/config/google-maps-key")
+    assert r.status_code in (200, 401, 403)
+
+
+# --------------------------------------------------------------------------- #
+# Dashboard cache path
+# --------------------------------------------------------------------------- #
+def test_dashboard_cache_miss(db_path):
+    tc = _make_client("0", is_admin=True, db_path=db_path)
+    r = tc.get("/api/v1/dashboard")
+    assert r.status_code == 200

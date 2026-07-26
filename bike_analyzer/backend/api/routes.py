@@ -4188,6 +4188,103 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
     return {"response": response, "history": get_chat_history(athlete_id, tenant_id=tenant_id)}
 
 
+@router.post("/coach/chat/bm2")
+async def coach_chat_bm2(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    """AI Coach chat with BM2 physics engine integration.
+
+    Combines the AI coach's training advice with BM2 simulation
+    and power validation results for a comprehensive analysis.
+    """
+    from ..analytics.ai_coach import generate_training_advice
+    from ..bm2.orchestrator import AIOrchestrator
+    from ..bm2.adapters import ride_to_analysis_context
+    from ..bm2.algorithms import ALL_ALGORITHMS
+    from ..bm2.simulation import SimulationEngine
+    from ..core.physics import RiderBikeParams, validate_ride_power
+    from ..db.database import get_athlete, get_rides_by_athlete, save_chat_message
+    from ..models.models import AthleteProfile, Ride
+
+    body = await request.json()
+    chat_req = CoachChatRequest(**body)
+    athlete_id = chat_req.athlete_id or current_user["id"]
+    tenant_id = current_user.get("tenant_id", athlete_id)
+    _ensure_athlete_access(athlete_id, current_user)
+
+    # Generate coach advice
+    athlete_data = get_athlete(athlete_id, tenant_id)
+    if athlete_data:
+        athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
+    athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id, tenant_id=tenant_id)]
+    coach_response = generate_training_advice(athlete, rides, athlete_id)
+
+    # If the message references a specific ride, add BM2 analysis
+    message = chat_req.message
+    bm2_result = None
+    ride_id_match = None
+    import re as _re
+    ride_id_match = _re.search(r"ride\s*#?(\d+)|ride\s+(\d+)", message, _re.IGNORECASE)
+    if ride_id_match:
+        rid = int(ride_id_match.group(1) or ride_id_match.group(2))
+        from ..db.database import get_ride as _get_ride
+        ride_dict = _get_ride(rid)
+        if ride_dict:
+            try:
+                gps = [_to_gps(p) for p in (ride_dict.get("gps_points") or [])]
+                ride = Ride(**{k: v for k, v in ride_dict.items() if k in Ride.__dataclass_fields__})
+                ride.gps_points = gps
+                params = RiderBikeParams(
+                    rider_mass_kg=float(athlete.weight_kg.value) if athlete.weight_kg else 75.0,
+                    bike_mass_kg=8.0,
+                    cda=0.40,
+                    crr=0.005,
+                    drivetrain_efficiency=0.97,
+                )
+                validation = validate_ride_power(ride, params)
+                if validation:
+                    bm2_result = {
+                        "validation": validation.to_dict(),
+                        "ride_id": rid,
+                    }
+            except Exception:
+                pass
+
+    # Also run a general BM2 ask if the question is about energy/performance
+    if not bm2_result and any(kw in message.lower() for kw in ["energia", "power", "ftp", "performance", "calories", "kcal"]):
+        try:
+            orchestrator = AIOrchestrator()
+            bm2_result = orchestrator.answer(message, {
+                "athlete": {"weight": athlete.weight_kg.value if athlete.weight_kg else 75},
+                "bike": {"weight": 8},
+                "world": {"surface": "asphalt", "avg_slope": 4},
+                "gps_points": [],
+                "sensors": [],
+            })
+        except Exception:
+            pass
+
+    save_chat_message(athlete_id, "user", message[:500], tenant_id)
+    response_text = coach_response
+    if bm2_result:
+        response_text += "\n\n---\n**BM2 Physics Analysis:**\n"
+        if "validation" in bm2_result:
+            v = bm2_result["validation"]
+            response_text += f"- MAE: {v['mae_w']:.1f}W | RMSE: {v['rmse_w']:.1f}W | R²: {v['r2']:.3f}\n"
+        if "results" in bm2_result:
+            for name, r in bm2_result["results"].items():
+                response_text += f"- {name}: {r['value']:.1f} {r['unit']}\n"
+
+    save_chat_message(athlete_id, "assistant", response_text[:500], tenant_id)
+    return {
+        "response": response_text,
+        "history": get_chat_history(athlete_id, tenant_id=tenant_id),
+        "bm2_result": bm2_result,
+    }
+
+
 @router.get("/analytics/speed-data")
 async def speed_analytics(limit: int = Query(10, ge=1, le=50), current_user: dict = Depends(get_current_user)):
     """Return recent ride speed data for charting."""

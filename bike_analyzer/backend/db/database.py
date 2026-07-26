@@ -686,6 +686,51 @@ def init_db():
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_ble_devices_athlete ON ble_devices(athlete_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_ble_devices_type ON ble_devices(device_type)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS strava_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER NOT NULL,
+            access_token TEXT NOT NULL,
+            refresh_token TEXT NOT NULL,
+            expires_at INTEGER,
+            scope TEXT,
+            athlete_name TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            tenant_id INTEGER DEFAULT 0,
+            UNIQUE(athlete_id),
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_strava_tokens_athlete ON strava_tokens(athlete_id)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS garmin_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER NOT NULL,
+            access_token TEXT NOT NULL,
+            refresh_token TEXT NOT NULL,
+            expires_at INTEGER,
+            scope TEXT,
+            athlete_name TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            tenant_id INTEGER DEFAULT 0,
+            UNIQUE(athlete_id),
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_garmin_tokens_athlete ON garmin_tokens(athlete_id)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS wahoo_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER NOT NULL,
+            access_token TEXT NOT NULL,
+            refresh_token TEXT NOT NULL,
+            expires_at INTEGER,
+            scope TEXT,
+            athlete_name TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            tenant_id INTEGER DEFAULT 0,
+            UNIQUE(athlete_id),
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_wahoo_tokens_athlete ON wahoo_tokens(athlete_id)")
         conn.commit()
         cur = conn.cursor()
         cur.execute("PRAGMA table_info(rides)")

@@ -56,8 +56,8 @@ _fmt_int_pattern = re.compile(r"(?<!\d)(\d+)\.0(?!\d)")
 
 def _clean_ai_output(text: str) -> str:
     """Normalizes the LLM output: removes useless decimal zeros, double spaces/newlines."""
-    text = _fmt_int_pattern.sub(lambda m: m.group(1), text)
     text = _fmt_clean_pattern.sub(lambda m: m.group(1), text)
+    text = _fmt_int_pattern.sub(lambda m: m.group(1), text)
     text = re.sub(r"\n{2,}", "\n", text)
     text = re.sub(r" {2,}", " ", text)
     return text.strip()
@@ -741,7 +741,7 @@ def ai_coach_full(athlete: AthleteProfile, rides: list[Ride], athlete_id: int | 
     except Exception:
         logger.debug("AI Coach: failed to generate charts", exc_info=True)
     training_advice = generate_workout_recommendations(athlete, rides, athlete_id)
-    recovery_advice = generate_recovery_recommendations(athlete, rides, athlete_id)
+    recovery_advice = generate_recovery_recommendations(athlete, rides, athlete_id=athlete_id)
     fitness_explanation = ""
     if athlete_id:
         fitness_explanation = get_fitness_state_explanation(athlete_id)
