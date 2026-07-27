@@ -12,7 +12,7 @@
 
 | Area | Stato | Note |
 |:--|:--|:--|
-| Backend FastAPI | **Stabile** | 2611 test pass, 138 endpoint |
+| Backend FastAPI | **Stabile** | ~3255 passed / 2 failed, 138 endpoint |
 | Frontend Vue 3 | **Stabile** | Vitest + Playwright configurati |
 | Tauri 2 desktop | **Funzionante** | Backend embedded + SQLite primario |
 | BM2 simulation engine | **Baseline** | 9 algoritmi, cablato via API |
