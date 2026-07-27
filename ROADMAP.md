@@ -19,7 +19,7 @@
 | AetherMap R&D | **Fasi 1-5 complete** | Fasi 3-5 complete; convergence decision: AetherMap converges into BikeMaster |
 | Multi-tenant / auth | **Completo** | tenant_id + OAuth2 (Google, Strava, Garmin) |
 | Sync device↔cloud | **In corso** | 3 branch aperti da mergiare |
-| Coverage test | **In corso** | ~30% routes.py, ~34% ai_coach, ~55% knowledge_base — nuovi test in `tests/test_coverage_ai_routes.py` |
+| Coverage test | **In corso** | ai_coach.py 90%, knowledge_base ~85%, routes.py ~65% — nuovi test in `tests/test_ai_coach_edge.py` e `tests/test_routes_error_branches.py` |
 
 ---
 

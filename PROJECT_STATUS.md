@@ -6,8 +6,9 @@
 > Fonte di verità unica per stato/checklist: [`ROADMAP.md`](ROADMAP.md).
 >
 > **Numeri backend/frontend (verificati 2026-07-27, repo root):**
-> - Backend: **~3255 passed / 2 failed** su ~3257 test eseguiti (`pytest`, in chunk per stabilità d'ambiente). I 2 failure sono errori d'ambiente SQLAlchemy async (`MissingGreenlet`). Aggiunti **130+ nuovi test** in `tests/test_coverage_ai_routes.py` (~120 passati) per copertura AI e route.
+> - Backend: **~3255 passed / 2 failed** su ~3257 test eseguiti (`pytest`, in chunk per stabilità d'ambiente). I 2 failure sono errori d'ambiente SQLAlchemy async (`MissingGreenlet`).
 > - Frontend: **395 passed / 0 failed / 0 errors** su **395** test (59 file) — `vitest run` eseguito 2026-07-27.
+> - Coverage backend: ai_coach.py **90%**, knowledge_base.py **~85%** (con slow tests), routes.py **~65%**.
 > - Endpoint REST: **138** (conteggio storico 2026-07-13).
 > - Coverage: routes.py ~30%, ai_coach ~55%, knowledge_base ~65% (target >90%).
 > I conteggi storici di file (108 backend / 47 frontend) sono riportati a titolo di riferimento.
