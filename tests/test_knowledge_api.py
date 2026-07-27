@@ -14,6 +14,12 @@ from __future__ import annotations
 import pytest
 pytestmark = pytest.mark.slow
 
+try:
+    import numpy.random
+    _HAS_NUMPY_RANDOM = True
+except ImportError:
+    _HAS_NUMPY_RANDOM = False
+
 from bike_analyzer.backend.analytics.knowledge_base import (
     CHUNK_OVERLAP,
     EMBEDDING_DIMENSION,
@@ -483,6 +489,7 @@ class TestPGVectorFallback:
         result = embed_text("test embedding")
         assert result is None or isinstance(result, list)
 
+    @pytest.mark.skipif(not _HAS_NUMPY_RANDOM, reason="numpy.random unavailable on this environment")
     def test_embed_text_local_fallback_returns_list(self, monkeypatch):
         from bike_analyzer.backend.analytics.knowledge_base import EMBEDDING_DIMENSION, embed_text
 
@@ -547,15 +554,18 @@ class TestPGVectorFallback:
 
 
 class TestLocalFallback:
+    @pytest.mark.skipif(not _HAS_NUMPY_RANDOM, reason="numpy.random unavailable on this environment")
     def test_tfidf_vectorizer_initialized(self):
         vec = _get_or_create_tfidf_vectorizer()
         assert vec is not None
 
+    @pytest.mark.skipif(not _HAS_NUMPY_RANDOM, reason="numpy.random unavailable on this environment")
     def test_tfidf_fallback_returns_correct_dimension(self, monkeypatch):
         result = _embed_text_local("testo di allenamento e recupero")
         assert isinstance(result, list)
         assert len(result) == EMBEDDING_DIMENSION
 
+    @pytest.mark.skipif(not _HAS_NUMPY_RANDOM, reason="numpy.random unavailable on this environment")
     def test_local_fallback_returns_list(self, monkeypatch):
         result = embed_text("testo di prova")
         assert isinstance(result, list)

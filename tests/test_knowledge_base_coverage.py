@@ -4,6 +4,12 @@ from __future__ import annotations
 
 import pytest
 
+try:
+    import numpy.random
+    _HAS_NUMPY_RANDOM = True
+except ImportError:
+    _HAS_NUMPY_RANDOM = False
+
 import bike_analyzer.backend.analytics.knowledge_base as kb
 
 
@@ -33,6 +39,7 @@ def test_embed_text_local_none_when_unavailable(monkeypatch):
     assert kb.embed_text("anything") is None
 
 
+@pytest.mark.skipif(not _HAS_NUMPY_RANDOM, reason="numpy.random unavailable on this environment")
 def test_embed_text_local_tfidf_fallback(monkeypatch):
     monkeypatch.setattr(kb, "_embed_text_sentence_transformer", lambda text: None)
 
