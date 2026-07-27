@@ -4,7 +4,7 @@
 <template>
   <section>
     <div class="panel">
-      <h2> Import Routes</h2>
+      <h2>Import Routes</h2>
 
       <div class="form-group">
         <label for="import-file">Carica file GPX o FIT</label>
@@ -21,7 +21,7 @@
             accept=".gpx,.fit"
             multiple
             @change="onChange"
-          >
+          />
           <div class="upload-placeholder">
             {{ label }}
           </div>
@@ -49,8 +49,7 @@
         <span>or import from connected services</span>
       </div>
 
-      <div v-if="providers?.google_fit"
-class="provider-group">
+      <div v-if="providers?.google_fit" class="provider-group">
         <h3>Google Fit</h3>
         <button
           class="btn btn-google-fit"
@@ -93,16 +92,14 @@ class="provider-group">
           Disconnect Google Fit
         </button>
       </div>
-      <div v-else
-class="provider-group provider-group--muted">
+      <div v-else class="provider-group provider-group--muted">
         <h3>Google Fit</h3>
         <p class="provider-hint">
           Coming soon: configure Google Fit credentials to enable import.
         </p>
       </div>
 
-      <div v-if="providers?.wahoo"
-class="provider-group">
+      <div v-if="providers?.wahoo" class="provider-group">
         <h3>Wahoo</h3>
         <button
           class="btn btn-secondary"
@@ -131,16 +128,14 @@ class="provider-group">
           Import from Wahoo
         </button>
       </div>
-      <div v-else
-class="provider-group provider-group--muted">
+      <div v-else class="provider-group provider-group--muted">
         <h3>Wahoo</h3>
         <p class="provider-hint">
           Coming soon: configure Wahoo credentials to enable import.
         </p>
       </div>
 
-      <div v-if="providers?.google_health"
-class="provider-group">
+      <div v-if="providers?.google_health" class="provider-group">
         <h3>Google Health</h3>
         <button
           class="btn btn-google-fit"
@@ -183,16 +178,14 @@ class="provider-group">
           Disconnect Google Health
         </button>
       </div>
-      <div v-else
- class="provider-group provider-group--muted">
+      <div v-else class="provider-group provider-group--muted">
         <h3>Google Health</h3>
         <p class="provider-hint">
           Coming soon: configure Google Health credentials to enable import.
         </p>
       </div>
 
-      <div v-if="providers?.strava"
- class="provider-group">
+      <div v-if="providers?.strava" class="provider-group">
         <h3>Strava</h3>
         <button
           class="btn btn-strava"
@@ -207,14 +200,8 @@ class="provider-group">
             style="margin-right: 6px"
             aria-hidden="true"
           >
-            <path
-              fill="#FC5200"
-              d="M13.5 16l-2.5 2.5L8.5 16l2.5-2.5z"
-            />
-            <path
-              fill="#FC5200"
-              d="M18 11.5L15.5 14 13 11.5l2.5-2.5z"
-            />
+            <path fill="#FC5200" d="M13.5 16l-2.5 2.5L8.5 16l2.5-2.5z" />
+            <path fill="#FC5200" d="M18 11.5L15.5 14 13 11.5l2.5-2.5z" />
           </svg>
           {{ importing ? "Connecting..." : "Connect Strava" }}
         </button>
@@ -237,8 +224,7 @@ class="provider-group">
           Import from Strava
         </button>
       </div>
-      <div v-else
- class="provider-group provider-group--muted">
+      <div v-else class="provider-group provider-group--muted">
         <h3>Strava</h3>
         <p class="provider-hint">
           Coming soon: configure Strava credentials to enable import.
@@ -301,7 +287,12 @@ async function loadProviders() {
     const data = await apiGet("/api/v1/import/providers");
     providers.value = { ...providers.value, ...(data || {}) };
   } catch {
-    providers.value = { google_fit: false, google_health: false, wahoo: false, strava: false };
+    providers.value = {
+      google_fit: false,
+      google_health: false,
+      wahoo: false,
+      strava: false,
+    };
   }
 }
 
@@ -333,7 +324,8 @@ async function upload() {
     files.value = [];
     emit("summary-change");
   } catch (e: unknown) {
-    status.value = "Import failed: " + (e instanceof Error ? e.message : String(e));
+    status.value =
+      "Import failed: " + (e instanceof Error ? e.message : String(e));
   } finally {
     uploading.value = false;
   }
@@ -425,11 +417,14 @@ async function connectGoogleFit() {
       }
     };
     window.addEventListener("message", handleMessage);
-    } catch (e: unknown) {
-      importStatus.value = { success: false, message: e instanceof Error ? e.message : String(e) };
-      importing.value = false;
-    }
+  } catch (e: unknown) {
+    importStatus.value = {
+      success: false,
+      message: e instanceof Error ? e.message : String(e),
+    };
+    importing.value = false;
   }
+}
 
 async function connectGoogleHealth() {
   importing.value = true;
@@ -522,11 +517,14 @@ async function connectGoogleHealth() {
       }
     };
     window.addEventListener("message", handleMessage);
-    } catch (e: unknown) {
-      importStatus.value = { success: false, message: e instanceof Error ? e.message : String(e) };
-      importing.value = false;
-    }
+  } catch (e: unknown) {
+    importStatus.value = {
+      success: false,
+      message: e instanceof Error ? e.message : String(e),
+    };
+    importing.value = false;
   }
+}
 
 async function disconnectGoogleFit() {
   try {
@@ -547,7 +545,11 @@ async function disconnectGoogleFit() {
       };
     }
   } catch (e: unknown) {
-    importStatus.value = { success: false, message: e instanceof Error ? e.message : "Failed to disconnect Google Fit" };
+    importStatus.value = {
+      success: false,
+      message:
+        e instanceof Error ? e.message : "Failed to disconnect Google Fit",
+    };
   }
 }
 
@@ -570,7 +572,11 @@ async function disconnectGoogleHealth() {
       };
     }
   } catch (e: unknown) {
-    importStatus.value = { success: false, message: e instanceof Error ? e.message : "Failed to disconnect Google Health" };
+    importStatus.value = {
+      success: false,
+      message:
+        e instanceof Error ? e.message : "Failed to disconnect Google Health",
+    };
   }
 }
 
@@ -587,7 +593,9 @@ async function connectStrava() {
   };
   try {
     const token = auth.token;
-    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers: Record<string, string> = token
+      ? { Authorization: `Bearer ${token}` }
+      : {};
     const authResp = await fetch("/api/v1/import/strava/auth", { headers });
     if (!authResp.ok) {
       const err = await authResp.json().catch(() => ({}));
@@ -627,18 +635,21 @@ async function connectStrava() {
           }
           return;
         }
-      finish();
-      resolve(event.data.code);
-      if (popup && !popup.closed) {
-        popup.close();
-      }
-    };
-    window.addEventListener("message", handleMessage);
+        finish();
+        resolve(event.data.code);
+        if (popup && !popup.closed) {
+          popup.close();
+        }
+      };
+      window.addEventListener("message", handleMessage);
     });
 
     const cbResp = await fetch("/api/v1/import/strava/callback", {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...headers } as HeadersInit,
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      } as HeadersInit,
       body: JSON.stringify({ code, code_verifier }),
     });
     if (!cbResp.ok) {
@@ -648,7 +659,10 @@ async function connectStrava() {
       // app is still in sandbox mode and the authorizing athlete is not an
       // approved "Athlete Tester". Surface a clear, actionable message instead
       // of the raw backend error.
-      if (cbResp.status === 502 && /Authorization Error|invalid/i.test(detail)) {
+      if (
+        cbResp.status === 502 &&
+        /Authorization Error|invalid/i.test(detail)
+      ) {
         throw new Error(
           "Strava rejected the connection: the BikeMaster app is in sandbox mode. " +
             "Open strava.com/settings/api, enter the BikeMaster app and add your " +
@@ -666,7 +680,10 @@ async function connectStrava() {
     await stravaSync();
   } catch (e: unknown) {
     cleanup();
-    importStatus.value = { success: false, message: e instanceof Error ? e.message : "Strava connection failed" };
+    importStatus.value = {
+      success: false,
+      message: e instanceof Error ? e.message : "Strava connection failed",
+    };
     importing.value = false;
   }
 }
@@ -697,7 +714,8 @@ async function stravaSync() {
   } catch (e: unknown) {
     importStatus.value = {
       success: false,
-      message: "Strava sync error: " + (e instanceof Error ? e.message : String(e)),
+      message:
+        "Strava sync error: " + (e instanceof Error ? e.message : String(e)),
     };
   } finally {
     importing.value = false;
@@ -720,7 +738,10 @@ async function disconnectStrava() {
       };
     }
   } catch (e: unknown) {
-    importStatus.value = { success: false, message: e instanceof Error ? e.message : "Failed to disconnect Strava" };
+    importStatus.value = {
+      success: false,
+      message: e instanceof Error ? e.message : "Failed to disconnect Strava",
+    };
   }
 }
 
@@ -806,11 +827,14 @@ async function connectWahoo() {
       }
     };
     window.addEventListener("message", handleMessage);
-    } catch (e: unknown) {
-      importStatus.value = { success: false, message: e instanceof Error ? e.message : String(e) };
-      importing.value = false;
-    }
+  } catch (e: unknown) {
+    importStatus.value = {
+      success: false,
+      message: e instanceof Error ? e.message : String(e),
+    };
+    importing.value = false;
   }
+}
 
 async function disconnectWahoo() {
   try {
@@ -831,7 +855,10 @@ async function disconnectWahoo() {
       };
     }
   } catch (e: unknown) {
-    importStatus.value = { success: false, message: e instanceof Error ? e.message : "Failed to disconnect Wahoo" };
+    importStatus.value = {
+      success: false,
+      message: e instanceof Error ? e.message : "Failed to disconnect Wahoo",
+    };
   }
 }
 
@@ -857,12 +884,12 @@ async function wahooSync() {
       status.value = "Wahoo import failed: " + (err.detail || resp.statusText);
     }
   } catch (e: unknown) {
-    status.value = "Wahoo import error: " + (e instanceof Error ? e.message : String(e));
+    status.value =
+      "Wahoo import error: " + (e instanceof Error ? e.message : String(e));
   } finally {
     importing.value = false;
   }
 }
-
 </script>
 
 <style scoped>

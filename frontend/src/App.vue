@@ -22,7 +22,9 @@ Liability:
           <span class="brand-badge" aria-hidden="true"></span>
           <div class="brand-text">
             <h1 class="logo">BikeMaster</h1>
-            <p v-if="loggedIn" class="tagline">Cycling Performance Intelligence</p>
+            <p v-if="loggedIn" class="tagline">
+              Cycling Performance Intelligence
+            </p>
           </div>
         </div>
 
@@ -68,7 +70,11 @@ Liability:
     </template>
 
     <template v-else>
-      <HeaderTabs :is-admin="isAdmin" :is-client="isClient" @logout="onLogout" />
+      <HeaderTabs
+        :is-admin="isAdmin"
+        :is-client="isClient"
+        @logout="onLogout"
+      />
 
       <StatsSummary
         v-if="loggedIn"
@@ -286,19 +292,29 @@ onMounted(() => {
 .orb-3 {
   width: 300px;
   height: 300px;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.35), transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(168, 85, 247, 0.35),
+    transparent 70%
+  );
   top: 40%;
   left: 55%;
   animation: orbFloat3 26s ease-in-out infinite alternate;
 }
 @keyframes orbFloat1 {
-  to { transform: translate(60px, 80px) scale(1.15); }
+  to {
+    transform: translate(60px, 80px) scale(1.15);
+  }
 }
 @keyframes orbFloat2 {
-  to { transform: translate(-70px, -40px) scale(1.1); }
+  to {
+    transform: translate(-70px, -40px) scale(1.1);
+  }
 }
 @keyframes orbFloat3 {
-  to { transform: translate(-40px, 60px) scale(0.9); }
+  to {
+    transform: translate(-40px, 60px) scale(0.9);
+  }
 }
 .app-header {
   text-align: center;
@@ -529,10 +545,14 @@ onMounted(() => {
 
 /* ===== Route transition ===== */
 .route-enter-active {
-  transition: opacity 0.35s var(--ease-out-quint), transform 0.35s var(--ease-out-quint);
+  transition:
+    opacity 0.35s var(--ease-out-quint),
+    transform 0.35s var(--ease-out-quint);
 }
 .route-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 .route-enter-from {
   opacity: 0;
@@ -555,4 +575,3 @@ onMounted(() => {
   }
 }
 </style>
-

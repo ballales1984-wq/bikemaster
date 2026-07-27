@@ -3,7 +3,7 @@
      Eventi: action (click sul pulsante). UI: icona SVG o emoji, testo centrato e bottone primario. -->
 <template>
   <div class="empty-state" :class="size">
-    <div class="empty-icon" v-if="icon" :aria-hidden="true">{{ icon }}</div>
+    <div v-if="icon" class="empty-icon" :aria-hidden="true">{{ icon }}</div>
     <svg
       v-else
       class="empty-svg"

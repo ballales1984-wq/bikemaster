@@ -4,12 +4,12 @@
 <template>
   <section class="comparison-panel">
     <div class="panel">
-      <h2> Confronto Uscite</h2>
+      <h2>Confronto Uscite</h2>
 
       <div class="select-row">
         <div class="select-group">
           <label>Uscita A</label>
-          <select v-model="rideA" @change="onSelectChange" class="form-select">
+          <select v-model="rideA" class="form-select" @change="onSelectChange">
             <option :value="null">Seleziona...</option>
             <option v-for="r in rides" :key="r.id" :value="r">
               {{ r.date }} — {{ fmt(r.distance_km) }} km
@@ -26,7 +26,7 @@
         </button>
         <div class="select-group">
           <label>Uscita B</label>
-          <select v-model="rideB" @change="onSelectChange" class="form-select">
+          <select v-model="rideB" class="form-select" @change="onSelectChange">
             <option :value="null">Seleziona...</option>
             <option v-for="r in rides" :key="r.id" :value="r">
               {{ r.date }} — {{ fmt(r.distance_km) }} km
@@ -36,16 +36,11 @@
       </div>
 
       <div v-if="loading" class="skeleton-container">
-        <div class="skeleton skeleton-card"
-style="height: 120px"
-/>
+        <div class="skeleton skeleton-card" style="height: 120px" />
       </div>
 
       <div v-else-if="comparison.ready" class="comparison-grid">
-        <div
-v-for="m in metrics" class="comp-card"
-:key="m.key"
->
+        <div v-for="m in metrics" :key="m.key" class="comp-card">
           <div class="comp-label">
             {{ m.label }}
           </div>
@@ -54,10 +49,10 @@ v-for="m in metrics" class="comp-card"
               class="comp-a"
               :class="{ winner: comparison.winners[m.key] === 'A' }"
             >
-              <span class="comp-val">{{ m.format(Number(comparison.a[m.key as keyof Ride]) || 0) }}</span>
-              <span
-v-if="comparison.deltas[m.key] !== 0" class="comp-delta"
->
+              <span class="comp-val">{{
+                m.format(Number(comparison.a[m.key as keyof Ride]) || 0)
+              }}</span>
+              <span v-if="comparison.deltas[m.key] !== 0" class="comp-delta">
                 {{ comparison.deltas[m.key] > 0 ? "+" : ""
                 }}{{ comparison.deltas[m.key].toFixed(1) }}%
               </span>
@@ -67,10 +62,10 @@ v-if="comparison.deltas[m.key] !== 0" class="comp-delta"
               class="comp-b"
               :class="{ winner: comparison.winners[m.key] === 'B' }"
             >
-              <span class="comp-val">{{ m.format(Number(comparison.b[m.key as keyof Ride]) || 0) }}</span>
-              <span
-v-if="comparison.deltas[m.key] !== 0" class="comp-delta"
->
+              <span class="comp-val">{{
+                m.format(Number(comparison.b[m.key as keyof Ride]) || 0)
+              }}</span>
+              <span v-if="comparison.deltas[m.key] !== 0" class="comp-delta">
                 {{ comparison.deltas[m.key] < 0 ? "+" : ""
                 }}{{ Math.abs(comparison.deltas[m.key]).toFixed(1) }}%
               </span>
@@ -78,9 +73,7 @@ v-if="comparison.deltas[m.key] !== 0" class="comp-delta"
           </div>
         </div>
 
-        <div
-v-if="verdict" class="verdict"
->
+        <div v-if="verdict" class="verdict">
           <span class="verdict-icon"></span>
           <span>{{ verdict }}</span>
         </div>
@@ -125,27 +118,32 @@ const metrics: MetricDef[] = [
   {
     key: "distance_km",
     label: "Distanza (km)",
-    format: (v: number | undefined): string => (v == null ? "—" : Number(v).toFixed(1)),
+    format: (v: number | undefined): string =>
+      v == null ? "—" : Number(v).toFixed(1),
   },
   {
     key: "duration_minutes",
     label: "Duration (min)",
-    format: (v: number | undefined): string => (v == null ? "—" : Math.round(v).toString()),
+    format: (v: number | undefined): string =>
+      v == null ? "—" : Math.round(v).toString(),
   },
   {
     key: "avg_speed_kmh",
     label: "Avg speed",
-    format: (v: number | undefined): string => (v == null ? "—" : Number(v).toFixed(1) + " km/h"),
+    format: (v: number | undefined): string =>
+      v == null ? "—" : Number(v).toFixed(1) + " km/h",
   },
   {
     key: "elev_gain_meters",
     label: "Elevation (m)",
-    format: (v: number | undefined): string => (v == null ? "—" : Math.round(v).toString()),
+    format: (v: number | undefined): string =>
+      v == null ? "—" : Math.round(v).toString(),
   },
   {
     key: "calories",
     label: "Calorie",
-    format: (v: number | undefined): string => (v == null ? "—" : Math.round(v).toString()),
+    format: (v: number | undefined): string =>
+      v == null ? "—" : Math.round(v).toString(),
   },
 ];
 
@@ -155,7 +153,14 @@ function fmt(v: number | undefined, dec = 1) {
 }
 
 const comparison = computed<ComparisonResult>(() => {
-  if (!rideA.value || !rideB.value) return { ready: false, a: rideA.value!, b: rideB.value!, deltas: {}, winners: {} };
+  if (!rideA.value || !rideB.value)
+    return {
+      ready: false,
+      a: rideA.value!,
+      b: rideB.value!,
+      deltas: {},
+      winners: {},
+    };
   const a = rideA.value;
   const b = rideB.value;
   const deltas: Record<string, number> = {};
@@ -211,7 +216,10 @@ async function load() {
     let page = 1;
     const pageSize = 100;
     while (true) {
-      const data = await apiGet<{ rides: Ride[]; total?: number }>("/api/v1/rides", { page: String(page), page_size: String(pageSize) });
+      const data = await apiGet<{ rides: Ride[]; total?: number }>(
+        "/api/v1/rides",
+        { page: String(page), page_size: String(pageSize) },
+      );
       const batch = data.rides || [];
       all.push(...batch);
       const total = typeof data.total === "number" ? data.total : all.length;
@@ -392,4 +400,3 @@ onMounted(() => load());
   font-size: 0.85rem;
 }
 </style>
-

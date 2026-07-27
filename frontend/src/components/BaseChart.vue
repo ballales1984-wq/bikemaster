@@ -2,11 +2,9 @@
      Props: config (ChartConfiguration), height (es. "260px"), emptyLabel (testo se non ci sono dati).
      Eventi: nessuno. Espone "chart" via defineExpose. UI: contenitore con canvas e messaggio "nessun dato" sovrapposto se vuoto. -->
 <template>
-  <div class="base-chart"
-:style="{ height }">
+  <div class="base-chart" :style="{ height }">
     <canvas ref="canvas" />
-    <p v-if="!hasData"
-class="base-chart__empty">
+    <p v-if="!hasData" class="base-chart__empty">
       {{ emptyLabel }}
     </p>
   </div>

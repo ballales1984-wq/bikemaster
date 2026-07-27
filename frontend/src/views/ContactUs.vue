@@ -7,35 +7,36 @@
 <template>
   <div class="contact-page">
     <div class="contact-header">
-      <h1> Contact Us</h1>
-      <p class="subtitle">Do you have questions, suggestions or want to collaborate?</p>
+      <h1>Contact Us</h1>
+      <p class="subtitle">
+        Do you have questions, suggestions or want to collaborate?
+      </p>
     </div>
 
     <div class="contact-info-grid">
       <div class="info-card">
-        <h3> Email</h3>
+        <h3>Email</h3>
         <p>
           <a href="mailto:support@bikemaster.app">support@bikemaster.app</a>
         </p>
         <p class="text-muted">Technical support and general information</p>
       </div>
       <div class="info-card">
-        <h3> Privacy</h3>
+        <h3>Privacy</h3>
         <p>
           <a href="mailto:privacy@bikemaster.app">privacy@bikemaster.app</a>
         </p>
-        <p class="text-muted">
-          Personal data protection requests
-        </p>
+        <p class="text-muted">Personal data protection requests</p>
       </div>
       <div class="info-card">
-        <h3> GitHub</h3>
+        <h3>GitHub</h3>
         <p>
           <a
             href="https://github.com/ballales1984-wq/bikemaster"
             target="_blank"
             rel="noopener"
-          >github.com/ballales1984-wq/bikemaster</a>
+            >github.com/ballales1984-wq/bikemaster</a
+          >
         </p>
         <p class="text-muted">
           Report bugs, request features or contribute to the code
@@ -46,23 +47,19 @@
     <div class="site-links-section">
       <h2>Useful Resources</h2>
       <div class="links-grid">
-        <RouterLink
-to="/privacy" class="link-card">
+        <RouterLink to="/privacy" class="link-card">
           <span class="link-icon"></span>
           <span>Privacy Policy</span>
         </RouterLink>
-        <RouterLink
-to="/terms" class="link-card">
+        <RouterLink to="/terms" class="link-card">
           <span class="link-icon"></span>
           <span>Termini di Servizio</span>
         </RouterLink>
-        <RouterLink
-to="/cookies" class="link-card">
+        <RouterLink to="/cookies" class="link-card">
           <span class="link-icon"></span>
           <span>Cookie Policy</span>
         </RouterLink>
-        <RouterLink
-to="/about" class="link-card">
+        <RouterLink to="/about" class="link-card">
           <span class="link-icon"></span>
           <span>Chi Siamo</span>
         </RouterLink>
@@ -71,7 +68,7 @@ to="/about" class="link-card">
 
     <div class="login-cta">
       <RouterLink to="/" class="btn btn-primary">
-         Accedi a BikeMaster
+        Accedi a BikeMaster
       </RouterLink>
     </div>
   </div>

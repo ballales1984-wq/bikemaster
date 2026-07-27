@@ -3,7 +3,7 @@
      UI: input Athlete ID + pulsante carica, barra progresso totale, griglia di card badge con progresso e spunta "ottenuto". -->
 <template>
   <div class="panel">
-    <h2> Sistema Badge</h2>
+    <h2>Sistema Badge</h2>
 
     <div class="form-grid">
       <div class="form-group">
@@ -17,26 +17,24 @@
       </div>
       <div class="form-group">
         <button class="btn btn-primary" @click="loadBadges">
-           Carica Badge
+          Carica Badge
         </button>
       </div>
     </div>
 
-    <div
-v-if="loading" class="loading-text"
->
+    <div v-if="loading" class="loading-text">
       <span class="spinner" /> Caricamento badge...
     </div>
 
-    <div
-v-if="!loading && !badgesData" class="empty-state">
+    <div v-if="!loading && !badgesData" class="empty-state">
       <div class="empty-icon"></div>
-        <div class="empty-title">Nessun badge caricato</div>
-        <div class="empty-desc">Inserisci un ID Atleta per visualizzare i tuoi badge</div>
+      <div class="empty-title">Nessun badge caricato</div>
+      <div class="empty-desc">
+        Inserisci un ID Atleta per visualizzare i tuoi badge
+      </div>
     </div>
 
-    <div
-v-if="badgesData" class="badges-container">
+    <div v-if="badgesData" class="badges-container">
       <div class="badges-stats">
         <div class="stat-card">
           <div class="stat-value">
@@ -75,11 +73,12 @@ v-if="badgesData" class="badges-container">
                       :style="{ width: badge.progress + '%' }"
                     />
                   </div>
-                  <span class="progress-text">{{ Math.round(badge.progress) }}%</span>
+                  <span class="progress-text"
+                    >{{ Math.round(badge.progress) }}%</span
+                  >
                 </div>
               </div>
-              <div
-v-if="badge.achieved" class="badge-check"></div>
+              <div v-if="badge.achieved" class="badge-check"></div>
             </div>
           </div>
         </div>
@@ -128,7 +127,9 @@ const categories = [
 const completionPercent = computed(() => {
   if (!badgesData.value) return 0;
   const { achieved, total_badges } = badgesData.value;
-  return total_badges > 0 ? Number(((achieved / total_badges) * 100).toFixed(1)) : 0;
+  return total_badges > 0
+    ? Number(((achieved / total_badges) * 100).toFixed(1))
+    : 0;
 });
 
 async function loadBadges() {
@@ -148,7 +149,9 @@ async function loadBadges() {
 
 function getBadgesByCategory(category: string): BadgeInfo[] {
   if (!badgesData.value?.badges) return [];
-  return badgesData.value.badges.filter((b: BadgeInfo) => b.category === category);
+  return badgesData.value.badges.filter(
+    (b: BadgeInfo) => b.category === category,
+  );
 }
 
 onMounted(() => {
@@ -265,4 +268,3 @@ onMounted(() => {
   font-size: 1.2rem;
 }
 </style>
-

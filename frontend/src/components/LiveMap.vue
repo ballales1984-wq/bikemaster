@@ -1,9 +1,6 @@
 <template>
   <div class="live-map-wrapper">
-    <div
-      ref="mapEl"
-      class="live-map"
-    />
+    <div ref="mapEl" class="live-map" />
   </div>
 </template>
 
@@ -36,7 +33,11 @@ const Ln = L as unknown as {
   polyline(
     latlngs: Array<[number, number]>,
     options?: Record<string, unknown>,
-  ): { addTo(map: any): any; addLatLng(latlng: [number, number]): any; getBounds(): any };
+  ): {
+    addTo(map: any): any;
+    addLatLng(latlng: [number, number]): any;
+    getBounds(): any;
+  };
   circleMarker(
     latlng: [number, number],
     options?: Record<string, unknown>,
@@ -107,10 +108,19 @@ async function loadNearbyPois(lat: number, lon: number) {
   if (poisLoaded.value) return;
   poisLoaded.value = true;
   try {
-    const data = await apiGet<{ pois: Array<{ name: string; lat: number; lon: number; type?: string; description?: string }> }>(
-      "/api/v1/maps/pois/nearby",
-      { lat: String(lat), lon: String(lon), radius: "5" },
-    );
+    const data = await apiGet<{
+      pois: Array<{
+        name: string;
+        lat: number;
+        lon: number;
+        type?: string;
+        description?: string;
+      }>;
+    }>("/api/v1/maps/pois/nearby", {
+      lat: String(lat),
+      lon: String(lon),
+      radius: "5",
+    });
     for (const poi of data.pois || []) {
       if (!Number.isFinite(poi.lat) || !Number.isFinite(poi.lon)) continue;
       const color = POI_COLORS[poi.type || "other"] || POI_COLORS.other;
@@ -122,7 +132,9 @@ async function loadNearbyPois(lat: number, lon: number) {
         weight: 2,
       })
         .addTo(poiLayer.value)
-        .bindPopup(`<strong>${poi.name}</strong><br>${poi.type || ""}${poi.description ? "<br>" + poi.description : ""}`);
+        .bindPopup(
+          `<strong>${poi.name}</strong><br>${poi.type || ""}${poi.description ? "<br>" + poi.description : ""}`,
+        );
     }
   } catch {
     /* POIs are optional; ignore failures so tracking keeps working */

@@ -12,7 +12,10 @@ import {
   fetchNotifications,
   updateNotificationPreferences,
 } from "../services/notifications";
-import type { Notification, NotificationPreferences } from "../types/notifications";
+import type {
+  Notification,
+  NotificationPreferences,
+} from "../types/notifications";
 
 const PREFS_KEY = "bikemaster_notification_prefs";
 

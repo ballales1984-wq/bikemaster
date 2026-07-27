@@ -48,9 +48,7 @@
           </div>
         </div>
 
-        <p v-if="service.description"
-class="connection-desc"
->
+        <p v-if="service.description" class="connection-desc">
           {{ service.description }}
         </p>
 
@@ -66,18 +64,14 @@ class="connection-desc"
                 : t("connections.disconnected")
             }}
           </span>
-          <span v-if="service.lastConnectedAt"
-class="last-connected"
->
+          <span v-if="service.lastConnectedAt" class="last-connected">
             {{ formatDate(service.lastConnectedAt) }}
           </span>
         </div>
 
         <!-- Servizi OAuth -->
         <template v-if="service.method === 'oauth'">
-          <div v-if="!service.connected"
-class="connection-actions"
->
+          <div v-if="!service.connected" class="connection-actions">
             <button
               class="btn btn-primary"
               :disabled="connecting === service.service"
@@ -90,9 +84,7 @@ class="connection-actions"
               }}
             </button>
           </div>
-          <div v-else
-class="connection-actions"
->
+          <div v-else class="connection-actions">
             <button
               class="btn btn-danger"
               :disabled="disconnecting === service.service"
@@ -109,9 +101,7 @@ class="connection-actions"
 
         <!-- Servizi API Key -->
         <template v-if="service.method === 'apikey'">
-          <form
-class="apikey-form" @submit.prevent
->
+          <form class="apikey-form" @submit.prevent>
             <label class="key-field">
               <span class="key-label">{{ service.label }} API Key</span>
               <input
@@ -146,9 +136,7 @@ class="apikey-form" @submit.prevent
           </form>
         </template>
 
-        <div v-if="serviceError === service.service"
-class="connection-error"
->
+        <div v-if="serviceError === service.service" class="connection-error">
           {{ lastServiceError }}
         </div>
       </div>
@@ -166,18 +154,14 @@ class="connection-error"
         :placeholder="t('connections.bulkPlaceholder')"
       />
       <div class="row key-actions">
-        <button class="btn"
-:disabled="importingBulk" @click="importBulkKeys"
->
+        <button class="btn" :disabled="importingBulk" @click="importBulkKeys">
           {{
             importingBulk
               ? t("connections.importing")
               : t("connections.importBulk")
           }}
         </button>
-        <span class="status"
-:class="bulkStatusClass"
->{{ bulkStatus }}</span>
+        <span class="status" :class="bulkStatusClass">{{ bulkStatus }}</span>
       </div>
     </section>
 
@@ -221,9 +205,7 @@ class="connection-error"
             </button>
           </div>
 
-          <div
-v-if="bleStore.error" class="connection-error"
->
+          <div v-if="bleStore.error" class="connection-error">
             {{ bleStore.error }}
           </div>
 
@@ -319,15 +301,11 @@ v-if="bleStore.error" class="connection-error"
             </template>
           </div>
 
-          <div
-v-if="healthConnect.error" class="connection-error"
->
+          <div v-if="healthConnect.error" class="connection-error">
             {{ healthConnect.error }}
           </div>
 
-          <div
-v-if="healthConnect.status.connected" class="permission-list"
->
+          <div v-if="healthConnect.status.connected" class="permission-list">
             <div class="permission-label">
               {{ t("connections.grantedPermissions") }}:
             </div>

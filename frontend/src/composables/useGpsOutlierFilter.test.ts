@@ -54,7 +54,11 @@ describe("useGpsOutlierFilter", () => {
   it("rejects points with non-finite coordinates or timestamps", () => {
     const { isOutlier } = useGpsOutlierFilter();
     expect(
-      isOutlier({ lat: NaN, lon: 7, timestamp: new Date().toISOString() } as GpsPoint),
+      isOutlier({
+        lat: NaN,
+        lon: 7,
+        timestamp: new Date().toISOString(),
+      } as GpsPoint),
     ).toBe(true);
   });
 

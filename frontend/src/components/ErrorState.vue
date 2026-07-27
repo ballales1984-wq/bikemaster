@@ -14,7 +14,7 @@
       class="btn btn-primary retry-btn"
       @click="$emit('retry')"
     >
-       Retry
+      Retry
     </button>
   </div>
 </template>

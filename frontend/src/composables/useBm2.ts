@@ -78,7 +78,8 @@ export function useBm2() {
       rideSimulation.value = data;
       return data;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Errore di simulazione ride";
+      error.value =
+        e instanceof Error ? e.message : "Errore di simulazione ride";
       rideSimulation.value = null;
       return null;
     } finally {

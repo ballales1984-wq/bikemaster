@@ -7,15 +7,15 @@
   <div class="tracking-tools">
     <div class="tools-group">
       <label class="control">
-        <span>{{ t('trackingTools.mapStyle') }}</span>
+        <span>{{ t("trackingTools.mapStyle") }}</span>
         <select
           id="tracking-map-style"
           :value="modelValueMapStyle"
           class="form-input"
           @change="onMapStyleChange"
         >
-          <option value="osm">{{ t('trackingTools.styleOsm') }}</option>
-          <option value="cyclosm">{{ t('trackingTools.styleCyclosm') }}</option>
+          <option value="osm">{{ t("trackingTools.styleOsm") }}</option>
+          <option value="cyclosm">{{ t("trackingTools.styleCyclosm") }}</option>
         </select>
       </label>
 
@@ -24,9 +24,14 @@
           id="tracking-show-pois"
           type="checkbox"
           :checked="modelValueShowPois"
-          @change="$emit('update:showPois', ($event.target as HTMLInputElement).checked)"
+          @change="
+            $emit(
+              'update:showPois',
+              ($event.target as HTMLInputElement).checked,
+            )
+          "
         />
-        <span>{{ t('trackingTools.showPois') }}</span>
+        <span>{{ t("trackingTools.showPois") }}</span>
       </label>
 
       <button
@@ -34,7 +39,7 @@
         :disabled="!hasRoute"
         @click="$emit('center-map')"
       >
-        {{ t('trackingTools.centerMap') }}
+        {{ t("trackingTools.centerMap") }}
       </button>
     </div>
 
@@ -44,23 +49,21 @@
         :disabled="!canSaveItinerary"
         @click="$emit('save-itinerary')"
       >
-        {{ t('trackingTools.saveAsItinerary') }}
+        {{ t("trackingTools.saveAsItinerary") }}
       </button>
 
-      <label class="control" v-if="itineraries.length">
-        <span>{{ t('trackingTools.addToItinerary') }}</span>
+      <label v-if="itineraries.length" class="control">
+        <span>{{ t("trackingTools.addToItinerary") }}</span>
         <select
           id="tracking-itinerary"
           class="form-input"
           :value="selectedItineraryId"
           @change="onItineraryChange"
         >
-          <option :value="null">{{ t('trackingTools.selectItinerary') }}</option>
-          <option
-            v-for="it in itineraries"
-            :key="it.id"
-            :value="it.id"
-          >
+          <option :value="null">
+            {{ t("trackingTools.selectItinerary") }}
+          </option>
+          <option v-for="it in itineraries" :key="it.id" :value="it.id">
             {{ it.name }}
           </option>
         </select>

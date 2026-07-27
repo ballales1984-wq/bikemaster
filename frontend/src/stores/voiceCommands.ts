@@ -7,9 +7,22 @@
 
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { createCommandRegistry, parseTranscript, createLogEntry } from "../services/voiceCommands";
-import type { RecognitionState, VoiceCommandResult, VoiceCommandLogEntry, ParsedCommand } from "../types/voiceCommands";
-import type { SpeechRecognition, SpeechRecognitionEvent, SpeechRecognitionErrorEvent } from "../types/speechRecognition";
+import {
+  createCommandRegistry,
+  parseTranscript,
+  createLogEntry,
+} from "../services/voiceCommands";
+import type {
+  RecognitionState,
+  VoiceCommandResult,
+  VoiceCommandLogEntry,
+  ParsedCommand,
+} from "../types/voiceCommands";
+import type {
+  SpeechRecognition,
+  SpeechRecognitionEvent,
+  SpeechRecognitionErrorEvent,
+} from "../types/speechRecognition";
 
 export const useVoiceCommandsStore = defineStore("voiceCommands", () => {
   const commands = createCommandRegistry();
@@ -20,7 +33,9 @@ export const useVoiceCommandsStore = defineStore("voiceCommands", () => {
     lastTranscript: "",
     lastResult: null,
     error: null,
-    supported: typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window),
+    supported:
+      typeof window !== "undefined" &&
+      ("SpeechRecognition" in window || "webkitSpeechRecognition" in window),
   });
   const log = ref<VoiceCommandLogEntry[]>([]);
   const autoListen = ref(false);
@@ -40,7 +55,9 @@ export const useVoiceCommandsStore = defineStore("voiceCommands", () => {
 
   function initRecognition(): any {
     if (!state.value.supported) return null;
-    const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognitionCtor =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionCtor) return null;
 
     const rec = new SpeechRecognitionCtor();
@@ -131,7 +148,8 @@ export const useVoiceCommandsStore = defineStore("voiceCommands", () => {
         } catch (e) {
           result = {
             success: false,
-            message: e instanceof Error ? e.message : "Errore durante l'esecuzione",
+            message:
+              e instanceof Error ? e.message : "Errore durante l'esecuzione",
           };
         }
       }
@@ -160,7 +178,11 @@ export const useVoiceCommandsStore = defineStore("voiceCommands", () => {
     log.value = [];
   }
 
-  if (typeof window !== "undefined" && state.value.supported && !recognition.value) {
+  if (
+    typeof window !== "undefined" &&
+    state.value.supported &&
+    !recognition.value
+  ) {
     initRecognition();
   }
 

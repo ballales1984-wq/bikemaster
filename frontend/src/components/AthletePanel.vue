@@ -6,18 +6,12 @@
 -->
 <template>
   <div class="panel">
-    <h2> Profilo Atleta</h2>
-    <div
-      v-if="isFirstLogin"
-      class="welcome-banner"
-    >
-      <span class="welcome-icon"></span> Benvenuto! Completa il tuo profilo per iniziare
+    <h2>Profilo Atleta</h2>
+    <div v-if="isFirstLogin" class="welcome-banner">
+      <span class="welcome-icon"></span> Benvenuto! Completa il tuo profilo per
+      iniziare
     </div>
-    <form
-      id="athlete-form"
-      class="form-grid"
-      novalidate
-    >
+    <form id="athlete-form" class="form-grid" novalidate>
       <div class="form-group">
         <label for="athlete-name">Nome</label>
         <input
@@ -29,13 +23,10 @@
             error: fieldErrors.name,
             valid: !fieldErrors.name && form.name.length >= 2,
           }"
-        >
-        <span
-          v-if="fieldErrors.name"
-          class="field-error"
-        >{{
-            fieldErrors.name
-          }}</span>
+        />
+        <span v-if="fieldErrors.name" class="field-error">{{
+          fieldErrors.name
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-age">Età</label>
@@ -46,13 +37,10 @@
           min="10"
           max="100"
           :class="{ error: fieldErrors.age, valid: !fieldErrors.age }"
-        >
-        <span
-          v-if="fieldErrors.age"
-          class="field-error"
-        >{{
-            fieldErrors.age
-          }}</span>
+        />
+        <span v-if="fieldErrors.age" class="field-error">{{
+          fieldErrors.age
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-weight">Peso (kg)</label>
@@ -67,13 +55,10 @@
             error: fieldErrors.weight_kg,
             valid: !fieldErrors.weight_kg,
           }"
-        >
-        <span
-          v-if="fieldErrors.weight_kg"
-          class="field-error"
-        >{{
-            fieldErrors.weight_kg
-          }}</span>
+        />
+        <span v-if="fieldErrors.weight_kg" class="field-error">{{
+          fieldErrors.weight_kg
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-height">Altezza (cm)</label>
@@ -87,13 +72,10 @@
             error: fieldErrors.height_cm,
             valid: !fieldErrors.height_cm,
           }"
-        >
-        <span
-          v-if="fieldErrors.height_cm"
-          class="field-error"
-        >{{
-            fieldErrors.height_cm
-          }}</span>
+        />
+        <span v-if="fieldErrors.height_cm" class="field-error">{{
+          fieldErrors.height_cm
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-fat">Massa Grassa (%)</label>
@@ -104,7 +86,7 @@
           min="3"
           max="60"
           step="0.1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-water">Acqua Corporea (%)</label>
@@ -115,7 +97,7 @@
           min="0"
           max="100"
           step="0.1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-muscle-pct">Massa Muscolare (%)</label>
@@ -126,7 +108,7 @@
           min="0"
           max="100"
           step="0.1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-bmr">Metabolismo Basale (kcal)</label>
@@ -137,7 +119,7 @@
           min="500"
           max="10000"
           step="1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-fat-mass">Massa Grassa Corporea (kg)</label>
@@ -148,7 +130,7 @@
           min="0"
           max="300"
           step="0.1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-sub-fat">Grasso Sottocutaneo (%)</label>
@@ -159,7 +141,7 @@
           min="0"
           max="100"
           step="0.1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-sub-fat-pct">Grasso Viscerale (%)</label>
@@ -170,7 +152,7 @@
           min="0"
           max="100"
           step="0.1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-muscle">Massa Muscolare (kg)</label>
@@ -181,7 +163,7 @@
           min="0"
           max="120"
           step="0.1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-bone">Massa Ossea (kg)</label>
@@ -192,7 +174,7 @@
           min="0"
           max="20"
           step="0.1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-protein-pct">Proteine (%)</label>
@@ -203,7 +185,7 @@
           min="0"
           max="100"
           step="0.1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-body-age">Età Corporea</label>
@@ -214,7 +196,7 @@
           min="10"
           max="100"
           step="1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-apparent-age">Età Apparente</label>
@@ -225,7 +207,7 @@
           min="10"
           max="100"
           step="1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-bmi">BMI (IMC)</label>
@@ -235,7 +217,7 @@
           type="number"
           step="0.1"
           readonly
-        >
+        />
         <span v-if="form.bmi" class="field-hint">{{ bmiInterpretation }}</span>
       </div>
       <div class="form-group">
@@ -247,7 +229,7 @@
           min="0"
           max="300"
           step="0.1"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-years">Anni di attività</label>
@@ -257,7 +239,7 @@
           type="number"
           min="0"
           max="80"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-weekly">Sessioni/settimana</label>
@@ -267,7 +249,7 @@
           type="number"
           min="0"
           max="14"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-monthly">Ore/mese</label>
@@ -277,7 +259,7 @@
           type="number"
           min="0"
           step="0.5"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-annual">Ore/anno</label>
@@ -287,7 +269,7 @@
           type="number"
           min="0"
           step="0.5"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="athlete-level">Livello</label>
@@ -305,12 +287,9 @@
           <option>Avanzato</option>
           <option>Elite</option>
         </select>
-        <span
-          v-if="fieldErrors.experience_level"
-          class="field-error"
-        >{{
-            fieldErrors.experience_level
-          }}</span>
+        <span v-if="fieldErrors.experience_level" class="field-error">{{
+          fieldErrors.experience_level
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-goals">Obiettivo</label>
@@ -320,31 +299,19 @@
           type="text"
           maxlength="500"
           placeholder="Gran Fondo, criterium, ecc."
-        >
+        />
       </div>
     </form>
     <div class="form-actions">
-      <button
-        class="btn btn-primary"
-        @click="save"
-      >
-        Salva Profilo
-      </button>
+      <button class="btn btn-primary" @click="save">Salva Profilo</button>
     </div>
-    <div
-      v-if="result"
-      class="result-box"
-    >
+    <div v-if="result" class="result-box">
       {{ result }}
     </div>
 
     <section v-if="showHistory" class="metric-history">
       <h3>Andamento storico</h3>
-      <MetricHistoryChart
-        metric-type="weight_kg"
-        :days="365"
-        label="Peso"
-      />
+      <MetricHistoryChart metric-type="weight_kg" :days="365" label="Peso" />
       <MetricHistoryChart
         metric-type="fat_percentage"
         :days="365"
@@ -385,11 +352,7 @@
         :days="365"
         label="Proteine %"
       />
-      <MetricHistoryChart
-        metric-type="ftp_watts"
-        :days="365"
-        label="FTP"
-      />
+      <MetricHistoryChart metric-type="ftp_watts" :days="365" label="FTP" />
     </section>
   </div>
 </template>
@@ -502,20 +465,21 @@ const bmiInterpretation = computed(() => {
   return "Obeso";
 });
 
-  watch(
-    [() => form.value.weight_kg, () => form.value.height_cm],
-    ([w, h]) => {
-      if (w && h && h > 0) {
-        const hm = h / 100;
-        form.value.bmi = +(w / (hm * hm)).toFixed(1);
-      } else {
-        form.value.bmi = null;
-      }
-    }
-  );
+watch([() => form.value.weight_kg, () => form.value.height_cm], ([w, h]) => {
+  if (w && h && h > 0) {
+    const hm = h / 100;
+    form.value.bmi = +(w / (hm * hm)).toFixed(1);
+  } else {
+    form.value.bmi = null;
+  }
+});
 
 watch(
-  [() => form.value.fat_mass_kg, () => form.value.fat_percentage, () => form.value.weight_kg],
+  [
+    () => form.value.fat_mass_kg,
+    () => form.value.fat_percentage,
+    () => form.value.weight_kg,
+  ],
   ([fatKg, fatPct, weight]) => {
     if (form.value.lean_body_mass_kg) return;
     if (fatKg != null && weight != null && weight > fatKg) {
@@ -523,7 +487,7 @@ watch(
     } else if (fatPct != null && weight != null) {
       form.value.lean_body_mass_kg = +(weight * (1 - fatPct / 100)).toFixed(1);
     }
-  }
+  },
 );
 
 function validateForm(): boolean {

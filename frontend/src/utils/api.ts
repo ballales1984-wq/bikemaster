@@ -9,7 +9,11 @@
  */
 
 import { useAuthStore } from "../stores/auth";
-import { resolveApiBase, resolveFallbackBase, isFallbackEnabled } from "./backend-config";
+import {
+  resolveApiBase,
+  resolveFallbackBase,
+  isFallbackEnabled,
+} from "./backend-config";
 import { getUserKeysHeaderValue } from "./userKeys";
 
 export class ApiError extends Error {
@@ -311,4 +315,3 @@ export async function apiPut<T = ApiResponse>(
     body,
   });
 }
-

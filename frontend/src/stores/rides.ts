@@ -9,11 +9,7 @@ import { ref, computed } from "vue";
 import type { Ride, Summary } from "../types/index";
 import { apiGet, apiDelete, apiPost } from "../utils/api";
 import { useAuthStore } from "./auth";
-import {
-  isLocalDbReady,
-  upsertRide,
-  getCachedRides,
-} from "../db/localDb";
+import { isLocalDbReady, upsertRide, getCachedRides } from "../db/localDb";
 
 export interface RideFilters {
   search?: string;
@@ -43,7 +39,10 @@ export const useRidesStore = defineStore("rides", () => {
 
   const filteredRides = computed(() => rides.value);
   const totalPages = computed(() =>
-    Math.max(1, Math.ceil(rides.value.length / (filters.value.page_size || 20))),
+    Math.max(
+      1,
+      Math.ceil(rides.value.length / (filters.value.page_size || 20)),
+    ),
   );
 
   function loadFilters() {
@@ -70,7 +69,10 @@ export const useRidesStore = defineStore("rides", () => {
   }
 
   function setFilter(key: keyof RideFilters, value: unknown) {
-    filters.value = { ...filters.value, [key]: value as RideFilters[keyof RideFilters] };
+    filters.value = {
+      ...filters.value,
+      [key]: value as RideFilters[keyof RideFilters],
+    };
     saveFilters();
   }
 

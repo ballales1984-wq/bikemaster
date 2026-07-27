@@ -18,7 +18,9 @@ export const useItineraryStore = defineStore("itinerary", () => {
     loading.value = true;
     error.value = "";
     try {
-      const data = await apiGet<{ itineraries: Itinerary[] }>("/api/v1/itineraries");
+      const data = await apiGet<{ itineraries: Itinerary[] }>(
+        "/api/v1/itineraries",
+      );
       itineraries.value = data.itineraries || [];
     } catch (err) {
       error.value = err instanceof Error ? err.message : "Caricamento fallito";
@@ -57,20 +59,27 @@ export const useItineraryStore = defineStore("itinerary", () => {
     }
   }
 
-  async function addStage(itineraryId: number, payload: Partial<Stage>): Promise<boolean> {
+  async function addStage(
+    itineraryId: number,
+    payload: Partial<Stage>,
+  ): Promise<boolean> {
     error.value = "";
     try {
       await apiPost(`/api/v1/itineraries/${itineraryId}/stages`, payload);
       await loadOne(itineraryId);
       return true;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Creazione tappa fallita";
+      error.value =
+        err instanceof Error ? err.message : "Creazione tappa fallita";
       return false;
     }
   }
 
   const totalKm = computed(() =>
-    (current.value?.stages || []).reduce((s, st) => s + (st.distance_km || 0), 0),
+    (current.value?.stages || []).reduce(
+      (s, st) => s + (st.distance_km || 0),
+      0,
+    ),
   );
 
   return {

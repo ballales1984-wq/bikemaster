@@ -132,4 +132,3 @@ export {
   validateExperienceLevel,
   VALID_EXPERIENCE_LEVELS,
 };
-

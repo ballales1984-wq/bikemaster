@@ -7,7 +7,7 @@
 <template>
   <div class="about-page">
     <div class="about-header">
-      <h1> BikeMaster</h1>
+      <h1>BikeMaster</h1>
       <p class="tagline">Cycling Performance Intelligence</p>
     </div>
 
@@ -16,10 +16,10 @@
         <h2>About Us</h2>
         <p>
           BikeMaster is an open-source project dedicated to advanced cycling
-          performance analysis. Our mission is to provide professional tools
-          for cyclists of every level, from beginners to competitive
-          athletes, to understand and improve their performance
-          through data, algorithms and artificial intelligence.
+          performance analysis. Our mission is to provide professional tools for
+          cyclists of every level, from beginners to competitive athletes, to
+          understand and improve their performance through data, algorithms and
+          artificial intelligence.
         </p>
       </section>
 
@@ -27,42 +27,42 @@
         <h2>What We Do</h2>
         <div class="feature-grid">
           <div class="feature-card">
-            <h3> Performance Analysis</h3>
+            <h3>Performance Analysis</h3>
             <p>
               Complete analysis of rides with advanced metrics: Normalized
               Power, TSS, FTP, Critical Power, CTL/ATL/TSB.
             </p>
           </div>
           <div class="feature-card">
-            <h3> AI Coach</h3>
+            <h3>AI Coach</h3>
             <p>
-              Personalized training and recovery advice via LLM
-              models and knowledge based on scientific data.
+              Personalized training and recovery advice via LLM models and
+              knowledge based on scientific data.
             </p>
           </div>
           <div class="feature-card">
-            <h3> Interactive Maps</h3>
+            <h3>Interactive Maps</h3>
             <p>
-              Route visualization colored by speed, GPS heatmaps, and
-              road safety analysis.
+              Route visualization colored by speed, GPS heatmaps, and road
+              safety analysis.
             </p>
           </div>
           <div class="feature-card">
-            <h3> Mobile Tracking</h3>
+            <h3>Mobile Tracking</h3>
             <p>
-              Ride recording directly from your Android phone with
-              foreground GPS service.
+              Ride recording directly from your Android phone with foreground
+              GPS service.
             </p>
           </div>
           <div class="feature-card">
-            <h3> Integrations</h3>
+            <h3>Integrations</h3>
             <p>
-              Sync with Strava, Garmin Connect and Google Fit to
-              import all your activities.
+              Sync with Strava, Garmin Connect and Google Fit to import all your
+              activities.
             </p>
           </div>
           <div class="feature-card">
-            <h3> Benchmarking</h3>
+            <h3>Benchmarking</h3>
             <p>
               Compare your performance with athletes in your category to
               understand your level.
@@ -77,7 +77,9 @@
         <ul>
           <li><strong>Backend:</strong> FastAPI, Python 3.11+</li>
           <li><strong>Frontend:</strong> Vue 3, TypeScript, Vite</li>
-          <li><strong>Database:</strong> SQLite / PostgreSQL with SQLAlchemy</li>
+          <li>
+            <strong>Database:</strong> SQLite / PostgreSQL with SQLAlchemy
+          </li>
           <li><strong>AI/ML:</strong> NumPy, Pandas, SciPy, Groq LLM</li>
           <li><strong>Maps:</strong> Leaflet.js, Folium, OpenStreetMap</li>
           <li><strong>Mobile:</strong> Android Kotlin, Capacitor</li>
@@ -88,33 +90,32 @@
         <h2>Our Values</h2>
         <ul>
           <li>
-            <strong>Open Source:</strong> the code is public on GitHub under
-            MIT license
+            <strong>Open Source:</strong> the code is public on GitHub under MIT
+            license
           </li>
           <li>
-            <strong>Privacy First:</strong> your data is yours, we do not
-            sell it to third parties
+            <strong>Privacy First:</strong> your data is yours, we do not sell
+            it to third parties
           </li>
           <li>
             <strong>Community Driven:</strong> we build with and for the cycling
             community
           </li>
           <li>
-            <strong>Scientific Approach:</strong> algorithms based on physiological
-            and scientific principles
+            <strong>Scientific Approach:</strong> algorithms based on
+            physiological and scientific principles
           </li>
         </ul>
       </section>
 
       <section class="cta">
         <p>Want to contribute or learn more?</p>
-        <RouterLink
-to="/contact" class="cta-button"> Contact Us </RouterLink>
+        <RouterLink to="/contact" class="cta-button"> Contact Us </RouterLink>
       </section>
 
       <div class="login-cta">
         <RouterLink to="/" class="btn btn-secondary">
-           Login to BikeMaster
+          Login to BikeMaster
         </RouterLink>
       </div>
     </div>

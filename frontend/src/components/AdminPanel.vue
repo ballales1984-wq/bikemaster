@@ -24,7 +24,7 @@
           <div class="admin-desc">Manage users and roles</div>
         </button>
 
-        <button class="admin-card" @click="loadStats" :disabled="loadingStats">
+        <button class="admin-card" :disabled="loadingStats" @click="loadStats">
           <div class="admin-icon"></div>
           <div class="admin-label">Statistiche Sistema</div>
           <div class="admin-desc">Visualizza metriche database e API</div>

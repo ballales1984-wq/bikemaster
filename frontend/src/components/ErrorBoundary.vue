@@ -3,25 +3,21 @@
      Accessibile (role=alert, aria-live) e ripristina il focus sull'errore. -->
 <template>
   <div
-v-if="error"
-ref="boundary"
-class="error-boundary"
-data-test="error-boundary"
-role="alert"
-aria-live="assertive"
-aria-atomic="true"
-tabindex="-1"
->
+    v-if="error"
+    ref="boundary"
+    class="error-boundary"
+    data-test="error-boundary"
+    role="alert"
+    aria-live="assertive"
+    aria-atomic="true"
+    tabindex="-1"
+  >
     <div class="error-boundary-content">
-      <div
-class="error-boundary-icon" aria-hidden="true"></div>
-      <h2 id="error-title"
-class="error-boundary-title">
+      <div class="error-boundary-icon" aria-hidden="true"></div>
+      <h2 id="error-title" class="error-boundary-title">
         Something went wrong
       </h2>
-      <p
-class="error-boundary-message" aria-describedby="error-title"
->
+      <p class="error-boundary-message" aria-describedby="error-title">
         {{ error }}
       </p>
       <button
@@ -29,7 +25,7 @@ class="error-boundary-message" aria-describedby="error-title"
         aria-label="Try again"
         @click="resetError"
       >
-         Try Again
+        Try Again
       </button>
     </div>
   </div>

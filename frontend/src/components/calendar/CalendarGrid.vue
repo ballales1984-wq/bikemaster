@@ -3,8 +3,7 @@
      UI: griglia 7 colonne; celle evidenziate per oggi/mese-altro/eventi e cliccabili per aggiungere un evento in quella data. -->
 <template>
   <div class="calendar-grid">
-    <div v-for="d in weekDays"
-:key="d" class="cal-header">
+    <div v-for="d in weekDays" :key="d" class="cal-header">
       {{ d }}
     </div>
     <div
@@ -17,8 +16,7 @@
         'has-events': day.events.length > 0,
       }"
     >
-      <span class="day-num"
-@click="$emit('add-for-date', day.date)">
+      <span class="day-num" @click="$emit('add-for-date', day.date)">
         {{ day.day }}
       </span>
       <div class="day-events">
@@ -30,9 +28,9 @@
         >
           {{ ev.title }}
         </span>
-        <span v-if="day.events.length > 3"
-class="more-events"
-        >+{{ day.events.length - 3 }}</span>
+        <span v-if="day.events.length > 3" class="more-events"
+          >+{{ day.events.length - 3 }}</span
+        >
       </div>
     </div>
   </div>

@@ -35,7 +35,7 @@
         class="tab"
         active-class="active"
       >
-         <span>{{ t("nav.admin") }}</span>
+        <span>{{ t("nav.admin") }}</span>
       </router-link>
       <router-link
         v-if="isAdmin"
@@ -44,7 +44,7 @@
         class="tab"
         active-class="active"
       >
-         <span>BM2 Admin</span>
+        <span>BM2 Admin</span>
       </router-link>
       <router-link
         v-if="isAdmin"
@@ -53,7 +53,7 @@
         class="tab"
         active-class="active"
       >
-         <span>{{ t("nav.monitoring") }}</span>
+        <span>{{ t("nav.monitoring") }}</span>
       </router-link>
       <router-link
         v-if="isClient"
@@ -62,7 +62,7 @@
         class="tab"
         active-class="active"
       >
-         <span>{{ t("nav.client") }}</span>
+        <span>{{ t("nav.client") }}</span>
       </router-link>
       <router-link
         ref="tabEls"
@@ -70,7 +70,7 @@
         class="tab"
         active-class="active"
       >
-         <span>{{ t("nav.settings") }}</span>
+        <span>{{ t("nav.settings") }}</span>
       </router-link>
       <router-link
         ref="tabEls"
@@ -78,7 +78,7 @@
         class="tab"
         active-class="active"
       >
-         <span>{{ t("nav.connections") }}</span>
+        <span>{{ t("nav.connections") }}</span>
       </router-link>
 
       <button

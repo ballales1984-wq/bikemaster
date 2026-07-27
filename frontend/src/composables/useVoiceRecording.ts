@@ -39,7 +39,9 @@ export function useVoiceRecording() {
 
   async function checkSupport(): Promise<boolean> {
     if (typeof window === "undefined") return false;
-    supported.value = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    supported.value = !!(
+      navigator.mediaDevices && navigator.mediaDevices.getUserMedia
+    );
     return supported.value;
   }
 
@@ -223,7 +225,10 @@ export function useVoiceRecording() {
         if (!analyser) return;
         analyser.getByteFrequencyData(dataArray);
         const sum = dataArray.reduce((a, b) => a + b, 0);
-        volumeLevel.value = Math.min(100, Math.round((sum / dataArray.length / 255) * 100 * 3));
+        volumeLevel.value = Math.min(
+          100,
+          Math.round((sum / dataArray.length / 255) * 100 * 3),
+        );
         animationId = requestAnimationFrame(updateVolume);
       }
       updateVolume();

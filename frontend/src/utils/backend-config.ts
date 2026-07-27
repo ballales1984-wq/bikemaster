@@ -102,7 +102,11 @@ export function resolveApiBase(): string {
       if (h === "localhost" || h === "127.0.0.1") {
         if (p === "8000" || p === "8001") return "";
       }
-      if (h.endsWith(".ngrok-free.dev") || h.endsWith(".trycloudflare.com") || h.endsWith(".vercel.app")) {
+      if (
+        h.endsWith(".ngrok-free.dev") ||
+        h.endsWith(".trycloudflare.com") ||
+        h.endsWith(".vercel.app")
+      ) {
         return "";
       }
     }
@@ -159,4 +163,3 @@ export function getBackendMode(): BackendMode {
   if (base.includes("onrender.com")) return "render";
   return "pc";
 }
-

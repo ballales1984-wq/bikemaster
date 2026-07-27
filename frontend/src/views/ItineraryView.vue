@@ -1,7 +1,7 @@
 <!-- Itinerari: lista tour multi-giorno e dettaglio tappe. -->
 <template>
   <section class="itinerary-view">
-    <h2> Itinerari</h2>
+    <h2>Itinerari</h2>
 
     <div v-if="store.loading" class="muted">Caricamento…</div>
     <p v-if="store.error" class="error">{{ store.error }}</p>
@@ -12,7 +12,12 @@
       </button>
 
       <div v-if="showCreate" class="create-form">
-        <input v-model="form.name" type="text" placeholder="Nome tour" maxlength="150" />
+        <input
+          v-model="form.name"
+          type="text"
+          placeholder="Nome tour"
+          maxlength="150"
+        />
         <input v-model="form.start_date" type="date" />
         <input v-model="form.end_date" type="date" />
         <button :disabled="!form.name" @click="onCreate">Crea</button>
@@ -21,10 +26,14 @@
       <ul>
         <li v-for="it in store.itineraries" :key="it.id" @click="open(it.id)">
           <strong>{{ it.name }}</strong>
-          <span class="muted" v-if="it.start_date"> · {{ it.start_date }} → {{ it.end_date }}</span>
+          <span v-if="it.start_date" class="muted">
+            · {{ it.start_date }} → {{ it.end_date }}</span
+          >
         </li>
       </ul>
-      <p v-if="!store.itineraries.length" class="muted">Nessun itinerario ancora.</p>
+      <p v-if="!store.itineraries.length" class="muted">
+        Nessun itinerario ancora.
+      </p>
     </div>
 
     <div v-else class="detail">
@@ -33,17 +42,38 @@
       <p class="muted">Km totali tappe: {{ store.totalKm.toFixed(1) }} km</p>
 
       <div class="stage-form">
-        <input v-model="stage.title" type="text" placeholder="Titolo tappa" maxlength="150" />
-        <input v-model.number="stage.distance_km" type="number" min="0" step="0.1" placeholder="Km" />
-        <input v-model.number="stage.elevation_gain_m" type="number" min="0" step="1" placeholder="Dislivello m" />
+        <input
+          v-model="stage.title"
+          type="text"
+          placeholder="Titolo tappa"
+          maxlength="150"
+        />
+        <input
+          v-model.number="stage.distance_km"
+          type="number"
+          min="0"
+          step="0.1"
+          placeholder="Km"
+        />
+        <input
+          v-model.number="stage.elevation_gain_m"
+          type="number"
+          min="0"
+          step="1"
+          placeholder="Dislivello m"
+        />
         <button :disabled="!stage.title" @click="onAddStage">+ Tappa</button>
       </div>
 
       <ol>
         <li v-for="st in store.current.stages" :key="st.id">
           Giorno {{ st.stage_day }} — {{ st.title }}
-          <span class="muted" v-if="st.distance_km"> · {{ st.distance_km }} km</span>
-          <span class="muted" v-if="st.elevation_gain_m"> · ↑ {{ st.elevation_gain_m }} m</span>
+          <span v-if="st.distance_km" class="muted">
+            · {{ st.distance_km }} km</span
+          >
+          <span v-if="st.elevation_gain_m" class="muted">
+            · ↑ {{ st.elevation_gain_m }} m</span
+          >
         </li>
       </ol>
       <p v-if="!store.current.stages.length" class="muted">Nessuna tappa.</p>
@@ -62,7 +92,11 @@ const form = ref<{ name: string; start_date: string; end_date: string }>({
   start_date: "",
   end_date: "",
 });
-const stage = ref<{ title: string; distance_km: number | null; elevation_gain_m: number | null }>({
+const stage = ref<{
+  title: string;
+  distance_km: number | null;
+  elevation_gain_m: number | null;
+}>({
   title: "",
   distance_km: null,
   elevation_gain_m: null,
@@ -85,7 +119,9 @@ async function open(id: number) {
 
 async function onAddStage() {
   if (!store.current) return;
-  const ok = await store.addStage(store.current.itinerary.id, { ...stage.value });
+  const ok = await store.addStage(store.current.itinerary.id, {
+    ...stage.value,
+  });
   if (ok) {
     stage.value = { title: "", distance_km: null, elevation_gain_m: null };
   }

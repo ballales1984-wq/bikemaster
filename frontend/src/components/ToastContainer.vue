@@ -3,12 +3,12 @@
      UI: lista di toast con icona, messaggio e pulsante chiudi; colorati per tipo, accessibili (role=status, aria-live). -->
 <template>
   <div
-id="toast-container"
-role="status"
-aria-live="polite"
-aria-atomic="true"
-class="toast-root"
->
+    id="toast-container"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+    class="toast-root"
+  >
     <div
       v-for="t in items"
       :key="t.id"
@@ -17,7 +17,7 @@ class="toast-root"
     >
       <span class="toast-icon">{{ toastIcon(t.type) }}</span>
       <span class="toast-content">{{ t.message }}</span>
-      <button class="toast-close" @click="remove(t.id)" aria-label="Close">
+      <button class="toast-close" aria-label="Close" @click="remove(t.id)">
         ✕
       </button>
     </div>
@@ -50,7 +50,12 @@ function add(message: string, type = "info", ms = 3000) {
 }
 
 function toastIcon(type: string) {
-  const icons: Record<string, string> = { success: "", error: "", warning: "", info: "ℹ" };
+  const icons: Record<string, string> = {
+    success: "",
+    error: "",
+    warning: "",
+    info: "ℹ",
+  };
   return icons[type] || icons.info;
 }
 

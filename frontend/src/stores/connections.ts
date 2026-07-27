@@ -141,4 +141,3 @@ export const useConnectionsStore = defineStore("connections", () => {
     disconnect,
   };
 });
-

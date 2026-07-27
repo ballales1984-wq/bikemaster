@@ -15,14 +15,22 @@
         </p>
       </div>
       <div class="aethermap-actions">
-        <button class="btn btn-secondary" :disabled="!rides.length" @click="selectAll">
+        <button
+          class="btn btn-secondary"
+          :disabled="!rides.length"
+          @click="selectAll"
+        >
           {{ t("aethermap.selectAll") }}
         </button>
-        <button class="btn btn-secondary" :disabled="!selectedIds.length" @click="clearAll">
+        <button
+          class="btn btn-secondary"
+          :disabled="!selectedIds.length"
+          @click="clearAll"
+        >
           {{ t("aethermap.clear") }}
         </button>
         <label class="checkbox-control aethermap-color">
-          <input type="checkbox" v-model="colorBySpeed" />
+          <input v-model="colorBySpeed" type="checkbox" />
           <span>{{ t("aethermap.colorBySpeed") }}</span>
         </label>
       </div>
@@ -32,7 +40,9 @@
       <aside class="aethermap-sidebar">
         <div class="aethermap-sidebar-head">
           <span>{{ t("aethermap.rides") }}</span>
-          <span class="aethermap-count">{{ selectedIds.length }}/{{ rides.length }}</span>
+          <span class="aethermap-count"
+            >{{ selectedIds.length }}/{{ rides.length }}</span
+          >
         </div>
         <div v-if="loading" class="aethermap-loading">
           <span class="spinner" /> {{ t("aethermap.loading") }}
@@ -40,12 +50,10 @@
         <ul v-else-if="rides.length" class="aethermap-ride-list">
           <li v-for="ride in rides" :key="ride.id" class="aethermap-ride-item">
             <label class="checkbox-control">
-              <input
-                type="checkbox"
-                :value="ride.id"
-                v-model="selectedIds"
-              />
-              <span class="aethermap-ride-name">{{ ride.name || ride.date }}</span>
+              <input v-model="selectedIds" type="checkbox" :value="ride.id" />
+              <span class="aethermap-ride-name">{{
+                ride.name || ride.date
+              }}</span>
             </label>
             <span class="aethermap-ride-meta">{{ formatDistance(ride) }}</span>
           </li>
@@ -54,7 +62,10 @@
       </aside>
 
       <div class="aethermap-stage">
-        <AetherMapViewer :ride-ids="selectedIds" :color-by-speed="colorBySpeed" />
+        <AetherMapViewer
+          :ride-ids="selectedIds"
+          :color-by-speed="colorBySpeed"
+        />
       </div>
     </div>
   </section>
@@ -76,7 +87,9 @@ const loading = ref(false);
 const colorBySpeed = ref(true);
 
 function formatDistance(ride: Ride): string {
-  const km = ride.distance_km ?? (ride.distance_meters ? ride.distance_meters / 1000 : 0);
+  const km =
+    ride.distance_km ??
+    (ride.distance_meters ? ride.distance_meters / 1000 : 0);
   if (!km) return "";
   return `${km.toFixed(1)} km`;
 }
@@ -207,4 +220,3 @@ onMounted(async () => {
   }
 }
 </style>
-

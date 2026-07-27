@@ -8,7 +8,9 @@
   <div class="metric-history-chart">
     <div class="metric-history-chart__header">
       <h4>{{ label }}</h4>
-      <span v-if="loading" class="metric-history-chart__loading">Caricamento...</span>
+      <span v-if="loading" class="metric-history-chart__loading"
+        >Caricamento...</span
+      >
     </div>
     <BaseChart
       v-if="hasData"
@@ -39,7 +41,7 @@ const props = withDefaults(
     days: 365,
     label: "",
     emptyLabel: "Nessun dato storico disponibile",
-  }
+  },
 );
 
 const athleteStore = useAthleteStore();
@@ -124,14 +126,14 @@ watch(
   () => props.metricType,
   () => {
     load();
-  }
+  },
 );
 
 watch(
   () => props.days,
   () => {
     load();
-  }
+  },
 );
 </script>
 

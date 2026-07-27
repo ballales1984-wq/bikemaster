@@ -27,10 +27,7 @@ function buildResult(
   return { success, message, data };
 }
 
-function requireParam(
-  params: Record<string, unknown>,
-  name: string,
-): unknown {
+function requireParam(params: Record<string, unknown>, name: string): unknown {
   const v = params[name];
   if (v === undefined || v === null || v === "") {
     throw new Error(`Parametro mancante: ${name}`);
@@ -72,10 +69,30 @@ function estimateKcal(description: string): number {
 
 function parseItalianDate(text: string): string | null {
   const months: Record<string, number> = {
-    gennaio: 0, febbrio: 1, marzo: 2, aprile: 3, maggio: 4, giugno: 5,
-    luglio: 6, agosto: 7, settembre: 8, ottobre: 9, novembre: 10, dicembre: 11,
-    gen: 0, feb: 1, mar: 2, apr: 3, mag: 4, giu: 5,
-    lug: 6, ago: 7, set: 8, ott: 9, nov: 10, dic: 11,
+    gennaio: 0,
+    febbrio: 1,
+    marzo: 2,
+    aprile: 3,
+    maggio: 4,
+    giugno: 5,
+    luglio: 6,
+    agosto: 7,
+    settembre: 8,
+    ottobre: 9,
+    novembre: 10,
+    dicembre: 11,
+    gen: 0,
+    feb: 1,
+    mar: 2,
+    apr: 3,
+    mag: 4,
+    giu: 5,
+    lug: 6,
+    ago: 7,
+    set: 8,
+    ott: 9,
+    nov: 10,
+    dic: 11,
   };
 
   const today = new Date();
@@ -95,7 +112,9 @@ function parseItalianDate(text: string): string | null {
     return d.toISOString().split("T")[0];
   }
 
-  const dayMatch = lower.match(/(\d{1,2})\s*(ottobre|novembre|dicembre|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre)/);
+  const dayMatch = lower.match(
+    /(\d{1,2})\s*(ottobre|novembre|dicembre|gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre)/,
+  );
   if (dayMatch) {
     const day = parseInt(dayMatch[1], 10);
     const month = months[dayMatch[2]];
@@ -109,23 +128,33 @@ function parseItalianDate(text: string): string | null {
 }
 
 function parseTime(text: string): string | null {
-  const timeMatch = text.match(/(\d{1,2})[.:](\d{2})\s*(?:di sera|di mattina|del mattino|del pomeriggio|di pomeriggio|del pomeriggio)?/i);
+  const timeMatch = text.match(
+    /(\d{1,2})[.:](\d{2})\s*(?:di sera|di mattina|del mattino|del pomeriggio|di pomeriggio|del pomeriggio)?/i,
+  );
   if (timeMatch) {
     let hours = parseInt(timeMatch[1], 10);
     const minutes = parseInt(timeMatch[2], 10);
     const suffix = (timeMatch[3] || "").toLowerCase();
-    if ((suffix.includes("sera") || suffix.includes("pomeriggio")) && hours < 12) {
+    if (
+      (suffix.includes("sera") || suffix.includes("pomeriggio")) &&
+      hours < 12
+    ) {
       hours += 12;
     }
     if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
       return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
     }
   }
-  const simpleHour = text.match(/(\d{1,2})\s*(?:di sera|di mattina|del mattino|del pomeriggio|di pomeriggio|del pomeriggio)?/i);
+  const simpleHour = text.match(
+    /(\d{1,2})\s*(?:di sera|di mattina|del mattino|del pomeriggio|di pomeriggio|del pomeriggio)?/i,
+  );
   if (simpleHour) {
     let hours = parseInt(simpleHour[1], 10);
     const suffix = (simpleHour[2] || "").toLowerCase();
-    if ((suffix.includes("sera") || suffix.includes("pomeriggio")) && hours < 12) {
+    if (
+      (suffix.includes("sera") || suffix.includes("pomeriggio")) &&
+      hours < 12
+    ) {
       hours += 12;
     }
     if (hours >= 0 && hours <= 23) {
@@ -153,15 +182,26 @@ function parseMealType(text: string): FoodLog["meal_type"] | null {
 function parseEventType(text: string): CalendarEvent["event_type"] | null {
   const lower = text.toLowerCase();
   if (lower.includes("gara") || lower.includes("race")) return "race";
-  if (lower.includes("recupero") || lower.includes("recovery")) return "recovery";
+  if (lower.includes("recupero") || lower.includes("recovery"))
+    return "recovery";
   if (lower.includes("test")) return "test";
-  if (lower.includes("allenamento") || lower.includes("training") || lower.includes("ride")) return "training";
+  if (
+    lower.includes("allenamento") ||
+    lower.includes("training") ||
+    lower.includes("ride")
+  )
+    return "training";
   return null;
 }
 
 export function createCommandRegistry(): VoiceCommandDefinition[] {
   const navParams: VoiceCommandParameter[] = [
-    { name: "view", type: "string", required: true, description: "Nome della vista" },
+    {
+      name: "view",
+      type: "string",
+      required: true,
+      description: "Nome della vista",
+    },
   ];
 
   return [
@@ -223,9 +263,20 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Aggiorna peso",
       description: "Modifica il peso dell'atleta",
       examples: ["modifica peso 78 kg", "aggiorna peso 70 chili", "peso 72 kg"],
-      triggerWords: ["modifica peso", "aggiorna peso", "cambia peso", "imposta peso", "peso"],
+      triggerWords: [
+        "modifica peso",
+        "aggiorna peso",
+        "cambia peso",
+        "imposta peso",
+        "peso",
+      ],
       parameters: [
-        { name: "weight_kg", type: "number", required: true, description: "Peso in kg" },
+        {
+          name: "weight_kg",
+          type: "number",
+          required: true,
+          description: "Peso in kg",
+        },
       ],
       execute: async (params) => {
         const weight = Number(requireParam(params, "weight_kg"));
@@ -240,9 +291,20 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Aggiorna altezza",
       description: "Modifica l'altezza dell'atleta",
       examples: ["modifica altezza 175 cm", "aggiorna altezza 180"],
-      triggerWords: ["modifica altezza", "aggiorna altezza", "cambia altezza", "imposta altezza", "altezza"],
+      triggerWords: [
+        "modifica altezza",
+        "aggiorna altezza",
+        "cambia altezza",
+        "imposta altezza",
+        "altezza",
+      ],
       parameters: [
-        { name: "height_cm", type: "number", required: true, description: "Altezza in cm" },
+        {
+          name: "height_cm",
+          type: "number",
+          required: true,
+          description: "Altezza in cm",
+        },
       ],
       execute: async (params) => {
         const height = Number(requireParam(params, "height_cm"));
@@ -257,9 +319,20 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Aggiorna FTP",
       description: "Modifica la FTP dell'atleta",
       examples: ["modifica ftp 250 watt", "ftp 280", "aggiorna ftp 270"],
-      triggerWords: ["modifica ftp", "aggiorna ftp", "cambia ftp", "imposta ftp", "ftp"],
+      triggerWords: [
+        "modifica ftp",
+        "aggiorna ftp",
+        "cambia ftp",
+        "imposta ftp",
+        "ftp",
+      ],
       parameters: [
-        { name: "ftp_watts", type: "number", required: true, description: "FTP in watt" },
+        {
+          name: "ftp_watts",
+          type: "number",
+          required: true,
+          description: "FTP in watt",
+        },
       ],
       execute: async (params) => {
         const ftp = Number(requireParam(params, "ftp_watts"));
@@ -273,10 +346,26 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       domain: "athlete",
       label: "Aggiorna FC max",
       description: "Modifica la frequenza cardiaca massima",
-      examples: ["modifica frequenza cardiaca massima 180", "fc max 175", "aggiorna battito massimo 185"],
-      triggerWords: ["modifica fc max", "aggiorna fc max", "cambia fc max", "imposta fc max", "frequenza cardiaca massima", "battito massimo"],
+      examples: [
+        "modifica frequenza cardiaca massima 180",
+        "fc max 175",
+        "aggiorna battito massimo 185",
+      ],
+      triggerWords: [
+        "modifica fc max",
+        "aggiorna fc max",
+        "cambia fc max",
+        "imposta fc max",
+        "frequenza cardiaca massima",
+        "battito massimo",
+      ],
       parameters: [
-        { name: "max_hr", type: "number", required: true, description: "FC max in bpm" },
+        {
+          name: "max_hr",
+          type: "number",
+          required: true,
+          description: "FC max in bpm",
+        },
       ],
       execute: async (params) => {
         const maxHr = Number(requireParam(params, "max_hr"));
@@ -296,21 +385,53 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
         "calendario aggiungi recupero domani",
         "calendario aggiungi test giovedi alle 18",
       ],
-      triggerWords: ["calendario aggiungi", "aggiungi al calendario", "nuovo evento", "crea evento", "calendario"],
+      triggerWords: [
+        "calendario aggiungi",
+        "aggiungi al calendario",
+        "nuovo evento",
+        "crea evento",
+        "calendario",
+      ],
       parameters: [
-        { name: "title", type: "string", required: true, description: "Titolo evento" },
-        { name: "date", type: "date", required: false, description: "Data evento (oggi, domani, o data specifica)" },
-        { name: "time", type: "time", required: false, description: "Orario evento" },
-        { name: "event_type", type: "event_type", required: false, description: "Tipo evento" },
+        {
+          name: "title",
+          type: "string",
+          required: true,
+          description: "Titolo evento",
+        },
+        {
+          name: "date",
+          type: "date",
+          required: false,
+          description: "Data evento (oggi, domani, o data specifica)",
+        },
+        {
+          name: "time",
+          type: "time",
+          required: false,
+          description: "Orario evento",
+        },
+        {
+          name: "event_type",
+          type: "event_type",
+          required: false,
+          description: "Tipo evento",
+        },
       ],
       execute: async (params) => {
-        const raw = params._raw as string || "";
+        const raw = (params._raw as string) || "";
         const date = (params.date as string) || parseItalianDate(raw);
         const time = (params.time as string) || parseTime(raw);
-        const eventType = (params.event_type as CalendarEvent["event_type"]) || parseEventType(raw) || "training";
+        const eventType =
+          (params.event_type as CalendarEvent["event_type"]) ||
+          parseEventType(raw) ||
+          "training";
 
         if (!date) {
-          return buildResult(false, "Data non riconosciuta. Specifica un giorno o 'oggi'/'domani'.");
+          return buildResult(
+            false,
+            "Data non riconosciuta. Specifica un giorno o 'oggi'/'domani'.",
+          );
         }
 
         const dateTime = time ? `${date}T${time}:00` : `${date}T08:00:00`;
@@ -335,7 +456,12 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ athlete_id: athleteId, date: dateTime, title, event_type: eventType }),
+          body: JSON.stringify({
+            athlete_id: athleteId,
+            date: dateTime,
+            title,
+            event_type: eventType,
+          }),
         });
 
         if (!res.ok) {
@@ -352,17 +478,46 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       domain: "rides",
       label: "Aggiungi uscita",
       description: "Registra una nuova uscita",
-      examples: ["aggiungi uscita 80 km 3 ore", "nuova uscita 100 km", "registra uscita 50 km"],
-      triggerWords: ["aggiungi uscita", "nuova uscita", "registra uscita", "crea uscita", "log uscita"],
+      examples: [
+        "aggiungi uscita 80 km 3 ore",
+        "nuova uscita 100 km",
+        "registra uscita 50 km",
+      ],
+      triggerWords: [
+        "aggiungi uscita",
+        "nuova uscita",
+        "registra uscita",
+        "crea uscita",
+        "log uscita",
+      ],
       parameters: [
-        { name: "distance_km", type: "number", required: false, description: "Distanza in km" },
-        { name: "duration_minutes", type: "number", required: false, description: "Durata in minuti" },
-        { name: "name", type: "string", required: false, description: "Nome uscita" },
+        {
+          name: "distance_km",
+          type: "number",
+          required: false,
+          description: "Distanza in km",
+        },
+        {
+          name: "duration_minutes",
+          type: "number",
+          required: false,
+          description: "Durata in minuti",
+        },
+        {
+          name: "name",
+          type: "string",
+          required: false,
+          description: "Nome uscita",
+        },
       ],
       execute: async (params) => {
-        const raw = params._raw as string || "";
-        const distanceKm = params.distance_km ? Number(params.distance_km) : null;
-        const durationMin = params.duration_minutes ? Number(params.duration_minutes) : null;
+        const raw = (params._raw as string) || "";
+        const distanceKm = params.distance_km
+          ? Number(params.distance_km)
+          : null;
+        const durationMin = params.duration_minutes
+          ? Number(params.duration_minutes)
+          : null;
 
         if (!distanceKm && !durationMin) {
           return buildResult(false, "Specifica almeno distanza o durata.");
@@ -376,11 +531,18 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
           duration_minutes: durationMin || 0,
           distance_meters: (distanceKm || 0) * 1000,
           duration_seconds: (durationMin || 0) * 60,
-          avg_speed_kmh: distanceKm && durationMin ? distanceKm / (durationMin / 60) : undefined,
+          avg_speed_kmh:
+            distanceKm && durationMin
+              ? distanceKm / (durationMin / 60)
+              : undefined,
         };
 
         const ride = await store.addRide(rideData);
-        return buildResult(true, `Uscita "${ride.name}" registrata: ${distanceKm || 0}km`, ride);
+        return buildResult(
+          true,
+          `Uscita "${ride.name}" registrata: ${distanceKm || 0}km`,
+          ride,
+        );
       },
     },
     {
@@ -395,19 +557,50 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
         "pranzo risotto 300 grammi",
         "cena insalata 200 grammi",
       ],
-      triggerWords: ["alimentazione", "log pasto", "registra pasto", "aggiungi pasto", "aggiungi alimento", "colazione", "pranzo", "cena", "spuntino"],
+      triggerWords: [
+        "alimentazione",
+        "log pasto",
+        "registra pasto",
+        "aggiungi pasto",
+        "aggiungi alimento",
+        "colazione",
+        "pranzo",
+        "cena",
+        "spuntino",
+      ],
       parameters: [
-        { name: "meal_type", type: "meal_type", required: false, description: "Tipo pasto" },
-        { name: "description", type: "string", required: true, description: "Descrizione pasto" },
-        { name: "kcal", type: "number", required: false, description: "Calorie stimate" },
+        {
+          name: "meal_type",
+          type: "meal_type",
+          required: false,
+          description: "Tipo pasto",
+        },
+        {
+          name: "description",
+          type: "string",
+          required: true,
+          description: "Descrizione pasto",
+        },
+        {
+          name: "kcal",
+          type: "number",
+          required: false,
+          description: "Calorie stimate",
+        },
       ],
       execute: async (params) => {
-        const raw = params._raw as string || "";
-        const mealType = params.meal_type as FoodLog["meal_type"] || parseMealType(raw) || "other";
+        const raw = (params._raw as string) || "";
+        const mealType =
+          (params.meal_type as FoodLog["meal_type"]) ||
+          parseMealType(raw) ||
+          "other";
         const description = String(params.description || raw).trim();
-        const kcal = params.kcal ? Number(params.kcal) : estimateKcal(description);
+        const kcal = params.kcal
+          ? Number(params.kcal)
+          : estimateKcal(description);
 
-        const today = parseItalianDate(raw) || new Date().toISOString().split("T")[0];
+        const today =
+          parseItalianDate(raw) || new Date().toISOString().split("T")[0];
         const token = localStorage.getItem("bikemaster_token") || "";
 
         const meResp = await fetch("/api/v1/athletes/me", {
@@ -449,17 +642,24 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
           console.warn("Errore creazione evento calendario pasto:", err);
         }
 
-        const recalcResp = await fetch(`/api/v1/metabolism/recalculate?date=${today}`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const recalcResp = await fetch(
+          `/api/v1/metabolism/recalculate?date=${today}`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
         let summaryMsg = "";
         if (recalcResp.ok) {
           const summary = await recalcResp.json();
           summaryMsg = ` Intake: ${Math.round(summary.intake_kcal || 0)} kcal, Balance: ${Math.round(summary.balance_kcal || 0)} kcal`;
         }
 
-        return buildResult(true, `Pasto "${description}" registrato (${kcal} kcal).${summaryMsg}`, log);
+        return buildResult(
+          true,
+          `Pasto "${description}" registrato (${kcal} kcal).${summaryMsg}`,
+          log,
+        );
       },
     },
     {
@@ -467,8 +667,19 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       domain: "tracking",
       label: "Avvia tracciamento",
       description: "Inizia il tracciamento GPS di una uscita",
-      examples: ["inizia tracciamento", "avvia uscita", "start tracking", "parti con tracciamento"],
-      triggerWords: ["inizia tracciamento", "avvia tracciamento", "start tracking", "parti", "avvia uscita"],
+      examples: [
+        "inizia tracciamento",
+        "avvia uscita",
+        "start tracking",
+        "parti con tracciamento",
+      ],
+      triggerWords: [
+        "inizia tracciamento",
+        "avvia tracciamento",
+        "start tracking",
+        "parti",
+        "avvia uscita",
+      ],
       parameters: [],
       execute: async () => {
         const router2 = (await import("../router/index")).default;
@@ -481,8 +692,19 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       domain: "tracking",
       label: "Ferma tracciamento",
       description: "Ferma il tracciamento GPS corrente",
-      examples: ["ferma tracciamento", "termina uscita", "stop tracking", "salva uscita"],
-      triggerWords: ["ferma tracciamento", "termina uscita", "stop tracking", "salva uscita", "fine uscita"],
+      examples: [
+        "ferma tracciamento",
+        "termina uscita",
+        "stop tracking",
+        "salva uscita",
+      ],
+      triggerWords: [
+        "ferma tracciamento",
+        "termina uscita",
+        "stop tracking",
+        "salva uscita",
+        "fine uscita",
+      ],
       parameters: [],
       execute: async () => {
         if (window.BikeTracking?.stopTracking) {
@@ -496,18 +718,41 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       domain: "settings",
       label: "Cambia tema",
       description: "Alterna tema scuro e chiaro",
-      examples: ["cambia tema", "tema scuro", "tema chiaro", "modalita scura", "modalita chiara"],
-      triggerWords: ["cambia tema", "tema scuro", "tema chiaro", "modalita scura", "modalita chiara", "attiva tema chiaro", "attiva tema scuro"],
+      examples: [
+        "cambia tema",
+        "tema scuro",
+        "tema chiaro",
+        "modalita scura",
+        "modalita chiara",
+      ],
+      triggerWords: [
+        "cambia tema",
+        "tema scuro",
+        "tema chiaro",
+        "modalita scura",
+        "modalita chiara",
+        "attiva tema chiaro",
+        "attiva tema scuro",
+      ],
       parameters: [
-        { name: "dark", type: "boolean", required: false, description: "Tema scuro (true) o chiaro (false)" },
+        {
+          name: "dark",
+          type: "boolean",
+          required: false,
+          description: "Tema scuro (true) o chiaro (false)",
+        },
       ],
       execute: async (params) => {
         const ui = useUIStore();
-        const dark = params.dark !== undefined ? Boolean(params.dark) : !ui.isDark;
+        const dark =
+          params.dark !== undefined ? Boolean(params.dark) : !ui.isDark;
         if (dark !== ui.isDark) {
           ui.toggleTheme();
         }
-        return buildResult(true, dark ? "Tema scuro attivo" : "Tema chiaro attivo");
+        return buildResult(
+          true,
+          dark ? "Tema scuro attivo" : "Tema chiaro attivo",
+        );
       },
     },
     {
@@ -515,13 +760,28 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       domain: "settings",
       label: "Mostra/nascondi sidebar",
       description: "Alterna visibilita sidebar",
-      examples: ["mostra sidebar", "nascondi sidebar", "apri menu", "chiudi menu", "toggle sidebar"],
-      triggerWords: ["mostra sidebar", "nascondi sidebar", "apri menu", "chiudi menu", "toggle sidebar"],
+      examples: [
+        "mostra sidebar",
+        "nascondi sidebar",
+        "apri menu",
+        "chiudi menu",
+        "toggle sidebar",
+      ],
+      triggerWords: [
+        "mostra sidebar",
+        "nascondi sidebar",
+        "apri menu",
+        "chiudi menu",
+        "toggle sidebar",
+      ],
       parameters: [],
       execute: async () => {
         const ui = useUIStore();
         ui.toggleSidebar();
-        return buildResult(true, ui.sidebarCollapsed ? "Sidebar nascosta" : "Sidebar visibile");
+        return buildResult(
+          true,
+          ui.sidebarCollapsed ? "Sidebar nascosta" : "Sidebar visibile",
+        );
       },
     },
     {
@@ -530,7 +790,12 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Mostra calorie",
       description: "Visualizza il riepilogo calorie/metabolismo",
       examples: ["leggi calorie", "mostra calorie", "quante calorie"],
-      triggerWords: ["leggi calorie", "mostra calorie", "calorie", "riepilogo calorie"],
+      triggerWords: [
+        "leggi calorie",
+        "mostra calorie",
+        "calorie",
+        "riepilogo calorie",
+      ],
       parameters: [],
       execute: async () => {
         const router2 = (await import("../router/index")).default;
@@ -544,11 +809,23 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Esporta uscite",
       description: "Esporta le uscite in CSV",
       examples: ["esporta uscite", "esporta csv", "scarica uscite"],
-      triggerWords: ["esporta uscite", "esporta csv", "scarica uscite", "esporta"],
+      triggerWords: [
+        "esporta uscite",
+        "esporta csv",
+        "scarica uscite",
+        "esporta",
+      ],
       parameters: [],
       execute: async () => {
         const store = useRidesStore();
-        const headers = ["Date", "Distance (km)", "Duration (min)", "Avg Speed (km/h)", "Elevation (m)", "Calories"];
+        const headers = [
+          "Date",
+          "Distance (km)",
+          "Duration (min)",
+          "Avg Speed (km/h)",
+          "Elevation (m)",
+          "Calories",
+        ];
         const rows = store.rides.map((r) => [
           r.date,
           r.distance_km,
@@ -557,8 +834,13 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
           r.elevation_gain_m ?? "",
           r.calories ?? "",
         ]);
-        const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
-        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const csv = [
+          headers.join(","),
+          ...rows.map((row) => row.join(",")),
+        ].join("\n");
+        const blob = new Blob(["\uFEFF" + csv], {
+          type: "text/csv;charset=utf-8;",
+        });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -573,8 +855,17 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       domain: "rides",
       label: "Resetta filtri uscite",
       description: "Resetta i filtri e ricarica tutte le uscite",
-      examples: ["resetta filtri uscite", "cancella filtri uscite", "mostra tutte le uscite"],
-      triggerWords: ["resetta filtri uscite", "cancella filtri uscite", "mostra tutte le uscite", "reset uscite"],
+      examples: [
+        "resetta filtri uscite",
+        "cancella filtri uscite",
+        "mostra tutte le uscite",
+      ],
+      triggerWords: [
+        "resetta filtri uscite",
+        "cancella filtri uscite",
+        "mostra tutte le uscite",
+        "reset uscite",
+      ],
       parameters: [],
       execute: async () => {
         const store = useRidesStore();
@@ -603,20 +894,31 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Sincronizza Strava",
       description: "Sincronizza le uscite da Strava",
       examples: ["sincronizza strava", "sync strava"],
-      triggerWords: ["sincronizza strava", "sync strava", "strava sync", "importa da strava"],
+      triggerWords: [
+        "sincronizza strava",
+        "sync strava",
+        "strava sync",
+        "importa da strava",
+      ],
       parameters: [],
       execute: async () => {
         const token = localStorage.getItem("bikemaster_token") || "";
-        const resp = await fetch("/api/v1/import/strava/sync?background=false", {
-          method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const resp = await fetch(
+          "/api/v1/import/strava/sync?background=false",
+          {
+            method: "POST",
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          },
+        );
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
           return buildResult(false, err.detail || "Sync Strava fallita");
         }
         const result = await resp.json();
-        return buildResult(true, `Importati ${result.imported} uscite da Strava`);
+        return buildResult(
+          true,
+          `Importati ${result.imported} uscite da Strava`,
+        );
       },
     },
     {
@@ -625,7 +927,11 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Connetti Google Fit",
       description: "Avvia connessione Google Fit",
       examples: ["connetti google fit", "collega google fit"],
-      triggerWords: ["connetti google fit", "collega google fit", "google fit connetti"],
+      triggerWords: [
+        "connetti google fit",
+        "collega google fit",
+        "google fit connetti",
+      ],
       parameters: [],
       execute: async () => {
         const router2 = (await import("../router/index")).default;
@@ -639,7 +945,12 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Carica file GPX",
       description: "Apri pannello import per caricare file",
       examples: ["carica file", "carica gpx", "importa file"],
-      triggerWords: ["carica file", "carica gpx", "importa file", "carica tracciamento"],
+      triggerWords: [
+        "carica file",
+        "carica gpx",
+        "importa file",
+        "carica tracciamento",
+      ],
       parameters: [],
       execute: async () => {
         const router2 = (await import("../router/index")).default;
@@ -694,10 +1005,24 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       domain: "knowledge",
       label: "Cerca conoscenza",
       description: "Cerca nella knowledge base",
-      examples: ["cerca conoscenza FTP", "cosa e la soglia", "ricerca allenamento"],
-      triggerWords: ["cerca conoscenza", "cerca nel knowledge", "cerca informazione", "ricerca"],
+      examples: [
+        "cerca conoscenza FTP",
+        "cosa e la soglia",
+        "ricerca allenamento",
+      ],
+      triggerWords: [
+        "cerca conoscenza",
+        "cerca nel knowledge",
+        "cerca informazione",
+        "ricerca",
+      ],
       parameters: [
-        { name: "query", type: "string", required: true, description: "Query di ricerca" },
+        {
+          name: "query",
+          type: "string",
+          required: true,
+          description: "Query di ricerca",
+        },
       ],
       execute: async (params) => {
         const query = String(requireParam(params, "query"));
@@ -740,7 +1065,11 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Genera piano granfondo",
       description: "Genera un piano granfondo",
       examples: ["genera piano granfondo", "crea piano granfondo"],
-      triggerWords: ["genera piano granfondo", "crea piano granfondo", "piano granfondo"],
+      triggerWords: [
+        "genera piano granfondo",
+        "crea piano granfondo",
+        "piano granfondo",
+      ],
       parameters: [],
       execute: async () => {
         const router2 = (await import("../router/index")).default;
@@ -754,7 +1083,12 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Pausa tracciamento",
       description: "Metti in pausa il tracciamento",
       examples: ["pausa tracciamento", "pausa uscita", "metti in pausa"],
-      triggerWords: ["pausa tracciamento", "pausa uscita", "metti in pausa", "pausa"],
+      triggerWords: [
+        "pausa tracciamento",
+        "pausa uscita",
+        "metti in pausa",
+        "pausa",
+      ],
       parameters: [],
       execute: async () => {
         if (window.BikeTracking?.pauseTracking) {
@@ -768,8 +1102,17 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       domain: "tracking",
       label: "Riprendi tracciamento",
       description: "Riprende il tracciamento in pausa",
-      examples: ["riprendi tracciamento", "riprendi uscita", "continua tracciamento"],
-      triggerWords: ["riprendi tracciamento", "riprendi uscita", "continua tracciamento", "riprendi"],
+      examples: [
+        "riprendi tracciamento",
+        "riprendi uscita",
+        "continua tracciamento",
+      ],
+      triggerWords: [
+        "riprendi tracciamento",
+        "riprendi uscita",
+        "continua tracciamento",
+        "riprendi",
+      ],
       parameters: [],
       execute: async () => {
         if (window.BikeTracking?.resumeTracking) {
@@ -798,7 +1141,12 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Sync locale",
       description: "Imposta modalita sincronizzazione locale",
       examples: ["sync locale", "modalita locale"],
-      triggerWords: ["sync locale", "modalita locale", "sincronizzazione locale", "imposta sync locale"],
+      triggerWords: [
+        "sync locale",
+        "modalita locale",
+        "sincronizzazione locale",
+        "imposta sync locale",
+      ],
       parameters: [],
       execute: async () => {
         const token = localStorage.getItem("bikemaster_token") || "";
@@ -820,7 +1168,12 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       label: "Sync cloud",
       description: "Imposta modalita sincronizzazione cloud",
       examples: ["sync cloud", "modalita cloud"],
-      triggerWords: ["sync cloud", "modalita cloud", "sincronizzazione cloud", "imposta sync cloud"],
+      triggerWords: [
+        "sync cloud",
+        "modalita cloud",
+        "sincronizzazione cloud",
+        "imposta sync cloud",
+      ],
       parameters: [],
       execute: async () => {
         const token = localStorage.getItem("bikemaster_token") || "";
@@ -851,7 +1204,10 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
         });
         if (!resp.ok) return buildResult(false, "Stato sync non disponibile");
         const data = await resp.json();
-        return buildResult(true, `Sync: ${data.mode}, in attesa: ${data.pending_count ?? 0}`);
+        return buildResult(
+          true,
+          `Sync: ${data.mode}, in attesa: ${data.pending_count ?? 0}`,
+        );
       },
     },
     {
@@ -911,11 +1267,18 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       examples: ["analizza uscita", "analizza ultima uscita"],
       triggerWords: ["analizza uscita", "analizza ultima uscita", "analizza"],
       parameters: [
-        { name: "ride_id", type: "number", required: false, description: "ID uscita" },
+        {
+          name: "ride_id",
+          type: "number",
+          required: false,
+          description: "ID uscita",
+        },
       ],
       execute: async (params) => {
         const store = useRidesStore();
-        const rideId = params.ride_id ? Number(params.ride_id) : store.rides[0]?.id;
+        const rideId = params.ride_id
+          ? Number(params.ride_id)
+          : store.rides[0]?.id;
         if (!rideId) return buildResult(false, "Nessuna uscita da analizzare");
         const router2 = (await import("../router/index")).default;
         router2.push({ path: "/rides", query: { analyze: String(rideId) } });
@@ -986,10 +1349,16 @@ export function parseTranscript(
   commands: VoiceCommandDefinition[],
 ): ParsedCommand | null {
   const lower = transcript.toLowerCase().trim();
-  let bestMatch: { def: VoiceCommandDefinition; score: number; params: Record<string, unknown> } | null = null;
+  let bestMatch: {
+    def: VoiceCommandDefinition;
+    score: number;
+    params: Record<string, unknown>;
+  } | null = null;
 
   for (const cmd of commands) {
-    const matchedTrigger = cmd.triggerWords.find((tw) => lower.includes(tw.toLowerCase()));
+    const matchedTrigger = cmd.triggerWords.find((tw) =>
+      lower.includes(tw.toLowerCase()),
+    );
     if (!matchedTrigger) continue;
 
     const params: Record<string, unknown> = { _raw: transcript };
@@ -1040,7 +1409,8 @@ export function parseTranscript(
     if (requiredMissing) continue;
 
     const triggerLen = matchedTrigger.length;
-    const score = triggerLen + (transcript.length - matchedTrigger.length) * 0.01;
+    const score =
+      triggerLen + (transcript.length - matchedTrigger.length) * 0.01;
 
     if (!bestMatch || score > bestMatch.score) {
       bestMatch = { def: cmd, score, params };

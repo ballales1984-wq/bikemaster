@@ -145,9 +145,7 @@ async function setMode(next: SyncMode) {
     mode.value = next;
     status.mode = next;
     toast.success(
-      next === "cloud"
-        ? t("sync.cloudActivated")
-        : t("sync.localActivated"),
+      next === "cloud" ? t("sync.cloudActivated") : t("sync.localActivated"),
     );
     await refresh();
   } catch (e) {

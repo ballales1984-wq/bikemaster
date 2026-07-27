@@ -2,12 +2,19 @@
   <div class="food-log-panel">
     <h3>Alimentazione - {{ date }}</h3>
     <div class="summary-bar">
-      <span>Totale: <strong>{{ Math.round(totalKcal) }} kcal</strong></span>
+      <span
+        >Totale: <strong>{{ Math.round(totalKcal) }} kcal</strong></span
+      >
       <span>Pasti: {{ logs.length }}</span>
     </div>
     <NutritionSearch :date="date" @added="onNutritionAdded" />
     <form class="form-inline" @submit.prevent="add">
-      <input v-model="newLog.description" placeholder="Descrizione" required maxlength="500" />
+      <input
+        v-model="newLog.description"
+        placeholder="Descrizione"
+        required
+        maxlength="500"
+      />
       <select v-model="newLog.meal_type">
         <option value="breakfast">Colazione</option>
         <option value="lunch">Pranzo</option>
@@ -15,8 +22,16 @@
         <option value="snack">Spuntino</option>
         <option value="other">Altro</option>
       </select>
-      <input v-model.number="newLog.kcal" type="number" placeholder="kcal" min="0" step="1" />
-      <button class="btn btn-primary" type="submit" :disabled="saving">Aggiungi</button>
+      <input
+        v-model.number="newLog.kcal"
+        type="number"
+        placeholder="kcal"
+        min="0"
+        step="1"
+      />
+      <button class="btn btn-primary" type="submit" :disabled="saving">
+        Aggiungi
+      </button>
     </form>
     <ul class="log-list">
       <li v-for="log in logs" :key="log.id" class="log-item">
@@ -26,13 +41,22 @@
           <span class="log-kcal">{{ Math.round(log.kcal || 0) }} kcal</span>
         </div>
         <div class="log-actions">
-          <button class="btn btn-small btn-secondary" @click="editLog(log)">Modifica</button>
-          <button class="btn btn-small btn-danger" @click="remove(log.id!)">Elimina</button>
+          <button class="btn btn-small btn-secondary" @click="editLog(log)">
+            Modifica
+          </button>
+          <button class="btn btn-small btn-danger" @click="remove(log.id!)">
+            Elimina
+          </button>
         </div>
       </li>
     </ul>
     <div v-if="editing" class="edit-form">
-      <input v-model="editForm.description" placeholder="Descrizione" required maxlength="500" />
+      <input
+        v-model="editForm.description"
+        placeholder="Descrizione"
+        required
+        maxlength="500"
+      />
       <select v-model="editForm.meal_type">
         <option value="breakfast">Colazione</option>
         <option value="lunch">Pranzo</option>
@@ -40,7 +64,13 @@
         <option value="snack">Spuntino</option>
         <option value="other">Altro</option>
       </select>
-      <input v-model.number="editForm.kcal" type="number" placeholder="kcal" min="0" step="1" />
+      <input
+        v-model.number="editForm.kcal"
+        type="number"
+        placeholder="kcal"
+        min="0"
+        step="1"
+      />
       <button class="btn btn-primary" @click="saveEdit">Salva</button>
       <button class="btn btn-secondary" @click="editing = null">Annulla</button>
     </div>
@@ -60,7 +90,9 @@ const toast = useToast();
 const saving = computed(() => store.saving);
 
 const logs = computed(() => store.foodLogs);
-const totalKcal = computed(() => logs.value.reduce((s, l) => s + (l.kcal || 0), 0));
+const totalKcal = computed(() =>
+  logs.value.reduce((s, l) => s + (l.kcal || 0), 0),
+);
 
 function onNutritionAdded() {
   store.fetchFoodLogs(props.date);

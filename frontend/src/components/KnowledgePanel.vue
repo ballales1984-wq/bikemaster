@@ -4,10 +4,8 @@
 <template>
   <div class="knowledge-panel">
     <div class="panel-header">
-      <h2> Knowledge Base</h2>
-      <div
-v-if="stats" class="kb-stats"
->
+      <h2>Knowledge Base</h2>
+      <div v-if="stats" class="kb-stats">
         <span class="kb-badge">{{ stats.total_documents ?? 0 }} documenti</span>
         <span class="kb-badge">{{ stats.total_topics ?? 0 }} argomenti</span>
       </div>
@@ -28,8 +26,7 @@ v-if="stats" class="kb-stats"
           @keydown.enter="search"
           @input="onInput"
         />
-        <button
-v-if="query" class="clear-btn" @click="clearSearch"></button>
+        <button v-if="query" class="clear-btn" @click="clearSearch"></button>
       </div>
       <button
         class="btn search-btn"
@@ -41,9 +38,7 @@ v-if="query" class="clear-btn" @click="clearSearch"></button>
     </div>
 
     <!-- Topic pills -->
-    <div
-v-if="topics.length && !results.length && !loading" class="topics-row"
->
+    <div v-if="topics.length && !results.length && !loading" class="topics-row">
       <div class="topics-label">Argomenti:</div>
       <div class="topics-list">
         <button
@@ -70,7 +65,10 @@ v-if="topics.length && !results.length && !loading" class="topics-row"
     <!-- Results -->
     <div v-else-if="results.length" class="results-section">
       <div class="results-header">
-        <span class="results-count">{{ results.length }} risultati per "<strong>{{ lastQuery }}</strong>"</span>
+        <span class="results-count"
+          >{{ results.length }} risultati per "<strong>{{ lastQuery }}</strong
+          >"</span
+        >
         <button class="btn btn-sm btn-secondary" @click="clearSearch">
           ← Tutti gli argomenti
         </button>
@@ -85,9 +83,7 @@ v-if="topics.length && !results.length && !loading" class="topics-row"
           <div class="result-topic">
             {{ r.topic || r.source || "Documento" }}
           </div>
-          <div
-v-if="r.score != null" class="result-score"
->
+          <div v-if="r.score != null" class="result-score">
             <div class="score-bar">
               <div class="score-fill" :style="{ width: r.score * 100 + '%' }" />
             </div>
@@ -100,9 +96,7 @@ v-if="r.score != null" class="result-score"
             highlightQuery(r.content || r.text || r.chunk || '', lastQuery)
           "
         />
-        <div
-v-if="r.source_file" class="result-meta"
->
+        <div v-if="r.source_file" class="result-meta">
           <span> {{ r.source_file }}</span>
         </div>
       </div>
@@ -152,7 +146,7 @@ v-if="r.source_file" class="result-meta"
         ricarica gli indici.
       </div>
       <button class="btn btn-sm" style="margin-top: 12px" @click="reload">
-         Ricarica indici
+        Ricarica indici
       </button>
     </div>
   </div>
@@ -269,7 +263,10 @@ async function search() {
   lastQuery.value = q;
   results.value = [];
   try {
-    const data = await apiGet<{ results?: KnowledgeResult[]; chunks?: KnowledgeResult[] }>("/api/v1/knowledge/search", { q });
+    const data = await apiGet<{
+      results?: KnowledgeResult[];
+      chunks?: KnowledgeResult[];
+    }>("/api/v1/knowledge/search", { q });
     results.value = data.results || data.chunks || [];
   } catch (e) {
     console.error("search", e);
@@ -306,7 +303,9 @@ async function reload() {
 
 async function loadTopics() {
   try {
-    const data = await apiGet<{ topics?: string[] } | string[]>("/api/v1/knowledge");
+    const data = await apiGet<{ topics?: string[] } | string[]>(
+      "/api/v1/knowledge",
+    );
     topics.value = Array.isArray(data) ? data : data.topics || [];
   } catch (e) {
     console.warn("topics", e);
@@ -626,4 +625,3 @@ code {
   animation-delay: 0.4s;
 }
 </style>
-

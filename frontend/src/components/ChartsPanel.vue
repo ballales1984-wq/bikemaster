@@ -4,12 +4,11 @@
 <template>
   <section class="charts-panel">
     <div class="panel">
-      <h2> Trend Performance</h2>
+      <h2>Trend Performance</h2>
       <div class="chart-controls">
         <label>
           {{ t("charts.metric") }}
-          <select id="metric-select"
-name="metric" v-model="selectedMetric">
+          <select id="metric-select" v-model="selectedMetric" name="metric">
             <option value="distance_km">Distanza (km)</option>
             <option value="avg_speed_kmh">Velocità Media (km/h)</option>
             <option value="duration_minutes">Durata (min)</option>
@@ -19,8 +18,7 @@ name="metric" v-model="selectedMetric">
         </label>
         <label>
           {{ t("charts.window") }}
-          <select id="window-select"
-name="window" v-model.number="windowSize">
+          <select id="window-select" v-model.number="windowSize" name="window">
             <option value="3">3 rides</option>
             <option value="7">7 rides</option>
             <option value="14">14 rides</option>
@@ -32,15 +30,14 @@ name="window" v-model.number="windowSize">
         <div class="chart-card">
           <h3>Trend {{ metricLabel }}</h3>
           <BaseChart :config="trendConfig" empty-label="Dati insufficienti" />
-          <div v-if="trendData.ready"
-class="chart-summary">
+          <div v-if="trendData.ready" class="chart-summary">
             <span :class="trendClass">{{ trendData.trend }}</span>
             <span>R²: {{ trendData.r2 }}</span>
             <span>Mean: {{ trendData.mean?.toFixed(1) }}</span>
           </div>
         </div>
         <div class="chart-card">
-          <h3> Progressione Mensile</h3>
+          <h3>Progressione Mensile</h3>
           <BaseChart
             :config="monthlyConfig"
             empty-label="Nessun dato mensile"
@@ -52,8 +49,7 @@ class="chart-summary">
             :config="comparisonConfig"
             empty-label="Nessun confronto"
           />
-          <div v-if="comparisonData.ready"
-class="chart-summary">
+          <div v-if="comparisonData.ready" class="chart-summary">
             <span :class="trendClass"
               >{{ comparisonData.distance_change_pct >= 0 ? "+" : ""
               }}{{ comparisonData.distance_change_pct }}% km</span
@@ -326,4 +322,3 @@ onMounted(() => {
   border-radius: 4px;
 }
 </style>
-

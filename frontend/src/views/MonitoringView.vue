@@ -3,10 +3,10 @@
     <div class="monitoring-header">
       <h1>{{ t("monitoring.title") }}</h1>
       <div class="monitoring-actions">
-        <button class="btn btn-ghost" @click="refresh" :disabled="loading">
+        <button class="btn btn-ghost" :disabled="loading" @click="refresh">
           {{ loading ? t("common.loading") : t("monitoring.refresh") }}
         </button>
-        <span class="last-updated" v-if="lastUpdated">
+        <span v-if="lastUpdated" class="last-updated">
           {{ t("monitoring.lastUpdated") }}: {{ lastUpdated }}
         </span>
       </div>
@@ -21,7 +21,7 @@
         </div>
       </div>
 
-      <div class="card" v-for="check in healthChecks" :key="check.key">
+      <div v-for="check in healthChecks" :key="check.key" class="card">
         <div class="check-header">
           <span class="check-icon">{{ check.icon }}</span>
           <span class="check-label">{{ check.label }}</span>
@@ -29,10 +29,12 @@
         <div class="check-status" :class="check.statusClass">
           {{ check.status }}
         </div>
-        <div class="check-message" v-if="check.message">{{ check.message }}</div>
+        <div v-if="check.message" class="check-message">
+          {{ check.message }}
+        </div>
       </div>
 
-      <div class="card" v-if="diskInfo">
+      <div v-if="diskInfo" class="card">
         <div class="check-header">
           <span class="check-icon">💾</span>
           <span class="check-label">{{ t("monitoring.disk") }}</span>
@@ -47,7 +49,7 @@
       </div>
     </div>
 
-    <div class="card" v-if="error">
+    <div v-if="error" class="card">
       <div class="error-section">
         <div class="error-icon">⚠️</div>
         <div class="error-text">{{ error }}</div>
@@ -145,7 +147,9 @@ async function loadHealth() {
   loading.value = true;
   error.value = "";
   try {
-    const data = await apiGet<Record<string, unknown>>("/api/v1/health/comprehensive");
+    const data = await apiGet<Record<string, unknown>>(
+      "/api/v1/health/comprehensive",
+    );
     health.value = data;
     lastUpdated.value = new Date().toLocaleTimeString();
   } catch (e) {

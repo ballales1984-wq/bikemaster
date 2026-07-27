@@ -9,26 +9,57 @@
 -->
 
 <template>
-  <div class="voice-overlay" v-if="store.isSupported">
+  <div v-if="store.isSupported" class="voice-overlay">
     <button
       class="voice-fab"
       :class="{
         listening: store.isListening,
         processing: store.isProcessing,
       }"
-      :title="store.isListening ? 'Ferma riconoscimento' : 'Avvia riconoscimento vocale'"
+      :title="
+        store.isListening
+          ? 'Ferma riconoscimento'
+          : 'Avvia riconoscimento vocale'
+      "
       @click="toggleListening"
     >
-      <svg v-if="!store.isListening && !store.isProcessing" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        v-if="!store.isListening && !store.isProcessing"
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
         <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
         <line x1="12" y1="19" x2="12" y2="23" />
         <line x1="8" y1="23" x2="16" y2="23" />
       </svg>
-      <svg v-else-if="store.isProcessing" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" class="spin">
-        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+      <svg
+        v-else-if="store.isProcessing"
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        class="spin"
+      >
+        <path
+          d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+        />
       </svg>
-      <svg v-else viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        v-else
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <rect x="4" y="4" width="16" height="16" rx="2" />
         <line x1="9" y1="9" x2="15" y2="15" />
         <line x1="15" y1="9" x2="9" y2="15" />
@@ -41,7 +72,11 @@
           <h3>Comandi vocali</h3>
           <div class="voice-panel-actions">
             <label class="toggle-label">
-              <input type="checkbox" v-model="autoListenModel" @change="onToggleAuto" />
+              <input
+                v-model="autoListenModel"
+                type="checkbox"
+                @change="onToggleAuto"
+              />
               <span>Auto</span>
             </label>
             <button class="close-btn" @click="expanded = false">&times;</button>
@@ -59,7 +94,11 @@
             <p>{{ store.lastTranscript }}</p>
           </div>
 
-          <div v-if="store.lastResult" class="result-box" :class="store.lastResult.success ? 'success' : 'error'">
+          <div
+            v-if="store.lastResult"
+            class="result-box"
+            :class="store.lastResult.success ? 'success' : 'error'"
+          >
             <label>Risultato</label>
             <p>{{ store.lastResult.message }}</p>
           </div>
@@ -72,7 +111,12 @@
           <div class="history-section">
             <div class="history-header">
               <span>Cronologia</span>
-              <button v-if="store.commandHistory.length" @click="store.clearLog">Cancella</button>
+              <button
+                v-if="store.commandHistory.length"
+                @click="store.clearLog"
+              >
+                Cancella
+              </button>
             </div>
             <div v-if="!store.commandHistory.length" class="empty-history">
               Nessun comando registrato
@@ -84,7 +128,9 @@
                 class="history-entry"
                 :class="{ success: entry.success, error: !entry.success }"
               >
-                <span class="history-time">{{ formatTime(entry.timestamp) }}</span>
+                <span class="history-time">{{
+                  formatTime(entry.timestamp)
+                }}</span>
                 <span class="history-transcript">{{ entry.transcript }}</span>
                 <span class="history-message">{{ entry.message }}</span>
               </div>
@@ -455,8 +501,15 @@ function formatTime(date: Date): string {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.1); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
 }
 
 .spin {
@@ -464,12 +517,16 @@ function formatTime(date: Date): string {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .voice-panel-enter-active,
 .voice-panel-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .voice-panel-enter-from,

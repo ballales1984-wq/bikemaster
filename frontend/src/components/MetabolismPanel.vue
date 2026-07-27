@@ -17,10 +17,15 @@
         <span class="kpi-value">{{ Math.round(intake) }} kcal</span>
         <span class="kpi-note">Cibo oggi</span>
       </div>
-      <div class="kpi" :class="{ 'kpi--positive': balance > 0, 'kpi--negative': balance < 0 }">
+      <div
+        class="kpi"
+        :class="{ 'kpi--positive': balance > 0, 'kpi--negative': balance < 0 }"
+      >
         <span class="kpi-label">Bilancio</span>
         <span class="kpi-value">{{ Math.round(balance) }} kcal</span>
-        <span class="kpi-note">{{ balance > 0 ? 'Surplus' : balance < 0 ? 'Deficit' : 'Pareggio' }}</span>
+        <span class="kpi-note">{{
+          balance > 0 ? "Surplus" : balance < 0 ? "Deficit" : "Pareggio"
+        }}</span>
       </div>
     </div>
     <form class="form-grid" @submit.prevent="save">
@@ -86,7 +91,7 @@ watch(
       form.activity_level = p.activity_level ?? "moderate";
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 async function save() {

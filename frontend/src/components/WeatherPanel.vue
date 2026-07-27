@@ -3,7 +3,7 @@
      UI: form coordinate, card meteo con score colorato, stati loading/errore/vuoto e griglia forecast 7 giorni. -->
 <template>
   <div class="panel">
-    <h2> Meteo</h2>
+    <h2>Meteo</h2>
 
     <div class="form-grid">
       <div class="form-group">
@@ -14,7 +14,7 @@
           type="number"
           step="0.0001"
           placeholder="Ex: 45.4642"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="weather-lon">Longitudine</label>
@@ -24,12 +24,11 @@
           type="number"
           step="0.0001"
           placeholder="Ex: 9.1900"
-        >
+        />
       </div>
       <div class="form-group">
         <label for="weather-date">Data (opzionale)</label>
-        <input
-id="weather-date" type="date" v-model="date" />
+        <input id="weather-date" v-model="date" type="date" />
       </div>
       <div class="form-group">
         <button
@@ -54,16 +53,17 @@ id="weather-date" type="date" v-model="date" />
       <div class="empty-icon"></div>
       <div class="empty-title">Informazioni Meteo</div>
       <div class="empty-desc">
-        Inserisci le coordinate e clicca "Ottieni Meteo" per le condizioni attuali e consigli ciclistici
+        Inserisci le coordinate e clicca "Ottieni Meteo" per le condizioni
+        attuali e consigli ciclistici
       </div>
     </div>
 
     <div v-else class="weather-card">
       <div class="weather-header">
         <h3>{{ weather.location?.city || "Location" }}</h3>
-        <span
-class="weather-score" :class="'score-' + weather.score"
-        >Score: {{ weather.score }}/10</span>
+        <span class="weather-score" :class="'score-' + weather.score"
+          >Score: {{ weather.score }}/10</span
+        >
       </div>
       <div class="weather-info">
         <div class="weather-item">
@@ -72,7 +72,9 @@ class="weather-score" :class="'score-' + weather.score"
         </div>
         <div class="weather-item">
           <span class="weather-icon"></span>
-          <span class="weather-value">{{ weather.feels_like }}°C (feels like)</span>
+          <span class="weather-value"
+            >{{ weather.feels_like }}°C (feels like)</span
+          >
         </div>
         <div class="weather-item">
           <span class="weather-icon"></span>
@@ -93,7 +95,7 @@ class="weather-score" :class="'score-' + weather.score"
     </div>
 
     <div class="panel" style="margin-top: 20px">
-      <h3> Previsioni 7 Giorni</h3>
+      <h3>Previsioni 7 Giorni</h3>
       <div v-if="forecastLoading" class="loading-text">
         Caricamento previsioni...
       </div>
@@ -103,7 +105,7 @@ class="weather-score" :class="'score-' + weather.score"
             {{ f.date }}
           </div>
           <div class="forecast-temp">{{ f.temperature }}°C</div>
-          <div class="forecast-humidity"> {{ f.humidity }}%</div>
+          <div class="forecast-humidity">{{ f.humidity }}%</div>
           <div class="forecast-advice">
             {{ f.advice }}
           </div>
@@ -150,11 +152,15 @@ async function fetchWeather() {
   weather.value = null;
 
   try {
-    const params: Record<string, string> = { lat: String(lat.value), lon: String(lon.value) };
+    const params: Record<string, string> = {
+      lat: String(lat.value),
+      lon: String(lon.value),
+    };
     if (date.value) params.date = date.value;
     weather.value = await apiGet<WeatherData>("/api/v1/weather", params);
   } catch (e: unknown) {
-    weatherError.value = e instanceof Error ? e.message : "Error loading weather";
+    weatherError.value =
+      e instanceof Error ? e.message : "Error loading weather";
   } finally {
     loading.value = false;
   }
@@ -163,11 +169,14 @@ async function fetchWeather() {
 async function fetchForecast() {
   forecastLoading.value = true;
   try {
-    const data = await apiGet<{ forecasts: ForecastItem[] }>("/api/v1/weather/forecast", {
-      lat: String(lat.value),
-      lon: String(lon.value),
-      days: "7",
-    });
+    const data = await apiGet<{ forecasts: ForecastItem[] }>(
+      "/api/v1/weather/forecast",
+      {
+        lat: String(lat.value),
+        lon: String(lon.value),
+        days: "7",
+      },
+    );
     forecast.value = data.forecasts || [];
   } catch (e: unknown) {
     forecast.value = [];
@@ -291,4 +300,3 @@ watch(date, (newDate) => {
   margin-top: 10px;
 }
 </style>
-

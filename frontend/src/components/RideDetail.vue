@@ -6,18 +6,14 @@
     <div class="panel">
       <div class="detail-header">
         <h2>{{ t("rideDetail.title") }}</h2>
-<div class="header-actions">
-          <button class="edit-btn" @click="startEdit" aria-label="Modifica">
+        <div class="header-actions">
+          <button class="edit-btn" aria-label="Modifica" @click="startEdit">
             ✏️
           </button>
-          <button
-            class="edit-btn"
-            @click="goToBm2"
-            aria-label="BM2 Analysis"
-          >
+          <button class="edit-btn" aria-label="BM2 Analysis" @click="goToBm2">
             ⚡ BM2
           </button>
-          <button class="close-btn" @click="emit('close')" aria-label="Chiudi">
+          <button class="close-btn" aria-label="Chiudi" @click="emit('close')">
             ✕
           </button>
         </div>
@@ -34,19 +30,43 @@
         </label>
         <label>
           Distanza (km)
-          <input v-model.number="editForm.distance_km" type="number" min="0" max="500" step="0.1" />
+          <input
+            v-model.number="editForm.distance_km"
+            type="number"
+            min="0"
+            max="500"
+            step="0.1"
+          />
         </label>
         <label>
           Durata (min)
-          <input v-model.number="editForm.duration_minutes" type="number" min="1" max="1440" step="1" />
+          <input
+            v-model.number="editForm.duration_minutes"
+            type="number"
+            min="1"
+            max="1440"
+            step="1"
+          />
         </label>
         <label>
           FC media (bpm)
-          <input v-model.number="editForm.heart_rate_avg" type="number" min="30" max="220" step="1" />
+          <input
+            v-model.number="editForm.heart_rate_avg"
+            type="number"
+            min="30"
+            max="220"
+            step="1"
+          />
         </label>
         <label>
           Dislivello (m)
-          <input v-model.number="editForm.elevation_gain_m" type="number" min="0" max="15000" step="1" />
+          <input
+            v-model.number="editForm.elevation_gain_m"
+            type="number"
+            min="0"
+            max="15000"
+            step="1"
+          />
         </label>
         <label>
           Tipo
@@ -105,39 +125,29 @@
         "
         class="analysis-section"
       >
-        <h3> Analisi Dettagliata</h3>
+        <h3>Analisi Dettagliata</h3>
         <div class="analysis-grid">
-          <div
-v-if="ride.elevation_gain_m" class="a-item"
->
+          <div v-if="ride.elevation_gain_m" class="a-item">
             <span class="a-lbl"> Dislivello</span>
             <span class="a-val">{{ fmt(ride.elevation_gain_m, 0) }} m</span>
           </div>
-          <div
-v-if="ride.max_speed_kmh" class="a-item"
->
+          <div v-if="ride.max_speed_kmh" class="a-item">
             <span class="a-lbl"> {{ t("rideDetail.maxSpeed") }}</span>
             <span class="a-val">{{ fmt(ride.max_speed_kmh) }} km/h</span>
           </div>
-        <div
-          v-if="ride.heart_rate_avg" class="a-item"
-        >
-          <span class="a-lbl"> FC Media</span>
-          <span class="a-val">{{ fmt(ride.heart_rate_avg, 0) }} bpm</span>
-        </div>
-          <div
-v-if="ride.max_heart_rate" class="a-item"
->
+          <div v-if="ride.heart_rate_avg" class="a-item">
+            <span class="a-lbl"> FC Media</span>
+            <span class="a-val">{{ fmt(ride.heart_rate_avg, 0) }} bpm</span>
+          </div>
+          <div v-if="ride.max_heart_rate" class="a-item">
             <span class="a-lbl"> FC Massima</span>
             <span class="a-val">{{ fmt(ride.max_heart_rate, 0) }} bpm</span>
           </div>
-          <div
-v-if="ride.fatigue_score !== undefined" class="a-item"
->
+          <div v-if="ride.fatigue_score !== undefined" class="a-item">
             <span class="a-lbl"> Affaticamento</span>
-            <span
-class="a-val" :class="fatigueClass"
-            >{{ ride.fatigue_score }}/10</span>
+            <span class="a-val" :class="fatigueClass"
+              >{{ ride.fatigue_score }}/10</span
+            >
           </div>
         </div>
       </div>
@@ -148,23 +158,21 @@ class="a-val" :class="fatigueClass"
         :api-key="googleMapsApiKey"
       />
 
-      <div
-v-if="speedChart || elevationChart" class="chart-section"
->
-        <h3> Grafici</h3>
+      <div v-if="speedChart || elevationChart" class="chart-section">
+        <h3>Grafici</h3>
         <div class="chart-row">
           <img
             v-if="speedChart"
             :src="speedChart"
             alt="Speed chart"
             class="chart-img"
-          >
+          />
           <img
             v-if="elevationChart"
             :src="elevationChart"
             alt="Elevation chart"
             class="chart-img"
-          >
+          />
         </div>
       </div>
     </div>
@@ -254,7 +262,9 @@ async function load() {
     ride.value = data;
     speedChart.value = `/api/v1/charts/speed/${props.rideId}`;
     elevationChart.value = `/api/v1/charts/elevation/${props.rideId}`;
-    const config = await apiGet<{ google_maps_api_key: string }>("/api/v1/config/google-maps-key");
+    const config = await apiGet<{ google_maps_api_key: string }>(
+      "/api/v1/config/google-maps-key",
+    );
     googleMapsApiKey.value = config.google_maps_api_key || "";
   } catch {
     // ignore load errors
@@ -301,11 +311,15 @@ async function saveEdit() {
       elevation_gain_m: editForm.value.elevation_gain_m,
       activity_type: editForm.value.activity_type,
     };
-    const updated = await apiPut<Ride>(`/api/v1/rides/${props.rideId}`, payload);
+    const updated = await apiPut<Ride>(
+      `/api/v1/rides/${props.rideId}`,
+      payload,
+    );
     ride.value = updated;
     editMode.value = false;
   } catch (err) {
-    editError.value = err instanceof Error ? err.message : "Salvataggio fallito";
+    editError.value =
+      err instanceof Error ? err.message : "Salvataggio fallito";
   } finally {
     saving.value = false;
   }

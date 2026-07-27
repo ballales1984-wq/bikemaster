@@ -6,7 +6,11 @@
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import type { Athlete, AthleteMetricLogEntry, AthleteMetricLogResponse } from "../types/index";
+import type {
+  Athlete,
+  AthleteMetricLogEntry,
+  AthleteMetricLogResponse,
+} from "../types/index";
 import { apiGet, apiPut, ApiError } from "../utils/api";
 import { useAuthStore } from "./auth";
 
@@ -61,21 +65,29 @@ export const useAthleteStore = defineStore("athlete", () => {
   const metricLogLoading = ref(false);
 
   const hasProfile = computed(() => profile.value !== null);
-  const displayName = computed(() => profile.value?.username || auth.user?.username || "Athlete");
+  const displayName = computed(
+    () => profile.value?.username || auth.user?.username || "Athlete",
+  );
 
   async function fetchProfile(): Promise<AthleteProfile | null> {
     if (!auth.isLoggedIn) return null;
     loading.value = true;
     error.value = null;
     try {
-      const data = await apiGet<{ athlete: AthleteProfile; profile_complete: boolean }>("/api/v1/athletes/me");
+      const data = await apiGet<{
+        athlete: AthleteProfile;
+        profile_complete: boolean;
+      }>("/api/v1/athletes/me");
       profile.value = data.athlete;
       profileComplete.value = data.profile_complete;
       return data.athlete;
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) {
         try {
-          const created = await apiPut<{ athlete: AthleteProfile; profile_complete: boolean }>("/api/v1/athletes/me", {
+          const created = await apiPut<{
+            athlete: AthleteProfile;
+            profile_complete: boolean;
+          }>("/api/v1/athletes/me", {
             experience_level: "Beginner",
           });
           profile.value = created.athlete;
@@ -101,7 +113,10 @@ export const useAthleteStore = defineStore("athlete", () => {
     saving.value = true;
     error.value = null;
     try {
-      const data = await apiPut<{ athlete: AthleteProfile; profile_complete: boolean }>("/api/v1/athletes/me", updates);
+      const data = await apiPut<{
+        athlete: AthleteProfile;
+        profile_complete: boolean;
+      }>("/api/v1/athletes/me", updates);
       profile.value = data.athlete;
       profileComplete.value = data.profile_complete;
       return profile.value;
@@ -118,20 +133,27 @@ export const useAthleteStore = defineStore("athlete", () => {
     profileComplete.value = true;
   }
 
-  async function fetchMetricLog(metricType: string, days = 365): Promise<AthleteMetricLogEntry[]> {
+  async function fetchMetricLog(
+    metricType: string,
+    days = 365,
+  ): Promise<AthleteMetricLogEntry[]> {
     if (!auth.isLoggedIn) return [];
     metricLogLoading.value = true;
     error.value = null;
     try {
-      const data = await apiGet<AthleteMetricLogResponse>("/api/v1/athletes/me/metric-log", {
-        metric_type: metricType,
-        days: String(days),
-      });
+      const data = await apiGet<AthleteMetricLogResponse>(
+        "/api/v1/athletes/me/metric-log",
+        {
+          metric_type: metricType,
+          days: String(days),
+        },
+      );
       const series = data.series ?? [];
       metricLog.value[metricType] = series;
       return series;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Failed to load metric history";
+      error.value =
+        e instanceof Error ? e.message : "Failed to load metric history";
       return [];
     } finally {
       metricLogLoading.value = false;

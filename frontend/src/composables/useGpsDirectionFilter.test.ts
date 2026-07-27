@@ -104,9 +104,7 @@ describe("useGpsDirectionFilter", () => {
     f.accept(pt(45.0, 7.0), 0, false);
     f.accept(pt(45.001, 7.0), 10, false);
     // 1m move -> too small to judge direction
-    expect(f.isDirectionOutlier(pt(45.001001, 7.000001), 1, false)).toBe(
-      false,
-    );
+    expect(f.isDirectionOutlier(pt(45.001001, 7.000001), 1, false)).toBe(false);
   });
 
   it("resets the bearing window after a turn", () => {

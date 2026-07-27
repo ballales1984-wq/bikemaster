@@ -7,7 +7,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ formattedDistance }}</span>
-         <span class="metric-label">Distanza (km)</span>
+        <span class="metric-label">Distanza (km)</span>
       </div>
     </div>
 
@@ -15,7 +15,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ currentSpeed.toFixed(1) }}</span>
-         <span class="metric-label">Velocità (km/h)</span>
+        <span class="metric-label">Velocità (km/h)</span>
       </div>
     </div>
 
@@ -23,7 +23,7 @@
       <div class="metric-icon">⏱</div>
       <div class="metric-content">
         <span class="metric-value">{{ formattedTime }}</span>
-         <span class="metric-label">Tempo</span>
+        <span class="metric-label">Tempo</span>
       </div>
     </div>
 
@@ -31,7 +31,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ avgSpeed.toFixed(1) }}</span>
-         <span class="metric-label">Media (km/h)</span>
+        <span class="metric-label">Media (km/h)</span>
       </div>
     </div>
 
@@ -39,7 +39,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ elevation.toFixed(0) }}</span>
-         <span class="metric-label">Dislivello (m)</span>
+        <span class="metric-label">Dislivello (m)</span>
       </div>
     </div>
 
@@ -47,7 +47,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ heartRate }}</span>
-         <span class="metric-label">FC (bpm)</span>
+        <span class="metric-label">FC (bpm)</span>
       </div>
     </div>
 
@@ -55,7 +55,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ cadence }}</span>
-         <span class="metric-label">Cadenza (rpm)</span>
+        <span class="metric-label">Cadenza (rpm)</span>
       </div>
     </div>
 
@@ -63,7 +63,7 @@
       <div class="metric-icon"></div>
       <div class="metric-content">
         <span class="metric-value">{{ power }}</span>
-         <span class="metric-label">Potenza (W)</span>
+        <span class="metric-label">Potenza (W)</span>
       </div>
     </div>
   </div>
@@ -89,7 +89,7 @@ const formattedTime = computed(() => {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  return `${hours > 0 ? hours + ':' : ''}${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  return `${hours > 0 ? hours + ":" : ""}${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 });
 
 const formattedDistance = computed(() => {
@@ -113,7 +113,9 @@ const formattedDistance = computed(() => {
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .metric-card:hover {
@@ -180,4 +182,3 @@ const formattedDistance = computed(() => {
   color: #f43f5e; /* rose for HR */
 }
 </style>
-

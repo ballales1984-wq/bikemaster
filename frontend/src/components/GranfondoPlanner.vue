@@ -44,7 +44,12 @@ const calendarDays = computed(() => {
   const start = new Date(startDate.value);
   const startDay = start.getDay() || 7;
   const totalDays = weeks.value * 7 + 1;
-  const days: { day: number; date: string; workouts: Workout[]; isToday: boolean }[] = [];
+  const days: {
+    day: number;
+    date: string;
+    workouts: Workout[];
+    isToday: boolean;
+  }[] = [];
   const today = new Date().toISOString().split("T")[0];
   for (let offset = -startDay + 1; offset < totalDays; offset++) {
     const d = new Date(start);
@@ -84,7 +89,8 @@ async function generatePlan() {
     plan.value = res.plan || [];
   } catch (e: unknown) {
     plan.value = null;
-    errorMessage.value = e instanceof Error ? e.message : "Failed to generate plan";
+    errorMessage.value =
+      e instanceof Error ? e.message : "Failed to generate plan";
   } finally {
     loading.value = false;
   }
@@ -116,7 +122,7 @@ onMounted(() => {
 
 <template>
   <div class="panel">
-    <h2> Granfondo Planner</h2>
+    <h2>Granfondo Planner</h2>
     <div class="form-grid">
       <div class="form-group">
         <label for="gf-start-date">Start date</label>
@@ -140,15 +146,9 @@ onMounted(() => {
 
     <div v-if="plan" class="plan-container">
       <div class="plan-header">
-        <div class="plan-dates">
-          {{ startDate }} → {{ endDate }}
-        </div>
+        <div class="plan-dates">{{ startDate }} → {{ endDate }}</div>
         <div v-if="plan.length" class="plan-actions">
-          <button
-            class="btn-success"
-            :disabled="saving"
-            @click="savePlan"
-          >
+          <button class="btn-success" :disabled="saving" @click="savePlan">
             Save Plan
           </button>
         </div>

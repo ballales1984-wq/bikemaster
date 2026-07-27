@@ -14,8 +14,8 @@
     <div class="legal-content">
       <h2>1. Data Controller</h2>
       <p>
-        The data controller of the personal data collected through
-        BikeMaster is:
+        The data controller of the personal data collected through BikeMaster
+        is:
       </p>
       <ul>
         <li><strong>Company:</strong> BikeMaster Team</li>
@@ -24,34 +24,34 @@
 
       <h2>2. Types of Data Collected</h2>
       <p>
-        Through the use of BikeMaster, we collect the following categories
-        of data:
+        Through the use of BikeMaster, we collect the following categories of
+        data:
       </p>
       <ul>
         <li>
-          <strong>Navigation data:</strong> IP address, browser type,
-          operating system, log data
+          <strong>Navigation data:</strong> IP address, browser type, operating
+          system, log data
         </li>
         <li>
-          <strong>User personal data:</strong> name, email, age, weight,
-          height, medical data voluntarily provided in the athlete profile
+          <strong>User personal data:</strong> name, email, age, weight, height,
+          medical data voluntarily provided in the athlete profile
         </li>
         <li>
-          <strong>GPS and physical activity data:</strong> geographic coordinates,
-          route track, speed, altitude, heart rate, power,
-          cadence, distance, elevation
+          <strong>GPS and physical activity data:</strong> geographic
+          coordinates, route track, speed, altitude, heart rate, power, cadence,
+          distance, elevation
         </li>
         <li>
-          <strong>Geolocation data:</strong> real-time position
-          during GPS tracking from phone
+          <strong>Geolocation data:</strong> real-time position during GPS
+          tracking from phone
         </li>
         <li>
-          <strong>Data from external services:</strong> activity data from Strava,
-          Garmin Connect, Google Fit (only if authorized by the user)
+          <strong>Data from external services:</strong> activity data from
+          Strava, Garmin Connect, Google Fit (only if authorized by the user)
         </li>
         <li>
-          <strong>Access credentials:</strong> username and password
-          (stored in encrypted form)
+          <strong>Access credentials:</strong> username and password (stored in
+          encrypted form)
         </li>
       </ul>
 
@@ -59,13 +59,13 @@
       <p>Personal data is processed for the following purposes:</p>
       <ul>
         <li>
-          <strong>Service provision:</strong> cycling performance
-          analysis, metric calculation (calories, TSS, CTL/ATL/TSB), map and report
+          <strong>Service provision:</strong> cycling performance analysis,
+          metric calculation (calories, TSS, CTL/ATL/TSB), map and report
           generation
         </li>
         <li>
-          <strong>AI Coach features:</strong> personalized training and
-          recovery advice
+          <strong>AI Coach features:</strong> personalized training and recovery
+          advice
         </li>
         <li>
           <strong>Authentication:</strong> account management and access to the
@@ -76,8 +76,8 @@
           upon consent
         </li>
         <li>
-          <strong>Service improvement:</strong> aggregated and
-          anonymized statistics to improve features
+          <strong>Service improvement:</strong> aggregated and anonymized
+          statistics to improve features
         </li>
         <li>
           <strong>Security:</strong> protection from unauthorized access and
@@ -88,12 +88,12 @@
       <h2>4. Legal Basis of Processing</h2>
       <ul>
         <li>
-          <strong>Contract performance:</strong> processing necessary to
-          provide the requested service (Art. 6, par. 1, lett. b GDPR)
+          <strong>Contract performance:</strong> processing necessary to provide
+          the requested service (Art. 6, par. 1, lett. b GDPR)
         </li>
         <li>
-          <strong>Consent:</strong> processing of health data and
-          real-time geolocation (Art. 6, par. 1, lett. a GDPR)
+          <strong>Consent:</strong> processing of health data and real-time
+          geolocation (Art. 6, par. 1, lett. a GDPR)
         </li>
         <li>
           <strong>Legitimate interest:</strong> data security, aggregate
@@ -105,18 +105,17 @@
       <p>The service collects potentially sensitive data including:</p>
       <ul>
         <li>
-          <strong>Health data:</strong> heart rate, fatigue
-          data, performance scores (Art. 9 GDPR)
+          <strong>Health data:</strong> heart rate, fatigue data, performance
+          scores (Art. 9 GDPR)
         </li>
         <li>
-          <strong>Geolocation:</strong> continuous GPS position during
-          tracking from mobile device
+          <strong>Geolocation:</strong> continuous GPS position during tracking
+          from mobile device
         </li>
       </ul>
       <p>
-        This data is processed exclusively upon explicit consent
-        and is used only for the purposes indicated in this
-        policy.
+        This data is processed exclusively upon explicit consent and is used
+        only for the purposes indicated in this policy.
       </p>
 
       <h2>6. Data Sharing and Third Parties</h2>
@@ -125,19 +124,12 @@
         shared exclusively with:
       </p>
       <ul>
+        <li><strong>Strava:</strong> upon user OAuth2 authorization</li>
+        <li><strong>Garmin Connect:</strong> upon user OAuth2 authorization</li>
+        <li><strong>Google Fit:</strong> upon user OAuth2 authorization</li>
         <li>
-          <strong>Strava:</strong> upon user OAuth2 authorization
-        </li>
-        <li>
-          <strong>Garmin Connect:</strong> upon user OAuth2
-          authorization
-        </li>
-        <li>
-          <strong>Google Fit:</strong> upon user OAuth2 authorization
-        </li>
-        <li>
-          <strong>Google Maps / OpenStreetMap:</strong> geolocation
-          data for map rendering
+          <strong>Google Maps / OpenStreetMap:</strong> geolocation data for map
+          rendering
         </li>
         <li>
           <strong>Groq API:</strong> training data for the AI Coach (does not
@@ -152,12 +144,10 @@
       <h2>7. Data Retention</h2>
       <ul>
         <li>
-          <strong>GPS tracking data:</strong> retained until
-          deleted by the user
+          <strong>GPS tracking data:</strong> retained until deleted by the user
         </li>
         <li>
-          <strong>Athlete profile data:</strong> retained until account
-          deletion
+          <strong>Athlete profile data:</strong> retained until account deletion
         </li>
         <li>
           <strong>Access data (JWT):</strong> retained for the duration of the
@@ -194,31 +184,27 @@
       <h2>10. Cookies and Similar Technologies</h2>
       <p>
         For detailed information on cookies, see the
-        <RouterLink to="/cookies">
-Cookie Policy
-</RouterLink>.
+        <RouterLink to="/cookies"> Cookie Policy </RouterLink>.
       </p>
 
       <h2>11. Changes to This Policy</h2>
       <p>
-        Any changes will be communicated through the service or via
-        email to registered users. We recommend consulting this page
-        periodically.
+        Any changes will be communicated through the service or via email to
+        registered users. We recommend consulting this page periodically.
       </p>
 
       <h2>12. Supervisory Authority</h2>
       <p>
-        In case of no response or dissatisfaction, you may file a
-        complaint with the Italian Data Protection Authority at
-        <a href="https://www.garanteprivacy.it"
-target="_blank" rel="noopener">www.garanteprivacy.it</a>.
+        In case of no response or dissatisfaction, you may file a complaint with
+        the Italian Data Protection Authority at
+        <a href="https://www.garanteprivacy.it" target="_blank" rel="noopener"
+          >www.garanteprivacy.it</a
+        >.
       </p>
     </div>
 
     <div class="cta-section">
-      <RouterLink to="/" class="btn btn-primary">
-         Torna all'Accedi
-      </RouterLink>
+      <RouterLink to="/" class="btn btn-primary"> Torna all'Accedi </RouterLink>
     </div>
   </div>
 </template>

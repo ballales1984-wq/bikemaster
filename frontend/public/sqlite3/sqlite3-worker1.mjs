@@ -8111,7 +8111,7 @@ async function sqlite3InitModule(moduleArg = {}) {
 					]
 				]
 			};
-			if (!!wasm.exports.sqlite3_progress_handler) bindingSignatures.core.push([
+			if (wasm.exports.sqlite3_progress_handler) bindingSignatures.core.push([
 				"sqlite3_progress_handler",
 				void 0,
 				[
@@ -8126,7 +8126,7 @@ async function sqlite3InitModule(moduleArg = {}) {
 					"*"
 				]
 			]);
-			if (!!wasm.exports.sqlite3_stmt_explain) bindingSignatures.core.push([
+			if (wasm.exports.sqlite3_stmt_explain) bindingSignatures.core.push([
 				"sqlite3_stmt_explain",
 				"int",
 				"sqlite3_stmt*",
@@ -8136,7 +8136,7 @@ async function sqlite3InitModule(moduleArg = {}) {
 				"int",
 				"sqlite3_stmt*"
 			]);
-			if (!!wasm.exports.sqlite3_set_authorizer) bindingSignatures.core.push([
+			if (wasm.exports.sqlite3_set_authorizer) bindingSignatures.core.push([
 				"sqlite3_set_authorizer",
 				"int",
 				[
@@ -8162,7 +8162,7 @@ async function sqlite3InitModule(moduleArg = {}) {
 					"*"
 				]
 			]);
-			if (!!wasm.exports.sqlite3_column_origin_name) bindingSignatures.core.push([
+			if (wasm.exports.sqlite3_column_origin_name) bindingSignatures.core.push([
 				"sqlite3_column_database_name",
 				"string",
 				"sqlite3_stmt*",
@@ -11278,10 +11278,10 @@ async function sqlite3InitModule(moduleArg = {}) {
 							};
 						}
 						try {
-							const changeCount = !!rc.countChanges ? db.changes(true, 64 === rc.countChanges) : void 0;
+							const changeCount = rc.countChanges ? db.changes(true, 64 === rc.countChanges) : void 0;
 							db.exec(rc);
 							if (void 0 !== changeCount) rc.changeCount = db.changes(true, 64 === rc.countChanges) - changeCount;
-							const lastInsertRowId = !!rc.lastInsertRowId ? sqlite3.capi.sqlite3_last_insert_rowid(db) : void 0;
+							const lastInsertRowId = rc.lastInsertRowId ? sqlite3.capi.sqlite3_last_insert_rowid(db) : void 0;
 							if (void 0 !== lastInsertRowId) rc.lastInsertRowId = lastInsertRowId;
 							if (rc.callback instanceof Function) {
 								rc.callback = theCallback;

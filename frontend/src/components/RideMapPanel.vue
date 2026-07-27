@@ -15,20 +15,14 @@
         {{ loading ? t("maps.updating") : t("maps.updateMap") }}
       </button>
       <button class="btn btn-secondary" @click="toggleAetherMap">
-        {{ useAetherMap ? 'Mappa 2D' : 'Globo 3D' }}
+        {{ useAetherMap ? "Mappa 2D" : "Globo 3D" }}
       </button>
     </div>
 
-    <div
-      v-if="!useAetherMap"
-      class="map-toolbar">
+    <div v-if="!useAetherMap" class="map-toolbar">
       <label class="control">
         <span>Map</span>
-        <select
-          id="map-style"
-          v-model="mapStyle"
-          class="form-input"
-        >
+        <select id="map-style" v-model="mapStyle" class="form-input">
           <option v-for="(cfg, key) in MAP_STYLES" :key="key" :value="key">
             {{ cfg.label }}
           </option>
@@ -37,11 +31,7 @@
 
       <label class="control">
         <span>{{ t("maps.route") }}</span>
-        <select
-          id="map-route"
-          v-model="selectedRideId"
-          class="form-input"
-        >
+        <select id="map-route" v-model="selectedRideId" class="form-input">
           <option :value="null">All routes</option>
           <option v-for="ride in ridesWithGps" :key="ride.id" :value="ride.id">
             {{ ride.date }} · {{ formatDistance(ride.distanceM) }}
@@ -51,11 +41,7 @@
 
       <label class="control">
         <span>{{ t("maps.coloring") }}</span>
-        <select
-          id="map-coloring"
-          v-model="colorMode"
-          class="form-input"
-        >
+        <select id="map-coloring" v-model="colorMode" class="form-input">
           <option value="combined">Grade + weather</option>
           <option value="slope">Grade only</option>
           <option value="weather">Weather only</option>
@@ -64,51 +50,58 @@
       </label>
 
       <label class="checkbox-control">
-        <input
-v-model="weatherEnabled" type="checkbox" id="weather-enabled" />
+        <input id="weather-enabled" v-model="weatherEnabled" type="checkbox" />
         <span>{{ t("maps.includeWeather") }}</span>
       </label>
 
       <label class="checkbox-control">
         <input
-          v-model="showFamousRoutes" type="checkbox" id="show-famous-routes" />
+          id="show-famous-routes"
+          v-model="showFamousRoutes"
+          type="checkbox"
+        />
         <span>{{ t("maps.famousRoutes") }}</span>
       </label>
 
       <label class="checkbox-control">
-        <input
-          v-model="showPois" type="checkbox" id="show-pois" />
+        <input id="show-pois" v-model="showPois" type="checkbox" />
         <span>{{ t("maps.showPois") }}</span>
       </label>
     </div>
 
     <!-- Replay controls: animate the selected ride's GPS track over time. -->
-    <div v-if="!useAetherMap && selectedRideId && replayPoints.length > 1" class="replay-bar">
+    <div
+      v-if="!useAetherMap && selectedRideId && replayPoints.length > 1"
+      class="replay-bar"
+    >
       <button class="btn btn-sm" @click="toggleReplay">
-        {{ replaying ? '⏸ ' + t('maps.pause') : '▶ ' + t('maps.play') }}
+        {{ replaying ? "⏸ " + t("maps.pause") : "▶ " + t("maps.play") }}
       </button>
       <input
+        v-model.number="replayIndex"
         class="replay-slider"
         type="range"
         min="0"
         :max="replayPoints.length - 1"
-        v-model.number="replayIndex"
         @input="onReplayScrub"
       />
-      <span class="replay-label">{{ replayIndex + 1 }} / {{ replayPoints.length }}</span>
+      <span class="replay-label"
+        >{{ replayIndex + 1 }} / {{ replayPoints.length }}</span
+      >
     </div>
 
-    <div
-v-if="loading && !enrichedRides.length" class="loading-text">
+    <div v-if="loading && !enrichedRides.length" class="loading-text">
       <span class="spinner" /> Caricamento percorsi...
     </div>
 
-    <div
-    id="route-map" ref="mapContainer" class="route-map">
-      <AetherMapViewer v-if="useAetherMap" :ride-ids="visibleRideIds" :color-by-speed="true" />
+    <div id="route-map" ref="mapContainer" class="route-map">
+      <AetherMapViewer
+        v-if="useAetherMap"
+        :ride-ids="visibleRideIds"
+        :color-by-speed="true"
+      />
       <template v-else>
-        <div
-        v-if="!ridesWithGps.length" class="demo-map-overlay">
+        <div v-if="!ridesWithGps.length" class="demo-map-overlay">
           <div class="demo-map-content">
             <span class="demo-icon"></span>
             <p>Milan-Monza demo route</p>
@@ -120,8 +113,7 @@ v-if="loading && !enrichedRides.length" class="loading-text">
       </template>
     </div>
 
-    <div
-    v-if="!useAetherMap && ridesWithGps.length" class="map-kpis">
+    <div v-if="!useAetherMap && ridesWithGps.length" class="map-kpis">
       <div class="kpi">
         <strong>{{ visibleRides.length }}</strong>
         <span>{{ visibleRides.length === 1 ? "route" : "routes" }}</span>
@@ -143,48 +135,37 @@ v-if="loading && !enrichedRides.length" class="loading-text">
     <div v-if="!useAetherMap" class="legend-grid">
       <div class="legend-card">
         <h4>Combined Risk</h4>
-        <div
-        v-for="level in riskLevels" :key="level.label" class="legend-row">
-          <span
-        class="legend-swatch" :style="{ background: level.color }" />
+        <div v-for="level in riskLevels" :key="level.label" class="legend-row">
+          <span class="legend-swatch" :style="{ background: level.color }" />
           <span>{{ level.label }} · {{ level.range }}</span>
         </div>
       </div>
 
       <div class="legend-card">
         <h4>Gradients</h4>
-        <div
-        v-for="item in gradeLegend" :key="item.label" class="legend-row">
-          <span
-        class="legend-swatch" :style="{ background: item.color }" />
+        <div v-for="item in gradeLegend" :key="item.label" class="legend-row">
+          <span class="legend-swatch" :style="{ background: item.color }" />
           <span>{{ item.label }}</span>
         </div>
       </div>
 
-      <div
-      v-if="weatherEnabled" class="legend-card">
+      <div v-if="weatherEnabled" class="legend-card">
         <h4>Weather</h4>
-        <div
-        v-for="item in weatherLegend" :key="item.label" class="legend-row">
-          <span
-        class="legend-swatch" :style="{ background: item.color }" />
+        <div v-for="item in weatherLegend" :key="item.label" class="legend-row">
+          <span class="legend-swatch" :style="{ background: item.color }" />
           <span>{{ item.label }}</span>
         </div>
-        <p
-        v-if="weatherUnavailableCount" class="legend-note">
+        <p v-if="weatherUnavailableCount" class="legend-note">
           {{ weatherUnavailableCount }}
           {{ weatherUnavailableCount === 1 ? "route" : "routes" }} without
           weather: weather risk set to 50/100.
         </p>
       </div>
 
-      <div
-      v-if="colorMode === 'speed'" class="legend-card">
+      <div v-if="colorMode === 'speed'" class="legend-card">
         <h4>Speed</h4>
-        <div
-        v-for="item in speedLegend" :key="item.label" class="legend-row">
-          <span
-        class="legend-swatch" :style="{ background: item.color }" />
+        <div v-for="item in speedLegend" :key="item.label" class="legend-row">
+          <span class="legend-swatch" :style="{ background: item.color }" />
           <span>{{ item.label }}</span>
         </div>
       </div>
@@ -354,10 +335,9 @@ function renderMap() {
   if (!mapContainer.value) return;
 
   if (!map) {
-    map = L.map(mapContainer.value as HTMLElement, { preferCanvas: true }).setView(
-      DEFAULT_MAP_CENTER as [number, number],
-      DEFAULT_MAP_ZOOM,
-    );
+    map = L.map(mapContainer.value as HTMLElement, {
+      preferCanvas: true,
+    }).setView(DEFAULT_MAP_CENTER as [number, number], DEFAULT_MAP_ZOOM);
     tileLayer = createTileLayer(mapStyle.value);
     tileLayer.addTo(map);
     layerGroup = L.layerGroup().addTo(map);
@@ -480,11 +460,15 @@ function drawReplay() {
     map.removeLayer(replayMarker);
     replayMarker = null;
   }
-  const pts = replayPoints.value.slice(0, replayIndex.value + 1).map(
-    (p) => [p.lat, p.lon] as [number, number],
-  );
+  const pts = replayPoints.value
+    .slice(0, replayIndex.value + 1)
+    .map((p) => [p.lat, p.lon] as [number, number]);
   if (pts.length > 1) {
-    replayPath = L.polyline(pts, { color: "#4ecca3", weight: 5, opacity: 0.9 }).addTo(map);
+    replayPath = L.polyline(pts, {
+      color: "#4ecca3",
+      weight: 5,
+      opacity: 0.9,
+    }).addTo(map);
   }
   const cur = replayPoints.value[replayIndex.value];
   if (cur) {
@@ -502,7 +486,8 @@ function toggleReplay() {
   if (replaying.value) {
     stopReplay();
   } else {
-    if (replayIndex.value >= replayPoints.value.length - 1) replayIndex.value = 0;
+    if (replayIndex.value >= replayPoints.value.length - 1)
+      replayIndex.value = 0;
     replaying.value = true;
     replayTimer = window.setInterval(() => {
       if (replayIndex.value >= replayPoints.value.length - 1) {
@@ -544,7 +529,13 @@ async function loadPois() {
   for (const center of targets.slice(0, 3)) {
     try {
       const data = await apiGet<{
-        pois: Array<{ name: string; lat: number; lon: number; type?: string; description?: string }>;
+        pois: Array<{
+          name: string;
+          lat: number;
+          lon: number;
+          type?: string;
+          description?: string;
+        }>;
       }>("/api/v1/maps/pois/nearby", {
         lat: String(center.lat),
         lon: String(center.lon),
@@ -595,26 +586,26 @@ const weatherUnavailableCount = computed(
   () => enrichedRides.value.filter((ride) => ride.weatherUnavailable).length,
 );
 
-  const demoRide = computed((): EnrichedRide => ({
-    id: -1,
-    athlete_id: 0,
-    name: "Milan-Monza demo",
-    date: "2026-06-19",
-    duration_seconds: 0,
-    distance_meters: demoRoutePoints.length * 5000,
-    gps_points: demoRoutePoints,
-    segments: [],
-    center: getCenter(demoRoutePoints),
-    distanceM: demoRoutePoints.length * 5000,
-    elevationGain: 0,
-    weather: null,
-    weatherScore: 5,
-    weatherUnavailable: false,
-    weatherError: "",
-    overallRisk: 50,
-    maxRisk: 0,
-    isDemo: true,
-  }));
+const demoRide = computed((): EnrichedRide => ({
+  id: -1,
+  athlete_id: 0,
+  name: "Milan-Monza demo",
+  date: "2026-06-19",
+  duration_seconds: 0,
+  distance_meters: demoRoutePoints.length * 5000,
+  gps_points: demoRoutePoints,
+  segments: [],
+  center: getCenter(demoRoutePoints),
+  distanceM: demoRoutePoints.length * 5000,
+  elevationGain: 0,
+  weather: null,
+  weatherScore: 5,
+  weatherUnavailable: false,
+  weatherError: "",
+  overallRisk: 50,
+  maxRisk: 0,
+  isDemo: true,
+}));
 
 watch(mapStyle, () => {
   localStorage.setItem("mapStyle", mapStyle.value);
@@ -644,13 +635,16 @@ watch(showFamousRoutes, () => {
   renderFamousRoutes();
 });
 
-watch(() => useAetherMap.value, (val) => {
-  if (val) {
-    destroyMap();
-  } else {
-    renderMap();
-  }
-});
+watch(
+  () => useAetherMap.value,
+  (val) => {
+    if (val) {
+      destroyMap();
+    } else {
+      renderMap();
+    }
+  },
+);
 
 function renderFamousRoutes() {
   if (!famousRoutesLayer) return;
@@ -995,4 +989,3 @@ onBeforeUnmount(() => {
   text-align: right;
 }
 </style>
-

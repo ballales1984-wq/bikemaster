@@ -13,11 +13,11 @@
         @keydown.enter="showForm = !showForm"
         @keydown.space.prevent="showForm = !showForm"
       >
-        <h2> {{ t("rides.addTitle") }}</h2>
+        <h2>{{ t("rides.addTitle") }}</h2>
         <span class="toggle-icon">{{ showForm ? "▲" : "▼" }}</span>
       </div>
       <transition name="slide-down">
-        <form v-if="showForm" @submit.prevent="handleAdd" class="ride-form">
+        <form v-if="showForm" class="ride-form" @submit.prevent="handleAdd">
           <div class="form-grid">
             <div class="form-group">
               <label for="ride-date">{{ t("common.date") }}</label>
@@ -27,7 +27,7 @@
                 type="date"
                 required
                 class="form-input"
-              >
+              />
             </div>
             <div class="form-group">
               <label for="ride-dist">{{ t("rides.distance") }} (km)</label>
@@ -39,7 +39,7 @@
                 placeholder="0.0"
                 required
                 class="form-input"
-              >
+              />
             </div>
             <div class="form-group">
               <label for="ride-dur">{{ t("rides.duration") }} (min)</label>
@@ -50,7 +50,7 @@
                 placeholder="0"
                 required
                 class="form-input"
-              >
+              />
             </div>
             <div class="form-group">
               <label for="ride-speed">{{ t("rides.avgSpeed") }} (km/h)</label>
@@ -61,7 +61,7 @@
                 step="0.01"
                 placeholder="0.0"
                 class="form-input"
-              >
+              />
             </div>
             <div class="form-group">
               <label for="ride-elev">{{ t("rides.elevation") }} (m)</label>
@@ -71,7 +71,7 @@
                 type="number"
                 placeholder="0"
                 class="form-input"
-              >
+              />
             </div>
             <div class="form-group">
               <label for="ride-cal">{{ t("common.calories") }}</label>
@@ -81,15 +81,13 @@
                 type="number"
                 placeholder="0"
                 class="form-input"
-              >
+              />
             </div>
           </div>
           <div class="form-actions">
             <button type="submit" class="btn" :disabled="adding">
               {{
-                adding
-                  ? "⏳ " + t("common.loading")
-                  : " " + t("rides.addTitle")
+                adding ? "⏳ " + t("common.loading") : " " + t("rides.addTitle")
               }}
             </button>
             <button
@@ -100,8 +98,7 @@
               {{ t("common.cancel") }}
             </button>
           </div>
-          <p
-v-if="addError" class="error-text"> {{ addError }}</p>
+          <p v-if="addError" class="error-text">{{ addError }}</p>
         </form>
       </transition>
     </div>
@@ -110,9 +107,8 @@ v-if="addError" class="error-text"> {{ addError }}</p>
     <div class="panel">
       <div class="list-header">
         <h2>
-           {{ t("rides.title") }}
-          <span v-if="!loading"
-class="ride-count">{{
+          {{ t("rides.title") }}
+          <span v-if="!loading" class="ride-count">{{
             filteredRides.length
           }}</span>
         </h2>
@@ -123,14 +119,14 @@ class="ride-count">{{
             :aria-label="t('common.download') + ' CSV'"
             @click="exportCSV"
           >
-             CSV
+            CSV
           </button>
           <button
             class="btn btn-sm btn-secondary"
             :aria-label="'Filters'"
             @click="toggleFilters"
           >
-             {{ t("common.filter") }}{{ hasActiveFilters ? " ●" : "" }}
+            {{ t("common.filter") }}{{ hasActiveFilters ? " ●" : "" }}
           </button>
           <select
             id="ride-sort-by"
@@ -138,15 +134,10 @@ class="ride-count">{{
             class="sort-select"
             :aria-label="t('common.filter')"
           >
-            <option value="date_desc"> {{ t("common.date") }} ▼
-</option>
-            <option value="date_asc"> {{ t("common.date") }} ▲
-</option>
-            <option value="distance_desc">
-               {{ t("rides.distance") }} ↓
-            </option>
-            <option value="speed_desc"> {{ t("rides.avgSpeed") }} ↓
-</option>
+            <option value="date_desc">{{ t("common.date") }} ▼</option>
+            <option value="date_asc">{{ t("common.date") }} ▲</option>
+            <option value="distance_desc">{{ t("rides.distance") }} ↓</option>
+            <option value="speed_desc">{{ t("rides.avgSpeed") }} ↓</option>
           </select>
         </div>
       </div>
@@ -162,13 +153,16 @@ class="ride-count">{{
                 v-model="filters.dateFrom"
                 type="date"
                 class="form-input"
-              >
+              />
             </div>
             <div class="form-group">
               <label>{{ t("common.date") }} {{ t("common.to") }}</label>
               <input
                 id="ride-filter-date-to"
-v-model="filters.dateTo" type="date" class="form-input" />
+                v-model="filters.dateTo"
+                type="date"
+                class="form-input"
+              />
             </div>
             <div class="form-group">
               <label>{{ t("rides.distance") }} min (km)</label>
@@ -195,7 +189,7 @@ v-model="filters.dateTo" type="date" class="form-input" />
           </div>
           <div class="filter-actions">
             <button class="btn btn-sm btn-secondary" @click="resetFilters">
-               {{ t("common.clear") }}
+              {{ t("common.clear") }}
             </button>
           </div>
         </div>
@@ -219,7 +213,7 @@ v-model="filters.dateTo" type="date" class="form-input" />
         </div>
         <div class="empty-desc">Accedi per vedere le tue uscite.</div>
         <router-link to="/" class="btn btn-sm" style="margin-top: 14px">
-           Accedi
+          Accedi
         </router-link>
       </div>
 
@@ -237,7 +231,7 @@ v-model="filters.dateTo" type="date" class="form-input" />
           style="margin-top: 14px"
           @click="showForm = true"
         >
-           {{ t("rides.addTitle") }}
+          {{ t("rides.addTitle") }}
         </button>
       </div>
 
@@ -271,56 +265,49 @@ v-model="filters.dateTo" type="date" class="form-input" />
             <div class="ride-date">
               {{ formatDate(ride.date) }}
             </div>
-            <div
-v-if="ride.title" class="ride-title"
->
+            <div v-if="ride.title" class="ride-title">
               {{ ride.title }}
             </div>
             <div class="ride-stats">
               <span class="stat-chip"> {{ fmt(ride.distance_km) }} km</span>
-              <span class="stat-chip">⏱ {{ formatDuration(ride.duration_minutes) }}</span>
-              <span v-if="ride.avg_speed_kmh"
-class="stat-chip"
-                > {{ fmt(ride.avg_speed_kmh) }} km/h</span
+              <span class="stat-chip"
+                >⏱ {{ formatDuration(ride.duration_minutes) }}</span
               >
-              <span v-if="ride.elevation_gain_m"
-class="stat-chip"
-                > {{ fmt(ride.elevation_gain_m, 0) }}m</span
+              <span v-if="ride.avg_speed_kmh" class="stat-chip">
+                {{ fmt(ride.avg_speed_kmh) }} km/h</span
               >
-              <span v-if="ride.calories"
-class="stat-chip cal"
-                > {{ fmt(ride.calories, 0) }} kcal</span
+              <span v-if="ride.elevation_gain_m" class="stat-chip">
+                {{ fmt(ride.elevation_gain_m, 0) }}m</span
+              >
+              <span v-if="ride.calories" class="stat-chip cal">
+                {{ fmt(ride.calories, 0) }} kcal</span
               >
             </div>
           </div>
-<div class="ride-right">
-            <div
- v-if="ride.external_source" class="source-badge"
- >
-               {{ ride.external_source }}
-             </div>
-             <button
-               class="bm2-btn"
-               :aria-label="`BM2 analysis for ${ride.date}`"
-               @click.stop="goToBm2(ride.id)"
-             >
-               ⚡ {{ t("bm2.bm2QuickAction") }}
-             </button>
-             <button
-               class="delete-btn"
-               :aria-label="`Elimina uscita del ${ride.date}`"
-               @click.stop="askDelete(ride)"
-             >
-               🗑️
-             </button>
-           </div>
+          <div class="ride-right">
+            <div v-if="ride.external_source" class="source-badge">
+              {{ ride.external_source }}
+            </div>
+            <button
+              class="bm2-btn"
+              :aria-label="`BM2 analysis for ${ride.date}`"
+              @click.stop="goToBm2(ride.id)"
+            >
+              ⚡ {{ t("bm2.bm2QuickAction") }}
+            </button>
+            <button
+              class="delete-btn"
+              :aria-label="`Elimina uscita del ${ride.date}`"
+              @click.stop="askDelete(ride)"
+            >
+              🗑️
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Pagination -->
-      <div
-v-if="totalPages > 1" class="pagination"
->
+      <div v-if="totalPages > 1" class="pagination">
         <button
           class="btn btn-sm btn-secondary"
           :disabled="page === 1"
@@ -350,9 +337,8 @@ v-if="totalPages > 1" class="pagination"
       >
         <div class="modal-dialog ride-detail-modal">
           <div class="detail-header">
-            <h3> Dettaglio Uscita</h3>
-            <button
-class="close-btn" @click="selectedRide = null"></button>
+            <h3>Dettaglio Uscita</h3>
+            <button class="close-btn" @click="selectedRide = null"></button>
           </div>
           <div class="detail-date">
             {{ formatDate(selectedRide.date) }}
@@ -370,33 +356,25 @@ class="close-btn" @click="selectedRide = null"></button>
               </div>
               <div class="ds-lbl">Durata</div>
             </div>
-            <div
-v-if="selectedRide.avg_speed_kmh" class="detail-stat"
->
+            <div v-if="selectedRide.avg_speed_kmh" class="detail-stat">
               <div class="ds-val">
                 {{ fmt(selectedRide.avg_speed_kmh) }}
               </div>
               <div class="ds-lbl">km/h</div>
             </div>
-            <div
-v-if="selectedRide.elevation_gain_m" class="detail-stat"
->
+            <div v-if="selectedRide.elevation_gain_m" class="detail-stat">
               <div class="ds-val">
                 {{ fmt(selectedRide.elevation_gain_m, 0) }}
               </div>
               <div class="ds-lbl">m salita</div>
             </div>
-            <div
-v-if="selectedRide.calories" class="detail-stat"
->
+            <div v-if="selectedRide.calories" class="detail-stat">
               <div class="ds-val">
                 {{ fmt(selectedRide.calories, 0) }}
               </div>
               <div class="ds-lbl">kcal</div>
             </div>
-            <div
-v-if="selectedRide.heart_rate_avg" class="detail-stat"
->
+            <div v-if="selectedRide.heart_rate_avg" class="detail-stat">
               <div class="ds-val">
                 {{ fmt(selectedRide.heart_rate_avg, 0) }}
               </div>
@@ -405,12 +383,9 @@ v-if="selectedRide.heart_rate_avg" class="detail-stat"
           </div>
           <!-- Analysis -->
           <div v-if="analysis" class="analysis-section">
-            <h4> Analisi</h4>
+            <h4>Analisi</h4>
             <div class="analysis-grid">
-              <div
-                v-if="analysis.fatigue_score != null"
-                class="a-stat"
-              >
+              <div v-if="analysis.fatigue_score != null" class="a-stat">
                 <span class="a-lbl">Affaticamento</span>
                 <div class="a-bar">
                   <div
@@ -423,17 +398,11 @@ v-if="selectedRide.heart_rate_avg" class="detail-stat"
                 </div>
                 <span class="a-val">{{ fmt(analysis.fatigue_score) }}/10</span>
               </div>
-              <div
-                v-if="analysis.recovery_hours != null"
-                class="a-item"
-              >
+              <div v-if="analysis.recovery_hours != null" class="a-item">
                 <span class="a-lbl">Recupero consigliato</span>
                 <span class="a-val accent">{{ analysis.recovery_hours }}h</span>
               </div>
-              <div
-                v-if="analysis.calories_per_km != null"
-                class="a-item"
-              >
+              <div v-if="analysis.calories_per_km != null" class="a-item">
                 <span class="a-lbl">Calorie/km</span>
                 <span class="a-val">{{ fmt(analysis.calories_per_km) }}</span>
               </div>

@@ -42,9 +42,8 @@ export function initLocalDb(): Promise<boolean> {
   initPromise = (async () => {
     if (typeof window === "undefined") return false;
     try {
-      const sqlite3InitModule = (
-        await import("@sqlite.org/sqlite-wasm")
-      ).default as unknown as (
+      const sqlite3InitModule = (await import("@sqlite.org/sqlite-wasm"))
+        .default as unknown as (
         config?: Record<string, unknown>,
       ) => Promise<Sqlite3Static>;
       const sqlite3Assets = `${import.meta.env.BASE_URL}sqlite3`;

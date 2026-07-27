@@ -102,4 +102,3 @@ export function speedColor(ride: EnrichedRide, index: number): string {
   }
   return "#4488ff";
 }
-

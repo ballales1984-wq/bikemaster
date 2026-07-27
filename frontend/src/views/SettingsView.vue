@@ -7,7 +7,7 @@
 -->
 <template>
   <div class="settings-page">
-    <h1> Impostazioni backend</h1>
+    <h1>Impostazioni backend</h1>
     <p class="subtitle">
       Configura dove l'app risiede i dati. Di default chiama lo stesso origine;
       su dispositivi/Web punta al tuo PC. Render resta come failover.
@@ -43,21 +43,21 @@
           @change="toggleFallback"
         />
         <span>
-          Usa Render (<code>{{ settings.fallbackBase }}</code>) come backup se il
-          backend primario non risponde.
+          Usa Render (<code>{{ settings.fallbackBase }}</code
+          >) come backup se il backend primario non risponde.
         </span>
       </label>
     </section>
 
-  <section class="card" v-if="keysLoaded">
-    <h2>Chiavi API personali</h2>
-    <p class="hint">
-      Inserisci le <strong>tue</strong> chiavi per far funzionare l'app
-      localmente. Vengono salvate solo su questo dispositivo (SQLite locale) e
-      inviate al backend del PC ad ogni richiesta, che le usa al posto delle sue.
-      Non vengono mai conservate sul server.
-    </p>
-    <form @submit.prevent class="keys-grid">
+    <section v-if="keysLoaded" class="card">
+      <h2>Chiavi API personali</h2>
+      <p class="hint">
+        Inserisci le <strong>tue</strong> chiavi per far funzionare l'app
+        localmente. Vengono salvate solo su questo dispositivo (SQLite locale) e
+        inviate al backend del PC ad ogni richiesta, che le usa al posto delle
+        sue. Non vengono mai conservate sul server.
+      </p>
+      <form class="keys-grid" @submit.prevent>
         <label v-for="field in keyFields" :key="field.name" class="key-field">
           <span class="key-label">{{ field.label }}</span>
           <div class="key-input-row">
@@ -75,7 +75,7 @@
               :title="'Rimuovi ' + field.label"
               @click="clearKey(field.name)"
             >
-            ✕
+              ✕
             </button>
           </div>
         </label>
@@ -93,8 +93,8 @@
       <h2>Importa chiavi (copia-incolla)</h2>
       <p class="hint">
         Incolla tutte le variabili in una volta (JSON o righe
-        <code>KEY=VALUE</code>, es. <code>GROQ_API_KEY=gsk_...</code>). Le chiavi
-        verranno distribuite nei campi sopra e salvate sul dispositivo.
+        <code>KEY=VALUE</code>, es. <code>GROQ_API_KEY=gsk_...</code>). Le
+        chiavi verranno distribuite nei campi sopra e salvate sul dispositivo.
       </p>
       <textarea
         v-model="bulkInput"
@@ -116,7 +116,10 @@
         <span class="badge" :class="modeClass">{{ modeLabel }}</span>
         <button class="btn btn-ghost" @click="ping">Verifica</button>
       </div>
-      <p class="hint">Base risolto: <code>{{ settings.resolvedBase || "(stesso origine)" }}</code></p>
+      <p class="hint">
+        Base risolto:
+        <code>{{ settings.resolvedBase || "(stesso origine)" }}</code>
+      </p>
     </section>
   </div>
 </template>
@@ -144,20 +147,64 @@ const bulkStatus = ref("");
 const bulkStatusClass = ref("");
 const keysLoaded = ref(false);
 
-const keyFields: { name: keyof UserApiKeys; label: string; placeholder: string }[] = [
+const keyFields: {
+  name: keyof UserApiKeys;
+  label: string;
+  placeholder: string;
+}[] = [
   { name: "groq", label: "Groq (AI Coach)", placeholder: "gsk_..." },
   { name: "google_maps", label: "Google Maps", placeholder: "AIza..." },
   { name: "serpapi", label: "SerpAPI", placeholder: "SerpAPI key" },
-  { name: "weather", label: "Weather / OpenWeather", placeholder: "OpenWeather key" },
-  { name: "garmin_api_key", label: "Garmin API Key", placeholder: "Garmin Connect key" },
-  { name: "strava_client_id", label: "Strava Client ID", placeholder: "Strava OAuth client id" },
-  { name: "strava_client_secret", label: "Strava Client Secret", placeholder: "Strava OAuth client secret" },
-  { name: "wahoo_client_id", label: "Wahoo Client ID", placeholder: "Wahoo OAuth client id" },
-  { name: "wahoo_client_secret", label: "Wahoo Client Secret", placeholder: "Wahoo OAuth client secret" },
-  { name: "google_fit_client_id", label: "Google Fit Client ID", placeholder: "Google Fit OAuth client id" },
-  { name: "google_fit_client_secret", label: "Google Fit Client Secret", placeholder: "Google Fit OAuth client secret" },
-  { name: "google_health_client_id", label: "Google Health Client ID", placeholder: "Google Health OAuth client id" },
-  { name: "google_health_client_secret", label: "Google Health Client Secret", placeholder: "Google Health OAuth client secret" },
+  {
+    name: "weather",
+    label: "Weather / OpenWeather",
+    placeholder: "OpenWeather key",
+  },
+  {
+    name: "garmin_api_key",
+    label: "Garmin API Key",
+    placeholder: "Garmin Connect key",
+  },
+  {
+    name: "strava_client_id",
+    label: "Strava Client ID",
+    placeholder: "Strava OAuth client id",
+  },
+  {
+    name: "strava_client_secret",
+    label: "Strava Client Secret",
+    placeholder: "Strava OAuth client secret",
+  },
+  {
+    name: "wahoo_client_id",
+    label: "Wahoo Client ID",
+    placeholder: "Wahoo OAuth client id",
+  },
+  {
+    name: "wahoo_client_secret",
+    label: "Wahoo Client Secret",
+    placeholder: "Wahoo OAuth client secret",
+  },
+  {
+    name: "google_fit_client_id",
+    label: "Google Fit Client ID",
+    placeholder: "Google Fit OAuth client id",
+  },
+  {
+    name: "google_fit_client_secret",
+    label: "Google Fit Client Secret",
+    placeholder: "Google Fit OAuth client secret",
+  },
+  {
+    name: "google_health_client_id",
+    label: "Google Health Client ID",
+    placeholder: "Google Health OAuth client id",
+  },
+  {
+    name: "google_health_client_secret",
+    label: "Google Health Client Secret",
+    placeholder: "Google Health OAuth client secret",
+  },
 ];
 
 const keys = reactive<UserApiKeys>({ ...apiKeys.keys });

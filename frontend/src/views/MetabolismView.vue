@@ -38,11 +38,14 @@ onMounted(async () => {
     await store.fetchFoodLogs(selectedDate.value);
     await store.fetchDailySummary(selectedDate.value);
     const end = selectedDate.value;
-    const start = new Date(new Date(end).getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const start = new Date(new Date(end).getTime() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
     const range = await store.fetchRangeSummary(start, end);
     rangeSummaries.value = range;
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "Errore caricamento metabolismo";
+    error.value =
+      e instanceof Error ? e.message : "Errore caricamento metabolismo";
   } finally {
     loading.value = false;
   }

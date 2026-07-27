@@ -18,7 +18,10 @@
     <div v-if="error" class="error">{{ error }}</div>
 
     <div v-else-if="!hasState" class="empty">
-      <p>Nessuno stato disponibile. Effettua una uscita per calcolare il tuo stato.</p>
+      <p>
+        Nessuno stato disponibile. Effettua una uscita per calcolare il tuo
+        stato.
+      </p>
       <button class="action-btn" :disabled="loading" @click="refresh">
         Calcola stato
       </button>
@@ -56,7 +59,9 @@
       </div>
 
       <div class="metric-card">
-        <div class="metric-value">{{ safeState.recovery_hours_needed.toFixed(1) }}h</div>
+        <div class="metric-value">
+          {{ safeState.recovery_hours_needed.toFixed(1) }}h
+        </div>
         <div class="metric-label">Recovery</div>
       </div>
 
@@ -67,7 +72,9 @@
     </div>
 
     <div v-if="safeState" class="state-footer">
-      <div class="risk-badge" :class="riskClass">{{ safeState.risk_level.toUpperCase() }}</div>
+      <div class="risk-badge" :class="riskClass">
+        {{ safeState.risk_level.toUpperCase() }}
+      </div>
       <p class="recommendation">{{ safeState.recommendation }}</p>
       <div class="trends">
         <span class="trend">7d: {{ safeState.trend_7d }}</span>

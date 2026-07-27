@@ -4,21 +4,13 @@
 <template>
   <section>
     <div class="panel">
-      <h2> Calendario e Obiettivi</h2>
+      <h2>Calendario e Obiettivi</h2>
 
       <div class="calendar-controls">
         <div class="calendar-nav">
-          <button class="btn btn-secondary btn-sm"
-@click="prevMonth"
->
-◀
-</button>
+          <button class="btn btn-secondary btn-sm" @click="prevMonth">◀</button>
           <span class="month-label">{{ monthLabel }}</span>
-          <button class="btn btn-secondary btn-sm"
-@click="nextMonth"
->
-▶
-</button>
+          <button class="btn btn-secondary btn-sm" @click="nextMonth">▶</button>
           <button class="btn btn-secondary btn-sm" @click="goToday">
             Today
           </button>
@@ -30,9 +22,7 @@
             v-model.number="athleteId"
             @change="loadEvents"
           >
-            <option :value="0">
-Generale
-</option>
+            <option :value="0">Generale</option>
             <option v-for="a in athletes" :key="a.id" :value="a.id">
               {{ a.username || `Athlete ${a.id}` }}
             </option>
@@ -76,9 +66,9 @@ Generale
             >
               {{ ev.title }}
             </span>
-            <span v-if="day.events.length > 3"
-class="more-events"
-            >+{{ day.events.length - 3 }}</span>
+            <span v-if="day.events.length > 3" class="more-events"
+              >+{{ day.events.length - 3 }}</span
+            >
           </div>
         </div>
       </div>
@@ -91,7 +81,7 @@ class="more-events"
     </div>
 
     <div class="panel">
-      <h2> Obiettivi Collegati</h2>
+      <h2>Obiettivi Collegati</h2>
       <div class="objectives-box">
         <div
           v-for="obj in recommendedObjectives"
@@ -119,14 +109,10 @@ class="more-events"
             v-model="form.title"
             required
             maxlength="200"
-          >
+          />
         </div>
         <div class="form-actions">
-          <button type="submit"
-class="btn btn-primary"
->
-         Salva
- </button>
+          <button type="submit" class="btn btn-primary">Salva</button>
           <button
             type="button"
             class="btn btn-secondary"
@@ -205,7 +191,7 @@ const form = ref<EventForm>({
 const athleteGoals = ref("");
 const calendarError = ref("");
 
-    const weekDays = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+const weekDays = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
 const monthLabel = computed(() => {
   const months = [
@@ -390,17 +376,17 @@ function goToday() {
   loadEvents();
 }
 
-  function eventLabel(type: string): string {
-    const map: Record<string, string> = {
-      training: "Allenamento",
-      race: "Gara",
-      recovery: "Recupero",
-      goal_deadline: "Obiettivo",
-      test: "Test",
-      other: "Altro",
-    };
-    return map[type] || type;
-  }
+function eventLabel(type: string): string {
+  const map: Record<string, string> = {
+    training: "Allenamento",
+    race: "Gara",
+    recovery: "Recupero",
+    goal_deadline: "Obiettivo",
+    test: "Test",
+    other: "Altro",
+  };
+  return map[type] || type;
+}
 
 function openAddForDate(date: string) {
   editingEvent.value = null;

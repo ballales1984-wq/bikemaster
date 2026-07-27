@@ -7,7 +7,9 @@
       height="260px"
       empty-label="Nessun dato disponibile"
     />
-    <p v-else class="empty">Registra alimentazione e attivita' per visualizzare i trend.</p>
+    <p v-else class="empty">
+      Registra alimentazione e attivita' per visualizzare i trend.
+    </p>
   </div>
 </template>
 
@@ -24,7 +26,7 @@ const props = defineProps<{
 const sorted = computed(() =>
   [...props.summaries]
     .filter((s) => s.date)
-    .sort((a, b) => a.date.localeCompare(b.date))
+    .sort((a, b) => a.date.localeCompare(b.date)),
 );
 
 const hasData = computed(() => sorted.value.length > 0);

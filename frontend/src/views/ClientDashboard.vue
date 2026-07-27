@@ -21,8 +21,8 @@
       <div class="form-actions">
         <button
           class="btn-primary"
-          @click="assignAthlete"
           :disabled="assigning"
+          @click="assignAthlete"
         >
           {{ assigning ? t("common.loading") : t("common.submit") }}
         </button>
@@ -71,13 +71,15 @@ const assigning = ref(false);
 
 async function loadAthletes() {
   try {
-    const data = await apiGet<{ athletes?: Array<{
-      id: number;
-      name: string;
-      email: string | null;
-      experience_level: string | null;
-      tenant_id: number;
-    }> }>("/api/v1/client/athletes", {}, { headers: auth.getAuthHeader() });
+    const data = await apiGet<{
+      athletes?: Array<{
+        id: number;
+        name: string;
+        email: string | null;
+        experience_level: string | null;
+        tenant_id: number;
+      }>;
+    }>("/api/v1/client/athletes", {}, { headers: auth.getAuthHeader() });
     athletes.value = data.athletes || [];
   } catch (e) {
     console.error("Failed to load client athletes", e);

@@ -10,7 +10,11 @@
  *          checkBackendHealth
  */
 
-import { resolveApiBase, getBackendMode, isTauri } from "../utils/backend-config";
+import {
+  resolveApiBase,
+  getBackendMode,
+  isTauri,
+} from "../utils/backend-config";
 
 async function loadTauriCore(): Promise<Record<string, unknown>> {
   try {
@@ -44,7 +48,7 @@ async function tauriInvoke<T>(
   args?: Record<string, unknown>,
 ): Promise<T> {
   const mod = await loadTauriCore();
-  // eslint-disable-next-line no-unused-vars
+
   const fn = mod.invoke as ((..._a: unknown[]) => Promise<T>) | undefined;
   if (!fn) throw new Error("invoke not available");
   return fn(cmd, args);
@@ -52,8 +56,9 @@ async function tauriInvoke<T>(
 
 async function tauriGetAppPath(dir: string): Promise<string> {
   const mod = await loadTauriPath();
-  // eslint-disable-next-line no-unused-vars
-  const fn = mod.getAppPath as ((..._a: unknown[]) => Promise<string>) | undefined;
+
+  const fn = mod.getAppPath as
+    ((..._a: unknown[]) => Promise<string>) | undefined;
   if (!fn) throw new Error("getAppPath not available");
   return fn(dir);
 }

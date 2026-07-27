@@ -4,8 +4,7 @@
 <template>
   <Transition name="slide">
     <div v-if="showBanner" class="pwa-banner" role="alert" aria-live="polite">
-      <div
-class="pwa-banner-icon" aria-hidden="true"></div>
+      <div class="pwa-banner-icon" aria-hidden="true"></div>
       <div class="pwa-banner-text">
         <strong>Installa BikeMaster</strong>
         <span>Aggiungi alla home screen per accesso offline</span>
@@ -145,4 +144,3 @@ onMounted(() => {
   }
 }
 </style>
-

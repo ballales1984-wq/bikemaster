@@ -3,12 +3,7 @@
 export type NotificationChannel = "app" | "voice" | "dashboard" | "email";
 
 export type NotificationCategory =
-  | "training"
-  | "recovery"
-  | "performance"
-  | "safety"
-  | "goal"
-  | "batch";
+  "training" | "recovery" | "performance" | "safety" | "goal" | "batch";
 
 export interface NotificationScore {
   urgency: number;

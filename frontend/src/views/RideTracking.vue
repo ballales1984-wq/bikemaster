@@ -6,233 +6,264 @@
   Compositables: useBatteryEfficientGps, useGpsOutlierFilter, useGpsDirectionFilter.
 -->
 <template>
-   <section class="panel tracking-panel">
-      <div class="tracking-header">
-        <h2>{{ t('tracking.title') }}</h2>
+  <section class="panel tracking-panel">
+    <div class="tracking-header">
+      <h2>{{ t("tracking.title") }}</h2>
       <div v-if="isTracking" class="tracking-status">
         <span class="status-badge" :class="{ paused: isPaused }">
           <span class="pulse-dot"></span>
-          {{ isPaused ? t('tracking.paused') : t('tracking.inProgress') }}
+          {{ isPaused ? t("tracking.paused") : t("tracking.inProgress") }}
         </span>
         <label class="voice-coach-toggle">
-          <input type="checkbox" v-model="voiceCoachEnabled" />
+          <input v-model="voiceCoachEnabled" type="checkbox" />
           <span>Voice Coach</span>
         </label>
       </div>
+    </div>
+
+    <div
+      v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob"
+      class="empty-state premium-empty"
+    >
+      <div class="empty-icon glass-icon"></div>
+      <div class="empty-title">{{ t("tracking.ready") }}</div>
+      <div class="empty-desc">
+        {{ t("tracking.readyDesc") }}
       </div>
-
-      <div v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob" class="empty-state premium-empty">
-        <div class="empty-icon glass-icon"></div>
-        <div class="empty-title">{{ t('tracking.ready') }}</div>
-        <div class="empty-desc">
-          {{ t('tracking.readyDesc') }}
-        </div>
-        <div class="activity-select modern-select">
-          <label for="activity-type">{{ t('tracking.activityType') }}</label>
-          <div class="select-wrapper">
-            <select id="activity-type" v-model="activityType">
-              <option v-for="opt in activityOptions" :key="opt.value" :value="opt.value">
-                {{ opt.label }}
-              </option>
-            </select>
-          </div>
-        </div>
-        <div v-if="!isOnline" class="gps-error-banner" style="margin-bottom:12px">
-           {{ t('tracking.offline') }}
-        </div>
-        <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
-        <button class="btn btn-primary btn-large pulse-btn" @click="startTracking">
-          {{ t('tracking.start') }}
-        </button>
-      </div>
-
-      <div v-else class="tracking-content">
-        <transition name="fade">
-          <div v-if="gpsWaiting" class="gps-waiting glass-banner">
-            <div class="radar-spinner"></div>
-            <span>Acquisizione segnale GPS... Spostati all'aperto per una maggiore accuratezza.</span>
-          </div>
-        </transition>
-        <transition name="fade">
-          <div v-if="gpsError && !gpsWaiting" class="gps-error-banner">{{ gpsError }}</div>
-        </transition>
-        
-        <div class="map-wrapper glass-panel">
-          <LiveMap ref="liveMapRef" />
-        </div>
-        
-        <RideMetricsPanel />
-        <ControlsBar :is-paused="isPaused" @pause="pauseTracking" @resume="resumeTracking" @stop="stopTracking" />
-
-        <div v-if="tracking.gpxPath || tracking.gpxBlob" class="tracking-complete glass-panel">
-          <p>Tracciamento completato! File pronto per il caricamento.</p>
-          <div class="tracking-actions">
-            <button class="btn btn-primary" :disabled="isUploading" @click="uploadRide">
-              {{ isUploading ? t('tracking.uploading') : t('tracking.upload') }}
-            </button>
-            <button class="btn btn-secondary" @click="showFullRoute">{{ t('trackingTools.showRoute') }}</button>
-            <button class="btn btn-secondary" @click="saveAsItinerary">{{ t('trackingTools.saveAsItinerary') }}</button>
-            <button class="btn btn-secondary" @click="openAetherMap">{{ t('trackingTools.openAetherMap') }}</button>
-          </div>
+      <div class="activity-select modern-select">
+        <label for="activity-type">{{ t("tracking.activityType") }}</label>
+        <div class="select-wrapper">
+          <select id="activity-type" v-model="activityType">
+            <option
+              v-for="opt in activityOptions"
+              :key="opt.value"
+              :value="opt.value"
+            >
+              {{ opt.label }}
+            </option>
+          </select>
         </div>
       </div>
-   </section>
+      <div
+        v-if="!isOnline"
+        class="gps-error-banner"
+        style="margin-bottom: 12px"
+      >
+        {{ t("tracking.offline") }}
+      </div>
+      <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
+      <button
+        class="btn btn-primary btn-large pulse-btn"
+        @click="startTracking"
+      >
+        {{ t("tracking.start") }}
+      </button>
+    </div>
+
+    <div v-else class="tracking-content">
+      <transition name="fade">
+        <div v-if="gpsWaiting" class="gps-waiting glass-banner">
+          <div class="radar-spinner"></div>
+          <span
+            >Acquisizione segnale GPS... Spostati all'aperto per una maggiore
+            accuratezza.</span
+          >
+        </div>
+      </transition>
+      <transition name="fade">
+        <div v-if="gpsError && !gpsWaiting" class="gps-error-banner">
+          {{ gpsError }}
+        </div>
+      </transition>
+
+      <div class="map-wrapper glass-panel">
+        <LiveMap ref="liveMapRef" />
+      </div>
+
+      <RideMetricsPanel />
+      <ControlsBar
+        :is-paused="isPaused"
+        @pause="pauseTracking"
+        @resume="resumeTracking"
+        @stop="stopTracking"
+      />
+
+      <div
+        v-if="tracking.gpxPath || tracking.gpxBlob"
+        class="tracking-complete glass-panel"
+      >
+        <p>Tracciamento completato! File pronto per il caricamento.</p>
+        <div class="tracking-actions">
+          <button
+            class="btn btn-primary"
+            :disabled="isUploading"
+            @click="uploadRide"
+          >
+            {{ isUploading ? t("tracking.uploading") : t("tracking.upload") }}
+          </button>
+          <button class="btn btn-secondary" @click="showFullRoute">
+            {{ t("trackingTools.showRoute") }}
+          </button>
+          <button class="btn btn-secondary" @click="saveAsItinerary">
+            {{ t("trackingTools.saveAsItinerary") }}
+          </button>
+          <button class="btn btn-secondary" @click="openAetherMap">
+            {{ t("trackingTools.openAetherMap") }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useTrackingStore } from '../stores/trackingStore'
-import { useRouter } from 'vue-router'
-import { useI18n } from '../composables/useI18n'
-import { useBatteryEfficientGps } from '../composables/useBatteryEfficientGps'
-import { useGpsOutlierFilter } from '../composables/useGpsOutlierFilter'
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { storeToRefs } from "pinia";
+import { useTrackingStore } from "../stores/trackingStore";
+import { useRouter } from "vue-router";
+import { useI18n } from "../composables/useI18n";
+import { useBatteryEfficientGps } from "../composables/useBatteryEfficientGps";
+import { useGpsOutlierFilter } from "../composables/useGpsOutlierFilter";
 import {
   useGpsDirectionFilter,
   bearing as gpsBearing,
   detectTurnFromBearing,
-} from '../composables/useGpsDirectionFilter'
-import LiveMap from '../components/LiveMap.vue'
-import RideMetricsPanel from '../components/RideMetricsPanel.vue'
-import ControlsBar from '../components/ControlsBar.vue'
-import { apiUpload, apiPost } from '../utils/api'
-import type { GpsPoint, NativeGpsSample } from '../types/index'
-import { haversineDistanceMeters } from '../utils/geo'
-import { useVoiceCoach } from '../composables/useVoiceCoach'
+} from "../composables/useGpsDirectionFilter";
+import LiveMap from "../components/LiveMap.vue";
+import RideMetricsPanel from "../components/RideMetricsPanel.vue";
+import ControlsBar from "../components/ControlsBar.vue";
+import { apiUpload, apiPost } from "../utils/api";
+import type { GpsPoint, NativeGpsSample } from "../types/index";
+import { haversineDistanceMeters } from "../utils/geo";
+import { useVoiceCoach } from "../composables/useVoiceCoach";
 
-const { t } = useI18n()
-const router = useRouter()
+const { t } = useI18n();
+const router = useRouter();
 
-const isOnline = ref(typeof navigator !== 'undefined' ? navigator.onLine : true)
+const isOnline = ref(
+  typeof navigator !== "undefined" ? navigator.onLine : true,
+);
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => { isOnline.value = true })
-  window.addEventListener('offline', () => { isOnline.value = false })
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => {
+    isOnline.value = true;
+  });
+  window.addEventListener("offline", () => {
+    isOnline.value = false;
+  });
 }
 
-const liveMapRef = ref<InstanceType<typeof LiveMap> | null>(null)
-const isUploading = ref(false)
-const gpsWaiting = ref(false)
-const gpsError = ref('')
-const batterySaver = ref(false)
+const liveMapRef = ref<InstanceType<typeof LiveMap> | null>(null);
+const isUploading = ref(false);
+const gpsWaiting = ref(false);
+const gpsError = ref("");
+const batterySaver = ref(false);
 
-const activityType = ref<'ride' | 'walk' | 'hike' | 'run' | 'indoor' | 'other'>('ride')
+const activityType = ref<"ride" | "walk" | "hike" | "run" | "indoor" | "other">(
+  "ride",
+);
 const activityOptions = [
-  { value: 'ride', label: ' Bici' },
-  { value: 'run', label: ' Corsa' },
-  { value: 'walk', label: ' Passeggiata' },
-  { value: 'hike', label: ' Trekking' },
-  { value: 'indoor', label: ' Indoor' },
-  { value: 'other', label: ' Altro' },
-]
+  { value: "ride", label: " Bici" },
+  { value: "run", label: " Corsa" },
+  { value: "walk", label: " Passeggiata" },
+  { value: "hike", label: " Trekking" },
+  { value: "indoor", label: " Indoor" },
+  { value: "other", label: " Altro" },
+];
 const activityTitle: Record<string, string> = {
-  ride: 'Tracciamento in bici',
-  run: 'Corsa',
-  walk: 'Passeggiata',
-  hike: 'Trekking',
-  indoor: 'Sessione indoor',
-  other: 'Tracciamento GPS',
-}
+  ride: "Tracciamento in bici",
+  run: "Corsa",
+  walk: "Passeggiata",
+  hike: "Trekking",
+  indoor: "Sessione indoor",
+  other: "Tracciamento GPS",
+};
 
-let webStartTime = 0
-let webPausedAccumulatedMs = 0
-let webPausedAt: number | null = null
-let webLastPoint: GpsPoint | null = null
-let webDistance = 0
-let webElevationGain = 0
-let webFirstFixTimeout: number | null = null
-let webDirectionLastBearing: number | null = null
+let webStartTime = 0;
+let webPausedAccumulatedMs = 0;
+let webPausedAt: number | null = null;
+let webLastPoint: GpsPoint | null = null;
+let webDistance = 0;
+let webElevationGain = 0;
+let webFirstFixTimeout: number | null = null;
+let webDirectionLastBearing: number | null = null;
 
-const gpsOutlierFilter = useGpsOutlierFilter()
-const directionFilter = useGpsDirectionFilter()
+const gpsOutlierFilter = useGpsOutlierFilter();
+const directionFilter = useGpsDirectionFilter();
 
-const tracking = useTrackingStore()
-const {
-  isTracking,
-  isPaused,
-} = storeToRefs(tracking)
+const tracking = useTrackingStore();
+const { isTracking, isPaused } = storeToRefs(tracking);
 
-const voiceCoach = useVoiceCoach()
-const voiceCoachEnabled = ref(false)
+const voiceCoach = useVoiceCoach();
+const voiceCoachEnabled = ref(false);
 
-watch(
-  voiceCoachEnabled,
-  (enabled) => {
-    if (enabled && isTracking.value) {
-      voiceCoach.startVoiceCoachInterval(
-        "recovery",
-        "default",
-        30000,
-        () => {
-          const p = tracking.power
-          if (p == null) return null
-          if (p > 250) return 4
-          if (p > 180) return 3
-          if (p > 120) return 2
-          return 1
-        },
-      )
-    } else {
-      voiceCoach.stopVoiceCoachInterval()
-    }
-  },
-)
+watch(voiceCoachEnabled, (enabled) => {
+  if (enabled && isTracking.value) {
+    voiceCoach.startVoiceCoachInterval("recovery", "default", 30000, () => {
+      const p = tracking.power;
+      if (p == null) return null;
+      if (p > 250) return 4;
+      if (p > 180) return 3;
+      if (p > 120) return 2;
+      return 1;
+    });
+  } else {
+    voiceCoach.stopVoiceCoachInterval();
+  }
+});
 
 watch(isTracking, (active) => {
   if (!active) {
-    voiceCoach.stopVoiceCoachInterval()
+    voiceCoach.stopVoiceCoachInterval();
   } else if (voiceCoachEnabled.value) {
-    voiceCoach.startVoiceCoachInterval(
-      "recovery",
-      "default",
-      30000,
-      () => {
-        const p = tracking.power
-        if (p == null) return null
-        if (p > 250) return 4
-        if (p > 180) return 3
-        if (p > 120) return 2
-        return 1
-      },
-    )
+    voiceCoach.startVoiceCoachInterval("recovery", "default", 30000, () => {
+      const p = tracking.power;
+      if (p == null) return null;
+      if (p > 250) return 4;
+      if (p > 180) return 3;
+      if (p > 120) return 2;
+      return 1;
+    });
   }
-})
+});
 
 const gps = useBatteryEfficientGps({
   batterySaver: () => batterySaver.value,
   onWaiting: () => {
-    gpsWaiting.value = true
-    gpsError.value = ''
+    gpsWaiting.value = true;
+    gpsError.value = "";
   },
   onFirstFix: () => {
-    gpsWaiting.value = false
+    gpsWaiting.value = false;
     if (webFirstFixTimeout !== null) {
-      clearTimeout(webFirstFixTimeout)
-      webFirstFixTimeout = null
+      clearTimeout(webFirstFixTimeout);
+      webFirstFixTimeout = null;
     }
   },
   onPosition: handleWebPosition,
   onError: handleWebError,
-})
+});
 
 async function startTracking() {
-  const hasPermission = await checkPermissions()
+  const hasPermission = await checkPermissions();
   if (!hasPermission) {
-    alert('GPS permissions required for tracking')
-    return
+    alert("GPS permissions required for tracking");
+    return;
   }
   if (window.BikeTracking?.startTracking) {
-    await window.BikeTracking.startTracking()
+    await window.BikeTracking.startTracking();
     if (window.BikeTracking.onPosition) {
-      window.BikeTracking.onPosition(handleNativePosition)
+      window.BikeTracking.onPosition(handleNativePosition);
     }
     if (window.BikeTracking.onError) {
-      window.BikeTracking.onError((err) => handleWebError(err as unknown as GeolocationPositionError))
+      window.BikeTracking.onError((err) =>
+        handleWebError(err as unknown as GeolocationPositionError),
+      );
     }
   } else {
-    startWebTracking()
+    startWebTracking();
   }
-  tracking.start()
+  tracking.start();
 }
 
 function handleNativePosition(sample: NativeGpsSample) {
@@ -241,140 +272,151 @@ function handleNativePosition(sample: NativeGpsSample) {
     sample.lon,
     sample.altitude ?? null,
     sample.timestamp,
-  )
+  );
 }
 
 async function checkPermissions(): Promise<boolean> {
   if (!window.BikeTracking?.checkPermissions) {
-    if (!navigator.geolocation) return false
+    if (!navigator.geolocation) return false;
     try {
-      const result = await navigator.permissions.query({ name: 'geolocation' })
-      if (result.state === 'granted') return true
-      if (result.state === 'prompt') return true
-      return false
+      const result = await navigator.permissions.query({ name: "geolocation" });
+      if (result.state === "granted") return true;
+      if (result.state === "prompt") return true;
+      return false;
     } catch {
-      return true
+      return true;
     }
   }
-  return window.BikeTracking.checkPermissions().then((result) => result.granted)
+  return window.BikeTracking.checkPermissions().then(
+    (result) => result.granted,
+  );
 }
 
 async function pauseTracking() {
   if (window.BikeTracking?.pauseTracking) {
-    await window.BikeTracking.pauseTracking()
+    await window.BikeTracking.pauseTracking();
   } else if (isPaused.value === false) {
-    gps.pause()
+    gps.pause();
   }
-  tracking.pause()
+  tracking.pause();
 }
 
 async function resumeTracking() {
   if (window.BikeTracking?.resumeTracking) {
-    await window.BikeTracking.resumeTracking()
+    await window.BikeTracking.resumeTracking();
   } else if (webPausedAt !== null) {
-    webPausedAccumulatedMs += Date.now() - webPausedAt
-    webPausedAt = null
+    webPausedAccumulatedMs += Date.now() - webPausedAt;
+    webPausedAt = null;
   }
-  tracking.resume()
+  tracking.resume();
 }
 
 async function stopTracking() {
-  let result: { gpxPath?: string | null; gpxBlob?: Blob | null } | void
+  let result: { gpxPath?: string | null; gpxBlob?: Blob | null } | void;
   if (window.BikeTracking?.stopTracking) {
-    result = await window.BikeTracking.stopTracking()
+    result = await window.BikeTracking.stopTracking();
   } else {
-    result = stopWebTracking()
+    result = stopWebTracking();
   }
-  tracking.setGpxPath(result?.gpxPath || null)
+  tracking.setGpxPath(result?.gpxPath || null);
   if (result?.gpxBlob) {
-    tracking.setGpxBlob(result.gpxBlob)
+    tracking.setGpxBlob(result.gpxBlob);
   }
-  tracking.stop()
+  tracking.stop();
 }
 
 async function uploadRide() {
-   try {
-      isUploading.value = true
+  try {
+    isUploading.value = true;
 
-      if (tracking.routePoints.length > 1) {
-        try {
-          const validPoints = tracking.routePoints.filter(
-            (p) => Number.isFinite(p.lat) && Number.isFinite(p.lon),
-          )
-          const rideData = {
-            date: new Date().toISOString().slice(0, 10),
-            distance_km: tracking.distance / 1000,
-            duration_minutes: tracking.elapsedTime / 60,
-            avg_speed_kmh: tracking.avgSpeed > 0 ? tracking.avgSpeed : undefined,
-            elevation_gain_m: tracking.elevation > 0 ? tracking.elevation : undefined,
-            gps_points: validPoints.map((p) => ({
-              lat: p.lat,
-              lon: p.lon,
-              altitude: p.altitude ?? null,
-              timestamp: p.timestamp ?? null,
-              speed: p.speed ?? null,
-            })),
-            source: "gps_tracking",
-            activity_type: activityType.value,
-            title: activityTitle[activityType.value] || "Tracciamento GPS",
-          }
-          const result = await apiPost("/api/v1/rides", rideData)
-          if (result.id) {
-            tracking.setRideId(result.id as number)
-            alert("Uscita salvata con successo!")
-            resetTrackingState()
-            router.push("/rides")
-            return
-          }
-        } catch (directError) {
-          console.warn("Salvataggio diretto fallito, provo con GPX...", directError)
+    if (tracking.routePoints.length > 1) {
+      try {
+        const validPoints = tracking.routePoints.filter(
+          (p) => Number.isFinite(p.lat) && Number.isFinite(p.lon),
+        );
+        const rideData = {
+          date: new Date().toISOString().slice(0, 10),
+          distance_km: tracking.distance / 1000,
+          duration_minutes: tracking.elapsedTime / 60,
+          avg_speed_kmh: tracking.avgSpeed > 0 ? tracking.avgSpeed : undefined,
+          elevation_gain_m:
+            tracking.elevation > 0 ? tracking.elevation : undefined,
+          gps_points: validPoints.map((p) => ({
+            lat: p.lat,
+            lon: p.lon,
+            altitude: p.altitude ?? null,
+            timestamp: p.timestamp ?? null,
+            speed: p.speed ?? null,
+          })),
+          source: "gps_tracking",
+          activity_type: activityType.value,
+          title: activityTitle[activityType.value] || "Tracciamento GPS",
+        };
+        const result = await apiPost("/api/v1/rides", rideData);
+        if (result.id) {
+          tracking.setRideId(result.id as number);
+          alert("Uscita salvata con successo!");
+          resetTrackingState();
+          router.push("/rides");
+          return;
         }
+      } catch (directError) {
+        console.warn(
+          "Salvataggio diretto fallito, provo con GPX...",
+          directError,
+        );
       }
-
-      const blob = getUploadBlob()
-      if (blob) {
-        const file = new File([blob], `ride-${Date.now()}.gpx`, { type: 'application/gpx+xml' })
-        const result = await apiUpload('/api/v1/import/gpx', file)
-        if (result.error) {
-          alert(result.error || 'Upload failed')
-          return
-        }
-        alert('Ride uploaded successfully!')
-        resetTrackingState()
-        router.push('/rides')
-        return
-      }
-      if (tracking.gpxPath) {
-        alert('Unable to upload file from native path. Please use GPX export instead.')
-        return
-      }
-      alert('No ride to upload')
-    } catch (error) {
-     console.error('Upload failed:', error)
-     alert('Error during upload')
-    } finally {
-      isUploading.value = false
     }
+
+    const blob = getUploadBlob();
+    if (blob) {
+      const file = new File([blob], `ride-${Date.now()}.gpx`, {
+        type: "application/gpx+xml",
+      });
+      const result = await apiUpload("/api/v1/import/gpx", file);
+      if (result.error) {
+        alert(result.error || "Upload failed");
+        return;
+      }
+      alert("Ride uploaded successfully!");
+      resetTrackingState();
+      router.push("/rides");
+      return;
+    }
+    if (tracking.gpxPath) {
+      alert(
+        "Unable to upload file from native path. Please use GPX export instead.",
+      );
+      return;
+    }
+    alert("No ride to upload");
+  } catch (error) {
+    console.error("Upload failed:", error);
+    alert("Error during upload");
+  } finally {
+    isUploading.value = false;
   }
+}
 
 function startWebTracking() {
-  webStartTime = Date.now()
-  webPausedAccumulatedMs = 0
-  webPausedAt = null
-  webLastPoint = null
-  webDistance = 0
-  webElevationGain = 0
-  webDirectionLastBearing = null
-  gpsOutlierFilter.reset()
-  directionFilter.reset()
-  gpsError.value = ''
+  webStartTime = Date.now();
+  webPausedAccumulatedMs = 0;
+  webPausedAt = null;
+  webLastPoint = null;
+  webDistance = 0;
+  webElevationGain = 0;
+  webDirectionLastBearing = null;
+  gpsOutlierFilter.reset();
+  directionFilter.reset();
+  gpsError.value = "";
   webFirstFixTimeout = window.setTimeout(() => {
     if (gpsWaiting.value) {
-      gpsWaiting.value = false
-      gpsError.value = 'No GPS signal. On desktop, try moving near a window or use a GPS device.'
+      gpsWaiting.value = false;
+      gpsError.value =
+        "No GPS signal. On desktop, try moving near a window or use a GPS device.";
     }
-  }, 15000)
-  gps.start()
+  }, 15000);
+  gps.start();
 }
 
 function detectGpsTurn(
@@ -383,9 +425,9 @@ function detectGpsTurn(
   lastBearing: number | null,
   distanceFromLast: number,
 ): boolean {
-  if (!lastPoint || distanceFromLast < 3) return false
-  const candidateBearing = gpsBearing(lastPoint, candidate)
-  return detectTurnFromBearing(lastBearing, candidateBearing)
+  if (!lastPoint || distanceFromLast < 3) return false;
+  const candidateBearing = gpsBearing(lastPoint, candidate);
+  return detectTurnFromBearing(lastBearing, candidateBearing);
 }
 
 function processCandidate(
@@ -393,30 +435,44 @@ function processCandidate(
   lon: number,
   altitude: number | null,
   timestampMs: number,
-  opts: { haversineDistance: (aLat: number, aLon: number, bLat: number, bLon: number) => number } = {
+  opts: {
+    haversineDistance: (
+      aLat: number,
+      aLon: number,
+      bLat: number,
+      bLon: number,
+    ) => number;
+  } = {
     haversineDistance: haversineDistanceMeters,
   },
 ) {
-  if (!isTracking.value || isPaused.value) return
-  if (!isFinite(lat) || !isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    return
+  if (!isTracking.value || isPaused.value) return;
+  if (
+    !isFinite(lat) ||
+    !isFinite(lon) ||
+    lat < -90 ||
+    lat > 90 ||
+    lon < -180 ||
+    lon > 180
+  ) {
+    return;
   }
 
   if (gpsWaiting.value) {
-    gpsWaiting.value = false
-    gpsError.value = ''
+    gpsWaiting.value = false;
+    gpsError.value = "";
     if (webFirstFixTimeout !== null) {
-      clearTimeout(webFirstFixTimeout)
-      webFirstFixTimeout = null
+      clearTimeout(webFirstFixTimeout);
+      webFirstFixTimeout = null;
     }
   }
 
-  let distanceDelta = 0
+  let distanceDelta = 0;
   if (webLastPoint && webLastPoint.timestampNumber != null) {
-    const samePosition = webLastPoint.lat === lat && webLastPoint.lon === lon
-    const elapsedSinceLastMs = timestampMs - webLastPoint.timestampNumber
+    const samePosition = webLastPoint.lat === lat && webLastPoint.lon === lon;
+    const elapsedSinceLastMs = timestampMs - webLastPoint.timestampNumber;
     if (samePosition && elapsedSinceLastMs < 5000) {
-      return
+      return;
     }
     if (elapsedSinceLastMs > 0) {
       distanceDelta = opts.haversineDistance(
@@ -424,11 +480,11 @@ function processCandidate(
         webLastPoint.lon,
         lat,
         lon,
-      )
+      );
       if (distanceDelta > 5000) {
-        return
+        return;
       }
-      webDistance += distanceDelta
+      webDistance += distanceDelta;
     }
   }
 
@@ -437,23 +493,32 @@ function processCandidate(
     lon,
     altitude,
     timestamp: new Date(timestampMs).toISOString(),
-  }
+  };
 
-  const speedOutlier = gpsOutlierFilter.isOutlier(candidate)
-  const isTurning = detectGpsTurn(webLastPoint, candidate, webDirectionLastBearing, distanceDelta)
+  const speedOutlier = gpsOutlierFilter.isOutlier(candidate);
+  const isTurning = detectGpsTurn(
+    webLastPoint,
+    candidate,
+    webDirectionLastBearing,
+    distanceDelta,
+  );
   const directionOutlier = directionFilter.isDirectionOutlier(
     candidate,
     distanceDelta,
     isTurning,
-  )
+  );
 
   if (speedOutlier || directionOutlier) {
-    return
+    return;
   }
 
-  const acceptedBearing = directionFilter.accept(candidate, distanceDelta, isTurning)
+  const acceptedBearing = directionFilter.accept(
+    candidate,
+    distanceDelta,
+    isTurning,
+  );
   if (acceptedBearing !== null) {
-    webDirectionLastBearing = acceptedBearing
+    webDirectionLastBearing = acceptedBearing;
   }
 
   if (
@@ -462,19 +527,21 @@ function processCandidate(
     candidate.altitude !== null &&
     candidate.altitude !== undefined
   ) {
-    webElevationGain += Math.max(0, candidate.altitude - webLastPoint.altitude)
+    webElevationGain += Math.max(0, candidate.altitude - webLastPoint.altitude);
   }
 
-  const elapsedSeconds = getWebElapsedSeconds()
-  const avgSpeed = elapsedSeconds > 0 ? (webDistance / 1000) / (elapsedSeconds / 3600) : 0
+  const elapsedSeconds = getWebElapsedSeconds();
+  const avgSpeed =
+    elapsedSeconds > 0 ? webDistance / 1000 / (elapsedSeconds / 3600) : 0;
   const elapsedSinceLastMs = webLastPoint?.timestampNumber
     ? timestampMs - webLastPoint.timestampNumber
-    : 0
-  const currentSpeed = elapsedSinceLastMs > 0 && distanceDelta > 0
-    ? (distanceDelta / 1000) / (elapsedSinceLastMs / 3600000)
-    : 0
+    : 0;
+  const currentSpeed =
+    elapsedSinceLastMs > 0 && distanceDelta > 0
+      ? distanceDelta / 1000 / (elapsedSinceLastMs / 3600000)
+      : 0;
 
-  tracking.addPoint(candidate)
+  tracking.addPoint(candidate);
   tracking.updateMetrics({
     distance: webDistance,
     currentSpeed,
@@ -482,9 +549,9 @@ function processCandidate(
     elapsedTime: elapsedSeconds,
     elevation: webElevationGain,
     points: tracking.routePoints.length,
-  })
-  liveMapRef.value?.addPoint(candidate.lat, candidate.lon)
-  webLastPoint = { ...candidate, timestampNumber: timestampMs }
+  });
+  liveMapRef.value?.addPoint(candidate.lat, candidate.lon);
+  webLastPoint = { ...candidate, timestampNumber: timestampMs };
 }
 
 function handleWebPosition(position: GeolocationPosition) {
@@ -493,73 +560,78 @@ function handleWebPosition(position: GeolocationPosition) {
     position.coords.longitude,
     position.coords.altitude,
     position.timestamp,
-  )
+  );
 }
 
 function handleWebError(error: GeolocationPositionError) {
-  gpsWaiting.value = false
+  gpsWaiting.value = false;
   if (webFirstFixTimeout !== null) {
-    clearTimeout(webFirstFixTimeout)
-    webFirstFixTimeout = null
+    clearTimeout(webFirstFixTimeout);
+    webFirstFixTimeout = null;
   }
   if (error.code === 1) {
-    gpsError.value = 'GPS permission denied. Please allow location access and try again.'
-    alert('GPS permission denied. Please allow location access and try again.')
-    void stopTracking()
-    return
+    gpsError.value =
+      "GPS permission denied. Please allow location access and try again.";
+    alert("GPS permission denied. Please allow location access and try again.");
+    void stopTracking();
+    return;
   }
   if (error.code === 2 || error.code === 3) {
-    gpsError.value = 'GPS signal lost. Please move outdoors or check your device.'
-    return
+    gpsError.value =
+      "GPS signal lost. Please move outdoors or check your device.";
+    return;
   }
-  alert(`GPS Error: ${error.message}`)
+  alert(`GPS Error: ${error.message}`);
 }
 
 function stopWebTracking() {
   if (webFirstFixTimeout !== null) {
-    clearTimeout(webFirstFixTimeout)
-    webFirstFixTimeout = null
+    clearTimeout(webFirstFixTimeout);
+    webFirstFixTimeout = null;
   }
-  gps.stop()
-  gpsWaiting.value = false
-  const blob = new Blob([tracking.toGpx()], { type: 'application/gpx+xml' })
-  tracking.setGpxBlob(blob)
-  return { gpxPath: null, gpxBlob: blob }
+  gps.stop();
+  gpsWaiting.value = false;
+  const blob = new Blob([tracking.toGpx()], { type: "application/gpx+xml" });
+  tracking.setGpxBlob(blob);
+  return { gpxPath: null, gpxBlob: blob };
 }
 
 function getUploadBlob() {
-  if (tracking.gpxBlob) return tracking.gpxBlob
+  if (tracking.gpxBlob) return tracking.gpxBlob;
   if (tracking.routePoints.length > 0) {
-    return new Blob([tracking.toGpx()], { type: 'application/gpx+xml' })
+    return new Blob([tracking.toGpx()], { type: "application/gpx+xml" });
   }
-  return null
+  return null;
 }
 
 function getWebElapsedSeconds() {
-  return Math.max(0, (Date.now() - webStartTime - webPausedAccumulatedMs) / 1000)
+  return Math.max(
+    0,
+    (Date.now() - webStartTime - webPausedAccumulatedMs) / 1000,
+  );
 }
 
 function resetTrackingState() {
-  tracking.resetMetrics()
-  tracking.setGpxPath(null)
-  tracking.setGpxBlob(null)
-  tracking.setRideId(null)
+  tracking.resetMetrics();
+  tracking.setGpxPath(null);
+  tracking.setGpxBlob(null);
+  tracking.setRideId(null);
 }
 
 function showFullRoute() {
-  const map = liveMapRef.value
-  if (!map) return
-  map.setRoute(tracking.routePoints.map((p) => ({ lat: p.lat, lon: p.lon })))
+  const map = liveMapRef.value;
+  if (!map) return;
+  map.setRoute(tracking.routePoints.map((p) => ({ lat: p.lat, lon: p.lon })));
 }
 
 async function saveAsItinerary() {
-  const date = new Date().toISOString().slice(0, 10)
-  const title = activityTitle[activityType.value] || 'Tracciamento GPS'
-  const name = `${title} - ${date}`
-  const distKm = tracking.distance / 1000
-  const elevM = tracking.elevation
+  const date = new Date().toISOString().slice(0, 10);
+  const title = activityTitle[activityType.value] || "Tracciamento GPS";
+  const name = `${title} - ${date}`;
+  const distKm = tracking.distance / 1000;
+  const elevM = tracking.elevation;
 
-  let rideId = tracking.rideId
+  let rideId = tracking.rideId;
   if (!rideId && tracking.routePoints.length > 1) {
     const rideData = {
       date,
@@ -576,36 +648,36 @@ async function saveAsItinerary() {
           timestamp: p.timestamp ?? null,
           speed: p.speed ?? null,
         })),
-      source: 'gps_tracking',
+      source: "gps_tracking",
       activity_type: activityType.value,
       title,
-    }
+    };
     try {
-      const result = await apiPost('/api/v1/rides', rideData)
+      const result = await apiPost("/api/v1/rides", rideData);
       if (result.id) {
-        tracking.setRideId(result.id as number)
-        rideId = result.id as number
+        tracking.setRideId(result.id as number);
+        rideId = result.id as number;
       }
     } catch (e) {
-      console.warn('Salvataggio ride per itinerario fallito', e)
-      alert('Impossibile salvare l\'uscita come itinerario.')
-      return
+      console.warn("Salvataggio ride per itinerario fallito", e);
+      alert("Impossibile salvare l'uscita come itinerario.");
+      return;
     }
   }
 
   if (!rideId) {
-    alert('Registra prima l\'uscita.')
-    return
+    alert("Registra prima l'uscita.");
+    return;
   }
 
   try {
-    const it = await apiPost('/api/v1/itineraries', {
+    const it = await apiPost("/api/v1/itineraries", {
       name,
       start_date: date,
       end_date: date,
       total_km: distKm || undefined,
       total_elevation_m: elevM || undefined,
-    })
+    });
     if (it.id) {
       await apiPost(`/api/v1/itineraries/${it.id}/stages`, {
         title,
@@ -613,33 +685,33 @@ async function saveAsItinerary() {
         elevation_gain_m: elevM || undefined,
         ride_id: rideId,
         stage_day: 1,
-      })
-      alert('Itinerario creato!')
+      });
+      alert("Itinerario creato!");
     }
   } catch (e) {
-    console.warn('Creazione itinerario fallita', e)
-    alert('Impossibile creare l\'itinerario.')
+    console.warn("Creazione itinerario fallita", e);
+    alert("Impossibile creare l'itinerario.");
   }
 }
 
 function openAetherMap() {
-  router.push('/aethermap')
+  router.push("/aethermap");
 }
 
 onMounted(() => {
-  resetTrackingState()
-})
+  resetTrackingState();
+});
 
 onBeforeUnmount(() => {
   if (webFirstFixTimeout !== null) {
-    clearTimeout(webFirstFixTimeout)
-    webFirstFixTimeout = null
+    clearTimeout(webFirstFixTimeout);
+    webFirstFixTimeout = null;
   }
-  gps.stop()
+  gps.stop();
   if (tracking.isTracking && !tracking.gpxBlob) {
-    stopWebTracking()
+    stopWebTracking();
   }
-})
+});
 </script>
 
 <style scoped>
@@ -705,9 +777,15 @@ onBeforeUnmount(() => {
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
 }
 
 .premium-empty {
@@ -739,7 +817,9 @@ onBeforeUnmount(() => {
   background: var(--bg);
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .select-wrapper:focus-within {
@@ -832,7 +912,7 @@ onBeforeUnmount(() => {
 }
 
 .radar-spinner::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -844,8 +924,12 @@ onBeforeUnmount(() => {
 }
 
 @keyframes radar {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .tracking-complete {

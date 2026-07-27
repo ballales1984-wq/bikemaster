@@ -5,9 +5,7 @@
   <div class="admin-users">
     <h2>{{ t("admin.users") }}</h2>
     <div class="toolbar">
-      <button
-class="btn-primary" @click="showCreateForm = true"
->
+      <button class="btn-primary" @click="showCreateForm = true">
         {{ t("admin.createUser") }}
       </button>
       <input
@@ -17,36 +15,27 @@ class="btn-primary" @click="showCreateForm = true"
       />
     </div>
 
-    <div
-v-if="showCreateForm" class="create-form"
->
+    <div v-if="showCreateForm" class="create-form">
       <h3>{{ t("admin.createUser") }}</h3>
       <form @submit.prevent>
         <div class="form-group">
           <label>{{ t("auth.username") }}</label>
-          <input v-model="newUser.username">
+          <input v-model="newUser.username" />
         </div>
         <div class="form-group">
           <label>{{ t("auth.email") }}</label>
-          <input
-v-model="newUser.email" type="email" />
+          <input v-model="newUser.email" type="email" />
         </div>
         <div class="form-group">
           <label>{{ t("auth.password") }}</label>
-          <input
-v-model="newUser.password" type="password" />
+          <input v-model="newUser.password" type="password" />
         </div>
       </form>
       <div class="form-actions">
-        <button
-class="btn-primary" @click="createUser"
-:disabled="creating"
->
+        <button class="btn-primary" :disabled="creating" @click="createUser">
           {{ creating ? t("common.loading") : t("common.submit") }}
         </button>
-        <button
-class="btn-secondary" @click="showCreateForm = false"
->
+        <button class="btn-secondary" @click="showCreateForm = false">
           {{ t("common.cancel") }}
         </button>
       </div>
@@ -66,37 +55,27 @@ class="btn-secondary" @click="showCreateForm = false"
           </tr>
         </thead>
         <tbody>
-          <tr
-v-for="u in filteredUsers" :key="u.id"
->
+          <tr v-for="u in filteredUsers" :key="u.id">
             <td>{{ u.id }}</td>
             <td>{{ u.username }}</td>
             <td>{{ u.email || "-" }}</td>
             <td>
-              <button
-class="btn-small" @click="toggleField(u, 'is_admin')"
->
+              <button class="btn-small" @click="toggleField(u, 'is_admin')">
                 {{ u.is_admin ? t("common.yes") : t("common.no") }}
               </button>
             </td>
             <td>
-              <button
-class="btn-small" @click="toggleField(u, 'is_client')"
->
+              <button class="btn-small" @click="toggleField(u, 'is_client')">
                 {{ u.is_client ? t("common.yes") : t("common.no") }}
               </button>
             </td>
             <td>
-              <button
-class="btn-small" @click="toggleField(u, 'is_active')"
->
+              <button class="btn-small" @click="toggleField(u, 'is_active')">
                 {{ u.is_active ? t("common.yes") : t("common.no") }}
               </button>
             </td>
             <td>
-              <button
-class="btn-danger btn-small" @click="deleteUser(u.id)"
->
+              <button class="btn-danger btn-small" @click="deleteUser(u.id)">
                 {{ t("common.delete") }}
               </button>
             </td>

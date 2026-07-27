@@ -110,9 +110,10 @@ export const useTrackingStore = defineStore("tracking", () => {
       "BikeMaster ride";
     const route = routePoints.value
       .map((point) => {
-        const eleStr = point.altitude !== null && point.altitude !== undefined 
-          ? `\n        <ele>${point.altitude}</ele>` 
-          : "";
+        const eleStr =
+          point.altitude !== null && point.altitude !== undefined
+            ? `\n        <ele>${point.altitude}</ele>`
+            : "";
         return `      <trkpt lat="${point.lat}" lon="${point.lon}">${eleStr}
         <time>${point.timestamp || new Date().toISOString()}</time>
       </trkpt>`;
@@ -175,4 +176,3 @@ ${route}
     formattedDistance,
   };
 });
-

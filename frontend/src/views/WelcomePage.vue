@@ -24,8 +24,8 @@
       <section class="hero">
         <h2 class="hero-title">Your digital cycling coach</h2>
         <p class="hero-desc">
-          Analyze rides, optimize training and reach your goals
-          with scientific data and artificial intelligence.
+          Analyze rides, optimize training and reach your goals with scientific
+          data and artificial intelligence.
         </p>
       </section>
 
@@ -42,24 +42,22 @@
           <div class="feature-icon"></div>
           <h3>AI Coach</h3>
           <p>
-            Personalized training and recovery advice based on scientific
-            data and LLM models.
+            Personalized training and recovery advice based on scientific data
+            and LLM models.
           </p>
         </div>
         <div class="feature-card">
           <div class="feature-icon"></div>
           <h3>Integrazioni</h3>
           <p>
-            Sync Strava, Garmin Connect and Google Fit to import all your activities automatically.
+            Sync Strava, Garmin Connect and Google Fit to import all your
+            activities automatically.
           </p>
         </div>
         <div class="feature-card">
           <div class="feature-icon"></div>
           <h3>Sync Cloud</h3>
-          <p>
-            Optional cloud backup and sync, always under your
-            control.
-          </p>
+          <p>Optional cloud backup and sync, always under your control.</p>
         </div>
       </section>
 
@@ -132,19 +130,29 @@ function goToRegister() {
 .orb-3 {
   width: 300px;
   height: 300px;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.35), transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(168, 85, 247, 0.35),
+    transparent 70%
+  );
   top: 40%;
   left: 55%;
   animation: orbFloat3 26s ease-in-out infinite alternate;
 }
 @keyframes orbFloat1 {
-  to { transform: translate(60px, 80px) scale(1.15); }
+  to {
+    transform: translate(60px, 80px) scale(1.15);
+  }
 }
 @keyframes orbFloat2 {
-  to { transform: translate(-70px, -40px) scale(1.1); }
+  to {
+    transform: translate(-70px, -40px) scale(1.1);
+  }
 }
 @keyframes orbFloat3 {
-  to { transform: translate(-40px, 60px) scale(0.9); }
+  to {
+    transform: translate(-40px, 60px) scale(0.9);
+  }
 }
 .welcome-content {
   position: relative;
@@ -167,8 +175,13 @@ function goToRegister() {
   animation: float 4s ease-in-out infinite;
 }
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 .brand-name {
   font-size: 2.8rem;
@@ -181,8 +194,12 @@ function goToRegister() {
   animation: logoGlow 3s ease-in-out infinite alternate;
 }
 @keyframes logoGlow {
-  from { filter: brightness(1); }
-  to { filter: brightness(1.2) drop-shadow(0 0 10px rgba(0, 255, 204, 0.35)); }
+  from {
+    filter: brightness(1);
+  }
+  to {
+    filter: brightness(1.2) drop-shadow(0 0 10px rgba(0, 255, 204, 0.35));
+  }
 }
 .brand-tagline {
   color: #6e7687;
@@ -219,7 +236,9 @@ function goToRegister() {
   text-align: left;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
 }
 .feature-card:hover {
   transform: translateY(-3px);
@@ -253,7 +272,9 @@ function goToRegister() {
   border-radius: 10px;
   padding: 12px 18px;
   font-size: 1rem;
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
 }
 .btn:active {
   transform: scale(0.98);

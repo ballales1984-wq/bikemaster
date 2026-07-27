@@ -49,4 +49,3 @@ const locales = [
   border-color: var(--accent);
 }
 </style>
-

@@ -31,17 +31,19 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   respect_quiet_hours: true,
 };
 
-export async function fetchNotifications(params: {
-  athlete_id?: number;
-  category?: string;
-  intensity_zone?: number;
-  planned_today?: boolean;
-  goal_active?: boolean;
-  weather_changed?: boolean;
-  tsb?: number;
-  stopped_min?: number;
-  rides_left?: number;
-} = {}): Promise<NotificationList> {
+export async function fetchNotifications(
+  params: {
+    athlete_id?: number;
+    category?: string;
+    intensity_zone?: number;
+    planned_today?: boolean;
+    goal_active?: boolean;
+    weather_changed?: boolean;
+    tsb?: number;
+    stopped_min?: number;
+    rides_left?: number;
+  } = {},
+): Promise<NotificationList> {
   const qs: Record<string, string> = {};
   if (params.athlete_id) qs.athlete_id = String(params.athlete_id);
   if (params.category) qs.category = params.category;
@@ -51,23 +53,30 @@ export async function fetchNotifications(params: {
   if (params.goal_active) qs.goal_active = "1";
   if (params.weather_changed) qs.weather_changed = "1";
   if (params.tsb !== undefined) qs.tsb = String(params.tsb);
-  if (params.stopped_min !== undefined) qs.stopped_min = String(params.stopped_min);
-  if (params.rides_left !== undefined) qs.rides_left = String(params.rides_left);
+  if (params.stopped_min !== undefined)
+    qs.stopped_min = String(params.stopped_min);
+  if (params.rides_left !== undefined)
+    qs.rides_left = String(params.rides_left);
   return apiGet<NotificationList>("/api/v1/notifications", qs);
 }
 
 export async function updateNotificationPreferences(
   prefs: NotificationPreferences,
   athlete_id?: number,
-): Promise<{ athlete_id: number; preferences: NotificationPreferences; message: string }> {
+): Promise<{
+  athlete_id: number;
+  preferences: NotificationPreferences;
+  message: string;
+}> {
   const path =
     athlete_id != null
       ? `/api/v1/notifications/preferences?athlete_id=${athlete_id}`
       : "/api/v1/notifications/preferences";
-  return apiPost<{ athlete_id: number; preferences: NotificationPreferences; message: string }>(
-    path,
-    prefs,
-  );
+  return apiPost<{
+    athlete_id: number;
+    preferences: NotificationPreferences;
+    message: string;
+  }>(path, prefs);
 }
 
 export async function evaluateNotification(

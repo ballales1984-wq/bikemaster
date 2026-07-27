@@ -8,7 +8,7 @@
   <div>
     <div class="welcome-card">
       <div>
-        <h2> Bentornato in BikeMaster</h2>
+        <h2>Bentornato in BikeMaster</h2>
         <p>
           Monitora le tue performance, pianifica gli allenamenti e raggiungi i
           tuoi obiettivi ciclistici.
@@ -16,13 +16,13 @@
       </div>
       <div class="welcome-actions">
         <router-link to="/track" class="btn btn-primary">
-           Traccia Uscita
+          Traccia Uscita
         </router-link>
         <router-link to="/calendar" class="btn btn-secondary">
-           Pianifica
+          Pianifica
         </router-link>
         <router-link to="/coach" class="btn btn-secondary">
-           AI Coach
+          AI Coach
         </router-link>
       </div>
     </div>

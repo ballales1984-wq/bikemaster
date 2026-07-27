@@ -15,8 +15,7 @@
         empty-label="Nessun dato FTP"
       />
 
-      <form class="ftp-form"
-@submit.prevent="onRecord">
+      <form class="ftp-form" @submit.prevent="onRecord">
         <div class="field">
           <label for="ftp-watts">FTP (W)</label>
           <input
@@ -30,28 +29,24 @@
         </div>
         <div class="field">
           <label for="ftp-date">Data</label>
-          <input
-id="ftp-date" v-model="ftpDate" type="date" />
+          <input id="ftp-date" v-model="ftpDate" type="date" />
         </div>
         <div class="field">
           <label for="ftp-source">Fonte</label>
-          <select id="ftp-source"
-v-model="ftpSource">
+          <select id="ftp-source" v-model="ftpSource">
             <option value="test">Test</option>
             <option value="ride">Uscita</option>
             <option value="estimate">Stima</option>
           </select>
         </div>
-        <button type="submit"
-:disabled="saving">
+        <button type="submit" :disabled="saving">
           {{ saving ? "Salvo..." : "Registra FTP" }}
         </button>
       </form>
 
       <details class="estimate">
         <summary>Stima da test di soglia</summary>
-        <form class="estimate-form"
-@submit.prevent="onEstimate">
+        <form class="estimate-form" @submit.prevent="onEstimate">
           <div class="field">
             <label for="test-power">Media potenza test (W)</label>
             <input
@@ -75,8 +70,7 @@ v-model="ftpSource">
           <p v-if="estimatedFtp != null" class="estimate-result">
             FTP stimata: <strong>{{ Math.round(estimatedFtp) }} W</strong>
           </p>
-          <button
-type="submit" :disabled="saving">Calcola stima</button>
+          <button type="submit" :disabled="saving">Calcola stima</button>
         </form>
       </details>
 

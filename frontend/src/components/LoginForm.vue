@@ -3,9 +3,8 @@
      UI: tab accessibili (role=tab), input con label fluttuanti ed errori, spinner, separatore OAuth e pulsante Google. -->
 <template>
   <div class="login-panel">
-    <h2> {{ mode === "login" ? t("auth.login") : t("auth.register") }}</h2>
-    <div
-class="login-tabs" role="tablist" aria-label="Login modes">
+    <h2>{{ mode === "login" ? t("auth.login") : t("auth.register") }}</h2>
+    <div class="login-tabs" role="tablist" aria-label="Login modes">
       <button
         :id="'tab-login'"
         :class="['tab-btn', { active: mode === 'login' }]"
@@ -56,7 +55,9 @@ class="login-tabs" role="tablist" aria-label="Login modes">
             valid: form.username.length >= 3 && !usernameError,
           }"
         />
-        <label for="username" class="floating-label">{{ t("auth.username") }}</label>
+        <label for="username" class="floating-label">{{
+          t("auth.username")
+        }}</label>
         <span
           v-if="usernameError"
           id="username-error"
@@ -83,7 +84,9 @@ class="login-tabs" role="tablist" aria-label="Login modes">
               valid: form.password.length >= 6 && !passwordError,
             }"
           />
-          <label for="password" class="floating-label">{{ t("auth.password") }}</label>
+          <label for="password" class="floating-label">{{
+            t("auth.password")
+          }}</label>
           <button
             type="button"
             class="password-toggle"
@@ -110,11 +113,7 @@ class="login-tabs" role="tablist" aria-label="Login modes">
         :disabled="loading || !isFormValid"
         :aria-busy="loading"
       >
-        <span
-          v-if="loading"
-          class="btn-spinner"
-          aria-hidden="true"
-        />
+        <span v-if="loading" class="btn-spinner" aria-hidden="true" />
         <span class="btn-label">{{
           loading
             ? t("common.loading")
@@ -135,8 +134,7 @@ class="login-tabs" role="tablist" aria-label="Login modes">
       :aria-label="'Sign in with Google'"
       @click="loginWithGoogle"
     >
-      <svg
-class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+      <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
         <path
           fill="#4285F4"
           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.76h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -273,7 +271,11 @@ async function loginWithGoogle() {
       throw new Error("Google login error: invalid server response");
     }
 
-    auth.setAuthFromUrl(data.access_token, data.email || "", data.id ? String(data.id) : undefined);
+    auth.setAuthFromUrl(
+      data.access_token,
+      data.email || "",
+      data.id ? String(data.id) : undefined,
+    );
     ui.setOauthLoading(false);
     emit("google-login", { token: data.access_token });
   } catch (e) {
@@ -307,9 +309,13 @@ async function loginWithGoogle() {
   border-radius: var(--radius);
   padding: 1px;
   background: var(--gradient-border);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
   mask-composite: exclude;
   opacity: 0.5;
   animation: rotateGradient 6s linear infinite;
@@ -380,16 +386,31 @@ async function loginWithGoogle() {
   outline: none;
   border-color: var(--accent);
   background: rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.1), var(--glow-accent);
+  box-shadow:
+    0 0 0 3px rgba(0, 255, 204, 0.1),
+    var(--glow-accent);
 }
 .login-submit.shake {
   animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 @keyframes shake {
-  10%, 90% { transform: translateX(-2px); }
-  20%, 80% { transform: translateX(4px); }
-  30%, 50%, 70% { transform: translateX(-6px); }
-  40%, 60% { transform: translateX(6px); }
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(4px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-6px);
+  }
+  40%,
+  60% {
+    transform: translateX(6px);
+  }
 }
 .btn-spinner {
   display: inline-block;
@@ -403,7 +424,9 @@ async function loginWithGoogle() {
   margin-right: 8px;
 }
 @keyframes btnSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .login-tabs {

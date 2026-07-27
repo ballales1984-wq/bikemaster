@@ -35,28 +35,17 @@
     </div>
 
     <!-- Score cards -->
-    <div
-v-if="scores.length" class="score-strip"
->
-      <div
-v-for="s in scores" class="score-pill"
-:key="s.label"
->
-        <span class="pill-val"
-:style="{ color: s.color }"
->{{ s.value }}</span>
+    <div v-if="scores.length" class="score-strip">
+      <div v-for="s in scores" :key="s.label" class="score-pill">
+        <span class="pill-val" :style="{ color: s.color }">{{ s.value }}</span>
         <span class="pill-lbl">{{ s.label }}</span>
       </div>
     </div>
 
     <!-- Chat window -->
-    <div
-ref="chatWindow" class="chat-window"
->
+    <div ref="chatWindow" class="chat-window">
       <!-- Welcome message -->
-      <div
-v-if="messages.length === 0" class="message bot-msg"
->
+      <div v-if="messages.length === 0" class="message bot-msg">
         <div class="msg-avatar"></div>
         <div class="msg-content">
           <div class="msg-bubble">
@@ -86,8 +75,7 @@ v-if="messages.length === 0" class="message bot-msg"
           {{ msg.role === "user" ? "" : "" }}
         </div>
         <div class="msg-content">
-          <div class="msg-bubble"
-v-html="formatMsg(msg.content)" />
+          <div class="msg-bubble" v-html="formatMsg(msg.content)" />
           <div class="msg-time">
             {{ msg.time }}
           </div>
@@ -95,9 +83,7 @@ v-html="formatMsg(msg.content)" />
       </div>
 
       <!-- Typing indicator -->
-      <div
-v-if="thinking" class="message bot-msg"
->
+      <div v-if="thinking" class="message bot-msg">
         <div class="msg-avatar"></div>
         <div class="msg-content">
           <div class="msg-bubble typing-bubble">
@@ -270,7 +256,9 @@ function initVoice() {
     recognition.value.interimResults = false;
     recognition.value.lang = "it-IT";
     recognition.value.onresult = (event: unknown) => {
-      const ev = event as { results: { [key: number]: { [key: number]: { transcript: string } } } };
+      const ev = event as {
+        results: { [key: number]: { [key: number]: { transcript: string } } };
+      };
       const transcript = ev.results[0][0].transcript;
       userInput.value = transcript;
     };
@@ -324,22 +312,32 @@ async function sendMessage() {
   thinking.value = true;
   await scrollToBottom();
 
-  const isBm2Question = /bm2|bike.master 2|analisi ride|simulazione|what if|power-meter|validazione/i.test(text);
+  const isBm2Question =
+    /bm2|bike.master 2|analisi ride|simulazione|what if|power-meter|validazione/i.test(
+      text,
+    );
 
   try {
     if (isBm2Question) {
       const params: Record<string, unknown> = {};
       if (athleteId.value) params.athlete_id = athleteId.value;
-      const resp = await apiPost<Record<string, unknown>>("/api/v1/coach/chat/bm2", {
-        message: text,
-        ...params,
-      });
+      const resp = await apiPost<Record<string, unknown>>(
+        "/api/v1/coach/chat/bm2",
+        {
+          message: text,
+          ...params,
+        },
+      );
       const reply =
         (resp.response as string) ||
         (resp.message as string) ||
         (resp.advice as string) ||
         JSON.stringify(resp);
-      messages.value.push({ role: "assistant", content: reply, time: getTime() });
+      messages.value.push({
+        role: "assistant",
+        content: reply,
+        time: getTime(),
+      });
       lastAssistantMessage.value = reply;
       if (autoRead.value) {
         speak(reply);
@@ -350,16 +348,23 @@ async function sendMessage() {
     } else {
       const params: Record<string, unknown> = {};
       if (athleteId.value) params.athlete_id = athleteId.value;
-      const resp = await apiPost<Record<string, unknown>>("/api/v1/coach/chat", {
-        message: text,
-        ...params,
-      });
+      const resp = await apiPost<Record<string, unknown>>(
+        "/api/v1/coach/chat",
+        {
+          message: text,
+          ...params,
+        },
+      );
       const reply =
         (resp.response as string) ||
         (resp.message as string) ||
         (resp.advice as string) ||
         JSON.stringify(resp);
-      messages.value.push({ role: "assistant", content: reply, time: getTime() });
+      messages.value.push({
+        role: "assistant",
+        content: reply,
+        time: getTime(),
+      });
       lastAssistantMessage.value = reply;
       if (autoRead.value) {
         speak(reply);
@@ -391,7 +396,12 @@ async function runBm2Analysis(question: string) {
   try {
     const data = await apiPost<Bm2Answer>("/api/v1/bm2/ask", {
       question,
-      athlete: { weight: 75, age: 34, experience_level: "Intermediate", max_hr: 190 },
+      athlete: {
+        weight: 75,
+        age: 34,
+        experience_level: "Intermediate",
+        max_hr: 190,
+      },
       bike: { weight: 8 },
       world: { surface: "asphalt", avg_slope: 4 },
       gps_points: [],
@@ -411,7 +421,9 @@ function formatBm2Result(answer: Bm2Answer): string {
   lines.push(`Modelli usati: ${answer.models_used.join(", ")}`);
   lines.push(`Confidenza: ${Math.round(answer.confidence * 100)}%`);
   for (const [name, r] of Object.entries(answer.results)) {
-    lines.push(`- **${name}**: ${r.value.toFixed(1)} ${r.unit} (±${r.precision.toFixed(2)}, conf ${Math.round(r.confidence * 100)}%)`);
+    lines.push(
+      `- **${name}**: ${r.value.toFixed(1)} ${r.unit} (±${r.precision.toFixed(2)}, conf ${Math.round(r.confidence * 100)}%)`,
+    );
   }
   if (answer.insights.length) {
     lines.push("Concetti:");
@@ -457,7 +469,9 @@ function clearChat() {
 
 async function init() {
   try {
-    const me = await apiGet<{ athlete?: { id: number } }>("/api/v1/athletes/me");
+    const me = await apiGet<{ athlete?: { id: number } }>(
+      "/api/v1/athletes/me",
+    );
     athleteId.value = me.athlete?.id ?? null;
     if (athleteId.value) {
       const scores = await apiGet<CoachData>("/api/v1/coach/full", {

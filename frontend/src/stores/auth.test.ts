@@ -3,20 +3,42 @@ import { setActivePinia, createPinia } from "pinia";
 import { useAuthStore } from "./auth";
 
 vi.mock("./athlete", () => ({ useAthleteStore: () => ({ $reset: vi.fn() }) }));
-vi.mock("./athleteState", () => ({ useAthleteStateStore: () => ({ $reset: vi.fn() }) }));
-vi.mock("./settings", () => ({ useSettingsStore: () => ({ $reset: vi.fn() }) }));
-vi.mock("./connections", () => ({ useConnectionsStore: () => ({ $reset: vi.fn() }) }));
+vi.mock("./athleteState", () => ({
+  useAthleteStateStore: () => ({ $reset: vi.fn() }),
+}));
+vi.mock("./settings", () => ({
+  useSettingsStore: () => ({ $reset: vi.fn() }),
+}));
+vi.mock("./connections", () => ({
+  useConnectionsStore: () => ({ $reset: vi.fn() }),
+}));
 vi.mock("./apiKeys", () => ({ useApiKeysStore: () => ({ $reset: vi.fn() }) }));
 vi.mock("./rides", () => ({ useRidesStore: () => ({ $reset: vi.fn() }) }));
-vi.mock("./trackingStore", () => ({ useTrackingStore: () => ({ $reset: vi.fn() }) }));
-vi.mock("./notifications", () => ({ useNotificationStore: () => ({ $reset: vi.fn() }) }));
-vi.mock("./voiceCommands", () => ({ useVoiceCommandsStore: () => ({ $reset: vi.fn() }) }));
-vi.mock("./voiceSystem", () => ({ useVoiceSystemStore: () => ({ $reset: vi.fn() }) }));
-vi.mock("./performance", () => ({ usePerformanceStore: () => ({ $reset: vi.fn() }) }));
-vi.mock("./metabolism", () => ({ useMetabolismStore: () => ({ $reset: vi.fn() }) }));
+vi.mock("./trackingStore", () => ({
+  useTrackingStore: () => ({ $reset: vi.fn() }),
+}));
+vi.mock("./notifications", () => ({
+  useNotificationStore: () => ({ $reset: vi.fn() }),
+}));
+vi.mock("./voiceCommands", () => ({
+  useVoiceCommandsStore: () => ({ $reset: vi.fn() }),
+}));
+vi.mock("./voiceSystem", () => ({
+  useVoiceSystemStore: () => ({ $reset: vi.fn() }),
+}));
+vi.mock("./performance", () => ({
+  usePerformanceStore: () => ({ $reset: vi.fn() }),
+}));
+vi.mock("./metabolism", () => ({
+  useMetabolismStore: () => ({ $reset: vi.fn() }),
+}));
 vi.mock("./ble", () => ({ useBleStore: () => ({ $reset: vi.fn() }) }));
-vi.mock("./healthConnect", () => ({ useHealthConnectStore: () => ({ $reset: vi.fn() }) }));
-vi.mock("./itinerary", () => ({ useItineraryStore: () => ({ $reset: vi.fn() }) }));
+vi.mock("./healthConnect", () => ({
+  useHealthConnectStore: () => ({ $reset: vi.fn() }),
+}));
+vi.mock("./itinerary", () => ({
+  useItineraryStore: () => ({ $reset: vi.fn() }),
+}));
 vi.mock("./beck", () => ({ useBeckStore: () => ({ $reset: vi.fn() }) }));
 
 describe("auth store", () => {

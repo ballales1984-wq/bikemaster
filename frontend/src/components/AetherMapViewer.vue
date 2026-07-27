@@ -9,11 +9,13 @@
       trascina per ruotare · rotella per zoom · spazio = auto-rotazione<br />
       <template v-if="rideIds && rideIds.length">
         <span v-if="loading">carico scena…</span>
-        <span v-else-if="error" class="aethermap-warn">scena non disponibile</span>
+        <span v-else-if="error" class="aethermap-warn"
+          >scena non disponibile</span
+        >
         <template v-else-if="scene && scene.statistics">
-          dist: {{ Math.round(scene.statistics.total_distance_m) }} m ·
-          avg: {{ scene.statistics.avg_speed_km_h }} km/h ·
-          &Delta;h: {{ Math.round(scene.statistics.total_elevation_gain_m) }} m
+          dist: {{ Math.round(scene.statistics.total_distance_m) }} m · avg:
+          {{ scene.statistics.avg_speed_km_h }} km/h · &Delta;h:
+          {{ Math.round(scene.statistics.total_elevation_gain_m) }} m
         </template>
       </template>
       <br />linea = percorso · verde = start · rosso = end · giallo = stats
@@ -23,7 +25,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
-import { useAetherMap, hexToRgb, type AetherScene } from "../composables/useAetherMap";
+import {
+  useAetherMap,
+  hexToRgb,
+  type AetherScene,
+} from "../composables/useAetherMap";
 
 interface MapPoint {
   lat: number;
@@ -50,10 +56,14 @@ let gl: WebGL2RenderingContext | null = null;
 let rafId: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
 
-let globeBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
-let routeBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
-let pointBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
-let markerBuffer: { buf: WebGLBuffer; count: number; mode: number } | null = null;
+let globeBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
+  null;
+let routeBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
+  null;
+let pointBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
+  null;
+let markerBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
+  null;
 
 const rideIdsRef = computed(() => props.rideIds ?? []);
 const { scene, loading, error } = useAetherMap(rideIdsRef);
@@ -64,7 +74,10 @@ const GLOBE_RADIUS = 1.0;
 const TERRAIN_SCALE = 1.0 / EARTH_R;
 const SKIRT_HEIGHT = 0.003;
 
-function geodeticToDirection(lat: number, lon: number): [number, number, number] {
+function geodeticToDirection(
+  lat: number,
+  lon: number,
+): [number, number, number] {
   const la = lat * DEG;
   const lo = lon * DEG;
   const cl = Math.cos(la);
@@ -88,7 +101,11 @@ function slerpDir(a: Vec3, b: Vec3, t: number): Vec3 {
   const s = Math.sin(theta);
   const w1 = Math.sin((1 - t) * theta) / s;
   const w2 = Math.sin(t * theta) / s;
-  const v: Vec3 = [a[0] * w1 + b[0] * w2, a[1] * w1 + b[1] * w2, a[2] * w1 + b[2] * w2];
+  const v: Vec3 = [
+    a[0] * w1 + b[0] * w2,
+    a[1] * w1 + b[1] * w2,
+    a[2] * w1 + b[2] * w2,
+  ];
   const n = Math.hypot(v[0], v[1], v[2]) || 1;
   return [v[0] / n, v[1] / n, v[2] / n];
 }
@@ -104,7 +121,7 @@ function pushArc(arr: number[], a: Vec3, b: Vec3, col: Vec3): void {
 }
 
 function speedColor(speed: number | undefined): [number, number, number] {
-  if (speed == null) return [0.40, 40 / 255, 1.0];
+  if (speed == null) return [0.4, 40 / 255, 1.0];
   if (speed >= 35) return [0.0, 0.8, 0.27];
   if (speed >= 25) return [0.53, 0.8, 0.0];
   if (speed >= 15) return [0.87, 0.73, 0.0];
@@ -122,12 +139,12 @@ function markerColor(tipo: string): [number, number, number] {
 function hash(x: number, y: number): number {
   const buf = new ArrayBuffer(8);
   const view = new DataView(buf);
-  view.setUint32(0, (x | 0) ^ 0xAE7E5, true);
-  view.setUint32(4, (y | 0) ^ 0x5E7AE, true);
+  view.setUint32(0, (x | 0) ^ 0xae7e5, true);
+  view.setUint32(4, (y | 0) ^ 0x5e7ae, true);
   const bytes = new Uint8Array(buf);
   let h = 0;
   for (let i = 0; i < bytes.length; i++) h = ((h << 5) - h + bytes[i]) | 0;
-  return ((h & 0xFFFF) / 0xFFFF);
+  return (h & 0xffff) / 0xffff;
 }
 
 function smooth(t: number): number {
@@ -176,11 +193,18 @@ function getTerrainHeight(lat: number, lon: number): number {
   return 0;
 }
 
-const terrainTileCache = new Map<string, { heights: Float32Array; resolution: number; timestamp: number }>();
+const terrainTileCache = new Map<
+  string,
+  { heights: Float32Array; resolution: number; timestamp: number }
+>();
 const TILE_CACHE_TTL = 5 * 60 * 1000;
 
 async function fetchTerrainTile(
-  minLat: number, maxLat: number, minLon: number, maxLon: number, resolution: number
+  minLat: number,
+  maxLat: number,
+  minLon: number,
+  maxLon: number,
+  resolution: number,
 ): Promise<Float32Array | null> {
   const key = `${minLat.toFixed(2)}_${maxLat.toFixed(2)}_${minLon.toFixed(2)}_${maxLon.toFixed(2)}_${resolution}`;
   const cached = terrainTileCache.get(key);
@@ -198,7 +222,9 @@ async function fetchTerrainTile(
       resolution: String(resolution),
       source: "auto",
     });
-    const resp = await fetch(`/api/v1/aethermap/terrain?${params}`, { signal: controller.signal });
+    const resp = await fetch(`/api/v1/aethermap/terrain?${params}`, {
+      signal: controller.signal,
+    });
     clearTimeout(timeout);
     if (!resp.ok) return null;
     const data = await resp.json();
@@ -210,7 +236,12 @@ async function fetchTerrainTile(
   }
 }
 
-function sampleTerrainTile(tileHeights: Float32Array, resolution: number, u: number, v: number): number {
+function sampleTerrainTile(
+  tileHeights: Float32Array,
+  resolution: number,
+  u: number,
+  v: number,
+): number {
   const x = u * (resolution - 1);
   const y = v * (resolution - 1);
   const x0 = Math.floor(x);
@@ -228,15 +259,22 @@ function sampleTerrainTile(tileHeights: Float32Array, resolution: number, u: num
   return h0 + (h1 - h0) * fy;
 }
 
-function faceLatLonBounds(face: number): { minLat: number; maxLat: number; minLon: number; maxLon: number } {
+function faceLatLonBounds(face: number): {
+  minLat: number;
+  maxLat: number;
+  minLon: number;
+  maxLon: number;
+} {
   const corners = [
     faceDir(face, -1, -1),
     faceDir(face, 1, -1),
     faceDir(face, -1, 1),
     faceDir(face, 1, 1),
   ];
-  let minLat = Infinity, maxLat = -Infinity;
-  let minLon = Infinity, maxLon = -Infinity;
+  let minLat = Infinity,
+    maxLat = -Infinity;
+  let minLon = Infinity,
+    maxLon = -Infinity;
   const lons: number[] = [];
   for (const c of corners) {
     const { lat, lon } = latLonFromDir(c);
@@ -244,7 +282,7 @@ function faceLatLonBounds(face: number): { minLat: number; maxLat: number; minLo
     maxLat = Math.max(maxLat, lat);
     lons.push(lon);
   }
-  const wrapped = lons.map(lon => ((lon % 360) + 360) % 360 - 180);
+  const wrapped = lons.map((lon) => (((lon % 360) + 360) % 360) - 180);
   minLon = Math.min(...wrapped);
   maxLon = Math.max(...wrapped);
   return { minLat, maxLat, minLon, maxLon };
@@ -278,7 +316,8 @@ function buildTerrainMesh(tiles: (Float32Array | null)[], N: number) {
         let terrainH = 0;
         if (tile) {
           const tileU = (lon - bounds.minLon) / (bounds.maxLon - bounds.minLon);
-          const tileV = 1.0 - (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat);
+          const tileV =
+            1.0 - (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat);
           const clampedU = Math.max(0, Math.min(1, tileU));
           const clampedV = Math.max(0, Math.min(1, tileV));
           terrainH = sampleTerrainTile(tile, N, clampedU, clampedV);
@@ -291,7 +330,11 @@ function buildTerrainMesh(tiles: (Float32Array | null)[], N: number) {
         verts[f][i][j] = pos;
 
         if (i === 0 || i === N || j === 0 || j === N) {
-          const sk: Vec3 = [dir[0] * (r + SKIRT_HEIGHT), dir[1] * (r + SKIRT_HEIGHT), dir[2] * (r + SKIRT_HEIGHT)];
+          const sk: Vec3 = [
+            dir[0] * (r + SKIRT_HEIGHT),
+            dir[1] * (r + SKIRT_HEIGHT),
+            dir[2] * (r + SKIRT_HEIGHT),
+          ];
           skirtVerts[f][i][j] = sk;
         } else {
           skirtVerts[f][i][j] = pos;
@@ -371,13 +414,27 @@ function buildTerrainMesh(tiles: (Float32Array | null)[], N: number) {
 }
 
 function buildProceduralGlobeBuffers(N: number) {
-  return buildTerrainMesh(Array.from({ length: 6 }, () => null), N);
+  return buildTerrainMesh(
+    Array.from({ length: 6 }, () => null),
+    N,
+  );
 }
 
-async function buildGlobeBuffers(N: number): Promise<{ positions: Float32Array; normals: Float32Array; indices: Uint32Array; vertexCount: number }> {
+async function buildGlobeBuffers(N: number): Promise<{
+  positions: Float32Array;
+  normals: Float32Array;
+  indices: Uint32Array;
+  vertexCount: number;
+}> {
   const tilePromises = Array.from({ length: 6 }, (_, f) => {
     const bounds = faceLatLonBounds(f);
-    return fetchTerrainTile(bounds.minLat, bounds.maxLat, bounds.minLon, bounds.maxLon, N);
+    return fetchTerrainTile(
+      bounds.minLat,
+      bounds.maxLat,
+      bounds.minLon,
+      bounds.maxLon,
+      N,
+    );
   });
   const tiles = await Promise.all(tilePromises);
   return buildTerrainMesh(tiles, N);
@@ -385,7 +442,9 @@ async function buildGlobeBuffers(N: number): Promise<{ positions: Float32Array; 
 
 function latLonFromDir(dir: Vec3): { lat: number; lon: number } {
   const n = Math.hypot(dir[0], dir[1], dir[2]) || 1;
-  const x = dir[0] / n, y = dir[1] / n, z = dir[2] / n;
+  const x = dir[0] / n,
+    y = dir[1] / n,
+    z = dir[2] / n;
   const lat = Math.asin(Math.max(-1, Math.min(1, z))) / DEG;
   const lon = Math.atan2(y, x) / DEG;
   return { lat, lon };
@@ -408,24 +467,47 @@ function sub3(a: Vec3, b: Vec3): Vec3 {
   return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 }
 function cross3(a: Vec3, b: Vec3): Vec3 {
-  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
 }
 function dot3(a: Vec3, b: Vec3): number {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 function camEye(yaw: number, pitch: number): Vec3 {
-  const cy = Math.cos(yaw), sy = Math.sin(yaw);
-  const cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const cy = Math.cos(yaw),
+    sy = Math.sin(yaw);
+  const cp = Math.cos(pitch),
+    sp = Math.sin(pitch);
   return [camDist * cy * cp, camDist * sp, camDist * sy * cp];
 }
-function mat4Perspective(fov: number, aspect: number, near: number, far: number): Float32Array {
+function mat4Perspective(
+  fov: number,
+  aspect: number,
+  near: number,
+  far: number,
+): Float32Array {
   const f = 1 / Math.tan(fov / 2);
   const nf = 1 / (near - far);
   return new Float32Array([
-    f / aspect, 0, 0, 0,
-    0, f, 0, 0,
-    0, 0, (far + near) * nf, -1,
-    0, 0, 2 * far * near * nf, 0,
+    f / aspect,
+    0,
+    0,
+    0,
+    0,
+    f,
+    0,
+    0,
+    0,
+    0,
+    (far + near) * nf,
+    -1,
+    0,
+    0,
+    2 * far * near * nf,
+    0,
   ]);
 }
 function mat4LookAt(eye: Vec3, center: Vec3, up: Vec3): Float32Array {
@@ -433,10 +515,22 @@ function mat4LookAt(eye: Vec3, center: Vec3, up: Vec3): Float32Array {
   const x = normalize3(cross3(up, z));
   const y = cross3(z, x);
   return new Float32Array([
-    x[0], y[0], z[0], 0,
-    x[1], y[1], z[1], 0,
-    x[2], y[2], z[2], 0,
-    -dot3(x, eye), -dot3(y, eye), -dot3(z, eye), 1,
+    x[0],
+    y[0],
+    z[0],
+    0,
+    x[1],
+    y[1],
+    z[1],
+    0,
+    x[2],
+    y[2],
+    z[2],
+    0,
+    -dot3(x, eye),
+    -dot3(y, eye),
+    -dot3(z, eye),
+    1,
   ]);
 }
 
@@ -453,7 +547,11 @@ function faceDir(f: number, u: number, v: number): Vec3 {
   return [d[0] / n, d[1] / n, d[2] / n];
 }
 
-function makeBuffer(data: ArrayBufferView, mode: number, stride: number): { buf: WebGLBuffer; count: number; mode: number } | null {
+function makeBuffer(
+  data: ArrayBufferView,
+  mode: number,
+  stride: number,
+): { buf: WebGLBuffer; count: number; mode: number } | null {
   if (!gl) return null;
   const b = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, b);
@@ -482,9 +580,18 @@ function drawIndexed(idxBuf: WebGLBuffer, count: number, mode = gl!.TRIANGLES) {
 }
 
 function updateDynamicBuffers(points: MapPoint[], colorBySpeed: boolean) {
-  if (routeBuffer && gl) { gl.deleteBuffer(routeBuffer.buf); routeBuffer = null; }
-  if (pointBuffer && gl) { gl.deleteBuffer(pointBuffer.buf); pointBuffer = null; }
-  if (markerBuffer && gl) { gl.deleteBuffer(markerBuffer.buf); markerBuffer = null; }
+  if (routeBuffer && gl) {
+    gl.deleteBuffer(routeBuffer.buf);
+    routeBuffer = null;
+  }
+  if (pointBuffer && gl) {
+    gl.deleteBuffer(pointBuffer.buf);
+    pointBuffer = null;
+  }
+  if (markerBuffer && gl) {
+    gl.deleteBuffer(markerBuffer.buf);
+    markerBuffer = null;
+  }
   if (!gl) return;
 
   const routeData: number[] = [];
@@ -496,17 +603,29 @@ function updateDynamicBuffers(points: MapPoint[], colorBySpeed: boolean) {
     const elev = (p.altitude || 0) * TERRAIN_SCALE;
     const r = GLOBE_RADIUS + elev;
     pointData.push(dir[0] * r, dir[1] * r, dir[2] * r, col[0], col[1], col[2]);
-    if (prev) pushArc(routeData, prev, [dir[0] * r, dir[1] * r, dir[2] * r], col);
+    if (prev)
+      pushArc(routeData, prev, [dir[0] * r, dir[1] * r, dir[2] * r], col);
     prev = [dir[0] * r, dir[1] * r, dir[2] * r];
   }
-  if (routeData.length) routeBuffer = makeBuffer(new Float32Array(routeData), gl.LINE_STRIP, 6);
-  if (pointData.length) pointBuffer = makeBuffer(new Float32Array(pointData), gl.POINTS, 6);
+  if (routeData.length)
+    routeBuffer = makeBuffer(new Float32Array(routeData), gl.LINE_STRIP, 6);
+  if (pointData.length)
+    pointBuffer = makeBuffer(new Float32Array(pointData), gl.POINTS, 6);
 }
 
 function updateSceneBuffers(sc: AetherScene) {
-  if (routeBuffer && gl) { gl.deleteBuffer(routeBuffer.buf); routeBuffer = null; }
-  if (pointBuffer && gl) { gl.deleteBuffer(pointBuffer.buf); pointBuffer = null; }
-  if (markerBuffer && gl) { gl.deleteBuffer(markerBuffer.buf); markerBuffer = null; }
+  if (routeBuffer && gl) {
+    gl.deleteBuffer(routeBuffer.buf);
+    routeBuffer = null;
+  }
+  if (pointBuffer && gl) {
+    gl.deleteBuffer(pointBuffer.buf);
+    pointBuffer = null;
+  }
+  if (markerBuffer && gl) {
+    gl.deleteBuffer(markerBuffer.buf);
+    markerBuffer = null;
+  }
   if (!gl) return;
 
   const routeData: number[] = [];
@@ -516,40 +635,78 @@ function updateSceneBuffers(sc: AetherScene) {
       const col = hexToRgb(ent.char);
       const pts = ent.pts.map(toDir);
       for (let i = 0; i + 1 < pts.length; i++) {
-        const elev = (pts[i + 1] && (pts[i + 1][2] !== undefined) ? (pts[i + 1][2] || 0) : 0);
-        const h0 = (ent.pts[i] && ent.pts[i].length >= 3 ? (ent.pts[i][2] || 0) : 0) * TERRAIN_SCALE;
-        const h1 = (ent.pts[i + 1] && ent.pts[i + 1].length >= 3 ? (ent.pts[i + 1][2] || 0) : 0) * TERRAIN_SCALE;
-        const a = [pts[i][0] * (GLOBE_RADIUS + h0), pts[i][1] * (GLOBE_RADIUS + h0), pts[i][2] * (GLOBE_RADIUS + h0)];
-        const b = [pts[i + 1][0] * (GLOBE_RADIUS + h1), pts[i + 1][1] * (GLOBE_RADIUS + h1), pts[i + 1][2] * (GLOBE_RADIUS + h1)];
+        const elev =
+          pts[i + 1] && pts[i + 1][2] !== undefined ? pts[i + 1][2] || 0 : 0;
+        const h0 =
+          (ent.pts[i] && ent.pts[i].length >= 3 ? ent.pts[i][2] || 0 : 0) *
+          TERRAIN_SCALE;
+        const h1 =
+          (ent.pts[i + 1] && ent.pts[i + 1].length >= 3
+            ? ent.pts[i + 1][2] || 0
+            : 0) * TERRAIN_SCALE;
+        const a = [
+          pts[i][0] * (GLOBE_RADIUS + h0),
+          pts[i][1] * (GLOBE_RADIUS + h0),
+          pts[i][2] * (GLOBE_RADIUS + h0),
+        ];
+        const b = [
+          pts[i + 1][0] * (GLOBE_RADIUS + h1),
+          pts[i + 1][1] * (GLOBE_RADIUS + h1),
+          pts[i + 1][2] * (GLOBE_RADIUS + h1),
+        ];
         pushArc(routeData, a as Vec3, b as Vec3, col);
       }
-    } else if (ent.tipo === "start" || ent.tipo === "end" || ent.tipo === "stats") {
+    } else if (
+      ent.tipo === "start" ||
+      ent.tipo === "end" ||
+      ent.tipo === "stats"
+    ) {
       const p = ent.pts[0];
       if (!p) continue;
       const rel = toDir(p);
-      const h = (p.length >= 3 ? (p[2] || 0) : 0) * TERRAIN_SCALE;
+      const h = (p.length >= 3 ? p[2] || 0 : 0) * TERRAIN_SCALE;
       const r = GLOBE_RADIUS + h;
-      markerData.push(rel[0] * r, rel[1] * r, rel[2] * r, ...markerColor(ent.tipo));
+      markerData.push(
+        rel[0] * r,
+        rel[1] * r,
+        rel[2] * r,
+        ...markerColor(ent.tipo),
+      );
     } else {
       const col = hexToRgb(ent.char);
       const pts = ent.pts.map(toDir);
       for (let i = 0; i + 1 < pts.length; i++) {
-        const h0 = (ent.pts[i] && ent.pts[i].length >= 3 ? (ent.pts[i][2] || 0) : 0) * TERRAIN_SCALE;
-        const h1 = (ent.pts[i + 1] && ent.pts[i + 1].length >= 3 ? (ent.pts[i + 1][2] || 0) : 0) * TERRAIN_SCALE;
-        const a = [pts[i][0] * (GLOBE_RADIUS + h0), pts[i][1] * (GLOBE_RADIUS + h0), pts[i][2] * (GLOBE_RADIUS + h0)];
-        const b = [pts[i + 1][0] * (GLOBE_RADIUS + h1), pts[i + 1][1] * (GLOBE_RADIUS + h1), pts[i + 1][2] * (GLOBE_RADIUS + h1)];
+        const h0 =
+          (ent.pts[i] && ent.pts[i].length >= 3 ? ent.pts[i][2] || 0 : 0) *
+          TERRAIN_SCALE;
+        const h1 =
+          (ent.pts[i + 1] && ent.pts[i + 1].length >= 3
+            ? ent.pts[i + 1][2] || 0
+            : 0) * TERRAIN_SCALE;
+        const a = [
+          pts[i][0] * (GLOBE_RADIUS + h0),
+          pts[i][1] * (GLOBE_RADIUS + h0),
+          pts[i][2] * (GLOBE_RADIUS + h0),
+        ];
+        const b = [
+          pts[i + 1][0] * (GLOBE_RADIUS + h1),
+          pts[i + 1][1] * (GLOBE_RADIUS + h1),
+          pts[i + 1][2] * (GLOBE_RADIUS + h1),
+        ];
         pushArc(routeData, a as Vec3, b as Vec3, col);
       }
     }
   }
-  if (routeData.length) routeBuffer = makeBuffer(new Float32Array(routeData), gl.LINE_STRIP, 6);
-  if (markerData.length) markerBuffer = makeBuffer(new Float32Array(markerData), gl.POINTS, 6);
+  if (routeData.length)
+    routeBuffer = makeBuffer(new Float32Array(routeData), gl.LINE_STRIP, 6);
+  if (markerData.length)
+    markerBuffer = makeBuffer(new Float32Array(markerData), gl.POINTS, 6);
 }
 
-  let currentLOD = -1;
-  let globePending = false;
+let currentLOD = -1;
+let globePending = false;
 
-  onMounted(async () => {
+onMounted(async () => {
   const canvas = canvasRef.value;
   if (!canvas) return;
   const canvasEl = canvas as HTMLCanvasElement;
@@ -700,7 +857,7 @@ function updateSceneBuffers(sc: AetherScene) {
   let globeIdxBuf = makeIndexBuffer(globeData.indices);
   let globeIdxCount = globeData.indices.length;
 
-  buildGlobeBuffers(getLODResolution(camDist)).then(data => {
+  buildGlobeBuffers(getLODResolution(camDist)).then((data) => {
     if (!gl) return;
     if (globePosBuf) gl.deleteBuffer(globePosBuf.buf);
     if (globeNormBuf) gl.deleteBuffer(globeNormBuf.buf);
@@ -757,7 +914,9 @@ function updateSceneBuffers(sc: AetherScene) {
     ly = e.clientY;
     canvasEl.setPointerCapture(e.pointerId);
   });
-  canvasEl.addEventListener("pointerup", () => { dragging = false; });
+  canvasEl.addEventListener("pointerup", () => {
+    dragging = false;
+  });
   canvasEl.addEventListener("pointermove", (e: PointerEvent) => {
     if (!dragging) return;
     const dYaw = (e.clientX - lx) * 0.005;
@@ -866,17 +1025,28 @@ function updateSceneBuffers(sc: AetherScene) {
   rafId = requestAnimationFrame(frame);
 });
 
-watch(() => [props.points, props.colorBySpeed], () => {
-  if (!gl) return;
-  if (!scene.value) updateDynamicBuffers(props.points && props.points.length > 0 ? props.points : DEMO_POINTS, props.colorBySpeed || false);
-});
+watch(
+  () => [props.points, props.colorBySpeed],
+  () => {
+    if (!gl) return;
+    if (!scene.value)
+      updateDynamicBuffers(
+        props.points && props.points.length > 0 ? props.points : DEMO_POINTS,
+        props.colorBySpeed || false,
+      );
+  },
+);
 
 watch(
   scene,
   (sc) => {
     if (!gl) return;
     if (sc) updateSceneBuffers(sc);
-    else updateDynamicBuffers(props.points && props.points.length > 0 ? props.points : DEMO_POINTS, props.colorBySpeed || false);
+    else
+      updateDynamicBuffers(
+        props.points && props.points.length > 0 ? props.points : DEMO_POINTS,
+        props.colorBySpeed || false,
+      );
   },
   { deep: false },
 );
@@ -887,9 +1057,9 @@ onBeforeUnmount(() => {
     rafId = null;
   }
   if (gl) {
-    [
-      globeBuffer, routeBuffer, pointBuffer, markerBuffer
-    ].forEach((b) => { if (b) gl!.deleteBuffer(b.buf); });
+    [globeBuffer, routeBuffer, pointBuffer, markerBuffer].forEach((b) => {
+      if (b) gl!.deleteBuffer(b.buf);
+    });
   }
   resizeObserver?.disconnect();
 });

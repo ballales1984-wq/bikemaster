@@ -5,31 +5,56 @@
       <input
         v-model="searchQuery"
         :placeholder="t('metabolism.nutritionSearchPlaceholder')"
+        class="search-input"
         @input="onSearchInput"
         @focus="showResults = true"
-        class="search-input"
       />
-      <select v-model="selectedCategory" @change="doSearch" class="category-select">
+      <select
+        v-model="selectedCategory"
+        class="category-select"
+        @change="doSearch"
+      >
         <option value="">{{ t("metabolism.allCategories") }}</option>
-        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+        <option v-for="cat in categories" :key="cat" :value="cat">
+          {{ cat }}
+        </option>
       </select>
     </div>
-    <div v-if="showResults && (searchResults.length > 0 || hasSearched)" class="results-dropdown">
-      <div v-if="searching" class="searching-hint">{{ t("common.loading") }}</div>
+    <div
+      v-if="showResults && (searchResults.length > 0 || hasSearched)"
+      class="results-dropdown"
+    >
+      <div v-if="searching" class="searching-hint">
+        {{ t("common.loading") }}
+      </div>
       <div v-else-if="searchResults.length === 0" class="no-results">
         {{ t("metabolism.noResults") }}
       </div>
       <ul v-else class="search-results">
-        <li v-for="item in searchResults" :key="item.id" class="result-item" @click="selectItem(item)">
+        <li
+          v-for="item in searchResults"
+          :key="item.id"
+          class="result-item"
+          @click="selectItem(item)"
+        >
           <div class="result-main">
             <span class="result-name">{{ item.name }}</span>
             <span class="result-category">{{ item.category }}</span>
           </div>
           <div class="result-macros">
-            <span>{{ Math.round(item.kcal_per_100g) }} {{ t("metabolism.kcal") }}/100g</span>
-            <span v-if="item.carbs_g_per_100g">C: {{ item.carbs_g_per_100g }}g</span>
-            <span v-if="item.protein_g_per_100g">P: {{ item.protein_g_per_100g }}g</span>
-            <span v-if="item.fat_g_per_100g">F: {{ item.fat_g_per_100g }}g</span>
+            <span
+              >{{ Math.round(item.kcal_per_100g) }}
+              {{ t("metabolism.kcal") }}/100g</span
+            >
+            <span v-if="item.carbs_g_per_100g"
+              >C: {{ item.carbs_g_per_100g }}g</span
+            >
+            <span v-if="item.protein_g_per_100g"
+              >P: {{ item.protein_g_per_100g }}g</span
+            >
+            <span v-if="item.fat_g_per_100g"
+              >F: {{ item.fat_g_per_100g }}g</span
+            >
           </div>
         </li>
       </ul>
@@ -42,10 +67,19 @@
       <div class="quantity-inputs">
         <label>
           {{ t("metabolism.quantity") }}
-          <input v-model.number="quantity" type="number" min="1" max="5000" step="1" />
+          <input
+            v-model.number="quantity"
+            type="number"
+            min="1"
+            max="5000"
+            step="1"
+          />
         </label>
         <div class="calculated-values">
-          <span><strong>{{ calculatedKcal }}</strong> {{ t("metabolism.kcal") }}</span>
+          <span
+            ><strong>{{ calculatedKcal }}</strong>
+            {{ t("metabolism.kcal") }}</span
+          >
           <span v-if="calculatedCarbs">C: {{ calculatedCarbs }}g</span>
           <span v-if="calculatedProtein">P: {{ calculatedProtein }}g</span>
           <span v-if="calculatedFat">F: {{ calculatedFat }}g</span>
@@ -53,30 +87,72 @@
         </div>
       </div>
       <div class="quantity-actions">
-        <button class="btn btn-primary" @click="addToLog" :disabled="!canAdd || saving">
+        <button
+          class="btn btn-primary"
+          :disabled="!canAdd || saving"
+          @click="addToLog"
+        >
           {{ t("metabolism.addFood") }}
         </button>
-        <button class="btn btn-secondary" @click="cancelSelection">{{ t("common.cancel") }}</button>
+        <button class="btn btn-secondary" @click="cancelSelection">
+          {{ t("common.cancel") }}
+        </button>
       </div>
     </div>
     <div class="add-custom">
-      <button class="btn btn-small btn-secondary" @click="showCustomForm = true">
+      <button
+        class="btn btn-small btn-secondary"
+        @click="showCustomForm = true"
+      >
         {{ t("metabolism.addCustomFood") }}
       </button>
       <div v-if="showCustomForm" class="custom-form">
         <input v-model="customName" :placeholder="t('common.name')" />
         <select v-model="customCategory">
-          <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+          <option v-for="cat in categories" :key="cat" :value="cat">
+            {{ cat }}
+          </option>
         </select>
-        <input v-model.number="customKcal" type="number" :placeholder="`${t('metabolism.kcal')}/100g`" min="0" />
-        <input v-model.number="customCarbs" type="number" :placeholder="`${t('metabolism.carbs')}`" min="0" />
-        <input v-model.number="customProtein" type="number" :placeholder="`${t('metabolism.protein')}`" min="0" />
-        <input v-model.number="customFat" type="number" :placeholder="`${t('metabolism.fat')}`" min="0" />
-        <input v-model.number="customFiber" type="number" :placeholder="`${t('metabolism.fiber')}`" min="0" />
-        <button class="btn btn-primary" @click="addCustomFood" :disabled="!canAddCustom || saving">
+        <input
+          v-model.number="customKcal"
+          type="number"
+          :placeholder="`${t('metabolism.kcal')}/100g`"
+          min="0"
+        />
+        <input
+          v-model.number="customCarbs"
+          type="number"
+          :placeholder="`${t('metabolism.carbs')}`"
+          min="0"
+        />
+        <input
+          v-model.number="customProtein"
+          type="number"
+          :placeholder="`${t('metabolism.protein')}`"
+          min="0"
+        />
+        <input
+          v-model.number="customFat"
+          type="number"
+          :placeholder="`${t('metabolism.fat')}`"
+          min="0"
+        />
+        <input
+          v-model.number="customFiber"
+          type="number"
+          :placeholder="`${t('metabolism.fiber')}`"
+          min="0"
+        />
+        <button
+          class="btn btn-primary"
+          :disabled="!canAddCustom || saving"
+          @click="addCustomFood"
+        >
           {{ t("common.save") }}
         </button>
-        <button class="btn btn-secondary" @click="showCustomForm = false">{{ t("common.cancel") }}</button>
+        <button class="btn btn-secondary" @click="showCustomForm = false">
+          {{ t("common.cancel") }}
+        </button>
       </div>
     </div>
   </div>
@@ -124,22 +200,37 @@ const calculatedKcal = computed(() => {
 });
 const calculatedCarbs = computed(() => {
   if (!selectedItem.value) return 0;
-  return +((selectedItem.value.carbs_g_per_100g * quantity.value) / 100).toFixed(1);
+  return +(
+    (selectedItem.value.carbs_g_per_100g * quantity.value) /
+    100
+  ).toFixed(1);
 });
 const calculatedProtein = computed(() => {
   if (!selectedItem.value) return 0;
-  return +((selectedItem.value.protein_g_per_100g * quantity.value) / 100).toFixed(1);
+  return +(
+    (selectedItem.value.protein_g_per_100g * quantity.value) /
+    100
+  ).toFixed(1);
 });
 const calculatedFat = computed(() => {
   if (!selectedItem.value) return 0;
-  return +((selectedItem.value.fat_g_per_100g * quantity.value) / 100).toFixed(1);
+  return +((selectedItem.value.fat_g_per_100g * quantity.value) / 100).toFixed(
+    1,
+  );
 });
 const calculatedFiber = computed(() => {
   if (!selectedItem.value) return 0;
-  return +((selectedItem.value.fiber_g_per_100g * quantity.value) / 100).toFixed(1);
+  return +(
+    (selectedItem.value.fiber_g_per_100g * quantity.value) /
+    100
+  ).toFixed(1);
 });
-const canAdd = computed(() => selectedItem.value !== null && quantity.value > 0);
-const canAddCustom = computed(() => customName.value.trim().length > 0 && customKcal.value > 0);
+const canAdd = computed(
+  () => selectedItem.value !== null && quantity.value > 0,
+);
+const canAddCustom = computed(
+  () => customName.value.trim().length > 0 && customKcal.value > 0,
+);
 
 function mealLabel(type: string): string {
   const map: Record<string, string> = {
@@ -157,16 +248,42 @@ async function loadCategories() {
     categories.value = await store.fetchNutritionCategories();
     if (categories.value.length === 0) {
       categories.value = [
-        "pasta", "pizza", "carne", "pesce", "uova", "pane",
-        "cereali", "latticini", "insalate", "zuppe", "verdure",
-        "legumi", "dolci", "colazione", "street_food", "bevande",
+        "pasta",
+        "pizza",
+        "carne",
+        "pesce",
+        "uova",
+        "pane",
+        "cereali",
+        "latticini",
+        "insalate",
+        "zuppe",
+        "verdure",
+        "legumi",
+        "dolci",
+        "colazione",
+        "street_food",
+        "bevande",
       ];
     }
   } catch {
     categories.value = [
-      "pasta", "pizza", "carne", "pesce", "uova", "pane",
-      "cereali", "latticini", "insalate", "zuppe", "verdure",
-      "legumi", "dolci", "colazione", "street_food", "bevande",
+      "pasta",
+      "pizza",
+      "carne",
+      "pesce",
+      "uova",
+      "pane",
+      "cereali",
+      "latticini",
+      "insalate",
+      "zuppe",
+      "verdure",
+      "legumi",
+      "dolci",
+      "colazione",
+      "street_food",
+      "bevande",
     ];
   }
 }
@@ -175,7 +292,10 @@ async function doSearch() {
   searching.value = true;
   hasSearched.value = true;
   try {
-    searchResults.value = await store.searchNutritionFood(searchQuery.value, selectedCategory.value || undefined);
+    searchResults.value = await store.searchNutritionFood(
+      searchQuery.value,
+      selectedCategory.value || undefined,
+    );
   } catch {
     searchResults.value = [];
   } finally {
@@ -326,7 +446,7 @@ onUnmounted(() => {
   transition: background 0.15s;
 }
 .result-item:hover {
-  background: var(--surface-hover, rgba(128,128,128,0.08));
+  background: var(--surface-hover, rgba(128, 128, 128, 0.08));
 }
 .result-item:last-child {
   border-bottom: none;

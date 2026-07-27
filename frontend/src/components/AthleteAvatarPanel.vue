@@ -16,36 +16,17 @@
       <div class="mannequin-section">
         <div class="section-title">Mappa Corporea</div>
         <div class="mannequin-container">
-          <svg
-viewBox="0 0 200 420" class="mannequin-svg"
->
+          <svg viewBox="0 0 200 420" class="mannequin-svg">
             <!-- Ombra/base -->
-            <ellipse
-cx="100" cy="405"
-rx="45" ry="8" fill="rgba(0,0,0,0.3)"
-/>
+            <ellipse cx="100" cy="405" rx="45" ry="8" fill="rgba(0,0,0,0.3)" />
 
             <!-- Testa -->
-            <g
-class="body-part" data-category="head"
->
-              <ellipse
-cx="100" cy="45"
-rx="28" ry="32" class="body-shape"
-/>
-              <circle
-cx="100" cy="45"
-r="28" class="body-outline"
-/>
+            <g class="body-part" data-category="head">
+              <ellipse cx="100" cy="45" rx="28" ry="32" class="body-shape" />
+              <circle cx="100" cy="45" r="28" class="body-outline" />
               <!-- Linee del viso -->
-              <circle
-cx="90" cy="40"
-r="3" class="body-detail"
-/>
-              <circle
-cx="110" cy="40"
-r="3" class="body-detail"
-/>
+              <circle cx="90" cy="40" r="3" class="body-detail" />
+              <circle cx="110" cy="40" r="3" class="body-detail" />
               <path
                 d="M 92 55 Q 100 62 108 55"
                 class="body-detail"
@@ -55,9 +36,7 @@ r="3" class="body-detail"
             </g>
 
             <!-- Collo -->
-            <g
-class="body-part" data-category="neck"
->
+            <g class="body-part" data-category="neck">
               <rect
                 x="90"
                 y="72"
@@ -69,9 +48,7 @@ class="body-part" data-category="neck"
             </g>
 
             <!-- Torace -->
-            <g
-class="body-part" data-category="chest"
->
+            <g class="body-part" data-category="chest">
               <path
                 d="M 60 90 Q 60 85 70 82 L 130 82 Q 140 85 140 90 L 138 145 Q 138 150 133 152 L 67 152 Q 62 150 62 145 Z"
                 class="body-shape"
@@ -82,16 +59,11 @@ class="body-part" data-category="chest"
                 fill="none"
               />
               <!-- Linea centrale -->
-              <line
-x1="100" y1="85"
-x2="100" y2="150" class="body-detail"
-/>
+              <line x1="100" y1="85" x2="100" y2="150" class="body-detail" />
             </g>
 
             <!-- Addome -->
-            <g
-class="body-part" data-category="core"
->
+            <g class="body-part" data-category="core">
               <path
                 d="M 67 152 L 133 152 Q 138 155 138 162 L 136 210 Q 136 215 131 217 L 69 217 Q 64 215 64 210 Z"
                 class="body-shape"
@@ -104,9 +76,7 @@ class="body-part" data-category="core"
             </g>
 
             <!-- Braccia -->
-            <g
-class="body-part" data-category="arms"
->
+            <g class="body-part" data-category="arms">
               <!-- Braccio sinistro -->
               <path
                 d="M 60 90 L 45 95 Q 38 98 35 105 L 25 155 Q 22 162 28 165 L 38 168 Q 42 168 44 163 L 55 115 Q 58 105 62 100"
@@ -120,9 +90,7 @@ class="body-part" data-category="arms"
             </g>
 
             <!-- Gambe -->
-            <g
-class="body-part" data-category="legs"
->
+            <g class="body-part" data-category="legs">
               <!-- Gamba sinistra -->
               <path
                 d="M 69 217 L 65 280 Q 63 290 65 300 L 70 370 Q 72 380 78 382 L 90 385 Q 95 385 97 380 L 100 290 L 100 217"
@@ -137,18 +105,9 @@ class="body-part" data-category="legs"
 
             <!-- Indicatori corpo -->
             <g class="body-indicators">
-              <circle
-cx="100" cy="45"
-r="32" class="indicator-ring"
-/>
-              <circle
-cx="100" cy="120"
-r="45" class="indicator-ring"
-/>
-              <circle
-cx="100" cy="185"
-r="35" class="indicator-ring"
-/>
+              <circle cx="100" cy="45" r="32" class="indicator-ring" />
+              <circle cx="100" cy="120" r="45" class="indicator-ring" />
+              <circle cx="100" cy="185" r="35" class="indicator-ring" />
             </g>
           </svg>
 
@@ -182,9 +141,7 @@ r="35" class="indicator-ring"
             @mouseenter="hoveredCategory = key"
             @mouseleave="hoveredCategory = ''"
           >
-            <span
-class="legend-color" :style="{ background: cat.color }"
-/>
+            <span class="legend-color" :style="{ background: cat.color }" />
             <span class="legend-label">{{ cat.label }}</span>
           </div>
         </div>
@@ -198,7 +155,9 @@ class="legend-color" :style="{ background: cat.color }"
             <div class="player-avatar">
               <span class="avatar-emoji" />
               <div class="avatar-level">
-                <span class="level-badge">Lv.{{ profile?.experience_level || "—" }}</span>
+                <span class="level-badge"
+                  >Lv.{{ profile?.experience_level || "—" }}</span
+                >
               </div>
             </div>
             <div class="player-info">
@@ -215,9 +174,13 @@ class="legend-color" :style="{ background: cat.color }"
                 <span class="meta-divider">|</span>
                 <span class="meta-item">{{ profile?.height_cm }} cm</span>
                 <span class="meta-divider">|</span>
-                <span class="meta-item">Acqua {{ profile?.body_water_percentage }}%</span>
+                <span class="meta-item"
+                  >Acqua {{ profile?.body_water_percentage }}%</span
+                >
                 <span class="meta-divider">|</span>
-                <span class="meta-item">Muscoli {{ profile?.muscle_mass_percentage }}%</span>
+                <span class="meta-item"
+                  >Muscoli {{ profile?.muscle_mass_percentage }}%</span
+                >
                 <span class="meta-divider">|</span>
                 <span class="meta-item">BMR {{ profile?.bmr_kcal }} kcal</span>
               </div>
@@ -231,8 +194,7 @@ class="legend-color" :style="{ background: cat.color }"
               <span class="xp-value">{{ profile?.years_active }} anni</span>
             </div>
             <div class="xp-bar">
-              <div
-class="xp-fill" :style="{ width: xpPercent + '%' }" />
+              <div class="xp-fill" :style="{ width: xpPercent + '%' }" />
             </div>
           </div>
 
@@ -247,9 +209,7 @@ class="xp-fill" :style="{ width: xpPercent + '%' }" />
                 {{ stat.icon }}
               </div>
               <div class="stat-content">
-                <div
- class="stat-value" :style="{ color: stat.color }"
- >
+                <div class="stat-value" :style="{ color: stat.color }">
                   {{ stat.value }}
                 </div>
                 <div class="stat-label">
@@ -275,9 +235,7 @@ class="xp-fill" :style="{ width: xpPercent + '%' }" />
                 class="stat-card"
               >
                 <div class="stat-content">
-                  <div
- class="stat-value" :style="{ color: stat.color }"
- >
+                  <div class="stat-value" :style="{ color: stat.color }">
                     {{ stat.value }}
                   </div>
                   <div class="stat-label">
@@ -287,7 +245,10 @@ class="xp-fill" :style="{ width: xpPercent + '%' }" />
                 <div class="stat-bar">
                   <div
                     class="stat-fill"
-                    :style="{ width: stat.percent + '%', background: stat.color }"
+                    :style="{
+                      width: stat.percent + '%',
+                      background: stat.color,
+                    }"
                   />
                 </div>
               </div>
@@ -318,17 +279,14 @@ class="xp-fill" :style="{ width: xpPercent + '%' }" />
           </div>
 
           <!-- Power/Performance stats -->
-          <div v-if="profile?.ftp_watts"
-class="power-section">
+          <div v-if="profile?.ftp_watts" class="power-section">
             <div class="power-header">
               <span class="power-icon" />
               <span class="power-label">FTP</span>
               <span class="power-value">{{ profile.ftp_watts }} W</span>
             </div>
             <div class="power-bar">
-              <div
-class="power-fill" :style="{ width: ftpPercent + '%' }"
-/>
+              <div class="power-fill" :style="{ width: ftpPercent + '%' }" />
             </div>
             <div class="power-zones">
               <span
@@ -344,8 +302,7 @@ class="power-fill" :style="{ width: ftpPercent + '%' }"
           </div>
 
           <!-- Fitness State -->
-          <div v-if="athleteState"
-class="fitness-section">
+          <div v-if="athleteState" class="fitness-section">
             <div class="fitness-title">Fitness State</div>
             <div class="fitness-grid">
               <div

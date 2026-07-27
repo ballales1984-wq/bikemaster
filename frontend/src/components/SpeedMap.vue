@@ -6,12 +6,9 @@ della configurazione. Props: gpsPoints, loading, error.
 
 <template>
   <div class="google-speed-map">
-    <div
-ref="mapEl" class="map-canvas" />
-    <div
-v-if="loading" class="map-loading">Caricamento mappa velocità...</div>
-    <div
-v-if="!loading && !error" class="map-speed-legend">
+    <div ref="mapEl" class="map-canvas" />
+    <div v-if="loading" class="map-loading">Caricamento mappa velocità...</div>
+    <div v-if="!loading && !error" class="map-speed-legend">
       <div class="legend-title">Velocità (km/h)</div>
       <div class="legend-bar">
         <span>{{ maxSpeed.toFixed(1) }}</span>
@@ -69,16 +66,25 @@ function initMap(center: [number, number], zoom = 14) {
     strokeOpacity: 0.85,
   }));
 
-  pathLayer.addListener("mouseover", (event: { feature: { getProperty: (key: string) => unknown }; latLng?: { lat: () => number; lng: () => number } }) => {
-    const spd = event.feature.getProperty("speed_kmh");
-    if (spd != null && infoWindow) {
-      infoWindow.setContent(
-        "<div><strong>" + Number(spd).toFixed(1) + " km/h</strong></div>",
-      );
-      infoWindow.setPosition([event.latLng?.lat?.() ?? 0, event.latLng?.lng?.() ?? 0]);
-      infoWindow.open(googleMap);
-    }
-  });
+  pathLayer.addListener(
+    "mouseover",
+    (event: {
+      feature: { getProperty: (key: string) => unknown };
+      latLng?: { lat: () => number; lng: () => number };
+    }) => {
+      const spd = event.feature.getProperty("speed_kmh");
+      if (spd != null && infoWindow) {
+        infoWindow.setContent(
+          "<div><strong>" + Number(spd).toFixed(1) + " km/h</strong></div>",
+        );
+        infoWindow.setPosition([
+          event.latLng?.lat?.() ?? 0,
+          event.latLng?.lng?.() ?? 0,
+        ]);
+        infoWindow.open(googleMap);
+      }
+    },
+  );
 
   pathLayer.addListener("mouseout", () => {
     if (infoWindow) infoWindow.close();
@@ -89,18 +95,27 @@ async function loadSpeedPath() {
   loading.value = true;
   error.value = "";
   try {
-    const data = await apiGet<{ min_speed: number; max_speed: number; segments: any[]; center: { lat: number; lon: number } }>("/api/v1/rides/" + props.rideId + "/speed-path");
+    const data = await apiGet<{
+      min_speed: number;
+      max_speed: number;
+      segments: any[];
+      center: { lat: number; lon: number };
+    }>("/api/v1/rides/" + props.rideId + "/speed-path");
     minSpeed.value = data.min_speed || 0;
     maxSpeed.value = data.max_speed || 35;
     renderMap(data);
   } catch (err: unknown) {
-    error.value = err instanceof Error ? err.message : "Unable to load speed path";
+    error.value =
+      err instanceof Error ? err.message : "Unable to load speed path";
   } finally {
     loading.value = false;
   }
 }
 
-function renderMap(data: { segments: any[]; center: { lat: number; lon: number } }) {
+function renderMap(data: {
+  segments: any[];
+  center: { lat: number; lon: number };
+}) {
   if (!mapEl.value || !data.segments || !data.segments.length) return;
 
   if (!googleMap) {
@@ -260,4 +275,3 @@ onBeforeUnmount(() => {
   );
 }
 </style>
-

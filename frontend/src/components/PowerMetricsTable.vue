@@ -2,8 +2,7 @@
   <div class="power-table">
     <div class="header">
       <h3>Metriche di potenza</h3>
-      <button class="recompute"
-:disabled="loading" @click="$emit('recompute')">
+      <button class="recompute" :disabled="loading" @click="$emit('recompute')">
         {{ loading ? "Ricalcolo..." : "Ricalcola tutte" }}
       </button>
     </div>
@@ -25,8 +24,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="m in metrics"
-:key="m.id ?? m.ride_id ?? m.date">
+        <tr v-for="m in metrics" :key="m.id ?? m.ride_id ?? m.date">
           <td>{{ m.date }}</td>
           <td>#{{ m.ride_id ?? "—" }}</td>
           <td>{{ fmt(m.average_power) }}</td>

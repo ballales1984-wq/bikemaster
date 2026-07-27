@@ -78,7 +78,7 @@ interface HeatmapData {
 const athleteId = ref<number | null>(null);
 const loading = ref(false);
 const heatmapData = ref<HeatmapData | null>(null);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 let map: any = null;
 
 async function loadAthleteId() {
@@ -125,7 +125,7 @@ async function renderMap() {
     attribution: "© OpenStreetMap contributors",
     maxZoom: 18,
   }).addTo(map);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   (L as any)
     .heatLayer(
       points.map((p: { lat: number; lon: number; count?: number }) => [

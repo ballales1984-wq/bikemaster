@@ -21,9 +21,13 @@ export const useAthleteStateStore = defineStore("athleteState", () => {
   const readinessPercent = computed(() => state.value?.readiness ?? 0);
   const fatigueLevel = computed(() => state.value?.fatigue_score ?? 0);
   const riskLevel = computed(() => state.value?.risk_level ?? "ok");
-  const isOvertrainingRisk = computed(() => state.value?.is_overtraining_risk ?? false);
+  const isOvertrainingRisk = computed(
+    () => state.value?.is_overtraining_risk ?? false,
+  );
   const isFresh = computed(() => state.value?.is_fresh ?? false);
-  const isReadyForHardEffort = computed(() => state.value?.is_ready_for_hard_effort ?? false);
+  const isReadyForHardEffort = computed(
+    () => state.value?.is_ready_for_hard_effort ?? false,
+  );
 
   async function fetchState(): Promise<AthleteState | null> {
     if (!auth.isLoggedIn) return null;
@@ -34,7 +38,7 @@ export const useAthleteStateStore = defineStore("athleteState", () => {
         "/api/v1/athlete/state",
       );
       const resolved: AthleteState | null =
-        "state" in data ? data.state ?? null : (data as AthleteState);
+        "state" in data ? (data.state ?? null) : (data as AthleteState);
       state.value = resolved;
       lastComputedAt.value = resolved?.computed_at ?? null;
       return state.value;
@@ -44,7 +48,8 @@ export const useAthleteStateStore = defineStore("athleteState", () => {
         lastComputedAt.value = null;
         return null;
       }
-      error.value = e instanceof Error ? e.message : "Failed to load athlete state";
+      error.value =
+        e instanceof Error ? e.message : "Failed to load athlete state";
       return null;
     } finally {
       loading.value = false;

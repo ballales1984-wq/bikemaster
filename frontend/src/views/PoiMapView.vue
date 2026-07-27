@@ -50,28 +50,19 @@
           class="form-input"
         >
           <option :value="null">{{ t("poi.noItinerary") }}</option>
-          <option
-v-for="ride in rides" :key="ride.id"
-:value="ride.id"
->
+          <option v-for="ride in rides" :key="ride.id" :value="ride.id">
             {{ ride.date }} · {{ formatDistanceKm(ride.distance_km) }}
           </option>
         </select>
       </label>
     </div>
 
-    <div
-v-if="addMode" class="add-hint"> {{ t("poi.clickMapHint") }}</div>
+    <div v-if="addMode" class="add-hint">{{ t("poi.clickMapHint") }}</div>
 
-    <div
-id="poi-map" ref="mapContainer"
-class="poi-map"
-/>
+    <div id="poi-map" ref="mapContainer" class="poi-map" />
 
     <transition name="slide">
-      <div
-v-if="addMode && draft" class="poi-form"
->
+      <div v-if="addMode && draft" class="poi-form">
         <h3>{{ t("poi.addPoi") }}</h3>
         <label class="form-label">
           {{ t("poi.name") }}
@@ -84,15 +75,8 @@ v-if="addMode && draft" class="poi-form"
         </label>
         <label class="form-label">
           {{ t("poi.type") }}
-          <select
-            id="poi-type"
-            v-model="form.type"
-            class="form-input"
-          >
-            <option
-v-for="type in poiTypes" :key="type"
-:value="type"
->
+          <select id="poi-type" v-model="form.type" class="form-input">
+            <option v-for="type in poiTypes" :key="type" :value="type">
               {{ poiMeta[type].icon }} {{ t("poi.type_" + type) }}
             </option>
           </select>
@@ -114,7 +98,7 @@ v-for="type in poiTypes" :key="type"
             v-model.trim="form.photos"
             class="form-input"
             placeholder="https://..."
-          >
+          />
         </label>
         <label class="form-label">
           {{ t("poi.videoUrl") }}
@@ -123,7 +107,7 @@ v-for="type in poiTypes" :key="type"
             v-model.trim="form.video_url"
             class="form-input"
             placeholder="https://..."
-          >
+          />
         </label>
         <label class="form-label">
           {{ t("poi.difficultyNote") }}
@@ -132,7 +116,7 @@ v-for="type in poiTypes" :key="type"
             v-model.trim="form.difficulty_note"
             class="form-input"
             maxlength="500"
-          >
+          />
         </label>
         <label class="form-label">
           {{ t("poi.tags") }}
@@ -141,7 +125,7 @@ v-for="type in poiTypes" :key="type"
             v-model.trim="form.tags"
             class="form-input"
             placeholder="panorama, ombra"
-          >
+          />
         </label>
         <div class="form-actions">
           <button
@@ -151,9 +135,7 @@ v-for="type in poiTypes" :key="type"
           >
             {{ submitting ? t("poi.saving") : t("poi.save") }}
           </button>
-          <button
-class="btn btn-danger" @click="cancelDraft"
->
+          <button class="btn btn-danger" @click="cancelDraft">
             {{ t("poi.cancel") }}
           </button>
         </div>
@@ -161,15 +143,9 @@ class="btn btn-danger" @click="cancelDraft"
     </transition>
 
     <transition name="fade">
-      <div
-v-if="selectedPoi" class="modal-overlay"
-@click.self="closeDetail"
->
+      <div v-if="selectedPoi" class="modal-overlay" @click.self="closeDetail">
         <div class="poi-modal">
-          <button
-class="modal-close" aria-label="close"
-@click="closeDetail"
->
+          <button class="modal-close" aria-label="close" @click="closeDetail">
             ×
           </button>
           <div
@@ -199,10 +175,7 @@ class="modal-close" aria-label="close"
             />
           </div>
 
-          <p
-v-if="selectedPoi.video_url" class="poi-video"
->
-            
+          <p v-if="selectedPoi.video_url" class="poi-video">
             <a
               :href="safeHttpUrl(selectedPoi.video_url)"
               target="_blank"
@@ -210,25 +183,26 @@ v-if="selectedPoi.video_url" class="poi-video"
               >Video</a
             >
           </p>
-          <p
-v-if="selectedPoi.difficulty_note" class="poi-note"
->
-             {{ selectedPoi.difficulty_note }}
+          <p v-if="selectedPoi.difficulty_note" class="poi-note">
+            {{ selectedPoi.difficulty_note }}
           </p>
           <div
             v-if="selectedPoi.tags && selectedPoi.tags.length"
             class="poi-tags"
           >
-            <span
-v-for="tag in selectedPoi.tags" :key="tag" class="poi-tag"
+            <span v-for="tag in selectedPoi.tags" :key="tag" class="poi-tag"
               >#{{ tag }}</span
             >
           </div>
 
           <div class="poi-meta">
-            <span v-if="selectedPoi.distance_m != null"> {{ formatDistanceM(selectedPoi.distance_m) }}</span>
-            <span> {{ selectedPoi.lat.toFixed(4) }},
-              {{ selectedPoi.lon.toFixed(4) }}</span>
+            <span v-if="selectedPoi.distance_m != null">
+              {{ formatDistanceM(selectedPoi.distance_m) }}</span
+            >
+            <span>
+              {{ selectedPoi.lat.toFixed(4) }},
+              {{ selectedPoi.lon.toFixed(4) }}</span
+            >
           </div>
 
           <button
@@ -236,11 +210,9 @@ v-for="tag in selectedPoi.tags" :key="tag" class="poi-tag"
             class="btn btn-danger poi-delete"
             @click="removePoi(selectedPoi)"
           >
-             {{ t("poi.delete") }}
+            {{ t("poi.delete") }}
           </button>
-          <p
-v-else-if="selectedPoi.created_by" class="poi-owner-note"
->
+          <p v-else-if="selectedPoi.created_by" class="poi-owner-note">
             {{ t("poi.notOwner") }}
           </p>
         </div>
@@ -527,7 +499,10 @@ function drawRoute() {
       Number(p.lat ?? p.latitude),
       Number(p.lon ?? p.lng ?? p.longitude),
     ])
-    .filter(([la, lo]: [number, number]) => Number.isFinite(la) && Number.isFinite(lo));
+    .filter(
+      ([la, lo]: [number, number]) =>
+        Number.isFinite(la) && Number.isFinite(lo),
+    );
   if (!points.length) return;
   const polyline = L.polyline(points, {
     color: "#1abc9c",

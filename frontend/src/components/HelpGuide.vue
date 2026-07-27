@@ -12,9 +12,7 @@
     <aside :class="['help-panel', { open }]">
       <div class="help-header">
         <h2>{{ t("help.title") }}</h2>
-          <button class="help-close" @click="close" aria-label="Close">
-            ✕
-          </button>
+        <button class="help-close" aria-label="Close" @click="close">✕</button>
       </div>
 
       <div class="help-categories">

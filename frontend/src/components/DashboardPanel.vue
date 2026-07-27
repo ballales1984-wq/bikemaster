@@ -6,9 +6,9 @@
     <!-- Header -->
     <div class="dash-header">
       <div>
-        <h2> Dashboard</h2>
+        <h2>Dashboard</h2>
         <div v-if="auth.user" class="user-line">
-           {{ auth.user.username }}
+          {{ auth.user.username }}
           <span class="sync-badge" :class="syncClass">{{ syncLabel }}</span>
         </div>
       </div>
@@ -17,7 +17,7 @@
         :disabled="loading"
         @click="load"
       >
-          <span :class="{ spinner: loading }">{{ loading ? "⏳" : "🔄" }}</span>
+        <span :class="{ spinner: loading }">{{ loading ? "⏳" : "🔄" }}</span>
         {{ loading ? "Aggiornamento..." : "Aggiorna" }}
       </button>
     </div>
@@ -47,31 +47,22 @@
 
     <!-- Loading skeleton -->
     <div v-if="loading && !dashboard.summary" class="skeleton-grid">
-      <div v-for="i in 4"
-class="skeleton skeleton-card" :key="i"
-/>
+      <div v-for="i in 4" :key="i" class="skeleton skeleton-card" />
     </div>
 
     <!-- Error -->
     <div v-else-if="error" class="error-state">
       <div class="error-icon"></div>
       <p>{{ error }}</p>
-      <button
-class="btn btn-sm" @click="load">Riprova</button>
+      <button class="btn btn-sm" @click="load">Riprova</button>
     </div>
 
     <template v-else>
       <!-- Score Rings -->
-      <div
-v-if="dashboard.scores" class="score-row"
->
-        <div
-v-for="score in scoreCards" class="score-ring"
-:key="score.label"
->
+      <div v-if="dashboard.scores" class="score-row">
+        <div v-for="score in scoreCards" :key="score.label" class="score-ring">
           <svg viewBox="0 0 80 80" class="ring-svg">
-            <circle
-cx="40" cy="40" r="32" class="ring-bg" />
+            <circle cx="40" cy="40" r="32" class="ring-bg" />
             <circle
               cx="40"
               cy="40"
@@ -98,9 +89,7 @@ cx="40" cy="40" r="32" class="ring-bg" />
       <!-- Main Grid -->
       <div class="dash-grid">
         <!-- Profile Card -->
-        <div
-v-if="dashboard.athlete" class="dash-card profile-card"
->
+        <div v-if="dashboard.athlete" class="dash-card profile-card">
           <div class="card-icon"></div>
           <div class="card-body">
             <div class="card-title">
@@ -110,24 +99,19 @@ v-if="dashboard.athlete" class="dash-card profile-card"
               {{ dashboard.athlete.experience_level || "Livello —" }}
             </div>
             <div class="athlete-chips">
-              <span v-if="dashboard.athlete.weight_kg"
- class="chip"
+              <span v-if="dashboard.athlete.weight_kg" class="chip"
                 >{{ dashboard.athlete.weight_kg }} kg</span
               >
-              <span v-if="dashboard.athlete.ftp_watts"
- class="chip"
+              <span v-if="dashboard.athlete.ftp_watts" class="chip"
                 >FTP {{ dashboard.athlete.ftp_watts }}W</span
               >
-              <span v-if="dashboard.athlete.age"
- class="chip"
+              <span v-if="dashboard.athlete.age" class="chip"
                 >{{ dashboard.athlete.age }} anni</span
               >
-              <span v-if="dashboard.athlete.body_water_percentage"
- class="chip"
+              <span v-if="dashboard.athlete.body_water_percentage" class="chip"
                 >Acqua {{ dashboard.athlete.body_water_percentage }}%</span
               >
-              <span v-if="dashboard.athlete.muscle_mass_percentage"
- class="chip"
+              <span v-if="dashboard.athlete.muscle_mass_percentage" class="chip"
                 >Muscoli {{ dashboard.athlete.muscle_mass_percentage }}%</span
               >
             </div>
@@ -135,9 +119,7 @@ v-if="dashboard.athlete" class="dash-card profile-card"
         </div>
 
         <!-- Stats Card -->
-        <div
-v-if="dashboard.summary" class="dash-card stats-card"
->
+        <div v-if="dashboard.summary" class="dash-card stats-card">
           <div class="card-icon"></div>
           <div class="card-body">
             <div class="card-title">Statistiche Globali</div>
@@ -155,7 +137,9 @@ v-if="dashboard.summary" class="dash-card stats-card"
                 <span class="mini-lbl">km totali</span>
               </div>
               <div class="mini-stat">
-                <span class="mini-val">{{ fmt(dashboard.summary.total_hours, 1) }}h</span>
+                <span class="mini-val"
+                  >{{ fmt(dashboard.summary.total_hours, 1) }}h</span
+                >
                 <span class="mini-lbl">ore in sella</span>
               </div>
               <div class="mini-stat">
@@ -169,9 +153,7 @@ v-if="dashboard.summary" class="dash-card stats-card"
         </div>
 
         <!-- Fitness State -->
-        <div
-v-if="dashboard.fitness" class="dash-card fitness-card"
->
+        <div v-if="dashboard.fitness" class="dash-card fitness-card">
           <div class="card-icon"></div>
           <div class="card-body">
             <div class="card-title">Fitness State</div>
@@ -199,8 +181,7 @@ v-if="dashboard.fitness" class="dash-card fitness-card"
               <div class="fitness-bar-row">
                 <span class="bar-label">TSB</span>
                 <div class="bar-track">
-                  <div
-class="bar-fill tsb" :style="tsbStyle" />
+                  <div class="bar-fill tsb" :style="tsbStyle" />
                 </div>
                 <span
                   class="bar-val"
@@ -260,10 +241,8 @@ class="bar-fill tsb" :style="tsbStyle" />
       </div>
 
       <!-- Recent Rides -->
-      <div
-        v-if="dashboard.recent_rides?.length" class="dash-section"
-      >
-        <h3> Uscite Recenti</h3>
+      <div v-if="dashboard.recent_rides?.length" class="dash-section">
+        <h3>Uscite Recenti</h3>
         <div class="recent-rides">
           <div
             v-for="ride in dashboard.recent_rides"
@@ -277,7 +256,9 @@ class="bar-fill tsb" :style="tsbStyle" />
               <span> {{ fmt(ride.distance_km) }} km</span>
               <span>⏱ {{ formatDuration(ride.duration_minutes) }}</span>
               <span> {{ fmt(ride.avg_speed_kmh) }} km/h</span>
-              <span v-if="ride.elevation_gain_m"> {{ fmt(ride.elevation_gain_m, 0) }}m</span>
+              <span v-if="ride.elevation_gain_m">
+                {{ fmt(ride.elevation_gain_m, 0) }}m</span
+              >
             </div>
           </div>
         </div>
@@ -335,8 +316,8 @@ async function loadSyncStatus() {
     const data = await auth.apiFetch("/api/v1/sync/status", {
       method: "GET",
     });
-    const d = (data || {});
-    syncMode.value = (d.mode || "local");
+    const d = data || {};
+    syncMode.value = d.mode || "local";
     syncPending.value = d.pending_count || 0;
   } catch {
     // Sync status is non-critical for the dashboard; ignore failures.

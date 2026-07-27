@@ -6,10 +6,7 @@
  */
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import {
-  type UserApiKeys,
-  setUserKeys,
-} from "../utils/userKeys";
+import { type UserApiKeys, setUserKeys } from "../utils/userKeys";
 import {
   initLocalDb,
   isLocalDbReady,

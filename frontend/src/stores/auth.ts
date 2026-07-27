@@ -61,7 +61,6 @@ export const useAuthStore = defineStore("auth", () => {
     return token.value ? { Authorization: `Bearer ${token.value}` } : {};
   }
 
-  /* eslint-disable-next-line no-undef */
   async function apiFetch<T = unknown>(
     path: string,
     options: RequestInit = {},
@@ -98,7 +97,7 @@ export const useAuthStore = defineStore("auth", () => {
       { suppressAuthClear: true },
     );
     user.value = {
-      id: typeof data.id === "number" ? data.id : user.value?.id ?? 0,
+      id: typeof data.id === "number" ? data.id : (user.value?.id ?? 0),
       username: data.username || user.value?.username || "",
       email: data.email ?? user.value?.email ?? null,
       is_admin: user.value?.is_admin ?? false,

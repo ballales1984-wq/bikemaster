@@ -308,7 +308,11 @@ export interface BeckAssessment {
 export interface BeckHistory {
   items: BeckAssessment[];
   latest: BeckAssessment | null;
-  trend: { date?: string | null; score?: number | null; severity?: string | null }[];
+  trend: {
+    date?: string | null;
+    score?: number | null;
+    severity?: string | null;
+  }[];
 }
 
 export type BeckItemScore = 0 | 1 | 2 | 3;

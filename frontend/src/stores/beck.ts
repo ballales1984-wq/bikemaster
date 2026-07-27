@@ -3,7 +3,12 @@
  */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import type { BeckAssessment, BeckHistory, BeckItemScore, BeckItemOption } from "../types/index";
+import type {
+  BeckAssessment,
+  BeckHistory,
+  BeckItemScore,
+  BeckItemOption,
+} from "../types/index";
 import { apiGet, apiPost, ApiError } from "../utils/api";
 import { useAuthStore } from "./auth";
 
@@ -55,7 +60,10 @@ const BECK_ITEMS: BeckItemOption[] = [
   ["Non mi sembra di avere un aspetto peggiore del solito", 0],
   ["Mi preoccupo di avere un aspetto invecchiato o poco attraente", 1],
   ["Sono convinto di avere un aspetto brutto o inguardabile", 2],
-  ["L'aspetto fisico mi fa stare così male che non riesco a guardarmi allo specchio", 3],
+  [
+    "L'aspetto fisico mi fa stare così male che non riesco a guardarmi allo specchio",
+    3,
+  ],
   ["Posso lavorare più o meno come prima", 0],
   ["Mi serve uno sforzo in più per iniziare a fare qualcosa", 1],
   ["Devo costringermi a fare qualsiasi cosa", 2],
@@ -63,7 +71,10 @@ const BECK_ITEMS: BeckItemOption[] = [
   ["Non dormo peggio del solito", 0],
   ["Mi sveglio prima del solito e ho difficoltà a riaddormentarmi", 1],
   ["Mi sveglio diverse ore prima e non riesco a riaddormentarmi", 2],
-  ["Mi sveglio così presto che non riesco più a dormire per il resto della notte", 3],
+  [
+    "Mi sveglio così presto che non riesco più a dormire per il resto della notte",
+    3,
+  ],
   ["Non sono più stanco del solito", 0],
   ["Mi stanco più facilmente del solito", 1],
   ["Mi stanco per qualsiasi cosa", 2],
@@ -79,7 +90,10 @@ const BECK_ITEMS: BeckItemOption[] = [
   ["Non sono più preoccupato per la mia salute di prima", 0],
   ["Mi preoccupo per problemi fisici come dolori o disturbi", 1],
   ["Sono molto preoccupato per i miei disturbi fisici", 2],
-  ["Sono così preoccupato per i miei disturbi che non riesco a pensare ad altro", 3],
+  [
+    "Sono così preoccupato per i miei disturbi che non riesco a pensare ad altro",
+    3,
+  ],
   ["Non ho visto cambiamenti nel mio interesse sessuale", 0],
   ["Ho meno interesse sessuale di prima", 1],
   ["Il mio interesse sessuale è molto diminuito", 2],
@@ -98,7 +112,12 @@ export const useBeckStore = defineStore("beck", () => {
   const saving = ref(false);
   const error = ref<string | null>(null);
 
-  const totalScore = computed(() => Array.from(answers.value.values()).reduce((sum, score) => (sum + score) as BeckItemScore, 0 as BeckItemScore));
+  const totalScore = computed(() =>
+    Array.from(answers.value.values()).reduce(
+      (sum, score) => (sum + score) as BeckItemScore,
+      0 as BeckItemScore,
+    ),
+  );
   const severity = computed(() => {
     const score = totalScore.value;
     if (score <= 13) return "minimal";
@@ -106,7 +125,9 @@ export const useBeckStore = defineStore("beck", () => {
     if (score <= 28) return "moderate";
     return "severe";
   });
-  const progress = computed(() => Math.min(100, (answers.value.size / BECK_ITEMS.length) * 100));
+  const progress = computed(() =>
+    Math.min(100, (answers.value.size / BECK_ITEMS.length) * 100),
+  );
   const isComplete = computed(() => answers.value.size === BECK_ITEMS.length);
 
   function reset() {
@@ -126,7 +147,8 @@ export const useBeckStore = defineStore("beck", () => {
       latest.value = data.latest || null;
       return data;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Failed to load Beck history";
+      error.value =
+        e instanceof Error ? e.message : "Failed to load Beck history";
       return null;
     } finally {
       loading.value = false;
@@ -138,7 +160,9 @@ export const useBeckStore = defineStore("beck", () => {
     loading.value = true;
     error.value = null;
     try {
-      const data = await apiGet<BeckAssessment>("/api/v1/beck/assessments/latest");
+      const data = await apiGet<BeckAssessment>(
+        "/api/v1/beck/assessments/latest",
+      );
       latest.value = data;
       return data;
     } catch (e) {
@@ -146,7 +170,10 @@ export const useBeckStore = defineStore("beck", () => {
         latest.value = null;
         return null;
       }
-      error.value = e instanceof Error ? e.message : "Failed to load latest Beck assessment";
+      error.value =
+        e instanceof Error
+          ? e.message
+          : "Failed to load latest Beck assessment";
       return null;
     } finally {
       loading.value = false;
@@ -159,7 +186,9 @@ export const useBeckStore = defineStore("beck", () => {
     saving.value = true;
     error.value = null;
     try {
-      const answersPayload = Array.from(answers.value.entries()).map(([index, score]) => [index, score]);
+      const answersPayload = Array.from(answers.value.entries()).map(
+        ([index, score]) => [index, score],
+      );
       const data = await apiPost<BeckAssessment>("/api/v1/beck/assessments", {
         answers: answersPayload,
         notes: currentNotes.value || undefined,
@@ -169,12 +198,17 @@ export const useBeckStore = defineStore("beck", () => {
       if (history.value) {
         history.value.items.unshift(data);
         history.value.latest = data;
-        history.value.trend.unshift({ date: data.created_at, score: data.total_score, severity: data.severity });
+        history.value.trend.unshift({
+          date: data.created_at,
+          score: data.total_score,
+          severity: data.severity,
+        });
       }
       reset();
       return data;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Failed to submit Beck assessment";
+      error.value =
+        e instanceof Error ? e.message : "Failed to submit Beck assessment";
       throw e;
     } finally {
       saving.value = false;

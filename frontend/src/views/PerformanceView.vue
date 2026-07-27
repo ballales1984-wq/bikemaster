@@ -1,10 +1,8 @@
 <template>
   <div class="panel">
     <h2>Analisi Prestazioni</h2>
-    <div
-v-if="loading" class="loading">Caricamento...</div>
-    <div v-else-if="error"
-class="error">
+    <div v-if="loading" class="loading">Caricamento...</div>
+    <div v-else-if="error" class="error">
       {{ error }}
     </div>
     <template v-else>

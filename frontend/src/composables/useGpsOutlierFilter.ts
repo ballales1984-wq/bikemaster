@@ -40,10 +40,8 @@ function toSample(
   point: GpsPoint | GpsSample | null | undefined,
 ): GpsSample | null {
   if (!point) return null;
-  const lat =
-    "lat" in point ? point.lat : (point as { lat: number }).lat;
-  const lon =
-    "lon" in point ? point.lon : (point as { lon: number }).lon;
+  const lat = "lat" in point ? point.lat : (point as { lat: number }).lat;
+  const lon = "lon" in point ? point.lon : (point as { lon: number }).lon;
   const rawTimestamp = (point as { timestamp?: string | number | null })
     .timestamp;
   const timestamp =

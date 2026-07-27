@@ -214,7 +214,6 @@ export const useBleStore = defineStore("ble", () => {
     }> = [];
     try {
       type BleRequestDeviceFn = (
-        // eslint-disable-next-line no-unused-vars
         opts: Record<string, unknown>,
       ) => Promise<{ id: string; name?: string }>;
       const btNavigator = navigator as unknown as {

@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="voice-assistant" v-if="supported">
+  <div v-if="supported" class="voice-assistant">
     <!-- Floating FAB -->
     <button
       class="assistant-fab"
@@ -24,19 +24,54 @@
       :title="fabTitle"
       @click="toggleAssistant"
     >
-      <svg v-if="!isListening && !isProcessing && !isSpeaking" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        v-if="!isListening && !isProcessing && !isSpeaking"
+        viewBox="0 0 24 24"
+        width="24"
+        height="24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
         <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
         <line x1="12" y1="19" x2="12" y2="23" />
         <line x1="8" y1="23" x2="16" y2="23" />
       </svg>
-      <svg v-else-if="isListening" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        v-else-if="isListening"
+        viewBox="0 0 24 24"
+        width="24"
+        height="24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <rect x="6" y="6" width="12" height="12" rx="2" />
       </svg>
-      <svg v-else-if="isProcessing" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" class="spin">
-        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+      <svg
+        v-else-if="isProcessing"
+        viewBox="0 0 24 24"
+        width="24"
+        height="24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        class="spin"
+      >
+        <path
+          d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+        />
       </svg>
-      <svg v-else-if="isSpeaking" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        v-else-if="isSpeaking"
+        viewBox="0 0 24 24"
+        width="24"
+        height="24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
         <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
         <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
@@ -56,7 +91,7 @@
           <h3>Assistente Vocale</h3>
           <div class="panel-actions">
             <label class="toggle-label" title="Conversazione continua">
-              <input type="checkbox" v-model="continuousModel" />
+              <input v-model="continuousModel" type="checkbox" />
               <span>Continua</span>
             </label>
             <button class="close-btn" @click="expanded = false">&times;</button>
@@ -96,7 +131,9 @@
           <div class="history-section">
             <div class="history-header">
               <span>Cronologia</span>
-              <button v-if="history.length" @click="history = []">Cancella</button>
+              <button v-if="history.length" @click="history = []">
+                Cancella
+              </button>
             </div>
             <div v-if="!history.length" class="empty-history">
               Premi il microfono per iniziare
@@ -108,7 +145,9 @@
                 class="history-entry"
                 :class="entry.role"
               >
-                <span class="role-badge" :class="entry.role">{{ entry.role === 'user' ? 'Tu' : 'AI' }}</span>
+                <span class="role-badge" :class="entry.role">{{
+                  entry.role === "user" ? "Tu" : "AI"
+                }}</span>
                 <span class="entry-text">{{ entry.text }}</span>
               </div>
             </div>
@@ -250,7 +289,9 @@ async function stopAndProcess(): Promise<void> {
       isProcessingStop.value = false;
       return;
     }
-    file = new File([blob], `recording_${Date.now()}.webm`, { type: blob.type });
+    file = new File([blob], `recording_${Date.now()}.webm`, {
+      type: blob.type,
+    });
   }
 
   setStatus("Elaborazione...");
@@ -275,7 +316,7 @@ async function stopAndProcess(): Promise<void> {
       throw new Error(detail || "STT failed");
     }
 
-    const sttResult = await response.json() as { text: string };
+    const sttResult = (await response.json()) as { text: string };
     const transcript = sttResult.text.trim();
 
     if (!transcript) {
@@ -317,7 +358,7 @@ async function getAssistantResponse(text: string): Promise<void> {
       throw new Error("Assistant failed");
     }
 
-    const result = await response.json() as {
+    const result = (await response.json()) as {
       text: string;
       audio_url: string | null;
       intent: string | null;
@@ -489,7 +530,9 @@ onBeforeUnmount(cleanup);
   align-items: center;
   justify-content: center;
   box-shadow: 0 6px 20px rgba(0, 255, 204, 0.35);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .assistant-fab:hover {
@@ -552,7 +595,11 @@ onBeforeUnmount(cleanup);
   justify-content: space-between;
   padding: 14px 18px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(135deg, rgba(0, 255, 204, 0.05), rgba(0, 184, 148, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 255, 204, 0.05),
+    rgba(0, 184, 148, 0.05)
+  );
 }
 
 .panel-header h3 {
@@ -808,13 +855,25 @@ onBeforeUnmount(cleanup);
 }
 
 @keyframes pulse-fab {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.12); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(1.4); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.4);
+  }
 }
 
 .spin {
@@ -822,12 +881,16 @@ onBeforeUnmount(cleanup);
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .voice-panel-enter-active,
 .voice-panel-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
 }
 
 .voice-panel-enter-from,

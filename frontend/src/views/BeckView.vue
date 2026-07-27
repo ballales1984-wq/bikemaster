@@ -9,16 +9,31 @@
         </div>
         <div v-if="showResult" class="result-card">
           <h3>Risultato</h3>
-          <p class="score">Punteggio: <strong>{{ totalScore }}</strong></p>
-          <p class="severity">Livello: <strong :class="severityClass">{{ severityLabel }}</strong></p>
-          <p class="disclaimer">Questo strumento è solo un indicatore di screening e non sostituisce una valutazione professionale.</p>
+          <p class="score">
+            Punteggio: <strong>{{ totalScore }}</strong>
+          </p>
+          <p class="severity">
+            Livello: <strong :class="severityClass">{{ severityLabel }}</strong>
+          </p>
+          <p class="disclaimer">
+            Questo strumento è solo un indicatore di screening e non sostituisce
+            una valutazione professionale.
+          </p>
           <div class="actions">
-            <button class="btn btn-primary" @click="showResult = false">Rispondi</button>
-            <button class="btn btn-secondary" @click="reset">Nuovo tentativo</button>
+            <button class="btn btn-primary" @click="showResult = false">
+              Rispondi
+            </button>
+            <button class="btn btn-secondary" @click="reset">
+              Nuovo tentativo
+            </button>
           </div>
         </div>
         <div v-else-if="store.items.length" class="questions">
-          <div v-for="(item, index) in visibleItems" :key="index + page * pageSize" class="question">
+          <div
+            v-for="(item, index) in visibleItems"
+            :key="index + page * pageSize"
+            class="question"
+          >
             <p class="question-text">{{ item[0] }}</p>
             <div class="options">
               <button
@@ -26,24 +41,50 @@
                 :key="score"
                 class="option"
                 :class="{ 'option--selected': selectedScore(index) === score }"
-                @click="store.setAnswer(index + page * pageSize, score as BeckItemScore)"
+                @click="
+                  store.setAnswer(
+                    index + page * pageSize,
+                    score as BeckItemScore,
+                  )
+                "
               >
                 {{ score }}
               </button>
             </div>
           </div>
           <div class="pagination">
-            <button class="btn btn-secondary" :disabled="page === 0" @click="page--">Indietro</button>
+            <button
+              class="btn btn-secondary"
+              :disabled="page === 0"
+              @click="page--"
+            >
+              Indietro
+            </button>
             <span>Pagina {{ page + 1 }} / {{ totalPages }}</span>
-            <button class="btn btn-secondary" :disabled="page >= totalPages - 1" @click="page++">Avanti</button>
+            <button
+              class="btn btn-secondary"
+              :disabled="page >= totalPages - 1"
+              @click="page++"
+            >
+              Avanti
+            </button>
           </div>
         </div>
         <div class="notes">
           <label for="notes">Note aggiuntive:</label>
-          <textarea id="notes" v-model="store.currentNotes" rows="4" placeholder="Opzionale..." />
+          <textarea
+            id="notes"
+            v-model="store.currentNotes"
+            rows="4"
+            placeholder="Opzionale..."
+          />
         </div>
         <div class="actions">
-          <button class="btn btn-primary" :disabled="!store.isComplete || store.saving" @click="submit">
+          <button
+            class="btn btn-primary"
+            :disabled="!store.isComplete || store.saving"
+            @click="submit"
+          >
             {{ store.saving ? "Salvataggio..." : "Invia assessment" }}
           </button>
           <button class="btn btn-secondary" @click="reset">Reset</button>
@@ -53,14 +94,23 @@
         <div class="card">
           <h3>Ultimo risultato</h3>
           <div v-if="store.latest" class="latest">
-            <p>{{ store.latest.total_score }} punti — <strong :class="severityClassFor(store.latest.severity)">{{ severityLabelFor(store.latest.severity) }}</strong></p>
+            <p>
+              {{ store.latest.total_score }} punti —
+              <strong :class="severityClassFor(store.latest.severity)">{{
+                severityLabelFor(store.latest.severity)
+              }}</strong>
+            </p>
             <p class="date">{{ formatDate(store.latest.created_at) }}</p>
           </div>
           <p v-else class="empty">Nessun assessment salvato.</p>
         </div>
         <div class="card">
           <h3>Consigli</h3>
-          <p>Se il punteggio è elevato o hai pensieri di autolesionismo, contatta immediatamente un professionista della salute mentale o un servizio di emergenza.</p>
+          <p>
+            Se il punteggio è elevato o hai pensieri di autolesionismo, contatta
+            immediatamente un professionista della salute mentale o un servizio
+            di emergenza.
+          </p>
         </div>
       </aside>
     </div>
@@ -88,14 +138,20 @@ const severityLabels: Record<string, string> = {
   severe: "Grave",
 };
 
-const visibleItems = computed(() => store.items.slice(page.value * pageSize, (page.value + 1) * pageSize));
-const totalPages = computed(() => Math.max(1, Math.ceil(store.items.length / pageSize)));
+const visibleItems = computed(() =>
+  store.items.slice(page.value * pageSize, (page.value + 1) * pageSize),
+);
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(store.items.length / pageSize)),
+);
 const answered = computed(() => store.answers.size);
 const progress = computed(() => store.progress);
 const isComplete = computed(() => store.isComplete);
 const totalScore = computed(() => store.totalScore);
 const severity = computed(() => store.severity);
-const severityLabel = computed(() => severityLabels[store.severity] || store.severity);
+const severityLabel = computed(
+  () => severityLabels[store.severity] || store.severity,
+);
 const severityClass = computed(() => `severity-${store.severity}`);
 
 function selectedScore(index: number): BeckItemScore | undefined {
@@ -175,7 +231,7 @@ onMounted(async () => {
   position: relative;
   color: #fff;
   font-weight: 700;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 .question {
   padding: 1rem 0;
@@ -274,8 +330,16 @@ onMounted(async () => {
   color: var(--text-muted);
   margin-top: 0.5rem;
 }
-.severity-minimal { color: #16a34a; }
-.severity-mild { color: #d97706; }
-.severity-moderate { color: #dc2626; }
-.severity-severe { color: #7f1d1d; }
+.severity-minimal {
+  color: #16a34a;
+}
+.severity-mild {
+  color: #d97706;
+}
+.severity-moderate {
+  color: #dc2626;
+}
+.severity-severe {
+  color: #7f1d1d;
+}
 </style>
