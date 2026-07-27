@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import pytest
 
-pytestmark = pytest.mark.slow
+
 from starlette.testclient import TestClient
 
 from bike_analyzer.backend.security import create_access_token

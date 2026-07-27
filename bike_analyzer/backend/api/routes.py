@@ -51,6 +51,7 @@ from ..analytics.fatigue import (
 )
 from ..analytics.granfondo_planner import generate_granfondo_plan
 from ..audit_log import log_action, read_audit_logs
+from ..db.database import get_user_by_id
 from ..maps.map_renderer import create_route_map
 from ..maps.osm_maps import get_local_results, search_nearby, search_places
 from ..models.models import AthleteProfile, GPSPoint, Ride
@@ -1710,7 +1711,7 @@ def _validate_gpx_fit_import(ride_data: dict, user_id: int) -> None:
     the assembled ride is validated with ``ValidatedRide``. Raises HTTPException (400)
     on failure so malformed uploads are rejected instead of being stored.
     """
-    from ..core.validation import ValidatedGPSPoint, ValidatedRide
+    from bike_analyzer.core.validation import ValidatedGPSPoint, ValidatedRide
 
     gps = ride_data.get("gps_points") or []
     valid_points: list[dict] = []
@@ -4198,13 +4199,13 @@ async def coach_chat_bm2(
     Combines the AI coach's training advice with BM2 simulation
     and power validation results for a comprehensive analysis.
     """
+    from bike_analyzer.bm2.adapters import ride_to_analysis_context
+    from bike_analyzer.bm2.algorithms import ALL_ALGORITHMS
+    from bike_analyzer.bm2.orchestrator import AIOrchestrator
+    from bike_analyzer.bm2.simulation import SimulationEngine
+    from bike_analyzer.core.physics import RiderBikeParams, validate_ride_power
     from ..analytics.ai_coach import generate_training_advice
-    from ..bm2.orchestrator import AIOrchestrator
-    from ..bm2.adapters import ride_to_analysis_context
-    from ..bm2.algorithms import ALL_ALGORITHMS
-    from ..bm2.simulation import SimulationEngine
-    from ..core.physics import RiderBikeParams, validate_ride_power
-    from ..db.database import get_athlete, get_rides_by_athlete, save_chat_message
+    from ..db.database import get_athlete, get_chat_history, get_rides_by_athlete, save_chat_message
     from ..models.models import AthleteProfile, Ride
 
     body = await request.json()

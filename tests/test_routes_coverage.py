@@ -5,7 +5,7 @@ from io import BytesIO
 
 import pytest
 
-pytestmark = pytest.mark.slow
+
 from starlette.testclient import TestClient
 
 
