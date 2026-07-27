@@ -119,17 +119,31 @@ def reset_database_url_and_async_engine():
     athlete-state / ai-coach integration tests that run the FastAPI app) enter an
     async SQLAlchemy path whose lazy-loaded attributes raise ``MissingGreenlet``
     because the original greenlet context is gone. Resetting the env vars and the
-    cached engine/factory after every test keeps the suite order-independent.
+    cached engine/factory before and after every test keeps the suite order-independent.
     """
-    yield
     os.environ.pop("DATABASE_URL", None)
-    os.environ.pop("DATABASE_URL_UNPOOLDED", None)
+    os.environ.pop("DATABASE_URL_UNPOOLED", None)
     os.environ["DATABASE_URL"] = ""
     os.environ["DATABASE_URL_UNPOOLED"] = ""
-    import bike_analyzer.backend.db.async_db as async_db_mod
+    try:
+        import bike_analyzer.backend.db.async_db as async_db_mod
 
-    async_db_mod._engine = None
-    async_db_mod._session_factory = None
+        async_db_mod._engine = None
+        async_db_mod._session_factory = None
+    except Exception:
+        pass
+    yield
+    os.environ.pop("DATABASE_URL", None)
+    os.environ.pop("DATABASE_URL_UNPOOLED", None)
+    os.environ["DATABASE_URL"] = ""
+    os.environ["DATABASE_URL_UNPOOLED"] = ""
+    try:
+        import bike_analyzer.backend.db.async_db as async_db_mod
+
+        async_db_mod._engine = None
+        async_db_mod._session_factory = None
+    except Exception:
+        pass
 
 
 @pytest.fixture
