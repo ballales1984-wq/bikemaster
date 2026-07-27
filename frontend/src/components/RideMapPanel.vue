@@ -211,7 +211,6 @@ import {
   buildSegments,
   buildDemoSegments,
   getCenter,
-  haversineDistanceM,
 } from "../utils/rideMapEnrichment";
 import type { EnrichedRide, GpsPoint, Ride, RideSegment } from "../types/index";
 import AetherMapViewer from "./AetherMapViewer.vue";
@@ -816,7 +815,7 @@ function applyRideRisk(ride: EnrichedRide): EnrichedRide {
   return ride;
 }
 
-function segmentPopup(ride: EnrichedRide, segment: RideSegment): string {
+function _segmentPopup(ride: EnrichedRide, segment: RideSegment): string {
   const gradeText =
     segment.grade >= 0
       ? `+${segment.grade.toFixed(1)}%`

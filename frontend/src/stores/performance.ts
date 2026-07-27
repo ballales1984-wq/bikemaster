@@ -9,7 +9,7 @@ import type {
   FtpHistoryResponse,
   PowerComputeResult,
 } from "../types/index";
-import { apiGet, apiPost, ApiError } from "../utils/api";
+import { apiGet, apiPost } from "../utils/api";
 import { useAuthStore } from "./auth";
 
 export const usePerformanceStore = defineStore("performance", () => {

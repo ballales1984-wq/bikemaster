@@ -8,8 +8,12 @@
  * `formatDistance` sono helper di formattazione.
  */
 
-import type { GpsPoint, RideSegment, EnrichedRide } from "../types/index";
-import { RISK_COLORS, GRADE_COLORS, SPEED_COLORS } from "../constants";
+import type { RideSegment, EnrichedRide } from "../types/index";
+import {
+  RISK_COLORS,
+  GRADE_COLORS as _GRADE_COLORS,
+  SPEED_COLORS as _SPEED_COLORS,
+} from "../constants";
 
 export function buildRidePolylines(ride: {
   segments: RideSegment[];

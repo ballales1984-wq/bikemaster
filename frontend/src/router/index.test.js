@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { createRouter, createWebHistory } from "vue-router";
 import { setActivePinia, createPinia } from "pinia";
 import { useAuthStore } from "../stores/auth";
@@ -93,7 +93,7 @@ const createGuardedRouter = (loggedInValue, adminValue) => {
     history: createWebHistory(),
     routes,
   });
-  r.beforeEach((to, from) => {
+  r.beforeEach((to, _from) => {
     const loggedIn = loggedInValue;
     const admin = adminValue;
 

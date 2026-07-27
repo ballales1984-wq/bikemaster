@@ -171,16 +171,6 @@ interface KnowledgeResult {
   source_file?: string;
 }
 
-interface KnowledgeTopic {
-  topic: string;
-  source: string;
-  score: number;
-  content: string;
-  text?: string;
-  chunk?: string;
-  source_file?: string;
-}
-
 const query = ref("");
 const results = ref<KnowledgeResult[]>([]);
 const topics = ref<string[]>([]);

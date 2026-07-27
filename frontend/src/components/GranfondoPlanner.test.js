@@ -15,10 +15,6 @@ const mockAthletes = {
   athletes: [{ id: 1, name: "Test Rider" }],
 };
 
-const mockAthleteMe = {
-  athlete: { id: 1, name: "Test Rider" },
-};
-
 const mockPlan = [
   {
     date: "2026-06-20",
@@ -43,10 +39,8 @@ describe("GranfondoPlanner", () => {
 
   it("loads athlete ID on mount", async () => {
     apiGet.mockResolvedValueOnce(mockAthletes);
-
-    const wrapper = mount(GranfondoPlanner);
+    mount(GranfondoPlanner);
     await flush();
-
     expect(apiGet).toHaveBeenCalledWith("/api/v1/athletes");
   });
 
@@ -151,7 +145,7 @@ describe("GranfondoPlanner", () => {
     const wrapper = mount(GranfondoPlanner);
     await flush();
 
-    expect(wrapper.vm.weekDays).toEqual([
+    expect(wrapper.vm._weekDays).toEqual([
       "Mon",
       "Tue",
       "Wed",

@@ -266,7 +266,7 @@ const calendarDays = computed(() => {
   return result;
 });
 
-const selectedDate = computed(() => {
+const _selectedDate = computed(() => {
   const today = new Date();
   const y = today.getFullYear(),
     m = today.getMonth(),
@@ -277,7 +277,7 @@ const selectedDate = computed(() => {
   return `${d}/${m + 1}/${y}`;
 });
 
-const selectedDateEvents = computed(() => {
+const _selectedDateEvents = computed(() => {
   const today = new Date();
   const y = today.getFullYear(),
     m = today.getMonth(),
@@ -376,7 +376,7 @@ function goToday() {
   loadEvents();
 }
 
-function eventLabel(type: string): string {
+function _eventLabel(type: string): string {
   const map: Record<string, string> = {
     training: "Allenamento",
     race: "Gara",
@@ -403,7 +403,7 @@ function openAddForDate(date: string) {
   showForm.value = true;
 }
 
-function openEdit(ev: CalendarEvent) {
+function _openEdit(ev: CalendarEvent) {
   editingEvent.value = ev;
   form.value = {
     title: ev.title,
@@ -418,7 +418,7 @@ function openEdit(ev: CalendarEvent) {
   showForm.value = true;
 }
 
-function quickAddFromObjective(obj: {
+function _quickAddFromObjective(obj: {
   title: string;
   event_type: string;
   duration: number;
@@ -450,7 +450,7 @@ async function loadAthletes() {
         athleteId.value = firstId;
       }
     }
-  } catch (e) {
+  } catch (_e) {
     athletes.value = [];
   }
 }
@@ -475,7 +475,7 @@ async function loadEvents() {
     ]);
     events.value = eventsData.events || [];
     fitnessData.value = fitness.training_loads || [];
-  } catch (e) {
+  } catch (_e) {
     events.value = [];
     fitnessData.value = [];
   }
@@ -491,7 +491,7 @@ async function loadGoals() {
       "/api/v1/athletes/" + String(athleteId.value),
     );
     athleteGoals.value = data.goals || "";
-  } catch (e) {
+  } catch (_e) {
     athleteGoals.value = "";
   }
 }
@@ -508,7 +508,7 @@ async function saveEvent() {
     editingEvent.value = null;
     loadEvents();
     loadGoals();
-  } catch (e) {
+  } catch (_e) {
     calendarError.value = (e as Error).message || "Error saving";
   }
 }
@@ -518,7 +518,7 @@ async function handleDelete() {
   try {
     await apiDelete(`/api/v1/calendar/events/${deleteTargetId.value}`);
     loadEvents();
-  } catch (e) {
+  } catch (_e) {
     calendarError.value = (e as Error).message || "Error deleting";
   } finally {
     deleteTargetId.value = null;
@@ -526,18 +526,18 @@ async function handleDelete() {
   }
 }
 
-function askDeleteEvent(id: number) {
+function _askDeleteEvent(id: number) {
   const ev = events.value.find((e) => e.id === id);
   deleteTargetId.value = id;
   deleteTargetTitle.value = ev ? ev.title : "";
   showDeleteModal.value = true;
 }
 
-async function toggleComplete(ev: CalendarEvent) {
+async function _toggleComplete(ev: CalendarEvent) {
   try {
     await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {});
     loadEvents();
-  } catch (e) {
+  } catch (_e) {
     calendarError.value = (e as Error).message || "Error completing";
   }
 }
@@ -553,12 +553,12 @@ async function fetchWeatherForecast() {
       lon: String(form.value.lon),
       date: form.value.date,
     });
-  } catch (e) {
+  } catch (_e) {
     weatherForecast.value = null;
   }
 }
 
-function weatherScoreClass(
+function _weatherScoreClass(
   ev: CalendarEvent & { weather_temp?: number; weather_humidity?: number },
 ) {
   if (!ev.weather_temp || !ev.weather_humidity) return 5;
@@ -572,7 +572,7 @@ function weatherScoreClass(
   return score;
 }
 
-const weatherScore = computed(() => {
+const _weatherScore = computed(() => {
   if (!weatherForecast.value) return 5;
   const s = weatherForecast.value.score || 5;
   return s;

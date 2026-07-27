@@ -12,8 +12,8 @@
         :aria-selected="mode === 'login'"
         aria-controls="login-form"
         @click="mode = 'login'"
-        @keydown.arrowleft="mode = 'register'"
-        @keydown.arrowright="mode = 'login'"
+        @keydown.left="mode = 'register'"
+        @keydown.right="mode = 'login'"
       >
         {{ t("auth.login") }}
       </button>
@@ -24,8 +24,8 @@
         :aria-selected="mode === 'register'"
         aria-controls="login-form"
         @click="mode = 'register'"
-        @keydown.arrowleft="mode = 'login'"
-        @keydown.arrowright="mode = 'register'"
+        @keydown.left="mode = 'login'"
+        @keydown.right="mode = 'register'"
       >
         {{ t("auth.register") }}
       </button>
@@ -202,20 +202,6 @@ function validate() {
   }
 }
 
-function handleTouch(e) {
-  if (e.type === "touchstart") {
-    const target = e.target;
-    target.classList.add("touch-active");
-    const removeTouch = () => {
-      target.classList.remove("touch-active");
-      target.removeEventListener("touchend", removeTouch);
-      target.removeEventListener("touchcancel", removeTouch);
-    };
-    target.addEventListener("touchend", removeTouch);
-    target.addEventListener("touchcancel", removeTouch);
-  }
-}
-
 async function submit() {
   validate();
   if (!isFormValid.value) {
@@ -236,19 +222,6 @@ function triggerShake() {
     shakeState.value = true;
     setTimeout(() => (shakeState.value = false), 450);
   });
-}
-
-const isCapacitorApp = typeof window.Capacitor !== "undefined";
-
-function getRedirectUri() {
-  if (isCapacitorApp) {
-    return "com.bikemaster.app://callback";
-  }
-  const base = resolveApiBase();
-  if (base) {
-    return `${base}/api/v1/auth/google/callback`;
-  }
-  return `${window.location.origin}/api/v1/auth/google/callback`;
 }
 
 async function loginWithGoogle() {

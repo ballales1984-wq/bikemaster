@@ -32,7 +32,7 @@ const INTERVAL_SAVER = 12000;
 
 const NO_MOVEMENT_TIMEOUT = 20000;
 const MIN_MOVEMENT_METERS = 1.5;
-const ERROR_BACKOFF = 20000;
+const _ERROR_BACKOFF = 20000;
 
 export function useBatteryEfficientGps(options: BatteryGpsOptions) {
   const isWaiting = ref(false);

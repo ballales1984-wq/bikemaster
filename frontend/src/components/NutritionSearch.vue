@@ -232,17 +232,6 @@ const canAddCustom = computed(
   () => customName.value.trim().length > 0 && customKcal.value > 0,
 );
 
-function mealLabel(type: string): string {
-  const map: Record<string, string> = {
-    breakfast: t("metabolism.breakfast"),
-    lunch: t("metabolism.lunch"),
-    dinner: t("metabolism.dinner"),
-    snack: t("metabolism.snack"),
-    other: t("metabolism.other"),
-  };
-  return map[type] || type;
-}
-
 async function loadCategories() {
   try {
     categories.value = await store.fetchNutritionCategories();

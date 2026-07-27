@@ -148,7 +148,7 @@ const answered = computed(() => store.answers.size);
 const progress = computed(() => store.progress);
 const isComplete = computed(() => store.isComplete);
 const totalScore = computed(() => store.totalScore);
-const severity = computed(() => store.severity);
+const _severity = computed(() => store.severity);
 const severityLabel = computed(
   () => severityLabels[store.severity] || store.severity,
 );

@@ -211,7 +211,7 @@ describe("CalendarPanel", () => {
     const wrapper = mount(CalendarPanel);
     await flush();
 
-    wrapper.vm.openEdit({ title: "Morning Ride", event_type: "training" });
+    wrapper.vm._openEdit({ title: "Morning Ride", event_type: "training" });
     await flush();
 
     expect(wrapper.find("#event-title").exists()).toBe(true);
@@ -226,12 +226,12 @@ describe("CalendarPanel", () => {
     expect(wrapper.text()).toContain("Interval Training");
   });
 
-  it("opens delete modal via askDeleteEvent", async () => {
+  it("opens delete modal via _askDeleteEvent", async () => {
     apiGet.mockResolvedValueOnce(mockAthletes);
     const wrapper = mount(CalendarPanel);
     await flush();
 
-    wrapper.vm.askDeleteEvent(1);
+    wrapper.vm._askDeleteEvent(1);
     await flush();
 
     expect(wrapper.findComponent({ name: "ConfirmModal" }).exists()).toBe(true);
@@ -243,7 +243,7 @@ describe("CalendarPanel", () => {
     const wrapper = mount(CalendarPanel);
     await flush();
 
-    wrapper.vm.askDeleteEvent(1);
+    wrapper.vm._askDeleteEvent(1);
     await flush();
 
     const modal = wrapper.findComponent({ name: "ConfirmModal" });
@@ -253,17 +253,17 @@ describe("CalendarPanel", () => {
     expect(apiDelete).toHaveBeenCalledWith("/api/v1/calendar/events/1");
   });
 
-  it("eventLabel function maps all event types", async () => {
+  it("_eventLabel function maps all event types", async () => {
     apiGet.mockResolvedValueOnce(mockAthletes);
     const wrapper = mount(CalendarPanel);
     await flush();
 
-    expect(wrapper.vm.eventLabel("training")).toBe("Allenamento");
-    expect(wrapper.vm.eventLabel("race")).toBe("Gara");
-    expect(wrapper.vm.eventLabel("recovery")).toBe("Recupero");
-    expect(wrapper.vm.eventLabel("goal_deadline")).toBe("Obiettivo");
-    expect(wrapper.vm.eventLabel("test")).toBe("Test");
-    expect(wrapper.vm.eventLabel("other")).toBe("Altro");
+    expect(wrapper.vm._eventLabel("training")).toBe("Allenamento");
+    expect(wrapper.vm._eventLabel("race")).toBe("Gara");
+    expect(wrapper.vm._eventLabel("recovery")).toBe("Recupero");
+    expect(wrapper.vm._eventLabel("goal_deadline")).toBe("Obiettivo");
+    expect(wrapper.vm._eventLabel("test")).toBe("Test");
+    expect(wrapper.vm._eventLabel("other")).toBe("Altro");
   });
 
   it("changes athlete selection", async () => {

@@ -73,13 +73,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
 import { useI18n } from "../composables/useI18n";
 import type { Itinerary } from "../types/index";
 
 const { t } = useI18n();
 
-const props = defineProps<{
+defineProps<{
   modelValueMapStyle: string;
   modelValueShowPois: boolean;
   hasRoute: boolean;

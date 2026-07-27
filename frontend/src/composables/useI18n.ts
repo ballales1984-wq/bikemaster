@@ -10,8 +10,8 @@ interface LocaleMessages {
   [key: string]: string | LocaleMessages;
 }
 
-const itMessages: LocaleMessages = {};
-const enMessages: LocaleMessages = {};
+const _itMessages: LocaleMessages = {};
+const _enMessages: LocaleMessages = {};
 
 async function loadMessages(locale: string): Promise<LocaleMessages> {
   if (locale === "it") {

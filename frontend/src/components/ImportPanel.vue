@@ -244,7 +244,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { apiUpload, apiPost, apiGet } from "../utils/api";
+import { apiUpload, apiGet } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
 
 const auth = useAuthStore();

@@ -158,30 +158,11 @@ async function fetchWeather() {
     };
     if (date.value) params.date = date.value;
     weather.value = await apiGet<WeatherData>("/api/v1/weather", params);
-  } catch (e: unknown) {
+  } catch (_e: unknown) {
     weatherError.value =
-      e instanceof Error ? e.message : "Error loading weather";
+      _e instanceof Error ? _e.message : "Error loading weather";
   } finally {
     loading.value = false;
-  }
-}
-
-async function fetchForecast() {
-  forecastLoading.value = true;
-  try {
-    const data = await apiGet<{ forecasts: ForecastItem[] }>(
-      "/api/v1/weather/forecast",
-      {
-        lat: String(lat.value),
-        lon: String(lon.value),
-        days: "7",
-      },
-    );
-    forecast.value = data.forecasts || [];
-  } catch (e: unknown) {
-    forecast.value = [];
-  } finally {
-    forecastLoading.value = false;
   }
 }
 

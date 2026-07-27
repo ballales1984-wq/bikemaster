@@ -419,7 +419,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
         },
       ],
       execute: async (params) => {
-        const raw = (params._raw as string) || "";
+        const _raw = (params._raw as string) || "";
         const date = (params.date as string) || parseItalianDate(raw);
         const time = (params.time as string) || parseTime(raw);
         const eventType =
@@ -511,7 +511,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
         },
       ],
       execute: async (params) => {
-        const raw = (params._raw as string) || "";
+        const _raw = (params._raw as string) || "";
         const distanceKm = params.distance_km
           ? Number(params.distance_km)
           : null;
@@ -589,7 +589,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
         },
       ],
       execute: async (params) => {
-        const raw = (params._raw as string) || "";
+        const _raw = (params._raw as string) || "";
         const mealType =
           (params.meal_type as FoodLog["meal_type"]) ||
           parseMealType(raw) ||

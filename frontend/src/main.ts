@@ -16,7 +16,6 @@ import { useAuthStore } from "./stores/auth";
 import { useUIStore } from "./stores/ui";
 import { isTauri } from "./utils/backend-config";
 import "./composables/usePWA";
-import { useToast } from "./composables/useToast";
 import { processOAuthToken, hasPendingOAuth } from "./services/oauth";
 import { syncAuthState } from "./services/authSync";
 import { apiGet } from "./utils/api";

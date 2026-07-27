@@ -190,7 +190,9 @@ import SpeedMap from "./SpeedMap.vue";
 const { t } = useI18n();
 const router = useRouter();
 
-const props = defineProps({ rideId: Number });
+const props = defineProps({
+  rideId: { type: Number, default: null },
+});
 const emit = defineEmits(["close"]);
 
 const ride = ref<Ride | null>(null);

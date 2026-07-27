@@ -12,7 +12,6 @@
 
 import { apiGet, apiPost } from "../utils/api";
 import type {
-  Notification,
   NotificationContextInput,
   NotificationList,
   NotificationPreferences,

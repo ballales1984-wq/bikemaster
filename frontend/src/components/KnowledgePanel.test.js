@@ -104,10 +104,8 @@ describe("KnowledgePanel", () => {
 
   it("loads topics on mount", async () => {
     apiGet.mockResolvedValueOnce({ topics: mockTopics });
-
-    const wrapper = mount(KnowledgePanel);
+    mount(KnowledgePanel);
     await flush();
-
     expect(apiGet).toHaveBeenCalledWith("/api/v1/knowledge");
   });
 

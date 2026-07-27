@@ -635,7 +635,7 @@ function updateSceneBuffers(sc: AetherScene) {
       const col = hexToRgb(ent.char);
       const pts = ent.pts.map(toDir);
       for (let i = 0; i + 1 < pts.length; i++) {
-        const elev =
+        const _elev =
           pts[i + 1] && pts[i + 1][2] !== undefined ? pts[i + 1][2] || 0 : 0;
         const h0 =
           (ent.pts[i] && ent.pts[i].length >= 3 ? ent.pts[i][2] || 0 : 0) *
@@ -962,7 +962,7 @@ onMounted(async () => {
 
   let lastTime = performance.now();
   let frameCount = 0;
-  let fps = 0;
+  let _fps = 0;
 
   function frame() {
     if (!gl) return;

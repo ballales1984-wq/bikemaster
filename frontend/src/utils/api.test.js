@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
-import { apiDelete, apiGet, apiPost, apiPut, apiUpload } from "./api";
+import { apiDelete, apiGet, apiPost, apiPut } from "./api";
 import { useAuthStore } from "../stores/auth";
 
 describe("api helpers", () => {

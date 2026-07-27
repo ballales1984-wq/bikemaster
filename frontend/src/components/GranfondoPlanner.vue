@@ -31,7 +31,7 @@ const errorMessage = ref("");
 const saving = ref(false);
 const success = ref(false);
 
-const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+const _weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 const endDate = computed(() => {
   const d = new Date(startDate.value);

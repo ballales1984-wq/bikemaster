@@ -23,10 +23,6 @@ const mockCoachData = {
   ],
 };
 
-const mockChatResponse = {
-  response: "Increase volume gradually",
-};
-
 describe("CoachPanel", () => {
   afterEach(() => {
     vi.clearAllMocks();
@@ -34,10 +30,8 @@ describe("CoachPanel", () => {
 
   it("loads first athlete on mount", async () => {
     apiGet.mockResolvedValueOnce(mockAthletes);
-
-    const wrapper = mount(CoachPanel);
+    mount(CoachPanel);
     await flush();
-
     expect(apiGet).toHaveBeenCalledWith("/api/v1/athletes/me");
   });
 

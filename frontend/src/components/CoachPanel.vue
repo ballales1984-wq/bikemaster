@@ -370,7 +370,7 @@ async function sendMessage() {
         speak(reply);
       }
     }
-  } catch (e) {
+  } catch (_e) {
     messages.value.push({
       role: "assistant",
       content:
@@ -389,7 +389,7 @@ async function sendQuick(question: string) {
   await sendMessage();
 }
 
-async function runBm2Analysis(question: string) {
+async function _runBm2Analysis(question: string) {
   bm2Loading.value = true;
   bm2Error.value = null;
   bm2Result.value = null;
@@ -408,14 +408,14 @@ async function runBm2Analysis(question: string) {
       sensors: [],
     });
     bm2Result.value = data;
-  } catch (e) {
+  } catch (_e) {
     bm2Error.value = e instanceof Error ? e.message : "BM2 analysis failed";
   } finally {
     bm2Loading.value = false;
   }
 }
 
-function formatBm2Result(answer: Bm2Answer): string {
+function _formatBm2Result(answer: Bm2Answer): string {
   const lines: string[] = [];
   lines.push(`**BM2 Analysis** — ${answer.question}`);
   lines.push(`Modelli usati: ${answer.models_used.join(", ")}`);
@@ -456,7 +456,7 @@ async function loadFullReport() {
       });
       await scrollToBottom();
     }
-  } catch (e) {
+  } catch (_e) {
     console.error("coach full", e);
   } finally {
     loadingReport.value = false;
@@ -479,8 +479,8 @@ async function init() {
       });
       coachData.value = scores;
     }
-  } catch (e) {
-    console.warn("init coach", e);
+  } catch (_e) {
+    console.warn("init coach", _e);
   }
 }
 

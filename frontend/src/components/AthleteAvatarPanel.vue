@@ -508,7 +508,7 @@ const bodyStats = computed(() => {
   const muscle = p?.muscle_mass_kg || 0;
   const bone = p?.bone_mass_kg || 0;
   const fat = p?.fat_mass_kg || 0;
-  const musclePct = p?.muscle_mass_percentage || 0;
+  const _musclePct = p?.muscle_mass_percentage || 0;
   const waterPct = p?.body_water_percentage || 0;
   const visceral = p?.visceral_fat_level || 0;
   const proteinPct = p?.protein_percentage || 0;
@@ -576,7 +576,7 @@ const powerZones = computed(() => {
 const attributes = computed(() => {
   const s = athleteState.value;
   const ftp = profile.value?.ftp_watts || 0;
-  const weight = profile.value?.weight_kg || 70;
+  const _weight = profile.value?.weight_kg || 70;
 
   return [
     {

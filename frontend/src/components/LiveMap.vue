@@ -15,13 +15,9 @@ import L from "leaflet";
 import { useTrackingStore } from "../stores/trackingStore";
 import { apiGet } from "../utils/api";
 
-interface LeafletMap {
+interface _LeafletMap {
   setView(center: [number, number], zoom: number): LeafletMap;
   remove(): void;
-}
-interface LeafletPolyline {
-  addTo(map: LeafletMap): LeafletPolyline;
-  addLatLng(latlng: [number, number]): LeafletPolyline;
 }
 
 const Ln = L as unknown as {
@@ -61,7 +57,7 @@ const tileLayer = ref<{ remove(): void } | null>(null);
 const poiLayer = ref<any>(null);
 
 const tracking = useTrackingStore();
-const points = ref<Array<[number, number]>>([]);
+const trackingPoints = ref<Array<[number, number]>>([]);
 const poisLoaded = ref(false);
 
 const POI_COLORS: Record<string, string> = {
@@ -142,9 +138,9 @@ async function loadNearbyPois(lat: number, lon: number) {
 }
 
 function addPoint(lat: number, lon: number) {
-  points.value.push([lat, lon]);
+  trackingPoints.value.push([lat, lon]);
   if (!polyline.value && map.value) {
-    polyline.value = Ln.polyline(points.value, {
+    polyline.value = Ln.polyline(trackingPoints.value, {
       color: "#4ecca3",
       weight: 5,
       opacity: 0.9,
@@ -167,7 +163,7 @@ function centerMap() {
 }
 
 function clear() {
-  points.value = [];
+  trackingPoints.value = [];
   polyline.value = null;
   poisLoaded.value = false;
   if (poiLayer.value) {

@@ -32,4 +32,6 @@
 
 <script setup lang="ts">
 import RidesPanel from "../components/RidesPanel.vue";
+
+defineEmits(["summary-change"]);
 </script>

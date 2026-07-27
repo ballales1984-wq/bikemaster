@@ -4,7 +4,7 @@
      sezione "Analisi su ride reale" con scenari what-if e metriche di validazione (MAE, RMSE, R², bias). -->
 <script setup lang="ts">
 import { reactive, ref, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import { useBm2 } from "../composables/useBm2";
 import { useI18n } from "../composables/useI18n";
 import { apiGet } from "../utils/api";
@@ -25,7 +25,6 @@ const {
 } = useBm2();
 
 const route = useRoute();
-const router = useRouter();
 
 const form = reactive({
   question: "Quanta energia consumo in questo giro?",

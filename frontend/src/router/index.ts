@@ -368,7 +368,7 @@ router.afterEach((to) => {
 // against reload loops.
 router.onError((error, to) => {
   const message = (error as Error)?.message || "";
-  const isChunkError =
+  const _isChunkError =
     /dynamically imported module|Importing a module script failed|Failed to fetch|Loading chunk|error loading dynamically/i.test(
       message,
     );

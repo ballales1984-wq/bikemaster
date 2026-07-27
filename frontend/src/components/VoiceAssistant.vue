@@ -455,7 +455,7 @@ async function executeIntent(intent: string, text: string): Promise<void> {
   const lower = text.toLowerCase();
   try {
     switch (intent) {
-      case "navigation":
+      case "navigation": {
         const viewMatch = lower.match(/(?:apri|vai a|mostra)\s+(.+)/);
         if (viewMatch) {
           const view = viewMatch[1].trim();
@@ -477,10 +477,12 @@ async function executeIntent(intent: string, text: string): Promise<void> {
           if (path) router.push(path);
         }
         break;
-      case "add_ride":
+      }
+      case "add_ride": {
         const router = (await import("../router/index")).default;
         router.push("/rides");
         break;
+      }
       default:
         break;
     }

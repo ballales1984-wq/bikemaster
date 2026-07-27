@@ -13,13 +13,10 @@ import {
   createLogEntry,
 } from "../services/voiceCommands";
 import type {
-  RecognitionState,
   VoiceCommandResult,
   VoiceCommandLogEntry,
-  ParsedCommand,
 } from "../types/voiceCommands";
 import type {
-  SpeechRecognition,
   SpeechRecognitionEvent,
   SpeechRecognitionErrorEvent,
 } from "../types/speechRecognition";

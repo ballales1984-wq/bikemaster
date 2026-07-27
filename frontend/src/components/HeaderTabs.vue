@@ -114,6 +114,8 @@ defineProps({
   isClient: { type: Boolean, default: false },
 });
 
+defineEmits(["logout"]);
+
 const tabEls = ref([]);
 
 const tabs = [

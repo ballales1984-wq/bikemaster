@@ -9,7 +9,7 @@ import type {
   MetabolicDailySummary,
   NutritionFoodItem,
 } from "../types/index";
-import { apiGet, apiPut, apiPost, apiDelete, ApiError } from "../utils/api";
+import { apiGet, apiPut, apiPost, apiDelete } from "../utils/api";
 import { useAuthStore } from "./auth";
 
 export const useMetabolismStore = defineStore("metabolism", () => {

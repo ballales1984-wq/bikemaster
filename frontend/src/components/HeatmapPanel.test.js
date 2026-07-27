@@ -31,7 +31,7 @@ describe("HeatmapPanel", () => {
     apiGet
       .mockResolvedValueOnce(mockAthletes)
       .mockResolvedValueOnce(mockHeatmap);
-    const wrapper = mount(HeatmapPanel);
+    mount(HeatmapPanel);
     await flush();
     expect(apiGet).toHaveBeenCalledWith("/api/v1/athletes");
   });
@@ -110,7 +110,7 @@ describe("HeatmapPanel", () => {
 
   it("no heatmap call when no athletes available", async () => {
     apiGet.mockResolvedValueOnce({ athletes: [] });
-    const wrapper = mount(HeatmapPanel);
+    mount(HeatmapPanel);
     await flush();
     const heatmapCalls = apiGet.mock.calls.filter(
       (c) => c[0] === "/api/v1/heatmap",

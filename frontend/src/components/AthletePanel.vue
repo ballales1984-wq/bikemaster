@@ -361,7 +361,7 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "../composables/useToast";
-import { apiGet, apiPost } from "../utils/api";
+import { apiGet } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
 import { useAthleteStore } from "../stores/athlete";
 import { validateAthleteForm } from "../utils/validation";
@@ -408,7 +408,7 @@ const athleteStore = useAthleteStore();
 
 const router = useRouter();
 const toast = useToast();
-const emit = defineEmits(["toast"]);
+defineEmits(["toast"]);
 const form = ref<AthleteForm>({
   name: "",
   age: 30,
