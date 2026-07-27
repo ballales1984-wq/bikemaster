@@ -121,6 +121,17 @@ if (typeof requestAnimationFrame === "undefined") {
   globalThis.cancelAnimationFrame = (id) => clearTimeout(id);
 }
 
+vi.mock("vue-router", async () => {
+  const actual = await vi.importActual("vue-router");
+  return {
+    ...actual,
+    createWebHistory: () => {
+      const { createMemoryHistory } = actual;
+      return createMemoryHistory();
+    },
+  };
+});
+
 if (
   typeof performance === "undefined" ||
   typeof performance.now !== "function"
