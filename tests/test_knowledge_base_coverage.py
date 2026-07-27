@@ -76,3 +76,17 @@ def test_search_knowledge_base_no_chunks(monkeypatch):
     monkeypatch.setattr(kb, "load_chunks", lambda *a, **k: [])
     assert kb.search_knowledge_base("query") == []
     assert kb.search_knowledge_base("query", as_string=True) == ""
+
+
+def test_split_text_overlap_clamps_to_zero(monkeypatch):
+    monkeypatch.setattr(kb, "CHUNK_OVERLAP", 9999)
+    text = "short text"
+    chunks = kb._split_text(text)
+    assert len(chunks) == 1
+    assert chunks[0] == text
+
+
+def test_load_chunks_missing_path_returns_empty(monkeypatch, tmp_path):
+    missing = tmp_path / "does_not_exist"
+    monkeypatch.setattr(kb._s, "kb_path", missing)
+    assert kb.load_chunks(force_reload=True) == []
