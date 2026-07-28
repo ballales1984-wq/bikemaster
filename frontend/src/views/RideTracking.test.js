@@ -91,6 +91,41 @@ vi.mock("../composables/useI18n", () => ({
   }),
 }));
 
+vi.mock("../composables/useBatteryEfficientGps", () => ({
+  useBatteryEfficientGps: () => ({
+    start: vi.fn(),
+    stop: vi.fn(),
+    pause: vi.fn(),
+    resume: vi.fn(),
+    isWaiting: { value: false },
+    isMoving: { value: false },
+  }),
+}));
+
+vi.mock("../composables/useVoiceCoach", () => ({
+  useVoiceCoach: () => ({
+    startVoiceCoachInterval: vi.fn(),
+    stopVoiceCoachInterval: vi.fn(),
+  }),
+}));
+
+vi.mock("../composables/useGpsOutlierFilter", () => ({
+  useGpsOutlierFilter: () => ({
+    isOutlier: vi.fn().mockReturnValue(false),
+    reset: vi.fn(),
+  }),
+}));
+
+vi.mock("../composables/useGpsDirectionFilter", () => ({
+  useGpsDirectionFilter: () => ({
+    isDirectionOutlier: vi.fn().mockReturnValue(false),
+    accept: vi.fn().mockReturnValue(null),
+    reset: vi.fn(),
+  }),
+  bearing: vi.fn(),
+  detectTurnFromBearing: vi.fn().mockReturnValue(false),
+}));
+
 describe("RideTracking", () => {
   beforeEach(() => {
     setActivePinia(createPinia());

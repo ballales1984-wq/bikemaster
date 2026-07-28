@@ -1,10 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("../utils/localRideCache", () => ({
+  cacheRides: vi.fn().mockResolvedValue(undefined),
+  cacheSummary: vi.fn().mockResolvedValue(undefined),
+  getCachedRides: vi.fn().mockResolvedValue(null),
+  getCachedSummary: vi.fn().mockResolvedValue(null),
+  removeCachedRide: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe("useRides composable", () => {
   it("fetchSummary returns default values on error", async () => {
-    vi.setConfig({ testTimeout: 10000 });
-    vi.resetModules();
-    const mockApiGet = vi.fn().mockResolvedValue({ rides: [], total: 0 });
+    const mockApiGet = vi.fn().mockRejectedValue(new Error("Network error"));
     vi.doMock("../utils/api", () => ({
       apiGet: mockApiGet,
       apiPost: vi.fn(),
@@ -18,7 +24,6 @@ describe("useRides composable", () => {
   });
 
   it("calculates totals correctly", async () => {
-    vi.resetModules();
     const mockData = {
       rides: [
         {

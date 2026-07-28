@@ -6,8 +6,6 @@ os.environ.setdefault("AI_COACH_MODE", "local")
 os.environ.setdefault("GROQ_API_KEY", "test-key")
 
 import pytest
-
-pytestmark = pytest.mark.slow
 from starlette.testclient import TestClient
 
 from bike_analyzer.backend.analytics.ai_coach import (
