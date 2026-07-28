@@ -48,7 +48,9 @@ from ..analytics.calories import calories_per_km, estimate_calories
 from ..analytics.fatigue import (
     calculate_fatigue_score,
     estimate_recovery_hours,
+    get_recovery_recommendation,
 )
+from ..analytics.terrain_enrichment import TerrainEnricher
 from ..analytics.granfondo_planner import generate_granfondo_plan
 from ..audit_log import log_action, read_audit_logs
 from ..db.database import get_user_by_id
@@ -1657,6 +1659,49 @@ async def get_aethermap_terrain_tile(
         "face": face,
         "resolution": resolution,
         "source": "procedural",
+    }
+
+
+@router.get("/rides/{ride_id}/terrain")
+async def get_ride_terrain_enrichment(
+    ride_id: int,
+    temp_c: float = Query(15.0, description="Temperature in Celsius"),
+    solar_elev_deg: float = Query(45.0, description="Solar elevation angle"),
+    ora: str = Query("12:00", description="Time of day"),
+    enabled: bool = Query(False, description="Enable terrain enrichment"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Enrich ride GPS points with terrain data from AetherMap.
+
+    Returns GPS points with slope_pct, surface_type, shade,
+    traffic_level, and terrain_confidence fields.
+    Requires BIKEMASTER_TERRAIN_ENRICHMENT=true env var.
+    """
+    from ..db.database import get_ride as _get_ride
+
+    ride = _get_ride(ride_id)
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
+    gps_points = ride.get("gps_points")
+    if not gps_points:
+        raise HTTPException(status_code=400, detail="No GPS points for this ride")
+
+    from ..models.models import GPSPoint
+
+    points = [GPSPoint(**p) for p in gps_points]
+    enricher = TerrainEnricher(
+        temp_c=temp_c,
+        solar_elev_deg=solar_elev_deg,
+        ora=ora,
+        enabled=enabled,
+    )
+    enriched = enricher.enrich_ride(points)
+    return {
+        "ride_id": ride_id,
+        "enriched": [p.to_dict() for p in enriched],
+        "terrain_features": enricher.snapshot(),
+        "h3_summary": enricher.h3_summary(),
     }
 
 
