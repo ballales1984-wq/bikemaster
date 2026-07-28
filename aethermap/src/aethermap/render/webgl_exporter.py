@@ -247,6 +247,69 @@ def export_world(
     Path(path).write_text(json.dumps(data, default=str), encoding="utf-8")
 
 
+def export_world_geojson(
+    twin: DigitalTwin,
+    path: str | Path,
+) -> None:
+    """Export the DigitalTwin world as a GeoJSON FeatureCollection.
+
+    Each entity becomes a GeoJSON Feature with properties:
+    - tipo: entity type (strada, albero, montagna)
+    - proprieta: entity properties dict
+    - confidence: entity reliability score
+    - relations: list of entity relations
+
+    The FeatureCollection metadata includes engine info and
+    H3 grid summary for spatial indexing.
+    """
+    features: list[dict[str, Any]] = []
+    for obj in twin.store.objects.values():
+        props = obj.proprieta.copy()
+        props["confidence"] = obj.affidabilita.valore
+        props["tipo"] = obj.tipo
+        props["relations"] = [
+            {"tipo": r.tipo, "target_id": r.target_id, "peso": r.peso}
+            for r in obj.relazioni
+        ]
+        geometry: dict[str, Any] = {"type": "Point", "coordinates": [obj.posizione.lon, obj.posizione.lat]}
+        if obj.geometria.tipo == "linea" and "punti" in obj.geometria.dati:
+            coords = [
+                [p["lon"], p["lat"], p.get("ele", 0.0)]
+                for p in obj.geometria.dati["punti"]
+            ]
+            geometry = {"type": "LineString", "coordinates": coords}
+        features.append(
+            {
+                "type": "Feature",
+                "id": obj.id,
+                "geometry": geometry,
+                "properties": props,
+            }
+        )
+
+    h3_summary: dict[str, dict[str, int]] = {}
+    try:
+        h3_summary = twin.h3_summary()
+    except Exception:
+        pass
+
+    geojson: dict[str, Any] = {
+        "type": "FeatureCollection",
+        "features": features,
+        "metadata": {
+            "engine": "aethermap",
+            "version": "1.0",
+            "entity_count": len(features),
+            "h3_summary": h3_summary,
+        },
+    }
+
+    Path(path).write_text(
+        json.dumps(geojson, ensure_ascii=False, indent=2, default=str),
+        encoding="utf-8",
+    )
+
+
 def main() -> None:
     import sys
     from aethermap.twin.objects import make_albero, make_montagna, make_strada

@@ -61,6 +61,9 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
         if path == "/api/export":
             self._serve_export()
             return
+        if path == "/api/geojson":
+            self._serve_geojson()
+            return
         if path == "/":
             self._serve_html()
             return
@@ -224,6 +227,27 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
             return
         payload = json.dumps(self._world_data, ensure_ascii=False, indent=2)
         self._send_json_or_text(200, payload, "application/json")
+
+    def _serve_geojson(self) -> None:
+        from aethermap.render.webgl_exporter import export_world_geojson
+
+        if self._world_data is None:
+            self._send_json_or_text(404, '{"error": "No world data available"}', "application/json")
+            return
+        twin = DigitalTwin()
+        twin.add(make_strada("strada-1", 45.0, 9.0, [
+            {"lat": 45.0 + i * 0.0005, "lon": 9.0 + i * 0.0006, "ele": 120 + (i % 2) * 2}
+            for i in range(6)
+        ]))
+        twin.add(make_albero("albero-1", 45.005, 9.01, "quercia", 8.5))
+        twin.add(make_montagna("montagna-1", 45.015, 9.03, 1800.0, ["nord", "sud", "est"]))
+        env = Environment(temp_c=15.0, solar_elev_deg=30.0, ora="12:00")
+        twin.step(env)
+        import tempfile, os
+        tmp = os.path.join(tempfile.gettempdir(), "aethermap_geojson.json")
+        export_world_geojson(twin, tmp)
+        payload = Path(tmp).read_text(encoding="utf-8")
+        self._send_json_or_text(200, payload, "application/geojson")
 
     def _send_json_or_text(self, code: int, content: str, content_type: str) -> None:
         payload = content.encode("utf-8")
