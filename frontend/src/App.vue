@@ -114,7 +114,8 @@ Liability:
           <router-link to="/cookies">Cookie</router-link>
         </div>
         <div class="footer-meta">
-          <span class="footer-version">v2.0</span>
+          <span class="footer-version" v-if="version">v{{ version }}</span>
+          <span class="footer-version" v-else>v2.0</span>
           <span class="footer-dot">•</span>
           <span>© {{ year }} BikeMaster</span>
         </div>
@@ -130,6 +131,7 @@ import { useAuthStore } from "./stores/auth";
 import { useUIStore } from "./stores/ui";
 import { useRides } from "./composables/useRides";
 import { useI18n } from "./composables/useI18n";
+import { apiGet } from "./utils/api";
 import LoginForm from "./components/LoginForm.vue";
 import HeaderTabs from "./components/HeaderTabs.vue";
 import StatsSummary from "./components/StatsSummary.vue";
@@ -154,6 +156,7 @@ const isPublicPage = computed(() =>
 );
 const showHeader = computed(() => loggedIn.value || isPublicPage.value);
 const year = new Date().getFullYear();
+const version = ref("");
 const summary = ref({
   rides: 0,
   distance_km: 0,
@@ -164,6 +167,19 @@ const summary = ref({
 const summaryLoading = ref(false);
 const loginError = ref("");
 const { fetchSummary } = useRides();
+
+async function loadVersion() {
+  try {
+    const data = await apiGet(
+      "/api/v1/version",
+      {},
+      { timeoutMs: 5000, noRetry: true },
+    );
+    version.value = data.version || "";
+  } catch {
+    version.value = "";
+  }
+}
 
 watch(
   () => ui.isDark,
@@ -244,6 +260,7 @@ async function onSummaryChange() {
 
 onMounted(() => {
   setLocale(locale.value || "en");
+  loadVersion();
   window.addEventListener("oauth-loading-end", () => {
     ui.setOauthLoading(false);
   });

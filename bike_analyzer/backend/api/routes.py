@@ -5797,6 +5797,38 @@ async def wahoo_disconnect(current_user: dict = Depends(get_current_user)):
     return {"status": "disconnected"}
 
 
+# ------------------------------------------------------------------
+# Android Health Connect integration routes
+# ------------------------------------------------------------------
+
+
+@router.post("/health-connect/connect")
+async def health_connect_connect(current_user: dict = Depends(get_current_user)):
+    """Connect Android Health Connect for the current athlete."""
+    from ..ingestion.health_connect import connect
+
+    result = connect(current_user["id"])
+    return result
+
+
+@router.post("/health-connect/disconnect")
+async def health_connect_disconnect(current_user: dict = Depends(get_current_user)):
+    """Disconnect Android Health Connect for the current athlete."""
+    from ..ingestion.health_connect import disconnect
+
+    disconnect(current_user["id"])
+    return {"status": "disconnected"}
+
+
+@router.post("/health-connect/sync")
+async def health_connect_sync(current_user: dict = Depends(get_current_user)):
+    """Sync data from Android Health Connect."""
+    from ..ingestion.health_connect import sync_health_data
+
+    result = sync_health_data(current_user["id"])
+    return result
+
+
 @router.get("/dashboard")
 @limiter.limit("20/minute")
 async def get_dashboard(request: Request, current_user: dict = Depends(get_current_user)):

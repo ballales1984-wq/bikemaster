@@ -785,15 +785,10 @@ async function importBulkKeys() {
 async function scanBleDevices() {
   clearServiceError();
   try {
-    bleAvailable.value = await bleStore
-      .scanForDevices()
-      .then(() => true)
-      .catch(() => false);
-    if (!bleAvailable.value) {
-      const result = await bleStore.scanForDevices();
-      if (result.length) {
-        scannedBleDevice.value = result[0];
-      }
+    const result = await bleStore.scanForDevices();
+    scannedBleDevice.value = result.length ? result[0] : null;
+    if (!result.length) {
+      toast.info(t("connections.noBleDevicesFound") || "Nessun dispositivo BLE trovato");
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
