@@ -13,7 +13,7 @@ GRAVITY = 9.81  # m/s^2
 AIR_DENSITY = 1.225  # kg/m^3 (sea level, 15C)
 CDA_DEFAULT = 0.4  # m^2 effective frontal area * drag coefficient
 CRR_DEFAULT = 0.005  # rolling resistance coefficient (asphalt)
-DRIVETRAIN_EFFICIENCY = 0.25  # fractional losses in chain/derailleur (matches calories.py)
+DRIVETRAIN_EFFICIENCY = 0.97  # fractional losses in chain/derailleur (matches calories.py)
 RIDER_MASS_DEFAULT = 70.0  # kg
 BIKE_MASS_DEFAULT = 8.0  # kg
 

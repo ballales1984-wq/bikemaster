@@ -51,7 +51,7 @@ class TrainingLoadModel(Algorithm):
         tss_history = self._build_tss_history(ctx, history, ftp)
 
         if not tss_history:
-            precision = max(5.0, 0.0)
+            precision = max(5.0, len(tss_history) * 0.5)
             confidence = 0.3
             return 0.0, precision, confidence
 

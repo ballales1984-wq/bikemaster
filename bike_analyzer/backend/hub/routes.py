@@ -19,7 +19,6 @@ import contextlib
 import json
 import logging
 import os
-import secrets
 import time
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
@@ -118,17 +117,22 @@ def _build_oauth_success_url(redirect_uri: str, jwt_token: str, email: str, user
 
 
 def _issue_oauth_state(redirect_uri: str, **extra) -> str:
-    """Emette un token di stato OAuth opaco con redirect e metadati aggiuntivi."""
+    """Emette un token di stato OAuth firmato con redirect e metadati aggiuntivi."""
     payload = {"redirect_uri": redirect_uri, "ts": time.time(), **extra}
-    return secrets.token_urlsafe(16) + "." + secrets.token_urlsafe(32)
+    return jwt.encode(payload, _s.secret_key, algorithm=ALGORITHM)
 
 
 def _verify_oauth_state(state: str) -> dict | None:
-    """Verifica e decodifica un token di stato OAuth, oppure None se non valido."""
+    """Verifica e decodifica un token di stato OAuth firmato, oppure None se non valido."""
     if not state or "." not in state:
         return None
-    parts = state.split(".", 1)
-    return {"state": parts[0], "data": parts[1]}
+    try:
+        payload = jwt.decode(state, _s.secret_key, algorithms=[ALGORITHM])
+        if "redirect_uri" not in payload:
+            return None
+        return payload
+    except JWTError:
+        return None
 
 
 def _validate_redirect_uri(redirect_uri: str, request: Request) -> None:
@@ -184,7 +188,7 @@ async def hub_login(request: Request, form_data: OAuth2PasswordRequestForm = Dep
         result = await session.execute(stmt)
         user = result.scalar_one_or_none()
 
-        user_id = user.id if user else None
+        user_id = user.id if user else "anonymous"
         if not await check_rate_limit(user_id, "/auth/login", limit=5, window=60):
             raise HTTPException(status_code=429, detail="Too many login attempts")
 

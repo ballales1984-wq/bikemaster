@@ -18,7 +18,7 @@ def calories_physics(ride: Ride) -> float:
     """Stima calorie da modello fisico: potenza meccanica / efficienza metabolica."""
     if ride.avg_speed_kmh is None:
         return 0.0
-    g, crr, rho, cdA, eff, J_PER_CAL = 9.81, 0.005, 1.225, 0.4, 0.25, 4184
+    g, crr, rho, cdA, eff, J_PER_CAL = 9.81, 0.005, 1.225, 0.4, 0.97, 4184
     v_ms = ride.avg_speed_kmh * 1000 / 3600
     w_n = ride.weight_kg * g
     rolling = crr * w_n

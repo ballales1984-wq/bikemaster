@@ -189,7 +189,7 @@ def _rider_bike_params(bike: dict[str, Any]) -> RiderBikeParams:
         bike_mass_kg=float(bike.get("bike_weight", 8.0)),
         cda=float(bike.get("cda", 0.40)),
         crr=float(bike.get("crr", 0.005)),
-        drivetrain_efficiency=float(bike.get("drivetrain_efficiency", 0.25)),
+        drivetrain_efficiency=float(bike.get("drivetrain_efficiency", 0.97)),
     )
 
 

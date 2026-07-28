@@ -55,10 +55,10 @@ class MetabolismModel(Algorithm):
 
         weight_kg = ctx.athlete.weight_kg.value
         height_m_val = ctx.athlete.height_m.value if ctx.athlete.height_m else None
-        if height_m_val is not None and height_m_val > 3.0:
-            height_cm = height_m_val
-        elif height_m_val is not None:
+        if height_m_val is not None and height_m_val <= 3.0:
             height_cm = height_m_val * 100.0
+        elif height_m_val is not None:
+            height_cm = height_m_val
         else:
             height_cm = None
         age = ctx.athlete.age

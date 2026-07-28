@@ -37,7 +37,27 @@ export const useRidesStore = defineStore("rides", () => {
     page_size: 20,
   });
 
-  const filteredRides = computed(() => rides.value);
+  const filteredRides = computed(() => {
+    let result = rides.value;
+    if (filters.value.search) {
+      const q = filters.value.search.toLowerCase();
+      result = result.filter(
+        (r) => (r.title || "").toLowerCase().includes(q),
+      );
+    }
+    if (filters.value.sort) {
+      const key = filters.value.sort;
+      result = [...result].sort((a, b) => {
+        const va = (a as Record<string, unknown>)[key];
+        const vb = (b as Record<string, unknown>)[key];
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        return va < vb ? -1 : va > vb ? 1 : 0;
+      });
+    }
+    return result;
+  });
   const totalPages = computed(() =>
     Math.max(
       1,
@@ -152,6 +172,7 @@ export const useRidesStore = defineStore("rides", () => {
       await apiDelete(`/api/v1/rides/${rideId}`);
       rides.value = rides.value.filter((r) => r.id !== rideId);
       summary.value.rides = Math.max(0, summary.value.rides - 1);
+      await fetchSummary();
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to delete ride";
       throw e;
@@ -167,6 +188,7 @@ export const useRidesStore = defineStore("rides", () => {
       const data = await apiPost<Ride>("/api/v1/rides", ride);
       rides.value.unshift(data);
       summary.value.rides += 1;
+      await fetchSummary();
       return data;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to add ride";

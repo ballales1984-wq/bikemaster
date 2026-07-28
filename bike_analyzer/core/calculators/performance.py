@@ -7,9 +7,13 @@ from ..models import Ride
 
 def performance_score(ride: Ride) -> float:
     """Punteggio performance (0-10) combinando velocita', durata e dislivello."""
-    speed_factor = min(ride.avg_speed_kmh / 30.0, 1.0)
-    duration_factor = min(ride.duration_hours / 2.0, 1.0)
-    elevation_factor = min(ride.elevation_gain_m / 500.0, 1.0) if ride.elevation_gain_m else 0.0
+    speed_factor = min(ride.avg_speed_kmh / 30.0, 1.0) if ride.avg_speed_kmh else 0.0
+    duration_factor = min(ride.duration_hours / 2.0, 1.0) if ride.duration_hours else 0.0
+    elevation_factor = (
+        min(ride.elevation_gain_m / 500.0, 1.0)
+        if ride.elevation_gain_m and ride.distance_km and ride.distance_km > 0
+        else 0.0
+    )
     return round((speed_factor * 0.4 + duration_factor * 0.4 + elevation_factor * 0.2) * 10.0, 1)
 
 
