@@ -195,6 +195,9 @@ class Settings(BaseSettings):
     sync_weekly_day: int = 0
     sync_auto_on_startup: bool = False
 
+    # === AetherMap Terrain Enrichment ===
+    terrain_enrichment_enabled: bool = False
+
     @property
     def cloud_sync_enabled(self) -> bool:
         """True only when an optional cloud PostgreSQL (sync) URL is configured.

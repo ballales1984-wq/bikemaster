@@ -487,6 +487,41 @@ async def health_check():
     return {"status": "ok", "service": "bikemaster"}
 
 
+@router.get("/version")
+async def version_check():
+    """Return the current application version from package.json and git."""
+    import json as _json
+
+    version = "0.0.0"
+    source = "unknown"
+
+    pkg_path = Path(__file__).resolve().parent.parent.parent.parent / "package.json"
+    if pkg_path.is_file():
+        try:
+            data = _json.loads(pkg_path.read_text(encoding="utf-8"))
+            version = data.get("version", version)
+            source = "package.json"
+        except Exception:
+            pass
+
+    commit = ""
+    try:
+        import subprocess as _sp
+
+        result = _sp.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            commit = result.stdout.strip()
+    except Exception:
+        pass
+
+    return {"version": version, "source": source, "commit": commit}
+
+
 @router.post("/alerts/webhook")
 async def alerts_webhook(request: Request):
     """Receive alerts from Prometheus Alertmanager.
@@ -1688,7 +1723,10 @@ async def get_ride_terrain_enrichment(
     temp_c: float = Query(15.0, description="Temperature in Celsius"),
     solar_elev_deg: float = Query(45.0, description="Solar elevation angle"),
     ora: str = Query("12:00", description="Time of day"),
-    enabled: bool = Query(False, description="Enable terrain enrichment"),
+    enabled: bool = Query(
+        False,
+        description="Enable terrain enrichment (requires BIKEMASTER_TERRAIN_ENRICHMENT=true)",
+    ),
     current_user: dict = Depends(get_current_user),
 ):
     """Enrich ride GPS points with terrain data from AetherMap.
@@ -1697,6 +1735,12 @@ async def get_ride_terrain_enrichment(
     traffic_level, and terrain_confidence fields.
     Requires BIKEMASTER_TERRAIN_ENRICHMENT=true env var.
     """
+    if enabled and not _s.terrain_enrichment_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="Terrain enrichment is disabled. Set BIKEMASTER_TERRAIN_ENRICHMENT=true to enable.",
+        )
+
     from ..db.database import get_ride as _get_ride
 
     ride = _get_ride(ride_id)

@@ -969,7 +969,7 @@ onMounted(async () => {
     const now = performance.now();
     frameCount++;
     if (now - lastTime >= 1000) {
-      fps = frameCount;
+      _fps = frameCount;
       frameCount = 0;
       lastTime = now;
     }
