@@ -1,9 +1,9 @@
 <!--
   Vista delle impostazioni backend e preferenze utente.
-  Configurazione URL backend, fallback Render, gestione chiavi API personali,
-  importazione bulk chiavi, pannello sync e verifica stato connessione.
+  Configurazione URL backend, fallback Render, sincronizzazione e verifica stato connessione.
+  Le chiavi API sono gestite nella pagina Connessioni.
   Componenti: SyncSettingsPanel.
-  Store: settingsStore, apiKeysStore.
+  Store: settingsStore.
 -->
 <template>
   <div class="settings-page">
@@ -49,63 +49,12 @@
       </label>
     </section>
 
-    <section v-if="keysLoaded" class="card">
-      <h2>Chiavi API personali</h2>
+    <section class="card link-card">
+      <h2>Chiavi API e connessioni</h2>
       <p class="hint">
-        Inserisci le <strong>tue</strong> chiavi per far funzionare l'app
-        localmente. Vengono salvate solo su questo dispositivo (SQLite locale) e
-        inviate al backend del PC ad ogni richiesta, che le usa al posto delle
-        sue. Non vengono mai conservate sul server.
+        La gestione delle chiavi API e delle connessioni OAuth &egrave; disponibile nella pagina
+        <router-link to="/settings/connections" class="inline-link">Connessioni</router-link>.
       </p>
-      <form class="keys-grid" @submit.prevent>
-        <label v-for="field in keyFields" :key="field.name" class="key-field">
-          <span class="key-label">{{ field.label }}</span>
-          <div class="key-input-row">
-            <input
-              v-model="keys[field.name]"
-              class="text-input"
-              :type="showKeys ? 'text' : 'password'"
-              :placeholder="field.placeholder"
-              autocomplete="off"
-            />
-            <button
-              v-if="keys[field.name]"
-              class="btn btn-ghost btn-key-clear"
-              type="button"
-              :title="'Rimuovi ' + field.label"
-              @click="clearKey(field.name)"
-            >
-              ✕
-            </button>
-          </div>
-        </label>
-      </form>
-      <div class="row key-actions">
-        <button class="btn" @click="saveKeys">Salva chiavi</button>
-        <button class="btn btn-ghost" @click="showKeys = !showKeys">
-          {{ showKeys ? "Nascondi" : "Mostra" }}
-        </button>
-        <span class="status" :class="keysStatusClass">{{ keysStatus }}</span>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Importa chiavi (copia-incolla)</h2>
-      <p class="hint">
-        Incolla tutte le variabili in una volta (JSON o righe
-        <code>KEY=VALUE</code>, es. <code>GROQ_API_KEY=gsk_...</code>). Le
-        chiavi verranno distribuite nei campi sopra e salvate sul dispositivo.
-      </p>
-      <textarea
-        v-model="bulkInput"
-        class="bulk-input"
-        rows="5"
-        placeholder='{"groq":"gsk_...","google_maps":"AIza...","serpapi":"...","weather":"...","garmin_api_key":"...","strava_client_id":"...","strava_client_secret":"...","wahoo_client_id":"...","wahoo_client_secret":"...","google_fit_client_id":"...","google_fit_client_secret":"...","google_health_client_id":"...","google_health_client_secret":"..."}'
-      ></textarea>
-      <div class="row key-actions">
-        <button class="btn" @click="importBulk">Importa e salva</button>
-        <span class="status" :class="bulkStatusClass">{{ bulkStatus }}</span>
-      </div>
     </section>
 
     <SyncSettingsPanel />
@@ -125,95 +74,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useSettingsStore } from "../stores/settings";
-import { useApiKeysStore } from "../stores/apiKeys";
 import { apiGet } from "../utils/api";
-import { parseBulkKeys } from "../utils/userKeys";
-import type { UserApiKeys } from "../utils/userKeys";
 import SyncSettingsPanel from "../components/SyncSettingsPanel.vue";
 
 const settings = useSettingsStore();
-const apiKeys = useApiKeysStore();
 
 const draftBase = ref(settings.apiBase);
 const statusText = ref("");
 const statusClass = ref("");
-const showKeys = ref(false);
-const keysStatus = ref("");
-const keysStatusClass = ref("");
-const bulkInput = ref("");
-const bulkStatus = ref("");
-const bulkStatusClass = ref("");
-const keysLoaded = ref(false);
-
-const keyFields: {
-  name: keyof UserApiKeys;
-  label: string;
-  placeholder: string;
-}[] = [
-  { name: "groq", label: "Groq (AI Coach)", placeholder: "gsk_..." },
-  { name: "google_maps", label: "Google Maps", placeholder: "AIza..." },
-  { name: "serpapi", label: "SerpAPI", placeholder: "SerpAPI key" },
-  {
-    name: "weather",
-    label: "Weather / OpenWeather",
-    placeholder: "OpenWeather key",
-  },
-  {
-    name: "garmin_api_key",
-    label: "Garmin API Key",
-    placeholder: "Garmin Connect key",
-  },
-  {
-    name: "strava_client_id",
-    label: "Strava Client ID",
-    placeholder: "Strava OAuth client id",
-  },
-  {
-    name: "strava_client_secret",
-    label: "Strava Client Secret",
-    placeholder: "Strava OAuth client secret",
-  },
-  {
-    name: "wahoo_client_id",
-    label: "Wahoo Client ID",
-    placeholder: "Wahoo OAuth client id",
-  },
-  {
-    name: "wahoo_client_secret",
-    label: "Wahoo Client Secret",
-    placeholder: "Wahoo OAuth client secret",
-  },
-  {
-    name: "google_fit_client_id",
-    label: "Google Fit Client ID",
-    placeholder: "Google Fit OAuth client id",
-  },
-  {
-    name: "google_fit_client_secret",
-    label: "Google Fit Client Secret",
-    placeholder: "Google Fit OAuth client secret",
-  },
-  {
-    name: "google_health_client_id",
-    label: "Google Health Client ID",
-    placeholder: "Google Health OAuth client id",
-  },
-  {
-    name: "google_health_client_secret",
-    label: "Google Health Client Secret",
-    placeholder: "Google Health OAuth client secret",
-  },
-];
-
-const keys = reactive<UserApiKeys>({ ...apiKeys.keys });
-
-onMounted(async () => {
-  await apiKeys.load();
-  Object.assign(keys, apiKeys.keys);
-  keysLoaded.value = true;
-});
 
 const modeLabel = computed(() => {
   switch (settings.backendMode) {
@@ -248,44 +118,6 @@ function reset() {
 function toggleFallback(e: Event) {
   const checked = (e.target as HTMLInputElement).checked;
   settings.setUseFallback(checked);
-}
-
-function saveKeys() {
-  for (const field of keyFields) {
-    const val = (keys[field.name] || "").trim();
-    if (val) apiKeys.setKey(field.name, val);
-    else apiKeys.clearKey(field.name);
-  }
-  apiKeys.save();
-  keysStatus.value = "Chiavi salvate su questo dispositivo.";
-  keysStatusClass.value = "ok";
-}
-
-function clearKey(name: keyof UserApiKeys) {
-  keys[name] = "";
-  apiKeys.clearKey(name);
-  apiKeys.save();
-  keysStatus.value = `${name} rimossa da questo dispositivo.`;
-  keysStatusClass.value = "ok";
-}
-
-function importBulk() {
-  const parsed = parseBulkKeys(bulkInput.value);
-  const found = Object.values(parsed).filter((v) => !!v).length;
-  if (found === 0) {
-    bulkStatus.value = "Nessuna chiave riconosciuta nel testo incollato.";
-    bulkStatusClass.value = "err";
-    return;
-  }
-  for (const field of keyFields) {
-    const val = (parsed[field.name] || "").trim();
-    if (val) apiKeys.setKey(field.name, val);
-    else apiKeys.clearKey(field.name);
-  }
-  apiKeys.save();
-  Object.assign(keys, apiKeys.keys);
-  bulkStatus.value = `${found} chiave/i importata/e e salvata/e.`;
-  bulkStatusClass.value = "ok";
 }
 
 async function ping() {
@@ -400,48 +232,17 @@ code {
   border-radius: 4px;
   color: #ddd;
 }
-.keys-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 0.9rem;
-  margin-bottom: 0.8rem;
+.link-card {
 }
-.key-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+.link-card .hint {
+  margin-bottom: 0;
 }
-.key-input-row {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
+.inline-link {
+  color: #42b983;
+  text-decoration: none;
+  font-weight: 600;
 }
-.key-input-row .text-input {
-  flex: 1 1 auto;
-}
-.btn-key-clear {
-  flex: 0 0 auto;
-  padding: 0.5rem 0.7rem;
-  line-height: 1;
-}
-.key-label {
-  font-size: 0.85rem;
-  color: #bbb;
-}
-.key-actions {
-  margin-top: 0.4rem;
-  align-items: center;
-}
-.bulk-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0.7rem 0.8rem;
-  background: #0f0f0f;
-  border: 1px solid #333;
-  border-radius: 6px;
-  color: #eee;
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: 0.82rem;
-  resize: vertical;
+.inline-link:hover {
+  text-decoration: underline;
 }
 </style>
