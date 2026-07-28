@@ -257,7 +257,7 @@ async function search() {
       results?: KnowledgeResult[];
       chunks?: KnowledgeResult[];
     }>("/api/v1/knowledge/search", { q });
-    results.value = data.results || data.chunks || [];
+    results.value = data?.results || data?.chunks || [];
   } catch (e) {
     console.error("search", e);
     results.value = [];

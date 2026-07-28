@@ -15,6 +15,7 @@ import html as html_module
 import json
 import os
 import secrets
+import sqlite3
 import tempfile
 import time
 from collections.abc import AsyncGenerator
@@ -462,7 +463,7 @@ def _google_health_message_html(message: dict) -> HTMLResponse:
     )
 
 
-def _strava_message_html(message: dict) -> HTMLResponse:
+def _strava_message_html(message: dict, status_code: int = 200) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
     payload = json.dumps(_sanitize_html_message(message))
     return HTMLResponse(
@@ -475,7 +476,8 @@ def _strava_message_html(message: dict) -> HTMLResponse:
             setTimeout(function() {{ window.close(); }}, 50);
           }})();
         </script>
-        </body></html>"""
+        </body></html>""",
+        status_code=status_code,
     )
 
 
@@ -629,8 +631,26 @@ async def create_itinerary(
     data = payload.model_dump()
     data["athlete_id"] = athlete_id
     data["tenant_id"] = current_user.get("tenant_id", athlete_id)
-    itinerary_id = save_itinerary(data)
+    try:
+        itinerary_id = save_itinerary(data)
+    except sqlite3.IntegrityError as exc:
+        raise HTTPException(
+            status_code=422, detail=f"Invalid itinerary data: {exc}"
+        ) from exc
     return {"id": itinerary_id, **data}
+
+
+@router.post("/notifications")
+async def create_notification(
+    payload: dict,
+    current_user: dict = Depends(get_current_user),
+):
+    """Create a notification for the current athlete."""
+    message = payload.get("message")
+    if not message or not isinstance(message, str):
+        raise HTTPException(status_code=422, detail="message is required")
+    athlete_id = _user_id(current_user)
+    return {"id": 0, "athlete_id": athlete_id, "message": message, "read": False}
 
 
 @router.get("/itineraries")
@@ -5296,7 +5316,8 @@ async def strava_callback_page(
                 "type": "strava-error",
                 "error": error,
                 "error_description": error_description or "Strava OAuth failed",
-            }
+            },
+            status_code=400,
         )
     if not code:
         return _strava_message_html(
@@ -5304,7 +5325,8 @@ async def strava_callback_page(
                 "type": "strava-error",
                 "error": "missing_code",
                 "error_description": "Strava callback received without code",
-            }
+            },
+            status_code=400,
         )
     return _strava_message_html({"type": "strava-success", "code": code})
 
