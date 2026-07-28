@@ -331,6 +331,7 @@ import { useI18n } from "../composables/useI18n";
 import { useConnectionsStore } from "../stores/connections";
 import { useApiKeysStore } from "../stores/apiKeys";
 import { useBleStore } from "../stores/ble";
+import type { BleDeviceType } from "../stores/ble";
 import { useHealthConnectStore } from "../stores/healthConnect";
 import { useToast } from "../composables/useToast";
 import { useAuthStore } from "../stores/auth";
@@ -372,7 +373,7 @@ const bleAvailable = ref(false);
 const scannedBleDevice = ref<{
   deviceId: string;
   name: string;
-  type: string;
+  type: BleDeviceType;
 } | null>(null);
 
 function formatDate(value: string | null | undefined): string {
@@ -788,7 +789,9 @@ async function scanBleDevices() {
     const result = await bleStore.scanForDevices();
     scannedBleDevice.value = result.length ? result[0] : null;
     if (!result.length) {
-      toast.info(t("connections.noBleDevicesFound") || "Nessun dispositivo BLE trovato");
+      toast.info(
+        t("connections.noBleDevicesFound") || "Nessun dispositivo BLE trovato",
+      );
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -804,10 +807,22 @@ async function registerBleDevice() {
     await bleStore.register({
       device_id: scannedBleDevice.value.deviceId,
       name: scannedBleDevice.value.name,
-      device_type: scannedBleDevice.value.type as "weight_scale" | "generic",
+      device_type: scannedBleDevice.value.type,
     });
+    const registeredDevice = bleStore.devices.find(
+      (d) => d.device_id === scannedBleDevice.value?.deviceId,
+    );
     scannedBleDevice.value = null;
-    toast.success(t("connections.devicePaired"));
+    if (registeredDevice) {
+      toast.success(t("connections.pairedSuccess"));
+      try {
+        await bleStore.sync(registeredDevice.id);
+        toast.success(t("connections.downloadSuccess"));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        toast.error(msg || t("connections.downloadError"));
+      }
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     setServiceError(msg);

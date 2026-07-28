@@ -349,7 +349,13 @@
     "noBleDevices": "Nessun dispositivo BLE registrato",
     "connectHealth": "Connetti Health Connect",
     "syncHealth": "Sincronizza Health Connect",
-    "grantedPermissions": "Permessi concessi"
+    "grantedPermissions": "Permessi concessi",
+    "noBleDevicesFound": "Nessun dispositivo BLE trovato",
+    "pairedSuccess": "Dispositivo associato",
+    "downloading": "Scaricamento dati in corso...",
+    "downloadSuccess": "Dati scaricati con successo",
+    "downloadError": "Scaricamento fallito",
+    "recognizing": "Riconoscimento dispositivo in corso..."
   },
   "admin": {
     "title": "Pannello Admin",

@@ -213,9 +213,11 @@ export const useBleStore = defineStore("ble", () => {
       type: BleDeviceType;
     }> = [];
     try {
-      type BleRequestDeviceFn = (
-        opts: Record<string, unknown>,
-      ) => Promise<{ id: string; name?: string }>;
+      type BleRequestDeviceFn = (opts: Record<string, unknown>) => Promise<{
+        id: string;
+        name?: string;
+        gatt?: { connect: () => Promise<unknown>; disconnect: () => void };
+      }>;
       const btNavigator = navigator as unknown as {
         bluetooth?: {
           requestDevice: BleRequestDeviceFn;
@@ -224,17 +226,44 @@ export const useBleStore = defineStore("ble", () => {
       if (!btNavigator.bluetooth) {
         throw new Error("Web Bluetooth non disponibile");
       }
+      const optionalServices = Object.values(knownServices)
+        .map((s) => s.service)
+        .filter((uuid): uuid is string => !!uuid);
       const device = await btNavigator.bluetooth.requestDevice({
         acceptAllDevices: true,
-        optionalServices: [
-          "0000181d-0000-1000-8000-00805f9b34fb",
-          "0000180d-0000-1000-8000-00805f9b34fb",
-        ],
+        optionalServices,
       });
+
+      let detectedType: BleDeviceType = "generic";
+      try {
+        if (device.gatt?.connect) {
+          const server = (await device.gatt.connect()) as {
+            getPrimaryService: (uuid: string) => Promise<unknown>;
+          };
+          for (const [type, info] of Object.entries(knownServices)) {
+            if (!info.service) continue;
+            try {
+              await server.getPrimaryService(info.service);
+              detectedType = type as BleDeviceType;
+              break;
+            } catch {
+              // continue searching
+            }
+          }
+          try {
+            device.gatt.disconnect();
+          } catch {
+            // ignore disconnect errors
+          }
+        }
+      } catch {
+        // service discovery failed, keep generic
+      }
+
       found.push({
         deviceId: device.id || crypto.randomUUID(),
         name: device.name || "Dispositivo sconosciuto",
-        type: "generic",
+        type: detectedType,
       });
     } catch (e) {
       if ((e as Error).name !== "NotFoundError") {

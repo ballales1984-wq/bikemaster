@@ -349,7 +349,13 @@
     "noBleDevices": "No registered BLE devices",
     "connectHealth": "Connect Health Connect",
     "syncHealth": "Sync Health Connect",
-    "grantedPermissions": "Granted permissions"
+    "grantedPermissions": "Granted permissions",
+    "noBleDevicesFound": "No BLE devices found",
+    "pairedSuccess": "Device paired",
+    "downloading": "Downloading data...",
+    "downloadSuccess": "Data downloaded successfully",
+    "downloadError": "Download failed",
+    "recognizing": "Recognizing device..."
   },
   "admin": {
     "title": "Admin Panel",

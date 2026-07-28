@@ -114,8 +114,8 @@ Liability:
           <router-link to="/cookies">Cookie</router-link>
         </div>
         <div class="footer-meta">
-          <span class="footer-version" v-if="version">v{{ version }}</span>
-          <span class="footer-version" v-else>v2.0</span>
+          <span v-if="version" class="footer-version">v{{ version }}</span>
+          <span v-else class="footer-version">v2.0</span>
           <span class="footer-dot">•</span>
           <span>© {{ year }} BikeMaster</span>
         </div>
