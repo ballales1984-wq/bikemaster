@@ -52,8 +52,11 @@
     <section class="card link-card">
       <h2>Chiavi API e connessioni</h2>
       <p class="hint">
-        La gestione delle chiavi API e delle connessioni OAuth &egrave; disponibile nella pagina
-        <router-link to="/settings/connections" class="inline-link">Connessioni</router-link>.
+        La gestione delle chiavi API e delle connessioni OAuth &egrave;
+        disponibile nella pagina
+        <router-link to="/settings/connections" class="inline-link"
+          >Connessioni</router-link
+        >.
       </p>
     </section>
 
@@ -74,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useSettingsStore } from "../stores/settings";
 import { apiGet } from "../utils/api";
 import SyncSettingsPanel from "../components/SyncSettingsPanel.vue";

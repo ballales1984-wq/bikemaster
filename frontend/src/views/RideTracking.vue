@@ -197,35 +197,25 @@ const { isTracking, isPaused } = storeToRefs(tracking);
 const voiceCoach = useVoiceCoach();
 const voiceCoachEnabled = ref(false);
 
-watch(voiceCoachEnabled, (enabled) => {
-  if (enabled && isTracking.value) {
-    voiceCoach.startVoiceCoachInterval("recovery", "default", 30000, () => {
-      const p = tracking.power;
-      if (p == null) return null;
-      if (p > 250) return 4;
-      if (p > 180) return 3;
-      if (p > 120) return 2;
-      return 1;
-    });
+function getVoiceCoachZone() {
+  const p = tracking.power;
+  if (p == null) return null;
+  if (p > 250) return 4;
+  if (p > 180) return 3;
+  if (p > 120) return 2;
+  return 1;
+}
+
+function syncVoiceCoach() {
+  if (voiceCoachEnabled.value && isTracking.value) {
+    voiceCoach.startVoiceCoachInterval("recovery", "default", 30000, getVoiceCoachZone);
   } else {
     voiceCoach.stopVoiceCoachInterval();
   }
-});
+}
 
-watch(isTracking, (active) => {
-  if (!active) {
-    voiceCoach.stopVoiceCoachInterval();
-  } else if (voiceCoachEnabled.value) {
-    voiceCoach.startVoiceCoachInterval("recovery", "default", 30000, () => {
-      const p = tracking.power;
-      if (p == null) return null;
-      if (p > 250) return 4;
-      if (p > 180) return 3;
-      if (p > 120) return 2;
-      return 1;
-    });
-  }
-});
+watch(voiceCoachEnabled, syncVoiceCoach);
+watch(isTracking, syncVoiceCoach);
 
 const gps = useBatteryEfficientGps({
   batterySaver: () => batterySaver.value,
@@ -708,6 +698,7 @@ onBeforeUnmount(() => {
     webFirstFixTimeout = null;
   }
   gps.stop();
+  voiceCoach.stopVoiceCoachInterval();
   if (tracking.isTracking && !tracking.gpxBlob) {
     stopWebTracking();
   }

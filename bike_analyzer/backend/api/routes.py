@@ -4358,8 +4358,18 @@ async def coach_chat_bm2(
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id, tenant_id=tenant_id)]
     coach_response = generate_training_advice(athlete, rides, athlete_id)
 
-    # If the message references a specific ride, add BM2 analysis
     message = chat_req.message
+
+    # Save chat only if athlete exists (FK constraint)
+    def _save_chat(role, content):
+        if athlete_data:
+            try:
+                save_chat_message(athlete_id, role, content[:500], tenant_id)
+            except Exception:
+                pass
+
+    _save_chat("user", message)
+    response_text = coach_response
     bm2_result = None
     ride_id_match = None
     import re as _re
@@ -4403,7 +4413,6 @@ async def coach_chat_bm2(
         except Exception:
             pass
 
-    save_chat_message(athlete_id, "user", message[:500], tenant_id)
     response_text = coach_response
     if bm2_result:
         response_text += "\n\n---\n**BM2 Physics Analysis:**\n"
@@ -4414,7 +4423,7 @@ async def coach_chat_bm2(
             for name, r in bm2_result["results"].items():
                 response_text += f"- {name}: {r['value']:.1f} {r['unit']}\n"
 
-    save_chat_message(athlete_id, "assistant", response_text[:500], tenant_id)
+    _save_chat("assistant", response_text)
     return {
         "response": response_text,
         "history": get_chat_history(athlete_id, tenant_id=tenant_id),

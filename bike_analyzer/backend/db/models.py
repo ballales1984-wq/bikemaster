@@ -45,12 +45,6 @@ class Base(DeclarativeBase):
     pass
 
 
-class UserRole(str, enum.Enum):
-    ADMIN = "admin"
-    USER = "user"
-    CLIENT = "client"
-
-
 class ActivityType(str, enum.Enum):
     RIDE = "ride"
     WALK = "walk"
@@ -138,7 +132,6 @@ class UserModel(Base):
     username: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     email: Mapped[str | None] = mapped_column(String, unique=True)
     password_hash: Mapped[str | None] = mapped_column(Text)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.USER)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_client: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -203,6 +196,7 @@ class AthleteModel(Base):
     password_hash: Mapped[str | None] = mapped_column(Text)
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     user: Mapped["UserModel | None"] = relationship(back_populates="athletes")
     rides: Mapped[list["RideModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
@@ -1043,7 +1037,6 @@ AthleteModel.metabolic_adaptive_weights = relationship(
 __all__ = [
     "Base",
     "EMBEDDING_DIMENSION",
-    "UserRole",
     "ActivityType",
     "EventType",
     "WorkoutType",

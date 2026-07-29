@@ -72,6 +72,7 @@ const lastUpdated = ref("");
 let refreshTimer: number | null = null;
 
 const REFRESH_INTERVAL_MS = 5000;
+const MIN_REFRESH_INTERVAL_MS = 1000;
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -165,9 +166,10 @@ function refresh() {
 
 function startAutoRefresh() {
   stopAutoRefresh();
+  const interval = Math.max(REFRESH_INTERVAL_MS, MIN_REFRESH_INTERVAL_MS);
   refreshTimer = window.setInterval(() => {
     void loadHealth();
-  }, REFRESH_INTERVAL_MS);
+  }, interval);
 }
 
 function stopAutoRefresh() {

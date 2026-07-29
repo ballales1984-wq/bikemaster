@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("chart.js/auto", () => ({
@@ -40,7 +40,7 @@ vi.mock("../utils/api", () => ({ apiGet }));
 import ZonesPanel from "./ZonesPanel.vue";
 
 function flush() {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+  return flushPromises();
 }
 
 describe("ZonesPanel", () => {

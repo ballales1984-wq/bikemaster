@@ -408,7 +408,7 @@ async function _runBm2Analysis(question: string) {
       sensors: [],
     });
     bm2Result.value = data;
-  } catch (_e) {
+  } catch (e) {
     bm2Error.value = e instanceof Error ? e.message : "BM2 analysis failed";
   } finally {
     bm2Loading.value = false;
@@ -419,7 +419,9 @@ function _formatBm2Result(answer: Bm2Answer): string {
   const lines: string[] = [];
   lines.push(`**BM2 Analysis** — ${answer.question}`);
   lines.push(`Modelli usati: ${answer.models_used.join(", ")}`);
-  lines.push(`Confidenza: ${Math.round(answer.confidence * 100)}%`);
+  if (answer.confidence !== undefined) {
+    lines.push(`Confidenza: ${Math.round(answer.confidence * 100)}%`);
+  }
   for (const [name, r] of Object.entries(answer.results)) {
     lines.push(
       `- **${name}**: ${r.value.toFixed(1)} ${r.unit} (±${r.precision.toFixed(2)}, conf ${Math.round(r.confidence * 100)}%)`,
@@ -456,7 +458,7 @@ async function loadFullReport() {
       });
       await scrollToBottom();
     }
-  } catch (_e) {
+  } catch (e) {
     console.error("coach full", e);
   } finally {
     loadingReport.value = false;

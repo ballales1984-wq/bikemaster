@@ -124,12 +124,12 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5177,
     strictPort: true,
-    // Necessari per SQLite WASM/OPFS: senza questi header `crossOriginIsolated`
-    // è false, SharedArrayBuffer non esiste e l'OPFS async proxy worker non
-    // parte (fallback automatico a DB in-memory, vedi localDb.ts).
     headers: {
       "Cross-Origin-Embedder-Policy": "require-corp",
       "Cross-Origin-Opener-Policy": "same-origin",
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      "Pragma": "no-cache",
+      "Expires": "0",
     },
     proxy: {
       "/api": "http://localhost:8000",
@@ -144,6 +144,9 @@ export default defineConfig({
     headers: {
       "Cross-Origin-Embedder-Policy": "require-corp",
       "Cross-Origin-Opener-Policy": "same-origin",
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      "Pragma": "no-cache",
+      "Expires": "0",
     },
     proxy: {},
     configurePreviewServer: (server) => {

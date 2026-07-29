@@ -34,6 +34,7 @@ export interface Bm2Answer {
   models_used: string[];
   results: Record<string, Bm2ModelResult>;
   insights: Bm2Insight[];
+  confidence?: number;
   simulation: {
     baseline: Record<string, Bm2ModelResult>;
     scenario: Record<string, Bm2ModelResult>;

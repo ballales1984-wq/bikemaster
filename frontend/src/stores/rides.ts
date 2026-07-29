@@ -41,9 +41,7 @@ export const useRidesStore = defineStore("rides", () => {
     let result = rides.value;
     if (filters.value.search) {
       const q = filters.value.search.toLowerCase();
-      result = result.filter(
-        (r) => (r.title || "").toLowerCase().includes(q),
-      );
+      result = result.filter((r) => (r.title || "").toLowerCase().includes(q));
     }
     if (filters.value.sort) {
       const key = filters.value.sort;

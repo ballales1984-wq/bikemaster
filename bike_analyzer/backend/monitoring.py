@@ -173,6 +173,22 @@ async def check_task_queue_health() -> tuple[str, str]:
         return "unhealthy", f"Task queue error: {exc}"
 
 
+async def check_ai_coach_health() -> tuple[str, str]:
+    try:
+        from .settings import get_settings
+
+        _s = get_settings()
+        groq_key = os.getenv("GROQ_API_KEY", "").strip() or (_s.groq_api_key or "").strip()
+        if not groq_key:
+            return "degraded", "AI Coach: no GROQ_API_KEY configured"
+        if not groq_key.startswith("gsk_"):
+            return "degraded", "AI Coach: invalid GROQ_API_KEY format (must start with gsk_)"
+        return "healthy", "AI Coach: Groq key configured"
+    except Exception as exc:
+        logger.error("AI Coach health check failed: %s", exc)
+        return "unhealthy", f"AI Coach error: {exc}"
+
+
 async def asyncio_if_awaitable(value):
     """Await ``value`` if it is awaitable, otherwise return it as-is.
 
@@ -196,6 +212,9 @@ async def comprehensive_health_check() -> HealthStatus:
 
     redis_status, redis_msg = await check_redis_health()
     checks["redis"] = f"{redis_status}: {redis_msg}"
+
+    ai_status, ai_msg = await check_ai_coach_health()
+    checks["ai_coach"] = f"{ai_status}: {ai_msg}"
 
     tq_status, tq_msg = await check_task_queue_health()
     checks["task_queue"] = f"{tq_status}: {tq_msg}"

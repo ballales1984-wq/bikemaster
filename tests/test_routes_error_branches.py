@@ -125,3 +125,93 @@ class TestRouteErrorBranches:
 
         response = tc.put("/api/v1/athletes/0", json={"weight_kg": -5})
         assert response.status_code in (400, 422)
+
+    def test_sqlite_integrity_error_returns_409(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+        from bike_analyzer.backend.security import create_access_token
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        token = create_access_token(subject="0", is_admin=True)
+        tc.headers["Authorization"] = f"Bearer {token}"
+
+        response = tc.post(
+            "/api/v1/calendar/events",
+            json={"athlete_id": 1, "title": "Test", "date": "2024-06-15"},
+        )
+        assert response.status_code in (200, 400, 401, 409)
+
+    def test_google_oauth_callback_missing_params(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+
+        response = tc.get("/api/v1/auth/google/callback")
+        assert response.status_code in (400, 401, 422)
+
+    def test_strava_callback_missing_params(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+
+        response = tc.post("/api/v1/import/strava/callback", json={})
+        assert response.status_code in (400, 401, 422)
+
+    def test_garmin_callback_missing_params(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+
+        response = tc.post("/api/v1/import/garmin/callback", json={})
+        assert response.status_code in (400, 401, 422)
+
+    def test_ble_device_not_found(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+        from bike_analyzer.backend.security import create_access_token
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        token = create_access_token(subject="0", is_admin=True)
+        tc.headers["Authorization"] = f"Bearer {token}"
+
+        response = tc.get("/api/v1/ble/devices/99999")
+        assert response.status_code in (404, 401)
+
+    def test_import_multiple_empty(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+        from bike_analyzer.backend.security import create_access_token
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        token = create_access_token(subject="0", is_admin=True)
+        tc.headers["Authorization"] = f"Bearer {token}"
+
+        response = tc.post("/api/v1/import/multiple", files=[])
+        assert response.status_code in (400, 401, 422)

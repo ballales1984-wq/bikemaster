@@ -150,6 +150,37 @@ async def test_comprehensive_health_check():
     assert "database" in status.checks
     assert "redis" in status.checks
     assert "task_queue" in status.checks
+    assert "ai_coach" in status.checks
+
+
+async def test_check_ai_coach_health_no_key(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "")
+    import bike_analyzer.backend.settings as settings_mod
+
+    monkeypatch.setattr(settings_mod, "get_settings", lambda: type("S", (), {"groq_api_key": ""})())
+    status, msg = await mon.check_ai_coach_health()
+    assert status == "degraded"
+    assert "GROQ_API_KEY" in msg
+
+
+async def test_check_ai_coach_health_invalid_key(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "invalid-key")
+    import bike_analyzer.backend.settings as settings_mod
+
+    monkeypatch.setattr(settings_mod, "get_settings", lambda: type("S", (), {"groq_api_key": ""})())
+    status, msg = await mon.check_ai_coach_health()
+    assert status == "degraded"
+    assert "gsk_" in msg
+
+
+async def test_check_ai_coach_health_valid_key(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_test_key")
+    import bike_analyzer.backend.settings as settings_mod
+
+    monkeypatch.setattr(settings_mod, "get_settings", lambda: type("S", (), {"groq_api_key": ""})())
+    status, msg = await mon.check_ai_coach_health()
+    assert status == "healthy"
+    assert "Groq key configured" in msg
 
 
 async def test_asyncio_if_awaitable_with_awaitable():

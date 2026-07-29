@@ -17,6 +17,7 @@ Responsabilita' principali:
 from __future__ import annotations
 
 import logging
+import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -205,6 +206,15 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=400,
             content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(sqlite3.IntegrityError)
+    async def sqlite_integrity_error_handler(request: Request, exc: sqlite3.IntegrityError):
+        """Return 409 for SQLite constraint violations."""
+        logger.warning("SQLite integrity error: %s", exc)
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "Conflicto nei dati o vincolo di integrita violato"},
         )
 
     AUDIT_SKIP_PATHS = {

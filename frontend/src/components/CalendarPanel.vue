@@ -508,7 +508,7 @@ async function saveEvent() {
     editingEvent.value = null;
     loadEvents();
     loadGoals();
-  } catch (_e) {
+  } catch (e) {
     calendarError.value = (e as Error).message || "Error saving";
   }
 }
@@ -518,7 +518,7 @@ async function handleDelete() {
   try {
     await apiDelete(`/api/v1/calendar/events/${deleteTargetId.value}`);
     loadEvents();
-  } catch (_e) {
+  } catch (e) {
     calendarError.value = (e as Error).message || "Error deleting";
   } finally {
     deleteTargetId.value = null;
@@ -537,7 +537,7 @@ async function _toggleComplete(ev: CalendarEvent) {
   try {
     await apiPost(`/api/v1/calendar/events/${ev.id}/complete`, {});
     loadEvents();
-  } catch (_e) {
+  } catch (e) {
     calendarError.value = (e as Error).message || "Error completing";
   }
 }

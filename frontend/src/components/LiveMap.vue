@@ -15,7 +15,7 @@ import L from "leaflet";
 import { useTrackingStore } from "../stores/trackingStore";
 import { apiGet } from "../utils/api";
 
-interface _LeafletMap {
+interface LeafletMap {
   setView(center: [number, number], zoom: number): LeafletMap;
   remove(): void;
 }
@@ -51,7 +51,7 @@ const props = defineProps<{
 }>();
 
 const mapEl = ref<HTMLElement | null>(null);
-const map = ref<any>(null);
+const map = ref<LeafletMap | null>(null);
 const polyline = ref<any>(null);
 const tileLayer = ref<{ remove(): void } | null>(null);
 const poiLayer = ref<any>(null);

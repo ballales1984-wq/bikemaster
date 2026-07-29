@@ -15,6 +15,7 @@ import {
 import type {
   VoiceCommandResult,
   VoiceCommandLogEntry,
+  RecognitionState,
 } from "../types/voiceCommands";
 import type {
   SpeechRecognitionEvent,
