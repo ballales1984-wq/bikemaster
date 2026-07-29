@@ -215,3 +215,44 @@ class TestRouteErrorBranches:
 
         response = tc.post("/api/v1/import/multiple", files=[])
         assert response.status_code in (400, 401, 422)
+
+    def test_strava_callback_page_error(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+
+        response = tc.get("/api/v1/import/strava/callback", params={"error": "access_denied"})
+        assert response.status_code == 400
+
+    def test_strava_callback_page_missing_code(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+
+        response = tc.get("/api/v1/import/strava/callback")
+        assert response.status_code == 400
+
+    def test_import_providers_returns_config(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+
+        response = tc.get("/api/v1/import/providers")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)
