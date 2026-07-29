@@ -256,3 +256,49 @@ class TestRouteErrorBranches:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, dict)
+
+    def test_coach_workout_requires_auth(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+
+        response = tc.get("/api/v1/coach/workout")
+        assert response.status_code == 401
+
+    def test_coach_workout_forbidden_for_other_athlete(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+        from bike_analyzer.backend.security import create_access_token
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+
+        token_owner = create_access_token(subject="10", is_admin=False)
+        token_other = create_access_token(subject="20", is_admin=False)
+        tc.headers["Authorization"] = f"Bearer {token_owner}"
+        response = tc.get("/api/v1/coach/workout?athlete_id=20")
+        assert response.status_code == 403
+
+    def test_ble_sync_invalid_device(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+        from bike_analyzer.backend.security import create_access_token
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        token = create_access_token(subject="0", is_admin=True)
+        tc.headers["Authorization"] = f"Bearer {token}"
+
+        response = tc.post("/api/v1/ble/devices/99999/sync", json={})
+        assert response.status_code in (404, 401)
