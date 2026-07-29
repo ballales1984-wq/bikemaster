@@ -20,20 +20,19 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from prometheus_fastapi_instrumentator import Instrumentator, metrics
 from pydantic import ValidationError
 
+from bike_analyzer.backend.api.voice_routes import router as voice_router
+from bike_analyzer.backend.db.async_db import init_async_db
 from bike_analyzer.backend.hub.routes import hub_router
 from bike_analyzer.backend.hub.sync_routes import hub_sync_router
-from bike_analyzer.backend.api.voice_routes import router as voice_router
-from bike_analyzer.backend.logging_config import setup_logging
 from bike_analyzer.backend.observability import init_observability
 from bike_analyzer.backend.rate_limiter import limiter
-from bike_analyzer.backend.settings import get_settings
 from bike_analyzer.backend.redis_client import close_redis, get_redis
+from bike_analyzer.backend.settings import get_settings
 from bike_analyzer.backend.task_queue import get_task_queue
-from bike_analyzer.backend.db.async_db import init_async_db
 
 logger = logging.getLogger(__name__)
 _s = get_settings()

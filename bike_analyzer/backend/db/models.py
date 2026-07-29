@@ -15,7 +15,6 @@ from typing import Any
 
 from sqlalchemy import (
     Boolean,
-    Date,
     DateTime,
     Enum,
     Float,
