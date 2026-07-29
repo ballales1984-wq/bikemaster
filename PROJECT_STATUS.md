@@ -18,7 +18,9 @@
 Progetto cartografico R&D fuso in BikeMaster come modulo terrain intelligence opzionale (`aethermap/`). Fornisce digital twin + AI pipeline per arricchimento coordinate terrain delle ride.
 
 - **Fasi 1-5 complete**: earth model, data model, AI pipeline, WebGL rendering, digital twin. 129 test passing.
-- **Integrazione**: adapter in `bike_analyzer/backend/maps/aethermap_adapter.py`. Feature flag `BIKEMASTER_MAP_PROVIDER=aethermap` / `VITE_AETHERMAP_ENABLED=true`.
+- **Integrazione backend**: modulo `bike_analyzer/analytics/terrain_enrichment.py` con `TerrainEnricher` che arricchisce GPSPoint con slope_pct, surface_type, shade, traffic_level, terrain_confidence.
+- **API endpoint**: `/api/v1/rides/{ride_id}/terrain?enabled=true` (richiede `BIKEMASTER_TERRAIN_ENRICHMENT=true`).
+- **Integrazione frontend**: composable `useRideTerrain` in `frontend/src/composables/useRideTerrain.ts`.
 - **Installazione**: `pip install -e ".[maps]"` (aethermap come dipendenza opzionale di bike_analyzer).
 - **Contratto dati**: `Ride/GPSPoint → terrain input` in `docs/agent/aethermap-convergence.md`.
 - Demo: `cd aethermap/src && python -m aethermap.ai.demo|.render.demo|.twin.demo`.
@@ -98,6 +100,7 @@ bike_analyzer/
 │   │   ├── training_stress.py         # Training Stress Score + EWMA
 │   │   ├── badges.py                  # Sistema badge/medaglie + heatmap GPS
 │   │   ├── granfondo_planner.py       # Piano allenamento granfondo con tapering
+│   │   ├── terrain_enrichment.py      # AetherMap TerrainEnricher (slope, surface, shade, traffic)
 │   │   │
 │   │   ├── calculators/               # Pure functions (testabili in isolamento)
 │   │   │   ├── calories.py            # Calorie estimation (physics + MET)

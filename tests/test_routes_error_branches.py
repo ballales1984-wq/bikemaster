@@ -302,3 +302,42 @@ class TestRouteErrorBranches:
 
         response = tc.post("/api/v1/ble/devices/99999/sync", json={})
         assert response.status_code in (404, 401)
+
+    def test_auth_me_requires_auth(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+
+        response = tc.get("/api/v1/auth/me")
+        assert response.status_code == 401
+
+    def test_athletes_me_requires_auth(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+
+        response = tc.get("/api/v1/athletes/me")
+        assert response.status_code == 401
+
+    def test_health_detailed_public(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+
+        response = tc.get("/api/v1/health/detailed")
+        assert response.status_code == 200

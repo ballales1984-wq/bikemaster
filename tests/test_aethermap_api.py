@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 import math
+import os
+
 import pytest
+from bike_analyzer.backend.db import database as db_mod
+from starlette.testclient import TestClient
 
 
 class TestAetherMapWorld:
@@ -128,4 +132,84 @@ class TestAetherMapIntegration:
         for rel in data["relations"]:
             assert rel["from"] in ids, f"from={rel['from']} missing"
             assert rel["to"] in ids, f"to={rel['to']} missing"
+
+
+class TestRideTerrainEnrichment:
+    def test_returns_enriched_gps_points(self, client, monkeypatch):
+        from bike_analyzer.backend import settings as settings_mod
+
+        monkeypatch.setattr(settings_mod, "terrain_enrichment_enabled", True)
+
+        ride_id = db_mod.save_ride({
+            "athlete_id": 0,
+            "date": "2024-06-15T10:00:00Z",
+            "distance_km": 25.0,
+            "duration_minutes": 60.0,
+            "avg_speed_kmh": 25.0,
+            "elevation_gain_m": 200.0,
+            "calories": 600.0,
+            "gps_points": [
+                {"lat": 45.0, "lon": 7.0, "timestamp": "2024-06-15T10:00:00Z", "altitude": 200.0},
+                {"lat": 45.1, "lon": 7.1, "timestamp": "2024-06-15T10:01:00Z", "altitude": 210.0},
+            ],
+        })
+
+        resp = client.get(f"/api/v1/rides/{ride_id}/terrain", params={"enabled": True})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["ride_id"] == ride_id
+        assert len(data["enriched"]) == 2
+        for pt in data["enriched"]:
+            assert "slope_pct" in pt
+            assert "surface_type" in pt
+            assert "shade" in pt
+            assert "traffic_level" in pt
+            assert "terrain_confidence" in pt
+
+    def test_returns_403_when_disabled_and_requested(self, client, monkeypatch):
+        from bike_analyzer.backend import settings as settings_mod
+
+        monkeypatch.setattr(settings_mod, "terrain_enrichment_enabled", False)
+
+        ride_id = db_mod.save_ride({
+            "athlete_id": 0,
+            "date": "2024-06-15T10:00:00Z",
+            "distance_km": 25.0,
+            "duration_minutes": 60.0,
+            "avg_speed_kmh": 25.0,
+            "elevation_gain_m": 200.0,
+            "calories": 600.0,
+            "gps_points": [
+                {"lat": 45.0, "lon": 7.0, "timestamp": "2024-06-15T10:00:00Z", "altitude": 200.0},
+            ],
+        })
+
+        resp = client.get(f"/api/v1/rides/{ride_id}/terrain", params={"enabled": True})
+        assert resp.status_code == 403
+
+    def test_returns_404_for_missing_ride(self, client, monkeypatch):
+        from bike_analyzer.backend import settings as settings_mod
+
+        monkeypatch.setattr(settings_mod, "terrain_enrichment_enabled", True)
+
+        resp = client.get("/api/v1/rides/99999/terrain", params={"enabled": True})
+        assert resp.status_code == 404
+
+    def test_returns_400_without_gps(self, client, monkeypatch):
+        from bike_analyzer.backend import settings as settings_mod
+
+        monkeypatch.setattr(settings_mod, "terrain_enrichment_enabled", True)
+
+        ride_id = db_mod.save_ride({
+            "athlete_id": 0,
+            "date": "2024-06-15T10:00:00Z",
+            "distance_km": 25.0,
+            "duration_minutes": 60.0,
+            "avg_speed_kmh": 25.0,
+            "elevation_gain_m": 200.0,
+            "calories": 600.0,
+        })
+
+        resp = client.get(f"/api/v1/rides/{ride_id}/terrain", params={"enabled": True})
+        assert resp.status_code == 400
 
