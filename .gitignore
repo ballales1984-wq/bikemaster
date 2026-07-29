@@ -165,3 +165,6 @@ bike_analyzer/final_test_out.txt
 bike_analyzer/final_test_err.txt
 frontend/tc_out.txt
 frontend/tc_err.txt
+
+# Kubernetes generic deployment files (not BikeMaster-specific)
+webapp.yaml

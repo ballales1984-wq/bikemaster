@@ -169,9 +169,9 @@ Per una guida completa a tutti i documenti, vedi [`docs/README.md`](docs/README.
 | [`docs/PRODUCT_LOGIC.md`](docs/PRODUCT_LOGIC.md) | Visione prodotto, quattro pilastri, logica centrale |
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Setup, build, test, lint, come contribuire |
 
-### AetherMap (R&D)
+### AetherMap (terrain intelligence module)
 
-Progetto cartografico indipendente (`aethermap/`) — motore "dal nulla" con cube-sphere, S2/H3, rendering WebGL, digital twin. Condivide lo stack (Vue + FastAPI) ma non è importato dal backend BikeMaster.
+Progetto cartografico R&D fuso in BikeMaster come modulo terrain intelligence opzionale (`aethermap/`). Fornisce digital twin + AI pipeline per arricchimento coordinate terrain delle ride. Condivide lo stack (Vue + FastAPI) ed è integrato tramite adapter con feature flag `BIKEMASTER_MAP_PROVIDER=aethermap` / `VITE_AETHERMAP_ENABLED=true`.
 
 | Documento | Contenuto |
 |---|---|
@@ -260,11 +260,10 @@ cd bike_analyzer && python -m bm2.simulation.demo
 - [x] Phone GPS Tracking (Android + iOS)
 - [x] Traffic Safety Analysis
 - [x] Multi-tenant + data isolation
-- [x] AetherMap (fasi 1-4 baseline)
+- [x] AetherMap (fasi 1-5 complete, convergence into BikeMaster)
 
 ### In corso
 
-- [ ] AetherMap fasi 3-5 (AI pipeline + digital twin)
 - [ ] Anomaly detection + piano di allenamento LLM
 - [ ] Voice Coach (TTS/audio)
 

@@ -24,10 +24,11 @@ Progetto cartografico R&D fuso in BikeMaster come modulo terrain intelligence op
 - Demo: `cd aethermap/src && python -m aethermap.ai.demo|.render.demo|.twin.demo`.
 
 ### Ultimo Commit
-- `c41ecd6` — test: fix status assertions in coverage test file
-- `bd3ebea` — test: add coverage tests for AI modules and route endpoints
-- `3ff88a1` — test: add more AI module and route coverage tests
-- `ac27bdf` — feat(aethermap): S2 grid overlay, entity LOD by zoom, geodesic radius_summary, viewer vis-count
+- `5bb9746` — test: aggiungi copertura error branch per import/strava e import/providers
+- `4372b76` — fix: stabilizzazione produzione — schema drift, CORS, health check, exception handling, frontend fixes
+- `c6b9213` — fix: correct 15 logical errors across physics, fatigue, calories, and OAuth
+- `6c0d068` — fix(frontend): centralizza gestione chiavi API in Connessioni
+- `27f8b02` — Add Health Connect OAuth routes (connect/disconnect/sync)
 
 ---
 
@@ -542,4 +543,4 @@ la verifica pass/fail completa è demandata alla pipeline CI.
 
 ---
 
-*Ultimo aggiornamento: 2026-07-21 — Commit aggiornati a HEAD cdd43bb. Working tree: modificati routes.py, athlete.ts; rimosso ride_1_map.json; aggiunto jdk21.msi (untracked).*
+*Ultimo aggiornamento: 2026-07-29 — Commit aggiornati a HEAD 5bb9746. Working tree pulito.*

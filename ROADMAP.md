@@ -1,6 +1,6 @@
 # BikeMaster — Roadmap Unificata
 
-*Ultimo aggiornamento: 2026-07-24*
+*Ultimo aggiornamento: 2026-07-29*
 
 > **Principio guida**: fare le cose una volta, farle bene. Questo documento è la
 > *fonte di verità unica* per stato, priorità e azioni. Non eseguire feature
@@ -18,7 +18,7 @@
 | BM2 simulation engine | **Baseline** | 9 algoritmi, cablato via API |
 | AetherMap R&D | **Fasi 1-5 complete** | Fasi 3-5 complete; convergence decision: AetherMap converges into BikeMaster |
 | Multi-tenant / auth | **Completo** | tenant_id + OAuth2 (Google, Strava, Garmin) |
-| Sync device↔cloud | **In corso** | 3 branch aperti da mergiare |
+| Sync device↔cloud | **Completo** | Branch merged in main |
 | Coverage test | **In corso** | ai_coach.py 90%, knowledge_base ~85%, routes.py ~65% — nuovi test in `tests/test_ai_coach_edge.py` e `tests/test_routes_error_branches.py` |
 
 ---
@@ -31,14 +31,7 @@ Tutti e 3 i branch feat sono stati mergiati in `main`. Nessun branch aperto.
 
 ## 3. Working Tree Non Committato
 
-File modificati non staged in `frontend/src/components/` (10 file Vue):
-`RideComparison.vue`, `RideDetail.vue`, `RideMapPanel.vue`, `RideMetricsPanel.vue`,
-`SpeedMap.vue`, `StatsSummary.vue`, `SyncSettingsPanel.vue`, `ToastContainer.vue`,
-`WeatherPanel.vue`, `ZonesPanel.vue`.
-
-**Azione**: verificare se queste modifiche sono già nei branch aperti oppure sono
-lavoro isolato. Se sono superflue (duplicano modifiche già nei branch), reset.
-Altrimenti, committare prima del merge.
+Nessun file non committato. Il working tree è pulito.
 
 ---
 

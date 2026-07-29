@@ -75,9 +75,9 @@ Riferimento esaustivo generato dal codice sorgente — **punto di partenza consi
 
 ---
 
-## AetherMap (R&D)
+## AetherMap (terrain intelligence module)
 
-Progetto cartografico indipendente (`aethermap/`) — motore "dal nulla" con cube-sphere, S2/H3, data model "database del mondo", pipeline IA "ricercatore", rendering WebGL, digital twin. Condivide lo stack (Vue + FastAPI) ma non è importato dal backend BikeMaster.
+Progetto cartografico R&D fuso in BikeMaster come modulo terrain intelligence opzionale (`aethermap/`). Fornisce digital twin + AI pipeline per arricchimento coordinate terrain delle ride. Condivide lo stack (Vue + FastAPI) ed è integrato tramite adapter con feature flag `BIKEMASTER_MAP_PROVIDER=aethermap` / `VITE_AETHERMAP_ENABLED=true`.
 
 | Documento | Contenuto |
 |---|---|
