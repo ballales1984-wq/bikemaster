@@ -21,7 +21,6 @@
 //
 // The backend remains the source of truth: this DB is an offline/seed cache.
 
-import type { UserApiKeys } from "../utils/userKeys";
 import type {
   Database,
   Sqlite3Static,
