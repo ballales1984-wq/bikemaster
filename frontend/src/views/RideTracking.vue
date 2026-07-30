@@ -208,7 +208,12 @@ function getVoiceCoachZone() {
 
 function syncVoiceCoach() {
   if (voiceCoachEnabled.value && isTracking.value) {
-    voiceCoach.startVoiceCoachInterval("recovery", "default", 30000, getVoiceCoachZone);
+    voiceCoach.startVoiceCoachInterval(
+      "recovery",
+      "default",
+      30000,
+      getVoiceCoachZone,
+    );
   } else {
     voiceCoach.stopVoiceCoachInterval();
   }
