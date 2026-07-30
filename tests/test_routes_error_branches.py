@@ -147,16 +147,25 @@ class TestRouteErrorBranches:
 
     def test_google_oauth_callback_missing_params(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.api import routes as routes_mod
         from bike_analyzer.backend.db import database as db_mod
+        import bike_analyzer.backend.settings as settings_mod
+        import bike_analyzer.backend.api.app_factory as app_factory_mod
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
         db_mod.init_db()
+        settings_mod._settings = None
+        os.environ["GOOGLE_CLIENT_ID"] = "test-client-id"
+        os.environ["GOOGLE_CLIENT_SECRET"] = "test-client-secret"
+        routes_mod._s = settings_mod.get_settings()
+        app_factory_mod._s = settings_mod.get_settings()
         app = create_app()
         tc = TestClient(app)
 
-        response = tc.get("/api/v1/auth/google/callback")
-        assert response.status_code in (400, 401, 422)
+        response = tc.get("/api/v1/auth/google/callback", follow_redirects=False)
+        assert response.status_code in (301, 302, 307, 308)
+        assert "oauth_error" in response.headers.get("location", "")
 
     def test_strava_callback_missing_params(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app

@@ -94,6 +94,104 @@
       </div>
     </div>
 
+    <!-- BM2 Physics Analysis -->
+    <div v-if="bm2Result" class="bm2-results">
+      <h4>BM2 Physics Analysis</h4>
+      <div v-if="'validation' in bm2Result" class="bm2-card">
+        <header>
+          <strong>Validazione potenza</strong>
+          <span class="bm2-value">Ride #{{ bm2Result.ride_id }}</span>
+        </header>
+        <dl class="bm2-valgrid">
+          <dt>Punti</dt>
+          <dd>{{ bm2Result.validation.n_points }}</dd>
+          <dt>MAE</dt>
+          <dd>{{ bm2Result.validation.mae_w.toFixed(1) }} W</dd>
+          <dt>RMSE</dt>
+          <dd>{{ bm2Result.validation.rmse_w.toFixed(1) }} W</dd>
+          <dt>Bias</dt>
+          <dd>{{ bm2Result.validation.bias_w.toFixed(1) }} W</dd>
+          <dt>Potenza media misurata</dt>
+          <dd>{{ bm2Result.validation.mean_measured_w.toFixed(1) }} W</dd>
+          <dt>Potenza media stimata</dt>
+          <dd>{{ bm2Result.validation.mean_estimated_w.toFixed(1) }} W</dd>
+          <dt>R²</dt>
+          <dd>{{ bm2Result.validation.r2.toFixed(3) }}</dd>
+        </dl>
+      </div>
+      <div v-if="'results' in bm2Result" class="bm2-card">
+        <header>
+          <strong>{{ bm2Result.question }}</strong>
+          <span class="bm2-value">{{
+            bm2Result.confidence
+              ? Math.round(bm2Result.confidence * 100) + "%"
+              : ""
+          }}</span>
+        </header>
+        <dl>
+          <dt>Modelli</dt>
+          <dd>{{ bm2Result.models_used.join(", ") }}</dd>
+        </dl>
+        <div
+          v-for="[name, r] in Object.entries(bm2Result.results)"
+          :key="name"
+          class="bm2-card"
+          style="margin-top: 0.5rem"
+        >
+          <header>
+            <strong>{{ name }}</strong>
+            <span class="bm2-value">{{ r.value.toFixed(1) }} {{ r.unit }}</span>
+          </header>
+          <dl>
+            <dt>Formula</dt>
+            <dd>{{ r.formula }}</dd>
+            <dt>Dati usati</dt>
+            <dd>{{ r.data_used.join(", ") }}</dd>
+            <dt>Precisione</dt>
+            <dd>±{{ r.precision.toFixed(2) }} {{ r.unit }}</dd>
+            <dt>Affidabilità</dt>
+            <dd>{{ Math.round(r.confidence * 100) }}%</dd>
+            <dt>Fonte</dt>
+            <dd>{{ r.source }}</dd>
+          </dl>
+        </div>
+        <aside
+          v-if="bm2Result.insights.length"
+          class="bm2-insights"
+          style="margin-top: 1rem"
+        >
+          <h3>Concetti</h3>
+          <ul>
+            <li
+              v-for="(ins, i) in bm2Result.insights"
+              :key="i"
+              :class="'bm2-' + ins.severity"
+            >
+              <strong>{{ ins.concept }}</strong> — {{ ins.detail }}
+            </li>
+          </ul>
+        </aside>
+        <aside
+          v-if="bm2Result.simulation"
+          class="bm2-sim"
+          style="margin-top: 1rem"
+        >
+          <h3>Simulazione ("what if")</h3>
+          <ul class="bm2-deltas">
+            <li
+              v-for="(delta, model) in bm2Result.simulation.deltas"
+              :key="model"
+            >
+              {{ model }}:
+              <span :class="delta >= 0 ? 'bm2-up' : 'bm2-down'"
+                >{{ delta >= 0 ? "+" : "" }}{{ delta.toFixed(2) }}</span
+              >
+            </li>
+          </ul>
+        </aside>
+      </div>
+    </div>
+
     <!-- Input area -->
     <div class="chat-input-area">
       <textarea
@@ -151,7 +249,7 @@ import { useI18n } from "../composables/useI18n";
 import { apiGet, apiPost } from "../utils/api";
 import DOMPurify from "dompurify";
 import type { CoachData } from "../types/index";
-import type { Bm2Answer } from "../types/bm2";
+import type { Bm2CoachResult } from "../types/bm2";
 
 const { t } = useI18n();
 
@@ -176,9 +274,7 @@ const chatWindow = ref<HTMLElement | null>(null);
 const inputRef = ref<HTMLTextAreaElement | null>(null);
 const coachData = ref<CoachData | null>(null);
 const athleteId = ref<number | null>(null);
-const bm2Result = ref<Bm2Answer | null>(null);
-const bm2Loading = ref(false);
-const bm2Error = ref<string | null>(null);
+const bm2Result = ref<Bm2CoachResult | null>(null);
 
 const quickQuestions = [
   " Prossimo allenamento consigliato",
@@ -344,7 +440,7 @@ async function sendMessage() {
         speak(reply);
       }
       if (resp.bm2_result) {
-        bm2Result.value = resp.bm2_result as Bm2Answer;
+        bm2Result.value = resp.bm2_result as Bm2CoachResult;
       }
     } else {
       const params: Record<string, unknown> = {};
@@ -388,59 +484,6 @@ async function sendMessage() {
 async function sendQuick(question: string) {
   userInput.value = question;
   await sendMessage();
-}
-
-async function _runBm2Analysis(question: string) {
-  bm2Loading.value = true;
-  bm2Error.value = null;
-  bm2Result.value = null;
-  try {
-    const data = await apiPost<Bm2Answer>("/api/v1/bm2/ask", {
-      question,
-      athlete: {
-        weight: 75,
-        age: 34,
-        experience_level: "Intermediate",
-        max_hr: 190,
-      },
-      bike: { weight: 8 },
-      world: { surface: "asphalt", avg_slope: 4 },
-      gps_points: [],
-      sensors: [],
-    });
-    bm2Result.value = data;
-  } catch (e) {
-    bm2Error.value = e instanceof Error ? e.message : "BM2 analysis failed";
-  } finally {
-    bm2Loading.value = false;
-  }
-}
-
-function _formatBm2Result(answer: Bm2Answer): string {
-  const lines: string[] = [];
-  lines.push(`**BM2 Analysis** — ${answer.question}`);
-  lines.push(`Modelli usati: ${answer.models_used.join(", ")}`);
-  if (answer.confidence !== undefined) {
-    lines.push(`Confidenza: ${Math.round(answer.confidence * 100)}%`);
-  }
-  for (const [name, r] of Object.entries(answer.results)) {
-    lines.push(
-      `- **${name}**: ${r.value.toFixed(1)} ${r.unit} (±${r.precision.toFixed(2)}, conf ${Math.round(r.confidence * 100)}%)`,
-    );
-  }
-  if (answer.insights.length) {
-    lines.push("Concetti:");
-    for (const ins of answer.insights) {
-      lines.push(`  - [${ins.severity}] ${ins.concept}: ${ins.detail}`);
-    }
-  }
-  if (answer.simulation) {
-    lines.push("Simulazione:");
-    for (const [model, delta] of Object.entries(answer.simulation.deltas)) {
-      lines.push(`  - ${model}: ${delta >= 0 ? "+" : ""}${delta.toFixed(1)}`);
-    }
-  }
-  return lines.join("\n");
 }
 
 async function loadFullReport() {
@@ -731,6 +774,71 @@ onMounted(() => {
   color: var(--accent);
   background: rgba(0, 255, 204, 0.08);
   transform: translateY(-1px);
+}
+
+/* BM2 Physics Analysis */
+.bm2-results {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #2a3b34;
+  border-radius: 8px;
+  background: #101c18;
+}
+.bm2-results h4 {
+  margin: 0 0 0.75rem;
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+.bm2-card {
+  border: 1px solid #2a3b34;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+}
+.bm2-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bm2-value {
+  font-weight: 700;
+}
+.bm2-card dl {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 2px 8px;
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+}
+.bm2-card dt {
+  color: #8aa;
+}
+.bm2-insights,
+.bm2-sim {
+  margin-top: 1rem;
+}
+.bm2-deltas {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+.bm2-up {
+  color: #4ecca3;
+  font-weight: 700;
+}
+.bm2-down {
+  color: #ff6b6b;
+  font-weight: 700;
+}
+.bm2-valgrid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 2px 8px;
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+}
+.bm2-valgrid dt {
+  color: #8aa;
 }
 
 /* Input area */

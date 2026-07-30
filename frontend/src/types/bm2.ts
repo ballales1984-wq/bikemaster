@@ -98,3 +98,29 @@ export interface Bm2ValidateResult {
   ride_id: number | null;
   validation: Bm2Validation;
 }
+
+export interface Bm2CoachResultValidation {
+  validation: Bm2Validation;
+  ride_id: number;
+}
+
+export interface Bm2CoachResultAnswer {
+  question: string;
+  models_used: string[];
+  results: Record<string, Bm2ModelResult>;
+  insights: Bm2Insight[];
+  confidence?: number;
+  simulation: {
+    baseline: Record<string, Bm2ModelResult>;
+    scenario: Record<string, Bm2ModelResult>;
+    deltas: Bm2SimulationDelta;
+  } | null;
+}
+
+export type Bm2CoachResult = Bm2CoachResultValidation | Bm2CoachResultAnswer;
+
+export interface Bm2CoachChatResponse {
+  response: string;
+  history: Array<Record<string, unknown>>;
+  bm2_result: Bm2CoachResult | null;
+}

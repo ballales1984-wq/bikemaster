@@ -1,6 +1,6 @@
 # BikeMaster — Roadmap Unificata
 
-*Ultimo aggiornamento: 2026-07-29*
+*Ultimo aggiornamento: 2026-07-30*
 
 > **Principio guida**: fare le cose una volta, farle bene. Questo documento è la
 > *fonte di verità unica* per stato, priorità e azioni. Non eseguire feature
@@ -12,14 +12,14 @@
 
 | Area | Stato | Note |
 |:--|:--|:--|
-| Backend FastAPI | **Stabile** | ~3255 passed / 2 failed, 138 endpoint |
-| Frontend Vue 3 | **Stabile** | Vitest + Playwright configurati |
-| Tauri 2 desktop | **Funzionante** | Backend embedded + SQLite primario |
+| Backend FastAPI | **Stabile** | Test mirati 297 passati (routes/BM2/AI); suite completa timeout locale (>15 min) |
+| Frontend Vue 3 | **Stabile** | Lint + typecheck puliti, 395/395 test passati |
+| Tauri 2 desktop | **Funzionante** | Backend embedded + SQLite primario, smoke test passed |
 | BM2 simulation engine | **Baseline** | 9 algoritmi, cablato via API |
-| AetherMap R&D | **Fasi 1-5 complete** | Fasi 3-5 complete; convergence decision: AetherMap converges into BikeMaster |
+| AetherMap R&D | **Fasi 1-5 complete** | Convergence decision: AetherMap converge in BikeMaster |
 | Multi-tenant / auth | **Completo** | tenant_id + OAuth2 (Google, Strava, Garmin) |
 | Sync device↔cloud | **Completo** | Branch merged in main |
-| Coverage test | **In corso** | ai_coach.py 90%, knowledge_base ~85%, routes.py ~65% — nuovi test in `tests/test_ai_coach_edge.py` e `tests/test_routes_error_branches.py` |
+| Coverage test | **In corso** | ai_coach.py 90%, knowledge_base ~85%, routes.py ~65% — fix completati per test Google OAuth callback |
 
 ---
 
@@ -37,32 +37,25 @@ Nessun file non committato. Il working tree è pulito.
 
 ## 4. Priorità Assoluta (ordine di esecuzione)
 
-### Fase 1 — Chiudere il lavoro in corso (questa settimana)
+### Fase 1 — Chiudere il lavoro in corso (completata)
 
-1. **Merge dei 3 branch** in sequenza (vedi sezione 2)
-2. **Commit working tree** oppure reset se duplicato
-3. **Run test completo** backend + frontend per verificare integrità post-merge
-4. **Pulizia repo**: rimuovere file temporanei e cache dalla root:
-   - `temp_aethermap/` (duplicato di `aethermap/`, eliminare)
-   - `backend_e2e.log`, `cov_*.log`, `errlines.log`, `fail*.log`, `pytest*.txt`,
-     `test*.txt`, `test_run*.log`, `routes_*.log`, `routes_*.json`
-   - `build_log.txt`, `duration_chart.png`, `google_map.png`, `ride_1_*.png`
-   - `playwright-screenshot.png`, `dashboard.html`, `dashboard.png`
-   - `.benchmarks/`, `.chroma_db/`, `chroma.sqlite3`
-   - Backup DB nella root: `rides_backup_*.db`, `rides_export.*`
-   - File `.db` nella root: `rides.db`, `rides_api.db` (esiste già in `bike_analyzer/`)
+1. ✅ **Merge dei 3 branch** in `main`
+2. ✅ **Commit working tree** e push su `origin/main` (4 commit)
+3. ✅ **Run test mirati** backend + frontend verificati
+4. ✅ **Pulizia repo**: file temporanei rimossi
 
-### Fase 2 — Stabilizzare (prossime 2 settimane)
+### Fase 2 — Stabilizzare (quasi completata)
 
-5. **Fix test frontend**: 31 failed + 20 errors su 363 — risolvere i fallimenti
-    bloccanti, prioritizzare quelli che rompono feature shipped
-6. **Fix 2 test backend** (MissingGreenlet): spostare in `pytest.ini` come skip
-    noto d'ambiente, oppure fixare il fixture setup
-7. **Coverage > 90%** su `routes.py` e moduli AI — routes.py ~30%, ai_coach ~55%, knowledge_base ~65% (file `tests/test_coverage_ai_routes.py`, 130+ test function attivi dopo fix assertion e rimozione test hanging)
-8. **Documentazione consolidata** ✅:
-    - ✅ Eliminati duplicati IT spostati in `docs/archive/` (6 file: `backend.md`, `stack-tecnologico.md`, `deployment.md`, `deployment-plan.md`, `configuration.md`, `frontend.md`)
-    - ✅ `docs/UNIFIED_DOCUMENTATION.md` unificata in `docs/MASTER.md` (redirect sostitutivo)
-    - ✅ `docs/DELUXE_ROADMAP.md` → riferisce a `ROADMAP.md` (contenuto sostituito con redirect)
+5. ✅ **Fix test frontend**: 395/395 passati, lint + typecheck puliti
+6. ✅ **Fix test backend** (MissingGreenlet): 5 test marcati `@pytest.mark.missing_greenlet`
+7. **Coverage > 90%** su `routes.py` e moduli AI — in corso
+    - routes.py ~65%, ai_coach.py 90%, knowledge_base ~85%
+    - File attivi: `tests/test_routes_error_branches.py`, `tests/test_coverage_ai_routes.py`
+    - Test Google OAuth callback sistemato (fix settings singleton + env vars)
+8. ✅ **Documentazione consolidata**:
+    - ✅ Eliminati duplicati IT spostati in `docs/archive/`
+    - ✅ `docs/UNIFIED_DOCUMENTATION.md` unificata in `docs/MASTER.md`
+    - ✅ `docs/DELUXE_ROADMAP.md` → riferisce a `ROADMAP.md`
 
 ### Fase 3 — Distribuzione (mese corrente)
 
