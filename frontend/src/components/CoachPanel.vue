@@ -75,6 +75,7 @@
           {{ msg.role === "user" ? "" : "" }}
         </div>
         <div class="msg-content">
+          <!-- eslint-disable-next-line vue/no-v-html -- formatMsg() sanitizes with DOMPurify -->
           <div class="msg-bubble" v-html="formatMsg(msg.content)" />
           <div class="msg-time">
             {{ msg.time }}

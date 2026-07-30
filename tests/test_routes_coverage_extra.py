@@ -778,6 +778,7 @@ def test_admin_forbidden_for_non_admin(db_path):
 # --------------------------------------------------------------------------- #
 # Google OAuth callback error paths
 # --------------------------------------------------------------------------- #
+@pytest.mark.missing_greenlet
 def test_google_oauth_callback_error_paths(client, monkeypatch):
     from bike_analyzer.backend.settings import get_settings
 

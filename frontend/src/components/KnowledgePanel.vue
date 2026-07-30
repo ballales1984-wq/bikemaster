@@ -90,12 +90,14 @@
             <span>{{ (r.score * 100).toFixed(0) }}%</span>
           </div>
         </div>
+        <!-- eslint-disable vue/no-v-html -->
         <div
           class="result-text"
           v-html="
             highlightQuery(r.content || r.text || r.chunk || '', lastQuery)
           "
-        />
+        ></div>
+        <!-- eslint-enable vue/no-v-html -->
         <div v-if="r.source_file" class="result-meta">
           <span> {{ r.source_file }}</span>
         </div>

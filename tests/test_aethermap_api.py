@@ -135,6 +135,7 @@ class TestAetherMapIntegration:
 
 
 class TestRideTerrainEnrichment:
+    @pytest.mark.missing_greenlet
     def test_returns_enriched_gps_points(self, client, monkeypatch):
         from bike_analyzer.backend import settings as settings_mod
 
@@ -166,6 +167,7 @@ class TestRideTerrainEnrichment:
             assert "traffic_level" in pt
             assert "terrain_confidence" in pt
 
+    @pytest.mark.missing_greenlet
     def test_returns_403_when_disabled_and_requested(self, client, monkeypatch):
         from bike_analyzer.backend import settings as settings_mod
 
@@ -187,6 +189,7 @@ class TestRideTerrainEnrichment:
         resp = client.get(f"/api/v1/rides/{ride_id}/terrain", params={"enabled": True})
         assert resp.status_code == 403
 
+    @pytest.mark.missing_greenlet
     def test_returns_404_for_missing_ride(self, client, monkeypatch):
         from bike_analyzer.backend import settings as settings_mod
 
@@ -195,6 +198,7 @@ class TestRideTerrainEnrichment:
         resp = client.get("/api/v1/rides/99999/terrain", params={"enabled": True})
         assert resp.status_code == 404
 
+    @pytest.mark.missing_greenlet
     def test_returns_400_without_gps(self, client, monkeypatch):
         from bike_analyzer.backend import settings as settings_mod
 
