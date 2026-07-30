@@ -436,12 +436,34 @@ def _google_fit_message_html(message: dict) -> HTMLResponse:
     payload = json.dumps(_sanitize_html_message(message))
     return HTMLResponse(
         f"""<!DOCTYPE html>
-        <html><head><meta charset=\"utf-8\"><title>Authorization</title></head>
+        <html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-inline' 'self'"><title>Authorization</title></head>
         <body>
         <script>
           (function() {{
-            try {{ window.opener && window.opener.postMessage({payload}, '*'); }} catch (e) {{}}
-            setTimeout(function() {{ window.close(); }}, 50);
+            var sent = false;
+            function doPost() {{
+              if (sent) return;
+              try {{
+                if (window.opener && !window.opener.closed) {{
+                  window.opener.postMessage({payload}, '*');
+                  sent = true;
+                }}
+              }} catch (e) {{}}
+            }}
+            function doClose() {{
+              try {{ window.close(); }} catch (e) {{}}
+              setTimeout(doClose, 100);
+            }}
+            doPost();
+            setTimeout(doPost, 50);
+            setTimeout(doPost, 150);
+            setTimeout(doPost, 400);
+            setTimeout(function() {{
+              if (!sent) {{
+                try {{ window.opener && window.opener.postMessage({payload}, '*'); }} catch (e2) {{}}
+              }}
+              doClose();
+            }}, 50);
           }})();
         </script>
         </body></html>"""
@@ -453,12 +475,34 @@ def _google_health_message_html(message: dict) -> HTMLResponse:
     payload = json.dumps(_sanitize_html_message(message))
     return HTMLResponse(
         f"""<!DOCTYPE html>
-        <html><head><meta charset=\"utf-8\"><title>Authorization</title></head>
+        <html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-inline' 'self'"><title>Authorization</title></head>
         <body>
         <script>
           (function() {{
-            try {{ window.opener && window.opener.postMessage({payload}, '*'); }} catch (e) {{}}
-            setTimeout(function() {{ window.close(); }}, 50);
+            var sent = false;
+            function doPost() {{
+              if (sent) return;
+              try {{
+                if (window.opener && !window.opener.closed) {{
+                  window.opener.postMessage({payload}, '*');
+                  sent = true;
+                }}
+              }} catch (e) {{}}
+            }}
+            function doClose() {{
+              try {{ window.close(); }} catch (e) {{}}
+              setTimeout(doClose, 100);
+            }}
+            doPost();
+            setTimeout(doPost, 50);
+            setTimeout(doPost, 150);
+            setTimeout(doPost, 400);
+            setTimeout(function() {{
+              if (!sent) {{
+                try {{ window.opener && window.opener.postMessage({payload}, '*'); }} catch (e2) {{}}
+              }}
+              doClose();
+            }}, 50);
           }})();
         </script>
         </body></html>"""
@@ -470,12 +514,34 @@ def _strava_message_html(message: dict, status_code: int = 200) -> HTMLResponse:
     payload = json.dumps(_sanitize_html_message(message))
     return HTMLResponse(
         f"""<!DOCTYPE html>
-        <html><head><meta charset=\"utf-8\"><title>Authorization</title></head>
+        <html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-inline' 'self'"><title>Authorization</title></head>
         <body>
         <script>
           (function() {{
-            try {{ window.opener && window.opener.postMessage({payload}, '*'); }} catch (e) {{}}
-            setTimeout(function() {{ window.close(); }}, 50);
+            var sent = false;
+            function doPost() {{
+              if (sent) return;
+              try {{
+                if (window.opener && !window.opener.closed) {{
+                  window.opener.postMessage({payload}, '*');
+                  sent = true;
+                }}
+              }} catch (e) {{}}
+            }}
+            function doClose() {{
+              try {{ window.close(); }} catch (e) {{}}
+              setTimeout(doClose, 100);
+            }}
+            doPost();
+            setTimeout(doPost, 50);
+            setTimeout(doPost, 150);
+            setTimeout(doPost, 400);
+            setTimeout(function() {{
+              if (!sent) {{
+                try {{ window.opener && window.opener.postMessage({payload}, '*'); }} catch (e2) {{}}
+              }}
+              doClose();
+            }}, 50);
           }})();
         </script>
         </body></html>""",

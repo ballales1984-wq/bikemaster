@@ -443,14 +443,33 @@ async function connectStrava() {
       if (settled) return;
       settled = true;
       window.removeEventListener("message", handleMessage);
+      clearInterval(pollTimer);
     };
     const timer = setTimeout(
       () => {
         finish();
-        reject(new Error("Timeout: autenticazione Strava annullata"));
+        if (popup && !popup.closed) {
+          try { popup.close(); } catch (_) { /* ignore */ }
+        }
+        reject(
+          new Error(
+            "Timeout: autenticazione Strava annullata. " +
+              "Il popup potrebbe essere bloccato. Prova ad abilitare i popup per questo sito e riprova.",
+          ),
+        );
       },
       5 * 60 * 1000,
     );
+    const pollTimer = setInterval(() => {
+      if (popup && popup.closed && !settled) {
+        finish();
+        reject(
+          new Error(
+            "L'autenticazione Strava è stata annullata o il popup è stato chiuso.",
+          ),
+        );
+      }
+    }, 1000);
     const handleMessage = (event: MessageEvent) => {
       if (!event.data || event.data.type !== "strava-success") {
         if (event.data?.type === "strava-error") {
