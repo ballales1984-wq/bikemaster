@@ -74,28 +74,53 @@ class TestAthleteUpdateBranches:
 class TestOAuthCallbackBranches:
     """Google OAuth callback error branches."""
 
+    def _google_client(self, db_path):
+        import bike_analyzer.backend.api.app_factory as app_factory_mod
+        import bike_analyzer.backend.api.routes as routes_mod
+        import bike_analyzer.backend.settings as settings_mod
+
+        settings_mod._settings = None
+        os.environ["GOOGLE_CLIENT_ID"] = "test-client-id"
+        os.environ["GOOGLE_CLIENT_SECRET"] = "test-client-secret"
+        routes_mod._s = settings_mod.get_settings()
+        app_factory_mod._s = settings_mod.get_settings()
+        return _make_client(db_path)
+
     def test_google_callback_missing_credentials(self, db_path):
+        import bike_analyzer.backend.api.app_factory as app_factory_mod
+        import bike_analyzer.backend.api.routes as routes_mod
+        import bike_analyzer.backend.settings as settings_mod
+
+        settings_mod._settings = None
+        os.environ["GOOGLE_CLIENT_ID"] = ""
+        os.environ["GOOGLE_CLIENT_SECRET"] = ""
+        routes_mod._s = settings_mod.get_settings()
+        app_factory_mod._s = settings_mod.get_settings()
         tc = _make_client(db_path)
-        response = tc.get("/api/v1/auth/google/callback", params={"code": "x", "state": "y"})
-        assert response.status_code in (400, 401, 403, 404, 500)
+        response = tc.get("/api/v1/auth/google/callback", params={"code": "x", "state": "y"}, follow_redirects=False)
+        assert response.status_code == 500
 
     def test_google_callback_error_param(self, db_path):
-        tc = _make_client(db_path)
+        tc = self._google_client(db_path)
         response = tc.get(
             "/api/v1/auth/google/callback",
             params={"error": "access_denied", "state": "invalid-or-expired"},
+            follow_redirects=False,
         )
-        assert response.status_code in (400, 401, 403, 404, 500)
+        assert response.status_code in (301, 302, 307, 308)
+        assert "oauth_error" in response.headers.get("location", "")
 
     def test_google_callback_missing_code(self, db_path):
-        tc = _make_client(db_path)
-        response = tc.get("/api/v1/auth/google/callback", params={"state": "invalid-or-expired"})
-        assert response.status_code in (400, 401, 403, 404, 500)
+        tc = self._google_client(db_path)
+        response = tc.get("/api/v1/auth/google/callback", params={"state": "invalid-or-expired"}, follow_redirects=False)
+        assert response.status_code in (301, 302, 307, 308)
+        assert "oauth_error" in response.headers.get("location", "")
 
     def test_google_callback_invalid_state(self, db_path):
-        tc = _make_client(db_path)
-        response = tc.get("/api/v1/auth/google/callback", params={"code": "abc", "state": "garbage-state"})
-        assert response.status_code in (400, 401, 403, 404, 500)
+        tc = self._google_client(db_path)
+        response = tc.get("/api/v1/auth/google/callback", params={"code": "abc", "state": "garbage-state"}, follow_redirects=False)
+        assert response.status_code in (301, 302, 307, 308)
+        assert "oauth_error" in response.headers.get("location", "")
 
 
 class TestBM2CoachChatEndpoint:
