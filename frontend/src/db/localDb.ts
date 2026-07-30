@@ -67,12 +67,6 @@ export function initLocalDb(): Promise<boolean> {
            data TEXT NOT NULL
          );`,
       );
-      db.exec(
-        `CREATE TABLE IF NOT EXISTS user_api_keys (
-           id INTEGER PRIMARY KEY CHECK (id = 1),
-           data TEXT NOT NULL
-         );`,
-      );
       return true;
     } catch (err) {
       console.warn("[localDb] SQLite locale non disponibile:", err);
@@ -151,27 +145,4 @@ export function deleteCachedRide(id: number): void {
 
 export function clearRideCache(): void {
   localRun("DELETE FROM rides_cache");
-}
-
-// --- Per-user API keys (saved locally on the device) -----------
-
-export function saveUserApiKeys(keys: UserApiKeys): void {
-  localRun(
-    `INSERT INTO user_api_keys (id, data) VALUES (1, ?)
-     ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
-    [JSON.stringify(keys)],
-  );
-}
-
-export function loadUserApiKeys(): UserApiKeys {
-  const row = localGet<{ data: string }>(
-    "SELECT data FROM user_api_keys WHERE id = 1",
-  );
-  if (!row || !row.data) return {};
-  try {
-    const parsed = JSON.parse(row.data) as UserApiKeys;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
 }
