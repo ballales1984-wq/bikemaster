@@ -287,7 +287,7 @@
               <button
                 class="btn btn-primary"
                 :disabled="healthConnect.loading"
-                @click="healthConnect.sync()"
+                @click="syncHealthConnect"
               >
                 {{ t("connections.syncHealth") }}
               </button>
@@ -426,7 +426,11 @@ async function connectStrava() {
   const headers: Record<string, string> = token
     ? { Authorization: `Bearer ${token}` }
     : {};
-  const authResp = await fetch("/api/v1/import/strava/auth", { headers });
+  const redirectUri = `${import.meta.env.DEV ? "http://localhost:8000" : window.location.origin}/api/v1/import/strava/callback`;
+  const authResp = await fetch(
+    `/api/v1/import/strava/auth?redirect_uri=${encodeURIComponent(redirectUri)}`,
+    { headers },
+  );
   if (!authResp.ok) {
     const err = await authResp.json().catch(() => ({}));
     throw new Error(
@@ -449,7 +453,11 @@ async function connectStrava() {
       () => {
         finish();
         if (popup && !popup.closed) {
-          try { popup.close(); } catch (_) { /* ignore */ }
+          try {
+            popup.close();
+          } catch (_) {
+            /* ignore */
+          }
         }
         reject(
           new Error(
@@ -868,10 +876,31 @@ async function connectHealthConnect() {
     if (!healthConnect.status.available) {
       throw new Error("Health Connect non disponibile su questo dispositivo");
     }
+
     await healthConnect.connect();
     toast.success("Health Connect connesso");
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    setServiceError(msg);
+    toast.error(msg);
+  }
+}
+
+async function syncHealthConnect() {
+  clearServiceError();
+  try {
+    const result = await healthConnect.sync();
+    if (result.connected) {
+      toast.success(
+        result.synced > 0
+          ? `Sincronizzati ${result.synced} record Health Connect`
+          : "Health Connect sincronizzato",
+      );
+    } else {
+      toast.info("Health Connect non connesso");
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Sincronizzazione fallita";
     setServiceError(msg);
     toast.error(msg);
   }

@@ -20,6 +20,14 @@ export type HealthConnectPermission =
   | "blood_pressure"
   | "activity";
 
+export interface HealthMetric {
+  metric_type: string;
+  value: number;
+  unit?: string | null;
+  source?: string;
+  recorded_at?: string | null;
+}
+
 export interface HealthConnectStatus {
   available: boolean;
   connected: boolean;
@@ -121,17 +129,18 @@ export const useHealthConnectStore = defineStore("healthConnect", () => {
     }
   }
 
-  async function sync() {
+  async function sync(metrics: HealthMetric[] = []) {
     loading.value = true;
     error.value = "";
     try {
       const token = auth.token;
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const result = await apiPost<{ synced: number }>(
+      const result = await apiPost<{ synced: number; connected: boolean }>(
         "/api/v1/health-connect/sync",
-        {},
+        { metrics },
         { headers } as ApiCallOptions,
       );
+      status.value.connected = result.connected;
       status.value.lastSyncAt = new Date().toISOString();
       return result;
     } catch (e) {

@@ -99,15 +99,34 @@ def get_health_connect_token(athlete_id: int) -> dict | None:
     }
 
 
-def sync_health_data(athlete_id: int) -> dict:
+def sync_health_data(athlete_id: int, metrics: list[dict] | None = None, tenant_id: int = 0) -> dict:
     token = get_health_connect_token(athlete_id)
     if not token or not token.get("connected"):
-        return {"synced": 0}
+        return {"synced": 0, "connected": False}
     ensure_health_connect_table()
     now = time.time()
+    synced = 0
+    if metrics:
+        from ..db.database import log_athlete_metric
+
+        tid = tenant_id or athlete_id
+        for m in metrics:
+            metric_id = log_athlete_metric(
+                athlete_id=athlete_id,
+                tenant_id=tid,
+                metric_type=m.get("metric_type"),
+                value=m.get("value"),
+                unit=m.get("unit"),
+                note=m.get("source"),
+                source=m.get("source", "health_connect"),
+                recorded_at=m.get("recorded_at"),
+            )
+            if metric_id:
+                synced += 1
     with _get_conn() as conn:
         conn.execute(
             "UPDATE health_connect_tokens SET last_sync_at = ?, updated_at = datetime('now') WHERE athlete_id = ?",
             (now, athlete_id),
         )
-    return {"synced": 0}
+    logger.info("Health Connect sync for athlete %s: %d metrics stored", athlete_id, synced)
+    return {"synced": synced, "connected": True}

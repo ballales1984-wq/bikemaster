@@ -5371,14 +5371,16 @@ async def analyze_ride_safety(ride_id: int, current_user: dict = Depends(get_cur
 # ------------------------------------------------------------------
 
 
-def _strava_redirect_uri_for(request: Request) -> str:
+def _strava_redirect_uri_for(request: Request, redirect_uri: str | None = None) -> str:
     """Resolve the Strava OAuth redirect URI.
 
-    Prefers the explicitly configured ``STRAVA_REDIRECT_URI`` (set per
-    environment in ``.env`` / ``render.yaml`` and pre-registered in the Strava
-    app). Only falls back to the request host when no redirect URI is
-    configured, so the value always matches what Strava expects.
+    If an explicit ``redirect_uri`` is provided (e.g. from the frontend
+    query params) it is used directly.  Otherwise falls back to the
+    configured ``STRAVA_REDIRECT_URI`` env var, and finally to computing
+    the URI from the request host so it always matches what Strava expects.
     """
+    if redirect_uri:
+        return redirect_uri
     if _s.strava_redirect_uri:
         return _s.strava_redirect_uri
     proto = request.headers.get("x-forwarded-proto") or request.url.scheme
@@ -5399,19 +5401,21 @@ def _strava_redirect_uri_for(request: Request) -> str:
 async def strava_auth(
     request: Request,
     state: str = "",
+    redirect_uri: str = "",
     current_user: dict = Depends(get_current_user),
 ):
     """Avvia il flusso OAuth Strava restituendo l'URL di autorizzazione."""
     from ..ingestion.strava_client import get_authorization_url
 
+    resolved_redirect_uri = _strava_redirect_uri_for(request, redirect_uri or None)
     try:
         result = get_authorization_url(
-            state=state, redirect_uri=_strava_redirect_uri_for(request)
+            state=state, redirect_uri=resolved_redirect_uri
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     logger.debug(
-        "Strava auth redirect_uri=%s", _strava_redirect_uri_for(request)
+        "Strava auth redirect_uri=%s", resolved_redirect_uri
     )
     result["athlete_id"] = current_user["id"]
     return result
@@ -5898,11 +5902,22 @@ async def health_connect_disconnect(current_user: dict = Depends(get_current_use
 
 
 @router.post("/health-connect/sync")
-async def health_connect_sync(current_user: dict = Depends(get_current_user)):
-    """Sync data from Android Health Connect."""
+async def health_connect_sync(
+    payload: HealthConnectPayload,
+    current_user: dict = Depends(get_current_user),
+):
+    """Sync data from Android Health Connect.
+
+    Accepts health metrics collected from the Android Health Connect API
+    (or the Tauri desktop app) and persists them via ``log_athlete_metric``.
+    """
     from ..ingestion.health_connect import sync_health_data
 
-    result = sync_health_data(current_user["id"])
+    result = sync_health_data(
+        current_user["id"],
+        metrics=payload.metrics,
+        tenant_id=current_user.get("tenant_id", current_user["id"]),
+    )
     return result
 
 
