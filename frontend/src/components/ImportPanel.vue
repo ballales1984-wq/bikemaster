@@ -596,7 +596,11 @@ async function connectStrava() {
     const headers: Record<string, string> = token
       ? { Authorization: `Bearer ${token}` }
       : {};
-    const authResp = await fetch("/api/v1/import/strava/auth", { headers });
+    const redirectUri = `${import.meta.env.DEV ? "http://localhost:8000" : window.location.origin}/api/v1/import/strava/callback`;
+    const authResp = await fetch(
+      `/api/v1/import/strava/auth?redirect_uri=${encodeURIComponent(redirectUri)}`,
+      { headers },
+    );
     if (!authResp.ok) {
       const err = await authResp.json().catch(() => ({}));
       throw new Error(err.detail || "Unable to start Strava authentication");
