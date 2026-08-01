@@ -7,7 +7,7 @@
 //   - Endpoint REST: /health, /api/v1/rides, /api/v1/auth/me
 
 use axum::{
-    extract::{Form, Query, State as AxumState},
+    extract::{Form, Query, State as AxumState, Json as AxumJson},
     http::{HeaderMap, Method, StatusCode},
     routing::{delete, get, post, put},
     Router,
@@ -20,12 +20,17 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::State as TauriState;
 use tauri::Manager;
 use tokio::sync::Mutex;
 use tower_http::cors::CorsLayer;
 use uuid::Uuid;
+
+use btleplug::api::{
+    BDAddr, Central, Manager as _, Peripheral as _, ScanFilter,
+};
+use btleplug::platform::Manager as BtleManager;
 
 // ---- Stato condiviso del backend Axum ----
 
@@ -52,9 +57,247 @@ fn get_db_path(state: TauriState<AppState>) -> String {
     state.db_path.to_string_lossy().to_string()
 }
 
+#[derive(serde::Deserialize, Clone)]
+struct BleReadArgs {
+    mac_address: String,
+    service_uuid: String,
+    characteristic_uuid: String,
+    device_type: String,
+}
+
+fn parse_sfloat(data: &[u8], offset: usize) -> Option<f64> {
+    if offset + 2 > data.len() {
+        return None;
+    }
+    let raw = u16::from_le_bytes([data[offset], data[offset + 1]]);
+    let mut mantissa = (raw & 0x0fff) as i16;
+    let mut exponent = ((raw >> 12) & 0x000f) as i8;
+    if exponent >= 8 {
+        exponent -= 16;
+    }
+    if mantissa >= 2048 {
+        mantissa -= 4096;
+    }
+    Some(mantissa as f64 * 10f64.powi(exponent as i32))
+}
+
+fn parse_ble_characteristic(
+    device_type: &str,
+    data: &[u8],
+) -> Option<(f64, String)> {
+    if data.is_empty() {
+        return None;
+    }
+    let flags = data[0];
+    match device_type {
+        "heart_rate" => {
+            let is_uint16 = (flags & 0x01) != 0;
+            let hr = if is_uint16 {
+                u16::from_le_bytes([data[1], data[2]])
+            } else {
+                data[1] as u16
+            };
+            Some((hr as f64, "bpm".to_string()))
+        }
+        "weight_scale" => {
+            let is_imperial = (flags & 0x01) != 0;
+            let raw = u16::from_le_bytes([data[1], data[2]]);
+            if is_imperial {
+                Some((raw as f64 / 100.0, "lb".to_string()))
+            } else {
+                Some((raw as f64 / 200.0, "kg".to_string()))
+            }
+        }
+        "blood_pressure" => {
+            let sys = parse_sfloat(data, 1)?;
+            Some((sys, "mmHg".to_string()))
+        }
+        "thermometer" => {
+            let is_fahrenheit = (flags & 0x01) != 0;
+            let temp = parse_sfloat(data, 1)?;
+            if is_fahrenheit {
+                let c = (temp - 32.0) * 5.0 / 9.0;
+                Some((c, "°C".to_string()))
+            } else {
+                Some((temp, "°C".to_string()))
+            }
+        }
+        "generic" => {
+            let raw = data.get(1).copied().unwrap_or(0);
+            Some((raw as f64, "value".to_string()))
+        }
+        _ => {
+            let raw = data.get(1).copied().unwrap_or(0);
+            Some((raw as f64, "value".to_string()))
+        }
+    }
+}
+
 #[tauri::command]
-fn ble_scan() -> Result<Vec<serde_json::Value>, String> {
-    Ok(vec![])
+async fn ble_read_measurement(args: BleReadArgs) -> Result<serde_json::Value, String> {
+    let manager = BtleManager::new()
+        .await
+        .map_err(|e| format!("BLE manager error: {}", e))?;
+    let adapters = manager
+        .adapters()
+        .await
+        .map_err(|e| format!("Cannot enumerate adapters: {}", e))?;
+    let adapter = adapters
+        .into_iter()
+        .next()
+        .ok_or_else(|| "No Bluetooth adapter found".to_string())?;
+
+    let svc_uuid = uuid::Uuid::parse_str(&args.service_uuid)
+        .map_err(|e| format!("Invalid service UUID: {}", e))?;
+    let char_uuid = uuid::Uuid::parse_str(&args.characteristic_uuid)
+        .map_err(|e| format!("Invalid characteristic UUID: {}", e))?;
+
+    let bdaddr: BDAddr = args
+        .mac_address
+        .parse()
+        .map_err(|e| format!("Invalid MAC address: {}", e))?;
+
+    let scan_filter = ScanFilter {
+        services: vec![svc_uuid],
+        ..Default::default()
+    };
+    adapter
+        .start_scan(scan_filter)
+        .await
+        .map_err(|e| format!("Scan start error: {}", e))?;
+
+    let mut found_peripheral: Option<btleplug::platform::Peripheral> = None;
+    for _ in 0..10 {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let peripherals = adapter
+            .peripherals()
+            .await
+            .map_err(|e| format!("Cannot get peripherals: {}", e))?;
+        for p in peripherals {
+            if p.address() == bdaddr {
+                found_peripheral = Some(p);
+                break;
+            }
+        }
+        if found_peripheral.is_some() {
+            break;
+        }
+    }
+    let _ = adapter.stop_scan().await;
+
+    let peripheral = found_peripheral
+        .ok_or_else(|| "Device not found during scan. Ensure Bluetooth is on and the device is in pairing mode.".to_string())?;
+
+    peripheral
+        .connect()
+        .await
+        .map_err(|e| format!("Connect error: {}", e))?;
+
+    peripheral
+        .discover_services()
+        .await
+        .map_err(|e| format!("Discovery error: {}", e))?;
+
+    let services = peripheral.services();
+    let mut target_char: Option<btleplug::api::Characteristic> = None;
+    for service in &services {
+        if service.uuid == svc_uuid {
+            for c in &service.characteristics {
+                if c.uuid == char_uuid {
+                    target_char = Some(c.clone());
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    let char = target_char
+        .ok_or_else(|| "Characteristic not found on device".to_string())?;
+
+    let value = peripheral
+        .read(&char)
+        .await
+        .map_err(|e| format!("Read error: {}", e))?;
+
+    let _ = peripheral.disconnect().await;
+
+    let parsed = parse_ble_characteristic(&args.device_type, &value);
+    match parsed {
+        Some((val, unit)) => Ok(serde_json::json!({
+            "value": val,
+            "unit": unit,
+            "raw": value
+        })),
+        None => Ok(serde_json::json!({
+            "raw": value
+        })),
+    }
+}
+
+#[tauri::command]
+async fn ble_scan() -> Result<Vec<serde_json::Value>, String> {
+    let manager = BtleManager::new()
+        .await
+        .map_err(|e| format!("BLE manager error: {}", e))?;
+    let adapters = manager
+        .adapters()
+        .await
+        .map_err(|e| format!("Cannot enumerate adapters: {}", e))?;
+    let adapter = adapters
+        .into_iter()
+        .next()
+        .ok_or_else(|| "No Bluetooth adapter found".to_string())?;
+
+    let known_services = [
+        ("0000181d-0000-1000-8000-00805f9b34fb", "weight_scale"),
+        ("0000180d-0000-1000-8000-00805f9b34fb", "heart_rate"),
+        ("00001810-0000-1000-8000-00805f9b34fb", "blood_pressure"),
+        ("00001809-0000-1000-8000-00805f9b34fb", "thermometer"),
+    ];
+
+    let filter = ScanFilter::default();
+    adapter
+        .start_scan(filter)
+        .await
+        .map_err(|e| format!("Scan start error: {}", e))?;
+
+    tokio::time::sleep(Duration::from_secs(5)).await;
+
+    let peripherals = adapter
+        .peripherals()
+        .await
+        .map_err(|e| format!("Cannot get peripherals: {}", e))?;
+
+    let _ = adapter.stop_scan().await;
+
+    let mut devices = Vec::new();
+    for p in peripherals {
+        let props = p.properties().await.map_err(|e| format!("{}", e))?;
+        let (device_type, service_uuid) = props
+            .as_ref()
+            .and_then(|p| {
+                p.services.iter().find_map(|s| {
+                    let svc_uuid_str = s.to_string();
+                    known_services
+                        .iter()
+                        .find(|(uuid, _)| *uuid == svc_uuid_str)
+                        .map(|(uuid, dt)| (*dt, uuid.to_string()))
+                })
+            })
+            .unwrap_or(("generic", "".to_string()));
+        let name = props
+            .as_ref()
+            .and_then(|p| p.local_name.clone())
+            .unwrap_or_else(|| format!("{}", p.address()));
+        devices.push(serde_json::json!({
+            "device_id": p.address().to_string(),
+            "name": name,
+            "device_type": device_type,
+            "service_uuid": service_uuid,
+        }));
+    }
+    Ok(devices)
 }
 
 #[tauri::command]
@@ -722,10 +965,40 @@ fn init_db(db_path: &std::path::Path) -> Result<Connection, rusqlite::Error> {
             created_at TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'pending'
          );
-         CREATE TABLE IF NOT EXISTS sync_meta (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-         );",
+          CREATE TABLE IF NOT EXISTS sync_meta (
+             key TEXT PRIMARY KEY,
+             value TEXT NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS ble_devices (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             athlete_id INTEGER NOT NULL,
+             tenant_id INTEGER NOT NULL DEFAULT 0,
+             device_id TEXT NOT NULL,
+             name TEXT NOT NULL,
+             device_type TEXT NOT NULL DEFAULT 'weight_scale',
+             service_uuid TEXT,
+             characteristic_uuid TEXT,
+             mac_address TEXT,
+             paired INTEGER NOT NULL DEFAULT 1,
+             last_connected_at TEXT,
+             last_synced_at TEXT,
+             settings TEXT NOT NULL DEFAULT '{}',
+             created_at TEXT,
+             updated_at TEXT
+          );
+          CREATE UNIQUE INDEX IF NOT EXISTS uq_ble_device ON ble_devices(athlete_id, device_id);
+          CREATE TABLE IF NOT EXISTS athlete_metric_log (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             athlete_id INTEGER NOT NULL,
+             tenant_id INTEGER NOT NULL DEFAULT 0,
+             metric_type TEXT NOT NULL,
+             value REAL,
+             unit TEXT,
+             note TEXT,
+             source TEXT NOT NULL DEFAULT 'manual',
+             recorded_at TEXT,
+             created_at TEXT
+          );",
     )?;
 
     let has_remote_id: bool = conn
@@ -761,6 +1034,13 @@ struct BleDeviceUpdate {
     name: Option<String>,
     paired: Option<bool>,
     settings: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct BleSyncPayload {
+    value: Option<f64>,
+    unit: Option<String>,
+    recorded_at: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -878,15 +1158,47 @@ async fn ble_sync_device(
     state: AxumState<AppState>,
     headers: HeaderMap,
     axum::extract::Path(id): axum::extract::Path<i32>,
+    AxumJson(payload): AxumJson<BleSyncPayload>,
 ) -> Result<axum::Json<serde_json::Value>, StatusCode> {
     let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
     let claims = verify_jwt(&token)?;
     let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let tenant_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
     let now = Utc::now().to_rfc3339();
     let conn = state.conn.lock().await;
+
+    let row = conn
+        .query_row(
+            "SELECT device_type, device_id FROM ble_devices WHERE id = ? AND athlete_id = ?",
+            params![id, athlete_id],
+            |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)),
+        )
+        .map_err(|_| StatusCode::NOT_FOUND)?;
+    let (device_type, device_db_id) = row;
+
+    let mut metric_id: i64 = 0;
+    if let Some(value) = payload.value {
+        let metric_type = match device_type.as_str() {
+            "weight_scale" => if payload.unit.as_deref() == Some("lb") { "weight_lb" } else { "weight_kg" },
+            "heart_rate" => "heart_rate_bpm",
+            "blood_pressure" => "blood_pressure_systolic",
+            "thermometer" => "temperature_c",
+            _ => "ble_generic",
+        };
+        conn.execute(
+            "INSERT INTO athlete_metric_log (athlete_id, tenant_id, metric_type, value, unit, note, source, recorded_at, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'ble', ?7, ?8)",
+            params![athlete_id, tenant_id, metric_type, value, payload.unit, format!("ble:{}", device_db_id), payload.recorded_at.as_deref().unwrap_or(&now), now],
+        ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        metric_id = conn.last_insert_rowid();
+    }
     conn.execute("UPDATE ble_devices SET last_synced_at = ? WHERE id = ? AND athlete_id = ?", params![now, id, athlete_id])
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(axum::Json(serde_json::json!({"status": "synced", "id": id})))
+    Ok(axum::Json(serde_json::json!({
+        "status": "synced",
+        "device_id": id,
+        "type": device_type,
+        "metric_id": metric_id,
+    })))
 }
 
 // ---- Health Connect (Android) ----
@@ -1045,7 +1357,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_app_info, get_db_path, reset_local_data, ble_scan, ble_pair, health_connect_permissions, health_connect_read_metrics])
+        .invoke_handler(tauri::generate_handler![get_app_info, get_db_path, reset_local_data, ble_scan, ble_pair, ble_read_measurement, health_connect_permissions, health_connect_read_metrics])
         .run(tauri::generate_context!())
         .expect("errore durante l'avvio dell'applicazione Tauri");
 }

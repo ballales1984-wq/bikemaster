@@ -3,6 +3,8 @@
  *
  * Vue 3 SPA bootstrap:
  * - initializes Pinia, router, theme and the local SQLite DB
+ *
+ * Cache-bust for Render deploy: OAuth popup fix v2
  * - handles the Google OAuth return (token fragment + finalize)
  * - registers the service worker for PWA/updates
  */

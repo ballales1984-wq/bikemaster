@@ -310,6 +310,18 @@ class BleDeviceOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class BleDeviceSync(BaseModel):
+    """Payload per la sincronizzazione di un dato misurato da un dispositivo BLE.
+
+    Il frontend si occupa di connettersi al dispositivo via Web Bluetooth,
+    leggere la caratteristica e parsare il valore, quindi lo invia qui.
+    """
+
+    value: float | None = Field(default=None, ge=-1000, le=1000)
+    unit: str | None = Field(default=None, max_length=20)
+    recorded_at: str | None = Field(default=None, max_length=32)
+
+
 class HealthConnectPayload(BaseModel):
     """Payload per sincronizzazione dati da Android Health Connect."""
 
@@ -933,3 +945,26 @@ class BeckHistoryResponse(BaseModel):
     items: list[BeckAssessmentResponse] = Field(default_factory=list)
     latest: BeckAssessmentResponse | None = None
     trend: list[dict] = Field(default_factory=list)
+
+
+class UserOAuthCredentials(BaseModel):
+    """Schema per le credenziali OAuth personalizzate dell'utente."""
+
+    provider: str = Field(..., pattern="^(strava|wahoo|garmin|google_fit|google_health)$")
+    client_id: str | None = Field(default=None, max_length=255)
+    client_secret: str | None = Field(default=None, max_length=255)
+    redirect_uri: str | None = Field(default=None, max_length=500)
+    scope: str | None = Field(default=None, max_length=500)
+
+
+class UserOAuthCredentialsOut(BaseModel):
+    """Schema di risposta per le credenziali OAuth (senza segreti)."""
+
+    id: int
+    provider: str
+    client_id: str | None
+    redirect_uri: str | None
+    scope: str | None
+    has_secret: bool
+    created_at: str | None
+    updated_at: str | None

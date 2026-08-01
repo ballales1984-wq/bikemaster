@@ -120,6 +120,8 @@ from .schemas import (
     RideUpdate,
     StravaCallbackRequest,
     UserCreate,
+    UserOAuthCredentials,
+    UserOAuthCredentialsOut,
     UserUpdate,
     WahooCallbackRequest,
 )
@@ -1001,6 +1003,7 @@ async def register(
 
             athlete = AthleteModel(
                 id=user_id,
+                user_id=user_id,
                 name=username,
                 email=email,
                 experience_level="Beginner",

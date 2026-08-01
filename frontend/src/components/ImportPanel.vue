@@ -642,9 +642,9 @@ async function connectStrava() {
         }
         finish();
         resolve(event.data.code);
-        try {
-          localStorage.removeItem("bikemaster_oauth_result");
-        } catch (e) {
+          try {
+            localStorage.removeItem("bikemaster_oauth_result");
+          } catch (_) {
           /* ignore */
         }
         if (popup && !popup.closed) {
@@ -655,7 +655,7 @@ async function connectStrava() {
         if (event.key !== "bikemaster_oauth_result" || !event.newValue) return;
         try {
           handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
-        } catch (e) {
+        } catch (_) {
           /* ignore */
         }
       };

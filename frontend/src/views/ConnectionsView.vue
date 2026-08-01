@@ -322,6 +322,55 @@
         </div>
       </div>
     </section>
+
+    <section class="card oauth-creds-section">
+      <h2>{{ t("connections.customOAuthTitle") }}</h2>
+      <p class="hint">{{ t("connections.customOAuthHint") }}</p>
+      <div class="oauth-creds-list">
+        <div v-for="cred in oauthCreds" :key="cred.provider" class="oauth-cred-item">
+          <div class="oauth-cred-info">
+            <strong>{{ cred.provider }}</strong>
+            <span v-if="cred.client_id">{{ cred.client_id }}</span>
+            <span v-if="cred.has_secret" class="secret-badge">***</span>
+          </div>
+          <div class="oauth-cred-actions">
+            <button class="btn btn-ghost btn-sm" @click="editOAuthCred(cred)">{{
+              t("common.edit")
+            }}</button>
+            <button class="btn btn-danger btn-sm" @click="removeOAuthCred(cred.provider)">{{
+              t("common.delete")
+            }}</button>
+          </div>
+        </div>
+        <div v-if="!oauthCreds.length" class="empty-hint">
+          {{ t("connections.noCustomOAuth") }}
+        </div>
+      </div>
+      <button class="btn btn-primary" @click="showAddCredForm = true" v-if="!showAddCredForm">
+        {{ t("connections.addCustomOAuth") }}
+      </button>
+      <form v-if="showAddCredForm" class="cred-form" @submit.prevent="saveOAuthCred">
+        <select v-model="credForm.provider">
+          <option value="strava">Strava</option>
+          <option value="wahoo">Wahoo</option>
+          <option value="garmin">Garmin</option>
+          <option value="google_fit">Google Fit</option>
+          <option value="google_health">Google Health</option>
+        </select>
+        <input v-model="credForm.client_id" placeholder="Client ID" required />
+        <input v-model="credForm.client_secret" placeholder="Client Secret" type="password" />
+        <input v-model="credForm.redirect_uri" placeholder="Redirect URI" />
+        <input v-model="credForm.scope" placeholder="Scope (opzionale)" />
+        <div class="row">
+          <button class="btn btn-primary" type="submit" :disabled="savingCred">
+            {{ savingCred ? t("common.saving") : t("common.save") }}
+          </button>
+          <button class="btn btn-ghost" type="button" @click="showAddCredForm = false">
+            {{ t("common.cancel") }}
+          </button>
+        </div>
+      </form>
+    </section>
   </div>
 </template>
 
@@ -375,6 +424,17 @@ const scannedBleDevice = ref<{
   name: string;
   type: BleDeviceType;
 } | null>(null);
+
+const oauthCreds = ref<Array<{ id: number; provider: string; client_id?: string; has_secret: boolean }>>([]);
+const showAddCredForm = ref(false);
+const savingCred = ref(false);
+const credForm = reactive({
+  provider: "strava",
+  client_id: "",
+  client_secret: "",
+  redirect_uri: "",
+  scope: "",
+});
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "";
@@ -496,9 +556,9 @@ async function connectStrava() {
       finish();
       resolve(event.data.code);
       clearTimeout(timer);
-      try {
-        localStorage.removeItem("bikemaster_oauth_result");
-      } catch (e) {
+        try {
+          localStorage.removeItem("bikemaster_oauth_result");
+        } catch (_) {
         /* ignore */
       }
       if (popup && !popup.closed) {
@@ -509,7 +569,7 @@ async function connectStrava() {
       if (event.key !== "bikemaster_oauth_result" || !event.newValue) return;
       try {
         handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
-      } catch (e) {
+      } catch (_) {
         /* ignore */
       }
     };
@@ -609,7 +669,7 @@ async function connectGoogleFit() {
       if (event.key !== "bikemaster_oauth_result" || !event.newValue) return;
       try {
         handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
-      } catch (e) {
+      } catch (_) {
         /* ignore */
       }
     };
@@ -690,7 +750,7 @@ async function connectGoogleHealth() {
       if (event.key !== "bikemaster_oauth_result" || !event.newValue) return;
       try {
         handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
-      } catch (e) {
+      } catch (_) {
         /* ignore */
       }
     };
@@ -768,7 +828,7 @@ async function connectWahoo() {
       if (event.key !== "bikemaster_oauth_result" || !event.newValue) return;
       try {
         handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
-      } catch (e) {
+      } catch (_) {
         /* ignore */
       }
     };
@@ -890,7 +950,7 @@ async function registerBleDevice() {
       try {
         await bleStore.sync(registeredDevice.id);
         toast.success(t("connections.downloadSuccess"));
-      } catch (e) {
+      } catch (_) {
         const msg = e instanceof Error ? e.message : String(e);
         toast.error(msg || t("connections.downloadError"));
       }
@@ -910,6 +970,62 @@ async function removeBleDevice(device: { id: number }) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     setServiceError(msg);
+    toast.error(msg);
+  }
+}
+
+async function loadOAuthCreds() {
+  try {
+    const data = await authStore.fetchOAuthCredentials();
+    oauthCreds.value = data.credentials || [];
+  } catch {
+    oauthCreds.value = [];
+  }
+}
+
+async function saveOAuthCred() {
+  savingCred.value = true;
+  try {
+    await authStore.setOAuthCredentials(credForm.provider, {
+      client_id: credForm.client_id,
+      client_secret: credForm.client_secret,
+      redirect_uri: credForm.redirect_uri,
+      scope: credForm.scope,
+    });
+    showAddCredForm.value = false;
+    Object.assign(credForm, {
+      provider: "strava",
+      client_id: "",
+      client_secret: "",
+      redirect_uri: "",
+      scope: "",
+    });
+    await loadOAuthCreds();
+    toast.success(t("connections.credSaved"));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    toast.error(msg);
+  } finally {
+    savingCred.value = false;
+  }
+}
+
+function editOAuthCred(cred: { provider: string; client_id?: string; has_secret: boolean }) {
+  credForm.provider = cred.provider;
+  credForm.client_id = cred.client_id || "";
+  credForm.client_secret = "";
+  credForm.redirect_uri = "";
+  credForm.scope = "";
+  showAddCredForm.value = true;
+}
+
+async function removeOAuthCred(provider: string) {
+  try {
+    await authStore.deleteOAuthCredentials(provider);
+    await loadOAuthCreds();
+    toast.success(t("connections.credDeleted"));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
     toast.error(msg);
   }
 }
@@ -956,6 +1072,7 @@ onMounted(async () => {
   await connectionsStore.load();
   await bleStore.load();
   await healthConnect.checkAvailability();
+  await loadOAuthCreds();
   bleAvailable.value =
     typeof navigator !== "undefined" &&
     !!(navigator as unknown as Record<string, unknown>).bluetooth;
@@ -1291,5 +1408,59 @@ onMounted(async () => {
   padding: 0.35rem 0.75rem;
   font-size: 0.82rem;
   border-radius: 4px;
+}
+.oauth-creds-section {
+  margin-top: 1.2rem;
+}
+.oauth-creds-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.oauth-cred-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+}
+.oauth-cred-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.oauth-cred-info strong {
+  text-transform: capitalize;
+}
+.oauth-cred-info span {
+  font-size: 0.85rem;
+  color: #aaa;
+}
+.secret-badge {
+  font-size: 0.75rem;
+  color: #888;
+  margin-left: 0.4rem;
+}
+.oauth-cred-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.cred-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+.cred-form select,
+.cred-form input {
+  background: #0f0f0f;
+  border: 1px solid #333;
+  color: #eee;
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.9rem;
 }
 </style>

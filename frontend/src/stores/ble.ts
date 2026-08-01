@@ -11,6 +11,7 @@ import { ref } from "vue";
 import type { ApiCallOptions } from "../utils/api";
 import { apiGet, apiPost, apiPut, apiDelete } from "../utils/api";
 import { useAuthStore } from "./auth";
+import { isTauri } from "../utils/backend-config";
 
 export type BleDeviceType =
   "weight_scale" | "heart_rate" | "blood_pressure" | "thermometer" | "generic";
@@ -186,7 +187,17 @@ export const useBleStore = defineStore("ble", () => {
     try {
       const token = auth.token;
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      await apiPost(`/api/v1/ble/devices/${deviceId}/sync`, {}, {
+      const device = devices.value.find((d) => d.id === deviceId);
+      const syncPayload: Record<string, unknown> = {};
+      if (device && device.service_uuid && device.characteristic_uuid) {
+        const measurement = await readBleMeasurement(device);
+        if (measurement !== null) {
+          syncPayload.value = measurement.value;
+          syncPayload.unit = measurement.unit;
+          syncPayload.recorded_at = new Date().toISOString();
+        }
+      }
+      await apiPost(`/api/v1/ble/devices/${deviceId}/sync`, syncPayload, {
         headers,
       } as ApiCallOptions);
       await load();
@@ -199,9 +210,167 @@ export const useBleStore = defineStore("ble", () => {
     }
   }
 
+  type BleDataView = DataView;
+  interface BleCharacteristic {
+    readValue: () => Promise<BleDataView>;
+  }
+  interface BleService {
+    getCharacteristic: (uuid: string) => Promise<BleCharacteristic>;
+  }
+  interface BleGatt {
+    connect: () => Promise<BleServer>;
+    disconnect: () => void;
+  }
+  interface BleServer {
+    getPrimaryService: (uuid: string) => Promise<BleService>;
+    disconnect: () => void;
+  }
+  interface BleWebDevice {
+    id: string;
+    name?: string;
+    gatt?: BleGatt;
+  }
+  interface BleNavigator {
+    bluetooth?: {
+      requestDevice: (opts: Record<string, unknown>) => Promise<BleWebDevice>;
+      getDevices?: () => Promise<BleWebDevice[]>;
+    };
+  }
+
+  function parseSfloat(view: DataView, offset: number): number {
+    const raw = view.getUint16(offset, true);
+    let mantissa = raw & 0x0fff;
+    let exponent = (raw >> 12) & 0x000f;
+    if (exponent >= 8) exponent -= 16;
+    if (mantissa >= 2048) mantissa -= 4096;
+    return mantissa * Math.pow(10, exponent);
+  }
+
+  function parseBleCharacteristic(
+    deviceType: BleDeviceType,
+    view: DataView,
+  ): { value: number; unit: string } | null {
+    if (view.byteLength < 2) return null;
+    const flags = view.getUint8(0);
+    if (deviceType === "heart_rate") {
+      const isUint16 = flags & 0x01;
+      const hr = isUint16 ? view.getUint16(1, true) : view.getUint8(1);
+      return { value: hr, unit: "bpm" };
+    }
+    if (deviceType === "weight_scale") {
+      const isImperial = flags & 0x01;
+      const raw = view.getUint16(1, true);
+      if (isImperial) {
+        return { value: raw / 100, unit: "lb" };
+      }
+      return { value: raw / 200, unit: "kg" };
+    }
+    if (deviceType === "blood_pressure") {
+      const systolic = parseSfloat(view, 1);
+      if (isNaN(systolic)) return null;
+      return { value: systolic, unit: "mmHg" };
+    }
+    if (deviceType === "thermometer") {
+      const isFahrenheit = flags & 0x01;
+      const tempC = parseSfloat(view, 1);
+      if (isNaN(tempC)) return null;
+      const value = isFahrenheit ? (tempC * 5) / 9 + 32 : tempC;
+      return { value, unit: isFahrenheit ? "°F" : "°C" };
+    }
+    const raw = view.getUint8(1);
+    return { value: raw, unit: "value" };
+  }
+
+  async function readBleMeasurementTauri(
+    device: BleDevice,
+  ): Promise<{ value: number; unit: string } | null> {
+    const macAddress = device.mac_address || device.device_id;
+    const core = await import("@tauri-apps/api/core");
+    const result = (await core.invoke("ble_read_measurement", {
+      mac_address: macAddress,
+      service_uuid: device.service_uuid,
+      characteristic_uuid: device.characteristic_uuid,
+      device_type: device.device_type,
+    })) as { value?: number; unit?: string; raw?: number[] };
+    if (result.value !== undefined && result.unit !== undefined) {
+      return { value: result.value, unit: result.unit };
+    }
+    if (result.raw) {
+      const bytes = new Uint8Array(result.raw).buffer;
+      const view = new DataView(bytes);
+      return parseBleCharacteristic(device.device_type, view);
+    }
+    return null;
+  }
+
+  async function readBleMeasurement(
+    device: BleDevice,
+  ): Promise<{ value: number; unit: string } | null> {
+    if (isTauri()) {
+      return readBleMeasurementTauri(device);
+    }
+    const btNavigator = navigator as unknown as BleNavigator;
+    if (!btNavigator.bluetooth) {
+      throw new Error("Web Bluetooth non disponibile");
+    }
+    let bleDevice: BleWebDevice | undefined;
+    if (typeof btNavigator.bluetooth.getDevices === "function") {
+      const devices = await btNavigator.bluetooth.getDevices();
+      bleDevice = devices.find((d) => d.id === device.device_id);
+    }
+    if (!bleDevice) {
+      bleDevice = await btNavigator.bluetooth.requestDevice({
+        filters: [{ services: [device.service_uuid] }],
+        optionalServices: [device.service_uuid!],
+      });
+    }
+    const gatt = bleDevice.gatt;
+    if (!gatt) throw new Error("Connessione GATT non disponibile");
+    const server = await gatt.connect();
+    try {
+      const service = await server.getPrimaryService(device.service_uuid!);
+      const characteristic = await service.getCharacteristic(
+        device.characteristic_uuid!,
+      );
+      const value = await characteristic.readValue();
+      return parseBleCharacteristic(device.device_type, value);
+    } finally {
+      server.disconnect();
+    }
+  }
+
+  async function scanForDevicesTauri(): Promise<
+    Array<{ deviceId: string; name: string; type: BleDeviceType }>
+  > {
+    scanning.value = true;
+    error.value = "";
+    try {
+      const core = await import("@tauri-apps/api/core");
+      const devices: Array<{
+        device_id: string;
+        name: string;
+        device_type: string;
+        service_uuid: string;
+      }> = await core.invoke("ble_scan");
+      return devices.map((d) => ({
+        deviceId: d.device_id,
+        name: d.name,
+        type: (d.device_type as BleDeviceType) || "generic",
+      }));
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Scansione BLE fallita";
+      throw e;
+    } finally {
+      scanning.value = false;
+    }
+  }
+
   async function scanForDevices(): Promise<
     Array<{ deviceId: string; name: string; type: BleDeviceType }>
   > {
+    if (isTauri()) {
+      return scanForDevicesTauri();
+    }
     if (!("bluetooth" in navigator)) {
       throw new Error("Web Bluetooth non supportato in questo browser");
     }

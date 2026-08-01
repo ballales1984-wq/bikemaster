@@ -357,6 +357,36 @@ class TestBleDeviceSync:
         resp = tc2.post(f"/api/v1/ble/devices/{device_id}/sync")
         assert resp.status_code == 404
 
+    def test_sync_with_value_weight(self, athlete_client):
+        tc, aid = athlete_client
+        created = tc.post(
+            "/api/v1/ble/devices",
+            json={"device_id": "scale-val", "name": "Scale Val", "device_type": "weight_scale"},
+        )
+        device_id = created.json()["id"]
+        resp = tc.post(
+            f"/api/v1/ble/devices/{device_id}/sync",
+            json={"value": 70.5, "unit": "kg", "recorded_at": "2026-08-01T10:00:00"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["metric_id"] > 0
+        metrics = tc.get(
+            "/api/v1/athletes/me/metric-log",
+            params={"metric_type": "weight_kg"},
+        ).json()
+        assert len(metrics["series"]) > 0
+
+    def test_sync_without_value_backcompat(self, athlete_client):
+        tc, aid = athlete_client
+        created = tc.post(
+            "/api/v1/ble/devices",
+            json={"device_id": "scale-bc", "name": "Scale BC", "device_type": "weight_scale"},
+        )
+        device_id = created.json()["id"]
+        resp = tc.post(f"/api/v1/ble/devices/{device_id}/sync")
+        assert resp.status_code == 200
+        assert resp.json()["metric_id"] == 0
+
 
 class TestBleDeviceSchemas:
     def test_register_valid(self):
@@ -390,3 +420,17 @@ class TestBleDeviceSchemas:
         assert u.name is None
         assert u.paired is None
         assert u.settings is None
+
+    def test_sync_payload_with_value(self):
+        from bike_analyzer.backend.api.schemas import BleDeviceSync
+
+        s = BleDeviceSync(value=72.5, unit="kg", recorded_at="2026-08-01T10:00:00")
+        assert s.value == 72.5
+        assert s.unit == "kg"
+
+    def test_sync_payload_optional(self):
+        from bike_analyzer.backend.api.schemas import BleDeviceSync
+
+        s = BleDeviceSync()
+        assert s.value is None
+        assert s.unit is None
