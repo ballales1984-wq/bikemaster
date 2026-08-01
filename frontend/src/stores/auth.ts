@@ -2,12 +2,14 @@
  * Store di autenticazione.
  *
  * Gestisce token JWT, utente corrente, login/logout/register e refresh
- * token. Lo stato e' mantenuto esclusivamente in memoria (Vue refs)
- * senza persistenza su localStorage. Questo elimina il rischio di
- * esfiltrazione token via XSS su disco e riduce la superficie di attacco.
+ * token. Lo stato e' persistito in sessionStorage (non localStorage) cosi'
+ * da sopravvivere a reload della pagina (es. aggiornamento service worker
+ * durante il round-trip OAuth) senza mai scrivere il token su disco in modo
+ * persistente. sessionStorage viene cancellato automaticamente alla chiusura
+ * della scheda, riducendo la superficie di attacco XSS.
  */
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import type { Athlete } from "../types/index";
 import {
   apiPost,
@@ -16,6 +18,12 @@ import {
   resetSessionExpiredNotification,
 } from "../utils/api";
 import { resolveApiBase } from "../utils/backend-config";
+import {
+  AUTH_TOKEN_KEY,
+  AUTH_USER_KEY,
+  AUTH_JUST_LOGGED_IN_KEY,
+  AUTH_REFRESH_TOKEN_KEY,
+} from "../utils/auth-storage";
 
 function parseBase64Url(base64Url: string): string {
   const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -39,10 +47,99 @@ function parseJWTPayload(tokenStr: string): Record<string, unknown> | null {
 }
 
 export const useAuthStore = defineStore("auth", () => {
-  const token = ref("");
-  const user = ref<Athlete | null>(null);
-  const justLoggedIn = ref(false);
-  const refreshToken = ref("");
+  const token = ref(
+    typeof sessionStorage !== "undefined"
+      ? sessionStorage.getItem(AUTH_TOKEN_KEY) || ""
+      : "",
+  );
+
+  const user = ref<Athlete | null>(
+    (function () {
+      try {
+        if (typeof sessionStorage === "undefined") return null;
+        const raw = sessionStorage.getItem(AUTH_USER_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })(),
+  );
+
+  const justLoggedIn = ref(
+    typeof sessionStorage !== "undefined"
+      ? sessionStorage.getItem(AUTH_JUST_LOGGED_IN_KEY) === "true"
+      : false,
+  );
+
+  const refreshToken = ref(
+    typeof sessionStorage !== "undefined"
+      ? sessionStorage.getItem(AUTH_REFRESH_TOKEN_KEY) || ""
+      : "",
+  );
+
+  watch(
+    token,
+    (val) => {
+      try {
+        if (val && typeof sessionStorage !== "undefined") {
+          sessionStorage.setItem(AUTH_TOKEN_KEY, val);
+        } else if (typeof sessionStorage !== "undefined") {
+          sessionStorage.removeItem(AUTH_TOKEN_KEY);
+        }
+      } catch {
+        /* ignore storage errors */
+      }
+    },
+    { flush: "sync" },
+  );
+
+  watch(
+    user,
+    (val) => {
+      try {
+        if (val && typeof sessionStorage !== "undefined") {
+          sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(val));
+        } else if (typeof sessionStorage !== "undefined") {
+          sessionStorage.removeItem(AUTH_USER_KEY);
+        }
+      } catch {
+        /* ignore storage errors */
+      }
+    },
+    { flush: "sync" },
+  );
+
+  watch(
+    justLoggedIn,
+    (val) => {
+      try {
+        if (val && typeof sessionStorage !== "undefined") {
+          sessionStorage.setItem(AUTH_JUST_LOGGED_IN_KEY, "true");
+        } else if (typeof sessionStorage !== "undefined") {
+          sessionStorage.removeItem(AUTH_JUST_LOGGED_IN_KEY);
+        }
+      } catch {
+        /* ignore storage errors */
+      }
+    },
+    { flush: "sync" },
+  );
+
+  watch(
+    refreshToken,
+    (val) => {
+      try {
+        if (val && typeof sessionStorage !== "undefined") {
+          sessionStorage.setItem(AUTH_REFRESH_TOKEN_KEY, val);
+        } else if (typeof sessionStorage !== "undefined") {
+          sessionStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
+        }
+      } catch {
+        /* ignore storage errors */
+      }
+    },
+    { flush: "sync" },
+  );
 
   const isLoggedIn = computed(() => !!token.value && isTokenValid());
   const isAdmin = computed(() => user.value?.is_admin === true);

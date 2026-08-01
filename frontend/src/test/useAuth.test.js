@@ -6,6 +6,7 @@ describe("useAuthStore", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it("isLoggedIn reflects token presence", () => {

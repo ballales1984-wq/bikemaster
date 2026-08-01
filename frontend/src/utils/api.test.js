@@ -8,6 +8,7 @@ describe("api helpers", () => {
 
   beforeEach(() => {
     setActivePinia(createPinia());
+    sessionStorage.clear();
   });
 
   afterEach(() => {

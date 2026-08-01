@@ -14,6 +14,7 @@ function makeFetch(status: number, body: unknown) {
 describe("api 401 handling (OAuth return safety)", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    sessionStorage.clear();
     vi.restoreAllMocks();
   });
 

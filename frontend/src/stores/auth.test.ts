@@ -44,6 +44,7 @@ vi.mock("./beck", () => ({ useBeckStore: () => ({ $reset: vi.fn() }) }));
 describe("auth store", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    sessionStorage.clear();
   });
 
   it("isLoggedIn is false initially", () => {

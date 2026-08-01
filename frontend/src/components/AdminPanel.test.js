@@ -1,10 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { useAuthStore } from "../stores/auth";
 import AdminPanel from "../components/AdminPanel.vue";
 
 setActivePinia(createPinia());
+
+beforeEach(() => {
+  sessionStorage.clear();
+});
 
 vi.mock("../utils/api.ts", () => ({
   apiGet: vi.fn(),

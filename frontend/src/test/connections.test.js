@@ -12,6 +12,7 @@ describe("useConnectionsStore", () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it("starts empty and exposes known services after load", async () => {

@@ -4,7 +4,9 @@
  * Processes the token present in the URL (query or fragment) after the provider
  * redirect, persists it in the Pinia store and removes it from the address
  * bar. To survive page reloads during the round-trip, it temporarily saves the
- * token in sessionStorage and recovers it if needed.
+ * token in sessionStorage and recovers it if needed. The auth store itself
+ * also mirrors state to sessionStorage so a mid-round-trip reload (service
+ * worker update, bfcache restore) cannot drop a finalized login.
  *
  * Exports: hasPendingOAuth, processOAuthToken
  */
@@ -103,7 +105,6 @@ export function processOAuthToken(): boolean {
       return false;
     }
     auth.setAuthFromUrl(urlToken, email, userId);
-    // Token is now in localStorage — the in-flight stash is no longer needed.
     clearPendingOAuth();
     ui.setOauthLoading(false);
     clearUrlToken();
