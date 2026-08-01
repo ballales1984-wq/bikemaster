@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { useAuthStore } from "../stores/auth";
 import { useToast } from "./useToast";
+import { isTauri, TAURI_EMBEDDED_BACKEND_BASE } from "../utils/backend-config";
 
 export interface OAuthProviderConfig {
   provider: string;
@@ -120,9 +121,10 @@ export function useOAuthConnection(config: OAuthProviderConfig) {
 
   function getRedirectUri(): string {
     const dev = import.meta.env.DEV;
+    if (dev) return `http://localhost:8000${config.callbackEndpoint}`;
+    if (isTauri()) return `${TAURI_EMBEDDED_BACKEND_BASE}${config.callbackEndpoint}`;
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const base = dev ? "http://localhost:8000" : origin;
-    return `${base}${config.callbackEndpoint}`;
+    return `${origin}${config.callbackEndpoint}`;
   }
 
   function cleanupListeners(
