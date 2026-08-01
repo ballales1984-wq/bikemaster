@@ -58,6 +58,7 @@ from ..db.database import get_user_by_id, save_user, update_user, delete_user
 from ..maps.map_renderer import create_route_map
 from ..maps.osm_maps import get_local_results, search_nearby, search_places
 from ..models.models import AthleteProfile, GPSPoint, Ride
+from ..processing.processing import process_route
 from ..rate_limiter import limiter
 from ..redis_client import cache_delete as _cache_delete
 from ..redis_client import cache_set as _cache_set
@@ -1446,8 +1447,10 @@ async def google_code_exchange(
 async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_current_user)):
     """Create a new ride and assign it to the authenticated athlete.
 
-    Automatically computes avg_speed and calories if missing, publishes
-    a RideCreated event, and invalidates the dashboard cache.
+    Validates and cleans GPS points server-side via ``process_route``,
+    computes avg_speed and calories if missing (with heart-rate-based
+    estimation when HR is available), publishes a RideCreated event,
+    and invalidates the dashboard cache.
     """
     from ..db.database import save_ride
 
@@ -1456,7 +1459,53 @@ async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_cu
     ride_dict["tenant_id"] = _ensure_int_user_id(current_user)
     points = ride_dict.get("gps_points", [])
     if points:
-        ride_dict["gps_points"] = points
+        gps_points: list[GPSPoint] = []
+        for p in points:
+            try:
+                ts = p.get("timestamp")
+                if isinstance(ts, str):
+                    ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                gps_points.append(
+                    GPSPoint(
+                        lat=p["lat"],
+                        lon=p["lon"],
+                        timestamp=ts,
+                        altitude=p.get("altitude"),
+                        speed=p.get("speed"),
+                        heart_rate=p.get("heart_rate"),
+                        cadence=p.get("cadence"),
+                        power=p.get("power"),
+                    )
+                )
+            except (KeyError, TypeError, ValueError):
+                continue
+        if gps_points:
+            cleaned, stats = process_route(gps_points)
+            ride_dict["gps_points"] = [
+                {
+                    "lat": p.lat,
+                    "lon": p.lon,
+                    "altitude": p.altitude,
+                    "timestamp": p.timestamp.isoformat() if p.timestamp else None,
+                    "speed": p.speed,
+                    "heart_rate": p.heart_rate,
+                    "cadence": p.cadence,
+                    "power": p.power,
+                }
+                for p in cleaned
+            ]
+            ride_dict["distance_km"] = ride_dict.get("distance_km") or round(
+                stats.total_distance_m / 1000, 2
+            )
+            ride_dict["duration_minutes"] = ride_dict.get("duration_minutes") or round(
+                stats.total_duration_s / 60, 2
+            )
+            ride_dict["avg_speed_kmh"] = ride_dict.get("avg_speed_kmh") or round(
+                stats.avg_speed_km_h, 2
+            )
+            ride_dict["elevation_gain_m"] = ride_dict.get("elevation_gain_m") or round(
+                stats.total_elevation_gain_m, 1
+            )
     if (
         not ride_dict.get("avg_speed_kmh")
         and ride_dict.get("distance_km")
@@ -1466,7 +1515,12 @@ async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_cu
         ride_dict["avg_speed_kmh"] = ride_dict["distance_km"] / (ride_dict["duration_minutes"] / 60)
     if not ride_dict.get("calories"):
         ride = Ride(**{k: v for k, v in ride_dict.items() if k not in ("gps_points", "tenant_id")})
-        method = "physics" if ride_dict.get("avg_speed_kmh") else "met"
+        if ride_dict.get("heart_rate_avg") and ride.distance_km and ride.duration_minutes:
+            method = "hr"
+        elif ride_dict.get("avg_speed_kmh"):
+            method = "physics"
+        else:
+            method = "met"
         ride_dict["calories"] = estimate_calories(ride, method=method)
     ride_id = save_ride(ride_dict)
     from ..events import RideCreated, publish
@@ -1544,6 +1598,87 @@ async def get_ride(ride_id: int, current_user: dict = Depends(get_current_user))
     ride["recovery_hours"] = round(estimate_recovery_hours(ride["fatigue_score"]), 1)
     ride["calories_per_km"] = round(calories_per_km(r), 0) if r.distance_km else 0
     return ride
+
+
+@router.get("/rides/{ride_id}/gpx")
+async def export_ride_gpx(
+    ride_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Export a ride as a GPX 1.1 XML document.
+
+    Includes heart rate, cadence, and power extensions when available.
+    """
+    from ..db.database import get_ride as _get_ride
+    from ..models.models import GPSPoint
+
+    ride = _get_ride(ride_id)
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    _ensure_ride_access(ride, current_user)
+    gps_points = ride.get("gps_points")
+    if not gps_points:
+        raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    normalized = []
+    for p in gps_points:
+        if "altitude" not in p and "elevation" in p:
+            q = {k: v for k, v in p.items() if k != "elevation"}
+            q["altitude"] = p.get("elevation")
+            normalized.append(q)
+        else:
+            normalized.append(p)
+    points = [GPSPoint(**p) for p in normalized]
+
+    def _ele_str(p: GPSPoint) -> str:
+        if p.altitude is not None:
+            return f"\n        <ele>{p.altitude}</ele>"
+        return ""
+
+    def _extensions_str(p: GPSPoint) -> str:
+        parts: list[str] = []
+        if p.heart_rate is not None:
+            parts.append(f"<gpxtpx:hr>{p.heart_rate}</gpxtpx:hr>")
+        if p.cadence is not None:
+            parts.append(f"<gpxtpx:cad>{p.cadence}</gpxtpx:cad>")
+        if p.power is not None:
+            parts.append(f"<gpxtpx:power>{p.power}</gpxtpx:power>")
+        if not parts:
+            return ""
+        return f"\n        <gpxtpx:TrackPointExtension>\n          {''.join(parts)}\n        </gpxtpx:TrackPointExtension>"
+
+    def _time_str(p: GPSPoint) -> str:
+        if p.timestamp is not None:
+            return p.timestamp.isoformat().replace("+00:00", "Z")
+        return datetime.now(UTC).isoformat()
+
+    trkpts = []
+    for p in points:
+        trkpts.append(
+            f"      <trkpt lat=\"{p.lat}\" lon=\"{p.lon}\">{_ele_str(p)}"
+            f"\n        <time>{_time_str(p)}</time>"
+            f"{_extensions_str(p)}\n      </trkpt>"
+        )
+
+    gpx_body = "\n".join(trkpts)
+
+    gpx = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<gpx version="1.1" creator="BikeMaster-Backend" xmlns="http://www.topografix.com/GPX/1/1"\n'
+        '      xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">\n'
+        "  <trk>\n"
+        f"    <name>{ride.get('title') or 'BikeMaster ride'}</name>\n"
+        "    <trkseg>\n"
+        f"{gpx_body}\n"
+        "    </trkseg>\n"
+        "  </trk>\n"
+        "</gpx>\n"
+    )
+
+    return StreamingResponse(
+        iter([gpx]),
+        media_type="application/gpx+xml",
+        headers={"Content-Disposition": f'attachment; filename="ride_{ride_id}.gpx"'},
+    )
 
 
 @router.get("/rides/{ride_id}/map")

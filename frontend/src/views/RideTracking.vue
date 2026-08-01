@@ -320,33 +320,39 @@ async function stopTracking() {
   tracking.stop();
 }
 
+function buildRidePayload() {
+  const validPoints = tracking.routePoints.filter(
+    (p) => Number.isFinite(p.lat) && Number.isFinite(p.lon),
+  );
+  return {
+    date: new Date().toISOString().slice(0, 10),
+    distance_km: tracking.distance / 1000,
+    duration_minutes: tracking.elapsedTime / 60,
+    avg_speed_kmh: tracking.avgSpeed > 0 ? tracking.avgSpeed : undefined,
+    elevation_gain_m: tracking.elevation > 0 ? tracking.elevation : undefined,
+    gps_points: validPoints.map((p) => ({
+      lat: p.lat,
+      lon: p.lon,
+      altitude: p.altitude ?? null,
+      timestamp: p.timestamp ?? null,
+      speed: p.speed ?? null,
+      heart_rate: p.heartRate ?? null,
+      cadence: p.cadence ?? null,
+      power: p.power ?? null,
+    })),
+    source: "gps_tracking",
+    activity_type: activityType.value,
+    title: activityTitle[activityType.value] || "Tracciamento GPS",
+  };
+}
+
 async function uploadRide() {
   try {
     isUploading.value = true;
 
     if (tracking.routePoints.length > 1) {
       try {
-        const validPoints = tracking.routePoints.filter(
-          (p) => Number.isFinite(p.lat) && Number.isFinite(p.lon),
-        );
-        const rideData = {
-          date: new Date().toISOString().slice(0, 10),
-          distance_km: tracking.distance / 1000,
-          duration_minutes: tracking.elapsedTime / 60,
-          avg_speed_kmh: tracking.avgSpeed > 0 ? tracking.avgSpeed : undefined,
-          elevation_gain_m:
-            tracking.elevation > 0 ? tracking.elevation : undefined,
-          gps_points: validPoints.map((p) => ({
-            lat: p.lat,
-            lon: p.lon,
-            altitude: p.altitude ?? null,
-            timestamp: p.timestamp ?? null,
-            speed: p.speed ?? null,
-          })),
-          source: "gps_tracking",
-          activity_type: activityType.value,
-          title: activityTitle[activityType.value] || "Tracciamento GPS",
-        };
+        const rideData = buildRidePayload();
         const result = await apiPost("/api/v1/rides", rideData);
         if (result.id) {
           tracking.setRideId(result.id as number);
@@ -628,26 +634,8 @@ async function saveAsItinerary() {
 
   let rideId = tracking.rideId;
   if (!rideId && tracking.routePoints.length > 1) {
-    const rideData = {
-      date,
-      distance_km: distKm || undefined,
-      duration_minutes: tracking.elapsedTime / 60,
-      avg_speed_kmh: tracking.avgSpeed > 0 ? tracking.avgSpeed : undefined,
-      elevation_gain_m: tracking.elevation > 0 ? tracking.elevation : undefined,
-      gps_points: tracking.routePoints
-        .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon))
-        .map((p) => ({
-          lat: p.lat,
-          lon: p.lon,
-          altitude: p.altitude ?? null,
-          timestamp: p.timestamp ?? null,
-          speed: p.speed ?? null,
-        })),
-      source: "gps_tracking",
-      activity_type: activityType.value,
-      title,
-    };
     try {
+      const rideData = buildRidePayload();
       const result = await apiPost("/api/v1/rides", rideData);
       if (result.id) {
         tracking.setRideId(result.id as number);

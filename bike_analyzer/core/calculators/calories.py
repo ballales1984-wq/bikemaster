@@ -34,8 +34,23 @@ def calories_physics(ride: Ride) -> float:
     return energy / (eff * J_PER_CAL)
 
 
+def calories_hr(ride: Ride, resting_hr: float = 60.0) -> float:
+    """Stima calorie da frequenza cardiaca (method HR).
+
+    Usa la formula: calorie = (HR - resting_hr) * peso * 0.0175 * durata_minuti.
+    """
+    if ride.heart_rate_avg is None or ride.weight_kg is None:
+        return 0.0
+    hr_factor = ride.heart_rate_avg - resting_hr
+    if hr_factor <= 0:
+        return 0.0
+    return hr_factor * ride.weight_kg * 0.0175 * ride.duration_minutes
+
+
 def estimate(ride: Ride, method: str = "met") -> float:
-    """Wrapper unico per stima calorie (MET o physics)."""
+    """Wrapper unico per stima calorie (MET, physics, o hr)."""
+    if method == "hr":
+        return calories_hr(ride)
     return calories_physics(ride) if method == "physics" else calories_met(ride)
 
 
