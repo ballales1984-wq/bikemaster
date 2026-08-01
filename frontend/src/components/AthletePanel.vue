@@ -7,6 +7,7 @@
 <template>
   <div class="panel">
     <h2>Profilo Atleta</h2>
+    <AthleteSelector />
     <div v-if="isFirstLogin" class="welcome-banner">
       <span class="welcome-icon"></span> Benvenuto! Completa il tuo profilo per
       iniziare
@@ -366,6 +367,7 @@ import { useAuthStore } from "../stores/auth";
 import { useAthleteStore } from "../stores/athlete";
 import { validateAthleteForm } from "../utils/validation";
 import MetricHistoryChart from "./MetricHistoryChart.vue";
+import AthleteSelector from "./AthleteSelector.vue";
 
 interface AthleteForm {
   name: string;

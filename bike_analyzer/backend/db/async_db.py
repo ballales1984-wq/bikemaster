@@ -44,6 +44,7 @@ from .models import (
     TrainingGoalModel,
     TrainingStressDayModel,
     UserModel,
+    UserOAuthCredentials,
     WeatherCache,
 )
 
@@ -77,6 +78,7 @@ _CORE_TABLES = [
     SyncConflict.__table__,
     SessionModel.__table__,
     WeatherCache.__table__,
+    UserOAuthCredentials.__table__,
 ]
 
 
@@ -224,8 +226,102 @@ async def get_rides_by_athlete_async(
         return [_ride_row_to_dict(r) for r in rows]
 
 
+async def get_user_oauth_credentials_async(user_id: int, provider: str) -> dict | None:
+    factory = get_session_factory()
+    async with factory() as session:
+        stmt = select(UserOAuthCredentials).where(
+            UserOAuthCredentials.user_id == user_id,
+            UserOAuthCredentials.provider == provider,
+        )
+        row = (await session.execute(stmt)).scalar_one_or_none()
+        if not row:
+            return None
+        return {
+            "id": row.id,
+            "user_id": row.user_id,
+            "provider": row.provider,
+            "client_id": row.client_id,
+            "client_secret": row.client_secret,
+            "redirect_uri": row.redirect_uri,
+            "scope": row.scope,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+        }
+
+
+async def get_all_user_oauth_credentials_async(user_id: int) -> list[dict]:
+    factory = get_session_factory()
+    async with factory() as session:
+        stmt = select(UserOAuthCredentials).where(UserOAuthCredentials.user_id == user_id)
+        rows = (await session.execute(stmt)).scalars().all()
+        return [
+            {
+                "id": r.id,
+                "user_id": r.user_id,
+                "provider": r.provider,
+                "client_id": r.client_id,
+                "client_secret": r.client_secret,
+                "redirect_uri": r.redirect_uri,
+                "scope": r.scope,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+            }
+            for r in rows
+        ]
+
+
+async def save_user_oauth_credentials_async(user_id: int, provider: str, data: dict) -> None:
+    factory = get_session_factory()
+    async with factory() as session:
+        stmt = select(UserOAuthCredentials).where(
+            UserOAuthCredentials.user_id == user_id,
+            UserOAuthCredentials.provider == provider,
+        )
+        row = (await session.execute(stmt)).scalar_one_or_none()
+        now = datetime.now(UTC)
+        if row:
+            row.client_id = data.get("client_id")
+            row.client_secret = data.get("client_secret")
+            row.redirect_uri = data.get("redirect_uri")
+            row.scope = data.get("scope")
+            row.updated_at = now
+        else:
+            session.add(
+                UserOAuthCredentials(
+                    user_id=user_id,
+                    provider=provider,
+                    client_id=data.get("client_id"),
+                    client_secret=data.get("client_secret"),
+                    redirect_uri=data.get("redirect_uri"),
+                    scope=data.get("scope"),
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+        await session.commit()
+
+
+async def delete_user_oauth_credentials_async(user_id: int, provider: str) -> bool:
+    factory = get_session_factory()
+    async with factory() as session:
+        stmt = select(UserOAuthCredentials).where(
+            UserOAuthCredentials.user_id == user_id,
+            UserOAuthCredentials.provider == provider,
+        )
+        row = (await session.execute(stmt)).scalar_one_or_none()
+        if not row:
+            return False
+        await session.delete(row)
+        await session.commit()
+        return True
+
+
 __all__ = [
     "get_session_factory",
     "init_async_db",
     "get_rides_by_athlete_async",
+    "get_user_oauth_credentials_async",
+    "get_all_user_oauth_credentials_async",
+    "save_user_oauth_credentials_async",
+    "delete_user_oauth_credentials_async",
 ]

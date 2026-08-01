@@ -188,11 +188,12 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   async function fetchMe(): Promise<void> {
-    const data = await apiGet<{ id: number; username: string; email?: string }>(
-      "/api/v1/auth/me",
-      {},
-      { suppressAuthClear: true },
-    );
+    const data = await apiGet<{
+      id: number;
+      username: string;
+      email?: string;
+      active_athlete_id?: number;
+    }>("/api/v1/auth/me", {}, { suppressAuthClear: true });
     user.value = {
       id: typeof data.id === "number" ? data.id : (user.value?.id ?? 0),
       username: data.username || user.value?.username || "",
@@ -200,6 +201,10 @@ export const useAuthStore = defineStore("auth", () => {
       is_admin: user.value?.is_admin ?? false,
       is_client: user.value?.is_client ?? false,
       tenant_id: user.value?.tenant_id ?? 0,
+      active_athlete_id:
+        typeof data.active_athlete_id === "number"
+          ? data.active_athlete_id
+          : (user.value?.active_athlete_id ?? data.id),
     };
   }
 
@@ -213,6 +218,7 @@ export const useAuthStore = defineStore("auth", () => {
       token_type?: string;
       username?: string;
       id?: number;
+      athlete_id?: number;
       is_admin?: boolean;
     }>("/api/v1/auth/login", form, {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -228,6 +234,12 @@ export const useAuthStore = defineStore("auth", () => {
       is_admin: !!data.is_admin,
       is_client: !!(payload as { is_client?: boolean } | null)?.is_client,
       tenant_id: typeof payload?.tenant_id === "number" ? payload.tenant_id : 0,
+      active_athlete_id:
+        typeof data.athlete_id === "number"
+          ? data.athlete_id
+          : typeof data.id === "number"
+            ? data.id
+            : 0,
     };
     resetSessionExpiredNotification();
   }
@@ -318,12 +330,93 @@ export const useAuthStore = defineStore("auth", () => {
       is_admin: false,
       is_client: false,
       tenant_id: typeof payload?.tenant_id === "number" ? payload.tenant_id : 0,
+      active_athlete_id:
+        typeof payload?.athlete_id === "number"
+          ? payload.athlete_id
+          : isNaN(parsedId)
+            ? 0
+            : parsedId,
     };
     token.value = urlToken;
     user.value = userData;
     refreshToken.value = "";
     justLoggedIn.value = true;
     resetSessionExpiredNotification();
+  }
+
+  async function fetchMyAthletes() {
+    return apiFetch<{
+      athletes: Array<{ id: number; name: string; email?: string | null }>;
+    }>("/api/v1/athletes/mine");
+  }
+
+  async function createMyAthlete(data: {
+    name: string;
+    email?: string | null;
+  }) {
+    return apiFetch<{ athlete_id: number }>("/api/v1/athletes/mine", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async function deleteMyAthlete(athleteId: number) {
+    return apiFetch<{ status: string }>(`/api/v1/athletes/mine/${athleteId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async function switchAthlete(athleteId: number) {
+    const data = await apiFetch<{
+      access_token: string;
+      refresh_token?: string;
+      user_id: number;
+      athlete_id: number;
+    }>(`/api/v1/auth/switch-athlete/${athleteId}`, { method: "POST" });
+    token.value = data.access_token;
+    if (data.refresh_token) {
+      refreshToken.value = data.refresh_token;
+    }
+    if (user.value) {
+      user.value.active_athlete_id = data.athlete_id;
+    }
+    resetSessionExpiredNotification();
+    return data;
+  }
+
+  async function fetchOAuthCredentials() {
+    return apiFetch<{
+      credentials: Array<{
+        id: number;
+        provider: string;
+        client_id?: string;
+        has_secret: boolean;
+      }>;
+    }>("/api/v1/connections/credentials");
+  }
+
+  async function setOAuthCredentials(
+    provider: string,
+    data: {
+      client_id?: string;
+      client_secret?: string;
+      redirect_uri?: string;
+      scope?: string;
+    },
+  ) {
+    return apiFetch<{ status: string }>("/api/v1/connections/credentials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, ...data }),
+    });
+  }
+
+  async function deleteOAuthCredentials(provider: string) {
+    return apiFetch<{ status: string }>(
+      `/api/v1/connections/credentials/${provider}`,
+      { method: "DELETE" },
+    );
   }
 
   function setOauthError(_oauthError: string) {
@@ -355,5 +448,12 @@ export const useAuthStore = defineStore("auth", () => {
     setAuthFromUrl,
     setOauthError,
     setJustLoggedIn,
+    fetchMyAthletes,
+    createMyAthlete,
+    deleteMyAthlete,
+    switchAthlete,
+    fetchOAuthCredentials,
+    setOAuthCredentials,
+    deleteOAuthCredentials,
   };
 });

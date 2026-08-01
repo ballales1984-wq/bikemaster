@@ -355,7 +355,16 @@
     "downloading": "Downloading data...",
     "downloadSuccess": "Data downloaded successfully",
     "downloadError": "Download failed",
-    "recognizing": "Recognizing device..."
+    "recognizing": "Recognizing device...",
+    "customOAuthTitle": "Custom OAuth credentials",
+    "customOAuthHint": "Configure your personal OAuth credentials for Strava, Wahoo, Garmin, Google Fit or Google Health.",
+    "noCustomOAuth": "No custom OAuth credentials configured.",
+    "addCustomOAuth": "Add OAuth credential",
+    "credSaved": "Credential saved",
+    "credDeleted": "Credential deleted"
+  },
+  "athlete": {
+    "selectLabel": "Active athlete"
   },
   "admin": {
     "title": "Admin Panel",

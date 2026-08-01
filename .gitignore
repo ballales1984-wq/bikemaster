@@ -168,3 +168,9 @@ frontend/tc_err.txt
 
 # Kubernetes generic deployment files (not BikeMaster-specific)
 webapp.yaml
+
+# Emulator and mobile scratch
+emulator-logcat*.txt
+mobile-*.png
+mobile-*.mp4
+mobile-*.jpg

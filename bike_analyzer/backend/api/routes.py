@@ -375,12 +375,23 @@ def _ensure_int_user_id(current_user: dict) -> int:
         raise HTTPException(status_code=401, detail="Invalid user token")
 
 
+def _current_athlete_id(current_user: dict) -> int:
+    """Return the active athlete id from the JWT, falling back to user id."""
+    return int(current_user.get("athlete_id") or current_user["id"])
+
+
 def _ensure_athlete_access(athlete_id: int, current_user: dict) -> None:
     """Raise 403 if ``current_user`` is not the owner or an admin for ``athlete_id``."""
     if current_user.get("is_admin"):
         return
     if int(athlete_id) != _ensure_int_user_id(current_user):
         raise HTTPException(status_code=403, detail="Access denied to this athlete")
+
+
+def _get_user_oauth_creds(user_id: int, provider: str) -> dict | None:
+    from ..db.database import get_user_oauth_credentials as _get_creds
+
+    return _get_creds(user_id, provider)
 
 
 def _ensure_ride_access(ride: dict, current_user: dict) -> None:
@@ -450,7 +461,7 @@ def _oauth_callback_response(payload: str, status_code: int = 200) -> HTMLRespon
     """
     html = (
         "<!DOCTYPE html>"
-        '<html><head><meta charset="utf-8"><title>Authorization</title></head>'
+        '<html><head><meta charset="utf-8"><title>Closing...</title></head>'
         "<body><script>"
         "(function(){"
         "var sent=false;"
@@ -460,10 +471,12 @@ def _oauth_callback_response(payload: str, status_code: int = 200) -> HTMLRespon
         "catch(e){}"
         "try{localStorage.setItem('bikemaster_oauth_result','" + payload + "');}catch(e){}"
         "}"
-        "function doClose(){"
+        "function tryClose(){"
         "try{window.close();}catch(e){}"
-        "if(!window.closed){try{window.location.href='about:blank';}catch(e){}}"
-        "setTimeout(doClose,200);"
+        "if(!window.closed){"
+        "try{window.location.replace('about:blank');}catch(e){}"
+        "}"
+        "setTimeout(function(){try{window.close();}catch(e){}},50);"
         "}"
         "doPost();"
         "setTimeout(doPost,50);"
@@ -472,7 +485,7 @@ def _oauth_callback_response(payload: str, status_code: int = 200) -> HTMLRespon
         "setTimeout(function(){"
         "if(!sent){try{window.opener&&window.opener.postMessage(" + payload + ",'*');}catch(e2){}}"
         "try{localStorage.setItem('bikemaster_oauth_result','" + payload + "');}catch(e){}"
-        "doClose();"
+        "tryClose();"
         "},50);"
         "})();</script></body></html>"
     )
@@ -797,8 +810,20 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
                     status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"}
                 )
 
-            access_token = create_access_token(subject=str(user.id), is_admin=user.is_admin, tenant_id=user.id, is_client=user.is_client)
-            refresh_token = create_refresh_token(user.id, is_admin=user.is_admin, tenant_id=user.id, is_client=user.is_client)
+            access_token = create_access_token(
+                subject=str(user.id),
+                is_admin=user.is_admin,
+                tenant_id=user.id,
+                is_client=user.is_client,
+                athlete_id=user.id,
+            )
+            refresh_token = create_refresh_token(
+                user.id,
+                is_admin=user.is_admin,
+                tenant_id=user.id,
+                is_client=user.is_client,
+                athlete_id=user.id,
+            )
             await save_refresh_token(user.id, refresh_token)
             return {
                 "access_token": access_token,
@@ -806,6 +831,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
                 "token_type": "bearer",
                 "username": user.username,
                 "id": user.id,
+                "athlete_id": user.id,
                 "is_admin": user.is_admin,
             }
 
@@ -821,8 +847,20 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     if not row or not verify_password(form_data.password, row[2] or ""):
         raise HTTPException(status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"})
     athlete_id = int(row[0])
-    access_token = create_access_token(subject=str(athlete_id), is_admin=False, tenant_id=athlete_id, is_client=False)
-    refresh_token = create_refresh_token(athlete_id, is_admin=False, tenant_id=athlete_id, is_client=False)
+    access_token = create_access_token(
+        subject=str(athlete_id),
+        is_admin=False,
+        tenant_id=athlete_id,
+        is_client=False,
+        athlete_id=athlete_id,
+    )
+    refresh_token = create_refresh_token(
+        athlete_id,
+        is_admin=False,
+        tenant_id=athlete_id,
+        is_client=False,
+        athlete_id=athlete_id,
+    )
     await save_refresh_token(athlete_id, refresh_token)
     return {
         "access_token": access_token,
@@ -830,6 +868,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
         "token_type": "bearer",
         "username": row[1],
         "id": athlete_id,
+        "athlete_id": athlete_id,
         "is_admin": False,
     }
 
@@ -1413,8 +1452,8 @@ async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_cu
     from ..db.database import save_ride
 
     ride_dict = ride_data.model_dump()
-    ride_dict["athlete_id"] = current_user["id"]
-    ride_dict["tenant_id"] = current_user["id"]
+    ride_dict["athlete_id"] = _current_athlete_id(current_user)
+    ride_dict["tenant_id"] = _ensure_int_user_id(current_user)
     points = ride_dict.get("gps_points", [])
     if points:
         ride_dict["gps_points"] = points
@@ -1436,7 +1475,7 @@ async def create_ride(ride_data: RideCreate, current_user: dict = Depends(get_cu
         RideCreated.type,
         {
             "ride_id": int(ride_id),
-            "athlete_id": current_user["id"],
+            "athlete_id": _current_athlete_id(current_user),
             "distance_km": ride_dict.get("distance_km"),
             "duration_minutes": ride_dict.get("duration_minutes"),
         },
@@ -1461,7 +1500,7 @@ async def list_rides(
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    all_rides = get_rides_by_athlete(current_user["id"], tenant_id)
+    all_rides = get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)
     start = (page - 1) * page_size
     rides = all_rides[start : start + page_size]
     for ride in rides:
@@ -1484,7 +1523,7 @@ async def count_rides(current_user: dict = Depends(get_current_user)):
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    return {"count": len(get_rides_by_athlete(current_user["id"], tenant_id))}
+    return {"count": len(get_rides_by_athlete(_current_athlete_id(current_user), tenant_id))}
 
 
 @router.get("/rides/{ride_id}")
@@ -2195,7 +2234,7 @@ async def export_json(current_user: dict = Depends(get_current_user)):
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
+    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
     with tempfile.NamedTemporaryFile(prefix=f"rides_export_{current_user['id']}_", suffix=".json", delete=False) as tmp:
         path = tmp.name
     export_rides_json(rides, path)
@@ -2220,7 +2259,7 @@ async def export_csv(current_user: dict = Depends(get_current_user)):
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
+    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
     with tempfile.NamedTemporaryFile(prefix=f"rides_export_{current_user['id']}_", suffix=".csv", delete=False) as tmp:
         path = tmp.name
     export_rides_csv(rides, path)
@@ -2284,7 +2323,7 @@ async def duration_chart(current_user: dict = Depends(get_current_user)):
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
+    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
     path = "duration_chart.png"
     await asyncio.to_thread(create_duration_chart, rides, path)
     from fastapi.responses import FileResponse
@@ -2717,7 +2756,7 @@ async def client_assign_athlete(athlete_id: int, current_user: dict = Depends(ge
 async def get_my_metabolic_profile(current_user: dict = Depends(get_current_user)):
     """Return the authenticated athlete's metabolic profile."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..db.database import get_athlete as _get_athlete, get_metabolic_profile as _get_profile
 
     athlete = _get_athlete(athlete_id, tenant_id)
@@ -2736,7 +2775,7 @@ async def upsert_my_metabolic_profile(
 ):
     """Create or update the authenticated athlete's metabolic profile."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..db.database import get_athlete as _get_athlete, get_metabolic_profile as _get_profile, save_metabolic_profile as _save_profile
 
     athlete = _get_athlete(athlete_id, tenant_id)
@@ -2756,7 +2795,7 @@ async def get_my_food_logs(
 ):
     """Return today's or specified date's food logs for the authenticated athlete."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..db.database import get_food_logs_by_athlete_date as _get_logs
 
     return _get_logs(athlete_id, date, tenant_id=tenant_id)
@@ -2769,7 +2808,7 @@ async def create_food_log(
 ):
     """Create a new food log entry."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..db.database import get_athlete as _get_athlete, get_food_log as _get_log, save_food_log as _save_log
 
     athlete = _get_athlete(athlete_id, tenant_id)
@@ -2791,7 +2830,7 @@ async def update_food_log_entry(
 ):
     """Update an existing food log entry."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..db.database import get_food_log as _get_log, update_food_log as _update_log
 
     row = _get_log(log_id)
@@ -2810,7 +2849,7 @@ async def delete_food_log_entry(
 ):
     """Delete a food log entry."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..db.database import delete_food_log as _delete_log, get_food_log as _get_log
 
     row = _get_log(log_id)
@@ -2827,7 +2866,7 @@ async def get_my_daily_summary(
 ):
     """Return the metabolim daily summary for the authenticated athlete."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..analytics.metabolism import recalculate_daily_summary as _recalc
 
     summary = _recalc(athlete_id, date, tenant_id)
@@ -2842,7 +2881,7 @@ async def get_my_range_summary(
 ):
     """Return metabolim daily summaries for a date range."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..analytics.metabolism import recalculate_range as _recalc_range
 
     summaries = _recalc_range(athlete_id, start_date, end_date, tenant_id)
@@ -2856,7 +2895,7 @@ async def recalculate_my_daily_summary(
 ):
     """Force recalculate the metabolim daily summary for a specific date."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..analytics.metabolism import recalculate_daily_summary as _recalc
 
     summary = _recalc(athlete_id, date, tenant_id)
@@ -2896,7 +2935,7 @@ async def get_my_metabolic_reference(
 ):
     """Return the resolved reference mean (imported or built-in) for the athlete's bracket."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..analytics.metabolism import resolve_reference_value as _resolve
     from ..db.database import get_athlete as _get_athlete, get_metabolic_profile as _get_profile
 
@@ -2914,7 +2953,7 @@ async def calibrate_my_metabolic_weights(
 ):
     """Ingest sensor-derived values and update per-athlete model weights + confidence."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..analytics.metabolism import calibrate_athlete as _calibrate
 
     result = _calibrate(
@@ -2938,7 +2977,7 @@ async def get_my_metabolic_weights(
 ):
     """Return the per-athlete adaptive weights and sensor confidence."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..analytics.metabolism import get_athlete_weights as _get_weights
 
     weights = _get_weights(athlete_id, tenant_id)
@@ -2952,7 +2991,7 @@ async def recalculate_my_daily_summary_calibrated(
 ):
     """Recalculate the daily summary using reference mean + adaptive weights."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..analytics.metabolism import recalculate_daily_summary_calibrated as _recalc_c
 
     return _recalc_c(athlete_id, date, tenant_id)
@@ -3057,6 +3096,7 @@ async def google_fit_auth(
     client_id: str | None = Query(None),
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
+    current_user: dict = Depends(get_current_user),
 ):
     """[Deprecated] Start Google Fit OAuth flow.
 
@@ -3065,7 +3105,8 @@ async def google_fit_auth(
     logger.warning("Deprecated Google Fit OAuth route accessed; use Google Health instead")
     from ..ingestion.google_fit import get_authorization_url
 
-    google_client_id = client_id or _s.google_fit_client_id
+    user_creds = _get_user_oauth_creds(int(current_user["id"]), "google_fit")
+    google_client_id = client_id or (user_creds or {}).get("client_id") or _s.google_fit_client_id
     if not google_client_id:
         raise HTTPException(status_code=503, detail="Google Fit OAuth not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-fit/callback")
@@ -3081,6 +3122,7 @@ async def google_health_auth(
     request: Request,
     redirect_uri: str | None = Query(None),
     state: str = Query(""),
+    current_user: dict = Depends(get_current_user),
 ):
     """Start Google Health OAuth2 PKCE flow.
 
@@ -3089,7 +3131,9 @@ async def google_health_auth(
     """
     from ..ingestion.google_health import _compute_code_challenge, _generate_code_verifier, get_authorization_url
 
-    if not _s.google_health_client_id:
+    user_creds = _get_user_oauth_creds(int(current_user["id"]), "google_health")
+    google_client_id = (user_creds or {}).get("client_id") or _s.google_health_client_id
+    if not google_client_id:
         raise HTTPException(status_code=500, detail="Google Health OAuth not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/import/google-health/callback")
     _validate_redirect_uri(redirect_uri, request)
@@ -3097,10 +3141,10 @@ async def google_health_auth(
     code_challenge = _compute_code_challenge(code_verifier)
     pkce_id = secrets.token_urlsafe(8)
     pkce_key = f"oauth:pkce:google-health:{pkce_id}"
-    await _cache_set(pkce_key, {"code_verifier": code_verifier, "redirect_uri": redirect_uri}, ttl=600)
+    await _cache_set(pkce_key, {"code_verifier": code_verifier, "redirect_uri": redirect_uri, "user_id": int(current_user["id"])}, ttl=600)
     state = _issue_oauth_state(redirect_uri, pkce_id=pkce_id)
     auth_url = get_authorization_url(
-        _s.google_health_client_id,
+        google_client_id,
         redirect_uri=redirect_uri,
         state=state,
         code_challenge=code_challenge,
@@ -3158,15 +3202,26 @@ async def google_health_callback(
 
     code_verifier = ""
     pkce_id = state_data.get("pkce_id") if isinstance(state_data, dict) else None
+    cached_pkce = None
     if pkce_id:
         pkce_key = f"oauth:pkce:google-health:{pkce_id}"
-        pkce_data = await _cached(pkce_key)
-        if pkce_data:
-            code_verifier = pkce_data.get("code_verifier", "")
+        cached_pkce = await _cached(pkce_key)
+        if cached_pkce:
+            code_verifier = cached_pkce.get("code_verifier", "")
+    user_id = None
+    if isinstance(cached_pkce, dict):
+        user_id = cached_pkce.get("user_id")
+    user_creds = None
+    if user_id is not None:
+        user_creds = _get_user_oauth_creds(user_id, "google_health")
+    google_client_id = (user_creds or {}).get("client_id") or _s.google_health_client_id
+    google_client_secret = (user_creds or {}).get("client_secret") or _s.google_health_client_secret
+    if not google_client_id or not google_client_secret:
+        raise HTTPException(status_code=500, detail="Google Health OAuth not configured")
     try:
         token_data = exchange_code_for_token(
-            _s.google_health_client_id,
-            _s.google_health_client_secret,
+            google_client_id,
+            google_client_secret,
             code,
             redirect_uri,
             code_verifier=code_verifier,
@@ -3210,7 +3265,7 @@ async def import_google_health(payload: GoogleHealthImportPayload, current_user:
     from ..ingestion.google_health import google_health_to_rides
     from ..ingestion.google_oauth_store import get_valid_google_token, store_google_token
 
-    athlete_id = int(current_user["id"])
+    athlete_id = _current_athlete_id(current_user)
 
     access_token = payload.access_token
     refresh_token = payload.refresh_token
@@ -3269,8 +3324,9 @@ async def google_fit_exchange_token(
     logger.warning("Deprecated Google Fit token exchange route accessed; use Google Health instead")
     from ..ingestion.google_fit import exchange_code_for_token
 
-    client_id = payload.get("client_id") or _s.google_fit_client_id
-    client_secret = payload.get("client_secret") or _s.google_fit_client_secret
+    user_creds = _get_user_oauth_creds(int(current_user["id"]), "google_fit")
+    client_id = payload.get("client_id") or (user_creds or {}).get("client_id") or _s.google_fit_client_id
+    client_secret = payload.get("client_secret") or (user_creds or {}).get("client_secret") or _s.google_fit_client_secret
     if not client_id or not isinstance(client_id, str) or len(client_id) > 256:
         raise HTTPException(status_code=400, detail="Invalid client_id")
 
@@ -3408,7 +3464,7 @@ async def import_google_fit(payload: GoogleFitImportPayload, current_user: dict 
     from ..ingestion.google_fit import fetch_cycling_activities, google_fit_to_ride
     from ..ingestion.google_oauth_store import get_valid_google_token, store_google_token
 
-    athlete_id = int(current_user["id"])
+    athlete_id = _current_athlete_id(current_user)
 
     access_token = payload.access_token
     refresh_token = payload.refresh_token
@@ -3721,7 +3777,7 @@ async def recovery_recommendations(
                 athlete_data = get_athlete(ride_data.get("athlete_id"))
         elif current_user:
             tenant_id = current_user.get("tenant_id", current_user["id"])
-            rides = get_rides_by_athlete(current_user["id"], tenant_id)
+            rides = get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)
             if rides:
                 athlete_data = get_athlete(current_user["id"], tenant_id)
         if athlete_data:
@@ -3743,7 +3799,7 @@ async def historical_trends(current_user: dict = Depends(get_current_user)):
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
+    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
     return analyze_historical_trends(rides)
 
 
@@ -4464,7 +4520,7 @@ async def speed_analytics(limit: int = Query(10, ge=1, le=50), current_user: dic
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = get_rides_by_athlete(current_user["id"], tenant_id)
+    rides = get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)
     recent = rides[-limit:] if len(rides) > limit else rides
     return {
         "labels": [r.get("date", "Ride")[-10:] if r.get("date") else "Ride" for r in recent],
@@ -4915,7 +4971,7 @@ async def get_fitness_trends(
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
+    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
     return calculate_fitness_trends(rides, metric=metric, window=window)
 
 
@@ -4926,7 +4982,7 @@ async def get_monthly_progression(current_user: dict = Depends(get_current_user)
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = get_rides_by_athlete(current_user["id"], tenant_id)
+    rides = get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)
     return calculate_monthly_progression(rides)
 
 
@@ -4940,7 +4996,7 @@ async def get_period_comparison(
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
+    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
     return calculate_period_comparison(rides, period_days=period_days)
 
 
@@ -4958,7 +5014,7 @@ async def get_zone_distributions(
     from ..db.database import get_athlete, get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     athlete = get_athlete(athlete_id, tenant_id) or {}
     ftp = athlete.get("ftp_watts")
     max_hr = athlete.get("heart_rate_avg")
@@ -4976,7 +5032,7 @@ async def get_volume_projection(
     from ..db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(current_user["id"], tenant_id)]
+    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
     return calculate_training_volume_projection(rides, target_days=target_days)
 
 
@@ -5368,9 +5424,12 @@ async def strava_auth(
     from ..ingestion.strava_client import get_authorization_url
 
     resolved_redirect_uri = _strava_redirect_uri_for(request, redirect_uri or None)
+    user_creds = _get_user_oauth_creds(int(current_user["id"]), "strava")
     try:
         result = get_authorization_url(
-            state=state, redirect_uri=resolved_redirect_uri
+            state=state,
+            redirect_uri=resolved_redirect_uri,
+            client_id=(user_creds or {}).get("client_id"),
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -5428,20 +5487,25 @@ async def strava_callback(
     code = payload.code
     code_verifier = payload.code_verifier
     redirect_uri = _strava_redirect_uri_for(request)
+    user_creds = _get_user_oauth_creds(int(current_user["id"]), "strava")
     logger.debug("Strava token exchange redirect_uri=%s", redirect_uri)
     try:
         token_data = await exchange_code_for_token(
-            code, code_verifier, redirect_uri=redirect_uri
+            code,
+            code_verifier,
+            redirect_uri=redirect_uri,
+            client_id=(user_creds or {}).get("client_id"),
+            client_secret=(user_creds or {}).get("client_secret"),
         )
     except httpx.HTTPStatusError as exc:
         raise HTTPException(
             status_code=502,
             detail="Strava token exchange failed. Please try again later.",
         ) from exc
-    store_token(current_user["id"], token_data)
+    store_token(_current_athlete_id(current_user), token_data)
     return {
         "status": "connected",
-        "athlete_id": current_user["id"],
+        "athlete_id": _current_athlete_id(current_user),
         "athlete_name": token_data.get("athlete", {}).get("firstname", ""),
     }
 
@@ -5456,10 +5520,10 @@ async def strava_sync(
 
     from ..task_queue import get_task_queue
 
-    payload = {"athlete_id": current_user["id"]}
+    payload = {"athlete_id": _current_athlete_id(current_user)}
     if background:
         task = await get_task_queue().enqueue("strava_sync", payload)
-        return {"task_id": task.id, "status": "queued", "athlete_id": current_user["id"]}
+        return {"task_id": task.id, "status": "queued", "athlete_id": _current_athlete_id(current_user)}
     from ..db.database import save_ride
     from ..ingestion.strava_client import (
         StravaRateLimitError,
@@ -5471,7 +5535,12 @@ async def strava_sync(
         strava_to_ride_with_streams,
     )
 
-    access_token = await get_valid_token(current_user["id"])
+    user_creds = _get_user_oauth_creds(int(current_user["id"]), "strava")
+    access_token = await get_valid_token(
+        current_user["id"],
+        client_id=(user_creds or {}).get("client_id"),
+        client_secret=(user_creds or {}).get("client_secret"),
+    )
     if not access_token:
         raise HTTPException(status_code=401, detail="No Strava token. Connect first.")
     last_sync = get_last_sync_ts(current_user["id"])
@@ -5550,7 +5619,7 @@ async def list_ble_devices(current_user: dict = Depends(get_current_user)):
     """List all BLE devices registered for the current athlete."""
     from ..db.database import get_ble_devices
 
-    athlete_id = int(current_user["id"])
+    athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
     devices = get_ble_devices(athlete_id, tenant_id=tenant_id)
     return {"devices": [BleDeviceOut.model_validate(d).model_dump() for d in devices]}
@@ -5561,7 +5630,7 @@ async def register_ble_device(current_user: dict = Depends(get_current_user), pa
     """Register a new BLE device (or update if already known)."""
     from ..db.database import register_ble_device
 
-    athlete_id = int(current_user["id"])
+    athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
     device_id = register_ble_device(
         athlete_id=athlete_id,
@@ -5581,7 +5650,7 @@ async def update_ble_device(current_user: dict = Depends(get_current_user), devi
     """Update a BLE device (name, paired status, settings)."""
     from ..db.database import get_ble_device, update_ble_device
 
-    athlete_id = int(current_user["id"])
+    athlete_id = _current_athlete_id(current_user)
     existing = get_ble_device(device_id, athlete_id)
     if not existing:
         raise HTTPException(status_code=404, detail="BLE device not found")
@@ -5597,7 +5666,7 @@ async def delete_ble_device(current_user: dict = Depends(get_current_user), devi
     """Unregister (delete) a BLE device."""
     from ..db.database import get_ble_device, unregister_ble_device
 
-    athlete_id = int(current_user["id"])
+    athlete_id = _current_athlete_id(current_user)
     existing = get_ble_device(device_id, athlete_id)
     if not existing:
         raise HTTPException(status_code=404, detail="BLE device not found")
@@ -5614,7 +5683,7 @@ async def sync_ble_device(
     """Trigger a sync/read from a BLE device. Frontend provides the data."""
     from ..db.database import get_ble_device, mark_ble_device_synced, log_athlete_metric
 
-    athlete_id = int(current_user["id"])
+    athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
     existing = get_ble_device(device_id, athlete_id)
     if not existing:
@@ -5673,7 +5742,7 @@ async def garmin_auth(
         result = get_authorization_url(state=state)
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    result["athlete_id"] = current_user["id"]
+    result["athlete_id"] = _current_athlete_id(current_user)
     return result
 
 
@@ -5691,8 +5760,8 @@ async def garmin_callback(
         token_data = await exchange_code_for_token(code, redirect_uri=redirect_uri or "")
     except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=502, detail=f"Garmin token exchange failed: {exc}") from exc
-    store_token(current_user["id"], token_data)
-    return {"status": "connected", "athlete_id": current_user["id"]}
+    store_token(_current_athlete_id(current_user), token_data)
+    return {"status": "connected", "athlete_id": _current_athlete_id(current_user)}
 
 
 @router.post("/import/garmin/sync")
@@ -5703,14 +5772,14 @@ async def garmin_sync(
     """Sync Garmin activities, optionally in background, and save rides."""
     from ..task_queue import get_task_queue
 
-    payload = {"athlete_id": current_user["id"]}
+    payload = {"athlete_id": _current_athlete_id(current_user)}
     if background:
         task = await get_task_queue().enqueue("garmin_sync", payload)
         return {"task_id": task.id, "status": "queued", "athlete_id": current_user["id"]}
     from ..db.database import save_ride
     from ..ingestion.garmin_client import fetch_activities, garmin_to_ride, get_valid_token
 
-    access_token = await get_valid_token(current_user["id"])
+    access_token = await get_valid_token(_current_athlete_id(current_user))
     if not access_token:
         raise HTTPException(status_code=401, detail="No Garmin token. Connect first.")
     try:
@@ -5775,8 +5844,14 @@ async def wahoo_auth(
     """Avvia il flusso OAuth Wahoo restituendo l'URL di autorizzazione."""
     from ..ingestion.wahoo_client import get_authorization_url
 
+    user_creds = _get_user_oauth_creds(int(current_user["id"]), "wahoo")
     try:
-        result = get_authorization_url(state=state)
+        result = get_authorization_url(
+            state=state,
+            client_id=(user_creds or {}).get("client_id"),
+            redirect_uri=(user_creds or {}).get("redirect_uri"),
+            scope=(user_creds or {}).get("scope"),
+        )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     result["athlete_id"] = current_user["id"]
@@ -5793,14 +5868,21 @@ async def wahoo_callback(
 
     code = payload.code
     code_verifier = payload.code_verifier
+    user_creds = _get_user_oauth_creds(int(current_user["id"]), "wahoo")
     try:
-        token_data = exchange_code_for_token(code, code_verifier)
+        token_data = exchange_code_for_token(
+            code,
+            code_verifier,
+            client_id=(user_creds or {}).get("client_id"),
+            client_secret=(user_creds or {}).get("client_secret"),
+            redirect_uri=(user_creds or {}).get("redirect_uri"),
+        )
     except requests.HTTPError as exc:
         raise HTTPException(status_code=502, detail=f"Wahoo token exchange failed: {exc}") from exc
     store_token(current_user["id"], token_data, code_verifier=code_verifier)
     return {
         "status": "connected",
-        "athlete_id": current_user["id"],
+        "athlete_id": _current_athlete_id(current_user),
         "athlete_name": "",
     }
 
@@ -5813,14 +5895,19 @@ async def wahoo_sync(
     """Sync Wahoo workouts and save the corresponding rides."""
     from ..task_queue import get_task_queue
 
-    payload = {"athlete_id": current_user["id"]}
+    payload = {"athlete_id": _current_athlete_id(current_user)}
     if background:
         task = await get_task_queue().enqueue("wahoo_sync", payload)
         return {"task_id": task.id, "status": "queued", "athlete_id": current_user["id"]}
     from ..db.database import save_ride
     from ..ingestion.wahoo_client import fetch_workouts, get_valid_token, wahoo_to_ride
 
-    access_token = get_valid_token(current_user["id"])
+    user_creds = _get_user_oauth_creds(int(current_user["id"]), "wahoo")
+    access_token = get_valid_token(
+        current_user["id"],
+        client_id=(user_creds or {}).get("client_id"),
+        client_secret=(user_creds or {}).get("client_secret"),
+    )
     if not access_token:
         raise HTTPException(status_code=401, detail="No Wahoo token. Connect first.")
     workouts = fetch_workouts(access_token)
@@ -5957,7 +6044,7 @@ async def create_beck_assessment(
 ):
     """Salva un nuovo assessment Beck per l'atleta autenticato."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..db.database import get_athlete as _get_athlete, save_beck_assessment as _save_beck
 
     athlete = _get_athlete(athlete_id, tenant_id)
@@ -5980,7 +6067,7 @@ async def create_beck_assessment(
 async def list_beck_assessments(current_user: dict = Depends(get_current_user)):
     """Restituisce lo storico assessment Beck dell'atleta autenticato."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..db.database import get_beck_assessments_by_athlete as _list_beck
 
     rows = _list_beck(athlete_id, tenant_id)
@@ -5991,7 +6078,7 @@ async def list_beck_assessments(current_user: dict = Depends(get_current_user)):
 async def get_latest_beck_assessment(current_user: dict = Depends(get_current_user)):
     """Restituisce l'ultimo assessment Beck completato."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..db.database import get_latest_beck_assessment as _latest_beck
 
     row = _latest_beck(athlete_id, tenant_id)
@@ -6004,7 +6091,7 @@ async def get_latest_beck_assessment(current_user: dict = Depends(get_current_us
 async def get_beck_history(current_user: dict = Depends(get_current_user)):
     """Restituisce storico assessment Beck con trend."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = current_user["id"]
+    athlete_id = _current_athlete_id(current_user)
     from ..db.database import get_beck_assessments_by_athlete as _list_beck, get_latest_beck_assessment as _latest_beck
 
     items = _list_beck(athlete_id, tenant_id)
@@ -6034,4 +6121,137 @@ async def get_audit_logs(limit: int = Query(100, ge=1, le=500), current_user: di
     """Return recent admin audit log entries."""
     log_action(current_user["id"], "view_audit_logs", "audit")
     return {"logs": read_audit_logs(limit=limit)}
+
+
+# ------------------------------------------------------------------
+# Multi-athlete management routes
+# ------------------------------------------------------------------
+
+
+@router.get("/athletes/mine")
+async def list_my_athletes(current_user: dict = Depends(get_current_user)):
+    """List all athlete profiles belonging to the current user."""
+    from ..db.database import get_athletes_by_user as _get_athletes_by_user
+
+    user_id = int(current_user["id"])
+    athletes = _get_athletes_by_user(user_id)
+    return {"athletes": [_public_athlete(a) for a in athletes]}
+
+
+@router.post("/athletes/mine")
+async def create_my_athlete(athlete_data: AthleteCreate, current_user: dict = Depends(get_current_user)):
+    """Create a new additional athlete profile for the current user."""
+    from ..db.database import get_athletes_by_user as _get_athletes_by_user
+    from ..db.database import save_athlete as _save_athlete
+
+    user_id = int(current_user["id"])
+    count = len(_get_athletes_by_user(user_id))
+    if count >= 10:
+        raise HTTPException(status_code=403, detail="Maximum 10 athletes per user")
+
+    data = athlete_data.model_dump()
+    athlete_id = _save_athlete(data, user_id=user_id)
+    return {"athlete_id": athlete_id, "msg": "Athlete created"}
+
+
+@router.delete("/athletes/mine/{athlete_id}")
+async def delete_my_athlete(athlete_id: int, current_user: dict = Depends(get_current_user)):
+    """Delete an additional athlete profile. Cannot delete the primary athlete (id == user_id)."""
+    from ..db.database import delete_athlete as _delete_athlete
+
+    user_id = int(current_user["id"])
+    if athlete_id == user_id:
+        raise HTTPException(status_code=400, detail="Cannot delete primary athlete")
+    ok = _delete_athlete(athlete_id, user_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Athlete not found or access denied")
+    return {"status": "deleted", "athlete_id": athlete_id}
+
+
+@router.post("/auth/switch-athlete/{athlete_id}")
+async def switch_athlete(athlete_id: int, current_user: dict = Depends(get_current_user)):
+    """Switch the active athlete profile and return a new JWT with athlete_id claim."""
+    from ..db.database import get_athlete as _get_athlete
+    from ..security import create_access_token, create_refresh_token, save_refresh_token
+
+    user_id = int(current_user["id"])
+    athlete = _get_athlete(athlete_id)
+    if not athlete:
+        raise HTTPException(status_code=404, detail="Athlete not found")
+    if athlete.get("user_id") != user_id and athlete_id != user_id:
+        raise HTTPException(status_code=403, detail="Access denied to this athlete")
+
+    access_token = create_access_token(
+        subject=str(user_id),
+        is_admin=current_user.get("is_admin", False),
+        tenant_id=current_user.get("tenant_id", user_id),
+        is_client=current_user.get("is_client", False),
+        athlete_id=athlete_id,
+    )
+    refresh_token = create_refresh_token(
+        subject=str(user_id),
+        is_admin=current_user.get("is_admin", False),
+        tenant_id=current_user.get("tenant_id", user_id),
+        is_client=current_user.get("is_client", False),
+    )
+    await save_refresh_token(user_id, refresh_token)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user_id": user_id,
+        "athlete_id": athlete_id,
+    }
+
+
+# ------------------------------------------------------------------
+# User OAuth credentials routes
+# ------------------------------------------------------------------
+
+
+@router.get("/connections/credentials")
+async def list_my_oauth_credentials(current_user: dict = Depends(get_current_user)):
+    """List OAuth credentials configured for the current user (without secrets)."""
+    from ..db.database import get_all_user_oauth_credentials as _get_all
+
+    user_id = int(current_user["id"])
+    creds = _get_all(user_id)
+    result = []
+    for c in creds:
+        result.append({
+            "id": c["id"],
+            "provider": c["provider"],
+            "client_id": c["client_id"],
+            "redirect_uri": c["redirect_uri"],
+            "scope": c["scope"],
+            "has_secret": bool(c["client_secret"]),
+            "created_at": c["created_at"],
+            "updated_at": c["updated_at"],
+        })
+    return {"credentials": result}
+
+
+@router.post("/connections/credentials")
+async def set_my_oauth_credentials(credentials: UserOAuthCredentials, current_user: dict = Depends(get_current_user)):
+    """Set or update OAuth credentials for a specific provider."""
+    from ..db.database import save_user_oauth_credentials as _save
+
+    user_id = int(current_user["id"])
+    data = credentials.model_dump(exclude_unset=True)
+    if not data.get("client_id") and not data.get("client_secret"):
+        raise HTTPException(status_code=400, detail="client_id or client_secret required")
+    _save(user_id, credentials.provider, data)
+    return {"status": "saved", "provider": credentials.provider}
+
+
+@router.delete("/connections/credentials/{provider}")
+async def delete_my_oauth_credentials(provider: str, current_user: dict = Depends(get_current_user)):
+    """Delete OAuth credentials for a specific provider."""
+    from ..db.database import delete_user_oauth_credentials as _delete
+
+    user_id = int(current_user["id"])
+    ok = _delete(user_id, provider)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Credentials not found")
+    return {"status": "deleted", "provider": provider}
 

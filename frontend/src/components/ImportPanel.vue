@@ -49,7 +49,7 @@
         <span>or import from connected services</span>
       </div>
 
-      <div v-if="providers?.google_fit" class="provider-group">
+      <div v-if="isServiceAvailable('google_fit')" class="provider-group">
         <h3>Google Fit</h3>
         <button
           class="btn btn-google-fit"
@@ -99,7 +99,7 @@
         </p>
       </div>
 
-      <div v-if="providers?.wahoo" class="provider-group">
+      <div v-if="isServiceAvailable('wahoo')" class="provider-group">
         <h3>Wahoo</h3>
         <button
           class="btn btn-secondary"
@@ -135,7 +135,7 @@
         </p>
       </div>
 
-      <div v-if="providers?.google_health" class="provider-group">
+      <div v-if="isServiceAvailable('google_health')" class="provider-group">
         <h3>Google Health</h3>
         <button
           class="btn btn-google-fit"
@@ -185,7 +185,7 @@
         </p>
       </div>
 
-      <div v-if="providers?.strava" class="provider-group">
+      <div v-if="isServiceAvailable('strava')" class="provider-group">
         <h3>Strava</h3>
         <button
           class="btn btn-strava"
@@ -244,10 +244,21 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { apiUpload, apiGet } from "../utils/api";
+import { apiUpload } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
+import { useConnectionsStore } from "../stores/connections";
+import {
+  useOAuthConnection,
+  oauthProviders,
+} from "../composables/useOAuthConnection";
 
 const auth = useAuthStore();
+const connectionsStore = useConnectionsStore();
+
+const stravaOAuth = useOAuthConnection(oauthProviders.strava);
+const googleFitOAuth = useOAuthConnection(oauthProviders.google_fit);
+const googleHealthOAuth = useOAuthConnection(oauthProviders.google_health);
+const wahooOAuth = useOAuthConnection(oauthProviders.wahoo);
 
 const emit = defineEmits(["summary-change"]);
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -257,12 +268,11 @@ const uploading = ref(false);
 const uploadProgress = ref(0);
 const importing = ref(false);
 const importStatus = ref<{ success: boolean; message: string } | null>(null);
-const providers = ref({
-  google_fit: true,
-  google_health: false,
-  wahoo: false,
-  strava: false,
-});
+const services = computed(() => connectionsStore.services);
+
+function isServiceAvailable(service: string): boolean {
+  return services.value.some((s) => s.service === service && s.available);
+}
 
 const label = computed(() => {
   if (!files.value.length)
@@ -282,22 +292,8 @@ function onDrop(e: DragEvent) {
   files.value = Array.from(e.dataTransfer?.files || []);
 }
 
-async function loadProviders() {
-  try {
-    const data = await apiGet("/api/v1/import/providers");
-    providers.value = { ...providers.value, ...(data || {}) };
-  } catch {
-    providers.value = {
-      google_fit: false,
-      google_health: false,
-      wahoo: false,
-      strava: false,
-    };
-  }
-}
-
-onMounted(() => {
-  loadProviders();
+onMounted(async () => {
+  await connectionsStore.load();
 });
 
 async function uploadOne(file: File) {
@@ -335,93 +331,18 @@ async function connectGoogleFit() {
   importing.value = true;
   importStatus.value = null;
   try {
-    const redirectUri = `${import.meta.env.DEV ? "http://localhost:8000" : window.location.origin}/api/v1/import/google-fit/callback`;
-    const state = btoa(JSON.stringify({ redirect_uri: redirectUri }));
-    const authResp = await fetch(
-      `/api/v1/import/google-fit/auth?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`,
-    );
-    if (!authResp.ok) {
-      throw new Error("Unable to start Google Fit authentication");
-    }
-    const { auth_url } = await authResp.json();
-
-    const popup = window.open(
-      auth_url,
-      "google-fit-auth",
-      "width=500,height=600",
-    );
-    if (!popup) {
-      throw new Error("Popup blocked - enable popups");
-    }
-
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener("message", handleMessage);
-      clearTimeout(timer);
+    await googleFitOAuth.connect();
+    importStatus.value = {
+      success: true,
+      message: "Google Fit connected",
     };
-    const timer = setTimeout(
-      () => {
-        finish();
-        importStatus.value = {
-          success: false,
-          message: "Timeout: autenticazione Google Fit annullata",
-        };
-        importing.value = false;
-      },
-      5 * 60 * 1000,
-    );
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.data?.type === "google-fit-error") {
-        finish();
-        importStatus.value = {
-          success: false,
-          message:
-            event.data.error_description ||
-            event.data.error ||
-            "Google Fit error",
-        };
-        importing.value = false;
-        return;
-      }
-
-      if (event.data?.type === "google-fit-success") {
-        finish();
-        const token = auth.token;
-        const importResp = await fetch("/api/v1/import/google-fit", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            access_token: event.data.token,
-            refresh_token: event.data.refresh_token || "",
-          }),
-        });
-        if (importResp.ok) {
-          const result = await importResp.json();
-          importStatus.value = {
-            success: true,
-            message: `Imported ${result.count} routes from Google Fit`,
-          };
-          emit("summary-change");
-        } else {
-          importStatus.value = {
-            success: false,
-            message: "Google Fit import error",
-          };
-        }
-        importing.value = false;
-      }
-    };
-    window.addEventListener("message", handleMessage);
+    emit("summary-change");
   } catch (e: unknown) {
     importStatus.value = {
       success: false,
       message: e instanceof Error ? e.message : String(e),
     };
+  } finally {
     importing.value = false;
   }
 }
@@ -430,120 +351,29 @@ async function connectGoogleHealth() {
   importing.value = true;
   importStatus.value = null;
   try {
-    const redirectUri = `${import.meta.env.DEV ? "http://localhost:8000" : window.location.origin}/api/v1/import/google-health/callback`;
-    const state = btoa(JSON.stringify({ redirect_uri: redirectUri }));
-    const authResp = await fetch(
-      `/api/v1/import/google-health/auth?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`,
-    );
-    if (!authResp.ok) {
-      throw new Error("Impossibile iniziare autenticazione Google Health");
-    }
-    const { auth_url } = await authResp.json();
-
-    const popup = window.open(
-      auth_url,
-      "google-health-auth",
-      "width=500,height=600",
-    );
-    if (!popup) {
-      throw new Error("Popup bloccato - abilita i popup");
-    }
-
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener("message", handleMessage);
-      clearTimeout(timer);
+    await googleHealthOAuth.connect();
+    importStatus.value = {
+      success: true,
+      message: "Google Health connected",
     };
-    const timer = setTimeout(
-      () => {
-        finish();
-        importStatus.value = {
-          success: false,
-          message: "Timeout: autenticazione Google Health annullata",
-        };
-        importing.value = false;
-      },
-      5 * 60 * 1000,
-    );
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.data?.type === "google-health-error") {
-        finish();
-        importStatus.value = {
-          success: false,
-          message:
-            event.data.error_description ||
-            event.data.error ||
-            "Errore Google Health",
-        };
-        importing.value = false;
-        return;
-      }
-
-      if (event.data?.type === "google-health-success") {
-        finish();
-        const token = auth.token;
-        const importResp = await fetch("/api/v1/import/google-health", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            access_token: event.data.token,
-            refresh_token: event.data.refresh_token || "",
-          }),
-        });
-        if (importResp.ok) {
-          const result = await importResp.json();
-          importStatus.value = {
-            success: true,
-            message: `Importati ${result.count} percorsi da Google Health`,
-          };
-          emit("summary-change");
-        } else if (importResp.status === 401) {
-          importStatus.value = {
-            success: false,
-            message: "Devi effettuare il login per importare",
-          };
-        } else {
-          importStatus.value = {
-            success: false,
-            message: "Errore importazione Google Health",
-          };
-        }
-        importing.value = false;
-      }
-    };
-    window.addEventListener("message", handleMessage);
+    emit("summary-change");
   } catch (e: unknown) {
     importStatus.value = {
       success: false,
       message: e instanceof Error ? e.message : String(e),
     };
+  } finally {
     importing.value = false;
   }
 }
 
 async function disconnectGoogleFit() {
   try {
-    const token = auth.token;
-    const resp = await fetch("/api/v1/import/google-fit/disconnect", {
-      method: "DELETE",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (resp.ok) {
-      importStatus.value = {
-        success: true,
-        message: "Google Fit disconnected",
-      };
-    } else {
-      importStatus.value = {
-        success: false,
-        message: "Failed to disconnect Google Fit",
-      };
-    }
+    await googleFitOAuth.disconnect();
+    importStatus.value = {
+      success: true,
+      message: "Google Fit disconnected",
+    };
   } catch (e: unknown) {
     importStatus.value = {
       success: false,
@@ -555,22 +385,11 @@ async function disconnectGoogleFit() {
 
 async function disconnectGoogleHealth() {
   try {
-    const token = auth.token;
-    const resp = await fetch("/api/v1/import/google-health/disconnect", {
-      method: "DELETE",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (resp.ok) {
-      importStatus.value = {
-        success: true,
-        message: "Google Health disconnected",
-      };
-    } else {
-      importStatus.value = {
-        success: false,
-        message: "Failed to disconnect Google Health",
-      };
-    }
+    await googleHealthOAuth.disconnect();
+    importStatus.value = {
+      success: true,
+      message: "Google Health disconnected",
+    };
   } catch (e: unknown) {
     importStatus.value = {
       success: false,
@@ -583,114 +402,8 @@ async function disconnectGoogleHealth() {
 async function connectStrava() {
   importing.value = true;
   importStatus.value = null;
-  let popup: Window | null = null;
-  const cleanup = () => {
-    try {
-      popup?.close();
-    } catch {
-      /* ignore */
-    }
-  };
   try {
-    const token = auth.token;
-    const headers: Record<string, string> = token
-      ? { Authorization: `Bearer ${token}` }
-      : {};
-    const redirectUri = `${import.meta.env.DEV ? "http://localhost:8000" : window.location.origin}/api/v1/import/strava/callback`;
-    const authResp = await fetch(
-      `/api/v1/import/strava/auth?redirect_uri=${encodeURIComponent(redirectUri)}`,
-      { headers },
-    );
-    if (!authResp.ok) {
-      const err = await authResp.json().catch(() => ({}));
-      throw new Error(err.detail || "Unable to start Strava authentication");
-    }
-    const { auth_url, code_verifier } = await authResp.json();
-
-    popup = window.open(auth_url, "strava-auth", "width=600,height=700");
-    if (!popup) throw new Error("Popup blocked - enable popups");
-
-    const code = await new Promise((resolve, reject) => {
-      let settled = false;
-      const finish = () => {
-        if (settled) return;
-        settled = true;
-        window.removeEventListener("message", handleMessage);
-        window.removeEventListener("storage", handleStorage);
-        clearTimeout(timer);
-      };
-      const timer = setTimeout(
-        () => {
-          finish();
-          reject(new Error("Timeout: Strava authentication cancelled"));
-        },
-        5 * 60 * 1000,
-      );
-      const handleMessage = (event: MessageEvent) => {
-        if (!event.data || event.data.type !== "strava-success") {
-          if (event.data?.type === "strava-error") {
-            finish();
-            reject(
-              new Error(
-                event.data.error_description ||
-                  event.data.error ||
-                  "Strava OAuth failed",
-              ),
-            );
-          }
-          return;
-        }
-        finish();
-        resolve(event.data.code);
-          try {
-            localStorage.removeItem("bikemaster_oauth_result");
-          } catch (_) {
-          /* ignore */
-        }
-        if (popup && !popup.closed) {
-          popup.close();
-        }
-      };
-      const handleStorage = (event: StorageEvent) => {
-        if (event.key !== "bikemaster_oauth_result" || !event.newValue) return;
-        try {
-          handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
-        } catch (_) {
-          /* ignore */
-        }
-      };
-      window.addEventListener("message", handleMessage);
-      window.addEventListener("storage", handleStorage);
-    });
-
-    const cbResp = await fetch("/api/v1/import/strava/callback", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...headers,
-      } as HeadersInit,
-      body: JSON.stringify({ code, code_verifier }),
-    });
-    if (!cbResp.ok) {
-      const err = await cbResp.json().catch(() => ({}));
-      const detail: string = err.detail || "";
-      // Strava returns 401 "Authorization Error / invalid" when the connected
-      // app is still in sandbox mode and the authorizing athlete is not an
-      // approved "Athlete Tester". Surface a clear, actionable message instead
-      // of the raw backend error.
-      if (
-        cbResp.status === 502 &&
-        /Authorization Error|invalid/i.test(detail)
-      ) {
-        throw new Error(
-          "Strava rejected the connection: the BikeMaster app is in sandbox mode. " +
-            "Open strava.com/settings/api, enter the BikeMaster app and add your " +
-            "Strava account to 'Athlete Testers', then try again.",
-        );
-      }
-      throw new Error(detail || "Strava connection failed");
-    }
-    cleanup();
+    await stravaOAuth.connect();
     importStatus.value = {
       success: true,
       message: "Strava connected. Importing your rides...",
@@ -698,7 +411,6 @@ async function connectStrava() {
     importing.value = false;
     await stravaSync();
   } catch (e: unknown) {
-    cleanup();
     importStatus.value = {
       success: false,
       message: e instanceof Error ? e.message : "Strava connection failed",
@@ -743,19 +455,8 @@ async function stravaSync() {
 
 async function disconnectStrava() {
   try {
-    const token = auth.token;
-    const resp = await fetch("/api/v1/import/strava/disconnect", {
-      method: "DELETE",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (resp.ok) {
-      importStatus.value = { success: true, message: "Strava disconnected" };
-    } else {
-      importStatus.value = {
-        success: false,
-        message: "Failed to disconnect Strava",
-      };
-    }
+    await stravaOAuth.disconnect();
+    importStatus.value = { success: true, message: "Strava disconnected" };
   } catch (e: unknown) {
     importStatus.value = {
       success: false,
@@ -768,111 +469,25 @@ async function connectWahoo() {
   importing.value = true;
   importStatus.value = null;
   try {
-    const state = btoa(
-      JSON.stringify({ redirect_uri: window.location.origin }),
-    );
-    const authResp = await fetch(
-      `/api/v1/import/wahoo/auth?state=${encodeURIComponent(state)}`,
-    );
-    if (!authResp.ok) {
-      throw new Error("Unable to start Wahoo authentication");
-    }
-    const result = await authResp.json();
-    const codeVerifier = result.code_verifier;
-    const popup = window.open(
-      result.auth_url,
-      "wahoo-auth",
-      "width=500,height=600",
-    );
-    if (!popup) {
-      throw new Error("Popup blocked - enable popups");
-    }
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener("message", handleMessage);
-      clearTimeout(timer);
+    await wahooOAuth.connect();
+    importStatus.value = {
+      success: true,
+      message: "Wahoo connected successfully",
     };
-    const timer = setTimeout(
-      () => {
-        finish();
-        importStatus.value = {
-          success: false,
-          message: "Timeout: Wahoo authentication cancelled",
-        };
-        importing.value = false;
-      },
-      5 * 60 * 1000,
-    );
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.data?.type === "wahoo-error") {
-        finish();
-        importStatus.value = {
-          success: false,
-          message:
-            event.data.error_description || event.data.error || "Wahoo error",
-        };
-        importing.value = false;
-        return;
-      }
-      if (event.data?.type === "wahoo-success") {
-        finish();
-        const token = auth.token;
-        const callbackResp = await fetch("/api/v1/import/wahoo/callback", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            code: event.data.code,
-            code_verifier: codeVerifier,
-          }),
-        });
-        if (callbackResp.ok) {
-          importStatus.value = {
-            success: true,
-            message: "Wahoo connected successfully",
-          };
-        } else {
-          const err = await callbackResp.json().catch(() => ({}));
-          importStatus.value = {
-            success: false,
-            message: err.detail || "Wahoo connect failed",
-          };
-        }
-        importing.value = false;
-      }
-    };
-    window.addEventListener("message", handleMessage);
   } catch (e: unknown) {
     importStatus.value = {
       success: false,
       message: e instanceof Error ? e.message : String(e),
     };
+  } finally {
     importing.value = false;
   }
 }
 
 async function disconnectWahoo() {
   try {
-    const token = auth.token;
-    const resp = await fetch("/api/v1/import/wahoo/disconnect", {
-      method: "DELETE",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (resp.ok) {
-      importStatus.value = {
-        success: true,
-        message: "Wahoo disconnected",
-      };
-    } else {
-      importStatus.value = {
-        success: false,
-        message: "Failed to disconnect Wahoo",
-      };
-    }
+    await wahooOAuth.disconnect();
+    importStatus.value = { success: true, message: "Wahoo disconnected" };
   } catch (e: unknown) {
     importStatus.value = {
       success: false,

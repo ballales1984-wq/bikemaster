@@ -327,29 +327,44 @@
       <h2>{{ t("connections.customOAuthTitle") }}</h2>
       <p class="hint">{{ t("connections.customOAuthHint") }}</p>
       <div class="oauth-creds-list">
-        <div v-for="cred in oauthCreds" :key="cred.provider" class="oauth-cred-item">
+        <div
+          v-for="cred in oauthCreds"
+          :key="cred.provider"
+          class="oauth-cred-item"
+        >
           <div class="oauth-cred-info">
             <strong>{{ cred.provider }}</strong>
             <span v-if="cred.client_id">{{ cred.client_id }}</span>
             <span v-if="cred.has_secret" class="secret-badge">***</span>
           </div>
           <div class="oauth-cred-actions">
-            <button class="btn btn-ghost btn-sm" @click="editOAuthCred(cred)">{{
-              t("common.edit")
-            }}</button>
-            <button class="btn btn-danger btn-sm" @click="removeOAuthCred(cred.provider)">{{
-              t("common.delete")
-            }}</button>
+            <button class="btn btn-ghost btn-sm" @click="editOAuthCred(cred)">
+              {{ t("common.edit") }}
+            </button>
+            <button
+              class="btn btn-danger btn-sm"
+              @click="removeOAuthCred(cred.provider)"
+            >
+              {{ t("common.delete") }}
+            </button>
           </div>
         </div>
         <div v-if="!oauthCreds.length" class="empty-hint">
           {{ t("connections.noCustomOAuth") }}
         </div>
       </div>
-      <button class="btn btn-primary" @click="showAddCredForm = true" v-if="!showAddCredForm">
+      <button
+        v-if="!showAddCredForm"
+        class="btn btn-primary"
+        @click="showAddCredForm = true"
+      >
         {{ t("connections.addCustomOAuth") }}
       </button>
-      <form v-if="showAddCredForm" class="cred-form" @submit.prevent="saveOAuthCred">
+      <form
+        v-if="showAddCredForm"
+        class="cred-form"
+        @submit.prevent="saveOAuthCred"
+      >
         <select v-model="credForm.provider">
           <option value="strava">Strava</option>
           <option value="wahoo">Wahoo</option>
@@ -358,14 +373,22 @@
           <option value="google_health">Google Health</option>
         </select>
         <input v-model="credForm.client_id" placeholder="Client ID" required />
-        <input v-model="credForm.client_secret" placeholder="Client Secret" type="password" />
+        <input
+          v-model="credForm.client_secret"
+          placeholder="Client Secret"
+          type="password"
+        />
         <input v-model="credForm.redirect_uri" placeholder="Redirect URI" />
         <input v-model="credForm.scope" placeholder="Scope (opzionale)" />
         <div class="row">
           <button class="btn btn-primary" type="submit" :disabled="savingCred">
             {{ savingCred ? t("common.saving") : t("common.save") }}
           </button>
-          <button class="btn btn-ghost" type="button" @click="showAddCredForm = false">
+          <button
+            class="btn btn-ghost"
+            type="button"
+            @click="showAddCredForm = false"
+          >
             {{ t("common.cancel") }}
           </button>
         </div>
@@ -385,6 +408,10 @@ import { useHealthConnectStore } from "../stores/healthConnect";
 import { useToast } from "../composables/useToast";
 import { useAuthStore } from "../stores/auth";
 import { parseBulkKeys } from "../utils/userKeys";
+import {
+  useOAuthConnection,
+  oauthProviders,
+} from "../composables/useOAuthConnection";
 
 const { t } = useI18n();
 const connectionsStore = useConnectionsStore();
@@ -393,6 +420,11 @@ const bleStore = useBleStore();
 const healthConnect = useHealthConnectStore();
 const authStore = useAuthStore();
 const toast = useToast();
+
+const stravaOAuth = useOAuthConnection(oauthProviders.strava);
+const googleFitOAuth = useOAuthConnection(oauthProviders.google_fit);
+const googleHealthOAuth = useOAuthConnection(oauthProviders.google_health);
+const wahooOAuth = useOAuthConnection(oauthProviders.wahoo);
 
 const services = computed(() => connectionsStore.services);
 
@@ -425,7 +457,14 @@ const scannedBleDevice = ref<{
   type: BleDeviceType;
 } | null>(null);
 
-const oauthCreds = ref<Array<{ id: number; provider: string; client_id?: string; has_secret: boolean }>>([]);
+const oauthCreds = ref<
+  Array<{
+    id: number;
+    provider: string;
+    client_id?: string;
+    has_secret: boolean;
+  }>
+>([]);
 const showAddCredForm = ref(false);
 const savingCred = ref(false);
 const credForm = reactive({
@@ -461,13 +500,13 @@ async function startOAuth(service: string) {
   clearServiceError();
   try {
     if (service === "strava") {
-      await connectStrava();
+      await stravaOAuth.connect();
     } else if (service === "google_fit") {
-      await connectGoogleFit();
+      await googleFitOAuth.connect();
     } else if (service === "google_health") {
-      await connectGoogleHealth();
+      await googleHealthOAuth.connect();
     } else if (service === "wahoo") {
-      await connectWahoo();
+      await wahooOAuth.connect();
     } else {
       throw new Error(`OAuth non supportato per ${service}`);
     }
@@ -475,366 +514,9 @@ async function startOAuth(service: string) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     setServiceError(msg, service);
-    toast.error(msg);
   } finally {
     connecting.value = "";
   }
-}
-
-async function connectStrava() {
-  const token = authStore.token;
-  const headers: Record<string, string> = token
-    ? { Authorization: `Bearer ${token}` }
-    : {};
-  const redirectUri = `${import.meta.env.DEV ? "http://localhost:8000" : window.location.origin}/api/v1/import/strava/callback`;
-  const authResp = await fetch(
-    `/api/v1/import/strava/auth?redirect_uri=${encodeURIComponent(redirectUri)}`,
-    { headers },
-  );
-  if (!authResp.ok) {
-    const err = await authResp.json().catch(() => ({}));
-    throw new Error(
-      err.detail || "Impossibile avviare l'autenticazione Strava",
-    );
-  }
-  const { auth_url, code_verifier } = await authResp.json();
-  const popup = window.open(auth_url, "strava-auth", "width=600,height=700");
-  if (!popup) throw new Error("Popup bloccato - abilita i popup");
-
-  const code = await new Promise<string>((resolve, reject) => {
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener("message", handleMessage);
-      window.removeEventListener("storage", handleStorage);
-      clearInterval(pollTimer);
-    };
-    const timer = setTimeout(
-      () => {
-        finish();
-        if (popup && !popup.closed) {
-          try {
-            popup.close();
-          } catch (_) {
-            /* ignore */
-          }
-        }
-        reject(
-          new Error(
-            "Timeout: autenticazione Strava annullata. " +
-              "Il popup potrebbe essere bloccato. Prova ad abilitare i popup per questo sito e riprova.",
-          ),
-        );
-      },
-      5 * 60 * 1000,
-    );
-    const pollTimer = setInterval(() => {
-      if (popup && popup.closed && !settled) {
-        finish();
-        reject(
-          new Error(
-            "L'autenticazione Strava è stata annullata o il popup è stato chiuso.",
-          ),
-        );
-      }
-    }, 1000);
-    const handleMessage = (event: MessageEvent) => {
-      if (!event.data || event.data.type !== "strava-success") {
-        if (event.data?.type === "strava-error") {
-          finish();
-          reject(
-            new Error(
-              event.data.error_description ||
-                event.data.error ||
-                "Strava OAuth fallito",
-            ),
-          );
-        }
-        return;
-      }
-      finish();
-      resolve(event.data.code);
-      clearTimeout(timer);
-        try {
-          localStorage.removeItem("bikemaster_oauth_result");
-        } catch (_) {
-        /* ignore */
-      }
-      if (popup && !popup.closed) {
-        popup.close();
-      }
-    };
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== "bikemaster_oauth_result" || !event.newValue) return;
-      try {
-        handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
-      } catch (_) {
-        /* ignore */
-      }
-    };
-    window.addEventListener("message", handleMessage);
-    window.addEventListener("storage", handleStorage);
-  });
-
-  const cbResp = await fetch("/api/v1/import/strava/callback", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...headers },
-    body: JSON.stringify({ code, code_verifier }),
-  });
-  if (!cbResp.ok) {
-    const err = await cbResp.json().catch(() => ({}));
-    const detail: string = (err as { detail?: string }).detail || "";
-    if (cbResp.status === 502 && /Authorization Error|invalid/i.test(detail)) {
-      throw new Error(
-        "Strava rejected the connection: the BikeMaster app is in sandbox mode. " +
-          "Open strava.com/settings/api, enter the BikeMaster app and add your " +
-          "Strava account to 'Athlete Testers', then try again.",
-      );
-    }
-    throw new Error(detail || "Strava connection failed");
-  }
-  toast.success("Strava connected");
-}
-
-async function connectGoogleFit() {
-  const redirectUri = `${import.meta.env.DEV ? "http://localhost:8000" : window.location.origin}/api/v1/import/google-fit/callback`;
-  const state = btoa(JSON.stringify({ redirect_uri: redirectUri }));
-  const authResp = await fetch(
-    `/api/v1/import/google-fit/auth?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`,
-  );
-  if (!authResp.ok) {
-    throw new Error("Impossibile avviare l'autenticazione Google Fit");
-  }
-  const { auth_url } = await authResp.json();
-  const popup = window.open(
-    auth_url,
-    "google-fit-auth",
-    "width=500,height=600",
-  );
-  if (!popup) throw new Error("Popup bloccato - abilita i popup");
-
-  await new Promise<void>((resolve, reject) => {
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener("message", handleMessage);
-      window.removeEventListener("storage", handleStorage);
-      clearTimeout(timer);
-    };
-    const timer = setTimeout(
-      () => {
-        finish();
-        reject(new Error("Timeout: autenticazione Google Fit annullata"));
-      },
-      5 * 60 * 1000,
-    );
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.data?.type === "google-fit-error") {
-        finish();
-        reject(
-          new Error(
-            event.data.error_description ||
-              event.data.error ||
-              "Errore Google Fit",
-          ),
-        );
-        return;
-      }
-      if (event.data?.type === "google-fit-success") {
-        finish();
-        const token = authStore.token;
-        const importResp = await fetch("/api/v1/import/google-fit", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            access_token: event.data.token,
-            refresh_token: event.data.refresh_token || "",
-          }),
-        });
-        if (!importResp.ok) {
-          reject(new Error("Importazione Google Fit fallita"));
-          return;
-        }
-        const result = await importResp.json();
-        toast.success(`Importati ${result.count} percorsi da Google Fit`);
-        resolve();
-      }
-    };
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== "bikemaster_oauth_result" || !event.newValue) return;
-      try {
-        handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
-      } catch (_) {
-        /* ignore */
-      }
-    };
-    window.addEventListener("message", handleMessage);
-    window.addEventListener("storage", handleStorage);
-  });
-}
-
-async function connectGoogleHealth() {
-  const redirectUri = `${import.meta.env.DEV ? "http://localhost:8000" : window.location.origin}/api/v1/import/google-health/callback`;
-  const state = btoa(JSON.stringify({ redirect_uri: redirectUri }));
-  const authResp = await fetch(
-    `/api/v1/import/google-health/auth?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`,
-  );
-  if (!authResp.ok) {
-    throw new Error("Impossibile avviare l'autenticazione Google Health");
-  }
-  const { auth_url } = await authResp.json();
-  const popup = window.open(
-    auth_url,
-    "google-health-auth",
-    "width=500,height=600",
-  );
-  if (!popup) throw new Error("Popup bloccato - abilita i popup");
-
-  await new Promise<void>((resolve, reject) => {
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener("message", handleMessage);
-      window.removeEventListener("storage", handleStorage);
-      clearTimeout(timer);
-    };
-    const timer = setTimeout(
-      () => {
-        finish();
-        reject(new Error("Timeout: autenticazione Google Health annullata"));
-      },
-      5 * 60 * 1000,
-    );
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.data?.type === "google-health-error") {
-        finish();
-        reject(
-          new Error(
-            event.data.error_description ||
-              event.data.error ||
-              "Errore Google Health",
-          ),
-        );
-        return;
-      }
-      if (event.data?.type === "google-health-success") {
-        finish();
-        const token = authStore.token;
-        const importResp = await fetch("/api/v1/import/google-health", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            access_token: event.data.token,
-            refresh_token: event.data.refresh_token || "",
-          }),
-        });
-        if (!importResp.ok) {
-          reject(new Error("Importazione Google Health fallita"));
-          return;
-        }
-        const result = await importResp.json();
-        toast.success(`Importati ${result.count} percorsi da Google Health`);
-        resolve();
-      }
-    };
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== "bikemaster_oauth_result" || !event.newValue) return;
-      try {
-        handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
-      } catch (_) {
-        /* ignore */
-      }
-    };
-    window.addEventListener("message", handleMessage);
-    window.addEventListener("storage", handleStorage);
-  });
-}
-
-async function connectWahoo() {
-  const state = btoa(JSON.stringify({ redirect_uri: window.location.origin }));
-  const authResp = await fetch(
-    `/api/v1/import/wahoo/auth?state=${encodeURIComponent(state)}`,
-  );
-  if (!authResp.ok) {
-    throw new Error("Impossibile avviare l'autenticazione Wahoo");
-  }
-  const result = await authResp.json();
-  const codeVerifier = result.code_verifier;
-  const popup = window.open(
-    result.auth_url,
-    "wahoo-auth",
-    "width=500,height=600",
-  );
-  if (!popup) throw new Error("Popup bloccato - abilita i popup");
-
-  await new Promise<void>((resolve, reject) => {
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener("message", handleMessage);
-      window.removeEventListener("storage", handleStorage);
-      clearTimeout(timer);
-    };
-    const timer = setTimeout(
-      () => {
-        finish();
-        reject(new Error("Timeout: autenticazione Wahoo annullata"));
-      },
-      5 * 60 * 1000,
-    );
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.data?.type === "wahoo-error") {
-        finish();
-        reject(
-          new Error(
-            event.data.error_description || event.data.error || "Errore Wahoo",
-          ),
-        );
-        return;
-      }
-      if (event.data?.type === "wahoo-success") {
-        finish();
-        const token = authStore.token;
-        const callbackResp = await fetch("/api/v1/import/wahoo/callback", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            code: event.data.code,
-            code_verifier: codeVerifier,
-          }),
-        });
-        if (!callbackResp.ok) {
-          reject(new Error("Connessione Wahoo fallita"));
-          return;
-        }
-        toast.success("Wahoo connesso");
-        resolve();
-      }
-    };
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== "bikemaster_oauth_result" || !event.newValue) return;
-      try {
-        handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
-      } catch (_) {
-        /* ignore */
-      }
-    };
-    window.addEventListener("message", handleMessage);
-    window.addEventListener("storage", handleStorage);
-  });
 }
 
 async function disconnectService(service: string) {
@@ -950,7 +632,7 @@ async function registerBleDevice() {
       try {
         await bleStore.sync(registeredDevice.id);
         toast.success(t("connections.downloadSuccess"));
-      } catch (_) {
+      } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         toast.error(msg || t("connections.downloadError"));
       }
@@ -1010,7 +692,11 @@ async function saveOAuthCred() {
   }
 }
 
-function editOAuthCred(cred: { provider: string; client_id?: string; has_secret: boolean }) {
+function editOAuthCred(cred: {
+  provider: string;
+  client_id?: string;
+  has_secret: boolean;
+}) {
   credForm.provider = cred.provider;
   credForm.client_id = cred.client_id || "";
   credForm.client_secret = "";

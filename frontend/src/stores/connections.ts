@@ -90,18 +90,6 @@ export const useConnectionsStore = defineStore("connections", () => {
     }
   }
 
-  async function connect(service: string) {
-    const target = items.value.find((s) => s.service === service);
-    if (!target) return;
-    if (target.method !== "oauth") {
-      error.value = "Questo servizio supporta solo la connessione via API key.";
-      return;
-    }
-    // The real OAuth flow is handled by the Import/Connections panel.
-    // Qui aggiorniamo solo lo stato dopo la conferma del callback.
-    await load();
-  }
-
   async function disconnect(service: string) {
     loading.value = true;
     error.value = "";
@@ -137,7 +125,6 @@ export const useConnectionsStore = defineStore("connections", () => {
     services,
     connectedServices,
     load,
-    connect,
     disconnect,
   };
 });

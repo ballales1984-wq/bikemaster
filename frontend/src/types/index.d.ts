@@ -54,6 +54,7 @@ export interface Athlete {
   is_admin?: boolean;
   is_client?: boolean;
   tenant_id?: number;
+  active_athlete_id?: number;
   goal_type?: string;
   goal_target?: number;
   goal_current?: number;

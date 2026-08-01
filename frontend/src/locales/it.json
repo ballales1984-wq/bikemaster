@@ -355,7 +355,16 @@
     "downloading": "Scaricamento dati in corso...",
     "downloadSuccess": "Dati scaricati con successo",
     "downloadError": "Scaricamento fallito",
-    "recognizing": "Riconoscimento dispositivo in corso..."
+    "recognizing": "Riconoscimento dispositivo in corso...",
+    "customOAuthTitle": "Credenziali OAuth personalizzate",
+    "customOAuthHint": "Configura le tue credenziali OAuth personali per Strava, Wahoo, Garmin, Google Fit o Google Health.",
+    "noCustomOAuth": "Nessuna credenziale OAuth personalizzata configurata.",
+    "addCustomOAuth": "Aggiungi credenziale OAuth",
+    "credSaved": "Credenziale salvata",
+    "credDeleted": "Credenziale eliminata"
+  },
+  "athlete": {
+    "selectLabel": "Atleta attivo"
   },
   "admin": {
     "title": "Pannello Admin",

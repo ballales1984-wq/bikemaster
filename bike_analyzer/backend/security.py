@@ -229,6 +229,7 @@ def create_access_token(
     jti: str | None = None,
     tenant_id: int | None = None,
     is_client: bool = False,
+    athlete_id: int | None = None,
 ) -> str:
     """Generates a JWT access token (HS256) for the specified user.
 
@@ -253,11 +254,13 @@ def create_access_token(
     }
     if tenant_id is not None:
         payload["tenant_id"] = tenant_id
+    if athlete_id is not None:
+        payload["athlete_id"] = athlete_id
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def create_refresh_token(
-    subject: str, is_admin: bool = False, tenant_id: int | None = None, is_client: bool = False
+    subject: str, is_admin: bool = False, tenant_id: int | None = None, is_client: bool = False, athlete_id: int | None = None
 ) -> str:
     """Generates a JWT refresh token with a duration of 30 days.
 
@@ -280,6 +283,8 @@ def create_refresh_token(
     }
     if tenant_id is not None:
         payload["tenant_id"] = tenant_id
+    if athlete_id is not None:
+        payload["athlete_id"] = athlete_id
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -352,7 +357,7 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
 
     Supports the token both in the Authorization header and in the cookie
     ``bikemaster_access``. Returns a dict with ``id``, ``is_admin``,
-    ``is_client`` and optionally ``tenant_id``. Raises 401 if the token
+    ``is_client`` and optionally ``tenant_id`` and ``athlete_id``. Raises 401 if the token
     is not valid.
     """
     cookie_token = request.cookies.get("bikemaster_access")
@@ -362,6 +367,7 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
     is_admin: bool = payload.get("is_admin", False)
     is_client: bool = payload.get("is_client", False)
     tenant_id: int | None = payload.get("tenant_id")
+    athlete_id: int | None = payload.get("athlete_id")
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     try:
@@ -371,6 +377,8 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
     result = {"id": user_id_int, "is_admin": is_admin, "is_client": is_client}
     if tenant_id is not None:
         result["tenant_id"] = tenant_id
+    if athlete_id is not None:
+        result["athlete_id"] = athlete_id
     return result
 
 

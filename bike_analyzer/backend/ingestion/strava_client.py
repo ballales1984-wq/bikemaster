@@ -71,12 +71,18 @@ def generate_code_challenge(verifier: str) -> str:
 
 
 def build_authorization_url(
-    state: str, code_challenge: str, redirect_uri: str | None = None
+    state: str,
+    code_challenge: str,
+    redirect_uri: str | None = None,
+    client_id: str | None = None,
 ) -> str:
     """Builds the Strava OAuth2 authorization URL with PKCE (S256)."""
+    cid = client_id or _s.strava_client_id
+    if not cid:
+        raise RuntimeError("Strava client_id not configured")
     params = {
         "response_type": "code",
-        "client_id": _s.strava_client_id,
+        "client_id": cid,
         "redirect_uri": redirect_uri or _s.strava_redirect_uri,
         "scope": _s.strava_scope,
         "state": state,
@@ -88,15 +94,18 @@ def build_authorization_url(
 
 
 def get_authorization_url(
-    state: str | None = None, redirect_uri: str | None = None
+    state: str | None = None,
+    redirect_uri: str | None = None,
+    client_id: str | None = None,
 ) -> dict[str, str]:
     """Return dict with auth_url, state, and code_verifier (to be stored server-side)."""
-    if not _s.strava_client_id:
+    cid = client_id or _s.strava_client_id
+    if not cid:
         raise RuntimeError("STRAVA_CLIENT_ID not configured")
     state = state or secrets.token_urlsafe(16)
     verifier = generate_code_verifier()
     challenge = generate_code_challenge(verifier)
-    auth_url = build_authorization_url(state, challenge, redirect_uri=redirect_uri)
+    auth_url = build_authorization_url(state, challenge, redirect_uri=redirect_uri, client_id=cid)
     return {
         "auth_url": auth_url,
         "state": state,
@@ -110,12 +119,16 @@ def get_authorization_url(
 
 
 async def exchange_code_for_token(
-    code: str, code_verifier: str, redirect_uri: str | None = None
+    code: str, code_verifier: str, redirect_uri: str | None = None, client_id: str | None = None, client_secret: str | None = None
 ) -> dict[str, Any]:
     """Exchanges the authorization code (plus PKCE code_verifier) for Strava tokens."""
+    cid = client_id or _s.strava_client_id
+    csec = client_secret or _s.strava_client_secret
+    if not cid or not csec:
+        raise RuntimeError("Strava client_id/client_secret not configured")
     payload = {
-        "client_id": _s.strava_client_id,
-        "client_secret": _s.strava_client_secret,
+        "client_id": cid,
+        "client_secret": csec,
         "code": code,
         "grant_type": "authorization_code",
         "redirect_uri": redirect_uri or _s.strava_redirect_uri,
@@ -124,11 +137,15 @@ async def exchange_code_for_token(
     return await request_json("POST", STRAVA_TOKEN_URL, data=payload, timeout=15)
 
 
-async def refresh_access_token(refresh_token: str) -> dict[str, Any]:
+async def refresh_access_token(refresh_token: str, client_id: str | None = None, client_secret: str | None = None) -> dict[str, Any]:
     """Renews a Strava access token using the refresh token (grant_type=refresh_token)."""
+    cid = client_id or _s.strava_client_id
+    csec = client_secret or _s.strava_client_secret
+    if not cid or not csec:
+        raise RuntimeError("Strava client_id/client_secret not configured")
     payload = {
-        "client_id": _s.strava_client_id,
-        "client_secret": _s.strava_client_secret,
+        "client_id": cid,
+        "client_secret": csec,
         "grant_type": "refresh_token",
         "refresh_token": refresh_token,
     }
@@ -235,7 +252,7 @@ def revoke_token(athlete_id: int) -> None:
         conn.execute("DELETE FROM strava_tokens WHERE athlete_id = ?", (athlete_id,))
 
 
-async def get_valid_token(athlete_id: int) -> str | None:
+async def get_valid_token(athlete_id: int, client_id: str | None = None, client_secret: str | None = None) -> str | None:
     _ensure_token_table()
     with _get_conn() as conn:
         row = conn.execute(
@@ -247,7 +264,7 @@ async def get_valid_token(athlete_id: int) -> str | None:
     access_token, refresh_token, expires_at = row
     if expires_at and expires_at - time.time() < TOKEN_REFRESH_BUFFER_SECONDS:
         try:
-            new_data = await refresh_access_token(refresh_token)
+            new_data = await refresh_access_token(refresh_token, client_id=client_id, client_secret=client_secret)
             store_token(athlete_id, new_data)
             return new_data.get("access_token")
         except Exception:

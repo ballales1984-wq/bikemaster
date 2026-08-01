@@ -141,6 +141,7 @@ class UserModel(Base):
     oauth_identities: Mapped[list["ExternalIdentityModel"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     external_tokens: Mapped[list["ExternalTokenModel"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     totp_secrets: Mapped[list["TOTPSecretModel"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    oauth_credentials: Mapped[list["UserOAuthCredentials"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_users_username", "username"),
@@ -154,7 +155,7 @@ class AthleteModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True
+        Integer, ForeignKey("users.id", ondelete="CASCADE")
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str | None] = mapped_column(String)
@@ -884,6 +885,33 @@ class TOTPSecretModel(Base):
 
     __table_args__ = (
         UniqueConstraint("user_id", name="uq_totp_user"),
+    )
+
+
+class UserOAuthCredentials(Base):
+    """User-provided OAuth app credentials for external providers (Strava, Wahoo, Garmin, Google).
+
+    Allows users to override the global app credentials with their own,
+    enabling private OAuth apps where the user controls the client_id/secret.
+    """
+
+    __tablename__ = "user_oauth_credentials"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    client_id: Mapped[str | None] = mapped_column(String)
+    client_secret: Mapped[str | None] = mapped_column(String)
+    redirect_uri: Mapped[str | None] = mapped_column(String)
+    scope: Mapped[str | None] = mapped_column(String)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped["UserModel"] = relationship(back_populates="oauth_credentials")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "provider", name="uq_user_oauth_credentials_user_provider"),
+        Index("ix_user_oauth_credentials_user", "user_id"),
     )
 
 

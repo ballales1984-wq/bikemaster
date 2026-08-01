@@ -1164,7 +1164,7 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
         return cur.rowcount > 0
 
 
-def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 0) -> int:
+def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 0, user_id: int | None = None) -> int:
     """Inserisce o aggiorna il profilo di un atleta.
 
     Se ``athlete_id`` e' fornito sovrascrive la riga esistente (UPSERT
@@ -1181,77 +1181,54 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
         try:
             with get_db_connection() as conn:
                 cur = conn.cursor()
+                base_cols = [
+                    "name", "email", "picture", "age", "weight_kg", "height_cm", "fat_percentage",
+                    "years_active", "weekly_sessions", "monthly_hours", "annual_hours",
+                    "experience_level", "goals", "preferred_terrain", "weekly_volume_km",
+                    "best_segments", "medical_notes", "equipment", "ftp_watts",
+                    "body_water_percentage", "muscle_mass_percentage", "bmr_kcal",
+                    "fat_mass_kg", "subcutaneous_fat_kg", "subcutaneous_fat_percentage",
+                    "visceral_fat_level", "visceral_fat_percentage", "visceral_fat_kg",
+                    "muscle_mass_kg", "bone_mass_kg", "protein_percentage", "protein_kg",
+                    "body_age", "apparent_age", "password_hash", "tenant_id",
+                    "created_at", "updated_at", "bmi", "lean_body_mass_kg",
+                ]
+                base_vals = [
+                    athlete.get("name"), athlete.get("email"), athlete.get("picture"),
+                    athlete.get("age"), athlete.get("weight_kg", 70), athlete.get("height_cm"),
+                    athlete.get("fat_percentage"), athlete.get("years_active", 1),
+                    athlete.get("weekly_sessions", 3), athlete.get("monthly_hours", 0),
+                    athlete.get("annual_hours", 0), athlete.get("experience_level", "Beginner"),
+                    athlete.get("goals"), athlete.get("preferred_terrain"),
+                    athlete.get("weekly_volume_km", 0), athlete.get("best_segments"),
+                    athlete.get("medical_notes"), athlete.get("equipment"), athlete.get("ftp_watts"),
+                    athlete.get("body_water_percentage"), athlete.get("muscle_mass_percentage"),
+                    athlete.get("bmr_kcal"), athlete.get("fat_mass_kg"),
+                    athlete.get("subcutaneous_fat_kg"), athlete.get("subcutaneous_fat_percentage"),
+                    athlete.get("visceral_fat_level"), athlete.get("visceral_fat_percentage"),
+                    athlete.get("visceral_fat_kg"), athlete.get("muscle_mass_kg"),
+                    athlete.get("bone_mass_kg"), athlete.get("protein_percentage"),
+                    athlete.get("protein_kg"), athlete.get("body_age"), athlete.get("apparent_age"),
+                    athlete.get("password_hash"), athlete.get("tenant_id", tenant_id),
+                    datetime.now(UTC).isoformat(), datetime.now(UTC).isoformat(),
+                    athlete.get("bmi"), athlete.get("lean_body_mass_kg"),
+                ]
                 if athlete_id is None:
-                    cols = [
-                        "name", "email", "picture", "age", "weight_kg", "height_cm", "fat_percentage",
-                        "years_active", "weekly_sessions", "monthly_hours", "annual_hours",
-                        "experience_level", "goals", "preferred_terrain", "weekly_volume_km",
-                        "best_segments", "medical_notes", "equipment", "ftp_watts",
-                        "body_water_percentage", "muscle_mass_percentage", "bmr_kcal",
-                        "fat_mass_kg", "subcutaneous_fat_kg", "subcutaneous_fat_percentage",
-                        "visceral_fat_level", "visceral_fat_percentage", "visceral_fat_kg",
-                        "muscle_mass_kg", "bone_mass_kg", "protein_percentage", "protein_kg",
-                        "body_age", "apparent_age", "password_hash", "tenant_id",
-                        "created_at", "updated_at", "bmi", "lean_body_mass_kg",
-                    ]
-                    vals = [
-                        athlete.get("name"), athlete.get("email"), athlete.get("picture"),
-                        athlete.get("age"), athlete.get("weight_kg", 70), athlete.get("height_cm"),
-                        athlete.get("fat_percentage"), athlete.get("years_active", 1),
-                        athlete.get("weekly_sessions", 3), athlete.get("monthly_hours", 0),
-                        athlete.get("annual_hours", 0), athlete.get("experience_level", "Beginner"),
-                        athlete.get("goals"), athlete.get("preferred_terrain"),
-                        athlete.get("weekly_volume_km", 0), athlete.get("best_segments"),
-                        athlete.get("medical_notes"), athlete.get("equipment"), athlete.get("ftp_watts"),
-                        athlete.get("body_water_percentage"), athlete.get("muscle_mass_percentage"),
-                        athlete.get("bmr_kcal"), athlete.get("fat_mass_kg"),
-                        athlete.get("subcutaneous_fat_kg"), athlete.get("subcutaneous_fat_percentage"),
-                        athlete.get("visceral_fat_level"), athlete.get("visceral_fat_percentage"),
-                        athlete.get("visceral_fat_kg"), athlete.get("muscle_mass_kg"),
-                        athlete.get("bone_mass_kg"), athlete.get("protein_percentage"),
-                        athlete.get("protein_kg"), athlete.get("body_age"), athlete.get("apparent_age"),
-                        athlete.get("password_hash"), athlete.get("tenant_id", tenant_id),
-                        datetime.now(UTC).isoformat(), datetime.now(UTC).isoformat(),
-                        athlete.get("bmi"), athlete.get("lean_body_mass_kg"),
-                    ]
+                    cols = list(base_cols)
+                    vals = list(base_vals)
+                    if user_id is not None:
+                        cols.insert(0, "user_id")
+                        vals.insert(0, user_id)
                     cur.execute(
                         f"INSERT INTO athletes ({', '.join(cols)}) VALUES ({', '.join(['?'] * len(cols))})",
                         vals,
                     )
                 else:
-                    cols = [
-                        "id", "name", "email", "picture", "age", "weight_kg", "height_cm", "fat_percentage",
-                        "years_active", "weekly_sessions", "monthly_hours", "annual_hours",
-                        "experience_level", "goals", "preferred_terrain", "weekly_volume_km",
-                        "best_segments", "medical_notes", "equipment", "ftp_watts",
-                        "body_water_percentage", "muscle_mass_percentage", "bmr_kcal",
-                        "fat_mass_kg", "subcutaneous_fat_kg", "subcutaneous_fat_percentage",
-                        "visceral_fat_level", "visceral_fat_percentage", "visceral_fat_kg",
-                        "muscle_mass_kg", "bone_mass_kg", "protein_percentage", "protein_kg",
-                        "body_age", "apparent_age", "password_hash", "tenant_id",
-                        "created_at", "updated_at", "bmi", "lean_body_mass_kg",
-                    ]
-                    vals = [
-                        athlete_id,
-                        athlete.get("name"), athlete.get("email"), athlete.get("picture"),
-                        athlete.get("age"), athlete.get("weight_kg", 70), athlete.get("height_cm"),
-                        athlete.get("fat_percentage"), athlete.get("years_active", 1),
-                        athlete.get("weekly_sessions", 3), athlete.get("monthly_hours", 0),
-                        athlete.get("annual_hours", 0), athlete.get("experience_level", "Beginner"),
-                        athlete.get("goals"), athlete.get("preferred_terrain"),
-                        athlete.get("weekly_volume_km", 0), athlete.get("best_segments"),
-                        athlete.get("medical_notes"), athlete.get("equipment"), athlete.get("ftp_watts"),
-                        athlete.get("body_water_percentage"), athlete.get("muscle_mass_percentage"),
-                        athlete.get("bmr_kcal"), athlete.get("fat_mass_kg"),
-                        athlete.get("subcutaneous_fat_kg"), athlete.get("subcutaneous_fat_percentage"),
-                        athlete.get("visceral_fat_level"), athlete.get("visceral_fat_percentage"),
-                        athlete.get("visceral_fat_kg"), athlete.get("muscle_mass_kg"),
-                        athlete.get("bone_mass_kg"), athlete.get("protein_percentage"),
-                        athlete.get("protein_kg"), athlete.get("body_age"), athlete.get("apparent_age"),
-                        athlete.get("password_hash"), athlete.get("tenant_id", tenant_id),
-                        datetime.now(UTC).isoformat(), datetime.now(UTC).isoformat(),
-                        athlete.get("bmi"), athlete.get("lean_body_mass_kg"),
-                    ]
+                    cols = ["id"] + base_cols
+                    vals = [athlete_id] + base_vals
+                    if user_id is not None:
+                        cols.insert(1, "user_id")
+                        vals.insert(1, user_id)
                     cur.execute(
                         f"INSERT INTO athletes ({', '.join(cols)}) VALUES ({', '.join(['?'] * len(cols))})",
                         vals,
@@ -1525,6 +1502,110 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
         )
         save_athlete_snapshot(existing, tenant_id=existing.get("tenant_id", athlete_id), changed_by=None, conn=conn)
         conn.commit()
+        return cur.rowcount > 0
+
+
+def get_athletes_by_user(user_id: int) -> list[dict]:
+    """Restituisce tutti gli atleti di un utente ordinati per id."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM athletes WHERE user_id = ? ORDER BY id", (user_id,))
+        rows = cur.fetchall()
+        return [_row_to_athlete(row) for row in rows]
+
+
+def get_athlete_count_by_user(user_id: int) -> int:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM athletes WHERE user_id = ?", (user_id,))
+        return cur.fetchone()[0]
+
+
+def delete_athlete(athlete_id: int, user_id: int) -> bool:
+    """Elimina un atleta se appartiene all'utente. Non elimina l'atleta principale se id==user_id."""
+    if athlete_id == user_id:
+        return False
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM athletes WHERE id = ? AND user_id = ?", (athlete_id, user_id))
+        return cur.rowcount > 0
+
+
+def _ensure_user_oauth_credentials_table() -> None:
+    with get_db_connection() as conn:
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS user_oauth_credentials (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                provider TEXT NOT NULL,
+                client_id TEXT,
+                client_secret TEXT,
+                redirect_uri TEXT,
+                scope TEXT,
+                created_at TEXT,
+                updated_at TEXT
+            )"""
+        )
+        try:
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_user_oauth_user_provider ON user_oauth_credentials(user_id, provider)")
+        except Exception:
+            pass
+
+
+def get_user_oauth_credentials(user_id: int, provider: str) -> dict | None:
+    _ensure_user_oauth_credentials_table()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM user_oauth_credentials WHERE user_id = ? AND provider = ?",
+            (user_id, provider),
+        )
+        row = cur.fetchone()
+        if row:
+            return dict(row)
+        return None
+
+
+def get_all_user_oauth_credentials(user_id: int) -> list[dict]:
+    _ensure_user_oauth_credentials_table()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM user_oauth_credentials WHERE user_id = ?", (user_id,))
+        return [dict(r) for r in cur.fetchall()]
+
+
+def save_user_oauth_credentials(user_id: int, provider: str, data: dict) -> None:
+    _ensure_user_oauth_credentials_table()
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO user_oauth_credentials (user_id, provider, client_id, client_secret, redirect_uri, scope, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(user_id, provider) DO UPDATE SET
+                   client_id = excluded.client_id,
+                   client_secret = excluded.client_secret,
+                   redirect_uri = excluded.redirect_uri,
+                   scope = excluded.scope,
+                   updated_at = excluded.updated_at""",
+            (
+                user_id,
+                provider,
+                data.get("client_id"),
+                data.get("client_secret"),
+                data.get("redirect_uri"),
+                data.get("scope"),
+                now,
+                now,
+            ),
+        )
+
+
+def delete_user_oauth_credentials(user_id: int, provider: str) -> bool:
+    _ensure_user_oauth_credentials_table()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM user_oauth_credentials WHERE user_id = ? AND provider = ?", (user_id, provider))
         return cur.rowcount > 0
 
 
