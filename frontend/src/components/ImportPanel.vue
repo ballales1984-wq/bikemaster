@@ -616,6 +616,7 @@ async function connectStrava() {
         if (settled) return;
         settled = true;
         window.removeEventListener("message", handleMessage);
+        window.removeEventListener("storage", handleStorage);
         clearTimeout(timer);
       };
       const timer = setTimeout(
@@ -641,11 +642,25 @@ async function connectStrava() {
         }
         finish();
         resolve(event.data.code);
+        try {
+          localStorage.removeItem("bikemaster_oauth_result");
+        } catch (e) {
+          /* ignore */
+        }
         if (popup && !popup.closed) {
           popup.close();
         }
       };
+      const handleStorage = (event: StorageEvent) => {
+        if (event.key !== "bikemaster_oauth_result" || !event.newValue) return;
+        try {
+          handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
+        } catch (e) {
+          /* ignore */
+        }
+      };
       window.addEventListener("message", handleMessage);
+      window.addEventListener("storage", handleStorage);
     });
 
     const cbResp = await fetch("/api/v1/import/strava/callback", {

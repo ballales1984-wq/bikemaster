@@ -435,21 +435,33 @@ def _sanitize_html_message(message: dict) -> dict:
     return escaped
 
 
+_CALLBACK_CSP = "default-src 'self'; script-src 'unsafe-inline' 'self'; style-src 'self'; img-src 'self' data: https:"
+
+
 def _oauth_callback_response(payload: str, status_code: int = 200) -> HTMLResponse:
-    """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
+    """Return a tiny HTML page that posts a message to the opener window (OAuth callback).
+
+    Uses postMessage as the primary mechanism. Falls back to localStorage
+    events for browsers that clear window.opener after cross-origin navigation
+    (e.g. mobile Safari). Also attempts window.close() and falls back to
+    about:blank redirect if close is blocked.
+    """
     html = (
         "<!DOCTYPE html>"
         '<html><head><meta charset="utf-8"><title>Authorization</title></head>'
         "<body><script>"
-        "(function() {"
+        "(function(){"
         "var sent=false;"
         "function doPost(){"
         "if(sent)return;"
         "try{if(window.opener&&!window.opener.closed){window.opener.postMessage(" + payload + ",'*');sent=true;}}"
-        "catch(e){}}"
+        "catch(e){}"
+        "try{localStorage.setItem('bikemaster_oauth_result','" + payload + "');}catch(e){}"
+        "}"
         "function doClose(){"
         "try{window.close();}catch(e){}"
-        "setTimeout(doClose,100);"
+        "if(!window.closed){try{window.location.href='about:blank';}catch(e){}}"
+        "setTimeout(doClose,200);"
         "}"
         "doPost();"
         "setTimeout(doPost,50);"
@@ -457,6 +469,7 @@ def _oauth_callback_response(payload: str, status_code: int = 200) -> HTMLRespon
         "setTimeout(doPost,400);"
         "setTimeout(function(){"
         "if(!sent){try{window.opener&&window.opener.postMessage(" + payload + ",'*');}catch(e2){}}"
+        "try{localStorage.setItem('bikemaster_oauth_result','" + payload + "');}catch(e){}"
         "doClose();"
         "},50);"
         "})();</script></body></html>"
@@ -464,9 +477,6 @@ def _oauth_callback_response(payload: str, status_code: int = 200) -> HTMLRespon
     response = HTMLResponse(content=html, status_code=status_code)
     response.headers["Content-Security-Policy"] = _CALLBACK_CSP
     return response
-
-
-_CALLBACK_CSP = "default-src 'self'; script-src 'unsafe-inline' 'self'; style-src 'self'; img-src 'self' data: https:"
 
 
 def _oauth_html_response(html: str, status_code: int = 200) -> HTMLResponse:
@@ -3378,9 +3388,10 @@ async def google_fit_callback(
         "token": access_token,
         "refresh_token": token_data.get("refresh_token", ""),
     }
-    html_content = f"<script>window.opener&&window.opener.postMessage({json.dumps(payload)}, window.location.origin);window.close();</script>"
-    await _cache_set(cache_key, {"html": html_content}, ttl=300)
-    return _oauth_html_response(html_content)
+    payload_str = json.dumps(_sanitize_html_message(payload))
+    response = _oauth_callback_response(payload_str)
+    await _cache_set(cache_key, {"html": response.body.decode()}, ttl=300)
+    return response
 
 
 @router.post("/import/google-fit")
