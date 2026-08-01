@@ -1309,7 +1309,7 @@ async def google_oauth_callback_get(
     state: str = Query(""),
 ):
     """Handle Google OAuth2 callback - exchange code for token and create/login user."""
-    from fastapi.responses import RedirectResponse
+    from fastapi.responses import RedirectResponse, JSONResponse
 
     from ..auth.google_auth import create_google_session, exchange_google_code, get_google_user_info
     from ..db.database import get_athlete, get_athlete_by_email, save_athlete
@@ -1318,24 +1318,40 @@ async def google_oauth_callback_get(
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
     state_data = _verify_oauth_state(state)
     if not state_data:
-        return _build_oauth_error_url(
+        resp = _build_oauth_error_url(
             request, _build_redirect_uri(request, "/api/v1/auth/google/callback"), "invalid_state"
         )
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
     redirect_uri = state_data["redirect_uri"]
     _validate_redirect_uri(redirect_uri, request)
 
     if error:
         message = error_description or error
-        return _build_oauth_error_url(request, redirect_uri, message)
+        resp = _build_oauth_error_url(request, redirect_uri, message)
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
 
     if not code:
-        return _build_oauth_error_url(request, redirect_uri, "missing_code")
+        resp = _build_oauth_error_url(request, redirect_uri, "missing_code")
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
 
     cache_key = f"oauth:code:{code}"
     try:
         cached_result = await _cached(cache_key)
         if cached_result:
-            return RedirectResponse(url=cached_result["redirect_url"])
+            resp = RedirectResponse(url=cached_result["redirect_url"])
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp
 
         try:
             token_data = await asyncio.to_thread(
@@ -1344,26 +1360,46 @@ async def google_oauth_callback_get(
         except Exception as exc:
             response = getattr(exc, "response", None)
             if response is not None and getattr(response, "status_code", None) == 400:
-                return _build_oauth_error_url(request, redirect_uri, "oauth_error")
+                resp = _build_oauth_error_url(request, redirect_uri, "oauth_error")
+                resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+                resp.headers["Pragma"] = "no-cache"
+                resp.headers["Expires"] = "0"
+                return resp
             error_body = response.text if response is not None else str(exc)
             error_detail = f"token_exchange_failed:{error_body[:200]}"
-            return _build_oauth_error_url(request, redirect_uri, error_detail)
+            resp = _build_oauth_error_url(request, redirect_uri, error_detail)
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp
         access_token = token_data.get("access_token")
         if not access_token:
-            return _build_oauth_error_url(request, redirect_uri, "no_access_token")
+            resp = _build_oauth_error_url(request, redirect_uri, "no_access_token")
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp
 
         try:
             user_info = await asyncio.to_thread(get_google_user_info, access_token)
         except Exception as exc:
             response = getattr(exc, "response", None)
             error_body = response.text if response is not None else str(exc)
-            return _build_oauth_error_url(request, redirect_uri, f"userinfo_failed:{error_body[:200]}")
+            resp = _build_oauth_error_url(request, redirect_uri, f"userinfo_failed:{error_body[:200]}")
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp
         google_sub = user_info.get("sub")
         email = user_info.get("email")
         name = user_info.get("name")
 
         if not google_sub:
-            return _build_oauth_error_url(request, redirect_uri, "invalid_user_info")
+            resp = _build_oauth_error_url(request, redirect_uri, "invalid_user_info")
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp
 
         existing = await asyncio.to_thread(get_athlete_by_email, email) if email else None
         if not existing:
@@ -1402,15 +1438,27 @@ async def google_oauth_callback_get(
                     await r.delete(lock_key)
 
         if not existing:
-            return _build_oauth_error_url(request, redirect_uri, "user_creation_failed")
+            resp = _build_oauth_error_url(request, redirect_uri, "user_creation_failed")
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp
 
         jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
         redirect_url = _build_oauth_success_url(redirect_uri, jwt_token, email or "", existing["id"])
         await _cache_set(f"oauth:code:{code}", {"redirect_url": redirect_url}, ttl=300)
-        return RedirectResponse(url=redirect_url)
+        resp = RedirectResponse(url=redirect_url)
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
     except Exception as exc:
         logger.exception("Google OAuth callback failed: %s", exc)
-        return _build_oauth_error_url(request, redirect_uri, "server_error")
+        resp = _build_oauth_error_url(request, redirect_uri, "server_error")
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
 
 
 @router.post("/auth/google/code-exchange")
