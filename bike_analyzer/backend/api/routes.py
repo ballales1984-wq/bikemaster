@@ -40,7 +40,7 @@ from fastapi import (
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from sqlalchemy import insert
+from sqlalchemy import insert, text
 from starlette.background import BackgroundTask
 
 from ..analytics.analytics import calculate_summary
