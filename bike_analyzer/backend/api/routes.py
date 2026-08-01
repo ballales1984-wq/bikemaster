@@ -5542,7 +5542,11 @@ async def strava_sync(
         client_secret=(user_creds or {}).get("client_secret"),
     )
     if not access_token:
-        raise HTTPException(status_code=401, detail="No Strava token. Connect first.")
+        raise HTTPException(
+            status_code=403,
+            detail="Strava token expired or not connected. Please reconnect in Settings.",
+            headers={"X-Auth-Error": "oauth_expired"},
+        )
     last_sync = get_last_sync_ts(current_user["id"])
     sync_ts = int(time.time())
     try:
@@ -5781,7 +5785,11 @@ async def garmin_sync(
 
     access_token = await get_valid_token(_current_athlete_id(current_user))
     if not access_token:
-        raise HTTPException(status_code=401, detail="No Garmin token. Connect first.")
+        raise HTTPException(
+            status_code=403,
+            detail="Garmin token expired or not connected. Please reconnect in Settings.",
+            headers={"X-Auth-Error": "oauth_expired"},
+        )
     try:
         activities = await fetch_activities(access_token)
     except httpx.HTTPStatusError as exc:
@@ -5909,7 +5917,11 @@ async def wahoo_sync(
         client_secret=(user_creds or {}).get("client_secret"),
     )
     if not access_token:
-        raise HTTPException(status_code=401, detail="No Wahoo token. Connect first.")
+        raise HTTPException(
+            status_code=403,
+            detail="Wahoo token expired or not connected. Please reconnect in Settings.",
+            headers={"X-Auth-Error": "oauth_expired"},
+        )
     workouts = fetch_workouts(access_token)
     imported = []
     imported_ids: set[int] = set()
