@@ -155,10 +155,4 @@ describe("RideMapPanel", () => {
     expect(wrapper.exists()).toBe(true);
   });
 
-  it("has demo route points", async () => {
-    apiGet.mockResolvedValueOnce(mockRides);
-    const wrapper = mount(RideMapPanel);
-    await flush();
-    expect(wrapper.vm.demoRoutePoints.length).toBeGreaterThan(0);
-  });
 });

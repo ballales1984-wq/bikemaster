@@ -19,6 +19,16 @@ class HealthConnectManager(private val context: android.content.Context) {
 
     companion object {
         private const val TAG = "HealthConnectManager"
+        val READ_PERMISSIONS = setOf(
+            HealthPermission.getReadPermission(WeightRecord::class),
+            HealthPermission.getReadPermission(HeartRateRecord::class),
+            HealthPermission.getReadPermission(StepsRecord::class),
+            HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
+            HealthPermission.getReadPermission(ExerciseSessionRecord::class),
+            HealthPermission.getReadPermission(HeightRecord::class),
+            HealthPermission.getReadPermission(BodyFatRecord::class),
+            HealthPermission.getReadPermission(SleepSessionRecord::class),
+        )
         val PERMISSIONS = setOf(
             HealthPermission.getReadPermission(WeightRecord::class),
             HealthPermission.getWritePermission(WeightRecord::class),
@@ -35,7 +45,7 @@ class HealthConnectManager(private val context: android.content.Context) {
             HealthPermission.getReadPermission(BodyFatRecord::class),
             HealthPermission.getWritePermission(BodyFatRecord::class),
             HealthPermission.getReadPermission(SleepSessionRecord::class),
-            HealthPermission.getWritePermission(SleepSessionRecord::class)
+            HealthPermission.getWritePermission(SleepSessionRecord::class),
         )
     }
 
@@ -63,7 +73,7 @@ class HealthConnectManager(private val context: android.content.Context) {
 
     suspend fun hasPermissions(): Boolean {
         val granted = healthConnectClient.permissionController.getGrantedPermissions()
-        return granted.containsAll(PERMISSIONS)
+        return granted.containsAll(READ_PERMISSIONS)
     }
 
     suspend fun requestPermissions(launcher: ActivityResultLauncher<Set<String>>): Boolean {

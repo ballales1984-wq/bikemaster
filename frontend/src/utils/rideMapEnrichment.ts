@@ -2,9 +2,8 @@
  * Arricchimento dei dati GPS dei ride per la visualizzazione su mappa.
  *
  * Normalizza e decampiona i punti GPS, costruisce i segmenti (`buildSegments`)
- * calcolandone distanza/gradiente via Haversine, e `buildDemoSegments` vi applica
- * risk and color. `getCenter` calculates the centroid; `haversineDistanceM` is the
- * distanza ortodromica in metri (raggio terra 6371000 m).
+ * calcolandone distanza/gradiente via Haversine. `getCenter` calculates the centroid;
+ * `haversineDistanceM` is the distanza ortodromica in metri (raggio terra 6371000 m).
  */
 
 import type { GpsPoint, RideSegment } from "../types/index";
@@ -63,23 +62,6 @@ export function buildSegments(points: GpsPoint[]): RideSegment[] {
     previous = current;
   }
   return segments;
-}
-
-export function buildDemoSegments(
-  points: GpsPoint[],
-  gradeRiskPercent: (grade: number) => number,
-  riskColor: (risk: number) => string,
-): RideSegment[] {
-  const segments = buildSegments(points);
-  return segments.map((segment) => {
-    const gradeRisk = gradeRiskPercent(segment.grade);
-    const risk = Math.round(gradeRisk * 0.7);
-    return {
-      ...segment,
-      risk,
-      color: riskColor(risk),
-    };
-  });
 }
 
 export function getCenter(

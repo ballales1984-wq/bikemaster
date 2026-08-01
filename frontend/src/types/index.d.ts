@@ -44,7 +44,6 @@ export interface EnrichedRide extends Ride {
   weatherError: string;
   overallRisk: number;
   maxRisk: number;
-  isDemo?: boolean;
 }
 
 export interface Athlete {

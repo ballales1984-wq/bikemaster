@@ -30,6 +30,7 @@ class AthleteProfileActivity : AppCompatActivity() {
                 val response = ApiClient.getApi(this@AthleteProfileActivity).getAthletes()
                 response.values.flatten().firstOrNull()?.let { athlete ->
                     athleteId = athlete.id
+                    com.bikemaster.utils.PreferencesManager.setAthleteId(this@AthleteProfileActivity, athlete.id)
                     displayAthlete(athlete)
                 }
             } catch (e: Exception) {

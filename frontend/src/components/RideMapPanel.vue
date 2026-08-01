@@ -101,11 +101,11 @@
         :color-by-speed="true"
       />
       <template v-else>
-        <div v-if="!ridesWithGps.length" class="demo-map-overlay">
-          <div class="demo-map-content">
-            <span class="demo-icon"></span>
-            <p>Milan-Monza demo route</p>
-            <p class="demo-hint">
+        <div v-if="!ridesWithGps.length" class="empty-map-overlay">
+          <div class="empty-map-content">
+            <span class="empty-icon"></span>
+            <p>No routes available</p>
+            <p class="empty-hint">
               Import GPX/FIT or add a ride with GPS points to view your routes
             </p>
           </div>
@@ -209,7 +209,6 @@ import {
   normalizePoints,
   downsamplePoints,
   buildSegments,
-  buildDemoSegments,
   getCenter,
 } from "../utils/rideMapEnrichment";
 import type { EnrichedRide, GpsPoint, Ride, RideSegment } from "../types/index";
@@ -292,21 +291,6 @@ const MAP_STYLES = {
   },
 };
 
-// Demo route: Milan to Monza (approximate coordinates along SS36)
-const demoRoutePoints = [
-  { lat: 45.4642, lon: 9.19, altitude: 120 },
-  { lat: 45.48, lon: 9.22, altitude: 135 },
-  { lat: 45.49, lon: 9.25, altitude: 155 },
-  { lat: 45.5, lon: 9.28, altitude: 175 },
-  { lat: 45.56, lon: 9.27, altitude: 190 },
-  { lat: 45.58, lon: 9.24, altitude: 185 },
-  { lat: 45.59, lon: 9.2, altitude: 190 },
-  { lat: 45.6, lon: 9.18, altitude: 195 },
-  { lat: 45.61, lon: 9.16, altitude: 190 },
-  { lat: 45.62, lon: 9.14, altitude: 200 },
-  { lat: 45.63, lon: 9.12, altitude: 210 },
-];
-
 let map: L.Map | null = null;
 let layerGroup: L.LayerGroup | null = null;
 let tileLayer: L.TileLayer | null = null;
@@ -348,24 +332,18 @@ function renderMap() {
   layerGroup?.clearLayers();
   const bounds = L.latLngBounds([]);
 
-  const ridesToRender =
-    visibleRides.value.length > 0 ? visibleRides.value : [demoRide.value];
+  const ridesToRender = visibleRides.value;
 
   ridesToRender.forEach((ride) => {
     const rideLayer = L.layerGroup();
     const points = ride.gps_points || [];
 
-    let segments = ride.segments;
-    if (ride.isDemo) {
-      segments = buildDemoSegments(points, gradeRiskPercent, riskColor);
-    }
-
-    buildRidePolylines({ ...ride, segments }).forEach((polylineData) => {
+    buildRidePolylines(ride).forEach((polylineData) => {
       const polyline = L.polyline(polylineData.points, {
         color: polylineData.color,
         weight: 5,
         opacity: 0.8,
-        dashArray: ride.isDemo ? "10,5" : undefined,
+        dashArray: undefined,
         lineCap: "round",
         lineJoin: "round",
       });
@@ -380,15 +358,13 @@ function renderMap() {
         L.latLng(ride.center.lat, ride.center.lon),
         {
           radius: 6,
-          color: ride.isDemo ? "#3498db" : riskColor(ride.overallRisk),
-          fillColor: ride.isDemo ? "#3498db" : riskColor(ride.overallRisk),
+          color: riskColor(ride.overallRisk),
+          fillColor: riskColor(ride.overallRisk),
           fillOpacity: 0.9,
           weight: 2,
         },
       );
-      centerMarker.bindPopup(
-        ride.isDemo ? "Milan-Monza demo route" : ridePopup(ride),
-      );
+      centerMarker.bindPopup(ridePopup(ride));
       centerMarker.addTo(rideLayer);
     }
 
@@ -584,27 +560,6 @@ const worstRide = computed(() => {
 const weatherUnavailableCount = computed(
   () => enrichedRides.value.filter((ride) => ride.weatherUnavailable).length,
 );
-
-const demoRide = computed((): EnrichedRide => ({
-  id: -1,
-  athlete_id: 0,
-  name: "Milan-Monza demo",
-  date: "2026-06-19",
-  duration_seconds: 0,
-  distance_meters: demoRoutePoints.length * 5000,
-  gps_points: demoRoutePoints,
-  segments: [],
-  center: getCenter(demoRoutePoints),
-  distanceM: demoRoutePoints.length * 5000,
-  elevationGain: 0,
-  weather: null,
-  weatherScore: 5,
-  weatherUnavailable: false,
-  weatherError: "",
-  overallRisk: 50,
-  maxRisk: 0,
-  isDemo: true,
-}));
 
 watch(mapStyle, () => {
   localStorage.setItem("mapStyle", mapStyle.value);
@@ -922,33 +877,6 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: var(--bg-secondary);
   position: relative;
-}
-
-.demo-map-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #1a1e21 0%, #252a2f 100%);
-  z-index: 10;
-}
-
-.demo-map-content {
-  text-align: center;
-  color: var(--text-secondary);
-}
-
-.demo-icon {
-  font-size: 3rem;
-  display: block;
-  margin-bottom: 12px;
-}
-
-.demo-hint {
-  font-size: 0.9rem;
-  margin-top: 8px;
-  color: var(--text-secondary);
 }
 
 @media (max-width: 768px) {

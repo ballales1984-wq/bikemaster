@@ -1,13 +1,18 @@
 package com.bikemaster.sensors.connectors
 
+import android.content.Context
 import android.util.Log
-import com.bikemaster.network.ApiClient
+import com.bikemaster.network.HealthSyncUploader
 import com.bikemaster.sensors.HealthConnectManager
+import com.bikemaster.utils.PreferencesManager
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 
-class ConnectorManager(private val healthConnectManager: HealthConnectManager) {
+class ConnectorManager(
+    private val healthConnectManager: HealthConnectManager,
+    private val context: Context,
+) {
 
     companion object {
         private const val TAG = "ConnectorManager"
@@ -28,7 +33,14 @@ class ConnectorManager(private val healthConnectManager: HealthConnectManager) {
             connectors.map { connector ->
                 async {
                     try {
-                        connector.sync()
+                        val result = connector.sync()
+                        if (result.success && result.metrics.isNotEmpty()) {
+                            val athleteId = PreferencesManager.getAthleteId(context)
+                            if (athleteId != null) {
+                                HealthSyncUploader.uploadMetrics(context, athleteId, result.metrics)
+                            }
+                        }
+                        result
                     } catch (e: Exception) {
                         Log.e(TAG, "Sync fallita per ${connector.type}", e)
                         ConnectorResult(success = false, message = e.message)
@@ -42,7 +54,14 @@ class ConnectorManager(private val healthConnectManager: HealthConnectManager) {
         val connector = connectors.find { it.type == type }
         return connector?.let {
             try {
-                it.sync()
+                val result = it.sync()
+                if (result.success && result.metrics.isNotEmpty()) {
+                    val athleteId = PreferencesManager.getAthleteId(context)
+                    if (athleteId != null) {
+                        HealthSyncUploader.uploadMetrics(context, athleteId, result.metrics)
+                    }
+                }
+                result
             } catch (e: Exception) {
                 Log.e(TAG, "Sync fallita per $type", e)
                 ConnectorResult(success = false, message = e.message)
