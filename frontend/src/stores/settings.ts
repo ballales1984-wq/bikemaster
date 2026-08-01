@@ -9,6 +9,8 @@ import { ref, computed } from "vue";
 import {
   getStoredApiBase,
   setStoredApiBase,
+  getStoredMobileApiBase,
+  setStoredMobileApiBase,
   isFallbackEnabled,
   setFallbackEnabled,
   resolveApiBase,
@@ -20,17 +22,32 @@ import {
 // The URL is modifiable at runtime by the user (e.g. points to their own PC) and
 // persistito in localStorage. Render resta un failover opzionale.
 export const useSettingsStore = defineStore("settings", () => {
-  const apiBase = ref(getStoredApiBase());
+  const _apiBase = ref(getStoredApiBase());
+  const mobileApiBase = ref(getStoredMobileApiBase());
   const fallbackEnabled = ref(isFallbackEnabled());
   const fallbackBase = ref(RENDER_FALLBACK_BASE);
 
   const backendMode = computed(() => getBackendMode());
   const resolvedBase = computed(() => resolveApiBase());
 
-  function setApiBase(url: string) {
-    apiBase.value = url.trim();
-    setStoredApiBase(apiBase.value);
-  }
+  const apiBase = computed({
+    get: () => {
+      if (backendMode.value === "mobile") {
+        return mobileApiBase.value;
+      }
+      return _apiBase.value;
+    },
+    set: (val: string) => {
+      const trimmed = val.trim();
+      if (backendMode.value === "mobile") {
+        mobileApiBase.value = trimmed;
+        setStoredMobileApiBase(trimmed);
+      } else {
+        _apiBase.value = trimmed;
+        setStoredApiBase(trimmed);
+      }
+    },
+  });
 
   function setUseFallback(enabled: boolean) {
     fallbackEnabled.value = enabled;
@@ -38,17 +55,22 @@ export const useSettingsStore = defineStore("settings", () => {
   }
 
   function resetApiBase() {
-    apiBase.value = "";
-    setStoredApiBase("");
+    if (backendMode.value === "mobile") {
+      mobileApiBase.value = "";
+      setStoredMobileApiBase("");
+    } else {
+      _apiBase.value = "";
+      setStoredApiBase("");
+    }
   }
 
   return {
     apiBase,
+    mobileApiBase,
     fallbackEnabled,
     fallbackBase,
     backendMode,
     resolvedBase,
-    setApiBase,
     setUseFallback,
     resetApiBase,
   };

@@ -976,7 +976,7 @@ def test_analytics_route_suggestions_and_classify(client):
 @pytest.mark.skipif(not _HAS_NUMPY_RANDOM, reason="numpy.random unavailable (AetherMap import crashes)")
 def test_aethermap_endpoints(client):
     assert client.get("/api/v1/aethermap/world").status_code in (200, 404, 500)
-    assert client.get("/api/v1/aethermap/terrain-tile", params={"lat": 0.0, "lon": 0.0, "zoom": 5}).status_code in (200, 404, 500)
+    assert client.get("/api/v1/aethermap/terrain-tile", params={"face": 0, "resolution": 32}).status_code in (200, 404, 500)
 
 
 # --------------------------------------------------------------------------- #

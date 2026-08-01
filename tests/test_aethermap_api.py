@@ -137,9 +137,8 @@ class TestAetherMapIntegration:
 class TestRideTerrainEnrichment:
     @pytest.mark.missing_greenlet
     def test_returns_enriched_gps_points(self, client, monkeypatch):
-        from bike_analyzer.backend import settings as settings_mod
-
-        monkeypatch.setattr(settings_mod, "terrain_enrichment_enabled", True)
+        from bike_analyzer.backend.api.routes import _s
+        monkeypatch.setattr(_s, "terrain_enrichment_enabled", True)
 
         ride_id = db_mod.save_ride({
             "athlete_id": 0,
@@ -169,9 +168,8 @@ class TestRideTerrainEnrichment:
 
     @pytest.mark.missing_greenlet
     def test_returns_403_when_disabled_and_requested(self, client, monkeypatch):
-        from bike_analyzer.backend import settings as settings_mod
-
-        monkeypatch.setattr(settings_mod, "terrain_enrichment_enabled", False)
+        from bike_analyzer.backend.api.routes import _s
+        monkeypatch.setattr(_s, "terrain_enrichment_enabled", False)
 
         ride_id = db_mod.save_ride({
             "athlete_id": 0,
@@ -191,18 +189,16 @@ class TestRideTerrainEnrichment:
 
     @pytest.mark.missing_greenlet
     def test_returns_404_for_missing_ride(self, client, monkeypatch):
-        from bike_analyzer.backend import settings as settings_mod
-
-        monkeypatch.setattr(settings_mod, "terrain_enrichment_enabled", True)
+        from bike_analyzer.backend.api.routes import _s
+        monkeypatch.setattr(_s, "terrain_enrichment_enabled", True)
 
         resp = client.get("/api/v1/rides/99999/terrain", params={"enabled": True})
         assert resp.status_code == 404
 
     @pytest.mark.missing_greenlet
     def test_returns_400_without_gps(self, client, monkeypatch):
-        from bike_analyzer.backend import settings as settings_mod
-
-        monkeypatch.setattr(settings_mod, "terrain_enrichment_enabled", True)
+        from bike_analyzer.backend.api.routes import _s
+        monkeypatch.setattr(_s, "terrain_enrichment_enabled", True)
 
         ride_id = db_mod.save_ride({
             "athlete_id": 0,

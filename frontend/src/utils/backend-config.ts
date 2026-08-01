@@ -5,7 +5,7 @@
  * auto-detect Tauri, same-origin) and the cloud hub base. `resolveFallbackBase`
  * exposes the Render fallback (used only on network error/5xx if enabled).
  * Also exports storage keys, getters/setters and `getBackendMode`
- * ("pc"|"render"|"local"|"tauri"|"hub") describing the active mode.
+ * ("pc"|"render"|"local"|"tauri"|"mobile"|"hub") describing the active mode.
  */
 
 // Resolves the backend base URL in a configurable way at runtime.
@@ -29,6 +29,7 @@ export const API_FALLBACK_ENABLED_KEY = "bikemaster_api_fallback_enabled";
 export const RENDER_FALLBACK_BASE = "https://bikemaster.onrender.com";
 export const TAURI_EMBEDDED_BACKEND_BASE = "http://localhost:8001";
 export const HUB_API_BASE_STORAGE_KEY = "bikemaster_hub_api_base";
+export const MOBILE_API_BASE_STORAGE_KEY = "bikemaster_mobile_api_base";
 
 function normalizeBase(base: string): string {
   const trimmed = base.trim();
@@ -43,6 +44,15 @@ export function isTauri(): boolean {
     __TAURI_INTERNALS__?: unknown;
   };
   return !!win.__TAURI__ || !!win.__TAURI_INTERNALS__;
+}
+
+export function isCapacitor(): boolean {
+  if (typeof window === "undefined") return false;
+  const win = window as Window & {
+    Capacitor?: { isNative?: boolean; isNativePlatform?: boolean };
+  };
+  if (!win.Capacitor) return false;
+  return !!(win.Capacitor.isNative || win.Capacitor.isNativePlatform);
 }
 
 export function getStoredApiBase(): string {
@@ -75,6 +85,21 @@ export function setStoredHubApiBase(base: string): void {
   }
 }
 
+export function getStoredMobileApiBase(): string {
+  if (typeof localStorage === "undefined") return "";
+  return localStorage.getItem(MOBILE_API_BASE_STORAGE_KEY) || "";
+}
+
+export function setStoredMobileApiBase(base: string): void {
+  if (typeof localStorage === "undefined") return;
+  const normalized = normalizeBase(base);
+  if (normalized) {
+    localStorage.setItem(MOBILE_API_BASE_STORAGE_KEY, normalized);
+  } else {
+    localStorage.removeItem(MOBILE_API_BASE_STORAGE_KEY);
+  }
+}
+
 export function isFallbackEnabled(): boolean {
   if (typeof localStorage === "undefined") return false;
   return localStorage.getItem(API_FALLBACK_ENABLED_KEY) === "true";
@@ -86,9 +111,12 @@ export function setFallbackEnabled(enabled: boolean): void {
 }
 
 export function resolveApiBase(): string {
-  // If the SPA is served by the same backend through a tunnel domain
-  // (ngrok, cloudflared, Vercel preview, Render), usa same-origin per evitare
-  // richieste cross-origin e problemi CORS.
+  if (isCapacitor()) {
+    const stored = getStoredMobileApiBase();
+    if (stored) return stored;
+    return resolveMobileApiBase();
+  }
+
   if (typeof window !== "undefined" && typeof location !== "undefined") {
     const h = location.hostname.toLowerCase();
     if (
@@ -133,6 +161,15 @@ export function resolveApiBase(): string {
   return "";
 }
 
+export function resolveMobileApiBase(): string {
+  if (typeof window === "undefined") return "";
+
+  const stored = getStoredMobileApiBase();
+  if (stored) return stored;
+
+  return "";
+}
+
 export function resolveHubApiBase(): string {
   const stored = getStoredHubApiBase();
   if (stored) return stored;
@@ -155,10 +192,14 @@ export function resolveFallbackBase(): string {
 
 // "pc" quando l'utente punta al proprio backend, "render" per il fallback,
 // "local" per same-origin (dev), "tauri" per backend embedded Tauri,
+// "mobile" per Capacitor Android che parla con il backend sulla rete locale,
 // "hub" quando l'app gira su Vercel e parla con il backend cloud.
-export type BackendMode = "pc" | "render" | "local" | "tauri" | "hub";
+export type BackendMode =
+  "pc" | "render" | "local" | "tauri" | "mobile" | "hub";
 
 export function getBackendMode(): BackendMode {
+  if (isCapacitor()) return "mobile";
+
   const base = resolveApiBase();
   if (!base) return isTauri() ? "local" : "local";
   if (isTauri() && base === TAURI_EMBEDDED_BACKEND_BASE) return "tauri";

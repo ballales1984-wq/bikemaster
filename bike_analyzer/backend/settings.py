@@ -58,11 +58,39 @@ class Settings(BaseSettings):
     # === CORS ===
     # Default to localhost only. In production, set CORS_ORIGINS explicitly
     # to the exact origins that should be allowed (no wildcards).
+    # For mobile access, add your PC's local network IP (e.g. http://192.168.1.100:8000).
     cors_origins: str = "http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000,http://127.0.0.1:8080"
 
     @property
     def cors_origins_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        if self.environment == "development" and not self._cors_has_network_origin(origins):
+            origins.extend(self._get_local_network_origins())
+        return origins
+
+    def _cors_has_network_origin(self, origins: list[str]) -> bool:
+        for origin in origins:
+            try:
+                from urllib.parse import urlparse
+                host = urlparse(origin).hostname or ""
+                if not host.startswith("localhost") and host != "127.0.0.1":
+                    return True
+            except Exception:
+                continue
+        return False
+
+    def _get_local_network_origins(self) -> list[str]:
+        import socket
+
+        origins = []
+        try:
+            hostname = socket.gethostname()
+            addr = socket.gethostbyname(hostname)
+            if addr and not addr.startswith("127.") and not addr.startswith("::1"):
+                origins.append(f"http://{addr}:{self.api_port}")
+        except Exception:
+            pass
+        return origins
 
     # === OAuth redirect URI allow-list ===
     # Custom (non-http/https) URI schemes allowed as OAuth redirect targets,

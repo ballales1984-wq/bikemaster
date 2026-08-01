@@ -94,6 +94,8 @@ const modeLabel = computed(() => {
       return "Backend PC (personalizzato)";
     case "render":
       return "Render (fallback)";
+    case "mobile":
+      return "Mobile (rete locale)";
     default:
       return "Stesso origine (locale)";
   }
@@ -103,10 +105,11 @@ const modeClass = computed(() => ({
   "badge-pc": settings.backendMode === "pc",
   "badge-render": settings.backendMode === "render",
   "badge-local": settings.backendMode === "local",
+  "badge-mobile": settings.backendMode === "mobile",
 }));
 
 function save() {
-  settings.setApiBase(draftBase.value);
+  settings.apiBase = draftBase.value;
   statusText.value = "URL backend salvato.";
   statusClass.value = "ok";
 }
@@ -228,6 +231,10 @@ h1 {
 .badge-local {
   background: #1b2a3a;
   color: #6eb8e7;
+}
+.badge-mobile {
+  background: #2a1b3a;
+  color: #c084fc;
 }
 code {
   background: #0f0f0f;
