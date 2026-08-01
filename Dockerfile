@@ -1,4 +1,5 @@
 # === Build Stage ===
+# Rebuild trigger - OAuth callback popup fix
 FROM node:22-alpine AS frontend-builder
 WORKDIR /app/frontend
 ENV PATH="./node_modules/.bin:$PATH"
