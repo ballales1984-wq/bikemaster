@@ -314,16 +314,17 @@ def create_app() -> FastAPI:
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         if _s.environment.lower() in ("production", "prod", "staging"):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
-            response.headers["Content-Security-Policy"] = (
-                "default-src 'self'; img-src 'self' data: https:; "
-                "script-src 'self' "
-                "https://cdn.jsdelivr.net https://code.jquery.com "
-                "https://cdnjs.cloudflare.com https://unpkg.com; "
-                "style-src 'self' "
-                "https://cdn.jsdelivr.net https://netdna.bootstrapcdn.com "
-                "https://cdnjs.cloudflare.com https://unpkg.com; "
-                "connect-src 'self' https: http://localhost:* http://127.0.0.1:*"
-            )
+            if "content-security-policy" not in response.headers:
+                response.headers["Content-Security-Policy"] = (
+                    "default-src 'self'; img-src 'self' data: https:; "
+                    "script-src 'self' "
+                    "https://cdn.jsdelivr.net https://code.jquery.com "
+                    "https://cdnjs.cloudflare.com https://unpkg.com; "
+                    "style-src 'self' "
+                    "https://cdn.jsdelivr.net https://netdna.bootstrapcdn.com "
+                    "https://cdnjs.cloudflare.com https://unpkg.com; "
+                    "connect-src 'self' https: http://localhost:* http://127.0.0.1:*"
+                )
         return response
 
     cors_origins = (

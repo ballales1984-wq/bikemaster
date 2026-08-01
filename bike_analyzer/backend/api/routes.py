@@ -83,6 +83,7 @@ from .schemas import (
     BleDeviceRegister,
     BleDeviceUpdate,
     BleDeviceOut,
+    BleDeviceSync,
     HealthConnectPayload,
     GoogleFitImportPayload,
     GoogleFitTokenRequest,
@@ -166,6 +167,7 @@ def _build_redirect_uri(request: Request, path: str) -> str:
         host_lower.endswith(".ngrok-free.dev")
         or host_lower.endswith(".trycloudflare.com")
         or host_lower.endswith(".vercel.app")
+        or host_lower.endswith(".onrender.com")
     ):
         proto = "https"
     return f"{proto}://{host}{path}"
@@ -278,6 +280,8 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
         # (r"https://.*\.vercel\.app") instead of hardcoding a single subdomain,
         # so newly generated Vercel deploy URLs keep working for login.
         if host_lower.endswith(".vercel.app"):
+            return
+        if host_lower.endswith(".onrender.com"):
             return
         # Allow any ngrok-free tunnel host. The URL changes on every restart, so
         # hardcoding it (e.g. "tonita-deposable-manneristically.ngrok-free.dev")
@@ -431,122 +435,63 @@ def _sanitize_html_message(message: dict) -> dict:
     return escaped
 
 
-def _google_fit_message_html(message: dict) -> HTMLResponse:
+def _oauth_callback_response(payload: str, status_code: int = 200) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
-    payload = json.dumps(_sanitize_html_message(message))
-    return HTMLResponse(
-        f"""<!DOCTYPE html>
-        <html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-inline' 'self'"><title>Authorization</title></head>
-        <body>
-        <script>
-          (function() {{
-            var sent = false;
-            function doPost() {{
-              if (sent) return;
-              try {{
-                if (window.opener && !window.opener.closed) {{
-                  window.opener.postMessage({payload}, '*');
-                  sent = true;
-                }}
-              }} catch (e) {{}}
-            }}
-            function doClose() {{
-              try {{ window.close(); }} catch (e) {{}}
-              setTimeout(doClose, 100);
-            }}
-            doPost();
-            setTimeout(doPost, 50);
-            setTimeout(doPost, 150);
-            setTimeout(doPost, 400);
-            setTimeout(function() {{
-              if (!sent) {{
-                try {{ window.opener && window.opener.postMessage({payload}, '*'); }} catch (e2) {{}}
-              }}
-              doClose();
-            }}, 50);
-          }})();
-        </script>
-        </body></html>"""
+    html = (
+        "<!DOCTYPE html>"
+        '<html><head><meta charset="utf-8"><title>Authorization</title></head>'
+        "<body><script>"
+        "(function() {"
+        "var sent=false;"
+        "function doPost(){"
+        "if(sent)return;"
+        "try{if(window.opener&&!window.opener.closed){window.opener.postMessage(" + payload + ",'*');sent=true;}}"
+        "catch(e){}}"
+        "function doClose(){"
+        "try{window.close();}catch(e){}"
+        "setTimeout(doClose,100);"
+        "}"
+        "doPost();"
+        "setTimeout(doPost,50);"
+        "setTimeout(doPost,150);"
+        "setTimeout(doPost,400);"
+        "setTimeout(function(){"
+        "if(!sent){try{window.opener&&window.opener.postMessage(" + payload + ",'*');}catch(e2){}}"
+        "doClose();"
+        "},50);"
+        "})();</script></body></html>"
     )
+    response = HTMLResponse(content=html, status_code=status_code)
+    response.headers["Content-Security-Policy"] = _CALLBACK_CSP
+    return response
 
 
-def _google_health_message_html(message: dict) -> HTMLResponse:
-    """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
-    payload = json.dumps(_sanitize_html_message(message))
-    return HTMLResponse(
-        f"""<!DOCTYPE html>
-        <html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-inline' 'self'"><title>Authorization</title></head>
-        <body>
-        <script>
-          (function() {{
-            var sent = false;
-            function doPost() {{
-              if (sent) return;
-              try {{
-                if (window.opener && !window.opener.closed) {{
-                  window.opener.postMessage({payload}, '*');
-                  sent = true;
-                }}
-              }} catch (e) {{}}
-            }}
-            function doClose() {{
-              try {{ window.close(); }} catch (e) {{}}
-              setTimeout(doClose, 100);
-            }}
-            doPost();
-            setTimeout(doPost, 50);
-            setTimeout(doPost, 150);
-            setTimeout(doPost, 400);
-            setTimeout(function() {{
-              if (!sent) {{
-                try {{ window.opener && window.opener.postMessage({payload}, '*'); }} catch (e2) {{}}
-              }}
-              doClose();
-            }}, 50);
-          }})();
-        </script>
-        </body></html>"""
-    )
+_CALLBACK_CSP = "default-src 'self'; script-src 'unsafe-inline' 'self'; style-src 'self'; img-src 'self' data: https:"
+
+
+def _oauth_html_response(html: str, status_code: int = 200) -> HTMLResponse:
+    """HTMLResponse with a permissive CSP for OAuth callback pages (inline scripts)."""
+    response = HTMLResponse(content=html, status_code=status_code)
+    response.headers["Content-Security-Policy"] = _CALLBACK_CSP
+    return response
 
 
 def _strava_message_html(message: dict, status_code: int = 200) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
     payload = json.dumps(_sanitize_html_message(message))
-    return HTMLResponse(
-        f"""<!DOCTYPE html>
-        <html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-inline' 'self'"><title>Authorization</title></head>
-        <body>
-        <script>
-          (function() {{
-            var sent = false;
-            function doPost() {{
-              if (sent) return;
-              try {{
-                if (window.opener && !window.opener.closed) {{
-                  window.opener.postMessage({payload}, '*');
-                  sent = true;
-                }}
-              }} catch (e) {{}}
-            }}
-            function doClose() {{
-              try {{ window.close(); }} catch (e) {{}}
-              setTimeout(doClose, 100);
-            }}
-            doPost();
-            setTimeout(doPost, 50);
-            setTimeout(doPost, 150);
-            setTimeout(doPost, 400);
-            setTimeout(function() {{
-              if (!sent) {{
-                try {{ window.opener && window.opener.postMessage({payload}, '*'); }} catch (e2) {{}}
-              }}
-              doClose();
-            }}, 50);
-          }})();
-        </script>
-        </body></html>""",
-        status_code=status_code,
-    )
+    return _oauth_callback_response(payload, status_code=status_code)
+
+
+def _google_fit_message_html(message: dict) -> HTMLResponse:
+    """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
+    payload = json.dumps(_sanitize_html_message(message))
+    return _oauth_callback_response(payload)
+
+
+def _google_health_message_html(message: dict) -> HTMLResponse:
+    """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
+    payload = json.dumps(_sanitize_html_message(message))
+    return _oauth_callback_response(payload)
 
 
 @router.get("/health")
@@ -3393,7 +3338,7 @@ async def google_fit_callback(
     cache_key = f"oauth:code:google-fit:{code}"
     cached_result = await _cached(cache_key)
     if cached_result:
-        return HTMLResponse(content=cached_result["html"])
+        return _oauth_html_response(cached_result["html"])
 
     try:
         token_data = exchange_code_for_token(_s.google_fit_client_id, _s.google_fit_client_secret, code, redirect_uri)
@@ -3402,7 +3347,7 @@ async def google_fit_callback(
         if response is not None and response.status_code == 400:
             cached_retry = await _cached(cache_key)
             if cached_retry:
-                return HTMLResponse(content=cached_retry["html"])
+                return _oauth_html_response(cached_retry["html"])
             return _google_fit_message_html(
                 {
                     "type": "google-fit-error",
@@ -3435,7 +3380,7 @@ async def google_fit_callback(
     }
     html_content = f"<script>window.opener&&window.opener.postMessage({json.dumps(payload)}, window.location.origin);window.close();</script>"
     await _cache_set(cache_key, {"html": html_content}, ttl=300)
-    return HTMLResponse(content=html_content)
+    return _oauth_html_response(html_content)
 
 
 @router.post("/import/google-fit")
@@ -5392,6 +5337,7 @@ def _strava_redirect_uri_for(request: Request, redirect_uri: str | None = None) 
         host_lower.endswith(".ngrok-free.dev")
         or host_lower.endswith(".trycloudflare.com")
         or host_lower.endswith(".vercel.app")
+        or host_lower.endswith(".onrender.com")
     ):
         proto = "https"
     return f"{proto}://{host}/api/v1/import/strava/callback"
@@ -5646,7 +5592,11 @@ async def delete_ble_device(current_user: dict = Depends(get_current_user), devi
 
 
 @router.post("/ble/devices/{device_id}/sync")
-async def sync_ble_device(current_user: dict = Depends(get_current_user), device_id: int = ...):
+async def sync_ble_device(
+    current_user: dict = Depends(get_current_user),
+    device_id: int = ...,
+    payload: BleDeviceSync | None = Body(default=None),
+):
     """Trigger a sync/read from a BLE device. Frontend provides the data."""
     from ..db.database import get_ble_device, mark_ble_device_synced, log_athlete_metric
 
@@ -5657,29 +5607,39 @@ async def sync_ble_device(current_user: dict = Depends(get_current_user), device
         raise HTTPException(status_code=404, detail="BLE device not found")
     device_type = existing.get("device_type", "generic")
     note = f"ble:{existing.get('device_id', '')}"
+    has_value = payload is not None and payload.value is not None
+    unit = payload.unit if payload else None
     if device_type == "weight_scale":
-        metric_type = "weight_kg"
-        unit = "kg"
+        metric_type = "weight_kg" if unit != "lb" else "weight_lb"
+        unit = unit or "kg"
     elif device_type == "heart_rate":
         metric_type = "heart_rate_bpm"
-        unit = "bpm"
+        unit = unit or "bpm"
     elif device_type == "blood_pressure":
         metric_type = "blood_pressure_systolic"
-        unit = "mmHg"
+        unit = unit or "mmHg"
     else:
         metric_type = "ble_generic"
-        unit = "value"
-    log_athlete_metric(
-        athlete_id=athlete_id,
-        metric_type=metric_type,
-        value=None,
-        tenant_id=tenant_id,
-        unit=unit,
-        note=note,
-        source="ble",
-    )
+        unit = unit or "value"
+    metric_id = 0
+    if has_value:
+        metric_id = log_athlete_metric(
+            athlete_id=athlete_id,
+            metric_type=metric_type,
+            value=payload.value,
+            tenant_id=tenant_id,
+            unit=unit,
+            note=note,
+            source="ble",
+            recorded_at=payload.recorded_at,
+        )
     mark_ble_device_synced(device_id, athlete_id)
-    return {"status": "synced", "device_id": device_id, "type": device_type}
+    return {
+        "status": "synced",
+        "device_id": device_id,
+        "type": device_type,
+        "metric_id": metric_id,
+    }
 
 
 # ------------------------------------------------------------------
