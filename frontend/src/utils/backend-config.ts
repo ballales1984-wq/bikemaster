@@ -146,7 +146,7 @@ export function resolveApiBase(): string {
   if (stored) return stored;
 
   if (isTauri()) {
-    return TAURI_EMBEDDED_BACKEND_BASE;
+    return "";
   }
 
   const envBase =
@@ -201,8 +201,7 @@ export function getBackendMode(): BackendMode {
   if (isCapacitor()) return "mobile";
 
   const base = resolveApiBase();
-  if (!base) return isTauri() ? "local" : "local";
-  if (isTauri() && base === TAURI_EMBEDDED_BACKEND_BASE) return "tauri";
+  if (!base) return "local";
   if (base.includes("onrender.com")) return "render";
   return "pc";
 }
