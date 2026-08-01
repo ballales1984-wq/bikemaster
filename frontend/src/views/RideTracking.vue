@@ -494,6 +494,9 @@ function processCandidate(
     lon,
     altitude,
     timestamp: new Date(timestampMs).toISOString(),
+    heartRate: null,
+    cadence: null,
+    power: null,
   };
 
   const speedOutlier = gpsOutlierFilter.isOutlier(candidate);
@@ -617,6 +620,7 @@ function resetTrackingState() {
   tracking.setGpxPath(null);
   tracking.setGpxBlob(null);
   tracking.setRideId(null);
+  tracking.clearPersistedState();
 }
 
 function showFullRoute() {
@@ -682,7 +686,14 @@ function openAetherMap() {
 }
 
 onMounted(() => {
-  resetTrackingState();
+  const restored = tracking.restoreState();
+  if (!restored) {
+    resetTrackingState();
+  } else if (tracking.routePoints.length > 0) {
+    liveMapRef.value?.setRoute(
+      tracking.routePoints.map((p) => ({ lat: p.lat, lon: p.lon })),
+    );
+  }
 });
 
 onBeforeUnmount(() => {
@@ -695,6 +706,7 @@ onBeforeUnmount(() => {
   if (tracking.isTracking && !tracking.gpxBlob) {
     stopWebTracking();
   }
+  tracking.persistState();
 });
 </script>
 

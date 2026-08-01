@@ -4,9 +4,11 @@
  * Registers cycling metrics (distance, speed, elevation,
  * FC, cadenza, potenza), traccia punti GPS e genera GPX.
  */
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { defineStore } from "pinia";
 import type { GpsPoint } from "../types/index";
+
+const STORAGE_KEY = "bikemaster_tracking_draft";
 
 export const useTrackingStore = defineStore("tracking", () => {
   const isTracking = ref(false);
@@ -73,6 +75,7 @@ export const useTrackingStore = defineStore("tracking", () => {
     routePoints.value.push(point);
     lastPoint.value = point;
     points.value = routePoints.value.length;
+    persistState();
   }
 
   function setGpxPath(path: string | null = null) {
@@ -102,6 +105,7 @@ export const useTrackingStore = defineStore("tracking", () => {
     gpxPath.value = null;
     gpxBlob.value = null;
     rideId.value = null;
+    clearPersistedState();
   }
 
   function toGpx(name = "BikeMaster ride") {
@@ -114,14 +118,17 @@ export const useTrackingStore = defineStore("tracking", () => {
           point.altitude !== null && point.altitude !== undefined
             ? `\n        <ele>${point.altitude}</ele>`
             : "";
+        const extensions = buildGpxExtensions(point);
         return `      <trkpt lat="${point.lat}" lon="${point.lon}">${eleStr}
         <time>${point.timestamp || new Date().toISOString()}</time>
+        ${extensions}
       </trkpt>`;
       })
       .join("\n");
 
     return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="BikeMaster-Web" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="BikeMaster-Web" xmlns="http://www.topografix.com/GPX/1/1"
+      xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">
   <trk>
     <name>${safeName}</name>
     <trkseg>
@@ -130,6 +137,86 @@ ${route}
   </trk>
 </gpx>
 `;
+  }
+
+  function buildGpxExtensions(point: GpsPoint): string {
+    const parts: string[] = [];
+    if (point.heartRate !== null && point.heartRate !== undefined) {
+      parts.push(`<gpxtpx:hr>${point.heartRate}</gpxtpx:hr>`);
+    }
+    if (point.cadence !== null && point.cadence !== undefined) {
+      parts.push(`<gpxtpx:cad>${point.cadence}</gpxtpx:cad>`);
+    }
+    if (point.power !== null && point.power !== undefined) {
+      parts.push(`<gpxtpx:power>${point.power}</gpxtpx:power>`);
+    }
+    if (parts.length === 0) return "";
+    return `\n        <gpxtpx:TrackPointExtension>\n          ${parts.join("\n          ")}\n        </gpxtpx:TrackPointExtension>`;
+  }
+
+  function persistState() {
+    if (typeof window === "undefined") return;
+    try {
+      const state = {
+        isTracking: isTracking.value,
+        isPaused: isPaused.value,
+        distance: distance.value,
+        currentSpeed: currentSpeed.value,
+        avgSpeed: avgSpeed.value,
+        elapsedTime: elapsedTime.value,
+        elevation: elevation.value,
+        points: points.value,
+        heartRate: heartRate.value,
+        cadence: cadence.value,
+        power: power.value,
+        routePoints: routePoints.value,
+        lastPoint: lastPoint.value,
+        rideId: rideId.value,
+        timestamp: Date.now(),
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // sessionStorage may be full or unavailable
+    }
+  }
+
+  function restoreState(): boolean {
+    if (typeof window === "undefined") return false;
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      const state = JSON.parse(raw);
+      if (!state || !state.routePoints || state.routePoints.length === 0) {
+        clearPersistedState();
+        return false;
+      }
+      isTracking.value = state.isTracking ?? false;
+      isPaused.value = state.isPaused ?? false;
+      distance.value = state.distance ?? 0;
+      currentSpeed.value = state.currentSpeed ?? 0;
+      avgSpeed.value = state.avgSpeed ?? 0;
+      elapsedTime.value = state.elapsedTime ?? 0;
+      elevation.value = state.elevation ?? 0;
+      points.value = state.points ?? 0;
+      heartRate.value = state.heartRate ?? null;
+      cadence.value = state.cadence ?? null;
+      power.value = state.power ?? null;
+      routePoints.value = state.routePoints ?? [];
+      lastPoint.value = state.lastPoint ?? null;
+      rideId.value = state.rideId ?? null;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function clearPersistedState() {
+    if (typeof window === "undefined") return;
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
   }
 
   const formattedTime = computed(() => {
@@ -172,6 +259,10 @@ ${route}
     setRideId,
     resetMetrics,
     toGpx,
+    buildGpxExtensions,
+    persistState,
+    restoreState,
+    clearPersistedState,
     formattedTime,
     formattedDistance,
   };

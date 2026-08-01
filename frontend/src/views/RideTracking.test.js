@@ -39,6 +39,9 @@ const useTrackingStore = defineStore("tracking", () => {
   function setGpxBlob() {}
   function setRideId() {}
   function toGpx() { return ""; }
+  function persistState() {}
+  function restoreState() { return false; }
+  function clearPersistedState() {}
 
   return {
     isTracking, isPaused, distance, currentSpeed, avgSpeed,
@@ -46,6 +49,7 @@ const useTrackingStore = defineStore("tracking", () => {
     gpxPath, gpxBlob, routePoints, lastPoint, rideId,
     start, stop, pause, resume, addPoint, updateMetrics,
     resetMetrics, setGpxPath, setGpxBlob, setRideId, toGpx,
+    persistState, restoreState, clearPersistedState,
   };
 });
 

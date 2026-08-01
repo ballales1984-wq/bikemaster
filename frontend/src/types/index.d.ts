@@ -110,6 +110,9 @@ export interface GpsPoint {
   timestampNumber?: number;
   elevation?: number | null;
   elevation_m?: number | null;
+  heartRate?: number | null;
+  cadence?: number | null;
+  power?: number | null;
 }
 
 export interface RideSegment {
