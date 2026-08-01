@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     # Default to localhost only. In production, set CORS_ORIGINS explicitly
     # to the exact origins that should be allowed (no wildcards).
     # For mobile access, add your PC's local network IP (e.g. http://192.168.1.100:8000).
-    cors_origins: str = "http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000,http://127.0.0.1:8080"
+    cors_origins: str = "http://localhost:8000,http://localhost:8001,http://localhost:8080,http://127.0.0.1:8000,http://127.0.0.1:8001,http://127.0.0.1:8080"
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -104,7 +104,7 @@ class Settings(BaseSettings):
     # === OAuth redirect host allow-list (http/https) ===
     # Comma-separated hosts additionally allowed as OAuth redirect_uri targets.
     # The request Origin header is NEVER trusted, to prevent open-redirect attacks.
-    oauth_allowed_redirect_hosts: str = ""
+    oauth_allowed_redirect_hosts: str = "localhost"
 
     @property
     def oauth_allowed_hosts_list(self) -> list[str]:
