@@ -26,7 +26,7 @@
 
 export const API_BASE_STORAGE_KEY = "bikemaster_api_base";
 export const API_FALLBACK_ENABLED_KEY = "bikemaster_api_fallback_enabled";
-export const RENDER_FALLBACK_BASE = "https://bikemaster-api.onrender.com";
+export const RENDER_FALLBACK_BASE = "https://bikemaster.onrender.com";
 export const TAURI_EMBEDDED_BACKEND_BASE = "http://localhost:8001";
 export const HUB_API_BASE_STORAGE_KEY = "bikemaster_hub_api_base";
 
@@ -87,7 +87,7 @@ export function setFallbackEnabled(enabled: boolean): void {
 
 export function resolveApiBase(): string {
   // If the SPA is served by the same backend through a tunnel domain
-  // (ngrok, cloudflared, Vercel preview), usa same-origin per evitare
+  // (ngrok, cloudflared, Vercel preview, Render), usa same-origin per evitare
   // richieste cross-origin e problemi CORS.
   if (typeof window !== "undefined" && typeof location !== "undefined") {
     const h = location.hostname.toLowerCase();
@@ -96,7 +96,8 @@ export function resolveApiBase(): string {
       h === "127.0.0.1" ||
       h.endsWith(".ngrok-free.dev") ||
       h.endsWith(".trycloudflare.com") ||
-      h.endsWith(".vercel.app")
+      h.endsWith(".vercel.app") ||
+      h.endsWith(".onrender.com")
     ) {
       const p = location.port;
       if (h === "localhost" || h === "127.0.0.1") {
@@ -105,7 +106,8 @@ export function resolveApiBase(): string {
       if (
         h.endsWith(".ngrok-free.dev") ||
         h.endsWith(".trycloudflare.com") ||
-        h.endsWith(".vercel.app")
+        h.endsWith(".vercel.app") ||
+        h.endsWith(".onrender.com")
       ) {
         return "";
       }
