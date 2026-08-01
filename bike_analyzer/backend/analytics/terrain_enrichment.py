@@ -13,11 +13,21 @@ try:
     from aethermap.ai.pipeline import Pipeline, WorldStore
     from aethermap.twin.objects import make_albero, make_montagna, make_strada
     from aethermap.twin.world import DigitalTwin, Environment
+    _AETHERMAP_AVAILABLE: bool = True
 except ImportError as exc:
-    raise RuntimeError(
-        "AetherMap package is required for terrain enrichment. "
+    logger.warning(
+        "AetherMap not installed; terrain enrichment disabled. "
         "Install with: pip install -e \".[maps]\""
-    ) from exc
+    )
+    _AETHERMAP_AVAILABLE = False
+    RawPoint = None
+    Pipeline = None
+    WorldStore = None
+    DigitalTwin = None
+    Environment = None
+    make_albero = None
+    make_montagna = None
+    make_strada = None
 
 
 @dataclass
@@ -81,7 +91,16 @@ class TerrainEnricher:
         ora: str = "12:00",
         enabled: bool = True,
     ) -> None:
-        self.enabled = enabled
+        self.enabled = enabled and _AETHERMAP_AVAILABLE
+        if not _AETHERMAP_AVAILABLE:
+            logger.warning(
+                "TerrainEnricher: AetherMap not available, terrain enrichment disabled"
+            )
+            self.store = None
+            self.pipeline = None
+            self.twin = None
+            self.env = None
+            return
         self.store = WorldStore()
         self.pipeline = Pipeline(self.store)
         self.twin = DigitalTwin()
@@ -181,7 +200,11 @@ class TerrainEnricher:
         return None
 
     def snapshot(self) -> list[dict]:
+        if not _AETHERMAP_AVAILABLE:
+            return []
         return self.twin.snapshot()
 
     def h3_summary(self, resolution: int = 9) -> dict[str, dict[str, int]]:
+        if not _AETHERMAP_AVAILABLE:
+            return {}
         return self.twin.h3_summary(resolution)
