@@ -1049,32 +1049,36 @@ async def register(
                 raise HTTPException(status_code=400, detail=detail)
 
             password_hash = hash_password(password)
+            user_values: dict[str, Any] = {
+                "username": username,
+                "password_hash": password_hash,
+                "is_admin": False,
+                "is_active": True,
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC),
+            }
+            if email:
+                user_values["email"] = email
             stmt = (
                 insert(UserModel)
-                .values(
-                    username=username,
-                    email=email,
-                    password_hash=password_hash,
-                    is_admin=False,
-                    is_active=True,
-                    created_at=datetime.now(UTC),
-                    updated_at=datetime.now(UTC),
-                )
+                .values(**user_values)
                 .returning(UserModel.id)
             )
             result = await session.execute(stmt)
             user_id = result.scalar_one()
             await session.commit()
 
-            athlete = AthleteModel(
-                id=user_id,
-                user_id=user_id,
-                name=username,
-                email=email,
-                experience_level="Beginner",
-                tenant_id=user_id,
-                created_at=datetime.now(UTC),
-            )
+            athlete_values: dict[str, Any] = {
+                "id": user_id,
+                "user_id": user_id,
+                "name": username,
+                "experience_level": "Beginner",
+                "tenant_id": user_id,
+                "created_at": datetime.now(UTC),
+            }
+            if email:
+                athlete_values["email"] = email
+            athlete = AthleteModel(**athlete_values)
             session.add(athlete)
             await session.commit()
             return {
