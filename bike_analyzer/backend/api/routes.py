@@ -395,6 +395,29 @@ def _get_user_oauth_creds(user_id: int, provider: str) -> dict | None:
     return _get_creds(user_id, provider)
 
 
+async def _ensure_users_table() -> None:
+    """Ensure the ``users`` table exists in PostgreSQL.
+
+    Used as a fallback when Alembic migrations did not create it yet.
+    """
+    if not _s.database_url:
+        return
+    try:
+        from ..db.async_db import get_session_factory
+        from ..db.models import Base, UserModel
+
+        factory = get_session_factory()
+        async with factory() as session:
+            stmt = "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')"
+            result = await session.execute(text(stmt))
+            exists = result.scalar_one()
+            if not exists:
+                await session.run_sync(Base.metadata.create_all, tables=[UserModel.__table__])
+                await session.commit()
+    except Exception:
+        pass
+
+
 def _ensure_ride_access(ride: dict, current_user: dict) -> None:
     """Raise 403 if ``current_user`` is neither the ride owner nor the tenant owner."""
     if not current_user.get("is_admin"):
@@ -1004,6 +1027,8 @@ async def register(
             status_code=400,
             detail="Username must be 3-64 chars, password 8-128 chars",
         )
+
+    await _ensure_users_table()
 
     if _s.database_url:
         from sqlalchemy import select
