@@ -336,7 +336,6 @@ function renderMap() {
 
   ridesToRender.forEach((ride) => {
     const rideLayer = L.layerGroup();
-    const points = ride.gps_points || [];
 
     buildRidePolylines(ride).forEach((polylineData) => {
       const polyline = L.polyline(polylineData.points, {

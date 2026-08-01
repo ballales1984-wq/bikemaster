@@ -2063,7 +2063,7 @@ def upsert_metabolic_reference_value(value: dict, tenant_id: int = 0) -> int:
 
 def get_metabolic_reference_value(sex: str, age: int, weight_kg: float, activity_level: str = "moderate", tenant_id: int = 0) -> dict | None:
     """Return the imported reference row for the bracket closest to age/weight."""
-    from ..core.calculators.metabolism import age_bracket, weight_bracket
+    from ...core.calculators.metabolism import age_bracket, weight_bracket
 
     a_lo, a_hi = age_bracket(age)
     w_lo, w_hi = weight_bracket(weight_kg)

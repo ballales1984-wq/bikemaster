@@ -232,10 +232,7 @@ class TestMetabolicSummary:
 
     def test_recalculate_calibrated(self, athlete_client):
         tc, aid = athlete_client
-        try:
-            resp = tc.post("/api/v1/metabolism/recalculate-calibrated?date=2024-06-15")
-        except Exception:
-            pytest.skip("recalculate-calibrated has a pre-existing import issue in database.py")
+        resp = tc.post("/api/v1/metabolism/recalculate-calibrated?date=2024-06-15")
         assert resp.status_code in (200, 500)
 
 
@@ -292,13 +289,10 @@ class TestMetabolicCalibration:
             "/api/v1/metabolism/profile",
             json={"sex": "male", "activity_level": "moderate"},
         )
-        try:
-            resp = tc.post(
-                "/api/v1/metabolism/calibrate",
-                json={"sensor_bmr_kcal": 1850.0, "sensor_tdee_kcal": 2600.0, "date": "2024-06-15"},
-            )
-        except Exception:
-            pytest.skip("calibrate endpoint has a pre-existing import issue in database.py")
+        resp = tc.post(
+            "/api/v1/metabolism/calibrate",
+            json={"sensor_bmr_kcal": 1850.0, "sensor_tdee_kcal": 2600.0, "date": "2024-06-15"},
+        )
         assert resp.status_code == 200
 
     def test_get_weights(self, athlete_client):
