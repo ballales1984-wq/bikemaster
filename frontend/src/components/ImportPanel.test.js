@@ -7,6 +7,18 @@ const apiPost = vi.hoisted(() => vi.fn());
 const apiPut = vi.hoisted(() => vi.fn());
 const apiDelete = vi.hoisted(() => vi.fn());
 const apiUpload = vi.hoisted(() => vi.fn());
+
+const mockConnectionsServices = vi.fn(() => []);
+
+vi.mock("../stores/connections", () => ({
+  useConnectionsStore: () => ({
+    get services() {
+      return mockConnectionsServices();
+    },
+    load: vi.fn(),
+  }),
+}));
+
 vi.mock("../utils/api.ts", () => ({
   apiGet,
   apiPost,
@@ -163,6 +175,10 @@ describe("ImportPanel", () => {
   });
 
   it("has Google Fit connect button", async () => {
+    mockConnectionsServices.mockReturnValueOnce([
+      { service: "google_fit", available: true },
+    ]);
+
     const wrapper = mount(ImportPanel, { global: { plugins: [createPinia()] } });
 
     expect(wrapper.text()).toContain("Import from Google Fit");

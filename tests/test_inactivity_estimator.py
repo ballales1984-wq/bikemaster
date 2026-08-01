@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from bike_analyzer.backend.analytics.inactivity_estimator import estimate_inactivity
 
@@ -23,7 +23,7 @@ def test_recent_ride_no_loss():
 
 def test_week_break_moderate_loss():
     base = datetime.now(UTC)
-    last_ride = base.replace(day=base.day - 5).isoformat()
+    last_ride = (base - timedelta(days=5)).isoformat()
     result = estimate_inactivity([_ride(last_ride)])
     assert 2.0 <= result.estimated_ftp_loss_pct <= 5.0
     assert result.recovery_plan_days > 0

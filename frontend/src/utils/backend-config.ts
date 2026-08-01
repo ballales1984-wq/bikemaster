@@ -52,7 +52,7 @@ export function isCapacitor(): boolean {
     Capacitor?: { isNative?: boolean; isNativePlatform?: boolean };
   };
   if (!win.Capacitor) return false;
-  return !!(win.Capacitor.isNative || win.Capacitor.isNativePlatform);
+  return Boolean(win.Capacitor.isNative || win.Capacitor.isNativePlatform);
 }
 
 export function getStoredApiBase(): string {
