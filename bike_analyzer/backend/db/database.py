@@ -1201,6 +1201,11 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
     atleta. Riprova fino a 5 volte su lock SQLite con backoff esponenziale.
     Restituisce l'id dell'atleta creato/aggiornato.
     """
+    from .postgres_athlete import has_postgres
+    from .postgres_athlete import save_athlete as _pg_save_athlete
+
+    if has_postgres():
+        return _pg_save_athlete(athlete, athlete_id, tenant_id, user_id)
     import time
 
     max_retries = 5
@@ -1333,6 +1338,11 @@ def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
     Restituisce un dict con tutti i campi della tabella ``athletes`` oppure
     ``None`` se l'atleta non esiste o non appartiene al tenant.
     """
+    from .postgres_athlete import get_athlete as _pg_get_athlete
+    from .postgres_athlete import has_postgres
+
+    if has_postgres():
+        return _pg_get_athlete(athlete_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -1374,6 +1384,11 @@ def save_athlete_snapshot(athlete: dict, tenant_id: int = 0, changed_by: int | N
 
     Returns the id of the created snapshot. Excludes password_hash for security.
     """
+    from .postgres_athlete import has_postgres
+    from .postgres_athlete import save_athlete_snapshot as _pg_save_snapshot
+
+    if has_postgres():
+        return _pg_save_snapshot(athlete, tenant_id, changed_by)
     cols = [
         "athlete_id", "tenant_id", "recorded_at", "changed_by", "name", "email",
         "picture", "age", "weight_kg", "height_cm", "fat_percentage",
@@ -1447,6 +1462,11 @@ def save_athlete_snapshot(athlete: dict, tenant_id: int = 0, changed_by: int | N
 
 def get_athlete_history(athlete_id: int, *, tenant_id: int | None = None, limit: int = 100) -> list[dict]:
     """Return the change history for an athlete, newest first."""
+    from .postgres_athlete import get_athlete_history as _pg_get_history
+    from .postgres_athlete import has_postgres
+
+    if has_postgres():
+        return _pg_get_history(athlete_id, tenant_id=tenant_id, limit=limit)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -1470,6 +1490,11 @@ def get_athlete_history(athlete_id: int, *, tenant_id: int | None = None, limit:
 
 def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     """Merge ``athlete_data`` into the existing athlete row. Returns True if updated."""
+    from .postgres_athlete import has_postgres
+    from .postgres_athlete import update_athlete as _pg_update_athlete
+
+    if has_postgres():
+        return _pg_update_athlete(athlete_id, athlete_data)
     existing = get_athlete(athlete_id)
     if not existing:
         return False
@@ -1654,6 +1679,14 @@ def log_athlete_metric(
     ``recorded_at`` is stored as an ISO-8601 UTC timestamp so the same event
     can later be aggregated by day / month / second when drawing charts.
     """
+    from .postgres_athlete import has_postgres
+    from .postgres_athlete import log_athlete_metric as _pg_log_metric
+
+    if has_postgres():
+        return _pg_log_metric(
+            athlete_id, metric_type, value, tenant_id=tenant_id, unit=unit,
+            note=note, source=source, recorded_at=recorded_at,
+        )
     if value is None:
         return 0
     if not recorded_at:
@@ -1689,6 +1722,13 @@ def get_athlete_metric_log(
     limit: int = 2000,
 ) -> list[dict]:
     """Return the time series for one metric, oldest-first, for charting."""
+    from .postgres_athlete import get_athlete_metric_log as _pg_get_log
+    from .postgres_athlete import has_postgres
+
+    if has_postgres():
+        return _pg_get_log(
+            athlete_id, metric_type, tenant_id=tenant_id, days=days, limit=limit
+        )
     since = (datetime.now(UTC) - timedelta(days=days)).isoformat()
     with get_db_connection() as conn:
         cur = conn.cursor()
