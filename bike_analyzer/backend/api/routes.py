@@ -127,8 +127,12 @@ from .schemas import (
      WahooCallbackRequest,
      HrSampleCreate,
      HrSamplesBulk,
-     HrMonitoringSettings,
-     Hr24hSummary,
+      HrMonitoringSettings,
+      Hr24hSummary,
+      SensorSample,
+      SensorSamplesBulk,
+      ActivityClassification,
+      ActivitySummaryResponse,
 )
 from .utils import _trusted_forwarded_value
 
@@ -1996,6 +2000,63 @@ async def get_aethermap_terrain_tile(
         "resolution": resolution,
         "source": "procedural",
     }
+
+
+@router.get("/aethermap/geo/roads")
+async def get_aethermap_geo_roads(
+    place: str = Query(..., description="Place name (e.g. 'Pavia, Italy')"),
+    network_type: str = Query("drive", description="OSM network type"),
+    simplify: bool = Query(True, description="Simplify geometries"),
+):
+    """Return OSM road network as GeoJSON for a place name."""
+    try:
+        from aethermap.geo.osm_loader import load_roads
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail="Geo dependencies not installed") from exc
+    try:
+        data = load_roads(place, network_type=network_type, simplify=simplify)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return data
+
+
+@router.get("/aethermap/geo/cities")
+async def get_aethermap_geo_cities(
+    north: float = Query(..., description="North latitude"),
+    south: float = Query(..., description="South latitude"),
+    east: float = Query(..., description="East longitude"),
+    west: float = Query(..., description="West longitude"),
+):
+    """Return city/place POIs as GeoJSON within a bounding box."""
+    try:
+        from aethermap.geo.osm_loader import load_cities
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail="Geo dependencies not installed") from exc
+    try:
+        data = load_cities((north, south, east, west))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return data
+
+
+@router.get("/aethermap/geo/peaks")
+async def get_aethermap_geo_peaks(
+    north: float = Query(..., description="North latitude"),
+    south: float = Query(..., description="South latitude"),
+    east: float = Query(..., description="East longitude"),
+    west: float = Query(..., description="West longitude"),
+    min_ele: float = Query(0.0, description="Minimum elevation in meters"),
+):
+    """Return mountain peaks as GeoJSON within a bounding box."""
+    try:
+        from aethermap.geo.osm_loader import load_peaks
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail="Geo dependencies not installed") from exc
+    try:
+        data = load_peaks((north, south, east, west), min_ele=min_ele)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return data
 
 
 @router.get("/rides/{ride_id}/terrain")
@@ -6339,6 +6400,58 @@ async def delete_hr_samples_route(
     tenant_id = current_user.get("tenant_id", athlete_id)
     count = delete_hr_samples(athlete_id, tenant_id=tenant_id, older_than=older_than)
     return {"deleted": count}
+
+
+@router.post("/hr/sensor")
+async def log_sensor_data_route(
+    payload: SensorSamplesBulk,
+    current_user: dict = Depends(get_current_user),
+):
+    """Persist raw BLE sensor readings (heart-rate, GPS, accelerometer)."""
+    from ..db.database import log_sensor_data
+
+    athlete_id = _current_athlete_id(current_user)
+    tenant_id = current_user.get("tenant_id", athlete_id)
+    count = log_sensor_data(
+        athlete_id,
+        [s.model_dump() for s in payload.samples],
+        tenant_id=tenant_id,
+    )
+    return {"saved": count}
+
+
+@router.get("/activity/summary", response_model=ActivitySummaryResponse)
+@limiter.limit("60/minute")
+async def get_activity_summary_route(
+    request: Request,
+    days: int = Query(30, ge=1, le=365),
+    current_user: dict = Depends(get_current_user),
+):
+    """Return daily activity classifications for the last *days* days."""
+    from ..db.database import get_activity_summary
+
+    athlete_id = _current_athlete_id(current_user)
+    tenant_id = current_user.get("tenant_id", athlete_id)
+    history = get_activity_summary(athlete_id, days=days, tenant_id=tenant_id)
+    return {"history": [ActivityClassification(**h) for h in history]}
+
+
+@router.post("/activity/classify")
+@limiter.limit("60/minute")
+async def classify_day_route(
+    request: Request,
+    for_date: str = Query(default=None, description="ISO date YYYY-MM-DD; defaults to today"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Compute (and persist) the activity classification for a single day."""
+    from ..db.database import classify_day
+
+    athlete_id = _current_athlete_id(current_user)
+    tenant_id = current_user.get("tenant_id", athlete_id)
+    if for_date is None:
+        for_date = datetime.now(UTC).strftime("%Y-%m-%d")
+    result = classify_day(athlete_id, for_date, tenant_id=tenant_id)
+    return result
 
 
 @router.get("/dashboard")

@@ -180,6 +180,8 @@ function fbm(x: number, y: number, octaves = 6): number {
 function getTerrainHeight(lat: number, lon: number): number {
   const latR = lat * DEG;
   const lonR = lon * DEG;
+  const continent = continentHeight(lat, lon);
+  if (continent <= 0.0) return 0.0;
   const n = fbm(lonR * 3, latR * 3, 6);
   const n2 = fbm(lonR * 7 + 100, latR * 7 + 100, 4);
   const mask = n * 0.7 + n2 * 0.3;
@@ -188,9 +190,44 @@ function getTerrainHeight(lat: number, lon: number): number {
     const detail = fbm(lonR * 15, latR * 15, 4);
     let elevation = ((mask - threshold) / (1 - threshold)) * 0.7 + detail * 0.3;
     if (latR > 1.2) elevation *= Math.max(0, 1 - (latR - 1.2) / 0.4);
-    return Math.max(0, elevation) * 4000;
+    return Math.max(0, elevation) * 4000 * continent;
   }
-  return 0;
+  return 0.0;
+}
+
+function continentHeight(lat: number, lon: number): number {
+  const m = Math.max(
+    smoothEllipseJS(lat, lon, 45.0, -100.0, 22.0, 28.0),
+    smoothEllipseJS(lat, lon, 30.0, -90.0, 10.0, 15.0) * 0.8,
+    smoothEllipseJS(lat, lon, -15.0, -55.0, 12.0, 18.0) * 0.9,
+    smoothEllipseJS(lat, lon, 50.0, 10.0, 12.0, 18.0) * 0.85,
+    smoothEllipseJS(lat, lon, 5.0, 20.0, 22.0, 22.0) * 0.9,
+    smoothEllipseJS(lat, lon, 40.0, 80.0, 25.0, 40.0) * 0.85,
+    smoothEllipseJS(lat, lon, 55.0, 100.0, 12.0, 20.0) * 0.7,
+    smoothEllipseJS(lat, lon, -25.0, 135.0, 10.0, 14.0) * 0.8,
+  );
+  if (Math.abs(lat) > 75) return 0.5;
+  const detail = fbm(lon * 3, lat * 3, 4) * 0.2;
+  const v = Math.max(0, Math.min(1, (m + detail - 0.45) / 0.2));
+  return v;
+}
+
+function smoothEllipseJS(
+  lat: number,
+  lon: number,
+  clat: number,
+  clon: number,
+  rlat: number,
+  rlon: number,
+): number {
+  const dlat = (lat - clat) / rlat;
+  const dlon = (lon - clon) / rlon;
+  const d = dlat * dlat + dlon * dlon;
+  return 1.0 - smoothJS(Math.max(0, Math.min(1, (d - 0.7) / 0.3)));
+}
+
+function smoothJS(t: number): number {
+  return t * t * (3 - 2 * t);
 }
 
 const terrainTileCache = new Map<
@@ -777,7 +814,8 @@ onMounted(async () => {
   vec3 satelliteColor(vec2 latLon, float elevation) {
     float lat = latLon.x;
     float lon = latLon.y;
-    float landMask = step(0.52, fbm2(vec2(lon * 3.0, lat * 3.0) + 0.5));
+
+    float continent = continentMask(lat, lon);
     float polar = smoothstep(0.85, 1.0, abs(lat) / 1.57);
 
     vec3 oceanDeep = vec3(0.02, 0.08, 0.22);
@@ -800,8 +838,40 @@ onMounted(async () => {
     land = mix(land, snow, smoothstep(0.3, 0.5, elevation));
     land = mix(land, snow, polar);
 
-    vec3 color = mix(ocean, land, landMask);
+    vec3 color = mix(ocean, land, continent);
     return color;
+  }
+
+  float continentMask(float lat, float lon) {
+    float m = 0.0;
+
+    // North America
+    m = max(m, smoothEllipse(lat, lon, 45.0, -100.0, 22.0, 28.0));
+    m = max(m, smoothEllipse(lat, lon, 30.0, -90.0, 10.0, 15.0) * 0.8);
+    // South America
+    m = max(m, smoothEllipse(lat, lon, -15.0, -55.0, 12.0, 18.0) * 0.9);
+    // Europe
+    m = max(m, smoothEllipse(lat, lon, 50.0, 10.0, 12.0, 18.0) * 0.85);
+    // Africa
+    m = max(m, smoothEllipse(lat, lon, 5.0, 20.0, 22.0, 22.0) * 0.9);
+    // Asia
+    m = max(m, smoothEllipse(lat, lon, 40.0, 80.0, 25.0, 40.0) * 0.85);
+    m = max(m, smoothEllipse(lat, lon, 55.0, 100.0, 12.0, 20.0) * 0.7);
+    // Australia
+    m = max(m, smoothEllipse(lat, lon, -25.0, 135.0, 10.0, 14.0) * 0.8);
+    // Antarctica
+    m = max(m, smoothstep(0.85, 1.0, abs(lat) / 1.57));
+
+    float detail = fbm2(vec2(lon * 8.0, lat * 8.0) + 0.5);
+    m = smoothstep(0.45, 0.65, m + detail * 0.2);
+    return m;
+  }
+
+  float smoothEllipse(float lat, float lon, float clat, float clon, float rlat, float rlon) {
+    float dlat = (lat - clat) / rlat;
+    float dlon = (lon - clon) / rlon;
+    float d = dlat * dlat + dlon * dlon;
+    return 1.0 - smoothstep(0.7, 1.0, d);
   }
 
   void main() {

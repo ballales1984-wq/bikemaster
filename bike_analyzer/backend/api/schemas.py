@@ -367,6 +367,47 @@ class Hr24hSummary(BaseModel):
     sample_count: int = 0
 
 
+class SensorSample(BaseModel):
+    """Raw BLE sensor reading (heart-rate, GPS, accelerometer)."""
+
+    ts: str
+    heart_rate: int | None = Field(default=None, ge=0, le=300)
+    lat: float | None = None
+    lng: float | None = None
+    altitude: float | None = None
+    accel_x: float | None = None
+    accel_y: float | None = None
+    accel_z: float | None = None
+    speed_kmh: float | None = None
+
+
+class SensorSamplesBulk(BaseModel):
+    """Bulk payload for raw sensor data."""
+
+    samples: list[SensorSample]
+
+
+class ActivityClassification(BaseModel):
+    """Daily activity classification derived from HR + GPS + movement."""
+
+    date: str
+    label: str = Field(..., pattern=r"^(sleep|recovery|active|rest)$")
+    hr_resting: int | None = None
+    hr_avg: float | None = None
+    hours: float | None = None
+    steps_estimated: int | None = None
+    distance_km: float | None = None
+    rides_count: int | None = None
+    confidence: float | None = None
+
+
+class ActivitySummaryResponse(BaseModel):
+    """Paginated activity classification summary."""
+
+    history: list[ActivityClassification]
+
+
+
 
 class Token(BaseModel):
     """Token di accesso JWT."""

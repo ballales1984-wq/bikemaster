@@ -28,6 +28,11 @@ dependencies = [
 [project.optional-dependencies]
 s2 = ["s2sphere>=0.2.5"]
 viewer = ["pygame>=2.5.0"]
+geo = [
+    "osmnx>=1.9.0",
+    "geopandas>=0.14.0",
+    "shapely>=2.0.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -122,7 +122,8 @@ export function useOAuthConnection(config: OAuthProviderConfig) {
   function getRedirectUri(): string {
     const dev = import.meta.env.DEV;
     if (dev) return `http://localhost:8000${config.callbackEndpoint}`;
-    if (isTauri()) return `${TAURI_EMBEDDED_BACKEND_BASE}${config.callbackEndpoint}`;
+    if (isTauri())
+      return `${TAURI_EMBEDDED_BACKEND_BASE}${config.callbackEndpoint}`;
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     return `${origin}${config.callbackEndpoint}`;
   }

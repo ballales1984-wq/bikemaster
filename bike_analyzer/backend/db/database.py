@@ -715,6 +715,40 @@ def init_db():
             FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_hr_settings_athlete ON hr_monitoring_settings(athlete_id)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS sensor_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER NOT NULL,
+            tenant_id INTEGER DEFAULT 0,
+            ts TEXT NOT NULL,
+            heart_rate INTEGER,
+            lat REAL,
+            lng REAL,
+            altitude REAL,
+            accel_x REAL,
+            accel_y REAL,
+            accel_z REAL,
+            speed_kmh REAL,
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sensor_athlete_ts ON sensor_data(athlete_id, ts)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS daily_activity_classification (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            athlete_id INTEGER NOT NULL,
+            tenant_id INTEGER DEFAULT 0,
+            date TEXT NOT NULL,
+            label TEXT NOT NULL,
+            hr_resting INTEGER,
+            hr_avg REAL,
+            hours REAL,
+            steps_estimated INTEGER,
+            distance_km REAL,
+            source TEXT DEFAULT 'derived',
+            confidence REAL,
+            computed_at TEXT,
+            FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE,
+            UNIQUE(athlete_id, date)
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_activity_athlete_date ON daily_activity_classification(athlete_id, date)")
         conn.execute("""CREATE TABLE IF NOT EXISTS strava_tokens (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
@@ -973,6 +1007,10 @@ def save_ride(ride: dict) -> int:
     e serializza i punti GPS come JSON. Riprova fino a 5 volte in caso di
     lock SQLite con backoff esponenziale.
     """
+    from .postgres_rides import save_ride as _pg_save_ride, has_postgres
+
+    if has_postgres():
+        return _pg_save_ride(ride)
     import time
 
     max_retries = 5
@@ -1049,6 +1087,10 @@ def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
     Restituisce un dict con tutti i campi della tabella ``rides`` oppure
     ``None`` se l'attivita' non esiste o non appartiene al tenant.
     """
+    from .postgres_rides import get_ride as _pg_get_ride, has_postgres
+
+    if has_postgres():
+        return _pg_get_ride(ride_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -1067,6 +1109,10 @@ def get_rides_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[
     I risultati sono ordinati per id crescente (dal piu' vecchio al piu'
     recente). Usa ``_row_to_ride`` per deserializzare i punti GPS da JSON.
     """
+    from .postgres_rides import get_rides_by_athlete as _pg_get_rides, has_postgres
+
+    if has_postgres():
+        return _pg_get_rides(athlete_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -1107,6 +1153,10 @@ def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | Non
 
 def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
     """Return rides filtered by athlete and/or tenant, or all rides if none provided."""
+    from .postgres_rides import get_all_rides as _pg_get_all, has_postgres
+
+    if has_postgres():
+        return _pg_get_all(athlete_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if athlete_id is not None and tenant_id is not None:
@@ -1123,6 +1173,10 @@ def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -
 
 def delete_ride(ride_id: int, tenant_id: int | None = None) -> bool:
     """Delete a ride by id, optionally scoped to a tenant. Returns True if deleted."""
+    from .postgres_rides import delete_ride as _pg_delete, has_postgres
+
+    if has_postgres():
+        return _pg_delete(ride_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -1135,60 +1189,50 @@ def delete_ride(ride_id: int, tenant_id: int | None = None) -> bool:
 
 
 def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
-    """Update an existing ride. Returns True if a row was modified."""
+    """Partially update an existing ride (PATCH semantics).
+
+    Only the columns present in ``ride`` are written, so a NOT-NULL column (e.g.
+    ``date``) is never clobbered with NULL when the caller passes a subset of
+    fields. Returns True if a row was modified.
+    """
+    from .postgres_rides import update_ride as _pg_update, has_postgres
+
+    if has_postgres():
+        return _pg_update(ride_id, ride, tenant_id)
+    cols = [
+        c
+        for c in (
+            "athlete_id", "date", "distance_km", "duration_minutes", "avg_speed_kmh",
+            "weight_kg", "calories", "heart_rate_avg", "elevation_gain_m",
+            "gps_points", "external_source", "external_id", "title", "activity_type",
+            "is_official", "source", "created_at", "tenant_id",
+        )
+        if c in ride and c != "id"
+    ]
+    if not cols:
+        return False
+    assignments = []
+    params = []
+    for c in cols:
+        val = ride.get(c)
+        if c == "gps_points":
+            val = json.dumps(val) if val else None
+        elif c == "is_official":
+            val = 1 if val else 0
+        elif c == "activity_type":
+            val = val or "ride"
+        elif c == "source":
+            val = val or "manual"
+        assignments.append(f"{c} = ?")
+        params.append(val)
     with get_db_connection() as conn:
         cur = conn.cursor()
-        gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
-        ride_tenant_id = ride.get("tenant_id", tenant_id) or ride.get("athlete_id")
         if tenant_id is not None:
-            cur.execute(
-                """UPDATE rides SET athlete_id=?, date=?, distance_km=?,
-                duration_minutes=?, avg_speed_kmh=?, weight_kg=?, calories=?,
-                heart_rate_avg=?, elevation_gain_m=?, gps_points=?,
-                activity_type=?, is_official=?, source=?, tenant_id=? WHERE id=? AND tenant_id=?""",
-                (
-                    ride.get("athlete_id"),
-                    ride.get("date"),
-                    ride.get("distance_km", 0),
-                    ride.get("duration_minutes", 0),
-                    ride.get("avg_speed_kmh", 0),
-                    ride.get("weight_kg", 70),
-                    ride.get("calories", 0),
-                    ride.get("heart_rate_avg"),
-                    ride.get("elevation_gain_m"),
-                    gps_points,
-                    ride.get("activity_type", "ride"),
-                    1 if ride.get("is_official", True) else 0,
-                    ride.get("source", "manual"),
-                    ride_tenant_id,
-                    ride_id,
-                    tenant_id,
-                ),
-            )
+            params += [ride_id, tenant_id]
+            cur.execute(f"UPDATE rides SET {', '.join(assignments)} WHERE id = ? AND tenant_id = ?", params)
         else:
-            cur.execute(
-                """UPDATE rides SET athlete_id=?, date=?, distance_km=?,
-                duration_minutes=?, avg_speed_kmh=?, weight_kg=?, calories=?,
-                heart_rate_avg=?, elevation_gain_m=?, gps_points=?,
-                activity_type=?, is_official=?, source=?, tenant_id=? WHERE id=?""",
-                (
-                    ride.get("athlete_id"),
-                    ride.get("date"),
-                    ride.get("distance_km", 0),
-                    ride.get("duration_minutes", 0),
-                    ride.get("avg_speed_kmh", 0),
-                    ride.get("weight_kg", 70),
-                    ride.get("calories", 0),
-                    ride.get("heart_rate_avg"),
-                    ride.get("elevation_gain_m"),
-                    gps_points,
-                    ride.get("activity_type", "ride"),
-                    1 if ride.get("is_official", True) else 0,
-                    ride.get("source", "manual"),
-                    ride_tenant_id,
-                    ride_id,
-                ),
-            )
+            params.append(ride_id)
+            cur.execute(f"UPDATE rides SET {', '.join(assignments)} WHERE id = ?", params)
         conn.commit()
         return cur.rowcount > 0
 
@@ -1357,6 +1401,10 @@ def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
 
 def save_metric(metric: dict, tenant_id: int = 0) -> int:
     """Insert a metrics row (fatigue, recovery, calories, efficiency) for a ride."""
+    from .postgres_rides import has_postgres, save_metric as _pg_save_metric
+
+    if has_postgres():
+        return _pg_save_metric(metric, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -2010,7 +2058,264 @@ def delete_hr_samples(athlete_id: int, *, tenant_id: int | None = None, older_th
         return int(cur.rowcount)
 
 
-def save_metabolic_profile(profile: dict, athlete_id: int, tenant_id: int = 0) -> int:
+def log_sensor_data(
+    athlete_id: int,
+    samples: list[dict[str, Any]],
+    *,
+    tenant_id: int = 0,
+) -> int:
+    """Bulk-insert raw BLE sensor readings (heart-rate, GPS, accelerometer)."""
+    if not samples:
+        return 0
+    rows: list[tuple[Any, ...]] = []
+    for s in samples:
+        ts = s.get("ts") or s.get("recorded_at") or datetime.now(UTC).isoformat()
+        rows.append(
+            (
+                athlete_id,
+                tenant_id,
+                ts,
+                s.get("heart_rate"),
+                s.get("lat"),
+                s.get("lng"),
+                s.get("altitude"),
+                s.get("accel_x"),
+                s.get("accel_y"),
+                s.get("accel_z"),
+                s.get("speed_kmh"),
+            )
+        )
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.executemany(
+            """INSERT INTO sensor_data
+               (athlete_id, tenant_id, ts, heart_rate, lat, lng, altitude,
+                accel_x, accel_y, accel_z, speed_kmh)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            rows,
+        )
+        conn.commit()
+        return int(cur.rowcount)
+
+
+def classify_day(
+    athlete_id: int,
+    for_date: str,
+    *,
+    tenant_id: int = 0,
+) -> dict:
+    """Compute the activity classification for a single calendar day.
+
+    Combines HR 24h samples, GPS movement (rides) and metabolic summaries to
+    derive an autonomous label: ``sleep``, ``recovery``, ``active`` or
+    ``rest``.  Results are persisted into ``daily_activity_classification``.
+    """
+    date_start = for_date
+    date_end = for_date
+
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT MIN(heart_rate) as resting_hr,
+                      ROUND(AVG(heart_rate), 1) as avg_hr,
+                      MAX(heart_rate) as max_hr,
+                      COUNT(*) as sample_count
+               FROM hr_24h_samples
+               WHERE athlete_id = ? AND date(recorded_at) = ?""",
+            (athlete_id, date_start),
+        )
+        hr_row = cur.fetchone()
+        resting_hr = hr_row[0] if hr_row and hr_row[0] is not None else None
+        avg_hr = hr_row[1] if hr_row and hr_row[1] is not None else None
+        sample_count = hr_row[3] if hr_row and hr_row[3] is not None else 0
+
+        cur.execute(
+            """SELECT ROUND(SUM(distance_km), 2) as total_km,
+                      SUM(duration_minutes) as total_min,
+                      ROUND(SUM(calories), 0) as total_cal,
+                      COUNT(*) as rides_count
+               FROM rides
+               WHERE athlete_id = ? AND date(date) = ?""",
+            (athlete_id, date_start),
+        )
+        ride_row = cur.fetchone()
+        distance_km = ride_row[0] if ride_row and ride_row[0] is not None else 0.0
+        rides_count = ride_row[3] if ride_row and ride_row[3] is not None else 0
+        calories = ride_row[2] if ride_row and ride_row[2] is not None else 0
+
+        cur.execute(
+            """SELECT steps_estimated, tdee_kcal, neat_kcal, intake_kcal
+               FROM metabolic_daily_summaries
+               WHERE athlete_id = ? AND date = ? AND tenant_id = ?""",
+            (athlete_id, date_start, tenant_id),
+        )
+        meta_row = cur.fetchone()
+
+    # Heuristic thresholds
+    high_activity_steps = 2000
+    high_activity_km = 1.0
+    sleep_threshold_ratio = 0.55
+    max_setting = _get_max_hr_setting(athlete_id)
+    resting_setting = _get_resting_hr_setting(athlete_id)
+
+    steps_estimated = int(meta_row[0]) if meta_row and meta_row[0] else 0
+    tdee_kcal = float(meta_row[1]) if meta_row and meta_row[1] else 0.0
+
+    # Determine label
+    is_sleep_day = (
+        resting_hr is not None
+        and resting_setting is not None
+        and sample_count > 0
+        and avg_hr is not None
+        and max_setting is not None
+        and resting_hr >= int(resting_setting * 0.85)
+        and avg_hr < max_setting * sleep_threshold_ratio
+    )
+    is_active = steps_estimated >= high_activity_steps or distance_km >= high_activity_km
+    is_recovery = not is_active and (resting_setting is not None) and (resting_hr is not None) and resting_hr <= resting_setting + 5
+
+    if is_sleep_day and not is_active:
+        label = "sleep"
+    elif is_active:
+        label = "active"
+    elif is_recovery:
+        label = "recovery"
+    else:
+        label = "rest"
+
+    confidence = 0.85 if is_active else (0.75 if is_recovery else 0.60)
+    hours = round(calories / 50.0, 1) if calories else 0.0  # rough estimate
+
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO daily_activity_classification
+               (athlete_id, tenant_id, date, label, hr_resting, hr_avg,
+                hours, steps_estimated, distance_km, source, confidence, computed_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(athlete_id, date) DO UPDATE SET
+               label = excluded.label,
+               hr_resting = excluded.hr_resting,
+               hr_avg = excluded.hr_avg,
+               hours = excluded.hours,
+               steps_estimated = excluded.steps_estimated,
+               distance_km = excluded.distance_km,
+               confidence = excluded.confidence,
+               computed_at = excluded.computed_at""",
+            (
+                athlete_id,
+                tenant_id,
+                date_start,
+                label,
+                resting_hr,
+                avg_hr,
+                hours,
+                steps_estimated,
+                distance_km,
+                "derived",
+                confidence,
+                now,
+            ),
+        )
+        conn.commit()
+
+    return {
+        "date": date_start,
+        "label": label,
+        "hr_resting": resting_hr,
+        "hr_avg": avg_hr,
+        "hours": hours,
+        "steps_estimated": steps_estimated,
+        "distance_km": distance_km,
+        "rides_count": rides_count,
+        "confidence": round(confidence, 2),
+    }
+
+
+def get_activity_summary(
+    athlete_id: int,
+    days: int = 30,
+    *,
+    tenant_id: int | None = None,
+) -> list[dict]:
+    """Return daily activity classifications for the last *days* days."""
+    since = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        sql = """
+            SELECT date, label, hr_resting, hr_avg, hours,
+                   steps_estimated, distance_km, confidence
+            FROM daily_activity_classification
+            WHERE athlete_id = ? AND date >= ?
+        """
+        params: list[Any] = [athlete_id, since]
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params.append(tenant_id)
+        sql += " ORDER BY date ASC"
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+    return [
+        {
+            "date": r[0],
+            "label": r[1],
+            "hr_resting": r[2],
+            "hr_avg": r[3],
+            "hours": r[4],
+            "steps_estimated": r[5],
+            "distance_km": r[6],
+            "confidence": r[7],
+        }
+        for r in rows
+    ]
+
+
+def get_activity_classification(
+    athlete_id: int,
+    for_date: str,
+    *,
+    tenant_id: int = 0,
+) -> dict | None:
+    """Return the persisted activity classification for a single day."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT date, label, hr_resting, hr_avg, hours,
+                      steps_estimated, distance_km, confidence
+               FROM daily_activity_classification
+               WHERE athlete_id = ? AND date = ? AND tenant_id = ?""",
+            (athlete_id, for_date, tenant_id),
+        )
+        row = cur.fetchone()
+    if not row:
+        return None
+    return {
+        "date": row[0],
+        "label": row[1],
+        "hr_resting": row[2],
+        "hr_avg": row[3],
+        "hours": row[4],
+        "steps_estimated": row[5],
+        "distance_km": row[6],
+        "confidence": row[7],
+    }
+
+
+def _get_max_hr_setting(athlete_id: int) -> int | None:
+    settings = get_hr_settings(athlete_id)
+    if not settings:
+        return None
+    val = settings.get("max_hr")
+    return int(val) if val is not None else None
+
+
+def _get_resting_hr_setting(athlete_id: int) -> int | None:
+    settings = get_hr_settings(athlete_id)
+    if not settings:
+        return None
+    val = settings.get("resting_hr")
+    return int(val) if val is not None else None
     """Upsert metabolic profile for an athlete."""
     now = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
@@ -2884,6 +3189,10 @@ def save_weather_cache(lat: float, lon: float, date: str, weather: dict) -> int:
 def upsert_training_stress_day(
     athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float, tenant_id: int = 0
 ) -> None:
+    from .postgres_rides import has_postgres, upsert_training_stress_day as _pg_upsert
+
+    if has_postgres():
+        return _pg_upsert(athlete_id, date, tss, atl, ctl, tsb, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         now = datetime.now(UTC).isoformat()
@@ -3012,6 +3321,10 @@ def delete_user(user_id: int) -> bool:
 
 
 def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | None = None) -> list[dict]:
+    from .postgres_rides import get_training_stress_days as _pg_get_stress, has_postgres
+
+    if has_postgres():
+        return _pg_get_stress(athlete_id, limit, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -3033,6 +3346,10 @@ def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | 
 
 
 def get_latest_training_stress(athlete_id: int, tenant_id: int | None = None) -> dict | None:
+    from .postgres_rides import get_latest_training_stress as _pg_get_latest, has_postgres
+
+    if has_postgres():
+        return _pg_get_latest(athlete_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -3943,4 +4260,8 @@ __all__ = [
     "upsert_hr_settings",
     "delete_hr_settings",
     "delete_hr_samples",
+    "log_sensor_data",
+    "classify_day",
+    "get_activity_summary",
+    "get_activity_classification",
 ]

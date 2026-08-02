@@ -5,6 +5,11 @@
   "buildCommand": "npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
   "cleanUrls": true,
+  "build": {
+    "env": {
+      "VITE_API_BASE": "https://bikemaster.onrender.com"
+    }
+  },
   "crons": [
     {
       "path": "/api/cron",

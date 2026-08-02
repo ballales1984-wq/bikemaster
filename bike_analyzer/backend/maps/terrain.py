@@ -83,7 +83,7 @@ def _generate_procedural_heightfield(
     lon = np.linspace(min_lon, max_lon, resolution)
     lon_grid, lat_grid = np.meshgrid(lon, lat)
     vfunc = np.vectorize(_continent_mask)
-    return vfunc(lat_grid, lat_grid).astype(np.float32)
+    return vfunc(lat_grid, lon_grid).astype(np.float32)
 
 
 def _try_fetch_dem_tile(

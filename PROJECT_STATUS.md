@@ -2,7 +2,7 @@
 
 **Completati: 155/145 step base + 50/80 estensioni**
 
-> **Stato**: architettura locale-first completata — distribuzione primaria: desktop **Tauri 2** (`.exe`/`.dmg`/`.AppImage`) con backend embedded FastAPI + SQLite locale. Deploy cloud opzionale (Render) per sync/community. Architettura local-first.
+> **Stato**: architettura locale-first completata — distribuzione di riferimento: desktop **Tauri 2** (`.exe`/`.dmg`/`.AppImage`) con backend embedded FastAPI + SQLite locale. **Produzione deployata su Render**: `bikemaster-api` (FastAPI/Docker) + PostgreSQL `bikemaster-db`, frontend statico servito same-origin (`render.yaml` come fonte di verità). Il modello legacy local-backend + ngrok→Vercel è ritirato. Sync device↔cloud opzionale. Architettura local-first.
 > Fonte di verità unica per stato/checklist: [`ROADMAP.md`](ROADMAP.md).
 >
 > **Numeri backend/frontend (verificati 2026-07-27, repo root):**
@@ -517,7 +517,7 @@ la verifica pass/fail completa è demandata alla pipeline CI.
 | **1** |  Test suite completata (frontend + backend) | **Fatto** |
 | **2** |  Google Maps dynamic path | **Fatto** |
 | **3** | Multi-utente (auth, ownership rides, data isolation) |  Completo |
-| **4** | PostgreSQL in produzione (dual-mode SQLite/PostgreSQL) |  |
+| **4** | PostgreSQL in produzione (dual-mode SQLite/PostgreSQL) |  ⚠️ `athletes`/`rides`/`metrics` SQLite-only su Render (efmero): persi al resume post-sospensione; `weight_kg` salvato ieri è default oggi. Auth su PostgreSQL sopravvive. Da migrare layer atleta/rides su PostgreSQL quando `DATABASE_URL` è impostato. |
 | **5** | Vector DB RAG |  Completo |
 | **6** | Playwright E2E spec (config presente, spec da scrivere) | ⏳ |
 

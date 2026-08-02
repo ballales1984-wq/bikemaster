@@ -109,7 +109,7 @@ def test_strava_sync_endpoint_is_idempotent(client, monkeypatch):
         "average_heartrate": 145,
         "calories": 600,
     }
-    async def _valid_token(athlete_id):
+    async def _valid_token(athlete_id, **kwargs):
         return "token"
 
     async def _fetch(token, after=None):

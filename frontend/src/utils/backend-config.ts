@@ -119,26 +119,16 @@ export function resolveApiBase(): string {
 
   if (typeof window !== "undefined" && typeof location !== "undefined") {
     const h = location.hostname.toLowerCase();
+    if (h === "localhost" || h === "127.0.0.1") {
+      const p = location.port;
+      if (p === "8000" || p === "8001") return "";
+    }
     if (
-      h === "localhost" ||
-      h === "127.0.0.1" ||
       h.endsWith(".ngrok-free.dev") ||
       h.endsWith(".trycloudflare.com") ||
-      h.endsWith(".vercel.app") ||
       h.endsWith(".onrender.com")
     ) {
-      const p = location.port;
-      if (h === "localhost" || h === "127.0.0.1") {
-        if (p === "8000" || p === "8001") return "";
-      }
-      if (
-        h.endsWith(".ngrok-free.dev") ||
-        h.endsWith(".trycloudflare.com") ||
-        h.endsWith(".vercel.app") ||
-        h.endsWith(".onrender.com")
-      ) {
-        return "";
-      }
+      return "";
     }
   }
 
