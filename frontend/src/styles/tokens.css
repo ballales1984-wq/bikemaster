@@ -135,6 +135,19 @@ body.light-theme {
   inherits: false;
 }
 
+/* ===== Z-index scale ===== */
+:root {
+  --z-bg: 0;
+  --z-base: 1;
+  --z-header: 2;
+  --z-content: 10;
+  --z-voice: 900;
+  --z-modal-backdrop: 1000;
+  --z-modal: 1100;
+  --z-toast: 3000;
+  --z-pwa: 5000;
+}
+
 @keyframes rotateGradient {
   to { --angle: 360deg; }
 }

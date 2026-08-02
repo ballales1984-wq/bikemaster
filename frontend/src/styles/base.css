@@ -28,7 +28,7 @@ body::before {
     radial-gradient(ellipse 60% 80% at 90% 80%, rgba(0, 136, 255, 0.04) 0%, transparent 60%),
     radial-gradient(ellipse 50% 50% at 50% 50%, rgba(168, 85, 247, 0.03) 0%, transparent 60%);
   pointer-events: none;
-  z-index: 0;
+  z-index: var(--z-bg);
   animation: meshFloat 20s ease-in-out infinite alternate;
 }
 
@@ -42,7 +42,7 @@ body::after {
     linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
   background-size: 48px 48px;
   pointer-events: none;
-  z-index: 0;
+  z-index: var(--z-bg);
   mask-image: radial-gradient(ellipse 90% 80% at 50% 30%, #000 40%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 30%, #000 40%, transparent 100%);
   animation: gridDrift 40s linear infinite;
@@ -128,7 +128,7 @@ body.light-theme * {
   scrollbar-color: rgba(0, 136, 255, 0.35) transparent;
 }
 
-.container { max-width: 1400px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+.container { max-width: 1400px; margin: 0 auto; padding: 20px; position: relative; z-index: var(--z-base); }
 
 header {
   text-align: center;
@@ -297,7 +297,7 @@ header h1 { color: var(--accent); font-size: 2.5rem; }
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: var(--z-modal);
   animation: fadeIn 0.2s ease;
 }
 

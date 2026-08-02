@@ -29,7 +29,7 @@
 
 <script setup lang="ts">
 import { usePWA } from "../composables/usePWA";
-import { computed, onMounted, onBeforeUnmount } from "vue";
+import { computed, watch, onMounted, onBeforeUnmount } from "vue";
 
 const { showPrompt, deferredPrompt, prompt } = usePWA();
 
@@ -38,6 +38,17 @@ const showBanner = computed(() => {
   if (!deferredPrompt.value) return false;
   return typeof deferredPrompt.value.prompt === "function";
 });
+
+const root = document.documentElement;
+const PWA_BANNER_HEIGHT = "96px";
+
+watch(showBanner, (val) => {
+  root.style.setProperty("--voice-bottom", val ? PWA_BANNER_HEIGHT : "24px");
+});
+
+if (showBanner.value) {
+  root.style.setProperty("--voice-bottom", PWA_BANNER_HEIGHT);
+}
 
 async function install() {
   if (!showBanner.value) return;
@@ -80,7 +91,7 @@ onMounted(() => {
   align-items: center;
   gap: 14px;
   box-shadow: var(--shadow);
-  z-index: 5000;
+  z-index: var(--z-pwa);
 }
 
 .pwa-banner-icon {

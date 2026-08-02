@@ -805,12 +805,12 @@ textarea {
   flex-shrink: 0;
 }
 
-/* ===== Toasts ===== */
+/* ===== Toasts (scoped duplicate — see ToastContainer.vue) ===== */
 #toast-container {
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 3000;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 10px;

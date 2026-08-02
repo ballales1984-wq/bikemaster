@@ -510,10 +510,6 @@ onBeforeUnmount(cleanup);
 
 <style scoped>
 .voice-assistant {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 900;
   display: flex;
   flex-direction: column;
   align-items: flex-end;

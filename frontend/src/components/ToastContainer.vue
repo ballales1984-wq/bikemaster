@@ -90,7 +90,7 @@ defineExpose({ add, remove });
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 3000;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 10px;

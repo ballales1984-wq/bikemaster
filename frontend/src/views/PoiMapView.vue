@@ -620,7 +620,7 @@ watch(selectedItineraryId, () => {
   overflow: hidden;
   background: var(--bg-secondary);
   position: relative;
-  z-index: 0;
+  z-index: var(--z-base);
 }
 
 .poi-form {
@@ -724,7 +724,7 @@ watch(selectedItineraryId, () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal-backdrop);
   padding: 16px;
 }
 

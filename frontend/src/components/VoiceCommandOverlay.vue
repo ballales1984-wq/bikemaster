@@ -211,10 +211,6 @@ function formatTime(date: Date): string {
 
 <style scoped>
 .voice-overlay {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 900;
   display: flex;
   flex-direction: column;
   align-items: flex-end;

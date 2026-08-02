@@ -274,12 +274,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   position: relative;
-  z-index: 1;
+  z-index: var(--z-base);
 }
 .app-bg {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: var(--z-bg);
   pointer-events: none;
   overflow: hidden;
 }
@@ -339,7 +339,7 @@ onMounted(() => {
   border-bottom: 1px solid var(--border);
   transition: var(--transition);
   position: relative;
-  z-index: 2;
+  z-index: var(--z-header);
   background: linear-gradient(180deg, rgba(10, 11, 16, 0.4), transparent);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -426,16 +426,16 @@ onMounted(() => {
   justify-content: center;
   padding: 20px;
   position: relative;
-  z-index: 1;
+  z-index: var(--z-content);
 }
 .app-main {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-content);
   flex: 1;
 }
 .footer {
   margin-top: auto;
-  z-index: 1;
+  z-index: var(--z-content);
   border-top: 1px solid var(--border);
   background: linear-gradient(0deg, rgba(10, 11, 16, 0.5), transparent);
   backdrop-filter: blur(6px);
@@ -540,7 +540,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal-backdrop);
 }
 .spinner {
   width: 40px;

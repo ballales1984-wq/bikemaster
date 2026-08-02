@@ -25,9 +25,9 @@ const assistantActive = computed(() => voiceSystem.isAssistantActive);
 <style scoped>
 .voice-system {
   position: fixed;
-  bottom: 24px;
+  bottom: var(--voice-bottom, 24px);
   right: 24px;
-  z-index: 900;
+  z-index: var(--z-voice);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -37,5 +37,11 @@ const assistantActive = computed(() => voiceSystem.isAssistantActive);
 
 .voice-system > * {
   pointer-events: auto;
+}
+
+@media (max-width: 480px) {
+  .voice-system {
+    right: 16px;
+  }
 }
 </style>
