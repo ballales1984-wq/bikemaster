@@ -503,6 +503,19 @@ def init_db():
             FOREIGN KEY (poi_id) REFERENCES pois(id) ON DELETE SET NULL
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_stages_itinerary ON stages(itinerary_id)")
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(stages)")
+        stage_cols = [row[1] for row in cur.fetchall()]
+        if "poi_id" not in stage_cols:
+            conn.execute("ALTER TABLE stages ADD COLUMN poi_id INTEGER")
+        if "notes" not in stage_cols:
+            conn.execute("ALTER TABLE stages ADD COLUMN notes TEXT")
+        if "tenant_id" not in stage_cols:
+            conn.execute("ALTER TABLE stages ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        if "created_at" not in stage_cols:
+            conn.execute("ALTER TABLE stages ADD COLUMN created_at TEXT")
+        if "updated_at" not in stage_cols:
+            conn.execute("ALTER TABLE stages ADD COLUMN updated_at TEXT")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_stages_poi ON stages(poi_id)")
         conn.execute("""CREATE TABLE IF NOT EXISTS fitness_states (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

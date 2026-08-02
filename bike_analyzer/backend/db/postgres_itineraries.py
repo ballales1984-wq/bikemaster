@@ -142,6 +142,24 @@ def save_itinerary(itinerary: dict) -> int:
         conn.close()
 
 
+def get_stage(stage_id: int, tenant_id: int | None = None) -> dict | None:
+    """Retrieve a single stage by id, optionally filtered by tenant."""
+    conn = _connect()
+    try:
+        _ensure_tables(conn)
+        with conn.cursor() as cur:
+            if tenant_id is not None:
+                cur.execute(
+                    "SELECT * FROM stages WHERE id=%s AND tenant_id=%s",
+                    (stage_id, tenant_id),
+                )
+            else:
+                cur.execute("SELECT * FROM stages WHERE id=%s", (stage_id,))
+            return _row_to_dict(cur.fetchone())
+    finally:
+        conn.close()
+
+
 def get_itinerary(itinerary_id: int, tenant_id: int | None = None) -> dict | None:
     """Retrieve a single itinerary by id, optionally filtered by tenant."""
     conn = _connect()

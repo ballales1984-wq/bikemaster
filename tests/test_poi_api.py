@@ -147,6 +147,51 @@ def test_itinerary_crud(db_path):
     assert any(i["id"] == it_id for i in lst["itineraries"])
 
 
+def test_stage_poi_link(db_path):
+    """A stage can be linked to a POI; the link (and estimated fields) round-trip."""
+    from bike_analyzer.backend.db import database as db_mod
+
+    client = _make_client(db_path)
+    db_mod.save_athlete(
+        {"username": "poilink", "email": "p@b.c", "name": "POI Link", "age": 30, "weight_kg": 75, "goals": "x"},
+        athlete_id=0,
+    )
+
+    it = client.post(
+        "/api/v1/itineraries",
+        json={"name": "Tour POI Link", "start_date": "2026-07-20", "end_date": "2026-07-22"},
+    )
+    assert it.status_code == 200, it.text
+    it_id = it.json()["id"]
+
+    poi = client.post("/api/v1/maps/pois", json=_sample_poi())
+    assert poi.status_code == 200, poi.text
+    poi_id = poi.json()["id"]
+
+    stage = client.post(
+        f"/api/v1/itineraries/{it_id}/stages",
+        json={
+            "stage_day": 1,
+            "title": "Tappa POI",
+            "distance_km": 30,
+            "elevation_gain_m": 200,
+            "estimated_km": 35,
+            "estimated_elevation_m": 180,
+            "poi_id": poi_id,
+            "notes": "legge collinare",
+        },
+    )
+    assert stage.status_code == 200, stage.text
+    assert stage.json()["poi_id"] == poi_id
+
+    read = client.get(f"/api/v1/itineraries/{it_id}").json()
+    stage_read = read["stages"][0]
+    assert stage_read["poi_id"] == poi_id
+    assert stage_read["estimated_km"] == 35
+    assert stage_read["elevation_gain_m"] == 200
+    assert stage_read["title"] == "Tappa POI"
+
+
 def test_list_by_itinerary(db_path):
     client = _make_client(db_path)
     from bike_analyzer.backend.db import database as db_mod
