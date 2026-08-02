@@ -517,7 +517,7 @@ la verifica pass/fail completa è demandata alla pipeline CI.
 | **1** |  Test suite completata (frontend + backend) | **Fatto** |
 | **2** |  Google Maps dynamic path | **Fatto** |
 | **3** | Multi-utente (auth, ownership rides, data isolation) |  Completo |
-| **4** | PostgreSQL in produzione (dual-mode SQLite/PostgreSQL) |  ⚠️ `athletes`/`rides`/`metrics` SQLite-only su Render (efmero): persi al resume post-sospensione; `weight_kg` salvato ieri è default oggi. Auth su PostgreSQL sopravvive. Da migrare layer atleta/rides su PostgreSQL quando `DATABASE_URL` è impostato. |
+| **4** | PostgreSQL in produzione (dual-mode SQLite/PostgreSQL) |  **Fatto** — `athletes`, `rides`, `metrics` e `training_stress_days` instradati su PostgreSQL quando `DATABASE_URL` è impostato (dispatch `has_postgres()` in `database.py`), con `postgres_rides.py`. `weight_kg` persiste su PG. Test mock + integrazione real-PG verdi (commit `d03a206`). |
 | **5** | Vector DB RAG |  Completo |
 | **6** | Playwright E2E spec (config presente, spec da scrivere) | ⏳ |
 
