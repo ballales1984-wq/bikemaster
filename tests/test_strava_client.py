@@ -206,9 +206,9 @@ class TestTokenStorage:
             conn.execute.return_value.fetchone.return_value = ("old_token", "refresh_xyz", expired_ts)
             mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
             mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
-            token = await get_valid_token(1)
+            token = await get_valid_token(1, client_id="test_id", client_secret="test_secret")
             assert token == "new_token"
-            mock_refresh.assert_called_once_with("refresh_xyz")
+            mock_refresh.assert_called_once_with("refresh_xyz", client_id="test_id", client_secret="test_secret")
 
 
 class TestFetchActivities:

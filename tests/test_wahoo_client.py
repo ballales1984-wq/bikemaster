@@ -49,13 +49,13 @@ class TestPkceHelpers:
 
 class TestBuildAuthorizationUrl:
     def test_returns_url(self):
-        url = build_authorization_url("state123", "challenge456")
+        url = build_authorization_url("state123", "challenge456", client_id="test_id")
         assert "wahooligan.com" in url
         assert "state123" in url
         assert "challenge456" in url
 
     def test_contains_required_params(self):
-        url = build_authorization_url("s", "c")
+        url = build_authorization_url("s", "c", client_id="test_id")
         assert "client_id=" in url
         assert "response_type=code" in url
         assert "code_challenge_method=S256" in url
@@ -93,7 +93,7 @@ class TestExchangeCodeForToken:
             mock_resp.json.return_value = {"access_token": "abc", "refresh_token": "def", "expires_at": 9999999999}
             mock_resp.raise_for_status.return_value = None
             mock_post.return_value = mock_resp
-            result = exchange_code_for_token("code123", "verifier123")
+            result = exchange_code_for_token("code123", "verifier123", client_id="test_id", client_secret="test_secret")
             assert result["access_token"] == "abc"
             mock_post.assert_called_once()
             call_args = mock_post.call_args
@@ -112,7 +112,7 @@ class TestRefreshAccessToken:
             }
             mock_resp.raise_for_status.return_value = None
             mock_post.return_value = mock_resp
-            result = refresh_access_token("old_refresh", "verifier")
+            result = refresh_access_token("old_refresh", "verifier", client_id="test_id", client_secret="test_secret")
             assert result["access_token"] == "new_token"
             assert "refresh_token" in result
             assert "expires_in" in result
@@ -209,9 +209,9 @@ class TestTokenStorage:
                 "refresh_token": "new_refresh",
                 "expires_in": 21600,
             }
-            token = get_valid_token(1)
+            token = get_valid_token(1, client_id="test_id", client_secret="test_secret")
             assert token == "new_token"
-            mock_refresh.assert_called_once_with("refresh_xyz", "verifier")
+            mock_refresh.assert_called_once_with("refresh_xyz", "verifier", client_id="test_id", client_secret="test_secret")
 
 
 class TestFetchWorkouts:
