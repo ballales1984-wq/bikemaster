@@ -43,7 +43,7 @@ def main() -> None:
     base = engine.compare(ctx, ScenarioOverride())  # baseline (nessun override)
     print(f"Scenario di base: power={base.scenario['PowerModel'].value:.1f} W")
 
-    print("\nConfronto con preset 'light_bike' (peso -5 kg, bici -1 kg):")
+    print("\nConfronto con preset 'light_bike' (bici -2 kg, CdA 0.33):")
     comparison = engine.compare_preset(ctx, "light_bike")
     summary = comparison.summary()
     try:

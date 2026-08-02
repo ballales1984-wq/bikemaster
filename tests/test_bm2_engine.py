@@ -203,8 +203,129 @@ def test_power_model_is_sensitive_to_weight():
 
     light = _run(65.0)
     heavy = _run(90.0)
-    assert heavy != light  # degenerate (always-FTP) case would tie them
-    assert heavy > light  # more mass -> more required power at same avg speed
+def test_power_model_sensitive_to_slope():
+    """What-if must react to slope: steeper -> more power at same speed.
+
+    Uses SimulationEngine.sensitivity() which properly adjusts GPS track
+    altitudes so that PowerModel reads the updated slope from activity metrics.
+    """
+    t = TransformerEngine()
+    athlete = Athlete(
+        weight_kg=t.normalize(q(75.0, "kg", source="manual")),
+        age=34, ftp_w=t.normalize(q(250.0, "W", source="manual")),
+        experience_level="Intermediate",
+    )
+    bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
+    pts = [
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+    ]
+    activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=pts)
+    world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(2.0, "%", source="dem")))
+    ctx = AnalysisContext(athlete=athlete, activity=activity, bike=bike, world=world, transformer=t)
+
+    engine = SimulationEngine([PowerModel])
+    sens = engine.sensitivity(ctx, "slope", [0.0, 2.0, 5.0, 8.0])
+    powers = [v for _, v in sens.curve("PowerModel")]
+    assert powers[0] < powers[-1]  # steeper slope -> more required power
+
+
+def test_power_model_sensitive_to_cda():
+    """What-if must react to CdA: higher drag -> more power at same speed."""
+    t = TransformerEngine()
+    bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
+    pts = [
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+    ]
+
+    def _run(cda: float) -> float:
+        athlete = Athlete(
+            weight_kg=t.normalize(q(75.0, "kg", source="manual")),
+            age=34, ftp_w=t.normalize(q(250.0, "W", source="manual")),
+            experience_level="Intermediate",
+        )
+        world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(3.0, "%", source="dem")))
+        b = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")), cda=cda)
+        activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=pts)
+        ctx = AnalysisContext(athlete=athlete, activity=activity, bike=b, world=world, transformer=t)
+        return PowerModel().run(ctx).value
+
+    low_cda = _run(0.28)
+    high_cda = _run(0.45)
+    assert high_cda != low_cda  # degenerate (always-FTP) case would tie them
+    assert high_cda > low_cda  # higher CdA -> more required power
+
+
+def test_power_model_zero_speed_returns_ftp_not_identity():
+    """When avg_speed_ms=0 and FTP is available, power=FTP and
+    sustainable_speed_ms is physically meaningful (not zero)."""
+    t = TransformerEngine()
+    athlete = Athlete(
+        weight_kg=t.normalize(q(72.0, "kg", source="manual")),
+        age=34, ftp_w=t.normalize(q(260.0, "W", source="manual")),
+        experience_level="Intermediate",
+    )
+    bike = Bike(weight_kg=t.normalize(q(7.8, "kg", source="manual")))
+    # Empty points -> avg_speed_ms = 0
+    activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=[])
+    world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(2.0, "%", source="dem")))
+    ctx = AnalysisContext(athlete=athlete, activity=activity, bike=bike, world=world, transformer=t)
+    r = PowerModel().run(ctx)
+    # Power should be FTP when no speed data is available
+    assert r.value == pytest.approx(260.0, abs=1.0)
+    # Sustainable speed should be physically meaningful (not zero)
+    assert r.details.get("sustainable_speed_ms") is not None
+    assert r.details["sustainable_speed_ms"] > 0.0
+
+
+def test_power_model_whatif_sensitive_to_mass_zero_speed():
+    """What-if with zero-speed activity: changing mass must change
+    sustainable_speed_ms (the what-if output is not always the same)."""
+    t = TransformerEngine()
+    bike = Bike(weight_kg=t.normalize(q(7.8, "kg", source="manual")))
+    activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=[])
+    world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(2.0, "%", source="dem")))
+
+    def _sustainable_speed(weight_kg: float) -> float:
+        athlete = Athlete(
+            weight_kg=t.normalize(q(weight_kg, "kg", source="manual")),
+            age=34, ftp_w=t.normalize(q(260.0, "W", source="manual")),
+            experience_level="Intermediate",
+        )
+        ctx = AnalysisContext(athlete=athlete, activity=activity, bike=bike, world=world, transformer=t)
+        r = PowerModel().run(ctx)
+        return r.details.get("sustainable_speed_ms") or 0.0
+
+    light_speed = _sustainable_speed(65.0)
+    heavy_speed = _sustainable_speed(90.0)
+    assert light_speed != heavy_speed  # degenerate what-if would tie them
+    assert light_speed > heavy_speed  # less mass -> higher sustainable speed at FTP
+
+
+def test_power_model_whatif_sensitive_to_cda_zero_speed():
+    """What-if with zero-speed activity: changing CdA must change
+    sustainable_speed_ms (the what-if output is not always the same)."""
+    t = TransformerEngine()
+    athlete = Athlete(
+        weight_kg=t.normalize(q(72.0, "kg", source="manual")),
+        age=34, ftp_w=t.normalize(q(260.0, "W", source="manual")),
+        experience_level="Intermediate",
+    )
+    bike = Bike(weight_kg=t.normalize(q(7.8, "kg", source="manual")))
+    activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=[])
+    world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(2.0, "%", source="dem")))
+
+    def _sustainable_speed(cda: float) -> float:
+        b = Bike(weight_kg=t.normalize(q(7.8, "kg", source="manual")), cda=cda)
+        ctx = AnalysisContext(athlete=athlete, activity=activity, bike=b, world=world, transformer=t)
+        r = PowerModel().run(ctx)
+        return r.details.get("sustainable_speed_ms") or 0.0
+
+    aero_speed = _sustainable_speed(0.28)
+    drag_speed = _sustainable_speed(0.45)
+    assert aero_speed != drag_speed  # degenerate what-if would tie them
+    assert aero_speed > drag_speed  # lower CdA -> higher sustainable speed at FTP
 
 
 def test_power_model_with_sensor_power():
