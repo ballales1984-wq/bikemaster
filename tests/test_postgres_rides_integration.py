@@ -22,6 +22,8 @@ import pytest
 import bike_analyzer.backend.db.database as db
 from bike_analyzer.backend.db import postgres_rides as pr
 
+pytestmark = pytest.mark.integration  # requires PostgreSQL
+
 PG_URL = "postgresql://postgres:postgres@localhost:5432/bikemaster"
 
 _TABLES = ["rides", "metrics", "training_stress_days"]

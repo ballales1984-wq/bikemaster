@@ -97,6 +97,64 @@ Clean Architecture structure:
 
 ---
 
+## Quick Start
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 20+ (frontend)
+- PostgreSQL 16 (optional, for cloud sync/testing)
+- Redis (optional, for caching/rate-limiting)
+
+### Start the backend (local-first)
+
+```sh
+# SQLite only (no external services required)
+make back-run
+
+# With PostgreSQL + Redis (for sync/integration tests)
+make docker-up
+make back-run-dev
+```
+
+### Start the frontend (web dev)
+
+```sh
+cd frontend
+npm install
+npm run dev
+```
+
+### Run tests
+
+```sh
+# Python backend tests (default: excludes integration)
+make test
+
+# Include integration tests (requires PostgreSQL + Redis)
+make test-integration
+
+# Frontend tests
+cd frontend && npm run test
+```
+
+### Lint and typecheck
+
+```sh
+make lint       # ruff + eslint
+npm run typecheck  # frontend (run from frontend/)
+```
+
+### Build for production
+
+```sh
+make front-build      # builds and copies to backend/static/
+docker build -t bikemaster .   # backend container
+cd frontend && npx vercel --prod
+```
+
+---
+
 ## Backend Extension
 
 ### Add New Pure Calculator

@@ -1,6 +1,12 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
+# Makefile and shell scripts must use LF on all platforms
+Makefile text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=lf
+.github/workflows/*.yml text eol=lf
+
 # Kotlin/Java
 *.kt diff=kotlin
 *.java diff=java
