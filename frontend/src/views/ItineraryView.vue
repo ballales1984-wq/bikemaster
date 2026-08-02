@@ -62,6 +62,12 @@
           step="1"
           placeholder="Dislivello m"
         />
+        <input
+          v-model.number="stage.poi_id"
+          type="number"
+          min="0"
+          placeholder="POI id (opz.)"
+        />
         <button :disabled="!stage.title" @click="onAddStage">+ Tappa</button>
       </div>
 
@@ -96,10 +102,12 @@ const stage = ref<{
   title: string;
   distance_km: number | null;
   elevation_gain_m: number | null;
+  poi_id: number | null;
 }>({
   title: "",
   distance_km: null,
   elevation_gain_m: null,
+  poi_id: null,
 });
 
 onMounted(() => store.loadList());
@@ -123,7 +131,12 @@ async function onAddStage() {
     ...stage.value,
   });
   if (ok) {
-    stage.value = { title: "", distance_km: null, elevation_gain_m: null };
+    stage.value = {
+      title: "",
+      distance_km: null,
+      elevation_gain_m: null,
+      poi_id: null,
+    };
   }
 }
 </script>

@@ -712,7 +712,11 @@ class StageCreate(BaseModel):
     title: str | None = Field(default=None, max_length=150)
     distance_km: float | None = Field(default=None, ge=0, le=100000)
     elevation_gain_m: float | None = Field(default=None, ge=0, le=100000)
+    estimated_km: float | None = Field(default=None, ge=0, le=100000)
+    estimated_elevation_m: float | None = Field(default=None, ge=0, le=100000)
     ride_id: int | None = Field(default=None, gt=0)
+    poi_id: int | None = Field(default=None, gt=0)
+    notes: str | None = Field(default=None, max_length=2000)
 
 
 class StageResponse(StageCreate):

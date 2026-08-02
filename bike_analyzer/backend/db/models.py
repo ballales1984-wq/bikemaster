@@ -209,6 +209,7 @@ class AthleteModel(Base):
     metrics: Mapped[list["MetricModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     route_safety_scores: Mapped[list["RouteSafetyScore"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     pois: Mapped[list["POIModel"]] = relationship(back_populates="created_by_athlete", cascade="all, delete-orphan")
+    itineraries: Mapped[list["ItineraryModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     external_identities: Mapped[list["ExternalIdentityModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     external_tokens: Mapped[list["ExternalTokenModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     metric_logs: Mapped[list["AthleteMetricLogModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
@@ -345,6 +346,7 @@ class RideModel(Base):
     athlete: Mapped["AthleteModel | None"] = relationship(back_populates="rides")
     metrics: Mapped[list["MetricModel"]] = relationship(back_populates="ride", cascade="all, delete-orphan")
     route_safety_scores: Mapped[list["RouteSafetyScore"]] = relationship(back_populates="ride", cascade="all, delete-orphan")
+    stages: Mapped[list["StageModel"]] = relationship(back_populates="ride", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint(
@@ -622,7 +624,9 @@ class POIModel(Base):
     video_url: Mapped[str | None] = mapped_column(String)
     difficulty_note: Mapped[str | None] = mapped_column(Text)
     tags: Mapped[str | None] = mapped_column(Text)
-    itinerary_id: Mapped[int | None] = mapped_column(Integer)
+    itinerary_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("itineraries.id", ondelete="SET NULL")
+    )
     created_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("athletes.id", ondelete="SET NULL")
     )
@@ -630,11 +634,82 @@ class POIModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     created_by_athlete: Mapped["AthleteModel | None"] = relationship(back_populates="pois")
+    itinerary: Mapped["ItineraryModel | None"] = relationship(back_populates="pois")
+    stages: Mapped[list["StageModel"]] = relationship(back_populates="poi", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("idx_pois_coords", "lat", "lon"),
         Index("ix_pois_type", "type"),
         Index("ix_pois_tenant", "tenant_id"),
+    )
+
+
+class ItineraryModel(Base):
+    """Multi-day tour itinerary composed of stages."""
+
+    __tablename__ = "itineraries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    athlete_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
+    )
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    start_date: Mapped[str | None] = mapped_column(String)
+    end_date: Mapped[str | None] = mapped_column(String)
+    total_km: Mapped[float] = mapped_column(Float, default=0.0)
+    total_elevation_m: Mapped[float] = mapped_column(Float, default=0.0)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="itineraries")
+    stages: Mapped[list["StageModel"]] = relationship(
+        back_populates="itinerary", cascade="all, delete-orphan"
+    )
+    pois: Mapped[list["POIModel"]] = relationship(back_populates="itinerary")
+
+    __table_args__ = (
+        Index("ix_itineraries_athlete", "athlete_id"),
+        Index("ix_itineraries_tenant", "tenant_id"),
+    )
+
+
+class StageModel(Base):
+    """A single day/stage within an itinerary."""
+
+    __tablename__ = "stages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    itinerary_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("itineraries.id", ondelete="CASCADE"), nullable=False
+    )
+    stage_day: Mapped[int] = mapped_column(Integer, default=1)
+    title: Mapped[str | None] = mapped_column(String, nullable=True)
+    distance_km: Mapped[float | None] = mapped_column(Float)
+    elevation_gain_m: Mapped[float | None] = mapped_column(Float)
+    estimated_km: Mapped[float | None] = mapped_column(Float)
+    estimated_elevation_m: Mapped[float | None] = mapped_column(Float)
+    ride_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("rides.id", ondelete="SET NULL")
+    )
+    poi_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("pois.id", ondelete="SET NULL")
+    )
+    notes: Mapped[str | None] = mapped_column(Text)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    itinerary: Mapped["ItineraryModel"] = relationship(back_populates="stages")
+    ride: Mapped["RideModel | None"] = relationship(back_populates="stages")
+    poi: Mapped["POIModel | None"] = relationship(back_populates="stages")
+
+    __table_args__ = (
+        Index("ix_stages_itinerary", "itinerary_id"),
+        Index("ix_stages_ride", "ride_id"),
+        Index("ix_stages_poi", "poi_id"),
+        Index("ix_stages_tenant", "tenant_id"),
     )
 
 
@@ -1102,4 +1177,6 @@ __all__ = [
     "TOTPSecretModel",
     "MetabolicReferenceValueModel",
     "MetabolicAdaptiveWeightsModel",
+    "ItineraryModel",
+    "StageModel",
 ]

@@ -152,6 +152,10 @@ export interface Stage {
   distance_km?: number | null;
   elevation_gain_m?: number | null;
   ride_id?: number | null;
+  poi_id?: number | null;
+  estimated_km?: number | null;
+  estimated_elevation_m?: number | null;
+  notes?: string | null;
   created_at?: string | null;
 }
 
