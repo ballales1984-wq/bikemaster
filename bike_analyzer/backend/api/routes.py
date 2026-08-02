@@ -310,7 +310,7 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
 OAUTH_STATE_TTL_MIN = 10
 
 
-def _issue_oauth_state(redirect_uri: str, pkce_id: str | None = None) -> str:
+def _issue_oauth_state(redirect_uri: str, pkce_id: str | None = None, frontend_origin: str | None = None) -> str:
     """Issue a signed, server-only OAuth state (random nonce + redirect_uri + pkce_id).
 
     Replaces the previous client-generated ``base64({redirect_uri})`` state which was
@@ -320,6 +320,7 @@ def _issue_oauth_state(redirect_uri: str, pkce_id: str | None = None) -> str:
         "nonce": secrets.token_urlsafe(32),
         "redirect_uri": redirect_uri,
         "pkce_id": pkce_id,
+        "frontend_origin": frontend_origin,
         "exp": datetime.now(UTC) + timedelta(minutes=OAUTH_STATE_TTL_MIN),
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
@@ -329,7 +330,7 @@ def _issue_oauth_state(redirect_uri: str, pkce_id: str | None = None) -> str:
 
 
 def _verify_oauth_state(state: str) -> dict | None:
-    """Verify a signed OAuth state. Returns {redirect_uri, pkce_id} or None if invalid/expired."""
+    """Verify a signed OAuth state. Returns {redirect_uri, pkce_id, frontend_origin} or None if invalid/expired."""
     if not state:
         return None
     try:
@@ -343,7 +344,11 @@ def _verify_oauth_state(state: str) -> dict | None:
     redirect_uri = payload.get("redirect_uri")
     if not isinstance(redirect_uri, str):
         return None
-    return {"redirect_uri": redirect_uri, "pkce_id": payload.get("pkce_id")}
+    return {
+        "redirect_uri": redirect_uri,
+        "pkce_id": payload.get("pkce_id"),
+        "frontend_origin": payload.get("frontend_origin"),
+    }
 
 
 def _http_error_detail(exc: Exception, fallback: str) -> str:
@@ -804,7 +809,136 @@ async def create_stage(
     return {"id": stage_id, **data}
 
 
-@router.post("/auth/login")
+@router.put("/itineraries/{itinerary_id}")
+async def update_itinerary_endpoint(
+    itinerary_id: int,
+    payload: ItineraryCreate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Update an itinerary owned by the current athlete."""
+    from ..db.database import get_itinerary, update_itinerary
+
+    itinerary = get_itinerary(itinerary_id)
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+    if itinerary["athlete_id"] != _user_id(current_user) and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    tenant_id = current_user.get("tenant_id", itinerary.get("athlete_id"))
+    data = payload.model_dump(exclude_unset=True)
+    ok = update_itinerary(itinerary_id, data, tenant_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Itinerary not found or no changes")
+    updated = get_itinerary(itinerary_id)
+    return updated
+
+
+@router.delete("/itineraries/{itinerary_id}")
+async def delete_itinerary_endpoint(
+    itinerary_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Delete an itinerary owned by the current athlete."""
+    from ..db.database import delete_itinerary, get_itinerary
+
+    itinerary = get_itinerary(itinerary_id)
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+    if itinerary["athlete_id"] != _user_id(current_user) and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    tenant_id = current_user.get("tenant_id", itinerary.get("athlete_id"))
+    ok = delete_itinerary(itinerary_id, tenant_id)
+    return {"deleted": ok}
+
+
+@router.get("/itineraries/{itinerary_id}/stages/{stage_id}")
+async def get_stage_endpoint(
+    itinerary_id: int,
+    stage_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Retrieve a single stage by id."""
+    from ..db.database import get_itinerary, get_stage, list_stages
+
+    itinerary = get_itinerary(itinerary_id)
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+    if itinerary["athlete_id"] != _user_id(current_user) and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    stage = get_stage(stage_id)
+    if not stage or stage.get("itinerary_id") != itinerary_id:
+        raise HTTPException(status_code=404, detail="Stage not found")
+    return stage
+
+
+@router.put("/itineraries/{itinerary_id}/stages/{stage_id}")
+async def update_stage_endpoint(
+    itinerary_id: int,
+    stage_id: int,
+    payload: StageCreate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Update a stage within an itinerary owned by the current athlete."""
+    from ..db.database import get_itinerary, get_stage, update_stage
+
+    itinerary = get_itinerary(itinerary_id)
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+    if itinerary["athlete_id"] != _user_id(current_user) and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    tenant_id = current_user.get("tenant_id", itinerary.get("athlete_id"))
+    stage = get_stage(stage_id)
+    if not stage or stage.get("itinerary_id") != itinerary_id:
+        raise HTTPException(status_code=404, detail="Stage not found")
+    data = payload.model_dump(exclude_unset=True)
+    data["itinerary_id"] = itinerary_id
+    ok = update_stage(stage_id, data, tenant_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Stage not found or no changes")
+    return get_stage(stage_id)
+
+
+@router.delete("/itineraries/{itinerary_id}/stages/{stage_id}")
+async def delete_stage_endpoint(
+    itinerary_id: int,
+    stage_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Delete a stage from an itinerary owned by the current athlete."""
+    from ..db.database import delete_stage, get_itinerary, get_stage
+
+    itinerary = get_itinerary(itinerary_id)
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+    if itinerary["athlete_id"] != _user_id(current_user) and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    tenant_id = current_user.get("tenant_id", itinerary.get("athlete_id"))
+    stage = get_stage(stage_id)
+    if not stage or stage.get("itinerary_id") != itinerary_id:
+        raise HTTPException(status_code=404, detail="Stage not found")
+    ok = delete_stage(stage_id, tenant_id)
+    return {"deleted": ok}
+
+
+@router.put("/itineraries/{itinerary_id}/reorder")
+async def reorder_stages_endpoint(
+    itinerary_id: int,
+    stage_order: list[int],
+    current_user: dict = Depends(get_current_user),
+):
+    """Reorder stages within an itinerary owned by the current athlete."""
+    from ..db.database import get_itinerary, reorder_stages
+
+    itinerary = get_itinerary(itinerary_id)
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+    if itinerary["athlete_id"] != _user_id(current_user) and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    tenant_id = current_user.get("tenant_id", itinerary.get("athlete_id"))
+    reorder_stages(itinerary_id, stage_order, tenant_id)
+    return {"reordered": True}
+
+
+
 @limiter.limit("5/minute")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     """Authenticate athlete and return JWT access/refresh tokens.
@@ -1292,6 +1426,7 @@ async def change_password(
 async def google_oauth_login(
     request: Request,
     redirect_uri: str | None = Query(None),
+    frontend_origin: str | None = Query(None),
     state: str = "",
 ):
     """Get Google OAuth2 authorization URL."""
@@ -1301,7 +1436,9 @@ async def google_oauth_login(
         raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/auth/google/callback")
     _validate_redirect_uri(redirect_uri, request)
-    state = _issue_oauth_state(redirect_uri)
+    if frontend_origin:
+        _validate_redirect_uri(frontend_origin, request)
+    state = _issue_oauth_state(redirect_uri, frontend_origin=frontend_origin)
     auth_url = get_google_oauth_url(_s.google_client_id, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
 
@@ -1453,7 +1590,9 @@ async def google_oauth_callback_get(
             return resp
 
         jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
-        redirect_url = _build_oauth_success_url(redirect_uri, jwt_token, email or "", existing["id"])
+        frontend_origin = state_data.get("frontend_origin")
+        redirect_target = frontend_origin or redirect_uri
+        redirect_url = _build_oauth_success_url(redirect_target, jwt_token, email or "", existing["id"])
         await _cache_set(f"oauth:code:{code}", {"redirect_url": redirect_url}, ttl=300)
         resp = RedirectResponse(url=redirect_url)
         resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
