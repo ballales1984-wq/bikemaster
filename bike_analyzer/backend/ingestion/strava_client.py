@@ -455,7 +455,7 @@ def strava_to_ride(
     date_str = activity.get("start_date_local", "")[:10]
     calories = activity.get("calories", 0) or 0
     total_elevation_gain = activity.get("total_elevation_gain", 0) or 0
-    avg_heart_rate = activity.get("average_heartrate", 0) or None
+    heart_rate_avg = activity.get("average_heartrate", 0) or None
     external_id = activity.get("id")
     name = activity.get("name", "")
 
@@ -471,7 +471,7 @@ def strava_to_ride(
         "weight_kg": weight_kg,
         "calories": calories,
         "elevation_gain_m": total_elevation_gain,
-        "heart_rate_avg": avg_heart_rate,
+        "heart_rate_avg": heart_rate_avg,
         "gps_points": gps_points,
         "external_source": "strava",
         "external_id": str(external_id) if external_id else None,

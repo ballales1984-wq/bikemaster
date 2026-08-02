@@ -30,6 +30,9 @@ export interface Ride {
   calories_per_km?: number;
   title?: string;
   activity_type?: string;
+  weight_kg?: number;
+  is_official?: boolean;
+  source?: string;
 }
 
 export interface EnrichedRide extends Ride {

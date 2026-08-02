@@ -69,6 +69,34 @@
           />
         </label>
         <label>
+          Velocità media (km/h)
+          <input
+            v-model.number="editForm.avg_speed_kmh"
+            type="number"
+            min="0"
+            max="150"
+            step="0.1"
+          />
+        </label>
+        <label>
+          Peso atleta (kg)
+          <input
+            v-model.number="editForm.weight_kg"
+            type="number"
+            min="20"
+            max="300"
+            step="0.1"
+          />
+        </label>
+        <label>
+          Fonte
+          <input v-model="editForm.source" type="text" maxlength="50" />
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="editForm.is_official" />
+          <span> Gara ufficiale</span>
+        </label>
+        <label>
           Tipo
           <select v-model="editForm.activity_type">
             <option value="ride">Bici</option>
@@ -210,7 +238,11 @@ const editForm = ref<{
   duration_minutes: number;
   heart_rate_avg: number | null;
   elevation_gain_m: number | null;
+  avg_speed_kmh: number | null;
+  weight_kg: number | null;
+  is_official: boolean;
   activity_type: string;
+  source: string;
 }>({
   date: "",
   title: "",
@@ -218,7 +250,11 @@ const editForm = ref<{
   duration_minutes: 0,
   heart_rate_avg: null,
   elevation_gain_m: null,
+  avg_speed_kmh: null,
+  weight_kg: null,
+  is_official: true,
   activity_type: "ride",
+  source: "manual",
 });
 
 const fatigueClass = computed(() => {
@@ -288,7 +324,11 @@ function startEdit() {
     duration_minutes: ride.value.duration_minutes || 0,
     heart_rate_avg: ride.value.heart_rate_avg ?? null,
     elevation_gain_m: ride.value.elevation_gain_m ?? null,
+    avg_speed_kmh: ride.value.avg_speed_kmh ?? null,
+    weight_kg: ride.value.weight_kg ?? null,
+    is_official: ride.value.is_official ?? true,
     activity_type: ride.value.activity_type || "ride",
+    source: ride.value.source || "manual",
   };
   editError.value = "";
   editMode.value = true;
@@ -311,7 +351,11 @@ async function saveEdit() {
       duration_minutes: editForm.value.duration_minutes,
       heart_rate_avg: editForm.value.heart_rate_avg,
       elevation_gain_m: editForm.value.elevation_gain_m,
+      avg_speed_kmh: editForm.value.avg_speed_kmh,
+      weight_kg: editForm.value.weight_kg,
+      is_official: editForm.value.is_official,
       activity_type: editForm.value.activity_type,
+      source: editForm.value.source || null,
     };
     const updated = await apiPut<Ride>(
       `/api/v1/rides/${props.rideId}`,
@@ -384,6 +428,15 @@ onMounted(() => load());
   border-radius: var(--radius-sm);
   padding: 8px;
   color: var(--text-primary);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
 }
 
 .edit-actions {
