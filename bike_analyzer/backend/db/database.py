@@ -24,8 +24,9 @@ import json
 import math
 import os
 import sqlite3
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from ..models.models import Ride
 from ..settings import get_settings
@@ -102,10 +103,8 @@ def init_db():
             created_at TEXT,
             updated_at TEXT
         )""")
-        try:
+        with suppress(Exception):
             conn.execute("ALTER TABLE users ADD COLUMN is_client INTEGER DEFAULT 0")
-        except Exception:
-            pass
         conn.execute("""CREATE TABLE IF NOT EXISTS rides (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
@@ -210,7 +209,10 @@ def init_db():
             bmi REAL,
             lean_body_mass_kg REAL
         )""")
-        conn.execute("CREATE INDEX IF NOT EXISTS ix_history_athlete_recorded ON athlete_history(athlete_id, recorded_at)")
+        conn.execute(
+        "CREATE INDEX IF NOT EXISTS ix_history_athlete_recorded "
+        "ON athlete_history(athlete_id, recorded_at)"
+    )
         conn.execute("""CREATE TABLE IF NOT EXISTS athlete_metric_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
@@ -223,14 +225,16 @@ def init_db():
             recorded_at TEXT,
             created_at TEXT
         )""")
-        try:
-            conn.execute("CREATE INDEX IF NOT EXISTS ix_metric_log_athlete_metric ON athlete_metric_log(athlete_id, metric_type)")
-        except Exception:
-            pass
-        try:
-            conn.execute("CREATE INDEX IF NOT EXISTS ix_metric_log_recorded ON athlete_metric_log(athlete_id, metric_type, recorded_at)")
-        except Exception:
-            pass
+        with suppress(Exception):
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS ix_metric_log_athlete_metric "
+                "ON athlete_metric_log(athlete_id, metric_type)"
+            )
+        with suppress(Exception):
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS ix_metric_log_recorded "
+                "ON athlete_metric_log(athlete_id, metric_type, recorded_at)"
+            )
         conn.execute("""CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
@@ -360,7 +364,10 @@ def init_db():
                 body_age INTEGER,
                 apparent_age INTEGER
             )""")
-            conn.execute("CREATE INDEX IF NOT EXISTS ix_history_athlete_recorded ON athlete_history(athlete_id, recorded_at)")
+            conn.execute(
+        "CREATE INDEX IF NOT EXISTS ix_history_athlete_recorded "
+        "ON athlete_history(athlete_id, recorded_at)"
+    )
         cur.execute("PRAGMA table_info(athlete_history)")
         history_cols = [row[1] for row in cur.fetchall()]
         if "bmi" not in history_cols:
@@ -593,7 +600,10 @@ def init_db():
             FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_food_logs_athlete_date ON food_logs(athlete_id, date)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_metabolic_summaries_athlete_date ON metabolic_daily_summaries(athlete_id, date)")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_metabolic_summaries_athlete_date "
+            "ON metabolic_daily_summaries(athlete_id, date)"
+        )
         conn.execute("""CREATE TABLE IF NOT EXISTS metabolic_reference_values (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             tenant_id INTEGER DEFAULT 0,
@@ -685,7 +695,10 @@ def init_db():
             FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_beck_assessments_athlete ON beck_assessments(athlete_id)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_beck_assessments_athlete_date ON beck_assessments(athlete_id, created_at)")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_beck_assessments_athlete_date "
+            "ON beck_assessments(athlete_id, created_at)"
+        )
         conn.execute("""CREATE TABLE IF NOT EXISTS ble_devices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
@@ -718,8 +731,14 @@ def init_db():
             created_at TEXT,
             FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
         )""")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_hr_samples_athlete_recorded ON hr_24h_samples(athlete_id, recorded_at)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_hr_samples_athlete_date ON hr_24h_samples(athlete_id, date(recorded_at))")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_hr_samples_athlete_recorded "
+            "ON hr_24h_samples(athlete_id, recorded_at)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_hr_samples_athlete_date "
+            "ON hr_24h_samples(athlete_id, date(recorded_at))"
+        )
         conn.execute("""CREATE TABLE IF NOT EXISTS hr_monitoring_settings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
@@ -769,7 +788,10 @@ def init_db():
             FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE,
             UNIQUE(athlete_id, date)
         )""")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_activity_athlete_date ON daily_activity_classification(athlete_id, date)")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_activity_athlete_date "
+            "ON daily_activity_classification(athlete_id, date)"
+        )
         conn.execute("""CREATE TABLE IF NOT EXISTS strava_tokens (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER NOT NULL,
@@ -1028,7 +1050,8 @@ def save_ride(ride: dict) -> int:
     e serializza i punti GPS come JSON. Riprova fino a 5 volte in caso di
     lock SQLite con backoff esponenziale.
     """
-    from .postgres_rides import save_ride as _pg_save_ride, has_postgres
+    from .postgres_rides import has_postgres
+    from .postgres_rides import save_ride as _pg_save_ride
 
     if has_postgres():
         return _pg_save_ride(ride)
@@ -1108,7 +1131,8 @@ def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
     Restituisce un dict con tutti i campi della tabella ``rides`` oppure
     ``None`` se l'attivita' non esiste o non appartiene al tenant.
     """
-    from .postgres_rides import get_ride as _pg_get_ride, has_postgres
+    from .postgres_rides import get_ride as _pg_get_ride
+    from .postgres_rides import has_postgres
 
     if has_postgres():
         return _pg_get_ride(ride_id, tenant_id)
@@ -1130,7 +1154,8 @@ def get_rides_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[
     I risultati sono ordinati per id crescente (dal piu' vecchio al piu'
     recente). Usa ``_row_to_ride`` per deserializzare i punti GPS da JSON.
     """
-    from .postgres_rides import get_rides_by_athlete as _pg_get_rides, has_postgres
+    from .postgres_rides import get_rides_by_athlete as _pg_get_rides
+    from .postgres_rides import has_postgres
 
     if has_postgres():
         return _pg_get_rides(athlete_id, tenant_id)
@@ -1174,7 +1199,8 @@ def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | Non
 
 def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
     """Return rides filtered by athlete and/or tenant, or all rides if none provided."""
-    from .postgres_rides import get_all_rides as _pg_get_all, has_postgres
+    from .postgres_rides import get_all_rides as _pg_get_all
+    from .postgres_rides import has_postgres
 
     if has_postgres():
         return _pg_get_all(athlete_id, tenant_id)
@@ -1194,7 +1220,8 @@ def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -
 
 def delete_ride(ride_id: int, tenant_id: int | None = None) -> bool:
     """Delete a ride by id, optionally scoped to a tenant. Returns True if deleted."""
-    from .postgres_rides import delete_ride as _pg_delete, has_postgres
+    from .postgres_rides import delete_ride as _pg_delete
+    from .postgres_rides import has_postgres
 
     if has_postgres():
         return _pg_delete(ride_id, tenant_id)
@@ -1216,7 +1243,8 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
     ``date``) is never clobbered with NULL when the caller passes a subset of
     fields. Returns True if a row was modified.
     """
-    from .postgres_rides import update_ride as _pg_update, has_postgres
+    from .postgres_rides import has_postgres
+    from .postgres_rides import update_ride as _pg_update
 
     if has_postgres():
         return _pg_update(ride_id, ride, tenant_id)
@@ -1422,7 +1450,8 @@ def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
 
 def save_metric(metric: dict, tenant_id: int = 0) -> int:
     """Insert a metrics row (fatigue, recovery, calories, efficiency) for a ride."""
-    from .postgres_rides import has_postgres, save_metric as _pg_save_metric
+    from .postgres_rides import has_postgres
+    from .postgres_rides import save_metric as _pg_save_metric
 
     if has_postgres():
         return _pg_save_metric(metric, tenant_id)
@@ -1554,7 +1583,7 @@ def get_athlete_history(athlete_id: int, *, tenant_id: int | None = None, limit:
         if not rows:
             return []
         columns = rows[0].keys()
-        return [dict(zip(columns, row)) for row in rows]
+        return [dict(zip(columns, row, strict=False)) for row in rows]
 
 
 def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
@@ -1579,8 +1608,10 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
             medical_notes=?, equipment=?, ftp_watts=?, body_water_percentage=?,
             muscle_mass_percentage=?, bmr_kcal=?, fat_mass_kg=?, subcutaneous_fat_kg=?,
             subcutaneous_fat_percentage=?, visceral_fat_level=?, visceral_fat_percentage=?,
-            visceral_fat_kg=?, muscle_mass_kg=?, bone_mass_kg=?, protein_percentage=?, protein_kg=?,
-            body_age=?, apparent_age=?, bmi=?, lean_body_mass_kg=?, password_hash=?, tenant_id=?, updated_at=? WHERE id=?""",
+            visceral_fat_kg=?, muscle_mass_kg=?, bone_mass_kg=?, protein_percentage=?,
+            protein_kg=?,
+            body_age=?, apparent_age=?, bmi=?, lean_body_mass_kg=?,
+            password_hash=?, tenant_id=?, updated_at=? WHERE id=?""",
             (
                 merged.get("name"),
                 merged.get("email"),
@@ -1669,10 +1700,11 @@ def _ensure_user_oauth_credentials_table() -> None:
                 updated_at TEXT
             )"""
         )
-        try:
-            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_user_oauth_user_provider ON user_oauth_credentials(user_id, provider)")
-        except Exception:
-            pass
+        with suppress(Exception):
+            conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_user_oauth_user_provider "
+                "ON user_oauth_credentials(user_id, provider)"
+            )
 
 
 def get_user_oauth_credentials(user_id: int, provider: str) -> dict | None:
@@ -1703,7 +1735,9 @@ def save_user_oauth_credentials(user_id: int, provider: str, data: dict) -> None
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO user_oauth_credentials (user_id, provider, client_id, client_secret, redirect_uri, scope, created_at, updated_at)
+            """INSERT INTO user_oauth_credentials
+               (user_id, provider, client_id, client_secret, redirect_uri,
+                scope, created_at, updated_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(user_id, provider) DO UPDATE SET
                    client_id = excluded.client_id,
@@ -2132,7 +2166,6 @@ def classify_day(
     ``rest``.  Results are persisted into ``daily_activity_classification``.
     """
     date_start = for_date
-    date_end = for_date
 
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2180,7 +2213,6 @@ def classify_day(
     resting_setting = _get_resting_hr_setting(athlete_id)
 
     steps_estimated = int(meta_row[0]) if meta_row and meta_row[0] else 0
-    tdee_kcal = float(meta_row[1]) if meta_row and meta_row[1] else 0.0
 
     # Determine label
     is_sleep_day = (
@@ -2193,7 +2225,12 @@ def classify_day(
         and avg_hr < max_setting * sleep_threshold_ratio
     )
     is_active = steps_estimated >= high_activity_steps or distance_km >= high_activity_km
-    is_recovery = not is_active and (resting_setting is not None) and (resting_hr is not None) and resting_hr <= resting_setting + 5
+    is_recovery = (
+        not is_active
+        and resting_setting is not None
+        and resting_hr is not None
+        and resting_hr <= resting_setting + 5
+    )
 
     if is_sleep_day and not is_active:
         label = "sleep"
@@ -2346,7 +2383,8 @@ def save_metabolic_profile(profile: dict, athlete_id: int, tenant_id: int = 0) -
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO metabolic_profiles
-            (athlete_id, tenant_id, sex, bmr_formula, activity_level, bmr_kcal, tdee_kcal, notes, created_at, updated_at)
+            (athlete_id, tenant_id, sex, bmr_formula, activity_level,
+             bmr_kcal, tdee_kcal, notes, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(athlete_id) DO UPDATE SET
                 sex=excluded.sex,
@@ -2378,7 +2416,10 @@ def get_metabolic_profile(athlete_id: int, tenant_id: int | None = None) -> dict
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
-            cur.execute("SELECT * FROM metabolic_profiles WHERE athlete_id = ? AND tenant_id = ?", (athlete_id, tenant_id))
+            cur.execute(
+                "SELECT * FROM metabolic_profiles WHERE athlete_id = ? AND tenant_id = ?",
+                (athlete_id, tenant_id),
+            )
         else:
             cur.execute("SELECT * FROM metabolic_profiles WHERE athlete_id = ?", (athlete_id,))
         row = cur.fetchone()
@@ -2405,7 +2446,9 @@ def save_food_log(log: dict, tenant_id: int = 0) -> int:
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO food_logs
-            (athlete_id, tenant_id, date, meal_type, description, kcal, carbs_g, protein_g, fat_g, fiber_g, water_ml, note, recorded_at, created_at)
+            (athlete_id, tenant_id, date, meal_type, description, kcal,
+             carbs_g, protein_g, fat_g, fiber_g, water_ml, note,
+             recorded_at, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 log.get("athlete_id"),
@@ -2439,7 +2482,8 @@ def get_food_logs_by_athlete_date(
         cur = conn.cursor()
         if tenant_id is not None:
             cur.execute(
-                """SELECT * FROM food_logs WHERE athlete_id = ? AND date = ? AND tenant_id = ? ORDER BY recorded_at ASC""",
+                "SELECT * FROM food_logs WHERE athlete_id = ? AND date = ? "
+                "AND tenant_id = ? ORDER BY recorded_at ASC",
                 (athlete_id, date, tenant_id),
             )
         else:
@@ -2545,7 +2589,10 @@ def save_metabolic_daily_summary(summary: dict, tenant_id: int = 0) -> int:
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO metabolic_daily_summaries
-            (athlete_id, tenant_id, date, bmr_kcal, neat_kcal, eat_kcal, climb_bonus_kcal, tdee_kcal, intake_kcal, balance_kcal, steps_estimated, elevation_gain_estimated_m, rides_count, gps_neat_kcal, notes, created_at, updated_at)
+            (athlete_id, tenant_id, date, bmr_kcal, neat_kcal, eat_kcal,
+             climb_bonus_kcal, tdee_kcal, intake_kcal, balance_kcal,
+             steps_estimated, elevation_gain_estimated_m, rides_count,
+             gps_neat_kcal, notes, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(athlete_id, date) DO UPDATE SET
                 bmr_kcal=excluded.bmr_kcal,
@@ -2689,9 +2736,13 @@ def upsert_metabolic_reference_value(value: dict, tenant_id: int = 0) -> int:
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO metabolic_reference_values
-            (tenant_id, sex, age_bracket_lo, age_bracket_hi, weight_bracket_lo, weight_bracket_hi, bmr_kcal, tdee_kcal, activity_level, source, created_at)
+            (tenant_id, sex, age_bracket_lo, age_bracket_hi,
+             weight_bracket_lo, weight_bracket_hi, bmr_kcal, tdee_kcal,
+             activity_level, source, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(sex, age_bracket_lo, age_bracket_hi, weight_bracket_lo, weight_bracket_hi, activity_level) DO UPDATE SET
+            ON CONFLICT(sex, age_bracket_lo, age_bracket_hi,
+                        weight_bracket_lo, weight_bracket_hi, activity_level)
+            DO UPDATE SET
                 bmr_kcal=excluded.bmr_kcal,
                 tdee_kcal=excluded.tdee_kcal,
                 source=excluded.source,
@@ -2714,7 +2765,10 @@ def upsert_metabolic_reference_value(value: dict, tenant_id: int = 0) -> int:
         return int(cur.lastrowid) if cur.lastrowid else 0
 
 
-def get_metabolic_reference_value(sex: str, age: int, weight_kg: float, activity_level: str = "moderate", tenant_id: int = 0) -> dict | None:
+def get_metabolic_reference_value(
+    sex: str, age: int, weight_kg: float,
+    activity_level: str = "moderate", tenant_id: int = 0,
+) -> dict | None:
     """Return the imported reference row for the bracket closest to age/weight."""
     from ...core.calculators.metabolism import age_bracket, weight_bracket
 
@@ -2724,7 +2778,9 @@ def get_metabolic_reference_value(sex: str, age: int, weight_kg: float, activity
         cur = conn.cursor()
         cur.execute(
             """SELECT * FROM metabolic_reference_values
-            WHERE sex = ? AND age_bracket_lo = ? AND age_bracket_hi = ? AND weight_bracket_lo = ? AND weight_bracket_hi = ? AND activity_level = ?
+            WHERE sex = ? AND age_bracket_lo = ? AND age_bracket_hi = ?
+              AND weight_bracket_lo = ? AND weight_bracket_hi = ?
+              AND activity_level = ?
             LIMIT 1""",
             (sex, a_lo, a_hi, w_lo, w_hi, activity_level),
         )
@@ -2765,7 +2821,9 @@ def save_metabolic_adaptive_weights(weights: dict, athlete_id: int, tenant_id: i
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO metabolic_adaptive_weights
-            (athlete_id, tenant_id, activity_multiplier_w, neat_w, climb_bonus_w, sensor_bmr_conf, sensor_tdee_conf, learning_rate, confidence_lr, n_updates, updated_at)
+            (athlete_id, tenant_id, activity_multiplier_w, neat_w,
+             climb_bonus_w, sensor_bmr_conf, sensor_tdee_conf,
+             learning_rate, confidence_lr, n_updates, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(athlete_id) DO UPDATE SET
                 activity_multiplier_w=excluded.activity_multiplier_w,
@@ -2800,7 +2858,11 @@ def get_metabolic_adaptive_weights(athlete_id: int, tenant_id: int | None = None
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
-            cur.execute("SELECT * FROM metabolic_adaptive_weights WHERE athlete_id = ? AND tenant_id = ?", (athlete_id, tenant_id))
+            cur.execute(
+                "SELECT * FROM metabolic_adaptive_weights "
+                "WHERE athlete_id = ? AND tenant_id = ?",
+                (athlete_id, tenant_id),
+            )
         else:
             cur.execute("SELECT * FROM metabolic_adaptive_weights WHERE athlete_id = ?", (athlete_id,))
         row = cur.fetchone()
@@ -3213,7 +3275,8 @@ def save_weather_cache(lat: float, lon: float, date: str, weather: dict) -> int:
 def upsert_training_stress_day(
     athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float, tenant_id: int = 0
 ) -> None:
-    from .postgres_rides import has_postgres, upsert_training_stress_day as _pg_upsert
+    from .postgres_rides import has_postgres
+    from .postgres_rides import upsert_training_stress_day as _pg_upsert
 
     if has_postgres():
         return _pg_upsert(athlete_id, date, tss, atl, ctl, tsb, tenant_id)
@@ -3236,7 +3299,8 @@ def save_user(user: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO users (username, email, password_hash, is_admin, is_client, is_active, created_at, updated_at)
+            """INSERT INTO users (username, email, password_hash, is_admin,
+             is_client, is_active, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 user.get("username"),
@@ -3345,7 +3409,8 @@ def delete_user(user_id: int) -> bool:
 
 
 def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | None = None) -> list[dict]:
-    from .postgres_rides import get_training_stress_days as _pg_get_stress, has_postgres
+    from .postgres_rides import get_training_stress_days as _pg_get_stress
+    from .postgres_rides import has_postgres
 
     if has_postgres():
         return _pg_get_stress(athlete_id, limit, tenant_id)
@@ -3370,7 +3435,8 @@ def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | 
 
 
 def get_latest_training_stress(athlete_id: int, tenant_id: int | None = None) -> dict | None:
-    from .postgres_rides import get_latest_training_stress as _pg_get_latest, has_postgres
+    from .postgres_rides import get_latest_training_stress as _pg_get_latest
+    from .postgres_rides import has_postgres
 
     if has_postgres():
         return _pg_get_latest(athlete_id, tenant_id)
@@ -3660,7 +3726,8 @@ def delete_poi(poi_id: int) -> bool:
 
 def save_itinerary(itinerary: dict) -> int:
     """Create an itinerary. Returns the new row id."""
-    from .postgres_itineraries import save_itinerary as _pg_save_itinerary, has_postgres
+    from .postgres_itineraries import has_postgres
+    from .postgres_itineraries import save_itinerary as _pg_save_itinerary
 
     if has_postgres():
         return _pg_save_itinerary(itinerary)
@@ -3689,7 +3756,8 @@ def save_itinerary(itinerary: dict) -> int:
 
 def get_itinerary(itinerary_id: int) -> dict | None:
     """Retrieve a single itinerary by id."""
-    from .postgres_itineraries import get_itinerary as _pg_get_itinerary, has_postgres
+    from .postgres_itineraries import get_itinerary as _pg_get_itinerary
+    from .postgres_itineraries import has_postgres
 
     if has_postgres():
         return _pg_get_itinerary(itinerary_id)
@@ -3702,7 +3770,8 @@ def get_itinerary(itinerary_id: int) -> dict | None:
 
 def list_itineraries(athlete_id: int | None = None) -> list[dict]:
     """Return all itineraries, optionally filtered by athlete."""
-    from .postgres_itineraries import list_itineraries as _pg_list, has_postgres
+    from .postgres_itineraries import has_postgres
+    from .postgres_itineraries import list_itineraries as _pg_list
 
     if has_postgres():
         return _pg_list(athlete_id)
@@ -3721,7 +3790,8 @@ def list_itineraries(athlete_id: int | None = None) -> list[dict]:
 
 def save_stage(stage: dict) -> int:
     """Create a stage for an itinerary. Returns the new row id."""
-    from .postgres_itineraries import save_stage as _pg_save_stage, has_postgres
+    from .postgres_itineraries import has_postgres
+    from .postgres_itineraries import save_stage as _pg_save_stage
 
     if has_postgres():
         return _pg_save_stage(stage)
@@ -3752,7 +3822,8 @@ def save_stage(stage: dict) -> int:
 
 def list_stages(itinerary_id: int) -> list[dict]:
     """Return all stages for an itinerary, ordered by stage_day."""
-    from .postgres_itineraries import list_stages as _pg_list_stages, has_postgres
+    from .postgres_itineraries import has_postgres
+    from .postgres_itineraries import list_stages as _pg_list_stages
 
     if has_postgres():
         return _pg_list_stages(itinerary_id)
@@ -3768,7 +3839,8 @@ def list_stages(itinerary_id: int) -> list[dict]:
 
 def get_stage(stage_id: int) -> dict | None:
     """Retrieve a single stage by id."""
-    from .postgres_itineraries import get_stage as _pg_get_stage, has_postgres
+    from .postgres_itineraries import get_stage as _pg_get_stage
+    from .postgres_itineraries import has_postgres
 
     if has_postgres():
         return _pg_get_stage(stage_id)
@@ -3781,7 +3853,8 @@ def get_stage(stage_id: int) -> dict | None:
 
 def update_itinerary(itinerary_id: int, data: dict, tenant_id: int | None = None) -> bool:
     """Update an itinerary. Returns True if the row was modified."""
-    from .postgres_itineraries import has_postgres, update_itinerary as _pg_update_itinerary
+    from .postgres_itineraries import has_postgres
+    from .postgres_itineraries import update_itinerary as _pg_update_itinerary
 
     if has_postgres():
         return _pg_update_itinerary(itinerary_id, data, tenant_id)
@@ -3825,7 +3898,8 @@ def update_itinerary(itinerary_id: int, data: dict, tenant_id: int | None = None
 
 def delete_itinerary(itinerary_id: int, tenant_id: int | None = None) -> bool:
     """Delete an itinerary. Returns True if the row was deleted."""
-    from .postgres_itineraries import delete_itinerary as _pg_delete_itinerary, has_postgres
+    from .postgres_itineraries import delete_itinerary as _pg_delete_itinerary
+    from .postgres_itineraries import has_postgres
 
     if has_postgres():
         return _pg_delete_itinerary(itinerary_id, tenant_id)
@@ -3844,7 +3918,8 @@ def delete_itinerary(itinerary_id: int, tenant_id: int | None = None) -> bool:
 
 def update_stage(stage_id: int, data: dict, tenant_id: int | None = None) -> bool:
     """Update a stage. Returns True if the row was modified."""
-    from .postgres_itineraries import update_stage as _pg_update_stage, has_postgres
+    from .postgres_itineraries import has_postgres
+    from .postgres_itineraries import update_stage as _pg_update_stage
 
     if has_postgres():
         return _pg_update_stage(stage_id, data, tenant_id)
@@ -3887,7 +3962,8 @@ def update_stage(stage_id: int, data: dict, tenant_id: int | None = None) -> boo
 
 def delete_stage(stage_id: int, tenant_id: int | None = None) -> bool:
     """Delete a stage. Returns True if the row was deleted."""
-    from .postgres_itineraries import delete_stage as _pg_delete_stage, has_postgres
+    from .postgres_itineraries import delete_stage as _pg_delete_stage
+    from .postgres_itineraries import has_postgres
 
     if has_postgres():
         return _pg_delete_stage(stage_id, tenant_id)
@@ -3906,7 +3982,8 @@ def delete_stage(stage_id: int, tenant_id: int | None = None) -> bool:
 
 def reorder_stages(itinerary_id: int, stage_order: list[int], tenant_id: int | None = None) -> bool:
     """Reorder stages by updating stage_day values. Returns True on success."""
-    from .postgres_itineraries import reorder_stages as _pg_reorder, has_postgres
+    from .postgres_itineraries import has_postgres
+    from .postgres_itineraries import reorder_stages as _pg_reorder
 
     if has_postgres():
         return _pg_reorder(itinerary_id, stage_order, tenant_id)
@@ -3926,7 +4003,7 @@ def _row_to_itinerary(row: tuple) -> dict:
         "id", "athlete_id", "tenant_id", "name", "description",
         "start_date", "end_date", "total_km", "total_elevation_m", "created_at",
     ]
-    data = dict(zip(cols, row))
+    data = dict(zip(cols, row, strict=False))
     return {
         "id": data.get("id"),
         "athlete_id": data.get("athlete_id"),
@@ -3947,7 +4024,7 @@ def _row_to_stage(row: tuple) -> dict:
         "elevation_gain_m", "estimated_km", "estimated_elevation_m",
         "ride_id", "poi_id", "notes", "tenant_id", "created_at", "updated_at",
     ]
-    data = dict(zip(cols, row))
+    data = dict(zip(cols, row, strict=False))
     return {
         "id": data.get("id"),
         "itinerary_id": data.get("itinerary_id"),
@@ -4042,7 +4119,9 @@ def seed_nutrition_food_items() -> None:
         for name, category, kcal, carbs, protein, fat, fiber in items:
             cur.execute(
                 """INSERT OR IGNORE INTO nutrition_food_items
-                (name, category, kcal_per_100g, carbs_g_per_100g, protein_g_per_100g, fat_g_per_100g, fiber_g_per_100g, source, is_builtin, created_at, updated_at)
+                (name, category, kcal_per_100g, carbs_g_per_100g,
+                 protein_g_per_100g, fat_g_per_100g, fiber_g_per_100g,
+                 source, is_builtin, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (name, category, kcal, carbs, protein, fat, fiber, "builtin", 1, now, now),
             )
@@ -4122,7 +4201,9 @@ def save_nutrition_food_item(item: dict, tenant_id: int = 0) -> int:
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO nutrition_food_items
-            (tenant_id, name, category, kcal_per_100g, carbs_g_per_100g, protein_g_per_100g, fat_g_per_100g, fiber_g_per_100g, source, is_builtin, created_at, updated_at)
+            (tenant_id, name, category, kcal_per_100g, carbs_g_per_100g,
+             protein_g_per_100g, fat_g_per_100g, fiber_g_per_100g,
+             source, is_builtin, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 tenant_id,
@@ -4307,7 +4388,9 @@ def register_ble_device(
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO ble_devices
-               (athlete_id, tenant_id, device_id, name, device_type, service_uuid, characteristic_uuid, mac_address, paired, settings, created_at, updated_at)
+               (athlete_id, tenant_id, device_id, name, device_type,
+                service_uuid, characteristic_uuid, mac_address,
+                paired, settings, created_at, updated_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
                ON CONFLICT(athlete_id, device_id) DO UPDATE SET
                    name=excluded.name,
@@ -4343,7 +4426,11 @@ def get_ble_devices(athlete_id: int, tenant_id: int | None = None) -> list[dict]
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
-            cur.execute("SELECT * FROM ble_devices WHERE athlete_id = ? AND tenant_id = ? ORDER BY created_at DESC", (athlete_id, tenant_id))
+            cur.execute(
+                "SELECT * FROM ble_devices WHERE athlete_id = ? AND tenant_id = ? "
+                "ORDER BY created_at DESC",
+                (athlete_id, tenant_id),
+            )
         else:
             cur.execute("SELECT * FROM ble_devices WHERE athlete_id = ? ORDER BY created_at DESC", (athlete_id,))
         rows = cur.fetchall()
@@ -4361,7 +4448,11 @@ def get_ble_device(device_id: int, athlete_id: int) -> dict | None:
 
 def update_ble_device(device_id: int, athlete_id: int, **updates) -> dict | None:
     """Update fields of a BLE device."""
-    allowed = {"name", "device_type", "service_uuid", "characteristic_uuid", "mac_address", "paired", "settings", "last_connected_at", "last_synced_at"}
+    allowed = {
+        "name", "device_type", "service_uuid", "characteristic_uuid",
+        "mac_address", "paired", "settings", "last_connected_at",
+        "last_synced_at",
+    }
     set_clause = ", ".join(f"{k} = ?" for k in updates if k in allowed)
     if not set_clause:
         return get_ble_device(device_id, athlete_id)
@@ -4387,7 +4478,11 @@ def mark_ble_device_connected(device_id: int, athlete_id: int) -> None:
     """Update last_connected_at timestamp."""
     now = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
-        conn.execute("UPDATE ble_devices SET last_connected_at = ? WHERE id = ? AND athlete_id = ?", (now, device_id, athlete_id))
+        conn.execute(
+            "UPDATE ble_devices SET last_connected_at = ? "
+            "WHERE id = ? AND athlete_id = ?",
+            (now, device_id, athlete_id),
+        )
         conn.commit()
 
 
@@ -4395,7 +4490,11 @@ def mark_ble_device_synced(device_id: int, athlete_id: int) -> None:
     """Update last_synced_at timestamp."""
     now = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
-        conn.execute("UPDATE ble_devices SET last_synced_at = ? WHERE id = ? AND athlete_id = ?", (now, device_id, athlete_id))
+        conn.execute(
+            "UPDATE ble_devices SET last_synced_at = ? "
+            "WHERE id = ? AND athlete_id = ?",
+            (now, device_id, athlete_id),
+        )
         conn.commit()
 
 
@@ -4403,7 +4502,6 @@ __all__ = [
     "save_ride",
     "get_ride",
     "get_all_rides",
-    "get_paginated_rides",
     "get_rides_by_athlete",
     "get_all_athletes",
     "delete_ride",
