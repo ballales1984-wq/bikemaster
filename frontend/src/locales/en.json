@@ -9,7 +9,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "rides": "Rides",
-    "tracking": "Tracking",
+     "tracking": "Tracking",
+     "heartRate24h": "HR 24h",
     "import": "Import",
     "athlete": "Athlete",
     "avatar": "Avatar",
@@ -1116,7 +1117,32 @@
     "ageRange": "Age must be between {min} and {max}",
     "weightRange": "Weight must be between {min} and {max} kg",
     "heightRange": "Height must be between {min} and {max} cm",
-    "weeklyVolumeInvalid": "Invalid weekly volume",
-    "ftpRange": "FTP must be between {min} and {max} watt"
-  }
+     "weeklyVolumeInvalid": "Invalid weekly volume",
+     "ftpRange": "FTP must be between {min} and {max} watt"
+   },
+   "hr24h": {
+     "title": "Heart Rate 24h",
+     "heartRate": "Heart Rate",
+     "resting": "Resting HR",
+     "average": "Average",
+     "max": "Max",
+     "min": "Min",
+     "samples": "Samples",
+     "day": "Day",
+     "avg": "Avg",
+     "start": "Start tracking",
+     "stop": "Stop tracking",
+     "starting": "Starting...",
+     "stopped": "Stopped",
+     "connected": "Connected:",
+     "noData": "N/A",
+     "settings": "HR settings",
+     "interval": "Sampling interval (s)",
+     "maxHr": "Max HR",
+     "restingHr": "Resting HR",
+     "deviceId": "BLE device ID",
+     "cancel": "Cancel",
+     "save": "Save",
+     "history": "Daily history"
+   }
 }

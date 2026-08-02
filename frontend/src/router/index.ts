@@ -188,6 +188,12 @@ const routes = [
     meta: { requiresAuth: true, title: "Tracciamento uscita" },
   },
   {
+    path: "/hr24h",
+    name: "hr24h",
+    component: () => import("../components/Hr24hPanel.vue"),
+    meta: { requiresAuth: true, title: "Frequenza cardiaca 24h" },
+  },
+  {
     path: "/privacy",
     name: "privacy",
     component: () => import("../views/PrivacyPolicy.vue"),

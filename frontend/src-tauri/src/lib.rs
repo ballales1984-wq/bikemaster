@@ -15,7 +15,7 @@ use axum::{
 use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExt};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -233,6 +233,171 @@ async fn ble_read_measurement(args: BleReadArgs) -> Result<serde_json::Value, St
             "raw": value
         })),
     }
+}
+
+const HEART_RATE_SERVICE_UUID: &str = "0000180d-0000-1000-8000-00805f9b34fb";
+const HEART_RATE_CHARACTERISTIC_UUID: &str = "00002a37-0000-1000-8000-00805f9b34fb";
+
+#[derive(serde::Deserialize, Clone)]
+struct HrMonitorArgs {
+    mac_address: String,
+    service_uuid: String,
+    characteristic_uuid: String,
+}
+
+#[derive(serde::Serialize, Clone)]
+struct BleDeviceInfo {
+    service_uuid: String,
+    characteristic_uuid: String,
+    mac_address: String,
+}
+
+use std::sync::Mutex as StdMutex;
+
+#[derive(Default)]
+struct HrMonitorRegistry {
+    devices: StdMutex<Vec<String>>,
+}
+
+#[tauri::command]
+async fn ble_start_hr_monitoring(
+    app: tauri::AppHandle,
+    args: HrMonitorArgs,
+) -> Result<String, String> {
+    let manager = BtleManager::new()
+        .await
+        .map_err(|e| format!("BLE manager error: {}", e))?;
+    let adapters = manager
+        .adapters()
+        .await
+        .map_err(|e| format!("Cannot enumerate adapters: {}", e))?;
+    let adapter = adapters
+        .into_iter()
+        .next()
+        .ok_or_else(|| "No Bluetooth adapter found".to_string())?;
+
+    let svc_uuid = uuid::Uuid::parse_str(&args.service_uuid)
+        .map_err(|e| format!("Invalid service UUID: {}", e))?;
+    let char_uuid = uuid::Uuid::parse_str(&args.characteristic_uuid)
+        .map_err(|e| format!("Invalid characteristic UUID: {}", e))?;
+    let bdaddr: BDAddr = args
+        .mac_address
+        .parse()
+        .map_err(|e| format!("Invalid MAC address: {}", e))?;
+
+    let scan_filter = ScanFilter {
+        services: vec![svc_uuid],
+        ..Default::default()
+    };
+    adapter
+        .start_scan(scan_filter)
+        .await
+        .map_err(|e| format!("Scan start error: {}", e))?;
+
+    let mut found_peripheral: Option<btleplug::platform::Peripheral> = None;
+    for _ in 0..10 {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let peripherals = adapter
+            .peripherals()
+            .await
+            .map_err(|e| format!("Cannot get peripherals: {}", e))?;
+        for p in peripherals {
+            if p.address() == bdaddr {
+                found_peripheral = Some(p);
+                break;
+            }
+        }
+        if found_peripheral.is_some() {
+            break;
+        }
+    }
+    let _ = adapter.stop_scan().await;
+
+    let peripheral = found_peripheral
+        .ok_or_else(|| "Device not found during scan. Ensure Bluetooth is on and the device is in pairing mode.".to_string())?;
+
+    peripheral
+        .connect()
+        .await
+        .map_err(|e| format!("Connect error: {}", e))?;
+
+    peripheral
+        .discover_services()
+        .await
+        .map_err(|e| format!("Discovery error: {}", e))?;
+
+    let services = peripheral.services();
+    let mut target_char: Option<btleplug::api::Characteristic> = None;
+    for service in &services {
+        if service.uuid == svc_uuid {
+            for c in &service.characteristics {
+                if c.uuid == char_uuid {
+                    target_char = Some(c.clone());
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    let char = target_char
+        .ok_or_else(|| "Characteristic not found on device".to_string())?;
+
+    peripheral
+        .subscribe(&char)
+        .await
+        .map_err(|e| format!("Subscribe error: {}", e))?;
+
+    let notification_stream = peripheral
+        .notifications()
+        .await
+        .map_err(|e| format!("Notifications error: {}", e))?;
+
+    {
+        let registry = app
+            .try_get_state::<HrMonitorRegistry>()
+            .map_err(|e| format!("State error: {}", e))?;
+        let mut devices = registry.devices.lock().unwrap();
+        devices.push(args.mac_address.clone());
+    }
+
+    let app_handle = app.clone();
+    let mac = args.mac_address.clone();
+    tokio::spawn(async move {
+        let mut notif_rx = notification_stream;
+        while let Ok(Some(notif)) = notif_rx.recv().await {
+            if let Some((hr, _unit)) = parse_ble_characteristic("heart_rate", &notif.value) {
+                let payload = serde_json::json!({
+                    "mac_address": mac,
+                    "heart_rate": hr as i64,
+                    "timestamp": chrono::Utc::now().to_rfc3339(),
+                });
+                app_handle.emit_all("hr-sample", payload).unwrap_or_else(|e| {
+                    eprintln!("[HR] emit failed: {}", e);
+                });
+            }
+        }
+    });
+
+    Ok("monitoring_started".to_string())
+}
+
+#[tauri::command]
+async fn ble_get_device_info(mac_address: String) -> Result<BleDeviceInfo, String> {
+    Ok(BleDeviceInfo {
+        service_uuid: HEART_RATE_SERVICE_UUID.to_string(),
+        characteristic_uuid: HEART_RATE_CHARACTERISTIC_UUID.to_string(),
+        mac_address,
+    })
+}
+
+#[tauri::command]
+async fn ble_stop_hr_monitoring(app: tauri::AppHandle, mac_address: String) -> Result<String, String> {
+    if let Some(registry) = app.try_get_state::<HrMonitorRegistry>().ok() {
+        let mut devices = registry.devices.lock().unwrap();
+        devices.retain(|m| m != &mac_address);
+    }
+    Ok("monitoring_stopped".to_string())
 }
 
 #[tauri::command]
@@ -998,6 +1163,31 @@ fn init_db(db_path: &std::path::Path) -> Result<Connection, rusqlite::Error> {
              source TEXT NOT NULL DEFAULT 'manual',
              recorded_at TEXT,
              created_at TEXT
+          );
+          CREATE TABLE IF NOT EXISTS hr_24h_samples (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             athlete_id INTEGER NOT NULL,
+             tenant_id INTEGER NOT NULL DEFAULT 0,
+             heart_rate INTEGER NOT NULL,
+             source TEXT NOT NULL DEFAULT 'ble',
+             device_id TEXT,
+             recorded_at TEXT NOT NULL,
+             created_at TEXT
+          );
+          CREATE INDEX IF NOT EXISTS idx_hr_samples_athlete_recorded ON hr_24h_samples(athlete_id, recorded_at);
+          CREATE TABLE IF NOT EXISTS hr_monitoring_settings (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             athlete_id INTEGER NOT NULL,
+             tenant_id INTEGER NOT NULL DEFAULT 0,
+             enabled INTEGER NOT NULL DEFAULT 1,
+             interval_seconds INTEGER NOT NULL DEFAULT 30,
+             source TEXT NOT NULL DEFAULT 'ble',
+             device_id TEXT,
+             max_hr INTEGER,
+             resting_hr INTEGER,
+             created_at TEXT,
+             updated_at TEXT,
+             UNIQUE(athlete_id)
           );",
     )?;
 
@@ -1253,6 +1443,249 @@ async fn health_connect_sync(
     Ok(axum::Json(serde_json::json!({"synced": 1})))
 }
 
+// ---- HR 24h continuous heart-rate tracking ----
+
+#[derive(serde::Deserialize)]
+struct HrSample {
+    heart_rate: i64,
+}
+
+#[derive(serde::Deserialize)]
+struct HrSamplesBulk {
+    samples: Vec<HrSample>,
+    source: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct HrSettings {
+    enabled: Option<bool>,
+    interval_seconds: Option<i32>,
+    source: Option<String>,
+    device_id: Option<String>,
+    max_hr: Option<i32>,
+    resting_hr: Option<i32>,
+}
+
+async fn hr_get_settings(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let conn = state.conn.lock().await;
+    let row = conn
+        .query_row(
+            "SELECT enabled, interval_seconds, source, device_id, max_hr, resting_hr FROM hr_monitoring_settings WHERE athlete_id = ?",
+            params![athlete_id],
+            |r| {
+                let device_id: Option<String> = r.get(3)?;
+                let max_hr: Option<i32> = r.get(4)?;
+                let resting_hr: Option<i32> = r.get(5)?;
+                Ok((
+                    r.get::<_, i32>(0)?,
+                    r.get::<_, i32>(1)?,
+                    r.get::<_, String>(2)?,
+                    device_id,
+                    max_hr,
+                    resting_hr,
+                ))
+            },
+        )
+        .optional()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if let Some((enabled, interval, src, device_id, max_hr, resting_hr)) = row {
+        Ok(axum::Json(serde_json::json!({
+            "enabled": enabled == 1,
+            "interval_seconds": interval,
+            "source": src,
+            "device_id": device_id,
+            "max_hr": max_hr,
+            "resting_hr": resting_hr,
+        })))
+    } else {
+        Ok(axum::Json(serde_json::json!({
+            "enabled": true,
+            "interval_seconds": 30,
+            "source": "ble",
+            "device_id": None,
+            "max_hr": None,
+            "resting_hr": None,
+        })))
+    }
+}
+
+async fn hr_upsert_settings(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+    AxumJson(payload): AxumJson<HrSettings>,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let conn = state.conn.lock().await;
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        "INSERT INTO hr_monitoring_settings (athlete_id, tenant_id, enabled, interval_seconds, source, device_id, max_hr, resting_hr, created_at, updated_at) VALUES (?1, ?1, COALESCE(?2, 1), COALESCE(?3, 30), COALESCE(?4, 'ble'), ?5, ?6, ?7, ?8, ?8) ON CONFLICT(athlete_id) DO UPDATE SET enabled=excluded.enabled, interval_seconds=excluded.interval_seconds, source=excluded.source, device_id=excluded.device_id, max_hr=excluded.max_hr, resting_hr=excluded.resting_hr, updated_at=excluded.updated_at",
+        params![athlete_id, payload.enabled.map(|v| if v {1} else {0}), payload.interval_seconds, payload.source.as_deref(), payload.device_id.as_deref(), payload.max_hr, payload.resting_hr, now],
+    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(axum::Json(serde_json::json!({
+        "enabled": payload.enabled.unwrap_or(true),
+        "interval_seconds": payload.interval_seconds.unwrap_or(30),
+        "source": payload.source.unwrap_or("ble"),
+        "device_id": payload.device_id,
+        "max_hr": payload.max_hr,
+        "resting_hr": payload.resting_hr,
+    })))
+}
+
+async fn hr_log_samples(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+    AxumJson(payload): AxumJson<HrSamplesBulk>,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let conn = state.conn.lock().await;
+    let now = Utc::now().to_rfc3339();
+    let src = payload.source.as_deref().unwrap_or("ble");
+    let mut count = 0i64;
+    for s in &payload.samples {
+        if s.heart_rate < 0 || s.heart_rate > 300 {
+            continue;
+        }
+        conn.execute(
+            "INSERT INTO hr_24h_samples (athlete_id, tenant_id, heart_rate, source, device_id, recorded_at, created_at) VALUES (?1, ?1, ?2, ?3, NULL, ?4, ?5)",
+            params![athlete_id, s.heart_rate, src, now.clone(), now],
+        ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        count += 1;
+    }
+    Ok(axum::Json(serde_json::json!({"saved": count})))
+}
+
+async fn hr_get_24h(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+    axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let hours: i64 = q.get("hours").and_then(|v| v.parse().ok()).unwrap_or(24);
+    let conn = state.conn.lock().await;
+    let since = (Utc::now() - chrono::Duration::hours(hours)).to_rfc3339();
+    let mut stmt = conn
+        .prepare("SELECT heart_rate, source, device_id, recorded_at FROM hr_24h_samples WHERE athlete_id = ?1 AND recorded_at >= ?2 ORDER BY recorded_at ASC")
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows = stmt
+        .query_map(params![athlete_id, since], |r| {
+            let device_id: Option<String> = r.get(2)?;
+            Ok(serde_json::json!({
+                "heart_rate": r.get::<_, i64>(0)?,
+                "source": r.get::<_, String>(1)?,
+                "device_id": device_id,
+                "recorded_at": r.get::<_, String>(3)?,
+            }))
+        })
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let samples: Vec<_> = rows.filter_map(|r| r.ok()).collect();
+    Ok(axum::Json(serde_json::json!({"samples": samples})))
+}
+
+async fn hr_get_summary(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+    axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<axum::Json<Option<serde_json::Value>>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let days: i64 = q.get("days").and_then(|v| v.parse().ok()).unwrap_or(30);
+    let conn = state.conn.lock().await;
+    let since = (Utc::now() - chrono::Duration::days(days)).format("%Y-%m-%d").to_string();
+    let row = conn
+        .query_row(
+            "SELECT date(recorded_at) as day, MIN(heart_rate), ROUND(AVG(heart_rate), 1), MAX(heart_rate), COUNT(*) FROM hr_24h_samples WHERE athlete_id = ?1 AND date(recorded_at) >= ?2 GROUP BY date(recorded_at) ORDER BY day ASC",
+            params![athlete_id, since],
+            |r| {
+                let resting: Option<i64> = r.get(1)?;
+                let avg: Option<f64> = r.get(2)?;
+                let max: Option<i64> = r.get(3)?;
+                let count: i64 = r.get(4)?;
+                Ok(serde_json::json!({
+                    "day": r.get::<_, String>(0)?,
+                    "resting_hr": resting,
+                    "avg_hr": avg,
+                    "max_hr": max,
+                    "min_hr": resting,
+                    "sample_count": count,
+                }))
+            },
+        )
+        .optional()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    match row {
+        Ok(Some(json)) => Ok(Some(axum::Json(serde_json::json!(json)))),
+        _ => Ok(None),
+    }
+}
+
+async fn hr_get_summary_history(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+    axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let days: i64 = q.get("days").and_then(|v| v.parse().ok()).unwrap_or(30);
+    let conn = state.conn.lock().await;
+    let since = (Utc::now() - chrono::Duration::days(days)).format("%Y-%m-%d").to_string();
+    let mut stmt = conn
+        .prepare("SELECT date(recorded_at) as day, MIN(heart_rate), ROUND(AVG(heart_rate), 1), MAX(heart_rate), COUNT(*) FROM hr_24h_samples WHERE athlete_id = ?1 AND date(recorded_at) >= ?2 GROUP BY date(recorded_at) ORDER BY day ASC")
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows = stmt
+        .query_map(params![athlete_id, since], |r| {
+            let resting: Option<i64> = r.get(1)?;
+            let avg: Option<f64> = r.get(2)?;
+            let max: Option<i64> = r.get(3)?;
+            let count: i64 = r.get(4)?;
+            Ok(serde_json::json!({
+                "day": r.get::<_, String>(0)?,
+                "resting_hr": resting,
+                "avg_hr": avg,
+                "max_hr": max,
+                "min_hr": resting,
+                "sample_count": count,
+            }))
+        })
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let history: Vec<_> = rows.filter_map(|r| r.ok()).collect();
+    Ok(axum::Json(serde_json::json!({"history": history})))
+}
+
+async fn hr_delete_samples(
+    state: AxumState<AppState>,
+    headers: HeaderMap,
+    axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<axum::Json<serde_json::Value>, StatusCode> {
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let conn = state.conn.lock().await;
+    let older_than = q.get("older_than");
+    let deleted = match older_than {
+        Some(ts) => conn
+            .execute("DELETE FROM hr_24h_samples WHERE athlete_id = ?1 AND recorded_at < ?2", params![athlete_id, ts])
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+        None => conn
+            .execute("DELETE FROM hr_24h_samples WHERE athlete_id = ?1", params![athlete_id])
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+    };
+    Ok(axum::Json(serde_json::json!({"deleted": deleted}))
+}
+
 // ---- Avvio server Axum ----
 
 async fn start_axum_server(state: AppState, port: u16) -> Result<(), Box<dyn std::error::Error>> {
@@ -1298,6 +1731,11 @@ async fn start_axum_server(state: AppState, port: u16) -> Result<(), Box<dyn std
         .route("/api/v1/health-connect/status", get(health_connect_status).post(health_connect_connect))
         .route("/api/v1/health-connect/disconnect", post(health_connect_disconnect))
         .route("/api/v1/health-connect/sync", post(health_connect_sync))
+        .route("/api/v1/hr/settings", get(hr_get_settings).put(hr_upsert_settings))
+        .route("/api/v1/hr/samples", post(hr_log_samples).delete(hr_delete_samples))
+        .route("/api/v1/hr/24h", get(hr_get_24h))
+        .route("/api/v1/hr/summary", get(hr_get_summary))
+        .route("/api/v1/hr/summary/history", get(hr_get_summary_history))
         .layer(cors)
         .with_state(state);
 
@@ -1354,10 +1792,11 @@ pub fn run() {
             });
 
             app.manage(state);
+            app.manage(HrMonitorRegistry::default());
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_app_info, get_db_path, reset_local_data, ble_scan, ble_pair, ble_read_measurement, health_connect_permissions, health_connect_read_metrics])
+        .invoke_handler(tauri::generate_handler![get_app_info, get_db_path, reset_local_data, ble_scan, ble_pair, ble_read_measurement, ble_start_hr_monitoring, ble_stop_hr_monitoring, ble_get_device_info, health_connect_permissions, health_connect_read_metrics])
         .run(tauri::generate_context!())
         .expect("errore durante l'avvio dell'applicazione Tauri");
 }

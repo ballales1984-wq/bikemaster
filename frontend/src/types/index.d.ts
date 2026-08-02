@@ -320,3 +320,29 @@ export interface BeckHistory {
 
 export type BeckItemScore = 0 | 1 | 2 | 3;
 export type BeckItemOption = [string, BeckItemScore];
+
+export interface Hr24hSample {
+  id: number;
+  heart_rate: number;
+  source: string;
+  device_id: string | null;
+  recorded_at: string;
+}
+
+export interface Hr24hSettings {
+  enabled: boolean;
+  interval_seconds: number;
+  source: string;
+  device_id: string | null;
+  max_hr: number | null;
+  resting_hr: number | null;
+}
+
+export interface HrDailySummary {
+  day: string;
+  resting_hr: number | null;
+  avg_hr: number | null;
+  max_hr: number | null;
+  min_hr: number | null;
+  sample_count: number;
+}

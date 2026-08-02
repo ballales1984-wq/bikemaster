@@ -329,6 +329,45 @@ class HealthConnectPayload(BaseModel):
     source: str = Field(default="health_connect")
 
 
+class HrSampleCreate(BaseModel):
+    """Un singolo campione di frequenza cardiaca per il tracciamento 24h."""
+
+    heart_rate: int = Field(..., ge=1, le=300)
+    recorded_at: str | None = Field(default=None, max_length=32)
+    source: str | None = Field(default="ble")
+    device_id: str | None = Field(default=None)
+
+
+class HrSamplesBulk(BaseModel):
+    """Payload per l'inserimento bulk di campioni HR 24h."""
+
+    samples: list[HrSampleCreate]
+    source: str | None = Field(default="ble")
+
+
+class HrMonitoringSettings(BaseModel):
+    """Impostazioni del tracciamento HR 24h."""
+
+    enabled: bool = True
+    interval_seconds: int = Field(default=30, ge=5, le=3600)
+    source: str = Field(default="ble")
+    device_id: str | None = None
+    max_hr: int | None = Field(default=None, ge=50, le=300)
+    resting_hr: int | None = Field(default=None, ge=30, le=250)
+
+
+class Hr24hSummary(BaseModel):
+    """Riepilogo giornaliero della frequenza cardiaca."""
+
+    day: str
+    resting_hr: int | None = None
+    avg_hr: float | None = None
+    max_hr: int | None = None
+    min_hr: int | None = None
+    sample_count: int = 0
+
+
+
 class Token(BaseModel):
     """Token di accesso JWT."""
 

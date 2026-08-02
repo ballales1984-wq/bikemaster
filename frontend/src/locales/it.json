@@ -9,7 +9,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "rides": "Uscite",
-    "tracking": "Tracciamento",
+     "tracking": "Tracciamento",
+     "heartRate24h": "FC 24h",
     "import": "Importa",
     "athlete": "Atleta",
     "avatar": "Avatar",
@@ -697,7 +698,32 @@
       "points": "Punti",
       "meanMeasured": "Potenza media misurata",
       "meanEstimated": "Potenza media stimata",
-      "bm2QuickAction": "BM2"
-    }
-  }
+       "bm2QuickAction": "BM2"
+     }
+   },
+   "hr24h": {
+     "title": "Frequenza cardiaca 24h",
+     "heartRate": "Frequenza cardiaca",
+     "resting": "FC a riposo",
+     "average": "Media",
+     "max": "Massima",
+     "samples": "Campioni",
+     "min": "Minima",
+     "day": "Giorno",
+     "avg": "Media",
+     "start": "Inizia tracciamento",
+     "stop": "Ferma tracciamento",
+     "starting": "Avvio...",
+     "stopped": "Fermato",
+     "connected": "Connesso:",
+     "noData": "N/D",
+     "settings": "Impostazioni HR",
+     "interval": "Intervallo di campionamento (s)",
+     "maxHr": "FC massima",
+     "restingHr": "FC a riposo",
+     "deviceId": "ID dispositivo BLE",
+     "cancel": "Annulla",
+     "save": "Salva",
+     "history": "Storico giornaliero"
+   }
 }

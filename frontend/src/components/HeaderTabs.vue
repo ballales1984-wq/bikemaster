@@ -122,6 +122,7 @@ const tabs = [
   { to: "/rides", label: "nav.rides", icon: "🚴" },
   { to: "/dashboard", label: "nav.dashboard", icon: "📊" },
   { to: "/track", label: "nav.tracking", icon: "📍" },
+  { to: "/hr24h", label: "nav.heartRate24h", icon: "❤️" },
   { to: "/import", label: "nav.import", icon: "📥" },
   { to: "/athlete", label: "nav.athlete", icon: "👤" },
   { to: "/avatar", label: "nav.avatar", icon: "🪪" },
