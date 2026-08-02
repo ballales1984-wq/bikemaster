@@ -19,6 +19,30 @@
         </template>
       </template>
       <br />linea = percorso · verde = start · rosso = end · giallo = stats
+      <div v-if="geoLayers.length" class="aethermap-layers">
+        <span class="aethermap-layers-title">Layer:</span>
+        <label
+          v-for="layer in geoLayers"
+          :key="layer.id"
+          class="aethermap-layer-toggle"
+        >
+          <input
+            type="checkbox"
+            :checked="layer.visible"
+            @change="toggleGeoLayer(layer.id)"
+          />
+          <span
+            class="aethermap-layer-dot"
+            :style="{ backgroundColor: layer.color }"
+          ></span>
+          {{ layer.name }}
+          <span v-if="layer.loading" class="aethermap-layer-loading">…</span>
+          <span v-else-if="layer.error" class="aethermap-warn">!</span>
+          <span v-else-if="layer.data" class="aethermap-layer-count">
+            {{ layer.data.features?.length ?? 0 }}
+          </span>
+        </label>
+      </div>
     </div>
   </div>
 </template>
@@ -30,6 +54,7 @@ import {
   hexToRgb,
   type AetherScene,
 } from "../composables/useAetherMap";
+import { useAetherMapGeo } from "../composables/useAetherMapGeo";
 
 interface MapPoint {
   lat: number;
@@ -67,6 +92,24 @@ let markerBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
 
 const rideIdsRef = computed(() => props.rideIds ?? []);
 const { scene, loading, error } = useAetherMap(rideIdsRef);
+const { layers, visibleLayers, toggleLayer } = useAetherMapGeo();
+const geoLayers = computed<
+  Array<{
+    id: string;
+    name: string;
+    type: "roads" | "cities" | "peaks";
+    data: { type: "FeatureCollection"; features: any[] } | null;
+    loading: boolean;
+    error: string | null;
+    visible: boolean;
+    color: string;
+  }>
+>(() => Array.from(layers.value.values()));
+
+let geoBufferMap: Map<
+  string,
+  { buf: WebGLBuffer; count: number; mode: number }
+> = new Map();
 
 const DEG = Math.PI / 180;
 const EARTH_R = 6371000.0;
@@ -127,6 +170,11 @@ function speedColor(speed: number | undefined): [number, number, number] {
   if (speed >= 15) return [0.87, 0.73, 0.0];
   if (speed >= 5) return [0.93, 0.53, 0.0];
   return [0.93, 0.2, 0.2];
+}
+
+function toggleGeoLayer(id: string): void {
+  toggleLayer(id);
+  updateGeoBuffers();
 }
 
 function markerColor(tipo: string): [number, number, number] {
@@ -740,6 +788,73 @@ function updateSceneBuffers(sc: AetherScene) {
     markerBuffer = makeBuffer(new Float32Array(markerData), gl.POINTS, 6);
 }
 
+function geoColorForType(tipo: string): Vec3 {
+  if (tipo === "strada") return [0.95, 0.78, 0.22];
+  if (tipo === "citta") return [0.28, 0.92, 0.42];
+  if (tipo === "montagna") return [0.92, 0.32, 0.28];
+  return [0.8, 0.8, 0.8];
+}
+
+function updateGeoBuffers() {
+  for (const [, buf] of geoBufferMap) {
+    if (buf && gl) gl.deleteBuffer(buf.buf);
+  }
+  geoBufferMap.clear();
+  if (!gl) return;
+
+  for (const layer of visibleLayers.value) {
+    if (!layer.data) continue;
+    const features = layer.data.features || [];
+    const lineData: number[] = [];
+    const pointData: number[] = [];
+
+    for (const feature of features) {
+      const geom = feature.geometry;
+      if (!geom) continue;
+      const coords = geom.coordinates as unknown[] | undefined;
+      if (!coords || !coords.length) continue;
+
+      if (geom.type === "LineString") {
+        const pts: Vec3[] = [];
+        for (const c of coords) {
+          const coord = c as number[];
+          if (!Array.isArray(coord) || coord.length < 2) continue;
+          const d = geodeticToDirection(coord[1], coord[0]);
+          const h = (coord[2] || 0) * TERRAIN_SCALE;
+          const r = GLOBE_RADIUS + h;
+          pts.push([d[0] * r, d[1] * r, d[2] * r]);
+        }
+        if (pts.length >= 2) {
+          for (let i = 0; i + 1 < pts.length; i++) {
+            pushArc(lineData, pts[i], pts[i + 1], geoColorForType(layer.type));
+          }
+        }
+      } else if (geom.type === "Point") {
+        if (!Array.isArray(coords) || coords.length < 2) continue;
+        const coord = coords as number[];
+        const d = geodeticToDirection(coord[1], coord[0]);
+        const h = (coord[2] || 0) * TERRAIN_SCALE;
+        const r = GLOBE_RADIUS + h;
+        pointData.push(
+          d[0] * r,
+          d[1] * r,
+          d[2] * r,
+          ...geoColorForType(layer.type),
+        );
+      }
+    }
+
+    if (lineData.length) {
+      const buf = makeBuffer(new Float32Array(lineData), gl.LINE_STRIP, 6);
+      if (buf) geoBufferMap.set(`line-${layer.id}`, buf);
+    }
+    if (pointData.length) {
+      const buf = makeBuffer(new Float32Array(pointData), gl.POINTS, 6);
+      if (buf) geoBufferMap.set(`point-${layer.id}`, buf);
+    }
+  }
+}
+
 let currentLOD = -1;
 let globePending = false;
 
@@ -1089,6 +1204,10 @@ onMounted(async () => {
     if (pointBuffer) draw(pointBuffer);
     if (markerBuffer) draw(markerBuffer);
 
+    for (const [, buf] of geoBufferMap) {
+      draw(buf);
+    }
+
     rafId = requestAnimationFrame(frame);
   }
 
@@ -1121,14 +1240,28 @@ watch(
   { deep: false },
 );
 
+watch(
+  () => visibleLayers.value.map((l) => l.id),
+  () => {
+    if (!gl) return;
+    updateGeoBuffers();
+  },
+);
+
 onBeforeUnmount(() => {
   if (rafId != null) {
     cancelAnimationFrame(rafId);
     rafId = null;
   }
   if (gl) {
-    [globeBuffer, routeBuffer, pointBuffer, markerBuffer].forEach((b) => {
-      if (b) gl!.deleteBuffer(b.buf);
+    [
+      globeBuffer,
+      routeBuffer,
+      pointBuffer,
+      markerBuffer,
+      ...geoBufferMap.values(),
+    ].forEach((b) => {
+      if (b && "buf" in b) gl!.deleteBuffer((b as { buf: WebGLBuffer }).buf);
     });
   }
   resizeObserver?.disconnect();
@@ -1170,5 +1303,41 @@ onBeforeUnmount(() => {
 }
 .aethermap-warn {
   color: #ff8888;
+}
+.aethermap-layers {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(127, 255, 221, 0.15);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.aethermap-layers-title {
+  color: #fff;
+  font-weight: bold;
+  margin-right: 4px;
+}
+.aethermap-layer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  pointer-events: auto;
+  color: #7fd;
+}
+.aethermap-layer-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.aethermap-layer-loading {
+  color: #ff8888;
+  font-size: 10px;
+}
+.aethermap-layer-count {
+  color: #aaa;
+  font-size: 10px;
 }
 </style>
