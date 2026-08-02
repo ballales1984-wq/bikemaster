@@ -298,10 +298,7 @@ onMounted(async () => {
 
 async function uploadOne(file: File) {
   const ext = file.name.toLowerCase().split(".").pop();
-  const path =
-    ext === "fit" || ext === "fitf"
-      ? "/api/v1/import/fit"
-      : "/api/v1/import/gpx";
+  const path = ext === "fit" ? "/api/v1/import/fit" : "/api/v1/import/gpx";
   return apiUpload(path, file);
 }
 
