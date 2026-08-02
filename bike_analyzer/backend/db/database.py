@@ -2316,6 +2316,9 @@ def _get_resting_hr_setting(athlete_id: int) -> int | None:
         return None
     val = settings.get("resting_hr")
     return int(val) if val is not None else None
+
+
+def save_metabolic_profile(profile: dict, athlete_id: int, tenant_id: int = 0) -> int:
     """Upsert metabolic profile for an athlete."""
     now = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
