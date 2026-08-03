@@ -13,9 +13,8 @@ from bike_analyzer.bm2 import (
     SimulationEngine, TrainingLoadModel, TransformerEngine, WorldObject, q,
 )
 from bike_analyzer.bm2.algorithms import ALL_ALGORITHMS, MODEL_REGISTRY
-from bike_analyzer.bm2.orchestrator import ScenarioOverride
 from bike_analyzer.bm2.simulation import (
-    ScenarioPresets, SensitivityResult, parse_override_from_text,
+    ScenarioOverride, ScenarioPresets, SensitivityResult, parse_override_from_text,
 )
 from bike_analyzer.bm2.transformer import GeoPoint
 
