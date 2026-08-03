@@ -1358,7 +1358,6 @@ async def google_callback(
         raise HTTPException(status_code=502, detail="Failed to fetch Google user info") from exc
 
     email: str = user_info.get("email", "")
-    google_sub: str = user_info.get("sub", "")
     name: str = user_info.get("name") or email.split("@")[0] or "user"
     picture: str = user_info.get("picture", "")
 
@@ -1427,7 +1426,6 @@ async def google_callback(
         # SQLite path (local / development)
         from ..db.database import (
             get_athlete_by_email,
-            get_athlete_by_name,
             save_athlete,
             update_athlete,
         )
