@@ -117,6 +117,7 @@ export function processOAuthToken(): boolean {
   const pending = consumePendingOAuth();
   if (pending) {
     auth.setAuthFromUrl(pending.token, pending.email, pending.userId);
+    clearPendingOAuth();
     ui.setOauthLoading(false);
     console.log("[OAuth] token recovered from sessionStorage");
     return true;

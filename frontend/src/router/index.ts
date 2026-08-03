@@ -305,9 +305,15 @@ async function checkProfileComplete(
 router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore();
   const ui = useUIStore();
-  // Capture a token delivered in the URL fragment/query (e.g. an OAuth return
-  // whose navigation reached the guard before main.ts consumed it).
-  processOAuthToken();
+  // main.ts processes OAuth tokens during bootstrap (main.ts:37) and via
+  // hashchange/pageshow listeners for same-document returns. The guard only
+  // needs to handle a token that reached the router without main.ts
+  // consuming it. If auth is already settled, skip — otherwise every
+  // post-login navigation logs a misleading "[OAuth] no token found"
+  // (the token was already consumed and the URL cleaned by main.ts).
+  if (!auth.isLoggedIn) {
+    processOAuthToken();
+  }
   const { hasToken, justLoggedIn } = syncAuthState();
 
   if (to.meta.requiresAuth && !hasToken) {
