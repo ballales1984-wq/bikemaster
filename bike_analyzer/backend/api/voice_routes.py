@@ -17,7 +17,6 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-import edge_tts
 import httpx
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
@@ -134,6 +133,8 @@ async def _groq_stt(audio_bytes: bytes, filename: str = "audio.webm") -> str | N
 
 async def _edge_tts(text: str, voice: str = "it-IT-IsabellaNeural") -> bytes | None:
     """Synthesize speech using edge-tts."""
+    import edge_tts
+
     try:
         communicate = edge_tts.Communicate(text, voice)
         audio_buffer = io.BytesIO()
