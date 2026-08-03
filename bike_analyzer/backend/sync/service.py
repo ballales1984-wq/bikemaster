@@ -13,21 +13,16 @@ affecting local operation.
 from __future__ import annotations
 
 import asyncio
-import logging
-import time
-from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Any
 
 from ..utils.logger import get_logger
 from .client import SyncClient
 from .config import (
-    EntityType,
-    SyncDirection,
     SyncMode,
     get_sync_config,
 )
-from .conflict_resolver import ConflictResolution, ResolutionResult, resolve_conflict
+from .conflict_resolver import ConflictResolution, resolve_conflict
 from .db_helpers import (
     ensure_sync_tables,
     get_conflicts,
@@ -36,7 +31,6 @@ from .db_helpers import (
     get_pending_entities,
     mark_conflict,
     mark_error,
-    mark_pending,
     mark_synced,
     resolve_conflict_db,
     save_conflict,
@@ -48,7 +42,6 @@ from .models import (
     ConflictRecord,
     SyncCheckResult,
     SyncEntityState,
-    SyncPushResult,
     SyncResult,
     SyncStatus,
 )

@@ -1,7 +1,6 @@
 """Tests for 24-hour heart-rate tracking (independent of Google Health/Fit)."""
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timedelta, timezone
 
 from bike_analyzer.backend.db import database as db_module

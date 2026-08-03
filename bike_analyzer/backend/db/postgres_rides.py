@@ -16,9 +16,7 @@ store is SQLite (local / offline) or PostgreSQL (cloud / production).
 from __future__ import annotations
 
 import json
-import os
 from datetime import UTC, datetime
-from typing import Any
 
 from ..settings import get_settings
 

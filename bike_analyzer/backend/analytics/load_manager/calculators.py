@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from math import exp
 
-from .config import LoadManagerConfig, DEFAULT_CONFIG
 
 
 def calculate_tss(

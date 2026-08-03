@@ -8,12 +8,11 @@ Resolution strategy (per deployment plan §3.2):
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Any
 
 from ..utils.logger import get_logger
-from .models import ConflictRecord, ConflictResolution, SyncStatus
+from .models import ConflictRecord, ConflictResolution
 
 logger = get_logger(__name__)
 

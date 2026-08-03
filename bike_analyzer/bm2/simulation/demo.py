@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 
 from ..algorithms.power_model import PowerModel
 from ..models import Activity, AnalysisContext, Athlete, Bike, GeoPoint, WorldObject
-from ..simulation import ScenarioOverride, ScenarioPresets, SimulationEngine
+from ..simulation import ScenarioOverride, SimulationEngine
 from ..transformer import TransformerEngine
 from ..units import q
 

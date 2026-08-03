@@ -1,7 +1,6 @@
 """Tests for athlete history snapshot functionality."""
 from __future__ import annotations
 
-import pytest
 
 from bike_analyzer.backend.db import database as db_module
 from bike_analyzer.backend.db.database import (

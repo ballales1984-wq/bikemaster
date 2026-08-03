@@ -8,7 +8,7 @@ via the Transformer Engine. Algorithms never see raw data.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any, Optional
+from typing import Optional
 
 from .models import Activity, Athlete, MetabolicDailySummary, MetabolicProfile, WorldObject
 from .transformer import GeoPoint, TransformerEngine

@@ -18,24 +18,19 @@ import asyncio
 import contextlib
 import json
 import logging
-import os
-from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from ipaddress import AddressValueError, ip_address, ip_network
-from pathlib import Path
 from urllib.parse import urlencode, urlparse
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from sqlalchemy import func, select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import select
 
 from bike_analyzer.backend.audit_log import log_action, read_audit_logs
 from bike_analyzer.backend.rate_limiter import limiter
 from bike_analyzer.backend.redis_client import (
-    cache_delete as _cache_delete,
     cache_set as _cache_set,
     cached as _cached,
     check_rate_limit,
@@ -57,16 +52,11 @@ from bike_analyzer.backend.security import (
     verify_password,
 )
 from bike_analyzer.backend.settings import get_settings
-from bike_analyzer.backend.db.async_db import get_session_factory, init_async_db
+from bike_analyzer.backend.db.async_db import get_session_factory
 from bike_analyzer.backend.db.models import (
     AthleteModel,
     ChatHistoryModel,
-    FitnessStateModel,
-    KnowledgeChunkModel,
-    PlannedWorkoutModel,
-    POIModel,
     RideModel,
-    TrainingGoalModel,
     UserModel,
 )
 from bike_analyzer.backend.analytics.knowledge_base import (
@@ -699,7 +689,7 @@ async def hub_google_code_exchange(
     if not google_sub:
         raise HTTPException(status_code=400, detail="invalid_user_info")
 
-    from sqlalchemy import select as sa_select, insert as sa_insert
+    from sqlalchemy import select as sa_select
 
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -799,7 +789,7 @@ async def hub_create_backup(current_user: dict = Depends(get_admin_user)):
 @hub_admin_router.post("/backup/scheduled")
 async def hub_scheduled_backup(current_user: dict = Depends(get_admin_user)):
     """Esegue un backup pianificato e ritorna il conteggio di ride e atleti."""
-    from sqlalchemy import select as sa_select, func
+    from sqlalchemy import func
 
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -868,7 +858,7 @@ async def hub_reset_demo_data(current_user: dict = Depends(get_admin_user)):
 @hub_admin_router.get("/ceo")
 async def hub_ceo_analytics(current_user: dict = Depends(get_admin_user)):
     """Calcola le metriche di analytics executive (CEO) su atleti e ride."""
-    from sqlalchemy import select as sa_select, func as sa_func
+    from sqlalchemy import select as sa_select
 
     session_factory = get_session_factory()
     async with session_factory() as session:

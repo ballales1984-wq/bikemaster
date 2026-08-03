@@ -13,15 +13,11 @@ aggregate (MAE, RMSE, R², bias).
 
 from __future__ import annotations
 
-import math
 import random
-import statistics
 from datetime import datetime, timedelta
 from typing import Sequence
 
-from ..algorithms.power_model import PowerModel
-from ..models import Activity, AnalysisContext, Athlete, Bike, GeoPoint, WorldObject
-from ..simulation import ScenarioOverride, SimulationEngine
+from ..models import Athlete, Bike, WorldObject
 from ..transformer import TransformerEngine
 from ..units import q
 from bike_analyzer.core.physics.validation import validate_ride_power

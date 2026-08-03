@@ -14,7 +14,7 @@ try:
     from aethermap.twin.objects import make_albero, make_montagna, make_strada
     from aethermap.twin.world import DigitalTwin, Environment
     _AETHERMAP_AVAILABLE: bool = True
-except ImportError as exc:
+except ImportError:
     logger.warning(
         "AetherMap not installed; terrain enrichment disabled. "
         "Install with: pip install -e \".[maps]\""

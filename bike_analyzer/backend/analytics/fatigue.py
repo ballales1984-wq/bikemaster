@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import math
 
 from ..models.models import Ride
-from .error_propagation import ErrorValue, compute_coverage
+from .error_propagation import ErrorValue
 
 
 def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:

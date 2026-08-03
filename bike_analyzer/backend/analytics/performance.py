@@ -6,7 +6,7 @@ import math
 
 from ..models.models import AthleteProfile, Ride
 from .fatigue import calculate_fatigue_score
-from .error_propagation import ErrorValue, combine_errors_quadrature, propagate_division, propagate_multiplication, compute_coverage
+from .error_propagation import ErrorValue, propagate_division, compute_coverage
 
 
 def calculate_performance_score(ride: Ride) -> float:

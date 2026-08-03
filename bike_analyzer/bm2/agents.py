@@ -7,10 +7,9 @@ Each agent encapsulates a data source (GPS, athlete, environment, sensors) and
 
 from __future__ import annotations
 
-import json
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from .models import Activity, Athlete, WorldObject
 from .metabolism_agent import MetabolismAgent

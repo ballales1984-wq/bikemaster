@@ -82,7 +82,6 @@ class MetabolismModel(Algorithm):
 
         rides = []
         if ctx.activity.points:
-            from ..models import Activity as BM2Activity
             ride_data = {
                 "elevation_gain_m": ctx.activity.summary.get("elevation_gain_m"),
                 "gps_points": [

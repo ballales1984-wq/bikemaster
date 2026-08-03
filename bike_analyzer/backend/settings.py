@@ -7,7 +7,6 @@ All settings are loaded from environment variables with sensible defaults.
 from __future__ import annotations
 
 import logging
-import os
 import sys
 from pathlib import Path
 

@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import json
-import logging
 from datetime import UTC, datetime
 from typing import Any
 
 from ..utils.logger import get_logger
-from .models import ChangeDelta, ConflictRecord, EntityType, SyncEntityState, SyncStatus
+from .models import ConflictRecord, SyncEntityState, SyncStatus
 
 logger = get_logger(__name__)
 

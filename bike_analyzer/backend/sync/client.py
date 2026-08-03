@@ -12,8 +12,6 @@ never break local operation.
 
 from __future__ import annotations
 
-import json
-import logging
 from typing import Any
 
 from ..http_async import request_json

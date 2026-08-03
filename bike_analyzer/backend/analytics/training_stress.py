@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import math
 
-from .error_propagation import ErrorValue, compute_coverage
+from .error_propagation import ErrorValue
 
 
 def exponentially_weighted_moving_average(values: list[float], tau_days: float) -> float:

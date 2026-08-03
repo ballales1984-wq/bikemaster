@@ -13,21 +13,19 @@ Primary TTS backend: edge-tts (free, natural voices, no API key).
 from __future__ import annotations
 
 import io
-import logging
-import os
 import tempfile
 from pathlib import Path
 from typing import Any
 
 import edge_tts
 import httpx
-from fastapi import APIRouter, Body, File, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from ..settings import get_settings
 from ..utils.logger import get_logger
-from ..analytics.voice_coach import VoiceCoach, _AUDIO_CUES
+from ..analytics.voice_coach import VoiceCoach
 
 logger = get_logger(__name__)
 _s = get_settings()

@@ -10,17 +10,14 @@ called by the SyncClient inside the sync service, not exposed here.
 
 from __future__ import annotations
 
-import logging
-from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from ..security import get_current_user
-from ..sync.config import SyncMode, SyncSettings, get_sync_config, load_sync_config, save_sync_config
-from ..sync.db_helpers import get_conflicts, get_pending_entities, get_last_sync_ts
-from ..sync.models import ConflictRecord, SyncResult
+from ..sync.config import SyncMode, get_sync_config, save_sync_config
+from ..sync.models import SyncResult
 from ..sync.service import get_sync_service
 from ..utils.logger import get_logger
 

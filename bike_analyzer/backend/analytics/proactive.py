@@ -18,7 +18,7 @@ be reused by the FastAPI layer, the simulation engine (bm2) and the Tauri app.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 

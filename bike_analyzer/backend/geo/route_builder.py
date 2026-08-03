@@ -6,7 +6,7 @@ from typing import Any
 from ..maps.aethermap_adapter import WorldStore, Geometria, Oggetto, Posizione
 from ..maps.aethermap_adapter import _speed_to_color, _statistics_metadata
 from ..models.models import GPSPoint, RouteStatistics
-from .types import GeoEnrichedPoint, RouteEnrichmentResult
+from .types import GeoEnrichedPoint
 
 
 def build_aethermap_worldstore(

@@ -13,7 +13,6 @@ import struct
 import zlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 

@@ -5,7 +5,6 @@ Spec (agent): "Modelli Pydantic per TrainingStress, ChronicLoad, LoadBalance".
 
 from __future__ import annotations
 
-from datetime import date, datetime
 from enum import Enum
 from typing import Optional
 

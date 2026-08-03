@@ -9,9 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
-from .chronic_load import ChronicLoadManager
 from .config import AthleteLevel, DEFAULT_CONFIG, LoadManagerConfig
 from .models import ChronicLoad, LoadBalance
 

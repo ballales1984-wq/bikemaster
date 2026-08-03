@@ -8,13 +8,11 @@ controllo di accesso per atleta (owner o admin).
 
 from __future__ import annotations
 
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..db.database import get_ride, get_rides_by_athlete
-from ..models.models import Ride
 from ..security import get_current_user
 from ..api.routes import _ensure_athlete_access, _user_id
 from ..analytics import performance_service as svc

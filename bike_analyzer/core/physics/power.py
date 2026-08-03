@@ -15,7 +15,6 @@ Conventions (aligned with ``core.calculators.calories.calories_physics`` and
 
 from __future__ import annotations
 
-import math
 
 from ..models import GPSPoint, haversine_distance_m
 from .constants import AIR_DENSITY, GRAVITY, RiderBikeParams

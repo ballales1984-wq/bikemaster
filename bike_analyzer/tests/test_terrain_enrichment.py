@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from bike_analyzer.analytics.terrain_enrichment import EnrichedGPSPoint, TerrainEnricher
+from bike_analyzer.analytics.terrain_enrichment import TerrainEnricher
 from bike_analyzer.core.models import GPSPoint
 
 
