@@ -1252,6 +1252,234 @@ async def register(
     }
 
 
+# ---------------------------------------------------------------------------
+# Google OAuth2 — Sign in with Google
+# ---------------------------------------------------------------------------
+
+
+@router.get("/auth/google")
+@limiter.limit("20/minute")
+async def google_login(
+    request: Request,
+    redirect_uri: str = Query("", description="Override redirect URI for the OAuth callback"),
+    frontend_origin: str = Query("", description="Frontend origin for post-login redirect"),
+):
+    """Start the Google OAuth2 login flow.
+
+    Returns ``{ auth_url }`` — the frontend should redirect the browser there.
+    A signed JWT *state* token is issued to protect against CSRF.
+    No authentication required (this is the login entry-point).
+    """
+    client_id = _s.google_client_id
+    if not client_id:
+        raise HTTPException(
+            status_code=503,
+            detail="Google OAuth not configured. Set GOOGLE_CLIENT_ID in the environment.",
+        )
+
+    # Resolve the callback URI that Google will redirect to.
+    if not redirect_uri:
+        redirect_uri = _build_redirect_uri(request, "/api/v1/auth/google/callback")
+
+    _validate_redirect_uri(redirect_uri, request)
+
+    # Issue a short-lived signed state token for CSRF protection.
+    state = _issue_oauth_state(redirect_uri, frontend_origin=frontend_origin or None)
+
+    from ..auth.google_auth import get_google_oauth_url
+
+    auth_url = get_google_oauth_url(client_id=client_id, redirect_uri=redirect_uri, state=state)
+    return {"auth_url": auth_url}
+
+
+@router.get("/auth/google/callback")
+@limiter.limit("20/minute")
+async def google_callback(
+    request: Request,
+    code: str = Query(None),
+    state: str = Query(""),
+    error: str = Query(None),
+):
+    """Handle the Google OAuth2 callback.
+
+    Verifies the signed state, exchanges the code for tokens, fetches user
+    info from Google, and upserts the user in the database.  Finally it
+    redirects the browser to the SPA with the JWT in the URL fragment so
+    the token is never sent to any server in a log or Referer header.
+    """
+    from fastapi.responses import RedirectResponse
+
+    from ..auth.google_auth import exchange_google_code, get_google_user_info
+
+    # --- error from Google (user denied, etc.) ---
+    if error:
+        state_data = _verify_oauth_state(state)
+        redirect_to = (state_data or {}).get("redirect_uri") or "/"
+        return _build_oauth_error_url(request, redirect_to, error)
+
+    if not code:
+        return _build_oauth_error_url(request, "/", "missing_code")
+
+    # --- check Google OAuth is configured ---
+    client_id = _s.google_client_id
+    client_secret = _s.google_client_secret
+    if not client_id or not client_secret:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+
+    # --- verify CSRF state ---
+    state_data = _verify_oauth_state(state)
+    if not state_data:
+        return _build_oauth_error_url(request, "/", "invalid_state")
+
+    callback_redirect_uri = state_data["redirect_uri"]
+    frontend_origin: str = state_data.get("frontend_origin") or ""
+
+    # --- exchange code for access token ---
+    try:
+        token_data = exchange_google_code(
+            client_id=client_id,
+            client_secret=client_secret,
+            code=code,
+            redirect_uri=callback_redirect_uri,
+        )
+    except Exception as exc:
+        logger.warning("Google token exchange failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Google token exchange failed") from exc
+
+    access_token_google = token_data.get("access_token", "")
+    if not access_token_google:
+        raise HTTPException(status_code=502, detail="Google did not return an access token")
+
+    # --- fetch user info from Google ---
+    try:
+        user_info = get_google_user_info(access_token_google)
+    except Exception as exc:
+        logger.warning("Google userinfo fetch failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Failed to fetch Google user info") from exc
+
+    email: str = user_info.get("email", "")
+    google_sub: str = user_info.get("sub", "")
+    name: str = user_info.get("name") or email.split("@")[0] or "user"
+    picture: str = user_info.get("picture", "")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Google account has no email address")
+
+    # --- upsert user: find existing or create new ---
+    from ..security import create_access_token
+
+    athlete_id: int | None = None
+
+    if _s.database_url:
+        # PostgreSQL path (Render production)
+        from sqlalchemy import select
+
+        from ..db.async_db import get_session_factory
+        from ..db.models import AthleteModel, UserModel
+
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            # Look up by email first, then by google_sub stored in username
+            stmt = select(UserModel).where(UserModel.email == email)
+            result = await session.execute(stmt)
+            user = result.scalar_one_or_none()
+
+            if user is None:
+                # New user — create UserModel + AthleteModel
+                new_user = UserModel(
+                    username=name,
+                    email=email,
+                    password_hash="",  # no password — Google-only account
+                    is_admin=False,
+                    is_active=True,
+                    created_at=datetime.now(UTC),
+                    updated_at=datetime.now(UTC),
+                )
+                session.add(new_user)
+                await session.flush()  # populate new_user.id
+                athlete_id = new_user.id
+                athlete = AthleteModel(
+                    id=athlete_id,
+                    user_id=athlete_id,
+                    name=name,
+                    email=email,
+                    picture=picture,
+                    experience_level="Beginner",
+                    tenant_id=athlete_id,
+                    created_at=datetime.now(UTC),
+                )
+                session.add(athlete)
+                await session.commit()
+                logger.info("Google OAuth: created new user id=%s email=%s", athlete_id, email)
+            else:
+                athlete_id = user.id
+                # Update picture if changed
+                if picture:
+                    stmt_a = select(AthleteModel).where(AthleteModel.id == athlete_id)
+                    res_a = await session.execute(stmt_a)
+                    athlete_obj = res_a.scalar_one_or_none()
+                    if athlete_obj and athlete_obj.picture != picture:
+                        athlete_obj.picture = picture
+                        athlete_obj.updated_at = datetime.now(UTC)
+                        await session.commit()
+                logger.info("Google OAuth: existing user id=%s email=%s", athlete_id, email)
+    else:
+        # SQLite path (local / development)
+        from ..db.database import (
+            get_athlete_by_email,
+            get_athlete_by_name,
+            save_athlete,
+            update_athlete,
+        )
+
+        existing = get_athlete_by_email(email)
+        if existing:
+            athlete_id = int(existing["id"])
+            # Update picture on existing profile
+            if picture:
+                update_athlete(athlete_id, {"picture": picture})
+            logger.info("Google OAuth: existing athlete id=%s email=%s", athlete_id, email)
+        else:
+            # No account with this email — create one
+            new_id = save_athlete(
+                {
+                    "name": name,
+                    "email": email,
+                    "picture": picture,
+                    "experience_level": "Beginner",
+                    "password_hash": "",
+                }
+            )
+            if new_id:
+                update_athlete(new_id, {"tenant_id": new_id})
+                athlete_id = int(new_id)
+                logger.info("Google OAuth: created athlete id=%s email=%s", athlete_id, email)
+            else:
+                raise HTTPException(status_code=500, detail="Failed to create user account")
+
+    if athlete_id is None:
+        raise HTTPException(status_code=500, detail="Failed to resolve athlete ID")
+
+    # --- issue our own JWT ---
+    jwt_token = create_access_token(
+        subject=str(athlete_id),
+        is_admin=False,
+        tenant_id=athlete_id,
+        is_client=False,
+        athlete_id=athlete_id,
+    )
+
+    # --- redirect to frontend with token in URL fragment ---
+    # Fragment is never sent to the server (logs, proxies) — safe for tokens.
+    redirect_target = _build_oauth_success_url(
+        redirect_uri=frontend_origin or "/",
+        token=jwt_token,
+        email=email,
+        user_id=athlete_id,
+    )
+    return RedirectResponse(url=redirect_target, status_code=302)
+
+
 @router.get("/auth/me")
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """Return the authenticated athlete's profile summary.

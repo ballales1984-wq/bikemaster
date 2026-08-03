@@ -171,22 +171,7 @@ frontend/tc_err.txt
 webapp.yaml
 
 # Debug/scratch scripts in frontend
-frontend/debug-*
+frontend/debug*
 frontend/audit*
 frontend/check-report*
-
-# Audit artifacts (may contain tokens/secrets)
-audit_token.json
-frontend/audit-screenshots/
-
-# Emulator and mobile scratch
-emulator-logcat*.txt
-mobile-*.png
-mobile-*.mp4
-mobile-*.jpg
-
-# Root scratch files
-ngrok-*.log
-ride_1_*.png
-ride_1_*.html
-
+frontend/playwright.audit*
