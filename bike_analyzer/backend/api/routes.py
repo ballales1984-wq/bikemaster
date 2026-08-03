@@ -939,6 +939,7 @@ async def reorder_stages_endpoint(
 
 
 
+@router.post("/auth/login")
 @limiter.limit("5/minute")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     """Authenticate athlete and return JWT access/refresh tokens.
