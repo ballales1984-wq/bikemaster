@@ -51,55 +51,12 @@ export default defineConfig({
     vue(),
       !isTauri && !isDev &&
       VitePWA({
+        srcDir: "src",
+        filename: "sw.js",
         registerType: "autoUpdate",
-        workbox: {
-          skipWaiting: true,
-          clientsClaim: true,
-          runtimeCaching: [
-            {
-              urlPattern: ({ url }) => url.pathname.startsWith("/api/v1/rides"),
-              handler: "StaleWhileRevalidate",
-              options: {
-                cacheName: "bikemaster-rides",
-                expiration: { maxEntries: 50, maxAgeSeconds: 30 },
-              },
-            },
-            {
-              urlPattern: ({ url }) =>
-                url.pathname.startsWith("/api/") &&
-                (url.pathname.includes("/auth/") ||
-                  url.pathname.includes("/auth")),
-              handler: "NetworkOnly",
-              options: {
-                cacheName: "bikemaster-api",
-              },
-            },
-            {
-              urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
-              handler: "NetworkOnly",
-              options: {
-                cacheName: "bikemaster-api",
-              },
-            },
-            {
-              urlPattern: ({ request }) => request.destination === "image",
-              handler: "CacheFirst",
-              options: {
-                cacheName: "bikemaster-images",
-                expiration: { maxEntries: 500, maxAgeSeconds: 2592000 },
-              },
-            },
-            {
-              urlPattern: ({ url }) =>
-                url.pathname === "/favicon.svg" ||
-                url.pathname.startsWith("/manifest"),
-              handler: "CacheFirst",
-              options: {
-                cacheName: "bikemaster-static",
-                expiration: { maxEntries: 10, maxAgeSeconds: 86400 },
-              },
-            },
-          ],
+        strategies: "injectManifest",
+        injectManifest: {
+          globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,webmanifest}"],
         },
       }),
   ].filter(Boolean),

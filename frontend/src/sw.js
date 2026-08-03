@@ -1,3 +1,17 @@
+self.addEventListener("install", function () {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", function () {
+  self.clients.claim();
+});
+
+self.addEventListener("message", function (event) {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 import { registerRoute, setCatchHandler } from "workbox-routing";
 import {
   CacheFirst,
@@ -192,13 +206,7 @@ registerRoute(
       }),
     ],
   }),
-);
-
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
-});
+  );
 
 self.addEventListener("push", (event) => {
   const data = event.data ? event.data.json() : {};

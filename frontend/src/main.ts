@@ -103,17 +103,23 @@ if ("serviceWorker" in navigator && !isTauri()) {
         const newWorker = reg.installing;
         if (newWorker) {
           newWorker.addEventListener("statechange", () => {
-            // Never force a reload while an OAuth return is being finalized:
-            // reloading mid-round-trip drops the in-flight login and strands
-            // the user on the login screen. The token is recovered from
-            // sessionStorage on the next load instead.
+            if (newWorker.state === "activated") {
+              void reg.update();
+            }
             if (
               newWorker.state === "installed" &&
-              navigator.serviceWorker.controller &&
-              !hasPendingOAuth() &&
-              !auth.justLoggedIn
+              navigator.serviceWorker.controller
             ) {
-              window.location.reload();
+              if (hasPendingOAuth() || auth.justLoggedIn) {
+                newWorker.postMessage({ type: "SKIP_WAITING" });
+                setTimeout(() => {
+                  if (reg.active && !hasPendingOAuth()) {
+                    window.location.reload();
+                  }
+                }, 3000);
+              } else {
+                window.location.reload();
+              }
             }
           });
         }
