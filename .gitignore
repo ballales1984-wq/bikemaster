@@ -175,3 +175,8 @@ emulator-logcat*.txt
 mobile-*.png
 mobile-*.mp4
 mobile-*.jpg
+
+# Audit artifacts (may contain tokens/secrets)
+audit_token.json
+frontend/audit-screenshots/
+
