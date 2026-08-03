@@ -26,6 +26,8 @@ export default [
       "playwright.config.js",
       "vite.config.js",
       "scripts/**",
+      "debug-*",
+      "audit-*",
     ],
   },
   js.configs.recommended,
