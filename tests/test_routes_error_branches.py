@@ -350,3 +350,110 @@ class TestRouteErrorBranches:
 
         response = tc.get("/api/v1/health/detailed")
         assert response.status_code == 200
+
+    def test_athlete_profile_update_not_found(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+        from bike_analyzer.backend.security import create_access_token
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        token = create_access_token(subject="0", is_admin=True)
+        tc.headers["Authorization"] = f"Bearer {token}"
+
+        response = tc.put("/api/v1/athletes/99999", json={"weight_kg": 75.5})
+        assert response.status_code == 404
+
+    def test_athlete_profile_update_invalid_weight(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+        from bike_analyzer.backend.security import create_access_token
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        token = create_access_token(subject="0", is_admin=True)
+        tc.headers["Authorization"] = f"Bearer {token}"
+
+        response = tc.put("/api/v1/athletes/0", json={"weight_kg": -5})
+        assert response.status_code in (400, 422)
+
+    def test_athletes_list_requires_auth(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        response = tc.get("/api/v1/athletes")
+        assert response.status_code == 401
+
+    def test_athlete_metric_log_requires_auth(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        response = tc.post(
+            "/api/v1/athletes/0/metrics",
+            json={"metric_type": "weight", "value": 75.0},
+        )
+        assert response.status_code == 401
+
+    def test_athlete_history_requires_auth(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        response = tc.get("/api/v1/athletes/me/history")
+        assert response.status_code == 401
+
+    def test_client_athletes_requires_auth(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        response = tc.get("/api/v1/client/athletes")
+        assert response.status_code == 401
+
+    def test_sentry_debug_in_test(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        response = tc.get("/api/v1/sentry-debug")
+        assert response.status_code == 500
+
+    def test_alerts_webhook_unauthenticated(self, db_path):
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
+
+        os.environ["DB_PATH"] = db_path
+        db_mod.DB_PATH = db_path
+        db_mod.init_db()
+        app = create_app()
+        tc = TestClient(app)
+        response = tc.post("/api/v1/alerts/webhook", json={"receiver": "test"})
+        assert response.status_code == 401
