@@ -22,7 +22,6 @@ _SURFACE_PRIORITY = {
     "ground": 3,
     "grass": 3,
     "unpaved": 3,
-    "gravel": 2,
     "sand": 4,
     "mud": 4,
 }

@@ -55,7 +55,7 @@ DEFAULT_MODEL_KEYWORDS: dict[str, dict[str, float]] = {
     },
     "RecoveryModel": {
         "recovery": 1.0, "rest": 1.0, "resting": 0.9, "sleep": 0.9,
-        "sleeping": 0.9, "recovery": 1.0, "regenerate": 1.0,
+        "sleeping": 0.9, "regenerate": 1.0,
     },
     "MovementModel": {
         "movement": 1.0, "speed": 1.0,
@@ -67,7 +67,7 @@ DEFAULT_MODEL_KEYWORDS: dict[str, dict[str, float]] = {
         "ftp": 0.9, "improving": 0.8,
     },
     "PowerModel": {
-        "power": 1.0, "watt": 1.0, "power": 1.0, "ftp": 0.6,
+        "power": 1.0, "watt": 1.0, "ftp": 0.6,
     },
     "TrainingLoadModel": {
         "load": 1.0, "training": 0.9, "workout": 1.0,
