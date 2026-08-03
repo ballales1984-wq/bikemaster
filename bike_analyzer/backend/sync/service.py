@@ -47,6 +47,7 @@ from .models import (
     ChangeDelta,
     ConflictRecord,
     SyncCheckResult,
+    SyncEntityState,
     SyncPushResult,
     SyncResult,
     SyncStatus,

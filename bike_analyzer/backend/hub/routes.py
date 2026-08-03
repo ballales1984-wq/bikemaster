@@ -357,7 +357,7 @@ async def hub_register(
     email: str = Body(None),
 ):
     """Registra un nuovo utente (e atleta) sul database Hub PostgreSQL."""
-    from sqlalchemy import insert as sa_insert
+    from sqlalchemy import insert as sa_insert, select as sa_select
 
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -454,7 +454,7 @@ async def hub_update_profile(
     current_user: dict = Depends(get_current_user),
 ):
     """Aggiorna i campi profilo consentiti dell'atleta autenticato."""
-    from sqlalchemy import update as sa_update
+    from sqlalchemy import select as sa_select, update as sa_update
 
     allowed_fields = {
         "name", "email", "age", "weight_kg", "height_cm",

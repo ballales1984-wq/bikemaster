@@ -227,7 +227,7 @@ class AIOrchestrator:
         }
 
     def _run_simulation(self, ctx: AnalysisContext, question: str,
-                        extra: Optional[dict]) -> "SimulationComparison":
+                        extra: Optional[dict]) -> SimulationResultType:
         """Runs a 'what if' simulation extracting deltas from the question."""
         # Robust delta extraction: supports "weight -5 kg", "bike -1 kg",
         # "+2% slope", "cda 0.3" via the shared helper.

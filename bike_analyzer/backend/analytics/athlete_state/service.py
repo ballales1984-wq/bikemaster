@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
+from typing import Any
 
 from ...models.models import AthleteProfile, Ride
 from ..services.fitness_state_service import FitnessStateEngine
