@@ -5,6 +5,8 @@
 Makefile text eol=lf
 *.sh text eol=lf
 *.ps1 text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
 .github/workflows/*.yml text eol=lf
 
 # Kotlin/Java
