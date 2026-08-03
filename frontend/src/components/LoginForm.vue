@@ -229,7 +229,9 @@ async function loginWithGoogle() {
   try {
     const base = resolveApiBase();
     const frontendOrigin = window.location.origin;
-    const response = await fetch(`${base}/api/v1/auth/google?frontend_origin=${encodeURIComponent(frontendOrigin)}`);
+    const response = await fetch(
+      `${base}/api/v1/auth/google?frontend_origin=${encodeURIComponent(frontendOrigin)}`,
+    );
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {

@@ -93,7 +93,7 @@
           <input v-model="editForm.source" type="text" maxlength="50" />
         </label>
         <label class="checkbox-label">
-          <input type="checkbox" v-model="editForm.is_official" />
+          <input v-model="editForm.is_official" type="checkbox" />
           <span> Gara ufficiale</span>
         </label>
         <label>
