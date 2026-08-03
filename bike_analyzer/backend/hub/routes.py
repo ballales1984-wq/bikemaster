@@ -19,14 +19,14 @@ import contextlib
 import json
 import logging
 import os
-import time
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from ipaddress import AddressValueError, ip_address, ip_network
 from pathlib import Path
 from urllib.parse import urlencode, urlparse
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy import func, select
@@ -85,9 +85,40 @@ logger = logging.getLogger(__name__)
 # Helpers (mirrored from api/routes.py to avoid cross-module coupling)
 # ---------------------------------------------------------------------------
 
+_TRUSTED_PROXIES: tuple[str, ...] = (
+    "10.0.0.0/8",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
+    "127.0.0.1",
+    "::1",
+)
+
+
+def _is_trusted_proxy(ip_str: str) -> bool:
+    if ip_str == "testclient":
+        return True
+    try:
+        addr = ip_address(ip_str)
+    except (AddressValueError, ValueError):
+        return False
+    for prefix in _TRUSTED_PROXIES:
+        try:
+            if addr in ip_network(prefix):
+                return True
+        except (AddressValueError, ValueError):
+            if addr == ip_address(prefix):
+                return True
+    return False
+
+
 def _trusted_forwarded_value(request: Request, header: str) -> str | None:
-    """Restituisce il valore di un header di forwarding considerato attendibile."""
-    return request.headers.get(header)
+    client_host = request.client.host if request.client else ""
+    if not _is_trusted_proxy(client_host):
+        return None
+    value = request.headers.get(header)
+    if not value:
+        return None
+    return value.split(",", 1)[0].strip()
 
 
 def _build_redirect_uri(request: Request, path: str) -> str:
@@ -101,24 +132,41 @@ def _build_redirect_uri(request: Request, path: str) -> str:
     return f"{proto}://{host}{path}"
 
 
-def _build_oauth_error_url(request: Request, redirect_uri: str, error: str) -> HTMLResponse:
-    """Genera una pagina HTML che segnala l'errore OAuth alla finestra opener."""
-    html = f"""<!DOCTYPE html>
-<html><body><script>window.opener&&window.opener.postMessage({{error:"{error}"}},"*");window.close();</script></body></html>"""
-    return HTMLResponse(content=html)
+def _build_oauth_error_url(request: Request, redirect_uri: str, error: str) -> RedirectResponse:
+    """Redirect back to the SPA with an ``oauth_error`` query param."""
+    parsed = urlparse(redirect_uri)
+    if parsed.scheme and parsed.scheme not in ("http", "https"):
+        target = f"{parsed.scheme}://{parsed.netloc or parsed.path.lstrip('/')}"
+        return RedirectResponse(url=f"{target}?{urlencode({'oauth_error': error})}")
+    origin = f"{parsed.scheme}://{parsed.netloc}/" if parsed.scheme else "/"
+    return RedirectResponse(url=f"{origin}?{urlencode({'oauth_error': error})}")
 
 
 def _build_oauth_success_url(redirect_uri: str, jwt_token: str, email: str, user_id: int) -> str:
-    """Costruisce l'URL di successo OAuth con token, email e user_id come query params."""
+    """Build the post-login redirect URL that hands the JWT to the SPA.
+
+    - Mobile / custom app schemes: deliver the token as a query string on the deep-link target.
+    - Web SPA: redirect to the SPA origin root with the token in the URL fragment.
+    """
     parsed = urlparse(redirect_uri)
-    origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else redirect_uri
-    base = origin.rstrip("/")
-    return f"{base}?token={jwt_token}&email={email}&user_id={user_id}"
+    if parsed.scheme and parsed.scheme not in ("http", "https"):
+        target = f"{parsed.scheme}://{parsed.netloc or parsed.path.lstrip('/')}"
+        return f"{target}?{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(user_id)})}"
+
+    origin = f"{parsed.scheme}://{parsed.netloc}/" if parsed.scheme else "/"
+    return f"{origin}#{urlencode({'token': jwt_token, 'email': email or '', 'user_id': str(user_id)})}"
 
 
 def _issue_oauth_state(redirect_uri: str, **extra) -> str:
     """Emette un token di stato OAuth firmato con redirect e metadati aggiuntivi."""
-    payload = {"redirect_uri": redirect_uri, "ts": time.time(), **extra}
+    payload = {
+        "redirect_uri": redirect_uri,
+        "exp": datetime.now(UTC) + timedelta(minutes=10),
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
+        "type": "oauth_state",
+        **extra,
+    }
     return jwt.encode(payload, _s.secret_key, algorithm=ALGORITHM)
 
 
@@ -127,7 +175,15 @@ def _verify_oauth_state(state: str) -> dict | None:
     if not state or "." not in state:
         return None
     try:
-        payload = jwt.decode(state, _s.secret_key, algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            state,
+            _s.secret_key,
+            algorithms=[ALGORITHM],
+            issuer=JWT_ISSUER,
+            audience=JWT_AUDIENCE,
+        )
+        if payload.get("type") != "oauth_state":
+            return None
         if "redirect_uri" not in payload:
             return None
         return payload
@@ -143,10 +199,41 @@ def _validate_redirect_uri(redirect_uri: str, request: Request) -> None:
     parsed = urlparse(redirect_uri)
     if parsed.scheme not in allowed_schemes:
         raise HTTPException(status_code=400, detail="Scheme non permesso")
-    allowed_hosts = set(_s.oauth_allowed_hosts_list)
-    if allowed_hosts and parsed.hostname and parsed.hostname.lower() not in allowed_hosts:
-        if not parsed.hostname.lower().endswith(".vercel.app"):
-            raise HTTPException(status_code=400, detail="Host non autorizzato")
+    if not parsed.hostname:
+        raise HTTPException(status_code=400, detail="Invalid redirect_uri")
+    host_lower = parsed.hostname.lower()
+    cors_hosts = set()
+    try:
+        for origin in getattr(_s, "cors_origins_list", []):
+            with contextlib.suppress(ValueError):
+                cors_hosts.add(urlparse(origin).hostname.lower())
+    except Exception:
+        logger.debug("Failed to parse CORS origins", exc_info=True)
+    configured_hosts = set(getattr(_s, "oauth_allowed_hosts_list", []))
+    localhost_ports = {"localhost", "127.0.0.1", "0.0.0.0"}
+    if host_lower in localhost_ports:
+        return
+    allowed_hosts = (
+        {
+            "bikemaster.onrender.com",
+            "bikemaster-api.onrender.com",
+            "bikemaster-xi.vercel.app",
+            "testserver",
+        }
+        | cors_hosts
+        | configured_hosts
+    )
+    if host_lower in allowed_hosts:
+        return
+    if host_lower.endswith(".vercel.app"):
+        return
+    if host_lower.endswith(".onrender.com"):
+        return
+    if host_lower.endswith(".ngrok-free.dev"):
+        return
+    if host_lower.endswith(".trycloudflare.com"):
+        return
+    raise HTTPException(status_code=400, detail="Host non autorizzato")
 
 
 def _public_athlete(athlete: dict | None) -> dict:
@@ -446,6 +533,7 @@ async def hub_change_password(
 async def hub_google_oauth_login(
     request: Request,
     redirect_uri: str | None = Query(None),
+    frontend_origin: str | None = Query(None),
     state: str = "",
 ):
     """Avvia il flusso OAuth di Google restituendo l'URL di autorizzazione."""
@@ -455,7 +543,9 @@ async def hub_google_oauth_login(
         raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
     redirect_uri = redirect_uri or _build_redirect_uri(request, "/api/v1/auth/google/callback")
     _validate_redirect_uri(redirect_uri, request)
-    state = _issue_oauth_state(redirect_uri)
+    if frontend_origin:
+        _validate_redirect_uri(frontend_origin, request)
+    state = _issue_oauth_state(redirect_uri, frontend_origin=frontend_origin)
     auth_url = get_google_oauth_url(_s.google_client_id, redirect_uri=redirect_uri, state=state)
     return {"auth_url": auth_url}
 
@@ -479,13 +569,23 @@ async def hub_google_oauth_callback_get(
 
     if not _s.google_client_id or not _s.google_client_secret:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
-    _validate_redirect_uri(redirect_uri or "", request)
+    state_data = _verify_oauth_state(state)
+    if not state_data:
+        return _build_oauth_error_url(request, redirect_uri or "", "invalid_state")
+
+    redirect_uri = state_data.get("redirect_uri", redirect_uri or "")
+    frontend_origin = state_data.get("frontend_origin")
+    _validate_redirect_uri(redirect_uri, request)
+    if frontend_origin:
+        _validate_redirect_uri(frontend_origin, request)
+
+    error_target = frontend_origin or redirect_uri
 
     if error:
         message = error_description or error
-        return _build_oauth_error_url(request, redirect_uri or "", message)
+        return _build_oauth_error_url(request, error_target, message)
     if not code:
-        return _build_oauth_error_url(request, redirect_uri or "", "missing_code")
+        return _build_oauth_error_url(request, error_target, "missing_code")
 
     cache_key = f"oauth:code:{code}"
     try:
@@ -499,24 +599,24 @@ async def hub_google_oauth_callback_get(
     except Exception as exc:
         response = getattr(exc, "response", None)
         error_body = response.text if response is not None else str(exc)
-        return _build_oauth_error_url(request, redirect_uri or "", f"token_exchange_failed:{error_body[:200]}")
+        return _build_oauth_error_url(request, error_target, f"token_exchange_failed:{error_body[:200]}")
 
     access_token = token_data.get("access_token")
     if not access_token:
-        return _build_oauth_error_url(request, redirect_uri or "", "no_access_token")
+        return _build_oauth_error_url(request, error_target, "no_access_token")
 
     try:
         user_info = await asyncio.to_thread(get_google_user_info, access_token)
     except Exception as exc:
         response = getattr(exc, "response", None)
         error_body = response.text if response is not None else str(exc)
-        return _build_oauth_error_url(request, redirect_uri or "", f"userinfo_failed:{error_body[:200]}")
+        return _build_oauth_error_url(request, error_target, f"userinfo_failed:{error_body[:200]}")
 
     google_sub = user_info.get("sub")
     email = user_info.get("email")
     name = user_info.get("name")
     if not google_sub:
-        return _build_oauth_error_url(request, redirect_uri or "", "invalid_user_info")
+        return _build_oauth_error_url(request, error_target, "invalid_user_info")
 
     from sqlalchemy import select as sa_select
 
@@ -554,10 +654,11 @@ async def hub_google_oauth_callback_get(
                     await r.delete(lock_key)
 
         if not existing:
-            return _build_oauth_error_url(request, redirect_uri or "", "user_creation_failed")
+            return _build_oauth_error_url(request, error_target, "user_creation_failed")
 
         jwt_token = create_google_session(user_info, athlete_id=existing.id)["access_token"]
-        redirect_url = _build_oauth_success_url(redirect_uri or "", jwt_token, email or "", existing.id)
+        redirect_target = frontend_origin or redirect_uri
+        redirect_url = _build_oauth_success_url(redirect_target, jwt_token, email or "", existing.id)
         await _cache_set(f"oauth:code:{code}", {"redirect_url": redirect_url}, ttl=300)
         return RedirectResponse(url=redirect_url)
 
