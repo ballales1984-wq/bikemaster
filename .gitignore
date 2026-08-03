@@ -74,8 +74,16 @@ node_modules/
 frontend/node_modules/
 
 # Ride maps and exports
+ride_1_*.png
+ride_1_*.html
 ride_*_map.html
 ride_*_map.json
+
+# Mobile/debug scratch artifacts
+mobile-*.png
+mobile-*.mp4
+emulator-logcat*.txt
+audit_token.json
 rides_export.csv
 rides_export.json
 
