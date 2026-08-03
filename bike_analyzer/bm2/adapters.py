@@ -9,14 +9,12 @@ is the only point where the two representations meet, so the rest of
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..core.models import AthleteProfile, GPSPoint, Ride
 from .models import Activity, AnalysisContext, Athlete, Bike, WorldObject
 from .transformer import TransformerEngine
 
 
-def _iso(ts) -> Optional[str]:
+def _iso(ts) -> str | None:
     """Converts a timestamp to ISO-8601 string.
 
     Accetta oggetti con metodo ``isoformat``, stringhe (passate-through)
@@ -58,13 +56,13 @@ def _gps_to_raw(p: GPSPoint) -> dict:
 
 def ride_to_bm2_raw(
     ride: Ride,
-    athlete: Optional[AthleteProfile] = None,
+    athlete: AthleteProfile | None = None,
     bike_weight_kg: float = 8.0,
     cda: float = 0.40,
     crr: float = 0.005,
     drivetrain_efficiency: float = 0.97,
-    wind_speed_ms: Optional[float] = None,
-    temperature_c: Optional[float] = None,
+    wind_speed_ms: float | None = None,
+    temperature_c: float | None = None,
     surface: str = "asphalt",
 ) -> dict:
     """Mappa una ``Ride`` prodotto (+ ``AthleteProfile``) nel dict ``raw`` di bm2.
@@ -133,8 +131,8 @@ def ride_to_bm2_raw(
 
 def ride_to_analysis_context(
     ride: Ride,
-    athlete: Optional[AthleteProfile] = None,
-    transformer: Optional[TransformerEngine] = None,
+    athlete: AthleteProfile | None = None,
+    transformer: TransformerEngine | None = None,
     **kwargs,
 ) -> AnalysisContext:
     """Directly builds a bm2 ``AnalysisContext`` from a product ``Ride``.

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..models import AnalysisContext
 from .base import Algorithm
 
@@ -26,7 +24,7 @@ class RouteDifficultyModel(Algorithm):
     unit = "score"
     required_inputs = ["distanza", "elevation", "slope", "roughness", "athlete_capacity"]
 
-    def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+    def _compute(self, ctx: AnalysisContext, extra: dict | None) -> tuple[float, float, float]:
         """Calcola il punteggio di difficolta' normalizzato per livello atleta."""
         m = ctx.activity.metrics(ctx.transformer)
         dist_km = m["distance_m"] / 1000.0
@@ -57,7 +55,7 @@ class RouteDifficultyModel(Algorithm):
             return "Impegnativo"
         return "Estremo"
 
-    def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+    def _extra_details(self, ctx: AnalysisContext, extra: dict | None) -> dict:
         """Restituisce categoria e superficie del percorso."""
         score, _, _ = self._compute(ctx, extra)
         return {"category": self._category(score), "surface": ctx.world.surface}

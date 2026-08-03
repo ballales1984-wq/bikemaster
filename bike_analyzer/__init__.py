@@ -1,7 +1,7 @@
 """BikeMaster - Lifestyle health intelligence system — health state as dynamic balance of lifestyle variables."""
 
-from typing import Any
 import importlib
+from typing import Any
 
 __version__ = "0.1.0"
 

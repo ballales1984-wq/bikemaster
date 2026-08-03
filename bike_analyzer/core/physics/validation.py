@@ -58,7 +58,7 @@ def _segment_pairs(points: list[GPSPoint]):
     """
     from ..models import haversine_distance_m
 
-    for prev, cur in zip(points, points[1:]):
+    for prev, cur in zip(points, points[1:], strict=False):
         if cur.power is None:
             continue
         if prev.timestamp is None or cur.timestamp is None:
@@ -100,7 +100,7 @@ def validate_ride_power(
     n = len(measured)
     mean_m = sum(measured) / n
     mean_e = sum(estimated) / n
-    errors = [e - m for e, m in zip(estimated, measured)]
+    errors = [e - m for e, m in zip(estimated, measured, strict=False)]
     mae = sum(abs(e) for e in errors) / n
     rmse = (sum(e * e for e in errors) / n) ** 0.5
     bias = mean_e - mean_m

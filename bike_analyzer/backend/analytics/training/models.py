@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class GoalType(str, Enum):
+class GoalType(StrEnum):
     GRANFONDO = "granfondo"
     FTP_IMPROVEMENT = "ftp_improvement"
     WEIGHT_LOSS = "weight_loss"
@@ -16,7 +16,7 @@ class GoalType(str, Enum):
     BEGINNER_BASE = "beginner_base"
 
 
-class WorkoutType(str, Enum):
+class WorkoutType(StrEnum):
     ENDURANCE = "endurance"
     THRESHOLD = "threshold"
     SWEETSPOT = "sweetspot"
@@ -27,7 +27,7 @@ class WorkoutType(str, Enum):
     OPENERS = "openers"
 
 
-class AdaptationEventType(str, Enum):
+class AdaptationEventType(StrEnum):
     SKIPPED = "skipped"
     MODIFIED = "modified"
     STRAVA = "strava"
@@ -36,7 +36,7 @@ class AdaptationEventType(str, Enum):
     INJURY = "injury"
 
 
-class ScenarioType(str, Enum):
+class ScenarioType(StrEnum):
     RECOVER_VOLUME = "recover_volume"
     MAINTAIN_PLAN = "maintain_plan"
     CHANGE_TYPE = "change_type"

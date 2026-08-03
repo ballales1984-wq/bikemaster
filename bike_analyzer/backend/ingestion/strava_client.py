@@ -183,10 +183,8 @@ def _ensure_token_table() -> None:
                 ON strava_tokens(athlete_id);
             """
         )
-        try:
+        with contextlib.suppress(sqlite3.OperationalError):
             conn.execute("ALTER TABLE strava_tokens ADD COLUMN last_sync_ts INTEGER")
-        except sqlite3.OperationalError:
-            pass
 
 
 def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:

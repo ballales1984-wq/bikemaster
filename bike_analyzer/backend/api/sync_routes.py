@@ -68,7 +68,7 @@ class SyncStatusResponse(BaseModel):
 @router.get("/sync/status")
 async def get_sync_status(current_user: dict = Depends(get_current_user)):
     """Return current sync configuration and status."""
-    from ..sync.db_helpers import get_conflicts, get_pending_entities, get_last_sync_ts
+    from ..sync.db_helpers import get_conflicts, get_last_sync_ts, get_pending_entities
 
     config = get_sync_config()
     pending = get_pending_entities()
@@ -112,7 +112,7 @@ async def update_sync_settings(
         try:
             config.mode = SyncMode(update_data["mode"])
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid sync mode")
+            raise HTTPException(status_code=400, detail="Invalid sync mode") from None
 
     if "daily_hour" in update_data:
         config.daily_hour = update_data["daily_hour"]

@@ -1,7 +1,7 @@
 """Ingestion package."""
 
-from typing import Any
 import importlib
+from typing import Any
 
 _INGESTION_ATTRS = {
     "parse_fit_file": ("gps_parser", "parse_fit_file"),

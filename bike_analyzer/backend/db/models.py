@@ -44,7 +44,7 @@ class Base(DeclarativeBase):
     pass
 
 
-class ActivityType(str, enum.Enum):
+class ActivityType(enum.StrEnum):
     RIDE = "ride"
     WALK = "walk"
     HIKE = "hike"
@@ -54,14 +54,14 @@ class ActivityType(str, enum.Enum):
     OTHER = "other"
 
 
-class EventType(str, enum.Enum):
+class EventType(enum.StrEnum):
     TRAINING = "training"
     RACE = "race"
     RECOVERY = "recovery"
     OTHER = "other"
 
 
-class WorkoutType(str, enum.Enum):
+class WorkoutType(enum.StrEnum):
     ENDURANCE = "endurance"
     INTERVAL = "interval"
     THRESHOLD = "threshold"
@@ -73,7 +73,7 @@ class WorkoutType(str, enum.Enum):
     OTHER = "other"
 
 
-class GoalType(str, enum.Enum):
+class GoalType(enum.StrEnum):
     GRANFONDO = "granfondo"
     MARATHON = "marathon"
     CENTURY = "century"
@@ -84,7 +84,7 @@ class GoalType(str, enum.Enum):
     OTHER = "other"
 
 
-class SyncStatus(str, enum.Enum):
+class SyncStatus(enum.StrEnum):
     LOCAL = "local"
     PENDING = "pending"
     SYNCED = "synced"
@@ -92,20 +92,20 @@ class SyncStatus(str, enum.Enum):
     ERROR = "error"
 
 
-class ConflictResolution(str, enum.Enum):
+class ConflictResolution(enum.StrEnum):
     LOCAL_WINS = "local"
     REMOTE_WINS = "remote"
     UNRESOLVED = "unresolved"
 
 
-class IncidentSeverity(str, enum.Enum):
+class IncidentSeverity(enum.StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
 
-class POIType(str, enum.Enum):
+class POIType(enum.StrEnum):
     VIEWPOINT = "viewpoint"
     FOUNTAIN = "fountain"
     REFUGE = "refuge"
@@ -117,7 +117,7 @@ class POIType(str, enum.Enum):
     OTHER = "other"
 
 
-class RiskLabel(str, enum.Enum):
+class RiskLabel(enum.StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -137,11 +137,11 @@ class UserModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athletes: Mapped[list["AthleteModel"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    oauth_identities: Mapped[list["ExternalIdentityModel"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    external_tokens: Mapped[list["ExternalTokenModel"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    totp_secrets: Mapped[list["TOTPSecretModel"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    oauth_credentials: Mapped[list["UserOAuthCredentials"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    athletes: Mapped[list[AthleteModel]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    oauth_identities: Mapped[list[ExternalIdentityModel]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    external_tokens: Mapped[list[ExternalTokenModel]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    totp_secrets: Mapped[list[TOTPSecretModel]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    oauth_credentials: Mapped[list[UserOAuthCredentials]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_users_username", "username"),
@@ -198,25 +198,25 @@ class AthleteModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    user: Mapped["UserModel | None"] = relationship(back_populates="athletes")
-    rides: Mapped[list["RideModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    chat_history: Mapped[list["ChatHistoryModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    calendar_events: Mapped[list["CalendarEventModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    training_stress_days: Mapped[list["TrainingStressDayModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    fitness_states: Mapped[list["FitnessStateModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    training_goals: Mapped[list["TrainingGoalModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    planned_workouts: Mapped[list["PlannedWorkoutModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    metrics: Mapped[list["MetricModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    route_safety_scores: Mapped[list["RouteSafetyScore"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    pois: Mapped[list["POIModel"]] = relationship(back_populates="created_by_athlete", cascade="all, delete-orphan")
-    itineraries: Mapped[list["ItineraryModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    external_identities: Mapped[list["ExternalIdentityModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    external_tokens: Mapped[list["ExternalTokenModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    metric_logs: Mapped[list["AthleteMetricLogModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    metabolic_profile: Mapped["MetabolicProfileModel | None"] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    food_logs: Mapped[list["FoodLogModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    metabolic_daily_summaries: Mapped[list["MetabolicDailySummaryModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    beck_assessments: Mapped[list["BeckAssessmentModel"]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    user: Mapped[UserModel | None] = relationship(back_populates="athletes")
+    rides: Mapped[list[RideModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    chat_history: Mapped[list[ChatHistoryModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    calendar_events: Mapped[list[CalendarEventModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    training_stress_days: Mapped[list[TrainingStressDayModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    fitness_states: Mapped[list[FitnessStateModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    training_goals: Mapped[list[TrainingGoalModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    planned_workouts: Mapped[list[PlannedWorkoutModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    metrics: Mapped[list[MetricModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    route_safety_scores: Mapped[list[RouteSafetyScore]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    pois: Mapped[list[POIModel]] = relationship(back_populates="created_by_athlete", cascade="all, delete-orphan")
+    itineraries: Mapped[list[ItineraryModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    external_identities: Mapped[list[ExternalIdentityModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    external_tokens: Mapped[list[ExternalTokenModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    metric_logs: Mapped[list[AthleteMetricLogModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    metabolic_profile: Mapped[MetabolicProfileModel | None] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    food_logs: Mapped[list[FoodLogModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    metabolic_daily_summaries: Mapped[list[MetabolicDailySummaryModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    beck_assessments: Mapped[list[BeckAssessmentModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_athletes_tenant", "tenant_id"),
@@ -251,7 +251,7 @@ class AthleteMetricLogModel(Base):
     recorded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="metric_logs")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="metric_logs")
 
     __table_args__ = (
         Index("ix_metric_log_athlete_metric", "athlete_id", "metric_type"),
@@ -343,10 +343,10 @@ class RideModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="rides")
-    metrics: Mapped[list["MetricModel"]] = relationship(back_populates="ride", cascade="all, delete-orphan")
-    route_safety_scores: Mapped[list["RouteSafetyScore"]] = relationship(back_populates="ride", cascade="all, delete-orphan")
-    stages: Mapped[list["StageModel"]] = relationship(back_populates="ride", cascade="all, delete-orphan")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="rides")
+    metrics: Mapped[list[MetricModel]] = relationship(back_populates="ride", cascade="all, delete-orphan")
+    route_safety_scores: Mapped[list[RouteSafetyScore]] = relationship(back_populates="ride", cascade="all, delete-orphan")
+    stages: Mapped[list[StageModel]] = relationship(back_populates="ride", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint(
@@ -382,7 +382,7 @@ class FitnessStateModel(Base):
     risk_indicators: Mapped[str | None] = mapped_column(Text)
     recommendation: Mapped[str | None] = mapped_column(Text)
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="fitness_states")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="fitness_states")
 
 
 class TrainingStressDayModel(Base):
@@ -401,7 +401,7 @@ class TrainingStressDayModel(Base):
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
 
-    athlete: Mapped["AthleteModel"] = relationship(back_populates="training_stress_days")
+    athlete: Mapped[AthleteModel] = relationship(back_populates="training_stress_days")
 
     __table_args__ = (
         UniqueConstraint("athlete_id", "date", name="uq_training_stress_days"),
@@ -428,8 +428,8 @@ class MetricModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="metrics")
-    ride: Mapped["RideModel | None"] = relationship(back_populates="metrics")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="metrics")
+    ride: Mapped[RideModel | None] = relationship(back_populates="metrics")
 
     __table_args__ = (
         Index("ix_metrics_ride_id", "ride_id"),
@@ -450,7 +450,7 @@ class ChatHistoryModel(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="chat_history")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="chat_history")
 
 
 class CalendarEventModel(Base):
@@ -472,7 +472,7 @@ class CalendarEventModel(Base):
     weather_description: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="calendar_events")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="calendar_events")
 
     __table_args__ = (
         Index("ix_calendar_events_athlete_id", "athlete_id"),
@@ -516,8 +516,8 @@ class TrainingGoalModel(Base):
     status: Mapped[str] = mapped_column(String, default="active")
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athlete: Mapped["AthleteModel"] = relationship(back_populates="training_goals")
-    planned_workouts: Mapped[list["PlannedWorkoutModel"]] = relationship(back_populates="goal", cascade="all, delete-orphan")
+    athlete: Mapped[AthleteModel] = relationship(back_populates="training_goals")
+    planned_workouts: Mapped[list[PlannedWorkoutModel]] = relationship(back_populates="goal", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_training_goals_athlete", "athlete_id"),
@@ -545,8 +545,8 @@ class PlannedWorkoutModel(Base):
     completed: Mapped[bool] = mapped_column(Boolean, default=False)
     completed_at: Mapped[str | None] = mapped_column(String)
 
-    athlete: Mapped["AthleteModel"] = relationship(back_populates="planned_workouts")
-    goal: Mapped["TrainingGoalModel | None"] = relationship(back_populates="planned_workouts")
+    athlete: Mapped[AthleteModel] = relationship(back_populates="planned_workouts")
+    goal: Mapped[TrainingGoalModel | None] = relationship(back_populates="planned_workouts")
 
     __table_args__ = (
         Index("ix_planned_workouts_athlete", "athlete_id"),
@@ -599,8 +599,8 @@ class RouteSafetyScore(Base):
     computed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
 
-    ride: Mapped["RideModel | None"] = relationship(back_populates="route_safety_scores")
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="route_safety_scores")
+    ride: Mapped[RideModel | None] = relationship(back_populates="route_safety_scores")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="route_safety_scores")
 
     __table_args__ = (
         Index("ix_route_safety_scores_ride", "ride_id"),
@@ -633,9 +633,9 @@ class POIModel(Base):
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    created_by_athlete: Mapped["AthleteModel | None"] = relationship(back_populates="pois")
-    itinerary: Mapped["ItineraryModel | None"] = relationship(back_populates="pois")
-    stages: Mapped[list["StageModel"]] = relationship(back_populates="poi", cascade="all, delete-orphan")
+    created_by_athlete: Mapped[AthleteModel | None] = relationship(back_populates="pois")
+    itinerary: Mapped[ItineraryModel | None] = relationship(back_populates="pois")
+    stages: Mapped[list[StageModel]] = relationship(back_populates="poi", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("idx_pois_coords", "lat", "lon"),
@@ -663,11 +663,11 @@ class ItineraryModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="itineraries")
-    stages: Mapped[list["StageModel"]] = relationship(
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="itineraries")
+    stages: Mapped[list[StageModel]] = relationship(
         back_populates="itinerary", cascade="all, delete-orphan"
     )
-    pois: Mapped[list["POIModel"]] = relationship(back_populates="itinerary")
+    pois: Mapped[list[POIModel]] = relationship(back_populates="itinerary")
 
     __table_args__ = (
         Index("ix_itineraries_athlete", "athlete_id"),
@@ -701,9 +701,9 @@ class StageModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    itinerary: Mapped["ItineraryModel"] = relationship(back_populates="stages")
-    ride: Mapped["RideModel | None"] = relationship(back_populates="stages")
-    poi: Mapped["POIModel | None"] = relationship(back_populates="stages")
+    itinerary: Mapped[ItineraryModel] = relationship(back_populates="stages")
+    ride: Mapped[RideModel | None] = relationship(back_populates="stages")
+    poi: Mapped[POIModel | None] = relationship(back_populates="stages")
 
     __table_args__ = (
         Index("ix_stages_itinerary", "itinerary_id"),
@@ -900,8 +900,8 @@ class ExternalIdentityModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    user: Mapped["UserModel | None"] = relationship(back_populates="oauth_identities")
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="external_identities")
+    user: Mapped[UserModel | None] = relationship(back_populates="oauth_identities")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="external_identities")
 
     __table_args__ = (
         UniqueConstraint("provider", "external_id", name="uq_external_identity"),
@@ -931,8 +931,8 @@ class ExternalTokenModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    user: Mapped["UserModel | None"] = relationship(back_populates="external_tokens")
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="external_tokens")
+    user: Mapped[UserModel | None] = relationship(back_populates="external_tokens")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="external_tokens")
 
     __table_args__ = (
         UniqueConstraint("athlete_id", "provider", name="uq_external_token_athlete_provider"),
@@ -956,7 +956,7 @@ class TOTPSecretModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    user: Mapped["UserModel"] = relationship(back_populates="totp_secrets")
+    user: Mapped[UserModel] = relationship(back_populates="totp_secrets")
 
     __table_args__ = (
         UniqueConstraint("user_id", name="uq_totp_user"),
@@ -982,7 +982,7 @@ class UserOAuthCredentials(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    user: Mapped["UserModel"] = relationship(back_populates="oauth_credentials")
+    user: Mapped[UserModel] = relationship(back_populates="oauth_credentials")
 
     __table_args__ = (
         UniqueConstraint("user_id", "provider", name="uq_user_oauth_credentials_user_provider"),
@@ -1006,7 +1006,7 @@ class MetabolicProfileModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="metabolic_profile")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="metabolic_profile")
 
 
 class FoodLogModel(Base):
@@ -1030,7 +1030,7 @@ class FoodLogModel(Base):
     recorded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="food_logs")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="food_logs")
 
     __table_args__ = (
         Index("ix_food_logs_athlete_date", "athlete_id", "date"),
@@ -1061,7 +1061,7 @@ class MetabolicDailySummaryModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="metabolic_daily_summaries")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="metabolic_daily_summaries")
 
     __table_args__ = (
         UniqueConstraint("athlete_id", "date", name="uq_metabolic_summary_athlete_date"),
@@ -1084,7 +1084,7 @@ class BeckAssessmentModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="beck_assessments")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="beck_assessments")
 
     __table_args__ = (
         Index("ix_beck_assessments_athlete", "athlete_id"),
@@ -1128,7 +1128,7 @@ class MetabolicAdaptiveWeightsModel(Base):
     n_updates: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    athlete: Mapped["AthleteModel | None"] = relationship(back_populates="metabolic_adaptive_weights")
+    athlete: Mapped[AthleteModel | None] = relationship(back_populates="metabolic_adaptive_weights")
 
 
 AthleteModel.metabolic_adaptive_weights = relationship(

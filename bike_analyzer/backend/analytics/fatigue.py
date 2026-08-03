@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from ..models.models import Ride
 from .error_propagation import ErrorValue
 

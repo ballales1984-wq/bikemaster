@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from .config import EntityType, SyncDirection
 
 
-class SyncStatus(str, Enum):
+class SyncStatus(StrEnum):
     """Per-entity sync state."""
 
     LOCAL = "local"

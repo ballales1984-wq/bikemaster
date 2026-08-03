@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from ..utils.logger import get_logger
@@ -12,7 +12,7 @@ from ..utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-class SyncMode(str, Enum):
+class SyncMode(StrEnum):
     """User-controlled sync frequency."""
 
     NEVER = "never"
@@ -22,7 +22,7 @@ class SyncMode(str, Enum):
     REALTIME = "realtime"
 
 
-class SyncDirection(str, Enum):
+class SyncDirection(StrEnum):
     """Data flow direction for a given entity type."""
 
     BIDIRECTIONAL = "bidirectional"
@@ -30,7 +30,7 @@ class SyncDirection(str, Enum):
     PULL = "pull"
 
 
-class EntityType(str, Enum):
+class EntityType(StrEnum):
     """Entity categories eligible for sync."""
 
     RIDE = "ride"

@@ -7,8 +7,8 @@ from typing import Any
 from ..maps.aethermap_adapter import RouteStatistics
 from ..models.models import GPSPoint
 from .osm import enrich_osm
-from .terrain import sample_elevation_profile
 from .route_builder import build_aethermap_worldstore, save_aethermap_geojson
+from .terrain import sample_elevation_profile
 from .types import GeoEnrichedPoint, RouteEnrichmentResult
 
 logger = logging.getLogger(__name__)

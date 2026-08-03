@@ -26,7 +26,6 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 __all__ = [
     "Quantity",
@@ -58,14 +57,14 @@ class Quantity:
     unit: str
     precision: float = 0.0
     source: str = "unknown"
-    timestamp: Optional[datetime] = None
+    timestamp: datetime | None = None
 
     def __str__(self) -> str:  # pragma: no cover - debug only
         return f"{self.value:.3g} {self.unit} (±{self.precision:.3g}, {self.source})"
 
 
 def q(value: float, unit: str, precision: float = 0.0, source: str = "unknown",
-      timestamp: Optional[datetime] = None) -> Quantity:
+      timestamp: datetime | None = None) -> Quantity:
     """Quick constructor for :class:`Quantity`."""
     return Quantity(value=value, unit=unit, precision=precision, source=source, timestamp=timestamp)
 
@@ -113,14 +112,14 @@ class UnitRegistry:
     conversions (temperature, slope/angle) use dedicated formulas.
     """
 
-    def __init__(self, linear: Optional[dict[str, dict[str, float]]] = None) -> None:
+    def __init__(self, linear: dict[str, dict[str, float]] | None = None) -> None:
         self._linear = dict(_LINEAR)
         if linear:
             for dim, units in linear.items():
                 self._linear.setdefault(dim, {}).update(units)
 
     # -- introspection ----------------------------------------------------
-    def dimension_of(self, unit: str) -> Optional[str]:
+    def dimension_of(self, unit: str) -> str | None:
         special_units = {"%": "slope", "deg": "slope", "°": "slope",
                          "°C": "temperature", "K": "temperature", "°F": "temperature"}
         if unit in special_units:
@@ -244,7 +243,7 @@ class UnitRegistry:
 default_registry = UnitRegistry()
 
 
-def dimension_of(unit: str) -> Optional[str]:
+def dimension_of(unit: str) -> str | None:
     return default_registry.dimension_of(unit)
 
 

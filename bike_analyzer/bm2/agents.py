@@ -8,11 +8,11 @@ Each agent encapsulates a data source (GPS, athlete, environment, sensors) and
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from .models import Activity, Athlete, WorldObject
 from .metabolism_agent import MetabolismAgent
+from .models import Activity, Athlete, WorldObject
 from .transformer import GeoPoint, TransformerEngine
 from .units import Quantity
 
@@ -62,7 +62,7 @@ class GPSAgent:
             if isinstance(ts, str):
                 ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
             elif isinstance(ts, (int, float)):
-                ts = datetime.fromtimestamp(ts, tz=timezone.utc)
+                ts = datetime.fromtimestamp(ts, tz=UTC)
             alt = self.t.normalize(Quantity(p.get("altitude", 0.0), "m",
                                              source=p.get("alt_source", "gps/dem")))
             points.append(GeoPoint(
@@ -241,7 +241,7 @@ class SensorAgent:
         indexed_ts = [(i, p.timestamp) for i, p in enumerate(activity.points) if p.timestamp is not None]
         if not indexed_ts:
             return activity
-        indices, gps_ts = zip(*indexed_ts)
+        indices, gps_ts = zip(*indexed_ts, strict=False)
         indices = list(indices)
         gps_ts = list(gps_ts)
 
@@ -252,7 +252,7 @@ class SensorAgent:
             if isinstance(st, str):
                 st = datetime.fromisoformat(st.replace("Z", "+00:00"))
             elif isinstance(st, (int, float)):
-                st = datetime.fromtimestamp(st, tz=timezone.utc)
+                st = datetime.fromtimestamp(st, tz=UTC)
             idx = bisect.bisect_left(gps_ts, st)
             candidates = []
             if idx < len(gps_ts):

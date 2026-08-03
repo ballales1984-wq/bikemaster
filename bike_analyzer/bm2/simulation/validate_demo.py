@@ -14,16 +14,17 @@ aggregate (MAE, RMSE, R², bias).
 from __future__ import annotations
 
 import random
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Sequence
+
+from bike_analyzer.core.models import GPSPoint, Ride
+from bike_analyzer.core.physics.constants import RiderBikeParams
+from bike_analyzer.core.physics.power import instantaneous_power
+from bike_analyzer.core.physics.validation import validate_ride_power
 
 from ..models import Athlete, Bike, WorldObject
 from ..transformer import TransformerEngine
 from ..units import q
-from bike_analyzer.core.physics.validation import validate_ride_power
-from bike_analyzer.core.models import GPSPoint, Ride
-from bike_analyzer.core.physics.constants import RiderBikeParams
-from bike_analyzer.core.physics.power import instantaneous_power
 
 
 def _random_params(rng: random.Random) -> tuple[Athlete, Bike, WorldObject, float]:
@@ -46,7 +47,7 @@ def _build_ride(
     n_points: int = 50,
 ) -> tuple[Ride, RiderBikeParams]:
     athlete, bike, world, base_slope = _random_params(rng)
-    transformer = TransformerEngine()
+    TransformerEngine()
 
     t0 = datetime(2024, 1, 1, 10, 0, 0)
     lat = 45.0 + ride_id * 0.01

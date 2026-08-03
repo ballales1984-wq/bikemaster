@@ -176,7 +176,7 @@ def cross_source_correction(
         return ErrorValue(value=primary_value, stat_error=0.0)
 
     corrected = (
-        primary_value + sum(v * w for v, w in zip(secondary_values, secondary_weights))
+        primary_value + sum(v * w for v, w in zip(secondary_values, secondary_weights, strict=False))
     ) / (1 + total_weight)
 
     deviations = [abs(v - corrected) for v in secondary_values] + [abs(primary_value - corrected)]
@@ -240,10 +240,7 @@ def cross_validate_gps(
     avg_divergence = sum(divergences) / len(divergences)
     match = avg_divergence <= max_divergence_m
 
-    if match:
-        adjustment = 0.8
-    else:
-        adjustment = 1.0 + (avg_divergence / max_divergence_m)
+    adjustment = 0.8 if match else 1.0 + avg_divergence / max_divergence_m
 
     coverage = matched / max(len(primary_points), len(secondary_points))
 

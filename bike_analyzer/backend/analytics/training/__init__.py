@@ -40,6 +40,7 @@ __all__ = [
     "GoalAnalyzer",
     "GoalType",
     "PlanConstraints",
+    "PlanDistributor",
     "Scenario",
     "ScenarioGenerator",
     "ScenarioType",

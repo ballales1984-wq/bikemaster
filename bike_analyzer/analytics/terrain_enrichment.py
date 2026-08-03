@@ -16,7 +16,8 @@ from datetime import datetime
 
 try:
     from aethermap.ai.ingest import RawPoint
-    from aethermap.ai.pipeline import WorldStore as AIWorldStore, Pipeline
+    from aethermap.ai.pipeline import Pipeline
+    from aethermap.ai.pipeline import WorldStore as AIWorldStore
     from aethermap.twin.world import DigitalTwin, Environment
 except ImportError as exc:
     raise RuntimeError("AetherMap package is required for terrain enrichment") from exc

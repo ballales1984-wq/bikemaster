@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..models import AnalysisContext
 from .base import Algorithm
 
@@ -43,7 +41,7 @@ class TrainingLoadModel(Algorithm):
             out.append(alpha * v + (1.0 - alpha) * out[-1])
         return out
 
-    def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+    def _compute(self, ctx: AnalysisContext, extra: dict | None) -> tuple[float, float, float]:
         """Calcola TSB come differenza tra CTL (42 giorni) e ATL (7 giorni)."""
         extra = extra or {}
         ftp = ctx.athlete.ftp_w.value if ctx.athlete.ftp_w else 0.0
@@ -84,7 +82,7 @@ class TrainingLoadModel(Algorithm):
         avg_power = sum(p.power for p in pts) / len(pts) if pts else ftp * 0.7
         return [self._estimate_tss(m["duration_s"], avg_power, ftp)]
 
-    def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+    def _extra_details(self, ctx: AnalysisContext, extra: dict | None) -> dict:
         """Restituisce CTL, ATL, TSB e conteggio storico TSS."""
         if hasattr(self, "_last_details") and self._last_details:
             return dict(self._last_details)

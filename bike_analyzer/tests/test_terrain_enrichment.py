@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -13,7 +13,7 @@ def _point(lat: float, lon: float, altitude: float | None = None) -> GPSPoint:
         lat=lat,
         lon=lon,
         altitude=altitude,
-        timestamp=datetime(2026, 7, 29, 12, 0, 0, tzinfo=timezone.utc),
+        timestamp=datetime(2026, 7, 29, 12, 0, 0, tzinfo=UTC),
     )
 
 

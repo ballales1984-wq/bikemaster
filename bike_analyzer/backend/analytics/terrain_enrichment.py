@@ -131,7 +131,7 @@ class TerrainEnricher:
         self.twin.step(self.env)
 
         snapshot = self.twin.snapshot()
-        slope_map = self._build_slope_map(snapshot, points)
+        self._build_slope_map(snapshot, points)
 
         enriched: list[EnrichedGPSPoint] = []
         for i, pt in enumerate(points):

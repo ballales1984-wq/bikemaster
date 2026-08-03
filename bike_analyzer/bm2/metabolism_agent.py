@@ -8,7 +8,6 @@ via the Transformer Engine. Algorithms never see raw data.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Optional
 
 from .models import Activity, Athlete, MetabolicDailySummary, MetabolicProfile, WorldObject
 from .transformer import GeoPoint, TransformerEngine
@@ -44,7 +43,7 @@ class MetabolismAgent:
         """
         from .algorithms.metabolism import MetabolismModel
         athlete = Athlete.from_raw(raw, self.t)
-        bike = Athlete.from_raw(raw, self.t)
+        Athlete.from_raw(raw, self.t)
         bike_raw = {"weight": raw.get("weight", 70.0), "weight_unit": "kg",
                      "crr": 0.005, "cda": 0.40, "drivetrain_efficiency": 0.97}
         from .models import Bike
@@ -64,7 +63,7 @@ class MetabolismAgent:
         profile_data = result.details.get("metabolic_profile", {})
         return MetabolicProfile.from_dict(profile_data)
 
-    def collect_daily_summary(self, raw: dict, activity: Optional[Activity] = None,
+    def collect_daily_summary(self, raw: dict, activity: Activity | None = None,
                                date: str = "") -> MetabolicDailySummary:
         """Builds a ``MetabolicDailySummary`` from raw tracking + nutrition data.
 

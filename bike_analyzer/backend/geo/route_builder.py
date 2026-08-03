@@ -3,8 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ..maps.aethermap_adapter import WorldStore, Geometria, Oggetto, Posizione
-from ..maps.aethermap_adapter import _speed_to_color, _statistics_metadata
+from ..maps.aethermap_adapter import Geometria, Oggetto, Posizione, WorldStore, _speed_to_color, _statistics_metadata
 from ..models.models import GPSPoint, RouteStatistics
 from .types import GeoEnrichedPoint
 

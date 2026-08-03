@@ -17,13 +17,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from .models import GPSPoint, Ride
 
 
-class ActivityType(str, Enum):
+class ActivityType(StrEnum):
     """Tracked activity type (superset of `ride`).
 
     Supported values include: ride, walk, hike, run,
@@ -43,7 +43,7 @@ class ActivityType(str, Enum):
         return [m.value for m in cls]
 
 
-class SessionMode(str, Enum):
+class SessionMode(StrEnum):
     """Tracking mode.
 
     - LIVE: official tracked and saved ride.
@@ -56,7 +56,7 @@ class SessionMode(str, Enum):
     OFF = "off"
 
 
-class HealthMetricType(str, Enum):
+class HealthMetricType(StrEnum):
     """Supported health sample types.
 
     Includes native device metrics and those imported from

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..models import AnalysisContext
 from .base import Algorithm
 from .fatigue import FatigueModel
@@ -23,7 +21,7 @@ class RecoveryModel(Algorithm):
     unit = "score"
     required_inputs = ["fatica", "sonno_ore", "hrv"]
 
-    def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+    def _compute(self, ctx: AnalysisContext, extra: dict | None) -> tuple[float, float, float]:
         """Calcola la readiness combinando FatigueModel, deficit sonno e bonus HRV."""
         extra = extra or {}
         fatigue_result = FatigueModel().run(ctx)
@@ -42,7 +40,7 @@ class RecoveryModel(Algorithm):
         confidence = 0.7 if (sleep > 0 or hrv > 0) else 0.4
         return readiness, precision, confidence
 
-    def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+    def _extra_details(self, ctx: AnalysisContext, extra: dict | None) -> dict:
         """Restituisce fatica, recupero stimato, sonno e HRV utilizzati."""
         extra = extra or {}
         fatigue_result = FatigueModel().run(ctx)

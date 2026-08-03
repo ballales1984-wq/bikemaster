@@ -76,7 +76,7 @@ class AthleteStateService:
         from ..training_load import calculate_atl_ctl_tsb
 
         load_history = calculate_atl_ctl_tsb(rides_list, ftp)
-        latest_load = load_history[-1] if load_history else None
+        load_history[-1] if load_history else None
 
         # 3. Fatigue scores
         recent_rides = sorted(rides_list, key=lambda r: r.date or "")[-7:]
@@ -87,7 +87,7 @@ class AthleteStateService:
         chronic = self._compute_chronic_load(daily_tss)
 
         # 5. Trends via load_manager
-        ctl_trend = self._compute_ctl_trend(daily_tss)
+        self._compute_ctl_trend(daily_tss)
 
         # 6. Derived metrics
         acwr = (chronic.acwr if chronic and chronic.acwr is not None else 1.0)

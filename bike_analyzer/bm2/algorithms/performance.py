@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..models import AnalysisContext
 from .base import Algorithm
 
@@ -29,7 +27,7 @@ class PerformanceModel(Algorithm):
     unit = "score"
     required_inputs = ["avg_speed", "experience_level"]
 
-    def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+    def _compute(self, ctx: AnalysisContext, extra: dict | None) -> tuple[float, float, float]:
         """Calcola l'indice di prestazione normalizzato per livello di esperienza."""
         m = ctx.activity.metrics(ctx.transformer)
         v_kmh = (m["avg_speed_ms"] * 3.6) if m["avg_speed_ms"] else 0.0
@@ -41,7 +39,7 @@ class PerformanceModel(Algorithm):
             confidence = min(confidence + 0.05, 0.85)
         return index, precision, confidence
 
-    def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+    def _extra_details(self, ctx: AnalysisContext, extra: dict | None) -> dict:
         """Restituisce velocita' media, riferimento e livello esperienza."""
         m = ctx.activity.metrics(ctx.transformer)
         return {

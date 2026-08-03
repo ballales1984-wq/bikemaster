@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 EARTH_RADIUS_M = 6_371_000
 
@@ -58,7 +58,7 @@ class GPSPoint:
             except ValueError:
                 return
         if isinstance(ts, datetime) and ts.tzinfo is not None:
-            ts = ts.astimezone(timezone.utc).replace(tzinfo=None)
+            ts = ts.astimezone(UTC).replace(tzinfo=None)
         object.__setattr__(self, "timestamp", ts)
 
     def distance_to(self, other: GPSPoint) -> float:

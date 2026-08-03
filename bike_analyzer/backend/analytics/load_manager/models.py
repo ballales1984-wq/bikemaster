@@ -5,15 +5,14 @@ Spec (agent): "Modelli Pydantic per TrainingStress, ChronicLoad, LoadBalance".
 
 from __future__ import annotations
 
-from enum import Enum
-from typing import Optional
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 from .config import AthleteLevel
 
 
-class StressMethod(str, Enum):
+class StressMethod(StrEnum):
     POWER = "power"
     MET = "met"
     HR = "heart_rate"
@@ -22,16 +21,16 @@ class StressMethod(str, Enum):
 class TrainingStress(BaseModel):
     """Result of a single-ride TSS calculation."""
 
-    ride_id: Optional[int] = None
+    ride_id: int | None = None
     date: str
     tss: float = Field(..., ge=0.0)
     intensity_factor: float = Field(..., ge=0.0)
-    normalized_power: Optional[float] = Field(None, ge=0.0)
-    avg_power: Optional[float] = Field(None, ge=0.0)
+    normalized_power: float | None = Field(None, ge=0.0)
+    avg_power: float | None = Field(None, ge=0.0)
     method: StressMethod = StressMethod.MET
     duration_hours: float = Field(..., ge=0.0)
-    ftp_watts: Optional[float] = Field(None, ge=0.0)
-    elevation_gain_m: Optional[float] = Field(None, ge=0.0)
+    ftp_watts: float | None = Field(None, ge=0.0)
+    elevation_gain_m: float | None = Field(None, ge=0.0)
     terrain_correction: float = Field(0.0)
 
 
@@ -43,7 +42,7 @@ class ChronicLoad(BaseModel):
     atl: float = Field(..., ge=0.0)
     tsb: float
     tss: float = Field(0.0, ge=0.0)
-    acwr: Optional[float] = Field(None, ge=0.0)
+    acwr: float | None = Field(None, ge=0.0)
 
 
 class LoadBalance(BaseModel):

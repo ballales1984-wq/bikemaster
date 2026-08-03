@@ -23,9 +23,9 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from ..analytics.voice_coach import VoiceCoach
 from ..settings import get_settings
 from ..utils.logger import get_logger
-from ..analytics.voice_coach import VoiceCoach
 
 logger = get_logger(__name__)
 _s = get_settings()

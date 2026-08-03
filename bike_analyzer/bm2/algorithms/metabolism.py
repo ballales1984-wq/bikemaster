@@ -8,8 +8,6 @@ and GPS data to produce realistic energy expenditure estimates.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..models import AnalysisContext, MetabolicDailySummary, MetabolicProfile
 from .base import Algorithm, ModelResult
 
@@ -34,7 +32,7 @@ class MetabolismModel(Algorithm):
     unit = "kcal/day"
     required_inputs = ["peso", "bmr_formula", "activity_level", "sex", "age"]
 
-    def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+    def _compute(self, ctx: AnalysisContext, extra: dict | None) -> tuple[float, float, float]:
         """Calcola TDEE giornaliero in kcal/day."""
         profile = self._build_profile(ctx, extra)
         tdee = profile.tdee_kcal
@@ -44,7 +42,7 @@ class MetabolismModel(Algorithm):
             confidence = min(confidence + 0.05, 0.9)
         return tdee, precision, confidence
 
-    def _build_profile(self, ctx: AnalysisContext, extra: Optional[dict]) -> MetabolicProfile:
+    def _build_profile(self, ctx: AnalysisContext, extra: dict | None) -> MetabolicProfile:
         """Builds a full MetabolicProfile from the AnalysisContext."""
         from bike_analyzer.core.calculators.metabolism import (
             MetabolicProfileInput,
@@ -115,7 +113,7 @@ class MetabolismModel(Algorithm):
             n_calibrations = mp.n_calibrations
 
         adj_ref_bmr = ref["bmr_kcal"] * activity_multiplier_w
-        adj_ref_tdee = ref["tdee_kcal"] * activity_multiplier_w * neat_w
+        ref["tdee_kcal"] * activity_multiplier_w * neat_w
 
         if sensor_bmr_conf > 0 and bmr > 0:
             bmr_blended = sensor_bmr_conf * bmr + (1.0 - sensor_bmr_conf) * adj_ref_bmr
@@ -157,7 +155,7 @@ class MetabolismModel(Algorithm):
             updated_at=now,
         )
 
-    def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+    def _extra_details(self, ctx: AnalysisContext, extra: dict | None) -> dict:
         """Aggiunge scomporsi TDEE, flessibilita' metabolica e raccomandazioni."""
         profile = self._build_profile(ctx, extra)
         m = ctx.activity.metrics(ctx.transformer) if ctx.activity.points else {}
@@ -199,7 +197,7 @@ class MetabolismModel(Algorithm):
             "recommendation": recommendation,
         }
 
-    def run(self, ctx: AnalysisContext, extra: Optional[dict] = None) -> "ModelResult":
+    def run(self, ctx: AnalysisContext, extra: dict | None = None) -> ModelResult:
         """Overrides run to also return the MetabolicProfile in details."""
         missing = [inp for inp in self.required_inputs if not self._has_input(ctx, extra, inp)]
         if missing:
@@ -254,7 +252,7 @@ class MetabolismModel(Algorithm):
         tef = intake_kcal * 0.10
         balance = round(intake_kcal - profile.tdee_kcal, 1)
 
-        m = ctx.activity.metrics(ctx.transformer) if ctx.activity.points else {}
+        ctx.activity.metrics(ctx.transformer) if ctx.activity.points else {}
         elev = ctx.activity.summary.get("elevation_gain_m")
 
         return MetabolicDailySummary(

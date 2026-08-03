@@ -6,11 +6,10 @@ The inverse model solves v for a given P using bisection on the forward model.
 
 from __future__ import annotations
 
-from typing import Optional
+from bike_analyzer.core.physics import RiderBikeParams, instantaneous_power, required_speed_for_power
 
 from ..models import AnalysisContext
 from .base import Algorithm
-from bike_analyzer.core.physics import RiderBikeParams, instantaneous_power, required_speed_for_power
 
 __all__ = ["PowerModel"]
 
@@ -64,7 +63,7 @@ class PowerModel(Algorithm):
             wind_ms=wind_ms,
         )
 
-    def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+    def _compute(self, ctx: AnalysisContext, extra: dict | None) -> tuple[float, float, float]:
         """Stima la potenza da sensori o da FTP/velocita' sostenibile.
 
         Quando FTP e' disponibile e la velocita' media dell'attivita' e'
@@ -131,7 +130,7 @@ class PowerModel(Algorithm):
             return 0.0
         return sum(p.power for p in pts) / len(pts)
 
-    def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+    def _extra_details(self, ctx: AnalysisContext, extra: dict | None) -> dict:
         """Restituisce FTP, velocita' sostenibile, potenza stimata e media sensori."""
         m = ctx.activity.metrics(ctx.transformer)
         slope = m["avg_slope_percent"]

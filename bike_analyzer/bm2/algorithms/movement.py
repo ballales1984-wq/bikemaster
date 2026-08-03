@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..models import AnalysisContext
 from .base import Algorithm
 
@@ -22,7 +20,7 @@ class MovementModel(Algorithm):
     unit = "m/s"
     required_inputs = ["gps_points", "distanza", "durata"]
 
-    def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+    def _compute(self, ctx: AnalysisContext, extra: dict | None) -> tuple[float, float, float]:
         """Calcola velocita' media (m/s) e confidence basata su numero di punti GPS."""
         m = ctx.activity.metrics(ctx.transformer)
         dist_m = m["distance_m"]
@@ -34,7 +32,7 @@ class MovementModel(Algorithm):
         confidence = 0.95 if len(ctx.activity.points) >= 2 else 0.4
         return avg, precision, confidence
 
-    def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+    def _extra_details(self, ctx: AnalysisContext, extra: dict | None) -> dict:
         """Restituisce distanza, durata, dislivello, velocita' max e accelerazione max."""
         m = ctx.activity.metrics(ctx.transformer)
         speeds = [p for p in ctx.activity.points if p.speed is not None]

@@ -13,6 +13,7 @@ affecting local operation.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from datetime import UTC, datetime
 from typing import Any
 
@@ -114,7 +115,7 @@ class SyncService:
         """Execute a full sync cycle (check → push → pull → resolve)."""
         config = get_sync_config()
         result = SyncResult(success=True, mode=config.mode.value)
-        started = datetime.now(UTC)
+        datetime.now(UTC)
 
         if not self.is_enabled():
             result.finished_at = datetime.now(UTC).isoformat()
@@ -273,10 +274,7 @@ class SyncService:
             resolution = resolver(conflict)
             if resolution.needs_user_review:
                 continue
-            if resolution.resolution == ConflictResolution.LOCAL_WINS and resolution.merged_data:
-                _write_local_entity(conflict.entity_type, conflict.entity_id, resolution.merged_data)
-                mark_synced(conflict.entity_type, conflict.entity_id)
-            elif resolution.resolution == ConflictResolution.REMOTE_WINS and resolution.merged_data:
+            if resolution.resolution == ConflictResolution.LOCAL_WINS and resolution.merged_data or resolution.resolution == ConflictResolution.REMOTE_WINS and resolution.merged_data:
                 _write_local_entity(conflict.entity_type, conflict.entity_id, resolution.merged_data)
                 mark_synced(conflict.entity_type, conflict.entity_id)
             resolve_conflict_db(
@@ -296,9 +294,7 @@ class SyncService:
             now = datetime.now(UTC)
             config = get_sync_config()
             should_sync = False
-            if config.mode == SyncMode.DAILY and now.hour == config.daily_hour:
-                should_sync = True
-            elif config.mode == SyncMode.WEEKLY and now.weekday() == config.weekly_day and now.hour == config.daily_hour:
+            if config.mode == SyncMode.DAILY and now.hour == config.daily_hour or config.mode == SyncMode.WEEKLY and now.weekday() == config.weekly_day and now.hour == config.daily_hour:
                 should_sync = True
             if should_sync:
                 try:
@@ -503,7 +499,7 @@ def _write_local_entity(entity_type: str, entity_id: int, data: dict[str, Any]) 
             },
         }
         allowed = allowed_columns.get(entity_type, set())
-        cols = [k for k in data.keys() if k != "id" and k in allowed]
+        cols = [k for k in data if k != "id" and k in allowed]
         if not cols:
             return
         placeholders = ", ".join("?" * len(cols))
@@ -550,7 +546,5 @@ def _find_conflict_db_id(conflict: ConflictRecord) -> int:
         row = cur.fetchone()
         return row["id"] if row else 0
 
-
-import contextlib
 
 __all__ = ["SyncService", "get_sync_service"]

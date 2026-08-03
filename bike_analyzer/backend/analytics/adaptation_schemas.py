@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     SKIPPED_RIDE = "skipped_ride"
     PARTIAL_RIDE = "partial_ride"
     LONGER_RIDE = "longer_ride"
@@ -19,7 +19,7 @@ class EventType(str, Enum):
     BAD_WEATHER = "bad_weather"
 
 
-class AdaptationStrategy(str, Enum):
+class AdaptationStrategy(StrEnum):
     RECOVER_VOLUME = "recover_volume"
     MAINTAIN = "maintain"
     QUALITY_SWAP = "quality_swap"

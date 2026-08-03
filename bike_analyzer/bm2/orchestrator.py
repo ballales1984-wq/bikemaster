@@ -15,16 +15,16 @@ Improvements over the base version:
 
 from __future__ import annotations
 
-from typing import Optional
-
+from .agents import AthleteAgent, EnvironmentAgent, GPSAgent, MetabolismAgent, SensorAgent
 from .algorithms import (
-    ALL_ALGORITHMS, Algorithm, ModelResult,
+    ALL_ALGORITHMS,
+    Algorithm,
+    ModelResult,
 )
 from .knowledge import KnowledgeEngine
 from .models import AnalysisContext, Bike
 from .simulation import SimulationEngine, parse_override_from_text
 from .transformer import TransformerEngine
-from .agents import AthleteAgent, EnvironmentAgent, GPSAgent, MetabolismAgent, SensorAgent
 
 __all__ = ["AIOrchestrator", "OrchestratorAnswer"]
 
@@ -103,9 +103,9 @@ DEFAULT_ROUTE_THRESHOLD: float = 0.5
 class AIOrchestrator:
     """The digital guide: decides which algorithms to use, assembles context, and explains results."""
 
-    def __init__(self, transformer: Optional[TransformerEngine] = None,
-                 model_keywords: Optional[dict[str, dict[str, float]]] = None,
-                 ambiguous_keywords: Optional[frozenset[str]] = None,
+    def __init__(self, transformer: TransformerEngine | None = None,
+                 model_keywords: dict[str, dict[str, float]] | None = None,
+                 ambiguous_keywords: frozenset[str] | None = None,
                  route_threshold: float = DEFAULT_ROUTE_THRESHOLD) -> None:
         """Initialize the orchestrator with agents, keyword maps, and routing threshold."""
         self.t = transformer or TransformerEngine()
@@ -144,8 +144,8 @@ class AIOrchestrator:
         return any(k in q for k in self.ambiguous_keywords)
 
     def _select_models(self, question: str,
-                       keywords: Optional[dict[str, dict[str, float]]] = None,
-                       threshold: Optional[float] = None
+                       keywords: dict[str, dict[str, float]] | None = None,
+                       threshold: float | None = None
                        ) -> list[type[Algorithm]]:
         """Map the question to relevant models via keyword scoring.
 
@@ -194,7 +194,7 @@ class AIOrchestrator:
         return max(0.0, min(1.0, avg * (0.9 if ambiguous else 1.0)))
 
     # -- response --------------------------------------------------------
-    def answer(self, question: str, raw: dict, extra: Optional[dict] = None) -> dict:
+    def answer(self, question: str, raw: dict, extra: dict | None = None) -> dict:
         """Answers a question by running selected models or a simulation."""
         ctx = self.build_context(raw)
         results: dict[str, ModelResult] = {}
@@ -210,7 +210,7 @@ class AIOrchestrator:
                 results[algo_cls.name] = algo_cls().run(ctx, extra)
 
         if not results:
-            results = {name: r for name, r in (sim.baseline if sim else {}).items()}
+            results = dict(sim.baseline if sim else {})
 
         insights = self.knowledge.explain(results)
         confidence = self._score_confidence(results, ambiguous)
@@ -225,7 +225,7 @@ class AIOrchestrator:
         }
 
     def _run_simulation(self, ctx: AnalysisContext, question: str,
-                        extra: Optional[dict]) -> SimulationResultType:
+                        extra: dict | None) -> SimulationResultType:
         """Runs a 'what if' simulation extracting deltas from the question."""
         # Robust delta extraction: supports "weight -5 kg", "bike -1 kg",
         # "+2% slope", "cda 0.3" via the shared helper.

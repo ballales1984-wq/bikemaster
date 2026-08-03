@@ -7,15 +7,15 @@ composer (IT/EN, voice shortening) and notification batching.
 
 from __future__ import annotations
 
-import pytest
-
 from datetime import UTC, datetime
 
+import pytest
+
 from bike_analyzer.backend.analytics.proactive import (
+    MIN_NOTIFY_SCORE,
     Channel,
     ContextEvaluator,
     MessageComposer,
-    MIN_NOTIFY_SCORE,
     NotificationCategory,
     NotificationContext,
     NotificationPreferences,
@@ -23,9 +23,9 @@ from bike_analyzer.backend.analytics.proactive import (
     SmartTiming,
 )
 from bike_analyzer.backend.analytics.voice_coach import (
+    VoiceCoach,
     VoiceCommand,
     VoiceCommandParser,
-    VoiceCoach,
 )
 
 

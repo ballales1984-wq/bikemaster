@@ -17,22 +17,23 @@ be reused by the FastAPI layer, the simulation engine (bm2) and the Tauri app.
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 MIN_NOTIFY_SCORE = 3.0
 
 
-class Channel(str, Enum):
+class Channel(StrEnum):
     APP = "app"
     VOICE = "voice"
     DASHBOARD = "dashboard"
     EMAIL = "email"
 
 
-class NotificationCategory(str, Enum):
+class NotificationCategory(StrEnum):
     TRAINING = "training"
     RECOVERY = "recovery"
     PERFORMANCE = "performance"
@@ -101,7 +102,7 @@ class NotificationPreferences:
     respect_quiet_hours: bool = True
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "NotificationPreferences":
+    def from_dict(cls, data: dict[str, Any]) -> NotificationPreferences:
         allowed = {"app", "voice", "dashboard", "email"}
         chan = [c for c in data.get("channel_priority", []) if c in allowed]
         return cls(
@@ -268,9 +269,7 @@ class SmartTiming:
         # Never interrupt Z4/Z5 unless it is a safety message.
         if context.intensity_zone is not None and context.intensity_zone >= 4:
             return False, "high intensity (Z4/Z5)"
-        if SmartTiming.in_quiet_hours(prefs, context.now):
-            # Non-urgent messages wait; safety already handled above.
-            if category != NotificationCategory.SAFETY.value:
+        if SmartTiming.in_quiet_hours(prefs, context.now) and category != NotificationCategory.SAFETY.value:
                 return False, "quiet hours"
         return True, "ok"
 
@@ -317,10 +316,8 @@ class MessageComposer:
         detail = _DETAILS[self.language].get(category, {}).get(key)
         if not detail:
             return base
-        try:
+        with contextlib.suppress(KeyError, IndexError, ValueError):
             detail = detail.format(**vars)
-        except (KeyError, IndexError, ValueError):
-            pass
         return f"{base}\n\n{detail}"
 
     @staticmethod

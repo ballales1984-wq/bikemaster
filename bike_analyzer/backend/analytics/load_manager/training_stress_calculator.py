@@ -7,8 +7,6 @@ Supports both power-based and MET/HR-based estimation.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from bike_analyzer.backend.models.models import Ride
 
 from .calculators import calculate_tss, terrain_correction
@@ -80,7 +78,7 @@ class TrainingStressCalculator:
         return round(if_val, 3)
 
     @staticmethod
-    def _max_hr(ride: Ride) -> Optional[float]:
+    def _max_hr(ride: Ride) -> float | None:
         # Athlete age is not on Ride; use a conservative default if HR present.
         if ride.heart_rate_avg and ride.heart_rate_avg > 0:
             return 190.0

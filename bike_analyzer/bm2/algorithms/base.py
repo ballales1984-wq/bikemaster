@@ -12,11 +12,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional
+
+from bike_analyzer.core.physics import cycling_forces
 
 from ..models import AnalysisContext
 from ..units import Quantity
-from bike_analyzer.core.physics import cycling_forces
 
 __all__ = ["ModelResult", "Algorithm", "AnalysisContext"]
 
@@ -59,7 +59,7 @@ class ModelResult:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "ModelResult":
+    def from_dict(cls, d: dict) -> ModelResult:
         """Ricostruisce un ModelResult da un dizionario serializzato."""
         return cls(
             value=d.get("value", 0.0),
@@ -81,7 +81,7 @@ class ModelResult:
         """Intervallo di incertezza: (value - precision, value + precision)."""
         return (self.value - self.precision, self.value + self.precision)
 
-    def compare_with(self, other: "ModelResult") -> dict:
+    def compare_with(self, other: ModelResult) -> dict:
         """Confronta questo risultato con un altro. Restituisce delta e rapporto."""
         return {
             "self": self.source,
@@ -121,15 +121,15 @@ class Algorithm(ABC):
     default_confidence: float = 0.8
 
     @abstractmethod
-    def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+    def _compute(self, ctx: AnalysisContext, extra: dict | None) -> tuple[float, float, float]:
         """Restituisce (value, precision, confidence)."""
         raise NotImplementedError
 
-    def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+    def _extra_details(self, ctx: AnalysisContext, extra: dict | None) -> dict:
         """Output secondari facoltativi (sovrascrivibile)."""
         return {}
 
-    def run(self, ctx: AnalysisContext, extra: Optional[dict] = None) -> ModelResult:
+    def run(self, ctx: AnalysisContext, extra: dict | None = None) -> ModelResult:
         """Esegue l'algoritmo dopo aver verificato gli input obbligatori.
 
         Se mancano input richiesti restituisce un ModelResult con confidenza 0
@@ -160,7 +160,7 @@ class Algorithm(ABC):
         )
 
     @staticmethod
-    def _has_input(ctx: AnalysisContext, extra: Optional[dict], name: str) -> bool:
+    def _has_input(ctx: AnalysisContext, extra: dict | None, name: str) -> bool:
         """Verifica la disponibilita' di un input richiesto per l'algoritmo."""
         m = ctx.activity.metrics(ctx.transformer)
         checks = {
@@ -200,7 +200,7 @@ class Algorithm(ABC):
 
     # -- helper condivisi -------------------------------------------------
     @staticmethod
-    def _has(value: Optional[Quantity]) -> bool:
+    def _has(value: Quantity | None) -> bool:
         """Controlla se un Quantity e' definito e non nullo."""
         return value is not None and value.value != 0.0
 

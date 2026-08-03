@@ -1,7 +1,7 @@
 """Tests for 24-hour heart-rate tracking (independent of Google Health/Fit)."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from bike_analyzer.backend.db import database as db_module
 from bike_analyzer.backend.db.database import (
@@ -16,8 +16,7 @@ from bike_analyzer.backend.db.database import (
     upsert_hr_settings,
 )
 
-
-UTC = timezone.utc
+UTC = UTC
 
 
 def _ensure_athlete(athlete_id: int) -> None:

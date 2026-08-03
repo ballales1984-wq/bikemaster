@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from ..traffic.overpass_client import fetch_road_data, fetch_bike_lanes
+from ..traffic.overpass_client import fetch_bike_lanes, fetch_road_data
 
 logger = logging.getLogger(__name__)
 

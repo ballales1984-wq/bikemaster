@@ -9,9 +9,9 @@ own quota. Keys are scoped to the request via a :class:`~contextvars.ContextVar`
 
 from __future__ import annotations
 
+import json as json_module
 from contextvars import ContextVar
 from typing import Any
-import json as json_module
 
 # Known key slots accepted from the client header. Unknown keys are ignored.
 USER_KEY_SLOTS = ("groq", "google_maps", "serpapi", "weather", "openweather")

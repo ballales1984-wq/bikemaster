@@ -7,7 +7,7 @@ calcolano NP/IF/TSS via ``analytics.performance`` e scrivono su
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..db.database import get_db_connection
 from .performance import (
@@ -17,7 +17,7 @@ from .performance import (
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _power_stream_from_ride(ride: dict) -> list[float]:

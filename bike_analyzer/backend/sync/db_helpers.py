@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 from datetime import UTC, datetime
 from typing import Any
@@ -290,18 +291,12 @@ def _row_to_conflict(row) -> ConflictRecord:
     local_data: dict[str, Any] = {}
     remote_data: dict[str, Any] = {}
     resolved_data: dict[str, Any] | None = None
-    try:
+    with contextlib.suppress(json.JSONDecodeError, TypeError):
         local_data = json.loads(row["local_data"]) if row["local_data"] else {}
-    except (json.JSONDecodeError, TypeError):
-        pass
-    try:
+    with contextlib.suppress(json.JSONDecodeError, TypeError):
         remote_data = json.loads(row["remote_data"]) if row["remote_data"] else {}
-    except (json.JSONDecodeError, TypeError):
-        pass
-    try:
+    with contextlib.suppress(json.JSONDecodeError, TypeError):
         resolved_data = json.loads(row["resolved_data"]) if row["resolved_data"] else None
-    except (json.JSONDecodeError, TypeError):
-        pass
     return ConflictRecord(
         entity_type=row["entity_type"],
         entity_id=row["entity_id"],

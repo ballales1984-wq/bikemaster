@@ -95,14 +95,12 @@ def _estimate_neat_from_gps(gps_points: list[dict[str, Any]] | list[GPSPoint]) -
     """Estimate NEAT calories from low-speed GPS segments (walking, stairs)."""
     if not gps_points:
         return 0.0
-    total = 0.0
     prev_ts = None
-    prev_alt = None
     walk_seconds = 0.0
     for pt in gps_points:
         ts = pt.timestamp if hasattr(pt, "timestamp") else pt.get("timestamp")
         spd = pt.speed if hasattr(pt, "speed") else pt.get("speed")
-        alt = pt.altitude if hasattr(pt, "altitude") else pt.get("altitude")
+        pt.altitude if hasattr(pt, "altitude") else pt.get("altitude")
         if ts is None:
             continue
         if isinstance(ts, str):
@@ -115,7 +113,6 @@ def _estimate_neat_from_gps(gps_points: list[dict[str, Any]] | list[GPSPoint]) -
             if dt > 0 and spd is not None and spd < 5.0:
                 walk_seconds += dt
         prev_ts = ts
-        prev_alt = alt
     if walk_seconds > 300:
         steps = int(walk_seconds * (1.2 / 0.9))
         return float(steps * 0.04)
@@ -300,7 +297,7 @@ class AdaptiveWeights:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AdaptiveWeights":
+    def from_dict(cls, data: dict[str, Any]) -> AdaptiveWeights:
         if not data:
             return cls()
         return cls(

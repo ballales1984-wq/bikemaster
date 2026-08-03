@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 from .transformer import GeoPoint, TransformerEngine
 from .units import Quantity, q
@@ -62,23 +61,23 @@ class Athlete:
 
     weight_kg: Quantity
     age: int = 30
-    height_m: Optional[Quantity] = None
-    ftp_w: Optional[Quantity] = None
-    max_hr_bpm: Optional[Quantity] = None
-    resting_hr_bpm: Optional[Quantity] = None
+    height_m: Quantity | None = None
+    ftp_w: Quantity | None = None
+    max_hr_bpm: Quantity | None = None
+    resting_hr_bpm: Quantity | None = None
     experience_level: str = "Beginner"
-    weekly_hours: Optional[Quantity] = None
+    weekly_hours: Quantity | None = None
     name: str = ""
-    ctl_stress_score: Optional[Quantity] = None
-    atl_stress_score: Optional[Quantity] = None
-    tsb_stress_score: Optional[Quantity] = None
-    fat_percentage: Optional[float] = None
+    ctl_stress_score: Quantity | None = None
+    atl_stress_score: Quantity | None = None
+    tsb_stress_score: Quantity | None = None
+    fat_percentage: float | None = None
     sex: str = "male"
     bmr_formula: str = "mifflin"
     activity_level: str = "moderate"
 
     @classmethod
-    def from_raw(cls, raw: dict, t: TransformerEngine) -> "Athlete":
+    def from_raw(cls, raw: dict, t: TransformerEngine) -> Athlete:
         """Builds Athlete from raw data, normalizing units."""
         if raw.get("weight") is None:
             raise ValueError("required field 'weight' missing for Athlete")
@@ -128,7 +127,7 @@ class Athlete:
             activity_level=raw.get("activity_level", "moderate"),
         )
 
-    def power_to_weight(self) -> Optional[float]:
+    def power_to_weight(self) -> float | None:
         """Power-to-weight ratio (W/kg) from FTP, None if FTP not defined."""
         if self.ftp_w is None:
             return None
@@ -156,7 +155,7 @@ class Athlete:
         }
 
     @classmethod
-    def from_dict(cls, raw: dict, t: TransformerEngine) -> "Athlete":
+    def from_dict(cls, raw: dict, t: TransformerEngine) -> Athlete:
         """Reconstructs Athlete from serialized dictionary."""
         return cls(
             weight_kg=_quantity_from_dict(raw["weight_kg"], t),
@@ -232,7 +231,7 @@ class MetabolicProfile:
         }
 
     @classmethod
-    def from_dict(cls, raw: dict) -> "MetabolicProfile":
+    def from_dict(cls, raw: dict) -> MetabolicProfile:
         return cls(
             bmr_kcal=float(raw.get("bmr_kcal", 0.0) or 0.0),
             tdee_kcal=float(raw.get("tdee_kcal", 0.0) or 0.0),
@@ -309,7 +308,7 @@ class MetabolicDailySummary:
         }
 
     @classmethod
-    def from_dict(cls, raw: dict) -> "MetabolicDailySummary":
+    def from_dict(cls, raw: dict) -> MetabolicDailySummary:
         return cls(
             date=raw.get("date", ""),
             bmr_kcal=float(raw.get("bmr_kcal", 0.0) or 0.0),
@@ -344,10 +343,10 @@ class Bike:
     drivetrain_efficiency: float = 0.97
     name: str = ""
     category: str = "road"
-    gear_ratio: Optional[float] = None
+    gear_ratio: float | None = None
 
     @classmethod
-    def from_raw(cls, raw: dict, t: TransformerEngine) -> "Bike":
+    def from_raw(cls, raw: dict, t: TransformerEngine) -> Bike:
         """Builds Bike from raw data, normalizing units."""
         if raw.get("weight") is None:
             raise ValueError("required field 'weight' missing for Bike")
@@ -382,7 +381,7 @@ class Bike:
         }
 
     @classmethod
-    def from_dict(cls, raw: dict, t: TransformerEngine) -> "Bike":
+    def from_dict(cls, raw: dict, t: TransformerEngine) -> Bike:
         """Reconstructs Bike from serialized dictionary."""
         return cls(
             weight_kg=_quantity_from_dict(raw["weight_kg"], t),
@@ -423,7 +422,7 @@ class Activity:
         }
 
     @classmethod
-    def from_raw(cls, raw: dict, t: TransformerEngine) -> "Activity":
+    def from_raw(cls, raw: dict, t: TransformerEngine) -> Activity:
         """Builds Activity from raw GPS/sensor data."""
         gps = raw.get("gps_points") or raw.get("points")
         if not gps:
@@ -480,7 +479,7 @@ class Activity:
         }
 
     @classmethod
-    def from_dict(cls, raw: dict, t: TransformerEngine) -> "Activity":
+    def from_dict(cls, raw: dict, t: TransformerEngine) -> Activity:
         """Reconstructs Activity from serialized dictionary."""
         points = []
         for p in raw.get("points", []):
@@ -515,12 +514,12 @@ class WorldObject:
 
     surface: str = "asphalt"
     roughness_index: Quantity = field(default_factory=lambda: q(0.0, "", source="manual"))
-    avg_slope_percent: Optional[Quantity] = None
-    wind_speed_ms: Optional[Quantity] = None
-    temperature_c: Optional[Quantity] = None
+    avg_slope_percent: Quantity | None = None
+    wind_speed_ms: Quantity | None = None
+    temperature_c: Quantity | None = None
 
     @classmethod
-    def from_raw(cls, raw: dict, t: TransformerEngine) -> "WorldObject":
+    def from_raw(cls, raw: dict, t: TransformerEngine) -> WorldObject:
         """Builds WorldObject from raw environment data."""
         slope = None
         if raw.get("avg_slope") is not None:
@@ -552,7 +551,7 @@ class WorldObject:
         }
 
     @classmethod
-    def from_dict(cls, raw: dict, t: TransformerEngine) -> "WorldObject":
+    def from_dict(cls, raw: dict, t: TransformerEngine) -> WorldObject:
         """Reconstructs WorldObject from serialized dictionary."""
         return cls(
             surface=raw.get("surface", "asphalt"),
@@ -590,7 +589,7 @@ class AnalysisContext:
         }
 
     @classmethod
-    def from_dict(cls, raw: dict, t: TransformerEngine) -> "AnalysisContext":
+    def from_dict(cls, raw: dict, t: TransformerEngine) -> AnalysisContext:
         """Reconstructs AnalysisContext from serialized dictionary."""
         mp = raw.get("metabolic_profile")
         return cls(

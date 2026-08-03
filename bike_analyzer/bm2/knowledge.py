@@ -8,7 +8,6 @@ it classifies and explains.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from .algorithms.base import ModelResult
 
@@ -62,7 +61,7 @@ class KnowledgeEngine:
         insights += self._nutrition_insights(results)
         return insights
 
-    def _get(self, results: dict[str, ModelResult], name: str) -> Optional[ModelResult]:
+    def _get(self, results: dict[str, ModelResult], name: str) -> ModelResult | None:
         """Helper to extract a ModelResult by algorithm name.
 
         Args:

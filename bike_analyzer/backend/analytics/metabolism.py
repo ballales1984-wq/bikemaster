@@ -174,7 +174,6 @@ def compute_metabolic_profile(athlete: dict, *, override: dict | None = None) ->
         data.update({k: v for k, v in override.items() if v is not None})
     profile = MetabolicProfileInput(**data)
     bmr = calculate_bmr(profile)
-    tdee = profile.activity_level  # placeholder, actual tdee computed daily
     return {
         "sex": data["sex"],
         "bmr_formula": data["bmr_formula"],

@@ -25,13 +25,13 @@ from __future__ import annotations
 import logging
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from .adaptation_rules import (
-    AthleteState,
     OVERLOAD_REDUCTION_MAX,
     OVERLOAD_REDUCTION_MIN,
+    AthleteState,
     WorkoutPlan,
     apply_overload_reduction,
     available_future_workouts,
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 OVERLOAD_REDUCTION_DEFAULT = 0.25
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     SKIPPED_RIDE = "skipped_ride"
     PARTIAL_RIDE = "partial_ride"
     LONGER_RIDE = "longer_ride"
@@ -61,7 +61,7 @@ class EventType(str, Enum):
     BAD_WEATHER = "bad_weather"
 
 
-class AdaptationStrategy(str, Enum):
+class AdaptationStrategy(StrEnum):
     RECOVER_VOLUME = "recover_volume"
     MAINTAIN = "maintain"
     QUALITY_SWAP = "quality_swap"
@@ -260,7 +260,7 @@ class RecoveryAdjuster:
         from_index: int = 0,
     ) -> tuple[list[WorkoutPlan], list[str]]:
         alerts: list[str] = []
-        adjusted = [w for w in planned]
+        adjusted = list(planned)
 
         if recovery_priority(state):
             alerts.append("Priorita recupero: TSB basso o fatica alta. Rimosso/ridotto carico futuro.")

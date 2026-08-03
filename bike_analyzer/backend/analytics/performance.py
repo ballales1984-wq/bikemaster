@@ -5,8 +5,8 @@ from __future__ import annotations
 import math
 
 from ..models.models import AthleteProfile, Ride
+from .error_propagation import ErrorValue, compute_coverage, propagate_division
 from .fatigue import calculate_fatigue_score
-from .error_propagation import ErrorValue, propagate_division, compute_coverage
 
 
 def calculate_performance_score(ride: Ride) -> float:

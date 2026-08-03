@@ -16,9 +16,9 @@ already normalized through this layer.
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timezone
-from typing import Iterable, Optional
 
 from .units import Quantity, UnitRegistry, default_registry
 
@@ -64,13 +64,13 @@ class GeoPoint:
     lat: float
     lon: float
     altitude: float = 0.0
-    timestamp: Optional[datetime] = None
+    timestamp: datetime | None = None
     x: float = 0.0
     y: float = 0.0
-    speed: Optional[float] = None
-    power: Optional[float] = None
-    heart_rate: Optional[float] = None
-    cadence: Optional[float] = None
+    speed: float | None = None
+    power: float | None = None
+    heart_rate: float | None = None
+    cadence: float | None = None
 
     @property
     def meters(self) -> tuple[float, float]:
@@ -160,7 +160,7 @@ class GeoTransformer:
         dist = 0.0
         gain = 0.0
         loss = 0.0
-        for a, b in zip(pts, pts[1:]):
+        for a, b in zip(pts, pts[1:], strict=False):
             dist += self.distance_2d_m(a, b)
             dz = b.altitude - a.altitude
             if dz > 0:
@@ -268,7 +268,7 @@ class DataQuality:
             problems.append("timestamp non ordinate")
         gaps = [
             (TimeTransformer.interval_seconds(a, b), a, b)
-            for a, b in zip(ts, ts[1:])
+            for a, b in zip(ts, ts[1:], strict=False)
         ]
         if max_gap_seconds > 0:
             for gap, a, b in gaps:

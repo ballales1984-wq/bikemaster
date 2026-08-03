@@ -15,11 +15,6 @@ result + formula + data used + precision + source.
 
 from __future__ import annotations
 
-from .algorithms import (
-    ALL_ALGORITHMS, Algorithm, EnergyModel, FatigueModel, ModelResult,
-    MovementModel, MetabolismModel, NutritionModel, PerformanceModel, PowerModel,
-    RecoveryModel, RouteDifficultyModel, TrainingLoadModel,
-)
 from .agents import (
     AthleteAgent,
     EnvironmentAgent,
@@ -29,10 +24,25 @@ from .agents import (
     SensorAgent,
     StravaAgent,
 )
+from .algorithms import (
+    ALL_ALGORITHMS,
+    Algorithm,
+    EnergyModel,
+    FatigueModel,
+    MetabolismModel,
+    ModelResult,
+    MovementModel,
+    NutritionModel,
+    PerformanceModel,
+    PowerModel,
+    RecoveryModel,
+    RouteDifficultyModel,
+    TrainingLoadModel,
+)
 from .knowledge import Insight, KnowledgeEngine
-from .models import AnalysisContext, Athlete, Activity, Bike, MetabolicDailySummary, MetabolicProfile, WorldObject
+from .models import Activity, AnalysisContext, Athlete, Bike, MetabolicDailySummary, MetabolicProfile, WorldObject
 from .orchestrator import AIOrchestrator
-from .simulation import ScenarioOverride, SimulationEngine, SimulationComparison
+from .simulation import ScenarioOverride, SimulationComparison, SimulationEngine
 from .transformer import TransformerEngine
 from .units import Quantity, UnitRegistry, convert, q
 

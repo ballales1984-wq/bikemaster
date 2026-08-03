@@ -7,10 +7,10 @@ correlation between load and performance outcome. Pure and deterministic.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class TrendDirection(str, Enum):
+class TrendDirection(StrEnum):
     RISING = "rising"
     STABLE = "stable"
     FALLING = "falling"
@@ -39,7 +39,7 @@ def _linear_slope(values: list[float]) -> float:
     xs = list(range(n))
     x_mean = sum(xs) / n
     y_mean = sum(values) / n
-    num = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, values))
+    num = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, values, strict=False))
     den = sum((x - x_mean) ** 2 for x in xs)
     return num / den if den else 0.0
 
@@ -80,7 +80,7 @@ class TrendAnalyzer:
         y = performance_series[:n]
         xm = sum(x) / n
         ym = sum(y) / n
-        cov = sum((a - xm) * (b - ym) for a, b in zip(x, y))
+        cov = sum((a - xm) * (b - ym) for a, b in zip(x, y, strict=False))
         var_x = sum((a - xm) ** 2 for a in x)
         var_y = sum((b - ym) ** 2 for b in y)
         denom = (var_x * var_y) ** 0.5

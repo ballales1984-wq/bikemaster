@@ -17,13 +17,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from .proactive import MessageComposer, SmartTiming
 
 
-class VoiceCommand(str, Enum):
+class VoiceCommand(StrEnum):
     STOP = "stop"
     PAUSE = "pause"
     RESUME = "resume"

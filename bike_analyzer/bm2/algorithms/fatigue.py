@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..models import AnalysisContext
 from .base import Algorithm
 
@@ -32,7 +30,7 @@ class FatigueModel(Algorithm):
             return min(hr_avg / ctx.athlete.max_hr_bpm.value, 1.0)
         return min(avg_speed_kmh / 30.0, 1.0)
 
-    def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+    def _compute(self, ctx: AnalysisContext, extra: dict | None) -> tuple[float, float, float]:
         """Calcola lo score di fatica (0-10) combinando duration, intensita', velocita' e elevation."""
         m = ctx.activity.metrics(ctx.transformer)
         dur_h = m["duration_s"] / 3600.0
@@ -64,7 +62,7 @@ class FatigueModel(Algorithm):
             return 24.0
         return 48.0
 
-    def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+    def _extra_details(self, ctx: AnalysisContext, extra: dict | None) -> dict:
         """Aggiunge intensita', recupero stimato e raccomandazione al risultato."""
         m = ctx.activity.metrics(ctx.transformer)
         v_kmh = m["avg_speed_ms"] * 3.6

@@ -17,11 +17,11 @@ from __future__ import annotations
 import re
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
-from typing import ClassVar, Optional
+from typing import ClassVar
 
-from ..models import AnalysisContext, Athlete, Bike, WorldObject
-from ..transformer import GeoPoint
 from ..algorithms.base import Algorithm, ModelResult
+from ..models import AnalysisContext, Athlete, Bike, WorldObject
+from ..transformer import GeoPoint as GeoPoint
 
 __all__ = [
     "ScenarioOverride",
@@ -46,8 +46,8 @@ class ScenarioOverride:
     athlete_weight_delta_kg: float = 0.0
     bike_weight_delta_kg: float = 0.0
     slope_delta_percent: float = 0.0
-    cda_override: Optional[float] = None
-    experience_override: Optional[str] = None
+    cda_override: float | None = None
+    experience_override: str | None = None
 
 
 @dataclass
@@ -153,7 +153,7 @@ class SensitivityResult:
     values: list[float]
     points: list[SensitivityPoint] = field(default_factory=list)
 
-    def curve(self, algorithm_name: str) -> list[tuple[float, Optional[float]]]:
+    def curve(self, algorithm_name: str) -> list[tuple[float, float | None]]:
         return [(p.param_value, p.results.get(algorithm_name)) for p in self.points]
 
     def to_dict(self) -> dict:
@@ -226,7 +226,7 @@ class SimulationEngine:
         algorithms: List of Algorithm classes to execute in each comparison.
     """
 
-    def __init__(self, algorithms: Optional[list[type[Algorithm]]] = None) -> None:
+    def __init__(self, algorithms: list[type[Algorithm]] | None = None) -> None:
         """Initialize the engine with the list of algorithms to use.
 
         Args:
@@ -319,7 +319,7 @@ class SimulationEngine:
         cum = 0.0
         prev = None
         new_pts = []
-        for orig, mp in zip(pts, metric):
+        for orig, mp in zip(pts, metric, strict=False):
             if prev is not None:
                 cum += geo.distance_2d_m(prev, mp)
             prev = mp
@@ -327,7 +327,7 @@ class SimulationEngine:
         ctx.activity.points = new_pts
 
     def compare(self, ctx: AnalysisContext, override: ScenarioOverride,
-                extra: Optional[dict] = None) -> SimulationComparison:
+                extra: dict | None = None) -> SimulationComparison:
         """Runs all algorithms on baseline and scenario and calculates deltas.
 
         Args:
@@ -350,7 +350,7 @@ class SimulationEngine:
         return SimulationComparison(baseline=baseline_res, scenario=scenario_res, deltas=deltas)
 
     def compare_preset(self, ctx: AnalysisContext, preset_name: str,
-                       extra: Optional[dict] = None) -> SimulationComparison:
+                       extra: dict | None = None) -> SimulationComparison:
         """Compares the context with a predefined scenario."""
         return self.compare(ctx, ScenarioPresets.get(preset_name), extra)
 
@@ -381,7 +381,7 @@ class SimulationEngine:
         return ov
 
     def sensitivity(self, ctx: AnalysisContext, param: str, values: list,
-                    extra: Optional[dict] = None) -> SensitivityResult:
+                    extra: dict | None = None) -> SensitivityResult:
         """Response curve of algorithms as ``param`` varies.
 
         ``param`` can be any alias in ``_PARAM_ALIASES`` (e.g.

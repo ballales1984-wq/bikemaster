@@ -10,13 +10,13 @@ See .kilo/agent/load-manager.md for the full specification.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Literal
 
 AthleteLevel = Literal["beginner", "intermediate", "advanced", "elite"]
 
 
-class AthleteLevelEnum(str, Enum):
+class AthleteLevelEnum(StrEnum):
     BEGINNER = "beginner"
     INTERMEDIATE = "intermediate"
     ADVANCED = "advanced"

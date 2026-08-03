@@ -18,12 +18,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select as sa_select
 from sqlalchemy.exc import SQLAlchemyError
 
-from bike_analyzer.backend.security import get_current_user
 from bike_analyzer.backend.db.async_db import get_session_factory
 from bike_analyzer.backend.db.models import (
     AthleteModel,
     RideModel,
 )
+from bike_analyzer.backend.security import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,8 @@ async def hub_sync_push(
                 accepted += 1
 
             elif entity_type == "athlete":
-                from sqlalchemy import insert as sa_insert, update as sa_update
+                from sqlalchemy import insert as sa_insert
+                from sqlalchemy import update as sa_update
                 stmt = sa_select(AthleteModel).where(AthleteModel.id == entity_id, AthleteModel.tenant_id == tenant_id)
                 async with session_factory() as session:
                     result = await session.execute(stmt)

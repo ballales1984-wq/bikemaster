@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..models import AnalysisContext
 from .base import Algorithm
 
@@ -24,7 +22,7 @@ class EnergyModel(Algorithm):
     unit = "kcal"
     required_inputs = ["total_mass", "speed", "slope", "duration", "crr", "cda"]
 
-    def _compute(self, ctx: AnalysisContext, extra: Optional[dict]) -> tuple[float, float, float]:
+    def _compute(self, ctx: AnalysisContext, extra: dict | None) -> tuple[float, float, float]:
         """Calcola kcal totali dalla potenza meccanica e efficienza metabolica."""
         m = ctx.activity.metrics(ctx.transformer)
         dist_m = m["distance_m"]
@@ -34,11 +32,11 @@ class EnergyModel(Algorithm):
 
         v = dist_m / dur_s  # m/s
         mass = ctx.total_mass_kg
-        slope = m["avg_slope_percent"] / 100.0  # frazione
+        m["avg_slope_percent"] / 100.0  # frazione
         wind = 0.0
         if ctx.world.wind_speed_ms is not None:
             wind = ctx.world.wind_speed_ms.value  # vento contrario positivo
-        v_air = max(v + wind, 0.0)
+        max(v + wind, 0.0)
 
         forces = self._cycling_forces(mass, m["avg_slope_percent"], ctx.bike.crr,
                                      ctx.bike.cda, v, wind, ctx.bike.drivetrain_efficiency)
@@ -55,7 +53,7 @@ class EnergyModel(Algorithm):
             confidence *= 0.85
         return kcal, precision, confidence
 
-    def _extra_details(self, ctx: AnalysisContext, extra: Optional[dict]) -> dict:
+    def _extra_details(self, ctx: AnalysisContext, extra: dict | None) -> dict:
         """Restituisce dettagli: potenza meccanica, metabolica, massa totale, velocita'."""
         m = ctx.activity.metrics(ctx.transformer)
         dist_m = m["distance_m"]

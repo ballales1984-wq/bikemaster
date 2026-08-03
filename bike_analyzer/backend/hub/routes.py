@@ -28,37 +28,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy import select
 
-from bike_analyzer.backend.audit_log import log_action, read_audit_logs
-from bike_analyzer.backend.rate_limiter import limiter
-from bike_analyzer.backend.redis_client import (
-    cache_set as _cache_set,
-    cached as _cached,
-    check_rate_limit,
-)
-from bike_analyzer.backend.security import (
-    ALGORITHM,
-    JWT_AUDIENCE,
-    JWT_ISSUER,
-    get_admin_user,
-    get_current_user,
-    create_access_token,
-    create_refresh_token,
-    decode_token_with_fallback,
-    hash_password,
-    is_token_revoked,
-    revoke_refresh_token,
-    revoke_token,
-    save_refresh_token,
-    verify_password,
-)
-from bike_analyzer.backend.settings import get_settings
-from bike_analyzer.backend.db.async_db import get_session_factory
-from bike_analyzer.backend.db.models import (
-    AthleteModel,
-    ChatHistoryModel,
-    RideModel,
-    UserModel,
-)
 from bike_analyzer.backend.analytics.knowledge_base import (
     format_context_for_llm,
     get_kb_stats,
@@ -67,6 +36,41 @@ from bike_analyzer.backend.analytics.knowledge_base import (
     reload_kb,
     search_knowledge_base,
 )
+from bike_analyzer.backend.audit_log import log_action, read_audit_logs
+from bike_analyzer.backend.db.async_db import get_session_factory
+from bike_analyzer.backend.db.models import (
+    AthleteModel,
+    ChatHistoryModel,
+    RideModel,
+    UserModel,
+)
+from bike_analyzer.backend.rate_limiter import limiter
+from bike_analyzer.backend.redis_client import (
+    cache_set as _cache_set,
+)
+from bike_analyzer.backend.redis_client import (
+    cached as _cached,
+)
+from bike_analyzer.backend.redis_client import (
+    check_rate_limit,
+)
+from bike_analyzer.backend.security import (
+    ALGORITHM,
+    JWT_AUDIENCE,
+    JWT_ISSUER,
+    create_access_token,
+    create_refresh_token,
+    decode_token_with_fallback,
+    get_admin_user,
+    get_current_user,
+    hash_password,
+    is_token_revoked,
+    revoke_refresh_token,
+    revoke_token,
+    save_refresh_token,
+    verify_password,
+)
+from bike_analyzer.backend.settings import get_settings
 
 _s = get_settings()
 logger = logging.getLogger(__name__)
@@ -347,7 +351,8 @@ async def hub_register(
     email: str = Body(None),
 ):
     """Registra un nuovo utente (e atleta) sul database Hub PostgreSQL."""
-    from sqlalchemy import insert as sa_insert, select as sa_select
+    from sqlalchemy import insert as sa_insert
+    from sqlalchemy import select as sa_select
 
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -444,7 +449,8 @@ async def hub_update_profile(
     current_user: dict = Depends(get_current_user),
 ):
     """Aggiorna i campi profilo consentiti dell'atleta autenticato."""
-    from sqlalchemy import select as sa_select, update as sa_update
+    from sqlalchemy import select as sa_select
+    from sqlalchemy import update as sa_update
 
     allowed_fields = {
         "name", "email", "age", "weight_kg", "height_cm",
@@ -755,19 +761,19 @@ async def hub_list_all_athletes(current_user: dict = Depends(get_admin_user)):
 @hub_admin_router.get("/backup")
 async def hub_create_backup(current_user: dict = Depends(get_admin_user)):
     """Esporta un backup JSON di utenti, atleti, ride e cronologia chat (solo admin)."""
-    from sqlalchemy import select as sa_select
     from fastapi.responses import JSONResponse
+    from sqlalchemy import select as sa_select
 
     session_factory = get_session_factory()
     async with session_factory() as session:
         users_result = await session.execute(sa_select(UserModel))
-        users = users_result.scalars().all()
+        users_result.scalars().all()
         athletes_result = await session.execute(sa_select(AthleteModel))
-        athletes = athletes_result.scalars().all()
+        athletes_result.scalars().all()
         rides_result = await session.execute(sa_select(RideModel))
-        rides = rides_result.scalars().all()
+        rides_result.scalars().all()
         chat_result = await session.execute(sa_select(ChatHistoryModel))
-        chat = chat_result.scalars().all()
+        chat_result.scalars().all()
 
     def _dump(model):
         """Serializza le righe di un modello SQLAlchemy in lista di dizionari."""

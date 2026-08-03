@@ -9,7 +9,6 @@ from __future__ import annotations
 from math import exp
 
 
-
 def calculate_tss(
     duration_hours: float,
     intensity_factor: float,

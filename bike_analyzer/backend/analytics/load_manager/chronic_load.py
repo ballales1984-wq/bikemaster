@@ -7,7 +7,6 @@ Does NOT mutate existing ride TSS values (constraint #2).
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from typing import Optional
 
 from .calculators import calculate_acwr, calculate_ewma
 from .config import DEFAULT_CONFIG, LoadManagerConfig
@@ -61,7 +60,7 @@ class ChronicLoadManager:
             )
         return result
 
-    def _acwr_at(self, daily: list[tuple[date, float]], index: int) -> Optional[float]:
+    def _acwr_at(self, daily: list[tuple[date, float]], index: int) -> float | None:
         sc = self.config.acwr_short_days
         lc = self.config.acwr_long_days
         if index < sc - 1:
@@ -71,7 +70,7 @@ class ChronicLoadManager:
         long = [v for _, v in daily[long_start: index + 1]]
         return calculate_acwr(short, long)
 
-    def current(self, dated_tss: list[tuple[str, float]]) -> Optional[ChronicLoad]:
+    def current(self, dated_tss: list[tuple[str, float]]) -> ChronicLoad | None:
         series = self.compute_series(dated_tss)
         return series[-1] if series else None
 

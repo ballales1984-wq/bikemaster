@@ -1,15 +1,13 @@
 """Tests for bike_analyzer.backend.geo engine (OSM + DEM + 3D route builder)."""
 from __future__ import annotations
 
-
 import pytest
 
-from bike_analyzer.backend.geo.engine import _haversine_distance_m, _build_segments, _bbox
+from bike_analyzer.backend.geo import run_geo_pipeline
+from bike_analyzer.backend.geo.engine import _bbox, _build_segments, _haversine_distance_m
 from bike_analyzer.backend.geo.terrain import sample_elevation_profile
 from bike_analyzer.backend.geo.types import GeoEnrichedPoint
-from bike_analyzer.backend.geo import run_geo_pipeline
 from bike_analyzer.backend.models.models import GPSPoint
-
 
 # ===========================================================================
 # Helpers

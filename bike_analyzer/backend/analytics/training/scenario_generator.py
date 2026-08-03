@@ -6,7 +6,16 @@ from datetime import datetime
 from typing import Any
 
 from .adaptation_engine import AdaptationEngine
-from .models import AdaptationEvent, AdaptationEventType, PlanConstraints, Scenario, ScenarioType, TrainingGoal, WeeklyPlan, WorkoutType
+from .models import (
+    AdaptationEvent,
+    AdaptationEventType,
+    PlanConstraints,
+    Scenario,
+    ScenarioType,
+    TrainingGoal,
+    WeeklyPlan,
+    WorkoutType,
+)
 from .plan_distributor import PlanDistributor
 from .workout_generator import WorkoutGenerator
 

@@ -8,13 +8,13 @@ Agent rule: suggest, never forbid (constraint #4). Thresholds configurable (#3).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
-from .config import AthleteLevel, DEFAULT_CONFIG, LoadManagerConfig
+from .config import DEFAULT_CONFIG, AthleteLevel, LoadManagerConfig
 from .models import ChronicLoad, LoadBalance
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     OK = "ok"
     INFO = "info"
     WARNING = "warning"
