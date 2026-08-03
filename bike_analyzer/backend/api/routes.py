@@ -4877,6 +4877,7 @@ async def coach_chat_bm2(
     if ride_id_match:
         rid = int(ride_id_match.group(1) or ride_id_match.group(2))
         from ..db.database import get_ride as _get_ride
+        from .bm2_routes import _to_gps
         ride_dict = _get_ride(rid)
         if ride_dict:
             try:
@@ -6657,7 +6658,7 @@ async def create_beck_assessment(
     """Salva un nuovo assessment Beck per l'atleta autenticato."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete_id = _current_athlete_id(current_user)
-    from ..db.database import get_athlete as _get_athlete, save_beck_assessment as _save_beck
+    from ..db.database import get_athlete as _get_athlete, get_beck_assessment as _get_beck_assessment, save_beck_assessment as _save_beck
 
     athlete = _get_athlete(athlete_id, tenant_id)
     if not athlete:
@@ -6671,7 +6672,7 @@ async def create_beck_assessment(
         },
         tenant_id=tenant_id,
     )
-    row = get_beck_assessment(assessment_id)
+    row = _get_beck_assessment(assessment_id)
     return BeckAssessmentResponse(**row).model_dump()
 
 
