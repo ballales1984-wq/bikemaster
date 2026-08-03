@@ -7,7 +7,6 @@ training plans, maps, notifications, and admin operations.
 
 from __future__ import annotations
 
-import base64
 import asyncio
 import contextlib
 import hmac
@@ -49,12 +48,11 @@ from ..analytics.calories import calories_per_km, estimate_calories
 from ..analytics.fatigue import (
     calculate_fatigue_score,
     estimate_recovery_hours,
-    get_recovery_recommendation,
 )
-from ..analytics.terrain_enrichment import TerrainEnricher
 from ..analytics.granfondo_planner import generate_granfondo_plan
+from ..analytics.terrain_enrichment import TerrainEnricher
 from ..audit_log import log_action, read_audit_logs
-from ..db.database import get_user_by_id, save_user, update_user, delete_user
+from ..db.database import get_user_by_id, save_user
 from ..maps.map_renderer import create_route_map
 from ..maps.osm_maps import get_local_results, search_nearby, search_places
 from ..models.models import AthleteProfile, GPSPoint, Ride
@@ -68,36 +66,39 @@ from ..security import ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, get_admin_user, get_
 from ..settings import get_settings
 from ..utils.logger import get_logger
 from .schemas import (
+    ActivityClassification,
+    ActivitySummaryResponse,
     AthleteCreate,
     AthleteUpdate,
     BeckAssessmentCreate,
     BeckAssessmentResponse,
     BeckHistoryResponse,
     BenchmarkCompareRequest,
+    BleDeviceOut,
+    BleDeviceRegister,
+    BleDeviceSync,
+    BleDeviceUpdate,
     CalendarEventCreate,
     CalendarEventUpdate,
     CoachChatRequest,
     FoodLogCreate,
-    FoodLogResponse,
     FoodLogUpdate,
     GarminCallbackRequest,
-    BleDeviceRegister,
-    BleDeviceUpdate,
-    BleDeviceOut,
-    BleDeviceSync,
-    HealthConnectPayload,
     GoogleFitImportPayload,
     GoogleFitTokenRequest,
     GoogleHealthImportPayload,
     GranfondoPlanRequest,
     GranfondoSaveRequest,
+    HealthConnectPayload,
+    Hr24hSummary,
+    HrMonitoringSettings,
+    HrSamplesBulk,
+    ItineraryCreate,
     MetabolicCalibrationRequest,
     MetabolicCalibrationResponse,
-    MetabolicDailySummaryResponse,
     MetabolicProfileCreate,
     MetabolicProfileResponse,
     MetabolicReferenceImportRequest,
-    MetabolicReferenceValueCreate,
     MetabolicWeightsResponse,
     MetricCreate,
     NotificationContextIn,
@@ -105,34 +106,22 @@ from .schemas import (
     NotificationOut,
     NotificationPreferences,
     NotificationScoreOut,
-    NutritionFoodItem,
     NutritionFoodItemCreate,
     NutritionFoodItemUpdate,
     POICreate,
     POIResponse,
-    ItineraryCreate,
-    ItineraryResponse,
-    StageCreate,
-    StageResponse,
     ProfileUpdate,
     RefreshTokenRequest,
     RideAnalysisRequest,
     RideCreate,
     RideUpdate,
+    SensorSamplesBulk,
+    StageCreate,
     StravaCallbackRequest,
     UserCreate,
     UserOAuthCredentials,
-    UserOAuthCredentialsOut,
     UserUpdate,
-     WahooCallbackRequest,
-     HrSampleCreate,
-     HrSamplesBulk,
-      HrMonitoringSettings,
-      Hr24hSummary,
-      SensorSample,
-      SensorSamplesBulk,
-      ActivityClassification,
-      ActivitySummaryResponse,
+    WahooCallbackRequest,
 )
 from .utils import _trusted_forwarded_value
 
@@ -386,7 +375,7 @@ def _ensure_int_user_id(current_user: dict) -> int:
     try:
         return int(current_user["id"])
     except (KeyError, TypeError, ValueError) as exc:
-        raise HTTPException(status_code=401, detail="Invalid user token")
+        raise HTTPException(status_code=401, detail="Invalid user token") from exc
 
 
 def _current_athlete_id(current_user: dict) -> int:
@@ -857,7 +846,7 @@ async def get_stage_endpoint(
     current_user: dict = Depends(get_current_user),
 ):
     """Retrieve a single stage by id."""
-    from ..db.database import get_itinerary, get_stage, list_stages
+    from ..db.database import get_itinerary, get_stage
 
     itinerary = get_itinerary(itinerary_id)
     if not itinerary:
@@ -1272,7 +1261,11 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """
     from ..db.database import (
         get_athlete as _get_athlete,
+    )
+    from ..db.database import (
         save_athlete as _save_athlete,
+    )
+    from ..db.database import (
         update_athlete as _update_athlete,
     )
 
@@ -1455,7 +1448,7 @@ async def google_oauth_callback_get(
     state: str = Query(""),
 ):
     """Handle Google OAuth2 callback - exchange code for token and create/login user."""
-    from fastapi.responses import RedirectResponse, JSONResponse
+    from fastapi.responses import RedirectResponse
 
     from ..auth.google_auth import create_google_session, exchange_google_code, get_google_user_info
     from ..db.database import get_athlete, get_athlete_by_email, save_athlete
@@ -2026,17 +2019,12 @@ async def get_aethermap_world():
     Returns terrain mesh, entities, relations, and camera settings
     in the format expected by ``webgl_stub.html``.
     """
-    import math
-    import tempfile
-    from pathlib import Path
 
-    import numpy as np
 
     from aethermap.render.webgl_exporter import (
         _build_full_heightfield,
         _entity_to_gl,
         _terrain_mesh_from_hf,
-        export_world,
     )
     from aethermap.twin.objects import make_albero, make_montagna, make_strada
     from aethermap.twin.world import DigitalTwin, Environment
@@ -2090,9 +2078,7 @@ async def get_aethermap_terrain_tile(
 
     Used by the WebGL renderer for LOD terrain streaming.
     """
-    import numpy as np
 
-    from aethermap.core.coordinates import geodetic_to_direction
     from aethermap.render.webgl_exporter import _build_heightfield, _face_direction
 
     n = resolution
@@ -2890,7 +2876,8 @@ async def get_my_metric_log(
     on every manual update, so the frontend can plot weight / fat% / FTP /
     mood / sleep trends over time.
     """
-    from ..db.database import get_athlete as _get_athlete, get_athlete_metric_log
+    from ..db.database import get_athlete as _get_athlete
+    from ..db.database import get_athlete_metric_log
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete = _get_athlete(current_user["id"], tenant_id)
@@ -2910,7 +2897,8 @@ async def get_my_athlete_history(
     Each entry is a full snapshot of the profile state at the moment it was
     overwritten, ordered from newest to oldest.
     """
-    from ..db.database import get_athlete as _get_athlete, get_athlete_history
+    from ..db.database import get_athlete as _get_athlete
+    from ..db.database import get_athlete_history
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete = _get_athlete(current_user["id"], tenant_id)
@@ -2933,7 +2921,11 @@ async def upsert_my_athlete_profile(
     """
     from ..db.database import (
         get_athlete as _get_athlete,
+    )
+    from ..db.database import (
         save_athlete as _save_athlete,
+    )
+    from ..db.database import (
         update_athlete as _update_athlete,
     )
 
@@ -3158,7 +3150,8 @@ async def client_assign_athlete(athlete_id: int, current_user: dict = Depends(ge
     """Assign an athlete to the current client. Client only."""
     if not current_user.get("is_client"):
         raise HTTPException(status_code=403, detail="Accesso client richiesto")
-    from ..db.database import get_athlete as _get_athlete, update_athlete as _update_athlete
+    from ..db.database import get_athlete as _get_athlete
+    from ..db.database import update_athlete as _update_athlete
 
     athlete = _get_athlete(athlete_id)
     if not athlete:
@@ -3174,7 +3167,8 @@ async def get_my_metabolic_profile(current_user: dict = Depends(get_current_user
     """Return the authenticated athlete's metabolic profile."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete_id = _current_athlete_id(current_user)
-    from ..db.database import get_athlete as _get_athlete, get_metabolic_profile as _get_profile
+    from ..db.database import get_athlete as _get_athlete
+    from ..db.database import get_metabolic_profile as _get_profile
 
     athlete = _get_athlete(athlete_id, tenant_id)
     if not athlete:
@@ -3193,7 +3187,9 @@ async def upsert_my_metabolic_profile(
     """Create or update the authenticated athlete's metabolic profile."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete_id = _current_athlete_id(current_user)
-    from ..db.database import get_athlete as _get_athlete, get_metabolic_profile as _get_profile, save_metabolic_profile as _save_profile
+    from ..db.database import get_athlete as _get_athlete
+    from ..db.database import get_metabolic_profile as _get_profile
+    from ..db.database import save_metabolic_profile as _save_profile
 
     athlete = _get_athlete(athlete_id, tenant_id)
     if not athlete:
@@ -3226,7 +3222,9 @@ async def create_food_log(
     """Create a new food log entry."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete_id = _current_athlete_id(current_user)
-    from ..db.database import get_athlete as _get_athlete, get_food_log as _get_log, save_food_log as _save_log
+    from ..db.database import get_athlete as _get_athlete
+    from ..db.database import get_food_log as _get_log
+    from ..db.database import save_food_log as _save_log
 
     athlete = _get_athlete(athlete_id, tenant_id)
     if not athlete:
@@ -3246,9 +3244,9 @@ async def update_food_log_entry(
     current_user: dict = Depends(get_current_user),
 ):
     """Update an existing food log entry."""
-    tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete_id = _current_athlete_id(current_user)
-    from ..db.database import get_food_log as _get_log, update_food_log as _update_log
+    from ..db.database import get_food_log as _get_log
+    from ..db.database import update_food_log as _update_log
 
     row = _get_log(log_id)
     if not row or row.get("athlete_id") != athlete_id:
@@ -3265,9 +3263,9 @@ async def delete_food_log_entry(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete a food log entry."""
-    tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete_id = _current_athlete_id(current_user)
-    from ..db.database import delete_food_log as _delete_log, get_food_log as _get_log
+    from ..db.database import delete_food_log as _delete_log
+    from ..db.database import get_food_log as _get_log
 
     row = _get_log(log_id)
     if not row or row.get("athlete_id") != athlete_id:
@@ -3354,7 +3352,8 @@ async def get_my_metabolic_reference(
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete_id = _current_athlete_id(current_user)
     from ..analytics.metabolism import resolve_reference_value as _resolve
-    from ..db.database import get_athlete as _get_athlete, get_metabolic_profile as _get_profile
+    from ..db.database import get_athlete as _get_athlete
+    from ..db.database import get_metabolic_profile as _get_profile
 
     athlete = _get_athlete(athlete_id, tenant_id)
     if not athlete:
@@ -3424,7 +3423,6 @@ async def search_nutrition_food(
     current_user: dict = Depends(get_current_user),
 ):
     """Search food items in the nutrition database."""
-    tenant_id = current_user.get("tenant_id", current_user["id"])
     from ..db.database import search_nutrition_food_items as _search
 
     return _search(q.strip(), category=category, limit=limit)
@@ -3461,8 +3459,8 @@ async def create_nutrition_food_item(
 ):
     """Add a new food item to the user's personal database."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    from ..db.database import save_nutrition_food_item as _save_item
     from ..db.database import get_nutrition_food_item as _get_item
+    from ..db.database import save_nutrition_food_item as _save_item
 
     item_id = _save_item(item_data.model_dump(), tenant_id)
     item = _get_item(item_id)
@@ -3476,7 +3474,8 @@ async def update_nutrition_food_item(
     current_user: dict = Depends(get_current_user),
 ):
     """Update a user-added food item (built-in items cannot be modified)."""
-    from ..db.database import get_nutrition_food_item as _get_item, update_nutrition_food_item as _update_item
+    from ..db.database import get_nutrition_food_item as _get_item
+    from ..db.database import update_nutrition_food_item as _update_item
 
     existing = _get_item(item_id)
     if not existing:
@@ -3496,7 +3495,8 @@ async def delete_nutrition_food_item(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete a user-added food item (built-in items cannot be deleted)."""
-    from ..db.database import get_nutrition_food_item as _get_item, delete_nutrition_food_item as _del_item
+    from ..db.database import delete_nutrition_food_item as _del_item
+    from ..db.database import get_nutrition_food_item as _get_item
 
     existing = _get_item(item_id)
     if not existing:
@@ -4239,8 +4239,6 @@ async def list_notifications(
     plan and (optional) live ride context supplied via query params.
     """
     from ..analytics.proactive import (
-        Channel,
-        ContextEvaluator,
         NotificationCategory,
         NotificationContext,
         NotificationPreferences,
@@ -4366,12 +4364,11 @@ async def evaluate_notification(
     current_user: dict = Depends(get_current_user),
 ):
     """Valuta una notifica candidata e restituisce il punteggio di rilevanza."""
-    from ..analytics.proactive import NotificationCategory
     """Evaluate a single candidate notification and return its score."""
     from ..analytics.proactive import (
+        ContextEvaluator,
         NotificationContext,
         NotificationPreferences,
-        ContextEvaluator,
     )
 
     now = None
@@ -4495,8 +4492,9 @@ async def ride_speed_path(
 @admin_router.get("/backup")
 async def create_backup(current_user: dict = Depends(get_admin_user)):
     """Create and download a database backup. Admin only."""
-    from fastapi.responses import FileResponse
     import hashlib
+
+    from fastapi.responses import FileResponse
 
     from ..db.database import backup_database
 
@@ -4835,11 +4833,9 @@ async def coach_chat_bm2(
     Combines the AI coach's training advice with BM2 simulation
     and power validation results for a comprehensive analysis.
     """
-    from bike_analyzer.bm2.adapters import ride_to_analysis_context
-    from bike_analyzer.bm2.algorithms import ALL_ALGORITHMS
     from bike_analyzer.bm2.orchestrator import AIOrchestrator
-    from bike_analyzer.bm2.simulation import SimulationEngine
     from bike_analyzer.core.physics import RiderBikeParams, validate_ride_power
+
     from ..analytics.ai_coach import generate_training_advice
     from ..db.database import get_athlete, get_chat_history, get_rides_by_athlete, save_chat_message
     from ..models.models import AthleteProfile, Ride
@@ -4863,10 +4859,8 @@ async def coach_chat_bm2(
     # Save chat only if athlete exists (FK constraint)
     def _save_chat(role, content):
         if athlete_data:
-            try:
+            with contextlib.suppress(Exception):
                 save_chat_message(athlete_id, role, content[:500], tenant_id)
-            except Exception:
-                pass
 
     _save_chat("user", message)
     response_text = coach_response
@@ -5241,11 +5235,10 @@ async def generate_workouts(
     current_user: dict = Depends(get_current_user),
 ):
     """Generate planned workouts for a granfondo goal."""
-    from datetime import datetime, timedelta
 
     from ..analytics.training_load import get_current_training_status
     from ..db.database import get_rides_by_athlete
-    from ..db.postgres_db import PlannedWorkoutModel, TrainingGoalModel, get_session
+    from ..db.postgres_db import TrainingGoalModel, get_session
     from ..models.models import Ride
 
     with get_session() as session:
@@ -5260,7 +5253,6 @@ async def generate_workouts(
     get_current_training_status(rides) if rides else {"ctl": 0}
 
     from ..analytics.athlete_state.service import AthleteStateService
-    from ..analytics.athlete_state.models import AthleteState as AthleteStateModel
 
     athlete_state_service = AthleteStateService()
     athlete_state = await athlete_state_service.calculate_current_state(
@@ -5268,9 +5260,10 @@ async def generate_workouts(
         rides=rides,
     )
 
-    from ..analytics.training.workout_generator import WorkoutGenerator
-    from ..analytics.training.models import TrainingGoal, PlanConstraints
     from datetime import datetime as dt
+
+    from ..analytics.training.models import PlanConstraints, TrainingGoal
+    from ..analytics.training.workout_generator import WorkoutGenerator
 
     goal_type_map = {
         "granfondo": "granfondo",
@@ -6103,7 +6096,7 @@ async def sync_ble_device(
     payload: BleDeviceSync | None = Body(default=None),
 ):
     """Trigger a sync/read from a BLE device. Frontend provides the data."""
-    from ..db.database import get_ble_device, mark_ble_device_synced, log_athlete_metric
+    from ..db.database import get_ble_device, log_athlete_metric, mark_ble_device_synced
 
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
@@ -6658,7 +6651,9 @@ async def create_beck_assessment(
     """Salva un nuovo assessment Beck per l'atleta autenticato."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete_id = _current_athlete_id(current_user)
-    from ..db.database import get_athlete as _get_athlete, get_beck_assessment as _get_beck_assessment, save_beck_assessment as _save_beck
+    from ..db.database import get_athlete as _get_athlete
+    from ..db.database import get_beck_assessment as _get_beck_assessment
+    from ..db.database import save_beck_assessment as _save_beck
 
     athlete = _get_athlete(athlete_id, tenant_id)
     if not athlete:
@@ -6705,7 +6700,8 @@ async def get_beck_history(current_user: dict = Depends(get_current_user)):
     """Restituisce storico assessment Beck con trend."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete_id = _current_athlete_id(current_user)
-    from ..db.database import get_beck_assessments_by_athlete as _list_beck, get_latest_beck_assessment as _latest_beck
+    from ..db.database import get_beck_assessments_by_athlete as _list_beck
+    from ..db.database import get_latest_beck_assessment as _latest_beck
 
     items = _list_beck(athlete_id, tenant_id)
     latest = _latest_beck(athlete_id, tenant_id)
