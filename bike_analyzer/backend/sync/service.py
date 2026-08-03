@@ -136,7 +136,10 @@ class SyncService:
         result.finished_at = datetime.now(UTC).isoformat()
         logger.info(
             "Sync complete: pushed=%d pulled=%d conflicts=%d errors=%d",
-            result.pushed, result.pulled, result.conflicts, len(result.errors),
+            result.pushed,
+            result.pulled,
+            result.conflicts,
+            len(result.errors),
         )
         return result
 
@@ -274,7 +277,12 @@ class SyncService:
             resolution = resolver(conflict)
             if resolution.needs_user_review:
                 continue
-            if resolution.resolution == ConflictResolution.LOCAL_WINS and resolution.merged_data or resolution.resolution == ConflictResolution.REMOTE_WINS and resolution.merged_data:
+            if (
+                resolution.resolution == ConflictResolution.LOCAL_WINS
+                and resolution.merged_data
+                or resolution.resolution == ConflictResolution.REMOTE_WINS
+                and resolution.merged_data
+            ):
                 _write_local_entity(conflict.entity_type, conflict.entity_id, resolution.merged_data)
                 mark_synced(conflict.entity_type, conflict.entity_id)
             resolve_conflict_db(
@@ -294,7 +302,13 @@ class SyncService:
             now = datetime.now(UTC)
             config = get_sync_config()
             should_sync = False
-            if config.mode == SyncMode.DAILY and now.hour == config.daily_hour or config.mode == SyncMode.WEEKLY and now.weekday() == config.weekly_day and now.hour == config.daily_hour:
+            if (
+                config.mode == SyncMode.DAILY
+                and now.hour == config.daily_hour
+                or config.mode == SyncMode.WEEKLY
+                and now.weekday() == config.weekly_day
+                and now.hour == config.daily_hour
+            ):
                 should_sync = True
             if should_sync:
                 try:
@@ -516,9 +530,7 @@ def _write_local_entity(entity_type: str, entity_id: int, data: dict[str, Any]) 
         logger.debug("Failed to write local entity %s/%d: %s", entity_type, entity_id, exc)
 
 
-def _update_entity_state_after_merge(
-    entity_type: str, entity_id: int, reliability: float, last_modified: str
-) -> None:
+def _update_entity_state_after_merge(entity_type: str, entity_id: int, reliability: float, last_modified: str) -> None:
     state = get_entity_state(entity_type, entity_id)
     if state is None:
         state = SyncEntityState(
@@ -540,7 +552,8 @@ def _find_conflict_db_id(conflict: ConflictRecord) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT id FROM sync_conflicts WHERE entity_type = ? AND entity_id = ? AND resolution = 'unresolved' LIMIT 1",
+            "SELECT id FROM sync_conflicts WHERE entity_type = ? AND "
+            "entity_id = ? AND resolution = 'unresolved' LIMIT 1",
             (conflict.entity_type, conflict.entity_id),
         )
         row = cur.fetchone()

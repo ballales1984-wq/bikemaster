@@ -51,7 +51,7 @@ def calculate_fatigue_score_with_error(ride: Ride, rider_age: int = 35) -> Error
 
     base_stat_error = 0.3
     if coverage < 1.0:
-        base_stat_error *= (2.0 - coverage)
+        base_stat_error *= 2.0 - coverage
     base_stat_error = min(base_stat_error, 1.0)
 
     return ErrorValue(
@@ -86,4 +86,9 @@ def get_recovery_recommendation(fatigue_score: float) -> str:
     return "Extreme fatigue - multiple rest days recommended"
 
 
-__all__ = ["calculate_fatigue_score", "calculate_fatigue_score_with_error", "estimate_recovery_hours", "get_recovery_recommendation"]
+__all__ = [
+    "calculate_fatigue_score",
+    "calculate_fatigue_score_with_error",
+    "estimate_recovery_hours",
+    "get_recovery_recommendation",
+]

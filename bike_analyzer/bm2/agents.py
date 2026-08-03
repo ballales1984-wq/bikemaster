@@ -63,13 +63,17 @@ class GPSAgent:
                 ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
             elif isinstance(ts, (int, float)):
                 ts = datetime.fromtimestamp(ts, tz=UTC)
-            alt = self.t.normalize(Quantity(p.get("altitude", 0.0), "m",
-                                             source=p.get("alt_source", "gps/dem")))
-            points.append(GeoPoint(
-                lat=float(p["lat"]), lon=float(p["lon"]),
-                altitude=alt.value, timestamp=ts,
-                x=0.0, y=0.0,
-            ))
+            alt = self.t.normalize(Quantity(p.get("altitude", 0.0), "m", source=p.get("alt_source", "gps/dem")))
+            points.append(
+                GeoPoint(
+                    lat=float(p["lat"]),
+                    lon=float(p["lon"]),
+                    altitude=alt.value,
+                    timestamp=ts,
+                    x=0.0,
+                    y=0.0,
+                )
+            )
         return Activity(points=points, title=title)
 
     @classmethod
@@ -93,12 +97,14 @@ class GPSAgent:
         for trkpt in root.findall(".//gpx:trkpt", ns):
             ele = trkpt.find("gpx:ele", ns)
             time = trkpt.find("gpx:time", ns)
-            raw_points.append({
-                "lat": trkpt.get("lat", "0.0"),
-                "lon": trkpt.get("lon", "0.0"),
-                "altitude": float(ele.text) if ele is not None and ele.text else 0.0,
-                "timestamp": time.text if time is not None and time.text else None,
-            })
+            raw_points.append(
+                {
+                    "lat": trkpt.get("lat", "0.0"),
+                    "lon": trkpt.get("lon", "0.0"),
+                    "altitude": float(ele.text) if ele is not None and ele.text else 0.0,
+                    "timestamp": time.text if time is not None and time.text else None,
+                }
+            )
         return cls(transformer).collect(raw_points, title=title)
 
     @classmethod
@@ -125,19 +131,22 @@ class GPSAgent:
             if len(coords) < 2:
                 continue
             props = feat.get("properties", {})
-            raw_points.append({
-                "lat": coords[1],
-                "lon": coords[0],
-                "altitude": coords[2] if len(coords) > 2 else 0.0,
-                "timestamp": props.get("timestamp") or props.get("time"),
-            })
+            raw_points.append(
+                {
+                    "lat": coords[1],
+                    "lon": coords[0],
+                    "altitude": coords[2] if len(coords) > 2 else 0.0,
+                    "timestamp": props.get("timestamp") or props.get("time"),
+                }
+            )
         return cls(transformer).collect(raw_points, title=title)
 
 
 class AthleteAgent:
     """Manages the human body, its capabilities and the athlete's history.
 
-    Transforms raw athlete data into Core Model ``Athlete`` objects\n    via ``Athlete.from_raw`` and the TransformerEngine.
+    Transforms raw athlete data into Core Model ``Athlete`` objects
+    via ``Athlete.from_raw`` and the TransformerEngine.
     """
 
     def __init__(self, transformer: TransformerEngine) -> None:
@@ -225,8 +234,12 @@ class SensorAgent:
                     break
                 pt = activity.points[i]
                 activity.points[i] = GeoPoint(
-                    lat=pt.lat, lon=pt.lon, altitude=pt.altitude,
-                    timestamp=pt.timestamp, x=pt.x, y=pt.y,
+                    lat=pt.lat,
+                    lon=pt.lon,
+                    altitude=pt.altitude,
+                    timestamp=pt.timestamp,
+                    x=pt.x,
+                    y=pt.y,
                     speed=sample.get("speed", pt.speed),
                     power=sample.get("power", pt.power),
                     heart_rate=sample.get("heart_rate", pt.heart_rate),
@@ -264,8 +277,12 @@ class SensorAgent:
             _, best_idx = min(candidates, key=lambda x: x[0])
             pt = activity.points[best_idx]
             activity.points[best_idx] = GeoPoint(
-                lat=pt.lat, lon=pt.lon, altitude=pt.altitude,
-                timestamp=pt.timestamp, x=pt.x, y=pt.y,
+                lat=pt.lat,
+                lon=pt.lon,
+                altitude=pt.altitude,
+                timestamp=pt.timestamp,
+                x=pt.x,
+                y=pt.y,
                 speed=sample.get("speed", pt.speed),
                 power=sample.get("power", pt.power),
                 heart_rate=sample.get("heart_rate", pt.heart_rate),
@@ -302,7 +319,10 @@ class SensorAgent:
 class StravaAgent:
     """Adapter for Strava activities to the Core Model.
 
-    Converts the Strava API JSON payload into Core Model ``Activity`` and ``Athlete``\n    objects, mapping Strava-specific fields (``moving_time``,\n    ``total_elevation_gain``, ``average_speed``, etc.) to the raw format\n    expected by ``from_raw``.
+    Converts the Strava API JSON payload into Core Model ``Activity`` and ``Athlete``
+    objects, mapping Strava-specific fields (``moving_time``,
+    ``total_elevation_gain``, ``average_speed``, etc.) to the raw format
+    expected by ``from_raw``.
     """
 
     def __init__(self, transformer: TransformerEngine) -> None:
@@ -317,7 +337,8 @@ class StravaAgent:
         """Converts a Strava activity payload into ``Activity``.
 
         Args:
-            raw: Dict with Strava keys (``gps_points``, ``moving_time``,\n                ``total_elevation_gain``, ``average_speed``, ``name``, etc.).
+            raw: Dict with Strava keys (``gps_points``, ``moving_time``,
+                ``total_elevation_gain``, ``average_speed``, ``name``, etc.).
 
         Returns:
             Activity normalized with mapped Strava data.
@@ -330,12 +351,15 @@ class StravaAgent:
             "elevation_gain_m": raw.get("total_elevation_gain", 0) or 0,
             "heart_rate_avg": raw.get("average_heartrate"),
         }
-        return Activity.from_raw({
-            "gps_points": gps_points,
-            "title": raw.get("name", ""),
-            "sport": "cycling",
-            "summary": summary,
-        }, self.t)
+        return Activity.from_raw(
+            {
+                "gps_points": gps_points,
+                "title": raw.get("name", ""),
+                "sport": "cycling",
+                "summary": summary,
+            },
+            self.t,
+        )
 
     def athlete_from_raw(self, raw: dict[str, Any]) -> Athlete:
         """Converts Strava athlete profile data into ``Athlete``.
@@ -352,7 +376,10 @@ class StravaAgent:
 class GarminAgent:
     """Adapter for Garmin activities to the Core Model.
 
-    Converts the Garmin API JSON payload into Core Model ``Activity`` and ``Athlete``\n    objects, mapping Garmin-specific fields (``averageSpeed``,\n    ``elevationGain``, ``duration``, etc.) to the raw format expected by\n    ``from_raw``.
+    Converts the Garmin API JSON payload into Core Model ``Activity`` and ``Athlete``
+    objects, mapping Garmin-specific fields (``averageSpeed``,
+    ``elevationGain``, ``duration``, etc.) to the raw format expected by
+    ``from_raw``.
     """
 
     def __init__(self, transformer: TransformerEngine) -> None:
@@ -367,7 +394,8 @@ class GarminAgent:
         """Converts a Garmin activity payload into ``Activity``.
 
         Args:
-            raw: Dict with Garmin keys (``gps_points``, ``duration``,\n                ``elevationGain``, ``averageSpeed``, ``activityName``, etc.).
+            raw: Dict with Garmin keys (``gps_points``, ``duration``,
+                ``elevationGain``, ``averageSpeed``, ``activityName``, etc.).
 
         Returns:
             Activity normalized with mapped Garmin data.
@@ -381,13 +409,15 @@ class GarminAgent:
             "elevation_gain_m": raw.get("elevationGain", 0) or 0,
             "heart_rate_avg": raw.get("averageHR") or raw.get("averageHeartRate"),
         }
-        return Activity.from_raw({
-            "gps_points": gps_points,
-            "title": raw.get("activityName", ""),
-            "sport": "cycling",
-            "summary": summary,
-        }, self.t)
+        return Activity.from_raw(
+            {
+                "gps_points": gps_points,
+                "title": raw.get("activityName", ""),
+                "sport": "cycling",
+                "summary": summary,
+            },
+            self.t,
+        )
 
     def athlete_from_raw(self, raw: dict[str, Any]) -> Athlete:
         return Athlete.from_raw(raw, self.t)
-

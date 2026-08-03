@@ -67,7 +67,9 @@ def ride_to_bm2_raw(
 ) -> dict:
     """Mappa una ``Ride`` prodotto (+ ``AthleteProfile``) nel dict ``raw`` di bm2.
 
-    The raw dict has the structure expected by the ``from_raw`` of Athlete, Bike,\n    WorldObject and Activity in bm2. The average slope of ``WorldObject`` is\n    derived from ``elevation_gain_m / distance_km`` when both are available.
+    The raw dict has the structure expected by the ``from_raw`` of Athlete, Bike,
+    WorldObject and Activity in bm2. The average slope of ``WorldObject`` is
+    derived from ``elevation_gain_m / distance_km`` when both are available.
 
     Args:
         ride: Core Model activity with GPS points.
@@ -144,7 +146,8 @@ def ride_to_analysis_context(
         ride: Core Model activity.
         athlete: Optional athlete profile.
         transformer: Optional TransformerEngine (if None, creates a new one).
-        **kwargs: Additional parameters passed to ``ride_to_bm2_raw``\n            (e.g. ``bike_weight_kg``, ``cda``, ``surface``).
+        **kwargs: Additional parameters passed to ``ride_to_bm2_raw``
+            (e.g. ``bike_weight_kg``, ``cda``, ``surface``).
 
     Returns:
         AnalysisContext ready for bm2 algorithm execution.
@@ -158,4 +161,3 @@ def ride_to_analysis_context(
         world=WorldObject.from_raw(raw["world"], t),
         transformer=t,
     )
-

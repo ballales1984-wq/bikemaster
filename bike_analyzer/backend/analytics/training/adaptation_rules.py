@@ -40,10 +40,12 @@ class AdaptationRules:
         new_days = []
         for d in plan.days:
             if d.date >= event.occurred_date and d.workout_type.value != "recovery":
-                d = d.model_copy(update={
-                    "duration_minutes": min(300, d.duration_minutes + int(extra_per_ride / 60.0 * 10)),
-                    "estimated_tss": round(d.estimated_tss + extra_per_ride, 1),
-                })
+                d = d.model_copy(
+                    update={
+                        "duration_minutes": min(300, d.duration_minutes + int(extra_per_ride / 60.0 * 10)),
+                        "estimated_tss": round(d.estimated_tss + extra_per_ride, 1),
+                    }
+                )
             new_days.append(d)
         return plan.model_copy(update={"days": new_days, "total_tss": round(sum(d.estimated_tss for d in new_days), 1)})
 
@@ -54,11 +56,13 @@ class AdaptationRules:
         new_days = []
         for d in plan.days:
             if d.date == event.occurred_date:
-                d = d.model_copy(update={
-                    "duration_minutes": actual.get("duration_minutes", d.duration_minutes),
-                    "estimated_tss": actual_tss,
-                    "notes": (d.notes or "") + " [modificato]",
-                })
+                d = d.model_copy(
+                    update={
+                        "duration_minutes": actual.get("duration_minutes", d.duration_minutes),
+                        "estimated_tss": actual_tss,
+                        "notes": (d.notes or "") + " [modificato]",
+                    }
+                )
             new_days.append(d)
         return plan.model_copy(update={"days": new_days, "total_tss": round(sum(d.estimated_tss for d in new_days), 1)})
 
@@ -71,9 +75,20 @@ class AdaptationRules:
         for d in plan.days:
             if d.date > event.occurred_date:
                 if d.workout_type.value == "recovery":
-                    d = d.model_copy(update={"duration_minutes": max(20, int(d.duration_minutes * 0.8)), "estimated_tss": round(d.estimated_tss * 0.8, 1), "notes": (d.notes or "") + " [scarico post-sforzo]"})
+                    d = d.model_copy(
+                        update={
+                            "duration_minutes": max(20, int(d.duration_minutes * 0.8)),
+                            "estimated_tss": round(d.estimated_tss * 0.8, 1),
+                            "notes": (d.notes or "") + " [scarico post-sforzo]",
+                        }
+                    )
                 else:
-                    d = d.model_copy(update={"duration_minutes": max(20, d.duration_minutes - int(extra / 3)), "estimated_tss": round(max(0, d.estimated_tss - extra / 3), 1)})
+                    d = d.model_copy(
+                        update={
+                            "duration_minutes": max(20, d.duration_minutes - int(extra / 3)),
+                            "estimated_tss": round(max(0, d.estimated_tss - extra / 3), 1),
+                        }
+                    )
             new_days.append(d)
         return plan.model_copy(update={"days": new_days, "total_tss": round(sum(d.estimated_tss for d in new_days), 1)})
 
@@ -82,7 +97,13 @@ class AdaptationRules:
         new_days = []
         for d in plan.days:
             if d.date >= event.occurred_date and d.workout_type.value not in ("recovery",):
-                d = d.model_copy(update={"duration_minutes": max(20, int(d.duration_minutes * 0.7)), "estimated_tss": round(d.estimated_tss * 0.7, 1), "notes": (d.notes or "") + " [scarico forzato recupero]"})
+                d = d.model_copy(
+                    update={
+                        "duration_minutes": max(20, int(d.duration_minutes * 0.7)),
+                        "estimated_tss": round(d.estimated_tss * 0.7, 1),
+                        "notes": (d.notes or "") + " [scarico forzato recupero]",
+                    }
+                )
             new_days.append(d)
         return plan.model_copy(update={"days": new_days, "total_tss": round(sum(d.estimated_tss for d in new_days), 1)})
 
@@ -93,7 +114,12 @@ class AdaptationRules:
         new_days = []
         for d in plan.days:
             if d.date > event.occurred_date:
-                d = d.model_copy(update={"duration_minutes": min(300, d.duration_minutes + 5), "estimated_tss": round(d.estimated_tss + boost, 1)})
+                d = d.model_copy(
+                    update={
+                        "duration_minutes": min(300, d.duration_minutes + 5),
+                        "estimated_tss": round(d.estimated_tss + boost, 1),
+                    }
+                )
             new_days.append(d)
         return plan.model_copy(update={"days": new_days, "total_tss": round(sum(d.estimated_tss for d in new_days), 1)})
 

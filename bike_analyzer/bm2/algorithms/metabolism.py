@@ -25,9 +25,7 @@ class MetabolismModel(Algorithm):
     """
 
     name = "MetabolismModel"
-    formula = ("BMR = Mifflin/Cunningham; "
-               "TDEE = BMR*mult + NEAT + EAT + climb_bonus; "
-               "TEF = 0.10*intake")
+    formula = "BMR = Mifflin/Cunningham; TDEE = BMR*mult + NEAT + EAT + climb_bonus; TEF = 0.10*intake"
     description = "Stima BMR, TDEE, NEAT, EAT e bilancio energetico giornaliero."
     unit = "kcal/day"
     required_inputs = ["peso", "bmr_formula", "activity_level", "sex", "age"]
@@ -128,6 +126,7 @@ class MetabolismModel(Algorithm):
         tdee_blended = max(tdee_raw, bmr_blended)
 
         from datetime import UTC, datetime
+
         now = datetime.now(UTC).isoformat()
 
         return MetabolicProfile(
@@ -231,7 +230,10 @@ class MetabolismModel(Algorithm):
         """Raccomandazione testuale basata sul bilancio energetico."""
         if balance is None:
             if profile.tdee_kcal > 0:
-                return f"BMR {profile.bmr_kcal:.0f} kcal, TDEE {profile.tdee_kcal:.0f} kcal. Registra l'intake per il bilancio."
+                return (
+                    f"BMR {profile.bmr_kcal:.0f} kcal, TDEE {profile.tdee_kcal:.0f} "
+                    "kcal. Registra l'intake per il bilancio."
+                )
             return "Inserisci peso, eta' e sesso per il calcolo BMR."
         if balance > 500:
             return "Surplus energetico elevato: valuta se ridurre l'intake o aumentare l'attivita'."
@@ -243,10 +245,17 @@ class MetabolismModel(Algorithm):
             return "Deficit leggero: adatto per perdita di peso graduale."
         return "Deficit elevato: rischio di catabolismo, valuta aumento intake o riduzione attivita'."
 
-    def build_daily_summary(self, ctx: AnalysisContext, date: str,
-                            intake_kcal: float = 0.0, carbs_g: float = 0.0,
-                            protein_g: float = 0.0, fat_g: float = 0.0,
-                            fiber_g: float = 0.0, water_ml: float = 0.0) -> MetabolicDailySummary:
+    def build_daily_summary(
+        self,
+        ctx: AnalysisContext,
+        date: str,
+        intake_kcal: float = 0.0,
+        carbs_g: float = 0.0,
+        protein_g: float = 0.0,
+        fat_g: float = 0.0,
+        fiber_g: float = 0.0,
+        water_ml: float = 0.0,
+    ) -> MetabolicDailySummary:
         """Build a MetabolicDailySummary from the context and nutrition data."""
         profile = self._build_profile(ctx, None)
         tef = intake_kcal * 0.10

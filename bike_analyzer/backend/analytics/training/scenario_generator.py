@@ -61,8 +61,15 @@ class ScenarioGenerator:
         scenarios.sort(key=lambda s: s.score, reverse=True)
         return scenarios
 
-    def _scenario_recover_volume(self, goal: TrainingGoal, constraints: PlanConstraints, base: WeeklyPlan, event: Any) -> Scenario:
-        plan = self.distributor.distribute(goal=goal, constraints=constraints, start_date=datetime.strptime(base.start_date, "%Y-%m-%d"), generator=self.generator)
+    def _scenario_recover_volume(
+        self, goal: TrainingGoal, constraints: PlanConstraints, base: WeeklyPlan, event: Any
+    ) -> Scenario:
+        plan = self.distributor.distribute(
+            goal=goal,
+            constraints=constraints,
+            start_date=datetime.strptime(base.start_date, "%Y-%m-%d"),
+            generator=self.generator,
+        )
         return Scenario(
             scenario_type=ScenarioType.RECOVER_VOLUME,
             label="Scenario A: Recupera volume",
@@ -71,10 +78,16 @@ class ScenarioGenerator:
             rationale="Il carico mancato viene redistribuito gradualmente per evitare picchi.",
         )
 
-    def _scenario_maintain(self, goal: TrainingGoal, constraints: PlanConstraints, base: WeeklyPlan, event: Any) -> Scenario:
+    def _scenario_maintain(
+        self, goal: TrainingGoal, constraints: PlanConstraints, base: WeeklyPlan, event: Any
+    ) -> Scenario:
         plan = base.model_copy(deep=True)
         if event:
-            ev = AdaptationEvent(event_type=AdaptationEventType.SKIPPED, occurred_date=event.get("date", base.start_date), actual_data=event.get("actual_data", {}))
+            ev = AdaptationEvent(
+                event_type=AdaptationEventType.SKIPPED,
+                occurred_date=event.get("date", base.start_date),
+                actual_data=event.get("actual_data", {}),
+            )
             plan = self.engine.adapt(plan=plan, event=ev, constraints=constraints, goal=goal)
         return Scenario(
             scenario_type=ScenarioType.MAINTAIN_PLAN,
@@ -84,7 +97,9 @@ class ScenarioGenerator:
             rationale="Preserva la struttura originale con aggiustamenti minori.",
         )
 
-    def _scenario_change_type(self, goal: TrainingGoal, constraints: PlanConstraints, base: WeeklyPlan, event: Any) -> Scenario:
+    def _scenario_change_type(
+        self, goal: TrainingGoal, constraints: PlanConstraints, base: WeeklyPlan, event: Any
+    ) -> Scenario:
         new_constraints = PlanConstraints(
             days_per_week=constraints.days_per_week,
             hours_per_session=constraints.hours_per_session,
@@ -95,7 +110,12 @@ class ScenarioGenerator:
         )
         modified_goal = goal.model_copy(deep=True)
 
-        plan = self.distributor.distribute(goal=modified_goal, constraints=new_constraints, start_date=datetime.strptime(base.start_date, "%Y-%m-%d"), generator=self.generator)
+        plan = self.distributor.distribute(
+            goal=modified_goal,
+            constraints=new_constraints,
+            start_date=datetime.strptime(base.start_date, "%Y-%m-%d"),
+            generator=self.generator,
+        )
         for w in plan.days:
             if w.workout_type == WorkoutType.INTERVALS:
                 w.workout_type = WorkoutType.SWEETSPOT
@@ -121,4 +141,3 @@ class ScenarioGenerator:
 
 
 __all__ = ["ScenarioGenerator"]
-

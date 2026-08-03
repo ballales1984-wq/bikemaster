@@ -129,9 +129,7 @@ class AdaptationPlan:
 class EventDetector:
     """Detects adaptation-triggering events from athlete/plan signals."""
 
-    def detect_skipped(
-        self, ride_date: str, planned: WorkoutPlan
-    ) -> AdaptationEvent:
+    def detect_skipped(self, ride_date: str, planned: WorkoutPlan) -> AdaptationEvent:
         return AdaptationEvent(
             event_type=EventType.SKIPPED_RIDE,
             ride_date=ride_date,
@@ -173,7 +171,10 @@ class EventDetector:
             event_type=EventType.LOW_RECOVERY,
             planned_km=0.0,
             planned_minutes=0.0,
-            detail=f"Recupero insufficiente: fatigue={state.fatigue_score}, readiness={state.readiness}, tsb={state.tsb}.",
+            detail=(
+                f"Recupero insufficiente: fatigue={state.fatigue_score}, "
+                f"readiness={state.readiness}, tsb={state.tsb}."
+            ),
         )
 
     def detect_goal_change(self, detail: str) -> AdaptationEvent:
@@ -226,15 +227,11 @@ class LoadRedistributor:
         for w in targets:
             km, mins = shares[id(w)]
             extra_load += km
-            affected.append(
-                {"date": w.date, "add_km": km, "add_minutes": mins, "workout_type": w.workout_type}
-            )
+            affected.append({"date": w.date, "add_km": km, "add_minutes": mins, "workout_type": w.workout_type})
 
         proposed_acute = current_acute_load + extra_load
         safe = not is_sudden_load_spike(current_acute_load, proposed_acute)
-        resulting_acwr = evaluate_acwr(
-            proposed_acute, max(state.ctl, 1.0)
-        )
+        resulting_acwr = evaluate_acwr(proposed_acute, max(state.ctl, 1.0))
 
         return LoadRedistribution(
             missing_km=miss_km,
@@ -242,11 +239,7 @@ class LoadRedistributor:
             affected_workouts=affected,
             resulting_acwr=resulting_acwr,
             safe=safe,
-            note=(
-                "Ridistribuzione sicura."
-                if safe
-                else "Ridistribuzione rifiutata: incremento di carico > 50%."
-            ),
+            note=("Ridistribuzione sicura." if safe else "Ridistribuzione rifiutata: incremento di carico > 50%."),
         )
 
 
@@ -280,9 +273,7 @@ class RecoveryAdjuster:
             alerts.append("Readiness bassa: intensita ridotta nelle uscite future.")
             for i, w in enumerate(adjusted):
                 if i >= from_index and not w.locked and not w.is_recovery:
-                    lowered = WorkoutPlan(
-                        **{**asdict(w), "intensity_factor": max(0.4, w.intensity_factor - 0.1)}
-                    )
+                    lowered = WorkoutPlan(**{**asdict(w), "intensity_factor": max(0.4, w.intensity_factor - 0.1)})
                     adjusted[i] = lowered
 
         return adjusted, alerts
@@ -356,9 +347,7 @@ class AdaptationEngine:
     ) -> AdaptationPlan:
         event = self.detector.detect_skipped(planned[skipped_index].date, planned[skipped_index])
         original = self._clone(planned)
-        redistribution = self.redistributor.redistribute(
-            planned, skipped_index, state, current_acute_load
-        )
+        redistribution = self.redistributor.redistribute(planned, skipped_index, state, current_acute_load)
 
         alerts = self.alerts.collect(state, redistribution.resulting_acwr, AdaptationStrategy.RECOVER_VOLUME)
 
@@ -375,12 +364,12 @@ class AdaptationEngine:
             strategy = AdaptationStrategy.RECOVER_VOLUME
             adapted = self._clone(planned)
             for w in adapted:
-                if any(
-                    a["date"] == w.date for a in redistribution.affected_workouts
-                ) and not w.locked and not w.is_recovery:
-                    share = next(
-                        a for a in redistribution.affected_workouts if a["date"] == w.date
-                    )
+                if (
+                    any(a["date"] == w.date for a in redistribution.affected_workouts)
+                    and not w.locked
+                    and not w.is_recovery
+                ):
+                    share = next(a for a in redistribution.affected_workouts if a["date"] == w.date)
                     w.distance_km = round(w.distance_km + share["add_km"], 1)
                     w.duration_minutes = round(w.duration_minutes + share["add_minutes"], 1)
             rationale = "Volume mancante ridistribuito sulle uscite future disponibili."
@@ -404,9 +393,7 @@ class AdaptationEngine:
         actual_minutes: float,
         state: AthleteState,
     ) -> AdaptationPlan:
-        event = self.detector.detect_longer(
-            planned[index].date, planned[index], actual_km, actual_minutes
-        )
+        event = self.detector.detect_longer(planned[index].date, planned[index], actual_km, actual_minutes)
         original = self._clone(planned)
         overload = max(0.0, actual_km - planned[index].distance_km)
         reduction = min(max(OVERLOAD_REDUCTION_DEFAULT, OVERLOAD_REDUCTION_MIN), OVERLOAD_REDUCTION_MAX)

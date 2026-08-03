@@ -1,0 +1,226 @@
+--------- beginning of main
+07-31 19:58:20.388 I/Finsky:background( 2684): [59] IQ: Notifying installation update. [Package:com.google.android.apps.photos, isid:Ji4q2N8fRaGjojeg-y5rjw], status=DOWNLOADING, status_code=0, reason=auto_update, tsc=PT1H33M43.931S, attempt=0
+--------- beginning of system
+07-31 19:58:20.425 W/Looper  (  779): Slow dispatch took 125ms main app=system_server main=true group=FOREGROUND h=com.android.server.notification.NotificationManagerService$WorkerHandler c=com.android.server.notification.NotificationManagerService$NotificationListeners$$ExternalSyntheticLambda8@f58948e m=0
+07-31 19:58:20.437 E/ActivityManager(  779): ANR in com.android.phone
+07-31 19:58:20.437 E/ActivityManager(  779): PID: 4497
+07-31 19:58:20.437 E/ActivityManager(  779): Reason: Process ProcessRecord{bd83257 4497:com.android.phone/1001} failed to complete startup
+07-31 19:58:20.437 E/ActivityManager(  779): ErrorId: 90349fa9-1be4-4485-a821-bb76c609073d
+07-31 19:58:20.437 E/ActivityManager(  779): Frozen: false
+07-31 19:58:20.437 E/ActivityManager(  779): Load: 0.0 / 0.0 / 0.0
+07-31 19:58:20.437 E/ActivityManager(  779): ----- Output from /proc/pressure/memory -----
+07-31 19:58:20.437 E/ActivityManager(  779): some avg10=0.36 avg60=1.53 avg300=1.54 total=6014984
+07-31 19:58:20.437 E/ActivityManager(  779): full avg10=0.14 avg60=0.93 avg300=1.06 total=3809635
+07-31 19:58:20.437 E/ActivityManager(  779): ----- End output from /proc/pressure/memory -----
+07-31 19:58:20.437 E/ActivityManager(  779): ----- Output from /proc/pressure/cpu -----
+07-31 19:58:20.437 E/ActivityManager(  779): some avg10=90.68 avg60=83.82 avg300=66.42 total=400005711
+07-31 19:58:20.437 E/ActivityManager(  779): full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+07-31 19:58:20.437 E/ActivityManager(  779): ----- End output from /proc/pressure/cpu -----
+07-31 19:58:20.437 E/ActivityManager(  779): ----- Output from /proc/pressure/io -----
+07-31 19:58:20.437 E/ActivityManager(  779): some avg10=21.58 avg60=20.28 avg300=15.23 total=85825699
+07-31 19:58:20.437 E/ActivityManager(  779): full avg10=0.12 avg60=0.12 avg300=0.45 total=7974872
+07-31 19:58:20.437 E/ActivityManager(  779): ----- End output from /proc/pressure/io -----
+07-31 19:58:20.437 E/ActivityManager(  779): 
+07-31 19:58:20.437 E/ActivityManager(  779): CPU usage from 29723ms to -121ms ago (2026-07-31 19:57:47.840 to 2026-07-31 19:58:17.684):
+07-31 19:58:20.437 E/ActivityManager(  779):   76% 779/system_server: 10% user + 66% kernel / faults: 6562 minor 4 major
+07-31 19:58:20.437 E/ActivityManager(  779):   57% 565/android.hardware.sensors-service.multihal: 0.2% user + 57% kernel
+07-31 19:58:20.437 E/ActivityManager(  779):   50% 2684/com.android.vending:background: 2.9% user + 47% kernel / faults: 3050 minor
+07-31 19:58:20.437 E/ActivityManager(  779):   44% 4039/com.google.android.apps.messaging: 10% user + 33% kernel / faults: 9410 minor 27 major
+07-31 19:58:20.437 E/ActivityManager(  779):   19% 1301/com.google.android.gms.persistent: 7% user + 12% kernel / faults: 6060 minor 1 major
+07-31 19:58:20.437 E/ActivityManager(  779):   14% 1221/com.android.settings: 4.3% user + 10% kernel / faults: 2177 minor 77 major
+07-31 19:58:20.437 E/ActivityManager(  779):   12% 1046/com.android.systemui: 5.6% user + 6.7% kernel / faults: 2173 minor 2 major
+07-31 19:58:20.437 E/ActivityManager(  779):   11% 1478/com.google.android.gms: 5.3% user + 6.5% kernel / faults: 1724 minor 1 major
+07-31 19:58:20.437 E/ActivityManager(  779):   7.6% 2023/com.google.android.googlequicksearchbox:search: 3% user + 4.5% kernel / faults: 214 minor 2319 major
+07-31 19:58:20.437 E/ActivityManager(  779):   9.8% 2923/com.google.android.gms.unstable: 3% user + 6.7% kernel / faults: 1141 minor 1678 major
+07-31 19:58:20.437 E/ActivityManager(  779): 99% TOTAL: 17% user + 78% kernel + 0.3% iowait + 2.9% softirq
+07-31 19:58:20.437 E/ActivityManager(  779): CPU usage from 560349ms to 560349ms ago (1970-01-01 00:00:00.000 to 1970-01-01 00:00:00.000) with 0% awake:
+07-31 19:58:20.437 E/ActivityManager(  779): 0% TOTAL: 0% user + 0% kernel
+07-31 19:58:20.452 I/Finsky  ( 2407): [63] SCH: Scheduling 1 system job(s)
+07-31 19:58:20.453 D/BoundBrokerSvc( 1301): onUnbind: Intent { act=com.google.android.gms.libs.gmscorelogger.service.START dat=chimera-action:/... xflg=0x4 cmp=com.google.android.gms/.chimera.PersistentDirectBootAwareApiService }
+07-31 19:58:20.547 I/Finsky  ( 2407): [63] SCH: Scheduling system job Id: 9830, L: 11468321, D: 54668321, C: false, I: false, N: 1
+07-31 19:58:20.597 E/SmsApplication( 4497): com.google.android.apps.messaging lost android:read_cell_broadcasts:  (fixing)
+07-31 19:58:20.607 W/AppOpService(  779): Ignored setUidMode call for runtime permission app op: uid = 10145, code = READ_CELL_BROADCASTS, mode = allow, callingUid = 1001, oldMode = allow
+07-31 19:58:20.652 I/ActivityManager(  779): Killing 4497:com.android.phone/1001 (adj -800): bg anr
+07-31 19:58:20.676 D/PrefCtrlListHelper( 1221): Could not find Context-only controller for pref: com.android.settings.accessibility.ToggleAutoclickFooterPreferenceController
+07-31 19:58:20.697 D/PrefCtrlListHelper( 1221): Could not find Context-only controller for pref: com.android.settings.accessibility.FontWeightAdjustmentPreferenceController
+07-31 19:58:20.697 D/PrefCtrlListHelper( 1221): Could not find Context-only controller for pref: com.android.settings.accessibility.FeedbackButtonPreferenceController
+07-31 19:58:20.737 D/WifiSlice( 1221): calling uid name : com.google.android.settings.intelligence
+07-31 19:58:20.756 E/WakeLock( 1301): GCM_READ ** IS FORCE-RELEASED ON TIMEOUT ** [CONTEXT service_id=259 ]
+07-31 19:58:20.760 D/ActivityManager(  779): Completed ANR of com.android.phone in 3197ms, latency 72ms (expired, only dump ANR app)
+07-31 19:58:20.793 W/Looper  (  779): Slow dispatch took 131ms main app=system_server main=true group=FOREGROUND h=android.service.notification.NotificationListenerService$MyHandler c=null m=2
+07-31 19:58:20.899 W/Looper  (  779): Drained
+07-31 19:58:20.976 W/SatelliteRepository( 1221): SatelliteManager is null
+07-31 19:58:20.981 W/.gms.persistent( 1301): Suspending all threads took: 76.790ms
+07-31 19:58:21.223 W/libbinder.Binder(  779): Binder transaction to android.app.job.IJobScheduler code 8 took 1843ms. Data bytes: 148 Reply bytes: 10696 Flags: 18
+07-31 19:58:21.241 W/libbinder.Binder(  779): Binder transaction to android.app.job.IJobCallback code 7 took 1968ms. Data bytes: 84 Reply bytes: 4 Flags: 18
+07-31 19:58:21.264 E/TelephonyManager(  779): Error calling setDataEnabledForReason e:java.lang.IllegalStateException: telephony service is null.
+07-31 19:58:21.266 D/WM-GreedyScheduler( 4039): Cancelling work ID 1c262be2-99cc-4386-9351-c88a5604e95d
+07-31 19:58:21.293 W/GLSUser ( 1301): [DeviceKeyStore] Cannot load key: Device key file not found.
+07-31 19:58:21.320 W/Looper  (  779): Slow dispatch took 111ms main app=system_server main=true group=FOREGROUND h=com.android.server.power.Notifier$NotifierHandler c=com.android.server.power.Notifier$$ExternalSyntheticLambda2@37e675 m=0
+07-31 19:58:21.325 W/GLSUser ( 1301): [DeviceKeyStore] Cannot load key: Device key file not found.
+07-31 19:58:21.336 D/WM-GreedyScheduler( 4039): Ignoring {WorkSpec: 59737708-59ba-4c46-bc86-16b67860cd5a}. Requires device idle.
+07-31 19:58:21.336 D/WM-GreedyScheduler( 4039): Ignoring {WorkSpec: 3cb83cbc-1df7-4577-a96f-ec5f82cd7bcc}. Requires device idle.
+07-31 19:58:21.336 D/WM-GreedyScheduler( 4039): Ignoring {WorkSpec: 485f9243-95af-4a61-84a0-7b432f56237d}. Requires device idle.
+07-31 19:58:21.356 I/Finsky  ( 2407): [149] SCH: job service finished with id 9825.
+07-31 19:58:21.380 I/Finsky:background( 2684): [2] PIM: Ignore install package event for: com.google.android.apps.photos, isid: Ji4q2N8fRaGjojeg-y5rjw
+07-31 19:58:21.369 D/WM-GreedyScheduler( 4039): Starting tracking for 192863e4-d8e0-4082-8bb1-17472a4a6471,7f60040a-0d25-4b31-8b23-b15b8dd7c917,99ffd0ae-da59-4c6b-b4d4-cf6b589227ce
+07-31 19:58:21.421 W/ndroid.settings( 1221): Suspending all threads took: 250.033ms
+07-31 19:58:21.454 D/WM-GreedyScheduler( 4039): Constraints not met: Cancelling work ID WorkGenerationalId(workSpecId=192863e4-d8e0-4082-8bb1-17472a4a6471, generation=0)
+07-31 19:58:21.489 D/ConnectivityService(  779): ConnectivityDiagnosticsCallback IBinder died.
+07-31 19:58:21.499 I/Zygote  (  545): Process 4497 exited due to signal 9 (Killed)
+07-31 19:58:21.510 W/BugleDataModel( 4039): ParticipantFullRefresh: Failed to update participant{id:1} subscription{id:-1} MSISDN{+d}
+07-31 19:58:21.510 W/BugleDataModel( 4039): java.lang.RuntimeException: android.os.DeadObjectException
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at android.telephony.SubscriptionManager.getPhoneNumber(SubscriptionManager.java:4554)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at ja$$ExternalSyntheticApiModelOutline0.m(D8$$SyntheticClass:34)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at crpk.h(PG:13)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at crpo.h(PG:3)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at croq.k(PG:94)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at croq.i(PG:1)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at bbdl.a(PG:83)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at bxjt.e(PG:313)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at bxjt.c(PG:2)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at com.google.android.apps.messaging.shared.datamodel.action.SelfParticipantsRefreshAction.i(PG:20)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at aymz.run(PG:3)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at eiic.run(PG:21)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:520)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at eotb.a(PG:3)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at eory.run(PG:19)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at eotc.run(PG:5)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at eoqg.execute(PG:1)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at eork.l(PG:6)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at eika.g(PG:5)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at eijx.f(PG:1)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at com.google.android.apps.messaging.shared.datamodel.action.common.ThrottledAction.k(PG:8)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at ayna.a(PG:10)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at com.google.android.apps.messaging.shared.datamodel.action.common.ThrottledAction.fQ(PG:12)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at ayoi.b(PG:44)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at aynk.run(PG:73)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at eiic.run(PG:21)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at aynl.run(PG:3)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at eosr.run(PG:68)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at dqkn.run(PG:7)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1154)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:652)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at dqju.run(PG:6)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at java.lang.Thread.run(Thread.java:1563)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at dqlo.run(PG:61)
+07-31 19:58:21.510 W/BugleDataModel( 4039): Caused by: android.os.DeadObjectException
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at android.os.BinderProxy.transactNative(Native Method)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at android.os.BinderProxy.transact(BinderProxy.java:592)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at com.android.internal.telephony.ISub$Stub$Proxy.getPhoneNumberFromFirstAvailableSource(ISub.java:2553)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	at android.telephony.SubscriptionManager.getPhoneNumber(SubscriptionManager.java:4548)
+07-31 19:58:21.510 W/BugleDataModel( 4039): 	... 33 more
+07-31 19:58:21.576 W/libbinder.Binder( 1478): Binder transaction to android.content.IContentProvider code 1 took 1524ms. Data bytes: 568 Reply bytes: 188 Flags: 18
+07-31 19:58:21.617 D/ConnectivityService(  779): releasing NetworkRequest [ REQUEST id=256, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 1001 RequestorUid: 1001 RequestorPkg: com.android.phone UnderlyingNetworks: Null] ] (release request)
+07-31 19:58:21.660 D/StrictMode( 1478): StrictMode policy violation: android.os.strictmode.NonSdkApiUsedViolation: Ljava/net/Socket;->impl:Ljava/net/SocketImpl;
+07-31 19:58:21.660 D/StrictMode( 1478): 	at android.os.StrictMode.lambda$static$1(StrictMode.java:447)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at android.os.StrictMode$$ExternalSyntheticLambda2.accept(D8$$SyntheticClass:0)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at java.lang.Class.getDeclaredField(Native Method)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at com.google.android.gms.org.conscrypt.Platform.getFileDescriptor(:com.google.android.gms@253931038@25.39.31 (260800-813878953):5)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at com.google.android.gms.org.conscrypt.ConscryptFileDescriptorSocket$SSLOutputStream.write(:com.google.android.gms@253931038@25.39.31 (260800-813878953):9)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at igrz.oT(:com.google.android.gms@253931038@25.39.31 (260800-813878953):42)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at igqw.oT(:com.google.android.gms@253931038@25.39.31 (260800-813878953):53)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at iemd.a(:com.google.android.gms@253931038@25.39.31 (260800-813878953):30)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at iemf.run(:com.google.android.gms@253931038@25.39.31 (260800-813878953):7)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at iekv.run(:com.google.android.gms@253931038@25.39.31 (260800-813878953):12)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at bcdv.c(:com.google.android.gms@253931038@25.39.31 (260800-813878953):50)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at bcdv.run(:com.google.android.gms@253931038@25.39.31 (260800-813878953):73)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1154)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:652)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at bcjm.run(:com.google.android.gms@253931038@25.39.31 (260800-813878953):8)
+07-31 19:58:21.660 D/StrictMode( 1478): 	at java.lang.Thread.run(Thread.java:1563)
+07-31 19:58:21.673 W/Bugle   ( 4039): TelephonySubscriptionInfoAsOfT: getRawSelfNumber failed [CONTEXT ratelimit_period="1 MINUTES" sub_id=1 ]
+07-31 19:58:21.673 W/Bugle   ( 4039): java.lang.IllegalStateException: subscription service unavailable.
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at android.telephony.SubscriptionManager.getPhoneNumber(SubscriptionManager.java:4551)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at ja$$ExternalSyntheticApiModelOutline0.m(D8$$SyntheticClass:34)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at crpk.h(PG:13)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at crpo.h(PG:3)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at croq.k(PG:94)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at croq.i(PG:1)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at bbdl.a(PG:83)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at bxjt.e(PG:313)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at bxjt.c(PG:2)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at com.google.android.apps.messaging.shared.datamodel.action.SelfParticipantsRefreshAction.i(PG:20)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at aymz.run(PG:3)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at eiic.run(PG:21)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:520)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at eotb.a(PG:3)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at eory.run(PG:19)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at eotc.run(PG:5)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at eoqg.execute(PG:1)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at eork.l(PG:6)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at eika.g(PG:5)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at eijx.f(PG:1)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at com.google.android.apps.messaging.shared.datamodel.action.common.ThrottledAction.k(PG:8)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at ayna.a(PG:10)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at com.google.android.apps.messaging.shared.datamodel.action.common.ThrottledAction.fQ(PG:12)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at ayoi.b(PG:44)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at aynk.run(PG:73)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at eiic.run(PG:21)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at aynl.run(PG:3)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at eosr.run(PG:68)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at dqkn.run(PG:7)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1154)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:652)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at dqju.run(PG:6)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at java.lang.Thread.run(Thread.java:1563)
+07-31 19:58:21.673 W/Bugle   ( 4039): 	at dqlo.run(PG:61)
+07-31 19:58:21.725 I/Bugle   ( 4039): TelephonySubscriptionInfoAsOfLMR1: getActiveSubscriptionInfo(): empty sub info for subscription{id:1}
+07-31 19:58:21.731 W/ActivityManager(  779): pid 4039 com.google.android.apps.messaging sent binder code 50 with flags 2 and got error -32
+07-31 19:58:21.787 I/Finsky:background( 2684): [88] DSC::L: Update all listeners for download <66:RUNNING:60%[60%]> in group com.google.android.apps.photos:Ji4q2N8fRaGjojeg-y5rjw
+07-31 19:58:21.789 I/Finsky:background( 2684): [88] DSC::L: Updating listener tcj@c2b5348 for download <66:RUNNING:60%[60%]>
+07-31 19:58:21.790 I/Finsky:background( 2684): [88] DSC::L: Updating listener DownloadServiceManagerListener::ajxh@b709592 for download <66:RUNNING:60%[60%]>
+07-31 19:58:21.790 I/Finsky:background( 2684): [88] DS: Received onProgress request_id=66
+07-31 19:58:21.791 I/Finsky:background( 2684): [88] RM: receive resource status onProgress download_request_id=66, group_id=com.google.android.apps.photos.apk reason: auto_update isid: Ji4q2N8fRaGjojeg-y5rjw, status_code=RESOURCE_STATUS_IN_PROGRESS, legacy_status_code=192, size: 15555665/25747025
+07-31 19:58:21.832 W/ContentProviderHelper(  779): Slow operation: 96ms so far, now at getContentProviderImpl: after updateLruProcess
+07-31 19:58:21.833 W/ContentProviderHelper(  779): Slow operation: 97ms so far, now at getContentProviderImpl: before updateOomAdj
+07-31 19:58:21.921 I/Finsky:background( 2684): [88] DSC::L: Updating listener DownloadServiceManagerListener::rkg@6c4193a for download <66:RUNNING:60%[60%]>
+07-31 19:58:21.932 I/Finsky:background( 2684): [88] DS::IDC: updateWith: <66:RUNNING:60%[60%]>
+07-31 19:58:21.936 I/Finsky:background( 2684): [88] DSC::L: Update all listeners for download <64:RUNNING:43%[43%]> in group com.google.android.apps.photos:Ji4q2N8fRaGjojeg-y5rjw
+07-31 19:58:21.936 I/Finsky:background( 2684): [51] RM: getStatus resourceRequestId=411a5eaa-1d0e-4f41-a3c9-7533203e7f15 requestId=66 package=com.google.android.apps.photos artifact=com.google.android.apps.photos.apk isid=Ji4q2N8fRaGjojeg-y5rjw
+07-31 19:58:21.937 I/Finsky:background( 2684): [51] DSC: getDownload(66)
+07-31 19:58:21.940 I/Finsky:background( 2684): [88] DSC::L: Updating listener tcj@c2b5348 for download <64:RUNNING:43%[43%]>
+07-31 19:58:21.941 I/Finsky:background( 2684): [88] DSC::L: Updating listener DownloadServiceManagerListener::ajxh@b709592 for download <64:RUNNING:43%[43%]>
+07-31 19:58:21.942 I/Finsky:background( 2684): [88] DS: Received onProgress request_id=64
+07-31 19:58:21.952 I/Finsky:background( 2684): [88] RM: receive resource status onProgress download_request_id=64, group_id=config.x86_64 reason: auto_update isid: Ji4q2N8fRaGjojeg-y5rjw, status_code=RESOURCE_STATUS_IN_PROGRESS, legacy_status_code=192, size: 15496573/35283085
+07-31 19:58:21.964 W/ContentProviderHelper(  779): Slow operation: 227ms so far, now at getContentProviderImpl: after updateOomAdj
+07-31 19:58:21.970 D/PrefCtrlListHelper( 1221): Could not find Context-only controller for pref: com.android.settings.deviceinfo.storage.StorageSelectionPreferenceController
+07-31 19:58:21.972 I/Finsky:background( 2684): [88] DSC::L: Updating listener DownloadServiceManagerListener::rkg@6c4193a for download <64:RUNNING:43%[43%]>
+07-31 19:58:21.973 I/Finsky:background( 2684): [88] DS::IDC: updateWith: <64:RUNNING:43%[43%]>
+07-31 19:58:21.995 W/ContentProviderHelper(  779): Slow operation: 259ms so far, now at getContentProviderImpl: done!
+07-31 19:58:22.029 D/PrefCtrlListHelper( 1221): Could not find Context-only controller for pref: com.android.settings.deviceinfo.storage.StorageUsageProgressBarPreferenceController
+07-31 19:58:22.044 D/PrefCtrlListHelper( 1221): Could not find Context-only controller for pref: com.android.settings.deviceinfo.storage.AutomaticStorageManagementSwitchPreferenceController
+07-31 19:58:22.045 D/PrefCtrlListHelper( 1221): Could not find Context-only controller for pref: com.android.settings.deviceinfo.storage.ManageStoragePreferenceController
+07-31 19:58:22.047 I/Finsky:background( 2684): [51] DS: getDownload(request_id=66)
+07-31 19:58:22.052 I/Finsky:background( 2684): [88] DS: DS: onGetDownload(request_id=66, files_to_download=[com.google.android.apps.photos.apk(size:25747025)], context[group_id=com.google.android.apps.photos:Ji4q2N8fRaGjojeg-y5rjw], display_data[invisible=true, title=Google Photos], network_restrictions=UNMETERED_ONLY status=running, bytes_downloaded=15555665, total_bytes=25747025, retry[count=0, next_retry=n/a])
+07-31 19:58:22.088 I/Finsky:background( 2684): [55] RM: getStatus resourceRequestId=8771730d-a048-4eac-bfee-af4a1d25e330 requestId=64 package=com.google.android.apps.photos artifact=config.x86_64 isid=Ji4q2N8fRaGjojeg-y5rjw
+07-31 19:58:22.104 I/Finsky:background( 2684): [55] DSC: getDownload(64)
+07-31 19:58:22.109 I/Finsky:background( 2684): [55] DS: getDownload(request_id=64)
+07-31 19:58:22.128 I/Finsky:background( 2684): [88] DS: DS: onGetDownload(request_id=64, files_to_download=[config.x86_64(size:35283085)], context[group_id=com.google.android.apps.photos:Ji4q2N8fRaGjojeg-y5rjw], display_data[invisible=true, title=Google Photos], network_restrictions=UNMETERED_ONLY status=running, bytes_downloaded=15496573, total_bytes=35283085, retry[count=0, next_retry=n/a])
+07-31 19:58:22.131 I/Finsky:background( 2684): [2] RF: onProgress request_id=66 isid=Ji4q2N8fRaGjojeg-y5rjw
+07-31 19:58:22.131 I/Finsky:background( 2684): [2] RF: resourceStatus for request_id=66 group=com.google.android.apps.photos artifact=com.google.android.apps.photos.apk collectedBytes= 15555665 / 25747025
+07-31 19:58:22.131 D/PrefCtrlListHelper( 1221): Could not find Context-only controller for pref: com.android.settings.datetime.AutoTimePreferenceController
+07-31 19:58:22.132 I/Finsky:background( 2684): [2] RF: Group=com.google.android.apps.photos totalBytesDownloaded= 32414925 / 62443056 for 5 artifacts
+07-31 19:58:22.137 I/Finsky:background( 2684): [2] Updated time lastBroadcast=2026-07-31T19:58:19.777Z current=2026-07-31T19:58:22.137Z
+07-31 19:58:22.138 I/Finsky:background( 2684): [2] bytesCompleted/bytesTotal/ratio = 32414925 / 62443056 / 0.519112
+07-31 19:58:22.150 I/Finsky:background( 2684): [53] IV2: onTaskProgress com.google.android.apps.photos[iid:9] [isid:Ji4q2N8fRaGjojeg-y5rjw] status:RESOURCE_FETCH_PROGRESS, size: 32414925/62443056
+07-31 19:58:22.161 I/Finsky:background( 2684): [2] RF: onProgress request_id=64 isid=Ji4q2N8fRaGjojeg-y5rjw
+07-31 19:58:22.161 I/Finsky:background( 2684): [2] RF: resourceStatus for request_id=64 group=com.google.android.apps.photos artifact=config.x86_64 collectedBytes= 15496573 / 35283085
+07-31 19:58:22.161 I/Finsky:background( 2684): [2] RF: Group=com.google.android.apps.photos totalBytesDownloaded= 32465184 / 62443056 for 5 artifacts
+07-31 19:58:22.168 I/Finsky:background( 2684): [2] RF: Preventing total bytes update to listeners
+07-31 19:58:22.168 W/WakeLock( 1301): GCM_READ counter does not exist
+07-31 19:58:22.168 I/ActivityManager(  779): Process com.android.phone (pid 4497) has died: pers PER 
+07-31 19:58:22.177 E/TelephonyManager(  779): Error calling setDataEnabledForReason e:java.lang.IllegalStateException: telephony service is null.
+07-31 19:58:22.209 W/ActivityManager(  779): Scheduling restart of crashed service com.android.stk/.StkAppService in 1000ms for start-requested
+07-31 19:58:22.213 D/GsmCellBroadcastHandler( 1141): cleanup
+07-31 19:58:22.217 W/ActivityManager(  779): Scheduling restart of crashed service com.android.phone/.TelephonyDebugService in 0ms for persistent
+07-31 19:58:22.245 I/Watchdog(  779): Interesting Java process com.android.phone died. Pid 4497
+07-31 19:58:22.305 I/Finsky:background( 2684): [59] IQ: Notifying installation update. [Package:com.google.android.apps.photos, isid:Ji4q2N8fRaGjojeg-y5rjw], status=DOWNLOADING, status_code=0, reason=auto_update, tsc=PT1H33M45.846S, attempt=0
+07-31 19:58:22.348 W/Looper  (  779): Slow dispatch took 100ms android.ui app=system_server main=false group=TOP_APP h=com.android.server.am.ActivityManagerService$UiHandler c=com.android.server.am.UidObserverController$$ExternalSyntheticLambda0@9a06e76 m=0
+07-31 19:58:22.487 W/ActivityManager(  779): Re-adding persistent process ProcessRecord{bd83257 4497:com.android.phone/1001}
+07-31 19:58:22.540 W/JobScheduler.JobStatus(  779): Exempted app com.google.android.as considered buggy
+07-31 19:58:22.577 I/Finsky:background( 2684): [2] PIM: Ignore install package event for: com.google.android.apps.photos, isid: Ji4q2N8fRaGjojeg-y5rjw
+07-31 19:58:22.607 W/ActivityManager(  779): Slow operation: 53ms so far, now at startProcess: asking zygote to start proc
+07-31 19:58:22.608 I/libprocessgroup(  779): Removed cgroup /sys/fs/cgroup/system/uid_1001/pid_4497
+07-31 19:58:22.610 E/libprocessgroup(  779): Failed to write 1 to /sys/fs/cgroup/system/uid_1001/pid_4497/cgroup.kill: No such file or directory
+07-31 19:58:22.610 E/libprocessgroup(  779): Failed to open /sys/fs/cgroup/system/uid_1001/pid_4497/cgroup.procs: No such file or directory

@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class RideCreate(BaseModel):
     """Schema di richiesta per creare una nuova uscita/ride."""
+
     date: str = Field(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
     distance_km: float = Field(default=0.0, ge=0, le=500)
     duration_minutes: float = Field(default=0.0, ge=1, le=1440)
@@ -34,6 +35,7 @@ class RideResponse(RideCreate):
 
 class RideUpdate(BaseModel):
     """Schema di richiesta per aggiornare una ride (campi opzionali)."""
+
     date: str | None = Field(default=None, min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
     distance_km: float | None = Field(default=None, ge=0, le=500)
     duration_minutes: float | None = Field(default=None, ge=1, le=1440)
@@ -50,6 +52,7 @@ class RideUpdate(BaseModel):
 
 class AthleteCreate(BaseModel):
     """Schema di richiesta per creare un profilo atleta."""
+
     name: str = Field(..., min_length=2, max_length=100)
     email: str | None = Field(default=None, max_length=255)
     age: int = Field(default=30, ge=10, le=100)
@@ -99,6 +102,7 @@ class AthleteCreate(BaseModel):
 
 class AthleteUpdate(BaseModel):
     """Schema di richiesta per aggiornare un profilo atleta (campi opzionali)."""
+
     name: str | None = Field(default=None, min_length=2, max_length=100)
     email: str | None = Field(default=None, max_length=255)
     age: int | None = Field(default=None, ge=10, le=100)
@@ -148,6 +152,7 @@ class AthleteUpdate(BaseModel):
 
 class ProfileUpdate(BaseModel):
     """Schema di richiesta per aggiornare il profilo utente (campi opzionali)."""
+
     name: str | None = Field(default=None, min_length=2, max_length=100)
     email: str | None = Field(default=None, max_length=255)
     age: int | None = Field(default=None, ge=10, le=100)
@@ -274,7 +279,9 @@ class BleDeviceRegister(BaseModel):
 
     device_id: str = Field(..., min_length=1, max_length=128)
     name: str = Field(..., min_length=1, max_length=200)
-    device_type: str = Field(default="weight_scale", pattern="^(weight_scale|heart_rate|blood_pressure|thermometer|generic)$")
+    device_type: str = Field(
+        default="weight_scale", pattern="^(weight_scale|heart_rate|blood_pressure|thermometer|generic)$"
+    )
     service_uuid: str | None = Field(default=None, max_length=36)
     characteristic_uuid: str | None = Field(default=None, max_length=36)
     mac_address: str | None = Field(default=None, max_length=24)
@@ -405,8 +412,6 @@ class ActivitySummaryResponse(BaseModel):
     """Paginated activity classification summary."""
 
     history: list[ActivityClassification]
-
-
 
 
 class Token(BaseModel):
@@ -686,12 +691,8 @@ class ItineraryCreate(BaseModel):
 
     name: str = Field(..., min_length=2, max_length=150)
     description: str | None = Field(default=None, max_length=2000)
-    start_date: str | None = Field(
-        default=None, min_length=10, max_length=10, pattern=r"^\d{4}-\d{2}-\d{2}$"
-    )
-    end_date: str | None = Field(
-        default=None, min_length=10, max_length=10, pattern=r"^\d{4}-\d{2}-\d{2}$"
-    )
+    start_date: str | None = Field(default=None, min_length=10, max_length=10, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    end_date: str | None = Field(default=None, min_length=10, max_length=10, pattern=r"^\d{4}-\d{2}-\d{2}$")
     total_km: float | None = Field(default=None, ge=0, le=100000)
     total_elevation_m: float | None = Field(default=None, ge=0, le=100000)
 
@@ -742,9 +743,7 @@ class NotificationPreferences(BaseModel):
     allow_email_summary: bool = True
     paused: bool = False
     # Preferred delivery channel order, most preferred first.
-    channel_priority: list[str] = Field(
-        default_factory=lambda: ["app", "voice", "dashboard", "email"]
-    )
+    channel_priority: list[str] = Field(default_factory=lambda: ["app", "voice", "dashboard", "email"])
     respect_quiet_hours: bool = True
 
     @field_validator("channel_priority")
@@ -766,9 +765,7 @@ class NotificationContextIn(BaseModel):
     current_ride: dict | None = None
     weather: dict | None = None
     now: str | None = Field(default=None, description="ISO datetime, defaults to now")
-    intensity_zone: int | None = Field(
-        default=None, ge=0, le=5, description="Current training zone 0-5"
-    )
+    intensity_zone: int | None = Field(default=None, ge=0, le=5, description="Current training zone 0-5")
 
 
 class NotificationScoreOut(BaseModel):
@@ -806,6 +803,7 @@ class NotificationListOut(BaseModel):
 
 class MetabolicProfileCreate(BaseModel):
     """Schema di richiesta per creare/aggiornare il profilo metabolico."""
+
     sex: str = Field(default="male", pattern="^(male|female)$")
     bmr_formula: str = Field(default="mifflin", pattern="^(mifflin|cunningham)$")
     activity_level: str = Field(default="moderate", pattern="^(sedentary|light|moderate|active|very_active)$")
@@ -816,6 +814,7 @@ class MetabolicProfileCreate(BaseModel):
 
 class MetabolicProfileResponse(MetabolicProfileCreate):
     """Schema di risposta per il profilo metabolico."""
+
     athlete_id: int
     created_at: str | None = None
     updated_at: str | None = None
@@ -823,6 +822,7 @@ class MetabolicProfileResponse(MetabolicProfileCreate):
 
 class FoodLogCreate(BaseModel):
     """Schema di richiesta per creare un log alimentare."""
+
     date: str = Field(..., min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
     meal_type: str = Field(default="other", pattern="^(breakfast|lunch|dinner|snack|other)$")
     description: str = Field(..., min_length=1, max_length=500)
@@ -838,6 +838,7 @@ class FoodLogCreate(BaseModel):
 
 class FoodLogUpdate(BaseModel):
     """Schema di richiesta per aggiornare un log alimentare."""
+
     date: str | None = Field(default=None, min_length=10, max_length=10, pattern="^\\d{4}-\\d{2}-\\d{2}$")
     meal_type: str | None = Field(default=None, pattern="^(breakfast|lunch|dinner|snack|other)$")
     description: str | None = Field(default=None, min_length=1, max_length=500)
@@ -853,6 +854,7 @@ class FoodLogUpdate(BaseModel):
 
 class FoodLogResponse(FoodLogCreate):
     """Schema di risposta per un log alimentare."""
+
     id: int | None = None
     athlete_id: int
     tenant_id: int = 0
@@ -861,6 +863,7 @@ class FoodLogResponse(FoodLogCreate):
 
 class MetabolicDailySummaryResponse(BaseModel):
     """Schema di risposta per il riepilogo metabolico giornaliero."""
+
     id: int | None = None
     athlete_id: int
     tenant_id: int = 0

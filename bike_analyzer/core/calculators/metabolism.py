@@ -17,6 +17,7 @@ from ..models import GPSPoint, Ride
 @dataclass
 class MetabolicProfileInput:
     """Input data for metabolic calculations."""
+
     weight_kg: float = 70.0
     height_cm: float | None = None
     age: int = 30
@@ -207,7 +208,9 @@ def reference_tdee(age: int, sex: str, weight_kg: float, activity_level: str, he
     return calculate_tdee(reference_bmr(age, sex, weight_kg, height_cm), activity_level)
 
 
-def reference_for_athlete(age: int, sex: str, weight_kg: float, activity_level: str, height_cm: float | None = None) -> dict[str, Any]:
+def reference_for_athlete(
+    age: int, sex: str, weight_kg: float, activity_level: str, height_cm: float | None = None
+) -> dict[str, Any]:
     """Return the built-in reference means (BMR/TDEE) for the athlete's bracket."""
     return {
         "age_bracket": list(age_bracket(age)),
@@ -329,30 +332,35 @@ def calibrate_weights(
     clr = weights.confidence_lr
 
     weights.activity_multiplier_w = adapt_weights_from_delta(
-        sensor_tdee, ref_tdee,
+        sensor_tdee,
+        ref_tdee,
         current_weight=weights.activity_multiplier_w,
         learning_rate=lr,
         confidence=weights.sensor_tdee_conf,
     )
     weights.neat_w = adapt_weights_from_delta(
-        sensor_tdee, ref_tdee,
+        sensor_tdee,
+        ref_tdee,
         current_weight=weights.neat_w,
         learning_rate=lr,
         confidence=weights.sensor_tdee_conf,
     )
     weights.climb_bonus_w = adapt_weights_from_delta(
-        sensor_tdee, ref_tdee,
+        sensor_tdee,
+        ref_tdee,
         current_weight=weights.climb_bonus_w,
         learning_rate=lr,
         confidence=weights.sensor_tdee_conf,
     )
     weights.sensor_bmr_conf = sensor_confidence(
-        sensor_bmr, ref_bmr,
+        sensor_bmr,
+        ref_bmr,
         prior_confidence=weights.sensor_bmr_conf,
         learning_rate=clr,
     )
     weights.sensor_tdee_conf = sensor_confidence(
-        sensor_tdee, ref_tdee,
+        sensor_tdee,
+        ref_tdee,
         prior_confidence=weights.sensor_tdee_conf,
         learning_rate=clr,
     )

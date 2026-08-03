@@ -41,18 +41,14 @@ def _ctx(intensity_zone=None, tsb=0, plan=None) -> NotificationContext:
 # --- Context Evaluator ------------------------------------------------------
 def test_score_below_threshold_is_suppressed():
     ctx = _ctx(tsb=10)
-    score = ContextEvaluator.evaluate(
-        ctx, category=NotificationCategory.GOAL.value, signals={"minor_stat": True}
-    )
+    score = ContextEvaluator.evaluate(ctx, category=NotificationCategory.GOAL.value, signals={"minor_stat": True})
     assert score.score < MIN_NOTIFY_SCORE
     assert score.should_notify is False
 
 
 def test_safety_always_notifies_despite_low_score():
     ctx = _ctx(tsb=10)
-    score = ContextEvaluator.evaluate(
-        ctx, category=NotificationCategory.SAFETY.value, signals={}
-    )
+    score = ContextEvaluator.evaluate(ctx, category=NotificationCategory.SAFETY.value, signals={})
     assert score.score >= MIN_NOTIFY_SCORE
     assert score.should_notify is True
 
@@ -116,9 +112,7 @@ def test_paused_blocks_everything():
 # --- Message Composer -------------------------------------------------------
 def test_compose_italian_template():
     composer = MessageComposer("it")
-    msg, tts = composer.compose(
-        NotificationCategory.PERFORMANCE.value, "over_threshold", {"pct": 5}
-    )
+    msg, tts = composer.compose(NotificationCategory.PERFORMANCE.value, "over_threshold", {"pct": 5})
     assert "5%" in msg
     assert "sopra la soglia" in msg
     assert tts is not None
@@ -126,17 +120,13 @@ def test_compose_italian_template():
 
 def test_compose_english_template():
     composer = MessageComposer("en")
-    msg, tts = composer.compose(
-        NotificationCategory.SAFETY.value, "stopped", {"minutes": 10}
-    )
+    msg, tts = composer.compose(NotificationCategory.SAFETY.value, "stopped", {"minutes": 10})
     assert "10 minutes" in msg
 
 
 def test_voice_shortening_keeps_two_sentences():
     composer = MessageComposer("it")
-    long_text = (
-        "Frase uno. Frase due. Frase tre che non serve. Frase quattro inutile."
-    )
+    long_text = "Frase uno. Frase due. Frase tre che non serve. Frase quattro inutile."
     tts = composer._shorten_for_voice(long_text)
     assert tts.count(".") <= 2
     assert "Frase uno" in tts
@@ -145,9 +135,7 @@ def test_voice_shortening_keeps_two_sentences():
 
 def test_detailed_appends_detail():
     composer = MessageComposer("it")
-    msg, _ = composer.compose(
-        NotificationCategory.PERFORMANCE.value, "over_threshold", {"pct": 5}, detailed=True
-    )
+    msg, _ = composer.compose(NotificationCategory.PERFORMANCE.value, "over_threshold", {"pct": 5}, detailed=True)
     assert "Scendi di" in msg
 
 
@@ -174,7 +162,9 @@ def test_router_defers_to_dashboard_during_high_intensity():
     router = NotificationRouter(prefs)
     ctx = _ctx(intensity_zone=4)
     ctx.current_ride = {"id": 1}
-    n = router.route(ctx, NotificationCategory.RECOVERY.value, "intense_yesterday", {}, signals={"insufficient_recovery": True})
+    n = router.route(
+        ctx, NotificationCategory.RECOVERY.value, "intense_yesterday", {}, signals={"insufficient_recovery": True}
+    )
     assert n is not None
     assert n.channel == Channel.DASHBOARD.value
 
@@ -182,7 +172,13 @@ def test_router_defers_to_dashboard_during_high_intensity():
 def test_router_background_uses_channel_priority():
     prefs = NotificationPreferences(channel_priority=["email", "app"])
     router = NotificationRouter(prefs)
-    n = router.route(_ctx(tsb=-25), NotificationCategory.RECOVERY.value, "intense_yesterday", {}, signals={"insufficient_recovery": True})
+    n = router.route(
+        _ctx(tsb=-25),
+        NotificationCategory.RECOVERY.value,
+        "intense_yesterday",
+        {},
+        signals={"insufficient_recovery": True},
+    )
     assert n is not None
     assert n.channel == Channel.EMAIL.value
 
@@ -191,8 +187,20 @@ def test_batch_groups_multiple_notifications():
     prefs = NotificationPreferences()
     router = NotificationRouter(prefs)
     ns = [
-        router.route(_ctx(tsb=-25), NotificationCategory.RECOVERY.value, "intense_yesterday", {}, signals={"insufficient_recovery": True}),
-        router.route(_ctx(tsb=5, plan={"goal_active": True}), NotificationCategory.GOAL.value, "granfondo_countdown", {"n": 3}, signals={}),
+        router.route(
+            _ctx(tsb=-25),
+            NotificationCategory.RECOVERY.value,
+            "intense_yesterday",
+            {},
+            signals={"insufficient_recovery": True},
+        ),
+        router.route(
+            _ctx(tsb=5, plan={"goal_active": True}),
+            NotificationCategory.GOAL.value,
+            "granfondo_countdown",
+            {"n": 3},
+            signals={},
+        ),
     ]
     ns = [x for x in ns if x]
     batched = NotificationRouter.batch(ns, "it")
@@ -219,9 +227,7 @@ def test_voice_command_parser_unknown():
 
 def test_voice_coach_blocks_z4_z5():
     coach = VoiceCoach("it")
-    spoken = coach.speak_message(
-        NotificationCategory.PERFORMANCE.value, "over_threshold", {"pct": 5}, intensity_zone=4
-    )
+    spoken = coach.speak_message(NotificationCategory.PERFORMANCE.value, "over_threshold", {"pct": 5}, intensity_zone=4)
     assert spoken is None
 
 

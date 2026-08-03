@@ -56,7 +56,13 @@ def generate_code_challenge(verifier: str) -> str:
     return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
 
-def build_authorization_url(state: str, code_challenge: str, client_id: str | None = None, redirect_uri: str | None = None, scope: str | None = None) -> str:
+def build_authorization_url(
+    state: str,
+    code_challenge: str,
+    client_id: str | None = None,
+    redirect_uri: str | None = None,
+    scope: str | None = None,
+) -> str:
     """Costruisce l'URL di autorizzazione OAuth2 Wahoo con PKCE (S256)."""
     cid = client_id or _s.wahoo_client_id
     if not cid:
@@ -73,7 +79,9 @@ def build_authorization_url(state: str, code_challenge: str, client_id: str | No
     return f"{WAHOO_AUTH_URL}?{requests.compat.urlencode(params)}"
 
 
-def get_authorization_url(state: str | None = None, client_id: str | None = None, redirect_uri: str | None = None, scope: str | None = None) -> dict[str, str]:
+def get_authorization_url(
+    state: str | None = None, client_id: str | None = None, redirect_uri: str | None = None, scope: str | None = None
+) -> dict[str, str]:
     cid = client_id or _s.wahoo_client_id
     if not cid:
         raise RuntimeError("WAHOO_CLIENT_ID not configured")
@@ -88,7 +96,13 @@ def get_authorization_url(state: str | None = None, client_id: str | None = None
     }
 
 
-def exchange_code_for_token(code: str, code_verifier: str, client_id: str | None = None, client_secret: str | None = None, redirect_uri: str | None = None) -> dict[str, Any]:
+def exchange_code_for_token(
+    code: str,
+    code_verifier: str,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+    redirect_uri: str | None = None,
+) -> dict[str, Any]:
     cid = client_id or _s.wahoo_client_id
     csec = client_secret or _s.wahoo_client_secret
     if not cid or not csec:
@@ -106,7 +120,9 @@ def exchange_code_for_token(code: str, code_verifier: str, client_id: str | None
     return resp.json()
 
 
-def refresh_access_token(refresh_token: str, code_verifier: str, client_id: str | None = None, client_secret: str | None = None) -> dict[str, Any]:
+def refresh_access_token(
+    refresh_token: str, code_verifier: str, client_id: str | None = None, client_secret: str | None = None
+) -> dict[str, Any]:
     cid = client_id or _s.wahoo_client_id
     csec = client_secret or _s.wahoo_client_secret
     if not cid or not csec:
@@ -151,9 +167,7 @@ def _ensure_token_table() -> None:
         )
 
 
-def store_token(
-    athlete_id: int, token_data: dict[str, Any], code_verifier: str = ""
-) -> None:
+def store_token(athlete_id: int, token_data: dict[str, Any], code_verifier: str = "") -> None:
     _ensure_token_table()
     expires_at = token_data.get("expires_at", 0)
     if isinstance(expires_at, str):
@@ -204,13 +218,13 @@ def get_valid_token(athlete_id: int, client_id: str | None = None, client_secret
     access_token, refresh_token, code_verifier, expires_at = row
     if expires_at and expires_at - time.time() < TOKEN_REFRESH_BUFFER_SECONDS:
         try:
-            new_data = refresh_access_token(refresh_token, code_verifier, client_id=client_id, client_secret=client_secret)
+            new_data = refresh_access_token(
+                refresh_token, code_verifier, client_id=client_id, client_secret=client_secret
+            )
             store_token(athlete_id, new_data, code_verifier=code_verifier)
             return new_data.get("access_token")
         except Exception:
-            logger.exception(
-                "Failed to refresh Wahoo token for athlete %s", athlete_id
-            )
+            logger.exception("Failed to refresh Wahoo token for athlete %s", athlete_id)
             return None
     return access_token
 

@@ -119,7 +119,11 @@ def get_authorization_url(
 
 
 async def exchange_code_for_token(
-    code: str, code_verifier: str, redirect_uri: str | None = None, client_id: str | None = None, client_secret: str | None = None
+    code: str,
+    code_verifier: str,
+    redirect_uri: str | None = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
 ) -> dict[str, Any]:
     """Exchanges the authorization code (plus PKCE code_verifier) for Strava tokens."""
     cid = client_id or _s.strava_client_id
@@ -137,7 +141,9 @@ async def exchange_code_for_token(
     return await request_json("POST", STRAVA_TOKEN_URL, data=payload, timeout=15)
 
 
-async def refresh_access_token(refresh_token: str, client_id: str | None = None, client_secret: str | None = None) -> dict[str, Any]:
+async def refresh_access_token(
+    refresh_token: str, client_id: str | None = None, client_secret: str | None = None
+) -> dict[str, Any]:
     """Renews a Strava access token using the refresh token (grant_type=refresh_token)."""
     cid = client_id or _s.strava_client_id
     csec = client_secret or _s.strava_client_secret
@@ -250,7 +256,9 @@ def revoke_token(athlete_id: int) -> None:
         conn.execute("DELETE FROM strava_tokens WHERE athlete_id = ?", (athlete_id,))
 
 
-async def get_valid_token(athlete_id: int, client_id: str | None = None, client_secret: str | None = None) -> str | None:
+async def get_valid_token(
+    athlete_id: int, client_id: str | None = None, client_secret: str | None = None
+) -> str | None:
     _ensure_token_table()
     with _get_conn() as conn:
         row = conn.execute(
@@ -320,6 +328,7 @@ async def fetch_all_activities(
 # ---------------------------------------------------------------------------
 # Normalization
 # ---------------------------------------------------------------------------
+
 
 def decode_polyline(encoded: str) -> list[dict[str, float]]:
     """Decode a Google-encoded polyline string into a list of {lat, lon} dicts."""
@@ -502,7 +511,3 @@ async def strava_to_ride_with_streams(
         except Exception:
             logger.exception("Failed to fetch Strava streams for activity %s", external_id)
     return strava_to_ride(activity, weight_kg=weight_kg, gps_points=points, resolution=resolution)
-
-
-
-

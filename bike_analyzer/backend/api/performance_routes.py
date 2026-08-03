@@ -69,7 +69,9 @@ async def list_performance_metrics(
 
     Un admin puo' passare ``athlete_id`` per consultare un altro atleta.
     """
-    target = athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    target = (
+        athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    )
     _ensure_athlete_access(target, current_user)
     rows = svc.get_performance_metrics(target, ride_id=ride_id)
     return {"athlete_id": target, "metrics": rows}
@@ -84,7 +86,9 @@ async def list_ftp_history(
 
     Un admin puo' passare ``athlete_id`` per consultare un altro atleta.
     """
-    target = athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    target = (
+        athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    )
     _ensure_athlete_access(target, current_user)
     history = svc.get_ftp_history(target)
     latest = history[-1]["ftp_watts"] if history else None
@@ -101,7 +105,9 @@ async def create_ftp_record(
 
     Un admin puo' passare ``athlete_id`` per registrare per un altro atleta.
     """
-    target = athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    target = (
+        athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    )
     _ensure_athlete_access(target, current_user)
     if not (1 <= payload.ftp_watts <= 2000):
         raise HTTPException(status_code=422, detail="ftp_watts fuori range plausibile (1-2000)")
@@ -121,9 +127,7 @@ async def estimate_ftp(
     current_user: dict = Depends(get_current_user),
 ) -> dict:
     """Stima FTP da un test di soglia (media power * frazione) con margine di errore."""
-    ftp_ev = estimate_ftp_from_test_with_error(
-        payload.test_power, payload.test_duration_min, payload.ftp_fraction
-    )
+    ftp_ev = estimate_ftp_from_test_with_error(payload.test_power, payload.test_duration_min, payload.ftp_fraction)
     if ftp_ev is None:
         raise HTTPException(status_code=400, detail="Impossibile stimare FTP dai dati forniti")
     return {"estimated_ftp": ftp_ev.value, "estimated_ftp_error": ftp_ev.to_dict()}
@@ -141,7 +145,9 @@ async def compute_ride_metrics(
     noto, lo usa per IF/TSS; altrimenti prova a stimarlo dalla ride.
     Un admin puo' passare ``athlete_id`` per operare su un altro atleta.
     """
-    target = athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    target = (
+        athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    )
     ride = get_ride(ride_id)
     if ride is None:
         raise HTTPException(status_code=404, detail="Ride non trovata")
@@ -170,9 +176,7 @@ async def compute_power_from_stream(
     """
     athlete_id = _current_athlete_id(current_user)
     _ensure_athlete_access(athlete_id, current_user)
-    metrics = calculate_power_metrics_with_error(
-        payload.power_stream, payload.ftp, payload.duration_seconds
-    )
+    metrics = calculate_power_metrics_with_error(payload.power_stream, payload.ftp, payload.duration_seconds)
     if metrics.get("normalized_power") is None:
         raise HTTPException(status_code=422, detail="Stream di potenza insufficiente o non valido")
     result = {}
@@ -194,12 +198,12 @@ async def recompute_all(
 
     Un admin puo' passare ``athlete_id`` per ricalcolare un altro atleta.
     """
-    target = athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    target = (
+        athlete_id if (athlete_id is not None and current_user.get("is_admin")) else _current_athlete_id(current_user)
+    )
     _ensure_athlete_access(target, current_user)
     rides = get_rides_by_athlete(target)
-    saved = svc.recompute_athlete_performance(
-        target, [dict(r) if not isinstance(r, dict) else r for r in rides]
-    )
+    saved = svc.recompute_athlete_performance(target, [dict(r) if not isinstance(r, dict) else r for r in rides])
     return {"athlete_id": target, "processed": len(saved), "metrics": saved}
 
 

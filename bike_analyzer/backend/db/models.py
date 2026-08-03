@@ -138,10 +138,16 @@ class UserModel(Base):
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     athletes: Mapped[list[AthleteModel]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    oauth_identities: Mapped[list[ExternalIdentityModel]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    external_tokens: Mapped[list[ExternalTokenModel]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    oauth_identities: Mapped[list[ExternalIdentityModel]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    external_tokens: Mapped[list[ExternalTokenModel]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     totp_secrets: Mapped[list[TOTPSecretModel]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    oauth_credentials: Mapped[list[UserOAuthCredentials]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    oauth_credentials: Mapped[list[UserOAuthCredentials]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("ix_users_username", "username"),
@@ -154,9 +160,7 @@ class AthleteModel(Base):
     __tablename__ = "athletes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE")
-    )
+    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str | None] = mapped_column(String)
     picture: Mapped[str | None] = mapped_column(String)
@@ -201,22 +205,46 @@ class AthleteModel(Base):
     user: Mapped[UserModel | None] = relationship(back_populates="athletes")
     rides: Mapped[list[RideModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
     chat_history: Mapped[list[ChatHistoryModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    calendar_events: Mapped[list[CalendarEventModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    training_stress_days: Mapped[list[TrainingStressDayModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    fitness_states: Mapped[list[FitnessStateModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    training_goals: Mapped[list[TrainingGoalModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    planned_workouts: Mapped[list[PlannedWorkoutModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    calendar_events: Mapped[list[CalendarEventModel]] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
+    training_stress_days: Mapped[list[TrainingStressDayModel]] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
+    fitness_states: Mapped[list[FitnessStateModel]] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
+    training_goals: Mapped[list[TrainingGoalModel]] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
+    planned_workouts: Mapped[list[PlannedWorkoutModel]] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
     metrics: Mapped[list[MetricModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    route_safety_scores: Mapped[list[RouteSafetyScore]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    route_safety_scores: Mapped[list[RouteSafetyScore]] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
     pois: Mapped[list[POIModel]] = relationship(back_populates="created_by_athlete", cascade="all, delete-orphan")
     itineraries: Mapped[list[ItineraryModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    external_identities: Mapped[list[ExternalIdentityModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    external_tokens: Mapped[list[ExternalTokenModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    metric_logs: Mapped[list[AthleteMetricLogModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    metabolic_profile: Mapped[MetabolicProfileModel | None] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    external_identities: Mapped[list[ExternalIdentityModel]] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
+    external_tokens: Mapped[list[ExternalTokenModel]] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
+    metric_logs: Mapped[list[AthleteMetricLogModel]] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
+    metabolic_profile: Mapped[MetabolicProfileModel | None] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
     food_logs: Mapped[list[FoodLogModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    metabolic_daily_summaries: Mapped[list[MetabolicDailySummaryModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
-    beck_assessments: Mapped[list[BeckAssessmentModel]] = relationship(back_populates="athlete", cascade="all, delete-orphan")
+    metabolic_daily_summaries: Mapped[list[MetabolicDailySummaryModel]] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
+    beck_assessments: Mapped[list[BeckAssessmentModel]] = relationship(
+        back_populates="athlete", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("ix_athletes_tenant", "tenant_id"),
@@ -239,9 +267,7 @@ class AthleteMetricLogModel(Base):
     __tablename__ = "athlete_metric_log"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     metric_type: Mapped[str] = mapped_column(String, nullable=False)
     value: Mapped[float | None] = mapped_column(Float)
@@ -321,9 +347,7 @@ class RideModel(Base):
     __tablename__ = "rides"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     date: Mapped[str] = mapped_column(String, nullable=False)
     distance_km: Mapped[float] = mapped_column(Float, default=0.0)
@@ -345,13 +369,13 @@ class RideModel(Base):
 
     athlete: Mapped[AthleteModel | None] = relationship(back_populates="rides")
     metrics: Mapped[list[MetricModel]] = relationship(back_populates="ride", cascade="all, delete-orphan")
-    route_safety_scores: Mapped[list[RouteSafetyScore]] = relationship(back_populates="ride", cascade="all, delete-orphan")
+    route_safety_scores: Mapped[list[RouteSafetyScore]] = relationship(
+        back_populates="ride", cascade="all, delete-orphan"
+    )
     stages: Mapped[list[StageModel]] = relationship(back_populates="ride", cascade="all, delete-orphan")
 
     __table_args__ = (
-        UniqueConstraint(
-            "external_source", "external_id", name="uq_rides_external_identity"
-        ),
+        UniqueConstraint("external_source", "external_id", name="uq_rides_external_identity"),
         Index("ix_rides_athlete_id", "athlete_id"),
         Index("ix_rides_date", "date"),
         Index("ix_rides_tenant", "tenant_id"),
@@ -362,9 +386,7 @@ class FitnessStateModel(Base):
     __tablename__ = "fitness_states"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     date: Mapped[str] = mapped_column(String, nullable=False)
     computed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -389,9 +411,7 @@ class TrainingStressDayModel(Base):
     __tablename__ = "training_stress_days"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
     date: Mapped[str] = mapped_column(String, nullable=False)
     tss: Mapped[float | None] = mapped_column(Float)
     atl: Mapped[float | None] = mapped_column(Float)
@@ -415,12 +435,8 @@ class MetricModel(Base):
     __tablename__ = "metrics"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
-    ride_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("rides.id", ondelete="CASCADE"), unique=True
-    )
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
+    ride_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("rides.id", ondelete="CASCADE"), unique=True)
     fatigue_score: Mapped[float | None] = mapped_column(Float)
     recovery_hours: Mapped[float | None] = mapped_column(Float)
     calories_per_km: Mapped[float | None] = mapped_column(Float)
@@ -442,9 +458,7 @@ class ChatHistoryModel(Base):
     __tablename__ = "chat_history"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE"), index=True
-    )
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     role: Mapped[str] = mapped_column(String, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
@@ -457,9 +471,7 @@ class CalendarEventModel(Base):
     __tablename__ = "calendar_events"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     title: Mapped[str] = mapped_column(String, nullable=False)
     event_type: Mapped[EventType] = mapped_column(Enum(EventType), default=EventType.TRAINING)
@@ -494,18 +506,14 @@ class WeatherCache(Base):
     description: Mapped[str | None] = mapped_column(String)
     cached_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    __table_args__ = (
-        UniqueConstraint("lat", "lon", "date", name="uq_weather_cache"),
-    )
+    __table_args__ = (UniqueConstraint("lat", "lon", "date", name="uq_weather_cache"),)
 
 
 class TrainingGoalModel(Base):
     __tablename__ = "training_goals"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
@@ -517,7 +525,9 @@ class TrainingGoalModel(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     athlete: Mapped[AthleteModel] = relationship(back_populates="training_goals")
-    planned_workouts: Mapped[list[PlannedWorkoutModel]] = relationship(back_populates="goal", cascade="all, delete-orphan")
+    planned_workouts: Mapped[list[PlannedWorkoutModel]] = relationship(
+        back_populates="goal", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("ix_training_goals_athlete", "athlete_id"),
@@ -530,13 +540,9 @@ class PlannedWorkoutModel(Base):
     __tablename__ = "planned_workouts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
-    goal_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("training_goals.id", ondelete="SET NULL")
-    )
+    goal_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("training_goals.id", ondelete="SET NULL"))
     date: Mapped[str] = mapped_column(String, nullable=False)
     title: Mapped[str] = mapped_column(String, nullable=False)
     workout_type: Mapped[WorkoutType] = mapped_column(Enum(WorkoutType), default=WorkoutType.ENDURANCE)
@@ -583,12 +589,8 @@ class RouteSafetyScore(Base):
     __tablename__ = "route_safety_scores"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    ride_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("rides.id", ondelete="CASCADE")
-    )
-    athlete_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
+    ride_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("rides.id", ondelete="CASCADE"))
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
     risk_score: Mapped[float | None] = mapped_column(Float)
     label: Mapped[RiskLabel | None] = mapped_column(Enum(RiskLabel))
     advice: Mapped[str | None] = mapped_column(Text)
@@ -624,12 +626,8 @@ class POIModel(Base):
     video_url: Mapped[str | None] = mapped_column(String)
     difficulty_note: Mapped[str | None] = mapped_column(Text)
     tags: Mapped[str | None] = mapped_column(Text)
-    itinerary_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("itineraries.id", ondelete="SET NULL")
-    )
-    created_by: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="SET NULL")
-    )
+    itinerary_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("itineraries.id", ondelete="SET NULL"))
+    created_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="SET NULL"))
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -650,9 +648,7 @@ class ItineraryModel(Base):
     __tablename__ = "itineraries"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
@@ -664,9 +660,7 @@ class ItineraryModel(Base):
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     athlete: Mapped[AthleteModel | None] = relationship(back_populates="itineraries")
-    stages: Mapped[list[StageModel]] = relationship(
-        back_populates="itinerary", cascade="all, delete-orphan"
-    )
+    stages: Mapped[list[StageModel]] = relationship(back_populates="itinerary", cascade="all, delete-orphan")
     pois: Mapped[list[POIModel]] = relationship(back_populates="itinerary")
 
     __table_args__ = (
@@ -681,21 +675,15 @@ class StageModel(Base):
     __tablename__ = "stages"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    itinerary_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("itineraries.id", ondelete="CASCADE"), nullable=False
-    )
+    itinerary_id: Mapped[int] = mapped_column(Integer, ForeignKey("itineraries.id", ondelete="CASCADE"), nullable=False)
     stage_day: Mapped[int] = mapped_column(Integer, default=1)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     distance_km: Mapped[float | None] = mapped_column(Float)
     elevation_gain_m: Mapped[float | None] = mapped_column(Float)
     estimated_km: Mapped[float | None] = mapped_column(Float)
     estimated_elevation_m: Mapped[float | None] = mapped_column(Float)
-    ride_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("rides.id", ondelete="SET NULL")
-    )
-    poi_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("pois.id", ondelete="SET NULL")
-    )
+    ride_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("rides.id", ondelete="SET NULL"))
+    poi_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("pois.id", ondelete="SET NULL"))
     notes: Mapped[str | None] = mapped_column(Text)
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -717,9 +705,7 @@ class StravaToken(Base):
     __tablename__ = "strava_tokens"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE"), unique=True
-    )
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), unique=True)
     access_token: Mapped[str] = mapped_column(String(1024), nullable=False)
     refresh_token: Mapped[str] = mapped_column(String(1024), nullable=False)
     expires_at: Mapped[int | None] = mapped_column(Integer)
@@ -734,9 +720,7 @@ class GarminToken(Base):
     __tablename__ = "garmin_tokens"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE"), unique=True
-    )
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), unique=True)
     access_token: Mapped[str] = mapped_column(String(1024), nullable=False)
     refresh_token: Mapped[str] = mapped_column(String(1024), nullable=False)
     expires_at: Mapped[int | None] = mapped_column(Integer)
@@ -762,9 +746,7 @@ class SyncEntityState(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    __table_args__ = (
-        UniqueConstraint("entity_type", "entity_id", name="uq_sync_entity_state"),
-    )
+    __table_args__ = (UniqueConstraint("entity_type", "entity_id", name="uq_sync_entity_state"),)
 
 
 class SyncSetting(Base):
@@ -807,9 +789,7 @@ class KnowledgeChunkModel(Base):
     char_count: Mapped[int] = mapped_column(Integer, default=0)
     token_count: Mapped[int] = mapped_column(Integer, default=0)
     section: Mapped[str | None] = mapped_column(String)
-    embedding: Mapped[Any] = mapped_column(
-        Vector(EMBEDDING_DIMENSION) if _HAS_PGVECTOR else Text
-    )
+    embedding: Mapped[Any] = mapped_column(Vector(EMBEDDING_DIMENSION) if _HAS_PGVECTOR else Text)
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -831,9 +811,7 @@ class SessionModel(Base):
     __tablename__ = "sessions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    athlete_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE"), index=True
-    )
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
     refresh_token: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     jti: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -847,9 +825,7 @@ class SegmentModel(Base):
     __tablename__ = "segments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    ride_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("rides.id", ondelete="CASCADE"), nullable=False
-    )
+    ride_id: Mapped[int] = mapped_column(Integer, ForeignKey("rides.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     start_index: Mapped[int] = mapped_column(Integer, nullable=False)
     end_index: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -857,9 +833,7 @@ class SegmentModel(Base):
     avg_speed_kmh: Mapped[float | None] = mapped_column(Float)
     elevation_gain_m: Mapped[float | None] = mapped_column(Float)
 
-    __table_args__ = (
-        Index("ix_segments_ride_id", "ride_id"),
-    )
+    __table_args__ = (Index("ix_segments_ride_id", "ride_id"),)
 
 
 class PauseModel(Base):
@@ -868,16 +842,12 @@ class PauseModel(Base):
     __tablename__ = "pauses"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    ride_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("rides.id", ondelete="CASCADE"), nullable=False
-    )
+    ride_id: Mapped[int] = mapped_column(Integer, ForeignKey("rides.id", ondelete="CASCADE"), nullable=False)
     start_index: Mapped[int] = mapped_column(Integer, nullable=False)
     end_index: Mapped[int] = mapped_column(Integer, nullable=False)
     duration_seconds: Mapped[float | None] = mapped_column(Float)
 
-    __table_args__ = (
-        Index("ix_pauses_ride_id", "ride_id"),
-    )
+    __table_args__ = (Index("ix_pauses_ride_id", "ride_id"),)
 
 
 class ExternalIdentityModel(Base):
@@ -886,12 +856,8 @@ class ExternalIdentityModel(Base):
     __tablename__ = "external_identities"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE")
-    )
-    athlete_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
+    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
     provider: Mapped[str] = mapped_column(String, nullable=False)
     external_id: Mapped[str] = mapped_column(String, nullable=False)
     external_email: Mapped[str | None] = mapped_column(String)
@@ -917,12 +883,8 @@ class ExternalTokenModel(Base):
     __tablename__ = "external_tokens"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE")
-    )
-    athlete_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("athletes.id", ondelete="CASCADE")
-    )
+    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    athlete_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"))
     provider: Mapped[str] = mapped_column(String, nullable=False)
     access_token: Mapped[str | None] = mapped_column(Text)
     refresh_token: Mapped[str | None] = mapped_column(Text)
@@ -948,9 +910,7 @@ class TOTPSecretModel(Base):
     __tablename__ = "totp_secrets"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     secret: Mapped[str] = mapped_column(String, nullable=False)
     enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -958,9 +918,7 @@ class TOTPSecretModel(Base):
 
     user: Mapped[UserModel] = relationship(back_populates="totp_secrets")
 
-    __table_args__ = (
-        UniqueConstraint("user_id", name="uq_totp_user"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", name="uq_totp_user"),)
 
 
 class UserOAuthCredentials(Base):
@@ -1032,9 +990,7 @@ class FoodLogModel(Base):
 
     athlete: Mapped[AthleteModel | None] = relationship(back_populates="food_logs")
 
-    __table_args__ = (
-        Index("ix_food_logs_athlete_date", "athlete_id", "date"),
-    )
+    __table_args__ = (Index("ix_food_logs_athlete_date", "athlete_id", "date"),)
 
 
 class MetabolicDailySummaryModel(Base):

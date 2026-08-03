@@ -96,21 +96,33 @@ def _ensure_tables(conn) -> None:  # pragma: no cover - best-effort bootstrap
             """
         )
         cur.execute(
-            "CREATE UNIQUE INDEX IF NOT EXISTS uq_rides_external_identity "
-            "ON rides (external_source, external_id)"
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_rides_external_identity ON rides (external_source, external_id)"
         )
         cur.execute(
-            "CREATE UNIQUE INDEX IF NOT EXISTS uq_training_stress_days "
-            "ON training_stress_days (athlete_id, date)"
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_training_stress_days ON training_stress_days (athlete_id, date)"
         )
     conn.commit()
 
 
 _RIDE_COLS = [
-    "athlete_id", "date", "distance_km", "duration_minutes", "avg_speed_kmh",
-    "weight_kg", "calories", "heart_rate_avg", "elevation_gain_m", "gps_points",
-    "external_source", "external_id", "title", "activity_type", "is_official",
-    "source", "created_at", "tenant_id",
+    "athlete_id",
+    "date",
+    "distance_km",
+    "duration_minutes",
+    "avg_speed_kmh",
+    "weight_kg",
+    "calories",
+    "heart_rate_avg",
+    "elevation_gain_m",
+    "gps_points",
+    "external_source",
+    "external_id",
+    "title",
+    "activity_type",
+    "is_official",
+    "source",
+    "created_at",
+    "tenant_id",
 ]
 
 
@@ -363,7 +375,9 @@ def save_metric(metric: dict, tenant_id: int = 0) -> int:
         now,
         metric.get("tenant_id", tenant_id),
     ]
-    cols = "athlete_id, ride_id, fatigue_score, recovery_hours, calories_per_km, efficiency_score, created_at, tenant_id"
+    cols = (
+        "athlete_id, ride_id, fatigue_score, recovery_hours, calories_per_km, efficiency_score, created_at, tenant_id"
+    )
     placeholders = ", ".join(["%s"] * len(params))
     conn = _connect()
     try:

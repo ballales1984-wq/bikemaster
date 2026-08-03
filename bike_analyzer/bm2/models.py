@@ -21,8 +21,13 @@ from .transformer import GeoPoint, TransformerEngine
 from .units import Quantity, q
 
 __all__ = [
-    "Athlete", "Bike", "Activity", "WorldObject", "AnalysisContext",
-    "MetabolicProfile", "MetabolicDailySummary",
+    "Athlete",
+    "Bike",
+    "Activity",
+    "WorldObject",
+    "AnalysisContext",
+    "MetabolicProfile",
+    "MetabolicDailySummary",
 ]
 
 
@@ -81,12 +86,10 @@ class Athlete:
         """Builds Athlete from raw data, normalizing units."""
         if raw.get("weight") is None:
             raise ValueError("required field 'weight' missing for Athlete")
-        weight = t.normalize(q(raw.get("weight"), raw.get("weight_unit", "kg"),
-                               source=raw.get("source", "manual")))
+        weight = t.normalize(q(raw.get("weight"), raw.get("weight_unit", "kg"), source=raw.get("source", "manual")))
         height = None
         if raw.get("height") is not None:
-            height = t.normalize(q(raw["height"], raw.get("height_unit", "m"),
-                                   source=raw.get("source", "manual")))
+            height = t.normalize(q(raw["height"], raw.get("height_unit", "m"), source=raw.get("source", "manual")))
         ftp = None
         if raw.get("ftp") is not None:
             ftp = t.normalize(q(raw["ftp"], "W", source=raw.get("ftp_source", "estimate")))
@@ -300,7 +303,9 @@ class MetabolicDailySummary:
             "water_ml": round(self.water_ml, 0),
             "tef_kcal": round(self.tef_kcal, 1),
             "steps_estimated": self.steps_estimated,
-            "elevation_gain_estimated_m": round(self.elevation_gain_estimated_m, 1) if self.elevation_gain_estimated_m else None,
+            "elevation_gain_estimated_m": round(self.elevation_gain_estimated_m, 1)
+            if self.elevation_gain_estimated_m
+            else None,
             "rides_count": self.rides_count,
             "gps_neat_kcal": round(self.gps_neat_kcal, 1),
             "metabolic_flexibility_score": round(self.metabolic_flexibility_score, 2),
@@ -350,8 +355,7 @@ class Bike:
         """Builds Bike from raw data, normalizing units."""
         if raw.get("weight") is None:
             raise ValueError("required field 'weight' missing for Bike")
-        weight = t.normalize(q(raw.get("weight"), raw.get("weight_unit", "kg"),
-                               source=raw.get("source", "manual")))
+        weight = t.normalize(q(raw.get("weight"), raw.get("weight_unit", "kg"), source=raw.get("source", "manual")))
         category = raw.get("category", "road")
         if category not in {"road", "gravel", "mtb", "other"}:
             raise ValueError(f"invalid bike category: {category!r}")
@@ -432,18 +436,20 @@ class Activity:
             ts = None
             if p.get("timestamp"):
                 ts = datetime.fromisoformat(p["timestamp"].replace("Z", "+00:00"))
-            points.append(GeoPoint(
-                lat=float(p["lat"]),
-                lon=float(p["lon"]),
-                altitude=float(p.get("altitude", 0.0)),
-                timestamp=ts,
-                x=float(p.get("x", 0.0)),
-                y=float(p.get("y", 0.0)),
-                speed=float(p["speed"]) if p.get("speed") is not None else None,
-                power=float(p["power"]) if p.get("power") is not None else None,
-                heart_rate=float(p["heart_rate"]) if p.get("heart_rate") is not None else None,
-                cadence=float(p["cadence"]) if p.get("cadence") is not None else None,
-            ))
+            points.append(
+                GeoPoint(
+                    lat=float(p["lat"]),
+                    lon=float(p["lon"]),
+                    altitude=float(p.get("altitude", 0.0)),
+                    timestamp=ts,
+                    x=float(p.get("x", 0.0)),
+                    y=float(p.get("y", 0.0)),
+                    speed=float(p["speed"]) if p.get("speed") is not None else None,
+                    power=float(p["power"]) if p.get("power") is not None else None,
+                    heart_rate=float(p["heart_rate"]) if p.get("heart_rate") is not None else None,
+                    cadence=float(p["cadence"]) if p.get("cadence") is not None else None,
+                )
+            )
         return cls(
             points=points,
             title=raw.get("title", ""),
@@ -486,18 +492,20 @@ class Activity:
             ts = None
             if p.get("timestamp"):
                 ts = datetime.fromisoformat(p["timestamp"])
-            points.append(GeoPoint(
-                lat=float(p["lat"]),
-                lon=float(p["lon"]),
-                altitude=float(p.get("altitude", 0.0)),
-                timestamp=ts,
-                x=float(p.get("x", 0.0)),
-                y=float(p.get("y", 0.0)),
-                speed=float(p["speed"]) if p.get("speed") is not None else None,
-                power=float(p["power"]) if p.get("power") is not None else None,
-                heart_rate=float(p["heart_rate"]) if p.get("heart_rate") is not None else None,
-                cadence=float(p["cadence"]) if p.get("cadence") is not None else None,
-            ))
+            points.append(
+                GeoPoint(
+                    lat=float(p["lat"]),
+                    lon=float(p["lon"]),
+                    altitude=float(p.get("altitude", 0.0)),
+                    timestamp=ts,
+                    x=float(p.get("x", 0.0)),
+                    y=float(p.get("y", 0.0)),
+                    speed=float(p["speed"]) if p.get("speed") is not None else None,
+                    power=float(p["power"]) if p.get("power") is not None else None,
+                    heart_rate=float(p["heart_rate"]) if p.get("heart_rate") is not None else None,
+                    cadence=float(p["cadence"]) if p.get("cadence") is not None else None,
+                )
+            )
         return cls(
             points=points,
             title=raw.get("title", ""),
@@ -523,8 +531,7 @@ class WorldObject:
         """Builds WorldObject from raw environment data."""
         slope = None
         if raw.get("avg_slope") is not None:
-            slope = t.normalize(q(raw["avg_slope"], raw.get("avg_slope_unit", "%"),
-                                  source=raw.get("source", "dem")))
+            slope = t.normalize(q(raw["avg_slope"], raw.get("avg_slope_unit", "%"), source=raw.get("source", "dem")))
         wind = None
         if raw.get("wind_speed") is not None:
             wind = t.normalize(q(raw["wind_speed"], "m/s", source="manual"))
@@ -556,7 +563,9 @@ class WorldObject:
         return cls(
             surface=raw.get("surface", "asphalt"),
             roughness_index=_quantity_from_dict(raw["roughness_index"], t),
-            avg_slope_percent=_quantity_from_dict(raw["avg_slope_percent"], t) if raw.get("avg_slope_percent") else None,
+            avg_slope_percent=_quantity_from_dict(raw["avg_slope_percent"], t)
+            if raw.get("avg_slope_percent")
+            else None,
             wind_speed_ms=_quantity_from_dict(raw["wind_speed_ms"], t) if raw.get("wind_speed_ms") else None,
             temperature_c=_quantity_from_dict(raw["temperature_c"], t) if raw.get("temperature_c") else None,
         )

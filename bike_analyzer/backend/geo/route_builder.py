@@ -50,28 +50,51 @@ def build_aethermap_worldstore(
                 "idx": i,
             },
         )
-        store.add(Oggetto(
-            id=f"gps_{i:06d}",
-            tipo="segment",
-            posizione=pos,
-            geometria=geom,
-            proprieta=props,
-        ))
+        store.add(
+            Oggetto(
+                id=f"gps_{i:06d}",
+                tipo="segment",
+                posizione=pos,
+                geometria=geom,
+                proprieta=props,
+            )
+        )
 
     start = points[0]
     end = points[-1]
-    start_pos = Posizione.from_latlon(start.lat, start.lon, getattr(start, "altitude", None) or getattr(start, "ele", None) or 0.0)
-    end_pos = Posizione.from_latlon(end.lat, end.lon, getattr(end, "altitude", None) or getattr(end, "ele", None) or 0.0)
-    store.add(Oggetto(id="marker_start", tipo="start", posizione=start_pos,
-                      geometria=Geometria(tipo="punto"), proprieta={"char": "S"}))
-    store.add(Oggetto(id="marker_end", tipo="end", posizione=end_pos,
-                      geometria=Geometria(tipo="punto"), proprieta={"char": "E"}))
+    start_pos = Posizione.from_latlon(
+        start.lat, start.lon, getattr(start, "altitude", None) or getattr(start, "ele", None) or 0.0
+    )
+    end_pos = Posizione.from_latlon(
+        end.lat, end.lon, getattr(end, "altitude", None) or getattr(end, "ele", None) or 0.0
+    )
+    store.add(
+        Oggetto(
+            id="marker_start",
+            tipo="start",
+            posizione=start_pos,
+            geometria=Geometria(tipo="punto"),
+            proprieta={"char": "S"},
+        )
+    )
+    store.add(
+        Oggetto(
+            id="marker_end", tipo="end", posizione=end_pos, geometria=Geometria(tipo="punto"), proprieta={"char": "E"}
+        )
+    )
 
     if statistics and statistics.total_elevation_gain_m:
         mid = points[len(points) // 2]
         mid_pos = Posizione.from_latlon(mid.lat, mid.lon, statistics.total_elevation_gain_m or 0.0)
-        store.add(Oggetto(id="marker_stats", tipo="stats", posizione=mid_pos,
-                          geometria=Geometria(tipo="punto"), proprieta={"char": "M"}))
+        store.add(
+            Oggetto(
+                id="marker_stats",
+                tipo="stats",
+                posizione=mid_pos,
+                geometria=Geometria(tipo="punto"),
+                proprieta={"char": "M"},
+            )
+        )
 
     metadata = _statistics_metadata(statistics)
     if extra_layers:

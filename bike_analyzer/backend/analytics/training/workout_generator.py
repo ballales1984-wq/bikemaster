@@ -73,14 +73,30 @@ class WorkoutGenerator:
 
     def _select_week_template(self, goal: TrainingGoal, days: int) -> list[WorkoutType]:
         if goal.goal_type == GoalType.GRANFONDO:
-            return [WorkoutType.ENDURANCE, WorkoutType.SWEETSPOT, WorkoutType.RECOVERY, WorkoutType.THRESHOLD, WorkoutType.LONG_RIDE][:max(days, 1)]
+            return [
+                WorkoutType.ENDURANCE,
+                WorkoutType.SWEETSPOT,
+                WorkoutType.RECOVERY,
+                WorkoutType.THRESHOLD,
+                WorkoutType.LONG_RIDE,
+            ][: max(days, 1)]
         if goal.goal_type == GoalType.FTP_IMPROVEMENT:
-            return [WorkoutType.THRESHOLD, WorkoutType.INTERVALS, WorkoutType.SWEETSPOT, WorkoutType.ENDURANCE, WorkoutType.RECOVERY][:max(days, 1)]
+            return [
+                WorkoutType.THRESHOLD,
+                WorkoutType.INTERVALS,
+                WorkoutType.SWEETSPOT,
+                WorkoutType.ENDURANCE,
+                WorkoutType.RECOVERY,
+            ][: max(days, 1)]
         if goal.goal_type == GoalType.WEIGHT_LOSS:
-            return [WorkoutType.ENDURANCE, WorkoutType.SWEETSPOT, WorkoutType.ENDURANCE, WorkoutType.RECOVERY][:max(days, 1)]
+            return [WorkoutType.ENDURANCE, WorkoutType.SWEETSPOT, WorkoutType.ENDURANCE, WorkoutType.RECOVERY][
+                : max(days, 1)
+            ]
         if goal.goal_type == GoalType.BEGINNER_BASE:
-            return [WorkoutType.ENDURANCE, WorkoutType.RECOVERY, WorkoutType.ENDURANCE][:max(days, 1)]
-        return [WorkoutType.ENDURANCE, WorkoutType.THRESHOLD, WorkoutType.RECOVERY, WorkoutType.LONG_RIDE][:max(days, 1)]
+            return [WorkoutType.ENDURANCE, WorkoutType.RECOVERY, WorkoutType.ENDURANCE][: max(days, 1)]
+        return [WorkoutType.ENDURANCE, WorkoutType.THRESHOLD, WorkoutType.RECOVERY, WorkoutType.LONG_RIDE][
+            : max(days, 1)
+        ]
 
     def _fatigue_adjustment(self, fatigue: float, position: int, total_days: int) -> float:
         if fatigue >= 8:
@@ -129,7 +145,9 @@ class WorkoutGenerator:
             workout_type=workout_type,
             duration_minutes=duration_minutes,
             distance_target_km=distance,
-            elevation_gain_m=int(distance * 4.0) if workout_type in (WorkoutType.THRESHOLD, WorkoutType.LONG_RIDE) else 0,
+            elevation_gain_m=int(distance * 4.0)
+            if workout_type in (WorkoutType.THRESHOLD, WorkoutType.LONG_RIDE)
+            else 0,
             intensity_pct_ftp=intensity,
             target_zone=zone,
             blocks=blocks,
@@ -161,36 +179,121 @@ class WorkoutGenerator:
         return "Z5"
 
     def _build_blocks(self, wtype: WorkoutType, duration: int, intensity: float) -> list[WorkoutBlock]:
-        warmup = WorkoutBlock(block_type="warmup", duration_minutes=10, intensity_pct_ftp=0.55, target_zone="Z1-Z2", description="Riscaldamento progressivo")
-        cooldown = WorkoutBlock(block_type="cooldown", duration_minutes=10, intensity_pct_ftp=0.50, target_zone="Z1-Z2", description="Defaticamento")
+        warmup = WorkoutBlock(
+            block_type="warmup",
+            duration_minutes=10,
+            intensity_pct_ftp=0.55,
+            target_zone="Z1-Z2",
+            description="Riscaldamento progressivo",
+        )
+        cooldown = WorkoutBlock(
+            block_type="cooldown",
+            duration_minutes=10,
+            intensity_pct_ftp=0.50,
+            target_zone="Z1-Z2",
+            description="Defaticamento",
+        )
 
         if wtype == WorkoutType.RECOVERY:
-            return [warmup, WorkoutBlock(block_type="main", duration_minutes=max(5, duration - 20), intensity_pct_ftp=0.55, target_zone="Z1-Z2", description="Pedalata molto leggera"), cooldown]
+            return [
+                warmup,
+                WorkoutBlock(
+                    block_type="main",
+                    duration_minutes=max(5, duration - 20),
+                    intensity_pct_ftp=0.55,
+                    target_zone="Z1-Z2",
+                    description="Pedalata molto leggera",
+                ),
+                cooldown,
+            ]
 
         if wtype == WorkoutType.ENDURANCE:
             main_dur = max(10, duration - 20)
-            return [warmup, WorkoutBlock(block_type="main", duration_minutes=main_dur, intensity_pct_ftp=intensity, target_zone=self._zone_for_intensity(intensity), description="Fondo costante"), cooldown]
+            return [
+                warmup,
+                WorkoutBlock(
+                    block_type="main",
+                    duration_minutes=main_dur,
+                    intensity_pct_ftp=intensity,
+                    target_zone=self._zone_for_intensity(intensity),
+                    description="Fondo costante",
+                ),
+                cooldown,
+            ]
 
         if wtype == WorkoutType.LONG_RIDE:
             main_dur = max(20, duration - 20)
-            return [warmup, WorkoutBlock(block_type="main", duration_minutes=main_dur, intensity_pct_ftp=intensity, target_zone=self._zone_for_intensity(intensity), description="Uscita lunga sostenuta"), cooldown]
+            return [
+                warmup,
+                WorkoutBlock(
+                    block_type="main",
+                    duration_minutes=main_dur,
+                    intensity_pct_ftp=intensity,
+                    target_zone=self._zone_for_intensity(intensity),
+                    description="Uscita lunga sostenuta",
+                ),
+                cooldown,
+            ]
 
         if wtype == WorkoutType.THRESHOLD:
             main_dur = max(15, duration - 20)
-            return [warmup, WorkoutBlock(block_type="main", duration_minutes=main_dur, intensity_pct_ftp=intensity, target_zone="Z4", description="Soglia controllata"), cooldown]
+            return [
+                warmup,
+                WorkoutBlock(
+                    block_type="main",
+                    duration_minutes=main_dur,
+                    intensity_pct_ftp=intensity,
+                    target_zone="Z4",
+                    description="Soglia controllata",
+                ),
+                cooldown,
+            ]
 
         if wtype == WorkoutType.SWEETSPOT:
             main_dur = max(10, duration - 20)
-            return [warmup, WorkoutBlock(block_type="main", duration_minutes=main_dur, intensity_pct_ftp=intensity, target_zone="Z3", description="Sweet spot sostenuto"), cooldown]
+            return [
+                warmup,
+                WorkoutBlock(
+                    block_type="main",
+                    duration_minutes=main_dur,
+                    intensity_pct_ftp=intensity,
+                    target_zone="Z3",
+                    description="Sweet spot sostenuto",
+                ),
+                cooldown,
+            ]
 
         if wtype == WorkoutType.INTERVALS:
             main_dur = max(10, duration - 20)
             reps = max(1, main_dur // 5)
             rep_dur = main_dur // reps
-            return [warmup, WorkoutBlock(block_type="main", duration_minutes=main_dur, intensity_pct_ftp=intensity, target_zone="Z5", description=f"{reps} ripetizioni ad alta intensita", repetition_count=reps, repetition_duration_min=rep_dur, repetition_rest_min=2), cooldown]
+            return [
+                warmup,
+                WorkoutBlock(
+                    block_type="main",
+                    duration_minutes=main_dur,
+                    intensity_pct_ftp=intensity,
+                    target_zone="Z5",
+                    description=f"{reps} ripetizioni ad alta intensita",
+                    repetition_count=reps,
+                    repetition_duration_min=rep_dur,
+                    repetition_rest_min=2,
+                ),
+                cooldown,
+            ]
 
         main_dur = max(10, duration - 20)
-        return [warmup, WorkoutBlock(block_type="main", duration_minutes=main_dur, intensity_pct_ftp=intensity, target_zone=self._zone_for_intensity(intensity), description="Parte principale"), cooldown]
+        return [
+            warmup,
+            WorkoutBlock(
+                block_type="main",
+                duration_minutes=main_dur,
+                intensity_pct_ftp=intensity,
+                target_zone=self._zone_for_intensity(intensity),
+                description="Parte principale",
+            ),
+            cooldown,
+        ]
 
     def _estimate_distance(self, wtype: WorkoutType, duration_min: int, intensity: float) -> float | None:
         speed_map = {

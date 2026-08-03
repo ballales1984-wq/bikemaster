@@ -40,7 +40,9 @@ class AdaptationEngine:
         if event.event_type == AdaptationEventType.RECOVERY_INSUFFICIENT:
             return True, "Recupero insufficiente: ridotto il carico per i prossimi allenamenti."
         if event.event_type == AdaptationEventType.STRAVA:
-            extra_tss = event.actual_data.get("tss", 0) - (event.planned_workout.estimated_tss if event.planned_workout else 0)
+            extra_tss = event.actual_data.get("tss", 0) - (
+                event.planned_workout.estimated_tss if event.planned_workout else 0
+            )
             if extra_tss > 50:
                 return True, f"Sforzo aggiuntivo di {extra_tss:.0f} TSS: ridotto il carico successivo."
         return False, ""

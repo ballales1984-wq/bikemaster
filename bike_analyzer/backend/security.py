@@ -260,7 +260,11 @@ def create_access_token(
 
 
 def create_refresh_token(
-    subject: str, is_admin: bool = False, tenant_id: int | None = None, is_client: bool = False, athlete_id: int | None = None
+    subject: str,
+    is_admin: bool = False,
+    tenant_id: int | None = None,
+    is_client: bool = False,
+    athlete_id: int | None = None,
 ) -> str:
     """Generates a JWT refresh token with a duration of 30 days.
 
@@ -563,6 +567,3 @@ def delete_auth_cookies(response: Response) -> None:
     """
     response.delete_cookie(key="bikemaster_access", path="/")
     response.delete_cookie(key="bikemaster_refresh", path="/api/v1/auth")
-
-
-

@@ -31,7 +31,9 @@ def _plan() -> list[WorkoutPlan]:
     return [
         WorkoutPlan(date="2026-07-16", workout_type="endurance", distance_km=40.0, duration_minutes=120.0),
         WorkoutPlan(date="2026-07-17", workout_type="threshold", distance_km=30.0, duration_minutes=90.0),
-        WorkoutPlan(date="2026-07-18", workout_type="recovery", distance_km=15.0, duration_minutes=45.0, is_recovery=True),
+        WorkoutPlan(
+            date="2026-07-18", workout_type="recovery", distance_km=15.0, duration_minutes=45.0, is_recovery=True
+        ),
         WorkoutPlan(date="2026-07-19", workout_type="long_ride", distance_km=60.0, duration_minutes=180.0),
     ]
 

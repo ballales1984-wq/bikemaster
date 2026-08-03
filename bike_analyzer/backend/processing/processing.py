@@ -35,7 +35,9 @@ def validate_gps_point(point: GPSPoint) -> bool:
 def detect_pauses(points: list[GPSPoint]) -> list[Pause]:
     """Detects pauses in the track: segments with continuous speed < 1.5 km/h.
 
-    A point is a "pause" if its speed drops below the threshold; when speed\n    rises again, if the accumulated duration >= 3 minutes a ``Pause``\n    object is emitted (start/end/duration_s). Handles one open pause at a time.
+    A point is a "pause" if its speed drops below the threshold; when speed
+    rises again, if the accumulated duration >= 3 minutes a ``Pause`` object is
+    emitted (start/end/duration_s). Handles one open pause at a time.
     """
     pauses: list[Pause] = []
     if len(points) < 2:
@@ -91,7 +93,10 @@ def detect_decelerations(points: list[GPSPoint]) -> list[tuple[int, float]]:
 def remove_outliers(points: list[GPSPoint], max_speed_km_h: float = 120.0) -> list[GPSPoint]:
     """Removes GPS points that would imply an implausible speed.
 
-    Calculates instantaneous speed between consecutive points via haversine/delta-t and\n    discards points that exceed it (default 120 km/h, typical of GPS errors).\n    Always keeps the first and last point. If cleaning leaves <2 points,\n    returns the first two of the original to avoid breaking downstream consumers.
+    Calculates instantaneous speed between consecutive points via haversine/delta-t and
+    discards points that exceed it (default 120 km/h, typical of GPS errors).
+    Always keeps the first and last point. If cleaning leaves <2 points,
+    returns the first two of the original to avoid breaking downstream consumers.
     """
     if len(points) < 3:
         return points[:]
@@ -124,7 +129,8 @@ def _elevation_delta(alt_from: float | None, alt_to: float | None) -> tuple[floa
 def build_segments(points: list[GPSPoint]) -> list[Segment]:
     """Builds point-to-point segments of the route.
 
-    For each consecutive pair calculates distance (haversine), duration, average\n    speed and elevation change (gain/loss), skipping steps with delta-t <= 0.
+    For each consecutive pair calculates distance (haversine), duration, average
+    speed and elevation change (gain/loss), skipping steps with delta-t <= 0.
     """
     segments: list[Segment] = []
     for i in range(1, len(points)):
@@ -151,7 +157,9 @@ def build_segments(points: list[GPSPoint]) -> list[Segment]:
 def compute_statistics(points: list[GPSPoint]) -> RouteStatistics:
     """Aggregates route statistics: distance, duration, pauses, speed, elevation.
 
-    Total duration is the window between first and last segment; moving time\n    subtracts detected pauses. Average speed uses moving time\n    (not total time) to be realistic.
+    Total duration is the window between first and last segment; moving time
+    subtracts detected pauses. Average speed uses moving time
+    (not total time) to be realistic.
     """
     segments = build_segments(points)
     pauses = detect_pauses(points)
@@ -178,5 +186,3 @@ def process_route(points: list[GPSPoint], max_speed_km_h: float = 120.0) -> tupl
     points = sorted(points, key=lambda p: p.timestamp)
     cleaned = remove_outliers(points, max_speed_km_h)
     return cleaned, compute_statistics(cleaned)
-
-

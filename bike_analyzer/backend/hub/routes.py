@@ -118,11 +118,7 @@ def _trusted_forwarded_value(request: Request, header: str) -> str | None:
 def _build_redirect_uri(request: Request, path: str) -> str:
     """Costruisce l'URI di redirect completo usando proto e host inoltrati."""
     proto = _trusted_forwarded_value(request, "x-forwarded-proto") or request.url.scheme
-    host = (
-        _trusted_forwarded_value(request, "x-forwarded-host")
-        or request.headers.get("host")
-        or request.url.netloc
-    )
+    host = _trusted_forwarded_value(request, "x-forwarded-host") or request.headers.get("host") or request.url.netloc
     return f"{proto}://{host}{path}"
 
 
@@ -274,14 +270,14 @@ async def hub_login(request: Request, form_data: OAuth2PasswordRequestForm = Dep
             raise HTTPException(status_code=429, detail="Too many login attempts")
 
         if not user or not verify_password(form_data.password, user.password_hash or ""):
-            raise HTTPException(
-                status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"}
-            )
+            raise HTTPException(status_code=401, detail="Invalid credentials", headers={"WWW-Authenticate": "Bearer"})
 
         access_token = create_access_token(
             subject=str(user.id), is_admin=user.is_admin, tenant_id=user.id, is_client=user.is_client
         )
-        refresh_token = create_refresh_token(user.id, is_admin=user.is_admin, tenant_id=user.id, is_client=user.is_client)
+        refresh_token = create_refresh_token(
+            user.id, is_admin=user.is_admin, tenant_id=user.id, is_client=user.is_client
+        )
         await save_refresh_token(user.id, refresh_token)
         return {
             "access_token": access_token,
@@ -427,9 +423,7 @@ async def hub_get_me(current_user: dict = Depends(get_current_user)):
             "profile_complete": False,
         }
     profile_complete = (
-        athlete.age is not None
-        and athlete.weight_kg is not None
-        and (athlete.experience_level or "").strip() != ""
+        athlete.age is not None and athlete.weight_kg is not None and (athlete.experience_level or "").strip() != ""
     )
     return {
         "id": athlete.id,
@@ -453,9 +447,18 @@ async def hub_update_profile(
     from sqlalchemy import update as sa_update
 
     allowed_fields = {
-        "name", "email", "age", "weight_kg", "height_cm",
-        "experience_level", "goals", "preferred_terrain",
-        "weekly_volume_km", "ftp_watts", "equipment", "medical_notes",
+        "name",
+        "email",
+        "age",
+        "weight_kg",
+        "height_cm",
+        "experience_level",
+        "goals",
+        "preferred_terrain",
+        "weekly_volume_km",
+        "ftp_watts",
+        "equipment",
+        "medical_notes",
     }
     update_data = {k: v for k, v in profile_data.items() if k in allowed_fields and v is not None}
     if not update_data:
@@ -463,11 +466,7 @@ async def hub_update_profile(
 
     session_factory = get_session_factory()
     async with session_factory() as session:
-        stmt = (
-            sa_update(AthleteModel)
-            .where(AthleteModel.id == current_user["id"])
-            .values(**update_data)
-        )
+        stmt = sa_update(AthleteModel).where(AthleteModel.id == current_user["id"]).values(**update_data)
         await session.execute(stmt)
         await session.commit()
 
@@ -477,20 +476,22 @@ async def hub_update_profile(
 
     if not athlete:
         raise HTTPException(status_code=404, detail="User not found")
-    return _public_athlete({
-        "id": athlete.id,
-        "name": athlete.name,
-        "email": athlete.email,
-        "picture": athlete.picture,
-        "age": athlete.age,
-        "weight_kg": athlete.weight_kg,
-        "height_cm": athlete.height_cm,
-        "experience_level": athlete.experience_level,
-        "goals": athlete.goals,
-        "equipment": athlete.equipment,
-        "ftp_watts": athlete.ftp_watts,
-        "tenant_id": athlete.tenant_id,
-    })
+    return _public_athlete(
+        {
+            "id": athlete.id,
+            "name": athlete.name,
+            "email": athlete.email,
+            "picture": athlete.picture,
+            "age": athlete.age,
+            "weight_kg": athlete.weight_kg,
+            "height_cm": athlete.height_cm,
+            "experience_level": athlete.experience_level,
+            "goals": athlete.goals,
+            "equipment": athlete.equipment,
+            "ftp_watts": athlete.ftp_watts,
+            "tenant_id": athlete.tenant_id,
+        }
+    )
 
 
 @hub_auth_router.post("/auth/change-password")
@@ -624,6 +625,7 @@ async def hub_google_oauth_callback_get(
 
         if not existing:
             from bike_analyzer.backend.redis_client import get_redis
+
             lock_key = f"oauth:lock:athlete:{email or google_sub}"
             r = await get_redis()
             lock_acquired = True
@@ -716,6 +718,7 @@ async def hub_google_code_exchange(
             existing = athlete
 
         from bike_analyzer.backend.auth.google_auth import create_google_session
+
         jwt_token = create_google_session(user_info, athlete_id=existing.id)["access_token"]
 
     return {
@@ -777,10 +780,7 @@ async def hub_create_backup(current_user: dict = Depends(get_admin_user)):
 
     def _dump(model):
         """Serializza le righe di un modello SQLAlchemy in lista di dizionari."""
-        return [
-            {c.name: getattr(row, c.name) for c in model.__table__.columns}
-            for row in model
-        ]
+        return [{c.name: getattr(row, c.name) for c in model.__table__.columns} for row in model]
 
     payload = {
         "users": _dump(UserModel),
