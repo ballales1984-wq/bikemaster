@@ -241,6 +241,22 @@ def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
         conn.close()
 
 
+def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | None:
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            if tenant_id is not None:
+                cur.execute(
+                    "SELECT * FROM athletes WHERE email=%s AND tenant_id=%s",
+                    (email, tenant_id),
+                )
+            else:
+                cur.execute("SELECT * FROM athletes WHERE email=%s", (email,))
+            return _dict_from_row(cur.fetchone())
+    finally:
+        conn.close()
+
+
 def save_athlete(
     athlete: dict,
     athlete_id: int | None = None,

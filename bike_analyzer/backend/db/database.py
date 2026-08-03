@@ -1185,6 +1185,11 @@ def get_athlete_by_name(name: str, tenant_id: int | None = None) -> dict | None:
 
 def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | None:
     """Return the first athlete matching ``email``, optionally filtered by tenant."""
+    from .postgres_athlete import get_athlete_by_email as _pg_get_athlete_by_email
+    from .postgres_athlete import has_postgres
+
+    if has_postgres():
+        return _pg_get_athlete_by_email(email, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:

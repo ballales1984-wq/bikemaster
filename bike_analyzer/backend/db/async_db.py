@@ -23,6 +23,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 
 from ..settings import get_settings
 from .models import (
+    AthleteHistoryModel,
+    AthleteMetricLogModel,
     AthleteModel,
     Base,
     CalendarEventModel,
@@ -62,6 +64,8 @@ _session_factory: async_sessionmaker | None = None
 _CORE_TABLES = [
     UserModel.__table__,
     AthleteModel.__table__,
+    AthleteMetricLogModel.__table__,
+    AthleteHistoryModel.__table__,
     RideModel.__table__,
     FitnessStateModel.__table__,
     TrainingStressDayModel.__table__,

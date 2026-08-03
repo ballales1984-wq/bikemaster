@@ -15,12 +15,18 @@ import pytest
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from bike_analyzer.backend.db.async_db import (
+    _CORE_TABLES,
     _make_async_url,
     _get_engine,
     get_session_factory,
     init_async_db,
 )
-from bike_analyzer.backend.db.models import Base, RideModel
+from bike_analyzer.backend.db.models import (
+    AthleteHistoryModel,
+    AthleteMetricLogModel,
+    Base,
+    RideModel,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -32,6 +38,11 @@ def _reset_async_state():
     yield
     mod._engine = None
     mod._session_factory = None
+
+
+@pytest.fixture
+def async_url():
+    return "sqlite+aiosqlite:///:memory:"
 
 
 class TestMakeAsyncUrl:
@@ -79,10 +90,6 @@ class TestEngineUnconfigured:
 
 
 class TestAsyncEngineWithSQLite:
-    @pytest.fixture
-    def async_url(self):
-        return "sqlite+aiosqlite:///:memory:"
-
     def test_get_engine_creates_engine(self, async_url):
         os.environ["DATABASE_URL"] = async_url
         engine = _get_engine()
@@ -134,3 +141,59 @@ class TestAsyncEngineWithSQLite:
         assert len(results) == 1
         assert results[0]["distance_km"] == 35.0
         assert results[0]["date"] == "2024-06-15"
+
+
+class TestCoreTablesIncludesAthleteAux:
+    def test_core_tables_include_athlete_history(self):
+        table_names = {t.name for t in _CORE_TABLES}
+        assert "athlete_history" in table_names
+
+    def test_core_tables_include_athlete_metric_log(self):
+        table_names = {t.name for t in _CORE_TABLES}
+        assert "athlete_metric_log" in table_names
+
+    def test_athlete_history_and_log_models_in_core_tables(self):
+        assert AthleteHistoryModel.__table__ in _CORE_TABLES
+        assert AthleteMetricLogModel.__table__ in _CORE_TABLES
+
+    def test_init_async_db_creates_athlete_history_table(self, async_url):
+        import asyncio
+
+        from sqlalchemy import inspect
+
+        os.environ["DATABASE_URL"] = async_url
+        asyncio.run(init_async_db())
+        engine = _get_engine()
+        assert engine is not None
+
+        async def _check():
+            async with engine.connect() as conn:
+
+                def _sync_inspect(sync_conn):
+                    return set(inspect(sync_conn).get_table_names())
+
+                tables = await conn.run_sync(_sync_inspect)
+                return "athlete_history" in tables
+
+        assert asyncio.run(_check())
+
+    def test_init_async_db_creates_athlete_metric_log_table(self, async_url):
+        import asyncio
+
+        from sqlalchemy import inspect
+
+        os.environ["DATABASE_URL"] = async_url
+        asyncio.run(init_async_db())
+        engine = _get_engine()
+        assert engine is not None
+
+        async def _check():
+            async with engine.connect() as conn:
+
+                def _sync_inspect(sync_conn):
+                    return set(inspect(sync_conn).get_table_names())
+
+                tables = await conn.run_sync(_sync_inspect)
+                return "athlete_metric_log" in tables
+
+        assert asyncio.run(_check())
