@@ -170,13 +170,28 @@ frontend/tc_err.txt
 # Kubernetes generic deployment files (not BikeMaster-specific)
 webapp.yaml
 
+# Debug/scratch scripts in frontend
+frontend/debug-*.mjs
+frontend/debug-*.py
+frontend/audit-*.mjs
+frontend/audit-*.cjs
+frontend/audit-*.json
+frontend/check-report.py
+frontend/playwright.audit.config.js
+
+# Audit artifacts (may contain tokens/secrets)
+audit_token.json
+frontend/audit-screenshots/
+
 # Emulator and mobile scratch
 emulator-logcat*.txt
 mobile-*.png
 mobile-*.mp4
 mobile-*.jpg
 
-# Audit artifacts (may contain tokens/secrets)
-audit_token.json
-frontend/audit-screenshots/
+# Root scratch files
+ngrok-*.log
+ride_1_distance.png
+ride_1_elevation.png
+ride_1_speed.png
 
