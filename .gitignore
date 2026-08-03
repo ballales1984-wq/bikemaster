@@ -171,13 +171,9 @@ frontend/tc_err.txt
 webapp.yaml
 
 # Debug/scratch scripts in frontend
-frontend/debug-*.mjs
-frontend/debug-*.py
-frontend/audit-*.mjs
-frontend/audit-*.cjs
-frontend/audit-*.json
-frontend/check-report.py
-frontend/playwright.audit.config.js
+frontend/debug-*
+frontend/audit*
+frontend/check-report*
 
 # Audit artifacts (may contain tokens/secrets)
 audit_token.json
@@ -191,7 +187,6 @@ mobile-*.jpg
 
 # Root scratch files
 ngrok-*.log
-ride_1_distance.png
-ride_1_elevation.png
-ride_1_speed.png
+ride_1_*.png
+ride_1_*.html
 
