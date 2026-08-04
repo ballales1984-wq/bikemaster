@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'",
+      "csp": "default-src 'self'; connect-src 'self' http://localhost:* http://127.0.0.1:* https://* ws: wss:; img-src 'self' data: https: http:; font-src 'self' data: https:; style-src 'self' 'unsafe-inline'; object-src 'none'; script-src 'self' 'wasm-unsafe-eval';",
       "capabilities": ["default"]
     }
   },
