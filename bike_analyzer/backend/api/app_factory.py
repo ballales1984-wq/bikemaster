@@ -125,8 +125,14 @@ async def lifespan(app: FastAPI):
     if _s.database_url:
         from ..db.migrations import run_migrations_on_startup
 
-        asyncio.create_task(_run_migrations_async(run_migrations_on_startup))
-        asyncio.create_task(_init_async_db_bg())
+        app.state._bg_tasks: list[asyncio.Task] = []
+        migration_task = asyncio.create_task(_run_migrations_async(run_migrations_on_startup))
+        app.state._bg_tasks.append(migration_task)
+        logger.info("Migrations scheduled as background task (task id=%s)", migration_task.get_name())
+
+        init_task = asyncio.create_task(_init_async_db_bg())
+        app.state._bg_tasks.append(init_task)
+        logger.info("Async DB init scheduled as background task (task id=%s)", init_task.get_name())
 
     # Redis (optional): a downed Redis must not prevent startup.
     try:
@@ -150,6 +156,7 @@ async def lifespan(app: FastAPI):
     except Exception:  # noqa: BLE001
         logger.exception("Failed to start domain event bus")
 
+    logger.info("Lifespan startup complete — uvicorn now accepting connections")
     yield
 
     # Graceful shutdown: stop background services, guarding each step so one
