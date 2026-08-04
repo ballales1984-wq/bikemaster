@@ -123,10 +123,7 @@ export function resolveApiBase(): string {
       const p = location.port;
       if (p === "8000" || p === "8001") return "";
     }
-    if (
-      h.endsWith(".ngrok-free.dev") ||
-      h.endsWith(".onrender.com")
-    ) {
+    if (h.endsWith(".ngrok-free.dev") || h.endsWith(".onrender.com")) {
       return "";
     }
   }

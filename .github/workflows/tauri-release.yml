@@ -110,6 +110,15 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # --- Optional Windows code signing ---
+          # Without a valid code-signing certificate the unsigned .exe is
+          # blocked by Windows Smart App Control (SAC) on Windows 10/11.
+          # tauri-action@v2 injects these into the signing config automatically.
+          # WINDOWS_CERTIFICATE must be a base64-encoded PKCS#12 (.pfx) file.
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          # Optional: RFC 3161 timestamp server (default: http://timestamp.digicert.com)
+          WINDOWS_TIMESTAMP_SERVER: ${{ secrets.WINDOWS_TIMESTAMP_SERVER }}
         with:
           projectPath: frontend
           # Continuous release on main, versioned release on tags.
