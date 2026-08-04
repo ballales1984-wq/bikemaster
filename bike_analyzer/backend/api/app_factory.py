@@ -139,10 +139,15 @@ async def lifespan(app: FastAPI):
         logger.info("Async DB init scheduled as background task (task id=%s)", init_task.get_name())
 
     # Redis (optional): a downed Redis must not prevent startup.
-    try:
-        await get_redis()
-    except Exception:  # noqa: BLE001
-        logger.exception("Failed to initialize Redis client")
+    # Only attempt connection when REDIS_URL is explicitly configured;
+    # otherwise skip entirely to avoid a blocking connect timeout.
+    if _s.redis_url:
+        try:
+            await get_redis()
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to initialize Redis client")
+    else:
+        logger.info("Redis not configured (REDIS_URL not set) — cache disabled")
 
     # Background task queue worker.
     task_queue = get_task_queue()

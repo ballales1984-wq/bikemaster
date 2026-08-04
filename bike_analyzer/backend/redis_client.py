@@ -41,13 +41,15 @@ async def get_redis():
         return _redis
     if _redis_unavailable_at > 0 and (time.monotonic() - _redis_unavailable_at) < _REDIS_RETRY_COOLDOWN:
         return None
+    from bike_analyzer.backend.settings import get_settings
+
+    s = get_settings()
+    if not s.redis_url:
+        return None
     try:
         import redis.asyncio as aioredis
 
-        from bike_analyzer.backend.settings import get_settings
-
-        s = get_settings()
-        url = s.redis_url or "redis://localhost:6379"
+        url = s.redis_url
         _redis = aioredis.from_url(
             url,
             encoding="utf-8",
