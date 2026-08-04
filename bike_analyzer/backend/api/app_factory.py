@@ -162,6 +162,9 @@ async def lifespan(app: FastAPI):
     # Graceful shutdown: stop background services, guarding each step so one
     # failure does not block the others.
     logger.info("Shutting down background services")
+    for t in getattr(app.state, "_bg_tasks", []):
+        if not t.done():
+            t.cancel()
     try:
         from ..events import stop_event_bus
 

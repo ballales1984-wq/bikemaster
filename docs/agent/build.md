@@ -48,3 +48,35 @@ Per le build locali non firmate (`npm run tauri build` → `target/release/*.exe
       - Firmare: `pwsh scripts/sign-windows.ps1` (firna automaticamente `.exe`, `.msi`, `.nsis` in `target/release/`)
       - Verificare: `signtool verify /pa /v frontend\src-tauri\target\release\bikemaster-desktop.exe`
       - **Importante**: un certificato auto-firmato NON è considerato attendibile da SAC. Serve un certificato emesso da CA (ZeroSSL, DigiCert, Sectigo) per passare il blocco. Usare il cert auto-firmato solo per verificare che la pipeline di firma funzioni.
+
+## Render Deploy — timeout durante lo startup
+
+Il deploy su Render potrebbe far scadere il timeout di health check (9.5 minuti
+per il piano gratuito) se il server impiega troppo a mettersi in ascolto.
+
+### Causa
+Le migrazioni Alembic (PostgreSQL) venivano eseguite **sintopicamente** durante
+lo startup del lifespan FastAPI, bloccando uvicorn da accettare connessioni per
+15+ minuti. Inoltre, `init_async_db()` creava 25 tabelle PostgreSQL in modo
+sincrono.
+
+### Fix applicato
+1. **`render.yaml`**: `startCommand` semplificato a `python main.py api --port $PORT`
+   (rimosso il blocco sincrono `run_migrations_on_startup` precedentemente aggiunto).
+2. **`app_factory.py` lifespan**: migrazioni e `init_async_db()` ora girano come
+   `asyncio.create_task()` (fire-and-forget) con riferimenti salvati in
+   `app.state._bg_tasks` per evitare garbage collection.
+3. **`/api/v1/health`** restituisce una risposta statica (`{"status": "ok"}`)
+   che non richiede database — il server passa il health check immediatamente.
+4. **Dockerfile**: `RUN echo "cachebust:...-$(date -u +%s)" > /cache-bust`
+   forzato prima dei `COPY bike_analyzer` per invalidare il build cache di Docker
+   e garantire che le modifiche al codice vengano incluse nel build successivo.
+
+### Verifica nei log Render
+Cercare questi messaggi di log (in ordine):
+1. `Migrations scheduled as background task`
+2. `Async DB init scheduled as background task`
+3. `Lifespan startup complete — uvicorn now accepting connections`
+4. `Detected service running on port <PORT>`
+
+Se il passo 3 appare entro ~2-3 minuti dal deploy start, il server è pronto.
