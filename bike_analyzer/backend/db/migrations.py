@@ -9,23 +9,32 @@ migrations are applied to whichever database is the *active* target:
   (off by default, because the hand-managed SQLite schema is owned by ``init_db``).
 
 Migrations are disabled entirely when ``RUN_MIGRATIONS_ON_STARTUP=0`` (e.g. when
-a separate migration job runs).
+a separate migration job runs).  When enabled, alembic runs as a **subprocess**
+with a hard timeout (default 120 s) so a slow migration can never block
+container startup on platforms like Render.
 """
 
 from __future__ import annotations
 
 import os
+import subprocess
+import shlex
 from logging import getLogger
 
 logger = getLogger(__name__)
 
+_MIGRATION_TIMEOUT = int(os.getenv("ALEMBIC_TIMEOUT", "120"))
+
 
 def _run_alembic(migration_url: str) -> bool:
-    """Apply pending Alembic migrations against ``migration_url``."""
+    """Apply pending Alembic migrations against ``migration_url``.
+
+    Runs alembic as a **subprocess** with a hard timeout so that a slow
+    migration can never block application startup on Render (or any other
+    platform with a deploy/startup timeout).
+    """
     try:
         from alembic.config import Config
-
-        from alembic import command
     except ImportError:
         logger.warning("alembic not installed, skipping migrations")
         return False
@@ -36,12 +45,35 @@ def _run_alembic(migration_url: str) -> bool:
         logger.warning("alembic.ini not found at %s, skipping migrations", ini_path)
         return False
 
+    env = dict(os.environ)
+    env["DATABASE_URL"] = migration_url
+    env["DATABASE_URL_UNPOOLED"] = migration_url
+
     try:
-        cfg = Config(ini_path)
-        cfg.set_main_option("sqlalchemy.url", migration_url)
-        command.upgrade(cfg, "head")
-        logger.info("Database migrations applied (alembic upgrade head) -> %s", migration_url)
-        return True
+        result = subprocess.run(
+            ["alembic", "-c", ini_path, "upgrade", "head"],
+            env=env,
+            timeout=_MIGRATION_TIMEOUT,
+            capture_output=True,
+            text=True,
+            cwd=repo_root,
+        )
+        if result.returncode == 0:
+            logger.info("Database migrations applied (alembic upgrade head) -> %s", migration_url)
+            return True
+        logger.error(
+            "Alembic failed (rc=%s):\nstdout: %s\nstderr: %s",
+            result.returncode,
+            result.stdout[-2000:],
+            result.stderr[-2000:],
+        )
+        return False
+    except subprocess.TimeoutExpired:
+        logger.warning(
+            "Alembic timed out after %ds — server will continue with tables "
+            "created by init_async_db()", _MIGRATION_TIMEOUT,
+        )
+        return False
     except Exception:  # noqa: BLE001
         logger.exception("Failed to apply database migrations")
         return False

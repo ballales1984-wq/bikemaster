@@ -18,7 +18,7 @@ RUN npm run build
 FROM python:3.11-slim AS production
 
 # Cache bust — forces rebuild of COPY layers below when migration files change
-ARG CACHEBUST=3
+ARG CACHEBUST=4
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -39,10 +39,10 @@ COPY aethermap ./aethermap
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+RUN echo "cache-bust=${CACHEBUST}" > /dev/null
 COPY main.py ./
 COPY bike_analyzer ./bike_analyzer
 COPY alembic.ini ./
-RUN echo "cache-bust=${CACHEBUST}" > /dev/null
 COPY alembic ./alembic
 COPY scripts/ ./scripts/
 
@@ -55,11 +55,12 @@ ENV SENTRY_DSN="" \
     SENTRY_TRACES_SAMPLE_RATE=0.2 \
     LOG_LEVEL=WARNING \
     UVICORN_WORKERS=1 \
-    PORT=8000
+    PORT=8000 \
+    RUN_MIGRATIONS_ON_STARTUP=0
 
 EXPOSE ${PORT:-8000}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/api/v1/health || exit 1
 
-CMD ["sh", "-c", "python main.py api --port ${PORT:-8000}"]
+CMD ["bash", "scripts/start.sh"]
