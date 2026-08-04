@@ -17,12 +17,6 @@ RUN npm run build
 # === Production Stage ===
 FROM python:3.11-slim AS production
 
-# Cache-bust: forces COPY layers below to rebuild on every deploy.
-# The timestamp changes each build, invalidating the cache chain so
-# source changes (e.g. app_factory.py) are never masked by stale layers.
-ARG CACHEBUST=1
-RUN echo "cachebust:${CACHEBUST}-$(date -u +%s)" > /cache-bust
-
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \

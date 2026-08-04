@@ -121,11 +121,15 @@ async def lifespan(app: FastAPI):
     from ..logging_config import setup_logging
 
     setup_logging()
-    init_db()
+    app.state._bg_tasks: list[asyncio.Task] = []
+
+    init_db_task = asyncio.create_task(asyncio.to_thread(init_db))
+    app.state._bg_tasks.append(init_db_task)
+    logger.info("SQLite init scheduled as background task (task id=%s)", init_db_task.get_name())
+
     if _s.database_url:
         from ..db.migrations import run_migrations_on_startup
 
-        app.state._bg_tasks: list[asyncio.Task] = []
         migration_task = asyncio.create_task(_run_migrations_async(run_migrations_on_startup))
         app.state._bg_tasks.append(migration_task)
         logger.info("Migrations scheduled as background task (task id=%s)", migration_task.get_name())
