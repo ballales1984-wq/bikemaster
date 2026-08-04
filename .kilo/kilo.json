@@ -16,5 +16,13 @@
         "baseURL": "https://api.deepseek.com/v1"
       }
     }
+  },
+  "mcp": {
+    "colab-mcp": {
+      "type": "local",
+      "command": ["uvx", "git+https://github.com/googlecolab/colab-mcp"],
+      "enabled": true,
+      "timeout": 30000
+    }
   }
 }

@@ -36,6 +36,8 @@ services:
           property: connectionString
       - key: LOG_LEVEL
         value: WARNING
+      - key: RUN_MIGRATIONS_ON_STARTUP
+        value: "0"
     startCommand: python main.py api --port $PORT
     healthCheckPath: /api/v1/health
     autoDeploy: true

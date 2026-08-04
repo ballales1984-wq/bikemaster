@@ -63,31 +63,9 @@ _session_factory: async_sessionmaker | None = None
 # Core tables required at startup. ``knowledge_chunks`` (PGVector) is created
 # best-effort and is not required for the app to boot.
 _CORE_TABLES = [
-    UserModel.__table__,
-    AthleteModel.__table__,
-    AthleteMetricLogModel.__table__,
-    AthleteHistoryModel.__table__,
-    RideModel.__table__,
-    FitnessStateModel.__table__,
-    TrainingStressDayModel.__table__,
-    MetricModel.__table__,
-     POIModel.__table__,
-     ItineraryModel.__table__,
-     StageModel.__table__,
-     ChatHistoryModel.__table__,
-    CalendarEventModel.__table__,
-    TrainingGoalModel.__table__,
-    PlannedWorkoutModel.__table__,
-    RoadIncident.__table__,
-    RouteSafetyScore.__table__,
-    StravaToken.__table__,
-    GarminToken.__table__,
-    SyncEntityState.__table__,
-    SyncSetting.__table__,
-    SyncConflict.__table__,
-    SessionModel.__table__,
-    WeatherCache.__table__,
-    UserOAuthCredentials.__table__,
+    table
+    for table in Base.metadata.tables.values()
+    if table.name != "knowledge_chunks"
 ]
 
 
