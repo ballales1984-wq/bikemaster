@@ -20,7 +20,7 @@ def test_get_google_oauth_url():
 
 
 def test_get_google_oauth_url_with_state():
-    url = get_google_oauth_url("client", state="custom-state-123")
+    url = get_google_oauth_url("client", redirect_uri="http://localhost:8000/callback", state="custom-state-123")
     assert "state=custom-state-123" in url
 
 

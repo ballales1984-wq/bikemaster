@@ -7,10 +7,17 @@ import urllib.parse
 
 def get_google_oauth_url(
     client_id: str,
-    redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback",
+    redirect_uri: str = "",
     state: str = "",
 ) -> str:
-    """Generate Google OAuth2 authorization URL."""
+    """Generate Google OAuth2 authorization URL.
+
+    ``redirect_uri`` must be provided explicitly — it is the caller's
+    responsibility to construct the correct callback URL for the
+    deployment environment (e.g. via :func:`_build_redirect_uri`).
+    """
+    if not redirect_uri:
+        raise ValueError("redirect_uri is required")
     params = {
         "client_id": client_id,
         "redirect_uri": redirect_uri,

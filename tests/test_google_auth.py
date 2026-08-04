@@ -14,7 +14,7 @@ from bike_analyzer.backend.auth.google_auth import (
 
 class TestGetGoogleOAuthUrl:
     def test_basic_url(self):
-        url = get_google_oauth_url("test_client_id")
+        url = get_google_oauth_url("test_client_id", redirect_uri="https://example.com/callback")
         assert "accounts.google.com" in url
         assert "client_id=test_client_id" in url
 
@@ -23,20 +23,24 @@ class TestGetGoogleOAuthUrl:
         assert "redirect_uri=https%3A%2F%2Fexample.com%2Fcallback" in url
 
     def test_custom_state(self):
-        url = get_google_oauth_url("test_client_id", state="csrf_token")
+        url = get_google_oauth_url("test_client_id", redirect_uri="https://example.com/callback", state="csrf_token")
         assert "state=csrf_token" in url
 
     def test_url_contains_required_scopes(self):
-        url = get_google_oauth_url("test_client_id")
+        url = get_google_oauth_url("test_client_id", redirect_uri="https://example.com/callback")
         assert "scope=openid+email+profile" in url or "scope=openid%20email%20profile" in url
 
     def test_response_type_code(self):
-        url = get_google_oauth_url("test_client_id")
+        url = get_google_oauth_url("test_client_id", redirect_uri="https://example.com/callback")
         assert "response_type=code" in url
 
     def test_access_type_offline(self):
-        url = get_google_oauth_url("test_client_id")
+        url = get_google_oauth_url("test_client_id", redirect_uri="https://example.com/callback")
         assert "access_type=offline" in url
+
+    def test_missing_redirect_uri_raises(self):
+        with pytest.raises(ValueError, match="redirect_uri is required"):
+            get_google_oauth_url("test_client_id")
 
 
 class TestExchangeGoogleCode:

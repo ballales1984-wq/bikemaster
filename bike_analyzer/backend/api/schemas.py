@@ -632,14 +632,14 @@ class GoogleAuthRequest(BaseModel):
     """Schema di richiesta per autenticazione Google OAuth2."""
 
     code: str = Field(..., min_length=1, max_length=2048)
-    redirect_uri: str = Field(default="http://localhost:8000/api/v1/auth/google/callback", max_length=2048)
+    redirect_uri: str = Field(default="", max_length=2048)
 
 
 class GoogleOAuthCallback(BaseModel):
     """Payload di callback OAuth2 da Google."""
 
     code: str = Field(..., min_length=1, max_length=2048)
-    redirect_uri: str = Field(default="http://localhost:8000/api/v1/auth/google/callback", max_length=2048)
+    redirect_uri: str = Field(default="", max_length=2048)
 
 
 class CoachChatRequest(BaseModel):
