@@ -165,7 +165,6 @@ def _build_redirect_uri(request: Request, path: str) -> str:
     host_lower = host.lower()
     if (
         host_lower.endswith(".ngrok-free.dev")
-        or host_lower.endswith(".trycloudflare.com")
         or host_lower.endswith(".vercel.app")
         or host_lower.endswith(".onrender.com")
     ):
@@ -287,11 +286,6 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
         # hardcoding it (e.g. "tonita-deposable-manneristically.ngrok-free.dev")
         # broke Strava/OAuth whenever the tunnel was regenerated.
         if host_lower.endswith(".ngrok-free.dev"):
-            return
-        # Allow any cloudflared quick tunnel host (trycloudflare.com).
-        # Unlike ngrok-free, cloudflared quick tunnels do NOT show an interstitial
-        # splash page, so OAuth/SPA routes work immediately.
-        if host_lower.endswith(".trycloudflare.com"):
             return
         raise HTTPException(status_code=400, detail="Invalid redirect_uri host")
 
@@ -5816,7 +5810,6 @@ def _strava_redirect_uri_for(request: Request, redirect_uri: str | None = None) 
     host_lower = host.lower()
     if (
         host_lower.endswith(".ngrok-free.dev")
-        or host_lower.endswith(".trycloudflare.com")
         or host_lower.endswith(".vercel.app")
         or host_lower.endswith(".onrender.com")
     ):

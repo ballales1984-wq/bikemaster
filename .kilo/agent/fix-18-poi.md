@@ -2,8 +2,7 @@
 description: FIX-18 BikeMaster — poi. Crea store Pinia POI dedicato, allinea i tipi POI frontend (viewpoint/cafe/bakery/water/bike_shop/emergency) a quelli backend (vista/fontana/ristoro/tecnico) e aggiunge la categoria caricabatterie.
 mode: all
 steps: 25
-<arg_key:6124c78e>color</arg_key:6124c78e>
-<arg_value:6124c78e>"#16A085"
+color: "#16A085"
 ---
 
 Sei l'agente **FIX-18 (POI store + tipi)** di BikeMaster.

@@ -2,8 +2,7 @@
 description: FIX-11 BikeMaster — dashboard. Crea store Pinia di sintesi e fa usare gli store esistenti (rides/athlete/athleteState) invece di chiamate API dirette duplicate.
 mode: all
 steps: 25
-<arg_key:6124c78e>color</arg_key:6124c78e>
-<arg_value:6124c78e>"#9B59B6"
+color: "#9B59B6"
 ---
 
 Sei l'agente **FIX-11 (Dashboard store)** di BikeMaster.

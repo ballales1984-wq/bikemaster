@@ -2,8 +2,7 @@
 description: FIX-14 BikeMaster — calendar. Crea store Pinia calendar e aggiunge il confronto carico pianificato vs effettivo (CompletedRide da rides reali) usando load-manager.
 mode: all
 steps: 25
-<arg_key:6124c78e>color</arg_key:6124c78e>
-<arg_value:6124c78e>"#2980B9"
+color: "#2980B9"
 ---
 
 Sei l'agente **FIX-14 (Calendar store + piano vs fatto)** di BikeMaster.

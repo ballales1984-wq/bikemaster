@@ -2,8 +2,7 @@
 description: FIX-12 BikeMaster — ai-coach. Estrae i prompt in un prompt builder versionato e fa usare le soglie di allarme ACWR/TSB allo coach.
 mode: all
 steps: 25
-<arg_key:6124c78e>color</arg_key:6124c78e>
-<arg_value:6124c78e>"#E74C3C"
+color: "#E74C3C"
 ---
 
 Sei l'agente **FIX-12 (AI Coach prompt + soglie)** di BikeMaster.

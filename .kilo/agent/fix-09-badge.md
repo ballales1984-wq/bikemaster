@@ -2,7 +2,7 @@
 description: FIX-09 BikeMaster — badge. Aggiunge persistenza DB degli sblocchi (tabella), store Pinia dedicato, e rimuove il non-determinismo (datetime.now) negli streak.
 mode: all
 steps: 25
-<arg_key:6124c78e>color: "#F1C40F"
+color: "#F1C40F"
 ---
 
 Sei l'agente **FIX-09 (Badge persistenza)** di BikeMaster.

@@ -2,8 +2,7 @@
 description: FIX-15 BikeMaster — weather. Crea store Pinia weather e aggiunge un backfill del meteo storico sulle uscite/eventi esistenti (colonne weather_* gia presenti).
 mode: all
 steps: 25
-<arg_key:6124c78e>color</arg_key:6124c78e>
-<arg_value:6124c78e>"#5DADE2"
+color: "#5DADE2"
 ---
 
 Sei l'agente **FIX-15 (Weather store + backfill)** di BikeMaster.

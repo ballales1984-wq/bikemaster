@@ -125,7 +125,6 @@ export function resolveApiBase(): string {
     }
     if (
       h.endsWith(".ngrok-free.dev") ||
-      h.endsWith(".trycloudflare.com") ||
       h.endsWith(".onrender.com")
     ) {
       return "";

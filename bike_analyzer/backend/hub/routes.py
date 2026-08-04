@@ -221,8 +221,6 @@ def _validate_redirect_uri(redirect_uri: str, request: Request) -> None:
         return
     if host_lower.endswith(".ngrok-free.dev"):
         return
-    if host_lower.endswith(".trycloudflare.com"):
-        return
     raise HTTPException(status_code=400, detail="Host non autorizzato")
 
 

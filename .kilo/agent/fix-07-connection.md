@@ -2,7 +2,7 @@
 description: FIX-07 BikeMaster — connection. Centralizza il token store (modello ExternalTokenModel generico), espone stato connessione in /providers, e revoca i token OAuth al logout globale.
 mode: all
 steps: 25
-<arg_key:6124c78e>color: "#2ECC71"
+color: "#2ECC71"
 ---
 
 Sei l'agente **FIX-07 (Connection token store)** di BikeMaster.

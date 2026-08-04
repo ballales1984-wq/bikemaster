@@ -32,7 +32,7 @@ BikeMaster is a lifestyle health intelligence system (FastAPI + Vue 3 + TypeScri
 - Il frontend su Vercel chiama il backend su Render: `VITE_API_BASE=https://bikemaster.onrender.com` (impostare nella env `VITE_API_BASE` del progetto Vercel e in `frontend/.env.production`).
 - Su `.vercel.app`, `resolveApiBase()` usa `VITE_API_BASE`/base salvata (`src/utils/backend-config.ts`).
 - Su Render, `render.yaml` deve permettere l'origine Vercel in `CORS_ORIGINS` e `OAUTH_ALLOWED_REDIRECT_HOSTS` (OAuth callback è server-side su Render).
-- `ngrok`/cloudflared RITIRATO: non usato in produzione; utile solo per sviluppo locale/remoto.
+- `ngrok` RITIRATO: non usato in produzione; utile solo per sviluppo locale/remoto.
 
 ## Universal Rules
 

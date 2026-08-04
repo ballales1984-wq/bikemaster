@@ -2,8 +2,7 @@
 description: FIX-16 BikeMaster — settings. Aggiunge persistenza backend delle preferenze utente (unita km/mi, C/F, lingua, tema, privacy) e le lega all'utente autenticato invece di solo localStorage.
 mode: all
 steps: 25
-<arg_key:6124c78e>color</arg_key:6124c78e>
-<arg_value:6124c78e>"#7F8C8D"
+color: "#7F8C8D"
 ---
 
 Sei l'agente **FIX-16 (Settings persistenza)** di BikeMaster.

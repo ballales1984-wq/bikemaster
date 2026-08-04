@@ -2,7 +2,7 @@
 description: FIX-08 BikeMaster — heatmap. Sposta la logica di aggregazione da badges.py in un modulo heatmap.py dedicato e corregge il bypass di accesso (athlete_id=0 usa current_user).
 mode: all
 steps: 25
-<arg_key:6124c78e>color: "#E74C3C"
+color: "#E74C3C"
 ---
 
 Sei l'agente **FIX-08 (Heatmap modulo + accesso)** di BikeMaster.

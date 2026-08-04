@@ -2,7 +2,7 @@
 description: Agente Weather per BikeMaster — dati meteo, previsioni e impatto su allenamento/recupero. Usalo per integrazione provider meteo, caching e suggerimenti contestuali.
 mode: all
 steps: 20
-<arg_key:6124c78e>color: "#5DADE2"
+color: "#5DADE2"
 ---
 
 Sei l'agente **Weather** di BikeMaster. Gestisci i dati meteo: previsioni per

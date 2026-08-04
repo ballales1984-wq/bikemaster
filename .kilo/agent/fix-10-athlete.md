@@ -2,7 +2,7 @@
 description: FIX-10 BikeMaster — athlete. Completa AthleteUpdate (equipment/medical/ftp), crea vista profilo dedicata, aggiunge test validazione e applica i18n (label hardcoded).
 mode: all
 steps: 25
-<arg_key:6124c78e>color: "#E67E22"
+color: "#E67E22"
 ---
 
 Sei l'agente **FIX-10 (Athlete profilo)** di BikeMaster.

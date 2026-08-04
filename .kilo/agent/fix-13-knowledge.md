@@ -2,8 +2,7 @@
 description: FIX-13 BikeMaster — knowledge. Aggiunge regole strutturate (condizione->raccomandazione) in bm2/knowledge.py e le integra nel coach/RAG, con citazioni e changelog.
 mode: all
 steps: 25
-<arg_key:6124c78e>color</arg_key:6124c78e>
-<arg_value:6124c78e>"#8E44AD"
+color: "#8E44AD"
 ---
 
 Sei l'agente **FIX-13 (Knowledge regole)** di BikeMaster.

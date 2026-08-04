@@ -2,8 +2,7 @@
 description: FIX-17 BikeMaster — compare. Aggiunge endpoint backend per confronto diretto tra due ride ID e allinea i confronti al contesto (meteo, allineamento percorso).
 mode: all
 steps: 25
-<arg_key:6124c78e>color</arg_key:6124c78e>
-<arg_value:6124c78e>"#3498DB"
+color: "#3498DB"
 ---
 
 Sei l'agente **FIX-17 (Compare 2 ride + contesto)** di BikeMaster.
