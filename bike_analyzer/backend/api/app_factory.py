@@ -74,6 +74,24 @@ async def _run_migrations_async(run_fn) -> None:
         logger.exception("Background database migration failed; continuing startup.")
 
 
+async def _init_async_db_bg() -> None:
+    """Initialize the async PostgreSQL connection pool and create tables in the
+    background so the lifespan startup is not blocked.
+
+    The /api/v1/health endpoint returns a static response and does not require
+    the async DB, so deferring this is safe — the server becomes reachable
+    immediately for Render's health check.
+    """
+    from ..db.async_db import init_async_db
+
+    logger.info("Initializing async database in background (non-blocking)...")
+    try:
+        await init_async_db()
+        logger.info("Async database initialized successfully.")
+    except Exception:  # noqa: BLE001
+        logger.exception("Async database initialization failed; continuing startup.")
+
+
 def _static_file_response(file_path: Path, media_type: str | None = None, headers: dict | None = None) -> Response:
     """Serve a static file from disk, inferring media type when not provided."""
     if file_path.exists() and media_type:
@@ -108,12 +126,7 @@ async def lifespan(app: FastAPI):
         from ..db.migrations import run_migrations_on_startup
 
         asyncio.create_task(_run_migrations_async(run_migrations_on_startup))
-        from ..db.async_db import init_async_db
-
-        try:
-            await init_async_db()
-        except Exception:  # noqa: BLE001
-            logger.exception("Failed to initialize async database")
+        asyncio.create_task(_init_async_db_bg())
 
     # Redis (optional): a downed Redis must not prevent startup.
     try:
