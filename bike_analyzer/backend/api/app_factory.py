@@ -16,6 +16,8 @@ Responsabilita' principali:
 
 from __future__ import annotations
 
+import os
+import asyncio
 import logging
 import sqlite3
 from contextlib import asynccontextmanager
@@ -51,6 +53,7 @@ logger = logging.getLogger(__name__)
 _s = get_settings()
 STATIC_DIR = Path(__file__).parent.parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
+SERVE_STATIC = os.getenv("SERVE_STATIC", "true").lower() == "true"
 
 
 def _static_file_response(file_path: Path, media_type: str | None = None, headers: dict | None = None) -> Response:
@@ -86,7 +89,7 @@ async def lifespan(app: FastAPI):
     if _s.database_url:
         from ..db.migrations import run_migrations_on_startup
 
-        run_migrations_on_startup()
+        await asyncio.to_thread(run_migrations_on_startup)
         from ..db.async_db import init_async_db
 
         try:
@@ -364,7 +367,7 @@ def create_app() -> FastAPI:
     app.include_router(performance_router, prefix="/api/v1", tags=["performance"])
     app.include_router(voice_router, prefix="/api/v1", tags=["voice"])
 
-    if STATIC_DIR.exists() and INDEX_FILE.exists():
+    if SERVE_STATIC and STATIC_DIR.exists() and INDEX_FILE.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
         assets_dir = STATIC_DIR / "assets"
         if assets_dir.exists():
