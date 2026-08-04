@@ -43,5 +43,8 @@ Per le build locali non firmate (`npm run tauri build` → `target/release/*.exe
    - `Set-SmartAppControlConfig -Mode AuditMode` (richiede restart)
 2. **Aggiungere esclusione al file .exe**:
    - `Impostazioni → Sicurezza di Windows → Protezione da virus e minacce → Impostazioni protezione -> Esclusioni → Aggiungi o rimuovi esclusioni → Cartella/file` → selezionare `frontend\target\release\bikemaster-desktop.exe`
-3. **Eseguire dalla cartella del progetto** (evita il blocco della zona download):
-   spostare l'exe fuori da `Downloads` se SAC lo blocca come file scaricato da internet.
+   3. **Firmare l'exe con signtool** (alternativa alla whitelist):
+      - Generare un certificato auto-firmato: `pwsh scripts/sign-windows.ps1 -GenerateCert`
+      - Firmare: `pwsh scripts/sign-windows.ps1` (firna automaticamente `.exe`, `.msi`, `.nsis` in `target/release/`)
+      - Verificare: `signtool verify /pa /v frontend\src-tauri\target\release\bikemaster-desktop.exe`
+      - **Importante**: un certificato auto-firmato NON è considerato attendibile da SAC. Serve un certificato emesso da CA (ZeroSSL, DigiCert, Sectigo) per passare il blocco. Usare il cert auto-firmato solo per verificare che la pipeline di firma funzioni.

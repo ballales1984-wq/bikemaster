@@ -56,6 +56,24 @@ INDEX_FILE = STATIC_DIR / "index.html"
 SERVE_STATIC = os.getenv("SERVE_STATIC", "true").lower() == "true"
 
 
+async def _run_migrations_async(run_fn) -> None:
+    """Run Alembic migrations in a background task so the lifespan startup
+    is not blocked. The server starts serving health checks immediately while
+    migrations apply in a worker thread.
+
+    This is critical for Render (and similar platforms) where the health-check
+    timeout fires if the server does not accept connections within the
+    configured window. Migrations that take minutes would otherwise block the
+    entire startup sequence.
+    """
+    logger.info("Starting database migrations in background (non-blocking)...")
+    try:
+        await asyncio.to_thread(run_fn)
+        logger.info("Database migrations completed successfully.")
+    except Exception:  # noqa: BLE001
+        logger.exception("Background database migration failed; continuing startup.")
+
+
 def _static_file_response(file_path: Path, media_type: str | None = None, headers: dict | None = None) -> Response:
     """Serve a static file from disk, inferring media type when not provided."""
     if file_path.exists() and media_type:
@@ -89,7 +107,7 @@ async def lifespan(app: FastAPI):
     if _s.database_url:
         from ..db.migrations import run_migrations_on_startup
 
-        await asyncio.to_thread(run_migrations_on_startup)
+        asyncio.create_task(_run_migrations_async(run_migrations_on_startup))
         from ..db.async_db import init_async_db
 
         try:

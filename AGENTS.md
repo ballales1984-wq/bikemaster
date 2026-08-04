@@ -23,6 +23,7 @@ BikeMaster is a lifestyle health intelligence system (FastAPI + Vue 3 + TypeScri
 - **Lint/typecheck:** `cd frontend && npm run lint && npm run typecheck`
 - **Build frontend:** `cd frontend && npm run build`
 - **Tauri build:** `cd frontend && npm run tauri build` (or equivalent Cargo command)
+- **Windows code-signing (local):** `pwsh scripts/sign-windows.ps1` (generates self-signed cert + signs `.exe`/`.msi`/`.nsis`). Set `TAURI_SIGNING_PRIVATE_KEY` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` env vars (see `src-tauri/.env.signing.example`) for automatic signing during `tauri build`. SAC requires a CA-signed cert for production — GitHub Release builds are signed automatically via `tauri-release.yml`.
 - **Deploy frontend (Vercel):** `cd frontend && npx vercel --prod` (richiede `vercel login` + link progetto in `.vercel/`)
 - **Deploy backend (Render):** `git push origin main` (auto-deploy da `render.yaml`)
 - **Simulator:** `cd bike_analyzer && python -m bm2.simulation.demo`

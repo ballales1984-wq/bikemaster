@@ -151,6 +151,7 @@ mv.log
 .vercel
 .env*
 !.env.example
+!.env.signing.example
 
 # Scratch/duplicate dev folder
 temp_aethermap/

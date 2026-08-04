@@ -36,7 +36,7 @@ services:
           property: connectionString
       - key: LOG_LEVEL
         value: WARNING
-    startCommand: sh -c "python -c 'from bike_analyzer.backend.db.migrations import run_migrations_on_startup; run_migrations_on_startup()' && python main.py api --port $PORT"
+    startCommand: python main.py api --port $PORT
     healthCheckPath: /api/v1/health
     autoDeploy: true
 
