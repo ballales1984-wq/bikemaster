@@ -65,10 +65,9 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('provider', 'external_id', name='uq_external_identity')
     )
-    with op.batch_alter_table('external_identities', schema=None) as batch_op:
-        batch_op.create_index('ix_external_identity_athlete', ['athlete_id'], unique=False)
-        batch_op.create_index('ix_external_identity_external_id', ['external_id'], unique=False)
-        batch_op.create_index('ix_external_identity_provider', ['provider'], unique=False)
+    op.create_index('ix_external_identity_athlete', 'external_identities', ['athlete_id'], unique=False)
+    op.create_index('ix_external_identity_external_id', 'external_identities', ['external_id'], unique=False)
+    op.create_index('ix_external_identity_provider', 'external_identities', ['provider'], unique=False)
 
     op.create_table('external_tokens',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -86,10 +85,9 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('athlete_id', 'provider', name='uq_external_token_athlete_provider')
     )
-    with op.batch_alter_table('external_tokens', schema=None) as batch_op:
-        batch_op.create_index('ix_external_token_athlete', ['athlete_id'], unique=False)
-        batch_op.create_index('ix_external_token_expires', ['expires_at'], unique=False)
-        batch_op.create_index('ix_external_token_provider', ['provider'], unique=False)
+    op.create_index('ix_external_token_athlete', 'external_tokens', ['athlete_id'], unique=False)
+    op.create_index('ix_external_token_expires', 'external_tokens', ['expires_at'], unique=False)
+    op.create_index('ix_external_token_provider', 'external_tokens', ['provider'], unique=False)
 
     op.create_table('pauses',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -100,8 +98,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['ride_id'], ['rides.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    with op.batch_alter_table('pauses', schema=None) as batch_op:
-        batch_op.create_index('ix_pauses_ride_id', ['ride_id'], unique=False)
+    op.create_index('ix_pauses_ride_id', 'pauses', ['ride_id'], unique=False)
 
     op.create_table('segments',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -115,8 +112,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['ride_id'], ['rides.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    with op.batch_alter_table('segments', schema=None) as batch_op:
-        batch_op.create_index('ix_segments_ride_id', ['ride_id'], unique=False)
+    op.create_index('ix_segments_ride_id', 'segments', ['ride_id'], unique=False)
 
     bind = op.get_bind()
     inspector = sa.inspect(bind)
