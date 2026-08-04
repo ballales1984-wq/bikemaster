@@ -41,6 +41,7 @@ COPY main.py ./
 COPY bike_analyzer ./bike_analyzer
 COPY alembic.ini ./
 COPY alembic ./alembic
+COPY scripts/ ./scripts/
 
 RUN chown -R bikemaster:bikemaster /app
 

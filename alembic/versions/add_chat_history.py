@@ -14,6 +14,7 @@ Create Date: 2026-07-12
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 from alembic import op
 
@@ -24,18 +25,24 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "chat_history",
-        sa.Column("id", sa.INTEGER(), nullable=False, autoincrement=True),
-        sa.Column("athlete_id", sa.INTEGER(), nullable=True),
-        sa.Column("tenant_id", sa.INTEGER(), nullable=False, server_default="0"),
-        sa.Column("role", sa.String(), nullable=False),
-        sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
-        sa.ForeignKeyConstraint(["athlete_id"], ["athletes.id"]),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index("ix_chat_history_athlete_id", "chat_history", ["athlete_id"])
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    if not inspector.has_table("chat_history"):
+        op.create_table(
+            "chat_history",
+            sa.Column("id", sa.INTEGER(), nullable=False, autoincrement=True),
+            sa.Column("athlete_id", sa.INTEGER(), nullable=True),
+            sa.Column("tenant_id", sa.INTEGER(), nullable=False, server_default="0"),
+            sa.Column("role", sa.String(), nullable=False),
+            sa.Column("content", sa.Text(), nullable=False),
+            sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
+            sa.ForeignKeyConstraint(["athlete_id"], ["athletes.id"]),
+            sa.PrimaryKeyConstraint("id"),
+        )
+    if inspector.has_table("chat_history"):
+        _idx = {idx["name"] for idx in inspector.get_indexes("chat_history")}
+        if "ix_chat_history_athlete_id" not in _idx:
+            op.create_index("ix_chat_history_athlete_id", "chat_history", ["athlete_id"])
 
 
 def downgrade() -> None:

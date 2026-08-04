@@ -40,7 +40,7 @@ services:
         value: production
       - key: RUN_MIGRATIONS_ON_STARTUP
         value: "0"
-    startCommand: python main.py api --port ${PORT:-8000}
+    startCommand: bash scripts/start.sh
     healthCheckPath: /api/v1/health
     autoDeploy: true
 

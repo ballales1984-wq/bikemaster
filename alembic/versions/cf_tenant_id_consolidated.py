@@ -12,7 +12,7 @@ Create Date: 2026-06-28
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-
+from sqlalchemy import inspect
 from alembic import op
 
 revision: str = "cf_tenant_id_consolidated"
@@ -21,83 +21,67 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
+def _has_column(table_name: str, column_name: str) -> bool:
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    if not inspector.has_table(table_name):
+        return False
+    return any(c["name"] == column_name for c in inspector.get_columns(table_name))
+
+
+def _has_index(table_name: str, index_name: str) -> bool:
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    if not inspector.has_table(table_name):
+        return False
+    return any(idx["name"] == index_name for idx in inspector.get_indexes(table_name))
+
+
+def _add_tenant_id(table_name: str, index_name: str) -> None:
+    if not inspect(op.get_bind()).has_table(table_name):
+        return
+    if not _has_column(table_name, "tenant_id"):
+        op.add_column(
+            table_name,
+            sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"),
+        )
+    if not _has_index(table_name, index_name):
+        op.create_index(index_name, table_name, ["tenant_id"])
+
+
 def upgrade() -> None:
-    op.add_column("athletes", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_athletes_tenant", "athletes", ["tenant_id"])
-
-    op.add_column("rides", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_rides_tenant", "rides", ["tenant_id"])
-
-    op.add_column("fitness_states", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_fitness_states_tenant", "fitness_states", ["tenant_id"])
-
-    op.add_column("calendar_events", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_calendar_events_tenant", "calendar_events", ["tenant_id"])
-
-    op.add_column("chat_history", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_chat_history_tenant", "chat_history", ["tenant_id"])
-
-    op.add_column("training_stress_days", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_training_stress_days_tenant", "training_stress_days", ["tenant_id"])
-
-    op.add_column("metrics", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_metrics_tenant", "metrics", ["tenant_id"])
-
-    op.add_column("training_goals", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_training_goals_tenant", "training_goals", ["tenant_id"])
-
-    op.add_column("planned_workouts", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_planned_workouts_tenant", "planned_workouts", ["tenant_id"])
-
-    op.add_column("knowledge_chunks", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_knowledge_chunks_tenant", "knowledge_chunks", ["tenant_id"])
-
-    op.add_column("strava_tokens", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_strava_tokens_tenant", "strava_tokens", ["tenant_id"])
-
-    op.add_column("garmin_tokens", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_garmin_tokens_tenant", "garmin_tokens", ["tenant_id"])
-
-    op.add_column("route_safety_scores", sa.Column("tenant_id", sa.Integer(), nullable=False, server_default="0"))
-    op.create_index("ix_route_safety_scores_tenant", "route_safety_scores", ["tenant_id"])
+    _add_tenant_id("athletes", "ix_athletes_tenant")
+    _add_tenant_id("rides", "ix_rides_tenant")
+    _add_tenant_id("fitness_states", "ix_fitness_states_tenant")
+    _add_tenant_id("calendar_events", "ix_calendar_events_tenant")
+    _add_tenant_id("chat_history", "ix_chat_history_tenant")
+    _add_tenant_id("training_stress_days", "ix_training_stress_days_tenant")
+    _add_tenant_id("metrics", "ix_metrics_tenant")
+    _add_tenant_id("training_goals", "ix_training_goals_tenant")
+    _add_tenant_id("planned_workouts", "ix_planned_workouts_tenant")
+    _add_tenant_id("knowledge_chunks", "ix_knowledge_chunks_tenant")
+    _add_tenant_id("strava_tokens", "ix_strava_tokens_tenant")
+    _add_tenant_id("garmin_tokens", "ix_garmin_tokens_tenant")
+    _add_tenant_id("route_safety_scores", "ix_route_safety_scores_tenant")
 
 
 def downgrade() -> None:
-    op.drop_index("ix_route_safety_scores_tenant", table_name="route_safety_scores")
-    op.drop_column("route_safety_scores", "tenant_id")
-
-    op.drop_index("ix_garmin_tokens_tenant", table_name="garmin_tokens")
-    op.drop_column("garmin_tokens", "tenant_id")
-
-    op.drop_index("ix_strava_tokens_tenant", table_name="strava_tokens")
-    op.drop_column("strava_tokens", "tenant_id")
-
-    op.drop_index("ix_knowledge_chunks_tenant", table_name="knowledge_chunks")
-    op.drop_column("knowledge_chunks", "tenant_id")
-
-    op.drop_index("ix_planned_workouts_tenant", table_name="planned_workouts")
-    op.drop_column("planned_workouts", "tenant_id")
-
-    op.drop_index("ix_training_goals_tenant", table_name="training_goals")
-    op.drop_column("training_goals", "tenant_id")
-
-    op.drop_index("ix_metrics_tenant", table_name="metrics")
-    op.drop_column("metrics", "tenant_id")
-
-    op.drop_index("ix_training_stress_days_tenant", table_name="training_stress_days")
-    op.drop_column("training_stress_days", "tenant_id")
-
-    op.drop_index("ix_chat_history_tenant", table_name="chat_history")
-    op.drop_column("chat_history", "tenant_id")
-
-    op.drop_index("ix_calendar_events_tenant", table_name="calendar_events")
-    op.drop_column("calendar_events", "tenant_id")
-
-    op.drop_index("ix_fitness_states_tenant", table_name="fitness_states")
-    op.drop_column("fitness_states", "tenant_id")
-
-    op.drop_index("ix_rides_tenant", table_name="rides")
-    op.drop_column("rides", "tenant_id")
-
-    op.drop_index("ix_athletes_tenant", table_name="athletes")
-    op.drop_column("athletes", "tenant_id")
+    for table_name, index_name in [
+        ("route_safety_scores", "ix_route_safety_scores_tenant"),
+        ("garmin_tokens", "ix_garmin_tokens_tenant"),
+        ("strava_tokens", "ix_strava_tokens_tenant"),
+        ("knowledge_chunks", "ix_knowledge_chunks_tenant"),
+        ("planned_workouts", "ix_planned_workouts_tenant"),
+        ("training_goals", "ix_training_goals_tenant"),
+        ("metrics", "ix_metrics_tenant"),
+        ("training_stress_days", "ix_training_stress_days_tenant"),
+        ("chat_history", "ix_chat_history_tenant"),
+        ("calendar_events", "ix_calendar_events_tenant"),
+        ("fitness_states", "ix_fitness_states_tenant"),
+        ("rides", "ix_rides_tenant"),
+        ("athletes", "ix_athletes_tenant"),
+    ]:
+        if _has_index(table_name, index_name):
+            op.drop_index(index_name, table_name=table_name)
+        if _has_column(table_name, "tenant_id"):
+            op.drop_column(table_name, "tenant_id")

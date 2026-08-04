@@ -8,6 +8,9 @@ Create Date: 2026-06-14 19:50:00.000000
 
 from collections.abc import Sequence
 
+import sqlalchemy as sa
+from sqlalchemy import inspect
+
 from alembic import op
 
 revision: str = "9f8e7d6c5b4a"
@@ -33,7 +36,13 @@ def upgrade() -> None:
             WHERE duplicate_rank > 1
         )"""
     )
-    op.drop_index("ix_rides_external_source", table_name="rides")
+    # Guard: the index may not exist on a fresh PostgreSQL or SQLite DB where
+    # a1b2c3d4e5f6 did not create it (it only creates the index conditionally
+    # when the columns did NOT already exist before the migration).
+    _inspector = inspect(op.get_bind())
+    _existing_indexes = {idx["name"] for idx in _inspector.get_indexes("rides")}
+    if "ix_rides_external_source" in _existing_indexes:
+        op.drop_index("ix_rides_external_source", table_name="rides")
     op.create_index(
         "uq_rides_external_identity",
         "rides",

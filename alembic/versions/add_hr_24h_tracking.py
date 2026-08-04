@@ -30,7 +30,7 @@ def upgrade() -> None:
         sa.Column("device_id", sa.String(), nullable=True),
         sa.Column("recorded_at", sa.String(), nullable=False),
         sa.Column("created_at", sa.String(), nullable=True),
-        sa.ForeignKeyConstraint(["athlete_id"], ["athletes(id)", ], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["athlete_id"], ["athletes.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("idx_hr_samples_athlete_recorded", "hr_24h_samples", ["athlete_id", "recorded_at"])
@@ -49,7 +49,7 @@ def upgrade() -> None:
         sa.Column("resting_hr", sa.INTEGER(), nullable=True),
         sa.Column("created_at", sa.String(), nullable=True),
         sa.Column("updated_at", sa.String(), nullable=True),
-        sa.ForeignKeyConstraint(["athlete_id"], ["athletes(id", ], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["athlete_id"], ["athletes.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("athlete_id"),
     )

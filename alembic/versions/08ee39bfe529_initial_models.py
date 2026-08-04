@@ -21,7 +21,10 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.execute("PRAGMA foreign_keys=ON")
+    bind = op.get_bind()
+    if bind.dialect.name == "sqlite":
+        op.execute("PRAGMA foreign_keys=ON")
+
 
     op.create_table(
         "users",
