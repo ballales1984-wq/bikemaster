@@ -18,6 +18,7 @@ import { useAthleteStore } from "../stores/athlete";
 import { useUIStore } from "../stores/ui";
 import { useMetabolismStore } from "../stores/metabolism";
 import type { FoodLog, CalendarEvent } from "../types/index";
+import router from "../router/index";
 
 function buildResult(
   success: boolean,
@@ -252,8 +253,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
         if (!path) {
           return buildResult(false, `Vista non riconosciuta: ${view}`);
         }
-        const router2 = (await import("../router/index")).default;
-        router2.push(path);
+        router.push(path);
         return buildResult(true, `Aperto ${view}`);
       },
     },
@@ -682,8 +682,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       ],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/track");
+        router.push("/track");
         return buildResult(true, "Tracciamento avviato");
       },
     },
@@ -798,8 +797,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       ],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/metabolism");
+        router.push("/metabolism");
         return buildResult(true, "Apro metabolismo");
       },
     },
@@ -883,8 +881,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       triggerWords: ["connetti strava", "collega strava", "strava connetti"],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/settings/connections");
+        router.push("/settings/connections");
         return buildResult(true, "Apro connessioni per Strava");
       },
     },
@@ -934,8 +931,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       ],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/settings/connections");
+        router.push("/settings/connections");
         return buildResult(true, "Apro connessioni per Google Fit");
       },
     },
@@ -953,8 +949,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       ],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/import");
+        router.push("/import");
         return buildResult(true, "Apro import");
       },
     },
@@ -967,8 +962,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       triggerWords: ["carica heatmap", "mostra heatmap", "heatmap"],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/heatmap");
+        router.push("/heatmap");
         return buildResult(true, "Apro heatmap");
       },
     },
@@ -981,8 +975,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       triggerWords: ["carica badge", "mostra badge", "badge"],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/badges");
+        router.push("/badges");
         return buildResult(true, "Apro badge");
       },
     },
@@ -995,8 +988,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       triggerWords: ["mostra meteo", "apri meteo", "meteo", "che tempo fa"],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/weather");
+        router.push("/weather");
         return buildResult(true, "Apro meteo");
       },
     },
@@ -1026,8 +1018,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       ],
       execute: async (params) => {
         const query = String(requireParam(params, "query"));
-        const router2 = (await import("../router/index")).default;
-        router2.push({ path: "/knowledge", query: { q: query } });
+        router.push({ path: "/knowledge", query: { q: query } });
         return buildResult(true, `Ricerca: ${query}`);
       },
     },
@@ -1040,8 +1031,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       triggerWords: ["simula gara", "simula uscita", "avvia simulazione"],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/bm2");
+        router.push("/bm2");
         return buildResult(true, "Apro BM2");
       },
     },
@@ -1054,8 +1044,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       triggerWords: ["valida piano", "valida allenamento", "valida workout"],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/bm2");
+        router.push("/bm2");
         return buildResult(true, "Apro BM2");
       },
     },
@@ -1072,8 +1061,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       ],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/granfondo");
+        router.push("/granfondo");
         return buildResult(true, "Apro granfondo");
       },
     },
@@ -1130,8 +1118,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       triggerWords: ["vai a oggi calendario", "mostra oggi", "calendario oggi"],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/calendar");
+        router.push("/calendar");
         return buildResult(true, "Apro calendario");
       },
     },
@@ -1280,8 +1267,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
           ? Number(params.ride_id)
           : store.rides[0]?.id;
         if (!rideId) return buildResult(false, "Nessuna uscita da analizzare");
-        const router2 = (await import("../router/index")).default;
-        router2.push({ path: "/rides", query: { analyze: String(rideId) } });
+        router.push({ path: "/rides", query: { analyze: String(rideId) } });
         return buildResult(true, `Analisi uscita ${rideId}`);
       },
     },
@@ -1294,8 +1280,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       triggerWords: ["mostra meteo", "apri meteo", "meteo", "che tempo fa"],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/weather");
+        router.push("/weather");
         return buildResult(true, "Apro meteo");
       },
     },
@@ -1308,8 +1293,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       triggerWords: ["carica heatmap", "mostra heatmap", "heatmap"],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/heatmap");
+        router.push("/heatmap");
         return buildResult(true, "Apro heatmap");
       },
     },
@@ -1322,8 +1306,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       triggerWords: ["carica badge", "mostra badge", "badge"],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/badges");
+        router.push("/badges");
         return buildResult(true, "Apro badge");
       },
     },
@@ -1336,8 +1319,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       triggerWords: ["mostra itinerari", "apri itinerari", "itinerari"],
       parameters: [],
       execute: async () => {
-        const router2 = (await import("../router/index")).default;
-        router2.push("/itinerary");
+        router.push("/itinerary");
         return buildResult(true, "Apro itinerari");
       },
     },

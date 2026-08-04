@@ -163,6 +163,7 @@ import { ref, computed, onBeforeUnmount } from "vue";
 import { useVoiceRecording } from "../composables/useVoiceRecording";
 import { useVoiceCommandsStore } from "../stores/voiceCommands";
 import { useVoiceSystemStore } from "../stores/voiceSystem";
+import router from "../router/index";
 
 const recording = useVoiceRecording();
 const voiceStore = useVoiceCommandsStore();
@@ -459,7 +460,6 @@ async function executeIntent(intent: string, text: string): Promise<void> {
         const viewMatch = lower.match(/(?:apri|vai a|mostra)\s+(.+)/);
         if (viewMatch) {
           const view = viewMatch[1].trim();
-          const router = (await import("../router/index")).default;
           const map: Record<string, string> = {
             calendario: "/calendar",
             uscite: "/rides",
@@ -479,7 +479,6 @@ async function executeIntent(intent: string, text: string): Promise<void> {
         break;
       }
       case "add_ride": {
-        const router = (await import("../router/index")).default;
         router.push("/rides");
         break;
       }

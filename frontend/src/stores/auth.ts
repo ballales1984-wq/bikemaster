@@ -18,6 +18,7 @@ import {
   resetSessionExpiredNotification,
 } from "../utils/api";
 import { resolveApiBase } from "../utils/backend-config";
+import { useUIStore } from "./ui";
 import {
   AUTH_TOKEN_KEY,
   AUTH_USER_KEY,
@@ -302,7 +303,7 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     try {
-      const ui = (await import("./ui")).useUIStore();
+      const ui = useUIStore();
       ui.setOauthLoading(false);
     } catch {
       /* ui store may be disposed */
