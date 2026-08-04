@@ -42,8 +42,6 @@ COPY bike_analyzer ./bike_analyzer
 COPY alembic.ini ./
 COPY alembic ./alembic
 
-COPY --from=frontend-builder /app/frontend/dist ./bike_analyzer/backend/static
-
 RUN chown -R bikemaster:bikemaster /app
 
 USER bikemaster

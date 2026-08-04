@@ -319,10 +319,10 @@ def create_app() -> FastAPI:
                     "default-src 'self'; img-src 'self' data: https:; "
                     "script-src 'self' "
                     "https://cdn.jsdelivr.net https://code.jquery.com "
-                    "https://cdnjs.cloudflare.com https://unpkg.com; "
+                    "https://unpkg.com; "
                     "style-src 'self' "
                     "https://cdn.jsdelivr.net https://netdna.bootstrapcdn.com "
-                    "https://cdnjs.cloudflare.com https://unpkg.com; "
+                    "https://unpkg.com; "
                     "connect-src 'self' https: http://localhost:* http://127.0.0.1:*"
                 )
         return response
