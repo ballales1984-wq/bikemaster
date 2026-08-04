@@ -16,12 +16,12 @@ if echo "${DATABASE_URL:-}" | grep -q "postgresql"; then
   done
 fi
 
-# Run alembic migrations with a timeout. If migrations fail or timeout,
+# Run alembic migrations with a hard timeout. If migrations fail or timeout,
 # the server still starts — the app's init_async_db() will create tables
 # via SQLAlchemy metadata.create_all() (idempotent with IF NOT EXISTS).
 if [ -f "./alembic.ini" ]; then
-  echo "Running alembic migrations (timeout 180s)..."
-  timeout 180 alembic upgrade head 2>&1 || echo "Alembic failed or timed out; server will create tables via init_async_db()"
+  echo "Running alembic migrations (timeout 120s, SIGKILL)..."
+  timeout --signal=KILL 120 alembic upgrade head 2>&1 || echo "Alembic failed or timed out; server will create tables via init_async_db()"
 fi
 
 # Start the server (foreground — Render tracks this PID)

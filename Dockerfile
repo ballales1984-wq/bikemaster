@@ -17,6 +17,8 @@ RUN npm run build
 # === Production Stage ===
 FROM python:3.11-slim AS production
 
+# Cache bust — forces rebuild of COPY layers below when migration files change
+ARG CACHEBUST=3
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -40,6 +42,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY main.py ./
 COPY bike_analyzer ./bike_analyzer
 COPY alembic.ini ./
+RUN echo "cache-bust=${CACHEBUST}" > /dev/null
 COPY alembic ./alembic
 COPY scripts/ ./scripts/
 
