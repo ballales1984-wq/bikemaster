@@ -126,7 +126,7 @@ export function processOAuthToken(): boolean {
   // Safety: if there is no OAuth token/error to process, never leave the app
   // stuck behind the loading overlay (e.g. a backend redirect that dropped
   // the param, or a transient round-trip error).
-  console.log("[OAuth] no token found in URL or sessionStorage");
+  console.debug("[OAuth] no token found in URL or sessionStorage");
   ui.setOauthLoading(false);
   return false;
 }

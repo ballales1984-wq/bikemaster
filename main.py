@@ -58,23 +58,21 @@ def main():
             logger.error("FATAL: failed to build Hub FastAPI app")
             traceback.print_exc()
             sys.exit(1)
-        log_config = None if os.getenv("UVICORN_LOG_CONFIG") == "none" else "default"
         uvicorn.run(
             app,
             host="0.0.0.0",
             port=args.port,
-            log_config=log_config,
+            log_config=None,
         )
     elif args.mode in {"api", "web"}:
         logger.info("Starting API + Dashboard on http://localhost:%s", args.port)
-        log_config = None if os.getenv("UVICORN_LOG_CONFIG") == "none" else "default"
         uvicorn.run(
             "bike_analyzer.backend.api.app_factory:create_app",
             factory=True,
             host="0.0.0.0",
             port=args.port,
             reload=args.reload,
-            log_config=log_config,
+            log_config=None,
         )
     elif args.mode == "cli":
         asyncio.run(run_cli())

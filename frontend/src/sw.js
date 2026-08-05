@@ -3,7 +3,7 @@ self.addEventListener("install", function () {
 });
 
 self.addEventListener("activate", function () {
-  self.clients.claim();
+  self.clients.claim().catch(() => {});
 });
 
 self.addEventListener("message", function (event) {
@@ -85,7 +85,7 @@ self.addEventListener("activate", (event) => {
           )
           .map((key) => caches.delete(key)),
       );
-      await self.clients.claim();
+      await self.clients.claim().catch(() => {});
     })(),
   );
 });
