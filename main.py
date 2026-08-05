@@ -66,16 +66,9 @@ def main():
         )
     elif args.mode in {"api", "web"}:
         logger.info("Starting API + Dashboard on http://localhost:%s", args.port)
-        try:
-            from bike_analyzer.backend.api.app_factory import create_app
-
-            app = create_app()
-        except Exception:
-            logger.error("FATAL: failed to build FastAPI app")
-            traceback.print_exc()
-            sys.exit(1)
         uvicorn.run(
-            app,
+            "bike_analyzer.backend.api.app_factory:create_app",
+            factory=True,
             host="0.0.0.0",
             port=args.port,
             reload=args.reload,

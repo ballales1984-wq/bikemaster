@@ -3,20 +3,9 @@ set -e
 
 PORT="${PORT:-8000}"
 
-# Wait for PostgreSQL if DATABASE_URL is set
-if echo "${DATABASE_URL:-}" | grep -q "postgresql"; then
-  echo "Waiting for PostgreSQL..."
-  for i in $(seq 1 30); do
-    if python -c "import psycopg2; psycopg2.connect('${DATABASE_URL}')" 2>/dev/null; then
-      echo "PostgreSQL is ready."
-      break
-    fi
-    echo "PostgreSQL not ready yet (attempt $i/30)..."
-    sleep 2
-  done
-fi
-
-# Start the server (foreground — Render tracks this PID)
-# Migrations are handled by the app's background init_async_db() (CREATE TABLE IF NOT EXISTS)
-# and optionally by run_migrations_on_startup() gated by RUN_MIGRATIONS_ON_STARTUP=0.
+# Start the server immediately (foreground — Render tracks this PID).
+# PostgreSQL connection, migrations, and SQLite init are handled asynchronously
+# in app_factory.py background tasks, allowing uvicorn to open the HTTP port
+# immediately so Render's port detection and healthcheck (/api/v1/health) succeed.
 exec python main.py api --port ${PORT}
+
