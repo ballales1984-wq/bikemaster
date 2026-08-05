@@ -59,6 +59,6 @@ ENV SENTRY_DSN="" \
     UVICORN_WORKERS=1 \
     RUN_MIGRATIONS_ON_STARTUP=0
 
-EXPOSE 8000
+EXPOSE 10000
 
 CMD ["bash", "scripts/start.sh"]
