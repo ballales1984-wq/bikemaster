@@ -201,6 +201,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_run_with_timeout("event-bus-start", _start_event_bus_bg()))
     )
     _log_flush("startup: all background tasks launched, yielding to uvicorn")
+    yield
 
     # Graceful shutdown: cancel background tasks, then stop services.
     logger.info("Shutting down background services")
