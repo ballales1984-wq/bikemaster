@@ -46,7 +46,9 @@ COPY alembic.ini ./
 COPY alembic ./alembic
 COPY scripts/ ./scripts/
 
-RUN chown -R bikemaster:bikemaster /app
+RUN chown -R bikemaster:bikemaster /app && \
+    python -m compileall bike_analyzer 2>/dev/null; \
+    echo "Bytecode pre-compilation complete"
 
 USER bikemaster
 
@@ -55,12 +57,8 @@ ENV SENTRY_DSN="" \
     SENTRY_TRACES_SAMPLE_RATE=0.2 \
     LOG_LEVEL=WARNING \
     UVICORN_WORKERS=1 \
-    PORT=8000 \
     RUN_MIGRATIONS_ON_STARTUP=0
 
-EXPOSE ${PORT:-8000}
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/api/v1/health || exit 1
+EXPOSE 8000
 
 CMD ["bash", "scripts/start.sh"]
