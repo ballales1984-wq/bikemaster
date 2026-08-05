@@ -20,6 +20,7 @@ import os
 import asyncio
 import logging
 import sqlite3
+from collections.abc import Coroutine
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -66,6 +67,16 @@ def _static_file_response(file_path: Path, media_type: str | None = None, header
     return Response(status_code=404, headers=headers or {})
 
 
+STARTUP_TASK_TIMEOUT = int(os.getenv("STARTUP_TASK_TIMEOUT", "30"))
+
+
+def _log_flush(msg: str) -> None:
+    print(f"[startup] {msg}", flush=True)
+    logger.info(msg)
+    for handler in logging.getLogger().handlers:
+        handler.flush()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Ciclo di vita dell'applicazione: startup e shutdown dei servizi.
@@ -74,6 +85,11 @@ async def lifespan(app: FastAPI):
     uvicorn inizia ad accettare connessioni immediatamente, permettendo
     a Render di rilevare la porta e superare il healthcheck senza
     attendere il completamento di tutte le inizializzazioni.
+
+    Ogni task di inizializzazione ha un timeout esplicito (default 30s,
+    configurabile via STARTUP_TASK_TIMEOUT) per evitare che un passo
+    bloccante (es. connessione Postgres in retry) impedisca il binding
+    della porta e causi il timeout di Render.
 
     Allo shutdown termina nell'ordine: event bus, task queue, Redis.
     Ogni passo e' protetto da try/except per garantire che un errore in
@@ -84,6 +100,30 @@ async def lifespan(app: FastAPI):
 
     setup_logging()
     app.state._bg_tasks: list[asyncio.Task] = []
+    app.state._startup_steps: dict[str, str] = {}
+
+    _log_flush("lifespan: setup logging completed")
+
+    async def _run_with_timeout(
+        name: str, coro: "Coroutine[Any, Any, Any]", timeout: float = STARTUP_TASK_TIMEOUT
+    ) -> None:
+        """Run a coroutine with a timeout, logging start/complete/fail/timeout."""
+        app.state._startup_steps[name] = "running"
+        _log_flush(f"startup: {name} — starting")
+        try:
+            await asyncio.wait_for(coro, timeout=timeout)
+            app.state._startup_steps[name] = "completed"
+            _log_flush(f"startup: {name} — completed")
+        except asyncio.TimeoutError:
+            app.state._startup_steps[name] = "timed_out"
+            logger.warning(
+                "startup: %s — TIMED OUT after %ds (continuing startup anyway)",
+                name,
+                timeout,
+            )
+        except Exception:
+            app.state._startup_steps[name] = "failed"
+            logger.exception("startup: %s — failed (continuing startup anyway)", name)
 
     async def _init_sqlite() -> None:
         try:
@@ -139,14 +179,28 @@ async def lifespan(app: FastAPI):
     # Launch all initialization as concurrent background tasks so uvicorn can
     # start accepting connections immediately — critical for Render port
     # detection and health check (https://render.com/docs/web-services#port-binding).
-    app.state._bg_tasks.append(asyncio.create_task(_init_sqlite()))
-    app.state._bg_tasks.append(asyncio.create_task(_run_migrations_bg()))
-    app.state._bg_tasks.append(asyncio.create_task(_init_async_db_bg_task()))
-    app.state._bg_tasks.append(asyncio.create_task(_init_redis_bg()))
-    app.state._bg_tasks.append(asyncio.create_task(_start_task_queue_bg()))
-    app.state._bg_tasks.append(asyncio.create_task(_start_event_bus_bg()))
-
-    yield
+    # Each task has an explicit timeout to prevent a single hanging step from
+    # blocking the entire startup.
+    _log_flush("startup: launching background initialization tasks")
+    app.state._bg_tasks.append(
+        asyncio.create_task(_run_with_timeout("sqlite-init", _init_sqlite()))
+    )
+    app.state._bg_tasks.append(
+        asyncio.create_task(_run_with_timeout("migrations", _run_migrations_bg()))
+    )
+    app.state._bg_tasks.append(
+        asyncio.create_task(_run_with_timeout("async-db-init", _init_async_db_bg_task()))
+    )
+    app.state._bg_tasks.append(
+        asyncio.create_task(_run_with_timeout("redis-init", _init_redis_bg()))
+    )
+    app.state._bg_tasks.append(
+        asyncio.create_task(_run_with_timeout("task-queue-start", _start_task_queue_bg()))
+    )
+    app.state._bg_tasks.append(
+        asyncio.create_task(_run_with_timeout("event-bus-start", _start_event_bus_bg()))
+    )
+    _log_flush("startup: all background tasks launched, yielding to uvicorn")
 
     # Graceful shutdown: cancel background tasks, then stop services.
     logger.info("Shutting down background services")

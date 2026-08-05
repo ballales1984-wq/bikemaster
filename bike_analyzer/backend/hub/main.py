@@ -17,6 +17,7 @@ Note:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -42,46 +43,64 @@ _s = get_settings()
 async def lifespan(app: FastAPI):
     """Ciclo di vita dell'applicazione Hub.
 
-    Allo startup inizializza il database PostgreSQL asincrono, il client
-    Redis e la task queue. Ogni servizio e' protetto da try/except perche'
-    un errore in un servizio opzionale non deve bloccare l'avvio.
+    Allo startup avvia tutti i servizi in task in background cosicche'
+    uvicorn inizia ad accettare connessioni immediatamente, permettendo
+    a Render di rilevare la porta e superare il healthcheck senza
+    attendere il completamento di tutte le inizializzazioni.
 
     Allo shutdown termina la task queue e chiude la connessione Redis.
+    Ogni passo e' protetto da try/except per garantire che un errore in
+    un servizio non impedisca lo shutdown degli altri.
     """
-
     if not _s.database_url:
         logger.warning(
             "Hub started without DATABASE_URL — PostgreSQL is required for hub mode. "
             "Set DATABASE_URL in .env.hub or environment."
         )
 
-    try:
-        await init_async_db()
-    except Exception:
-        logger.exception("Failed to initialize PostgreSQL async database")
+    async def _init_async_db_bg() -> None:
+        try:
+            await init_async_db()
+            logger.info("Async database initialized successfully.")
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to initialize PostgreSQL async database")
 
-    try:
-        await get_redis()
-    except Exception:
-        logger.exception("Failed to initialize Redis client")
+    async def _init_redis_bg() -> None:
+        try:
+            await get_redis()
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to initialize Redis client")
 
-    task_queue = get_task_queue()
-    try:
-        await task_queue.start()
-        app.state.task_queue = task_queue
-    except Exception:
-        logger.exception("Failed to start background task queue")
+    async def _start_task_queue_bg() -> None:
+        queue = get_task_queue()
+        try:
+            await queue.start()
+            app.state.task_queue = queue
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to start background task queue")
+
+    app.state._bg_tasks: list[asyncio.Task] = []
+    app.state._bg_tasks.append(asyncio.create_task(_init_async_db_bg()))
+    app.state._bg_tasks.append(asyncio.create_task(_init_redis_bg()))
+    app.state._bg_tasks.append(asyncio.create_task(_start_task_queue_bg()))
 
     yield
 
     logger.info("Shutting down hub background services")
+    for t in getattr(app.state, "_bg_tasks", []):
+        if not t.done():
+            t.cancel()
+    if app.state._bg_tasks:
+        await asyncio.gather(*app.state._bg_tasks, return_exceptions=True)
+
     try:
-        await task_queue.stop()
-    except Exception:
+        if hasattr(app.state, "task_queue"):
+            await app.state.task_queue.stop()
+    except Exception:  # noqa: BLE001
         logger.exception("Failed to stop background task queue")
     try:
         await close_redis()
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.exception("Failed to close Redis client")
 
 
