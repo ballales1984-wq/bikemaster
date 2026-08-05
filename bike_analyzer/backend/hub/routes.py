@@ -871,7 +871,7 @@ async def hub_ceo_analytics(current_user: dict = Depends(get_admin_user)):
         athletes_result = await session.execute(sa_select(AthleteModel))
         athletes = athletes_result.scalars().all()
 
-    now = datetime.now()
+    now = datetime.now(UTC)
     total_rides = len(rides)
     total_athletes = len(athletes)
     total_km = sum(r.distance_km or 0 for r in rides)

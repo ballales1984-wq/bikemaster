@@ -1120,6 +1120,11 @@ def save_ride(ride: dict) -> int:
                 time.sleep(retry_delay * (attempt + 1))
                 continue
             raise
+        except sqlite3.IntegrityError:
+            existing_ride_id = _find_existing_external_ride(conn, external_source, external_id)
+            if existing_ride_id is not None:
+                return existing_ride_id
+            raise
     if last_error is not None:
         raise last_error
     raise RuntimeError("Failed to save ride after retries")

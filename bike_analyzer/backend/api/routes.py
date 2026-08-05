@@ -346,7 +346,10 @@ def _http_error_detail(exc: Exception, fallback: str) -> str:
 
 def _user_id(current_user: dict) -> int:
     """Extract the integer user/athlete id from the authenticated user dict."""
-    return int(current_user["id"])
+    try:
+        return int(current_user["id"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(status_code=401, detail="Invalid user token") from exc
 
 
 def _public_athlete(athlete: dict | None) -> dict:
@@ -374,7 +377,10 @@ def _ensure_int_user_id(current_user: dict) -> int:
 
 def _current_athlete_id(current_user: dict) -> int:
     """Return the active athlete id from the JWT, falling back to user id."""
-    return int(current_user.get("athlete_id") or current_user["id"])
+    try:
+        return int(current_user.get("athlete_id") or current_user["id"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(status_code=401, detail="Invalid user token") from exc
 
 
 def _ensure_athlete_access(athlete_id: int, current_user: dict) -> None:
@@ -2710,7 +2716,7 @@ async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_use
     await asyncio.to_thread(create_speed_chart, segments, path)
     from fastapi.responses import FileResponse
 
-    return FileResponse(path, media_type="image/png", filename="speed.png")
+    return FileResponse(path, media_type="image/png", filename="speed.png", background=BackgroundTask(os.remove, path))
 
 
 @router.get("/charts/duration")
@@ -2725,7 +2731,7 @@ async def duration_chart(current_user: dict = Depends(get_current_user)):
     await asyncio.to_thread(create_duration_chart, rides, path)
     from fastapi.responses import FileResponse
 
-    return FileResponse(path, media_type="image/png", filename="duration.png")
+    return FileResponse(path, media_type="image/png", filename="duration.png", background=BackgroundTask(os.remove, path))
 
 
 @router.get("/charts/distance/{ride_id}")
@@ -2757,7 +2763,7 @@ async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_
     await asyncio.to_thread(create_distance_chart, segments, path)
     from fastapi.responses import FileResponse
 
-    return FileResponse(path, media_type="image/png", filename="distance.png")
+    return FileResponse(path, media_type="image/png", filename="distance.png", background=BackgroundTask(os.remove, path))
 
 
 @router.get("/charts/elevation/{ride_id}")
@@ -2789,7 +2795,7 @@ async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current
     await asyncio.to_thread(create_elevation_chart, segments, path)
     from fastapi.responses import FileResponse
 
-    return FileResponse(path, media_type="image/png", filename="elevation.png")
+    return FileResponse(path, media_type="image/png", filename="elevation.png", background=BackgroundTask(os.remove, path))
 
 
 @router.post("/athletes", response_model=dict)
@@ -4443,7 +4449,7 @@ async def google_static_map(
     except RuntimeError as exc:
         logger.error("Google static map failed for ride %d: %s", ride_id, exc)
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    return FileResponse(path, media_type="image/png", filename="map.png")
+    return FileResponse(path, media_type="image/png", filename="map.png", background=BackgroundTask(os.remove, path))
 
 
 @router.get("/rides/{ride_id}/speed-path")
@@ -4569,7 +4575,7 @@ async def ceo_analytics(current_user: dict = Depends(get_admin_user)):
     total_calories = sum(r.get("calories", 0) for r in rides)
     from datetime import datetime
 
-    now = datetime.now()
+    now = datetime.now(UTC)
     this_month = sum(1 for r in rides if r.get("date", "").startswith(now.strftime("%Y-%m")))
     last_month = sum(
         1
@@ -5340,7 +5346,7 @@ async def get_weather_forecast(
     days: int = Query(7, ge=1, le=7),
 ):
     """Get multi-day weather forecast."""
-    from datetime import datetime, timedelta
+    from datetime import UTC, datetime, timedelta
 
     from ..weather.weather_service import get_forecast_for_date, get_weather_score
 
@@ -5348,7 +5354,7 @@ async def get_weather_forecast(
         raise HTTPException(status_code=500, detail="WEATHER_API_KEY not configured in .env file")
 
     forecasts = []
-    today = datetime.now()
+    today = datetime.now(UTC)
 
     for i in range(days):
         date = (today + timedelta(days=i)).strftime("%Y-%m-%d")

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from ....core.calculators import power, stress
 from ....core.fitness_state import FitnessStateVector
@@ -48,7 +48,7 @@ class FitnessStateEngine:
             recommendation = "Ready for hard effort"
         return FitnessStateVector(
             athlete_id=athlete_id,
-            computed_at=datetime.now(),
+            computed_at=datetime.now(UTC),
             atl=atl,
             ctl=ctl,
             tsb=tsb,

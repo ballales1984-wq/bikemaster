@@ -14,7 +14,7 @@ Training Plan, Adaptation Engine, and Proactive Assistant.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from ...models.models import AthleteProfile, Ride
@@ -129,7 +129,7 @@ class AthleteStateService:
         # 7. Build the canonical model
         return AthleteState(
             athlete_id=athlete_id,
-            computed_at=datetime.now(),
+            computed_at=datetime.now(UTC),
             atl=round(atl, 1),
             ctl=round(ctl, 1),
             tsb=round(tsb, 1),

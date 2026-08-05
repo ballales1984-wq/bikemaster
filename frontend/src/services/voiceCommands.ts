@@ -223,7 +223,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       parameters: navParams,
       execute: async (params) => {
         const view = String(requireParam(params, "view")).toLowerCase();
-        const router: Record<string, string> = {
+        const viewRoutes: Record<string, string> = {
           calendario: "/calendar",
           uscite: "/rides",
           dashboard: "/dashboard",
@@ -249,7 +249,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
           connessioni: "/settings/connections",
           impostazioni: "/settings",
         };
-        const path = router[view];
+        const path = viewRoutes[view];
         if (!path) {
           return buildResult(false, `Vista non riconosciuta: ${view}`);
         }

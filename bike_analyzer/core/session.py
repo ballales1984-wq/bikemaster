@@ -16,7 +16,7 @@ Main components:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -206,6 +206,6 @@ class Recommendation:
             "tenant_id": self.tenant_id,
             "kind": self.kind,
             "text": self.text,
-            "created_at": self.created_at or datetime.now().isoformat(),
+            "created_at": self.created_at or datetime.now(UTC).isoformat(),
         }
 
