@@ -20,7 +20,6 @@ import os
 import asyncio
 import logging
 import sqlite3
-import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -57,42 +56,6 @@ INDEX_FILE = STATIC_DIR / "index.html"
 SERVE_STATIC = os.getenv("SERVE_STATIC", "true").lower() == "true"
 
 
-async def _run_migrations_async(run_fn) -> None:
-    """Run Alembic migrations in a background task so the lifespan startup
-    is not blocked. The server starts serving health checks immediately while
-    migrations apply in a worker thread.
-
-    This is critical for Render (and similar platforms) where the health-check
-    timeout fires if the server does not accept connections within the
-    configured window. Migrations that take minutes would otherwise block the
-    entire startup sequence.
-    """
-    logger.info("Starting database migrations in background (non-blocking)...")
-    try:
-        await asyncio.to_thread(run_fn)
-        logger.info("Database migrations completed successfully.")
-    except Exception:  # noqa: BLE001
-        logger.exception("Background database migration failed; continuing startup.")
-
-
-async def _init_async_db_bg() -> None:
-    """Initialize the async PostgreSQL connection pool and create tables in the
-    background so the lifespan startup is not blocked.
-
-    The /api/v1/health endpoint returns a static response and does not require
-    the async DB, so deferring this is safe — the server becomes reachable
-    immediately for Render's health check.
-    """
-    from ..db.async_db import init_async_db
-
-    logger.info("Initializing async database in background (non-blocking)...")
-    try:
-        await init_async_db()
-        logger.info("Async database initialized successfully.")
-    except Exception:  # noqa: BLE001
-        logger.exception("Async database initialization failed; continuing startup.")
-
-
 def _static_file_response(file_path: Path, media_type: str | None = None, headers: dict | None = None) -> Response:
     """Serve a static file from disk, inferring media type when not provided."""
     if file_path.exists() and media_type:
@@ -107,12 +70,10 @@ def _static_file_response(file_path: Path, media_type: str | None = None, header
 async def lifespan(app: FastAPI):
     """Ciclo di vita dell'applicazione: startup e shutdown dei servizi.
 
-    Allo startup inizializza:
-    - Il database SQLite (schema + migrazioni).
-    - Il database PostgreSQL asincrono (se ``DATABASE_URL`` configurato).
-    - Il client Redis (opzionale, gli errori non bloccano l'avvio).
-    - La task queue per job in background.
-    - Il domain event bus (opzionale).
+    Allo startup avvia tutti i servizi in task in background cosicche'
+    uvicorn inizia ad accettare connessioni immediatamente, permettendo
+    a Render di rilevare la porta e superare il healthcheck senza
+    attendere il completamento di tutte le inizializzazioni.
 
     Allo shutdown termina nell'ordine: event bus, task queue, Redis.
     Ogni passo e' protetto da try/except per garantire che un errore in
@@ -123,59 +84,79 @@ async def lifespan(app: FastAPI):
 
     setup_logging()
     app.state._bg_tasks: list[asyncio.Task] = []
-    startup_start = time.monotonic()
 
-    try:
-        await asyncio.to_thread(init_db)
-        logger.info("SQLite init completed successfully.")
-    except Exception:  # noqa: BLE001
-        logger.exception("SQLite init failed; continuing startup.")
+    async def _init_sqlite() -> None:
+        try:
+            await asyncio.to_thread(init_db)
+            logger.info("SQLite init completed successfully.")
+        except Exception:  # noqa: BLE001
+            logger.exception("SQLite init failed; continuing startup.")
 
-    if _s.database_url:
+    async def _run_migrations_bg() -> None:
+        if not _s.database_url:
+            return
         from ..db.migrations import run_migrations_on_startup
 
         try:
-            await _run_migrations_async(run_migrations_on_startup)
+            await asyncio.to_thread(run_migrations_on_startup)
+            logger.info("Database migrations completed successfully.")
         except Exception:  # noqa: BLE001
-            logger.exception("Database migration failed; continuing startup.")
+            logger.exception("Background database migration failed; continuing startup.")
+
+    async def _init_async_db_bg_task() -> None:
+        from ..db.async_db import init_async_db
 
         try:
-            await _init_async_db_bg()
+            await init_async_db()
+            logger.info("Async database initialized successfully.")
         except Exception:  # noqa: BLE001
             logger.exception("Async database initialization failed; continuing startup.")
 
-    # Redis (optional): a downed Redis must not prevent startup.
-    if _s.redis_url:
+    async def _init_redis_bg() -> None:
+        if not _s.redis_url:
+            logger.warning("Redis not configured (REDIS_URL not set) — cache disabled")
+            return
         try:
             await get_redis()
         except Exception:  # noqa: BLE001
             logger.exception("Failed to initialize Redis client")
-    else:
-        logger.warning("Redis not configured (REDIS_URL not set) — cache disabled")
 
-    task_queue = get_task_queue()
-    try:
-        await task_queue.start()
-        app.state.task_queue = task_queue
-    except Exception:  # noqa: BLE001
-        logger.exception("Failed to start background task queue")
+    async def _start_task_queue_bg() -> None:
+        queue = get_task_queue()
+        try:
+            await queue.start()
+            app.state.task_queue = queue
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to start background task queue")
 
-    try:
-        from ..events import start_event_bus
-        await start_event_bus()
-    except Exception:  # noqa: BLE001
-        logger.exception("Failed to start domain event bus")
+    async def _start_event_bus_bg() -> None:
+        try:
+            from ..events import start_event_bus
+            await start_event_bus()
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to start domain event bus")
 
-    elapsed = time.monotonic() - startup_start
-    logger.warning("Lifespan startup complete in %.1fs — uvicorn now accepting connections", elapsed)
+    # Launch all initialization as background tasks so uvicorn can start
+    # accepting connections immediately — critical for Render port detection
+    # and health check (https://render.com/docs/web-services#port-binding).
+    app.state._bg_tasks.append(asyncio.create_task(_init_sqlite()))
+    app.state._bg_tasks.append(asyncio.create_task(_run_migrations_bg()))
+    app.state._bg_tasks.append(asyncio.create_task(_init_async_db_bg_task()))
+    app.state._bg_tasks.append(asyncio.create_task(_init_redis_bg()))
+    app.state._bg_tasks.append(asyncio.create_task(_start_task_queue_bg()))
+    app.state._bg_tasks.append(asyncio.create_task(_start_event_bus_bg()))
+
     yield
 
-    # Graceful shutdown: stop background services, guarding each step so one
-    # failure does not block the others.
+    # Graceful shutdown: cancel background tasks, then stop services.
     logger.info("Shutting down background services")
     for t in getattr(app.state, "_bg_tasks", []):
         if not t.done():
             t.cancel()
+    # Wait for tasks to finish cancellation (with timeout to avoid hanging)
+    if app.state._bg_tasks:
+        await asyncio.gather(*app.state._bg_tasks, return_exceptions=True)
+
     try:
         from ..events import stop_event_bus
 
@@ -183,7 +164,8 @@ async def lifespan(app: FastAPI):
     except Exception:  # noqa: BLE001
         logger.exception("Failed to stop domain event bus")
     try:
-        await task_queue.stop()
+        if hasattr(app.state, "task_queue"):
+            await app.state.task_queue.stop()
     except Exception:  # noqa: BLE001
         logger.exception("Failed to stop background task queue")
     try:
