@@ -20,6 +20,7 @@ import os
 import asyncio
 import logging
 import sqlite3
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -122,34 +123,32 @@ async def lifespan(app: FastAPI):
 
     setup_logging()
     app.state._bg_tasks: list[asyncio.Task] = []
+    startup_start = time.monotonic()
 
     init_db_task = asyncio.create_task(asyncio.to_thread(init_db))
     app.state._bg_tasks.append(init_db_task)
-    logger.info("SQLite init scheduled as background task (task id=%s)", init_db_task.get_name())
+    logger.warning("SQLite init scheduled as background task (task id=%s)", init_db_task.get_name())
 
     if _s.database_url:
         from ..db.migrations import run_migrations_on_startup
 
         migration_task = asyncio.create_task(_run_migrations_async(run_migrations_on_startup))
         app.state._bg_tasks.append(migration_task)
-        logger.info("Migrations scheduled as background task (task id=%s)", migration_task.get_name())
+        logger.warning("Migrations scheduled as background task (task id=%s)", migration_task.get_name())
 
         init_task = asyncio.create_task(_init_async_db_bg())
         app.state._bg_tasks.append(init_task)
-        logger.info("Async DB init scheduled as background task (task id=%s)", init_task.get_name())
+        logger.warning("Async DB init scheduled as background task (task id=%s)", init_task.get_name())
 
     # Redis (optional): a downed Redis must not prevent startup.
-    # Only attempt connection when REDIS_URL is explicitly configured;
-    # otherwise skip entirely to avoid a blocking connect timeout.
     if _s.redis_url:
         try:
             await get_redis()
         except Exception:  # noqa: BLE001
             logger.exception("Failed to initialize Redis client")
     else:
-        logger.info("Redis not configured (REDIS_URL not set) — cache disabled")
+        logger.warning("Redis not configured (REDIS_URL not set) — cache disabled")
 
-    # Background task queue worker.
     task_queue = get_task_queue()
     try:
         await task_queue.start()
@@ -157,15 +156,14 @@ async def lifespan(app: FastAPI):
     except Exception:  # noqa: BLE001
         logger.exception("Failed to start background task queue")
 
-    # Domain event bus (optional but tracked for graceful shutdown).
     try:
         from ..events import start_event_bus
-
         await start_event_bus()
     except Exception:  # noqa: BLE001
         logger.exception("Failed to start domain event bus")
 
-    logger.info("Lifespan startup complete — uvicorn now accepting connections")
+    elapsed = time.monotonic() - startup_start
+    logger.warning("Lifespan startup complete in %.1fs — uvicorn now accepting connections", elapsed)
     yield
 
     # Graceful shutdown: stop background services, guarding each step so one
