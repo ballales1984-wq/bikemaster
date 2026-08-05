@@ -125,20 +125,24 @@ async def lifespan(app: FastAPI):
     app.state._bg_tasks: list[asyncio.Task] = []
     startup_start = time.monotonic()
 
-    init_db_task = asyncio.create_task(asyncio.to_thread(init_db))
-    app.state._bg_tasks.append(init_db_task)
-    logger.warning("SQLite init scheduled as background task (task id=%s)", init_db_task.get_name())
+    try:
+        await asyncio.to_thread(init_db)
+        logger.info("SQLite init completed successfully.")
+    except Exception:  # noqa: BLE001
+        logger.exception("SQLite init failed; continuing startup.")
 
     if _s.database_url:
         from ..db.migrations import run_migrations_on_startup
 
-        migration_task = asyncio.create_task(_run_migrations_async(run_migrations_on_startup))
-        app.state._bg_tasks.append(migration_task)
-        logger.warning("Migrations scheduled as background task (task id=%s)", migration_task.get_name())
+        try:
+            await _run_migrations_async(run_migrations_on_startup)
+        except Exception:  # noqa: BLE001
+            logger.exception("Database migration failed; continuing startup.")
 
-        init_task = asyncio.create_task(_init_async_db_bg())
-        app.state._bg_tasks.append(init_task)
-        logger.warning("Async DB init scheduled as background task (task id=%s)", init_task.get_name())
+        try:
+            await _init_async_db_bg()
+        except Exception:  # noqa: BLE001
+            logger.exception("Async database initialization failed; continuing startup.")
 
     # Redis (optional): a downed Redis must not prevent startup.
     if _s.redis_url:
