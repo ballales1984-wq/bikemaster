@@ -136,57 +136,6 @@ async def lifespan(app: FastAPI):
         except Exception:  # noqa: BLE001
             logger.exception("Failed to start domain event bus")
 
-    async def _init_sqlite() -> None:
-        try:
-            await asyncio.to_thread(init_db)
-            logger.info("SQLite init completed successfully.")
-        except Exception:  # noqa: BLE001
-            logger.exception("SQLite init failed; continuing startup.")
-
-    async def _run_migrations_bg() -> None:
-        if not _s.database_url:
-            return
-        from ..db.migrations import run_migrations_on_startup
-
-        try:
-            await asyncio.to_thread(run_migrations_on_startup)
-            logger.info("Database migrations completed successfully.")
-        except Exception:  # noqa: BLE001
-            logger.exception("Background database migration failed; continuing startup.")
-
-    async def _init_async_db_bg_task() -> None:
-        from ..db.async_db import init_async_db
-
-        try:
-            await init_async_db()
-            logger.info("Async database initialized successfully.")
-        except Exception:  # noqa: BLE001
-            logger.exception("Async database initialization failed; continuing startup.")
-
-    async def _init_redis_bg() -> None:
-        if not _s.redis_url:
-            logger.warning("Redis not configured (REDIS_URL not set) — cache disabled")
-            return
-        try:
-            await get_redis()
-        except Exception:  # noqa: BLE001
-            logger.exception("Failed to initialize Redis client")
-
-    async def _start_task_queue_bg() -> None:
-        queue = get_task_queue()
-        try:
-            await queue.start()
-            app.state.task_queue = queue
-        except Exception:  # noqa: BLE001
-            logger.exception("Failed to start background task queue")
-
-    async def _start_event_bus_bg() -> None:
-        try:
-            from ..events import start_event_bus
-            await start_event_bus()
-        except Exception:  # noqa: BLE001
-            logger.exception("Failed to start domain event bus")
-
     # Launch all initialization as concurrent background tasks so uvicorn can
     # start accepting connections immediately — critical for Render port
     # detection and health check (https://render.com/docs/web-services#port-binding).
