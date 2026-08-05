@@ -46,6 +46,34 @@ def _connect():
     return psycopg2.connect(_url(), cursor_factory=RealDictCursor)
 
 
+_EXISTING_COLUMNS_CACHE: dict[str, list[str]] = {}
+
+
+def _get_existing_columns(table_name: str) -> list[str]:
+    """Return the actual column names present in a PostgreSQL table.
+
+    Cached per-table to avoid repeated information_schema queries. Used to
+    gracefully handle schema drift between the code's model definitions and
+    the actual database schema (e.g. when Alembic migrations have not yet
+    added recently introduced columns).
+    """
+    if table_name in _EXISTING_COLUMNS_CACHE:
+        return _EXISTING_COLUMNS_CACHE[table_name]
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = %s ORDER BY ordinal_position",
+                (table_name,),
+            )
+            cols = [row["column_name"] for row in cur.fetchall()]
+            _EXISTING_COLUMNS_CACHE[table_name] = cols
+            return cols
+    finally:
+        conn.close()
+
+
 def _ensure_tables(conn) -> None:  # pragma: no cover - kept for standalone bootstrap
     """Best-effort ``CREATE TABLE IF NOT EXISTS`` fallback.
 
@@ -264,9 +292,12 @@ def save_athlete(
     user_id: int | None = None,
 ) -> int:
     now = datetime.now(UTC).isoformat()
-    # Apply defaults per-column to mirror db/database.py sqlite save_athlete.
+    existing_cols = set(_get_existing_columns("athletes"))
+    # Filter to columns that actually exist in the database to tolerate
+    # schema drift between the model definitions and the live schema.
+    insert_cols = [c for c in _INSERT_COLS if c in existing_cols]
     vals = []
-    for c in _INSERT_COLS:
+    for c in insert_cols:
         if c in ("created_at", "updated_at"):
             vals.append(now)
         elif c == "tenant_id":
@@ -284,12 +315,12 @@ def save_athlete(
                 _do_update(cur, athlete_id, merged, now)
                 conn.commit()
                 return athlete_id
-            cols = list(_INSERT_COLS)
+            cols = list(insert_cols)
             params: list[Any] = list(vals)
-            if athlete_id is not None:
+            if athlete_id is not None and "id" in existing_cols:
                 cols.insert(0, "id")
                 params.insert(0, athlete_id)
-            if user_id is not None:
+            if user_id is not None and "user_id" in existing_cols:
                 cols.insert(1 if athlete_id is not None else 0, "user_id")
                 params.insert(1 if athlete_id is not None else 0, user_id)
             placeholders = ", ".join(["%s"] * len(params))
@@ -306,12 +337,17 @@ def save_athlete(
 
 
 def _do_update(cur, athlete_id: int, merged: dict, now: str) -> None:
-    params = [merged.get(c, _UPDATE_DEFAULTS.get(c)) for c in _UPDATE_COLS]
-    params[-2] = merged.get("tenant_id", athlete_id)  # tenant_id
-    params[-1] = now  # updated_at
+    existing_cols = set(_get_existing_columns("athletes"))
+    update_cols = [c for c in _UPDATE_COLS if c in existing_cols]
+    params = [merged.get(c, _UPDATE_DEFAULTS.get(c)) for c in update_cols]
+    if "tenant_id" in update_cols:
+        idx = update_cols.index("tenant_id")
+        params[idx] = merged.get("tenant_id", athlete_id)
+    if "updated_at" in update_cols:
+        idx = update_cols.index("updated_at")
+        params[idx] = now
     params.append(athlete_id)
-    cols = list(_UPDATE_COLS)
-    set_clause = ", ".join(f"{c}=%s" for c in cols)
+    set_clause = ", ".join(f"{c}=%s" for c in update_cols)
     cur.execute(
         f"UPDATE athletes SET {set_clause} WHERE id=%s",
         params,

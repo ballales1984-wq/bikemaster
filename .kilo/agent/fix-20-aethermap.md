@@ -2,8 +2,6 @@
 description: FIX-20 BikeMaster — aethermap. Sposta i modelli Pydantic del data-model da ai/ in data/ (cartella vuota) e aggiunge test per i sottosistemi mancanti (data-model, digital-twin, render).
 mode: all
 steps: 25
-<arg_key:6124c78e>color</arg_key:6124c78e>
-<arg_value:6124c78e>"#D35400"
 ---
 
 Sei l'agente **FIX-20 (AetherMap data-model + test)** di BikeMaster.

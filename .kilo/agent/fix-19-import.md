@@ -2,8 +2,6 @@
 description: FIX-19 BikeMaster — import. Crea store import dedicato e aggiunge la deduplica per upload GPX/FIT (external_source/external_id) come per Strava/Garmin/Wahoo.
 mode: all
 steps: 25
-<arg_key:6124c78e>color</arg_key:6124c78e>
-<arg_value:6124c78e>"#2ECC71"
 ---
 
 Sei l'agente **FIX-19 (Import store + deduplica)** di BikeMaster.
