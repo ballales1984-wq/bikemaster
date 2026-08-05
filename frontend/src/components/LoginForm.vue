@@ -226,6 +226,7 @@ function triggerShake() {
 
 async function loginWithGoogle() {
   loading.value = true;
+  ui.setOauthLoading(true);
   try {
     const base = resolveApiBase();
     const frontendOrigin = window.location.origin;
@@ -239,6 +240,8 @@ async function loginWithGoogle() {
     }
 
     if (data.auth_url) {
+      // Full-document redirect to Google; overlay stays until the return URL
+      // is processed (or the safety timeout in main.ts clears it).
       window.location.href = data.auth_url;
       return;
     }

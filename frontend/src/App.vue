@@ -61,6 +61,7 @@ Liability:
         <LoginForm
           @login="onLogin"
           @register="onRegister"
+          @google-login="onGoogleLogin"
           @error="loginError = $event"
         />
         <p v-if="loginError" class="login-error">
@@ -198,6 +199,18 @@ watch(
   },
 );
 
+// Safety net for Google OAuth: if auth is set but the router is still on the
+// empty home route (guard race / stalled profile check), enter the app like
+// password login does with router.push("/rides").
+watch(
+  () => [loggedIn.value, route.path],
+  ([logged, path]) => {
+    if (logged && path === "/") {
+      router.replace("/rides").catch(() => {});
+    }
+  },
+);
+
 async function loadSummary() {
   summaryLoading.value = true;
   try {
@@ -222,6 +235,21 @@ async function onLogin(creds) {
     await loadSummary();
   } catch (e) {
     loginError.value = e.message;
+  }
+}
+
+async function onGoogleLogin() {
+  loginError.value = "";
+  ui.setOauthLoading(false);
+  if (route.path === "/" || route.path === "") {
+    try {
+      await router.replace("/rides");
+    } catch {
+      /* ignore */
+    }
+  }
+  if (loggedIn.value) {
+    await loadSummary();
   }
 }
 

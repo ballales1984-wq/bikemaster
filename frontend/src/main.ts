@@ -52,7 +52,18 @@ async function finalizeOAuthReturn() {
   }
   oauthFinalized = true;
   oauthReturnPending = false;
-  let profileComplete = false;
+  auth.setJustLoggedIn(false);
+  ui.setOauthLoading(false);
+  // Enter the app immediately (same as password login). Profile completeness
+  // is refined afterwards so a slow /auth/me never strands the user on "/".
+  const path = router.currentRoute.value.path;
+  if (path === "/" || path === "") {
+    try {
+      await router.replace("/rides");
+    } catch {
+      /* ignore */
+    }
+  }
   try {
     const data = await apiGet<{ profile_complete?: boolean }>(
       "/api/v1/auth/me",
@@ -64,18 +75,14 @@ async function finalizeOAuthReturn() {
         noRetry: true,
       } as ApiCallOptions,
     );
-    profileComplete = data.profile_complete === true;
+    if (
+      data.profile_complete !== true &&
+      router.currentRoute.value.path === "/rides"
+    ) {
+      await router.replace("/athlete").catch(() => {});
+    }
   } catch (err) {
     console.warn("[OAuth] profile check failed:", err);
-    profileComplete = false;
-  }
-  auth.setJustLoggedIn(false);
-  ui.setOauthLoading(false);
-  const target = profileComplete ? "/rides" : "/athlete";
-  if (router.currentRoute.value.path !== target) {
-    router.replace(target).catch(() => {});
-  } else {
-    ui.setOauthLoading(false);
   }
 }
 

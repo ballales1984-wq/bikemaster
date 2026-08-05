@@ -5,6 +5,7 @@
  * and dynamic title handling for each view.
  */
 
+import { defineComponent, h } from "vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useUIStore } from "../stores/ui";
@@ -13,11 +14,17 @@ import { apiGet } from "../utils/api";
 import { processOAuthToken } from "../services/oauth";
 import { AUTH_CHUNK_RELOAD_KEY } from "../utils/auth-storage";
 
+/** Empty home shell — must not use a string `template` (no runtime compiler in prod). */
+const EmptyHome = defineComponent({
+  name: "EmptyHome",
+  setup: () => () => h("div"),
+});
+
 const routes = [
   {
     path: "/",
     name: "home",
-    component: { template: "<div />" },
+    component: EmptyHome,
   },
   {
     path: "/welcome",
@@ -302,7 +309,7 @@ async function checkProfileComplete(
   }
 }
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach((to) => {
   const auth = useAuthStore();
   const ui = useUIStore();
   // main.ts processes OAuth tokens during bootstrap (main.ts:37) and via
@@ -317,55 +324,41 @@ router.beforeEach(async (to, from, next) => {
   const { hasToken, justLoggedIn } = syncAuthState();
 
   if (to.meta.requiresAuth && !hasToken) {
-    next("/");
-    return;
+    return "/";
   }
 
   if (to.meta.requiresAdmin && !auth.isAdmin) {
-    next("/");
-    return;
+    return "/";
   }
 
   if (to.meta.requiresClient && !auth.isClient) {
-    next("/");
-    return;
+    return "/";
   }
 
-  // Profile completeness check only for fresh OAuth returns / logins.
-  // A normal returning user with a valid token goes straight to /rides.
-  if (hasToken && justLoggedIn && to.path === "/") {
-    console.log("[OAuth] guard redirecting, profile check...");
-    try {
-      const hasCompleteProfile = await checkProfileComplete(auth);
-      // On a successful login the user always lands somewhere usable: the
-      // dashboard if the profile is complete, otherwise the lightweight
-      // onboarding screen. Never strand them on the empty home route.
-      const target = hasCompleteProfile ? "/rides" : "/athlete";
-      console.log("[OAuth] guard navigating to:", target);
-      await next(target);
-    } catch {
-      // Profile check failed (transient backend error): prefer the dashboard
-      // over the onboarding screen so the user is not blocked. They can fill
-      // in missing data later from the athlete page.
-      console.warn("[OAuth] guard profile check failed, navigating to /rides");
-      await next("/rides");
-    }
-    ui.setOauthLoading(false);
-    auth.setJustLoggedIn(false);
-    return;
-  }
-
-  // Logged-in user on the empty home route: redirect to the app.
+  // Logged-in user on the empty home route: enter the app immediately.
+  // Do NOT await /auth/me here — a slow/cold Render instance used to block
+  // next() and leave the user stranded on "/" until a manual refresh
+  // (password login already pushes /rides synchronously; mirror that).
   if (hasToken && to.path === "/") {
-    next("/rides");
-    return;
+    if (justLoggedIn) {
+      auth.setJustLoggedIn(false);
+      ui.setOauthLoading(false);
+      console.log("[OAuth] guard navigating to /rides (profile refine async)");
+      void checkProfileComplete(auth).then((complete) => {
+        if (!complete && router.currentRoute.value.path === "/rides") {
+          router.replace("/athlete").catch(() => {});
+        }
+      });
+    }
+    if (ui.oauthLoading) {
+      ui.setOauthLoading(false);
+    }
+    return "/rides";
   }
 
   if (ui.oauthLoading) {
     ui.setOauthLoading(false);
   }
-
-  next();
 });
 
 router.afterEach((to) => {
