@@ -79,8 +79,12 @@ ride_1_*.html
 ride_*_map.html
 ride_*_map.json
 
+# Repository assets (images for README/docs)
+!assets/images/
+
 # Mobile/debug scratch artifacts
 mobile-*.png
+!assets/images/mobile-*.png
 mobile-*.mp4
 emulator-logcat*.txt
 audit_token.json
@@ -115,8 +119,6 @@ frontend/tsc_results.txt
 logs/
 *.log
 
-# Misc
-.DS_Store
 # Misc
 .DS_Store
 Thumbs.db

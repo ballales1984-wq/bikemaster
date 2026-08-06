@@ -162,7 +162,7 @@ Per una guida completa a tutti i documenti, vedi [`docs/README.md`](docs/README.
 | Documento | Contenuto |
 |---|---|
 | [`docs/MASTER.md`](docs/MASTER.md) | Documento di riferimento completo del progetto |
-| [`docs/MASTER.md`](docs/MASTER.md) | Documento di riferimento completo del progetto
+| [`docs/MASTER.md`](docs/MASTER.md) | Documento di riferimento completo del progetto |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Architettura madre (Clean v2, UnifiedMetricsEngine) |
 | [`docs/BM2_ENGINE_ARCHITECTURE.md`](docs/BM2_ENGINE_ARCHITECTURE.md) | Specifica Engine BM2: pipeline, dipendenze, contratti |
 | [`docs/BM2_ALGORITHMS.md`](docs/BM2_ALGORITHMS.md) | Formule delle variabili derivate |

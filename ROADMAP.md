@@ -60,7 +60,7 @@ Nessun file non committato. Il working tree è pulito.
 ### Fase 3 — Distribuzione (mese corrente)
 
 9. **Tauri build verificata**: `npm run tauri build` produce .exe funzionante
-10. **Vercel deploy**: riconfigurare `VITE_API_BASE` dopo ogni boot ngrok
+10. **Vercel deploy**: frontend su Vercel chiama API su Render (`VITE_API_BASE=https://bikemaster.onrender.com`)
 11. **GitHub Releases** per distribuzione desktop (CI/CD Tauri)
 12. **Android release**: verificare APK/AAB da workflow GitHub Actions
 
