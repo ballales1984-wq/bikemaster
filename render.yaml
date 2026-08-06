@@ -35,6 +35,10 @@ services:
         fromDatabase:
           name: bikemaster-db
           property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: bikemaster-redis
+          property: connectionString
       - key: LOG_LEVEL
         value: WARNING
       - key: STARTUP_TASK_TIMEOUT
@@ -50,3 +54,7 @@ services:
   - type: postgresql
     name: bikemaster-db
     plan: starter
+
+  - type: redis
+    name: bikemaster-redis
+    plan: free
