@@ -3716,19 +3716,25 @@ def save_poi(poi: dict) -> int:
         return cur.lastrowid
 
 
-def get_poi(poi_id: int) -> dict | None:
+def get_poi(poi_id: int, tenant_id: int | None = None) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM pois WHERE id = ?", (poi_id,))
+        if tenant_id is not None:
+            cur.execute("SELECT * FROM pois WHERE id = ? AND tenant_id = ?", (poi_id, tenant_id))
+        else:
+            cur.execute("SELECT * FROM pois WHERE id = ?", (poi_id,))
         row = cur.fetchone()
         return _row_to_poi(row) if row else None
 
 
-def get_nearby_pois(lat: float, lon: float, radius_km: float = 5.0) -> list[dict]:
+def get_nearby_pois(lat: float, lon: float, radius_km: float = 5.0, tenant_id: int | None = None) -> list[dict]:
     """Return POIs within ``radius_km`` of (lat, lon) using the haversine distance.
 
     A coarse lat/lon bounding box narrows the candidate set before the exact
     distance filter, which keeps the query efficient without PostGIS.
+
+    When ``tenant_id`` is provided, only POIs belonging to that tenant are
+    returned, preventing cross-tenant GPS data disclosure.
     """
     from ...core.models import haversine_distance_m
 
@@ -3738,10 +3744,16 @@ def get_nearby_pois(lat: float, lon: float, radius_km: float = 5.0) -> list[dict
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM pois WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?",
-            (lat - delta_lat, lat + delta_lat, lon - delta_lon, lon + delta_lon),
-        )
+        if tenant_id is not None:
+            cur.execute(
+                "SELECT * FROM pois WHERE tenant_id = ? AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?",
+                (tenant_id, lat - delta_lat, lat + delta_lat, lon - delta_lon, lon + delta_lon),
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM pois WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?",
+                (lat - delta_lat, lat + delta_lat, lon - delta_lon, lon + delta_lon),
+            )
         rows = cur.fetchall()
 
     nearby = []
@@ -3755,14 +3767,28 @@ def get_nearby_pois(lat: float, lon: float, radius_km: float = 5.0) -> list[dict
     return nearby
 
 
-def list_pois(itinerary_id: int | None = None) -> list[dict]:
-    """Return all POIs, optionally filtered by ``itinerary_id``."""
+def list_pois(itinerary_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
+    """Return all POIs, optionally filtered by ``itinerary_id`` and/or ``tenant_id``.
+
+    When ``tenant_id`` is provided, only POIs belonging to that tenant are
+    returned, preventing cross-tenant data disclosure.
+    """
     with get_db_connection() as conn:
         cur = conn.cursor()
-        if itinerary_id is not None:
+        if itinerary_id is not None and tenant_id is not None:
+            cur.execute(
+                "SELECT * FROM pois WHERE itinerary_id = ? AND tenant_id = ? ORDER BY id DESC",
+                (itinerary_id, tenant_id),
+            )
+        elif itinerary_id is not None:
             cur.execute(
                 "SELECT * FROM pois WHERE itinerary_id = ? ORDER BY id DESC",
                 (itinerary_id,),
+            )
+        elif tenant_id is not None:
+            cur.execute(
+                "SELECT * FROM pois WHERE tenant_id = ? ORDER BY id DESC",
+                (tenant_id,),
             )
         else:
             cur.execute("SELECT * FROM pois ORDER BY id DESC")

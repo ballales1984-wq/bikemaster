@@ -658,24 +658,34 @@ async def get_nearby_pois(
     radius: float = Query(5.0, ge=0.1, le=200, description="Search radius in km"),
     current_user: dict = Depends(get_current_user),
 ):
-    """Return Points of Interest within ``radius`` km of (lat, lon)."""
+    """Return Points of Interest within ``radius`` km of (lat, lon).
+
+    Only POIs belonging to the current user's tenant are returned.
+    """
     from ..analytics.repositories.poi_repository import POIRepository
     from ..db.async_db import get_session_factory
 
+    tenant_id = current_user.get("tenant_id", current_user["id"])
     try:
         repo = POIRepository(session_factory=get_session_factory())
     except RuntimeError:
         repo = POIRepository()
-    pois = await repo.get_nearby(lat, lon, radius)
+    pois = await repo.get_nearby(lat, lon, radius, tenant_id=tenant_id)
     return {"pois": pois}
 
 
 @router.get("/maps/pois")
-async def list_pois_endpoint(itinerary_id: int | None = None, current_user: dict = Depends(get_current_user)):
-    """List POIs, optionally filtered by itinerary_id."""
+async def list_pois_endpoint(
+    itinerary_id: int | None = None, current_user: dict = Depends(get_current_user)
+):
+    """List POIs, optionally filtered by itinerary_id.
+
+    Only POIs belonging to the current user's tenant are returned.
+    """
     from ..db.database import list_pois
 
-    return {"pois": list_pois(itinerary_id)}
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    return {"pois": list_pois(itinerary_id, tenant_id=tenant_id)}
 
 
 @router.post("/maps/pois", response_model=POIResponse)
@@ -694,13 +704,20 @@ async def create_poi(poi: POICreate, current_user: dict = Depends(get_current_us
 
 
 @router.get("/maps/pois/{poi_id}", response_model=POIResponse)
-async def get_poi_endpoint(poi_id: int):
-    """Retrieve a Point of Interest by ID."""
+async def get_poi_endpoint(poi_id: int, current_user: dict = Depends(get_current_user)):
+    """Retrieve a Point of Interest by ID.
+
+    Only POIs belonging to the current user's tenant are accessible
+    (admins can access any).
+    """
     from ..db.database import get_poi
 
+    tenant_id = current_user.get("tenant_id", current_user["id"])
     poi = get_poi(poi_id)
     if not poi:
         raise HTTPException(status_code=404, detail="POI not found")
+    if not current_user.get("is_admin") and poi.get("tenant_id") != tenant_id:
+        raise HTTPException(status_code=403, detail="Access denied to this POI")
     return poi
 
 
@@ -714,7 +731,7 @@ async def delete_poi_endpoint(
     poi = get_poi(poi_id)
     if not poi:
         raise HTTPException(status_code=404, detail="POI not found")
-    if poi["created_by"] != current_user["id"] and not current_user.get("is_admin"):
+    if not current_user.get("is_admin") and poi["created_by"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="Not allowed to delete this POI")
     delete_poi(poi_id)
     return {"deleted": True}

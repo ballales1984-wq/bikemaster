@@ -68,23 +68,25 @@ class POIRepository:
             await session.commit()
             return result.scalar_one()
 
-    async def get_by_id(self, poi_id: int) -> dict | None:
+    async def get_by_id(self, poi_id: int, tenant_id: int | None = None) -> dict | None:
         if self._session_factory:
-            return await self._get_by_id_async(poi_id)
+            return await self._get_by_id_async(poi_id, tenant_id)
         if self._sync_conn:
-            return self._sync_conn.get_poi(poi_id)
-        return self._get_by_id_sync(poi_id)
+            return self._sync_conn.get_poi(poi_id, tenant_id)
+        return self._get_by_id_sync(poi_id, tenant_id)
 
-    def _get_by_id_sync(self, poi_id: int) -> dict | None:
+    def _get_by_id_sync(self, poi_id: int, tenant_id: int | None = None) -> dict | None:
         from ...db.database import get_poi
 
-        return get_poi(poi_id)
+        return get_poi(poi_id, tenant_id=tenant_id)
 
-    async def _get_by_id_async(self, poi_id: int) -> dict | None:
+    async def _get_by_id_async(self, poi_id: int, tenant_id: int | None = None) -> dict | None:
         from sqlalchemy import select
 
         async with self._session_factory() as session:
             stmt = select(self._table).where(self._table.id == poi_id)
+            if tenant_id is not None:
+                stmt = stmt.where(self._table.tenant_id == tenant_id)
             row = (await session.execute(stmt)).scalars().first()
             if row is None:
                 return None
@@ -92,21 +94,21 @@ class POIRepository:
             return self._parse_json_fields(data)
 
     async def get_nearby(
-        self, lat: float, lon: float, radius_km: float = 5.0
+        self, lat: float, lon: float, radius_km: float = 5.0, tenant_id: int | None = None
     ) -> list[dict]:
         if self._session_factory:
-            return await self._get_nearby_async(lat, lon, radius_km)
+            return await self._get_nearby_async(lat, lon, radius_km, tenant_id)
         if self._sync_conn:
-            return self._sync_conn.get_nearby_pois(lat, lon, radius_km)
-        return self._get_nearby_sync(lat, lon, radius_km)
+            return self._sync_conn.get_nearby_pois(lat, lon, radius_km, tenant_id)
+        return self._get_nearby_sync(lat, lon, radius_km, tenant_id)
 
-    def _get_nearby_sync(self, lat: float, lon: float, radius_km: float) -> list[dict]:
+    def _get_nearby_sync(self, lat: float, lon: float, radius_km: float, tenant_id: int | None = None) -> list[dict]:
         from ...db.database import get_nearby_pois
 
-        return get_nearby_pois(lat, lon, radius_km)
+        return get_nearby_pois(lat, lon, radius_km, tenant_id=tenant_id)
 
     async def _get_nearby_async(
-        self, lat: float, lon: float, radius_km: float
+        self, lat: float, lon: float, radius_km: float, tenant_id: int | None = None
     ) -> list[dict]:
         from sqlalchemy import select
 
@@ -115,6 +117,8 @@ class POIRepository:
         radius_m = max(0.0, radius_km) * 1000.0
         async with self._session_factory() as session:
             stmt = select(self._table)
+            if tenant_id is not None:
+                stmt = stmt.where(self._table.tenant_id == tenant_id)
             rows = (await session.execute(stmt)).scalars().all()
         nearby = []
         for row in rows:

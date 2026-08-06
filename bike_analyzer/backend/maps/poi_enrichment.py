@@ -153,8 +153,8 @@ def _extract_poi(item: dict, tenant_id: int, created_by: int | None) -> dict | N
     }
 
 
-def _is_duplicate(name: str, lat: float, lon: float, radius_m: float) -> bool:
-    existing = db.get_nearby_pois(lat, lon, radius_km=max(0.0, radius_m) / 1000.0)
+def _is_duplicate(name: str, lat: float, lon: float, radius_m: float, tenant_id: int | None = None) -> bool:
+    existing = db.get_nearby_pois(lat, lon, radius_km=max(0.0, radius_m) / 1000.0, tenant_id=tenant_id)
     target = name.strip().lower()
     return any((p.get("name") or "").strip().lower() == target for p in existing)
 
@@ -208,7 +208,7 @@ def enrich_pois_near(
         if poi is None:
             summary["skipped_invalid"] += 1
             continue
-        if _is_duplicate(poi["name"], poi["lat"], poi["lon"], dedup_radius_m):
+        if _is_duplicate(poi["name"], poi["lat"], poi["lon"], dedup_radius_m, tenant_id=tenant_id):
             summary["skipped_duplicates"] += 1
             continue
         try:
