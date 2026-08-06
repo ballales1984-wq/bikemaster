@@ -79,13 +79,15 @@ ride_1_*.html
 ride_*_map.html
 ride_*_map.json
 
-# Repository assets (images for README/docs)
+# Repository assets (images and videos for README/docs)
 !assets/images/
+!assets/videos/
 
 # Mobile/debug scratch artifacts
 mobile-*.png
 !assets/images/mobile-*.png
 mobile-*.mp4
+!assets/videos/mobile-*.mp4
 emulator-logcat*.txt
 audit_token.json
 rides_export.csv
