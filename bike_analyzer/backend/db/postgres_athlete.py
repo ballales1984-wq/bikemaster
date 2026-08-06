@@ -360,15 +360,20 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
         return False
     merged = {**existing, **athlete_data}
     now = datetime.now(UTC).isoformat()
+    existing_cols = set(_get_existing_columns("athletes"))
+    update_cols = [c for c in _UPDATE_COLS if c in existing_cols]
     conn = _connect()
     try:
         with conn.cursor() as cur:
-            params = [merged.get(c, _UPDATE_DEFAULTS.get(c)) for c in _UPDATE_COLS]
-            params[-2] = merged.get("tenant_id", athlete_id)  # tenant_id
-            params[-1] = now  # updated_at
+            params = [merged.get(c, _UPDATE_DEFAULTS.get(c)) for c in update_cols]
+            if "tenant_id" in update_cols:
+                idx = update_cols.index("tenant_id")
+                params[idx] = merged.get("tenant_id", athlete_id)
+            if "updated_at" in update_cols:
+                idx = update_cols.index("updated_at")
+                params[idx] = now
             params.append(athlete_id)
-            cols = list(_UPDATE_COLS)
-            set_clause = ", ".join(f"{c}=%s" for c in cols)
+            set_clause = ", ".join(f"{c}=%s" for c in update_cols)
             cur.execute(
                 f"UPDATE athletes SET {set_clause} WHERE id=%s",
                 params,
@@ -457,15 +462,21 @@ def save_athlete_snapshot(
     conn=None,
 ) -> int:
     now = datetime.now(UTC).isoformat()
-    params = [
-        athlete.get("id"),
-        athlete.get("tenant_id", tenant_id),
-        now,
-        changed_by,
-    ]
-    for c in _SNAPSHOT_COLS[4:]:
-        params.append(athlete.get(c))
-    cols = ", ".join(_SNAPSHOT_COLS)
+    existing_cols = set(_get_existing_columns("athlete_history"))
+    snapshot_cols = [c for c in _SNAPSHOT_COLS if c in existing_cols]
+    params = []
+    for c in snapshot_cols:
+        if c == "athlete_id":
+            params.append(athlete.get("id"))
+        elif c == "tenant_id":
+            params.append(athlete.get("tenant_id", tenant_id))
+        elif c == "recorded_at":
+            params.append(now)
+        elif c == "changed_by":
+            params.append(changed_by)
+        else:
+            params.append(athlete.get(c))
+    cols = ", ".join(snapshot_cols)
     placeholders = ", ".join(["%s"] * len(params))
 
     own_conn = conn is None
