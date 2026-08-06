@@ -43,7 +43,7 @@ def main():
     parser.add_argument(
         "--port",
         type=int,
-        default=int(os.environ.get("PORT", "8000")),
+        default=int(os.environ.get("PORT", "10000")),
     )
     parser.add_argument("--reload", action="store_true")
     args = parser.parse_args()

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-PORT="${PORT:-8000}"
+PORT="${PORT:-10000}"
 
 # Start the server immediately (foreground — Render tracks this PID).
 # PostgreSQL connection, migrations, and SQLite init are handled asynchronously
