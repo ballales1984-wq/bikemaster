@@ -18,10 +18,11 @@ import argparse
 import asyncio
 import logging
 import os
-import platform
 import sys
 import tempfile
 import traceback
+
+os.environ.setdefault("PYTHONUNBUFFERED", "1")
 
 import uvicorn
 
@@ -62,7 +63,6 @@ def main():
             app,
             host="0.0.0.0",
             port=args.port,
-            log_config=None,
         )
     elif args.mode in {"api", "web"}:
         logger.info("Starting API + Dashboard on http://localhost:%s", args.port)
@@ -72,7 +72,6 @@ def main():
             host="0.0.0.0",
             port=args.port,
             reload=args.reload,
-            log_config=None,
         )
     elif args.mode == "cli":
         asyncio.run(run_cli())

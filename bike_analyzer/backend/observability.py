@@ -124,9 +124,11 @@ def init_observability(app=None):
     is_dev = settings.environment.lower() in ("development", "dev", "local")
 
     # Zipkin exporter (preferred) or fallback to OTLP/Jaeger
-    zipkin_endpoint = settings.otel_exporter_zipkin_endpoint or "http://localhost:9411/api/v2/spans"
+    zipkin_endpoint = settings.otel_exporter_zipkin_endpoint or ""
     zipkin_endpoint = zipkin_endpoint.strip() if zipkin_endpoint else ""
-    if zipkin_endpoint and ZIPKIN_AVAILABLE and not is_dev:
+    if not zipkin_endpoint or "localhost" in zipkin_endpoint or "127.0.0.1" in zipkin_endpoint:
+        logger.info("Zipkin endpoint is localhost/unset — skipping Zipkin exporter (tracing disabled)")
+    elif zipkin_endpoint and ZIPKIN_AVAILABLE and not is_dev:
         try:
             zipkin_exporter = ZipkinExporter(endpoint=zipkin_endpoint)
             trace.get_tracer_provider().add_span_processor(
@@ -135,7 +137,7 @@ def init_observability(app=None):
             logger.info("Zipkin exporter configured: %s", zipkin_endpoint)
         except Exception as e:
             logger.warning("Zipkin exporter init failed: %s", e)
-    elif settings.otel_exporter_otlp_endpoint and OTLP_AVAILABLE and not is_dev:
+    if settings.otel_exporter_otlp_endpoint and OTLP_AVAILABLE and not is_dev:
         try:
             otlp_exporter = OTLPSpanExporter(
                 endpoint=settings.otel_exporter_otlp_endpoint,

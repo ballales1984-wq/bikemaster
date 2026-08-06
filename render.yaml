@@ -47,6 +47,10 @@ services:
         value: production
       - key: RUN_MIGRATIONS_ON_STARTUP
         value: "0"
+      - key: OTEL_EXPORTER_ZIPKIN_ENDPOINT
+        value: ""
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: ""
     startCommand: bash scripts/start.sh
     healthCheckPath: /api/v1/health
     autoDeploy: true

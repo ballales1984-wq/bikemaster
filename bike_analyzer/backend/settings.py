@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # === OpenTelemetry / Jaeger Tracing ===
     otel_service_name: str = "bikemaster"
     otel_exporter_zipkin_endpoint: str = "http://localhost:9411/api/v2/spans"
-    otel_exporter_otlp_endpoint: str = "http://localhost:4317"
+    otel_exporter_otlp_endpoint: str = ""
     otel_traces_sampler: str = "parentbased_traceidratio"
     otel_traces_sampler_arg: float = 1.0
     otel_environment: str = "development"
