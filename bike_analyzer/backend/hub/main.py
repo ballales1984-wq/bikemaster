@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -86,20 +87,31 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    logger.info("Shutting down hub background services")
+    SHUTDOWN_TIMEOUT = float(os.getenv("SHUTDOWN_TIMEOUT_SECONDS", "25"))
+    logger.info("Shutting down hub background services (timeout=%.0fs)", SHUTDOWN_TIMEOUT)
     for t in getattr(app.state, "_bg_tasks", []):
         if not t.done():
             t.cancel()
     if app.state._bg_tasks:
-        await asyncio.gather(*app.state._bg_tasks, return_exceptions=True)
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*app.state._bg_tasks, return_exceptions=True),
+                timeout=SHUTDOWN_TIMEOUT,
+            )
+        except TimeoutError:
+            logger.warning("Background task cancellation timed out; proceeding with service shutdown")
 
     try:
         if hasattr(app.state, "task_queue"):
-            await app.state.task_queue.stop()
+            await asyncio.wait_for(app.state.task_queue.stop(), timeout=5)
+    except TimeoutError:
+        logger.warning("Task queue stop timed out")
     except Exception:  # noqa: BLE001
         logger.exception("Failed to stop background task queue")
     try:
-        await close_redis()
+        await asyncio.wait_for(close_redis(), timeout=5)
+    except TimeoutError:
+        logger.warning("Redis close timed out")
     except Exception:  # noqa: BLE001
         logger.exception("Failed to close Redis client")
 

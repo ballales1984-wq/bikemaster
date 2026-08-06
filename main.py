@@ -63,6 +63,7 @@ def main():
             app,
             host="0.0.0.0",
             port=args.port,
+            timeout_graceful_shutdown=30,
         )
     elif args.mode in {"api", "web"}:
         logger.info("Starting API + Dashboard on http://localhost:%s", args.port)
@@ -72,6 +73,7 @@ def main():
             host="0.0.0.0",
             port=args.port,
             reload=args.reload,
+            timeout_graceful_shutdown=30,
         )
     elif args.mode == "cli":
         asyncio.run(run_cli())

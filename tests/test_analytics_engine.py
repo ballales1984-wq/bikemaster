@@ -275,3 +275,36 @@ def test_generate_time_chart_with_data():
         result = generate_time_chart(points)
         assert isinstance(result, bytes)
         assert result == b""
+
+
+def test_generate_time_chart_with_none_timestamps():
+    import unittest.mock as mock
+
+    with mock.patch("bike_analyzer.backend.analytics.analytics.plt") as mock_plt:
+        mock_plt.savefig = lambda *a, **k: None
+        mock_plt.close = lambda: None
+        points = [
+            GPSPoint(lat=45.0, lon=9.0, timestamp=None),
+            GPSPoint(lat=45.01, lon=9.01, timestamp=datetime(2024, 1, 1, 1, tzinfo=UTC)),
+            GPSPoint(lat=45.02, lon=9.02, timestamp=None),
+        ]
+        result = generate_time_chart(points)
+        assert isinstance(result, bytes)
+        assert result == b""
+
+
+def test_create_charts_return_bytes():
+    import unittest.mock as mock
+
+    with mock.patch("bike_analyzer.backend.analytics.analytics.plt") as mock_plt:
+        mock_plt.savefig = lambda *a, **k: None
+        mock_plt.close = lambda: None
+        pts = [
+            GPSPoint(lat=45.0 + i * 0.01, lon=9.0 + i * 0.01, timestamp=datetime(2024, 1, 1, i, tzinfo=UTC), speed=20.0)
+            for i in range(3)
+        ]
+        seg = _make_segment(pts[0], pts[1])
+        assert isinstance(create_speed_chart([seg]), bytes)
+        assert isinstance(create_elevation_chart([seg]), bytes)
+        assert isinstance(create_distance_chart([seg]), bytes)
+        assert isinstance(create_duration_chart([_make_ride()]), bytes)

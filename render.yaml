@@ -43,6 +43,8 @@ services:
         value: WARNING
       - key: STARTUP_TASK_TIMEOUT
         value: "30"
+      - key: SHUTDOWN_TIMEOUT_SECONDS
+        value: "25"
       - key: ENVIRONMENT
         value: production
       - key: RUN_MIGRATIONS_ON_STARTUP
@@ -53,8 +55,13 @@ services:
         value: ""
     startCommand: bash scripts/start.sh
     healthCheckPath: /api/v1/health
+    maxShutdownDelaySeconds: 60
     autoDeploy: true
 
   - type: postgresql
     name: bikemaster-db
     plan: starter
+
+  - type: redis
+    name: bikemaster-redis
+    plan: free

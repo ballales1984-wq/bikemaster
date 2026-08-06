@@ -209,27 +209,39 @@ async def lifespan(app: FastAPI):
     _log_flush(f"startup: AFTER YIELD t={time.monotonic():.3f} — uvicorn now serving")
 
     # Graceful shutdown: cancel background tasks, then stop services.
-    logger.info("Shutting down background services")
+    SHUTDOWN_TIMEOUT = float(os.getenv("SHUTDOWN_TIMEOUT_SECONDS", "25"))
+    logger.info("Shutting down background services (timeout=%.0fs)", SHUTDOWN_TIMEOUT)
     for t in getattr(app.state, "_bg_tasks", []):
         if not t.done():
             t.cancel()
-    # Wait for tasks to finish cancellation (with timeout to avoid hanging)
     if app.state._bg_tasks:
-        await asyncio.gather(*app.state._bg_tasks, return_exceptions=True)
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*app.state._bg_tasks, return_exceptions=True),
+                timeout=SHUTDOWN_TIMEOUT,
+            )
+        except TimeoutError:
+            logger.warning("Background task cancellation timed out; proceeding with service shutdown")
 
     try:
         from ..events import stop_event_bus
 
-        await stop_event_bus()
+        await asyncio.wait_for(stop_event_bus(), timeout=5)
+    except TimeoutError:
+        logger.warning("Event bus stop timed out")
     except Exception:  # noqa: BLE001
         logger.exception("Failed to stop domain event bus")
     try:
         if hasattr(app.state, "task_queue"):
-            await app.state.task_queue.stop()
+            await asyncio.wait_for(app.state.task_queue.stop(), timeout=5)
+    except TimeoutError:
+        logger.warning("Task queue stop timed out")
     except Exception:  # noqa: BLE001
         logger.exception("Failed to stop background task queue")
     try:
-        await close_redis()
+        await asyncio.wait_for(close_redis(), timeout=5)
+    except TimeoutError:
+        logger.warning("Redis close timed out")
     except Exception:  # noqa: BLE001
         logger.exception("Failed to close Redis client")
 

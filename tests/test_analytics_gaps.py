@@ -1,5 +1,7 @@
 """Tests for analytics module coverage gaps."""
 
+import csv
+import tempfile
 from datetime import UTC, datetime
 
 from bike_analyzer.backend.analytics.analytics import (
@@ -103,11 +105,27 @@ class TestSerialization:
         csv_str = rides_to_csv(rides)
         assert "date" in csv_str
         assert "distance_km" in csv_str
+        assert "weight_kg" in csv_str
         assert "2024-06-15" in csv_str
 
     def test_rides_to_csv_empty(self):
         result = rides_to_csv([])
         assert result == ""
+
+    def test_csv_headers_are_consistent(self):
+        rides = [_make_ride()]
+        csv_str = rides_to_csv(rides)
+        out = tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w", newline="", encoding="utf-8")
+        try:
+            export_rides_csv(rides, out.name)
+            with open(out.name, newline="", encoding="utf-8") as f:
+                file_header = f.readline().strip()
+            str_header = csv_str.splitlines()[0].strip()
+            assert str_header == file_header
+        finally:
+            out.close()
+            import os as _os
+            _os.unlink(out.name)
 
 
 class TestExportFunctions:

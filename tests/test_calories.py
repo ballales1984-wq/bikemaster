@@ -70,11 +70,19 @@ class TestEnsureCalories:
     def test_compute_missing_avg_speed_from_distance_and_duration(self):
         ride = Ride(duration_minutes=60.0, distance_km=30.0, avg_speed_kmh=0, weight_kg=70.0, calories=0)
         result = ensure_calories(ride)
-        assert ride.avg_speed_kmh == 30.0
+        assert ride.avg_speed_kmh == 0
         assert result > 0
 
     def test_default_weight_when_missing(self):
         ride = Ride(duration_minutes=60.0, distance_km=30.0, avg_speed_kmh=30.0, weight_kg=0, calories=0)
         result = ensure_calories(ride)
-        assert ride.weight_kg == 70.0
+        assert ride.weight_kg == 0
         assert result > 0
+
+    def test_does_not_mutate_original_ride(self):
+        ride = Ride(duration_minutes=60.0, distance_km=30.0, avg_speed_kmh=0, weight_kg=0, calories=0)
+        original_speed = ride.avg_speed_kmh
+        original_weight = ride.weight_kg
+        ensure_calories(ride)
+        assert ride.avg_speed_kmh == original_speed
+        assert ride.weight_kg == original_weight
