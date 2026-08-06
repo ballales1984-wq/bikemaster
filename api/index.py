@@ -14,6 +14,6 @@ _root = Path(__file__).resolve().parent.parent
 if str(_root) not in sys.path:
     sys.path.insert(0, str(_root))
 
-from bike_analyzer.backend.hub.main import create_hub_app
+from bike_analyzer.backend.hub.main import create_hub_app  # noqa: E402
 
 app = create_hub_app()

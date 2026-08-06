@@ -19,10 +19,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -197,7 +196,6 @@ class Action:
 
 def build_actions(changes: dict[str, Any], features: list[Feature]) -> list[Action]:
     actions: list[Action] = []
-    feat_by_pc = {f.pc_file: f for f in features}
     # Route/component name -> feature lookup (best effort by substring).
     feat_by_token: dict[str, Feature] = {}
     for f in features:

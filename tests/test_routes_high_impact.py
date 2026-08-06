@@ -5,8 +5,6 @@ from __future__ import annotations
 import os
 from io import BytesIO
 
-import pytest
-
 from starlette.testclient import TestClient
 
 from bike_analyzer.backend.security import create_access_token

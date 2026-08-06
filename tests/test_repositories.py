@@ -11,6 +11,7 @@ import asyncio
 import os
 
 import pytest
+
 pytestmark = pytest.mark.slow
 
 import bike_analyzer.backend.db.async_db as async_db_mod

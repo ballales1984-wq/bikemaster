@@ -4,16 +4,17 @@ Revision ID: multi_athlete_per_user_and_oauth_credentials
 Revises: change_pois_type_to_string
 Create Date: 2026-08-01
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
 
+from alembic import op
+
 revision: str = "multi_athlete_per_user_and_oauth_credentials"
-down_revision: Union[str, Sequence[str], None] = "change_pois_type_to_string"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "change_pois_type_to_string"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def _uq_exists(table_name: str, uq_name: str) -> bool:

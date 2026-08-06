@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
-from bike_analyzer.bm2 import SimulationEngine, TransformerEngine
+from bike_analyzer.bm2 import SimulationEngine
 from bike_analyzer.bm2.adapters import ride_to_analysis_context, ride_to_bm2_raw
 from bike_analyzer.bm2.algorithms import ALL_ALGORITHMS
 from bike_analyzer.bm2.models import AnalysisContext
@@ -16,8 +16,8 @@ from bike_analyzer.core.models import AthleteProfile, GPSPoint, Ride
 
 def _ride():
     pts = [
-        GPSPoint(lat=45.0, lon=9.0, altitude=200.0, timestamp=datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GPSPoint(lat=45.005, lon=9.005, altitude=360.0, timestamp=datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+        GPSPoint(lat=45.0, lon=9.0, altitude=200.0, timestamp=datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GPSPoint(lat=45.005, lon=9.005, altitude=360.0, timestamp=datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC)),
     ]
     return Ride(
         id=1, athlete_id=1, distance_km=12.0, duration_minutes=60.0,

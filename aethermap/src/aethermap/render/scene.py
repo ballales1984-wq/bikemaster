@@ -21,7 +21,7 @@ class Entity:
     radius: float = 1.0
 
     @classmethod
-    def from_gl(cls, data: dict[str, Any]) -> "Entity":
+    def from_gl(cls, data: dict[str, Any]) -> Entity:
         ent = cls(
             tipo=data.get("tipo", "unknown"),
             color=data.get("color", [0.8, 0.8, 0.8]),
@@ -48,19 +48,20 @@ class Scene:
         self.entities = [Entity.from_gl(e) for e in data.get("entities", [])]
 
     def visible(self, camera: Camera) -> list[Entity]:
-        ox, oy, oz = camera.ecef_origin()
-        origin = np.array([ox, oy, oz], dtype=np.float64)
         visible = []
         for ent in self.entities:
-            if ent.kind == "line":
-                if any(project_ecef(p, camera) is not None for p in ent.points):
-                    visible.append(ent)
-            elif ent.position is not None:
-                if project_ecef(ent.position, camera) is not None:
-                    visible.append(ent)
+            if (
+                (ent.kind == "line" and any(
+                    project_ecef(p, camera) is not None for p in ent.points
+                ))
+                or (ent.position is not None and project_ecef(ent.position, camera) is not None)
+            ):
+                visible.append(ent)
         return visible
 
-    def pick(self, sx: float, sy: float, cw: float, ch: float, camera: Camera, threshold: float = 20.0) -> Entity | None:
+    def pick(
+        self, sx: float, sy: float, cw: float, ch: float, camera: Camera, threshold: float = 20.0
+    ) -> Entity | None:
         best = None
         best_dist = threshold
         for ent in self.visible(camera):
@@ -88,7 +89,7 @@ class Scene:
         return best
 
     @classmethod
-    def example(cls) -> "Scene":
+    def example(cls) -> Scene:
         s = cls()
         s.add(Entity(tipo="strada", kind="line",
                       points=[latlon_to_vec(45.0, 9.0), latlon_to_vec(45.01, 9.02)],

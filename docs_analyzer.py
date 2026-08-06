@@ -14,8 +14,6 @@ import ast
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
-
 
 PROJECT_ROOT = Path(r"D:\BikeMaster")
 EXCLUDE_DIRS = {".venv_check", ".venv", "node_modules", "__pycache__", ".git", "dist", "build"}
@@ -44,9 +42,7 @@ class FileReport:
 def _is_public(name: str) -> bool:
     if name.startswith("__") and name.endswith("__"):
         return False
-    if name.startswith("_"):
-        return False
-    return True
+    return not name.startswith("_")
 
 
 def _analyze_file(path: Path) -> FileReport | None:

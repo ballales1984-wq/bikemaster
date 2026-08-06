@@ -2,22 +2,20 @@
 
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
+
 pytestmark = pytest.mark.slow
 
 from bike_analyzer.bm2.agents import (
-    EnvironmentAgent,
     GarminAgent,
     GPSAgent,
     SensorAgent,
     StravaAgent,
 )
-from bike_analyzer.bm2.models import Activity, Athlete, WorldObject
+from bike_analyzer.bm2.models import Activity
 from bike_analyzer.bm2.transformer import GeoPoint, TransformerEngine
-from bike_analyzer.bm2.units import q
 
 
 def _transformer():
@@ -137,8 +135,8 @@ def test_sensor_agent_enrich_irregular():
     t = _transformer()
     agent = SensorAgent(t)
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC)),
     ]
     act = Activity(points=pts)
     samples = [
@@ -154,9 +152,9 @@ def test_sensor_summarize():
     t = _transformer()
     agent = SensorAgent(t)
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC),
                  heart_rate=140, power=180, cadence=80, speed=5.0),
-        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC),
                  heart_rate=160, power=220, cadence=90, speed=6.0),
     ]
     act = Activity(points=pts)

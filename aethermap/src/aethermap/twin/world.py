@@ -7,7 +7,8 @@ from pathlib import Path
 from aethermap.ai.ingest import ingest_sensor_stream_stub
 from aethermap.ai.models import Relazione
 from aethermap.ai.pipeline import Pipeline
-from aethermap.data.store import SpatialStore, WorldStore as DataWorldStore
+from aethermap.data.store import SpatialStore
+from aethermap.data.store import WorldStore as DataWorldStore
 from aethermap.twin.objects import Albero, Montagna, Strada, make_albero, make_montagna, make_strada
 
 
@@ -113,18 +114,19 @@ class DigitalTwin:
     def save_json(self, path: str | Path) -> None:
         out = []
         for obj in self.store.objects.values():
+            pos = {"lat": obj.posizione.lat, "lon": obj.posizione.lon, "alt": getattr(obj.posizione, "alt", 0)}
             if isinstance(obj, Strada):
                 out.append({"id": obj.id, "tipo": "strada",
-                            "posizione": {"lat": obj.posizione.lat, "lon": obj.posizione.lon, "alt": getattr(obj.posizione, "alt", 0)},
+                            "posizione": pos,
                             "geometria": obj.geometria.dati,
                             "proprieta": obj.proprieta})
             elif isinstance(obj, Albero):
                 out.append({"id": obj.id, "tipo": "albero",
-                            "posizione": {"lat": obj.posizione.lat, "lon": obj.posizione.lon, "alt": getattr(obj.posizione, "alt", 0)},
+                            "posizione": pos,
                             "proprieta": obj.proprieta})
             elif isinstance(obj, Montagna):
                 out.append({"id": obj.id, "tipo": "montagna",
-                            "posizione": {"lat": obj.posizione.lat, "lon": obj.posizione.lon, "alt": getattr(obj.posizione, "alt", 0)},
+                            "posizione": pos,
                             "proprieta": obj.proprieta})
         Path(path).write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
 

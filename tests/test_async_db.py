@@ -12,19 +12,17 @@ from __future__ import annotations
 import os
 
 import pytest
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from bike_analyzer.backend.db.async_db import (
     _CORE_TABLES,
-    _make_async_url,
     _get_engine,
+    _make_async_url,
     get_session_factory,
     init_async_db,
 )
 from bike_analyzer.backend.db.models import (
     AthleteHistoryModel,
     AthleteMetricLogModel,
-    Base,
     RideModel,
 )
 
@@ -113,7 +111,6 @@ class TestAsyncEngineWithSQLite:
 
     def test_get_rides_by_athlete_async_roundtrip(self, async_url):
         import asyncio
-        import time
 
         from bike_analyzer.backend.db.async_db import get_rides_by_athlete_async
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from aethermap.ai.ingest import RawFeature, RawPoint
@@ -101,6 +101,6 @@ class Pipeline:
     def _trim(obj: Oggetto) -> None:
         if obj.stale_after_s is None:
             return
-        cutoff = datetime.now(timezone.utc).timestamp() - obj.stale_after_s
+        cutoff = datetime.now(UTC).timestamp() - obj.stale_after_s
         obj.cronologia = [s for s in obj.cronologia
                           if s.t.timestamp() >= cutoff]

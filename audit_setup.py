@@ -1,10 +1,12 @@
 """Generate a valid JWT token for the frontend audit."""
 import sys
+
 sys.path.insert(0, '.')
 
-from bike_analyzer.backend.security import create_access_token, hash_password
-from bike_analyzer.backend.db.database import get_db_connection, save_athlete
 import json
+
+from bike_analyzer.backend.db.database import get_db_connection, save_athlete
+from bike_analyzer.backend.security import create_access_token, hash_password
 
 # Create an admin user directly in SQLite
 with get_db_connection() as conn:

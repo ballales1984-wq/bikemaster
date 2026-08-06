@@ -1,9 +1,9 @@
 """Tests for Strava client unit-level coverage."""
 
-import httpx
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
+import httpx
 import pytest
 
 from bike_analyzer.backend.ingestion.strava_client import (

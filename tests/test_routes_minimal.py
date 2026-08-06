@@ -1,6 +1,5 @@
 """Minimal test to verify TestClient works in pytest."""
 
-import os
 import pytest
 from starlette.testclient import TestClient
 

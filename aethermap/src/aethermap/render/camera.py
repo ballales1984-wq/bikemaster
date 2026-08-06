@@ -49,11 +49,6 @@ class Camera:
             cp_,
             -sy_ * sp_,
         )
-        right = (
-            sy_,
-            0.0,
-            cy_,
-        )
 
         # camera position in world (ECEF)
         px = cx + forward[0] * self.distance
@@ -107,10 +102,10 @@ class Camera:
 
 def _normalize(v: tuple[float, float, float]) -> tuple[float, float, float]:
     x, y, z = v
-    l = math.sqrt(x * x + y * y + z * z)
-    if l == 0:
+    length = math.sqrt(x * x + y * y + z * z)
+    if length == 0:
         return (0.0, 0.0, 0.0)
-    return (x / l, y / l, z / l)
+    return (x / length, y / length, z / length)
 
 
 def _cross(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:

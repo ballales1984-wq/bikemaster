@@ -8,7 +8,6 @@ Create Date: 2026-06-14 19:50:00.000000
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
 from sqlalchemy import inspect
 
 from alembic import op

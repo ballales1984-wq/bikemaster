@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from bike_analyzer.backend.analytics.advanced import (
+    _get_climb_color,
     analyze_elevation_profile,
     analyze_speed_profile,
     calculate_pace_consistency,
@@ -13,7 +14,6 @@ from bike_analyzer.backend.analytics.advanced import (
     classify_climb,
     estimate_ideal_weight,
     estimate_vo2max,
-    _get_climb_color,
 )
 from bike_analyzer.backend.models.models import GPSPoint, Ride, Segment
 

@@ -4,17 +4,18 @@ Revision ID: add_users_table_and_user_id_fix
 Revises: multi_athlete_per_user_and_oauth_credentials
 Create Date: 2026-08-01
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
 
+from alembic import op
+
 # revision identifiers, used by Alembic.
 revision: str = "add_users_table_and_user_id_fix"
-down_revision: Union[str, Sequence[str], None] = "multi_athlete_per_user_and_oauth_credentials"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "multi_athlete_per_user_and_oauth_credentials"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def _has_table(table_name: str) -> bool:

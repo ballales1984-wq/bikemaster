@@ -1,6 +1,7 @@
 """Test AI Coach (mock mode)."""
 
 import pytest
+
 pytestmark = pytest.mark.slow
 
 import os

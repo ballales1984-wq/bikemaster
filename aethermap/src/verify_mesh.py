@@ -1,4 +1,3 @@
-import json
 from aethermap.render.terrain_enhancer import build_enhanced_heightfield
 from aethermap.render.webgl_exporter import _terrain_mesh_from_hf
 

@@ -4,20 +4,16 @@ from __future__ import annotations
 
 import json
 import os
-import sqlite3
 from datetime import UTC, datetime
 
 import pytest
 
 import bike_analyzer.backend.db.database as db
 from bike_analyzer.backend.db.database import (
-    DB_PATH,
     _INITIAL_DB_PATH,
     _ensure_external_identity_index,
     _row_to_athlete,
     _row_to_ride,
-    backup_database,
-    create_indices,
     delete_calendar_event,
     delete_poi,
     delete_ride,
@@ -40,9 +36,9 @@ from bike_analyzer.backend.db.database import (
     get_rides_by_athlete,
     get_route_safety_score,
     get_training_stress_days,
-    get_weather_cache,
     get_user_by_id,
     get_user_by_username,
+    get_weather_cache,
     init_db,
     list_pois,
     prune_chat_history,
@@ -58,7 +54,6 @@ from bike_analyzer.backend.db.database import (
     save_route_safety_score,
     save_user,
     save_weather_cache,
-    scheduled_backup,
     update_athlete,
     update_calendar_event,
     update_ride,

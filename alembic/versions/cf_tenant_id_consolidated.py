@@ -13,6 +13,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from sqlalchemy import inspect
+
 from alembic import op
 
 revision: str = "cf_tenant_id_consolidated"

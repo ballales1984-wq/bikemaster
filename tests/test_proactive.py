@@ -2,19 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, time
-
-import pytest
+from datetime import UTC, datetime
 
 from bike_analyzer.backend.analytics.proactive import (
-    MIN_NOTIFY_SCORE,
-    Channel,
     ContextEvaluator,
     MessageComposer,
     NotificationCategory,
     NotificationContext,
     NotificationPreferences,
-    NotificationScore,
     SmartTiming,
 )
 

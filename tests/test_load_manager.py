@@ -16,8 +16,6 @@ from bike_analyzer.backend.analytics.load_manager import (
     LoadBalance,
     LoadManager,
     RedistributionPlan,
-    SafetyAlert,
-    TrainingStress,
     TrainingStressCalculator,
     TrendAnalyzer,
     calculate_acwr,

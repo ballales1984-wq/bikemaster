@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
-
 from bike_analyzer.backend.analytics.zone_analysis import (
     DEFAULT_FTP,
     DEFAULT_MAX_HR,
-    HR_ZONE_PCT,
     _as_float,
     _hr_distribution,
     _to_gps_points,

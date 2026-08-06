@@ -6,7 +6,6 @@ without requiring a configured cloud backend.
 
 import os
 
-import pytest
 from starlette.testclient import TestClient
 
 from bike_analyzer.backend.api.app_factory import create_app

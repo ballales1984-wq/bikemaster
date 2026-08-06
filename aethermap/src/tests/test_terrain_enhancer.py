@@ -4,15 +4,14 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-import pytest
 
 from aethermap.render.terrain_enhancer import (
     _face_bbox,
     _face_direction,
+    build_enhanced_heightfield,
     enhance_face,
     fetch_dem_tile,
     get_terrain_bboxes,
-    build_enhanced_heightfield,
 )
 
 

@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import asyncio
-import httpx
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
 from bike_analyzer.backend.analytics.benchmark import (
@@ -23,20 +23,19 @@ from bike_analyzer.backend.events import (
     TrainingGenerated,
     clear_handlers,
     is_event_bus_running,
-    publish,
     start_event_bus,
     stop_event_bus,
-    subscribe,
 )
+from bike_analyzer.backend.http_async import _is_retryable, request_json
 from bike_analyzer.backend.maps.google_maps import (
     _css_to_google_hex,
     _interpolate_color,
     _speed_to_color,
     build_speed_colored_path,
-    create_google_static_map,
     get_google_api_key,
 )
 from bike_analyzer.backend.models.models import AthleteProfile, GPSPoint, Ride
+from bike_analyzer.backend.tracing import OTLP_AVAILABLE, setup_tracing
 from bike_analyzer.backend.utils.dates import (
     add_days,
     date_only,
@@ -46,8 +45,6 @@ from bike_analyzer.backend.utils.dates import (
     range_for_month,
     to_iso,
 )
-from bike_analyzer.backend.http_async import _is_retryable, request_json
-from bike_analyzer.backend.tracing import OTLP_AVAILABLE, setup_tracing
 
 
 # ---------------------------------------------------------------------------
@@ -447,7 +444,7 @@ class TestAiCoachEdgeCases:
         assert _is_recoverable_provider_error(err) is False
 
     def test_ban_provider(self):
-        from bike_analyzer.backend.analytics.ai_coach import _ban_provider, _BANNED_PROVIDERS
+        from bike_analyzer.backend.analytics.ai_coach import _BANNED_PROVIDERS, _ban_provider
 
         _BANNED_PROVIDERS.clear()
         _ban_provider("groq", "test")

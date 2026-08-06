@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-import pytest
-
 from bike_analyzer.backend.analytics.power_model import (
     calculate_advanced_power_metrics,
     calculate_power_profile,

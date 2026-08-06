@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import shlex
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -34,7 +33,7 @@ def _run_alembic(migration_url: str) -> bool:
     platform with a deploy/startup timeout).
     """
     try:
-        from alembic.config import Config
+        from alembic.config import Config  # noqa: F401
     except ImportError:
         logger.warning("alembic not installed, skipping migrations")
         return False

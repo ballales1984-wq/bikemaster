@@ -96,7 +96,7 @@ def load_cities(
         tags = {"place": ["city", "town", "village", "hamlet"]}
     north, south, east, west = bbox
     features = []
-    for key, values in tags.items():
+    for _, values in tags.items():
         for value in values:
             try:
                 pois = geocoder.geocode_to_gdf(
@@ -150,9 +150,7 @@ def load_peaks(
         geom = row.geometry
         if geom is None or geom.is_empty:
             continue
-        if hasattr(geom, "x") and hasattr(geom, "y"):
-            coords = [geom.x, geom.y]
-        elif geom.geom_type == "Point":
+        if hasattr(geom, "x") and hasattr(geom, "y") or geom.geom_type == "Point":
             coords = [geom.x, geom.y]
         else:
             continue
@@ -211,11 +209,9 @@ def to_digital_twin(fc: dict[str, Any]) -> list[Any]:
     """
     try:
         from aethermap.ai.models import (  # type: ignore[import]
-            Confidenza,
-            Geometria,
+            Geometria,  # noqa: F401  # imported for availability
             Oggetto,
             Posizione,
-            Relazione,
         )
     except ImportError as exc:
         raise RuntimeError(

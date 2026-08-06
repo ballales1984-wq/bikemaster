@@ -5,16 +5,31 @@ from __future__ import annotations
 import pytest
 
 pytestmark = pytest.mark.slow
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bike_analyzer.bm2 import (
-    AIOrchestrator, AnalysisContext, Athlete, Bike, EnergyModel, FatigueModel,
-    MovementModel, PowerModel, RecoveryModel, RouteDifficultyModel,
-    SimulationEngine, TrainingLoadModel, TransformerEngine, WorldObject, q,
+    AIOrchestrator,
+    AnalysisContext,
+    Athlete,
+    Bike,
+    EnergyModel,
+    FatigueModel,
+    MovementModel,
+    PowerModel,
+    RecoveryModel,
+    RouteDifficultyModel,
+    SimulationEngine,
+    TrainingLoadModel,
+    TransformerEngine,
+    WorldObject,
+    q,
 )
 from bike_analyzer.bm2.algorithms import ALL_ALGORITHMS, MODEL_REGISTRY
 from bike_analyzer.bm2.simulation import (
-    ScenarioOverride, ScenarioPresets, SensitivityResult, parse_override_from_text,
+    ScenarioOverride,
+    ScenarioPresets,
+    SensitivityResult,
+    parse_override_from_text,
 )
 from bike_analyzer.bm2.transformer import GeoPoint
 
@@ -27,8 +42,8 @@ def _ctx():
     )
     bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC)),
     ]
     activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=pts)
     world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(5.0, "%", source="dem")))
@@ -127,7 +142,7 @@ def test_orchestrator_route_threshold_filters_weak_match():
     orc = AIOrchestrator()
     models = orc._select_models("Parlami del meteo oggi", threshold=0.5)
     # nessun match rilevante -> fallback a tutti i modelli
-    assert set(m.name for m in models) == {a.name for a in ALL_ALGORITHMS}
+    assert {m.name for m in models} == {a.name for a in ALL_ALGORITHMS}
 
 
 def test_orchestrator_select_models_configurable():
@@ -185,8 +200,8 @@ def test_power_model_is_sensitive_to_weight():
     t = TransformerEngine()
     bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC)),
     ]
     world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(5.0, "%", source="dem")))
 
@@ -202,6 +217,10 @@ def test_power_model_is_sensitive_to_weight():
 
     light = _run(65.0)
     heavy = _run(90.0)
+    assert heavy != light  # heavier rider needs more power at same speed
+    assert heavy > light   # heavier -> more power
+
+
 def test_power_model_sensitive_to_slope():
     """What-if must react to slope: steeper -> more power at same speed.
 
@@ -216,8 +235,8 @@ def test_power_model_sensitive_to_slope():
     )
     bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC)),
     ]
     activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=pts)
     world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(2.0, "%", source="dem")))
@@ -232,10 +251,9 @@ def test_power_model_sensitive_to_slope():
 def test_power_model_sensitive_to_cda():
     """What-if must react to CdA: higher drag -> more power at same speed."""
     t = TransformerEngine()
-    bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC)),
     ]
 
     def _run(cda: float) -> float:
@@ -311,7 +329,6 @@ def test_power_model_whatif_sensitive_to_cda_zero_speed():
         age=34, ftp_w=t.normalize(q(260.0, "W", source="manual")),
         experience_level="Intermediate",
     )
-    bike = Bike(weight_kg=t.normalize(q(7.8, "kg", source="manual")))
     activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=[])
     world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(2.0, "%", source="dem")))
 
@@ -336,9 +353,9 @@ def test_power_model_with_sensor_power():
     )
     bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC),
                  power=200.0),
-        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC),
                  power=220.0),
     ]
     activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=pts)
@@ -358,8 +375,8 @@ def test_training_load_with_history():
     )
     bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC)),
     ]
     activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=pts)
     world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(5.0, "%", source="dem")))
@@ -385,8 +402,8 @@ def test_training_load_no_history():
     )
     bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC)),
     ]
     activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=pts)
     world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(5.0, "%", source="dem")))
@@ -440,8 +457,8 @@ def test_algorithm_input_validation_missing_ftp():
     )
     bike = Bike(weight_kg=t.normalize(q(8.0, "kg", source="manual")))
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC)),
     ]
     activity = __import__("bike_analyzer.bm2.models", fromlist=["Activity"]).Activity(points=pts)
     world = WorldObject(surface="asphalt", avg_slope_percent=t.normalize(q(5.0, "%", source="dem")))

@@ -61,8 +61,9 @@ def test_athlete_state_in_workout_generation(tmp_path):
 
 
 def test_athlete_state_model_roundtrip():
-    from bike_analyzer.backend.analytics.athlete_state.models import AthleteState
     from datetime import datetime
+
+    from bike_analyzer.backend.analytics.athlete_state.models import AthleteState
 
     state = AthleteState(
         athlete_id=1,
@@ -108,8 +109,11 @@ def test_e2e_import_ride_then_state_plan_adapt_notify(tmp_path):
     )
     from bike_analyzer.backend.analytics.adaptation_rules import (
         AthleteState as AdaAthleteState,
+    )
+    from bike_analyzer.backend.analytics.adaptation_rules import (
         WorkoutPlan,
     )
+    from bike_analyzer.backend.analytics.athlete_state.service import AthleteStateService
     from bike_analyzer.backend.analytics.proactive import (
         ContextEvaluator,
         NotificationCategory,
@@ -121,13 +125,12 @@ def test_e2e_import_ride_then_state_plan_adapt_notify(tmp_path):
         TrainingGoal,
     )
     from bike_analyzer.backend.analytics.training.workout_generator import WorkoutGenerator
-    from bike_analyzer.backend.analytics.athlete_state.service import AthleteStateService
     from bike_analyzer.backend.models.models import Ride
 
     tc, athlete_id = _make_athlete_client(tmp_path)
 
     # 1. Import a ride (persisted to the SQLite store).
-    today = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
+    today = dt.datetime.now(dt.UTC).strftime("%Y-%m-%d")
     db_mod.save_ride(
         {
             "athlete_id": athlete_id,

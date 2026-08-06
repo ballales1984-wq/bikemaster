@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Security scan scripts for BikeMaster."""
 
-import subprocess
-import sys
 import os
 import re
+import subprocess
+import sys
+
 
 def run_cmd(cmd, cwd=None):
     """Run a command and return output."""
@@ -34,7 +35,7 @@ def scan_secrets(path="."):
             if file.endswith(('.py', '.ts', '.vue', '.js', '.json', '.yaml', '.yml', '.env')):
                 filepath = os.path.join(root, file)
                 try:
-                    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                    with open(filepath, encoding='utf-8', errors='ignore') as f:
                         content = f.read()
                         for pattern in patterns:
                             matches = re.finditer(pattern, content)
@@ -83,7 +84,7 @@ def check_gitignore():
         print("  [WARNING] No .gitignore found!")
         return 1
     
-    with open(gitignore_path, 'r') as f:
+    with open(gitignore_path) as f:
         content = f.read()
     
     required = ['.env', '*.env', 'secrets/', '*.pem', '*.key', 'node_modules/', '__pycache__/']
@@ -107,7 +108,7 @@ def check_cors():
             if file.endswith('.py'):
                 filepath = os.path.join(root, file)
                 try:
-                    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                    with open(filepath, encoding='utf-8', errors='ignore') as f:
                         content = f.read()
                         if re.search(cors_pattern, content):
                             print(f"  [WARNING] Wildcard CORS found in {filepath}")

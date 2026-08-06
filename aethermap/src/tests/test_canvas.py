@@ -1,12 +1,7 @@
 """Tests for aethermap.render.canvas (Phase 4 Canvas 2D fallback renderer)."""
 from __future__ import annotations
 
-import re
-
-import pytest
-
 from aethermap.render.canvas import render_canvas, render_canvas_html
-from aethermap.render.camera import Camera
 from aethermap.render.scene import Entity, Scene
 
 

@@ -1,6 +1,7 @@
 import re
 
-src = open("bike_analyzer/backend/api/routes.py", encoding="utf-8").read().splitlines()
+with open("bike_analyzer/backend/api/routes.py", encoding="utf-8") as f:
+    src = f.read().splitlines()
 funcs = [
     "register", "login", "logout", "refresh_token", "change_password",
     "get_current_user_info", "update_profile", "create_calendar_event",
@@ -16,12 +17,12 @@ funcs = [
 ]
 decos = {}
 cur = None
-for i, l in enumerate(src, 1):
-    m = re.match(r"@router\.(get|post|put|delete|patch)\(([^)]*)\)", l)
+for _, line in enumerate(src, 1):
+    m = re.match(r"@router\.(get|post|put|delete|patch)\(([^)]*)\)", line)
     if m:
         path = m.group(2).strip().strip('"').strip("'")
         cur = (m.group(1).upper(), path)
-    m2 = re.match(r"\s*async def (\w+)|def (\w+)", l)
+    m2 = re.match(r"\s*async def (\w+)|def (\w+)", line)
     if m2 and cur:
         name = m2.group(1) or m2.group(2)
         if name in funcs:

@@ -20,7 +20,7 @@ class Strada(Oggetto):
         import math
         tot_h = 0.0
         tot_d = 0.0
-        for a, b in zip(pts, pts[1:]):
+        for a, b in zip(pts, pts[1:], strict=True):
             dh = (a.get("ele") or 0) - (b.get("ele") or 0)
             dl = math.hypot(
                 (a["lat"] - b["lat"]) * 111320,
@@ -77,9 +77,12 @@ class Montagna(Oggetto):
 
 
 def make_strada(id_: str, lat: float, lon: float, pts: list[dict]) -> Strada:
+    geom = __import__("aethermap.ai.models", fromlist=["Geometria"]).Geometria(
+        tipo="linea", dati={"punti": pts}
+    )
     return Strada(id=id_, tipo="strada",
                   posizione=Posizione.from_latlon(lat, lon),
-                  geometria=__import__("aethermap.ai.models", fromlist=["Geometria"]).Geometria(tipo="linea", dati={"punti": pts}))
+                  geometria=geom)
 
 
 def make_albero(id_: str, lat: float, lon: float, specie: str, h: float) -> Albero:

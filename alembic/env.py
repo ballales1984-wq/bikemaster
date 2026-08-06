@@ -14,10 +14,10 @@ from __future__ import annotations
 
 from logging.config import fileConfig
 
-from bike_analyzer.backend.db.models import Base
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+from bike_analyzer.backend.db.models import Base
 
 config = context.config
 

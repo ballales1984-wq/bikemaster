@@ -110,7 +110,6 @@ class TestDomainEvents:
 
 class TestEventBusLifecycle:
     def setup_method(self):
-        from bike_analyzer.backend.events import _event_bus_running
 
         import bike_analyzer.backend.events as ev
 

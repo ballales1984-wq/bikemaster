@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import os
-import time
 
 import pytest
+
 pytestmark = pytest.mark.slow
 
 from bike_analyzer.backend.sync.config import (
@@ -19,7 +18,6 @@ from bike_analyzer.backend.sync.config import (
 )
 from bike_analyzer.backend.sync.conflict_resolver import (
     ConflictResolver,
-    ResolutionResult,
     resolve_conflict,
 )
 from bike_analyzer.backend.sync.db_helpers import (
@@ -39,12 +37,10 @@ from bike_analyzer.backend.sync.db_helpers import (
 from bike_analyzer.backend.sync.models import (
     ChangeDelta,
     ConflictRecord,
-    EntityType,
     SyncCheckResult,
     SyncEntityState,
     SyncStatus,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

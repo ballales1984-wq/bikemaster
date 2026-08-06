@@ -5,7 +5,8 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from bike_analyzer.backend.sync.client import SyncClient, SyncClientError
+
+from bike_analyzer.backend.sync.client import SyncClient
 
 
 @pytest.fixture()

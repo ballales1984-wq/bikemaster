@@ -36,7 +36,7 @@ def main() -> None:
         for s in twin.snapshot():
             print(s)
         scene = Scene()
-        for oid, obj in twin.store.objects.items():
+        for _, obj in twin.store.objects.items():
             if obj.tipo == "strada":
                 scene.add("strada", [(p["lat"], p["lon"]) for p in obj.geometria.dati["punti"]], char="S")
             else:
@@ -49,7 +49,7 @@ def main() -> None:
         print(frame)
 
     with open(os.path.join(_HERE, "twin_frame.txt"), "w", encoding="utf-8") as f:
-        f.write("\n\n".join(f"--- {l} ---\n{fr}" for l, fr in scenes) + "\n")
+        f.write("\n\n".join(f"--- {label} ---\n{fr}" for label, fr in scenes) + "\n")
     print("\n[digital twin] frame salvati in twin_frame.txt")
 
 

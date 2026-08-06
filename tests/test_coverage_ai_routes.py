@@ -6,7 +6,6 @@ os.environ.setdefault("AI_COACH_MODE", "local")
 os.environ.setdefault("GROQ_API_KEY", "test-key")
 
 import pytest
-from starlette.testclient import TestClient
 
 from bike_analyzer.backend.analytics.ai_coach import (
     _clean_ai_output,
@@ -26,7 +25,6 @@ from bike_analyzer.backend.analytics.knowledge_base import (
 )
 from bike_analyzer.backend.db import database as db_mod
 from bike_analyzer.backend.models.models import AthleteProfile, Ride
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -1058,9 +1056,9 @@ def test_analyze_anomalies_no_anomalies():
 
 def test_load_chunks_missing_kb_path(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
-    import sys
     from pathlib import Path
-    from bike_analyzer.backend.analytics.knowledge_base import load_chunks, _s
+
+    from bike_analyzer.backend.analytics.knowledge_base import _s, load_chunks
 
     monkeypatch.setattr(_s, "kb_path", Path("/nonexistent/path/1234567890"))
     chunks = load_chunks(force_reload=True)
@@ -1095,8 +1093,9 @@ def test_list_topics_with_existing_files(monkeypatch):
 
 def test_list_topics_missing_path(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
-    from bike_analyzer.backend.analytics.knowledge_base import list_topics, _s
     from pathlib import Path
+
+    from bike_analyzer.backend.analytics.knowledge_base import _s, list_topics
 
     monkeypatch.setattr(_s, "kb_path", Path("/nonexistent/path/1234567890"))
     topics = list_topics()
@@ -1113,6 +1112,7 @@ def test_format_context_for_llm_empty():
 def test_init_chroma_db_no_chromadb(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
+
     from bike_analyzer.backend.analytics.knowledge_base import init_chroma_db
 
     if "chromadb" in sys.modules:
@@ -1276,7 +1276,7 @@ def test_search_knowledge_base_pgvector_chroma_path(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
     from pathlib import Path
-    from bike_analyzer.backend.analytics.knowledge_base import _s
+
 
     monkeypatch.setattr(
         sys.modules["bike_analyzer.backend.analytics.knowledge_base"],
@@ -1311,6 +1311,7 @@ def test_generate_training_advice_with_mock_client(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import generate_training_advice
 
     fake_client = _FakeClient()
@@ -1344,6 +1345,7 @@ def test_generate_recovery_advice_with_mock_client(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import generate_recovery_advice
 
     fake_client = _FakeClient()
@@ -1378,6 +1380,7 @@ def test_ai_coach_full_with_mocked_charts(monkeypatch):
     import sys
     import types
     from pathlib import Path
+
     from bike_analyzer.backend.analytics.ai_coach import ai_coach_full
 
     static_dir = Path("D:/BikeMaster/bike_analyzer/backend/static")
@@ -1417,6 +1420,7 @@ def test_chat_with_tools_tool_calls(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import chat_with_tools
 
     tool_result_resp = type(
@@ -1532,7 +1536,12 @@ def test_generate_local_recovery_advice_fatigued_with_no_rides(monkeypatch):
 
 
 def test_system_prompt_and_few_shot():
-    from bike_analyzer.backend.analytics.ai_coach import _system_prompt, _few_shot_training_examples, _few_shot_recovery_examples, _rules_section
+    from bike_analyzer.backend.analytics.ai_coach import (
+        _few_shot_recovery_examples,
+        _few_shot_training_examples,
+        _rules_section,
+        _system_prompt,
+    )
 
     assert "cycling coach" in _system_prompt().lower()
     assert "EXAMPLES" in _few_shot_training_examples()
@@ -1585,6 +1594,7 @@ def test_get_ai_coach_client_no_key_raises(monkeypatch):
 def test_generate_training_advice_with_history(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import generate_training_advice
 
     fake_convo = types.ModuleType("bike_analyzer.backend.analytics.conversation_store")
@@ -1604,6 +1614,7 @@ def test_generate_training_advice_fallback_on_api_error(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import generate_training_advice
 
     fake_client = _FakeClient()
@@ -1645,6 +1656,7 @@ def test_generate_training_advice_fallback_on_api_error(monkeypatch):
 def test_generate_recovery_advice_with_history(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import generate_recovery_advice
 
     fake_convo = types.ModuleType("bike_analyzer.backend.analytics.conversation_store")
@@ -1664,6 +1676,7 @@ def test_chat_with_tools_invalid_tool_name(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import chat_with_tools
 
     fake_tool_call = type(
@@ -1714,6 +1727,7 @@ def test_chat_with_tools_invalid_tool_name(monkeypatch):
 def test_get_fitness_state_explanation_with_real_repo(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import get_fitness_state_explanation
 
     fake_repo = types.ModuleType("bike_analyzer.backend.analytics.repositories.fitness_state_repository")
@@ -1759,6 +1773,7 @@ def test_search_knowledge_base_pgvector_chroma_metadata(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.knowledge_base import search_knowledge_base_pgvector
 
     fake_chroma = types.ModuleType("chromadb")
@@ -1794,6 +1809,7 @@ def test_embed_text_tfidf_fallback(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
     import types as tp
+
     from bike_analyzer.backend.analytics.knowledge_base import embed_text
 
     fake_st = tp.ModuleType("fake_sentence_transformers")
@@ -1872,6 +1888,7 @@ def test_generate_training_advice_date_parsing(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import generate_training_advice
 
     fake_monitoring = types.ModuleType("bike_analyzer.backend.monitoring")
@@ -1923,6 +1940,7 @@ def test_ai_coach_full_no_athlete_id(monkeypatch):
     import sys
     import types
     from pathlib import Path
+
     from bike_analyzer.backend.analytics.ai_coach import ai_coach_full
 
     static_dir = Path("D:/BikeMaster/bike_analyzer/backend/static")
@@ -1962,6 +1980,7 @@ def test_chat_with_tools_no_tools(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import chat_with_tools
 
     class NoToolsCompletions:
@@ -2004,7 +2023,7 @@ def test_chat_with_tools_no_tools(monkeypatch):
 
 def test_load_chunks_with_overlap(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
-    from bike_analyzer.backend.analytics.knowledge_base import load_chunks, _s
+    from bike_analyzer.backend.analytics.knowledge_base import load_chunks
 
     chunks = load_chunks(force_reload=True)
     assert isinstance(chunks, list)
@@ -2023,7 +2042,6 @@ def test_search_knowledge_base_with_bm25_results(monkeypatch):
 
 def test_import_with_timeout_slow_module(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
-    import sys
     from bike_analyzer.backend.analytics.knowledge_base import _import_with_timeout
 
     result = _import_with_timeout("nonexistent_module_xyz", timeout=1)
@@ -2034,6 +2052,7 @@ def test_init_chroma_db_with_existing_collection(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.knowledge_base import init_chroma_db
 
     fake_chroma = types.ModuleType("chromadb")
@@ -2065,7 +2084,6 @@ def test_search_knowledge_base_empty_returns_none(monkeypatch):
 
 def test_save_chunks_to_pgvector_with_session(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
-    import types
     from bike_analyzer.backend.analytics.knowledge_base import save_chunks_to_pgvector
 
     class FakeSession:
@@ -2100,6 +2118,7 @@ def test_get_ai_coach_client_per_user_key(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import get_ai_coach_client
 
     fake_client = _FakeClient()
@@ -2155,6 +2174,7 @@ def test_chat_with_tools_tool_execution_error(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import chat_with_tools
 
     fail_tool_call = type(
@@ -2213,6 +2233,7 @@ def test_tfidf_vectorizer_import_failure(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
     import types as tp
+
     from bike_analyzer.backend.analytics.knowledge_base import _get_or_create_tfidf_vectorizer
 
     original_tfidf = sys.modules.get("sklearn.feature_extraction.text")
@@ -2246,6 +2267,7 @@ def test_embed_text_with_tfidf_only(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
     import types as tp
+
     from bike_analyzer.backend.analytics.knowledge_base import embed_text
 
     fake_st = tp.ModuleType("fake_sentence_transformers")
@@ -2269,6 +2291,7 @@ def test_embed_text_with_tfidf_only(monkeypatch):
 def test_search_knowledge_base_pgvector_chroma_full_path(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import types as tp
+
     from bike_analyzer.backend.analytics.knowledge_base import search_knowledge_base_pgvector
 
     fake_chroma = tp.ModuleType("chromadb")
@@ -2295,6 +2318,7 @@ def test_init_chroma_db_upsert_path(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
     import types as tp
+
     from bike_analyzer.backend.analytics.knowledge_base import init_chroma_db
 
     upserted = []
@@ -2332,7 +2356,11 @@ def test_format_context_for_llm_with_empty_scores():
 
 
 def test_rules_section_and_few_shot():
-    from bike_analyzer.backend.analytics.ai_coach import _rules_section, _few_shot_training_examples, _few_shot_recovery_examples
+    from bike_analyzer.backend.analytics.ai_coach import (
+        _few_shot_recovery_examples,
+        _few_shot_training_examples,
+        _rules_section,
+    )
 
     rules = _rules_section()
     assert isinstance(rules, str)
@@ -2488,6 +2516,7 @@ def test_chat_with_tools_json_decode_error(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import chat_with_tools
 
     bad_tool_call = type(
@@ -2612,6 +2641,7 @@ def test_reload_kb_returns_stats(monkeypatch):
 def test_search_knowledge_base_pgvector_no_session_chroma(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import types as tp
+
     from bike_analyzer.backend.analytics.knowledge_base import search_knowledge_base_pgvector
 
     fake_chroma = tp.ModuleType("chromadb")
@@ -2645,6 +2675,7 @@ def test_generate_training_advice_fallback_when_no_client(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     import bike_analyzer.backend.analytics.ai_coach as ai_coach_mod
 
     ai_coach_mod._current_client = None
@@ -2697,6 +2728,7 @@ def test_generate_recovery_advice_retry_on_error(monkeypatch):
     fake_client = FailOnceClient()
     import sys
     import types
+
     import bike_analyzer.backend.analytics.ai_coach as ai_coach_mod
     ai_coach_mod._current_client = fake_client
     ai_coach_mod._current_provider = "groq"
@@ -2732,6 +2764,7 @@ def test_generate_recovery_advice_retry_on_error(monkeypatch):
 def test_init_chroma_db_chroma_not_installed(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
+
     from bike_analyzer.backend.analytics.knowledge_base import init_chroma_db
 
     if "chromadb" in sys.modules:
@@ -2766,7 +2799,7 @@ def test_init_kb_embeddings_local(monkeypatch):
 
 def test_embed_text_chunks_have_embeddings(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
-    from bike_analyzer.backend.analytics.knowledge_base import embed_text, load_chunks, save_chunks_to_pgvector
+    from bike_analyzer.backend.analytics.knowledge_base import embed_text, load_chunks
 
     chunks = load_chunks(force_reload=True)
     if chunks:
@@ -2783,6 +2816,7 @@ def test_get_ai_coach_client_per_user_key(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import get_ai_coach_client
 
     fake_client = _FakeClient()
@@ -2813,6 +2847,7 @@ def test_get_ai_coach_client_ban_on_bad_key(monkeypatch):
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     import sys
     import types
+
     import bike_analyzer.backend.analytics.ai_coach as ai_coach_mod
 
     ai_coach_mod._current_client = None
@@ -2831,6 +2866,7 @@ def test_generate_training_advice_fallback_when_no_client(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     import bike_analyzer.backend.analytics.ai_coach as ai_coach_mod
 
     ai_coach_mod._current_client = None
@@ -2860,6 +2896,7 @@ def test_generate_recovery_advice_retry_on_error(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "remote")
     import sys
     import types
+
     from bike_analyzer.backend.analytics.ai_coach import generate_recovery_advice
 
     class FailOnceCompletions:
@@ -2922,9 +2959,9 @@ def test_reload_kb_returns_stats(monkeypatch):
 
 def test_load_chunks_missing_path(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
-    import sys
-    from bike_analyzer.backend.analytics.knowledge_base import load_chunks, _s
     from pathlib import Path
+
+    from bike_analyzer.backend.analytics.knowledge_base import _s, load_chunks
 
     monkeypatch.setattr(_s, "kb_path", Path("/nonexistent/path/1234567890"))
     chunks = load_chunks(force_reload=True)
@@ -2935,6 +2972,7 @@ def test_load_chunks_missing_path(monkeypatch):
 def test_init_chroma_db_chroma_not_installed(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
+
     from bike_analyzer.backend.analytics.knowledge_base import init_chroma_db
 
     if "chromadb" in sys.modules:
@@ -2947,6 +2985,7 @@ def test_init_chroma_db_chroma_not_installed(monkeypatch):
 def test_search_knowledge_base_pgvector_no_session_chroma(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import types as tp
+
     from bike_analyzer.backend.analytics.knowledge_base import search_knowledge_base_pgvector
 
     fake_chroma = tp.ModuleType("chromadb")
@@ -2993,6 +3032,7 @@ def test_init_chroma_db_upsert_path(monkeypatch):
     monkeypatch.setenv("AI_COACH_MODE", "local")
     import sys
     import types as tp
+
     from bike_analyzer.backend.analytics.knowledge_base import init_chroma_db
 
     upserted = []

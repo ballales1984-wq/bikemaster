@@ -1,6 +1,7 @@
 """Tests for badge/medal system."""
 
 import pytest
+
 pytestmark = pytest.mark.slow
 
 from datetime import UTC

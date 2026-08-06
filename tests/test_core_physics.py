@@ -1,7 +1,8 @@
 """Tests for the core physics engine (point-wise models)."""
 
-import pytest
 from datetime import datetime
+
+import pytest
 
 from bike_analyzer.core.models import GPSPoint
 from bike_analyzer.core.physics import (

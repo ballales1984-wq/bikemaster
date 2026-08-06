@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import json
 import math
-from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from aethermap.ai.models import Confidenza, Geometria, Oggetto, Posizione
+from aethermap.ai.models import Oggetto
 
 
 def _utcnow() -> datetime:
@@ -118,7 +117,7 @@ class SpatialIndex:
         dlon = radius_m / (111_320.0 * max(math.cos(math.radians(lat)), 0.1))
         lat0, lat1 = lat - dlat, lat + dlat
         lon0, lon1 = lon - dlon, lon + dlon
-        for oid, boxes in self.bbox_map.items():
+        for _, boxes in self.bbox_map.items():
             for (la, lo, *_alt, oid2) in boxes:
                 if lat0 <= la <= lat1 and lon0 <= lo <= lon1:
                     result.add(oid2)
@@ -234,7 +233,7 @@ class WorldStore:
 
     def load_parquet(self, path: str | Path) -> int:
         try:
-            import duckdb
+            import duckdb  # noqa: F401  # used for availability test
         except ImportError as exc:
             raise RuntimeError("duckdb required for parquet import") from exc
 

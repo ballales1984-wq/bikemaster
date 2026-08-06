@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from bike_analyzer.backend.analytics.fatigue import calculate_fatigue_score
 from bike_analyzer.backend.analytics.performance import (
     calculate_annual_scores,
@@ -106,6 +104,7 @@ class TestGetExperienceLevel:
 class TestShouldSaveToDatabase:
     def test_valid_points_returns_true(self):
         from datetime import datetime
+
         from bike_analyzer.core.models import GPSPoint
         points = [GPSPoint(lat=45.0, lon=7.0, altitude=100.0, timestamp=datetime.now())]
         assert should_save_to_database(points) is True

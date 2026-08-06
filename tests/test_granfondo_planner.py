@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from bike_analyzer.backend.analytics.granfondo_planner import (
     calculate_granfondo_workouts_from_goal,
     generate_granfondo_plan,

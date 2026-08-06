@@ -28,7 +28,6 @@ def second_athlete_client(db_path):
     tc.headers["Authorization"] = f"Bearer {token}"
     return tc, aid
 
-from bike_analyzer.backend.security import create_access_token
 
 
 @pytest.fixture

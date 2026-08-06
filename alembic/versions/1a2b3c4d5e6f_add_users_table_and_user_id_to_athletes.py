@@ -9,6 +9,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from sqlalchemy import inspect
+
 from alembic import op
 
 revision: str = "1a2b3c4d5e6f"

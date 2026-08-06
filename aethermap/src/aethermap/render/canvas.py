@@ -6,15 +6,13 @@ debugging without GPU.
 """
 from __future__ import annotations
 
-import json
 import math
-from typing import Any
 
 import numpy as np
 
 from aethermap.render.camera import Camera
 from aethermap.render.projection import cube_sphere_mesh, project_ecef
-from aethermap.render.scene import Entity, Scene
+from aethermap.render.scene import Scene
 
 
 def render_canvas(

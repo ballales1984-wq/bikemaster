@@ -13,7 +13,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from bike_analyzer.backend.api import bm2_routes  # noqa: E402
 from bike_analyzer.backend.api.bm2_routes import _context_kwargs  # noqa: E402
-from bike_analyzer.core.models import GPSPoint  # noqa: E402
 
 
 def _fake_ride_dict():

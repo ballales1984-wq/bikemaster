@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from bike_analyzer.backend.analytics.fatigue import (
     calculate_fatigue_score,
     estimate_recovery_hours,

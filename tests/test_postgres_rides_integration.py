@@ -13,14 +13,10 @@ The connection string used is::
 
 from __future__ import annotations
 
-import os
-from datetime import datetime, timezone
-
 import psycopg2
 import pytest
 
 import bike_analyzer.backend.db.database as db
-from bike_analyzer.backend.db import postgres_rides as pr
 
 pytestmark = pytest.mark.integration  # requires PostgreSQL
 

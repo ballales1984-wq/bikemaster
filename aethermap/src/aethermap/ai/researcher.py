@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from math import sqrt
-from typing import Any
 
 from aethermap.ai.ingest import RawFeature, RawPoint
-from aethermap.ai.models import Confidenza, Posizione, Proposta
+from aethermap.ai.models import Posizione, Proposta
 from aethermap.ai.models_ml import estimate_gpx
 from aethermap.core.coordinates import geodetic_to_ecef
 
@@ -66,7 +65,6 @@ class Researcher:
 
     def propose_from_sensor(self, feat: RawFeature, world: dict | None = None) -> Proposta:
         lat, lon = feat.posizione
-        pos = Posizione.from_latlon(lat, lon)
         traffico = feat.payload.get("traffico", 0)
         conf = 0.7
         target_id = None

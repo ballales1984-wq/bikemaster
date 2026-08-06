@@ -8,9 +8,10 @@ have the column/index/constraint).
 
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
+
+from alembic import op
 
 
 def table_exists(table_name: str, schema: str | None = None) -> bool:

@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 
 pytestmark = pytest.mark.slow
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from bike_analyzer.bm2 import Athlete, Bike, Activity, WorldObject, AnalysisContext, q, TransformerEngine
+from bike_analyzer.bm2 import Activity, AnalysisContext, Athlete, Bike, TransformerEngine, WorldObject, q
 from bike_analyzer.bm2.transformer import GeoPoint
 
 
@@ -53,7 +53,6 @@ def test_athlete_from_raw_missing_weight_raises():
 
 
 def test_athlete_power_to_weight():
-    t = _t()
     a = Athlete(weight_kg=q(70.0, "kg"), ftp_w=q(280.0, "W"))
     assert a.power_to_weight() == 4.0
     b = Athlete(weight_kg=q(70.0, "kg"))
@@ -123,8 +122,8 @@ def test_activity_from_raw_missing_points_raises():
 def test_activity_metrics_preserved():
     t = _t()
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.005, 9.005, 360, datetime(2026, 7, 10, 9, 0, 0, tzinfo=UTC)),
     ]
     act = Activity(points=pts)
     m = act.metrics(t)
@@ -196,8 +195,8 @@ def test_bike_roundtrip_preserves_quantities():
 def test_activity_roundtrip_preserves_points():
     t = _t()
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.001, 9.001, 210, datetime(2026, 7, 10, 8, 10, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.001, 9.001, 210, datetime(2026, 7, 10, 8, 10, 0, tzinfo=UTC)),
     ]
     act = Activity(points=pts, title="RT", laps=[{"dist": 1.0}])
     d = act.to_dict()
@@ -213,8 +212,8 @@ def test_analysis_context_roundtrip():
     athlete = Athlete(weight_kg=q(72.0, "kg"), age=28)
     bike = Bike(weight_kg=q(8.2, "kg"), category="road")
     pts = [
-        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.001, 9.001, 210, datetime(2026, 7, 10, 8, 10, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, 200, datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.001, 9.001, 210, datetime(2026, 7, 10, 8, 10, 0, tzinfo=UTC)),
     ]
     activity = Activity(points=pts)
     world = WorldObject(surface="asphalt")

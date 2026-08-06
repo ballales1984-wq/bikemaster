@@ -5,9 +5,9 @@ from __future__ import annotations
 import time
 from datetime import datetime
 
-from bike_analyzer.core.models import GPSPoint, RouteStatistics
 from bike_analyzer.backend.maps import aethermap_adapter
 from bike_analyzer.backend.maps.map_renderer import create_route_map as folium_create_route_map
+from bike_analyzer.core.models import GPSPoint
 
 
 def _points(n: int) -> list[GPSPoint]:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -67,9 +67,9 @@ def test_transformer_normalizes_to_canonical():
 def test_geo_track_metrics():
     t = TransformerEngine()
     pts = [
-        GeoPoint(45.0, 9.0, altitude=250, timestamp=datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.001, 9.001, altitude=290, timestamp=datetime(2026, 7, 10, 8, 10, 0, tzinfo=timezone.utc)),
-        GeoPoint(45.002, 9.002, altitude=330, timestamp=datetime(2026, 7, 10, 8, 20, 0, tzinfo=timezone.utc)),
+        GeoPoint(45.0, 9.0, altitude=250, timestamp=datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)),
+        GeoPoint(45.001, 9.001, altitude=290, timestamp=datetime(2026, 7, 10, 8, 10, 0, tzinfo=UTC)),
+        GeoPoint(45.002, 9.002, altitude=330, timestamp=datetime(2026, 7, 10, 8, 20, 0, tzinfo=UTC)),
     ]
     m = t.geo.track_metrics(pts)
     assert m["distance_m"] > 0
@@ -163,7 +163,7 @@ def test_data_quality_new_ranges():
 
 def test_data_quality_temporal():
     t = TransformerEngine()
-    base = datetime(2026, 7, 10, 8, 0, 0, tzinfo=timezone.utc)
+    base = datetime(2026, 7, 10, 8, 0, 0, tzinfo=UTC)
     ok = [
         q(1.0, "W", timestamp=base),
         q(2.0, "W", timestamp=base + timedelta(seconds=10)),

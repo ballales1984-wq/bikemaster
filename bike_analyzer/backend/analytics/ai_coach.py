@@ -65,7 +65,15 @@ def _clean_ai_output(text: str) -> str:
     return text.strip()
 
 
-def _log_ai_interaction(athlete_id: int | None, provider: str, model: str, prompt: str, response: str, tool_calls: int = 0, latency_ms: int = 0) -> None:
+def _log_ai_interaction(
+    athlete_id: int | None,
+    provider: str,
+    model: str,
+    prompt: str,
+    response: str,
+    tool_calls: int = 0,
+    latency_ms: int = 0,
+) -> None:
     if not athlete_id:
         return
     try:

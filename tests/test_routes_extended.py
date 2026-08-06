@@ -31,7 +31,6 @@ def _create_ride(client, athlete_id=None):
     return r.json()["id"]
 
 
-import pytest
 
 
 def test_calendar_create(client):

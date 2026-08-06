@@ -24,33 +24,10 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 
 from ..settings import get_settings
 from .models import (
-    AthleteHistoryModel,
-    AthleteMetricLogModel,
-    AthleteModel,
     Base,
-    CalendarEventModel,
-    ChatHistoryModel,
-    FitnessStateModel,
-    GarminToken,
-    ItineraryModel,
     KnowledgeChunkModel,
-    MetricModel,
-    PlannedWorkoutModel,
-    POIModel,
     RideModel,
-    RoadIncident,
-    RouteSafetyScore,
-    SessionModel,
-    StageModel,
-    StravaToken,
-    SyncConflict,
-    SyncEntityState,
-    SyncSetting,
-    TrainingGoalModel,
-    TrainingStressDayModel,
-    UserModel,
     UserOAuthCredentials,
-    WeatherCache,
 )
 
 logger = logging.getLogger(__name__)

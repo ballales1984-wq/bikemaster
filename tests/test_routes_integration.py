@@ -5,8 +5,6 @@ from __future__ import annotations
 import os
 
 import pytest
-
-
 from starlette.testclient import TestClient
 
 from bike_analyzer.backend.api.app_factory import create_app
@@ -93,7 +91,6 @@ class TestCoachRoutes:
         """Regression: chat must not 500 when the athlete row is missing
         (e.g. SQLite DB reset after a redeploy while the JWT is still valid)."""
         import bike_analyzer.backend.analytics.ai_coach as ai_coach
-
         from bike_analyzer.backend.db import database as db_mod
         from bike_analyzer.backend.security import create_access_token
 

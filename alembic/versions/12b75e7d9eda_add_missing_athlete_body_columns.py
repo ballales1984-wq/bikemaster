@@ -5,17 +5,17 @@ Revises: merge_hr_tracking_head
 Create Date: 2026-08-05 22:29:12.237548
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '12b75e7d9eda'
-down_revision: Union[str, Sequence[str], None] = 'merge_hr_tracking_head'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = 'merge_hr_tracking_head'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 _BODY_COMPOSITION_COLS = [

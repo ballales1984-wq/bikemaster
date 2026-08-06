@@ -1,4 +1,6 @@
-import sys, os
+import os
+import sys
+
 os.environ["DB_PATH"] = "D:/BikeMaster/rides.db"
 sys.path.insert(0, "D:/BikeMaster")
 

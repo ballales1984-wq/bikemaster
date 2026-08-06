@@ -1,5 +1,6 @@
 
 import ctypes
+
 # Check if process is elevated
 try:
     import ctypes.wintypes as wt

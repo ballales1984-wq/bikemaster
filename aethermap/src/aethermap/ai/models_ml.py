@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import json
 import math
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -280,7 +279,7 @@ class RoadPlausibilityEstimator:
     @classmethod
     def from_synthetic(cls, n_samples: int = 400, seed: int = 42,
                        use_nn: bool = False, nn_epochs: int = 300,
-                       nn_lr: float = 0.02) -> "RoadPlausibilityEstimator":
+                       nn_lr: float = 0.02) -> RoadPlausibilityEstimator:
         rng = np.random.default_rng(seed)
         half = n_samples // 2
 

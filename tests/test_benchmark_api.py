@@ -1,6 +1,7 @@
 """Test benchmark comparison API."""
 
 import pytest
+
 pytestmark = pytest.mark.slow
 
 from bike_analyzer.backend.analytics.benchmark import (

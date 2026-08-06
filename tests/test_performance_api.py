@@ -4,12 +4,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from bike_analyzer.backend.analytics import performance_service as svc
 from bike_analyzer.backend.db.database import (
-    get_rides_by_athlete,
     save_athlete,
     save_ride,
 )
-from bike_analyzer.backend.analytics import performance_service as svc
 
 
 def _make_ride(athlete_id: int, power: list[float], minutes: float = 10.0) -> int:
@@ -127,8 +126,8 @@ def test_ride_without_power_returns_422(client):
 def test_service_calculators_direct():
     """Verifica unitaria dei calcolatori sullo stream noto."""
     from bike_analyzer.backend.analytics.performance import (
-        calculate_normalized_power,
         calculate_intensity_factor,
+        calculate_normalized_power,
         calculate_tss,
     )
 

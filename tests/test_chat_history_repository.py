@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import types
-
 import pytest
 
 from bike_analyzer.backend.analytics.repositories.chat_history_repository import ChatHistoryRepository

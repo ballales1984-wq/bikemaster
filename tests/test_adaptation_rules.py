@@ -1,6 +1,5 @@
 """Unit tests for the pure adaptation rules engine (no I/O, no infra)."""
 
-import pytest
 
 from bike_analyzer.backend.analytics.adaptation_rules import (
     AthleteState,

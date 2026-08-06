@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import time
 
-import pytest
-
 from bike_analyzer.backend.analytics.voice_coach import (
+    _AUDIO_CUES,
+    _VOICE_INTENT,
     VoiceCoach,
     VoiceCommand,
     VoiceCommandParser,
-    _AUDIO_CUES,
-    _VOICE_INTENT,
 )
 
 
@@ -71,7 +69,7 @@ class TestVoiceCommandParser:
         assert result.language == "it"
 
     def test_parse_all_intents_have_phrases(self):
-        for cmd, phrases in _VOICE_INTENT.items():
+        for _, phrases in _VOICE_INTENT.items():
             assert len(phrases) > 0
             for phrase in phrases:
                 assert len(phrase) > 0

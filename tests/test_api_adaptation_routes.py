@@ -13,13 +13,7 @@ from bike_analyzer.backend.analytics.adaptation_schemas import (
     EventType,
     WorkoutPlanItem,
 )
-from bike_analyzer.backend.analytics.adaptation_engine import (
-    AdaptationEngine,
-    AthleteState,
-    WorkoutPlan,
-)
 from bike_analyzer.backend.api.adaptation_routes import (
-    _to_response,
     _to_workout_plan,
     adapt_plan,
 )

@@ -949,7 +949,10 @@ def init_db():
                 FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
             )"""
         )
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_legal_acceptances_athlete ON legal_acceptances(athlete_id, acceptance_type)")
+        conn.execute(  # noqa: E501
+            "CREATE INDEX IF NOT EXISTS idx_legal_acceptances_athlete "
+            "ON legal_acceptances(athlete_id, acceptance_type)"
+        )
         conn.execute(
             """CREATE TABLE IF NOT EXISTS ai_audit_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -4602,7 +4605,13 @@ def mark_ble_device_synced(device_id: int, athlete_id: int) -> None:
         conn.commit()
 
 
-def save_consent(athlete_id: int, consent_type: str, granted: bool = True, source: str = "web", tenant_id: int = 0) -> None:
+def save_consent(
+    athlete_id: int,
+    consent_type: str,
+    granted: bool = True,
+    source: str = "web",
+    tenant_id: int = 0,
+) -> None:
     now = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -4637,7 +4646,13 @@ def get_consents_by_athlete(athlete_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def save_legal_acceptance(athlete_id: int, acceptance_type: str, version: str, source: str = "web", tenant_id: int = 0) -> None:
+def save_legal_acceptance(
+    athlete_id: int,
+    acceptance_type: str,
+    version: str,
+    source: str = "web",
+    tenant_id: int = 0,
+) -> None:
     now = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -4660,8 +4675,10 @@ def get_legal_acceptances_by_athlete(athlete_id: int) -> list[dict]:
 def has_accepted_version(athlete_id: int, acceptance_type: str, min_version: str) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute(
-            "SELECT version FROM legal_acceptances WHERE athlete_id = ? AND acceptance_type = ? ORDER BY created_at DESC LIMIT 1",
+        cur.execute(  # noqa: E501
+            "SELECT version FROM legal_acceptances "
+            "WHERE athlete_id = ? AND acceptance_type = ? "
+            "ORDER BY created_at DESC LIMIT 1",
             (athlete_id, acceptance_type),
         )
         row = cur.fetchone()
@@ -4686,7 +4703,8 @@ def save_ai_audit_log(
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO ai_audit_log
-               (athlete_id, tenant_id, provider, model, prompt_hash, response_length, tool_calls, latency_ms, created_at)
+               (athlete_id, tenant_id, provider, model, prompt_hash,
+                response_length, tool_calls, latency_ms, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (athlete_id, tenant_id, provider, model, prompt_hash, response_length, tool_calls, latency_ms, now),
         )

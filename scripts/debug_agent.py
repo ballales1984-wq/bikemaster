@@ -13,9 +13,9 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
 import json
-import os
 import re
 import shutil
 import signal
@@ -23,6 +23,7 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import UTC
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -140,10 +141,7 @@ class DebugAgent:
 
 def _context_search(source: str, segment: str, pending_sources: list[str]) -> bool:
     patched = segment.lower().replace("\n", " ")
-    for src in pending_sources:
-        if src and src.lower().replace("\n", " ") in patched:
-            return True
-    return False
+    return any(src and src.lower().replace("\n", " ") in patched for src in pending_sources)
 
 
 def _is_text(line: str) -> bool:
@@ -301,37 +299,31 @@ def main() -> int:
         agent._stop.set()
         for proc in agent._children:
             if proc and proc.poll() is None:
-                try:
+                with contextlib.suppress(Exception):
                     proc.terminate()
-                except Exception:
-                    pass
 
-    signal.signal(signal.SIGINT, _sig_handler)
-    signal.signal(signal.SIGTERM, _sig_handler)
+        signal.signal(signal.SIGINT, _sig_handler)
+        signal.signal(signal.SIGTERM, _sig_handler)
 
-    try:
-        while any(proc.poll() is None for proc in agent._children if proc is not None):
-            time.sleep(1)
-    except KeyboardInterrupt:
-        _sig_handler(signal.SIGINT, None)
+        try:
+            while any(proc.poll() is None for proc in agent._children if proc is not None):
+                time.sleep(1)
+        except KeyboardInterrupt:
+            _sig_handler(signal.SIGINT, None)
 
-    for proc in agent._children:
-        if proc and proc.poll() is None:
-            try:
-                proc.terminate()
-            except Exception:
-                pass
+        for proc in agent._children:
+            if proc and proc.poll() is None:
+                with contextlib.suppress(Exception):
+                    proc.terminate()
 
-    for proc in agent._children:
-        if proc:
-            try:
-                proc.wait(timeout=5)
-                rc = proc.returncode
-            except subprocess.TimeoutExpired:
+        for proc in agent._children:
+            if proc:
                 try:
-                    proc.kill()
-                except Exception:
-                    pass
+                    proc.wait(timeout=5)
+                    rc = proc.returncode
+                except subprocess.TimeoutExpired:
+                    with contextlib.suppress(Exception):
+                        proc.kill()
                 rc = None
             print(f"[debug-agent] {proc} exited with {rc}", flush=True)
 

@@ -42,9 +42,8 @@ from bike_analyzer.backend.events import (
     subscribe,
 )
 from bike_analyzer.backend.maps import google_maps as gm
-from bike_analyzer.backend.models.models import AthleteProfile, GPSPoint, Ride, Segment
+from bike_analyzer.backend.models.models import AthleteProfile, GPSPoint, Ride
 from bike_analyzer.backend.processing import processing as proc
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -55,7 +54,7 @@ def _p(lat=45.0, lon=7.0, speed=20.0, t=None, **kw):
 
 
 def _ride(**kw):
-    base = dict(date="2024-01-01", distance_km=30.0, duration_minutes=90, avg_speed_kmh=20.0)
+    base = {"date": "2024-01-01", "distance_km": 30.0, "duration_minutes": 90, "avg_speed_kmh": 20.0}
     base.update(kw)
     return Ride(**base)
 

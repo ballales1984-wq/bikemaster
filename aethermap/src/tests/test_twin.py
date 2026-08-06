@@ -401,5 +401,5 @@ class TestDigitalTwinH3Summary:
         twin.add(make_albero("a1", 45.0, 9.0, "pino", 5.0))
         twin.add(make_albero("a2", 45.001, 9.001, "quercia", 8.0))
         summary = twin.h3_summary(resolution=9)
-        for cell, counts in summary.items():
+        for _, counts in summary.items():
             assert counts.get("albero") == 2

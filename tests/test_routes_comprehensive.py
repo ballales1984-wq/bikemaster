@@ -11,8 +11,6 @@ import os
 from pathlib import Path
 
 import pytest
-
-
 from starlette.testclient import TestClient
 
 from bike_analyzer.backend.api.app_factory import create_app

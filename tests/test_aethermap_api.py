@@ -2,11 +2,10 @@
 from __future__ import annotations
 
 import math
-import os
 
 import pytest
+
 from bike_analyzer.backend.db import database as db_mod
-from starlette.testclient import TestClient
 
 
 class TestAetherMapWorld:

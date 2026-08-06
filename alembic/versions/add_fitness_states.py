@@ -7,9 +7,10 @@ Create Date: 2026-06-16
 """
 
 from collections.abc import Sequence
-from sqlalchemy import inspect
 
 import sqlalchemy as sa
+from sqlalchemy import inspect
+
 from alembic import op
 
 revision: str = "add_fitness_states"

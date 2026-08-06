@@ -1,4 +1,5 @@
 import pytest
+
 pytestmark = pytest.mark.slow
 
 import os
@@ -9,7 +10,6 @@ os.environ["GROQ_API_KEY"] = "test-key"
 from bike_analyzer.backend.analytics.ai_coach import (
     _ban_provider,
     _build_athlete_context,
-    _build_rag_context,
     _generate_fallback_recovery_advice,
     _generate_fallback_training_advice,
     _generate_local_recovery_advice,
@@ -24,7 +24,7 @@ from bike_analyzer.backend.analytics.ai_coach import (
     get_fitness_state_explanation,
     validate_athlete_profile,
 )
-from bike_analyzer.backend.models.models import AthleteProfile, GPSPoint, Ride
+from bike_analyzer.backend.models.models import AthleteProfile, Ride
 
 
 def test_validate_athlete_profile_rejects_empty():
@@ -342,8 +342,6 @@ class TestBanProvider:
     def test_ban_resets_current_client(self, monkeypatch):
         from bike_analyzer.backend.analytics.ai_coach import (
             _BANNED_PROVIDERS,
-            _current_client,
-            _current_provider,
         )
 
         monkeypatch.setattr(

@@ -7,7 +7,6 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
-import pytest
 
 from aethermap.render.webgl_exporter import (
     _build_heightfield,

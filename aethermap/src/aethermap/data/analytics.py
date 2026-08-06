@@ -8,12 +8,11 @@ Implementa aggregazioni richieste da Fase 2 §10:
 """
 from __future__ import annotations
 
+import math
 from collections import Counter, defaultdict
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import Any
-
-import math
 
 from aethermap.ai.models import Oggetto
 

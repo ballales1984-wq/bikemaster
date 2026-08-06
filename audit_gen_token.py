@@ -1,10 +1,12 @@
 """Generate a valid JWT access token for the frontend audit.
 Uses the backend's security module directly - no database access needed."""
 import sys
+
 sys.path.insert(0, '.')
 
-from bike_analyzer.backend.security import create_access_token
 import json
+
+from bike_analyzer.backend.security import create_access_token
 
 # Generate JWT tokens (admin + client)
 access_token = create_access_token(

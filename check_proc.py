@@ -1,12 +1,13 @@
 
 import ctypes
-from ctypes import wintypes
+
 kernel32 = ctypes.windll.kernel32
 advapi32 = ctypes.windll.advapi32
 def elevated(pid):
     h = kernel32.OpenProcess(0x0400, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
-    if not h: return 'open-fail'
-    token = wt.HANDLE() if False else ctypes.c_void_p()
+    if not h:
+        return "open-fail"
+    token = ctypes.c_void_p()
     if not advapi32.OpenProcessToken(h, 0x8, ctypes.byref(token)):
         return 'token-fail'
     elevation = ctypes.c_ulong()

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from bike_analyzer.backend.analytics.calories import (
     calculate_calories_met,
     calculate_calories_physics,

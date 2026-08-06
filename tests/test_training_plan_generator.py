@@ -5,10 +5,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from bike_analyzer.backend.analytics.training_plan_generator import (
-    WorkoutDay,
+    _llm_plan_prompt,
     _local_monthly_plan,
     _local_weekly_plan,
-    _llm_plan_prompt,
     _plan_summary,
     generate_monthly_plan,
     generate_weekly_plan,

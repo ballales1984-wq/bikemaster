@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-from aethermap.core.coordinates import s2_cell_id, h3_cell, geodetic_to_cube
+from aethermap.core.coordinates import geodetic_to_cube, h3_cell, s2_cell_id
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Confidenza(BaseModel):
@@ -29,7 +29,7 @@ class Posizione(BaseModel):
     h3: str | None = None
 
     @classmethod
-    def from_latlon(cls, lat: float, lon: float, alt: float = 0.0) -> "Posizione":
+    def from_latlon(cls, lat: float, lon: float, alt: float = 0.0) -> Posizione:
         c = geodetic_to_cube(lat, lon)
         try:
             s2 = s2_cell_id(lat, lon)

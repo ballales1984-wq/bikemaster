@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-import defusedxml.ElementTree as ET
+from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Iterator
+from datetime import datetime
+from typing import Any
+
+import defusedxml.ElementTree as ET
 
 
 @dataclass
@@ -32,7 +34,7 @@ def ingest_gpx(path: str) -> list[RawPoint]:
         ele_el = trkpt.find("g:ele", ns)
         time_el = trkpt.find("g:time", ns)
         ele = float(ele_el.text) if ele_el is not None and ele_el.text else None
-        t = datetime.fromisoformat(time_el.text.replace("Z", "+00:00")) if time_el is not None and time_el.text else None
+        t = datetime.fromisoformat(time_el.text.replace("Z", "+00:00")) if time_el is not None and time_el.text else None  # noqa: E501
         points.append(RawPoint(lat=lat, lon=lon, ele=ele, t=t))
     return points
 

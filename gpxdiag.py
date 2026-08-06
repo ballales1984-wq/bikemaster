@@ -1,4 +1,7 @@
-import os, tempfile, sys
+import os
+import sys
+import tempfile
+
 env = {
     "SECRET_KEY": "test-secret-key-for-jwt-testing-123456",
     "ALGORITHM": "HS256",
@@ -17,7 +20,9 @@ os.environ.update(env)
 sys.path.insert(0, ".")
 
 from io import BytesIO
+
 from starlette.testclient import TestClient
+
 from bike_analyzer.backend.api.app_factory import create_app
 from bike_analyzer.backend.db import database as db_mod
 from bike_analyzer.backend.security import create_access_token

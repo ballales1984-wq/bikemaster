@@ -1,9 +1,10 @@
 """Tests for backend.analytics.athlete_state.repository."""
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
+
 from bike_analyzer.backend.analytics.athlete_state.models import AthleteState
 from bike_analyzer.backend.analytics.athlete_state.repository import (
     AthleteStateRepository,

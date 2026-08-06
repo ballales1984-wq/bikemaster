@@ -15,16 +15,15 @@ from bike_analyzer.backend.analytics.training import (
     GoalAnalyzer,
     GoalType,
     PlanConstraints,
+    PlanDistributor,
     ScenarioGenerator,
     ScenarioType,
     TrainingGoal,
     WeeklyPlan,
-    Workout,
     WorkoutGenerator,
     WorkoutType,
-    PlanDistributor,
 )
-from bike_analyzer.backend.models.models import AthleteProfile, Ride
+from bike_analyzer.backend.models.models import AthleteProfile
 
 
 class TestTrainingGoal:

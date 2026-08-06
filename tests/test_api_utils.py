@@ -1,10 +1,7 @@
 """Tests for backend.api.utils."""
 
-from ipaddress import AddressValueError, ip_address
 
-import pytest
 from fastapi import Request
-from fastapi.datastructures import Headers
 
 from bike_analyzer.backend.api.utils import (
     _forwarded_value,

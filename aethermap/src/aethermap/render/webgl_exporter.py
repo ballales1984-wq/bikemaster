@@ -12,8 +12,7 @@ Uso:
 from __future__ import annotations
 
 import json
-import math
-import os
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +20,6 @@ import numpy as np
 
 from aethermap.core.coordinates import geodetic_to_direction
 from aethermap.twin.world import DigitalTwin, Environment
-
 
 # ===========================================================================
 # Heightfield procedurale (terreno)
@@ -288,10 +286,8 @@ def export_world_geojson(
         )
 
     h3_summary: dict[str, dict[str, int]] = {}
-    try:
+    with suppress(Exception):
         h3_summary = twin.h3_summary()
-    except Exception:
-        pass
 
     geojson: dict[str, Any] = {
         "type": "FeatureCollection",
@@ -312,6 +308,7 @@ def export_world_geojson(
 
 def main() -> None:
     import sys
+
     from aethermap.twin.objects import make_albero, make_montagna, make_strada
 
     output = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent / "world_data.json"
@@ -334,7 +331,7 @@ def main() -> None:
     export_world(twin, output, dem_base_url=dem_url)
     src_note = f" (DEM da {dem_url})" if dem_url else ""
     print(f"[webgl_exporter] dati mondo esportati in {output}{src_note}")
-    print(f"[webgl_exporter] aprire webgl_stub.html nel browser per visualizzare")
+    print("[webgl_exporter] aprire webgl_stub.html nel browser per visualizzare")
 
 
 if __name__ == "__main__":

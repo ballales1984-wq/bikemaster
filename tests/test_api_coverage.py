@@ -1,6 +1,7 @@
 """API coverage tests for endpoints."""
 
 import pytest
+
 pytestmark = pytest.mark.slow
 
 import base64

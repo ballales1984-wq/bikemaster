@@ -16,13 +16,15 @@ Responsabilita' principali:
 
 from __future__ import annotations
 
-import os
 import asyncio
 import logging
+import os
 import sqlite3
+import time
 from collections.abc import Coroutine
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
 import sentry_sdk
 from fastapi import FastAPI, Request
@@ -105,7 +107,7 @@ async def lifespan(app: FastAPI):
     _log_flush("lifespan: setup logging completed")
 
     async def _run_with_timeout(
-        name: str, coro: "Coroutine[Any, Any, Any]", timeout: float = STARTUP_TASK_TIMEOUT
+        name: str, coro: Coroutine[Any, Any, Any], timeout: float = STARTUP_TASK_TIMEOUT
     ) -> None:
         """Run a coroutine with a timeout, logging start/complete/fail/timeout."""
         app.state._startup_steps[name] = "running"
@@ -114,7 +116,7 @@ async def lifespan(app: FastAPI):
             await asyncio.wait_for(coro, timeout=timeout)
             app.state._startup_steps[name] = "completed"
             _log_flush(f"startup: {name} — completed")
-        except asyncio.TimeoutError:
+        except TimeoutError:
             app.state._startup_steps[name] = "timed_out"
             logger.warning(
                 "startup: %s — TIMED OUT after %ds (continuing startup anyway)",
@@ -201,7 +203,10 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_run_with_timeout("event-bus-start", _start_event_bus_bg()))
     )
     _log_flush("startup: all background tasks launched, yielding to uvicorn")
+    _t_yield = time.monotonic()
+    _log_flush(f"startup: YIELD t={_t_yield:.3f} (since create_app start)")
     yield
+    _log_flush(f"startup: AFTER YIELD t={time.monotonic():.3f} — uvicorn now serving")
 
     # Graceful shutdown: cancel background tasks, then stop services.
     logger.info("Shutting down background services")
@@ -241,6 +246,8 @@ def create_app() -> FastAPI:
     - Static files: dashboard SPA, PWA manifest, service worker, icone.
     - Exception handlers: ValidationError, ValueError, business errors.
     """
+    _t0 = time.monotonic()
+    _log_flush(f"create_app: START t={_t0:.3f}")
     app = FastAPI(
         title="BikeMaster API",
         description="GPS-based cycling intelligence",
@@ -250,9 +257,11 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if _s.environment.lower() in ("development", "dev", "test", "testing") else None,
         openapi_url="/openapi.json" if _s.environment.lower() in ("development", "dev", "test", "testing") else None,
     )
+    _log_flush(f"create_app: FastAPI() done +{time.monotonic()-_t0:.3f}s")
 
     # Initialize unified observability (Sentry + OpenTelemetry + Zipkin)
     init_observability(app)
+    _log_flush(f"create_app: init_observability done +{time.monotonic()-_t0:.3f}s")
 
     # Conditional Prometheus instrumentation for compatibility
     if _s.environment.lower() not in ("test", "testing"):
@@ -266,6 +275,7 @@ def create_app() -> FastAPI:
             instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
         except Exception:
             logger.debug("Prometheus instrumentation setup failed", exc_info=True)
+    _log_flush(f"create_app: prometheus done +{time.monotonic()-_t0:.3f}s")
     # Skip OpenTelemetry instrumentation in test environment
     if _s.environment.lower() in ("test", "testing"):
         pass  # Observability already skipped
@@ -273,6 +283,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(429, _rate_limit_exceeded_handler)
     app.add_middleware(SlowAPIMiddleware)
     app.add_middleware(MetricsMiddleware)
+    _log_flush(f"create_app: middleware + exception handlers done +{time.monotonic()-_t0:.3f}s")
 
     @app.exception_handler(ValidationError)
     async def validation_exception_handler(request: Request, exc: ValidationError):
@@ -449,12 +460,19 @@ def create_app() -> FastAPI:
         ],
     )
     app.include_router(router, prefix="/api/v1")
+    _log_flush(f"create_app: include_router(main) done +{time.monotonic()-_t0:.3f}s")
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
+    _log_flush(f"create_app: include_router(admin) done +{time.monotonic()-_t0:.3f}s")
     app.include_router(bm2_router, prefix="/api/v1/bm2", tags=["bm2"])
+    _log_flush(f"create_app: include_router(bm2) done +{time.monotonic()-_t0:.3f}s")
     app.include_router(sync_router, prefix="/api/v1", tags=["sync"])
+    _log_flush(f"create_app: include_router(sync) done +{time.monotonic()-_t0:.3f}s")
     app.include_router(adaptation_router, prefix="/api/v1", tags=["adaptation"])
+    _log_flush(f"create_app: include_router(adaptation) done +{time.monotonic()-_t0:.3f}s")
     app.include_router(performance_router, prefix="/api/v1", tags=["performance"])
+    _log_flush(f"create_app: include_router(performance) done +{time.monotonic()-_t0:.3f}s")
     app.include_router(voice_router, prefix="/api/v1", tags=["voice"])
+    _log_flush(f"create_app: include_router(voice) done +{time.monotonic()-_t0:.3f}s")
 
     if SERVE_STATIC and STATIC_DIR.exists() and INDEX_FILE.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -594,4 +612,5 @@ def create_app() -> FastAPI:
                 return Response(status_code=404)
             return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"))
 
+    _log_flush(f"create_app: RETURN app +{time.monotonic()-_t0:.3f}s")
     return app

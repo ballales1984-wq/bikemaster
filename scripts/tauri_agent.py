@@ -20,7 +20,8 @@ Usage
 Environment / prerequisites
 ----------------------------
 - Node.js >= 18, npm >= 9
-- Rust toolchain (rustup) with Android targets installed (aarch64-linux-android, armv7-linux-androideabi, i686-linux-android, x86_64-linux-android)
+- Rust toolchain (rustup) with Android targets: aarch64-linux-android,
+  armv7-linux-androideabi, i686-linux-android, x86_64-linux-android
 - Android SDK + NDK (ANDROID_HOME / ANDROID_SDK_ROOT)
 - Java 17 (Temurin)
 - Git configured with push access
@@ -32,14 +33,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
-import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = REPO_ROOT / "frontend"
@@ -52,7 +49,7 @@ PACKAGE_JSON = FRONTEND_DIR / "package.json"
 # Helpers
 # ---------------------------------------------------------------------------
 
-def run(cmd: list[str] | str, cwd: Optional[Path] = None, check: bool = True, capture: bool = False) -> str | None:
+def run(cmd: list[str] | str, cwd: Path | None = None, check: bool = True, capture: bool = False) -> str | None:
     """Run a shell command and return stdout (or None)."""
     if isinstance(cmd, str):
         cmd = cmd if sys.platform != "win32" else cmd.split()
@@ -178,7 +175,7 @@ def get_latest_crate_version(crate: str) -> str:
         return ""
 
 
-def update_versions(tauri_version: Optional[str], cli_version: Optional[str]) -> None:
+def update_versions(tauri_version: str | None, cli_version: str | None) -> None:
     current_rust = read_tauri_rust_version()
     current_cli = read_tauri_cli_version()
 
@@ -255,7 +252,7 @@ def git_tag(version: str) -> None:
     run(["git", "tag", "-a", version, "-m", f"Release {version}"])
 
 
-def git_push(branch: Optional[str] = None) -> None:
+def git_push(branch: str | None = None) -> None:
     cmd = ["git", "push"]
     if branch:
         cmd += ["origin", branch]

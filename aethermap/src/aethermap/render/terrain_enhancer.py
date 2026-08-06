@@ -5,12 +5,9 @@ cube-sphere mesh, falling back to procedural FBM when unavailable.
 """
 from __future__ import annotations
 
-import math
-from typing import Any
-
 import numpy as np
 
-from aethermap.core.coordinates import ecef_to_geodetic, geodetic_to_direction
+from aethermap.core.coordinates import ecef_to_geodetic
 
 _EARTH_R = 6_371_000.0
 _DEM_API = "/aethermap/terrain"
@@ -60,8 +57,8 @@ def fetch_dem_tile(
     source: str = "auto",
 ) -> np.ndarray | None:
     try:
-        import urllib.request
         import json
+        import urllib.request
 
         qs = (
             f"?min_lat={bbox['min_lat']:.4f}&max_lat={bbox['max_lat']:.4f}"

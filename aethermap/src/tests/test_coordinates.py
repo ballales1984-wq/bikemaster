@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
+from aethermap.ai.models import Posizione
 from aethermap.core.coordinates import (
     CubeCell,
     cube_cell_id,
@@ -18,7 +19,6 @@ from aethermap.core.coordinates import (
     h3_cell,
     s2_cell_id,
 )
-from aethermap.ai.models import Posizione
 
 
 class TestWGS84:
@@ -97,13 +97,13 @@ class TestS2H3:
 
 class TestPosizioneFromLatlon:
     def test_without_optional_deps(self):
-        with patch("aethermap.ai.models.s2_cell_id", side_effect=RuntimeError("missing")):
-            with patch("aethermap.ai.models.h3_cell", side_effect=RuntimeError("missing")):
-                p = Posizione.from_latlon(45.0, 9.0, alt=100.0)
-                assert p.s2 is None
-                assert p.h3 is None
-                assert p.alt == 100.0
-                assert p.cube_face is not None
+        with patch("aethermap.ai.models.s2_cell_id", side_effect=RuntimeError("missing")), \
+             patch("aethermap.ai.models.h3_cell", side_effect=RuntimeError("missing")):
+            p = Posizione.from_latlon(45.0, 9.0, alt=100.0)
+            assert p.s2 is None
+            assert p.h3 is None
+            assert p.alt == 100.0
+            assert p.cube_face is not None
 
     def test_with_optional_deps(self):
         p = Posizione.from_latlon(45.0, 9.0, alt=50.0)

@@ -9,16 +9,16 @@ Merges the two divergent heads (``add_hr_24h_tracking`` and
 ``alembic upgrade head`` works without a "Multiple heads" error on a
 fresh PostgreSQL deployment.
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 # revision identifiers, used by Alembic.
 revision: str = "merge_hr_tracking_head"
-down_revision: Union[str, Sequence[str], None] = (
+down_revision: str | Sequence[str] | None = (
     "add_hr_24h_tracking",
     "add_users_table_and_user_id_fix",
 )
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

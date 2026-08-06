@@ -111,7 +111,12 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
                 for obj in twin.store.objects.values()
                 for rel in obj.relazioni
             ]
-        self._send_json_or_text(200, json.dumps({"ok": True, "entities": self._world_data["entities"], "relations": self._world_data.get("relations", [])}), "application/json")
+        body = json.dumps({
+            "ok": True,
+            "entities": self._world_data["entities"],
+            "relations": self._world_data.get("relations", []),
+        })
+        self._send_json_or_text(200, body, "application/json")
 
     def _serve_terrain_tile(self, params: dict | None = None) -> None:
         bikemaster = getattr(self.__class__, "_bikemaster_url", "http://localhost:8000")
@@ -149,7 +154,7 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
         face = int(qs.get("face", [0])[0])
         resolution = int(qs.get("resolution", [64])[0])
         try:
-            from aethermap.render.terrain_enhancer import build_enhanced_heightfield, _face_bbox
+            from aethermap.render.terrain_enhancer import _face_bbox, build_enhanced_heightfield
             from aethermap.render.webgl_exporter import _terrain_mesh_from_hf
             hf = build_enhanced_heightfield(
                 n=resolution,
@@ -210,7 +215,12 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
                 for obj in twin.store.objects.values()
                 for rel in obj.relazioni
             ]
-        self._send_json_or_text(200, json.dumps({"ok": True, "entities": self._world_data["entities"], "relations": self._world_data.get("relations", [])}), "application/json")
+        body = json.dumps({
+            "ok": True,
+            "entities": self._world_data["entities"],
+            "relations": self._world_data.get("relations", []),
+        })
+        self._send_json_or_text(200, body, "application/json")
 
     def _serve_snapshot(self) -> None:
         if not self._dynamic or not self._dynamic_lock:
@@ -243,7 +253,8 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
         twin.add(make_montagna("montagna-1", 45.015, 9.03, 1800.0, ["nord", "sud", "est"]))
         env = Environment(temp_c=15.0, solar_elev_deg=30.0, ora="12:00")
         twin.step(env)
-        import tempfile, os
+        import os
+        import tempfile
         tmp = os.path.join(tempfile.gettempdir(), "aethermap_geojson.json")
         export_world_geojson(twin, tmp)
         payload = Path(tmp).read_text(encoding="utf-8")
@@ -269,8 +280,6 @@ def _load_static_world(path: str | Path) -> dict[str, Any] | None:
 
 
 def _build_dynamic_world(dem_url: str | None = None) -> dict[str, Any]:
-    from aethermap.render.webgl_exporter import _terrain_mesh
-    from aethermap.render.terrain_enhancer import build_enhanced_heightfield
 
     twin = DigitalTwin()
     twin.add(make_strada("strada-1", 45.0, 9.0, [
@@ -331,12 +340,12 @@ def serve(
     addr = f"http://localhost:{port}"
     print(f"[server] AetherMap WebGL viewer attivo su {addr}")
     if dynamic:
-        print(f"[server] Modalita' dinamica: DigitalTwin attivo")
-        print(f"[server] API step: GET /api/step")
+        print("[server] Modalita' dinamica: DigitalTwin attivo")
+        print("[server] API step: GET /api/step")
     if dem_base_url:
         print(f"[server] DEM integration: {dem_base_url}")
     print(f"[server] Apri {addr} nel browser.")
-    print(f"[server] Premi Ctrl+C per fermare.")
+    print("[server] Premi Ctrl+C per fermare.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
