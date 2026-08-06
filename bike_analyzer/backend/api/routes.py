@@ -177,11 +177,12 @@ def _build_frontend_redirect_url(
     request: Request,
     redirect_uri: str | None,
     fragment_keys: set[str] | None = None,
+    frontend_origin: str | None = None,
     **query_values: str,
 ) -> str:
     """Costruisce l'URL di redirect per il frontend, separando query string e fragment."""
     parsed = urlparse(redirect_uri or "")
-    origin = (
+    origin = frontend_origin or (
         f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else _build_redirect_uri(request, "")
     )
     fragment_keys = fragment_keys or set()
@@ -193,17 +194,18 @@ def _build_frontend_redirect_url(
     return f"{base}/{query_suffix}{fragment_suffix}"
 
 
-def _build_oauth_error_url(request: Request, redirect_uri: str, error: str) -> "RedirectResponse":  # noqa: F821,UP037
+def _build_oauth_error_url(request: Request, redirect_uri: str, error: str, frontend_origin: str | None = None) -> "RedirectResponse":  # noqa: F821,UP037
     """Redirect back to the SPA with an ``oauth_error`` query param.
 
     The error is delivered as a query param (not a fragment) so the SPA can read
     it even on a full document load. The ``redirect_uri`` comes from the signed
-    OAuth state, so it is already host-validated.
+    OAuth state, so it is already host-validated. When ``frontend_origin`` is
+    provided, the redirect targets the SPA origin instead of the backend origin.
     """
     from fastapi.responses import RedirectResponse
 
     return RedirectResponse(
-        url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=error)
+        url=_build_frontend_redirect_url(request, redirect_uri, oauth_error=error, frontend_origin=frontend_origin)
     )
 
 
@@ -1601,18 +1603,19 @@ async def google_oauth_callback_get(
         resp.headers["Expires"] = "0"
         return resp
     redirect_uri = state_data["redirect_uri"]
+    frontend_origin = state_data.get("frontend_origin")
     _validate_redirect_uri(redirect_uri, request)
 
     if error:
         message = error_description or error
-        resp = _build_oauth_error_url(request, redirect_uri, message)
+        resp = _build_oauth_error_url(request, redirect_uri, message, frontend_origin)
         resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
         resp.headers["Pragma"] = "no-cache"
         resp.headers["Expires"] = "0"
         return resp
 
     if not code:
-        resp = _build_oauth_error_url(request, redirect_uri, "missing_code")
+        resp = _build_oauth_error_url(request, redirect_uri, "missing_code", frontend_origin)
         resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
         resp.headers["Pragma"] = "no-cache"
         resp.headers["Expires"] = "0"
@@ -1635,21 +1638,21 @@ async def google_oauth_callback_get(
         except Exception as exc:
             response = getattr(exc, "response", None)
             if response is not None and getattr(response, "status_code", None) == 400:
-                resp = _build_oauth_error_url(request, redirect_uri, "oauth_error")
+                resp = _build_oauth_error_url(request, redirect_uri, "oauth_error", frontend_origin)
                 resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
                 resp.headers["Pragma"] = "no-cache"
                 resp.headers["Expires"] = "0"
                 return resp
             error_body = response.text if response is not None else str(exc)
             error_detail = f"token_exchange_failed:{error_body[:200]}"
-            resp = _build_oauth_error_url(request, redirect_uri, error_detail)
+            resp = _build_oauth_error_url(request, redirect_uri, error_detail, frontend_origin)
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
             resp.headers["Pragma"] = "no-cache"
             resp.headers["Expires"] = "0"
             return resp
         access_token = token_data.get("access_token")
         if not access_token:
-            resp = _build_oauth_error_url(request, redirect_uri, "no_access_token")
+            resp = _build_oauth_error_url(request, redirect_uri, "no_access_token", frontend_origin)
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
             resp.headers["Pragma"] = "no-cache"
             resp.headers["Expires"] = "0"
@@ -1660,7 +1663,7 @@ async def google_oauth_callback_get(
         except Exception as exc:
             response = getattr(exc, "response", None)
             error_body = response.text if response is not None else str(exc)
-            resp = _build_oauth_error_url(request, redirect_uri, f"userinfo_failed:{error_body[:200]}")
+            resp = _build_oauth_error_url(request, redirect_uri, f"userinfo_failed:{error_body[:200]}", frontend_origin)
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
             resp.headers["Pragma"] = "no-cache"
             resp.headers["Expires"] = "0"
@@ -1670,7 +1673,7 @@ async def google_oauth_callback_get(
         name = user_info.get("name")
 
         if not google_sub:
-            resp = _build_oauth_error_url(request, redirect_uri, "invalid_user_info")
+            resp = _build_oauth_error_url(request, redirect_uri, "invalid_user_info", frontend_origin)
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
             resp.headers["Pragma"] = "no-cache"
             resp.headers["Expires"] = "0"
@@ -1713,7 +1716,7 @@ async def google_oauth_callback_get(
                     await r.delete(lock_key)
 
         if not existing:
-            resp = _build_oauth_error_url(request, redirect_uri, "user_creation_failed")
+            resp = _build_oauth_error_url(request, redirect_uri, "user_creation_failed", frontend_origin)
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
             resp.headers["Pragma"] = "no-cache"
             resp.headers["Expires"] = "0"
@@ -1731,7 +1734,7 @@ async def google_oauth_callback_get(
         return resp
     except Exception as exc:
         logger.exception("Google OAuth callback failed: %s", exc)
-        resp = _build_oauth_error_url(request, redirect_uri, "server_error")
+        resp = _build_oauth_error_url(request, redirect_uri, "server_error", frontend_origin)
         resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
         resp.headers["Pragma"] = "no-cache"
         resp.headers["Expires"] = "0"
