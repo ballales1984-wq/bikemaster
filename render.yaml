@@ -36,7 +36,9 @@ services:
           name: bikemaster-db
           property: connectionString
       - key: REDIS_URL
-        sync: false
+        fromService:
+          name: bikemaster-redis
+          property: connectionString
       - key: LOG_LEVEL
         value: WARNING
       - key: STARTUP_TASK_TIMEOUT
