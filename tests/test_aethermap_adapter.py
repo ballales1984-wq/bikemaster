@@ -7,10 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from aethermap import Geometria, Oggetto, Posizione, WorldStore
-from bike_analyzer.core.models import GPSPoint, RouteStatistics
 from bike_analyzer.backend.maps import aethermap_adapter
-
+from bike_analyzer.core.models import GPSPoint, RouteStatistics
 
 FIXED_DT = "2024-06-15T10:00:00Z"
 
@@ -47,7 +45,7 @@ def test_create_route_map_with_statistics(tmp_path: Path) -> None:
         total_elevation_gain_m=100.0,
     )
     out = tmp_path / "route_stats.json"
-    path = aethermap_adapter.create_route_map(points, statistics=stats, output_path=str(out))
+    aethermap_adapter.create_route_map(points, statistics=stats, output_path=str(out))
     payload = json.loads(out.read_text(encoding="utf-8"))
     assert "metadata" in payload
     assert "statistics" in payload["metadata"]

@@ -7,8 +7,6 @@ to move routes.py coverage higher with minimal new client setup.
 from __future__ import annotations
 
 import os
-import pytest
-
 
 from starlette.testclient import TestClient
 
@@ -21,7 +19,6 @@ class TestRouteErrorBranches:
     def test_get_ride_not_found(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -37,7 +34,6 @@ class TestRouteErrorBranches:
     def test_delete_ride_not_found(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -53,7 +49,6 @@ class TestRouteErrorBranches:
     def test_create_ride_missing_body(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -84,7 +79,6 @@ class TestRouteErrorBranches:
     def test_non_admin_cannot_access_admin_users(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -113,7 +107,6 @@ class TestRouteErrorBranches:
     def test_athlete_profile_update_validation(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -129,7 +122,6 @@ class TestRouteErrorBranches:
     def test_sqlite_integrity_error_returns_409(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -146,11 +138,11 @@ class TestRouteErrorBranches:
         assert response.status_code in (200, 400, 401, 409)
 
     def test_google_oauth_callback_missing_params(self, db_path):
-        from bike_analyzer.backend.api.app_factory import create_app
-        from bike_analyzer.backend.api import routes as routes_mod
-        from bike_analyzer.backend.db import database as db_mod
-        import bike_analyzer.backend.settings as settings_mod
         import bike_analyzer.backend.api.app_factory as app_factory_mod
+        import bike_analyzer.backend.settings as settings_mod
+        from bike_analyzer.backend.api import routes as routes_mod
+        from bike_analyzer.backend.api.app_factory import create_app
+        from bike_analyzer.backend.db import database as db_mod
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -196,7 +188,6 @@ class TestRouteErrorBranches:
     def test_ble_device_not_found(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -212,7 +203,6 @@ class TestRouteErrorBranches:
     def test_import_multiple_empty(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -282,7 +272,6 @@ class TestRouteErrorBranches:
     def test_coach_workout_forbidden_for_other_athlete(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -291,7 +280,7 @@ class TestRouteErrorBranches:
         tc = TestClient(app)
 
         token_owner = create_access_token(subject="10", is_admin=False)
-        token_other = create_access_token(subject="20", is_admin=False)
+        token_other = create_access_token(subject="20", is_admin=False)  # noqa: F841
         tc.headers["Authorization"] = f"Bearer {token_owner}"
         response = tc.get("/api/v1/coach/workout?athlete_id=20")
         assert response.status_code == 403
@@ -299,7 +288,6 @@ class TestRouteErrorBranches:
     def test_ble_sync_invalid_device(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -354,7 +342,6 @@ class TestRouteErrorBranches:
     def test_athlete_profile_update_not_found(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path
@@ -370,7 +357,6 @@ class TestRouteErrorBranches:
     def test_athlete_profile_update_invalid_weight(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app
         from bike_analyzer.backend.db import database as db_mod
-        from bike_analyzer.backend.security import create_access_token
 
         os.environ["DB_PATH"] = db_path
         db_mod.DB_PATH = db_path

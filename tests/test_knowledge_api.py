@@ -12,10 +12,11 @@ Tests cover:
 from __future__ import annotations
 
 import pytest
+
 pytestmark = pytest.mark.slow
 
 try:
-    import numpy.random
+    import numpy.random  # noqa: F401
     _HAS_NUMPY_RANDOM = True
 except ImportError:
     _HAS_NUMPY_RANDOM = False

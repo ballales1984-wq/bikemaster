@@ -9,7 +9,7 @@ import os
 import pytest
 
 try:
-    import numpy.random
+    import numpy.random  # noqa: F401
     _HAS_NUMPY_RANDOM = True
 except ImportError:
     _HAS_NUMPY_RANDOM = False
@@ -793,8 +793,8 @@ def test_google_oauth_callback_error_paths(client, monkeypatch):
 
 
 def test_google_code_exchange(client, monkeypatch):
-    from bike_analyzer.backend.settings import get_settings
     import bike_analyzer.backend.auth.google_auth as google_auth_mod
+    from bike_analyzer.backend.settings import get_settings
 
     monkeypatch.setattr(get_settings(), "google_client_id", "test-client")
     monkeypatch.setattr(get_settings(), "google_client_secret", "test-secret")

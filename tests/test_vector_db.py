@@ -11,8 +11,6 @@ from __future__ import annotations
 
 import importlib
 
-import pytest
-
 from bike_analyzer.backend.db import vector_db
 
 
@@ -84,7 +82,7 @@ class TestVectorStore:
 
 class TestGracefulDegradation:
     def test_embed_text_returns_none_when_sklearn_unavailable(self):
-        mod = importlib.reload(vector_db)
+        _ = importlib.reload(vector_db)
         original = vector_db.VECTOR_AVAILABLE
         try:
             vector_db.VECTOR_AVAILABLE = False

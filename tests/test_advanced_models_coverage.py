@@ -36,16 +36,16 @@ def _pt(lat=45.0, lon=7.0, speed=20.0, altitude=100.0, hr=140.0, power=None, ts=
 
 
 def _ride(**kw):
-    base = dict(
-        date="2024-01-01",
-        distance_km=30.0,
-        duration_minutes=90.0,
-        avg_speed_kmh=22.0,
-        calories=600,
-        elevation_gain_m=200,
-        heart_rate_avg=150,
-        weight_kg=70,
-    )
+    base = {
+        "date": "2024-01-01",
+        "distance_km": 30.0,
+        "duration_minutes": 90.0,
+        "avg_speed_kmh": 22.0,
+        "calories": 600,
+        "elevation_gain_m": 200,
+        "heart_rate_avg": 150,
+        "weight_kg": 70,
+    }
     base.update(kw)
     return Ride(**base)
 

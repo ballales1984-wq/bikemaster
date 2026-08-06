@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 try:
-    import numpy.random
+    import numpy.random  # noqa: F401
     _HAS_NUMPY_RANDOM = True
 except ImportError:
     _HAS_NUMPY_RANDOM = False

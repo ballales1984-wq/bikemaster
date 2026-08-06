@@ -31,9 +31,7 @@ def _is_legacy_config_import(module: str, level: int = 0) -> bool:
         return True
     if module == "config":
         return True
-    if module.startswith("bike_analyzer.backend.config."):
-        return True
-    return False
+    return module.startswith("bike_analyzer.backend.config.")
 
 
 @pytest.mark.parametrize("py_file", list(BIKE_ANALYZER_DIR.rglob("*.py")))

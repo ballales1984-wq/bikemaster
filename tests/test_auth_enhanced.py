@@ -7,6 +7,7 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 pytestmark = pytest.mark.slow
 
 
@@ -120,7 +121,7 @@ def test_jwt_revoke_with_jti_in_payload():
         assert token is not None
         try:
             asyncio.run(decode_token(token))
-            assert False, "Expected HTTPException 401"
+            pytest.fail("Expected HTTPException 401")
         except Exception as exc:
             assert getattr(exc, "status_code", None) == 401
 

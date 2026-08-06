@@ -7,12 +7,10 @@ load adherence metrics.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 
-import pytest
-
-from bike_analyzer.backend.models.models import AthleteProfile, Ride
 from bike_analyzer.backend.analytics.training_load import calculate_atl_ctl_tsb
+from bike_analyzer.backend.models.models import Ride
 
 
 class TestPlannedVsActualComparison:
@@ -65,7 +63,7 @@ class TestPlannedVsActualComparison:
         planned_ftp = 250.0
         estimated_tss = (planned_duration * planned_ftp * 3.5) / (90 * planned_ftp) * 100
 
-        ride = self._make_ride("2024-06-15", 35.0, 90.0, heart_rate_avg=150)
+        self._make_ride("2024-06-15", 35.0, 90.0, heart_rate_avg=150)
         assert estimated_tss > 0
 
     def test_load_adherence_with_atl_ctl_tsb(self):
