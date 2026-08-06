@@ -157,8 +157,9 @@ def test_create_speed_chart():
             for i in range(3)
         ]
         seg = _make_segment(pts[0], pts[1])
-        result = create_speed_chart([seg], "/tmp/test_speed.png")
-        assert result == "/tmp/test_speed.png"
+        result = create_speed_chart([seg])
+        assert isinstance(result, bytes)
+        assert result == b""
 
 
 def test_create_elevation_chart():
@@ -172,8 +173,9 @@ def test_create_elevation_chart():
             for i in range(3)
         ]
         seg = _make_segment(pts[0], pts[1], elevation_gain_m=15.0)
-        result = create_elevation_chart([seg], "/tmp/test_elev.png")
-        assert result == "/tmp/test_elev.png"
+        result = create_elevation_chart([seg])
+        assert isinstance(result, bytes)
+        assert result == b""
 
 
 def test_create_duration_chart():
@@ -183,8 +185,9 @@ def test_create_duration_chart():
         mock_plt.savefig = lambda *a, **k: None
         mock_plt.close = lambda: None
         rides = [_make_ride()]
-        result = create_duration_chart(rides, "/tmp/test_dur.png")
-        assert result == "/tmp/test_dur.png"
+        result = create_duration_chart(rides)
+        assert isinstance(result, bytes)
+        assert result == b""
 
 
 def test_create_distance_chart():
@@ -198,19 +201,20 @@ def test_create_distance_chart():
             for i in range(3)
         ]
         seg = _make_segment(pts[0], pts[1], distance_m=2000.0)
-        result = create_distance_chart([seg], "/tmp/test_dist.png")
-        assert result == "/tmp/test_dist.png"
+        result = create_distance_chart([seg])
+        assert isinstance(result, bytes)
+        assert result == b""
 
 
 def test_generate_speed_chart_empty():
     result = generate_speed_chart([])
-    assert result == ""
+    assert result == b""
 
 
 def test_generate_speed_chart_no_speeds():
     points = [GPSPoint(lat=45.0, lon=9.0, timestamp=datetime(2024, 1, 1, tzinfo=UTC), speed=None)]
     result = generate_speed_chart(points)
-    assert result == ""
+    assert result == b""
 
 
 def test_generate_speed_chart_with_data():
@@ -229,12 +233,13 @@ def test_generate_speed_chart_with_data():
             for i in range(5)
         ]
         result = generate_speed_chart(points)
-        assert result.endswith(".png")
+        assert isinstance(result, bytes)
+        assert result == b""
 
 
 def test_generate_distance_chart_empty():
     result = generate_distance_chart([])
-    assert result == ""
+    assert result == b""
 
 
 def test_generate_distance_chart_with_data():
@@ -248,12 +253,13 @@ def test_generate_distance_chart_with_data():
             for i in range(3)
         ]
         result = generate_distance_chart(points)
-        assert result.endswith(".png")
+        assert isinstance(result, bytes)
+        assert result == b""
 
 
 def test_generate_time_chart_empty():
     result = generate_time_chart([])
-    assert result == ""
+    assert result == b""
 
 
 def test_generate_time_chart_with_data():
@@ -267,4 +273,5 @@ def test_generate_time_chart_with_data():
             for i in range(3)
         ]
         result = generate_time_chart(points)
-        assert result.endswith(".png")
+        assert isinstance(result, bytes)
+        assert result == b""

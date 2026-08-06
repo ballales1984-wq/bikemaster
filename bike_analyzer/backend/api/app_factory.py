@@ -269,7 +269,7 @@ def create_app() -> FastAPI:
             instrumentator = Instrumentator(
                 should_group_status_codes=True,
                 should_ignore_untemplated=True,
-                excluded_handlers=["/metrics", "/health"],
+                excluded_handlers=["/metrics", "/health", "/healthz"],
             )
             instrumentator.add(metrics.requests())
             instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
@@ -473,6 +473,21 @@ def create_app() -> FastAPI:
     _log_flush(f"create_app: include_router(performance) done +{time.monotonic()-_t0:.3f}s")
     app.include_router(voice_router, prefix="/api/v1", tags=["voice"])
     _log_flush(f"create_app: include_router(voice) done +{time.monotonic()-_t0:.3f}s")
+
+    @app.get("/healthz")
+    async def healthz():
+        """Root-level liveness probe for platform health checks (Render default)."""
+        return {"status": "ok", "service": "bikemaster"}
+
+    @app.get("/health")
+    async def health_root():
+        """Root-level health check (aliased to /healthz)."""
+        return {"status": "ok", "service": "bikemaster"}
+
+    @app.get("/api/v1/health")
+    async def health_api_v1():
+        """API v1 health check matching Render's default healthCheckPath."""
+        return {"status": "ok", "service": "bikemaster"}
 
     if SERVE_STATIC and STATIC_DIR.exists() and INDEX_FILE.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

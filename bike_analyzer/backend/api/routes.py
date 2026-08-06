@@ -38,6 +38,7 @@ from fastapi import (
 )
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from starlette.concurrency import run_in_threadpool
 from jose import JWTError, jwt
 from sqlalchemy import insert, text
 from starlette.background import BackgroundTask
@@ -2361,7 +2362,7 @@ async def analyze_rides(request: Request, payload: RideAnalysisRequest, current_
     from ..analytics.analytics import calculate_summary
     from ..models.models import Ride
 
-    return calculate_summary([Ride(**r.model_dump()) for r in payload.rides])
+    return await run_in_threadpool(calculate_summary, [Ride(**r.model_dump()) for r in payload.rides])
 
 
 @router.post("/rides/{ride_id}/analyze")
@@ -2370,7 +2371,7 @@ async def analyze_single_ride(ride_id: int, ride_data: RideCreate, current_user:
     from ..analytics.analytics import analyze_ride
     from ..models.models import Ride
 
-    return analyze_ride(Ride(id=ride_id, **ride_data.model_dump()))
+    return await run_in_threadpool(analyze_ride, Ride(id=ride_id, **ride_data.model_dump()))
 
 
 @router.delete("/rides/{ride_id}")
@@ -2758,7 +2759,7 @@ async def export_json(current_user: dict = Depends(get_current_user)):
     rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
     with tempfile.NamedTemporaryFile(prefix=f"rides_export_{current_user['id']}_", suffix=".json", delete=False) as tmp:
         path = tmp.name
-    export_rides_json(rides, path)
+    await asyncio.to_thread(export_rides_json, rides, path)
     return FileResponse(
         path,
         media_type="application/json",
@@ -2783,7 +2784,7 @@ async def export_csv(current_user: dict = Depends(get_current_user)):
     rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
     with tempfile.NamedTemporaryFile(prefix=f"rides_export_{current_user['id']}_", suffix=".csv", delete=False) as tmp:
         path = tmp.name
-    export_rides_csv(rides, path)
+    await asyncio.to_thread(export_rides_csv, rides, path)
     return FileResponse(
         path,
         media_type="text/csv",
@@ -2802,7 +2803,8 @@ async def get_ride_report(ride_id: int, current_user: dict = Depends(get_current
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
     _ensure_ride_access(ride, current_user)
-    return {"report": generate_text_report(Ride(**ride))}
+    report = await asyncio.to_thread(generate_text_report, Ride(**ride))
+    return {"report": report}
 
 
 @router.get("/charts/speed/{ride_id}")
@@ -2830,11 +2832,10 @@ async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_use
     from ..processing.processing import build_segments
 
     segments = build_segments(points)
-    path = f"ride_{ride_id}_speed.png"
-    await asyncio.to_thread(create_speed_chart, segments, path)
-    from fastapi.responses import FileResponse
+    png = await asyncio.to_thread(create_speed_chart, segments)
+    from fastapi.responses import Response
 
-    return FileResponse(path, media_type="image/png", filename="speed.png", background=BackgroundTask(os.remove, path))
+    return Response(content=png, media_type="image/png", headers={"Content-Disposition": "attachment; filename=speed.png"})
 
 
 @router.get("/charts/duration")
@@ -2845,11 +2846,10 @@ async def duration_chart(current_user: dict = Depends(get_current_user)):
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
-    path = "duration_chart.png"
-    await asyncio.to_thread(create_duration_chart, rides, path)
-    from fastapi.responses import FileResponse
+    png = await asyncio.to_thread(create_duration_chart, rides)
+    from fastapi.responses import Response
 
-    return FileResponse(path, media_type="image/png", filename="duration.png", background=BackgroundTask(os.remove, path))
+    return Response(content=png, media_type="image/png", headers={"Content-Disposition": "attachment; filename=duration.png"})
 
 
 @router.get("/charts/distance/{ride_id}")
@@ -2877,11 +2877,10 @@ async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_
     from ..processing.processing import build_segments
 
     segments = build_segments(points)
-    path = f"ride_{ride_id}_distance.png"
-    await asyncio.to_thread(create_distance_chart, segments, path)
-    from fastapi.responses import FileResponse
+    png = await asyncio.to_thread(create_distance_chart, segments)
+    from fastapi.responses import Response
 
-    return FileResponse(path, media_type="image/png", filename="distance.png", background=BackgroundTask(os.remove, path))
+    return Response(content=png, media_type="image/png", headers={"Content-Disposition": "attachment; filename=distance.png"})
 
 
 @router.get("/charts/elevation/{ride_id}")
@@ -2909,11 +2908,10 @@ async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current
     from ..processing.processing import build_segments
 
     segments = build_segments(points)
-    path = f"ride_{ride_id}_elevation.png"
-    await asyncio.to_thread(create_elevation_chart, segments, path)
-    from fastapi.responses import FileResponse
+    png = await asyncio.to_thread(create_elevation_chart, segments)
+    from fastapi.responses import Response
 
-    return FileResponse(path, media_type="image/png", filename="elevation.png", background=BackgroundTask(os.remove, path))
+    return Response(content=png, media_type="image/png", headers={"Content-Disposition": "attachment; filename=elevation.png"})
 
 
 @router.post("/athletes", response_model=dict)
@@ -5275,7 +5273,7 @@ async def get_training_load(
     # Users can only see their own training load (admin can see all)
     _ensure_athlete_access(athlete_id, current_user)
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
-    loads = calculate_atl_ctl_tsb(rides)
+    loads = await asyncio.to_thread(calculate_atl_ctl_tsb, rides)
     recent = loads[-days:] if len(loads) > days else loads
     return {"athlete_id": athlete_id, "days": days, "training_loads": list(recent)}
 
@@ -5289,7 +5287,7 @@ async def get_training_status(athlete_id: int = Query(...), current_user: dict =
     # Users can only see their own training status (admin can see all)
     _ensure_athlete_access(athlete_id, current_user)
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
-    status = get_current_training_status(rides)
+    status = await asyncio.to_thread(get_current_training_status, rides)
     return {"athlete_id": athlete_id, **status}
 
 
@@ -5302,7 +5300,7 @@ async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = De
     # Users can only see their own summary (admin can see all)
     _ensure_athlete_access(athlete_id, current_user)
     rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
-    summary = get_7day_fitness_summary(rides)
+    summary = await asyncio.to_thread(get_7day_fitness_summary, rides)
     return {"athlete_id": athlete_id, "summary": summary}
 
 
@@ -5501,7 +5499,7 @@ async def get_fitness_trends(
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
-    return calculate_fitness_trends(rides, metric=metric, window=window)
+    return await asyncio.to_thread(calculate_fitness_trends, rides, metric=metric, window=window)
 
 
 @router.get("/analytics/monthly")
@@ -5512,7 +5510,7 @@ async def get_monthly_progression(current_user: dict = Depends(get_current_user)
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     rides = get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)
-    return calculate_monthly_progression(rides)
+    return await asyncio.to_thread(calculate_monthly_progression, rides)
 
 
 @router.get("/analytics/comparison")
@@ -5526,7 +5524,7 @@ async def get_period_comparison(
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
-    return calculate_period_comparison(rides, period_days=period_days)
+    return await asyncio.to_thread(calculate_period_comparison, rides, period_days=period_days)
 
 
 @router.get("/analytics/zones")
@@ -5548,7 +5546,7 @@ async def get_zone_distributions(
     ftp = athlete.get("ftp_watts")
     max_hr = athlete.get("heart_rate_avg")
     rides = get_rides_by_athlete(athlete_id, tenant_id)
-    return calculate_zone_distributions(rides, ftp_watts=ftp, max_hr=max_hr)
+    return await asyncio.to_thread(calculate_zone_distributions, rides, ftp_watts=ftp, max_hr=max_hr)
 
 
 @router.get("/analytics/projection")
@@ -5562,7 +5560,7 @@ async def get_volume_projection(
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
-    return calculate_training_volume_projection(rides, target_days=target_days)
+    return await asyncio.to_thread(calculate_training_volume_projection, rides, target_days=target_days)
 
 
 @router.get("/heatmap")
@@ -5708,7 +5706,7 @@ async def multi_classify_rides(
     from ..analytics.multi_classifier import classify_rides
 
     rides = _get_athlete_rides(athlete_id or current_user["id"], current_user)
-    results = classify_rides(rides)
+    results = await asyncio.to_thread(classify_rides, rides)
     return {
         "athlete_id": athlete_id or current_user["id"],
         "total_rides": len(results),
@@ -5736,7 +5734,7 @@ async def get_vip_prediction(
     from ..analytics.vip_predictor import estimate_vip
 
     rides = _get_athlete_rides(athlete_id or current_user["id"], current_user)
-    result = estimate_vip(rides, athlete_ftp=ftp)
+    result = await asyncio.to_thread(estimate_vip, rides, athlete_ftp=ftp)
     return {
         "athlete_id": athlete_id or current_user["id"],
         "probability_index": result.probability_index,
@@ -5755,7 +5753,7 @@ async def get_inactivity_report(
     from ..analytics.inactivity_estimator import estimate_inactivity
 
     rides = _get_athlete_rides(athlete_id or current_user["id"], current_user)
-    result = estimate_inactivity(rides)
+    result = await asyncio.to_thread(estimate_inactivity, rides)
     return {
         "athlete_id": athlete_id or current_user["id"],
         "current_streak_days": result.current_streak_days,
@@ -5781,7 +5779,7 @@ async def get_route_suggestions(
         athlete_data = {"name": "Unknown", "preferred_terrain": "mixed", "ftp_watts": 250.0}
     athlete = AthleteProfile(**athlete_data)
     rides = _get_athlete_rides(athlete_id, current_user)
-    suggestions = estimate_route_preferences(athlete, rides)
+    suggestions = await asyncio.to_thread(estimate_route_preferences, athlete, rides)
     return {
         "athlete_id": athlete_id,
         "total_suggestions": len(suggestions),
@@ -5818,7 +5816,7 @@ async def get_ride_power_metrics(
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
     points = [GPSPoint(**p) for p in gps_points]
-    metrics = calculate_advanced_power_metrics(points, ftp=ftp)
+    metrics = await asyncio.to_thread(calculate_advanced_power_metrics, points, ftp=ftp)
     return {"ride_id": ride_id, "ftp": ftp, **metrics}
 
 
@@ -6713,31 +6711,33 @@ async def get_dashboard(request: Request, current_user: dict = Depends(get_curre
     from ..analytics.training_load import get_7day_fitness_summary
     from ..db.database import get_athlete, get_rides_by_athlete
 
+    def _compute() -> dict:
+        rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+        athlete = get_athlete(athlete_id)
+        athlete_dict = _public_athlete(athlete) if athlete else None
+        summary = calculate_summary(rides)
+        scores = create_score_dashboard(rides, AthleteProfile(**_athlete_profile_data(athlete_dict or {})))
+        fitness = get_7day_fitness_summary(rides)
+        trends = {
+            "weekly_progress": [r.distance_km for r in rides[-7:]] if rides else [],
+            "monthly_stats": None,
+        }
+        return {
+            "athlete": athlete_dict,
+            "summary": summary,
+            "scores": scores,
+            "fitness": fitness,
+            "trends": trends,
+            "rides_count": len(rides),
+        }
+
     athlete_id = _ensure_int_user_id(current_user)
     cache_key = f"dashboard:{athlete_id}"
     cached_result = await _cached(cache_key, ttl=120)
     if cached_result:
         return cached_result
 
-    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
-    athlete = get_athlete(athlete_id)
-    athlete_dict = _public_athlete(athlete) if athlete else None
-
-    summary = calculate_summary(rides)
-    scores = create_score_dashboard(rides, AthleteProfile(**_athlete_profile_data(athlete_dict or {})))
-    fitness = get_7day_fitness_summary(rides)
-    trends = {
-        "weekly_progress": [r.distance_km for r in rides[-7:]] if rides else [],
-        "monthly_stats": None,
-    }
-    result = {
-        "athlete": athlete_dict,
-        "summary": summary,
-        "scores": scores,
-        "fitness": fitness,
-        "trends": trends,
-        "rides_count": len(rides),
-    }
+    result = await run_in_threadpool(_compute)
     await _cache_set(cache_key, result, ttl=120)
     return result
 

@@ -6,9 +6,12 @@ infrastructure concern (DB, API, serialization).
 
 from __future__ import annotations
 
+import logging
 import math
 from dataclasses import dataclass
 from datetime import UTC, datetime
+
+logger = logging.getLogger(__name__)
 
 EARTH_RADIUS_M = 6_371_000
 
@@ -18,11 +21,11 @@ def haversine_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> 
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
-    return (
-        2
-        * EARTH_RADIUS_M
-        * math.asin(math.sqrt(math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2))
-    )
+    sin_dphi = math.sin(dphi / 2)
+    sin_dlambda = math.sin(dlambda / 2)
+    arg = sin_dphi**2 + math.cos(phi1) * math.cos(phi2) * sin_dlambda**2
+    arg = min(1.0, max(0.0, arg))
+    return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(arg))
 
 
 @dataclass(frozen=True)
@@ -56,6 +59,7 @@ class GPSPoint:
             try:
                 ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
             except ValueError:
+                logger.warning("Invalid GPS timestamp format: %r", ts)
                 return
         if isinstance(ts, datetime) and ts.tzinfo is not None:
             ts = ts.astimezone(UTC).replace(tzinfo=None)
@@ -189,7 +193,8 @@ class Ride:
                         p["timestamp"] = base_ts
                     try:
                         converted.append(GPSPoint(**p))
-                    except Exception:
+                    except Exception as exc:
+                        logger.warning("Dropping invalid GPS point during Ride init: %s (%s)", p, exc)
                         converted.append(p)
                 else:
                     converted.append(p)

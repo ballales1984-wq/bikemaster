@@ -52,11 +52,11 @@ class SparseVolume:
         return int(np.count_nonzero(self.grid == mat))
 
     def snow_fraction(self) -> float:
-        full = np.count_nonzero(self.grid != EMPTY)
+        full = int(np.count_nonzero(self.grid != EMPTY))
         return round(self._count(SNOW) / full, 3) if full else 0.0
 
     def stats(self) -> dict:
-        full = np.count_nonzero(self.grid != EMPTY)
+        full = int(np.count_nonzero(self.grid != EMPTY))
         return {
             "voxel_totali": full,
             "snow_%": round(100.0 * self._count(SNOW) / full, 1) if full else 0.0,
@@ -74,6 +74,6 @@ class SparseVolume:
             ("N", self.grid[:, half:]),
         ]:
             flat = slab.reshape(-1)
-            full = np.count_nonzero(flat != EMPTY)
-            out[name] = round(100.0 * np.count_nonzero(flat == SNOW) / full, 1) if full else 0.0
+            full = int(np.count_nonzero(flat != EMPTY))
+            out[name] = round(100.0 * int(np.count_nonzero(flat == SNOW)) / full, 1) if full else 0.0
         return out

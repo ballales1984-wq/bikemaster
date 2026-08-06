@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from bike_analyzer.core.calculators.calories import estimate as _core_estimate
 
 from ..models.models import Ride
@@ -46,8 +48,9 @@ def ensure_calories(ride: Ride) -> float:
         avg_speed = ride.distance_km / (ride.duration_minutes / 60)
     if not avg_speed:
         return 0.0
-    if not ride.avg_speed_kmh:
-        ride.avg_speed_kmh = avg_speed
-    if not ride.weight_kg:
-        ride.weight_kg = 70.0
-    return estimate_calories(ride, method="physics")
+    updated = replace(
+        ride,
+        avg_speed_kmh=avg_speed,
+        weight_kg=ride.weight_kg or 70.0,
+    )
+    return estimate_calories(updated, method="physics")

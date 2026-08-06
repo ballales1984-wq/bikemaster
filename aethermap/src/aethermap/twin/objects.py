@@ -20,7 +20,7 @@ class Strada(Oggetto):
         import math
         tot_h = 0.0
         tot_d = 0.0
-        for a, b in zip(pts, pts[1:], strict=True):
+        for a, b in zip(pts[:-1], pts[1:], strict=True):
             dh = (a.get("ele") or 0) - (b.get("ele") or 0)
             dl = math.hypot(
                 (a["lat"] - b["lat"]) * 111320,

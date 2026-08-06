@@ -17,8 +17,7 @@ from __future__ import annotations
 
 import csv
 import json
-import tempfile
-from io import StringIO
+from io import BytesIO, StringIO
 
 import matplotlib
 
@@ -166,6 +165,7 @@ def export_rides_csv(rides: list[Ride], output_path: str = "rides_export.csv") -
                 "distance_km",
                 "duration_minutes",
                 "avg_speed_kmh",
+                "weight_kg",
                 "calories",
                 "heart_rate_avg",
                 "elevation_gain_m",
@@ -178,6 +178,7 @@ def export_rides_csv(rides: list[Ride], output_path: str = "rides_export.csv") -
                     r.distance_km,
                     r.duration_minutes,
                     r.avg_speed_kmh,
+                    r.weight_kg,
                     r.calories,
                     r.heart_rate_avg or "",
                     r.elevation_gain_m or "",
@@ -210,15 +211,14 @@ def generate_text_report(ride: Ride) -> str:
     )
 
 
-def create_speed_chart(segments: list[Segment], output_path: str = "speed_chart.png") -> str:
-    """Genera un grafico della velocita' media per segmento.
+def create_speed_chart(segments: list[Segment]) -> bytes:
+    """Genera un grafico della velocita' media per segmento come PNG in memoria.
 
     Attributes:
         segments: Lista di segmenti della traccia.
-        output_path: Percorso di salvataggio del PNG.
 
     Returns:
-        Percorso del file PNG salvato.
+        Bytes PNG del grafico.
     """
     speeds = [s.avg_speed_km_h for s in segments] if segments else [0]
     plt.figure(figsize=(10, 4))
@@ -226,20 +226,21 @@ def create_speed_chart(segments: list[Segment], output_path: str = "speed_chart.
     plt.title("Speed Profile")
     plt.ylabel("km/h")
     plt.xlabel("Segment")
-    plt.savefig(output_path)
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
     plt.close()
-    return output_path
+    buf.seek(0)
+    return buf.getvalue()
 
 
-def create_elevation_chart(segments: list[Segment], output_path: str = "elevation_chart.png") -> str:
-    """Genera un grafico del dislivello per segmento.
+def create_elevation_chart(segments: list[Segment]) -> bytes:
+    """Genera un grafico del dislivello per segmento come PNG in memoria.
 
     Attributes:
         segments: Lista di segmenti della traccia.
-        output_path: Percorso di salvataggio del PNG.
 
     Returns:
-        Percorso del file PNG salvato.
+        Bytes PNG del grafico.
     """
     elev = [s.elevation_gain_m for s in segments] if segments else [0]
     plt.figure(figsize=(10, 4))
@@ -247,20 +248,21 @@ def create_elevation_chart(segments: list[Segment], output_path: str = "elevatio
     plt.title("Elevation per Segment")
     plt.ylabel("m")
     plt.xlabel("Segment")
-    plt.savefig(output_path)
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
     plt.close()
-    return output_path
+    buf.seek(0)
+    return buf.getvalue()
 
 
-def create_duration_chart(rides: list[Ride], output_path: str = "duration_chart.png") -> str:
-    """Genera un grafico a barre della durata delle attivita'.
+def create_duration_chart(rides: list[Ride]) -> bytes:
+    """Genera un grafico a barre della durata delle attivita' come PNG in memoria.
 
     Attributes:
         rides: Lista di attivita' da visualizzare.
-        output_path: Percorso di salvataggio del PNG.
 
     Returns:
-        Percorso del file PNG salvato.
+        Bytes PNG del grafico.
     """
     durations = [r.duration_minutes for r in rides] if rides else [0]
     labels = [r.date for r in rides] if rides else ["No rides"]
@@ -270,76 +272,86 @@ def create_duration_chart(rides: list[Ride], output_path: str = "duration_chart.
     plt.title("Ride Duration")
     plt.ylabel("minutes")
     plt.tight_layout()
-    plt.savefig(output_path)
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
     plt.close()
-    return output_path
+    buf.seek(0)
+    return buf.getvalue()
 
 
-def create_distance_chart(segments: list[Segment], output_path: str = "distance_chart.png") -> str:
-    """Genera un grafico della distanza cumulata per segmento (in km)."""
+def create_distance_chart(segments: list[Segment]) -> bytes:
+    """Genera un grafico della distanza cumulata per segmento (in km) come PNG in memoria."""
     distances = [s.distance_m / 1000 for s in segments] if segments else [0]
     plt.figure(figsize=(10, 4))
     plt.plot(range(len(distances)), distances, color="#FF6B00", linewidth=2)
     plt.title("Distance per Segment")
     plt.ylabel("km")
     plt.xlabel("Segment")
-    plt.savefig(output_path)
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
     plt.close()
-    return output_path
+    buf.seek(0)
+    return buf.getvalue()
 
 
-def generate_speed_chart(points: list[GPSPoint] | None, title: str = "Speed Profile") -> str:
-    """Generates speed chart per GPS point, saved as temporary PNG."""
+def generate_speed_chart(points: list[GPSPoint] | None, title: str = "Speed Profile") -> bytes:
+    """Generates speed chart per GPS point, returned as PNG bytes."""
     if not points:
-        return ""
+        return b""
     speeds = [p.speed for p in points if p.speed is not None]
     if not speeds:
-        return ""
+        return b""
     plt.figure(figsize=(10, 4))
     plt.plot(range(len(speeds)), speeds, color="#FF6B00", linewidth=2)
     plt.title(title)
     plt.ylabel("km/h")
     plt.xlabel("Point")
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-        path = f.name
-    plt.savefig(path)
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
     plt.close()
-    return path
+    buf.seek(0)
+    return buf.getvalue()
 
 
-def generate_distance_chart(points: list[GPSPoint] | None, title: str = "Distance Progression") -> str:
-    """Genera il grafico della distanza cumulata (haversine) per punto GPS."""
+def generate_distance_chart(points: list[GPSPoint] | None, title: str = "Distance Progression") -> bytes:
+    """Genera il grafico della distanza cumulata (haversine) per punto GPS come PNG bytes."""
     if not points:
-        return ""
+        return b""
+    valid = [p for p in points if p.lat is not None and p.lon is not None]
+    if len(valid) < 2:
+        return b""
     distances = [0.0]
     total = 0.0
-    for i in range(1, len(points)):
-        total += haversine_distance_m(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon)
+    for i in range(1, len(valid)):
+        total += haversine_distance_m(valid[i - 1].lat, valid[i - 1].lon, valid[i].lat, valid[i].lon)
         distances.append(total / 1000)
     plt.figure(figsize=(10, 4))
     plt.plot(range(len(distances)), distances, color="#0066CC", linewidth=2)
     plt.title(title)
     plt.ylabel("km")
     plt.xlabel("Point")
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-        path = f.name
-    plt.savefig(path)
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
     plt.close()
-    return path
+    buf.seek(0)
+    return buf.getvalue()
 
 
-def generate_time_chart(points: list[GPSPoint] | None, title: str = "Time Analysis") -> str:
-    """Genera un grafico temporale minimale (marker per punto) salvato in PNG temporaneo."""
+def generate_time_chart(points: list[GPSPoint] | None, title: str = "Time Analysis") -> bytes:
+    """Genera un grafico temporale minimale (marker per punto) come PNG bytes."""
     if not points:
-        return ""
-    times = [p.timestamp.strftime("%H:%M") for p in points]
+        return b""
+    valid = [p for p in points if p.timestamp is not None]
+    if not valid:
+        return b""
+    times = [p.timestamp.strftime("%H:%M") for p in valid]
     plt.figure(figsize=(10, 2))
     plt.plot(range(len(times)), [1] * len(times), "o", markersize=3, color="#333333")
     plt.title(title)
     plt.yticks([])
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-        path = f.name
-    plt.savefig(path)
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
     plt.close()
-    return path
+    buf.seek(0)
+    return buf.getvalue()
 

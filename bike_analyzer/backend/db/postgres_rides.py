@@ -16,11 +16,13 @@ store is SQLite (local / offline) or PostgreSQL (cloud / production).
 from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, datetime
 
 from ..settings import get_settings
 
 _s = get_settings()
+logger = logging.getLogger(__name__)
 
 # Reuse the connection / dispatch primitives defined once in postgres_athlete
 # so there is a single source of truth for "is postgres configured" and for the
@@ -198,8 +200,8 @@ def save_ride(ride: dict) -> int:
             allowed = set(Ride.__dataclass_fields__.keys())
             clean = {k: v for k, v in ride.items() if k in allowed and k not in ("gps_points", "id")}
             ride["calories"] = ensure_calories(Ride(**clean))
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Calorie estimate failed for ride %s: %s", ride.get("id"), exc)
     gps_points = json.dumps(ride.get("gps_points")) if ride.get("gps_points") else None
     tenant_id = ride.get("tenant_id", ride.get("athlete_id", 0))
     now = datetime.now(UTC).isoformat()

@@ -28,6 +28,7 @@ from contextlib import contextmanager, suppress
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from ..analytics.calories import ensure_calories
 from ..models.models import Ride
 from ..settings import get_settings
 from ..utils.logger import get_logger
@@ -1117,8 +1118,6 @@ def save_ride(ride: dict) -> int:
                     return existing_ride_id
                 if not ride.get("calories"):
                     try:
-                        from ..analytics.calories import ensure_calories
-
                         allowed = set(Ride.__dataclass_fields__.keys())
                         clean = {
                             k: v

@@ -765,11 +765,11 @@ def ai_coach_full(athlete: AthleteProfile, rides: list[Ride], athlete_id: int | 
             segments = build_segments(points)
             if segments:
                 sp = static_dir / "coach_speed.png"
-                create_speed_chart(segments, str(sp))
+                sp.write_bytes(create_speed_chart(segments))
                 charts.append("/static/coach_speed.png")
         if rides:
             dp = static_dir / "coach_duration.png"
-            create_duration_chart(rides, str(dp))
+            dp.write_bytes(create_duration_chart(rides))
             charts.append("/static/coach_duration.png")
     except Exception:
         logger.debug("AI Coach: failed to generate charts", exc_info=True)

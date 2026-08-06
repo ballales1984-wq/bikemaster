@@ -128,7 +128,7 @@ def create_hub_app() -> FastAPI:
             instrumentator = Instrumentator(
                 should_group_status_codes=True,
                 should_ignore_untemplated=True,
-                excluded_handlers=["/metrics", "/health"],
+                excluded_handlers=["/metrics", "/health", "/healthz"],
             )
             instrumentator.add(metrics.requests())
             instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
@@ -188,6 +188,11 @@ def create_hub_app() -> FastAPI:
     app.include_router(hub_router)
     app.include_router(hub_sync_router, prefix="/api/v1", tags=["sync"])
     app.include_router(voice_router, prefix="/api/v1", tags=["voice"])
+
+    @app.get("/healthz")
+    async def healthz():
+        """Root-level liveness probe for platform health checks (Render default)."""
+        return {"status": "ok", "mode": "hub", "database": "postgresql" if _s.database_url else "none"}
 
     @app.get("/health")
     async def health():

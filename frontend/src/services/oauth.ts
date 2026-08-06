@@ -130,7 +130,7 @@ export function processOAuthToken(): boolean {
   // stuck behind the loading overlay (e.g. a backend redirect that dropped
   // the param, or a transient round-trip error).
   if (import.meta.env.DEV)
-    console.debug("[OAuth] no token found in URL or sessionStorage");
+    console.log("[OAuth] no token found in URL or sessionStorage");
   ui.setOauthLoading(false);
   return false;
 }
