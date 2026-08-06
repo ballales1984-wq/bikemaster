@@ -101,14 +101,16 @@ export function processOAuthToken(): boolean {
       clearPendingOAuth();
       ui.setOauthLoading(false);
       clearUrlToken();
-      console.log("[OAuth] already logged in, skipping");
+      if (import.meta.env.DEV)
+        console.log("[OAuth] already logged in, skipping");
       return false;
     }
     auth.setAuthFromUrl(urlToken, email, userId);
     clearPendingOAuth();
     ui.setOauthLoading(false);
     clearUrlToken();
-    console.log("[OAuth] token consumed from URL, profile:", email);
+    if (import.meta.env.DEV)
+      console.log("[OAuth] token consumed from URL, profile:", email);
     return true;
   }
 
@@ -119,14 +121,16 @@ export function processOAuthToken(): boolean {
     auth.setAuthFromUrl(pending.token, pending.email, pending.userId);
     clearPendingOAuth();
     ui.setOauthLoading(false);
-    console.log("[OAuth] token recovered from sessionStorage");
+    if (import.meta.env.DEV)
+      console.log("[OAuth] token recovered from sessionStorage");
     return true;
   }
 
   // Safety: if there is no OAuth token/error to process, never leave the app
   // stuck behind the loading overlay (e.g. a backend redirect that dropped
   // the param, or a transient round-trip error).
-  console.debug("[OAuth] no token found in URL or sessionStorage");
+  if (import.meta.env.DEV)
+    console.debug("[OAuth] no token found in URL or sessionStorage");
   ui.setOauthLoading(false);
   return false;
 }

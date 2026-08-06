@@ -343,7 +343,10 @@ router.beforeEach((to) => {
     if (justLoggedIn) {
       auth.setJustLoggedIn(false);
       ui.setOauthLoading(false);
-      console.log("[OAuth] guard navigating to /rides (profile refine async)");
+      if (import.meta.env.DEV)
+        console.log(
+          "[OAuth] guard navigating to /rides (profile refine async)",
+        );
       void checkProfileComplete(auth).then((complete) => {
         if (!complete && router.currentRoute.value.path === "/rides") {
           router.replace("/athlete").catch(() => {});

@@ -17,8 +17,6 @@ services:
         fromDatabase:
           name: bikemaster-hub-db
           property: connectionString
-      - key: REDIS_URL
-        value: redis://localhost:6379
       - key: CORS_ORIGINS
         value: https://bikemaster-23pv3ckq6-alessios-projects-f1d56018.vercel.app,https://bikemaster-xi.vercel.app
       - key: OAUTH_ALLOWED_REDIRECT_HOSTS
