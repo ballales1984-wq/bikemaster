@@ -184,9 +184,15 @@ def create_hub_app() -> FastAPI:
     if not cors_origins and _s.environment.lower() not in ("development", "dev", "test"):
         logger.error("No CORS origins configured in non-development environment")
         cors_origins = []
+    logger.info(
+        "Hub CORS configured: origins=%s regex=%s",
+        cors_origins,
+        r"https://.*\.vercel\.app",
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=[

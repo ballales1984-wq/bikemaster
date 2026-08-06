@@ -426,7 +426,8 @@ def create_app() -> FastAPI:
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(self), microphone=(), camera=()"
-        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        if not request.url.path.startswith("/api/"):
+            response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         if _s.environment.lower() in ("production", "prod", "staging"):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
             if "content-security-policy" not in response.headers:
@@ -459,9 +460,15 @@ def create_app() -> FastAPI:
     if not cors_origins and _s.environment.lower() not in ("development", "dev", "test"):
         logger.error("No CORS origins configured in non-development environment")
         cors_origins = []
+    logger.info(
+        "CORS configured: origins=%s regex=%s",
+        cors_origins,
+        r"https://.*\.vercel\.app",
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=[
