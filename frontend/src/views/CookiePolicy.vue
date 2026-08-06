@@ -8,7 +8,7 @@
   <div class="legal-page">
     <div class="legal-header">
       <h1>Cookie Policy</h1>
-      <p class="last-updated">Last updated: June 2025</p>
+      <p class="last-updated">Last updated: August 2026</p>
     </div>
 
     <div class="legal-content">

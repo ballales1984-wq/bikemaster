@@ -923,6 +923,49 @@ def init_db():
             conn.execute("ALTER TABLE rides ADD COLUMN updated_at TEXT")
         _ensure_external_identity_index(conn)
         _ensure_sync_tables(conn)
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS user_consent (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                athlete_id INTEGER NOT NULL,
+                tenant_id INTEGER DEFAULT 0,
+                consent_type TEXT NOT NULL,
+                granted INTEGER NOT NULL DEFAULT 1,
+                source TEXT DEFAULT 'web',
+                created_at TEXT,
+                updated_at TEXT,
+                FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+            )"""
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_user_consent_athlete ON user_consent(athlete_id, consent_type)")
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS legal_acceptances (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                athlete_id INTEGER NOT NULL,
+                tenant_id INTEGER DEFAULT 0,
+                acceptance_type TEXT NOT NULL,
+                version TEXT NOT NULL,
+                source TEXT DEFAULT 'web',
+                created_at TEXT,
+                FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+            )"""
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_legal_acceptances_athlete ON legal_acceptances(athlete_id, acceptance_type)")
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS ai_audit_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                athlete_id INTEGER NOT NULL,
+                tenant_id INTEGER DEFAULT 0,
+                provider TEXT NOT NULL,
+                model TEXT NOT NULL,
+                prompt_hash TEXT NOT NULL,
+                response_length INTEGER DEFAULT 0,
+                tool_calls INTEGER DEFAULT 0,
+                latency_ms INTEGER DEFAULT 0,
+                created_at TEXT,
+                FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+            )"""
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_ai_audit_athlete_created ON ai_audit_log(athlete_id, created_at)")
         conn.commit()
 
 
@@ -4353,6 +4396,57 @@ def get_beck_assessments_by_athlete(athlete_id: int, tenant_id: int = 0, limit: 
         ]
 
 
+def get_metrics_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if tenant_id is not None:
+            cur.execute(
+                "SELECT * FROM metrics WHERE athlete_id = ? AND tenant_id = ? ORDER BY created_at ASC",
+                (athlete_id, tenant_id),
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM metrics WHERE athlete_id = ? ORDER BY created_at ASC",
+                (athlete_id,),
+            )
+        rows = cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_fitness_states_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if tenant_id is not None:
+            cur.execute(
+                "SELECT * FROM fitness_states WHERE athlete_id = ? AND tenant_id = ? ORDER BY date ASC",
+                (athlete_id, tenant_id),
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM fitness_states WHERE athlete_id = ? ORDER BY date ASC",
+                (athlete_id,),
+            )
+        rows = cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_food_logs_by_athlete(athlete_id: int, tenant_id: int | None = None, limit: int = 2000) -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if tenant_id is not None:
+            cur.execute(
+                "SELECT * FROM food_logs WHERE athlete_id = ? AND tenant_id = ? ORDER BY date ASC LIMIT ?",
+                (athlete_id, tenant_id, limit),
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM food_logs WHERE athlete_id = ? ORDER BY date ASC LIMIT ?",
+                (athlete_id, limit),
+            )
+        rows = cur.fetchall()
+    return [dict(r) for r in rows]
+
+
 def get_latest_beck_assessment(athlete_id: int, tenant_id: int = 0) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -4508,6 +4602,129 @@ def mark_ble_device_synced(device_id: int, athlete_id: int) -> None:
         conn.commit()
 
 
+def save_consent(athlete_id: int, consent_type: str, granted: bool = True, source: str = "web", tenant_id: int = 0) -> None:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO user_consent (athlete_id, tenant_id, consent_type, granted, source, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(athlete_id, consent_type) DO UPDATE SET
+                   granted=excluded.granted,
+                   source=excluded.source,
+                   updated_at=excluded.updated_at""",
+            (athlete_id, tenant_id, consent_type, 1 if granted else 0, source, now, now),
+        )
+        conn.commit()
+
+
+def get_consent(athlete_id: int, consent_type: str) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM user_consent WHERE athlete_id = ? AND consent_type = ?",
+            (athlete_id, consent_type),
+        )
+        row = cur.fetchone()
+    return dict(row) if row else None
+
+
+def get_consents_by_athlete(athlete_id: int) -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM user_consent WHERE athlete_id = ?", (athlete_id,))
+        rows = cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+def save_legal_acceptance(athlete_id: int, acceptance_type: str, version: str, source: str = "web", tenant_id: int = 0) -> None:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO legal_acceptances (athlete_id, tenant_id, acceptance_type, version, source, created_at)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (athlete_id, tenant_id, acceptance_type, version, source, now),
+        )
+        conn.commit()
+
+
+def get_legal_acceptances_by_athlete(athlete_id: int) -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM legal_acceptances WHERE athlete_id = ?", (athlete_id,))
+        rows = cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+def has_accepted_version(athlete_id: int, acceptance_type: str, min_version: str) -> bool:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT version FROM legal_acceptances WHERE athlete_id = ? AND acceptance_type = ? ORDER BY created_at DESC LIMIT 1",
+            (athlete_id, acceptance_type),
+        )
+        row = cur.fetchone()
+    if not row:
+        return False
+    accepted = str(row[0])
+    return accepted >= min_version
+
+
+def save_ai_audit_log(
+    athlete_id: int,
+    provider: str,
+    model: str,
+    prompt_hash: str,
+    response_length: int = 0,
+    tool_calls: int = 0,
+    latency_ms: int = 0,
+    tenant_id: int = 0,
+) -> None:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO ai_audit_log
+               (athlete_id, tenant_id, provider, model, prompt_hash, response_length, tool_calls, latency_ms, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (athlete_id, tenant_id, provider, model, prompt_hash, response_length, tool_calls, latency_ms, now),
+        )
+        conn.commit()
+
+
+def get_ai_audit_logs_by_athlete(athlete_id: int, limit: int = 100) -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM ai_audit_log WHERE athlete_id = ? ORDER BY created_at DESC LIMIT ?",
+            (athlete_id, limit),
+        )
+        rows = cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+def _row_to_sync_entity_state(row: tuple) -> dict:
+    cols = [d[0] for d in row.cursor_description] if hasattr(row, "cursor_description") else [
+        "id", "entity_type", "entity_id", "source", "reliability_score",
+        "last_modified", "sync_status", "sync_error", "cloud_id", "created_at", "updated_at",
+    ]
+    data = dict(zip(cols, row, strict=False))
+    return {
+        "id": data.get("id"),
+        "entity_type": data.get("entity_type"),
+        "entity_id": data.get("entity_id"),
+        "source": data.get("source", "device"),
+        "reliability_score": data.get("reliability_score", 1.0),
+        "last_modified": data.get("last_modified"),
+        "sync_status": data.get("sync_status", "local"),
+        "sync_error": data.get("sync_error"),
+        "cloud_id": data.get("cloud_id"),
+        "created_at": data.get("created_at"),
+        "updated_at": data.get("updated_at"),
+    }
+
+
 __all__ = [
     "save_ride",
     "get_ride",
@@ -4565,6 +4782,9 @@ __all__ = [
     "get_beck_assessment",
     "get_beck_assessments_by_athlete",
     "get_latest_beck_assessment",
+    "get_metrics_by_athlete",
+    "get_fitness_states_by_athlete",
+    "get_food_logs_by_athlete",
     "register_ble_device",
     "get_ble_devices",
     "get_ble_device",
@@ -4572,6 +4792,14 @@ __all__ = [
     "unregister_ble_device",
     "mark_ble_device_connected",
     "mark_ble_device_synced",
+    "save_consent",
+    "get_consent",
+    "get_consents_by_athlete",
+    "save_legal_acceptance",
+    "get_legal_acceptances_by_athlete",
+    "has_accepted_version",
+    "save_ai_audit_log",
+    "get_ai_audit_logs_by_athlete",
     "log_hr_sample",
     "log_hr_samples",
     "get_hr_24h_samples",

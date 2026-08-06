@@ -1332,7 +1332,125 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
          "apparent_age": athlete.get("apparent_age"),
          "bmi": athlete.get("bmi"),
          "lean_body_mass_kg": athlete.get("lean_body_mass_kg"),
-     }
+      }
+
+
+@router.post("/legal/consent")
+async def record_consent(
+    payload: dict,
+    current_user: dict = Depends(get_current_user),
+):
+    consent_type = str(payload.get("consent_type", "")).strip()
+    granted = bool(payload.get("granted", True))
+    source = str(payload.get("source", "web"))
+    if not consent_type:
+        raise HTTPException(status_code=400, detail="consent_type is required")
+    from ..db.database import save_consent
+    athlete_id = current_user.get("athlete_id") or current_user["id"]
+    save_consent(
+        athlete_id=athlete_id,
+        consent_type=consent_type,
+        granted=granted,
+        source=source,
+        tenant_id=current_user.get("tenant_id", current_user["id"]),
+    )
+    return {"status": "recorded", "consent_type": consent_type, "granted": granted}
+
+
+@router.get("/legal/consent")
+async def get_my_consents(current_user: dict = Depends(get_current_user)):
+    from ..db.database import get_consents_by_athlete
+    athlete_id = current_user.get("athlete_id") or current_user["id"]
+    return {"consents": get_consents_by_athlete(athlete_id)}
+
+
+@router.post("/legal/accept")
+async def record_legal_acceptance(
+    payload: dict,
+    current_user: dict = Depends(get_current_user),
+):
+    acceptance_type = str(payload.get("acceptance_type", "")).strip()
+    version = str(payload.get("version", "")).strip()
+    source = str(payload.get("source", "web"))
+    if not acceptance_type or not version:
+        raise HTTPException(status_code=400, detail="acceptance_type and version are required")
+    from ..db.database import save_legal_acceptance
+    athlete_id = current_user.get("athlete_id") or current_user["id"]
+    save_legal_acceptance(
+        athlete_id=athlete_id,
+        acceptance_type=acceptance_type,
+        version=version,
+        source=source,
+        tenant_id=current_user.get("tenant_id", current_user["id"]),
+    )
+    return {"status": "recorded", "acceptance_type": acceptance_type, "version": version}
+
+
+@router.get("/legal/acceptances")
+async def get_my_acceptances(current_user: dict = Depends(get_current_user)):
+    from ..db.database import get_legal_acceptances_by_athlete
+    athlete_id = current_user.get("athlete_id") or current_user["id"]
+    return {"acceptances": get_legal_acceptances_by_athlete(athlete_id)}
+
+
+@router.get("/legal/export-all")
+async def export_all_my_data(current_user: dict = Depends(get_current_user)):
+    import json
+
+    from fastapi.responses import FileResponse
+
+    from ..db.database import (
+        get_ai_audit_logs_by_athlete,
+        get_athlete,
+        get_beck_assessments_by_athlete,
+        get_consents_by_athlete,
+        get_events_by_athlete,
+        get_fitness_states_by_athlete,
+        get_food_logs_by_athlete,
+        get_legal_acceptances_by_athlete,
+        get_metrics_by_athlete,
+        get_rides_by_athlete,
+        get_training_stress_days,
+    )
+    athlete_id = current_user.get("athlete_id") or current_user["id"]
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    now = datetime.now(UTC).isoformat()
+    path = f"bikemaster_export_{current_user['id']}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
+    export_data = {
+        "user": current_user,
+        "athlete": get_athlete(athlete_id, tenant_id),
+        "rides": get_rides_by_athlete(athlete_id, tenant_id),
+        "metrics": get_metrics_by_athlete(athlete_id, tenant_id),
+        "calendar_events": get_events_by_athlete(athlete_id, tenant_id),
+        "fitness_states": get_fitness_states_by_athlete(athlete_id, tenant_id),
+        "training_stress_days": get_training_stress_days(athlete_id, tenant_id),
+        "food_logs": get_food_logs_by_athlete(athlete_id, tenant_id),
+        "beck_assessments": get_beck_assessments_by_athlete(athlete_id, tenant_id),
+        "legal_acceptances": get_legal_acceptances_by_athlete(athlete_id),
+        "consents": get_consents_by_athlete(athlete_id),
+        "ai_audit_logs": get_ai_audit_logs_by_athlete(athlete_id, limit=500),
+        "exported_at": now,
+    }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(export_data, f, ensure_ascii=False, indent=2, default=str)
+    return FileResponse(path, media_type="application/json", filename=path, background=BackgroundTask(os.remove, path))
+
+
+@router.delete("/legal/delete-account")
+async def delete_my_account(current_user: dict = Depends(get_current_user)):
+    from ..db.database import (
+        delete_athlete as _delete_athlete,
+    )
+    from ..db.database import (
+        get_athlete as _get_athlete,
+    )
+    athlete_id = current_user.get("athlete_id") or current_user["id"]
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete = _get_athlete(athlete_id, tenant_id)
+    if not athlete:
+        raise HTTPException(status_code=404, detail="Athlete not found")
+    _delete_athlete(athlete_id, current_user["id"])
+    return {"status": "deleted"}
 
 
 @router.put("/auth/profile")

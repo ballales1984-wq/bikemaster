@@ -73,20 +73,114 @@
         <code>{{ settings.resolvedBase || "(stesso origine)" }}</code>
       </p>
     </section>
+
+    <section class="card">
+      <h2>Consensi e normative</h2>
+      <p class="hint">
+        Gestisci i consensi per il trattamento dei dati e le normative europee
+        (GDPR / AI Act).
+      </p>
+      <div class="consent-list">
+        <div
+          v-for="item in consents"
+          :key="item.consent_type"
+          class="consent-row"
+        >
+          <span class="consent-label">{{ item.label }}</span>
+          <label class="toggle">
+            <input
+              type="checkbox"
+              :checked="item.granted"
+              @change="
+                toggleConsent(
+                  item.consent_type,
+                  ($event.target as HTMLInputElement).checked,
+                )
+              "
+            />
+            <span>{{ item.granted ? "Attivo" : "Disattivato" }}</span>
+          </label>
+        </div>
+      </div>
+      <div class="row" style="margin-top: 12px">
+        <router-link to="/privacy" class="inline-link"
+          >Privacy Policy</router-link
+        >
+        <router-link to="/terms" class="inline-link"
+          >Termini di servizio</router-link
+        >
+        <router-link to="/cookies" class="inline-link"
+          >Cookie Policy</router-link
+        >
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useSettingsStore } from "../stores/settings";
 import { apiGet } from "../utils/api";
 import SyncSettingsPanel from "../components/SyncSettingsPanel.vue";
+import { useAuthStore } from "../stores/auth";
+const auth = useAuthStore();
 
 const settings = useSettingsStore();
 
 const draftBase = ref(settings.apiBase);
 const statusText = ref("");
 const statusClass = ref("");
+const consents = ref<
+  Array<{ consent_type: string; label: string; granted: boolean }>
+>([
+  {
+    consent_type: "essential",
+    label: "Cookie e dati essenziali",
+    granted: true,
+  },
+  { consent_type: "ai_coach", label: "AI Coach", granted: false },
+  { consent_type: "health_data", label: "Dati sanitari", granted: false },
+  {
+    consent_type: "external_sync",
+    label: "Sincronizzazione esterna",
+    granted: false,
+  },
+]);
+
+async function loadConsents() {
+  try {
+    const data = await apiGet<{
+      consents: Array<{ consent_type: string; granted: number }>;
+    }>("/api/v1/legal/consent", {}, { suppressAuthClear: true });
+    const map = new Map(
+      data.consents.map((c) => [c.consent_type, c.granted === 1]),
+    );
+    for (const item of consents.value) {
+      if (map.has(item.consent_type)) {
+        item.granted = map.get(item.consent_type) ?? item.granted;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+async function toggleConsent(consent_type: string, granted: boolean) {
+  try {
+    await fetch("/api/v1/legal/consent", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${auth.token}`,
+      },
+      body: JSON.stringify({ consent_type, granted, source: "settings" }),
+    }).catch(() => {});
+    const item = consents.value.find((c) => c.consent_type === consent_type);
+    if (item) item.granted = granted;
+  } catch {
+    /* ignore */
+  }
+}
 
 const modeLabel = computed(() => {
   switch (settings.backendMode) {
@@ -138,6 +232,10 @@ async function ping() {
     statusClass.value = "err";
   }
 }
+
+onMounted(() => {
+  loadConsents();
+});
 </script>
 
 <style scoped>
@@ -254,5 +352,20 @@ code {
 }
 .inline-link:hover {
   text-decoration: underline;
+}
+.consent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.consent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.consent-label {
+  font-size: 0.9rem;
+  color: #ccc;
 }
 </style>

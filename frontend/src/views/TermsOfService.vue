@@ -7,7 +7,7 @@
   <div class="legal-page">
     <div class="legal-header">
       <h1>Termini di Servizio</h1>
-      <p class="last-updated">Last updated: June 2025</p>
+      <p class="last-updated">Last updated: August 2026</p>
     </div>
 
     <div class="legal-content">
@@ -81,6 +81,33 @@
         terms of service. BikeMaster is not responsible for the operation or
         accuracy of data provided by third parties.
       </p>
+
+      <h2>6.1 AI Coach and Automated Decision-Making</h2>
+      <p>
+        The AI Coach feature uses artificial intelligence to provide training
+        and recovery advice. Under the EU AI Act (Regulation (EU) 2024/1689):
+      </p>
+      <ul>
+        <li>
+          AI-generated content is always clearly labeled as such (AI Act Article
+          50 - Transparency)
+        </li>
+        <li>
+          The AI system is classified as limited-risk and is subject to
+          transparency obligations
+        </li>
+        <li>
+          Users have the right to opt out of AI features at any time via
+          Settings
+        </li>
+        <li>
+          AI advice is non-binding and does not replace professional coaching or
+          medical advice
+        </li>
+        <li>
+          Interaction logs are retained for accountability and audit purposes
+        </li>
+      </ul>
 
       <h2>7. Intellectual Property</h2>
       <ul>

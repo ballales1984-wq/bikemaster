@@ -11,6 +11,12 @@
           <span class="coach-status">{{
             connected ? " " + t("coach.online") : " " + t("coach.offline")
           }}</span>
+          <span
+            class="ai-badge"
+            title="AI-generated advice (AI Act transparency)"
+          >
+            AI
+          </span>
         </div>
       </div>
       <div class="header-actions">
@@ -968,5 +974,19 @@ onMounted(() => {
     font-size: 0.72rem;
     padding: 5px 10px;
   }
+}
+
+.ai-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 255, 204, 0.12);
+  color: #42b983;
+  border: 1px solid rgba(0, 255, 204, 0.35);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 </style>

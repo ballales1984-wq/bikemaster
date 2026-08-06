@@ -56,6 +56,8 @@ Liability:
 
     <PWAInstallPrompt />
 
+    <ConsentBanner @saved="onConsentSaved" />
+
     <template v-if="!loggedIn && !isPublicPage && !ui.oauthLoading">
       <div class="login-wrapper">
         <LoginForm
@@ -142,6 +144,7 @@ import LanguageSwitcher from "./components/LanguageSwitcher.vue";
 import ErrorBoundary from "./components/ErrorBoundary.vue";
 import HelpGuide from "./components/HelpGuide.vue";
 import VoiceSystemProvider from "./components/VoiceSystemProvider.vue";
+import ConsentBanner from "./components/ConsentBanner.vue";
 const auth = useAuthStore();
 const ui = useUIStore();
 const route = useRoute();
@@ -284,6 +287,10 @@ async function onLogout() {
 
 async function onSummaryChange() {
   await loadSummary();
+}
+
+function onConsentSaved() {
+  /* consent recorded; no further action required */
 }
 
 onMounted(() => {

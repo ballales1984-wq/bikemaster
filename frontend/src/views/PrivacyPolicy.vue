@@ -8,7 +8,7 @@
   <div class="legal-page">
     <div class="legal-header">
       <h1>Privacy Policy</h1>
-      <p class="last-updated">Last updated: June 2025</p>
+      <p>Last updated: August 2026</p>
     </div>
 
     <div class="legal-content">
@@ -141,6 +141,32 @@
         </li>
       </ul>
 
+      <h2>6.1 AI Systems and AI Act Compliance</h2>
+      <p>
+        BikeMaster includes an AI Coach feature that uses artificial
+        intelligence to generate personalized training and recovery advice. This
+        system is classified as a limited-risk AI system under the EU AI Act
+        (Regulation (EU) 2024/1689).
+      </p>
+      <ul>
+        <li>
+          <strong>Transparency:</strong> All AI-generated advice is clearly
+          labeled as such, in compliance with Article 50 of the AI Act.
+        </li>
+        <li>
+          <strong>Human oversight:</strong> Users maintain full control over
+          their training decisions; AI advice is optional and non-binding.
+        </li>
+        <li>
+          <strong>Data minimization:</strong> Only athlete profile and ride data
+          necessary for advice generation are processed.
+        </li>
+        <li>
+          <strong>Audit logging:</strong> AI interactions are logged for
+          transparency and accountability purposes.
+        </li>
+      </ul>
+
       <h2>7. Data Retention</h2>
       <ul>
         <li>
@@ -156,7 +182,19 @@
         <li>
           <strong>OAuth tokens:</strong> retained until explicit revocation
         </li>
+        <li>
+          <strong>AI interaction logs:</strong> retained for 24 months for
+          accountability (AI Act Article 50)
+        </li>
+        <li>
+          <strong>Consent records:</strong> retained for the duration required
+          by law (minimum 36 months from last interaction)
+        </li>
       </ul>
+      <p>
+        After the retention period, data is securely deleted or anonymized.
+        Users may request earlier deletion at any time (right to erasure).
+      </p>
 
       <h2>8. User Rights</h2>
       <p>Under Articles 15-22 of the GDPR, the user has the right to:</p>

@@ -20,6 +20,7 @@ external API is never called.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import logging
 import os
@@ -50,17 +51,36 @@ _BANNED_PROVIDERS: set[str] = set()
 _current_client: object | None = None
 _current_provider: str | None = None
 
-_fmt_clean_pattern = re.compile(r"(?<!\d)(\d+\.\d)0(?!\d)")
-_fmt_int_pattern = re.compile(r"(?<!\d)(\d+)\.0(?!\d)")
+_clean_ai_output_pattern = re.compile(r"(?<!\d)(\d+\.\d)0(?!\d)")
+_clean_ai_int_pattern = re.compile(r"(?<!\d)(\d+)\.0(?!\d)")
+_AI_DISCLOSURE_PREFIX = "(AI-generated advice)\n\n"
 
 
 def _clean_ai_output(text: str) -> str:
     """Normalizes the LLM output: removes useless decimal zeros, double spaces/newlines."""
-    text = _fmt_clean_pattern.sub(lambda m: m.group(1), text)
-    text = _fmt_int_pattern.sub(lambda m: m.group(1), text)
+    text = _clean_ai_output_pattern.sub(lambda m: m.group(1), text)
+    text = _clean_ai_int_pattern.sub(lambda m: m.group(1), text)
     text = re.sub(r"\n{2,}", "\n", text)
     text = re.sub(r" {2,}", " ", text)
     return text.strip()
+
+
+def _log_ai_interaction(athlete_id: int | None, provider: str, model: str, prompt: str, response: str, tool_calls: int = 0, latency_ms: int = 0) -> None:
+    if not athlete_id:
+        return
+    try:
+        from ..db.database import save_ai_audit_log
+        save_ai_audit_log(
+            athlete_id=athlete_id,
+            provider=provider,
+            model=model,
+            prompt_hash=hashlib.sha256(prompt.encode("utf-8", errors="ignore")).hexdigest()[:64],
+            response_length=len(response),
+            tool_calls=tool_calls,
+            latency_ms=latency_ms,
+        )
+    except Exception:
+        logger.debug("AI Coach: failed to save audit log", exc_info=True)
 
 
 def _coach_mode() -> str:
@@ -476,6 +496,7 @@ def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete
             record_ai_coach_query("fallback", "fallback")
             return _generate_fallback_training_advice(athlete, rides)
 
+        model = _s.groq_model
         try:
             messages = [{"role": "user", "content": prompt}]
             result = chat_with_tools(messages, athlete_id=athlete_id, athlete=athlete, rides=rides)
@@ -484,14 +505,16 @@ def generate_training_advice(athlete: AthleteProfile, rides: list[Ride], athlete
 
             record_ai_coach_query(provider, "success")
             cleaned = _clean_ai_output(content)
+            disclosed = f"{_AI_DISCLOSURE_PREFIX}{cleaned}"
+            _log_ai_interaction(athlete_id, provider, model, prompt, cleaned, tool_calls=0)
             if athlete_id:
                 try:
                     from .conversation_store import append
 
-                    append(athlete_id, {"role": "assistant", "content": cleaned})
+                    append(athlete_id, {"role": "assistant", "content": disclosed})
                 except Exception:
                     logger.debug("AI Coach: failed to append conversation to store", exc_info=True)
-            return cleaned
+            return disclosed
         except Exception as e:
             from ..monitoring import record_ai_coach_query
 
@@ -595,14 +618,16 @@ def generate_recovery_advice(
 
             record_ai_coach_query(provider, "success")
             cleaned = _clean_ai_output(content)
+            disclosed = f"{_AI_DISCLOSURE_PREFIX}{cleaned}"
+            _log_ai_interaction(athlete_id, provider, model, prompt, cleaned, tool_calls=0)
             if athlete_id:
                 try:
                     from .conversation_store import append
 
-                    append(athlete_id, {"role": "assistant", "content": cleaned})
+                    append(athlete_id, {"role": "assistant", "content": disclosed})
                 except Exception:
                     logger.debug("AI Coach: failed to append conversation to store", exc_info=True)
-            return cleaned
+            return disclosed
         except Exception as e:
             from ..monitoring import record_ai_coach_query
 
