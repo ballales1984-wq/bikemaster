@@ -295,3 +295,98 @@ class TestWorldStore:
         ids = {r.id for r in result}
         assert "o1" in ids
         assert "o2" in ids
+
+
+class TestCityGMLRoundtrip:
+    def test_export_import_point(self, tmp_path):
+        from aethermap.data.io import export_citygml, import_citygml
+        from aethermap.twin.objects import make_albero
+
+        w = WorldStore()
+        w.add(make_albero("albero-1", 45.005, 9.01, "quercia", 8.5))
+        path = tmp_path / "point.citygml"
+        export_citygml(list(w.all()), path)
+        assert path.exists()
+        content = path.read_text(encoding="utf-8")
+        assert "CityModel" in content
+        assert "albero-1" in content
+
+        imported = import_citygml(path)
+        assert len(imported) == 1
+        assert imported[0].id == "albero-1"
+        assert imported[0].tipo == "albero"
+        assert imported[0].posizione.lat == pytest.approx(45.005)
+        assert imported[0].posizione.lon == pytest.approx(9.01)
+
+    def test_export_import_line(self, tmp_path):
+        from aethermap.data.io import export_citygml, import_citygml
+        from aethermap.twin.objects import make_strada
+
+        w = WorldStore()
+        pts = [
+            {"lat": 45.0, "lon": 9.0, "ele": 100.0},
+            {"lat": 45.001, "lon": 9.001, "ele": 110.0},
+        ]
+        w.add(make_strada("strada-1", 45.0, 9.0, pts))
+        path = tmp_path / "line.citygml"
+        export_citygml(list(w.all()), path)
+        content = path.read_text(encoding="utf-8")
+        assert "posList" in content
+
+        imported = import_citygml(path)
+        assert len(imported) == 1
+        assert imported[0].tipo == "strada"
+        assert imported[0].geometria.tipo == "linea"
+        assert len(imported[0].geometria.dati.get("punti", [])) == 2
+
+    def test_export_import_preserves_properties(self, tmp_path):
+        from aethermap.data.io import export_citygml, import_citygml
+
+        w = WorldStore()
+        obj = _make_obj("o1", 45.0, 9.0)
+        obj.proprieta["specie"] = "quercia"
+        obj.proprieta["altezza_m"] = 12.0
+        w.add(obj)
+        path = tmp_path / "props.citygml"
+        export_citygml(list(w.all()), path)
+        content = path.read_text(encoding="utf-8")
+        assert "specie" in content
+        assert "quercia" in content
+
+        imported = import_citygml(path)
+        assert len(imported) == 1
+        assert imported[0].proprieta.get("specie") == "quercia"
+        assert imported[0].proprieta.get("altezza_m") == "12.0"
+
+    def test_import_empty_file_returns_empty(self, tmp_path):
+        from aethermap.data.io import import_citygml
+
+        path = tmp_path / "empty.citygml"
+        path.write_text(
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<core:CityModel xmlns:core="http://www.opengis.net/citygml/2.0"/>',
+            encoding="utf-8",
+        )
+        imported = import_citygml(path)
+        assert imported == []
+
+    def test_roundtrip_multiple_objects(self, tmp_path):
+        from aethermap.data.io import export_citygml, import_citygml
+        from aethermap.twin.objects import make_albero, make_montagna, make_strada
+
+        w = WorldStore()
+        w.add(make_strada("s1", 45.0, 9.0, [
+            {"lat": 45.0, "lon": 9.0, "ele": 100.0},
+            {"lat": 45.001, "lon": 9.001, "ele": 110.0},
+        ]))
+        w.add(make_albero("a1", 45.005, 9.01, "pino", 15.0))
+        w.add(make_montagna("m1", 45.015, 9.03, 1800.0, ["nord", "sud"]))
+        path = tmp_path / "multi.citygml"
+        export_citygml(list(w.all()), path)
+        imported = import_citygml(path)
+        ids = {o.id for o in imported}
+        assert ids == {"s1", "a1", "m1"}
+        tipos = {o.tipo for o in imported}
+        assert "strada" in tipos
+        assert "albero" in tipos
+        assert "montagna" in tipos

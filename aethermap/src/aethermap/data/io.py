@@ -4,7 +4,8 @@ Contratti:
 - GeoJSON: interscambio standard WGS84 lat/lon, properties estese con S2/H3.
 - Parquet: storage colonnare efficiente per batch analytics (richiede duckdb).
 - 3D Tiles: esportazione/importazione b3dm con gerarchia S2 (implementato).
-- CityGML: placeholder documentato, pronto per implementazione futura.
+- CityGML 2.0: import/export XML con Building / SolitaryVegetation / Road
+  (gml:pos ECEF, app:attribute).
 """
 from __future__ import annotations
 
@@ -547,22 +548,187 @@ def import_3dtiles(path: str | Path) -> list[Oggetto]:
 
 
 # ===========================================================================
-# CityGML (placeholder)
+# CityGML 2.0 (import/export)
 # ===========================================================================
 
-def export_citygml(objects: Iterable[Oggetto], path: str | Path) -> None:
-    """Placeholder per esportazione CityGML.
+_CG_NS = {
+    "core": "http://www.opengis.net/citygml/2.0",
+    "gml": "http://www.opengis.net/gml",
+    "bldg": "http://www.opengis.net/citygml/building/2.0",
+    "veg": "http://www.opengis.net/citygml/vegetation/2.0",
+    "tran": "http://www.opengis.net/citygml/transportation/2.0",
+    "gen": "http://www.opengis.net/citygml/generics/2.0",
+    "app": "http://www.opengis.net/citygml/appearance/2.0",
+}
 
-    Implementazione futura: converte entita' in Building / Bridge / SolitaryVegetation
-    CityGML con gml:pos (ECEF-relative) e app:attribute.
+_TYPE_TO_CITYGML = {
+    "montagna": ("bldg", "Building"),
+    "edificio": ("bldg", "Building"),
+    "albero": ("veg", "SolitaryVegetation"),
+    "strada": ("tran", "Road"),
+}
+
+_REV = {
+    "Building": "montagna",
+    "SolitaryVegetation": "albero",
+    "Road": "strada",
+    "GenericCityObject": "oggetto",
+}
+
+_QNAME = lambda prefix, local: f"{{{_CG_NS[prefix]}}}{local}"
+
+
+def _obj_to_citygml(obj: Oggetto) -> Any:
+    import xml.etree.ElementTree as ET
+
+    from aethermap.core.coordinates import geodetic_to_ecef
+
+    tipo = obj.tipo
+    prefix, local = _TYPE_TO_CITYGML.get(tipo, ("gen", "GenericCityObject"))
+    ns = _CG_NS[prefix]
+
+    member = ET.Element(_QNAME("core", "cityObjectMember"))
+    feat = ET.SubElement(member, _QNAME(prefix, local))
+    feat.set(_QNAME("gml", "id"), obj.id)
+
+    pos = obj.posizione
+    ecef = geodetic_to_ecef(pos.lat, pos.lon, pos.alt or 0.0)
+
+    if tipo in ("strada", "via") and obj.geometria.dati.get("punti"):
+        points = obj.geometria.dati["punti"]
+        coords = []
+        for p in points:
+            e = geodetic_to_ecef(p["lat"], p["lon"], p.get("ele") or 0.0)
+            coords.extend([f"{e.x:.3f}", f"{e.y:.3f}", f"{e.z:.3f}"])
+        pos_list = ET.SubElement(feat, _QNAME("gml", "posList"))
+        pos_list.set("srsDimension", "3")
+        pos_list.text = " ".join(coords)
+    else:
+        gml_pos = ET.SubElement(feat, _QNAME("gml", "pos"))
+        gml_pos.set("srsDimension", "3")
+        gml_pos.text = f"{ecef.x:.3f} {ecef.y:.3f} {ecef.z:.3f}"
+
+    if tipo == "montagna":
+        meas = ET.SubElement(feat, _QNAME("bldg", "measuredHeight"))
+        meas.text = str(pos.alt or 0.0)
+
+    for k, v in obj.proprieta.items():
+        if k in ("tipo",):
+            continue
+        attr = ET.SubElement(feat, _QNAME("app", "attribute"))
+        name_el = ET.SubElement(attr, _QNAME("app", "name"))
+        name_el.text = str(k)
+        val_el = ET.SubElement(attr, _QNAME("app", "value"))
+        val_el.text = str(v)
+
+    return member
+
+
+def export_citygml(objects: Iterable[Oggetto], path: str | Path) -> None:
+    """Export AetherMap objects as CityGML 2.0 XML.
+
+    Maps AetherMap entity types to CityGML feature types:
+    - montagna/edificio -> bldg:Building (gml:pos ECEF)
+    - albero -> veg:SolitaryVegetation (gml:pos ECEF)
+    - strada/via -> tran:Road (gml:posList ECEF)
+    - others -> gen:GenericCityObject (gml:pos ECEF)
+
+    Properties are exported as app:attribute name/value pairs.
+    Geometry uses ECEF coordinates with srsDimension=3.
     """
-    raise NotImplementedError(
-        "CityGML export: da implementare in Fase 5 (Fase 2 design doc §7)."
+    import xml.etree.ElementTree as ET
+
+    root = ET.Element(_QNAME("core", "CityModel"))
+    root.set("xmlns:core", _CG_NS["core"])
+    root.set("xmlns:gml", _CG_NS["gml"])
+    root.set("xmlns:bldg", _CG_NS["bldg"])
+    root.set("xmlns:veg", _CG_NS["veg"])
+    root.set("xmlns:tran", _CG_NS["tran"])
+    root.set("xmlns:gen", _CG_NS["gen"])
+    root.set("xmlns:app", _CG_NS["app"])
+
+    for obj in objects:
+        root.append(_obj_to_citygml(obj))
+
+    Path(path).write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        + ET.tostring(root, encoding="unicode"),
+        encoding="utf-8",
     )
 
 
 def import_citygml(path: str | Path) -> list[Oggetto]:
-    """Placeholder per importazione CityGML."""
-    raise NotImplementedError(
-        "CityGML import: da implementare in Fase 5 (Fase 2 design doc §7)."
-    )
+    """Import AetherMap objects from CityGML 2.0 XML.
+
+    Reads cityObjectMember elements and reconstructs Oggetto instances
+    from gml:pos / gml:posList geometry and app:attribute properties.
+
+    Supported feature types:
+    - bldg:Building, veg:SolitaryVegetation, tran:Road, gen:GenericCityObject
+    """
+    import xml.etree.ElementTree as ET
+
+    from aethermap.core.coordinates import ecef_to_geodetic
+
+    try:
+        import defusedxml.ElementTree as DefusedET
+        tree = DefusedET.parse(path)
+    except ImportError:
+        tree = ET.parse(path)
+    root = tree.getroot()
+
+    objects: list[Oggetto] = []
+
+    for member in root.findall(_QNAME("core", "cityObjectMember")):
+        feat = member[0] if len(member) else None
+        if feat is None:
+            continue
+
+        tag = feat.tag.split("}")[-1] if "}" in feat.tag else feat.tag
+        tipo = _REV.get(tag, "oggetto")
+
+        props: dict[str, Any] = {"tipo": tipo}
+        for attr in feat.findall(_QNAME("app", "attribute")):
+            name_el = attr.find(_QNAME("app", "name"))
+            val_el = attr.find(_QNAME("app", "value"))
+            if name_el is not None and val_el is not None:
+                props[name_el.text or ""] = val_el.text or ""
+
+        pos_el = feat.find(_QNAME("gml", "pos"))
+        pos_list_el = feat.find(_QNAME("gml", "posList"))
+
+        if pos_el is not None and pos_el.text:
+            parts = pos_el.text.strip().split()
+            if len(parts) >= 3:
+                x, y, z = float(parts[0]), float(parts[1]), float(parts[2])
+                geo = ecef_to_geodetic(x, y, z)
+                posizione = Posizione(
+                    lat=geo.lat,
+                    lon=geo.lon,
+                    alt=geo.alt,
+                )
+                geom = Geometria(tipo="punto")
+        elif pos_list_el is not None and pos_list_el.text:
+            parts = pos_list_el.text.strip().split()
+            punti: list[dict[str, Any]] = []
+            for i in range(0, len(parts) // 3 * 3, 3):
+                x, y, z = float(parts[i]), float(parts[i + 1]), float(parts[i + 2])
+                geo = ecef_to_geodetic(x, y, z)
+                punti.append({"lat": geo.lat, "lon": geo.lon, "ele": geo.alt})
+            posizione = Posizione.from_latlon(punti[0]["lat"], punti[0]["lon"], punti[0]["ele"])
+            geom = Geometria(tipo="linea", dati={"punti": punti})
+        else:
+            continue
+
+        oid = feat.get(_QNAME("gml", "id"), f"obj_{len(objects):06d}")
+        objects.append(
+            Oggetto(
+                id=oid,
+                tipo=tipo,
+                posizione=posizione,
+                geometria=geom,
+                proprieta=props,
+            )
+        )
+
+    return objects
