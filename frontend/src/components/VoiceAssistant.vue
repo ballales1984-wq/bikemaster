@@ -299,26 +299,38 @@ async function stopAndProcess(): Promise<void> {
   recording.state.value = "processing";
 
   try {
-    const formData = new FormData();
-    formData.append("file", file);
-
     const token = localStorage.getItem("bikemaster_token") || "";
+    let transcript = "";
+    let backend = "";
 
-    const response = await fetch("/api/v1/voice/stt", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-    if (!response.ok) {
-      const detail = await response.text();
-      throw new Error(detail || "STT failed");
+      const response = await fetch("/api/v1/voice/stt", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(detail || "STT failed");
+      }
+
+      const sttResult = (await response.json()) as { text: string };
+      transcript = sttResult.text.trim();
+      backend = sttResult.backend || "backend";
+    } catch (backendExc) {
+      console.warn(
+        "Backend STT failed, falling back to browser recognition:",
+        backendExc,
+      );
+      transcript = await browserSTT();
+      backend = "browser-fallback";
     }
-
-    const sttResult = (await response.json()) as { text: string };
-    const transcript = sttResult.text.trim();
 
     if (!transcript) {
       setStatus("Nessun audio riconosciuto");
@@ -340,6 +352,55 @@ async function stopAndProcess(): Promise<void> {
     isProcessingStop.value = false;
     voiceSystem.setMicBusy(false);
   }
+}
+
+async function browserSTT(): Promise<string> {
+  return new Promise((resolve) => {
+    if (!(
+      "webkitSpeechRecognition" in window || "SpeechRecognition" in window
+    )) {
+      resolve("");
+      return;
+    }
+    const SpeechRecognitionCtor =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
+      resolve("");
+      return;
+    }
+    const rec = new SpeechRecognitionCtor();
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.lang = "it-IT";
+    let settled = false;
+    rec.onresult = (event: any) => {
+      const result = event.results[event.resultIndex];
+      if (result && result[0]) {
+        settled = true;
+        resolve(result[0].transcript.trim());
+      } else {
+        resolve("");
+      }
+    };
+    rec.onerror = () => {
+      if (!settled) resolve("");
+    };
+    rec.onend = () => {
+      if (!settled) resolve("");
+    };
+    try {
+      rec.start();
+      setTimeout(() => {
+        if (!settled) {
+          rec.abort();
+          resolve("");
+        }
+      }, 5000);
+    } catch {
+      resolve("");
+    }
+  });
 }
 
 async function getAssistantResponse(text: string): Promise<void> {

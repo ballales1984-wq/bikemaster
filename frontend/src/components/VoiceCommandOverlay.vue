@@ -187,8 +187,8 @@ function toggleListening(): void {
     store.stopListening();
   } else {
     if (voiceSystem.micBusy) {
-      voiceSystem.activateAssistant();
-      return;
+      voiceSystem.deactivateAssistant();
+      voiceSystem.setMicBusy(false);
     }
     voiceSystem.activateCommands();
     store.startListening();

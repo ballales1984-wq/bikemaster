@@ -11,6 +11,7 @@ export interface AetherEntity {
   tipo: string;
   pts: number[][];
   char: string;
+  colors?: string[];
 }
 
 export interface AetherScene {
@@ -53,9 +54,19 @@ function featureToEntity(
   const tipo = props.tipo;
   if (!tipo) return null;
 
-  const char = typeof props.char === "string" ? props.char : "#FF6B00";
+  const prop = props.proprieta || {};
+  const colors: string[] | undefined =
+    prop.colors && Array.isArray(prop.colors) ? prop.colors : undefined;
+  const char =
+    typeof prop.color === "string"
+      ? prop.color
+      : typeof prop.char === "string"
+        ? prop.char
+        : typeof props.char === "string"
+          ? props.char
+          : "#FF6B00";
   const geom = feature.geometry;
-  if (!geom) return { tipo, pts: [], char };
+  if (!geom) return { tipo, pts: [], char, colors };
 
   let coords: number[][] = [];
   if (geom.type === "LineString") {
@@ -73,7 +84,7 @@ function featureToEntity(
     return [0, 0, 0];
   });
 
-  return { tipo, pts, char };
+  return { tipo, pts, char, colors };
 }
 
 export function useAetherMap(rideIds: Ref<number[]>): AetherMapState {

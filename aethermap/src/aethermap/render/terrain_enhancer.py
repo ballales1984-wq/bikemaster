@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from aethermap.core.coordinates import ecef_to_geodetic
+from aethermap.core.coordinates import ecef_to_geodetic_direction
 
 _EARTH_R = 6_371_000.0
 _DEM_API = "/aethermap/terrain"
@@ -36,7 +36,7 @@ def _face_bbox(face: int, n: int = 64) -> dict[str, float]:
             u = (i / (n - 1)) * 2.0 - 1.0
             v = (j / (n - 1)) * 2.0 - 1.0
             d = _face_direction(face, u, v)
-            g = ecef_to_geodetic(d[0], d[1], d[2])
+            g = ecef_to_geodetic_direction(d[0], d[1], d[2])
             corners.append((g.lat, g.lon))
     lats = [c[0] for c in corners]
     lons = [c[1] for c in corners]

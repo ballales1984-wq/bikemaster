@@ -255,6 +255,9 @@ def _build_oauth_success_url(redirect_uri: str, token: str, email: str, user_id:
 
     - Mobile / custom app schemes (e.g. ``com.bikemaster.app://callback``):
       deliver the token as a query string on the deep-link target.
+      NOTE: query-string tokens can be logged by intermediaries; this is an
+      accepted tradeoff because native deep-links cannot receive URL fragments.
+      The access token is short-lived; future improvement: one-time code exchange.
     - Web SPA: redirect to the SPA origin root with the token in the URL
       *fragment*. Fragments are never sent to the server, so the JWT never
       appears in backend access logs, proxies or Referer headers. The SPA
@@ -460,6 +463,8 @@ def _json_safe(value: Any) -> Any:
 
 
 def _is_nan_decimal(d: decimal.Decimal) -> bool:
+    if d.is_nan() or d.is_infinite():
+        return True
     try:
         float(d)
         return False
@@ -773,6 +778,10 @@ async def google_maps_key(request: Request, current_user: dict = Depends(get_cur
     The key is served only to allowed origins as defense-in-depth, because
     Maps JS keys are inherently client-side and must be restricted by
     HTTP referrer in Google Cloud Console.
+
+    DEPLOYMENT CHECK: ensure the key in GOOGLE_MAPS_API_KEY has HTTP referrer
+    restrictions configured in Google Cloud Console, limited to your Vercel
+    and Render domains. Without this, the key can be extracted and abused.
     """
     origin = request.headers.get("origin") or request.headers.get("referer") or ""
     allowed = {urlparse(o).netloc for o in _s.cors_origins_list}
@@ -1237,7 +1246,10 @@ def _revoke_external_tokens(athlete_id: int) -> None:
             module = importlib.import_module(module_path)
             func = getattr(module, func_name, None)
             if func is not None:
-                func(athlete_id)
+                if func_name == "delete_google_token":
+                    func(athlete_id, "google")
+                else:
+                    func(athlete_id)
         except Exception as exc:
             logger.warning(
                 "Logout: external token revocation failed for %s: %s",

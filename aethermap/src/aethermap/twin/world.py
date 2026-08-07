@@ -65,13 +65,16 @@ class DigitalTwin:
     def query_s2(self, s2: str) -> list:
         return self.store.query_s2(s2)
 
-    def step(self, env: Environment) -> None:
+    def step(self, env: Environment) -> dict[str, int]:
         for feat in ingest_sensor_stream_stub(3):
             self.pipeline.submit(self.pipeline.research_sensor(feat))
-        self.pipeline.flush()
+        applied = self.pipeline.flush()
         for obj in self.store.objects.values():
             self._apply_env(obj, env)
         self._build_relations()
+        if self._persistent_store is not None:
+            self._persistent_store.sync_all()
+        return {"applied": applied, "objects": len(self.store.objects)}
 
     def _build_relations(self) -> None:
         for obj in self.store.objects.values():

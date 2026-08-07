@@ -27,10 +27,17 @@ def render_ascii(scene: Scene, camera: Camera | None = None,
             p = project_ecef(a + (b - a) * t, camera)
             if p:
                 plot(p[0], p[1], ".")
+    _char_map = {"strada": "S", "albero": "A", "montagna": "M"}
     for ent in scene.entities:
-        ch = ent["char"]
-        for pt in ent["pts"]:
-            p = project_ecef(np.array(pt, dtype=np.float64), camera)
+        ch = _char_map.get(ent.tipo, ent.tipo[0].upper() if ent.tipo else "?")
+        if ent.kind == "line":
+            pts = ent.points
+        elif ent.position is not None:
+            pts = [ent.position]
+        else:
+            pts = []
+        for pt in pts:
+            p = project_ecef(pt, camera)
             if p:
                 plot(p[0], p[1], ch)
     return "\n".join("".join(row) for row in grid)

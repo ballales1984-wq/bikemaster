@@ -4,7 +4,8 @@ import os
 
 from aethermap.render.ascii import render_ascii
 from aethermap.render.camera import Camera
-from aethermap.render.scene import Scene
+from aethermap.render.projection import latlon_to_vec
+from aethermap.render.scene import Scene, Entity
 from aethermap.twin.objects import make_albero, make_montagna, make_strada
 from aethermap.twin.world import DigitalTwin, Environment
 
@@ -38,10 +39,17 @@ def main() -> None:
         scene = Scene()
         for _, obj in twin.store.objects.items():
             if obj.tipo == "strada":
-                scene.add("strada", [(p["lat"], p["lon"]) for p in obj.geometria.dati["punti"]], char="S")
+                pts = [
+                    latlon_to_vec(p["lat"], p["lon"], p.get("ele", 0.0))
+                    for p in obj.geometria.dati["punti"]
+                ]
+                scene.add(Entity(tipo="strada", kind="line", points=pts,
+                                 color=[0.95, 0.78, 0.22]))
             else:
-                scene.add(obj.tipo, (obj.posizione.lat, obj.posizione.lon),
-                          alt=obj.posizione.alt, char=obj.tipo[0].upper())
+                pos = obj.posizione
+                vec = latlon_to_vec(pos.lat, pos.lon, getattr(pos, "alt", 0.0) or 0.0)
+                scene.add(Entity(tipo=obj.tipo, position=vec,
+                                 color=[0.28, 0.92, 0.42] if obj.tipo == "albero" else [0.92, 0.32, 0.28]))
         scenes.append((label, render_ascii(scene, Camera())))
 
     for label, frame in scenes:

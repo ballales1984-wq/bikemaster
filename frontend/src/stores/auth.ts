@@ -294,10 +294,14 @@ export const useAuthStore = defineStore("auth", () => {
   async function logout(): Promise<void> {
     try {
       if (token.value) {
-        await fetch("/api/v1/auth/logout", {
-          method: "POST",
-          headers: { ...getAuthHeader() },
-        }).catch(() => {});
+        const base = resolveApiBase();
+        await fetch(
+          base ? `${base}/api/v1/auth/logout` : "/api/v1/auth/logout",
+          {
+            method: "POST",
+            headers: { ...getAuthHeader() },
+          },
+        ).catch(() => {});
       }
     } catch {
       // ignore logout cleanup errors

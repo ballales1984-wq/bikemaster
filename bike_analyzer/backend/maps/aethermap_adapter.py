@@ -91,9 +91,31 @@ def _build_world(
     if not points:
         return store
 
-    for i, point in enumerate(points):
-        color = _speed_to_color(point.speed) if color_by_speed else "#FF6B00"
-        store.add(_gps_point_to_obj(point, i, color))
+    if len(points) > 1:
+        colors = []
+        gps_pts = []
+        for p in points:
+            c = _speed_to_color(p.speed) if color_by_speed else "#FF6B00"
+            colors.append(c)
+            gps_pts.append({
+                "lat": p.lat,
+                "lon": p.lon,
+                "ele": p.altitude or 0.0,
+            })
+        first = points[0]
+        pos = Posizione.from_latlon(first.lat, first.lon, first.altitude or 0.0)
+        geom = Geometria(tipo="linea", dati={"tipo": "linea", "punti": gps_pts})
+        store.add(Oggetto(
+            id="gps_segment",
+            tipo="segment",
+            posizione=pos,
+            geometria=geom,
+            proprieta={"color": colors[0], "colors": colors},
+        ))
+    else:
+        for i, point in enumerate(points):
+            color = _speed_to_color(point.speed) if color_by_speed else "#FF6B00"
+            store.add(_gps_point_to_obj(point, i, color))
 
     start = points[0]
     end = points[-1]

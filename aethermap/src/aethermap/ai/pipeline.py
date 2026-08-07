@@ -16,7 +16,7 @@ from aethermap.ai.models import (
 from aethermap.ai.researcher import Researcher
 
 
-class WorldStore:
+class PipelineWorldStore:
     def __init__(self, store: Any = None) -> None:
         self.store = store
         self.objects: dict[str, Oggetto] = {}
@@ -33,6 +33,9 @@ class WorldStore:
         return json.dumps([o.model_dump() for o in self.objects.values()], default=str, indent=2)
 
 
+WorldStore = PipelineWorldStore
+
+
 class Pipeline:
     """Orchestra ingestione -> ricercatore -> proposte -> stato del mondo.
 
@@ -42,7 +45,7 @@ class Pipeline:
     entita e quindi 'eventualmente coerente', non istantaneo.
     """
 
-    def __init__(self, store: WorldStore, max_latency_s: float = 1.0) -> None:
+    def __init__(self, store: PipelineWorldStore, max_latency_s: float = 1.0) -> None:
         self.store = store
         self.researcher = Researcher()
         self.buffer: list[Proposta] = []

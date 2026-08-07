@@ -952,45 +952,6 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       },
     },
     {
-      id: "heatmap.load",
-      domain: "maps",
-      label: "Carica heatmap",
-      description: "Carica la vista heatmap",
-      examples: ["carica heatmap", "mostra heatmap"],
-      triggerWords: ["carica heatmap", "mostra heatmap", "heatmap"],
-      parameters: [],
-      execute: async () => {
-        router.push("/heatmap");
-        return buildResult(true, "Apro heatmap");
-      },
-    },
-    {
-      id: "badges.load",
-      domain: "badges",
-      label: "Carica badge",
-      description: "Carica i badge dell'atleta",
-      examples: ["carica badge", "mostra badge"],
-      triggerWords: ["carica badge", "mostra badge", "badge"],
-      parameters: [],
-      execute: async () => {
-        router.push("/badges");
-        return buildResult(true, "Apro badge");
-      },
-    },
-    {
-      id: "weather.load",
-      domain: "weather",
-      label: "Mostra meteo",
-      description: "Mostra il meteo per l'uscita",
-      examples: ["mostra meteo", "apri meteo", "meteo"],
-      triggerWords: ["mostra meteo", "apri meteo", "meteo", "che tempo fa"],
-      parameters: [],
-      execute: async () => {
-        router.push("/weather");
-        return buildResult(true, "Apro meteo");
-      },
-    },
-    {
       id: "knowledge.search",
       domain: "knowledge",
       label: "Cerca conoscenza",

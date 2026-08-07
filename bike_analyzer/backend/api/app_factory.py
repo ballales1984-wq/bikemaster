@@ -58,6 +58,14 @@ STATIC_DIR = Path(__file__).parent.parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
 SERVE_STATIC = os.getenv("SERVE_STATIC", "false").lower() == "true"
 
+if _s.google_maps_api_key:
+    logger.warning(
+        "SECURITY REMINDER: Google Maps JS API key is configured. "
+        "Ensure HTTP referrer restrictions are set in Google Cloud Console "
+        "(APIs & Services > Credentials > restrict key to your domains). "
+        "The backend enforces origin checks as defense-in-depth."
+    )
+
 
 def _static_file_response(file_path: Path, media_type: str | None = None, headers: dict | None = None) -> Response:
     """Serve a static file from disk, inferring media type when not provided."""

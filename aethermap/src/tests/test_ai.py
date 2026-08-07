@@ -32,7 +32,7 @@ from aethermap.ai.models_ml import (
     load_model,
     save_model,
 )
-from aethermap.ai.pipeline import Pipeline, WorldStore
+from aethermap.ai.pipeline import Pipeline, PipelineWorldStore
 from aethermap.ai.researcher import Researcher
 
 # ---------------------------------------------------------------------------
@@ -469,20 +469,20 @@ class TestResearcher:
 # ===========================================================================
 
 
-class TestWorldStore:
+class TestPipelineWorldStore:
     def test_add_and_get(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pos = Posizione.from_latlon(0.0, 0.0)
         obj = Oggetto(id="o1", tipo="strada", posizione=pos)
         store.add(obj)
         assert store.get("o1") is obj
 
     def test_get_missing_returns_none(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         assert store.get("nonexistent") is None
 
     def test_to_json_returns_string(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pos = Posizione.from_latlon(0.0, 0.0)
         store.add(Oggetto(id="o1", tipo="strada", posizione=pos))
         json_str = store.to_json()
@@ -494,7 +494,7 @@ class TestWorldStore:
 
 class TestPipelineResearchGpx:
     def test_research_gpx_returns_proposals(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         pts = _make_points(10)
         proposals = pipe.research_gpx(pts)
@@ -502,21 +502,21 @@ class TestPipelineResearchGpx:
         assert proposals[0].tipo == "strada"
 
     def test_research_gpx_empty_points(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         assert pipe.research_gpx([]) == []
 
 
 class TestPipelineResearchSensor:
     def test_research_sensor_returns_proposta(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         feat = RawFeature("sensore_traffico", (45.0, 9.0), {"traffico": 50})
         p = pipe.research_sensor(feat)
         assert isinstance(p, Proposta)
 
     def test_research_sensor_with_world_target(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         pos = Posizione.from_latlon(45.001, 9.001)
         strada = Oggetto(id="s1", tipo="strada", posizione=pos)
@@ -528,7 +528,7 @@ class TestPipelineResearchSensor:
 
 class TestPipelineSubmitAndFlush:
     def test_submit_adds_to_buffer(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         pos = Posizione.from_latlon(0.0, 0.0)
         p = Proposta(campo="geometria", valore={}, confidence=0.8,
@@ -537,7 +537,7 @@ class TestPipelineSubmitAndFlush:
         assert len(pipe.buffer) == 1
 
     def test_flush_creates_object(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         pos = Posizione.from_latlon(0.0, 0.0)
         p = Proposta(campo="geometria", valore={"tipo": "linea"}, confidence=0.9,
@@ -549,7 +549,7 @@ class TestPipelineSubmitAndFlush:
         assert len(store.objects) == 1
 
     def test_flush_returns_count(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         pos = Posizione.from_latlon(0.0, 0.0)
         for _ in range(3):
@@ -559,7 +559,7 @@ class TestPipelineSubmitAndFlush:
         assert pipe.flush() == 3
 
     def test_flush_creates_incremental_ids(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         pos = Posizione.from_latlon(0.0, 0.0)
         for _ in range(3):
@@ -573,7 +573,7 @@ class TestPipelineSubmitAndFlush:
 
 class TestPipelineUpdate:
     def test_update_appends_stato(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         # First create an object
         pos = Posizione.from_latlon(0.0, 0.0)
@@ -595,7 +595,7 @@ class TestPipelineUpdate:
         assert obj.cronologia[0].campi["traffico"] == 55
 
     def test_update_missing_target_returns_false(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         update_p = Proposta(target_id="nonexistent", campo="x", valore=1,
                             confidence=0.5)
@@ -606,7 +606,7 @@ class TestPipelineUpdate:
 
 class TestPipelineTrim:
     def test_trim_removes_old_stati(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         pos = Posizione.from_latlon(0.0, 0.0)
         obj = Oggetto(id="o1", tipo="strada", posizione=pos,
@@ -642,7 +642,7 @@ class TestPipelineTrim:
             pytest.fail("Updated traffico not found in cronologia")
 
     def test_no_trim_when_stale_after_none(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         pos = Posizione.from_latlon(0.0, 0.0)
         obj = Oggetto(id="o1", tipo="strada", posizione=pos,
@@ -666,7 +666,7 @@ class TestPipelineTrim:
 
 class TestEndToEnd:
     def test_gpx_to_store(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         points = ingest_gpx(str(SAMPLE_GPX))
         proposals = pipe.research_gpx(points)
@@ -678,7 +678,7 @@ class TestEndToEnd:
         assert obj.tipo == "strada"
 
     def test_sensor_stream_to_store(self):
-        store = WorldStore()
+        store = PipelineWorldStore()
         pipe = Pipeline(store)
         for feat in ingest_sensor_stream_stub(3):
             p = pipe.research_sensor(feat)

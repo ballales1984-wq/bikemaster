@@ -3,13 +3,13 @@ from __future__ import annotations
 import os
 
 from aethermap.ai.ingest import ingest_gpx, ingest_sensor_stream_stub
-from aethermap.ai.pipeline import Pipeline, WorldStore
+from aethermap.ai.pipeline import Pipeline, PipelineWorldStore
 
 _HERE = os.path.dirname(__file__)
 
 
 def main() -> None:
-    store = WorldStore()
+    store = PipelineWorldStore()
     pipe = Pipeline(store, max_latency_s=1.0)
 
     points = ingest_gpx(os.path.join(_HERE, "sample.gpx"))

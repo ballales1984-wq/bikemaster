@@ -17,15 +17,15 @@
       <div class="aethermap-actions">
         <button
           class="btn btn-secondary"
-          :disabled="!rides.length"
-          @click="selectAll"
+          :disabled="!store.rides.length"
+          @click="store.selectAll"
         >
           {{ t("aethermap.selectAll") }}
         </button>
         <button
           class="btn btn-secondary"
-          :disabled="!selectedIds.length"
-          @click="clearAll"
+          :disabled="!store.selectedIds.length"
+          @click="store.clearAll"
         >
           {{ t("aethermap.clear") }}
         </button>
@@ -44,13 +44,21 @@
             >{{ selectedIds.length }}/{{ rides.length }}</span
           >
         </div>
-        <div v-if="loading" class="aethermap-loading">
+        <div v-if="store.loading" class="aethermap-loading">
           <span class="spinner" /> {{ t("aethermap.loading") }}
         </div>
-        <ul v-else-if="rides.length" class="aethermap-ride-list">
-          <li v-for="ride in rides" :key="ride.id" class="aethermap-ride-item">
+        <ul v-else-if="store.rides.length" class="aethermap-ride-list">
+          <li
+            v-for="ride in store.rides"
+            :key="ride.id"
+            class="aethermap-ride-item"
+          >
             <label class="checkbox-control">
-              <input v-model="selectedIds" type="checkbox" :value="ride.id" />
+              <input
+                v-model="store.selectedIds"
+                type="checkbox"
+                :value="ride.id"
+              />
               <span class="aethermap-ride-name">{{
                 ride.title || ride.date
               }}</span>
@@ -63,8 +71,8 @@
 
       <div class="aethermap-stage">
         <AetherMapViewer
-          :ride-ids="selectedIds"
-          :color-by-speed="colorBySpeed"
+          :ride-ids="store.selectedIds"
+          :color-by-speed="store.colorBySpeed"
         />
       </div>
     </div>
@@ -72,19 +80,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted } from "vue";
 import { useI18n } from "../composables/useI18n";
-import { useRides } from "../composables/useRides";
+import { useAetherMapStore } from "../stores/aethermap";
 import AetherMapViewer from "../components/AetherMapViewer.vue";
 import type { Ride } from "../types/index";
 
 const { t } = useI18n();
-const { fetchSummary } = useRides();
-
-const rides = ref<Ride[]>([]);
-const selectedIds = ref<number[]>([]);
-const loading = ref(false);
-const colorBySpeed = ref(true);
+const store = useAetherMapStore();
 
 function formatDistance(ride: Ride): string {
   const km = ride.distance_km;
@@ -92,24 +95,8 @@ function formatDistance(ride: Ride): string {
   return `${km.toFixed(1)} km`;
 }
 
-function selectAll() {
-  selectedIds.value = rides.value.map((r) => r.id);
-}
-function clearAll() {
-  selectedIds.value = [];
-}
-
-onMounted(async () => {
-  loading.value = true;
-  try {
-    const data = await fetchSummary();
-    rides.value = data.ridesList ?? [];
-    if (rides.value.length) {
-      selectedIds.value = [rides.value[0].id];
-    }
-  } finally {
-    loading.value = false;
-  }
+onMounted(() => {
+  store.fetchRides();
 });
 </script>
 

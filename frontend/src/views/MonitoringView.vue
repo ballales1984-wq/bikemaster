@@ -3,11 +3,15 @@
     <div class="monitoring-header">
       <h1>{{ t("monitoring.title") }}</h1>
       <div class="monitoring-actions">
-        <button class="btn btn-ghost" :disabled="loading" @click="refresh">
-          {{ loading ? t("common.loading") : t("monitoring.refresh") }}
+        <button
+          class="btn btn-ghost"
+          :disabled="store.loading"
+          @click="store.fetchHealth"
+        >
+          {{ store.loading ? t("common.loading") : t("monitoring.refresh") }}
         </button>
-        <span v-if="lastUpdated" class="last-updated">
-          {{ t("monitoring.lastUpdated") }}: {{ lastUpdated }}
+        <span v-if="store.lastUpdated" class="last-updated">
+          {{ t("monitoring.lastUpdated") }}: {{ store.lastUpdated }}
         </span>
       </div>
     </div>
@@ -49,30 +53,22 @@
       </div>
     </div>
 
-    <div v-if="error" class="card">
+    <div v-if="store.error" class="card">
       <div class="error-section">
         <div class="error-icon">⚠️</div>
-        <div class="error-text">{{ error }}</div>
+        <div class="error-text">{{ store.error }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "../composables/useI18n";
-import { apiGet } from "../utils/api";
+import { useMonitoringStore } from "../stores/monitoring";
 
 const { t } = useI18n();
-
-const health = ref<Record<string, unknown> | null>(null);
-const loading = ref(false);
-const error = ref("");
-const lastUpdated = ref("");
-let refreshTimer: number | null = null;
-
-const REFRESH_INTERVAL_MS = 5000;
-const MIN_REFRESH_INTERVAL_MS = 1000;
+const store = useMonitoringStore();
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -91,8 +87,8 @@ function statusClass(status: string): string {
 }
 
 const healthChecks = computed(() => {
-  if (!health.value || !health.value.checks) return [];
-  const checks = (health.value.checks as Record<string, string>) || {};
+  if (!store.health || !store.health.checks) return [];
+  const checks = (store.health.checks as Record<string, string>) || {};
   const icons: Record<string, string> = {
     database: "🗄️",
     redis: "📦",
@@ -114,8 +110,8 @@ const healthChecks = computed(() => {
 });
 
 const overallStatus = computed(() => {
-  if (!health.value) return "unknown";
-  if (health.value.healthy) return "healthy";
+  if (!store.health) return "unknown";
+  if (store.health.healthy) return "healthy";
   return "unhealthy";
 });
 
@@ -129,63 +125,22 @@ const overallStatusText = computed(() => {
   return t("monitoring.unknown");
 });
 
-const overallStatusIcon = computed(() => {
-  if (overallStatus.value === "healthy") return "✅";
-  if (overallStatus.value === "unhealthy") return "❌";
-  return "❓";
-});
-
 const diskInfo = computed(() => {
-  if (!health.value || !health.value.disk) return null;
-  return health.value.disk as Record<string, unknown>;
+  if (!store.health || !store.health.disk) return null;
+  return store.health.disk as Record<string, unknown>;
 });
 
 function toNumber(value: unknown): number {
   return typeof value === "number" ? value : Number(value ?? 0);
 }
 
-async function loadHealth() {
-  loading.value = true;
-  error.value = "";
-  try {
-    const data = await apiGet<Record<string, unknown>>(
-      "/api/v1/health/comprehensive",
-    );
-    health.value = data;
-    lastUpdated.value = new Date().toLocaleTimeString();
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    loading.value = false;
-  }
-}
-
-function refresh() {
-  void loadHealth();
-}
-
-function startAutoRefresh() {
-  stopAutoRefresh();
-  const interval = Math.max(REFRESH_INTERVAL_MS, MIN_REFRESH_INTERVAL_MS);
-  refreshTimer = window.setInterval(() => {
-    void loadHealth();
-  }, interval);
-}
-
-function stopAutoRefresh() {
-  if (refreshTimer !== null) {
-    clearInterval(refreshTimer);
-    refreshTimer = null;
-  }
-}
-
 onMounted(() => {
-  void loadHealth();
-  startAutoRefresh();
+  store.fetchHealth();
+  store.startAutoRefresh();
 });
 
 onUnmounted(() => {
-  stopAutoRefresh();
+  store.stopAutoRefresh();
 });
 </script>
 

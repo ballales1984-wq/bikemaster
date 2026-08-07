@@ -124,8 +124,14 @@ def load_cities(
 ) -> dict[str, Any]:
     """Load Natural Earth populated places.
 
+    Natural Earth only provides populated places data at the 10m resolution.
+    The ``resolution`` parameter is accepted for API consistency but is
+    ignored; the data is always fetched from ``ne_10m_populated_places_simple.geojson``.
+    The ``min_pop`` filter controls which cities are returned, effectively
+    providing coarser results for larger requested resolutions.
+
     Args:
-        resolution: data resolution ('10m', '50m', '110m').
+        resolution: data resolution (ignored, kept for API compat).
         min_pop: minimum population filter.
         simplify: simplify geometries (no-op for points).
         tolerance: simplification tolerance in degrees.
@@ -133,7 +139,7 @@ def load_cities(
     Returns:
         GeoJSON FeatureCollection with Point features.
     """
-    filename = f"ne_{resolution}_populated_places_simple.geojson"
+    filename = "ne_10m_populated_places_simple.geojson"
     path = _local_path(filename)
     url = _geojson_url(filename)
     _download(url, path)

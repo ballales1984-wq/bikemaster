@@ -325,51 +325,7 @@ def init_db():
         cur.execute("PRAGMA table_info(athlete_history)")
         history_cols = [row[1] for row in cur.fetchall()]
         if not history_cols:
-            conn.execute("""CREATE TABLE IF NOT EXISTS athlete_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                athlete_id INTEGER NOT NULL,
-                tenant_id INTEGER DEFAULT 0,
-                recorded_at TEXT NOT NULL,
-                changed_by INTEGER,
-                name TEXT,
-                email TEXT,
-                picture TEXT,
-                age INTEGER,
-                weight_kg REAL,
-                height_cm REAL,
-                fat_percentage REAL,
-                years_active INTEGER,
-                weekly_sessions INTEGER,
-                monthly_hours REAL,
-                annual_hours REAL,
-                experience_level TEXT,
-                goals TEXT,
-                preferred_terrain TEXT,
-                weekly_volume_km REAL,
-                best_segments TEXT,
-                medical_notes TEXT,
-                equipment TEXT,
-                ftp_watts REAL,
-                body_water_percentage REAL,
-                muscle_mass_percentage REAL,
-                bmr_kcal REAL,
-                fat_mass_kg REAL,
-                subcutaneous_fat_kg REAL,
-                subcutaneous_fat_percentage REAL,
-                visceral_fat_level REAL,
-                visceral_fat_percentage REAL,
-                visceral_fat_kg REAL,
-                muscle_mass_kg REAL,
-                bone_mass_kg REAL,
-                protein_percentage REAL,
-                protein_kg REAL,
-                body_age INTEGER,
-                apparent_age INTEGER
-            )""")
-            conn.execute(
-        "CREATE INDEX IF NOT EXISTS ix_history_athlete_recorded "
-        "ON athlete_history(athlete_id, recorded_at)"
-    )
+            pass
         cur.execute("PRAGMA table_info(athlete_history)")
         history_cols = [row[1] for row in cur.fetchall()]
         if "bmi" not in history_cols:
@@ -971,6 +927,121 @@ def init_db():
             )"""
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_ai_audit_athlete_created ON ai_audit_log(athlete_id, created_at)")
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS knowledge_chunks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                topic TEXT DEFAULT '',
+                chunk_id TEXT DEFAULT '',
+                text TEXT DEFAULT '',
+                word_count INTEGER DEFAULT 0,
+                char_count INTEGER DEFAULT 0,
+                token_count INTEGER DEFAULT 0,
+                section TEXT,
+                embedding TEXT,
+                tenant_id INTEGER DEFAULT 0,
+                created_at TEXT
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                actor_id INTEGER,
+                action TEXT NOT NULL,
+                resource TEXT NOT NULL,
+                resource_id INTEGER,
+                details TEXT DEFAULT '{}',
+                ip_address TEXT,
+                created_at TEXT
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                athlete_id INTEGER NOT NULL,
+                refresh_token TEXT NOT NULL UNIQUE,
+                jti TEXT NOT NULL UNIQUE,
+                expires_at TEXT NOT NULL,
+                created_at TEXT,
+                revoked_at TEXT,
+                FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS segments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ride_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                start_index INTEGER NOT NULL,
+                end_index INTEGER NOT NULL,
+                distance_m REAL,
+                avg_speed_kmh REAL,
+                elevation_gain_m REAL,
+                FOREIGN KEY (ride_id) REFERENCES rides(id) ON DELETE CASCADE
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS pauses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ride_id INTEGER NOT NULL,
+                start_index INTEGER NOT NULL,
+                end_index INTEGER NOT NULL,
+                duration_seconds REAL,
+                FOREIGN KEY (ride_id) REFERENCES rides(id) ON DELETE CASCADE
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS external_identities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                athlete_id INTEGER,
+                provider TEXT NOT NULL,
+                external_id TEXT NOT NULL,
+                external_email TEXT,
+                display_name TEXT,
+                picture_url TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                UNIQUE(provider, external_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS external_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                athlete_id INTEGER,
+                provider TEXT NOT NULL,
+                access_token TEXT,
+                refresh_token TEXT,
+                expires_at TEXT,
+                scope TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                UNIQUE(athlete_id, provider),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS totp_secrets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL UNIQUE,
+                secret TEXT NOT NULL,
+                enabled INTEGER DEFAULT 0,
+                created_at TEXT,
+                updated_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )"""
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_athlete ON sessions(athlete_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_segments_ride ON segments(ride_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_pauses_ride ON pauses(ride_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_external_identity_provider ON external_identities(provider)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_external_identity_athlete ON external_identities(athlete_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_external_token_athlete ON external_tokens(athlete_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_external_token_provider ON external_tokens(provider)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_totp_user ON totp_secrets(user_id)")
         conn.commit()
 
 

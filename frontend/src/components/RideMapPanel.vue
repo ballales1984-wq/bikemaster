@@ -34,7 +34,7 @@
         <select id="map-route" v-model="selectedRideId" class="form-input">
           <option :value="null">All routes</option>
           <option v-for="ride in ridesWithGps" :key="ride.id" :value="ride.id">
-            {{ ride.date }} · {{ formatDistance(ride.distanceM) }}
+            {{ ride.date }} · {{ formatDistance(ride.distance_m) }}
           </option>
         </select>
       </label>
@@ -706,11 +706,11 @@ function enrichRide(ride: Ride & { gps_points: GpsPoint[] }): EnrichedRide {
   const gps_points = downsamplePoints(normalizePoints(ride.gps_points));
   const center = getCenter(gps_points);
   const segments = buildSegments(gps_points);
-  const distanceM = segments.reduce(
+  const distance_m = segments.reduce(
     (sum, segment) => sum + segment.distance_m,
     0,
   );
-  const elevationGain = segments.reduce(
+  const elevation_gain_computed_m = segments.reduce(
     (sum, segment) => sum + Math.max(0, segment.elevation_delta_m),
     0,
   );
@@ -720,8 +720,8 @@ function enrichRide(ride: Ride & { gps_points: GpsPoint[] }): EnrichedRide {
     gps_points,
     center,
     segments,
-    distanceM,
-    elevationGain,
+    distance_m,
+    elevation_gain_computed_m,
     weather: null,
     weatherScore: 5,
     weatherUnavailable: false,
@@ -796,8 +796,8 @@ function ridePopup(ride: EnrichedRide): string {
     : "Weather: disabled";
   return `
      <strong>Ride ${escapeHtml(ride.date)}</strong><br>
-     Distance: ${escapeHtml(formatDistance(ride.distanceM))}<br>
-     Elevation gain: ${escapeHtml(`${Math.round(ride.elevationGain)} m`)}<br>
+     Distance: ${escapeHtml(formatDistance(ride.distance_m))}<br>
+     Elevation gain: ${escapeHtml(`${Math.round(ride.elevation_gain_computed_m)} m`)}<br>
      Average risk: ${escapeHtml(ride.overallRisk)}/100<br>
      ${weatherText}
    `;

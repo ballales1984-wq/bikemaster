@@ -21,6 +21,7 @@ export type GeoCoordinates = GeoCoord | GeoLineCoords;
 export interface GeoJSON {
   type: "FeatureCollection";
   features: GeoFeature[];
+  metadata?: Record<string, unknown>;
 }
 
 export interface GeoLayer {

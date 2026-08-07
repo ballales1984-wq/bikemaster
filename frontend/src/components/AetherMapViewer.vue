@@ -295,8 +295,9 @@ async function fetchTerrainTile(
   minLon: number,
   maxLon: number,
   resolution: number,
+  face: number = -1,
 ): Promise<Float32Array | null> {
-  const key = `${minLat.toFixed(2)}_${maxLat.toFixed(2)}_${minLon.toFixed(2)}_${maxLon.toFixed(2)}_${resolution}`;
+  const key = `${face}_${minLat.toFixed(2)}_${maxLat.toFixed(2)}_${minLon.toFixed(2)}_${maxLon.toFixed(2)}_${resolution}`;
   const cached = terrainTileCache.get(key);
   if (cached && Date.now() - cached.timestamp < TILE_CACHE_TTL) {
     return cached.heights;
@@ -520,6 +521,7 @@ async function buildGlobeBuffers(N: number): Promise<{
       bounds.minLon,
       bounds.maxLon,
       N,
+      f,
     );
   });
   const tiles = await Promise.all(tilePromises);
@@ -718,9 +720,10 @@ function updateSceneBuffers(sc: AetherScene) {
   const markerData: number[] = [];
   for (const ent of sc.entities) {
     if (ent.tipo === "segment") {
-      const col = hexToRgb(ent.char);
       const pts = ent.pts.map(toDir);
       for (let i = 0; i + 1 < pts.length; i++) {
+        const segColor = ent.colors && ent.colors[i] ? ent.colors[i] : ent.char;
+        const col = hexToRgb(segColor);
         const _elev =
           pts[i + 1] && pts[i + 1][2] !== undefined ? pts[i + 1][2] || 0 : 0;
         const h0 =
@@ -793,6 +796,8 @@ function geoColorForType(tipo: string): Vec3 {
   if (tipo === "strada") return [0.95, 0.78, 0.22];
   if (tipo === "citta") return [0.28, 0.92, 0.42];
   if (tipo === "montagna") return [0.92, 0.32, 0.28];
+  if (tipo === "costa") return [0.15, 0.55, 0.95];
+  if (tipo === "confine") return [0.6, 0.55, 0.5];
   return [0.8, 0.8, 0.8];
 }
 
@@ -826,8 +831,11 @@ function updateGeoBuffers() {
           pts.push([d[0] * r, d[1] * r, d[2] * r]);
         }
         if (pts.length >= 2) {
+          const col: Vec3 =
+            (feature.properties?.color as Vec3 | undefined) ||
+            geoColorForType(feature.properties?.tipo || layer.type);
           for (let i = 0; i + 1 < pts.length; i++) {
-            pushArc(lineData, pts[i], pts[i + 1], geoColorForType(layer.type));
+            pushArc(lineData, pts[i], pts[i + 1], col);
           }
         }
       } else if (geom.type === "Point") {
@@ -836,12 +844,10 @@ function updateGeoBuffers() {
         const d = geodeticToDirection(coord[1], coord[0]);
         const h = (coord[2] || 0) * TERRAIN_SCALE;
         const r = GLOBE_RADIUS + h;
-        pointData.push(
-          d[0] * r,
-          d[1] * r,
-          d[2] * r,
-          ...geoColorForType(layer.type),
-        );
+        const col: Vec3 =
+          (feature.properties?.color as Vec3 | undefined) ||
+          geoColorForType(feature.properties?.tipo || layer.type);
+        pointData.push(d[0] * r, d[1] * r, d[2] * r, ...col);
       }
     }
 

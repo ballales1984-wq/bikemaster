@@ -33,8 +33,8 @@ export interface EnrichedRide extends Ride {
   gps_points: GpsPoint[];
   center: { lat: number; lon: number } | null;
   segments: RideSegment[];
-  distanceM: number;
-  elevationGain: number;
+  distance_m: number;
+  elevation_gain_computed_m: number;
   weather: { score?: number; description?: string } | null;
   weatherScore: number;
   weatherUnavailable: boolean;

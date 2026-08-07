@@ -1,5 +1,6 @@
 """Shared rate limiter for slowapi."""
 
+import json
 import logging
 import threading
 import time

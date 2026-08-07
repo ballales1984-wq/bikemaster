@@ -160,6 +160,11 @@ export const usePerformanceStore = defineStore("performance", () => {
     }
   }
 
+  // NOTE: `duration_seconds` is in SECONDS because the backend
+  // `/api/v1/performance/compute` endpoint expects seconds for the
+  // power-stream analysis. This is distinct from ride `duration_minutes`
+  // used elsewhere in the app.
+
   async function recomputeAll(): Promise<number> {
     if (!auth.isLoggedIn) throw new Error("Not authenticated");
     saving.value = true;

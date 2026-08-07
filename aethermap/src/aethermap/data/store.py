@@ -16,7 +16,7 @@ def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
-def _cube_cell_id_simple(cell_id: str) -> tuple[str, int, int, int]:
+def _cube_cell_id_simple(cell_id: str) -> tuple[int, int, int, int]:
     parts = cell_id.split(":")
     if len(parts) != 4:
         raise ValueError(f"Invalid cube cell id format: {cell_id}")
