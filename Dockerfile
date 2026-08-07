@@ -46,6 +46,8 @@ COPY alembic.ini ./
 COPY alembic ./alembic
 COPY scripts/ ./scripts/
 
+COPY --from=frontend-builder /app/frontend/dist /app/bike_analyzer/backend/static
+
 RUN chown -R bikemaster:bikemaster /app && \
     python -m compileall bike_analyzer 2>/dev/null; \
     echo "Bytecode pre-compilation complete"

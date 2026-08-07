@@ -28,7 +28,7 @@ services:
       - key: OAUTH_ALLOWED_REDIRECT_HOSTS
         value: bikemaster.onrender.com,bikemaster-xi.vercel.app
       - key: SERVE_STATIC
-        value: "false"
+        value: "true"
       - key: PYTHON_VERSION
         value: "3.11"
       - key: DATABASE_URL
