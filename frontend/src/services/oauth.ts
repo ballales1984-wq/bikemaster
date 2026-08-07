@@ -94,8 +94,14 @@ export function processOAuthToken(): boolean {
 
   // Fresh OAuth return: the token is in the URL fragment/query.
   if (urlToken) {
-    // Stash before anything else, so a reload in the next few milliseconds
-    // (e.g. a service-worker update) can still complete the login.
+    const payload = parseJWTPayload(urlToken);
+    if (payload && typeof payload.exp === "number" && Date.now() >= payload.exp * 1000) {
+      clearPendingOAuth();
+      ui.setOauthLoading(false);
+      clearUrlToken();
+      console.warn("[OAuth] token expired, rejecting");
+      return false;
+    }
     persistPendingOAuth(urlToken, email, userId);
     if (auth.isLoggedIn && auth.isTokenValid()) {
       clearPendingOAuth();

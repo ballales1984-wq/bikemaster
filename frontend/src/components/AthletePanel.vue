@@ -282,11 +282,11 @@
             valid: !fieldErrors.experience_level,
           }"
         >
-          <option>Principiante</option>
-          <option>Amatoriale</option>
-          <option>Intermedio</option>
-          <option>Avanzato</option>
-          <option>Elite</option>
+          <option value="Beginner">Principiante</option>
+          <option value="Amateur">Amatoriale</option>
+          <option value="Intermediate">Intermedio</option>
+          <option value="Advanced">Avanzato</option>
+          <option value="Elite">Elite</option>
         </select>
         <span v-if="fieldErrors.experience_level" class="field-error">{{
           fieldErrors.experience_level

@@ -13,6 +13,16 @@ import { useAuthStore } from "../stores/auth";
 export function syncAuthState() {
   const auth = useAuthStore();
   if (auth.token && !auth.isTokenValid()) {
+    if (auth.refreshToken) {
+      void auth.refreshAccessToken().then((ok) => {
+        if (!ok) {
+          auth.token = "";
+          auth.user = null;
+          auth.setJustLoggedIn(false);
+        }
+      });
+      return { hasToken: !!auth.token, justLoggedIn: auth.justLoggedIn };
+    }
     auth.token = "";
     auth.user = null;
     auth.setJustLoggedIn(false);
