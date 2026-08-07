@@ -77,12 +77,12 @@ export function useAetherMapGeo() {
 
     const path =
       type === "roads"
-        ? "/aethermap/geo/roads"
+        ? "/api/v1/aethermap/geo/roads"
         : type === "cities"
-          ? "/aethermap/geo/cities"
+          ? "/api/v1/aethermap/geo/cities"
           : type === "natural-earth"
-            ? "/aethermap/geo/natural-earth"
-            : "/aethermap/geo/peaks";
+            ? "/api/v1/aethermap/geo/natural-earth"
+            : "/api/v1/aethermap/geo/peaks";
 
     try {
       const stringParams: Record<string, string> = {};
