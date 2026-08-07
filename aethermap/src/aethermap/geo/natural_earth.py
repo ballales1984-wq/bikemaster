@@ -44,13 +44,13 @@ def _download(url: str, dest: Path) -> None:
     if dest.exists() and dest.stat().st_size > 0:
         return
     try:
-        import urllib.request
+        import requests
 
         logger.info("[natural_earth] downloading %s -> %s", url, dest)
-        with urllib.request.urlopen(url, timeout=30) as resp:
-            data = resp.read()
-        dest.write_bytes(data)
-        logger.info("[natural_earth] saved %d bytes to %s", len(data), dest)
+        resp = requests.get(url, timeout=30)
+        resp.raise_for_status()
+        dest.write_bytes(resp.content)
+        logger.info("[natural_earth] saved %d bytes to %s", len(resp.content), dest)
     except Exception as exc:
         logger.warning("[natural_earth] download failed: %s", exc)
         if dest.exists():

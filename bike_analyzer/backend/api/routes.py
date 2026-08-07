@@ -2340,43 +2340,50 @@ async def get_aethermap_geo_natural_earth(
     except ImportError as exc:
         raise HTTPException(status_code=500, detail="Geo dependencies not installed") from exc
     try:
+        coastlines = load_coastlines(resolution=resolution)
+        borders = load_country_borders(resolution=resolution)
+        cities = load_cities(resolution=resolution, min_pop=min_pop)
         ne_data = to_entities(
-            coastlines=load_coastlines(resolution=resolution),
-            borders=load_country_borders(resolution=resolution),
-            cities=load_cities(resolution=resolution, min_pop=min_pop),
+            coastlines=coastlines,
+            borders=borders,
+            cities=cities,
         )
+        if not ne_data or not isinstance(ne_data, dict):
+            raise HTTPException(status_code=502, detail="empty natural earth data")
+        features = []
+        for ent in ne_data.get("entities", []):
+            if ent.get("kind") == "line":
+                pts = ent.get("points", [])
+                coords = [[float(p.get("lon", 0)), float(p.get("lat", 0))] for p in pts if isinstance(p, dict)]
+                features.append({
+                    "type": "Feature",
+                    "properties": {"tipo": ent.get("tipo"), **ent.get("props", {})},
+                    "geometry": {"type": "LineString", "coordinates": coords},
+                })
+            else:
+                pos = ent.get("position", [0, 0])
+                lat = float(pos[0]) if len(pos) > 0 else 0.0
+                lon = float(pos[1]) if len(pos) > 1 else 0.0
+                features.append({
+                    "type": "Feature",
+                    "properties": {"tipo": ent.get("tipo"), **ent.get("props", {})},
+                    "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                })
+        return {
+            "type": "FeatureCollection",
+            "features": features,
+            "metadata": {
+                "source": "natural_earth",
+                "resolution": resolution,
+                "coastline_count": int(ne_data.get("coastline_count", 0)),
+                "border_count": int(ne_data.get("border_count", 0)),
+                "city_count": int(ne_data.get("city_count", 0)),
+            },
+        }
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-    features = []
-    for ent in ne_data["entities"]:
-        if ent.get("kind") == "line":
-            pts = ent.get("points", [])
-            coords = [[p["lon"], p["lat"]] for p in pts]
-            features.append({
-                "type": "Feature",
-                "properties": {"tipo": ent["tipo"], **ent.get("props", {})},
-                "geometry": {"type": "LineString", "coordinates": coords},
-            })
-        else:
-            pos = ent.get("position", [0, 0])
-            features.append({
-                "type": "Feature",
-                "properties": {"tipo": ent["tipo"], **ent.get("props", {})},
-                "geometry": {"type": "Point", "coordinates": [pos[1], pos[0]]},
-            })
-
-    return {
-        "type": "FeatureCollection",
-        "features": features,
-        "metadata": {
-            "source": "natural_earth",
-            "resolution": resolution,
-            "coastline_count": ne_data["coastline_count"],
-            "border_count": ne_data["border_count"],
-            "city_count": ne_data["city_count"],
-        },
-    }
 
 
 @router.get("/rides/{ride_id}/terrain")

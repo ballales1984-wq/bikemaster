@@ -43,7 +43,7 @@ def main() -> None:
         f"=== BikeMaster ===\nRides: {s['total_rides']}\n"
         f"Distance: {s['total_km']:.1f} km\n"
         f"Calories: {s['total_calories']:.0f} kcal\n"
-        f"Avg Speed: {s['avg_speed']:.1f} km/h\n"
+        f"Avg Speed: {s['avg_speed_kmh']:.1f} km/h\n"
         f"Avg Fatigue: {s['avg_fatigue']:.1f}/10"
     )
 
