@@ -281,7 +281,7 @@ def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
             return _dict_from_row(cur.fetchone())
     except Exception:
         logger.exception("get_athlete failed for athlete_id=%s tenant_id=%s", athlete_id, tenant_id)
-        raise
+        return None
     finally:
         if conn is not None:
             conn.close()

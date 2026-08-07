@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from aethermap.ai.models import Oggetto
+from aethermap.data.db import AetherMapDB
 
 
 def _utcnow() -> datetime:
@@ -243,3 +244,62 @@ class WorldStore:
             self.store.add(obj)
             imported += 1
         return imported
+
+
+class PersistentStore:
+    def __init__(self, store: SpatialStore | None = None, db_path: str | Path | None = None) -> None:
+        self.store = store or SpatialStore()
+        self.db = AetherMapDB(db_path)
+        self._load_from_db()
+
+    def _load_from_db(self) -> None:
+        for obj in self.db.iter_objects():
+            self.store.add(obj)
+
+    def add(self, obj: Oggetto) -> None:
+        self.store.add(obj)
+        self.db.add(obj)
+
+    def get(self, oid: str) -> Oggetto | None:
+        return self.store.get(oid)
+
+    def remove(self, oid: str) -> bool:
+        ok = self.store.remove(oid)
+        if ok:
+            self.db.remove(oid)
+        return ok
+
+    def query_s2(self, s2: str) -> list[Oggetto]:
+        return self.store.query_s2(s2)
+
+    def query_h3(self, h3: str) -> list[Oggetto]:
+        return self.store.query_h3(h3)
+
+    def query_radius(self, lat: float, lon: float, radius_m: float) -> list[Oggetto]:
+        return self.store.query_radius(lat, lon, radius_m)
+
+    def all(self) -> Iterable[Oggetto]:
+        return self.store.all()
+
+    @property
+    def objects(self) -> dict[str, Oggetto]:
+        return self.store.objects
+
+    def sync_all(self) -> None:
+        for obj in self.store.all():
+            self.db.add(obj)
+
+    def count(self) -> int:
+        return len(self.store)
+
+    def db_count(self) -> int:
+        return self.db.count()
+
+    def close(self) -> None:
+        self.db.close()
+
+    def __enter__(self) -> PersistentStore:
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        self.close()

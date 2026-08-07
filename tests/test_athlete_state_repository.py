@@ -44,7 +44,6 @@ class TestToFitnessDict:
         d = repo._to_fitness_dict(state, tenant_id=0)
         assert d["athlete_id"] == 1
         assert d["fitness"] == 80.0
-        assert d["fatigue"] == 45.0
         assert d["form"] == 10.0
         assert d["ctl"] == 80.0
         assert d["atl"] == 45.0

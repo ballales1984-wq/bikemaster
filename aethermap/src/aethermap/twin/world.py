@@ -9,6 +9,7 @@ from aethermap.ai.models import Relazione
 from aethermap.ai.pipeline import Pipeline
 from aethermap.data.store import SpatialStore
 from aethermap.data.store import WorldStore as DataWorldStore
+from aethermap.data.store import PersistentStore
 from aethermap.twin.objects import Albero, Montagna, Strada, make_albero, make_montagna, make_strada
 
 
@@ -25,15 +26,26 @@ class DigitalTwin:
 
     Ogni oggetto e' VIVO: il suo stato muta via stream IA (traffico) e via
     ambiente (neve, ombra) senza mai riscrivere la geometria immutabile.
+
+    Se `persistent=True`, i dati vengono salvati automaticamente su SQLite
+    (aethermap.db nella directory del modulo) e ricaricati all'avvio.
     """
 
-    def __init__(self) -> None:
-        spatial = SpatialStore()
-        self.store = DataWorldStore(store=spatial)
+    def __init__(self, persistent: bool = False, db_path: str | Path | None = None) -> None:
+        if persistent:
+            pstore = PersistentStore(db_path=db_path)
+            self.store = DataWorldStore(store=pstore.store)
+            self._persistent_store = pstore
+        else:
+            spatial = SpatialStore()
+            self.store = DataWorldStore(store=spatial)
+            self._persistent_store = None
         self.pipeline = Pipeline(self.store)
 
     def add(self, obj: Strada | Albero | Montagna) -> None:
         self.store.add(obj)
+        if self._persistent_store is not None:
+            self._persistent_store.add(obj)
 
     def add_relation(self, source_id: str, target_id: str, tipo: str, confidence: float = 1.0) -> None:
         if source_id not in self.store.objects or target_id not in self.store.objects:
