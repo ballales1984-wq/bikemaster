@@ -79,12 +79,18 @@ async def close_redis():
 
 _MEMORY_CACHE: dict[str, tuple[Any, float]] = {}
 _MEMORY_RATELIMIT: dict[str, tuple[int, float]] = {}
+_MEMORY_CACHE_MAX = 1000
+_MEMORY_RATELIMIT_MAX = 1000
 
 def _cleanup_memory_cache():
     now = time.monotonic()
     expired = [k for k, (v, exp) in _MEMORY_CACHE.items() if now > exp]
     for k in expired:
         _MEMORY_CACHE.pop(k, None)
+    if len(_MEMORY_CACHE) > _MEMORY_CACHE_MAX:
+        oldest = sorted(_MEMORY_CACHE.items(), key=lambda kv: kv[1][1])[:len(_MEMORY_CACHE) - _MEMORY_CACHE_MAX]
+        for k, _ in oldest:
+            _MEMORY_CACHE.pop(k, None)
 
 def cache_key(*args: Any, **kwargs: Any) -> str:
     raw = json.dumps({"args": args, "kwargs": kwargs}, sort_keys=True, default=str)
@@ -155,12 +161,15 @@ async def check_rate_limit(user_id: int | None, endpoint: str, limit: int = 60, 
         count += 1
         _MEMORY_RATELIMIT[key] = (count, exp)
         
-        # Cleanup old rate limits occasionally
-        if count == 1 and len(_MEMORY_RATELIMIT) > 1000:
+        if len(_MEMORY_RATELIMIT) > _MEMORY_RATELIMIT_MAX:
             expired = [k for k, (c, e) in _MEMORY_RATELIMIT.items() if now > e]
             for k in expired:
                 _MEMORY_RATELIMIT.pop(k, None)
-                
+            if len(_MEMORY_RATELIMIT) > _MEMORY_RATELIMIT_MAX:
+                oldest = sorted(_MEMORY_RATELIMIT.items(), key=lambda kv: kv[1][1])[:len(_MEMORY_RATELIMIT) - _MEMORY_RATELIMIT_MAX]
+                for k, _ in oldest:
+                    _MEMORY_RATELIMIT.pop(k, None)
+        
         return count <= limit
     key = rate_limit_key(user_id, endpoint)
     try:

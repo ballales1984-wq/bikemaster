@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -84,6 +85,7 @@ async def lifespan(app: FastAPI):
     app.state._bg_tasks.append(asyncio.create_task(_init_async_db_bg()))
     app.state._bg_tasks.append(asyncio.create_task(_init_redis_bg()))
     app.state._bg_tasks.append(asyncio.create_task(_start_task_queue_bg()))
+    app.state.start_time = time.time()
 
     yield
 

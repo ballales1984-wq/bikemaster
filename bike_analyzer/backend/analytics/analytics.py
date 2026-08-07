@@ -50,7 +50,7 @@ def calculate_summary(rides: list[Ride]) -> dict:
         "total_rides": len(rides),
         "total_km": round(sum(r.distance_km for r in rides), 1),
         "total_calories": round(sum(ensure_calories(r) for r in rides), 0),
-        "avg_speed_kmh": round(sum(r.avg_speed_kmh for r in rides) / len(rides), 1),
+        "avg_speed_kmh": round(sum(r.avg_speed_kmh or 0.0 for r in rides) / len(rides), 1),
         "avg_fatigue": round(sum(calculate_fatigue_score(r) for r in rides) / len(rides), 1),
     }
 

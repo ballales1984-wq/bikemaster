@@ -45,6 +45,8 @@ class BackgroundTaskQueue:
         self._workers: list[asyncio.Task] = []
         self._max_workers = max_workers
         self._running = False
+        self._TASK_TTL = 300.0
+        self._completed_at: dict[str, float] = {}
 
     async def start(self):
         if self._running:
@@ -102,15 +104,28 @@ class BackgroundTaskQueue:
 
             task.status = "completed"
             task.result = result
+            self._completed_at[task_id] = time.time()
             logger.info("[%s] task %s completed", worker_name, task_id)
         except Exception as exc:
             task.status = "failed"
             task.error = str(exc)
+            self._completed_at[task.id] = time.time()
             logger.error("[%s] task %s failed: %s", worker_name, task.id, exc)
+
+    def _purge_expired(self):
+        now = time.time()
+        expired = [
+            tid for tid, ts in self._completed_at.items()
+            if now - ts > self._TASK_TTL
+        ]
+        for tid in expired:
+            self._tasks.pop(tid, None)
+            self._completed_at.pop(tid, None)
 
     async def enqueue(self, kind: str, payload: dict | None = None) -> Task:
         import uuid
 
+        self._purge_expired()
         task = Task(id=str(uuid.uuid4()), kind=kind, payload=payload or {})
         self._tasks[task.id] = task
         await self._queue.put(task)
@@ -118,12 +133,15 @@ class BackgroundTaskQueue:
         return task
 
     def get_task(self, task_id: str) -> Task | None:
+        self._purge_expired()
         return self._tasks.get(task_id)
 
     def get_pending(self) -> list[Task]:
+        self._purge_expired()
         return [t for t in self._tasks.values() if t.status == "pending"]
 
     def get_running(self) -> list[Task]:
+        self._purge_expired()
         return [t for t in self._tasks.values() if t.status == "running"]
 
     async def _handle_batch_import(self, payload: dict) -> dict:

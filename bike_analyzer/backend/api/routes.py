@@ -2882,7 +2882,7 @@ async def health_detailed(request: Request):
 
 
 @router.get("/health/comprehensive")
-async def health_comprehensive():
+async def health_comprehensive(request: Request):
     """Comprehensive health check with system metrics.
 
     Returns database, redis, task queue status plus memory, disk and uptime.
@@ -2901,6 +2901,33 @@ async def health_comprehensive():
             payload["disk"]["db_size_bytes"] = Path(_s.db_path).stat().st_size
     except Exception as exc:  # noqa: BLE001
         payload["system_metrics_error"] = str(exc)
+
+    try:
+        payload["uptime"] = {
+            "start_time": getattr(request.app.state, "start_time", None),
+            "uptime_seconds": round(time.time() - getattr(request.app.state, "start_time", time.time()), 2),
+        }
+    except Exception as exc:  # noqa: BLE001
+        payload["uptime_error"] = str(exc)
+
+    try:
+        mem = {"available": False}
+        try:
+            import psutil
+
+            proc = psutil.Process()
+            mem = {
+                "available": True,
+                "rss_bytes": proc.memory_info().rss,
+                "rss_mb": round(proc.memory_info().rss / (1024 * 1024), 2),
+                "vms_bytes": proc.memory_info().vms,
+                "vms_mb": round(proc.memory_info().vms / (1024 * 1024), 2),
+            }
+        except ImportError:
+            mem["note"] = "psutil not installed"
+        payload["memory"] = mem
+    except Exception as exc:  # noqa: BLE001
+        payload["memory_error"] = str(exc)
 
     return payload
 
@@ -5794,6 +5821,19 @@ async def get_weather_forecast(
         forecasts.append(weather)
 
     return {"forecasts": forecasts}
+
+
+@router.get("/weather/geocode")
+async def geocode_city(
+    city: str = Query(..., description="City name"),
+):
+    """Convert city name to coordinates."""
+    from ..weather.weather_service import get_city_coordinates
+
+    result = get_city_coordinates(city)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
 
 
 @router.get("/analytics/trends")
