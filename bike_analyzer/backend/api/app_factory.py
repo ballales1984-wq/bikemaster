@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 _s = get_settings()
 STATIC_DIR = Path(__file__).parent.parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
-SERVE_STATIC = os.getenv("SERVE_STATIC", "true").lower() == "true"
+SERVE_STATIC = os.getenv("SERVE_STATIC", "false").lower() == "true"
 
 
 def _static_file_response(file_path: Path, media_type: str | None = None, headers: dict | None = None) -> Response:

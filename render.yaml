@@ -27,8 +27,6 @@ services:
         value: https://bikemaster-xi.vercel.app,http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000
       - key: OAUTH_ALLOWED_REDIRECT_HOSTS
         value: bikemaster.onrender.com,bikemaster-xi.vercel.app
-      - key: SERVE_STATIC
-        value: "true"
       - key: PYTHON_VERSION
         value: "3.11"
       - key: DATABASE_URL
