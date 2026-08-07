@@ -489,8 +489,11 @@ def test_google_fit_auth_uses_forwarded_redirect_uri(client, monkeypatch):
 
 
 def test_static_fallback_routes(client):
+    r = client.get("/", follow_redirects=False)
+    assert r.status_code == 302
+    assert r.headers["location"] == "https://bikemaster-xi.vercel.app"
+
     for path in (
-        "/",
         "/index.html",
         "/track",
         "/registerSW.js",
@@ -501,8 +504,7 @@ def test_static_fallback_routes(client):
         "/apple-touch-icon.png",
     ):
         r = client.get(path)
-        assert r.status_code == 200, path
-    assert client.head("/").status_code == 200
+        assert r.status_code == 404, path
 
 
 def test_knowledge_reload(client):

@@ -508,6 +508,12 @@ def create_app() -> FastAPI:
         """API v1 health check matching Render's default healthCheckPath."""
         return {"status": "ok", "service": "bikemaster"}
 
+    @app.get("/", include_in_schema=False)
+    async def root_redirect():
+        """Redirect root to the Vercel frontend (Render no longer serves static files)."""
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="https://bikemaster-xi.vercel.app", status_code=302)
+
     if SERVE_STATIC and STATIC_DIR.exists() and INDEX_FILE.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
         assets_dir = STATIC_DIR / "assets"
