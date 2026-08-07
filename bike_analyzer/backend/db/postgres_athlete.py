@@ -59,8 +59,9 @@ def _get_existing_columns(table_name: str) -> list[str]:
     """
     if table_name in _EXISTING_COLUMNS_CACHE:
         return _EXISTING_COLUMNS_CACHE[table_name]
-    conn = _connect()
+    conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT column_name FROM information_schema.columns "
@@ -71,7 +72,8 @@ def _get_existing_columns(table_name: str) -> list[str]:
             _EXISTING_COLUMNS_CACHE[table_name] = cols
             return cols
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def _ensure_tables(conn) -> None:  # pragma: no cover - kept for standalone bootstrap
@@ -254,8 +256,9 @@ def _dict_from_row(row) -> dict | None:
 
 
 def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
-    conn = _connect()
+    conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             if tenant_id is not None:
                 cur.execute(
@@ -266,12 +269,14 @@ def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
                 cur.execute("SELECT * FROM athletes WHERE id=%s", (athlete_id,))
             return _dict_from_row(cur.fetchone())
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | None:
-    conn = _connect()
+    conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             if tenant_id is not None:
                 cur.execute(
@@ -282,7 +287,8 @@ def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | Non
                 cur.execute("SELECT * FROM athletes WHERE email=%s", (email,))
             return _dict_from_row(cur.fetchone())
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def save_athlete(
@@ -305,8 +311,9 @@ def save_athlete(
         else:
             vals.append(athlete.get(c, _INSERT_DEFAULTS.get(c)))
 
-    conn = _connect()
+    conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             existing = get_athlete(athlete_id) if athlete_id is not None else None
             if existing:
@@ -333,7 +340,8 @@ def save_athlete(
             conn.commit()
             return athlete_id if athlete_id is not None else int(row["id"])
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def _do_update(cur, athlete_id: int, merged: dict, now: str) -> None:
@@ -362,8 +370,9 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     now = datetime.now(UTC).isoformat()
     existing_cols = set(_get_existing_columns("athletes"))
     update_cols = [c for c in _UPDATE_COLS if c in existing_cols]
-    conn = _connect()
+    conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             params = [merged.get(c, _UPDATE_DEFAULTS.get(c)) for c in update_cols]
             if "tenant_id" in update_cols:
@@ -382,7 +391,8 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
         save_athlete_snapshot(existing, tenant_id=existing.get("tenant_id", athlete_id), changed_by=None)
         return rowcount > 0
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def log_athlete_metric(
@@ -414,8 +424,9 @@ def log_athlete_metric(
     ]
     cols = ", ".join(_LOG_COLS)
     placeholders = ", ".join(["%s"] * len(params))
-    conn = _connect()
+    conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             cur.execute(
                 f"INSERT INTO athlete_metric_log ({cols}) VALUES ({placeholders}) RETURNING id",
@@ -425,7 +436,8 @@ def log_athlete_metric(
             conn.commit()
             return int(row["id"]) if row else 0
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def get_athlete_metric_log(
@@ -439,8 +451,9 @@ def get_athlete_metric_log(
     from datetime import timedelta
 
     since = (datetime.now(UTC) - timedelta(days=days)).isoformat()
-    conn = _connect()
+    conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             cur.execute(
                 """SELECT id, value, unit, note, source, recorded_at
@@ -452,7 +465,8 @@ def get_athlete_metric_log(
             )
             return [_dict_from_row(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def save_athlete_snapshot(
@@ -481,8 +495,9 @@ def save_athlete_snapshot(
 
     own_conn = conn is None
     if own_conn:
-        conn = _connect()
+        conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             cur.execute(
                 f"INSERT INTO athlete_history ({cols}) VALUES ({placeholders}) RETURNING id",
@@ -500,8 +515,9 @@ def save_athlete_snapshot(
 def get_athlete_history(
     athlete_id: int, *, tenant_id: int | None = None, limit: int = 100
 ) -> list[dict]:
-    conn = _connect()
+    conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             if tenant_id is not None:
                 cur.execute(
@@ -517,12 +533,14 @@ def get_athlete_history(
                 )
             return [_dict_from_row(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def get_athletes_by_user(user_id: int) -> list[dict]:
-    conn = _connect()
+    conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT * FROM athletes WHERE user_id=%s ORDER BY id",
@@ -530,12 +548,14 @@ def get_athletes_by_user(user_id: int) -> list[dict]:
             )
             return [_dict_from_row(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def get_athlete_count_by_user(user_id: int) -> int:
-    conn = _connect()
+    conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT COUNT(*) FROM athletes WHERE user_id=%s",
@@ -544,14 +564,16 @@ def get_athlete_count_by_user(user_id: int) -> int:
             row = cur.fetchone()
             return int(row["count"]) if row else 0
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def delete_athlete(athlete_id: int, user_id: int) -> bool:
     if athlete_id == user_id:
         return False
-    conn = _connect()
+    conn = None
     try:
+        conn = _connect()
         with conn.cursor() as cur:
             cur.execute(
                 "DELETE FROM athletes WHERE id=%s AND user_id=%s",
@@ -559,4 +581,5 @@ def delete_athlete(athlete_id: int, user_id: int) -> bool:
             )
             return cur.rowcount > 0
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()

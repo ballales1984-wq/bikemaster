@@ -1013,6 +1013,10 @@ def test_athlete_me_endpoints(client):
     assert client.get("/api/v1/athletes/me/history").status_code == 200
 
 
+def test_athletes_mine_route(client):
+    assert client.get("/api/v1/athletes/mine").status_code == 200
+
+
 def test_knowledge_endpoints(client):
     assert client.get("/api/v1/knowledge").status_code == 200
     assert client.get("/api/v1/knowledge/search", params={"q": "test"}).status_code == 200
