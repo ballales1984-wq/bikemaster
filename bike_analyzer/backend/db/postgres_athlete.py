@@ -15,6 +15,7 @@ swap-compatible.
 
 from __future__ import annotations
 
+import logging
 import os
 from datetime import UTC, datetime
 from typing import Any
@@ -22,6 +23,7 @@ from typing import Any
 from ..settings import get_settings
 
 _s = get_settings()
+logger = logging.getLogger(__name__)
 
 
 def _url() -> str:
@@ -43,7 +45,13 @@ def _connect():
     import psycopg2
     from psycopg2.extras import RealDictCursor
 
-    return psycopg2.connect(_url(), cursor_factory=RealDictCursor)
+    try:
+        conn = psycopg2.connect(_url(), cursor_factory=RealDictCursor)
+        logger.warning("PostgreSQL connection opened successfully")
+        return conn
+    except Exception as exc:
+        logger.error("PostgreSQL connection failed: %s", exc)
+        raise
 
 
 _EXISTING_COLUMNS_CACHE: dict[str, list[str]] = {}
@@ -71,6 +79,9 @@ def _get_existing_columns(table_name: str) -> list[str]:
             cols = [row["column_name"] for row in cur.fetchall()]
             _EXISTING_COLUMNS_CACHE[table_name] = cols
             return cols
+    except Exception:
+        logger.exception("_get_existing_columns failed for table=%s", table_name)
+        raise
     finally:
         if conn is not None:
             conn.close()
@@ -268,6 +279,9 @@ def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
             else:
                 cur.execute("SELECT * FROM athletes WHERE id=%s", (athlete_id,))
             return _dict_from_row(cur.fetchone())
+    except Exception:
+        logger.exception("get_athlete failed for athlete_id=%s tenant_id=%s", athlete_id, tenant_id)
+        raise
     finally:
         if conn is not None:
             conn.close()
@@ -339,6 +353,9 @@ def save_athlete(
             row = cur.fetchone()
             conn.commit()
             return athlete_id if athlete_id is not None else int(row["id"])
+    except Exception:
+        logger.exception("save_athlete failed for athlete_id=%s user_id=%s", athlete_id, user_id)
+        raise
     finally:
         if conn is not None:
             conn.close()
@@ -390,6 +407,9 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
             rowcount = cur.rowcount
         save_athlete_snapshot(existing, tenant_id=existing.get("tenant_id", athlete_id), changed_by=None)
         return rowcount > 0
+    except Exception:
+        logger.exception("update_athlete failed for athlete_id=%s", athlete_id)
+        raise
     finally:
         if conn is not None:
             conn.close()
@@ -435,6 +455,9 @@ def log_athlete_metric(
             row = cur.fetchone()
             conn.commit()
             return int(row["id"]) if row else 0
+    except Exception:
+        logger.exception("log_athlete_metric failed for athlete_id=%s metric_type=%s", athlete_id, metric_type)
+        raise
     finally:
         if conn is not None:
             conn.close()
@@ -507,6 +530,9 @@ def save_athlete_snapshot(
             if own_conn:
                 conn.commit()
             return int(row["id"]) if row else 0
+    except Exception:
+        logger.exception("save_athlete_snapshot failed for athlete_id=%s", athlete.get("id"))
+        raise
     finally:
         if own_conn:
             conn.close()
