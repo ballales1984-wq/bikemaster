@@ -522,7 +522,8 @@ def create_app() -> FastAPI:
 
     @app.get("/", include_in_schema=False)
     async def root_redirect():
-        """Redirect root to the Vercel frontend (Render no longer serves static files)."""
+        if SERVE_STATIC and STATIC_DIR.exists() and INDEX_FILE.exists():
+            return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"), headers={"Cache-Control": "no-store"})
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url="https://bikemaster-xi.vercel.app", status_code=302)
 

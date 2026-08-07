@@ -423,11 +423,60 @@ def _user_id(current_user: dict) -> int:
         raise HTTPException(status_code=401, detail="Invalid user token") from exc
 
 
+def _json_safe(value: Any) -> Any:
+    """Convert common non-JSON-serializable Python types (especially those
+    returned by psycopg2) to types that ``json.dumps`` can encode.
+
+    Handles ``Decimal``, ``datetime``, ``date``, ``time``, ``UUID``,
+    ``bytes`` and ``set`` — the set of types that psycopg2 may return
+    for PostgreSQL columns but which FastAPI's ``jsonable_encoder``
+    may not always handle inside a plain ``dict`` returned from raw SQL.
+    """
+    import datetime as _dt
+    import decimal
+    import uuid
+
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, (decimal.Decimal,)):
+        return float(value) if not _is_nan_decimal(value) else 0.0
+    if isinstance(value, _dt.datetime):
+        return value.isoformat()
+    if isinstance(value, _dt.date):
+        return value.isoformat()
+    if isinstance(value, _dt.time):
+        return value.isoformat()
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    if isinstance(value, (bytes, bytearray)):
+        return value.decode("utf-8", errors="replace")
+    if isinstance(value, set):
+        return sorted(v for v in value if v is not None)
+    return value
+
+
+def _is_nan_decimal(d: decimal.Decimal) -> bool:
+    try:
+        float(d)
+        return False
+    except (ValueError, OverflowError):
+        return True
+
+
 def _public_athlete(athlete: dict | None) -> dict:
-    """Return an athlete dict with sensitive fields (e.g. password_hash) stripped."""
+    """Return an athlete dict with sensitive fields stripped and all values
+    coerced to JSON-serializable types."""
     if athlete is None:
         return {}
-    return {k: v for k, v in athlete.items() if k not in ("password_hash", "email")}
+    return {
+        k: _json_safe(v)
+        for k, v in athlete.items()
+        if k not in ("password_hash", "email")
+    }
 
 
 def _athlete_profile_data(athlete: dict | None) -> dict | None:
@@ -642,6 +691,30 @@ async def version_check():
             pass
 
     return {"version": version, "source": source}
+
+
+@router.post("/cron")
+async def cron_job(request: Request):
+    """Scheduled maintenance endpoint for Vercel cron jobs.
+
+    Verifies the ``X-Cron-Secret`` header against ``CRON_SECRET`` env var,
+    then runs lightweight maintenance tasks (backup rotation).
+    """
+    expected = os.getenv("CRON_SECRET")
+    if not expected:
+        logger.warning("/cron called but CRON_SECRET is not configured")
+        raise HTTPException(status_code=500, detail="Cron not configured")
+    provided = request.headers.get("X-Cron-Secret", "")
+    if not hmac.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="Invalid cron secret")
+    try:
+        from ..db.database import scheduled_backup
+
+        result = scheduled_backup(max_backups=10)
+    except Exception:
+        logger.exception("Scheduled cron task failed")
+        result = {"status": "error"}
+    return result
 
 
 @router.post("/alerts/webhook")
@@ -2365,7 +2438,11 @@ async def get_aethermap_geo_natural_earth(
     try:
         coastlines = load_coastlines(resolution=resolution)
         borders = load_country_borders(resolution=resolution)
-        cities = load_cities(resolution=resolution, min_pop=min_pop)
+        try:
+            cities = load_cities(resolution=resolution, min_pop=min_pop)
+        except Exception as exc:
+            logger.warning("[aethermap] load_cities failed: %s — returning without cities", exc)
+            cities = {"type": "FeatureCollection", "features": []}
         ne_data = to_entities(
             coastlines=coastlines,
             borders=borders,
@@ -2378,18 +2455,24 @@ async def get_aethermap_geo_natural_earth(
             if ent.get("kind") == "line":
                 pts = ent.get("points", [])
                 coords = [[float(p.get("lon", 0)), float(p.get("lat", 0))] for p in pts if isinstance(p, dict)]
+                props = {"tipo": ent.get("tipo"), **ent.get("props", {})}
+                if "color" in ent:
+                    props["color"] = ent["color"]
                 features.append({
                     "type": "Feature",
-                    "properties": {"tipo": ent.get("tipo"), **ent.get("props", {})},
+                    "properties": props,
                     "geometry": {"type": "LineString", "coordinates": coords},
                 })
             else:
                 pos = ent.get("position", [0, 0])
                 lat = float(pos[0]) if len(pos) > 0 else 0.0
                 lon = float(pos[1]) if len(pos) > 1 else 0.0
+                props = {"tipo": ent.get("tipo"), **ent.get("props", {})}
+                if "color" in ent:
+                    props["color"] = ent["color"]
                 features.append({
                     "type": "Feature",
-                    "properties": {"tipo": ent.get("tipo"), **ent.get("props", {})},
+                    "properties": props,
                     "geometry": {"type": "Point", "coordinates": [lon, lat]},
                 })
         return {
@@ -2407,6 +2490,51 @@ async def get_aethermap_geo_natural_earth(
         raise
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+_twin_instance: DigitalTwin | None = None
+
+
+def _get_twin() -> DigitalTwin:
+    global _twin_instance
+    if _twin_instance is None:
+        from aethermap.twin import DigitalTwin
+        _twin_instance = DigitalTwin(persistent=True)
+    return _twin_instance
+
+
+@router.get("/aethermap/twin/snapshot")
+async def get_aethermap_twin_snapshot(current_user: dict = Depends(get_current_user)):
+    """Return the current Digital Twin snapshot (live object states)."""
+    try:
+        twin = _get_twin()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Digital Twin not available: {exc}",
+        ) from exc
+    return {"objects": twin.snapshot(), "count": len(twin.store.objects)}
+
+
+@router.post("/aethermap/twin/step")
+async def post_aethermap_twin_step(
+    temp_c: float = Query(15.0, description="Temperature in Celsius"),
+    solar_elev_deg: float = Query(45.0, description="Solar elevation angle"),
+    ora: str = Query("12:00", description="Time of day (HH:MM)"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Advance the Digital Twin simulation by one step."""
+    from aethermap.twin import Environment
+    try:
+        twin = _get_twin()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Digital Twin not available: {exc}",
+        ) from exc
+    env = Environment(temp_c=temp_c, solar_elev_deg=solar_elev_deg, ora=ora)
+    result = twin.step(env)
+    return {"objects": twin.snapshot(), **result}
 
 
 @router.get("/rides/{ride_id}/terrain")
@@ -3074,7 +3202,17 @@ async def get_my_athlete_profile(current_user: dict = Depends(get_current_user))
     from ..db.database import get_athlete as _get_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete = _get_athlete(current_user["id"], tenant_id)
+    try:
+        athlete = _get_athlete(current_user["id"], tenant_id)
+    except Exception:
+        logger.exception(
+            "get_athlete raised while fetching own profile (user_id=%s)",
+            current_user.get("id"),
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Errore nel recupero del profilo atleta",
+        )
     if not athlete:
         return {"athlete": None, "profile_complete": False}
     profile_complete = (
@@ -3082,7 +3220,12 @@ async def get_my_athlete_profile(current_user: dict = Depends(get_current_user))
         and athlete.get("weight_kg") is not None
         and (athlete.get("experience_level") or "").strip() != ""
     )
-    return {"athlete": _public_athlete(athlete), "profile_complete": profile_complete}
+    try:
+        safe_athlete = _public_athlete(athlete)
+    except Exception:
+        logger.exception("Failed to serialize athlete profile")
+        safe_athlete = _athlete_profile_data(athlete)
+    return {"athlete": safe_athlete, "profile_complete": profile_complete}
 
 
 @router.get("/athletes/me/metric-log")
@@ -3159,11 +3302,10 @@ async def upsert_my_athlete_profile(
                 "name": username,
                 "email": current_user.get("email"),
                 "experience_level": profile_data.experience_level or "Beginner",
+                "tenant_id": tenant_id,
             },
             athlete_id=current_user["id"],
         )
-        if created_id:
-            _update_athlete(created_id, {"tenant_id": created_id})
         athlete = _get_athlete(current_user["id"], tenant_id)
         if not athlete:
             raise HTTPException(status_code=500, detail="Failed to create athlete profile")
