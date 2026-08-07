@@ -41,7 +41,7 @@
         <div class="aethermap-sidebar-head">
           <span>{{ t("aethermap.rides") }}</span>
           <span class="aethermap-count"
-            >{{ selectedIds.length }}/{{ rides.length }}</span
+            >{{ store.selectedIds.length }}/{{ store.rides.length }}</span
           >
         </div>
         <div v-if="store.loading" class="aethermap-loading">
