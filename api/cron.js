@@ -6,7 +6,7 @@
 // so the free tier instance does not go to sleep. Swap BACKEND_URL to point
 // elsewhere, or change the target path to hit another public endpoint.
 
-export default async function handler(request) {
+module.exports = async function handler(request) {
   const authHeader = request.headers.get("Authorization");
   const cronSecret = process.env.CRON_SECRET;
 
