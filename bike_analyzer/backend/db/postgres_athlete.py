@@ -387,6 +387,8 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     now = datetime.now(UTC).isoformat()
     existing_cols = set(_get_existing_columns("athletes"))
     update_cols = [c for c in _UPDATE_COLS if c in existing_cols]
+    if not update_cols:
+        return False
     conn = None
     try:
         conn = _connect()
@@ -405,7 +407,10 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
                 params,
             )
             rowcount = cur.rowcount
-        save_athlete_snapshot(existing, tenant_id=existing.get("tenant_id", athlete_id), changed_by=None)
+        try:
+            save_athlete_snapshot(existing, tenant_id=existing.get("tenant_id", athlete_id), changed_by=None)
+        except Exception:
+            logger.exception("save_athlete_snapshot failed after update for athlete_id=%s", athlete_id)
         return rowcount > 0
     except Exception:
         logger.exception("update_athlete failed for athlete_id=%s", athlete_id)
@@ -534,7 +539,7 @@ def save_athlete_snapshot(
         logger.exception("save_athlete_snapshot failed for athlete_id=%s", athlete.get("id"))
         raise
     finally:
-        if own_conn:
+        if own_conn and conn is not None:
             conn.close()
 
 

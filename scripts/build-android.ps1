@@ -2,7 +2,7 @@ $env:ANDROID_HOME = "C:\Users\user\AppData\Local\Android\Sdk"
 $env:NDK_HOME = "C:\Users\user\AppData\Local\Android\Sdk\ndk\27.1.12297006"
 $env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-17.0.16.8-hotspot"
 $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
-$env:NODE_OPTIONS = "--require D:\BikeMaster\symlink-patch.js"
+$env:NODE_OPTIONS = "--require D:\BikeMaster\scratch\symlink-patch.js"
 
 $NDK_BIN = "$env:NDK_HOME\toolchains\llvm\prebuilt\windows-x86_64\bin"
 $env:CC_x86_64_linux_android = "$NDK_BIN\clang.exe"
