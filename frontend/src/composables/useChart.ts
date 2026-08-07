@@ -30,13 +30,22 @@ export type ChartInstance = any;
  * - Observes the container resize so charts stay responsive inside flex/grid.
  * - Destroys the instance on unmount to avoid canvas/context leaks.
  */
-export function useChart(config: Ref<ChartConfiguration>) {
+export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
   const canvas = ref<HTMLCanvasElement | null>(null);
   const chart = shallowRef<ChartInstance | null>(null);
   let observer: ResizeObserver | null = null;
 
   function buildConfig(): ChartConfiguration {
-    return chartTheme.apply(config.value);
+    const cfg = chartTheme.apply(config.value);
+    if (plugins.length) {
+      cfg.options = {
+        ...cfg.options,
+        plugins: {
+          ...(cfg.options?.plugins || {}),
+        },
+      } as ChartOptions;
+    }
+    return cfg;
   }
 
   function render() {
@@ -44,7 +53,10 @@ export function useChart(config: Ref<ChartConfiguration>) {
     const ctx = canvas.value.getContext("2d");
     if (!ctx) return;
     chart.value?.destroy();
-    chart.value = new ChartConstructor(ctx, buildConfig());
+    const next = buildConfig();
+    chart.value = new ChartConstructor(ctx, next, {
+      plugins,
+    });
   }
 
   function retheme() {

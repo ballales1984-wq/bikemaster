@@ -489,11 +489,14 @@ watch(
   },
 );
 
-watch(() => form.value.age, (newAge) => {
-  if (newAge != null && newAge > 0) {
-    form.value.body_age = newAge;
-  }
-});
+watch(
+  () => form.value.age,
+  (newAge) => {
+    if (newAge != null && newAge > 0) {
+      form.value.body_age = newAge;
+    }
+  },
+);
 
 function validateForm(): boolean {
   fieldErrors.value = validateAthleteForm(form.value);

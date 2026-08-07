@@ -34,6 +34,7 @@ if (typeof window !== "undefined") {
   }
   window.addEventListener("beforeinstallprompt", (e: Event) => {
     const evt = e as BeforeInstallPromptEvent;
+    e.preventDefault();
     if (!isPromptValid(evt)) return;
     deferredPrompt.value = evt;
     showPrompt.value = true;

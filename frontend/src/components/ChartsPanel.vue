@@ -1,6 +1,6 @@
 <!-- Pannello grafici performance: trend di una metrica selezionata, progressione mensile e confronto periodi.
      Props: none. Events: none (uses /api/v1/analytics). Metric selectors (distance, speed, duration, calories, elevation) and window.
-     UI: tre card BaseChart (trend con media mobile, barre mensili, confronto periodi) con riepilogo trend/R²/variazioni %. -->
+     UI: tre card con LineChart (trend con media mobile), BarChart (barre mensili), BarChart (confronto periodi) con riepilogo trend/R²/variazioni %. -->
 <template>
   <section class="charts-panel">
     <div class="panel">
@@ -29,7 +29,21 @@
       <div class="chart-grid">
         <div class="chart-card">
           <h3>Trend {{ metricLabel }}</h3>
-          <BaseChart :config="trendConfig" empty-label="Dati insufficienti" />
+          <LineChart
+            v-if="trendData.ready && trendData.values.length"
+            :labels="trendData.dates"
+            :data="trendData.values"
+            label="Valore"
+            :rolling-avg="trendData.rolling_avg"
+            :rolling-window="windowSize"
+            height="240px"
+          />
+          <BaseChart
+            v-else
+            :config="emptyTrendConfig"
+            height="240px"
+            empty-label="Dati insufficienti"
+          />
           <div v-if="trendData.ready" class="chart-summary">
             <span :class="trendClass">{{ trendData.trend }}</span>
             <span>R²: {{ trendData.r2 }}</span>
@@ -38,15 +52,31 @@
         </div>
         <div class="chart-card">
           <h3>Progressione Mensile</h3>
+          <BarChart
+            v-if="monthlyData.ready && monthlyData.months.length"
+            :labels="monthlyData.months"
+            :datasets="monthlyDatasets"
+            height="240px"
+          />
           <BaseChart
-            :config="monthlyConfig"
+            v-else
+            :config="emptyMonthlyConfig"
+            height="240px"
             empty-label="Nessun dato mensile"
           />
         </div>
         <div class="chart-card">
           <h3>{{ t("charts.periodComparison") }}</h3>
+          <BarChart
+            v-if="comparisonData.ready"
+            :labels="periodLabels"
+            :datasets="comparisonDatasets"
+            height="240px"
+          />
           <BaseChart
-            :config="comparisonConfig"
+            v-else
+            :config="emptyComparisonConfig"
+            height="240px"
             empty-label="Nessun confronto"
           />
           <div v-if="comparisonData.ready" class="chart-summary">
@@ -67,11 +97,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import type { ChartConfiguration } from "../utils/chartTypes";
-import BaseChart from "./BaseChart.vue";
+import BaseChart from "../components/BaseChart.vue";
+import LineChart from "../components/charts/LineChart.vue";
+import BarChart from "../components/charts/BarChart.vue";
 import { useI18n } from "../composables/useI18n";
 import { apiGet } from "../utils/api";
-import { chartTheme } from "../utils/chartTheme";
+import type { ChartConfiguration } from "../utils/chartTypes";
 
 const { t } = useI18n();
 
@@ -160,99 +191,58 @@ const trendClass = computed(() => {
   return "trend-neutral";
 });
 
-const trendConfig = computed<ChartConfiguration>(() => {
-  const data = trendData.value;
-  const p = chartTheme.palette.value;
-  return {
-    type: "line",
-    data: {
-      labels: (data.dates || []).map((d) => d?.slice(5) || "?"),
-      datasets: [
-        {
-          label: metricLabel.value,
-          data: data.values,
-          borderColor: p.accent,
-          backgroundColor: "rgba(0,255,204,0.1)",
-          tension: 0.3,
-          fill: true,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-        },
-        ...(data.rolling_avg?.length
-          ? [
-              {
-                label: `Moving avg (${windowSize.value})`,
-                data: data.rolling_avg,
-                borderColor: "#4ecca3",
-                backgroundColor: "transparent",
-                borderDash: [5, 5],
-                tension: 0.4,
-                pointRadius: 0,
-                fill: false,
-              },
-            ]
-          : []),
-      ],
+const emptyTrendConfig = computed<ChartConfiguration>(() => ({
+  type: "line",
+  data: { labels: [], datasets: [] },
+  options: { responsive: true, maintainAspectRatio: false },
+}));
+
+const emptyMonthlyConfig = computed<ChartConfiguration>(() => ({
+  type: "bar",
+  data: { labels: [], datasets: [] },
+  options: { responsive: true, maintainAspectRatio: false },
+}));
+
+const emptyComparisonConfig = computed<ChartConfiguration>(() => ({
+  type: "bar",
+  data: { labels: [], datasets: [] },
+  options: { responsive: true, maintainAspectRatio: false },
+}));
+
+const monthlyDatasets = computed(() => {
+  const d = monthlyData.value;
+  return [
+    {
+      label: "Distance (km)",
+      data: d.total_distance_km || [],
+      backgroundColor: "#4ecca3",
+      yAxisID: "y",
     },
-    options: {
-      scales: {
-        x: { ticks: { maxTicksLimit: 12 } },
-      },
+    {
+      label: "Duration (h)",
+      data: d.total_duration_hours || [],
+      backgroundColor: "#FF6B00",
+      yAxisID: "y1",
     },
-  } as ChartConfiguration;
+  ];
 });
 
-const monthlyConfig = computed<ChartConfiguration>(() => {
-  const data = monthlyData.value;
-  return {
-    type: "bar",
-    data: {
-      labels: data.months || [],
-      datasets: [
-        {
-          label: "Distance (km)",
-          data: data.total_distance_km || [],
-          backgroundColor: "#4ecca3",
-          yAxisID: "y",
-        },
-        {
-          label: "Duration (h)",
-          data: data.total_duration_hours || [],
-          backgroundColor: "#FF6B00",
-          yAxisID: "y1",
-        },
-      ],
-    },
-    options: {
-      scales: {
-        y: { position: "left", ticks: { color: "#4ecca3" } },
-        y1: { position: "right", grid: { display: false } },
-      },
-    },
-  } as ChartConfiguration;
-});
+const periodLabels = computed(() => ["Recent Period", "Previous Period"]);
 
-const comparisonConfig = computed<ChartConfiguration>(() => {
-  const data = comparisonData.value;
-  return {
-    type: "bar",
-    data: {
-      labels: ["Recent Period", "Previous Period"],
-      datasets: [
-        {
-          label: "Distance (km)",
-          data: [data.recent_distance_km ?? 0, data.previous_distance_km ?? 0],
-          backgroundColor: ["#4ecca3", "#888"],
-        },
-        {
-          label: "Avg Speed (km/h)",
-          data: [data.recent_avg_speed ?? 0, data.previous_avg_speed ?? 0],
-          backgroundColor: ["#FF6B00", "#666"],
-        },
-      ],
+const comparisonDatasets = computed(() => {
+  const d = comparisonData.value;
+  return [
+    {
+      label: "Distance (km)",
+      data: [d.recent_distance_km ?? 0, d.previous_distance_km ?? 0],
+      backgroundColor: ["#4ecca3", "#888"],
     },
-    options: {},
-  } as ChartConfiguration;
+    {
+      label: "Avg Speed (km/h)",
+      data: [d.recent_avg_speed ?? 0, d.previous_avg_speed ?? 0],
+      backgroundColor: ["#FF6B00", "#666"],
+    },
+  ];
 });
 
 async function loadTrends() {
@@ -320,5 +310,38 @@ onMounted(() => {
   border: 1px solid #333;
   padding: 0.3rem 0.6rem;
   border-radius: 4px;
+}
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+.chart-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  padding: 16px;
+}
+.chart-card h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+.chart-summary {
+  display: flex;
+  gap: 12px;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+.trend-up {
+  color: #4ecca3;
+}
+.trend-down {
+  color: #ff6b35;
+}
+.trend-neutral {
+  color: var(--text-muted);
 }
 </style>

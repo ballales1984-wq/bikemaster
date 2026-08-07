@@ -2,7 +2,7 @@
   Grafico storico per una metrica atleta (peso, % grassa, FTP, umore, sonno, altezza).
   Props: metricType (es. "weight_kg"), days (finestra temporale), label (titolo grafico).
   Store: useAthleteStore().fetchMetricLog() per caricare i dati.
-  UI: BaseChart con line chart, mostra valori e timestamp.
+  UI: LineChart con line chart, mostra valori e timestamp.
 -->
 <template>
   <div class="metric-history-chart">
@@ -12,11 +12,14 @@
         >Caricamento...</span
       >
     </div>
-    <BaseChart
+    <LineChart
       v-if="hasData"
-      :config="chartConfig"
+      :labels="formattedDates"
+      :data="values"
+      :label="chartLabel"
+      :unit="unit"
       height="260px"
-      empty-label="Nessun dato storico"
+      :empty-label="emptyLabel"
     />
     <p v-else class="metric-history-chart__empty">
       {{ emptyLabel }}
@@ -26,9 +29,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, watch } from "vue";
-import BaseChart from "./BaseChart.vue";
-import type { ChartConfiguration } from "../utils/chartTypes";
+import LineChart from "../components/charts/LineChart.vue";
 import { useAthleteStore } from "../stores/athlete";
+import { formatDateFull } from "../utils/chartFormatters";
 
 const props = withDefaults(
   defineProps<{
@@ -62,57 +65,16 @@ const unit = computed(() => {
   return units[props.metricType] || "";
 });
 
-const chartConfig = computed<ChartConfiguration>(() => ({
-  type: "line",
-  data: {
-    labels: series.value.map((s) =>
-      new Date(s.recorded_at).toLocaleDateString("it-IT", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
-    ),
-    datasets: [
-      {
-        label: `${props.label || props.metricType} (${unit.value})`,
-        data: series.value.map((s) => s.value),
-        borderColor: "#3b82f6",
-        backgroundColor: "rgba(59,130,246,0.1)",
-        fill: true,
-        tension: 0.3,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      },
-    ],
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: "index", intersect: false },
-    scales: {
-      y: {
-        beginAtZero: false,
-        grid: { color: "rgba(128,128,128,0.1)" },
-      },
-      x: {
-        grid: { display: false },
-        ticks: {
-          maxRotation: 45,
-          minRotation: 0,
-        },
-      },
-    },
-    plugins: {
-      legend: { labels: { usePointStyle: true } },
-      tooltip: {
-        callbacks: {
-          label: (ctx: any) =>
-            `${ctx.dataset.label}: ${ctx.parsed.y} ${unit.value}`.trim(),
-        },
-      },
-    },
-  },
-}));
+const formattedDates = computed(() =>
+  series.value.map((s) => formatDateFull(s.recorded_at)),
+);
+
+const values = computed(() => series.value.map((s) => s.value));
+
+const chartLabel = computed(() => {
+  const base = props.label || props.metricType;
+  return unit.value ? `${base} ${unit.value}` : base;
+});
 
 async function load() {
   await athleteStore.fetchMetricLog(props.metricType, props.days);

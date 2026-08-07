@@ -125,6 +125,12 @@ const overallStatusText = computed(() => {
   return t("monitoring.unknown");
 });
 
+const overallStatusIcon = computed(() => {
+  if (overallStatus.value === "healthy") return "✅";
+  if (overallStatus.value === "unhealthy") return "⚠️";
+  return "❓";
+});
+
 const diskInfo = computed(() => {
   if (!store.health || !store.health.disk) return null;
   return store.health.disk as Record<string, unknown>;

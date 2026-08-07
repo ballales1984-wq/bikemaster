@@ -1,9 +1,10 @@
 <template>
   <div class="metabolic-charts">
     <h3>Trend metabolico</h3>
-    <BaseChart
+    <AreaChart
       v-if="hasData"
-      :config="chartConfig"
+      :labels="sortedDates"
+      :datasets="areaDatasets"
       height="260px"
       empty-label="Nessun dato disponibile"
     />
@@ -15,8 +16,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import BaseChart from "./BaseChart.vue";
-import type { ChartConfiguration } from "../utils/chartTypes";
+import AreaChart from "./charts/AreaChart.vue";
 import type { MetabolicDailySummary } from "../types/index";
 
 const props = defineProps<{
@@ -31,55 +31,37 @@ const sorted = computed(() =>
 
 const hasData = computed(() => sorted.value.length > 0);
 
-const chartConfig = computed<ChartConfiguration>(() => ({
-  type: "line",
-  data: {
-    labels: sorted.value.map((s) => s.date.slice(5)),
-    datasets: [
-      {
-        label: "TDEE",
-        data: sorted.value.map((s) => s.tdee_kcal),
-        borderColor: "#3b82f6",
-        backgroundColor: "rgba(59,130,246,0.1)",
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: "Intake",
-        data: sorted.value.map((s) => s.intake_kcal),
-        borderColor: "#10b981",
-        backgroundColor: "rgba(16,185,129,0.1)",
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: "Bilancio",
-        data: sorted.value.map((s) => s.balance_kcal),
-        borderColor: "#f59e0b",
-        backgroundColor: "rgba(245,158,11,0.1)",
-        fill: true,
-        tension: 0.3,
-      },
-    ],
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: "index", intersect: false },
-    scales: {
-      y: {
-        beginAtZero: false,
-        grid: { color: "rgba(128,128,128,0.1)" },
-      },
-      x: {
-        grid: { display: false },
-      },
+const sortedDates = computed(() => sorted.value.map((s) => s.date.slice(5)));
+
+const areaDatasets = computed(() => {
+  const s = sorted.value;
+  return [
+    {
+      label: "TDEE",
+      data: s.map((d) => d.tdee_kcal),
+      borderColor: "#3b82f6",
+      backgroundColor: "rgba(59,130,246,0.1)",
+      tension: 0.3,
+      pointRadius: 3,
     },
-    plugins: {
-      legend: { labels: { usePointStyle: true } },
+    {
+      label: "Intake",
+      data: s.map((d) => d.intake_kcal),
+      borderColor: "#10b981",
+      backgroundColor: "rgba(16,185,129,0.1)",
+      tension: 0.3,
+      pointRadius: 3,
     },
-  },
-}));
+    {
+      label: "Bilancio",
+      data: s.map((d) => d.balance_kcal),
+      borderColor: "#f59e0b",
+      backgroundColor: "rgba(245,158,11,0.1)",
+      tension: 0.3,
+      pointRadius: 3,
+    },
+  ];
+});
 </script>
 
 <style scoped>

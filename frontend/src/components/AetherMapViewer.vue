@@ -833,7 +833,9 @@ function updateGeoBuffers() {
         if (pts.length >= 2) {
           const col: Vec3 =
             (feature.properties?.color as Vec3 | undefined) ||
-            geoColorForType(feature.properties?.tipo || layer.type);
+            geoColorForType(
+              (feature.properties?.tipo as string | undefined) || layer.type,
+            );
           for (let i = 0; i + 1 < pts.length; i++) {
             pushArc(lineData, pts[i], pts[i + 1], col);
           }
@@ -846,7 +848,9 @@ function updateGeoBuffers() {
         const r = GLOBE_RADIUS + h;
         const col: Vec3 =
           (feature.properties?.color as Vec3 | undefined) ||
-          geoColorForType(feature.properties?.tipo || layer.type);
+          geoColorForType(
+            (feature.properties?.tipo as string | undefined) || layer.type,
+          );
         pointData.push(d[0] * r, d[1] * r, d[2] * r, ...col);
       }
     }

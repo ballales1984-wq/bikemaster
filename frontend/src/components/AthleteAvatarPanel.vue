@@ -9,9 +9,15 @@
       <div class="avatar-subtitle">
         Visualizza i tuoi dati atletici in tempo reale
       </div>
+      <div v-if="loading" class="avatar-loading">
+        Caricamento dati atleta...
+      </div>
+      <div v-if="error" class="avatar-error">
+        {{ error }}
+      </div>
     </div>
 
-    <div class="avatar-content">
+    <div v-if="!loading && !error" class="avatar-content">
       <!-- Manichino umano SVG -->
       <div class="mannequin-section">
         <div class="section-title">Mappa Corporea</div>
@@ -359,10 +365,12 @@ import type { AthleteState } from "../types/athlete_state";
 const auth = useAthleteStore();
 const stateStore = useAthleteStateStore();
 
-const { state: athleteStateRaw } = storeToRefs(stateStore);
+const { state: athleteStateRaw, error: stateError } = storeToRefs(stateStore);
+const { error: authError } = storeToRefs(auth);
 const profile = computed(() => auth.profile);
 
 const athleteState = computed<AthleteState | null>(() => athleteStateRaw.value);
+const error = computed(() => stateError.value || authError.value);
 
 const hoveredCategory = ref<keyof typeof categoryConfig | "">("");
 const loading = ref(true);
@@ -661,6 +669,23 @@ onMounted(async () => {
   color: var(--text-muted);
   font-size: 0.85rem;
   margin-top: 4px;
+}
+
+.avatar-loading {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.avatar-error {
+  color: #ff3366;
+  font-size: 0.85rem;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 51, 102, 0.1);
+  border: 1px solid rgba(255, 51, 102, 0.3);
+  border-radius: var(--radius-xs);
 }
 
 .avatar-content {

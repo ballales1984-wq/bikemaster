@@ -13,7 +13,7 @@ export const useAetherMapStore = defineStore("aethermap", () => {
     loading.value = true;
     try {
       const data = await apiGet<{ rides: Ride[] }>("/api/v1/rides", {
-        page_size: "200",
+        page_size: "100",
       });
       rides.value = data.rides || [];
       if (rides.value.length) {

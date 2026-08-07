@@ -9,8 +9,19 @@
         }}</span>
       </div>
 
+      <LineChart
+        v-if="hasFtpData"
+        :labels="ftpHistoryLabels"
+        :data="ftpHistoryValues"
+        label="FTP (W)"
+        color="#4ecca3"
+        :show-kpi="false"
+        height="240px"
+        empty-label="Nessun dato FTP"
+      />
       <BaseChart
-        :config="ftpChartConfig"
+        v-else
+        :config="emptyFtpConfig"
         :height="'240px'"
         empty-label="Nessun dato FTP"
       />
@@ -83,7 +94,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import BaseChart from "./BaseChart.vue";
+import BaseChart from "../components/BaseChart.vue";
+import LineChart from "../components/charts/LineChart.vue";
 import type { ChartConfiguration } from "../utils/chartTypes";
 import { usePerformanceStore } from "../stores/performance";
 
@@ -99,31 +111,18 @@ const estimatedFtp = ref<number | null>(null);
 const latestFtp = computed(() => store.latestFtp);
 const saving = computed(() => store.saving);
 const error = computed(() => store.error);
+const hasFtpData = computed(() => store.ftpHistory.length > 0);
 
-const ftpChartConfig = computed<ChartConfiguration>(() => ({
+const ftpHistoryLabels = computed(() => store.ftpHistory.map((f) => f.date));
+
+const ftpHistoryValues = computed(() =>
+  store.ftpHistory.map((f) => f.ftp_watts),
+);
+
+const emptyFtpConfig = computed<ChartConfiguration>(() => ({
   type: "line",
-  data: {
-    labels: store.ftpHistory.map((f) => f.date),
-    datasets: [
-      {
-        label: "FTP (W)",
-        data: store.ftpHistory.map((f) => f.ftp_watts),
-        borderColor: "#4ecca3",
-        backgroundColor: "rgba(78, 204, 163, 0.2)",
-        fill: true,
-        tension: 0.3,
-        pointRadius: 4,
-      },
-    ],
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      x: { title: { display: true, text: "Data" } },
-      y: { title: { display: true, text: "Watt" }, beginAtZero: false },
-    },
-  },
+  data: { labels: [], datasets: [] },
+  options: { responsive: true, maintainAspectRatio: false },
 }));
 
 async function onRecord() {

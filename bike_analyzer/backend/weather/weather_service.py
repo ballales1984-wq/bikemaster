@@ -27,6 +27,37 @@ def _get_weather_api_key() -> str:
     return _s.weather_api_key
 
 
+GEOCODE_BASE_URL = "https://api.openweathermap.org/geo/1.0"
+
+
+def get_city_coordinates(city: str) -> dict:
+    """Convert city name to lat/lon using OpenWeatherMap Geocoding API."""
+    api_key = _get_weather_api_key()
+    if not api_key:
+        return {"error": "Weather API key not configured"}
+
+    endpoint = f"{GEOCODE_BASE_URL}/direct"
+    try:
+        resp = requests.get(
+            endpoint,
+            params={"q": city, "limit": 1, "appid": api_key},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if not data:
+            return {"error": f"City not found: {city}"}
+        first = data[0]
+        return {
+            "lat": first.get("lat"),
+            "lon": first.get("lon"),
+            "city": first.get("name", city),
+            "country": first.get("country", ""),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def get_weather_for_coordinates(lat: float, lon: float, date: str | None = None) -> dict:
     """Fetch weather for specific coordinates using OpenWeatherMap."""
     from ..db.database import get_weather_cache, save_weather_cache

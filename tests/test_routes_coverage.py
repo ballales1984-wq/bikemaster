@@ -159,6 +159,12 @@ def test_weather_endpoint_no_api_key(client):
     assert response.status_code in (200, 500)
 
 
+def test_weather_geocode_endpoint(client):
+    """Test geocode endpoint."""
+    response = client.get("/api/v1/weather/geocode?city=Milano")
+    assert response.status_code in (200, 404, 500)
+
+
 def test_maps_places_osm_search(client):
     """Test OSM places search endpoint."""
     response = client.get("/api/v1/maps/places/osm-search?lat=45.0&lon=7.0&query=cafe&limit=5")

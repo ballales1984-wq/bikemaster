@@ -30,7 +30,7 @@
           {{ t("aethermap.clear") }}
         </button>
         <label class="checkbox-control aethermap-color">
-          <input v-model="colorBySpeed" type="checkbox" />
+          <input v-model="store.colorBySpeed" type="checkbox" />
           <span>{{ t("aethermap.colorBySpeed") }}</span>
         </label>
       </div>

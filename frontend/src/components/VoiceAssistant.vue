@@ -320,7 +320,10 @@ async function stopAndProcess(): Promise<void> {
         throw new Error(detail || "STT failed");
       }
 
-      const sttResult = (await response.json()) as { text: string };
+      const sttResult = (await response.json()) as {
+        text: string;
+        backend?: string;
+      };
       transcript = sttResult.text.trim();
       backend = sttResult.backend || "backend";
     } catch (backendExc) {

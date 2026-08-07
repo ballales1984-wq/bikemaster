@@ -98,6 +98,8 @@ class AthleteState(BaseModel):
             "tsb": round(self.tsb, 1),
             "atl": round(self.atl, 1),
             "ctl": round(self.ctl, 1),
+            "fitness": round(self.fitness, 1),
+            "form": round(self.form, 1),
             "recovery_hours_needed": round(self.recovery_hours_needed, 1),
             "weekly_tss": round(self.weekly_tss, 1),
             "monthly_tss": round(self.monthly_tss, 1),
