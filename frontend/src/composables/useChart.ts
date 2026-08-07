@@ -14,6 +14,7 @@ import {
   type Ref,
 } from "vue";
 import ChartConstructor from "chart.js/auto";
+import "chartjs-adapter-date-fns";
 import { chartTheme } from "../utils/chartTheme";
 import type { ChartConfiguration, ChartOptions } from "../utils/chartTypes";
 

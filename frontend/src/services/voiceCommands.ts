@@ -525,12 +525,10 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
 
         const store = useRidesStore();
         const rideData: Record<string, unknown> = {
-          name: String(params.name || "Uscita vocale"),
+          title: String(params.name || "Uscita vocale"),
           date: new Date().toISOString(),
           distance_km: distanceKm || 0,
           duration_minutes: durationMin || 0,
-          distance_meters: (distanceKm || 0) * 1000,
-          duration_seconds: (durationMin || 0) * 60,
           avg_speed_kmh:
             distanceKm && durationMin
               ? distanceKm / (durationMin / 60)
@@ -540,7 +538,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
         const ride = await store.addRide(rideData);
         return buildResult(
           true,
-          `Uscita "${ride.name}" registrata: ${distanceKm || 0}km`,
+          `Uscita "${ride.title}" registrata: ${distanceKm || 0}km`,
           ride,
         );
       },

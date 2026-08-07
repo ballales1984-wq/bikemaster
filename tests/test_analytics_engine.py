@@ -68,7 +68,7 @@ def test_calculate_summary_multiple():
     assert result["total_rides"] == 2
     assert result["total_km"] == 25.0
     assert result["total_calories"] == 1000
-    assert result["avg_speed"] == 22.5
+    assert result["avg_speed_kmh"] == 22.5
 
 
 def test_analyze_ride():

@@ -15,7 +15,6 @@ export interface AthleteState {
   atl: number;
   ctl: number;
   fitness: number;
-  fatigue: number;
   form: number;
   recovery_hours_needed: number;
   weekly_tss: number;

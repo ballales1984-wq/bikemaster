@@ -37,12 +37,17 @@ def _mock_conn():
     cm = conn.cursor.return_value
     cm.__enter__.return_value = cur
     cm.__exit__.return_value = False
+    all_cols = set(
+        pa._INSERT_COLS + pa._UPDATE_COLS + pa._SNAPSHOT_COLS + pa._LOG_COLS + ["id", "user_id"]
+    )
+    cur.fetchall.return_value = [{"column_name": c} for c in all_cols]
     return conn, cur
 
 
 @pytest.fixture(autouse=True)
 def _pg_env():
     _pg_url()
+    pa._EXISTING_COLUMNS_CACHE.clear()
     yield
     _clear_pg_url()
 

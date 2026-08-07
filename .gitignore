@@ -160,6 +160,9 @@ mv.log
 # Scratch/duplicate dev folder
 temp_aethermap/
 
+# Natural Earth cached data (downloaded at runtime)
+aethermap/src/aethermap/geo/natural_earth/*.geojson
+
 # Local DB backups
 backups/
 

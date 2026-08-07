@@ -471,7 +471,6 @@ def _write_local_entity(entity_type: str, entity_id: int, data: dict[str, Any]) 
                 "date",
                 "computed_at",
                 "fitness",
-                "fatigue",
                 "form",
                 "atl",
                 "ctl",

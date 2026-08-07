@@ -187,11 +187,57 @@ def _entity_to_gl(obj: Any, earth_r: float = 6371000.0) -> dict[str, Any]:
             entry["kind"] = "point"
             entry["height_m"] = pos.alt or 5.0
             entry["position"] = [px, py, pz]
+        elif tipo in ("citta", "costa", "confine"):
+            entry["kind"] = "point" if tipo != "costa" and tipo != "confine" else "line"
+            if tipo in ("costa", "confine"):
+                punti = obj.geometria.dati.get("punti", []) if obj.geometria else []
+                pts = []
+                for p in punti:
+                    d = geodetic_to_direction(p["lat"], p["lon"])
+                    r = 1.0 + (p.get("ele") or 0.0) / earth_r
+                    pts.append([float(d[0] * r), float(d[1] * r), float(d[2] * r)])
+                entry["kind"] = "line"
+                entry["points"] = pts
+            else:
+                entry["position"] = [px, py, pz]
         else:
             entry["kind"] = "point"
             entry["position"] = [px, py, pz]
 
     return entry
+
+
+def _natural_earth_entity_to_gl(entry: dict[str, Any], earth_r: float = 6371000.0) -> dict[str, Any]:
+    if entry.get("kind") == "line":
+        pts = []
+        for p in entry.get("points", []):
+            d = geodetic_to_direction(p["lat"], p["lon"])
+            r = 1.0 + (p.get("ele") or 0.0) / earth_r
+            pts.append([float(d[0] * r), float(d[1] * r), float(d[2] * r)])
+        return {
+            "id": entry["id"],
+            "tipo": entry["tipo"],
+            "color": entry.get("color", [0.8, 0.8, 0.8]),
+            "kind": "line",
+            "points": pts,
+            "props": entry.get("props", {}),
+            "confidence": entry.get("confidence", 1.0),
+        }
+    pos = entry.get("position", [0, 0])
+    lat, lon = pos[0], pos[1]
+    d = geodetic_to_direction(lat, lon)
+    r = 1.0
+    px, py, pz = float(d[0] * r), float(d[1] * r), float(d[2] * r)
+    return {
+        "id": entry["id"],
+        "tipo": entry["tipo"],
+        "color": entry.get("color", [0.8, 0.8, 0.8]),
+        "kind": "point",
+        "position": [px, py, pz],
+        "radius": 1.0,
+        "props": entry.get("props", {}),
+        "confidence": entry.get("confidence", 1.0),
+    }
 
 
 # ===========================================================================
@@ -205,6 +251,8 @@ def export_world(
     terrain_base_alt: float = 0.0,
     terrain_scale: float = 0.04,
     dem_base_url: str | None = None,
+    natural_earth: bool = False,
+    ne_resolution: str = "110m",
 ) -> None:
     earth_r = 6_371_000.0
     if dem_base_url:
@@ -217,6 +265,22 @@ def export_world(
     entities = []
     for obj in twin.store.objects.values():
         entities.append(_entity_to_gl(obj, earth_r))
+
+    if natural_earth:
+        try:
+            from aethermap.geo.natural_earth import load_cities, load_coastlines, load_country_borders
+            from aethermap.geo.natural_earth import to_entities as ne_to_entities
+            ne_data = ne_to_entities(
+                coastlines=load_coastlines(resolution=ne_resolution),
+                borders=load_country_borders(resolution=ne_resolution),
+                cities=load_cities(resolution=ne_resolution, min_pop=50000),
+            )
+            for ne_ent in ne_data["entities"]:
+                entities.append(_natural_earth_entity_to_gl(ne_ent, earth_r))
+            print(f"[webgl_exporter] Natural Earth: +{ne_data['coastline_count']} coastlines, "
+                  f"+{ne_data['border_count']} borders, +{ne_data['city_count']} cities")
+        except Exception as exc:
+            print(f"[webgl_exporter] Natural Earth data unavailable: {exc}")
 
     relations = []
     for obj in twin.store.objects.values():
@@ -307,16 +371,18 @@ def export_world_geojson(
 
 
 def main() -> None:
-    import sys
+    import argparse
 
     from aethermap.twin.objects import make_albero, make_montagna, make_strada
 
-    output = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent / "world_data.json"
-    dem_url = None
-    if "--dem-base-url" in sys.argv:
-        idx = sys.argv.index("--dem-base-url")
-        if idx + 1 < len(sys.argv):
-            dem_url = sys.argv[idx + 1]
+    parser = argparse.ArgumentParser(description="AetherMap WebGL world exporter")
+    parser.add_argument("output", nargs="?", default=None, help="Output JSON path")
+    parser.add_argument("--dem-base-url", type=str, default=None, help="Backend URL per DEM reale")
+    parser.add_argument("--natural-earth", action="store_true", help="Includi dati Natural Earth")
+    parser.add_argument("--ne-resolution", type=str, default="110m", choices=["10m", "50m", "110m"])
+    args = parser.parse_args()
+
+    output = Path(args.output) if args.output else Path(__file__).resolve().parent / "world_data.json"
 
     twin = DigitalTwin()
     pts = [{"lat": 45.0 + i * 0.0005, "lon": 9.0 + i * 0.0006, "ele": 120 + (i % 2) * 2}
@@ -328,9 +394,15 @@ def main() -> None:
     env = Environment(temp_c=15.0, solar_elev_deg=30.0, ora="12:00")
     twin.step(env)
 
-    export_world(twin, output, dem_base_url=dem_url)
-    src_note = f" (DEM da {dem_url})" if dem_url else ""
-    print(f"[webgl_exporter] dati mondo esportati in {output}{src_note}")
+    export_world(
+        twin, output,
+        dem_base_url=args.dem_base_url,
+        natural_earth=args.natural_earth,
+        ne_resolution=args.ne_resolution,
+    )
+    src_note = f" (DEM da {args.dem_base_url})" if args.dem_base_url else ""
+    ne_note = " + Natural Earth" if args.natural_earth else ""
+    print(f"[webgl_exporter] dati mondo esportati in {output}{src_note}{ne_note}")
     print("[webgl_exporter] aprire webgl_stub.html nel browser per visualizzare")
 
 

@@ -52,7 +52,7 @@
             <label class="checkbox-control">
               <input v-model="selectedIds" type="checkbox" :value="ride.id" />
               <span class="aethermap-ride-name">{{
-                ride.name || ride.date
+                ride.title || ride.date
               }}</span>
             </label>
             <span class="aethermap-ride-meta">{{ formatDistance(ride) }}</span>
@@ -87,9 +87,7 @@ const loading = ref(false);
 const colorBySpeed = ref(true);
 
 function formatDistance(ride: Ride): string {
-  const km =
-    ride.distance_km ??
-    (ride.distance_meters ? ride.distance_meters / 1000 : 0);
+  const km = ride.distance_km;
   if (!km) return "";
   return `${km.toFixed(1)} km`;
 }

@@ -26,7 +26,7 @@ export interface GeoJSON {
 export interface GeoLayer {
   id: string;
   name: string;
-  type: "roads" | "cities" | "peaks";
+  type: "roads" | "cities" | "peaks" | "natural-earth";
   data: GeoJSON | null;
   loading: boolean;
   error: string | null;
@@ -60,7 +60,9 @@ export function useAetherMapGeo() {
           ? "#f2c738"
           : type === "cities"
             ? "#47eb6b"
-            : "#eb5247";
+            : type === "natural-earth"
+              ? "#5bc0de"
+              : "#eb5247";
       layers.value.set(id, {
         id,
         name: layerName(type),
@@ -78,7 +80,9 @@ export function useAetherMapGeo() {
         ? "/aethermap/geo/roads"
         : type === "cities"
           ? "/aethermap/geo/cities"
-          : "/aethermap/geo/peaks";
+          : type === "natural-earth"
+            ? "/aethermap/geo/natural-earth"
+            : "/aethermap/geo/peaks";
 
     try {
       const stringParams: Record<string, string> = {};
@@ -134,5 +138,7 @@ function layerName(type: GeoLayer["type"]): string {
       return "Città";
     case "peaks":
       return "Montagne";
+    case "natural-earth":
+      return "Mappa Terra";
   }
 }

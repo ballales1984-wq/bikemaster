@@ -279,7 +279,14 @@ def _load_static_world(path: str | Path) -> dict[str, Any] | None:
     return json.loads(p.read_text(encoding="utf-8"))
 
 
-def _build_dynamic_world(dem_url: str | None = None) -> dict[str, Any]:
+def _build_dynamic_world(
+    dem_url: str | None = None,
+    natural_earth: bool = False,
+    ne_resolution: str = "110m",
+) -> dict[str, Any]:
+    from aethermap.geo.natural_earth import load_cities, load_coastlines, load_country_borders
+    from aethermap.geo.natural_earth import to_entities as ne_to_entities
+    from aethermap.render.webgl_exporter import _entity_to_gl, _natural_earth_entity_to_gl
 
     twin = DigitalTwin()
     twin.add(make_strada("strada-1", 45.0, 9.0, [
@@ -297,6 +304,21 @@ def _build_dynamic_world(dem_url: str | None = None) -> dict[str, Any]:
         for obj in twin.store.objects.values()
         for rel in obj.relazioni
     ]
+
+    if natural_earth:
+        try:
+            ne_data = ne_to_entities(
+                coastlines=load_coastlines(resolution=ne_resolution),
+                borders=load_country_borders(resolution=ne_resolution),
+                cities=load_cities(resolution=ne_resolution, min_pop=50000),
+            )
+            for ne_ent in ne_data["entities"]:
+                entities.append(_natural_earth_entity_to_gl(ne_ent))
+            print(f"[server] Natural Earth: +{ne_data['coastline_count']} coastlines, "
+                  f"+{ne_data['border_count']} borders, +{ne_data['city_count']} cities")
+        except Exception as exc:
+            print(f"[server] Natural Earth data unavailable: {exc}")
+
     result = {
         "version": "aethermap-webgl-1.0",
         "terrain": terrain,
@@ -318,13 +340,15 @@ def serve(
     dynamic: bool = False,
     dem_base_url: str | None = None,
     bikemaster_url: str | None = None,
+    natural_earth: bool = False,
+    ne_resolution: str = "110m",
 ) -> HTTPServer:
     """Avvia il server AetherMap sulla porta specificata."""
     AetherMapHandler._bikemaster_url = bikemaster_url or "http://localhost:8000"
     if dynamic:
         import threading
         lock = threading.Lock()
-        world = _build_dynamic_world(dem_base_url)
+        world = _build_dynamic_world(dem_base_url, natural_earth, ne_resolution)
         AetherMapHandler._world_data = {k: v for k, v in world.items() if not k.startswith("_")}
         AetherMapHandler._dynamic = True
         AetherMapHandler._dynamic_lock = lock
@@ -361,6 +385,11 @@ def main() -> None:
     parser.add_argument("--dynamic", action="store_true", help="Modalita' dinamica: genera dati da DigitalTwin")
     parser.add_argument("--dem-base-url", type=str, default=None, help="URL backend BikeMaster per DEM reale (es. http://localhost:8000)")
     parser.add_argument("--bikemaster-url", type=str, default=None, help="URL backend BikeMaster per proxy tile (es. http://localhost:8000)")
+    parser.add_argument("--natural-earth", action="store_true",
+                        help="Carica dati Natural Earth (coste, confini, citta)")
+    parser.add_argument("--ne-resolution", type=str, default="110m",
+                        choices=["10m", "50m", "110m"],
+                        help="Risoluzione dati Natural Earth")
     args = parser.parse_args()
 
     serve(
@@ -370,6 +399,8 @@ def main() -> None:
         dynamic=args.dynamic,
         dem_base_url=args.dem_base_url,
         bikemaster_url=args.bikemaster_url,
+        natural_earth=args.natural_earth,
+        ne_resolution=args.ne_resolution,
     )
 
 

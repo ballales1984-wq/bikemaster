@@ -2324,6 +2324,61 @@ async def get_aethermap_geo_peaks(
     return data
 
 
+@router.get("/aethermap/geo/natural-earth")
+async def get_aethermap_geo_natural_earth(
+    resolution: str = Query("110m", description="Data resolution (10m, 50m, 110m)"),
+    min_pop: int = Query(50000, description="Minimum city population"),
+):
+    """Return Natural Earth coastline, border, and city data as GeoJSON."""
+    try:
+        from aethermap.geo.natural_earth import (
+            load_coastlines,
+            load_country_borders,
+            load_cities,
+            to_entities,
+        )
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail="Geo dependencies not installed") from exc
+    try:
+        ne_data = to_entities(
+            coastlines=load_coastlines(resolution=resolution),
+            borders=load_country_borders(resolution=resolution),
+            cities=load_cities(resolution=resolution, min_pop=min_pop),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    features = []
+    for ent in ne_data["entities"]:
+        if ent.get("kind") == "line":
+            pts = ent.get("points", [])
+            coords = [[p["lon"], p["lat"]] for p in pts]
+            features.append({
+                "type": "Feature",
+                "properties": {"tipo": ent["tipo"], **ent.get("props", {})},
+                "geometry": {"type": "LineString", "coordinates": coords},
+            })
+        else:
+            pos = ent.get("position", [0, 0])
+            features.append({
+                "type": "Feature",
+                "properties": {"tipo": ent["tipo"], **ent.get("props", {})},
+                "geometry": {"type": "Point", "coordinates": [pos[1], pos[0]]},
+            })
+
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "metadata": {
+            "source": "natural_earth",
+            "resolution": resolution,
+            "coastline_count": ne_data["coastline_count"],
+            "border_count": ne_data["border_count"],
+            "city_count": ne_data["city_count"],
+        },
+    }
+
+
 @router.get("/rides/{ride_id}/terrain")
 async def get_ride_terrain_enrichment(
     ride_id: int,

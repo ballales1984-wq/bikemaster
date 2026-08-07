@@ -134,7 +134,6 @@ class AthleteStateService:
             ctl=round(ctl, 1),
             tsb=round(tsb, 1),
             fitness=round(ctl, 1),
-            fatigue=round(atl, 1),
             form=round(tsb, 1),
             fatigue_score=round(avg_fatigue, 1),
             readiness=round(readiness, 1),

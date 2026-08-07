@@ -167,10 +167,6 @@
             <span class="a-lbl"> FC Media</span>
             <span class="a-val">{{ fmt(ride.heart_rate_avg, 0) }} bpm</span>
           </div>
-          <div v-if="ride.max_heart_rate" class="a-item">
-            <span class="a-lbl"> FC Massima</span>
-            <span class="a-val">{{ fmt(ride.max_heart_rate, 0) }} bpm</span>
-          </div>
           <div v-if="ride.fatigue_score !== undefined" class="a-item">
             <span class="a-lbl"> Affaticamento</span>
             <span class="a-val" :class="fatigueClass"

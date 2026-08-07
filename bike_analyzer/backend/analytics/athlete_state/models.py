@@ -23,7 +23,6 @@ class AthleteState(BaseModel):
     atl: float = Field(default=0.0)
     ctl: float = Field(default=0.0)
     fitness: float = Field(default=0.0)
-    fatigue: float = Field(default=0.0)
     form: float = Field(default=0.0)
     recovery_hours_needed: float = Field(default=0.0, ge=0.0)
     weekly_tss: float = Field(default=0.0, ge=0.0)

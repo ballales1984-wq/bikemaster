@@ -84,7 +84,7 @@ void main() {
   float light = 0.25 + 0.75 * diff;
   float sh = clamp(0.6 + 0.4 * vFacing, 0.0, 1.0);
   float rim = 1.0 - abs(vFacing);
-  vec3 base = mix(vec3(0.12,0.20,0.09), vec3(0.28,0.42,0.18), diff);
+  vec3 base = mix(vec3(0.02,0.08,0.22), vec3(0.06,0.18,0.45), diff);
   vec3 col = mix(base, uAtmColor, rim * rim * 0.5);
   outColor = vec4(col * light * sh, 1.0);
 }`;

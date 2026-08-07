@@ -33,6 +33,9 @@ geo = [
     "geopandas>=0.14.0",
     "shapely>=2.0.0",
 ]
+maps = [
+    "aethermap[geo,s2,viewer]",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

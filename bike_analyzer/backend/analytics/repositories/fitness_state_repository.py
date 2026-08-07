@@ -37,7 +37,6 @@ class FitnessStateRepository:
                     date=state.get("date", date.today().isoformat()),
                     computed_at=state.get("computed_at", datetime.now(UTC)),
                     fitness=state.get("fitness", 0.0),
-                    fatigue=state.get("fatigue", 0.0),
                     form=state.get("form", 0.0),
                     atl=state.get("atl", 0.0),
                     ctl=state.get("ctl", 0.0),

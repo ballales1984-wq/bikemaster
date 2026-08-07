@@ -36,11 +36,14 @@ cd aethermap/src
 python -m aethermap.ai.demo      # Fase 3: GPX -> strada + sensori -> traffico
 python -m aethermap.render.demo  # Fase 4: globo cube-sphere ASCII
 python -m aethermap.render.webgl_exporter --dem-base-url http://localhost:8000  # Fase 4: export con DEM reale dal backend BikeMaster
+python -m aethermap.render.webgl_exporter --natural-earth --ne-resolution 110m  # Fase 4: export con mappa Terra reale (Natural Earth)
 python -m aethermap.twin.demo    # Fase 5: oggetti vivi (giorno/sera/notte)
 ```
 Vista interattiva (richiede pygame + display): `python -m aethermap.render.app`.
 Vista WebGL (server locale): `python -m aethermap.render.server --dynamic`.
 Vista WebGL con DEM reale: `python -m aethermap.render.server --dynamic --dem-base-url http://localhost:8000`.
+Vista WebGL con mappa Terra reale: `python -m aethermap.render.server --dynamic --natural-earth`.
+Vista WebGL con mappa Terra ad alta risoluzione: `python -m aethermap.render.server --dynamic --natural-earth --ne-resolution 50m`.
 
 ## Stato
 - Fase 1-2: design doc completi e vincolati.
@@ -49,3 +52,4 @@ Vista WebGL con DEM reale: `python -m aethermap.render.server --dynamic --dem-ba
 - DEM reale: `webgl_exporter.py` supporta `--dem-base-url` per sostituire l'FBM procedurale con tile Copernicus/SRTM dal backend BikeMaster (`/aethermap/terrain`). Server espone `/api/terrain` come proxy.
 - ML: `models_ml.py` include SimpleNN (1-hidden-layer numpy) con persistenza JSON, oltre a ridge regression lineare.
 - In corso: risoluzione S2 minima nel viewer. Completato: fix radius_summary (analytics) con filtro geodesico, overlay griglia S2 nel viewer WebGL2 (toggle G), filtro entita' per livello S2 basato su zoom.
+- **Mappa Terra reale**: integrato Natural Earth (public domain) per coste, confini e citta' sulla sfera. Usa `--natural-earth` nel server o exporter. Dati scaricati da GitHub (nvkelso/natural-earth-vector) e cachati in `aethermap/geo/natural_earth/`. Default 110m (~134 coste, 333 confini, 221 citta). Opzioni: `--ne-resolution 50m` o `10m` (richiede `pip install aethermap[geo]` per semplificazione con geopandas).

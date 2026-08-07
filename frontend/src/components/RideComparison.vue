@@ -134,7 +134,7 @@ const metrics: MetricDef[] = [
       v == null ? "—" : Number(v).toFixed(1) + " km/h",
   },
   {
-    key: "elev_gain_meters",
+    key: "elevation_gain_m",
     label: "Elevation (m)",
     format: (v: number | undefined): string =>
       v == null ? "—" : Math.round(v).toString(),

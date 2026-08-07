@@ -55,6 +55,7 @@ import {
   type AetherScene,
 } from "../composables/useAetherMap";
 import { useAetherMapGeo } from "../composables/useAetherMapGeo";
+import { apiGet } from "../utils/api";
 
 interface MapPoint {
   lat: number;
@@ -92,12 +93,12 @@ let markerBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
 
 const rideIdsRef = computed(() => props.rideIds ?? []);
 const { scene, loading, error } = useAetherMap(rideIdsRef);
-const { layers, visibleLayers, toggleLayer } = useAetherMapGeo();
+const { layers, visibleLayers, toggleLayer, loadLayer } = useAetherMapGeo();
 const geoLayers = computed<
   Array<{
     id: string;
     name: string;
-    type: "roads" | "cities" | "peaks";
+    type: "roads" | "cities" | "peaks" | "natural-earth";
     data: { type: "FeatureCollection"; features: any[] } | null;
     loading: boolean;
     error: string | null;
@@ -105,6 +106,10 @@ const geoLayers = computed<
     color: string;
   }>
 >(() => Array.from(layers.value.values()));
+
+onMounted(async () => {
+  await loadLayer("natural-earth", "natural-earth", { resolution: "110m" });
+});
 
 let geoBufferMap: Map<
   string,
@@ -297,22 +302,18 @@ async function fetchTerrainTile(
     return cached.heights;
   }
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1500);
-    const params = new URLSearchParams({
-      min_lat: String(minLat),
-      max_lat: String(maxLat),
-      min_lon: String(minLon),
-      max_lon: String(maxLon),
-      resolution: String(resolution),
-      source: "auto",
-    });
-    const resp = await fetch(`/api/v1/aethermap/terrain?${params}`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!resp.ok) return null;
-    const data = await resp.json();
+    const data = await apiGet<{ heights: number[] }>(
+      "/api/v1/aethermap/terrain",
+      {
+        min_lat: String(minLat),
+        max_lat: String(maxLat),
+        min_lon: String(minLon),
+        max_lon: String(maxLon),
+        resolution: String(resolution),
+        source: "auto",
+      },
+      { timeoutMs: 1500 },
+    );
     const heights = new Float32Array(data.heights);
     terrainTileCache.set(key, { heights, resolution, timestamp: Date.now() });
     return heights;
