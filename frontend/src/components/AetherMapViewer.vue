@@ -926,6 +926,29 @@ onMounted(async () => {
     return v;
   }
 
+  float smoothEllipse(float lat, float lon, float clat, float clon, float rlat, float rlon) {
+    float dlat = (lat - clat) / rlat;
+    float dlon = (lon - clon) / rlon;
+    float d = dlat * dlat + dlon * dlon;
+    return 1.0 - smoothstep(0.7, 1.0, d);
+  }
+
+  float continentMask(float lat, float lon) {
+    float m = 0.0;
+    m = max(m, smoothEllipse(lat, lon, 45.0, -100.0, 22.0, 28.0));
+    m = max(m, smoothEllipse(lat, lon, 30.0, -90.0, 10.0, 15.0) * 0.8);
+    m = max(m, smoothEllipse(lat, lon, -15.0, -55.0, 12.0, 18.0) * 0.9);
+    m = max(m, smoothEllipse(lat, lon, 50.0, 10.0, 12.0, 18.0) * 0.85);
+    m = max(m, smoothEllipse(lat, lon, 5.0, 20.0, 22.0, 22.0) * 0.9);
+    m = max(m, smoothEllipse(lat, lon, 40.0, 80.0, 25.0, 40.0) * 0.85);
+    m = max(m, smoothEllipse(lat, lon, 55.0, 100.0, 12.0, 20.0) * 0.7);
+    m = max(m, smoothEllipse(lat, lon, -25.0, 135.0, 10.0, 14.0) * 0.8);
+    m = max(m, smoothstep(0.85, 1.0, abs(lat) / 1.57));
+    float detail = fbm2(vec2(lon * 8.0, lat * 8.0) + 0.5);
+    m = smoothstep(0.45, 0.65, m + detail * 0.2);
+    return m;
+  }
+
   vec3 satelliteColor(vec2 latLon, float elevation) {
     float lat = latLon.x;
     float lon = latLon.y;
@@ -955,38 +978,6 @@ onMounted(async () => {
 
     vec3 color = mix(ocean, land, continent);
     return color;
-  }
-
-  float continentMask(float lat, float lon) {
-    float m = 0.0;
-
-    // North America
-    m = max(m, smoothEllipse(lat, lon, 45.0, -100.0, 22.0, 28.0));
-    m = max(m, smoothEllipse(lat, lon, 30.0, -90.0, 10.0, 15.0) * 0.8);
-    // South America
-    m = max(m, smoothEllipse(lat, lon, -15.0, -55.0, 12.0, 18.0) * 0.9);
-    // Europe
-    m = max(m, smoothEllipse(lat, lon, 50.0, 10.0, 12.0, 18.0) * 0.85);
-    // Africa
-    m = max(m, smoothEllipse(lat, lon, 5.0, 20.0, 22.0, 22.0) * 0.9);
-    // Asia
-    m = max(m, smoothEllipse(lat, lon, 40.0, 80.0, 25.0, 40.0) * 0.85);
-    m = max(m, smoothEllipse(lat, lon, 55.0, 100.0, 12.0, 20.0) * 0.7);
-    // Australia
-    m = max(m, smoothEllipse(lat, lon, -25.0, 135.0, 10.0, 14.0) * 0.8);
-    // Antarctica
-    m = max(m, smoothstep(0.85, 1.0, abs(lat) / 1.57));
-
-    float detail = fbm2(vec2(lon * 8.0, lat * 8.0) + 0.5);
-    m = smoothstep(0.45, 0.65, m + detail * 0.2);
-    return m;
-  }
-
-  float smoothEllipse(float lat, float lon, float clat, float clon, float rlat, float rlon) {
-    float dlat = (lat - clat) / rlat;
-    float dlon = (lon - clon) / rlon;
-    float d = dlat * dlat + dlon * dlon;
-    return 1.0 - smoothstep(0.7, 1.0, d);
   }
 
   void main() {
