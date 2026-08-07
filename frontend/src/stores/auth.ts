@@ -2,11 +2,13 @@
  * Store di autenticazione.
  *
  * Gestisce token JWT, utente corrente, login/logout/register e refresh
- * token. Lo stato e' persistito in sessionStorage (non localStorage) cosi'
- * da sopravvivere a reload della pagina (es. aggiornamento service worker
- * durante il round-trip OAuth) senza mai scrivere il token su disco in modo
- * persistente. sessionStorage viene cancellato automaticamente alla chiusura
- * della scheda, riducendo la superficie di attacco XSS.
+ * token. Lo stato e' persistito in sessionStorage per sopravvivere a
+ * reload della pagina (es. aggiornamento service worker durante il
+ * round-trip OAuth). sessionStorage e' accessibile a qualsiasi script
+ * della stessa origine durante la sessione, quindi una vulnerabilita'
+ * XSS potrebbe comunque esporre i token; la preferenza su localStorage
+ * e' motivata dalla durata limitata della sessione, non da una protezione
+ * aggiuntiva contro XSS.
  */
 import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
@@ -45,6 +47,14 @@ function parseJWTPayload(tokenStr: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+export function isTokenExpired(tokenStr: string): boolean {
+  const payload = parseJWTPayload(tokenStr);
+  if (!payload) return true;
+  const exp = payload.exp as number | undefined;
+  if (!exp) return false;
+  return Date.now() >= exp * 1000;
 }
 
 export const useAuthStore = defineStore("auth", () => {

@@ -224,7 +224,8 @@ def init_db():
             note TEXT,
             source TEXT DEFAULT 'manual',
             recorded_at TEXT,
-            created_at TEXT
+            created_at TEXT,
+            UNIQUE(athlete_id, metric_type, recorded_at)
         )""")
         with suppress(Exception):
             conn.execute(
@@ -233,7 +234,7 @@ def init_db():
             )
         with suppress(Exception):
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS ix_metric_log_recorded "
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_metric_log_athlete_metric_recorded "
                 "ON athlete_metric_log(athlete_id, metric_type, recorded_at)"
             )
         conn.execute("""CREATE TABLE IF NOT EXISTS chat_history (
@@ -1344,10 +1345,10 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
 def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 0, user_id: int | None = None) -> int:
     """Inserisce o aggiorna il profilo di un atleta.
 
-    Se ``athlete_id`` e' fornito sovrascrive la riga esistente (UPSERT
-    implicito tramite INSERT con id esplicito). Altrimenti crea un nuovo
-    atleta. Riprova fino a 5 volte su lock SQLite con backoff esponenziale.
-    Restituisce l'id dell'atleta creato/aggiornato.
+    Se ``athlete_id`` e' fornito esegue un UPSERT (INSERT OR REPLACE)
+    sovrascrivendo la riga esistente con lo stesso id. Altrimenti crea
+    un nuovo atleta. Riprova fino a 5 volte su lock SQLite con backoff
+    esponenziale. Restituisce l'id dell'atleta creato/aggiornato.
     """
     from .postgres_athlete import has_postgres
     from .postgres_athlete import save_athlete as _pg_save_athlete
@@ -1359,10 +1360,16 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
     max_retries = 5
     retry_delay = 0.2
     last_error = None
+    is_new = False
     for attempt in range(max_retries):
         try:
             with get_db_connection() as conn:
                 cur = conn.cursor()
+                if athlete_id is not None:
+                    cur.execute("SELECT id FROM athletes WHERE id = ?", (athlete_id,))
+                    is_new = cur.fetchone() is None
+                else:
+                    is_new = True
                 base_cols = [
                     "name", "email", "picture", "age", "weight_kg", "height_cm", "fat_percentage",
                     "years_active", "weekly_sessions", "monthly_hours", "annual_hours",
@@ -1412,7 +1419,7 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
                         cols.insert(1, "user_id")
                         vals.insert(1, user_id)
                     cur.execute(
-                        f"INSERT INTO athletes ({', '.join(cols)}) VALUES ({', '.join(['?'] * len(cols))})",
+                        f"INSERT OR REPLACE INTO athletes ({', '.join(cols)}) VALUES ({', '.join(['?'] * len(cols))})",
                         vals,
                     )
                 conn.commit()
@@ -1714,6 +1721,38 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
         return cur.rowcount > 0
 
 
+def _ensure_oauth_lock_table():
+    with get_db_connection() as conn:
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS oauth_locks (
+                lock_key TEXT PRIMARY KEY,
+                acquired_at TEXT NOT NULL
+            )"""
+        )
+        conn.commit()
+
+
+def acquire_oauth_sqlite_lock(lock_key: str, ttl_seconds: int = 10) -> bool:
+    _ensure_oauth_lock_table()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "INSERT OR IGNORE INTO oauth_locks (lock_key, acquired_at) VALUES (?, ?)",
+                (lock_key, datetime.now(UTC).isoformat()),
+            )
+            conn.commit()
+            return cur.rowcount > 0
+        except sqlite3.OperationalError:
+            return False
+
+
+def release_oauth_sqlite_lock(lock_key: str):
+    with get_db_connection() as conn:
+        conn.execute("DELETE FROM oauth_locks WHERE lock_key = ?", (lock_key,))
+        conn.commit()
+
+
 def get_athletes_by_user(user_id: int) -> list[dict]:
     """Restituisce tutti gli atleti di un utente ordinati per id."""
     from .postgres_athlete import get_athletes_by_user as _pg_get_athletes_by_user
@@ -1867,7 +1906,7 @@ def log_athlete_metric(
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO athlete_metric_log
+            """INSERT OR REPLACE INTO athlete_metric_log
                (athlete_id, tenant_id, metric_type, value, unit, note, source, recorded_at, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (

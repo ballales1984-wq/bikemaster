@@ -260,7 +260,6 @@ async function loginWithGoogle() {
   } catch (e) {
     ui.setOauthLoading(false);
     emit("error", e.message);
-    alert(e.message);
   } finally {
     loading.value = false;
   }

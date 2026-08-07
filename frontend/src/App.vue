@@ -234,7 +234,9 @@ async function onLogin(creds) {
   try {
     loginError.value = "";
     await auth.login(creds.username, creds.password);
-    router.push("/rides");
+    const complete = await checkProfileComplete();
+    const target = complete ? "/rides" : "/athlete";
+    router.push(target);
     await loadSummary();
   } catch (e) {
     loginError.value = e.message;
@@ -244,14 +246,21 @@ async function onLogin(creds) {
 async function onGoogleLogin() {
   loginError.value = "";
   ui.setOauthLoading(false);
-  if (route.path === "/" || route.path === "") {
-    try {
-      await router.replace("/rides");
-    } catch {
-      /* ignore */
-    }
-  }
   if (loggedIn.value) {
+    const complete = await checkProfileComplete();
+    if (!complete && (route.path === "/" || route.path === "")) {
+      try {
+        await router.replace("/athlete");
+      } catch {
+        /* ignore */
+      }
+    } else if (route.path === "/" || route.path === "") {
+      try {
+        await router.replace("/rides");
+      } catch {
+        /* ignore */
+      }
+    }
     await loadSummary();
   }
 }
@@ -260,9 +269,13 @@ async function onRegister(creds) {
   try {
     loginError.value = "";
     await auth.register(creds.username, creds.password);
-    await auth.login(creds.username, creds.password);
-    router.push("/rides");
-    await loadSummary();
+    try {
+      await auth.login(creds.username, creds.password);
+      router.push("/rides");
+      await loadSummary();
+    } catch {
+      loginError.value = "Account created. Please log in with your new credentials.";
+    }
   } catch (e) {
     loginError.value = e.message;
   }
@@ -287,6 +300,24 @@ async function onLogout() {
 
 async function onSummaryChange() {
   await loadSummary();
+}
+
+async function checkProfileComplete() {
+  try {
+    const data = await apiGet(
+      "/api/v1/auth/me",
+      {},
+      {
+        headers: { Authorization: `Bearer ${auth.token}` },
+        suppressAuthClear: true,
+        timeoutMs: 8000,
+        noRetry: true,
+      },
+    );
+    return data.profile_complete === true;
+  } catch {
+    return false;
+  }
 }
 
 function onConsentSaved() {

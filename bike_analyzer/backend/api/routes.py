@@ -1687,8 +1687,12 @@ async def google_oauth_callback_get(
             r = await get_redis()
             if r is not None:
                 lock_acquired = await r.set(lock_key, "1", ex=10, nx=True)
+                lock_release = lambda: None  # will be replaced below
             else:
-                lock_acquired = True
+                from ..db.database import acquire_oauth_sqlite_lock, release_oauth_sqlite_lock
+
+                lock_acquired = acquire_oauth_sqlite_lock(lock_key, ttl_seconds=10)
+                lock_release = lambda: release_oauth_sqlite_lock(lock_key)
             try:
                 if lock_acquired:
 
@@ -1714,6 +1718,8 @@ async def google_oauth_callback_get(
             finally:
                 if r is not None:
                     await r.delete(lock_key)
+                else:
+                    lock_release()
 
         if not existing:
             resp = _build_oauth_error_url(request, redirect_uri, "user_creation_failed", frontend_origin)

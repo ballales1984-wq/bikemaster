@@ -7,10 +7,12 @@ const apiPost = vi.hoisted(() => vi.fn());
 vi.mock("../utils/api.ts", () => ({ apiGet, apiPost }));
 
 const mockUpdateProfile = vi.hoisted(() => vi.fn(() => Promise.resolve({ id: 3 })));
+const mockFetchProfile = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 vi.mock("../stores/athlete", () => ({
   useAthleteStore: () => ({
     profile: { value: null },
     updateProfile: mockUpdateProfile,
+    fetchProfile: mockFetchProfile,
     fetchMetricLog: vi.fn(() => Promise.resolve([])),
   }),
 }));
@@ -86,21 +88,21 @@ describe("AthletePanel", () => {
   });
 
   it("loads existing athlete profile on mount", async () => {
-    apiGet.mockResolvedValueOnce(mockAthlete);
+    mockFetchProfile.mockResolvedValueOnce(mockAthlete.athlete);
 
     const wrapper = mount(AthletePanel, {
       global: { plugins: [router] },
     });
     await flush();
 
-    expect(apiGet).toHaveBeenCalledWith("/api/v1/athletes/me");
+    expect(mockFetchProfile).toHaveBeenCalled();
     expect(wrapper.find("#athlete-name").element.value).toBe("Marco Rossi");
     expect(wrapper.find("#athlete-age").element.value).toBe("35");
     expect(wrapper.find("#athlete-weight").element.value).toBe("72");
   });
 
   it("saves new athlete via store if none exists", async () => {
-    apiGet.mockResolvedValueOnce({ athlete: null });
+    mockFetchProfile.mockResolvedValueOnce(null);
     mockUpdateProfile.mockResolvedValueOnce({ id: 10 });
 
     const wrapper = mount(AthletePanel, {
@@ -119,7 +121,7 @@ describe("AthletePanel", () => {
   });
 
   it("updates existing athlete via store", async () => {
-    apiGet.mockResolvedValueOnce(mockAthlete);
+    mockFetchProfile.mockResolvedValueOnce(mockAthlete.athlete);
     mockUpdateProfile.mockResolvedValueOnce({ id: 3 });
 
     const wrapper = mount(AthletePanel, {
@@ -138,8 +140,8 @@ describe("AthletePanel", () => {
   });
 
   it("shows error if save fails", async () => {
-    apiGet.mockResolvedValueOnce({ athlete: null });
-    apiPost.mockRejectedValueOnce(new Error("Server error"));
+    mockFetchProfile.mockResolvedValueOnce(null);
+    mockUpdateProfile.mockRejectedValueOnce(new Error("Server error"));
 
     const wrapper = mount(AthletePanel, {
       global: { plugins: [router] },
@@ -155,7 +157,7 @@ describe("AthletePanel", () => {
   });
 
   it("renders form fields correctly", async () => {
-    apiGet.mockResolvedValueOnce({ athlete: null });
+    mockFetchProfile.mockResolvedValueOnce(null);
 
     const wrapper = mount(AthletePanel, {
       global: { plugins: [router] },
@@ -171,7 +173,7 @@ describe("AthletePanel", () => {
   });
 
   it("shows athlete profile info", async () => {
-    apiGet.mockResolvedValueOnce(mockAthlete);
+    mockFetchProfile.mockResolvedValueOnce(mockAthlete.athlete);
 
     const wrapper = mount(AthletePanel, {
       global: { plugins: [router] },
@@ -183,7 +185,7 @@ describe("AthletePanel", () => {
   });
 
   it("displays save button", async () => {
-    apiGet.mockResolvedValueOnce({ athlete: null });
+    mockFetchProfile.mockResolvedValueOnce(null);
 
     const wrapper = mount(AthletePanel, {
       global: { plugins: [router] },
@@ -194,7 +196,7 @@ describe("AthletePanel", () => {
   });
 
   it("saves athlete with all form fields", async () => {
-    apiGet.mockResolvedValueOnce({ athlete: null });
+    mockFetchProfile.mockResolvedValueOnce(null);
     mockUpdateProfile.mockResolvedValueOnce({ id: 10 });
 
     const wrapper = mount(AthletePanel, {
@@ -231,7 +233,7 @@ describe("AthletePanel", () => {
   });
 
   it("handles load athlete API failure", async () => {
-    apiGet.mockRejectedValueOnce(new Error("Load failed"));
+    mockFetchProfile.mockRejectedValueOnce(new Error("Load failed"));
 
     const wrapper = mount(AthletePanel, {
       global: { plugins: [router] },
@@ -243,7 +245,7 @@ describe("AthletePanel", () => {
   });
 
   it("emits toast on save", async () => {
-    apiGet.mockResolvedValueOnce({ athlete: null });
+    mockFetchProfile.mockResolvedValueOnce(null);
     mockUpdateProfile.mockResolvedValueOnce({ id: 10 });
 
     const wrapper = mount(AthletePanel, {
@@ -259,7 +261,7 @@ describe("AthletePanel", () => {
   });
 
   it("shows history charts after save", async () => {
-    apiGet.mockResolvedValueOnce({ athlete: null });
+    mockFetchProfile.mockResolvedValueOnce(null);
     mockUpdateProfile.mockResolvedValueOnce({ id: 10 });
 
     const wrapper = mount(AthletePanel, {

@@ -84,7 +84,7 @@
           id="athlete-fat"
           v-model.number="form.fat_percentage"
           type="number"
-          min="3"
+          min="2"
           max="60"
           step="0.1"
         />
@@ -362,12 +362,18 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "../composables/useToast";
-import { apiGet } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
 import { useAthleteStore } from "../stores/athlete";
 import { validateAthleteForm } from "../utils/validation";
 import MetricHistoryChart from "./MetricHistoryChart.vue";
 import AthleteSelector from "./AthleteSelector.vue";
+
+const auth = useAuthStore();
+const athleteStore = useAthleteStore();
+
+const router = useRouter();
+const toast = useToast();
+defineEmits(["toast"]);
 
 interface AthleteForm {
   name: string;
@@ -379,15 +385,15 @@ interface AthleteForm {
   muscle_mass_percentage: number;
   bmr_kcal: number;
   fat_mass_kg: number;
-  subcutaneous_fat_kg: number;
+  subcutaneous_fat_kg: number | undefined;
   subcutaneous_fat_percentage: number;
-  visceral_fat_level: number;
+  visceral_fat_level: number | undefined;
   visceral_fat_percentage: number;
-  visceral_fat_kg: number;
+  visceral_fat_kg: number | undefined;
   muscle_mass_kg: number;
   bone_mass_kg: number;
   protein_percentage: number;
-  protein_kg: number;
+  protein_kg: number | undefined;
   body_age: number;
   apparent_age: number;
   bmi: number | null;
@@ -400,17 +406,6 @@ interface AthleteForm {
   goals: string;
 }
 
-interface AthleteResponse {
-  athlete?: Partial<AthleteForm> & { id?: number };
-  id?: number;
-}
-
-const auth = useAuthStore();
-const athleteStore = useAthleteStore();
-
-const router = useRouter();
-const toast = useToast();
-defineEmits(["toast"]);
 const form = ref<AthleteForm>({
   name: "",
   age: 30,
@@ -421,15 +416,15 @@ const form = ref<AthleteForm>({
   muscle_mass_percentage: 40,
   bmr_kcal: 1500,
   fat_mass_kg: 10.5,
-  subcutaneous_fat_kg: 8,
+  subcutaneous_fat_kg: undefined,
   subcutaneous_fat_percentage: 12,
-  visceral_fat_level: 5,
+  visceral_fat_level: undefined,
   visceral_fat_percentage: 0,
-  visceral_fat_kg: 2.5,
+  visceral_fat_kg: undefined,
   muscle_mass_kg: 28,
   bone_mass_kg: 3.5,
   protein_percentage: 16,
-  protein_kg: 11.2,
+  protein_kg: undefined,
   body_age: 30,
   apparent_age: 30,
   bmi: null,
@@ -498,8 +493,7 @@ function validateForm(): boolean {
 }
 
 async function loadAthlete() {
-  const data = (await apiGet("/api/v1/athletes/me")) as AthleteResponse;
-  const athlete = data.athlete;
+  const athlete = await athleteStore.fetchProfile();
   if (athlete) {
     athleteId.value = athlete.id ?? null;
     form.value = { ...form.value, ...athlete } as AthleteForm;
@@ -522,16 +516,20 @@ async function save() {
     return;
   }
   try {
-    await athleteStore.updateProfile(form.value);
+    const editableFields: Record<string, unknown> = { ...form.value };
+    delete editableFields.bmi;
+    delete editableFields.subcutaneous_fat_kg;
+    delete editableFields.visceral_fat_level;
+    delete editableFields.visceral_fat_kg;
+    delete editableFields.protein_kg;
+    await athleteStore.updateProfile(editableFields);
     athleteId.value = athleteStore.profile?.id ?? null;
     result.value = "Profilo atleta aggiornato";
     toast.show("Profilo salvato con successo", "success");
     showHistory.value = true;
-    if (isFirstLogin.value) {
-      setTimeout(() => router.push("/rides"), 1500);
-    }
-    if (profileWasIncomplete.value) {
-      setTimeout(() => router.push("/rides"), 500);
+    const shouldRedirect = isFirstLogin.value || profileWasIncomplete.value;
+    if (shouldRedirect) {
+      setTimeout(() => router.push("/rides"), 1200);
     }
   } catch (e: unknown) {
     result.value = "Errore: " + (e instanceof Error ? e.message : String(e));

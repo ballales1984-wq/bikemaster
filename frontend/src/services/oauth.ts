@@ -11,7 +11,7 @@
  * Exports: hasPendingOAuth, processOAuthToken
  */
 
-import { useAuthStore } from "../stores/auth";
+import { useAuthStore, isTokenExpired } from "../stores/auth";
 import { useUIStore } from "../stores/ui";
 
 // In-flight OAuth tokens are stashed here so a page reload that happens during
@@ -94,8 +94,7 @@ export function processOAuthToken(): boolean {
 
   // Fresh OAuth return: the token is in the URL fragment/query.
   if (urlToken) {
-    const payload = parseJWTPayload(urlToken);
-    if (payload && typeof payload.exp === "number" && Date.now() >= payload.exp * 1000) {
+    if (isTokenExpired(urlToken)) {
       clearPendingOAuth();
       ui.setOauthLoading(false);
       clearUrlToken();
