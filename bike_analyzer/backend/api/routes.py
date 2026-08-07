@@ -3085,9 +3085,6 @@ async def upsert_my_athlete_profile(
     updates = {k: v for k, v in profile_data.model_dump().items() if v is not None}
     if updates:
         _update_athlete(athlete["id"], updates)
-        # Registra nello storico le metriche tracciabili che sono cambiate,
-        # cosi' e' possibile disegnare grafici di andamento (peso, % grassa,
-        # FTP, umore, sonno, altezza).
         from ..db.database import log_athlete_metric
 
         tracked = {
@@ -3117,16 +3114,22 @@ async def upsert_my_athlete_profile(
             if field in updates and updates[field] is not None:
                 old = athlete.get(field)
                 new_value = float(updates[field])
-                # Logga solo se il valore e' nuovo (o non c'era storico).
                 if old is None or float(old) != new_value:
-                    log_athlete_metric(
-                        athlete["id"],
-                        field,
-                        new_value,
-                        tenant_id=tenant_id,
-                        unit=unit,
-                        source="manual",
-                    )
+                    try:
+                        log_athlete_metric(
+                            athlete["id"],
+                            field,
+                            new_value,
+                            tenant_id=tenant_id,
+                            unit=unit,
+                            source="manual",
+                        )
+                    except Exception:
+                        logger.exception(
+                            "log_athlete_metric failed after PUT /athletes/me for athlete_id=%s field=%s",
+                            athlete["id"],
+                            field,
+                        )
     athlete = _get_athlete(current_user["id"], tenant_id)
     profile_complete = (
         athlete.get("age") is not None

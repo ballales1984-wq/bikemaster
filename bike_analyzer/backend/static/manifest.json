@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "BikeMaster",
   "short_name": "BikeMaster",
   "description": "Advanced cycling analytics and AI coaching",
@@ -12,28 +13,64 @@
   "categories": ["fitness", "health", "sports"],
   "icons": [
     {
+      "src": "/pwa-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/pwa-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "shortcuts": [
     {
       "name": "Start Tracking",
       "url": "/track",
-      "description": "Start GPS ride tracking"
+      "description": "Start GPS ride tracking",
+      "icons": [
+        {
+          "src": "/pwa-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "My Rides",
       "url": "/rides",
-      "description": "View your ride history"
+      "description": "View your ride history",
+      "icons": [
+        {
+          "src": "/pwa-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "BikeMaster desktop dashboard"
+    },
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "1080x2400",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "BikeMaster mobile ride tracking"
     }
   ]
 }
