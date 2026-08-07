@@ -40,6 +40,9 @@ maps = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+aethermap = ["geo/natural_earth/*.geojson"]
+
 [tool.ruff]
 line-length = 120
 
