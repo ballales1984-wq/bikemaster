@@ -1716,6 +1716,11 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
 
 def get_athletes_by_user(user_id: int) -> list[dict]:
     """Restituisce tutti gli atleti di un utente ordinati per id."""
+    from .postgres_athlete import get_athletes_by_user as _pg_get_athletes_by_user
+    from .postgres_athlete import has_postgres
+
+    if has_postgres():
+        return _pg_get_athletes_by_user(user_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT * FROM athletes WHERE user_id = ? ORDER BY id", (user_id,))
@@ -1724,6 +1729,11 @@ def get_athletes_by_user(user_id: int) -> list[dict]:
 
 
 def get_athlete_count_by_user(user_id: int) -> int:
+    from .postgres_athlete import get_athlete_count_by_user as _pg_get_athlete_count_by_user
+    from .postgres_athlete import has_postgres
+
+    if has_postgres():
+        return _pg_get_athlete_count_by_user(user_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT COUNT(*) FROM athletes WHERE user_id = ?", (user_id,))
@@ -1732,8 +1742,13 @@ def get_athlete_count_by_user(user_id: int) -> int:
 
 def delete_athlete(athlete_id: int, user_id: int) -> bool:
     """Elimina un atleta se appartiene all'utente. Non elimina l'atleta principale se id==user_id."""
+    from .postgres_athlete import delete_athlete as _pg_delete_athlete
+    from .postgres_athlete import has_postgres
+
     if athlete_id == user_id:
         return False
+    if has_postgres():
+        return _pg_delete_athlete(athlete_id, user_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("DELETE FROM athletes WHERE id = ? AND user_id = ?", (athlete_id, user_id))

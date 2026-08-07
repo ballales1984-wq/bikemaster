@@ -46,7 +46,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: RUN_MIGRATIONS_ON_STARTUP
-        value: "0"
+        value: "1"
       - key: OTEL_EXPORTER_ZIPKIN_ENDPOINT
         value: ""
       - key: OTEL_EXPORTER_OTLP_ENDPOINT

@@ -518,3 +518,45 @@ def get_athlete_history(
             return [_dict_from_row(r) for r in cur.fetchall()]
     finally:
         conn.close()
+
+
+def get_athletes_by_user(user_id: int) -> list[dict]:
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM athletes WHERE user_id=%s ORDER BY id",
+                (user_id,),
+            )
+            return [_dict_from_row(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+def get_athlete_count_by_user(user_id: int) -> int:
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) FROM athletes WHERE user_id=%s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+            return int(row["count"]) if row else 0
+    finally:
+        conn.close()
+
+
+def delete_athlete(athlete_id: int, user_id: int) -> bool:
+    if athlete_id == user_id:
+        return False
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM athletes WHERE id=%s AND user_id=%s",
+                (athlete_id, user_id),
+            )
+            return cur.rowcount > 0
+    finally:
+        conn.close()

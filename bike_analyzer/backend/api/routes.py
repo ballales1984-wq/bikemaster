@@ -3145,6 +3145,51 @@ async def list_all_athletes(current_user: dict = Depends(get_admin_user)):
     return {"athletes": athletes}
 
 
+# ------------------------------------------------------------------
+# Multi-athlete management routes
+# ------------------------------------------------------------------
+
+
+@router.get("/athletes/mine")
+async def list_my_athletes(current_user: dict = Depends(get_current_user)):
+    """List all athlete profiles belonging to the current user."""
+    from ..db.database import get_athletes_by_user as _get_athletes_by_user
+
+    user_id = int(current_user["id"])
+    athletes = _get_athletes_by_user(user_id)
+    return {"athletes": [_public_athlete(a) for a in athletes]}
+
+
+@router.post("/athletes/mine")
+async def create_my_athlete(athlete_data: AthleteCreate, current_user: dict = Depends(get_current_user)):
+    """Create a new additional athlete profile for the current user."""
+    from ..db.database import get_athletes_by_user as _get_athletes_by_user
+    from ..db.database import save_athlete as _save_athlete
+
+    user_id = int(current_user["id"])
+    count = len(_get_athletes_by_user(user_id))
+    if count >= 10:
+        raise HTTPException(status_code=403, detail="Maximum 10 athletes per user")
+
+    data = athlete_data.model_dump()
+    athlete_id = _save_athlete(data, user_id=user_id)
+    return {"athlete_id": athlete_id, "msg": "Athlete created"}
+
+
+@router.delete("/athletes/mine/{athlete_id}")
+async def delete_my_athlete(athlete_id: int, current_user: dict = Depends(get_current_user)):
+    """Delete an additional athlete profile. Cannot delete the primary athlete (id == user_id)."""
+    from ..db.database import delete_athlete as _delete_athlete
+
+    user_id = int(current_user["id"])
+    if athlete_id == user_id:
+        raise HTTPException(status_code=400, detail="Cannot delete primary athlete")
+    ok = _delete_athlete(athlete_id, user_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Athlete not found or access denied")
+    return {"status": "deleted", "athlete_id": athlete_id}
+
+
 @router.get("/athletes/{athlete_id}")
 async def get_athlete_endpoint(athlete_id: int, current_user: dict = Depends(get_current_user)):
     """Get an athlete's public profile. Users can only view their own."""
@@ -6867,52 +6912,6 @@ async def get_audit_logs(limit: int = Query(100, ge=1, le=500), current_user: di
     """Return recent admin audit log entries."""
     log_action(current_user["id"], "view_audit_logs", "audit")
     return {"logs": read_audit_logs(limit=limit)}
-
-
-# ------------------------------------------------------------------
-# Multi-athlete management routes
-# ------------------------------------------------------------------
-
-
-@router.get("/athletes/mine")
-async def list_my_athletes(current_user: dict = Depends(get_current_user)):
-    """List all athlete profiles belonging to the current user."""
-    from ..db.database import get_athletes_by_user as _get_athletes_by_user
-
-    user_id = int(current_user["id"])
-    athletes = _get_athletes_by_user(user_id)
-    return {"athletes": [_public_athlete(a) for a in athletes]}
-
-
-@router.post("/athletes/mine")
-async def create_my_athlete(athlete_data: AthleteCreate, current_user: dict = Depends(get_current_user)):
-    """Create a new additional athlete profile for the current user."""
-    from ..db.database import get_athletes_by_user as _get_athletes_by_user
-    from ..db.database import save_athlete as _save_athlete
-
-    user_id = int(current_user["id"])
-    count = len(_get_athletes_by_user(user_id))
-    if count >= 10:
-        raise HTTPException(status_code=403, detail="Maximum 10 athletes per user")
-
-    data = athlete_data.model_dump()
-    athlete_id = _save_athlete(data, user_id=user_id)
-    return {"athlete_id": athlete_id, "msg": "Athlete created"}
-
-
-@router.delete("/athletes/mine/{athlete_id}")
-async def delete_my_athlete(athlete_id: int, current_user: dict = Depends(get_current_user)):
-    """Delete an additional athlete profile. Cannot delete the primary athlete (id == user_id)."""
-    from ..db.database import delete_athlete as _delete_athlete
-
-    user_id = int(current_user["id"])
-    if athlete_id == user_id:
-        raise HTTPException(status_code=400, detail="Cannot delete primary athlete")
-    ok = _delete_athlete(athlete_id, user_id)
-    if not ok:
-        raise HTTPException(status_code=404, detail="Athlete not found or access denied")
-    return {"status": "deleted", "athlete_id": athlete_id}
-
 
 @router.post("/auth/switch-athlete/{athlete_id}")
 async def switch_athlete(athlete_id: int, current_user: dict = Depends(get_current_user)):
