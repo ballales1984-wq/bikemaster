@@ -258,6 +258,7 @@ class StravaCallbackRequest(BaseModel):
 
     code: str = Field(..., min_length=1, max_length=2048)
     code_verifier: str = Field(..., min_length=1, max_length=256)
+    state: str = Field("", min_length=0, max_length=256)
 
 
 class GarminCallbackRequest(BaseModel):
@@ -265,6 +266,7 @@ class GarminCallbackRequest(BaseModel):
 
     code: str = Field(..., min_length=1, max_length=2048)
     redirect_uri: str | None = Field(default=None, max_length=2048)
+    state: str = Field("", min_length=0, max_length=256)
 
 
 class WahooCallbackRequest(BaseModel):
@@ -272,6 +274,7 @@ class WahooCallbackRequest(BaseModel):
 
     code: str = Field(..., min_length=1, max_length=2048)
     code_verifier: str = Field(..., min_length=1, max_length=256)
+    state: str = Field("", min_length=0, max_length=256)
 
 
 class BleDeviceRegister(BaseModel):

@@ -63,6 +63,25 @@ def _gps_point_to_obj(point: GPSPoint, idx: int, color: str) -> Oggetto:
     )
 
 
+def _gps_line_to_obj(points: list[GPSPoint], color: str) -> Oggetto:
+    pts = [
+        {"lat": p.lat, "lon": p.lon, "ele": p.altitude or 0.0}
+        for p in points
+    ]
+    first = points[0]
+    pos = Posizione.from_latlon(
+        first.lat, first.lon, first.altitude or 0.0
+    )
+    geom = Geometria(tipo="linea", dati={"tipo": "linea", "punti": pts})
+    return Oggetto(
+        id="gps_segment",
+        tipo="segment",
+        posizione=pos,
+        geometria=geom,
+        proprieta={"color": color},
+    )
+
+
 def _build_world(
     points: list[GPSPoint],
     statistics: RouteStatistics | None,

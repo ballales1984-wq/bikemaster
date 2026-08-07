@@ -443,6 +443,18 @@ def create_app() -> FastAPI:
                 )
         return response
 
+    @app.middleware("http")
+    async def limit_request_size(request: Request, call_next):
+        """Reject requests with body larger than 10 MB to prevent memory exhaustion."""
+        if request.headers.get("content-length"):
+            try:
+                size = int(request.headers["content-length"])
+                if size > 10 * 1024 * 1024:
+                    return JSONResponse(status_code=413, content={"detail": "Request body too large"})
+            except (ValueError, TypeError):
+                pass
+        return await call_next(request)
+
     cors_origins = (
         [o.strip() for o in _s.cors_origins.split(",") if o.strip()]
         if isinstance(_s.cors_origins, str)
@@ -468,7 +480,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
-        allow_origin_regex=r"https://.*\.vercel\.app",
+        allow_origin_regex=r"https://bikemaster-[a-zA-Z0-9-]+\.vercel\.app",
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=[

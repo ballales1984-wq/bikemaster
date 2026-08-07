@@ -274,7 +274,8 @@ async function onRegister(creds) {
       router.push("/rides");
       await loadSummary();
     } catch {
-      loginError.value = "Account created. Please log in with your new credentials.";
+      loginError.value =
+        "Account created. Please log in with your new credentials.";
     }
   } catch (e) {
     loginError.value = e.message;

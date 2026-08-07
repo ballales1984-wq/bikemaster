@@ -192,7 +192,7 @@ def create_hub_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
-        allow_origin_regex=r"https://.*\.vercel\.app",
+        allow_origin_regex=r"https://bikemaster-[a-zA-Z0-9-]+\.vercel\.app",
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=[
@@ -203,6 +203,19 @@ def create_hub_app() -> FastAPI:
         ],
     )
 
+    @app.middleware("http")
+    async def limit_request_size(request: Request, call_next):
+        """Reject requests with body larger than 10 MB to prevent memory exhaustion."""
+        if request.headers.get("content-length"):
+            try:
+                size = int(request.headers["content-length"])
+                if size > 10 * 1024 * 1024:
+                    from fastapi.responses import JSONResponse
+                    return JSONResponse(status_code=413, content={"detail": "Request body too large"})
+            except (ValueError, TypeError):
+                pass
+        return await call_next(request)
+
     app.include_router(hub_router)
     app.include_router(hub_sync_router, prefix="/api/v1", tags=["sync"])
     app.include_router(voice_router, prefix="/api/v1", tags=["voice"])
@@ -210,11 +223,11 @@ def create_hub_app() -> FastAPI:
     @app.get("/healthz")
     async def healthz():
         """Root-level liveness probe for platform health checks (Render default)."""
-        return {"status": "ok", "mode": "hub", "database": "postgresql" if _s.database_url else "none"}
+        return {"status": "ok", "mode": "hub"}
 
     @app.get("/health")
     async def health():
         """Health check endpoint per load balancer e monitoring."""
-        return {"status": "ok", "mode": "hub", "database": "postgresql" if _s.database_url else "none"}
+        return {"status": "ok", "mode": "hub"}
 
     return app

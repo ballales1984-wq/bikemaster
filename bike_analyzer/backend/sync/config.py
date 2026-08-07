@@ -124,6 +124,12 @@ def load_sync_config() -> SyncSettings:
             row = cur.fetchone()
             if row:
                 data = json.loads(row["value"])
+                if data.get("auth_token"):
+                    try:
+                        from ..db.token_crypto import decrypt_token
+                        data["auth_token"] = decrypt_token(data["auth_token"])
+                    except Exception:
+                        pass
                 _settings_cache = SyncSettings.from_dict(data)
                 return _settings_cache
     except Exception:
@@ -138,6 +144,13 @@ def save_sync_config(settings: SyncSettings) -> None:
     try:
         from ..db.database import get_db_connection
 
+        data = settings.to_dict()
+        if data.get("auth_token"):
+            try:
+                from ..db.token_crypto import encrypt_token
+                data["auth_token"] = encrypt_token(data["auth_token"])
+            except Exception:
+                pass
         with get_db_connection() as conn:
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS sync_settings (
@@ -148,7 +161,7 @@ def save_sync_config(settings: SyncSettings) -> None:
             )
             conn.execute(
                 "INSERT OR REPLACE INTO sync_settings (key, value, updated_at) VALUES (?, ?, ?)",
-                ("user_preferences", json.dumps(settings.to_dict()), _now_iso()),
+                ("user_preferences", json.dumps(data), _now_iso()),
             )
             conn.commit()
     except Exception as exc:

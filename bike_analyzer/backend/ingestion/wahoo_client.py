@@ -177,6 +177,16 @@ def store_token(athlete_id: int, token_data: dict[str, Any], code_verifier: str 
             expires_at = 0
     if "expires_in" in token_data and not expires_at:
         expires_at = int(time.time()) + int(token_data["expires_in"])
+    encrypted_access = token_data.get("access_token", "")
+    encrypted_refresh = token_data.get("refresh_token", "")
+    try:
+        from ..db.token_crypto import encrypt_token
+        if encrypted_access:
+            encrypted_access = encrypt_token(encrypted_access)
+        if encrypted_refresh:
+            encrypted_refresh = encrypt_token(encrypted_refresh)
+    except Exception:
+        logger.warning("Wahoo token encryption skipped", exc_info=True)
     with _get_conn() as conn:
         conn.execute(
             """
@@ -192,8 +202,8 @@ def store_token(athlete_id: int, token_data: dict[str, Any], code_verifier: str 
             """,
             (
                 athlete_id,
-                token_data.get("access_token", ""),
-                token_data.get("refresh_token", ""),
+                encrypted_access,
+                encrypted_refresh,
                 code_verifier,
                 expires_at,
                 token_data.get("scope", ""),
@@ -216,10 +226,20 @@ def get_valid_token(athlete_id: int, client_id: str | None = None, client_secret
     if not row:
         return None
     access_token, refresh_token, code_verifier, expires_at = row
+    try:
+        from ..db.token_crypto import decrypt_token
+        if access_token:
+            access_token = decrypt_token(access_token)
+        if refresh_token:
+            refresh_token = decrypt_token(refresh_token)
+    except Exception:
+        logger.warning("Wahoo token decryption failed", exc_info=True)
+    if not access_token:
+        return None
     if expires_at and expires_at - time.time() < TOKEN_REFRESH_BUFFER_SECONDS:
         try:
             new_data = refresh_access_token(
-                refresh_token, code_verifier, client_id=client_id, client_secret=client_secret
+                refresh_token or "", code_verifier, client_id=client_id, client_secret=client_secret
             )
             store_token(athlete_id, new_data, code_verifier=code_verifier)
             return new_data.get("access_token")

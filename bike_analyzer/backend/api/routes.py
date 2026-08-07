@@ -133,7 +133,6 @@ _PLACE_CACHE_TTL_S = 600
 
 logger = get_logger(__name__)
 
-
 def _place_cache_get(key: str) -> Any | None:
     """Return a cached POI result if still fresh, otherwise evict it."""
     entry = _PLACE_CACHE.get(key)
@@ -144,6 +143,48 @@ def _place_cache_get(key: str) -> Any | None:
         del _PLACE_CACHE[key]
         return None
     return value
+
+
+def _place_cache_set(key: str, value: Any) -> None:
+    """Store a POI result in the in-memory cache with the current timestamp."""
+    _PLACE_CACHE[key] = (value, time.time())
+
+
+_OAUTH_STATE_TTL_S = 600
+_OAUTH_STATE_PREFIX = "oauth:state:"
+
+
+def _generate_oauth_state() -> str:
+    return secrets.token_urlsafe(32)
+
+
+async def _store_oauth_state(state: str, user_id: int, provider: str, extra: dict | None = None) -> bool:
+    data = {"user_id": user_id, "provider": provider, "created_at": time.time()}
+    if extra:
+        data.update(extra)
+    return await _cache_set(_OAUTH_STATE_PREFIX + state, data, ttl=_OAUTH_STATE_TTL_S)
+
+
+async def _validate_oauth_state(state: str, provider: str, user_id: int) -> bool:
+    if not state:
+        return False
+    cached = await _cached(_OAUTH_STATE_PREFIX + state)
+    if not cached:
+        return False
+    if not isinstance(cached, dict):
+        return False
+    if cached.get("provider") != provider:
+        return False
+    if cached.get("user_id") != user_id:
+        return False
+    return True
+
+
+async def _consume_oauth_state(state: str, provider: str, user_id: int) -> bool:
+    if not await _validate_oauth_state(state, provider, user_id):
+        return False
+    await cache_delete(_OAUTH_STATE_PREFIX + state)
+    return True
 
 
 def _place_cache_set(key: str, value: Any) -> None:
@@ -228,6 +269,16 @@ def _build_oauth_success_url(redirect_uri: str, token: str, email: str, user_id:
     return f"{origin}#{urlencode({'token': token, 'email': email or '', 'user_id': str(user_id)})}"
 
 
+def _oauth_redirect_response(url: str) -> "RedirectResponse":
+    from fastapi.responses import RedirectResponse
+    resp = RedirectResponse(url=url)
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    resp.headers["Referrer-Policy"] = "no-referrer"
+    return resp
+
+
 def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) -> None:
     """Validate an OAuth redirect_uri against the configured allow-list.
 
@@ -277,20 +328,37 @@ def _validate_redirect_uri(redirect_uri: str, request: Request | None = None) ->
         | configured_hosts
     )
     if host_lower not in allowed_hosts:
-        # Allow any Vercel preview/production deployment. This keeps the OAuth
-        # redirect_uri validation consistent with the CORS allow_origin_regex
-        # (r"https://.*\.vercel\.app") instead of hardcoding a single subdomain,
-        # so newly generated Vercel deploy URLs keep working for login.
         if host_lower.endswith(".vercel.app"):
             return
         if host_lower.endswith(".onrender.com"):
             return
-        # Allow any ngrok-free tunnel host. The URL changes on every restart, so
-        # hardcoding it (e.g. "tonita-deposable-manneristically.ngrok-free.dev")
-        # broke Strava/OAuth whenever the tunnel was regenerated.
-        if host_lower.endswith(".ngrok-free.dev"):
-            return
         raise HTTPException(status_code=400, detail="Invalid redirect_uri host")
+
+
+def _validate_frontend_origin(frontend_origin: str | None, request: Request) -> None:
+    """Validate that frontend_origin is allowed and matches the current request origin."""
+    if not frontend_origin:
+        return
+    parsed = urlparse(frontend_origin)
+    if not parsed.scheme or parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=400, detail="Invalid frontend_origin scheme")
+    origin_host = f"{parsed.scheme}://{parsed.netloc}"
+    allowed = False
+    try:
+        cors_list = _s.cors_origins_list if hasattr(_s, "cors_origins_list") else []
+        for origin in cors_list:
+            if origin.rstrip("/") == origin_host.rstrip("/"):
+                allowed = True
+                break
+    except Exception:
+        logger.debug("Failed to parse CORS origins for frontend_origin validation", exc_info=True)
+    if not allowed and not parsed.netloc.endswith(".vercel.app"):
+        raise HTTPException(status_code=400, detail="Invalid frontend_origin")
+    request_origin = request.headers.get("origin") or ""
+    if request_origin:
+        request_origin = request_origin.rstrip("/")
+        if request_origin != origin_host.rstrip("/") and not request_origin.endswith(".vercel.app"):
+            logger.warning("frontend_origin mismatch: state=%s request=%s", origin_host, request_origin)
 
 
 OAUTH_STATE_TTL_MIN = 10
@@ -359,7 +427,7 @@ def _public_athlete(athlete: dict | None) -> dict:
     """Return an athlete dict with sensitive fields (e.g. password_hash) stripped."""
     if athlete is None:
         return {}
-    return {k: v for k, v in athlete.items() if k != "password_hash"}
+    return {k: v for k, v in athlete.items() if k not in ("password_hash", "email")}
 
 
 def _athlete_profile_data(athlete: dict | None) -> dict | None:
@@ -480,7 +548,7 @@ def _sanitize_html_message(message: dict) -> dict:
 _CALLBACK_CSP = "default-src 'self'; script-src 'unsafe-inline' 'self'; style-src 'self'; img-src 'self' data: https:"
 
 
-def _oauth_callback_response(payload: str, status_code: int = 200) -> HTMLResponse:
+def _oauth_callback_response(payload: str, status_code: int = 200, allowed_origin: str | None = None) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback).
 
     Uses postMessage as the primary mechanism. Falls back to localStorage
@@ -488,15 +556,17 @@ def _oauth_callback_response(payload: str, status_code: int = 200) -> HTMLRespon
     (e.g. mobile Safari). Also attempts window.close() and falls back to
     about:blank redirect if close is blocked.
     """
+    origin = allowed_origin or "self"
     html = (
         "<!DOCTYPE html>"
         '<html><head><meta charset="utf-8"><title>Closing...</title></head>'
         "<body><script>"
         "(function(){"
         "var sent=false;"
+        "var targetOrigin=(" + json.dumps(origin) + ");"
         "function doPost(){"
         "if(sent)return;"
-        "try{if(window.opener&&!window.opener.closed){window.opener.postMessage(" + payload + ",'*');sent=true;}}"
+        "try{if(window.opener&&!window.opener.closed){window.opener.postMessage(" + payload + ",targetOrigin);sent=true;}}"
         "catch(e){}"
         "try{localStorage.setItem('bikemaster_oauth_result','" + payload + "');}catch(e){}"
         "}"
@@ -512,7 +582,7 @@ def _oauth_callback_response(payload: str, status_code: int = 200) -> HTMLRespon
         "setTimeout(doPost,150);"
         "setTimeout(doPost,400);"
         "setTimeout(function(){"
-        "if(!sent){try{window.opener&&window.opener.postMessage(" + payload + ",'*');}catch(e2){}}"
+        "if(!sent){try{window.opener&&window.opener.postMessage(" + payload + ",targetOrigin);}catch(e2){}}"
         "try{localStorage.setItem('bikemaster_oauth_result','" + payload + "');}catch(e){}"
         "tryClose();"
         "},50);"
@@ -530,22 +600,22 @@ def _oauth_html_response(html: str, status_code: int = 200) -> HTMLResponse:
     return response
 
 
-def _strava_message_html(message: dict, status_code: int = 200) -> HTMLResponse:
+def _strava_message_html(message: dict, status_code: int = 200, allowed_origin: str | None = None) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
     payload = json.dumps(_sanitize_html_message(message))
-    return _oauth_callback_response(payload, status_code=status_code)
+    return _oauth_callback_response(payload, status_code=status_code, allowed_origin=allowed_origin)
 
 
-def _google_fit_message_html(message: dict) -> HTMLResponse:
+def _google_fit_message_html(message: dict, allowed_origin: str | None = None) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
     payload = json.dumps(_sanitize_html_message(message))
-    return _oauth_callback_response(payload)
+    return _oauth_callback_response(payload, allowed_origin=allowed_origin)
 
 
-def _google_health_message_html(message: dict) -> HTMLResponse:
+def _google_health_message_html(message: dict, allowed_origin: str | None = None) -> HTMLResponse:
     """Return a tiny HTML page that posts a message to the opener window (OAuth callback)."""
     payload = json.dumps(_sanitize_html_message(message))
-    return _oauth_callback_response(payload)
+    return _oauth_callback_response(payload, allowed_origin=allowed_origin)
 
 
 @router.get("/health")
@@ -556,7 +626,7 @@ async def health_check():
 
 @router.get("/version")
 async def version_check():
-    """Return the current application version from package.json and git."""
+    """Return the current application version from package.json."""
     import json as _json
 
     version = "0.0.0"
@@ -571,22 +641,7 @@ async def version_check():
         except Exception:
             pass
 
-    commit = ""
-    try:
-        import subprocess as _sp
-
-        result = _sp.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if result.returncode == 0:
-            commit = result.stdout.strip()
-    except Exception:
-        pass
-
-    return {"version": version, "source": source, "commit": commit}
+    return {"version": version, "source": source}
 
 
 @router.post("/alerts/webhook")
@@ -1276,42 +1331,21 @@ async def register(
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """Return the authenticated athlete's profile summary.
 
-    Includes profile completeness flag derived from age, weight, and
-    experience level fields.
+    Returns profile completeness flag. If no athlete profile exists,
+    returns the user info with profile_complete=False and no auto-creation.
     """
     from ..db.database import (
         get_athlete as _get_athlete,
     )
-    from ..db.database import (
-        save_athlete as _save_athlete,
-    )
-    from ..db.database import (
-        update_athlete as _update_athlete,
-    )
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete = _get_athlete(current_user["id"], tenant_id)
-    # Auto-create a default athlete profile so a freshly logged-in user is
-    # never stranded on the onboarding screen with no backing record.
-    if not athlete:
-        username = current_user.get("username") or current_user.get("email") or str(current_user["id"])
-        created_id = _save_athlete(
-            {
-                "name": username,
-                "email": current_user.get("email"),
-                "experience_level": "Beginner",
-            },
-            athlete_id=current_user["id"],
-        )
-        if created_id:
-            _update_athlete(created_id, {"tenant_id": created_id})
-        athlete = _get_athlete(current_user["id"], tenant_id)
     if not athlete:
         return {
             "id": current_user["id"],
-            "username": "",
-            "email": None,
-            "picture": None,
+            "username": current_user.get("username") or current_user.get("email") or str(current_user["id"]),
+            "email": current_user.get("email"),
+            "picture": current_user.get("picture"),
             "is_admin": current_user.get("is_admin", False),
             "tenant_id": current_user.get("tenant_id", current_user["id"]),
             "profile_complete": False,
@@ -1332,27 +1366,13 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "age": athlete.get("age"),
         "weight_kg": athlete.get("weight_kg"),
         "height_cm": athlete.get("height_cm"),
-        "fat_percentage": athlete.get("fat_percentage"),
-        "experience_level": athlete.get("experience_level"),
+        "experience_level": athlete.get("experience_level", "Beginner"),
+        "goals": athlete.get("goals"),
+        "equipment": athlete.get("equipment"),
         "ftp_watts": athlete.get("ftp_watts"),
-        "body_water_percentage": athlete.get("body_water_percentage"),
-        "muscle_mass_percentage": athlete.get("muscle_mass_percentage"),
-        "bmr_kcal": athlete.get("bmr_kcal"),
-        "fat_mass_kg": athlete.get("fat_mass_kg"),
-        "subcutaneous_fat_kg": athlete.get("subcutaneous_fat_kg"),
-        "subcutaneous_fat_percentage": athlete.get("subcutaneous_fat_percentage"),
-        "visceral_fat_level": athlete.get("visceral_fat_level"),
-        "visceral_fat_percentage": athlete.get("visceral_fat_percentage"),
-        "visceral_fat_kg": athlete.get("visceral_fat_kg"),
-        "muscle_mass_kg": athlete.get("muscle_mass_kg"),
-        "bone_mass_kg": athlete.get("bone_mass_kg"),
-        "protein_percentage": athlete.get("protein_percentage"),
-        "protein_kg": athlete.get("protein_kg"),
-         "body_age": athlete.get("body_age"),
-         "apparent_age": athlete.get("apparent_age"),
-         "bmi": athlete.get("bmi"),
-         "lean_body_mass_kg": athlete.get("lean_body_mass_kg"),
-      }
+        "created_at": athlete.get("created_at"),
+        "updated_at": athlete.get("updated_at"),
+    }
 
 
 @router.post("/legal/consent")
@@ -1605,6 +1625,7 @@ async def google_oauth_callback_get(
     redirect_uri = state_data["redirect_uri"]
     frontend_origin = state_data.get("frontend_origin")
     _validate_redirect_uri(redirect_uri, request)
+    _validate_frontend_origin(frontend_origin, request)
 
     if error:
         message = error_description or error
@@ -1733,11 +1754,7 @@ async def google_oauth_callback_get(
         redirect_target = frontend_origin or redirect_uri
         redirect_url = _build_oauth_success_url(redirect_target, jwt_token, email or "", existing["id"])
         await _cache_set(f"oauth:code:{code}", {"redirect_url": redirect_url}, ttl=300)
-        resp = RedirectResponse(url=redirect_url)
-        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
-        resp.headers["Pragma"] = "no-cache"
-        resp.headers["Expires"] = "0"
-        return resp
+        return _oauth_redirect_response(redirect_url)
     except Exception as exc:
         logger.exception("Google OAuth callback failed: %s", exc)
         resp = _build_oauth_error_url(request, redirect_uri, "server_error", frontend_origin)
@@ -4745,15 +4762,27 @@ async def ride_speed_path(
 async def create_backup(current_user: dict = Depends(get_admin_user)):
     """Create and download a database backup. Admin only."""
     import hashlib
+    import logging
 
     from fastapi.responses import FileResponse
 
     from ..db.database import backup_database
 
     path = backup_database()
-    log_action(current_user["id"], "download_backup", "database")
-    h = hashlib.sha256(path.encode()).hexdigest()[:8]
-    return FileResponse(path, media_type="application/octet-stream", filename=f"bikemaster_backup_{h}.db")
+    file_hash = hashlib.sha256(path.encode()).hexdigest()[:8]
+    log_action(
+        current_user["id"],
+        "download_backup",
+        "database",
+        details={"file": f"bikemaster_backup_{file_hash}.db", "hash": file_hash},
+    )
+    logger.info(
+        "Admin user=%s downloaded backup file=%s hash=%s",
+        current_user["id"],
+        path,
+        file_hash,
+    )
+    return FileResponse(path, media_type="application/octet-stream", filename=f"bikemaster_backup_{file_hash}.db")
 
 
 @admin_router.post("/backup/scheduled")
@@ -5007,16 +5036,6 @@ async def update_ride(ride_id: int, ride: RideUpdate, current_user: dict = Depen
     merged = {**existing, **update_data}
     _update_ride(ride_id, merged)
     return merged
-
-
-@router.get("/coach/chat")
-async def coach_chat(
-    athlete_id: int = Query(...),
-    message: str = Query(...),
-    current_user: dict = Depends(get_current_user),
-):
-    """Send a message to the AI coach via GET (query params)."""
-    return await _process_chat(athlete_id, message, current_user)
 
 
 @router.post("/coach/chat")
@@ -6095,6 +6114,9 @@ async def strava_auth(
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+    oauth_state = result.get("state", "")
+    if oauth_state:
+        await _store_oauth_state(oauth_state, int(current_user["id"]), "strava")
     logger.debug(
         "Strava auth redirect_uri=%s", resolved_redirect_uri
     )
@@ -6104,6 +6126,7 @@ async def strava_auth(
 
 @router.get("/import/strava/callback")
 async def strava_callback_page(
+    request: Request,
     code: str | None = Query(None),
     error: str | None = Query(None),
     error_description: str | None = Query(None),
@@ -6116,6 +6139,15 @@ async def strava_callback_page(
     access). Instead we serve a tiny page that postMessages the result back to
     the opener window, which is COOP-safe.
     """
+    origin = request.headers.get("origin") or request.headers.get("referer") or ""
+    allowed_origin = None
+    if origin:
+        parsed_origin = urlparse(origin)
+        origin_host = (parsed_origin.scheme or "https") + "://" + parsed_origin.netloc
+        allowed_origins = _s.cors_origins_list if hasattr(_s, "cors_origins_list") else []
+        if origin_host in allowed_origins or parsed_origin.netloc.endswith(".vercel.app"):
+            allowed_origin = origin_host
+
     if error:
         return _strava_message_html(
             {
@@ -6124,6 +6156,7 @@ async def strava_callback_page(
                 "error_description": error_description or "Strava OAuth failed",
             },
             status_code=400,
+            allowed_origin=allowed_origin,
         )
     if not code:
         return _strava_message_html(
@@ -6133,8 +6166,19 @@ async def strava_callback_page(
                 "error_description": "Strava callback received without code",
             },
             status_code=400,
+            allowed_origin=allowed_origin,
         )
-    return _strava_message_html({"type": "strava-success", "code": code})
+    if not state:
+        return _strava_message_html(
+            {
+                "type": "strava-error",
+                "error": "missing_state",
+                "error_description": "Strava callback missing state parameter",
+            },
+            status_code=400,
+            allowed_origin=allowed_origin,
+        )
+    return _strava_message_html({"type": "strava-success", "code": code, "state": state}, allowed_origin=allowed_origin)
 
 
 @router.post("/import/strava/callback")
@@ -6148,6 +6192,12 @@ async def strava_callback(
 
     code = payload.code
     code_verifier = payload.code_verifier
+    oauth_state = payload.state
+    if not oauth_state:
+        raise HTTPException(status_code=400, detail="Missing OAuth state")
+    user_id = int(current_user["id"])
+    if not await _consume_oauth_state(oauth_state, "strava", user_id):
+        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
     redirect_uri = _strava_redirect_uri_for(request)
     user_creds = _get_user_oauth_creds(int(current_user["id"]), "strava")
     logger.debug("Strava token exchange redirect_uri=%s", redirect_uri)
@@ -6398,16 +6448,19 @@ async def sync_ble_device(
 
 @router.get("/import/garmin/auth")
 async def garmin_auth(
+    request: Request,
     state: str = "",
     current_user: dict = Depends(get_current_user),
 ):
     """Start the Garmin OAuth flow, returning the authorization URL."""
     from ..ingestion.garmin_client import get_authorization_url
 
+    oauth_state = state or _generate_oauth_state()
     try:
-        result = get_authorization_url(state=state)
+        result = get_authorization_url(state=oauth_state)
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+    await _store_oauth_state(oauth_state, _current_athlete_id(current_user), "garmin")
     result["athlete_id"] = _current_athlete_id(current_user)
     return result
 
@@ -6422,12 +6475,18 @@ async def garmin_callback(
 
     code = payload.code
     redirect_uri = payload.redirect_uri
+    oauth_state = getattr(payload, 'state', None)
+    if not oauth_state:
+        raise HTTPException(status_code=400, detail="Missing OAuth state")
+    user_id = _current_athlete_id(current_user)
+    if not await _consume_oauth_state(oauth_state, "garmin", user_id):
+        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
     try:
         token_data = await exchange_code_for_token(code, redirect_uri=redirect_uri or "")
     except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=502, detail=f"Garmin token exchange failed: {exc}") from exc
-    store_token(_current_athlete_id(current_user), token_data)
-    return {"status": "connected", "athlete_id": _current_athlete_id(current_user)}
+    store_token(user_id, token_data)
+    return {"status": "connected", "athlete_id": user_id}
 
 
 @router.post("/import/garmin/sync")
@@ -6509,22 +6568,25 @@ async def list_import_providers():
 
 @router.get("/import/wahoo/auth")
 async def wahoo_auth(
+    request: Request,
     state: str = "",
     current_user: dict = Depends(get_current_user),
 ):
     """Avvia il flusso OAuth Wahoo restituendo l'URL di autorizzazione."""
     from ..ingestion.wahoo_client import get_authorization_url
 
+    oauth_state = state or _generate_oauth_state()
     user_creds = _get_user_oauth_creds(int(current_user["id"]), "wahoo")
     try:
         result = get_authorization_url(
-            state=state,
+            state=oauth_state,
             client_id=(user_creds or {}).get("client_id"),
             redirect_uri=(user_creds or {}).get("redirect_uri"),
             scope=(user_creds or {}).get("scope"),
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+    await _store_oauth_state(oauth_state, int(current_user["id"]), "wahoo")
     result["athlete_id"] = current_user["id"]
     return result
 
@@ -6539,7 +6601,13 @@ async def wahoo_callback(
 
     code = payload.code
     code_verifier = payload.code_verifier
-    user_creds = _get_user_oauth_creds(int(current_user["id"]), "wahoo")
+    oauth_state = payload.state
+    if not oauth_state:
+        raise HTTPException(status_code=400, detail="Missing OAuth state")
+    user_id = int(current_user["id"])
+    if not await _consume_oauth_state(oauth_state, "wahoo", user_id):
+        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
+    user_creds = _get_user_oauth_creds(user_id, "wahoo")
     try:
         token_data = exchange_code_for_token(
             code,
@@ -6550,7 +6618,7 @@ async def wahoo_callback(
         )
     except requests.HTTPError as exc:
         raise HTTPException(status_code=502, detail=f"Wahoo token exchange failed: {exc}") from exc
-    store_token(current_user["id"], token_data, code_verifier=code_verifier)
+    store_token(user_id, token_data, code_verifier=code_verifier)
     return {
         "status": "connected",
         "athlete_id": _current_athlete_id(current_user),

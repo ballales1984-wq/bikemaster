@@ -61,6 +61,50 @@ _USER_RATE_LIMITS: dict[str, list[float]] = defaultdict(list)
 _USER_RATE_LIMIT_LOCK = threading.RLock()
 
 
+def _persist_rate_limit(key: str, timestamp: float, window_seconds: int) -> None:
+    try:
+        from ..db.database import get_db_connection
+        with get_db_connection() as conn:
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS rate_limits (
+                    key TEXT PRIMARY KEY,
+                    timestamps TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )"""
+            )
+            existing = conn.execute("SELECT timestamps FROM rate_limits WHERE key = ?", (key,)).fetchone()
+            timestamps = []
+            if existing:
+                try:
+                    timestamps = json.loads(existing["timestamps"])
+                except Exception:
+                    timestamps = []
+            cutoff = timestamp - window_seconds
+            timestamps = [t for t in timestamps if t > cutoff]
+            timestamps.append(timestamp)
+            conn.execute(
+                "INSERT OR REPLACE INTO rate_limits (key, timestamps, updated_at) VALUES (?, ?, ?)",
+                (key, json.dumps(timestamps), datetime.now(UTC).isoformat()),
+            )
+            conn.commit()
+    except Exception:
+        pass
+
+
+def _load_rate_limits(key: str, window_seconds: int) -> list[float]:
+    try:
+        from ..db.database import get_db_connection
+        with get_db_connection() as conn:
+            row = conn.execute("SELECT timestamps FROM rate_limits WHERE key = ?", (key,)).fetchone()
+            if not row:
+                return []
+            timestamps = json.loads(row["timestamps"])
+            cutoff = time.time() - window_seconds
+            return [t for t in timestamps if t > cutoff]
+    except Exception:
+        return []
+
+
 def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig | None = None) -> None:
     cfg = config or RateLimitConfig()
     key = f"user:{user_id}:{endpoint}"
@@ -69,6 +113,9 @@ def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig |
     with _USER_RATE_LIMIT_LOCK:
         requests = _USER_RATE_LIMITS[key]
         requests[:] = [t for t in requests if t > window_start]
+        if len(requests) == 0:
+            persisted = _load_rate_limits(key, cfg.window_seconds)
+            requests.extend(persisted)
         if len(requests) >= cfg.max_requests:
             logger.warning(
                 "Rate limit exceeded for user %s on %s (%d/%d in %ds)",
@@ -83,6 +130,14 @@ def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig |
                 detail=f"Rate limit exceeded: {cfg.max_requests} requests per {cfg.window_seconds}s",
             )
         requests.append(now)
+        try:
+            _persist_rate_limit(key, now, cfg.window_seconds)
+        except Exception:
+            pass
+        try:
+            _persist_rate_limit(key, now, cfg.window_seconds)
+        except Exception:
+            pass
 
 
 def rate_limit_dependency(max_requests: int = 100, window_seconds: int = 60):

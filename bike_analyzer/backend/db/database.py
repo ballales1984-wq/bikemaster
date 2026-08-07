@@ -1826,7 +1826,14 @@ def get_user_oauth_credentials(user_id: int, provider: str) -> dict | None:
         )
         row = cur.fetchone()
         if row:
-            return dict(row)
+            creds = dict(row)
+            if creds.get("client_secret"):
+                try:
+                    from ..db.token_crypto import decrypt_token
+                    creds["client_secret"] = decrypt_token(creds["client_secret"])
+                except Exception:
+                    pass
+            return creds
         return None
 
 
@@ -1841,6 +1848,13 @@ def get_all_user_oauth_credentials(user_id: int) -> list[dict]:
 def save_user_oauth_credentials(user_id: int, provider: str, data: dict) -> None:
     _ensure_user_oauth_credentials_table()
     now = datetime.now(UTC).isoformat()
+    client_secret = data.get("client_secret", "")
+    if client_secret:
+        try:
+            from ..db.token_crypto import encrypt_token
+            client_secret = encrypt_token(client_secret)
+        except Exception:
+            pass
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -1858,7 +1872,7 @@ def save_user_oauth_credentials(user_id: int, provider: str, data: dict) -> None
                 user_id,
                 provider,
                 data.get("client_id"),
-                data.get("client_secret"),
+                client_secret,
                 data.get("redirect_uri"),
                 data.get("scope"),
                 now,
@@ -3469,19 +3483,18 @@ def get_user_by_id(user_id: int) -> dict | None:
 def get_all_users() -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM users ORDER BY id DESC")
+        cur.execute("SELECT id, username, email, is_admin, is_client, is_active, created_at, updated_at FROM users ORDER BY id DESC")
         rows = cur.fetchall()
         return [
             {
                 "id": row[0],
                 "username": row[1],
                 "email": row[2],
-                "password_hash": row[3],
-                "is_admin": bool(row[4]),
-                "is_client": bool(row[5]),
-                "is_active": bool(row[6]),
-                "created_at": row[7],
-                "updated_at": row[8],
+                "is_admin": bool(row[3]),
+                "is_client": bool(row[4]),
+                "is_active": bool(row[5]),
+                "created_at": row[6],
+                "updated_at": row[7],
             }
             for row in rows
         ]

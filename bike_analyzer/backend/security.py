@@ -153,8 +153,8 @@ def jti_key(jti: str) -> str:
 async def revoke_token(jti: str, ttl: int = JWT_BLACKLIST_TTL) -> bool:
     """Inserts a JWT into the revocation blacklist.
 
-    The token is marked as revoked both in-memory (for performance)
-    and on Redis (for multiple instances). The blacklist has a TTL of
+    The token is marked as revoked in Redis (preferred), SQLite (fallback),
+    and in-memory (for performance). The blacklist has a TTL of
     ``JWT_BLACKLIST_TTL`` seconds, after which the token naturally expires
     e puo' essere rimosso dalla memoria.
     """
@@ -162,15 +162,33 @@ async def revoke_token(jti: str, ttl: int = JWT_BLACKLIST_TTL) -> bool:
     if len(_memory_revoked_tokens) % 100 == 0:
         _sweep_revoked_tokens()
     r = await get_redis()
-    if r is None:
-        logger.warning("Redis unavailable: token revocation is in-memory only for jti=%s", jti)
-        return True
+    if r is not None:
+        try:
+            await _await_if_needed(r.set(jti_key(jti), "1", ex=ttl))
+        except Exception as exc:
+            logger.warning("Failed to revoke token %s via Redis: %s", jti, exc)
     try:
-        await _await_if_needed(r.set(jti_key(jti), "1", ex=ttl))
-        return True
+        _revoke_token_sqlite(jti, ttl)
     except Exception as exc:
-        logger.warning("Failed to revoke token %s: %s", jti, exc)
-        return False
+        logger.warning("Failed to revoke token %s via SQLite: %s", jti, exc)
+    return True
+
+
+def _revoke_token_sqlite(jti: str, ttl: int) -> None:
+    from ..db.database import get_db_connection
+    with get_db_connection() as conn:
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS revoked_tokens (
+                jti TEXT PRIMARY KEY,
+                revoked_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            )"""
+        )
+        conn.execute(
+            "INSERT OR REPLACE INTO revoked_tokens (jti, revoked_at, expires_at) VALUES (?, ?, ?)",
+            (jti, datetime.now(UTC).isoformat(), (datetime.now(UTC) + timedelta(seconds=ttl)).isoformat()),
+        )
+        conn.commit()
 
 
 async def is_token_revoked(jti: str) -> bool:
@@ -178,13 +196,41 @@ async def is_token_revoked(jti: str) -> bool:
         _sweep_revoked_tokens()
         return True
     r = await get_redis()
-    if r is None:
-        return False
+    if r is not None:
+        try:
+            if await _await_if_needed(r.exists(jti_key(jti))):
+                return True
+        except Exception as exc:
+            logger.warning("Failed to check token revocation via Redis %s: %s", jti, exc)
     try:
-        return bool(await _await_if_needed(r.exists(jti_key(jti))))
+        if _is_token_revoked_sqlite(jti):
+            return True
     except Exception as exc:
-        logger.warning("Failed to check token revocation %s: %s", jti, exc)
-        return False
+        logger.warning("Failed to check token revocation via SQLite %s: %s", jti, exc)
+    return False
+
+
+def _is_token_revoked_sqlite(jti: str) -> bool:
+    from ..db.database import get_db_connection
+    from datetime import datetime as _dt
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT expires_at FROM revoked_tokens WHERE jti = ?",
+            (jti,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return False
+        expires_at = row["expires_at"]
+        if expires_at:
+            try:
+                exp_dt = _dt.fromisoformat(expires_at)
+                if _dt.now(UTC) > exp_dt:
+                    return False
+            except Exception:
+                pass
+        return True
 
 
 async def _await_if_needed(value):

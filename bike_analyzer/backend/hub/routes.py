@@ -126,9 +126,11 @@ def _build_oauth_error_url(request: Request, redirect_uri: str, error: str) -> R
     """Redirect back to the SPA with an ``oauth_error`` query param."""
     parsed = urlparse(redirect_uri)
     if parsed.scheme and parsed.scheme not in ("http", "https"):
-        target = f"{parsed.scheme}://{parsed.netloc or parsed.path.lstrip('/')}"
+        if not parsed.netloc:
+            raise HTTPException(status_code=400, detail="Invalid redirect_uri")
+        target = f"{parsed.scheme}://{parsed.netloc}"
         return RedirectResponse(url=f"{target}?{urlencode({'oauth_error': error})}")
-    origin = f"{parsed.scheme}://{parsed.netloc}/" if parsed.scheme else "/"
+    origin = f"{parsed.scheme}://{parsed.netloc or parsed.path.lstrip('/')}/" if parsed.scheme else "/"
     return RedirectResponse(url=f"{origin}?{urlencode({'oauth_error': error})}")
 
 
@@ -219,9 +221,33 @@ def _validate_redirect_uri(redirect_uri: str, request: Request) -> None:
         return
     if host_lower.endswith(".onrender.com"):
         return
-    if host_lower.endswith(".ngrok-free.dev"):
-        return
     raise HTTPException(status_code=400, detail="Host non autorizzato")
+
+
+def _validate_frontend_origin(frontend_origin: str | None, request: Request) -> None:
+    """Validate that frontend_origin is allowed and matches the current request origin."""
+    if not frontend_origin:
+        return
+    parsed = urlparse(frontend_origin)
+    if not parsed.scheme or parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=400, detail="Invalid frontend_origin scheme")
+    origin_host = f"{parsed.scheme}://{parsed.netloc}"
+    allowed = False
+    try:
+        cors_list = getattr(_s, "cors_origins_list", [])
+        for origin in cors_list:
+            if origin.rstrip("/") == origin_host.rstrip("/"):
+                allowed = True
+                break
+    except Exception:
+        logger.debug("Failed to parse CORS origins for frontend_origin validation", exc_info=True)
+    if not allowed and not parsed.netloc.endswith(".vercel.app"):
+        raise HTTPException(status_code=400, detail="Invalid frontend_origin")
+    request_origin = request.headers.get("origin") or ""
+    if request_origin:
+        request_origin = request_origin.rstrip("/")
+        if request_origin != origin_host.rstrip("/") and not request_origin.endswith(".vercel.app"):
+            logger.warning("frontend_origin mismatch: state=%s request=%s", origin_host, request_origin)
 
 
 def _public_athlete(athlete: dict | None) -> dict:
@@ -231,7 +257,6 @@ def _public_athlete(athlete: dict | None) -> dict:
     return {
         "id": athlete.get("id"),
         "name": athlete.get("name", ""),
-        "email": athlete.get("email"),
         "picture": athlete.get("picture"),
         "age": athlete.get("age"),
         "weight_kg": athlete.get("weight_kg"),
@@ -571,6 +596,7 @@ async def hub_google_oauth_callback_get(
     redirect_uri = state_data.get("redirect_uri", redirect_uri or "")
     frontend_origin = state_data.get("frontend_origin")
     _validate_redirect_uri(redirect_uri, request)
+    _validate_frontend_origin(frontend_origin, request)
     if frontend_origin:
         _validate_redirect_uri(frontend_origin, request)
 
@@ -762,9 +788,13 @@ async def hub_list_all_athletes(current_user: dict = Depends(get_admin_user)):
 @hub_admin_router.get("/backup")
 async def hub_create_backup(current_user: dict = Depends(get_admin_user)):
     """Esporta un backup JSON di utenti, atleti, ride e cronologia chat (solo admin)."""
+    import hashlib
+    import logging
+
     from fastapi.responses import JSONResponse
     from sqlalchemy import select as sa_select
 
+    logger = logging.getLogger(__name__)
     session_factory = get_session_factory()
     async with session_factory() as session:
         users_result = await session.execute(sa_select(UserModel))
@@ -786,7 +816,13 @@ async def hub_create_backup(current_user: dict = Depends(get_admin_user)):
         "rides": _dump(RideModel),
         "chat_history": _dump(ChatHistoryModel),
     }
-    log_action(current_user["id"], "download_backup", "database")
+    backup_hash = hashlib.sha256(str(payload).encode()).hexdigest()[:16]
+    log_action(current_user["id"], "download_backup", "database", details={"hash": backup_hash})
+    logger.info(
+        "Admin user=%s downloaded hub JSON backup hash=%s",
+        current_user["id"],
+        backup_hash,
+    )
     return JSONResponse(content=payload, media_type="application/json")
 
 

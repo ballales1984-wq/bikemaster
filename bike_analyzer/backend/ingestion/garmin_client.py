@@ -131,6 +131,16 @@ def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
             expires_at = int(time.time()) + _TOKEN_TTL_SECONDS
     if "expires_in" in token_data and not expires_at:
         expires_at = int(time.time()) + int(token_data["expires_in"])
+    encrypted_access = token_data.get("access_token", "")
+    encrypted_refresh = token_data.get("refresh_token", "")
+    try:
+        from ..db.token_crypto import encrypt_token
+        if encrypted_access:
+            encrypted_access = encrypt_token(encrypted_access)
+        if encrypted_refresh:
+            encrypted_refresh = encrypt_token(encrypted_refresh)
+    except Exception:
+        logger.warning("Garmin token encryption skipped", exc_info=True)
     with _get_conn() as conn:
         conn.execute(
             """
@@ -145,8 +155,8 @@ def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
             """,
             (
                 athlete_id,
-                token_data.get("access_token", ""),
-                token_data.get("refresh_token", ""),
+                encrypted_access,
+                encrypted_refresh,
                 expires_at,
                 token_data.get("scope", ""),
             ),
@@ -168,9 +178,19 @@ async def get_valid_token(athlete_id: int) -> str | None:
     if not row:
         return None
     access_token, refresh_token, expires_at = row
+    try:
+        from ..db.token_crypto import decrypt_token
+        if access_token:
+            access_token = decrypt_token(access_token)
+        if refresh_token:
+            refresh_token = decrypt_token(refresh_token)
+    except Exception:
+        logger.warning("Garmin token decryption failed", exc_info=True)
+    if not access_token:
+        return None
     if expires_at and expires_at - time.time() < _TOKEN_REFRESH_BUFFER_SECONDS:
         try:
-            new_data = await refresh_access_token(refresh_token)
+            new_data = await refresh_access_token(refresh_token or "")
             store_token(athlete_id, new_data)
             return new_data.get("access_token")
         except Exception:

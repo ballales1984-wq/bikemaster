@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import time
 
 from ..settings import get_settings
 
 _s = get_settings()
+logger = logging.getLogger(__name__)
 
 # noqa: S105
 _GOOGLE_TOKEN_TABLE = """
@@ -49,6 +51,16 @@ def store_google_token(athlete_id: int, provider: str, token_data: dict) -> None
             expires_at = 0
     if not expires_at and "expires_in" in token_data:
         expires_at = int(time.time()) + int(token_data["expires_in"])
+    encrypted_access = token_data.get("access_token", "")
+    encrypted_refresh = token_data.get("refresh_token", "")
+    try:
+        from ..db.token_crypto import encrypt_token
+        if encrypted_access:
+            encrypted_access = encrypt_token(encrypted_access)
+        if encrypted_refresh:
+            encrypted_refresh = encrypt_token(encrypted_refresh)
+    except Exception:
+        logger.warning("Google token encryption skipped", exc_info=True)
     with _get_conn() as conn:
         conn.execute(
             """
@@ -64,8 +76,8 @@ def store_google_token(athlete_id: int, provider: str, token_data: dict) -> None
             (
                 athlete_id,
                 provider,
-                token_data.get("access_token", ""),
-                token_data.get("refresh_token", ""),
+                encrypted_access,
+                encrypted_refresh,
                 expires_at,
                 token_data.get("scope", ""),
             ),
@@ -83,6 +95,14 @@ def get_google_token(athlete_id: int, provider: str) -> dict | None:
     if not row:
         return None
     access_token, refresh_token, expires_at, scope = row
+    try:
+        from ..db.token_crypto import decrypt_token
+        if access_token:
+            access_token = decrypt_token(access_token)
+        if refresh_token:
+            refresh_token = decrypt_token(refresh_token)
+    except Exception:
+        logger.warning("Google token decryption failed", exc_info=True)
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
