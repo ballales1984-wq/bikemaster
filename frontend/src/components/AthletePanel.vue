@@ -197,7 +197,9 @@
           min="10"
           max="100"
           step="1"
+          readonly
         />
+        <span class="field-hint">Calcolata automaticamente</span>
       </div>
       <div class="form-group">
         <label for="athlete-apparent-age">Età Apparente</label>
@@ -486,6 +488,12 @@ watch(
     }
   },
 );
+
+watch(() => form.value.age, (newAge) => {
+  if (newAge != null && newAge > 0) {
+    form.value.body_age = newAge;
+  }
+});
 
 function validateForm(): boolean {
   fieldErrors.value = validateAthleteForm(form.value);
