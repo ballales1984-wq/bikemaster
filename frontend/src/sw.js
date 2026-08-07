@@ -100,16 +100,19 @@ registerRoute(
     request.mode === "navigate" && !request.url.includes("/api/"),
   async ({ event }) => {
     try {
-      const response = await fetch(event.request, { cache: "reload" });
+      const response = await fetch(event.request.url, { cache: "reload" });
       if (response.ok) return response;
     } catch (_) {
       /* network error, fall through to cache */
     }
-    const cache = await caches.open(STATIC_CACHE);
-    return (
-      (await cache.match("/index.html")) ||
-      new Response("", { status: 503, statusText: "Offline" })
-    );
+    try {
+      const cache = await caches.open(STATIC_CACHE);
+      const cached = await cache.match("/index.html");
+      if (cached) return cached;
+    } catch (_) {
+      /* cache error, fall through to offline response */
+    }
+    return new Response("", { status: 503, statusText: "Offline" });
   },
 );
 
