@@ -23,9 +23,11 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::State as TauriState;
 use tauri::Manager;
+use tauri::Emitter;
 use tokio::sync::Mutex;
 use tower_http::cors::CorsLayer;
 use uuid::Uuid;
+use futures::stream::StreamExt;
 
 use btleplug::api::{
     BDAddr, Central, Manager as _, Peripheral as _, ScanFilter,
@@ -355,8 +357,8 @@ async fn ble_start_hr_monitoring(
 
     {
         let registry = app
-            .try_get_state::<HrMonitorRegistry>()
-            .map_err(|e| format!("State error: {}", e))?;
+            .try_state::<HrMonitorRegistry>()
+            .ok_or("State error: HrMonitorRegistry not found")?;
         let mut devices = registry.devices.lock().unwrap();
         devices.push(args.mac_address.clone());
     }
@@ -365,14 +367,14 @@ async fn ble_start_hr_monitoring(
     let mac = args.mac_address.clone();
     tokio::spawn(async move {
         let mut notif_rx = notification_stream;
-        while let Ok(Some(notif)) = notif_rx.recv().await {
+        while let Some(notif) = notif_rx.next().await {
             if let Some((hr, _unit)) = parse_ble_characteristic("heart_rate", &notif.value) {
                 let payload = serde_json::json!({
                     "mac_address": mac,
                     "heart_rate": hr as i64,
                     "timestamp": chrono::Utc::now().to_rfc3339(),
                 });
-                app_handle.emit_all("hr-sample", payload).unwrap_or_else(|e| {
+                app_handle.emit("hr-sample", payload).unwrap_or_else(|e| {
                     eprintln!("[HR] emit failed: {}", e);
                 });
             }
@@ -393,7 +395,7 @@ async fn ble_get_device_info(mac_address: String) -> Result<BleDeviceInfo, Strin
 
 #[tauri::command]
 async fn ble_stop_hr_monitoring(app: tauri::AppHandle, mac_address: String) -> Result<String, String> {
-    if let Some(registry) = app.try_get_state::<HrMonitorRegistry>().ok() {
+    if let Some(registry) = app.try_state::<HrMonitorRegistry>() {
         let mut devices = registry.devices.lock().unwrap();
         devices.retain(|m| m != &mac_address);
     }
@@ -1570,9 +1572,9 @@ async fn hr_get_settings(
             "enabled": true,
             "interval_seconds": 30,
             "source": "ble",
-            "device_id": None,
-            "max_hr": None,
-            "resting_hr": None,
+            "device_id": None::<Option<String>>,
+            "max_hr": None::<Option<i64>>,
+            "resting_hr": None::<Option<i64>>,
         })))
     }
 }
@@ -1594,7 +1596,7 @@ async fn hr_upsert_settings(
     Ok(axum::Json(serde_json::json!({
         "enabled": payload.enabled.unwrap_or(true),
         "interval_seconds": payload.interval_seconds.unwrap_or(30),
-        "source": payload.source.unwrap_or("ble"),
+        "source": payload.source.unwrap_or("ble".to_string()),
         "device_id": payload.device_id,
         "max_hr": payload.max_hr,
         "resting_hr": payload.resting_hr,
@@ -1687,10 +1689,7 @@ async fn hr_get_summary(
         )
         .optional()
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    match row {
-        Ok(Some(json)) => Ok(Some(axum::Json(serde_json::json!(json)))),
-        _ => Ok(None),
-    }
+    Ok(axum::Json(row))
 }
 
 async fn hr_get_summary_history(
@@ -1837,6 +1836,9 @@ fn resolve_db_path<R: tauri::Runtime>(app: &impl tauri::Manager<R>) -> PathBuf {
 #[cfg(target_os = "android")]
 mod health_connect_jni {
     use jni::JavaVM;
+    use jni::objects::{JString, JValue};
+    use jni::signature::JavaType;
+    use jni::sys;
     use std::sync::Once;
 
     static mut JAVA_VM: Option<JavaVM> = None;
@@ -1875,14 +1877,14 @@ mod health_connect_jni {
             Err(e) => return serde_json::json!({"error": format!("Method not found: {}", e)}),
         };
 
-        let result = match env.call_static_method_unchecked(class, method_id, jni::signature::ReturnType::Object, &[]) {
+        let result = match env.call_static_method_unchecked(class, method_id, JavaType::Object("java/util/Map".to_string()), &[]) {
             Ok(val) => val,
             Err(e) => return serde_json::json!({"error": format!("Call failed: {}", e)}),
         };
 
-        let map = match result.downcast::<jni::objects::JObject>() {
-            Ok(obj) => obj,
-            Err(e) => return serde_json::json!({"error": format!("Downcast failed: {}", e)}),
+        let map = match result {
+            JValue::Object(obj) => obj,
+            _ => return serde_json::json!({"error": "Expected Object".to_string()}),
         };
 
         let entry_set = match env.call_method(map, "entrySet", "()Ljava/util/Set;", &[]) {
@@ -1890,9 +1892,9 @@ mod health_connect_jni {
             Err(e) => return serde_json::json!({"error": format!("entrySet failed: {}", e)}),
         };
 
-        let set = match entry_set.downcast::<jni::objects::JObject>() {
-            Ok(obj) => obj,
-            Err(e) => return serde_json::json!({"error": format!("Set downcast failed: {}", e)}),
+        let set = match entry_set {
+            JValue::Object(obj) => obj,
+            _ => return serde_json::json!({"error": "Expected Object".to_string()}),
         };
 
         let iterator = match env.call_method(set, "iterator", "()Ljava/util/Iterator;", &[]) {
@@ -1900,9 +1902,9 @@ mod health_connect_jni {
             Err(e) => return serde_json::json!({"error": format!("iterator failed: {}", e)}),
         };
 
-        let iter_obj = match iterator.downcast::<jni::objects::JObject>() {
-            Ok(obj) => obj,
-            Err(e) => return serde_json::json!({"error": format!("Iterator downcast failed: {}", e)}),
+        let iter_obj = match iterator {
+            JValue::Object(obj) => obj,
+            _ => return serde_json::json!({"error": "Expected Object".to_string()}),
         };
 
         let mut metrics = serde_json::Map::new();
@@ -1922,15 +1924,21 @@ mod health_connect_jni {
                 Err(_) => break,
             };
 
-            let entry_obj = match entry.downcast::<jni::objects::JObject>() {
-                Ok(obj) => obj,
-                Err(_) => break,
+            let entry_obj = match entry {
+                JValue::Object(obj) => obj,
+                _ => break,
             };
 
             let key = match env.call_method(entry_obj, "getKey", "()Ljava/lang/Object;", &[]) {
-                Ok(val) => match val.downcast::<jni::objects::JString>() {
-                    Ok(s) => env.get_string(&s).ok().and_then(|s| s.to_str().ok()).unwrap_or("").to_string(),
-                    Err(_) => continue,
+                Ok(val) => match val {
+                    JValue::Object(obj) => {
+                        let s = JString::from(obj);
+                        match env.get_string(s) {
+                            Ok(java_str) => java_str.to_str().unwrap_or("").to_string(),
+                            Err(_) => continue,
+                        }
+                    }
+                    _ => continue,
                 },
                 Err(_) => continue,
             };
@@ -1940,20 +1948,23 @@ mod health_connect_jni {
                 Err(_) => continue,
             };
 
-            let val_str = if let Ok(s) = value.downcast::<jni::objects::JString>() {
-                env.get_string(&s).ok().and_then(|s| s.to_str().ok()).map(|s| serde_json::Value::String(s.to_string()))
-            } else if let Ok(n) = value.downcast::<jni::objects::JInteger>() {
-                n.i32().ok().map(|v| serde_json::Value::Number(v.into()))
-            } else if let Ok(n) = value.downcast::<jni::objects::JLong>() {
-                n.i64().ok().map(|v| serde_json::Value::Number(v.into()))
-            } else if let Ok(n) = value.downcast::<jni::objects::JFloat>() {
-                n.f32().ok().map(|v| serde_json::Value::Number(serde_json::Number::from_f64(v as f64).unwrap_or(serde_json::Number::from(0))))
-            } else if let Ok(n) = value.downcast::<jni::objects::JDouble>() {
-                n.f64().ok().and_then(|v| serde_json::Number::from_f64(v).map(serde_json::Value::Number))
-            } else if let Ok(b) = value.downcast::<jni::objects::JBoolean>() {
-                b.z().ok().map(|v| serde_json::Value::Bool(v))
-            } else {
-                None
+            let val_str = match value {
+                JValue::Object(obj) => {
+                    let s = JString::from(obj);
+                    match env.get_string(s) {
+                        Ok(java_str) => match java_str.to_str() {
+                            Ok(str_val) => Some(serde_json::Value::String(str_val.to_string())),
+                            Err(_) => None,
+                        },
+                        Err(_) => None,
+                    }
+                }
+                JValue::Int(n) => Some(serde_json::Value::Number(n.into())),
+                JValue::Long(n) => Some(serde_json::Value::Number(n.into())),
+                JValue::Float(n) => serde_json::Number::from_f64(n as f64).map(serde_json::Value::Number),
+                JValue::Double(n) => serde_json::Number::from_f64(n).map(serde_json::Value::Number),
+                JValue::Bool(n) => Some(serde_json::Value::Bool(n == sys::JNI_TRUE)),
+                _ => None,
             };
 
             if let Some(val) = val_str {
