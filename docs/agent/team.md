@@ -9,7 +9,7 @@ Il team non è una chat: è un ciclo cognitivo strutturato (§52) dove l'ORCHEST
 ## Roster Core (12 ruoli)
 
 | Ruolo | File | Responsabilità | Memoria | Eventi |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | **ORCHESTRATOR** | `.kilo/agent/orchestrator.md` | Coordinatore: riceve obiettivo, comprende, pianifica, delega, osserva, decide quando fermarsi | shared-log | TASK_CREATED, TASK_ASSIGNED, CONFLICT, SESSION_END |
 | **ARCHITECT** | `.kilo/agent/architect.md` | Visione architettura, conseguenze modifiche, ADR | code-graph | IMPACT_REPORT, ARCH_ADR_PROPOSED |
 | **FRONTEND** | `.kilo/agent/frontend.md` | Vue 3, Pinia, Router, Vite, Tauri WebView, PWA, test, browser automation | — | API_ERROR, UI_BUG, BROWSER_RESULT, TEST_PASS/FAIL, FIX_APPLIED |
@@ -28,7 +28,7 @@ Il team non è una chat: è un ciclo cognitivo strutturato (§52) dove l'ORCHEST
 Oltre ai 12 ruoli core, il progetto dispone di agenti specialistici per dominio e fix mirati:
 
 | Agente | File | Specializzazione |
-|---|---|---|
+| --- | --- | --- |
 | adaptation-engine | `.kilo/agent/adaptation-engine.md` | Motore adattamento carico/recupero in tempo reale |
 | athlete-state | `.kilo/agent/athlete-state.md` | Profilo dinamico atleta, risposta individuale a carico/recupero |
 | code-documenter | `.kilo/agent/code-documenter.md` | Documentazione Python (docstring, commenti) |
@@ -105,7 +105,7 @@ Correzioni mirate e tracciabili:
 ## Livelli di Autonomia
 
 | Livello | Comportamento | Quando |
-|---|---|---|
+| --- | --- | --- |
 | 0 | Analisi sola | Security audit, analisi legacy |
 | 1 | Proposals | Richieste nuove, refactor ampi, decisioni architetturali |
 | 2 | Modify + Test | Routine quotidiane (bug, feature) — **default** |
@@ -116,7 +116,7 @@ Operazioni irreversibili o critiche richiedono approvazione umana (Lead Develope
 
 ## Ciclo Cognitivo
 
-```
+```text
 GOAL
   ↓  UNDERSTAND       — cos'è la richiesta? area? bug noto?
   ↓  RETRIEVE         — LIBRARIAN: Project Map, Code Graph, Data Graph, docs, bug storici
@@ -170,7 +170,7 @@ Puoi richiedere direttamente un agente specializzato menzionandolo nella
 richiesta. Gli agenti direttamente invocabili (hanno un `subagent_type`) sono:
 
 | Agente | Invocazione tipica | Perimetro |
-|---|---|---|
+| --- | --- | --- |
 | FRONTEND | `@frontend` | Vue 3, Pinia, Tauri, PWA, test vitest |
 | DEBUGGER | `@debug` / `@debug-piece` | Root cause su backend/frontend/test |
 | SECURITY | `@security` | Audit, OWASP, segreti, dipendenze |
@@ -228,15 +228,17 @@ Primo ciclo cognitivo eseguito dal team (SCAN → TEST → FIX → VERIFY → RE
 
 **Objective**: Portare il frontend a zero errori (Zero-Error Loop, §42).
 
-**SCAN**
+### SCAN
+
 | Check | Strumento | Risultato |
-|---|---|---|
+| --- | --- | --- |
 | ESLint static analysis | `npx eslint . --ext .vue,.js,.jsx,.cjs,.mjs` | 3 error (`no-unused-vars`) |
 | Typecheck | `vue-tsc --noEmit --incremental` | 0 error |
 | Backend tests (modified files) | `pytest tests/test_dashboard_auth.py` | 9 passed |
 | Backend tests (modified files) | `pytest tests/test_metabolism_api.py` | 33 passed |
 
-**BUGS FOUND — 3 variabili inutilizzate (dead code)**
+### BUGS FOUND — 3 variabili inutilizzate (dead code)
+
 - `appUrl` — `frontend/src/App.vue:235` (assegnata, mai letta)
 - `shareOnLinkedIn` — `frontend/src/App.vue:249` (funzione definita, mai chiamata né in template)
 - `backend` — `frontend/src/components/VoiceAssistant.vue:304` (assegnata a 328 e 335, mai letta)
@@ -249,8 +251,9 @@ da nessun punto del flusso di autenticazione).
 `git diff --stat`: **2 file, 17 deletions, 0 additions**.
 
 **VERIFICATION** (agente VERIFIER, indipendente)
+
 | Verifica | Evidenza | Esito |
-|---|---|---|
+| --- | --- | --- |
 | ESLint post-fix | `ESLINT_EXITCODE=0`, nessun output | PASS |
 | Typecheck | nessun `error TS` | PASS |
 | Regression frontend | `App.test.js` + `useAuth.test.js` + `ErrorBoundary.test.js` → 9/9 passed | PASS |
@@ -286,6 +289,7 @@ Playwright non ancora eseguito.
 ### 1. Ricezione dell'obiettivo
 
 L'utente (Lead Developer) fornisce un obiettivo in linguaggio naturale:
+
 - "Controlla l'app."
 - "Trova perché il dashboard mostra valori sbagliati."
 - "Porta il progetto a zero errori."
@@ -294,6 +298,7 @@ L'utente (Lead Developer) fornisce un obiettivo in linguaggio naturale:
 ### 2. Pianificazione e delega
 
 L'**ORCHESTRATOR** interpreta l'obiettivo e crea un piano strutturato:
+
 - Identifica l'area coinvolta (frontend, backend, database, security)
 - Assegna task specifici agli agenti specializzati
 - Definisce dipendenze tra task
@@ -301,6 +306,7 @@ L'**ORCHESTRATOR** interpreta l'obiettivo e crea un piano strutturato:
 ### 3. Esecuzione parallela
 
 Gli agenti lavorano in parallelo secondo le loro competenze:
+
 - Il **FRONTEND** analizza componenti Vue, store Pinia, router
 - Il **BACKEND** ispeziona API, servizi, logica di business
 - Il **DATABASE** verifica schema, query, migrazioni
@@ -313,6 +319,7 @@ Gli agenti lavorano in parallelo secondo le loro competenze:
 ### 4. Osservazione e correzione
 
 L'**ORCHESTRATOR** osserva il **Shared Event Log** e:
+
 - Raccoglie evidenze da tutti gli agenti
 - Confronta EXPECTED vs ACTUAL
 - Decide correzioni minime e mirate
@@ -321,6 +328,7 @@ L'**ORCHESTRATOR** osserva il **Shared Event Log** e:
 ### 5. Verifica e chiusura
 
 Il **VERIFIER** indipendente valuta:
+
 - Tutti i test passano
 - Nessuna regressione introdotta
 - Nessun segreto nel codice
@@ -329,6 +337,7 @@ Il **VERIFIER** indipendente valuta:
 ### 6. Memoria e apprendimento
 
 Il **LIBRARIAN** aggiorna:
+
 - Bug database con ID tracciato
 - Decision records (ADR)
 - Code graph e data graph
@@ -343,13 +352,14 @@ Il team agentico ha prodotto risultati concreti, documentati in `.kilo/memory/` 
 **Ciclo cognitivo completato con successo.**
 
 | Fase | Agente | Risultato |
-|---|---|---|
+| --- | --- | --- |
 | SCAN | ORCHESTRATOR | Identificati 3 errori ESLint (`no-unused-vars`) in `App.vue` e `VoiceAssistant.vue` |
 | FIX | FRONTEND | Rimossi 3 variabili inutilizzate (dead code): `appUrl`, `shareOnLinkedIn`, `backend` |
 | VERIFY | VERIFIER | ESLint exit=0, typecheck 0 error, vitest 9/9 pass |
 | RECORD | LIBRARIAN | Evento registrato in `shared-log.md` |
 
 **Evidenza:**
+
 - `frontend/src/App.vue` — rimosso `appUrl` (235) e `shareOnLinkedIn` (249)
 - `frontend/src/components/VoiceAssistant.vue` — rimosso `backend` (304 + assegnazioni 328, 335)
 - `git diff --stat`: 2 file, 17 deletions, 0 additions (nessun file di test toccato in questa sessione)
@@ -361,7 +371,7 @@ Il team agentico ha prodotto risultati concreti, documentati in `.kilo/memory/` 
 Il team ha prodotto piani di lavoro dettagliati per aree critiche:
 
 | Piano | Focus | Status |
-|---|---|---|
+| --- | --- | --- |
 | `.kilo/plans/1783631660667-failing-tests-debug-plan.md` | Debug test frontend fallenti (Vitest) | Analisi completata |
 | `.kilo/plans/1783635185916-codebase-analysis-plan.md` | Analisi completa codice + sicurezza | 21 findings, 8 priorità |
 | `.kilo/plans/1783679954635-oauth-poi-fixes.md` | Fix OAuth flow + POI schemas | Piano definito |
@@ -373,6 +383,7 @@ Il team ha prodotto piani di lavoro dettagliati per aree critiche:
 Dall'analisi codebase (piano `1783635185916`):
 
 **Sicurezza (P1):**
+
 - Open redirect OAuth via spoofing header `Origin` — whitelist statica implementata
 - `refresh_token` usa `SECRET_KEY` grezza invece di `decode_token_with_fallback` — fix applicato
 - `/sentry-debug` esposto in tutti gli ambienti — gated in produzione
@@ -391,7 +402,7 @@ Dall'analisi codebase (piano `1783635185916`):
 ## Metriche del Team
 
 | Metrica | Valore |
-|---|---|
+| --- | --- |
 | Sessioni completate | 1 (TASK-SW-001) |
 | Piani generati | 5 |
 | Bug identificati | 21+ (piano codebase analysis) |

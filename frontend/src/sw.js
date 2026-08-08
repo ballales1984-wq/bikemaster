@@ -194,7 +194,8 @@ registerRoute(
 );
 
 registerRoute(
-  ({ request }) => request.destination === "image",
+  ({ request, url }) =>
+    request.destination === "image" && url.origin === self.location.origin,
   new CacheFirst({
     cacheName: IMAGE_CACHE,
     plugins: [
