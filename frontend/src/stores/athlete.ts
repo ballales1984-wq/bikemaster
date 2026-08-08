@@ -19,10 +19,7 @@ export interface AthleteProfile extends Athlete {
   age?: number;
   weight_kg?: number;
   height_cm?: number;
-  ftp?: number;
   ftp_watts?: number;
-  max_hr?: number;
-  resting_hr?: number;
   fat_percentage?: number;
   years_active?: number;
   weekly_sessions?: number;
@@ -75,30 +72,13 @@ export const useAthleteStore = defineStore("athlete", () => {
     error.value = null;
     try {
       const data = await apiGet<{
-        athlete: AthleteProfile;
+        athlete: AthleteProfile | null;
         profile_complete: boolean;
       }>("/api/v1/athletes/me");
       profile.value = data.athlete;
       profileComplete.value = data.profile_complete;
       return data.athlete;
     } catch (e) {
-      if (e instanceof ApiError && e.status === 404) {
-        try {
-          const created = await apiPut<{
-            athlete: AthleteProfile;
-            profile_complete: boolean;
-          }>("/api/v1/athletes/me", {
-            experience_level: "Beginner",
-          });
-          profile.value = created.athlete;
-          profileComplete.value = created.profile_complete;
-          return created.athlete;
-        } catch {
-          profile.value = null;
-          profileComplete.value = false;
-          return null;
-        }
-      }
       error.value = e instanceof Error ? e.message : "Failed to load profile";
       return null;
     } finally {

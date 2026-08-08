@@ -332,6 +332,30 @@
             </div>
           </div>
 
+          <!-- Equipaggiamento & Limitazioni -->
+          <div
+            v-if="profile?.equipment || profile?.medical_notes"
+            class="equipment-section"
+          >
+            <div class="equipment-title">Equipaggiamento & Limitazioni</div>
+            <div class="equipment-grid">
+              <div
+                v-if="profile?.equipment"
+                class="equipment-item"
+              >
+                <span class="equipment-label">Equipaggiamento</span>
+                <span class="equipment-value">{{ profile.equipment }}</span>
+              </div>
+              <div
+                v-if="profile?.medical_notes"
+                class="equipment-item"
+              >
+                <span class="equipment-label">Note mediche</span>
+                <span class="equipment-value">{{ profile.medical_notes }}</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Footer card -->
           <div class="card-footer">
             <div class="footer-stats">
@@ -359,9 +383,11 @@
 import { ref, computed, onMounted } from "vue";
 import { useAthleteStore } from "../stores/athlete";
 import { useAthleteStateStore } from "../stores/athleteState";
+import { useAuthStore } from "../stores/auth";
 import { storeToRefs } from "pinia";
 import type { AthleteState } from "../types/athlete_state";
 
+const authStore = useAuthStore();
 const auth = useAthleteStore();
 const stateStore = useAthleteStateStore();
 
@@ -409,15 +435,19 @@ const categoryStatus = computed(
     return {
       head: s.readiness >= 70 ? "ok" : s.readiness >= 40 ? "warning" : "danger",
       neck:
-        s.fatigue_score <= 5
+        s.fatigue_score <= 4
           ? "ok"
           : s.fatigue_score <= 7
             ? "warning"
             : "danger",
-      chest: s.ctl >= 50 ? "ok" : s.ctl >= 30 ? "warning" : "danger",
-      core: s.acwr >= 0.8 && s.acwr <= 1.3 ? "ok" : "warning",
-      arms: s.atl <= 80 ? "ok" : s.atl <= 100 ? "warning" : "danger",
-      legs: s.tsb >= -20 ? "ok" : s.tsb >= -40 ? "warning" : "danger",
+      chest: s.ctl >= 60 ? "ok" : s.ctl >= 30 ? "warning" : "danger",
+      core: s.acwr >= 0.8 && s.acwr <= 1.3
+        ? "ok"
+        : s.acwr >= 0.5 && s.acwr <= 1.5
+          ? "warning"
+          : "danger",
+      arms: s.atl <= 60 ? "ok" : s.atl <= 85 ? "warning" : "danger",
+      legs: s.tsb >= 10 ? "ok" : s.tsb >= -20 ? "warning" : "danger",
     };
   },
 );
@@ -636,6 +666,10 @@ const fitnessMetrics = computed(() => {
 });
 
 onMounted(async () => {
+  if (!authStore.isLoggedIn) {
+    loading.value = false;
+    return;
+  }
   try {
     await auth.fetchProfile();
     await stateStore.fetchState();
@@ -1272,6 +1306,48 @@ onMounted(async () => {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-top: 2px;
+}
+
+/* Equipment section */
+.equipment-section {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.equipment-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.equipment-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.equipment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.equipment-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.equipment-value {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 /* Risk badge */
