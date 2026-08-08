@@ -82,14 +82,14 @@ Strade parallela a `postgres_athlete.py`; switch via `DATABASE_URL`/`SYNC_MODE`.
 
 ## 4. Prossimi step (priorità, da analisi)
 
-| # | Azione | Priority | Owner | Nota |
-|---|---|---|---|---|
-| 1 | Migrare rides/metrics a PostgreSQL (Opzione A) | P0 critica | DATABASE/BACKEND | dato perdita al resume |
-| 2 | CI backend/frontend + build check (web/tauri) | P0 | DevOps/QA | `.github/workflows` |
-| 3 | Sync contract + test riconciliazione (diverge/merge, TTL) | P0 | Data/Sync | offline-first |
-| 4 | Health/DB metrics + Sentry + alerting | P1 | DevOps | dati persi, latenza sync |
-| 5 | Ruoli/RACI + ownership componenti | P1 | ORCHESTRATOR | questo file |
-| 6 | E2E offline-first + Tauri build regression | P1/P2 | QA/Frontend | |
+| # | Azione | Priority | Owner | Issue | Nota |
+|---|---|---|---|---|---|
+| 1 | Migrare rides/metrics a PostgreSQL (Opzione A) | P0 critica | DATABASE/BACKEND | [#4](https://github.com/ballales1984-wq/bikemaster/issues/4) | dato perdita al resume |
+| 2 | CI backend/frontend + build check (web/tauri) | P0 | DevOps/QA | [#5](https://github.com/ballales1984-wq/bikemaster/issues/5) | `.github/workflows` |
+| 3 | Sync contract + test riconciliazione (diverge/merge, TTL) | P0 | Data/Sync | [#6](https://github.com/ballales1984-wq/bikemaster/issues/6) | offline-first |
+| 4 | Health/DB metrics + Sentry + alerting | P1 | DevOps | [#7](https://github.com/ballales1984-wq/bikemaster/issues/7) | dati persi, latenza sync |
+| 5 | Ruoli/RACI + ownership componenti | P1 | ORCHESTRATOR | — (questo file) | AGENTS_TEAM.md |
+| 6 | E2E offline-first + Tauri build regression | P1/P2 | QA/Frontend | [#8](https://github.com/ballales1984-wq/bikemaster/issues/8) | |
 
 ## 5. SLO/KPI team agentico
 - Disponibilità API auth (prod): 99.9%; sync: 99%.
