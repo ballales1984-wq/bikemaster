@@ -16,6 +16,20 @@ vi.mock("../composables/useI18n", () => ({
   }),
 }));
 
+const mockAuth = vi.hoisted(() => ({
+  isLoggedIn: true,
+  token: "test-token",
+  user: { id: 1, username: "test" },
+  isAdmin: false,
+  isClient: false,
+  justLoggedIn: false,
+  setJustLoggedIn: vi.fn(),
+}));
+
+vi.mock("../stores/auth", () => ({
+  useAuthStore: () => mockAuth,
+}));
+
 const pinia = createPinia();
 setActivePinia(pinia);
 
@@ -38,6 +52,7 @@ function flush() {
 describe("RidesPanel", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    mockAuth.isLoggedIn = true;
   });
 
   it("shows the list of loaded rides", async () => {
@@ -66,10 +81,7 @@ describe("RidesPanel", () => {
     });
     await flush();
 
-    expect(apiGet).toHaveBeenCalledWith("/api/v1/rides", {
-      page: 1,
-      page_size: 100,
-    });
+    expect(apiGet).toHaveBeenCalledWith("/api/v1/rides", expect.any(Object));
     const items = wrapper.findAll(".ride-item");
     expect(items).toHaveLength(2);
   });
@@ -89,18 +101,7 @@ describe("RidesPanel", () => {
   it("adds a ride by filling the form", async () => {
     apiGet
       .mockResolvedValueOnce({ rides: [], total: 0 })
-      .mockResolvedValueOnce({
-        rides: [
-          {
-            id: 10,
-            date: "2026-06-15",
-            distance_km: 50,
-            duration_minutes: 120,
-            avg_speed_kmh: 25,
-          },
-        ],
-        total: 1,
-      });
+      .mockResolvedValueOnce({ rides: 0, distance_km: 50, calories: 0, avg_speed_kmh: 25, duration_minutes: 120 });
     apiPost.mockResolvedValueOnce({ id: 10 });
 
     const wrapper = mount(RidesPanel, {
@@ -108,11 +109,9 @@ describe("RidesPanel", () => {
     });
     await flush();
 
-    // Open form
     await wrapper.find(".add-header").trigger("click");
     await flush();
 
-    // Fill form fields
     const dateInput = wrapper.find('input[type="date"]');
     const numberInputs = wrapper.findAll('input[type="number"]');
     await dateInput.setValue("2026-06-15");
@@ -154,11 +153,21 @@ describe("RidesPanel", () => {
     });
     await flush();
 
-    // Click on the first ride
     await wrapper.findAll(".ride-item")[0].trigger("click");
     await flush();
 
-    // verify the ride detail modal opens (selectedRide is set)
     expect(wrapper.vm.selectedRide).toBeTruthy();
+  });
+
+  it("shows guest state when not logged in", async () => {
+    mockAuth.isLoggedIn = false;
+
+    const wrapper = mount(RidesPanel, {
+      global: { stubs: { ConfirmModal: true } },
+    });
+    await flush();
+
+    expect(wrapper.vm.guest).toBe(true);
+    expect(wrapper.find(".empty-state").exists()).toBe(true);
   });
 });

@@ -7,13 +7,13 @@
       <div class="detail-header">
         <h2>{{ t("rideDetail.title") }}</h2>
         <div class="header-actions">
-          <button class="edit-btn" aria-label="Modifica" @click="startEdit">
+          <button class="edit-btn" :aria-label="t('rideDetail.edit')" @click="startEdit">
             ✏️
           </button>
           <button class="edit-btn" aria-label="BM2 Analysis" @click="goToBm2">
             ⚡ BM2
           </button>
-          <button class="close-btn" aria-label="Chiudi" @click="emit('close')">
+          <button class="close-btn" :aria-label="t('rideDetail.close')" @click="emit('close')">
             ✕
           </button>
         </div>
@@ -21,35 +21,35 @@
 
       <div v-if="editMode" class="edit-form">
         <label>
-          Data
+          {{ t("rideDetail.date") }}
           <input v-model="editForm.date" type="date" />
         </label>
         <label>
-          Titolo
+          {{ t("rideDetail.title") }}
           <input v-model="editForm.title" type="text" maxlength="150" />
         </label>
         <label>
-          Distanza (km)
+          {{ t("rideDetail.distance") }}
           <input
             v-model.number="editForm.distance_km"
             type="number"
-            min="0"
-            max="500"
+            :min="RIDE_LIMITS.MIN_DISTANCE_KM"
+            :max="RIDE_LIMITS.MAX_DISTANCE_KM"
             step="0.1"
           />
         </label>
         <label>
-          Durata (min)
+          {{ t("rideDetail.duration") }}
           <input
             v-model.number="editForm.duration_minutes"
             type="number"
-            min="1"
-            max="1440"
+            :min="RIDE_LIMITS.MIN_DURATION_MINUTES"
+            :max="RIDE_LIMITS.MAX_DURATION_MINUTES"
             step="1"
           />
         </label>
         <label>
-          FC media (bpm)
+          {{ t("rideDetail.avgHr") }}
           <input
             v-model.number="editForm.heart_rate_avg"
             type="number"
@@ -59,7 +59,7 @@
           />
         </label>
         <label>
-          Dislivello (m)
+          {{ t("rideDetail.elevation") }}
           <input
             v-model.number="editForm.elevation_gain_m"
             type="number"
@@ -69,17 +69,17 @@
           />
         </label>
         <label>
-          Velocità media (km/h)
+          {{ t("rideDetail.avgSpeed") }}
           <input
             v-model.number="editForm.avg_speed_kmh"
             type="number"
-            min="0"
-            max="150"
+            :min="0"
+            :max="RIDE_LIMITS.MAX_SPEED_KMH"
             step="0.1"
           />
         </label>
         <label>
-          Peso atleta (kg)
+          {{ t("rides.weight") }}
           <input
             v-model.number="editForm.weight_kg"
             type="number"
@@ -89,30 +89,30 @@
           />
         </label>
         <label>
-          Fonte
+          {{ t("rides.source") }}
           <input v-model="editForm.source" type="text" maxlength="50" />
         </label>
         <label class="checkbox-label">
           <input v-model="editForm.is_official" type="checkbox" />
-          <span> Gara ufficiale</span>
+          <span> {{ t("rides.officialRace") }}</span>
         </label>
         <label>
-          Tipo
+          {{ t("rideDetail.type") }}
           <select v-model="editForm.activity_type">
-            <option value="ride">Bici</option>
+            <option value="ride">{{ t("rides.activityType") }}</option>
             <option value="walk">Passeggiata</option>
             <option value="hike">Trekking</option>
             <option value="run">Corsa</option>
             <option value="indoor">Indoor</option>
-            <option value="other">Altro</option>
+            <option value="other">{{ t("common.other") }}</option>
           </select>
         </label>
         <div class="edit-actions">
           <button class="save-btn" :disabled="saving" @click="saveEdit">
-            {{ saving ? "Salvataggio…" : "Salva" }}
+            {{ saving ? t("rideDetail.saving") : t("rideDetail.save") }}
           </button>
           <button class="cancel-btn" :disabled="saving" @click="cancelEdit">
-            Annulla
+            {{ t("rideDetail.cancel") }}
           </button>
         </div>
         <p v-if="editError" class="edit-error">{{ editError }}</p>
@@ -126,14 +126,14 @@
         <div class="metric-card">
           <div class="metric-icon"></div>
           <div class="metric-value">{{ fmt(ride.distance_km) }} km</div>
-          <div class="metric-label">Distanza</div>
+          <div class="metric-label">{{ t("rideDetail.distance") }}</div>
         </div>
         <div class="metric-card">
           <div class="metric-icon">⏱</div>
           <div class="metric-value">
             {{ formatDuration(ride.duration_minutes) }}
           </div>
-          <div class="metric-label">Durata</div>
+          <div class="metric-label">{{ t("rideDetail.duration") }}</div>
         </div>
         <div class="metric-card">
           <div class="metric-icon"></div>
@@ -143,7 +143,7 @@
         <div class="metric-card">
           <div class="metric-icon"></div>
           <div class="metric-value">{{ fmt(ride.calories, 0) }} kcal</div>
-          <div class="metric-label">Calorie</div>
+          <div class="metric-label">{{ t("rideDetail.calories") }}</div>
         </div>
       </div>
 
@@ -153,10 +153,10 @@
         "
         class="analysis-section"
       >
-        <h3>Analisi Dettagliata</h3>
+        <h3>{{ t("rideDetail.detailAnalysis") }}</h3>
         <div class="analysis-grid">
           <div v-if="ride.elevation_gain_m" class="a-item">
-            <span class="a-lbl"> Dislivello</span>
+            <span class="a-lbl"> {{ t("rideDetail.elevationGain") }}</span>
             <span class="a-val">{{ fmt(ride.elevation_gain_m, 0) }} m</span>
           </div>
           <div v-if="ride.max_speed_kmh" class="a-item">
@@ -164,11 +164,11 @@
             <span class="a-val">{{ fmt(ride.max_speed_kmh) }} km/h</span>
           </div>
           <div v-if="ride.heart_rate_avg" class="a-item">
-            <span class="a-lbl"> FC Media</span>
+            <span class="a-lbl"> {{ t("rideDetail.avgHrLabel") }}</span>
             <span class="a-val">{{ fmt(ride.heart_rate_avg, 0) }} bpm</span>
           </div>
           <div v-if="ride.fatigue_score !== undefined" class="a-item">
-            <span class="a-lbl"> Affaticamento</span>
+            <span class="a-lbl"> {{ t("rideDetail.fatigue") }}</span>
             <span class="a-val" :class="fatigueClass"
               >{{ ride.fatigue_score }}/10</span
             >
@@ -183,18 +183,18 @@
       />
 
       <div v-if="speedChart || elevationChart" class="chart-section">
-        <h3>Grafici</h3>
+        <h3>{{ t("rideDetail.charts") }}</h3>
         <div class="chart-row">
           <img
             v-if="speedChart"
             :src="speedChart"
-            alt="Speed chart"
+            :alt="t('rideDetail.speedChart')"
             class="chart-img"
           />
           <img
             v-if="elevationChart"
             :src="elevationChart"
-            alt="Elevation chart"
+            :alt="t('rideDetail.elevationChart')"
             class="chart-img"
           />
         </div>
@@ -208,11 +208,14 @@ import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { apiGet, apiPut } from "../utils/api";
 import { useI18n } from "../composables/useI18n";
+import { useRidesStore } from "../stores/rides";
+import { RIDE_LIMITS } from "../constants";
 import type { Ride } from "../types/index";
 import SpeedMap from "./SpeedMap.vue";
 
 const { t } = useI18n();
 const router = useRouter();
+const store = useRidesStore();
 
 const props = defineProps({
   rideId: { type: Number, default: null },
@@ -291,17 +294,20 @@ function formatDate(dateStr: string | undefined) {
 }
 
 async function load() {
-  try {
-    const data = await apiGet<Ride>(`/api/v1/rides/${props.rideId}`);
+  if (!props.rideId) return;
+  const data = await store.fetchRide(props.rideId);
+  if (data) {
     ride.value = data;
     speedChart.value = `/api/v1/charts/speed/${props.rideId}`;
     elevationChart.value = `/api/v1/charts/elevation/${props.rideId}`;
-    const config = await apiGet<{ google_maps_api_key: string }>(
-      "/api/v1/config/google-maps-key",
-    );
-    googleMapsApiKey.value = config.google_maps_api_key || "";
-  } catch {
-    // ignore load errors
+    try {
+      const config = await apiGet<{ google_maps_api_key: string }>(
+        "/api/v1/config/google-maps-key",
+      );
+      googleMapsApiKey.value = config.google_maps_api_key || "";
+    } catch {
+      googleMapsApiKey.value = "";
+    }
   }
 }
 
@@ -336,7 +342,7 @@ function cancelEdit() {
 }
 
 async function saveEdit() {
-  if (!ride.value) return;
+  if (!ride.value || !props.rideId) return;
   saving.value = true;
   editError.value = "";
   try {
@@ -353,15 +359,12 @@ async function saveEdit() {
       activity_type: editForm.value.activity_type,
       source: editForm.value.source || null,
     };
-    const updated = await apiPut<Ride>(
-      `/api/v1/rides/${props.rideId}`,
-      payload,
-    );
-    ride.value = updated;
+    const updated = await store.updateRide(props.rideId, payload);
+    if (updated) ride.value = updated;
     editMode.value = false;
   } catch (err) {
     editError.value =
-      err instanceof Error ? err.message : "Salvataggio fallito";
+      err instanceof Error ? err.message : t("rideDetail.saveFailed");
   } finally {
     saving.value = false;
   }

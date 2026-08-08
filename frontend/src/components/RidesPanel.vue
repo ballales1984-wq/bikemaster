@@ -116,23 +116,23 @@
           <button
             class="btn btn-sm btn-secondary"
             :disabled="rides.length === 0"
-            :aria-label="t('common.download') + ' CSV'"
+            :aria-label="t('rides.exportCsv')"
             @click="exportCSV"
           >
-            CSV
+            {{ t("rides.exportCsv") }}
           </button>
           <button
             class="btn btn-sm btn-secondary"
-            :aria-label="'Filters'"
+            :aria-label="t('rides.filter')"
             @click="toggleFilters"
           >
-            {{ t("common.filter") }}{{ hasActiveFilters ? " ●" : "" }}
+            {{ t("rides.filter") }}{{ hasActiveFilters ? " ●" : "" }}
           </button>
           <select
             id="ride-sort-by"
             v-model="sortBy"
             class="sort-select"
-            :aria-label="t('common.filter')"
+            :aria-label="t('rides.sortBy')"
           >
             <option value="date_desc">{{ t("common.date") }} ▼</option>
             <option value="date_asc">{{ t("common.date") }} ▲</option>
@@ -207,19 +207,19 @@
 
       <!-- Guest state -->
       <div v-else-if="guest" class="empty-state">
-        <div class="empty-icon"></div>
+        <div class="empty-icon">🚴</div>
         <div class="empty-title">
           {{ t("rides.noRides") }}
         </div>
-        <div class="empty-desc">Accedi per vedere le tue uscite.</div>
+        <div class="empty-desc">{{ t("rides.loginToView") }}</div>
         <router-link to="/" class="btn btn-sm" style="margin-top: 14px">
-          Accedi
+          {{ t("common.login") }}
         </router-link>
       </div>
 
       <!-- Empty state -->
       <div v-else-if="rides.length === 0" class="empty-state">
-        <div class="empty-icon"></div>
+        <div class="empty-icon">📋</div>
         <div class="empty-title">
           {{ t("rides.noRides") }}
         </div>
@@ -237,7 +237,7 @@
 
       <!-- Filtered empty -->
       <div v-else-if="filteredRides.length === 0" class="empty-state">
-        <div class="empty-icon"></div>
+        <div class="empty-icon">🔍</div>
         <div class="empty-title">
           {{ t("common.none") }}
         </div>
@@ -258,8 +258,9 @@
           class="ride-item"
           role="button"
           tabindex="0"
-          :aria-label="`Uscita del ${ride.date}`"
+          :aria-label="`${t('rides.detailTitle')} ${formatDate(ride.date)}`"
           @click="openDetail(ride)"
+          @keydown.enter="openDetail(ride)"
         >
           <div class="ride-left">
             <div class="ride-date">
@@ -337,7 +338,7 @@
       >
         <div class="modal-dialog ride-detail-modal">
           <div class="detail-header">
-            <h3>Dettaglio Uscita</h3>
+            <h3>{{ t("rides.detailTitle") }}</h3>
             <button class="close-btn" @click="selectedRide = null"></button>
           </div>
           <div class="detail-date">
@@ -383,10 +384,10 @@
           </div>
           <!-- Analysis -->
           <div v-if="analysis" class="analysis-section">
-            <h4>Analisi</h4>
+            <h4>{{ t("rides.analysis") }}</h4>
             <div class="analysis-grid">
               <div v-if="analysis.fatigue_score != null" class="a-stat">
-                <span class="a-lbl">Affaticamento</span>
+                <span class="a-lbl">{{ t("rides.fatigue") }}</span>
                 <div class="a-bar">
                   <div
                     class="a-fill"
@@ -399,31 +400,31 @@
                 <span class="a-val">{{ fmt(analysis.fatigue_score) }}/10</span>
               </div>
               <div v-if="analysis.recovery_hours != null" class="a-item">
-                <span class="a-lbl">Recupero consigliato</span>
+                <span class="a-lbl">{{ t("rides.recoveryRecommended") }}</span>
                 <span class="a-val accent">{{ analysis.recovery_hours }}h</span>
               </div>
               <div v-if="analysis.calories_per_km != null" class="a-item">
-                <span class="a-lbl">Calorie/km</span>
+                <span class="a-lbl">{{ t("rides.caloriesPerKm") }}</span>
                 <span class="a-val">{{ fmt(analysis.calories_per_km) }}</span>
               </div>
             </div>
           </div>
           <div v-if="analysisLoading" class="loading-text">
-            ⏳ Caricamento analisi...
+            {{ t("rides.loadingAnalysis") }}
           </div>
           <div class="modal-actions">
             <button
               class="btn btn-sm"
               :disabled="analysisLoading"
-              @click="analyzeRide(selectedRide.id)"
+              @click="analyzeRide(selectedRide!.id as number)"
             >
-              {{ analysisLoading ? "⏳" : " Analizza" }}
+              {{ analysisLoading ? "⏳" : " " + t("rides.analyze") }}
             </button>
             <button
               class="btn btn-sm btn-secondary"
               @click="selectedRide = null"
             >
-              Chiudi
+              {{ t("rides.close") }}
             </button>
           </div>
         </div>
@@ -433,42 +434,42 @@
     <!-- Delete modal -->
     <ConfirmModal
       v-model="showDeleteModal"
-      title="Elimina Uscita"
-      :message="`Eliminare l'uscita del ${deleteTargetDate}?`"
-      confirm-label="Elimina"
-      cancel-label="Annulla"
+      :title="t('rides.deleteRide')"
+      :message="`${t('rides.deleteRideConfirm')} ${deleteTargetDate}?`"
+      :confirm-label="t('common.delete')"
+      :cancel-label="t('common.cancel')"
       @confirm="handleDelete"
     />
   </section>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, watch } from "vue";
+<script setup lang="ts">
+import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "../composables/useI18n";
 import { apiGet, apiDelete, apiPost } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
+import { useRidesStore } from "../stores/rides";
+import { RIDE_LIMITS } from "../constants";
 import ConfirmModal from "./ConfirmModal.vue";
 
 const { t } = useI18n();
 const auth = useAuthStore();
+const store = useRidesStore();
 const router = useRouter();
 
 const emit = defineEmits(["summary-change"]);
 
-const loading = ref(true);
-const adding = ref(false);
-const addError = ref("");
-const rides = ref([]);
 const guest = ref(false);
 const showForm = ref(false);
 const filtersOpen = ref(false);
-const selectedRide = ref(null);
-const analysis = ref(null);
+const selectedRide = ref<Record<string, unknown> | null>(null);
+const analysis = ref<Record<string, unknown> | null>(null);
 const analysisLoading = ref(false);
 const page = ref(1);
-const pageSize = 15;
+const pageSize = 20;
 const sortBy = ref("date_desc");
+const addError = ref("");
 
 const form = ref({
   date: new Date().toISOString().slice(0, 10),
@@ -485,12 +486,15 @@ const showDeleteModal = ref(false);
 const deleteTargetId = ref(null);
 const deleteTargetDate = ref("");
 
-function fmt(v, dec = 1) {
+const rides = computed(() => store.rides);
+const loading = computed(() => store.loading);
+
+function fmt(v: number | undefined, dec = 1) {
   if (v == null || isNaN(Number(v))) return "—";
   return Number(v).toFixed(dec);
 }
 
-function formatDuration(minutes) {
+function formatDuration(minutes: number | string | undefined) {
   const mins = Number(minutes) || 0;
   const h = Math.floor(mins / 60);
   const m = Math.floor(mins % 60);
@@ -501,7 +505,7 @@ function formatDuration(minutes) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr: string | undefined) {
   if (!dateStr) return "";
   try {
     return new Date(dateStr).toLocaleDateString("it-IT", {
@@ -515,7 +519,7 @@ function formatDate(dateStr) {
   }
 }
 
-function fatigueColor(score) {
+function fatigueColor(score: number) {
   if (score <= 3) return "#00ffcc";
   if (score <= 6) return "#ffb800";
   return "#ff3366";
@@ -578,65 +582,38 @@ watch(
 );
 
 async function load() {
-  loading.value = true;
-  try {
-    const all = [];
-    let page = 1;
-    const pageSize = 100;
-    while (true) {
-      const data = await apiGet("/api/v1/rides", {
-        page,
-        page_size: pageSize,
-      });
-      const batch = data.rides || [];
-      all.push(...batch);
-      const total = typeof data.total === "number" ? data.total : all.length;
-      if (batch.length === 0 || all.length >= total) break;
-      page += 1;
-    }
-    rides.value = all;
-  } catch (e) {
-    if (!auth.isLoggedIn) {
-      guest.value = true;
-      rides.value = [];
-    } else {
-      console.error("load rides", e);
-    }
-  } finally {
-    loading.value = false;
+  if (!auth.isLoggedIn) {
+    guest.value = true;
+    store.reset();
+    return;
   }
+  guest.value = false;
+  await store.fetchAllRides();
 }
 
 async function handleAdd() {
-  adding.value = true;
-  addError.value = "";
+  const dist = Number(form.value.distance_km);
+  const dur = Number(form.value.duration_minutes);
+  if (dist <= RIDE_LIMITS.MIN_DISTANCE_KM) {
+    return;
+  }
+  if (dur < RIDE_LIMITS.MIN_DURATION_MINUTES) {
+    return;
+  }
+  if (dur > RIDE_LIMITS.MAX_DURATION_MINUTES) {
+    return;
+  }
+  if (dist > RIDE_LIMITS.MAX_DISTANCE_KM) {
+    return;
+  }
+  const speed = form.value.avg_speed_kmh
+    ? Number(form.value.avg_speed_kmh)
+    : undefined;
+  if (speed && speed > RIDE_LIMITS.MAX_SPEED_KMH) {
+    return;
+  }
   try {
-    const dist = Number(form.value.distance_km);
-    const dur = Number(form.value.duration_minutes);
-    if (dist <= 0) {
-      addError.value = "La distanza deve essere maggiore di 0";
-      return;
-    }
-    if (dur < 1) {
-      addError.value = "Duration must be at least 1 minute";
-      return;
-    }
-    if (dur > 1440) {
-      addError.value = "Duration cannot exceed 24 hours";
-      return;
-    }
-    if (dist > 500) {
-      addError.value = "Distance cannot exceed 500 km";
-      return;
-    }
-    const speed = form.value.avg_speed_kmh
-      ? Number(form.value.avg_speed_kmh)
-      : undefined;
-    if (speed && speed > 150) {
-      addError.value = "Unrealistic speed (>150 km/h)";
-      return;
-    }
-    await apiPost("/api/v1/rides", {
+    await store.addRide({
       date: form.value.date,
       distance_km: dist,
       duration_minutes: dur,
@@ -655,29 +632,27 @@ async function handleAdd() {
       calories: "",
     };
     showForm.value = false;
-    await load();
     emit("summary-change");
   } catch (e) {
-    addError.value = e.message;
-  } finally {
-    adding.value = false;
+    addError.value = e instanceof Error ? e.message : "Failed to add ride";
+    console.error("add ride", e);
   }
 }
 
-function goToBm2(rideId) {
+function goToBm2(rideId: number) {
   router.push({ path: "/bm2", query: { rideId } });
 }
 
-async function openDetail(ride) {
+async function openDetail(ride: Record<string, unknown>) {
   selectedRide.value = ride;
   analysis.value = null;
-  await analyzeRide(ride.id);
+  await analyzeRide(ride.id as number);
 }
 
-async function analyzeRide(id) {
+async function analyzeRide(id: number) {
   analysisLoading.value = true;
   try {
-    const data = await apiGet(`/api/v1/rides/${id}`);
+    const data = await apiGet<Record<string, unknown>>(`/api/v1/rides/${id}`);
     analysis.value = data;
   } catch (e) {
     console.warn("analyze", e);
@@ -686,17 +661,16 @@ async function analyzeRide(id) {
   }
 }
 
-function askDelete(ride) {
-  deleteTargetId.value = ride.id;
-  deleteTargetDate.value = formatDate(ride.date);
+function askDelete(ride: Record<string, unknown>) {
+  deleteTargetId.value = ride.id as number;
+  deleteTargetDate.value = formatDate(ride.date as string);
   showDeleteModal.value = true;
 }
 
 async function handleDelete() {
   if (!deleteTargetId.value) return;
   try {
-    await apiDelete(`/api/v1/rides/${deleteTargetId.value}`);
-    rides.value = rides.value.filter((r) => r.id !== deleteTargetId.value);
+    await store.deleteRide(deleteTargetId.value);
     emit("summary-change");
   } catch (e) {
     console.error("delete", e);
@@ -715,7 +689,7 @@ function exportCSV() {
     "Elevation (m)",
     "Calories",
   ];
-  const rows = filteredRides.value.map((r) => [
+  const rows = sortedRides.value.map((r) => [
     r.date,
     r.distance_km,
     r.duration_minutes,
@@ -734,6 +708,16 @@ function exportCSV() {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+watch(
+  () => auth.isLoggedIn,
+  (loggedIn) => {
+    if (!loggedIn) {
+      guest.value = true;
+      store.reset();
+    }
+  },
+);
 
 onMounted(() => load());
 </script>

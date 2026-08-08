@@ -9,6 +9,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { ApiCallOptions } from "../utils/api";
 import { apiGet, apiPost } from "../utils/api";
+import { isTauri } from "../utils/backend-config";
 import { useAuthStore } from "./auth";
 
 export type HealthConnectPermission =
@@ -129,10 +130,54 @@ export const useHealthConnectStore = defineStore("healthConnect", () => {
     }
   }
 
+  async function readMetricsTauri(): Promise<HealthMetric[]> {
+    const core = await import("@tauri-apps/api/core");
+    const result = (await core.invoke("health_connect_read_metrics")) as Record<
+      string,
+      unknown
+    >;
+    const metrics: HealthMetric[] = [];
+    const map: Record<string, { value: number; unit?: string }> = {
+      weight_kg: { value: (result.weight_kg as number) || 0, unit: "kg" },
+      heart_rate_bpm: {
+        value: (result.heart_rate_bpm as number) || 0,
+        unit: "bpm",
+      },
+      steps: { value: (result.steps as number) || 0, unit: "steps" },
+      sleep_hours: {
+        value: (result.sleep_hours as number) || 0,
+        unit: "hours",
+      },
+      blood_pressure_systolic: {
+        value: (result.blood_pressure_systolic as number) || 0,
+        unit: "mmHg",
+      },
+      activity_minutes: {
+        value: (result.activity_minutes as number) || 0,
+        unit: "minutes",
+      },
+    };
+    for (const [metric_type, data] of Object.entries(map)) {
+      if (data.value > 0) {
+        metrics.push({
+          metric_type,
+          value: data.value,
+          unit: data.unit || null,
+          source: "health_connect",
+          recorded_at: new Date().toISOString(),
+        });
+      }
+    }
+    return metrics;
+  }
+
   async function sync(metrics: HealthMetric[] = []) {
     loading.value = true;
     error.value = "";
     try {
+      if (metrics.length === 0 && isTauri()) {
+        metrics = await readMetricsTauri();
+      }
       const token = auth.token;
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const result = await apiPost<{ synced: number; connected: boolean }>(

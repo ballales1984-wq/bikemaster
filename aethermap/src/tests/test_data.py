@@ -140,6 +140,23 @@ class TestSpatialStoreRadiusQuery:
         assert s.query_radius(45.0, 9.0, 1000.0) == []
 
 
+class TestSpatialStoreBoundsQuery:
+    def test_query_bounds_finds_inside(self):
+        s = SpatialStore()
+        s.add(_make_obj("o1", 45.0, 9.0))
+        s.add(_make_obj("o2", 45.001, 9.001))
+        s.add(_make_obj("o3", 46.0, 10.0))
+        result = s.query_bounds(44.9, 45.1, 8.9, 9.1)
+        ids = {r.id for r in result}
+        assert "o1" in ids
+        assert "o2" in ids
+        assert "o3" not in ids
+
+    def test_query_bounds_empty_store(self):
+        s = SpatialStore()
+        assert s.query_bounds(44.9, 45.1, 8.9, 9.1) == []
+
+
 class TestSpatialStoreTrim:
     def test_trim_removes_old_stati(self):
         s = SpatialStore()
