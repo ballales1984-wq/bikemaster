@@ -88,7 +88,9 @@ def _terrain_mesh_from_hf(hf: np.ndarray, n: int, with_skirt: bool = True) -> di
     for face in range(6):
         base_idx = len(positions)
         grid_size = n + 2 if with_skirt else n
+        face_positions: list[list[float]] = []
         for i in range(grid_size):
+            face_positions.append([])
             for j in range(grid_size):
                 src_i = max(0, min(i - 1, n - 1)) if with_skirt else i
                 src_j = max(0, min(j - 1, n - 1)) if with_skirt else j
@@ -102,8 +104,34 @@ def _terrain_mesh_from_hf(hf: np.ndarray, n: int, with_skirt: bool = True) -> di
                 px = float(d[0] * (1.0 + h))
                 py = float(d[1] * (1.0 + h))
                 pz = float(d[2] * (1.0 + h))
-                positions.append([px, py, pz])
-                normals.append([float(d[0]), float(d[1]), float(d[2])])
+                face_positions[i].append([px, py, pz])
+
+        for i in range(grid_size):
+            for j in range(grid_size):
+                positions.append(face_positions[i][j])
+
+        for i in range(grid_size):
+            for j in range(grid_size):
+                if i + 1 < grid_size and j + 1 < grid_size:
+                    p = face_positions[i][j]
+                    pi = face_positions[i + 1][j]
+                    pj = face_positions[i][j + 1]
+                    t1 = [pi[0] - p[0], pi[1] - p[1], pi[2] - p[2]]
+                    t2 = [pj[0] - p[0], pj[1] - p[1], pj[2] - p[2]]
+                    nx = t1[1] * t2[2] - t1[2] * t2[1]
+                    ny = t1[2] * t2[0] - t1[0] * t2[2]
+                    nz = t1[0] * t2[1] - t1[1] * t2[0]
+                    length = math.sqrt(nx * nx + ny * ny + nz * nz)
+                    if length > 1e-12:
+                        nx, ny, nz = nx / length, ny / length, nz / length
+                    else:
+                        src_i = max(0, min(i - 1, n - 1)) if with_skirt else i
+                        src_j = max(0, min(j - 1, n - 1)) if with_skirt else j
+                        u = (src_i / (n - 1)) * 2.0 - 1.0
+                        v = (src_j / (n - 1)) * 2.0 - 1.0
+                        nd = _face_direction(face, u, v)
+                        nx, ny, nz = nd[0], nd[1], nd[2]
+                    normals.append([nx, ny, nz])
 
         for i in range(grid_size - 1):
             for j in range(grid_size - 1):

@@ -163,7 +163,7 @@ const DEG = Math.PI / 180;
 const EARTH_R = 6371000.0;
 const GLOBE_RADIUS = 1.0;
 const TERRAIN_SCALE = 1.0 / EARTH_R;
-const SKIRT_HEIGHT = 0.003;
+const SKIRT_HEIGHT = 0.0003;
 
 function geodeticToDirection(
   lat: number,
@@ -436,14 +436,6 @@ function faceLatLonBounds(face: number): {
   return { minLat, maxLat, minLon, maxLon };
 }
 
-function getLODResolution(camDist: number): number {
-  if (camDist < 2.0) return 48;
-  if (camDist < 3.5) return 32;
-  if (camDist < 5.0) return 20;
-  if (camDist < 6.5) return 12;
-  return 8;
-}
-
 function buildTerrainMesh(tiles: (Float32Array | null)[], N: number) {
   const verts: Vec3[][][] = [];
   const skirtVerts: Vec3[][][] = [];
@@ -702,7 +694,8 @@ function makeBuffer(
   stride: number,
 ): { buf: WebGLBuffer; count: number; mode: number } | null {
   if (!gl) return null;
-  const b = gl.createBuffer()!;
+  const b = gl.createBuffer();
+  if (!b) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, b);
   gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
   return { buf: b, count: data.byteLength / stride, mode };
@@ -710,7 +703,8 @@ function makeBuffer(
 
 function makeIndexBuffer(data: Uint32Array): WebGLBuffer | null {
   if (!gl) return null;
-  const b = gl.createBuffer()!;
+  const b = gl.createBuffer();
+  if (!b) return null;
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
   return b;
@@ -1105,13 +1099,15 @@ onMounted(async () => {
   let globeIdxBuf = makeIndexBuffer(globeData.indices);
   let globeIdxCount = globeData.indices.length;
 
+  let mounted = true;
+
   buildGlobeBuffers(getLODResolution(camDist)).then((data) => {
-    if (!gl) return;
+    if (!mounted || !gl) return;
     if (globePosBuf) gl.deleteBuffer(globePosBuf.buf);
     if (globeNormBuf) gl.deleteBuffer(globeNormBuf.buf);
     if (globeIdxBuf) gl.deleteBuffer(globeIdxBuf);
-    globePosBuf = makeBuffer(data.positions, gl!.TRIANGLES, 3);
-    globeNormBuf = makeBuffer(data.normals, gl!.TRIANGLES, 3);
+    globePosBuf = makeBuffer(data.positions, gl.TRIANGLES, 3);
+    globeNormBuf = makeBuffer(data.normals, gl.TRIANGLES, 3);
     globeIdxBuf = makeIndexBuffer(data.indices);
     globeIdxCount = data.indices.length;
   });
@@ -1138,11 +1134,11 @@ onMounted(async () => {
 
   async function rebuildGlobeIfNeeded(camDist: number) {
     const targetN = getLODResolution(camDist);
-    if (targetN === currentLOD || globePending) return;
+    if (targetN === currentLOD || globePending || !mounted) return;
     globePending = true;
     currentLOD = targetN;
     const data = await buildGlobeBuffers(targetN);
-    if (!gl) return;
+    if (!mounted || !gl) return;
     if (globePosBuf) gl.deleteBuffer(globePosBuf.buf);
     if (globeNormBuf) gl.deleteBuffer(globeNormBuf.buf);
     if (globeIdxBuf) gl.deleteBuffer(globeIdxBuf);
@@ -1311,24 +1307,25 @@ watch(
   },
 );
 
-onBeforeUnmount(() => {
-  if (rafId != null) {
-    cancelAnimationFrame(rafId);
-    rafId = null;
-  }
-  if (gl) {
-    [
-      globeBuffer,
-      routeBuffer,
-      pointBuffer,
-      markerBuffer,
-      ...geoBufferMap.values(),
-    ].forEach((b) => {
-      if (b && "buf" in b) gl!.deleteBuffer((b as { buf: WebGLBuffer }).buf);
-    });
-  }
-  resizeObserver?.disconnect();
-});
+  onBeforeUnmount(() => {
+    mounted = false;
+    if (rafId != null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    if (gl) {
+      [
+        globeBuffer,
+        routeBuffer,
+        pointBuffer,
+        markerBuffer,
+        ...geoBufferMap.values(),
+      ].forEach((b) => {
+        if (b && "buf" in b) gl!.deleteBuffer((b as { buf: WebGLBuffer }).buf);
+      });
+    }
+    resizeObserver?.disconnect();
+  });
 </script>
 
 <style scoped>
