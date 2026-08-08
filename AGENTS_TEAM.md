@@ -1,0 +1,105 @@
+# AGENTS_TEAM.md — Team Operativo & Piano di Migrazione Persistente
+
+Complementare a [`AGENTS.md`](AGENTS.md) e [`docs/agent/team.md`](docs/agent/team.md).
+Definisce il **team operativo** (ruoli, RACI) e il **piano di migrazione persistenza**
+su Render — il rischio operativo critico (#1) identificato da AGENTS.md, per cui
+`rides.db` (SQLite) è efimero nel container e `rides`/`metrics`/`training_stress_days`
+tornano al default al resume.
+
+---
+
+## 1. Forza e contesto (riassunto)
+
+- **Architettura**: local-first. Tauri 2 desktop (primario) + PWA web (secondario).
+  Backend FastAPI embedded in locale (SQLite, porta 8000) e su Render (FastAPI/Docker
+  + PostgreSQL gestito). Frontend Vue 3 su Vercel.
+- **Fonte di verità produzione**: `render.yaml` (backend) → Vercel (frontend).
+- **Rischio #1**: persistenza parziale su Render. Auth/users → PostgreSQL (sopravvive);
+  rides/metrics/training_stress_days → SQLite **efimero** (nessun volume → siperdi al resume).
+
+## 2. Team operativo (mappatura ruoli engineering → agenti)
+
+Organizzato attorno a **prodotti verticali** (come suggerito nell'analisi):
+
+| Prodotto verticale | Engineering role | Agenti Kilo coinvolti | Owner codice |
+|---|---|---|---|
+| Sync & Persistence | Data/Sync Engineer + Migrations | BACKEND, DATABASE, DEBUGGER, TESTER, SECURITY | `.kilo/agent/database.md`, `db/postgres_athlete.py` |
+| Simulator / BM2 | Simulation Engineer | `domain-bm2`, `adaptation-engine`, `load-manager`, `athlete-state` | `bike_analyzer/bm2/` |
+| AetherMap (carto) | R&D Cartography Engineer | `domain-aethermap` + fasi `aethermap-*` (`airunway-aks-setup`, `aethermap-rendering`, ecc.) | `aethermap/` |
+| Frontend / Tauri | Frontend Engineer | FRONTEND, `frontend-alignment` | `frontend/` |
+| Auth / Users | Security + Backend Engineer | SECURITY, BACKEND, `domain-connection`, `fix-02-logout`, `fix-07-connection` | `api/auth.py`, `stores/auth.ts` |
+| Deploy / Infra | DevOps/Infra Engineer | `al-service`, `production-pusher`, `github-sync` | `render.yaml`, `Dockerfile`, `vercel.json` |
+| QA / Release | QA & Release Engineer | TESTER, VERIFIER, REVIEWER, `fix-09/10` (esempi) | `tests/`, `frontend/tests/` |
+
+### RACI — decisioni chiave
+
+| Decisione | Responsabile | Approva | Controlla | Informa |
+|---|---|---|---|---|
+| Schema DB / colonne | DATABASE + BACKEND | ARCHITECT | VERIFIER (test integrità) | ORCHESTRATOR |
+| Migrazione/rollback DB | DATABASE (lead) | ORCHESTRATOR + Lead Dev | TESTER (regressione) | SECURITY, BACKEND |
+| Modifica flusso OAuth | BACKEND / `domain-connection` | **Lead Dev (obbligatorio)** | SECURITY | FRONTEND, ORCHESTRATOR |
+| Deploy in produzione | `production-pusher` | Lead Dev (LEVEL 3/4) | VERIFIER + SECURITY | ORCHESTRATOR |
+| Aggiunta dipendenza | chi propone | ARCHITECT | SECURITY (audit) | ORCHESTRATOR |
+| Fix di persistenza su Render | DATABASE / BACKEND | ORCHESTRATOR + Lead Dev | TESTER (snapshot/restore) | SECURITY |
+| Modifica cache PWA / SW | FRONTEND | FRONTEND lead | TESTER (offline E2E) | ORCHESTRATOR |
+
+> **Vincolo inviolabile**: il flusso OAuth in `router/index.ts` e `stores/auth.ts`
+> richiede conferma esplicita del Lead Developer (sezione "Vincoli" in AGENTS.md).
+
+## 3. Piano di migrazione persistente (Render) — RISCHIO #1
+
+### Stato attuale (da AGENTS.md)
+- `DATABASE_URL` impostato → atleta, snapshot, metriche log atleti vettorizzati su
+  PostgreSQL (`db/postgres_athlete.py`, colonne allineate a `models.py`).
+- `rides` / `metrics` / `training_stress_days` → **SQLite-only**, `rides.db`
+  **efimero** nel container (nessun volume in `render.yaml`).
+
+### Opzione A (raccomandata) — Migrare rides/metrics a PostgreSQL con feature-flag
+Strade parallela a `postgres_athlete.py`; switch via `DATABASE_URL`/`SYNC_MODE`.
+
+```
+1. DATABASE: crea schema rides/metrics/training_stress_days su Postgres (migrazione alembic idempotente, retrocompatibile con colonne SQLite esistenti).
+2. BACKEND: instrada read/write rides su Postgres quando DATABASE_URL impostato (stesso pattern di postgres_athlete.py).
+3. DATABASE: mantiene SQLite come fallback offline (mobile/Tauri) — dual-write o master=server.
+4. TESTER: test migrazione (migrati → letti corretti), test dual-store, regressione.
+5. SECURITY: controllo proprietà athlete_id su tutti gli endpoint rides (FIX-01).
+6. VERIFIER: snapshot/restore test, coerenza cross-store.
+7. ORCHESTRATOR: rollout graduale (feature-flag), monitoraggio perdita dati = 0.
+```
+
+**Pro**: persistenza totale su cloud; coerente con auth su Postgres.
+**Contro**: rischio migrazione dati; dual-store complessità offline.
+
+### Opzione B (mitigazione temporanea) — Volume persistente + backup
+- `render.yaml`: aggiungi volume persistente per `rides.db` + sidecar backup
+  (cron → bucket).
+- **Limite**: non risolve coerenza dual-store (locale vs cloud); il resume
+  dopo sospensione può comunque perdere l'ultimo chunk in-memory.
+
+### Scelta
+- **Corto termine (produzione)**: Opzione A (priorità alta) — persistenza totale.
+- **Sicurezza transizione**: Opzione B come mitigazione fino al completamento A.
+
+## 4. Prossimi step (priorità, da analisi)
+
+| # | Azione | Priority | Owner | Nota |
+|---|---|---|---|---|
+| 1 | Migrare rides/metrics a PostgreSQL (Opzione A) | P0 critica | DATABASE/BACKEND | dato perdita al resume |
+| 2 | CI backend/frontend + build check (web/tauri) | P0 | DevOps/QA | `.github/workflows` |
+| 3 | Sync contract + test riconciliazione (diverge/merge, TTL) | P0 | Data/Sync | offline-first |
+| 4 | Health/DB metrics + Sentry + alerting | P1 | DevOps | dati persi, latenza sync |
+| 5 | Ruoli/RACI + ownership componenti | P1 | ORCHESTRATOR | questo file |
+| 6 | E2E offline-first + Tauri build regression | P1/P2 | QA/Frontend | |
+
+## 5. SLO/KPI team agentico
+- Disponibilità API auth (prod): 99.9%; sync: 99%.
+- Dati persistiti su Render recuperabili al resume: **100%** (obiettivo post-migrazione).
+- MTTR incidenti critici (data loss): < 24h.
+- Copertura: unit > 80%; integration/E2E in crescita.
+
+## 6. File correlati
+- `[AGENTS.md](AGENTS.md)` — regole universali (vincoli OAuth, secrets, no force-push)
+- `[.kilo/agent-manifest.md](.kilo/agent-manifest.md)` — roster completo, trust rules
+- `[.kilo/command/software-team.md](.kilo/command/software-team.md)` — ciclo cognitivo
+- `[docs/agent/team.md](docs/agent/team.md)` — storia/sintesi del team agentico
+- `[.kilo/memory/decision-records.md](.kilo/memory/decision-records.md)` — ADR
