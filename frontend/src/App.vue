@@ -232,24 +232,10 @@ const summaryLoading = ref(false);
 const loginError = ref("");
 const { fetchSummary } = useRides();
 
-const appUrl =
-  typeof window !== "undefined"
-    ? window.location.origin
-    : "https://www.bikemaster.app";
-
 async function shareOnFacebook() {
   const url = encodeURIComponent(window.location.href);
   window.open(
     `https://www.facebook.com/sharer/sharer.php?u=${url}`,
-    "_blank",
-    "width=600,height=400",
-  );
-}
-
-async function shareOnLinkedIn() {
-  const url = encodeURIComponent(window.location.href);
-  window.open(
-    `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
     "_blank",
     "width=600,height=400",
   );

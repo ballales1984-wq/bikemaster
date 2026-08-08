@@ -143,6 +143,126 @@ GOAL
   → prossimo task / NUOVA RICHIESTA
 ```
 
+## Come avviare un agente
+
+L'ORCHESTRATOR è il punto di ingresso del team. Il Lead Developer gli fornisce
+un obiettivo (es. "Controlla l'app", "Trova perché il dashboard mostra valori
+sbagliati") e l'ORCHESTRATOR avvia il ciclo cognitivo, delegando i task agli
+agenti specializzati. Esistono due modalità di avvio:
+
+### A) Avvio indiretto (via ORCHESTRATOR) — pattern consigliato
+
+> Il Lead Developer formula un obiettivo. L'ORCHESTRATOR lo analizza,
+> recupera contesto dal LIBRARIAN, pianifica TASK-XXX e delega.
+
+```text
+Lead Developer → ORCHESTRATOR → [LIBRARIAN context package]
+  → PLAN (TASK-XXX)
+  → DELEGATE → FRONTEND / BACKEND / DEBUGGER / TESTER / VERIFIER
+  → OBSERVE (shared-log) → VERIFY → RECORD → LEARN
+```
+
+Questo è il modo normale: non serve indicare l'agente, basta l'obiettivo.
+
+### B) Avvio diretto di uno specialista
+
+Puoi richiedere direttamente un agente specializzato menzionandolo nella
+richiesta. Gli agenti direttamente invocabili (hanno un `subagent_type`) sono:
+
+| Agente | Invocazione tipica | Perimetro |
+|---|---|---|
+| FRONTEND | `@frontend` | Vue 3, Pinia, Tauri, PWA, test vitest |
+| DEBUGGER | `@debug` / `@debug-piece` | Root cause su backend/frontend/test |
+| SECURITY | `@security` | Audit, OWASP, segreti, dipendenze |
+| DATABASE | `@database` o via BACKEND | Schema, query, migrazioni |
+| CODE DOCUMENTER | `@code-documenter` | Docstring Python mancanti |
+| CODE EXPLAINER | `@code-explainer` | Spiega codice e diff git |
+| AL-SERVICE | `@al-service` | Avvio/troubleshooting backend |
+| DOMINIO-* | `@domain-rides`, `@domain-athlete`, … | Esperti di dominio |
+| FIX-* | `@fix-03-rides`, `@fix-08-heatmap`, … | Correzioni mirate |
+
+> I 5 ruoli di coordinamento/suprastruttura (ORCHESTRATOR, ARCHITECT,
+> LIBRARIAN, RELATION_ANALYZER, VERIFIER) non si avviano da soli: vengono
+> attivati dal flusso del ciclo cognitivo quando l'ORCHESTRATOR li delega.
+
+### Agent Contract (§47)
+
+Ogni agente definisce nel suo file `.kilo/agent/<name>.md`:
+
+- **INPUT** — qual è la richiesta/il task assegnato.
+- **RESPONSABILITIES** — cosa deve fare (e non fare).
+- **TOOLS** — strumenti a disposizione (shell, lettura/scrittura file, grep,
+  browser, esecuzione codice).
+- **OUTPUT** — formato atteso della risposta (report, diff, evidenza, PASS/FAIL).
+- **SUCCESS CRITERIA** — quando il task è considerato completato.
+- **LIMITATIONS** — vincoli irrinunciabili (es. "non toccare il flusso OAuth",
+  "non introdurre dipendenze", "mai push --force").
+
+### Comandi operativi (vedi `docs/agent/commands.md`)
+
+```bash
+# Avvio backend locale
+python main.py api --port 8000          # FastAPI + SQLite su localhost:8000
+
+# Test backend
+pytest                                  # usa i marker di pytest.ini (esclude slow/integration)
+
+# Frontend
+cd frontend && npm run dev              # Vite dev server
+cd frontend && npm run typecheck        # vue-tsc --noEmit
+cd frontend && npx eslint . --ext .vue,.js,.jsx,.cjs,.mjs ...   # lint (NO --fix globale)
+cd frontend && npx vitest run           # test unitari one-shot
+cd frontend && npm run e2e             # Playwright E2E
+cd frontend && npm run tauri build      # build desktop
+```
+
+> **Nota operativa**: `eslint --fix` su tutto il progetto corrompe circolarmente
+> alcuni file (nota in memoria progetto). Usare sempre `--ext` mirato o fix
+> manuale. `uvicorn --reload` causa crash-loop su Windows — avviare senza `--reload`.
+
+---
+
+## Caso pratico: Zero-Error Loop sul frontend
+
+Primo ciclo cognitivo eseguito dal team (SCAN → TEST → FIX → VERIFY → REGRESSION).
+
+**Objective**: Portare il frontend a zero errori (Zero-Error Loop, §42).
+
+**SCAN**
+| Check | Strumento | Risultato |
+|---|---|---|
+| ESLint static analysis | `npx eslint . --ext .vue,.js,.jsx,.cjs,.mjs` | 3 error (`no-unused-vars`) |
+| Typecheck | `vue-tsc --noEmit --incremental` | 0 error |
+| Backend tests (modified files) | `pytest tests/test_dashboard_auth.py` | 9 passed |
+| Backend tests (modified files) | `pytest tests/test_metabolism_api.py` | 33 passed |
+
+**BUGS FOUND — 3 variabili inutilizzate (dead code)**
+- `appUrl` — `frontend/src/App.vue:235` (assegnata, mai letta)
+- `shareOnLinkedIn` — `frontend/src/App.vue:249` (funzione definita, mai chiamata né in template)
+- `backend` — `frontend/src/components/VoiceAssistant.vue:304` (assegnata a 328 e 335, mai letta)
+
+**FIX** (agente FRONTEND) — rimozione minimale, mirata. Nessun cambiamento
+comportamentale. Il flusso OAuth (`router/index.ts`, `stores/auth.ts`) è
+rimasto intatto (verificato con grep: le variabili rimosse non erano referenziate
+da nessun punto del flusso di autenticazione).
+
+`git diff --stat`: **2 file, 17 deletions, 0 additions**.
+
+**VERIFICATION** (agente VERIFIER, indipendente)
+| Verifica | Evidenza | Esito |
+|---|---|---|
+| ESLint post-fix | `ESLINT_EXITCODE=0`, nessun output | PASS |
+| Typecheck | nessun `error TS` | PASS |
+| Regression frontend | `App.test.js` + `useAuth.test.js` + `ErrorBoundary.test.js` → 9/9 passed | PASS |
+
+**RECORD** — 6 eventi scritti nel `shared-log.md` (TASK-SW-001).
+
+**UNVERIFIED AREAS**: suite backend full (comprehensive/coverage/integration)
+supera 240s — va eseguita in chunk separati per limite OOM. Frontend E2E
+Playwright non ancora eseguito.
+
+---
+
 ## Output Finale di una Sessione
 
 1. OBJECTIVE
@@ -230,10 +350,11 @@ Il team agentico ha prodotto risultati concreti, documentati in `.kilo/memory/` 
 | RECORD | LIBRARIAN | Evento registrato in `shared-log.md` |
 
 **Evidenza:**
-- `frontend/src/App.vue:235` — rimosso `appUrl`
-- `frontend/src/App.vue:249` — rimosso `shareOnLinkedIn`
-- `frontend/src/components/VoiceAssistant.vue:304` — rimosso `backend`
-- `tests/test_*.py` — 15 modifiche minori per refs consistency
+- `frontend/src/App.vue` — rimosso `appUrl` (235) e `shareOnLinkedIn` (249)
+- `frontend/src/components/VoiceAssistant.vue` — rimosso `backend` (304 + assegnazioni 328, 335)
+- `git diff --stat`: 2 file, 17 deletions, 0 additions (nessun file di test toccato in questa sessione)
+- ESLint `ESLINT_EXITCODE=0`; typecheck senza `error TS`; vitest 9/9 pass
+- 7 file `tests/test_*.py` + `BaseChart.vue` + `user_repository.py` erano modifiche non commit da sessioni precedenti (non TASK-SW-001); committate successivamente dal processo di background. La sessione TASK-SW-001 ha toccato solo `App.vue` e `VoiceAssistant.vue` (git diff --stat: 2 file, 17 deletions).
 
 ### Piani di Lavoro Generati
 
@@ -274,9 +395,9 @@ Dall'analisi codebase (piano `1783635185916`):
 | Sessioni completate | 1 (TASK-SW-001) |
 | Piani generati | 5 |
 | Bug identificati | 21+ (piano codebase analysis) |
-| Fix applicati | 3 ESLint + security fixes + data layer |
+| Fix applicati (TASK-SW-001) | 3 ESLint unused-vars (appUrl, shareOnLinkedIn, backend) — 17 deletions, 0 additions |
 | Test passati (sessione) | 9/9 Vitest |
-| Documentazione creata | 6 file in `.kilo/` + `docs/agent/team.md` |
+| Documentazione creata | 17 file in `.kilo/` (9 agent core + 1 command + 6 memory + 1 manifest) + `docs/agent/team.md` aggiornato |
 
 ## Limitazioni Attuali
 

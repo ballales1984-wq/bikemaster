@@ -301,7 +301,6 @@ async function stopAndProcess(): Promise<void> {
   try {
     const token = localStorage.getItem("bikemaster_token") || "";
     let transcript = "";
-    let backend = "";
 
     try {
       const formData = new FormData();
@@ -325,14 +324,12 @@ async function stopAndProcess(): Promise<void> {
         backend?: string;
       };
       transcript = sttResult.text.trim();
-      backend = sttResult.backend || "backend";
     } catch (backendExc) {
       console.warn(
         "Backend STT failed, falling back to browser recognition:",
         backendExc,
       );
       transcript = await browserSTT();
-      backend = "browser-fallback";
     }
 
     if (!transcript) {
