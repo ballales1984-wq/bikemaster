@@ -44,7 +44,7 @@ const configRef = toRef(props, "config");
 const { canvas, chart } = useChart(configRef, props.plugins);
 
 const hasData = computed(() => {
-  const datasets = config?.data?.datasets;
+  const datasets = props.config?.data?.datasets;
   if (!datasets?.length) return false;
   return datasets.some((d) => Array.isArray(d.data) && d.data.length > 0);
 });

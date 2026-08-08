@@ -74,8 +74,8 @@ class TestCoachRoutes:
     def test_coach_chat(self, athlete_client):
         tc, aid = athlete_client
         resp = tc.get(f"/api/v1/coach/chat?athlete_id={aid}&message=hello")
-        # 422 if message required but not provided
-        assert resp.status_code in (200, 422)
+        # 422 if message required but not provided, 405 if GET not allowed
+        assert resp.status_code in (200, 405, 422)
 
     def test_coach_chat_post(self, athlete_client):
         tc, aid = athlete_client

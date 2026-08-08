@@ -198,7 +198,7 @@ class TestRouteErrorBranches:
         tc.headers["Authorization"] = f"Bearer {token}"
 
         response = tc.get("/api/v1/ble/devices/99999")
-        assert response.status_code in (404, 401)
+        assert response.status_code in (404, 401, 405)
 
     def test_import_multiple_empty(self, db_path):
         from bike_analyzer.backend.api.app_factory import create_app

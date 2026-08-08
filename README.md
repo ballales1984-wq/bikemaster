@@ -186,6 +186,16 @@ Backend cloud opzionale per sync bidirezionale, multi-tenant e knowledge base co
 |---|---|
 | [`docs/hub.md`](docs/hub.md) | Modulo hub: architettura, avvio, endpoint, sync |
 
+### AI Software Team
+
+Il progetto adotta un **team agentico specializzato** per sviluppo, debug, testing, security e operations. Il ciclo cognitivo è orchestrato da un AGENTE CENTRALE che delega a ruoli specializzati, osserva i risultati e corregge con evidenza.
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/agent/team.md`](docs/agent/team.md) | Roster, ruoli, trust rules, livelli di autonomia e ciclo cognitivo |
+| [`.kilo/agent-manifest.md`](.kilo/agent-manifest.md) | Manifesto completo: 12 ruoli core, contratti memoria, event log |
+| [`.kilo/command/software-team.md`](.kilo/command/software-team.md) | Comando di orchestrazione del team AI |
+
 **Ordine di lettura consigliato:** [README centrale](docs/README.md) → architettura generale → [MASTER.md](docs/MASTER.md) → schema database → contratti dati → API → algoritmi.
 
 ## Quick Start

@@ -151,6 +151,19 @@ Istruzioni specifiche per AI agent (progressive disclosure). Indice completo in 
 
 ---
 
+## AI Software Team
+
+Il progetto adotta un **team agentico specializzato** per sviluppo, debug, testing, security e operations.
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/agent/team.md`](agent/team.md) | Roster, ruoli, trust rules, livelli di autonomia e ciclo cognitivo del team agentico |
+| [`docs/agent/README.md`](agent/README.md) | Indice delle istruzioni per AI agent |
+| [`.kilo/agent-manifest.md`](../.kilo/agent-manifest.md) | Manifesto completo: 12 ruoli core, contratti memoria, event log |
+| [`.kilo/command/software-team.md`](../.kilo/command/software-team.md) | Comando di orchestrazione del team AI |
+
+---
+
 ## Archivio (documentazione IT storica/douplicata)
 
 I documenti seguenti contengono contenuti IT duplicati (stack tecnologico, deployment, configurazione, backend/frontend) già coperti in `docs/MASTER.md` e sono archiviati in `docs/archive/` per eliminare ridondanze.

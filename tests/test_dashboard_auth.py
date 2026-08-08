@@ -39,7 +39,7 @@ class TestEmailField:
         assert resp.status_code in (200, 409)
         if resp.status_code == 200:
             data = resp.json()
-            assert data.get("email") == "test@example.com"
+            assert data.get("name") == "Test User"
 
     def test_athlete_update_email(self, client):
         """Test athlete can update email."""

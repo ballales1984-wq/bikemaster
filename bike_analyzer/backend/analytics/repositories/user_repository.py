@@ -134,7 +134,7 @@ class UserRepository:
             row = cur.fetchone()
         if row is None:
             return None
-        return {k: row[k] for k in row}
+        return {k: row[k] for k in row.keys()}
 
     def _get_by_username_sync(self, username: str) -> dict | None:
         conn = self._sync_conn or self._get_conn()
@@ -144,7 +144,7 @@ class UserRepository:
             row = cur.fetchone()
         if row is None:
             return None
-        return {k: row[k] for k in row}
+        return {k: row[k] for k in row.keys()}
 
     def _get_by_email_sync(self, email: str) -> dict | None:
         conn = self._sync_conn or self._get_conn()
@@ -154,7 +154,7 @@ class UserRepository:
             row = cur.fetchone()
         if row is None:
             return None
-        return {k: row[k] for k in row}
+        return {k: row[k] for k in row.keys()}
 
     def _list_all_sync(self) -> list[dict]:
         conn = self._sync_conn or self._get_conn()
@@ -162,7 +162,7 @@ class UserRepository:
             cur = conn.cursor()
             cur.execute("SELECT * FROM users")
             rows = cur.fetchall()
-        return [{k: row[k] for k in row} for row in rows]
+        return [{k: row[k] for k in row.keys()} for row in rows]
 
     def _get_conn(self):
         from ...db.database import get_db_connection

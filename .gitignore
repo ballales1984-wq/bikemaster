@@ -188,3 +188,11 @@ frontend/debug*
 frontend/audit*
 frontend/check-report*
 frontend/playwright.audit*
+
+# Scratch/artifacts
+chart.png
+google_map.png
+tmp_extract_*.py
+tmp_hub_routes.py
+ride_*_map.html
+ride_*_map.json

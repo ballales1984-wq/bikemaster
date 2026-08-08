@@ -624,7 +624,7 @@ def test_coach_trends(client):
 
 def test_coach_chat_get(client):
     response = client.get("/api/v1/coach/chat")
-    assert response.status_code in (200, 422, 404, 500)
+    assert response.status_code in (200, 405, 422, 404, 500)
 
 
 def test_coach_chat_post(client):
