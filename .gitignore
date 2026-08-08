@@ -19,12 +19,15 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+bikemaster.egg-info/
+.benchmarks/
 
 # Virtual
 venv/
 ENV/
 env/
 .venv/
+.venv_check/
 
 # Database
 *.db
@@ -105,6 +108,7 @@ bike_route_demo.html
 .mypy_cache/
 .ruff_cache/
 .sixth/
+.cache/
 
 # Local Android build setup scripts
 accept_all_licenses.ps1
@@ -173,6 +177,7 @@ mv.log
 
 # Scratch/duplicate dev folder
 temp_aethermap/
+scratch/
 
 # Local DB backups
 backups/
@@ -198,6 +203,7 @@ frontend/tc_err.txt
 *.zip
 jdk17/
 android-sdk/
+installers/
 test_results*.txt
 test_coverage_extra*.txt
 licenses_output.txt
@@ -216,5 +222,7 @@ chart.png
 google_map.png
 tmp_extract_*.py
 tmp_hub_routes.py
+tmp_*.py
+tmp_*.log
 ride_*_map.html
 ride_*_map.json
