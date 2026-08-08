@@ -161,9 +161,132 @@ GOAL
 14. UNVERIFIED AREAS
 15. RECOMMENDATIONS
 
+## Come Funziona il Team in Pratica
+
+### 1. Ricezione dell'obiettivo
+
+L'utente (Lead Developer) fornisce un obiettivo in linguaggio naturale:
+- "Controlla l'app."
+- "Trova perché il dashboard mostra valori sbagliati."
+- "Porta il progetto a zero errori."
+- "Analizza perché questo dato è sbagliato."
+
+### 2. Pianificazione e delega
+
+L'**ORCHESTRATOR** interpreta l'obiettivo e crea un piano strutturato:
+- Identifica l'area coinvolta (frontend, backend, database, security)
+- Assegna task specifici agli agenti specializzati
+- Definisce dipendenze tra task
+
+### 3. Esecuzione parallela
+
+Gli agenti lavorano in parallelo secondo le loro competenze:
+- Il **FRONTEND** analizza componenti Vue, store Pinia, router
+- Il **BACKEND** ispeziona API, servizi, logica di business
+- Il **DATABASE** verifica schema, query, migrazioni
+- Il **SECURITY** controlla auth, OAuth, OWASP, segreti
+- Il **TESTER** crea ed esegue test di regressione
+- Il **DEBUGGER** riproduce e identifica root cause
+- Il **REVIEWER** verifica indipendentemente le modifiche
+- Il **VERIFIER** giudica PASS/FAIL con evidenza concreta
+
+### 4. Osservazione e correzione
+
+L'**ORCHESTRATOR** osserva il **Shared Event Log** e:
+- Raccoglie evidenze da tutti gli agenti
+- Confronta EXPECTED vs ACTUAL
+- Decide correzioni minime e mirate
+- Richiede conferma per operazioni critiche (LEVEL 1)
+
+### 5. Verifica e chiusura
+
+Il **VERIFIER** indipendente valuta:
+- Tutti i test passano
+- Nessuna regressione introdotta
+- Nessun segreto nel codice
+- Evidenza concreta documentata
+
+### 6. Memoria e apprendimento
+
+Il **LIBRARIAN** aggiorna:
+- Bug database con ID tracciato
+- Decision records (ADR)
+- Code graph e data graph
+- Lezioni estratte per RAG futuro
+
+## Risultati Prodotti dal Team
+
+Il team agentico ha prodotto risultati concreti, documentati in `.kilo/memory/` e nel codice:
+
+### Sessione TASK-SW-001 — "Porta a zero errori"
+
+**Ciclo cognitivo completato con successo.**
+
+| Fase | Agente | Risultato |
+|---|---|---|
+| SCAN | ORCHESTRATOR | Identificati 3 errori ESLint (`no-unused-vars`) in `App.vue` e `VoiceAssistant.vue` |
+| FIX | FRONTEND | Rimossi 3 variabili inutilizzate (dead code): `appUrl`, `shareOnLinkedIn`, `backend` |
+| VERIFY | VERIFIER | ESLint exit=0, typecheck 0 error, vitest 9/9 pass |
+| RECORD | LIBRARIAN | Evento registrato in `shared-log.md` |
+
+**Evidenza:**
+- `frontend/src/App.vue:235` — rimosso `appUrl`
+- `frontend/src/App.vue:249` — rimosso `shareOnLinkedIn`
+- `frontend/src/components/VoiceAssistant.vue:304` — rimosso `backend`
+- `tests/test_*.py` — 15 modifiche minori per refs consistency
+
+### Piani di Lavoro Generati
+
+Il team ha prodotto piani di lavoro dettagliati per aree critiche:
+
+| Piano | Focus | Status |
+|---|---|---|
+| `.kilo/plans/1783631660667-failing-tests-debug-plan.md` | Debug test frontend fallenti (Vitest) | Analisi completata |
+| `.kilo/plans/1783635185916-codebase-analysis-plan.md` | Analisi completa codice + sicurezza | 21 findings, 8 priorità |
+| `.kilo/plans/1783679954635-oauth-poi-fixes.md` | Fix OAuth flow + POI schemas | Piano definito |
+| `.kilo/plans/1783767702728-aethermap-engine-agents.md` | Piano agenti AetherMap (5 fasi) | Struttura definita |
+| `.kilo/plans/1783775540414-fix-camera-projection-globe.md` | Fix globe collapse AetherMap | Root cause identificata |
+
+### Findings Critici Identificati
+
+Dall'analisi codebase (piano `1783635185916`):
+
+**Sicurezza (P1):**
+- Open redirect OAuth via spoofing header `Origin` — whitelist statica implementata
+- `refresh_token` usa `SECRET_KEY` grezza invece di `decode_token_with_fallback` — fix applicato
+- `/sentry-debug` esposto in tutti gli ambienti — gated in produzione
+- HSTS solo su `production`, mancante su `staging` — esteso
+- Audit log usa IP socket invece di `X-Forwarded-For` — fix applicato
+
+**Data Layer (P1):**
+- `backend/db/models.py` inesistente ma importato — creato modelli SQLAlchemy
+- `db/async_db.py` stub che ritorna `[]` — implementato path async/Postgres
+- Modelli dominio duplicati (`core/models.py` vs `backend/models/`) — consolidati
+
+**Frontend (P2):**
+- Test i18n fragili (asseriscono su chiavi invece di testo) — documentato
+- CI frontend senza test/typecheck/lint — aggiunti step in `ci.yml`
+
+## Metriche del Team
+
+| Metrica | Valore |
+|---|---|
+| Sessioni completate | 1 (TASK-SW-001) |
+| Piani generati | 5 |
+| Bug identificati | 21+ (piano codebase analysis) |
+| Fix applicati | 3 ESLint + security fixes + data layer |
+| Test passati (sessione) | 9/9 Vitest |
+| Documentazione creata | 6 file in `.kilo/` + `docs/agent/team.md` |
+
+## Limitazioni Attuali
+
+Il team è **infrastruttura pronta, utilizzo parziale**. La maggior parte del lavoro è stata svolta in modalità analisi e pianificazione. L'esecuzione autonoma di cicli completi (modifica + test + merge) richiede ancora integrazione con i workflow di sviluppo esistenti.
+
 ## File Correlati
 
 - `.kilo/agent-manifest.md` — manifesto completo del team agentico
 - `.kilo/command/software-team.md` — comando di orchestrazione del team AI
 - `.kilo/agent/*.md` — istruzioni individuali per ogni agente
 - `.kilo/memory/*` — memoria del team (shared-log, bug-database, project-map, ecc.)
+- `.kilo/plans/*` — piani di lavoro generati dagli agenti
+- `docs/agent/README.md` — indice documentazione agenti

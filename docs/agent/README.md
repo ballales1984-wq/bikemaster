@@ -7,6 +7,7 @@ Progressive disclosure of BikeMaster-specific instructions for AI agents.
 | Document | Description |
 |---|---|
 | [team.md](./team.md) | AI Software Team: roster, ruoli, trust rules, autonomia, ciclo cognitivo |
+| [results.md](./results.md) | Risultati prodotti dal team agentico: sessioni, piani, findings, fix |
 | [commands.md](./commands.md) | Frontend, backend, and test commands |
 | [stack.md](./stack.md) | Full tech stack details |
 | [structure.md](./structure.md) | Repository layout and module map |
