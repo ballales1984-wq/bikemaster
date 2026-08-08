@@ -14,6 +14,7 @@ class RawPoint:
     lon: float
     ele: float | None = None
     t: datetime | None = None
+    speed: float | None = None
 
 
 @dataclass

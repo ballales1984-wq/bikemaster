@@ -33,6 +33,20 @@
           <input v-model="store.colorBySpeed" type="checkbox" />
           <span>{{ t("aethermap.colorBySpeed") }}</span>
         </label>
+        <label class="checkbox-control aethermap-color">
+          <input v-model="terrainEnriched" type="checkbox" :disabled="terrainDisabled" />
+          <span>{{ t("aethermap.terrainEnrichment") }}</span>
+        </label>
+        <label class="checkbox-control aethermap-color">
+          <span>{{ t("aethermap.demSource") }}</span>
+          <select v-model="demSource" class="aethermap-select">
+            <option value="auto">Auto</option>
+            <option value="procedural">Procedural</option>
+            <option value="copernicus">Copernicus DEM</option>
+            <option value="lidar">LiDAR</option>
+            <option value="osm">OSM</option>
+          </select>
+        </label>
       </div>
     </div>
 
@@ -73,6 +87,8 @@
         <AetherMapViewer
           :ride-ids="store.selectedIds"
           :color-by-speed="store.colorBySpeed"
+          :terrain-enriched="terrainEnriched"
+          :dem-source="demSource"
         />
       </div>
     </div>
@@ -88,6 +104,9 @@ import type { Ride } from "../types/index";
 
 const { t } = useI18n();
 const store = useAetherMapStore();
+const terrainEnriched = ref(false);
+const terrainDisabled = computed(() => store.selectedIds.length !== 1);
+const demSource = ref<"auto" | "procedural" | "copernicus" | "lidar" | "osm">("auto");
 
 function formatDistance(ride: Ride): string {
   const km = ride.distance_km;

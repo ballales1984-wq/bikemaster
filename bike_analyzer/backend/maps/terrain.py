@@ -181,10 +181,23 @@ def get_tile(
 ) -> TerrainTile:
     dem = None
     tile_source = "procedural"
+
     if source in ("auto", "dem"):
         dem = _try_fetch_dem_tile(min_lat, max_lat, min_lon, max_lon, resolution)
         if dem is not None:
             tile_source = "dem"
+
+    if dem is None and source in ("auto", "copernicus", "lidar", "osm"):
+        try:
+            from aethermap.data.dem_loader import get_dem_loader
+            loader = get_dem_loader()
+            if loader is not None:
+                real_dem = loader.load((min_lat, max_lat, min_lon, max_lon), resolution)
+                if real_dem is not None and np.mean(np.abs(real_dem)) > 1e-6:
+                    dem = real_dem
+                    tile_source = f"dem:{source}"
+        except Exception:
+            pass
 
     if dem is None:
         dem = _generate_procedural_heightfield(min_lat, max_lat, min_lon, max_lon, resolution)
