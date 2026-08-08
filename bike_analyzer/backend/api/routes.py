@@ -2373,6 +2373,19 @@ async def get_aethermap_terrain_tile(
 
     face_hf = hf
 
+    # Convert heightfield to meters for frontend data contract.
+    # Backend internal representation is normalized [0, height_scale] or [0, 1] from DEM.
+    # Frontend expects meters and applies terrainH * TERRAIN_SCALE internally.
+    _MAX_ELEVATION_M = 4000.0
+    if source == "procedural":
+        proc_max = float(_build_procedural_heightfield(n).max())
+        if proc_max > 1e-6:
+            face_hf = hf * (_MAX_ELEVATION_M / proc_max)
+    elif source.startswith("dem:"):
+        dem_max = float(hf.max())
+        if dem_max > 1e-6:
+            face_hf = hf * (_MAX_ELEVATION_M / dem_max)
+
     positions: list[list[float]] = []
     normals: list[list[float]] = []
     indices: list[int] = []
