@@ -24,8 +24,12 @@ CREATE TABLE IF NOT EXISTS objects (
     s2 TEXT,
     h3 TEXT,
     cube_face INTEGER,
+    cube_level INTEGER DEFAULT 0,
     cube_u REAL,
     cube_v REAL,
+    ecef_x REAL,
+    ecef_y REAL,
+    ecef_z REAL,
     data JSON NOT NULL,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
@@ -37,6 +41,7 @@ CREATE TABLE IF NOT EXISTS state_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     object_id TEXT NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
     campi JSON NOT NULL,
+    campi_dinamici JSON NOT NULL DEFAULT '{}',
     t TEXT NOT NULL,
     confidence REAL NOT NULL DEFAULT 1.0
 )
@@ -52,10 +57,12 @@ CREATE TABLE IF NOT EXISTS meta (
 _CREATE_IDX_TIPO = "CREATE INDEX IF NOT EXISTS idx_objects_tipo ON objects(tipo)"
 _CREATE_IDX_S2 = "CREATE INDEX IF NOT EXISTS idx_objects_s2 ON objects(s2)"
 _CREATE_IDX_H3 = "CREATE INDEX IF NOT EXISTS idx_objects_h3 ON objects(h3)"
+_CREATE_IDX_CUBE = "CREATE INDEX IF NOT EXISTS idx_objects_cube ON objects(cube_face, cube_level)"
+_CREATE_IDX_ECEF = "CREATE INDEX IF NOT EXISTS idx_objects_ecef ON objects(ecef_x, ecef_y, ecef_z)"
 
 _INSERT_OBJECT = """\
-INSERT OR REPLACE INTO objects (id, tipo, lat, lon, alt, s2, h3, cube_face, cube_u, cube_v, data)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT OR REPLACE INTO objects (id, tipo, lat, lon, alt, s2, h3, cube_face, cube_level, cube_u, cube_v, ecef_x, ecef_y, ecef_z, data)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 """
 
 _UPDATE_TIMESTAMP = """\
@@ -66,16 +73,21 @@ _DELETE_OBJECT = "DELETE FROM objects WHERE id = ?"
 _DELETE_HISTORY = "DELETE FROM state_history WHERE object_id = ?"
 
 _INSERT_STATE = """\
-INSERT INTO state_history (object_id, campi, t, confidence)
-VALUES (?, ?, ?, ?)
+INSERT INTO state_history (object_id, campi, campi_dinamici, t, confidence)
+VALUES (?, ?, ?, ?, ?)
 """
 
 _GET_ALL_OBJECTS = "SELECT data FROM objects"
 _GET_OBJECT_BY_ID = "SELECT data FROM objects WHERE id = ?"
 _GET_OBJECTS_BY_TIPO = "SELECT data FROM objects WHERE tipo = ?"
-_GET_STATES = "SELECT campi, t, confidence FROM state_history WHERE object_id = ? ORDER BY t"
+_GET_STATES = "SELECT campi, campi_dinamici, t, confidence FROM state_history WHERE object_id = ? ORDER BY t"
 
 _RADIUS_QUERY = """\
+SELECT data FROM objects
+WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?
+"""
+
+_BOUNDS_QUERY = """\
 SELECT data FROM objects
 WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?
 """
@@ -108,6 +120,7 @@ class AetherMapDB:
         self._conn = sqlite3.connect(
             str(self.path),
             detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
+            check_same_thread=False,
         )
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
@@ -122,14 +135,24 @@ class AetherMapDB:
         cur.execute(_CREATE_IDX_TIPO)
         cur.execute(_CREATE_IDX_S2)
         cur.execute(_CREATE_IDX_H3)
+        cur.execute(_CREATE_IDX_CUBE)
+        cur.execute(_CREATE_IDX_ECEF)
         self._conn.commit()
         self._set_meta("schema_version", str(_SCHEMA_VERSION))
 
     def _set_meta(self, key: str, value: str) -> None:
-        self._conn.execute(
-            "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)",
-            (key, value),
-        )
+        for _ in range(5):
+            try:
+                self._conn.execute(
+                    "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)",
+                    (key, value),
+                )
+                return
+            except sqlite3.OperationalError as exc:
+                if "database is locked" not in str(exc):
+                    raise
+                import time
+                time.sleep(0.05)
 
     def _get_meta(self, key: str) -> str | None:
         row = self._conn.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
@@ -148,6 +171,7 @@ class AetherMapDB:
     def add(self, obj: Oggetto) -> None:
         data = _serialize(obj)
         pos = obj.posizione
+        ecef = getattr(pos, "ecef_relative", None) or (None, None, None)
         with self._transaction() as cur:
             cur.execute(
                 _INSERT_OBJECT,
@@ -160,8 +184,12 @@ class AetherMapDB:
                     pos.s2,
                     pos.h3,
                     pos.cube_face,
+                    getattr(pos, "level", 0),
                     pos.cube_u,
                     pos.cube_v,
+                    ecef[0],
+                    ecef[1],
+                    ecef[2],
                     json.dumps(data, default=str),
                 ),
             )
@@ -172,6 +200,7 @@ class AetherMapDB:
                     (
                         obj.id,
                         json.dumps(stato.campi, default=str),
+                        json.dumps(getattr(stato, "campi_dinamici", None) or {}, default=str),
                         _datetime_to_iso(stato.t),
                         stato.confidence,
                     ),
@@ -193,6 +222,7 @@ class AetherMapDB:
         obj.cronologia = [
             Stato(
                 campi=json.loads(s["campi"]),
+                campi_dinamici=json.loads(s["campi_dinamici"]) if s["campi_dinamici"] else None,
                 t=_iso_to_datetime(s["t"]),
                 confidence=s["confidence"],
             )
@@ -225,6 +255,13 @@ class AetherMapDB:
         rows = self._conn.execute(
             _RADIUS_QUERY,
             (lat0, lat1, lon0, lon1),
+        ).fetchall()
+        return [_deserialize(json.loads(r["data"])) for r in rows]
+
+    def query_bounds(self, lat_min: float, lat_max: float, lon_min: float, lon_max: float) -> list[Oggetto]:
+        rows = self._conn.execute(
+            _BOUNDS_QUERY,
+            (lat_min, lat_max, lon_min, lon_max),
         ).fetchall()
         return [_deserialize(json.loads(r["data"])) for r in rows]
 

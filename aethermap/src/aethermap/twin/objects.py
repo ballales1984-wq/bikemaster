@@ -76,6 +76,33 @@ class Montagna(Oggetto):
         return self._volume(temp_c).stats()
 
 
+class POI(Oggetto):
+    def categoria(self) -> str | None:
+        return self.proprieta.get("categoria")
+
+    def descrizione(self) -> str | None:
+        return self.proprieta.get("descrizione")
+
+
+class Percorso(Oggetto):
+    def punti(self) -> list[dict]:
+        return self.geometria.dati.get("punti", [])
+
+    def distanza_km(self) -> float | None:
+        return self.proprieta.get("distanza_km")
+
+    def dislivello_m(self) -> float | None:
+        return self.proprieta.get("dislivello_m")
+
+
+class Terreno(Oggetto):
+    def tipo(self) -> str | None:
+        return self.proprieta.get("tipo_terreno")
+
+    def pendenza_media(self) -> float | None:
+        return self.proprieta.get("pendenza_media")
+
+
 def make_strada(id_: str, lat: float, lon: float, pts: list[dict]) -> Strada:
     geom = __import__("aethermap.ai.models", fromlist=["Geometria"]).Geometria(
         tipo="linea", dati={"punti": pts}
@@ -97,3 +124,28 @@ def make_montagna(id_: str, lat: float, lon: float, alt: float, versanti: list[s
     m.proprieta["versanti"] = versanti
     m.proprieta["sentieri"] = len(versanti) * 2
     return m
+
+
+def make_poi(id_: str, lat: float, lon: float, nome: str, categoria: str, descrizione: str = "") -> POI:
+    p = POI(id=id_, tipo="poi", posizione=Posizione.from_latlon(lat, lon))
+    p.proprieta["nome"] = nome
+    p.proprieta["categoria"] = categoria
+    p.proprieta["descrizione"] = descrizione
+    return p
+
+
+def make_perorso(id_: str, lat: float, lon: float, pts: list[dict], distanza_km: float, dislivello_m: float) -> Percorso:
+    geom = __import__("aethermap.ai.models", fromlist=["Geometria"]).Geometria(
+        tipo="linea", dati={"punti": pts}
+    )
+    p = Percorso(id=id_, tipo="percorso", posizione=Posizione.from_latlon(lat, lon), geometria=geom)
+    p.proprieta["distanza_km"] = distanza_km
+    p.proprieta["dislivello_m"] = dislivello_m
+    return p
+
+
+def make_terreno(id_: str, lat: float, lon: float, tipo_terreno: str, pendenza_media: float) -> Terreno:
+    t = Terreno(id=id_, tipo="terreno", posizione=Posizione.from_latlon(lat, lon))
+    t.proprieta["tipo_terreno"] = tipo_terreno
+    t.proprieta["pendenza_media"] = pendenza_media
+    return t
