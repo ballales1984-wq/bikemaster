@@ -106,6 +106,14 @@ bike_route_demo.html
 .ruff_cache/
 .sixth/
 
+# Local Android build setup scripts
+accept_all_licenses.ps1
+check_sdk.bat
+clear_java_home.ps1
+install_sdk*.bat
+install_sdk*.ps1
+set_env.ps1
+
 # Generated chart artifacts
 duration_chart.png
 ride_1_distance.png
@@ -179,6 +187,14 @@ bike_analyzer/final_test_out.txt
 bike_analyzer/final_test_err.txt
 frontend/tc_out.txt
 frontend/tc_err.txt
+
+# Android SDK/JDK local artifacts (do not commit)
+*.zip
+jdk17/
+android-sdk/
+test_results*.txt
+test_coverage_extra*.txt
+licenses_output.txt
 
 # Kubernetes generic deployment files (not BikeMaster-specific)
 webapp.yaml
