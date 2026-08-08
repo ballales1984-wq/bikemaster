@@ -72,6 +72,41 @@ export const useBleStore = defineStore("ble", () => {
     },
   };
 
+  const BLE_DEVICE_ID_MAP_KEY = "bikemaster_ble_device_id_map";
+
+  function stableDeviceIdentity(name: string, serviceUuid: string | null): string {
+    return `${(name || "unknown").toLowerCase()}|${serviceUuid || "none"}`;
+  }
+
+  function loadBleDeviceIdMap(): Record<string, string> {
+    try {
+      const raw = localStorage.getItem(BLE_DEVICE_ID_MAP_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function saveBleDeviceIdMap(map: Record<string, string>) {
+    try {
+      localStorage.setItem(BLE_DEVICE_ID_MAP_KEY, JSON.stringify(map));
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  function findRegisteredDeviceByIdentity(
+    devicesList: BleDevice[],
+    name: string,
+    serviceUuid: string | null,
+  ): BleDevice | undefined {
+    const identity = stableDeviceIdentity(name, serviceUuid);
+    return devicesList.find((d) => {
+      const devUuid = d.service_uuid || null;
+      return stableDeviceIdentity(d.name, devUuid) === identity;
+    });
+  }
+
   async function load() {
     loading.value = true;
     error.value = "";
@@ -340,7 +375,13 @@ export const useBleStore = defineStore("ble", () => {
   }
 
   async function scanForDevicesTauri(): Promise<
-    Array<{ deviceId: string; name: string; type: BleDeviceType }>
+    Array<{
+      deviceId: string;
+      name: string;
+      type: BleDeviceType;
+      service_uuid?: string;
+      is_known?: boolean;
+    }>
   > {
     scanning.value = true;
     error.value = "";
@@ -352,11 +393,23 @@ export const useBleStore = defineStore("ble", () => {
         device_type: string;
         service_uuid: string;
       }> = await core.invoke("ble_scan");
-      return devices.map((d) => ({
-        deviceId: d.device_id,
-        name: d.name,
-        type: (d.device_type as BleDeviceType) || "generic",
-      }));
+      const map = loadBleDeviceIdMap();
+      const result = devices.map((d) => {
+        const serviceUuid = d.service_uuid || null;
+        const identity = stableDeviceIdentity(d.name, serviceUuid);
+        const mappedDeviceId = map[identity];
+        const item = {
+          deviceId: mappedDeviceId || d.device_id,
+          name: d.name,
+          type: (d.device_type as BleDeviceType) || "generic",
+          service_uuid: serviceUuid || undefined,
+          is_known: !!mappedDeviceId,
+        };
+        map[identity] = item.deviceId;
+        return item;
+      });
+      saveBleDeviceIdMap(map);
+      return result;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Scansione BLE fallita";
       throw e;
@@ -366,7 +419,13 @@ export const useBleStore = defineStore("ble", () => {
   }
 
   async function scanForDevices(): Promise<
-    Array<{ deviceId: string; name: string; type: BleDeviceType }>
+    Array<{
+      deviceId: string;
+      name: string;
+      type: BleDeviceType;
+      service_uuid?: string;
+      is_known?: boolean;
+    }>
   > {
     if (isTauri()) {
       return scanForDevicesTauri();
@@ -380,6 +439,8 @@ export const useBleStore = defineStore("ble", () => {
       deviceId: string;
       name: string;
       type: BleDeviceType;
+      service_uuid?: string;
+      is_known?: boolean;
     }> = [];
     try {
       type BleRequestDeviceFn = (opts: Record<string, unknown>) => Promise<{
@@ -429,11 +490,25 @@ export const useBleStore = defineStore("ble", () => {
         // service discovery failed, keep generic
       }
 
+      const serviceUuid =
+        detectedType !== "generic" ? knownServices[detectedType].service : null;
+      const identity = stableDeviceIdentity(
+        device.name || "Dispositivo sconosciuto",
+        serviceUuid,
+      );
+      const map = loadBleDeviceIdMap();
+      const mappedDeviceId = map[identity];
+
       found.push({
-        deviceId: device.id || crypto.randomUUID(),
+        deviceId: mappedDeviceId || device.id || crypto.randomUUID(),
         name: device.name || "Dispositivo sconosciuto",
         type: detectedType,
+        service_uuid: serviceUuid || undefined,
+        is_known: !!mappedDeviceId,
       });
+
+      map[identity] = found[found.length - 1].deviceId;
+      saveBleDeviceIdMap(map);
     } catch (e) {
       if ((e as Error).name !== "NotFoundError") {
         throw e;
@@ -461,5 +536,6 @@ export const useBleStore = defineStore("ble", () => {
     sync,
     scanForDevices,
     getDeviceTypeLabel,
+    findRegisteredDeviceByIdentity,
   };
 });

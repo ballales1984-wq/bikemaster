@@ -198,15 +198,52 @@
             <button
               v-if="scannedBleDevice"
               class="btn btn-primary"
-              :disabled="bleStore.loading"
+              :disabled="bleStore.loading || isScannedDeviceAlreadyRegistered"
               @click="registerBleDevice"
             >
-              {{ t("connections.pairBle") }}
+              {{
+                isScannedDeviceAlreadyRegistered
+                  ? t("connections.bleAlreadyRegistered")
+                  : t("connections.pairBle")
+              }}
+            </button>
+            <button
+              v-if="scannedBleDevice && isScannedDeviceAlreadyRegistered"
+              class="btn btn-ghost"
+              :disabled="bleStore.loading"
+              @click="syncScannedDevice"
+            >
+              {{ t("connections.sync") }}
             </button>
           </div>
 
           <div v-if="bleStore.error" class="connection-error">
             {{ bleStore.error }}
+          </div>
+
+          <div v-if="scannedBleDevice" class="scanned-device-info">
+            <span class="scanned-name">{{ scannedBleDevice.name }}</span>
+            <span class="scanned-type">{{
+              bleStore.getDeviceTypeLabel(scannedBleDevice.type)
+            }}</span>
+            <span
+              v-if="scannedBleDevice.is_known"
+              class="ble-badge known"
+            >
+              {{ t("connections.bleKnownDevice") }}
+            </span>
+            <span
+              v-else
+              class="ble-badge new"
+            >
+              {{ t("connections.bleNewDevice") }}
+            </span>
+            <span
+              v-if="isScannedDeviceAlreadyRegistered"
+              class="ble-badge registered"
+            >
+              {{ t("connections.bleAlreadyRegistered") }}
+            </span>
           </div>
 
           <div class="device-list">
@@ -455,7 +492,17 @@ const scannedBleDevice = ref<{
   deviceId: string;
   name: string;
   type: BleDeviceType;
+  service_uuid?: string;
+  is_known?: boolean;
 } | null>(null);
+
+const isScannedDeviceAlreadyRegistered = computed(() => {
+  if (!scannedBleDevice.value) return false;
+  return !!bleStore.findRegisteredDeviceByIdentity(
+    scannedBleDevice.value.name,
+    scannedBleDevice.value.service_uuid || null,
+  );
+});
 
 const oauthCreds = ref<
   Array<{
@@ -618,10 +665,23 @@ async function registerBleDevice() {
   clearServiceError();
   try {
     if (!scannedBleDevice.value) return;
+
+    const existing = bleStore.findRegisteredDeviceByIdentity(
+      scannedBleDevice.value.name,
+      scannedBleDevice.value.service_uuid || null,
+    );
+
+    if (existing) {
+      toast.info(t("connections.bleAlreadyRegistered"));
+      scannedBleDevice.value = null;
+      return;
+    }
+
     await bleStore.register({
       device_id: scannedBleDevice.value.deviceId,
       name: scannedBleDevice.value.name,
       device_type: scannedBleDevice.value.type,
+      service_uuid: scannedBleDevice.value.service_uuid,
     });
     const registeredDevice = bleStore.devices.find(
       (d) => d.device_id === scannedBleDevice.value?.deviceId,
@@ -641,6 +701,25 @@ async function registerBleDevice() {
     const msg = e instanceof Error ? e.message : String(e);
     setServiceError(msg);
     toast.error(msg);
+  }
+}
+
+async function syncScannedDevice() {
+  clearServiceError();
+  try {
+    if (!scannedBleDevice.value) return;
+    const existing = bleStore.findRegisteredDeviceByIdentity(
+      scannedBleDevice.value.name,
+      scannedBleDevice.value.service_uuid || null,
+    );
+    if (existing) {
+      await bleStore.sync(existing.id);
+      toast.success(t("connections.downloadSuccess"));
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    setServiceError(msg);
+    toast.error(msg || t("connections.downloadError"));
   }
 }
 
@@ -1148,5 +1227,40 @@ onMounted(async () => {
   border-radius: 6px;
   padding: 0.5rem 0.7rem;
   font-size: 0.9rem;
+}
+.scanned-device-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0;
+}
+.scanned-name {
+  font-weight: 600;
+  color: #eee;
+}
+.scanned-type {
+  font-size: 0.78rem;
+  color: #aaa;
+}
+.ble-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.ble-badge.known {
+  background: #1b2a3a;
+  color: #6eb8e7;
+}
+.ble-badge.new {
+  background: #1b3a1b;
+  color: #42b983;
+}
+.ble-badge.registered {
+  background: #3a2f1b;
+  color: #e7c66e;
 }
 </style>
