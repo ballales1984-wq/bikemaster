@@ -167,6 +167,26 @@ class TestAetherMapDBQueryRadius:
         db.close()
 
 
+class TestAetherMapDBQueryBounds:
+    def test_query_bounds(self, tmp_path):
+        db = AetherMapDB(tmp_path / "bounds.db")
+        db.add(_make_obj("o1", 45.0, 9.0))
+        db.add(_make_obj("o2", 45.001, 9.001))
+        db.add(_make_obj("o3", 46.0, 10.0))
+        results = db.query_bounds(44.9, 45.1, 8.9, 9.1)
+        ids = {r.id for r in results}
+        assert "o1" in ids
+        assert "o2" in ids
+        assert "o3" not in ids
+        db.close()
+
+    def test_query_bounds_empty(self, tmp_path):
+        db = AetherMapDB(tmp_path / "bounds_empty.db")
+        results = db.query_bounds(44.9, 45.1, 8.9, 9.1)
+        assert results == []
+        db.close()
+
+
 # ===========================================================================
 # PersistentStore
 # ===========================================================================

@@ -44,6 +44,7 @@ from ..redis_client import close_redis, get_redis
 from ..settings import get_settings
 from ..task_queue import get_task_queue
 from .adaptation_routes import router as adaptation_router
+from .aethermap_routes import router as aethermap_router
 from .bm2_routes import bm2_router
 from .performance_routes import performance_router
 from .routes import admin_router, router
@@ -512,6 +513,8 @@ def create_app() -> FastAPI:
     _log_flush(f"create_app: include_router(performance) done +{time.monotonic()-_t0:.3f}s")
     app.include_router(voice_router, prefix="/api/v1", tags=["voice"])
     _log_flush(f"create_app: include_router(voice) done +{time.monotonic()-_t0:.3f}s")
+    app.include_router(aethermap_router, prefix="/api/v1/aethermap", tags=["aethermap"])
+    _log_flush(f"create_app: include_router(aethermap) done +{time.monotonic()-_t0:.3f}s")
 
     @app.get("/healthz")
     async def healthz():

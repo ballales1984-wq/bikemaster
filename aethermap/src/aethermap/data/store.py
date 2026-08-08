@@ -125,6 +125,15 @@ class SpatialIndex:
                     break
         return result
 
+    def query_bounds(self, lat_min: float, lat_max: float, lon_min: float, lon_max: float) -> set[str]:
+        result: set[str] = set()
+        for oid, boxes in self.bbox_map.items():
+            for (la, lo, *_alt, oid2) in boxes:
+                if lat_min <= la <= lat_max and lon_min <= lo <= lon_max:
+                    result.add(oid2)
+                    break
+        return result
+
 
 @dataclass
 class SpatialStore:
@@ -155,6 +164,10 @@ class SpatialStore:
 
     def query_radius(self, lat: float, lon: float, radius_m: float) -> list[Oggetto]:
         ids = self.index.query_radius(lat, lon, radius_m)
+        return [self.objects[i] for i in ids if i in self.objects]
+
+    def query_bounds(self, lat_min: float, lat_max: float, lon_min: float, lon_max: float) -> list[Oggetto]:
+        ids = self.index.query_bounds(lat_min, lat_max, lon_min, lon_max)
         return [self.objects[i] for i in ids if i in self.objects]
 
     def all(self) -> Iterable[Oggetto]:
@@ -205,6 +218,9 @@ class WorldStore:
 
     def query_radius(self, lat: float, lon: float, radius_m: float) -> list[Oggetto]:
         return self.store.query_radius(lat, lon, radius_m)
+
+    def query_bounds(self, lat_min: float, lat_max: float, lon_min: float, lon_max: float) -> list[Oggetto]:
+        return self.store.query_bounds(lat_min, lat_max, lon_min, lon_max)
 
     def all(self) -> Iterable[Oggetto]:
         return self.store.all()
@@ -277,6 +293,9 @@ class PersistentStore:
 
     def query_radius(self, lat: float, lon: float, radius_m: float) -> list[Oggetto]:
         return self.store.query_radius(lat, lon, radius_m)
+
+    def query_bounds(self, lat_min: float, lat_max: float, lon_min: float, lon_max: float) -> list[Oggetto]:
+        return self.store.query_bounds(lat_min, lat_max, lon_min, lon_max)
 
     def all(self) -> Iterable[Oggetto]:
         return self.store.all()
