@@ -15,7 +15,7 @@ use axum::{
 use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
-use rusqlite::{params, Connection, OptionalExt};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -1745,7 +1745,7 @@ async fn hr_delete_samples(
             .execute("DELETE FROM hr_24h_samples WHERE athlete_id = ?1", params![athlete_id])
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
     };
-    Ok(axum::Json(serde_json::json!({"deleted": deleted}))
+    Ok(axum::Json(serde_json::json!({"deleted": deleted})))
 }
 
 // ---- Avvio server Axum ----
