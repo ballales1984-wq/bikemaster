@@ -190,6 +190,23 @@ def test_save_metric_pg(monkeypatch):
     assert "RETURNING id" in sent
 
 
+def test_get_metrics_by_athlete_pg(monkeypatch):
+    conn, cur = _mock_conn()
+    cur.fetchall.return_value = [
+        {"id": 1, "athlete_id": 1, "ride_id": 3, "fatigue_score": 7.5,
+         "recovery_hours": 12.0, "calories_per_km": 30.0, "efficiency_score": 0.85,
+         "created_at": "2026-08-01T00:00:00", "tenant_id": 0},
+    ]
+    monkeypatch.setattr(pr, "_connect", lambda: conn)
+
+    metrics = db.get_metrics_by_athlete(1, tenant_id=0)
+    assert len(metrics) == 1
+    assert metrics[0]["fatigue_score"] == 7.5
+    sent = str(cur.execute.call_args.args[0])
+    assert "FROM metrics WHERE athlete_id = %s AND tenant_id = %s" in sent
+    assert "ORDER BY created_at ASC" in sent
+
+
 # --- training stress -----------------------------------------------------
 
 
