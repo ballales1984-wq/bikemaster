@@ -5,12 +5,19 @@ cube-sphere mesh, falling back to procedural FBM when unavailable.
 """
 from __future__ import annotations
 
+import json
+import time
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import numpy as np
 
 from aethermap.core.coordinates import ecef_to_geodetic_direction
 
 _EARTH_R = 6_371_000.0
 _DEM_API = "/aethermap/terrain"
+_DEM_CACHE: dict[str, np.ndarray | None] = {}
+_DEM_IN_FLIGHT: set[str] = set()
 
 
 def _face_direction(face: int, u: float, v: float) -> np.ndarray:
@@ -50,29 +57,55 @@ def _face_bbox(face: int, n: int = 64) -> dict[str, float]:
     }
 
 
+def _dem_cache_key(bbox: dict[str, float], resolution: int, base_url: str, source: str) -> str:
+    return (
+        f"{base_url}|{source}|{bbox['min_lat']:.1f},{bbox['max_lat']:.1f},"
+        f"{bbox['min_lon']:.1f},{bbox['max_lon']:.1f}|{resolution}"
+    )
+
+
+def _fetch_raw(bbox: dict[str, float], resolution: int, base_url: str, source: str) -> np.ndarray | None:
+    qs = (
+        f"?min_lat={bbox['min_lat']:.4f}&max_lat={bbox['max_lat']:.4f}"
+        f"&min_lon={bbox['min_lon']:.4f}&max_lon={bbox['max_lon']:.4f}"
+        f"&resolution={resolution}&source={source}"
+    )
+    url = f"{base_url}{_DEM_API}{qs}"
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(url, timeout=10) as resp:
+                data = resp.read().decode("utf-8")
+            payload = json.loads(data)
+            raw = np.array(payload["heights"], dtype=np.float32)
+            if raw.size != resolution * resolution:
+                return None
+            return raw.reshape((resolution, resolution))
+        except Exception:
+            if attempt < 2:
+                time.sleep(0.5 * (attempt + 1))
+            else:
+                return None
+    return None
+
+
 def fetch_dem_tile(
     bbox: dict[str, float],
     resolution: int = 64,
     base_url: str = "http://localhost:8000",
     source: str = "auto",
 ) -> np.ndarray | None:
-    try:
-        import json
-        import urllib.request
-
-        qs = (
-            f"?min_lat={bbox['min_lat']:.4f}&max_lat={bbox['max_lat']:.4f}"
-            f"&min_lon={bbox['min_lon']:.4f}&max_lon={bbox['max_lon']:.4f}"
-            f"&resolution={resolution}&source={source}"
-        )
-        url = f"{base_url}{_DEM_API}{qs}"
-        with urllib.request.urlopen(url, timeout=10) as resp:
-            data = resp.read().decode("utf-8")
-        payload = json.loads(data)
-        heights = np.array(payload["heights"], dtype=np.float32)
-        return heights.reshape((resolution, resolution))
-    except Exception:
+    key = _dem_cache_key(bbox, resolution, base_url, source)
+    if key in _DEM_CACHE:
+        return _DEM_CACHE[key]
+    if key in _DEM_IN_FLIGHT:
         return None
+    _DEM_IN_FLIGHT.add(key)
+    try:
+        result = _fetch_raw(bbox, resolution, base_url, source)
+        _DEM_CACHE[key] = result
+        return result
+    finally:
+        _DEM_IN_FLIGHT.discard(key)
 
 
 def enhance_face(
@@ -107,10 +140,16 @@ def build_enhanced_heightfield(
         hf[face] = _build_heightfield(n, base_alt, height_scale).astype(np.float32)
     if not base_url:
         return hf.flatten()
-    for face in faces:
-        face_hf = hf[face]
-        enhanced = enhance_face(face_hf, face, base_url, n)
-        hf[face] = enhanced
+
+    def _enhance(face: int) -> tuple[int, np.ndarray]:
+        return face, enhance_face(hf[face], face, base_url, n)
+
+    with ThreadPoolExecutor(max_workers=min(4, len(faces))) as pool:
+        futures = {pool.submit(_enhance, f): f for f in faces}
+        for future in as_completed(futures):
+            face, enhanced = future.result()
+            hf[face] = enhanced
+
     return hf.flatten()
 
 
