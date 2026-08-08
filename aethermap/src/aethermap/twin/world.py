@@ -5,12 +5,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from aethermap.ai.ingest import ingest_sensor_stream_stub
-from aethermap.ai.models import Relazione
+from aethermap.ai.models import Oggetto, Relazione
 from aethermap.ai.pipeline import Pipeline
 from aethermap.data.store import SpatialStore
 from aethermap.data.store import WorldStore as DataWorldStore
 from aethermap.data.store import PersistentStore
-from aethermap.twin.objects import Albero, Montagna, Strada, make_albero, make_montagna, make_strada
+from aethermap.twin.objects import Albero, Montagna, POI, Percorso, Strada, Terreno, make_albero, make_montagna, make_poi, make_perorso, make_strada, make_terreno
 
 
 @dataclass
