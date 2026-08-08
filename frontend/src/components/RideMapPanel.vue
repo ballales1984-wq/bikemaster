@@ -275,13 +275,6 @@ const MAP_STYLES = {
     maxZoom: 20,
     label: "CyclOSM (Cycling)",
   },
-  opencyclemap: {
-    url: "https://{s}.tile.opencyclemap.org/cycle/{z}/{x}/{y}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.opencyclemap.org">OpenCycleMap</a>',
-    maxZoom: 19,
-    label: "OpenCycleMap",
-  },
   topo: {
     url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
     attribution:
