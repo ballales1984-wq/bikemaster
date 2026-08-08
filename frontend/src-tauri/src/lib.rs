@@ -472,12 +472,23 @@ fn ble_pair(_device_id: String) -> Result<String, String> {
 
 #[tauri::command]
 fn health_connect_permissions() -> Result<Vec<String>, String> {
-    Ok(vec!["weight".into(), "heart_rate".into(), "steps".into()])
+    Ok(vec!["weight".into(), "height".into(), "heart_rate".into(), "steps".into(), "sleep".into(), "blood_pressure".into(), "activity".into()])
 }
 
 #[tauri::command]
 fn health_connect_read_metrics() -> Result<serde_json::Value, String> {
-    Ok(serde_json::json!({"weight_kg": null, "heart_rate_bpm": null}))
+    let metrics = health_connect_jni::read_metrics();
+    if metrics.get("error").is_some() {
+        return Ok(serde_json::json!({"weight_kg": null, "heart_rate_bpm": null, "steps": null, "error": metrics["error"].clone()}));
+    }
+    Ok(serde_json::json!({
+        "weight_kg": metrics.get("weight_kg").cloned().and_then(|v| v.as_f64()),
+        "heart_rate_bpm": metrics.get("heart_rate_bpm").cloned().and_then(|v| v.as_f64()),
+        "steps": metrics.get("steps").cloned().and_then(|v| v.as_i64()),
+        "sleep_hours": metrics.get("sleep_hours").cloned().and_then(|v| v.as_f64()),
+        "blood_pressure_systolic": metrics.get("blood_pressure_systolic").cloned().and_then(|v| v.as_i64()),
+        "activity_minutes": metrics.get("activity_minutes").cloned().and_then(|v| v.as_i64()),
+    }))
 }
 
 #[tauri::command]
@@ -1152,19 +1163,28 @@ fn init_db(db_path: &std::path::Path) -> Result<Connection, rusqlite::Error> {
              updated_at TEXT
           );
           CREATE UNIQUE INDEX IF NOT EXISTS uq_ble_device ON ble_devices(athlete_id, device_id);
-          CREATE TABLE IF NOT EXISTS athlete_metric_log (
-             id INTEGER PRIMARY KEY AUTOINCREMENT,
-             athlete_id INTEGER NOT NULL,
-             tenant_id INTEGER NOT NULL DEFAULT 0,
-             metric_type TEXT NOT NULL,
-             value REAL,
-             unit TEXT,
-             note TEXT,
-             source TEXT NOT NULL DEFAULT 'manual',
-             recorded_at TEXT,
-             created_at TEXT
-          );
-          CREATE TABLE IF NOT EXISTS hr_24h_samples (
+           CREATE TABLE IF NOT EXISTS athlete_metric_log (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              athlete_id INTEGER NOT NULL,
+              tenant_id INTEGER NOT NULL DEFAULT 0,
+              metric_type TEXT NOT NULL,
+              value REAL,
+              unit TEXT,
+              note TEXT,
+              source TEXT NOT NULL DEFAULT 'manual',
+              recorded_at TEXT,
+              created_at TEXT
+           );
+           CREATE TABLE IF NOT EXISTS health_connect_tokens (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              athlete_id INTEGER NOT NULL UNIQUE,
+              connected INTEGER NOT NULL DEFAULT 1,
+              permissions TEXT DEFAULT '[]',
+              last_sync_at TEXT,
+              created_at TEXT DEFAULT (datetime('now')),
+              updated_at TEXT DEFAULT (datetime('now'))
+           );
+           CREATE TABLE IF NOT EXISTS hr_24h_samples (
              id INTEGER PRIMARY KEY AUTOINCREMENT,
              athlete_id INTEGER NOT NULL,
              tenant_id INTEGER NOT NULL DEFAULT 0,
@@ -1393,6 +1413,18 @@ async fn ble_sync_device(
 
 // ---- Health Connect (Android) ----
 
+async fn list_import_providers() -> axum::Json<serde_json::Value> {
+    axum::Json(serde_json::json!({
+        "google_fit": false,
+        "google_health": false,
+        "wahoo": false,
+        "strava": false,
+        "ble": true,
+        "health_connect": true,
+        "hr_24h": true,
+    }))
+}
+
 async fn health_connect_status(
     state: AxumState<AppState>,
     headers: HeaderMap,
@@ -1412,10 +1444,17 @@ async fn health_connect_connect(
     headers: HeaderMap,
 ) -> Result<axum::Json<serde_json::Value>, StatusCode> {
     let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
-    let _claims = verify_jwt(&token)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let conn = state.conn.lock().await;
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        "INSERT INTO health_connect_tokens (athlete_id, connected, permissions, created_at, updated_at) VALUES (?1, 1, ?2, ?3, ?3) ON CONFLICT(athlete_id) DO UPDATE SET connected = 1, permissions = excluded.permissions, updated_at = excluded.updated_at",
+        params![athlete_id, "[\"weight\",\"heart_rate\",\"steps\",\"sleep\",\"blood_pressure\",\"activity\"]", now],
+    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(axum::Json(serde_json::json!({
         "status": "connected",
-        "permissions": ["weight", "heart_rate", "steps"],
+        "permissions": ["weight", "height", "heart_rate", "steps", "sleep", "blood_pressure", "activity"],
     })))
 }
 
@@ -1423,25 +1462,48 @@ async fn health_connect_disconnect(
     state: AxumState<AppState>,
     headers: HeaderMap,
 ) -> Result<axum::Json<serde_json::Value>, StatusCode> {
-    let _token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
+    let claims = verify_jwt(&token)?;
+    let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let conn = state.conn.lock().await;
+    conn.execute(
+        "DELETE FROM health_connect_tokens WHERE athlete_id = ?1",
+        params![athlete_id],
+    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(axum::Json(serde_json::json!({"status": "disconnected"})))
 }
 
 async fn health_connect_sync(
     state: AxumState<AppState>,
     headers: HeaderMap,
+    axum::Json(payload): axum::Json<serde_json::Value>,
 ) -> Result<axum::Json<serde_json::Value>, StatusCode> {
     let token = extract_bearer_token(&headers).ok_or(StatusCode::UNAUTHORIZED)?;
     let claims = verify_jwt(&token)?;
     let athlete_id: i32 = claims.sub.parse().map_err(|_| StatusCode::UNAUTHORIZED)?;
     let conn = state.conn.lock().await;
     let now = Utc::now().to_rfc3339();
+    let metrics = payload.get("metrics").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let mut synced = 0i64;
+    for m in metrics {
+        let metric_type = m.get("metric_type").and_then(|v| v.as_str()).unwrap_or("health_connect_sync");
+        let value = m.get("value").and_then(|v| v.as_f64()).unwrap_or(1.0);
+        let unit = m.get("unit").and_then(|v| v.as_str());
+        let note = m.get("source").and_then(|v| v.as_str()).or(Some("health_connect")).unwrap_or("health_connect");
+        let recorded_at = m.get("recorded_at").and_then(|v| v.as_str()).unwrap_or(&now);
+        conn.execute(
+            "INSERT INTO athlete_metric_log (athlete_id, tenant_id, metric_type, value, unit, note, source, recorded_at, created_at) VALUES (?1, ?1, ?2, ?3, ?4, ?5, 'health_connect', ?6, ?7)",
+            params![athlete_id, metric_type, value, unit, note, recorded_at, now],
+        ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        synced += 1;
+    }
     conn.execute(
-        "INSERT INTO athlete_metric_log (athlete_id, tenant_id, metric_type, value, unit, note, source, recorded_at, created_at) VALUES (?1, ?1, 'health_connect_sync', 1, 'sync', 'health_connect', 'health_connect', ?2, ?2)",
-        params![athlete_id, now],
-    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(axum::Json(serde_json::json!({"synced": 1})))
+        "UPDATE health_connect_tokens SET last_sync_at = ?, updated_at = ? WHERE athlete_id = ?",
+        params![now, now, athlete_id],
+    ).ok();
+    Ok(axum::Json(serde_json::json!({"synced": synced, "connected": true})))
 }
+
 
 // ---- HR 24h continuous heart-rate tracking ----
 
@@ -1728,9 +1790,11 @@ async fn start_axum_server(state: AppState, port: u16) -> Result<(), Box<dyn std
         .route("/api/v1/ble/devices", get(ble_list_devices).post(ble_register_device))
         .route("/api/v1/ble/devices/{id}", put(ble_update_device).delete(ble_delete_device))
         .route("/api/v1/ble/devices/{id}/sync", post(ble_sync_device))
-        .route("/api/v1/health-connect/status", get(health_connect_status).post(health_connect_connect))
+        .route("/api/v1/health-connect/status", get(health_connect_status))
+        .route("/api/v1/health-connect/connect", post(health_connect_connect))
         .route("/api/v1/health-connect/disconnect", post(health_connect_disconnect))
         .route("/api/v1/health-connect/sync", post(health_connect_sync))
+        .route("/api/v1/import/providers", get(list_import_providers))
         .route("/api/v1/hr/settings", get(hr_get_settings).put(hr_upsert_settings))
         .route("/api/v1/hr/samples", post(hr_log_samples).delete(hr_delete_samples))
         .route("/api/v1/hr/24h", get(hr_get_24h))
@@ -1766,6 +1830,146 @@ fn resolve_db_path<R: tauri::Runtime>(app: &impl tauri::Manager<R>) -> PathBuf {
                 .join("bikemaster")
         });
     base.join("bikemaster.db")
+}
+
+// ---- JNI bridge per Android Health Connect ----
+
+#[cfg(target_os = "android")]
+mod health_connect_jni {
+    use jni::JavaVM;
+    use std::sync::Once;
+
+    static mut JAVA_VM: Option<JavaVM> = None;
+    static INIT: Once = Once::new();
+
+    #[no_mangle]
+    pub unsafe extern "system" fn JNI_OnLoad(vm: JavaVM, _reserved: *mut std::ffi::c_void) -> i32 {
+        INIT.call_once(|| {
+            JAVA_VM = Some(vm);
+        });
+        jni::sys::JNI_VERSION_1_6
+    }
+
+    pub fn get_java_vm() -> Option<&'static JavaVM> {
+        unsafe { JAVA_VM.as_ref() }
+    }
+
+    pub fn read_metrics() -> serde_json::Value {
+        let vm = match get_java_vm() {
+            Some(vm) => vm,
+            None => return serde_json::json!({"error": "JavaVM not initialized"}),
+        };
+
+        let mut env = match vm.attach_current_thread() {
+            Ok(env) => env,
+            Err(e) => return serde_json::json!({"error": format!("Failed to attach thread: {}", e)}),
+        };
+
+        let class = match env.find_class("com/bikemaster/health/HealthConnectHelper") {
+            Ok(cls) => cls,
+            Err(e) => return serde_json::json!({"error": format!("Class not found: {}", e)}),
+        };
+
+        let method_id = match env.get_static_method_id(class, "readMetrics", "()Ljava/util/Map;") {
+            Ok(mid) => mid,
+            Err(e) => return serde_json::json!({"error": format!("Method not found: {}", e)}),
+        };
+
+        let result = match env.call_static_method_unchecked(class, method_id, jni::signature::ReturnType::Object, &[]) {
+            Ok(val) => val,
+            Err(e) => return serde_json::json!({"error": format!("Call failed: {}", e)}),
+        };
+
+        let map = match result.downcast::<jni::objects::JObject>() {
+            Ok(obj) => obj,
+            Err(e) => return serde_json::json!({"error": format!("Downcast failed: {}", e)}),
+        };
+
+        let entry_set = match env.call_method(map, "entrySet", "()Ljava/util/Set;", &[]) {
+            Ok(val) => val,
+            Err(e) => return serde_json::json!({"error": format!("entrySet failed: {}", e)}),
+        };
+
+        let set = match entry_set.downcast::<jni::objects::JObject>() {
+            Ok(obj) => obj,
+            Err(e) => return serde_json::json!({"error": format!("Set downcast failed: {}", e)}),
+        };
+
+        let iterator = match env.call_method(set, "iterator", "()Ljava/util/Iterator;", &[]) {
+            Ok(val) => val,
+            Err(e) => return serde_json::json!({"error": format!("iterator failed: {}", e)}),
+        };
+
+        let iter_obj = match iterator.downcast::<jni::objects::JObject>() {
+            Ok(obj) => obj,
+            Err(e) => return serde_json::json!({"error": format!("Iterator downcast failed: {}", e)}),
+        };
+
+        let mut metrics = serde_json::Map::new();
+
+        loop {
+            let has_next = match env.call_method(iter_obj, "hasNext", "()Z", &[]) {
+                Ok(val) => val.z().unwrap_or(false),
+                Err(_) => break,
+            };
+
+            if !has_next {
+                break;
+            }
+
+            let entry = match env.call_method(iter_obj, "next", "()Ljava/lang/Object;", &[]) {
+                Ok(val) => val,
+                Err(_) => break,
+            };
+
+            let entry_obj = match entry.downcast::<jni::objects::JObject>() {
+                Ok(obj) => obj,
+                Err(_) => break,
+            };
+
+            let key = match env.call_method(entry_obj, "getKey", "()Ljava/lang/Object;", &[]) {
+                Ok(val) => match val.downcast::<jni::objects::JString>() {
+                    Ok(s) => env.get_string(&s).ok().and_then(|s| s.to_str().ok()).unwrap_or("").to_string(),
+                    Err(_) => continue,
+                },
+                Err(_) => continue,
+            };
+
+            let value = match env.call_method(entry_obj, "getValue", "()Ljava/lang/Object;", &[]) {
+                Ok(val) => val,
+                Err(_) => continue,
+            };
+
+            let val_str = if let Ok(s) = value.downcast::<jni::objects::JString>() {
+                env.get_string(&s).ok().and_then(|s| s.to_str().ok()).map(|s| serde_json::Value::String(s.to_string()))
+            } else if let Ok(n) = value.downcast::<jni::objects::JInteger>() {
+                n.i32().ok().map(|v| serde_json::Value::Number(v.into()))
+            } else if let Ok(n) = value.downcast::<jni::objects::JLong>() {
+                n.i64().ok().map(|v| serde_json::Value::Number(v.into()))
+            } else if let Ok(n) = value.downcast::<jni::objects::JFloat>() {
+                n.f32().ok().map(|v| serde_json::Value::Number(serde_json::Number::from_f64(v as f64).unwrap_or(serde_json::Number::from(0))))
+            } else if let Ok(n) = value.downcast::<jni::objects::JDouble>() {
+                n.f64().ok().and_then(|v| serde_json::Number::from_f64(v).map(serde_json::Value::Number))
+            } else if let Ok(b) = value.downcast::<jni::objects::JBoolean>() {
+                b.z().ok().map(|v| serde_json::Value::Bool(v))
+            } else {
+                None
+            };
+
+            if let Some(val) = val_str {
+                metrics.insert(key, val);
+            }
+        }
+
+        serde_json::Value::Object(metrics)
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+mod health_connect_jni {
+    pub fn read_metrics() -> serde_json::Value {
+        serde_json::json!({})
+    }
 }
 
 // ---- Entrypoint principale ----

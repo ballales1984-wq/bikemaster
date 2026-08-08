@@ -99,12 +99,30 @@ def db_path():
 
 @pytest.fixture(autouse=True)
 def reset_rate_limiter():
-    from bike_analyzer.backend.rate_limiter import limiter
-
-    limiter.reset()
+    from bike_analyzer.backend.rate_limiter import limiter, _USER_RATE_LIMITS
     from bike_analyzer.backend.redis_client import _MEMORY_RATELIMIT
 
+    limiter.reset()
     _MEMORY_RATELIMIT.clear()
+    _USER_RATE_LIMITS.clear()
+    try:
+        import asyncio
+        from bike_analyzer.backend.redis_client import get_redis
+
+        async def _clear():
+            r = await get_redis()
+            if r is not None:
+                keys = await r.keys("bikemaster:ratelimit:*")
+                if keys:
+                    await r.delete(*keys)
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.run_until_complete(_clear())
+        except RuntimeError:
+            asyncio.run(_clear())
+    except Exception:
+        pass
     yield
 
 

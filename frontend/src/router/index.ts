@@ -39,6 +39,12 @@ const routes = [
     meta: { title: "Le mie uscite" },
   },
   {
+    path: "/rides/:id",
+    name: "ride-detail",
+    component: () => import("../components/RideDetail.vue"),
+    meta: { requiresAuth: true, title: "Dettaglio Uscita" },
+  },
+  {
     path: "/dashboard",
     name: "dashboard",
     component: () => import("../components/DashboardPanel.vue"),

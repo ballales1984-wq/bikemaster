@@ -4,13 +4,13 @@
 <template>
   <section class="comparison-panel">
     <div class="panel">
-      <h2>Confronto Uscite</h2>
+      <h2>{{ t("comparison.title") }}</h2>
 
       <div class="select-row">
         <div class="select-group">
-          <label>Uscita A</label>
+          <label>{{ t("rides.selectRideA") }}</label>
           <select v-model="rideA" class="form-select" @change="onSelectChange">
-            <option :value="null">Seleziona...</option>
+            <option :value="null">{{ t("common.select") }}</option>
             <option v-for="r in rides" :key="r.id" :value="r">
               {{ r.date }} — {{ fmt(r.distance_km) }} km
             </option>
@@ -19,15 +19,15 @@
         <button
           class="swap-btn"
           :disabled="!rideA || !rideB"
-          title="Scambia"
+          :title="t('rides.swap')"
           @click="swapRides"
         >
           ⇄
         </button>
         <div class="select-group">
-          <label>Uscita B</label>
+          <label>{{ t("rides.selectRideB") }}</label>
           <select v-model="rideB" class="form-select" @change="onSelectChange">
-            <option :value="null">Seleziona...</option>
+            <option :value="null">{{ t("common.select") }}</option>
             <option v-for="r in rides" :key="r.id" :value="r">
               {{ r.date }} — {{ fmt(r.distance_km) }} km
             </option>
@@ -57,7 +57,7 @@
                 }}{{ comparison.deltas[m.key].toFixed(1) }}%
               </span>
             </div>
-            <div class="comp-divider">vs</div>
+            <div class="comp-divider">{{ t("comparison.vs") }}</div>
             <div
               class="comp-b"
               :class="{ winner: comparison.winners[m.key] === 'B' }"
@@ -80,10 +80,10 @@
       </div>
 
       <div v-else class="empty-state">
-        <div class="empty-icon"></div>
-        <div class="empty-title">Seleziona due uscite per confrontarle</div>
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">{{ t("rides.noSelection") }}</div>
         <div class="empty-desc">
-          Scegli dall'elenco le uscite che vuoi analizzare a confronto.
+          {{ t("rides.selectRides") }}
         </div>
       </div>
     </div>
@@ -92,8 +92,18 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { apiGet } from "../utils/api";
+import { useI18n } from "../composables/useI18n";
+import { useRidesStore } from "../stores/rides";
 import type { Ride } from "../types/index";
+
+const { t } = useI18n();
+const store = useRidesStore();
+
+const rideA = ref<Ride | null>(null);
+const rideB = ref<Ride | null>(null);
+
+const rides = computed(() => store.rides);
+const loading = computed(() => store.loading);
 
 interface ComparisonResult {
   ready: boolean;
@@ -109,39 +119,34 @@ interface MetricDef {
   format: (v: number | undefined) => string;
 }
 
-const rides = ref<Ride[]>([]);
-const rideA = ref<Ride | null>(null);
-const rideB = ref<Ride | null>(null);
-const loading = ref(false);
-
 const metrics: MetricDef[] = [
   {
     key: "distance_km",
-    label: "Distanza (km)",
+    label: t("rides.distanceLabel"),
     format: (v: number | undefined): string =>
       v == null ? "—" : Number(v).toFixed(1),
   },
   {
     key: "duration_minutes",
-    label: "Duration (min)",
+    label: t("rides.durationLabel"),
     format: (v: number | undefined): string =>
       v == null ? "—" : Math.round(v).toString(),
   },
   {
     key: "avg_speed_kmh",
-    label: "Avg speed",
+    label: t("rides.speedLabel"),
     format: (v: number | undefined): string =>
       v == null ? "—" : Number(v).toFixed(1) + " km/h",
   },
   {
     key: "elevation_gain_m",
-    label: "Elevation (m)",
+    label: t("rides.elevationLabel"),
     format: (v: number | undefined): string =>
       v == null ? "—" : Math.round(v).toString(),
   },
   {
     key: "calories",
-    label: "Calorie",
+    label: t("rides.caloriesLabel"),
     format: (v: number | undefined): string =>
       v == null ? "—" : Math.round(v).toString(),
   },
@@ -194,9 +199,9 @@ const verdict = computed(() => {
     if (winners[k] === "A") scoreA++;
     else if (winners[k] === "B") scoreB++;
   }
-  if (scoreA === scoreB) return "Pareggio — uscite equivalenti";
-  if (scoreA > scoreB) return `Uscita A Vincente (${scoreA}/${metrics.length})`;
-  return `Uscita B Vincente (${scoreB}/${metrics.length})`;
+  if (scoreA === scoreB) return t("rides.tie");
+  if (scoreA > scoreB) return `${t("rides.winnerA")} (${scoreA}/${metrics.length})`;
+  return `${t("rides.winnerB")} (${scoreB}/${metrics.length})`;
 });
 
 function swapRides() {
@@ -209,32 +214,11 @@ function onSelectChange() {
   // reactive
 }
 
-async function load() {
-  loading.value = true;
-  try {
-    const all: Ride[] = [];
-    let page = 1;
-    const pageSize = 100;
-    while (true) {
-      const data = await apiGet<{ rides: Ride[]; total?: number }>(
-        "/api/v1/rides",
-        { page: String(page), page_size: String(pageSize) },
-      );
-      const batch = data.rides || [];
-      all.push(...batch);
-      const total = typeof data.total === "number" ? data.total : all.length;
-      if (batch.length === 0 || all.length >= total) break;
-      page += 1;
-    }
-    rides.value = all;
-  } catch (e) {
-    console.error("load rides for comparison", e);
-  } finally {
-    loading.value = false;
+onMounted(() => {
+  if (store.rides.length === 0) {
+    store.fetchAllRides();
   }
-}
-
-onMounted(() => load());
+});
 </script>
 
 <style scoped>

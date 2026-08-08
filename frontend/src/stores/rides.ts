@@ -7,7 +7,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { Ride, Summary } from "../types/index";
-import { apiGet, apiDelete, apiPost } from "../utils/api";
+import { apiGet, apiDelete, apiPost, apiPut } from "../utils/api";
 import { useAuthStore } from "./auth";
 import { isLocalDbReady, upsertRide, getCachedRides } from "../db/localDb";
 
@@ -196,6 +196,104 @@ export const useRidesStore = defineStore("rides", () => {
     }
   }
 
+  async function fetchRide(rideId: number): Promise<Ride | null> {
+    if (!auth.isLoggedIn) return null;
+    loading.value = true;
+    error.value = null;
+    try {
+      const data = await apiGet<Ride>(`/api/v1/rides/${rideId}`);
+      const idx = rides.value.findIndex((r) => r.id === rideId);
+      if (idx >= 0) rides.value[idx] = data;
+      return data;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to load ride";
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function updateRide(
+    rideId: number,
+    payload: Partial<Ride>,
+  ): Promise<Ride | null> {
+    if (!auth.isLoggedIn) return null;
+    loading.value = true;
+    error.value = null;
+    try {
+      const data = await apiPut<Ride>(`/api/v1/rides/${rideId}`, payload);
+      const idx = rides.value.findIndex((r) => r.id === rideId);
+      if (idx >= 0) rides.value[idx] = data;
+      else rides.value.unshift(data);
+      await fetchSummary();
+      return data;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to update ride";
+      throw e;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function fetchAllRides(): Promise<void> {
+    if (!auth.isLoggedIn) return;
+    loading.value = true;
+    error.value = null;
+    offline.value = false;
+    try {
+      const all: Ride[] = [];
+      const pageSize = 100;
+      const first = await apiGet<{ rides: Ride[]; total?: number }>(
+        "/api/v1/rides",
+        { page: "1", page_size: String(pageSize) },
+      );
+      const firstBatch = first.rides || [];
+      all.push(...firstBatch);
+      let total = typeof first.total === "number" ? first.total : null;
+      if (total === null && firstBatch.length < pageSize) {
+        total = all.length;
+      }
+      if (total !== null && all.length < total) {
+        const remaining = total - all.length;
+        const pages = Math.ceil(remaining / pageSize);
+        const promises = Array.from({ length: pages }, (_, i) =>
+          apiGet<{ rides: Ride[] }>("/api/v1/rides", {
+            page: String(2 + i),
+            page_size: String(pageSize),
+          }),
+        );
+        const results = await Promise.all(promises);
+        for (const r of results) {
+          all.push(...(r.rides || []));
+        }
+      } else if (total === null) {
+        let page = 2;
+        while (true) {
+          const data = await apiGet<{ rides: Ride[]; total?: number }>(
+            "/api/v1/rides",
+            { page: String(page), page_size: String(pageSize) },
+          );
+          const batch = data.rides || [];
+          all.push(...batch);
+          if (batch.length === 0) break;
+          page += 1;
+        }
+      }
+      rides.value = all;
+      if (isLocalDbReady()) {
+        for (const r of rides.value) {
+          if (typeof r.id === "number") upsertRide(r.id, r);
+        }
+      }
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to load rides";
+      await seedFromCache();
+      if (!offline.value) rides.value = [];
+    } finally {
+      loading.value = false;
+    }
+  }
+
   function reset() {
     rides.value = [];
     summary.value = {
@@ -224,9 +322,12 @@ export const useRidesStore = defineStore("rides", () => {
     setFilter,
     clearFilters,
     fetchRides,
+    fetchAllRides,
+    fetchRide,
     fetchSummary,
     deleteRide,
     addRide,
+    updateRide,
     reset,
   };
 });
