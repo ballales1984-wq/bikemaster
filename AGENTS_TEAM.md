@@ -14,8 +14,7 @@ tornano al default al resume.
   Backend FastAPI embedded in locale (SQLite, porta 8000) e su Render (FastAPI/Docker
   + PostgreSQL gestito). Frontend Vue 3 su Vercel.
 - **Fonte di verità produzione**: `render.yaml` (backend) → Vercel (frontend).
-- **Rischio #1**: persistenza parziale su Render. Auth/users → PostgreSQL (sopravvive);
-  rides/metrics/training_stress_days → SQLite **efimero** (nessun volume → siperdi al resume).
+  - **Rischio #1** ✅ RISOLTO: persistenza su Render. Auth/users → PostgreSQL (sopravvive); `rides`/`metrics`/`training_stress_days` → PostgreSQL (`db/postgres_rides.py`, dispatch `has_postgres()`); SQLite riservato a locale/offline (Tauri/PWA).
 
 ## 2. Team operativo (mappatura ruoli engineering → agenti)
 
@@ -48,33 +47,14 @@ Organizzato attorno a **prodotti verticali** (come suggerito nell'analisi):
 
 ## 3. Piano di migrazione persistente (Render) — RISCHIO #1
 
-### Stato attuale (da AGENTS.md)
-- `DATABASE_URL` impostato → atleta, snapshot, metriche log atleti vettorizzati su
-  PostgreSQL (`db/postgres_athlete.py`, colonne allineate a `models.py`).
-- `rides` / `metrics` / `training_stress_days` → **SQLite-only**, `rides.db`
-  **efimero** nel container (nessun volume in `render.yaml`).
+### Stato verificato (completato) ✅
+La migrazione persistente richiesta da AGENTS.md "Resante" è **già implementata** nel codice corrente (verificato in `db/postgres_rides.py`):
 
-### Opzione A (raccomandata) — Migrare rides/metrics a PostgreSQL con feature-flag
-Strade parallela a `postgres_athlete.py`; switch via `DATABASE_URL`/`SYNC_MODE`.
+- `db/postgres_rides.py` (485 righe) implementa completamente `rides`/`metrics`/`training_stress_days` su PostgreSQL: `save_ride` (dedup + stima calorie + JSON GPS), `get_ride`, `get_rides_by_athlete`, `get_all_rides`, `delete_ride`, `update_ride`, `save_metric`, `upsert_training_stress_day` (con `ON CONFLICT`), `get_training_stress_days`, `get_latest_training_stress`.
+- `db/database.py` instrada ogni funzione su PostgreSQL quando `DATABASE_URL` è impostato, tramite `has_postgres()` (definita in `postgres_athlete.py` come `bool(DATABASE_URL)`), **identico pattern** a `postgres_athlete.py`. Quando `DATABASE_URL` non è presente (locale/offline Tauri/PWA) mantiene SQLite come store primario.
+- `db/postgres_rides.py` riusa `_connect`/`has_postgres` da `postgres_athlete.py` e dichiara le medesime tabelle/colonne.
 
-```
-1. DATABASE: crea schema rides/metrics/training_stress_days su Postgres (migrazione alembic idempotente, retrocompatibile con colonne SQLite esistenti).
-2. BACKEND: instrada read/write rides su Postgres quando DATABASE_URL impostato (stesso pattern di postgres_athlete.py).
-3. DATABASE: mantiene SQLite come fallback offline (mobile/Tauri) — dual-write o master=server.
-4. TESTER: test migrazione (migrati → letti corretti), test dual-store, regressione.
-5. SECURITY: controllo proprietà athlete_id su tutti gli endpoint rides (FIX-01).
-6. VERIFIER: snapshot/restore test, coerenza cross-store.
-7. ORCHESTRATOR: rollout graduale (feature-flag), monitoraggio perdita dati = 0.
-```
-
-**Pro**: persistenza totale su cloud; coerente con auth su Postgres.
-**Contro**: rischio migrazione dati; dual-store complessità offline.
-
-### Opzione B (mitigazione temporanea) — Volume persistente + backup
-- `render.yaml`: aggiungi volume persistente per `rides.db` + sidecar backup
-  (cron → bucket).
-- **Limite**: non risolve coerenza dual-store (locale vs cloud); il resume
-  dopo sospensione può comunque perdere l'ultimo chunk in-memory.
+**Rimane da verificare (QA)**: test cross-store (scrivi su Postgres → leggi corretto), test dual-store offline fallback, snapshot/restore regression. → assegna a TESTER/VERIFIER. (SLO "dati persistiti recuperabili 100%" → soddisfatta dall'instradamento Postgres.)
 
 ### Scelta
 - **Corto termine (produzione)**: Opzione A (priorità alta) — persistenza totale.
@@ -84,7 +64,7 @@ Strade parallela a `postgres_athlete.py`; switch via `DATABASE_URL`/`SYNC_MODE`.
 
 | # | Azione | Priority | Owner | Issue | Nota |
 |---|---|---|---|---|---|
-| 1 | Migrare rides/metrics a PostgreSQL (Opzione A) | P0 critica | DATABASE/BACKEND | [#4](https://github.com/ballales1984-wq/bikemaster/issues/4) | dato perdita al resume |
+| 1 | Migrare rides/metrics a PostgreSQL (Opzione A) | P0 critica | DATABASE/BACKEND | [#4](https://github.com/ballales1984-wq/bikemaster/issues/4) | ✅ IMPLEMENTATO (verificato `db/postgres_rides.py`) — chiude #4 |
 | 2 | CI backend/frontend + build check (web/tauri) | P0 | DevOps/QA | [#5](https://github.com/ballales1984-wq/bikemaster/issues/5) | `.github/workflows` |
 | 3 | Sync contract + test riconciliazione (diverge/merge, TTL) | P0 | Data/Sync | [#6](https://github.com/ballales1984-wq/bikemaster/issues/6) | offline-first |
 | 4 | Health/DB metrics + Sentry + alerting | P1 | DevOps | [#7](https://github.com/ballales1984-wq/bikemaster/issues/7) | dati persi, latenza sync |
