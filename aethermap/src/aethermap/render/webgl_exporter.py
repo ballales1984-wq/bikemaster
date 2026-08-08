@@ -154,13 +154,30 @@ def _entity_to_gl(obj: Any, earth_r: float = 6371000.0) -> dict[str, Any]:
         "s2": getattr(pos, "s2", None),
     }
 
-    if tipo == "strada":
+    if tipo == "strada" or tipo == "segment":
         punti = obj.geometria.dati.get("punti", [])
         pts = []
         for p in punti:
-            d = geodetic_to_direction(p["lat"], p["lon"])
+            if not isinstance(p, dict):
+                continue
+            lat = p.get("lat")
+            lon = p.get("lon")
+            if lat is None or lon is None:
+                continue
+            d = geodetic_to_direction(lat, lon)
             r = 1.0 + (p.get("ele") or 0.0) / earth_r
             pts.append([float(d[0] * r), float(d[1] * r), float(d[2] * r)])
+        if len(pts) < 2:
+            return {
+                "id": obj.id,
+                "tipo": tipo,
+                "kind": "line",
+                "points": [],
+                "color": color,
+                "props": obj.proprieta,
+                "confidence": obj.affidabilita.valore,
+                "s2": getattr(pos, "s2", None),
+            }
         entry["kind"] = "line"
         entry["points"] = pts
     else:
@@ -185,7 +202,9 @@ def _entity_to_gl(obj: Any, earth_r: float = 6371000.0) -> dict[str, Any]:
                 pass
         elif tipo == "albero":
             entry["kind"] = "point"
-            entry["height_m"] = pos.alt or 5.0
+            height = obj.altezza() if hasattr(obj, "altezza") else (pos.alt or 5.0)
+            entry["height_m"] = height
+            entry["radius"] = max(0.0001, height / earth_r)
             entry["position"] = [px, py, pz]
         elif tipo in ("citta", "costa", "confine"):
             entry["kind"] = "point" if tipo != "costa" and tipo != "confine" else "line"

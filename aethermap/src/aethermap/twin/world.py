@@ -42,7 +42,7 @@ class DigitalTwin:
             self._persistent_store = None
         self.pipeline = Pipeline(self.store)
 
-    def add(self, obj: Strada | Albero | Montagna) -> None:
+    def add(self, obj: Oggetto) -> None:
         self.store.add(obj)
         if self._persistent_store is not None:
             self._persistent_store.add(obj)
@@ -96,19 +96,42 @@ class DigitalTwin:
     def snapshot(self) -> list[dict]:
         out = []
         for obj in self.store.objects.values():
+            pos = {"lat": obj.posizione.lat, "lon": obj.posizione.lon, "alt": getattr(obj.posizione, "alt", 0)}
             if isinstance(obj, Strada):
                 out.append({"id": obj.id, "tipo": "strada",
+                            "posizione": pos,
+                            "confidence": obj.affidabilita.valore,
                             "traffico": obj.traffico(), "pendenza_%": obj.pendenza(),
                             "ombrata": obj.proprieta.get("ombrata"),
                             "manutenzione": obj.manutenzione()})
             elif isinstance(obj, Albero):
                 out.append({"id": obj.id, "tipo": "albero",
+                            "posizione": pos,
+                            "confidence": obj.affidabilita.valore,
                             "specie": obj.specie(), "altezza_m": obj.altezza(),
                             "ombra": obj.proprieta.get("ombra")})
             elif isinstance(obj, Montagna):
                 out.append({"id": obj.id, "tipo": "montagna",
+                            "posizione": pos,
+                            "confidence": obj.affidabilita.valore,
                             "versanti": obj.versanti(), "neve": obj.proprieta.get("neve"),
                             "sentieri": obj.sentieri()})
+            elif isinstance(obj, POI):
+                out.append({"id": obj.id, "tipo": "poi",
+                            "posizione": pos,
+                            "confidence": obj.affidabilita.valore,
+                            "categoria": obj.categoria(), "descrizione": obj.descrizione()})
+            elif isinstance(obj, Percorso):
+                out.append({"id": obj.id, "tipo": "percorso",
+                            "posizione": pos,
+                            "confidence": obj.affidabilita.valore,
+                            "punti": obj.punti(), "distanza_km": obj.distanza_km(),
+                            "dislivello_m": obj.dislivello_m()})
+            elif isinstance(obj, Terreno):
+                out.append({"id": obj.id, "tipo": "terreno",
+                            "posizione": pos,
+                            "confidence": obj.affidabilita.valore,
+                            "tipo_terreno": obj.tipo(), "pendenza_media": obj.pendenza_media()})
         return out
 
     def h3_summary(self, resolution: int = 9) -> dict[str, dict[str, int]]:
@@ -130,19 +153,16 @@ class DigitalTwin:
         out = []
         for obj in self.store.objects.values():
             pos = {"lat": obj.posizione.lat, "lon": obj.posizione.lon, "alt": getattr(obj.posizione, "alt", 0)}
-            if isinstance(obj, Strada):
-                out.append({"id": obj.id, "tipo": "strada",
-                            "posizione": pos,
-                            "geometria": obj.geometria.dati,
-                            "proprieta": obj.proprieta})
-            elif isinstance(obj, Albero):
-                out.append({"id": obj.id, "tipo": "albero",
-                            "posizione": pos,
-                            "proprieta": obj.proprieta})
-            elif isinstance(obj, Montagna):
-                out.append({"id": obj.id, "tipo": "montagna",
-                            "posizione": pos,
-                            "proprieta": obj.proprieta})
+            geom = obj.geometria.model_dump() if obj.geometria else {}
+            common = {
+                "id": obj.id,
+                "tipo": obj.tipo,
+                "posizione": pos,
+                "geometria": geom,
+                "proprieta": obj.proprieta,
+                "confidence": obj.affidabilita.valore,
+            }
+            out.append(common)
         Path(path).write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def load_json(self, path: str | Path) -> None:
@@ -152,25 +172,60 @@ class DigitalTwin:
             pos = item.get("posizione", {})
             lat = pos.get("lat", 0.0)
             lon = pos.get("lon", 0.0)
+            alt = pos.get("alt", 0.0)
             props = item.get("proprieta", {})
+            geom_data = item.get("geometria", {})
+            confidence = item.get("confidence", 1.0)
             if tipo == "strada":
                 obj = make_strada(
                     item["id"], lat, lon,
-                    item.get("geometria", {}).get("punti", [])
+                    geom_data.get("dati", {}).get("punti", []) if isinstance(geom_data, dict) else []
                 )
                 obj.proprieta.update(props)
+                obj.affidabilita.valore = confidence
                 self.add(obj)
             elif tipo == "albero":
                 obj = make_albero(
                     item["id"], lat, lon,
-                    props.get("specie"), props.get("altezza_m", 5.0)
+                    props.get("specie"), props.get("altezza_m", 5.0), alt=alt
                 )
                 obj.proprieta.update(props)
+                obj.affidabilita.valore = confidence
                 self.add(obj)
             elif tipo == "montagna":
                 obj = make_montagna(
-                    item["id"], lat, lon,
-                    pos.get("alt", 0.0), props.get("versanti", [])
+                    item["id"], lat, lon, alt,
+                    props.get("versanti", [])
                 )
                 obj.proprieta.update(props)
+                obj.affidabilita.valore = confidence
+                self.add(obj)
+            elif tipo == "poi":
+                from aethermap.twin.objects import make_poi
+                obj = make_poi(
+                    item["id"], lat, lon,
+                    props.get("nome", ""), props.get("categoria", ""),
+                    props.get("descrizione", "")
+                )
+                obj.proprieta.update(props)
+                obj.affidabilita.valore = confidence
+                self.add(obj)
+            elif tipo == "percorso":
+                from aethermap.twin.objects import make_perorso
+                punti = geom_data.get("dati", {}).get("punti", []) if isinstance(geom_data, dict) else []
+                obj = make_perorso(
+                    item["id"], lat, lon, punti,
+                    props.get("distanza_km", 0.0), props.get("dislivello_m", 0.0)
+                )
+                obj.proprieta.update(props)
+                obj.affidabilita.valore = confidence
+                self.add(obj)
+            elif tipo == "terreno":
+                from aethermap.twin.objects import make_terreno
+                obj = make_terreno(
+                    item["id"], lat, lon,
+                    props.get("tipo_terreno", ""), props.get("pendenza_media", 0.0)
+                )
+                obj.proprieta.update(props)
+                obj.affidabilita.valore = confidence
                 self.add(obj)
