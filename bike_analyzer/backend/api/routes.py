@@ -25,6 +25,7 @@ from typing import Any
 from urllib.parse import urlencode, urlparse
 
 import httpx
+import numpy as np
 import requests
 from fastapi import (
     APIRouter,
@@ -2227,7 +2228,7 @@ async def get_aethermap_terrain(
     min_lon: float = Query(..., description="Minimum longitude"),
     max_lon: float = Query(..., description="Maximum longitude"),
     resolution: int = Query(64, description="Grid resolution (NxN)", ge=8, le=256),
-    source: str = Query("auto", description="Terrain source: auto, dem, procedural"),
+    source: str = Query("auto", description="Terrain source: auto, dem, procedural, copernicus, lidar, osm"),
 ):
     """Return a terrain heightfield tile for the given bounding box.
 
@@ -2260,7 +2261,8 @@ async def get_aethermap_terrain(
 
 
 @router.get("/aethermap/world")
-async def get_aethermap_world():
+@limiter.limit("30/minute")
+async def get_aethermap_world(request: Request):
     """Return the full AetherMap world data for the WebGL renderer.
 
     Returns terrain mesh, entities, relations, and camera settings
@@ -2316,21 +2318,60 @@ async def get_aethermap_world():
     }
 
 
+def _build_procedural_heightfield(n: int, base: float = 0.0, scale: float = 0.04) -> np.ndarray:
+    from aethermap.render.webgl_exporter import _build_heightfield
+    return _build_heightfield(n, base, scale)
+
+
+def _face_bbox(face: int) -> tuple[float, float, float, float]:
+    face_bbox = {
+        0: (0.0, 90.0, -180.0, -90.0),
+        1: (0.0, 90.0, -90.0, 0.0),
+        2: (0.0, 90.0, 0.0, 90.0),
+        3: (0.0, 90.0, 90.0, 180.0),
+        4: (-90.0, 0.0, -180.0, -90.0),
+        5: (90.0, 180.0, -180.0, 180.0),
+    }
+    return face_bbox.get(face, (0.0, 90.0, -180.0, 180.0))
+
+
 @router.get("/aethermap/terrain-tile")
+@limiter.limit("60/minute")
 async def get_aethermap_terrain_tile(
+    request: Request,
     face: int = Query(0, ge=0, le=5, description="Cube face index (0-5)"),
     resolution: int = Query(64, ge=8, le=256, description="Grid resolution"),
+    dem: str | None = Query(None, description="Use real DEM if available (copernicus|lidar|osm)"),
 ):
     """Return a cube-sphere terrain mesh for a single face.
 
     Used by the WebGL renderer for LOD terrain streaming.
     """
+    cache_key = f"aethermap:tile:{face}:{resolution}:{dem or 'procedural'}"
+    cached_data = await _cached(cache_key, ttl=3600)
+    if cached_data is not None:
+        return cached_data
 
     from aethermap.render.webgl_exporter import _build_heightfield, _face_direction
 
     n = resolution
-    hf = _build_heightfield(n, 0.0, 0.04)
-    face_hf = hf  # same procedural heightfield for all faces
+    hf = _build_procedural_heightfield(n)
+    source = "procedural"
+
+    if dem:
+        try:
+            from aethermap.data.dem_loader import get_dem_loader
+            loader = get_dem_loader()
+            if loader is not None:
+                bbox = _face_bbox(face)
+                real_hf = loader.load(bbox, resolution)
+                if real_hf is not None and np.mean(np.abs(real_hf)) > 1e-6:
+                    hf = real_hf
+                    source = f"dem:{dem}"
+        except Exception as exc:
+            logger.debug("DEM load failed, falling back to procedural: %s", exc)
+
+    face_hf = hf
 
     positions: list[list[float]] = []
     normals: list[list[float]] = []
@@ -2364,15 +2405,17 @@ async def get_aethermap_terrain_tile(
             indices.extend([a, b, d2])
             indices.extend([b, c, d2])
 
-    return {
+    payload = {
         "positions": positions,
         "normals": normals,
         "indices": indices,
         "grid_size": grid_size,
         "face": face,
         "resolution": resolution,
-        "source": "procedural",
+        "source": source,
     }
+    await _cache_set(cache_key, payload, ttl=3600)
+    return payload
 
 
 @router.get("/aethermap/geo/roads")
@@ -2528,7 +2571,7 @@ async def get_aethermap_twin_snapshot(current_user: dict = Depends(get_current_u
     return {"objects": twin.snapshot(), "count": len(twin.store.objects)}
 
 
-@router.post("/aethermap/twin/step")
+@router.get("/aethermap/twin/step")
 async def post_aethermap_twin_step(
     temp_c: float = Query(15.0, description="Temperature in Celsius"),
     solar_elev_deg: float = Query(45.0, description="Solar elevation angle"),
@@ -2549,8 +2592,45 @@ async def post_aethermap_twin_step(
     return {"objects": twin.snapshot(), **result}
 
 
+@router.get("/aethermap/sync")
+@limiter.limit("10/minute")
+async def get_aethermap_sync(request: Request, current_user: dict = Depends(get_current_user)):
+    """Export the current Digital Twin state for offline sync."""
+    try:
+        from aethermap.data.sync import TwinSyncEngine
+        from aethermap.twin.world import DigitalTwin
+
+        twin = DigitalTwin()
+        engine = TwinSyncEngine(twin)
+        return engine.export()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Sync export failed: {exc}") from exc
+
+
+@router.post("/aethermap/sync")
+@limiter.limit("10/minute")
+async def post_aethermap_sync(
+    request: Request,
+    payload: dict,
+    current_user: dict = Depends(get_current_user),
+):
+    """Import a Digital Twin state snapshot for offline sync."""
+    try:
+        from aethermap.data.sync import TwinSyncEngine
+        from aethermap.twin.world import DigitalTwin
+
+        twin = DigitalTwin()
+        engine = TwinSyncEngine(twin)
+        engine.import_sync(payload)
+        return {"imported": len(twin.store.objects)}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Sync import failed: {exc}") from exc
+
+
 @router.get("/rides/{ride_id}/terrain")
+@limiter.limit("20/minute")
 async def get_ride_terrain_enrichment(
+    request: Request,
     ride_id: int,
     temp_c: float = Query(15.0, description="Temperature in Celsius"),
     solar_elev_deg: float = Query(45.0, description="Solar elevation angle"),
@@ -2583,22 +2663,43 @@ async def get_ride_terrain_enrichment(
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
 
+    cache_key = f"aethermap:terrain:{ride_id}:{enabled}:{temp_c}:{solar_elev_deg}:{ora}"
+    cached_data = await _cached(cache_key, ttl=600)
+    if cached_data is not None:
+        return cached_data
+
     from ..models.models import GPSPoint
+    from ..monitoring import aethermap_terrain_enrichment_duration_seconds, aethermap_terrain_enrichment_total
 
     points = [GPSPoint(**p) for p in gps_points]
-    enricher = TerrainEnricher(
-        temp_c=temp_c,
-        solar_elev_deg=solar_elev_deg,
-        ora=ora,
-        enabled=enabled,
-    )
-    enriched = enricher.enrich_ride(points)
-    return {
-        "ride_id": ride_id,
-        "enriched": [p.to_dict() for p in enriched],
-        "terrain_features": enricher.snapshot(),
-        "h3_summary": enricher.h3_summary(),
-    }
+    t0 = time.perf_counter()
+    try:
+        enricher = TerrainEnricher(
+            temp_c=temp_c,
+            solar_elev_deg=solar_elev_deg,
+            ora=ora,
+            enabled=enabled,
+        )
+        enriched = enricher.enrich_ride(points)
+        result = {
+            "ride_id": ride_id,
+            "enriched": [p.to_dict() for p in enriched],
+            "terrain_features": enricher.snapshot(),
+            "h3_summary": enricher.h3_summary(),
+        }
+        duration = time.perf_counter() - t0
+        if aethermap_terrain_enrichment_total is not None:
+            aethermap_terrain_enrichment_total.labels(status="success").inc()
+        if aethermap_terrain_enrichment_duration_seconds is not None:
+            aethermap_terrain_enrichment_duration_seconds.observe(duration)
+        await _cache_set(cache_key, result, ttl=600)
+        return result
+    except Exception as exc:
+        if aethermap_terrain_enrichment_total is not None:
+            aethermap_terrain_enrichment_total.labels(status="error").inc()
+        if aethermap_ml_errors_total is not None:
+            aethermap_ml_errors_total.labels(error_type=type(exc).__name__).inc()
+        raise
 
 
 @router.post("/rides/analyze")

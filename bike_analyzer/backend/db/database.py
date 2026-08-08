@@ -4563,6 +4563,11 @@ def get_beck_assessments_by_athlete(athlete_id: int, tenant_id: int = 0, limit: 
 
 
 def get_metrics_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
+    from .postgres_rides import get_metrics_by_athlete as _pg_get_metrics
+    from .postgres_rides import has_postgres
+
+    if has_postgres():
+        return _pg_get_metrics(athlete_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:

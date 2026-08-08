@@ -10,6 +10,7 @@ from aethermap.ai.pipeline import Pipeline
 from aethermap.data.store import SpatialStore
 from aethermap.data.store import WorldStore as DataWorldStore
 from aethermap.data.store import PersistentStore
+from aethermap.data.postgres_store import PersistentWorldStore, get_postgres_session_factory
 from aethermap.twin.objects import Albero, Montagna, Strada, make_albero, make_montagna, make_strada
 
 
@@ -31,8 +32,11 @@ class DigitalTwin:
     (aethermap.db nella directory del modulo) e ricaricati all'avvio.
     """
 
-    def __init__(self, persistent: bool = False, db_path: str | Path | None = None) -> None:
-        if persistent:
+    def __init__(self, persistent: bool = False, db_path: str | Path | None = None, session_factory: Any = None) -> None:
+        if session_factory is not None:
+            self.store = PersistentWorldStore(session_factory=session_factory)
+            self._persistent_store = self.store
+        elif persistent:
             pstore = PersistentStore(db_path=db_path)
             self.store = DataWorldStore(store=pstore.store)
             self._persistent_store = pstore
@@ -44,8 +48,20 @@ class DigitalTwin:
 
     def add(self, obj: Strada | Albero | Montagna) -> None:
         self.store.add(obj)
-        if self._persistent_store is not None:
+        if self._persistent_store is not None and not isinstance(self._persistent_store, PersistentWorldStore):
             self._persistent_store.add(obj)
+
+    async def add_async(self, obj: Strada | Albero | Montagna) -> None:
+        self.store.add(obj)
+        if self._persistent_store is not None:
+            if isinstance(self._persistent_store, PersistentWorldStore):
+                await self._persistent_store.add(obj)
+            else:
+                self._persistent_store.add(obj)
+
+    async def add_state_async(self, obj_id: str, stato: Stato) -> None:
+        if self._persistent_store is not None and isinstance(self._persistent_store, PersistentWorldStore):
+            await self._persistent_store.add_state(obj_id, stato)
 
     def add_relation(self, source_id: str, target_id: str, tipo: str, confidence: float = 1.0) -> None:
         if source_id not in self.store.objects or target_id not in self.store.objects:
@@ -72,7 +88,21 @@ class DigitalTwin:
         for obj in self.store.objects.values():
             self._apply_env(obj, env)
         self._build_relations()
-        if self._persistent_store is not None:
+        if self._persistent_store is not None and not isinstance(self._persistent_store, PersistentWorldStore):
+            self._persistent_store.sync_all()
+        return {"applied": applied, "objects": len(self.store.objects)}
+
+    async def step_async(self, env: Environment) -> dict[str, int]:
+        for feat in ingest_sensor_stream_stub(3):
+            self.pipeline.submit(self.pipeline.research_sensor(feat))
+        applied = self.pipeline.flush()
+        for obj in self.store.objects.values():
+            self._apply_env(obj, env)
+        self._build_relations()
+        if self._persistent_store is not None and isinstance(self._persistent_store, PersistentWorldStore):
+            for obj in self.store.objects.values():
+                await self._persistent_store.add(obj)
+        elif self._persistent_store is not None:
             self._persistent_store.sync_all()
         return {"applied": applied, "objects": len(self.store.objects)}
 

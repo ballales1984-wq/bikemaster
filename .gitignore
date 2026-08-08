@@ -108,11 +108,17 @@ bike_route_demo.html
 
 # Local Android build setup scripts
 accept_all_licenses.ps1
+accept_licenses.ps1
 check_sdk.bat
 clear_java_home.ps1
 install_sdk*.bat
 install_sdk*.ps1
+install_android_sdk.bat
+install_packages.ps1
 set_env.ps1
+
+# Rust toolchain local installer
+rustup-init.exe
 
 # Generated chart artifacts
 duration_chart.png

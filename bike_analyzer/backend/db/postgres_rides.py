@@ -470,6 +470,27 @@ def get_latest_training_stress(athlete_id: int, tenant_id: int | None = None) ->
         conn.close()
 
 
+def get_metrics_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
+    """Return all metrics rows for an athlete, optionally filtered by tenant."""
+    conn = _connect()
+    try:
+        _ensure_tables(conn)
+        with conn.cursor() as cur:
+            if tenant_id is not None:
+                cur.execute(
+                    "SELECT * FROM metrics WHERE athlete_id = %s AND tenant_id = %s ORDER BY created_at ASC",
+                    (athlete_id, tenant_id),
+                )
+            else:
+                cur.execute(
+                    "SELECT * FROM metrics WHERE athlete_id = %s ORDER BY created_at ASC",
+                    (athlete_id,),
+                )
+            return [dict(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+
 __all__ = [
     "has_postgres",
     "save_ride",
@@ -479,6 +500,7 @@ __all__ = [
     "delete_ride",
     "update_ride",
     "save_metric",
+    "get_metrics_by_athlete",
     "upsert_training_stress_day",
     "get_training_stress_days",
     "get_latest_training_stress",

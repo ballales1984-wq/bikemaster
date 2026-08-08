@@ -14,7 +14,7 @@ BikeMaster is a lifestyle health intelligence system (FastAPI + Vue 3 + TypeScri
 - **Sync**: opzionale, controllato dall'utente; può restare su "Mai" e usare l'app 100% offline.
 - **AetherMap**: R&D cartography project (`aethermap/`) converged into BikeMaster as the terrain-intelligence module.
 
-> **⚠️ Nota persistenza (aggiornata)** — su Render il layer primario di persistenza è `db/database.py` (SQLite sincrono su `rides.db`), ma `rides.db` è efemero nel container (nessun volume); al resume post-sospensione i dati tornano al default, mentre auth (PostgreSQL) sopravvive.
+> **⚠️ Nota persistenza** — su Render il container non ha volumi persistenti: `rides.db` (SQLite) è effimero e viene perso al resume post-sospensione. I domini migrati su PostgreSQL (`athlete`, `rides`, `metrics`, `training_stress`, `itineraries`, `training_goals`) sono protetti perché il layer sincrono (`db/database.py`) effettua il dispatch automatico verso i moduli Postgres quando `DATABASE_URL` è configurato (vedi `has_postgres()`). I domini rimanenti SQLite-only (es. POI, metabolico, chat, calendario, weather, BLE, sensor) restano a rischio di perdita dati su Render.
 >
 > **Domini migrati su PostgreSQL** (dispatch tramite `has_postgres()` = `bool(DATABASE_URL)`):
 > - **Athlete** → `db/postgres_athlete.py`: profilo (`get_athlete`/`save_athlete`/`update_athlete`), storia (`save_athlete_snapshot`/`get_athlete_history`), log metriche (`log_athlete_metric`/`get_athlete_metric_log`), lookup (`get_athlete_by_email`/`get_athletes_by_user`/`get_athlete_count_by_user`/`delete_athlete`).

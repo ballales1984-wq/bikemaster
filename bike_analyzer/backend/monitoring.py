@@ -100,6 +100,21 @@ if PROMETHEUS_AVAILABLE:
         "bikemaster_active_athletes",
         "Active athletes in last 30 minutes",
     )
+    aethermap_terrain_enrichment_total = Counter(
+        "bikemaster_aethermap_terrain_enrichment_total",
+        "Total AetherMap terrain enrichment requests",
+        ["status"],
+    )
+    aethermap_terrain_enrichment_duration_seconds = Histogram(
+        "bikemaster_aethermap_terrain_enrichment_duration_seconds",
+        "AetherMap terrain enrichment duration in seconds",
+        buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
+    )
+    aethermap_ml_errors_total = Counter(
+        "bikemaster_aethermap_ml_errors_total",
+        "Total AetherMap ML errors",
+        ["error_type"],
+    )
 else:
     http_requests_total = None
     http_request_duration_seconds = None
@@ -118,6 +133,9 @@ else:
     system_info = None
     tracking_sessions_total = None
     active_athletes_gauge = None
+    aethermap_terrain_enrichment_total = None
+    aethermap_terrain_enrichment_duration_seconds = None
+    aethermap_ml_errors_total = None
 
 
 @dataclass

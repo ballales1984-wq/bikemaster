@@ -43,6 +43,16 @@
           </span>
         </label>
       </div>
+      <div v-if="props.terrainEnriched && !firstRideId" class="aethermap-terrain">
+        <span class="aethermap-warn">Seleziona una singola ride per il terrain enrichment</span>
+      </div>
+      <template v-else-if="props.terrainEnriched && terrain.loading">
+        <span>carico terrain…</span>
+      </template>
+      <span v-else-if="props.terrainEnriched && terrain.error" class="aethermap-warn">terrain non disponibile</span>
+      <template v-else-if="props.terrainEnriched && terrain.points.length">
+        <br />terrain: slope avg {{ avgSlope }}% · ombra {{ shadePct }}% · traffico {{ avgTraffic }}
+      </template>
     </div>
   </div>
 </template>
@@ -55,6 +65,7 @@ import {
   type AetherScene,
 } from "../composables/useAetherMap";
 import { useAetherMapGeo } from "../composables/useAetherMapGeo";
+import { useAetherMapTerrain } from "../composables/useAetherMapTerrain";
 import { apiGet } from "../utils/api";
 
 interface MapPoint {
@@ -75,6 +86,8 @@ const props = defineProps<{
   points?: MapPoint[];
   rideIds?: number[];
   colorBySpeed?: boolean;
+  terrainEnriched?: boolean;
+  demSource?: "auto" | "procedural" | "copernicus" | "lidar" | "osm";
 }>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
@@ -90,6 +103,36 @@ let pointBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
   null;
 let markerBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
   null;
+
+const firstRideId = computed(() => props.rideIds?.[0] ?? null);
+const terrain = useAetherMapTerrain(
+  firstRideId,
+  computed(() => props.terrainEnriched ?? false),
+);
+
+const avgSlope = computed(() => {
+  const pts = terrain.points.value;
+  if (!pts.length) return 0;
+  return (pts.reduce((s, p) => s + (p.slope_pct || 0), 0) / pts.length).toFixed(1);
+});
+const shadePct = computed(() => {
+  const pts = terrain.points.value;
+  if (!pts.length) return 0;
+  const shaded = pts.filter((p) => p.shade).length;
+  return ((shaded / pts.length) * 100).toFixed(0);
+});
+const avgTraffic = computed(() => {
+  const pts = terrain.points.value;
+  if (!pts.length) return 0;
+  return (pts.reduce((s, p) => s + (p.traffic_level || 0), 0) / pts.length).toFixed(2);
+});
+
+watch(
+  () => props.terrainEnriched,
+  (val) => {
+    if (val && firstRideId.value) terrain.reload();
+  },
+);
 
 const rideIdsRef = computed(() => props.rideIds ?? []);
 const { scene, loading, error } = useAetherMap(rideIdsRef);
@@ -289,6 +332,23 @@ const terrainTileCache = new Map<
 >();
 const TILE_CACHE_TTL = 5 * 60 * 1000;
 
+const isMobileDevice = (): boolean => {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+};
+
+const MOBILE_LOD_OFFSET = isMobileDevice() ? 2 : 0;
+
+function getLODResolution(camDist: number): number {
+  let res = 0;
+  if (camDist < 2.0) res = 48;
+  else if (camDist < 3.5) res = 32;
+  else if (camDist < 5.0) res = 20;
+  else if (camDist < 6.5) res = 12;
+  else res = 8;
+  return Math.max(8, res - MOBILE_LOD_OFFSET);
+}
+
 async function fetchTerrainTile(
   minLat: number,
   maxLat: number,
@@ -303,6 +363,7 @@ async function fetchTerrainTile(
     return cached.heights;
   }
   try {
+    const source = props.demSource || "auto";
     const data = await apiGet<{ heights: number[] }>(
       "/api/v1/aethermap/terrain",
       {
@@ -311,7 +372,7 @@ async function fetchTerrainTile(
         min_lon: String(minLon),
         max_lon: String(maxLon),
         resolution: String(resolution),
-        source: "auto",
+        source: source,
       },
       { timeoutMs: 1500 },
     );
@@ -373,14 +434,6 @@ function faceLatLonBounds(face: number): {
   minLon = Math.min(...wrapped);
   maxLon = Math.max(...wrapped);
   return { minLat, maxLat, minLon, maxLon };
-}
-
-function getLODResolution(camDist: number): number {
-  if (camDist < 2.0) return 48;
-  if (camDist < 3.5) return 32;
-  if (camDist < 5.0) return 20;
-  if (camDist < 6.5) return 12;
-  return 8;
 }
 
 function buildTerrainMesh(tiles: (Float32Array | null)[], N: number) {

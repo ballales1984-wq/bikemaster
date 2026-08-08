@@ -13,6 +13,7 @@ import enum
 from datetime import datetime
 from typing import Any
 
+import sqlalchemy as sa
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -21,6 +22,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -1092,6 +1094,34 @@ AthleteModel.metabolic_adaptive_weights = relationship(
 )
 
 
+class AetherMapObjectModel(Base):
+    __tablename__ = "aethermap_objects"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    tipo: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+    lon: Mapped[float] = mapped_column(Float, nullable=False)
+    alt: Mapped[float] = mapped_column(Float, server_default="0.0")
+    s2: Mapped[str | None] = mapped_column(String, index=True)
+    h3: Mapped[str | None] = mapped_column(String, index=True)
+    cube_face: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cube_u: Mapped[float | None] = mapped_column(Float, nullable=True)
+    cube_v: Mapped[float | None] = mapped_column(Float, nullable=True)
+    data: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=sa.text("now()"))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=sa.text("now()"))
+
+
+class AetherMapStateHistoryModel(Base):
+    __tablename__ = "aethermap_state_history"
+
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
+    object_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    campi: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    t: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    confidence: Mapped[float] = mapped_column(Float, server_default="1.0")
+
+
 __all__ = [
     "Base",
     "EMBEDDING_DIMENSION",
@@ -1135,4 +1165,6 @@ __all__ = [
     "MetabolicAdaptiveWeightsModel",
     "ItineraryModel",
     "StageModel",
+    "AetherMapObjectModel",
+    "AetherMapStateHistoryModel",
 ]
