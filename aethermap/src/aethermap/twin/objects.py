@@ -112,8 +112,8 @@ def make_strada(id_: str, lat: float, lon: float, pts: list[dict]) -> Strada:
                   geometria=geom)
 
 
-def make_albero(id_: str, lat: float, lon: float, specie: str, h: float) -> Albero:
-    a = Albero(id=id_, tipo="albero", posizione=Posizione.from_latlon(lat, lon))
+def make_albero(id_: str, lat: float, lon: float, specie: str, h: float, alt: float = 0.0) -> Albero:
+    a = Albero(id=id_, tipo="albero", posizione=Posizione.from_latlon(lat, lon, alt))
     a.proprieta["specie"] = specie
     a.proprieta["altezza_m"] = h
     return a
