@@ -131,7 +131,7 @@ class DigitalTwin:
                 out.append({"id": obj.id, "tipo": "terreno",
                             "posizione": pos,
                             "confidence": obj.affidabilita.valore,
-                            "tipo_terreno": obj.tipo(), "pendenza_media": obj.pendenza_media()})
+                            "tipo_terreno": obj.tipo_terreno(), "pendenza_media": obj.pendenza_media()})
         return out
 
     def h3_summary(self, resolution: int = 9) -> dict[str, dict[str, int]]:
