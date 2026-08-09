@@ -1,6 +1,9 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import { createPinia, setActivePinia } from "pinia";
+
+setActivePinia(createPinia());
 
 const mockFetchProfile = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 const mockFetchState = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
@@ -9,11 +12,23 @@ const mockProfileRef = ref(null);
 const mockErrorRef = ref(null);
 const mockStateRef = ref(null);
 const mockStateErrorRef = ref(null);
+const mockIsLoggedIn = ref(true);
+
+const wrappedFetchProfile = vi.fn(async () => {
+  const result = await mockFetchProfile();
+  if (result) mockProfileRef.value = result;
+  return result;
+});
+const wrappedFetchState = vi.fn(async () => {
+  const result = await mockFetchState();
+  if (result) mockStateRef.value = result;
+  return result;
+});
 
 vi.mock("../stores/athlete", () => ({
   useAthleteStore: () => ({
-    profile: mockProfileRef,
-    fetchProfile: mockFetchProfile,
+    profile: computed(() => mockProfileRef.value),
+    fetchProfile: wrappedFetchProfile,
     updateProfile: vi.fn(),
     fetchMetricLog: vi.fn(() => Promise.resolve([])),
     error: mockErrorRef,
@@ -23,14 +38,14 @@ vi.mock("../stores/athlete", () => ({
 vi.mock("../stores/athleteState", () => ({
   useAthleteStateStore: () => ({
     state: mockStateRef,
-    fetchState: mockFetchState,
+    fetchState: wrappedFetchState,
     error: mockStateErrorRef,
   }),
 }));
 
 vi.mock("../stores/auth", () => ({
   useAuthStore: () => ({
-    isLoggedIn: true,
+    isLoggedIn: mockIsLoggedIn.value,
   }),
 }));
 
@@ -95,6 +110,7 @@ describe("AthleteAvatarPanel", () => {
     mockStateRef.value = null;
     mockErrorRef.value = null;
     mockStateErrorRef.value = null;
+    mockIsLoggedIn.value = true;
   });
 
   it("loads profile and state on mount when logged in", async () => {
@@ -104,22 +120,20 @@ describe("AthleteAvatarPanel", () => {
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
 
-    expect(mockFetchProfile).toHaveBeenCalledTimes(1);
-    expect(mockFetchState).toHaveBeenCalledTimes(1);
+    expect(wrappedFetchProfile).toHaveBeenCalledTimes(1);
+    expect(wrappedFetchState).toHaveBeenCalledTimes(1);
     expect(wrapper.text()).toContain("Marco Rossi");
     expect(wrapper.text()).toContain("280");
   });
 
   it("does not fetch when not logged in", async () => {
-    vi.mocked(require("../stores/auth").useAuthStore).mockReturnValue({
-      isLoggedIn: false,
-    });
+    mockIsLoggedIn.value = false;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
 
-    expect(mockFetchProfile).not.toHaveBeenCalled();
-    expect(mockFetchState).not.toHaveBeenCalled();
+    expect(wrappedFetchProfile).not.toHaveBeenCalled();
+    expect(wrappedFetchState).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain("Atleta");
   });
 

@@ -1,9 +1,22 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
+import { createPinia, setActivePinia } from "pinia";
 import RideDetail from "../components/RideDetail.vue";
+
+setActivePinia(createPinia());
+
+const mockFetchRide = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
+const mockUpdateRide = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue({}));
 const apiPut = vi.hoisted(() => vi.fn().mockResolvedValue({}));
+
+vi.mock("../stores/rides", () => ({
+  useRidesStore: () => ({
+    fetchRide: mockFetchRide,
+    updateRide: mockUpdateRide,
+  }),
+}));
 
 vi.mock("../utils/api.ts", () => ({
   apiGet,
@@ -12,6 +25,43 @@ vi.mock("../utils/api.ts", () => ({
 
 vi.mock("../components/SpeedMap.vue", () => ({
   default: { template: '<div class="speed-map-stub" />' },
+}));
+
+vi.mock("../composables/useI18n", () => ({
+  useI18n: () => ({
+    t: (key) => {
+      const map = {
+        "rideDetail.edit": "Modifica",
+        "rideDetail.save": "Salva",
+        "rideDetail.cancel": "Annulla",
+        "rideDetail.title": "Dettaglio Uscita",
+        "rideDetail.date": "Data",
+        "rideDetail.distance": "Distanza",
+        "rideDetail.duration": "Durata",
+        "rideDetail.avgSpeed": "Velocità media",
+        "rideDetail.calories": "Calorie",
+        "rideDetail.detailAnalysis": "Analisi dettagliata",
+        "rideDetail.elevationGain": "Dislivello",
+        "rideDetail.maxSpeed": "Velocità max",
+        "rideDetail.avgHrLabel": "FC media",
+        "rideDetail.fatigue": "Fatica",
+        "rideDetail.charts": "Grafici",
+        "rideDetail.speedChart": "Grafico velocità",
+        "rideDetail.elevationChart": "Grafico elevazione",
+        "rideDetail.type": "Tipo",
+        "rides.weight": "Peso",
+        "rides.source": "Fonte",
+        "rides.officialRace": "Gara ufficiale",
+        "rides.activityType": "Tipo attività",
+        "common.other": "Altro",
+        "rideDetail.saving": "Salvataggio...",
+        "rideDetail.close": "Chiudi",
+        "rideDetail.avgHr": "Frequenza cardiaca media",
+        "rideDetail.elevation": "Elevazione",
+      };
+      return map[key] || key;
+    },
+  }),
 }));
 
 function flush() {
@@ -29,12 +79,7 @@ describe("RideDetail", () => {
   });
 
   it("renders ride details when ride is set", async () => {
-    const wrapper = mount(RideDetail, {
-      props: { rideId: 1 },
-      global: { stubs: { SpeedMap: true } },
-    });
-
-    wrapper.vm.ride = {
+    const ride = {
       id: 1,
       date: "2026-01-01",
       distance_km: 40,
@@ -42,6 +87,12 @@ describe("RideDetail", () => {
       avg_speed_kmh: 26.7,
       calories: 400,
     };
+    mockFetchRide.mockResolvedValueOnce(ride);
+
+    const wrapper = mount(RideDetail, {
+      props: { rideId: 1 },
+      global: { stubs: { SpeedMap: true } },
+    });
     await flush();
 
     expect(wrapper.find("h2").exists()).toBe(true);
@@ -73,8 +124,8 @@ describe("RideDetail", () => {
       is_official: true,
       source: "manual",
     };
-    apiGet.mockResolvedValue(ride);
-    apiPut.mockResolvedValue({ ...ride, distance_km: 50 });
+    mockFetchRide.mockResolvedValueOnce(ride);
+    mockUpdateRide.mockResolvedValueOnce({ ...ride, distance_km: 50 });
 
     const wrapper = mount(RideDetail, {
       props: { rideId: 42 },
@@ -88,8 +139,8 @@ describe("RideDetail", () => {
     await wrapper.find(".save-btn").trigger("click");
     await flush();
 
-    expect(apiPut).toHaveBeenCalledWith(
-      "/api/v1/rides/42",
+    expect(mockUpdateRide).toHaveBeenCalledWith(
+      42,
       expect.objectContaining({
         distance_km: 40,
         heart_rate_avg: 150,
