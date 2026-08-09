@@ -214,10 +214,11 @@ class TestPersistFitnessState:
             trend_30d="stable",
         )
         with patch("bike_analyzer.core.engine.FitnessStateRepository", None):
-            await engine._persist_fitness_state(state, lambda: None)
+            with pytest.raises(RuntimeError, match="FitnessStateRepository unavailable"):
+                await engine._persist_fitness_state(state, lambda: None)
 
     @pytest.mark.asyncio
-    async def test_persist_error_is_swallowed(self):
+    async def test_persist_error_is_raised(self):
         engine = AnalysisEngine()
         state = FitnessStateVector(
             athlete_id=1,
@@ -237,4 +238,5 @@ class TestPersistFitnessState:
         fake_repo = AsyncMock()
         fake_repo.save.side_effect = RuntimeError("db error")
         with patch("bike_analyzer.core.engine.FitnessStateRepository", return_value=fake_repo):
-            await engine._persist_fitness_state(state, lambda: None)
+            with pytest.raises(RuntimeError, match="Could not persist fitness state"):
+                await engine._persist_fitness_state(state, lambda: None)

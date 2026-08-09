@@ -36,6 +36,8 @@ export function isLocalDbReady(): boolean {
 }
 
 // Initialize the local DB. Idempotent and safe in tests (no-op without window).
+const RIDES_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
 export function initLocalDb(): Promise<boolean> {
   if (initPromise) return initPromise;
   initPromise = (async () => {
@@ -56,16 +58,26 @@ export function initLocalDb(): Promise<boolean> {
           proxyUri: `${sqlite3Assets}/sqlite3-opfs-async-proxy.js`,
         } as any);
       } else {
-        // Default VFS transient (in-memory) if OPFS is not available.
         db = new sqlite3.oo1.DB("/bikemaster.sqlite3", "c");
       }
       db.exec(
         `CREATE TABLE IF NOT EXISTS rides_cache (
            id INTEGER PRIMARY KEY,
            updated_at INTEGER NOT NULL,
+           expires_at INTEGER NOT NULL DEFAULT 0,
            data TEXT NOT NULL
          );`,
       );
+      try {
+        db.exec(
+          `ALTER TABLE rides_cache ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0`,
+        );
+        db.exec(`UPDATE rides_cache SET expires_at = ? WHERE expires_at = 0`, [
+          Date.now() + RIDES_CACHE_TTL_MS,
+        ]);
+      } catch {
+        // column already exists
+      }
       return true;
     } catch (err) {
       console.warn("[localDb] SQLite locale non disponibile:", err);
@@ -118,24 +130,48 @@ export interface CachedRide {
 }
 
 export function upsertRide(id: number, data: unknown): void {
+  const now = Date.now();
   localRun(
-    `INSERT INTO rides_cache (id, updated_at, data)
-     VALUES (?, ?, ?)
+    `INSERT INTO rides_cache (id, updated_at, expires_at, data)
+     VALUES (?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at,
+                                     expires_at = excluded.expires_at,
                                      data = excluded.data`,
-    [id, Date.now(), JSON.stringify(data)],
+    [id, now, now + RIDES_CACHE_TTL_MS, JSON.stringify(data)],
   );
+}
+
+function parseCachedData(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
 export function getCachedRide(id: number): CachedRide | null {
-  return localGet<CachedRide>("SELECT * FROM rides_cache WHERE id = ?", [id]);
+  const row = localGet<{ id: number; updated_at: number; data: string }>(
+    "SELECT id, updated_at, data FROM rides_cache WHERE id = ? AND expires_at > ?",
+    [id, Date.now()],
+  );
+  if (!row) return null;
+  return {
+    id: row.id,
+    updated_at: row.updated_at,
+    data: parseCachedData(row.data),
+  };
 }
 
 export function getCachedRides(limit = 100): CachedRide[] {
-  return localAll<CachedRide>(
-    "SELECT * FROM rides_cache ORDER BY updated_at DESC LIMIT ?",
-    [limit],
+  const rows = localAll<{ id: number; updated_at: number; data: string }>(
+    "SELECT id, updated_at, data FROM rides_cache WHERE expires_at > ? ORDER BY updated_at DESC LIMIT ?",
+    [Date.now(), limit],
   );
+  return rows.map((row) => ({
+    id: row.id,
+    updated_at: row.updated_at,
+    data: parseCachedData(row.data),
+  }));
 }
 
 export function deleteCachedRide(id: number): void {

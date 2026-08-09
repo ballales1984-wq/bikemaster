@@ -88,6 +88,20 @@ export const useAuthStore = defineStore("auth", () => {
       : "",
   );
 
+  let refreshing = false;
+  let refreshPromise: Promise<boolean> | null = null;
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("storage", (event) => {
+      if (event.key === AUTH_TOKEN_KEY && event.newValue === null) {
+        token.value = "";
+        user.value = null;
+        refreshToken.value = "";
+        justLoggedIn.value = false;
+      }
+    });
+  }
+
   watch(
     token,
     (val) => {
@@ -268,43 +282,55 @@ export const useAuthStore = defineStore("auth", () => {
 
   async function refreshAccessToken(): Promise<boolean> {
     if (!refreshToken.value) return false;
-    try {
-      const form = new URLSearchParams();
-      form.append("refresh_token", refreshToken.value);
-      const data = await apiPost<{
-        access_token: string;
-        refresh_token?: string;
-      }>("/api/v1/auth/refresh", form, {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      });
-      if (data.access_token) {
-        token.value = data.access_token;
-        if (data.refresh_token) {
-          refreshToken.value = data.refresh_token;
-        }
-        resetSessionExpiredNotification();
-        return true;
-      }
-    } catch {
-      // refresh failed — will fall through to logout
+    if (refreshing && refreshPromise) {
+      return refreshPromise;
     }
-    return false;
+    refreshing = true;
+    refreshPromise = (async () => {
+      try {
+        const form = new URLSearchParams();
+        form.append("refresh_token", refreshToken.value);
+        const data = await apiPost<{
+          access_token: string;
+          refresh_token?: string;
+        }>("/api/v1/auth/refresh", form, {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        });
+        if (data.access_token) {
+          token.value = data.access_token;
+          if (data.refresh_token) {
+            refreshToken.value = data.refresh_token;
+          }
+          resetSessionExpiredNotification();
+          return true;
+        }
+      } catch {
+        // refresh failed — will fall through to logout
+      }
+      return false;
+    })();
+    return refreshPromise;
   }
 
   async function logout(): Promise<void> {
+    refreshing = false;
+    refreshPromise = null;
     try {
       if (token.value) {
         const base = resolveApiBase();
-        await fetch(
+        const resp = await fetch(
           base ? `${base}/api/v1/auth/logout` : "/api/v1/auth/logout",
           {
             method: "POST",
             headers: { ...getAuthHeader() },
           },
-        ).catch(() => {});
+        );
+        if (!resp.ok) {
+          console.warn("[Auth] logout backend failed:", resp.status);
+        }
       }
-    } catch {
-      // ignore logout cleanup errors
+    } catch (err) {
+      console.warn("[Auth] logout backend error:", err);
     }
 
     token.value = "";

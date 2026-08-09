@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from ..models.models import Ride
 
@@ -23,8 +24,16 @@ def calculate_rss(ride: Ride, ftp: float | None = None) -> float:
     duration_h = ride.duration_hours
     if duration_h <= 0:
         return 0.0
-    tss = duration_h * 100.0
-    return round(min(tss, 200.0), 1)
+    if ftp is None or ftp <= 0:
+        ftp = 250.0
+    if_val = 0.5
+    if ride.avg_speed_kmh and ride.avg_speed_kmh > 0:
+        if_val = min(ride.avg_speed_kmh / 40.0, 1.0)
+    if ride.heart_rate_avg and ride.heart_rate_avg > 0:
+        hr_pct = ride.heart_rate_avg / 190.0
+        if_val = max(if_val, min(hr_pct / 0.9, 1.2))
+    tss = duration_h * 100.0 * (if_val ** 2)
+    return round(min(tss, 500.0), 1)
 
 
 def calculate_atl_ctl_tsb(
@@ -61,9 +70,16 @@ def calculate_atl_ctl_tsb(
         else:
             prev_atl = result[i - 1].atl
             prev_ctl = result[i - 1].ctl
-
-            atl = prev_atl * 6.0 / 7.0 + tss * 1.0 / 7.0
-            ctl = prev_ctl * 41.0 / 42.0 + tss * 1.0 / 42.0
+            try:
+                prev_date = datetime.strptime(result[i - 1].date, "%Y-%m-%d").date()
+                curr_date = datetime.strptime(date, "%Y-%m-%d").date()
+                gap = max((curr_date - prev_date).days, 1)
+            except ValueError:
+                gap = 1
+            decay_atl = (6.0 / 7.0) ** gap
+            decay_ctl = (41.0 / 42.0) ** gap
+            atl = prev_atl * decay_atl + tss * (1.0 - decay_atl)
+            ctl = prev_ctl * decay_ctl + tss * (1.0 - decay_ctl)
 
         tsb = ctl - atl
 

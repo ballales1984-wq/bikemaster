@@ -118,13 +118,17 @@ if ("serviceWorker" in navigator && !isTauri()) {
               navigator.serviceWorker.controller
             ) {
               if (hasPendingOAuth() || auth.justLoggedIn) {
-                newWorker.postMessage({ type: "SKIP_WAITING" });
-                setTimeout(() => {
-                  if (reg.active && !hasPendingOAuth()) {
+                const attemptActivate = () => {
+                  if (!hasPendingOAuth() && !auth.justLoggedIn) {
+                    newWorker.postMessage({ type: "SKIP_WAITING" });
                     window.location.reload();
+                  } else {
+                    setTimeout(attemptActivate, 500);
                   }
-                }, 3000);
+                };
+                setTimeout(attemptActivate, 500);
               } else {
+                newWorker.postMessage({ type: "SKIP_WAITING" });
                 window.location.reload();
               }
             }
@@ -132,10 +136,14 @@ if ("serviceWorker" in navigator && !isTauri()) {
         }
       });
       if (reg.waiting) {
-        reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        if (!hasPendingOAuth() && !auth.justLoggedIn) {
+          reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
       }
     })
-    .catch(() => {});
+    .catch((err) => {
+      console.warn("[SW] service worker registration failed:", err);
+    });
 }
 
 // Initialize the local SQLite DB (offline cache) and load the per-user
@@ -173,4 +181,7 @@ router
       ui.setOauthLoading(false);
     }
   })
-  .catch(() => {});
+  .catch((err) => {
+    console.error("[Router] isReady failed:", err);
+    ui.setOauthLoading(false);
+  });

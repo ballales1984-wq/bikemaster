@@ -68,7 +68,7 @@ def _sweep_revoked_tokens() -> None:
     automaticamente ogni 100 inserimenti.
     """
     now = time.time()
-    cutoff = now - (JWT_BLACKLIST_TTL * 2)
+    cutoff = now - JWT_BLACKLIST_TTL
     stale = [jti for jti, ts in _memory_revoked_tokens.items() if ts < cutoff]
     for jti in stale:
         del _memory_revoked_tokens[jti]
@@ -175,7 +175,7 @@ async def revoke_token(jti: str, ttl: int = JWT_BLACKLIST_TTL) -> bool:
 
 
 def _revoke_token_sqlite(jti: str, ttl: int) -> None:
-    from ..db.database import get_db_connection
+    from .db.database import get_db_connection
     with get_db_connection() as conn:
         conn.execute(
             """CREATE TABLE IF NOT EXISTS revoked_tokens (
@@ -206,12 +206,13 @@ async def is_token_revoked(jti: str) -> bool:
         if _is_token_revoked_sqlite(jti):
             return True
     except Exception as exc:
-        logger.warning("Failed to check token revocation via SQLite %s: %s", jti, exc)
+        logger.error("SQLite revocation check failed for jti %s: %s — failing closed", jti, exc)
+        return True
     return False
 
 
 def _is_token_revoked_sqlite(jti: str) -> bool:
-    from ..db.database import get_db_connection
+    from .db.database import get_db_connection
     from datetime import datetime as _dt
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -387,6 +388,12 @@ async def decode_token(token: str | None) -> dict:
         )
     payload = await decode_token_with_fallback(token)
     if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if payload.get("type") == "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",

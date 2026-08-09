@@ -25,6 +25,7 @@ import json
 import logging
 import os
 import re
+import threading
 from datetime import UTC
 
 from ..models.models import AthleteProfile, Ride
@@ -50,6 +51,7 @@ _BANNED_PROVIDERS: set[str] = set()
 
 _current_client: object | None = None
 _current_provider: str | None = None
+_client_lock = threading.Lock()
 
 _clean_ai_output_pattern = re.compile(r"(?<!\d)(\d+\.\d)0(?!\d)")
 _clean_ai_int_pattern = re.compile(r"(?<!\d)(\d+)\.0(?!\d)")
@@ -137,10 +139,10 @@ def get_ai_coach_client():
     temporarily to avoid fallback loops.
     """
     global _current_client, _current_provider
-    if _current_client and _current_provider and _current_provider not in _BANNED_PROVIDERS:
-        return _current_client, _current_provider
+    with _client_lock:
+        if _current_client and _current_provider and _current_provider not in _BANNED_PROVIDERS:
+            return _current_client, _current_provider
 
-    # Per-user key sent from the device app (request-scoped ContextVar).
     from ..api.user_keys import get_request_user_keys
 
     user_keys = get_request_user_keys()
@@ -158,28 +160,31 @@ def get_ai_coach_client():
 
     groq_key = os.getenv("GROQ_API_KEY", "").strip() or (_s.groq_api_key or "").strip()
 
-    for provider in _provider_order():
-        if provider in _BANNED_PROVIDERS or provider != "groq":
-            continue
-        api_key = groq_key
-        if not api_key or not api_key.startswith("gsk_"):
-            continue
-        try:
-            from groq import Groq
-
-            _current_client = Groq(api_key=api_key)
-            _current_provider = provider
+    with _client_lock:
+        if _current_client and _current_provider and _current_provider not in _BANNED_PROVIDERS:
             return _current_client, _current_provider
-        except Exception as e:
-            logger.warning(
-                "AI Coach: %s init error: %s: %s",
-                provider.title(),
-                type(e).__name__,
-                e,
-            )
-            _ban_provider(provider, "init error")
-            _current_client = None
-            _current_provider = None
+        for provider in _provider_order():
+            if provider in _BANNED_PROVIDERS or provider != "groq":
+                continue
+            api_key = groq_key
+            if not api_key or not api_key.startswith("gsk_"):
+                continue
+            try:
+                from groq import Groq
+
+                _current_client = Groq(api_key=api_key)
+                _current_provider = provider
+                return _current_client, _current_provider
+            except Exception as e:
+                logger.warning(
+                    "AI Coach: %s init error: %s: %s",
+                    provider.title(),
+                    type(e).__name__,
+                    e,
+                )
+                _ban_provider(provider, "init error")
+                _current_client = None
+                _current_provider = None
 
     msg = (
         "AI Coach: no valid GROQ API key (gsk_...) configured"

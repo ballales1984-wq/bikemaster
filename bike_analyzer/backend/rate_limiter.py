@@ -135,10 +135,6 @@ def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig |
             _persist_rate_limit(key, now, cfg.window_seconds)
         except Exception:
             pass
-        try:
-            _persist_rate_limit(key, now, cfg.window_seconds)
-        except Exception:
-            pass
 
 
 def rate_limit_dependency(max_requests: int = 100, window_seconds: int = 60):

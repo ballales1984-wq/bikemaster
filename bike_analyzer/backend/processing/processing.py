@@ -61,6 +61,17 @@ def detect_pauses(points: list[GPSPoint]) -> list[Pause]:
                         )
                     )
                 pause_start = None
+    if pause_start is not None:
+        pause_end = points[-1]
+        duration = (pause_end.timestamp - pause_start.timestamp).total_seconds()
+        if duration >= PAUSE_MIN_DURATION_MINUTES * 60:
+            pauses.append(
+                Pause(
+                    start=pause_start.timestamp,
+                    end=pause_end.timestamp,
+                    duration_s=duration,
+                )
+            )
     return pauses
 
 
@@ -102,20 +113,23 @@ def remove_outliers(points: list[GPSPoint], max_speed_km_h: float = 120.0) -> li
         return points[:]
     cleaned = [points[0]]
     for i in range(1, len(points) - 1):
-        prev, curr = cleaned[-1], points[i]
+        prev = cleaned[-1]
+        curr = points[i]
         time_s = (curr.timestamp - prev.timestamp).total_seconds()
         if time_s <= 0:
             continue
         speed = (haversine_distance_m(prev.lat, prev.lon, curr.lat, curr.lon) / time_s) * 3.6
         if speed <= max_speed_km_h:
             cleaned.append(curr)
-    if points[-1] != cleaned[-1]:
-        last = points[-1]
-        time_s = (last.timestamp - cleaned[-1].timestamp).total_seconds()
-        if time_s > 0:
-            speed = (haversine_distance_m(cleaned[-1].lat, cleaned[-1].lon, last.lat, last.lon) / time_s) * 3.6
-            if speed <= max_speed_km_h:
-                cleaned.append(last)
+    last = points[-1]
+    prev = cleaned[-1]
+    time_s = (last.timestamp - prev.timestamp).total_seconds()
+    if time_s > 0:
+        speed = (haversine_distance_m(prev.lat, prev.lon, last.lat, last.lon) / time_s) * 3.6
+        if speed <= max_speed_km_h:
+            cleaned.append(last)
+    else:
+        cleaned.append(last)
     return cleaned if len(cleaned) >= 2 else points[:2]
 
 

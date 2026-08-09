@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
@@ -29,6 +30,7 @@ from .models import (
     RideModel,
     UserOAuthCredentials,
 )
+from .token_crypto import decrypt_token, encrypt_token
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,9 @@ _s = get_settings()
 
 _engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker | None = None
+_engine_lock = threading.Lock()
+_session_factory_lock = threading.Lock()
+
 
 # Core tables required at startup. ``knowledge_chunks`` (PGVector) is created
 # best-effort and is not required for the app to boot.
@@ -75,35 +80,28 @@ def _get_engine() -> AsyncEngine | None:
     global _engine
     if _engine is not None:
         return _engine
-    # Strip first: a value with surrounding whitespace (e.g. a pasted
-    # connection string with a trailing newline/space) is truthy and would
-    # otherwise slip past the `if not url` guard and crash create_async_engine.
-    # Read DATABASE_URL fresh from the environment (falling back to the cached
-    # settings) so the engine reflects the current configuration even when the
-    # settings singleton was constructed before DATABASE_URL was set.
-    url = (os.environ.get("DATABASE_URL") or _s.database_url or "").strip()
-    if not url:
-        logger.warning(
-            "DATABASE_URL not set or empty; async DB disabled "
-            "(falling back to synchronous SQLite layer)."
-        )
-        return None
-    try:
-        _engine = create_async_engine(_make_async_url(url), echo=False, pool_pre_ping=True)
-    except Exception as exc:  # noqa: BLE001
-        # Never let a malformed DATABASE_URL take down startup. Log the
-        # scheme only (never the full URL, which embeds the password) and
-        # fall back to SQLite; get_session_factory() will surface a clear
-        # RuntimeError if the async path is actually requested.
-        scheme = url.split("://", 1)[0] if "://" in url else url[:12]
-        logger.error(
-            "Failed to build async engine from DATABASE_URL (scheme=%r); "
-            "async DB disabled (falling back to SQLite): %s",
-            scheme,
-            exc,
-        )
-        return None
-    return _engine
+    with _engine_lock:
+        if _engine is not None:
+            return _engine
+        url = (os.environ.get("DATABASE_URL") or _s.database_url or "").strip()
+        if not url:
+            logger.warning(
+                "DATABASE_URL not set or empty; async DB disabled "
+                "(falling back to synchronous SQLite layer)."
+            )
+            return None
+        try:
+            _engine = create_async_engine(_make_async_url(url), echo=False, pool_pre_ping=True)
+        except Exception as exc:  # noqa: BLE001
+            scheme = url.split("://", 1)[0] if "://" in url else url[:12]
+            logger.error(
+                "Failed to build async engine from DATABASE_URL (scheme=%r); "
+                "async DB disabled (falling back to SQLite): %s",
+                scheme,
+                exc,
+            )
+            return None
+        return _engine
 
 
 def get_session_factory() -> async_sessionmaker:
@@ -113,10 +111,12 @@ def get_session_factory() -> async_sessionmaker:
     """
     global _session_factory
     if _session_factory is None:
-        engine = _get_engine()
-        if engine is None:
-            raise RuntimeError("DATABASE_URL not configured; async DB unavailable")
-        _session_factory = async_sessionmaker(engine, expire_on_commit=False)
+        with _session_factory_lock:
+            if _session_factory is None:
+                engine = _get_engine()
+                if engine is None:
+                    raise RuntimeError("DATABASE_URL not configured; async DB unavailable")
+                _session_factory = async_sessionmaker(engine, expire_on_commit=False)
     return _session_factory
 
 
@@ -200,12 +200,18 @@ async def get_user_oauth_credentials_async(user_id: int, provider: str) -> dict 
         row = (await session.execute(stmt)).scalar_one_or_none()
         if not row:
             return None
+        client_secret = row.client_secret or ""
+        if client_secret:
+            try:
+                client_secret = decrypt_token(client_secret)
+            except Exception:
+                pass
         return {
             "id": row.id,
             "user_id": row.user_id,
             "provider": row.provider,
             "client_id": row.client_id,
-            "client_secret": row.client_secret,
+            "client_secret": client_secret,
             "redirect_uri": row.redirect_uri,
             "scope": row.scope,
             "created_at": row.created_at.isoformat() if row.created_at else None,
@@ -218,20 +224,28 @@ async def get_all_user_oauth_credentials_async(user_id: int) -> list[dict]:
     async with factory() as session:
         stmt = select(UserOAuthCredentials).where(UserOAuthCredentials.user_id == user_id)
         rows = (await session.execute(stmt)).scalars().all()
-        return [
-            {
-                "id": r.id,
-                "user_id": r.user_id,
-                "provider": r.provider,
-                "client_id": r.client_id,
-                "client_secret": r.client_secret,
-                "redirect_uri": r.redirect_uri,
-                "scope": r.scope,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
-                "updated_at": r.updated_at.isoformat() if r.updated_at else None,
-            }
-            for r in rows
-        ]
+        result = []
+        for r in rows:
+            client_secret = r.client_secret or ""
+            if client_secret:
+                try:
+                    client_secret = decrypt_token(client_secret)
+                except Exception:
+                    pass
+            result.append(
+                {
+                    "id": r.id,
+                    "user_id": r.user_id,
+                    "provider": r.provider,
+                    "client_id": r.client_id,
+                    "client_secret": client_secret,
+                    "redirect_uri": r.redirect_uri,
+                    "scope": r.scope,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                    "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+                }
+            )
+        return result
 
 
 async def save_user_oauth_credentials_async(user_id: int, provider: str, data: dict) -> None:
@@ -243,9 +257,15 @@ async def save_user_oauth_credentials_async(user_id: int, provider: str, data: d
         )
         row = (await session.execute(stmt)).scalar_one_or_none()
         now = datetime.now(UTC)
+        client_secret = data.get("client_secret", "")
+        if client_secret:
+            try:
+                client_secret = encrypt_token(client_secret)
+            except Exception:
+                pass
         if row:
             row.client_id = data.get("client_id")
-            row.client_secret = data.get("client_secret")
+            row.client_secret = client_secret
             row.redirect_uri = data.get("redirect_uri")
             row.scope = data.get("scope")
             row.updated_at = now
@@ -255,7 +275,7 @@ async def save_user_oauth_credentials_async(user_id: int, provider: str, data: d
                     user_id=user_id,
                     provider=provider,
                     client_id=data.get("client_id"),
-                    client_secret=data.get("client_secret"),
+                    client_secret=client_secret,
                     redirect_uri=data.get("redirect_uri"),
                     scope=data.get("scope"),
                     created_at=now,

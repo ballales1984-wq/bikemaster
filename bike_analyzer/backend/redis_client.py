@@ -27,6 +27,7 @@ _REDIS_CONNECT_TIMEOUT = 3
 # for this long before retrying, so a downed Redis doesn't hammer every request.
 _REDIS_RETRY_COOLDOWN = 30.0
 _redis_unavailable_at = 0.0
+_redis_lock = asyncio.Lock()
 
 
 async def get_redis():
@@ -41,31 +42,36 @@ async def get_redis():
         return _redis
     if _redis_unavailable_at > 0 and (time.monotonic() - _redis_unavailable_at) < _REDIS_RETRY_COOLDOWN:
         return None
-    from bike_analyzer.backend.settings import get_settings
+    async with _redis_lock:
+        if _redis is not None:
+            return _redis
+        if _redis_unavailable_at > 0 and (time.monotonic() - _redis_unavailable_at) < _REDIS_RETRY_COOLDOWN:
+            return None
+        from bike_analyzer.backend.settings import get_settings
 
-    s = get_settings()
-    if not s.redis_url:
-        return None
-    try:
-        import redis.asyncio as aioredis
+        s = get_settings()
+        if not s.redis_url:
+            return None
+        try:
+            import redis.asyncio as aioredis
 
-        url = s.redis_url
-        _redis = aioredis.from_url(
-            url,
-            encoding="utf-8",
-            decode_responses=True,
-            socket_connect_timeout=_REDIS_CONNECT_TIMEOUT,
-            socket_timeout=_REDIS_CONNECT_TIMEOUT,
-            retry_on_timeout=False,
-        )
-        await asyncio.wait_for(_redis.ping(), timeout=_REDIS_CONNECT_TIMEOUT)
-        logger.info("Redis connected: %s", url)
-        _redis_unavailable_at = 0.0
-    except Exception as exc:
-        _redis_unavailable_at = time.monotonic()
-        logger.warning("Redis unavailable: %s — cache disabled", exc)
-        _redis = None
-    return _redis
+            url = s.redis_url
+            _redis = aioredis.from_url(
+                url,
+                encoding="utf-8",
+                decode_responses=True,
+                socket_connect_timeout=_REDIS_CONNECT_TIMEOUT,
+                socket_timeout=_REDIS_CONNECT_TIMEOUT,
+                retry_on_timeout=False,
+            )
+            await asyncio.wait_for(_redis.ping(), timeout=_REDIS_CONNECT_TIMEOUT)
+            logger.info("Redis connected: %s", url)
+            _redis_unavailable_at = 0.0
+        except Exception as exc:
+            _redis_unavailable_at = time.monotonic()
+            logger.warning("Redis unavailable: %s — cache disabled", exc)
+            _redis = None
+        return _redis
 
 
 async def close_redis():
@@ -81,6 +87,9 @@ _MEMORY_CACHE: dict[str, tuple[Any, float]] = {}
 _MEMORY_RATELIMIT: dict[str, tuple[int, float]] = {}
 _MEMORY_CACHE_MAX = 1000
 _MEMORY_RATELIMIT_MAX = 1000
+_memory_cache_lock = asyncio.Lock()
+_memory_ratelimit_lock = asyncio.Lock()
+
 
 def _cleanup_memory_cache():
     now = time.monotonic()
@@ -100,14 +109,15 @@ def cache_key(*args: Any, **kwargs: Any) -> str:
 async def cached(key: str, ttl: int = 300) -> Any | None:
     r = await get_redis()
     if r is None:
-        _cleanup_memory_cache()
-        if key in _MEMORY_CACHE:
-            val, exp = _MEMORY_CACHE[key]
-            if time.monotonic() <= exp:
-                return val
-            else:
-                _MEMORY_CACHE.pop(key, None)
-        return None
+        async with _memory_cache_lock:
+            _cleanup_memory_cache()
+            if key in _MEMORY_CACHE:
+                val, exp = _MEMORY_CACHE[key]
+                if time.monotonic() <= exp:
+                    return val
+                else:
+                    _MEMORY_CACHE.pop(key, None)
+            return None
     try:
         val = await r.get(key)
         if val is not None:
@@ -120,8 +130,9 @@ async def cached(key: str, ttl: int = 300) -> Any | None:
 async def cache_set(key: str, value: Any, ttl: int = 300) -> bool:
     r = await get_redis()
     if r is None:
-        _cleanup_memory_cache()
-        _MEMORY_CACHE[key] = (value, time.monotonic() + ttl)
+        async with _memory_cache_lock:
+            _cleanup_memory_cache()
+            _MEMORY_CACHE[key] = (value, time.monotonic() + ttl)
         return True
     try:
         await r.set(key, json.dumps(value, default=str), ex=ttl)
@@ -134,7 +145,8 @@ async def cache_set(key: str, value: Any, ttl: int = 300) -> bool:
 async def cache_delete(key: str) -> bool:
     r = await get_redis()
     if r is None:
-        _MEMORY_CACHE.pop(key, None)
+        async with _memory_cache_lock:
+            _MEMORY_CACHE.pop(key, None)
         return True
     try:
         await r.delete(key)
@@ -154,23 +166,24 @@ async def check_rate_limit(user_id: int | None, endpoint: str, limit: int = 60, 
     if r is None:
         now = time.monotonic()
         key = rate_limit_key(user_id, endpoint)
-        count, exp = _MEMORY_RATELIMIT.get(key, (0, 0))
-        if now > exp:
-            count = 0
-            exp = now + window
-        count += 1
-        _MEMORY_RATELIMIT[key] = (count, exp)
-        
-        if len(_MEMORY_RATELIMIT) > _MEMORY_RATELIMIT_MAX:
-            expired = [k for k, (c, e) in _MEMORY_RATELIMIT.items() if now > e]
-            for k in expired:
-                _MEMORY_RATELIMIT.pop(k, None)
+        async with _memory_ratelimit_lock:
+            count, exp = _MEMORY_RATELIMIT.get(key, (0, 0))
+            if now > exp:
+                count = 0
+                exp = now + window
+            count += 1
+            _MEMORY_RATELIMIT[key] = (count, exp)
+
             if len(_MEMORY_RATELIMIT) > _MEMORY_RATELIMIT_MAX:
-                oldest = sorted(_MEMORY_RATELIMIT.items(), key=lambda kv: kv[1][1])[:len(_MEMORY_RATELIMIT) - _MEMORY_RATELIMIT_MAX]
-                for k, _ in oldest:
+                expired = [k for k, (c, e) in _MEMORY_RATELIMIT.items() if now > e]
+                for k in expired:
                     _MEMORY_RATELIMIT.pop(k, None)
-        
-        return count <= limit
+                if len(_MEMORY_RATELIMIT) > _MEMORY_RATELIMIT_MAX:
+                    oldest = sorted(_MEMORY_RATELIMIT.items(), key=lambda kv: kv[1][1])[:len(_MEMORY_RATELIMIT) - _MEMORY_RATELIMIT_MAX]
+                    for k, _ in oldest:
+                        _MEMORY_RATELIMIT.pop(k, None)
+
+            return count <= limit
     key = rate_limit_key(user_id, endpoint)
     try:
         count = await r.incr(key)

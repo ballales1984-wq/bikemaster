@@ -225,7 +225,7 @@ Liability:
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "./stores/auth";
@@ -272,7 +272,8 @@ const loginError = ref("");
 const { fetchSummary } = useRides();
 
 async function shareOnFacebook() {
-  const url = encodeURIComponent(window.location.href);
+  const baseUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+  const url = encodeURIComponent(baseUrl);
   window.open(
     `https://www.facebook.com/sharer/sharer.php?u=${url}`,
     "_blank",
@@ -282,10 +283,11 @@ async function shareOnFacebook() {
 
 async function copyLink() {
   try {
-    await navigator.clipboard.writeText(window.location.href);
-    ui.setToast("Link copiato negli appunti", "success");
+    const baseUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+    await navigator.clipboard.writeText(baseUrl);
+    window.__toast?.add("Link copiato negli appunti", "success");
   } catch {
-    ui.setToast("Impossibile copiare il link", "error");
+    window.__toast?.add("Impossibile copiare il link", "error");
   }
 }
 
@@ -297,8 +299,9 @@ async function loadVersion() {
       { timeoutMs: 5000, noRetry: true },
     );
     version.value = data.version || "";
-  } catch {
+  } catch (e) {
     version.value = "";
+    console.warn("[App] failed to load version:", e);
   }
 }
 
@@ -325,16 +328,28 @@ watch(
 watch(
   () => [loggedIn.value, route.path],
   ([logged, path]) => {
-    if (logged && path === "/") {
+    if (logged && path === "/" && !ui.oauthLoading) {
       router.replace("/rides").catch(() => {});
     }
   },
 );
 
+watch(
+  () => route.path,
+  () => {
+    loginError.value = "";
+  },
+);
+
+const SUMMARY_TIMEOUT_MS = 10000;
+
 async function loadSummary() {
   summaryLoading.value = true;
   try {
-    const data = await fetchSummary();
+    const timeoutPromise = new Promise((_, reject: (reason?: unknown) => void) =>
+      setTimeout(() => reject(new Error("Summary load timeout")), SUMMARY_TIMEOUT_MS),
+    );
+    const data = (await Promise.race([fetchSummary(), timeoutPromise])) as SummaryResponse;
     summary.value = {
       rides: data.rides ?? 0,
       distance_km: data.distance_km ?? 0,
@@ -342,6 +357,8 @@ async function loadSummary() {
       avg_speed_kmh: data.avg_speed_kmh ?? 0,
       duration_minutes: data.duration_minutes ?? 0,
     };
+  } catch (e) {
+    console.warn("[App] loadSummary failed:", e);
   } finally {
     summaryLoading.value = false;
   }
@@ -378,7 +395,7 @@ async function onGoogleLogin() {
         /* ignore */
       }
     }
-    await loadSummary();
+    await loadSummary().catch((e) => console.warn("[App] loadSummary failed:", e));
   }
 }
 
@@ -389,7 +406,7 @@ async function onRegister(creds) {
     try {
       await auth.login(creds.username, creds.password);
       router.push("/rides");
-      await loadSummary();
+      await loadSummary().catch((e) => console.warn("[App] loadSummary failed:", e));
     } catch {
       loginError.value =
         "Account created. Please log in with your new credentials.";
@@ -448,7 +465,9 @@ onMounted(() => {
   window.addEventListener("oauth-loading-end", () => {
     ui.setOauthLoading(false);
   });
-  if (loggedIn.value) loadSummary();
+  if (loggedIn.value) {
+    loadSummary().catch((e) => console.warn("[App] loadSummary failed:", e));
+  }
 });
 </script>
 

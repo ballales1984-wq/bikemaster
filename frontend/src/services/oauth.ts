@@ -20,8 +20,49 @@ import { useUIStore } from "../stores/ui";
 // consumed from the URL, so it only ever bridges the gap between "token arrived
 // in the URL" and "auth state persisted to localStorage".
 const OAUTH_PENDING_KEY = "bikemaster_oauth_pending";
+const OAUTH_STATE_KEY = "bikemaster_oauth_state";
 
 type PendingOAuth = { token: string; email: string; userId: string };
+
+function _generateOAuthState(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export function storeOAuthState(state: string): void {
+  try {
+    sessionStorage.setItem(OAUTH_STATE_KEY, state);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function consumeOAuthState(): string | null {
+  try {
+    const state = sessionStorage.getItem(OAUTH_STATE_KEY);
+    sessionStorage.removeItem(OAUTH_STATE_KEY);
+    return state;
+  } catch {
+    return null;
+  }
+}
+
+function validateOAuthState(returnedState: string | null): boolean {
+  if (!returnedState) return true;
+  const expected = consumeOAuthState();
+  if (!expected) {
+    console.warn(
+      "[OAuth] state parameter present but no expected state stored",
+    );
+    return false;
+  }
+  if (returnedState !== expected) {
+    console.warn("[OAuth] state mismatch — possible CSRF");
+    return false;
+  }
+  return true;
+}
 
 function persistPendingOAuth(token: string, email: string, userId: string) {
   try {
@@ -48,8 +89,10 @@ function consumePendingOAuth(): PendingOAuth | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PendingOAuth;
     if (parsed && typeof parsed.token === "string" && parsed.token) {
+      sessionStorage.removeItem(OAUTH_PENDING_KEY);
       return parsed;
     }
+    sessionStorage.removeItem(OAUTH_PENDING_KEY);
     return null;
   } catch {
     return null;
@@ -82,6 +125,8 @@ export function processOAuthToken(): boolean {
   const userId = urlParams.get("user_id") || hashParams.get("user_id") || "";
   const oauthError =
     urlParams.get("oauth_error") || hashParams.get("oauth_error");
+  const returnedState =
+    urlParams.get("state") || hashParams.get("state") || null;
 
   if (oauthError) {
     clearPendingOAuth();
@@ -92,12 +137,21 @@ export function processOAuthToken(): boolean {
     return true;
   }
 
+  if (!validateOAuthState(returnedState)) {
+    clearPendingOAuth();
+    ui.setOauthLoading(false);
+    clearUrlToken();
+    window.__toast?.add("Invalid OAuth state. Please try logging in again.", "error");
+    return false;
+  }
+
   // Fresh OAuth return: the token is in the URL fragment/query.
   if (urlToken) {
     if (isTokenExpired(urlToken)) {
       clearPendingOAuth();
       ui.setOauthLoading(false);
       clearUrlToken();
+      window.__toast?.add("OAuth token expired. Please try logging in again.", "error");
       console.warn("[OAuth] token expired, rejecting");
       return false;
     }

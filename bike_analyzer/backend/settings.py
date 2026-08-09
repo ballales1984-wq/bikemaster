@@ -63,8 +63,6 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
-        if self.environment == "development" and not self._cors_has_network_origin(origins):
-            origins.extend(self._get_local_network_origins())
         return origins
 
     def _cors_has_network_origin(self, origins: list[str]) -> bool:
@@ -79,17 +77,7 @@ class Settings(BaseSettings):
         return False
 
     def _get_local_network_origins(self) -> list[str]:
-        import socket
-
-        origins = []
-        try:
-            hostname = socket.gethostname()
-            addr = socket.gethostbyname(hostname)
-            if addr and not addr.startswith("127.") and not addr.startswith("::1"):
-                origins.append(f"http://{addr}:{self.api_port}")
-        except Exception:
-            pass
-        return origins
+        return []
 
     # === OAuth redirect URI allow-list ===
     # Custom (non-http/https) URI schemes allowed as OAuth redirect targets,
@@ -267,7 +255,7 @@ class Settings(BaseSettings):
             "",
         )
         if self.secret_key.strip() not in _PLACEHOLDER_KEYS:
-            self.secret_key_previous = ""
+            pass
         else:
             if _IS_PROD:
                 logging.critical(

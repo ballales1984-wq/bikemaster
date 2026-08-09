@@ -43,15 +43,25 @@
           </span>
         </label>
       </div>
-      <div v-if="props.terrainEnriched && !firstRideId" class="aethermap-terrain">
-        <span class="aethermap-warn">Seleziona una singola ride per il terrain enrichment</span>
+      <div
+        v-if="props.terrainEnriched && !firstRideId"
+        class="aethermap-terrain"
+      >
+        <span class="aethermap-warn"
+          >Seleziona una singola ride per il terrain enrichment</span
+        >
       </div>
       <template v-else-if="props.terrainEnriched && terrain.loading">
         <span>carico terrain…</span>
       </template>
-      <span v-else-if="props.terrainEnriched && terrain.error" class="aethermap-warn">terrain non disponibile</span>
+      <span
+        v-else-if="props.terrainEnriched && terrain.error"
+        class="aethermap-warn"
+        >terrain non disponibile</span
+      >
       <template v-else-if="props.terrainEnriched && terrain.points.length">
-        <br />terrain: slope avg {{ avgSlope }}% · ombra {{ shadePct }}% · traffico {{ avgTraffic }}
+        <br />terrain: slope avg {{ avgSlope }}% · ombra {{ shadePct }}% ·
+        traffico {{ avgTraffic }}
       </template>
     </div>
   </div>
@@ -117,7 +127,9 @@ const terrain = useAetherMapTerrain(
 const avgSlope = computed(() => {
   const pts = terrain.points.value;
   if (!pts.length) return 0;
-  return (pts.reduce((s, p) => s + (p.slope_pct || 0), 0) / pts.length).toFixed(1);
+  return (pts.reduce((s, p) => s + (p.slope_pct || 0), 0) / pts.length).toFixed(
+    1,
+  );
 });
 const shadePct = computed(() => {
   const pts = terrain.points.value;
@@ -128,7 +140,9 @@ const shadePct = computed(() => {
 const avgTraffic = computed(() => {
   const pts = terrain.points.value;
   if (!pts.length) return 0;
-  return (pts.reduce((s, p) => s + (p.traffic_level || 0), 0) / pts.length).toFixed(2);
+  return (
+    pts.reduce((s, p) => s + (p.traffic_level || 0), 0) / pts.length
+  ).toFixed(2);
 });
 
 watch(
@@ -179,12 +193,17 @@ class LRUCache<K, V> {
   set(k: K, v: V) {
     this.map.delete(k);
     this.map.set(k, v);
-    while (this.map.size > this.max) this.map.delete(this.map.keys().next().value!);
+    while (this.map.size > this.max)
+      this.map.delete(this.map.keys().next().value!);
   }
-  clear() { this.map.clear(); }
+  clear() {
+    this.map.clear();
+  }
 }
 
-const terrainTileCache = new LRUCache<string, { h: Float32Array; ts: number }>(300);
+const terrainTileCache = new LRUCache<string, { h: Float32Array; ts: number }>(
+  300,
+);
 const TILE_CACHE_TTL = 60 * 60 * 1000;
 
 const DEG = Math.PI / 180;
@@ -356,7 +375,9 @@ function smoothJS(t: number): number {
 
 const isMobileDevice = (): boolean => {
   if (typeof navigator === "undefined") return false;
-  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
+    navigator.userAgent,
+  );
 };
 
 const MOBILE_LOD_OFFSET = isMobileDevice() ? 2 : 0;
@@ -1344,30 +1365,30 @@ watch(
   },
 );
 
-  onBeforeUnmount(() => {
-    mounted = false;
-    if (rafId != null) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
+onBeforeUnmount(() => {
+  mounted = false;
+  if (rafId != null) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+  if (_geoDebounce) {
+    clearTimeout(_geoDebounce);
+    _geoDebounce = null;
+  }
+  if (gl) {
+    if (globePosBuf) gl.deleteBuffer(globePosBuf.buf);
+    if (globeNormBuf) gl.deleteBuffer(globeNormBuf.buf);
+    if (globeIdxBuf) gl.deleteBuffer(globeIdxBuf);
+    if (routeBuffer) gl.deleteBuffer(routeBuffer.buf);
+    if (pointBuffer) gl.deleteBuffer(pointBuffer.buf);
+    if (markerBuffer) gl.deleteBuffer(markerBuffer.buf);
+    for (const [, buf] of geoBufferMap) {
+      if (buf && gl) gl.deleteBuffer(buf.buf);
     }
-    if (_geoDebounce) {
-      clearTimeout(_geoDebounce);
-      _geoDebounce = null;
-    }
-    if (gl) {
-      if (globePosBuf) gl.deleteBuffer(globePosBuf.buf);
-      if (globeNormBuf) gl.deleteBuffer(globeNormBuf.buf);
-      if (globeIdxBuf) gl.deleteBuffer(globeIdxBuf);
-      if (routeBuffer) gl.deleteBuffer(routeBuffer.buf);
-      if (pointBuffer) gl.deleteBuffer(pointBuffer.buf);
-      if (markerBuffer) gl.deleteBuffer(markerBuffer.buf);
-      for (const [, buf] of geoBufferMap) {
-        if (buf && gl) gl.deleteBuffer(buf.buf);
-      }
-      geoBufferMap.clear();
-    }
-    resizeObserver?.disconnect();
-  });
+    geoBufferMap.clear();
+  }
+  resizeObserver?.disconnect();
+});
 </script>
 
 <style scoped>

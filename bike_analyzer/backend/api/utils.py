@@ -17,7 +17,12 @@ def _forwarded_value(header_value: str | None) -> str:
     """Estrae il primo valore dall'header X-Forwarded-For (split su virgola)."""
     if not header_value:
         return ""
-    return header_value.split(",", 1)[0].strip()
+    first = header_value.split(",", 1)[0].strip()
+    try:
+        ip_address(first)
+    except (AddressValueError, ValueError):
+        return ""
+    return first
 
 
 _TRUSTED_TEST_CLIENT_HOST = "testclient"
