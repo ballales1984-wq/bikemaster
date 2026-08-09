@@ -43,25 +43,15 @@
           </span>
         </label>
       </div>
-      <div
-        v-if="props.terrainEnriched && !firstRideId"
-        class="aethermap-terrain"
-      >
-        <span class="aethermap-warn"
-          >Seleziona una singola ride per il terrain enrichment</span
-        >
+      <div v-if="props.terrainEnriched && !firstRideId" class="aethermap-terrain">
+        <span class="aethermap-warn">Seleziona una singola ride per il terrain enrichment</span>
       </div>
       <template v-else-if="props.terrainEnriched && terrain.loading">
         <span>carico terrain…</span>
       </template>
-      <span
-        v-else-if="props.terrainEnriched && terrain.error"
-        class="aethermap-warn"
-        >terrain non disponibile</span
-      >
+      <span v-else-if="props.terrainEnriched && terrain.error" class="aethermap-warn">terrain non disponibile</span>
       <template v-else-if="props.terrainEnriched && terrain.points.length">
-        <br />terrain: slope avg {{ avgSlope }}% · ombra {{ shadePct }}% ·
-        traffico {{ avgTraffic }}
+        <br />terrain: slope avg {{ avgSlope }}% · ombra {{ shadePct }}% · traffico {{ avgTraffic }}
       </template>
     </div>
   </div>
@@ -105,8 +95,12 @@ let gl: WebGL2RenderingContext | null = null;
 let rafId: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
 
-let globeBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
+let globePosBuf: { buf: WebGLBuffer; count: number; mode: number } | null =
   null;
+let globeNormBuf: { buf: WebGLBuffer; count: number; mode: number } | null =
+  null;
+let globeIdxBuf: WebGLBuffer | null = null;
+let globeIdxCount = 0;
 let routeBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
   null;
 let pointBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
@@ -123,9 +117,7 @@ const terrain = useAetherMapTerrain(
 const avgSlope = computed(() => {
   const pts = terrain.points.value;
   if (!pts.length) return 0;
-  return (pts.reduce((s, p) => s + (p.slope_pct || 0), 0) / pts.length).toFixed(
-    1,
-  );
+  return (pts.reduce((s, p) => s + (p.slope_pct || 0), 0) / pts.length).toFixed(1);
 });
 const shadePct = computed(() => {
   const pts = terrain.points.value;
@@ -136,9 +128,7 @@ const shadePct = computed(() => {
 const avgTraffic = computed(() => {
   const pts = terrain.points.value;
   if (!pts.length) return 0;
-  return (
-    pts.reduce((s, p) => s + (p.traffic_level || 0), 0) / pts.length
-  ).toFixed(2);
+  return (pts.reduce((s, p) => s + (p.traffic_level || 0), 0) / pts.length).toFixed(2);
 });
 
 watch(
@@ -172,6 +162,30 @@ let geoBufferMap: Map<
   string,
   { buf: WebGLBuffer; count: number; mode: number }
 > = new Map();
+
+let _prevPointsKey = "";
+let _geoDebounce: number | null = null;
+
+class LRUCache<K, V> {
+  private map = new Map<K, V>();
+  constructor(private max: number) {}
+  get(k: K): V | undefined {
+    if (!this.map.has(k)) return undefined;
+    const v = this.map.get(k)!;
+    this.map.delete(k);
+    this.map.set(k, v);
+    return v;
+  }
+  set(k: K, v: V) {
+    this.map.delete(k);
+    this.map.set(k, v);
+    while (this.map.size > this.max) this.map.delete(this.map.keys().next().value!);
+  }
+  clear() { this.map.clear(); }
+}
+
+const terrainTileCache = new LRUCache<string, { h: Float32Array; ts: number }>(300);
+const TILE_CACHE_TTL = 60 * 60 * 1000;
 
 const DEG = Math.PI / 180;
 const EARTH_R = 6371000.0;
@@ -340,17 +354,9 @@ function smoothJS(t: number): number {
   return t * t * (3 - 2 * t);
 }
 
-const terrainTileCache = new Map<
-  string,
-  { heights: Float32Array; resolution: number; timestamp: number }
->();
-const TILE_CACHE_TTL = 5 * 60 * 1000;
-
 const isMobileDevice = (): boolean => {
   if (typeof navigator === "undefined") return false;
-  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
-    navigator.userAgent,
-  );
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
 };
 
 const MOBILE_LOD_OFFSET = isMobileDevice() ? 2 : 0;
@@ -373,10 +379,10 @@ async function fetchTerrainTile(
   resolution: number,
   face: number = -1,
 ): Promise<Float32Array | null> {
-  const key = `${face}_${minLat.toFixed(2)}_${maxLat.toFixed(2)}_${minLon.toFixed(2)}_${maxLon.toFixed(2)}_${resolution}`;
+  const key = `${face}_${minLat.toFixed(1)}_${maxLat.toFixed(1)}_${minLon.toFixed(1)}_${maxLon.toFixed(1)}_${resolution}`;
   const cached = terrainTileCache.get(key);
-  if (cached && Date.now() - cached.timestamp < TILE_CACHE_TTL) {
-    return cached.heights;
+  if (cached && Date.now() - cached.ts < TILE_CACHE_TTL) {
+    return cached.h;
   }
   try {
     const source = props.demSource || "auto";
@@ -393,7 +399,7 @@ async function fetchTerrainTile(
       { timeoutMs: 1500 },
     );
     const heights = new Float32Array(data.heights);
-    terrainTileCache.set(key, { heights, resolution, timestamp: Date.now() });
+    terrainTileCache.set(key, { h: heights, ts: Date.now() });
     return heights;
   } catch {
     return null;
@@ -945,6 +951,8 @@ onMounted(async () => {
   if (!canvas) return;
   const canvasEl = canvas as HTMLCanvasElement;
 
+  resizeObserver?.disconnect();
+
   const glCtx = canvasEl.getContext("webgl2", { antialias: true });
   if (!glCtx) {
     console.error("WebGL2 non disponibile in questo browser.");
@@ -1110,10 +1118,10 @@ onMounted(async () => {
 
   const globeData = buildProceduralGlobeBuffers(getLODResolution(camDist));
   currentLOD = getLODResolution(camDist);
-  let globePosBuf = makeBuffer(globeData.positions, gl!.TRIANGLES, 3);
-  let globeNormBuf = makeBuffer(globeData.normals, gl!.TRIANGLES, 3);
-  let globeIdxBuf = makeIndexBuffer(globeData.indices);
-  let globeIdxCount = globeData.indices.length;
+  globePosBuf = makeBuffer(globeData.positions, gl!.TRIANGLES, 3);
+  globeNormBuf = makeBuffer(globeData.normals, gl!.TRIANGLES, 3);
+  globeIdxBuf = makeIndexBuffer(globeData.indices);
+  globeIdxCount = globeData.indices.length;
 
   let mounted = true;
 
@@ -1293,11 +1301,20 @@ watch(
   () => [props.points, props.colorBySpeed],
   () => {
     if (!gl) return;
-    if (!scene.value)
-      updateDynamicBuffers(
-        props.points && props.points.length > 0 ? props.points : DEMO_POINTS,
-        props.colorBySpeed || false,
-      );
+    if (!scene.value) {
+      const pts =
+        props.points && props.points.length > 0 ? props.points : DEMO_POINTS;
+      const cb = props.colorBySpeed || false;
+      const key = `${cb}:${pts
+        .map(
+          (p) =>
+            `${p.lat.toFixed(5)},${p.lon.toFixed(5)},${(p.speed ?? 0).toFixed(2)},${(p.altitude ?? 0).toFixed(1)}`,
+        )
+        .join("|")}`;
+      if (key === _prevPointsKey) return;
+      _prevPointsKey = key;
+      updateDynamicBuffers(pts, cb);
+    }
   },
 );
 
@@ -1319,29 +1336,38 @@ watch(
   () => visibleLayers.value.map((l) => l.id),
   () => {
     if (!gl) return;
-    updateGeoBuffers();
+    if (_geoDebounce) clearTimeout(_geoDebounce);
+    _geoDebounce = window.setTimeout(() => {
+      _geoDebounce = null;
+      updateGeoBuffers();
+    }, 150);
   },
 );
 
-onBeforeUnmount(() => {
-  mounted = false;
-  if (rafId != null) {
-    cancelAnimationFrame(rafId);
-    rafId = null;
-  }
-  if (gl) {
-    [
-      globeBuffer,
-      routeBuffer,
-      pointBuffer,
-      markerBuffer,
-      ...geoBufferMap.values(),
-    ].forEach((b) => {
-      if (b && "buf" in b) gl!.deleteBuffer((b as { buf: WebGLBuffer }).buf);
-    });
-  }
-  resizeObserver?.disconnect();
-});
+  onBeforeUnmount(() => {
+    mounted = false;
+    if (rafId != null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    if (_geoDebounce) {
+      clearTimeout(_geoDebounce);
+      _geoDebounce = null;
+    }
+    if (gl) {
+      if (globePosBuf) gl.deleteBuffer(globePosBuf.buf);
+      if (globeNormBuf) gl.deleteBuffer(globeNormBuf.buf);
+      if (globeIdxBuf) gl.deleteBuffer(globeIdxBuf);
+      if (routeBuffer) gl.deleteBuffer(routeBuffer.buf);
+      if (pointBuffer) gl.deleteBuffer(pointBuffer.buf);
+      if (markerBuffer) gl.deleteBuffer(markerBuffer.buf);
+      for (const [, buf] of geoBufferMap) {
+        if (buf && gl) gl.deleteBuffer(buf.buf);
+      }
+      geoBufferMap.clear();
+    }
+    resizeObserver?.disconnect();
+  });
 </script>
 
 <style scoped>
