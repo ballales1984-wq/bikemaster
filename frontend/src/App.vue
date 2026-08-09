@@ -346,12 +346,10 @@ const SUMMARY_TIMEOUT_MS = 10000;
 async function loadSummary() {
   summaryLoading.value = true;
   try {
-    const data = await Promise.race([
-      fetchSummary(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Summary load timeout")), SUMMARY_TIMEOUT_MS),
-      ),
-    ]);
+    const timeoutPromise = new Promise<SummaryResponse>((_, reject) =>
+      setTimeout(() => reject(new Error("Summary load timeout")), SUMMARY_TIMEOUT_MS),
+    );
+    const data = (await Promise.race([fetchSummary(), timeoutPromise])) as SummaryResponse;
     summary.value = {
       rides: data.rides ?? 0,
       distance_km: data.distance_km ?? 0,
