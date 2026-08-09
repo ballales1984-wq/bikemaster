@@ -3,60 +3,99 @@
      UI: griglia di stat-card con direttiva v-stagger (animazione, rispetta prefers-reduced-motion) e pulsante Refresh. -->
 <template>
   <div class="stats" aria-label="General Statistics">
-    <div
-      v-stagger
-      class="stat-card"
-      role="status"
-      :style="{ '--stagger-index': 0 }"
-    >
-      <span class="stat-icon" aria-hidden="true"></span>
-      <div class="stat-value">
-        {{ animatedRides }}
+    <template v-if="loading && !stats">
+      <div v-stagger class="stat-card skeleton-card" :style="{ '--stagger-index': 0 }">
+        <BmSkeleton type="circle" size="lg" />
+        <BmSkeleton type="text" size="lg" width="60%" style="margin-top: 12px;" />
+        <BmSkeleton type="text" size="sm" width="40%" style="margin-top: 8px;" />
       </div>
-      <div class="stat-label">Uscite</div>
-    </div>
-    <div
-      v-stagger
-      class="stat-card"
-      role="status"
-      :style="{ '--stagger-index': 1 }"
-    >
-      <span class="stat-icon" aria-hidden="true"></span>
-      <div class="stat-value">{{ animatedDistance }} km</div>
-      <div class="stat-label">Distanza Totale</div>
-    </div>
-    <div
-      v-stagger
-      class="stat-card"
-      role="status"
-      :style="{ '--stagger-index': 2 }"
-    >
-      <span class="stat-icon" aria-hidden="true"></span>
-      <div class="stat-value">
-        {{ animatedCalories }}
+      <div v-stagger class="stat-card skeleton-card" :style="{ '--stagger-index': 1 }">
+        <BmSkeleton type="circle" size="lg" />
+        <BmSkeleton type="text" size="lg" width="60%" style="margin-top: 12px;" />
+        <BmSkeleton type="text" size="sm" width="40%" style="margin-top: 8px;" />
       </div>
-      <div class="stat-label">Calorie</div>
-    </div>
-    <div
-      v-stagger
-      class="stat-card"
-      role="status"
-      :style="{ '--stagger-index': 3 }"
-    >
-      <span class="stat-icon" aria-hidden="true"></span>
-      <div class="stat-value">{{ animatedSpeed }} km/h</div>
-      <div class="stat-label">Velocità Media</div>
-    </div>
-    <div
-      v-stagger
-      class="stat-card"
-      role="status"
-      :style="{ '--stagger-index': 4 }"
-    >
-      <span class="stat-icon" aria-hidden="true">⏱</span>
-      <div class="stat-value">{{ animatedHours }} h</div>
-      <div class="stat-label">Ore Totali</div>
-    </div>
+      <div v-stagger class="stat-card skeleton-card" :style="{ '--stagger-index': 2 }">
+        <BmSkeleton type="circle" size="lg" />
+        <BmSkeleton type="text" size="lg" width="60%" style="margin-top: 12px;" />
+        <BmSkeleton type="text" size="sm" width="40%" style="margin-top: 8px;" />
+      </div>
+      <div v-stagger class="stat-card skeleton-card" :style="{ '--stagger-index': 3 }">
+        <BmSkeleton type="circle" size="lg" />
+        <BmSkeleton type="text" size="lg" width="60%" style="margin-top: 12px;" />
+        <BmSkeleton type="text" size="sm" width="40%" style="margin-top: 8px;" />
+      </div>
+      <div v-stagger class="stat-card skeleton-card" :style="{ '--stagger-index': 4 }">
+        <BmSkeleton type="circle" size="lg" />
+        <BmSkeleton type="text" size="lg" width="60%" style="margin-top: 12px;" />
+        <BmSkeleton type="text" size="sm" width="40%" style="margin-top: 8px;" />
+      </div>
+    </template>
+    <template v-else>
+      <div
+        v-stagger
+        class="stat-card"
+        role="status"
+        :style="{ '--stagger-index': 0 }"
+      >
+        <span class="stat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h3"/></svg>
+        </span>
+        <div class="stat-value">
+          {{ animatedRides }}
+        </div>
+        <div class="stat-label">Uscite</div>
+      </div>
+      <div
+        v-stagger
+        class="stat-card"
+        role="status"
+        :style="{ '--stagger-index': 1 }"
+      >
+        <span class="stat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        </span>
+        <div class="stat-value">{{ animatedDistance }} km</div>
+        <div class="stat-label">Distanza Totale</div>
+      </div>
+      <div
+        v-stagger
+        class="stat-card"
+        role="status"
+        :style="{ '--stagger-index': 2 }"
+      >
+        <span class="stat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/><path d="M8.5 8.5v.01"/><path d="M16 15.5v.01"/><path d="M12 12v.01"/><path d="M11 17v.01"/><path d="M7 14v.01"/></svg>
+        </span>
+        <div class="stat-value">
+          {{ animatedCalories }}
+        </div>
+        <div class="stat-label">Calorie</div>
+      </div>
+      <div
+        v-stagger
+        class="stat-card"
+        role="status"
+        :style="{ '--stagger-index': 3 }"
+      >
+        <span class="stat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+        <div class="stat-value">{{ animatedSpeed }} km/h</div>
+        <div class="stat-label">Velocità Media</div>
+      </div>
+      <div
+        v-stagger
+        class="stat-card"
+        role="status"
+        :style="{ '--stagger-index': 4 }"
+      >
+        <span class="stat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+        <div class="stat-value">{{ animatedHours }} h</div>
+        <div class="stat-label">Ore Totali</div>
+      </div>
+    </template>
     <button
       v-stagger
       class="stat-card stat-refresh"
@@ -65,9 +104,10 @@
       :aria-label="loading ? 'Aggiornamento in corso' : 'Aggiorna statistiche'"
       @click="$emit('refresh')"
     >
-      <span class="stat-icon" :class="{ spin: loading }">{{
-        loading ? "⏳" : "🔄"
-      }}</span>
+      <span class="stat-icon" :class="{ spin: loading }">
+        <svg v-if="loading" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+      </span>
       <div class="stat-label">
         {{ loading ? "Aggiornamento..." : "Aggiorna" }}
       </div>
@@ -77,6 +117,7 @@
 
 <script setup lang="ts">
 import { ref, watch, Directive } from "vue";
+import BmSkeleton from "./BmSkeleton.vue";
 
 const props = defineProps({
   stats: { type: Object, default: null },
@@ -179,6 +220,15 @@ watch(
   transition: var(--transition);
   position: relative;
   overflow: hidden;
+}
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 20px;
 }
 
 /* Gradient border via mask */
