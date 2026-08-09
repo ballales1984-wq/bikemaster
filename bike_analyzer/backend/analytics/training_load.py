@@ -23,8 +23,16 @@ def calculate_rss(ride: Ride, ftp: float | None = None) -> float:
     duration_h = ride.duration_hours
     if duration_h <= 0:
         return 0.0
-    tss = duration_h * 100.0
-    return round(min(tss, 200.0), 1)
+    if ftp is None or ftp <= 0:
+        ftp = 250.0
+    if_val = 0.5
+    if ride.avg_speed_kmh and ride.avg_speed_kmh > 0:
+        if_val = min(ride.avg_speed_kmh / 40.0, 1.0)
+    if ride.heart_rate_avg and ride.heart_rate_avg > 0:
+        hr_pct = ride.heart_rate_avg / 190.0
+        if_val = max(if_val, min(hr_pct / 0.9, 1.2))
+    tss = duration_h * 100.0 * (if_val ** 2)
+    return round(min(tss, 500.0), 1)
 
 
 def calculate_atl_ctl_tsb(

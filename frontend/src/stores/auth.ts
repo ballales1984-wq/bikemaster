@@ -268,27 +268,34 @@ export const useAuthStore = defineStore("auth", () => {
 
   async function refreshAccessToken(): Promise<boolean> {
     if (!refreshToken.value) return false;
-    try {
-      const form = new URLSearchParams();
-      form.append("refresh_token", refreshToken.value);
-      const data = await apiPost<{
-        access_token: string;
-        refresh_token?: string;
-      }>("/api/v1/auth/refresh", form, {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      });
-      if (data.access_token) {
-        token.value = data.access_token;
-        if (data.refresh_token) {
-          refreshToken.value = data.refresh_token;
-        }
-        resetSessionExpiredNotification();
-        return true;
-      }
-    } catch {
-      // refresh failed — will fall through to logout
+    if (refreshing && refreshPromise) {
+      return refreshPromise;
     }
-    return false;
+    refreshing = true;
+    refreshPromise = (async () => {
+      try {
+        const form = new URLSearchParams();
+        form.append("refresh_token", refreshToken.value);
+        const data = await apiPost<{
+          access_token: string;
+          refresh_token?: string;
+        }>("/api/v1/auth/refresh", form, {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        });
+        if (data.access_token) {
+          token.value = data.access_token;
+          if (data.refresh_token) {
+            refreshToken.value = data.refresh_token;
+          }
+          resetSessionExpiredNotification();
+          return true;
+        }
+      } catch {
+        // refresh failed — will fall through to logout
+      }
+      return false;
+    })();
+    return refreshPromise;
   }
 
   async function logout(): Promise<void> {

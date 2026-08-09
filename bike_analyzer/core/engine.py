@@ -127,10 +127,22 @@ class AnalysisEngine:
             ride_days: dict[str, float] = {}
             for r in historical_rides:
                 day = r.date[:10] if r.date and len(r.date) >= 10 else "unknown"
-                ride_days[day] = max(ride_days.get(day, 0.0), power.training_stress_score(r, ftp))
+                ride_days[day] = ride_days.get(day, 0.0) + power.training_stress_score(r, ftp)
 
-            days_sorted = sorted(ride_days.items())
-            tss_series = [v for _, v in days_sorted]
+            if ride_days:
+                dates = sorted(ride_days.keys())
+                start = datetime.strptime(dates[0], "%Y-%m-%d").date()
+                end = datetime.strptime(dates[-1], "%Y-%m-%d").date()
+                current = start
+                full_series: list[float] = []
+                while current <= end:
+                    key = current.isoformat()
+                    full_series.append(ride_days.get(key, 0.0))
+                    current += timedelta(days=1)
+                tss_series = full_series
+            else:
+                tss_series = []
+
             tss = tss_series[-1] if tss_series else 0.0
             atl = stress.ewma(tss_series, tau_days=7.0) if tss_series else 0.0
             ctl = stress.ewma(tss_series, tau_days=42.0) if tss_series else 0.0
@@ -138,8 +150,11 @@ class AnalysisEngine:
             tss = power.training_stress_score(ride, ftp)
             atl = min(tss * 1.5, 100.0)
             ctl = max(tss * 0.8, 10.0)
+            tss_series = [tss]
 
         tsb = round(ctl - atl, 1)
+        weekly_tss = sum(tss_series[-7:]) if tss_series else 0.0
+        monthly_tss = sum(tss_series[-30:]) if tss_series else 0.0
         fitness_state = FitnessStateVector(
             athlete_id=athlete_id,
             computed_at=datetime.now(UTC),
@@ -150,8 +165,8 @@ class AnalysisEngine:
             fatigue=round(atl, 1),
             form=tsb,
             recovery_hours_needed=tss * 2,
-            weekly_tss=tss,
-            monthly_tss=tss * 4,
+            weekly_tss=weekly_tss,
+            monthly_tss=monthly_tss,
             trend_7d="stable",
             trend_30d="stable",
         )
@@ -170,4 +185,4 @@ class AnalysisEngine:
             repo = FitnessStateRepository(session_factory=session_factory)
             await repo.save(state.to_dict())
         except Exception:
-            logger.warning("Could not persist fitness s
+            logger.warning("Could not persist fitness state")
