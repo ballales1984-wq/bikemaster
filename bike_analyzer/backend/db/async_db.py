@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
@@ -37,8 +38,8 @@ _s = get_settings()
 
 _engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker | None = None
-_engine_lock = asyncio.Lock()
-_session_factory_lock = asyncio.Lock()
+_engine_lock = threading.Lock()
+_session_factory_lock = threading.Lock()
 
 
 # Core tables required at startup. ``knowledge_chunks`` (PGVector) is created
@@ -79,51 +80,40 @@ def _get_engine() -> AsyncEngine | None:
     global _engine
     if _engine is not None:
         return _engine
-    return _engine
-
-
-async def _create_engine() -> AsyncEngine | None:
-    url = (os.environ.get("DATABASE_URL") or _s.database_url or "").strip()
-    if not url:
-        logger.warning(
-            "DATABASE_URL not set or empty; async DB disabled "
-            "(falling back to synchronous SQLite layer)."
-        )
-        return None
-    try:
-        return create_async_engine(_make_async_url(url), echo=False, pool_pre_ping=True)
-    except Exception as exc:  # noqa: BLE001
-        scheme = url.split("://", 1)[0] if "://" in url else url[:12]
-        logger.error(
-            "Failed to build async engine from DATABASE_URL (scheme=%r); "
-            "async DB disabled (falling back to SQLite): %s",
-            scheme,
-            exc,
-        )
-        return None
-
-
-async def _ensure_engine() -> AsyncEngine | None:
-    global _engine
-    if _engine is not None:
-        return _engine
-    async with _engine_lock:
+    with _engine_lock:
         if _engine is not None:
             return _engine
-        _engine = await _create_engine()
+        url = (os.environ.get("DATABASE_URL") or _s.database_url or "").strip()
+        if not url:
+            logger.warning(
+                "DATABASE_URL not set or empty; async DB disabled "
+                "(falling back to synchronous SQLite layer)."
+            )
+            return None
+        try:
+            _engine = create_async_engine(_make_async_url(url), echo=False, pool_pre_ping=True)
+        except Exception as exc:  # noqa: BLE001
+            scheme = url.split("://", 1)[0] if "://" in url else url[:12]
+            logger.error(
+                "Failed to build async engine from DATABASE_URL (scheme=%r); "
+                "async DB disabled (falling back to SQLite): %s",
+                scheme,
+                exc,
+            )
+            return None
         return _engine
 
 
-async def get_session_factory() -> async_sessionmaker:
+def get_session_factory() -> async_sessionmaker:
     """Return the async session factory, creating the engine lazily.
 
     Raises RuntimeError if DATABASE_URL is not configured.
     """
     global _session_factory
     if _session_factory is None:
-        async with _session_factory_lock:
+        with _session_factory_lock:
             if _session_factory is None:
-                engine = await _ensure_engine()
+                engine = _get_engine()
                 if engine is None:
                     raise RuntimeError("DATABASE_URL not configured; async DB unavailable")
                 _session_factory = async_sessionmaker(engine, expire_on_commit=False)
