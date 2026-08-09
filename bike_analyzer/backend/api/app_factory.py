@@ -187,31 +187,22 @@ async def lifespan(app: FastAPI):
         except Exception:  # noqa: BLE001
             logger.exception("Failed to start domain event bus")
 
-    # Launch all initialization as concurrent background tasks so uvicorn can
-    # start accepting connections immediately — critical for Render port
-    # detection and health check (https://render.com/docs/web-services#port-binding).
-    # Each task has an explicit timeout to prevent a single hanging step from
-    # blocking the entire startup.
-    _log_flush("startup: launching background initialization tasks")
-    app.state._bg_tasks.append(
-        asyncio.create_task(_run_with_timeout("sqlite-init", _init_sqlite()))
-    )
-    app.state._bg_tasks.append(
-        asyncio.create_task(_run_with_timeout("migrations", _run_migrations_bg()))
-    )
-    app.state._bg_tasks.append(
-        asyncio.create_task(_run_with_timeout("async-db-init", _init_async_db_bg_task()))
-    )
-    app.state._bg_tasks.append(
-        asyncio.create_task(_run_with_timeout("redis-init", _init_redis_bg()))
-    )
-    app.state._bg_tasks.append(
-        asyncio.create_task(_run_with_timeout("task-queue-start", _start_task_queue_bg()))
-    )
-    app.state._bg_tasks.append(
-        asyncio.create_task(_run_with_timeout("event-bus-start", _start_event_bus_bg()))
-    )
-    _log_flush("startup: all background tasks launched, yielding to uvicorn")
+    # Launch initialization as two serial chains (DB first, then infra/services)
+    # so that dependent steps wait for their prerequisites, while still yielding
+    # to uvicorn immediately for Render port detection and health checks.
+    async def _db_init_chain() -> None:
+        await _run_with_timeout("sqlite-init", _init_sqlite())
+        await _run_with_timeout("migrations", _run_migrations_bg())
+        await _run_with_timeout("async-db-init", _init_async_db_bg_task())
+
+    async def _infra_init_chain() -> None:
+        await _run_with_timeout("redis-init", _init_redis_bg())
+        await _run_with_timeout("task-queue-start", _start_task_queue_bg())
+        await _run_with_timeout("event-bus-start", _start_event_bus_bg())
+
+    app.state._bg_tasks.append(asyncio.create_task(_db_init_chain()))
+    app.state._bg_tasks.append(asyncio.create_task(_infra_init_chain()))
+    _log_flush("startup: all background initialization tasks launched, yielding to uvicorn")
     _t_yield = time.monotonic()
     _log_flush(f"startup: YIELD t={_t_yield:.3f} (since create_app start)")
     yield
@@ -386,6 +377,7 @@ def create_app() -> FastAPI:
     async def audit_log_middleware(request: Request, call_next):
         """Middleware di audit: logga metodo, path, status, utente, IP e durata."""
         import time
+        import re
 
         if request.url.path in AUDIT_SKIP_PATHS:
             return await call_next(request)
@@ -411,13 +403,17 @@ def create_app() -> FastAPI:
         client_ip = _trusted_forwarded_value(request, "x-forwarded-for") or (
             request.client.host if request.client else "unknown"
         )
+        _SAFE_LOG = re.compile(r"[^\x20-\x7e]")
+        user_id_safe = _SAFE_LOG.sub("", user_id)
+        client_ip_safe = _SAFE_LOG.sub("", client_ip)
+        path_safe = _SAFE_LOG.sub("", request.url.path)
         logger.info(
             "AUDIT %s %s %s user=%s ip=%s %dms request_id=%s",
             request.method,
-            request.url.path,
+            path_safe,
             response.status_code,
-            user_id,
-            client_ip,
+            user_id_safe,
+            client_ip_safe,
             elapsed_ms,
             request_id,
             extra={"request_id": request_id},

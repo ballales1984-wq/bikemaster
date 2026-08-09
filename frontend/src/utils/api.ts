@@ -203,7 +203,9 @@ async function request<T>(options: RequestOptions): Promise<T> {
         if (canUseFallback && attempt === MAX_RETRIES - 1) {
           currentBase = fallbackBase;
         }
-        await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
+        await sleep(
+          RETRY_BASE_DELAY_MS * (attempt + 1) + Math.random() * 1000,
+        );
         continue;
       }
       throw new ApiError(
@@ -223,7 +225,9 @@ async function request<T>(options: RequestOptions): Promise<T> {
       if (canUseFallback && attempt === MAX_RETRIES - 1) {
         currentBase = fallbackBase;
       }
-      await sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
+      await sleep(
+        RETRY_BASE_DELAY_MS * (attempt + 1) + Math.random() * 1000,
+      );
       continue;
     }
     break;

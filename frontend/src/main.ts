@@ -173,4 +173,7 @@ router
       ui.setOauthLoading(false);
     }
   })
-  .catch(() => {});
+  .catch((err) => {
+    console.error("[Router] isReady failed:", err);
+    ui.setOauthLoading(false);
+  });

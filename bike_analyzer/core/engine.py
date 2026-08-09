@@ -179,10 +179,9 @@ class AnalysisEngine:
     async def _persist_fitness_state(self, state: FitnessStateVector, session_factory) -> None:
         """Persist a fitness state vector via the repository when available."""
         if FitnessStateRepository is None:
-            logger.warning("Could not persist fitness state - repository unavailable")
-            return
+            raise RuntimeError("FitnessStateRepository unavailable — cannot persist fitness state")
         try:
             repo = FitnessStateRepository(session_factory=session_factory)
             await repo.save(state.to_dict())
-        except Exception:
-            logger.warning("Could not persist fitness state")
+        except Exception as exc:
+            raise RuntimeError(f"Could not persist fitness state: {exc}") from exc
