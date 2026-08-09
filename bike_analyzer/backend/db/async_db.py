@@ -37,6 +37,9 @@ _s = get_settings()
 
 _engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker | None = None
+_engine_lock = asyncio.Lock()
+_session_factory_lock = asyncio.Lock()
+
 
 # Core tables required at startup. ``knowledge_chunks`` (PGVector) is created
 # best-effort and is not required for the app to boot.
@@ -76,12 +79,10 @@ def _get_engine() -> AsyncEngine | None:
     global _engine
     if _engine is not None:
         return _engine
-    # Strip first: a value with surrounding whitespace (e.g. a pasted
-    # connection string with a trailing newline/space) is truthy and would
-    # otherwise slip past the `if not url` guard and crash create_async_engine.
-    # Read DATABASE_URL fresh from the environment (falling back to the cached
-    # settings) so the engine reflects the current configuration even when the
-    # settings singleton was constructed before DATABASE_URL was set.
+    return _engine
+
+
+async def _create_engine() -> AsyncEngine | None:
     url = (os.environ.get("DATABASE_URL") or _s.database_url or "").strip()
     if not url:
         logger.warning(
@@ -90,12 +91,8 @@ def _get_engine() -> AsyncEngine | None:
         )
         return None
     try:
-        _engine = create_async_engine(_make_async_url(url), echo=False, pool_pre_ping=True)
+        return create_async_engine(_make_async_url(url), echo=False, pool_pre_ping=True)
     except Exception as exc:  # noqa: BLE001
-        # Never let a malformed DATABASE_URL take down startup. Log the
-        # scheme only (never the full URL, which embeds the password) and
-        # fall back to SQLite; get_session_factory() will surface a clear
-        # RuntimeError if the async path is actually requested.
         scheme = url.split("://", 1)[0] if "://" in url else url[:12]
         logger.error(
             "Failed to build async engine from DATABASE_URL (scheme=%r); "
@@ -104,20 +101,32 @@ def _get_engine() -> AsyncEngine | None:
             exc,
         )
         return None
-    return _engine
 
 
-def get_session_factory() -> async_sessionmaker:
+async def _ensure_engine() -> AsyncEngine | None:
+    global _engine
+    if _engine is not None:
+        return _engine
+    async with _engine_lock:
+        if _engine is not None:
+            return _engine
+        _engine = await _create_engine()
+        return _engine
+
+
+async def get_session_factory() -> async_sessionmaker:
     """Return the async session factory, creating the engine lazily.
 
     Raises RuntimeError if DATABASE_URL is not configured.
     """
     global _session_factory
     if _session_factory is None:
-        engine = _get_engine()
-        if engine is None:
-            raise RuntimeError("DATABASE_URL not configured; async DB unavailable")
-        _session_factory = async_sessionmaker(engine, expire_on_commit=False)
+        async with _session_factory_lock:
+            if _session_factory is None:
+                engine = await _ensure_engine()
+                if engine is None:
+                    raise RuntimeError("DATABASE_URL not configured; async DB unavailable")
+                _session_factory = async_sessionmaker(engine, expire_on_commit=False)
     return _session_factory
 
 

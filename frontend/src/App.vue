@@ -346,7 +346,7 @@ const SUMMARY_TIMEOUT_MS = 10000;
 async function loadSummary() {
   summaryLoading.value = true;
   try {
-    const timeoutPromise = new Promise<SummaryResponse>((_, reject) =>
+    const timeoutPromise = new Promise((_, reject: (reason?: unknown) => void) =>
       setTimeout(() => reject(new Error("Summary load timeout")), SUMMARY_TIMEOUT_MS),
     );
     const data = (await Promise.race([fetchSummary(), timeoutPromise])) as SummaryResponse;
