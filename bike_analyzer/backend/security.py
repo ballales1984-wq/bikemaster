@@ -175,7 +175,7 @@ async def revoke_token(jti: str, ttl: int = JWT_BLACKLIST_TTL) -> bool:
 
 
 def _revoke_token_sqlite(jti: str, ttl: int) -> None:
-    from ..db.database import get_db_connection
+    from .db.database import get_db_connection
     with get_db_connection() as conn:
         conn.execute(
             """CREATE TABLE IF NOT EXISTS revoked_tokens (
@@ -212,7 +212,7 @@ async def is_token_revoked(jti: str) -> bool:
 
 
 def _is_token_revoked_sqlite(jti: str) -> bool:
-    from ..db.database import get_db_connection
+    from .db.database import get_db_connection
     from datetime import datetime as _dt
     with get_db_connection() as conn:
         cur = conn.cursor()
