@@ -118,13 +118,17 @@ if ("serviceWorker" in navigator && !isTauri()) {
               navigator.serviceWorker.controller
             ) {
               if (hasPendingOAuth() || auth.justLoggedIn) {
-                newWorker.postMessage({ type: "SKIP_WAITING" });
-                setTimeout(() => {
-                  if (reg.active && !hasPendingOAuth()) {
+                const attemptActivate = () => {
+                  if (!hasPendingOAuth() && !auth.justLoggedIn) {
+                    newWorker.postMessage({ type: "SKIP_WAITING" });
                     window.location.reload();
+                  } else {
+                    setTimeout(attemptActivate, 500);
                   }
-                }, 3000);
+                };
+                setTimeout(attemptActivate, 500);
               } else {
+                newWorker.postMessage({ type: "SKIP_WAITING" });
                 window.location.reload();
               }
             }
