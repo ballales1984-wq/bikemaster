@@ -285,9 +285,9 @@ async function copyLink() {
   try {
     const baseUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
     await navigator.clipboard.writeText(baseUrl);
-    ui.setToast("Link copiato negli appunti", "success");
+    window.__toast?.add("Link copiato negli appunti", "success");
   } catch {
-    ui.setToast("Impossibile copiare il link", "error");
+    window.__toast?.add("Impossibile copiare il link", "error");
   }
 }
 
