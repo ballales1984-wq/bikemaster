@@ -136,10 +136,14 @@ if ("serviceWorker" in navigator && !isTauri()) {
         }
       });
       if (reg.waiting) {
-        reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        if (!hasPendingOAuth() && !auth.justLoggedIn) {
+          reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
       }
     })
-    .catch(() => {});
+    .catch((err) => {
+      console.warn("[SW] service worker registration failed:", err);
+    });
 }
 
 // Initialize the local SQLite DB (offline cache) and load the per-user

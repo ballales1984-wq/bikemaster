@@ -69,10 +69,14 @@ export function useAetherMapTerrain(
     }
   }
 
-  watch([rideId, enabled], () => {
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = window.setTimeout(() => void load(), 300);
-  }, { immediate: false });
+  watch(
+    [rideId, enabled],
+    () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => void load(), 300);
+    },
+    { immediate: false },
+  );
 
   const points = computed(() => data.value?.enriched ?? []);
   const features = computed(() => data.value?.terrain_features ?? []);

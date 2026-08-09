@@ -52,6 +52,12 @@ function extractApiErrorMessage(body: unknown): string {
     if (messages.length) return messages.join("; ");
   }
   if (typeof obj.message === "string") return obj.message;
+  if (typeof obj.errors === "string") return obj.errors;
+  if (Array.isArray(obj.errors)) {
+    const messages = obj.errors.map((d: unknown) => String(d)).filter(Boolean);
+    if (messages.length) return messages.join("; ");
+  }
+  if (typeof obj.reason === "string") return obj.reason;
   return "Request failed";
 }
 
@@ -203,9 +209,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
         if (canUseFallback && attempt === MAX_RETRIES - 1) {
           currentBase = fallbackBase;
         }
-        await sleep(
-          RETRY_BASE_DELAY_MS * (attempt + 1) + Math.random() * 1000,
-        );
+        await sleep(RETRY_BASE_DELAY_MS * (attempt + 1) + Math.random() * 1000);
         continue;
       }
       throw new ApiError(
@@ -225,9 +229,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
       if (canUseFallback && attempt === MAX_RETRIES - 1) {
         currentBase = fallbackBase;
       }
-      await sleep(
-        RETRY_BASE_DELAY_MS * (attempt + 1) + Math.random() * 1000,
-      );
+      await sleep(RETRY_BASE_DELAY_MS * (attempt + 1) + Math.random() * 1000);
       continue;
     }
     break;

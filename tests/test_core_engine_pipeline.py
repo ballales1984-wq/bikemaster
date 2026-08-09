@@ -157,9 +157,8 @@ async def test_engine_persist_skipped_when_repository_unavailable(monkeypatch: p
     class FakeSession:
         pass
 
-    fs = await engine._update_fitness_state(_make_ride(), athlete_id=5, session_factory=FakeSession())
-    assert fs is not None
-    assert fs.athlete_id == 5
+    with pytest.raises(RuntimeError, match="FitnessStateRepository unavailable"):
+        await engine._update_fitness_state(_make_ride(), athlete_id=5, session_factory=FakeSession())
 
 
 @pytest.mark.asyncio
@@ -186,6 +185,8 @@ async def test_engine_persists_fitness_state(monkeypatch: pytest.MonkeyPatch):
 
 @pytest.mark.asyncio
 async def test_engine_batch_loads_historical_rides(monkeypatch: pytest.MonkeyPatch):
+    import bike_analyzer.core.engine as engine_mod
+
     async def fake_get_rides(athlete_id, tenant_id=None, limit=90):
         return [
             {
@@ -208,6 +209,14 @@ async def test_engine_batch_loads_historical_rides(monkeypatch: pytest.MonkeyPat
         "bike_analyzer.backend.db.async_db.get_rides_by_athlete_async",
         fake_get_rides,
     )
+
+    class NoopRepo:
+        def __init__(self, session_factory):
+            pass
+        async def save(self, data):
+            pass
+
+    monkeypatch.setattr(engine_mod, "FitnessStateRepository", NoopRepo)
     engine = AnalysisEngine(ftp=250.0)
     results = await engine.process_rides_batch([_make_ride(id=1, athlete_id=4)], athlete_id=4, session_factory=object())
     assert len(results) == 1

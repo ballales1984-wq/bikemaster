@@ -72,6 +72,9 @@ export function initLocalDb(): Promise<boolean> {
         db.exec(
           `ALTER TABLE rides_cache ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0`,
         );
+        db.exec(`UPDATE rides_cache SET expires_at = ? WHERE expires_at = 0`, [
+          Date.now() + RIDES_CACHE_TTL_MS,
+        ]);
       } catch {
         // column already exists
       }
@@ -152,7 +155,11 @@ export function getCachedRide(id: number): CachedRide | null {
     [id, Date.now()],
   );
   if (!row) return null;
-  return { id: row.id, updated_at: row.updated_at, data: parseCachedData(row.data) };
+  return {
+    id: row.id,
+    updated_at: row.updated_at,
+    data: parseCachedData(row.data),
+  };
 }
 
 export function getCachedRides(limit = 100): CachedRide[] {

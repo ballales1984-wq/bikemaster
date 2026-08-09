@@ -318,16 +318,19 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       if (token.value) {
         const base = resolveApiBase();
-        await fetch(
+        const resp = await fetch(
           base ? `${base}/api/v1/auth/logout` : "/api/v1/auth/logout",
           {
             method: "POST",
             headers: { ...getAuthHeader() },
           },
-        ).catch(() => {});
+        );
+        if (!resp.ok) {
+          console.warn("[Auth] logout backend failed:", resp.status);
+        }
       }
-    } catch {
-      // ignore logout cleanup errors
+    } catch (err) {
+      console.warn("[Auth] logout backend error:", err);
     }
 
     token.value = "";

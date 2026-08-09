@@ -605,7 +605,12 @@
 
     <section v-if="showHistory" class="metric-history">
       <h3>Andamento storico</h3>
-      <MetricHistoryChart :key="`weight-${chartRefreshToken}`" metric-type="weight_kg" :days="365" label="Peso" />
+      <MetricHistoryChart
+        :key="`weight-${chartRefreshToken}`"
+        metric-type="weight_kg"
+        :days="365"
+        label="Peso"
+      />
       <MetricHistoryChart
         :key="`fat-${chartRefreshToken}`"
         metric-type="fat_percentage"
@@ -654,7 +659,12 @@
         :days="365"
         label="Proteine %"
       />
-      <MetricHistoryChart :key="`ftp-${chartRefreshToken}`" metric-type="ftp_watts" :days="365" label="FTP" />
+      <MetricHistoryChart
+        :key="`ftp-${chartRefreshToken}`"
+        metric-type="ftp_watts"
+        :days="365"
+        label="FTP"
+      />
     </section>
   </div>
 </template>

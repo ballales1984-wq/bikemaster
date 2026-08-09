@@ -70,9 +70,12 @@ def calculate_atl_ctl_tsb(
         else:
             prev_atl = result[i - 1].atl
             prev_ctl = result[i - 1].ctl
-            prev_date = datetime.strptime(result[i - 1].date, "%Y-%m-%d").date()
-            curr_date = datetime.strptime(date, "%Y-%m-%d").date()
-            gap = max((curr_date - prev_date).days, 1)
+            try:
+                prev_date = datetime.strptime(result[i - 1].date, "%Y-%m-%d").date()
+                curr_date = datetime.strptime(date, "%Y-%m-%d").date()
+                gap = max((curr_date - prev_date).days, 1)
+            except ValueError:
+                gap = 1
             decay_atl = (6.0 / 7.0) ** gap
             decay_ctl = (41.0 / 42.0) ** gap
             atl = prev_atl * decay_atl + tss * (1.0 - decay_atl)
