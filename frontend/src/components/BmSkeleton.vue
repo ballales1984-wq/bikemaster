@@ -1,25 +1,33 @@
 <!-- Skeleton loading placeholders for panels and cards.
      Usage: <BmSkeleton type="text" :lines="3" /> or <BmSkeleton type="card" /> -->
 <template>
-  <div class="skeleton" :class="[type, `size-${size}`]" :style="style" aria-hidden="true">
+  <div
+    class="skeleton"
+    :class="[type, `size-${size}`]"
+    :style="style"
+    aria-hidden="true"
+  >
     <span class="skeleton-shimmer" />
   </div>
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{
-  type?: "text" | "card" | "circle" | "button";
-  size?: "sm" | "md" | "lg";
-  width?: string | number;
-  height?: string | number;
-  style?: Record<string, string>;
-}>(), {
-  type: "text",
-  size: "md",
-  width: undefined,
-  height: undefined,
-  style: () => ({}),
-});
+withDefaults(
+  defineProps<{
+    type?: "text" | "card" | "circle" | "button";
+    size?: "sm" | "md" | "lg";
+    width?: string | number;
+    height?: string | number;
+    style?: Record<string, string>;
+  }>(),
+  {
+    type: "text",
+    size: "md",
+    width: undefined,
+    height: undefined,
+    style: () => ({}),
+  },
+);
 </script>
 
 <style scoped>
@@ -43,13 +51,23 @@ withDefaults(defineProps<{
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
-.size-sm { --skeleton-h: 12px; }
-.size-md { --skeleton-h: 16px; }
-.size-lg { --skeleton-h: 24px; }
+.size-sm {
+  --skeleton-h: 12px;
+}
+.size-md {
+  --skeleton-h: 16px;
+}
+.size-lg {
+  --skeleton-h: 24px;
+}
 
 .type-text {
   height: var(--skeleton-h);
