@@ -96,7 +96,7 @@ class Percorso(Oggetto):
 
 
 class Terreno(Oggetto):
-    def tipo(self) -> str | None:
+    def tipo_terreno(self) -> str | None:
         return self.proprieta.get("tipo_terreno")
 
     def pendenza_media(self) -> float | None:
