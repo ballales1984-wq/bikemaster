@@ -143,6 +143,8 @@ def get_ai_coach_client():
         if _current_client and _current_provider and _current_provider not in _BANNED_PROVIDERS:
             return _current_client, _current_provider
 
+    from ..api.user_keys import get_request_user_keys
+
     user_keys = get_request_user_keys()
     user_groq = (user_keys.get("groq") or "").strip()
     if user_groq:
