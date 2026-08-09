@@ -87,7 +87,14 @@
           min="2"
           max="60"
           step="0.1"
+          :class="{
+            error: fieldErrors.fat_percentage,
+            valid: !fieldErrors.fat_percentage,
+          }"
         />
+        <span v-if="fieldErrors.fat_percentage" class="field-error">{{
+          fieldErrors.fat_percentage
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-water">Acqua Corporea (%)</label>
@@ -98,7 +105,14 @@
           min="0"
           max="100"
           step="0.1"
+          :class="{
+            error: fieldErrors.body_water_percentage,
+            valid: !fieldErrors.body_water_percentage,
+          }"
         />
+        <span v-if="fieldErrors.body_water_percentage" class="field-error">{{
+          fieldErrors.body_water_percentage
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-muscle-pct">Massa Muscolare (%)</label>
@@ -109,7 +123,14 @@
           min="0"
           max="100"
           step="0.1"
+          :class="{
+            error: fieldErrors.muscle_mass_percentage,
+            valid: !fieldErrors.muscle_mass_percentage,
+          }"
         />
+        <span v-if="fieldErrors.muscle_mass_percentage" class="field-error">{{
+          fieldErrors.muscle_mass_percentage
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-bmr">Metabolismo Basale (kcal)</label>
@@ -120,7 +141,14 @@
           min="500"
           max="10000"
           step="1"
+          :class="{
+            error: fieldErrors.bmr_kcal,
+            valid: !fieldErrors.bmr_kcal,
+          }"
         />
+        <span v-if="fieldErrors.bmr_kcal" class="field-error">{{
+          fieldErrors.bmr_kcal
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-fat-mass">Massa Grassa Corporea (kg)</label>
@@ -131,7 +159,14 @@
           min="0"
           max="300"
           step="0.1"
+          :class="{
+            error: fieldErrors.fat_mass_kg,
+            valid: !fieldErrors.fat_mass_kg,
+          }"
         />
+        <span v-if="fieldErrors.fat_mass_kg" class="field-error">{{
+          fieldErrors.fat_mass_kg
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-sub-fat">Grasso Sottocutaneo (%)</label>
@@ -142,7 +177,16 @@
           min="0"
           max="100"
           step="0.1"
+          :class="{
+            error: fieldErrors.subcutaneous_fat_percentage,
+            valid: !fieldErrors.subcutaneous_fat_percentage,
+          }"
         />
+        <span
+          v-if="fieldErrors.subcutaneous_fat_percentage"
+          class="field-error"
+          >{{ fieldErrors.subcutaneous_fat_percentage }}</span
+        >
       </div>
       <div class="form-group">
         <label for="athlete-sub-fat-pct">Grasso Viscerale (%)</label>
@@ -153,7 +197,14 @@
           min="0"
           max="100"
           step="0.1"
+          :class="{
+            error: fieldErrors.visceral_fat_percentage,
+            valid: !fieldErrors.visceral_fat_percentage,
+          }"
         />
+        <span v-if="fieldErrors.visceral_fat_percentage" class="field-error">{{
+          fieldErrors.visceral_fat_percentage
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-muscle">Massa Muscolare (kg)</label>
@@ -164,7 +215,14 @@
           min="0"
           max="120"
           step="0.1"
+          :class="{
+            error: fieldErrors.muscle_mass_kg,
+            valid: !fieldErrors.muscle_mass_kg,
+          }"
         />
+        <span v-if="fieldErrors.muscle_mass_kg" class="field-error">{{
+          fieldErrors.muscle_mass_kg
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-bone">Massa Ossea (kg)</label>
@@ -175,7 +233,14 @@
           min="0"
           max="20"
           step="0.1"
+          :class="{
+            error: fieldErrors.bone_mass_kg,
+            valid: !fieldErrors.bone_mass_kg,
+          }"
         />
+        <span v-if="fieldErrors.bone_mass_kg" class="field-error">{{
+          fieldErrors.bone_mass_kg
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-protein-pct">Proteine (%)</label>
@@ -186,7 +251,14 @@
           min="0"
           max="100"
           step="0.1"
+          :class="{
+            error: fieldErrors.protein_percentage,
+            valid: !fieldErrors.protein_percentage,
+          }"
         />
+        <span v-if="fieldErrors.protein_percentage" class="field-error">{{
+          fieldErrors.protein_percentage
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-body-age">Età Corporea</label>
@@ -210,7 +282,14 @@
           min="10"
           max="100"
           step="1"
+          :class="{
+            error: fieldErrors.apparent_age,
+            valid: !fieldErrors.apparent_age,
+          }"
         />
+        <span v-if="fieldErrors.apparent_age" class="field-error">{{
+          fieldErrors.apparent_age
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-bmi">BMI (IMC)</label>
@@ -220,7 +299,14 @@
           type="number"
           step="0.1"
           readonly
+          :class="{
+            error: fieldErrors.bmi,
+            valid: !fieldErrors.bmi,
+          }"
         />
+        <span v-if="fieldErrors.bmi" class="field-error">{{
+          fieldErrors.bmi
+        }}</span>
         <span v-if="form.bmi" class="field-hint">{{ bmiInterpretation }}</span>
       </div>
       <div class="form-group">
@@ -232,7 +318,14 @@
           min="0"
           max="300"
           step="0.1"
+          :class="{
+            error: fieldErrors.lean_body_mass_kg,
+            valid: !fieldErrors.lean_body_mass_kg,
+          }"
         />
+        <span v-if="fieldErrors.lean_body_mass_kg" class="field-error">{{
+          fieldErrors.lean_body_mass_kg
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-years">Anni di attività</label>
@@ -242,7 +335,14 @@
           type="number"
           min="0"
           max="80"
+          :class="{
+            error: fieldErrors.years_active,
+            valid: !fieldErrors.years_active,
+          }"
         />
+        <span v-if="fieldErrors.years_active" class="field-error">{{
+          fieldErrors.years_active
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-weekly">Sessioni/settimana</label>
@@ -252,7 +352,14 @@
           type="number"
           min="0"
           max="14"
+          :class="{
+            error: fieldErrors.weekly_sessions,
+            valid: !fieldErrors.weekly_sessions,
+          }"
         />
+        <span v-if="fieldErrors.weekly_sessions" class="field-error">{{
+          fieldErrors.weekly_sessions
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-monthly">Ore/mese</label>
@@ -262,7 +369,14 @@
           type="number"
           min="0"
           step="0.5"
+          :class="{
+            error: fieldErrors.monthly_hours,
+            valid: !fieldErrors.monthly_hours,
+          }"
         />
+        <span v-if="fieldErrors.monthly_hours" class="field-error">{{
+          fieldErrors.monthly_hours
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-annual">Ore/anno</label>
@@ -272,7 +386,14 @@
           type="number"
           min="0"
           step="0.5"
+          :class="{
+            error: fieldErrors.annual_hours,
+            valid: !fieldErrors.annual_hours,
+          }"
         />
+        <span v-if="fieldErrors.annual_hours" class="field-error">{{
+          fieldErrors.annual_hours
+        }}</span>
       </div>
       <div class="form-group">
         <label for="athlete-level">Livello</label>
@@ -312,50 +433,228 @@
       {{ result }}
     </div>
 
+    <section v-if="athleteId" class="new-measurement">
+      <h3>Inserisci Nuova Misurazione</h3>
+      <p class="section-hint">
+        Aggiungi un nuovo dato antropometrico. Il profilo verrà aggiornato e lo
+        storico dei grafici si refresherà automaticamente.
+      </p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="measurement-date">Data</label>
+          <input id="measurement-date" v-model="measurementDate" type="date" />
+        </div>
+        <div class="form-group">
+          <label for="measurement-weight">Peso (kg)</label>
+          <input
+            id="measurement-weight"
+            v-model.number="measurement.weight_kg"
+            type="number"
+            min="20"
+            max="300"
+            step="0.1"
+            placeholder="Es. 68"
+          />
+        </div>
+        <div class="form-group">
+          <label for="measurement-fat">Massa Grassa (%)</label>
+          <input
+            id="measurement-fat"
+            v-model.number="measurement.fat_percentage"
+            type="number"
+            min="2"
+            max="60"
+            step="0.1"
+            placeholder="Es. 22.3"
+          />
+        </div>
+        <div class="form-group">
+          <label for="measurement-water">Acqua Corporea (%)</label>
+          <input
+            id="measurement-water"
+            v-model.number="measurement.body_water_percentage"
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            placeholder="Es. 53.4"
+          />
+        </div>
+        <div class="form-group">
+          <label for="measurement-muscle-pct">Massa Muscolare (%)</label>
+          <input
+            id="measurement-muscle-pct"
+            v-model.number="measurement.muscle_mass_percentage"
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            placeholder="Es. 53.4"
+          />
+        </div>
+        <div class="form-group">
+          <label for="measurement-bmr">Metabolismo Basale (kcal)</label>
+          <input
+            id="measurement-bmr"
+            v-model.number="measurement.bmr_kcal"
+            type="number"
+            min="500"
+            max="10000"
+            step="1"
+            placeholder="Es. 1465"
+          />
+        </div>
+        <div class="form-group">
+          <label for="measurement-fat-mass">Massa Grassa Corporea (kg)</label>
+          <input
+            id="measurement-fat-mass"
+            v-model.number="measurement.fat_mass_kg"
+            type="number"
+            min="0"
+            max="300"
+            step="0.1"
+            placeholder="Es. 52.8"
+          />
+        </div>
+        <div class="form-group">
+          <label for="measurement-sub-fat">Grasso Sottocutaneo (%)</label>
+          <input
+            id="measurement-sub-fat"
+            v-model.number="measurement.subcutaneous_fat_percentage"
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            placeholder="Es. 15.1"
+          />
+        </div>
+        <div class="form-group">
+          <label for="measurement-visceral-fat">Grasso Viscerale (%)</label>
+          <input
+            id="measurement-visceral-fat"
+            v-model.number="measurement.visceral_fat_percentage"
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            placeholder="Es. 9.9"
+          />
+        </div>
+        <div class="form-group">
+          <label for="measurement-muscle">Massa Muscolare (kg)</label>
+          <input
+            id="measurement-muscle"
+            v-model.number="measurement.muscle_mass_kg"
+            type="number"
+            min="0"
+            max="120"
+            step="0.1"
+            placeholder="Es. 49.5"
+          />
+        </div>
+        <div class="form-group">
+          <label for="measurement-bone">Massa Ossea (kg)</label>
+          <input
+            id="measurement-bone"
+            v-model.number="measurement.bone_mass_kg"
+            type="number"
+            min="0"
+            max="20"
+            step="0.1"
+            placeholder="Es. 8.5"
+          />
+        </div>
+        <div class="form-group">
+          <label for="measurement-protein">Proteine (%)</label>
+          <input
+            id="measurement-protein"
+            v-model.number="measurement.protein_percentage"
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            placeholder="Es. 20.3"
+          />
+        </div>
+        <div class="form-group">
+          <label for="measurement-ftp">FTP (watt)</label>
+          <input
+            id="measurement-ftp"
+            v-model.number="measurement.ftp_watts"
+            type="number"
+            min="50"
+            max="500"
+            step="1"
+            placeholder="Es. 250"
+          />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button
+          class="btn btn-primary"
+          :disabled="!hasMeasurementData"
+          @click="saveMeasurement"
+        >
+          Salva Misurazione
+        </button>
+      </div>
+      <div v-if="measurementResult" class="result-box">
+        {{ measurementResult }}
+      </div>
+    </section>
+
     <section v-if="showHistory" class="metric-history">
       <h3>Andamento storico</h3>
-      <MetricHistoryChart metric-type="weight_kg" :days="365" label="Peso" />
+      <MetricHistoryChart :key="`weight-${chartRefreshToken}`" metric-type="weight_kg" :days="365" label="Peso" />
       <MetricHistoryChart
+        :key="`fat-${chartRefreshToken}`"
         metric-type="fat_percentage"
         :days="365"
         label="Massa Grassa"
       />
       <MetricHistoryChart
+        :key="`water-${chartRefreshToken}`"
         metric-type="body_water_percentage"
         :days="365"
         label="Acqua Corporea"
       />
       <MetricHistoryChart
+        :key="`muscle-pct-${chartRefreshToken}`"
         metric-type="muscle_mass_percentage"
         :days="365"
         label="Massa Muscolare %"
       />
       <MetricHistoryChart
+        :key="`bmr-${chartRefreshToken}`"
         metric-type="bmr_kcal"
         :days="365"
         label="Metabolismo Basale"
       />
       <MetricHistoryChart
+        :key="`fat-mass-${chartRefreshToken}`"
         metric-type="fat_mass_kg"
         :days="365"
         label="Massa Grassa corporea"
       />
       <MetricHistoryChart
+        :key="`muscle-mass-${chartRefreshToken}`"
         metric-type="muscle_mass_kg"
         :days="365"
         label="Massa Muscolare"
       />
       <MetricHistoryChart
+        :key="`bone-${chartRefreshToken}`"
         metric-type="bone_mass_kg"
         :days="365"
         label="Massa Ossea"
       />
       <MetricHistoryChart
+        :key="`protein-${chartRefreshToken}`"
         metric-type="protein_percentage"
         :days="365"
         label="Proteine %"
       />
-      <MetricHistoryChart metric-type="ftp_watts" :days="365" label="FTP" />
+      <MetricHistoryChart :key="`ftp-${chartRefreshToken}`" metric-type="ftp_watts" :days="365" label="FTP" />
     </section>
   </div>
 </template>
@@ -444,6 +743,29 @@ const isFirstLogin = ref(false);
 const profileWasIncomplete = ref(false);
 const fieldErrors = ref<Record<string, string>>({});
 const showHistory = ref(false);
+const chartRefreshToken = ref(0);
+const measurementDate = ref(new Date().toISOString().split("T")[0]);
+const measurement = ref({
+  weight_kg: undefined as number | undefined,
+  fat_percentage: undefined as number | undefined,
+  body_water_percentage: undefined as number | undefined,
+  muscle_mass_percentage: undefined as number | undefined,
+  bmr_kcal: undefined as number | undefined,
+  fat_mass_kg: undefined as number | undefined,
+  subcutaneous_fat_percentage: undefined as number | undefined,
+  visceral_fat_percentage: undefined as number | undefined,
+  muscle_mass_kg: undefined as number | undefined,
+  bone_mass_kg: undefined as number | undefined,
+  protein_percentage: undefined as number | undefined,
+  ftp_watts: undefined as number | undefined,
+});
+const measurementResult = ref("");
+
+const hasMeasurementData = computed(() => {
+  return Object.values(measurement.value).some(
+    (v) => v !== undefined && v !== null && v !== "",
+  );
+});
 
 const bmiDisplay = computed(() => {
   const w = form.value.weight_kg;
@@ -547,6 +869,44 @@ async function save() {
   }
 }
 
+async function saveMeasurement() {
+  if (!hasMeasurementData.value) return;
+  measurementResult.value = "";
+  try {
+    const payload: Record<string, unknown> = { ...measurement.value };
+    if (measurementDate.value) {
+      payload.recorded_at = measurementDate.value;
+    }
+    const cleanPayload = Object.fromEntries(
+      Object.entries(payload).filter(
+        ([, v]) => v !== undefined && v !== null && v !== "",
+      ),
+    );
+    await athleteStore.updateProfile(cleanPayload);
+    measurementResult.value = "Misurazione salvata. Storico aggiornato.";
+    toast.show("Misurazione registrata", "success");
+    showHistory.value = true;
+    chartRefreshToken.value += 1;
+    measurement.value = {
+      weight_kg: undefined,
+      fat_percentage: undefined,
+      body_water_percentage: undefined,
+      muscle_mass_percentage: undefined,
+      bmr_kcal: undefined,
+      fat_mass_kg: undefined,
+      subcutaneous_fat_percentage: undefined,
+      visceral_fat_percentage: undefined,
+      muscle_mass_kg: undefined,
+      bone_mass_kg: undefined,
+      protein_percentage: undefined,
+      ftp_watts: undefined,
+    };
+  } catch (e: unknown) {
+    measurementResult.value =
+      "Errore: " + (e instanceof Error ? e.message : String(e));
+  }
+}
+
 onMounted(() => {
   loadAthlete().catch((e) => {
     result.value = "Errore: " + (e instanceof Error ? e.message : String(e));
@@ -567,6 +927,22 @@ onMounted(() => {
 }
 .welcome-icon {
   font-size: 1.2rem;
+}
+.new-measurement {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border, #444);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+}
+.new-measurement h3 {
+  margin-bottom: 0.4rem;
+  color: #eee;
+}
+.section-hint {
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-bottom: 1rem;
 }
 .metric-history {
   margin-top: 1.5rem;

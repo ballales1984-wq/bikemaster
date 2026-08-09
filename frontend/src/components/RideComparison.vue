@@ -200,7 +200,8 @@ const verdict = computed(() => {
     else if (winners[k] === "B") scoreB++;
   }
   if (scoreA === scoreB) return t("rides.tie");
-  if (scoreA > scoreB) return `${t("rides.winnerA")} (${scoreA}/${metrics.length})`;
+  if (scoreA > scoreB)
+    return `${t("rides.winnerA")} (${scoreA}/${metrics.length})`;
   return `${t("rides.winnerB")} (${scoreB}/${metrics.length})`;
 });
 

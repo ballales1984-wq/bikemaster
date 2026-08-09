@@ -43,15 +43,25 @@
           </span>
         </label>
       </div>
-      <div v-if="props.terrainEnriched && !firstRideId" class="aethermap-terrain">
-        <span class="aethermap-warn">Seleziona una singola ride per il terrain enrichment</span>
+      <div
+        v-if="props.terrainEnriched && !firstRideId"
+        class="aethermap-terrain"
+      >
+        <span class="aethermap-warn"
+          >Seleziona una singola ride per il terrain enrichment</span
+        >
       </div>
       <template v-else-if="props.terrainEnriched && terrain.loading">
         <span>carico terrain…</span>
       </template>
-      <span v-else-if="props.terrainEnriched && terrain.error" class="aethermap-warn">terrain non disponibile</span>
+      <span
+        v-else-if="props.terrainEnriched && terrain.error"
+        class="aethermap-warn"
+        >terrain non disponibile</span
+      >
       <template v-else-if="props.terrainEnriched && terrain.points.length">
-        <br />terrain: slope avg {{ avgSlope }}% · ombra {{ shadePct }}% · traffico {{ avgTraffic }}
+        <br />terrain: slope avg {{ avgSlope }}% · ombra {{ shadePct }}% ·
+        traffico {{ avgTraffic }}
       </template>
     </div>
   </div>
@@ -113,7 +123,9 @@ const terrain = useAetherMapTerrain(
 const avgSlope = computed(() => {
   const pts = terrain.points.value;
   if (!pts.length) return 0;
-  return (pts.reduce((s, p) => s + (p.slope_pct || 0), 0) / pts.length).toFixed(1);
+  return (pts.reduce((s, p) => s + (p.slope_pct || 0), 0) / pts.length).toFixed(
+    1,
+  );
 });
 const shadePct = computed(() => {
   const pts = terrain.points.value;
@@ -124,7 +136,9 @@ const shadePct = computed(() => {
 const avgTraffic = computed(() => {
   const pts = terrain.points.value;
   if (!pts.length) return 0;
-  return (pts.reduce((s, p) => s + (p.traffic_level || 0), 0) / pts.length).toFixed(2);
+  return (
+    pts.reduce((s, p) => s + (p.traffic_level || 0), 0) / pts.length
+  ).toFixed(2);
 });
 
 watch(
@@ -334,7 +348,9 @@ const TILE_CACHE_TTL = 5 * 60 * 1000;
 
 const isMobileDevice = (): boolean => {
   if (typeof navigator === "undefined") return false;
-  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
+    navigator.userAgent,
+  );
 };
 
 const MOBILE_LOD_OFFSET = isMobileDevice() ? 2 : 0;
@@ -1307,25 +1323,25 @@ watch(
   },
 );
 
-  onBeforeUnmount(() => {
-    mounted = false;
-    if (rafId != null) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-    }
-    if (gl) {
-      [
-        globeBuffer,
-        routeBuffer,
-        pointBuffer,
-        markerBuffer,
-        ...geoBufferMap.values(),
-      ].forEach((b) => {
-        if (b && "buf" in b) gl!.deleteBuffer((b as { buf: WebGLBuffer }).buf);
-      });
-    }
-    resizeObserver?.disconnect();
-  });
+onBeforeUnmount(() => {
+  mounted = false;
+  if (rafId != null) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+  if (gl) {
+    [
+      globeBuffer,
+      routeBuffer,
+      pointBuffer,
+      markerBuffer,
+      ...geoBufferMap.values(),
+    ].forEach((b) => {
+      if (b && "buf" in b) gl!.deleteBuffer((b as { buf: WebGLBuffer }).buf);
+    });
+  }
+  resizeObserver?.disconnect();
+});
 </script>
 
 <style scoped>

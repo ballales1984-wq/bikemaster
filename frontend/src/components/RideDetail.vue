@@ -7,13 +7,21 @@
       <div class="detail-header">
         <h2>{{ t("rideDetail.title") }}</h2>
         <div class="header-actions">
-          <button class="edit-btn" :aria-label="t('rideDetail.edit')" @click="startEdit">
+          <button
+            class="edit-btn"
+            :aria-label="t('rideDetail.edit')"
+            @click="startEdit"
+          >
             ✏️
           </button>
           <button class="edit-btn" aria-label="BM2 Analysis" @click="goToBm2">
             ⚡ BM2
           </button>
-          <button class="close-btn" :aria-label="t('rideDetail.close')" @click="emit('close')">
+          <button
+            class="close-btn"
+            :aria-label="t('rideDetail.close')"
+            @click="emit('close')"
+          >
             ✕
           </button>
         </div>

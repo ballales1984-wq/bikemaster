@@ -277,4 +277,66 @@ describe("AthletePanel", () => {
     expect(wrapper.find(".metric-history").exists()).toBe(true);
     expect(wrapper.findAllComponents({ name: "MetricHistoryChart" }).length).toBe(10);
   });
+
+  it("shows new measurement section when athlete exists", async () => {
+    mockFetchProfile.mockResolvedValueOnce(mockAthlete.athlete);
+
+    const wrapper = mount(AthletePanel, {
+      global: { plugins: [router] },
+    });
+    await flush();
+
+    expect(wrapper.find(".new-measurement").exists()).toBe(true);
+    expect(wrapper.text()).toContain("Inserisci Nuova Misurazione");
+  });
+
+  it("hides new measurement section when no athlete", async () => {
+    mockFetchProfile.mockResolvedValueOnce(null);
+
+    const wrapper = mount(AthletePanel, {
+      global: { plugins: [router] },
+    });
+    await flush();
+
+    expect(wrapper.find(".new-measurement").exists()).toBe(false);
+  });
+
+  it("saves new measurement and refreshes history", async () => {
+    mockFetchProfile.mockResolvedValueOnce(mockAthlete.athlete);
+    mockUpdateProfile.mockResolvedValueOnce({ id: 3 });
+
+    const wrapper = mount(AthletePanel, {
+      global: { plugins: [router] },
+    });
+    await flush();
+
+    await wrapper.find("#measurement-weight").setValue(69);
+    await wrapper.find("#measurement-fat").setValue(21);
+    await wrapper.find("#measurement-date").setValue("2025-01-15");
+    await wrapper.find(".new-measurement .btn-primary").trigger("click");
+    await flush();
+
+    expect(mockUpdateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        weight_kg: 69,
+        fat_percentage: 21,
+        recorded_at: "2025-01-15",
+      }),
+    );
+    expect(wrapper.find(".new-measurement .result-box").text()).toContain(
+      "Misurazione salvata",
+    );
+  });
+
+  it("disables save button when no measurement data", async () => {
+    mockFetchProfile.mockResolvedValueOnce(mockAthlete.athlete);
+
+    const wrapper = mount(AthletePanel, {
+      global: { plugins: [router] },
+    });
+    await flush();
+
+    const btn = wrapper.find(".new-measurement .btn-primary");
+    expect(btn.attributes("disabled")).toBeDefined();
+  });
 });

@@ -339,17 +339,11 @@
           >
             <div class="equipment-title">Equipaggiamento & Limitazioni</div>
             <div class="equipment-grid">
-              <div
-                v-if="profile?.equipment"
-                class="equipment-item"
-              >
+              <div v-if="profile?.equipment" class="equipment-item">
                 <span class="equipment-label">Equipaggiamento</span>
                 <span class="equipment-value">{{ profile.equipment }}</span>
               </div>
-              <div
-                v-if="profile?.medical_notes"
-                class="equipment-item"
-              >
+              <div v-if="profile?.medical_notes" class="equipment-item">
                 <span class="equipment-label">Note mediche</span>
                 <span class="equipment-value">{{ profile.medical_notes }}</span>
               </div>
@@ -441,11 +435,12 @@ const categoryStatus = computed(
             ? "warning"
             : "danger",
       chest: s.ctl >= 60 ? "ok" : s.ctl >= 30 ? "warning" : "danger",
-      core: s.acwr >= 0.8 && s.acwr <= 1.3
-        ? "ok"
-        : s.acwr >= 0.5 && s.acwr <= 1.5
-          ? "warning"
-          : "danger",
+      core:
+        s.acwr >= 0.8 && s.acwr <= 1.3
+          ? "ok"
+          : s.acwr >= 0.5 && s.acwr <= 1.5
+            ? "warning"
+            : "danger",
       arms: s.atl <= 60 ? "ok" : s.atl <= 85 ? "warning" : "danger",
       legs: s.tsb >= 10 ? "ok" : s.tsb >= -20 ? "warning" : "danger",
     };

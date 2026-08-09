@@ -12,6 +12,7 @@ Uso:
 from __future__ import annotations
 
 import json
+import math
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
@@ -110,28 +111,40 @@ def _terrain_mesh_from_hf(hf: np.ndarray, n: int, with_skirt: bool = True) -> di
             for j in range(grid_size):
                 positions.append(face_positions[i][j])
 
+        vertex_normals = [[[0.0, 0.0, 0.0] for _ in range(grid_size)] for _ in range(grid_size)]
+        for i in range(grid_size - 1):
+            for j in range(grid_size - 1):
+                p = face_positions[i][j]
+                pi = face_positions[i + 1][j]
+                pj = face_positions[i][j + 1]
+                t1 = [pi[0] - p[0], pi[1] - p[1], pi[2] - p[2]]
+                t2 = [pj[0] - p[0], pj[1] - p[1], pj[2] - p[2]]
+                nx = t1[1] * t2[2] - t1[2] * t2[1]
+                ny = t1[2] * t2[0] - t1[0] * t2[2]
+                nz = t1[0] * t2[1] - t1[1] * t2[0]
+                length = math.sqrt(nx * nx + ny * ny + nz * nz)
+                if length > 1e-12:
+                    nx, ny, nz = nx / length, ny / length, nz / length
+                else:
+                    src_i = max(0, min(i - 1, n - 1)) if with_skirt else i
+                    src_j = max(0, min(j - 1, n - 1)) if with_skirt else j
+                    u = (src_i / (n - 1)) * 2.0 - 1.0
+                    v = (src_j / (n - 1)) * 2.0 - 1.0
+                    nd = _face_direction(face, u, v)
+                    nx, ny, nz = nd[0], nd[1], nd[2]
+                for vi, vj in [(i, j), (i + 1, j), (i, j + 1), (i + 1, j + 1)]:
+                    vertex_normals[vi][vj][0] += nx
+                    vertex_normals[vi][vj][1] += ny
+                    vertex_normals[vi][vj][2] += nz
+
         for i in range(grid_size):
             for j in range(grid_size):
-                if i + 1 < grid_size and j + 1 < grid_size:
-                    p = face_positions[i][j]
-                    pi = face_positions[i + 1][j]
-                    pj = face_positions[i][j + 1]
-                    t1 = [pi[0] - p[0], pi[1] - p[1], pi[2] - p[2]]
-                    t2 = [pj[0] - p[0], pj[1] - p[1], pj[2] - p[2]]
-                    nx = t1[1] * t2[2] - t1[2] * t2[1]
-                    ny = t1[2] * t2[0] - t1[0] * t2[2]
-                    nz = t1[0] * t2[1] - t1[1] * t2[0]
-                    length = math.sqrt(nx * nx + ny * ny + nz * nz)
-                    if length > 1e-12:
-                        nx, ny, nz = nx / length, ny / length, nz / length
-                    else:
-                        src_i = max(0, min(i - 1, n - 1)) if with_skirt else i
-                        src_j = max(0, min(j - 1, n - 1)) if with_skirt else j
-                        u = (src_i / (n - 1)) * 2.0 - 1.0
-                        v = (src_j / (n - 1)) * 2.0 - 1.0
-                        nd = _face_direction(face, u, v)
-                        nx, ny, nz = nd[0], nd[1], nd[2]
-                    normals.append([nx, ny, nz])
+                nx, ny, nz = vertex_normals[i][j]
+                length = math.sqrt(nx * nx + ny * ny + nz * nz)
+                if length > 1e-12:
+                    normals.append([nx / length, ny / length, nz / length])
+                else:
+                    normals.append([0.0, 0.0, 1.0])
 
         for i in range(grid_size - 1):
             for j in range(grid_size - 1):

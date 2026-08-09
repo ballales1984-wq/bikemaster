@@ -316,8 +316,8 @@ onUnmounted(() => {
 
 .tab-arrow {
   flex-shrink: 0;
-  width: 36px;
-  height: 42px;
+  width: 40px;
+  height: 44px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-secondary);
@@ -381,8 +381,8 @@ onUnmounted(() => {
   }
 
   .tab-arrow {
-    width: 32px;
-    height: 38px;
+    width: 40px;
+    height: 44px;
     font-size: 1.2rem;
   }
 }

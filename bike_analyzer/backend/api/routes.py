@@ -103,6 +103,7 @@ from .schemas import (
     MetabolicReferenceImportRequest,
     MetabolicWeightsResponse,
     MetricCreate,
+    MeasurementCreate,
     NotificationContextIn,
     NotificationListOut,
     NotificationOut,
@@ -3510,6 +3511,85 @@ async def upsert_my_athlete_profile(
                             athlete["id"],
                             field,
                         )
+    athlete = _get_athlete(current_user["id"], tenant_id)
+    profile_complete = (
+        athlete.get("age") is not None
+        and athlete.get("weight_kg") is not None
+        and (athlete.get("experience_level") or "").strip() != ""
+    )
+    return {"athlete": _public_athlete(athlete), "profile_complete": profile_complete}
+
+
+@router.post("/athletes/me/measurements")
+async def log_my_measurement(
+    measurement: MeasurementCreate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Log a new body-composition measurement for the current athlete.
+
+    Updates the athlete profile with the supplied fields and records each
+    changed metric to ``athlete_metric_log`` with the provided date.
+    """
+    from ..db.database import (
+        get_athlete as _get_athlete,
+        update_athlete as _update_athlete,
+        log_athlete_metric as _log_athlete_metric,
+    )
+
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    athlete = _get_athlete(current_user["id"], tenant_id)
+    if not athlete:
+        raise HTTPException(status_code=404, detail="Athlete profile not found")
+
+    updates = {k: v for k, v in measurement.model_dump().items() if v is not None}
+    if "recorded_at" in updates:
+        recorded_at = updates.pop("recorded_at")
+        try:
+            recorded_dt = datetime.fromisoformat(recorded_at)
+            recorded_at = recorded_dt.replace(tzinfo=UTC).isoformat()
+        except ValueError:
+            recorded_at = datetime.now(UTC).isoformat()
+    else:
+        recorded_at = datetime.now(UTC).isoformat()
+
+    if updates:
+        _update_athlete(athlete["id"], updates)
+        tracked = {
+            "weight_kg": ("kg", "Peso"),
+            "fat_percentage": ("%", "% grassa"),
+            "body_water_percentage": ("%", "Acqua corporea"),
+            "muscle_mass_percentage": ("%", "Massa muscolare %"),
+            "bmr_kcal": ("kcal", "Metabolismo basale"),
+            "fat_mass_kg": ("kg", "Massa grassa"),
+            "subcutaneous_fat_percentage": ("%", "Grasso sottocutaneo %"),
+            "visceral_fat_percentage": ("%", "Grasso viscerale %"),
+            "muscle_mass_kg": ("kg", "Massa muscolare"),
+            "bone_mass_kg": ("kg", "Massa ossea"),
+            "protein_percentage": ("%", "Proteine %"),
+            "ftp_watts": ("W", "FTP"),
+        }
+        for field, (unit, _label) in tracked.items():
+            if field in updates and updates[field] is not None:
+                old = athlete.get(field)
+                new_value = float(updates[field])
+                if old is None or float(old) != new_value:
+                    try:
+                        _log_athlete_metric(
+                            athlete["id"],
+                            field,
+                            new_value,
+                            tenant_id=tenant_id,
+                            unit=unit,
+                            source="manual",
+                            recorded_at=recorded_at,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "log_athlete_metric failed for athlete_id=%s field=%s",
+                            athlete["id"],
+                            field,
+                        )
+
     athlete = _get_athlete(current_user["id"], tenant_id)
     profile_complete = (
         athlete.get("age") is not None

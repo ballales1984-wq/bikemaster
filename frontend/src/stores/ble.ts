@@ -74,7 +74,10 @@ export const useBleStore = defineStore("ble", () => {
 
   const BLE_DEVICE_ID_MAP_KEY = "bikemaster_ble_device_id_map";
 
-  function stableDeviceIdentity(name: string, serviceUuid: string | null): string {
+  function stableDeviceIdentity(
+    name: string,
+    serviceUuid: string | null,
+  ): string {
     return `${(name || "unknown").toLowerCase()}|${serviceUuid || "none"}`;
   }
 

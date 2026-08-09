@@ -197,6 +197,29 @@ class ProfileUpdate(BaseModel):
         return v
 
 
+class MeasurementCreate(BaseModel):
+    """Schema di richiesta per registrare una nuova misurazione atleta."""
+
+    recorded_at: str | None = Field(
+        default=None,
+        min_length=10,
+        max_length=10,
+        pattern="^\\d{4}-\\d{2}-\\d{2}$",
+    )
+    weight_kg: float | None = Field(default=None, ge=20, le=300)
+    fat_percentage: float | None = Field(default=None, ge=2, le=60)
+    body_water_percentage: float | None = Field(default=None, ge=0, le=100)
+    muscle_mass_percentage: float | None = Field(default=None, ge=0, le=100)
+    bmr_kcal: float | None = Field(default=None, ge=500, le=10000)
+    fat_mass_kg: float | None = Field(default=None, ge=0, le=300)
+    subcutaneous_fat_percentage: float | None = Field(default=None, ge=0, le=100)
+    visceral_fat_percentage: float | None = Field(default=None, ge=0, le=100)
+    muscle_mass_kg: float | None = Field(default=None, ge=0, le=120)
+    bone_mass_kg: float | None = Field(default=None, ge=0, le=20)
+    protein_percentage: float | None = Field(default=None, ge=0, le=100)
+    ftp_watts: float | None = Field(default=None, ge=50, le=500)
+
+
 class MetricCreate(BaseModel):
     """Schema di richiesta per creare metriche di performance."""
 

@@ -30,7 +30,10 @@ export interface TerrainEnrichmentData {
   h3_summary: Record<string, Record<string, number>>;
 }
 
-export function useAetherMapTerrain(rideId: Ref<number | null>, enabled: Ref<boolean>) {
+export function useAetherMapTerrain(
+  rideId: Ref<number | null>,
+  enabled: Ref<boolean>,
+) {
   const data = ref<TerrainEnrichmentData | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);

@@ -34,7 +34,11 @@
           <span>{{ t("aethermap.colorBySpeed") }}</span>
         </label>
         <label class="checkbox-control aethermap-color">
-          <input v-model="terrainEnriched" type="checkbox" :disabled="terrainDisabled" />
+          <input
+            v-model="terrainEnriched"
+            type="checkbox"
+            :disabled="terrainDisabled"
+          />
           <span>{{ t("aethermap.terrainEnrichment") }}</span>
         </label>
         <label class="checkbox-control aethermap-color">
@@ -106,7 +110,9 @@ const { t } = useI18n();
 const store = useAetherMapStore();
 const terrainEnriched = ref(false);
 const terrainDisabled = computed(() => store.selectedIds.length !== 1);
-const demSource = ref<"auto" | "procedural" | "copernicus" | "lidar" | "osm">("auto");
+const demSource = ref<"auto" | "procedural" | "copernicus" | "lidar" | "osm">(
+  "auto",
+);
 
 function formatDistance(ride: Ride): string {
   const km = ride.distance_km;

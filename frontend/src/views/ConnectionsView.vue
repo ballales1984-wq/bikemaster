@@ -226,16 +226,10 @@
             <span class="scanned-type">{{
               bleStore.getDeviceTypeLabel(scannedBleDevice.type)
             }}</span>
-            <span
-              v-if="scannedBleDevice.is_known"
-              class="ble-badge known"
-            >
+            <span v-if="scannedBleDevice.is_known" class="ble-badge known">
               {{ t("connections.bleKnownDevice") }}
             </span>
-            <span
-              v-else
-              class="ble-badge new"
-            >
+            <span v-else class="ble-badge new">
               {{ t("connections.bleNewDevice") }}
             </span>
             <span
