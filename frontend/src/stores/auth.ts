@@ -88,6 +88,20 @@ export const useAuthStore = defineStore("auth", () => {
       : "",
   );
 
+  let refreshing = false;
+  let refreshPromise: Promise<boolean> | null = null;
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("storage", (event) => {
+      if (event.key === AUTH_TOKEN_KEY && event.newValue === null) {
+        token.value = "";
+        user.value = null;
+        refreshToken.value = "";
+        justLoggedIn.value = false;
+      }
+    });
+  }
+
   watch(
     token,
     (val) => {
@@ -299,6 +313,8 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   async function logout(): Promise<void> {
+    refreshing = false;
+    refreshPromise = null;
     try {
       if (token.value) {
         const base = resolveApiBase();

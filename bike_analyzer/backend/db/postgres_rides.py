@@ -124,6 +124,7 @@ _RIDE_COLS = [
     "is_official",
     "source",
     "created_at",
+    "updated_at",
     "tenant_id",
 ]
 
@@ -157,6 +158,7 @@ def _ride_row_to_dict(row) -> dict | None:
         "elevation_gain_m": row["elevation_gain_m"],
         "gps_points": gps,
         "created_at": row["created_at"],
+        "updated_at": row.get("updated_at"),
         "external_source": row.get("external_source"),
         "external_id": row.get("external_id"),
         "title": row.get("title"),

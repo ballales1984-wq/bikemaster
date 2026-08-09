@@ -253,7 +253,7 @@ _SNAPSHOT_COLS = [
     "muscle_mass_percentage", "bmr_kcal", "fat_mass_kg", "subcutaneous_fat_kg",
     "subcutaneous_fat_percentage", "visceral_fat_level", "visceral_fat_percentage",
     "visceral_fat_kg", "muscle_mass_kg", "bone_mass_kg", "protein_percentage",
-    "protein_kg", "body_age", "apparent_age",
+    "protein_kg", "body_age", "apparent_age", "bmi", "lean_body_mass_kg",
 ]
 
 _LOG_COLS = ["athlete_id", "tenant_id", "metric_type", "value", "unit",
@@ -523,9 +523,8 @@ def save_athlete_snapshot(
 
     own_conn = conn is None
     if own_conn:
-        conn = None
-    try:
         conn = _connect()
+    try:
         with conn.cursor() as cur:
             cur.execute(
                 f"INSERT INTO athlete_history ({cols}) VALUES ({placeholders}) RETURNING id",
