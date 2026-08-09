@@ -81,13 +81,12 @@ class AnalysisEngine:
     ) -> list[EngineResult]:
         """Process multiple rides, loading historical context when available."""
         results = []
-        all_rides = list(rides)
-        historical_rides = None
+        historical_rides: list[Ride] = []
         if athlete_id is not None and session_factory is not None:
             historical_rides = await self._load_historical_rides(athlete_id, session_factory, tenant_id=tenant_id)
-            all_rides = list(historical_rides) + list(rides)
-        for ride in rides:
-            results.append(await self.process_ride(ride, athlete_id, session_factory, all_rides))
+        for i, ride in enumerate(rides):
+            context_rides = list(historical_rides) + list(rides[: i + 1])
+            results.append(await self.process_ride(ride, athlete_id, session_factory, context_rides))
         return results
 
     async def _load_historical_rides(
@@ -100,7 +99,7 @@ class AnalysisEngine:
             raw_rides = await get_rides_by_athlete_async(athlete_id, tenant_id=tenant_id, limit=limit)
             return [Ride(**r) for r in raw_rides]
         except Exception as exc:
-            logger.debug("Could not load historical rides for athlete %s: %s", athlete_id, exc)
+            logger.warning("Could not load historical rides for athlete %s: %s", athlete_id, exc)
             return []
 
     async def _update_fitness_state(
@@ -116,6 +115,10 @@ class AnalysisEngine:
 
         from .calculators import power, stress
 
+        ftp = self._ftp
+        if self._athlete_profile and getattr(self._athlete_profile, "ftp_watts", None):
+            ftp = self._athlete_profile.ftp_watts
+
         tss = 0.0
         atl = 0.0
         ctl = 0.0
@@ -124,7 +127,7 @@ class AnalysisEngine:
             ride_days: dict[str, float] = {}
             for r in historical_rides:
                 day = r.date[:10] if r.date and len(r.date) >= 10 else "unknown"
-                ride_days[day] = max(ride_days.get(day, 0.0), power.training_stress_score(r, self._ftp))
+                ride_days[day] = max(ride_days.get(day, 0.0), power.training_stress_score(r, ftp))
 
             days_sorted = sorted(ride_days.items())
             tss_series = [v for _, v in days_sorted]
@@ -132,7 +135,7 @@ class AnalysisEngine:
             atl = stress.ewma(tss_series, tau_days=7.0) if tss_series else 0.0
             ctl = stress.ewma(tss_series, tau_days=42.0) if tss_series else 0.0
         else:
-            tss = power.training_stress_score(ride, self._ftp)
+            tss = power.training_stress_score(ride, ftp)
             atl = min(tss * 1.5, 100.0)
             ctl = max(tss * 0.8, 10.0)
 
@@ -167,4 +170,4 @@ class AnalysisEngine:
             repo = FitnessStateRepository(session_factory=session_factory)
             await repo.save(state.to_dict())
         except Exception:
-            logger.warning("Could not persist fitness state")
+            logger.warning("Could not persist fitness s

@@ -47,6 +47,16 @@ class BackgroundTaskQueue:
         self._running = False
         self._TASK_TTL = 300.0
         self._completed_at: dict[str, float] = {}
+        self._lock = asyncio.Lock()
+        self._TASK_TIMEOUTS = {
+            "batch_import": 600.0,
+            "generate_map": 120.0,
+            "recalculate_training_stress": 300.0,
+            "warm_weather_cache": 180.0,
+            "strava_sync": 300.0,
+            "garmin_sync": 300.0,
+            "wahoo_sync": 300.0,
+        }
 
     async def start(self):
         if self._running:
@@ -84,32 +94,49 @@ class BackgroundTaskQueue:
             task_id = task.id
             kind = task.kind
             payload = task.payload
+            timeout = self._TASK_TIMEOUTS.get(kind, 300.0)
 
             if kind == "batch_import":
-                result = await self._handle_batch_import(payload)
+                result = await asyncio.wait_for(
+                    self._handle_batch_import(payload), timeout=timeout
+                )
             elif kind == "generate_map":
-                result = await self._handle_generate_map(payload)
+                result = await asyncio.wait_for(
+                    self._handle_generate_map(payload), timeout=timeout
+                )
             elif kind == "recalculate_training_stress":
-                result = await self._handle_recalculate_stress(payload)
+                result = await asyncio.wait_for(
+                    self._handle_recalculate_stress(payload), timeout=timeout
+                )
             elif kind == "warm_weather_cache":
-                result = await self._handle_warm_weather(payload)
+                result = await asyncio.wait_for(
+                    self._handle_warm_weather(payload), timeout=timeout
+                )
             elif kind == "strava_sync":
-                result = await self._handle_strava_sync(payload)
+                result = await asyncio.wait_for(
+                    self._handle_strava_sync(payload), timeout=timeout
+                )
             elif kind == "garmin_sync":
-                result = await self._handle_garmin_sync(payload)
+                result = await asyncio.wait_for(
+                    self._handle_garmin_sync(payload), timeout=timeout
+                )
             elif kind == "wahoo_sync":
-                result = await self._handle_wahoo_sync(payload)
+                result = await asyncio.wait_for(
+                    self._handle_wahoo_sync(payload), timeout=timeout
+                )
             else:
                 raise ValueError(f"Unknown task kind: {kind}")
 
             task.status = "completed"
             task.result = result
-            self._completed_at[task_id] = time.time()
+            async with self._lock:
+                self._completed_at[task_id] = time.time()
             logger.info("[%s] task %s completed", worker_name, task_id)
         except Exception as exc:
             task.status = "failed"
             task.error = str(exc)
-            self._completed_at[task.id] = time.time()
+            async with self._lock:
+                self._completed_at[task.id] = time.time()
             logger.error("[%s] task %s failed: %s", worker_name, task.id, exc)
 
     def _purge_expired(self):
@@ -125,9 +152,10 @@ class BackgroundTaskQueue:
     async def enqueue(self, kind: str, payload: dict | None = None) -> Task:
         import uuid
 
-        self._purge_expired()
-        task = Task(id=str(uuid.uuid4()), kind=kind, payload=payload or {})
-        self._tasks[task.id] = task
+        async with self._lock:
+            self._purge_expired()
+            task = Task(id=str(uuid.uuid4()), kind=kind, payload=payload or {})
+            self._tasks[task.id] = task
         await self._queue.put(task)
         logger.debug("Enqueued task %s (%s)", task.id, kind)
         return task

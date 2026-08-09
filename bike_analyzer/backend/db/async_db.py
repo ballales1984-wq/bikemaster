@@ -29,6 +29,7 @@ from .models import (
     RideModel,
     UserOAuthCredentials,
 )
+from .token_crypto import decrypt_token, encrypt_token
 
 logger = logging.getLogger(__name__)
 
@@ -200,12 +201,18 @@ async def get_user_oauth_credentials_async(user_id: int, provider: str) -> dict 
         row = (await session.execute(stmt)).scalar_one_or_none()
         if not row:
             return None
+        client_secret = row.client_secret or ""
+        if client_secret:
+            try:
+                client_secret = decrypt_token(client_secret)
+            except Exception:
+                pass
         return {
             "id": row.id,
             "user_id": row.user_id,
             "provider": row.provider,
             "client_id": row.client_id,
-            "client_secret": row.client_secret,
+            "client_secret": client_secret,
             "redirect_uri": row.redirect_uri,
             "scope": row.scope,
             "created_at": row.created_at.isoformat() if row.created_at else None,
@@ -218,20 +225,28 @@ async def get_all_user_oauth_credentials_async(user_id: int) -> list[dict]:
     async with factory() as session:
         stmt = select(UserOAuthCredentials).where(UserOAuthCredentials.user_id == user_id)
         rows = (await session.execute(stmt)).scalars().all()
-        return [
-            {
-                "id": r.id,
-                "user_id": r.user_id,
-                "provider": r.provider,
-                "client_id": r.client_id,
-                "client_secret": r.client_secret,
-                "redirect_uri": r.redirect_uri,
-                "scope": r.scope,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
-                "updated_at": r.updated_at.isoformat() if r.updated_at else None,
-            }
-            for r in rows
-        ]
+        result = []
+        for r in rows:
+            client_secret = r.client_secret or ""
+            if client_secret:
+                try:
+                    client_secret = decrypt_token(client_secret)
+                except Exception:
+                    pass
+            result.append(
+                {
+                    "id": r.id,
+                    "user_id": r.user_id,
+                    "provider": r.provider,
+                    "client_id": r.client_id,
+                    "client_secret": client_secret,
+                    "redirect_uri": r.redirect_uri,
+                    "scope": r.scope,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                    "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+                }
+            )
+        return result
 
 
 async def save_user_oauth_credentials_async(user_id: int, provider: str, data: dict) -> None:
@@ -243,9 +258,15 @@ async def save_user_oauth_credentials_async(user_id: int, provider: str, data: d
         )
         row = (await session.execute(stmt)).scalar_one_or_none()
         now = datetime.now(UTC)
+        client_secret = data.get("client_secret", "")
+        if client_secret:
+            try:
+                client_secret = encrypt_token(client_secret)
+            except Exception:
+                pass
         if row:
             row.client_id = data.get("client_id")
-            row.client_secret = data.get("client_secret")
+            row.client_secret = client_secret
             row.redirect_uri = data.get("redirect_uri")
             row.scope = data.get("scope")
             row.updated_at = now
@@ -255,7 +276,7 @@ async def save_user_oauth_credentials_async(user_id: int, provider: str, data: d
                     user_id=user_id,
                     provider=provider,
                     client_id=data.get("client_id"),
-                    client_secret=data.get("client_secret"),
+                    client_secret=client_secret,
                     redirect_uri=data.get("redirect_uri"),
                     scope=data.get("scope"),
                     created_at=now,

@@ -12,6 +12,7 @@ del backend FastAPI.
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 
 from .models import Ride, RouteStatistics
@@ -63,9 +64,7 @@ class AnalysisPipeline:
         Returns:
             PipelineResult con statistiche percorso e metriche aggregate.
         """
-        stats = self._process_gps(ride)
-        metrics = self._compute_metrics(ride)
-        return PipelineResult(ride=ride, route_statistics=stats, metrics=metrics)
+        return await asyncio.to_thread(self.run_sync, ride)
 
     def run_sync(self, ride: Ride) -> PipelineResult:
         """Execute the pipeline synchronously for a ride.
@@ -84,8 +83,8 @@ class AnalysisPipeline:
         """Pulisce i punti GPS e calcola le statistiche di percorso.
 
         Usa ``process_route`` dal backend processing per pulizia outlier,
-        rilevamento pause e calcolo statistiche aggregate. Modifica
-        ``ride.gps_points`` in-place con i punti puliti.
+        rilevamento pause e calcolo statistiche aggregate. Non modifica
+        ``ride.gps_points``.
 
         Args:
             ride: Attivita' con punti GPS grezzi.
@@ -97,8 +96,7 @@ class AnalysisPipeline:
             return None
         from bike_analyzer.backend.processing.processing import process_route
 
-        cleaned, stats = process_route(ride.gps_points)
-        ride.gps_points = cleaned
+        _, stats = process_route(list(ride.gps_points))
         return stats
 
     def _compute_metrics(self, ride: Ride) -> dict:
