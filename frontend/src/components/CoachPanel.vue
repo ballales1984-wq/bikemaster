@@ -335,8 +335,10 @@ async function scrollToBottom() {
 
 function autoResize(e: Event) {
   const el = e.target as HTMLTextAreaElement;
-  el.style.height = "auto";
-  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  const newHeight = Math.min(el.scrollHeight, 120);
+  if (el.style.height !== newHeight + "px") {
+    el.style.height = newHeight + "px";
+  }
 }
 
 const voiceSupported = ref(false);

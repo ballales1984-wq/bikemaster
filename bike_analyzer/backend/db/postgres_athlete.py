@@ -71,7 +71,8 @@ def _get_existing_columns(table_name: str) -> list[str]:
     Cached per-table to avoid repeated information_schema queries. Used to
     gracefully handle schema drift between the code's model definitions and
     the actual database schema (e.g. when Alembic migrations have not yet
-    added recently introduced columns).
+    added recently introduced columns). Empty results are NOT cached so the
+    call site can recover once the table is created.
     """
     if table_name in _EXISTING_COLUMNS_CACHE:
         return _EXISTING_COLUMNS_CACHE[table_name]
@@ -85,7 +86,8 @@ def _get_existing_columns(table_name: str) -> list[str]:
                 (table_name,),
             )
             cols = [row["column_name"] for row in cur.fetchall()]
-            _EXISTING_COLUMNS_CACHE[table_name] = cols
+            if cols:
+                _EXISTING_COLUMNS_CACHE[table_name] = cols
             return cols
     except Exception:
         logger.exception("_get_existing_columns failed for table=%s", table_name)
@@ -324,8 +326,13 @@ def save_athlete(
 ) -> int:
     now = datetime.now(UTC).isoformat()
     existing_cols = set(_get_existing_columns("athletes"))
-    # Filter to columns that actually exist in the database to tolerate
-    # schema drift between the model definitions and the live schema.
+    if not existing_cols:
+        conn_ensure = _connect()
+        try:
+            _ensure_tables(conn_ensure)
+        finally:
+            _safe_close(conn_ensure)
+        existing_cols = set(_get_existing_columns("athletes"))
     insert_cols = [c for c in _INSERT_COLS if c in existing_cols]
     vals = []
     for c in insert_cols:
