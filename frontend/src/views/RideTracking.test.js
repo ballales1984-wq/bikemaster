@@ -21,15 +21,19 @@ const useTrackingStore = defineStore("tracking", () => {
   const routePoints = ref([]);
   const lastPoint = ref(null);
   const rideId = ref(null);
+  const autoTracking = ref(true);
+  const autoDetectActivities = ref(true);
+  const autoSaveSegments = ref(true);
+  const segments = ref([]);
+  const currentSegment = ref(null);
+  const activityRings = ref([
+    { label: "move", current: 0, goal: 500, unit: "min", color: "#10b981" },
+    { label: "exercise", current: 0, goal: 30, unit: "min", color: "#3b82f6" },
+    { label: "stand", current: 0, goal: 12, unit: "x", color: "#f59e0b" },
+  ]);
 
-  function start() {
-    isTracking.value = true;
-    isPaused.value = false;
-  }
-  function stop() {
-    isTracking.value = false;
-    isPaused.value = false;
-  }
+  function start() { isTracking.value = true; isPaused.value = false; }
+  function stop() { isTracking.value = false; isPaused.value = false; }
   function pause() { isPaused.value = true; }
   function resume() { isPaused.value = false; }
   function addPoint() {}
@@ -38,18 +42,29 @@ const useTrackingStore = defineStore("tracking", () => {
   function setGpxPath() {}
   function setGpxBlob() {}
   function setRideId() {}
+  function startSegment() { return "seg_test"; }
+  function closeCurrentSegment() { return null; }
+  function updateSegmentFromPoint() {}
+  function updateActivityRings() {}
+  function getTodaySegments() { return []; }
+  function buildDailyTimeline() { return []; }
   function toGpx() { return ""; }
   function persistState() {}
   function restoreState() { return false; }
   function clearPersistedState() {}
+  function clearAll() {}
 
   return {
     isTracking, isPaused, distance, currentSpeed, avgSpeed,
     elapsedTime, elevation, points, heartRate, cadence, power,
     gpxPath, gpxBlob, routePoints, lastPoint, rideId,
+    autoTracking, autoDetectActivities, autoSaveSegments,
+    segments, currentSegment, activityRings,
     start, stop, pause, resume, addPoint, updateMetrics,
-    resetMetrics, setGpxPath, setGpxBlob, setRideId, toGpx,
-    persistState, restoreState, clearPersistedState,
+    resetMetrics, setGpxPath, setGpxBlob, setRideId,
+    startSegment, closeCurrentSegment, updateSegmentFromPoint,
+    updateActivityRings, getTodaySegments, buildDailyTimeline,
+    toGpx, persistState, restoreState, clearPersistedState, clearAll,
   };
 });
 
@@ -72,6 +87,14 @@ vi.mock("../components/RideMetricsPanel.vue", () => ({
 
 vi.mock("../components/ControlsBar.vue", () => ({
   default: { template: '<div class="controls-bar-stub" />' },
+}));
+
+vi.mock("../components/DailyTimeline.vue", () => ({
+  default: { template: '<div class="daily-timeline-stub" />' },
+}));
+
+vi.mock("../components/ActivityRings.vue", () => ({
+  default: { template: '<div class="activity-rings-stub" />' },
 }));
 
 vi.mock("../composables/useI18n", () => ({
@@ -128,6 +151,35 @@ vi.mock("../composables/useGpsDirectionFilter", () => ({
   }),
   bearing: vi.fn(),
   detectTurnFromBearing: vi.fn().mockReturnValue(false),
+}));
+
+vi.mock("../composables/useContinuousTracking", () => ({
+  useContinuousTracking: () => ({
+    isTracking: { value: false },
+    isPaused: { value: false },
+    hasPermission: { value: null },
+    error: { value: "" },
+    start: vi.fn(),
+    pause: vi.fn(),
+    resume: vi.fn(),
+    stop: vi.fn(),
+  }),
+}));
+
+vi.mock("../composables/useActivitySegmentation", () => ({
+  useActivitySegmentation: () => ({
+    segments: { value: [] },
+    currentSegment: { value: null },
+    state: { value: "idle" },
+    lastSpeedKmh: { value: 0 },
+    processPoint: vi.fn(),
+    closeCurrentSegment: vi.fn(),
+    getTodaySegments: () => [],
+    getActiveSegments: () => [],
+    clearAll: vi.fn(),
+    totalTodayDistanceKm: { value: 0 },
+    totalTodayActiveMinutes: { value: 0 },
+  }),
 }));
 
 describe("RideTracking", () => {

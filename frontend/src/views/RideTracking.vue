@@ -1,9 +1,10 @@
 <!--
-  Vista di tracciamento GPS in tempo reale.
-  Permette di avviare, mettere in pausa e terminare una sessione di uscita,
-  visualizzando la mappa live, le metriche di andatura e il controllo di registrazione.
-  Componenti: LiveMap, RideMetricsPanel, ControlsBar.
-  Compositables: useBatteryEfficientGps, useGpsOutlierFilter, useGpsDirectionFilter.
+  Vista di tracciamento GPS in tempo reale (estesa per monitoraggio continuo H24).
+  Integra ContinuousTracking (auto-start/auto-pause/auto-resume) e
+  ActivitySegmentation (rilevamento automatico inizio/fine uscita).
+  Componenti: LiveMap, RideMetricsPanel, ControlsBar, DailyTimeline, ActivityRings.
+  Compositables: useBatteryEfficientGps, useGpsOutlierFilter, useGpsDirectionFilter,
+                 useContinuousTracking, useActivitySegmentation.
 -->
 <template>
   <section class="panel tracking-panel">
@@ -19,17 +20,40 @@
           <span>Voice Coach</span>
         </label>
       </div>
+      <div v-else class="tracking-auto-info">
+        <span class="auto-badge" :class="{ active: tracking.autoTracking }">
+          {{ tracking.autoTracking ? "Auto-tracking attivo" : "Auto-tracking disattivato" }}
+        </span>
+      </div>
     </div>
 
     <div
-      v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob"
+      v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob && !hasActiveSession"
       class="empty-state premium-empty"
     >
-      <div class="empty-icon glass-icon"></div>
+      <div class="empty-icon glass-icon">📊</div>
       <div class="empty-title">{{ t("tracking.ready") }}</div>
       <div class="empty-desc">
         {{ t("tracking.readyDesc") }}
       </div>
+
+      <ActivityRings v-if="tracking.activityRings.length > 0" :rings="tracking.activityRings" />
+
+      <div class="daily-summary-section" v-if="todaySegments.length > 0">
+        <h3>Attivita di oggi</h3>
+        <DailyTimeline :segments="todaySegments" @select="onSelectSegment" />
+        <div class="daily-stats">
+          <div class="stat">
+            <span class="stat-value">{{ tracking.totalTodayDistanceKm.toFixed(1) }}</span>
+            <span class="stat-label">km</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ tracking.totalTodayActiveMinutes }}</span>
+            <span class="stat-label">min attivi</span>
+          </div>
+        </div>
+      </div>
+
       <div class="activity-select modern-select">
         <label for="activity-type">{{ t("tracking.activityType") }}</label>
         <div class="select-wrapper">
@@ -52,12 +76,18 @@
         {{ t("tracking.offline") }}
       </div>
       <div v-if="gpsError" class="gps-error">{{ gpsError }}</div>
-      <button
-        class="btn btn-primary btn-large pulse-btn"
-        @click="startTracking"
-      >
-        {{ t("tracking.start") }}
-      </button>
+      <div class="manual-start-section">
+        <button
+          class="btn btn-primary btn-large pulse-btn"
+          @click="manualStart"
+        >
+          {{ tracking.autoTracking ? "Inizia uscita manuale" : t("tracking.start") }}
+        </button>
+        <label class="auto-toggle">
+          <input v-model="tracking.autoTracking" type="checkbox" />
+          <span>Tracking automatico</span>
+        </label>
+      </div>
     </div>
 
     <div v-else class="tracking-content">
@@ -117,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch, computed } from "vue";
 import { storeToRefs } from "pinia";
 import { useTrackingStore } from "../stores/trackingStore";
 import { useRouter } from "vue-router";
@@ -129,9 +159,13 @@ import {
   bearing as gpsBearing,
   detectTurnFromBearing,
 } from "../composables/useGpsDirectionFilter";
+import { useContinuousTracking } from "../composables/useContinuousTracking";
+import { useActivitySegmentation } from "../composables/useActivitySegmentation";
 import LiveMap from "../components/LiveMap.vue";
 import RideMetricsPanel from "../components/RideMetricsPanel.vue";
 import ControlsBar from "../components/ControlsBar.vue";
+import DailyTimeline from "../components/DailyTimeline.vue";
+import ActivityRings from "../components/ActivityRings.vue";
 import { apiUpload, apiPost } from "../utils/api";
 import type { GpsPoint, NativeGpsSample } from "../types/index";
 import { haversineDistanceMeters } from "../utils/geo";
@@ -197,6 +231,34 @@ const { isTracking, isPaused } = storeToRefs(tracking);
 const voiceCoach = useVoiceCoach();
 const voiceCoachEnabled = ref(false);
 
+const continuous = useContinuousTracking({
+  onPosition: handleContinuousPosition,
+  onError: handleContinuousError,
+  onWaiting: () => {
+    gpsWaiting.value = true;
+    gpsError.value = "";
+  },
+  onFirstFix: () => {
+    gpsWaiting.value = false;
+    if (webFirstFixTimeout !== null) {
+      clearTimeout(webFirstFixTimeout);
+      webFirstFixTimeout = null;
+    }
+  },
+  onActivityChange: (moving) => {
+    if (!tracking.autoDetectActivities) return;
+    handleActivityChange(moving);
+  },
+  batterySaver: () => batterySaver.value,
+  autoStart: true,
+  autoPauseOnHidden: true,
+});
+
+const segmentation = useActivitySegmentation();
+
+const todaySegments = computed(() => tracking.getTodaySegments());
+const hasActiveSession = computed(() => tracking.currentSegment !== null);
+
 function getVoiceCoachZone() {
   const p = tracking.power;
   if (p == null) return null;
@@ -222,92 +284,102 @@ function syncVoiceCoach() {
 watch(voiceCoachEnabled, syncVoiceCoach);
 watch(isTracking, syncVoiceCoach);
 
-const gps = useBatteryEfficientGps({
-  batterySaver: () => batterySaver.value,
-  onWaiting: () => {
-    gpsWaiting.value = true;
-    gpsError.value = "";
-  },
-  onFirstFix: () => {
-    gpsWaiting.value = false;
-    if (webFirstFixTimeout !== null) {
-      clearTimeout(webFirstFixTimeout);
-      webFirstFixTimeout = null;
-    }
-  },
-  onPosition: handleWebPosition,
-  onError: handleWebError,
-});
+function handleContinuousPosition(point: GpsPoint) {
+  if (!isTracking.value) return;
+  processCandidate(
+    point.lat,
+    point.lon,
+    point.altitude ?? null,
+    point.timestampNumber ?? Date.now(),
+  );
+}
 
-async function startTracking() {
-  const hasPermission = await checkPermissions();
-  if (!hasPermission) {
-    alert("GPS permissions required for tracking");
+function handleContinuousError(error: GeolocationPositionError) {
+  gpsWaiting.value = false;
+  if (webFirstFixTimeout !== null) {
+    clearTimeout(webFirstFixTimeout);
+    webFirstFixTimeout = null;
+  }
+  if (error.code === 1) {
+    gpsError.value =
+      "GPS permission denied. Please allow location access and try again.";
+    void stopTracking();
     return;
   }
-  if (window.BikeTracking?.startTracking) {
-    await window.BikeTracking.startTracking();
-    if (window.BikeTracking.onPosition) {
-      window.BikeTracking.onPosition(handleNativePosition);
-    }
-    if (window.BikeTracking.onError) {
-      window.BikeTracking.onError((err) =>
-        handleWebError(err as unknown as GeolocationPositionError),
-      );
-    }
-  } else {
-    startWebTracking();
+  if (error.code === 2 || error.code === 3) {
+    gpsError.value =
+      "GPS signal lost. Please move outdoors or check your device.";
+    return;
   }
+  gpsError.value = `GPS Error: ${error.message}`;
+}
+
+function handleActivityChange(moving: boolean) {
+  if (!tracking.autoDetectActivities) return;
+
+  if (moving && !tracking.currentSegment) {
+    tracking.startSegment();
+  } else if (!moving && tracking.currentSegment) {
+    if (tracking.currentSegment.state === "candidate") {
+      tracking.closeCurrentSegment();
+    }
+  }
+
+  if (tracking.currentSegment && moving) {
+    tracking.currentSegment.state = "active";
+    tracking.currentSegment.pausedSince = null;
+  }
+}
+
+function startTracking() {
+  continuous.start();
   tracking.start();
-}
-
-function handleNativePosition(sample: NativeGpsSample) {
-  processCandidate(
-    sample.lat,
-    sample.lon,
-    sample.altitude ?? null,
-    sample.timestamp,
-  );
-}
-
-async function checkPermissions(): Promise<boolean> {
-  if (!window.BikeTracking?.checkPermissions) {
-    if (!navigator.geolocation) return false;
-    try {
-      const result = await navigator.permissions.query({ name: "geolocation" });
-      if (result.state === "granted") return true;
-      if (result.state === "prompt") return true;
-      return false;
-    } catch {
-      return true;
+  webStartTime = Date.now();
+  webPausedAccumulatedMs = 0;
+  webPausedAt = null;
+  webLastPoint = null;
+  webDistance = 0;
+  webElevationGain = 0;
+  webDirectionLastBearing = null;
+  gpsOutlierFilter.reset();
+  directionFilter.reset();
+  gpsError.value = "";
+  webFirstFixTimeout = window.setTimeout(() => {
+    if (gpsWaiting.value) {
+      gpsWaiting.value = false;
+      gpsError.value =
+        "No GPS signal. On desktop, try moving near a window or use a GPS device.";
     }
-  }
-  return window.BikeTracking.checkPermissions().then(
-    (result) => result.granted,
-  );
+  }, 15000);
 }
 
-async function pauseTracking() {
-  if (window.BikeTracking?.pauseTracking) {
-    await window.BikeTracking.pauseTracking();
-  } else if (isPaused.value === false) {
-    gps.pause();
-  }
+async function manualStart() {
+  await startTracking();
+}
+
+function pauseTracking() {
+  continuous.pause();
   tracking.pause();
+  if (webPausedAt === null) {
+    webPausedAt = Date.now();
+  }
 }
 
-async function resumeTracking() {
-  if (window.BikeTracking?.resumeTracking) {
-    await window.BikeTracking.resumeTracking();
-  } else if (webPausedAt !== null) {
+function resumeTracking() {
+  continuous.resume();
+  tracking.resume();
+  if (webPausedAt !== null) {
     webPausedAccumulatedMs += Date.now() - webPausedAt;
     webPausedAt = null;
   }
-  tracking.resume();
 }
 
 async function stopTracking() {
+  continuous.stop();
   let result: { gpxPath?: string | null; gpxBlob?: Blob | null } | void;
+  if (tracking.currentSegment) {
+    tracking.closeCurrentSegment();
+  }
   if (window.BikeTracking?.stopTracking) {
     result = await window.BikeTracking.stopTracking();
   } else {
@@ -318,6 +390,7 @@ async function stopTracking() {
     tracking.setGpxBlob(result.gpxBlob);
   }
   tracking.stop();
+  tracking.updateActivityRings();
 }
 
 function buildRidePayload() {
@@ -417,7 +490,6 @@ function startWebTracking() {
         "No GPS signal. On desktop, try moving near a window or use a GPS device.";
     }
   }, 15000);
-  gps.start();
 }
 
 function detectGpsTurn(
@@ -447,7 +519,7 @@ function processCandidate(
     haversineDistance: haversineDistanceMeters,
   },
 ) {
-  if (!isTracking.value || isPaused.value) return;
+  if (isPaused.value) return;
   if (
     !isFinite(lat) ||
     !isFinite(lon) ||
@@ -554,6 +626,7 @@ function processCandidate(
     elevation: webElevationGain,
     points: tracking.routePoints.length,
   });
+  tracking.updateSegmentFromPoint(candidate);
   liveMapRef.value?.addPoint(candidate.lat, candidate.lon);
   webLastPoint = { ...candidate, timestampNumber: timestampMs };
 }
@@ -568,24 +641,7 @@ function handleWebPosition(position: GeolocationPosition) {
 }
 
 function handleWebError(error: GeolocationPositionError) {
-  gpsWaiting.value = false;
-  if (webFirstFixTimeout !== null) {
-    clearTimeout(webFirstFixTimeout);
-    webFirstFixTimeout = null;
-  }
-  if (error.code === 1) {
-    gpsError.value =
-      "GPS permission denied. Please allow location access and try again.";
-    alert("GPS permission denied. Please allow location access and try again.");
-    void stopTracking();
-    return;
-  }
-  if (error.code === 2 || error.code === 3) {
-    gpsError.value =
-      "GPS signal lost. Please move outdoors or check your device.";
-    return;
-  }
-  alert(`GPS Error: ${error.message}`);
+  handleContinuousError(error);
 }
 
 function stopWebTracking() {
@@ -593,8 +649,6 @@ function stopWebTracking() {
     clearTimeout(webFirstFixTimeout);
     webFirstFixTimeout = null;
   }
-  gps.stop();
-  gpsWaiting.value = false;
   const blob = new Blob([tracking.toGpx()], { type: "application/gpx+xml" });
   tracking.setGpxBlob(blob);
   return { gpxPath: null, gpxBlob: blob };
@@ -685,7 +739,17 @@ function openAetherMap() {
   router.push("/aethermap");
 }
 
-onMounted(() => {
+function onSelectSegment(segId: string) {
+  const seg = tracking.segments.find((s) => s.id === segId);
+  if (seg && seg.points.length > 0) {
+    const map = liveMapRef.value;
+    if (map) {
+      map.setRoute(seg.points.map((p) => ({ lat: p.lat, lon: p.lon })));
+    }
+  }
+}
+
+onMounted(async () => {
   const restored = tracking.restoreState();
   if (!restored) {
     resetTrackingState();
@@ -701,10 +765,9 @@ onBeforeUnmount(() => {
     clearTimeout(webFirstFixTimeout);
     webFirstFixTimeout = null;
   }
-  gps.stop();
-  voiceCoach.stopVoiceCoachInterval();
-  if (tracking.isTracking && !tracking.gpxBlob) {
-    stopWebTracking();
+  continuous.stop();
+  if (tracking.currentSegment && tracking.routePoints.length > 0) {
+    tracking.closeCurrentSegment();
   }
   tracking.persistState();
 });
@@ -782,6 +845,26 @@ onBeforeUnmount(() => {
   100% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
   }
+}
+
+.tracking-auto-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auto-badge {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748b;
+  font-weight: 500;
+}
+
+.auto-badge.active {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
 }
 
 .premium-empty {
@@ -967,5 +1050,84 @@ onBeforeUnmount(() => {
   color: var(--error);
   font-size: 0.85rem;
   margin-top: 8px;
+}
+
+.daily-summary-section {
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+.daily-summary-section h3 {
+  margin: 0 0 16px 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.daily-stats {
+  display: flex;
+  gap: 24px;
+  margin-top: 16px;
+  justify-content: center;
+}
+
+.daily-stats .stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.daily-stats .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.daily-stats .stat-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.manual-start-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.auto-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.auto-toggle input {
+  accent-color: var(--accent);
+}
+
+@media (max-width: 768px) {
+  .tracking-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .tracking-content :deep(.map-container) {
+    height: 300px;
+    min-height: 300px;
+  }
+
+  .daily-stats {
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 </style>

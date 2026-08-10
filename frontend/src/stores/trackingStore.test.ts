@@ -115,4 +115,57 @@ describe("trackingStore", () => {
     expect(store.distance).toBe(0);
     expect(store.currentSpeed).toBe(0);
   });
+
+  it("starts and closes activity segments", () => {
+    const store = useTrackingStore();
+    const segId = store.startSegment();
+    expect(store.currentSegment).not.toBeNull();
+    expect(store.currentSegment?.id).toBe(segId);
+
+    store.currentSegment?.points.push({
+      lat: 45.0,
+      lon: 7.0,
+      altitude: 120,
+      timestamp: new Date().toISOString(),
+    });
+    store.currentSegment.distanceM = 500;
+    store.currentSegment.elevationGainM = 20;
+
+    const closed = store.closeCurrentSegment();
+    expect(closed).not.toBeNull();
+    expect(closed?.endTime).not.toBeNull();
+    expect(store.segments).toHaveLength(1);
+    expect(store.currentSegment).toBeNull();
+  });
+
+  it("builds daily timeline entries", () => {
+    const store = useTrackingStore();
+    store.startSegment();
+    if (store.currentSegment) {
+      store.currentSegment.startTime = Date.now() - 3600000;
+      store.currentSegment.distanceM = 5000;
+      store.closeCurrentSegment();
+    }
+    const timeline = store.buildDailyTimeline();
+    expect(timeline.length).toBeGreaterThanOrEqual(1);
+    expect(timeline[0].totalDistanceKm).toBeGreaterThan(0);
+  });
+
+  it("computes activity rings", () => {
+    const store = useTrackingStore();
+    expect(store.activityRings).toHaveLength(3);
+    expect(store.activityRings[0].label).toBe("move");
+    expect(store.activityRings[1].label).toBe("exercise");
+    expect(store.activityRings[2].label).toBe("stand");
+  });
+
+  it("clears all state", () => {
+    const store = useTrackingStore();
+    store.updateMetrics({ distance: 5000 });
+    store.startSegment();
+    store.clearAll();
+    expect(store.distance).toBe(0);
+    expect(store.segments).toHaveLength(0);
+    expect(store.currentSegment).toBeNull();
+  });
 });
