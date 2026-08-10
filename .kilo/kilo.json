@@ -23,6 +23,12 @@
       "command": ["uvx", "git+https://github.com/googlecolab/colab-mcp"],
       "enabled": true,
       "timeout": 30000
+    },
+    "dev-debug-agent": {
+      "type": "local",
+      "command": ["python", "D:/BikeMaster/dev_debug_agent.py"],
+      "enabled": true,
+      "timeout": 120000
     }
   }
 }
