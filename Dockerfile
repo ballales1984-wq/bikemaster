@@ -41,6 +41,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 RUN echo "cache-bust=${CACHEBUST}" > /dev/null
 COPY main.py ./
+COPY package.json ./
 COPY bike_analyzer ./bike_analyzer
 COPY alembic.ini ./
 COPY alembic ./alembic
