@@ -1042,6 +1042,13 @@ def init_db():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_external_token_athlete ON external_tokens(athlete_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_external_token_provider ON external_tokens(provider)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_totp_user ON totp_secrets(user_id)")
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS revoked_tokens (
+                jti TEXT PRIMARY KEY,
+                revoked_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            )"""
+        )
         conn.commit()
 
 
