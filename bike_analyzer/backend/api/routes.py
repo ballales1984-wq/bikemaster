@@ -1787,7 +1787,16 @@ async def google_oauth_callback_get(
             resp.headers["Expires"] = "0"
             return resp
 
-        existing = await asyncio.to_thread(get_athlete_by_email, email) if email else None
+        try:
+            existing = await asyncio.to_thread(get_athlete_by_email, email) if email else None
+        except Exception as exc:
+            logger.exception("Google OAuth athlete lookup failed: %s", exc)
+            resp = _build_oauth_error_url(request, redirect_uri, "user_lookup_failed", frontend_origin)
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp
+
         if not existing:
             from ..redis_client import get_redis
 
@@ -1823,6 +1832,17 @@ async def google_oauth_callback_get(
                         return result
 
                     existing = await asyncio.to_thread(_create_athlete)
+            except Exception as exc:
+                logger.exception("Google OAuth athlete creation failed: %s", exc)
+                if r is not None:
+                    await r.delete(lock_key)
+                else:
+                    lock_release()
+                resp = _build_oauth_error_url(request, redirect_uri, "user_creation_failed", frontend_origin)
+                resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+                resp.headers["Pragma"] = "no-cache"
+                resp.headers["Expires"] = "0"
+                return resp
             finally:
                 if r is not None:
                     await r.delete(lock_key)
@@ -1836,7 +1856,16 @@ async def google_oauth_callback_get(
             resp.headers["Expires"] = "0"
             return resp
 
-        jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
+        try:
+            jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
+        except Exception as exc:
+            logger.exception("Google OAuth session creation failed: %s", exc)
+            resp = _build_oauth_error_url(request, redirect_uri, "session_creation_failed", frontend_origin)
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp
+
         frontend_origin = state_data.get("frontend_origin")
         redirect_target = frontend_origin or redirect_uri
         redirect_url = _build_oauth_success_url(redirect_target, jwt_token, email or "", existing["id"])
