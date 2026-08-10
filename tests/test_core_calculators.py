@@ -38,10 +38,10 @@ from bike_analyzer.backend.maps.google_maps import (
 )
 from bike_analyzer.backend.rate_limiter import (
     RateLimitConfig,
-    _is_trusted_proxy,
     check_user_rate_limit,
     rate_limit_dependency,
 )
+from bike_analyzer.backend.trusted_proxies import _is_trusted_proxy
 from bike_analyzer.core.calculators.calories import calories_met, calories_physics, estimate, per_km
 from bike_analyzer.core.calculators.fatigue import (
     calculate_fatigue_score,

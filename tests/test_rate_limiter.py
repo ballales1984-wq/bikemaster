@@ -7,11 +7,11 @@ from fastapi import HTTPException
 
 from bike_analyzer.backend.rate_limiter import (
     RateLimitConfig,
-    _is_trusted_proxy,
     check_user_rate_limit,
     get_limiter_key,
     rate_limit_dependency,
 )
+from bike_analyzer.backend.trusted_proxies import _is_trusted_proxy
 
 
 def test_is_trusted_proxy_private():

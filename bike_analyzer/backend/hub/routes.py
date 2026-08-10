@@ -19,7 +19,6 @@ import contextlib
 import json
 import logging
 from datetime import UTC, datetime, timedelta
-from ipaddress import AddressValueError, ip_address, ip_network
 from urllib.parse import urlencode, urlparse
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
@@ -36,7 +35,7 @@ from bike_analyzer.backend.analytics.knowledge_base import (
     reload_kb,
     search_knowledge_base,
 )
-from bike_analyzer.backend.audit_log import log_action, read_audit_logs
+from bike_analyzer.backend.audit import log_action, read_audit_logs
 from bike_analyzer.backend.db.async_db import get_session_factory
 from bike_analyzer.backend.db.models import (
     AthleteModel,
@@ -71,6 +70,12 @@ from bike_analyzer.backend.security import (
     verify_password,
 )
 from bike_analyzer.backend.settings import get_settings
+from bike_analyzer.backend.trusted_proxies import (
+    is_trusted_proxy as _is_trusted_proxy,
+)
+from bike_analyzer.backend.trusted_proxies import (
+    trusted_forwarded_value as _trusted_forwarded_value,
+)
 
 _s = get_settings()
 logger = logging.getLogger(__name__)
@@ -78,41 +83,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Helpers (mirrored from api/routes.py to avoid cross-module coupling)
 # ---------------------------------------------------------------------------
-
-_TRUSTED_PROXIES: tuple[str, ...] = (
-    "10.0.0.0/8",
-    "172.16.0.0/12",
-    "192.168.0.0/16",
-    "127.0.0.1",
-    "::1",
-)
-
-
-def _is_trusted_proxy(ip_str: str) -> bool:
-    if ip_str == "testclient":
-        return True
-    try:
-        addr = ip_address(ip_str)
-    except (AddressValueError, ValueError):
-        return False
-    for prefix in _TRUSTED_PROXIES:
-        try:
-            if addr in ip_network(prefix):
-                return True
-        except (AddressValueError, ValueError):
-            if addr == ip_address(prefix):
-                return True
-    return False
-
-
-def _trusted_forwarded_value(request: Request, header: str) -> str | None:
-    client_host = request.client.host if request.client else ""
-    if not _is_trusted_proxy(client_host):
-        return None
-    value = request.headers.get(header)
-    if not value:
-        return None
-    return value.split(",", 1)[0].strip()
 
 
 def _build_redirect_uri(request: Request, path: str) -> str:

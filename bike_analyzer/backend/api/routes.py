@@ -53,7 +53,7 @@ from ..analytics.fatigue import (
 )
 from ..analytics.granfondo_planner import generate_granfondo_plan
 from ..analytics.terrain_enrichment import TerrainEnricher
-from ..audit_log import log_action, read_audit_logs
+from ..audit import log_action, read_audit_logs
 from ..db.database import get_user_by_id, save_user
 from ..maps.map_renderer import create_route_map
 from ..maps.osm_maps import get_local_results, search_nearby, search_places

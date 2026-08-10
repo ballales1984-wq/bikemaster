@@ -1,12 +1,14 @@
 import json
 from pathlib import Path
 
-from bike_analyzer.backend.audit_log import log_action, read_audit_logs
+from bike_analyzer.backend.audit import log_action, read_audit_logs
 
 
 def test_log_action_writes_jsonl(tmp_path, monkeypatch):
     log_file = tmp_path / "audit.jsonl"
-    monkeypatch.setattr("bike_analyzer.backend.audit_log._AUDIT_LOG_PATH", log_file)
+    monkeypatch.setenv("AUDIT_LOG_PATH", str(log_file))
+    import bike_analyzer.backend.audit as audit_mod
+    audit_mod.AUDIT_LOG_PATH = str(log_file)
 
     log_action(actor_id=1, action="backup", resource="database", resource_id=5, details={"file": "backup.db"})
 
@@ -23,7 +25,9 @@ def test_log_action_writes_jsonl(tmp_path, monkeypatch):
 
 def test_read_audit_logs_returns_reversed(tmp_path, monkeypatch):
     log_file = tmp_path / "audit.jsonl"
-    monkeypatch.setattr("bike_analyzer.backend.audit_log._AUDIT_LOG_PATH", log_file)
+    monkeypatch.setenv("AUDIT_LOG_PATH", str(log_file))
+    import bike_analyzer.backend.audit as audit_mod
+    audit_mod.AUDIT_LOG_PATH = str(log_file)
 
     for i in range(5):
         log_action(actor_id=i, action="test", resource="sys")
@@ -37,10 +41,14 @@ def test_read_audit_logs_returns_reversed(tmp_path, monkeypatch):
 
 def test_read_audit_logs_empty_when_missing(tmp_path, monkeypatch):
     missing = tmp_path / "missing.jsonl"
-    monkeypatch.setattr("bike_analyzer.backend.audit_log._AUDIT_LOG_PATH", missing)
+    monkeypatch.setenv("AUDIT_LOG_PATH", str(missing))
+    import bike_analyzer.backend.audit as audit_mod
+    audit_mod.AUDIT_LOG_PATH = str(missing)
     assert read_audit_logs() == []
 
 
 def test_log_action_handles_bad_path(monkeypatch):
-    monkeypatch.setattr("bike_analyzer.backend.audit_log._AUDIT_LOG_PATH", Path("//invalid/path/audit.jsonl"))
+    monkeypatch.setenv("AUDIT_LOG_PATH", "//invalid/path/audit.jsonl")
+    import bike_analyzer.backend.audit as audit_mod
+    audit_mod.AUDIT_LOG_PATH = "//invalid/path/audit.jsonl"
     log_action(1, "x", "y")

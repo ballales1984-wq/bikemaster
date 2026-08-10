@@ -6,36 +6,14 @@ import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from ipaddress import AddressValueError, ip_address, ip_network
 
 from fastapi import HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from bike_analyzer.backend.trusted_proxies import _is_trusted_proxy
+
 logger = logging.getLogger(__name__)
-
-_TRUSTED_PROXIES: tuple[str, ...] = (
-    "10.0.0.0/8",
-    "172.16.0.0/12",
-    "192.168.0.0/16",
-    "127.0.0.1",
-    "::1",
-)
-
-
-def _is_trusted_proxy(ip_str: str) -> bool:
-    try:
-        addr = ip_address(ip_str)
-        for prefix in _TRUSTED_PROXIES:
-            try:
-                if addr in ip_network(prefix):
-                    return True
-            except (AddressValueError, ValueError):
-                if addr == ip_address(prefix):
-                    return True
-    except (AddressValueError, ValueError):
-        pass
-    return False
 
 
 def get_limiter_key(request: Request) -> str:
