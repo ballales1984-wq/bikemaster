@@ -1846,6 +1846,9 @@ async def google_oauth_callback_get(
                         return result
 
                     existing = await asyncio.to_thread(_create_athlete)
+                else:
+                    await asyncio.sleep(0.5)
+                    existing = await asyncio.to_thread(get_athlete_by_email, email)
             except Exception as exc:
                 logger.exception("Google OAuth athlete creation failed: %s", exc)
                 if r is not None:
