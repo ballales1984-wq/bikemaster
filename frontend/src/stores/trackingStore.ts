@@ -496,5 +496,6 @@ ${route}
     clearPersistedState,
     clearAll,
     formattedTime,
-  formattedDistance,
-};
+    formattedDistance,
+    };
+});
