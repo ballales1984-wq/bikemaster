@@ -3,6 +3,9 @@
   "version": "1.0.1",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20 <21"
+  },
   "scripts": {
     "dev": "vite",
     "prebuild": "node -e \"try{require('fs').rmSync('dist',{recursive:true,force:true,maxRetries:5,retryDelay:300})}catch(e){}\"",
