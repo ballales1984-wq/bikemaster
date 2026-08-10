@@ -231,6 +231,7 @@ describe("auth store", () => {
     expect(store.token).toBe("");
     expect(store.user).toBe(null);
     expect(store.justLoggedIn).toBe(false);
+    expect(store.oauthError).toBe("oops");
   });
 
   it("register resolves on success", async () => {

@@ -133,6 +133,10 @@ export function processOAuthToken(): boolean {
     auth.setOauthError(oauthError);
     ui.setOauthLoading(false);
     clearUrlToken();
+    window.__toast?.add(
+      `Authentication failed: ${oauthError}. Please try again.`,
+      "error",
+    );
     console.warn("[OAuth] URL error:", oauthError);
     return true;
   }

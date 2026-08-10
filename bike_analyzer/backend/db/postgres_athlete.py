@@ -300,6 +300,9 @@ def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | Non
             else:
                 cur.execute("SELECT * FROM athletes WHERE email=%s", (email,))
             return _dict_from_row(cur.fetchone())
+    except Exception:
+        logger.exception("get_athlete_by_email failed for email=%s", email)
+        return None
     finally:
         if conn is not None:
             conn.close()

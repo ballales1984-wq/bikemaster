@@ -82,6 +82,8 @@ export const useAuthStore = defineStore("auth", () => {
       : false,
   );
 
+  const oauthError = ref("");
+
   const refreshToken = ref(
     typeof sessionStorage !== "undefined"
       ? sessionStorage.getItem(AUTH_REFRESH_TOKEN_KEY) || ""
@@ -486,10 +488,15 @@ export const useAuthStore = defineStore("auth", () => {
     );
   }
 
-  function setOauthError(_oauthError: string) {
+  function setOauthError(oauthErrorMessage: string) {
+    oauthError.value = oauthErrorMessage;
     token.value = "";
     user.value = null;
     justLoggedIn.value = false;
+  }
+
+  function clearOauthError() {
+    oauthError.value = "";
   }
 
   function setJustLoggedIn(value: boolean) {
@@ -501,6 +508,7 @@ export const useAuthStore = defineStore("auth", () => {
     user,
     refreshToken,
     justLoggedIn,
+    oauthError,
     isLoggedIn,
     isAdmin,
     isClient,
@@ -514,6 +522,7 @@ export const useAuthStore = defineStore("auth", () => {
     parseJWTPayload,
     setAuthFromUrl,
     setOauthError,
+    clearOauthError,
     setJustLoggedIn,
     fetchMyAthletes,
     createMyAthlete,
