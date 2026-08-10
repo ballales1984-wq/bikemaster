@@ -55,6 +55,7 @@ services:
         value: "true"
     startCommand: bash scripts/start.sh
     healthCheckPath: /api/v1/health
+    startupTimeout: 120
     maxShutdownDelaySeconds: 60
     autoDeploy: true
 
