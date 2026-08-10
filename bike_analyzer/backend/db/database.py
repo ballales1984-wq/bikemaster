@@ -416,6 +416,7 @@ def init_db():
             FOREIGN KEY (ride_id) REFERENCES rides(id),
             FOREIGN KEY (athlete_id) REFERENCES athletes(id)
          )""")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_route_safety_scores_ride ON route_safety_scores(ride_id)")
         conn.execute("""CREATE TABLE IF NOT EXISTS pois (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -433,6 +434,7 @@ def init_db():
             created_at TEXT,
             FOREIGN KEY (itinerary_id) REFERENCES itineraries(id) ON DELETE SET NULL
         )""")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_pois_tenant_coords_name_type ON pois(tenant_id, lat, lon, name, type)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_pois_coords ON pois(lat, lon)")
         conn.execute("""CREATE TABLE IF NOT EXISTS itineraries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -3748,7 +3750,17 @@ def save_route_safety_score(score_data: dict, tenant_id: int = 0) -> int:
             (ride_id, athlete_id, risk_score, label, advice,
              road_type_counts, has_bike_infrastructure, incident_count,
              route_length_km, computed_at, tenant_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(ride_id) DO UPDATE SET
+                risk_score = excluded.risk_score,
+                label = excluded.label,
+                advice = excluded.advice,
+                road_type_counts = excluded.road_type_counts,
+                has_bike_infrastructure = excluded.has_bike_infrastructure,
+                incident_count = excluded.incident_count,
+                route_length_km = excluded.route_length_km,
+                computed_at = excluded.computed_at,
+                tenant_id = excluded.tenant_id""",
             (
                 score_data.get("ride_id"),
                 score_data.get("athlete_id"),
@@ -3839,6 +3851,19 @@ def save_poi(poi: dict) -> int:
     """Create a Point of Interest. Returns the new row id."""
     with get_db_connection() as conn:
         cur = conn.cursor()
+        cur.execute(
+            "SELECT id FROM pois WHERE tenant_id = ? AND lat = ? AND lon = ? AND name = ? AND type = ?",
+            (
+                poi.get("tenant_id", 0),
+                poi.get("lat"),
+                poi.get("lon"),
+                poi.get("name"),
+                poi.get("type"),
+            ),
+        )
+        row = cur.fetchone()
+        if row:
+            return row["id"]
         cur.execute(
             """INSERT INTO pois
             (name, description, lat, lon, type, photos, video_url,
