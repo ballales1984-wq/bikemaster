@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "vite",
   "installCommand": "npm install && npm --prefix frontend install",
   "buildCommand": "npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
@@ -10,12 +9,6 @@
       "VITE_API_BASE": "https://bikemaster.onrender.com"
     }
   },
-  "crons": [
-    {
-      "path": "/api/cron",
-      "schedule": "0 0 * * *"
-    }
-  ],
   "rewrites": [
     {
       "source": "/sqlite3/(.*)",
@@ -50,10 +43,6 @@
         { "key": "Content-Type", "value": "application/wasm" },
         { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" }
       ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": []
     }
   ]
 }
