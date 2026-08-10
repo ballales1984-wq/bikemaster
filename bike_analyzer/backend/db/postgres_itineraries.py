@@ -24,7 +24,7 @@ _s = get_settings()
 # Reuse the connection / dispatch primitives defined once in postgres_athlete
 # so there is a single source of truth for "is postgres configured" and for the
 # psycopg2 connection factory.
-from .postgres_athlete import _connect, has_postgres  # noqa: E402,F401
+from .postgres_athlete import _connect, _safe_close, has_postgres  # noqa: E402,F401
 
 _ITINERARY_COLS = [
     "athlete_id", "tenant_id", "name", "description",
@@ -139,7 +139,7 @@ def save_itinerary(itinerary: dict) -> int:
             conn.commit()
             return int(row["id"]) if row else 0
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def get_stage(stage_id: int, tenant_id: int | None = None) -> dict | None:
@@ -157,7 +157,7 @@ def get_stage(stage_id: int, tenant_id: int | None = None) -> dict | None:
                 cur.execute("SELECT * FROM stages WHERE id=%s", (stage_id,))
             return _row_to_dict(cur.fetchone())
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def get_itinerary(itinerary_id: int, tenant_id: int | None = None) -> dict | None:
@@ -175,7 +175,7 @@ def get_itinerary(itinerary_id: int, tenant_id: int | None = None) -> dict | Non
                 cur.execute("SELECT * FROM itineraries WHERE id=%s", (itinerary_id,))
             return _row_to_dict(cur.fetchone())
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def list_itineraries(
@@ -206,7 +206,7 @@ def list_itineraries(
                 cur.execute("SELECT * FROM itineraries ORDER BY id DESC")
             return [_row_to_dict(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def save_stage(stage: dict) -> int:
@@ -233,7 +233,7 @@ def save_stage(stage: dict) -> int:
             conn.commit()
             return int(row["id"]) if row else 0
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def list_stages(itinerary_id: int, tenant_id: int | None = None) -> list[dict]:
@@ -256,7 +256,7 @@ def list_stages(itinerary_id: int, tenant_id: int | None = None) -> list[dict]:
                 )
             return [_row_to_dict(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def update_itinerary(itinerary_id: int, data: dict, tenant_id: int | None = None) -> bool:
@@ -297,7 +297,7 @@ def update_itinerary(itinerary_id: int, data: dict, tenant_id: int | None = None
             conn.commit()
             return cur.rowcount > 0
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def delete_itinerary(itinerary_id: int, tenant_id: int | None = None) -> bool:
@@ -316,7 +316,7 @@ def delete_itinerary(itinerary_id: int, tenant_id: int | None = None) -> bool:
             conn.commit()
             return cur.rowcount > 0
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def update_stage(stage_id: int, data: dict, tenant_id: int | None = None) -> bool:
@@ -360,7 +360,7 @@ def update_stage(stage_id: int, data: dict, tenant_id: int | None = None) -> boo
             conn.commit()
             return cur.rowcount > 0
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def delete_stage(stage_id: int, tenant_id: int | None = None) -> bool:
@@ -379,7 +379,7 @@ def delete_stage(stage_id: int, tenant_id: int | None = None) -> bool:
             conn.commit()
             return cur.rowcount > 0
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def reorder_stages(itinerary_id: int, stage_order: list[int], tenant_id: int | None = None) -> bool:
@@ -401,4 +401,4 @@ def reorder_stages(itinerary_id: int, stage_order: list[int], tenant_id: int | N
         conn.commit()
         return True
     finally:
-        conn.close()
+        _safe_close(conn)

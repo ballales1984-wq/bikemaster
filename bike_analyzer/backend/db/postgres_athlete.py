@@ -57,6 +57,14 @@ def _connect():
 _EXISTING_COLUMNS_CACHE: dict[str, list[str]] = {}
 
 
+def _safe_close(conn):
+    if conn is not None:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
 def _get_existing_columns(table_name: str) -> list[str]:
     """Return the actual column names present in a PostgreSQL table.
 
@@ -84,7 +92,7 @@ def _get_existing_columns(table_name: str) -> list[str]:
         raise
     finally:
         if conn is not None:
-            conn.close()
+            _safe_close(conn)
 
 
 def _ensure_tables(conn) -> None:  # pragma: no cover - kept for standalone bootstrap
@@ -284,7 +292,7 @@ def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
         return None
     finally:
         if conn is not None:
-            conn.close()
+            _safe_close(conn)
 
 
 def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | None:
@@ -305,7 +313,7 @@ def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | Non
         return None
     finally:
         if conn is not None:
-            conn.close()
+            _safe_close(conn)
 
 
 def save_athlete(
@@ -361,7 +369,7 @@ def save_athlete(
         raise
     finally:
         if conn is not None:
-            conn.close()
+            _safe_close(conn)
 
 
 def _do_update(cur, athlete_id: int, merged: dict, now: str) -> None:
@@ -420,7 +428,7 @@ def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
         raise
     finally:
         if conn is not None:
-            conn.close()
+            _safe_close(conn)
 
 
 def log_athlete_metric(
@@ -468,7 +476,7 @@ def log_athlete_metric(
         raise
     finally:
         if conn is not None:
-            conn.close()
+            _safe_close(conn)
 
 
 def get_athlete_metric_log(
@@ -497,7 +505,7 @@ def get_athlete_metric_log(
             return [_dict_from_row(r) for r in cur.fetchall()]
     finally:
         if conn is not None:
-            conn.close()
+            _safe_close(conn)
 
 
 def save_athlete_snapshot(
@@ -542,7 +550,7 @@ def save_athlete_snapshot(
         raise
     finally:
         if own_conn and conn is not None:
-            conn.close()
+            _safe_close(conn)
 
 
 def get_athlete_history(
@@ -567,7 +575,7 @@ def get_athlete_history(
             return [_dict_from_row(r) for r in cur.fetchall()]
     finally:
         if conn is not None:
-            conn.close()
+            _safe_close(conn)
 
 
 def get_athletes_by_user(user_id: int) -> list[dict]:
@@ -582,7 +590,7 @@ def get_athletes_by_user(user_id: int) -> list[dict]:
             return [_dict_from_row(r) for r in cur.fetchall()]
     finally:
         if conn is not None:
-            conn.close()
+            _safe_close(conn)
 
 
 def get_athlete_count_by_user(user_id: int) -> int:
@@ -598,7 +606,7 @@ def get_athlete_count_by_user(user_id: int) -> int:
             return int(row["count"]) if row else 0
     finally:
         if conn is not None:
-            conn.close()
+            _safe_close(conn)
 
 
 def delete_athlete(athlete_id: int, user_id: int) -> bool:
@@ -615,4 +623,4 @@ def delete_athlete(athlete_id: int, user_id: int) -> bool:
             return cur.rowcount > 0
     finally:
         if conn is not None:
-            conn.close()
+            _safe_close(conn)

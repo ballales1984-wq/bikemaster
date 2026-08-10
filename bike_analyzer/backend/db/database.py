@@ -1312,15 +1312,18 @@ def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | Non
 
     if has_postgres():
         return _pg_get_athlete_by_email(email, tenant_id)
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        if tenant_id is not None:
-            cur.execute("SELECT * FROM athletes WHERE email = ? AND tenant_id = ?", (email, tenant_id))
-        else:
-            cur.execute("SELECT * FROM athletes WHERE email = ?", (email,))
-        row = cur.fetchone()
-        if row:
-            return _row_to_athlete(row)
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            if tenant_id is not None:
+                cur.execute("SELECT * FROM athletes WHERE email = ? AND tenant_id = ?", (email, tenant_id))
+            else:
+                cur.execute("SELECT * FROM athletes WHERE email = ?", (email,))
+            row = cur.fetchone()
+            if row:
+                return _row_to_athlete(row)
+            return None
+    except Exception:
         return None
 
 

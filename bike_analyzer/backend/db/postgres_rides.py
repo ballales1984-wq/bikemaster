@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 # Reuse the connection / dispatch primitives defined once in postgres_athlete
 # so there is a single source of truth for "is postgres configured" and for the
 # psycopg2 connection factory.
-from .postgres_athlete import _connect, has_postgres  # noqa: E402,F401
+from .postgres_athlete import _connect, _safe_close, has_postgres  # noqa: E402,F401
 
 
 def _ensure_tables(conn) -> None:  # pragma: no cover - best-effort bootstrap
@@ -241,7 +241,7 @@ def save_ride(ride: dict) -> int:
             conn.commit()
             return int(row["id"]) if row else 0
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
@@ -256,7 +256,7 @@ def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
                 cur.execute("SELECT * FROM rides WHERE id = %s", (ride_id,))
             return _ride_row_to_dict(cur.fetchone())
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def get_rides_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
@@ -277,7 +277,7 @@ def get_rides_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[
                 )
             return [_ride_row_to_dict(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
@@ -299,7 +299,7 @@ def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -
                 cur.execute("SELECT * FROM rides ORDER BY date ASC, id ASC")
             return [_ride_row_to_dict(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def delete_ride(ride_id: int, tenant_id: int | None = None) -> bool:
@@ -315,7 +315,7 @@ def delete_ride(ride_id: int, tenant_id: int | None = None) -> bool:
             conn.commit()
             return cur.rowcount > 0
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
@@ -361,7 +361,7 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
             conn.commit()
             return cur.rowcount > 0
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def save_metric(metric: dict, tenant_id: int = 0) -> int:
@@ -390,7 +390,7 @@ def save_metric(metric: dict, tenant_id: int = 0) -> int:
             conn.commit()
             return int(row["id"]) if row else 0
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def upsert_training_stress_day(
@@ -413,7 +413,7 @@ def upsert_training_stress_day(
             )
             conn.commit()
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | None = None) -> list[dict]:
@@ -440,7 +440,7 @@ def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | 
                 for r in cur.fetchall()
             ]
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def get_latest_training_stress(athlete_id: int, tenant_id: int | None = None) -> dict | None:
@@ -467,7 +467,7 @@ def get_latest_training_stress(athlete_id: int, tenant_id: int | None = None) ->
                 return {"date": row["date"], "tss": row["tss"], "atl": row["atl"], "ctl": row["ctl"], "tsb": row["tsb"]}
             return None
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 def get_metrics_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
@@ -488,7 +488,7 @@ def get_metrics_by_athlete(athlete_id: int, tenant_id: int | None = None) -> lis
                 )
             return [dict(r) for r in cur.fetchall()]
     finally:
-        conn.close()
+        _safe_close(conn)
 
 
 __all__ = [
