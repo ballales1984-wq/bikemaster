@@ -479,7 +479,7 @@ async function sendMessage() {
     messages.value.push({
       role: "assistant",
       content:
-        " Errore nella risposta. Verifica la configurazione di GROQ_API_KEY nel backend.",
+        "Errore nella risposta. Possibili cause: backend non raggiungibile, CORS bloccato, oppure GROQ_API_KEY non configurata. Verifica l'URL backend in Impostazioni e la connessione di rete.",
       time: getTime(),
     });
     connected.value = false;

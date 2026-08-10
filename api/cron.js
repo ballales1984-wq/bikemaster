@@ -14,7 +14,7 @@ module.exports = async function handler(request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const backendUrl = (process.env.BACKEND_URL || "https://bikemaster-api.onrender.com").replace(/\/+$/, "");
+  const backendUrl = (process.env.BACKEND_URL || "https://bikemaster.onrender.com").replace(/\/+$/, "");
   const target = `${backendUrl}/api/v1/health`;
 
   try {

@@ -208,7 +208,6 @@ def _validate_redirect_uri(redirect_uri: str, request: Request) -> None:
     allowed_hosts = (
         {
             "bikemaster.onrender.com",
-            "bikemaster-api.onrender.com",
             "bikemaster-xi.vercel.app",
             "testserver",
         }

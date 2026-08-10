@@ -394,7 +394,7 @@ def test_google_oauth_callback_uses_frontend_origin_from_state(client, monkeypat
     from bike_analyzer.backend.api.routes import _issue_oauth_state
     from bike_analyzer.backend.settings import get_settings
 
-    redirect_uri = "https://bikemaster-api.onrender.com/api/v1/auth/google/callback"
+    redirect_uri = "https://bikemaster.onrender.com/api/v1/auth/google/callback"
     frontend_origin = "https://bikemaster-xi.vercel.app"
     monkeypatch.setattr(get_settings(), "google_client_id", "test-client")
     monkeypatch.setattr(get_settings(), "google_client_secret", "test-secret")
@@ -426,7 +426,7 @@ def test_google_oauth_callback_uses_frontend_origin_from_state(client, monkeypat
     assert r.status_code == 307
     assert r.headers["location"].startswith("https://bikemaster-xi.vercel.app/#token=jwt-token")
     assert "token=jwt-token" in r.headers["location"]
-    assert "bikemaster-api.onrender.com" not in r.headers["location"]
+    assert "bikemaster.onrender.com" not in r.headers["location"]
 
 
 def test_google_oauth_callback_rejects_invalid_state(client, monkeypatch):

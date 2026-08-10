@@ -114,4 +114,4 @@ console.log(result.gpxPath)
 
 ## Backend su Render
 
-L'app è configurata per `https://bikemaster-api.onrender.com/api/v1/`. Modifica l'URL in Settings se necessario.
+L'app è configurata per `https://bikemaster.onrender.com/api/v1/`. Modifica l'URL in Settings se necessario.

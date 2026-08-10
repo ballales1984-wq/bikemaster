@@ -480,12 +480,12 @@ def create_app() -> FastAPI:
     logger.info(
         "CORS configured: origins=%s regex=%s",
         cors_origins,
-        r"https://.*\.vercel\.app",
+        r"https://(bikemaster-[a-zA-Z0-9-]+\.vercel\.app|bikemaster\.onrender\.com)",
     )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
-        allow_origin_regex=r"https://bikemaster-[a-zA-Z0-9-]+\.vercel\.app",
+        allow_origin_regex=r"https://(bikemaster-[a-zA-Z0-9-]+\.vercel\.app|bikemaster\.onrender\.com)",
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=[
