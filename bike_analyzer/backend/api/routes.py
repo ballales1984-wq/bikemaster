@@ -1836,9 +1836,12 @@ async def google_oauth_callback_get(
                                 if result is None and athlete_id:
                                     logger.warning("Google OAuth get_athlete returned None after save for athlete_id=%s, using fallback", athlete_id)
                                     result = {"id": athlete_id}
-                            except Exception:
+                            except Exception as exc:
                                 logger.exception(
-                                    "Athlete creation failed, checking if already created by another request"
+                                    "Athlete creation failed in get-callback for email=%s sub=%s: %s",
+                                    email,
+                                    google_sub,
+                                    exc,
                                 )
                                 result = get_athlete_by_email(email) if email else None
                                 if not result:
@@ -1850,7 +1853,13 @@ async def google_oauth_callback_get(
                     await asyncio.sleep(0.5)
                     existing = await asyncio.to_thread(get_athlete_by_email, email)
             except Exception as exc:
-                logger.exception("Google OAuth athlete creation failed: %s", exc)
+                logger.exception(
+                    "Google OAuth athlete creation/get failed for email=%s sub=%s lock_acquired=%s: %s",
+                    email,
+                    google_sub,
+                    lock_acquired,
+                    exc,
+                )
                 if r is not None:
                     await r.delete(lock_key)
                 else:
@@ -1867,6 +1876,12 @@ async def google_oauth_callback_get(
                     lock_release()
 
         if not existing:
+            logger.warning(
+                "Google OAuth returning user_creation_failed for email=%s sub=%s existing=%s",
+                email,
+                google_sub,
+                existing,
+            )
             resp = _build_oauth_error_url(request, redirect_uri, "user_creation_failed", frontend_origin)
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
             resp.headers["Pragma"] = "no-cache"
@@ -1972,9 +1987,12 @@ async def google_code_exchange(
                         if result is None and athlete_id:
                             logger.warning("Google OAuth get_athlete returned None after save for athlete_id=%s, using fallback", athlete_id)
                             result = {"id": athlete_id}
-                    except Exception:
+                    except Exception as exc:
                         logger.exception(
-                            "Athlete creation failed in code-exchange, checking if already created"
+                            "Athlete creation failed in code-exchange for email=%s sub=%s: %s",
+                            email,
+                            google_sub,
+                            exc,
                         )
                         result = get_athlete_by_email(email) if email else None
                         if not result:
@@ -1985,6 +2003,19 @@ async def google_code_exchange(
         else:
             await asyncio.sleep(0.5)
             existing = await asyncio.to_thread(get_athlete_by_email, email)
+    except Exception as exc:
+        logger.exception(
+            "Google OAuth code-exchange athlete creation/get failed for email=%s sub=%s lock_acquired=%s: %s",
+            email,
+            google_sub,
+            lock_acquired,
+            exc,
+        )
+        if r is not None:
+            await r.delete(lock_key)
+        else:
+            lock_release()
+        raise HTTPException(status_code=500, detail="user_creation_failed")
     finally:
         if r is not None:
             await r.delete(lock_key)
@@ -1992,6 +2023,12 @@ async def google_code_exchange(
             lock_release()
 
     if not existing:
+        logger.warning(
+            "Google OAuth code-exchange returning user_creation_failed for email=%s sub=%s existing=%s",
+            email,
+            google_sub,
+            existing,
+        )
         raise HTTPException(status_code=500, detail="user_creation_failed")
     jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
     return {"access_token": jwt_token, "email": email or "", "user_id": str(existing["id"])}
