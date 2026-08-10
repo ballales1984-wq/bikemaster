@@ -12,7 +12,7 @@ COPY frontend/*.js ./
 COPY frontend/*.html ./
 COPY frontend/public/ ./public/
 COPY frontend/scripts/ ./scripts/
-RUN npm run build
+RUN echo "cache-bust=${CACHEBUST}" > /dev/null && npm run build
 
 # === Production Stage ===
 FROM python:3.11-slim AS production
