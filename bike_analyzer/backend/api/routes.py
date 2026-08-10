@@ -1817,18 +1817,32 @@ async def google_oauth_callback_get(
                         """Crea un atleta se non esiste (per email o sub), con tenant_id isolato."""
                         result = get_athlete_by_email(email) if email else None
                         if not result:
-                            athlete_id = save_athlete(
-                                {
-                                    "name": name or email or google_sub,
-                                    "email": email,
-                                    "picture": user_info.get("picture"),
-                                    "experience_level": "Beginner",
-                                }
-                            )
-                            if athlete_id:
-                                from ..db.database import update_athlete
-                                update_athlete(athlete_id, {"tenant_id": athlete_id})
-                            result = get_athlete(athlete_id)
+                            try:
+                                athlete_id = save_athlete(
+                                    {
+                                        "name": name or email or google_sub,
+                                        "email": email,
+                                        "picture": user_info.get("picture"),
+                                        "experience_level": "Beginner",
+                                    }
+                                )
+                                if athlete_id:
+                                    try:
+                                        from ..db.database import update_athlete
+                                        update_athlete(athlete_id, {"tenant_id": athlete_id})
+                                    except Exception:
+                                        logger.warning("Google OAuth update_athlete failed for athlete_id=%s", athlete_id)
+                                result = get_athlete(athlete_id)
+                                if result is None and athlete_id:
+                                    logger.warning("Google OAuth get_athlete returned None after save for athlete_id=%s, using fallback", athlete_id)
+                                    result = {"id": athlete_id}
+                            except Exception:
+                                logger.exception(
+                                    "Athlete creation failed, checking if already created by another request"
+                                )
+                                result = get_athlete_by_email(email) if email else None
+                                if not result:
+                                    raise
                         return result
 
                     existing = await asyncio.to_thread(_create_athlete)
@@ -1918,21 +1932,62 @@ async def google_code_exchange(
     if not google_sub:
         raise HTTPException(status_code=400, detail="invalid_user_info")
     from ..db.database import get_athlete, get_athlete_by_email, save_athlete
-    existing = await asyncio.to_thread(get_athlete_by_email, email) if email else None
-    if not existing:
-        athlete_id = await asyncio.to_thread(
-            save_athlete,
-            {
-                "name": user_info.get("name") or email or google_sub,
-                "email": email,
-                "picture": user_info.get("picture"),
-                "experience_level": "Beginner",
-            },
-        )
-        if athlete_id:
-            from ..db.database import update_athlete
-            update_athlete(athlete_id, {"tenant_id": athlete_id})
-        existing = get_athlete(athlete_id)
+    from ..redis_client import get_redis
+    from ..db.database import acquire_oauth_sqlite_lock, release_oauth_sqlite_lock
+
+    lock_key = f"oauth:lock:athlete:{email or google_sub}"
+    r = await get_redis()
+    if r is not None:
+        lock_acquired = await r.set(lock_key, "1", ex=10, nx=True)
+        lock_release = lambda: None
+    else:
+        lock_acquired = acquire_oauth_sqlite_lock(lock_key, ttl_seconds=10)
+        lock_release = lambda: release_oauth_sqlite_lock(lock_key)
+
+    try:
+        if lock_acquired:
+
+            def _create_athlete():
+                result = get_athlete_by_email(email) if email else None
+                if not result:
+                    try:
+                        athlete_id = save_athlete(
+                            {
+                                "name": user_info.get("name") or email or google_sub,
+                                "email": email,
+                                "picture": user_info.get("picture"),
+                                "experience_level": "Beginner",
+                            }
+                        )
+                        if athlete_id:
+                            try:
+                                from ..db.database import update_athlete
+                                update_athlete(athlete_id, {"tenant_id": athlete_id})
+                            except Exception:
+                                logger.warning("Google OAuth update_athlete failed for athlete_id=%s", athlete_id)
+                        result = get_athlete(athlete_id)
+                        if result is None and athlete_id:
+                            logger.warning("Google OAuth get_athlete returned None after save for athlete_id=%s, using fallback", athlete_id)
+                            result = {"id": athlete_id}
+                    except Exception:
+                        logger.exception(
+                            "Athlete creation failed in code-exchange, checking if already created"
+                        )
+                        result = get_athlete_by_email(email) if email else None
+                        if not result:
+                            raise
+                return result
+
+            existing = await asyncio.to_thread(_create_athlete)
+        else:
+            await asyncio.sleep(0.5)
+            existing = await asyncio.to_thread(get_athlete_by_email, email)
+    finally:
+        if r is not None:
+            await r.delete(lock_key)
+        else:
+            lock_release()
+
     if not existing:
         raise HTTPException(status_code=500, detail="user_creation_failed")
     jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
