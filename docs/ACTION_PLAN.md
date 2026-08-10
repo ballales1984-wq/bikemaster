@@ -1,5 +1,8 @@
 # BikeMaster — Piano d'Azione: Consolidamento, Test Coverage e Produzione
 
+> **Questo documento è storico (2026-07-18). Il piano di sviluppo aggiornato
+> è in [`ROADMAP.md`](../ROADMAP.md).**
+
 *Data: 2026-07-18 — aggiornamento post-merge branch + fix bug (commit `cec425b`)*
 
 Questo piano parte dallo stato verificato oggi. I 3 branch (`feat/local-auth`,

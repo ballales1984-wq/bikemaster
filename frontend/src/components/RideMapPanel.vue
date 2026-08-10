@@ -414,39 +414,67 @@ function loadReplayPoints() {
     (p) => Number.isFinite(p.lat) && Number.isFinite(p.lon),
   );
   replayIndex.value = 0;
+  _prevReplayIndex = -1;
   drawReplay();
 }
 
+let _prevReplayIndex = -1;
+
 function drawReplay() {
   if (!map) return;
-  if (replayPath) {
-    map.removeLayer(replayPath);
-    replayPath = null;
+  const targetIndex = replayIndex.value;
+  const points = replayPoints.value;
+
+  if (targetIndex !== _prevReplayIndex + 1 || replayPath === null) {
+    if (replayPath) {
+      map.removeLayer(replayPath);
+      replayPath = null;
+    }
+    if (replayMarker) {
+      map.removeLayer(replayMarker);
+      replayMarker = null;
+    }
+    if (points.length >= 2 && targetIndex >= 0) {
+      const pts = points
+        .slice(0, targetIndex + 1)
+        .map((p) => [p.lat, p.lon] as [number, number]);
+      replayPath = L.polyline(pts, {
+        color: "#4ecca3",
+        weight: 5,
+        opacity: 0.9,
+      }).addTo(map);
+    }
+    const cur = points[targetIndex];
+    if (cur) {
+      replayMarker = L.circleMarker([cur.lat, cur.lon], {
+        radius: 7,
+        color: "#4ecca3",
+        fillColor: "#4ecca3",
+        fillOpacity: 1,
+        weight: 3,
+      }).addTo(map);
+    }
+    _prevReplayIndex = targetIndex;
+    return;
   }
-  if (replayMarker) {
-    map.removeLayer(replayMarker);
-    replayMarker = null;
+
+  if (replayPath && targetIndex < points.length) {
+    replayPath.addLatLng([points[targetIndex].lat, points[targetIndex].lon]);
   }
-  const pts = replayPoints.value
-    .slice(0, replayIndex.value + 1)
-    .map((p) => [p.lat, p.lon] as [number, number]);
-  if (pts.length > 1) {
-    replayPath = L.polyline(pts, {
-      color: "#4ecca3",
-      weight: 5,
-      opacity: 0.9,
-    }).addTo(map);
+  if (points[targetIndex]) {
+    if (replayMarker) {
+      replayMarker.setLatLng([points[targetIndex].lat, points[targetIndex].lon]);
+    } else {
+      replayMarker = L.circleMarker([points[targetIndex].lat, points[targetIndex].lon], {
+        radius: 7,
+        color: "#4ecca3",
+        fillColor: "#4ecca3",
+        fillOpacity: 1,
+        weight: 3,
+      }).addTo(map);
+    }
   }
-  const cur = replayPoints.value[replayIndex.value];
-  if (cur) {
-    replayMarker = L.circleMarker([cur.lat, cur.lon], {
-      radius: 7,
-      color: "#4ecca3",
-      fillColor: "#4ecca3",
-      fillOpacity: 1,
-      weight: 3,
-    }).addTo(map);
-  }
+  _prevReplayIndex = targetIndex;
 }
 
 function toggleReplay() {

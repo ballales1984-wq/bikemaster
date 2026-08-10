@@ -24,6 +24,7 @@ di screenshot.
 - **Server MCP**: `dev_debug_agent.py` (FastMCP v1.29.0, stdio).
 - **Dipendenze**: `mcp[cli]==1.29.0`, `playwright` (opzionale per screenshot).
 - **Config Kilo**: `.kilo/kilo.json` → `mcp.dev-debug-agent`.
+- **Wrapper**: `.kilo/scripts/dev_debug_agent_wrapper.py` aggiunge un ritardo di avvio per evitare timeout Kilo.
 - **Strumenti esposti**:
   - `system_info` — versione di Python, Node, npm, git, Vercel CLI, Render CLI
   - `project_info` — lista file/cartelle del progetto

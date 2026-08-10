@@ -26,7 +26,7 @@
     },
     "dev-debug-agent": {
       "type": "local",
-      "command": ["python", "D:/BikeMaster/dev_debug_agent.py"],
+      "command": ["C:/Python314/python.exe", "D:/BikeMaster/.kilo/scripts/dev_debug_agent_wrapper.py"],
       "enabled": true,
       "timeout": 120000
     }

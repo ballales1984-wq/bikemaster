@@ -900,57 +900,68 @@ function geoColorForType(tipo: string): Vec3 {
   return [0.8, 0.8, 0.8];
 }
 
-function updateGeoBuffers() {
+async function updateGeoBuffers() {
+  if (!mounted || !gl) return;
   for (const [, buf] of geoBufferMap) {
     if (buf && gl) gl.deleteBuffer(buf.buf);
   }
   geoBufferMap.clear();
   if (!gl) return;
 
-  for (const layer of visibleLayers.value) {
+  const BATCH = 500;
+  for (let l = 0; l < visibleLayers.value.length; l++) {
+    if (!mounted || !gl) return;
+    const layer = visibleLayers.value[l];
     if (!layer.data) continue;
     const features = layer.data.features || [];
     const lineData: number[] = [];
     const pointData: number[] = [];
 
-    for (const feature of features) {
-      const geom = feature.geometry;
-      if (!geom) continue;
-      const coords = geom.coordinates as unknown[] | undefined;
-      if (!coords || !coords.length) continue;
+    for (let i = 0; i < features.length; i += BATCH) {
+      if (!mounted || !gl) return;
+      const batch = features.slice(i, i + BATCH);
+      for (const feature of batch) {
+        const geom = feature.geometry;
+        if (!geom) continue;
+        const coords = geom.coordinates as unknown[] | undefined;
+        if (!coords || !coords.length) continue;
 
-      if (geom.type === "LineString") {
-        const pts: Vec3[] = [];
-        for (const c of coords) {
-          const coord = c as number[];
-          if (!Array.isArray(coord) || coord.length < 2) continue;
+        if (geom.type === "LineString") {
+          const pts: Vec3[] = [];
+          for (const c of coords) {
+            const coord = c as number[];
+            if (!Array.isArray(coord) || coord.length < 2) continue;
+            const d = geodeticToDirection(coord[1], coord[0]);
+            const h = (coord[2] || 0) * TERRAIN_SCALE;
+            const r = GLOBE_RADIUS + h;
+            pts.push([d[0] * r, d[1] * r, d[2] * r]);
+          }
+          if (pts.length >= 2) {
+            const col: Vec3 =
+              (feature.properties?.color as Vec3 | undefined) ||
+              geoColorForType(
+                (feature.properties?.tipo as string | undefined) || layer.type,
+              );
+            for (let j = 0; j + 1 < pts.length; j++) {
+              pushArc(lineData, pts[j], pts[j + 1], col);
+            }
+          }
+        } else if (geom.type === "Point") {
+          if (!Array.isArray(coords) || coords.length < 2) continue;
+          const coord = coords as number[];
           const d = geodeticToDirection(coord[1], coord[0]);
           const h = (coord[2] || 0) * TERRAIN_SCALE;
           const r = GLOBE_RADIUS + h;
-          pts.push([d[0] * r, d[1] * r, d[2] * r]);
-        }
-        if (pts.length >= 2) {
           const col: Vec3 =
             (feature.properties?.color as Vec3 | undefined) ||
             geoColorForType(
               (feature.properties?.tipo as string | undefined) || layer.type,
             );
-          for (let i = 0; i + 1 < pts.length; i++) {
-            pushArc(lineData, pts[i], pts[i + 1], col);
-          }
+          pointData.push(d[0] * r, d[1] * r, d[2] * r, ...col);
         }
-      } else if (geom.type === "Point") {
-        if (!Array.isArray(coords) || coords.length < 2) continue;
-        const coord = coords as number[];
-        const d = geodeticToDirection(coord[1], coord[0]);
-        const h = (coord[2] || 0) * TERRAIN_SCALE;
-        const r = GLOBE_RADIUS + h;
-        const col: Vec3 =
-          (feature.properties?.color as Vec3 | undefined) ||
-          geoColorForType(
-            (feature.properties?.tipo as string | undefined) || layer.type,
-          );
-        pointData.push(d[0] * r, d[1] * r, d[2] * r, ...col);
+      }
+      if (i + BATCH < features.length) {
+        await new Promise((r) => setTimeout(r, 0));
       }
     }
 
@@ -961,6 +972,10 @@ function updateGeoBuffers() {
     if (pointData.length) {
       const buf = makeBuffer(new Float32Array(pointData), gl.POINTS, 6);
       if (buf) geoBufferMap.set(`point-${layer.id}`, buf);
+    }
+
+    if (l + 1 < visibleLayers.value.length) {
+      await new Promise((r) => setTimeout(r, 0));
     }
   }
 }

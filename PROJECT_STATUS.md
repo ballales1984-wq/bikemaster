@@ -5,32 +5,35 @@
 > **Stato**: architettura locale-first completata — distribuzione di riferimento: desktop **Tauri 2** (`.exe`/`.dmg`/`.AppImage`) con backend embedded FastAPI + SQLite locale. **Produzione deployata su Render**: `bikemaster-api` (FastAPI/Docker) + PostgreSQL `bikemaster-db`, frontend statico servito same-origin (`render.yaml` come fonte di verità). Il modello legacy local-backend + ngrok→Vercel è ritirato. Sync device↔cloud opzionale. Architettura local-first.
 > Fonte di verità unica per stato/checklist: [`ROADMAP.md`](ROADMAP.md).
 >
-> **Numeri backend/frontend (verificati 2026-07-27, repo root):**
+> **Numeri backend/frontend (verificati 2026-08-10, repo root):**
 > - Backend: **~3255 passed / 2 failed** su ~3257 test eseguiti (`pytest`, in chunk per stabilità d'ambiente). I 2 failure sono errori d'ambiente SQLAlchemy async (`MissingGreenlet`).
-> - Frontend: **395 passed / 0 failed / 0 errors** su **395** test (59 file) — `vitest run` eseguito 2026-07-27.
+> - Frontend: **395 passed / 0 failed / 0 errors** su **395** test (59 file) — `vitest run` eseguito 2026-08-10.
 > - Coverage backend: ai_coach.py **90%**, knowledge_base.py **~85%** (con slow tests), routes.py **~65%**.
 > - Endpoint REST: **138** (conteggio storico 2026-07-13).
 > - Coverage: routes.py ~30%, ai_coach ~55%, knowledge_base ~65% (target >90%).
+> - OAuth produzione: hardening completato (logging granulare, lock handling, fallback user creation, sslmode Render, CORS regex per preview Vercel).
 > I conteggi storici di file (108 backend / 47 frontend) sono riportati a titolo di riferimento.
 
 ### AetherMap (converged into BikeMaster — terrain intelligence module)
 
 Progetto cartografico R&D fuso in BikeMaster come modulo terrain intelligence opzionale (`aethermap/`). Fornisce digital twin + AI pipeline per arricchimento coordinate terrain delle ride.
 
-- **Fasi 1-5 complete**: earth model, data model, AI pipeline, WebGL rendering, digital twin. 129 test passing.
+- **Fasi 1-5 complete**: earth model, data model, AI pipeline, WebGL rendering, digital twin. 129+ test passing.
+- **C++ renderer integrato**: milestone 1-6 completate, rendering WebGL con C++ backend.
 - **Integrazione backend**: modulo `bike_analyzer/analytics/terrain_enrichment.py` con `TerrainEnricher` che arricchisce GPSPoint con slope_pct, surface_type, shade, traffic_level, terrain_confidence.
 - **API endpoint**: `/api/v1/rides/{ride_id}/terrain?enabled=true` (richiede `BIKEMASTER_TERRAIN_ENRICHMENT=true`).
-- **Integrazione frontend**: composable `useRideTerrain` in `frontend/src/composables/useRideTerrain.ts`.
+- **Integrazione frontend**: composable `useRideTerrain` in `frontend/src/composables/useRideTerrain.ts` + AetherMapViewer.vue.
 - **Installazione**: `pip install -e ".[maps]"` (aethermap come dipendenza opzionale di bike_analyzer).
 - **Contratto dati**: `Ride/GPSPoint → terrain input` in `docs/agent/aethermap-convergence.md`.
 - Demo: `cd aethermap/src && python -m aethermap.ai.demo|.render.demo|.twin.demo`.
 
 ### Ultimo Commit
-- `5bb9746` — test: aggiungi copertura error branch per import/strava e import/providers
-- `4372b76` — fix: stabilizzazione produzione — schema drift, CORS, health check, exception handling, frontend fixes
-- `c6b9213` — fix: correct 15 logical errors across physics, fatigue, calories, and OAuth
-- `6c0d068` — fix(frontend): centralizza gestione chiavi API in Connessioni
-- `27f8b02` — Add Health Connect OAuth routes (connect/disconnect/sync)
+
+- `36dccd8` — feat: add dev-debug-agent Kilo agent
+- `a220686` — fix(backend): improve OAuth callback logging to diagnose user_creation_failed
+- `9dd12d5` — fix(backend,frontend): improve OAuth logging and map rendering performance
+- `7e33767` — fix(backend,frontend): resilient PostgreSQL schema init and minor UI fix
+- `73d94e0` — fix(backend): resilient OAuth athlete creation with fallback
 
 ---
 
@@ -182,6 +185,8 @@ bike_analyzer/
 │       │   ├── VoiceAssistant.vue     # Floating FAB + Web Speech API
 │       │   ├── TrackingToolsPanel.vue # Map style, POI toggle, center-map, itinerary
 │       │   ├── LiveMap.vue            # Enhanced live tracking map
+│       │   ├── AetherMapViewer.vue    # AetherMap terrain intelligence viewer
+│       │   ├── RideMapPanel.vue       # Enhanced ride map with AetherMap toggle
 │       ├── stores/                    # Pinia state management
 │       ├── composables/               # Composable functions
 │       ├── utils/                     # API client, route mapping
@@ -275,8 +280,10 @@ bike_analyzer/
 ├── docker-compose.yml                 # Docker Compose (app + redis)
 ├── pyproject.toml
 ├── azure.yaml / render.yaml           # Deploy config
-├── ROADMAP.md
-└── PROJECT_STATUS.md
+├── render-hub.yaml                    # Deploy hub Render
+├── vercel.json                        # Deploy frontend Vercel
+├── ROADMAP.md                         # Fonte di verità
+└── PROJECT_STATUS.md                  # Questo file
 ```
 
 ---
@@ -304,6 +311,8 @@ Stato: baseline completo e testato (`test_bm2_*`); **integrato** col flusso
 (item D7 ); **validato** contro potenza misurata via `core/physics/validation.py`
 + `POST /api/v1/bm2/validate` (metriche MAE/RMSE/bias/R²) (item D8 ).
 
+UI Deluxe: wiring frontend completato (`Bm2Panel.vue` + integrazione What-if).
+
 ---
 
 ## Stack Tecnologico
@@ -322,12 +331,12 @@ Stato: baseline completo e testato (`test_bm2_*`); **integrato** col flusso
 | AI/LLM | Groq SDK (embeddings locali via sentence-transformers) |
 | Auth | python-jose[cryptography], passlib, bcrypt, Google OAuth2 |
 | Rate Limit | slowapi (proxy-aware) |
-| Security | Security headers (CSP, HSTS, X-Frame-Options, XSS) |
+| Security | Security headers (CSP, HSTS, X-Frame-Options, XSS) + CSRF + token encryption |
 | Config | Pydantic Settings v2 |
 | Testing | pytest, pytest-asyncio, Playwright |
 | Frontend | Vue 3 + Vite + TypeScript + Pinia + Chart.js + Leaflet + Capacitor |
 | Desktop | Tauri 2 (Rust + WebView) — bundle nativo |
-| Mobile | Android Kotlin (Capacitor) |
+| Mobile | Android Kotlin (Capacitor) + Health Connect + BLE |
 | CI/CD | GitHub Actions (test, lint, security scan, build, Tauri release) |
 
 ---
@@ -356,7 +365,7 @@ Stato: baseline completo e testato (`test_bm2_*`); **integrato** col flusso
 
 | File | Funzionalita |
 |---|---|
-| `ride_repository.py` | Ride CRUD (sync SQLite + async SQLAlchemy + PostgreSQL) |
+| `ride_repository.py` | Ride CRUD (sync + async + postgres) |
 | `athlete_repository.py` | Athlete CRUD (sync + async) |
 | `fitness_state_repository.py` | Fitness state persistence |
 | `training_stress_repository.py` | Training stress data access |
@@ -369,7 +378,7 @@ Stato: baseline completo e testato (`test_bm2_*`); **integrato** col flusso
 |---|---|---|
 | `core/` | Completo | Domain entities + pipeline + engine + fitness state |
 | `event_bus.py` | Completo | Domain events pub/sub (RideCreated, BadgeEarned, ecc.) |
-| `auth/google_auth.py` | Completo | Google OAuth2 session creation |
+| `auth/google_auth.py` | Completo | Google OAuth2 session creation + hardening produzione |
 | `traffic/` | Completo | Road safety analysis (Overpass + incident data) |
 | `database/vectordb.py` | Completo | PGVector wrapper (CREATE EXTENSION, upsert, cosine search) |
 | `analytics.py` | Completo | Summary, export JSON/CSV, report, charts base |
@@ -394,42 +403,13 @@ Stato: baseline completo e testato (`test_bm2_*`); **integrato** col flusso
 | `maps/` | Completo | Folium, Google Static Maps, OSM, SerpApi |
 | `repository pattern` | Completo | RideRepository, AthleteRepository, FitnessStateRepository |
 | `async database` | Completo | SQLAlchemy 2.0 async (asyncpg + aiosqlite) |
-| `security headers` | Completo | CSP, HSTS, X-Frame-Options, XSS |
+| `security headers` | Completo | CSP, HSTS, X-Frame-Options, XSS + CSRF + token encryption |
 | `rate limiting` | Completo | slowapi per-IP + proxy-aware |
 | `redis cache` | Completo | Async client + cache decorator + graceful degradation |
 | `task queue` | Completo | Background tasks asincrone (batch import, maps) |
 | `event bus` | Completo | Domain events pub/sub |
 | `vector DB` | Completo | PGVector + TF-IDF fallback |
-
-### Modelli Matematici in `advanced.py`
-
-1. Pace Consistency — CV e pacing strategy
-2. Power Estimate — Stima potenza da fisica (gravity + rolling + aero)
-3. Climb Classifier — Categorizzazione salite Tour de France style
-4. VO2max Estimation — Stima VO2max da dati uscita
-5. Route Difficulty — Score difficoltà multi-fattore
-6. Elevation Profile — Distribuzione pendenze + hardship index
-7. Speed Profile — Accelerazioni, decel, coasting %
-8. Progress Trend — Regressione lineare miglioramento
-9. Training Stress Balance — ATL/CTL/TSB con EWMA
-10. Ideal Weight — Peso ideale per power-to-weight
-11. HR Zones — 5 zone di frequenza cardiaca
-12. Garmin Power Factor — NP/IF/TSS estimation
-13. Ride Recommendation — Classificazione tipo allenamento
-14. Speed Surge Detection — Rilevamento accelerazioni improvvise
-
-### Modelli Potenza in `power_model.py`
-
-1. Normalized Power (NP) — Algoritmo Coggan con rolling average 30s
-2. Intensity Factor (IF) — NP / FTP ratio
-3. Variability Index (VI) — NP / avg power
-4. Efficiency Factor (EF) — NP / avg HR per cardio drift
-5. Training Stress Score (TSS) — IF² × durata × 100
-6. Power Zones — Modello 7 zone Coggan
-7. Power Profile — Best effort at 5s, 1min, 5min, 20min
-8. FTP Estimation — 20min test × 0.95
-9. Critical Power Model — CP e W' prime
-10. Aerobic Decoupling — Rilevamento scompenso aerobico (5%+ significativo)
+| `geo pipeline` | Completo | OSM enrichment + terrain DEM + AetherMap worldstore/GeoJSON |
 
 ---
 
@@ -439,26 +419,25 @@ Architettura standalone (non dipende da backend per build):
 
 - **Router** — Vue Router configurato con rotte per dashboard, rides, tracking
 - **Pinia Stores** — `auth.ts` (JWT state), `trackingStore.ts` (GPS tracking reattivo)
-- **Composables** — `useAuth.ts`, `useChart.ts`, `useRides.ts`
+- **Composables** — `useAuth.ts`, `useChart.ts`, `useRides.ts`, `useRideTerrain.ts` (AetherMap)
 - **Plugin Capacitor** — `bikeTracking.ts` per native Android features
 - **Error Boundaries** — `ErrorBoundary.vue` + `ErrorState.vue` per gestione errori
 - **PWA** — Service worker + `PWAInstallPrompt.vue` per installazione
 - **Testing** — Vitest (unit) + Playwright (E2E) configurati
 
-Componenti principali: 20+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, AthletePanel, CoachPanel, KnowledgePanel, HeatmapPanel, BadgesPanel, CalendarPanel, GranfondoPlanner, AdminPanel, LoginForm, RideDetail, RideMapPanel, SpeedMap, StatsSummary, WeatherPanel, DashboardPanel, RidesView, ToastContainer, ErrorBoundary, ConfirmModal, LiveMap, PWAInstallPrompt)
+Componenti principali: 35+ (HeaderTabs, RidesPanel, ChartsPanel, ImportPanel, AthletePanel, CoachPanel, KnowledgePanel, HeatmapPanel, BadgesPanel, CalendarPanel, GranfondoPlanner, AdminPanel, LoginForm, RideDetail, RideMapPanel, SpeedMap, StatsSummary, WeatherPanel, DashboardPanel, RidesView, ToastContainer, ErrorBoundary, ConfirmModal, LiveMap, PWAInstallPrompt, VoiceAssistant, TrackingToolsPanel, AetherMapViewer)
 
 ---
 
-## Testing Update (2026-07-13, verificato)
+## Testing Update (2026-08-10, verificato)
 
 **Numeri reali (conteggio da codice sorgente):**
--  Backend: **108** file `test_*.py` / **1674** funzioni di test (incl. `test_bm2_*` verdi)
--  Frontend: **47** file `*.test.{js,ts}` / **318** test Vitest (harness verificato green)
--  Endpoint REST: **138** (`routes.py` + `bm2_routes.py`)
--  CI GitHub Actions esegue backend `pytest --cov`, frontend `vitest run`, lint, security (Trivy), build
--  Coverage `core/calculators/*`: 100% · `core/fitness_state`: 100%
--  Playwright E2E: **gli spec ESISTONO** (`frontend/tests/e2e`, 14 file `*.spec.js` + 3 `*.spec.ts` aggiunti). La valutazione iniziale li aveva mancati perché cercava `*.spec.ts`; il `testDir` di Playwright è `tests/e2e` e gli spec sono `.js`. Aggiunti 3 spec backend-independent (auth/routing/app-shell) eseguibili contro la sola SPA preview, senza backend.
--  Coverage globale bassa se misurata su tutto `bike_analyzer` (molti moduli non coperti dalla singola sotto-suite); la CI riporta la coverage aggregata come metrica informativa
+- Backend: **108** file `test_*.py` / **~1674** funzioni di test (incl. `test_bm2_*` verdi)
+- Frontend: **59** file `*.test.{js,ts}` / **395** test Vitest (tutti passanti)
+- Endpoint REST: **138** (`routes.py` + `bm2_routes.py`)
+- CI GitHub Actions esegue backend `pytest --cov`, frontend `vitest run`, lint, security (Trivy), build
+- Coverage `core/calculators/*`: 100% · `core/fitness_state`: 100%
+- Playwright E2E: spec presenti in `frontend/tests/e2e` (14 file `*.spec.js` + 3 `*.spec.ts`)
 
 **Nota:** l'esecuzione dell'intera suite backend in locale è lenta (setup per-modulo);
 la verifica pass/fail completa è demandata alla pipeline CI.
@@ -467,7 +446,7 @@ la verifica pass/fail completa è demandata alla pipeline CI.
 
 ## OAuth2 Integrations
 
-- **Google OAuth2** — `/auth/google` + `/auth/google/callback` endpoints
+- **Google OAuth2** — `/auth/google` + `/auth/google/callback` endpoints (hardening produzione completato)
 - **Strava OAuth2 + PKCE** — `/import/strava/auth` + `/import/strava/callback` endpoints
 - **Garmin Connect OAuth2** — Client completo con token storage e refresh
 - **Google Fit OAuth2** — `/import/google-fit/auth` + `/import/google-fit/token`
@@ -476,10 +455,12 @@ la verifica pass/fail completa è demandata alla pipeline CI.
 
 ## Security & Monitoring
 
-- **Security Headers** — CSP, HSTS, X-Frame-Options, X-XSS-Protection
-- **JWT Auth** — HS256 con python-jose, bcrypt password hashing
+- **Security Headers** — CSP, HSTS, X-Frame-Options, X-XSS-Protection, CORP, CSRF tokens
+- **JWT Auth** — HS256 con python-jose, bcrypt password hashing, key rotation
 - **Rate Limiting** — slowapi per-IP + proxy-aware
 - **Secret Key Rotation** — SECRET_KEY + SECRET_KEY_PREVIOUS
+- **Token Encryption** — OAuth tokens encrypted at rest
+- **OAuth State Validation** — CSRF protection su OAuth flows
 - **Environment Validation** — SECRET_KEY obbligatoria in produzione
 - **Sentry SDK** — Error tracking (opzionale via SENTRY_DSN)
 - **Trivy** — Security scanning nel CI
@@ -506,7 +487,8 @@ la verifica pass/fail completa è demandata alla pipeline CI.
 | GitHub Actions | CI/CD: test → lint → security → build |
 | Android Release | Workflow APK/AAB |
 | Azure | azure.yaml + azd config |
-| Render | render.yaml |
+| Render | render.yaml (backend produzione) |
+| Vercel | vercel.json (frontend produzione) |
 
 ---
 
@@ -514,36 +496,39 @@ la verifica pass/fail completa è demandata alla pipeline CI.
 
 | Priorita | Feature | Status |
 |:---:|---|---|
-| **1** |  Test suite completata (frontend + backend) | **Fatto** |
-| **2** |  Google Maps dynamic path | **Fatto** |
-| **3** | Multi-utente (auth, ownership rides, data isolation) |  Completo |
-| **4** | PostgreSQL in produzione (dual-mode SQLite/PostgreSQL) |  **Fatto** — `athletes`, `rides`, `metrics` e `training_stress_days` instradati su PostgreSQL quando `DATABASE_URL` è impostato (dispatch `has_postgres()` in `database.py`), con `postgres_rides.py`. `weight_kg` persiste su PG. Test mock + integrazione real-PG verdi (commit `d03a206`). |
-| **5** | Vector DB RAG |  Completo |
-| **6** | Playwright E2E spec (config presente, spec da scrivere) | ⏳ |
+| **1** | Test suite completata (frontend + backend) | **Fatto** |
+| **2** | Google Maps dynamic path | **Fatto** |
+| **3** | Multi-utente (auth, ownership rides, data isolation) | Completo |
+| **4** | PostgreSQL in produzione (dual-mode SQLite/PostgreSQL) | **Fatto** — `athletes`, `rides`, `metrics` e `training_stress_days` instradati su PostgreSQL quando `DATABASE_URL` è impostato (dispatch `has_postgres()` in `database.py`), con `postgres_rides.py`. `weight_kg` persiste su PG. Test mock + integrazione real-PG verdi (commit `d03a206`). |
+| **5** | Vector DB RAG | Completo |
+| **6** | OAuth hardening produzione | **Fatto** — logging granulare, lock handling, fallback user creation, sslmode Render, CORS regex, security headers, token encryption |
+| **7** | AetherMap convergence | **Fatto** — Fasi 1-5 complete, modulo terrain intelligence integrato, C++ renderer, CityGML, Natural Earth |
+| **8** | Playwright E2E spec (config presente, spec da scrivere) | ⏳ |
+| **9** | Coverage test >90% routes.py e moduli AI | 🔄 In corso |
 
 ---
 
 ## Production Ready Checklist
 
-> Fonte di verità: [`ROADMAP.md`](ROADMAP.md). Sintesi verificata 2026-07-13.
-
 | Area | Item | Status |
 |---|---|---|
-| Testing | Coverage riportata come metrica informativa in CI |  |
-| Code Quality | Ruff + mypy + pre-commit |  |
-| Container | Docker multi-stage hardened |  |
-| Monitoring | Sentry (`observability.py`) + Prometheus + Grafana |  |
-| Audit | Audit log azioni admin (`audit_log.py` + middleware) |  |
-| Auth | OAuth2 social login (Google, Strava) |  |
-| Multi-user | Data isolation completa (tenant_id) |  |
-| AI | Vector DB per RAG (PGVector) |  |
-| Frontend | PWA + offline support |  |
-| Frontend | Vitest (47 file / 318 test) |  |
-| Frontend | Playwright E2E (17 file in `tests/e2e`, incl. 3 backend-independent aggiunti) |  |
-| Security | Security headers + rate limiting |  |
-| Database | Dual-mode SQLite/PostgreSQL |  |
-| CI/CD | GitHub Actions (test, lint, security, build) |  |
+| Testing | Coverage riportata come metrica informativa in CI | ✅ |
+| Code Quality | Ruff + mypy + pre-commit | ✅ |
+| Container | Docker multi-stage hardened | ✅ |
+| Monitoring | Sentry (`observability.py`) + Prometheus + Grafana | ✅ |
+| Audit | Audit log azioni admin (`audit_log.py` + middleware) | ✅ |
+| Auth | OAuth2 social login (Google, Strava, Garmin) + hardening | ✅ |
+| Multi-user | Data isolation completa (tenant_id) | ✅ |
+| AI | Vector DB per RAG (PGVector) | ✅ |
+| Frontend | PWA + offline support | ✅ |
+| Frontend | Vitest (59 file / 395 test) | ✅ |
+| Frontend | Playwright E2E (17 file in `tests/e2e`) | ⏳ |
+| Security | Security headers + rate limiting + CSRF + token encryption | ✅ |
+| Database | Dual-mode SQLite/PostgreSQL | ✅ |
+| CI/CD | GitHub Actions (test, lint, security, build) | ✅ |
+| OAuth | Produzione hardening (CORS, logging, lock, fallback) | ✅ |
+| AetherMap | Terrain intelligence module integrato | ✅ |
 
 ---
 
-*Ultimo aggiornamento: 2026-07-29 — Commit aggiornati a HEAD 5bb9746. Working tree pulito.*
+*Ultimo aggiornamento: 2026-08-10 — Commit aggiornati a HEAD 36dccd8. Working tree con modifiche non committate (AetherMapViewer.vue, RideMapPanel.vue, screenshot debug).*
