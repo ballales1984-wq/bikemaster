@@ -27,6 +27,8 @@ export interface Ride {
   weight_kg?: number;
   is_official?: boolean;
   source?: string;
+  external_source?: string;
+  external_id?: string;
 }
 
 export interface EnrichedRide extends Ride {

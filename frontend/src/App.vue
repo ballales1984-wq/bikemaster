@@ -233,6 +233,7 @@ import { useUIStore } from "./stores/ui";
 import { useRides } from "./composables/useRides";
 import { useI18n } from "./composables/useI18n";
 import { apiGet } from "./utils/api";
+import type { Summary } from "./types/index";
 import LoginForm from "./components/LoginForm.vue";
 import HeaderTabs from "./components/HeaderTabs.vue";
 import StatsSummary from "./components/StatsSummary.vue";
@@ -293,15 +294,16 @@ async function copyLink() {
 
 async function loadVersion() {
   try {
-    const data = await apiGet(
+    const data = await apiGet<{ version: string }>(
       "/api/v1/version",
       {},
       { timeoutMs: 5000, noRetry: true },
     );
     version.value = data.version || "";
   } catch (e) {
+    const err = e as Error;
     version.value = "";
-    console.warn("[App] failed to load version:", e);
+    console.warn("[App] failed to load version:", err.message);
   }
 }
 
@@ -349,7 +351,7 @@ async function loadSummary() {
     const timeoutPromise = new Promise((_, reject: (reason?: unknown) => void) =>
       setTimeout(() => reject(new Error("Summary load timeout")), SUMMARY_TIMEOUT_MS),
     );
-    const data = (await Promise.race([fetchSummary(), timeoutPromise])) as SummaryResponse;
+    const data = (await Promise.race([fetchSummary(), timeoutPromise])) as Summary;
     summary.value = {
       rides: data.rides ?? 0,
       distance_km: data.distance_km ?? 0,
@@ -358,13 +360,14 @@ async function loadSummary() {
       duration_minutes: data.duration_minutes ?? 0,
     };
   } catch (e) {
-    console.warn("[App] loadSummary failed:", e);
+    const err = e as Error;
+    console.warn("[App] loadSummary failed:", err.message);
   } finally {
     summaryLoading.value = false;
   }
 }
 
-async function onLogin(creds) {
+async function onLogin(creds: { username: string; password: string }) {
   try {
     loginError.value = "";
     await auth.login(creds.username, creds.password);
@@ -373,7 +376,8 @@ async function onLogin(creds) {
     router.push(target);
     await loadSummary();
   } catch (e) {
-    loginError.value = e.message;
+    const err = e as Error;
+    loginError.value = err.message;
   }
 }
 
@@ -395,24 +399,25 @@ async function onGoogleLogin() {
         /* ignore */
       }
     }
-    await loadSummary().catch((e) => console.warn("[App] loadSummary failed:", e));
+    await loadSummary().catch((e) => console.warn("[App] loadSummary failed:", (e as Error).message));
   }
 }
 
-async function onRegister(creds) {
+async function onRegister(creds: { username: string; password: string }) {
   try {
     loginError.value = "";
     await auth.register(creds.username, creds.password);
     try {
       await auth.login(creds.username, creds.password);
       router.push("/rides");
-      await loadSummary().catch((e) => console.warn("[App] loadSummary failed:", e));
+      await loadSummary().catch((e) => console.warn("[App] loadSummary failed:", (e as Error).message));
     } catch {
       loginError.value =
         "Account created. Please log in with your new credentials.";
     }
   } catch (e) {
-    loginError.value = e.message;
+    const err = e as Error;
+    loginError.value = err.message;
   }
 }
 
@@ -420,7 +425,8 @@ async function onLogout() {
   try {
     await auth.logout();
   } catch (e) {
-    console.error("Logout failed", e);
+    const err = e as Error;
+    console.error("Logout failed", err.message);
     loginError.value = "Logout failed. Please try again.";
   }
   router.push("/");
@@ -466,7 +472,7 @@ onMounted(() => {
     ui.setOauthLoading(false);
   });
   if (loggedIn.value) {
-    loadSummary().catch((e) => console.warn("[App] loadSummary failed:", e));
+    loadSummary().catch((e) => console.warn("[App] loadSummary failed:", (e as Error).message));
   }
 });
 </script>

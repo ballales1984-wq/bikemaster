@@ -214,7 +214,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import { apiGet, apiPut } from "../utils/api";
+import { apiGet } from "../utils/api";
 import { useI18n } from "../composables/useI18n";
 import { useRidesStore } from "../stores/rides";
 import { RIDE_LIMITS } from "../constants";

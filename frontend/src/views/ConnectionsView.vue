@@ -493,6 +493,7 @@ const scannedBleDevice = ref<{
 const isScannedDeviceAlreadyRegistered = computed(() => {
   if (!scannedBleDevice.value) return false;
   return !!bleStore.findRegisteredDeviceByIdentity(
+    bleStore.devices,
     scannedBleDevice.value.name,
     scannedBleDevice.value.service_uuid || null,
   );
@@ -661,6 +662,7 @@ async function registerBleDevice() {
     if (!scannedBleDevice.value) return;
 
     const existing = bleStore.findRegisteredDeviceByIdentity(
+      bleStore.devices,
       scannedBleDevice.value.name,
       scannedBleDevice.value.service_uuid || null,
     );
@@ -703,6 +705,7 @@ async function syncScannedDevice() {
   try {
     if (!scannedBleDevice.value) return;
     const existing = bleStore.findRegisteredDeviceByIdentity(
+      bleStore.devices,
       scannedBleDevice.value.name,
       scannedBleDevice.value.service_uuid || null,
     );

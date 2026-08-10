@@ -111,7 +111,8 @@ describe("AthleteAvatarPanel", () => {
   });
 
   it("does not fetch when not logged in", async () => {
-    vi.mocked(require("../stores/auth").useAuthStore).mockReturnValue({
+    const { useAuthStore } = vi.importMock("../stores/auth");
+    vi.mocked(useAuthStore).mockReturnValue({
       isLoggedIn: false,
     });
 

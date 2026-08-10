@@ -59,7 +59,7 @@
         class="aethermap-warn"
         >terrain non disponibile</span
       >
-      <template v-else-if="props.terrainEnriched && terrain.points.length">
+      <template v-else-if="props.terrainEnriched && terrainPoints.length">
         <br />terrain: slope avg {{ avgSlope }}% · ombra {{ shadePct }}% ·
         traffico {{ avgTraffic }}
       </template>
@@ -123,22 +123,23 @@ const terrain = useAetherMapTerrain(
   firstRideId,
   computed(() => props.terrainEnriched ?? false),
 );
+const terrainPoints = computed(() => terrain.points.value);
 
 const avgSlope = computed(() => {
-  const pts = terrain.points.value;
+  const pts = terrainPoints.value;
   if (!pts.length) return 0;
   return (pts.reduce((s, p) => s + (p.slope_pct || 0), 0) / pts.length).toFixed(
     1,
   );
 });
 const shadePct = computed(() => {
-  const pts = terrain.points.value;
+  const pts = terrainPoints.value;
   if (!pts.length) return 0;
   const shaded = pts.filter((p) => p.shade).length;
   return ((shaded / pts.length) * 100).toFixed(0);
 });
 const avgTraffic = computed(() => {
-  const pts = terrain.points.value;
+  const pts = terrainPoints.value;
   if (!pts.length) return 0;
   return (
     pts.reduce((s, p) => s + (p.traffic_level || 0), 0) / pts.length

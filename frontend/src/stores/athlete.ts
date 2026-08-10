@@ -11,7 +11,7 @@ import type {
   AthleteMetricLogEntry,
   AthleteMetricLogResponse,
 } from "../types/index";
-import { apiGet, apiPut, ApiError } from "../utils/api";
+import { apiGet, apiPut } from "../utils/api";
 import { useAuthStore } from "./auth";
 
 export interface AthleteProfile extends Athlete {

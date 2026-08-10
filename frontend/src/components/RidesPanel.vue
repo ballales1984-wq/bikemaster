@@ -447,11 +447,17 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "../composables/useI18n";
-import { apiGet, apiDelete, apiPost } from "../utils/api";
+import { apiGet } from "../utils/api";
 import { useAuthStore } from "../stores/auth";
 import { useRidesStore } from "../stores/rides";
 import { RIDE_LIMITS } from "../constants";
-import ConfirmModal from "./ConfirmModal.vue";
+import type { Ride } from "../types/index";
+
+interface RideAnalysis {
+  fatigue_score: number;
+  recovery_hours: number;
+  calories_per_km?: number;
+}
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -462,9 +468,10 @@ const emit = defineEmits(["summary-change"]);
 
 const guest = ref(false);
 const showForm = ref(false);
+const adding = ref(false);
 const filtersOpen = ref(false);
-const selectedRide = ref<Record<string, unknown> | null>(null);
-const analysis = ref<Record<string, unknown> | null>(null);
+const selectedRide = ref<Ride | null>(null);
+const analysis = ref<RideAnalysis | null>(null);
 const analysisLoading = ref(false);
 const page = ref(1);
 const pageSize = 20;
@@ -480,7 +487,12 @@ const form = ref({
   calories: "",
 });
 
-const filters = ref({ dateFrom: "", dateTo: "", distMin: null, distMax: null });
+const filters = ref<{ dateFrom: string; dateTo: string; distMin: number | null; distMax: number | null }>({
+  dateFrom: "",
+  dateTo: "",
+  distMin: null,
+  distMax: null,
+});
 
 const showDeleteModal = ref(false);
 const deleteTargetId = ref(null);
@@ -643,10 +655,10 @@ function goToBm2(rideId: number) {
   router.push({ path: "/bm2", query: { rideId } });
 }
 
-async function openDetail(ride: Record<string, unknown>) {
+async function openDetail(ride: Ride) {
   selectedRide.value = ride;
   analysis.value = null;
-  await analyzeRide(ride.id as number);
+  await analyzeRide(ride.id);
 }
 
 async function analyzeRide(id: number) {
@@ -661,9 +673,9 @@ async function analyzeRide(id: number) {
   }
 }
 
-function askDelete(ride: Record<string, unknown>) {
-  deleteTargetId.value = ride.id as number;
-  deleteTargetDate.value = formatDate(ride.date as string);
+function askDelete(ride: Ride) {
+  deleteTargetId.value = ride.id;
+  deleteTargetDate.value = formatDate(ride.date);
   showDeleteModal.value = true;
 }
 

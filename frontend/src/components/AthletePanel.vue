@@ -773,7 +773,7 @@ const measurementResult = ref("");
 
 const hasMeasurementData = computed(() => {
   return Object.values(measurement.value).some(
-    (v) => v !== undefined && v !== null && v !== "",
+    (v) => v !== undefined && v !== null,
   );
 });
 

@@ -52,7 +52,24 @@ _CORE_TABLES = [
 
 
 # Query parameters that asyncpg does not support (libpq-specific).
-_ASYNC_UNSUPPORTED_PARAMS = {"channel_binding", "sslmode"}
+_ASYNC_UNSUPPORTED_PARAMS = {"channel_binding"}
+
+
+def _extract_sslmode(raw_url: str) -> tuple[str, bool]:
+    """Extract sslmode from a database URL without mutating the original.
+
+    Returns (url_without_sslmode, ssl_required).
+    """
+    if "sslmode=" not in raw_url:
+        return raw_url, False
+    parsed = urlparse(raw_url)
+    params = parse_qs(parsed.query, keep_blank_values=True)
+    sslmode = (params.get("sslmode") or [""])[0].lower()
+    filtered = {k: v for k, v in params.items() if k != "sslmode"}
+    ssl_required = sslmode in {"require", "verify-ca", "verify-full"}
+    new_query = urlencode(filtered, doseq=True)
+    new_url = urlunparse(parsed._replace(query=new_query))
+    return new_url, ssl_required
 
 
 def _make_async_url(raw: str) -> str:

@@ -337,7 +337,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       execute: async (params) => {
         const ftp = Number(requireParam(params, "ftp_watts"));
         const store = useAthleteStore();
-        await store.updateProfile({ ftp_watts: ftp, ftp });
+        await store.updateProfile({ ftp_watts: ftp });
         return buildResult(true, `FTP aggiornata a ${ftp} watt`);
       },
     },
@@ -370,7 +370,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       execute: async (params) => {
         const maxHr = Number(requireParam(params, "max_hr"));
         const store = useAthleteStore();
-        await store.updateProfile({ max_hr: maxHr });
+        await store.updateProfile({ heart_rate_avg: maxHr });
         return buildResult(true, `FC max aggiornata a ${maxHr} bpm`);
       },
     },
