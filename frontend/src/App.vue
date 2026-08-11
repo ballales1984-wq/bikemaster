@@ -348,10 +348,17 @@ const SUMMARY_TIMEOUT_MS = 10000;
 async function loadSummary() {
   summaryLoading.value = true;
   try {
-    const timeoutPromise = new Promise((_, reject: (reason?: unknown) => void) =>
-      setTimeout(() => reject(new Error("Summary load timeout")), SUMMARY_TIMEOUT_MS),
+    const timeoutPromise = new Promise(
+      (_, reject: (reason?: unknown) => void) =>
+        setTimeout(
+          () => reject(new Error("Summary load timeout")),
+          SUMMARY_TIMEOUT_MS,
+        ),
     );
-    const data = (await Promise.race([fetchSummary(), timeoutPromise])) as Summary;
+    const data = (await Promise.race([
+      fetchSummary(),
+      timeoutPromise,
+    ])) as Summary;
     summary.value = {
       rides: data.rides ?? 0,
       distance_km: data.distance_km ?? 0,
@@ -399,7 +406,9 @@ async function onGoogleLogin() {
         /* ignore */
       }
     }
-    await loadSummary().catch((e) => console.warn("[App] loadSummary failed:", (e as Error).message));
+    await loadSummary().catch((e) =>
+      console.warn("[App] loadSummary failed:", (e as Error).message),
+    );
   }
 }
 
@@ -410,7 +419,9 @@ async function onRegister(creds: { username: string; password: string }) {
     try {
       await auth.login(creds.username, creds.password);
       router.push("/rides");
-      await loadSummary().catch((e) => console.warn("[App] loadSummary failed:", (e as Error).message));
+      await loadSummary().catch((e) =>
+        console.warn("[App] loadSummary failed:", (e as Error).message),
+      );
     } catch {
       loginError.value =
         "Account created. Please log in with your new credentials.";
@@ -472,7 +483,9 @@ onMounted(() => {
     ui.setOauthLoading(false);
   });
   if (loggedIn.value) {
-    loadSummary().catch((e) => console.warn("[App] loadSummary failed:", (e as Error).message));
+    loadSummary().catch((e) =>
+      console.warn("[App] loadSummary failed:", (e as Error).message),
+    );
   }
 });
 </script>

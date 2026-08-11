@@ -145,7 +145,10 @@ export function processOAuthToken(): boolean {
     clearPendingOAuth();
     ui.setOauthLoading(false);
     clearUrlToken();
-    window.__toast?.add("Invalid OAuth state. Please try logging in again.", "error");
+    window.__toast?.add(
+      "Invalid OAuth state. Please try logging in again.",
+      "error",
+    );
     return false;
   }
 
@@ -155,7 +158,10 @@ export function processOAuthToken(): boolean {
       clearPendingOAuth();
       ui.setOauthLoading(false);
       clearUrlToken();
-      window.__toast?.add("OAuth token expired. Please try logging in again.", "error");
+      window.__toast?.add(
+        "OAuth token expired. Please try logging in again.",
+        "error",
+      );
       console.warn("[OAuth] token expired, rejecting");
       return false;
     }

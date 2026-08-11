@@ -463,15 +463,21 @@ function drawReplay() {
   }
   if (points[targetIndex]) {
     if (replayMarker) {
-      replayMarker.setLatLng([points[targetIndex].lat, points[targetIndex].lon]);
+      replayMarker.setLatLng([
+        points[targetIndex].lat,
+        points[targetIndex].lon,
+      ]);
     } else {
-      replayMarker = L.circleMarker([points[targetIndex].lat, points[targetIndex].lon], {
-        radius: 7,
-        color: "#4ecca3",
-        fillColor: "#4ecca3",
-        fillOpacity: 1,
-        weight: 3,
-      }).addTo(map);
+      replayMarker = L.circleMarker(
+        [points[targetIndex].lat, points[targetIndex].lon],
+        {
+          radius: 7,
+          color: "#4ecca3",
+          fillColor: "#4ecca3",
+          fillOpacity: 1,
+          weight: 3,
+        },
+      ).addTo(map);
     }
   }
   _prevReplayIndex = targetIndex;

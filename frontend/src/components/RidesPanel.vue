@@ -487,7 +487,12 @@ const form = ref({
   calories: "",
 });
 
-const filters = ref<{ dateFrom: string; dateTo: string; distMin: number | null; distMax: number | null }>({
+const filters = ref<{
+  dateFrom: string;
+  dateTo: string;
+  distMin: number | null;
+  distMax: number | null;
+}>({
   dateFrom: "",
   dateTo: "",
   distMin: null,

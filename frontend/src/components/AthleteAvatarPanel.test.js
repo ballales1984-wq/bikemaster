@@ -1,23 +1,27 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ref } from "vue";
+import { reactive, ref } from "vue";
 
 const mockFetchProfile = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 const mockFetchState = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 
-const mockProfileRef = ref(null);
-const mockErrorRef = ref(null);
 const mockStateRef = ref(null);
 const mockStateErrorRef = ref(null);
 
+const mockAthleteStore = reactive({
+  profile: {},
+  fetchProfile: mockFetchProfile,
+  updateProfile: vi.fn(),
+  fetchMetricLog: vi.fn(() => Promise.resolve([])),
+  error: reactive({ value: "" }),
+});
+
+const mockAuthStore = reactive({
+  isLoggedIn: true,
+});
+
 vi.mock("../stores/athlete", () => ({
-  useAthleteStore: () => ({
-    profile: mockProfileRef,
-    fetchProfile: mockFetchProfile,
-    updateProfile: vi.fn(),
-    fetchMetricLog: vi.fn(() => Promise.resolve([])),
-    error: mockErrorRef,
-  }),
+  useAthleteStore: () => mockAthleteStore,
 }));
 
 vi.mock("../stores/athleteState", () => ({
@@ -29,9 +33,7 @@ vi.mock("../stores/athleteState", () => ({
 }));
 
 vi.mock("../stores/auth", () => ({
-  useAuthStore: () => ({
-    isLoggedIn: true,
-  }),
+  useAuthStore: () => mockAuthStore,
 }));
 
 import AthleteAvatarPanel from "./AthleteAvatarPanel.vue";
@@ -91,15 +93,18 @@ const mockState = {
 describe("AthleteAvatarPanel", () => {
   afterEach(() => {
     vi.clearAllMocks();
-    mockProfileRef.value = null;
+    mockAthleteStore.profile = {};
+    mockAthleteStore.error.value = "";
     mockStateRef.value = null;
-    mockErrorRef.value = null;
     mockStateErrorRef.value = null;
+    mockAuthStore.isLoggedIn = true;
   });
 
   it("loads profile and state on mount when logged in", async () => {
     mockFetchProfile.mockResolvedValueOnce(mockProfile);
     mockFetchState.mockResolvedValueOnce(mockState);
+    mockAthleteStore.profile = mockProfile;
+    mockStateRef.value = mockState;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
@@ -111,10 +116,7 @@ describe("AthleteAvatarPanel", () => {
   });
 
   it("does not fetch when not logged in", async () => {
-    const { useAuthStore } = vi.importMock("../stores/auth");
-    vi.mocked(useAuthStore).mockReturnValue({
-      isLoggedIn: false,
-    });
+    mockAuthStore.isLoggedIn = false;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
@@ -125,7 +127,7 @@ describe("AthleteAvatarPanel", () => {
   });
 
   it("shows equipment and medical notes when present", async () => {
-    mockProfileRef.value = {
+    mockAthleteStore.profile = {
       ...mockProfile,
       equipment: "S-Works Tarmac",
       medical_notes: "Asma lieve",
@@ -142,7 +144,7 @@ describe("AthleteAvatarPanel", () => {
   });
 
   it("hides equipment section when both fields are empty", async () => {
-    mockProfileRef.value = {
+    mockAthleteStore.profile = {
       ...mockProfile,
       equipment: null,
       medical_notes: null,
@@ -157,7 +159,7 @@ describe("AthleteAvatarPanel", () => {
   });
 
   it("renders fitness state when available", async () => {
-    mockProfileRef.value = mockProfile;
+    mockAthleteStore.profile = mockProfile;
     mockStateRef.value = mockState;
 
     const wrapper = mount(AthleteAvatarPanel);
