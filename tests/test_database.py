@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 import pytest
 
 import bike_analyzer.backend.db.database as db
+from bike_analyzer.backend.analytics.training_load import recalculate_training_stress_for_athlete
 from bike_analyzer.backend.db.database import (
     _INITIAL_DB_PATH,
     _ensure_external_identity_index,
@@ -42,7 +43,6 @@ from bike_analyzer.backend.db.database import (
     init_db,
     list_pois,
     prune_chat_history,
-    recalculate_training_stress_for_athlete,
     rotate_backups,
     save_athlete,
     save_calendar_event,

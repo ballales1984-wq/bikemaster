@@ -5,9 +5,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from ...utils.logger import get_logger
-from ..database import get_db_connection
 
 logger = get_logger(__name__)
+
+
+def _get_db_connection():
+    from ..database import get_db_connection
+
+    return get_db_connection()
 
 
 def _row_to_calendar_event(row) -> dict:
@@ -45,7 +50,7 @@ def save_calendar_event(event: dict, tenant_id: int = 0) -> int:
         except Exception:
             weather = {}
 
-    with get_db_connection() as conn:
+    with _get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO calendar_events
@@ -73,7 +78,7 @@ def save_calendar_event(event: dict, tenant_id: int = 0) -> int:
 
 
 def get_calendar_event(event_id: int) -> dict | None:
-    with get_db_connection() as conn:
+    with _get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT * FROM calendar_events WHERE id = ?", (event_id,))
         row = cur.fetchone()
@@ -83,7 +88,7 @@ def get_calendar_event(event_id: int) -> dict | None:
 
 
 def get_events_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
-    with get_db_connection() as conn:
+    with _get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
             cur.execute(
@@ -102,7 +107,7 @@ def get_events_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list
 def get_events_by_date_range(
     athlete_id: int, start_date: str, end_date: str, tenant_id: int | None = None
 ) -> list[dict]:
-    with get_db_connection() as conn:
+    with _get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
             cur.execute(
@@ -130,7 +135,7 @@ def update_calendar_event(event_id: int, event_data: dict, tenant_id: int | None
     if not existing:
         return False
     merged = {**existing, **event_data}
-    with get_db_connection() as conn:
+    with _get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
             cur.execute(
@@ -176,7 +181,7 @@ def update_calendar_event(event_id: int, event_data: dict, tenant_id: int | None
 
 
 def delete_calendar_event(event_id: int, tenant_id: int | None = None) -> bool:
-    with get_db_connection() as conn:
+    with _get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
             cur.execute("DELETE FROM calendar_events WHERE id = ? AND tenant_id = ?", (event_id, tenant_id))
