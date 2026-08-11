@@ -13,6 +13,7 @@ from .performance import (
     calculate_power_metrics_with_error,
     estimate_ftp_from_ride,
 )
+from .repositories.performance_repository import PerformanceRepository
 
 
 def _now_iso() -> str:
@@ -90,51 +91,17 @@ def save_ride_performance(
         if ev is not None:
             result[f"{key}_error"] = ev.to_dict()
 
-    from ..db.database import get_db_connection
-
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT id FROM performance_metrics WHERE athlete_id = ? AND ride_id = ?",
-            (athlete_id, ride_id),
-        )
-        existing = cur.fetchone()
-        if existing:
-            cur.execute(
-                """UPDATE performance_metrics
-                   SET normalized_power = ?, intensity_factor = ?, tss = ?,
-                       average_power = ?, ftp_watts = ?, created_at = ?
-                   WHERE id = ?""",
-                (
-                    result["normalized_power"],
-                    result["intensity_factor"],
-                    result["tss"],
-                    result["average_power"],
-                    ftp,
-                    _now_iso(),
-                    existing[0],
-                ),
-            )
-        else:
-            cur.execute(
-                """INSERT INTO performance_metrics
-                   (athlete_id, tenant_id, ride_id, date, average_power,
-                    normalized_power, intensity_factor, tss, ftp_watts, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    owner_athlete_id,
-                    tenant_id,
-                    ride_id,
-                    date,
-                    result["average_power"],
-                    result["normalized_power"],
-                    result["intensity_factor"],
-                    result["tss"],
-                    ftp,
-                    _now_iso(),
-                ),
-            )
-        conn.commit()
+    PerformanceRepository.save_performance_metrics(
+        athlete_id=athlete_id,
+        ride_id=ride_id,
+        date=date,
+        average_power=result["average_power"],
+        normalized_power=result["normalized_power"],
+        intensity_factor=result["intensity_factor"],
+        tss=result["tss"],
+        ftp_watts=ftp,
+        tenant_id=tenant_id,
+    )
     return result
 
 
@@ -146,80 +113,20 @@ def record_ftp(
     note: str | None = None,
     tenant_id: int = 0,
 ) -> dict:
-    """Registra un valore FTP in ``ftp_history`` (UPSERT per athlete+date).
-
-    Ritorna il record salvato. ``date`` default = oggi (UTC, YYYY-MM-DD).
-    """
-    if date is None:
-        date = _now_iso()[:10]
-    from ..db.database import get_db_connection
-
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT id FROM ftp_history WHERE athlete_id = ? AND date = ?",
-            (athlete_id, date),
-        )
-        existing = cur.fetchone()
-        if existing:
-            cur.execute(
-                """UPDATE ftp_history SET ftp_watts = ?, source = ?, note = ?,
-                   created_at = ? WHERE id = ?""",
-                (ftp_watts, source, note, _now_iso(), existing[0]),
-            )
-            record_id = existing[0]
-        else:
-            cur.execute(
-                """INSERT INTO ftp_history
-                   (athlete_id, tenant_id, date, ftp_watts, source, note, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (athlete_id, tenant_id, date, ftp_watts, source, note, _now_iso()),
-            )
-            record_id = cur.lastrowid
-        conn.commit()
-    return {
-        "id": record_id,
-        "athlete_id": athlete_id,
-        "tenant_id": tenant_id,
-        "date": date,
-        "ftp_watts": ftp_watts,
-        "source": source,
-        "note": note,
-    }
+    """Registra un valore FTP in ftp_history (UPSERT per athlete+date)."""
+    return PerformanceRepository.record_ftp(
+        athlete_id=athlete_id,
+        ftp_watts=ftp_watts,
+        date=date,
+        source=source,
+        note=note,
+        tenant_id=tenant_id,
+    )
 
 
 def get_ftp_history(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
     """Restituisce lo storico FTP di un atleta ordinato per data crescente."""
-    from ..db.database import get_db_connection
-
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        if tenant_id is not None:
-            cur.execute(
-                "SELECT id, athlete_id, tenant_id, date, ftp_watts, source, note, created_at "
-                "FROM ftp_history WHERE athlete_id = ? AND tenant_id = ? ORDER BY date ASC",
-                (athlete_id, tenant_id),
-            )
-        else:
-            cur.execute(
-                "SELECT id, athlete_id, tenant_id, date, ftp_watts, source, note, created_at "
-                "FROM ftp_history WHERE athlete_id = ? ORDER BY date ASC",
-                (athlete_id,),
-            )
-        rows = cur.fetchall()
-    return [
-        {
-            "id": r[0],
-            "athlete_id": r[1],
-            "tenant_id": r[2],
-            "date": r[3],
-            "ftp_watts": r[4],
-            "source": r[5],
-            "note": r[6],
-            "created_at": r[7],
-        }
-        for r in rows
-    ]
+    return PerformanceRepository.get_ftp_history(athlete_id, tenant_id)
 
 
 def get_latest_ftp(athlete_id: int, tenant_id: int | None = None) -> float | None:
@@ -234,34 +141,7 @@ def get_performance_metrics(
     ride_id: int | None = None,
 ) -> list[dict]:
     """Restituisce le metriche di potenza persistite per un atleta (opz. per ride)."""
-    from ..db.database import get_db_connection
-
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        if ride_id is not None:
-            cur.execute(
-                "SELECT * FROM performance_metrics WHERE athlete_id = ? AND ride_id = ? "
-                "ORDER BY date ASC",
-                (athlete_id, ride_id),
-            )
-        elif tenant_id is not None:
-            cur.execute(
-                "SELECT * FROM performance_metrics WHERE athlete_id = ? AND tenant_id = ? "
-                "ORDER BY date ASC",
-                (athlete_id, tenant_id),
-            )
-        else:
-            cur.execute(
-                "SELECT * FROM performance_metrics WHERE athlete_id = ? ORDER BY date ASC",
-                (athlete_id,),
-            )
-        rows = cur.fetchall()
-    result = []
-    for r in rows:
-        d = dict(r)
-        d.pop("tenant_id", None)
-        result.append(d)
-    return result
+    return PerformanceRepository.get_performance_metrics(athlete_id, tenant_id, ride_id)
 
 
 def recompute_athlete_performance(
