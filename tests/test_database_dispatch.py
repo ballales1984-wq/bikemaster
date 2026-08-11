@@ -13,6 +13,7 @@ import pytest
 import bike_analyzer.backend.db.database as db
 from bike_analyzer.backend.db.database import (
     _INITIAL_DB_PATH,
+    delete_athlete,
     delete_itinerary,
     delete_ride,
     delete_stage,
@@ -92,6 +93,7 @@ class TestDispatchGuard:
         save_athlete_snapshot,
         get_athletes_by_user,
         get_athlete_count_by_user,
+        delete_athlete,
         log_athlete_metric,
         get_athlete_metric_log,
         save_itinerary,
@@ -108,9 +110,20 @@ class TestDispatchGuard:
     ]
 
     def test_dispatch_guard_present(self):
+        """Every migrated function must carry the ``@pg_dispatch`` decorator
+        (single source of truth) rather than an inline ``has_postgres`` block."""
+        from bike_analyzer.backend.db.dispatch import MIGRATED_FUNCTIONS
+
+        migrated_names = set(MIGRATED_FUNCTIONS)
         for func in self._MIGRATED_FUNCTIONS:
-            src = inspect.getsource(func)
-            assert "has_postgres" in src, f"{func.__name__} missing has_postgres dispatch guard"
+            assert getattr(func, "_dispatch_source", None) == "pg_dispatch", (
+                f"{func.__name__} is missing the @pg_dispatch decorator"
+            )
+            assert func.__name__ in migrated_names, (
+                f"{func.__name__} not registered in MIGRATED_FUNCTIONS"
+            )
+        # registry must cover every function that used to carry an inline guard
+        assert len(self._MIGRATED_FUNCTIONS) == len(migrated_names) == 33
 
 
 class TestSqliteRoundTrip:
@@ -137,11 +150,14 @@ class TestSqliteRoundTrip:
 
 class TestPostgresDispatch:
     def test_postgres_dispatch_called(self, monkeypatch):
+        # The centralized dispatch reads DATABASE_URL at call time (dispatch.is_postgres),
+        # so set the env var instead of patching the now-defunct per-module has_postgres.
+        from bike_analyzer.backend.db import dispatch
+
+        monkeypatch.setenv("DATABASE_URL", "postgresql://test:test@localhost/test")
+        assert dispatch.is_postgres() is True
+
         mock_pg_save_ride = mock.MagicMock(return_value=42)
-        monkeypatch.setattr(
-            "bike_analyzer.backend.db.postgres_rides.has_postgres",
-            mock.MagicMock(return_value=True),
-        )
         monkeypatch.setattr(
             "bike_analyzer.backend.db.postgres_rides.save_ride",
             mock_pg_save_ride,
@@ -158,6 +174,15 @@ class TestPostgresDispatch:
         )
         assert ride_id == 42
         mock_pg_save_ride.assert_called_once()
+
+    def test_sqlite_used_when_no_postgres(self, _isolate_db, monkeypatch):
+        from bike_analyzer.backend.db import dispatch
+
+        monkeypatch.setenv("DATABASE_URL", "")
+        assert dispatch.is_postgres() is False
+        # No DATABASE_URL -> falls through to the SQLite implementation
+        rid = db.save_ride({"athlete_id": 1, "date": "2024-06-15", "distance_km": 5.0, "tenant_id": 0})
+        assert rid > 0
 
 
 class TestPostgresModules:

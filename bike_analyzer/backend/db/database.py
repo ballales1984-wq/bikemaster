@@ -32,6 +32,7 @@ from ..analytics.calories import ensure_calories
 from ..models.models import Ride
 from ..settings import get_settings
 from ..utils.logger import get_logger
+from .dispatch import pg_dispatch
 
 logger = get_logger(__name__)
 
@@ -1166,6 +1167,7 @@ def _find_existing_external_ride(conn, external_source: str | None, external_id:
     return int(row["id"]) if row else None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
 def save_ride(ride: dict) -> int:
     """Inserisce una nuova attivita' (ride) nel database.
 
@@ -1178,11 +1180,7 @@ def save_ride(ride: dict) -> int:
     e serializza i punti GPS come JSON. Riprova fino a 5 volte in caso di
     lock SQLite con backoff esponenziale.
     """
-    from .postgres_rides import has_postgres
-    from .postgres_rides import save_ride as _pg_save_ride
 
-    if has_postgres():
-        return _pg_save_ride(ride)
     import time
 
     max_retries = 5
@@ -1256,17 +1254,14 @@ def save_ride(ride: dict) -> int:
     raise RuntimeError("Failed to save ride after retries")
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
 def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
     """Recupera una singola attivita' per id, opzionalmente filtrata per tenant.
 
     Restituisce un dict con tutti i campi della tabella ``rides`` oppure
     ``None`` se l'attivita' non esiste o non appartiene al tenant.
     """
-    from .postgres_rides import get_ride as _pg_get_ride
-    from .postgres_rides import has_postgres
 
-    if has_postgres():
-        return _pg_get_ride(ride_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -1279,17 +1274,14 @@ def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
         return None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
 def get_rides_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
     """Restituisce tutte le attivita' di un atleta, opzionalmente filtrate per tenant.
 
     I risultati sono ordinati per id crescente (dal piu' vecchio al piu'
     recente). Usa ``_row_to_ride`` per deserializzare i punti GPS da JSON.
     """
-    from .postgres_rides import get_rides_by_athlete as _pg_get_rides
-    from .postgres_rides import has_postgres
 
-    if has_postgres():
-        return _pg_get_rides(athlete_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -1314,13 +1306,10 @@ def get_athlete_by_name(name: str, tenant_id: int | None = None) -> dict | None:
         return None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
 def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | None:
     """Return the first athlete matching ``email``, optionally filtered by tenant."""
-    from .postgres_athlete import get_athlete_by_email as _pg_get_athlete_by_email
-    from .postgres_athlete import has_postgres
 
-    if has_postgres():
-        return _pg_get_athlete_by_email(email, tenant_id)
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
@@ -1336,13 +1325,10 @@ def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | Non
         return None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
 def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
     """Return rides filtered by athlete and/or tenant, or all rides if none provided."""
-    from .postgres_rides import get_all_rides as _pg_get_all
-    from .postgres_rides import has_postgres
 
-    if has_postgres():
-        return _pg_get_all(athlete_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if athlete_id is not None and tenant_id is not None:
@@ -1357,13 +1343,10 @@ def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -
         return [_row_to_ride(r) for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
 def delete_ride(ride_id: int, tenant_id: int | None = None) -> bool:
     """Delete a ride by id, optionally scoped to a tenant. Returns True if deleted."""
-    from .postgres_rides import delete_ride as _pg_delete
-    from .postgres_rides import has_postgres
 
-    if has_postgres():
-        return _pg_delete(ride_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -1375,6 +1358,7 @@ def delete_ride(ride_id: int, tenant_id: int | None = None) -> bool:
         return deleted
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
 def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
     """Partially update an existing ride (PATCH semantics).
 
@@ -1382,11 +1366,7 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
     ``date``) is never clobbered with NULL when the caller passes a subset of
     fields. Returns True if a row was modified.
     """
-    from .postgres_rides import has_postgres
-    from .postgres_rides import update_ride as _pg_update
 
-    if has_postgres():
-        return _pg_update(ride_id, ride, tenant_id)
     cols = [
         c
         for c in (
@@ -1425,6 +1405,7 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
 def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 0, user_id: int | None = None) -> int:
     """Inserisce o aggiorna il profilo di un atleta.
 
@@ -1433,11 +1414,7 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
     un nuovo atleta. Riprova fino a 5 volte su lock SQLite con backoff
     esponenziale. Restituisce l'id dell'atleta creato/aggiornato.
     """
-    from .postgres_athlete import has_postgres
-    from .postgres_athlete import save_athlete as _pg_save_athlete
 
-    if has_postgres():
-        return _pg_save_athlete(athlete, athlete_id, tenant_id, user_id)
     import time
 
     max_retries = 5
@@ -1570,17 +1547,14 @@ def _row_to_athlete(row) -> dict:
     return {col: row[col] if col in keys else None for col in columns}
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
 def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
     """Recupera il profilo di un atleta per id, opzionalmente filtrato per tenant.
 
     Restituisce un dict con tutti i campi della tabella ``athletes`` oppure
     ``None`` se l'atleta non esiste o non appartiene al tenant.
     """
-    from .postgres_athlete import get_athlete as _pg_get_athlete
-    from .postgres_athlete import has_postgres
 
-    if has_postgres():
-        return _pg_get_athlete(athlete_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -1593,13 +1567,10 @@ def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
         return None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
 def save_metric(metric: dict, tenant_id: int = 0) -> int:
     """Insert a metrics row (fatigue, recovery, calories, efficiency) for a ride."""
-    from .postgres_rides import has_postgres
-    from .postgres_rides import save_metric as _pg_save_metric
 
-    if has_postgres():
-        return _pg_save_metric(metric, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -1622,16 +1593,13 @@ def save_metric(metric: dict, tenant_id: int = 0) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
 def save_athlete_snapshot(athlete: dict, tenant_id: int = 0, changed_by: int | None = None, conn=None) -> int:
     """Insert a full snapshot of the athlete state into athlete_history.
 
     Returns the id of the created snapshot. Excludes password_hash for security.
     """
-    from .postgres_athlete import has_postgres
-    from .postgres_athlete import save_athlete_snapshot as _pg_save_snapshot
 
-    if has_postgres():
-        return _pg_save_snapshot(athlete, tenant_id, changed_by)
     cols = [
         "athlete_id", "tenant_id", "recorded_at", "changed_by", "name", "email",
         "picture", "age", "weight_kg", "height_cm", "fat_percentage",
@@ -1703,13 +1671,10 @@ def save_athlete_snapshot(athlete: dict, tenant_id: int = 0, changed_by: int | N
     return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
 def get_athlete_history(athlete_id: int, *, tenant_id: int | None = None, limit: int = 100) -> list[dict]:
     """Return the change history for an athlete, newest first."""
-    from .postgres_athlete import get_athlete_history as _pg_get_history
-    from .postgres_athlete import has_postgres
 
-    if has_postgres():
-        return _pg_get_history(athlete_id, tenant_id=tenant_id, limit=limit)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -1731,13 +1696,10 @@ def get_athlete_history(athlete_id: int, *, tenant_id: int | None = None, limit:
         return [dict(zip(columns, row, strict=False)) for row in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
 def update_athlete(athlete_id: int, athlete_data: dict) -> bool:
     """Merge ``athlete_data`` into the existing athlete row. Returns True if updated."""
-    from .postgres_athlete import has_postgres
-    from .postgres_athlete import update_athlete as _pg_update_athlete
 
-    if has_postgres():
-        return _pg_update_athlete(athlete_id, athlete_data)
     existing = get_athlete(athlete_id)
     if not existing:
         return False
@@ -1836,13 +1798,10 @@ def release_oauth_sqlite_lock(lock_key: str):
         conn.commit()
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
 def get_athletes_by_user(user_id: int) -> list[dict]:
     """Restituisce tutti gli atleti di un utente ordinati per id."""
-    from .postgres_athlete import get_athletes_by_user as _pg_get_athletes_by_user
-    from .postgres_athlete import has_postgres
 
-    if has_postgres():
-        return _pg_get_athletes_by_user(user_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT * FROM athletes WHERE user_id = ? ORDER BY id", (user_id,))
@@ -1850,27 +1809,21 @@ def get_athletes_by_user(user_id: int) -> list[dict]:
         return [_row_to_athlete(row) for row in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
 def get_athlete_count_by_user(user_id: int) -> int:
-    from .postgres_athlete import get_athlete_count_by_user as _pg_get_athlete_count_by_user
-    from .postgres_athlete import has_postgres
 
-    if has_postgres():
-        return _pg_get_athlete_count_by_user(user_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT COUNT(*) FROM athletes WHERE user_id = ?", (user_id,))
         return cur.fetchone()[0]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
 def delete_athlete(athlete_id: int, user_id: int) -> bool:
     """Elimina un atleta se appartiene all'utente. Non elimina l'atleta principale se id==user_id."""
-    from .postgres_athlete import delete_athlete as _pg_delete_athlete
-    from .postgres_athlete import has_postgres
 
     if athlete_id == user_id:
         return False
-    if has_postgres():
-        return _pg_delete_athlete(athlete_id, user_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("DELETE FROM athletes WHERE id = ? AND user_id = ?", (athlete_id, user_id))
@@ -1972,6 +1925,7 @@ def delete_user_oauth_credentials(user_id: int, provider: str) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
 def log_athlete_metric(
     athlete_id: int,
     metric_type: str,
@@ -1988,14 +1942,7 @@ def log_athlete_metric(
     ``recorded_at`` is stored as an ISO-8601 UTC timestamp so the same event
     can later be aggregated by day / month / second when drawing charts.
     """
-    from .postgres_athlete import has_postgres
-    from .postgres_athlete import log_athlete_metric as _pg_log_metric
 
-    if has_postgres():
-        return _pg_log_metric(
-            athlete_id, metric_type, value, tenant_id=tenant_id, unit=unit,
-            note=note, source=source, recorded_at=recorded_at,
-        )
     if value is None:
         return 0
     if not recorded_at:
@@ -2022,6 +1969,7 @@ def log_athlete_metric(
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
 def get_athlete_metric_log(
     athlete_id: int,
     metric_type: str,
@@ -2031,13 +1979,7 @@ def get_athlete_metric_log(
     limit: int = 2000,
 ) -> list[dict]:
     """Return the time series for one metric, oldest-first, for charting."""
-    from .postgres_athlete import get_athlete_metric_log as _pg_get_log
-    from .postgres_athlete import has_postgres
 
-    if has_postgres():
-        return _pg_get_log(
-            athlete_id, metric_type, tenant_id=tenant_id, days=days, limit=limit
-        )
     since = (datetime.now(UTC) - timedelta(days=days)).isoformat()
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3478,14 +3420,11 @@ def save_weather_cache(lat: float, lon: float, date: str, weather: dict) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
 def upsert_training_stress_day(
     athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float, tenant_id: int = 0
 ) -> None:
-    from .postgres_rides import has_postgres
-    from .postgres_rides import upsert_training_stress_day as _pg_upsert
 
-    if has_postgres():
-        return _pg_upsert(athlete_id, date, tss, atl, ctl, tsb, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         now = datetime.now(UTC).isoformat()
@@ -3613,12 +3552,9 @@ def delete_user(user_id: int) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
 def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | None = None) -> list[dict]:
-    from .postgres_rides import get_training_stress_days as _pg_get_stress
-    from .postgres_rides import has_postgres
 
-    if has_postgres():
-        return _pg_get_stress(athlete_id, limit, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -3639,12 +3575,9 @@ def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | 
         return [{"date": r[0], "tss": r[1], "atl": r[2], "ctl": r[3], "tsb": r[4]} for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
 def get_latest_training_stress(athlete_id: int, tenant_id: int | None = None) -> dict | None:
-    from .postgres_rides import get_latest_training_stress as _pg_get_latest
-    from .postgres_rides import has_postgres
 
-    if has_postgres():
-        return _pg_get_latest(athlete_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -3978,13 +3911,10 @@ def delete_poi(poi_id: int) -> bool:
         return deleted
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_itineraries")
 def save_itinerary(itinerary: dict) -> int:
     """Create an itinerary. Returns the new row id."""
-    from .postgres_itineraries import has_postgres
-    from .postgres_itineraries import save_itinerary as _pg_save_itinerary
 
-    if has_postgres():
-        return _pg_save_itinerary(itinerary)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -4008,13 +3938,10 @@ def save_itinerary(itinerary: dict) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_itineraries")
 def get_itinerary(itinerary_id: int) -> dict | None:
     """Retrieve a single itinerary by id."""
-    from .postgres_itineraries import get_itinerary as _pg_get_itinerary
-    from .postgres_itineraries import has_postgres
 
-    if has_postgres():
-        return _pg_get_itinerary(itinerary_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT * FROM itineraries WHERE id = ?", (itinerary_id,))
@@ -4022,13 +3949,10 @@ def get_itinerary(itinerary_id: int) -> dict | None:
         return _row_to_itinerary(row) if row else None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_itineraries")
 def list_itineraries(athlete_id: int | None = None) -> list[dict]:
     """Return all itineraries, optionally filtered by athlete."""
-    from .postgres_itineraries import has_postgres
-    from .postgres_itineraries import list_itineraries as _pg_list
 
-    if has_postgres():
-        return _pg_list(athlete_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if athlete_id is not None:
@@ -4042,13 +3966,10 @@ def list_itineraries(athlete_id: int | None = None) -> list[dict]:
     return [_row_to_itinerary(r) for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_itineraries")
 def save_stage(stage: dict) -> int:
     """Create a stage for an itinerary. Returns the new row id."""
-    from .postgres_itineraries import has_postgres
-    from .postgres_itineraries import save_stage as _pg_save_stage
 
-    if has_postgres():
-        return _pg_save_stage(stage)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -4074,13 +3995,10 @@ def save_stage(stage: dict) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_itineraries")
 def list_stages(itinerary_id: int) -> list[dict]:
     """Return all stages for an itinerary, ordered by stage_day."""
-    from .postgres_itineraries import has_postgres
-    from .postgres_itineraries import list_stages as _pg_list_stages
 
-    if has_postgres():
-        return _pg_list_stages(itinerary_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -4091,13 +4009,10 @@ def list_stages(itinerary_id: int) -> list[dict]:
     return [_row_to_stage(r) for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_itineraries")
 def get_stage(stage_id: int) -> dict | None:
     """Retrieve a single stage by id."""
-    from .postgres_itineraries import get_stage as _pg_get_stage
-    from .postgres_itineraries import has_postgres
 
-    if has_postgres():
-        return _pg_get_stage(stage_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT * FROM stages WHERE id = ?", (stage_id,))
@@ -4105,13 +4020,10 @@ def get_stage(stage_id: int) -> dict | None:
         return _row_to_stage(row) if row else None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_itineraries")
 def update_itinerary(itinerary_id: int, data: dict, tenant_id: int | None = None) -> bool:
     """Update an itinerary. Returns True if the row was modified."""
-    from .postgres_itineraries import has_postgres
-    from .postgres_itineraries import update_itinerary as _pg_update_itinerary
 
-    if has_postgres():
-        return _pg_update_itinerary(itinerary_id, data, tenant_id)
     existing = get_itinerary(itinerary_id)
     if not existing:
         return False
@@ -4150,13 +4062,10 @@ def update_itinerary(itinerary_id: int, data: dict, tenant_id: int | None = None
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_itineraries")
 def delete_itinerary(itinerary_id: int, tenant_id: int | None = None) -> bool:
     """Delete an itinerary. Returns True if the row was deleted."""
-    from .postgres_itineraries import delete_itinerary as _pg_delete_itinerary
-    from .postgres_itineraries import has_postgres
 
-    if has_postgres():
-        return _pg_delete_itinerary(itinerary_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -4170,13 +4079,10 @@ def delete_itinerary(itinerary_id: int, tenant_id: int | None = None) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_itineraries")
 def update_stage(stage_id: int, data: dict, tenant_id: int | None = None) -> bool:
     """Update a stage. Returns True if the row was modified."""
-    from .postgres_itineraries import has_postgres
-    from .postgres_itineraries import update_stage as _pg_update_stage
 
-    if has_postgres():
-        return _pg_update_stage(stage_id, data, tenant_id)
     existing = get_stage(stage_id)
     if not existing:
         return False
@@ -4214,13 +4120,10 @@ def update_stage(stage_id: int, data: dict, tenant_id: int | None = None) -> boo
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_itineraries")
 def delete_stage(stage_id: int, tenant_id: int | None = None) -> bool:
     """Delete a stage. Returns True if the row was deleted."""
-    from .postgres_itineraries import delete_stage as _pg_delete_stage
-    from .postgres_itineraries import has_postgres
 
-    if has_postgres():
-        return _pg_delete_stage(stage_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -4234,13 +4137,10 @@ def delete_stage(stage_id: int, tenant_id: int | None = None) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_itineraries")
 def reorder_stages(itinerary_id: int, stage_order: list[int], tenant_id: int | None = None) -> bool:
     """Reorder stages by updating stage_day values. Returns True on success."""
-    from .postgres_itineraries import has_postgres
-    from .postgres_itineraries import reorder_stages as _pg_reorder
 
-    if has_postgres():
-        return _pg_reorder(itinerary_id, stage_order, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         for day, stage_id in enumerate(stage_order, start=1):
@@ -4597,12 +4497,9 @@ def get_beck_assessments_by_athlete(athlete_id: int, tenant_id: int = 0, limit: 
         ]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
 def get_metrics_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
-    from .postgres_rides import get_metrics_by_athlete as _pg_get_metrics
-    from .postgres_rides import has_postgres
 
-    if has_postgres():
-        return _pg_get_metrics(athlete_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
