@@ -41,6 +41,7 @@ env/
 # Kilo config and agent plans (may contain API keys / transient state)
 .kilo/kilo.json
 .kilo/plans/
+.kilo/agent/
 
 # IDE
 .vscode/
