@@ -10,6 +10,7 @@ from ...models.models import Ride
 from ...security import get_current_user
 from ..routes import _current_athlete_id, _ensure_athlete_access
 from ...analytics.repositories.ride_repository import RideRepository
+from ...analytics.repositories.training_goal_repository import TrainingGoalRepository
 
 router = APIRouter(prefix="/training", tags=["training"])
 
@@ -49,9 +50,7 @@ async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = De
 @router.post("/goals")
 async def create_training_goal(goal_data: dict, current_user: dict = Depends(get_current_user)):
     """Create a training goal for an athlete (requires PostgreSQL)."""
-    from ...db.postgres_db import SQLALCHEMY_AVAILABLE, save_training_goal
-
-    if not SQLALCHEMY_AVAILABLE:
+    if not TrainingGoalRepository.is_sqlalchemy_available():
         raise HTTPException(status_code=500, detail="SQLAlchemy not available")
     goal_athlete_id = goal_data.get("athlete_id") or current_user["id"]
     _ensure_athlete_access(goal_athlete_id, current_user)
@@ -65,7 +64,7 @@ async def create_training_goal(goal_data: dict, current_user: dict = Depends(get
         "target_elevation_m": goal_data.get("target_elevation_m"),
         "status": "active",
     }
-    goal_id = save_training_goal(goal["athlete_id"], goal)
+    goal_id = TrainingGoalRepository.save_training_goal(goal["athlete_id"], goal)
     return {"id": goal_id, **goal}
 
 
@@ -76,12 +75,10 @@ async def list_training_goals(
     current_user: dict = Depends(get_current_user),
 ):
     """List training goals for athlete."""
-    from ...db.postgres_db import SQLALCHEMY_AVAILABLE, get_training_goals
-
-    if not SQLALCHEMY_AVAILABLE:
+    if not TrainingGoalRepository.is_sqlalchemy_available():
         raise HTTPException(status_code=500, detail="SQLAlchemy not available")
     _ensure_athlete_access(athlete_id, current_user)
-    goals = get_training_goals(athlete_id, status)
+    goals = TrainingGoalRepository.get_training_goals(athlete_id, status)
     return {"goals": goals}
 
 
@@ -94,13 +91,13 @@ async def generate_workouts(
     """Generate planned workouts for a granfondo goal."""
     from ...analytics.training_load import get_current_training_status
     from ...analytics.repositories.ride_repository import RideRepository
-    from ...db.postgres_db import TrainingGoalModel, get_session
+    from ...analytics.repositories.training_goal_repository import TrainingGoalRepository
     from ...analytics.athlete_state.service import AthleteStateService
     from ...analytics.training.models import PlanConstraints, TrainingGoal
     from ...analytics.training.workout_generator import WorkoutGenerator
 
-    with get_session() as session:
-        goal = session.query(TrainingGoalModel).filter(TrainingGoalModel.id == goal_id).first()
+    with TrainingGoalRepository.get_session() as session:
+        goal = session.query(TrainingGoalRepository.get_training_goal_model()).filter(TrainingGoalRepository.get_training_goal_model().id == goal_id).first()
         if not goal:
             raise HTTPException(status_code=404, detail="Goal not found")
         if goal.athlete_id is None:

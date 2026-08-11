@@ -17,14 +17,20 @@ negli slot definiti qui, senza riscrittura dove non serve.
 
 ```
 Presentation      API (FastAPI) · Frontend Vue · Android/iOS (Capacitor)
-      │
+       │
 Application       Use cases: StartSession, PromoteSession, ImportActivity,
-                  AnalyzeActivity, SyncHealth, CoachAdvise, PlanTraining
-      │
+                   AnalyzeActivity, SyncHealth, CoachAdvise, PlanTraining
+       │
 Domain            Entities + UnifiedMetricsEngine (logica di calcolo pura)
-      │
+       │
 Infrastructure    Repositories · Ingestion (Strava/Garmin/Fit/GPX) ·
-                  Tracking · Maps · Weather · Traffic · VectorDB
+                   Tracking · Maps · Weather · Traffic · VectorDB
+
+Repository Layer:
+  db/repositories/        # SQLite wrappers (athlete, ride) — importati da database.py
+  analytics/repositories/ # Domain repositories (19 file) — dual-mode sync/async,
+                           # circular import risolti via lazy import per metodo
+                           # TrainingGoalRepository → PostgreSQL/SQLAlchemy diretto
 ```
 
 Dipendenze puntano solo verso l'interno. L'`Application` orchestra; il `Domain`

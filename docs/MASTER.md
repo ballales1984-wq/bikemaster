@@ -1,8 +1,8 @@
 # BikeMaster — Complete Documentation
 
-> **Version:** 1.5.0  
-> **Date:** 2026-07-12  
-> **Stack:** Python 3.11 · FastAPI · Vue 3 · TypeScript · SQLite/PostgreSQL · Tauri 2 · Clean Architecture
+> **Version:** 1.6.0  
+> **Date:** 2026-08-11  
+> **Stack:** Python 3.11 · FastAPI · Vue 3 · TypeScript · SQLite/PostgreSQL · Tauri 2 · Clean Architecture · Repository Pattern
 
 For topic-specific documentation, see [docs/README.md](./README.md).
 
@@ -79,12 +79,13 @@ It allows people of all levels to:
 - **Badges System** — Medals and achievements
 - **Granfondo Planner** — Training plan generator with tapering
 - **Weather Service** — Training weather advice
-- **Training Stress** — TSS, ATL/CTL/TSB, EWMA
+- **Training Stress** — TSS, ATL/CTL/TSB, EWMA, RSS, 7-day fitness summary
+- **Repository Pattern** — Domain repositories (`analytics/repositories/`, 19 file) with lazy imports for circular dependency resolution; dual-mode sync/async + PostgreSQL adapters
 - **Traffic Safety** — Route safety analysis (cycling infrastructure, incidents)
 - **Event Bus** — Domain event system (RideCreated, BadgeEarned, etc.)
 - **PWA** — Progressive Web App with install prompt
 - **Phone GPS Tracking** — Record rides directly from Android mobile
-- **REST API** — 40+ documented endpoints
+- **REST API** — 138 documented endpoints (v1)
 - **Export** — JSON and CSV
 - **JWT Auth** — Login and endpoint protection
 - **Google OAuth2** — Social login
@@ -242,11 +243,13 @@ Clean Architecture structure:
 
 - **`calculators/`** — Pure functions testable in isolation
 - **`services/`** — Use case orchestration (ride analysis, fitness state computation, context builder)
-- **`repositories/`** — Data access abstraction (ride, athlete, fitness state, training stress)
+- **`repositories/`** — Domain repositories (19 file): ride, athlete, training stress, training goal (PostgreSQL), calendar, HR, metabolism, chat, BLE, legal, itinerary, POI, fitness state, performance, AI audit, user, user OAuth. Circular import risolti via lazy import per metodo.
+- **`training_load.py`** — ATL/CTL/TSB computation, RSS, 7-day fitness summary
 
 ### Infrastructure Layer
 
-- **`db/`** — Data access: SQLite sync, async SQLAlchemy (asyncpg/aiosqlite), PostgreSQL ORM
+- **`db/`** — Data access: SQLite sync (`database.py`, ~4065 linee, in estrazione), async SQLAlchemy (asyncpg/aiosqlite), PostgreSQL ORM (`postgres_db.py`)
+- **`db/repositories/`** — SQLite repository wrappers (2 file attivi: athlete, ride) — importati da `database.py`
 - **`database/vectordb.py`** — PGVector wrapper for similarity search
 - **`traffic/`** — Road safety analysis (Overpass API, incident data)
 - **`auth/`** — OAuth2 providers (Google, Strava, Garmin, Wahoo)
@@ -266,9 +269,10 @@ Clean Architecture structure:
 
 - **Pure calculators**: no DB, no API, no side effects
 - **Service orchestration**: use case flow in `analytics/services/`
-- **Repository abstraction**: sync + async + PostgreSQL adapters
+- **Repository abstraction**: dual-mode sync/async + PostgreSQL adapters; circular import risolti via lazy import
 - **Domain events**: pub/sub for RideCreated, AthleteUpdated, BadgeEarned, TrainingGenerated
-- **Dual-mode DB**: repository adapters handle both SQLite and PostgreSQL
+- **Dual-mode DB**: repository adapters handle both SQLite (`db.database`) and PostgreSQL (`db.postgres_db`)
+- **database.py extraction**: domini estratti progressivamente in `db/repositories/` + `analytics/repositories/` (ordine: RIDE → ATHLETE → TRAINING STRESS → CALENDAR → HR → metabolico/chat/BLE/legal/POI/safety)
 
 ---
 

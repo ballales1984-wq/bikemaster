@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from ...db.database import save_ai_audit_log
-
 
 class AIAuditRepository:
     @staticmethod
@@ -18,6 +16,8 @@ class AIAuditRepository:
         tenant_id: int = 0,
     ) -> None:
         """Save an AI interaction audit log entry."""
+        from ...db.database import save_ai_audit_log
+
         return save_ai_audit_log(
             athlete_id=athlete_id,
             provider=provider,

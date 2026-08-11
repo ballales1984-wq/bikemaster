@@ -6,6 +6,9 @@ Head Alembic corrente: `13a1d54d325f` (verificato con `alembic check` -> "No new
 Lo schema è **dual-mode**: SQLite (store locale primario, WAL) e PostgreSQL opzionale (cloud sync / hub multi-tenant).
 Il layer sync (`database.py`) è la source of truth per SQLite; `models.py` definisce i mapping ORM usati dal session async.
 
+> **Refactoring in corso (2026-08-11):** `database.py` (~4065 linee) è in estrazione per dominio in repository pattern.
+> Vedi `review_db_architecture.md` per il piano di smontaggio completo.
+
 ---
 
 ## 1. Analisi dei dati

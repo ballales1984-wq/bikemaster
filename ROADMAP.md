@@ -1,6 +1,6 @@
 # BikeMaster — Roadmap Unificata
 
-*Ultimo aggiornamento: 2026-08-10*
+*Ultimo aggiornamento: 2026-08-11*
 
 > **Principio guida**: fare le cose una volta, farle bene. Questo documento è la
 > *fonte di verità unica* per stato, priorità e azioni. Non eseguire feature
@@ -33,52 +33,61 @@ Nessun branch aperto. Tutti i branch feat sono stati mergiati in `main`.
 
 ## 3. Working Tree
 
-- **Modified**: `frontend/src/components/AetherMapViewer.vue`, `frontend/src/components/RideMapPanel.vue`
-- **Untracked**: `bikemaster-login.png`, `bikemaster-login2.png` (artefatti debug/screenshot)
+- **Branch**: `refactor/split-hotspots`
+- **Modified**: `bike_analyzer/backend/analytics/repositories/` (9 file — circular import resolution via lazy imports), `bike_analyzer/backend/db/repositories/calendar_repository.py` (lazy connection import), `bike_analyzer/backend/analytics/training_load.py` (+5 funzioni ATL/CTL/TSB/RSS), `bike_analyzer/backend/api/routers/training_routes.py` (adotta TrainingGoalRepository), `tests/test_database.py` (import spostato)
+- **Untracked**: `bike_analyzer/backend/analytics/repositories/training_goal_repository.py` (nuovo repository PostgreSQL/SQLAlchemy), `review_db_architecture.md` (report architetturale)
 
 ---
 
 ## 4. Priorità Assoluta (ordine di esecuzione)
 
-### Fase 1 — Stabilizzazione produzione ✅ COMPLETATA (2026-08-10)
+### Fase 1 — Refactoring database.py (estrazione repository) 🔄 IN CORSO
 
-1. ✅ **Hardening OAuth Google** — logging granulare callback, lock handling, fallback user creation, sslmode Render PostgreSQL, CORS regex per preview Vercel, security headers (CSP, CORP, CSRF), token encryption, OAuth state validation
-2. ✅ **Resilienza PostgreSQL** — schema init robusta, connection close safe, SQLite fallback, schema drift fix, dispatch `get_metrics_by_athlete` su PostgreSQL, idempotent migrations
-3. ✅ **Stabilità Render deploy** — deploy timeout risolto (migrations non-blocking, lifespan background tasks, uvicorn porta 10000, Redis fromService, health check `/api/v1/health`, graceful shutdown)
-4. ✅ **Vercel deploy** — rimozione cron e framework override, pin Node 20.x, serverless compatibility
-5. ✅ **Security hardening** — IDOR fix su POI endpoints, CORS restriction, CSRF tokens, info disclosure fix, rate-limit persistence
-6. ✅ **AetherMap convergence** — Fasi 1-5 complete, C++ renderer integrato, CityGML 2.0, Natural Earth packaging, terrain intelligence module (`useRideTerrain`, `terrain_enrichment.py`)
-7. ✅ **Frontend UI/UX** — touch targets, SVG icons, skeleton loading, accessibility improvements, PWA manifest icons/screenshots
-8. ✅ **Tauri Android** — HealthConnectHelper, BLE sync (weight/HR/blood pressure), Windows build scripts, JDK 17 config
+1. ✅ **Calendar (P1)** — CRUD estratto in `db/repositories/calendar_repository.py`, circular import risolto, `analytics/repositories/calendar_repository.py` rediretto a `db.database`, 53 test passanti
+2. ✅ **Training Goals (PostgreSQL)** — `analytics/repositories/training_goal_repository.py` creato come wrapper SQLAlchemy, `training_routes.py` aggiornato
+3. ✅ **Circular import resolution** — tutti i repository `analytics/repositories/` convertono import top-level in lazy import dentro i metodi; `db/repositories/calendar_repository.py` ottiene `_get_db_connection()` lazy
+4. 🔄 **HR 24h (P2)** — `analytics/repositories/hr_repository.py` convertito a lazy import; `db/repositories/hr_repository.py` non esiste ancora (funzioni ancora inline in `database.py`)
+5. 🔄 **Metabolico, Chat, BLE, Legal, POI, Safety** — `analytics/repositories/*` convertiti a lazy import; attesi in `db/repositories/`
 
-### Fase 2 — Test coverage (in corso)
+### Fase 2 — Stabilizzazione produzione ✅ COMPLETATA (2026-08-10)
 
-9. **Coverage > 90%** su `routes.py` e moduli AI — in corso
+6. ✅ **Hardening OAuth Google** — logging granulare callback, lock handling, fallback user creation, sslmode Render PostgreSQL, CORS regex per preview Vercel, security headers (CSP, CORP, CSRF), token encryption, OAuth state validation
+7. ✅ **Resilienza PostgreSQL** — schema init robusta, connection close safe, SQLite fallback, schema drift fix, dispatch `get_metrics_by_athlete` su PostgreSQL, idempotent migrations
+8. ✅ **Stabilità Render deploy** — deploy timeout risolto (migrations non-blocking, lifespan background tasks, uvicorn porta 10000, Redis fromService, health check `/api/v1/health`, graceful shutdown)
+9. ✅ **Vercel deploy** — rimozione cron e framework override, pin Node 20.x, serverless compatibility
+10. ✅ **Security hardening** — IDOR fix su POI endpoints, CORS restriction, CSRF tokens, info disclosure fix, rate-limit persistence
+11. ✅ **AetherMap convergence** — Fasi 1-5 complete, C++ renderer integrato, CityGML 2.0, Natural Earth packaging, terrain intelligence module (`useRideTerrain`, `terrain_enrichment.py`)
+12. ✅ **Frontend UI/UX** — touch targets, SVG icons, skeleton loading, accessibility improvements, PWA manifest icons/screenshots
+13. ✅ **Tauri Android** — HealthConnectHelper, BLE sync (weight/HR/blood pressure), Windows build scripts, JDK 17 config
+
+### Fase 3 — Test coverage (in corso)
+
+14. **Coverage > 90%** su `routes.py` e moduli AI — in corso
     - routes.py ~65%, ai_coach.py 90%, knowledge_base ~85%
     - Test Google OAuth callback sistemato (fix settings singleton + env vars)
     - File attivi: `tests/test_routes_error_branches.py`, `tests/test_coverage_ai_routes.py`
 
-### Fase 3 — Distribuzione
+### Fase 4 — Distribuzione
 
-10. **Tauri build verificata**: `npm run tauri build` produce .exe/.dmg/.AppImage funzionanti
-11. **Vercel deploy**: frontend su Vercel chiama API su Render (`VITE_API_BASE=https://bikemaster.onrender.com`)
-12. **GitHub Releases** per distribuzione desktop (CI/CD Tauri)
-13. **Android release**: verificare APK/AAB da workflow GitHub Actions
+15. **Tauri build verificata**: `npm run tauri build` produce .exe/.dmg/.AppImage funzionanti
+16. **Vercel deploy**: frontend su Vercel chiama API su Render (`VITE_API_BASE=https://bikemaster.onrender.com`)
+17. **GitHub Releases** per distribuzione desktop (CI/CD Tauri)
+18. **Android release**: verificare APK/AAB da workflow GitHub Actions
 
-### Fase 4 — BM2 Deluxe (prossimo mese)
+### Fase 5 — BM2 Deluxe (prossimo mese)
 
-14. **UI simulazione frontend**: pannello "What-if" su rides esistenti
+19. **UI simulazione frontend**: pannello "What-if" su rides esistenti
     (`components/Bm2Panel.vue` esiste, serve integrazione completa)
-15. **Validazione fisica su dati reali**: confrontare stime BM2 vs potenza misurata
+20. **Validazione fisica su dati reali**: confrontare stime BM2 vs potenza misurata
     su 10+ ride con power meter
-16. **AI Coach + BM2**: l'orchestratore NL usa i risultati simulazione per rispondere
+21. **AI Coach + BM2**: l'orchestratore NL usa i risultati simulazione per rispondere
     a domande tipo "se aumento FTP a 250W quanto miglioro?"
 
-### Fase 5 — AetherMap (R&D, completata)
+### Fase 6 — AetherMap (R&D, completata)
 
-17. ✅ Complete Fase 1-5 (earth model, data model, AI pipeline, WebGL rendering, digital twin)
-18. ✅ Decisione esplicita: `aethermap/` converge in BikeMaster come modulo terrain intelligence
-19. ✅ Contratto dati `Ride/GPSPoint → terrain input` definito in `docs/agent/aethermap-convergence.md`
+22. ✅ Complete Fase 1-5 (earth model, data model, AI pipeline, WebGL rendering, digital twin)
+23. ✅ Decisione esplicita: `aethermap/` converge in BikeMaster come modulo terrain intelligence
+24. ✅ Contratto dati `Ride/GPSPoint → terrain input` definito in `docs/agent/aethermap-convergence.md`
 
 > **Decisione (2026-07-26)**: AetherMap converge in BikeMaster. Il progetto rimane come sotto-package (`aethermap/`) con il suo `pyproject.toml` autonomo, ma è integrato come dipendenza opzionale (`pip install -e ".[maps]"`). La pipeline IA arricchisce le ride con dati terrain; il digital twin fornisce contesto ambientale (neve, ombra, traffico) per l'analisi e il coaching. Vedi `docs/agent/aethermap-convergence.md` per dettagli.
 
@@ -133,6 +142,35 @@ Locale:
 D:\BikeMaster/
 ├── bike_analyzer/          # Backend + BM2 + core (codice Python)
 │   ├── backend/            # FastAPI app (api, analytics, db, ingestion, maps...)
+│   │   ├── analytics/      # Analytics engine + repositories (19 file)
+│   │   │   ├── repositories/  # Domain repositories (dual-mode sync/async)
+│   │   │   │   ├── athlete_repository.py
+│   │   │   │   ├── ride_repository.py
+│   │   │   │   ├── training_stress_repository.py
+│   │   │   │   ├── training_goal_repository.py  # PostgreSQL/SQLAlchemy wrapper
+│   │   │   │   ├── calendar_repository.py
+│   │   │   │   ├── hr_repository.py
+│   │   │   │   ├── metabolism_repository.py
+│   │   │   │   ├── chat_repository.py
+│   │   │   │   ├── ble_repository.py
+│   │   │   │   ├── legal_repository.py
+│   │   │   │   ├── itinerary_repository.py
+│   │   │   │   ├── poi_repository.py
+│   │   │   │   ├── fitness_state_repository.py
+│   │   │   │   ├── performance_repository.py
+│   │   │   │   ├── ai_audit_repository.py
+│   │   │   │   ├── user_repository.py
+│   │   │   │   └── user_oauth_repository.py
+│   │   │   ├── training_load.py  # ATL/CTL/TSB, RSS, 7-day summary
+│   │   │   └── ...
+│   │   ├── db/             # Data Access Layer
+│   │   │   ├── database.py # SQLite CRUD sync (~4065 lines, in estrazione)
+│   │   │   ├── postgres_db.py # PostgreSQL ORM layer
+│   │   │   ├── repositories/ # SQLite repository wrappers (2 file attivi)
+│   │   │   │   ├── athlete_repository.py
+│   │   │   │   └── ride_repository.py
+│   │   │   └── ...
+│   │   └── ...
 │   ├── core/               # Domain layer (models, pipeline, engine, physics)
 │   ├── bm2/                # BikeMaster 2.0 simulation engine
 │   ├── frontend/           # Dashboard Flask legacy (non il frontend principale)

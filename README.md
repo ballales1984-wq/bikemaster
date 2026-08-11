@@ -5,6 +5,7 @@
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![Vue 3](https://img.shields.io/badge/Vue-3.4%2B-green.svg)](https://vuejs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-black.svg)](https://fastapi.tiangolo.com/)
+[![Tests](https://img.shields.io/badge/tests-~3255%20passing-brightgreen.svg)](#testing)
 
 **BikeMaster** è un sistema di *intelligenza dello stile di vita*: definisce lo stato di salute come il bilanciamento dinamico delle variabili acquisite dalla vita reale di ogni persona, e usa l'attività ciclistica come dominio strutturato per analisi, raccomandazioni e ottimizzazione.
 
@@ -135,8 +136,9 @@ L'utente può attivare la modalità **"Mai"** (mai sync) e usare l'app 100% offl
 
 | Modulo | Ruolo |
 |---|---|
-| **Data Layer** | Storage canonico atleti, sessioni, bici, telemetria |
+| **Data Layer** | Repository pattern (`db/repositories/` + `analytics/repositories/`) con lazy import per risoluzione dipendenze circolari; dispatch automatico SQLite/PostgreSQL via `has_postgres()` |
 | **Time Engine** | Timeline unificata e sincronizzazione eventi |
+| **Training Load** | ATL/CTL/TSB, RSS, calcolo carico allenamento in `analytics/training_load.py` |
 
 ## Documentazione
 
@@ -231,6 +233,19 @@ cd frontend
 npm run tauri dev              # App desktop con backend embedded
 ```
 
+### Test
+
+```bash
+# Backend (in chunk per stabilita')
+python -m pytest tests/ -x
+
+# Frontend
+cd frontend && npm run test
+
+# Frontend typecheck + lint
+cd frontend && npm run typecheck && npm run lint
+```
+
 ### Docker
 
 ```bash
@@ -258,7 +273,7 @@ cd bike_analyzer && python -m bm2.simulation.demo
 
 ## Roadmap
 
-**Stato:** architettura locale-first (Tauri 2 + SQLite primario + backend FastAPI embedded) completata; engine BM2 e AetherMap attivi. Build backend e frontend con test automatizzati (vedi [`ROADMAP.md`](ROADMAP.md) e [`PROJECT_STATUS.md`](PROJECT_STATUS.md) per i numeri aggiornati).
+**Stato:** architettura locale-first (Tauri 2 + SQLite primario + backend FastAPI embedded) completata; engine BM2 e AetherMap attivi. Refactoring `database.py` in corso (estrazione domini in repository pattern). Build backend e frontend con test automatizzati (vedi [`ROADMAP.md`](ROADMAP.md) e [`PROJECT_STATUS.md`](PROJECT_STATUS.md) per i numeri aggiornati).
 
 ### Completato
 
@@ -270,9 +285,13 @@ cd bike_analyzer && python -m bm2.simulation.demo
 - [x] Traffic Safety Analysis
 - [x] Multi-tenant + data isolation
 - [x] AetherMap (fasi 1-5 complete, convergence into BikeMaster)
+- [x] Refactoring database.py — estrazione Calendar (P1), Training Goals (PostgreSQL wrapper), circular import resolution via lazy imports
+- [x] analytics/training_load.py — ATL/CTL/TSB, RSS, 7-day fitness summary
 
 ### In corso
 
+- [ ] Refactoring database.py — estrazione HR (P2), metabolico, chat, BLE, legal, POI, safety
+- [ ] Coverage test >90% su routes.py e moduli AI
 - [ ] Anomaly detection + piano di allenamento LLM
 - [ ] Voice Coach (TTS/audio)
 

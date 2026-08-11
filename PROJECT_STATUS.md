@@ -5,6 +5,14 @@
 > **Stato**: architettura locale-first completata — distribuzione di riferimento: desktop **Tauri 2** (`.exe`/`.dmg`/`.AppImage`) con backend embedded FastAPI + SQLite locale. **Produzione deployata su Render**: `bikemaster-api` (FastAPI/Docker) + PostgreSQL `bikemaster-db`, frontend statico servito same-origin (`render.yaml` come fonte di verità). Il modello legacy local-backend + ngrok→Vercel è ritirato. Sync device↔cloud opzionale. Architettura local-first.
 > Fonte di verità unica per stato/checklist: [`ROADMAP.md`](ROADMAP.md).
 >
+> **Refactoring database.py in corso (branch `refactor/split-hotspots`):**
+> - Estrazione domini in repository pattern (`db/repositories/` + `analytics/repositories/`)
+> - Circular import resolution via lazy imports (tutti i repository analytics convertono import top-level in lazy)
+> - Calendar (P1) completata: CRUD in `db/repositories/calendar_repository.py`, analytics/bypassa `db/repositories/`
+> - Training Goals (PostgreSQL): nuovo `analytics/repositories/training_goal_repository.py` wrapper SQLAlchemy
+> - `analytics/training_load.py` esteso: +5 funzioni (ATL/CTL/TSB, RSS, 7-day fitness summary)
+> - HR (P2) in progress: analytics/repositories/hr_repository.py convertito, db/repositories/hr_repository.py atteso
+>
 > **Numeri backend/frontend (verificati 2026-08-10, repo root):**
 > - Backend: **~3255 passed / 2 failed** su ~3257 test eseguiti (`pytest`, in chunk per stabilità d'ambiente). I 2 failure sono errori d'ambiente SQLAlchemy async (`MissingGreenlet`).
 > - Frontend: **395 passed / 0 failed / 0 errors** su **395** test (59 file) — `vitest run` eseguito 2026-08-10.
@@ -29,11 +37,11 @@ Progetto cartografico R&D fuso in BikeMaster come modulo terrain intelligence op
 
 ### Ultimo Commit
 
-- `36dccd8` — feat: add dev-debug-agent Kilo agent
-- `a220686` — fix(backend): improve OAuth callback logging to diagnose user_creation_failed
-- `9dd12d5` — fix(backend,frontend): improve OAuth logging and map rendering performance
-- `7e33767` — fix(backend,frontend): resilient PostgreSQL schema init and minor UI fix
-- `73d94e0` — fix(backend): resilient OAuth athlete creation with fallback
+- `8481268` — refactor(weather): route cache via WeatherRepository + fix provider import
+- `421d23e` — refactor: stabilize RIDE domain as source of truth
+- `efee426` — refactor: consolidate architecture changes and cleanup
+- `89c6667` — refactor: move training stress recalculation out of database.py
+- `6515f09` — refactor: poi_enrichment now uses MapsPOIRepository for DB access
 
 ---
 
@@ -99,37 +107,41 @@ bike_analyzer/
 │   │   ├── ai_coach.py                # AI Coach (Groq/LLM + RAG BM25 + memoria)
 │   │   ├── knowledge_base.py          # RAG engine BM25 + LRU cache
 │   │   ├── dashboard.py               # Aggregatore statistiche dashboard
-│   │   ├── training_load.py           # Carico allenamento (RSS, TSS)
+│   │   ├── training_load.py           # Carico allenamento (ATL/CTL/TSB, RSS, 7-day summary)
 │   │   ├── training_stress.py         # Training Stress Score + EWMA
 │   │   ├── badges.py                  # Sistema badge/medaglie + heatmap GPS
 │   │   ├── granfondo_planner.py       # Piano allenamento granfondo con tapering
 │   │   ├── terrain_enrichment.py      # AetherMap TerrainEnricher (slope, surface, shade, traffic)
 │   │   │
-│   │   ├── calculators/               # Pure functions (testabili in isolamento)
-│   │   │   ├── calories.py            # Calorie estimation (physics + MET)
-│   │   │   ├── power.py               # NP, IF, TSS, training_stress_score
-│   │   │   ├── fatigue.py             # Fatigue score + recovery hours formula
-│   │   │   ├── performance.py         # Performance score + efficiency score
-│   │   │   └── stress.py              # EWMA calculations
-│   │   │
-│   │   ├── services/                  # Use case orchestration
-│   │   │   ├── ride_analysis_service.py   # Full ride analysis pipeline
-│   │   │   ├── fitness_state_service.py   # FitnessStateVector computation
-│   │   │   └── context_builder.py         # Analysis context assembly
-│   │   │
-│   │   └── repositories/              # Data access abstraction
-│   │       ├── ride_repository.py          # Ride CRUD (sync + async + postgres)
-│   │       ├── athlete_repository.py       # Athlete CRUD
-│   │       ├── fitness_state_repository.py # Fitness state persistence
-│   │       └── training_stress_repository.py
+│   │   ├── repositories/              # Domain repositories (dual-mode sync/async)
+│   │   │   ├── athlete_repository.py       # Athlete CRUD (sync + async + postgres)
+│   │   │   ├── ride_repository.py          # Ride CRUD
+│   │   │   ├── training_stress_repository.py # Training stress persistence
+│   │   │   ├── training_goal_repository.py # Training goals (PostgreSQL/SQLAlchemy wrapper)
+│   │   │   ├── calendar_repository.py      # Calendar CRUD
+│   │   │   ├── hr_repository.py            # HR 24h monitoring
+│   │   │   ├── metabolism_repository.py    # Metabolic profile + food logs
+│   │   │   ├── chat_repository.py          # Chat history
+│   │   │   ├── ble_repository.py           # BLE devices
+│   │   │   ├── legal_repository.py         # Consent + legal acceptances
+│   │   │   ├── ai_audit_repository.py      # AI audit logs
+│   │   │   ├── itinerary_repository.py     # Itineraries + stages
+│   │   │   ├── poi_repository.py           # Points of Interest
+│   │   │   ├── fitness_state_repository.py # Fitness states
+│   │   │   ├── performance_repository.py   # Performance metrics
+│   │   │   ├── user_repository.py          # User CRUD
+│   │   │   └── user_oauth_repository.py    # OAuth credentials
 │   │
 │   ├── db/                            # Data Access Layer
-│   │   ├── database.py                # SQLite CRUD sync (4 tabelle)
+│   │   ├── database.py                # SQLite CRUD sync (~4065 lines, in estrazione)
 │   │   ├── async_db.py                # Async DB layer (asyncpg/aiosqlite)
-│   │   ├── postgres_db.py             # PostgreSQL full ORM layer
+│   │   ├── postgres_db.py             # PostgreSQL full ORM layer (SQLAlchemy sync)
 │   │   ├── models.py                  # SQLAlchemy ORM models async
 │   │   ├── vector_db.py               # TF-IDF + cosine similarity fallback
-│   │   └── api_compat.py              # API compatibility layer
+│   │   ├── api_compat.py              # API compatibility layer
+│   │   └── repositories/              # SQLite repository wrappers (2 file attivi)
+│   │       ├── athlete_repository.py  # Importato da database.py; usato da import_service + task_queue
+│   │       └── ride_repository.py     # Importato da database.py; usato da import_service + task_queue
 │   │
 │   ├── database/                      # Vector Database
 │   │   └── vectordb.py                # PGVector wrapper (CREATE EXTENSION, upsert, cosine search)
