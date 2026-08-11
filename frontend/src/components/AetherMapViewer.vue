@@ -104,6 +104,7 @@ const canvasRef = ref<HTMLCanvasElement | null>(null);
 let gl: WebGL2RenderingContext | null = null;
 let rafId: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
+let mounted = true;
 
 let globePosBuf: { buf: WebGLBuffer; count: number; mode: number } | null =
   null;
@@ -1159,8 +1160,6 @@ onMounted(async () => {
   globeNormBuf = makeBuffer(globeData.normals, gl!.TRIANGLES, 3);
   globeIdxBuf = makeIndexBuffer(globeData.indices);
   globeIdxCount = globeData.indices.length;
-
-  let mounted = true;
 
   buildGlobeBuffers(getLODResolution(camDist)).then((data) => {
     if (!mounted || !gl) return;
