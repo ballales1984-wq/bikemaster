@@ -341,6 +341,35 @@ Con Tauri, il frontend Vue viene **imbundito dentro l'app desktop**. Il backend 
 
 Ogni utente ha un `tenant_id` (di solito uguale al suo id). Tutte le query filtrano per `tenant_id` per isolare i dati. Gli utenti "admin" possono vedere il tenant di tutti. Questo è importante per la versione cloud (hub) dove più atleti condividono lo stesso database PostgreSQL.
 
+### 6.7 Repository + key-provider (layered dependencies)
+
+Il Service layer non tocca mai il database né l'API HTTP direttamente. La
+direzione delle dipendenze è unidirezionale (AGENTS.md §2):
+
+    Router -> Service -> Repository -> db.database
+                         |
+                         v
+               user_keys_provider (Protocol, trasport-agnostic)
+                 -> request_context (infra, lazy ContextVar)
+
+- `WeatherService` (`backend/weather/weather_service.py`) legge/scrive la cache
+  SOLO tramite `WeatherRepository` (`backend/weather/repositories/weather_repository.py`),
+  mai tramite `from ..db.database import ...` nel service. L'import di
+  `db.database` dentro il repository è *lazy* (nei metodi) per evitare il ciclo
+  di caricamento `db.database <-> db/repositories/*` già presente nel layer di
+  persistenza. Rompie il viezo `Service -> Database`.
+- Le chiavi API per-utente arrivano dal *provider*
+  (`UserKeysProvider` / `ContextVarUserKeysProvider` in
+  `backend/user_keys_provider.py`), popolato dal middleware
+  (`X-User-Api-Keys` -> `request_context`) — NON da `api/user_keys`. Rompie il
+  vecchio ciclo `Service -> api`.
+- Stesso pattern: `analytics/ai_coach.py` usa `AIAuditRepository` + provider,
+  `analytics/metabolism.py` usa `MetabolismRepository`.
+
+> Verifica di aciclicità: `tests/test_weather_repository.py` analizza l'AST delle
+> sorgenti del Service layer e FALLISCE se un service importa `db.database` o
+> `api.user_keys` (cattura anche import lazy dentro i metodi).
+
 ---
 
 ## 7. Come avviare l'app (riassunto veloce)

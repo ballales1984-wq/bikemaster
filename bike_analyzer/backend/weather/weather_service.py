@@ -1,10 +1,10 @@
 """Weather service using OpenWeatherMap API.
 
-Layered design (see AGENTS.md §2 / §5):
+Layered design (see AGENTS.md §2 / §5 / §6):
 
     Router (weather_routes)
         ->  WeatherService   (this module; coords OpenWeather + cache policy)
-        ->  WeatherRepository  (data-access port; see weather_repository.py)
+        ->  WeatherRepository  (weather/repositories/weather_repository.py)
         ->  db.database
 
 The Service resolves per-user API keys through the *provider* abstraction
@@ -25,7 +25,7 @@ import requests
 
 from ..settings import get_settings
 from ..user_keys_provider import ContextVarUserKeysProvider, UserKeysProvider
-from .weather_repository import WeatherRepository
+from .repositories.weather_repository import WeatherRepository
 
 _s = get_settings()
 
@@ -82,8 +82,7 @@ def get_weather_for_coordinates(lat: float, lon: float, date: str | None = None)
 
     date_to_use = date or datetime.now(UTC).strftime("%Y-%m-%d")
 
-    # Check cache (read through the Repository, not db.database directly)
-    cached = WeatherRepository.get_cached(lat, lon, date_to_use)
+    cached = WeatherRepository.get_weather_cache(lat, lon, date_to_use)
     if cached:
         return cached
 
@@ -108,7 +107,7 @@ def get_weather_for_coordinates(lat: float, lon: float, date: str | None = None)
             "fetched_at": datetime.now(UTC).isoformat(),
         }
 
-        WeatherRepository.cache(lat, lon, date_to_use, weather)
+        WeatherRepository.save_weather_cache(lat, lon, date_to_use, weather)
         return weather
     except Exception as e:
         return {"error": str(e), "temperature": None, "humidity": None}
@@ -120,7 +119,7 @@ def get_forecast_for_date(lat: float, lon: float, date: str) -> dict:
     if not api_key:
         return {"error": "Weather API key not configured", "temperature": None, "humidity": None}
 
-    cached = WeatherRepository.get_cached(lat, lon, date)
+    cached = WeatherRepository.get_weather_cache(lat, lon, date)
     if cached:
         return cached
 
@@ -160,7 +159,7 @@ def get_forecast_for_date(lat: float, lon: float, date: str) -> dict:
                 "forecast_date": date,
                 "fetched_at": datetime.now(UTC).isoformat(),
             }
-            WeatherRepository.cache(lat, lon, date, weather)
+            WeatherRepository.save_weather_cache(lat, lon, date, weather)
             return weather
 
         return {"error": "No forecast data", "temperature": None, "humidity": None}
