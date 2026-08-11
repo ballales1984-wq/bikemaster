@@ -451,6 +451,24 @@ ${route}
     return (distance.value / 1000).toFixed(2);
   });
 
+  const todaySegments = computed(() => getTodaySegments());
+
+  const totalTodayDistanceKm = computed(() => {
+    const total = todaySegments.value.reduce(
+      (s, seg) => s + seg.distanceM / 1000,
+      0,
+    );
+    return Math.round(total * 100) / 100;
+  });
+
+  const totalTodayActiveMinutes = computed(() => {
+    const total = todaySegments.value.reduce((s, seg) => {
+      const end = seg.endTime ?? Date.now();
+      return s + (end - seg.startTime) / 60000;
+    }, 0);
+    return Math.round(total);
+  });
+
   return {
     isTracking,
     isPaused,
@@ -490,6 +508,9 @@ ${route}
     updateActivityRings,
     getTodaySegments,
     buildDailyTimeline,
+    todaySegments,
+    totalTodayDistanceKm,
+    totalTodayActiveMinutes,
     toGpx,
     buildGpxExtensions,
     persistState,

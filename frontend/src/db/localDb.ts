@@ -72,9 +72,10 @@ export function initLocalDb(): Promise<boolean> {
         db.exec(
           `ALTER TABLE rides_cache ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0`,
         );
-        db.run(`UPDATE rides_cache SET expires_at = ? WHERE expires_at = 0`, [
-          Date.now() + RIDES_CACHE_TTL_MS,
-        ]);
+        (db as any).exec(
+          `UPDATE rides_cache SET expires_at = ? WHERE expires_at = 0`,
+          [Date.now() + RIDES_CACHE_TTL_MS],
+        );
       } catch {
         // column already exists
       }

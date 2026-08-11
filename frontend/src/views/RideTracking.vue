@@ -449,7 +449,7 @@ async function uploadRide() {
         const result = await apiPost("/api/v1/rides", rideData);
         if (result.id) {
           tracking.setRideId(result.id as number);
-          alert("Uscita salvata con successo!");
+          window.__toast?.add("Uscita salvata con successo!", "success");
           resetTrackingState();
           router.push("/rides");
           return;
@@ -469,24 +469,27 @@ async function uploadRide() {
       });
       const result = await apiUpload("/api/v1/import/gpx", file);
       if (result.error) {
-        alert(result.error || "Upload failed");
+      const errorMsg =
+        typeof result.error === "string" ? result.error : "Upload failed";
+      window.__toast?.add(errorMsg, "error");
         return;
       }
-      alert("Ride uploaded successfully!");
+      window.__toast?.add("Ride uploaded successfully!", "success");
       resetTrackingState();
       router.push("/rides");
       return;
     }
     if (tracking.gpxPath) {
-      alert(
+      window.__toast?.add(
         "Unable to upload file from native path. Please use GPX export instead.",
+        "error",
       );
       return;
     }
-    alert("No ride to upload");
+    window.__toast?.add("No ride to upload", "error");
   } catch (error) {
     console.error("Upload failed:", error);
-    alert("Error during upload");
+    window.__toast?.add("Error during upload", "error");
   } finally {
     isUploading.value = false;
   }
@@ -721,13 +724,13 @@ async function saveAsItinerary() {
       }
     } catch (e) {
       console.warn("Salvataggio ride per itinerario fallito", e);
-      alert("Impossibile salvare l'uscita come itinerario.");
+      window.__toast?.add("Impossibile salvare l'uscita come itinerario.", "error");
       return;
     }
   }
 
   if (!rideId) {
-    alert("Registra prima l'uscita.");
+    window.__toast?.add("Registra prima l'uscita.", "error");
     return;
   }
 
@@ -747,11 +750,11 @@ async function saveAsItinerary() {
         ride_id: rideId,
         stage_day: 1,
       });
-      alert("Itinerario creato!");
+        window.__toast?.add("Itinerario creato!", "success");
     }
   } catch (e) {
     console.warn("Creazione itinerario fallita", e);
-    alert("Impossibile creare l'itinerario.");
+      window.__toast?.add("Impossibile creare l'itinerario.", "error");
   }
 }
 

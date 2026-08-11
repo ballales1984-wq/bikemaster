@@ -128,8 +128,10 @@ describe("trackingStore", () => {
       altitude: 120,
       timestamp: new Date().toISOString(),
     });
-    store.currentSegment.distanceM = 500;
-    store.currentSegment.elevationGainM = 20;
+    if (store.currentSegment) {
+      store.currentSegment.distanceM = 500;
+      store.currentSegment.elevationGainM = 20;
+    }
 
     const closed = store.closeCurrentSegment();
     expect(closed).not.toBeNull();

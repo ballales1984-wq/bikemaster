@@ -356,16 +356,16 @@ async function saveEdit() {
   try {
     const payload = {
       date: editForm.value.date,
-      title: editForm.value.title || null,
+      title: editForm.value.title || undefined,
       distance_km: editForm.value.distance_km,
       duration_minutes: editForm.value.duration_minutes,
-      heart_rate_avg: editForm.value.heart_rate_avg,
-      elevation_gain_m: editForm.value.elevation_gain_m,
-      avg_speed_kmh: editForm.value.avg_speed_kmh,
-      weight_kg: editForm.value.weight_kg,
+      heart_rate_avg: editForm.value.heart_rate_avg ?? undefined,
+      elevation_gain_m: editForm.value.elevation_gain_m ?? undefined,
+      avg_speed_kmh: editForm.value.avg_speed_kmh ?? undefined,
+      weight_kg: editForm.value.weight_kg ?? undefined,
       is_official: editForm.value.is_official,
       activity_type: editForm.value.activity_type,
-      source: editForm.value.source || null,
+      source: editForm.value.source || undefined,
     };
     const updated = await store.updateRide(props.rideId, payload);
     if (updated) ride.value = updated;

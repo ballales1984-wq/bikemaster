@@ -500,7 +500,7 @@ const filters = ref<{
 });
 
 const showDeleteModal = ref(false);
-const deleteTargetId = ref(null);
+const deleteTargetId = ref<number | null>(null);
 const deleteTargetDate = ref("");
 
 const rides = computed(() => store.rides);
@@ -561,10 +561,14 @@ const filteredRides = computed(() => {
     r = r.filter((ride) => ride.date >= filters.value.dateFrom);
   if (filters.value.dateTo)
     r = r.filter((ride) => ride.date <= filters.value.dateTo);
-  if (filters.value.distMin != null && filters.value.distMin > 0)
-    r = r.filter((ride) => ride.distance_km >= filters.value.distMin);
-  if (filters.value.distMax != null && filters.value.distMax > 0)
-    r = r.filter((ride) => ride.distance_km <= filters.value.distMax);
+  if (filters.value.distMin != null && filters.value.distMin > 0) {
+    const distMin = filters.value.distMin;
+    r = r.filter((ride) => ride.distance_km >= distMin);
+  }
+  if (filters.value.distMax != null && filters.value.distMax > 0) {
+    const distMax = filters.value.distMax;
+    r = r.filter((ride) => ride.distance_km <= distMax);
+  }
   const start = (page.value - 1) * pageSize;
   return r.slice(start, start + pageSize);
 });
@@ -669,7 +673,7 @@ async function openDetail(ride: Ride) {
 async function analyzeRide(id: number) {
   analysisLoading.value = true;
   try {
-    const data = await apiGet<Record<string, unknown>>(`/api/v1/rides/${id}`);
+    const data = await apiGet<RideAnalysis>(`/api/v1/rides/${id}`);
     analysis.value = data;
   } catch (e) {
     console.warn("analyze", e);

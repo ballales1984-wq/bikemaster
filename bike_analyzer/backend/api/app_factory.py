@@ -43,14 +43,8 @@ from ..rate_limiter import limiter
 from ..redis_client import close_redis, get_redis
 from ..settings import get_settings
 from ..task_queue import get_task_queue
-from .adaptation_routes import router as adaptation_router
-from .aethermap_routes import router as aethermap_router
-from .bm2_routes import bm2_router
-from .performance_routes import performance_router
 from .routes import admin_router, router
-from .sync_routes import router as sync_router
 from .utils import _trusted_forwarded_value
-from .voice_routes import router as voice_router
 
 logger = logging.getLogger(__name__)
 
@@ -496,22 +490,8 @@ def create_app() -> FastAPI:
         ],
     )
     app.include_router(router, prefix="/api/v1")
-    _log_flush(f"create_app: include_router(main) done +{time.monotonic()-_t0:.3f}s")
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
     _log_flush(f"create_app: include_router(admin) done +{time.monotonic()-_t0:.3f}s")
-    app.include_router(bm2_router, prefix="/api/v1/bm2", tags=["bm2"])
-    _log_flush(f"create_app: include_router(bm2) done +{time.monotonic()-_t0:.3f}s")
-    app.include_router(sync_router, prefix="/api/v1", tags=["sync"])
-    _log_flush(f"create_app: include_router(sync) done +{time.monotonic()-_t0:.3f}s")
-    app.include_router(adaptation_router, prefix="/api/v1", tags=["adaptation"])
-    _log_flush(f"create_app: include_router(adaptation) done +{time.monotonic()-_t0:.3f}s")
-    app.include_router(performance_router, prefix="/api/v1", tags=["performance"])
-    _log_flush(f"create_app: include_router(performance) done +{time.monotonic()-_t0:.3f}s")
-    app.include_router(voice_router, prefix="/api/v1", tags=["voice"])
-    _log_flush(f"create_app: include_router(voice) done +{time.monotonic()-_t0:.3f}s")
-    app.include_router(aethermap_router, prefix="/api/v1/aethermap", tags=["aethermap"])
-    _log_flush(f"create_app: include_router(aethermap) done +{time.monotonic()-_t0:.3f}s")
-
     @app.get("/healthz")
     async def healthz():
         """Root-level liveness probe for platform health checks (Render default)."""
@@ -674,3 +654,6 @@ def create_app() -> FastAPI:
 
     _log_flush(f"create_app: RETURN app +{time.monotonic()-_t0:.3f}s")
     return app
+
+
+

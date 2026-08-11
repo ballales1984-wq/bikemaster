@@ -136,6 +136,8 @@ export function useContinuousTracking(options: ContinuousTrackingOptions) {
 
     if (!gps) initGps();
 
+    if (!gps) return;
+
     error.value = "";
     isPaused.value = false;
     isTracking.value = true;

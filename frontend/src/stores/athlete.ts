@@ -49,6 +49,7 @@ export interface AthleteProfile extends Athlete {
   apparent_age?: number;
   bmi?: number | null;
   lean_body_mass_kg?: number | null;
+  max_hr?: number | null;
 }
 
 export const useAthleteStore = defineStore("athlete", () => {

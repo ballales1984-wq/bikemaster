@@ -41,7 +41,8 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
       cfg.options = {
         ...cfg.options,
         plugins: {
-          ...(cfg.options?.plugins || {}),
+          ...(cfg.options?.plugins as Record<string, any>) || {},
+          ...(plugins as Record<string, any>),
         },
       } as ChartOptions;
     }
@@ -54,9 +55,7 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
     if (!ctx) return;
     chart.value?.destroy();
     const next = buildConfig();
-    chart.value = new ChartConstructor(ctx, next, {
-      plugins,
-    });
+    chart.value = new ChartConstructor(ctx, next as any);
   }
 
   function retheme() {

@@ -370,7 +370,7 @@ export function createCommandRegistry(): VoiceCommandDefinition[] {
       execute: async (params) => {
         const maxHr = Number(requireParam(params, "max_hr"));
         const store = useAthleteStore();
-        await store.updateProfile({ heart_rate_avg: maxHr });
+        await store.updateProfile({ max_hr: maxHr });
         return buildResult(true, `FC max aggiornata a ${maxHr} bpm`);
       },
     },
