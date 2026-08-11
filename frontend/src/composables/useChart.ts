@@ -41,7 +41,7 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
       cfg.options = {
         ...cfg.options,
         plugins: {
-          ...(cfg.options?.plugins as Record<string, any>) || {},
+          ...((cfg.options?.plugins as Record<string, any>) || {}),
           ...(plugins as Record<string, any>),
         },
       } as ChartOptions;

@@ -44,17 +44,7 @@ from jose import JWTError, jwt
 from sqlalchemy import insert, text
 from starlette.background import BackgroundTask
 
-from ..analytics.analytics import calculate_summary
-from ..analytics.badges import calculate_badges, get_heatmap_points
-from ..analytics.calories import calories_per_km, estimate_calories
-from ..analytics.fatigue import (
-    calculate_fatigue_score,
-    estimate_recovery_hours,
-)
-from ..analytics.granfondo_planner import generate_granfondo_plan
-from ..analytics.terrain_enrichment import TerrainEnricher
 from ..audit import log_action, read_audit_logs
-from ..db.database import get_user_by_id, save_user
 from ..maps.map_renderer import create_route_map
 from ..maps.osm_maps import get_local_results, search_nearby, search_places
 from ..models.models import AthleteProfile, GPSPoint, Ride

@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { reactive, ref, toRef } from "vue";
+import { reactive, toRef } from "vue";
 
 const mockFetchProfile = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 const mockFetchState = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));

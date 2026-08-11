@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from ..db.database import get_db_connection
 from .performance import (
     calculate_power_metrics_with_error,
     estimate_ftp_from_ride,
@@ -91,6 +90,8 @@ def save_ride_performance(
         if ev is not None:
             result[f"{key}_error"] = ev.to_dict()
 
+    from ..db.database import get_db_connection
+
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -151,6 +152,8 @@ def record_ftp(
     """
     if date is None:
         date = _now_iso()[:10]
+    from ..db.database import get_db_connection
+
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -187,6 +190,8 @@ def record_ftp(
 
 def get_ftp_history(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
     """Restituisce lo storico FTP di un atleta ordinato per data crescente."""
+    from ..db.database import get_db_connection
+
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -229,6 +234,8 @@ def get_performance_metrics(
     ride_id: int | None = None,
 ) -> list[dict]:
     """Restituisce le metriche di potenza persistite per un atleta (opz. per ride)."""
+    from ..db.database import get_db_connection
+
     with get_db_connection() as conn:
         cur = conn.cursor()
         if ride_id is not None:

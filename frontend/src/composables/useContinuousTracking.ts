@@ -8,7 +8,7 @@
  * - Integrates with the existing useBatteryEfficientGps
  */
 
-import { onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { onMounted, onBeforeUnmount, ref } from "vue";
 import { useBatteryEfficientGps } from "./useBatteryEfficientGps";
 import type { GpsPoint } from "../types/index";
 
@@ -34,11 +34,7 @@ export interface ContinuousTrackingState {
 }
 
 export function useContinuousTracking(options: ContinuousTrackingOptions) {
-  const {
-    autoStart = true,
-    autoPauseOnHidden = true,
-    minMovementMeters = 1.5,
-  } = options;
+  const { autoStart = true, autoPauseOnHidden = true } = options;
 
   const isTracking = ref(false);
   const isPaused = ref(false);
@@ -73,15 +69,13 @@ export function useContinuousTracking(options: ContinuousTrackingOptions) {
 
   async function requestPermission(): Promise<boolean> {
     try {
-      const position = await new Promise<GeolocationPosition>(
-        (resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0,
-          });
-        },
-      );
+      await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
       hasPermission.value = true;
       return true;
     } catch (err) {

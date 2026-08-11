@@ -172,7 +172,6 @@ import { storeToRefs } from "pinia";
 import { useTrackingStore } from "../stores/trackingStore";
 import { useRouter } from "vue-router";
 import { useI18n } from "../composables/useI18n";
-import { useBatteryEfficientGps } from "../composables/useBatteryEfficientGps";
 import { useGpsOutlierFilter } from "../composables/useGpsOutlierFilter";
 import {
   useGpsDirectionFilter,
@@ -180,14 +179,13 @@ import {
   detectTurnFromBearing,
 } from "../composables/useGpsDirectionFilter";
 import { useContinuousTracking } from "../composables/useContinuousTracking";
-import { useActivitySegmentation } from "../composables/useActivitySegmentation";
 import LiveMap from "../components/LiveMap.vue";
 import RideMetricsPanel from "../components/RideMetricsPanel.vue";
 import ControlsBar from "../components/ControlsBar.vue";
 import DailyTimeline from "../components/DailyTimeline.vue";
 import ActivityRings from "../components/ActivityRings.vue";
 import { apiUpload, apiPost } from "../utils/api";
-import type { GpsPoint, NativeGpsSample } from "../types/index";
+import type { GpsPoint } from "../types/index";
 import { haversineDistanceMeters } from "../utils/geo";
 import { useVoiceCoach } from "../composables/useVoiceCoach";
 
@@ -273,8 +271,6 @@ const continuous = useContinuousTracking({
   autoStart: true,
   autoPauseOnHidden: true,
 });
-
-const segmentation = useActivitySegmentation();
 
 const todaySegments = computed(() => tracking.getTodaySegments());
 const hasActiveSession = computed(() => tracking.currentSegment !== null);
@@ -469,9 +465,9 @@ async function uploadRide() {
       });
       const result = await apiUpload("/api/v1/import/gpx", file);
       if (result.error) {
-      const errorMsg =
-        typeof result.error === "string" ? result.error : "Upload failed";
-      window.__toast?.add(errorMsg, "error");
+        const errorMsg =
+          typeof result.error === "string" ? result.error : "Upload failed";
+        window.__toast?.add(errorMsg, "error");
         return;
       }
       window.__toast?.add("Ride uploaded successfully!", "success");
@@ -493,26 +489,6 @@ async function uploadRide() {
   } finally {
     isUploading.value = false;
   }
-}
-
-function startWebTracking() {
-  webStartTime = Date.now();
-  webPausedAccumulatedMs = 0;
-  webPausedAt = null;
-  webLastPoint = null;
-  webDistance = 0;
-  webElevationGain = 0;
-  webDirectionLastBearing = null;
-  gpsOutlierFilter.reset();
-  directionFilter.reset();
-  gpsError.value = "";
-  webFirstFixTimeout = window.setTimeout(() => {
-    if (gpsWaiting.value) {
-      gpsWaiting.value = false;
-      gpsError.value =
-        "No GPS signal. On desktop, try moving near a window or use a GPS device.";
-    }
-  }, 15000);
 }
 
 function detectGpsTurn(
@@ -654,19 +630,6 @@ function processCandidate(
   webLastPoint = { ...candidate, timestampNumber: timestampMs };
 }
 
-function handleWebPosition(position: GeolocationPosition) {
-  processCandidate(
-    position.coords.latitude,
-    position.coords.longitude,
-    position.coords.altitude,
-    position.timestamp,
-  );
-}
-
-function handleWebError(error: GeolocationPositionError) {
-  handleContinuousError(error);
-}
-
 function stopWebTracking() {
   if (webFirstFixTimeout !== null) {
     clearTimeout(webFirstFixTimeout);
@@ -724,7 +687,10 @@ async function saveAsItinerary() {
       }
     } catch (e) {
       console.warn("Salvataggio ride per itinerario fallito", e);
-      window.__toast?.add("Impossibile salvare l'uscita come itinerario.", "error");
+      window.__toast?.add(
+        "Impossibile salvare l'uscita come itinerario.",
+        "error",
+      );
       return;
     }
   }
@@ -750,11 +716,11 @@ async function saveAsItinerary() {
         ride_id: rideId,
         stage_day: 1,
       });
-        window.__toast?.add("Itinerario creato!", "success");
+      window.__toast?.add("Itinerario creato!", "success");
     }
   } catch (e) {
     console.warn("Creazione itinerario fallita", e);
-      window.__toast?.add("Impossibile creare l'itinerario.", "error");
+    window.__toast?.add("Impossibile creare l'itinerario.", "error");
   }
 }
 

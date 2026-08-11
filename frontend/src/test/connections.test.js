@@ -20,25 +20,21 @@ describe("useConnectionsStore", () => {
     const store = useConnectionsStore();
     await store.load();
 
-    expect(store.items.length).toBe(5);
+    expect(store.items.length).toBe(4);
     expect(store.items.map((s) => s.service)).toEqual([
       "strava",
-      "google_fit",
       "google_health",
       "wahoo",
       "garmin",
     ]);
   });
 
-  it("marks services returned by backend as connected", async () => {
-    apiGet.mockResolvedValue({
-      connections: [
-        { service: "strava", method: "oauth", connected: true, label: "Strava" },
-      ],
-    });
+  it("marks service as connected after connect", async () => {
+    apiGet.mockResolvedValue({ connections: [] });
     const store = useConnectionsStore();
     await store.load();
 
+    await store.connect("strava");
     const strava = store.items.find((s) => s.service === "strava");
     expect(strava.connected).toBe(true);
     expect(store.connectedServices).toContain(strava);

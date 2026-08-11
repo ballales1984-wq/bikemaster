@@ -108,10 +108,10 @@ export const oauthProviders: Record<string, OAuthProviderConfig> = {
     popupHeight: 700,
     successEventType: "garmin-success",
     errorEventType: "garmin-error",
-    extractCallbackBody: (eventData) => ({
+    extractCallbackBody: (eventData, authResponse) => ({
       code: eventData.code as string,
       redirect_uri: "",
-      state: eventData.state as string,
+      state: (authResponse as Record<string, unknown>).state as string,
     }),
     onConnected: () => "Garmin connected",
   },

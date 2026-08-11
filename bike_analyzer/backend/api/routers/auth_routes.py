@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ...security import create_access_token, create_refresh_token, get_current_user, save_refresh_token
-from ...db.database import delete_user_oauth_credentials, get_all_user_oauth_credentials, get_athlete, save_user_oauth_credentials
 
 router = APIRouter()
 
@@ -24,6 +23,8 @@ class UserOAuthCredentials(BaseModel):
 @router.post("/auth/switch-athlete/{athlete_id}")
 async def switch_athlete(athlete_id: int, current_user: dict = Depends(get_current_user)):
     """Switch the active athlete profile and return a new JWT with athlete_id claim."""
+    from ...db.database import get_athlete
+
     user_id = int(current_user["id"])
     athlete = get_athlete(athlete_id)
     if not athlete:
@@ -57,6 +58,8 @@ async def switch_athlete(athlete_id: int, current_user: dict = Depends(get_curre
 @router.get("/connections/credentials")
 async def list_my_oauth_credentials(current_user: dict = Depends(get_current_user)):
     """List OAuth credentials configured for the current user (without secrets)."""
+    from ...db.database import get_all_user_oauth_credentials
+
     user_id = int(current_user["id"])
     creds = get_all_user_oauth_credentials(user_id)
     result = []
@@ -77,6 +80,8 @@ async def list_my_oauth_credentials(current_user: dict = Depends(get_current_use
 @router.post("/connections/credentials")
 async def set_my_oauth_credentials(credentials: UserOAuthCredentials, current_user: dict = Depends(get_current_user)):
     """Set or update OAuth credentials for a specific provider."""
+    from ...db.database import save_user_oauth_credentials
+
     user_id = int(current_user["id"])
     data = credentials.model_dump(exclude_unset=True)
     if not data.get("client_id") and not data.get("client_secret"):
@@ -88,6 +93,8 @@ async def set_my_oauth_credentials(credentials: UserOAuthCredentials, current_us
 @router.delete("/connections/credentials/{provider}")
 async def delete_my_oauth_credentials(provider: str, current_user: dict = Depends(get_current_user)):
     """Delete OAuth credentials for a specific provider."""
+    from ...db.database import delete_user_oauth_credentials
+
     user_id = int(current_user["id"])
     ok = delete_user_oauth_credentials(user_id, provider)
     if not ok:

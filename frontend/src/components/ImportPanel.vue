@@ -334,7 +334,10 @@ async function connectGoogleHealth() {
 async function disconnectGoogleHealth() {
   try {
     await googleHealthOAuth.disconnect();
-    importStatus.value = { success: true, message: "Google Health disconnected" };
+    importStatus.value = {
+      success: true,
+      message: "Google Health disconnected",
+    };
   } catch (e: unknown) {
     importStatus.value = {
       success: false,

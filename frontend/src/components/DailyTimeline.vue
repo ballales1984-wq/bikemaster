@@ -31,10 +31,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
 import type { ActivitySegment } from "../stores/trackingStore";
 
-const props = defineProps<{
+const { segments } = defineProps<{
   segments: ActivitySegment[];
 }>();
 

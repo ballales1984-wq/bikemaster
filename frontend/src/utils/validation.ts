@@ -88,9 +88,12 @@ export function validateAthleteForm(
 
   const height = Number(form.height_cm);
   if (
-    isNaN(height) ||
-    height < ATHLETE_LIMITS.MIN_HEIGHT_CM ||
-    height > ATHLETE_LIMITS.MAX_HEIGHT_CM
+    form.height_cm !== undefined &&
+    form.height_cm !== null &&
+    form.height_cm !== "" &&
+    !isNaN(height) &&
+    (height < ATHLETE_LIMITS.MIN_HEIGHT_CM ||
+      height > ATHLETE_LIMITS.MAX_HEIGHT_CM)
   ) {
     errors.height_cm = `Altezza deve essere tra ${ATHLETE_LIMITS.MIN_HEIGHT_CM} e ${ATHLETE_LIMITS.MAX_HEIGHT_CM} cm`;
   }

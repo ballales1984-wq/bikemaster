@@ -174,14 +174,14 @@ describe("ImportPanel", () => {
     expect(wrapper.text()).toContain("Upload failed");
   });
 
-  it("has Google Fit connect button", async () => {
+  it("has Google Health connect button", async () => {
     mockConnectionsServices.mockReturnValueOnce([
-      { service: "google_fit", available: true },
+      { service: "google_health", available: true },
     ]);
 
     const wrapper = mount(ImportPanel, { global: { plugins: [createPinia()] } });
 
-    expect(wrapper.text()).toContain("Import from Google Fit");
+    expect(wrapper.text()).toContain("Import from Google Health");
   });
 
   it("shows upload section title", async () => {

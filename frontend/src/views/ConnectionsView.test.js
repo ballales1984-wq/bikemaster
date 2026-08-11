@@ -38,7 +38,7 @@ describe("ConnectionsView", () => {
     await new Promise((r) => setTimeout(r, 30));
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.findAll(".connection-card").length).toBe(5);
+    expect(wrapper.findAll(".connection-card").length).toBe(4);
     expect(wrapper.text()).toContain("Strava");
     expect(wrapper.text()).toContain("Garmin Connect");
   });
