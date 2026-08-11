@@ -17,7 +17,9 @@ from bike_analyzer.backend.db.database import (
     delete_itinerary,
     delete_ride,
     delete_stage,
+    delete_user,
     get_all_rides,
+    get_all_users,
     get_athlete,
     get_athlete_by_email,
     get_athlete_history,
@@ -31,6 +33,8 @@ from bike_analyzer.backend.db.database import (
     get_rides_by_athlete,
     get_stage,
     get_training_stress_days,
+    get_user_by_id,
+    get_user_by_username,
     list_itineraries,
     list_stages,
     log_athlete_metric,
@@ -41,10 +45,12 @@ from bike_analyzer.backend.db.database import (
     save_metric,
     save_ride,
     save_stage,
+    save_user,
     update_athlete,
     update_itinerary,
     update_ride,
     update_stage,
+    update_user,
     upsert_training_stress_day,
 )
 from bike_analyzer.backend.db.postgres_athlete import has_postgres
@@ -107,6 +113,12 @@ class TestDispatchGuard:
         update_stage,
         delete_stage,
         reorder_stages,
+        save_user,
+        get_user_by_username,
+        get_user_by_id,
+        get_all_users,
+        update_user,
+        delete_user,
     ]
 
     def test_dispatch_guard_present(self):
@@ -123,7 +135,7 @@ class TestDispatchGuard:
                 f"{func.__name__} not registered in MIGRATED_FUNCTIONS"
             )
         # registry must cover every function that used to carry an inline guard
-        assert len(self._MIGRATED_FUNCTIONS) == len(migrated_names) == 33
+        assert len(self._MIGRATED_FUNCTIONS) == len(migrated_names) == 39
 
 
 class TestSqliteRoundTrip:
@@ -146,6 +158,40 @@ class TestSqliteRoundTrip:
         ride = db.get_ride(ride_id)
         assert ride is not None
         assert ride["distance_km"] == 35.0
+
+    def test_sqlite_users_round_trip(self, _isolate_db):
+        user_id = db.save_user(
+            {
+                "username": "testuser",
+                "email": "test@example.com",
+                "password_hash": "hashed",
+                "is_admin": True,
+                "is_client": False,
+                "is_active": True,
+            }
+        )
+        assert user_id > 0
+
+        user = db.get_user_by_username("testuser")
+        assert user is not None
+        assert user["email"] == "test@example.com"
+        assert user["password_hash"] == "hashed"
+
+        user = db.get_user_by_id(user_id)
+        assert user is not None
+        assert user["username"] == "testuser"
+
+        users = db.get_all_users()
+        assert len(users) == 1
+        assert users[0]["username"] == "testuser"
+
+        updated = db.update_user(user_id, {"email": "new@example.com", "is_admin": False})
+        assert updated is not None
+        assert updated["email"] == "new@example.com"
+        assert updated["is_admin"] is False
+
+        assert db.delete_user(user_id) is True
+        assert db.get_user_by_id(user_id) is None
 
 
 class TestPostgresDispatch:
@@ -174,6 +220,28 @@ class TestPostgresDispatch:
         )
         assert ride_id == 42
         mock_pg_save_ride.assert_called_once()
+
+    def test_postgres_dispatch_users(self, monkeypatch):
+        from bike_analyzer.backend.db import dispatch
+
+        monkeypatch.setenv("DATABASE_URL", "postgresql://test:test@localhost/test")
+        assert dispatch.is_postgres() is True
+
+        mock_pg_save_user = mock.MagicMock(return_value=42)
+        monkeypatch.setattr(
+            "bike_analyzer.backend.db.postgres_users.save_user",
+            mock_pg_save_user,
+        )
+
+        db_file = str(Path(os.environ.get("TEMP", "/tmp")) / "bikemaster_test_dbs" / "dispatch_users.db")
+        os.environ["DB_PATH"] = db_file
+        db.DB_PATH = db_file
+        db._INITIAL_DB_PATH = db_file
+        db.init_db()
+
+        user_id = db.save_user({"username": "pguser"})
+        assert user_id == 42
+        mock_pg_save_user.assert_called_once()
 
     def test_sqlite_used_when_no_postgres(self, _isolate_db, monkeypatch):
         from bike_analyzer.backend.db import dispatch

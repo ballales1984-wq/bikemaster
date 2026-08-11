@@ -116,6 +116,18 @@ POSTGRES_BACKENDS: dict[str, tuple[str, list[str]]] = {
             "reorder_stages",
         ],
     ),
+    # Users (authentication + profile)
+    "users": (
+        "bike_analyzer.backend.db.postgres_users",
+        [
+            "save_user",
+            "get_user_by_username",
+            "get_user_by_id",
+            "get_all_users",
+            "update_user",
+            "delete_user",
+        ],
+    ),
 }
 # NOTE: ``training_goals`` are persisted via ``postgres_db`` / ``async_db``
 # (SQLAlchemy) directly from routes — they have no SQLite twin in database.py,
