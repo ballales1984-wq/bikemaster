@@ -20,9 +20,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from ..db import database as db
 from ..settings import get_settings
 from ..utils.logger import get_logger
+from .repositories.poi_repository import MapsPOIRepository
 from . import serpapi_maps
 
 logger = get_logger(__name__)
@@ -58,23 +58,12 @@ def _current_month() -> str:
 
 
 def _ensure_usage_table(conn) -> None:
-    conn.execute(
-        """CREATE TABLE IF NOT EXISTS serpapi_usage (
-            month TEXT PRIMARY KEY,
-            count INTEGER NOT NULL DEFAULT 0
-        )"""
-    )
+    pass  # handled by MapsPOIRepository
 
 
 def get_usage(month: str | None = None) -> int:
     """Return the number of SerpApi searches recorded for ``month`` (YYYY-MM)."""
-    month = month or _current_month()
-    with db.get_db_connection() as conn:
-        _ensure_usage_table(conn)
-        cur = conn.cursor()
-        cur.execute("SELECT count FROM serpapi_usage WHERE month = ?", (month,))
-        row = cur.fetchone()
-        return int(row[0]) if row else 0
+    return MapsPOIRepository.get_usage(month)
 
 
 def get_remaining_budget(month: str | None = None) -> int:
@@ -84,15 +73,7 @@ def get_remaining_budget(month: str | None = None) -> int:
 
 
 def _record_call(month: str | None = None, n: int = 1) -> None:
-    month = month or _current_month()
-    with db.get_db_connection() as conn:
-        _ensure_usage_table(conn)
-        conn.execute(
-            """INSERT INTO serpapi_usage (month, count) VALUES (?, ?)
-            ON CONFLICT(month) DO UPDATE SET count = count + excluded.count""",
-            (month, n),
-        )
-        conn.commit()
+    MapsPOIRepository.record_call(month, n)
 
 
 def _map_category(*fields: Any) -> tuple[str, str]:
@@ -154,7 +135,7 @@ def _extract_poi(item: dict, tenant_id: int, created_by: int | None) -> dict | N
 
 
 def _is_duplicate(name: str, lat: float, lon: float, radius_m: float, tenant_id: int | None = None) -> bool:
-    existing = db.get_nearby_pois(lat, lon, radius_km=max(0.0, radius_m) / 1000.0, tenant_id=tenant_id)
+    existing = MapsPOIRepository.get_nearby_pois(lat, lon, radius_km=max(0.0, radius_m) / 1000.0, tenant_id=tenant_id)
     target = name.strip().lower()
     return any((p.get("name") or "").strip().lower() == target for p in existing)
 
@@ -212,7 +193,7 @@ def enrich_pois_near(
             summary["skipped_duplicates"] += 1
             continue
         try:
-            db.save_poi(poi)
+            MapsPOIRepository.save_poi(poi)
             summary["saved"] += 1
         except Exception:  # noqa: BLE001 - never let one bad row abort the batch
             logger.warning("Failed to save enriched POI '%s'", poi.get("name"), exc_info=True)
