@@ -22,6 +22,8 @@ from bike_analyzer.core.physics import RiderBikeParams, validate_ride_power
 
 from ..security import get_current_user
 
+from ...analytics.repositories.ride_repository import RideRepository
+
 bm2_router = APIRouter()
 
 
@@ -102,13 +104,12 @@ def _to_gps(p: dict) -> GPSPoint:
     return GPSPoint(**point)
 
 
-def _ride_from_request(req: Bm2SimulateRideRequest, current_user: dict) -> Ride:
+async def _ride_from_request(req: Bm2SimulateRideRequest, current_user: dict) -> Ride:
     """Carica la ``Ride`` dal flusso prodotto (DB + access control) o da payload inline."""
     if req.ride_id is not None:
-        from ..db.database import get_ride as _get_ride
         from .routes import _ensure_ride_access
 
-        ride_dict = _get_ride(req.ride_id)
+        ride_dict = await RideRepository().get_by_id(req.ride_id)
         if not ride_dict:
             raise HTTPException(status_code=404, detail="Ride not found")
         _ensure_ride_access(ride_dict, current_user)
@@ -147,7 +148,7 @@ async def simulate_ride(
 ) -> dict:
     """What-if su una Ride reale del prodotto (by id o payload inline)."""
     try:
-        ride = _ride_from_request(req, current_user)
+        ride = await _ride_from_request(req, current_user)
         athlete = (
             AthleteProfile(**{k: v for k, v in req.athlete.items()
                               if k in AthleteProfile.__dataclass_fields__})
@@ -203,7 +204,7 @@ async def validate(
     potenza misurata. 422 se la ride non ha abbastanza dati power-meter.
     """
     try:
-        ride = _ride_from_request(req, current_user)
+        ride = await _ride_from_request(req, current_user)
         params = _rider_bike_params(req.bike)
         wind = req.world.get("wind_speed")
         result = validate_ride_power(ride, params, wind_ms=wind if wind is not None else 0.0)

@@ -8,17 +8,20 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, R
 from fastapi.responses import HTMLResponse
 
 from ...rate_limiter import limiter
+from ...security import get_current_user
 from ..routes import (
     _athlete_profile_data,
     _ensure_athlete_access,
     _ensure_ride_access,
     _current_athlete_id,
     _public_athlete,
-    get_current_user,
     logger,
 )
 from ..schemas import CoachChatRequest
 from ...models.models import AthleteProfile, Ride
+from ...analytics.repositories.athlete_repository import AthleteRepository
+from ...analytics.repositories.ride_repository import RideRepository
+from ...analytics.repositories.chat_repository import ChatRepository
 
 router = APIRouter(prefix="/coach", tags=["coach"])
 
@@ -26,11 +29,11 @@ router = APIRouter(prefix="/coach", tags=["coach"])
 @router.get("/history")
 async def coach_chat_history(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
     """Retrieve AI coach chat history for an athlete."""
-    from ...db.database import get_chat_history
+    from ...analytics.repositories.chat_repository import ChatRepository
 
     _ensure_athlete_access(athlete_id, current_user)
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    history = get_chat_history(athlete_id, tenant_id=tenant_id)
+    history = ChatRepository.get_chat_history(athlete_id, tenant_id=tenant_id)
     return {"athlete_id": athlete_id, "history": history}
 
 
@@ -43,13 +46,14 @@ async def workout_recommendations(
 ):
     """Get AI-generated workout recommendations for an athlete."""
     from ...analytics.ai_coach import generate_workout_recommendations
-    from ...db.database import get_athlete, get_rides_by_athlete
+    from ...analytics.repositories.athlete_repository import AthleteRepository
+    from ...analytics.repositories.ride_repository import RideRepository
 
     try:
         resolved_id = athlete_id if athlete_id else current_user["id"]
         _ensure_athlete_access(resolved_id, current_user)
-        rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
-        athlete_data = get_athlete(resolved_id)
+        rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=resolved_id)]
+        athlete_data = await AthleteRepository().get_by_id(resolved_id)
         if athlete_data:
             athlete_data = _public_athlete(athlete_data)
         athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
@@ -75,11 +79,9 @@ async def coach_full_data(
     trends, training scores, and recovery scores. Rate limited.
     """
     from ...analytics.ai_coach import ai_coach_full
-    from ...db.database import (
-        get_athlete,
-        get_rides_by_athlete,
-        save_chat_message,
-    )
+    from ...analytics.repositories.athlete_repository import AthleteRepository
+    from ...analytics.repositories.chat_repository import ChatRepository
+    from ...analytics.repositories.ride_repository import RideRepository
 
     try:
         resolved_id = athlete_id
@@ -97,8 +99,8 @@ async def coach_full_data(
                 "recovery_scores": [],
                 "charts": [],
             }
-        rides = [Ride(**r) for r in get_rides_by_athlete(resolved_id)]
-        athlete_data = get_athlete(resolved_id)
+        rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=resolved_id)]
+        athlete_data = await AthleteRepository().get_by_id(resolved_id)
         if not athlete_data:
             return {
                 "training_advice": "Athlete not found. Create a profile in the Dashboard.",
@@ -113,7 +115,7 @@ async def coach_full_data(
         result = ai_coach_full(athlete, rides, resolved_id)
         if athlete_id and result.get("training_advice"):
             tenant_id = current_user.get("tenant_id", resolved_id)
-            save_chat_message(resolved_id, "assistant", result["training_advice"][:500], tenant_id)
+            ChatRepository.save_chat_message(resolved_id, "assistant", result["training_advice"][:500], tenant_id)
         return result
     except HTTPException:
         raise
@@ -148,22 +150,23 @@ async def recovery_recommendations(
 ):
     """Get AI recovery recommendations based on fatigue and recent rides."""
     from ...analytics.ai_coach import generate_recovery_recommendations
-    from ...db.database import get_athlete, get_ride, get_rides_by_athlete
+    from ...analytics.repositories.athlete_repository import AthleteRepository
+    from ...analytics.repositories.ride_repository import RideRepository
 
     try:
         ride_obj = None
         athlete_data = None
         if ride_id:
-            ride_data = get_ride(ride_id)
+            ride_data = await RideRepository().get_by_id(ride_id)
             if ride_data:
                 _ensure_ride_access(ride_data, current_user)
                 ride_obj = Ride(**ride_data)
-                athlete_data = get_athlete(ride_data.get("athlete_id"))
+                athlete_data = await AthleteRepository().get_by_id(ride_data.get("athlete_id"))
         elif current_user:
             tenant_id = current_user.get("tenant_id", current_user["id"])
-            rides = get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)
+            rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)]
             if rides:
-                athlete_data = get_athlete(current_user["id"], tenant_id)
+                athlete_data = await AthleteRepository().get_by_id(current_user["id"], tenant_id)
         if athlete_data:
             athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
@@ -180,10 +183,10 @@ async def recovery_recommendations(
 async def historical_trends(current_user: dict = Depends(get_current_user)):
     """Analyze historical training trends for the athlete."""
     from ...analytics.ai_coach import analyze_historical_trends
-    from ...db.database import get_rides_by_athlete
+    from ...analytics.repositories.ride_repository import RideRepository
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
+    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)]
     return analyze_historical_trends(rides)
 
 
@@ -203,19 +206,17 @@ async def coach_chat_post(
 async def _process_chat(athlete_id: int, message: str, current_user: dict):
     """Gestisce la chat con l'AI coach: salva messaggi, genera consigli e restituisce la storia."""
     from ...analytics.ai_coach import generate_training_advice
-    from ...db.database import (
-        get_athlete,
-        get_chat_history,
-        get_rides_by_athlete,
-        save_athlete,
-        save_chat_message,
-    )
+    from ...analytics.repositories.athlete_repository import AthleteRepository
+    from ...analytics.repositories.chat_repository import ChatRepository
+    from ...analytics.repositories.ride_repository import RideRepository
 
     tenant_id = current_user.get("tenant_id", athlete_id)
     _ensure_athlete_access(athlete_id, current_user)
 
-    if get_athlete(athlete_id) is None:
-        save_athlete(
+    if await AthleteRepository().get_by_id(athlete_id) is None:
+        from ...analytics.repositories.athlete_repository import AthleteRepository
+
+        await AthleteRepository().save(
             {
                 "name": current_user.get("name") or f"Athlete {athlete_id}",
                 "email": current_user.get("email"),
@@ -227,15 +228,15 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
             tenant_id=tenant_id,
         )
 
-    save_chat_message(athlete_id, "user", message[:500], tenant_id)
-    athlete_data = get_athlete(athlete_id, tenant_id)
+    ChatRepository.save_chat_message(athlete_id, "user", message[:500], tenant_id)
+    athlete_data = await AthleteRepository().get_by_id(athlete_id, tenant_id)
     if athlete_data:
         athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
     athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
-    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id, tenant_id=tenant_id)]
+    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=athlete_id, tenant_id=tenant_id)]
     response = generate_training_advice(athlete, rides, athlete_id)
-    save_chat_message(athlete_id, "assistant", response[:500], tenant_id)
-    return {"response": response, "history": get_chat_history(athlete_id, tenant_id=tenant_id)}
+    ChatRepository.save_chat_message(athlete_id, "assistant", response[:500], tenant_id)
+    return {"response": response, "history": ChatRepository.get_chat_history(athlete_id, tenant_id=tenant_id)}
 
 
 @router.post("/chat/bm2")
@@ -252,7 +253,9 @@ async def coach_chat_bm2(
     from bike_analyzer.core.physics import RiderBikeParams, validate_ride_power
 
     from ...analytics.ai_coach import generate_training_advice
-    from ...db.database import get_athlete, get_chat_history, get_rides_by_athlete, save_chat_message
+    from ...analytics.repositories.athlete_repository import AthleteRepository
+    from ...analytics.repositories.chat_repository import ChatRepository
+    from ...analytics.repositories.ride_repository import RideRepository
     from ...models.models import AthleteProfile, Ride
 
     body = await request.json()
@@ -261,11 +264,11 @@ async def coach_chat_bm2(
     tenant_id = current_user.get("tenant_id", athlete_id)
     _ensure_athlete_access(athlete_id, current_user)
 
-    athlete_data = get_athlete(athlete_id, tenant_id)
+    athlete_data = await AthleteRepository().get_by_id(athlete_id, tenant_id)
     if athlete_data:
         athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
     athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
-    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id, tenant_id=tenant_id)]
+    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=athlete_id, tenant_id=tenant_id)]
     coach_response = generate_training_advice(athlete, rides, athlete_id)
 
     message = chat_req.message
@@ -273,7 +276,7 @@ async def coach_chat_bm2(
     def _save_chat(role, content):
         if athlete_data:
             with contextlib.suppress(Exception):
-                save_chat_message(athlete_id, role, content[:500], tenant_id)
+                ChatRepository.save_chat_message(athlete_id, role, content[:500], tenant_id)
 
     _save_chat("user", message)
     response_text = coach_response
@@ -283,9 +286,7 @@ async def coach_chat_bm2(
     ride_id_match = _re.search(r"ride\s*#?(\d+)|ride\s+(\d+)", message, _re.IGNORECASE)
     if ride_id_match:
         rid = int(ride_id_match.group(1) or ride_id_match.group(2))
-        from ...db.database import get_ride as _get_ride
-        from .bm2_routes import _to_gps
-        ride_dict = _get_ride(rid)
+        ride_dict = await RideRepository().get_by_id(rid)
         if ride_dict:
             try:
                 gps = [_to_gps(p) for p in (ride_dict.get("gps_points") or [])]
@@ -333,6 +334,6 @@ async def coach_chat_bm2(
     _save_chat("assistant", response_text)
     return {
         "response": response_text,
-        "history": get_chat_history(athlete_id, tenant_id=tenant_id),
+        "history": ChatRepository.get_chat_history(athlete_id, tenant_id=tenant_id),
         "bm2_result": bm2_result,
     }

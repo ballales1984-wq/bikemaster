@@ -6,6 +6,8 @@ import asyncio
 
 from fastapi import APIRouter, Depends, Query
 
+from ...analytics.repositories.athlete_repository import AthleteRepository
+from ...analytics.repositories.ride_repository import RideRepository
 from ..routes import _current_athlete_id, _get_athlete_rides, get_current_user
 from ...models.models import AthleteProfile, Ride
 
@@ -15,10 +17,8 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 @router.get("/speed-data")
 async def speed_analytics(limit: int = Query(10, ge=1, le=50), current_user: dict = Depends(get_current_user)):
     """Return recent ride speed data for charting."""
-    from ...db.database import get_rides_by_athlete
-
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)
+    rides = await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)
     recent = rides[-limit:] if len(rides) > limit else rides
     return {
         "labels": [r.get("date", "Ride")[-10:] if r.get("date") else "Ride" for r in recent],
@@ -35,10 +35,9 @@ async def get_fitness_trends(
 ):
     """Get fitness trend analysis for athlete's rides."""
     from ...analytics.analytics_trends import calculate_fitness_trends
-    from ...db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
+    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)]
     return await asyncio.to_thread(calculate_fitness_trends, rides, metric=metric, window=window)
 
 
@@ -46,10 +45,9 @@ async def get_fitness_trends(
 async def get_monthly_progression(current_user: dict = Depends(get_current_user)):
     """Get monthly aggregated metrics for athlete's rides."""
     from ...analytics.analytics_trends import calculate_monthly_progression
-    from ...db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)
+    rides = await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)
     return await asyncio.to_thread(calculate_monthly_progression, rides)
 
 
@@ -60,10 +58,9 @@ async def get_period_comparison(
 ):
     """Compare recent vs previous period for athlete's rides."""
     from ...analytics.analytics_trends import calculate_period_comparison
-    from ...db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
+    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)]
     return await asyncio.to_thread(calculate_period_comparison, rides, period_days=period_days)
 
 
@@ -78,14 +75,13 @@ async def get_zone_distributions(
     from the athlete profile when available, otherwise sensible defaults.
     """
     from ...analytics.zone_analysis import calculate_zone_distributions
-    from ...db.database import get_athlete, get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     athlete_id = _current_athlete_id(current_user)
-    athlete = get_athlete(athlete_id, tenant_id) or {}
+    athlete = await AthleteRepository().get_by_id(athlete_id, tenant_id) or {}
     ftp = athlete.get("ftp_watts")
     max_hr = athlete.get("heart_rate_avg")
-    rides = get_rides_by_athlete(athlete_id, tenant_id)
+    rides = await RideRepository().list_all(athlete_id=athlete_id, tenant_id=tenant_id)
     return await asyncio.to_thread(calculate_zone_distributions, rides, ftp_watts=ftp, max_hr=max_hr)
 
 
@@ -96,10 +92,9 @@ async def get_volume_projection(
 ):
     """Project future training volume based on historical trend for athlete's rides."""
     from ...analytics.analytics_trends import calculate_training_volume_projection
-    from ...db.database import get_rides_by_athlete
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
+    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)]
     return await asyncio.to_thread(calculate_training_volume_projection, rides, target_days=target_days)
 
 
@@ -177,10 +172,9 @@ async def get_route_suggestions(
 ):
     """Suggest ride routes based on historical preferences."""
     from ...analytics.ride_route_estimator import estimate_route_preferences
-    from ...db.database import get_athlete
 
     athlete_id = athlete_id or current_user["id"]
-    athlete_data = get_athlete(athlete_id)
+    athlete_data = await AthleteRepository().get_by_id(athlete_id)
     if not athlete_data:
         athlete_data = {"name": "Unknown", "preferred_terrain": "mixed", "ftp_watts": 250.0}
     athlete = AthleteProfile(**athlete_data)

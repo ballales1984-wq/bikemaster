@@ -7,8 +7,10 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
-from ..routes import _ensure_ride_access, _current_athlete_id, get_current_user
+from ...security import get_current_user
+from ..routes import _ensure_ride_access, _current_athlete_id
 from ..schemas import MeasurementCreate
+from ...analytics.repositories.ride_repository import RideRepository
 
 router = APIRouter(prefix="/charts", tags=["charts"])
 
@@ -17,11 +19,10 @@ router = APIRouter(prefix="/charts", tags=["charts"])
 async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
     """Generate a speed profile chart PNG for a ride."""
     from ...analytics.analytics import create_speed_chart
-    from ...db.database import get_ride as _get_ride
     from ...models.models import GPSPoint
     from ...processing.processing import build_segments
 
-    ride = _get_ride(ride_id)
+    ride = await RideRepository().get_by_id(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
     _ensure_ride_access(ride, current_user)
@@ -48,12 +49,11 @@ async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_use
 async def duration_chart(current_user: dict = Depends(get_current_user)):
     """Generate a ride duration distribution chart PNG."""
     from ...analytics.analytics import create_duration_chart
-    from ...db.database import get_rides_by_athlete
     from ...models.models import Ride
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in get_rides_by_athlete(_current_athlete_id(current_user), tenant_id)]
-    png = await asyncio.to_thread(create_duration_chart, rides)
+    rides = await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)
+    png = await asyncio.to_thread(create_duration_chart, [Ride(**r) for r in rides])
 
     return Response(content=png, media_type="image/png", headers={"Content-Disposition": "attachment; filename=duration.png"})
 
@@ -62,11 +62,10 @@ async def duration_chart(current_user: dict = Depends(get_current_user)):
 async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
     """Generate a distance profile chart PNG for a ride."""
     from ...analytics.analytics import create_distance_chart
-    from ...db.database import get_ride as _get_ride
     from ...models.models import GPSPoint
     from ...processing.processing import build_segments
 
-    ride = _get_ride(ride_id)
+    ride = await RideRepository().get_by_id(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
     _ensure_ride_access(ride, current_user)
@@ -93,11 +92,10 @@ async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_
 async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current_user)):
     """Generate an elevation profile chart PNG for a ride."""
     from ...analytics.analytics import create_elevation_chart
-    from ...db.database import get_ride as _get_ride
     from ...models.models import GPSPoint
     from ...processing.processing import build_segments
 
-    ride = _get_ride(ride_id)
+    ride = await RideRepository().get_by_id(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
     _ensure_ride_access(ride, current_user)

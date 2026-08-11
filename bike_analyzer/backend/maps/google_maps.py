@@ -185,7 +185,7 @@ def create_google_elevation_chart(points: list[GPSPoint], api_key: str) -> list[
 
 
 def get_google_api_key() -> str | None:
-    from ..api.user_keys import get_request_user_keys
+    from ..request_context import get_request_user_keys
 
     user_keys = get_request_user_keys()
     user_key = (user_keys.get("google_maps") or "").strip()

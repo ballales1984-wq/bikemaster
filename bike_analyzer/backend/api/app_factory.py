@@ -59,6 +59,7 @@ from .routers.itineraries_routes import router as itineraries_router
 from .routers.training_routes import router as training_router
 from .routers.coach_routes import router as coach_router
 from .routers.analytics_routes import router as analytics_router
+from .routers.import_routes import router as import_router
 from .routers.auth_routes import router as auth_router
 from .utils import _trusted_forwarded_value
 
@@ -370,7 +371,7 @@ def create_app() -> FastAPI:
         response.headers[REQUEST_ID_HEADER] = request_id
         return response
 
-    from .user_keys import parse_user_keys_header, set_request_user_keys, reset_request_user_keys  # noqa: I001
+    from ..request_context import parse_user_keys_header, set_request_user_keys, reset_request_user_keys
 
     @app.middleware("http")
     async def user_api_keys_middleware(request: Request, call_next):
@@ -522,6 +523,7 @@ def create_app() -> FastAPI:
     app.include_router(coach_router, prefix="/api/v1")
     app.include_router(analytics_router, prefix="/api/v1")
     app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(import_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
     _log_flush(f"create_app: include_router(admin) done +{time.monotonic()-_t0:.3f}s")
     @app.get("/healthz")

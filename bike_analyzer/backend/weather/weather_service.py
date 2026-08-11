@@ -4,39 +4,39 @@ from __future__ import annotations
 
 import os
 from datetime import UTC, datetime
+from typing import Any
 
 import requests
 
 from ..settings import get_settings
+from ..user_keys_provider import ContextVarUserKeysProvider, UserKeysProvider
 
 _s = get_settings()
 
 WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5"
+_GEOCODE_BASE_URL = "https://api.openweathermap.org/geo/1.0"
+_DEFAULT_PROVIDER = ContextVarUserKeysProvider()
 
 
-def _get_weather_api_key() -> str:
-    from ..api.user_keys import get_request_user_keys
-
-    user_keys = get_request_user_keys()
-    user_key = (user_keys.get("weather") or user_keys.get("openweather") or "").strip()
+def _get_weather_api_key(provider: UserKeysProvider | None = None) -> str:
+    p = provider or _DEFAULT_PROVIDER
+    keys = p.get_keys()
+    user_key = (keys.get("weather") or keys.get("openweather") or "").strip()
     if user_key:
         return user_key
     key = os.environ.get("WEATHER_API_KEY") or os.environ.get("OPENWEATHER_API_KEY")
     if key:
         return key
-    return _s.weather_api_key
+    return _s.weather_api_key or ""
 
 
-GEOCODE_BASE_URL = "https://api.openweathermap.org/geo/1.0"
-
-
-def get_city_coordinates(city: str) -> dict:
+def get_city_coordinates(city: str, provider: UserKeysProvider | None = None) -> dict:
     """Convert city name to lat/lon using OpenWeatherMap Geocoding API."""
-    api_key = _get_weather_api_key()
+    api_key = _get_weather_api_key(provider)
     if not api_key:
         return {"error": "Weather API key not configured"}
 
-    endpoint = f"{GEOCODE_BASE_URL}/direct"
+    endpoint = f"{_GEOCODE_BASE_URL}/direct"
     try:
         resp = requests.get(
             endpoint,

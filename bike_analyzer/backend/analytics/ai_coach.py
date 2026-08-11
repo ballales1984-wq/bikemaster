@@ -30,6 +30,7 @@ from datetime import UTC
 
 from ..models.models import AthleteProfile, Ride
 from ..settings import get_settings
+from ..user_keys_provider import ContextVarUserKeysProvider, UserKeysProvider
 from .analytics import calculate_summary, create_duration_chart, create_speed_chart
 from .knowledge_base import format_context_for_llm, search_knowledge_base
 from .performance import calculate_performance_score, calculate_recovery_score
@@ -56,6 +57,7 @@ _client_lock = threading.Lock()
 _clean_ai_output_pattern = re.compile(r"(?<!\d)(\d+\.\d)0(?!\d)")
 _clean_ai_int_pattern = re.compile(r"(?<!\d)(\d+)\.0(?!\d)")
 _AI_DISCLOSURE_PREFIX = "(AI-generated advice)\n\n"
+_DEFAULT_USER_KEYS_PROVIDER = ContextVarUserKeysProvider()
 
 
 def _clean_ai_output(text: str) -> str:
@@ -127,7 +129,7 @@ def _is_recoverable_provider_error(error: Exception) -> bool:
     return not (isinstance(error, (ValueError, TypeError)) or "auth" in msg)
 
 
-def get_ai_coach_client():
+def get_ai_coach_client(provider: UserKeysProvider | None = None):
     """Returns the LLM client configured for the AI Coach.
 
     Selection follows this priority order:
@@ -143,9 +145,8 @@ def get_ai_coach_client():
         if _current_client and _current_provider and _current_provider not in _BANNED_PROVIDERS:
             return _current_client, _current_provider
 
-    from ..api.user_keys import get_request_user_keys
-
-    user_keys = get_request_user_keys()
+    p = provider or _DEFAULT_USER_KEYS_PROVIDER
+    user_keys = p.get_keys()
     user_groq = (user_keys.get("groq") or "").strip()
     if user_groq:
         if not user_groq.startswith("gsk_"):

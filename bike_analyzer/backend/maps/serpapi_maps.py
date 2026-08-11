@@ -26,7 +26,7 @@ def _wait_for_rate_limit() -> None:
 
 
 def get_serpapi_api_key() -> str | None:
-    from ..api.user_keys import get_request_user_keys
+    from ..request_context import get_request_user_keys
 
     user_keys = get_request_user_keys()
     user_key = (user_keys.get("serpapi") or "").strip()

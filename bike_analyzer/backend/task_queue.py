@@ -173,12 +173,7 @@ class BackgroundTaskQueue:
         return [t for t in self._tasks.values() if t.status == "running"]
 
     async def _handle_batch_import(self, payload: dict) -> dict:
-        from bike_analyzer.backend.db.database import save_ride
-        from bike_analyzer.backend.ingestion.gps_parser import (
-            parse_fit_file,
-            parse_gpx_file,
-            points_to_ride,
-        )
+        from bike_analyzer.backend.services.import_service import ImportService
 
         results = {"imported": [], "failed": []}
         files = payload.get("files", [])
@@ -186,14 +181,23 @@ class BackgroundTaskQueue:
         tenant_id = payload.get("tenant_id", athlete_id)
         for f in files:
             try:
-                pts = parse_gpx_file(f["content"]) if f["type"] == "gpx" else parse_fit_file(f["path"])
-                ride_data = points_to_ride(pts, name=f["name"])
-                if "error" not in ride_data:
-                    ride_data["athlete_id"] = athlete_id
-                    ride_data["tenant_id"] = tenant_id
-                    ride_id = save_ride({k: v for k, v in ride_data.items() if k != "id"})
-                    ride_data["id"] = int(ride_id)
-                    results["imported"].append(ride_data)
+                if f["type"] == "gpx":
+                    ride_data = ImportService.import_file(
+                        "gpx",
+                        content=f["content"],
+                        name=f["name"],
+                        athlete_id=athlete_id,
+                        tenant_id=tenant_id,
+                    )
+                else:
+                    ride_data = ImportService.import_file(
+                        "fit",
+                        file_path=f["path"],
+                        name=f["name"],
+                        athlete_id=athlete_id,
+                        tenant_id=tenant_id,
+                    )
+                results["imported"].append(ride_data)
             except Exception as exc:
                 results["failed"].append({"name": f.get("name"), "error": str(exc)})
         return results

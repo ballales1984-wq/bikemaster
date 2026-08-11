@@ -144,7 +144,8 @@ def parse_fit_file(file_path: str) -> list[dict]:
         from fitparse import FitFile
 
         points = []
-        for record in FitFile(file_path).get_messages("record"):
+        fit = FitFile(file_path)
+        for record in fit.get_messages("record"):
             d = record.get_values()
             lat_raw, lon_raw = d.get("position_lat"), d.get("position_long")
             if lat_raw is None or lon_raw is None:
@@ -158,9 +159,33 @@ def parse_fit_file(file_path: str) -> list[dict]:
             ts = d.get("timestamp")
             alt = d.get("enhanced_altitude") or d.get("altitude")
             spd = d.get("speed") * 3.6 if d.get("speed") is not None else None
+            power = d.get("power")
+            hr = d.get("heart_rate")
+            cadence = d.get("cadence")
             if ts:
-                points.append({"lat": lat, "lon": lon, "timestamp": ts, "altitude": alt, "speed": spd})
+                points.append({
+                    "lat": lat, "lon": lon, "timestamp": ts,
+                    "altitude": alt, "speed": spd,
+                    "power": power, "heart_rate": hr, "cadence": cadence,
+                })
         return points
+    except ImportError:
+        raise ImportError("fitparse not installed") from None
+
+
+def get_fit_external_id(file_path: str) -> str | None:
+    try:
+        from fitparse import FitFile
+
+        for msg in FitFile(file_path).get_messages("session"):
+            d = msg.get_values()
+            start = d.get("start_time")
+            dist = d.get("total_distance")
+            sport = d.get("sport") or "unknown"
+            if start is not None:
+                dist_str = f"{dist:.1f}" if dist is not None else "0.0"
+                return f"{start.isoformat()}|{dist_str}|{sport}"
+        return None
     except ImportError:
         raise ImportError("fitparse not installed") from None
 
@@ -203,6 +228,9 @@ def points_to_ride(points: list[dict], name: str | None = None, weight_kg: float
                 "timestamp": p["timestamp"].isoformat(),
                 "altitude": p.get("altitude"),
                 "speed": p.get("speed"),
+                "power": p.get("power"),
+                "heart_rate": p.get("heart_rate"),
+                "cadence": p.get("cadence"),
             }
             for p in compressed
         ],
