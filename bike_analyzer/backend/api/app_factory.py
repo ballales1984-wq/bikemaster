@@ -59,6 +59,7 @@ from .routers.itineraries_routes import router as itineraries_router
 from .routers.training_routes import router as training_router
 from .routers.coach_routes import router as coach_router
 from .routers.analytics_routes import router as analytics_router
+from .routers.auth_routes import router as auth_router
 from .utils import _trusted_forwarded_value
 
 logger = logging.getLogger(__name__)
@@ -520,6 +521,7 @@ def create_app() -> FastAPI:
     app.include_router(training_router, prefix="/api/v1")
     app.include_router(coach_router, prefix="/api/v1")
     app.include_router(analytics_router, prefix="/api/v1")
+    app.include_router(auth_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
     _log_flush(f"create_app: include_router(admin) done +{time.monotonic()-_t0:.3f}s")
     @app.get("/healthz")
