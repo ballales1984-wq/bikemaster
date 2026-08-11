@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ...db.database import (
+from ...db.repositories.calendar_repository import (
     delete_calendar_event,
     get_calendar_event,
     get_events_by_date_range,

@@ -121,3 +121,8 @@ class AthleteRepository:
         from ..db.database import get_all_athletes
 
         return get_all_athletes()
+
+    def delete(self, athlete_id: int, user_id: int) -> bool:
+        from ..db.database import delete_athlete
+
+        return delete_athlete(athlete_id, user_id)

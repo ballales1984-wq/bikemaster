@@ -7,7 +7,9 @@ import asyncio
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from ...models.models import Ride
-from ..routes import _current_athlete_id, _ensure_athlete_access, get_current_user
+from ...security import get_current_user
+from ..routes import _current_athlete_id, _ensure_athlete_access
+from ...analytics.repositories.ride_repository import RideRepository
 
 router = APIRouter(prefix="/training", tags=["training"])
 
@@ -19,11 +21,8 @@ async def get_training_load(
     current_user: dict = Depends(get_current_user),
 ):
     """Return ATL/CTL/TSB training load metrics for the last N days."""
-    from ...analytics.training_load import calculate_atl_ctl_tsb
-    from ...db.database import get_rides_by_athlete
-
     _ensure_athlete_access(athlete_id, current_user)
-    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=athlete_id)]
     loads = await asyncio.to_thread(calculate_atl_ctl_tsb, rides)
     recent = loads[-days:] if len(loads) > days else loads
     return {"athlete_id": athlete_id, "days": days, "training_loads": list(recent)}
@@ -32,11 +31,8 @@ async def get_training_load(
 @router.get("/status")
 async def get_training_status(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
     """Return current fitness status with ATL/CTL/TSB-based recommendation."""
-    from ...analytics.training_load import get_current_training_status
-    from ...db.database import get_rides_by_athlete
-
     _ensure_athlete_access(athlete_id, current_user)
-    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=athlete_id)]
     status = await asyncio.to_thread(get_current_training_status, rides)
     return {"athlete_id": athlete_id, **status}
 
@@ -44,11 +40,8 @@ async def get_training_status(athlete_id: int = Query(...), current_user: dict =
 @router.get("/summary")
 async def get_7day_summary(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
     """Return a 7-day fitness summary for the dashboard."""
-    from ...analytics.training_load import get_7day_fitness_summary
-    from ...db.database import get_rides_by_athlete
-
     _ensure_athlete_access(athlete_id, current_user)
-    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id)]
+    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=athlete_id)]
     summary = await asyncio.to_thread(get_7day_fitness_summary, rides)
     return {"athlete_id": athlete_id, "summary": summary}
 
@@ -100,7 +93,7 @@ async def generate_workouts(
 ):
     """Generate planned workouts for a granfondo goal."""
     from ...analytics.training_load import get_current_training_status
-    from ...db.database import get_rides_by_athlete
+    from ...analytics.repositories.ride_repository import RideRepository
     from ...db.postgres_db import TrainingGoalModel, get_session
     from ...analytics.athlete_state.service import AthleteStateService
     from ...analytics.training.models import PlanConstraints, TrainingGoal
@@ -114,7 +107,7 @@ async def generate_workouts(
             raise HTTPException(status_code=422, detail="Goal has no associated athlete")
         _ensure_athlete_access(goal.athlete_id, current_user)
 
-    rides = [Ride(**r) for r in get_rides_by_athlete(goal.athlete_id)]
+    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=goal.athlete_id)]
     get_current_training_status(rides) if rides else {"ctl": 0}
 
     athlete_state_service = AthleteStateService()

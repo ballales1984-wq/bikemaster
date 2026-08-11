@@ -93,6 +93,18 @@ class POIRepository:
             data = {c.name: getattr(row, c.name) for c in self._table.__table__.columns}
             return self._parse_json_fields(data)
 
+    @staticmethod
+    def list_pois(itinerary_id: int | None = None, tenant_id: int = 0):
+        from ...db.database import list_pois
+
+        return list_pois(itinerary_id, tenant_id=tenant_id)
+
+    @staticmethod
+    def delete_poi(poi_id: int):
+        from ...db.database import delete_poi
+
+        return delete_poi(poi_id)
+
     async def get_nearby(
         self, lat: float, lon: float, radius_km: float = 5.0, tenant_id: int | None = None
     ) -> list[dict]:

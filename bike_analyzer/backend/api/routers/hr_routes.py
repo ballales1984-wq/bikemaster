@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 
-from ..routes import _current_athlete_id, get_current_user
+from ...security import get_current_user
+from ..routes import _current_athlete_id
 from ..schemas import Hr24hSummary, HrMonitoringSettings, HrSamplesBulk, SensorSamplesBulk
+from ...analytics.repositories.hr_repository import HRRepository
 
 router = APIRouter(prefix="/hr", tags=["hr"])
 
@@ -13,11 +15,9 @@ router = APIRouter(prefix="/hr", tags=["hr"])
 @router.get("/settings")
 async def get_hr_settings_route(current_user: dict = Depends(get_current_user)):
     """Return HR 24h monitoring settings for the current athlete."""
-    from ...db.database import get_hr_settings
-
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
-    settings = get_hr_settings(athlete_id, tenant_id)
+    settings = HRRepository.get_hr_settings(athlete_id, tenant_id)
     if settings is None:
         settings = {
             "enabled": True,
@@ -41,11 +41,9 @@ async def upsert_hr_settings_route(
     current_user: dict = Depends(get_current_user),
 ):
     """Create or update HR 24h monitoring settings."""
-    from ...db.database import upsert_hr_settings
-
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
-    settings = upsert_hr_settings(
+    settings = HRRepository.upsert_hr_settings(
         athlete_id,
         settings_data.model_dump(),
         tenant_id=tenant_id,
@@ -64,11 +62,9 @@ async def log_hr_samples_route(
     current_user: dict = Depends(get_current_user),
 ):
     """Persist heart-rate samples from BLE or other sources (bulk)."""
-    from ...db.database import log_hr_samples
-
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
-    count = log_hr_samples(
+    count = HRRepository.log_hr_samples(
         athlete_id,
         [s.model_dump() for s in samples.samples],
         source=samples.source or "ble",
@@ -83,11 +79,9 @@ async def get_hr_24h_route(
     current_user: dict = Depends(get_current_user),
 ):
     """Return raw heart-rate samples for the last *hours* hours (oldest-first)."""
-    from ...db.database import get_hr_24h_samples
-
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
-    samples = get_hr_24h_samples(athlete_id, hours=hours, tenant_id=tenant_id)
+    samples = HRRepository.get_hr_24h_samples(athlete_id, hours=hours, tenant_id=tenant_id)
     return {"samples": samples}
 
 
@@ -97,11 +91,9 @@ async def get_hr_daily_summary_route(
     current_user: dict = Depends(get_current_user),
 ):
     """Return per-day HR summary for the last *days* days (latest day)."""
-    from ...db.database import get_hr_daily_summary
-
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
-    history = get_hr_daily_summary(athlete_id, days=days, tenant_id=tenant_id)
+    history = HRRepository.get_hr_daily_summary(athlete_id, days=days, tenant_id=tenant_id)
     if not history:
         return None
     return Hr24hSummary(**history[-1])
@@ -113,11 +105,9 @@ async def get_hr_summary_history_route(
     current_user: dict = Depends(get_current_user),
 ):
     """Return the full per-day HR history for charting trends."""
-    from ...db.database import get_hr_daily_summary
-
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
-    history = get_hr_daily_summary(athlete_id, days=days, tenant_id=tenant_id)
+    history = HRRepository.get_hr_daily_summary(athlete_id, days=days, tenant_id=tenant_id)
     return {"history": history}
 
 
@@ -127,11 +117,9 @@ async def delete_hr_samples_route(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete HR samples, optionally older than a given timestamp (cleanup)."""
-    from ...db.database import delete_hr_samples
-
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
-    count = delete_hr_samples(athlete_id, tenant_id=tenant_id, older_than=older_than)
+    count = HRRepository.delete_hr_samples(athlete_id, tenant_id=tenant_id, older_than=older_than)
     return {"deleted": count}
 
 
@@ -141,11 +129,9 @@ async def log_sensor_data_route(
     current_user: dict = Depends(get_current_user),
 ):
     """Persist raw BLE sensor readings (heart-rate, GPS, accelerometer)."""
-    from ...db.database import log_sensor_data
-
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
-    count = log_sensor_data(
+    count = HRRepository.log_sensor_data(
         athlete_id,
         [s.model_dump() for s in payload.samples],
         tenant_id=tenant_id,

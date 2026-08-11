@@ -17,19 +17,6 @@ class UserKeysProvider(Protocol):
 
 class ContextVarUserKeysProvider:
     def get_keys(self) -> dict[str, str]:
-        from ..request_context import get_request_user_keys
+        from .request_context import get_request_user_keys
 
         return get_request_user_keys()
-
-
-def get_weather_api_key(provider: UserKeysProvider, settings) -> str:
-    keys = provider.get_keys()
-    user_key = (keys.get("weather") or keys.get("openweather") or "").strip()
-    if user_key:
-        return user_key
-    key = settings.weather_api_key
-    if not key:
-        import os
-
-        key = os.environ.get("WEATHER_API_KEY") or os.environ.get("OPENWEATHER_API_KEY")
-    return key or ""

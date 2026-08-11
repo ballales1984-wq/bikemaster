@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 
-from ..routes import _current_athlete_id, get_current_user
+from ...security import get_current_user
+from ..routes import _current_athlete_id
 from ..schemas import BleDeviceOut, BleDeviceRegister, BleDeviceSync, BleDeviceUpdate
+from ...analytics.repositories.ble_repository import BLERepository
 
 router = APIRouter(prefix="/ble", tags=["ble"])
 
@@ -13,22 +15,18 @@ router = APIRouter(prefix="/ble", tags=["ble"])
 @router.get("/devices")
 async def list_ble_devices(current_user: dict = Depends(get_current_user)):
     """List all BLE devices registered for the current athlete."""
-    from ...db.database import get_ble_devices
-
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
-    devices = get_ble_devices(athlete_id, tenant_id=tenant_id)
+    devices = BLERepository.get_ble_devices(athlete_id, tenant_id=tenant_id)
     return {"devices": [BleDeviceOut.model_validate(d).model_dump() for d in devices]}
 
 
 @router.post("/devices")
 async def register_ble_device(current_user: dict = Depends(get_current_user), payload: BleDeviceRegister = Body(...)):
     """Register a new BLE device (or update if already known)."""
-    from ...db.database import register_ble_device
-
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
-    device_id = register_ble_device(
+    device_id = BLERepository.register_ble_device(
         athlete_id=athlete_id,
         device_id=payload.device_id,
         name=payload.name,
@@ -48,14 +46,12 @@ async def update_ble_device(
     payload: BleDeviceUpdate = ...,
 ):
     """Update a BLE device (name, paired status, settings)."""
-    from ...db.database import get_ble_device, update_ble_device
-
     athlete_id = _current_athlete_id(current_user)
-    existing = get_ble_device(device_id, athlete_id)
+    existing = BLERepository.get_ble_device(device_id, athlete_id)
     if not existing:
         raise HTTPException(status_code=404, detail="BLE device not found")
     update_data = payload.model_dump(exclude_none=True)
-    updated = update_ble_device(device_id, athlete_id, **update_data)
+    updated = BLERepository.update_ble_device(device_id, athlete_id, **update_data)
     if not updated:
         raise HTTPException(status_code=404, detail="BLE device not found")
     return BleDeviceOut.model_validate(updated).model_dump()
@@ -64,13 +60,11 @@ async def update_ble_device(
 @router.delete("/devices/{device_id}")
 async def delete_ble_device(current_user: dict = Depends(get_current_user), device_id: int = ...):
     """Unregister (delete) a BLE device."""
-    from ...db.database import get_ble_device, unregister_ble_device
-
     athlete_id = _current_athlete_id(current_user)
-    existing = get_ble_device(device_id, athlete_id)
+    existing = BLERepository.get_ble_device(device_id, athlete_id)
     if not existing:
         raise HTTPException(status_code=404, detail="BLE device not found")
-    unregister_ble_device(device_id, athlete_id)
+    BLERepository.unregister_ble_device(device_id, athlete_id)
     return {"status": "deleted", "id": device_id}
 
 
@@ -81,11 +75,9 @@ async def sync_ble_device(
     payload: BleDeviceSync | None = Body(default=None),
 ):
     """Trigger a sync/read from a BLE device."""
-    from ...db.database import get_ble_device, log_athlete_metric, mark_ble_device_synced
-
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", athlete_id)
-    existing = get_ble_device(device_id, athlete_id)
+    existing = BLERepository.get_ble_device(device_id, athlete_id)
     if not existing:
         raise HTTPException(status_code=404, detail="BLE device not found")
     device_type = existing.get("device_type", "generic")
@@ -106,7 +98,7 @@ async def sync_ble_device(
         unit = unit or "value"
     metric_id = 0
     if has_value:
-        metric_id = log_athlete_metric(
+        metric_id = BLERepository.log_athlete_metric(
             athlete_id=athlete_id,
             metric_type=metric_type,
             value=payload.value,
@@ -116,7 +108,7 @@ async def sync_ble_device(
             source="ble",
             recorded_at=payload.recorded_at,
         )
-    mark_ble_device_synced(device_id, athlete_id)
+    BLERepository.mark_ble_device_synced(device_id, athlete_id)
     return {
         "status": "synced",
         "device_id": device_id,

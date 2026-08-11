@@ -23,10 +23,10 @@ class UserOAuthCredentials(BaseModel):
 @router.post("/auth/switch-athlete/{athlete_id}")
 async def switch_athlete(athlete_id: int, current_user: dict = Depends(get_current_user)):
     """Switch the active athlete profile and return a new JWT with athlete_id claim."""
-    from ...db.database import get_athlete
+    from ...analytics.repositories.athlete_repository import AthleteRepository
 
     user_id = int(current_user["id"])
-    athlete = get_athlete(athlete_id)
+    athlete = AthleteRepository().get_by_id(athlete_id)
     if not athlete:
         raise HTTPException(status_code=404, detail="Athlete not found")
     if athlete.get("user_id") != user_id and athlete_id != user_id:
@@ -58,10 +58,10 @@ async def switch_athlete(athlete_id: int, current_user: dict = Depends(get_curre
 @router.get("/connections/credentials")
 async def list_my_oauth_credentials(current_user: dict = Depends(get_current_user)):
     """List OAuth credentials configured for the current user (without secrets)."""
-    from ...db.database import get_all_user_oauth_credentials
+    from ...analytics.repositories.user_oauth_repository import UserOAuthRepository
 
     user_id = int(current_user["id"])
-    creds = get_all_user_oauth_credentials(user_id)
+    creds = UserOAuthRepository.get_all_user_oauth_credentials(user_id)
     result = []
     for c in creds:
         result.append({
@@ -80,23 +80,23 @@ async def list_my_oauth_credentials(current_user: dict = Depends(get_current_use
 @router.post("/connections/credentials")
 async def set_my_oauth_credentials(credentials: UserOAuthCredentials, current_user: dict = Depends(get_current_user)):
     """Set or update OAuth credentials for a specific provider."""
-    from ...db.database import save_user_oauth_credentials
+    from ...analytics.repositories.user_oauth_repository import UserOAuthRepository
 
     user_id = int(current_user["id"])
     data = credentials.model_dump(exclude_unset=True)
     if not data.get("client_id") and not data.get("client_secret"):
         raise HTTPException(status_code=400, detail="client_id or client_secret required")
-    save_user_oauth_credentials(user_id, credentials.provider, data)
+    UserOAuthRepository.save_user_oauth_credentials(user_id, credentials.provider, data)
     return {"status": "saved", "provider": credentials.provider}
 
 
 @router.delete("/connections/credentials/{provider}")
 async def delete_my_oauth_credentials(provider: str, current_user: dict = Depends(get_current_user)):
     """Delete OAuth credentials for a specific provider."""
-    from ...db.database import delete_user_oauth_credentials
+    from ...analytics.repositories.user_oauth_repository import UserOAuthRepository
 
     user_id = int(current_user["id"])
-    ok = delete_user_oauth_credentials(user_id, provider)
+    ok = UserOAuthRepository.delete_user_oauth_credentials(user_id, provider)
     if not ok:
         raise HTTPException(status_code=404, detail="Credentials not found")
     return {"status": "deleted", "provider": provider}

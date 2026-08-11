@@ -96,8 +96,6 @@ async def delete_calendar_event_endpoint(
     current_user: dict = Depends(get_current_user),
 ):
     """Delete a calendar event. Only the owner can delete."""
-    from ...db.database import delete_calendar_event, get_calendar_event
-
     event = CalendarRepository.get_calendar_event(event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -115,7 +113,6 @@ async def toggle_event_complete(
     current_user: dict = Depends(get_current_user),
 ):
     """Toggle the completed flag on a calendar event."""
-    from ...db.database import get_calendar_event, update_calendar_event
 
     event = CalendarRepository.get_calendar_event(event_id)
     if not event:

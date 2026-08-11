@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from ..routes import _place_cache_get, _place_cache_set, get_current_user, logger
+from ...security import get_current_user
+from ...settings import get_settings
+from ..routes import _place_cache_get, _place_cache_set, _ensure_ride_access, logger
 from ..schemas import POICreate, POIResponse
 from ...models.models import GPSPoint
-from ...settings import get_settings
+from ...analytics.repositories.poi_repository import POIRepository
+from ...analytics.repositories.ride_repository import RideRepository
 
 router = APIRouter(prefix="/maps", tags=["maps"])
 
@@ -24,6 +27,7 @@ async def get_nearby_pois(
     Only POIs belonging to the current user's tenant are returned.
     """
     from ...analytics.repositories.poi_repository import POIRepository
+    from ...analytics.repositories.ride_repository import RideRepository
     from ...db.async_db import get_session_factory
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
@@ -43,22 +47,18 @@ async def list_pois_endpoint(
 
     Only POIs belonging to the current user's tenant are returned.
     """
-    from ...db.database import list_pois
-
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    return {"pois": list_pois(itinerary_id, tenant_id=tenant_id)}
+    return {"pois": POIRepository.list_pois(itinerary_id, tenant_id=tenant_id)}
 
 
 @router.post("/pois", response_model=POIResponse)
 async def create_poi(poi: POICreate, current_user: dict = Depends(get_current_user)):
     """Create a Point of Interest owned by the current user."""
-    from ...db.database import get_poi, save_poi
-
     data = poi.model_dump()
     data["created_by"] = current_user["id"]
     data["tenant_id"] = current_user.get("tenant_id", current_user["id"])
-    poi_id = save_poi(data)
-    created = get_poi(poi_id)
+    poi_id = await POIRepository().create(data)
+    created = await POIRepository().get_by_id(poi_id)
     if created is None:
         raise HTTPException(status_code=500, detail="Failed to create POI")
     return created
@@ -71,10 +71,8 @@ async def get_poi_endpoint(poi_id: int, current_user: dict = Depends(get_current
     Only POIs belonging to the current user's tenant are accessible
     (admins can access any).
     """
-    from ...db.database import get_poi
-
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    poi = get_poi(poi_id)
+    poi = await POIRepository().get_by_id(poi_id)
     if not poi:
         raise HTTPException(status_code=404, detail="POI not found")
     if not current_user.get("is_admin") and poi.get("tenant_id") != tenant_id:
@@ -87,14 +85,12 @@ async def delete_poi_endpoint(
     poi_id: int, current_user: dict = Depends(get_current_user)
 ):
     """Delete a POI if the current user is the owner or an admin."""
-    from ...db.database import delete_poi, get_poi
-
-    poi = get_poi(poi_id)
+    poi = await POIRepository().get_by_id(poi_id)
     if not poi:
         raise HTTPException(status_code=404, detail="POI not found")
     if not current_user.get("is_admin") and poi["created_by"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="Not allowed to delete this POI")
-    delete_poi(poi_id)
+    POIRepository.delete_poi(poi_id)
     return {"deleted": True}
 
 
@@ -109,9 +105,7 @@ async def nearby_places(
 
     Results are cached in-memory for 10 minutes.
     """
-    from ...db.database import get_ride as _get_ride
-
-    ride = _get_ride(ride_id)
+    ride = await RideRepository().get_by_id(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
     _ensure_ride_access(ride, current_user)
@@ -170,9 +164,7 @@ async def search_places_endpoint(
 ):
     """Search for places near a ride using SerpApi (requires API key)."""
     """Search places using SerpApi for a ride - user must own the ride."""
-    from ...db.database import get_ride as _get_ride
-
-    ride = _get_ride(ride_id)
+    ride = await RideRepository().get_by_id(ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
     _ensure_ride_access(ride, current_user)
