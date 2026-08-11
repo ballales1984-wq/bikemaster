@@ -1,23 +1,26 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { reactive, ref } from "vue";
+import { reactive, ref, toRef } from "vue";
 
 const mockFetchProfile = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 const mockFetchState = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 
-const mockStateRef = ref(null);
-const mockStateErrorRef = ref(null);
-
 const mockAthleteStore = reactive({
-  profile: {},
+  profile: null,
   fetchProfile: mockFetchProfile,
   updateProfile: vi.fn(),
   fetchMetricLog: vi.fn(() => Promise.resolve([])),
-  error: reactive({ value: "" }),
+  error: null,
 });
 
 const mockAuthStore = reactive({
   isLoggedIn: true,
+});
+
+const mockAthleteStateStore = reactive({
+  state: null,
+  fetchState: mockFetchState,
+  error: null,
 });
 
 vi.mock("../stores/athlete", () => ({
@@ -25,16 +28,34 @@ vi.mock("../stores/athlete", () => ({
 }));
 
 vi.mock("../stores/athleteState", () => ({
-  useAthleteStateStore: () => ({
-    state: mockStateRef,
-    fetchState: mockFetchState,
-    error: mockStateErrorRef,
-  }),
+  useAthleteStateStore: () => mockAthleteStateStore,
 }));
 
 vi.mock("../stores/auth", () => ({
   useAuthStore: () => mockAuthStore,
 }));
+
+vi.mock("pinia", async () => {
+  const actual = await vi.importActual("pinia");
+  return {
+    ...actual,
+    storeToRefs: (store) => {
+      if (store === mockAthleteStore) {
+        return {
+          profile: toRef(store, "profile"),
+          error: toRef(store, "error"),
+        };
+      }
+      if (store === mockAthleteStateStore) {
+        return {
+          state: toRef(store, "state"),
+          error: toRef(store, "error"),
+        };
+      }
+      return actual.storeToRefs(store);
+    },
+  };
+});
 
 import AthleteAvatarPanel from "./AthleteAvatarPanel.vue";
 
@@ -93,10 +114,10 @@ const mockState = {
 describe("AthleteAvatarPanel", () => {
   afterEach(() => {
     vi.clearAllMocks();
-    mockAthleteStore.profile = {};
-    mockAthleteStore.error.value = "";
-    mockStateRef.value = null;
-    mockStateErrorRef.value = null;
+    mockAthleteStore.profile = null;
+    mockAthleteStore.error = null;
+    mockAthleteStateStore.state = null;
+    mockAthleteStateStore.error = null;
     mockAuthStore.isLoggedIn = true;
   });
 
@@ -104,7 +125,7 @@ describe("AthleteAvatarPanel", () => {
     mockFetchProfile.mockResolvedValueOnce(mockProfile);
     mockFetchState.mockResolvedValueOnce(mockState);
     mockAthleteStore.profile = mockProfile;
-    mockStateRef.value = mockState;
+    mockAthleteStateStore.state = mockState;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
@@ -132,7 +153,7 @@ describe("AthleteAvatarPanel", () => {
       equipment: "S-Works Tarmac",
       medical_notes: "Asma lieve",
     };
-    mockStateRef.value = mockState;
+    mockAthleteStateStore.state = mockState;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
@@ -149,7 +170,7 @@ describe("AthleteAvatarPanel", () => {
       equipment: null,
       medical_notes: null,
     };
-    mockStateRef.value = mockState;
+    mockAthleteStateStore.state = mockState;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
@@ -160,7 +181,7 @@ describe("AthleteAvatarPanel", () => {
 
   it("renders fitness state when available", async () => {
     mockAthleteStore.profile = mockProfile;
-    mockStateRef.value = mockState;
+    mockAthleteStateStore.state = mockState;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
