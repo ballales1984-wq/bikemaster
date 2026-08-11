@@ -49,6 +49,10 @@ from .routers.weather_routes import router as weather_router
 from .routers.legal_routes import router as legal_router
 from .routers.badges_routes import router as badges_router
 from .routers.traffic_routes import router as traffic_router
+from .routers.knowledge_routes import router as knowledge_router
+from .routers.charts_routes import router as charts_router
+from .routers.notifications_routes import router as notifications_router
+from .routers.ble_routes import router as ble_router
 from .utils import _trusted_forwarded_value
 
 logger = logging.getLogger(__name__)
@@ -500,6 +504,10 @@ def create_app() -> FastAPI:
     app.include_router(legal_router, prefix="/api/v1")
     app.include_router(badges_router, prefix="/api/v1")
     app.include_router(traffic_router, prefix="/api/v1")
+    app.include_router(knowledge_router, prefix="/api/v1")
+    app.include_router(charts_router, prefix="/api/v1")
+    app.include_router(notifications_router, prefix="/api/v1")
+    app.include_router(ble_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
     _log_flush(f"create_app: include_router(admin) done +{time.monotonic()-_t0:.3f}s")
     @app.get("/healthz")
