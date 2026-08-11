@@ -88,6 +88,11 @@ def _fetch_raw(bbox: dict[str, float], resolution: int, base_url: str, source: s
     return None
 
 
+def reset_dem_cache() -> None:
+    _DEM_CACHE.clear()
+    _DEM_IN_FLIGHT.clear()
+
+
 def fetch_dem_tile(
     bbox: dict[str, float],
     resolution: int = 64,

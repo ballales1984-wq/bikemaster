@@ -173,7 +173,9 @@ class TestFingerprintToken:
 class TestDecodeToken:
     def test_valid_token(self):
         r = _make_redis_mock(exists_return=0)
-        with _patch_get_redis(r):
+        with _patch_get_redis(r), patch(
+            "bike_analyzer.backend.security._is_token_revoked_sqlite", return_value=False
+        ):
             token = create_access_token(subject="42", is_admin=False)
             import asyncio
 

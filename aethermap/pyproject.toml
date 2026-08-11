@@ -34,7 +34,12 @@ geo = [
     "shapely>=2.0.0",
 ]
 maps = [
-    "aethermap[geo,s2,viewer]",
+    "aethermap[geo,s2,viewer,dem]",
+]
+dem = [
+    "elevation>=0.6.1",
+    "rasterio>=1.3.0",
+    "scipy>=1.10.0",
 ]
 
 [tool.setuptools.packages.find]

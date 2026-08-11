@@ -6982,6 +6982,55 @@ async def garmin_auth(
     return result
 
 
+@router.get("/import/garmin/callback")
+async def garmin_callback_page(
+    request: Request,
+    code: str | None = Query(None),
+    error: str | None = Query(None),
+    error_description: str | None = Query(None),
+    state: str = Query(""),
+):
+    """Handle Garmin OAuth redirect (popup) and relay the result to the opener."""
+    origin = request.headers.get("origin") or request.headers.get("referer") or ""
+    allowed_origin = None
+    if origin:
+        parsed_origin = urlparse(origin)
+        origin_host = (parsed_origin.scheme or "https") + "://" + parsed_origin.netloc
+        allowed_origins = _s.cors_origins_list if hasattr(_s, "cors_origins_list") else []
+        if origin_host in allowed_origins or parsed_origin.netloc.endswith(".vercel.app"):
+            allowed_origin = origin_host
+
+    if error:
+        payload = json.dumps(
+            {
+                "type": "garmin-error",
+                "error": error,
+                "error_description": error_description or "Garmin OAuth failed",
+            }
+        )
+        return _oauth_callback_response(payload, status_code=400, allowed_origin=allowed_origin)
+    if not code:
+        payload = json.dumps(
+            {
+                "type": "garmin-error",
+                "error": "missing_code",
+                "error_description": "Garmin callback received without code",
+            }
+        )
+        return _oauth_callback_response(payload, status_code=400, allowed_origin=allowed_origin)
+    if not state:
+        payload = json.dumps(
+            {
+                "type": "garmin-error",
+                "error": "missing_state",
+                "error_description": "Garmin callback missing state parameter",
+            }
+        )
+        return _oauth_callback_response(payload, status_code=400, allowed_origin=allowed_origin)
+    payload = json.dumps({"type": "garmin-success", "code": code, "state": state})
+    return _oauth_callback_response(payload, allowed_origin=allowed_origin)
+
+
 @router.post("/import/garmin/callback")
 async def garmin_callback(
     payload: GarminCallbackRequest,

@@ -99,6 +99,22 @@ export const oauthProviders: Record<string, OAuthProviderConfig> = {
     }),
     onConnected: () => "Wahoo connesso",
   },
+  garmin: {
+    provider: "garmin",
+    authEndpoint: "/api/v1/import/garmin/auth",
+    callbackEndpoint: "/api/v1/import/garmin/callback",
+    popupName: "garmin-auth",
+    popupWidth: 600,
+    popupHeight: 700,
+    successEventType: "garmin-success",
+    errorEventType: "garmin-error",
+    extractCallbackBody: (eventData) => ({
+      code: eventData.code as string,
+      redirect_uri: "",
+      state: eventData.state as string,
+    }),
+    onConnected: () => "Garmin connected",
+  },
 };
 
 const OAUTH_RESULT_KEY = "bikemaster_oauth_result";

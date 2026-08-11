@@ -2,7 +2,7 @@
  * BikeMaster Frontend — store connessioni servizi esterni.
  *
  * Tiene traccia dello stato OAuth/API key per servizi come Strava,
- * Google Fit/Wahoo/Garmin, con caricamento e disconnessione.
+ * Google Health/Wahoo/Garmin, con caricamento e disconnessione.
  */
 
 import { defineStore } from "pinia";
@@ -37,29 +37,14 @@ export const useConnectionsStore = defineStore("connections", () => {
     loading.value = true;
     error.value = "";
     try {
-      const data = await apiGet<{ connections?: ConnectionStatus[] }>(
+      const data = await apiGet<Record<string, boolean>>(
         "/api/v1/import/providers",
       );
-      const mapped = (data.connections || []).map((c) => ({
-        service: c.service,
-        method: c.method,
-        connected: !!c.connected,
-        available: c.available !== false,
-        label: c.label || c.service,
-        description: c.description || "",
-        lastConnectedAt: c.lastConnectedAt || null,
-      }));
-      // Assicurati che i servizi noti siano presenti anche se non tornati dal backend.
       const known = [
         {
           service: "strava",
           method: "oauth" as ConnectionMethod,
           label: "Strava",
-        },
-        {
-          service: "google_fit",
-          method: "oauth" as ConnectionMethod,
-          label: "Google Fit",
         },
         {
           service: "google_health",
@@ -78,13 +63,36 @@ export const useConnectionsStore = defineStore("connections", () => {
         },
       ];
       const merged = known.map((k) => {
-        const existing = mapped.find((m) => m.service === k.service);
-        return existing || { ...k, connected: false, available: true };
+        const available = !!data[k.service];
+        const existing = items.value.find((m) => m.service === k.service);
+        return {
+          ...k,
+          connected: existing ? existing.connected : false,
+          available,
+          description: existing ? existing.description : "",
+          lastConnectedAt: existing ? existing.lastConnectedAt : null,
+        };
       });
       items.value = merged;
     } catch (e) {
       error.value =
         e instanceof Error ? e.message : "Impossibile caricare le connessioni";
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function connect(service: string) {
+    loading.value = true;
+    error.value = "";
+    try {
+      const target = items.value.find((s) => s.service === service);
+      if (target) {
+        target.connected = true;
+        target.lastConnectedAt = new Date().toISOString();
+      }
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Connessione fallita";
     } finally {
       loading.value = false;
     }
@@ -125,6 +133,7 @@ export const useConnectionsStore = defineStore("connections", () => {
     services,
     connectedServices,
     load,
+    connect,
     disconnect,
   };
 });

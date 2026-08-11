@@ -4,6 +4,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pytest
 
 from aethermap.render.terrain_enhancer import (
     _face_bbox,
@@ -12,7 +13,15 @@ from aethermap.render.terrain_enhancer import (
     enhance_face,
     fetch_dem_tile,
     get_terrain_bboxes,
+    reset_dem_cache,
 )
+
+
+@pytest.fixture(autouse=True)
+def _clear_dem_cache():
+    reset_dem_cache()
+    yield
+    reset_dem_cache()
 
 
 class TestFaceDirection:

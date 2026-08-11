@@ -1,4 +1,4 @@
-<!-- Pannello import: caricamento file GPX/FIT (drag&drop o selezione) e import da servizi connessi (Strava, Google Fit/Health, Wahoo).
+<!-- Pannello import: caricamento file GPX/FIT (drag&drop o selezione) e import da servizi connessi (Strava, Google Health, Wahoo, Garmin).
      Props: nessuna. Eventi: summary-change (dopo un import riuscito). Gestisce OAuth via popup e callback; mostra stato, errori e barra di avanzamento.
      UI: area upload, separatore OAuth, gruppi provider con connetti/disconnetti/sync, box risultato ed eventuale progress bar. -->
 <template>
@@ -49,92 +49,6 @@
         <span>or import from connected services</span>
       </div>
 
-      <div v-if="isServiceAvailable('google_fit')" class="provider-group">
-        <h3>Google Fit</h3>
-        <button
-          class="btn btn-google-fit"
-          :disabled="importing"
-          type="button"
-          @click="connectGoogleFit"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            style="margin-right: 6px"
-          >
-            <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.76h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c3.05 0 5.84-1.15 7.86-3l-3.57-2.76c-.98.66-2.23 1.06-3.62 1.44v2.26C15.24 21.23 13.71 22 12 22z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M6.27 15.73a7.5 7.5 0 0 1 0-3.46l2.93-2.27a7.5 7.5 0 0 0 1.74 3.19l-2.93 2.27z"
-            />
-            <path
-              fill="#EA4335"
-              d="M18.57 6.43a7.5 7.5 0 0 0-6.57-4.43 7.5 7.5 0 0 0-1.57.23l2.93 2.26a4.99 4.99 0 0 1 5.17 4.17z"
-            />
-          </svg>
-          {{ importing ? "Connecting..." : "Import from Google Fit" }}
-        </button>
-        <button
-          class="btn btn-secondary"
-          :disabled="importing"
-          type="button"
-          style="margin-top: 8px"
-          @click="disconnectGoogleFit"
-        >
-          Disconnect Google Fit
-        </button>
-      </div>
-      <div v-else class="provider-group provider-group--muted">
-        <h3>Google Fit</h3>
-        <p class="provider-hint">
-          Coming soon: configure Google Fit credentials to enable import.
-        </p>
-      </div>
-
-      <div v-if="isServiceAvailable('wahoo')" class="provider-group">
-        <h3>Wahoo</h3>
-        <button
-          class="btn btn-secondary"
-          :disabled="importing"
-          type="button"
-          @click="connectWahoo"
-        >
-          Connect Wahoo
-        </button>
-        <button
-          class="btn btn-secondary"
-          :disabled="importing"
-          type="button"
-          style="margin-top: 8px"
-          @click="disconnectWahoo"
-        >
-          Disconnect Wahoo
-        </button>
-        <button
-          class="btn btn-primary"
-          :disabled="importing"
-          type="button"
-          style="margin-top: 8px"
-          @click="wahooSync"
-        >
-          Import from Wahoo
-        </button>
-      </div>
-      <div v-else class="provider-group provider-group--muted">
-        <h3>Wahoo</h3>
-        <p class="provider-hint">
-          Coming soon: configure Wahoo credentials to enable import.
-        </p>
-      </div>
-
       <div v-if="isServiceAvailable('google_health')" class="provider-group">
         <h3>Google Health</h3>
         <button
@@ -182,6 +96,78 @@
         <h3>Google Health</h3>
         <p class="provider-hint">
           Coming soon: configure Google Health credentials to enable import.
+        </p>
+      </div>
+
+      <div v-if="isServiceAvailable('wahoo')" class="provider-group">
+        <h3>Wahoo</h3>
+        <button
+          class="btn btn-secondary"
+          :disabled="importing"
+          type="button"
+          @click="connectWahoo"
+        >
+          Connect Wahoo
+        </button>
+        <button
+          class="btn btn-secondary"
+          :disabled="importing"
+          type="button"
+          style="margin-top: 8px"
+          @click="disconnectWahoo"
+        >
+          Disconnect Wahoo
+        </button>
+        <button
+          class="btn btn-primary"
+          :disabled="importing"
+          type="button"
+          style="margin-top: 8px"
+          @click="wahooSync"
+        >
+          Import from Wahoo
+        </button>
+      </div>
+      <div v-else class="provider-group provider-group--muted">
+        <h3>Wahoo</h3>
+        <p class="provider-hint">
+          Coming soon: configure Wahoo credentials to enable import.
+        </p>
+      </div>
+
+      <div v-if="isServiceAvailable('garmin')" class="provider-group">
+        <h3>Garmin Connect</h3>
+        <button
+          class="btn btn-secondary"
+          :disabled="importing"
+          type="button"
+          @click="connectGarmin"
+        >
+          Connect Garmin
+        </button>
+        <button
+          class="btn btn-secondary"
+          :disabled="importing"
+          type="button"
+          style="margin-top: 8px"
+          @click="disconnectGarmin"
+        >
+          Disconnect Garmin
+        </button>
+        <button
+          class="btn btn-primary"
+          :disabled="importing"
+          type="button"
+          style="margin-top: 8px"
+          @click="garminSync"
+        >
+          Import from Garmin
+        </button>
+      </div>
+      <div v-else class="provider-group provider-group--muted">
+        <h3>Garmin Connect</h3>
+        <p class="provider-hint">
+          Coming soon: configure Garmin credentials to enable import.
         </p>
       </div>
 
@@ -256,9 +242,9 @@ const auth = useAuthStore();
 const connectionsStore = useConnectionsStore();
 
 const stravaOAuth = useOAuthConnection(oauthProviders.strava);
-const googleFitOAuth = useOAuthConnection(oauthProviders.google_fit);
 const googleHealthOAuth = useOAuthConnection(oauthProviders.google_health);
 const wahooOAuth = useOAuthConnection(oauthProviders.wahoo);
+const garminOAuth = useOAuthConnection(oauthProviders.garmin);
 
 const emit = defineEmits(["summary-change"]);
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -324,31 +310,12 @@ async function upload() {
   }
 }
 
-async function connectGoogleFit() {
-  importing.value = true;
-  importStatus.value = null;
-  try {
-    await googleFitOAuth.connect();
-    importStatus.value = {
-      success: true,
-      message: "Google Fit connected",
-    };
-    emit("summary-change");
-  } catch (e: unknown) {
-    importStatus.value = {
-      success: false,
-      message: e instanceof Error ? e.message : String(e),
-    };
-  } finally {
-    importing.value = false;
-  }
-}
-
 async function connectGoogleHealth() {
   importing.value = true;
   importStatus.value = null;
   try {
     await googleHealthOAuth.connect();
+    await connectionsStore.connect("google_health");
     importStatus.value = {
       success: true,
       message: "Google Health connected",
@@ -364,29 +331,10 @@ async function connectGoogleHealth() {
   }
 }
 
-async function disconnectGoogleFit() {
-  try {
-    await googleFitOAuth.disconnect();
-    importStatus.value = {
-      success: true,
-      message: "Google Fit disconnected",
-    };
-  } catch (e: unknown) {
-    importStatus.value = {
-      success: false,
-      message:
-        e instanceof Error ? e.message : "Failed to disconnect Google Fit",
-    };
-  }
-}
-
 async function disconnectGoogleHealth() {
   try {
     await googleHealthOAuth.disconnect();
-    importStatus.value = {
-      success: true,
-      message: "Google Health disconnected",
-    };
+    importStatus.value = { success: true, message: "Google Health disconnected" };
   } catch (e: unknown) {
     importStatus.value = {
       success: false,
@@ -401,6 +349,7 @@ async function connectStrava() {
   importStatus.value = null;
   try {
     await stravaOAuth.connect();
+    await connectionsStore.connect("strava");
     importStatus.value = {
       success: true,
       message: "Strava connected. Importing your rides...",
@@ -467,16 +416,18 @@ async function connectWahoo() {
   importStatus.value = null;
   try {
     await wahooOAuth.connect();
+    await connectionsStore.connect("wahoo");
     importStatus.value = {
       success: true,
-      message: "Wahoo connected successfully",
+      message: "Wahoo connected. Importing your rides...",
     };
+    importing.value = false;
+    await wahooSync();
   } catch (e: unknown) {
     importStatus.value = {
       success: false,
-      message: e instanceof Error ? e.message : String(e),
+      message: e instanceof Error ? e.message : "Wahoo connection failed",
     };
-  } finally {
     importing.value = false;
   }
 }
@@ -509,14 +460,99 @@ async function wahooSync() {
     if (resp.ok) {
       const result = await resp.json();
       status.value = `Imported ${result.imported} rides from Wahoo`;
+      importStatus.value = {
+        success: true,
+        message: `Imported ${result.imported} rides from Wahoo`,
+      };
       emit("summary-change");
     } else {
       const err = await resp.json().catch(() => ({}));
       status.value = "Wahoo import failed: " + (err.detail || resp.statusText);
+      importStatus.value = {
+        success: false,
+        message: "Wahoo import failed: " + (err.detail || resp.statusText),
+      };
     }
   } catch (e: unknown) {
     status.value =
       "Wahoo import error: " + (e instanceof Error ? e.message : String(e));
+    importStatus.value = {
+      success: false,
+      message:
+        "Wahoo import error: " + (e instanceof Error ? e.message : String(e)),
+    };
+  } finally {
+    importing.value = false;
+  }
+}
+
+async function connectGarmin() {
+  importing.value = true;
+  importStatus.value = null;
+  try {
+    await garminOAuth.connect();
+    await connectionsStore.connect("garmin");
+    importStatus.value = {
+      success: true,
+      message: "Garmin connected. Importing your rides...",
+    };
+    importing.value = false;
+    await garminSync();
+  } catch (e: unknown) {
+    importStatus.value = {
+      success: false,
+      message: e instanceof Error ? e.message : "Garmin connection failed",
+    };
+    importing.value = false;
+  }
+}
+
+async function disconnectGarmin() {
+  try {
+    await garminOAuth.disconnect();
+    importStatus.value = { success: true, message: "Garmin disconnected" };
+  } catch (e: unknown) {
+    importStatus.value = {
+      success: false,
+      message: e instanceof Error ? e.message : "Failed to disconnect Garmin",
+    };
+  }
+}
+
+async function garminSync() {
+  if (importing.value) return;
+  try {
+    importing.value = true;
+    status.value = "Garmin import in progress...";
+    const token = auth.token;
+    const resp = await fetch("/api/v1/import/garmin/sync?background=false", {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (resp.ok) {
+      const result = await resp.json();
+      status.value = `Imported ${result.imported} rides from Garmin`;
+      importStatus.value = {
+        success: true,
+        message: `Imported ${result.imported} rides from Garmin`,
+      };
+      emit("summary-change");
+    } else {
+      const err = await resp.json().catch(() => ({}));
+      status.value = "Garmin import failed: " + (err.detail || resp.statusText);
+      importStatus.value = {
+        success: false,
+        message: "Garmin import failed: " + (err.detail || resp.statusText),
+      };
+    }
+  } catch (e: unknown) {
+    status.value =
+      "Garmin import error: " + (e instanceof Error ? e.message : String(e));
+    importStatus.value = {
+      success: false,
+      message:
+        "Garmin import error: " + (e instanceof Error ? e.message : String(e)),
+    };
   } finally {
     importing.value = false;
   }
