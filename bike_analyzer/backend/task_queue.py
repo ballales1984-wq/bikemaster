@@ -16,6 +16,20 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+def _ensure_calories(ride_data: dict) -> None:
+    if ride_data.get("calories"):
+        return
+    try:
+        from bike_analyzer.backend.analytics.calories import ensure_calories
+        from bike_analyzer.backend.models.models import Ride
+
+        allowed = set(Ride.__dataclass_fields__.keys())
+        clean = {k: v for k, v in ride_data.items() if k in allowed and k not in ("gps_points", "id")}
+        ride_data["calories"] = ensure_calories(Ride(**clean))
+    except Exception:
+        ride_data["calories"] = 0
+
+
 @dataclass
 class Task:
     id: str
@@ -223,7 +237,7 @@ class BackgroundTaskQueue:
             return {"error": str(exc)}
 
     async def _handle_recalculate_stress(self, payload: dict) -> dict:
-        from bike_analyzer.backend.db.database import get_rides_by_athlete
+        from bike_analyzer.backend.db.repositories.ride_repository import get_rides_by_athlete
         from bike_analyzer.backend.analytics.training_load import (
             recalculate_training_stress_for_athlete,
         )
@@ -259,7 +273,7 @@ class BackgroundTaskQueue:
     async def _handle_strava_sync(self, payload: dict) -> dict:
         import time
 
-        from bike_analyzer.backend.db.database import save_ride
+        from bike_analyzer.backend.db.repositories.ride_repository import save_ride
         from bike_analyzer.backend.ingestion.strava_client import (
             StravaRateLimitError,
             fetch_all_activities,
@@ -295,6 +309,7 @@ class BackgroundTaskQueue:
             ride_data["athlete_id"] = athlete_id
             ride_data["tenant_id"] = tenant_id
             db_ride = {k: v for k, v in ride_data.items() if k != "id"}
+            _ensure_calories(db_ride)
             ride_id = save_ride(db_ride)
             if ride_id not in imported_ids:
                 imported.append({"id": int(ride_id), **ride_data})
@@ -303,7 +318,7 @@ class BackgroundTaskQueue:
         return {"imported": len(imported), "total_fetched": len(activities)}
 
     async def _handle_garmin_sync(self, payload: dict) -> dict:
-        from bike_analyzer.backend.db.database import save_ride
+        from bike_analyzer.backend.db.repositories.ride_repository import save_ride
         from bike_analyzer.backend.ingestion.garmin_client import (
             fetch_activities,
             garmin_to_ride,
@@ -325,6 +340,7 @@ class BackgroundTaskQueue:
             ride_data["athlete_id"] = athlete_id
             ride_data["tenant_id"] = tenant_id
             db_ride = {k: v for k, v in ride_data.items() if k != "id"}
+            _ensure_calories(db_ride)
             ride_id = save_ride(db_ride)
             if ride_id not in imported_ids:
                 imported.append({"id": int(ride_id), **ride_data})
@@ -332,7 +348,7 @@ class BackgroundTaskQueue:
         return {"imported": len(imported), "total_fetched": len(activities)}
 
     async def _handle_wahoo_sync(self, payload: dict) -> dict:
-        from bike_analyzer.backend.db.database import save_ride
+        from bike_analyzer.backend.db.repositories.ride_repository import save_ride
         from bike_analyzer.backend.ingestion.wahoo_client import (
             fetch_workouts,
             get_valid_token,
@@ -354,6 +370,7 @@ class BackgroundTaskQueue:
             ride_data["athlete_id"] = athlete_id
             ride_data["tenant_id"] = tenant_id
             db_ride = {k: v for k, v in ride_data.items() if k != "id"}
+            _ensure_calories(db_ride)
             ride_id = save_ride(db_ride)
             if ride_id not in imported_ids:
                 imported.append({"id": int(ride_id), **ride_data})

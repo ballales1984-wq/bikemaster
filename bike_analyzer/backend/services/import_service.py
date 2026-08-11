@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from bike_analyzer.backend.db.database import save_ride
+from bike_analyzer.backend.db.repositories.ride_repository import save_ride
 from bike_analyzer.backend.ingestion.gps_parser import (
     get_fit_external_id,
     parse_fit_file,
@@ -62,6 +62,16 @@ class ImportService:
             ride_data["external_id"] = get_fit_external_id(file_path)
 
         db_ride = {k: v for k, v in ride_data.items() if k != "id"}
+        if not db_ride.get("calories"):
+            try:
+                from bike_analyzer.backend.analytics.calories import ensure_calories
+                from bike_analyzer.backend.models.models import Ride
+
+                allowed = set(Ride.__dataclass_fields__.keys())
+                clean = {k: v for k, v in db_ride.items() if k in allowed and k not in ("gps_points", "id")}
+                db_ride["calories"] = ensure_calories(Ride(**clean))
+            except Exception:
+                db_ride["calories"] = 0
         ride_id = save_ride(db_ride)
         ride_data["id"] = int(ride_id)
         return ride_data

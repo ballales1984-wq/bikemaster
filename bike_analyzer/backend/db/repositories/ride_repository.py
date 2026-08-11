@@ -9,7 +9,6 @@ from datetime import UTC, datetime
 
 from ...models.models import Ride
 from ...utils.logger import get_logger
-from ...settings import get_settings
 from ..dispatch import pg_dispatch
 
 

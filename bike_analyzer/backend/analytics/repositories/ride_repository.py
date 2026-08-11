@@ -54,7 +54,7 @@ class RideRepository:
             return result.scalar_one()
 
     def _save_sync(self, ride: dict) -> int:
-        from ...db.database import save_ride
+        from ...db.repositories.ride_repository import save_ride
 
         return save_ride(ride)
 
@@ -82,7 +82,7 @@ class RideRepository:
             return data
 
     def _get_by_id_sync(self, ride_id: int, tenant_id: int | None = None) -> dict | None:
-        from ...db.database import get_ride
+        from ...db.repositories.ride_repository import get_ride
 
         return get_ride(ride_id, tenant_id)
 
@@ -114,16 +114,63 @@ class RideRepository:
             return rides
 
     def _get_by_athlete_sync(self, athlete_id: int, tenant_id: int | None = None) -> list[dict]:
-        from ...db.database import get_rides_by_athlete
+        from ...db.repositories.ride_repository import get_rides_by_athlete
 
         return get_rides_by_athlete(athlete_id, tenant_id)
 
     def _list_all_sync(self, athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
-        from ...db.database import get_all_rides
+        from ...db.repositories.ride_repository import get_all_rides
 
         return get_all_rides(athlete_id, tenant_id)
 
     def _delete_sync(self, ride_id: int, tenant_id: int | None = None) -> bool:
-        from ...db.database import delete_ride
+        from ...db.repositories.ride_repository import delete_ride
 
         return delete_ride(ride_id, tenant_id)
+
+    async def update(self, ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
+        if self._session_factory:
+            return await self._update_async(ride_id, ride, tenant_id)
+        if self._sync_conn:
+            return self._sync_conn.update_ride(ride_id, ride, tenant_id)
+        return self._update_sync(ride_id, ride, tenant_id)
+
+    async def _update_async(self, ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
+        from sqlalchemy import update
+
+        cols = [
+            c
+            for c in (
+                "athlete_id", "date", "distance_km", "duration_minutes", "avg_speed_kmh",
+                "weight_kg", "calories", "heart_rate_avg", "elevation_gain_m",
+                "gps_points", "external_source", "external_id", "title", "activity_type",
+                "is_official", "source", "created_at", "tenant_id",
+            )
+            if c in ride and c != "id"
+        ]
+        if not cols:
+            return False
+        vals = {}
+        for c in cols:
+            val = ride.get(c)
+            if c == "gps_points":
+                val = json.dumps(val) if val else None
+            elif c == "is_official":
+                val = 1 if val else 0
+            elif c == "activity_type":
+                val = val or "ride"
+            elif c == "source":
+                val = val or "manual"
+            vals[c] = val
+        async with self._session_factory() as session:
+            stmt = update(self._table).where(self._table.id == ride_id).values(**vals)
+            if tenant_id is not None:
+                stmt = stmt.where(self._table.tenant_id == tenant_id)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.rowcount > 0
+
+    def _update_sync(self, ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
+        from ...db.repositories.ride_repository import update_ride
+
+        return update_ride(ride_id, ride, tenant_id)
