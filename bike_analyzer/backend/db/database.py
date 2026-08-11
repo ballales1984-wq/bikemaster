@@ -58,6 +58,11 @@ from .repositories.ride_repository import (
     _find_existing_external_ride,
     _row_to_ride,
 )
+from .repositories.training_stress_repository import (
+    get_latest_training_stress,
+    get_training_stress_days,
+    upsert_training_stress_day,
+)
 from .repositories.calendar_repository import (
     delete_calendar_event,
     get_calendar_event,
@@ -2591,26 +2596,7 @@ def save_weather_cache(lat: float, lon: float, date: str, weather: dict) -> int:
         return cur.lastrowid
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
-def upsert_training_stress_day(
-    athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float, tenant_id: int = 0
-) -> None:
-
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        now = datetime.now(UTC).isoformat()
-        cur.execute(
-            """INSERT INTO training_stress_days
-            (athlete_id, date, tss, atl, ctl, tsb, created_at, updated_at, tenant_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(athlete_id, date) DO UPDATE SET
-            tss=excluded.tss, atl=excluded.atl, ctl=excluded.ctl,
-            tsb=excluded.tsb, updated_at=excluded.updated_at, tenant_id=excluded.tenant_id""",
-            (athlete_id, date, tss, atl, ctl, tsb, now, now, tenant_id),
-        )
-        conn.commit()
-
-
+@pg_dispatch("bike_analyzer.backend.db.postgres_users")
 def save_user(user: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2633,6 +2619,7 @@ def save_user(user: dict) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_users")
 def get_user_by_username(username: str) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2653,6 +2640,7 @@ def get_user_by_username(username: str) -> dict | None:
         return None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_users")
 def get_user_by_id(user_id: int) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2673,6 +2661,7 @@ def get_user_by_id(user_id: int) -> dict | None:
         return None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_users")
 def get_all_users() -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2693,6 +2682,7 @@ def get_all_users() -> list[dict]:
         ]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_users")
 def update_user(user_id: int, updates: dict) -> dict | None:
     allowed = {"email", "password_hash", "is_admin", "is_client", "is_active"}
     fields = []
@@ -2715,66 +2705,13 @@ def update_user(user_id: int, updates: dict) -> dict | None:
     return get_user_by_id(user_id)
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_users")
 def delete_user(user_id: int) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
         conn.commit()
         return cur.rowcount > 0
-
-
-@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
-def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | None = None) -> list[dict]:
-
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        if tenant_id is not None:
-            cur.execute(
-                "SELECT date, tss, atl, ctl, tsb "
-                "FROM training_stress_days WHERE athlete_id = ? AND tenant_id = ? "
-                "ORDER BY date DESC LIMIT ?",
-                (athlete_id, tenant_id, limit),
-            )
-        else:
-            cur.execute(
-                "SELECT date, tss, atl, ctl, tsb "
-                "FROM training_stress_days WHERE athlete_id = ? "
-                "ORDER BY date DESC LIMIT ?",
-                (athlete_id, limit),
-            )
-        rows = cur.fetchall()
-        return [{"date": r[0], "tss": r[1], "atl": r[2], "ctl": r[3], "tsb": r[4]} for r in rows]
-
-
-@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
-def get_latest_training_stress(athlete_id: int, tenant_id: int | None = None) -> dict | None:
-
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        if tenant_id is not None:
-            cur.execute(
-                "SELECT date, tss, atl, ctl, tsb "
-                "FROM training_stress_days WHERE athlete_id = ? AND tenant_id = ? "
-                "ORDER BY date DESC LIMIT 1",
-                (athlete_id, tenant_id),
-            )
-        else:
-            cur.execute(
-                "SELECT date, tss, atl, ctl, tsb "
-                "FROM training_stress_days WHERE athlete_id = ? "
-                "ORDER BY date DESC LIMIT 1",
-                (athlete_id,),
-            )
-        row = cur.fetchone()
-        if row:
-            return {
-                "date": row[0],
-                "tss": row[1],
-                "atl": row[2],
-                "ctl": row[3],
-                "tsb": row[4],
-            }
-        return None
 
 
 def save_road_incident(incident: dict) -> int:

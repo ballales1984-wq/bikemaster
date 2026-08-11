@@ -123,16 +123,16 @@ class TrainingStressRepository:
         }
 
     def _upsert_sync(self, athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float) -> None:
-        from ..db.database import upsert_training_stress_day
+        from ..db.repositories.training_stress_repository import upsert_training_stress_day
 
         upsert_training_stress_day(athlete_id, date, tss, atl, ctl, tsb)
 
     def _get_history_sync(self, athlete_id: int, limit: int = 90, tenant_id: int | None = None) -> list[dict]:
-        from ..db.database import get_training_stress_days
+        from ..db.repositories.training_stress_repository import get_training_stress_days
 
         return get_training_stress_days(athlete_id, limit, tenant_id)
 
     def _get_latest_sync(self, athlete_id: int, tenant_id: int | None = None) -> dict | None:
-        from ..db.database import get_latest_training_stress
+        from ..db.repositories.training_stress_repository import get_latest_training_stress
 
         return get_latest_training_stress(athlete_id, tenant_id)

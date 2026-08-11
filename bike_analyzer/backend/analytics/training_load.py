@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from ...core.models import Ride
-from ..db.database import get_rides_by_athlete, upsert_training_stress_day
+from ..db.repositories.ride_repository import get_rides_by_athlete
+from ..db.repositories.training_stress_repository import upsert_training_stress_day
 from .training_stress import estimate_tss, exponentially_weighted_moving_average
 
 
