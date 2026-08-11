@@ -419,7 +419,7 @@ def test_google_oauth_callback_uses_frontend_origin_from_state(client, monkeypat
     state = _issue_oauth_state(redirect_uri, frontend_origin=frontend_origin)
     r = client.get(
         "/api/v1/auth/google/callback",
-        params={"code": "code", "state": state},
+        params={"code": "code-frontend", "state": state},
         follow_redirects=False,
     )
 

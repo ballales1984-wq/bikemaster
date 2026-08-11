@@ -87,8 +87,15 @@ logger = logging.getLogger(__name__)
 
 def _build_redirect_uri(request: Request, path: str) -> str:
     """Costruisce l'URI di redirect completo usando proto e host inoltrati."""
-    proto = _trusted_forwarded_value(request, "x-forwarded-proto") or request.url.scheme
-    host = _trusted_forwarded_value(request, "x-forwarded-host") or request.headers.get("host") or request.url.netloc
+    client_host = request.client.host if request.client else ""
+    if _is_trusted_proxy(client_host):
+        proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+        host = (
+            request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+        )
+    else:
+        proto = request.url.scheme
+        host = request.headers.get("host") or request.url.netloc
     return f"{proto}://{host}{path}"
 
 

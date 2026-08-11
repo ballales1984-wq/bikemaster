@@ -126,6 +126,7 @@ from .schemas import (
     UserUpdate,
     WahooCallbackRequest,
 )
+from bike_analyzer.backend.trusted_proxies import _is_trusted_proxy as is_trusted_proxy
 from .utils import _trusted_forwarded_value
 
 _s = get_settings()
@@ -202,10 +203,15 @@ MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 
 def _build_redirect_uri(request: Request, path: str) -> str:
     """Build an absolute URI honoring X-Forwarded-* headers when behind a proxy."""
-    proto = _trusted_forwarded_value(request, "x-forwarded-proto") or request.url.scheme
-    host = (
-        _trusted_forwarded_value(request, "x-forwarded-host") or request.headers.get("host") or request.url.netloc
-    )
+    client_host = request.client.host if request.client else ""
+    if is_trusted_proxy(client_host):
+        proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+        host = (
+            request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+        )
+    else:
+        proto = request.url.scheme
+        host = request.headers.get("host") or request.url.netloc
     host_lower = host.lower()
     if (
         host_lower.endswith(".ngrok-free.dev")

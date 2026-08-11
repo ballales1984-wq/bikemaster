@@ -5,7 +5,7 @@ routes.py (lines ~1965-2032): save_athlete -> update_athlete(tenant_id) -> get_a
 """
 import os, traceback
 
-os.environ["DATABASE_URL"] = "postgresql://postgres@127.0.0.1:5432/postgres"
+os.environ["DATABASE_URL"] = "postgresql://postgres@127.0.0.1:5433/postgres"
 os.environ["GOOGLE_CLIENT_ID"] = "x"
 os.environ["GOOGLE_CLIENT_SECRET"] = "x"
 
