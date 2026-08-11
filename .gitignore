@@ -38,8 +38,9 @@ env/
 .env
 *.secret
 
-# Kilo config (may contain API keys)
+# Kilo config and agent plans (may contain API keys / transient state)
 .kilo/kilo.json
+.kilo/plans/
 
 # IDE
 .vscode/
@@ -226,3 +227,12 @@ tmp_*.py
 tmp_*.log
 ride_*_map.html
 ride_*_map.json
+
+# Root-level debug/OAuth scripts and test output files
+debug_callback*.py
+debug_forwarded*.py
+debug_out.txt
+fail_detail.txt
+full_test.txt
+tests_collected.txt
+bikemaster-login*.png
