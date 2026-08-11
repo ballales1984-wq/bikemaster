@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..routes import get_admin_user, get_current_user
+from ...analytics.repositories.knowledge_repository import KnowledgeRepository
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
@@ -58,20 +59,17 @@ async def knowledge_stats(current_user: dict = Depends(get_current_user)):
 @router.post("/reload")
 async def reload_knowledge(current_user: dict = Depends(get_admin_user)):
     """Hot-reload the knowledge base from disk. Admin only."""
-    from ...analytics.knowledge_base import reload_kb
-
-    return reload_kb()
+    return KnowledgeRepository.reload_kb()
 
 
 @router.post("/init-embeddings")
 async def init_kb_embeddings_endpoint(current_user: dict = Depends(get_admin_user)):
     """Initialize embeddings for the knowledge base in PostgreSQL and ChromaDB."""
-    from ...analytics.knowledge_base import init_chroma_db, init_kb_embeddings
-    from ...db.postgres_db import get_session
+    from ...analytics.knowledge_base import init_chroma_db
 
     try:
-        with get_session() as session:
-            pg_result = init_kb_embeddings(session)
+        with KnowledgeRepository.get_session() as session:
+            pg_result = KnowledgeRepository.init_kb_embeddings(session)
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail="PostgreSQL not configured") from exc
 

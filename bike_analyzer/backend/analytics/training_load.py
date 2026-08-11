@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from ...core.models import Ride
-from ..db.repositories.ride_repository import get_rides_by_athlete
-from ..db.repositories.training_stress_repository import upsert_training_stress_day
+from .repositories.ride_repository import RideRepository
+from .repositories.training_stress_repository import TrainingStressRepository
 from .training_stress import estimate_tss, exponentially_weighted_moving_average
 
 
@@ -33,7 +33,7 @@ def recalculate_training_stress_for_athlete(athlete_id: int, ftp: float = 250.0,
     I risultati vengono salvati/aggiornati nella tabella
     ``training_stress_days`` tramite ``upsert_training_stress_day``.
     """
-    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id, tenant_id)]
+    rides = [Ride(**r) for r in RideRepository.get_rides_by_athlete(athlete_id, tenant_id)]
     if not rides:
         return
     daily: dict[str, float] = {}
@@ -51,7 +51,7 @@ def recalculate_training_stress_for_athlete(athlete_id: int, ftp: float = 250.0,
     ]
     for i, (date_str, _) in enumerate(sorted_days):
         tsb = round(ctl_series[i] - atl_series[i], 1)
-        upsert_training_stress_day(
+        TrainingStressRepository.upsert_training_stress_day(
             athlete_id,
             date_str,
             round(tss_series[i], 1),

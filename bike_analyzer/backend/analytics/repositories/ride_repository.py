@@ -174,3 +174,23 @@ class RideRepository:
         from ...db.repositories.ride_repository import update_ride
 
         return update_ride(ride_id, ride, tenant_id)
+
+    @staticmethod
+    def save_ride(ride: dict) -> int:
+        return RideRepository()._save_sync(ride)
+
+    @staticmethod
+    def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
+        return RideRepository()._get_by_id_sync(ride_id, tenant_id)
+
+    @staticmethod
+    def get_rides_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
+        return RideRepository()._get_by_athlete_sync(athlete_id, tenant_id)
+
+    @staticmethod
+    def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
+        return RideRepository()._update_sync(ride_id, ride, tenant_id)
+
+    @staticmethod
+    def delete_ride(ride_id: int, tenant_id: int | None = None) -> bool:
+        return RideRepository()._delete_sync(ride_id, tenant_id)

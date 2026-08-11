@@ -11,6 +11,7 @@ from ..schemas import POICreate, POIResponse
 from ...models.models import GPSPoint
 from ...analytics.repositories.poi_repository import POIRepository
 from ...analytics.repositories.ride_repository import RideRepository
+from ...analytics.repositories.maps_repository import MapsRepository
 
 router = APIRouter(prefix="/maps", tags=["maps"])
 
@@ -28,11 +29,10 @@ async def get_nearby_pois(
     """
     from ...analytics.repositories.poi_repository import POIRepository
     from ...analytics.repositories.ride_repository import RideRepository
-    from ...db.async_db import get_session_factory
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     try:
-        repo = POIRepository(session_factory=get_session_factory())
+        repo = POIRepository(session_factory=MapsRepository.get_session_factory())
     except RuntimeError:
         repo = POIRepository()
     pois = await repo.get_nearby(lat, lon, radius, tenant_id=tenant_id)

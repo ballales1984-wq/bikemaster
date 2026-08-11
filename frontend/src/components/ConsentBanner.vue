@@ -99,6 +99,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
 import { useAuthStore } from "../stores/auth";
+import { resolveApiBase } from "../utils/backend-config";
 
 const emit = defineEmits(["saved"]);
 
@@ -116,7 +117,7 @@ const canSave = computed(() => consents.essential);
 
 async function save() {
   try {
-    const base = import.meta.env.VITE_API_BASE || "";
+    const base = resolveApiBase();
     const url = base ? `${base}/api/v1/legal/consent` : "/api/v1/legal/consent";
     const entries = [
       { consent_type: "essential", granted: true },

@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from bike_analyzer.backend.db.repositories.ride_repository import save_ride
+from bike_analyzer.backend.analytics.repositories.ride_repository import RideRepository
 from bike_analyzer.backend.ingestion.gps_parser import (
     get_fit_external_id,
     parse_fit_file,
@@ -72,6 +72,6 @@ class ImportService:
                 db_ride["calories"] = ensure_calories(Ride(**clean))
             except Exception:
                 db_ride["calories"] = 0
-        ride_id = save_ride(db_ride)
+        ride_id = RideRepository.save_ride(db_ride)
         ride_data["id"] = int(ride_id)
         return ride_data

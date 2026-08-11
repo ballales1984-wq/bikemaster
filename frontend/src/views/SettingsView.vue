@@ -123,6 +123,7 @@ import { useSettingsStore } from "../stores/settings";
 import { apiGet } from "../utils/api";
 import SyncSettingsPanel from "../components/SyncSettingsPanel.vue";
 import { useAuthStore } from "../stores/auth";
+import { resolveApiBase } from "../utils/backend-config";
 const auth = useAuthStore();
 
 const settings = useSettingsStore();
@@ -149,9 +150,11 @@ const consents = ref<
 
 async function loadConsents() {
   try {
+    const base = resolveApiBase();
+    const url = base ? `${base}/api/v1/legal/consent` : "/api/v1/legal/consent";
     const data = await apiGet<{
       consents: Array<{ consent_type: string; granted: number }>;
-    }>("/api/v1/legal/consent", {}, { suppressAuthClear: true });
+    }>(url, {}, { suppressAuthClear: true });
     const map = new Map(
       data.consents.map((c) => [c.consent_type, c.granted === 1]),
     );
@@ -167,7 +170,9 @@ async function loadConsents() {
 
 async function toggleConsent(consent_type: string, granted: boolean) {
   try {
-    await fetch("/api/v1/legal/consent", {
+    const base = resolveApiBase();
+    const url = base ? `${base}/api/v1/legal/consent` : "/api/v1/legal/consent";
+    await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
