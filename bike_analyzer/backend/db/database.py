@@ -34,6 +34,7 @@ from ..utils.logger import get_logger
 from .dispatch import pg_dispatch
 from .repositories.athlete_repository import (
     delete_athlete,
+    get_all_athletes,
     get_athlete,
     get_athlete_by_email,
     get_athlete_by_name,
@@ -2547,14 +2548,6 @@ def prune_chat_history(athlete_id: int, tenant_id: int | None = None, retention_
             )
         conn.commit()
         return cur.rowcount
-
-
-def get_all_athletes() -> list[dict]:
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT id, name, email, experience_level FROM athletes")
-        rows = cur.fetchall()
-        return [{"id": r[0], "name": r[1], "email": r[2], "experience_level": r[3]} for r in rows]
 
 
 def get_weather_cache(lat: float, lon: float, date: str) -> dict | None:

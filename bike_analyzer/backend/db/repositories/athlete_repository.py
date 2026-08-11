@@ -496,3 +496,12 @@ def get_athlete_metric_log(
         }
         for r in rows
     ]
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_athlete")
+def get_all_athletes() -> list[dict]:
+    with _get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, email, experience_level FROM athletes")
+        rows = cur.fetchall()
+        return [{"id": r[0], "name": r[1], "email": r[2], "experience_level": r[3]} for r in rows]

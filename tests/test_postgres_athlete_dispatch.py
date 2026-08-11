@@ -54,7 +54,7 @@ def _pg_env():
 
 def test_has_postgres_true_when_url_set():
     assert pa.has_postgres() is True
-    assert db.get_athlete.__module__.endswith("database")  # still the dispatch wrapper
+    assert db.get_athlete.__module__.endswith("athlete_repository")
 
 
 def test_get_athlete_pg_returns_row(monkeypatch):
