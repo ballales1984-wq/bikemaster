@@ -31,6 +31,7 @@ from datetime import UTC
 from ..models.models import AthleteProfile, Ride
 from ..settings import get_settings
 from ..user_keys_provider import ContextVarUserKeysProvider, UserKeysProvider
+from .repositories.ai_audit_repository import AIAuditRepository
 from .analytics import calculate_summary, create_duration_chart, create_speed_chart
 from .knowledge_base import format_context_for_llm, search_knowledge_base
 from .performance import calculate_performance_score, calculate_recovery_score
@@ -81,8 +82,7 @@ def _log_ai_interaction(
     if not athlete_id:
         return
     try:
-        from ..db.database import save_ai_audit_log
-        save_ai_audit_log(
+        AIAuditRepository.save_ai_audit_log(
             athlete_id=athlete_id,
             provider=provider,
             model=model,
