@@ -44,6 +44,7 @@ from ..redis_client import close_redis, get_redis
 from ..settings import get_settings
 from ..task_queue import get_task_queue
 from .routes import admin_router, router
+from .routers.calendar_routes import router as calendar_router
 from .utils import _trusted_forwarded_value
 
 logger = logging.getLogger(__name__)
@@ -490,6 +491,7 @@ def create_app() -> FastAPI:
         ],
     )
     app.include_router(router, prefix="/api/v1")
+    app.include_router(calendar_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
     _log_flush(f"create_app: include_router(admin) done +{time.monotonic()-_t0:.3f}s")
     @app.get("/healthz")
