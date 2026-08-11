@@ -15,6 +15,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useAuthStore } from "../stores/auth";
 import { useMetabolismStore } from "../stores/metabolism";
 import MetabolismPanel from "../components/MetabolismPanel.vue";
 import FoodLogPanel from "../components/FoodLogPanel.vue";
@@ -27,8 +28,8 @@ const selectedDate = ref(new Date().toISOString().slice(0, 10));
 const rangeSummaries = ref<any[]>([]);
 
 onMounted(async () => {
-  const token = localStorage.getItem("bikemaster_token");
-  if (!token) {
+  const auth = useAuthStore();
+  if (!auth.isLoggedIn) {
     error.value = "Sessione scaduta. Effettua di nuovo il login.";
     loading.value = false;
     return;
