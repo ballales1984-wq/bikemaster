@@ -22,13 +22,22 @@
       </div>
       <div v-else class="tracking-auto-info">
         <span class="auto-badge" :class="{ active: tracking.autoTracking }">
-          {{ tracking.autoTracking ? "Auto-tracking attivo" : "Auto-tracking disattivato" }}
+          {{
+            tracking.autoTracking
+              ? "Auto-tracking attivo"
+              : "Auto-tracking disattivato"
+          }}
         </span>
       </div>
     </div>
 
     <div
-      v-if="!isTracking && !tracking.gpxPath && !tracking.gpxBlob && !hasActiveSession"
+      v-if="
+        !isTracking &&
+        !tracking.gpxPath &&
+        !tracking.gpxBlob &&
+        !hasActiveSession
+      "
       class="empty-state premium-empty"
     >
       <div class="empty-icon glass-icon">📊</div>
@@ -37,18 +46,25 @@
         {{ t("tracking.readyDesc") }}
       </div>
 
-      <ActivityRings v-if="tracking.activityRings.length > 0" :rings="tracking.activityRings" />
+      <ActivityRings
+        v-if="tracking.activityRings.length > 0"
+        :rings="tracking.activityRings"
+      />
 
-      <div class="daily-summary-section" v-if="todaySegments.length > 0">
+      <div v-if="todaySegments.length > 0" class="daily-summary-section">
         <h3>Attivita di oggi</h3>
         <DailyTimeline :segments="todaySegments" @select="onSelectSegment" />
         <div class="daily-stats">
           <div class="stat">
-            <span class="stat-value">{{ tracking.totalTodayDistanceKm.toFixed(1) }}</span>
+            <span class="stat-value">{{
+              tracking.totalTodayDistanceKm.toFixed(1)
+            }}</span>
             <span class="stat-label">km</span>
           </div>
           <div class="stat">
-            <span class="stat-value">{{ tracking.totalTodayActiveMinutes }}</span>
+            <span class="stat-value">{{
+              tracking.totalTodayActiveMinutes
+            }}</span>
             <span class="stat-label">min attivi</span>
           </div>
         </div>
@@ -81,7 +97,11 @@
           class="btn btn-primary btn-large pulse-btn"
           @click="manualStart"
         >
-          {{ tracking.autoTracking ? "Inizia uscita manuale" : t("tracking.start") }}
+          {{
+            tracking.autoTracking
+              ? "Inizia uscita manuale"
+              : t("tracking.start")
+          }}
         </button>
         <label class="auto-toggle">
           <input v-model="tracking.autoTracking" type="checkbox" />

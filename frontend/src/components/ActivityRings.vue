@@ -25,7 +25,10 @@
     </svg>
     <div class="rings-legend">
       <div v-for="ring in rings" :key="ring.label" class="legend-item">
-        <span class="legend-dot" :style="{ backgroundColor: ring.color }"></span>
+        <span
+          class="legend-dot"
+          :style="{ backgroundColor: ring.color }"
+        ></span>
         <span class="legend-label">{{ ringLabel(ring.label) }}</span>
         <span class="legend-value">
           {{ ring.current }}/{{ ring.goal }}{{ ring.unit }}

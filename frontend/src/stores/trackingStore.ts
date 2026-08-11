@@ -115,7 +115,8 @@ export const useTrackingStore = defineStore("tracking", () => {
     if (payload.currentSpeed !== undefined)
       currentSpeed.value = payload.currentSpeed;
     if (payload.avgSpeed !== undefined) avgSpeed.value = payload.avgSpeed;
-    if (payload.elapsedTime !== undefined) elapsedTime.value = payload.elapsedTime;
+    if (payload.elapsedTime !== undefined)
+      elapsedTime.value = payload.elapsedTime;
     if (payload.elevation !== undefined) elevation.value = payload.elevation;
     if (payload.points !== undefined) points.value = payload.points;
     if (payload.heartRate !== undefined) heartRate.value = payload.heartRate;
@@ -497,5 +498,5 @@ ${route}
     clearAll,
     formattedTime,
     formattedDistance,
-    };
+  };
 });

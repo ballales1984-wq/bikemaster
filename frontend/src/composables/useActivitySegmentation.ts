@@ -193,11 +193,10 @@ export function useActivitySegmentation(
           if (!currentSegment.value.pausedSince) {
             currentSegment.value.pausedSince = now;
           } else if (
-            now - currentSegment.value.pausedSince >
-              cfg.autoPauseTimeoutMs &&
-            currentDistanceM - (currentSegment.value.pausedSince
-              ? 0
-              : currentDistanceM) < cfg.autoPauseMinDistanceM
+            now - currentSegment.value.pausedSince > cfg.autoPauseTimeoutMs &&
+            currentDistanceM -
+              (currentSegment.value.pausedSince ? 0 : currentDistanceM) <
+              cfg.autoPauseMinDistanceM
           ) {
             currentSegment.value.state = "paused";
             currentSegment.value.endTime = now;
@@ -240,9 +239,7 @@ export function useActivitySegmentation(
     }
     if (seg.points.length > 0) {
       seg.avgSpeedKmh =
-        seg.distanceM /
-        1000 /
-        ((seg.endTime - seg.startTime) / 3600000);
+        seg.distanceM / 1000 / ((seg.endTime - seg.startTime) / 3600000);
     }
     segments.value.push(seg);
     resetCurrentSegment();
@@ -278,7 +275,10 @@ export function useActivitySegmentation(
   }
 
   const totalTodayDistanceKm = computed(() => {
-    return getTodaySegments().reduce((sum, seg) => sum + seg.distanceM / 1000, 0);
+    return getTodaySegments().reduce(
+      (sum, seg) => sum + seg.distanceM / 1000,
+      0,
+    );
   });
 
   const totalTodayActiveMinutes = computed(() => {

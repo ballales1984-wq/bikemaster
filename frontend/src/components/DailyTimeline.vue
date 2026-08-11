@@ -13,8 +13,8 @@
         class="timeline-segment"
         :class="[segment.state, { active: segment.state === 'active' }]"
         :style="segmentStyle(segment)"
-        @click="$emit('select', segment.id)"
         :title="segmentTitle(segment)"
+        @click="$emit('select', segment.id)"
       >
         <div class="segment-inner">
           <span class="segment-duration">{{ formatDuration(segment) }}</span>
@@ -75,9 +75,14 @@ function segmentStyle(segment: ActivitySegment) {
 function segmentTitle(segment: ActivitySegment): string {
   const duration = formatDuration(segment);
   const distance = formatDistance(segment);
-  const type = segment.state === "active" ? "In corso" :
-    segment.state === "paused" ? "In pausa" :
-      segment.state === "candidate" ? "In rilevamento" : "Ferm";
+  const type =
+    segment.state === "active"
+      ? "In corso"
+      : segment.state === "paused"
+        ? "In pausa"
+        : segment.state === "candidate"
+          ? "In rilevamento"
+          : "Ferm";
   return `${type}: ${duration} - ${distance}`;
 }
 
@@ -119,7 +124,9 @@ function formatDistance(segment: ActivitySegment): string {
   bottom: 4px;
   border-radius: 6px;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
   min-width: 4px;
   overflow: hidden;
 }
@@ -135,7 +142,8 @@ function formatDistance(segment: ActivitySegment): string {
 }
 
 @keyframes segmentPulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
   }
   50% {
