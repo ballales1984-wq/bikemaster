@@ -1,150 +1,47 @@
-"""ATL/CTL/TSB fitness-fatigue model for cycling training."""
+"""Training load analytics — ATL/CTL/TSB recalculation."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime
-
 from ..models.models import Ride
+from ..db.database import get_rides_by_athlete, upsert_training_stress_day
+from .training_stress import estimate_tss, exponentially_weighted_moving_average
 
 
-@dataclass
-class TrainingLoadDay:
-    """Singolo giorno del modello carico-allenamento con ATL/CTL/TSB."""
+def recalculate_training_stress_for_athlete(athlete_id: int, ftp: float = 250.0, tenant_id: int = 0) -> None:
+    """Ricalcola ATL/CTL/TSB storici per tutti i giorni con attivita' dell'atleta.
 
-    date: str
-    tss: float
-    atl: float = 0.0
-    ctl: float = 0.0
-    tsb: float = 0.0
+    Per ogni giorno calcola il TSS cumulato, poi applica due EWMA:
+    - ATL ( Acute Training Load ) con tau di 7 giorni.
+    - CTL ( Chronic Training Load ) con tau di 42 giorni.
+    Il TSB ( Form ) e' la differenza CTL - ATL.
 
-
-def calculate_rss(ride: Ride, ftp: float | None = None) -> float:
-    """Calcola il Training Stress Score (TSS) per una singola uscita."""
-    duration_h = ride.duration_hours
-    if duration_h <= 0:
-        return 0.0
-    if ftp is None or ftp <= 0:
-        ftp = 250.0
-    if_val = 0.5
-    if ride.avg_speed_kmh and ride.avg_speed_kmh > 0:
-        if_val = min(ride.avg_speed_kmh / 40.0, 1.0)
-    if ride.heart_rate_avg and ride.heart_rate_avg > 0:
-        hr_pct = ride.heart_rate_avg / 190.0
-        if_val = max(if_val, min(hr_pct / 0.9, 1.2))
-    tss = duration_h * 100.0 * (if_val ** 2)
-    return round(min(tss, 500.0), 1)
-
-
-def calculate_atl_ctl_tsb(
-    rides: list[Ride], ftp: float | None = None, target_date: str | None = None
-) -> list[TrainingLoadDay]:
-    """Calculate Acute Training Load (ATL), Chronic Training Load (CTL), and Training Stress Balance (TSB).
-
-    Uses Banister's impulse-response model with 7-day ATL and 42-day CTL time constants.
-    TSB = CTL - ATL (positive = fresh, negative = fatigued)
+    I risultati vengono salvati/aggiornati nella tabella
+    ``training_stress_days`` tramite ``upsert_training_stress_day``.
     """
+    rides = [Ride(**r) for r in get_rides_by_athlete(athlete_id, tenant_id)]
     if not rides:
-        return []
-
-    sorted_rides = sorted(rides, key=lambda r: r.date)
-
-    daily_tss: dict[str, float] = {}
-    for ride in sorted_rides:
-        date_key = ride.date[:10] if len(ride.date) >= 10 else ride.date
-        tss = calculate_rss(ride, ftp)
-        daily_tss[date_key] = daily_tss.get(date_key, 0.0) + tss
-
-    dates = sorted(daily_tss.keys())
-    if not dates:
-        return []
-
-    result: list[TrainingLoadDay] = []
-
-    for i, date in enumerate(dates):
-        tss = daily_tss[date]
-
-        if i == 0:
-            atl = tss
-            ctl = tss
-        else:
-            prev_atl = result[i - 1].atl
-            prev_ctl = result[i - 1].ctl
-            try:
-                prev_date = datetime.strptime(result[i - 1].date, "%Y-%m-%d").date()
-                curr_date = datetime.strptime(date, "%Y-%m-%d").date()
-                gap = max((curr_date - prev_date).days, 1)
-            except ValueError:
-                gap = 1
-            decay_atl = (6.0 / 7.0) ** gap
-            decay_ctl = (41.0 / 42.0) ** gap
-            atl = prev_atl * decay_atl + tss * (1.0 - decay_atl)
-            ctl = prev_ctl * decay_ctl + tss * (1.0 - decay_ctl)
-
-        tsb = ctl - atl
-
-        result.append(TrainingLoadDay(date=date, tss=tss, atl=round(atl, 1), ctl=round(ctl, 1), tsb=round(tsb, 1)))
-
-    return result
-
-
-def get_current_training_status(rides: list[Ride], ftp: float | None = None) -> dict:
-    """Get current ATL/CTL/TSB values and training recommendation."""
-    if not rides:
-        return {
-            "atl": 0.0,
-            "ctl": 0.0,
-            "tsb": 0.0,
-            "status": "no_data",
-            "recommendation": "Start recording your rides",
-        }
-
-    load_history = calculate_atl_ctl_tsb(rides, ftp)
-    if not load_history:
-        return {
-            "atl": 0.0,
-            "ctl": 0.0,
-            "tsb": 0.0,
-            "status": "no_data",
-            "recommendation": "Insufficient data",
-        }
-
-    latest = load_history[-1]
-    atl, ctl, tsb = latest.atl, latest.ctl, latest.tsb
-
-    if tsb > 10:
-        status = "fresh"
-        recommendation = "You're well rested. Intense training recommended today."
-    elif tsb > 0:
-        status = "optimal"
-        recommendation = "Ideal state for quality training."
-    elif tsb > -10:
-        status = "fatigued"
-        recommendation = "Light training or recovery recommended."
-    elif tsb > -20:
-        status = "overreached"
-        recommendation = "Urgent recovery needed. Reduce volume/intensity."
-    else:
-        status = "burnout_risk"
-        recommendation = "Overtraining risk. Total rest for 2-3 days."
-
-    return {"atl": atl, "ctl": ctl, "tsb": tsb, "status": status, "recommendation": recommendation}
-
-
-def get_7day_fitness_summary(rides: list[Ride], ftp: float | None = None) -> list[dict]:
-    """Get ATL/CTL/TSB for last 7 days as list of dicts for API responses."""
-    load_history = calculate_atl_ctl_tsb(rides, ftp)
-    if not load_history:
-        return []
-
-    recent = load_history[-7:] if len(load_history) >= 7 else load_history
-    return [{"date": d.date, "atl": d.atl, "ctl": d.ctl, "tsb": d.tsb, "tss": d.tss} for d in recent]
-
-
-__all__ = [
-    "calculate_rss",
-    "calculate_atl_ctl_tsb",
-    "get_current_training_status",
-    "get_7day_fitness_summary",
-    "TrainingLoadDay",
-]
+        return
+    daily: dict[str, float] = {}
+    for ride in rides:
+        tss = estimate_tss(ride, ftp=ftp)
+        day = ride.date[:10] if ride.date else "unknown"
+        daily[day] = daily.get(day, 0.0) + tss
+    sorted_days = sorted(daily.items())
+    tss_series = [v for _, v in sorted_days]
+    atl_series = [
+        exponentially_weighted_moving_average(tss_series[: i + 1], tau_days=7.0) for i in range(len(tss_series))
+    ]
+    ctl_series = [
+        exponentially_weighted_moving_average(tss_series[: i + 1], tau_days=42.0) for i in range(len(tss_series))
+    ]
+    for i, (date_str, _) in enumerate(sorted_days):
+        tsb = round(ctl_series[i] - atl_series[i], 1)
+        upsert_training_stress_day(
+            athlete_id,
+            date_str,
+            round(tss_series[i], 1),
+            atl_series[i],
+            ctl_series[i],
+            tsb,
+            tenant_id,
+        )

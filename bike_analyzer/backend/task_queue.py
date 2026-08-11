@@ -223,8 +223,8 @@ class BackgroundTaskQueue:
             return {"error": str(exc)}
 
     async def _handle_recalculate_stress(self, payload: dict) -> dict:
-        from bike_analyzer.backend.db.database import (
-            get_rides_by_athlete,
+        from bike_analyzer.backend.db.database import get_rides_by_athlete
+        from bike_analyzer.backend.analytics.training_load import (
             recalculate_training_stress_for_athlete,
         )
 
