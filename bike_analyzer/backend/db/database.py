@@ -2590,7 +2590,7 @@ def prune_chat_history(athlete_id: int, tenant_id: int | None = None, retention_
         return cur.rowcount
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_weather")
 def get_weather_cache(lat: float, lon: float, date: str) -> dict | None:
     """Get cached weather data for coordinates and date."""
     with get_db_connection() as conn:
@@ -2610,7 +2610,7 @@ def get_weather_cache(lat: float, lon: float, date: str) -> dict | None:
         return None
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_weather")
 def save_weather_cache(lat: float, lon: float, date: str, weather: dict) -> int:
     """Save weather data to cache."""
     with get_db_connection() as conn:
@@ -2884,7 +2884,7 @@ def _row_to_poi(row) -> dict:
     }
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_poi")
 def save_poi(poi: dict) -> int:
     """Create a Point of Interest. Returns the new row id."""
     with get_db_connection() as conn:
@@ -2927,7 +2927,7 @@ def save_poi(poi: dict) -> int:
         return cur.lastrowid
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_poi")
 def get_poi(poi_id: int, tenant_id: int | None = None) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2939,7 +2939,7 @@ def get_poi(poi_id: int, tenant_id: int | None = None) -> dict | None:
         return _row_to_poi(row) if row else None
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_poi")
 def get_nearby_pois(lat: float, lon: float, radius_km: float = 5.0, tenant_id: int | None = None) -> list[dict]:
     """Return POIs within ``radius_km`` of (lat, lon) using the haversine distance.
 
@@ -2980,7 +2980,7 @@ def get_nearby_pois(lat: float, lon: float, radius_km: float = 5.0, tenant_id: i
     return nearby
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_poi")
 def list_pois(itinerary_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
     """Return all POIs, optionally filtered by ``itinerary_id`` and/or ``tenant_id``.
 
@@ -3010,7 +3010,7 @@ def list_pois(itinerary_id: int | None = None, tenant_id: int | None = None) -> 
     return [_row_to_poi(r) for r in rows]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_poi")
 def delete_poi(poi_id: int) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()

@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from ...settings import get_settings
 
-router = APIRouter(prefix="/weather", tags=["weather"])
+router = APIRouter(prefix="/weather", tags=["weather"], redirect_slashes=False)
 
 
 @router.get("/")
@@ -26,7 +26,7 @@ async def get_weather(
 
     _s = get_settings()
     if not _s.weather_api_key:
-        raise HTTPException(status_code=500, detail="WEATHER_API_KEY not configured in .env file")
+        raise HTTPException(status_code=503, detail="Weather service not configured")
 
     weather = get_forecast_for_date(lat, lon, date) if date else get_weather_for_coordinates(lat, lon)
 
@@ -48,6 +48,16 @@ async def get_weather(
     return weather
 
 
+@router.get("", include_in_schema=False)
+async def get_weather_no_trailing_slash(
+    lat: float = Query(..., description="Latitude"),
+    lon: float = Query(..., description="Longitude"),
+    date: str | None = Query(None, description="Date (YYYY-MM-DD) or today"),
+):
+    """Alias for get_weather without trailing slash to avoid redirect CORS issues."""
+    return await get_weather(lat, lon, date)
+
+
 @router.get("/forecast")
 async def get_weather_forecast(
     lat: float = Query(..., description="Latitudine"),
@@ -59,7 +69,7 @@ async def get_weather_forecast(
 
     _s = get_settings()
     if not _s.weather_api_key:
-        raise HTTPException(status_code=500, detail="WEATHER_API_KEY not configured in .env file")
+        raise HTTPException(status_code=503, detail="Weather service not configured")
 
     forecasts = []
     today = datetime.now(UTC)
