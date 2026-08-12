@@ -1,152 +1,204 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 #include <iostream>
-#include <fstream>
-#include <sstream>
 #include <string>
-#include <vector>
-#include <cmath>
 
 // ---------------------------------------------------------------------------
-// Shader utilities
+// Milestone 1: triangle rendering (must remain functional)
 // ---------------------------------------------------------------------------
 
-static std::string loadFile(const std::string& path) {
-    std::ifstream f(path);
-    if (!f.is_open()) {
-        std::cerr << "Failed to open: " << path << "\n";
-        return {};
+static const char* kTriangleVert = R"(#version 330 core
+layout (location = 0) in vec3 aPos;
+uniform float u_lod;
+void main() {
+    gl_Position = vec4(aPos, 1.0);
+})";
+
+static const char* kTriangleFrag = R"(#version 330 core
+out vec4 FragColor;
+uniform float u_lod;
+void main() {
+    FragColor = vec4(0.2 + u_lod * 0.6, 0.7, 0.9, 1.0);
+})";
+
+static GLuint g_triangleVAO = 0;
+static GLuint g_triangleShader = 0;
+static GLint g_triangleLodLoc = -1;
+
+static bool checkShader(GLuint id, const char* label) {
+    GLint ok = 0;
+    glGetShaderiv(id, GL_COMPILE_STATUS, &ok);
+    if (!ok) {
+        GLint len = 0;
+        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &len);
+        std::string log(len, '\0');
+        glGetShaderInfoLog(id, len, nullptr, log.data());
+        std::cerr << label << " compile error: " << log << '\n';
     }
-    std::stringstream ss;
-    ss << f.rdbuf();
-    return ss.str();
+    return ok != 0;
 }
 
-static GLuint compileShader(GLenum type, const std::string& source) {
-    GLuint shader = glCreateShader(type);
-    const char* src = source.c_str();
-    glShaderSource(shader, 1, &src, nullptr);
-    glCompileShader(shader);
-
+static bool checkProgram(GLuint id, const char* label) {
     GLint ok = 0;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+    glGetProgramiv(id, GL_LINK_STATUS, &ok);
     if (!ok) {
-        char log[512] = {};
-        glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
-        std::cerr << "Shader compile error:\n" << log << "\n";
-        glDeleteShader(shader);
-        return 0;
+        GLint len = 0;
+        glGetProgramiv(id, GL_INFO_LOG_LENGTH, &len);
+        std::string log(len, '\0');
+        glGetProgramInfoLog(id, len, nullptr, log.data());
+        std::cerr << label << " link error: " << log << '\n';
     }
-    return shader;
+    return ok != 0;
 }
 
-static GLuint linkProgram(const std::string& vertSrc, const std::string& fragSrc) {
-    GLuint vs = compileShader(GL_VERTEX_SHADER, vertSrc);
-    GLuint fs = compileShader(GL_FRAGMENT_SHADER, fragSrc);
-    if (!vs || !fs) return 0;
+static void initTriangle() {
+    float verts[] = {
+        -0.5f, -0.5f, 0.0f,
+         0.5f, -0.5f, 0.0f,
+         0.0f,  0.5f, 0.0f,
+    };
+    GLuint vbo = 0;
+    glGenVertexArrays(1, &g_triangleVAO);
+    glGenBuffers(1, &vbo);
+    glBindVertexArray(g_triangleVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
-    GLuint prog = glCreateProgram();
-    glAttachShader(prog, vs);
-    glAttachShader(prog, fs);
-    glLinkProgram(prog);
+    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vs, 1, &kTriangleVert, nullptr);
+    glCompileShader(vs);
+    checkShader(vs, "triangle VS");
 
-    GLint ok = 0;
-    glGetProgramiv(prog, GL_LINK_STATUS, &ok);
-    if (!ok) {
-        char log[512] = {};
-        glGetProgramInfoLog(prog, sizeof(log), nullptr, log);
-        std::cerr << "Program link error:\n" << log << "\n";
-        glDeleteProgram(prog);
-        prog = 0;
-    }
+    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fs, 1, &kTriangleFrag, nullptr);
+    glCompileShader(fs);
+    checkShader(fs, "triangle FS");
+
+    g_triangleShader = glCreateProgram();
+    glAttachShader(g_triangleShader, vs);
+    glAttachShader(g_triangleShader, fs);
+    glLinkProgram(g_triangleShader);
+    checkProgram(g_triangleShader, "triangle program");
 
     glDeleteShader(vs);
     glDeleteShader(fs);
-    return prog;
+
+    g_triangleLodLoc = glGetUniformLocation(g_triangleShader, "u_lod");
+}
+
+static void renderTriangle(float lod) {
+    glUseProgram(g_triangleShader);
+    if (g_triangleLodLoc >= 0) glUniform1f(g_triangleLodLoc, lod);
+    glBindVertexArray(g_triangleVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
 }
 
 // ---------------------------------------------------------------------------
-// Camera state
+// Milestone 3 stub: point cloud (placeholder for m3/m5 integration)
 // ---------------------------------------------------------------------------
 
-static float camTheta = 0.0f;
-static float camPhi = 0.4f;
-static float camRadius = 3.5f;
-static bool leftDown = false;
-static double lastX = 0.0, lastY = 0.0;
+static const char* kPointVert = R"(#version 330 core
+layout (location = 0) in vec3 aPos;
+uniform float u_lod;
+void main() {
+    gl_Position = vec4(aPos, 1.0);
+    gl_PointSize = 3.0 + u_lod * 5.0;
+})";
 
-static void mouseCallback(GLFWwindow* w, double x, double y) {
-    if (leftDown) {
-        float dx = float(x - lastX);
-        float dy = float(y - lastY);
-        camTheta -= dx * 0.01f;
-        camPhi -= dy * 0.01f;
-        camPhi = glm::clamp(camPhi, 0.1f, 1.5f);
-    }
-    lastX = x;
-    lastY = y;
+static const char* kPointFrag = R"(#version 330 core
+out vec4 FragColor;
+void main() {
+    FragColor = vec4(1.0, 0.4, 0.1, 1.0);
+})";
+
+static GLuint g_pointVAO = 0;
+static GLuint g_pointShader = 0;
+
+static void initPointCloud() {
+    float pts[] = {
+        -0.6f,  0.6f, 0.0f,
+        -0.3f,  0.3f, 0.0f,
+         0.0f,  0.0f, 0.0f,
+         0.3f, -0.3f, 0.0f,
+         0.6f, -0.6f, 0.0f,
+    };
+    GLuint vbo = 0;
+    glGenVertexArrays(1, &g_pointVAO);
+    glGenBuffers(1, &vbo);
+    glBindVertexArray(g_pointVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(pts), pts, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vs, 1, &kPointVert, nullptr);
+    glCompileShader(vs);
+    checkShader(vs, "point VS");
+
+    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fs, 1, &kPointFrag, nullptr);
+    glCompileShader(fs);
+    checkShader(fs, "point FS");
+
+    g_pointShader = glCreateProgram();
+    glAttachShader(g_pointShader, vs);
+    glAttachShader(g_pointShader, fs);
+    glLinkProgram(g_pointShader);
+    checkProgram(g_pointShader, "point program");
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
 }
 
-static void mouseButtonCallback(GLFWwindow* w, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        leftDown = (action == GLFW_PRESS);
-    }
-}
-
-static void scrollCallback(GLFWwindow* w, double xoff, double yoff) {
-    camRadius += float(yoff) * 0.1f;
-    camRadius = glm::clamp(camRadius, 1.5f, 10.0f);
-}
-
-// ---------------------------------------------------------------------------
-// Point cloud generation (Fibonacci sphere, ~10k points)
-// ---------------------------------------------------------------------------
-
-static std::vector<float> generatePointCloud(int count, float radius) {
-    std::vector<float> data;
-    data.reserve(count * 6); // x,y,z,r,g,b
-
-    const float phi_golden = 3.14159265359f * (3.0f - sqrtf(5.0f));
-
-    for (int i = 0; i < count; ++i) {
-        float y = 1.0f - (i / float(count - 1)) * 2.0f; // 1 -> -1
-        float radiusAtY = sqrtf(1.0f - y * y);
-        float theta = phi_golden * i;
-
-        float x = cosf(theta) * radiusAtY;
-        float z = sinf(theta) * radiusAtY;
-
-        x *= radius;
-        y *= radius;
-        z *= radius;
-
-        // Color based on latitude (height)
-        float t = (y / radius + 1.0f) * 0.5f; // 0 bottom, 1 top
-        float r = t;
-        float g = 0.3f + 0.4f * sinf(t * 3.14159f);
-        float b = 1.0f - t * 0.5f;
-
-        data.push_back(x);
-        data.push_back(y);
-        data.push_back(z);
-        data.push_back(r);
-        data.push_back(g);
-        data.push_back(b);
-    }
-    return data;
+static void renderPointCloud(float /*lod*/) {
+    glUseProgram(g_pointShader);
+    glBindVertexArray(g_pointVAO);
+    glDrawArrays(GL_POINTS, 0, 5);
+    glBindVertexArray(0);
 }
 
 // ---------------------------------------------------------------------------
-// Main
+// Milestone 4: Dear ImGui debug panel
+// ---------------------------------------------------------------------------
+
+static bool g_showDebugPanel = true;
+static int g_layerMode = 0; // 0 = Triangle, 1 = Point Cloud, 2 = Both
+static float g_lodValue = 0.0f;
+
+static void renderDebugPanel() {
+    if (!g_showDebugPanel) return;
+
+    ImGui::Begin("AetherMap Debug", &g_showDebugPanel);
+
+    const char* layers[] = { "Triangle", "Point Cloud", "Both" };
+    ImGui::Combo("Layer", &g_layerMode, layers, 3);
+
+    ImGui::SliderFloat("LOD", &g_lodValue, 0.0f, 1.0f);
+    ImGui::Text("LOD value: %.3f", g_lodValue);
+
+    ImGui::End();
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
 // ---------------------------------------------------------------------------
 
 int main() {
-    // --- GLFW init ---
     if (!glfwInit()) {
-        std::cerr << "glfwInit failed\n";
+        std::cerr << "Failed to initialize GLFW\n";
         return -1;
     }
 
@@ -154,142 +206,80 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "AetherMap — Milestone 3", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "AetherMap C++ Renderer", nullptr, nullptr);
     if (!window) {
-        std::cerr << "glfwCreateWindow failed\n";
+        std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
-    glfwSetCursorPosCallback(window, mouseCallback);
-    glfwSetMouseButtonCallback(window, mouseButtonCallback);
-    glfwSetScrollCallback(window, scrollCallback);
-
-    // --- GLAD init ---
-    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
-        std::cerr << "gladLoadGLLoader failed\n";
-        glfwTerminate();
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cerr << "Failed to initialize GLAD\n";
         return -1;
     }
 
-    std::cout << "OpenGL " << glGetString(GL_VERSION) << "\n";
-    std::cout << "Vendor  " << glGetString(GL_VENDOR) << "\n";
+    // Milestone 1: initialize triangle (preserved)
+    initTriangle();
 
-    // --- Shaders ---
-    std::string vertSrc = loadFile("shaders/basic.vert");
-    std::string fragSrc = loadFile("shaders/basic.frag");
-    if (vertSrc.empty() || fragSrc.empty()) return -1;
+    // Milestone 3: initialize point cloud stub
+    initPointCloud();
 
-    GLuint program = linkProgram(vertSrc, fragSrc);
-    if (!program) return -1;
+    // Milestone 4: initialize Dear ImGui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330 core");
 
-    GLint mvpLoc = glGetUniformLocation(program, "uMVP");
-    GLint pointSizeLoc = glGetUniformLocation(program, "uPointSize");
-
-    // --- Triangle geometry (kept from Milestone 1) ---
-    const float triVertices[] = {
-        // position          // color (RGB)
-         0.0f,  0.6f, 0.0f,  1.0f, 0.2f, 0.2f,
-        -0.6f, -0.4f, 0.0f,  0.2f, 1.0f, 0.2f,
-         0.6f, -0.4f, 0.0f,  0.2f, 0.4f, 1.0f,
-    };
-
-    GLuint triVAO = 0, triVBO = 0;
-    glGenVertexArrays(1, &triVAO);
-    glGenBuffers(1, &triVBO);
-
-    glBindVertexArray(triVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, triVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triVertices), triVertices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(0));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    // --- Point cloud geometry ---
-    constexpr int NUM_POINTS = 10000;
-    constexpr float SPHERE_RADIUS = 1.5f;
-    std::vector<float> pointData = generatePointCloud(NUM_POINTS, SPHERE_RADIUS);
-
-    GLuint pointVAO = 0, pointVBO = 0;
-    glGenVertexArrays(1, &pointVAO);
-    glGenBuffers(1, &pointVBO);
-
-    glBindVertexArray(pointVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, pointVBO);
-    glBufferData(GL_ARRAY_BUFFER, pointData.size() * sizeof(float), pointData.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(0));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    // --- Render state ---
-    bool renderPoints = true;
-    bool spaceWasDown = false;
-    glEnable(GL_DEPTH_TEST);
-
-    // --- Render loop ---
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
-        // Spacebar toggle
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            if (!spaceWasDown) {
-                renderPoints = !renderPoints;
-                spaceWasDown = true;
-            }
-        } else {
-            spaceWasDown = false;
+        // Milestone 4: start ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // Milestone 1: render scene (triangle + optional point cloud)
+        glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        if (g_layerMode == 0 || g_layerMode == 2) {
+            renderTriangle(g_lodValue);
+        }
+        if (g_layerMode == 1 || g_layerMode == 2) {
+            renderPointCloud(g_lodValue);
         }
 
-        int display_w = 0, display_h = 0;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        float aspect = float(display_w) / float(display_h);
+        // Milestone 4: render debug panel
+        renderDebugPanel();
 
-        glClearColor(0.08f, 0.08f, 0.10f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // Milestone 4: ImGui render + platform windows update
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        // Compute camera
-        glm::vec3 camPos(
-            camRadius * cosf(camPhi) * sinf(camTheta),
-            camRadius * sinf(camPhi),
-            camRadius * cosf(camPhi) * cosf(camTheta)
-        );
-        glm::mat4 view = glm::lookAt(camPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::mat4 proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
-        glm::mat4 mvp = proj * view;
-
-        glUseProgram(program);
-        glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, glm::value_ptr(mvp));
-
-        if (renderPoints) {
-            glUniform1f(pointSizeLoc, 4.0f);
-            glBindVertexArray(pointVAO);
-            glDrawArrays(GL_POINTS, 0, NUM_POINTS);
-        } else {
-            glBindVertexArray(triVAO);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            GLFWwindow* backup = glfwGetCurrentContext();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+            glfwMakeContextCurrent(backup);
         }
 
         glfwSwapBuffers(window);
     }
 
-    // --- Cleanup ---
-    glDeleteVertexArrays(1, &triVAO);
-    glDeleteBuffers(1, &triVBO);
-    glDeleteVertexArrays(1, &pointVAO);
-    glDeleteBuffers(1, &pointVBO);
-    glDeleteProgram(program);
+    // Cleanup
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    glDeleteVertexArrays(1, &g_triangleVAO);
+    glDeleteProgram(g_triangleShader);
+    glDeleteVertexArrays(1, &g_pointVAO);
+    glDeleteProgram(g_pointShader);
 
     glfwDestroyWindow(window);
     glfwTerminate();
