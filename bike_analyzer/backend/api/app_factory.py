@@ -65,6 +65,7 @@ from .routers.sync_routes import router as sync_router
 from .routers.performance_routes import router as performance_router
 from .routers.metabolism_routes import router as metabolism_router
 from .routers.rides_routes import router as rides_router
+from .routers.athlete_routes import router as athlete_router
 from .routers.aethermap_routes import router as aethermap_router
 from ..hub.routes import hub_auth_router
 from .utils import _trusted_forwarded_value
@@ -535,6 +536,7 @@ def create_app() -> FastAPI:
     app.include_router(performance_router, prefix="/api/v1")
     app.include_router(metabolism_router, prefix="/api/v1")
     app.include_router(rides_router, prefix="/api/v1")
+    app.include_router(athlete_router, prefix="/api/v1")
     app.include_router(aethermap_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
     _log_flush(f"create_app: include_router(admin) done +{time.monotonic()-_t0:.3f}s")
