@@ -1369,7 +1369,7 @@ def delete_user_oauth_credentials(user_id: int, provider: str) -> bool:
 
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_hr")
 def log_hr_sample(
     athlete_id: int,
     heart_rate: int,
@@ -1401,7 +1401,7 @@ def log_hr_sample(
         return int(cur.lastrowid)
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_hr")
 def log_hr_samples(
     athlete_id: int,
     samples: list[dict[str, Any]],
@@ -1447,7 +1447,7 @@ def log_hr_samples(
         return int(cur.rowcount)
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_hr")
 def get_hr_24h_samples(
     athlete_id: int,
     hours: int = 24,
@@ -1489,7 +1489,7 @@ def get_hr_24h_samples(
     ]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_hr")
 def get_hr_daily_summary(
     athlete_id: int,
     days: int = 30,
@@ -1530,7 +1530,7 @@ def get_hr_daily_summary(
     ]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_hr")
 def get_hr_settings(athlete_id: int, tenant_id: int | None = None) -> dict | None:
     """Return HR 24h monitoring settings for an athlete."""
     with get_db_connection() as conn:
@@ -1551,7 +1551,7 @@ def get_hr_settings(athlete_id: int, tenant_id: int | None = None) -> dict | Non
     return dict(row)
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_hr")
 def upsert_hr_settings(athlete_id: int, settings: dict, *, tenant_id: int = 0) -> dict:
     """Create or update HR 24h monitoring settings."""
     now = datetime.now(UTC).isoformat()
@@ -1587,7 +1587,7 @@ def upsert_hr_settings(athlete_id: int, settings: dict, *, tenant_id: int = 0) -
     return get_hr_settings(athlete_id, tenant_id) or dict(clean)
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_hr")
 def delete_hr_settings(athlete_id: int, tenant_id: int | None = None) -> bool:
     """Delete HR 24h monitoring settings for an athlete."""
     with get_db_connection() as conn:
@@ -1606,7 +1606,7 @@ def delete_hr_settings(athlete_id: int, tenant_id: int | None = None) -> bool:
         return cur.rowcount > 0
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_hr")
 def delete_hr_samples(athlete_id: int, *, tenant_id: int | None = None, older_than: str | None = None) -> int:
     """Delete HR samples, optionally filtered by age (ISO string). Returns deleted count."""
     with get_db_connection() as conn:
@@ -2525,7 +2525,7 @@ def scheduled_backup(max_backups: int = 10) -> dict[str, dict]:
     }
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_chat")
 def save_chat_message(athlete_id: int | None, role: str, content: str, tenant_id: int = 0) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2538,7 +2538,7 @@ def save_chat_message(athlete_id: int | None, role: str, content: str, tenant_id
         return cur.lastrowid
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_chat")
 def get_chat_history(athlete_id: int, limit: int = 10, tenant_id: int | None = None) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2557,7 +2557,7 @@ def get_chat_history(athlete_id: int, limit: int = 10, tenant_id: int | None = N
         return [{"role": r[0], "content": r[1], "created_at": r[2]} for r in rows]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_chat")
 def clear_chat_history(athlete_id: int, tenant_id: int | None = None) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2569,7 +2569,7 @@ def clear_chat_history(athlete_id: int, tenant_id: int | None = None) -> bool:
         return cur.rowcount > 0
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_chat")
 def prune_chat_history(athlete_id: int, tenant_id: int | None = None, retention_days: int = 90) -> int:
     from datetime import datetime, timedelta
 
@@ -3698,7 +3698,7 @@ def get_latest_beck_assessment(athlete_id: int, tenant_id: int = 0) -> dict | No
         }
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_ble")
 def register_ble_device(
     athlete_id: int,
     device_id: str,
@@ -3751,7 +3751,7 @@ def register_ble_device(
         return int(row[0]) if row else 0
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_ble")
 def get_ble_devices(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
     """List all BLE devices registered for an athlete."""
     with get_db_connection() as conn:
@@ -3768,7 +3768,7 @@ def get_ble_devices(athlete_id: int, tenant_id: int | None = None) -> list[dict]
     return [dict(row) for row in rows]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_ble")
 def get_ble_device(device_id: int, athlete_id: int) -> dict | None:
     """Get a single BLE device by its DB id, ensuring athlete ownership."""
     with get_db_connection() as conn:
@@ -3778,7 +3778,7 @@ def get_ble_device(device_id: int, athlete_id: int) -> dict | None:
     return dict(row) if row else None
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_ble")
 def update_ble_device(device_id: int, athlete_id: int, **updates) -> dict | None:
     """Update fields of a BLE device."""
     allowed = {
@@ -3798,7 +3798,7 @@ def update_ble_device(device_id: int, athlete_id: int, **updates) -> dict | None
     return get_ble_device(device_id, athlete_id)
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_ble")
 def unregister_ble_device(device_id: int, athlete_id: int) -> bool:
     """Remove a BLE device registration."""
     with get_db_connection() as conn:
@@ -3808,7 +3808,7 @@ def unregister_ble_device(device_id: int, athlete_id: int) -> bool:
         return cur.rowcount > 0
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_ble")
 def mark_ble_device_connected(device_id: int, athlete_id: int) -> None:
     """Update last_connected_at timestamp."""
     now = datetime.now(UTC).isoformat()
@@ -3821,7 +3821,7 @@ def mark_ble_device_connected(device_id: int, athlete_id: int) -> None:
         conn.commit()
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_ble")
 def mark_ble_device_synced(device_id: int, athlete_id: int) -> None:
     """Update last_synced_at timestamp."""
     now = datetime.now(UTC).isoformat()
@@ -3834,7 +3834,7 @@ def mark_ble_device_synced(device_id: int, athlete_id: int) -> None:
         conn.commit()
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_legal")
 def save_consent(
     athlete_id: int,
     consent_type: str,
@@ -3857,7 +3857,7 @@ def save_consent(
         conn.commit()
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_legal")
 def get_consent(athlete_id: int, consent_type: str) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3869,7 +3869,7 @@ def get_consent(athlete_id: int, consent_type: str) -> dict | None:
     return dict(row) if row else None
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_legal")
 def get_consents_by_athlete(athlete_id: int) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3878,7 +3878,7 @@ def get_consents_by_athlete(athlete_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_legal")
 def save_legal_acceptance(
     athlete_id: int,
     acceptance_type: str,
@@ -3897,7 +3897,7 @@ def save_legal_acceptance(
         conn.commit()
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_legal")
 def get_legal_acceptances_by_athlete(athlete_id: int) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3906,7 +3906,7 @@ def get_legal_acceptances_by_athlete(athlete_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_legal")
 def has_accepted_version(athlete_id: int, acceptance_type: str, min_version: str) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3923,7 +3923,7 @@ def has_accepted_version(athlete_id: int, acceptance_type: str, min_version: str
     return accepted >= min_version
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_legal")
 def save_ai_audit_log(
     athlete_id: int,
     provider: str,
@@ -3947,7 +3947,7 @@ def save_ai_audit_log(
         conn.commit()
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_legal")
 def get_ai_audit_logs_by_athlete(athlete_id: int, limit: int = 100) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()

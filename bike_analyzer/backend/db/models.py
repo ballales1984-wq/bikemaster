@@ -1122,6 +1122,104 @@ class AetherMapStateHistoryModel(Base):
     confidence: Mapped[float] = mapped_column(Float, server_default="1.0")
 
 
+class HR24hSampleModel(Base):
+    __tablename__ = "hr_24h_samples"
+
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    hr_bpm: Mapped[int] = mapped_column(Integer, nullable=False)
+    source: Mapped[str] = mapped_column(String, default="manual")
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class HRMonitoringSettingsModel(Base):
+    __tablename__ = "hr_monitoring_settings"
+
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), unique=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    max_hr: Mapped[int | None] = mapped_column(Integer)
+    resting_hr: Mapped[int | None] = mapped_column(Integer)
+    hr_zones: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class BLEDeviceModel(Base):
+    __tablename__ = "ble_devices"
+
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    device_id: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    device_type: Mapped[str] = mapped_column(String, default="weight_scale")
+    service_uuid: Mapped[str | None] = mapped_column(String)
+    characteristic_uuid: Mapped[str | None] = mapped_column(String)
+    mac_address: Mapped[str | None] = mapped_column(String)
+    settings: Mapped[str | None] = mapped_column(Text)
+    is_connected: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        UniqueConstraint("athlete_id", "device_id", name="uq_ble_devices_athlete_device"),
+        Index("ix_ble_devices_athlete_id", "athlete_id"),
+    )
+
+
+class ConsentModel(Base):
+    __tablename__ = "user_consent"
+
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    consent_type: Mapped[str] = mapped_column(String, nullable=False)
+    granted: Mapped[bool] = mapped_column(Boolean, default=True)
+    source: Mapped[str] = mapped_column(String, default="web")
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        UniqueConstraint("athlete_id", "consent_type", name="uq_user_consent_athlete_type"),
+    )
+
+
+class LegalAcceptanceModel(Base):
+    __tablename__ = "legal_acceptances"
+
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    acceptance_type: Mapped[str] = mapped_column(String, nullable=False)
+    version: Mapped[str] = mapped_column(String, nullable=False)
+    source: Mapped[str] = mapped_column(String, default="web")
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        UniqueConstraint("athlete_id", "acceptance_type", "version", name="uq_legal_acceptances_athlete_type_version"),
+    )
+
+
+class AIAuditLogModel(Base):
+    __tablename__ = "ai_audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
+    athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    model: Mapped[str] = mapped_column(String, nullable=False)
+    prompt_hash: Mapped[str] = mapped_column(String, nullable=False)
+    response_length: Mapped[int] = mapped_column(Integer, default=0)
+    tool_calls: Mapped[int] = mapped_column(Integer, default=0)
+    latency_ms: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_ai_audit_log_athlete_id", "athlete_id"),
+    )
+
+
 __all__ = [
     "Base",
     "EMBEDDING_DIMENSION",
@@ -1167,4 +1265,10 @@ __all__ = [
     "StageModel",
     "AetherMapObjectModel",
     "AetherMapStateHistoryModel",
+    "HR24hSampleModel",
+    "HRMonitoringSettingsModel",
+    "BLEDeviceModel",
+    "ConsentModel",
+    "LegalAcceptanceModel",
+    "AIAuditLogModel",
 ]
