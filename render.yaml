@@ -11,6 +11,10 @@ services:
         sync: false
       - key: WEATHER_API_KEY
         sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: SERPAPI_API_KEY
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET

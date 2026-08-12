@@ -41,10 +41,10 @@ def get_weather_cache(lat: float, lon: float, date: str) -> dict | None:
             row = cur.fetchone()
             if row:
                 return {
-                    "temperature": row[0],
-                    "humidity": row[1],
-                    "description": row[2],
-                    "cached_at": row[3],
+                    "temperature": row["temperature"],
+                    "humidity": row["humidity"],
+                    "description": row["description"],
+                    "cached_at": row["cached_at"],
                 }
             return None
     finally:
@@ -81,6 +81,7 @@ def save_weather_cache(lat: float, lon: float, date: str, weather: dict) -> int:
                 ),
             )
             conn.commit()
-            return cur.fetchone()[0]
+            returning = cur.fetchone()
+            return returning["id"] if returning else 0
     finally:
         _safe_close(conn)
