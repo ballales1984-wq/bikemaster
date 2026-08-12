@@ -131,7 +131,7 @@ def seed_nutrition_food_items() -> None:
                      protein_g_per_100g, fat_g_per_100g, fiber_g_per_100g,
                      source, is_builtin, created_at, updated_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT(name, category) DO NOTHING
+                    ON CONFLICT(tenant_id, name, category) DO NOTHING
                     """,
                     (name, category, kcal, carbs, protein, fat, fiber, "builtin", True, now, now),
                 )
