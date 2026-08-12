@@ -1288,6 +1288,7 @@ def _ensure_user_oauth_credentials_table() -> None:
             )
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_user_oauth_credentials(user_id: int, provider: str) -> dict | None:
     _ensure_user_oauth_credentials_table()
     with get_db_connection() as conn:
@@ -1309,6 +1310,7 @@ def get_user_oauth_credentials(user_id: int, provider: str) -> dict | None:
         return None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_all_user_oauth_credentials(user_id: int) -> list[dict]:
     _ensure_user_oauth_credentials_table()
     with get_db_connection() as conn:
@@ -1317,6 +1319,7 @@ def get_all_user_oauth_credentials(user_id: int) -> list[dict]:
         return [dict(r) for r in cur.fetchall()]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_user_oauth_credentials(user_id: int, provider: str, data: dict) -> None:
     _ensure_user_oauth_credentials_table()
     now = datetime.now(UTC).isoformat()
@@ -1353,6 +1356,7 @@ def save_user_oauth_credentials(user_id: int, provider: str, data: dict) -> None
         )
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def delete_user_oauth_credentials(user_id: int, provider: str) -> bool:
     _ensure_user_oauth_credentials_table()
     with get_db_connection() as conn:
@@ -1365,6 +1369,7 @@ def delete_user_oauth_credentials(user_id: int, provider: str) -> bool:
 
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def log_hr_sample(
     athlete_id: int,
     heart_rate: int,
@@ -1396,6 +1401,7 @@ def log_hr_sample(
         return int(cur.lastrowid)
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def log_hr_samples(
     athlete_id: int,
     samples: list[dict[str, Any]],
@@ -1441,6 +1447,7 @@ def log_hr_samples(
         return int(cur.rowcount)
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_hr_24h_samples(
     athlete_id: int,
     hours: int = 24,
@@ -1482,6 +1489,7 @@ def get_hr_24h_samples(
     ]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_hr_daily_summary(
     athlete_id: int,
     days: int = 30,
@@ -1522,6 +1530,7 @@ def get_hr_daily_summary(
     ]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_hr_settings(athlete_id: int, tenant_id: int | None = None) -> dict | None:
     """Return HR 24h monitoring settings for an athlete."""
     with get_db_connection() as conn:
@@ -1542,6 +1551,7 @@ def get_hr_settings(athlete_id: int, tenant_id: int | None = None) -> dict | Non
     return dict(row)
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def upsert_hr_settings(athlete_id: int, settings: dict, *, tenant_id: int = 0) -> dict:
     """Create or update HR 24h monitoring settings."""
     now = datetime.now(UTC).isoformat()
@@ -1577,6 +1587,7 @@ def upsert_hr_settings(athlete_id: int, settings: dict, *, tenant_id: int = 0) -
     return get_hr_settings(athlete_id, tenant_id) or dict(clean)
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def delete_hr_settings(athlete_id: int, tenant_id: int | None = None) -> bool:
     """Delete HR 24h monitoring settings for an athlete."""
     with get_db_connection() as conn:
@@ -1595,6 +1606,7 @@ def delete_hr_settings(athlete_id: int, tenant_id: int | None = None) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def delete_hr_samples(athlete_id: int, *, tenant_id: int | None = None, older_than: str | None = None) -> int:
     """Delete HR samples, optionally filtered by age (ISO string). Returns deleted count."""
     with get_db_connection() as conn:
@@ -1620,6 +1632,7 @@ def delete_hr_samples(athlete_id: int, *, tenant_id: int | None = None, older_th
         return int(cur.rowcount)
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def log_sensor_data(
     athlete_id: int,
     samples: list[dict[str, Any]],
@@ -1660,6 +1673,7 @@ def log_sensor_data(
         return int(cur.rowcount)
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def classify_day(
     athlete_id: int,
     for_date: str,
@@ -1798,6 +1812,7 @@ def classify_day(
     }
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_activity_summary(
     athlete_id: int,
     days: int = 30,
@@ -1836,6 +1851,7 @@ def get_activity_summary(
     ]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_activity_classification(
     athlete_id: int,
     for_date: str,
@@ -1883,6 +1899,7 @@ def _get_resting_hr_setting(athlete_id: int) -> int | None:
     return int(val) if val is not None else None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_metabolic_profile(profile: dict, athlete_id: int, tenant_id: int = 0) -> int:
     """Upsert metabolic profile for an athlete."""
     now = datetime.now(UTC).isoformat()
@@ -1918,6 +1935,7 @@ def save_metabolic_profile(profile: dict, athlete_id: int, tenant_id: int = 0) -
         return athlete_id
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_metabolic_profile(athlete_id: int, tenant_id: int | None = None) -> dict | None:
     """Recupera il profilo metabolico di un atleta."""
     with get_db_connection() as conn:
@@ -1946,6 +1964,7 @@ def get_metabolic_profile(athlete_id: int, tenant_id: int | None = None) -> dict
         }
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_food_log(log: dict, tenant_id: int = 0) -> int:
     """Inserisce un nuovo log alimentare."""
     now = datetime.now(UTC).isoformat()
@@ -1978,6 +1997,7 @@ def save_food_log(log: dict, tenant_id: int = 0) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_food_logs_by_athlete_date(
     athlete_id: int,
     date: str,
@@ -2021,6 +2041,7 @@ def get_food_logs_by_athlete_date(
     ]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def update_food_log(log_id: int, log_data: dict) -> bool:
     """Aggiorna un log alimentare esistente."""
     existing = get_food_log(log_id)
@@ -2053,6 +2074,7 @@ def update_food_log(log_id: int, log_data: dict) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_food_log(log_id: int) -> dict | None:
     """Recupera un singolo log alimentare per id."""
     with get_db_connection() as conn:
@@ -2080,6 +2102,7 @@ def get_food_log(log_id: int) -> dict | None:
         }
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def delete_food_log(log_id: int) -> bool:
     """Elimina un log alimentare."""
     with get_db_connection() as conn:
@@ -2089,6 +2112,7 @@ def delete_food_log(log_id: int) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_metabolic_daily_summary(summary: dict, tenant_id: int = 0) -> int:
     """Upsert metabolic daily summary for an athlete on a specific date."""
     now = datetime.now(UTC).isoformat()
@@ -2139,6 +2163,7 @@ def save_metabolic_daily_summary(summary: dict, tenant_id: int = 0) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_metabolic_daily_summaries(
     athlete_id: int,
     *,
@@ -2187,6 +2212,7 @@ def get_metabolic_daily_summaries(
     ]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_metabolic_daily_summary(
     athlete_id: int,
     date: str,
@@ -2230,6 +2256,7 @@ def get_metabolic_daily_summary(
         }
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def upsert_metabolic_reference_value(value: dict, tenant_id: int = 0) -> int:
     """Upsert a reference (mean) metabolic value for a demographic bracket."""
     now = datetime.now(UTC).isoformat()
@@ -2272,6 +2299,7 @@ def upsert_metabolic_reference_value(value: dict, tenant_id: int = 0) -> int:
         return int(cur.lastrowid) if cur.lastrowid else 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_metabolic_reference_value(
     sex: str, age: int, weight_kg: float,
     activity_level: str = "moderate", tenant_id: int = 0,
@@ -2310,6 +2338,7 @@ def get_metabolic_reference_value(
         }
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_all_metabolic_reference_values(tenant_id: int | None = None) -> list[dict]:
     """Return all imported reference values, optionally filtered by tenant."""
     with get_db_connection() as conn:
@@ -2321,6 +2350,7 @@ def get_all_metabolic_reference_values(tenant_id: int | None = None) -> list[dic
         return [dict(row) for row in cur.fetchall()]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_metabolic_adaptive_weights(weights: dict, athlete_id: int, tenant_id: int = 0) -> int:
     """Upsert per-athlete adaptive model weights and sensor confidence."""
     now = datetime.now(UTC).isoformat()
@@ -2360,6 +2390,7 @@ def save_metabolic_adaptive_weights(weights: dict, athlete_id: int, tenant_id: i
         return athlete_id
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_metabolic_adaptive_weights(athlete_id: int, tenant_id: int | None = None) -> dict | None:
     """Return the per-athlete adaptive weights, if any."""
     with get_db_connection() as conn:
@@ -2494,6 +2525,7 @@ def scheduled_backup(max_backups: int = 10) -> dict[str, dict]:
     }
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_chat_message(athlete_id: int | None, role: str, content: str, tenant_id: int = 0) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2506,6 +2538,7 @@ def save_chat_message(athlete_id: int | None, role: str, content: str, tenant_id
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_chat_history(athlete_id: int, limit: int = 10, tenant_id: int | None = None) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2524,6 +2557,7 @@ def get_chat_history(athlete_id: int, limit: int = 10, tenant_id: int | None = N
         return [{"role": r[0], "content": r[1], "created_at": r[2]} for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def clear_chat_history(athlete_id: int, tenant_id: int | None = None) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2535,6 +2569,7 @@ def clear_chat_history(athlete_id: int, tenant_id: int | None = None) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def prune_chat_history(athlete_id: int, tenant_id: int | None = None, retention_days: int = 90) -> int:
     from datetime import datetime, timedelta
 
@@ -2555,6 +2590,7 @@ def prune_chat_history(athlete_id: int, tenant_id: int | None = None, retention_
         return cur.rowcount
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_weather_cache(lat: float, lon: float, date: str) -> dict | None:
     """Get cached weather data for coordinates and date."""
     with get_db_connection() as conn:
@@ -2574,6 +2610,7 @@ def get_weather_cache(lat: float, lon: float, date: str) -> dict | None:
         return None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_weather_cache(lat: float, lon: float, date: str, weather: dict) -> int:
     """Save weather data to cache."""
     with get_db_connection() as conn:
@@ -2714,6 +2751,7 @@ def delete_user(user_id: int) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_road_incident(incident: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2738,6 +2776,7 @@ def save_road_incident(incident: dict) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_route_safety_score(score_data: dict, tenant_id: int = 0) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2775,6 +2814,7 @@ def save_route_safety_score(score_data: dict, tenant_id: int = 0) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_route_safety_score(ride_id: int, tenant_id: int | None = None) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2806,6 +2846,7 @@ def get_route_safety_score(ride_id: int, tenant_id: int | None = None) -> dict |
         return None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_athlete_by_query(**query):
     """Backward-compatible alias expected by some tests.
 
@@ -2843,6 +2884,7 @@ def _row_to_poi(row) -> dict:
     }
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_poi(poi: dict) -> int:
     """Create a Point of Interest. Returns the new row id."""
     with get_db_connection() as conn:
@@ -2885,6 +2927,7 @@ def save_poi(poi: dict) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_poi(poi_id: int, tenant_id: int | None = None) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2896,6 +2939,7 @@ def get_poi(poi_id: int, tenant_id: int | None = None) -> dict | None:
         return _row_to_poi(row) if row else None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_nearby_pois(lat: float, lon: float, radius_km: float = 5.0, tenant_id: int | None = None) -> list[dict]:
     """Return POIs within ``radius_km`` of (lat, lon) using the haversine distance.
 
@@ -2936,6 +2980,7 @@ def get_nearby_pois(lat: float, lon: float, radius_km: float = 5.0, tenant_id: i
     return nearby
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def list_pois(itinerary_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
     """Return all POIs, optionally filtered by ``itinerary_id`` and/or ``tenant_id``.
 
@@ -2965,6 +3010,7 @@ def list_pois(itinerary_id: int | None = None, tenant_id: int | None = None) -> 
     return [_row_to_poi(r) for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def delete_poi(poi_id: int) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3260,6 +3306,7 @@ def _row_to_stage(row: tuple) -> dict:
     }
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def seed_nutrition_food_items() -> None:
     now = datetime.now(UTC).isoformat()
     items = [
@@ -3345,6 +3392,7 @@ def seed_nutrition_food_items() -> None:
         conn.commit()
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def search_nutrition_food_items(query: str, category: str | None = None, limit: int = 50) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3380,6 +3428,7 @@ def search_nutrition_food_items(query: str, category: str | None = None, limit: 
     ]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_nutrition_food_item(item_id: int) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3404,6 +3453,7 @@ def get_nutrition_food_item(item_id: int) -> dict | None:
         }
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def list_nutrition_categories() -> list[str]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3412,6 +3462,7 @@ def list_nutrition_categories() -> list[str]:
     return [r["category"] for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_nutrition_food_item(item: dict, tenant_id: int = 0) -> int:
     now = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
@@ -3441,6 +3492,7 @@ def save_nutrition_food_item(item: dict, tenant_id: int = 0) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def update_nutrition_food_item(item_id: int, item_data: dict) -> bool:
     existing = get_nutrition_food_item(item_id)
     if not existing:
@@ -3469,6 +3521,7 @@ def update_nutrition_food_item(item_id: int, item_data: dict) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def delete_nutrition_food_item(item_id: int) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3487,6 +3540,7 @@ def _beck_severity(total_score: int) -> str:
     return "severe"
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_beck_assessment(assessment: dict, tenant_id: int = 0) -> int:
     now = datetime.now(UTC).isoformat()
     answers = assessment.get("answers", [])
@@ -3513,6 +3567,7 @@ def save_beck_assessment(assessment: dict, tenant_id: int = 0) -> int:
         return cur.lastrowid
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_beck_assessment(assessment_id: int) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3533,6 +3588,7 @@ def get_beck_assessment(assessment_id: int) -> dict | None:
         }
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_beck_assessments_by_athlete(athlete_id: int, tenant_id: int = 0, limit: int = 100) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3579,6 +3635,7 @@ def get_metrics_by_athlete(athlete_id: int, tenant_id: int | None = None) -> lis
     return [dict(r) for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_fitness_states_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3596,6 +3653,7 @@ def get_fitness_states_by_athlete(athlete_id: int, tenant_id: int | None = None)
     return [dict(r) for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_food_logs_by_athlete(athlete_id: int, tenant_id: int | None = None, limit: int = 2000) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3613,6 +3671,7 @@ def get_food_logs_by_athlete(athlete_id: int, tenant_id: int | None = None, limi
     return [dict(r) for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_latest_beck_assessment(athlete_id: int, tenant_id: int = 0) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3639,6 +3698,7 @@ def get_latest_beck_assessment(athlete_id: int, tenant_id: int = 0) -> dict | No
         }
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def register_ble_device(
     athlete_id: int,
     device_id: str,
@@ -3691,6 +3751,7 @@ def register_ble_device(
         return int(row[0]) if row else 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_ble_devices(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
     """List all BLE devices registered for an athlete."""
     with get_db_connection() as conn:
@@ -3707,6 +3768,7 @@ def get_ble_devices(athlete_id: int, tenant_id: int | None = None) -> list[dict]
     return [dict(row) for row in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_ble_device(device_id: int, athlete_id: int) -> dict | None:
     """Get a single BLE device by its DB id, ensuring athlete ownership."""
     with get_db_connection() as conn:
@@ -3716,6 +3778,7 @@ def get_ble_device(device_id: int, athlete_id: int) -> dict | None:
     return dict(row) if row else None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def update_ble_device(device_id: int, athlete_id: int, **updates) -> dict | None:
     """Update fields of a BLE device."""
     allowed = {
@@ -3735,6 +3798,7 @@ def update_ble_device(device_id: int, athlete_id: int, **updates) -> dict | None
     return get_ble_device(device_id, athlete_id)
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def unregister_ble_device(device_id: int, athlete_id: int) -> bool:
     """Remove a BLE device registration."""
     with get_db_connection() as conn:
@@ -3744,6 +3808,7 @@ def unregister_ble_device(device_id: int, athlete_id: int) -> bool:
         return cur.rowcount > 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def mark_ble_device_connected(device_id: int, athlete_id: int) -> None:
     """Update last_connected_at timestamp."""
     now = datetime.now(UTC).isoformat()
@@ -3756,6 +3821,7 @@ def mark_ble_device_connected(device_id: int, athlete_id: int) -> None:
         conn.commit()
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def mark_ble_device_synced(device_id: int, athlete_id: int) -> None:
     """Update last_synced_at timestamp."""
     now = datetime.now(UTC).isoformat()
@@ -3768,6 +3834,7 @@ def mark_ble_device_synced(device_id: int, athlete_id: int) -> None:
         conn.commit()
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_consent(
     athlete_id: int,
     consent_type: str,
@@ -3790,6 +3857,7 @@ def save_consent(
         conn.commit()
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_consent(athlete_id: int, consent_type: str) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3801,6 +3869,7 @@ def get_consent(athlete_id: int, consent_type: str) -> dict | None:
     return dict(row) if row else None
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_consents_by_athlete(athlete_id: int) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3809,6 +3878,7 @@ def get_consents_by_athlete(athlete_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_legal_acceptance(
     athlete_id: int,
     acceptance_type: str,
@@ -3827,6 +3897,7 @@ def save_legal_acceptance(
         conn.commit()
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_legal_acceptances_by_athlete(athlete_id: int) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3835,6 +3906,7 @@ def get_legal_acceptances_by_athlete(athlete_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def has_accepted_version(athlete_id: int, acceptance_type: str, min_version: str) -> bool:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3851,6 +3923,7 @@ def has_accepted_version(athlete_id: int, acceptance_type: str, min_version: str
     return accepted >= min_version
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def save_ai_audit_log(
     athlete_id: int,
     provider: str,
@@ -3874,6 +3947,7 @@ def save_ai_audit_log(
         conn.commit()
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
 def get_ai_audit_logs_by_athlete(athlete_id: int, limit: int = 100) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()

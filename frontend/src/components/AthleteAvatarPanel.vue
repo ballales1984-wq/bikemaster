@@ -174,21 +174,25 @@
                 {{ profile?.experience_level || "Beginner" }}
               </div>
               <div class="player-meta">
-                <span class="meta-item">{{ profile?.age }} anni</span>
+                <span class="meta-item">{{ profile?.age != null ? profile.age + ' anni' : '—' }}</span>
                 <span class="meta-divider">|</span>
-                <span class="meta-item">{{ profile?.weight_kg }} kg</span>
+                <span class="meta-item">{{ profile?.weight_kg != null ? profile.weight_kg + ' kg' : '—' }}</span>
                 <span class="meta-divider">|</span>
-                <span class="meta-item">{{ profile?.height_cm }} cm</span>
+                <span class="meta-item">{{ profile?.height_cm != null ? profile.height_cm + ' cm' : '—' }}</span>
                 <span class="meta-divider">|</span>
                 <span class="meta-item"
-                  >Acqua {{ profile?.body_water_percentage }}%</span
+                  >Grasso {{ profile?.fat_percentage != null ? profile.fat_percentage + '%' : '—' }}</span
                 >
                 <span class="meta-divider">|</span>
                 <span class="meta-item"
-                  >Muscoli {{ profile?.muscle_mass_percentage }}%</span
+                  >Acqua {{ profile?.body_water_percentage != null ? profile.body_water_percentage + '%' : '—' }}</span
                 >
                 <span class="meta-divider">|</span>
-                <span class="meta-item">BMR {{ profile?.bmr_kcal }} kcal</span>
+                <span class="meta-item"
+                  >Muscoli {{ profile?.muscle_mass_percentage != null ? profile.muscle_mass_percentage + '%' : '—' }}</span
+                >
+                <span class="meta-divider">|</span>
+                <span class="meta-item">BMR {{ profile?.bmr_kcal != null ? profile.bmr_kcal + ' kcal' : '—' }}</span>
               </div>
             </div>
           </div>
@@ -537,11 +541,21 @@ const primaryStats = computed(() => {
 
 const bodyStats = computed(() => {
   const p = profile.value;
-  const weight = p?.weight_kg || 70;
-  const muscle = p?.muscle_mass_kg || 0;
-  const bone = p?.bone_mass_kg || 0;
-  const fat = p?.fat_mass_kg || 0;
-  const _musclePct = p?.muscle_mass_percentage || 0;
+  const weight = p?.weight_kg || 0;
+
+  let muscleKg = p?.muscle_mass_kg || 0;
+  const musclePct = p?.muscle_mass_percentage || 0;
+  if (!muscleKg && musclePct > 0 && weight > 0) {
+    muscleKg = (musclePct / 100) * weight;
+  }
+
+  let fatKg = p?.fat_mass_kg || 0;
+  const fatPct = p?.fat_percentage || 0;
+  if (!fatKg && fatPct > 0 && weight > 0) {
+    fatKg = (fatPct / 100) * weight;
+  }
+
+  const boneKg = p?.bone_mass_kg || 0;
   const waterPct = p?.body_water_percentage || 0;
   const visceral = p?.visceral_fat_level || 0;
   const proteinPct = p?.protein_percentage || 0;
@@ -549,37 +563,37 @@ const bodyStats = computed(() => {
   return [
     {
       label: "Acqua",
-      value: `${waterPct.toFixed(1)}%`,
+      value: waterPct > 0 ? `${waterPct.toFixed(1)}%` : "—",
       color: "#00b4d8",
       percent: Math.min(waterPct, 100),
     },
     {
       label: "Muscoli",
-      value: `${muscle.toFixed(1)} kg`,
+      value: muscleKg > 0 ? `${muscleKg.toFixed(1)} kg` : musclePct > 0 ? `${musclePct.toFixed(1)}%` : "—",
       color: "#e63946",
-      percent: Math.min((muscle / 60) * 100, 100),
+      percent: muscleKg > 0 ? Math.min((muscleKg / (weight || 60)) * 100, 100) : Math.min(musclePct, 100),
     },
     {
       label: "Osso",
-      value: `${bone.toFixed(1)} kg`,
+      value: boneKg > 0 ? `${boneKg.toFixed(1)} kg` : "—",
       color: "#8ecae6",
-      percent: Math.min((bone / 6) * 100, 100),
+      percent: boneKg > 0 ? Math.min((boneKg / 6) * 100, 100) : 0,
     },
     {
       label: "Grasso",
-      value: `${fat.toFixed(1)} kg`,
+      value: fatKg > 0 ? `${fatKg.toFixed(1)} kg` : fatPct > 0 ? `${fatPct.toFixed(1)}%` : "—",
       color: "#ffb703",
-      percent: Math.min((fat / weight) * 100, 100),
+      percent: fatKg > 0 && weight > 0 ? Math.min((fatKg / weight) * 100, 100) : Math.min(fatPct, 100),
     },
     {
       label: "Viscerale",
-      value: `${visceral.toFixed(1)}`,
+      value: visceral > 0 ? `${visceral.toFixed(1)}` : "—",
       color: "#fb8500",
       percent: Math.min((visceral / 20) * 100, 100),
     },
     {
       label: "Proteine",
-      value: `${proteinPct.toFixed(1)}%`,
+      value: proteinPct > 0 ? `${proteinPct.toFixed(1)}%` : "—",
       color: "#2a9d8f",
       percent: Math.min(proteinPct, 100),
     },
