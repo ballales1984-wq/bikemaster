@@ -256,7 +256,7 @@ def _auto_create_athlete(athlete_id: int, current_user: dict, updates: dict | No
     return get_athlete(new_id) or data
 
 
-@router.get("/state")
+@router.get("/athlete/state")
 async def get_athlete_state(current_user: dict = Depends(get_current_user)):
     athlete_id = _current_athlete_id(current_user)
     from ...analytics.athlete_state.service import AthleteStateService

@@ -135,7 +135,7 @@ body.light-theme {
   inherits: false;
 }
 
-/* ===== Z-index scale ===== */
+  /* ===== Z-index scale ===== */
 :root {
   --z-bg: 0;
   --z-base: 1;
@@ -146,6 +146,13 @@ body.light-theme {
   --z-modal: 1100;
   --z-toast: 3000;
   --z-pwa: 5000;
+  --z-dropdown: 6000;
+}
+
+/* ===== Layout ===== */
+:root {
+  --sidebar-width: 260px;
+  --sidebar-width-collapsed: 72px;
 }
 
 @keyframes rotateGradient {
