@@ -120,7 +120,11 @@ if ("serviceWorker" in navigator && !isTauri()) {
               if (hasPendingOAuth() || auth.justLoggedIn) {
                 const attemptActivate = () => {
                   if (!hasPendingOAuth() && !auth.justLoggedIn) {
-                    newWorker.postMessage({ type: "SKIP_WAITING" });
+                    try {
+                      newWorker.postMessage({ type: "SKIP_WAITING" });
+                    } catch {
+                      // message channel closed during SW update
+                    }
                     window.location.reload();
                   } else {
                     setTimeout(attemptActivate, 500);
@@ -128,7 +132,11 @@ if ("serviceWorker" in navigator && !isTauri()) {
                 };
                 setTimeout(attemptActivate, 500);
               } else {
-                newWorker.postMessage({ type: "SKIP_WAITING" });
+                try {
+                  newWorker.postMessage({ type: "SKIP_WAITING" });
+                } catch {
+                  // message channel closed during SW update
+                }
                 window.location.reload();
               }
             }
@@ -137,7 +145,11 @@ if ("serviceWorker" in navigator && !isTauri()) {
       });
       if (reg.waiting) {
         if (!hasPendingOAuth() && !auth.justLoggedIn) {
-          reg.waiting.postMessage({ type: "SKIP_WAITING" });
+          try {
+            reg.waiting.postMessage({ type: "SKIP_WAITING" });
+          } catch {
+            // message channel closed during SW update
+          }
         }
       }
     })

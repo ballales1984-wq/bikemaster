@@ -6,7 +6,9 @@ services:
     port: 10000
     envVars:
       - key: SECRET_KEY
-        generateValue: true
+        # Removed generateValue: true because it rotated the JWT secret
+        # on every deployment, invalidating all existing user tokens.
+        # Set a fixed SECRET_KEY in the Render dashboard instead.
       - key: GROQ_API_KEY
         sync: false
       - key: WEATHER_API_KEY
