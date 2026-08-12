@@ -1,75 +1,49 @@
-cmake_minimum_required(VERSION 3.20)
-project(AetherMapRenderer LANGUAGES C CXX)
+cmake_minimum_required(VERSION 3.15)
+project(AetherMap CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ---- Dependencies ----
-
-# GLFW
-find_package(glfw3 REQUIRED)
-
-# OpenGL
-find_package(OpenGL REQUIRED)
-
-# GLM (header-only)
-find_package(glm CONFIG REQUIRED)
-
-# GLAD loader (FetchContent)
 include(FetchContent)
+
 FetchContent_Declare(
-  glad
-  GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-  GIT_TAG        v0.1.36
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw.git
+    GIT_TAG 3.4
 )
-# Force glad2 to generate a Core 3.3 C loader
-set(FETCHCONTENT_QUIET OFF)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(glfw)
+
+FetchContent_Declare(
+    glm
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG 1.0.1
+)
+FetchContent_MakeAvailable(glm)
+
+FetchContent_Declare(
+    glad
+    GIT_REPOSITORY https://github.com/Dav1dde/glad.git
+    GIT_TAG v2.0.8
+)
 set(GLAD_PROFILE "core" CACHE STRING "" FORCE)
-set(GLAD_API "gl=3.3" CACHE STRING "" FORCE)
-set(GLAD_GENERATOR "c" CACHE STRING "" FORCE)
-set(GLAD_EXTENSIONS "" CACHE STRING "" FORCE)
+set(GLAD_API "gl=" CACHE STRING "" FORCE)
 FetchContent_MakeAvailable(glad)
 
-# Dear ImGui (FetchContent)
-include(FetchContent)
-FetchContent_Declare(
-  imgui
-  GIT_REPOSITORY https://github.com/ocornut/imgui.git
-  GIT_TAG        v1.90.9
-)
-FetchContent_MakeAvailable(imgui)
+add_executable(aethermap_cpp main.cpp shader.vert shader.frag)
+target_link_libraries(aethermap_cpp PRIVATE glfw glad glm)
 
-# ---- Executable ----
+if(WIN32)
+    target_link_libraries(aethermap_cpp PRIVATE opengl32)
+endif()
 
-add_executable(${PROJECT_NAME} main.cpp)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE
-  glfw
-  OpenGL::GL
-  glad
-  glm::glm
-)
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-  ${glad_SOURCE_DIR}/include
-  ${imgui_SOURCE_DIR}
-  ${imgui_SOURCE_DIR}/backends
-)
-
-target_sources(${PROJECT_NAME} PRIVATE
-  ${imgui_SOURCE_DIR}/imgui.cpp
-  ${imgui_SOURCE_DIR}/imgui_draw.cpp
-  ${imgui_SOURCE_DIR}/imgui_tables.cpp
-  ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-)
-
-# ---- Shaders: copy to build dir at build time ----
-
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-  ${CMAKE_SOURCE_DIR}/shaders
-  $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders
-  COMMENT "Copying shaders to build directory"
+add_custom_command(TARGET aethermap_cpp POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/shader.vert
+        $<TARGET_FILE_DIR:aethermap_cpp>/shader.vert
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/shader.frag
+        $<TARGET_FILE_DIR:aethermap_cpp>/shader.frag
 )
