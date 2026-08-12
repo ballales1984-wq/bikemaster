@@ -1899,7 +1899,7 @@ def _get_resting_hr_setting(athlete_id: int) -> int | None:
     return int(val) if val is not None else None
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def save_metabolic_profile(profile: dict, athlete_id: int, tenant_id: int = 0) -> int:
     """Upsert metabolic profile for an athlete."""
     now = datetime.now(UTC).isoformat()
@@ -1935,7 +1935,7 @@ def save_metabolic_profile(profile: dict, athlete_id: int, tenant_id: int = 0) -
         return athlete_id
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def get_metabolic_profile(athlete_id: int, tenant_id: int | None = None) -> dict | None:
     """Recupera il profilo metabolico di un atleta."""
     with get_db_connection() as conn:
@@ -1964,7 +1964,7 @@ def get_metabolic_profile(athlete_id: int, tenant_id: int | None = None) -> dict
         }
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def save_food_log(log: dict, tenant_id: int = 0) -> int:
     """Inserisce un nuovo log alimentare."""
     now = datetime.now(UTC).isoformat()
@@ -1997,7 +1997,7 @@ def save_food_log(log: dict, tenant_id: int = 0) -> int:
         return cur.lastrowid
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def get_food_logs_by_athlete_date(
     athlete_id: int,
     date: str,
@@ -2041,7 +2041,7 @@ def get_food_logs_by_athlete_date(
     ]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def update_food_log(log_id: int, log_data: dict) -> bool:
     """Aggiorna un log alimentare esistente."""
     existing = get_food_log(log_id)
@@ -2074,7 +2074,7 @@ def update_food_log(log_id: int, log_data: dict) -> bool:
         return cur.rowcount > 0
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def get_food_log(log_id: int) -> dict | None:
     """Recupera un singolo log alimentare per id."""
     with get_db_connection() as conn:
@@ -2102,7 +2102,7 @@ def get_food_log(log_id: int) -> dict | None:
         }
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def delete_food_log(log_id: int) -> bool:
     """Elimina un log alimentare."""
     with get_db_connection() as conn:
@@ -2112,7 +2112,7 @@ def delete_food_log(log_id: int) -> bool:
         return cur.rowcount > 0
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def save_metabolic_daily_summary(summary: dict, tenant_id: int = 0) -> int:
     """Upsert metabolic daily summary for an athlete on a specific date."""
     now = datetime.now(UTC).isoformat()
@@ -2163,7 +2163,7 @@ def save_metabolic_daily_summary(summary: dict, tenant_id: int = 0) -> int:
         return cur.lastrowid
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def get_metabolic_daily_summaries(
     athlete_id: int,
     *,
@@ -2212,7 +2212,7 @@ def get_metabolic_daily_summaries(
     ]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def get_metabolic_daily_summary(
     athlete_id: int,
     date: str,
@@ -2256,7 +2256,7 @@ def get_metabolic_daily_summary(
         }
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def upsert_metabolic_reference_value(value: dict, tenant_id: int = 0) -> int:
     """Upsert a reference (mean) metabolic value for a demographic bracket."""
     now = datetime.now(UTC).isoformat()
@@ -2299,7 +2299,7 @@ def upsert_metabolic_reference_value(value: dict, tenant_id: int = 0) -> int:
         return int(cur.lastrowid) if cur.lastrowid else 0
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def get_metabolic_reference_value(
     sex: str, age: int, weight_kg: float,
     activity_level: str = "moderate", tenant_id: int = 0,
@@ -2338,7 +2338,7 @@ def get_metabolic_reference_value(
         }
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def get_all_metabolic_reference_values(tenant_id: int | None = None) -> list[dict]:
     """Return all imported reference values, optionally filtered by tenant."""
     with get_db_connection() as conn:
@@ -2350,7 +2350,7 @@ def get_all_metabolic_reference_values(tenant_id: int | None = None) -> list[dic
         return [dict(row) for row in cur.fetchall()]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def save_metabolic_adaptive_weights(weights: dict, athlete_id: int, tenant_id: int = 0) -> int:
     """Upsert per-athlete adaptive model weights and sensor confidence."""
     now = datetime.now(UTC).isoformat()
@@ -2390,7 +2390,7 @@ def save_metabolic_adaptive_weights(weights: dict, athlete_id: int, tenant_id: i
         return athlete_id
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def get_metabolic_adaptive_weights(athlete_id: int, tenant_id: int | None = None) -> dict | None:
     """Return the per-athlete adaptive weights, if any."""
     with get_db_connection() as conn:
@@ -3653,7 +3653,7 @@ def get_fitness_states_by_athlete(athlete_id: int, tenant_id: int | None = None)
     return [dict(r) for r in rows]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def get_food_logs_by_athlete(athlete_id: int, tenant_id: int | None = None, limit: int = 2000) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
