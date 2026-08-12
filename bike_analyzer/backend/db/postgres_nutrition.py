@@ -24,11 +24,24 @@ def _ensure_nutrition_tables(conn) -> None:
                 source TEXT NOT NULL DEFAULT 'user',
                 is_builtin BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE(tenant_id, name, category)
             )
             """
         )
         conn.commit()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                ALTER TABLE nutrition_food_items
+                ADD CONSTRAINT nutrition_food_items_tenant_name_category_key
+                UNIQUE (tenant_id, name, category)
+                """
+            )
+            conn.commit()
+    except Exception:
+        conn.rollback()
 
 
 _NUTRITION_SEED_ITEMS = [
