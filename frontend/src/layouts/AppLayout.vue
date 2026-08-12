@@ -74,8 +74,8 @@ import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useUIStore } from "../stores/ui";
 import { apiGet } from "../utils/api";
-import Sidebar from "./navigation/Sidebar.vue";
-import TopBar from "./navigation/TopBar.vue";
+import Sidebar from "../components/navigation/Sidebar.vue";
+import TopBar from "../components/navigation/TopBar.vue";
 import ErrorBoundary from "../components/ErrorBoundary.vue";
 
 const auth = useAuthStore();
