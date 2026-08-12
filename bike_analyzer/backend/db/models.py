@@ -1165,7 +1165,6 @@ class BLEDeviceModel(Base):
 
     __table_args__ = (
         UniqueConstraint("athlete_id", "device_id", name="uq_ble_devices_athlete_device"),
-        Index("ix_ble_devices_athlete_id", "athlete_id"),
     )
 
 
@@ -1214,10 +1213,6 @@ class AIAuditLogModel(Base):
     tool_calls: Mapped[int] = mapped_column(Integer, default=0)
     latency_ms: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-
-    __table_args__ = (
-        Index("ix_ai_audit_log_athlete_id", "athlete_id"),
-    )
 
 
 __all__ = [

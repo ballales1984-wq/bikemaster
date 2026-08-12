@@ -208,6 +208,11 @@ class TestPostgresDispatch:
             "bike_analyzer.backend.db.postgres_rides.save_ride",
             mock_pg_save_ride,
         )
+        mock_pg_seed_nutrition = mock.MagicMock(return_value=None)
+        monkeypatch.setattr(
+            "bike_analyzer.backend.db.postgres_nutrition.seed_nutrition_food_items",
+            mock_pg_seed_nutrition,
+        )
 
         db_file = str(Path(os.environ.get("TEMP", "/tmp")) / "bikemaster_test_dbs" / "dispatch_test.db")
         os.environ["DB_PATH"] = db_file
@@ -231,6 +236,11 @@ class TestPostgresDispatch:
         monkeypatch.setattr(
             "bike_analyzer.backend.db.postgres_users.save_user",
             mock_pg_save_user,
+        )
+        mock_pg_seed_nutrition = mock.MagicMock(return_value=None)
+        monkeypatch.setattr(
+            "bike_analyzer.backend.db.postgres_nutrition.seed_nutrition_food_items",
+            mock_pg_seed_nutrition,
         )
 
         db_file = str(Path(os.environ.get("TEMP", "/tmp")) / "bikemaster_test_dbs" / "dispatch_users.db")
