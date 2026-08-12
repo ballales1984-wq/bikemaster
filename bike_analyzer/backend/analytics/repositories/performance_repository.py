@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from ..connection import get_db_connection
+from ...db.database import get_db_connection
 
 
 class PerformanceRepository:
