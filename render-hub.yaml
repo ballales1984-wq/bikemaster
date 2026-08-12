@@ -18,9 +18,9 @@ services:
           name: bikemaster-hub-db
           property: connectionString
       - key: CORS_ORIGINS
-        value: https://bikemaster-23pv3ckq6-alessios-projects-f1d56018.vercel.app,https://bikemaster-xi.vercel.app
+        value: https://bikemaster-xi.vercel.app
       - key: OAUTH_ALLOWED_REDIRECT_HOSTS
-        value: bikemaster-23pv3ckq6-alessios-projects-f1d56018.vercel.app,bikemaster-xi.vercel.app
+        value: bikemaster-xi.vercel.app
       - key: GROQ_API_KEY
         sync: false
       - key: GOOGLE_CLIENT_ID

@@ -166,7 +166,7 @@ def create_hub_app() -> FastAPI:
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=400, content={"detail": str(exc)})
 
-    # Hub CORS: only exact allowed origins, no wildcard regex
+    # Hub CORS: exact allowed origins + regex fallback for Vercel/Render domains
     from fastapi.middleware.cors import CORSMiddleware
 
     cors_origins = (

@@ -217,12 +217,12 @@ def _validate_frontend_origin(frontend_origin: str | None, request: Request) -> 
                 break
     except Exception:
         logger.debug("Failed to parse CORS origins for frontend_origin validation", exc_info=True)
-    if not allowed and not parsed.netloc.endswith(".vercel.app"):
+    if not allowed and not parsed.netloc.endswith((".vercel.app", ".onrender.com")):
         raise HTTPException(status_code=400, detail="Invalid frontend_origin")
     request_origin = request.headers.get("origin") or ""
     if request_origin:
         request_origin = request_origin.rstrip("/")
-        if request_origin != origin_host.rstrip("/") and not request_origin.endswith(".vercel.app"):
+        if request_origin != origin_host.rstrip("/") and not request_origin.endswith((".vercel.app", ".onrender.com")):
             logger.warning("frontend_origin mismatch: state=%s request=%s", origin_host, request_origin)
 
 

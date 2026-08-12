@@ -32,7 +32,7 @@ services:
       - key: AI_COACH_PROVIDER_ORDER
         value: groq
       - key: CORS_ORIGINS
-        value: https://bikemaster-xi.vercel.app,http://localhost:8000,http://localhost:8080,http://localhost:5173,http://127.0.0.1:8000
+        value: https://bikemaster.onrender.com,https://bikemaster-xi.vercel.app,http://localhost:8000,http://localhost:8080,http://localhost:5173,http://127.0.0.1:8000
       - key: OAUTH_ALLOWED_REDIRECT_HOSTS
         value: bikemaster.onrender.com,bikemaster-xi.vercel.app
       - key: PYTHON_VERSION
