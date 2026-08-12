@@ -28,42 +28,28 @@ from contextlib import contextmanager, suppress
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from ..models.models import Ride
+from ..models.models import Ride  # noqa: F401
 from ..settings import get_settings
 from ..utils.logger import get_logger
 from .dispatch import pg_dispatch
 from .repositories.athlete_repository import (
-    delete_athlete,
+    _row_to_athlete,  # noqa: F401
+    delete_athlete,  # noqa: F401
     get_all_athletes,
     get_athlete,
     get_athlete_by_email,
     get_athlete_by_name,
-    get_athlete_count_by_user,
-    get_athlete_history,
-    get_athlete_metric_log,
-    get_athletes_by_user,
-    log_athlete_metric,
+    get_athlete_count_by_user,  # noqa: F401
+    get_athlete_history,  # noqa: F401
+    get_athlete_metric_log,  # noqa: F401
+    get_athletes_by_user,  # noqa: F401
+    log_athlete_metric,  # noqa: F401
     save_athlete,
-    save_athlete_snapshot,
+    save_athlete_snapshot,  # noqa: F401
     update_athlete,
-    _row_to_athlete,
-)
-from .repositories.ride_repository import (
-    delete_ride,
-    get_all_rides,
-    get_ride,
-    get_rides_by_athlete,
-    save_ride,
-    update_ride,
-    _find_existing_external_ride,
-    _row_to_ride,
-)
-from .repositories.training_stress_repository import (
-    get_latest_training_stress,
-    get_training_stress_days,
-    upsert_training_stress_day,
 )
 from .repositories.calendar_repository import (
+    _row_to_calendar_event,  # noqa: F401
     delete_calendar_event,
     get_calendar_event,
     get_events_by_athlete,
@@ -71,7 +57,21 @@ from .repositories.calendar_repository import (
     get_events_by_month,
     save_calendar_event,
     update_calendar_event,
-    _row_to_calendar_event,
+)
+from .repositories.ride_repository import (
+    _find_existing_external_ride,  # noqa: F401
+    _row_to_ride,  # noqa: F401
+    delete_ride,
+    get_all_rides,
+    get_ride,
+    get_rides_by_athlete,
+    save_ride,
+    update_ride,
+)
+from .repositories.training_stress_repository import (
+    get_latest_training_stress,
+    get_training_stress_days,
+    upsert_training_stress_day,
 )
 
 logger = get_logger(__name__)
@@ -258,9 +258,8 @@ def init_db():
             lean_body_mass_kg REAL
         )""")
         conn.execute(
-        "CREATE INDEX IF NOT EXISTS ix_history_athlete_recorded "
-        "ON athlete_history(athlete_id, recorded_at)"
-    )
+            "CREATE INDEX IF NOT EXISTS ix_history_athlete_recorded ON athlete_history(athlete_id, recorded_at)"
+        )
         conn.execute("""CREATE TABLE IF NOT EXISTS athlete_metric_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             athlete_id INTEGER,
@@ -276,8 +275,7 @@ def init_db():
         )""")
         with suppress(Exception):
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS ix_metric_log_athlete_metric "
-                "ON athlete_metric_log(athlete_id, metric_type)"
+                "CREATE INDEX IF NOT EXISTS ix_metric_log_athlete_metric ON athlete_metric_log(athlete_id, metric_type)"
             )
         with suppress(Exception):
             conn.execute(
@@ -481,7 +479,9 @@ def init_db():
             created_at TEXT,
             FOREIGN KEY (itinerary_id) REFERENCES itineraries(id) ON DELETE SET NULL
         )""")
-        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_pois_tenant_coords_name_type ON pois(tenant_id, lat, lon, name, type)")
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_pois_tenant_coords_name_type ON pois(tenant_id, lat, lon, name, type)"
+        )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_pois_coords ON pois(lat, lon)")
         conn.execute("""CREATE TABLE IF NOT EXISTS itineraries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -703,8 +703,7 @@ def init_db():
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_beck_assessments_athlete ON beck_assessments(athlete_id)")
         conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_beck_assessments_athlete_date "
-            "ON beck_assessments(athlete_id, created_at)"
+            "CREATE INDEX IF NOT EXISTS idx_beck_assessments_athlete_date ON beck_assessments(athlete_id, created_at)"
         )
         conn.execute("""CREATE TABLE IF NOT EXISTS ble_devices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -739,12 +738,10 @@ def init_db():
             FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
         )""")
         conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_hr_samples_athlete_recorded "
-            "ON hr_24h_samples(athlete_id, recorded_at)"
+            "CREATE INDEX IF NOT EXISTS idx_hr_samples_athlete_recorded ON hr_24h_samples(athlete_id, recorded_at)"
         )
         conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_hr_samples_athlete_date "
-            "ON hr_24h_samples(athlete_id, date(recorded_at))"
+            "CREATE INDEX IF NOT EXISTS idx_hr_samples_athlete_date ON hr_24h_samples(athlete_id, date(recorded_at))"
         )
         conn.execute("""CREATE TABLE IF NOT EXISTS hr_monitoring_settings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -796,8 +793,7 @@ def init_db():
             UNIQUE(athlete_id, date)
         )""")
         conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_activity_athlete_date "
-            "ON daily_activity_classification(athlete_id, date)"
+            "CREATE INDEX IF NOT EXISTS idx_activity_athlete_date ON daily_activity_classification(athlete_id, date)"
         )
         conn.execute("""CREATE TABLE IF NOT EXISTS strava_tokens (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -957,8 +953,7 @@ def init_db():
             )"""
         )
         conn.execute(  # noqa: E501
-            "CREATE INDEX IF NOT EXISTS idx_legal_acceptances_athlete "
-            "ON legal_acceptances(athlete_id, acceptance_type)"
+            "CREATE INDEX IF NOT EXISTS idx_legal_acceptances_athlete ON legal_acceptances(athlete_id, acceptance_type)"
         )
         conn.execute(
             """CREATE TABLE IF NOT EXISTS ai_audit_log (
@@ -1143,12 +1138,8 @@ def _ensure_sync_tables(conn) -> None:
             updated_at TEXT
         )"""
     )
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_sync_entity_state_type ON sync_entity_state(entity_type, sync_status)"
-    )
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_sync_conflicts_resolution ON sync_conflicts(resolution)"
-    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sync_entity_state_type ON sync_entity_state(entity_type, sync_status)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sync_conflicts_resolution ON sync_conflicts(resolution)")
 
 
 def _ensure_external_identity_index(conn) -> None:
@@ -1168,32 +1159,6 @@ def _ensure_external_identity_index(conn) -> None:
             """CREATE UNIQUE INDEX IF NOT EXISTS uq_rides_external_identity
             ON rides (external_source, external_id)"""
         )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 @pg_dispatch("bike_analyzer.backend.db.postgres_rides")
@@ -1220,12 +1185,6 @@ def save_metric(metric: dict, tenant_id: int = 0) -> int:
         )
         conn.commit()
         return cur.lastrowid
-
-
-
-
-
-
 
 
 def _ensure_oauth_lock_table():
@@ -1258,12 +1217,6 @@ def release_oauth_sqlite_lock(lock_key: str):
     with get_db_connection() as conn:
         conn.execute("DELETE FROM oauth_locks WHERE lock_key = ?", (lock_key,))
         conn.commit()
-
-
-
-
-
-
 
 
 def _ensure_user_oauth_credentials_table() -> None:
@@ -1303,6 +1256,7 @@ def get_user_oauth_credentials(user_id: int, provider: str) -> dict | None:
             if creds.get("client_secret"):
                 try:
                     from ..db.token_crypto import decrypt_token
+
                     creds["client_secret"] = decrypt_token(creds["client_secret"])
                 except Exception:
                     pass
@@ -1327,6 +1281,7 @@ def save_user_oauth_credentials(user_id: int, provider: str, data: dict) -> None
     if client_secret:
         try:
             from ..db.token_crypto import encrypt_token
+
             client_secret = encrypt_token(client_secret)
         except Exception:
             pass
@@ -1363,10 +1318,6 @@ def delete_user_oauth_credentials(user_id: int, provider: str) -> bool:
         cur = conn.cursor()
         cur.execute("DELETE FROM user_oauth_credentials WHERE user_id = ? AND provider = ?", (user_id, provider))
         return cur.rowcount > 0
-
-
-
-
 
 
 @pg_dispatch("bike_analyzer.backend.db.postgres_hr")
@@ -1747,10 +1698,7 @@ def classify_day(
     )
     is_active = steps_estimated >= high_activity_steps or distance_km >= high_activity_km
     is_recovery = (
-        not is_active
-        and resting_setting is not None
-        and resting_hr is not None
-        and resting_hr <= resting_setting + 5
+        not is_active and resting_setting is not None and resting_hr is not None and resting_hr <= resting_setting + 5
     )
 
     if is_sleep_day and not is_active:
@@ -2009,8 +1957,7 @@ def get_food_logs_by_athlete_date(
         cur = conn.cursor()
         if tenant_id is not None:
             cur.execute(
-                "SELECT * FROM food_logs WHERE athlete_id = ? AND date = ? "
-                "AND tenant_id = ? ORDER BY recorded_at ASC",
+                "SELECT * FROM food_logs WHERE athlete_id = ? AND date = ? AND tenant_id = ? ORDER BY recorded_at ASC",
                 (athlete_id, date, tenant_id),
             )
         else:
@@ -2301,8 +2248,11 @@ def upsert_metabolic_reference_value(value: dict, tenant_id: int = 0) -> int:
 
 @pg_dispatch("bike_analyzer.backend.db.postgres_metabolic")
 def get_metabolic_reference_value(
-    sex: str, age: int, weight_kg: float,
-    activity_level: str = "moderate", tenant_id: int = 0,
+    sex: str,
+    age: int,
+    weight_kg: float,
+    activity_level: str = "moderate",
+    tenant_id: int = 0,
 ) -> dict | None:
     """Return the imported reference row for the bracket closest to age/weight."""
     from ...core.calculators.metabolism import age_bracket, weight_bracket
@@ -2397,8 +2347,7 @@ def get_metabolic_adaptive_weights(athlete_id: int, tenant_id: int | None = None
         cur = conn.cursor()
         if tenant_id is not None:
             cur.execute(
-                "SELECT * FROM metabolic_adaptive_weights "
-                "WHERE athlete_id = ? AND tenant_id = ?",
+                "SELECT * FROM metabolic_adaptive_weights WHERE athlete_id = ? AND tenant_id = ?",
                 (athlete_id, tenant_id),
             )
         else:
@@ -2702,7 +2651,10 @@ def get_user_by_id(user_id: int) -> dict | None:
 def get_all_users() -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT id, username, email, is_admin, is_client, is_active, created_at, updated_at FROM users ORDER BY id DESC")
+        cur.execute(
+            "SELECT id, username, email, is_admin, is_client, is_active, "
+            "created_at, updated_at FROM users ORDER BY id DESC"
+        )
         rows = cur.fetchall()
         return [
             {
@@ -2861,8 +2813,10 @@ def get_athlete_by_query(**query):
 
 def _row_to_poi(row) -> dict:
     keys = row.keys() if hasattr(row, "keys") else []
+
     def _col(name, default=None):
         return row[name] if name in keys else default
+
     photos = _col("photos")
     tags = _col("tags")
     return {
@@ -2933,8 +2887,8 @@ def save_poi(poi: dict) -> int:
 
 @pg_dispatch("bike_analyzer.backend.db.postgres_poi")
 def get_poi(poi_id: int, tenant_id: int | None = None) -> dict | None:
-    from .postgres_poi import has_postgres
     from .postgres_poi import get_poi as _pg_get_poi
+    from .postgres_poi import has_postgres
 
     if has_postgres():
         return _pg_get_poi(poi_id, tenant_id)
@@ -2958,8 +2912,8 @@ def get_nearby_pois(lat: float, lon: float, radius_km: float = 5.0, tenant_id: i
     When ``tenant_id`` is provided, only POIs belonging to that tenant are
     returned, preventing cross-tenant GPS data disclosure.
     """
-    from .postgres_poi import has_postgres
     from .postgres_poi import get_nearby_pois as _pg_get_nearby_pois
+    from .postgres_poi import has_postgres
 
     if has_postgres():
         return _pg_get_nearby_pois(lat, lon, radius_km, tenant_id)
@@ -3031,8 +2985,8 @@ def list_pois(itinerary_id: int | None = None, tenant_id: int | None = None) -> 
 
 @pg_dispatch("bike_analyzer.backend.db.postgres_poi")
 def delete_poi(poi_id: int) -> bool:
-    from .postgres_poi import has_postgres
     from .postgres_poi import delete_poi as _pg_delete_poi
+    from .postgres_poi import has_postgres
 
     if has_postgres():
         return _pg_delete_poi(poi_id)
@@ -3286,10 +3240,22 @@ def reorder_stages(itinerary_id: int, stage_order: list[int], tenant_id: int | N
 
 
 def _row_to_itinerary(row: tuple) -> dict:
-    cols = [d[0] for d in row.cursor_description] if hasattr(row, "cursor_description") else [
-        "id", "athlete_id", "tenant_id", "name", "description",
-        "start_date", "end_date", "total_km", "total_elevation_m", "created_at",
-    ]
+    cols = (
+        [d[0] for d in row.cursor_description]
+        if hasattr(row, "cursor_description")
+        else [
+            "id",
+            "athlete_id",
+            "tenant_id",
+            "name",
+            "description",
+            "start_date",
+            "end_date",
+            "total_km",
+            "total_elevation_m",
+            "created_at",
+        ]
+    )
     data = dict(zip(cols, row, strict=False))
     return {
         "id": data.get("id"),
@@ -3306,11 +3272,26 @@ def _row_to_itinerary(row: tuple) -> dict:
 
 
 def _row_to_stage(row: tuple) -> dict:
-    cols = [d[0] for d in row.cursor_description] if hasattr(row, "cursor_description") else [
-        "id", "itinerary_id", "stage_day", "title", "distance_km",
-        "elevation_gain_m", "estimated_km", "estimated_elevation_m",
-        "ride_id", "poi_id", "notes", "tenant_id", "created_at", "updated_at",
-    ]
+    cols = (
+        [d[0] for d in row.cursor_description]
+        if hasattr(row, "cursor_description")
+        else [
+            "id",
+            "itinerary_id",
+            "stage_day",
+            "title",
+            "distance_km",
+            "elevation_gain_m",
+            "estimated_km",
+            "estimated_elevation_m",
+            "ride_id",
+            "poi_id",
+            "notes",
+            "tenant_id",
+            "created_at",
+            "updated_at",
+        ]
+    )
     data = dict(zip(cols, row, strict=False))
     return {
         "id": data.get("id"),
@@ -3782,8 +3763,7 @@ def get_ble_devices(athlete_id: int, tenant_id: int | None = None) -> list[dict]
         cur = conn.cursor()
         if tenant_id is not None:
             cur.execute(
-                "SELECT * FROM ble_devices WHERE athlete_id = ? AND tenant_id = ? "
-                "ORDER BY created_at DESC",
+                "SELECT * FROM ble_devices WHERE athlete_id = ? AND tenant_id = ? ORDER BY created_at DESC",
                 (athlete_id, tenant_id),
             )
         else:
@@ -3806,8 +3786,14 @@ def get_ble_device(device_id: int, athlete_id: int) -> dict | None:
 def update_ble_device(device_id: int, athlete_id: int, **updates) -> dict | None:
     """Update fields of a BLE device."""
     allowed = {
-        "name", "device_type", "service_uuid", "characteristic_uuid",
-        "mac_address", "paired", "settings", "last_connected_at",
+        "name",
+        "device_type",
+        "service_uuid",
+        "characteristic_uuid",
+        "mac_address",
+        "paired",
+        "settings",
+        "last_connected_at",
         "last_synced_at",
     }
     set_clause = ", ".join(f"{k} = ?" for k in updates if k in allowed)
@@ -3838,8 +3824,7 @@ def mark_ble_device_connected(device_id: int, athlete_id: int) -> None:
     now = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
         conn.execute(
-            "UPDATE ble_devices SET last_connected_at = ? "
-            "WHERE id = ? AND athlete_id = ?",
+            "UPDATE ble_devices SET last_connected_at = ? WHERE id = ? AND athlete_id = ?",
             (now, device_id, athlete_id),
         )
         conn.commit()
@@ -3851,8 +3836,7 @@ def mark_ble_device_synced(device_id: int, athlete_id: int) -> None:
     now = datetime.now(UTC).isoformat()
     with get_db_connection() as conn:
         conn.execute(
-            "UPDATE ble_devices SET last_synced_at = ? "
-            "WHERE id = ? AND athlete_id = ?",
+            "UPDATE ble_devices SET last_synced_at = ? WHERE id = ? AND athlete_id = ?",
             (now, device_id, athlete_id),
         )
         conn.commit()
@@ -3984,10 +3968,23 @@ def get_ai_audit_logs_by_athlete(athlete_id: int, limit: int = 100) -> list[dict
 
 
 def _row_to_sync_entity_state(row: tuple) -> dict:
-    cols = [d[0] for d in row.cursor_description] if hasattr(row, "cursor_description") else [
-        "id", "entity_type", "entity_id", "source", "reliability_score",
-        "last_modified", "sync_status", "sync_error", "cloud_id", "created_at", "updated_at",
-    ]
+    cols = (
+        [d[0] for d in row.cursor_description]
+        if hasattr(row, "cursor_description")
+        else [
+            "id",
+            "entity_type",
+            "entity_id",
+            "source",
+            "reliability_score",
+            "last_modified",
+            "sync_status",
+            "sync_error",
+            "cloud_id",
+            "created_at",
+            "updated_at",
+        ]
+    )
     data = dict(zip(cols, row, strict=False))
     return {
         "id": data.get("id"),

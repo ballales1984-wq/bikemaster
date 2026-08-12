@@ -4,15 +4,13 @@ from __future__ import annotations
 
 import os
 from datetime import UTC, datetime
-from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
-from ...security import get_current_user
-from ..routes import _ensure_athlete_access
-from ..schemas import MeasurementCreate
 from ...analytics.repositories.legal_repository import LegalRepository
+from ...security import get_current_user
 
 router = APIRouter(prefix="/legal", tags=["legal"])
 
@@ -80,11 +78,9 @@ async def export_all_my_data(current_user: dict = Depends(get_current_user)):
     """Export all user data as JSON."""
     import json
 
-    from fastapi.responses import FileResponse
-
     from ...analytics.services.export_service import ExportService
 
-    athlete_id = current_user.get("athlete_id") or current_user["id"]
+    current_user.get("athlete_id") or current_user["id"]
     tenant_id = current_user.get("tenant_id", current_user["id"])
     now = datetime.now(UTC).isoformat()
     path = f"bikemaster_export_{current_user['id']}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"

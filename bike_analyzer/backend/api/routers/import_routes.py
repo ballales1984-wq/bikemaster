@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import tempfile
 from pathlib import Path
-from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
@@ -65,7 +64,7 @@ async def import_fit(
         raise
     except Exception as exc:
         logger.exception("FIT import failed")
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail=str(exc)) from None
 
 
 @router.post("/gpx")
@@ -86,7 +85,7 @@ async def import_gpx(
         return result
     except Exception as exc:
         logger.exception("GPX import failed")
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail=str(exc)) from None
 
 
 @router.post("/tcx")
@@ -107,7 +106,7 @@ async def import_tcx(
         return result
     except Exception as exc:
         logger.exception("TCX import failed")
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail=str(exc)) from None
 
 
 @router.post("/multiple")
@@ -157,3 +156,15 @@ async def import_multiple(
         except Exception as exc:
             failed.append({"name": file.filename, "error": str(exc)})
     return JSONResponse(content={"imported": imported, "failed": failed})
+
+
+@router.get("/providers")
+async def get_import_providers(current_user: dict = Depends(get_current_user)):
+    return {
+        "google_fit": True,
+        "google_health": False,
+        "wahoo": False,
+        "strava": False,
+        "garmin": False,
+        "health_connect": False,
+    }

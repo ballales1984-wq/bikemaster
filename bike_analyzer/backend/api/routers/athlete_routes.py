@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from bike_analyzer.backend.api.routes import _athlete_profile_data, _current_athlete_id
 from bike_analyzer.backend.db.database import (
     delete_athlete,
     get_all_athletes,
@@ -20,8 +21,6 @@ from bike_analyzer.backend.db.database import (
     update_athlete,
 )
 from bike_analyzer.backend.security import get_current_user
-
-from bike_analyzer.backend.api.routes import _current_athlete_id
 
 logger = logging.getLogger(__name__)
 
@@ -137,10 +136,7 @@ async def list_my_athletes(current_user: dict = Depends(get_current_user)):
     user_id = int(current_user["id"])
     athletes = get_athletes_by_user(user_id)
     return {
-        "athletes": [
-            {"id": a["id"], "name": a.get("name"), "email": a.get("email")}
-            for a in athletes
-        ],
+        "athletes": [{"id": a["id"], "name": a.get("name"), "email": a.get("email")} for a in athletes],
     }
 
 
@@ -260,9 +256,9 @@ def _auto_create_athlete(athlete_id: int, current_user: dict, updates: dict | No
 async def get_athlete_state(current_user: dict = Depends(get_current_user)):
     athlete_id = _current_athlete_id(current_user)
     from ...analytics.athlete_state.service import AthleteStateService
-    from ...analytics.repositories.ride_repository import RideRepository
     from ...analytics.repositories.athlete_repository import AthleteRepository
-    from ...models.models import Ride, AthleteProfile
+    from ...analytics.repositories.ride_repository import RideRepository
+    from ...models.models import AthleteProfile, Ride
 
     rides_data = await RideRepository().list_all(athlete_id=athlete_id)
     rides = [Ride(**r) for r in rides_data]
