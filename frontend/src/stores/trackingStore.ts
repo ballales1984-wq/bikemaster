@@ -12,7 +12,7 @@ import { defineStore } from "pinia";
 import type { GpsPoint } from "../types/index";
 import { haversineDistanceMeters } from "../utils/geo";
 
-const STORAGE_KEY = "bikemaster_tracking_draft";
+export const STORAGE_KEY = "bikemaster_tracking_draft";
 
 export interface ActivitySegment {
   id: string;

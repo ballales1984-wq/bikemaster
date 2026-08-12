@@ -169,7 +169,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch, computed } from "vue";
 import { storeToRefs } from "pinia";
-import { useTrackingStore } from "../stores/trackingStore";
+import { useTrackingStore, STORAGE_KEY } from "../stores/trackingStore";
 import { useRouter } from "vue-router";
 import { useI18n } from "../composables/useI18n";
 import { useGpsOutlierFilter } from "../composables/useGpsOutlierFilter";
@@ -269,7 +269,7 @@ const continuous = useContinuousTracking({
   },
   batterySaver: () => batterySaver.value,
   autoStart: true,
-  autoPauseOnHidden: true,
+  autoPauseOnHidden: false,
 });
 
 const todaySegments = computed(() => tracking.getTodaySegments());
@@ -387,6 +387,18 @@ function resumeTracking() {
   if (webPausedAt !== null) {
     webPausedAccumulatedMs += Date.now() - webPausedAt;
     webPausedAt = null;
+  }
+}
+
+function handleVisibilityChange() {
+  if (document.hidden) {
+    if (isTracking.value && !isPaused.value) {
+      pauseTracking();
+    }
+  } else {
+    if (isTracking.value && isPaused.value) {
+      resumeTracking();
+    }
   }
 }
 
@@ -739,10 +751,24 @@ function onSelectSegment(segId: string) {
 }
 
 onMounted(async () => {
+  window.addEventListener("visibilitychange", handleVisibilityChange);
   const restored = tracking.restoreState();
   if (!restored) {
     resetTrackingState();
   } else if (tracking.routePoints.length > 0) {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const state = JSON.parse(raw);
+        if (state.timestamp) {
+          webStartTime = state.timestamp;
+          webPausedAccumulatedMs = 0;
+          webPausedAt = null;
+        }
+      }
+    } catch {
+      // ignore
+    }
     liveMapRef.value?.setRoute(
       tracking.routePoints.map((p) => ({ lat: p.lat, lon: p.lon })),
     );
@@ -750,6 +776,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener("visibilitychange", handleVisibilityChange);
   if (webFirstFixTimeout !== null) {
     clearTimeout(webFirstFixTimeout);
     webFirstFixTimeout = null;
