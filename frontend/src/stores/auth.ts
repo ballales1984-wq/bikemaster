@@ -290,13 +290,11 @@ export const useAuthStore = defineStore("auth", () => {
     refreshing = true;
     refreshPromise = (async () => {
       try {
-        const form = new URLSearchParams();
-        form.append("refresh_token", refreshToken.value);
         const data = await apiPost<{
           access_token: string;
           refresh_token?: string;
-        }>("/api/v1/auth/refresh", form, {
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        }>("/api/v1/auth/refresh", {
+          refresh_token: refreshToken.value,
         });
         if (data.access_token) {
           token.value = data.access_token;

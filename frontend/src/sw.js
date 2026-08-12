@@ -55,9 +55,6 @@ self.addEventListener("install", (event) => {
         ]),
       )
       .then(() => {
-        if (self.registration.navigationPreload) {
-          return self.registration.navigationPreload.enable().catch(() => {});
-        }
       }),
   );
 });
