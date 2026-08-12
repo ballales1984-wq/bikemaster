@@ -1,6 +1,6 @@
-# AetherMap C++ Renderer — Milestones 1-6 Integrated
+# AetherMap C++ Renderer — Milestone 1
 
-Minimal OpenGL scaffold: window + colored triangle + point cloud + ImGui + LOD + spatial index.
+Minimal OpenGL scaffold: window + colored triangle.
 
 ## Prerequisites
 
@@ -28,22 +28,26 @@ cmake --build build --config Release
 .\build\Release\AetherMapRenderer.exe
 ```
 
-GLAD and Dear ImGui are fetched automatically via CMake FetchContent.
+GLAD is fetched automatically via CMake FetchContent (Dav1dde/glad v0.1.36).
+
+## Manual dependency setup
+
+If you prefer manual installs:
+- GLFW: https://www.glfw.org/download.html
+- GLM: https://github.com/g-truc/glm (header-only, just add include path)
+- GLAD: generate at https://glad.dav1d.de/ (OpenGL, Core profile, 3.3) and place headers in `external/glad/`
 
 ## What this milestone does
 
-1. Creates a 1280x720 GLFW window
+1. Creates a 1280×720 GLFW window
 2. Loads OpenGL 3.3 core via GLAD
-3. Renders a colored triangle (Milestone 1)
-4. Renders a 10k-point Fibonacci sphere with per-vertex RGB colors (Milestone 3)
-5. Orbit camera with mouse drag + scroll zoom using GLM (Milestone 2)
-6. CPU-side LOD selection: high/medium/low based on camera distance (Milestone 5)
-7. Dear ImGui debug panel with layer switcher and LOD override (Milestone 4)
-8. Spatial index header for frustum culling (Milestone 6, header-only)
+3. Compiles a passthrough vertex shader + flat-color fragment shader
+4. Renders a single RGB triangle
 
-## Controls
+## Next milestones
 
-- **Left mouse drag**: rotate camera
-- **Scroll wheel**: zoom in/out
-- **Space**: toggle point cloud visibility
-- **ImGui panel**: switch layers, adjust LOD
+- Camera orbit (glm mat4, GLFW scroll/drag)
+- Point cloud render (GL_POINTS, attribute-driven color)
+- Dear ImGui debug panel (layer switch, LOD slider)
+- LOD CPU-side selection
+- Spatial index (S2 / cube-quadtree)
