@@ -66,6 +66,7 @@ from .routers.performance_routes import router as performance_router
 from .routers.metabolism_routes import router as metabolism_router
 from .routers.rides_routes import router as rides_router
 from .routers.aethermap_routes import router as aethermap_router
+from ..hub.routes import hub_auth_router
 from .utils import _trusted_forwarded_value
 
 logger = logging.getLogger(__name__)
@@ -528,6 +529,7 @@ def create_app() -> FastAPI:
     app.include_router(coach_router, prefix="/api/v1")
     app.include_router(analytics_router, prefix="/api/v1")
     app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(hub_auth_router, prefix="/api/v1")
     app.include_router(import_router, prefix="/api/v1")
     app.include_router(sync_router, prefix="/api/v1")
     app.include_router(performance_router, prefix="/api/v1")

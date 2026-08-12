@@ -77,3 +77,6 @@ def trusted_forwarded_value(request: Request, header_name: str) -> str:
     if not _is_trusted_proxy(client_host):
         return ""
     return forwarded_value(request.headers.get(header_name))
+
+
+is_trusted_proxy = _is_trusted_proxy
