@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -17,17 +18,20 @@ router = APIRouter(prefix="/aethermap", tags=["aethermap"])
 
 @router.get("/terrain")
 async def get_terrain(
-    lat: float = Query(...),
-    lon: float = Query(...),
-    radius_km: float = Query(5.0),
+    min_lat: float = Query(...),
+    max_lat: float = Query(...),
+    min_lon: float = Query(...),
+    max_lon: float = Query(...),
+    resolution: int = Query(64, ge=2, le=256),
+    source: str = Query("auto"),
     current_user: dict = Depends(get_current_user),
 ):
-    """Return terrain enrichment data for a location."""
+    """Return a heightfield for a lat/lon bounding box."""
     try:
-        from ..maps.terrain import get_terrain_summary
+        from bike_analyzer.backend.maps.terrain import get_tile
 
-        data = get_terrain_summary(lat, lon, radius_km=radius_km)
-        return data
+        tile = get_tile(min_lat, max_lat, min_lon, max_lon, resolution=resolution, source=source)
+        return {"heights": tile.heights.flatten().tolist()}
     except Exception as exc:
         logger.exception("Terrain lookup failed")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -114,7 +118,7 @@ async def get_natural_earth(
     try:
         import os
 
-        from ..maps.terrain import _DEM_CACHE_DIR
+        from bike_analyzer.backend.maps.terrain import _DEM_CACHE_DIR
 
         cache_file = _DEM_CACHE_DIR / f"natural-earth-{resolution}.geojson"
         if not cache_file.exists():
@@ -134,7 +138,14 @@ async def get_natural_earth(
                     status_code=503,
                     content={"detail": "Natural Earth data unavailable"},
                 )
-        return JSONResponse(content=json.loads(cache_file.read_text(encoding="utf-8")))
+        raw = cache_file.read_text(encoding="utf-8")
+        return JSONResponse(content=json.loads(raw))
+    except json.JSONDecodeError as exc:
+        logger.warning("Natural Earth cache corrupted: %s", exc)
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Natural Earth data unavailable"},
+        )
     except Exception as exc:
         logger.exception("Natural Earth fetch failed")
         raise HTTPException(status_code=500, detail=str(exc))
