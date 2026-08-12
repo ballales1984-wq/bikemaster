@@ -1,61 +1,53 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { reactive, toRef } from "vue";
+import { ref, computed } from "vue";
+import { createPinia, setActivePinia } from "pinia";
+
+setActivePinia(createPinia());
 
 const mockFetchProfile = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 const mockFetchState = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 
-const mockAthleteStore = reactive({
-  profile: null,
-  fetchProfile: mockFetchProfile,
-  updateProfile: vi.fn(),
-  fetchMetricLog: vi.fn(() => Promise.resolve([])),
-  error: null,
-});
+const mockProfileRef = ref(null);
+const mockErrorRef = ref(null);
+const mockStateRef = ref(null);
+const mockStateErrorRef = ref(null);
+const mockIsLoggedIn = ref(true);
 
-const mockAuthStore = reactive({
-  isLoggedIn: true,
+const wrappedFetchProfile = vi.fn(async () => {
+  const result = await mockFetchProfile();
+  if (result) mockProfileRef.value = result;
+  return result;
 });
-
-const mockAthleteStateStore = reactive({
-  state: null,
-  fetchState: mockFetchState,
-  error: null,
+const wrappedFetchState = vi.fn(async () => {
+  const result = await mockFetchState();
+  if (result) mockStateRef.value = result;
+  return result;
 });
 
 vi.mock("../stores/athlete", () => ({
-  useAthleteStore: () => mockAthleteStore,
+  useAthleteStore: () => ({
+    profile: computed(() => mockProfileRef.value),
+    fetchProfile: wrappedFetchProfile,
+    updateProfile: vi.fn(),
+    fetchMetricLog: vi.fn(() => Promise.resolve([])),
+    error: mockErrorRef,
+  }),
 }));
 
 vi.mock("../stores/athleteState", () => ({
-  useAthleteStateStore: () => mockAthleteStateStore,
+  useAthleteStateStore: () => ({
+    state: mockStateRef,
+    fetchState: wrappedFetchState,
+    error: mockStateErrorRef,
+  }),
 }));
 
 vi.mock("../stores/auth", () => ({
-  useAuthStore: () => mockAuthStore,
+  useAuthStore: () => ({
+    isLoggedIn: mockIsLoggedIn.value,
+  }),
 }));
-
-vi.mock("pinia", async () => {
-  const actual = await vi.importActual("pinia");
-  return {
-    ...actual,
-    storeToRefs: (store) => {
-      if (store === mockAthleteStore) {
-        return {
-          profile: toRef(store, "profile"),
-          error: toRef(store, "error"),
-        };
-      }
-      if (store === mockAthleteStateStore) {
-        return {
-          state: toRef(store, "state"),
-          error: toRef(store, "error"),
-        };
-      }
-      return actual.storeToRefs(store);
-    },
-  };
-});
 
 import AthleteAvatarPanel from "./AthleteAvatarPanel.vue";
 
@@ -114,46 +106,44 @@ const mockState = {
 describe("AthleteAvatarPanel", () => {
   afterEach(() => {
     vi.clearAllMocks();
-    mockAthleteStore.profile = null;
-    mockAthleteStore.error = null;
-    mockAthleteStateStore.state = null;
-    mockAthleteStateStore.error = null;
-    mockAuthStore.isLoggedIn = true;
+    mockProfileRef.value = null;
+    mockStateRef.value = null;
+    mockErrorRef.value = null;
+    mockStateErrorRef.value = null;
+    mockIsLoggedIn.value = true;
   });
 
   it("loads profile and state on mount when logged in", async () => {
     mockFetchProfile.mockResolvedValueOnce(mockProfile);
     mockFetchState.mockResolvedValueOnce(mockState);
-    mockAthleteStore.profile = mockProfile;
-    mockAthleteStateStore.state = mockState;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
 
-    expect(mockFetchProfile).toHaveBeenCalledTimes(1);
-    expect(mockFetchState).toHaveBeenCalledTimes(1);
+    expect(wrappedFetchProfile).toHaveBeenCalledTimes(1);
+    expect(wrappedFetchState).toHaveBeenCalledTimes(1);
     expect(wrapper.text()).toContain("Marco Rossi");
     expect(wrapper.text()).toContain("280");
   });
 
   it("does not fetch when not logged in", async () => {
-    mockAuthStore.isLoggedIn = false;
+    mockIsLoggedIn.value = false;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
 
-    expect(mockFetchProfile).not.toHaveBeenCalled();
-    expect(mockFetchState).not.toHaveBeenCalled();
+    expect(wrappedFetchProfile).not.toHaveBeenCalled();
+    expect(wrappedFetchState).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain("Atleta");
   });
 
   it("shows equipment and medical notes when present", async () => {
-    mockAthleteStore.profile = {
+    mockProfileRef.value = {
       ...mockProfile,
       equipment: "S-Works Tarmac",
       medical_notes: "Asma lieve",
     };
-    mockAthleteStateStore.state = mockState;
+    mockStateRef.value = mockState;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
@@ -165,12 +155,12 @@ describe("AthleteAvatarPanel", () => {
   });
 
   it("hides equipment section when both fields are empty", async () => {
-    mockAthleteStore.profile = {
+    mockProfileRef.value = {
       ...mockProfile,
       equipment: null,
       medical_notes: null,
     };
-    mockAthleteStateStore.state = mockState;
+    mockStateRef.value = mockState;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
@@ -180,8 +170,8 @@ describe("AthleteAvatarPanel", () => {
   });
 
   it("renders fitness state when available", async () => {
-    mockAthleteStore.profile = mockProfile;
-    mockAthleteStateStore.state = mockState;
+    mockProfileRef.value = mockProfile;
+    mockStateRef.value = mockState;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();

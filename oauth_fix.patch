@@ -1,0 +1,84 @@
+diff --git a/bike_analyzer/backend/api/routes.py b/bike_analyzer/backend/api/routes.py
+index 7d64455..949e5b7 100644
+--- a/bike_analyzer/backend/api/routes.py
++++ b/bike_analyzer/backend/api/routes.py
+@@ -1787,7 +1787,16 @@ async def google_oauth_callback_get(
+             resp.headers["Expires"] = "0"
+             return resp
+ 
+-        existing = await asyncio.to_thread(get_athlete_by_email, email) if email else None
++        try:
++            existing = await asyncio.to_thread(get_athlete_by_email, email) if email else None
++        except Exception as exc:
++            logger.exception("Google OAuth athlete lookup failed: %s", exc)
++            resp = _build_oauth_error_url(request, redirect_uri, "user_lookup_failed", frontend_origin)
++            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
++            resp.headers["Pragma"] = "no-cache"
++            resp.headers["Expires"] = "0"
++            return resp
++
+         if not existing:
+             from ..redis_client import get_redis
+ 
+@@ -1823,6 +1832,17 @@ async def google_oauth_callback_get(
+                         return result
+ 
+                     existing = await asyncio.to_thread(_create_athlete)
++            except Exception as exc:
++                logger.exception("Google OAuth athlete creation failed: %s", exc)
++                if r is not None:
++                    await r.delete(lock_key)
++                else:
++                    lock_release()
++                resp = _build_oauth_error_url(request, redirect_uri, "user_creation_failed", frontend_origin)
++                resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
++                resp.headers["Pragma"] = "no-cache"
++                resp.headers["Expires"] = "0"
++                return resp
+             finally:
+                 if r is not None:
+                     await r.delete(lock_key)
+@@ -1836,7 +1856,16 @@ async def google_oauth_callback_get(
+             resp.headers["Expires"] = "0"
+             return resp
+ 
+-        jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
++        try:
++            jwt_token = create_google_session(user_info, athlete_id=existing["id"])["access_token"]
++        except Exception as exc:
++            logger.exception("Google OAuth session creation failed: %s", exc)
++            resp = _build_oauth_error_url(request, redirect_uri, "session_creation_failed", frontend_origin)
++            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
++            resp.headers["Pragma"] = "no-cache"
++            resp.headers["Expires"] = "0"
++            return resp
++
+         frontend_origin = state_data.get("frontend_origin")
+         redirect_target = frontend_origin or redirect_uri
+         redirect_url = _build_oauth_success_url(redirect_target, jwt_token, email or "", existing["id"])
+diff --git a/bike_analyzer/backend/api/utils.py b/bike_analyzer/backend/api/utils.py
+index fd7cbe8..ad64dc9 100644
+--- a/bike_analyzer/backend/api/utils.py
++++ b/bike_analyzer/backend/api/utils.py
+@@ -10,6 +10,21 @@ _TRUSTED_PROXIES: tuple[str, ...] = (
+     "192.168.0.0/16",
+     "127.0.0.1",
+     "::1",
++    "173.245.0.0/16",
++    "103.21.244.0/22",
++    "103.22.200.0/22",
++    "103.31.4.0/22",
++    "141.101.64.0/18",
++    "108.162.192.0/18",
++    "190.93.240.0/20",
++    "188.114.96.0/20",
++    "197.234.240.0/22",
++    "198.41.128.0/17",
++    "162.158.0.0/15",
++    "104.16.0.0/13",
++    "104.24.0.0/14",
++    "172.64.0.0/13",
++    "131.0.72.0/22",
+ )
+ 
+ 
