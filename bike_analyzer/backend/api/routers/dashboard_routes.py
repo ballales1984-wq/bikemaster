@@ -6,7 +6,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from bike_analyzer.backend.analytics.dashboard import create_score_dashboard
 from bike_analyzer.backend.analytics.repositories.ride_repository import RideRepository
@@ -26,7 +26,7 @@ def _current_athlete_id(current_user: dict) -> int:
     try:
         return int(current_user.get("athlete_id") or current_user["id"])
     except (KeyError, TypeError, ValueError) as exc:
-        raise RuntimeError("Invalid user token") from exc
+        raise HTTPException(status_code=401, detail="Invalid user token") from exc
 
 
 @router.get("/dashboard")
@@ -40,11 +40,11 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
 
     from bike_analyzer.backend.db.database import get_athlete
 
-    athlete = get_athlete(athlete_id)
+    athlete = get_athlete(athlete_id, tenant_id) or {}
 
     total_rides = len(ride_objects)
     total_km = round(sum(r.distance_km for r in ride_objects), 1)
-    total_hours = round(sum(r.duration_hours for r in ride_objects), 1)
+    total_hours = round(sum((r.duration_minutes or 0) for r in ride_objects) / 60.0, 1)
     total_calories = round(sum(r.calories or 0 for r in ride_objects), 0)
 
     summary = {
@@ -108,4 +108,5 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
         "trends": trends,
         "recent_rides": recent_rides_list,
         "scores": score_fields,
+        "rides_count": total_rides,
     }
