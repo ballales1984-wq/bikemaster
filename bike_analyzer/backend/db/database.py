@@ -2751,7 +2751,7 @@ def delete_user(user_id: int) -> bool:
         return cur.rowcount > 0
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_safety")
 def save_road_incident(incident: dict) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2776,7 +2776,7 @@ def save_road_incident(incident: dict) -> int:
         return cur.lastrowid
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_safety")
 def save_route_safety_score(score_data: dict, tenant_id: int = 0) -> int:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -2814,7 +2814,7 @@ def save_route_safety_score(score_data: dict, tenant_id: int = 0) -> int:
         return cur.lastrowid
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_safety")
 def get_route_safety_score(ride_id: int, tenant_id: int | None = None) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3540,7 +3540,7 @@ def _beck_severity(total_score: int) -> str:
     return "severe"
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_beck")
 def save_beck_assessment(assessment: dict, tenant_id: int = 0) -> int:
     now = datetime.now(UTC).isoformat()
     answers = assessment.get("answers", [])
@@ -3567,7 +3567,7 @@ def save_beck_assessment(assessment: dict, tenant_id: int = 0) -> int:
         return cur.lastrowid
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_beck")
 def get_beck_assessment(assessment_id: int) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3588,7 +3588,7 @@ def get_beck_assessment(assessment_id: int) -> dict | None:
         }
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_beck")
 def get_beck_assessments_by_athlete(athlete_id: int, tenant_id: int = 0, limit: int = 100) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3635,7 +3635,7 @@ def get_metrics_by_athlete(athlete_id: int, tenant_id: int | None = None) -> lis
     return [dict(r) for r in rows]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_fitness")
 def get_fitness_states_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -3671,7 +3671,7 @@ def get_food_logs_by_athlete(athlete_id: int, tenant_id: int | None = None, limi
     return [dict(r) for r in rows]
 
 
-@pg_dispatch("bike_analyzer.backend.db.postgres_stubs")
+@pg_dispatch("bike_analyzer.backend.db.postgres_beck")
 def get_latest_beck_assessment(athlete_id: int, tenant_id: int = 0) -> dict | None:
     with get_db_connection() as conn:
         cur = conn.cursor()
