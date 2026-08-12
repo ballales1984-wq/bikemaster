@@ -1,1 +1,26 @@
 .vercel
+node_modules
+dist
+*.local
+*.tsbuildinfo
+.env.local
+.env.*.local
+
+# Debug / audit scripts and outputs
+debug-*
+audit-*
+audit.json
+check-*.mjs
+check-*.py
+ts-out*
+tsc_results*
+tserrors.txt
+build_out.txt
+test-output*
+test-results*
+frontend_*.txt
+full_test.txt
+
+# Android build artifacts
+*.apk
+*.aab
