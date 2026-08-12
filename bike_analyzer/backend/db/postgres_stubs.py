@@ -7,10 +7,9 @@ lazy import mechanism: when ``DATABASE_URL`` is configured the decorator
 attempts to import the matching symbol from this module; without it the
 import fails with ``ModuleNotFoundError`` and crashes startup.
 
-Each domain listed below has not yet been migrated to PostgreSQL and
-remains SQLite-only.  On Render (where the container has no persistent
-volume) data for these domains is ephemeral, but the application must
-still start cleanly.
+Domains migrated in this file are no longer stubbed here; they live in
+their own ``postgres_*.py`` modules.  Only truly unmigrated domains remain
+below.
 """
 
 from __future__ import annotations
@@ -27,6 +26,7 @@ def _not_migrated(fn_name: str) -> None:
     )
 
 
+# user oauth (migrated to postgres_user_oauth.py)
 def get_user_oauth_credentials(user_id: int, provider: str) -> dict | None:
     _not_migrated("get_user_oauth_credentials")
 
@@ -43,6 +43,7 @@ def delete_user_oauth_credentials(user_id: int, provider: str) -> bool:
     _not_migrated("delete_user_oauth_credentials")
 
 
+# hr
 def log_hr_sample(
     athlete_id: int,
     timestamp: str,
@@ -106,6 +107,7 @@ def delete_hr_samples(
     _not_migrated("delete_hr_samples")
 
 
+# sensor / activity
 def log_sensor_data(
     athlete_id: int,
     sensor_type: str,
@@ -145,98 +147,7 @@ def get_activity_classification(
     _not_migrated("get_activity_classification")
 
 
-def save_metabolic_profile(
-    profile: dict, athlete_id: int, tenant_id: int = 0
-) -> int:
-    _not_migrated("save_metabolic_profile")
-
-
-def get_metabolic_profile(
-    athlete_id: int, tenant_id: int | None = None
-) -> dict | None:
-    _not_migrated("get_metabolic_profile")
-
-
-def save_food_log(log: dict, tenant_id: int = 0) -> int:
-    _not_migrated("save_food_log")
-
-
-def get_food_logs_by_athlete_date(
-    athlete_id: int,
-    date: str,
-    *,
-    tenant_id: int | None = None,
-) -> list[dict]:
-    _not_migrated("get_food_logs_by_athlete_date")
-
-
-def update_food_log(log_id: int, log_data: dict) -> bool:
-    _not_migrated("update_food_log")
-
-
-def get_food_log(log_id: int) -> dict | None:
-    _not_migrated("get_food_log")
-
-
-def delete_food_log(log_id: int) -> bool:
-    _not_migrated("delete_food_log")
-
-
-def save_metabolic_daily_summary(summary: dict, tenant_id: int = 0) -> int:
-    _not_migrated("save_metabolic_daily_summary")
-
-
-def get_metabolic_daily_summaries(
-    athlete_id: int,
-    *,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    tenant_id: int | None = None,
-    limit: int = 365,
-) -> list[dict]:
-    _not_migrated("get_metabolic_daily_summaries")
-
-
-def get_metabolic_daily_summary(
-    athlete_id: int,
-    date: str,
-    tenant_id: int | None = None,
-) -> dict | None:
-    _not_migrated("get_metabolic_daily_summary")
-
-
-def upsert_metabolic_reference_value(value: dict, tenant_id: int = 0) -> int:
-    _not_migrated("upsert_metabolic_reference_value")
-
-
-def get_metabolic_reference_value(
-    sex: str,
-    age: int,
-    weight_kg: float,
-    activity_level: str = "moderate",
-    tenant_id: int = 0,
-) -> dict | None:
-    _not_migrated("get_metabolic_reference_value")
-
-
-def get_all_metabolic_reference_values(
-    tenant_id: int | None = None,
-) -> list[dict]:
-    _not_migrated("get_all_metabolic_reference_values")
-
-
-def save_metabolic_adaptive_weights(
-    weights: dict, athlete_id: int, tenant_id: int = 0
-) -> int:
-    _not_migrated("save_metabolic_adaptive_weights")
-
-
-def get_metabolic_adaptive_weights(
-    athlete_id: int, tenant_id: int | None = None
-) -> dict | None:
-    _not_migrated("get_metabolic_adaptive_weights")
-
-
+# chat
 def save_chat_message(
     athlete_id: int | None, role: str, content: str, tenant_id: int = 0
 ) -> int:
@@ -265,64 +176,7 @@ def prune_chat_history(
     _not_migrated("prune_chat_history")
 
 
-def get_weather_cache(lat: float, lon: float, date: str) -> dict | None:
-    _not_migrated("get_weather_cache")
-
-
-def save_weather_cache(
-    lat: float, lon: float, date: str, weather: dict
-) -> int:
-    _not_migrated("save_weather_cache")
-
-
-def save_road_incident(incident: dict) -> int:
-    _not_migrated("save_road_incident")
-
-
-def save_route_safety_score(
-    score_data: dict, tenant_id: int = 0
-) -> int:
-    _not_migrated("save_route_safety_score")
-
-
-def get_route_safety_score(
-    ride_id: int, tenant_id: int | None = None
-) -> dict | None:
-    _not_migrated("get_route_safety_score")
-
-
-def get_athlete_by_query(**query) -> dict | None:
-    _not_migrated("get_athlete_by_query")
-
-
-def save_poi(poi: dict) -> int:
-    _not_migrated("save_poi")
-
-
-def get_poi(poi_id: int, tenant_id: int | None = None) -> dict | None:
-    _not_migrated("get_poi")
-
-
-def get_nearby_pois(
-    lat: float,
-    lon: float,
-    radius_km: float = 5.0,
-    tenant_id: int | None = None,
-) -> list[dict]:
-    _not_migrated("get_nearby_pois")
-
-
-def list_pois(
-    itinerary_id: int | None = None,
-    tenant_id: int | None = None,
-) -> list[dict]:
-    _not_migrated("list_pois")
-
-
-def delete_poi(poi_id: int) -> bool:
-    _not_migrated("delete_poi")
-
-
+# nutrition
 def seed_nutrition_food_items() -> None:
     _not_migrated("seed_nutrition_food_items")
 
@@ -355,40 +209,7 @@ def delete_nutrition_food_item(item_id: int) -> bool:
     _not_migrated("delete_nutrition_food_item")
 
 
-def save_beck_assessment(assessment: dict, tenant_id: int = 0) -> int:
-    _not_migrated("save_beck_assessment")
-
-
-def get_beck_assessment(assessment_id: int) -> dict | None:
-    _not_migrated("get_beck_assessment")
-
-
-def get_beck_assessments_by_athlete(
-    athlete_id: int, tenant_id: int = 0, limit: int = 100
-) -> list[dict]:
-    _not_migrated("get_beck_assessments_by_athlete")
-
-
-def get_fitness_states_by_athlete(
-    athlete_id: int, tenant_id: int | None = None
-) -> list[dict]:
-    _not_migrated("get_fitness_states_by_athlete")
-
-
-def get_food_logs_by_athlete(
-    athlete_id: int,
-    tenant_id: int | None = None,
-    limit: int = 2000,
-) -> list[dict]:
-    _not_migrated("get_food_logs_by_athlete")
-
-
-def get_latest_beck_assessment(
-    athlete_id: int, tenant_id: int = 0
-) -> dict | None:
-    _not_migrated("get_latest_beck_assessment")
-
-
+# ble
 def register_ble_device(
     athlete_id: int,
     device_id: str,
@@ -432,6 +253,7 @@ def mark_ble_device_synced(device_id: int, athlete_id: int) -> None:
     _not_migrated("mark_ble_device_synced")
 
 
+# legal / consent / audit
 def save_consent(
     athlete_id: int,
     consent_type: str,
