@@ -254,3 +254,20 @@ def _auto_create_athlete(athlete_id: int, current_user: dict, updates: dict | No
         data.update(updates)
     new_id = save_athlete(data, athlete_id=athlete_id, user_id=user_id)
     return get_athlete(new_id) or data
+
+
+@router.get("/state")
+async def get_athlete_state(current_user: dict = Depends(get_current_user)):
+    athlete_id = _current_athlete_id(current_user)
+    from ...analytics.athlete_state.service import AthleteStateService
+    from ...analytics.repositories.ride_repository import RideRepository
+    from ...analytics.repositories.athlete_repository import AthleteRepository
+    from ...models.models import Ride, AthleteProfile
+
+    rides_data = await RideRepository().list_all(athlete_id=athlete_id)
+    rides = [Ride(**r) for r in rides_data]
+    athlete_data = await AthleteRepository().get_by_id(athlete_id)
+    athlete_profile = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else None
+    service = AthleteStateService()
+    state = await service.calculate_current_state(athlete_id=athlete_id, rides=rides, athlete_profile=athlete_profile)
+    return state.to_dict()

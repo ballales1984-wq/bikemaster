@@ -12,9 +12,26 @@ from fastapi.responses import JSONResponse
 
 from bike_analyzer.backend.security import get_current_user
 from bike_analyzer.backend.services.import_service import ImportService
+from bike_analyzer.backend.settings import get_settings
 
 router = APIRouter(prefix="/import", tags=["import"])
 logger = logging.getLogger(__name__)
+_s = get_settings()
+
+
+@router.get("/providers")
+async def list_import_providers():
+    """Return the list of available import providers based on configuration."""
+    return {
+        "strava": bool(_s.strava_client_id and _s.strava_client_secret),
+        "google_fit": bool(_s.google_fit_client_id and _s.google_fit_client_secret),
+        "google_health": bool(_s.google_health_client_id and _s.google_health_client_secret),
+        "wahoo": bool(_s.wahoo_client_id and _s.wahoo_client_secret),
+        "garmin": bool(_s.garmin_consumer_key and _s.garmin_consumer_secret),
+        "ble": True,
+        "health_connect": True,
+        "hr_24h": True,
+    }
 
 
 def _user_context(current_user: dict) -> tuple[int, int]:
@@ -140,3 +157,15 @@ async def import_multiple(
         except Exception as exc:
             failed.append({"name": file.filename, "error": str(exc)})
     return JSONResponse(content={"imported": imported, "failed": failed})
+
+
+@router.get("/providers")
+async def get_import_providers(current_user: dict = Depends(get_current_user)):
+    return {
+        "google_fit": True,
+        "google_health": False,
+        "wahoo": False,
+        "strava": False,
+        "garmin": False,
+        "health_connect": False,
+    }
