@@ -2,11 +2,6 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -229,29 +224,6 @@ static int selectLOD(const Camera& cam) {
 }
 
 // ---------------------------------------------------------------------------
-// Milestone 4: Dear ImGui debug panel
-// ---------------------------------------------------------------------------
-
-static bool g_showDebugPanel = true;
-static int g_layerMode = 2; // 0 = Triangle, 1 = Point Cloud, 2 = Both
-
-static void renderDebugPanel() {
-    if (!g_showDebugPanel) return;
-
-    ImGui::Begin("AetherMap Debug", &g_showDebugPanel);
-
-    const char* layers[] = { "Triangle", "Point Cloud", "Both" };
-    ImGui::Combo("Layer", &g_layerMode, layers, 3);
-
-    ImGui::SliderFloat("LOD override", &g_camera.radius, g_camera.minRadius, g_camera.maxRadius);
-
-    ImGui::Text("Points visible: %s", g_showPoints ? "yes" : "no");
-    ImGui::Text("Press Space to toggle points");
-
-    ImGui::End();
-}
-
-// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -266,7 +238,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "AetherMap — Milestone 5+4", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "AetherMap — Milestone 5", nullptr, nullptr);
     if (!window) {
         std::cerr << "glfwCreateWindow failed\n";
         glfwTerminate();
@@ -288,15 +260,6 @@ int main() {
 
     std::cout << "OpenGL " << glGetString(GL_VERSION) << "\n";
     std::cout << "Vendor  " << glGetString(GL_VENDOR) << "\n";
-
-    // --- Milestone 4: initialize Dear ImGui ---
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    ImGui::StyleColorsDark();
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 330 core");
 
     // --- Triangle shaders & geometry (preserved from Milestone 1) ---
     std::string vertSrc = loadFile("shaders/basic.vert");
@@ -350,20 +313,13 @@ int main() {
         glClearColor(0.08f, 0.08f, 0.10f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Milestone 4: start ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        // Triangle
-        if (g_layerMode == 0 || g_layerMode == 2) {
-            glUseProgram(program);
-            glBindVertexArray(vao);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
-        }
+        // Triangle (unchanged)
+        glUseProgram(program);
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         // Point cloud with LOD
-        if ((g_layerMode == 1 || g_layerMode == 2) && g_showPoints) {
+        if (g_showPoints) {
             int lod = selectLOD(g_camera);
             GLuint ebo = cloud.eboLow;
             int count = cloud.countLow;
@@ -387,34 +343,16 @@ int main() {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
             glDrawElements(GL_POINTS, count, GL_UNSIGNED_INT, nullptr);
 
-            std::string title = "AetherMap — Milestone 5+4 | Points: " + std::to_string(count) + " | Space: toggle";
+            std::string title = "AetherMap — Milestone 5 | Points: " + std::to_string(count) + " | Space: toggle";
             glfwSetWindowTitle(window, title.c_str());
         } else {
-            glfwSetWindowTitle(window, "AetherMap — Milestone 5+4 | Points: 0 (hidden) | Space: toggle");
-        }
-
-        // Milestone 4: render debug panel
-        renderDebugPanel();
-
-        // Milestone 4: ImGui render + platform windows update
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            GLFWwindow* backup = glfwGetCurrentContext();
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup);
+            glfwSetWindowTitle(window, "AetherMap — Milestone 5 | Points: 0 (hidden) | Space: toggle");
         }
 
         glfwSwapBuffers(window);
     }
 
     // --- Cleanup ---
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteProgram(program);
