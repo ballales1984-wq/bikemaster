@@ -2886,6 +2886,11 @@ def _row_to_poi(row) -> dict:
 @pg_dispatch("bike_analyzer.backend.db.postgres_poi")
 def save_poi(poi: dict) -> int:
     """Create a Point of Interest. Returns the new row id."""
+    from .postgres_poi import has_postgres
+    from .postgres_poi import save_poi as _pg_save_poi
+
+    if has_postgres():
+        return _pg_save_poi(poi)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -2928,6 +2933,11 @@ def save_poi(poi: dict) -> int:
 
 @pg_dispatch("bike_analyzer.backend.db.postgres_poi")
 def get_poi(poi_id: int, tenant_id: int | None = None) -> dict | None:
+    from .postgres_poi import has_postgres
+    from .postgres_poi import get_poi as _pg_get_poi
+
+    if has_postgres():
+        return _pg_get_poi(poi_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if tenant_id is not None:
@@ -2948,6 +2958,11 @@ def get_nearby_pois(lat: float, lon: float, radius_km: float = 5.0, tenant_id: i
     When ``tenant_id`` is provided, only POIs belonging to that tenant are
     returned, preventing cross-tenant GPS data disclosure.
     """
+    from .postgres_poi import has_postgres
+    from .postgres_poi import get_nearby_pois as _pg_get_nearby_pois
+
+    if has_postgres():
+        return _pg_get_nearby_pois(lat, lon, radius_km, tenant_id)
     from ...core.models import haversine_distance_m
 
     radius_m = max(0.0, radius_km) * 1000.0
@@ -2986,6 +3001,11 @@ def list_pois(itinerary_id: int | None = None, tenant_id: int | None = None) -> 
     When ``tenant_id`` is provided, only POIs belonging to that tenant are
     returned, preventing cross-tenant data disclosure.
     """
+    from .postgres_poi import has_postgres
+    from .postgres_poi import list_pois as _pg_list_pois
+
+    if has_postgres():
+        return _pg_list_pois(itinerary_id, tenant_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         if itinerary_id is not None and tenant_id is not None:
@@ -3011,6 +3031,11 @@ def list_pois(itinerary_id: int | None = None, tenant_id: int | None = None) -> 
 
 @pg_dispatch("bike_analyzer.backend.db.postgres_poi")
 def delete_poi(poi_id: int) -> bool:
+    from .postgres_poi import has_postgres
+    from .postgres_poi import delete_poi as _pg_delete_poi
+
+    if has_postgres():
+        return _pg_delete_poi(poi_id)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("DELETE FROM pois WHERE id = ?", (poi_id,))
