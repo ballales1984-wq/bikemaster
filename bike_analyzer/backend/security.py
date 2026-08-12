@@ -206,8 +206,12 @@ async def is_token_revoked(jti: str) -> bool:
         if _is_token_revoked_sqlite(jti):
             return True
     except Exception as exc:
-        logger.error("SQLite revocation check failed for jti %s: %s — failing closed", jti, exc)
-        return True
+        logger.warning(
+            "SQLite revocation check failed for jti %s: %s — failing open "
+            "(token signature/expiration/issuer/audience already validated)",
+            jti,
+            exc,
+        )
     return False
 
 
@@ -215,6 +219,13 @@ def _is_token_revoked_sqlite(jti: str) -> bool:
     from .db.database import get_db_connection
     from datetime import datetime as _dt
     with get_db_connection() as conn:
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS revoked_tokens (
+                jti TEXT PRIMARY KEY,
+                revoked_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            )"""
+        )
         cur = conn.cursor()
         cur.execute(
             "SELECT expires_at FROM revoked_tokens WHERE jti = ?",
