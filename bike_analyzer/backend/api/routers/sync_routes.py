@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -73,7 +72,7 @@ async def update_sync_settings(
         try:
             data["mode"] = SyncMode(payload.mode).value
         except ValueError:
-            raise HTTPException(status_code=422, detail="Invalid sync mode")
+            raise HTTPException(status_code=422, detail="Invalid sync mode") from None
     if payload.daily_hour is not None:
         if not 0 <= payload.daily_hour <= 23:
             raise HTTPException(status_code=422, detail="daily_hour must be 0-23")
@@ -114,7 +113,7 @@ async def trigger_sync(current_user: dict = Depends(get_current_user)):
         }
     except Exception as exc:
         logger.exception("Sync trigger failed")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from None
 
 
 @router.get("/conflicts")
@@ -150,4 +149,4 @@ async def resolve_conflict(
         return {"status": "resolved"}
     except Exception as exc:
         logger.exception("Failed to resolve conflict %d", conflict_id)
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from None

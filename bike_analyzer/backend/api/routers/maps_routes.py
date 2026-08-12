@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from ...security import get_current_user
-from ...settings import get_settings
-from ..routes import _place_cache_get, _place_cache_set, _ensure_ride_access, logger
-from ..schemas import POICreate, POIResponse
-from ...models.models import GPSPoint
+from ...analytics.repositories.maps_repository import MapsRepository
 from ...analytics.repositories.poi_repository import POIRepository
 from ...analytics.repositories.ride_repository import RideRepository
-from ...analytics.repositories.maps_repository import MapsRepository
+from ...models.models import GPSPoint
+from ...security import get_current_user
+from ...settings import get_settings
+from ..routes import _ensure_ride_access, _place_cache_get, _place_cache_set, logger
+from ..schemas import POICreate, POIResponse
 
 router = APIRouter(prefix="/maps", tags=["maps"])
 
@@ -28,7 +28,6 @@ async def get_nearby_pois(
     Only POIs belonging to the current user's tenant are returned.
     """
     from ...analytics.repositories.poi_repository import POIRepository
-    from ...analytics.repositories.ride_repository import RideRepository
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     try:

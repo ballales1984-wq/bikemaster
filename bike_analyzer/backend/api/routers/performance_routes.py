@@ -3,19 +3,21 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from bike_analyzer.backend.analytics.performance_service import (
-    compute_ride_power_metrics,
-    get_latest_ftp,
-    get_performance_metrics as _get_performance_metrics,
     get_ftp_history as _get_ftp_history,
-    record_ftp,
+)
+from bike_analyzer.backend.analytics.performance_service import (
+    get_latest_ftp,
     recompute_athlete_performance,
+    record_ftp,
     save_ride_performance,
+)
+from bike_analyzer.backend.analytics.performance_service import (
+    get_performance_metrics as _get_performance_metrics,
 )
 from bike_analyzer.backend.security import get_current_user
 

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from ...analytics.repositories.itinerary_repository import ItineraryRepository
 from ...security import get_current_user
 from ..routes import _user_id
 from ..schemas import ItineraryCreate, StageCreate
-from ...analytics.repositories.itinerary_repository import ItineraryRepository
 
 router = APIRouter(prefix="/itineraries", tags=["itineraries"])
 

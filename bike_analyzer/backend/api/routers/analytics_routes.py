@@ -8,8 +8,8 @@ from fastapi import APIRouter, Depends, Query
 
 from ...analytics.repositories.athlete_repository import AthleteRepository
 from ...analytics.repositories.ride_repository import RideRepository
-from ..routes import _current_athlete_id, _get_athlete_rides, get_current_user
 from ...models.models import AthleteProfile, Ride
+from ..routes import _current_athlete_id, _get_athlete_rides, get_current_user
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 

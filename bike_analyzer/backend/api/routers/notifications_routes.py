@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
-from pydantic import BaseModel
 
 from ..routes import _ensure_athlete_access, get_current_user
 from ..schemas import NotificationContextIn, NotificationListOut, NotificationOut, NotificationScoreOut

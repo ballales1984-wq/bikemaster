@@ -8,7 +8,6 @@ via re-exported helpers.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
 
 from ...utils.logger import get_logger
 

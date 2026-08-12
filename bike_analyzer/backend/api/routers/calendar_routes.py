@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from ...analytics.repositories.calendar_repository import CalendarRepository
 from ...security import get_current_user
 from ..routes import _ensure_athlete_access
 from ..schemas import CalendarEventCreate, CalendarEventUpdate
-from ...analytics.repositories.calendar_repository import CalendarRepository
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 

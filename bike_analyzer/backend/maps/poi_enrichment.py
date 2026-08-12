@@ -22,8 +22,8 @@ from typing import Any
 
 from ..settings import get_settings
 from ..utils.logger import get_logger
-from .repositories.poi_repository import MapsPOIRepository
 from . import serpapi_maps
+from .repositories.poi_repository import MapsPOIRepository
 
 logger = get_logger(__name__)
 

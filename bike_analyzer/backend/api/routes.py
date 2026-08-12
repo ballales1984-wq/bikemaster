@@ -7,15 +7,13 @@ training plans, maps, notifications, and admin operations.
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
+import decimal
 import hmac
 import html as html_module
 import json
 import os
 import secrets
-import sqlite3
-import tempfile
 import time
 from collections.abc import AsyncGenerator
 from dataclasses import fields
@@ -24,100 +22,25 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urlparse
 
-import httpx
-import numpy as np
-import requests
 from fastapi import (
     APIRouter,
-    Body,
     Depends,
-    File,
     HTTPException,
-    Query,
     Request,
-    UploadFile,
 )
-from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.security import OAuth2PasswordRequestForm
-from starlette.concurrency import run_in_threadpool
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from jose import JWTError, jwt
-from sqlalchemy import insert, text
-from starlette.background import BackgroundTask
+from sqlalchemy import text
 
-from ..audit import log_action, read_audit_logs
-from ..maps.map_renderer import create_route_map
-from ..maps.osm_maps import get_local_results, search_nearby, search_places
-from ..models.models import AthleteProfile, GPSPoint, Ride
-from ..processing.processing import process_route
-from ..rate_limiter import limiter
+from bike_analyzer.backend.trusted_proxies import _is_trusted_proxy as is_trusted_proxy
+
+from ..models.models import AthleteProfile, Ride
 from ..redis_client import cache_delete as _cache_delete
 from ..redis_client import cache_set as _cache_set
 from ..redis_client import cached as _cached
-from ..redis_client import check_rate_limit
-from ..security import ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, get_admin_user, get_current_user
+from ..security import ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, get_current_user
 from ..settings import get_settings
 from ..utils.logger import get_logger
-from .schemas import (
-    ActivityClassification,
-    ActivitySummaryResponse,
-    AthleteCreate,
-    AthleteUpdate,
-    BeckAssessmentCreate,
-    BeckAssessmentResponse,
-    BeckHistoryResponse,
-    BenchmarkCompareRequest,
-    BleDeviceOut,
-    BleDeviceRegister,
-    BleDeviceSync,
-    BleDeviceUpdate,
-    CalendarEventCreate,
-    CalendarEventUpdate,
-    CoachChatRequest,
-    FoodLogCreate,
-    FoodLogUpdate,
-    GarminCallbackRequest,
-    GoogleFitImportPayload,
-    GoogleFitTokenRequest,
-    GoogleHealthImportPayload,
-    GranfondoPlanRequest,
-    GranfondoSaveRequest,
-    HealthConnectPayload,
-    Hr24hSummary,
-    HrMonitoringSettings,
-    HrSamplesBulk,
-    ItineraryCreate,
-    MetabolicCalibrationRequest,
-    MetabolicCalibrationResponse,
-    MetabolicProfileCreate,
-    MetabolicProfileResponse,
-    MetabolicReferenceImportRequest,
-    MetabolicWeightsResponse,
-    MetricCreate,
-    MeasurementCreate,
-    NotificationContextIn,
-    NotificationListOut,
-    NotificationOut,
-    NotificationPreferences,
-    NotificationScoreOut,
-    NutritionFoodItemCreate,
-    NutritionFoodItemUpdate,
-    POICreate,
-    POIResponse,
-    ProfileUpdate,
-    RefreshTokenRequest,
-    RideAnalysisRequest,
-    RideCreate,
-    RideUpdate,
-    SensorSamplesBulk,
-    StageCreate,
-    StravaCallbackRequest,
-    UserCreate,
-    UserOAuthCredentials,
-    UserUpdate,
-    WahooCallbackRequest,
-)
-from bike_analyzer.backend.trusted_proxies import _is_trusted_proxy as is_trusted_proxy
-from .utils import _trusted_forwarded_value
 
 _s = get_settings()
 
@@ -176,7 +99,7 @@ async def _validate_oauth_state(state: str, provider: str, user_id: int) -> bool
 async def _consume_oauth_state(state: str, provider: str, user_id: int) -> bool:
     if not await _validate_oauth_state(state, provider, user_id):
         return False
-    await cache_delete(_OAUTH_STATE_PREFIX + state)
+    await _cache_delete(_OAUTH_STATE_PREFIX + state)
     return True
 
 
@@ -270,7 +193,7 @@ def _build_oauth_success_url(redirect_uri: str, token: str, email: str, user_id:
     return f"{origin}#{urlencode({'token': token, 'email': email or '', 'user_id': str(user_id)})}"
 
 
-def _oauth_redirect_response(url: str) -> "RedirectResponse":
+def _oauth_redirect_response(url: str) -> RedirectResponse:
     from fastapi.responses import RedirectResponse
     resp = RedirectResponse(url=url)
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"

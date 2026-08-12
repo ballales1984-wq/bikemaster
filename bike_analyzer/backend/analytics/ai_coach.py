@@ -31,10 +31,10 @@ from datetime import UTC
 from ..models.models import AthleteProfile, Ride
 from ..settings import get_settings
 from ..user_keys_provider import ContextVarUserKeysProvider, UserKeysProvider
-from .repositories.ai_audit_repository import AIAuditRepository
 from .analytics import calculate_summary, create_duration_chart, create_speed_chart
 from .knowledge_base import format_context_for_llm, search_knowledge_base
 from .performance import calculate_performance_score, calculate_recovery_score
+from .repositories.ai_audit_repository import AIAuditRepository
 
 logger = logging.getLogger(__name__)
 

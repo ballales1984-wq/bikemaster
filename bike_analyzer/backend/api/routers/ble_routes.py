@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 
+from ...analytics.repositories.ble_repository import BLERepository
 from ...security import get_current_user
 from ..routes import _current_athlete_id
 from ..schemas import BleDeviceOut, BleDeviceRegister, BleDeviceSync, BleDeviceUpdate
-from ...analytics.repositories.ble_repository import BLERepository
 
 router = APIRouter(prefix="/ble", tags=["ble"])
 

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import sqlite3
 import time
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
 from ...utils.logger import get_logger
 from ..dispatch import pg_dispatch
@@ -112,7 +112,6 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
     esponenziale. Restituisce l'id dell'atleta creato/aggiornato.
     """
 
-    import time
 
     max_retries = 5
     retry_delay = 0.2

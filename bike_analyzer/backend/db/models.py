@@ -15,6 +15,7 @@ from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     Enum,
@@ -22,7 +23,6 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    JSON,
     String,
     Text,
     UniqueConstraint,

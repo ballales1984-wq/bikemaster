@@ -9,13 +9,12 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
 
 from cryptography.fernet import Fernet, InvalidToken
 
 logger = logging.getLogger(__name__)
 
-_cipher: Optional[Fernet] = None
+_cipher: Fernet | None = None
 
 
 def _get_key() -> bytes:

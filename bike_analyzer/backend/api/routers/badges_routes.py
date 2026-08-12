@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
-from ...security import get_current_user
-from ..routes import _ensure_athlete_access
 from ...analytics.repositories.athlete_repository import AthleteRepository
 from ...analytics.repositories.ride_repository import RideRepository
+from ...security import get_current_user
+from ..routes import _ensure_athlete_access
 
 router = APIRouter(prefix="/badges", tags=["badges"])
 

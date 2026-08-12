@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 
+from ...analytics.repositories.hr_repository import HRRepository
 from ...security import get_current_user
 from ..routes import _current_athlete_id
 from ..schemas import Hr24hSummary, HrMonitoringSettings, HrSamplesBulk, SensorSamplesBulk
-from ...analytics.repositories.hr_repository import HRRepository
 
 router = APIRouter(prefix="/hr", tags=["hr"])
 

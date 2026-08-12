@@ -36,6 +36,7 @@ from pydantic import ValidationError
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
+from ..hub.routes import hub_auth_router
 from ..logging_config import REQUEST_ID_HEADER
 from ..monitoring import MetricsMiddleware
 from ..observability import init_observability
@@ -43,32 +44,31 @@ from ..rate_limiter import limiter
 from ..redis_client import close_redis, get_redis
 from ..settings import get_settings
 from ..task_queue import get_task_queue
-from .routes import admin_router, router
-from .routers.calendar_routes import router as calendar_router
-from .routers.weather_routes import router as weather_router
-from .routers.legal_routes import router as legal_router
-from .routers.badges_routes import router as badges_router
-from .routers.traffic_routes import router as traffic_router
-from .routers.knowledge_routes import router as knowledge_router
-from .routers.charts_routes import router as charts_router
-from .routers.notifications_routes import router as notifications_router
-from .routers.ble_routes import router as ble_router
-from .routers.hr_routes import router as hr_router
-from .routers.maps_routes import router as maps_router
-from .routers.itineraries_routes import router as itineraries_router
-from .routers.training_routes import router as training_router
-from .routers.coach_routes import router as coach_router
-from .routers.analytics_routes import router as analytics_router
-from .routers.import_routes import router as import_router
-from .routers.auth_routes import router as auth_router
-from .routers.sync_routes import router as sync_router
-from .routers.performance_routes import router as performance_router
-from .routers.metabolism_routes import router as metabolism_router
-from .routers.rides_routes import router as rides_router
-from .routers.athlete_routes import router as athlete_router
-from .routers.dashboard_routes import router as dashboard_router
 from .routers.aethermap_routes import router as aethermap_router
-from ..hub.routes import hub_auth_router
+from .routers.analytics_routes import router as analytics_router
+from .routers.athlete_routes import router as athlete_router
+from .routers.auth_routes import router as auth_router
+from .routers.badges_routes import router as badges_router
+from .routers.ble_routes import router as ble_router
+from .routers.calendar_routes import router as calendar_router
+from .routers.charts_routes import router as charts_router
+from .routers.coach_routes import router as coach_router
+from .routers.dashboard_routes import router as dashboard_router
+from .routers.hr_routes import router as hr_router
+from .routers.import_routes import router as import_router
+from .routers.itineraries_routes import router as itineraries_router
+from .routers.knowledge_routes import router as knowledge_router
+from .routers.legal_routes import router as legal_router
+from .routers.maps_routes import router as maps_router
+from .routers.metabolism_routes import router as metabolism_router
+from .routers.notifications_routes import router as notifications_router
+from .routers.performance_routes import router as performance_router
+from .routers.rides_routes import router as rides_router
+from .routers.sync_routes import router as sync_router
+from .routers.traffic_routes import router as traffic_router
+from .routers.training_routes import router as training_router
+from .routers.weather_routes import router as weather_router
+from .routes import admin_router, router
 from .utils import _trusted_forwarded_value
 
 logger = logging.getLogger(__name__)
@@ -379,7 +379,7 @@ def create_app() -> FastAPI:
         response.headers[REQUEST_ID_HEADER] = request_id
         return response
 
-    from ..request_context import parse_user_keys_header, set_request_user_keys, reset_request_user_keys
+    from ..request_context import parse_user_keys_header, reset_request_user_keys, set_request_user_keys
 
     @app.middleware("http")
     async def user_api_keys_middleware(request: Request, call_next):
@@ -395,8 +395,8 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def audit_log_middleware(request: Request, call_next):
         """Middleware di audit: logga metodo, path, status, utente, IP e durata."""
-        import time
         import re
+        import time
 
         if request.url.path in AUDIT_SKIP_PATHS:
             return await call_next(request)

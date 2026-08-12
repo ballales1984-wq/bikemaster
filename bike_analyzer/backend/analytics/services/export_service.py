@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from ...analytics.repositories.athlete_repository import AthleteRepository
+from ...analytics.repositories.ride_repository import RideRepository
+from ...analytics.repositories.training_stress_repository import TrainingStressRepository
 from ...db.database import (
     get_ai_audit_logs_by_athlete,
-    get_athlete,
     get_beck_assessments_by_athlete,
     get_consents_by_athlete,
     get_events_by_athlete,
@@ -14,12 +16,7 @@ from ...db.database import (
     get_food_logs_by_athlete,
     get_legal_acceptances_by_athlete,
     get_metrics_by_athlete,
-    get_rides_by_athlete,
-    get_training_stress_days,
 )
-from ...analytics.repositories.athlete_repository import AthleteRepository
-from ...analytics.repositories.ride_repository import RideRepository
-from ...analytics.repositories.training_stress_repository import TrainingStressRepository
 
 
 class ExportService:

@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-
-from ..routes import _ensure_athlete_access, _ensure_ride_access, get_current_user
+from fastapi import APIRouter, Query
 
 router = APIRouter(prefix="/traffic", tags=["traffic"])
 

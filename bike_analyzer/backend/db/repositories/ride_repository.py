@@ -7,10 +7,8 @@ import sqlite3
 import time
 from datetime import UTC, datetime
 
-from ...models.models import Ride
 from ...utils.logger import get_logger
 from ..dispatch import pg_dispatch
-
 
 logger = get_logger(__name__)
 
@@ -78,7 +76,6 @@ def save_ride(ride: dict) -> int:
     lock SQLite con backoff esponenziale.
     """
 
-    import time
 
     max_retries = 5
     retry_delay = 0.2

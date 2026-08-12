@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 
-from ...security import get_current_user
-from ..routes import _ensure_ride_access, _current_athlete_id
-from ..schemas import MeasurementCreate
 from ...analytics.repositories.ride_repository import RideRepository
+from ...security import get_current_user
+from ..routes import _current_athlete_id, _ensure_ride_access
 
 router = APIRouter(prefix="/charts", tags=["charts"])
 

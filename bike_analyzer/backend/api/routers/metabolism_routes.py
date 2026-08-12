@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
-from typing import Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from bike_analyzer.backend.analytics.metabolism import (
     calibrate_athlete,
-    compute_metabolic_profile,
     ensure_metabolic_profile,
     get_athlete_weights,
     recalculate_daily_summary,
@@ -169,10 +166,7 @@ async def create_food_log(
     current_user: dict = Depends(get_current_user),
 ):
     """Create a new food log entry."""
-    from bike_analyzer.backend.analytics.repositories.metabolism_repository import (
-        MetabolismRepository,
-    )
-    from bike_analyzer.backend.db.database import get_athlete, save_food_log, get_food_log
+    from bike_analyzer.backend.db.database import get_athlete, get_food_log, save_food_log
 
     athlete_id = _current_athlete_id(current_user)
     tenant_id = current_user.get("tenant_id", current_user["id"])
@@ -194,9 +188,6 @@ async def update_food_log(
     current_user: dict = Depends(get_current_user),
 ):
     """Update an existing food log entry."""
-    from bike_analyzer.backend.analytics.repositories.metabolism_repository import (
-        MetabolismRepository,
-    )
     from bike_analyzer.backend.db.database import get_food_log, update_food_log
 
     athlete_id = _current_athlete_id(current_user)
@@ -211,10 +202,7 @@ async def update_food_log(
 @router.delete("/food-log/{log_id}", status_code=204)
 async def delete_food_log(log_id: int, current_user: dict = Depends(get_current_user)):
     """Delete a food log entry."""
-    from bike_analyzer.backend.analytics.repositories.metabolism_repository import (
-        MetabolismRepository,
-    )
-    from bike_analyzer.backend.db.database import get_food_log, delete_food_log
+    from bike_analyzer.backend.db.database import delete_food_log, get_food_log
 
     athlete_id = _current_athlete_id(current_user)
     row = get_food_log(log_id)

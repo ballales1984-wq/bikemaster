@@ -4,24 +4,24 @@ from __future__ import annotations
 
 import contextlib
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 
+from ...analytics.repositories.athlete_repository import AthleteRepository
+from ...analytics.repositories.chat_repository import ChatRepository
+from ...analytics.repositories.ride_repository import RideRepository
+from ...models.models import AthleteProfile, Ride
 from ...rate_limiter import limiter
 from ...security import get_current_user
 from ..routes import (
     _athlete_profile_data,
+    _current_athlete_id,
     _ensure_athlete_access,
     _ensure_ride_access,
-    _current_athlete_id,
     _public_athlete,
     logger,
 )
 from ..schemas import CoachChatRequest
-from ...models.models import AthleteProfile, Ride
-from ...analytics.repositories.athlete_repository import AthleteRepository
-from ...analytics.repositories.ride_repository import RideRepository
-from ...analytics.repositories.chat_repository import ChatRepository
 
 router = APIRouter(prefix="/coach", tags=["coach"])
 
@@ -29,7 +29,6 @@ router = APIRouter(prefix="/coach", tags=["coach"])
 @router.get("/history")
 async def coach_chat_history(athlete_id: int = Query(...), current_user: dict = Depends(get_current_user)):
     """Retrieve AI coach chat history for an athlete."""
-    from ...analytics.repositories.chat_repository import ChatRepository
 
     _ensure_athlete_access(athlete_id, current_user)
     tenant_id = current_user.get("tenant_id", current_user["id"])
@@ -46,7 +45,6 @@ async def workout_recommendations(
 ):
     """Get AI-generated workout recommendations for an athlete."""
     from ...analytics.ai_coach import generate_workout_recommendations
-    from ...analytics.repositories.athlete_repository import AthleteRepository
     from ...analytics.repositories.ride_repository import RideRepository
 
     try:
@@ -79,7 +77,6 @@ async def coach_full_data(
     trends, training scores, and recovery scores. Rate limited.
     """
     from ...analytics.ai_coach import ai_coach_full
-    from ...analytics.repositories.athlete_repository import AthleteRepository
     from ...analytics.repositories.chat_repository import ChatRepository
     from ...analytics.repositories.ride_repository import RideRepository
 
@@ -150,7 +147,6 @@ async def recovery_recommendations(
 ):
     """Get AI recovery recommendations based on fatigue and recent rides."""
     from ...analytics.ai_coach import generate_recovery_recommendations
-    from ...analytics.repositories.athlete_repository import AthleteRepository
     from ...analytics.repositories.ride_repository import RideRepository
 
     try:
@@ -183,7 +179,6 @@ async def recovery_recommendations(
 async def historical_trends(current_user: dict = Depends(get_current_user)):
     """Analyze historical training trends for the athlete."""
     from ...analytics.ai_coach import analyze_historical_trends
-    from ...analytics.repositories.ride_repository import RideRepository
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)]
@@ -206,7 +201,6 @@ async def coach_chat_post(
 async def _process_chat(athlete_id: int, message: str, current_user: dict):
     """Gestisce la chat con l'AI coach: salva messaggi, genera consigli e restituisce la storia."""
     from ...analytics.ai_coach import generate_training_advice
-    from ...analytics.repositories.athlete_repository import AthleteRepository
     from ...analytics.repositories.chat_repository import ChatRepository
     from ...analytics.repositories.ride_repository import RideRepository
 
@@ -253,7 +247,6 @@ async def coach_chat_bm2(
     from bike_analyzer.core.physics import RiderBikeParams, validate_ride_power
 
     from ...analytics.ai_coach import generate_training_advice
-    from ...analytics.repositories.athlete_repository import AthleteRepository
     from ...analytics.repositories.chat_repository import ChatRepository
     from ...analytics.repositories.ride_repository import RideRepository
     from ...models.models import AthleteProfile, Ride

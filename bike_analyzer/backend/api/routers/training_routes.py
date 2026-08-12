@@ -6,9 +6,6 @@ import asyncio
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
-from ...models.models import Ride
-from ...security import get_current_user
-from ..routes import _current_athlete_id, _ensure_athlete_access
 from ...analytics.repositories.ride_repository import RideRepository
 from ...analytics.repositories.training_goal_repository import TrainingGoalRepository
 from ...analytics.training_load import (
@@ -16,6 +13,9 @@ from ...analytics.training_load import (
     get_7day_fitness_summary,
     get_current_training_status,
 )
+from ...models.models import Ride
+from ...security import get_current_user
+from ..routes import _ensure_athlete_access
 
 router = APIRouter(prefix="/training", tags=["training"])
 
@@ -94,12 +94,12 @@ async def generate_workouts(
     current_user: dict = Depends(get_current_user),
 ):
     """Generate planned workouts for a granfondo goal."""
-    from ...analytics.training_load import get_current_training_status
+    from ...analytics.athlete_state.service import AthleteStateService
     from ...analytics.repositories.ride_repository import RideRepository
     from ...analytics.repositories.training_goal_repository import TrainingGoalRepository
-    from ...analytics.athlete_state.service import AthleteStateService
     from ...analytics.training.models import PlanConstraints, TrainingGoal
     from ...analytics.training.workout_generator import WorkoutGenerator
+    from ...analytics.training_load import get_current_training_status
 
     with TrainingGoalRepository.get_session() as session:
         goal = session.query(TrainingGoalRepository.get_training_goal_model()).filter(TrainingGoalRepository.get_training_goal_model().id == goal_id).first()

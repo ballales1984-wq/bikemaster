@@ -16,8 +16,8 @@ from ...core.calculators.metabolism import (
     estimate_neat_base,
     reference_for_athlete,
 )
-from .repositories.metabolism_repository import MetabolismRepository
 from ..utils.logger import get_logger
+from .repositories.metabolism_repository import MetabolismRepository
 
 logger = get_logger(__name__)
 

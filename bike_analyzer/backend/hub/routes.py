@@ -73,9 +73,6 @@ from bike_analyzer.backend.settings import get_settings
 from bike_analyzer.backend.trusted_proxies import (
     is_trusted_proxy as _is_trusted_proxy,
 )
-from bike_analyzer.backend.trusted_proxies import (
-    trusted_forwarded_value as _trusted_forwarded_value,
-)
 
 _s = get_settings()
 logger = logging.getLogger(__name__)

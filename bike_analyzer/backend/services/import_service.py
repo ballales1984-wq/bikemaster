@@ -6,9 +6,7 @@ Orchestrates parsing, normalization, and persistence for file-based activity imp
 from __future__ import annotations
 
 import logging
-import tempfile
 from pathlib import Path
-from typing import Any
 
 from bike_analyzer.backend.analytics.repositories.ride_repository import RideRepository
 from bike_analyzer.backend.ingestion.gps_parser import (

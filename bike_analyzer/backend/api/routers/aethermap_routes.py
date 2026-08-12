@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -34,7 +33,7 @@ async def get_terrain(
         return {"heights": tile.heights.flatten().tolist()}
     except Exception as exc:
         logger.exception("Terrain lookup failed")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from None
 
 
 @router.get("/world")
@@ -47,7 +46,7 @@ async def get_world(current_user: dict = Depends(get_current_user)):
         return store.to_dict()
     except Exception as exc:
         logger.exception("World state fetch failed")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from None
 
 
 @router.get("/terrain-tile")
@@ -74,7 +73,7 @@ async def get_geo_roads(
         return {"features": results}
     except Exception as exc:
         logger.exception("Roads lookup failed")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from None
 
 
 @router.get("/geo/cities")
@@ -90,7 +89,7 @@ async def get_geo_cities(
         return {"features": results}
     except Exception as exc:
         logger.exception("Cities lookup failed")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from None
 
 
 @router.get("/geo/peaks")
@@ -106,7 +105,7 @@ async def get_geo_peaks(
         return {"features": results}
     except Exception as exc:
         logger.exception("Peaks lookup failed")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from None
 
 
 @router.get("/geo/natural-earth")
@@ -116,7 +115,6 @@ async def get_natural_earth(
 ):
     """Return Natural Earth vector data."""
     try:
-        import os
 
         from bike_analyzer.backend.maps.terrain import _DEM_CACHE_DIR
 
@@ -148,4 +146,4 @@ async def get_natural_earth(
         )
     except Exception as exc:
         logger.exception("Natural Earth fetch failed")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from None

@@ -121,7 +121,7 @@ def calculate_rss(rides: Ride | list[Ride], ftp: float = 250.0) -> float:
     if not loads:
         return 0.0
 
-    from datetime import datetime, UTC
+    from datetime import datetime
 
     latest_date = max(datetime.fromisoformat(load.date) for load in loads)
     rss = 0.0

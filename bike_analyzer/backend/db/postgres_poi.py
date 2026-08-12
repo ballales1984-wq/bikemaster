@@ -20,7 +20,6 @@ import logging
 import math
 import os
 from datetime import UTC, datetime
-from typing import Any
 
 from ..settings import get_settings
 
