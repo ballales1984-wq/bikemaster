@@ -11,6 +11,11 @@ from ...security import get_current_user
 from ..routes import _current_athlete_id, _ensure_athlete_access
 from ...analytics.repositories.ride_repository import RideRepository
 from ...analytics.repositories.training_goal_repository import TrainingGoalRepository
+from ...analytics.training_load import (
+    calculate_atl_ctl_tsb,
+    get_7day_fitness_summary,
+    get_current_training_status,
+)
 
 router = APIRouter(prefix="/training", tags=["training"])
 

@@ -107,22 +107,38 @@ class AthleteRepository:
         return AthleteModel
 
     def _save_sync(self, athlete: dict, athlete_id=None, tenant_id: int = 0) -> int:
-        from ..db.repositories.athlete_repository import save_athlete
+        from ...db.database import save_athlete
 
         return save_athlete(athlete, athlete_id, tenant_id)
 
     def _get_by_id_sync(self, athlete_id: int, tenant_id: int | None = None) -> dict | None:
-        from ..db.repositories.athlete_repository import get_athlete
+        from ...db.database import get_athlete
 
         athlete = get_athlete(athlete_id, tenant_id)
         return athlete
 
     def _list_all_sync(self) -> list[dict]:
-        from ..db.repositories.athlete_repository import get_all_athletes
+        from ...db.database import get_all_athletes
 
         return get_all_athletes()
 
     def delete(self, athlete_id: int, user_id: int) -> bool:
-        from ..db.repositories.athlete_repository import delete_athlete
+        from ...db.database import delete_athlete
 
         return delete_athlete(athlete_id, user_id)
+
+    @staticmethod
+    def save_athlete(athlete: dict, athlete_id=None, tenant_id: int = 0) -> int:
+        return AthleteRepository()._save_sync(athlete, athlete_id, tenant_id)
+
+    @staticmethod
+    def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
+        return AthleteRepository()._get_by_id_sync(athlete_id, tenant_id)
+
+    @staticmethod
+    def get_all_athletes() -> list[dict]:
+        return AthleteRepository()._list_all_sync()
+
+    @staticmethod
+    def delete_athlete(athlete_id: int, user_id: int) -> bool:
+        return AthleteRepository().delete(athlete_id, user_id)
