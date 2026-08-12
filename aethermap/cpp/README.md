@@ -1,6 +1,6 @@
-# AetherMap C++ Renderer — Milestone 1
+# AetherMap C++ Renderer — Milestone 5
 
-Minimal OpenGL scaffold: window + colored triangle.
+OpenGL 3.3 core renderer with CPU-side LOD selection for a procedural point cloud.
 
 ## Prerequisites
 
@@ -21,7 +21,7 @@ git clone https://github.com/microsoft/vcpkg.git C:\src\vcpkg
 .\vcpkg\vcpkg install glm:x64-windows
 
 # Configure (from aethermap/cpp/)
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=C:\src\vcpkg\scripts\buildsystems\vcpkg.cmake
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=C:\src\vcpkg\scripts\buildsystems\vcpkg.cmake -Dglfw3_DIR=C:\src\vcpkg\packages\glfw3_x64-windows\share\glfw3 -Dglm_DIR=C:\src\vcpkg\packages\glm_x64-windows\share\glm "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 cmake --build build --config Release
 
 # Run
@@ -41,13 +41,25 @@ If you prefer manual installs:
 
 1. Creates a 1280×720 GLFW window
 2. Loads OpenGL 3.3 core via GLAD
-3. Compiles a passthrough vertex shader + flat-color fragment shader
-4. Renders a single RGB triangle
+3. Compiles passthrough shaders + point shaders
+4. Renders a colored triangle (preserved from Milestone 1)
+5. Generates a 10,000-point Fibonacci sphere point cloud
+6. CPU-side LOD selection based on camera distance:
+   - **High** (< 5.0 units): 100% points, size 4.0
+   - **Medium** (5.0–15.0 units): 50% points, size 3.0
+   - **Low** (> 15.0 units): 25% points, size 2.0
+7. Minimal orbit camera (drag to rotate, scroll to zoom)
+8. Spacebar toggles point cloud visibility
+
+## Controls
+
+- **Left mouse drag**: orbit camera
+- **Scroll wheel**: zoom in/out
+- **Spacebar**: toggle point cloud on/off
 
 ## Next milestones
 
-- Camera orbit (glm mat4, GLFW scroll/drag)
-- Point cloud render (GL_POINTS, attribute-driven color)
 - Dear ImGui debug panel (layer switch, LOD slider)
-- LOD CPU-side selection
 - Spatial index (S2 / cube-quadtree)
+- GPU-side LOD / tessellation
+- Terrain integration
