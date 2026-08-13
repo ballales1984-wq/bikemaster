@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 
 from ...analytics.repositories.knowledge_repository import KnowledgeRepository
-from ..routes import get_admin_user, get_current_user
+from ...security import get_admin_user, get_current_user
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
