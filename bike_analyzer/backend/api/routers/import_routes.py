@@ -16,6 +16,20 @@ from bike_analyzer.backend.settings import get_settings
 router = APIRouter(prefix="/import", tags=["import"])
 logger = logging.getLogger(__name__)
 _s = get_settings()
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+
+
+async def _validate_file_size(file: UploadFile) -> None:
+    size = 0
+    chunk_size = 1024 * 1024
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        size += len(chunk)
+        if size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="File too large")
+    await file.seek(0)
 
 
 @router.get("/providers")
@@ -49,6 +63,7 @@ async def import_fit(
         suffix = Path(file.filename or "upload.fit").suffix.lower()
         if suffix != ".fit":
             raise HTTPException(status_code=400, detail="Expected .fit file")
+        await _validate_file_size(file)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".fit") as tmp:
             tmp.write(await file.read())
             temp_path = tmp.name
@@ -74,6 +89,7 @@ async def import_gpx(
 ):
     athlete_id, tenant_id = _user_context(current_user)
     try:
+        await _validate_file_size(file)
         content = (await file.read()).decode("utf-8", errors="replace")
         result = ImportService.import_file(
             "gpx",
@@ -95,6 +111,7 @@ async def import_tcx(
 ):
     athlete_id, tenant_id = _user_context(current_user)
     try:
+        await _validate_file_size(file)
         content = (await file.read()).decode("utf-8", errors="replace")
         result = ImportService.import_file(
             "tcx",
@@ -119,6 +136,7 @@ async def import_multiple(
     failed = []
     for file in files:
         try:
+            await _validate_file_size(file)
             suffix = Path(file.filename or "").suffix.lower()
             if suffix == ".fit":
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".fit") as tmp:

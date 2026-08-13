@@ -20,7 +20,7 @@ from bike_analyzer.bm2.simulation import ScenarioOverride, SimulationEngine
 from bike_analyzer.core.models import AthleteProfile, GPSPoint, Ride
 from bike_analyzer.core.physics import RiderBikeParams, validate_ride_power
 
-from ...analytics.repositories.ride_repository import RideRepository
+from ..analytics.repositories.ride_repository import RideRepository
 from ..security import get_current_user
 
 bm2_router = APIRouter()
