@@ -813,9 +813,8 @@
      "deviceId": "ID dispositivo BLE",
      "cancel": "Annulla",
      "save": "Salva",
-      "history": "Storico giornaliero"
-    }
-  },
+       "history": "Storico giornaliero"
+    },
   "errorBoundary": {
     "title": "Qualcosa è andato storto",
     "tryAgain": "Riprova"
