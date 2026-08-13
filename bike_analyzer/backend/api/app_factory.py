@@ -69,7 +69,7 @@ from .routers.traffic_routes import router as traffic_router
 from .routers.training_routes import router as training_router
 from .routers.weather_routes import router as weather_router
 from .routes import admin_router, router
-from .utils import _trusted_forwarded_value
+from bike_analyzer.backend.trusted_proxies import trusted_forwarded_value as _trusted_forwarded_value
 
 logger = logging.getLogger(__name__)
 
