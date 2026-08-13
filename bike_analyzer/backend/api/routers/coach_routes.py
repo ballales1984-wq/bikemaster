@@ -13,6 +13,7 @@ from ...analytics.repositories.ride_repository import RideRepository
 from ...models.models import AthleteProfile, Ride
 from ...rate_limiter import limiter
 from ...security import get_current_user
+from ..bm2_routes import _to_gps
 from ..routes import (
     _athlete_profile_data,
     _current_athlete_id,
@@ -160,7 +161,12 @@ async def recovery_recommendations(
                 athlete_data = await AthleteRepository().get_by_id(ride_data.get("athlete_id"))
         elif current_user:
             tenant_id = current_user.get("tenant_id", current_user["id"])
-            rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)]
+            rides = [
+                Ride(**r)
+                for r in await RideRepository().list_all(
+                    athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id
+                )
+            ]
             if rides:
                 athlete_data = await AthleteRepository().get_by_id(current_user["id"], tenant_id)
         if athlete_data:
@@ -181,7 +187,12 @@ async def historical_trends(current_user: dict = Depends(get_current_user)):
     from ...analytics.ai_coach import analyze_historical_trends
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)]
+    rides = [
+        Ride(**r)
+        for r in await RideRepository().list_all(
+            athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id
+        )
+    ]
     return analyze_historical_trends(rides)
 
 
@@ -207,8 +218,9 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
     tenant_id = current_user.get("tenant_id", athlete_id)
     _ensure_athlete_access(athlete_id, current_user)
 
+    from ...analytics.repositories.athlete_repository import AthleteRepository
+
     if await AthleteRepository().get_by_id(athlete_id) is None:
-        from ...analytics.repositories.athlete_repository import AthleteRepository
 
         await AthleteRepository().save(
             {
@@ -301,7 +313,10 @@ async def coach_chat_bm2(
             except Exception:
                 pass
 
-    if not bm2_result and any(kw in message.lower() for kw in ["energia", "power", "ftp", "performance", "calories", "kcal"]):
+    if not bm2_result and any(
+        kw in message.lower()
+        for kw in ["energia", "power", "ftp", "performance", "calories", "kcal"]
+    ):
         try:
             orchestrator = AIOrchestrator()
             bm2_result = orchestrator.answer(message, {

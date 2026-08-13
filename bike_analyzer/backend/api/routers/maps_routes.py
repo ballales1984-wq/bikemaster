@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from ...analytics.repositories.maps_repository import MapsRepository
 from ...analytics.repositories.poi_repository import POIRepository
 from ...analytics.repositories.ride_repository import RideRepository
+from ...maps.osm_maps import search_places
 from ...models.models import GPSPoint
 from ...security import get_current_user
 from ...settings import get_settings

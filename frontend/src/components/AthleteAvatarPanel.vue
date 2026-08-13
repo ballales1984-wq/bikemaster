@@ -174,25 +174,51 @@
                 {{ profile?.experience_level || "Beginner" }}
               </div>
               <div class="player-meta">
-                <span class="meta-item">{{ profile?.age != null ? profile.age + ' anni' : '—' }}</span>
+                <span class="meta-item">{{
+                  profile?.age != null ? profile.age + " anni" : "—"
+                }}</span>
                 <span class="meta-divider">|</span>
-                <span class="meta-item">{{ profile?.weight_kg != null ? profile.weight_kg + ' kg' : '—' }}</span>
+                <span class="meta-item">{{
+                  profile?.weight_kg != null ? profile.weight_kg + " kg" : "—"
+                }}</span>
                 <span class="meta-divider">|</span>
-                <span class="meta-item">{{ profile?.height_cm != null ? profile.height_cm + ' cm' : '—' }}</span>
+                <span class="meta-item">{{
+                  profile?.height_cm != null ? profile.height_cm + " cm" : "—"
+                }}</span>
                 <span class="meta-divider">|</span>
                 <span class="meta-item"
-                  >Grasso {{ profile?.fat_percentage != null ? profile.fat_percentage + '%' : '—' }}</span
+                  >Grasso
+                  {{
+                    profile?.fat_percentage != null
+                      ? profile.fat_percentage + "%"
+                      : "—"
+                  }}</span
                 >
                 <span class="meta-divider">|</span>
                 <span class="meta-item"
-                  >Acqua {{ profile?.body_water_percentage != null ? profile.body_water_percentage + '%' : '—' }}</span
+                  >Acqua
+                  {{
+                    profile?.body_water_percentage != null
+                      ? profile.body_water_percentage + "%"
+                      : "—"
+                  }}</span
                 >
                 <span class="meta-divider">|</span>
                 <span class="meta-item"
-                  >Muscoli {{ profile?.muscle_mass_percentage != null ? profile.muscle_mass_percentage + '%' : '—' }}</span
+                  >Muscoli
+                  {{
+                    profile?.muscle_mass_percentage != null
+                      ? profile.muscle_mass_percentage + "%"
+                      : "—"
+                  }}</span
                 >
                 <span class="meta-divider">|</span>
-                <span class="meta-item">BMR {{ profile?.bmr_kcal != null ? profile.bmr_kcal + ' kcal' : '—' }}</span>
+                <span class="meta-item"
+                  >BMR
+                  {{
+                    profile?.bmr_kcal != null ? profile.bmr_kcal + " kcal" : "—"
+                  }}</span
+                >
               </div>
             </div>
           </div>
@@ -569,9 +595,17 @@ const bodyStats = computed(() => {
     },
     {
       label: "Muscoli",
-      value: muscleKg > 0 ? `${muscleKg.toFixed(1)} kg` : musclePct > 0 ? `${musclePct.toFixed(1)}%` : "—",
+      value:
+        muscleKg > 0
+          ? `${muscleKg.toFixed(1)} kg`
+          : musclePct > 0
+            ? `${musclePct.toFixed(1)}%`
+            : "—",
       color: "#e63946",
-      percent: muscleKg > 0 ? Math.min((muscleKg / (weight || 60)) * 100, 100) : Math.min(musclePct, 100),
+      percent:
+        muscleKg > 0
+          ? Math.min((muscleKg / (weight || 60)) * 100, 100)
+          : Math.min(musclePct, 100),
     },
     {
       label: "Osso",
@@ -581,9 +615,17 @@ const bodyStats = computed(() => {
     },
     {
       label: "Grasso",
-      value: fatKg > 0 ? `${fatKg.toFixed(1)} kg` : fatPct > 0 ? `${fatPct.toFixed(1)}%` : "—",
+      value:
+        fatKg > 0
+          ? `${fatKg.toFixed(1)} kg`
+          : fatPct > 0
+            ? `${fatPct.toFixed(1)}%`
+            : "—",
       color: "#ffb703",
-      percent: fatKg > 0 && weight > 0 ? Math.min((fatKg / weight) * 100, 100) : Math.min(fatPct, 100),
+      percent:
+        fatKg > 0 && weight > 0
+          ? Math.min((fatKg / weight) * 100, 100)
+          : Math.min(fatPct, 100),
     },
     {
       label: "Viscerale",

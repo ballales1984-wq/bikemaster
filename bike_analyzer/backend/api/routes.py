@@ -91,9 +91,7 @@ async def _validate_oauth_state(state: str, provider: str, user_id: int) -> bool
         return False
     if cached.get("provider") != provider:
         return False
-    if cached.get("user_id") != user_id:
-        return False
-    return True
+    return cached.get("user_id") == user_id
 
 
 async def _consume_oauth_state(state: str, provider: str, user_id: int) -> bool:

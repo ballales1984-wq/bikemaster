@@ -1,5 +1,6 @@
 """Shared rate limiter for slowapi."""
 
+import contextlib
 import json
 import logging
 import threading
@@ -110,10 +111,8 @@ def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig |
                 detail=f"Rate limit exceeded: {cfg.max_requests} requests per {cfg.window_seconds}s",
             )
         requests.append(now)
-        try:
+        with contextlib.suppress(Exception):
             _persist_rate_limit(key, now, cfg.window_seconds)
-        except Exception:
-            pass
 
 
 def rate_limit_dependency(max_requests: int = 100, window_seconds: int = 60):

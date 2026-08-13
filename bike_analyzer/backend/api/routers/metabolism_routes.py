@@ -292,28 +292,6 @@ async def get_weights(current_user: dict = Depends(get_current_user)):
     return data
 
 
-class NutritionFoodItemCreate(BaseModel):
-    name: str
-    category: str
-    kcal_per_100g: float
-    carbs_g_per_100g: float | None = None
-    protein_g_per_100g: float | None = None
-    fat_g_per_100g: float | None = None
-    fiber_g_per_100g: float | None = None
-    sodium_mg: float | None = None
-
-
-class NutritionFoodItemUpdate(BaseModel):
-    name: str | None = None
-    category: str | None = None
-    kcal_per_100g: float | None = None
-    carbs_g_per_100g: float | None = None
-    protein_g_per_100g: float | None = None
-    fat_g_per_100g: float | None = None
-    fiber_g_per_100g: float | None = None
-    sodium_mg: float | None = None
-
-
 @router.post("/nutrition", status_code=201)
 async def create_nutrition_item(
     payload: NutritionFoodItemCreate,

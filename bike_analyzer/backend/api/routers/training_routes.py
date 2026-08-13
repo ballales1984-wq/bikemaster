@@ -102,7 +102,11 @@ async def generate_workouts(
     from ...analytics.training_load import get_current_training_status
 
     with TrainingGoalRepository.get_session() as session:
-        goal = session.query(TrainingGoalRepository.get_training_goal_model()).filter(TrainingGoalRepository.get_training_goal_model().id == goal_id).first()
+        goal = (
+            session.query(TrainingGoalRepository.get_training_goal_model())
+            .filter(TrainingGoalRepository.get_training_goal_model().id == goal_id)
+            .first()
+        )
         if not goal:
             raise HTTPException(status_code=404, detail="Goal not found")
         if goal.athlete_id is None:
@@ -129,9 +133,15 @@ async def generate_workouts(
     }
     goal_type_str = goal_type_map.get(goal.goal_type, "maintenance")
     try:
-        goal_enum = __import__("bike_analyzer.backend.analytics.training.models", fromlist=["GoalType"]).GoalType(goal_type_str)
+        goal_enum = __import__(
+            "bike_analyzer.backend.analytics.training.models",
+            fromlist=["GoalType"],
+        ).GoalType(goal_type_str)
     except Exception:
-        goal_enum = __import__("bike_analyzer.backend.analytics.training.models", fromlist=["GoalType"]).GoalType.MAINTENANCE
+        goal_enum = __import__(
+            "bike_analyzer.backend.analytics.training.models",
+            fromlist=["GoalType"],
+        ).GoalType.MAINTENANCE
 
     training_goal = TrainingGoal(
         goal_type=goal_enum,

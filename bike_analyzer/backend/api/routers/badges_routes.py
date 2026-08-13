@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 
+from ...analytics.badges import calculate_badges
 from ...analytics.repositories.athlete_repository import AthleteRepository
 from ...analytics.repositories.ride_repository import RideRepository
 from ...security import get_current_user
@@ -20,7 +21,7 @@ async def get_badges(athlete_id: int = Query(...), current_user: dict = Depends(
     _ensure_athlete_access(athlete_id, current_user)
     rides = await RideRepository().list_all(athlete_id=athlete_id)
     athlete = await AthleteRepository().get_by_id(athlete_id)
-    badges = calculate_badges(athlete_id, [r for r in rides], athlete or {})
+    badges = calculate_badges(athlete_id, list(rides), athlete or {})
     achieved_count = sum(1 for b in badges if b["achieved"])
 
     for badge in badges:

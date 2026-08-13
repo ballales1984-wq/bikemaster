@@ -15,7 +15,7 @@
             ✏️
           </button>
           <button class="edit-btn" aria-label="BM2 Analysis" @click="goToBm2">
-            ⚡ {{ t('bm2.bm2QuickAction') }}
+            ⚡ {{ t("bm2.bm2QuickAction") }}
           </button>
           <button
             class="close-btn"

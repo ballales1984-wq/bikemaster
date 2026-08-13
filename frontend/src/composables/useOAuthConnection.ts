@@ -1,7 +1,11 @@
 import { ref } from "vue";
 import { useAuthStore } from "../stores/auth";
 import { useToast } from "./useToast";
-import { isTauri, TAURI_EMBEDDED_BACKEND_BASE, resolveApiBase } from "../utils/backend-config";
+import {
+  isTauri,
+  TAURI_EMBEDDED_BACKEND_BASE,
+  resolveApiBase,
+} from "../utils/backend-config";
 
 export interface OAuthProviderConfig {
   provider: string;
@@ -146,7 +150,8 @@ export function useOAuthConnection(config: OAuthProviderConfig) {
 
   function getExpectedOAuthOrigin(): string {
     const base = resolveApiBase();
-    if (!base) return typeof window !== "undefined" ? window.location.origin : "";
+    if (!base)
+      return typeof window !== "undefined" ? window.location.origin : "";
     try {
       return new URL(base).origin;
     } catch {

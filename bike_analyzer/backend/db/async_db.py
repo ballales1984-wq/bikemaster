@@ -12,6 +12,7 @@ local dev / tests) are supported.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -222,10 +223,8 @@ async def get_user_oauth_credentials_async(user_id: int, provider: str) -> dict 
             return None
         client_secret = row.client_secret or ""
         if client_secret:
-            try:
+            with contextlib.suppress(Exception):
                 client_secret = decrypt_token(client_secret)
-            except Exception:
-                pass
         return {
             "id": row.id,
             "user_id": row.user_id,
@@ -248,10 +247,8 @@ async def get_all_user_oauth_credentials_async(user_id: int) -> list[dict]:
         for r in rows:
             client_secret = r.client_secret or ""
             if client_secret:
-                try:
+                with contextlib.suppress(Exception):
                     client_secret = decrypt_token(client_secret)
-                except Exception:
-                    pass
             result.append(
                 {
                     "id": r.id,
@@ -279,10 +276,8 @@ async def save_user_oauth_credentials_async(user_id: int, provider: str, data: d
         now = datetime.now(UTC)
         client_secret = data.get("client_secret", "")
         if client_secret:
-            try:
+            with contextlib.suppress(Exception):
                 client_secret = encrypt_token(client_secret)
-            except Exception:
-                pass
         if row:
             row.client_id = data.get("client_id")
             row.client_secret = client_secret

@@ -89,13 +89,19 @@ const version = ref("");
 const isAdmin = computed(() => auth.isAdmin);
 const isClient = computed(() => auth.isClient);
 const isPublicPage = computed(() =>
-  ["/privacy", "/terms", "/cookies", "/about", "/contact", "/welcome"].includes(route.path),
+  ["/privacy", "/terms", "/cookies", "/about", "/contact", "/welcome"].includes(
+    route.path,
+  ),
 );
 const year = new Date().getFullYear();
 
 async function loadVersion() {
   try {
-    const data = await apiGet<{ version: string }>("/api/v1/version", {}, { timeoutMs: 5000, noRetry: true });
+    const data = await apiGet<{ version: string }>(
+      "/api/v1/version",
+      {},
+      { timeoutMs: 5000, noRetry: true },
+    );
     version.value = data.version || "";
   } catch {
     version.value = "";

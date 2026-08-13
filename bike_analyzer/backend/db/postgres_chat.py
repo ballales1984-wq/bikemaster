@@ -66,7 +66,8 @@ def get_chat_history(athlete_id: int, limit: int = 10, tenant_id: int | None = N
                 )
             else:
                 cur.execute(
-                    "SELECT role, content, created_at FROM chat_history WHERE athlete_id = %s ORDER BY id DESC LIMIT %s",
+                    "SELECT role, content, created_at FROM chat_history "
+                    "WHERE athlete_id = %s ORDER BY id DESC LIMIT %s",
                     (athlete_id, limit),
                 )
             rows = cur.fetchall()

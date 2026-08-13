@@ -37,7 +37,12 @@ async def get_fitness_trends(
     from ...analytics.analytics_trends import calculate_fitness_trends
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)]
+    rides = [
+        Ride(**r)
+        for r in await RideRepository().list_all(
+            athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id
+        )
+    ]
     return await asyncio.to_thread(calculate_fitness_trends, rides, metric=metric, window=window)
 
 
@@ -60,7 +65,12 @@ async def get_period_comparison(
     from ...analytics.analytics_trends import calculate_period_comparison
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)]
+    rides = [
+        Ride(**r)
+        for r in await RideRepository().list_all(
+            athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id
+        )
+    ]
     return await asyncio.to_thread(calculate_period_comparison, rides, period_days=period_days)
 
 
@@ -94,7 +104,12 @@ async def get_volume_projection(
     from ...analytics.analytics_trends import calculate_training_volume_projection
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
-    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)]
+    rides = [
+        Ride(**r)
+        for r in await RideRepository().list_all(
+            athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id
+        )
+    ]
     return await asyncio.to_thread(calculate_training_volume_projection, rides, target_days=target_days)
 
 

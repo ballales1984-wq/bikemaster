@@ -41,7 +41,11 @@ async def speed_chart(ride_id: int, current_user: dict = Depends(get_current_use
     segments = build_segments(points)
     png = await asyncio.to_thread(create_speed_chart, segments)
 
-    return Response(content=png, media_type="image/png", headers={"Content-Disposition": "attachment; filename=speed.png"})
+    return Response(
+        content=png,
+        media_type="image/png",
+        headers={"Content-Disposition": "attachment; filename=speed.png"},
+    )
 
 
 @router.get("/duration")
@@ -54,7 +58,11 @@ async def duration_chart(current_user: dict = Depends(get_current_user)):
     rides = await RideRepository().list_all(athlete_id=_current_athlete_id(current_user), tenant_id=tenant_id)
     png = await asyncio.to_thread(create_duration_chart, [Ride(**r) for r in rides])
 
-    return Response(content=png, media_type="image/png", headers={"Content-Disposition": "attachment; filename=duration.png"})
+    return Response(
+        content=png,
+        media_type="image/png",
+        headers={"Content-Disposition": "attachment; filename=duration.png"},
+    )
 
 
 @router.get("/distance/{ride_id}")
@@ -84,7 +92,11 @@ async def distance_chart(ride_id: int, current_user: dict = Depends(get_current_
     segments = build_segments(points)
     png = await asyncio.to_thread(create_distance_chart, segments)
 
-    return Response(content=png, media_type="image/png", headers={"Content-Disposition": "attachment; filename=distance.png"})
+    return Response(
+        content=png,
+        media_type="image/png",
+        headers={"Content-Disposition": "attachment; filename=distance.png"},
+    )
 
 
 @router.get("/elevation/{ride_id}")
@@ -114,4 +126,8 @@ async def elevation_chart(ride_id: int, current_user: dict = Depends(get_current
     segments = build_segments(points)
     png = await asyncio.to_thread(create_elevation_chart, segments)
 
-    return Response(content=png, media_type="image/png", headers={"Content-Disposition": "attachment; filename=elevation.png"})
+    return Response(
+        content=png,
+        media_type="image/png",
+        headers={"Content-Disposition": "attachment; filename=elevation.png"},
+    )

@@ -15,6 +15,7 @@ swap-compatible.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 from datetime import UTC, datetime
@@ -59,10 +60,8 @@ _EXISTING_COLUMNS_CACHE: dict[str, list[str]] = {}
 
 def _safe_close(conn):
     if conn is not None:
-        try:
+        with contextlib.suppress(Exception):
             conn.close()
-        except Exception:
-            pass
 
 
 def _get_existing_columns(table_name: str) -> list[str]:

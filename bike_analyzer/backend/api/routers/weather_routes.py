@@ -28,7 +28,10 @@ async def get_weather(
     try:
         _s = get_settings()
         if not _s.weather_api_key:
-            return JSONResponse(status_code=503, content={"error": "Weather service not configured", "score": 5, "advice": ""})
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Weather service not configured", "score": 5, "advice": ""},
+            )
 
         weather = get_forecast_for_date(lat, lon, date) if date else get_weather_for_coordinates(lat, lon)
 

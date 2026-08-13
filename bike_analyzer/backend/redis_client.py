@@ -179,7 +179,9 @@ async def check_rate_limit(user_id: int | None, endpoint: str, limit: int = 60, 
                 for k in expired:
                     _MEMORY_RATELIMIT.pop(k, None)
                 if len(_MEMORY_RATELIMIT) > _MEMORY_RATELIMIT_MAX:
-                    oldest = sorted(_MEMORY_RATELIMIT.items(), key=lambda kv: kv[1][1])[:len(_MEMORY_RATELIMIT) - _MEMORY_RATELIMIT_MAX]
+                    oldest = sorted(_MEMORY_RATELIMIT.items(), key=lambda kv: kv[1][1])[
+                        : len(_MEMORY_RATELIMIT) - _MEMORY_RATELIMIT_MAX
+                    ]
                     for k, _ in oldest:
                         _MEMORY_RATELIMIT.pop(k, None)
 

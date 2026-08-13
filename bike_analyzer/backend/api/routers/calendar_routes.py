@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ...analytics.repositories.calendar_repository import CalendarRepository
 from ...security import get_current_user
+from ...utils.dates import date_only
 from ..routes import _ensure_athlete_access
 from ..schemas import CalendarEventCreate, CalendarEventUpdate
 
@@ -38,6 +39,7 @@ async def list_calendar_events(
 ):
     """List calendar events for an athlete in a given month."""
     _ensure_athlete_access(athlete_id, current_user)
+    tenant_id = current_user.get("tenant_id", athlete_id)
     events = CalendarRepository.get_events_by_month(athlete_id, year, month, tenant_id)
     return {"events": events}
 
@@ -51,6 +53,7 @@ async def list_events_by_range(
 ):
     """List calendar events for an athlete within a date range."""
     _ensure_athlete_access(athlete_id, current_user)
+    tenant_id = current_user.get("tenant_id", athlete_id)
     events = CalendarRepository.get_events_by_date_range(athlete_id, start, end, tenant_id)
     return {"events": events}
 

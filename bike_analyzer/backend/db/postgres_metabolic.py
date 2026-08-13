@@ -383,12 +383,15 @@ def get_metabolic_daily_summaries(
         with conn.cursor() as cur:
             if tenant_id is not None:
                 cur.execute(
-                    "SELECT * FROM metabolic_daily_summaries WHERE athlete_id = %s AND tenant_id = %s AND date >= %s AND date <= %s ORDER BY date ASC",
+                    "SELECT * FROM metabolic_daily_summaries WHERE athlete_id = %s "
+                    "AND tenant_id = %s AND date >= %s AND date <= %s "
+                    "ORDER BY date ASC",
                     (athlete_id, tenant_id, start_date, end_date),
                 )
             else:
                 cur.execute(
-                    "SELECT * FROM metabolic_daily_summaries WHERE athlete_id = %s AND date >= %s AND date <= %s ORDER BY date ASC",
+                    "SELECT * FROM metabolic_daily_summaries WHERE athlete_id = %s "
+                    "AND date >= %s AND date <= %s ORDER BY date ASC",
                     (athlete_id, start_date, end_date),
                 )
             rows = cur.fetchall()
@@ -470,12 +473,18 @@ def get_metabolic_reference_value(
         with conn.cursor() as cur:
             if tenant_id is not None:
                 cur.execute(
-                    "SELECT * FROM metabolic_reference_values WHERE sex = %s AND age_lo <= %s AND age_hi >= %s AND weight_lo <= %s AND weight_hi >= %s AND activity_level = %s AND tenant_id = %s ORDER BY created_at DESC LIMIT 1",
+                    "SELECT * FROM metabolic_reference_values WHERE sex = %s "
+                    "AND age_lo <= %s AND age_hi >= %s AND weight_lo <= %s "
+                    "AND weight_hi >= %s AND activity_level = %s AND tenant_id = %s "
+                    "ORDER BY created_at DESC LIMIT 1",
                     (sex, age, age, weight, weight, activity_level, tenant_id),
                 )
             else:
                 cur.execute(
-                    "SELECT * FROM metabolic_reference_values WHERE sex = %s AND age_lo <= %s AND age_hi >= %s AND weight_lo <= %s AND weight_hi >= %s AND activity_level = %s ORDER BY created_at DESC LIMIT 1",
+                    "SELECT * FROM metabolic_reference_values WHERE sex = %s "
+                    "AND age_lo <= %s AND age_hi >= %s AND weight_lo <= %s "
+                    "AND weight_hi >= %s AND activity_level = %s "
+                    "ORDER BY created_at DESC LIMIT 1",
                     (sex, age, age, weight, weight, activity_level),
                 )
             row = cur.fetchone()

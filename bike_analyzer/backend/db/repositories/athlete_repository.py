@@ -116,16 +116,10 @@ def save_athlete(athlete: dict, athlete_id: int | None = None, tenant_id: int = 
     max_retries = 5
     retry_delay = 0.2
     last_error = None
-    is_new = False
     for attempt in range(max_retries):
         try:
             with _get_db_connection() as conn:
                 cur = conn.cursor()
-                if athlete_id is not None:
-                    cur.execute("SELECT id FROM athletes WHERE id = ?", (athlete_id,))
-                    is_new = cur.fetchone() is None
-                else:
-                    is_new = True
                 base_cols = [
                     "name", "email", "picture", "age", "weight_kg", "height_cm", "fat_percentage",
                     "years_active", "weekly_sessions", "monthly_hours", "annual_hours",

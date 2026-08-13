@@ -77,7 +77,6 @@ def save_ride_performance(
     metrics = calculate_power_metrics_with_error(power_stream, ftp, duration)
     ride_id = ride.get("id")
     date = ride.get("date") or _now_iso()[:10]
-    owner_athlete_id = ride.get("athlete_id") or athlete_id
 
     result = {
         "ride_id": ride_id,

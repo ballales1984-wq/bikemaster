@@ -1,0 +1,16 @@
+# Development dependencies for BikeMaster
+# Install with: pip install -r requirements-dev.txt
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
+pytest-cov>=5.0.0
+
+# Linting / formatting
+ruff>=0.6.0
+
+# Type checking (optional)
+mypy>=1.13.0
+
+# Pre-commit hooks (optional)
+pre-commit>=4.0.0

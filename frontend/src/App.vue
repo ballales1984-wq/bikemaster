@@ -73,7 +73,9 @@ const router = useRouter();
 const { locale, setLocale } = useI18n();
 const loggedIn = computed(() => auth.isLoggedIn);
 const isPublicPage = computed(() =>
-  ["/privacy", "/terms", "/cookies", "/about", "/contact", "/welcome"].includes(route.path),
+  ["/privacy", "/terms", "/cookies", "/about", "/contact", "/welcome"].includes(
+    route.path,
+  ),
 );
 const loginError = ref("");
 
@@ -151,7 +153,8 @@ async function onRegister(creds: { username: string; password: string }) {
       await auth.login(creds.username, creds.password);
       router.push("/rides");
     } catch {
-      loginError.value = "Account created. Please log in with your new credentials.";
+      loginError.value =
+        "Account created. Please log in with your new credentials.";
     }
   } catch (e) {
     const err = e as Error;
@@ -269,7 +272,11 @@ onMounted(() => {
 .orb-3 {
   width: 300px;
   height: 300px;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.35), transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(168, 85, 247, 0.35),
+    transparent 70%
+  );
   top: 40%;
   left: 55%;
   animation: orbFloat3 26s ease-in-out infinite alternate;

@@ -122,7 +122,16 @@ class TrainingStressRepository:
             "tsb": row["tsb"],
         }
 
-    def _upsert_sync(self, athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float, tenant_id: int = 0) -> None:
+    def _upsert_sync(
+        self,
+        athlete_id: int,
+        date: str,
+        tss: float,
+        atl: float,
+        ctl: float,
+        tsb: float,
+        tenant_id: int = 0,
+    ) -> None:
         from ...db.repositories.training_stress_repository import upsert_training_stress_day
 
         upsert_training_stress_day(athlete_id, date, tss, atl, ctl, tsb, tenant_id)

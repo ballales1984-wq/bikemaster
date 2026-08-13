@@ -35,7 +35,8 @@ def get_weather_cache(lat: float, lon: float, date: str) -> dict | None:
         _ensure_weather_cache_table(conn)
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT temperature, humidity, description, cached_at FROM weather_cache WHERE lat = %s AND lon = %s AND date = %s",
+                "SELECT temperature, humidity, description, cached_at "
+                "FROM weather_cache WHERE lat = %s AND lon = %s AND date = %s",
                 (lat, lon, date),
             )
             row = cur.fetchone()

@@ -18,6 +18,7 @@ async def create_itinerary(
 ):
     """Create a new itinerary owned by the current athlete."""
     data = payload.model_dump()
+    athlete_id = _user_id(current_user)
     data["athlete_id"] = athlete_id
     data["tenant_id"] = current_user.get("tenant_id", athlete_id)
     try:
