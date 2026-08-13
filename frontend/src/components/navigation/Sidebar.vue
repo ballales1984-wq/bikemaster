@@ -12,7 +12,11 @@ Responsibility:
 <template>
   <aside class="sidebar" :class="{ collapsed }" aria-label="Sidebar navigation">
     <div class="sidebar-header">
-      <router-link to="/rides" class="sidebar-brand" aria-label="BikeMaster Home">
+      <router-link
+        to="/rides"
+        class="sidebar-brand"
+        aria-label="BikeMaster Home"
+      >
         <span class="brand-icon" aria-hidden="true">🚴</span>
         <span v-if="!collapsed" class="brand-text">BikeMaster</span>
       </router-link>
@@ -46,6 +50,7 @@ Responsibility:
         active-class="active"
         :title="collapsed ? item.label : undefined"
       >
+        <!-- eslint-disable-next-line vue/no-v-html -->
         <span class="nav-icon" aria-hidden="true" v-html="item.icon"></span>
         <span v-if="!collapsed" class="nav-label">{{ item.label }}</span>
       </router-link>
@@ -54,7 +59,16 @@ Responsibility:
         <span class="nav-section-title">Amministrazione</span>
         <router-link to="/admin" class="nav-item" active-class="active">
           <span class="nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
           </span>
@@ -62,7 +76,16 @@ Responsibility:
         </router-link>
         <router-link to="/monitoring" class="nav-item" active-class="active">
           <span class="nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
           </span>
@@ -74,7 +97,16 @@ Responsibility:
         <span class="nav-section-title">Area Client</span>
         <router-link to="/client" class="nav-item" active-class="active">
           <span class="nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
               <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -87,18 +119,47 @@ Responsibility:
     </nav>
 
     <div class="sidebar-footer">
-      <router-link to="/settings" class="nav-item" active-class="active" :title="collapsed ? 'Impostazioni' : undefined">
+      <router-link
+        to="/settings"
+        class="nav-item"
+        active-class="active"
+        :title="collapsed ? 'Impostazioni' : undefined"
+      >
         <span class="nav-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+            />
           </svg>
         </span>
         <span v-if="!collapsed" class="nav-label">Impostazioni</span>
       </router-link>
-      <button class="nav-item logout-btn" :title="collapsed ? 'Logout' : undefined" @click="$emit('logout')">
+      <button
+        class="nav-item logout-btn"
+        :title="collapsed ? 'Logout' : undefined"
+        @click="$emit('logout')"
+      >
         <span class="nav-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
@@ -111,9 +172,7 @@ Responsibility:
 </template>
 
 <script setup lang="ts">
-import type { PropType } from "vue";
-
-const props = defineProps({
+defineProps({
   collapsed: {
     type: Boolean,
     required: true,

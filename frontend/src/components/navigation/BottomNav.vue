@@ -16,7 +16,12 @@ Responsibility:
       class="bottom-nav-item"
       active-class="active"
     >
-      <span class="bottom-nav-icon" aria-hidden="true" v-html="item.icon"></span>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span
+        class="bottom-nav-icon"
+        aria-hidden="true"
+        v-html="item.icon"
+      ></span>
       <span class="bottom-nav-label">{{ item.label }}</span>
     </router-link>
   </nav>

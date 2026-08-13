@@ -38,8 +38,12 @@ Responsibility:
         <router-link to="/rides" class="breadcrumb-home" aria-label="Home">
           <span class="breadcrumb-icon" aria-hidden="true">🚴</span>
         </router-link>
-        <span v-if="currentRouteName" class="breadcrumb-sep" aria-hidden="true">/</span>
-        <span v-if="currentRouteName" class="breadcrumb-current">{{ currentRouteName }}</span>
+        <span v-if="currentRouteName" class="breadcrumb-sep" aria-hidden="true"
+          >/</span
+        >
+        <span v-if="currentRouteName" class="breadcrumb-current">{{
+          currentRouteName
+        }}</span>
       </div>
     </div>
 
@@ -47,8 +51,8 @@ Responsibility:
       <button
         class="theme-toggle"
         :aria-label="ui.isDark ? 'Light mode' : 'Dark mode'"
-        @click="ui.toggleTheme"
         title="Toggle theme"
+        @click="ui.toggleTheme"
       >
         <svg
           v-if="ui.isDark"
@@ -88,39 +92,106 @@ Responsibility:
         </svg>
       </button>
 
-      <div class="user-menu" v-if="auth.user">
-        <button class="user-menu-trigger" @click="showUserMenu = !showUserMenu" aria-haspopup="true" :aria-expanded="showUserMenu">
+      <div v-if="auth.user" class="user-menu">
+        <button
+          class="user-menu-trigger"
+          aria-haspopup="true"
+          :aria-expanded="showUserMenu"
+          @click="showUserMenu = !showUserMenu"
+        >
           <span class="user-avatar">{{ userInitials }}</span>
-          <span class="user-name">{{ auth.user.name || auth.user.username }}</span>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <span class="user-name">{{ auth.user.username }}</span>
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </button>
-        <div v-if="showUserMenu" class="user-menu-dropdown" ref="dropdownRef">
+        <div v-if="showUserMenu" ref="dropdownRef" class="user-menu-dropdown">
           <div class="user-menu-header">
             <span class="user-avatar-lg">{{ userInitials }}</span>
             <div class="user-info">
-              <span class="user-display-name">{{ auth.user.name || auth.user.username }}</span>
-              <span class="user-email">{{ auth.user.email || auth.user.username }}</span>
+              <span class="user-display-name">{{ auth.user.username }}</span>
+              <span class="user-email">{{
+                auth.user.email || auth.user.username
+              }}</span>
             </div>
           </div>
           <div class="user-menu-divider"></div>
-          <router-link to="/athlete" class="user-menu-item" @click="showUserMenu = false">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          <router-link
+            to="/athlete"
+            class="user-menu-item"
+            @click="showUserMenu = false"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
             </svg>
             Profilo atleta
           </router-link>
-          <router-link to="/settings" class="user-menu-item" @click="showUserMenu = false">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          <router-link
+            to="/settings"
+            class="user-menu-item"
+            @click="showUserMenu = false"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+              />
             </svg>
             Impostazioni
           </router-link>
           <div class="user-menu-divider"></div>
-          <button class="user-menu-item logout" @click="showUserMenu = false; $emit('logout')">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          <button
+            class="user-menu-item logout"
+            @click="
+              showUserMenu = false;
+              $emit('logout');
+            "
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
             Logout
           </button>
@@ -154,7 +225,7 @@ const dropdownRef = ref<HTMLElement | null>(null);
 const currentRouteName = computed(() => route.meta.title as string | undefined);
 
 const userInitials = computed(() => {
-  const name = auth.user?.name || auth.user?.username || "U";
+  const name = auth.user?.username || "U";
   return name.slice(0, 2).toUpperCase();
 });
 

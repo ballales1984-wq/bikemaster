@@ -64,7 +64,7 @@ export default [
       "prettier/prettier": "warn",
       "vue/multi-word-component-names": [
         "error",
-        { ignores: ["ToastContainer"] },
+        { ignores: ["ToastContainer", "Sidebar"] },
       ],
       "no-undef": "off",
       "@typescript-eslint/no-unused-vars": [
