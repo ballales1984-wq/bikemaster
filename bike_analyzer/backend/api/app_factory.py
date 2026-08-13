@@ -36,7 +36,6 @@ from pydantic import ValidationError
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
-from ..hub.routes import hub_auth_router
 from ..logging_config import REQUEST_ID_HEADER
 from ..monitoring import MetricsMiddleware
 from ..observability import init_observability
@@ -531,7 +530,6 @@ def create_app() -> FastAPI:
     app.include_router(coach_router, prefix="/api/v1")
     app.include_router(analytics_router, prefix="/api/v1")
     app.include_router(auth_router, prefix="/api/v1")
-    app.include_router(hub_auth_router, prefix="/api/v1")
     app.include_router(import_router, prefix="/api/v1")
     app.include_router(sync_router, prefix="/api/v1")
     app.include_router(performance_router, prefix="/api/v1")

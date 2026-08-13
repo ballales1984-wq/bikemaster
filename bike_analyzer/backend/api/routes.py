@@ -650,13 +650,9 @@ async def alerts_webhook(request: Request):
     """
     expected_token = os.getenv("ALERTMANAGER_WEBHOOK_TOKEN")
     if not expected_token:
-        if _s.environment.lower() in ("production", "prod", "staging"):
-            logger.error("ALERTMANAGER_WEBHOOK_TOKEN not set: refusing /alerts/webhook in production")
-            raise HTTPException(status_code=500, detail="Webhook not configured")
-        else:
-            logger.warning("ALERTMANAGER_WEBHOOK_TOKEN not set: /alerts/webhook is unauthenticated (dev only)")
+        raise HTTPException(status_code=500, detail="Webhook not configured")
     provided = request.headers.get("X-Alertmanager-Webhook-Token", "")
-    if not provided or not hmac.compare_digest(provided, expected_token or ""):
+    if not provided or not hmac.compare_digest(provided, expected_token):
         raise HTTPException(status_code=401, detail="Invalid webhook token")
     body = await request.json()
     logger.info("Alert received: %s", body.get("receiver", "unknown"))
@@ -685,8 +681,8 @@ async def health_redis():
     try:
         info = await r.ping()
         return {"redis": "connected", "status": "ok", "ping": "pong" if info is True else "ok"}
-    except Exception as e:
-        return {"redis": "error", "error": str(e)}
+    except Exception:
+        return {"redis": "error", "error": "unavailable"}
 
 
 @router.get("/config/google-maps-key")
