@@ -38,6 +38,19 @@
 
         <div class="consent-item">
           <label class="toggle">
+            <input v-model="consents.analytics" type="checkbox" />
+            <span>
+              <strong>Analytics</strong>
+              <small
+                >Consento all'uso di statistiche di utilizzo anonimizzate per
+                migliorare il servizio.</small
+              >
+            </span>
+          </label>
+        </div>
+
+        <div class="consent-item">
+          <label class="toggle">
             <input v-model="consents.ai_coach" type="checkbox" />
             <span>
               <strong>AI Coach</strong>
@@ -96,56 +109,62 @@
   </Transition>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
-import { useAuthStore } from "../stores/auth";
-import { resolveApiBase } from "../utils/backend-config";
+  <script setup lang="ts">
+  import { ref, reactive, computed, onMounted } from "vue";
+  import { useAuthStore } from "../stores/auth";
+  import { resolveApiBase } from "../utils/backend-config";
+  import { loadAnalytics } from "../composables/useAnalytics";
 
-const emit = defineEmits(["saved"]);
+  const emit = defineEmits(["saved"]);
 
-const auth = useAuthStore();
-const visible = ref(false);
+  const auth = useAuthStore();
+  const visible = ref(false);
 
-const consents = reactive({
-  essential: true,
-  ai_coach: false,
-  health_data: false,
-  external_sync: false,
-});
+  const consents = reactive({
+    essential: true,
+    analytics: false,
+    ai_coach: false,
+    health_data: false,
+    external_sync: false,
+  });
 
-const canSave = computed(() => consents.essential);
+  const canSave = computed(() => consents.essential);
 
-async function save() {
-  try {
-    const base = resolveApiBase();
-    const url = base ? `${base}/api/v1/legal/consent` : "/api/v1/legal/consent";
-    const entries = [
-      { consent_type: "essential", granted: true },
-      { consent_type: "ai_coach", granted: consents.ai_coach },
-      { consent_type: "health_data", granted: consents.health_data },
-      { consent_type: "external_sync", granted: consents.external_sync },
-    ];
-    for (const entry of entries) {
-      await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${auth.token}`,
-        },
-        body: JSON.stringify(entry),
-      }).catch(() => {});
+  async function save() {
+    try {
+      const base = resolveApiBase();
+      const url = base ? `${base}/api/v1/legal/consent` : "/api/v1/legal/consent";
+      const entries = [
+        { consent_type: "essential", granted: true },
+        { consent_type: "analytics", granted: consents.analytics },
+        { consent_type: "ai_coach", granted: consents.ai_coach },
+        { consent_type: "health_data", granted: consents.health_data },
+        { consent_type: "external_sync", granted: consents.external_sync },
+      ];
+      for (const entry of entries) {
+        await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${auth.token}`,
+          },
+          body: JSON.stringify(entry),
+        }).catch(() => {});
+      }
+      localStorage.setItem(
+        "bikemaster_consent_v1",
+        JSON.stringify({ ...consents, savedAt: Date.now() }),
+      );
+      visible.value = false;
+      if (consents.analytics) {
+        loadAnalytics();
+      }
+      emit("saved", { ...consents });
+    } catch {
+      visible.value = false;
+      emit("saved", { ...consents });
     }
-    localStorage.setItem(
-      "bikemaster_consent_v1",
-      JSON.stringify({ ...consents, savedAt: Date.now() }),
-    );
-    visible.value = false;
-    emit("saved", { ...consents });
-  } catch {
-    visible.value = false;
-    emit("saved", { ...consents });
   }
-}
 
 function declineAll() {
   consents.ai_coach = false;

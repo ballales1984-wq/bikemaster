@@ -102,7 +102,7 @@
 
     <!-- BM2 Physics Analysis -->
     <div v-if="bm2Result" class="bm2-results">
-      <h4>BM2 Physics Analysis</h4>
+      <h4>{{ t('bm2.physicsAnalysis') }}</h4>
       <div v-if="'validation' in bm2Result" class="bm2-card">
         <header>
           <strong>Validazione potenza</strong>

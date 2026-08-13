@@ -1128,7 +1128,8 @@
     "meanEstimated": "Mean estimated power",
     "selectRide": "Select a ride...",
     "ridePickerLabel": "Choose ride",
-    "bm2QuickAction": "BM2 Analysis"
+    "bm2QuickAction": "BM2 Analysis",
+    "physicsAnalysis": "BM2 Physics Analysis"
   },
   "knowledge": {
     "placeholder": "Search... (e.g. 'how to improve endurance', 'FTP training')",
@@ -1188,6 +1189,12 @@
      "deviceId": "BLE device ID",
      "cancel": "Cancel",
      "save": "Save",
-     "history": "Daily history"
-   }
+      "history": "Daily history"
+    }
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "tryAgain": "Try Again"
+  }
 }
+

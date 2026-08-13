@@ -25,32 +25,32 @@
         These cookies are essential for the proper functioning of the BikeMaster
         service:
       </p>
-      <table class="cookie-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Purpose</th>
-            <th>Duration</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>access_token</code></td>
-            <td>User JWT authentication</td>
-            <td>Browser session</td>
-          </tr>
-          <tr>
-            <td><code>refresh_token</code></td>
-            <td>Automatic session renewal</td>
-            <td>7 days</td>
-          </tr>
-          <tr>
-            <td><code>bikemaster_session</code></td>
-            <td>User session state management</td>
-            <td>Browser session</td>
-          </tr>
-        </tbody>
-      </table>
+        <table class="cookie-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Purpose</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>access_token</code></td>
+              <td>User JWT authentication (sessionStorage)</td>
+              <td>Browser session</td>
+            </tr>
+            <tr>
+              <td><code>refresh_token</code></td>
+              <td>Automatic session renewal (sessionStorage)</td>
+              <td>Browser session</td>
+            </tr>
+            <tr>
+              <td><code>bikemaster_consent_v1</code></td>
+              <td>Privacy consent preferences (localStorage)</td>
+              <td>Persistent</td>
+            </tr>
+          </tbody>
+        </table>
 
       <h3>2.2 Analytics Cookies</h3>
       <p>

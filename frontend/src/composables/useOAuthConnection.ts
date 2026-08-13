@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { useAuthStore } from "../stores/auth";
 import { useToast } from "./useToast";
-import { isTauri, TAURI_EMBEDDED_BACKEND_BASE } from "../utils/backend-config";
+import { isTauri, TAURI_EMBEDDED_BACKEND_BASE, resolveApiBase } from "../utils/backend-config";
 
 export interface OAuthProviderConfig {
   provider: string;
@@ -144,6 +144,16 @@ export function useOAuthConnection(config: OAuthProviderConfig) {
     return `${origin}${config.callbackEndpoint}`;
   }
 
+  function getExpectedOAuthOrigin(): string {
+    const base = resolveApiBase();
+    if (!base) return typeof window !== "undefined" ? window.location.origin : "";
+    try {
+      return new URL(base).origin;
+    } catch {
+      return typeof window !== "undefined" ? window.location.origin : "";
+    }
+  }
+
   function cleanupListeners(
     handleMessage: (event: MessageEvent) => void,
     handleStorage: (event: StorageEvent) => void,
@@ -190,6 +200,7 @@ export function useOAuthConnection(config: OAuthProviderConfig) {
       );
       if (!popup) throw new Error("Popup bloccato - abilita i popup");
 
+      const expectedOrigin = getExpectedOAuthOrigin();
       const code = await new Promise<string>((resolve, reject) => {
         let settled = false;
         const finish = () => {
@@ -229,6 +240,7 @@ export function useOAuthConnection(config: OAuthProviderConfig) {
         }, 1000);
         const handleMessage = (event: MessageEvent) => {
           if (!event.data) return;
+          if (event.origin && event.origin !== expectedOrigin) return;
           if (event.data.type === config.errorEventType) {
             finish();
             closePopup(popup);
@@ -250,7 +262,10 @@ export function useOAuthConnection(config: OAuthProviderConfig) {
         const handleStorage = (event: StorageEvent) => {
           if (event.key !== OAUTH_RESULT_KEY || !event.newValue) return;
           try {
-            handleMessage({ data: JSON.parse(event.newValue) } as MessageEvent);
+            handleMessage({
+              data: JSON.parse(event.newValue),
+              origin: expectedOrigin,
+            } as MessageEvent);
           } catch {
             /* ignore */
           }

@@ -65,7 +65,8 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ["vue", "vue-router", "pinia"],
-          charts: ["chart.js"],
+          charts: ["chart.js", "chartjs-adapter-date-fns"],
+          maps: ["leaflet", "leaflet.heat"],
         },
       },
     },

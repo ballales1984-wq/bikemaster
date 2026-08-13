@@ -15,17 +15,17 @@
     <div class="error-boundary-content">
       <div class="error-boundary-icon" aria-hidden="true"></div>
       <h2 id="error-title" class="error-boundary-title">
-        Something went wrong
+        {{ $t ? $t('errorBoundary.title') : 'Something went wrong' }}
       </h2>
       <p class="error-boundary-message" aria-describedby="error-title">
         {{ error }}
       </p>
       <button
         class="btn btn-primary"
-        aria-label="Try again"
+        :aria-label="$t ? $t('errorBoundary.tryAgain') : 'Try Again'"
         @click="resetError"
       >
-        Try Again
+        {{ $t ? $t('errorBoundary.tryAgain') : 'Try Again' }}
       </button>
     </div>
   </div>
