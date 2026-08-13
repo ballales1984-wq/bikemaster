@@ -58,6 +58,7 @@ Responsibility:
       </footer>
     </div>
 
+    <BottomNav v-if="!isPublicPage" />
     <nav v-if="isPublicPage" class="public-links-mobile">
       <router-link to="/about">Chi Siamo</router-link>
       <router-link to="/contact">Contatti</router-link>
@@ -76,6 +77,7 @@ import { useUIStore } from "../stores/ui";
 import { apiGet } from "../utils/api";
 import Sidebar from "../components/navigation/Sidebar.vue";
 import TopBar from "../components/navigation/TopBar.vue";
+import BottomNav from "../components/navigation/BottomNav.vue";
 import ErrorBoundary from "../components/ErrorBoundary.vue";
 
 const auth = useAuthStore();
