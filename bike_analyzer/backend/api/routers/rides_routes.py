@@ -27,6 +27,12 @@ class RideCreate(BaseModel):
     heart_rate_avg: float | None = None
     elevation_gain_m: float | None = None
     gps_points: list[dict] | None = None
+    title: str | None = None
+    external_source: str | None = None
+    external_id: str | None = None
+    activity_type: str | None = None
+    is_official: bool | None = None
+    source: str | None = None
 
 
 class RideUpdate(BaseModel):
@@ -39,6 +45,12 @@ class RideUpdate(BaseModel):
     heart_rate_avg: float | None = None
     elevation_gain_m: float | None = None
     gps_points: list[dict] | None = None
+    title: str | None = None
+    external_source: str | None = None
+    external_id: str | None = None
+    activity_type: str | None = None
+    is_official: bool | None = None
+    source: str | None = None
 
 
 def _current_athlete_id(current_user: dict) -> int:
