@@ -1,12 +1,3 @@
-<!--
-BikeMaster Frontend — Bottom navigation for mobile.
-
-Responsibility:
-- Fixed bottom bar with icon navigation
-- Visible only on small screens
-- Complements Sidebar (hidden on mobile)
--->
-
 <template>
   <nav class="bottom-nav" aria-label="Mobile navigation">
     <router-link
@@ -16,44 +7,123 @@ Responsibility:
       class="bottom-nav-item"
       active-class="active"
     >
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <span
-        class="bottom-nav-icon"
-        aria-hidden="true"
-        v-html="item.icon"
-      ></span>
+      <component :is="item.icon" />
       <span class="bottom-nav-label">{{ item.label }}</span>
     </router-link>
   </nav>
 </template>
 
 <script setup lang="ts">
+import { h, type VNode } from "vue";
+
+function IconRides(): VNode {
+  return h("svg", {
+    viewBox: "0 0 24 24",
+    width: "20",
+    height: "20",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+  }, [
+    h("circle", { cx: "5.5", cy: "17.5", r: "3.5" }),
+    h("circle", { cx: "18.5", cy: "17.5", r: "3.5" }),
+    h("path", { d: "M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h3" }),
+  ]);
+}
+
+function IconDashboard(): VNode {
+  return h("svg", {
+    viewBox: "0 0 24 24",
+    width: "20",
+    height: "20",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+  }, [
+    h("rect", { x: "3", y: "3", width: "7", height: "7" }),
+    h("rect", { x: "14", y: "3", width: "7", height: "7" }),
+    h("rect", { x: "14", y: "14", width: "7", height: "7" }),
+    h("rect", { x: "3", y: "14", width: "7", height: "7" }),
+  ]);
+}
+
+function IconCalendar(): VNode {
+  return h("svg", {
+    viewBox: "0 0 24 24",
+    width: "20",
+    height: "20",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+  }, [
+    h("rect", { x: "3", y: "4", width: "18", height: "18", rx: "2", ry: "2" }),
+    h("line", { x1: "16", y1: "2", x2: "16", y2: "6" }),
+    h("line", { x1: "8", y1: "2", x2: "8", y2: "6" }),
+    h("line", { x1: "3", y1: "10", x2: "21", y2: "10" }),
+  ]);
+}
+
+function IconTrack(): VNode {
+  return h("svg", {
+    viewBox: "0 0 24 24",
+    width: "20",
+    height: "20",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+  }, [
+    h("path", { d: "M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" }),
+    h("circle", { cx: "12", cy: "10", r: "3" }),
+  ]);
+}
+
+function IconImport(): VNode {
+  return h("svg", {
+    viewBox: "0 0 24 24",
+    width: "20",
+    height: "20",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+  }, [
+    h("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }),
+    h("polyline", { points: "17 8 12 3 7 8" }),
+    h("line", { x1: "12", y1: "3", x2: "12", y2: "15" }),
+  ]);
+}
+
+function IconAthlete(): VNode {
+  return h("svg", {
+    viewBox: "0 0 24 24",
+    width: "20",
+    height: "20",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+  }, [
+    h("path", { d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" }),
+    h("circle", { cx: "12", cy: "7", r: "4" }),
+  ]);
+}
+
 const navItems = [
-  {
-    to: "/rides",
-    label: "Uscite",
-    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h3"/></svg>`,
-  },
-  {
-    to: "/dashboard",
-    label: "Dashboard",
-    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
-  },
-  {
-    to: "/calendar",
-    label: "Calendario",
-    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
-  },
-  {
-    to: "/import",
-    label: "Importa",
-    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
-  },
-  {
-    to: "/athlete",
-    label: "Profilo",
-    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
-  },
+  { to: "/rides", label: "Uscite", icon: IconRides },
+  { to: "/dashboard", label: "Dashboard", icon: IconDashboard },
+  { to: "/calendar", label: "Calendario", icon: IconCalendar },
+  { to: "/import", label: "Importa", icon: IconImport },
+  { to: "/athlete", label: "Profilo", icon: IconAthlete },
 ];
 </script>
 
