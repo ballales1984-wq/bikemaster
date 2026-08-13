@@ -54,23 +54,27 @@ def _current_athlete_id(current_user: dict) -> int:
 
 @router.get("/metrics")
 async def get_performance_metrics(
-    athlete_id: int = Query(...),
+    athlete_id: int | None = Query(None),
     ride_id: int | None = Query(None),
     current_user: dict = Depends(get_current_user),
 ):
     """Return persisted power metrics for an athlete."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
+    if athlete_id is None:
+        athlete_id = _current_athlete_id(current_user)
     metrics = _get_performance_metrics(athlete_id, tenant_id=tenant_id, ride_id=ride_id)
     return {"metrics": metrics}
 
 
 @router.get("/ftp")
 async def get_ftp_history(
-    athlete_id: int = Query(...),
+    athlete_id: int | None = Query(None),
     current_user: dict = Depends(get_current_user),
 ):
     """Return FTP history for an athlete."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
+    if athlete_id is None:
+        athlete_id = _current_athlete_id(current_user)
     history = _get_ftp_history(athlete_id, tenant_id=tenant_id)
     latest = get_latest_ftp(athlete_id, tenant_id=tenant_id)
     return {"history": history, "latest_ftp": latest}
@@ -79,11 +83,13 @@ async def get_ftp_history(
 @router.post("/ftp")
 async def record_ftp_endpoint(
     payload: FtpRecordRequest,
-    athlete_id: int = Query(...),
+    athlete_id: int | None = Query(None),
     current_user: dict = Depends(get_current_user),
 ):
     """Record or update FTP for an athlete on a specific date."""
     tenant_id = current_user.get("tenant_id", current_user["id"])
+    if athlete_id is None:
+        athlete_id = _current_athlete_id(current_user)
     result = record_ftp(
         athlete_id=athlete_id,
         ftp_watts=payload.ftp_watts,
@@ -107,7 +113,7 @@ async def estimate_ftp_endpoint(payload: FtpEstimateRequest):
 @router.post("/ride/{ride_id}/compute")
 async def compute_ride_metrics(
     ride_id: int,
-    athlete_id: int = Query(...),
+    athlete_id: int | None = Query(None),
     current_user: dict = Depends(get_current_user),
 ):
     """Compute and persist power metrics for a ride."""
@@ -117,6 +123,8 @@ async def compute_ride_metrics(
     ride = get_ride(ride_id, tenant_id=tenant_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    if athlete_id is None:
+        athlete_id = _current_athlete_id(current_user)
     if not current_user.get("is_admin") and int(ride.get("athlete_id", 0)) != int(athlete_id):
         raise HTTPException(status_code=403, detail="Access denied to this ride")
     ftp = get_latest_ftp(athlete_id, tenant_id=tenant_id)
