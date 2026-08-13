@@ -133,7 +133,8 @@ Responsibility:
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
-import { useAuthStore } from "../stores/auth";
+import { useAuthStore } from "../../stores/auth";
+import { useUIStore } from "../../stores/ui";
 
 defineProps({
   collapsed: {
@@ -145,6 +146,7 @@ defineProps({
 defineEmits(["toggle-sidebar", "logout"]);
 
 const auth = useAuthStore();
+const ui = useUIStore();
 const route = useRoute();
 const showUserMenu = ref(false);
 const dropdownRef = ref<HTMLElement | null>(null);
