@@ -70,17 +70,21 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
     chart.value.update("none" as any);
   }
 
-  watch(config, () => {
-    const next = buildConfig();
-    const typeChanged = (next.type ?? "") !== lastType;
-    if (typeChanged || !chart.value) {
-      render();
-      return;
-    }
-    chart.value.data = next.data;
-    chart.value.options = next.options as ChartInstance["options"];
-    chart.value.update("none" as any);
-  }, { deep: true });
+  watch(
+    config,
+    () => {
+      const next = buildConfig();
+      const typeChanged = (next.type ?? "") !== lastType;
+      if (typeChanged || !chart.value) {
+        render();
+        return;
+      }
+      chart.value.data = next.data;
+      chart.value.options = next.options as ChartInstance["options"];
+      chart.value.update("none" as any);
+    },
+    { deep: true },
+  );
 
   watch(
     () => chartTheme.isDark.value,

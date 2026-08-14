@@ -87,35 +87,29 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Navigation handler MUST be registered before `precacheAndRoute` so it wins
-// over Workbox's precache route. Workbox's precache route matches "/" requests
-// (SPA directory index) and would otherwise serve a *stale* cached index.html
-// whose hashed JS/CSS chunks were deleted by a newer deploy — breaking the app
-// boot on OAuth returns and forcing a manual refresh to log in.
+// Navigation handler: serve the SPA shell for all non-API navigations.
+// Do NOT do a network fetch here: for SPA navigation requests Chrome can
+// inherit `redirect: "manual"` from the original request, which makes
+// `fetch(..., { redirect: "follow" })` throw
+// "a redirected response was used for a request whose redirect mode is not 'follow'".
+// The router handles auth redirects client-side, so the shell is always correct.
 registerRoute(
   ({ request }) =>
     request.mode === "navigate" && !request.url.includes("/api/"),
-  async ({ event }) => {
-    try {
-      const response = await fetch(event.request.url, {
-        cache: "no-store",
-        redirect: "follow",
-      });
-      if (response.ok && !response.redirected) return response;
-      // opaqueredirect can appear if the browser did not follow a redirect
-      // (e.g. Chrome inherits redirect:"manual" from navigation requests
-      // inside service workers).  Never return a redirect/opaqueredirect
-      // for a navigation — fall through to precached shell instead.
-      if (response.type === "opaqueredirect" || response.redirected) {
-        throw new TypeError("redirected response received for navigation");
-      }
-    } catch (_) {
-      /* network error, redirect or opaque-redirect — fall through to cache */
-    }
+  async () => {
     try {
       const cache = await caches.open(STATIC_CACHE);
       const cached = await cache.match("/index.html");
-      if (cached) return cached;
+      if (cached) {
+        if (cached.redirected) {
+          return new Response(await cached.blob(), {
+            headers: cached.headers,
+            status: cached.status,
+            statusText: cached.statusText,
+          });
+        }
+        return cached;
+      }
     } catch (_) {
       /* cache error, fall through to offline response */
     }
@@ -132,7 +126,7 @@ const bgSyncPlugin = new BackgroundSyncPlugin(RIDE_QUEUE_CACHE, {
     while ((entry = await queue.shiftRequest())) {
       const { request } = entry;
       try {
-        await fetch(request);
+        await fetch(request, { redirect: "follow" });
       } catch (error) {
         await queue.pushRequest(entry);
         throw error;
@@ -157,6 +151,7 @@ registerRoute(
   ({ url }) => isSameOriginApi(url) && url.pathname.includes("rides"),
   new NetworkFirst({
     cacheName: API_CACHE,
+    fetchOptions: { redirect: "follow" },
     plugins: [
       bgSyncPlugin,
       new ExpirationPlugin({
@@ -173,6 +168,7 @@ registerRoute(
     (url.pathname.includes("/auth/") || url.pathname.includes("/auth")),
   new NetworkFirst({
     cacheName: API_CACHE,
+    fetchOptions: { redirect: "follow" },
     plugins: [new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 0 })],
   }),
 );
@@ -181,6 +177,7 @@ registerRoute(
   ({ url }) => isSameOriginApi(url),
   new NetworkFirst({
     cacheName: API_CACHE,
+    fetchOptions: { redirect: "follow" },
     plugins: [
       new ExpirationPlugin({
         maxEntries: 100,
@@ -210,6 +207,7 @@ registerRoute(
     request.url.startsWith(self.location.origin),
   new NetworkFirst({
     cacheName: STATIC_CACHE,
+    fetchOptions: { redirect: "follow" },
     plugins: [
       new ExpirationPlugin({
         maxEntries: 100,
@@ -254,7 +252,7 @@ self.addEventListener("periodicsync", (event) => {
         const cache = await caches.open(RIDE_QUEUE_CACHE);
         const requests = await cache.keys();
         for (const request of requests) {
-          const response = await fetch(request);
+          const response = await fetch(request, { redirect: "follow" });
           if (response.ok) {
             await cache.delete(request);
           }
