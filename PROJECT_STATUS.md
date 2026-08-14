@@ -13,6 +13,38 @@
 > - `analytics/training_load.py` esteso: +5 funzioni (ATL/CTL/TSB, RSS, 7-day fitness summary)
 > - HR (P2) in progress: analytics/repositories/hr_repository.py convertito, db/repositories/hr_repository.py atteso
 >
+> **Stato migrazione domini SQLite → PostgreSQL (2026-08-14):**
+> 
+> | Dominio | Stato PostgreSQL | Note |
+> |:---|---|:---|
+> | Athlete | ✅ Migrato | `postgres_athlete.py`, dispatch via `@pg_dispatch` |
+> | Rides / metrics / TSS | ✅ Migrato | `postgres_rides.py`, dispatch via `@pg_dispatch` |
+> | Itineraries / stages | ✅ Migrato | `postgres_itineraries.py`, dispatch via `@pg_dispatch` |
+> | Users | ✅ Migrato | `postgres_users.py`, dispatch via `@pg_dispatch` |
+> | Calendar | ✅ Migrato | `postgres_calendar.py`, dispatch via `@pg_dispatch` (completato 2026-08-14) |
+> | HR 24h | ⚠️ Solo dispatch | `postgres_hr.py` esiste, funzioni dispatchate ma repository non estratto da `database.py` |
+> | Metabolico / food logs | ⚠️ Solo dispatch | `postgres_metabolic.py` esiste, funzioni dispatchate |
+> | Chat history | ⚠️ Solo dispatch | `postgres_chat.py` esiste, funzioni dispatchate |
+> | BLE devices | ⚠️ Solo dispatch | `postgres_ble.py` esiste, funzioni dispatchate |
+> | Legal / consent | ⚠️ Solo dispatch | `postgres_legal.py` esiste, funzioni dispatchate |
+> | POI | ⚠️ Solo dispatch | `postgres_poi.py` esiste, funzioni dispatchate |
+> | Safety / incidents | ⚠️ Solo dispatch | `postgres_safety.py` esiste, funzioni dispatchate |
+> | Nutrition | ⚠️ Solo dispatch | `postgres_nutrition.py` esiste, funzioni dispatchate |
+> | Beck assessments | ⚠️ Solo dispatch | `postgres_beck.py` esiste, funzioni dispatchate |
+> | Fitness states | ⚠️ Solo dispatch | `postgres_fitness.py` esiste, funzioni dispatchate |
+> | Sensor / activity | ⚠️ Solo dispatch | `postgres_sensor.py` esiste, funzioni dispatchate |
+> | Weather cache | ⚠️ Solo dispatch | `postgres_weather.py` esiste, funzioni dispatchate |
+> | User OAuth | ⚠️ Solo dispatch | `postgres_user_oauth.py` esiste, funzioni dispatchate |
+> | Training Goals | ✅ Migrato | `postgres_db.py` + `training_goal_repository.py` (SQLAlchemy diretto) |
+> 
+> **Nota**: "Solo dispatch" significa che le funzioni PostgreSQL esistono e sono collegate via `@pg_dispatch` in `database.py`, ma il codice SQLite rimane in `database.py` invece di essere estratto in repository dedicati. I dati sono al sicuro su PostgreSQL quando `DATABASE_URL` è configurato.
+>
+> **Persistenza Render (2026-08-14):**
+> - Disco persistente configurato in `render.yaml`: 1GB su `/mnt/data`
+> - `DB_PATH=/mnt/data/rides.db` — dati SQLite sopravvivono al resume/suspend
+> - Check startup: fallisce rumorosamente se `/mnt/data` non è montato (produzione)
+> - Warning log: ogni scrittura SQLite su path non persistente viene loggata
+>
 > **Numeri backend/frontend (verificati 2026-08-10, repo root):**
 > - Backend: **~3255 passed / 2 failed** su ~3257 test eseguiti (`pytest`, in chunk per stabilità d'ambiente). I 2 failure sono errori d'ambiente SQLAlchemy async (`MissingGreenlet`).
 > - Frontend: **395 passed / 0 failed / 0 errors** su **395** test (59 file) — `vitest run` eseguito 2026-08-10.

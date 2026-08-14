@@ -175,20 +175,9 @@ async def revoke_token(jti: str, ttl: int = JWT_BLACKLIST_TTL) -> bool:
 
 
 def _revoke_token_sqlite(jti: str, ttl: int) -> None:
-    from .db.database import get_db_connection
-    with get_db_connection() as conn:
-        conn.execute(
-            """CREATE TABLE IF NOT EXISTS revoked_tokens (
-                jti TEXT PRIMARY KEY,
-                revoked_at TEXT NOT NULL,
-                expires_at TEXT NOT NULL
-            )"""
-        )
-        conn.execute(
-            "INSERT OR REPLACE INTO revoked_tokens (jti, revoked_at, expires_at) VALUES (?, ?, ?)",
-            (jti, datetime.now(UTC).isoformat(), (datetime.now(UTC) + timedelta(seconds=ttl)).isoformat()),
-        )
-        conn.commit()
+    from .db.database import revoke_token
+
+    revoke_token(jti, ttl=ttl)
 
 
 async def is_token_revoked(jti: str) -> bool:
@@ -216,34 +205,9 @@ async def is_token_revoked(jti: str) -> bool:
 
 
 def _is_token_revoked_sqlite(jti: str) -> bool:
-    from datetime import datetime as _dt
+    from .db.database import is_token_revoked
 
-    from .db.database import get_db_connection
-    with get_db_connection() as conn:
-        conn.execute(
-            """CREATE TABLE IF NOT EXISTS revoked_tokens (
-                jti TEXT PRIMARY KEY,
-                revoked_at TEXT NOT NULL,
-                expires_at TEXT NOT NULL
-            )"""
-        )
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT expires_at FROM revoked_tokens WHERE jti = ?",
-            (jti,),
-        )
-        row = cur.fetchone()
-        if not row:
-            return False
-        expires_at = row["expires_at"]
-        if expires_at:
-            try:
-                exp_dt = _dt.fromisoformat(expires_at)
-                if _dt.now(UTC) > exp_dt:
-                    return False
-            except Exception:
-                pass
-        return True
+    return is_token_revoked(jti)
 
 
 async def _await_if_needed(value):
