@@ -36,6 +36,38 @@ from bike_analyzer.backend.redis_client import close_redis, get_redis
 from bike_analyzer.backend.settings import get_settings
 from bike_analyzer.backend.task_queue import get_task_queue
 
+# ---------------------------------------------------------------------------
+# API v1 domain routers (shared with the local app via app_factory.py).
+# The hub provides its own PostgreSQL-backed auth/admin/knowledge/sync routers
+# (via hub_router and hub_sync_router), so we exclude the conflicting local
+# auth_router, knowledge_router, admin_router — and the main router's /health
+# replaces the hub's direct /api/v1/health endpoint below.
+# ---------------------------------------------------------------------------
+from bike_analyzer.backend.api.routes import router as main_router
+from bike_analyzer.backend.api.routers.athlete_routes import router as athlete_router
+from bike_analyzer.backend.api.routers.aethermap_routes import router as aethermap_router
+from bike_analyzer.backend.api.routers.analytics_routes import router as analytics_router
+from bike_analyzer.backend.api.routers.badges_routes import router as badges_router
+from bike_analyzer.backend.api.routers.beck_routes import router as beck_router
+from bike_analyzer.backend.api.routers.ble_routes import router as ble_router
+from bike_analyzer.backend.api.routers.calendar_routes import router as calendar_router
+from bike_analyzer.backend.api.routers.charts_routes import router as charts_router
+from bike_analyzer.backend.api.routers.coach_routes import router as coach_router
+from bike_analyzer.backend.api.routers.dashboard_routes import router as dashboard_router
+from bike_analyzer.backend.api.routers.hr_routes import router as hr_router
+from bike_analyzer.backend.api.routers.import_routes import router as import_router
+from bike_analyzer.backend.api.routers.itineraries_routes import router as itineraries_router
+from bike_analyzer.backend.api.routers.legal_routes import router as legal_router
+from bike_analyzer.backend.api.routers.maps_routes import router as maps_router
+from bike_analyzer.backend.api.routers.metabolism_routes import router as metabolism_router
+from bike_analyzer.backend.api.routers.notifications_routes import router as notifications_router
+from bike_analyzer.backend.api.routers.performance_routes import router as performance_router
+from bike_analyzer.backend.api.routers.rides_routes import router as rides_router
+from bike_analyzer.backend.api.routers.sync_routes import router as local_sync_router
+from bike_analyzer.backend.api.routers.traffic_routes import router as traffic_router
+from bike_analyzer.backend.api.routers.training_routes import router as training_router
+from bike_analyzer.backend.api.routers.weather_routes import router as weather_router
+
 logger = logging.getLogger(__name__)
 _s = get_settings()
 
@@ -220,14 +252,39 @@ def create_hub_app() -> FastAPI:
     app.include_router(hub_router)
     app.include_router(hub_sync_router, prefix="/api/v1", tags=["sync"])
 
+    # Include the main API v1 domain routers so the hub serves the same
+    # endpoints as the local app (create_app()). The hub already provides
+    # its own auth/admin/knowledge/sync routers via hub_router and
+    # hub_sync_router above, so those local counterparts are intentionally
+    # excluded to avoid duplicate route registration.
+    app.include_router(main_router, prefix="/api/v1")
+    app.include_router(rides_router, prefix="/api/v1")
+    app.include_router(athlete_router, prefix="/api/v1")
+    app.include_router(coach_router, prefix="/api/v1")
+    app.include_router(analytics_router, prefix="/api/v1")
+    app.include_router(import_router, prefix="/api/v1")
+    app.include_router(training_router, prefix="/api/v1")
+    app.include_router(weather_router, prefix="/api/v1")
+    app.include_router(calendar_router, prefix="/api/v1")
+    app.include_router(legal_router, prefix="/api/v1")
+    app.include_router(badges_router, prefix="/api/v1")
+    app.include_router(beck_router, prefix="/api/v1")
+    app.include_router(traffic_router, prefix="/api/v1")
+    app.include_router(charts_router, prefix="/api/v1")
+    app.include_router(notifications_router, prefix="/api/v1")
+    app.include_router(ble_router, prefix="/api/v1")
+    app.include_router(hr_router, prefix="/api/v1")
+    app.include_router(maps_router, prefix="/api/v1")
+    app.include_router(itineraries_router, prefix="/api/v1")
+    app.include_router(performance_router, prefix="/api/v1")
+    app.include_router(metabolism_router, prefix="/api/v1")
+    app.include_router(dashboard_router, prefix="/api/v1")
+    app.include_router(aethermap_router, prefix="/api/v1")
+    app.include_router(local_sync_router, prefix="/api/v1")
+
     @app.get("/health")
     async def health():
         """Health check endpoint per load balancer e monitoring."""
-        return {"status": "ok", "mode": "hub"}
-
-    @app.get("/api/v1/health")
-    async def health_api_v1():
-        """API v1 health check matching Render's default healthCheckPath."""
         return {"status": "ok", "mode": "hub"}
 
     @app.get("/healthz")
