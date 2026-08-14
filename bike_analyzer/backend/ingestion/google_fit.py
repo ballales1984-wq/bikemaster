@@ -17,7 +17,7 @@ _s = get_settings()
 logger = logging.getLogger(__name__)
 
 
-def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:8000/callback", state: str = "") -> str:
+def get_authorization_url(client_id: str, redirect_uri: str = "http://localhost:8001/callback", state: str = "") -> str:
     """Costruisce l'URL di autorizzazione OAuth2 Google (access_type=offline per refresh token)."""
     params = {
         "client_id": client_id,

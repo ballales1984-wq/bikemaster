@@ -178,7 +178,7 @@ Nessun branch aperto. Tutti i branch feat sono stati mergiati in `main`.
 
 Locale:
   Tauri 2 desktop → backend embedded FastAPI (localhost) + SQLite
-  PWA → backend FastAPI (localhost:8000) + SQLite
+  PWA → backend FastAPI (localhost:8001) + SQLite
 ```
 
 > **Nota**: il modello legacy local-backend + ngrok→Vercel è ritirato. Render è

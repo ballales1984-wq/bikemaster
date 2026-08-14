@@ -17,7 +17,7 @@
       <h2>URL del backend</h2>
       <p class="hint">
         Inserisci l'URL del backend in esecuzione sul tuo PC (es.
-        <code>https://bikemaster.home:8000</code> o un tunnel). Lascia vuoto per
+        <code>https://bikemaster.home:8001</code> o un tunnel). Lascia vuoto per
         usare lo stesso origine (utile in sviluppo).
       </p>
       <div class="row">

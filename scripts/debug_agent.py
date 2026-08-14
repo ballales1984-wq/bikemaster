@@ -34,7 +34,7 @@ BACKEND_DIR = REPO_ROOT / "bike_analyzer"
 PYTHON_EXE = sys.executable or "python"
 NPM_EXE = shutil.which("npm") or "npm"
 VITE_PM2 = "npm run dev"
-UVICORN_CMD = f"{PYTHON_EXE} -m uvicorn bike_analyzer.backend.api.app_factory:app --host 0.0.0.0 --port 8000 --reload"
+UVICORN_CMD = f"{PYTHON_EXE} -m uvicorn bike_analyzer.backend.api.app_factory:app --host 0.0.0.0 --port 8001 --reload"
 
 PY_ERROR_RE = re.compile(
     r"^Traceback \(most recent call last\):", re.MULTILINE

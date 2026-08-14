@@ -202,7 +202,7 @@ Ogni agente definisce nel suo file `.kilo/agent/<name>.md`:
 
 ```bash
 # Avvio backend locale
-python main.py api --port 8000          # FastAPI + SQLite su localhost:8000
+python main.py api --port 8001          # FastAPI + SQLite su localhost:8001
 
 # Test backend
 pytest                                  # usa i marker di pytest.ini (esclude slow/integration)

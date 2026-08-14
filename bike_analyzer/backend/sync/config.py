@@ -114,24 +114,19 @@ def load_sync_config() -> SyncSettings:
     if _settings_cache is not None:
         return _settings_cache
     try:
-        from ..db.database import get_db_connection
+        from ..db.database import get_sync_setting
 
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT key, value FROM sync_settings WHERE key = 'user_preferences'"
-            )
-            row = cur.fetchone()
-            if row:
-                data = json.loads(row["value"])
-                if data.get("auth_token"):
-                    try:
-                        from ..db.token_crypto import decrypt_token
-                        data["auth_token"] = decrypt_token(data["auth_token"])
-                    except Exception:
-                        pass
-                _settings_cache = SyncSettings.from_dict(data)
-                return _settings_cache
+        raw = get_sync_setting("user_preferences")
+        if raw:
+            data = json.loads(raw)
+            if data.get("auth_token"):
+                try:
+                    from ..db.token_crypto import decrypt_token
+                    data["auth_token"] = decrypt_token(data["auth_token"])
+                except Exception:
+                    pass
+            _settings_cache = SyncSettings.from_dict(data)
+            return _settings_cache
     except Exception:
         pass
     _settings_cache = SyncSettings()
@@ -142,7 +137,7 @@ def save_sync_config(settings: SyncSettings) -> None:
     global _settings_cache
     _settings_cache = settings
     try:
-        from ..db.database import get_db_connection
+        from ..db.database import save_sync_setting
 
         data = settings.to_dict()
         if data.get("auth_token"):
@@ -151,32 +146,19 @@ def save_sync_config(settings: SyncSettings) -> None:
                 data["auth_token"] = encrypt_token(data["auth_token"])
             except Exception:
                 pass
-        with get_db_connection() as conn:
-            conn.execute(
-                """CREATE TABLE IF NOT EXISTS sync_settings (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL,
-                    updated_at TEXT
-                )"""
-            )
-            conn.execute(
-                "INSERT OR REPLACE INTO sync_settings (key, value, updated_at) VALUES (?, ?, ?)",
-                ("user_preferences", json.dumps(data), _now_iso()),
-            )
-            conn.commit()
-    except Exception as exc:
-        logger.debug("Failed to persist sync settings: %s", exc)
+        save_sync_setting("user_preferences", json.dumps(data))
+    except Exception:
+        pass
 
 
 def reset_sync_config() -> None:
     global _settings_cache
     _settings_cache = None
     try:
-        from ..db.database import get_db_connection
+        from ..db.database import get_sync_setting, save_sync_setting
 
-        with get_db_connection() as conn:
-            conn.execute("DELETE FROM sync_settings WHERE key = 'user_preferences'")
-            conn.commit()
+        if get_sync_setting("user_preferences") is not None:
+            save_sync_setting("user_preferences", "")
     except Exception:
         pass
 

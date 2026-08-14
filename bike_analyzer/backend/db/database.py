@@ -4585,6 +4585,49 @@ def save_sync_conflict(conflict: dict) -> int:
         return int(row[0]) if row else 0
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_sync")
+def get_pending_sync_entities(entity_type: str | None = None) -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if entity_type:
+            cur.execute(
+                "SELECT * FROM sync_entity_state WHERE entity_type = ? AND sync_status IN ('pending', 'local')",
+                (entity_type,),
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM sync_entity_state WHERE sync_status IN ('pending', 'local')"
+            )
+        rows = cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_sync")
+def get_sync_conflicts(unresolved_only: bool = True) -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if unresolved_only:
+            cur.execute("SELECT * FROM sync_conflicts WHERE resolution = 'unresolved'")
+        else:
+            cur.execute("SELECT * FROM sync_conflicts")
+        rows = cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_sync")
+def resolve_sync_conflict(conflict_id: int, resolution: str, resolved_data: str, reason: str) -> None:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """UPDATE sync_conflicts
+            SET resolution = ?, resolved_data = ?, resolution_reason = ?, updated_at = ?
+            WHERE id = ?""",
+            (resolution, resolved_data, reason, now, conflict_id),
+        )
+        conn.commit()
+
+
 # ---------------------------------------------------------------------------
 # Maps (SerpApi usage tracking)
 # ---------------------------------------------------------------------------
@@ -4734,4 +4777,34 @@ __all__ = [
     "classify_day",
     "get_activity_summary",
     "get_activity_classification",
+    "save_strava_token",
+    "get_strava_token",
+    "revoke_strava_token",
+    "update_strava_last_sync",
+    "save_garmin_token",
+    "get_garmin_token",
+    "revoke_garmin_token",
+    "save_wahoo_token",
+    "get_wahoo_token",
+    "revoke_wahoo_token",
+    "save_google_token",
+    "get_google_token",
+    "delete_google_token",
+    "connect_health_connect",
+    "disconnect_health_connect",
+    "get_health_connect_token",
+    "update_health_connect_sync",
+    "revoke_token",
+    "is_token_revoked",
+    "sweep_revoked_tokens",
+    "save_sync_entity_state",
+    "get_sync_entity_state",
+    "save_sync_setting",
+    "get_sync_setting",
+    "save_sync_conflict",
+    "get_pending_sync_entities",
+    "get_sync_conflicts",
+    "resolve_sync_conflict",
+    "get_maps_usage",
+    "record_maps_call",
 ]

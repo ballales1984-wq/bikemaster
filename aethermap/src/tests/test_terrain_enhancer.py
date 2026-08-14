@@ -68,7 +68,7 @@ class TestFetchDemTile:
         mock_urlopen.return_value = mock_resp
 
         bbox = {"min_lat": 44.0, "max_lat": 46.0, "min_lon": 8.0, "max_lon": 10.0}
-        tile = fetch_dem_tile(bbox, resolution=2, base_url="http://localhost:8000")
+        tile = fetch_dem_tile(bbox, resolution=2, base_url="http://localhost:8001")
         assert tile is not None
         assert tile.shape == (2, 2)
 
@@ -90,7 +90,7 @@ class TestEnhanceFace:
         hf = np.linspace(0.0, 1.0, 16).reshape(4, 4).astype(np.float32)
         dem = np.linspace(400, 100, 16).reshape(4, 4).astype(np.float32)
         mock_fetch.return_value = dem
-        out = enhance_face(hf, face=0, base_url="http://localhost:8000", resolution=4)
+        out = enhance_face(hf, face=0, base_url="http://localhost:8001", resolution=4)
         assert out.shape == hf.shape
         assert out.dtype == np.float32
         assert not np.array_equal(out, hf)
@@ -102,7 +102,7 @@ class TestBuildEnhancedHeightfield:
         mock_enhance.side_effect = lambda hf, face, *a, **kw: hf
         hf = build_enhanced_heightfield(
             n=8, base_alt=0.0, height_scale=0.04,
-            base_url="http://localhost:8000", faces=(0, 4)
+            base_url="http://localhost:8001", faces=(0, 4)
         )
         assert hf.shape == (6 * 8 * 8,)
         assert mock_enhance.call_count == 2

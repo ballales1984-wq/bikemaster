@@ -215,7 +215,7 @@ cd bikemaster
 python -m venv .venv
 .venv\Scripts\Activate.ps1     # Windows PowerShell
 pip install -r requirements.txt
-python main.py api             # API + dashboard su http://localhost:8000
+python main.py api             # API + dashboard su http://localhost:8001
 ```
 
 ### Frontend (Vite dev server)

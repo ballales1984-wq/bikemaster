@@ -69,43 +69,31 @@ def ensure_sync_tables() -> None:
 
 
 def get_entity_state(entity_type: str, entity_id: int) -> SyncEntityState | None:
-    from ..db.database import get_db_connection
+    from ..db.database import get_sync_entity_state
 
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM sync_entity_state WHERE entity_type = ? AND entity_id = ?",
-            (entity_type, entity_id),
-        )
-        row = cur.fetchone()
-        if not row:
-            return None
-        return _row_to_state(row)
+    row = get_sync_entity_state(entity_type, entity_id)
+    if not row:
+        return None
+    return _row_to_state(row)
 
 
 def upsert_entity_state(state: SyncEntityState) -> None:
-    from ..db.database import get_db_connection
+    from ..db.database import save_sync_entity_state
 
-    with get_db_connection() as conn:
-        conn.execute(
-            """INSERT OR REPLACE INTO sync_entity_state
-            (entity_type, entity_id, source, reliability_score, last_modified,
-             sync_status, sync_error, cloud_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                state.entity_type,
-                state.entity_id,
-                state.source,
-                state.reliability_score,
-                state.last_modified,
-                state.sync_status.value,
-                state.sync_error,
-                state.cloud_id,
-                state.created_at,
-                state.updated_at,
-            ),
-        )
-        conn.commit()
+    save_sync_entity_state(
+        entity_type=state.entity_type,
+        entity_id=state.entity_id,
+        data={
+            "source": state.source,
+            "reliability_score": state.reliability_score,
+            "last_modified": state.last_modified,
+            "sync_status": state.sync_status.value,
+            "sync_error": state.sync_error,
+            "cloud_id": state.cloud_id,
+            "created_at": state.created_at,
+            "updated_at": state.updated_at,
+        },
+    )
 
 
 def mark_synced(entity_type: str, entity_id: int, cloud_id: str | None = None) -> None:
@@ -172,110 +160,53 @@ def mark_error(entity_type: str, entity_id: int, error: str) -> None:
 
 
 def get_pending_entities(entity_type: str | None = None) -> list[SyncEntityState]:
-    from ..db.database import get_db_connection
+    from ..db.database import get_pending_sync_entities
 
-    try:
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            if entity_type:
-                cur.execute(
-                    "SELECT * FROM sync_entity_state WHERE entity_type = ? AND sync_status IN ('pending', 'local')",
-                    (entity_type,),
-                )
-            else:
-                cur.execute(
-                    "SELECT * FROM sync_entity_state WHERE sync_status IN ('pending', 'local')"
-                )
-            rows = cur.fetchall()
-            return [_row_to_state(r) for r in rows]
-    except Exception:
-        return []
+    rows = get_pending_sync_entities(entity_type)
+    return [_row_to_state(r) for r in rows]
 
 
 def get_conflicts(unresolved_only: bool = True) -> list[ConflictRecord]:
-    from ..db.database import get_db_connection
+    from ..db.database import get_sync_conflicts
 
-    try:
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            if unresolved_only:
-                cur.execute("SELECT * FROM sync_conflicts WHERE resolution = 'unresolved'")
-            else:
-                cur.execute("SELECT * FROM sync_conflicts")
-            rows = cur.fetchall()
-            return [_row_to_conflict(r) for r in rows]
-    except Exception:
-        return []
+    rows = get_sync_conflicts(unresolved_only)
+    return [_row_to_conflict(r) for r in rows]
 
 
 def save_conflict(conflict: ConflictRecord) -> int:
-    from ..db.database import get_db_connection
+    from ..db.database import save_sync_conflict
 
-    with get_db_connection() as conn:
-        now = datetime.now(UTC).isoformat()
-        cur = conn.cursor()
-        cur.execute(
-            """INSERT INTO sync_conflicts
-            (entity_type, entity_id, local_data, remote_data,
-             local_reliability, remote_reliability,
-             local_modified, remote_modified, resolution, resolved_data, resolution_reason, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                conflict.entity_type,
-                conflict.entity_id,
-                json.dumps(conflict.local_data),
-                json.dumps(conflict.remote_data),
-                conflict.local_reliability,
-                conflict.remote_reliability,
-                conflict.local_modified,
-                conflict.remote_modified,
-                conflict.resolution,
-                json.dumps(conflict.resolved_data) if conflict.resolved_data else None,
-                conflict.resolution_reason,
-                now,
-                now,
-            ),
-        )
-        conn.commit()
-        return cur.lastrowid
+    return save_sync_conflict({
+        "entity_type": conflict.entity_type,
+        "entity_id": conflict.entity_id,
+        "local_data": json.dumps(conflict.local_data),
+        "remote_data": json.dumps(conflict.remote_data),
+        "local_reliability": conflict.local_reliability,
+        "remote_reliability": conflict.remote_reliability,
+        "local_modified": conflict.local_modified,
+        "remote_modified": conflict.remote_modified,
+        "resolution": conflict.resolution,
+        "resolved_data": json.dumps(conflict.resolved_data) if conflict.resolved_data else None,
+        "resolution_reason": conflict.resolution_reason,
+    })
 
 
 def resolve_conflict_db(conflict_id: int, resolution: str, resolved_data: dict[str, Any], reason: str) -> None:
-    from ..db.database import get_db_connection
+    from ..db.database import resolve_sync_conflict
 
-    with get_db_connection() as conn:
-        now = datetime.now(UTC).isoformat()
-        conn.execute(
-            """UPDATE sync_conflicts
-            SET resolution = ?, resolved_data = ?, resolution_reason = ?, updated_at = ?
-            WHERE id = ?""",
-            (resolution, json.dumps(resolved_data), reason, now, conflict_id),
-        )
-        conn.commit()
+    resolve_sync_conflict(conflict_id, resolution, json.dumps(resolved_data), reason)
 
 
 def get_last_sync_ts() -> str | None:
-    from ..db.database import get_db_connection
+    from ..db.database import get_sync_setting
 
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT value FROM sync_settings WHERE key = 'last_sync_ts'"
-        )
-        row = cur.fetchone()
-        return row["value"] if row else None
+    return get_sync_setting("last_sync_ts")
 
 
 def set_last_sync_ts(ts: str) -> None:
-    from ..db.database import get_db_connection
+    from ..db.database import save_sync_setting
 
-    with get_db_connection() as conn:
-        now = datetime.now(UTC).isoformat()
-        conn.execute(
-            "INSERT OR REPLACE INTO sync_settings (key, value, updated_at) VALUES (?, ?, ?)",
-            ("last_sync_ts", ts, now),
-        )
-        conn.commit()
+    save_sync_setting("last_sync_ts", ts)
 
 
 def _row_to_state(row) -> SyncEntityState:

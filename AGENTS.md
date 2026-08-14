@@ -9,7 +9,7 @@ BikeMaster is a lifestyle health intelligence system (FastAPI + Vue 3 + TypeScri
 - **Frontend**: Vue 3 + Vite + TypeScript (PWA + service worker, installabile come webapk su mobile).
 - **Backend**: FastAPI (Python) — embedded in the Tauri app on `localhost` for desktop, Docker web service on Render for production.
 - **Production deployment**: backend su **Render** (`bikemaster-api`, FastAPI/Docker, auto-deploy da `main`) + PostgreSQL gestito `bikemaster-db`; frontend su **Vercel** (static build). Render è fonte di verità (`render.yaml`); Vercel frontend richiama API su Render (CORS + `VITE_API_BASE`). Mobile: PWA installata dall'URL deployata (offline via service worker).
-- **ngrok/local tunneling**: NON usato in produzione né più necessario (è stato il workaround durante la sospensione di Render). Sviluppo locale: `python main.py api --port 8000` (SQLite) su LAN; nessun tunnel richiesto.
+- **ngrok/local tunneling**: NON usato in produzione né più necessario (è stato il workaround durante la sospensione di Render). Sviluppo locale: `python main.py api --port 8001` (SQLite) su LAN; nessun tunnel richiesto.
 - **Database**: SQLite (`db_path=rides.db`) è il primary store locale persistente su disco (offline). PostgreSQL (Render) è il backend gestito per auth/users + domini migrati (atleta, rides, metrics, training stress, itinerari, training goals); vedi "Nota persistenza" sotto per dettagli.
 - **Sync**: opzionale, controllato dall'utente; può restare su "Mai" e usare l'app 100% offline.
 - **AetherMap**: R&D cartography project (`aethermap/`) converged into BikeMaster as the terrain-intelligence module.

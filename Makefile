@@ -9,11 +9,11 @@ front-build: ## Build Vue 3 frontend and copy to backend/static
 static-copy: ## Copy existing frontend/dist -> backend/static (no rebuild)
 	SKIP_BUILD=1 bash scripts/copy_front_to_static.sh
 
-back-run: ## Start FastAPI backend on port 8000
-	python main.py api --port 8000
+back-run: ## Start FastAPI backend on port 8001
+	python main.py api --port 8001
 
 back-run-dev: ## Start FastAPI backend with --reload (dev only)
-	python main.py api --port 8000 --reload
+	python main.py api --port 8001 --reload
 
 test: ## Run all backend tests
 	python -m pytest tests/ -x

@@ -31,7 +31,7 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
     _static_path: Path | None = None
     _dynamic: bool = False
     _dynamic_lock: Any = None
-    _bikemaster_url: str = "http://localhost:8000"
+    _bikemaster_url: str = "http://localhost:8001"
 
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
@@ -119,7 +119,7 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
         self._send_json_or_text(200, body, "application/json")
 
     def _serve_terrain_tile(self, params: dict | None = None) -> None:
-        bikemaster = getattr(self.__class__, "_bikemaster_url", "http://localhost:8000")
+        bikemaster = getattr(self.__class__, "_bikemaster_url", "http://localhost:8001")
         try:
             import urllib.request
             qs = self.path.split("?", 1)[1] if "?" in self.path else ""
@@ -137,7 +137,7 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
                 n=64,
                 base_alt=0.0,
                 height_scale=0.04,
-                base_url=getattr(self.__class__, "_bikemaster_url", "http://localhost:8000"),
+                base_url=getattr(self.__class__, "_bikemaster_url", "http://localhost:8001"),
             )
             from aethermap.render.webgl_exporter import _terrain_mesh_from_hf
             terrain = _terrain_mesh_from_hf(hf, 64)
@@ -160,7 +160,7 @@ class AetherMapHandler(SimpleHTTPRequestHandler):
                 n=resolution,
                 base_alt=0.0,
                 height_scale=0.04,
-                base_url=getattr(self.__class__, "_bikemaster_url", "http://localhost:8000"),
+                base_url=getattr(self.__class__, "_bikemaster_url", "http://localhost:8001"),
             )
             bbox = _face_bbox(face, resolution)
             tile = _terrain_mesh_from_hf(hf.reshape(6, resolution, resolution), resolution)
@@ -344,7 +344,7 @@ def serve(
     ne_resolution: str = "110m",
 ) -> HTTPServer:
     """Avvia il server AetherMap sulla porta specificata."""
-    AetherMapHandler._bikemaster_url = bikemaster_url or "http://localhost:8000"
+    AetherMapHandler._bikemaster_url = bikemaster_url or "http://localhost:8001"
     if dynamic:
         import threading
         lock = threading.Lock()
@@ -383,8 +383,8 @@ def main() -> None:
     parser.add_argument("--static", type=str, default=None, help="Percorso a world_data.json pre-generato")
     parser.add_argument("--html-dir", type=str, default=None, help="Directory contenente webgl_stub.html")
     parser.add_argument("--dynamic", action="store_true", help="Modalita' dinamica: genera dati da DigitalTwin")
-    parser.add_argument("--dem-base-url", type=str, default=None, help="URL backend BikeMaster per DEM reale (es. http://localhost:8000)")
-    parser.add_argument("--bikemaster-url", type=str, default=None, help="URL backend BikeMaster per proxy tile (es. http://localhost:8000)")
+    parser.add_argument("--dem-base-url", type=str, default=None, help="URL backend BikeMaster per DEM reale (es. http://localhost:8001)")
+    parser.add_argument("--bikemaster-url", type=str, default=None, help="URL backend BikeMaster per proxy tile (es. http://localhost:8001)")
     parser.add_argument("--natural-earth", action="store_true",
                         help="Carica dati Natural Earth (coste, confini, citta)")
     parser.add_argument("--ne-resolution", type=str, default="110m",

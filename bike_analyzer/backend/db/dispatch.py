@@ -143,6 +143,72 @@ POSTGRES_BACKENDS: dict[str, tuple[str, list[str]]] = {
             "delete_calendar_event",
         ],
     ),
+    # OAuth provider tokens (Strava / Garmin / Wahoo)
+    "oauth_tokens": (
+        "bike_analyzer.backend.db.postgres_oauth_tokens",
+        [
+            "save_strava_token",
+            "get_strava_token",
+            "revoke_strava_token",
+            "update_strava_last_sync",
+            "save_garmin_token",
+            "get_garmin_token",
+            "revoke_garmin_token",
+            "save_wahoo_token",
+            "get_wahoo_token",
+            "revoke_wahoo_token",
+        ],
+    ),
+    # Google OAuth tokens
+    "google_oauth": (
+        "bike_analyzer.backend.db.postgres_google_oauth",
+        [
+            "save_google_token",
+            "get_google_token",
+            "delete_google_token",
+        ],
+    ),
+    # Health Connect
+    "health_connect": (
+        "bike_analyzer.backend.db.postgres_health_connect",
+        [
+            "connect_health_connect",
+            "disconnect_health_connect",
+            "get_health_connect_token",
+            "update_health_connect_sync",
+        ],
+    ),
+    # Security (revoked JWT tokens)
+    "security": (
+        "bike_analyzer.backend.db.postgres_security",
+        [
+            "revoke_token",
+            "is_token_revoked",
+            "sweep_revoked_tokens",
+        ],
+    ),
+    # Sync metadata
+    "sync": (
+        "bike_analyzer.backend.db.postgres_sync",
+        [
+            "save_sync_entity_state",
+            "get_sync_entity_state",
+            "save_sync_setting",
+            "get_sync_setting",
+            "save_sync_conflict",
+            "get_pending_sync_entities",
+            "get_sync_conflicts",
+            "resolve_sync_conflict",
+        ],
+    ),
+    # Maps (SerpApi usage)
+    "maps": (
+        "bike_analyzer.backend.db.postgres_maps",
+        [
+            "get_maps_usage",
+            "record_maps_call",
+        ],
+    ),
 }
 # NOTE: ``training_goals`` are persisted via ``postgres_db`` / ``async_db``
 # (SQLAlchemy) directly from routes — they have no SQLite twin in database.py,

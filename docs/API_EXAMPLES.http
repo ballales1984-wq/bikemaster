@@ -1,13 +1,13 @@
 ### BikeMaster API Examples - HTTP Requests
 
 ### Health Check
-GET http://localhost:8000/api/v1/health
+GET http://localhost:8001/api/v1/health
 
 ### Lista Rides
-GET http://localhost:8000/api/v1/rides?page=1&page_size=10&sort=date
+GET http://localhost:8001/api/v1/rides?page=1&page_size=10&sort=date
 
 ### Crea Ride
-POST http://localhost:8000/api/v1/rides
+POST http://localhost:8001/api/v1/rides
 Content-Type: application/json
 
 {
@@ -22,50 +22,50 @@ Content-Type: application/json
 }
 
 ### Dettaglio Ride
-GET http://localhost:8000/api/v1/rides/1
+GET http://localhost:8001/api/v1/rides/1
 
 ### Elimina Ride
-DELETE http://localhost:8000/api/v1/rides/1
+DELETE http://localhost:8001/api/v1/rides/1
 
 ### Upload GPX
-POST http://localhost:8000/api/v1/import/gpx
+POST http://localhost:8001/api/v1/import/gpx
 Content-Type: multipart/form-data
 
 <file.gpx>
 
 ### Upload FIT
-POST http://localhost:8000/api/v1/import/fit
+POST http://localhost:8001/api/v1/import/fit
 Content-Type: multipart/form-data
 
 <file.fit>
 
 ### Upload Multiplo
-POST http://localhost:8000/api/v1/import/multiple
+POST http://localhost:8001/api/v1/import/multiple
 Content-Type: multipart/form-data
 
 <file1.gpx>
 <file2.fit>
 
 ### Esporta JSON
-GET http://localhost:8000/api/v1/rides/export/json
+GET http://localhost:8001/api/v1/rides/export/json
 
 ### Esporta CSV
-GET http://localhost:8000/api/v1/rides/export/csv
+GET http://localhost:8001/api/v1/rides/export/csv
 
 ### Grafico Velocità
-GET http://localhost:8000/api/v1/charts/speed/1
+GET http://localhost:8001/api/v1/charts/speed/1
 
 ### Grafico Elevazione
-GET http://localhost:8000/api/v1/charts/elevation/1
+GET http://localhost:8001/api/v1/charts/elevation/1
 
 ### Mappa Interattiva
-GET http://localhost:8000/api/v1/rides/1/map
+GET http://localhost:8001/api/v1/rides/1/map
 
 ### Google Static Map
-GET http://localhost:8000/api/v1/rides/1/map/google
+GET http://localhost:8001/api/v1/rides/1/map/google
 
 ### Crea Atleta
-POST http://localhost:8000/api/v1/athletes
+POST http://localhost:8001/api/v1/athletes
 Content-Type: application/json
 
 {
@@ -78,10 +78,10 @@ Content-Type: application/json
 }
 
 ### Dettaglio Atleta
-GET http://localhost:8000/api/v1/athletes/1
+GET http://localhost:8001/api/v1/athletes/1
 
 ### Aggiorna Atleta
-PUT http://localhost:8000/api/v1/athletes/1
+PUT http://localhost:8001/api/v1/athletes/1
 Content-Type: application/json
 
 {
@@ -90,10 +90,10 @@ Content-Type: application/json
 }
 
 ### Punteggi Atleta
-GET http://localhost:8000/api/v1/scores/athlete/1
+GET http://localhost:8001/api/v1/scores/athlete/1
 
 ### Benchmark Compare
-POST http://localhost:8000/api/v1/benchmark/compare
+POST http://localhost:8001/api/v1/benchmark/compare
 Content-Type: application/json
 
 {
@@ -103,31 +103,31 @@ Content-Type: application/json
 }
 
 ### Workout Recommendations
-GET http://localhost:8000/api/v1/coach/workout?athlete_id=1
+GET http://localhost:8001/api/v1/coach/workout?athlete_id=1
 
 ### Recovery Recommendations
-GET http://localhost:8000/api/v1/coach/recovery?fatigue_score=5.5&ride_id=1
+GET http://localhost:8001/api/v1/coach/recovery?fatigue_score=5.5&ride_id=1
 
 ### Historical Trends
-GET http://localhost:8000/api/v1/coach/trends
+GET http://localhost:8001/api/v1/coach/trends
 
 ### Lista Knowledge Base
-GET http://localhost:8000/api/v1/knowledge
+GET http://localhost:8001/api/v1/knowledge
 
 ### Ricerca Knowledge Base
-GET http://localhost:8000/api/v1/knowledge/search?q=recupero
+GET http://localhost:8001/api/v1/knowledge/search?q=recupero
 
 ### Statistiche Sistema
-GET http://localhost:8000/api/v1/admin/stats
+GET http://localhost:8001/api/v1/admin/stats
 
 ### Backup Database
-GET http://localhost:8000/api/v1/admin/backup
+GET http://localhost:8001/api/v1/admin/backup
 
 ### Crea Indici
-POST http://localhost:8000/api/v1/admin/indexes
+POST http://localhost:8001/api/v1/admin/indexes
 
 ### Reset Demo
-POST http://localhost:8000/api/v1/admin/reset-demo
+POST http://localhost:8001/api/v1/admin/reset-demo
 
 ### Conteggio Rides
-GET http://localhost:8000/api/v1/rides/count
+GET http://localhost:8001/api/v1/rides/count

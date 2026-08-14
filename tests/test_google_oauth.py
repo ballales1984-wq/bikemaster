@@ -13,14 +13,14 @@ from bike_analyzer.backend.security import JWT_AUDIENCE, JWT_ISSUER, SECRET_KEY
 
 
 def test_get_google_oauth_url():
-    url = get_google_oauth_url("test-client-id", "http://localhost:8000/callback")
+    url = get_google_oauth_url("test-client-id", "http://localhost:8001/callback")
     assert "accounts.google.com" in url
     assert "client_id=test-client-id" in url
     assert "redirect_uri=http" in url
 
 
 def test_get_google_oauth_url_with_state():
-    url = get_google_oauth_url("client", redirect_uri="http://localhost:8000/callback", state="custom-state-123")
+    url = get_google_oauth_url("client", redirect_uri="http://localhost:8001/callback", state="custom-state-123")
     assert "state=custom-state-123" in url
 
 

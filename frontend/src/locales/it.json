@@ -721,7 +721,7 @@
     "importWahooText": "Connetti Wahoo per importare le attività dal tuo dispositivo.",
     "secSettings": "Impostazioni",
     "setBackendTitle": "URL Backend",
-    "setBackendText": "Inserisci l'indirizzo del backend locale (es. https://tuo-pc:8000). Lascia vuoto per usare lo stesso origine.",
+    "setBackendText": "Inserisci l'indirizzo del backend locale (es. https://tuo-pc:8001). Lascia vuoto per usare lo stesso origine.",
     "setSaveTitle": "Salva / Predefinito",
     "setSaveText": "Salva l'URL personalizzato o ripristina il default (stesso origine).",
     "setFailoverTitle": "Failover Render",

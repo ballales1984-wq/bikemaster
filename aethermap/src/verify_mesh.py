@@ -2,7 +2,7 @@ from aethermap.render.terrain_enhancer import build_enhanced_heightfield
 from aethermap.render.webgl_exporter import _terrain_mesh_from_hf
 
 # Test con risoluzione 32 come nel viewer
-hf = build_enhanced_heightfield(n=32, base_alt=0.0, height_scale=0.04, base_url='http://localhost:8000')
+hf = build_enhanced_heightfield(n=32, base_alt=0.0, height_scale=0.04, base_url='http://localhost:8001')
 mesh = _terrain_mesh_from_hf(hf.reshape(6, 32, 32), 32)
 
 print('Mesh validation:')

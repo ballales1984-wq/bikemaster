@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const API_BASE = "http://127.0.0.1:8000/api/v1";
+const API_BASE = "http://127.0.0.1:8001/api/v1";
 
 test.describe("Voice commands API", () => {
   test("GET /voice/commands returns supported commands", async ({ request }) => {

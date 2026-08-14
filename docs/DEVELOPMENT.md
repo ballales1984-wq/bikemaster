@@ -488,7 +488,7 @@ alembic upgrade head
 | DATABASE_URL | `sqlite:///./rides.db` | Database connection |
 | DATABASE_URL_ASYNC | `sqlite+aiosqlite:///./rides.db` | Async engine URL |
 | API_HOST | `0.0.0.0` | API server host |
-| API_PORT | `8000` | API server port |
+| API_PORT | `8001` | API server port |
 | SECRET_KEY | *(required in prod)* | JWT signing key (32+ chars) |
 | SECRET_KEY_PREVIOUS | — | Previous key for rotation |
 | ENVIRONMENT | `development` | Environment mode |
@@ -498,7 +498,7 @@ alembic upgrade head
 | SENTRY_DSN | — | Sentry error tracking |
 | STRAVA_CLIENT_ID | — | Strava OAuth client ID |
 | STRAVA_CLIENT_SECRET | — | Strava OAuth secret |
-| STRAVA_REDIRECT_URI | `http://localhost:8000/api/v1/import/strava/callback` | Strava callback |
+| STRAVA_REDIRECT_URI | `http://localhost:8001/api/v1/import/strava/callback` | Strava callback |
 | GARMIN_CONSUMER_KEY | — | Garmin OAuth key |
 | GARMIN_CONSUMER_SECRET | — | Garmin OAuth secret |
 | GOOGLE_FIT_CLIENT_ID | — | Google Fit OAuth client ID |
@@ -514,7 +514,7 @@ alembic upgrade head
 
 ```bash
 docker build -t bikemaster .
-docker run -p 8000:8000 bikemaster
+docker run -p 8001:8001 bikemaster
 ```
 
 ### Docker Compose

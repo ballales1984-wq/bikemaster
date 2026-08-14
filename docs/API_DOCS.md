@@ -3,7 +3,7 @@
 ## Base URL
 
 ```
-http://localhost:8000/api/v1
+http://localhost:8001/api/v1
 ```
 
 ## Authentication
@@ -250,7 +250,7 @@ Content-Type: application/json
 
 {
   "code": "google_auth_code",
-  "redirect_uri": "http://localhost:8000/api/v1/import/google-fit/callback"
+  "redirect_uri": "http://localhost:8001/api/v1/import/google-fit/callback"
 }
 [PUBLIC]
 ```
@@ -763,47 +763,47 @@ POST /admin/reset-demo
 ### Import Garmin Ride
 ```bash
 # 1. Upload FIT file
-curl -X POST -F "file=@ride.fit" http://localhost:8000/api/v1/import/fit \
+curl -X POST -F "file=@ride.fit" http://localhost:8001/api/v1/import/fit \
   -H "Authorization: Bearer <token>"
 
 # 2. Check imported ride
-curl http://localhost:8000/api/v1/rides/1 \
+curl http://localhost:8001/api/v1/rides/1 \
   -H "Authorization: Bearer <token>"
 
 # 3. Get map
-curl http://localhost:8000/api/v1/rides/1/map \
+curl http://localhost:8001/api/v1/rides/1/map \
   -H "Authorization: Bearer <token>"
 ```
 
 ### Import from Strava
 ```bash
-curl -X POST http://localhost:8000/api/v1/import/strava \
+curl -X POST http://localhost:8001/api/v1/import/strava \
   -H "Authorization: Bearer <token>"
 ```
 
 ### Generate Weekly Report
 ```bash
 # 1. Get recent rides
-curl "http://localhost:8000/api/v1/rides?page=1&page_size=50"
+curl "http://localhost:8001/api/v1/rides?page=1&page_size=50"
 
 # 2. Export CSV
-curl http://localhost:8000/api/v1/rides/export/csv > weekly_rides.csv
+curl http://localhost:8001/api/v1/rides/export/csv > weekly_rides.csv
 ```
 
 ### Evaluate Progress
 ```bash
 # 1. Get athlete scores
-curl http://localhost:8000/api/v1/scores/athlete/1 \
+curl http://localhost:8001/api/v1/scores/athlete/1 \
   -H "Authorization: Bearer <token>"
 
 # 2. Get trends
-curl http://localhost:8000/api/v1/coach/trends \
+curl http://localhost:8001/api/v1/coach/trends \
   -H "Authorization: Bearer <token>"
 ```
 
 ### Chat with AI Coach
 ```bash
-curl -X POST http://localhost:8000/api/v1/coach/chat \
+curl -X POST http://localhost:8001/api/v1/coach/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "Come posso migliorare la mia resistenza?", "athlete_id": 1}'
 ```

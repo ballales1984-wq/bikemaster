@@ -22,10 +22,10 @@ python -m aethermap.render.demo
 python -m aethermap.render.app
 
 # export con DEM reale (richiede backend BikeMaster in esecuzione)
-python -m aethermap.render.webgl_exporter --dem-base-url http://localhost:8000 --output world_data_dem.json
+python -m aethermap.render.webgl_exporter --dem-base-url http://localhost:8001 --output world_data_dem.json
 
 # server con DEM reale
-python -m aethermap.render.server --dynamic --dem-base-url http://localhost:8000
+python -m aethermap.render.server --dynamic --dem-base-url http://localhost:8001
 ```
 
 ## Dove andra il WebGL reale

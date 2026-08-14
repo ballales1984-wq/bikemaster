@@ -52,7 +52,7 @@ Edit `.env` with your credentials:
 ```env
 DATABASE_URL=sqlite:///./rides.db
 API_HOST=0.0.0.0
-API_PORT=8000
+API_PORT=8001
 GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 ```
 
@@ -75,7 +75,7 @@ python main.py web
 python main.py cli
 ```
 
-Open browser at [http://localhost:8000](http://localhost:8000) for the dashboard.
+Open browser at [http://localhost:8001](http://localhost:8001) for the dashboard.
 
 ## API Endpoints
 
@@ -312,13 +312,13 @@ pytest tests/test_edge_cases.py
 docker build -t bikemaster .
 
 # Run
-docker run -p 8000:8000 bikemaster
+docker run -p 8001:8001 bikemaster
 ```
 
 ### Docker Compose
 ```bash
 docker-compose up -d
-# Open http://localhost:8000
+# Open http://localhost:8001
 ```
 
 ### Azure

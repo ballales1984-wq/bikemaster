@@ -32,13 +32,13 @@ cp .env.example .env
 | Env | Default | Descrizione |
 |---|---|---|
 | `API_HOST` | `0.0.0.0` | Host di ascolto (necessario per Docker) |
-| `API_PORT` | `8000` | Porta |
+ | `API_PORT` | `8001` | Porta |
 
 ## CORS & OAuth redirect
 
 | Env | Default | Descrizione |
 |---|---|---|
-| `CORS_ORIGINS` | `http://localhost:8000,...:8080,127.0.0.1:...` | Origini consentite (CSV). Wildcard `*` vietata in produzione |
+| `CORS_ORIGINS` | `http://localhost:8001,...:8080,127.0.0.1:...` | Origini consentite (CSV). Wildcard `*` vietata in produzione |
 | `OAUTH_REDIRECT_SCHEMES` | `com.bikemaster.app` | Schemi URI custom consentiti come redirect OAuth (deep link mobile) |
 | `OAUTH_ALLOWED_REDIRECT_HOSTS` | `""` | Host http/https extra consentiti come redirect_uri (l'header Origin non è mai fidato) |
 
@@ -113,7 +113,7 @@ in righe `pois` persistite, entro un tetto mensile di ricerche.
 |---|---|
 | `STRAVA_CLIENT_ID` | `""` |
 | `STRAVA_CLIENT_SECRET` | `""` |
-| `STRAVA_REDIRECT_URI` | `http://localhost:8000/api/v1/import/strava/callback` |
+| `STRAVA_REDIRECT_URI` | `http://localhost:8001/api/v1/import/strava/callback` |
 | `STRAVA_SCOPE` | `activity:read_all` |
 
 > Il path del redirect URI deve corrispondere esattamente, incluso `/import/`.
@@ -124,7 +124,7 @@ in righe `pois` persistite, entro un tetto mensile di ricerche.
 |---|---|
 | `GARMIN_CONSUMER_KEY` | `""` |
 | `GARMIN_CONSUMER_SECRET` | `""` |
-| `GARMIN_REDIRECT_URI` | `http://localhost:8000/api/v1/import/garmin/callback` |
+| `GARMIN_REDIRECT_URI` | `http://localhost:8001/api/v1/import/garmin/callback` |
 | `GARMIN_SCOPE` | `read` |
 
 ## Wahoo
@@ -133,7 +133,7 @@ in righe `pois` persistite, entro un tetto mensile di ricerche.
 |---|---|
 | `WAHOO_CLIENT_ID` | `""` |
 | `WAHOO_CLIENT_SECRET` | `""` |
-| `WAHOO_REDIRECT_URI` | `http://localhost:8000/api/v1/integrations/wahoo/callback` |
+| `WAHOO_REDIRECT_URI` | `http://localhost:8001/api/v1/integrations/wahoo/callback` |
 | `WAHOO_SCOPE` | `workouts_read user_read` |
 
 ## Weather
@@ -225,7 +225,7 @@ in righe `pois` persistite, entro un tetto mensile di ricerche.
 ENVIRONMENT=development
 DB_PATH=rides.db
 API_HOST=0.0.0.0
-API_PORT=8000
+API_PORT=8001
 SECRET_KEY=dev-only-change-me-please-32-chars-min
 GROQ_API_KEY=your_key_here
 ```

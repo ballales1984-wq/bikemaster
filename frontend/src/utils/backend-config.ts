@@ -13,8 +13,8 @@
 // Priority of the primary base:
 //   1. Runtime setting (localStorage) — modifiable from the app Settings
 //   2. Build variable VITE_API_BASE (e.g. on Vercel)
-//   3. Auto-detect Tauri → localhost:8001 (embedded Axum backend)
-//   4. "" → same origin (default: in dev Vite proxies /api to localhost:8000)
+//   3. Auto-detect Tauri → localhost:8001 (full FastAPI backend)
+//   4. "" → same origin (default: in dev Vite proxies /api to localhost:8001)
 //
 // If the primary base is empty, calls go to the same origin. On Vercel
 // (static frontend, no backend at same origin) an explicit base must be set:
@@ -121,7 +121,7 @@ export function resolveApiBase(): string {
     const h = location.hostname.toLowerCase();
     if (h === "localhost" || h === "127.0.0.1") {
       const p = location.port;
-      if (p === "8000" || p === "8001") return "";
+      if (p === "8001") return "";
     }
     if (h.endsWith(".ngrok-free.dev") || h.endsWith(".onrender.com")) {
       return "";

@@ -35,13 +35,13 @@ aethermap/
 cd aethermap/src
 python -m aethermap.ai.demo      # Fase 3: GPX -> strada + sensori -> traffico
 python -m aethermap.render.demo  # Fase 4: globo cube-sphere ASCII
-python -m aethermap.render.webgl_exporter --dem-base-url http://localhost:8000  # Fase 4: export con DEM reale dal backend BikeMaster
+python -m aethermap.render.webgl_exporter --dem-base-url http://localhost:8001  # Fase 4: export con DEM reale dal backend BikeMaster
 python -m aethermap.render.webgl_exporter --natural-earth --ne-resolution 110m  # Fase 4: export con mappa Terra reale (Natural Earth)
 python -m aethermap.twin.demo    # Fase 5: oggetti vivi (giorno/sera/notte)
 ```
 Vista interattiva (richiede pygame + display): `python -m aethermap.render.app`.
 Vista WebGL (server locale): `python -m aethermap.render.server --dynamic`.
-Vista WebGL con DEM reale: `python -m aethermap.render.server --dynamic --dem-base-url http://localhost:8000`.
+Vista WebGL con DEM reale: `python -m aethermap.render.server --dynamic --dem-base-url http://localhost:8001`.
 Vista WebGL con mappa Terra reale: `python -m aethermap.render.server --dynamic --natural-earth`.
 Vista WebGL con mappa Terra ad alta risoluzione: `python -m aethermap.render.server --dynamic --natural-earth --ne-resolution 50m`.
 

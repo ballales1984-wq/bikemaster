@@ -4,7 +4,7 @@ Simula 1000 richieste concorrenti a `/api/v1/rides/{ride_id}/terrain`
 e raccoglie statistiche P50/P95/P99.
 
 Uso:
-    python scripts/aethermap_load_test.py --base-url http://localhost:8000 --ride-id 1 --concurrency 50
+    python scripts/aethermap_load_test.py --base-url http://localhost:8001 --ride-id 1 --concurrency 50
 """
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ async def run(base_url: str, ride_id: int, concurrency: int, total: int) -> dict
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="AetherMap terrain enrichment load test")
-    parser.add_argument("--base-url", default="http://localhost:8000")
+    parser.add_argument("--base-url", default="http://localhost:8001")
     parser.add_argument("--ride-id", type=int, default=1)
     parser.add_argument("--concurrency", type=int, default=50)
     parser.add_argument("--total", type=int, default=1000)

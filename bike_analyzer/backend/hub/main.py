@@ -104,6 +104,28 @@ async def lifespan(app: FastAPI):
         except Exception:  # noqa: BLE001
             logger.exception("Failed to initialize Redis client")
 
+    async def _verify_persistent_disk_bg() -> None:
+        import pathlib
+
+        _s_local = get_settings()
+        db_path = pathlib.Path(_s_local.db_path)
+        db_dir = db_path.parent
+        is_prod = _s_local.environment.lower() in ("production", "prod", "staging")
+        if not is_prod:
+            return
+        try:
+            test_file = db_dir / ".bikemaster_disk_check"
+            test_file.write_text("ok", encoding="utf-8")
+            test_file.unlink()
+            logger.info("Persistent disk verified at %s", db_dir)
+        except Exception:
+            msg = (
+                "PERSISTENT DISK NOT MOUNTED: cannot write to %s. "
+                "Sync metadata tables will be lost on container resume. "
+                "Check Render disk configuration and DB_PATH env var."
+            ) % db_dir
+            logger.warning(msg)
+
     async def _ensure_sync_tables_bg() -> None:
         try:
             from bike_analyzer.backend.sync.db_helpers import ensure_sync_tables
@@ -124,6 +146,7 @@ async def lifespan(app: FastAPI):
     app.state._bg_tasks: list[asyncio.Task] = []
     app.state._bg_tasks.append(asyncio.create_task(_init_async_db_bg()))
     app.state._bg_tasks.append(asyncio.create_task(_init_redis_bg()))
+    app.state._bg_tasks.append(asyncio.create_task(_verify_persistent_disk_bg()))
     app.state._bg_tasks.append(asyncio.create_task(_ensure_sync_tables_bg()))
     app.state._bg_tasks.append(asyncio.create_task(_start_task_queue_bg()))
     app.state.start_time = time.time()

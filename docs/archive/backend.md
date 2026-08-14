@@ -170,7 +170,7 @@ Key environment variables (see [configuration.md](./configuration.md) for the fu
 | `DATABASE_URL` | `sqlite:///./rides.db` | Database connection |
 | `DATABASE_URL_ASYNC` | `sqlite+aiosqlite:///./rides.db` | Async engine URL |
 | `API_HOST` | `0.0.0.0` | API server host |
-| `API_PORT` | `8000` | API server port |
+ | `API_PORT` | `8001` | API server port |
 | `SECRET_KEY` | *(required in prod)* | JWT signing key (32+ chars) |
 | `ENVIRONMENT` | `development` | Environment mode |
 | `CORS_ORIGINS` | `*` | Allowed CORS origins |
@@ -178,7 +178,7 @@ Key environment variables (see [configuration.md](./configuration.md) for the fu
 | `REDIS_URL` | — | Redis connection URL |
 | `STRAVA_CLIENT_ID` | — | Strava OAuth client ID |
 | `STRAVA_CLIENT_SECRET` | — | Strava OAuth secret |
-| `STRAVA_REDIRECT_URI` | `http://localhost:8000/api/v1/import/strava/callback` | Strava callback |
+| `STRAVA_REDIRECT_URI` | `http://localhost:8001/api/v1/import/strava/callback` | Strava callback |
 | `GARMIN_CONSUMER_KEY` | — | Garmin OAuth key |
 | `GARMIN_CONSUMER_SECRET` | — | Garmin OAuth secret |
 | `GOOGLE_FIT_CLIENT_ID` | — | Google Fit OAuth client ID |

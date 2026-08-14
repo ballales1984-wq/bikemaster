@@ -13,7 +13,7 @@ if __name__ == "__main__":
         f.write(f"WRAPPER launching server at {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.flush()
         result = subprocess.run(
-            [sys.executable, "D:/BikeMaster/dev_debug_agent.py"],
+            [sys.executable, "D:/BikeMaster/scripts/dev_debug_agent.py"],
             cwd="D:/BikeMaster",
         )
         f.write(f"WRAPPER server exited with code {result.returncode} at {time.strftime('%Y-%m-%d %H:%M:%S')}\n")

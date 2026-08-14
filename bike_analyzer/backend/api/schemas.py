@@ -249,7 +249,7 @@ class GoogleFitAuthQuery(BaseModel):
     """Parametri di query per l'autenticazione Google Fit OAuth2."""
 
     client_id: str = Field(..., min_length=1, max_length=256)
-    redirect_uri: str = Field(default="http://localhost:8000/api/v1/import/google-fit/callback", max_length=2048)
+    redirect_uri: str = Field(default="http://localhost:8001/api/v1/import/google-fit/callback", max_length=2048)
     state: str = Field(default="", max_length=4096)
 
 
@@ -259,7 +259,7 @@ class GoogleFitTokenRequest(BaseModel):
     client_id: str = Field(..., min_length=1, max_length=256)
     client_secret: str = Field(..., min_length=1, max_length=256)
     code: str = Field(..., min_length=1, max_length=2048)
-    redirect_uri: str = Field(default="http://localhost:8000/api/v1/import/google-fit/callback", max_length=2048)
+    redirect_uri: str = Field(default="http://localhost:8001/api/v1/import/google-fit/callback", max_length=2048)
 
 
 class GoogleFitImportPayload(BaseModel):

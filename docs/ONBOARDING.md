@@ -33,7 +33,7 @@ L'app è progettata per **funzionare offline**. Il tuo computer o telefono è la
 
 Ci sono due modi per avviare il backend:
 
-1. **Modulo locale** (`python main.py api`): FastAPI + SQLite, gira sul tuo computer a `localhost:8000`. È il default per sviluppo e per l'app desktop Tauri.
+1. **Modulo locale** (`python main.py api`): FastAPI + SQLite, gira sul tuo computer a `localhost:8001`. È il default per sviluppo e per l'app desktop Tauri.
 2. **Modulo hub** (`python main.py hub`): FastAPI + PostgreSQL multi-tenant, per la sincronizzazione e la community. Su Render (cloud).
 
 Il backend ha un meccanismo di **dispatch automatico**: quando trova la variabile `DATABASE_URL` (cioè è su Render), le funzioni del database mandano le richieste a PostgreSQL invece che a SQLite.
@@ -57,7 +57,7 @@ Ecco il flusso più semplice, con un esempio concreto.
     apiPost("/api/v1/rides", { gps_points, distance_km, ... })
     ↓
 [3] Il browser invia una richiesta HTTP POST all'URL del backend
-    (es. http://localhost:8000/api/v1/rides  oppure  https://bikemaster.onrender.com/api/v1/rides)
+    (es. http://localhost:8001/api/v1/rides  oppure  https://bikemaster.onrender.com/api/v1/rides)
     → con header "Authorization: Bearer <JWT>"
     ↓
 [4] Il backend FastAPI riceve la richiesta:
@@ -250,13 +250,13 @@ resolveApiBase() → controlla in ordine:
   1. localStorage (se l'utente ha impostato un backend manuale)
   2. VITE_API_BASE (variabile impostata a build-time, usata su Vercel)
   3. Se sei in Tauri → http://localhost:8001 (backend embedded)
-  4. Se localhost:8000 → "" (same origin, in dev Vite fa proxy)
+  4. Se localhost:8001 → "" (same origin, in dev Vite fa proxy)
   5. Altrimenti "" (stesso host del frontend)
 ```
 
 **Modalità principali:**
 
-- **Sviluppo locale**: frontend su `localhost:5173`, backend su `localhost:8000`. Vite (dev server) fa da proxy.
+- **Sviluppo locale**: frontend su `localhost:5173`, backend su `localhost:8001`. Vite (dev server) fa da proxy.
 - **Tauri desktop**: il backend gira *dentro* l'app, su `localhost:8001`. Il frontend (WebView) lo chiama direttamente. Niente internet necessario.
 - **Vercel (produzione web)**: frontend statico su `.vercel.app`. Deve puntare `VITE_API_BASE` a un backend (PC dell'utente o Render).
 - **Render (cloud)**: backend live su `bikemaster.onrender.com`. Il frontend può usare Render come **failover** se il backend locale non risponde.
@@ -376,13 +376,13 @@ direzione delle dipendenze è unidirezionale (AGENTS.md §2):
 
 **Solo backend (per sviluppo API):**
 ```bash
-python main.py api --port 8000
+python main.py api --port 8001
 ```
 
 **Frontend (dev server con hot-reload):**
 ```bash
 cd frontend && npm run dev
-# → http://localhost:5173 (vite proxy a localhost:8000)
+# → http://localhost:5173 (vite proxy a localhost:8001)
 ```
 
 **Desktop (Tauri):**

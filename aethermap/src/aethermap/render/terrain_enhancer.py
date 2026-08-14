@@ -96,7 +96,7 @@ def reset_dem_cache() -> None:
 def fetch_dem_tile(
     bbox: dict[str, float],
     resolution: int = 64,
-    base_url: str = "http://localhost:8000",
+    base_url: str = "http://localhost:8001",
     source: str = "auto",
 ) -> np.ndarray | None:
     key = _dem_cache_key(bbox, resolution, base_url, source)
@@ -116,7 +116,7 @@ def fetch_dem_tile(
 def enhance_face(
     hf: np.ndarray,
     face: int,
-    base_url: str = "http://localhost:8000",
+    base_url: str = "http://localhost:8001",
     resolution: int = 64,
 ) -> np.ndarray:
     bbox = _face_bbox(face, resolution)
@@ -135,7 +135,7 @@ def build_enhanced_heightfield(
     n: int = 64,
     base_alt: float = 0.0,
     height_scale: float = 0.04,
-    base_url: str = "http://localhost:8000",
+    base_url: str = "http://localhost:8001",
     faces: tuple[int, ...] = (0, 1, 4, 5),
 ) -> np.ndarray:
     from aethermap.render.webgl_exporter import _build_heightfield

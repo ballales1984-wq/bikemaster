@@ -10,7 +10,7 @@ di esecuzione:
     python main.py cli      -> Esegue analytics CLI su dati di esempio
 
 La modalità viene selezionata tramite il primo argomento posizionale. Il flag
-``--port`` controlla la porta di ascolto (default 8000), mentre ``--reload``
+``--port`` controlla la porta di ascolto (default 8001), mentre ``--reload``
 abilita l'hot-reload di uvicorn (solo per sviluppo).
 """
 

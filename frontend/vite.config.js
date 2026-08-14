@@ -90,9 +90,9 @@ export default defineConfig({
       "Expires": "0",
     },
     proxy: {
-      "/api": "http://localhost:8000",
-      "/static": "http://localhost:8000",
-      "/assets": "http://localhost:8000",
+      "/api": "http://localhost:8001",
+      "/static": "http://localhost:8001",
+      "/assets": "http://localhost:8001",
     },
     configureServer: (server) => {
       server.middlewares.use(wasmStaticMiddleware());

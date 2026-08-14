@@ -33,7 +33,7 @@ def _compute_code_challenge(code_verifier: str) -> str:
 
 def get_authorization_url(
     client_id: str,
-    redirect_uri: str = "http://localhost:8000/callback",
+    redirect_uri: str = "http://localhost:8001/callback",
     state: str = "",
     code_challenge: str = "",
     code_challenge_method: str = "S256",

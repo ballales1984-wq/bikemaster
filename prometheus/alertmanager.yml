@@ -7,5 +7,5 @@ route:
 receivers:
   - name: 'default'
     webhook_configs:
-      - url: 'http://bikemaster:8000/api/v1/alerts/webhook'
+      - url: 'http://bikemaster:8001/api/v1/alerts/webhook'
         send_resolved: true

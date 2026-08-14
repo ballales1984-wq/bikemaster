@@ -910,7 +910,7 @@
     "importDisconnectText": "Revoke access to the external service. Already imported data remains saved.",
     "secSettings": "Settings",
     "setBackendTitle": "Backend URL",
-    "setBackendText": "Enter the address of your local backend (e.g. https://your-pc:8000). Leave empty to use same origin.",
+    "setBackendText": "Enter the address of your local backend (e.g. https://your-pc:8001). Leave empty to use same origin.",
     "setSaveTitle": "Save / Default",
     "setSaveText": "Save the custom URL or restore the default (same origin).",
     "setFailoverTitle": "Render Failover",

@@ -72,7 +72,7 @@ npm run test:coverage
 python -m pytest tests/test_import.py -v
 
 # Scenario end-to-end
-curl -X POST -F "file=@track.gpx" http://localhost:8000/api/v1/import/gpx
+curl -X POST -F "file=@track.gpx" http://localhost:8001/api/v1/import/gpx
 ```
 
 ## Coverage Target
