@@ -416,9 +416,7 @@ const auth = useAthleteStore();
 const stateStore = useAthleteStateStore();
 
 const { state: athleteStateRaw, error: stateError } = storeToRefs(stateStore);
-const { error: authError } = storeToRefs(auth);
-const profile = computed(() => auth.profile);
-
+const { profile, error: authError } = storeToRefs(auth);
 const athleteState = computed<AthleteState | null>(() => athleteStateRaw.value);
 const error = computed(() => stateError.value || authError.value);
 
