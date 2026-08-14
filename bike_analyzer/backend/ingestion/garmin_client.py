@@ -122,7 +122,8 @@ def _ensure_garmin_table() -> None:
 
 
 def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
-    _ensure_garmin_table()
+    from ..db.database import save_garmin_token
+
     expires_at = token_data.get("expires_at", 0)
     if isinstance(expires_at, str):
         try:
@@ -141,43 +142,28 @@ def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
             encrypted_refresh = encrypt_token(encrypted_refresh)
     except Exception:
         logger.warning("Garmin token encryption skipped", exc_info=True)
-    with _get_conn() as conn:
-        conn.execute(
-            """
-            INSERT INTO garmin_tokens (athlete_id, access_token, refresh_token, expires_at, scope)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(athlete_id) DO UPDATE SET
-                access_token = excluded.access_token,
-                refresh_token = excluded.refresh_token,
-                expires_at = excluded.expires_at,
-                scope = excluded.scope,
-                updated_at = datetime('now')
-            """,
-            (
-                athlete_id,
-                encrypted_access,
-                encrypted_refresh,
-                expires_at,
-                token_data.get("scope", ""),
-            ),
-        )
+    save_garmin_token(
+        athlete_id=athlete_id,
+        access_token=encrypted_access,
+        refresh_token=encrypted_refresh,
+        expires_at=expires_at,
+        scope=token_data.get("scope", ""),
+    )
 
 
 def revoke_token(athlete_id: int) -> None:
-    with _get_conn() as conn:
-        conn.execute("DELETE FROM garmin_tokens WHERE athlete_id = ?", (athlete_id,))
+    from ..db.database import revoke_garmin_token
+
+    revoke_garmin_token(athlete_id)
 
 
 async def get_valid_token(athlete_id: int) -> str | None:
-    _ensure_garmin_table()
-    with _get_conn() as conn:
-        row = conn.execute(
-            "SELECT access_token, refresh_token, expires_at FROM garmin_tokens WHERE athlete_id = ?",
-            (athlete_id,),
-        ).fetchone()
+    from ..db.database import get_garmin_token
+
+    row = get_garmin_token(athlete_id)
     if not row:
         return None
-    access_token, refresh_token, expires_at = row
+    access_token, refresh_token = row.get("access_token", ""), row.get("refresh_token", "")
     try:
         from ..db.token_crypto import decrypt_token
         if access_token:
