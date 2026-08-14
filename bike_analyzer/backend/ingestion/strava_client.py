@@ -194,7 +194,7 @@ def _ensure_token_table() -> None:
 
 
 def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
-    _ensure_token_table()
+    from ..db.database import save_strava_token
 
     scope = token_data.get("scope", "")
     expires_at = token_data.get("expires_at", 0)
@@ -218,63 +218,43 @@ def store_token(athlete_id: int, token_data: dict[str, Any]) -> None:
             encrypted_refresh = encrypt_token(encrypted_refresh)
     except Exception:
         logger.warning("Strava token encryption skipped", exc_info=True)
-    with _get_conn() as conn:
-        conn.execute(
-            """
-            INSERT INTO strava_tokens (athlete_id, access_token, refresh_token, expires_at, scope, athlete_name)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(athlete_id) DO UPDATE SET
-                access_token = excluded.access_token,
-                refresh_token = excluded.refresh_token,
-                expires_at = excluded.expires_at,
-                scope = excluded.scope,
-                athlete_name = excluded.athlete_name,
-                updated_at = datetime('now')
-            """,
-            (
-                athlete_id,
-                encrypted_access,
-                encrypted_refresh,
-                expires_at,
-                scope,
-                athlete_name,
-            ),
-        )
+    save_strava_token(
+        athlete_id=athlete_id,
+        access_token=encrypted_access,
+        refresh_token=encrypted_refresh,
+        expires_at=expires_at,
+        scope=scope,
+        athlete_name=athlete_name,
+    )
 
 
 def get_last_sync_ts(athlete_id: int) -> int | None:
-    _ensure_token_table()
-    with _get_conn() as conn:
-        row = conn.execute(
-            "SELECT last_sync_ts FROM strava_tokens WHERE athlete_id = ?",
-            (athlete_id,),
-        ).fetchone()
-        return row["last_sync_ts"] if row and row["last_sync_ts"] is not None else None
+    from ..db.database import get_strava_token
+
+    row = get_strava_token(athlete_id)
+    if row and row.get("last_sync_ts") is not None:
+        return int(row["last_sync_ts"])
+    return None
 
 
 def set_last_sync_ts(athlete_id: int, ts: int) -> None:
-    _ensure_token_table()
-    with _get_conn() as conn:
-        conn.execute(
-            "UPDATE strava_tokens SET last_sync_ts = ? WHERE athlete_id = ?",
-            (ts, athlete_id),
-        )
+    from ..db.database import update_strava_last_sync
+
+    update_strava_last_sync(athlete_id, ts)
 
 
 def revoke_token(athlete_id: int) -> None:
-    with _get_conn() as conn:
-        conn.execute("DELETE FROM strava_tokens WHERE athlete_id = ?", (athlete_id,))
+    from ..db.database import revoke_strava_token
+
+    revoke_strava_token(athlete_id)
 
 
 async def get_valid_token(
     athlete_id: int, client_id: str | None = None, client_secret: str | None = None
 ) -> str | None:
-    _ensure_token_table()
-    with _get_conn() as conn:
-        row = conn.execute(
-            "SELECT access_token, refresh_token, expires_at FROM strava_tokens WHERE athlete_id = ?",
-            (athlete_id,),
-        ).fetchone()
+    from ..db.database import get_strava_token
+
+    row = get_strava_token(athlete_id)
     if not row:
         return None
     access_token, refresh_token, expires_at = row
