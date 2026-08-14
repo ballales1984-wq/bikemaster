@@ -56,6 +56,7 @@ defineExpose({ chart });
 .base-chart {
   position: relative;
   width: 100%;
+  contain: layout style;
 }
 .base-chart__empty {
   position: absolute;

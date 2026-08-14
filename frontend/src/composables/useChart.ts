@@ -49,6 +49,8 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
     return cfg;
   }
 
+  let lastType = "";
+
   function render() {
     if (!canvas.value) return;
     const ctx = canvas.value.getContext("2d");
@@ -56,6 +58,7 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
     chart.value?.destroy();
     const next = buildConfig();
     chart.value = new ChartConstructor(ctx, next as any);
+    lastType = next.type ?? "";
   }
 
   function retheme() {
@@ -67,7 +70,17 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
     chart.value.update("none" as any);
   }
 
-  watch(config, () => render(), { deep: true });
+  watch(config, () => {
+    const next = buildConfig();
+    const typeChanged = (next.type ?? "") !== lastType;
+    if (typeChanged || !chart.value) {
+      render();
+      return;
+    }
+    chart.value.data = next.data;
+    chart.value.options = next.options as ChartInstance["options"];
+    chart.value.update("none" as any);
+  }, { deep: true });
 
   watch(
     () => chartTheme.isDark.value,

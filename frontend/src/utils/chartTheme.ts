@@ -71,6 +71,7 @@ function apply(config: ChartConfiguration): ChartConfiguration {
     ...baseOpts,
     responsive: baseOpts.responsive ?? true,
     maintainAspectRatio: baseOpts.maintainAspectRatio ?? false,
+    animation: baseOpts.animation ?? false,
     interaction: baseOpts.interaction ?? {
       mode: "index" as const,
       intersect: false,
