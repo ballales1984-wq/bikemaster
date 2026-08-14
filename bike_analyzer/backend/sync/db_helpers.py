@@ -174,32 +174,38 @@ def mark_error(entity_type: str, entity_id: int, error: str) -> None:
 def get_pending_entities(entity_type: str | None = None) -> list[SyncEntityState]:
     from ..db.database import get_db_connection
 
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        if entity_type:
-            cur.execute(
-                "SELECT * FROM sync_entity_state WHERE entity_type = ? AND sync_status IN ('pending', 'local')",
-                (entity_type,),
-            )
-        else:
-            cur.execute(
-                "SELECT * FROM sync_entity_state WHERE sync_status IN ('pending', 'local')"
-            )
-        rows = cur.fetchall()
-        return [_row_to_state(r) for r in rows]
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            if entity_type:
+                cur.execute(
+                    "SELECT * FROM sync_entity_state WHERE entity_type = ? AND sync_status IN ('pending', 'local')",
+                    (entity_type,),
+                )
+            else:
+                cur.execute(
+                    "SELECT * FROM sync_entity_state WHERE sync_status IN ('pending', 'local')"
+                )
+            rows = cur.fetchall()
+            return [_row_to_state(r) for r in rows]
+    except Exception:
+        return []
 
 
 def get_conflicts(unresolved_only: bool = True) -> list[ConflictRecord]:
     from ..db.database import get_db_connection
 
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        if unresolved_only:
-            cur.execute("SELECT * FROM sync_conflicts WHERE resolution = 'unresolved'")
-        else:
-            cur.execute("SELECT * FROM sync_conflicts")
-        rows = cur.fetchall()
-        return [_row_to_conflict(r) for r in rows]
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            if unresolved_only:
+                cur.execute("SELECT * FROM sync_conflicts WHERE resolution = 'unresolved'")
+            else:
+                cur.execute("SELECT * FROM sync_conflicts")
+            rows = cur.fetchall()
+            return [_row_to_conflict(r) for r in rows]
+    except Exception:
+        return []
 
 
 def save_conflict(conflict: ConflictRecord) -> int:

@@ -94,7 +94,7 @@ async def run_cli():
     print(f"Total Rides: {summary['total_rides']}")
     print(f"Total Distance: {summary['total_km']} km")
     print(f"Total Calories: {summary['total_calories']}")
-    print(f"Avg Speed: {summary['avg_speed']} km/h")
+    print(f"Avg Speed: {summary['avg_speed_kmh']} km/h")
     print(f"Avg Fatigue: {summary['avg_fatigue']}/10")
 
 

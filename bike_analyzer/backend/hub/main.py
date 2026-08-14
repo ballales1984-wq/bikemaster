@@ -104,6 +104,15 @@ async def lifespan(app: FastAPI):
         except Exception:  # noqa: BLE001
             logger.exception("Failed to initialize Redis client")
 
+    async def _ensure_sync_tables_bg() -> None:
+        try:
+            from bike_analyzer.backend.sync.db_helpers import ensure_sync_tables
+
+            await asyncio.to_thread(ensure_sync_tables)
+            logger.info("Sync SQLite tables ensured successfully.")
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to ensure sync tables")
+
     async def _start_task_queue_bg() -> None:
         queue = get_task_queue()
         try:
@@ -115,6 +124,7 @@ async def lifespan(app: FastAPI):
     app.state._bg_tasks: list[asyncio.Task] = []
     app.state._bg_tasks.append(asyncio.create_task(_init_async_db_bg()))
     app.state._bg_tasks.append(asyncio.create_task(_init_redis_bg()))
+    app.state._bg_tasks.append(asyncio.create_task(_ensure_sync_tables_bg()))
     app.state._bg_tasks.append(asyncio.create_task(_start_task_queue_bg()))
     app.state.start_time = time.time()
 
