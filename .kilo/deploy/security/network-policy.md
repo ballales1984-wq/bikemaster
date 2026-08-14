@@ -78,7 +78,7 @@ This document defines network security policies for BikeMaster deployments.
 
 ### Measures
 - Rate limiting at load balancer level
-- CDN DDoS protection (Vercel, Cloudflare)
+- CDN DDoS protection (Vercel edge)
 - IP reputation filtering
 - Automatic traffic scrubbing during attacks
 

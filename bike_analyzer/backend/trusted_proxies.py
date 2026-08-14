@@ -18,28 +18,13 @@ _TRUSTED_PROXIES: tuple[str, ...] = (
     "192.168.0.0/16",
     "127.0.0.1",
     "::1",
-    "173.245.0.0/16",
-    "103.21.244.0/22",
-    "103.22.200.0/22",
-    "103.31.4.0/22",
-    "141.101.64.0/18",
-    "108.162.192.0/18",
-    "190.93.240.0/20",
-    "188.114.96.0/20",
-    "197.234.240.0/22",
-    "198.41.128.0/17",
-    "162.158.0.0/15",
-    "104.16.0.0/13",
-    "104.24.0.0/14",
-    "172.64.0.0/13",
-    "131.0.72.0/22",
 )
 
 _TRUSTED_TEST_CLIENT_HOST = "testclient"
 
 
 def _is_trusted_proxy(ip_str: str) -> bool:
-    """Verify if the IP belongs to a trusted network (private, loopback, Cloudflare)."""
+    """Verify if the IP belongs to a trusted network (private, loopback)."""
     if ip_str == _TRUSTED_TEST_CLIENT_HOST:
         return True
     try:
