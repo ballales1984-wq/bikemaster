@@ -103,8 +103,8 @@ window.addEventListener("pageshow", (event: PageTransitionEvent) => {
 });
 
 if ("serviceWorker" in navigator && !isTauri()) {
-      navigator.serviceWorker
-        .register("/sw.js?v=2", { scope: "/" })
+  navigator.serviceWorker
+    .register("/sw.js?v=2", { scope: "/" })
     .then((reg) => {
       reg.addEventListener("updatefound", () => {
         const newWorker = reg.installing;

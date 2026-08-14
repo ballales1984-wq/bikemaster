@@ -475,7 +475,7 @@ function faceLatLonBounds(face: number): {
     maxLat = Math.max(maxLat, lat);
     lons.push(lon);
   }
-  const wrapped = lons.map((lon) => (((lon + 180) % 360 + 360) % 360) - 180);
+  const wrapped = lons.map((lon) => ((((lon + 180) % 360) + 360) % 360) - 180);
   minLon = Math.min(...wrapped);
   maxLon = Math.max(...wrapped);
   return { minLat, maxLat, minLon, maxLon };
