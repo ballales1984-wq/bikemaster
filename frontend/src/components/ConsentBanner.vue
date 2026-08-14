@@ -131,6 +131,15 @@ const consents = reactive({
 const canSave = computed(() => consents.essential);
 
 async function save() {
+  if (!auth.isLoggedIn) {
+    localStorage.setItem(
+      "bikemaster_consent_v1",
+      JSON.stringify({ ...consents, savedAt: Date.now() }),
+    );
+    visible.value = false;
+    emit("saved", { ...consents });
+    return;
+  }
   try {
     const base = resolveApiBase();
     const url = base ? `${base}/api/v1/legal/consent` : "/api/v1/legal/consent";

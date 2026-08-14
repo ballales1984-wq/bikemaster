@@ -149,6 +149,7 @@ const consents = ref<
 ]);
 
 async function loadConsents() {
+  if (!auth.isLoggedIn) return;
   try {
     const base = resolveApiBase();
     const url = base ? `${base}/api/v1/legal/consent` : "/api/v1/legal/consent";
@@ -169,6 +170,7 @@ async function loadConsents() {
 }
 
 async function toggleConsent(consent_type: string, granted: boolean) {
+  if (!auth.isLoggedIn) return;
   try {
     const base = resolveApiBase();
     const url = base ? `${base}/api/v1/legal/consent` : "/api/v1/legal/consent";

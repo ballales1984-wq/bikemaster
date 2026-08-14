@@ -222,14 +222,19 @@ def create_hub_app() -> FastAPI:
     app.include_router(hub_sync_router, prefix="/api/v1", tags=["sync"])
     app.include_router(voice_router, prefix="/api/v1", tags=["voice"])
 
-    @app.get("/healthz")
-    async def healthz():
-        """Root-level liveness probe for platform health checks (Render default)."""
-        return {"status": "ok", "mode": "hub"}
-
     @app.get("/health")
     async def health():
         """Health check endpoint per load balancer e monitoring."""
+        return {"status": "ok", "mode": "hub"}
+
+    @app.get("/api/v1/health")
+    async def health_api_v1():
+        """API v1 health check matching Render's default healthCheckPath."""
+        return {"status": "ok", "mode": "hub"}
+
+    @app.get("/healthz")
+    async def healthz():
+        """Root-level liveness probe for platform health checks (Render default)."""
         return {"status": "ok", "mode": "hub"}
 
     return app
