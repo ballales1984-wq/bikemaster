@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ref, computed } from "vue";
+import { nextTick, ref } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 
 setActivePinia(createPinia());
@@ -8,51 +8,62 @@ setActivePinia(createPinia());
 const mockFetchProfile = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 const mockFetchState = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 
-const mockProfileRef = ref(null);
-const mockErrorRef = ref(null);
-const mockStateRef = ref(null);
-const mockStateErrorRef = ref(null);
-const mockIsLoggedIn = ref(true);
+const profileRef = ref(null);
+const errorRef = ref(null);
+
+const mockStore = {
+  profile: profileRef,
+  fetchProfile: null,
+  updateProfile: vi.fn(),
+  fetchMetricLog: vi.fn(() => Promise.resolve([])),
+  error: errorRef,
+};
+
+const stateRef = ref(null);
+const stateErrorRef = ref(null);
+
+const mockStateStore = {
+  state: stateRef,
+  fetchState: null,
+  error: stateErrorRef,
+};
+
+const isLoggedIn = ref(true);
 
 const wrappedFetchProfile = vi.fn(async () => {
   const result = await mockFetchProfile();
-  if (result) mockProfileRef.value = result;
+  if (result) profileRef.value = result;
   return result;
 });
 const wrappedFetchState = vi.fn(async () => {
   const result = await mockFetchState();
-  if (result) mockStateRef.value = result;
+  if (result) stateRef.value = result;
   return result;
 });
 
+mockStore.fetchProfile = wrappedFetchProfile;
+mockStateStore.fetchState = wrappedFetchState;
+
 vi.mock("../stores/athlete", () => ({
-  useAthleteStore: () => ({
-    profile: computed(() => mockProfileRef.value),
-    fetchProfile: wrappedFetchProfile,
-    updateProfile: vi.fn(),
-    fetchMetricLog: vi.fn(() => Promise.resolve([])),
-    error: mockErrorRef,
-  }),
+  useAthleteStore: () => mockStore,
 }));
 
 vi.mock("../stores/athleteState", () => ({
-  useAthleteStateStore: () => ({
-    state: mockStateRef,
-    fetchState: wrappedFetchState,
-    error: mockStateErrorRef,
-  }),
+  useAthleteStateStore: () => mockStateStore,
 }));
 
 vi.mock("../stores/auth", () => ({
   useAuthStore: () => ({
-    isLoggedIn: mockIsLoggedIn.value,
+    get isLoggedIn() {
+      return isLoggedIn.value;
+    },
   }),
 }));
 
 import AthleteAvatarPanel from "./AthleteAvatarPanel.vue";
 
 function flush() {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+  return new Promise((resolve) => setTimeout(resolve, 50));
 }
 
 const mockProfile = {
@@ -106,19 +117,22 @@ const mockState = {
 describe("AthleteAvatarPanel", () => {
   afterEach(() => {
     vi.clearAllMocks();
-    mockProfileRef.value = null;
-    mockStateRef.value = null;
-    mockErrorRef.value = null;
-    mockStateErrorRef.value = null;
-    mockIsLoggedIn.value = true;
+    mockFetchProfile.mockClear();
+    mockFetchState.mockClear();
+    profileRef.value = null;
+    errorRef.value = null;
+    stateRef.value = null;
+    stateErrorRef.value = null;
+    isLoggedIn.value = true;
   });
 
   it("loads profile and state on mount when logged in", async () => {
-    mockFetchProfile.mockResolvedValueOnce(mockProfile);
-    mockFetchState.mockResolvedValueOnce(mockState);
+    mockFetchProfile.mockImplementation(() => Promise.resolve(mockProfile));
+    mockFetchState.mockImplementation(() => Promise.resolve(mockState));
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
+    await nextTick();
 
     expect(wrappedFetchProfile).toHaveBeenCalledTimes(1);
     expect(wrappedFetchState).toHaveBeenCalledTimes(1);
@@ -127,7 +141,7 @@ describe("AthleteAvatarPanel", () => {
   });
 
   it("does not fetch when not logged in", async () => {
-    mockIsLoggedIn.value = false;
+    isLoggedIn.value = false;
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
@@ -138,15 +152,18 @@ describe("AthleteAvatarPanel", () => {
   });
 
   it("shows equipment and medical notes when present", async () => {
-    mockProfileRef.value = {
-      ...mockProfile,
-      equipment: "S-Works Tarmac",
-      medical_notes: "Asma lieve",
-    };
-    mockStateRef.value = mockState;
+    mockFetchProfile.mockImplementation(() =>
+      Promise.resolve({
+        ...mockProfile,
+        equipment: "S-Works Tarmac",
+        medical_notes: "Asma lieve",
+      }),
+    );
+    mockFetchState.mockImplementation(() => Promise.resolve(mockState));
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
+    await nextTick();
 
     expect(wrapper.text()).toContain("Equipaggiamento");
     expect(wrapper.text()).toContain("S-Works Tarmac");
@@ -155,12 +172,14 @@ describe("AthleteAvatarPanel", () => {
   });
 
   it("hides equipment section when both fields are empty", async () => {
-    mockProfileRef.value = {
-      ...mockProfile,
-      equipment: null,
-      medical_notes: null,
-    };
-    mockStateRef.value = mockState;
+    mockFetchProfile.mockImplementation(() =>
+      Promise.resolve({
+        ...mockProfile,
+        equipment: null,
+        medical_notes: null,
+      }),
+    );
+    mockFetchState.mockImplementation(() => Promise.resolve(mockState));
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();
@@ -170,8 +189,8 @@ describe("AthleteAvatarPanel", () => {
   });
 
   it("renders fitness state when available", async () => {
-    mockProfileRef.value = mockProfile;
-    mockStateRef.value = mockState;
+    mockFetchProfile.mockImplementation(() => Promise.resolve(mockProfile));
+    mockFetchState.mockImplementation(() => Promise.resolve(mockState));
 
     const wrapper = mount(AthleteAvatarPanel);
     await flush();

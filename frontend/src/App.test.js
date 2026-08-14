@@ -6,7 +6,10 @@ import App from "./App.vue";
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [{ path: "/", component: { template: "<div>Home</div>" } }],
+  routes: [
+    { path: "/", component: { template: "<div>Home</div>" } },
+    { path: "/rides", component: { template: "<div>Rides</div>" } },
+  ],
 });
 
 const authState = { isLoggedIn: false, isAdmin: false };
@@ -61,6 +64,7 @@ describe("App.vue", () => {
     HeaderTabs: { template: '<div class="tabs-stub" />' },
     HelpGuide: { template: '<div class="help-stub" />' },
     RouterView: { template: '<div class="rv-stub" />' },
+    AppLayout: { template: '<div class="layout-stub" />' },
   };
 
   it("shows login form when not logged in", () => {
@@ -85,8 +89,7 @@ describe("App.vue", () => {
         stubs,
       },
     });
-    expect(wrapper.find(".tabs-stub").exists()).toBe(true);
-    expect(wrapper.find(".stats-stub").exists()).toBe(true);
+    expect(wrapper.find(".layout-stub").exists()).toBe(true);
   });
 
   it("displays login error when present", async () => {
@@ -114,6 +117,6 @@ describe("App.vue", () => {
       },
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(wrapper.find(".stats-stub").exists()).toBe(true);
+    expect(wrapper.find(".layout-stub").exists()).toBe(true);
   });
 });

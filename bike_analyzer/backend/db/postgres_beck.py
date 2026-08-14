@@ -29,13 +29,13 @@ def _ensure_beck_assessments_table(conn) -> None:
 
 
 def _beck_severity(total_score: int) -> str:
-    if total_score >= 29:
-        return "severe"
-    if total_score >= 20:
-        return "moderate"
-    if total_score >= 10:
+    if total_score <= 13:
+        return "minimal"
+    if total_score <= 19:
         return "mild"
-    return "minimal"
+    if total_score <= 28:
+        return "moderate"
+    return "severe"
 
 
 def save_beck_assessment(assessment: dict, tenant_id: int = 0) -> int:

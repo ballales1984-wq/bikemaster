@@ -48,6 +48,7 @@ from .routers.analytics_routes import router as analytics_router
 from .routers.athlete_routes import router as athlete_router
 from .routers.auth_routes import router as auth_router
 from .routers.badges_routes import router as badges_router
+from .routers.beck_routes import router as beck_router
 from .routers.ble_routes import router as ble_router
 from .routers.calendar_routes import router as calendar_router
 from .routers.charts_routes import router as charts_router
@@ -518,6 +519,7 @@ def create_app() -> FastAPI:
     app.include_router(weather_router, prefix="/api/v1")
     app.include_router(legal_router, prefix="/api/v1")
     app.include_router(badges_router, prefix="/api/v1")
+    app.include_router(beck_router, prefix="/api/v1")
     app.include_router(traffic_router, prefix="/api/v1")
     app.include_router(knowledge_router, prefix="/api/v1")
     app.include_router(charts_router, prefix="/api/v1")
