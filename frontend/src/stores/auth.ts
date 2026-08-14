@@ -2,9 +2,9 @@
  * Store di autenticazione.
  *
  * Gestisce token JWT, utente corrente, login/logout/register e refresh
- * token. Lo stato e' persistito in sessionStorage per sopravvivere a
+ * token. Lo stato e' persistito in localStorage per sopravvivere a
  * reload della pagina (es. aggiornamento service worker durante il
- * round-trip OAuth). sessionStorage e' accessibile a qualsiasi script
+ * round-trip OAuth). localStorage e' accessibile a qualsiasi script
  * della stessa origine durante la sessione, quindi una vulnerabilita'
  * XSS potrebbe comunque esporre i token; la preferenza su localStorage
  * e' motivata dalla durata limitata della sessione, non da una protezione
@@ -59,16 +59,16 @@ export function isTokenExpired(tokenStr: string): boolean {
 
 export const useAuthStore = defineStore("auth", () => {
   const token = ref(
-    typeof sessionStorage !== "undefined"
-      ? sessionStorage.getItem(AUTH_TOKEN_KEY) || ""
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem(AUTH_TOKEN_KEY) || ""
       : "",
   );
 
   const user = ref<Athlete | null>(
     (function () {
       try {
-        if (typeof sessionStorage === "undefined") return null;
-        const raw = sessionStorage.getItem(AUTH_USER_KEY);
+        if (typeof localStorage === "undefined") return null;
+        const raw = localStorage.getItem(AUTH_USER_KEY);
         return raw ? JSON.parse(raw) : null;
       } catch {
         return null;
@@ -77,16 +77,16 @@ export const useAuthStore = defineStore("auth", () => {
   );
 
   const justLoggedIn = ref(
-    typeof sessionStorage !== "undefined"
-      ? sessionStorage.getItem(AUTH_JUST_LOGGED_IN_KEY) === "true"
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem(AUTH_JUST_LOGGED_IN_KEY) === "true"
       : false,
   );
 
   const oauthError = ref("");
 
   const refreshToken = ref(
-    typeof sessionStorage !== "undefined"
-      ? sessionStorage.getItem(AUTH_REFRESH_TOKEN_KEY) || ""
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem(AUTH_REFRESH_TOKEN_KEY) || ""
       : "",
   );
 
@@ -108,10 +108,10 @@ export const useAuthStore = defineStore("auth", () => {
     token,
     (val) => {
       try {
-        if (val && typeof sessionStorage !== "undefined") {
-          sessionStorage.setItem(AUTH_TOKEN_KEY, val);
-        } else if (typeof sessionStorage !== "undefined") {
-          sessionStorage.removeItem(AUTH_TOKEN_KEY);
+        if (val && typeof localStorage !== "undefined") {
+          localStorage.setItem(AUTH_TOKEN_KEY, val);
+        } else if (typeof localStorage !== "undefined") {
+          localStorage.removeItem(AUTH_TOKEN_KEY);
         }
       } catch {
         /* ignore storage errors */
@@ -124,10 +124,10 @@ export const useAuthStore = defineStore("auth", () => {
     user,
     (val) => {
       try {
-        if (val && typeof sessionStorage !== "undefined") {
-          sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(val));
-        } else if (typeof sessionStorage !== "undefined") {
-          sessionStorage.removeItem(AUTH_USER_KEY);
+        if (val && typeof localStorage !== "undefined") {
+          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(val));
+        } else if (typeof localStorage !== "undefined") {
+          localStorage.removeItem(AUTH_USER_KEY);
         }
       } catch {
         /* ignore storage errors */
@@ -140,10 +140,10 @@ export const useAuthStore = defineStore("auth", () => {
     justLoggedIn,
     (val) => {
       try {
-        if (val && typeof sessionStorage !== "undefined") {
-          sessionStorage.setItem(AUTH_JUST_LOGGED_IN_KEY, "true");
-        } else if (typeof sessionStorage !== "undefined") {
-          sessionStorage.removeItem(AUTH_JUST_LOGGED_IN_KEY);
+        if (val && typeof localStorage !== "undefined") {
+          localStorage.setItem(AUTH_JUST_LOGGED_IN_KEY, "true");
+        } else if (typeof localStorage !== "undefined") {
+          localStorage.removeItem(AUTH_JUST_LOGGED_IN_KEY);
         }
       } catch {
         /* ignore storage errors */
@@ -156,10 +156,10 @@ export const useAuthStore = defineStore("auth", () => {
     refreshToken,
     (val) => {
       try {
-        if (val && typeof sessionStorage !== "undefined") {
-          sessionStorage.setItem(AUTH_REFRESH_TOKEN_KEY, val);
-        } else if (typeof sessionStorage !== "undefined") {
-          sessionStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
+        if (val && typeof localStorage !== "undefined") {
+          localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, val);
+        } else if (typeof localStorage !== "undefined") {
+          localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
         }
       } catch {
         /* ignore storage errors */
@@ -374,8 +374,8 @@ export const useAuthStore = defineStore("auth", () => {
       /* ui store may be disposed */
     }
     try {
-      if (typeof sessionStorage !== "undefined") {
-        sessionStorage.removeItem("bikemaster_oauth_loading");
+      if (typeof localStorage !== "undefined") {
+        localStorage.removeItem("bikemaster_oauth_loading");
       }
     } catch {
       /* ignore */

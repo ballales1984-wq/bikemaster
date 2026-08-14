@@ -457,12 +457,13 @@ def create_app() -> FastAPI:
             if "content-security-policy" not in response.headers:
                 response.headers["Content-Security-Policy"] = (
                     "default-src 'self'; img-src 'self' data: https:; "
-                    "script-src 'self' "
+                    "script-src 'self' 'unsafe-inline' "
                     "https://cdn.jsdelivr.net https://code.jquery.com "
                     "https://unpkg.com; "
-                    "style-src 'self' "
+                    "style-src 'self' 'unsafe-inline' "
                     "https://cdn.jsdelivr.net https://netdna.bootstrapcdn.com "
-                    "https://unpkg.com; "
+                    "https://unpkg.com "
+                    "https://fonts.googleapis.com https://fonts.gstatic.com; "
                     "connect-src 'self' https: http://localhost:* http://127.0.0.1:*"
                 )
         return response
