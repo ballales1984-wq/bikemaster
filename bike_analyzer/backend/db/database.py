@@ -48,16 +48,6 @@ from .repositories.athlete_repository import (
     save_athlete_snapshot,  # noqa: F401
     update_athlete,
 )
-from .repositories.calendar_repository import (
-    _row_to_calendar_event,  # noqa: F401
-    delete_calendar_event,
-    get_calendar_event,
-    get_events_by_athlete,
-    get_events_by_date_range,
-    get_events_by_month,
-    save_calendar_event,
-    update_calendar_event,
-)
 from .repositories.ride_repository import (
     _find_existing_external_ride,  # noqa: F401
     _row_to_ride,  # noqa: F401
@@ -80,6 +70,42 @@ _s = get_settings()
 DB_PATH = _s.db_path
 _INITIAL_DB_PATH = DB_PATH
 
+_persistence_warned: set[str] = set()
+
+
+def _is_persistent_path(path: str) -> bool:
+    import pathlib
+
+    p = pathlib.Path(path)
+    parent = p.parent
+    if not parent.exists():
+        return False
+    try:
+        test_file = parent / ".bikemaster_persistence_check"
+        test_file.write_text("ok", encoding="utf-8")
+        test_file.unlink()
+        return True
+    except Exception:
+        return False
+
+
+def _warn_sqlite_persistence(caller_name: str) -> None:
+    if not _s.database_url and _is_persistent_path(DB_PATH):
+        return
+    key = f"{caller_name}:{DB_PATH}"
+    if key in _persistence_warned:
+        return
+    _persistence_warned.add(key)
+    is_prod = _s.environment.lower() in ("production", "prod", "staging")
+    level = logger.error if is_prod else logger.warning
+    level(
+        "SQLite write on %s path (caller=%s, db=%s). "
+        "Data will be lost on container resume unless a persistent disk is mounted.",
+        "NON-PERSISTENT" if not _is_persistent_path(DB_PATH) else "FALLBACK",
+        caller_name,
+        DB_PATH,
+    )
+
 
 @contextmanager
 def get_db_connection():
@@ -96,6 +122,10 @@ def get_db_connection():
     se il blocco ``with`` completa senza eccezioni.
     """
     import time
+
+    caller_name = _get_caller_name()
+    if not _s.database_url:
+        _warn_sqlite_persistence(caller_name)
 
     max_retries = 3
     retry_delay = 0.1
@@ -122,6 +152,22 @@ def get_db_connection():
         conn.commit()
     finally:
         conn.close()
+
+
+def _get_caller_name() -> str:
+    import inspect
+
+    frame = inspect.currentframe()
+    try:
+        caller_frame = frame.f_back
+        while caller_frame:
+            filename = caller_frame.f_code.co_filename
+            if "database.py" not in filename:
+                return caller_frame.f_code.co_name
+            caller_frame = caller_frame.f_back
+        return "unknown"
+    finally:
+        del frame
 
 
 def recalculate_training_stress_for_athlete(athlete_id: int, ftp: float = 250.0, tenant_id: int = 0) -> None:
@@ -2358,6 +2404,192 @@ def get_metabolic_adaptive_weights(athlete_id: int, tenant_id: int | None = None
         return dict(row)
 
 
+@pg_dispatch("bike_analyzer.backend.db.postgres_calendar")
+def save_calendar_event(event: dict, tenant_id: int = 0) -> int:
+    weather = {}
+    if event.get("lat") is not None and event.get("lon") is not None:
+        try:
+            from ..weather.weather_service import get_forecast_for_date
+
+            weather = get_forecast_for_date(
+                float(event["lat"]), float(event["lon"]), event.get("date", "")
+            )
+            if "error" in weather:
+                weather = {}
+        except Exception:
+            weather = {}
+
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO calendar_events
+            (athlete_id, title, event_type, date, duration_minutes,
+             description, completed, weather_temp, weather_humidity,
+             weather_description, created_at, tenant_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                event.get("athlete_id"),
+                event.get("title"),
+                event.get("event_type", "training"),
+                event.get("date"),
+                event.get("duration_minutes", 0),
+                event.get("description"),
+                1 if event.get("completed") else 0,
+                weather.get("temperature"),
+                weather.get("humidity"),
+                weather.get("description"),
+                datetime.now(UTC).isoformat(),
+                event.get("tenant_id", tenant_id),
+            ),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_calendar")
+def get_calendar_event(event_id: int) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM calendar_events WHERE id = ?", (event_id,))
+        row = cur.fetchone()
+        if row:
+            return _row_to_calendar_event(row)
+        return None
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_calendar")
+def get_events_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if tenant_id is not None:
+            cur.execute(
+                "SELECT * FROM calendar_events WHERE athlete_id = ? AND tenant_id = ? ORDER BY date DESC",
+                (athlete_id, tenant_id),
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM calendar_events WHERE athlete_id = ? ORDER BY date DESC",
+                (athlete_id,),
+            )
+        rows = cur.fetchall()
+        return [_row_to_calendar_event(r) for r in rows]
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_calendar")
+def get_events_by_date_range(
+    athlete_id: int, start_date: str, end_date: str, tenant_id: int | None = None
+) -> list[dict]:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if tenant_id is not None:
+            cur.execute(
+                "SELECT * FROM calendar_events WHERE athlete_id = ? AND tenant_id = ? "
+                "AND date >= ? AND date <= ? ORDER BY date ASC",
+                (athlete_id, tenant_id, start_date, end_date),
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM calendar_events WHERE athlete_id = ? AND date >= ? AND date <= ? ORDER BY date ASC",
+                (athlete_id, start_date, end_date),
+            )
+        rows = cur.fetchall()
+        return [_row_to_calendar_event(r) for r in rows]
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_calendar")
+def get_events_by_month(athlete_id: int, year: int, month: int, tenant_id: int | None = None) -> list[dict]:
+    next_month = f"{year + 1}-01-01" if month == 12 else f"{year}-{month + 1:02d}-01"
+    month_start = f"{year}-{month:02d}-01"
+    return get_events_by_date_range(athlete_id, month_start, next_month, tenant_id)
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_calendar")
+def update_calendar_event(event_id: int, event_data: dict, tenant_id: int | None = None) -> bool:
+    existing = get_calendar_event(event_id)
+    if not existing:
+        return False
+    merged = {**existing, **event_data}
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if tenant_id is not None:
+            cur.execute(
+                """UPDATE calendar_events
+                SET title=?, event_type=?, date=?, duration_minutes=?,
+                description=?, completed=?, weather_temp=?, weather_humidity=?,
+                weather_description=? WHERE id=? AND tenant_id=?""",
+                (
+                    merged.get("title"),
+                    merged.get("event_type", "training"),
+                    merged.get("date"),
+                    merged.get("duration_minutes", 0),
+                    merged.get("description"),
+                    1 if merged.get("completed") else 0,
+                    merged.get("weather_temp"),
+                    merged.get("weather_humidity"),
+                    merged.get("weather_description"),
+                    event_id,
+                    tenant_id,
+                ),
+            )
+        else:
+            cur.execute(
+                """UPDATE calendar_events
+                SET title=?, event_type=?, date=?, duration_minutes=?,
+                description=?, completed=?, weather_temp=?, weather_humidity=?,
+                weather_description=? WHERE id=?""",
+                (
+                    merged.get("title"),
+                    merged.get("event_type", "training"),
+                    merged.get("date"),
+                    merged.get("duration_minutes", 0),
+                    merged.get("description"),
+                    1 if merged.get("completed") else 0,
+                    merged.get("weather_temp"),
+                    merged.get("weather_humidity"),
+                    merged.get("weather_description"),
+                    event_id,
+                ),
+            )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_calendar")
+def delete_calendar_event(event_id: int, tenant_id: int | None = None) -> bool:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        if tenant_id is not None:
+            cur.execute("DELETE FROM calendar_events WHERE id = ? AND tenant_id = ?", (event_id, tenant_id))
+        else:
+            cur.execute("DELETE FROM calendar_events WHERE id = ?", (event_id,))
+        deleted = cur.rowcount > 0
+        conn.commit()
+        return deleted
+
+
+def _row_to_calendar_event(row) -> dict:
+    keys = row.keys() if hasattr(row, "keys") else []
+
+    def _col(name, default=None):
+        return row[name] if name in keys else default
+
+    return {
+        "id": _col("id"),
+        "athlete_id": _col("athlete_id", 0),
+        "tenant_id": _col("tenant_id", 0),
+        "title": _col("title"),
+        "event_type": _col("event_type", "training"),
+        "date": _col("date"),
+        "duration_minutes": _col("duration_minutes", 0),
+        "description": _col("description"),
+        "completed": bool(_col("completed", False)),
+        "weather_temp": _col("weather_temp"),
+        "weather_humidity": _col("weather_humidity"),
+        "weather_description": _col("weather_description"),
+        "created_at": _col("created_at"),
+    }
+
+
 def create_indices():
     """Create performance indexes for rides and metrics tables."""
     with get_db_connection() as conn:
@@ -2371,6 +2603,8 @@ def create_indices():
         _ensure_external_identity_index(conn)
         conn.commit()
     if DB_PATH != _INITIAL_DB_PATH:
+        if not _s.database_url:
+            _warn_sqlite_persistence("create_indices")
         conn = sqlite3.connect(_INITIAL_DB_PATH)
         try:
             conn.execute(
@@ -2423,6 +2657,8 @@ def backup_database(backup_path: str | None = None) -> str:
     import shutil
     from pathlib import Path
 
+    if not _s.database_url:
+        _warn_sqlite_persistence("backup_database")
     if not Path(DB_PATH).exists():
         raise FileNotFoundError(f"Database {DB_PATH} does not exist yet")
     if backup_path is None:
@@ -3965,6 +4201,417 @@ def get_ai_audit_logs_by_athlete(athlete_id: int, limit: int = 100) -> list[dict
         )
         rows = cur.fetchall()
     return [dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# OAuth provider tokens (Strava / Garmin / Wahoo)
+# ---------------------------------------------------------------------------
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_oauth_tokens")
+def save_strava_token(athlete_id: int, access_token: str, refresh_token: str,
+                      expires_at: int = 0, scope: str = "", athlete_name: str = "",
+                      tenant_id: int = 0) -> int:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO strava_tokens (athlete_id, access_token, refresh_token, expires_at, scope, athlete_name, created_at, updated_at, tenant_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(athlete_id) DO UPDATE SET
+                   access_token=excluded.access_token,
+                   refresh_token=excluded.refresh_token,
+                   expires_at=excluded.expires_at,
+                   scope=excluded.scope,
+                   athlete_name=excluded.athlete_name,
+                   updated_at=excluded.updated_at""",
+            (athlete_id, access_token, refresh_token, expires_at, scope, athlete_name, now, now, tenant_id),
+        )
+        conn.commit()
+        cur.execute("SELECT id FROM strava_tokens WHERE athlete_id = ?", (athlete_id,))
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_oauth_tokens")
+def get_strava_token(athlete_id: int) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM strava_tokens WHERE athlete_id = ?", (athlete_id,))
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_oauth_tokens")
+def revoke_strava_token(athlete_id: int) -> bool:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM strava_tokens WHERE athlete_id = ?", (athlete_id,))
+        conn.commit()
+        return cur.rowcount > 0
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_oauth_tokens")
+def update_strava_last_sync(athlete_id: int, ts: int) -> None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE strava_tokens SET last_sync_ts = ? WHERE athlete_id = ?", (ts, athlete_id))
+        conn.commit()
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_oauth_tokens")
+def save_garmin_token(athlete_id: int, access_token: str, refresh_token: str,
+                      expires_at: int = 0, scope: str = "", athlete_name: str = "",
+                      tenant_id: int = 0) -> int:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO garmin_tokens (athlete_id, access_token, refresh_token, expires_at, scope, athlete_name, created_at, updated_at, tenant_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(athlete_id) DO UPDATE SET
+                   access_token=excluded.access_token,
+                   refresh_token=excluded.refresh_token,
+                   expires_at=excluded.expires_at,
+                   scope=excluded.scope,
+                   athlete_name=excluded.athlete_name,
+                   updated_at=excluded.updated_at""",
+            (athlete_id, access_token, refresh_token, expires_at, scope, athlete_name, now, now, tenant_id),
+        )
+        conn.commit()
+        cur.execute("SELECT id FROM garmin_tokens WHERE athlete_id = ?", (athlete_id,))
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_oauth_tokens")
+def get_garmin_token(athlete_id: int) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM garmin_tokens WHERE athlete_id = ?", (athlete_id,))
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_oauth_tokens")
+def revoke_garmin_token(athlete_id: int) -> bool:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM garmin_tokens WHERE athlete_id = ?", (athlete_id,))
+        conn.commit()
+        return cur.rowcount > 0
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_oauth_tokens")
+def save_wahoo_token(athlete_id: int, access_token: str, refresh_token: str,
+                     expires_at: int = 0, scope: str = "", athlete_name: str = "",
+                     tenant_id: int = 0) -> int:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO wahoo_tokens (athlete_id, access_token, refresh_token, expires_at, scope, athlete_name, created_at, updated_at, tenant_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(athlete_id) DO UPDATE SET
+                   access_token=excluded.access_token,
+                   refresh_token=excluded.refresh_token,
+                   expires_at=excluded.expires_at,
+                   scope=excluded.scope,
+                   athlete_name=excluded.athlete_name,
+                   updated_at=excluded.updated_at""",
+            (athlete_id, access_token, refresh_token, expires_at, scope, athlete_name, now, now, tenant_id),
+        )
+        conn.commit()
+        cur.execute("SELECT id FROM wahoo_tokens WHERE athlete_id = ?", (athlete_id,))
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_oauth_tokens")
+def get_wahoo_token(athlete_id: int) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM wahoo_tokens WHERE athlete_id = ?", (athlete_id,))
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_oauth_tokens")
+def revoke_wahoo_token(athlete_id: int) -> bool:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM wahoo_tokens WHERE athlete_id = ?", (athlete_id,))
+        conn.commit()
+        return cur.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Google OAuth tokens
+# ---------------------------------------------------------------------------
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_google_oauth")
+def save_google_token(athlete_id: int, provider: str, access_token: str,
+                      refresh_token: str, expires_at: int = 0, scope: str = "") -> int:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO google_tokens (athlete_id, provider, access_token, refresh_token, expires_at, scope, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(athlete_id, provider) DO UPDATE SET
+                   access_token=excluded.access_token,
+                   refresh_token=excluded.refresh_token,
+                   expires_at=excluded.expires_at,
+                   scope=excluded.scope,
+                   updated_at=excluded.updated_at""",
+            (athlete_id, provider, access_token, refresh_token, expires_at, scope, now, now),
+        )
+        conn.commit()
+        cur.execute("SELECT id FROM google_tokens WHERE athlete_id = ? AND provider = ?", (athlete_id, provider))
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_google_oauth")
+def get_google_token(athlete_id: int, provider: str) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM google_tokens WHERE athlete_id = ? AND provider = ?",
+            (athlete_id, provider),
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_google_oauth")
+def delete_google_token(athlete_id: int, provider: str) -> bool:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM google_tokens WHERE athlete_id = ? AND provider = ?", (athlete_id, provider))
+        conn.commit()
+        return cur.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Health Connect
+# ---------------------------------------------------------------------------
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_health_connect")
+def connect_health_connect(athlete_id: int, permissions: str = "[]") -> dict:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO health_connect_tokens (athlete_id, connected, permissions, created_at, updated_at)
+               VALUES (?, 1, ?, ?, ?)
+               ON CONFLICT(athlete_id) DO UPDATE SET
+                   connected = 1,
+                   permissions = excluded.permissions,
+                   updated_at = excluded.updated_at""",
+            (athlete_id, permissions, now, now),
+        )
+        conn.commit()
+    return {"status": "connected", "permissions": permissions.split(",")}
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_health_connect")
+def disconnect_health_connect(athlete_id: int) -> bool:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM health_connect_tokens WHERE athlete_id = ?", (athlete_id,))
+        conn.commit()
+        return cur.rowcount > 0
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_health_connect")
+def get_health_connect_token(athlete_id: int) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT connected, permissions, last_sync_at FROM health_connect_tokens WHERE athlete_id = ?",
+            (athlete_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        return {
+            "connected": bool(row[0]),
+            "permissions": row[1],
+            "last_sync_at": row[2],
+        }
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_health_connect")
+def update_health_connect_sync(athlete_id: int, last_sync_at: str) -> None:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE health_connect_tokens SET last_sync_at = ?, updated_at = ? WHERE athlete_id = ?",
+            (last_sync_at, now, athlete_id),
+        )
+        conn.commit()
+
+
+# ---------------------------------------------------------------------------
+# Security (revoked JWT tokens)
+# ---------------------------------------------------------------------------
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_security")
+def revoke_token(jti: str, ttl: int = 7200) -> None:
+    now = datetime.now(UTC).isoformat()
+    expires_at = (datetime.now(UTC) + timedelta(seconds=ttl)).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO revoked_tokens (jti, revoked_at, expires_at)
+               VALUES (?, ?, ?)
+               ON CONFLICT(jti) DO UPDATE SET revoked_at = excluded.revoked_at""",
+            (jti, now, expires_at),
+        )
+        conn.commit()
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_security")
+def is_token_revoked(jti: str) -> bool:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT expires_at FROM revoked_tokens WHERE jti = ?", (jti,))
+        row = cur.fetchone()
+        if not row:
+            return False
+        expires_at = datetime.fromisoformat(row[0])
+        return datetime.now(UTC) < expires_at
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_security")
+def sweep_revoked_tokens() -> None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM revoked_tokens WHERE expires_at < ?", (datetime.now(UTC).isoformat(),))
+        conn.commit()
+
+
+# ---------------------------------------------------------------------------
+# Sync metadata
+# ---------------------------------------------------------------------------
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_sync")
+def save_sync_entity_state(entity_type: str, entity_id: int, data: dict) -> int:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO sync_entity_state (entity_type, entity_id, source, reliability_score,
+               last_modified, sync_status, sync_error, cloud_id, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+                   source = excluded.source,
+                   reliability_score = excluded.reliability_score,
+                   last_modified = excluded.last_modified,
+                   sync_status = excluded.sync_status,
+                   sync_error = excluded.sync_error,
+                   cloud_id = excluded.cloud_id,
+                   updated_at = excluded.updated_at""",
+            (entity_type, entity_id,
+             data.get("source", "device"), data.get("reliability_score", 1.0),
+             data.get("last_modified", now), data.get("sync_status", "local"),
+             data.get("sync_error"), data.get("cloud_id"),
+             data.get("created_at", now), now),
+        )
+        conn.commit()
+        cur.execute("SELECT id FROM sync_entity_state WHERE entity_type = ? AND entity_id = ?",
+                    (entity_type, entity_id))
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_sync")
+def get_sync_entity_state(entity_type: str, entity_id: int) -> dict | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM sync_entity_state WHERE entity_type = ? AND entity_id = ?",
+            (entity_type, entity_id),
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_sync")
+def save_sync_setting(key: str, value: str) -> None:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO sync_settings (key, value, updated_at)
+               VALUES (?, ?, ?)
+               ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at""",
+            (key, value, now),
+        )
+        conn.commit()
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_sync")
+def get_sync_setting(key: str) -> str | None:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM sync_settings WHERE key = ?", (key,))
+        row = cur.fetchone()
+        return row[0] if row else None
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_sync")
+def save_sync_conflict(conflict: dict) -> int:
+    now = datetime.now(UTC).isoformat()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO sync_conflicts (entity_type, entity_id, local_data, remote_data,
+               local_reliability, remote_reliability, local_modified, remote_modified,
+               resolution, resolved_data, resolution_reason, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (conflict.get("entity_type"), conflict.get("entity_id"),
+             conflict.get("local_data", "{}"), conflict.get("remote_data", "{}"),
+             conflict.get("local_reliability", 1.0), conflict.get("remote_reliability", 1.0),
+             conflict.get("local_modified", now), conflict.get("remote_modified", now),
+             conflict.get("resolution", "unresolved"), conflict.get("resolved_data"),
+             conflict.get("resolution_reason"), now, now),
+        )
+        conn.commit()
+        cur.execute("SELECT id FROM sync_conflicts WHERE entity_type = ? AND entity_id = ? AND created_at = ?",
+                    (conflict.get("entity_type"), conflict.get("entity_id"), now))
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
+
+
+# ---------------------------------------------------------------------------
+# Maps (SerpApi usage tracking)
+# ---------------------------------------------------------------------------
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_maps")
+def get_maps_usage(month: str | None = None) -> int:
+    if month is None:
+        month = datetime.now(UTC).strftime("%Y-%m")
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT count FROM serpapi_usage WHERE month = ?", (month,))
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_maps")
+def record_maps_call(month: str | None = None, n: int = 1) -> None:
+    if month is None:
+        month = datetime.now(UTC).strftime("%Y-%m")
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO serpapi_usage (month, count) VALUES (?, ?)
+               ON CONFLICT(month) DO UPDATE SET count = count + excluded.count""",
+            (month, n),
+        )
+        conn.commit()
 
 
 def _row_to_sync_entity_state(row: tuple) -> dict:

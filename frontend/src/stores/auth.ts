@@ -374,8 +374,8 @@ export const useAuthStore = defineStore("auth", () => {
       /* ui store may be disposed */
     }
     try {
-      if (typeof localStorage !== "undefined") {
-        localStorage.removeItem("bikemaster_oauth_loading");
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.removeItem("bikemaster_oauth_loading");
       }
     } catch {
       /* ignore */

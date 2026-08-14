@@ -130,6 +130,19 @@ POSTGRES_BACKENDS: dict[str, tuple[str, list[str]]] = {
             "delete_user",
         ],
     ),
+    # Calendar events
+    "calendar": (
+        "bike_analyzer.backend.db.postgres_calendar",
+        [
+            "save_calendar_event",
+            "get_calendar_event",
+            "get_events_by_athlete",
+            "get_events_by_date_range",
+            "get_events_by_month",
+            "update_calendar_event",
+            "delete_calendar_event",
+        ],
+    ),
 }
 # NOTE: ``training_goals`` are persisted via ``postgres_db`` / ``async_db``
 # (SQLAlchemy) directly from routes — they have no SQLite twin in database.py,

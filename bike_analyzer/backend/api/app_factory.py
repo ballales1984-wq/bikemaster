@@ -156,11 +156,46 @@ async def lifespan(app: FastAPI):
             logger.exception("startup: %s — failed (continuing startup anyway)", name)
 
     async def _init_sqlite() -> None:
+        _s_local = get_settings()
+        db_path = _s_local.db_path
+        db_dir = os.path.dirname(db_path)
+        if db_dir and not os.path.exists(db_dir):
+            try:
+                os.makedirs(db_dir, exist_ok=True)
+                _log_flush(f"startup: created DB directory {db_dir}")
+            except Exception:
+                logger.exception("Failed to create DB directory %s", db_dir)
         try:
             await asyncio.to_thread(init_db)
             logger.info("SQLite init completed successfully.")
         except Exception:  # noqa: BLE001
             logger.exception("SQLite init failed; continuing startup.")
+
+    async def _verify_persistent_disk() -> None:
+        import pathlib
+
+        _s_local = get_settings()
+        db_path = pathlib.Path(_s_local.db_path)
+        db_dir = db_path.parent
+        is_prod = _s_local.environment.lower() in ("production", "prod", "staging")
+        if not is_prod:
+            logger.debug("Skipping persistent disk check in %s environment", _s_local.environment)
+            return
+        try:
+            test_file = db_dir / ".bikemaster_disk_check"
+            test_file.write_text("ok", encoding="utf-8")
+            test_file.unlink()
+            logger.info("Persistent disk verified at %s", db_dir)
+        except Exception:
+            msg = (
+                "PERSISTENT DISK NOT MOUNTED: cannot write to %s. "
+                "SQLite data (calendar, local cache) will be lost on container resume. "
+                "Check Render disk configuration and DB_PATH env var."
+            ) % db_dir
+            logger.error(msg)
+            _log_flush(f"CRITICAL: {msg}")
+            if is_prod:
+                raise RuntimeError(msg)
 
     async def _run_migrations_bg() -> None:
         if not _s.database_url:
@@ -210,6 +245,7 @@ async def lifespan(app: FastAPI):
     # so that dependent steps wait for their prerequisites, while still yielding
     # to uvicorn immediately for Render port detection and health checks.
     async def _db_init_chain() -> None:
+        await _run_with_timeout("persistent-disk-check", _verify_persistent_disk())
         await _run_with_timeout("sqlite-init", _init_sqlite())
         await _run_with_timeout("migrations", _run_migrations_bg())
         await _run_with_timeout("async-db-init", _init_async_db_bg_task())
