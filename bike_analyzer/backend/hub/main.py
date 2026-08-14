@@ -27,7 +27,6 @@ from fastapi import FastAPI, Request
 from prometheus_fastapi_instrumentator import Instrumentator, metrics
 from pydantic import ValidationError
 
-from bike_analyzer.backend.api.voice_routes import router as voice_router
 from bike_analyzer.backend.db.async_db import init_async_db
 from bike_analyzer.backend.hub.routes import hub_router
 from bike_analyzer.backend.hub.sync_routes import hub_sync_router
@@ -220,7 +219,6 @@ def create_hub_app() -> FastAPI:
 
     app.include_router(hub_router)
     app.include_router(hub_sync_router, prefix="/api/v1", tags=["sync"])
-    app.include_router(voice_router, prefix="/api/v1", tags=["voice"])
 
     @app.get("/health")
     async def health():
