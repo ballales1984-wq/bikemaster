@@ -101,13 +101,13 @@ registerRoute(
         cache: "no-store",
         redirect: "follow",
       });
-      if (response.ok) return response;
+      if (response.ok && !response.redirected) return response;
       // opaqueredirect can appear if the browser did not follow a redirect
       // (e.g. Chrome inherits redirect:"manual" from navigation requests
       // inside service workers).  Never return a redirect/opaqueredirect
-      // for a navigation — fall through to the precached shell instead.
-      if (response.type === "opaqueredirect") {
-        throw new TypeError("opaque redirect received for navigation");
+      // for a navigation — fall through to precached shell instead.
+      if (response.type === "opaqueredirect" || response.redirected) {
+        throw new TypeError("redirected response received for navigation");
       }
     } catch (_) {
       /* network error, redirect or opaque-redirect — fall through to cache */
