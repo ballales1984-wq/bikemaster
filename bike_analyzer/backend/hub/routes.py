@@ -27,14 +27,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy import select
 
-from bike_analyzer.backend.analytics.knowledge_base import (
-    format_context_for_llm,
-    get_kb_stats,
-    init_chroma_db,
-    init_kb_embeddings,
-    reload_kb,
-    search_knowledge_base,
-)
 from bike_analyzer.backend.audit import log_action, read_audit_logs
 from bike_analyzer.backend.db.async_db import get_session_factory
 from bike_analyzer.backend.db.models import (
@@ -950,6 +942,8 @@ hub_knowledge_router = APIRouter(tags=["knowledge"])
 @hub_knowledge_router.get("/knowledge")
 async def hub_list_knowledge():
     """Elenca i topic e le statistiche della knowledge base condivisa."""
+    from bike_analyzer.backend.analytics.knowledge_base import get_kb_stats
+
     stats = get_kb_stats()
     return {
         "topics": stats["topics"],
@@ -963,6 +957,11 @@ async def hub_list_knowledge():
 @limiter.limit("10/minute")
 async def hub_search_knowledge(request: Request, query: str = "", max_chunks: int = 4, min_score: float = 0.05):
     """Cerca nella knowledge base e restituisce risultati e contesto per LLM."""
+    from bike_analyzer.backend.analytics.knowledge_base import (
+        format_context_for_llm,
+        search_knowledge_base,
+    )
+
     if not query or not query.strip():
         return {"results": [], "context": "", "count": 0}
     results = search_knowledge_base(query.strip(), max_chunks=max_chunks, min_score=min_score)
@@ -979,6 +978,8 @@ async def hub_search_knowledge(request: Request, query: str = "", max_chunks: in
 @hub_knowledge_router.get("/knowledge/stats")
 async def hub_knowledge_stats(current_user: dict = Depends(get_current_user)):
     """Restituisce le statistiche della knowledge base per l'utente autenticato."""
+    from bike_analyzer.backend.analytics.knowledge_base import get_kb_stats
+
     stats = get_kb_stats()
     return {
         "topics": stats.get("topics", []),
@@ -991,12 +992,19 @@ async def hub_knowledge_stats(current_user: dict = Depends(get_current_user)):
 @hub_knowledge_router.post("/knowledge/reload")
 async def hub_reload_knowledge(current_user: dict = Depends(get_admin_user)):
     """Ricarica la knowledge base dal disco (solo admin)."""
+    from bike_analyzer.backend.analytics.knowledge_base import reload_kb
+
     return reload_kb()
 
 
 @hub_knowledge_router.post("/knowledge/init-embeddings")
 async def hub_init_kb_embeddings(current_user: dict = Depends(get_admin_user)):
     """Inizializza gli embeddings della KB su pgvector e su ChromaDB (solo admin)."""
+    from bike_analyzer.backend.analytics.knowledge_base import (
+        init_chroma_db,
+        init_kb_embeddings,
+    )
+
     session_factory = get_session_factory()
     async with session_factory() as session:
         pg_result = init_kb_embeddings(session)
