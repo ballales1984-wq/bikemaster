@@ -97,8 +97,9 @@ registerRoute(
     request.mode === "navigate" && !request.url.includes("/api/"),
   async ({ event }) => {
     try {
-      const response = await fetch(event.request, {
+      const response = await fetch(event.request.url, {
         cache: "no-store",
+        redirect: "follow",
       });
       if (response.ok) return response;
       // opaqueredirect can appear if the browser did not follow a redirect
