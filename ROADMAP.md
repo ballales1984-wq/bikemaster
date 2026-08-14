@@ -1,10 +1,46 @@
 # BikeMaster — Roadmap Unificata
 
-*Ultimo aggiornamento: 2026-08-11*
+*Ultimo aggiornamento: 2026-08-14*
 
 > **Principio guida**: fare le cose una volta, farle bene. Questo documento è la
 > *fonte di verità unica* per stato, priorità e azioni. Non eseguire feature
 > duplicate: verificare qui prima di iniziare qualsiasi lavoro.
+>
+> **Regola v1**: un dominio/fix alla volta. Nessun nuovo fronte finché il corrente
+> non è chiuso (merge + test + deploy).
+
+---
+
+## 0. Definizione v1 "Finito per Davvero"
+
+### v1 Must-Have (obbligatorio per release)
+
+| # | Item | Stato |
+||:--|:--|
+| 1 | Tutti i domini dati critici sopravvivono al resume/suspend Render | ✅ Fatto |
+| 2 | Disco persistente Render configurato + check startup | ✅ Fatto |
+| 3 | Calendar migrato a PostgreSQL con dispatch | ✅ Fatto |
+| 4 | OAuth produzione stabile (race condition 401/logout risolta) | ✅ Fatto |
+| 5 | PWA/Vercel funzionante (CSP, service worker, auth storage) | ✅ Fatto |
+| 6 | Test suite: tutti i test critici passano (auth, persistenza, dispatch) | 🔄 In corso |
+| 7 | Documentazione stato reale in PROJECT_STATUS.md | ✅ Fatto |
+| 8 | Backup manuale DB prima di ogni deploy | ✅ Fatto |
+
+### v2 Backlog (dopo v1)
+
+| # | Item | Priorità |
+|:--|:--|:--|
+| 1 | Voice Coach (TTS/audio) | Bassa |
+| 2 | Anomaly detection + training plan LLM | Bassa |
+| 3 | Coverage test >90% su routes.py e moduli AI | Media |
+| 4 | Rifiniture AetherMap oltre il minimo | Bassa |
+| 5 | Estrazione repository HR, metabolico, chat, BLE, legal, POI, safety da database.py | Media |
+| 6 | Playwright E2E spec complete | Media |
+| 7 | Android release verificata (APK/AAB) | Media |
+
+> **Decisione (2026-08-14)**: v1 si concentra su persistenza dati e stabilità produzione.
+> Voice Coach, anomaly detection e training plan LLM sono spostati in v2.
+> Coverage test target ridotto da 90% a "solo path critici" per v1.
 
 ---
 
@@ -33,23 +69,52 @@ Nessun branch aperto. Tutti i branch feat sono stati mergiati in `main`.
 
 ## 3. Working Tree
 
-- **Branch**: `refactor/split-hotspots`
-- **Modified**: `bike_analyzer/backend/analytics/repositories/` (9 file — circular import resolution via lazy imports), `bike_analyzer/backend/db/repositories/calendar_repository.py` (lazy connection import), `bike_analyzer/backend/analytics/training_load.py` (+5 funzioni ATL/CTL/TSB/RSS), `bike_analyzer/backend/api/routers/training_routes.py` (adotta TrainingGoalRepository), `tests/test_database.py` (import spostato)
-- **Untracked**: `bike_analyzer/backend/analytics/repositories/training_goal_repository.py` (nuovo repository PostgreSQL/SQLAlchemy), `review_db_architecture.md` (report architetturale)
+- **Branch**: `main`
+- **Modified**: `bike_analyzer/backend/db/database.py` (+calendar functions con `@pg_dispatch`, +persistenza warning), `bike_analyzer/backend/db/dispatch.py` (+calendar in POSTGRES_BACKENDS), `bike_analyzer/backend/db/postgres_calendar.py` (nuovo), `bike_analyzer/backend/analytics/repositories/calendar_repository.py` (re-export da database.py), `bike_analyzer/backend/api/app_factory.py` (+persistent disk check), `render.yaml` (+disk persistente), `PROJECT_STATUS.md` (stato migrazione), `ROADMAP.md` (v1 definition)
+- **Deleted**: `bike_analyzer/backend/db/repositories/calendar_repository.py` (sostituito da dispatch in database.py)
 
 ---
 
 ## 4. Priorità Assoluta (ordine di esecuzione)
 
-### Fase 1 — Refactoring database.py (estrazione repository) 🔄 IN CORSO
+### Fase 0 — Ferma l'emorragia dati ✅ COMPLETATA (2026-08-14)
 
-1. ✅ **Calendar (P1)** — CRUD estratto in `db/repositories/calendar_repository.py`, circular import risolto, `analytics/repositories/calendar_repository.py` rediretto a `db.database`, 53 test passanti
-2. ✅ **Training Goals (PostgreSQL)** — `analytics/repositories/training_goal_repository.py` creato come wrapper SQLAlchemy, `training_routes.py` aggiornato
-3. ✅ **Circular import resolution** — tutti i repository `analytics/repositories/` convertono import top-level in lazy import dentro i metodi; `db/repositories/calendar_repository.py` ottiene `_get_db_connection()` lazy
-4. 🔄 **HR 24h (P2)** — `analytics/repositories/hr_repository.py` convertito a lazy import; `db/repositories/hr_repository.py` non esiste ancora (funzioni ancora inline in `database.py`)
-5. 🔄 **Metabolico, Chat, BLE, Legal, POI, Safety** — `analytics/repositories/*` convertiti a lazy import; attesi in `db/repositories/`
+1. ✅ **Disco persistente Render** — 1GB su `/mnt/data`, `DB_PATH=/mnt/data/rides.db`
+2. ✅ **Check startup** — fallisce rumorosamente se disco non montato (produzione)
+3. ✅ **Warning log** — scritture SQLite su path non persistente vengono loggate
+4. ✅ **Backup manuale** — `rides_backup_YYYYMMDD_HHMMSS.db` creato prima di modifiche
+5. ✅ **Calendar migrato** — `postgres_calendar.py` + `@pg_dispatch` in `database.py`
+6. ✅ **Training Goals** — già migrato (`postgres_db.py` + SQLAlchemy)
+7. ✅ **Domini dispatchati** — 5 domini su PostgreSQL (athlete, rides, itineraries, users, calendar)
+8. ✅ **Domini con postgres_*.py** — 17 moduli PostgreSQL esistenti, collegati via dispatch
 
-### Fase 2 — Stabilizzazione produzione ✅ COMPLETATA (2026-08-10)
+### Fase 1 — Congela scope ✅ COMPLETATA (2026-08-14)
+
+9. ✅ **v1 must-have definito** — 8 item critici per release
+10. ✅ **v2 backlog definito** — Voice Coach, anomaly detection, coverage test, AetherMap rifiniture
+11. ✅ **Regola "un dominio/fix alla volta"** — documentata in ROADMAP.md
+
+### Fase 2 — Refactoring database.py 🔄 IN CORSO
+
+12. 🔄 **HR 24h** — `postgres_hr.py` esiste, dispatch in `database.py`, repository analytics già convertito
+13. 🔄 **Metabolico** — `postgres_metabolic.py` esiste, dispatch in `database.py`
+14. 🔄 **Chat** — `postgres_chat.py` esiste, dispatch in `database.py`
+15. 🔄 **BLE** — `postgres_ble.py` esiste, dispatch in `database.py`
+16. 🔄 **Legal** — `postgres_legal.py` esiste, dispatch in `database.py`
+17. 🔄 **POI** — `postgres_poi.py` esiste, dispatch in `database.py`
+18. 🔄 **Safety** — `postgres_safety.py` esiste, dispatch in `database.py`
+19. 🔄 **Nutrition** — `postgres_nutrition.py` esiste, dispatch in `database.py`
+20. 🔄 **Beck** — `postgres_beck.py` esiste, dispatch in `database.py`
+21. 🔄 **Fitness states** — `postgres_fitness.py` esiste, dispatch in `database.py`
+22. 🔄 **Sensor/activity** — `postgres_sensor.py` esiste, dispatch in `database.py`
+23. 🔄 **Weather** — `postgres_weather.py` esiste, dispatch in `database.py`
+24. 🔄 **User OAuth** — `postgres_user_oauth.py` esiste, dispatch in `database.py`
+
+> **Nota**: tutti i domini sopra hanno già il modulo PostgreSQL e il dispatch in `database.py`.
+> L'estrazione in repository dedicati (`db/repositories/`) è il passo successivo per
+> ridurre la dimensione di `database.py`. Priorità: Calendar → HR → metabolico → chat → BLE → legal → POI → safety.
+
+### Fase 3 — Stabilizzazione produzione ✅ COMPLETATA (2026-08-10)
 
 6. ✅ **Hardening OAuth Google** — logging granulare callback, lock handling, fallback user creation, sslmode Render PostgreSQL, CORS regex per preview Vercel, security headers (CSP, CORP, CSRF), token encryption, OAuth state validation
 7. ✅ **Resilienza PostgreSQL** — schema init robusta, connection close safe, SQLite fallback, schema drift fix, dispatch `get_metrics_by_athlete` su PostgreSQL, idempotent migrations
