@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 
 def _get_db_connection():
-    from ..db.database import get_db_connection
+    from ...db.database import get_db_connection
 
     return get_db_connection()
 

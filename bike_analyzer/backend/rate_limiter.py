@@ -44,7 +44,7 @@ _USER_RATE_LIMIT_LOCK = threading.RLock()
 
 def _persist_rate_limit(key: str, timestamp: float, window_seconds: int) -> None:
     try:
-        from ..db.database import get_db_connection
+        from .db.database import get_db_connection
         with get_db_connection() as conn:
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS rate_limits (
@@ -74,7 +74,7 @@ def _persist_rate_limit(key: str, timestamp: float, window_seconds: int) -> None
 
 def _load_rate_limits(key: str, window_seconds: int) -> list[float]:
     try:
-        from ..db.database import get_db_connection
+        from .db.database import get_db_connection
         with get_db_connection() as conn:
             row = conn.execute("SELECT timestamps FROM rate_limits WHERE key = ?", (key,)).fetchone()
             if not row:
