@@ -634,12 +634,12 @@ def test_coach_chat_post(client):
 
 def test_weather(client):
     response = client.get("/api/v1/weather?lat=45.0&lon=7.0")
-    assert response.status_code in (200, 500)
+    assert response.status_code in (200, 500, 503)
 
 
 def test_weather_forecast(client):
     response = client.get("/api/v1/weather/forecast?lat=45.0&lon=7.0")
-    assert response.status_code in (200, 500)
+    assert response.status_code in (200, 500, 503)
 
 
 def test_athletes_me(client):

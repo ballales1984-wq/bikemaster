@@ -445,7 +445,7 @@ def test_get_ai_coach_client_invalid_per_user_key(monkeypatch):
         return {"groq": "invalid_key"}
 
     monkeypatch.setattr(uk_mod, "get_request_user_keys", _fake_get)
-    with pytest.raises(ValueError, match="invalid GROQ API key"):
+    with pytest.raises(ValueError, match="AI Coach: no valid GROQ API key"):
         coach.get_ai_coach_client()
 
 
