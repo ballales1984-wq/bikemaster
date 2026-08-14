@@ -475,7 +475,7 @@ function faceLatLonBounds(face: number): {
     maxLat = Math.max(maxLat, lat);
     lons.push(lon);
   }
-  const wrapped = lons.map((lon) => (((lon % 360) + 360) % 360) - 180);
+  const wrapped = lons.map((lon) => (((lon + 180) % 360 + 360) % 360) - 180);
   minLon = Math.min(...wrapped);
   maxLon = Math.max(...wrapped);
   return { minLat, maxLat, minLon, maxLon };
@@ -1016,7 +1016,7 @@ onMounted(async () => {
     vNormal = aNormal;
     vViewPos = viewPos.xyz;
     vec3 n = normalize(aPosition);
-    vLatLon = vec2(asin(clamp(n.z, -1.0, 1.0)), atan(n.y, n.x));
+    vLatLon = vec2(degrees(asin(clamp(n.z, -1.0, 1.0))), degrees(atan(n.y, n.x)));
     vElevation = clamp((length(aPosition) - 1.0) * 1600.0, 0.0, 1.0);
   }`;
 
@@ -1071,7 +1071,7 @@ onMounted(async () => {
     m = max(m, smoothEllipse(lat, lon, 40.0, 80.0, 25.0, 40.0) * 0.85);
     m = max(m, smoothEllipse(lat, lon, 55.0, 100.0, 12.0, 20.0) * 0.7);
     m = max(m, smoothEllipse(lat, lon, -25.0, 135.0, 10.0, 14.0) * 0.8);
-    m = max(m, smoothstep(0.85, 1.0, abs(lat) / 1.57));
+    m = max(m, smoothstep(0.85, 1.0, abs(lat) / 90.0));
     float detail = fbm2(vec2(lon * 8.0, lat * 8.0) + 0.5);
     m = smoothstep(0.45, 0.65, m + detail * 0.2);
     return m;
@@ -1082,7 +1082,7 @@ onMounted(async () => {
     float lon = latLon.y;
 
     float continent = continentMask(lat, lon);
-    float polar = smoothstep(0.85, 1.0, abs(lat) / 1.57);
+    float polar = smoothstep(0.85, 1.0, abs(lat) / 90.0);
 
     vec3 oceanDeep = vec3(0.02, 0.08, 0.22);
     vec3 oceanShallow = vec3(0.04, 0.18, 0.38);
@@ -1094,7 +1094,7 @@ onMounted(async () => {
     vec3 mountain = vec3(0.45, 0.38, 0.28);
     vec3 snow = vec3(0.92, 0.94, 0.98);
 
-    float latFactor = smoothstep(-0.5, 0.5, abs(lat) / 1.57);
+    float latFactor = smoothstep(-0.5, 0.5, abs(lat) / 90.0);
     float desertMask = (1.0 - latFactor) * step(0.55, fbm2(vec2(lon * 5.0 + 10.0, lat * 5.0) + 0.3));
     float forestMask = latFactor * step(0.45, fbm2(vec2(lon * 4.0, lat * 4.0) + 0.7));
 

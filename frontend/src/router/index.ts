@@ -382,14 +382,15 @@ router.afterEach((to) => {
 // against reload loops.
 router.onError((error, to) => {
   const message = (error as Error)?.message || "";
-  const _isChunkError =
+  const isChunkError =
     /dynamically imported module|Importing a module script failed|Failed to fetch|Loading chunk|error loading dynamically/i.test(
       message,
     );
   console.error("[router] navigation error:", error, "to:", to?.fullPath);
+  if (!isChunkError) return;
   const key = AUTH_CHUNK_RELOAD_KEY;
   const last = Number(sessionStorage.getItem(key) || "0");
-  if (Date.now() - last < 10000) return; // already tried recently, avoid a loop
+  if (Date.now() - last < 10000) return;
   sessionStorage.setItem(key, String(Date.now()));
   window.location.assign(to?.fullPath || window.location.href);
 });
