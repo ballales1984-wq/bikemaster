@@ -106,6 +106,14 @@ def reset_rate_limiter():
     _MEMORY_RATELIMIT.clear()
     _USER_RATE_LIMITS.clear()
     try:
+        from bike_analyzer.backend.db.database import get_db_connection
+
+        with get_db_connection() as conn:
+            conn.execute("DELETE FROM rate_limits")
+            conn.commit()
+    except Exception:
+        pass
+    try:
         import asyncio
         from bike_analyzer.backend.redis_client import get_redis
 

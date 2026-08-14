@@ -40,10 +40,52 @@ async def get_terrain(
 async def get_world(current_user: dict = Depends(get_current_user)):
     """Return the current AetherMap world state."""
     try:
-        from aethermap.twin.world import WorldStore
+        import numpy as np
+        from aethermap import Oggetto, Posizione, Geometria, WorldStore
+        from aethermap.render.terrain_enhancer import build_enhanced_heightfield
+        from aethermap.render.webgl_exporter import _terrain_mesh_from_hf
 
         store = WorldStore()
-        return store.to_dict()
+        if not store.objects:
+            for i in range(3):
+                pos = Posizione.from_latlon(lat=float(i), lon=0.0, alt=0.0)
+                geom = Geometria(tipo="punto", dati={"tipo": "punto"})
+                store.add(Oggetto(
+                    id=f"default_{i}",
+                    tipo="point",
+                    posizione=pos,
+                    geometria=geom,
+                    proprieta={"color": "#ffffff"},
+                ))
+
+        hf = build_enhanced_heightfield(n=32, base_alt=0.0, height_scale=0.04)
+        terrain = _terrain_mesh_from_hf(hf, 32)
+
+        entities = []
+        for obj in store.all():
+            pos = obj.posizione
+            ecef = pos.ecef_relative or (0.0, 0.0, 0.0)
+            dist = (ecef[0] ** 2 + ecef[1] ** 2 + ecef[2] ** 2) ** 0.5
+            if dist > 1e-12:
+                px, py, pz = ecef[0] / dist, ecef[1] / dist, ecef[2] / dist
+            else:
+                px = py = pz = 0.0
+            entities.append({
+                "id": obj.id,
+                "tipo": obj.tipo,
+                "kind": obj.geometria.tipo if obj.geometria else "unknown",
+                "color": obj.proprieta.get("color", "#ffffff") if obj.proprieta else "#ffffff",
+                "position": [px, py, pz],
+            })
+
+        return {
+            "version": "aethermap-webgl-1.0",
+            "terrain": terrain,
+            "entities": entities,
+            "relations": [],
+            "camera": {"yaw": 0.0, "pitch": 0.0},
+            "earth_r": 1.0,
+        }
     except Exception as exc:
         logger.exception("World state fetch failed")
         raise HTTPException(status_code=500, detail=str(exc)) from None
@@ -51,13 +93,42 @@ async def get_world(current_user: dict = Depends(get_current_user)):
 
 @router.get("/terrain-tile")
 async def get_terrain_tile(
-    x: int = Query(...),
-    y: int = Query(...),
-    z: int = Query(...),
+    face: int = Query(..., ge=0, le=5),
+    resolution: int = Query(..., ge=8, le=256),
     current_user: dict = Depends(get_current_user),
 ):
-    """Return a terrain tile."""
-    raise HTTPException(status_code=501, detail="Not implemented")
+    """Return a terrain tile for a cube-sphere face."""
+    try:
+        import numpy as np
+        from aethermap.render.terrain_enhancer import build_enhanced_heightfield
+        from aethermap.render.webgl_exporter import _terrain_mesh_from_hf
+
+        hf = build_enhanced_heightfield(n=resolution, base_alt=0.0, height_scale=0.04)
+        tile = _terrain_mesh_from_hf(hf, resolution, with_skirt=False)
+
+        n = resolution
+        face_start = face * n * n
+        positions = tile["positions"][face_start : face_start + n * n]
+        normals = tile["normals"][face_start : face_start + n * n]
+        face_indices = []
+        for idx in tile["indices"]:
+            v = idx - face_start
+            if face_start <= idx < face_start + n * n:
+                face_indices.append(v)
+        indices = face_indices
+
+        return {
+            "positions": positions,
+            "normals": normals,
+            "indices": indices,
+            "grid_size": n,
+            "face": face,
+            "resolution": resolution,
+            "source": "aethermap",
+        }
+    except Exception as exc:
+        logger.exception("Terrain tile fetch failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from None
 
 
 @router.get("/geo/roads")
