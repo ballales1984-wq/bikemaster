@@ -296,6 +296,25 @@ def get_athlete(athlete_id: int, tenant_id: int | None = None) -> dict | None:
             _safe_close(conn)
 
 
+def get_all_athletes() -> list[dict]:
+    conn = None
+    try:
+        conn = _connect()
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name, email, experience_level FROM athletes")
+            rows = cur.fetchall()
+            return [
+                {"id": r[0], "name": r[1], "email": r[2], "experience_level": r[3]}
+                for r in rows
+            ]
+    except Exception:
+        logger.exception("get_all_athletes failed")
+        return []
+    finally:
+        if conn is not None:
+            _safe_close(conn)
+
+
 def get_athlete_by_email(email: str, tenant_id: int | None = None) -> dict | None:
     conn = None
     try:

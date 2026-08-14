@@ -81,6 +81,7 @@ POSTGRES_BACKENDS: dict[str, tuple[str, list[str]]] = {
             "delete_athlete",
             "log_athlete_metric",
             "get_athlete_metric_log",
+            "get_all_athletes",
         ],
     ),
     # Rides / metrics / training stress (TSS, ATL, CTL, TSB)
