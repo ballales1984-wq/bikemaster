@@ -252,6 +252,7 @@ class Settings(BaseSettings):
             "secret",
             "<SECRET_KEY>",
             "REPLACE_ME",
+            "REPLACE_WITH_SECURE_RANDOM_KEY_AT_LEAST_32_CHARS",
             "",
         )
         if self.secret_key.strip() not in _PLACEHOLDER_KEYS:
