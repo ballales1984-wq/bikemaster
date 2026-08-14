@@ -42,7 +42,8 @@ def ensure_google_tokens_table() -> None:
 
 
 def store_google_token(athlete_id: int, provider: str, token_data: dict) -> None:
-    ensure_google_tokens_table()
+    from ..db.database import save_google_token
+
     expires_at = token_data.get("expires_at", 0)
     if isinstance(expires_at, str):
         try:
@@ -61,40 +62,23 @@ def store_google_token(athlete_id: int, provider: str, token_data: dict) -> None
             encrypted_refresh = encrypt_token(encrypted_refresh)
     except Exception:
         logger.warning("Google token encryption skipped", exc_info=True)
-    with _get_conn() as conn:
-        conn.execute(
-            """
-            INSERT INTO google_tokens (athlete_id, provider, access_token, refresh_token, expires_at, scope)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(athlete_id, provider) DO UPDATE SET
-                access_token = excluded.access_token,
-                refresh_token = excluded.refresh_token,
-                expires_at = excluded.expires_at,
-                scope = excluded.scope,
-                updated_at = datetime('now')
-            """,
-            (
-                athlete_id,
-                provider,
-                encrypted_access,
-                encrypted_refresh,
-                expires_at,
-                token_data.get("scope", ""),
-            ),
-        )
+    save_google_token(
+        athlete_id=athlete_id,
+        provider=provider,
+        access_token=encrypted_access,
+        refresh_token=encrypted_refresh,
+        expires_at=expires_at,
+        scope=token_data.get("scope", ""),
+    )
 
 
 def get_google_token(athlete_id: int, provider: str) -> dict | None:
-    ensure_google_tokens_table()
-    with _get_conn() as conn:
-        row = conn.execute(
-            "SELECT access_token, refresh_token, expires_at, scope "
-            "FROM google_tokens WHERE athlete_id = ? AND provider = ?",
-            (athlete_id, provider),
-        ).fetchone()
+    from ..db.database import get_google_token
+
+    row = get_google_token(athlete_id, provider)
     if not row:
         return None
-    access_token, refresh_token, expires_at, scope = row
+    access_token, refresh_token = row.get("access_token", ""), row.get("refresh_token", "")
     try:
         from ..db.token_crypto import decrypt_token
         if access_token:
@@ -106,8 +90,8 @@ def get_google_token(athlete_id: int, provider: str) -> dict | None:
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "expires_at": expires_at,
-        "scope": scope,
+        "expires_at": row.get("expires_at"),
+        "scope": row.get("scope"),
     }
 
 
@@ -141,10 +125,8 @@ def refresh_google_token(athlete_id: int, provider: str) -> str | None:
         if exc.response is not None and exc.response.status_code == 400:
             body = exc.response.text or ""
             if "invalid_grant" in body:
-                with _get_conn() as conn:
-                    conn.execute(
-                        "DELETE FROM google_tokens WHERE athlete_id = ? AND provider = ?", (athlete_id, provider)
-                    )
+                from ..db.database import delete_google_token
+                delete_google_token(athlete_id, provider)
                 return None
         raise
 
@@ -163,6 +145,6 @@ def get_valid_google_token(athlete_id: int, provider: str) -> str | None:
 
 
 def delete_google_token(athlete_id: int, provider: str) -> None:
-    ensure_google_tokens_table()
-    with _get_conn() as conn:
-        conn.execute("DELETE FROM google_tokens WHERE athlete_id = ? AND provider = ?", (athlete_id, provider))
+    from ..db.database import delete_google_token as _delete
+
+    _delete(athlete_id, provider)
