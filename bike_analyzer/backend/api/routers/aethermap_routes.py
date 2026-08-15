@@ -40,10 +40,10 @@ async def get_terrain(
 async def get_world(current_user: dict = Depends(get_current_user)):
     """Return the current AetherMap world state."""
     try:
-        import numpy as np
-        from aethermap import Oggetto, Posizione, Geometria, WorldStore
         from aethermap.render.terrain_enhancer import build_enhanced_heightfield
         from aethermap.render.webgl_exporter import _terrain_mesh_from_hf
+
+        from aethermap import Geometria, Oggetto, Posizione, WorldStore
 
         store = WorldStore()
         if not store.objects:
@@ -99,7 +99,6 @@ async def get_terrain_tile(
 ):
     """Return a terrain tile for a cube-sphere face."""
     try:
-        import numpy as np
         from aethermap.render.terrain_enhancer import build_enhanced_heightfield
         from aethermap.render.webgl_exporter import _terrain_mesh_from_hf
 
@@ -200,7 +199,6 @@ async def get_natural_earth(
                 f"https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/"
                 f"ne_{resolution}m_land.geojson"
             )
-            last_exc: Exception | None = None
             for attempt in range(4):
                 try:
                     async with httpx.AsyncClient(timeout=30) as client:
@@ -209,7 +207,6 @@ async def get_natural_earth(
                         cache_file.write_bytes(resp.content)
                         break
                 except (httpx.TransportError, httpx.HTTPStatusError) as exc:
-                    last_exc = exc
                     if attempt < 3:
                         await asyncio.sleep(0.5 * (2**attempt))
                         continue
@@ -238,10 +235,12 @@ async def get_aethermap_ride(
 ):
     """Return AetherMap GeoJSON for a single ride."""
     try:
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
         from bike_analyzer.backend.db.database import get_ride
         from bike_analyzer.backend.maps.aethermap_adapter import create_route_map
         from bike_analyzer.core.models import GPSPoint, RouteStatistics
-        from tempfile import TemporaryDirectory
 
         tenant_id = current_user.get("tenant_id", current_user["id"])
         ride = get_ride(ride_id, tenant_id=tenant_id)

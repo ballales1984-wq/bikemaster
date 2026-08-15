@@ -474,6 +474,17 @@ function faceLatLonBounds(face: number): {
     lons.push(lon);
   }
 
+  // Polar faces (top/bottom of cube-sphere) have all corners at the same
+  // latitude and wrap around the globe in longitude.
+  if (maxLat - minLat < 1e-3) {
+    return {
+      minLat: face === 5 ? -90 : minLat,
+      maxLat: face === 4 ? 90 : maxLat,
+      minLon: -180,
+      maxLon: 180,
+    };
+  }
+
   const unwrapped = [lons[0]];
   for (let i = 1; i < lons.length; i++) {
     let diff = lons[i] - unwrapped[i - 1];
