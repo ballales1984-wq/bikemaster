@@ -128,7 +128,7 @@ async def test_handle_generate_map_invalid_path():
 @pytest.mark.asyncio
 async def test_handle_recalculate_stress_no_rides():
     q = BackgroundTaskQueue()
-    with patch("bike_analyzer.backend.db.database.get_rides_by_athlete", return_value=[]):
+    with patch("bike_analyzer.backend.analytics.repositories.ride_repository.get_rides_by_athlete", return_value=[]):
         result = await q._handle_recalculate_stress({"athlete_id": 1})
     assert result["updated"] == 0
 

@@ -131,63 +131,52 @@ class TestGarminTokenStorage:
             assert "CREATE TABLE IF NOT EXISTS garmin_tokens" in script
 
     def test_store_token_with_expires_in(self):
-        mock_conn = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        with patch("bike_analyzer.backend.ingestion.garmin_client._get_conn", return_value=mock_conn):
+        with patch("bike_analyzer.backend.ingestion.garmin_client.save_garmin_token") as mock_save:
             store_token(1, {"access_token": "acc", "refresh_token": "ref", "expires_in": 3600})
-            mock_conn.execute.assert_called()
+            mock_save.assert_called_once()
+            call_args = mock_save.call_args[1]
+            assert call_args["athlete_id"] == 1
+            assert call_args["access_token"] == "acc"
+            assert call_args["refresh_token"] == "ref"
 
     def test_store_token_with_expires_at(self):
-        mock_conn = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        with patch("bike_analyzer.backend.ingestion.garmin_client._get_conn", return_value=mock_conn):
+        with patch("bike_analyzer.backend.ingestion.garmin_client.save_garmin_token") as mock_save:
             store_token(1, {"access_token": "acc", "refresh_token": "ref", "expires_at": 1719560000})
-            mock_conn.execute.assert_called()
+            mock_save.assert_called_once()
+            call_args = mock_save.call_args[1]
+            assert call_args["expires_at"] == 1719560000
 
     def test_revoke_token(self):
-        mock_conn = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        with patch("bike_analyzer.backend.ingestion.garmin_client._get_conn", return_value=mock_conn):
+        with patch("bike_analyzer.backend.ingestion.garmin_client.revoke_garmin_token") as mock_revoke:
             revoke_token(1)
-            mock_conn.execute.assert_called_once_with("DELETE FROM garmin_tokens WHERE athlete_id = ?", (1,))
+            mock_revoke.assert_called_once_with(1)
 
     async def test_get_valid_token_no_token(self):
-        mock_conn = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        mock_conn.execute.return_value.fetchone.return_value = None
-        with patch("bike_analyzer.backend.ingestion.garmin_client._get_conn", return_value=mock_conn):
+        with patch("bike_analyzer.backend.ingestion.garmin_client.get_garmin_token", return_value=None):
             result = await get_valid_token(1)
             assert result is None
 
     async def test_get_valid_token_fresh(self):
-        import time
-
-        mock_conn = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        future_time = int(time.time()) + 7200
-        mock_conn.execute.return_value.fetchone.return_value = ("access_token_123", "refresh", future_time)
-        with patch("bike_analyzer.backend.ingestion.garmin_client._get_conn", return_value=mock_conn):
+        with patch("bike_analyzer.backend.ingestion.garmin_client.get_garmin_token", return_value={
+            "access_token": "access_token_123",
+            "refresh_token": "refresh",
+            "expires_at": int(time.time()) + 7200,
+        }):
             result = await get_valid_token(1)
             assert result == "access_token_123"
 
     async def test_get_valid_token_refreshes_when_expired(self):
-        import time
-
-        mock_conn = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        past_time = int(time.time()) - 100
-        mock_conn.execute.return_value.fetchone.return_value = ("old_token", "refresh_token", past_time)
-        with patch("bike_analyzer.backend.ingestion.garmin_client._get_conn", return_value=mock_conn):
-            with patch(
+        with (
+            patch("bike_analyzer.backend.ingestion.garmin_client.get_garmin_token", return_value={
+                "access_token": "old_token",
+                "refresh_token": "refresh_token",
+                "expires_at": int(time.time()) - 100,
+            }),
+            patch(
                 "bike_analyzer.backend.ingestion.garmin_client.refresh_access_token",
                 new=AsyncMock(return_value={"access_token": "new_token", "expires_in": 3600}),
-            ) as mock_refresh:
-                result = await get_valid_token(1)
-                assert result == "new_token"
-                mock_refresh.assert_called_once_with("refresh_token")
+            ) as mock_refresh,
+        ):
+            result = await get_valid_token(1)
+            assert result == "new_token"
+            mock_refresh.assert_called_once_with("refresh_token")

@@ -42,7 +42,11 @@ function normalizeBase(base: string): string {
   const idx = normalized.indexOf("://");
   if (idx >= 0) {
     const after = normalized.slice(idx + 3);
-    if (after.includes("://") || after.includes("http//") || after.includes("https//")) {
+    if (
+      after.includes("://") ||
+      after.includes("http//") ||
+      after.includes("https//")
+    ) {
       return "";
     }
   }

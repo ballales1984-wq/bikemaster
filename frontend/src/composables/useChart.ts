@@ -37,7 +37,10 @@ export type ChartInstance = {
  * - Observes the container resize so charts stay responsive inside flex/grid.
  * - Destroys the instance on unmount to avoid canvas/context leaks.
  */
-export function useChart(config: Ref<ChartConfiguration>, plugins: Record<string, unknown>[] = []) {
+export function useChart(
+  config: Ref<ChartConfiguration>,
+  plugins: Record<string, unknown>[] = [],
+) {
   const canvas = ref<HTMLCanvasElement | null>(null);
   const chart = shallowRef<ChartInstance | null>(null);
   let observer: ResizeObserver | null = null;
@@ -64,7 +67,10 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: Record<string
     if (!ctx) return;
     chart.value?.destroy();
     const next = buildConfig();
-    chart.value = new ChartConstructor(ctx, next as any) as unknown as ChartInstance;
+    chart.value = new ChartConstructor(
+      ctx,
+      next as any,
+    ) as unknown as ChartInstance;
     lastType = next.type ?? "";
   }
 

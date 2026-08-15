@@ -71,6 +71,33 @@ DB_PATH = _s.db_path
 _INITIAL_DB_PATH = DB_PATH
 
 _persistence_warned: set[str] = set()
+_db_initializing = False
+_db_initialized = False
+_init_db_path = None
+
+
+def _create_connection():
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
+    conn.execute("PRAGMA foreign_keys=ON")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _ensure_db_initialized() -> None:
+    global _db_initializing, _db_initialized, _init_db_path
+    if _db_initialized and _init_db_path == DB_PATH:
+        return
+    if _db_initializing:
+        return
+    _db_initializing = True
+    try:
+        init_db()
+        _db_initialized = True
+        _init_db_path = DB_PATH
+    finally:
+        _db_initializing = False
 
 
 def _is_persistent_path(path: str) -> bool:
@@ -126,17 +153,14 @@ def get_db_connection():
     caller_name = _get_caller_name()
     if not _s.database_url:
         _warn_sqlite_persistence(caller_name)
+        _ensure_db_initialized()
 
     max_retries = 3
     retry_delay = 0.1
     conn = None
     for attempt in range(max_retries):
         try:
-            conn = sqlite3.connect(DB_PATH, timeout=10)
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("PRAGMA busy_timeout=5000")
-            conn.execute("PRAGMA foreign_keys=ON")
-            conn.row_factory = sqlite3.Row
+            conn = _create_connection()
             break
         except sqlite3.OperationalError as e:
             if "locked" in str(e).lower() and attempt < max_retries - 1:
@@ -851,6 +875,7 @@ def init_db():
             athlete_name TEXT,
             created_at TEXT,
             updated_at TEXT,
+            last_sync_ts INTEGER,
             tenant_id INTEGER DEFAULT 0,
             UNIQUE(athlete_id),
             FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE

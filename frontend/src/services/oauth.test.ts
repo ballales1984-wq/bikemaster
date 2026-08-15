@@ -168,4 +168,22 @@ describe("processOAuthToken — duplicate-call benign scenario", () => {
     expect(auth.token).toBe(jwt);
     expect(hasPendingOAuth()).toBe(false);
   });
+
+  it("accepts token without state (backend-mediated OAuth flow)", () => {
+    setActivePinia(createPinia());
+    logs = [];
+    const auth = useAuthStore();
+    const ui = useUIStore();
+
+    const jwt = makeFakeJwt("user@example.com", 1);
+    setUrl(`/#token=${jwt}&email=user@example.com&user_id=1`);
+
+    const tokenProcessed = processOAuthToken();
+
+    expect(tokenProcessed).toBe(true);
+    expect(auth.isLoggedIn).toBe(true);
+    expect(auth.token).toBe(jwt);
+    expect(auth.justLoggedIn).toBe(true);
+    expect(ui.oauthLoading).toBe(false);
+  });
 });

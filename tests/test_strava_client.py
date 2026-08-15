@@ -124,72 +124,56 @@ class TestTokenStorage:
         }
 
     def test_store_token_inserts(self, tmp_path):
-        with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.db.database.save_strava_token") as mock_save:
             store_token(1, self._make_token_data())
-            conn.execute.assert_called()
-            call_args = conn.execute.call_args[0]
-            assert "INSERT INTO strava_tokens" in call_args[0]
-            assert call_args[1][0] == 1
+            mock_save.assert_called_once()
+            call_args = mock_save.call_args[1]
+            assert call_args["athlete_id"] == 1
+            assert call_args["access_token"] == "test_access"
+            assert call_args["refresh_token"] == "test_refresh"
 
     def test_store_token_handles_string_expires_at(self, tmp_path):
         data = self._make_token_data()
         data["expires_at"] = "1234567890"
-        with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.db.database.save_strava_token") as mock_save:
             store_token(1, data)
-            call_args = conn.execute.call_args[0]
-            assert call_args[1][3] == 1234567890
+            call_args = mock_save.call_args[1]
+            assert call_args["expires_at"] == 1234567890
 
     def test_store_token_calculates_from_expires_in(self, tmp_path):
         data = self._make_token_data()
         del data["expires_at"]
         data["expires_in"] = 7200
-        with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.db.database.save_strava_token") as mock_save:
             store_token(1, data)
-            call_args = conn.execute.call_args[0]
-            stored_expires = call_args[1][3]
+            call_args = mock_save.call_args[1]
+            stored_expires = call_args["expires_at"]
             assert stored_expires > int(time.time())
 
     def test_revoke_token_deletes(self, tmp_path):
-        with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.db.database.revoke_strava_token") as mock_revoke:
             revoke_token(42)
-            call_args = conn.execute.call_args[0]
-            assert "DELETE FROM strava_tokens WHERE athlete_id = ?" in call_args[0]
+            mock_revoke.assert_called_once_with(42)
 
     async def test_get_valid_token_returns_none_when_missing(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            conn.execute.return_value.fetchone.return_value = None
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.db.database.get_strava_token", return_value=None):
             assert await get_valid_token(99) is None
 
     async def test_get_valid_token_returns_access(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            conn.execute.return_value.fetchone.return_value = (
-                "access_token_xyz",
-                "refresh_xyz",
-                int(time.time()) + 7200,
-            )
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
-            assert await get_valid_token(1) == "access_token_xyz"
+        with patch("bike_analyzer.backend.db.database.get_strava_token", return_value={
+            "access_token": "test_access",
+            "refresh_token": "test_refresh",
+            "expires_at": int(time.time()) + 7200,
+        }):
+            assert await get_valid_token(1) == "test_access"
 
     async def test_get_valid_token_refreshes_when_expired(self):
         with (
-            patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn,
+            patch("bike_analyzer.backend.db.database.get_strava_token", return_value={
+                "access_token": "old_token",
+                "refresh_token": "refresh_xyz",
+                "expires_at": int(time.time()) - 100,
+            }),
             patch(
                 "bike_analyzer.backend.ingestion.strava_client.refresh_access_token",
                 new=AsyncMock(
@@ -201,11 +185,6 @@ class TestTokenStorage:
                 ),
             ) as mock_refresh,
         ):
-            conn = MagicMock()
-            expired_ts = int(time.time()) - 100
-            conn.execute.return_value.fetchone.return_value = ("old_token", "refresh_xyz", expired_ts)
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
             token = await get_valid_token(1, client_id="test_id", client_secret="test_secret")
             assert token == "new_token"
             mock_refresh.assert_called_once_with("refresh_xyz", client_id="test_id", client_secret="test_secret")
@@ -258,39 +237,21 @@ class TestFetchActivities:
 
 class TestLastSyncTs:
     def test_get_last_sync_ts_returns_none_when_missing(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            conn.execute.return_value.fetchone.return_value = None
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.ingestion.strava_client.get_strava_token", return_value=None):
             assert get_last_sync_ts(1) is None
 
     def test_get_last_sync_ts_returns_value(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            conn.execute.return_value.fetchone.return_value = {"last_sync_ts": 1700000000}
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.ingestion.strava_client.get_strava_token", return_value={"last_sync_ts": 1700000000}):
             assert get_last_sync_ts(1) == 1700000000
 
     def test_get_last_sync_ts_returns_none_when_null(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            conn.execute.return_value.fetchone.return_value = {"last_sync_ts": None}
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.ingestion.strava_client.get_strava_token", return_value={"last_sync_ts": None}):
             assert get_last_sync_ts(1) is None
 
     def test_set_last_sync_ts_updates(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.ingestion.strava_client.update_strava_last_sync") as mock_update:
             set_last_sync_ts(1, 1700000000)
-            call_args = conn.execute.call_args[0]
-            assert "UPDATE strava_tokens SET last_sync_ts = ? WHERE athlete_id = ?" in call_args[0]
-            assert call_args[1][0] == 1700000000
-            assert call_args[1][1] == 1
+            mock_update.assert_called_once_with(1, 1700000000)
 
 
 class TestStravaToRide:

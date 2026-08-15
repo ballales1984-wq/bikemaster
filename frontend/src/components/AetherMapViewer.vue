@@ -106,18 +106,38 @@ let rafId: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
 let mounted = true;
 
-let globePosBuf: { buf: WebGLBuffer; count: number; mode: number; stride: number } | null =
-  null;
-let globeNormBuf: { buf: WebGLBuffer; count: number; mode: number; stride: number } | null =
-  null;
+let globePosBuf: {
+  buf: WebGLBuffer;
+  count: number;
+  mode: number;
+  stride: number;
+} | null = null;
+let globeNormBuf: {
+  buf: WebGLBuffer;
+  count: number;
+  mode: number;
+  stride: number;
+} | null = null;
 let globeIdxBuf: WebGLBuffer | null = null;
 let globeIdxCount = 0;
-let routeBuffer: { buf: WebGLBuffer; count: number; mode: number; stride: number } | null =
-  null;
-let pointBuffer: { buf: WebGLBuffer; count: number; mode: number; stride: number } | null =
-  null;
-let markerBuffer: { buf: WebGLBuffer; count: number; mode: number; stride: number } | null =
-  null;
+let routeBuffer: {
+  buf: WebGLBuffer;
+  count: number;
+  mode: number;
+  stride: number;
+} | null = null;
+let pointBuffer: {
+  buf: WebGLBuffer;
+  count: number;
+  mode: number;
+  stride: number;
+} | null = null;
+let markerBuffer: {
+  buf: WebGLBuffer;
+  count: number;
+  mode: number;
+  stride: number;
+} | null = null;
 
 const firstRideId = computed(() => props.rideIds?.[0] ?? null);
 const terrain = useAetherMapTerrain(

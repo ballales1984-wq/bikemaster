@@ -129,81 +129,59 @@ class TestTokenStorage:
         }
 
     def test_store_token_inserts(self):
-        with patch("bike_analyzer.backend.ingestion.wahoo_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.db.database.save_wahoo_token") as mock_save:
             store_token(1, self._make_token_data(), code_verifier="verifier")
-            conn.execute.assert_called()
-            call_args = conn.execute.call_args[0]
-            assert "INSERT INTO wahoo_tokens" in call_args[0]
-            assert call_args[1][0] == 1
+            mock_save.assert_called_once()
+            call_args = mock_save.call_args[1]
+            assert call_args["athlete_id"] == 1
+            assert call_args["access_token"] == "test_access"
+            assert call_args["refresh_token"] == "test_refresh"
 
     def test_store_token_handles_string_expires_at(self):
         data = self._make_token_data()
         data["expires_at"] = "1234567890"
-        with patch("bike_analyzer.backend.ingestion.wahoo_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.db.database.save_wahoo_token") as mock_save:
             store_token(1, data, code_verifier="verifier")
-            call_args = conn.execute.call_args[0]
-            assert call_args[1][4] == 1234567890
+            call_args = mock_save.call_args[1]
+            assert call_args["expires_at"] == 1234567890
 
     def test_store_token_calculates_from_expires_in(self):
         data = self._make_token_data()
         del data["expires_at"]
         data["expires_in"] = 7200
-        with patch("bike_analyzer.backend.ingestion.wahoo_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.db.database.save_wahoo_token") as mock_save:
             store_token(1, data, code_verifier="verifier")
-            call_args = conn.execute.call_args[0]
-            stored_expires = call_args[1][4]
+            call_args = mock_save.call_args[1]
+            stored_expires = call_args["expires_at"]
             assert stored_expires > int(time.time())
 
     def test_revoke_token_deletes(self):
-        with patch("bike_analyzer.backend.ingestion.wahoo_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.db.database.revoke_wahoo_token") as mock_revoke:
             revoke_token(42)
-            call_args = conn.execute.call_args[0]
-            assert "DELETE FROM wahoo_tokens WHERE athlete_id = ?" in call_args[0]
-            assert call_args[1][0] == 42
+            mock_revoke.assert_called_once_with(42)
 
     def test_get_valid_token_returns_none_when_missing(self):
-        with patch("bike_analyzer.backend.ingestion.wahoo_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            conn.execute.return_value.fetchone.return_value = None
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
+        with patch("bike_analyzer.backend.db.database.get_wahoo_token", return_value=None):
             assert get_valid_token(99) is None
 
     def test_get_valid_token_returns_access(self):
-        with patch("bike_analyzer.backend.ingestion.wahoo_client._get_conn") as mock_get_conn:
-            conn = MagicMock()
-            conn.execute.return_value.fetchone.return_value = (
-                "access_token_xyz",
-                "refresh_xyz",
-                "verifier",
-                int(time.time()) + 7200,
-            )
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
-            assert get_valid_token(1) == "access_token_xyz"
+        with patch("bike_analyzer.backend.db.database.get_wahoo_token", return_value={
+            "access_token": "test_access",
+            "refresh_token": "test_refresh",
+            "expires_at": int(time.time()) + 7200,
+        }):
+            assert get_valid_token(1) == "test_access"
 
     def test_get_valid_token_refreshes_when_expired(self):
         with (
-            patch("bike_analyzer.backend.ingestion.wahoo_client._get_conn") as mock_get_conn,
+            patch("bike_analyzer.backend.db.database.get_wahoo_token", return_value={
+                "access_token": "old_token",
+                "refresh_token": "refresh_xyz",
+                "code_verifier": "verifier",
+                "expires_at": int(time.time()) - 100,
+            }),
             patch("bike_analyzer.backend.ingestion.wahoo_client.refresh_access_token") as mock_refresh,
         ):
-            conn = MagicMock()
-            expired_ts = int(time.time()) - 100
-            conn.execute.return_value.fetchone.return_value = ("old_token", "refresh_xyz", "verifier", expired_ts)
-            mock_get_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_get_conn.return_value.__exit__ = MagicMock(return_value=False)
             mock_refresh.return_value = {
                 "access_token": "new_token",
                 "refresh_token": "new_refresh",

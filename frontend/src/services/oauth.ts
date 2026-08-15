@@ -144,7 +144,7 @@ export function processOAuthToken(): boolean {
     return true;
   }
 
-  if (!validateOAuthState(returnedState)) {
+  if (returnedState && !validateOAuthState(returnedState)) {
     clearPendingOAuth();
     ui.setOauthLoading(false);
     clearUrlToken();
