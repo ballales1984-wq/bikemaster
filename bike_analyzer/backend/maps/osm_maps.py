@@ -53,6 +53,8 @@ async def search_places(
     lat: float | None = None,
     lon: float | None = None,
     limit: int = 5,
+    viewbox: str | None = None,
+    bounded: bool = False,
 ) -> dict[str, Any] | None:
     params = {
         "q": query,
@@ -60,9 +62,12 @@ async def search_places(
         "limit": limit,
         "addressdetails": 1,
     }
-    if lat is not None and lon is not None:
+    if viewbox:
+        params["viewbox"] = viewbox
+        params["bounded"] = "1" if bounded else "0"
+    elif lat is not None and lon is not None:
         params["viewbox"] = f"{lon - 0.05},{lat + 0.05},{lon + 0.05},{lat - 0.05}"
-        params["bounded"] = 0
+        params["bounded"] = "0"
     data = await _nominatim_get("/search", params)
     if data is None:
         return None

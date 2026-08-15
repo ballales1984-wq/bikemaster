@@ -132,15 +132,27 @@ async def get_terrain_tile(
 
 @router.get("/geo/roads")
 async def get_geo_roads(
-    bbox: str = Query(...),
+    bbox: str = Query("", description="Bounding box as min_lon,min_lat,max_lon,max_lat"),
     current_user: dict = Depends(get_current_user),
 ):
     """Return road network data within a bounding box."""
     try:
-        from ..maps.osm_maps import get_local_results
+        from ..maps.osm_maps import search_places
 
-        results = get_local_results(bbox)
-        return {"features": results}
+        viewbox = None
+        if bbox:
+            parts = bbox.split(",")
+            if len(parts) == 4:
+                viewbox = f"{parts[0]},{parts[1]},{parts[2]},{parts[3]}"
+
+        results = await search_places(
+            "highway",
+            viewbox=viewbox,
+            bounded=bool(viewbox),
+            limit=50,
+        )
+        features = results.get("results", []) if results else []
+        return {"features": features}
     except Exception as exc:
         logger.exception("Roads lookup failed")
         raise HTTPException(status_code=500, detail=str(exc)) from None
@@ -148,15 +160,26 @@ async def get_geo_roads(
 
 @router.get("/geo/cities")
 async def get_geo_cities(
-    bbox: str = Query(...),
+    bbox: str = Query("", description="Bounding box as min_lon,min_lat,max_lon,max_lat"),
     current_user: dict = Depends(get_current_user),
 ):
     """Return cities within a bounding box."""
     try:
         from ..maps.osm_maps import search_places
 
-        results = search_places(bbox, category="city")
-        return {"features": results}
+        viewbox = None
+        if bbox:
+            parts = bbox.split(",")
+            if len(parts) == 4:
+                viewbox = f"{parts[0]},{parts[1]},{parts[2]},{parts[3]}"
+
+        results = await search_places(
+            "city",
+            viewbox=viewbox,
+            bounded=bool(viewbox),
+            limit=50,
+        )
+        return {"features": results.get("results", []) if results else []}
     except Exception as exc:
         logger.exception("Cities lookup failed")
         raise HTTPException(status_code=500, detail=str(exc)) from None
@@ -164,15 +187,26 @@ async def get_geo_cities(
 
 @router.get("/geo/peaks")
 async def get_geo_peaks(
-    bbox: str = Query(...),
+    bbox: str = Query("", description="Bounding box as min_lon,min_lat,max_lon,max_lat"),
     current_user: dict = Depends(get_current_user),
 ):
     """Return peaks within a bounding box."""
     try:
         from ..maps.osm_maps import search_places
 
-        results = search_places(bbox, category="peak")
-        return {"features": results}
+        viewbox = None
+        if bbox:
+            parts = bbox.split(",")
+            if len(parts) == 4:
+                viewbox = f"{parts[0]},{parts[1]},{parts[2]},{parts[3]}"
+
+        results = await search_places(
+            "peak",
+            viewbox=viewbox,
+            bounded=bool(viewbox),
+            limit=50,
+        )
+        return {"features": results.get("results", []) if results else []}
     except Exception as exc:
         logger.exception("Peaks lookup failed")
         raise HTTPException(status_code=500, detail=str(exc)) from None

@@ -266,8 +266,9 @@ async def generate_ride_map(
     points = [GPSPoint(**p) for p in normalized]
 
     if provider == "aethermap":
+        stats = None
         if ride.get("distance_km") and ride.get("duration_minutes"):
-            RouteStatistics(
+            stats = RouteStatistics(
                 total_distance_m=ride.get("distance_km", 0.0) * 1000.0,
                 total_duration_s=ride.get("duration_minutes", 0.0) * 60.0,
                 avg_speed_km_h=ride.get("avg_speed_kmh", 0.0),
@@ -277,6 +278,7 @@ async def generate_ride_map(
         return {
             "map_url": f"/api/v1/aethermap/ride/{ride_id}",
             "engine": "aethermap",
+            "statistics": stats.__dict__ if stats else None,
         }
 
     from ..maps.map_renderer import create_route_map

@@ -7,6 +7,7 @@
     <div class="aethermap-hud">
       <b>AetherMap</b> · WebGL2 cube-sphere + terrain<br />
       trascina per ruotare · rotella per zoom · spazio = auto-rotazione<br />
+      FPS: {{ fps }}<br />
       <template v-if="rideIds && rideIds.length">
         <span v-if="loading">carico scena…</span>
         <span v-else-if="error" class="aethermap-warn"
@@ -105,6 +106,7 @@ let gl: WebGL2RenderingContext | null = null;
 let rafId: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
 let mounted = true;
+const fps = ref(0);
 
 let globePosBuf: {
   buf: WebGLBuffer;
@@ -133,6 +135,12 @@ let pointBuffer: {
   stride: number;
 } | null = null;
 let markerBuffer: {
+  buf: WebGLBuffer;
+  count: number;
+  mode: number;
+  stride: number;
+} | null = null;
+let terrainBuffer: {
   buf: WebGLBuffer;
   count: number;
   mode: number;
@@ -871,6 +879,10 @@ function updateSceneBuffers(sc: AetherScene) {
     gl.deleteBuffer(markerBuffer.buf);
     markerBuffer = null;
   }
+  if (terrainBuffer && gl) {
+    gl.deleteBuffer(terrainBuffer.buf);
+    terrainBuffer = null;
+  }
   if (!gl) return;
 
   const routeData: number[] = [];
@@ -947,6 +959,18 @@ function updateSceneBuffers(sc: AetherScene) {
     routeBuffer = makeBuffer(new Float32Array(routeData), gl.LINE_STRIP, 6);
   if (markerData.length)
     markerBuffer = makeBuffer(new Float32Array(markerData), gl.POINTS, 6);
+
+  const terrainData: number[] = [];
+  for (const pt of terrainPoints.value) {
+    const dir = geodeticToDirection(pt.lat, pt.lon);
+    const elev = (pt.altitude || 0) * TERRAIN_SCALE;
+    const r = GLOBE_RADIUS + elev;
+    const slope = pt.slope_pct || 0;
+    const col: Vec3 = slope > 8 ? [0.93, 0.2, 0.2] : slope > 4 ? [0.93, 0.53, 0.0] : [0.0, 0.8, 0.27];
+    terrainData.push(dir[0] * r, dir[1] * r, dir[2] * r, col[0], col[1], col[2]);
+  }
+  if (terrainData.length)
+    terrainBuffer = makeBuffer(new Float32Array(terrainData), gl.POINTS, 6);
 }
 
 function geoColorForType(tipo: string): Vec3 {
@@ -1331,14 +1355,13 @@ onMounted(async () => {
 
   let lastTime = performance.now();
   let frameCount = 0;
-  let _fps = 0;
 
   function frame() {
     if (!gl) return;
     const now = performance.now();
     frameCount++;
     if (now - lastTime >= 1000) {
-      _fps = frameCount;
+      fps.value = frameCount;
       frameCount = 0;
       lastTime = now;
     }
@@ -1390,6 +1413,7 @@ onMounted(async () => {
     if (routeBuffer) draw(routeBuffer, A_p, A_c);
     if (pointBuffer) draw(pointBuffer, A_p, A_c);
     if (markerBuffer) draw(markerBuffer, A_p, A_c);
+    if (terrainBuffer) draw(terrainBuffer, A_p, A_c);
 
     for (const [, buf] of geoBufferMap) {
       draw(buf, A_p, A_c);
@@ -1448,6 +1472,28 @@ watch(
   },
 );
 
+watch(
+  terrainPoints,
+  () => {
+    if (!gl) return;
+    if (terrainBuffer) {
+      gl.deleteBuffer(terrainBuffer.buf);
+      terrainBuffer = null;
+    }
+    const data: number[] = [];
+    for (const pt of terrainPoints.value) {
+      const dir = geodeticToDirection(pt.lat, pt.lon);
+      const elev = (pt.altitude || 0) * TERRAIN_SCALE;
+      const r = GLOBE_RADIUS + elev;
+      const slope = pt.slope_pct || 0;
+      const col: Vec3 = slope > 8 ? [0.93, 0.2, 0.2] : slope > 4 ? [0.93, 0.53, 0.0] : [0.0, 0.8, 0.27];
+      data.push(dir[0] * r, dir[1] * r, dir[2] * r, col[0], col[1], col[2]);
+    }
+    if (data.length)
+      terrainBuffer = makeBuffer(new Float32Array(data), gl.POINTS, 6);
+  },
+);
+
 onBeforeUnmount(() => {
   mounted = false;
   if (rafId != null) {
@@ -1465,6 +1511,7 @@ onBeforeUnmount(() => {
     if (routeBuffer) gl.deleteBuffer(routeBuffer.buf);
     if (pointBuffer) gl.deleteBuffer(pointBuffer.buf);
     if (markerBuffer) gl.deleteBuffer(markerBuffer.buf);
+    if (terrainBuffer) gl.deleteBuffer(terrainBuffer.buf);
     for (const [, buf] of geoBufferMap) {
       if (buf && gl) gl.deleteBuffer(buf.buf);
     }
