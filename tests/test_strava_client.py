@@ -237,19 +237,19 @@ class TestFetchActivities:
 
 class TestLastSyncTs:
     def test_get_last_sync_ts_returns_none_when_missing(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.get_strava_token", return_value=None):
+        with patch("bike_analyzer.backend.db.database.get_strava_token", return_value=None):
             assert get_last_sync_ts(1) is None
 
     def test_get_last_sync_ts_returns_value(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.get_strava_token", return_value={"last_sync_ts": 1700000000}):
+        with patch("bike_analyzer.backend.db.database.get_strava_token", return_value={"last_sync_ts": 1700000000}):
             assert get_last_sync_ts(1) == 1700000000
 
     def test_get_last_sync_ts_returns_none_when_null(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.get_strava_token", return_value={"last_sync_ts": None}):
+        with patch("bike_analyzer.backend.db.database.get_strava_token", return_value={"last_sync_ts": None}):
             assert get_last_sync_ts(1) is None
 
     def test_set_last_sync_ts_updates(self):
-        with patch("bike_analyzer.backend.ingestion.strava_client.update_strava_last_sync") as mock_update:
+        with patch("bike_analyzer.backend.db.database.update_strava_last_sync") as mock_update:
             set_last_sync_ts(1, 1700000000)
             mock_update.assert_called_once_with(1, 1700000000)
 
