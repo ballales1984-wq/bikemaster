@@ -34,7 +34,19 @@ export const MOBILE_API_BASE_STORAGE_KEY = "bikemaster_mobile_api_base";
 function normalizeBase(base: string): string {
   const trimmed = base.trim();
   if (!trimmed) return "";
-  return trimmed.replace(/\/+$/, "");
+  const normalized = trimmed.replace(/\/+$/, "");
+  const schemeCount = (normalized.match(/https?:\/\//gi) || []).length;
+  if (schemeCount > 1) {
+    return "";
+  }
+  const idx = normalized.indexOf("://");
+  if (idx >= 0) {
+    const after = normalized.slice(idx + 3);
+    if (after.includes("://") || after.includes("http//") || after.includes("https//")) {
+      return "";
+    }
+  }
+  return normalized;
 }
 
 export function isTauri(): boolean {
@@ -57,7 +69,7 @@ export function isCapacitor(): boolean {
 
 export function getStoredApiBase(): string {
   if (typeof localStorage === "undefined") return "";
-  return localStorage.getItem(API_BASE_STORAGE_KEY) || "";
+  return normalizeBase(localStorage.getItem(API_BASE_STORAGE_KEY) || "");
 }
 
 export function getStoredHubApiBase(): string {
