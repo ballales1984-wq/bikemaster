@@ -26,16 +26,3 @@ export function loadAnalytics() {
   `;
   document.head.appendChild(init);
 }
-
-export function useAnalytics() {
-  if (typeof window === "undefined") return;
-  const raw = localStorage.getItem("bikemaster_consent_v1");
-  if (!raw) return;
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed.analytics) return;
-  } catch {
-    return;
-  }
-  loadAnalytics();
-}

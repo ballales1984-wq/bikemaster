@@ -8,7 +8,7 @@
  * - Integrates with the existing useBatteryEfficientGps
  */
 
-import { onMounted, onBeforeUnmount, ref } from "vue";
+import { onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { useBatteryEfficientGps } from "./useBatteryEfficientGps";
 import type { GpsPoint } from "../types/index";
 
@@ -38,6 +38,8 @@ export function useContinuousTracking(options: ContinuousTrackingOptions) {
 
   const isTracking = ref(false);
   const isPaused = ref(false);
+  const isWaiting = ref(false);
+  const isMoving = ref(false);
   const hasPermission = ref<boolean | null>(null);
   const error = ref("");
 
@@ -89,7 +91,7 @@ export function useContinuousTracking(options: ContinuousTrackingOptions) {
   }
 
   function initGps() {
-    gps = useBatteryEfficientGps({
+    const batteryGps = useBatteryEfficientGps({
       onPosition: (position) => {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
@@ -118,6 +120,21 @@ export function useContinuousTracking(options: ContinuousTrackingOptions) {
       onActivityChange: options.onActivityChange,
       batterySaver: options.batterySaver,
     });
+    watch(
+      () => batteryGps.isWaiting.value,
+      (v) => {
+        isWaiting.value = v;
+      },
+      { immediate: true },
+    );
+    watch(
+      () => batteryGps.isMoving.value,
+      (v) => {
+        isMoving.value = v;
+      },
+      { immediate: true },
+    );
+    gps = batteryGps;
   }
 
   async function start() {
@@ -153,6 +170,8 @@ export function useContinuousTracking(options: ContinuousTrackingOptions) {
   function stop() {
     isTracking.value = false;
     isPaused.value = false;
+    isWaiting.value = false;
+    isMoving.value = false;
     gps?.stop();
     gps = null;
   }
@@ -187,6 +206,8 @@ export function useContinuousTracking(options: ContinuousTrackingOptions) {
   return {
     isTracking,
     isPaused,
+    isWaiting,
+    isMoving,
     hasPermission,
     error,
     start,

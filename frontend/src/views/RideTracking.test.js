@@ -157,6 +157,8 @@ vi.mock("../composables/useContinuousTracking", () => ({
   useContinuousTracking: () => ({
     isTracking: { value: false },
     isPaused: { value: false },
+    isWaiting: { value: false },
+    isMoving: { value: false },
     hasPermission: { value: null },
     error: { value: "" },
     start: vi.fn(),

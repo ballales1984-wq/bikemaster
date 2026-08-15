@@ -20,7 +20,14 @@ import type { ChartConfiguration, ChartOptions } from "../utils/chartTypes";
 
 export type { ChartConfiguration, ChartOptions };
 
-export type ChartInstance = any;
+export type ChartInstance = {
+  destroy: () => void;
+  update: (mode?: string) => void;
+  resize: () => void;
+  config: unknown;
+  options: unknown;
+  data: unknown;
+};
 
 /**
  * Reactive, theme-aware wrapper around a Chart.js instance.
@@ -30,7 +37,7 @@ export type ChartInstance = any;
  * - Observes the container resize so charts stay responsive inside flex/grid.
  * - Destroys the instance on unmount to avoid canvas/context leaks.
  */
-export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
+export function useChart(config: Ref<ChartConfiguration>, plugins: Record<string, unknown>[] = []) {
   const canvas = ref<HTMLCanvasElement | null>(null);
   const chart = shallowRef<ChartInstance | null>(null);
   let observer: ResizeObserver | null = null;
@@ -41,8 +48,8 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
       cfg.options = {
         ...cfg.options,
         plugins: {
-          ...((cfg.options?.plugins as Record<string, any>) || {}),
-          ...(plugins as Record<string, any>),
+          ...((cfg.options?.plugins as Record<string, unknown>) || {}),
+          ...plugins,
         },
       } as ChartOptions;
     }
@@ -57,7 +64,7 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
     if (!ctx) return;
     chart.value?.destroy();
     const next = buildConfig();
-    chart.value = new ChartConstructor(ctx, next as any);
+    chart.value = new ChartConstructor(ctx, next as any) as unknown as ChartInstance;
     lastType = next.type ?? "";
   }
 
@@ -67,7 +74,7 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
     chart.value.config = next as ChartInstance["config"];
     chart.value.options = next.options as ChartInstance["options"];
 
-    chart.value.update("none" as any);
+    chart.value.update("none");
   }
 
   watch(
@@ -81,7 +88,7 @@ export function useChart(config: Ref<ChartConfiguration>, plugins: any[] = []) {
       }
       chart.value.data = next.data;
       chart.value.options = next.options as ChartInstance["options"];
-      chart.value.update("none" as any);
+      chart.value.update("none");
     },
     { deep: true },
   );

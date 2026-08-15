@@ -10,9 +10,6 @@ interface LocaleMessages {
   [key: string]: string | LocaleMessages;
 }
 
-const _itMessages: LocaleMessages = {};
-const _enMessages: LocaleMessages = {};
-
 async function loadMessages(locale: string): Promise<LocaleMessages> {
   if (locale === "it") {
     const mod = await import("../locales/it.json");
@@ -27,6 +24,14 @@ const locale = ref(
     (navigator.language?.startsWith("it") ? "it" : "en"),
 );
 const messages = ref<LocaleMessages>({});
+let loadedLocale: string | null = null;
+
+export async function initI18n(): Promise<void> {
+  const loc = locale.value;
+  if (loadedLocale === loc) return;
+  messages.value = await loadMessages(loc);
+  loadedLocale = loc;
+}
 
 function t(key: string): string {
   const parts = key.split(".");
@@ -42,6 +47,7 @@ async function setLocale(newLocale: string) {
   locale.value = newLocale;
   localStorage.setItem("bikemaster_locale", newLocale);
   messages.value = await loadMessages(newLocale);
+  loadedLocale = newLocale;
 }
 
 const currentLocale = computed(() => locale.value);

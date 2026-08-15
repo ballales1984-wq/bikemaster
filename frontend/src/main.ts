@@ -16,6 +16,7 @@ import router from "./router";
 import "./index.css";
 import { useAuthStore } from "./stores/auth";
 import { useUIStore } from "./stores/ui";
+import { initI18n } from "./composables/useI18n";
 import { isTauri } from "./utils/backend-config";
 import "./composables/usePWA";
 import { processOAuthToken, hasPendingOAuth } from "./services/oauth";
@@ -162,6 +163,15 @@ if ("serviceWorker" in navigator && !isTauri()) {
 // API keys saved on the device. Best-effort if not available.
 void initLocalDb();
 void useApiKeysStore().load();
+
+// Load i18n messages before mounting so the first render shows translated
+// text instead of raw message keys. Non-fatal: if loading fails we still
+// mount so the user isn't stranded on a blank screen.
+try {
+  await initI18n();
+} catch (err) {
+  console.warn("[i18n] message load failed, using fallback keys:", err);
+}
 
 app.mount("#app");
 

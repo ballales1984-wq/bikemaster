@@ -50,7 +50,7 @@
               :class="{ winner: comparison.winners[m.key] === 'A' }"
             >
               <span class="comp-val">{{
-                m.format(Number(comparison.a[m.key as keyof Ride]) || 0)
+                m.format(Number(comparison.a?.[m.key as keyof Ride]) || 0)
               }}</span>
               <span v-if="comparison.deltas[m.key] !== 0" class="comp-delta">
                 {{ comparison.deltas[m.key] > 0 ? "+" : ""
@@ -63,7 +63,7 @@
               :class="{ winner: comparison.winners[m.key] === 'B' }"
             >
               <span class="comp-val">{{
-                m.format(Number(comparison.b[m.key as keyof Ride]) || 0)
+                m.format(Number(comparison.b?.[m.key as keyof Ride]) || 0)
               }}</span>
               <span v-if="comparison.deltas[m.key] !== 0" class="comp-delta">
                 {{ comparison.deltas[m.key] < 0 ? "+" : ""
@@ -107,8 +107,8 @@ const loading = computed(() => store.loading);
 
 interface ComparisonResult {
   ready: boolean;
-  a: Ride;
-  b: Ride;
+  a: Ride | null;
+  b: Ride | null;
   deltas: Record<string, number>;
   winners: Record<string, string>;
 }
@@ -161,8 +161,8 @@ const comparison = computed<ComparisonResult>(() => {
   if (!rideA.value || !rideB.value)
     return {
       ready: false,
-      a: rideA.value!,
-      b: rideB.value!,
+      a: rideA.value,
+      b: rideB.value,
       deltas: {},
       winners: {},
     };

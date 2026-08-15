@@ -6,7 +6,6 @@
  */
 import { ref } from "vue";
 import type { Ride } from "../types/index";
-import type * as L from "leaflet";
 import { apiGet, apiPost, apiDelete } from "../utils/api";
 import {
   cacheRides,
@@ -105,7 +104,7 @@ export function useRides() {
       map.value = null;
     }
     if (!el) return;
-    const L = (await import("leaflet")) as any;
+    const L = await import("leaflet");
     map.value = L.map(el).setView(
       DEFAULT_RIDE_MAP_CENTER,
       DEFAULT_RIDE_MAP_ZOOM,
