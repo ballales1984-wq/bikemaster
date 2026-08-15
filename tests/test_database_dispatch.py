@@ -79,63 +79,27 @@ class TestHasPostgres:
 
 
 class TestDispatchGuard:
-    _MIGRATED_FUNCTIONS = [
-        save_ride,
-        get_ride,
-        get_rides_by_athlete,
-        get_all_rides,
-        delete_ride,
-        update_ride,
-        save_metric,
-        get_metrics_by_athlete,
-        upsert_training_stress_day,
-        get_training_stress_days,
-        get_latest_training_stress,
-        get_athlete,
-        save_athlete,
-        update_athlete,
-        get_athlete_by_email,
-        get_athlete_history,
-        save_athlete_snapshot,
-        get_athletes_by_user,
-        get_athlete_count_by_user,
-        delete_athlete,
-        log_athlete_metric,
-        get_athlete_metric_log,
-        save_itinerary,
-        get_itinerary,
-        list_itineraries,
-        update_itinerary,
-        delete_itinerary,
-        save_stage,
-        list_stages,
-        get_stage,
-        update_stage,
-        delete_stage,
-        reorder_stages,
-        save_user,
-        get_user_by_username,
-        get_user_by_id,
-        get_all_users,
-        update_user,
-        delete_user,
-    ]
-
     def test_dispatch_guard_present(self):
         """Every migrated function must carry the ``@pg_dispatch`` decorator
         (single source of truth) rather than an inline ``has_postgres`` block."""
         from bike_analyzer.backend.db.dispatch import MIGRATED_FUNCTIONS
 
         migrated_names = set(MIGRATED_FUNCTIONS)
-        for func in self._MIGRATED_FUNCTIONS:
-            assert getattr(func, "_dispatch_source", None) == "pg_dispatch", (
-                f"{func.__name__} is missing the @pg_dispatch decorator"
+        dispatch_fns = [
+            obj for obj in inspect.getmembers(db, inspect.isfunction)
+            if getattr(obj[1], "_dispatch_source", None) == "pg_dispatch"
+        ]
+        dispatch_names = {name for name, _ in dispatch_fns}
+
+        for name, func in dispatch_fns:
+            assert name in migrated_names, (
+                f"{name} not registered in MIGRATED_FUNCTIONS"
             )
-            assert func.__name__ in migrated_names, (
-                f"{func.__name__} not registered in MIGRATED_FUNCTIONS"
-            )
-        # registry must cover every function that used to carry an inline guard
-        assert len(self._MIGRATED_FUNCTIONS) == len(migrated_names) == 39
+
+        assert len(dispatch_names) == len(migrated_names), (
+            f"dispatch functions ({len(dispatch_names)}) != "
+            f"MIGRATED_FUNCTIONS registry ({len(migrated_names)})"
+        )
 
 
 class TestSqliteRoundTrip:

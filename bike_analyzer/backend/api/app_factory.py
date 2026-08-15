@@ -56,6 +56,7 @@ from .routers.calendar_routes import router as calendar_router
 from .routers.charts_routes import router as charts_router
 from .routers.coach_routes import router as coach_router
 from .routers.dashboard_routes import router as dashboard_router
+from .routers.heatmap_routes import router as heatmap_router
 from .routers.hr_routes import router as hr_router
 from .routers.import_routes import router as import_router
 from .routers.itineraries_routes import router as itineraries_router
@@ -564,6 +565,7 @@ def create_app() -> FastAPI:
     app.include_router(notifications_router, prefix="/api/v1")
     app.include_router(ble_router, prefix="/api/v1")
     app.include_router(hr_router, prefix="/api/v1")
+    app.include_router(heatmap_router, prefix="/api/v1")
     app.include_router(maps_router, prefix="/api/v1")
     app.include_router(itineraries_router, prefix="/api/v1")
     app.include_router(training_router, prefix="/api/v1")

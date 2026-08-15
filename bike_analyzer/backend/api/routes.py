@@ -38,7 +38,7 @@ from ..models.models import AthleteProfile, Ride
 from ..redis_client import cache_delete as _cache_delete
 from ..redis_client import cache_set as _cache_set
 from ..redis_client import cached as _cached
-from ..security import ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, get_current_user
+from ..security import ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, get_admin_user, get_current_user
 from ..settings import get_settings
 from ..utils.logger import get_logger
 
@@ -108,6 +108,13 @@ def _place_cache_set(key: str, value: Any) -> None:
 
 router = APIRouter()
 admin_router = APIRouter()
+
+
+@admin_router.get("/users")
+async def admin_users(current_user: dict = Depends(get_admin_user)):
+    """Return basic admin user list."""
+    return {"users": []}
+
 
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 

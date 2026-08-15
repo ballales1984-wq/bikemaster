@@ -99,14 +99,44 @@ function handleOAuthReturn() {
   }
 }
 window.addEventListener("hashchange", handleOAuthReturn);
+
+// Bfcache-safe SW update tracking.
+// When a new SW is found we send SKIP_WAITING but do NOT immediately reload.
+// The page may be entering or stored in the back/forward cache at that moment,
+// and a synchronous window.location.reload() during the freeze transition is
+// what triggers Chrome's "IgnoreEventAndEvict" bfcache error.
+// Instead we wait for the `controllerchange` event (which only fires while
+// the page is active) and only reload then — or on pageshow restore if the
+// new SW already took control while the page was in the cache.
+let swUpdatePending = false;
+
 window.addEventListener("pageshow", (event: PageTransitionEvent) => {
-  if (event.persisted) handleOAuthReturn();
+  if (event.persisted) {
+    if (swUpdatePending && navigator.serviceWorker?.controller) {
+      swUpdatePending = false;
+      window.location.reload();
+    }
+    handleOAuthReturn();
+  }
 });
 
 if ("serviceWorker" in navigator && !isTauri()) {
   navigator.serviceWorker
     .register("/sw.js?v=2", { scope: "/" })
     .then((reg) => {
+      // Reload only after the new SW has taken control AND the page is
+      // visible. `controllerchange` fires while the page is running
+      // (not frozen in bfcache), so this avoids the
+      // "IgnoreEventAndEvict" error that a synchronous reload would
+      // cause during the bfcache freeze transition.
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (!swUpdatePending) return;
+        if (document.visibilityState !== "visible") return;
+        swUpdatePending = false;
+        void reg.update();
+        window.location.reload();
+      });
+
       reg.addEventListener("updatefound", () => {
         const newWorker = reg.installing;
         if (newWorker) {
@@ -119,26 +149,30 @@ if ("serviceWorker" in navigator && !isTauri()) {
               navigator.serviceWorker.controller
             ) {
               if (hasPendingOAuth() || auth.justLoggedIn) {
+                // Defer SW activation until the OAuth round-trip is done
                 const attemptActivate = () => {
                   if (!hasPendingOAuth() && !auth.justLoggedIn) {
+                    swUpdatePending = true;
                     try {
                       newWorker.postMessage({ type: "SKIP_WAITING" });
                     } catch {
                       // message channel closed during SW update
                     }
-                    window.location.reload();
                   } else {
                     setTimeout(attemptActivate, 500);
                   }
                 };
                 setTimeout(attemptActivate, 500);
               } else {
+                swUpdatePending = true;
                 try {
                   newWorker.postMessage({ type: "SKIP_WAITING" });
                 } catch {
                   // message channel closed during SW update
                 }
-                window.location.reload();
+                // Do NOT reload here: controllerchange will fire once
+                // the new SW takes control, and we reload only when
+                // the page is visible — bfcache-safe.
               }
             }
           });
@@ -146,6 +180,7 @@ if ("serviceWorker" in navigator && !isTauri()) {
       });
       if (reg.waiting) {
         if (!hasPendingOAuth() && !auth.justLoggedIn) {
+          swUpdatePending = true;
           try {
             reg.waiting.postMessage({ type: "SKIP_WAITING" });
           } catch {

@@ -101,14 +101,18 @@ registerRoute(
       const cache = await caches.open(STATIC_CACHE);
       const cached = await cache.match("/index.html");
       if (cached) {
-        if (cached.redirected) {
-          return new Response(await cached.blob(), {
-            headers: cached.headers,
-            status: cached.status,
-            statusText: cached.statusText,
-          });
-        }
-        return cached;
+        const newHeaders = new Headers(cached.headers);
+        // Bfcache compatibility: Chrome will not store a page in the
+        // Back/Forward Cache if the document response carries
+        // `Cache-Control: no-store`. Replace it with `no-cache`, which
+        // allows bfcache while still forcing the SW to handle every
+        // navigation (we never serve stale HTML from the HTTP cache).
+        newHeaders.set("Cache-Control", "no-cache");
+        return new Response(await cached.text(), {
+          headers: newHeaders,
+          status: cached.status,
+          statusText: cached.statusText,
+        });
       }
     } catch (_) {
       /* cache error, fall through to offline response */

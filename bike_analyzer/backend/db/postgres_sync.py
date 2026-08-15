@@ -13,6 +13,17 @@ from .postgres_athlete import _connect, _safe_close
 _s = get_settings()
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "save_sync_entity_state",
+    "get_sync_entity_state",
+    "save_sync_setting",
+    "get_sync_setting",
+    "save_sync_conflict",
+    "get_pending_sync_entities",
+    "get_sync_conflicts",
+    "resolve_sync_conflict",
+]
+
 
 def _ensure_tables(conn) -> None:
     with conn.cursor() as cur:
@@ -143,9 +154,9 @@ def get_sync_setting(key: str) -> str | None:
 
 
 def save_sync_conflict(conflict: dict) -> int:
-    _ensure_tables(_connect())
     conn = _connect()
     try:
+        _ensure_tables(conn)
         now = datetime.now(UTC).isoformat()
         with conn.cursor() as cur:
             cur.execute(
@@ -168,5 +179,54 @@ def save_sync_conflict(conflict: dict) -> int:
         _safe_close(conn)
 
 
-__all__ = ["save_sync_entity_state", "get_sync_entity_state",
-           "save_sync_setting", "get_sync_setting", "save_sync_conflict"]
+def get_pending_sync_entities(entity_type: str | None = None) -> list[dict]:
+    conn = _connect()
+    try:
+        _ensure_tables(conn)
+        with conn.cursor() as cur:
+            if entity_type:
+                cur.execute(
+                    "SELECT * FROM sync_entity_state WHERE entity_type = %s AND sync_status IN ('pending', 'local')",
+                    (entity_type,),
+                )
+            else:
+                cur.execute(
+                    "SELECT * FROM sync_entity_state WHERE sync_status IN ('pending', 'local')"
+                )
+            rows = cur.fetchall()
+            return [dict(r) for r in rows]
+    finally:
+        _safe_close(conn)
+
+
+def get_sync_conflicts(unresolved_only: bool = True) -> list[dict]:
+    conn = _connect()
+    try:
+        _ensure_tables(conn)
+        with conn.cursor() as cur:
+            if unresolved_only:
+                cur.execute("SELECT * FROM sync_conflicts WHERE resolution = 'unresolved'")
+            else:
+                cur.execute("SELECT * FROM sync_conflicts")
+            rows = cur.fetchall()
+            return [dict(r) for r in rows]
+    finally:
+        _safe_close(conn)
+
+
+def resolve_sync_conflict(conflict_id: int, resolution: str, resolved_data: str, reason: str) -> None:
+    conn = _connect()
+    try:
+        _ensure_tables(conn)
+        now = datetime.now(UTC).isoformat()
+        with conn.cursor() as cur:
+            cur.execute(
+                """UPDATE sync_conflicts
+                SET resolution = %s, resolved_data = %s, resolution_reason = %s, updated_at = %s
+                WHERE id = %s""",
+                (resolution, resolved_data, reason, now, conflict_id),
+            )
+            conn.commit()
+    finally:
+        _safe_close(conn)
+

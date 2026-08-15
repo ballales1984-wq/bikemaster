@@ -209,6 +209,157 @@ POSTGRES_BACKENDS: dict[str, tuple[str, list[str]]] = {
             "record_maps_call",
         ],
     ),
+    # Beck Depression Inventory assessments
+    "beck": (
+        "bike_analyzer.backend.db.postgres_beck",
+        [
+            "save_beck_assessment",
+            "get_beck_assessment",
+            "get_beck_assessments_by_athlete",
+            "get_latest_beck_assessment",
+        ],
+    ),
+    # BLE devices
+    "ble": (
+        "bike_analyzer.backend.db.postgres_ble",
+        [
+            "register_ble_device",
+            "get_ble_devices",
+            "get_ble_device",
+            "update_ble_device",
+            "unregister_ble_device",
+            "mark_ble_device_connected",
+            "mark_ble_device_synced",
+        ],
+    ),
+    # Chat messages
+    "chat": (
+        "bike_analyzer.backend.db.postgres_chat",
+        [
+            "save_chat_message",
+            "get_chat_history",
+            "clear_chat_history",
+            "prune_chat_history",
+        ],
+    ),
+    # Fitness states
+    "fitness": (
+        "bike_analyzer.backend.db.postgres_fitness",
+        [
+            "get_fitness_states_by_athlete",
+        ],
+    ),
+    # Heart rate 24h samples + settings
+    "hr": (
+        "bike_analyzer.backend.db.postgres_hr",
+        [
+            "log_hr_sample",
+            "log_hr_samples",
+            "get_hr_24h_samples",
+            "get_hr_daily_summary",
+            "get_hr_settings",
+            "upsert_hr_settings",
+            "delete_hr_settings",
+            "delete_hr_samples",
+        ],
+    ),
+    # Legal / consent / audit
+    "legal": (
+        "bike_analyzer.backend.db.postgres_legal",
+        [
+            "save_consent",
+            "get_consent",
+            "get_consents_by_athlete",
+            "save_legal_acceptance",
+            "get_legal_acceptances_by_athlete",
+            "has_accepted_version",
+            "save_ai_audit_log",
+            "get_ai_audit_logs_by_athlete",
+        ],
+    ),
+    # Metabolic profile + food log
+    "metabolic": (
+        "bike_analyzer.backend.db.postgres_metabolic",
+        [
+            "save_metabolic_profile",
+            "get_metabolic_profile",
+            "save_food_log",
+            "get_food_logs_by_athlete_date",
+            "update_food_log",
+            "get_food_log",
+            "delete_food_log",
+            "save_metabolic_daily_summary",
+            "get_metabolic_daily_summaries",
+            "get_metabolic_daily_summary",
+            "upsert_metabolic_reference_value",
+            "get_metabolic_reference_value",
+            "get_all_metabolic_reference_values",
+            "save_metabolic_adaptive_weights",
+            "get_metabolic_adaptive_weights",
+            "get_food_logs_by_athlete",
+        ],
+    ),
+    # Nutrition food items
+    "nutrition": (
+        "bike_analyzer.backend.db.postgres_nutrition",
+        [
+            "seed_nutrition_food_items",
+            "search_nutrition_food_items",
+            "get_nutrition_food_item",
+            "list_nutrition_categories",
+            "save_nutrition_food_item",
+            "update_nutrition_food_item",
+            "delete_nutrition_food_item",
+        ],
+    ),
+    # Points of Interest
+    "poi": (
+        "bike_analyzer.backend.db.postgres_poi",
+        [
+            "save_poi",
+            "get_poi",
+            "get_nearby_pois",
+            "list_pois",
+            "delete_poi",
+        ],
+    ),
+    # Road incidents + route safety
+    "safety": (
+        "bike_analyzer.backend.db.postgres_safety",
+        [
+            "save_road_incident",
+            "save_route_safety_score",
+            "get_route_safety_score",
+        ],
+    ),
+    # Sensor data + activity classification
+    "sensor": (
+        "bike_analyzer.backend.db.postgres_sensor",
+        [
+            "log_sensor_data",
+            "classify_day",
+            "get_activity_summary",
+            "get_activity_classification",
+        ],
+    ),
+    # User OAuth credentials (per-provider tokens stored by user)
+    "user_oauth": (
+        "bike_analyzer.backend.db.postgres_user_oauth",
+        [
+            "get_user_oauth_credentials",
+            "get_all_user_oauth_credentials",
+            "save_user_oauth_credentials",
+            "delete_user_oauth_credentials",
+        ],
+    ),
+    # Weather cache
+    "weather": (
+        "bike_analyzer.backend.db.postgres_weather",
+        [
+            "get_weather_cache",
+            "save_weather_cache",
+        ],
+    ),
 }
 # NOTE: ``training_goals`` are persisted via ``postgres_db`` / ``async_db``
 # (SQLAlchemy) directly from routes — they have no SQLite twin in database.py,
