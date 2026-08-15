@@ -301,8 +301,8 @@ async def get_ride_segments(
 ):
     """Return point-to-point segments for a ride."""
     from bike_analyzer.backend.db.database import get_ride
+    from bike_analyzer.backend.processing.processing import build_segments
     from bike_analyzer.core.models import GPSPoint
-    from bike_analyzer.processing.processing import build_segments
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     ride = get_ride(ride_id, tenant_id=tenant_id)

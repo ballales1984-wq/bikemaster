@@ -186,3 +186,63 @@ async def get_import_providers(current_user: dict = Depends(get_current_user)):
         "garmin": False,
         "health_connect": False,
     }
+
+
+@router.get("/strava/auth")
+async def strava_auth():
+    return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.get("/strava/callback")
+async def strava_callback():
+    return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.get("/google-fit/auth")
+async def google_fit_auth():
+    return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.get("/google-fit/callback")
+async def google_fit_callback():
+    return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.get("/garmin/auth")
+async def garmin_auth():
+    return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.get("/garmin/callback")
+async def garmin_callback():
+    return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.get("/wahoo/auth")
+async def wahoo_auth():
+    return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.get("/wahoo/callback")
+async def wahoo_callback():
+    return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.delete("/strava/disconnect")
+async def strava_disconnect():
+    return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.delete("/google-fit/disconnect")
+async def google_fit_disconnect():
+    return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.delete("/garmin/disconnect")
+async def garmin_disconnect():
+    return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.delete("/wahoo/disconnect")
+async def wahoo_disconnect():
+    return JSONResponse(content={"detail": "Not implemented"})

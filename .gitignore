@@ -32,6 +32,8 @@ env/
 # Database
 *.db
 *.sqlite
+*.db-wal
+*.db-shm
 .chroma_db/
 
 # Secrets
