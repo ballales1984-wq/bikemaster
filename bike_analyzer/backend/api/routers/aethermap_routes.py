@@ -181,7 +181,7 @@ async def get_geo_peaks(
 
 @router.get("/geo/natural-earth")
 async def get_natural_earth(
-    resolution: str = Query("110m"),
+    resolution: str = Query("110"),
     current_user: dict = Depends(get_current_user),
 ):
     """Return Natural Earth vector data."""

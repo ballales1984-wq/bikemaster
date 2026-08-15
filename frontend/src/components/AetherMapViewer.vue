@@ -171,7 +171,7 @@ const geoLayers = computed<
 >(() => Array.from(layers.value.values()));
 
 onMounted(async () => {
-  await loadLayer("natural-earth", "natural-earth", { resolution: "110m" });
+  await loadLayer("natural-earth", "natural-earth", { resolution: "110" });
 });
 
 let geoBufferMap: Map<
