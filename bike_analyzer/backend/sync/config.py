@@ -120,11 +120,9 @@ def load_sync_config() -> SyncSettings:
         if raw:
             data = json.loads(raw)
             if data.get("auth_token"):
-                try:
-                    from ..db.token_crypto import decrypt_token
-                    data["auth_token"] = decrypt_token(data["auth_token"])
-                except Exception:
-                    pass
+                from ..db.token_crypto import decrypt_token
+
+                data["auth_token"] = decrypt_token(data["auth_token"])
             _settings_cache = SyncSettings.from_dict(data)
             return _settings_cache
     except Exception:
@@ -141,11 +139,9 @@ def save_sync_config(settings: SyncSettings) -> None:
 
         data = settings.to_dict()
         if data.get("auth_token"):
-            try:
-                from ..db.token_crypto import encrypt_token
-                data["auth_token"] = encrypt_token(data["auth_token"])
-            except Exception:
-                pass
+            from ..db.token_crypto import encrypt_token
+
+            data["auth_token"] = encrypt_token(data["auth_token"])
         save_sync_setting("user_preferences", json.dumps(data))
     except Exception:
         pass

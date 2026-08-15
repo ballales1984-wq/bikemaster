@@ -142,6 +142,7 @@ async def osm_places_search(
     lon: float = Query(...),
     query: str = Query(...),
     limit: int = Query(10),
+    current_user: dict = Depends(get_current_user),
 ):
     """OpenStreetMap Nominatim search for places. No API key required."""
     cache_key_str = f"places:osm:{query}:{round(lat, 3)}:{round(lon, 3)}:{limit}"

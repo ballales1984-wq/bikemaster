@@ -1,4 +1,6 @@
+import logging
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -7,6 +9,8 @@ from pathlib import Path
 
 import pytest
 from starlette.testclient import TestClient
+
+logger = logging.getLogger(__name__)
 
 # Some environments (e.g. cloud/IDE-backed workspaces) may expose certain
 # source files with a non-readable working-tree copy while the git object
@@ -28,11 +32,13 @@ def _load_locked_modules() -> None:
         if os.access(abspath, os.R_OK):
             continue
         try:
-            out = subprocess.run(
-                ["git", "-C", root, "cat-file", "-p", "HEAD:" + relpath],
+            git_path = shutil.which("git") or "git"
+            out = subprocess.run(  # noqa: S603
+                [git_path, "-C", root, "cat-file", "-p", "HEAD:" + relpath],
                 capture_output=True,
             ).stdout.decode("utf-8")
         except Exception:
+            logger.debug("Failed to load locked module %s from git", relpath, exc_info=True)
             continue
         if not out:
             continue
@@ -41,17 +47,17 @@ def _load_locked_modules() -> None:
         mod.__package__ = modname.rpartition(".")[0]
         mod.__loader__ = None
         try:
-            exec(compile(out, abspath, "exec"), mod.__dict__)
+            exec(compile(out, abspath, "exec"), mod.__dict__)  # noqa: S102
         except Exception:
-            continue
+            logger.debug("Failed to exec locked module %s", relpath, exc_info=True)
         sys.modules[modname] = mod
 
 
 _load_locked_modules()
 
-os.environ["SECRET_KEY"] = "test-secret-key-for-jwt-testing-123456"
+os.environ["SECRET_KEY"] = "test-secret-key-for-jwt-testing-123456"  # noqa: S105
 os.environ["ALGORITHM"] = "HS256"
-os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "30"
+os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "30"  # noqa: S105
 os.environ["JWT_ISSUER"] = "test-issuer"
 os.environ["JWT_AUDIENCE"] = "test-audience"
 os.environ["GROQ_API_KEY"] = "test-key-for-unit-tests"
@@ -66,7 +72,7 @@ os.environ.pop("DATABASE_URL_UNPOOLED", None)
 os.environ["DATABASE_URL"] = ""
 os.environ["DATABASE_URL_UNPOOLED"] = ""
 
-_TMP = Path(os.environ.get("TEMP", "/tmp")) / "bikemaster_test_dbs"
+_TMP = Path(os.environ.get("TEMP", "/tmp")) / "bikemaster_test_dbs"  # noqa: S108
 _TMP.mkdir(exist_ok=True)
 
 
@@ -111,7 +117,7 @@ def reset_rate_limiter():
         with get_db_connection() as conn:
             conn.execute("DELETE FROM rate_limits")
             conn.commit()
-    except Exception:
+    except Exception:  # noqa: S110
         pass
     try:
         import asyncio
@@ -130,7 +136,7 @@ def reset_rate_limiter():
             loop.run_until_complete(_clear())
         except RuntimeError:
             asyncio.run(_clear())
-    except Exception:
+    except Exception:  # noqa: S110
         pass
     yield
 
@@ -157,7 +163,7 @@ def reset_database_url_and_async_engine():
 
         async_db_mod._engine = None
         async_db_mod._session_factory = None
-    except Exception:
+    except Exception:  # noqa: S110
         pass
     yield
     os.environ.pop("DATABASE_URL", None)
@@ -169,7 +175,7 @@ def reset_database_url_and_async_engine():
 
         async_db_mod._engine = None
         async_db_mod._session_factory = None
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
 

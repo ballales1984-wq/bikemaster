@@ -168,7 +168,7 @@ def _validate_redirect_uri(redirect_uri: str, request: Request) -> None:
     except Exception:
         logger.debug("Failed to parse CORS origins", exc_info=True)
     configured_hosts = set(getattr(_s, "oauth_allowed_hosts_list", []))
-    localhost_ports = {"localhost", "127.0.0.1", "0.0.0.0"}
+    localhost_ports = {"localhost", "127.0.0.1", "0.0.0.0"}  # noqa: B104
     if host_lower in localhost_ports:
         return
     allowed_hosts = (

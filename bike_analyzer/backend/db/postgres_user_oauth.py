@@ -76,11 +76,9 @@ def save_user_oauth_credentials(user_id: int, provider: str, data: dict) -> None
         now = datetime.now(UTC).isoformat()
         client_secret = data.get("client_secret", "")
         if client_secret:
-            try:
-                from ..db.token_crypto import encrypt_token
-                client_secret = encrypt_token(client_secret)
-            except Exception:
-                pass
+            from ..db.token_crypto import encrypt_token
+
+            client_secret = encrypt_token(client_secret)
         with conn.cursor() as cur:
             cur.execute(
                 """

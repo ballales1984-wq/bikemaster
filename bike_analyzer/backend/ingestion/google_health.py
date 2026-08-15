@@ -7,7 +7,7 @@ import contextlib
 import hashlib
 import secrets
 import urllib.parse
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as ET
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -180,7 +180,7 @@ def _parse_tcx_time(value: str | None) -> datetime | None:
 def tcx_to_points(tcx_content: str) -> list[dict[str, Any]]:
     if not tcx_content:
         return []
-    root = ET.fromstring(tcx_content)  # noqa: S314
+    root = ET.fromstring(tcx_content)
     points: list[dict[str, Any]] = []
 
     for trackpoint in root.iter():

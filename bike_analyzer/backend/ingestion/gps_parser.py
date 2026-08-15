@@ -51,11 +51,9 @@ def douglas_peucker(points: list[dict], tolerance: float = 0.00005) -> list[dict
 
 
 def parse_gpx_file(content: str) -> list[dict]:
-    import re
-    import xml.etree.ElementTree as ET
+    from defusedxml import ElementTree as ET
 
-    content = re.sub(r"<!DOCTYPE[^>]*?>", "", content, flags=re.IGNORECASE | re.DOTALL)
-    root = ET.fromstring(content)  # noqa: S314
+    root = ET.fromstring(content)
     points, ns = [], {"d": "http://www.topografix.com/GPX/1/1"}
     for trkpt in root.findall(".//d:trkpt", ns):
         lat_raw, lon_raw = trkpt.get("lat"), trkpt.get("lon")
@@ -87,11 +85,12 @@ def parse_tcx_file(content: str) -> list[dict]:
     shape matches :func:`parse_gpx_file` so it can feed ``points_to_ride``.
     """
     import re
-    import xml.etree.ElementTree as ET
+
+    from defusedxml import ElementTree as ET
 
     content = re.sub(r"<!DOCTYPE[^>]*?>", "", content, flags=re.IGNORECASE | re.DOTALL)
     try:
-        root = ET.fromstring(content)  # noqa: S314
+        root = ET.fromstring(content)
     except ET.ParseError:
         return []
     points = []

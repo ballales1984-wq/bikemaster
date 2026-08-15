@@ -33,8 +33,7 @@ async def _validate_file_size(file: UploadFile) -> None:
 
 
 @router.get("/providers")
-async def list_import_providers():
-    """Return the list of available import providers based on configuration."""
+async def get_import_providers(current_user: dict = Depends(get_current_user)):
     return {
         "strava": bool(_s.strava_client_id and _s.strava_client_secret),
         "google_fit": bool(_s.google_fit_client_id and _s.google_fit_client_secret),
@@ -174,18 +173,6 @@ async def import_multiple(
         except Exception as exc:
             failed.append({"name": file.filename, "error": str(exc)})
     return JSONResponse(content={"imported": imported, "failed": failed})
-
-
-@router.get("/providers")
-async def get_import_providers(current_user: dict = Depends(get_current_user)):
-    return {
-        "google_fit": True,
-        "google_health": False,
-        "wahoo": False,
-        "strava": False,
-        "garmin": False,
-        "health_connect": False,
-    }
 
 
 @router.get("/strava/auth")

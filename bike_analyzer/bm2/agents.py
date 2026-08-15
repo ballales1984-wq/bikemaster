@@ -7,7 +7,7 @@ Each agent encapsulates a data source (GPS, athlete, environment, sensors) and
 
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 from datetime import UTC, datetime
 from typing import Any
 

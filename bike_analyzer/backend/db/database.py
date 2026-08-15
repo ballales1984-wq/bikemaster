@@ -1305,7 +1305,7 @@ def get_user_oauth_credentials(user_id: int, provider: str) -> dict | None:
 
                     creds["client_secret"] = decrypt_token(creds["client_secret"])
                 except Exception:
-                    pass
+                    logger.debug("Failed to decrypt client_secret for user %s provider %s", user_id, provider, exc_info=True)
             return creds
         return None
 
@@ -1325,12 +1325,9 @@ def save_user_oauth_credentials(user_id: int, provider: str, data: dict) -> None
     now = datetime.now(UTC).isoformat()
     client_secret = data.get("client_secret", "")
     if client_secret:
-        try:
-            from ..db.token_crypto import encrypt_token
+        from ..db.token_crypto import encrypt_token
 
-            client_secret = encrypt_token(client_secret)
-        except Exception:
-            pass
+        client_secret = encrypt_token(client_secret)
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(

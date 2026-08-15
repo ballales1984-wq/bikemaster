@@ -363,7 +363,7 @@ def _load_local_entity(entity_type: str, entity_id: int) -> dict[str, Any] | Non
             return None
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute(f"SELECT * FROM {table} WHERE id = ?", (entity_id,))
+            cur.execute(f"SELECT * FROM {table} WHERE id = ?", (entity_id,))  # noqa: B608
             row = cur.fetchone()
             if row:
                 return dict(row)
