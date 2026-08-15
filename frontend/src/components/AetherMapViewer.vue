@@ -492,11 +492,6 @@ function faceLatLonBounds(face: number): {
   }
   return { minLat, maxLat, minLon, maxLon };
 }
-  const wrapped = lons.map((lon) => ((((lon + 180) % 360) + 360) % 360) - 180);
-  minLon = Math.min(...wrapped);
-  maxLon = Math.max(...wrapped);
-  return { minLat, maxLat, minLon, maxLon };
-}
 
 function buildTerrainMesh(tiles: (Float32Array | null)[], N: number) {
   const verts: Vec3[][][] = [];
