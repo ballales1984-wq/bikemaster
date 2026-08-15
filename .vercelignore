@@ -11,3 +11,4 @@ aethermap/
 docker/
 docs/
 tests/
+.claude/

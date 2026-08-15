@@ -43,6 +43,9 @@ env/
 .kilo/plans/
 .kilo/agent/
 
+# Claude Code skills and config (local-only, not part of the app)
+.claude/
+
 # IDE
 .vscode/
 .idea/
