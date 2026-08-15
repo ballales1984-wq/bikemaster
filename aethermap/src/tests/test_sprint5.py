@@ -10,7 +10,9 @@ from aethermap.ai.road_segmenter import RoadSurfaceSegmenter, _extract_segment_f
 from aethermap.ai.traffic_classifier import TrafficClassifier, _extract_traffic_features
 
 
-def _point(lat: float, lon: float, ele: float | None = None, speed: float | None = None, t: datetime | None = None) -> RawPoint:
+def _point(
+    lat: float, lon: float, ele: float | None = None, speed: float | None = None, t: datetime | None = None
+) -> RawPoint:
     return RawPoint(
         lat=lat,
         lon=lon,

@@ -11,8 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from aethermap.ai.models import Oggetto, Stato
-from aethermap.data.store import SpatialStore, WorldStore
+from aethermap.ai.models import Stato
 from aethermap.twin.world import DigitalTwin
 
 logger = logging.getLogger(__name__)

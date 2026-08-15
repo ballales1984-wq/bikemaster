@@ -59,8 +59,6 @@ def _extract_segment_features(points: list[RawPoint]) -> SegmentFeatures:
     if n < 2:
         return SegmentFeatures(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, n)
 
-    lats = np.array([p.lat for p in points], dtype=np.float64)
-    lons = np.array([p.lon for p in points], dtype=np.float64)
     eles = np.array([p.ele if p.ele is not None else 0.0 for p in points], dtype=np.float64)
 
     slopes: list[float] = []

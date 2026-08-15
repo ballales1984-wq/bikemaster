@@ -1,6 +1,7 @@
 """Tests for analytics module coverage gaps."""
 
 import csv
+import os
 import tempfile
 from datetime import UTC, datetime
 
@@ -115,17 +116,13 @@ class TestSerialization:
     def test_csv_headers_are_consistent(self):
         rides = [_make_ride()]
         csv_str = rides_to_csv(rides)
-        out = tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w", newline="", encoding="utf-8")
-        try:
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w", newline="", encoding="utf-8") as out:
             export_rides_csv(rides, out.name)
             with open(out.name, newline="", encoding="utf-8") as f:
                 file_header = f.readline().strip()
             str_header = csv_str.splitlines()[0].strip()
             assert str_header == file_header
-        finally:
-            out.close()
-            import os as _os
-            _os.unlink(out.name)
+        os.unlink(out.name)
 
 
 class TestExportFunctions:

@@ -210,6 +210,7 @@ def get_valid_token(athlete_id: int, client_id: str | None = None, client_secret
     if not row:
         return None
     access_token, refresh_token = row.get("access_token", ""), row.get("refresh_token", "")
+    expires_at = row.get("expires_at")
     try:
         from ..db.token_crypto import decrypt_token
         if access_token:
@@ -223,9 +224,9 @@ def get_valid_token(athlete_id: int, client_id: str | None = None, client_secret
     if expires_at and expires_at - time.time() < TOKEN_REFRESH_BUFFER_SECONDS:
         try:
             new_data = refresh_access_token(
-                refresh_token or "", code_verifier, client_id=client_id, client_secret=client_secret
+                refresh_token or "", client_id=client_id, client_secret=client_secret
             )
-            store_token(athlete_id, new_data, code_verifier=code_verifier)
+            store_token(athlete_id, new_data)
             return new_data.get("access_token")
         except Exception:
             logger.exception("Failed to refresh Wahoo token for athlete %s", athlete_id)

@@ -9,7 +9,6 @@ in ``database.py`` and are dispatched to PostgreSQL via ``@pg_dispatch`` when
 from __future__ import annotations
 
 from ...db.database import (
-    _row_to_calendar_event,
     delete_calendar_event,
     get_calendar_event,
     get_events_by_athlete,

@@ -4,22 +4,18 @@ from __future__ import annotations
 import math
 from datetime import UTC, datetime
 
-import pytest
-
 from aethermap.core.earth_model import (
     EARTH,
     EARTH_RADIUS_AUTHALIC,
     EARTH_RADIUS_MEAN,
     EARTH_RADIUS_VOLUMETRIC,
     CompositeHeightfield,
-    EGM2008Geoid,
     EGM96Geoid,
-    GeoidModel,
+    EGM2008Geoid,
     HeightSample,
-    Heightfield,
     ProceduralHeightfield,
-    gravity_wgs84,
     geoid_height,
+    gravity_wgs84,
     set_geoid,
 )
 
@@ -174,7 +170,10 @@ class TestHeightSample:
 class TestEarthConstants:
     def test_radius_constants_order(self):
         # semi_major > mean > authalic > volumetric > semi_minor for WGS84
-        assert EARTH.semi_major_axis > EARTH_RADIUS_MEAN > EARTH_RADIUS_AUTHALIC > EARTH_RADIUS_VOLUMETRIC > EARTH.semi_minor_axis
+        assert (
+            EARTH.semi_major_axis > EARTH_RADIUS_MEAN > EARTH_RADIUS_AUTHALIC
+            > EARTH_RADIUS_VOLUMETRIC > EARTH.semi_minor_axis
+        )
 
     def test_earth_params_defaults(self):
         assert EARTH.semi_major_axis == 6378137.0

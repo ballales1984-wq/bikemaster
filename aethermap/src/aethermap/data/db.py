@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 import math
 import sqlite3
+from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Generator, Iterator
+from typing import Any
 
 from aethermap.ai.models import Oggetto, Stato
-
 
 _DB_FILENAME = "aethermap.db"
 _SCHEMA_VERSION = 1
@@ -61,7 +61,10 @@ _CREATE_IDX_CUBE = "CREATE INDEX IF NOT EXISTS idx_objects_cube ON objects(cube_
 _CREATE_IDX_ECEF = "CREATE INDEX IF NOT EXISTS idx_objects_ecef ON objects(ecef_x, ecef_y, ecef_z)"
 
 _INSERT_OBJECT = """\
-INSERT OR REPLACE INTO objects (id, tipo, lat, lon, alt, s2, h3, cube_face, cube_level, cube_u, cube_v, ecef_x, ecef_y, ecef_z, data)
+INSERT OR REPLACE INTO objects (
+    id, tipo, lat, lon, alt, s2, h3, cube_face, cube_level,
+    cube_u, cube_v, ecef_x, ecef_y, ecef_z, data
+)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 """
 

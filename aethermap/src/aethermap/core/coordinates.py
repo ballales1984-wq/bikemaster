@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Optional
 
 WGS84_A = 6378137.0
 WGS84_F = 1.0 / 298.257223563
@@ -234,7 +233,6 @@ def cube_to_geodetic(cell: CubeCell, alt: float = 0.0) -> Geodetic:
 def direction_to_cube(dx: float, dy: float, dz: float, level: int = 0) -> CubeCell:
     """Convert unit direction vector to cube-sphere cell."""
     face = _face_for_direction(dx, dy, dz)
-    adx, ady, adz = abs(dx), abs(dy), abs(dz)
     if face in (0, 1):
         s = dx if dx > 0 else -dx
         u, v = dy / s, dz / s

@@ -243,7 +243,11 @@ async def generate_ride_map(
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     ride = _get_ride(ride_id, tenant_id=tenant_id)
-    print(f"DEBUG map endpoint: ride_id={ride_id}, get_ride={_get_ride}, gps_points type={type(ride.get('gps_points'))}, len={len(ride.get('gps_points') or [])}")
+    print(
+        f"DEBUG map endpoint: ride_id={ride_id}, get_ride={_get_ride}, "
+        f"gps_points type={type(ride.get('gps_points'))}, "
+        f"len={len(ride.get('gps_points') or [])}"
+    )
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
     gps_points = ride.get("gps_points")
@@ -262,9 +266,8 @@ async def generate_ride_map(
     points = [GPSPoint(**p) for p in normalized]
 
     if provider == "aethermap":
-        stats = None
         if ride.get("distance_km") and ride.get("duration_minutes"):
-            stats = RouteStatistics(
+            RouteStatistics(
                 total_distance_m=ride.get("distance_km", 0.0) * 1000.0,
                 total_duration_s=ride.get("duration_minutes", 0.0) * 60.0,
                 avg_speed_km_h=ride.get("avg_speed_kmh", 0.0),
@@ -289,3 +292,43 @@ async def generate_ride_map(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Map generation failed: {exc}") from exc
     return {"map_url": f"/static/{resolved.name}", "engine": "folium"}
+
+
+@router.get("/rides/{ride_id}/segments")
+async def get_ride_segments(
+    ride_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Return point-to-point segments for a ride."""
+    from bike_analyzer.backend.db.database import get_ride
+    from bike_analyzer.core.models import GPSPoint
+    from bike_analyzer.processing.processing import build_segments
+
+    tenant_id = current_user.get("tenant_id", current_user["id"])
+    ride = get_ride(ride_id, tenant_id=tenant_id)
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    gps_points = ride.get("gps_points")
+    if not gps_points:
+        raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    if isinstance(gps_points, str):
+        gps_points = json.loads(gps_points)
+
+    points = [GPSPoint(**p) for p in gps_points]
+    segments = build_segments(points)
+    return {
+        "segments": [
+            {
+                "start_lat": s.start.lat,
+                "start_lon": s.start.lon,
+                "end_lat": s.end.lat,
+                "end_lon": s.end.lon,
+                "distance_m": s.distance_m,
+                "duration_s": s.duration_s,
+                "avg_speed_km_h": s.avg_speed_km_h,
+                "elevation_gain_m": s.elevation_gain_m,
+                "elevation_loss_m": s.elevation_loss_m,
+            }
+            for s in segments
+        ]
+    }

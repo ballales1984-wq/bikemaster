@@ -16,9 +16,9 @@ from __future__ import annotations
 
 import math
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Callable, Optional
 
 from aethermap.core.coordinates import (
     EARTH_RADIUS_MEAN,
@@ -26,7 +26,6 @@ from aethermap.core.coordinates import (
     WGS84_B,
     WGS84_E2,
     WGS84_F,
-    Geodetic,
 )
 
 # ---------------------------------------------------------------------------
@@ -67,17 +66,19 @@ class EarthParams:
 
     def surface_area(self) -> float:
         """Total surface area of the ellipsoid (m²)."""
-        a, b = self.semi_major_axis, self.semi_minor_axis
+        a = self.semi_major_axis
         e2 = self.eccentricity_squared
         e = math.sqrt(e2)
         return 2.0 * math.pi * a**2 * (1.0 + (1.0 - e2) / e * math.atanh(e))
 
     def meridian_arc_length(self, lat1: float, lat2: float) -> float:
         """Length of meridian arc between two geodetic latitudes (meters)."""
-        a, b = self.semi_major_axis, self.semi_minor_axis
+        a = self.semi_major_axis
         e2 = self.eccentricity_squared
         lat1_r, lat2_r = math.radians(lat1), math.radians(lat2)
-        m = lambda lat_r: a * (1.0 - e2) / (1.0 - e2 * math.sin(lat_r) ** 2) ** 1.5
+
+        def m(lat_r: float) -> float:
+            return a * (1.0 - e2) / (1.0 - e2 * math.sin(lat_r) ** 2) ** 1.5
         steps = 1000
         total = 0.0
         for i in range(steps):
@@ -167,20 +168,20 @@ class Heightfield(ABC):
     """
 
     @abstractmethod
-    def sample(self, lat: float, lon: float, t: Optional[datetime] = None) -> float:
+    def sample(self, lat: float, lon: float, t: datetime | None = None) -> float:
         """Return elevation at (lat, lon) at time t (meters above ellipsoid)."""
         ...
 
     @abstractmethod
     def sample_batch(
-        self, points: list[tuple[float, float]], t: Optional[datetime] = None
+        self, points: list[tuple[float, float]], t: datetime | None = None
     ) -> list[float]:
         """Batch version for performance."""
         ...
 
     @abstractmethod
     def gradient(
-        self, lat: float, lon: float, t: Optional[datetime] = None
+        self, lat: float, lon: float, t: datetime | None = None
     ) -> tuple[float, float]:
         """Return (dF/dλ, dF/dφ) — gradient for slope/normal calculations."""
         ...
@@ -209,16 +210,16 @@ class ProceduralHeightfield(Heightfield):
         self.amplitude = amplitude
         self._rng = _seed_rng(seed)
 
-    def sample(self, lat: float, lon: float, t: Optional[datetime] = None) -> float:
+    def sample(self, lat: float, lon: float, t: datetime | None = None) -> float:
         return self._fbm(lat, lon) * self.amplitude
 
     def sample_batch(
-        self, points: list[tuple[float, float]], t: Optional[datetime] = None
+        self, points: list[tuple[float, float]], t: datetime | None = None
     ) -> list[float]:
         return [self.sample(lat, lon, t) for lat, lon in points]
 
     def gradient(
-        self, lat: float, lon: float, t: Optional[datetime] = None
+        self, lat: float, lon: float, t: datetime | None = None
     ) -> tuple[float, float]:
         eps = 0.0001
         df_dlat = (self._fbm(lat + eps, lon) - self._fbm(lat - eps, lon)) / (2.0 * eps)
@@ -243,16 +244,16 @@ class CompositeHeightfield(Heightfield):
         """Initialize with (heightfield, weight) tuples."""
         self.layers = layers
 
-    def sample(self, lat: float, lon: float, t: Optional[datetime] = None) -> float:
+    def sample(self, lat: float, lon: float, t: datetime | None = None) -> float:
         return sum(hf.sample(lat, lon, t) * w for hf, w in self.layers)
 
     def sample_batch(
-        self, points: list[tuple[float, float]], t: Optional[datetime] = None
+        self, points: list[tuple[float, float]], t: datetime | None = None
     ) -> list[float]:
         return [self.sample(lat, lon, t) for lat, lon in points]
 
     def gradient(
-        self, lat: float, lon: float, t: Optional[datetime] = None
+        self, lat: float, lon: float, t: datetime | None = None
     ) -> tuple[float, float]:
         gx, gy = 0.0, 0.0
         for hf, w in self.layers:
@@ -296,7 +297,7 @@ def gravity_wgs84(lat: float, alt: float = 0.0) -> float:
 # Utility: simple PRNG for procedural generation
 # ---------------------------------------------------------------------------
 
-def _seed_rng(seed: int) -> "_Random":
+def _seed_rng(seed: int) -> Callable[[], float]:
     """Simple linear congruential generator for procedural noise."""
     state = seed & 0xFFFFFFFF
 

@@ -134,7 +134,9 @@ def make_poi(id_: str, lat: float, lon: float, nome: str, categoria: str, descri
     return p
 
 
-def make_perorso(id_: str, lat: float, lon: float, pts: list[dict], distanza_km: float, dislivello_m: float) -> Percorso:
+def make_perorso(
+    id_: str, lat: float, lon: float, pts: list[dict], distanza_km: float, dislivello_m: float
+) -> Percorso:
     geom = __import__("aethermap.ai.models", fromlist=["Geometria"]).Geometria(
         tipo="linea", dati={"punti": pts}
     )

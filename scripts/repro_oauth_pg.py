@@ -3,20 +3,27 @@
 Mirrors the exact sequence used by google_code_exchange/_create_athlete in
 routes.py (lines ~1965-2032): save_athlete -> update_athlete(tenant_id) -> get_athlete.
 """
-import os, traceback
+import asyncio
+import os
+import traceback
+
+from bike_analyzer.backend.db.async_db import init_async_db  # noqa: E402
 
 os.environ["DATABASE_URL"] = "postgresql://postgres@127.0.0.1:5433/postgres"
 os.environ["GOOGLE_CLIENT_ID"] = "x"
 os.environ["GOOGLE_CLIENT_SECRET"] = "x"
 
-from bike_analyzer.backend.db.async_db import init_async_db
-import asyncio
 asyncio.run(init_async_db())
 print("schema created")
 
-from bike_analyzer.backend.db.postgres_athlete import (
-    has_postgres, save_athlete, get_athlete, get_athlete_by_email, update_athlete
+from bike_analyzer.backend.db.postgres_athlete import (  # noqa: E402
+    get_athlete,
+    get_athlete_by_email,
+    has_postgres,
+    save_athlete,
+    update_athlete,
 )
+
 print("has_postgres =", has_postgres())
 
 # The exact dict built in routes.py google_code_exchange _create_athlete()

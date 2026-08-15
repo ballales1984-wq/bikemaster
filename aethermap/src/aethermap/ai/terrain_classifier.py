@@ -12,7 +12,6 @@ Interfaccia stabile: `TerrainClassifier.classify(points) -> dict`.
 from __future__ import annotations
 
 import json
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -58,8 +57,6 @@ def extract_terrain_features(points: list[RawPoint]) -> TerrainFeatures:
     if n == 1:
         return TerrainFeatures(1, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
 
-    lats = np.array([p.lat for p in points], dtype=np.float64)
-    lons = np.array([p.lon for p in points], dtype=np.float64)
     eles = np.array([p.ele if p.ele is not None else 0.0 for p in points], dtype=np.float64)
 
     slopes = []

@@ -160,7 +160,8 @@ def get_events_by_date_range(
                 )
             else:
                 cur.execute(
-                    "SELECT * FROM calendar_events WHERE athlete_id = %s AND date >= %s AND date <= %s ORDER BY date ASC",
+                    "SELECT * FROM calendar_events WHERE athlete_id = %s "
+                    "AND date >= %s AND date <= %s ORDER BY date ASC",
                     (athlete_id, start_date, end_date),
                 )
             rows = cur.fetchall()

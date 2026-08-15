@@ -36,6 +36,8 @@ from pydantic import ValidationError
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
+from bike_analyzer.backend.trusted_proxies import trusted_forwarded_value as _trusted_forwarded_value
+
 from ..logging_config import REQUEST_ID_HEADER
 from ..monitoring import MetricsMiddleware
 from ..observability import init_observability
@@ -69,7 +71,6 @@ from .routers.traffic_routes import router as traffic_router
 from .routers.training_routes import router as training_router
 from .routers.weather_routes import router as weather_router
 from .routes import admin_router, router
-from bike_analyzer.backend.trusted_proxies import trusted_forwarded_value as _trusted_forwarded_value
 
 logger = logging.getLogger(__name__)
 
@@ -188,14 +189,14 @@ async def lifespan(app: FastAPI):
             logger.info("Persistent disk verified at %s", db_dir)
         except Exception:
             msg = (
-                "PERSISTENT DISK NOT MOUNTED: cannot write to %s. "
+                f"PERSISTENT DISK NOT MOUNTED: cannot write to {db_dir}. "
                 "SQLite data (calendar, local cache) will be lost on container resume. "
                 "Check Render disk configuration and DB_PATH env var."
-            ) % db_dir
+            )
             logger.error(msg)
             _log_flush(f"CRITICAL: {msg}")
             if is_prod:
-                raise RuntimeError(msg)
+                raise RuntimeError(msg) from None
 
     async def _run_migrations_bg() -> None:
         if not _s.database_url:

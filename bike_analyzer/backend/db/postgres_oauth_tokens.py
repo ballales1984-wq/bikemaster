@@ -17,7 +17,6 @@ from datetime import UTC, datetime
 
 from .postgres_athlete import _connect, _safe_close, has_postgres
 
-
 __all__ = [
     "save_strava_token",
     "get_strava_token",

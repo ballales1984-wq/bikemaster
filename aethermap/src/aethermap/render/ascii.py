@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import numpy as np
-
 from aethermap.render.camera import Camera
 from aethermap.render.projection import cube_sphere_mesh, project_ecef
 from aethermap.render.scene import Scene

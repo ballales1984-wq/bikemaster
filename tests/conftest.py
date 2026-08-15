@@ -99,7 +99,7 @@ def db_path():
 
 @pytest.fixture(autouse=True)
 def reset_rate_limiter():
-    from bike_analyzer.backend.rate_limiter import limiter, _USER_RATE_LIMITS
+    from bike_analyzer.backend.rate_limiter import _USER_RATE_LIMITS, limiter
     from bike_analyzer.backend.redis_client import _MEMORY_RATELIMIT
 
     limiter.reset()
@@ -115,6 +115,7 @@ def reset_rate_limiter():
         pass
     try:
         import asyncio
+
         from bike_analyzer.backend.redis_client import get_redis
 
         async def _clear():

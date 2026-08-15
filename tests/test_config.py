@@ -24,7 +24,7 @@ def test_settings_exposes_expected_constants():
     assert s.access_token_expire_minutes == 30
     assert isinstance(s.cors_origins, str)
     assert len(s.cors_origins) > 0
-    assert s.groq_model == "llama-3.3-70b-versatile"
+    assert s.groq_model == "openai/gpt-oss-120b"
 
 
 def test_production_without_database_url_uses_sqlite_primary(caplog):

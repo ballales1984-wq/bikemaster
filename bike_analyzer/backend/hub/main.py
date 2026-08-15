@@ -27,26 +27,9 @@ from fastapi import FastAPI, Request
 from prometheus_fastapi_instrumentator import Instrumentator, metrics
 from pydantic import ValidationError
 
-from bike_analyzer.backend.db.async_db import init_async_db
-from bike_analyzer.backend.hub.routes import hub_router
-from bike_analyzer.backend.hub.sync_routes import hub_sync_router
-from bike_analyzer.backend.observability import init_observability
-from bike_analyzer.backend.rate_limiter import limiter
-from bike_analyzer.backend.redis_client import close_redis, get_redis
-from bike_analyzer.backend.settings import get_settings
-from bike_analyzer.backend.task_queue import get_task_queue
-
-# ---------------------------------------------------------------------------
-# API v1 domain routers (shared with the local app via app_factory.py).
-# The hub provides its own PostgreSQL-backed auth/admin/knowledge/sync routers
-# (via hub_router and hub_sync_router), so we exclude the conflicting local
-# auth_router, knowledge_router, admin_router — and the main router's /health
-# replaces the hub's direct /api/v1/health endpoint below.
-# ---------------------------------------------------------------------------
-from bike_analyzer.backend.api.routes import router as main_router
-from bike_analyzer.backend.api.routers.athlete_routes import router as athlete_router
 from bike_analyzer.backend.api.routers.aethermap_routes import router as aethermap_router
 from bike_analyzer.backend.api.routers.analytics_routes import router as analytics_router
+from bike_analyzer.backend.api.routers.athlete_routes import router as athlete_router
 from bike_analyzer.backend.api.routers.badges_routes import router as badges_router
 from bike_analyzer.backend.api.routers.beck_routes import router as beck_router
 from bike_analyzer.backend.api.routers.ble_routes import router as ble_router
@@ -67,6 +50,23 @@ from bike_analyzer.backend.api.routers.sync_routes import router as local_sync_r
 from bike_analyzer.backend.api.routers.traffic_routes import router as traffic_router
 from bike_analyzer.backend.api.routers.training_routes import router as training_router
 from bike_analyzer.backend.api.routers.weather_routes import router as weather_router
+
+# ---------------------------------------------------------------------------
+# API v1 domain routers (shared with the local app via app_factory.py).
+# The hub provides its own PostgreSQL-backed auth/admin/knowledge/sync routers
+# (via hub_router and hub_sync_router), so we exclude the conflicting local
+# auth_router, knowledge_router, admin_router — and the main router's /health
+# replaces the hub's direct /api/v1/health endpoint below.
+# ---------------------------------------------------------------------------
+from bike_analyzer.backend.api.routes import router as main_router
+from bike_analyzer.backend.db.async_db import init_async_db
+from bike_analyzer.backend.hub.routes import hub_router
+from bike_analyzer.backend.hub.sync_routes import hub_sync_router
+from bike_analyzer.backend.observability import init_observability
+from bike_analyzer.backend.rate_limiter import limiter
+from bike_analyzer.backend.redis_client import close_redis, get_redis
+from bike_analyzer.backend.settings import get_settings
+from bike_analyzer.backend.task_queue import get_task_queue
 
 logger = logging.getLogger(__name__)
 _s = get_settings()
@@ -120,10 +120,10 @@ async def lifespan(app: FastAPI):
             logger.info("Persistent disk verified at %s", db_dir)
         except Exception:
             msg = (
-                "PERSISTENT DISK NOT MOUNTED: cannot write to %s. "
+                f"PERSISTENT DISK NOT MOUNTED: cannot write to {db_dir}. "
                 "Sync metadata tables will be lost on container resume. "
                 "Check Render disk configuration and DB_PATH env var."
-            ) % db_dir
+            )
             logger.warning(msg)
 
     async def _ensure_sync_tables_bg() -> None:

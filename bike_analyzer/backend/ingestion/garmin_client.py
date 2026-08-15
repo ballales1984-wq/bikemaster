@@ -164,6 +164,7 @@ async def get_valid_token(athlete_id: int) -> str | None:
     if not row:
         return None
     access_token, refresh_token = row.get("access_token", ""), row.get("refresh_token", "")
+    expires_at = row.get("expires_at")
     try:
         from ..db.token_crypto import decrypt_token
         if access_token:

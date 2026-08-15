@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from bike_analyzer.backend.security import get_current_user
 from bike_analyzer.backend.db.database import (
     get_beck_assessment,
     get_beck_assessments_by_athlete,
     get_latest_beck_assessment,
     save_beck_assessment,
 )
+from bike_analyzer.backend.security import get_current_user
+
 from ..routes import _current_athlete_id
 from ..schemas import BeckAssessmentCreate, BeckAssessmentResponse, BeckHistoryResponse
 

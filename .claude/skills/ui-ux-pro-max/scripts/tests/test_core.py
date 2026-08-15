@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Stdlib-only regression tests for core.py / design_system.py (unittest, not
 pytest -- this project ships with zero external dependencies and the tests
@@ -19,8 +18,8 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from core import BM25, detect_domain, search, search_stack, CSV_CONFIG, AVAILABLE_STACKS
-from design_system import generate_design_system, persist_design_system, DesignSystemGenerator
+from core import AVAILABLE_STACKS, BM25, CSV_CONFIG, detect_domain, search, search_stack
+from design_system import DesignSystemGenerator, generate_design_system
 
 
 class TestTokenizer(unittest.TestCase):

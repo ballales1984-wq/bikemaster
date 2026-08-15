@@ -5,10 +5,9 @@ Falls back to ``SpatialStore`` when ``DATABASE_URL`` is not configured.
 """
 from __future__ import annotations
 
-import json
+from collections.abc import Iterable
 from datetime import UTC, datetime
-from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from aethermap.ai.models import Oggetto, Stato
 from aethermap.data.store import SpatialStore, WorldStore
@@ -28,7 +27,6 @@ class PostgresStore:
     async def add(self, obj: Oggetto) -> None:
         self._spatial.add(obj)
         async with self._session_factory() as session:
-            from sqlalchemy import select
 
             from bike_analyzer.backend.db.models import AetherMapObjectModel
 

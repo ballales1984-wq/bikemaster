@@ -20,8 +20,6 @@ for all spatial key operations.
 from __future__ import annotations
 
 import math
-from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # S2 hierarchy operations
@@ -34,7 +32,7 @@ def s2_level_from_token(token: str) -> int:
     return max(0, len(token) // 2 - 1)
 
 
-def s2_parent(token: str) -> Optional[str]:
+def s2_parent(token: str) -> str | None:
     """Return the parent S2 cell token, or None if already at level 0."""
     if len(token) <= 2:
         return None
@@ -116,7 +114,7 @@ def s2_region_cover(
     return [cell.to_token() for cell in covering]
 
 
-def s2_to_cube_sphere(token: str) -> Optional[tuple[int, float, float]]:
+def s2_to_cube_sphere(token: str) -> tuple[int, float, float] | None:
     """Map an S2 cell token to cube-sphere (face, u, v) at the cell center."""
     try:
         import s2sphere  # type: ignore[import-untyped]
@@ -157,7 +155,7 @@ def h3_level_from_index(h3_index: str) -> int:
     return h3.get_resolution(h3_index)
 
 
-def h3_parent(h3_index: str) -> Optional[str]:
+def h3_parent(h3_index: str) -> str | None:
     """Return the parent H3 cell, or None if at resolution 0."""
     try:
         import h3  # type: ignore[import-untyped]
@@ -232,7 +230,7 @@ def h3_region_cover(
     center = h3.latlng_to_cell(lat, lon, resolution)
     k = max(1, int(radius_deg * 10))
     k = min(k, 100)
-    cells = set([center])
+    cells = {center}
     for _ in range(k):
         new_cells = set()
         for c in cells:
@@ -270,10 +268,10 @@ def h3_resolution_to_s2_level(h3_res: int) -> int:
     return mapping.get(h3_res, h3_res * 2)
 
 
-def cube_cell_id_to_s2(cell_id: str) -> Optional[str]:
+def cube_cell_id_to_s2(cell_id: str) -> str | None:
     """Map a cube-sphere cell ID to an S2 token (approximate)."""
     try:
-        import s2sphere  # type: ignore[import-untyped]
+        import s2sphere  # type: ignore[import-untyped]  # noqa: F401
     except ImportError as exc:
         raise RuntimeError("s2sphere required for cube→S2 mapping") from exc
 

@@ -575,7 +575,8 @@ _REV = {
     "GenericCityObject": "oggetto",
 }
 
-_QNAME = lambda prefix, local: f"{{{_CG_NS[prefix]}}}{local}"
+def _QNAME(prefix: str, local: str) -> str:
+    return f"{{{_CG_NS[prefix]}}}{local}"
 
 
 def _obj_to_citygml(obj: Oggetto) -> Any:
@@ -585,7 +586,6 @@ def _obj_to_citygml(obj: Oggetto) -> Any:
 
     tipo = obj.tipo
     prefix, local = _TYPE_TO_CITYGML.get(tipo, ("gen", "GenericCityObject"))
-    ns = _CG_NS[prefix]
 
     member = ET.Element(_QNAME("core", "cityObjectMember"))
     feat = ET.SubElement(member, _QNAME(prefix, local))

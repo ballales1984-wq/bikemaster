@@ -5,7 +5,7 @@ import os
 from aethermap.render.ascii import render_ascii
 from aethermap.render.camera import Camera
 from aethermap.render.projection import latlon_to_vec
-from aethermap.render.scene import Scene, Entity
+from aethermap.render.scene import Entity, Scene
 from aethermap.twin.objects import make_albero, make_montagna, make_strada
 from aethermap.twin.world import DigitalTwin, Environment
 

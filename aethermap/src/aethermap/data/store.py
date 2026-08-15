@@ -127,7 +127,7 @@ class SpatialIndex:
 
     def query_bounds(self, lat_min: float, lat_max: float, lon_min: float, lon_max: float) -> set[str]:
         result: set[str] = set()
-        for oid, boxes in self.bbox_map.items():
+        for _oid, boxes in self.bbox_map.items():
             for (la, lo, *_alt, oid2) in boxes:
                 if lat_min <= la <= lat_max and lon_min <= lo <= lon_max:
                     result.add(oid2)

@@ -13,15 +13,14 @@ from aethermap.core.cube_sphere import (
     cell_ground_resolution,
     cell_neighbors,
     direction_to_face_uv,
-    face_uv_to_direction,
     face_at_level,
+    face_uv_to_direction,
     latlon_to_cell,
     level_for_cell_count,
     level_for_resolution,
     root_cells,
     subdivide_to_level,
 )
-from aethermap.core.coordinates import geodetic_to_cube, geodetic_to_direction
 
 
 class TestFaceDefinitions:

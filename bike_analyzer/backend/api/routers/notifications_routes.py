@@ -29,7 +29,7 @@ def _to_notification_dict(n) -> dict:
     }
 
 
-@router.get("/", response_model=NotificationListOut)
+@router.get("", response_model=NotificationListOut)
 async def list_notifications(
     request: Request,
     athlete_id: int = 0,

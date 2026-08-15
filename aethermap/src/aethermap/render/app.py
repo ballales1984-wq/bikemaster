@@ -51,10 +51,7 @@ def main() -> None:
                                  (cx + pb[0] * scale, cy - pb[1] * scale), 1)
         for ent in scene.entities:
             col = _char_color.get(ent.tipo, (220, 220, 220))
-            if ent.kind == "line":
-                pts = ent.points
-            else:
-                pts = [ent.position] if ent.position is not None else []
+            pts = ent.points if ent.kind == "line" else [ent.position] if ent.position is not None else []
             for pt in pts:
                 p = project_ecef(pt, camera)
                 if p:

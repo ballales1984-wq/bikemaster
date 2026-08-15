@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from itertools import combinations
 
 import numpy as np
 import pytest
 
-utc = timezone.utc
+utc = UTC
 
 from bike_analyzer.backend.analytics.dual_timeline import (
     ClockTrack,
@@ -33,7 +33,6 @@ from bike_analyzer.backend.analytics.dual_timeline import (
     velocity,
     velocity_correlation,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -502,8 +501,8 @@ class TestEndToEnd:
 
         assert len(w_ts) == 14
 
-        w_stimulus = [v if c > 0.1 else None for v, c in zip(w_vals, w_conf)]
-        l_stimulus = [v if c > 0.1 else None for v, c in zip(l_vals, l_conf)]
+        w_stimulus = [v if c > 0.1 else None for v, c in zip(w_vals, w_conf, strict=False)]
+        l_stimulus = [v if c > 0.1 else None for v, c in zip(l_vals, l_conf, strict=False)]
 
         weight_clock = build_phase_track(w_ts, w_stimulus)
         load_clock = build_phase_track(l_ts, l_stimulus)

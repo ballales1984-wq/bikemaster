@@ -20,9 +20,9 @@ from aethermap.core.spatial_hierarchy import (
     s2_children,
     s2_is_ancestor,
     s2_is_valid_token,
+    s2_latlon_to_token,
     s2_level_from_token,
     s2_level_to_h3_resolution,
-    s2_latlon_to_token,
     s2_parent,
     s2_region_cover,
     s2_to_cube_sphere,
@@ -170,7 +170,7 @@ class TestCrossSystemMapping:
         reason="s2sphere required",
     )
     def test_cube_cell_id_to_s2(self):
-        token = s2_latlon_to_token(45.0, 9.0, level=10)
+        s2_latlon_to_token(45.0, 9.0, level=10)
         cube_id = "0:10:2147483648:2147483648"
         result = cube_cell_id_to_s2(cube_id)
         assert result is not None

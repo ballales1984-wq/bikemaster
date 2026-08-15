@@ -3,15 +3,25 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from aethermap.ai.ingest import ingest_sensor_stream_stub
-from aethermap.ai.models import Oggetto, Relazione
+from aethermap.ai.models import Oggetto, Relazione, Stato
 from aethermap.ai.pipeline import Pipeline
-from aethermap.data.store import SpatialStore
+from aethermap.data.postgres_store import PersistentWorldStore
+from aethermap.data.store import PersistentStore, SpatialStore
 from aethermap.data.store import WorldStore as DataWorldStore
-from aethermap.data.store import PersistentStore
-from aethermap.data.postgres_store import PersistentWorldStore, get_postgres_session_factory
-from aethermap.twin.objects import Albero, Montagna, POI, Percorso, Strada, Terreno, make_albero, make_montagna, make_poi, make_perorso, make_strada, make_terreno
+from aethermap.twin.objects import (
+    POI,
+    Albero,
+    Montagna,
+    Percorso,
+    Strada,
+    Terreno,
+    make_albero,
+    make_montagna,
+    make_strada,
+)
 
 
 @dataclass
@@ -32,7 +42,9 @@ class DigitalTwin:
     (aethermap.db nella directory del modulo) e ricaricati all'avvio.
     """
 
-    def __init__(self, persistent: bool = False, db_path: str | Path | None = None, session_factory: Any = None) -> None:
+    def __init__(
+        self, persistent: bool = False, db_path: str | Path | None = None, session_factory: Any = None
+    ) -> None:
         if session_factory is not None:
             self.store = PersistentWorldStore(session_factory=session_factory)
             self._persistent_store = self.store

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import inspect
 import sys
 from pathlib import Path
 from typing import get_type_hints

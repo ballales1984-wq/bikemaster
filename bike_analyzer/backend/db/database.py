@@ -4215,7 +4215,10 @@ def save_strava_token(athlete_id: int, access_token: str, refresh_token: str,
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO strava_tokens (athlete_id, access_token, refresh_token, expires_at, scope, athlete_name, created_at, updated_at, tenant_id)
+            """INSERT INTO strava_tokens (
+                 athlete_id, access_token, refresh_token, expires_at, scope,
+                 athlete_name, created_at, updated_at, tenant_id
+             )
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(athlete_id) DO UPDATE SET
                    access_token=excluded.access_token,
@@ -4266,7 +4269,10 @@ def save_garmin_token(athlete_id: int, access_token: str, refresh_token: str,
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO garmin_tokens (athlete_id, access_token, refresh_token, expires_at, scope, athlete_name, created_at, updated_at, tenant_id)
+            """INSERT INTO garmin_tokens (
+                 athlete_id, access_token, refresh_token, expires_at, scope,
+                 athlete_name, created_at, updated_at, tenant_id
+             )
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(athlete_id) DO UPDATE SET
                    access_token=excluded.access_token,
@@ -4309,7 +4315,10 @@ def save_wahoo_token(athlete_id: int, access_token: str, refresh_token: str,
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO wahoo_tokens (athlete_id, access_token, refresh_token, expires_at, scope, athlete_name, created_at, updated_at, tenant_id)
+            """INSERT INTO wahoo_tokens (
+                 athlete_id, access_token, refresh_token, expires_at, scope,
+                 athlete_name, created_at, updated_at, tenant_id
+             )
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(athlete_id) DO UPDATE SET
                    access_token=excluded.access_token,
@@ -4355,7 +4364,10 @@ def save_google_token(athlete_id: int, provider: str, access_token: str,
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO google_tokens (athlete_id, provider, access_token, refresh_token, expires_at, scope, created_at, updated_at)
+            """INSERT INTO google_tokens (
+                 athlete_id, provider, access_token, refresh_token, expires_at,
+                 scope, created_at, updated_at
+             )
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(athlete_id, provider) DO UPDATE SET
                    access_token=excluded.access_token,

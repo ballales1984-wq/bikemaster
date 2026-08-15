@@ -65,7 +65,8 @@ def get_google_token(athlete_id: int, provider: str) -> dict | None:
         _ensure_tables(conn)
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT access_token, refresh_token, expires_at, scope FROM google_tokens WHERE athlete_id = %s AND provider = %s",
+                "SELECT access_token, refresh_token, expires_at, scope "
+                "FROM google_tokens WHERE athlete_id = %s AND provider = %s",
                 (athlete_id, provider),
             )
             row = cur.fetchone()

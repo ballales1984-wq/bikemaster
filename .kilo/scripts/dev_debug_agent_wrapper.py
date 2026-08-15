@@ -1,7 +1,7 @@
-import time
+import os
 import subprocess
 import sys
-import os
+import time
 
 if __name__ == "__main__":
     log_path = os.path.join(os.path.dirname(__file__), "..", "logs", "dev_debug_agent_wrapper.log")

@@ -1,15 +1,12 @@
 """Tests for aethermap.data.db (SQLite persistence layer)."""
 from __future__ import annotations
 
-import os
-
 import pytest
 
 from aethermap.ai.models import Oggetto, Posizione, Stato
 from aethermap.data.db import AetherMapDB
 from aethermap.data.store import PersistentStore
 from aethermap.twin.world import DigitalTwin
-
 
 # ===========================================================================
 # Helpers
@@ -269,7 +266,7 @@ class TestDigitalTwinPersistent:
     def test_persistent_add_survives_reopen(self, tmp_path):
         db_path = tmp_path / "dt_add.db"
         dt = DigitalTwin(persistent=True, db_path=db_path)
-        from aethermap.twin.objects import make_strada, make_albero
+        from aethermap.twin.objects import make_albero, make_strada
         dt.add(make_strada("s1", 45.0, 9.0, []))
         dt.add(make_albero("a1", 45.5, 9.5, "pino", 8.0))
 

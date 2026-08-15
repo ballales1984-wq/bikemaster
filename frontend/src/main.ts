@@ -167,43 +167,34 @@ void useApiKeysStore().load();
 // Load i18n messages before mounting so the first render shows translated
 // text instead of raw message keys. Non-fatal: if loading fails we still
 // mount so the user isn't stranded on a blank screen.
-try {
-  await initI18n();
-} catch (err) {
-  console.warn("[i18n] message load failed, using fallback keys:", err);
-}
+(async () => {
+  try {
+    await initI18n();
+  } catch (err) {
+    console.warn("[i18n] message load failed, using fallback keys:", err);
+  }
 
-app.mount("#app");
+  app.mount("#app");
 
-// Safety net: the OAuth loading overlay must never permanently block the UI.
-// If anything goes wrong during the OAuth round-trip (dropped param, transient
-// error, stuck flag), force it off after a short grace period.
-setTimeout(() => ui.setOauthLoading(false), 10000);
+  // Safety net: the OAuth loading overlay must never permanently block the UI.
+  setTimeout(() => ui.setOauthLoading(false), 10000);
 
-// If the OAuth (Google) return was consumed during bootstrap (full document
-// load), the guard already finalizes the navigation as part of the initial
-// route resolution. Re-running finalizeOAuthReturn here *before* that initial
-// navigation has settled races with the guard's `next()` (both issue a
-// navigation) and, depending on timing, can cancel the redirect and strand the
-// user on the empty "/" home route until a manual refresh. So wait for the
-// initial navigation to settle, then only finalize if the guard didn't already
-// move us off "/". The same-document (fragment) return path reaches this via
-// the hashchange/pageshow listeners below, where the router is already ready.
-router
-  .isReady()
-  .then(() => {
-    if (oauthReturnPending && router.currentRoute.value.path !== "/") {
-      oauthFinalized = true;
-      oauthReturnPending = false;
-      auth.setJustLoggedIn(false);
+  router
+    .isReady()
+    .then(() => {
+      if (oauthReturnPending && router.currentRoute.value.path !== "/") {
+        oauthFinalized = true;
+        oauthReturnPending = false;
+        auth.setJustLoggedIn(false);
+        ui.setOauthLoading(false);
+      } else if (oauthReturnPending) {
+        finalizeOAuthReturn();
+      } else {
+        ui.setOauthLoading(false);
+      }
+    })
+    .catch((err) => {
+      console.error("[Router] isReady failed:", err);
       ui.setOauthLoading(false);
-    } else if (oauthReturnPending) {
-      finalizeOAuthReturn();
-    } else {
-      ui.setOauthLoading(false);
-    }
-  })
-  .catch((err) => {
-    console.error("[Router] isReady failed:", err);
-    ui.setOauthLoading(false);
-  });
+    });
+})();

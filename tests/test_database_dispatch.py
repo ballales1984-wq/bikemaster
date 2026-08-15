@@ -22,10 +22,10 @@ from bike_analyzer.backend.db.database import (
     get_all_users,
     get_athlete,
     get_athlete_by_email,
+    get_athlete_count_by_user,
     get_athlete_history,
     get_athlete_metric_log,
     get_athletes_by_user,
-    get_athlete_count_by_user,
     get_itinerary,
     get_latest_training_stress,
     get_metrics_by_athlete,
@@ -266,6 +266,6 @@ class TestPostgresDispatch:
 class TestPostgresModules:
     def test_postgres_modules_importable(self):
         import bike_analyzer.backend.db.postgres_athlete
-        import bike_analyzer.backend.db.postgres_rides
-        import bike_analyzer.backend.db.postgres_itineraries
         import bike_analyzer.backend.db.postgres_db
+        import bike_analyzer.backend.db.postgres_itineraries
+        import bike_analyzer.backend.db.postgres_rides

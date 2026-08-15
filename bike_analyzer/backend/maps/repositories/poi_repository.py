@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
-from ..connection import get_db_connection
-
 
 class MapsPOIRepository:
     @staticmethod

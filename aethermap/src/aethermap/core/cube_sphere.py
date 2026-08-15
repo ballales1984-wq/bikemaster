@@ -21,15 +21,11 @@ This module provides:
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 from aethermap.core.coordinates import (
     CubeCell,
-    direction_to_cube,
-    ecef_to_direction,
     geodetic_to_cube,
-    geodetic_to_direction,
 )
 
 EARTH_RADIUS = 6_371_000.0
@@ -180,7 +176,8 @@ class CubeSphereCell:
 
     def cell_id(self) -> str:
         """Stable cell identifier: face:level:umin:umax:vmin:vmax (quantized)."""
-        q = lambda x: int((x * 0.5 + 0.5) * 65535) & 0xFFFF
+        def q(x: float) -> int:
+            return int((x * 0.5 + 0.5) * 65535) & 0xFFFF
         return (
             f"{self.face}:{self.level}:{q(self.u_min)}:{q(self.u_max)}:"
             f"{q(self.v_min)}:{q(self.v_max)}"
@@ -297,8 +294,6 @@ def cell_neighbors(cell: CubeSphereCell) -> list[CubeSphereCell]:
     Cells on face boundaries have neighbors on adjacent faces.
     """
     neighbors = []
-    u_mid = (cell.u_min + cell.u_max) / 2.0
-    v_mid = (cell.v_min + cell.v_max) / 2.0
     u_half = (cell.u_max - cell.u_min) / 2.0
     v_half = (cell.v_max - cell.v_min) / 2.0
 

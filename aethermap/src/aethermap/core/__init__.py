@@ -8,8 +8,8 @@ Exports:
 """
 
 from aethermap.core.coordinates import (
-    CubeCell,
     ECEF,
+    CubeCell,
     Geodetic,
     geodetic_bearing,
     geodetic_to_cube,
@@ -29,8 +29,8 @@ from aethermap.core.cube_sphere import (
     cell_ground_resolution,
     cell_neighbors,
     direction_to_face_uv,
-    face_uv_to_direction,
     face_at_level,
+    face_uv_to_direction,
     latlon_to_cell,
     level_for_cell_count,
     level_for_resolution,
@@ -44,11 +44,11 @@ from aethermap.core.earth_model import (
     EARTH_RADIUS_VOLUMETRIC,
     CompositeHeightfield,
     GeoidModel,
-    HeightSample,
     Heightfield,
+    HeightSample,
     ProceduralHeightfield,
-    gravity_wgs84,
     geoid_height,
+    gravity_wgs84,
     set_geoid,
 )
 from aethermap.core.spatial_hierarchy import (
@@ -65,9 +65,9 @@ from aethermap.core.spatial_hierarchy import (
     h3_resolution_to_s2_level,
     s2_is_ancestor,
     s2_is_valid_token,
+    s2_latlon_to_token,
     s2_level_from_token,
     s2_level_to_h3_resolution,
-    s2_latlon_to_token,
     s2_parent,
     s2_region_cover,
     s2_to_cube_sphere,

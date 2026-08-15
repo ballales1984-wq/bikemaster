@@ -40,7 +40,7 @@ dependencies = [
     "pydantic>=2.0.0,<3.0.0",
     "requests>=2.34.2,<3.0.0",
     "httpx>=0.28.0,<1.0.0",
-    "groq>=0.4.0,<1.0.0",
+    "groq>=0.4.0,<2.0.0",
     "fitparse>=1.2.0,<2.0.0",
     "gpxpy>=1.6.2,<2.0.0",
     "python-dotenv>=1.0.1,<2.0.0",
@@ -86,7 +86,7 @@ maps = ["aethermap>=0.1.0"]
 [tool.ruff]
 target-version = "py311"
 line-length = 120
-extend-exclude = ["alembic/versions/*", ".benchmarks/*"]
+extend-exclude = ["alembic/versions/*", ".benchmarks/*", ".claude/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "C4", "SIM"]

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Design System Generator - Aggregates search results and applies reasoning
 to generate comprehensive design system recommendations.
@@ -16,14 +15,15 @@ Usage:
 """
 
 import csv
+import io
 import json
 import os
 import re
 import sys
-import io
 from datetime import datetime
 from pathlib import Path
-from core import search, DATA_DIR
+
+from core import DATA_DIR, search
 
 # Force UTF-8 for stdout/stderr to handle emojis/box-drawing chars on Windows (cp1252 default)
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
@@ -191,7 +191,7 @@ class DesignSystemGenerator:
         filepath = DATA_DIR / REASONING_FILE
         if not filepath.exists():
             return []
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, encoding='utf-8') as f:
             return list(csv.DictReader(f))
 
     def _multi_domain_search(self, query: str, style_priority: list = None) -> dict:
@@ -722,10 +722,10 @@ def format_markdown(design_system: dict) -> str:
     if typography.get("google_fonts_url"):
         lines.append(f"- **Google Fonts:** {typography.get('google_fonts_url', '')}")
     if typography.get("css_import"):
-        lines.append(f"- **CSS Import:**")
-        lines.append(f"```css")
+        lines.append("- **CSS Import:**")
+        lines.append("```css")
         lines.append(f"{typography.get('css_import', '')}")
-        lines.append(f"```")
+        lines.append("```")
     lines.append("")
 
     # Key Effects section
@@ -1045,7 +1045,7 @@ def format_master_md(design_system: dict) -> str:
     lines.append("")
     lines.append("/* Secondary Button */")
     lines.append(".btn-secondary {")
-    lines.append(f"  background: transparent;")
+    lines.append("  background: transparent;")
     lines.append(f"  color: {colors.get('primary', '#2563EB')};")
     lines.append(f"  border: 2px solid {colors.get('primary', '#2563EB')};")
     lines.append("  padding: 12px 24px;")

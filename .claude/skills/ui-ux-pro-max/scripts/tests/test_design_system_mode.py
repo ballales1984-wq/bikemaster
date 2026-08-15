@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Regression tests for color-mode coherence in design_system.py (issue #428).
 
@@ -24,6 +23,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 from design_system import (  # noqa: E402
+    DesignSystemGenerator,
     _filter_anti_patterns_for_mode,
     _palette_is_dark,
     _query_wants_dark,
@@ -31,7 +31,6 @@ from design_system import (  # noqa: E402
     _resolve_color_mode,
     _select_palette_for_mode,
     _style_is_dark_primary,
-    DesignSystemGenerator,
 )  # noqa: I001 - private helpers first, public class last
 
 LIGHT_PALETTE = {"Product Type": "SaaS", "Background": "#F8FAFC", "Foreground": "#020617"}
@@ -135,7 +134,7 @@ class TestEndToEndCoherence(unittest.TestCase):
         background = ds["colors"]["background"]
         self.assertTrue(
             _palette_is_dark({"Background": background}),
-            "dark-mode query returned a light background: {}".format(background),
+            f"dark-mode query returned a light background: {background}",
         )
 
     def test_dark_query_foreground_is_lighter_than_background(self):

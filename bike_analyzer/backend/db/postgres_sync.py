@@ -5,8 +5,6 @@ Handles sync_entity_state, sync_settings, sync_conflicts when DATABASE_URL is co
 from __future__ import annotations
 
 import logging
-import contextlib
-import json
 from datetime import UTC, datetime
 
 from ..settings import get_settings
