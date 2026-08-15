@@ -106,17 +106,17 @@ let rafId: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
 let mounted = true;
 
-let globePosBuf: { buf: WebGLBuffer; count: number; mode: number } | null =
+let globePosBuf: { buf: WebGLBuffer; count: number; mode: number; stride: number } | null =
   null;
-let globeNormBuf: { buf: WebGLBuffer; count: number; mode: number } | null =
+let globeNormBuf: { buf: WebGLBuffer; count: number; mode: number; stride: number } | null =
   null;
 let globeIdxBuf: WebGLBuffer | null = null;
 let globeIdxCount = 0;
-let routeBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
+let routeBuffer: { buf: WebGLBuffer; count: number; mode: number; stride: number } | null =
   null;
-let pointBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
+let pointBuffer: { buf: WebGLBuffer; count: number; mode: number; stride: number } | null =
   null;
-let markerBuffer: { buf: WebGLBuffer; count: number; mode: number } | null =
+let markerBuffer: { buf: WebGLBuffer; count: number; mode: number; stride: number } | null =
   null;
 
 const firstRideId = computed(() => props.rideIds?.[0] ?? null);
@@ -176,7 +176,7 @@ onMounted(async () => {
 
 let geoBufferMap: Map<
   string,
-  { buf: WebGLBuffer; count: number; mode: number }
+  { buf: WebGLBuffer; count: number; mode: number; stride: number }
 > = new Map();
 
 let _prevPointsKey = "";
@@ -764,13 +764,13 @@ function makeBuffer(
   data: ArrayBufferView,
   mode: number,
   stride: number,
-): { buf: WebGLBuffer; count: number; mode: number } | null {
+): { buf: WebGLBuffer; count: number; mode: number; stride: number } | null {
   if (!gl) return null;
   const b = gl.createBuffer();
   if (!b) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, b);
   gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-  return { buf: b, count: data.byteLength / stride, mode };
+  return { buf: b, count: data.byteLength / stride, mode, stride };
 }
 
 function makeIndexBuffer(data: Uint32Array): WebGLBuffer | null {
@@ -782,9 +782,15 @@ function makeIndexBuffer(data: Uint32Array): WebGLBuffer | null {
   return b;
 }
 
-function draw(buf: { buf: WebGLBuffer; count: number; mode: number }) {
+function draw(buf: { buf: WebGLBuffer; count: number; mode: number; stride: number }) {
   if (!gl) return;
   gl.bindBuffer(gl.ARRAY_BUFFER, buf.buf);
+  gl.enableVertexAttribArray(A_p);
+  gl.vertexAttribPointer(A_p, 3, gl.FLOAT, false, buf.stride, 0);
+  if (buf.stride >= 24) {
+    gl.enableVertexAttribArray(A_c);
+    gl.vertexAttribPointer(A_c, 3, gl.FLOAT, false, buf.stride, 12);
+  }
   gl.drawArrays(buf.mode, 0, buf.count);
 }
 
@@ -1028,14 +1034,17 @@ onMounted(async () => {
   const VS = `#version 300 es
   in vec3 aPosition;
   in vec3 aNormal;
+  in vec3 aColor;
   uniform mat4 uProj;
   uniform mat4 uView;
   uniform vec3 uEyePos;
   uniform float uPointSize;
+  uniform bool uUseVertexColor;
   out vec3 vNormal;
   out vec3 vViewPos;
   out vec2 vLatLon;
   out float vElevation;
+  out vec3 vColor;
   void main() {
     vec4 viewPos = uView * vec4(aPosition, 1.0);
     gl_Position = uProj * viewPos;
@@ -1045,6 +1054,7 @@ onMounted(async () => {
     vec3 n = normalize(aPosition);
     vLatLon = vec2(degrees(asin(clamp(n.z, -1.0, 1.0))), degrees(atan(n.y, n.x)));
     vElevation = clamp((length(aPosition) - 1.0) * 1600.0, 0.0, 1.0);
+    vColor = aColor;
   }`;
 
   const FS = `#version 300 es
@@ -1053,8 +1063,10 @@ onMounted(async () => {
   in vec3 vViewPos;
   in vec2 vLatLon;
   in float vElevation;
+  in vec3 vColor;
   uniform vec3 uSunDir;
   uniform vec3 uEyePos;
+  uniform bool uUseVertexColor;
   out vec4 outColor;
 
   float hash2(vec2 p) {
@@ -1141,7 +1153,7 @@ onMounted(async () => {
     float diff = max(dot(n, sun), 0.0);
     float ambient = 0.15;
 
-    vec3 baseColor = satelliteColor(vLatLon, vElevation);
+    vec3 baseColor = uUseVertexColor ? vColor : satelliteColor(vLatLon, vElevation);
     vec3 lit = baseColor * (ambient + diff * 0.85);
 
     vec3 viewDir = normalize(-vViewPos);
@@ -1177,9 +1189,11 @@ onMounted(async () => {
     sunDir: gl!.getUniformLocation(prog, "uSunDir")!,
     eyePos: gl!.getUniformLocation(prog, "uEyePos")!,
     pointSize: gl!.getUniformLocation(prog, "uPointSize")!,
+    useVertexColor: gl!.getUniformLocation(prog, "uUseVertexColor")!,
   };
   const A_p = gl!.getAttribLocation(prog, "aPosition");
   const A_n = gl!.getAttribLocation(prog, "aNormal");
+  const A_c = gl!.getAttribLocation(prog, "aColor");
 
   const globeData = buildProceduralGlobeBuffers(getLODResolution(camDist));
   currentLOD = getLODResolution(camDist);
@@ -1337,15 +1351,18 @@ onMounted(async () => {
     gl.uniform1f(U.pointSize, 6.0);
 
     if (globePosBuf && globeNormBuf && globeIdxBuf) {
+      gl.uniform1i(U.useVertexColor, 0);
       gl.bindBuffer(gl.ARRAY_BUFFER, globePosBuf.buf);
       gl.enableVertexAttribArray(A_p);
       gl.vertexAttribPointer(A_p, 3, gl.FLOAT, false, 0, 0);
       gl.bindBuffer(gl.ARRAY_BUFFER, globeNormBuf.buf);
       gl.enableVertexAttribArray(A_n);
       gl.vertexAttribPointer(A_n, 3, gl.FLOAT, false, 0, 0);
+      gl.vertexAttrib3f(A_c, 1.0, 1.0, 1.0);
       drawIndexed(globeIdxBuf, globeIdxCount);
     }
 
+    gl.uniform1i(U.useVertexColor, 1);
     if (routeBuffer) draw(routeBuffer);
     if (pointBuffer) draw(pointBuffer);
     if (markerBuffer) draw(markerBuffer);
