@@ -151,11 +151,9 @@ const consents = ref<
 async function loadConsents() {
   if (!auth.isLoggedIn) return;
   try {
-    const base = resolveApiBase();
-    const url = base ? `${base}/api/v1/legal/consent` : "/api/v1/legal/consent";
     const data = await apiGet<{
       consents: Array<{ consent_type: string; granted: number }>;
-    }>(url, {}, { suppressAuthClear: true });
+    }>("/api/v1/legal/consent", {}, { suppressAuthClear: true });
     const map = new Map(
       data.consents.map((c) => [c.consent_type, c.granted === 1]),
     );
