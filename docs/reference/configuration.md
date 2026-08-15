@@ -60,7 +60,7 @@ cp .env.example .env
 | `AI_COACH_MODE` | `external` | Modalità coach |
 | `AI_COACH_CHAT_RETENTION_DAYS` | `90` | Retention storico chat |
 | `GROQ_API_KEY` | `""` | **Richiesta per l'AI Coach** |
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Modello LLM Groq |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` | Modello LLM Groq |
 
 ## Knowledge Base
 

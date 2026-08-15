@@ -146,7 +146,7 @@ Parametri configurabili: vedi [configuration.md — Analytics](./configuration.m
 
 ### AI Coach & Knowledge Base
 
-- **LLM:** Groq (`GROQ_API_KEY`, modello `GROQ_MODEL`, default `llama-3.3-70b-versatile`).
+- **LLM:** Groq (`GROQ_API_KEY`, modello `GROQ_MODEL`, default `openai/gpt-oss-120b`).
 - **RAG:** embeddings locali `sentence-transformers` (`all-MiniLM-L6-v2`, 384 dim) con fallback TF-IDF/BM25; store vettoriale `db/vector_db.py` o PGVector (`knowledge_chunks.embedding`).
 - **Principio:** l'AI Coach legge solo stati interpretati dal Knowledge Layer, mai dati grezzi.
 - **Persistenza chat:** tabella `chat_history` con retention `AI_COACH_CHAT_RETENTION_DAYS` (default 90).
