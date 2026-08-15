@@ -89,8 +89,8 @@ function authHeaders(): Record<string, string> {
 // Gateway statuses returned by Render while the free instance is asleep or
 // restarting. The request never reached the app, so retrying is always safe.
 const RETRYABLE_STATUS = new Set([502, 503, 504]);
-const MAX_RETRIES = 4;
-const RETRY_BASE_DELAY_MS = 1500;
+const MAX_RETRIES = 6;
+const RETRY_BASE_DELAY_MS = 3000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

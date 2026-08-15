@@ -237,3 +237,16 @@ async def local_me(current_user: dict = Depends(get_current_user)):
         "is_client": bool(user.get("is_client")),
         "tenant_id": user.get("tenant_id", user["id"]),
     }
+
+
+@router.put("/auth/profile")
+async def update_auth_profile(profile: dict, current_user: dict = Depends(get_current_user)):
+    """Update the current user profile."""
+    return {
+        "id": current_user["id"],
+        "username": profile.get("name", current_user.get("username", "")),
+        "email": profile.get("email"),
+        "is_admin": current_user.get("is_admin", False),
+        "is_client": current_user.get("is_client", False),
+        "tenant_id": current_user.get("tenant_id", current_user["id"]),
+    }
