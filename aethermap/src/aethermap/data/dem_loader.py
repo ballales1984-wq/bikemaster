@@ -1,9 +1,9 @@
 """AetherMap DEM loader (Punto 2 — dataset terreno reale).
 
 Carica dati DEM reali da:
-- Copernicus DEM (GeoTIFF)
+- Copernicus DEM GLO-30/90 (GeoTIFF, remoto o locale)
+- SRTM (HGT locale)
 - LiDAR (LAS/LAZ)
-- OSM SRTM (HGT)
 
 Fallback: heightfield procedurale se nessun dataset e` disponibile.
 
@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class DEMLoader:
-    """Carica DEM reali da file locali con fallback procedurale."""
+    """Carica DEM reali da file locali o remote Copernicus con fallback procedurale."""
 
     def __init__(self, dem_dir: str | Path | None = None) -> None:
         self._dem_dir = Path(dem_dir) if dem_dir else None
@@ -55,6 +56,8 @@ class DEMLoader:
 
         min_lat, max_lat, min_lon, max_lon = bbox
         candidates = self._find_dem_files(min_lat, max_lat, min_lon, max_lon)
+        if not candidates:
+            candidates = self._try_download_copernicus(min_lat, max_lat, min_lon, max_lon)
         if not candidates:
             return None
 
@@ -91,11 +94,57 @@ class DEMLoader:
 
         return list(dict.fromkeys(found))
 
+    def _try_download_copernicus(self, min_lat: float, max_lat: float, min_lon: float, max_lon: float) -> list[Path]:
+        """Try to download Copernicus DEM GLO-30 tiles for the bbox."""
+        remote_url = os.environ.get("AETHERMAP_DEM_REMOTE_URL")
+        if not remote_url:
+            return []
+
+        tile_lat = int(min_lat)
+        tile_lon = int(min_lon)
+        lat_sign = "N" if tile_lat >= 0 else "S"
+        lon_sign = "E" if tile_lon >= 0 else "W"
+
+        candidates: list[Path] = []
+        filenames = [
+            f"Copernicus_DSM_30_{lat_sign}{abs(tile_lat):02d}_{lon_sign}{abs(tile_lon):03d}_DSM.tif",
+            f"Copernicus_DSM_30_{lat_sign}{abs(tile_lat):02d}_{lon_sign}{abs(tile_lon):03d}_DSM.zip",
+        ]
+
+        for filename in filenames:
+            cache_path = self._dem_dir / filename
+            if cache_path.exists():
+                candidates.append(cache_path)
+                continue
+
+            url = f"{remote_url.rstrip('/')}/{filename}"
+            try:
+                import requests
+                resp = requests.get(url, timeout=60, stream=True)
+                if resp.status_code == 200:
+                    self._dem_dir.mkdir(parents=True, exist_ok=True)
+                    with open(cache_path, "wb") as f:
+                        for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                            if chunk:
+                                f.write(chunk)
+                    if cache_path.suffix.lower() == ".zip":
+                        with zipfile.ZipFile(cache_path) as zf:
+                            tif_names = [n for n in zf.namelist() if n.lower().endswith(".tif")]
+                            if tif_names:
+                                extracted = self._dem_dir / tif_names[0]
+                                zf.extract(tif_names[0], self._dem_dir)
+                                candidates.append(extracted)
+                    else:
+                        candidates.append(cache_path)
+            except Exception as exc:
+                logger.info("Copernicus tile download failed for %s: %s", url, exc)
+
+        return candidates
+
     def _load_geotiff(self, path: Path, bbox: tuple[float, float, float, float], resolution: int) -> np.ndarray | None:
         try:
             import rasterio
-            from rasterio.warp import reproject, Resampling
-            from rasterio.crs import CRS
+            from rasterio.warp import Resampling
         except ImportError:
             logger.info("rasterio not installed; skipping GeoTiff DEM")
             return None
@@ -113,23 +162,12 @@ class DEMLoader:
 
             hmin = float(np.nanmin(data))
             hmax = float(np.nanmax(data))
-            if hmax - hmin > 1e-6:
-                data = (data - hmin) / (hmax - hmin)
-            else:
-                data = np.zeros_like(data)
+            data = (data - hmin) / (hmax - hmin) if hmax - hmin > 1e-06 else np.zeros_like(data)
 
             return data.astype(np.float32)
 
     def _load_hgt(self, path: Path, bbox: tuple[float, float, float, float], resolution: int) -> np.ndarray | None:
-        try:
-            import rasterio
-            from rasterio.warp import reproject, Resampling
-        except ImportError:
-            logger.info("rasterio not installed; skipping HGT DEM")
-            return None
-
         if path.suffix.lower() == ".zip":
-            import zipfile
             with zipfile.ZipFile(path) as zf:
                 hgt_files = [n for n in zf.namelist() if n.lower().endswith(".hgt")]
                 if not hgt_files:
@@ -148,10 +186,7 @@ class DEMLoader:
             data = data.reshape((side, side)).astype(np.float32)
             hmin = float(data.min())
             hmax = float(data.max())
-            if hmax - hmin > 1e-6:
-                data = (data - hmin) / (hmax - hmin)
-            else:
-                data = np.zeros_like(data)
+            data = (data - hmin) / (hmax - hmin) if hmax - hmin > 1e-06 else np.zeros_like(data)
             from PIL import Image
             img = Image.fromarray(data)
             img = img.resize((resolution, resolution), Image.Resampling.BILINEAR)
@@ -200,21 +235,21 @@ class DEMLoader:
         hf = _build_heightfield(resolution, 0.0, 0.04)
         hmin = float(hf.min())
         hmax = float(hf.max())
-        if hmax - hmin > 1e-6:
-            hf = (hf - hmin) / (hmax - hmin)
-        else:
-            hf = np.zeros_like(hf)
+        hf = (hf - hmin) / (hmax - hmin) if hmax - hmin > 1e-06 else np.zeros_like(hf)
         return hf.astype(np.float32)
 
 
 def get_dem_loader() -> DEMLoader | None:
-    """Return a DEMLoader if a DEM directory is configured.
+    """Return a DEMLoader if a DEM directory or remote source is configured.
 
     Checks env vars:
-    - AETHERMAP_DEM_DIR
-    - AETHERMAP_DEM_PATH
+    - AETHERMAP_DEM_DIR / AETHERMAP_DEM_PATH: local directory
+    - AETHERMAP_DEM_REMOTE_URL: remote tile server base URL (Copernicus-compatible naming)
     """
     dem_dir = os.environ.get("AETHERMAP_DEM_DIR") or os.environ.get("AETHERMAP_DEM_PATH")
+    remote_url = os.environ.get("AETHERMAP_DEM_REMOTE_URL")
     if dem_dir:
         return DEMLoader(dem_dir)
+    if remote_url:
+        return DEMLoader(Path(".cache/aethermap/dem"))
     return None

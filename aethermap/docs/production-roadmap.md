@@ -372,7 +372,7 @@ Fase 1 (coordinates) ──→ Fase 2 (models) ──→ Fase 3 (pipeline) ─�
 
 ## 8. Open Questions — Produzione
 
-1. **Dataset terreno reale:** ✅ Implementato `DEMLoader` con supporto Copernicus DEM (GeoTIFF), LiDAR (LAS/LAZ), OSM SRTM (HGT). Fallback a heightfield procedurale. Configurabile via env `AETHERMAP_DEM_DIR`.
+1. **Dataset terreno reale:** ✅ Implementato `DEMLoader` con supporto Copernicus DEM GLO-30 (GeoTIFF, remoto o locale), LiDAR (LAS/LAZ), OSM SRTM (HGT). Download automatico da `AETHERMAP_DEM_REMOTE_URL` con cache locale. Fallback a heightfield procedurale. Configurabile via env `AETHERMAP_DEM_DIR` / `AETHERMAP_DEM_REMOTE_URL`.
 2. **Frequenza aggiornamento digital twin:** real-time (stream) o batch? Dipende da sorgenti dati disponibili.
 3. **Multi-tenant:** come isolare dati AetherMap per atleta su PostgreSQL? (Stesso pattern di rides/athlete domains).
 4. **Offline-first:** ✅ Implementato `TwinSyncEngine` per export/import stato DigitalTwin. Endpoint `/api/v1/aethermap/sync` (GET export, POST import).
@@ -429,7 +429,7 @@ scripts/aethermap_load_test.py
 
 ### Prossimi Passi
 
-1. **Dataset reale:** configurare `AETHERMAP_DEM_DIR` con DEM Copernicus/LiDAR su Render
+1. **Dataset reale:** configurare `AETHERMAP_DEM_DIR` o `AETHERMAP_DEM_REMOTE_URL` con DEM Copernicus/LiDAR su Render
 2. **Offline-first:** integrare `TwinSyncEngine` in Tauri desktop app
 3. **Mobile:** testare performance WebGL2 su dispositivi mobile, ottimizzare tile size
 4. **Multi-tenant:** aggiungere `athlete_id` isolation su tabelle AetherMap PostgreSQL
@@ -473,6 +473,6 @@ frontend/src/composables/useAetherMapTerrain.ts
 ### Prossimi Passi
 
 1. **Deploy produzione:** abilitare `BIKEMASTER_TERRAIN_ENRICHMENT=true` su Render
-2. **Dataset reale:** sostituire heightfield procedurale con DEM Copernicus/LiDAR
+2. **Dataset reale:** sostituire heightfield procedurale con DEM Copernicus/LiDAR (locale o remoto via `AETHERMAP_DEM_REMOTE_URL`)
 3. **Load test:** 1000 concorrenti su `/rides/{id}/terrain` (richiede staging)
 4. **Offline-first:** sync digital twin per Tauri/PWA (richiede engine aggiuntivo)
