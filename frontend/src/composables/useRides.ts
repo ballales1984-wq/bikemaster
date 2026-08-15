@@ -109,15 +109,19 @@ export function useRides() {
       DEFAULT_RIDE_MAP_CENTER,
       DEFAULT_RIDE_MAP_ZOOM,
     );
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "OSM contributors",
-      maxZoom: 18,
-    }).addTo(map.value);
+    (
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "OSM contributors",
+        maxZoom: 18,
+      }) as any
+    ).addTo(map.value as any);
     if (points && points.length) {
-      L.polyline(
-        points.map((p) => [p.lat, p.lon] as L.LatLngTuple),
-        { color: "#4ecca3", weight: 5, opacity: 0.8 },
-      ).addTo(map.value);
+      (
+        L.polyline(
+          points.map((p) => [p.lat, p.lon] as L.LatLngTuple),
+          { color: "#4ecca3", weight: 5, opacity: 0.8 },
+        ) as any
+      ).addTo(map.value as any);
     }
   }
 

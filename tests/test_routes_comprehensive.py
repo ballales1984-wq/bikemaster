@@ -155,11 +155,10 @@ def mock_external(monkeypatch):
     async def _serpapi(*a, **k):
         return {"results": [{"name": "Nearby", "lat": 45.0, "lon": 7.0}]}
 
-    monkeypatch.setattr("bike_analyzer.backend.api.routes.search_places", _osm_places)
-    monkeypatch.setattr("bike_analyzer.backend.api.routes.get_local_results", _osm_local)
-    monkeypatch.setattr("bike_analyzer.backend.api.routes.search_nearby", _serpapi)
-    # Used by /rides/{id}/segments (top-level import in routes.py).
-    monkeypatch.setattr("bike_analyzer.backend.api.routes.create_route_map", lambda *a, **k: None)
+    monkeypatch.setattr("bike_analyzer.backend.maps.osm_maps.search_places", _osm_places)
+    monkeypatch.setattr("bike_analyzer.backend.maps.osm_maps.get_local_results", _osm_local)
+    monkeypatch.setattr("bike_analyzer.backend.maps.osm_maps.search_nearby", _serpapi)
+    monkeypatch.setattr("bike_analyzer.backend.maps.map_renderer.create_route_map", lambda *a, **k: None)
 
     # Enable APIs that are gated behind settings flags. Patch the settings
     # object directly (the nested-dot string form misbehaves with pydantic

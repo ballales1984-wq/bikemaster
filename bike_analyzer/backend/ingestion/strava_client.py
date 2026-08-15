@@ -257,7 +257,9 @@ async def get_valid_token(
     row = get_strava_token(athlete_id)
     if not row:
         return None
-    access_token, refresh_token, expires_at = row
+    access_token = row.get("access_token", "")
+    refresh_token = row.get("refresh_token", "")
+    expires_at = row.get("expires_at")
     try:
         from ..db.token_crypto import decrypt_token
         if access_token:

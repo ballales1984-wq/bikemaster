@@ -29,6 +29,8 @@ describe("processOAuthToken — duplicate-call benign scenario", () => {
 
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
+    logs = [];
     consoleSpy = vi.spyOn(console, "log").mockImplementation((...args) => {
       logs.push(args.join(" "));
     });

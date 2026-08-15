@@ -1164,6 +1164,13 @@ def init_db():
                 expires_at TEXT NOT NULL
             )"""
         )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS serpapi_usage (
+                month TEXT PRIMARY KEY,
+                count INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT
+            )"""
+        )
         conn.commit()
 
 

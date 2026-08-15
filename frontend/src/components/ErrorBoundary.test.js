@@ -1,7 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import ErrorBoundary from "./ErrorBoundary.vue";
+
+vi.mock("../composables/useI18n", () => ({
+  useI18n: () => ({
+    locale: { value: "en" },
+    t: (key) => key,
+    setLocale: vi.fn(),
+  }),
+}));
 
 describe("ErrorBoundary", () => {
   it("renders default slot when no error", () => {
@@ -24,7 +32,7 @@ describe("ErrorBoundary", () => {
     await wrapper.setData({ error: "boom" });
     await nextTick();
     expect(wrapper.find(".error-boundary").exists()).toBe(true);
-    expect(wrapper.text()).toContain("Something went wrong");
+    expect(wrapper.text()).toContain("errorBoundary.title");
     expect(wrapper.text()).toContain("boom");
 
     await wrapper.find("button").trigger("click");

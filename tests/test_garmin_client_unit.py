@@ -1,5 +1,6 @@
 """Tests for Garmin client unit-level coverage."""
 
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -131,7 +132,7 @@ class TestGarminTokenStorage:
             assert "CREATE TABLE IF NOT EXISTS garmin_tokens" in script
 
     def test_store_token_with_expires_in(self):
-        with patch("bike_analyzer.backend.ingestion.garmin_client.save_garmin_token") as mock_save:
+        with patch("bike_analyzer.backend.db.database.save_garmin_token") as mock_save:
             store_token(1, {"access_token": "acc", "refresh_token": "ref", "expires_in": 3600})
             mock_save.assert_called_once()
             call_args = mock_save.call_args[1]
@@ -140,24 +141,24 @@ class TestGarminTokenStorage:
             assert call_args["refresh_token"] == "ref"
 
     def test_store_token_with_expires_at(self):
-        with patch("bike_analyzer.backend.ingestion.garmin_client.save_garmin_token") as mock_save:
+        with patch("bike_analyzer.backend.db.database.save_garmin_token") as mock_save:
             store_token(1, {"access_token": "acc", "refresh_token": "ref", "expires_at": 1719560000})
             mock_save.assert_called_once()
             call_args = mock_save.call_args[1]
             assert call_args["expires_at"] == 1719560000
 
     def test_revoke_token(self):
-        with patch("bike_analyzer.backend.ingestion.garmin_client.revoke_garmin_token") as mock_revoke:
+        with patch("bike_analyzer.backend.db.database.revoke_garmin_token") as mock_revoke:
             revoke_token(1)
             mock_revoke.assert_called_once_with(1)
 
     async def test_get_valid_token_no_token(self):
-        with patch("bike_analyzer.backend.ingestion.garmin_client.get_garmin_token", return_value=None):
+        with patch("bike_analyzer.backend.db.database.get_garmin_token", return_value=None):
             result = await get_valid_token(1)
             assert result is None
 
     async def test_get_valid_token_fresh(self):
-        with patch("bike_analyzer.backend.ingestion.garmin_client.get_garmin_token", return_value={
+        with patch("bike_analyzer.backend.db.database.get_garmin_token", return_value={
             "access_token": "access_token_123",
             "refresh_token": "refresh",
             "expires_at": int(time.time()) + 7200,
@@ -167,7 +168,7 @@ class TestGarminTokenStorage:
 
     async def test_get_valid_token_refreshes_when_expired(self):
         with (
-            patch("bike_analyzer.backend.ingestion.garmin_client.get_garmin_token", return_value={
+            patch("bike_analyzer.backend.db.database.get_garmin_token", return_value={
                 "access_token": "old_token",
                 "refresh_token": "refresh_token",
                 "expires_at": int(time.time()) - 100,

@@ -189,7 +189,7 @@ class TestTokenStorage:
             }
             token = get_valid_token(1, client_id="test_id", client_secret="test_secret")
             assert token == "new_token"
-            mock_refresh.assert_called_once_with("refresh_xyz", "verifier", client_id="test_id", client_secret="test_secret")
+            mock_refresh.assert_called_once_with("refresh_xyz", client_id="test_id", client_secret="test_secret")
 
 
 class TestFetchWorkouts:

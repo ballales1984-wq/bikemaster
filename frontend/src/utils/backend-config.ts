@@ -130,7 +130,6 @@ export function resolveApiBase(): string {
   if (isCapacitor()) {
     const stored = getStoredMobileApiBase();
     if (stored) return stored;
-    return resolveMobileApiBase();
   }
 
   if (typeof window !== "undefined" && typeof location !== "undefined") {
