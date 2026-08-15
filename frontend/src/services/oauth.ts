@@ -49,7 +49,10 @@ export function consumeOAuthState(): string | null {
 }
 
 function validateOAuthState(returnedState: string | null): boolean {
-  if (!returnedState) return true;
+  if (!returnedState) {
+    console.warn("[OAuth] missing state parameter — rejecting");
+    return false;
+  }
   const expected = consumeOAuthState();
   if (!expected) {
     console.warn(
