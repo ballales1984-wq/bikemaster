@@ -466,8 +466,6 @@ function faceLatLonBounds(face: number): {
   ];
   let minLat = Infinity,
     maxLat = -Infinity;
-  let minLon = Infinity,
-    maxLon = -Infinity;
   const lons: number[] = [];
   for (const c of corners) {
     const { lat, lon } = latLonFromDir(c);
@@ -475,6 +473,25 @@ function faceLatLonBounds(face: number): {
     maxLat = Math.max(maxLat, lat);
     lons.push(lon);
   }
+
+  const unwrapped = [lons[0]];
+  for (let i = 1; i < lons.length; i++) {
+    let diff = lons[i] - unwrapped[i - 1];
+    if (diff > 180) unwrapped.push(lons[i] - 360);
+    else if (diff < -180) unwrapped.push(lons[i] + 360);
+    else unwrapped.push(lons[i]);
+  }
+  let minLon = Math.min(...unwrapped);
+  let maxLon = Math.max(...unwrapped);
+  if (minLon < -180) {
+    minLon += 360;
+    maxLon += 360;
+  } else if (maxLon > 180) {
+    minLon -= 360;
+    maxLon -= 360;
+  }
+  return { minLat, maxLat, minLon, maxLon };
+}
   const wrapped = lons.map((lon) => ((((lon + 180) % 360) + 360) % 360) - 180);
   minLon = Math.min(...wrapped);
   maxLon = Math.max(...wrapped);
@@ -500,7 +517,11 @@ function buildTerrainMesh(tiles: (Float32Array | null)[], N: number) {
         const { lat, lon } = latLonFromDir(dir);
         let terrainH = 0;
         if (tile) {
-          const tileU = (lon - bounds.minLon) / (bounds.maxLon - bounds.minLon);
+          let wrappedLon = lon;
+          const span = bounds.maxLon - bounds.minLon;
+          while (wrappedLon < bounds.minLon) wrappedLon += 360;
+          while (wrappedLon > bounds.minLon + span) wrappedLon -= 360;
+          const tileU = (wrappedLon - bounds.minLon) / span;
           const tileV =
             1.0 - (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat);
           const clampedU = Math.max(0, Math.min(1, tileU));

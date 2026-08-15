@@ -187,26 +187,37 @@ async def get_natural_earth(
     """Return Natural Earth vector data."""
     try:
 
+        import asyncio
+
+        import httpx
+
         from bike_analyzer.backend.maps.terrain import _DEM_CACHE_DIR
 
         cache_file = _DEM_CACHE_DIR / f"natural-earth-{resolution}.geojson"
         if not cache_file.exists():
             cache_file.parent.mkdir(parents=True, exist_ok=True)
-            import urllib.request
-
             url = (
                 f"https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/"
                 f"ne_{resolution}m_land.geojson"
             )
-            try:
-                with urllib.request.urlopen(url, timeout=30) as resp:
-                    cache_file.write_bytes(resp.read())
-            except Exception as exc:
-                logger.warning("Natural Earth download failed: %s", exc)
-                return JSONResponse(
-                    status_code=503,
-                    content={"detail": "Natural Earth data unavailable"},
-                )
+            last_exc: Exception | None = None
+            for attempt in range(4):
+                try:
+                    async with httpx.AsyncClient(timeout=30) as client:
+                        resp = await client.get(url)
+                        resp.raise_for_status()
+                        cache_file.write_bytes(resp.content)
+                        break
+                except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+                    last_exc = exc
+                    if attempt < 3:
+                        await asyncio.sleep(0.5 * (2**attempt))
+                        continue
+                    logger.warning("Natural Earth download failed after retries: %s", exc)
+                    return JSONResponse(
+                        status_code=503,
+                        content={"detail": "Natural Earth data unavailable"},
+                    )
         raw = cache_file.read_text(encoding="utf-8")
         return JSONResponse(content=json.loads(raw))
     except json.JSONDecodeError as exc:
@@ -217,4 +228,57 @@ async def get_natural_earth(
         )
     except Exception as exc:
         logger.exception("Natural Earth fetch failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from None
+
+
+@router.get("/ride/{ride_id}")
+async def get_aethermap_ride(
+    ride_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Return AetherMap GeoJSON for a single ride."""
+    try:
+        from bike_analyzer.backend.db.database import get_ride
+        from bike_analyzer.backend.maps.aethermap_adapter import create_route_map
+        from bike_analyzer.core.models import GPSPoint, RouteStatistics
+        from tempfile import TemporaryDirectory
+
+        tenant_id = current_user.get("tenant_id", current_user["id"])
+        ride = get_ride(ride_id, tenant_id=tenant_id)
+        if not ride:
+            raise HTTPException(status_code=404, detail="Ride not found")
+        gps_points = ride.get("gps_points")
+        if not gps_points:
+            raise HTTPException(status_code=400, detail="No GPS points for this ride")
+        normalized = []
+        for p in gps_points:
+            if isinstance(p, str):
+                p = json.loads(p)
+            if "altitude" not in p and "elevation" in p:
+                q = {k: v for k, v in p.items() if k != "elevation"}
+                q["altitude"] = p.get("elevation")
+                normalized.append(q)
+            else:
+                normalized.append(p)
+        points = [GPSPoint(**p) for p in normalized]
+
+        stats = None
+        if ride.get("distance_km") and ride.get("duration_minutes"):
+            stats = RouteStatistics(
+                total_distance_m=ride.get("distance_km", 0.0) * 1000.0,
+                total_duration_s=ride.get("duration_minutes", 0.0) * 60.0,
+                avg_speed_km_h=ride.get("avg_speed_kmh", 0.0),
+                max_speed_km_h=ride.get("max_speed_kmh", 0.0),
+                total_elevation_gain_m=ride.get("elevation_gain_m", 0.0),
+            )
+
+        with TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / f"ride_{ride_id}_map.json"
+            create_route_map(points, statistics=stats, output_path=str(output_path))
+            data = json.loads(output_path.read_text(encoding="utf-8"))
+        return JSONResponse(content=data)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("AetherMap ride fetch failed")
         raise HTTPException(status_code=500, detail=str(exc)) from None
