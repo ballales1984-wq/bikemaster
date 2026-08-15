@@ -1,6 +1,6 @@
 # === Build Stage ===
-# Rebuild trigger - OAuth callback popup fix
-ARG CACHEBUST=1
+# Rebuild trigger - top-level await fix for Docker build
+ARG CACHEBUST=2
 FROM node:22-alpine AS frontend-builder
 WORKDIR /app/frontend
 ENV PATH="./node_modules/.bin:$PATH"
