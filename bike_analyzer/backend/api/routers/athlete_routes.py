@@ -8,10 +8,9 @@ from typing import Any
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from bike_analyzer.backend.api.routes import _athlete_profile_data, _current_athlete_id
+from bike_analyzer.backend.api.routes import _athlete_profile_data, _current_athlete_id, _ensure_int_user_id
 from bike_analyzer.backend.db.database import (
     delete_athlete,
-    get_all_athletes,
     get_athlete,
     get_athlete_history,
     get_athlete_metric_log,
@@ -163,9 +162,25 @@ async def delete_my_athlete(
     return {"status": "deleted"}
 
 
+def _assert_athlete_ownership(athlete_id: int, current_user: dict) -> dict:
+    """Fetch an athlete and enforce that it belongs to ``current_user``.
+
+    Raises 404 if the athlete doesn't exist and 403 if it belongs to another user.
+    """
+    user_id = _ensure_int_user_id(current_user)
+    athlete = get_athlete(athlete_id, tenant_id=user_id)
+    if athlete is None:
+        athlete_fallback = get_athlete(athlete_id)
+        if athlete_fallback is None or athlete_fallback.get("user_id") != user_id:
+            raise HTTPException(status_code=404, detail="Athlete not found")
+        athlete = athlete_fallback
+    return athlete
+
+
 @router.get("/athletes")
 async def list_athletes(current_user: dict = Depends(get_current_user)):
-    athletes = get_all_athletes()
+    user_id = _ensure_int_user_id(current_user)
+    athletes = get_athletes_by_user(user_id)
     return {"athletes": athletes}
 
 
@@ -188,9 +203,7 @@ async def get_athlete_by_id(
     athlete_id: int,
     current_user: dict = Depends(get_current_user),
 ):
-    athlete = get_athlete(athlete_id)
-    if not athlete:
-        raise HTTPException(status_code=404, detail="Athlete not found")
+    athlete = _assert_athlete_ownership(athlete_id, current_user)
     return athlete
 
 
@@ -200,9 +213,7 @@ async def update_athlete_by_id(
     updates: AthleteUpdate,
     current_user: dict = Depends(get_current_user),
 ):
-    athlete = get_athlete(athlete_id)
-    if not athlete:
-        raise HTTPException(status_code=404, detail="Athlete not found")
+    athlete = _assert_athlete_ownership(athlete_id, current_user)
     update_data = updates.model_dump(exclude_unset=True)
     if not update_data:
         return athlete
@@ -219,9 +230,7 @@ async def log_athlete_metric_endpoint(
     data: dict = Body(...),
     current_user: dict = Depends(get_current_user),
 ):
-    athlete = get_athlete(athlete_id)
-    if not athlete:
-        raise HTTPException(status_code=404, detail="Athlete not found")
+    _assert_athlete_ownership(athlete_id, current_user)
     metric_type = str(data.get("metric_type") or next(iter(data.keys()), "manual"))
     value = data.get("value")
     if value is None:
