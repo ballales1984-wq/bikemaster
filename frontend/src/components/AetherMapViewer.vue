@@ -782,14 +782,18 @@ function makeIndexBuffer(data: Uint32Array): WebGLBuffer | null {
   return b;
 }
 
-function draw(buf: { buf: WebGLBuffer; count: number; mode: number; stride: number }) {
+function draw(
+  buf: { buf: WebGLBuffer; count: number; mode: number; stride: number },
+  posLoc: number,
+  colorLoc: number,
+) {
   if (!gl) return;
   gl.bindBuffer(gl.ARRAY_BUFFER, buf.buf);
-  gl.enableVertexAttribArray(A_p);
-  gl.vertexAttribPointer(A_p, 3, gl.FLOAT, false, buf.stride, 0);
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, buf.stride, 0);
   if (buf.stride >= 24) {
-    gl.enableVertexAttribArray(A_c);
-    gl.vertexAttribPointer(A_c, 3, gl.FLOAT, false, buf.stride, 12);
+    gl.enableVertexAttribArray(colorLoc);
+    gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, buf.stride, 12);
   }
   gl.drawArrays(buf.mode, 0, buf.count);
 }
@@ -1363,12 +1367,12 @@ onMounted(async () => {
     }
 
     gl.uniform1i(U.useVertexColor, 1);
-    if (routeBuffer) draw(routeBuffer);
-    if (pointBuffer) draw(pointBuffer);
-    if (markerBuffer) draw(markerBuffer);
+    if (routeBuffer) draw(routeBuffer, A_p, A_c);
+    if (pointBuffer) draw(pointBuffer, A_p, A_c);
+    if (markerBuffer) draw(markerBuffer, A_p, A_c);
 
     for (const [, buf] of geoBufferMap) {
-      draw(buf);
+      draw(buf, A_p, A_c);
     }
 
     rafId = requestAnimationFrame(frame);
