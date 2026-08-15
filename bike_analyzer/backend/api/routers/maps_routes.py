@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ...analytics.repositories.maps_repository import MapsRepository
@@ -112,6 +114,8 @@ async def nearby_places(
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    if isinstance(gps_points, str):
+        gps_points = json.loads(gps_points)
     points = [GPSPoint(**p) for p in gps_points]
     center_lat = round(sum(p.lat for p in points) / len(points), 3)
     center_lon = round(sum(p.lon for p in points) / len(points), 3)
@@ -172,6 +176,8 @@ async def search_places_endpoint(
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")
+    if isinstance(gps_points, str):
+        gps_points = json.loads(gps_points)
     points = [GPSPoint(**p) for p in gps_points]
     _s = get_settings()
     if not _s.serpapi_api_key:

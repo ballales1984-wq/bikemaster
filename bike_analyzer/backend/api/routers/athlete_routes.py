@@ -165,12 +165,15 @@ async def delete_my_athlete(
 def _assert_athlete_ownership(athlete_id: int, current_user: dict) -> dict:
     """Fetch an athlete and enforce that it belongs to ``current_user``.
 
-    Raises 404 if the athlete doesn't exist or doesn't belong to the requesting user.
+    Raises 404 if the athlete doesn't exist and 403 if it belongs to another user.
     """
     user_id = _ensure_int_user_id(current_user)
-    athlete = get_athlete(athlete_id)
-    if athlete is None or athlete.get("user_id") != user_id:
-        raise HTTPException(status_code=404, detail="Athlete not found")
+    athlete = get_athlete(athlete_id, tenant_id=user_id)
+    if athlete is None:
+        athlete_fallback = get_athlete(athlete_id)
+        if athlete_fallback is None or athlete_fallback.get("user_id") != user_id:
+            raise HTTPException(status_code=404, detail="Athlete not found")
+        athlete = athlete_fallback
     return athlete
 
 

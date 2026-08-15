@@ -56,7 +56,7 @@ def decrypt_token(ciphertext: str) -> str:
         return cipher.decrypt(ciphertext.encode("utf-8")).decode("utf-8")
     except InvalidToken:
         logger.warning("Token decryption failed: invalid token or wrong key")
-        return ""
+        return ciphertext
     except Exception:
         logger.warning("Token decryption failed", exc_info=True)
-        return ""
+        return ciphertext

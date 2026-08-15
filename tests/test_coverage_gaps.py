@@ -38,10 +38,11 @@ class TestStravaTokenRefresh:
         with (
             patch.object(sc, "_ensure_token_table"),
             patch.object(sc, "_get_conn", return_value=mock_conn),
-            patch.object(
-                sc,
-                "refresh_access_token",
-                return_value={"access_token": "new_access", "refresh_token": "new_refresh"},
+            patch(
+                "bike_analyzer.backend.ingestion.strava_client.refresh_access_token",
+                new=AsyncMock(
+                    return_value={"access_token": "new_access", "refresh_token": "new_refresh"}
+                ),
             ),
         ):
             result = asyncio.run(sc.get_valid_token(1))
@@ -224,7 +225,9 @@ class TestGarminTokenRefresh:
             patch.object(
                 gc,
                 "refresh_access_token",
-                return_value={"access_token": "new_access", "refresh_token": "new_refresh"},
+                new=AsyncMock(
+                    return_value={"access_token": "new_access", "refresh_token": "new_refresh"}
+                ),
             ),
         ):
             result = asyncio.run(gc.get_valid_token(1))

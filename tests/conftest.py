@@ -71,6 +71,7 @@ os.environ.pop("DATABASE_URL", None)
 os.environ.pop("DATABASE_URL_UNPOOLED", None)
 os.environ["DATABASE_URL"] = ""
 os.environ["DATABASE_URL_UNPOOLED"] = ""
+os.environ["TOKEN_ENCRYPTION_KEY"] = "TgjvE054AgL1UVXPsj98EH0LDZ7_umDTQno858P4M00="  # noqa: S105
 
 _TMP = Path(os.environ.get("TEMP", "/tmp")) / "bikemaster_test_dbs"  # noqa: S108
 _TMP.mkdir(exist_ok=True)

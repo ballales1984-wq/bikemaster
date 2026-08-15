@@ -252,14 +252,18 @@ def revoke_token(athlete_id: int) -> None:
 async def get_valid_token(
     athlete_id: int, client_id: str | None = None, client_secret: str | None = None
 ) -> str | None:
+    print(f"DEBUG get_valid_token CALLED: athlete_id={athlete_id}")
     from ..db.database import get_strava_token
 
     row = get_strava_token(athlete_id)
+    print(f"DEBUG get_valid_token: row={row!r}")
     if not row:
+        print("DEBUG get_valid_token: row is falsy, returning None")
         return None
     access_token = row.get("access_token", "")
     refresh_token = row.get("refresh_token", "")
     expires_at = row.get("expires_at")
+    print(f"DEBUG get_valid_token: access_token={access_token!r}, refresh_token={refresh_token!r}, expires_at={expires_at!r}")
     try:
         from ..db.token_crypto import decrypt_token
         if access_token:
@@ -268,16 +272,23 @@ async def get_valid_token(
             refresh_token = decrypt_token(refresh_token)
     except Exception:
         logger.warning("Strava token decryption failed", exc_info=True)
+    print(f"DEBUG get_valid_token: after decrypt access_token={access_token!r}, refresh_token={refresh_token!r}")
     if not access_token:
+        print("DEBUG get_valid_token: access_token is falsy, returning None")
         return None
     if expires_at and expires_at - time.time() < TOKEN_REFRESH_BUFFER_SECONDS:
+        print(f"DEBUG get_valid_token: token expired, refreshing...")
         try:
             new_data = await refresh_access_token(refresh_token or "", client_id=client_id, client_secret=client_secret)
+            print(f"DEBUG get_valid_token: new_data={new_data!r}")
             store_token(athlete_id, new_data)
-            return new_data.get("access_token")
+            result = new_data.get("access_token")
+            print(f"DEBUG get_valid_token: result={result!r}")
+            return result
         except Exception:
             logger.exception("Failed to refresh Strava token for athlete %s", athlete_id)
             return None
+    print("DEBUG get_valid_token: token still valid, returning access_token")
     return access_token
 
 

@@ -270,6 +270,18 @@ def create_hub_app() -> FastAPI:
     )
 
     @app.middleware("http")
+    async def _cors_cache_and_vary(request: Request, call_next):
+        response = await call_next(request)
+        origin = request.headers.get("origin")
+        if origin:
+            vary = response.headers.get("Vary", "")
+            if "Origin" not in vary:
+                response.headers["Vary"] = f"{vary}, Origin".strip(", ")
+            if request.method == "OPTIONS":
+                response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @app.middleware("http")
     async def limit_request_size(request: Request, call_next):
         """Reject requests with body larger than 10 MB to prevent memory exhaustion."""
         if request.headers.get("content-length"):

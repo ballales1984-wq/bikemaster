@@ -110,8 +110,8 @@ async def create_ride(payload: RideCreate, current_user: dict = Depends(get_curr
     data = payload.model_dump(exclude_none=True)
     data["athlete_id"] = athlete_id
     data["tenant_id"] = tenant_id
-    if data.get("gps_points"):
-        data["gps_points"] = json.dumps(data["gps_points"])
+    if not data.get("avg_speed_kmh") and data.get("distance_km") and data.get("duration_minutes"):
+        data["avg_speed_kmh"] = data["distance_km"] / (data["duration_minutes"] / 60.0)
     ride_id = await repo.save(data)
     ride = await repo.get_by_id(ride_id, tenant_id=tenant_id)
     if ride and ride.get("gps_points") and isinstance(ride["gps_points"], str):
@@ -203,8 +203,6 @@ async def update_ride(
     if not existing:
         raise HTTPException(status_code=404, detail="Ride not found")
     data = payload.model_dump(exclude_none=True)
-    if data.get("gps_points"):
-        data["gps_points"] = json.dumps(data["gps_points"])
     update_ride(ride_id, data)
     ride = get_ride(ride_id, tenant_id=tenant_id)
     if ride and ride.get("gps_points") and isinstance(ride["gps_points"], str):
@@ -281,7 +279,7 @@ async def generate_ride_map(
             "statistics": stats.__dict__ if stats else None,
         }
 
-    from ..maps.map_renderer import create_route_map
+    from ...maps.map_renderer import create_route_map
 
     base_dir = Path(__file__).resolve().parent.parent.parent / "static"
     safe_id = "".join(c if c.isalnum() or c == "_" else "_" for c in str(ride_id))

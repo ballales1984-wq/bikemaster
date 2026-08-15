@@ -553,6 +553,18 @@ def create_app() -> FastAPI:
             "X-User-Api-Keys",
         ],
     )
+
+    @app.middleware("http")
+    async def _cors_cache_and_vary(request: Request, call_next):
+        response = await call_next(request)
+        origin = request.headers.get("origin")
+        if origin:
+            vary = response.headers.get("Vary", "")
+            if "Origin" not in vary:
+                response.headers["Vary"] = f"{vary}, Origin".strip(", ")
+            if request.method == "OPTIONS":
+                response.headers["Cache-Control"] = "no-store"
+        return response
     app.include_router(router, prefix="/api/v1")
     app.include_router(calendar_router, prefix="/api/v1")
     app.include_router(weather_router, prefix="/api/v1")

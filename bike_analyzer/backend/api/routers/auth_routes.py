@@ -219,7 +219,16 @@ async def local_refresh(request: Request, payload: dict = Body(...)):
 @router.get("/auth/me")
 async def local_me(current_user: dict = Depends(get_current_user)):
     """Return the current user profile from the local SQLite store."""
+    from bike_analyzer.backend.db.database import get_athlete
+
     user = get_user_by_id(int(current_user["id"]))
+    athlete = get_athlete(int(current_user.get("tenant_id", current_user["id"])))
+    profile_complete = (
+        athlete is not None
+        and athlete.get("age") is not None
+        and athlete.get("weight_kg") is not None
+        and (athlete.get("experience_level") or "").strip() != ""
+    ) if athlete else False
     if not user:
         return {
             "id": current_user["id"],
@@ -228,6 +237,7 @@ async def local_me(current_user: dict = Depends(get_current_user)):
             "is_admin": current_user.get("is_admin", False),
             "is_client": current_user.get("is_client", False),
             "tenant_id": current_user.get("tenant_id", current_user["id"]),
+            "profile_complete": profile_complete,
         }
     return {
         "id": user["id"],
@@ -236,6 +246,7 @@ async def local_me(current_user: dict = Depends(get_current_user)):
         "is_admin": bool(user.get("is_admin")),
         "is_client": bool(user.get("is_client")),
         "tenant_id": user.get("tenant_id", user["id"]),
+        "profile_complete": profile_complete,
     }
 
 
@@ -244,7 +255,8 @@ async def update_auth_profile(profile: dict, current_user: dict = Depends(get_cu
     """Update the current user profile."""
     return {
         "id": current_user["id"],
-        "username": profile.get("name", current_user.get("username", "")),
+        "name": profile.get("name", current_user.get("username", "")),
+        "username": current_user.get("username", ""),
         "email": profile.get("email"),
         "is_admin": current_user.get("is_admin", False),
         "is_client": current_user.get("is_client", False),
