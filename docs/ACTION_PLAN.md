@@ -121,10 +121,9 @@ split per cartella.
 9. **Secrets & deploy**
    - `deploy-vercel` esiste ma per il desktop Tauri serve `tauri-release.yml`
      (presente) → verificare che produca `.exe`/`.dmg`/`.AppImage` e crei GitHub Release.
-   - `render.yaml` (backend locale) + `render-hub.yaml` (hub multi-tenant PostgreSQL):
-     fare un deploy di prova dell'hub e verificare la sync device↔cloud end-to-end.
-   - Vercel: `VITE_API_BASE` va ri-puntato dopo ogni reboot ngrok (documentato in
-     `environment.md`); automatizzare con `scripts/tauri_agent.py update` se possibile.
+    - `render.yaml` (backend locale) + `render-hub.yaml` (hub multi-tenant PostgreSQL):
+      fare un deploy di prova dell'hub e verificare la sync device↔cloud end-to-end.
+    - Vercel: `VITE_API_BASE` &egrave; configurato su Render in `vercel.json`.
 
 10. **Database: Alembic vs modelli**
     - In `cec425b` ho cambiato `pois.type` da `Enum(POIType)` a `String`. Serve una

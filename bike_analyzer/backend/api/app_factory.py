@@ -502,7 +502,8 @@ def create_app() -> FastAPI:
                     "https://cdn.jsdelivr.net https://netdna.bootstrapcdn.com "
                     "https://unpkg.com "
                     "https://fonts.googleapis.com https://fonts.gstatic.com; "
-                    "connect-src 'self' https: http://localhost:* http://127.0.0.1:*"
+                    "connect-src 'self' https: http://localhost:* http://127.0.0.1:*; "
+                    "frame-ancestors 'none'"
                 )
         return response
 

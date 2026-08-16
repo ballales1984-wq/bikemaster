@@ -1,10 +1,13 @@
 package com.bikemaster.sensors
 
+import android.Manifest
 import android.bluetooth.*
 import android.bluetooth.le.*
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.ParcelUuid
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.bikemaster.sensors.decoders.RunstarDecoder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +23,8 @@ class BleManager(private val context: Context) {
         val CYCLING_SPEED_CADENCE_UUID: UUID = UUID.fromString("00001816-0000-1000-8000-00805f9b34fb")
     }
 
-    private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    private val bluetoothManager: BluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+    private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
     private var bluetoothLeScanner: BluetoothLeScanner? = null
     private var scanCallback: ScanCallback? = null
     private val gattConnections = mutableMapOf<String, BluetoothGatt>()
@@ -30,13 +34,21 @@ class BleManager(private val context: Context) {
     private val _connectionState = MutableStateFlow<Map<String, Int>>(emptyMap())
     val connectionState: Flow<Map<String, Int>> = _connectionState.asStateFlow()
 
+    fun hasBluetoothPermissions(): Boolean {
+        val fineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        val scan = ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN)
+        val connect = ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT)
+        return fineLocation == PackageManager.PERMISSION_GRANTED &&
+               scan == PackageManager.PERMISSION_GRANTED &&
+               connect == PackageManager.PERMISSION_GRANTED
+    }
+
     fun isBluetoothEnabled(): Boolean {
         return bluetoothAdapter?.isEnabled ?: false
     }
 
     fun initialize() {
-        val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        bluetoothLeScanner = manager.adapter.bluetoothLeScanner
+        bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner
     }
 
     fun startScan(filters: List<ScanFilter>? = null): Flow<List<ScanResult>> {

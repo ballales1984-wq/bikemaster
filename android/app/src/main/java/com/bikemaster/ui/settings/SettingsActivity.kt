@@ -31,16 +31,6 @@ class SettingsActivity : AppCompatActivity() {
     class SettingsFragment : PreferenceFragmentCompat() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.preferences, rootKey)
-            
-            findPreference<EditTextPreference>("backend_url")?.setOnPreferenceChangeListener { _, newValue ->
-                val url = newValue as? String
-                if (!url.isNullOrEmpty() && (url.startsWith("http://") || url.startsWith("https://"))) {
-                    true
-                } else {
-                    Toast.makeText(context, "URL deve iniziare con http:// o https://", Toast.LENGTH_SHORT).show()
-                    false
-                }
-            }
         }
     }
     

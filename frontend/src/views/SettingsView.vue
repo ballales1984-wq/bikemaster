@@ -9,30 +9,9 @@
   <div class="settings-page">
     <h1>Impostazioni backend</h1>
     <p class="subtitle">
-      Configura dove l'app risiede i dati. Di default chiama lo stesso origine;
-      su dispositivi/Web punta al tuo PC. Render resta come failover.
+      Configura dove l'app risiede i dati. Di default usa lo stesso
+      origine; in produzione il backend &egrave; su Render.
     </p>
-
-    <section class="card">
-      <h2>URL del backend</h2>
-      <p class="hint">
-        Inserisci l'URL del backend in esecuzione sul tuo PC (es.
-        <code>https://bikemaster.home:8001</code> o un tunnel). Lascia vuoto per
-        usare lo stesso origine (utile in sviluppo).
-      </p>
-      <div class="row">
-        <input
-          v-model="draftBase"
-          class="text-input"
-          type="text"
-          placeholder="https://tuo-pc.example.com"
-          @keyup.enter="save"
-        />
-        <button class="btn" @click="save">Salva</button>
-        <button class="btn btn-ghost" @click="reset">Predefinito</button>
-      </div>
-      <p class="status" :class="statusClass">{{ statusText }}</p>
-    </section>
 
     <section class="card">
       <h2>Failover Render</h2>
@@ -68,6 +47,7 @@
         <span class="badge" :class="modeClass">{{ modeLabel }}</span>
         <button class="btn btn-ghost" @click="ping">Verifica</button>
       </div>
+      <p class="status" :class="statusClass">{{ statusText }}</p>
       <p class="hint">
         Base risolto:
         <code>{{ settings.resolvedBase || "(stesso origine)" }}</code>
@@ -128,7 +108,6 @@ const auth = useAuthStore();
 
 const settings = useSettingsStore();
 
-const draftBase = ref(settings.apiBase);
 const statusText = ref("");
 const statusClass = ref("");
 const consents = ref<
@@ -189,10 +168,8 @@ async function toggleConsent(consent_type: string, granted: boolean) {
 
 const modeLabel = computed(() => {
   switch (settings.backendMode) {
-    case "pc":
-      return "Backend PC (personalizzato)";
     case "render":
-      return "Render (fallback)";
+      return "Render (produzione)";
     case "mobile":
       return "Mobile (rete locale)";
     default:
@@ -201,24 +178,10 @@ const modeLabel = computed(() => {
 });
 
 const modeClass = computed(() => ({
-  "badge-pc": settings.backendMode === "pc",
   "badge-render": settings.backendMode === "render",
   "badge-local": settings.backendMode === "local",
   "badge-mobile": settings.backendMode === "mobile",
 }));
-
-function save() {
-  settings.apiBase = draftBase.value;
-  statusText.value = "URL backend salvato.";
-  statusClass.value = "ok";
-}
-
-function reset() {
-  settings.resetApiBase();
-  draftBase.value = "";
-  statusText.value = "Ripristinato il default (stesso origine).";
-  statusClass.value = "ok";
-}
 
 function toggleFallback(e: Event) {
   const checked = (e.target as HTMLInputElement).checked;
@@ -322,10 +285,6 @@ h1 {
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
-}
-.badge-pc {
-  background: #1b3a2a;
-  color: #6ee7a8;
 }
 .badge-render {
   background: #3a2f1b;

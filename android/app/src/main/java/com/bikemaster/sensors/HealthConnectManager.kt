@@ -83,7 +83,7 @@ class HealthConnectManager(private val context: android.content.Context) {
             if (missing.isEmpty()) return true
 
             val request = PermissionController.createRequestPermissionResultContract()
-            val intent = request.createIntent(context, missing)
+            val _intent = request.createIntent(context, missing)
             launcher.launch(missing)
             true
         } catch (e: Exception) {

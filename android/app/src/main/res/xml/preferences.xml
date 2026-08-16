@@ -2,13 +2,6 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     
     <EditTextPreference
-        android:key="backend_url"
-        android:title="Backend URL"
-        android:summary="URL del server API BikeMaster"
-        android:defaultValue="https://bikemaster-api.onrender.com/api/v1/"
-        android:inputType="textUri" />
-        
-    <EditTextPreference
         android:key="api_key"
         android:title="API Key (opzionale)"
         android:summary="Chiave API per autenticazione"

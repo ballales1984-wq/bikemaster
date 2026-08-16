@@ -247,19 +247,17 @@ Il frontend non ha un URL fisso del backend: lo **risolve a runtime** in `src/ut
 
 ```
 resolveApiBase() → controlla in ordine:
-  1. localStorage (se l'utente ha impostato un backend manuale)
-  2. VITE_API_BASE (variabile impostata a build-time, usata su Vercel)
-  3. Se sei in Tauri → http://localhost:8001 (backend embedded)
-  4. Se localhost:8001 → "" (same origin, in dev Vite fa proxy)
-  5. Altrimenti "" (stesso host del frontend)
+   1. VITE_API_BASE (variabile impostata a build-time, usata su Vercel → Render)
+   2. Se sei in Tauri → http://localhost:8001 (backend embedded)
+   3. "" → same origin (default: in dev Vite fa proxy verso localhost:8001)
 ```
 
 **Modalità principali:**
 
 - **Sviluppo locale**: frontend su `localhost:5173`, backend su `localhost:8001`. Vite (dev server) fa da proxy.
 - **Tauri desktop**: il backend gira *dentro* l'app, su `localhost:8001`. Il frontend (WebView) lo chiama direttamente. Niente internet necessario.
-- **Vercel (produzione web)**: frontend statico su `.vercel.app`. Deve puntare `VITE_API_BASE` a un backend (PC dell'utente o Render).
-- **Render (cloud)**: backend live su `bikemaster.onrender.com`. Il frontend può usare Render come **failover** se il backend locale non risponde.
+- **Vercel (produzione web)**: frontend statico su `.vercel.app`. `VITE_API_BASE` &egrave; configurato su Render (fonte di verit&agrave; produzione).
+- **Render (cloud)**: backend live su `bikemaster.onrender.com`. Usato come backend primario in produzione; il fallback &egrave; gestito automaticamente.
 
 ### Cookie vs Token
 

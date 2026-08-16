@@ -52,7 +52,7 @@ class RunstarBleConnector(private val bleManager: BleManager) : Connector {
 
             delay(2000)
 
-            val state: Map<String, Int> = bleManager.connectionState.first { map ->
+            val _state: Map<String, Int> = bleManager.connectionState.first { map ->
                 map[deviceAddress] == android.bluetooth.BluetoothProfile.STATE_DISCONNECTED
             }
 

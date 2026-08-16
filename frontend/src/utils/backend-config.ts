@@ -5,20 +5,27 @@
  * auto-detect Tauri, same-origin) and the cloud hub base. `resolveFallbackBase`
  * exposes the Render fallback (used only on network error/5xx if enabled).
  * Also exports storage keys, getters/setters and `getBackendMode`
- * ("pc"|"render"|"local"|"tauri"|"mobile"|"hub") describing the active mode.
+ * ("local"|"render"|"tauri"|"mobile"|"hub") describing the active mode.
+ *
+ * SECURITY: localStorage override is allowed ONLY on localhost (dev context).
+ * On production hosts (Vercel, Render, ngrok, etc.) the backend URL must come
+ * from build-time env vars to prevent pointing to an insecure personal PC/server.
  */
 
 // Resolves the backend base URL in a configurable way at runtime.
 //
 // Priority of the primary base:
-//   1. Runtime setting (localStorage) — modifiable from the app Settings
-//   2. Build variable VITE_API_BASE (e.g. on Vercel)
-//   3. Auto-detect Tauri → localhost:8001 (full FastAPI backend)
-//   4. "" → same origin (default: in dev Vite proxies /api to localhost:8001)
+//   1. Build variable VITE_API_BASE (e.g. on Vercel → Render)
+//   2. Auto-detect Tauri → localhost:8001 (full FastAPI backend)
+//   3. "" → same origin (default: in dev Vite proxies /api to localhost:8001)
+//
+// NOTE: localStorage override was removed for security. The backend URL is
+// now fixed at build time via VITE_API_BASE. This prevents production users
+// from pointing the app to an exposed personal PC/database.
 //
 // If the primary base is empty, calls go to the same origin. On Vercel
-// (static frontend, no backend at same origin) an explicit base must be set:
-// usually the URL of the backend on the user's PC.
+// (static frontend, no backend at same origin) VITE_API_BASE must be set
+// to the Render backend URL.
 //
 // RENDER_FALLBACK_BASE is used ONLY as fallback: if the primary base is
 // unreachable (network error or 502/503/504) and fallback is enabled,
@@ -132,20 +139,6 @@ export function resolveApiBase(): string {
     if (stored) return stored;
   }
 
-  if (typeof window !== "undefined" && typeof location !== "undefined") {
-    const h = location.hostname.toLowerCase();
-    if (h === "localhost" || h === "127.0.0.1") {
-      const p = location.port;
-      if (p === "8001") return "";
-    }
-    if (h.endsWith(".ngrok-free.dev") || h.endsWith(".onrender.com")) {
-      return "";
-    }
-  }
-
-  const stored = getStoredApiBase();
-  if (stored) return stored;
-
   if (isTauri()) {
     return TAURI_EMBEDDED_BACKEND_BASE;
   }
@@ -159,7 +152,7 @@ export function resolveApiBase(): string {
     return normalizeBase(envBase);
   }
 
-  return "";
+  return RENDER_FALLBACK_BASE;
 }
 
 export function resolveMobileApiBase(): string {
@@ -191,12 +184,10 @@ export function resolveFallbackBase(): string {
   return RENDER_FALLBACK_BASE;
 }
 
-// "pc" quando l'utente punta al proprio backend, "render" per il fallback,
-// "local" per same-origin (dev), "tauri" per backend embedded Tauri,
-// "mobile" per Capacitor Android che parla con il backend sulla rete locale,
+// "local" per same-origin (dev), "render" per cloud backend,
+// "tauri" per backend embedded Tauri, "mobile" per Capacitor Android,
 // "hub" quando l'app gira su Vercel e parla con il backend cloud.
-export type BackendMode =
-  "pc" | "render" | "local" | "tauri" | "mobile" | "hub";
+export type BackendMode = "local" | "render" | "tauri" | "mobile" | "hub";
 
 export function getBackendMode(): BackendMode {
   if (isCapacitor()) return "mobile";
@@ -205,5 +196,5 @@ export function getBackendMode(): BackendMode {
   if (!base) return isTauri() ? "local" : "local";
   if (isTauri() && base === TAURI_EMBEDDED_BACKEND_BASE) return "tauri";
   if (base.includes("onrender.com")) return "render";
-  return "pc";
+  return "hub";
 }
