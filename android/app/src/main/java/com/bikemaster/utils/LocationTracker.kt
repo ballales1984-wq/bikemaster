@@ -16,9 +16,12 @@ class LocationTracker(private val context: Context) {
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
     
     fun startLocationUpdates(): Flow<Location> = callbackFlow {
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
-            .setMinUpdateIntervalMillis(2000)
-            .build()
+        @Suppress("DEPRECATION")
+        val locationRequest = LocationRequest.create().apply {
+            interval = 5000
+            fastestInterval = 2000
+            priority = Priority.PRIORITY_HIGH_ACCURACY
+        }
         
         val locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
