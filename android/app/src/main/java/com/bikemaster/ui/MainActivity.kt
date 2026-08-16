@@ -13,6 +13,7 @@ import com.bikemaster.ui.athlete.AthleteProfileActivity
 import com.bikemaster.ui.auth.LoginActivity
 import com.bikemaster.ui.calendar.CalendarActivity
 import com.bikemaster.ui.coach.CoachActivity
+import com.bikemaster.ui.dashboard.DashboardActivity
 import com.bikemaster.ui.rides.RideListActivity
 import com.bikemaster.ui.settings.SettingsActivity
 import com.bikemaster.ui.stats.StatsActivity
@@ -28,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var navSpinner: Spinner
+    private lateinit var btnDashboard: Button
     private lateinit var btnRides: Button
     private lateinit var btnTracking: Button
     private lateinit var btnStats: Button
@@ -49,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         navSpinner = findViewById(R.id.nav_spinner)
+        btnDashboard = findViewById(R.id.btn_dashboard)
         btnRides = findViewById(R.id.btn_rides)
         btnTracking = findViewById(R.id.btn_tracking)
         btnStats = findViewById(R.id.btn_stats)
@@ -81,6 +84,7 @@ class MainActivity : AppCompatActivity() {
                 id: Long
             ) {
                 when (routes[position]) {
+                    "Dashboard" -> DashboardActivity.start(this@MainActivity)
                     "Uscite" -> RideListActivity.start(this@MainActivity)
                     "Tracciamento GPS" -> TrackingActivity.start(this@MainActivity)
                     "Statistiche" -> StatsActivity.start(this@MainActivity)
@@ -97,6 +101,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
+        btnDashboard.setOnClickListener { DashboardActivity.start(this) }
         btnRides.setOnClickListener { RideListActivity.start(this) }
         btnTracking.setOnClickListener { TrackingActivity.start(this) }
         btnStats.setOnClickListener { StatsActivity.start(this) }

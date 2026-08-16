@@ -21,6 +21,7 @@
     <string name="nav_hint">Navigazione</string>
 
     <string-array name="nav_routes">
+        <item>Dashboard</item>
         <item>Uscite</item>
         <item>Tracciamento GPS</item>
         <item>Statistiche</item>
