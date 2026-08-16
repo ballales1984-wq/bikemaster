@@ -22,6 +22,7 @@
     <string name="maps">Mappe</string>
     <string name="zones">Zone</string>
     <string name="badges">Badge</string>
+    <string name="heatmap">Heatmap</string>
     <string name="profile">Profilo atleta</string>
     <string name="nav_hint">Navigazione</string>
 
@@ -32,6 +33,7 @@
         <item>Mappe</item>
         <item>Zone</item>
         <item>Badge</item>
+        <item>Heatmap</item>
         <item>Statistiche</item>
         <item>Profilo atleta</item>
         <item>AI Coach</item>
