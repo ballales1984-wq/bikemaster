@@ -7,12 +7,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from bike_analyzer.backend.db import database
 from bike_analyzer.backend.db.dispatch import pg_dispatch
 from bike_analyzer.backend.db.repositories import (
     ride_repository,
     training_stress_repository,
 )
-from bike_analyzer.backend.db import database
 
 
 def _dispatch_targets(module):

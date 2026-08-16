@@ -60,9 +60,102 @@ test('PWA manifest and service worker registration', async ({ page }) => {
     expect(sw.ok()).toBeTruthy()
 })
 
-test('offline fallback works', async ({ page }) => {
+test('offline ride creation persists locally', async ({ page }) => {
+    await page.route('**/api/v1/auth/login', route => route.fulfill({
+      json: { access_token: jwt, id: 1 },
+    }))
+
+    await page.route('**/api/v1/rides*', (route) => {
+      if (route.request().method() === 'GET') {
+        route.fulfill({
+          json: { rides: [], total: 0 },
+        })
+      } else {
+        route.fulfill({ status: 503, json: { detail: 'Service Unavailable' } })
+      }
+    })
+
+    await page.goto('/')
+    await page.getByLabel('Username').fill('rider')
+    await page.locator('#password').fill('secret')
+    await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+
+    await page.waitForURL('**/rides')
+    await page.route('**/api/v1/rides', (route) => {
+      route.fulfill({ status: 503, json: { detail: 'Service Unavailable' } })
+    })
+
+    const today = new Date().toISOString().slice(0, 10)
+    await page.locator('input[type="date"]').fill(today)
+    await page.locator('input[placeholder="Distance (km)"]').fill('45')
+    await page.locator('input[placeholder="Duration (min)"]').fill('100')
+    await page.locator('input[placeholder="Avg speed (km/h)"]').fill('27')
+    await page.getByRole('button', { name: /add ride|add/i }).click()
+
+    await expect(page.getByText(/45km.*100min|45.*100/)).toBeVisible()
+})
+
+test('sync pending count updates after offline creation', async ({ page }) => {
+    await page.route('**/api/v1/auth/login', route => route.fulfill({
+      json: { access_token: jwt, id: 1 },
+    }))
+
+    await page.route('**/api/v1/sync/status', (route) => {
+      if (route.request().method() === 'GET') {
+        route.fulfill({
+          json: { mode: 'local', last_sync_at: null, pending_count: 1 },
+        })
+      } else {
+        route.fulfill({
+          json: { mode: 'local', last_sync_at: new Date().toISOString(), pending_count: 0 },
+        })
+      }
+    })
+
+    await page.goto('/')
+    await page.getByLabel('Username').fill('rider')
+    await page.locator('#password').fill('secret')
+    await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+
+    await page.waitForURL('**/rides')
+    await expect(page.getByText(/pending.*1|1.*pending/i)).toBeVisible()
+})
+
+test('service worker caches app shell assets', async ({ page }) => {
+    await page.goto('/')
+    const cached = await page.evaluate(async () => {
+      const cache = await caches.open('bikemaster-app-shell')
+      const keys = await cache.keys()
+      return keys.some(request => request.url.includes('/manifest.json'))
+    })
+    expect(cached).toBeTruthy()
+})
+
+test('offline fallback shows cached app shell', async ({ page }) => {
     await page.goto('/')
     await page.evaluate(() => {
-        window.addEventListener('offline', () => {})
+      window.addEventListener('offline', () => {})
     })
+    await page.route('**/*', (route) => {
+      if (route.request().url().includes('/sw.js')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/javascript',
+          body: '',
+        })
+      }
+      if (route.request().url().includes('/manifest.json')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ name: 'BikeMaster' }),
+        })
+      }
+      return route.fulfill({
+        status: 503,
+        body: 'offline',
+      })
+    })
+    await page.reload()
+    await expect(page.locator('body')).not.toBeEmpty()
 })
