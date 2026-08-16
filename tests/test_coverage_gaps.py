@@ -36,6 +36,7 @@ class TestStravaTokenRefresh:
                     return_value={"access_token": "new_access", "refresh_token": "new_refresh"}
                 ),
             ),
+            patch("bike_analyzer.backend.db.database.save_strava_token"),
         ):
             result = asyncio.run(sc.get_valid_token(1))
             assert result == "new_access"

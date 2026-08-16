@@ -240,7 +240,9 @@ async function loginWithGoogle() {
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-          throw new Error(data.detail || `Google login error: ${response.status}`);
+          throw new Error(
+            data.detail || `Google login error: ${response.status}`,
+          );
         }
 
         if (data.auth_url) {
