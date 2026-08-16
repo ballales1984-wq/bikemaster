@@ -879,10 +879,6 @@ function updateSceneBuffers(sc: AetherScene) {
     gl.deleteBuffer(markerBuffer.buf);
     markerBuffer = null;
   }
-  if (terrainBuffer && gl) {
-    gl.deleteBuffer(terrainBuffer.buf);
-    terrainBuffer = null;
-  }
   if (!gl) return;
 
   const routeData: number[] = [];
@@ -959,18 +955,6 @@ function updateSceneBuffers(sc: AetherScene) {
     routeBuffer = makeBuffer(new Float32Array(routeData), gl.LINE_STRIP, 6);
   if (markerData.length)
     markerBuffer = makeBuffer(new Float32Array(markerData), gl.POINTS, 6);
-
-  const terrainData: number[] = [];
-  for (const pt of terrainPoints.value) {
-    const dir = geodeticToDirection(pt.lat, pt.lon);
-    const elev = (pt.altitude || 0) * TERRAIN_SCALE;
-    const r = GLOBE_RADIUS + elev;
-    const slope = pt.slope_pct || 0;
-    const col: Vec3 = slope > 8 ? [0.93, 0.2, 0.2] : slope > 4 ? [0.93, 0.53, 0.0] : [0.0, 0.8, 0.27];
-    terrainData.push(dir[0] * r, dir[1] * r, dir[2] * r, col[0], col[1], col[2]);
-  }
-  if (terrainData.length)
-    terrainBuffer = makeBuffer(new Float32Array(terrainData), gl.POINTS, 6);
 }
 
 function geoColorForType(tipo: string): Vec3 {
@@ -1472,27 +1456,29 @@ watch(
   },
 );
 
-watch(
-  terrainPoints,
-  () => {
-    if (!gl) return;
-    if (terrainBuffer) {
-      gl.deleteBuffer(terrainBuffer.buf);
-      terrainBuffer = null;
-    }
-    const data: number[] = [];
-    for (const pt of terrainPoints.value) {
-      const dir = geodeticToDirection(pt.lat, pt.lon);
-      const elev = (pt.altitude || 0) * TERRAIN_SCALE;
-      const r = GLOBE_RADIUS + elev;
-      const slope = pt.slope_pct || 0;
-      const col: Vec3 = slope > 8 ? [0.93, 0.2, 0.2] : slope > 4 ? [0.93, 0.53, 0.0] : [0.0, 0.8, 0.27];
-      data.push(dir[0] * r, dir[1] * r, dir[2] * r, col[0], col[1], col[2]);
-    }
-    if (data.length)
-      terrainBuffer = makeBuffer(new Float32Array(data), gl.POINTS, 6);
-  },
-);
+watch(terrainPoints, () => {
+  if (!gl) return;
+  if (terrainBuffer) {
+    gl.deleteBuffer(terrainBuffer.buf);
+    terrainBuffer = null;
+  }
+  const data: number[] = [];
+  for (const pt of terrainPoints.value) {
+    const dir = geodeticToDirection(pt.lat, pt.lon);
+    const elev = (pt.altitude || 0) * TERRAIN_SCALE;
+    const r = GLOBE_RADIUS + elev;
+    const slope = pt.slope_pct || 0;
+    const col: Vec3 =
+      slope > 8
+        ? [0.93, 0.2, 0.2]
+        : slope > 4
+          ? [0.93, 0.53, 0.0]
+          : [0.0, 0.8, 0.27];
+    data.push(dir[0] * r, dir[1] * r, dir[2] * r, col[0], col[1], col[2]);
+  }
+  if (data.length)
+    terrainBuffer = makeBuffer(new Float32Array(data), gl.POINTS, 6);
+});
 
 onBeforeUnmount(() => {
   mounted = false;
@@ -1540,7 +1526,7 @@ onBeforeUnmount(() => {
   cursor: grabbing;
 }
 .aethermap-hud {
-  position: fixed;
+  position: absolute;
   left: 10px;
   top: 10px;
   color: #7fd;
