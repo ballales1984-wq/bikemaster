@@ -17,6 +17,7 @@
     <string name="login">Login</string>
     <string name="logout">Logout</string>
     <string name="dashboard">Dashboard</string>
+    <string name="import_data">Import</string>
     <string name="profile">Profilo atleta</string>
     <string name="nav_hint">Navigazione</string>
 

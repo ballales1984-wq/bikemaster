@@ -65,6 +65,9 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".ui.imports.ImportActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.dashboard.DashboardActivity"
             android:exported="false" />
         <activity
