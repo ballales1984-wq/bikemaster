@@ -18,6 +18,7 @@
     <string name="logout">Logout</string>
     <string name="dashboard">Dashboard</string>
     <string name="import_data">Import</string>
+    <string name="weather">Meteo</string>
     <string name="profile">Profilo atleta</string>
     <string name="nav_hint">Navigazione</string>
 

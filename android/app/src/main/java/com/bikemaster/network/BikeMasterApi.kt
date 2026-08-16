@@ -85,4 +85,11 @@ interface BikeMasterApi {
         @Path("athleteId") athleteId: Int,
         @Body metrics: List<Map<String, Any?>>
     ): Map<String, Any>
+
+    @GET("weather")
+    suspend fun getWeather(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        @Query("date") date: String? = null
+    ): Map<String, Any>
 }

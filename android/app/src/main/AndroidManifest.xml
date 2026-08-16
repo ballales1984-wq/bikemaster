@@ -65,6 +65,9 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".ui.weather.WeatherActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.imports.ImportActivity"
             android:exported="false" />
         <activity
