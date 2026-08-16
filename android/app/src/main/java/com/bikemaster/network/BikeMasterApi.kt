@@ -55,6 +55,9 @@ interface BikeMasterApi {
     @GET("coach/full")
     suspend fun getCoachFullData(@Query("athlete_id") athleteId: Int): Map<String, Any>
     
+    @GET("dashboard")
+    suspend fun getDashboard(): Map<String, Any>
+    
     @GET("calendar/events")
     suspend fun getCalendarEvents(
         @Query("athlete_id") athleteId: Int,

@@ -214,25 +214,6 @@ def create_hub_app() -> FastAPI:
         except Exception:
             logger.debug("Prometheus instrumentation setup failed", exc_info=True)
 
-    app.state.limiter = limiter
-    app.add_middleware(SlowAPIMiddleware)
-
-    @app.exception_handler(ValidationError)
-    async def validation_exception_handler(request: Request, exc: ValidationError):
-        """Handler per errori di validazione Pydantic (422)."""
-        from fastapi.responses import JSONResponse
-        return JSONResponse(
-            status_code=422,
-            content={"detail": "Dati non validi", "errors": exc.errors()},
-        )
-
-    @app.exception_handler(ValueError)
-    async def value_error_handler(request: Request, exc: ValueError):
-        """Handler per ValueError (400)."""
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=400, content={"detail": str(exc)})
-
-    # Hub CORS: exact allowed origins + regex fallback for Vercel/Render domains
     from fastapi.middleware.cors import CORSMiddleware
 
     cors_origins = (
@@ -270,6 +251,24 @@ def create_hub_app() -> FastAPI:
             "X-User-Api-Keys",
         ],
     )
+
+    app.state.limiter = limiter
+    app.add_middleware(SlowAPIMiddleware)
+
+    @app.exception_handler(ValidationError)
+    async def validation_exception_handler(request: Request, exc: ValidationError):
+        """Handler per errori di validazione Pydantic (422)."""
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "Dati non validi", "errors": exc.errors()},
+        )
+
+    @app.exception_handler(ValueError)
+    async def value_error_handler(request: Request, exc: ValueError):
+        """Handler per ValueError (400)."""
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=400, content={"detail": str(exc)})
 
     @app.middleware("http")
     async def _cors_cache_and_vary(request: Request, call_next):
