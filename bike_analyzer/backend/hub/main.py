@@ -64,6 +64,7 @@ from bike_analyzer.backend.hub.routes import hub_router
 from bike_analyzer.backend.hub.sync_routes import hub_sync_router
 from bike_analyzer.backend.observability import init_observability
 from bike_analyzer.backend.rate_limiter import limiter
+from slowapi.middleware import SlowAPIMiddleware
 from bike_analyzer.backend.redis_client import close_redis, get_redis
 from bike_analyzer.backend.settings import get_settings
 from bike_analyzer.backend.task_queue import get_task_queue
@@ -214,6 +215,7 @@ def create_hub_app() -> FastAPI:
             logger.debug("Prometheus instrumentation setup failed", exc_info=True)
 
     app.state.limiter = limiter
+    app.add_middleware(SlowAPIMiddleware)
 
     @app.exception_handler(ValidationError)
     async def validation_exception_handler(request: Request, exc: ValidationError):

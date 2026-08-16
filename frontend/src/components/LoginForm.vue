@@ -230,36 +230,48 @@ async function loginWithGoogle() {
   try {
     const base = resolveApiBase();
     const frontendOrigin = window.location.origin;
-    const response = await fetch(
-      `${base}/api/v1/auth/google?frontend_origin=${encodeURIComponent(frontendOrigin)}`,
-    );
-    const data = await response.json().catch(() => ({}));
+    const maxRetries = 3;
+    let lastError = null;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const response = await fetch(
+          `${base}/api/v1/auth/google?frontend_origin=${encodeURIComponent(frontendOrigin)}`,
+        );
+        const data = await response.json().catch(() => ({}));
 
-    if (!response.ok) {
-      throw new Error(data.detail || `Google login error: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(data.detail || `Google login error: ${response.status}`);
+        }
+
+        if (data.auth_url) {
+          window.location.href = data.auth_url;
+          return;
+        }
+
+        if (!data.access_token) {
+          throw new Error("Google login error: invalid server response");
+        }
+
+        auth.setAuthFromUrl(
+          data.access_token,
+          data.email || "",
+          data.id ? String(data.id) : undefined,
+        );
+        ui.setOauthLoading(false);
+        emit("google-login", { token: data.access_token });
+        return;
+      } catch (e) {
+        lastError = e instanceof Error ? e : new Error(String(e));
+        if (attempt < maxRetries - 1 && lastError.message.includes("503")) {
+          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+          continue;
+        }
+        throw lastError;
+      }
     }
-
-    if (data.auth_url) {
-      // Full-document redirect to Google; overlay stays until the return URL
-      // is processed (or the safety timeout in main.ts clears it).
-      window.location.href = data.auth_url;
-      return;
-    }
-
-    if (!data.access_token) {
-      throw new Error("Google login error: invalid server response");
-    }
-
-    auth.setAuthFromUrl(
-      data.access_token,
-      data.email || "",
-      data.id ? String(data.id) : undefined,
-    );
-    ui.setOauthLoading(false);
-    emit("google-login", { token: data.access_token });
   } catch (e) {
     ui.setOauthLoading(false);
-    emit("error", e.message);
+    emit("error", e instanceof Error ? e.message : String(e));
   } finally {
     loading.value = false;
   }
