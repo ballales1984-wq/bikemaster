@@ -122,7 +122,7 @@ window.addEventListener("pageshow", (event: PageTransitionEvent) => {
 
 if ("serviceWorker" in navigator && !isTauri()) {
   navigator.serviceWorker
-    .register("/sw.js?v=2", { scope: "/" })
+    .register("/sw.js", { scope: "/" })
     .then((reg) => {
       // Reload only after the new SW has taken control AND the page is
       // visible. `controllerchange` fires while the page is running
