@@ -133,7 +133,8 @@ class TestGarminTokenStorage:
 
     def test_store_token_with_expires_in(self):
         with patch("bike_analyzer.backend.db.database.save_garmin_token") as mock_save:
-            store_token(1, {"access_token": "acc", "refresh_token": "ref", "expires_in": 3600})
+            with patch("bike_analyzer.backend.db.token_crypto.encrypt_token", side_effect=lambda x: x):
+                store_token(1, {"access_token": "acc", "refresh_token": "ref", "expires_in": 3600})
             mock_save.assert_called_once()
             call_args = mock_save.call_args[1]
             assert call_args["athlete_id"] == 1
@@ -142,7 +143,8 @@ class TestGarminTokenStorage:
 
     def test_store_token_with_expires_at(self):
         with patch("bike_analyzer.backend.db.database.save_garmin_token") as mock_save:
-            store_token(1, {"access_token": "acc", "refresh_token": "ref", "expires_at": 1719560000})
+            with patch("bike_analyzer.backend.db.token_crypto.encrypt_token", side_effect=lambda x: x):
+                store_token(1, {"access_token": "acc", "refresh_token": "ref", "expires_at": 1719560000})
             mock_save.assert_called_once()
             call_args = mock_save.call_args[1]
             assert call_args["expires_at"] == 1719560000
@@ -163,7 +165,8 @@ class TestGarminTokenStorage:
             "refresh_token": "refresh",
             "expires_at": int(time.time()) + 7200,
         }):
-            result = await get_valid_token(1)
+            with patch("bike_analyzer.backend.db.token_crypto.decrypt_token", side_effect=lambda x: x):
+                result = await get_valid_token(1)
             assert result == "access_token_123"
 
     async def test_get_valid_token_refreshes_when_expired(self):
@@ -178,6 +181,8 @@ class TestGarminTokenStorage:
                 new=AsyncMock(return_value={"access_token": "new_token", "expires_in": 3600}),
             ) as mock_refresh,
         ):
-            result = await get_valid_token(1)
+            with patch("bike_analyzer.backend.db.token_crypto.decrypt_token", side_effect=lambda x: x):
+                with patch("bike_analyzer.backend.db.token_crypto.encrypt_token", side_effect=lambda x: x):
+                    result = await get_valid_token(1)
             assert result == "new_token"
             mock_refresh.assert_called_once_with("refresh_token")

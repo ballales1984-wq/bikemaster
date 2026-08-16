@@ -20,24 +20,16 @@ from bike_analyzer.core.pipeline import PipelineResult
 class TestStravaTokenRefresh:
     """Test get_valid_token refresh flow and related functions."""
 
-    def test_get_valid_token_refreshes_expired(self, monkeypatch):
+    def test_get_valid_token_refreshes_expired(self):
         import bike_analyzer.backend.ingestion.strava_client as sc
 
-        now = time.time()
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        mock_conn.execute.return_value = mock_cursor
-        mock_cursor.fetchone.return_value = (
-            "old_access",
-            "old_refresh",
-            int(now - 10000),
-        )
-
         with (
-            patch.object(sc, "_ensure_token_table"),
-            patch.object(sc, "_get_conn", return_value=mock_conn),
+            patch("bike_analyzer.backend.db.database.get_strava_token", return_value={
+                "access_token": "old_access",
+                "refresh_token": "old_refresh",
+                "expires_at": int(time.time()) - 10000,
+            }),
+            patch("bike_analyzer.backend.db.token_crypto.decrypt_token", side_effect=lambda x: x),
             patch(
                 "bike_analyzer.backend.ingestion.strava_client.refresh_access_token",
                 new=AsyncMock(
@@ -48,60 +40,43 @@ class TestStravaTokenRefresh:
             result = asyncio.run(sc.get_valid_token(1))
             assert result == "new_access"
 
-    def test_get_valid_token_returns_existing_when_valid(self, monkeypatch):
+    def test_get_valid_token_returns_existing_when_valid(self):
         import bike_analyzer.backend.ingestion.strava_client as sc
 
-        now = time.time()
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        mock_conn.execute.return_value = mock_cursor
-        mock_cursor.fetchone.return_value = (
-            "valid_access",
-            "valid_refresh",
-            int(now + 3600),
-        )
-
-        with patch.object(sc, "_ensure_token_table"), patch.object(sc, "_get_conn", return_value=mock_conn):
+        with (
+            patch("bike_analyzer.backend.db.database.get_strava_token", return_value={
+                "access_token": "valid_access",
+                "refresh_token": "valid_refresh",
+                "expires_at": int(time.time()) + 3600,
+            }),
+            patch("bike_analyzer.backend.db.token_crypto.decrypt_token", side_effect=lambda x: x),
+        ):
             result = asyncio.run(sc.get_valid_token(1))
             assert result == "valid_access"
 
-    def test_get_valid_token_returns_none_when_no_row(self, monkeypatch):
+    def test_get_valid_token_returns_none_when_no_row(self):
         import bike_analyzer.backend.ingestion.strava_client as sc
 
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        mock_conn.execute.return_value = mock_cursor
-        mock_cursor.fetchone.return_value = None
-
-        with patch.object(sc, "_ensure_token_table"), patch.object(sc, "_get_conn", return_value=mock_conn):
+        with patch("bike_analyzer.backend.db.database.get_strava_token", return_value=None):
             result = asyncio.run(sc.get_valid_token(999))
             assert result is None
 
     def test_store_token_calls_upsert(self):
         import bike_analyzer.backend.ingestion.strava_client as sc
 
-        mock_conn = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-
-        with patch.object(sc, "_ensure_token_table"), patch.object(sc, "_get_conn", return_value=mock_conn):
+        with (
+            patch("bike_analyzer.backend.db.database.save_strava_token") as mock_save,
+            patch("bike_analyzer.backend.db.token_crypto.encrypt_token", side_effect=lambda x: x),
+        ):
             sc.store_token(1, {"access_token": "at", "refresh_token": "rt", "expires_at": 12345})
-            assert mock_conn.execute.called
+            mock_save.assert_called_once()
 
     def test_revoke_token_deletes_row(self):
         import bike_analyzer.backend.ingestion.strava_client as sc
 
-        mock_conn = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-
-        with patch.object(sc, "_ensure_token_table"), patch.object(sc, "_get_conn", return_value=mock_conn):
+        with patch("bike_analyzer.backend.db.database.revoke_strava_token") as mock_revoke:
             sc.revoke_token(1)
-            assert mock_conn.execute.called
+            mock_revoke.assert_called_once_with(1)
 
     def test_get_authorization_url_returns_dict(self, monkeypatch):
         import bike_analyzer.backend.ingestion.strava_client as sc
@@ -133,21 +108,13 @@ class TestStravaTokenRefresh:
     def test_get_valid_token_refresh_failure_returns_none(self, monkeypatch):
         import bike_analyzer.backend.ingestion.strava_client as sc
 
-        now = time.time()
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        mock_conn.execute.return_value = mock_cursor
-        mock_cursor.fetchone.return_value = (
-            "old_access",
-            "old_refresh",
-            int(now - 10000),
-        )
-
         with (
-            patch.object(sc, "_ensure_token_table"),
-            patch.object(sc, "_get_conn", return_value=mock_conn),
+            patch("bike_analyzer.backend.db.database.get_strava_token", return_value={
+                "access_token": "old_access",
+                "refresh_token": "old_refresh",
+                "expires_at": int(time.time()) - 10000,
+            }),
+            patch("bike_analyzer.backend.db.token_crypto.decrypt_token", side_effect=lambda x: x),
             patch.object(
                 sc,
                 "refresh_access_token",
@@ -207,21 +174,13 @@ class TestGarminTokenRefresh:
     def test_get_valid_token_refreshes_expired(self):
         import bike_analyzer.backend.ingestion.garmin_client as gc
 
-        now = time.time()
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        mock_conn.execute.return_value = mock_cursor
-        mock_cursor.fetchone.return_value = (
-            "old_access",
-            "old_refresh",
-            int(now - 10000),
-        )
-
         with (
-            patch.object(gc, "_ensure_garmin_table"),
-            patch.object(gc, "_get_conn", return_value=mock_conn),
+            patch("bike_analyzer.backend.db.database.get_garmin_token", return_value={
+                "access_token": "old_access",
+                "refresh_token": "old_refresh",
+                "expires_at": int(time.time()) - 10000,
+            }),
+            patch("bike_analyzer.backend.db.token_crypto.decrypt_token", side_effect=lambda x: x),
             patch.object(
                 gc,
                 "refresh_access_token",
@@ -236,68 +195,50 @@ class TestGarminTokenRefresh:
     def test_get_valid_token_returns_existing_when_valid(self):
         import bike_analyzer.backend.ingestion.garmin_client as gc
 
-        now = time.time()
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        mock_conn.execute.return_value = mock_cursor
-        mock_cursor.fetchone.return_value = (
-            "valid_access",
-            "valid_refresh",
-            int(now + 3600),
-        )
-
-        with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
+        with (
+            patch("bike_analyzer.backend.db.database.get_garmin_token", return_value={
+                "access_token": "valid_access",
+                "refresh_token": "valid_refresh",
+                "expires_at": int(time.time()) + 3600,
+            }),
+            patch("bike_analyzer.backend.db.token_crypto.decrypt_token", side_effect=lambda x: x),
+        ):
             result = asyncio.run(gc.get_valid_token(1))
             assert result == "valid_access"
 
     def test_get_valid_token_returns_none_when_no_row(self):
         import bike_analyzer.backend.ingestion.garmin_client as gc
 
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-        mock_conn.execute.return_value = mock_cursor
-        mock_cursor.fetchone.return_value = None
-
-        with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
+        with patch("bike_analyzer.backend.db.database.get_garmin_token", return_value=None):
             result = asyncio.run(gc.get_valid_token(999))
             assert result is None
 
     def test_store_token_handles_string_expires_at(self):
         import bike_analyzer.backend.ingestion.garmin_client as gc
 
-        mock_conn = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-
-        with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
+        with (
+            patch("bike_analyzer.backend.db.database.save_garmin_token") as mock_save,
+            patch("bike_analyzer.backend.db.token_crypto.encrypt_token", side_effect=lambda x: x),
+        ):
             gc.store_token(1, {"access_token": "at", "refresh_token": "rt", "expires_at": "9999999999"})
-            assert mock_conn.execute.called
+            mock_save.assert_called_once()
 
     def test_store_token_handles_expires_in(self):
         import bike_analyzer.backend.ingestion.garmin_client as gc
 
-        mock_conn = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-
-        with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
+        with (
+            patch("bike_analyzer.backend.db.database.save_garmin_token") as mock_save,
+            patch("bike_analyzer.backend.db.token_crypto.encrypt_token", side_effect=lambda x: x),
+        ):
             gc.store_token(1, {"access_token": "at", "refresh_token": "rt", "expires_in": 3600})
-            assert mock_conn.execute.called
+            mock_save.assert_called_once()
 
     def test_revoke_token_deletes_row(self):
         import bike_analyzer.backend.ingestion.garmin_client as gc
 
-        mock_conn = MagicMock()
-        mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-        mock_conn.__exit__ = MagicMock(return_value=False)
-
-        with patch.object(gc, "_ensure_garmin_table"), patch.object(gc, "_get_conn", return_value=mock_conn):
+        with patch("bike_analyzer.backend.db.database.revoke_garmin_token") as mock_revoke:
             gc.revoke_token(1)
-            assert mock_conn.execute.called
+            mock_revoke.assert_called_once_with(1)
 
     def test_fetch_activities_returns_list(self):
         import bike_analyzer.backend.ingestion.garmin_client as gc

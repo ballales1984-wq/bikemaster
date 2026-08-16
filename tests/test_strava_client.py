@@ -125,7 +125,8 @@ class TestTokenStorage:
 
     def test_store_token_inserts(self, tmp_path):
         with patch("bike_analyzer.backend.db.database.save_strava_token") as mock_save:
-            store_token(1, self._make_token_data())
+            with patch("bike_analyzer.backend.db.token_crypto.encrypt_token", side_effect=lambda x: x):
+                store_token(1, self._make_token_data())
             mock_save.assert_called_once()
             call_args = mock_save.call_args[1]
             assert call_args["athlete_id"] == 1
@@ -136,7 +137,8 @@ class TestTokenStorage:
         data = self._make_token_data()
         data["expires_at"] = "1234567890"
         with patch("bike_analyzer.backend.db.database.save_strava_token") as mock_save:
-            store_token(1, data)
+            with patch("bike_analyzer.backend.db.token_crypto.encrypt_token", side_effect=lambda x: x):
+                store_token(1, data)
             call_args = mock_save.call_args[1]
             assert call_args["expires_at"] == 1234567890
 
@@ -145,7 +147,8 @@ class TestTokenStorage:
         del data["expires_at"]
         data["expires_in"] = 7200
         with patch("bike_analyzer.backend.db.database.save_strava_token") as mock_save:
-            store_token(1, data)
+            with patch("bike_analyzer.backend.db.token_crypto.encrypt_token", side_effect=lambda x: x):
+                store_token(1, data)
             call_args = mock_save.call_args[1]
             stored_expires = call_args["expires_at"]
             assert stored_expires > int(time.time())
@@ -165,7 +168,8 @@ class TestTokenStorage:
             "refresh_token": "test_refresh",
             "expires_at": int(time.time()) + 7200,
         }):
-            assert await get_valid_token(1) == "test_access"
+            with patch("bike_analyzer.backend.db.token_crypto.decrypt_token", side_effect=lambda x: x):
+                assert await get_valid_token(1) == "test_access"
 
     async def test_get_valid_token_refreshes_when_expired(self):
         with (
