@@ -89,6 +89,13 @@
                 android:layout_marginBottom="8dp" />
 
             <Button
+                android:id="@+id/btn_badges"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/badges"
+                android:layout_marginBottom="8dp" />
+
+            <Button
                 android:id="@+id/btn_rides"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

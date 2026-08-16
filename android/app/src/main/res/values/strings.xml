@@ -21,6 +21,7 @@
     <string name="weather">Meteo</string>
     <string name="maps">Mappe</string>
     <string name="zones">Zone</string>
+    <string name="badges">Badge</string>
     <string name="profile">Profilo atleta</string>
     <string name="nav_hint">Navigazione</string>
 
@@ -30,6 +31,7 @@
         <item>Tracciamento GPS</item>
         <item>Mappe</item>
         <item>Zone</item>
+        <item>Badge</item>
         <item>Statistiche</item>
         <item>Profilo atleta</item>
         <item>AI Coach</item>

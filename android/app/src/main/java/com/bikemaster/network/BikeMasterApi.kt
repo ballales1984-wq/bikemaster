@@ -95,4 +95,7 @@ interface BikeMasterApi {
 
     @GET("analytics/zones")
     suspend fun getZones(): Map<String, Any>
+
+    @GET("badges")
+    suspend fun getBadges(@Query("athlete_id") athleteId: Int): Map<String, Any>
 }

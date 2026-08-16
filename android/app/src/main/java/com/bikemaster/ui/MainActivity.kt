@@ -19,6 +19,7 @@ import com.bikemaster.ui.maps.MapsActivity
 import com.bikemaster.ui.rides.RideListActivity
 import com.bikemaster.ui.weather.WeatherActivity
 import com.bikemaster.ui.zones.ZonesActivity
+import com.bikemaster.ui.badges.BadgesActivity
 import com.bikemaster.ui.settings.SettingsActivity
 import com.bikemaster.ui.stats.StatsActivity
 import com.bikemaster.ui.tracking.TrackingActivity
@@ -38,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnWeather: Button
     private lateinit var btnMaps: Button
     private lateinit var btnZones: Button
+    private lateinit var btnBadges: Button
     private lateinit var btnRides: Button
     private lateinit var btnTracking: Button
     private lateinit var btnStats: Button
@@ -64,6 +66,7 @@ class MainActivity : AppCompatActivity() {
         btnWeather = findViewById(R.id.btn_weather)
         btnMaps = findViewById(R.id.btn_maps)
         btnZones = findViewById(R.id.btn_zones)
+        btnBadges = findViewById(R.id.btn_badges)
         btnRides = findViewById(R.id.btn_rides)
         btnTracking = findViewById(R.id.btn_tracking)
         btnStats = findViewById(R.id.btn_stats)
@@ -101,6 +104,7 @@ class MainActivity : AppCompatActivity() {
                     "Tracciamento GPS" -> TrackingActivity.start(this@MainActivity)
                     "Mappe" -> MapsActivity.start(this@MainActivity)
                     "Zone" -> ZonesActivity.start(this@MainActivity)
+                    "Badge" -> BadgesActivity.start(this@MainActivity)
                     "Statistiche" -> StatsActivity.start(this@MainActivity)
                     "Profilo atleta" -> AthleteProfileActivity.start(this@MainActivity)
                     "AI Coach" -> CoachActivity.start(this@MainActivity)
@@ -120,6 +124,7 @@ class MainActivity : AppCompatActivity() {
         btnWeather.setOnClickListener { WeatherActivity.start(this) }
         btnMaps.setOnClickListener { MapsActivity.start(this) }
         btnZones.setOnClickListener { ZonesActivity.start(this) }
+        btnBadges.setOnClickListener { BadgesActivity.start(this) }
         btnRides.setOnClickListener { RideListActivity.start(this) }
         btnTracking.setOnClickListener { TrackingActivity.start(this) }
         btnStats.setOnClickListener { StatsActivity.start(this) }
