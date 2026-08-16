@@ -1,5 +1,7 @@
 package com.bikemaster.ui.calendar
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.Toast
@@ -16,6 +18,12 @@ class CalendarActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityCalendarBinding
     private lateinit var adapter: CalendarAdapter
+    
+    companion object {
+        fun start(context: Context) {
+            context.startActivity(Intent(context, CalendarActivity::class.java))
+        }
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

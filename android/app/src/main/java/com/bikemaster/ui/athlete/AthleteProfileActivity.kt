@@ -1,5 +1,7 @@
 package com.bikemaster.ui.athlete
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.Toast
@@ -14,6 +16,12 @@ class AthleteProfileActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityAthleteProfileBinding
     private var athleteId: Int? = null
+    
+    companion object {
+        fun start(context: Context) {
+            context.startActivity(Intent(context, AthleteProfileActivity::class.java))
+        }
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

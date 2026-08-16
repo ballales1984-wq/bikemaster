@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import com.bikemaster.R
 import com.bikemaster.databinding.ActivityLoginBinding
 import com.bikemaster.network.ApiClient
+import com.bikemaster.utils.PreferencesManager
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
@@ -46,7 +47,9 @@ class LoginActivity : AppCompatActivity() {
                     password = password
                 )
                 saveAuthToken(response.accessToken)
-                finish()
+                val intent = Intent(this@LoginActivity, com.bikemaster.ui.MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
             } catch (e: Exception) {
                 Toast.makeText(this@LoginActivity, "Errore login: ${e.message}", Toast.LENGTH_SHORT).show()
             }
@@ -54,7 +57,6 @@ class LoginActivity : AppCompatActivity() {
     }
     
     private fun saveAuthToken(token: String) {
-        getSharedPreferences("auth", Context.MODE_PRIVATE).edit()
-            .putString("token", token).apply()
+        PreferencesManager.setAuthToken(this, token)
     }
 }

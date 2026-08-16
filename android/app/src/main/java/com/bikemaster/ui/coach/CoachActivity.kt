@@ -1,5 +1,7 @@
 package com.bikemaster.ui.coach
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.Toast
@@ -12,6 +14,12 @@ import kotlinx.coroutines.launch
 class CoachActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityCoachBinding
+    
+    companion object {
+        fun start(context: Context) {
+            context.startActivity(Intent(context, CoachActivity::class.java))
+        }
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

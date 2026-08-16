@@ -1,18 +1,32 @@
 <resources>
     <string name="app_name">BikeMaster</string>
-    <string name="rides">Rides</string>
-    <string name="athletes">Athletes</string>
+    <string name="rides">Uscite</string>
+    <string name="athletes">Atleti</string>
     <string name="coach">AI Coach</string>
-    <string name="calendar">Calendar</string>
-    <string name="settings">Settings</string>
-    <string name="add_ride">Add Ride</string>
-    <string name="import_gpx">Import GPX</string>
-    <string name="import_fit">Import FIT</string>
-    <string name="distance">Distance</string>
-    <string name="duration">Duration</string>
-    <string name="avg_speed">Avg Speed</string>
-    <string name="calories">Calories</string>
-    <string name="tracking">GPS Tracking</string>
-    <string name="statistics">Statistics</string>
+    <string name="calendar">Calendario</string>
+    <string name="settings">Impostazioni</string>
+    <string name="add_ride">Aggiungi uscita</string>
+    <string name="import_gpx">Importa GPX</string>
+    <string name="import_fit">Importa FIT</string>
+    <string name="distance">Distanza</string>
+    <string name="duration">Durata</string>
+    <string name="avg_speed">Velocità media</string>
+    <string name="calories">Calorie</string>
+    <string name="tracking">Tracciamento GPS</string>
+    <string name="statistics">Statistiche</string>
     <string name="login">Login</string>
+    <string name="logout">Logout</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="profile">Profilo atleta</string>
+    <string name="nav_hint">Navigazione</string>
+
+    <string-array name="nav_routes">
+        <item>Uscite</item>
+        <item>Tracciamento GPS</item>
+        <item>Statistiche</item>
+        <item>Profilo atleta</item>
+        <item>AI Coach</item>
+        <item>Calendario</item>
+        <item>Impostazioni</item>
+    </string-array>
 </resources>

@@ -7,6 +7,7 @@ object PreferencesManager {
     private const val KEY_BACKEND_URL = "backend_url"
     private const val KEY_API_KEY = "api_key"
     private const val KEY_ATHLETE_ID = "athlete_id"
+    private const val KEY_AUTH_TOKEN = "auth_token"
 
     fun getBaseUrl(context: Context): String {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
@@ -31,5 +32,20 @@ object PreferencesManager {
     fun setAthleteId(context: Context, athleteId: Int) {
         PreferenceManager.getDefaultSharedPreferences(context).edit()
             .putInt(KEY_ATHLETE_ID, athleteId).apply()
+    }
+
+    fun getAuthToken(context: Context): String? {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        return prefs.getString(KEY_AUTH_TOKEN, null)
+    }
+
+    fun setAuthToken(context: Context, token: String) {
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+            .putString(KEY_AUTH_TOKEN, token).apply()
+    }
+
+    fun clearAuthToken(context: Context) {
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+            .remove(KEY_AUTH_TOKEN).apply()
     }
 }

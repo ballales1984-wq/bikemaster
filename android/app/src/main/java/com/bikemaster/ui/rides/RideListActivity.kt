@@ -1,5 +1,7 @@
 package com.bikemaster.ui.rides
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -15,6 +17,12 @@ class RideListActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityRideListBinding
     private lateinit var adapter: RideAdapter
+    
+    companion object {
+        fun start(context: Context) {
+            context.startActivity(Intent(context, RideListActivity::class.java))
+        }
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
