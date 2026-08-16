@@ -133,7 +133,6 @@ if ("serviceWorker" in navigator && !isTauri()) {
         if (!swUpdatePending) return;
         if (document.visibilityState !== "visible") return;
         swUpdatePending = false;
-        void reg.update();
         window.location.reload();
       });
 
@@ -141,9 +140,6 @@ if ("serviceWorker" in navigator && !isTauri()) {
         const newWorker = reg.installing;
         if (newWorker) {
           newWorker.addEventListener("statechange", () => {
-            if (newWorker.state === "activated") {
-              void reg.update();
-            }
             if (
               newWorker.state === "installed" &&
               navigator.serviceWorker.controller
