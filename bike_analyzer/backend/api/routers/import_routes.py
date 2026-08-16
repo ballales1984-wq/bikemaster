@@ -41,7 +41,11 @@ def _build_redirect_uri(request: Request, path: str) -> str:
     proto = request.headers.get("x-forwarded-proto") or request.url.scheme
     host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
     host_lower = host.lower()
-    if host_lower.endswith(".ngrok-free.dev") or host_lower.endswith(".vercel.app") or host_lower.endswith(".onrender.com"):
+    if (
+        host_lower.endswith(".ngrok-free.dev")
+        or host_lower.endswith(".vercel.app")
+        or host_lower.endswith(".onrender.com")
+    ):
         proto = "https"
     return f"{proto}://{host}{path}"
 
@@ -266,7 +270,9 @@ async def wahoo_disconnect():
 async def google_health_auth(request: Request):
     if not _s.google_health_client_id or not _s.google_health_client_secret:
         raise HTTPException(status_code=500, detail="Google Health non configurato")
-    redirect_uri = request.query_params.get("redirect_uri") or _build_redirect_uri(request, "/api/v1/import/google-health")
+    redirect_uri = request.query_params.get("redirect_uri") or _build_redirect_uri(
+        request, "/api/v1/import/google-health"
+    )
     state = secrets.token_urlsafe(32)
     await cache_set(f"oauth:state:{state}", {"redirect_uri": redirect_uri}, ttl=600)
     auth_url = get_authorization_url(
@@ -283,13 +289,25 @@ async def google_health_callback(request: Request):
     state = request.query_params.get("state")
     if not code or not state:
         return HTMLResponse(
-            content="<html><body><script>window.opener.postMessage({type:'google-health-error',error:'missing_code_or_state',error_description:'Codice o stato mancante'},'*');window.close();</script></body></html>",
+            content=(
+            "<html><body><script>"
+            "window.opener.postMessage("
+            "{type:'google-health-error',error:'missing_code_or_state',"
+            "error_description:'Codice o stato mancante'},'*');"
+            "window.close();</script></body></html>"
+        ),
             media_type="text/html",
         )
     cached_state = await cached(f"oauth:state:{state}")
     if not cached_state:
         return HTMLResponse(
-            content="<html><body><script>window.opener.postMessage({type:'google-health-error',error:'invalid_state',error_description:'Stato non valido o scaduto'},'*');window.close();</script></body></html>",
+            content=(
+            "<html><body><script>"
+            "window.opener.postMessage("
+            "{type:'google-health-error',error:'invalid_state',"
+            "error_description:'Stato non valido o scaduto'},'*');"
+            "window.close();</script></body></html>"
+        ),
             media_type="text/html",
         )
     await cache_delete(f"oauth:state:{state}")

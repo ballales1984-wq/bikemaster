@@ -115,6 +115,25 @@ if PROMETHEUS_AVAILABLE:
         "Total AetherMap ML errors",
         ["error_type"],
     )
+    sync_operations_total = Counter(
+        "bikemaster_sync_operations_total",
+        "Total sync operations",
+        ["direction", "status"],
+    )
+    sync_conflicts_total = Counter(
+        "bikemaster_sync_conflicts_total",
+        "Total sync conflicts",
+        ["resolution"],
+    )
+    storage_disk_usage_bytes = Gauge(
+        "bikemaster_storage_disk_usage_bytes",
+        "Disk usage in bytes for the BikeMaster data directory",
+        ["path"],
+    )
+    storage_db_size_bytes = Gauge(
+        "bikemaster_storage_db_size_bytes",
+        "Size of the primary SQLite database file in bytes",
+    )
 else:
     http_requests_total = None
     http_request_duration_seconds = None
@@ -136,6 +155,10 @@ else:
     aethermap_terrain_enrichment_total = None
     aethermap_terrain_enrichment_duration_seconds = None
     aethermap_ml_errors_total = None
+    sync_operations_total = None
+    sync_conflicts_total = None
+    storage_disk_usage_bytes = None
+    storage_db_size_bytes = None
 
 
 @dataclass
@@ -316,6 +339,30 @@ def set_active_athletes(count: int) -> None:
     if not PROMETHEUS_AVAILABLE:
         return
     active_athletes_gauge.set(count)
+
+
+def record_sync_operation(direction: str, status: str = "success") -> None:
+    if not PROMETHEUS_AVAILABLE:
+        return
+    sync_operations_total.labels(direction=direction, status=status).inc()
+
+
+def record_sync_conflict(resolution: str) -> None:
+    if not PROMETHEUS_AVAILABLE:
+        return
+    sync_conflicts_total.labels(resolution=resolution).inc()
+
+
+def set_storage_disk_usage(path: str, bytes_used: int) -> None:
+    if not PROMETHEUS_AVAILABLE:
+        return
+    storage_disk_usage_bytes.labels(path=path).set(bytes_used)
+
+
+def set_storage_db_size(bytes_size: int) -> None:
+    if not PROMETHEUS_AVAILABLE:
+        return
+    storage_db_size_bytes.set(bytes_size)
 
 
 def start_metrics_server() -> None:

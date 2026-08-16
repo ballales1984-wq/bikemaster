@@ -6,6 +6,7 @@
 [![Vue 3](https://img.shields.io/badge/Vue-3.4%2B-green.svg)](https://vuejs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-black.svg)](https://fastapi.tiangolo.com/)
 [![Tests](https://img.shields.io/badge/tests-~3255%20passing-brightgreen.svg)](#testing)
+[![CI](https://github.com/ballales1984-wq/bikemaster/actions/workflows/ci.yml/badge.svg)](https://github.com/ballales1984-wq/bikemaster/actions/workflows/ci.yml)
 
 **BikeMaster** è un sistema di *intelligenza dello stile di vita*: definisce lo stato di salute come il bilanciamento dinamico delle variabili acquisite dalla vita reale di ogni persona, e usa l'attività ciclistica come dominio strutturato per analisi, raccomandazioni e ottimizzazione.
 

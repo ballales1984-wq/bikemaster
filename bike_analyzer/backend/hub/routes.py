@@ -1082,7 +1082,6 @@ hub_health_connect_router = APIRouter(tags=["health-connect"])
 @hub_health_connect_router.post("/health-connect/connect")
 async def hub_health_connect_connect(current_user: dict = Depends(get_current_user)):
     from bike_analyzer.backend.ingestion.health_connect import (
-        HEALTH_CONNECT_PERMISSIONS,
         connect as hc_connect,
     )
 
@@ -1101,7 +1100,10 @@ async def hub_health_connect_disconnect(current_user: dict = Depends(get_current
 
 
 @hub_health_connect_router.post("/health-connect/sync")
-async def hub_health_connect_sync(body: dict = Body(default_factory=dict), current_user: dict = Depends(get_current_user)):
+async def hub_health_connect_sync(
+    body: dict = Body(default_factory=dict),
+    current_user: dict = Depends(get_current_user),
+):
     from bike_analyzer.backend.ingestion.health_connect import sync_health_data
 
     athlete_id = int(current_user.get("athlete_id") or current_user["id"])

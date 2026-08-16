@@ -7,10 +7,10 @@ import contextlib
 import hashlib
 import secrets
 import urllib.parse
-from defusedxml import ElementTree as ET
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from defusedxml import ElementTree as ET
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 

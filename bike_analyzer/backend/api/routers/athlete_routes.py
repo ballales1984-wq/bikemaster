@@ -6,9 +6,10 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 
 from bike_analyzer.backend.api.routes import _athlete_profile_data, _current_athlete_id, _ensure_int_user_id
+from bike_analyzer.backend.api.schemas import AthleteCreate, AthleteUpdate
 from bike_analyzer.backend.db.database import (
     delete_athlete,
     get_athlete,
@@ -19,7 +20,6 @@ from bike_analyzer.backend.db.database import (
     save_athlete,
     update_athlete,
 )
-from bike_analyzer.backend.api.schemas import AthleteCreate, AthleteUpdate
 from bike_analyzer.backend.security import get_current_user
 
 logger = logging.getLogger(__name__)

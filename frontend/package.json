@@ -17,7 +17,8 @@
     "e2e": "playwright test",
     "tauri": "tauri",
     "typecheck": "vue-tsc --noEmit --incremental",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-pattern node_modules,.git,dist,.output"
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --ignore-pattern node_modules,.git,dist,.output",
+    "lint:fix": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-pattern node_modules,.git,dist,.output"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

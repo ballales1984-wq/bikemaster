@@ -7,9 +7,10 @@ Each agent encapsulates a data source (GPS, athlete, environment, sensors) and
 
 from __future__ import annotations
 
-import defusedxml.ElementTree as ET
 from datetime import UTC, datetime
 from typing import Any
+
+import defusedxml.ElementTree as ET
 
 from .metabolism_agent import MetabolismAgent
 from .models import Activity, Athlete, WorldObject

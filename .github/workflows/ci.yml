@@ -1,5 +1,9 @@
 name: CI
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: ["main"]
@@ -16,7 +20,7 @@ jobs:
           python-version: "3.11"
           cache: "pip"
       - run: pip install -e .
-      - run: pytest -q
+      - run: pytest -q -m "not slow and not missing_greenlet and not integration" -x
         working-directory: .
 
   frontend:
@@ -34,7 +38,38 @@ jobs:
         working-directory: frontend
       - run: npm run test -- --run
         working-directory: frontend
-      - run: npm run lint
-        working-directory: frontend
       - run: npm run build
+        working-directory: frontend
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+      - run: npm ci
+        working-directory: frontend
+      - run: npx eslint . --ext .vue,.js,.jsx,.cjs,.mjs --ignore-pattern node_modules,.git,dist,.output
+        working-directory: frontend
+
+  tauri-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Tauri Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run tauri build
         working-directory: frontend

@@ -1337,7 +1337,12 @@ def get_user_oauth_credentials(user_id: int, provider: str) -> dict | None:
 
                     creds["client_secret"] = decrypt_token(creds["client_secret"])
                 except Exception:
-                    logger.debug("Failed to decrypt client_secret for user %s provider %s", user_id, provider, exc_info=True)
+                    logger.debug(
+                        "Failed to decrypt client_secret for user %s provider %s",
+                        user_id,
+                        provider,
+                        exc_info=True,
+                    )
             return creds
         return None
 

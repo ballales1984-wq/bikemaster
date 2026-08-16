@@ -241,13 +241,13 @@ async def generate_ride_map(
 
     tenant_id = current_user.get("tenant_id", current_user["id"])
     ride = _get_ride(ride_id, tenant_id=tenant_id)
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
     print(
         f"DEBUG map endpoint: ride_id={ride_id}, get_ride={_get_ride}, "
         f"gps_points type={type(ride.get('gps_points'))}, "
         f"len={len(ride.get('gps_points') or [])}"
     )
-    if not ride:
-        raise HTTPException(status_code=404, detail="Ride not found")
     gps_points = ride.get("gps_points")
     if not gps_points:
         raise HTTPException(status_code=400, detail="No GPS points for this ride")

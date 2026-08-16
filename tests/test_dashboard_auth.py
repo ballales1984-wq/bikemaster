@@ -39,7 +39,7 @@ class TestEmailField:
         assert resp.status_code in (200, 409)
         if resp.status_code == 200:
             data = resp.json()
-            assert data.get("name") == "Test User"
+            assert data.get("athlete", {}).get("name") == "Test User"
 
     def test_athlete_update_email(self, client):
         """Test athlete can update email."""
@@ -66,12 +66,12 @@ class TestLoginWithRefresh:
 
     def test_login_returns_refresh_token(self, client, db_path):
         """Test that login response includes refresh_token."""
-        from bike_analyzer.backend.db.database import init_db, save_athlete
+        from bike_analyzer.backend.db.database import init_db, save_user
         from bike_analyzer.backend.security import hash_password
 
         init_db()
         password_hash = hash_password("testpass123")
-        save_athlete({"name": "loginuser", "email": "loginuser@test.com", "password_hash": password_hash})
+        save_user({"username": "loginuser", "email": "loginuser@test.com", "password_hash": password_hash})
 
         import bike_analyzer.backend.db.database as db_mod
 
