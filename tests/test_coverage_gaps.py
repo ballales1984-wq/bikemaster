@@ -376,8 +376,8 @@ class TestEngineAsyncPaths:
             "bike_analyzer.core.engine.FitnessStateRepository",
             return_value=mock_repo,
         ):
-            fv = await engine._update_fitness_state(ride, 1, MagicMock())
-            assert fv is not None
+            with pytest.raises(RuntimeError, match="Could not persist fitness state"):
+                await engine._update_fitness_state(ride, 1, MagicMock())
 
     def test_process_rides_batch(self):
         engine = AnalysisEngine()
