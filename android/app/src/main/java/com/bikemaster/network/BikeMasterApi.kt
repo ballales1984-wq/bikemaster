@@ -92,4 +92,7 @@ interface BikeMasterApi {
         @Query("lon") lon: Double,
         @Query("date") date: String? = null
     ): Map<String, Any>
+
+    @GET("analytics/zones")
+    suspend fun getZones(): Map<String, Any>
 }
