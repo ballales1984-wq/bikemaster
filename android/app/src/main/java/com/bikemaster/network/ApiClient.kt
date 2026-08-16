@@ -12,7 +12,7 @@ import com.bikemaster.utils.PreferencesManager
 object ApiClient {
     
     fun getApi(context: Context): BikeMasterApi {
-        val baseUrl = PreferencesManager.getBaseUrl(context)
+        val baseUrl: String = PreferencesManager.getBaseUrl(context)
         
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
@@ -20,7 +20,7 @@ object ApiClient {
         
         val authInterceptor = Interceptor { chain ->
             val original = chain.request()
-            val token = getToken(context)
+            val token = PreferencesManager.getAuthToken(context)
             val requestBuilder = original.newBuilder()
                 .addHeader("Accept", "application/json")
             if (!token.isNullOrEmpty()) {
@@ -40,10 +40,5 @@ object ApiClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(BikeMasterApi::class.java)
-    }
-    
-    fun getToken(context: Context): String? {
-        return context.getSharedPreferences("auth", Context.MODE_PRIVATE)
-            .getString("token", null)
     }
 }

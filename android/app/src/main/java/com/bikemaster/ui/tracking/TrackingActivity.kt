@@ -158,7 +158,8 @@ class TrackingActivity : AppCompatActivity(), OnMapReadyCallback {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 BikeTrackingService.ACTION_STATE -> {
-                    val state = intent.getParcelableExtra("state") as? TrackingState
+                    @Suppress("DEPRECATION")
+                    val state = intent.getSerializableExtra("state") as? TrackingState
                     state?.let { updateUi(it) }
                 }
                 BikeTrackingService.ACTION_STOPPED -> {
