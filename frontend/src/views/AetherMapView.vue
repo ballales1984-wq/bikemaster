@@ -100,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "../composables/useI18n";
 import { useAetherMapStore } from "../stores/aethermap";
 import AetherMapViewer from "../components/AetherMapViewer.vue";
@@ -110,6 +110,12 @@ const { t } = useI18n();
 const store = useAetherMapStore();
 const terrainEnriched = ref(false);
 const terrainDisabled = computed(() => store.selectedIds.length !== 1);
+watch(
+  () => store.selectedIds.length,
+  (len) => {
+    if (len !== 1) terrainEnriched.value = false;
+  },
+);
 const demSource = ref<"auto" | "procedural" | "copernicus" | "lidar" | "osm">(
   "auto",
 );

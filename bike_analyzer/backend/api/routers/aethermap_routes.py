@@ -1,4 +1,4 @@
-"""AetherMap terrain and geo REST API."""
+"""AetherMap terrain, geo, and earth texture REST API."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from bike_analyzer.backend.security import get_current_user
 
@@ -25,7 +25,11 @@ async def get_terrain(
     source: str = Query("auto"),
     current_user: dict = Depends(get_current_user),
 ):
-    """Return a heightfield for a lat/lon bounding box."""
+    """Return a heightfield for a lat/lon bounding box.
+
+    Primary terrain API for the AetherMap viewer. The frontend builds the
+    cube-sphere mesh client-side from this heightfield tile.
+    """
     try:
         from bike_analyzer.backend.maps.terrain import get_tile
 
@@ -97,7 +101,12 @@ async def get_terrain_tile(
     resolution: int = Query(..., ge=8, le=256),
     current_user: dict = Depends(get_current_user),
 ):
-    """Return a terrain tile for a cube-sphere face."""
+    """Return a terrain tile mesh for a cube-sphere face.
+
+    NOTE: This endpoint is currently used only by /world. The primary
+    AetherMap viewer uses /terrain (heightfield) and builds the mesh
+    client-side. Do not add new frontend consumers here.
+    """
     try:
         from aethermap.render.terrain_enhancer import build_enhanced_heightfield
         from aethermap.render.webgl_exporter import _terrain_mesh_from_hf
@@ -209,6 +218,23 @@ async def get_geo_peaks(
         return {"features": results.get("results", []) if results else []}
     except Exception as exc:
         logger.exception("Peaks lookup failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from None
+
+
+@router.get("/earth-texture.png")
+async def get_earth_texture(current_user: dict = Depends(get_current_user)):
+    """Return an equirectangular earth texture PNG for the 3D globe."""
+    try:
+        from bike_analyzer.backend.maps.earth_texture import generate_earth_texture
+
+        png = generate_earth_texture()
+        if not png:
+            raise HTTPException(status_code=503, detail="Earth texture unavailable")
+        return Response(content=png, media_type="image/png")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Earth texture fetch failed")
         raise HTTPException(status_code=500, detail=str(exc)) from None
 
 

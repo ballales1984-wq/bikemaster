@@ -146,6 +146,8 @@ let terrainBuffer: {
   mode: number;
   stride: number;
 } | null = null;
+let earthTexture: WebGLTexture | null = null;
+let useEarthTexture = false;
 
 const firstRideId = computed(() => props.rideIds?.[0] ?? null);
 const terrain = useAetherMapTerrain(
@@ -176,6 +178,14 @@ const avgTraffic = computed(() => {
 });
 
 watch(
+  () => props.demSource,
+  () => {
+    terrainTileCache.clear();
+    currentLOD = -1;
+  },
+);
+
+watch(
   () => props.terrainEnriched,
   (val) => {
     if (val && firstRideId.value) terrain.reload();
@@ -200,6 +210,7 @@ const geoLayers = computed<
 
 onMounted(async () => {
   await loadLayer("natural-earth", "natural-earth", { resolution: "110" });
+  updateGeoBuffers();
 });
 
 let geoBufferMap: Map<
@@ -430,31 +441,31 @@ async function fetchTerrainTile(
   resolution: number,
   face: number = -1,
 ): Promise<Float32Array | null> {
-  const key = `${face}_${minLat.toFixed(1)}_${maxLat.toFixed(1)}_${minLon.toFixed(1)}_${maxLon.toFixed(1)}_${resolution}`;
-  const cached = terrainTileCache.get(key);
-  if (cached && Date.now() - cached.ts < TILE_CACHE_TTL) {
-    return cached.h;
-  }
-  try {
     const source = props.demSource || "auto";
-    const data = await apiGet<{ heights: number[] }>(
-      "/api/v1/aethermap/terrain",
-      {
-        min_lat: String(minLat),
-        max_lat: String(maxLat),
-        min_lon: String(minLon),
-        max_lon: String(maxLon),
-        resolution: String(resolution),
-        source: source,
-      },
-      { timeoutMs: 1500 },
-    );
-    const heights = new Float32Array(data.heights);
-    terrainTileCache.set(key, { h: heights, ts: Date.now() });
-    return heights;
-  } catch {
-    return null;
-  }
+    const key = `${face}_${source}_${minLat.toFixed(1)}_${maxLat.toFixed(1)}_${minLon.toFixed(1)}_${maxLon.toFixed(1)}_${resolution}`;
+    const cached = terrainTileCache.get(key);
+    if (cached && Date.now() - cached.ts < TILE_CACHE_TTL) {
+      return cached.h;
+    }
+    try {
+      const data = await apiGet<{ heights: number[] }>(
+        "/api/v1/aethermap/terrain",
+        {
+          min_lat: String(minLat),
+          max_lat: String(maxLat),
+          min_lon: String(minLon),
+          max_lon: String(maxLon),
+          resolution: String(resolution),
+          source: source,
+        },
+        { timeoutMs: 1500 },
+      );
+      const heights = new Float32Array(data.heights);
+      terrainTileCache.set(key, { h: heights, ts: Date.now() });
+      return heights;
+    } catch {
+      return null;
+    }
 }
 
 function sampleTerrainTile(
@@ -972,6 +983,16 @@ function geoColorForType(tipo: string): Vec3 {
   return [0.8, 0.8, 0.8];
 }
 
+function normalizeGeoColor(raw: unknown, fallback: Vec3): Vec3 {
+  if (Array.isArray(raw) && raw.length >= 3) {
+    return [Number(raw[0]), Number(raw[1]), Number(raw[2])];
+  }
+  if (typeof raw === "string") {
+    return hexToRgb(raw);
+  }
+  return fallback;
+}
+
 async function updateGeoBuffers() {
   if (!mounted || !gl) return;
   for (const [, buf] of geoBufferMap) {
@@ -1009,11 +1030,12 @@ async function updateGeoBuffers() {
             pts.push([d[0] * r, d[1] * r, d[2] * r]);
           }
           if (pts.length >= 2) {
-            const col: Vec3 =
-              (feature.properties?.color as Vec3 | undefined) ||
+            const col: Vec3 = normalizeGeoColor(
+              feature.properties?.color,
               geoColorForType(
                 (feature.properties?.tipo as string | undefined) || layer.type,
-              );
+              ),
+            );
             for (let j = 0; j + 1 < pts.length; j++) {
               pushArc(lineData, pts[j], pts[j + 1], col);
             }
@@ -1024,11 +1046,12 @@ async function updateGeoBuffers() {
           const d = geodeticToDirection(coord[1], coord[0]);
           const h = (coord[2] || 0) * TERRAIN_SCALE;
           const r = GLOBE_RADIUS + h;
-          const col: Vec3 =
-            (feature.properties?.color as Vec3 | undefined) ||
+          const col: Vec3 = normalizeGeoColor(
+            feature.properties?.color,
             geoColorForType(
               (feature.properties?.tipo as string | undefined) || layer.type,
-            );
+            ),
+          );
           pointData.push(d[0] * r, d[1] * r, d[2] * r, ...col);
         }
       }
@@ -1105,6 +1128,8 @@ onMounted(async () => {
   uniform vec3 uSunDir;
   uniform vec3 uEyePos;
   uniform bool uUseVertexColor;
+  uniform sampler2D uEarthTexture;
+  uniform bool uUseEarthTexture;
   out vec4 outColor;
 
   float hash2(vec2 p) {
@@ -1186,12 +1211,20 @@ onMounted(async () => {
   }
 
   void main() {
+    vec3 baseColor;
+    if (uUseEarthTexture) {
+      float u = (vLatLon.y + 180.0) / 360.0;
+      float v = (90.0 - vLatLon.x) / 180.0;
+      baseColor = texture(uEarthTexture, vec2(u, v)).rgb;
+    } else {
+      baseColor = satelliteColor(vLatLon, vElevation);
+    }
+
     vec3 n = normalize(vNormal);
     vec3 sun = normalize(uSunDir);
     float diff = max(dot(n, sun), 0.0);
     float ambient = 0.15;
 
-    vec3 baseColor = uUseVertexColor ? vColor : satelliteColor(vLatLon, vElevation);
     vec3 lit = baseColor * (ambient + diff * 0.85);
 
     vec3 viewDir = normalize(-vViewPos);
@@ -1228,10 +1261,37 @@ onMounted(async () => {
     eyePos: gl!.getUniformLocation(prog, "uEyePos")!,
     pointSize: gl!.getUniformLocation(prog, "uPointSize")!,
     useVertexColor: gl!.getUniformLocation(prog, "uUseVertexColor")!,
+    earthTexture: gl!.getUniformLocation(prog, "uEarthTexture")!,
+    useEarthTexture: gl!.getUniformLocation(prog, "uUseEarthTexture")!,
   };
   const A_p = gl!.getAttribLocation(prog, "aPosition");
   const A_n = gl!.getAttribLocation(prog, "aNormal");
   const A_c = gl!.getAttribLocation(prog, "aColor");
+
+  async function loadEarthTexture() {
+    if (!gl) return;
+    try {
+      const resp = await fetch("/api/v1/aethermap/earth-texture.png", {
+        headers: { Accept: "image/png" },
+      });
+      if (!resp.ok) return;
+      const blob = await resp.blob();
+      const bitmap = await createImageBitmap(blob);
+      if (earthTexture) gl.deleteTexture(earthTexture);
+      earthTexture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, earthTexture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
+      useEarthTexture = true;
+    } catch {
+      useEarthTexture = false;
+    }
+  }
+
+  loadEarthTexture();
 
   const globeData = buildProceduralGlobeBuffers(getLODResolution(camDist));
   currentLOD = getLODResolution(camDist);
@@ -1386,6 +1446,11 @@ onMounted(async () => {
     gl.uniform3fv(U.sunDir, sunDir);
     gl.uniform3fv(U.eyePos, eye);
     gl.uniform1f(U.pointSize, 6.0);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, earthTexture);
+    gl.uniform1i(U.earthTexture, 0);
+    gl.uniform1i(U.useEarthTexture, useEarthTexture ? 1 : 0);
 
     if (globePosBuf && globeNormBuf && globeIdxBuf) {
       gl.uniform1i(U.useVertexColor, 0);
