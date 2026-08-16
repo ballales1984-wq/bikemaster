@@ -9,7 +9,7 @@
  */
 
 // Chiavi API per-utente, inserite dall'utente sul dispositivo e inviate al
-// backend del PC tramite l'header `X-User-Api-Keys`. Il backend le usa per la
+// backend tramite l'header `X-User-Api-Keys`. Il backend le usa per la
 // singola richiesta al posto delle sue chiavi di server.
 
 export interface UserApiKeys {

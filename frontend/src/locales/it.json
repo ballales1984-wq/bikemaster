@@ -683,7 +683,7 @@
     "navWeatherTitle": "Meteo",
     "navWeatherText": "Previsioni meteo per la località dell'uscita. Include vento, umidità e consigli.",
     "navSettingsTitle": "Impostazioni",
-    "navSettingsText": "Configura URL backend, fallback e sincronizzazione.",
+    "navSettingsText": "Configura fallback e sincronizzazione.",
     "navConnectionsTitle": "Connessioni",
     "navConnectionsText": "Gestisci servizi esterni: connetti/disconnetti Strava, Google Fit, Wahoo e gestisci API key.",
     "navMonitoringTitle": "Monitoring",

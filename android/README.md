@@ -6,7 +6,7 @@ App mobile Android per il tracciamento e analisi delle attività ciclistiche.
 
 1. Apri Android Studio
 2. Apri la cartella `android` come progetto esistente
-3. Configura l'URL backend in Settings dell'app o in `PreferencesManager.kt`
+3. Il backend URL &egrave; preconfigurato su Render in `PreferencesManager.kt`
 4. Aggiungi la tua Google Maps API Key in `AndroidManifest.xml`
 
 ## Struttura Progetto
@@ -94,7 +94,7 @@ console.log(result.gpxPath)
 
 ## Funzionalità Implementate
 
-1. **Settings** - Configurazione URL backend personalizzabile
+1. **Settings** - Backend URL preconfigurato su Render
 2. **Login/Register** - Autenticazione utente
 3. **GPS Tracking** - Tracciamento attività in tempo reale con mappa
 4. **Statistiche** - Grafici distanza e velocità (MPAndroidChart)

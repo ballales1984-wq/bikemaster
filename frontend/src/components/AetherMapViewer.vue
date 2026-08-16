@@ -799,7 +799,12 @@ function makeBuffer(
   gl.bindBuffer(gl.ARRAY_BUFFER, b);
   gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
   const byteStride = stride * 4;
-  return { buf: b, count: data.byteLength / byteStride, mode, stride: byteStride };
+  return {
+    buf: b,
+    count: data.byteLength / byteStride,
+    mode,
+    stride: byteStride,
+  };
 }
 
 function makeIndexBuffer(data: Uint32Array): WebGLBuffer | null {

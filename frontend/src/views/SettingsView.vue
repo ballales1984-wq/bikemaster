@@ -1,6 +1,6 @@
 <!--
   Vista delle impostazioni backend e preferenze utente.
-  Configurazione URL backend, fallback Render, sincronizzazione e verifica stato connessione.
+  Configurazione fallover Render, sincronizzazione e verifica stato connessione.
   Le chiavi API sono gestite nella pagina Connessioni.
   Componenti: SyncSettingsPanel.
   Store: settingsStore.
@@ -9,8 +9,8 @@
   <div class="settings-page">
     <h1>Impostazioni backend</h1>
     <p class="subtitle">
-      Configura dove l'app risiede i dati. Di default usa lo stesso
-      origine; in produzione il backend &egrave; su Render.
+      Configura dove l'app risiede i dati. Di default usa lo stesso origine; in
+      produzione il backend &egrave; su Render.
     </p>
 
     <section class="card">
