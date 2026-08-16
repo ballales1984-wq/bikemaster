@@ -9,4 +9,5 @@
     </style>
 
     <style name="AppTheme" parent="Base.Theme.BikeMaster" />
+    <style name="Theme.BikeMaster" parent="Base.Theme.BikeMaster" />
 </resources>

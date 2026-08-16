@@ -19,6 +19,7 @@
     <string name="dashboard">Dashboard</string>
     <string name="import_data">Import</string>
     <string name="weather">Meteo</string>
+    <string name="maps">Mappe</string>
     <string name="profile">Profilo atleta</string>
     <string name="nav_hint">Navigazione</string>
 
@@ -26,6 +27,7 @@
         <item>Dashboard</item>
         <item>Uscite</item>
         <item>Tracciamento GPS</item>
+        <item>Mappe</item>
         <item>Statistiche</item>
         <item>Profilo atleta</item>
         <item>AI Coach</item>

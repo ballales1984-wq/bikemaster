@@ -15,6 +15,7 @@ import com.bikemaster.ui.calendar.CalendarActivity
 import com.bikemaster.ui.coach.CoachActivity
 import com.bikemaster.ui.dashboard.DashboardActivity
 import com.bikemaster.ui.imports.ImportActivity
+import com.bikemaster.ui.maps.MapsActivity
 import com.bikemaster.ui.rides.RideListActivity
 import com.bikemaster.ui.weather.WeatherActivity
 import com.bikemaster.ui.settings.SettingsActivity
@@ -34,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnDashboard: Button
     private lateinit var btnImport: Button
     private lateinit var btnWeather: Button
+    private lateinit var btnMaps: Button
     private lateinit var btnRides: Button
     private lateinit var btnTracking: Button
     private lateinit var btnStats: Button
@@ -58,6 +60,7 @@ class MainActivity : AppCompatActivity() {
         btnDashboard = findViewById(R.id.btn_dashboard)
         btnImport = findViewById(R.id.btn_import)
         btnWeather = findViewById(R.id.btn_weather)
+        btnMaps = findViewById(R.id.btn_maps)
         btnRides = findViewById(R.id.btn_rides)
         btnTracking = findViewById(R.id.btn_tracking)
         btnStats = findViewById(R.id.btn_stats)
@@ -93,6 +96,7 @@ class MainActivity : AppCompatActivity() {
                     "Dashboard" -> DashboardActivity.start(this@MainActivity)
                     "Uscite" -> RideListActivity.start(this@MainActivity)
                     "Tracciamento GPS" -> TrackingActivity.start(this@MainActivity)
+                    "Mappe" -> MapsActivity.start(this@MainActivity)
                     "Statistiche" -> StatsActivity.start(this@MainActivity)
                     "Profilo atleta" -> AthleteProfileActivity.start(this@MainActivity)
                     "AI Coach" -> CoachActivity.start(this@MainActivity)
@@ -110,6 +114,7 @@ class MainActivity : AppCompatActivity() {
         btnDashboard.setOnClickListener { DashboardActivity.start(this) }
         btnImport.setOnClickListener { ImportActivity.start(this) }
         btnWeather.setOnClickListener { WeatherActivity.start(this) }
+        btnMaps.setOnClickListener { MapsActivity.start(this) }
         btnRides.setOnClickListener { RideListActivity.start(this) }
         btnTracking.setOnClickListener { TrackingActivity.start(this) }
         btnStats.setOnClickListener { StatsActivity.start(this) }
