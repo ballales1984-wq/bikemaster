@@ -21,7 +21,7 @@ from bike_analyzer.backend.ingestion.google_oauth_store import (
     ensure_google_tokens_table,
     store_google_token,
 )
-from bike_analyzer.backend.redis_client import cache_delete, cache_get, cache_set
+from bike_analyzer.backend.redis_client import cache_delete, cache_set, cached
 from bike_analyzer.backend.security import get_current_user, get_optional_current_user
 from bike_analyzer.backend.services.import_service import ImportService
 from bike_analyzer.backend.settings import get_settings
@@ -286,8 +286,8 @@ async def google_health_callback(request: Request):
             content="<html><body><script>window.opener.postMessage({type:'google-health-error',error:'missing_code_or_state',error_description:'Codice o stato mancante'},'*');window.close();</script></body></html>",
             media_type="text/html",
         )
-    cached = await cache_get(f"oauth:state:{state}")
-    if not cached:
+    cached_state = await cached(f"oauth:state:{state}")
+    if not cached_state:
         return HTMLResponse(
             content="<html><body><script>window.opener.postMessage({type:'google-health-error',error:'invalid_state',error_description:'Stato non valido o scaduto'},'*');window.close();</script></body></html>",
             media_type="text/html",

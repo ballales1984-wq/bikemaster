@@ -419,6 +419,28 @@ async function stopTracking() {
   }
   tracking.stop();
   tracking.updateActivityRings();
+
+  if (tracking.routePoints.length > 1) {
+    void saveCurrentRide();
+  }
+}
+
+async function saveCurrentRide(): Promise<number | null> {
+  if (tracking.rideId) return tracking.rideId;
+  if (tracking.routePoints.length <= 1) return null;
+  try {
+    const rideData = buildRidePayload();
+    const result = await apiPost("/api/v1/rides", rideData);
+    if (result.id) {
+      tracking.setRideId(result.id as number);
+      window.__toast?.add("Uscita salvata automaticamente!", "success");
+      return result.id as number;
+    }
+  } catch (e) {
+    console.warn("Salvataggio automatico fallito", e);
+    window.__toast?.add("Impossibile salvare l'uscita automaticamente.", "error");
+  }
+  return null;
 }
 
 function buildRidePayload() {
@@ -451,22 +473,12 @@ async function uploadRide() {
   try {
     isUploading.value = true;
 
-    if (tracking.routePoints.length > 1) {
-      try {
-        const rideData = buildRidePayload();
-        const result = await apiPost("/api/v1/rides", rideData);
-        if (result.id) {
-          tracking.setRideId(result.id as number);
-          window.__toast?.add("Uscita salvata con successo!", "success");
-          resetTrackingState();
-          router.push("/rides");
-          return;
-        }
-      } catch (directError) {
-        console.warn(
-          "Salvataggio diretto fallito, provo con GPX...",
-          directError,
-        );
+    if (!tracking.rideId && tracking.routePoints.length > 1) {
+      const savedId = await saveCurrentRide();
+      if (savedId) {
+        resetTrackingState();
+        router.push("/rides");
+        return;
       }
     }
 
