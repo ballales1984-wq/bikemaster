@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from bike_analyzer.backend.api.routes import _athlete_profile_data, _current_athlete_id, _ensure_int_user_id
 from bike_analyzer.backend.db.database import (
@@ -48,6 +48,13 @@ class AthleteUpdate(BaseModel):
     ftp_watts: float | None = None
     equipment: str | None = None
     medical_notes: str | None = None
+
+    @field_validator("weight_kg")
+    @classmethod
+    def validate_weight_kg(cls, v):
+        if v is not None and v <= 0:
+            raise ValueError("weight_kg must be positive")
+        return v
 
 
 class MetricLogCreate(BaseModel):
@@ -166,13 +173,21 @@ def _assert_athlete_ownership(athlete_id: int, current_user: dict) -> dict:
     """Fetch an athlete and enforce that it belongs to ``current_user``.
 
     Raises 404 if the athlete doesn't exist and 403 if it belongs to another user.
+    Admins bypass ownership checks.
     """
     user_id = _ensure_int_user_id(current_user)
+    if current_user.get("is_admin"):
+        athlete = get_athlete(athlete_id)
+        if not athlete:
+            raise HTTPException(status_code=404, detail="Athlete not found")
+        return athlete
     athlete = get_athlete(athlete_id, tenant_id=user_id)
     if athlete is None:
         athlete_fallback = get_athlete(athlete_id)
-        if athlete_fallback is None or athlete_fallback.get("user_id") != user_id:
+        if athlete_fallback is None:
             raise HTTPException(status_code=404, detail="Athlete not found")
+        if athlete_fallback.get("user_id") != user_id:
+            raise HTTPException(status_code=403, detail="Accesso riservato al proprietario")
         athlete = athlete_fallback
     return athlete
 

@@ -46,7 +46,6 @@ self.addEventListener("install", (event) => {
       .then((cache) =>
         cache.addAll([
           "/index.html",
-          "/registerSW.js",
           "/manifest.json",
           "/pwa-192x192.png",
           "/pwa-512x512.png",

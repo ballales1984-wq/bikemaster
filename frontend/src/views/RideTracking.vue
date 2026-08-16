@@ -268,7 +268,7 @@ const continuous = useContinuousTracking({
     handleActivityChange(moving);
   },
   batterySaver: () => batterySaver.value,
-  autoStart: true,
+  autoStart: false,
   autoPauseOnHidden: false,
 });
 

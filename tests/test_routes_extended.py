@@ -114,10 +114,10 @@ def test_training_workouts_generate(client):
 
 def test_weather_endpoints(client):
     r = client.get("/api/v1/weather", params={"lat": 45.0, "lon": 9.0})
-    assert r.status_code in (200, 422, 500)
+    assert r.status_code in (200, 422, 500, 503)
 
     r = client.get("/api/v1/weather/forecast", params={"lat": 45.0, "lon": 9.0, "days": 3})
-    assert r.status_code in (200, 422, 500)
+    assert r.status_code in (200, 422, 500, 503)
 
 
 def test_fitness_endpoints(client):

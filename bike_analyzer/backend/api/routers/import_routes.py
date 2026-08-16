@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
-from bike_analyzer.backend.security import get_current_user
+from bike_analyzer.backend.security import get_current_user, get_optional_current_user
 from bike_analyzer.backend.services.import_service import ImportService
 from bike_analyzer.backend.settings import get_settings
 
@@ -33,7 +33,7 @@ async def _validate_file_size(file: UploadFile) -> None:
 
 
 @router.get("/providers")
-async def get_import_providers(current_user: dict = Depends(get_current_user)):
+async def get_import_providers(current_user: dict | None = Depends(get_optional_current_user)):
     return {
         "strava": bool(_s.strava_client_id and _s.strava_client_secret),
         "google_fit": bool(_s.google_fit_client_id and _s.google_fit_client_secret),
