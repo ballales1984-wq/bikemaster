@@ -59,6 +59,18 @@ def _ensure_legal_tables(conn) -> None:
             ON ai_audit_log(athlete_id)
             """
         )
+        cur.execute(
+            """
+            ALTER TABLE user_consent
+            ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """
+        )
+        cur.execute(
+            """
+            ALTER TABLE legal_acceptances
+            ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """
+        )
         conn.commit()
 
 
