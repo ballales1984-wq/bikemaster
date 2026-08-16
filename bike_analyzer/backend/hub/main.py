@@ -214,44 +214,6 @@ def create_hub_app() -> FastAPI:
         except Exception:
             logger.debug("Prometheus instrumentation setup failed", exc_info=True)
 
-    from fastapi.middleware.cors import CORSMiddleware
-
-    cors_origins = (
-        [o.strip() for o in _s.cors_origins.split(",") if o.strip()]
-        if isinstance(_s.cors_origins, str)
-        else _s.cors_origins
-    )
-    if cors_origins and "*" in cors_origins:
-        if _s.environment.lower() in ("production", "prod", "staging"):
-            logger.error(
-                "CORS wildcard origin detected in production — forbidding. "
-                "Set CORS_ORIGINS to explicit allowed origins."
-            )
-            cors_origins = []
-        else:
-            logger.warning("Wildcard CORS origin detected - this is dangerous in production")
-    if not cors_origins and _s.environment.lower() not in ("development", "dev", "test"):
-        logger.error("No CORS origins configured in non-development environment")
-        cors_origins = []
-    logger.info(
-        "Hub CORS configured: origins=%s regex=%s",
-        cors_origins,
-        r"https://(bikemaster-[a-zA-Z0-9-]+\.vercel\.app|bikemaster\.onrender\.com)",
-    )
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=cors_origins,
-        allow_origin_regex=r"https://(bikemaster-[a-zA-Z0-9-]+\.vercel\.app|bikemaster\.onrender\.com)",
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=[
-            "Content-Type",
-            "Authorization",
-            "X-Requested-With",
-            "X-User-Api-Keys",
-        ],
-    )
-
     app.state.limiter = limiter
     app.add_middleware(SlowAPIMiddleware)
 
@@ -294,6 +256,44 @@ def create_hub_app() -> FastAPI:
             except (ValueError, TypeError):
                 pass
         return await call_next(request)
+
+    from fastapi.middleware.cors import CORSMiddleware
+
+    cors_origins = (
+        [o.strip() for o in _s.cors_origins.split(",") if o.strip()]
+        if isinstance(_s.cors_origins, str)
+        else _s.cors_origins
+    )
+    if cors_origins and "*" in cors_origins:
+        if _s.environment.lower() in ("production", "prod", "staging"):
+            logger.error(
+                "CORS wildcard origin detected in production — forbidding. "
+                "Set CORS_ORIGINS to explicit allowed origins."
+            )
+            cors_origins = []
+        else:
+            logger.warning("Wildcard CORS origin detected - this is dangerous in production")
+    if not cors_origins and _s.environment.lower() not in ("development", "dev", "test"):
+        logger.error("No CORS origins configured in non-development environment")
+        cors_origins = []
+    logger.info(
+        "Hub CORS configured: origins=%s regex=%s",
+        cors_origins,
+        r"https://(bikemaster-[a-zA-Z0-9-]+\.vercel\.app|bikemaster\.onrender\.com)",
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_origin_regex=r"https://(bikemaster-[a-zA-Z0-9-]+\.vercel\.app|bikemaster\.onrender\.com)",
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With",
+            "X-User-Api-Keys",
+        ],
+    )
 
     app.include_router(hub_router)
     app.include_router(hub_sync_router, prefix="/api/v1", tags=["sync"])
