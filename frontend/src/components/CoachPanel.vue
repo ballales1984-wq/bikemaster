@@ -475,11 +475,13 @@ async function sendMessage() {
         speak(reply);
       }
     }
-  } catch (_e) {
+  } catch (e) {
+    const err = e as Error | undefined;
+    const detail = err?.message || String(e);
+    console.error("Coach chat error:", detail);
     messages.value.push({
       role: "assistant",
-      content:
-        "Errore nella risposta. Possibili cause: backend non raggiungibile, CORS bloccato, oppure GROQ_API_KEY non configurata. Verifica l'URL backend in Impostazioni e la connessione di rete.",
+      content: "Errore nella risposta. " + detail,
       time: getTime(),
     });
     connected.value = false;

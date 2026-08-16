@@ -6,6 +6,7 @@ import contextlib
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
+from pydantic import ValidationError
 
 from ...analytics.repositories.athlete_repository import AthleteRepository
 from ...analytics.repositories.chat_repository import ChatRepository
@@ -216,33 +217,44 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
     from ...analytics.repositories.ride_repository import RideRepository
 
     tenant_id = current_user.get("tenant_id", athlete_id)
-    _ensure_athlete_access(athlete_id, current_user)
+    try:
+        _ensure_athlete_access(athlete_id, current_user)
 
-    from ...analytics.repositories.athlete_repository import AthleteRepository
+        from ...analytics.repositories.athlete_repository import AthleteRepository
 
-    if await AthleteRepository().get_by_id(athlete_id) is None:
+        if await AthleteRepository().get_by_id(athlete_id) is None:
 
-        await AthleteRepository().save(
-            {
-                "name": current_user.get("name") or f"Athlete {athlete_id}",
-                "email": current_user.get("email"),
-                "picture": current_user.get("picture"),
-                "experience_level": "Beginner",
-                "tenant_id": tenant_id,
-            },
-            athlete_id=athlete_id,
-            tenant_id=tenant_id,
-        )
+            await AthleteRepository().save(
+                {
+                    "name": current_user.get("name") or f"Athlete {athlete_id}",
+                    "email": current_user.get("email"),
+                    "picture": current_user.get("picture"),
+                    "experience_level": "Beginner",
+                    "tenant_id": tenant_id,
+                },
+                athlete_id=athlete_id,
+                tenant_id=tenant_id,
+            )
 
-    ChatRepository.save_chat_message(athlete_id, "user", message[:500], tenant_id)
-    athlete_data = await AthleteRepository().get_by_id(athlete_id, tenant_id)
-    if athlete_data:
-        athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
-    athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
-    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=athlete_id, tenant_id=tenant_id)]
-    response = generate_training_advice(athlete, rides, athlete_id)
-    ChatRepository.save_chat_message(athlete_id, "assistant", response[:500], tenant_id)
-    return {"response": response, "history": ChatRepository.get_chat_history(athlete_id, tenant_id=tenant_id)}
+        ChatRepository.save_chat_message(athlete_id, "user", message[:500], tenant_id)
+        athlete_data = await AthleteRepository().get_by_id(athlete_id, tenant_id)
+        if athlete_data:
+            athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
+        athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
+        rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=athlete_id, tenant_id=tenant_id)]
+        response = generate_training_advice(athlete, rides, athlete_id)
+        ChatRepository.save_chat_message(athlete_id, "assistant", response[:500], tenant_id)
+        return {"response": response, "history": ChatRepository.get_chat_history(athlete_id, tenant_id=tenant_id)}
+    except HTTPException:
+        raise
+    except ValidationError:
+        raise
+    except Exception:
+        logger.exception("AI Coach error in chat")
+        return {
+            "response": "AI Coach error. Please try again later.",
+            "history": [],
+        }
 
 
 @router.post("/chat/bm2")
@@ -263,85 +275,97 @@ async def coach_chat_bm2(
     from ...analytics.repositories.ride_repository import RideRepository
     from ...models.models import AthleteProfile, Ride
 
-    body = await request.json()
-    chat_req = CoachChatRequest(**body)
-    athlete_id = chat_req.athlete_id or current_user["id"]
-    tenant_id = current_user.get("tenant_id", athlete_id)
-    _ensure_athlete_access(athlete_id, current_user)
+    try:
+        body = await request.json()
+        chat_req = CoachChatRequest(**body)
+        athlete_id = chat_req.athlete_id or current_user["id"]
+        tenant_id = current_user.get("tenant_id", athlete_id)
+        _ensure_athlete_access(athlete_id, current_user)
 
-    athlete_data = await AthleteRepository().get_by_id(athlete_id, tenant_id)
-    if athlete_data:
-        athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
-    athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
-    rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=athlete_id, tenant_id=tenant_id)]
-    coach_response = generate_training_advice(athlete, rides, athlete_id)
-
-    message = chat_req.message
-
-    def _save_chat(role, content):
+        athlete_data = await AthleteRepository().get_by_id(athlete_id, tenant_id)
         if athlete_data:
-            with contextlib.suppress(Exception):
-                ChatRepository.save_chat_message(athlete_id, role, content[:500], tenant_id)
+            athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
+        athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
+        rides = [Ride(**r) for r in await RideRepository().list_all(athlete_id=athlete_id, tenant_id=tenant_id)]
+        coach_response = generate_training_advice(athlete, rides, athlete_id)
 
-    _save_chat("user", message)
-    response_text = coach_response
-    bm2_result = None
-    ride_id_match = None
-    import re as _re
-    ride_id_match = _re.search(r"ride\s*#?(\d+)|ride\s+(\d+)", message, _re.IGNORECASE)
-    if ride_id_match:
-        rid = int(ride_id_match.group(1) or ride_id_match.group(2))
-        ride_dict = await RideRepository().get_by_id(rid)
-        if ride_dict:
+        message = chat_req.message
+
+        def _save_chat(role, content):
+            if athlete_data:
+                with contextlib.suppress(Exception):
+                    ChatRepository.save_chat_message(athlete_id, role, content[:500], tenant_id)
+
+        _save_chat("user", message)
+        response_text = coach_response
+        bm2_result = None
+        ride_id_match = None
+        import re as _re
+        ride_id_match = _re.search(r"ride\s*#?(\d+)|ride\s+(\d+)", message, _re.IGNORECASE)
+        if ride_id_match:
+            rid = int(ride_id_match.group(1) or ride_id_match.group(2))
+            ride_dict = await RideRepository().get_by_id(rid)
+            if ride_dict:
+                try:
+                    gps = [_to_gps(p) for p in (ride_dict.get("gps_points") or [])]
+                    ride = Ride(**{k: v for k, v in ride_dict.items() if k in Ride.__dataclass_fields__})
+                    ride.gps_points = gps
+                    params = RiderBikeParams(
+                        rider_mass_kg=float(athlete.weight_kg.value) if athlete.weight_kg else 75.0,
+                        bike_mass_kg=8.0,
+                        cda=0.40,
+                        crr=0.005,
+                        drivetrain_efficiency=0.97,
+                    )
+                    validation = validate_ride_power(ride, params)
+                    if validation:
+                        bm2_result = {
+                            "validation": validation.to_dict(),
+                            "ride_id": rid,
+                        }
+                except Exception:
+                    pass
+
+        if not bm2_result and any(
+            kw in message.lower()
+            for kw in ["energia", "power", "ftp", "performance", "calories", "kcal"]
+        ):
             try:
-                gps = [_to_gps(p) for p in (ride_dict.get("gps_points") or [])]
-                ride = Ride(**{k: v for k, v in ride_dict.items() if k in Ride.__dataclass_fields__})
-                ride.gps_points = gps
-                params = RiderBikeParams(
-                    rider_mass_kg=float(athlete.weight_kg.value) if athlete.weight_kg else 75.0,
-                    bike_mass_kg=8.0,
-                    cda=0.40,
-                    crr=0.005,
-                    drivetrain_efficiency=0.97,
-                )
-                validation = validate_ride_power(ride, params)
-                if validation:
-                    bm2_result = {
-                        "validation": validation.to_dict(),
-                        "ride_id": rid,
-                    }
+                orchestrator = AIOrchestrator()
+                bm2_result = orchestrator.answer(message, {
+                    "athlete": {"weight": athlete.weight_kg.value if athlete.weight_kg else 75},
+                    "bike": {"weight": 8},
+                    "world": {"surface": "asphalt", "avg_slope": 4},
+                    "gps_points": [],
+                    "sensors": [],
+                })
             except Exception:
                 pass
 
-    if not bm2_result and any(
-        kw in message.lower()
-        for kw in ["energia", "power", "ftp", "performance", "calories", "kcal"]
-    ):
-        try:
-            orchestrator = AIOrchestrator()
-            bm2_result = orchestrator.answer(message, {
-                "athlete": {"weight": athlete.weight_kg.value if athlete.weight_kg else 75},
-                "bike": {"weight": 8},
-                "world": {"surface": "asphalt", "avg_slope": 4},
-                "gps_points": [],
-                "sensors": [],
-            })
-        except Exception:
-            pass
+        response_text = coach_response
+        if bm2_result:
+            response_text += "\n\n---\n**BM2 Physics Analysis:**\n"
+            if "validation" in bm2_result:
+                v = bm2_result["validation"]
+                response_text += f"- MAE: {v['mae_w']:.1f}W | RMSE: {v['rmse_w']:.1f}W | R²: {v['r2']:.3f}\n"
+            if "results" in bm2_result:
+                for name, r in bm2_result["results"].items():
+                    response_text += f"- {name}: {r['value']:.1f} {r['unit']}\n"
 
-    response_text = coach_response
-    if bm2_result:
-        response_text += "\n\n---\n**BM2 Physics Analysis:**\n"
-        if "validation" in bm2_result:
-            v = bm2_result["validation"]
-            response_text += f"- MAE: {v['mae_w']:.1f}W | RMSE: {v['rmse_w']:.1f}W | R²: {v['r2']:.3f}\n"
-        if "results" in bm2_result:
-            for name, r in bm2_result["results"].items():
-                response_text += f"- {name}: {r['value']:.1f} {r['unit']}\n"
-
-    _save_chat("assistant", response_text)
-    return {
-        "response": response_text,
-        "history": ChatRepository.get_chat_history(athlete_id, tenant_id=tenant_id),
-        "bm2_result": bm2_result,
-    }
+        _save_chat("assistant", response_text)
+        return {
+            "response": response_text,
+            "history": ChatRepository.get_chat_history(athlete_id, tenant_id=tenant_id),
+            "bm2_result": bm2_result,
+        }
+    except HTTPException:
+        raise
+    except ValidationError:
+        raise
+    except Exception:
+        logger.exception("AI Coach error in BM2 chat")
+        return {
+            "response": "AI Coach error. Please try again later.",
+            "history": [],
+            "bm2_result": None,
+        }

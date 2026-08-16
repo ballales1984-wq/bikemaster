@@ -438,7 +438,10 @@ async function saveCurrentRide(): Promise<number | null> {
     }
   } catch (e) {
     console.warn("Salvataggio automatico fallito", e);
-    window.__toast?.add("Impossibile salvare l'uscita automaticamente.", "error");
+    window.__toast?.add(
+      "Impossibile salvare l'uscita automaticamente.",
+      "error",
+    );
   }
   return null;
 }
