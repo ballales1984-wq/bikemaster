@@ -2,13 +2,26 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import secrets
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi.responses import HTMLResponse, JSONResponse
 
+from bike_analyzer.backend.ingestion.google_health import (
+    exchange_code_for_token,
+    get_authorization_url,
+    google_health_to_rides,
+)
+from bike_analyzer.backend.ingestion.google_oauth_store import (
+    delete_google_token,
+    ensure_google_tokens_table,
+    store_google_token,
+)
+from bike_analyzer.backend.redis_client import cache_delete, cache_get, cache_set
 from bike_analyzer.backend.security import get_current_user, get_optional_current_user
 from bike_analyzer.backend.services.import_service import ImportService
 from bike_analyzer.backend.settings import get_settings
@@ -17,6 +30,20 @@ router = APIRouter(prefix="/import", tags=["import"])
 logger = logging.getLogger(__name__)
 _s = get_settings()
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+
+
+def _build_redirect_uri(request: Request, path: str) -> str:
+    client_host = request.client.host if request.client else ""
+    if client_host in ("127.0.0.1", "localhost", "0.0.0.0"):
+        proto = request.url.scheme
+        host = request.headers.get("host") or request.url.netloc
+        return f"{proto}://{host}{path}"
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+    host_lower = host.lower()
+    if host_lower.endswith(".ngrok-free.dev") or host_lower.endswith(".vercel.app") or host_lower.endswith(".onrender.com"):
+        proto = "https"
+    return f"{proto}://{host}{path}"
 
 
 async def _validate_file_size(file: UploadFile) -> None:
@@ -233,3 +260,84 @@ async def garmin_disconnect():
 @router.delete("/wahoo/disconnect")
 async def wahoo_disconnect():
     return JSONResponse(content={"detail": "Not implemented"})
+
+
+@router.get("/google-health/auth")
+async def google_health_auth(request: Request):
+    if not _s.google_health_client_id or not _s.google_health_client_secret:
+        raise HTTPException(status_code=500, detail="Google Health non configurato")
+    redirect_uri = request.query_params.get("redirect_uri") or _build_redirect_uri(request, "/api/v1/import/google-health")
+    state = secrets.token_urlsafe(32)
+    await cache_set(f"oauth:state:{state}", {"redirect_uri": redirect_uri}, ttl=600)
+    auth_url = get_authorization_url(
+        client_id=_s.google_health_client_id,
+        redirect_uri=redirect_uri,
+        state=state,
+    )
+    return {"auth_url": auth_url, "state": state}
+
+
+@router.get("/google-health")
+async def google_health_callback(request: Request):
+    code = request.query_params.get("code")
+    state = request.query_params.get("state")
+    if not code or not state:
+        return HTMLResponse(
+            content="<html><body><script>window.opener.postMessage({type:'google-health-error',error:'missing_code_or_state',error_description:'Codice o stato mancante'},'*');window.close();</script></body></html>",
+            media_type="text/html",
+        )
+    cached = await cache_get(f"oauth:state:{state}")
+    if not cached:
+        return HTMLResponse(
+            content="<html><body><script>window.opener.postMessage({type:'google-health-error',error:'invalid_state',error_description:'Stato non valido o scaduto'},'*');window.close();</script></body></html>",
+            media_type="text/html",
+        )
+    await cache_delete(f"oauth:state:{state}")
+    return HTMLResponse(
+        content=f"<html><body><script>window.opener.postMessage({{type:'google-health-success',code:{json.dumps(code)}}},'*');window.close();</script></body></html>",
+        media_type="text/html",
+    )
+
+
+@router.post("/google-health")
+async def google_health_connect(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    body = await request.json()
+    code = body.get("code")
+    if not code:
+        raise HTTPException(status_code=400, detail="Codice mancante")
+    redirect_uri = _build_redirect_uri(request, "/api/v1/import/google-health")
+    token_data = exchange_code_for_token(
+        client_id=_s.google_health_client_id,
+        client_secret=_s.google_health_client_secret,
+        code=code,
+        redirect_uri=redirect_uri,
+    )
+    athlete_id = int(current_user.get("athlete_id") or current_user["id"])
+    ensure_google_tokens_table()
+    store_google_token(athlete_id=athlete_id, provider="google_health", token_data=token_data)
+    from bike_analyzer.backend.db.repositories.ride_repository import save_ride
+    rides = google_health_to_rides(
+        access_token=token_data["access_token"],
+        athlete_id=athlete_id,
+        days=180,
+    )
+    imported = 0
+    for ride in rides:
+        try:
+            save_ride(ride)
+            imported += 1
+        except Exception:
+            pass
+    return {"count": imported}
+
+
+@router.delete("/google-health/disconnect")
+async def google_health_disconnect(
+    current_user: dict = Depends(get_current_user),
+):
+    athlete_id = int(current_user.get("athlete_id") or current_user["id"])
+    delete_google_token(athlete_id, "google_health")
+    return {"detail": "Disconnesso"}

@@ -61,8 +61,7 @@ export const oauthProviders: Record<string, OAuthProviderConfig> = {
     successEventType: "google-fit-success",
     errorEventType: "google-fit-error",
     extractCallbackBody: (eventData) => ({
-      access_token: eventData.token as string,
-      refresh_token: (eventData.refresh_token as string) || "",
+      code: eventData.code as string,
     }),
     onConnected: (result) => {
       const count = (result as Record<string, number>)?.count ?? 0;
@@ -79,8 +78,7 @@ export const oauthProviders: Record<string, OAuthProviderConfig> = {
     successEventType: "google-health-success",
     errorEventType: "google-health-error",
     extractCallbackBody: (eventData) => ({
-      access_token: eventData.token as string,
-      refresh_token: (eventData.refresh_token as string) || "",
+      code: eventData.code as string,
     }),
     onConnected: (result) => {
       const count = (result as Record<string, number>)?.count ?? 0;

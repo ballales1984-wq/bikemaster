@@ -19,42 +19,12 @@ from bike_analyzer.backend.db.database import (
     save_athlete,
     update_athlete,
 )
+from bike_analyzer.backend.api.schemas import AthleteCreate, AthleteUpdate
 from bike_analyzer.backend.security import get_current_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["athletes"])
-
-
-class AthleteCreate(BaseModel):
-    name: str
-    email: str | None = None
-    age: int | None = None
-    weight_kg: float | None = None
-    height_cm: float | None = None
-    experience_level: str | None = None
-
-
-class AthleteUpdate(BaseModel):
-    name: str | None = None
-    email: str | None = None
-    age: int | None = None
-    weight_kg: float | None = None
-    height_cm: float | None = None
-    experience_level: str | None = None
-    goals: str | None = None
-    preferred_terrain: str | None = None
-    weekly_volume_km: float | None = None
-    ftp_watts: float | None = None
-    equipment: str | None = None
-    medical_notes: str | None = None
-
-    @field_validator("weight_kg")
-    @classmethod
-    def validate_weight_kg(cls, v):
-        if v is not None and v <= 0:
-            raise ValueError("weight_kg must be positive")
-        return v
 
 
 class MetricLogCreate(BaseModel):

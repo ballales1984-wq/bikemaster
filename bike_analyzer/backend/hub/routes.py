@@ -25,6 +25,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
+from pydantic import BaseModel
 from sqlalchemy import select
 
 from bike_analyzer.backend.audit import log_action, read_audit_logs
@@ -1013,6 +1014,104 @@ async def hub_init_kb_embeddings(current_user: dict = Depends(get_admin_user)):
 
 
 # ---------------------------------------------------------------------------
+# Hub Connections Router
+# ---------------------------------------------------------------------------
+
+hub_connections_router = APIRouter(tags=["connections"])
+
+
+class UserOAuthCredentials(BaseModel):
+    provider: str
+    client_id: str | None = None
+    client_secret: str | None = None
+    redirect_uri: str | None = None
+    scope: str | None = None
+
+
+@hub_connections_router.get("/connections/credentials")
+async def hub_list_oauth_credentials(current_user: dict = Depends(get_current_user)):
+    from bike_analyzer.backend.analytics.repositories.user_oauth_repository import UserOAuthRepository
+
+    user_id = int(current_user["id"])
+    creds = UserOAuthRepository.get_all_user_oauth_credentials(user_id)
+    result = []
+    for c in creds:
+        result.append({
+            "id": c["id"],
+            "provider": c["provider"],
+            "client_id": c["client_id"],
+            "redirect_uri": c["redirect_uri"],
+            "scope": c["scope"],
+            "has_secret": bool(c["client_secret"]),
+            "created_at": c["created_at"],
+            "updated_at": c["updated_at"],
+        })
+    return {"credentials": result}
+
+
+@hub_connections_router.post("/connections/credentials")
+async def hub_set_oauth_credentials(credentials: UserOAuthCredentials, current_user: dict = Depends(get_current_user)):
+    from bike_analyzer.backend.analytics.repositories.user_oauth_repository import UserOAuthRepository
+
+    user_id = int(current_user["id"])
+    data = credentials.model_dump(exclude_unset=True)
+    if not data.get("client_id") and not data.get("client_secret"):
+        raise HTTPException(status_code=400, detail="client_id or client_secret required")
+    UserOAuthRepository.save_user_oauth_credentials(user_id, credentials.provider, data)
+    return {"status": "saved", "provider": credentials.provider}
+
+
+@hub_connections_router.delete("/connections/credentials/{provider}")
+async def hub_delete_oauth_credentials(provider: str, current_user: dict = Depends(get_current_user)):
+    from bike_analyzer.backend.analytics.repositories.user_oauth_repository import UserOAuthRepository
+
+    user_id = int(current_user["id"])
+    ok = UserOAuthRepository.delete_user_oauth_credentials(user_id, provider)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Credentials not found")
+    return {"status": "deleted", "provider": provider}
+
+
+# ---------------------------------------------------------------------------
+# Hub Health Connect Router
+# ---------------------------------------------------------------------------
+
+hub_health_connect_router = APIRouter(tags=["health-connect"])
+
+
+@hub_health_connect_router.post("/health-connect/connect")
+async def hub_health_connect_connect(current_user: dict = Depends(get_current_user)):
+    from bike_analyzer.backend.ingestion.health_connect import (
+        HEALTH_CONNECT_PERMISSIONS,
+        connect as hc_connect,
+    )
+
+    athlete_id = int(current_user.get("athlete_id") or current_user["id"])
+    result = hc_connect(athlete_id)
+    return result
+
+
+@hub_health_connect_router.post("/health-connect/disconnect")
+async def hub_health_connect_disconnect(current_user: dict = Depends(get_current_user)):
+    from bike_analyzer.backend.ingestion.health_connect import disconnect as hc_disconnect
+
+    athlete_id = int(current_user.get("athlete_id") or current_user["id"])
+    hc_disconnect(athlete_id)
+    return {"status": "disconnected"}
+
+
+@hub_health_connect_router.post("/health-connect/sync")
+async def hub_health_connect_sync(body: dict = Body(default_factory=dict), current_user: dict = Depends(get_current_user)):
+    from bike_analyzer.backend.ingestion.health_connect import sync_health_data
+
+    athlete_id = int(current_user.get("athlete_id") or current_user["id"])
+    tenant_id = current_user.get("tenant_id", athlete_id)
+    metrics = body.get("metrics", [])
+    result = sync_health_data(athlete_id, metrics=metrics, tenant_id=tenant_id)
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Public router aggregator (used by hub/main.py)
 # ---------------------------------------------------------------------------
 
@@ -1020,3 +1119,5 @@ hub_router = APIRouter()
 hub_router.include_router(hub_auth_router, prefix="/api/v1", tags=["auth"])
 hub_router.include_router(hub_admin_router, prefix="/api/v1/admin", tags=["admin"])
 hub_router.include_router(hub_knowledge_router, prefix="/api/v1", tags=["knowledge"])
+hub_router.include_router(hub_connections_router, prefix="/api/v1", tags=["connections"])
+hub_router.include_router(hub_health_connect_router, prefix="/api/v1", tags=["health-connect"])

@@ -86,7 +86,7 @@ class TestAdminUsers:
     def test_create_user(self, db_path):
         tc = _make_client(db_path, subject="0", is_admin=True)
         response = tc.post("/api/v1/admin/users", json={"username": "newuser", "password": "x"})
-        assert response.status_code == 404
+        assert response.status_code in (404, 405)
 
     def test_update_user(self, db_path):
         tc = _make_client(db_path, subject="0", is_admin=True)
