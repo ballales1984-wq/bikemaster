@@ -570,10 +570,11 @@ function scrollBy(px: number) {
 function scrollActiveIntoView() {
   const el = tabsRef.value;
   if (!el || typeof el.scrollTo !== "function") return;
-  const active = el.querySelector(".tab.active");
+  const active = el.querySelector<HTMLElement>(".tab.active");
   if (active) {
+    const activeEl = active as HTMLElement;
     const left =
-      active.offsetLeft - el.clientWidth / 2 + active.clientWidth / 2;
+      activeEl.offsetLeft - el.clientWidth / 2 + activeEl.clientWidth / 2;
     el.scrollTo({ left, behavior: "smooth" });
   }
   scheduleLayoutUpdate();
@@ -581,7 +582,7 @@ function scrollActiveIntoView() {
 
 let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 function onResize() {
-  clearTimeout(resizeTimer);
+  if (resizeTimer) clearTimeout(resizeTimer!);
   resizeTimer = setTimeout(() => {
     updateArrows();
     scrollActiveIntoView();
@@ -605,7 +606,7 @@ watch(
 
 onUnmounted(() => {
   window.removeEventListener("resize", onResize);
-  clearTimeout(resizeTimer);
+  if (resizeTimer) clearTimeout(resizeTimer!);
   if (layoutRaf) {
     cancelAnimationFrame(layoutRaf);
     layoutRaf = null;
