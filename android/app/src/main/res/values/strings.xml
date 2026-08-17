@@ -27,6 +27,12 @@
     <string name="itineraries">Itinerari</string>
     <string name="performance">Performance</string>
     <string name="comparison">Confronto</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="cookie_policy">Cookie Policy</string>
+    <string name="about_us">About Us</string>
+    <string name="contact_us">Contact Us</string>
+    <string name="privacy_policy_content">Privacy policy content placeholder</string>
     <string name="profile">Profilo atleta</string>
     <string name="nav_hint">Navigazione</string>
 
@@ -42,6 +48,8 @@
         <item>Itinerari</item>
         <item>Performance</item>
         <item>Confronto</item>
+        <item>Privacy</item>
+        <item>About</item>
         <item>Statistiche</item>
         <item>Profilo atleta</item>
         <item>AI Coach</item>

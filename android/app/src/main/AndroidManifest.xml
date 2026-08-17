@@ -69,6 +69,12 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".ui.legal.LegalActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.legal.AboutActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.performance.PerformanceActivity"
             android:exported="false" />
         <activity

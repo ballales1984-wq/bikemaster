@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="About Us"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="BikeMaster"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cycling Performance Intelligence"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="BikeMaster is an open-source project dedicated to advanced cycling performance analysis. Our mission is to provide professional tools for cyclists of every level, from beginners to competitive athletes, to understand and improve their performance through data, algorithms and artificial intelligence."
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Features:\n\n• Performance Analysis: Complete analysis of rides with advanced metrics: Normalized Power, TSS, FTP, Critical Power, CTL/ATL/TSB.\n• AI Coach: Personalized training and recovery advice via LLM models and knowledge based on scientific data.\n• Interactive Maps: Route visualization colored by speed, GPS heatmaps, and road safety analysis.\n• Mobile Tracking: Ride recording directly from your Android phone with foreground GPS service.\n• Integrations: Sync with Strava, Garmin Connect and Google Fit to import all your activities."
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp" />
+
+    </LinearLayout>
+</ScrollView>

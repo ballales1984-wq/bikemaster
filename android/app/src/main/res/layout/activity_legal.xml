@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Privacy Policy"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Last updated: August 2026"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. Data Controller\n\nThe data controller of the personal data collected through BikeMaster is:\n\n• Company: BikeMaster Team\n• Email: privacy@bikemaster.app"
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2. Types of Data Collected\n\nThrough the use of BikeMaster, we collect the following categories of data:\n\n• Navigation data: IP address, browser type, operating system, log data\n• User personal data: name, email, age, weight, height, medical data voluntarily provided in the athlete profile\n• GPS and physical activity data: geographic coordinates, route track, speed, altitude, heart rate, power, cadence, distance, elevation\n• Geolocation data: real-time position during GPS tracking from phone\n• Data from external services: activity data from Strava, Garmin Connect, Google Fit (only if authorized by the user)\n• Access credentials: username and password (stored in encrypted form)"
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="3. Purposes of Processing\n\nPersonal data is processed for the following purposes:\n\n• Provide and maintain the BikeMaster service\n• Improve user experience and develop new features\n• Perform analytics and generate statistics\n• Send service-related notifications\n• Ensure security and prevent fraud"
+            android:textSize="16sp"
+            android:layout_marginBottom="16dp" />
+
+    </LinearLayout>
+</ScrollView>
