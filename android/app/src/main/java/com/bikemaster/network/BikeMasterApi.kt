@@ -104,4 +104,7 @@ interface BikeMasterApi {
 
     @GET("knowledge/search")
     suspend fun searchKnowledge(@Query("q") query: String): Map<String, Any>
+
+    @GET("itineraries")
+    suspend fun getItineraries(): Map<String, Any>
 }
