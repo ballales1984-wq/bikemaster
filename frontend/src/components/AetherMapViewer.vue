@@ -106,6 +106,10 @@ let gl: WebGL2RenderingContext | null = null;
 let rafId: number | null = null;
 let resizeObserver: ResizeObserver | null = null;
 let mounted = true;
+let isVisible = true;
+let observer: IntersectionObserver | null = null;
+let onVisibilityChange: () => void = () => {};
+
 const fps = ref(0);
 
 let globePosBuf: {
@@ -1406,9 +1410,8 @@ onMounted(async () => {
   let lastTime = performance.now();
   let frameCount = 0;
   let lastCheckedCamDist = camDist;
-  let isVisible = true;
 
-  const observer = new IntersectionObserver(
+  observer = new IntersectionObserver(
     (entries) => {
       isVisible = entries[0].isIntersecting;
       if (isVisible && !rafId) {
@@ -1419,12 +1422,13 @@ onMounted(async () => {
   );
   observer.observe(canvasEl);
 
-  document.addEventListener("visibilitychange", function onVisibilityChange() {
+  onVisibilityChange = () => {
     if (document.hidden) return;
     if (isVisible && !rafId) {
       rafId = requestAnimationFrame(frame);
     }
-  });
+  };
+  document.addEventListener("visibilitychange", onVisibilityChange);
 
   function frame() {
     if (!gl || !isVisible) {

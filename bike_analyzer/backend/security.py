@@ -357,6 +357,7 @@ async def decode_token(token: str | None) -> dict:
     revoked token.
     """
     if not isinstance(token, str):
+        logger.warning("Auth failed: token is not a string (type=%s)", type(token).__name__)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
@@ -364,12 +365,14 @@ async def decode_token(token: str | None) -> dict:
         )
     payload = await decode_token_with_fallback(token)
     if payload is None:
+        logger.warning("Auth failed: token decode failed (signature/issuer/audience invalid)")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     if payload.get("type") == "refresh":
+        logger.warning("Auth failed: refresh token used as access token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
@@ -377,6 +380,7 @@ async def decode_token(token: str | None) -> dict:
         )
     jti = payload.get("jti")
     if jti and await is_token_revoked(jti):
+        logger.warning("Auth failed: token revoked (jti=%s)", jti)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token revocato",
@@ -395,6 +399,9 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
     """
     cookie_token = request.cookies.get("bikemaster_access")
     active_token = cookie_token or token
+    if not active_token:
+        logger.warning("Auth failed: no token provided (path=%s)", request.url.path)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token", headers={"WWW-Authenticate": "Bearer"})
     payload = await decode_token(active_token)
     user_id: str = payload.get("sub")
     is_admin: bool = payload.get("is_admin", False)
@@ -402,10 +409,12 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
     tenant_id: int | None = payload.get("tenant_id")
     athlete_id: int | None = payload.get("athlete_id")
     if user_id is None:
+        logger.warning("Auth failed: token missing sub claim (path=%s)", request.url.path)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     try:
         user_id_int = int(user_id)
     except (TypeError, ValueError) as exc:
+        logger.warning("Auth failed: invalid sub claim (%s) (path=%s)", user_id, request.url.path)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
     result = {"id": user_id_int, "is_admin": is_admin, "is_client": is_client}
     if tenant_id is not None:

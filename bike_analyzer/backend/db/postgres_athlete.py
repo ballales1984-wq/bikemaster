@@ -48,7 +48,7 @@ def _connect():
 
     try:
         conn = psycopg2.connect(_url(), cursor_factory=RealDictCursor)
-        logger.warning("PostgreSQL connection opened successfully")
+        logger.info("PostgreSQL connection opened successfully")
         return conn
     except Exception as exc:
         logger.error("PostgreSQL connection failed: %s", exc)
