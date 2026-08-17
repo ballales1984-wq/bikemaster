@@ -843,6 +843,8 @@ function draw(
   if (buf.stride >= 24) {
     gl.enableVertexAttribArray(colorLoc);
     gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, buf.stride, 12);
+  } else {
+    gl.disableVertexAttribArray(colorLoc);
   }
   gl.drawArrays(buf.mode, 0, buf.count);
 }
@@ -1492,6 +1494,7 @@ onMounted(async () => {
       gl.bindBuffer(gl.ARRAY_BUFFER, globeNormBuf.buf);
       gl.enableVertexAttribArray(A_n);
       gl.vertexAttribPointer(A_n, 3, gl.FLOAT, false, 0, 0);
+      gl.disableVertexAttribArray(A_c);
       gl.vertexAttrib3f(A_c, 1.0, 1.0, 1.0);
       drawIndexed(globeIdxBuf, globeIdxCount);
     }

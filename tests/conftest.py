@@ -180,6 +180,36 @@ def reset_database_url_and_async_engine():
         pass
 
 
+@pytest.fixture(autouse=True)
+def reset_backend_globals():
+    import bike_analyzer.backend.db.database as _db_mod
+    import bike_analyzer.backend.api.routes as _routes_mod
+
+    _db_mod._db_initialized = False
+    _db_mod._init_db_path = None
+    _db_mod._db_initializing = False
+    _db_mod.DB_PATH = _db_mod._INITIAL_DB_PATH
+    _routes_mod._PLACE_CACHE.clear()
+    os.environ["SECRET_KEY"] = "test-secret-key-for-jwt-testing-123456"
+    os.environ["ALGORITHM"] = "HS256"
+    os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "30"
+    os.environ["JWT_ISSUER"] = "test-issuer"
+    os.environ["JWT_AUDIENCE"] = "test-audience"
+    os.environ["GROQ_API_KEY"] = "test-key-for-unit-tests"
+    os.environ["GOOGLE_MAPS_API_KEY"] = ""
+    os.environ["SENTRY_DSN"] = ""
+    os.environ["ENVIRONMENT"] = "test"
+    os.environ["WEATHER_API_KEY"] = ""
+    os.environ["GOOGLE_CLIENT_ID"] = ""
+    os.environ["GOOGLE_CLIENT_SECRET"] = ""
+    os.environ.pop("DATABASE_URL", None)
+    os.environ.pop("DATABASE_URL_UNPOOLED", None)
+    os.environ["DATABASE_URL"] = ""
+    os.environ["DATABASE_URL_UNPOOLED"] = ""
+    os.environ["TOKEN_ENCRYPTION_KEY"] = "TgjvE054AgL1UVXPsj98EH0LDZ7_umDTQno858P4M00="
+    yield
+
+
 @pytest.fixture
 def client(db_path):
     from bike_analyzer.backend.api.app_factory import create_app
