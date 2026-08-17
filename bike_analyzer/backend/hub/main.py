@@ -232,6 +232,13 @@ def create_hub_app() -> FastAPI:
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=400, content={"detail": str(exc)})
 
+    @app.exception_handler(Exception)
+    async def generic_exception_handler(request: Request, exc: Exception):
+        """Return 500 for unhandled exceptions, preserving CORS headers."""
+        logger.exception("Unhandled exception: %s", exc)
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=500, content={"detail": "Errore interno del server"})
+
     @app.middleware("http")
     async def _cors_cache_and_vary(request: Request, call_next):
         response = await call_next(request)

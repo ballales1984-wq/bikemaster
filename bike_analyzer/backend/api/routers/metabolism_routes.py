@@ -218,10 +218,14 @@ async def get_daily_summary(
     current_user: dict = Depends(get_current_user),
 ):
     """Return the metabolic daily summary for the authenticated athlete."""
-    tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = _current_athlete_id(current_user)
-    summary = recalculate_daily_summary(athlete_id, date, tenant_id)
-    return summary
+    try:
+        tenant_id = current_user.get("tenant_id", current_user["id"])
+        athlete_id = _current_athlete_id(current_user)
+        summary = recalculate_daily_summary(athlete_id, date, tenant_id)
+        return summary
+    except Exception as exc:
+        logger.exception("Failed to compute daily summary for athlete_id=%s date=%s", _current_athlete_id(current_user), date)
+        raise HTTPException(status_code=500, detail="Failed to compute daily summary") from exc
 
 
 @router.get("/range-summary")
@@ -231,10 +235,14 @@ async def get_range_summary(
     current_user: dict = Depends(get_current_user),
 ):
     """Return metabolic daily summaries for a date range."""
-    tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = _current_athlete_id(current_user)
-    summaries = recalculate_range(athlete_id, start_date, end_date, tenant_id)
-    return summaries
+    try:
+        tenant_id = current_user.get("tenant_id", current_user["id"])
+        athlete_id = _current_athlete_id(current_user)
+        summaries = recalculate_range(athlete_id, start_date, end_date, tenant_id)
+        return summaries
+    except Exception as exc:
+        logger.exception("Failed to compute range summary for athlete_id=%s", _current_athlete_id(current_user))
+        raise HTTPException(status_code=500, detail="Failed to compute range summary") from exc
 
 
 @router.post("/recalculate")
@@ -243,10 +251,14 @@ async def recalculate_daily(
     current_user: dict = Depends(get_current_user),
 ):
     """Force recalculate the metabolic daily summary for a specific date."""
-    tenant_id = current_user.get("tenant_id", current_user["id"])
-    athlete_id = _current_athlete_id(current_user)
-    summary = recalculate_daily_summary(athlete_id, date, tenant_id)
-    return summary
+    try:
+        tenant_id = current_user.get("tenant_id", current_user["id"])
+        athlete_id = _current_athlete_id(current_user)
+        summary = recalculate_daily_summary(athlete_id, date, tenant_id)
+        return summary
+    except Exception as exc:
+        logger.exception("Failed to recalculate daily summary for athlete_id=%s date=%s", _current_athlete_id(current_user), date)
+        raise HTTPException(status_code=500, detail="Failed to recalculate daily summary") from exc
 
 
 @router.post("/calibrate")
@@ -273,12 +285,16 @@ async def recalculate_calibrated(
     current_user: dict = Depends(get_current_user),
 ):
     """Recalculate the daily summary using calibrated weights."""
-    athlete_id = _current_athlete_id(current_user)
-    tenant_id = current_user.get("tenant_id", current_user["id"])
-    from bike_analyzer.backend.analytics.metabolism import recalculate_daily_summary_calibrated
+    try:
+        athlete_id = _current_athlete_id(current_user)
+        tenant_id = current_user.get("tenant_id", current_user["id"])
+        from bike_analyzer.backend.analytics.metabolism import recalculate_daily_summary_calibrated
 
-    summary = recalculate_daily_summary_calibrated(athlete_id, date, tenant_id)
-    return summary
+        summary = recalculate_daily_summary_calibrated(athlete_id, date, tenant_id)
+        return summary
+    except Exception as exc:
+        logger.exception("Failed to recalculate calibrated summary for athlete_id=%s date=%s", _current_athlete_id(current_user), date)
+        raise HTTPException(status_code=500, detail="Failed to recalculate calibrated summary") from exc
 
 
 @router.get("/weights")

@@ -105,46 +105,50 @@ def calibrate_athlete(
 
 def recalculate_daily_summary_calibrated(athlete_id: int, date: str, tenant_id: int = 0) -> dict:
     """Recalculate the daily summary using reference + adaptive weights."""
-    athlete = MetabolismRepository.get_athlete(athlete_id, tenant_id) or {}
-    profile = MetabolismRepository.get_metabolic_profile(athlete_id, tenant_id)
-    reference = resolve_reference_value(athlete, profile, tenant_id)
-    weights = get_athlete_weights(athlete_id, tenant_id)
+    try:
+        athlete = MetabolismRepository.get_athlete(athlete_id, tenant_id) or {}
+        profile = MetabolismRepository.get_metabolic_profile(athlete_id, tenant_id)
+        reference = resolve_reference_value(athlete, profile, tenant_id)
+        weights = get_athlete_weights(athlete_id, tenant_id)
 
-    rides = MetabolismRepository.get_rides_by_athlete(athlete_id, tenant_id)
-    day_rides = [r for r in rides if r.get("date") == date]
-    activity_level = profile.get("activity_level", "moderate") if profile else "moderate"
-    profile_input = MetabolicProfileInput(
-        weight_kg=athlete.get("weight_kg") or 70.0,
-        height_cm=athlete.get("height_cm"),
-        age=athlete.get("age") or 30,
-        fat_percentage=athlete.get("fat_percentage"),
-        sex=profile.get("sex", "male") if profile else "male",
-        bmr_formula=profile.get("bmr_formula", "mifflin") if profile else "mifflin",
-        activity_level=activity_level,
-    )
-    sensor_expenditure = calculate_daily_expenditure(profile_input, day_rides, date)
-    merged = blended_expenditure(weights, reference, sensor_expenditure)
+        rides = MetabolismRepository.get_rides_by_athlete(athlete_id, tenant_id)
+        day_rides = [r for r in rides if r.get("date") == date]
+        activity_level = profile.get("activity_level", "moderate") if profile else "moderate"
+        profile_input = MetabolicProfileInput(
+            weight_kg=athlete.get("weight_kg") or 70.0,
+            height_cm=athlete.get("height_cm"),
+            age=athlete.get("age") or 30,
+            fat_percentage=athlete.get("fat_percentage"),
+            sex=profile.get("sex", "male") if profile else "male",
+            bmr_formula=profile.get("bmr_formula", "mifflin") if profile else "mifflin",
+            activity_level=activity_level,
+        )
+        sensor_expenditure = calculate_daily_expenditure(profile_input, day_rides, date)
+        merged = blended_expenditure(weights, reference, sensor_expenditure)
 
-    food_logs = MetabolismRepository.get_food_logs_by_athlete_date(athlete_id, date, tenant_id=tenant_id)
-    intake = sum(float(f.get("kcal", 0) or 0) for f in food_logs)
-    balance = round(intake - merged["tdee_kcal"], 1)
-    summary = {
-        "athlete_id": athlete_id,
-        "tenant_id": tenant_id,
-        "date": date,
-        "bmr_kcal": merged["bmr_kcal"],
-        "neat_kcal": sensor_expenditure["neat_kcal"],
-        "eat_kcal": sensor_expenditure["eat_kcal"],
-        "climb_bonus_kcal": round(sensor_expenditure["climb_bonus_kcal"] * weights.climb_bonus_w, 1),
-        "tdee_kcal": merged["tdee_kcal"],
-        "intake_kcal": round(intake, 1),
-        "balance_kcal": balance,
-        "rides_count": len(day_rides),
-        "gps_neat_kcal": sensor_expenditure["gps_neat_kcal"],
-        "notes": None,
-    }
-    MetabolismRepository.save_metabolic_daily_summary(summary, tenant_id)
-    return summary
+        food_logs = MetabolismRepository.get_food_logs_by_athlete_date(athlete_id, date, tenant_id=tenant_id)
+        intake = sum(float(f.get("kcal", 0) or 0) for f in food_logs)
+        balance = round(intake - merged["tdee_kcal"], 1)
+        summary = {
+            "athlete_id": athlete_id,
+            "tenant_id": tenant_id,
+            "date": date,
+            "bmr_kcal": merged["bmr_kcal"],
+            "neat_kcal": sensor_expenditure["neat_kcal"],
+            "eat_kcal": sensor_expenditure["eat_kcal"],
+            "climb_bonus_kcal": round(sensor_expenditure["climb_bonus_kcal"] * weights.climb_bonus_w, 1),
+            "tdee_kcal": merged["tdee_kcal"],
+            "intake_kcal": round(intake, 1),
+            "balance_kcal": balance,
+            "rides_count": len(day_rides),
+            "gps_neat_kcal": sensor_expenditure["gps_neat_kcal"],
+            "notes": None,
+        }
+        MetabolismRepository.save_metabolic_daily_summary(summary, tenant_id)
+        return summary
+    except Exception as exc:
+        logger.warning("Calibrated recalculation failed for athlete_id=%s date=%s: %s", athlete_id, date, exc)
+        raise
 
 
 def compute_metabolic_profile(athlete: dict, *, override: dict | None = None) -> dict:
@@ -185,7 +189,6 @@ def recalculate_daily_summary(athlete_id: int, date: str, tenant_id: int = 0) ->
     profile = MetabolismRepository.get_metabolic_profile(athlete_id, tenant_id)
     if not profile:
         profile = ensure_metabolic_profile(athlete_id, tenant_id)
-    athlete = {}
     athlete = MetabolismRepository.get_athlete(athlete_id, tenant_id) or {}
     if not profile and athlete:
         profile = compute_metabolic_profile(athlete)
@@ -209,7 +212,19 @@ def recalculate_daily_summary(athlete_id: int, date: str, tenant_id: int = 0) ->
         bmr_formula=bmr_formula,
         activity_level=activity_level,
     )
-    expenditure = calculate_daily_expenditure(profile_input, day_rides, date)
+    try:
+        expenditure = calculate_daily_expenditure(profile_input, day_rides, date)
+    except Exception as exc:
+        logger.warning("Expenditure calculation failed for athlete_id=%s date=%s: %s", athlete_id, date, exc)
+        expenditure = {
+            "bmr_kcal": round(calculate_bmr(profile_input), 1),
+            "neat_kcal": 400.0,
+            "eat_kcal": 0.0,
+            "climb_bonus_kcal": 0.0,
+            "tdee_kcal": round(calculate_bmr(profile_input), 1),
+            "rides_count": 0,
+            "gps_neat_kcal": 0.0,
+        }
     food_logs = MetabolismRepository.get_food_logs_by_athlete_date(athlete_id, date, tenant_id=tenant_id)
     intake = sum(float(f.get("kcal", 0) or 0) for f in food_logs)
     balance = round(intake - expenditure["tdee_kcal"], 1)
@@ -227,7 +242,10 @@ def recalculate_daily_summary(athlete_id: int, date: str, tenant_id: int = 0) ->
         total_elev = sum(float(r.get("elevation_gain_m") or 0) for r in day_rides)
         if total_elev > 0:
             summary["elevation_gain_estimated_m"] = round(total_elev, 1)
-    MetabolismRepository.save_metabolic_daily_summary(summary, tenant_id)
+    try:
+        MetabolismRepository.save_metabolic_daily_summary(summary, tenant_id)
+    except Exception as exc:
+        logger.warning("Failed to save daily summary for athlete_id=%s date=%s: %s", athlete_id, date, exc)
     return summary
 
 

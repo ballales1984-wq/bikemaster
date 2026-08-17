@@ -184,9 +184,14 @@ describe("auth store", () => {
     const store = useAuthStore();
     store.token = "abc";
     store.user = { id: 1, username: "u", is_admin: false, tenant_id: 1 };
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+    } as unknown as Response);
     await store.logout();
     expect(store.token).toBe("");
     expect(store.user).toBe(null);
+    spy.mockRestore();
   });
 
   it("setJustLoggedIn toggles flag", () => {
@@ -244,7 +249,7 @@ describe("auth store", () => {
     } as unknown as Response);
     await expect(store.register("bob", "secret")).resolves.toBeDefined();
     expect(spy).toHaveBeenCalledWith(
-      "/api/v1/auth/register",
+      "https://bikemaster.onrender.com/api/v1/auth/register",
       expect.objectContaining({ method: "POST" }),
     );
     spy.mockRestore();

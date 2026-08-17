@@ -29,7 +29,7 @@ describe("api helpers", () => {
     const result = await apiGet("/api/v1/rides", { q: "1" });
     expect(result).toEqual({ ok: true });
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/v1/rides?q=1",
+      "https://bikemaster.onrender.com/api/v1/rides?q=1",
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: "Bearer tok" }),
       }),
@@ -70,7 +70,7 @@ describe("api helpers", () => {
       .mockResolvedValue({ ok: true, json: async () => ({ id: 1 }) });
     await apiPost("/api/v1/rides", { date: "2026" });
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/v1/rides",
+      "https://bikemaster.onrender.com/api/v1/rides",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ date: "2026" }),
@@ -88,7 +88,7 @@ describe("api helpers", () => {
     });
     await apiPut("/api/v1/rides/1", { distance_km: 50 });
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/v1/rides/1",
+      "https://bikemaster.onrender.com/api/v1/rides/1",
       expect.objectContaining({
         method: "PUT",
         body: JSON.stringify({ distance_km: 50 }),
@@ -105,7 +105,7 @@ describe("api helpers", () => {
     });
     await apiDelete("/api/v1/rides/1");
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/v1/rides/1",
+      "https://bikemaster.onrender.com/api/v1/rides/1",
       expect.objectContaining({ method: "DELETE" }),
     );
   });

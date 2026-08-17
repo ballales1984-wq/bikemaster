@@ -390,6 +390,15 @@ def create_app() -> FastAPI:
             content={"detail": "Conflicto nei dati o vincolo di integrita violato"},
         )
 
+    @app.exception_handler(Exception)
+    async def generic_exception_handler(request: Request, exc: Exception):
+        """Return 500 for unhandled exceptions, preserving CORS headers."""
+        logger.exception("Unhandled exception: %s", exc)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Errore interno del server"},
+        )
+
     AUDIT_SKIP_PATHS = {
         "/healthz",
         "/health",

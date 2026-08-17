@@ -66,15 +66,55 @@ def _ensure_metabolic_daily_summaries_table(conn) -> None:
                 tenant_id INTEGER DEFAULT 0,
                 date TEXT NOT NULL,
                 bmr_kcal REAL,
+                neat_kcal REAL DEFAULT 0,
+                eat_kcal REAL DEFAULT 0,
+                climb_bonus_kcal REAL DEFAULT 0,
                 tdee_kcal REAL,
                 intake_kcal REAL DEFAULT 0,
                 expenditure_kcal REAL DEFAULT 0,
                 balance_kcal REAL DEFAULT 0,
+                steps_estimated INTEGER,
+                elevation_gain_estimated_m REAL,
+                rides_count INTEGER DEFAULT 0,
+                gps_neat_kcal REAL DEFAULT 0,
+                notes TEXT,
                 created_at TEXT NOT NULL DEFAULT NOW(),
                 updated_at TEXT NOT NULL DEFAULT NOW(),
                 UNIQUE(athlete_id, date)
             )
             """
+        )
+        cur.execute(
+            "ALTER TABLE metabolic_daily_summaries "
+            "ADD COLUMN IF NOT EXISTS neat_kcal REAL DEFAULT 0"
+        )
+        cur.execute(
+            "ALTER TABLE metabolic_daily_summaries "
+            "ADD COLUMN IF NOT EXISTS eat_kcal REAL DEFAULT 0"
+        )
+        cur.execute(
+            "ALTER TABLE metabolic_daily_summaries "
+            "ADD COLUMN IF NOT EXISTS climb_bonus_kcal REAL DEFAULT 0"
+        )
+        cur.execute(
+            "ALTER TABLE metabolic_daily_summaries "
+            "ADD COLUMN IF NOT EXISTS steps_estimated INTEGER"
+        )
+        cur.execute(
+            "ALTER TABLE metabolic_daily_summaries "
+            "ADD COLUMN IF NOT EXISTS elevation_gain_estimated_m REAL"
+        )
+        cur.execute(
+            "ALTER TABLE metabolic_daily_summaries "
+            "ADD COLUMN IF NOT EXISTS rides_count INTEGER DEFAULT 0"
+        )
+        cur.execute(
+            "ALTER TABLE metabolic_daily_summaries "
+            "ADD COLUMN IF NOT EXISTS gps_neat_kcal REAL DEFAULT 0"
+        )
+        cur.execute(
+            "ALTER TABLE metabolic_daily_summaries "
+            "ADD COLUMN IF NOT EXISTS notes TEXT"
         )
         conn.commit()
 
@@ -338,15 +378,25 @@ def save_metabolic_daily_summary(summary: dict, tenant_id: int = 0) -> int:
             cur.execute(
                 """
                 INSERT INTO metabolic_daily_summaries
-                (athlete_id, tenant_id, date, bmr_kcal, tdee_kcal,
-                 intake_kcal, expenditure_kcal, balance_kcal, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (athlete_id, tenant_id, date, bmr_kcal, neat_kcal, eat_kcal,
+                 climb_bonus_kcal, tdee_kcal, intake_kcal, expenditure_kcal,
+                 balance_kcal, steps_estimated, elevation_gain_estimated_m,
+                 rides_count, gps_neat_kcal, notes, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT(athlete_id, date) DO UPDATE SET
                     bmr_kcal = excluded.bmr_kcal,
+                    neat_kcal = excluded.neat_kcal,
+                    eat_kcal = excluded.eat_kcal,
+                    climb_bonus_kcal = excluded.climb_bonus_kcal,
                     tdee_kcal = excluded.tdee_kcal,
                     intake_kcal = excluded.intake_kcal,
                     expenditure_kcal = excluded.expenditure_kcal,
                     balance_kcal = excluded.balance_kcal,
+                    steps_estimated = excluded.steps_estimated,
+                    elevation_gain_estimated_m = excluded.elevation_gain_estimated_m,
+                    rides_count = excluded.rides_count,
+                    gps_neat_kcal = excluded.gps_neat_kcal,
+                    notes = excluded.notes,
                     updated_at = excluded.updated_at
                 RETURNING id
                 """,
@@ -355,10 +405,18 @@ def save_metabolic_daily_summary(summary: dict, tenant_id: int = 0) -> int:
                     summary.get("tenant_id", tenant_id),
                     summary.get("date"),
                     summary.get("bmr_kcal"),
+                    summary.get("neat_kcal"),
+                    summary.get("eat_kcal"),
+                    summary.get("climb_bonus_kcal"),
                     summary.get("tdee_kcal"),
                     summary.get("intake_kcal", 0),
                     summary.get("expenditure_kcal", 0),
                     summary.get("balance_kcal", 0),
+                    summary.get("steps_estimated"),
+                    summary.get("elevation_gain_estimated_m"),
+                    summary.get("rides_count", 0),
+                    summary.get("gps_neat_kcal"),
+                    summary.get("notes"),
                     now,
                     now,
                 ),
@@ -395,7 +453,30 @@ def get_metabolic_daily_summaries(
                     (athlete_id, start_date, end_date),
                 )
             rows = cur.fetchall()
-        return [dict(r) for r in rows]
+        return [
+            {
+                "id": r["id"],
+                "athlete_id": r["athlete_id"],
+                "tenant_id": r["tenant_id"],
+                "date": r["date"],
+                "bmr_kcal": r["bmr_kcal"],
+                "neat_kcal": r["neat_kcal"],
+                "eat_kcal": r["eat_kcal"],
+                "climb_bonus_kcal": r["climb_bonus_kcal"],
+                "tdee_kcal": r["tdee_kcal"],
+                "intake_kcal": r["intake_kcal"],
+                "expenditure_kcal": r["expenditure_kcal"],
+                "balance_kcal": r["balance_kcal"],
+                "steps_estimated": r["steps_estimated"],
+                "elevation_gain_estimated_m": r["elevation_gain_estimated_m"],
+                "rides_count": r["rides_count"],
+                "gps_neat_kcal": r["gps_neat_kcal"],
+                "notes": r["notes"],
+                "created_at": r["created_at"],
+                "updated_at": r["updated_at"],
+            }
+            for r in rows
+        ]
     finally:
         _safe_close(conn)
 
@@ -418,7 +499,29 @@ def get_metabolic_daily_summary(athlete_id: int, date: str, tenant_id: int | Non
                     (athlete_id, date),
                 )
             row = cur.fetchone()
-            return dict(row) if row else None
+            if not row:
+                return None
+            return {
+                "id": row["id"],
+                "athlete_id": row["athlete_id"],
+                "tenant_id": row["tenant_id"],
+                "date": row["date"],
+                "bmr_kcal": row["bmr_kcal"],
+                "neat_kcal": row["neat_kcal"],
+                "eat_kcal": row["eat_kcal"],
+                "climb_bonus_kcal": row["climb_bonus_kcal"],
+                "tdee_kcal": row["tdee_kcal"],
+                "intake_kcal": row["intake_kcal"],
+                "expenditure_kcal": row["expenditure_kcal"],
+                "balance_kcal": row["balance_kcal"],
+                "steps_estimated": row["steps_estimated"],
+                "elevation_gain_estimated_m": row["elevation_gain_estimated_m"],
+                "rides_count": row["rides_count"],
+                "gps_neat_kcal": row["gps_neat_kcal"],
+                "notes": row["notes"],
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"],
+            }
     finally:
         _safe_close(conn)
 
