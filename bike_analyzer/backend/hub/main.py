@@ -226,18 +226,28 @@ def create_hub_app() -> FastAPI:
             content={"detail": "Dati non validi", "errors": exc.errors()},
         )
 
+    def _add_cors_headers(response, request: Request):
+        origin = request.headers.get("origin")
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):
         """Handler per ValueError (400)."""
         from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=400, content={"detail": str(exc)})
+        return _add_cors_headers(JSONResponse(status_code=400, content={"detail": str(exc)}), request)
 
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
         """Return 500 for unhandled exceptions, preserving CORS headers."""
         logger.exception("Unhandled exception: %s", exc)
         from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=500, content={"detail": "Errore interno del server"})
+        return _add_cors_headers(
+            JSONResponse(status_code=500, content={"detail": "Errore interno del server"}),
+            request,
+        )
 
     @app.middleware("http")
     async def _cors_cache_and_vary(request: Request, call_next):

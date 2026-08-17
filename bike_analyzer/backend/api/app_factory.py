@@ -355,12 +355,22 @@ def create_app() -> FastAPI:
     app.add_middleware(MetricsMiddleware)
     _log_flush(f"create_app: middleware + exception handlers done +{time.monotonic()-_t0:.3f}s")
 
+    def _add_cors_headers(response: JSONResponse, request: Request) -> JSONResponse:
+        origin = request.headers.get("origin")
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+
     @app.exception_handler(ValidationError)
     async def validation_exception_handler(request: Request, exc: ValidationError):
         """Return localized 422 for Pydantic validation failures."""
-        return JSONResponse(
-            status_code=422,
-            content={"detail": "Dati non validi", "errors": exc.errors()},
+        return _add_cors_headers(
+            JSONResponse(
+                status_code=422,
+                content={"detail": "Dati non validi", "errors": exc.errors()},
+            ),
+            request,
         )
 
     from bike_analyzer.core.validators import ValidationError as BusinessValidationError
@@ -368,35 +378,38 @@ def create_app() -> FastAPI:
     @app.exception_handler(BusinessValidationError)
     async def business_validation_error_handler(request: Request, exc: BusinessValidationError):
         """Return 400 for business-rule validation failures."""
-        return JSONResponse(
-            status_code=400,
-            content={"detail": str(exc)},
+        return _add_cors_headers(
+            JSONResponse(status_code=400, content={"detail": str(exc)}),
+            request,
         )
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):
         """Return 400 for generic value errors raised in route handlers."""
-        return JSONResponse(
-            status_code=400,
-            content={"detail": str(exc)},
+        return _add_cors_headers(
+            JSONResponse(status_code=400, content={"detail": str(exc)}),
+            request,
         )
 
     @app.exception_handler(sqlite3.IntegrityError)
     async def sqlite_integrity_error_handler(request: Request, exc: sqlite3.IntegrityError):
         """Return 409 for SQLite constraint violations."""
         logger.warning("SQLite integrity error: %s", exc)
-        return JSONResponse(
-            status_code=409,
-            content={"detail": "Conflicto nei dati o vincolo di integrita violato"},
+        return _add_cors_headers(
+            JSONResponse(
+                status_code=409,
+                content={"detail": "Conflicto nei dati o vincolo di integrita violato"},
+            ),
+            request,
         )
 
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
         """Return 500 for unhandled exceptions, preserving CORS headers."""
         logger.exception("Unhandled exception: %s", exc)
-        return JSONResponse(
-            status_code=500,
-            content={"detail": "Errore interno del server"},
+        return _add_cors_headers(
+            JSONResponse(status_code=500, content={"detail": "Errore interno del server"}),
+            request,
         )
 
     AUDIT_SKIP_PATHS = {

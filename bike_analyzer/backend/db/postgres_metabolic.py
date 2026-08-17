@@ -116,6 +116,10 @@ def _ensure_metabolic_daily_summaries_table(conn) -> None:
             "ALTER TABLE metabolic_daily_summaries "
             "ADD COLUMN IF NOT EXISTS notes TEXT"
         )
+        cur.execute(
+            "ALTER TABLE metabolic_daily_summaries "
+            "ADD COLUMN IF NOT EXISTS expenditure_kcal REAL DEFAULT 0"
+        )
         conn.commit()
 
 
