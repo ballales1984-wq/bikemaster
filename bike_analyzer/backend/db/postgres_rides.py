@@ -103,13 +103,6 @@ def _ensure_tables(conn) -> None:  # pragma: no cover - best-effort bootstrap
         cur.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_training_stress_days ON training_stress_days (athlete_id, date)"
         )
-        try:
-            cur.execute("SELECT 'ride' = ANY(enum_range(NULL::activitytype))")
-            has_ride = cur.fetchone()[0]
-            if not has_ride:
-                cur.execute("ALTER TYPE activitytype ADD VALUE 'ride'")
-        except Exception:
-            pass
     conn.commit()
 
 
