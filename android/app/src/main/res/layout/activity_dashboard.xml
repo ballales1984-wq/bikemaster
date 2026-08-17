@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:padding="12dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -31,42 +31,15 @@
             android:textColor="@android:color/holo_red_dark"
             android:visibility="gone" />
 
-        <LinearLayout
-            android:id="@+id/layout_summary"
+        <GridView
+            android:id="@+id/grid_stats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/txt_rides_count"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="16sp"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:id="@+id/txt_total_distance"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="16sp"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:id="@+id/txt_total_duration"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="16sp"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:id="@+id/txt_avg_speed"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="16sp"
-                android:layout_marginBottom="8dp" />
-
-        </LinearLayout>
+            android:numColumns="2"
+            android:verticalSpacing="8dp"
+            android:horizontalSpacing="8dp"
+            android:stretchMode="columnWidth"
+            android:gravity="center" />
 
         <TextView
             android:layout_width="match_parent"
@@ -74,7 +47,7 @@
             android:text="Uscite recenti"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="20dp"
             android:layout_marginBottom="8dp" />
 
         <androidx.recyclerview.widget.RecyclerView

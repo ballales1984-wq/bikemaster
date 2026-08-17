@@ -492,7 +492,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "../composables/useI18n";
 
@@ -590,7 +590,7 @@ function onResize() {
 }
 
 onMounted(() => {
-  nextTick(() => {
+  requestAnimationFrame(() => {
     updateArrows();
     scrollActiveIntoView();
   });
@@ -600,7 +600,7 @@ onMounted(() => {
 watch(
   () => route.path,
   () => {
-    nextTick(scrollActiveIntoView);
+    requestAnimationFrame(scrollActiveIntoView);
   },
 );
 

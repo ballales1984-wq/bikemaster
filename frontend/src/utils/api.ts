@@ -173,7 +173,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
 
   const idempotent =
     method === "GET" || method === "HEAD" || method === "OPTIONS";
-  const canRetry = idempotent && !noRetry;
+  const canRetry = !noRetry;
 
   // Base primario (relativo di default, altrimenti backend configurato).
   // On Vercel/device the app points to the backend on the PC; Render is the fallback.
@@ -221,7 +221,6 @@ async function request<T>(options: RequestOptions): Promise<T> {
     }
     if (
       canRetry &&
-      idempotent &&
       RETRYABLE_STATUS.has(resp.status) &&
       !isLastAttempt
     ) {

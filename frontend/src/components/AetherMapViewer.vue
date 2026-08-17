@@ -1406,9 +1406,31 @@ onMounted(async () => {
   let lastTime = performance.now();
   let frameCount = 0;
   let lastCheckedCamDist = camDist;
+  let isVisible = true;
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible && !rafId) {
+        rafId = requestAnimationFrame(frame);
+      }
+    },
+    { threshold: 0 },
+  );
+  observer.observe(canvasEl);
+
+  document.addEventListener("visibilitychange", function onVisibilityChange() {
+    if (document.hidden) return;
+    if (isVisible && !rafId) {
+      rafId = requestAnimationFrame(frame);
+    }
+  });
 
   function frame() {
-    if (!gl) return;
+    if (!gl || !isVisible) {
+      rafId = null;
+      return;
+    }
     const now = performance.now();
     frameCount++;
     if (now - lastTime >= 1000) {
@@ -1567,6 +1589,8 @@ onBeforeUnmount(() => {
     clearTimeout(_geoDebounce);
     _geoDebounce = null;
   }
+  observer?.disconnect();
+  document.removeEventListener("visibilitychange", onVisibilityChange);
   if (gl) {
     if (globePosBuf) gl.deleteBuffer(globePosBuf.buf);
     if (globeNormBuf) gl.deleteBuffer(globeNormBuf.buf);
