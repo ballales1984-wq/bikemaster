@@ -40,8 +40,8 @@ Convenzioni di stato:
 | POI / Itinerari                  | views/PoiMapView.vue                                 | ui/itineraries/ItinerariesActivity.kt             | aligned  | Lista itinerari                                                  |
 | Performance                      | components/PerformancePanel.vue                      | ui/performance/PerformanceActivity.kt             | aligned  | Metriche FTP/NP/IF/TSS                                           |
 | AetherMap                        | views/AetherMapView.vue                              | —                                                    | pc-only  | R&D, non per mobile                                              |
-| Legal (privacy/terms/cookies)    | views/PrivacyPolicy.vue, TermsOfService.vue, CookiePolicy.vue | —                                           | pc-only  | Solo web/desktop                                                 |
-| About / Contact                  | views/AboutUs.vue, ContactUs.vue                     | —                                                    | pc-only  | Solo web/desktop                                                 |
+| Legal (privacy/terms/cookies)    | views/PrivacyPolicy.vue, TermsOfService.vue, CookiePolicy.vue | ui/legal/LegalActivity.kt                        | aligned  | Privacy Policy / Terms / Cookies static pages                     |
+| About / Contact                  | views/AboutUs.vue, ContactUs.vue                     | ui/legal/AboutActivity.kt                        | aligned  | About Us static page                                              |
 
 ## Regole di allineamento (usate dallo script e dall'agente)
 
