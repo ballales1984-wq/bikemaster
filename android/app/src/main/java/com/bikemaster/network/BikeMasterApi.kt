@@ -107,4 +107,10 @@ interface BikeMasterApi {
 
     @GET("itineraries")
     suspend fun getItineraries(): Map<String, Any>
+
+    @GET("performance/metrics")
+    suspend fun getPerformanceMetrics(@Query("athlete_id") athleteId: Int? = null): Map<String, Any>
+
+    @GET("analytics/comparison")
+    suspend fun getComparison(@Query("period_days") periodDays: Int = 30): Map<String, Any>
 }

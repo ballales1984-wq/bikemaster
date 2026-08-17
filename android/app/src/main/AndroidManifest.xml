@@ -69,6 +69,12 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".ui.performance.PerformanceActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.comparison.ComparisonActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.itineraries.ItinerariesActivity"
             android:exported="false" />
         <activity

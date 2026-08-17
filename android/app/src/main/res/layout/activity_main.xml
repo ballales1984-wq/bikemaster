@@ -117,6 +117,20 @@
                 android:layout_marginBottom="8dp" />
 
             <Button
+                android:id="@+id/btn_performance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/performance"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_comparison"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/comparison"
+                android:layout_marginBottom="8dp" />
+
+            <Button
                 android:id="@+id/btn_rides"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

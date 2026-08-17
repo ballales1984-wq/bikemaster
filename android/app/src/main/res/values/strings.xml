@@ -25,6 +25,8 @@
     <string name="heatmap">Heatmap</string>
     <string name="knowledge">Knowledge</string>
     <string name="itineraries">Itinerari</string>
+    <string name="performance">Performance</string>
+    <string name="comparison">Confronto</string>
     <string name="profile">Profilo atleta</string>
     <string name="nav_hint">Navigazione</string>
 
@@ -38,6 +40,8 @@
         <item>Heatmap</item>
         <item>Knowledge</item>
         <item>Itinerari</item>
+        <item>Performance</item>
+        <item>Confronto</item>
         <item>Statistiche</item>
         <item>Profilo atleta</item>
         <item>AI Coach</item>

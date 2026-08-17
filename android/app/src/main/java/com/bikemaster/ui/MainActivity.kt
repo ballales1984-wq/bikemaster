@@ -23,6 +23,8 @@ import com.bikemaster.ui.badges.BadgesActivity
 import com.bikemaster.ui.heatmap.HeatmapActivity
 import com.bikemaster.ui.itineraries.ItinerariesActivity
 import com.bikemaster.ui.knowledge.KnowledgeActivity
+import com.bikemaster.ui.performance.PerformanceActivity
+import com.bikemaster.ui.comparison.ComparisonActivity
 import com.bikemaster.ui.settings.SettingsActivity
 import com.bikemaster.ui.stats.StatsActivity
 import com.bikemaster.ui.tracking.TrackingActivity
@@ -46,6 +48,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnHeatmap: Button
     private lateinit var btnKnowledge: Button
     private lateinit var btnItineraries: Button
+    private lateinit var btnPerformance: Button
+    private lateinit var btnComparison: Button
     private lateinit var btnRides: Button
     private lateinit var btnTracking: Button
     private lateinit var btnStats: Button
@@ -76,6 +80,8 @@ class MainActivity : AppCompatActivity() {
         btnHeatmap = findViewById(R.id.btn_heatmap)
         btnKnowledge = findViewById(R.id.btn_knowledge)
         btnItineraries = findViewById(R.id.btn_itineraries)
+        btnPerformance = findViewById(R.id.btn_performance)
+        btnComparison = findViewById(R.id.btn_comparison)
         btnRides = findViewById(R.id.btn_rides)
         btnTracking = findViewById(R.id.btn_tracking)
         btnStats = findViewById(R.id.btn_stats)
@@ -117,6 +123,8 @@ class MainActivity : AppCompatActivity() {
                     "Heatmap" -> HeatmapActivity.start(this@MainActivity)
                     "Knowledge" -> KnowledgeActivity.start(this@MainActivity)
                     "Itinerari" -> ItinerariesActivity.start(this@MainActivity)
+                    "Performance" -> PerformanceActivity.start(this@MainActivity)
+                    "Confronto" -> ComparisonActivity.start(this@MainActivity)
                     "Statistiche" -> StatsActivity.start(this@MainActivity)
                     "Profilo atleta" -> AthleteProfileActivity.start(this@MainActivity)
                     "AI Coach" -> CoachActivity.start(this@MainActivity)
@@ -140,6 +148,8 @@ class MainActivity : AppCompatActivity() {
         btnHeatmap.setOnClickListener { HeatmapActivity.start(this) }
         btnKnowledge.setOnClickListener { KnowledgeActivity.start(this) }
         btnItineraries.setOnClickListener { ItinerariesActivity.start(this) }
+        btnPerformance.setOnClickListener { PerformanceActivity.start(this) }
+        btnComparison.setOnClickListener { ComparisonActivity.start(this) }
         btnRides.setOnClickListener { RideListActivity.start(this) }
         btnTracking.setOnClickListener { TrackingActivity.start(this) }
         btnStats.setOnClickListener { StatsActivity.start(this) }
