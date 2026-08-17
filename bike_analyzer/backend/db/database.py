@@ -151,9 +151,9 @@ def get_db_connection():
     import time
 
     caller_name = _get_caller_name()
+    _ensure_db_initialized()
     if not _s.database_url:
         _warn_sqlite_persistence(caller_name)
-        _ensure_db_initialized()
 
     max_retries = 3
     retry_delay = 0.1
