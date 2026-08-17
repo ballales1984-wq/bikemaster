@@ -533,10 +533,10 @@ const tabs = [
   { to: "/weather", label: "nav.weather", icon: "cloud-sun" },
 ];
 
-const tabsRef = ref(null);
+const tabsRef = ref<HTMLElement | null>(null);
 const canScrollLeft = ref(false);
 const canScrollRight = ref(false);
-let layoutRaf = null;
+let layoutRaf: number | null = null;
 
 function updateArrows() {
   const el = tabsRef.value;
@@ -557,7 +557,7 @@ function onScroll() {
   scheduleLayoutUpdate();
 }
 
-function scrollBy(px) {
+function scrollBy(px: number) {
   const el = tabsRef.value;
   if (!el) return;
   if (typeof el.scrollBy === "function") {
@@ -579,7 +579,7 @@ function scrollActiveIntoView() {
   scheduleLayoutUpdate();
 }
 
-let resizeTimer;
+let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 function onResize() {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
