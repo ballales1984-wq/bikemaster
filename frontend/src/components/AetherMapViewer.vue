@@ -1405,6 +1405,7 @@ onMounted(async () => {
 
   let lastTime = performance.now();
   let frameCount = 0;
+  let lastCheckedCamDist = camDist;
 
   function frame() {
     if (!gl) return;
@@ -1437,7 +1438,12 @@ onMounted(async () => {
 
     const aspect = canvasEl.width / Math.max(canvasEl.height, 1);
     const eye = camEye(yaw, pitch);
-    rebuildGlobeIfNeeded(camDist);
+
+    if (camDist !== lastCheckedCamDist) {
+      lastCheckedCamDist = camDist;
+      rebuildGlobeIfNeeded(camDist).catch(() => {});
+    }
+
     const proj = mat4Perspective(CAM_FOV, aspect, CAM_NEAR, CAM_FAR);
     const view = mat4LookAt(eye, [0, 0, 0], [0, 1, 0]);
 

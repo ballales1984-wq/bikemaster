@@ -291,50 +291,60 @@ const animatedCalories = ref(0);
 const animatedSpeed = ref(0);
 const animatedHours = ref(0);
 
-function animate(to: number, from = 0, duration = 800) {
-  return new Promise<number>((resolve) => {
-    const start = performance.now();
-    const raf =
-      typeof requestAnimationFrame !== "undefined"
-        ? requestAnimationFrame
-        : (cb: FrameRequestCallback) =>
-            setTimeout(() => cb(performance.now()), 0);
-    const step = (now: number) => {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const value = from + (to - from) * eased;
-      if (progress < 1) {
-        raf(step);
-      } else {
-        resolve(value);
-      }
-    };
-    raf(step);
-  });
+let statsRaf: number | null = null;
+
+function animateStats(targets: {
+  rides: number;
+  dist: number;
+  cals: number;
+  speed: number;
+  hours: number;
+}) {
+  if (statsRaf) cancelAnimationFrame(statsRaf);
+  const startTime = performance.now();
+  const from = {
+    rides: animatedRides.value,
+    dist: animatedDistance.value,
+    cals: animatedCalories.value,
+    speed: animatedSpeed.value,
+    hours: animatedHours.value,
+  };
+
+  function step(now: number) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / 800, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    animatedRides.value = Math.round(from.rides + (targets.rides - from.rides) * eased);
+    animatedDistance.value = parseFloat(
+      (from.dist + (targets.dist - from.dist) * eased).toFixed(1),
+    );
+    animatedCalories.value = Math.round(from.cals + (targets.cals - from.cals) * eased);
+    animatedSpeed.value = parseFloat(
+      (from.speed + (targets.speed - from.speed) * eased).toFixed(1),
+    );
+    animatedHours.value = parseFloat(
+      (from.hours + (targets.hours - from.hours) * eased).toFixed(1),
+    );
+    if (progress < 1) {
+      statsRaf = requestAnimationFrame(step);
+    } else {
+      statsRaf = null;
+    }
+  }
+  statsRaf = requestAnimationFrame(step);
 }
 
 watch(
   () => props.stats,
   (newStats) => {
     if (!newStats) return;
-    const rides = Number(newStats.rides) || 0;
-    const dist = Number(newStats.distance_km) || 0;
-    const cals = Number(newStats.calories) || 0;
-    const speed = Number(newStats.avg_speed_kmh) || 0;
-    const hours = (Number(newStats.duration_minutes) || 0) / 60;
-
-    animate(rides).then((v) => (animatedRides.value = Math.round(v)));
-    animate(dist).then(
-      (v) => (animatedDistance.value = parseFloat(v.toFixed(1))),
-    );
-    animate(cals).then((v) => (animatedCalories.value = Math.round(v)));
-    animate(speed).then(
-      (v) => (animatedSpeed.value = parseFloat(v.toFixed(1))),
-    );
-    animate(hours).then(
-      (v) => (animatedHours.value = parseFloat(v.toFixed(1))),
-    );
+    animateStats({
+      rides: Number(newStats.rides) || 0,
+      dist: Number(newStats.distance_km) || 0,
+      cals: Number(newStats.calories) || 0,
+      speed: Number(newStats.avg_speed_kmh) || 0,
+      hours: (Number(newStats.duration_minutes) || 0) / 60,
+    });
   },
   { immediate: true },
 );

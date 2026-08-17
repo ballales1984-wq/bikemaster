@@ -306,7 +306,7 @@ function switchTileLayer(styleKey: keyof typeof MAP_STYLES) {
   tileLayer.addTo(map);
 }
 
-function renderMap() {
+async function renderMap() {
   if (useAetherMap.value) return;
   if (!mapContainer.value) return;
 
@@ -327,7 +327,7 @@ function renderMap() {
 
   const ridesToRender = visibleRides.value;
 
-  ridesToRender.forEach((ride) => {
+  for (const ride of ridesToRender) {
     const rideLayer = L.layerGroup();
 
     buildRidePolylines(ride).forEach((polylineData) => {
@@ -363,7 +363,11 @@ function renderMap() {
     if (layerGroup) {
       layerGroup.addLayer(rideLayer);
     }
-  });
+
+    if (ridesToRender.length > 3) {
+      await new Promise((r) => setTimeout(r, 0));
+    }
+  }
 
   if (bounds.isValid()) {
     map.fitBounds(bounds.pad(0.1));
@@ -589,12 +593,12 @@ const weatherUnavailableCount = computed(
 
 watch(mapStyle, () => {
   localStorage.setItem("mapStyle", mapStyle.value);
-  renderMap();
+  void renderMap();
 });
 
 watch(colorMode, () => {
   enrichedRides.value = enrichedRides.value.map((ride) => applyRideRisk(ride));
-  renderMap();
+  void renderMap();
 });
 
 watch(weatherEnabled, () => {
@@ -602,7 +606,7 @@ watch(weatherEnabled, () => {
 });
 
 watch(selectedRideId, () => {
-  renderMap();
+  void renderMap();
   loadReplayPoints();
   void loadPois();
 });
@@ -621,7 +625,7 @@ watch(
     if (val) {
       destroyMap();
     } else {
-      renderMap();
+      void renderMap();
     }
   },
 );
@@ -675,7 +679,16 @@ async function loadRides() {
       (ride): ride is Ride & { gps_points: GpsPoint[] } =>
         Array.isArray(ride.gps_points) && ride.gps_points.length > 0,
     );
-    const enriched = rides.map((ride) => enrichRide(ride));
+
+    const BATCH = 10;
+    const enriched: EnrichedRide[] = [];
+    for (let i = 0; i < rides.length; i += BATCH) {
+      const batch = rides.slice(i, i + BATCH);
+      enriched.push(...batch.map((ride) => enrichRide(ride)));
+      if (i + BATCH < rides.length) {
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    }
 
     await Promise.allSettled(
       enriched
@@ -692,7 +705,7 @@ async function loadRides() {
       selectedRideId.value = null;
     }
     await nextTick();
-    renderMap();
+    await renderMap();
     if (selectedRideId.value) loadReplayPoints();
     void loadPois();
   } catch (error) {

@@ -491,7 +491,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "../composables/useI18n";
@@ -536,6 +536,7 @@ const tabs = [
 const tabsRef = ref(null);
 const canScrollLeft = ref(false);
 const canScrollRight = ref(false);
+let layoutRaf = null;
 
 function updateArrows() {
   const el = tabsRef.value;
@@ -544,8 +545,16 @@ function updateArrows() {
   canScrollRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
 }
 
+function scheduleLayoutUpdate() {
+  if (layoutRaf) return;
+  layoutRaf = requestAnimationFrame(() => {
+    layoutRaf = null;
+    updateArrows();
+  });
+}
+
 function onScroll() {
-  updateArrows();
+  scheduleLayoutUpdate();
 }
 
 function scrollBy(px) {
@@ -567,7 +576,7 @@ function scrollActiveIntoView() {
       active.offsetLeft - el.clientWidth / 2 + active.clientWidth / 2;
     el.scrollTo({ left, behavior: "smooth" });
   }
-  updateArrows();
+  scheduleLayoutUpdate();
 }
 
 let resizeTimer;
@@ -597,6 +606,10 @@ watch(
 onUnmounted(() => {
   window.removeEventListener("resize", onResize);
   clearTimeout(resizeTimer);
+  if (layoutRaf) {
+    cancelAnimationFrame(layoutRaf);
+    layoutRaf = null;
+  }
 });
 </script>
 
