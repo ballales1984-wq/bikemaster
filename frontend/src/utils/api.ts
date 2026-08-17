@@ -171,8 +171,6 @@ async function request<T>(options: RequestOptions): Promise<T> {
           : undefined) as BodyInit | undefined,
   };
 
-  const idempotent =
-    method === "GET" || method === "HEAD" || method === "OPTIONS";
   const canRetry = !noRetry;
 
   // Base primario (relativo di default, altrimenti backend configurato).
@@ -219,11 +217,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
     } finally {
       if (timer) clearTimeout(timer);
     }
-    if (
-      canRetry &&
-      RETRYABLE_STATUS.has(resp.status) &&
-      !isLastAttempt
-    ) {
+    if (canRetry && RETRYABLE_STATUS.has(resp.status) && !isLastAttempt) {
       notifyServerWaking();
       if (canUseFallback && attempt === MAX_RETRIES - 1) {
         currentBase = fallbackBase;
