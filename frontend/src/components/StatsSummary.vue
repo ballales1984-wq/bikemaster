@@ -314,11 +314,15 @@ function animateStats(targets: {
     const elapsed = now - startTime;
     const progress = Math.min(elapsed / 800, 1);
     const eased = 1 - Math.pow(1 - progress, 3);
-    animatedRides.value = Math.round(from.rides + (targets.rides - from.rides) * eased);
+    animatedRides.value = Math.round(
+      from.rides + (targets.rides - from.rides) * eased,
+    );
     animatedDistance.value = parseFloat(
       (from.dist + (targets.dist - from.dist) * eased).toFixed(1),
     );
-    animatedCalories.value = Math.round(from.cals + (targets.cals - from.cals) * eased);
+    animatedCalories.value = Math.round(
+      from.cals + (targets.cals - from.cals) * eased,
+    );
     animatedSpeed.value = parseFloat(
       (from.speed + (targets.speed - from.speed) * eased).toFixed(1),
     );

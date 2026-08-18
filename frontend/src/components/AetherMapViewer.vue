@@ -452,31 +452,31 @@ async function fetchTerrainTile(
   resolution: number,
   face: number = -1,
 ): Promise<Float32Array | null> {
-    const source = props.demSource || "auto";
-    const key = `${face}_${source}_${minLat.toFixed(1)}_${maxLat.toFixed(1)}_${minLon.toFixed(1)}_${maxLon.toFixed(1)}_${resolution}`;
-    const cached = terrainTileCache.get(key);
-    if (cached && Date.now() - cached.ts < TILE_CACHE_TTL) {
-      return cached.h;
-    }
-    try {
-      const data = await apiGet<{ heights: number[] }>(
-        "/api/v1/aethermap/terrain",
-        {
-          min_lat: String(minLat),
-          max_lat: String(maxLat),
-          min_lon: String(minLon),
-          max_lon: String(maxLon),
-          resolution: String(resolution),
-          source: source,
-        },
-        { timeoutMs: 1500 },
-      );
-      const heights = new Float32Array(data.heights);
-      terrainTileCache.set(key, { h: heights, ts: Date.now() });
-      return heights;
-    } catch {
-      return null;
-    }
+  const source = props.demSource || "auto";
+  const key = `${face}_${source}_${minLat.toFixed(1)}_${maxLat.toFixed(1)}_${minLon.toFixed(1)}_${maxLon.toFixed(1)}_${resolution}`;
+  const cached = terrainTileCache.get(key);
+  if (cached && Date.now() - cached.ts < TILE_CACHE_TTL) {
+    return cached.h;
+  }
+  try {
+    const data = await apiGet<{ heights: number[] }>(
+      "/api/v1/aethermap/terrain",
+      {
+        min_lat: String(minLat),
+        max_lat: String(maxLat),
+        min_lon: String(minLon),
+        max_lon: String(maxLon),
+        resolution: String(resolution),
+        source: source,
+      },
+      { timeoutMs: 1500 },
+    );
+    const heights = new Float32Array(data.heights);
+    terrainTileCache.set(key, { h: heights, ts: Date.now() });
+    return heights;
+  } catch {
+    return null;
+  }
 }
 
 function sampleTerrainTile(
@@ -1300,7 +1300,14 @@ onMounted(async () => {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        bitmap,
+      );
       useEarthTexture = true;
     } catch {
       useEarthTexture = false;
@@ -1417,7 +1424,10 @@ onMounted(async () => {
   });
   resizeObserver.observe(canvasEl.parentElement!);
   requestAnimationFrame(() => {
-    applyResize(canvasEl.parentElement!.clientWidth, canvasEl.parentElement!.clientHeight);
+    applyResize(
+      canvasEl.parentElement!.clientWidth,
+      canvasEl.parentElement!.clientHeight,
+    );
   });
 
   const sunDir = normalize3([0.6, 0.8, 0.4]);
