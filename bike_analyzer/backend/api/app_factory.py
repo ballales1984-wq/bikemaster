@@ -360,6 +360,8 @@ def create_app() -> FastAPI:
         if origin:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Accept, Accept-Language, Authorization, Content-Language, Content-Type, X-Requested-With, X-User-Api-Keys"
         return response
 
     @app.exception_handler(ValidationError)
