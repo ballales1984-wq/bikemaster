@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { rm, stat } from 'node:fs/promises'
+import { rm, stat, readdir, cp } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
@@ -36,11 +36,38 @@ function runViteBuild() {
   })
 }
 
+async function copyToStatic() {
+  const src = resolve(root, 'dist')
+  const dst = resolve(root, '..', 'bike_analyzer', 'backend', 'static')
+  try {
+    await stat(dst)
+  } catch {
+    await rm(dst, { recursive: true, force: true })
+  }
+  const items = await readdir(src, { withFileTypes: true })
+  for (const item of items) {
+    const srcPath = resolve(src, item.name)
+    const dstPath = resolve(dst, item.name)
+    try {
+      if (item.isDirectory()) {
+        await rm(dstPath, { recursive: true, force: true })
+      } else {
+        await rm(dstPath, { force: true })
+      }
+    } catch {
+      /* ignore missing destination */
+    }
+    await cp(srcPath, dstPath, { recursive: true, force: true })
+  }
+  console.log('[safe-build] copied dist -> bike_analyzer/backend/static')
+}
+
 async function main() {
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     await clearDist()
     const { code, signal } = await runViteBuild()
     if (code === 0 && !signal) {
+      await copyToStatic()
       process.exit(0)
     }
     if (attempt < MAX_ATTEMPTS) {
